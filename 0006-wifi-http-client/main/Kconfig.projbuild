@@ -1,0 +1,46 @@
+menu "Tutorial 0006: WiFi + HTTP Client"
+
+config TUTORIAL_0006_WIFI_SSID
+    string "WiFi SSID"
+    default ""
+    help
+        SSID for WiFi station connection.
+
+config TUTORIAL_0006_WIFI_PASSWORD
+    string "WiFi password"
+    default ""
+    help
+        Password for WiFi station connection.
+
+config TUTORIAL_0006_WIFI_MAX_RETRY
+    int "Max reconnect retries"
+    range 0 50
+    default 5
+    help
+        Maximum number of reconnect retries before giving up.
+
+config TUTORIAL_0006_HTTP_URL
+    string "HTTP URL (http:// or https://)"
+    default "http://example.com/"
+    help
+        URL to fetch periodically.
+        - For HTTPS, we attach the ESP-IDF certificate bundle, but TLS may still fail
+          if the system time is not set (certificate validity checks).
+
+config TUTORIAL_0006_HTTP_TIMEOUT_MS
+    int "HTTP timeout (ms)"
+    range 100 60000
+    default 5000
+    help
+        Timeout passed to esp_http_client (in milliseconds).
+
+config TUTORIAL_0006_HTTP_PERIOD_MS
+    int "Fetch period (ms)"
+    range 100 3600000
+    default 10000
+    help
+        How often to perform the request (in milliseconds).
+
+endmenu
+
+

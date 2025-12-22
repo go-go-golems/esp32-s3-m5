@@ -1,0 +1,6 @@
+- echo back keyboard from cardputer
+- display a short animation on the atoms3r with screen
+- forth interpreter on the cardputer
+- serial console
+- chiptune player
+- sd card reader

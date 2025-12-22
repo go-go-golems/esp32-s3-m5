@@ -1,0 +1,24 @@
+menu "Tutorial 0005: WiFi + Event Loop"
+
+config TUTORIAL_0005_WIFI_SSID
+    string "WiFi SSID"
+    default ""
+    help
+        SSID for WiFi station connection.
+
+config TUTORIAL_0005_WIFI_PASSWORD
+    string "WiFi password"
+    default ""
+    help
+        Password for WiFi station connection.
+
+config TUTORIAL_0005_WIFI_MAX_RETRY
+    int "Max reconnect retries"
+    range 0 50
+    default 5
+    help
+        Maximum number of reconnect retries before giving up.
+
+endmenu
+
+

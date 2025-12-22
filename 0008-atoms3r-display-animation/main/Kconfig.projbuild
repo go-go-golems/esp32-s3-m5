@@ -1,0 +1,61 @@
+menu "Tutorial 0008: ATOMS3R Display Animation"
+
+config TUTORIAL_0008_LCD_HRES
+    int "Horizontal resolution"
+    range 1 1024
+    default 128
+    help
+        LCD horizontal resolution.
+
+config TUTORIAL_0008_LCD_VRES
+    int "Vertical resolution"
+    range 1 1024
+    default 128
+    help
+        LCD vertical resolution.
+
+config TUTORIAL_0008_LCD_X_OFFSET
+    int "X offset (panel RAM window)"
+    range 0 64
+    default 0
+    help
+        Optional x-offset if the controller's visible window is shifted.
+        Common ST7789 128x128 offsets are 0 or 2.
+
+config TUTORIAL_0008_LCD_Y_OFFSET
+    int "Y offset (panel RAM window)"
+    range 0 64
+    default 0
+    help
+        Optional y-offset if the controller's visible window is shifted.
+        Common ST7789 128x128 offsets are 0 or 1.
+
+config TUTORIAL_0008_LCD_INVERT_COLOR
+    bool "Invert colors"
+    default n
+    help
+        Some panels require color inversion to look correct.
+
+config TUTORIAL_0008_LCD_COLOR_SPACE_BGR
+    bool "Use BGR color space (instead of RGB)"
+    default y
+    help
+        Many ST7789 panels use BGR ordering. Toggle if colors look swapped.
+
+config TUTORIAL_0008_LCD_SPI_PCLK_HZ
+    int "SPI pixel clock (Hz)"
+    range 1000000 80000000
+    default 40000000
+    help
+        SPI clock for LCD transfers. Start conservative (e.g. 26-40MHz).
+
+config TUTORIAL_0008_FRAME_DELAY_MS
+    int "Frame delay (ms)"
+    range 1 1000
+    default 33
+    help
+        Delay between frames. 33ms ~ 30fps.
+
+endmenu
+
+
