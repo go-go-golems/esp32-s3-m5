@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AtomS3R Tutorial 0008 — Expected Animation Preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell,
+          "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+        background: #0b0f14;
+        color: #e6edf3;
+      }
+      .wrap {
+        max-width: 980px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+      p {
+        margin: 8px 0 16px;
+        color: #9fb0c0;
+        line-height: 1.4;
+      }
+      .row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+      canvas {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 8px;
+        background: #000;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+      .panel {
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.10);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        min-width: 260px;
+      }
+      label {
+        display: block;
+        font-size: 12px;
+        color: #c6d4e1;
+        margin: 10px 0 6px;
+      }
+      input[type="range"] {
+        width: 100%;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        color: #c6d4e1;
+      }
+      button {
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6edf3;
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.10);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>AtomS3R Tutorial 0008 — Expected Animation Preview</h1>
+      <p>
+        This page reproduces the exact pixel math from
+        <span class="mono">draw_frame()</span> in
+        <span class="mono">esp32-s3-m5/0008-atoms3r-display-animation</span> so you can compare
+        what the device <em>should</em> show: a continuously shifting, full-frame gradient.
+      </p>
+
+      <div class="row">
+        <div>
+          <canvas id="c" width="128" height="128"></canvas>
+        </div>
+
+        <div class="panel">
+          <div class="row" style="gap: 8px; align-items: center">
+            <button id="toggle">Pause</button>
+            <button id="reset">Reset t</button>
+          </div>
+
+          <label for="scale">Scale</label>
+          <input id="scale" type="range" min="2" max="10" value="5" />
+          <div class="mono" id="scaleLabel"></div>
+
+          <label for="fps">Target FPS</label>
+          <input id="fps" type="range" min="5" max="60" value="30" />
+          <div class="mono" id="fpsLabel"></div>
+
+          <label for="tStep">t step per frame (ESP-IDF demo uses 3)</label>
+          <input id="tStep" type="range" min="1" max="12" value="3" />
+          <div class="mono" id="tStepLabel"></div>
+
+          <label>Notes</label>
+          <div class="mono">
+            - Expected: smooth, shifting rainbow-ish gradient<br />
+            - If your LCD is black with backlight on, the math loop is likely running but pixels are not reaching GRAM.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Mirrors the ESP-IDF C demo:
+      // r = (x*2 + t) & 0xFF
+      // g = (y*2 + (t>>1)) & 0xFF
+      // b = (((x+y)*2 + (t>>2)) & 0xFF)
+      //
+      // The device sends RGB565; here we render as 8-bit RGB for visualization.
+
+      const W = 128;
+      const H = 128;
+
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const img = ctx.createImageData(W, H);
+      const data = img.data;
+
+      const toggleBtn = document.getElementById("toggle");
+      const resetBtn = document.getElementById("reset");
+      const scale = document.getElementById("scale");
+      const fps = document.getElementById("fps");
+      const tStep = document.getElementById("tStep");
+      const scaleLabel = document.getElementById("scaleLabel");
+      const fpsLabel = document.getElementById("fpsLabel");
+      const tStepLabel = document.getElementById("tStepLabel");
+
+      let running = true;
+      let t = 0;
+      let last = performance.now();
+      let acc = 0;
+
+      function applyScale() {
+        const s = Number(scale.value);
+        canvas.style.width = `${W * s}px`;
+        canvas.style.height = `${H * s}px`;
+        scaleLabel.textContent = `${W}×${H} × ${s} = ${W * s}×${H * s}`;
+      }
+      function applyLabels() {
+        fpsLabel.textContent = `~${fps.value} fps`;
+        tStepLabel.textContent = `t += ${tStep.value}`;
+      }
+
+      function drawFrame() {
+        const tt = t | 0;
+        let i = 0;
+        for (let y = 0; y < H; y++) {
+          const gBase = (y * 2 + (tt >> 1)) & 0xff;
+          for (let x = 0; x < W; x++) {
+            const r = (x * 2 + tt) & 0xff;
+            const g = gBase;
+            const b = (((x + y) * 2 + (tt >> 2)) & 0xff) >>> 0;
+
+            data[i++] = r;
+            data[i++] = g;
+            data[i++] = b;
+            data[i++] = 255;
+          }
+        }
+        ctx.putImageData(img, 0, 0);
+      }
+
+      function loop(now) {
+        const dt = now - last;
+        last = now;
+        if (running) {
+          const targetDt = 1000 / Number(fps.value);
+          acc += dt;
+          while (acc >= targetDt) {
+            acc -= targetDt;
+            t = (t + Number(tStep.value)) | 0;
+          }
+          drawFrame();
+        }
+        requestAnimationFrame(loop);
+      }
+
+      toggleBtn.addEventListener("click", () => {
+        running = !running;
+        toggleBtn.textContent = running ? "Pause" : "Play";
+      });
+      resetBtn.addEventListener("click", () => {
+        t = 0;
+      });
+
+      scale.addEventListener("input", applyScale);
+      fps.addEventListener("input", applyLabels);
+      tStep.addEventListener("input", applyLabels);
+
+      applyScale();
+      applyLabels();
+      drawFrame();
+      requestAnimationFrame(loop);
+    </script>
+  </body>
+</html>
+
+

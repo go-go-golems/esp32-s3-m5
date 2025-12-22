@@ -1,2 +1,7 @@
 build/
 .envrc
+.vscode
+managed_components
+.cache
+.history
+.pio
