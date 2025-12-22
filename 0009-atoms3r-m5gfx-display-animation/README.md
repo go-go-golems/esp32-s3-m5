@@ -58,4 +58,12 @@ This project does **not** copy M5GFX into the tutorial directory. Instead it use
 
 So `0009` stays small, but we reuse the exact M5GFX code we already vendor in the repo.
 
+#### ESP-IDF 5.4.x compatibility note
+
+On ESP-IDF 5.4.1, the vendored M5GFX code needed a small compatibility fix in:
+
+- `M5Cardputer-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/common.cpp`
+
+Specifically, ESP-IDF 5.x removed the `.module` field from `i2c_signal_conn_t`, so the code now maps I2C port number → `PERIPH_I2C{0,1}_MODULE` instead.
+
 

@@ -65,14 +65,15 @@ static esp_err_t backlight_i2c_init(void) {
              (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_REG);
 
     if (!s_bl_bus) {
-        i2c_master_bus_config_t bus_cfg = {
-            .clk_source = I2C_CLK_SRC_DEFAULT,
-            .i2c_port = I2C_NUM_0,
-            .scl_io_num = CONFIG_TUTORIAL_0009_BL_I2C_SCL_GPIO,
-            .sda_io_num = CONFIG_TUTORIAL_0009_BL_I2C_SDA_GPIO,
-            .glitch_ignore_cnt = 7,
-            .flags.enable_internal_pullup = true,
-        };
+        // Note: this is C++ (gnu++2b). Avoid nested designated initializers.
+        i2c_master_bus_config_t bus_cfg = {};
+        bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
+        bus_cfg.i2c_port = I2C_NUM_0;
+        bus_cfg.scl_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SCL_GPIO;
+        bus_cfg.sda_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SDA_GPIO;
+        bus_cfg.glitch_ignore_cnt = 7;
+        bus_cfg.flags.enable_internal_pullup = true;
+
         esp_err_t err = i2c_new_master_bus(&bus_cfg, &s_bl_bus);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(err));
@@ -81,11 +82,10 @@ static esp_err_t backlight_i2c_init(void) {
     }
 
     if (!s_bl_dev) {
-        i2c_device_config_t dev_cfg = {
-            .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-            .device_address = CONFIG_TUTORIAL_0009_BL_I2C_ADDR,
-            .scl_speed_hz = 400000,
-        };
+        i2c_device_config_t dev_cfg = {};
+        dev_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+        dev_cfg.device_address = CONFIG_TUTORIAL_0009_BL_I2C_ADDR;
+        dev_cfg.scl_speed_hz = 400000;
         esp_err_t err = i2c_master_bus_add_device(s_bl_bus, &dev_cfg, &s_bl_dev);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "i2c_master_bus_add_device failed (addr=0x%02x): %s",
