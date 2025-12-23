@@ -1,0 +1,154 @@
+menu "Tutorial 0012: Cardputer Typewriter (keyboard -> on-screen text)"
+
+config TUTORIAL_0012_PRESENT_WAIT_DMA
+    bool "Wait for DMA completion after present (avoid tearing)"
+    default y
+    help
+        When enabled, each present is followed by display.waitDMA() so we don't
+        start rendering into a buffer that is still being transferred.
+
+config TUTORIAL_0012_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+    help
+        When disabled, LovyanGFX allocates sprite buffers using DMA-capable memory,
+        which is safest for full-frame updates.
+
+config TUTORIAL_0012_LOG_EVERY_N_EVENTS
+    int "Log heartbeat every N key events (0=disabled)"
+    range 0 100000
+    default 0
+
+config TUTORIAL_0012_MAX_LINES
+    int "Maximum stored lines in buffer"
+    range 16 4096
+    default 256
+
+config TUTORIAL_0012_SCAN_PERIOD_MS
+    int "Keyboard scan period (ms)"
+    range 1 1000
+    default 10
+    help
+        How often to scan the keyboard matrix.
+
+config TUTORIAL_0012_DEBOUNCE_MS
+    int "Per-key debounce (ms)"
+    range 0 1000
+    default 30
+    help
+        Minimum time between emitting the same key again (per key position).
+        This is a simple debounce guardrail.
+
+config TUTORIAL_0012_SCAN_SETTLE_US
+    int "Settle delay after changing scan outputs (us)"
+    range 0 1000
+    default 30
+    help
+        Small delay after updating the 3 output pins before reading input pins.
+        Some boards/wiring benefit from a short settle time.
+
+config TUTORIAL_0012_AUTODETECT_IN01
+    bool "Autodetect IN0/IN1 pins (13/15 vs 1/2)"
+    default y
+    help
+        Some Cardputer revisions appear to route keyboard IN0/IN1 to GPIO1/GPIO2 instead of GPIO13/GPIO15.
+        When enabled, the firmware will automatically switch to the alternate pin pair if key activity is detected there.
+
+config TUTORIAL_0012_KB_ALT_IN0_GPIO
+    int "Alt IN0 GPIO (autodetect)"
+    range 0 48
+    default 1
+    depends on TUTORIAL_0012_AUTODETECT_IN01
+
+config TUTORIAL_0012_KB_ALT_IN1_GPIO
+    int "Alt IN1 GPIO (autodetect)"
+    range 0 48
+    default 2
+    depends on TUTORIAL_0012_AUTODETECT_IN01
+
+config TUTORIAL_0012_DEBUG_RAW_SCAN
+    bool "Debug: log raw scan masks when keys are detected"
+    default n
+    help
+        When enabled, logs the raw per-scan-state input mask whenever a key press is detected.
+
+config TUTORIAL_0012_LOG_KEY_EVENTS
+    bool "Debug: log a line for every key press event"
+    default n
+    help
+        When enabled, prints an ESP_LOGI line for every emitted key press event.
+
+config TUTORIAL_0012_KB_OUT0_GPIO
+    int "Keyboard OUT0 GPIO"
+    range 0 48
+    default 8
+    help
+        Keyboard scan output pin 0 (Cardputer default: 8).
+
+config TUTORIAL_0012_KB_OUT1_GPIO
+    int "Keyboard OUT1 GPIO"
+    range 0 48
+    default 9
+    help
+        Keyboard scan output pin 1 (Cardputer default: 9).
+
+config TUTORIAL_0012_KB_OUT2_GPIO
+    int "Keyboard OUT2 GPIO"
+    range 0 48
+    default 11
+    help
+        Keyboard scan output pin 2 (Cardputer default: 11).
+
+config TUTORIAL_0012_KB_IN0_GPIO
+    int "Keyboard IN0 GPIO"
+    range 0 48
+    default 13
+    help
+        Keyboard scan input pin 0 (Cardputer default: 13).
+
+config TUTORIAL_0012_KB_IN1_GPIO
+    int "Keyboard IN1 GPIO"
+    range 0 48
+    default 15
+    help
+        Keyboard scan input pin 1 (Cardputer default: 15).
+
+config TUTORIAL_0012_KB_IN2_GPIO
+    int "Keyboard IN2 GPIO"
+    range 0 48
+    default 3
+    help
+        Keyboard scan input pin 2 (Cardputer default: 3).
+
+config TUTORIAL_0012_KB_IN3_GPIO
+    int "Keyboard IN3 GPIO"
+    range 0 48
+    default 4
+    help
+        Keyboard scan input pin 3 (Cardputer default: 4).
+
+config TUTORIAL_0012_KB_IN4_GPIO
+    int "Keyboard IN4 GPIO"
+    range 0 48
+    default 5
+    help
+        Keyboard scan input pin 4 (Cardputer default: 5).
+
+config TUTORIAL_0012_KB_IN5_GPIO
+    int "Keyboard IN5 GPIO"
+    range 0 48
+    default 6
+    help
+        Keyboard scan input pin 5 (Cardputer default: 6).
+
+config TUTORIAL_0012_KB_IN6_GPIO
+    int "Keyboard IN6 GPIO"
+    range 0 48
+    default 7
+    help
+        Keyboard scan input pin 6 (Cardputer default: 7).
+
+endmenu
+
+
+
