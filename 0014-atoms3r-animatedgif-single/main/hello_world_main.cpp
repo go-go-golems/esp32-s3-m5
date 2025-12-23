@@ -39,6 +39,7 @@
 #include "AnimatedGIF.h"
 
 #include "assets/green.h"
+#include "assets/homer_tiny.h"
 
 static const char *TAG = "atoms3r_animatedgif_single";
 
@@ -415,12 +416,25 @@ extern "C" void app_main(void) {
     // Decode output for RAW mode is palettized indices; we translate through the RGB565 palette.
     s_gif.begin(GIF_PALETTE_RGB565_LE);
     // NOTE: AnimatedGIF::open() returns 1 on success, 0 on failure (it is not a GIF_* error code).
-    const int open_ok = s_gif.open((uint8_t *)green, (int)sizeof(green), GIFDraw);
+    // Use a multi-frame asset by default so we can visually confirm animation.
+    const uint8_t *gif_bytes = (const uint8_t *)homer_tiny;
+    const int gif_size = (int)sizeof(homer_tiny);
+    const int open_ok = s_gif.open((uint8_t *)gif_bytes, gif_size, GIFDraw);
     if (!open_ok) {
         const int err = s_gif.getLastError();
         ESP_LOGE(TAG, "gif open failed: open_ok=%d last_error=%d", open_ok, err);
         return;
     }
+
+    GIFINFO info = {};
+    const int info_rc = s_gif.getInfo(&info);
+    ESP_LOGI(TAG, "gif info: rc=%d frames=%" PRIi32 " duration_ms=%" PRIi32 " delay_min=%" PRIi32 " delay_max=%" PRIi32 " loop_count=%d",
+             info_rc,
+             info.iFrameCount,
+             info.iDuration,
+             info.iMinDelay,
+             info.iMaxDelay,
+             s_gif.getLoopCount());
 
     ESP_LOGI(TAG, "gif open ok: canvas=%dx%d frame=%dx%d off=(%d,%d)",
              s_gif.getCanvasWidth(),
