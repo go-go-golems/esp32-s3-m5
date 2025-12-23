@@ -1,0 +1,29 @@
+menu "Tutorial 0011: Cardputer M5GFX Plasma Animation (ST7789)"
+
+config TUTORIAL_0011_FRAME_DELAY_MS
+    int "Frame delay (ms)"
+    range 0 1000
+    default 16
+
+config TUTORIAL_0011_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+    help
+        When disabled, LovyanGFX allocates sprite buffers using DMA-capable memory,
+        which is safest for full-frame updates.
+
+config TUTORIAL_0011_PRESENT_WAIT_DMA
+    bool "Wait for DMA completion after present (avoid frame flutter)"
+    default y
+    help
+        When enabled, each frame present is followed by display.waitDMA() so we don't
+        start rendering into a buffer that is still being transferred.
+
+config TUTORIAL_0011_LOG_EVERY_N_FRAMES
+    int "Log heartbeat every N frames (0=disabled)"
+    range 0 10000
+    default 60
+
+endmenu
+
+
