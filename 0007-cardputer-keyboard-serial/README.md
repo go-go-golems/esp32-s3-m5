@@ -42,6 +42,8 @@ This firmware echoes typed characters **inline** after the prompt (it does **not
 
 - With `idf.py monitor`, you should usually see inline characters immediately.
 - Some IDE consoles / log capture layers are **line-buffered** and won’t display partial lines until a newline appears. In that case, the typed characters may “show up all at once” only after you press `enter`.
+- On some Cardputer setups, the ESP-IDF console may be configured as **UART primary + USB-Serial-JTAG secondary**, which can make `stdout`/inline echo behavior confusing when you’re only watching `/dev/ttyACM*`.
+  - This tutorial now writes inline echo bytes directly to the **USB-Serial-JTAG** driver as well (when enabled), so you should see realtime echo over `/dev/ttyACM*` with both `idf.py monitor` and `screen`.
 
 Workarounds:
 

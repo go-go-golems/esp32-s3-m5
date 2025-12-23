@@ -13,6 +13,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_rom_sys.h"
+#include "driver/usb_serial_jtag.h"
 
 static const char *TAG = "cardputer_keyboard";
 
@@ -189,13 +190,27 @@ static void serial_write_str(const char *s) {
     if (s == NULL) {
         return;
     }
+    // stdout may be routed to UART, while Cardputer users often monitor via USB-Serial-JTAG (ttyACM*).
+    // To make "inline echo" visible in that setup, also write directly to the USB-Serial-JTAG driver when enabled.
     fputs(s, stdout);
     fflush(stdout);
+
+#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED
+    if (usb_serial_jtag_is_driver_installed()) {
+        (void)usb_serial_jtag_write_bytes((const void *)s, strlen(s), 0);
+    }
+#endif
 }
 
 static void serial_write_ch(char c) {
     fputc((int)c, stdout);
     fflush(stdout);
+
+#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED
+    if (usb_serial_jtag_is_driver_installed()) {
+        (void)usb_serial_jtag_write_bytes((const void *)&c, 1, 0);
+    }
+#endif
 }
 
 static void keyboard_echo_task(void *arg) {
