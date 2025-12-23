@@ -414,9 +414,11 @@ extern "C" void app_main(void) {
 
     // Decode output for RAW mode is palettized indices; we translate through the RGB565 palette.
     s_gif.begin(GIF_PALETTE_RGB565_LE);
-    int open_rc = s_gif.open((uint8_t *)green, (int)sizeof(green), GIFDraw);
-    if (open_rc != GIF_SUCCESS) {
-        ESP_LOGE(TAG, "gif open failed: rc=%d", open_rc);
+    // NOTE: AnimatedGIF::open() returns 1 on success, 0 on failure (it is not a GIF_* error code).
+    const int open_ok = s_gif.open((uint8_t *)green, (int)sizeof(green), GIFDraw);
+    if (!open_ok) {
+        const int err = s_gif.getLastError();
+        ESP_LOGE(TAG, "gif open failed: open_ok=%d last_error=%d", open_ok, err);
         return;
     }
 
@@ -444,7 +446,8 @@ extern "C" void app_main(void) {
 #endif
 
         int delay_ms = 0;
-        if (s_gif.playFrame(false, &delay_ms, &ctx)) {
+        const int prc = s_gif.playFrame(false, &delay_ms, &ctx);
+        if (prc > 0) {
             present_canvas(canvas);
 
             // Some GIFs use 0 delay; keep the task yielding and prevent a tight loop.
@@ -452,10 +455,16 @@ extern "C" void app_main(void) {
                 delay_ms = 10;
             }
             vTaskDelay(pdMS_TO_TICKS(delay_ms));
-        } else {
+        } else if (prc == 0) {
             // End of file: restart.
             canvas.fillScreen(TFT_BLACK);
             s_gif.reset();
+        } else { // prc < 0
+            const int err = s_gif.getLastError();
+            ESP_LOGE(TAG, "gif playFrame failed: last_error=%d", err);
+            canvas.fillScreen(TFT_BLACK);
+            s_gif.reset();
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 }
