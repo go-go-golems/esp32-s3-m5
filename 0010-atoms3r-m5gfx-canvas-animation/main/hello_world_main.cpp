@@ -330,16 +330,23 @@ static void build_plasma_tables(uint8_t sin8[256], uint16_t palette[256]) {
 
 static inline void draw_plasma(uint16_t *dst565, int w, int h, uint32_t t,
                                const uint8_t sin8[256], const uint16_t palette[256]) {
-    // Deterministic plasma: mix a few phase-shifted sin waves, palette-map to RGB565.
-    for (int y = 0; y < h; y++) {
-        const uint8_t by = (uint8_t)((y * 4 + (int)t) & 0xFF);
-        const uint8_t cy = (uint8_t)((y * 2 + (int)(t >> 1)) & 0xFF);
-        for (int x = 0; x < w; x++) {
-            const uint8_t ax = (uint8_t)((x * 4 + (int)t) & 0xFF);
-            const uint8_t cx = (uint8_t)(((x + y) * 2 + (int)t) & 0xFF);
+    // Classic plasma: mix multiple sine waves with different frequencies, speeds, and directions.
+    // This creates organic "blobs" that flow independently rather than a static pattern scrolling.
+    const uint8_t t1 = (uint8_t)(t & 0xFF);
+    const uint8_t t2 = (uint8_t)((t >> 1) & 0xFF);
+    const uint8_t t3 = (uint8_t)((t >> 2) & 0xFF);
+    const uint8_t t4 = (uint8_t)((t * 3) & 0xFF);
 
-            const uint16_t sum = (uint16_t)sin8[ax] + (uint16_t)sin8[by] + (uint16_t)sin8[cx] + (uint16_t)sin8[cy];
-            const uint8_t idx = (uint8_t)(sum >> 2); // /4 -> 0..255
+    for (int y = 0; y < h; y++) {
+        for (int x = 0; x < w; x++) {
+            // Mix 4 sine waves with different spatial frequencies and time offsets
+            const uint8_t v1 = sin8[(uint8_t)(x * 3 + t1)];
+            const uint8_t v2 = sin8[(uint8_t)(y * 4 + t2)];
+            const uint8_t v3 = sin8[(uint8_t)((x * 2 + y * 2) + t3)];
+            const uint8_t v4 = sin8[(uint8_t)((x - y) * 2 + t4)];
+
+            const uint16_t sum = (uint16_t)v1 + (uint16_t)v2 + (uint16_t)v3 + (uint16_t)v4;
+            const uint8_t idx = (uint8_t)(sum >> 2); // average /4 -> 0..255
             dst565[y * w + x] = palette[idx];
         }
     }
