@@ -23,7 +23,7 @@
 #include "freertos/task.h"
 
 #include "driver/gpio.h"
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 
 #include "esp_err.h"
 #include "esp_heap_caps.h"
@@ -48,53 +48,96 @@ static constexpr int PIN_LCD_RST = 48;
 // Backlight helpers (optional)
 // -------------------------
 
-static i2c_master_bus_handle_t s_bl_bus = nullptr;
-static i2c_master_dev_handle_t s_bl_dev = nullptr;
+static bool s_bl_i2c_inited = false;
+static constexpr i2c_port_t BL_I2C_PORT = I2C_NUM_0;
+
+static esp_err_t backlight_i2c_write_reg_u8(uint8_t reg, uint8_t value) {
+#if CONFIG_TUTORIAL_0009_BACKLIGHT_I2C_ENABLE
+    uint8_t buf[2] = {reg, value};
+    return i2c_master_write_to_device(
+        BL_I2C_PORT,
+        (uint8_t)CONFIG_TUTORIAL_0009_BL_I2C_ADDR,
+        buf,
+        sizeof(buf),
+        pdMS_TO_TICKS(1000));
+#else
+    (void)reg;
+    (void)value;
+    return ESP_OK;
+#endif
+}
 
 static esp_err_t backlight_i2c_init(void) {
 #if CONFIG_TUTORIAL_0009_BACKLIGHT_I2C_ENABLE
-    if (s_bl_bus && s_bl_dev) {
+    if (s_bl_i2c_inited) {
         return ESP_OK;
     }
 
     ESP_LOGI(TAG, "backlight i2c init: port=%d scl=%d sda=%d addr=0x%02x reg=0x%02x",
-             (int)I2C_NUM_0,
+             (int)BL_I2C_PORT,
              CONFIG_TUTORIAL_0009_BL_I2C_SCL_GPIO,
              CONFIG_TUTORIAL_0009_BL_I2C_SDA_GPIO,
              (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_ADDR,
              (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_REG);
 
-    if (!s_bl_bus) {
-        // Note: this is C++ (gnu++2b). Avoid nested designated initializers.
-        i2c_master_bus_config_t bus_cfg = {};
-        bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
-        bus_cfg.i2c_port = I2C_NUM_0;
-        bus_cfg.scl_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SCL_GPIO;
-        bus_cfg.sda_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SDA_GPIO;
-        bus_cfg.glitch_ignore_cnt = 7;
-        bus_cfg.flags.enable_internal_pullup = true;
+    // NOTE: We intentionally use the legacy I2C driver here because M5GFX/LovyanGFX
+    // links against the legacy driver (`driver/i2c.h`). Mixing legacy + new driver_ng
+    // aborts during startup via a constructor in ESP-IDF 5.x.
+    //
+    // If you migrate M5GFX to `driver/i2c_master.h`, you can switch this back too.
+    i2c_config_t conf = {};
+    conf.mode = I2C_MODE_MASTER;
+    conf.scl_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SCL_GPIO;
+    conf.sda_io_num = (gpio_num_t)CONFIG_TUTORIAL_0009_BL_I2C_SDA_GPIO;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = 400000;
 
-        esp_err_t err = i2c_new_master_bus(&bus_cfg, &s_bl_bus);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(err));
-            return err;
-        }
+    esp_err_t err = i2c_param_config(BL_I2C_PORT, &conf);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_param_config failed: %s", esp_err_to_name(err));
+        return err;
     }
 
-    if (!s_bl_dev) {
-        i2c_device_config_t dev_cfg = {};
-        dev_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-        dev_cfg.device_address = CONFIG_TUTORIAL_0009_BL_I2C_ADDR;
-        dev_cfg.scl_speed_hz = 400000;
-        esp_err_t err = i2c_master_bus_add_device(s_bl_bus, &dev_cfg, &s_bl_dev);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "i2c_master_bus_add_device failed (addr=0x%02x): %s",
-                     (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_ADDR,
-                     esp_err_to_name(err));
-            return err;
-        }
+    err = i2c_driver_install(BL_I2C_PORT, conf.mode, 0, 0, 0);
+    if (err == ESP_ERR_INVALID_STATE) {
+        // Already installed by some other component (e.g. M5GFX board init).
+        err = ESP_OK;
+    }
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "i2c_driver_install failed: %s", esp_err_to_name(err));
+        return err;
     }
 
+    // AtomS3R backlight init sequence (mirrors M5GFX's Light_M5StackAtomS3R):
+    // - I2C addr 0x30 (decimal 48)
+    // - reg 0x00 := 0b0100_0000
+    // - reg 0x08 := 0b0000_0001
+    // - reg 0x70 := 0b0000_0000
+    // Then brightness is written to reg 0x0e.
+    ESP_LOGI(TAG, "backlight i2c chip init: addr=0x%02x (reg 0x00/0x08/0x70)",
+             (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_ADDR);
+
+    err = backlight_i2c_write_reg_u8(0x00, 0x40);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "backlight i2c init write reg 0x00 failed: %s", esp_err_to_name(err));
+        return err;
+    }
+    vTaskDelay(pdMS_TO_TICKS(1));
+
+    err = backlight_i2c_write_reg_u8(0x08, 0x01);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "backlight i2c init write reg 0x08 failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = backlight_i2c_write_reg_u8(0x70, 0x00);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "backlight i2c init write reg 0x70 failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    s_bl_i2c_inited = true;
     return ESP_OK;
 #else
     return ESP_OK;
@@ -107,18 +150,14 @@ static esp_err_t backlight_i2c_set(uint8_t brightness) {
     if (err != ESP_OK) {
         return err;
     }
-    if (!s_bl_dev) {
-        return ESP_ERR_INVALID_STATE;
-    }
 
     ESP_LOGI(TAG, "backlight i2c set: reg=0x%02x value=%u",
              (unsigned)CONFIG_TUTORIAL_0009_BL_I2C_REG,
              (unsigned)brightness);
 
-    uint8_t buf[2] = {(uint8_t)CONFIG_TUTORIAL_0009_BL_I2C_REG, brightness};
-    err = i2c_master_transmit(s_bl_dev, buf, sizeof(buf), 1000);
+    err = backlight_i2c_write_reg_u8((uint8_t)CONFIG_TUTORIAL_0009_BL_I2C_REG, brightness);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "i2c_master_transmit failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "i2c_master_write_to_device failed: %s", esp_err_to_name(err));
     }
     return err;
 #else
@@ -274,8 +313,23 @@ extern "C" void app_main(void) {
 
     backlight_enable_after_init();
 
+    // Visual sanity test: show solid colors before starting the animation.
+    // This helps distinguish "backlight/power flicker" from "frame update tearing".
+    ESP_LOGI(TAG, "visual test: solid colors (red/green/blue/white/black)");
+    s_display.fillScreen(TFT_RED);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    s_display.fillScreen(TFT_GREEN);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    s_display.fillScreen(TFT_BLUE);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    s_display.fillScreen(TFT_WHITE);
+    vTaskDelay(pdMS_TO_TICKS(500));
+    s_display.fillScreen(TFT_BLACK);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
     const size_t fb_bytes = (size_t)w * (size_t)h * sizeof(lgfx::rgb565_t);
-    auto *fb = (lgfx::rgb565_t *)heap_caps_malloc(fb_bytes, MALLOC_CAP_DEFAULT);
+    // Allocate the framebuffer in DMA-capable memory so we can use SPI DMA safely for full-frame pushes.
+    auto *fb = (lgfx::rgb565_t *)heap_caps_malloc(fb_bytes, MALLOC_CAP_DMA);
     if (!fb) {
         ESP_LOGE(TAG, "framebuffer alloc failed: %" PRIu32 " bytes", (uint32_t)fb_bytes);
         return;
@@ -290,10 +344,14 @@ extern "C" void app_main(void) {
     uint32_t last_tick = xTaskGetTickCount();
 #endif
 
+    ESP_LOGI(TAG, "starting animation loop (frame_delay_ms=%d)", CONFIG_TUTORIAL_0009_FRAME_DELAY_MS);
     while (true) {
         draw_frame(fb, w, h, t);
         // Full-frame blit
-        s_display.pushImage(0, 0, w, h, fb);
+        // Use DMA for the full-frame push, then explicitly wait for completion before modifying fb again.
+        // This avoids frame-rate "flutter" when the next frame starts before the previous SPI transfer finished.
+        s_display.pushImageDMA(0, 0, w, h, fb);
+        s_display.waitDMA();
         t += 3;
         vTaskDelay(pdMS_TO_TICKS(CONFIG_TUTORIAL_0009_FRAME_DELAY_MS));
 
