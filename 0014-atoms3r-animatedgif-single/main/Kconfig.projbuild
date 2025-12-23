@@ -59,14 +59,6 @@ endmenu
 
 menu "Tutorial 0014: GIF Render"
 
-config TUTORIAL_0014_GIF_USE_COOKED
-    bool "Use AnimatedGIF COOKED mode (framebuffer-assisted; better correctness)"
-    default y
-    help
-        Enables AnimatedGIF COOKED mode backed by allocFrameBuf(). This lets the library
-        handle disposal + transparency correctly and provides ready-to-blit RGB565 scanlines.
-        Recommended when you see artifacts that look like 'flutter' on real animated GIFs.
-
 config TUTORIAL_0014_GIF_SWAP_BYTES
     bool "Swap bytes of RGB565 pixels produced by AnimatedGIF"
     default y
