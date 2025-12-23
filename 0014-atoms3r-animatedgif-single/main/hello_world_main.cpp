@@ -447,7 +447,12 @@ extern "C" void app_main(void) {
 
         int delay_ms = 0;
         const int prc = s_gif.playFrame(false, &delay_ms, &ctx);
-        if (prc > 0) {
+        const int last_err = s_gif.getLastError();
+
+        // IMPORTANT: per AnimatedGIF docs:
+        // - playFrame() can return 0 even if it successfully rendered a frame (EOF reached right after).
+        //   In that case last_err will be GIF_SUCCESS and we still must present the canvas at least once.
+        if (prc > 0 || last_err == GIF_SUCCESS) {
             present_canvas(canvas);
 
             // Some GIFs use 0 delay; keep the task yielding and prevent a tight loop.
@@ -455,13 +460,15 @@ extern "C" void app_main(void) {
                 delay_ms = 10;
             }
             vTaskDelay(pdMS_TO_TICKS(delay_ms));
-        } else if (prc == 0) {
-            // End of file: restart.
+        }
+
+        if (prc == 0) {
+            // End of file: restart. Ensure we yield even for single-frame GIFs.
             canvas.fillScreen(TFT_BLACK);
             s_gif.reset();
-        } else { // prc < 0
-            const int err = s_gif.getLastError();
-            ESP_LOGE(TAG, "gif playFrame failed: last_error=%d", err);
+            vTaskDelay(pdMS_TO_TICKS(1));
+        } else if (prc < 0) {
+            ESP_LOGE(TAG, "gif playFrame failed: last_error=%d", last_err);
             canvas.fillScreen(TFT_BLACK);
             s_gif.reset();
             vTaskDelay(pdMS_TO_TICKS(100));
