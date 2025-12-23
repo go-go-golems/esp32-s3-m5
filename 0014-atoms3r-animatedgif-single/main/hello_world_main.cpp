@@ -36,6 +36,10 @@
 #include "lgfx/v1/panel/Panel_GC9A01.hpp"
 #include "lgfx/v1/platforms/esp32/Bus_SPI.hpp"
 
+#include "AnimatedGIF.h"
+
+#include "assets/green.h"
+
 static const char *TAG = "atoms3r_animatedgif_single";
 
 // Fixed AtomS3R wiring.
@@ -294,6 +298,60 @@ static void present_canvas(M5Canvas &canvas) {
 #endif
 }
 
+typedef struct gif_render_ctx_tag {
+    M5Canvas *canvas;
+    int canvas_w;
+    int canvas_h;
+} GifRenderCtx;
+
+static AnimatedGIF s_gif;
+
+static void GIFDraw(GIFDRAW *pDraw) {
+    auto *ctx = (GifRenderCtx *)pDraw->pUser;
+    if (!ctx || !ctx->canvas) {
+        return;
+    }
+
+    const int y = pDraw->iY + pDraw->y;
+    if (y < 0 || y >= ctx->canvas_h) {
+        return;
+    }
+
+    int x = pDraw->iX;
+    int w = pDraw->iWidth;
+    int src_off = 0;
+    if (x < 0) {
+        src_off = -x;
+        x = 0;
+        w -= src_off;
+    }
+    if (x + w > ctx->canvas_w) {
+        w = ctx->canvas_w - x;
+    }
+    if (w <= 0) {
+        return;
+    }
+
+    auto *dst = (uint16_t *)ctx->canvas->getBuffer();
+    uint16_t *d = &dst[y * ctx->canvas_w + x];
+    const uint8_t *s = &pDraw->pPixels[src_off];
+    const uint16_t *pal = pDraw->pPalette;
+
+    if (pDraw->ucHasTransparency) {
+        const uint8_t t = pDraw->ucTransparent;
+        for (int i = 0; i < w; i++) {
+            const uint8_t idx = s[i];
+            if (idx != t) {
+                d[i] = pal[idx];
+            }
+        }
+    } else {
+        for (int i = 0; i < w; i++) {
+            d[i] = pal[s[i]];
+        }
+    }
+}
+
 extern "C" void app_main(void) {
     const int w = CONFIG_TUTORIAL_0014_LCD_HRES;
     const int h = CONFIG_TUTORIAL_0014_LCD_VRES;
@@ -346,13 +404,29 @@ extern "C" void app_main(void) {
              esp_get_free_heap_size(),
              (uint32_t)heap_caps_get_free_size(MALLOC_CAP_DMA));
 
-    // Placeholder frame: until AnimatedGIF is vendored + wired, keep a stable frame visible.
-    // The next implementation step will replace this loop with AnimatedGIF playback.
     canvas.fillScreen(TFT_BLACK);
-    canvas.setTextColor(TFT_WHITE);
-    canvas.setTextDatum(middle_center);
-    canvas.drawString("AnimatedGIF\nharness\n(0014)", w / 2, h / 2);
     present_canvas(canvas);
+
+    GifRenderCtx ctx = {};
+    ctx.canvas = &canvas;
+    ctx.canvas_w = w;
+    ctx.canvas_h = h;
+
+    // Decode output for RAW mode is palettized indices; we translate through the RGB565 palette.
+    s_gif.begin(GIF_PALETTE_RGB565_LE);
+    int open_rc = s_gif.open((uint8_t *)green, (int)sizeof(green), GIFDraw);
+    if (open_rc != GIF_SUCCESS) {
+        ESP_LOGE(TAG, "gif open failed: rc=%d", open_rc);
+        return;
+    }
+
+    ESP_LOGI(TAG, "gif open ok: canvas=%dx%d frame=%dx%d off=(%d,%d)",
+             s_gif.getCanvasWidth(),
+             s_gif.getCanvasHeight(),
+             s_gif.getFrameWidth(),
+             s_gif.getFrameHeight(),
+             s_gif.getFrameXOff(),
+             s_gif.getFrameYOff());
 
 #if CONFIG_TUTORIAL_0014_LOG_EVERY_N_FRAMES > 0
     uint32_t frame = 0;
@@ -368,7 +442,21 @@ extern "C" void app_main(void) {
                      (uint32_t)heap_caps_get_free_size(MALLOC_CAP_DMA));
         }
 #endif
-        vTaskDelay(pdMS_TO_TICKS(1000));
+
+        int delay_ms = 0;
+        if (s_gif.playFrame(false, &delay_ms, &ctx)) {
+            present_canvas(canvas);
+
+            // Some GIFs use 0 delay; keep the task yielding and prevent a tight loop.
+            if (delay_ms < 10) {
+                delay_ms = 10;
+            }
+            vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        } else {
+            // End of file: restart.
+            canvas.fillScreen(TFT_BLACK);
+            s_gif.reset();
+        }
     }
 }
 
