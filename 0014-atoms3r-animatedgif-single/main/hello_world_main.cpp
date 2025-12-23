@@ -303,6 +303,12 @@ typedef struct gif_render_ctx_tag {
     M5Canvas *canvas;
     int canvas_w;
     int canvas_h;
+    int gif_canvas_w;
+    int gif_canvas_h;
+    int scale_x;
+    int scale_y;
+    int off_x;
+    int off_y;
 } GifRenderCtx;
 
 static AnimatedGIF s_gif;
@@ -313,42 +319,61 @@ static void GIFDraw(GIFDRAW *pDraw) {
         return;
     }
 
-    const int y = pDraw->iY + pDraw->y;
-    if (y < 0 || y >= ctx->canvas_h) {
-        return;
-    }
-
-    int x = pDraw->iX;
-    int w = pDraw->iWidth;
-    int src_off = 0;
-    if (x < 0) {
-        src_off = -x;
-        x = 0;
-        w -= src_off;
-    }
-    if (x + w > ctx->canvas_w) {
-        w = ctx->canvas_w - x;
-    }
-    if (w <= 0) {
-        return;
-    }
-
     auto *dst = (uint16_t *)ctx->canvas->getBuffer();
-    uint16_t *d = &dst[y * ctx->canvas_w + x];
-    const uint8_t *s = &pDraw->pPixels[src_off];
+    const uint8_t *s = pDraw->pPixels;
     const uint16_t *pal = pDraw->pPalette;
 
-    if (pDraw->ucHasTransparency) {
-        const uint8_t t = pDraw->ucTransparent;
-        for (int i = 0; i < w; i++) {
-            const uint8_t idx = s[i];
-            if (idx != t) {
-                d[i] = pal[idx];
-            }
+    // Map this scanline into the output canvas. We treat AnimatedGIF coordinates as being
+    // relative to the GIF canvas, then scale/offset into our 128x128 screen canvas.
+    const int src_y = pDraw->iY + pDraw->y;
+    const int src_x0 = pDraw->iX;
+    const int src_w = pDraw->iWidth;
+
+    // Nearest-neighbor scaling (integer scale factors).
+    const int sx = (ctx->scale_x > 0) ? ctx->scale_x : 1;
+    const int sy = (ctx->scale_y > 0) ? ctx->scale_y : 1;
+
+    const int dst_y0 = ctx->off_y + src_y * sy;
+    for (int dy = 0; dy < sy; dy++) {
+        const int y = dst_y0 + dy;
+        if ((unsigned)y >= (unsigned)ctx->canvas_h) {
+            continue;
         }
-    } else {
-        for (int i = 0; i < w; i++) {
-            d[i] = pal[s[i]];
+        uint16_t *row = &dst[y * ctx->canvas_w];
+
+        if (pDraw->ucHasTransparency) {
+            const uint8_t t = pDraw->ucTransparent;
+            for (int i = 0; i < src_w; i++) {
+                const uint8_t idx = s[i];
+                if (idx == t) {
+                    continue;
+                }
+                uint16_t c = pal[idx];
+#if CONFIG_TUTORIAL_0014_GIF_SWAP_BYTES
+                c = __builtin_bswap16(c);
+#endif
+                const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
+                for (int dx = 0; dx < sx; dx++) {
+                    const int x = dst_x0 + dx;
+                    if ((unsigned)x < (unsigned)ctx->canvas_w) {
+                        row[x] = c;
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < src_w; i++) {
+                uint16_t c = pal[s[i]];
+#if CONFIG_TUTORIAL_0014_GIF_SWAP_BYTES
+                c = __builtin_bswap16(c);
+#endif
+                const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
+                for (int dx = 0; dx < sx; dx++) {
+                    const int x = dst_x0 + dx;
+                    if ((unsigned)x < (unsigned)ctx->canvas_w) {
+                        row[x] = c;
+                    }
+                }
+            }
         }
     }
 }
@@ -443,6 +468,34 @@ extern "C" void app_main(void) {
              s_gif.getFrameHeight(),
              s_gif.getFrameXOff(),
              s_gif.getFrameYOff());
+
+    ctx.gif_canvas_w = s_gif.getCanvasWidth();
+    ctx.gif_canvas_h = s_gif.getCanvasHeight();
+#if CONFIG_TUTORIAL_0014_GIF_SCALE_TO_FULL_SCREEN
+    ctx.scale_x = (ctx.gif_canvas_w > 0) ? (ctx.canvas_w / ctx.gif_canvas_w) : 1;
+    ctx.scale_y = (ctx.gif_canvas_h > 0) ? (ctx.canvas_h / ctx.gif_canvas_h) : 1;
+    if (ctx.scale_x < 1) ctx.scale_x = 1;
+    if (ctx.scale_y < 1) ctx.scale_y = 1;
+#else
+    ctx.scale_x = 1;
+    ctx.scale_y = 1;
+#endif
+    // Center the scaled GIF canvas in case it doesn't exactly fill the screen.
+    const int scaled_w = ctx.gif_canvas_w * ctx.scale_x;
+    const int scaled_h = ctx.gif_canvas_h * ctx.scale_y;
+    ctx.off_x = (scaled_w < ctx.canvas_w) ? ((ctx.canvas_w - scaled_w) / 2) : 0;
+    ctx.off_y = (scaled_h < ctx.canvas_h) ? ((ctx.canvas_h - scaled_h) / 2) : 0;
+
+    ESP_LOGI(TAG, "gif render: swap_bytes=%d scale=%dx%d gif_canvas=%dx%d -> scaled=%dx%d off=(%d,%d)",
+             (int)(0
+#if CONFIG_TUTORIAL_0014_GIF_SWAP_BYTES
+                   + 1
+#endif
+                   ),
+             ctx.scale_x, ctx.scale_y,
+             ctx.gif_canvas_w, ctx.gif_canvas_h,
+             scaled_w, scaled_h,
+             ctx.off_x, ctx.off_y);
 
 #if CONFIG_TUTORIAL_0014_LOG_EVERY_N_FRAMES > 0
     uint32_t frame = 0;

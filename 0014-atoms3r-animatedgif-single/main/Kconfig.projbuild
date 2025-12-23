@@ -57,6 +57,25 @@ config TUTORIAL_0014_PRESENT_USE_DMA
 
 endmenu
 
+menu "Tutorial 0014: GIF Render"
+
+config TUTORIAL_0014_GIF_SWAP_BYTES
+    bool "Swap bytes of RGB565 pixels produced by AnimatedGIF"
+    default y
+    help
+        AnimatedGIF can generate RGB565 palette entries in a byte-swapped (MSB-first) form.
+        If colors look "wrong" (e.g. greens appear purple), enable this to byte-swap pixels
+        before writing them into the M5Canvas buffer.
+
+config TUTORIAL_0014_GIF_SCALE_TO_FULL_SCREEN
+    bool "Scale GIF canvas to fill the 128x128 screen (nearest-neighbor)"
+    default y
+    help
+        Scales the decoded GIF canvas to the full AtomS3R visible area using nearest-neighbor.
+        This is primarily a harness/debug feature (use native 128x128 assets for final playback).
+
+endmenu
+
 menu "Tutorial 0014: Backlight"
 
 config TUTORIAL_0014_BACKLIGHT_GATE_ENABLE
