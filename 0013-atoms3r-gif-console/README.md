@@ -73,7 +73,7 @@ So `0013` stays small, but we reuse the exact M5GFX code we already vendor in th
 
 ### Button configuration
 
-The “next animation” button defaults to `GPIO8` (because it matches an existing repo HAL reference), but it is configurable via menuconfig:
+The “next animation” button defaults to `GPIO41`, but it is configurable via menuconfig:
 
 - `Tutorial 0013: Input / Button`
 

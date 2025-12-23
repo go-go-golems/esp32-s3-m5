@@ -118,9 +118,9 @@ menu "Tutorial 0013: Input / Button"
 config TUTORIAL_0013_BUTTON_GPIO
     int "Next-animation button GPIO"
     range 0 48
-    default 8
+    default 41
     help
-        GPIO for the \"next animation\" button. Defaults to 8 based on an existing repo HAL reference.
+        GPIO for the \"next animation\" button. Defaults to 41 (AtomS3R button on some revisions).
         If your board uses a different pin, override this value.
 
 config TUTORIAL_0013_BUTTON_ACTIVE_LOW

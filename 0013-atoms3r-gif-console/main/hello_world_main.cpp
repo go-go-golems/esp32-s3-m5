@@ -432,6 +432,17 @@ static void button_init(void) {
              CONFIG_TUTORIAL_0013_BUTTON_DEBOUNCE_MS);
 }
 
+static void button_poll_debug_log(void) {
+    const gpio_num_t pin = (gpio_num_t)CONFIG_TUTORIAL_0013_BUTTON_GPIO;
+    int level = gpio_get_level(pin);
+#if CONFIG_TUTORIAL_0013_BUTTON_ACTIVE_LOW
+    const int pressed = (level == 0) ? 1 : 0;
+#else
+    const int pressed = (level != 0) ? 1 : 0;
+#endif
+    ESP_LOGI(TAG, "button poll: gpio=%d level=%d pressed=%d", (int)pin, level, pressed);
+}
+
 static int cmd_list(int, char **) {
     printf("mock animations (%d):\n", kAnimCount);
     for (int i = 0; i < kAnimCount; i++) {
@@ -623,6 +634,7 @@ extern "C" void app_main(void) {
 
     button_init();
     console_start_usb_serial_jtag();
+    button_poll_debug_log();
 
     bool playing = true;
     int anim_idx = 0;
