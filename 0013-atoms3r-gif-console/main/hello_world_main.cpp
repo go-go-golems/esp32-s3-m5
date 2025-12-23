@@ -532,25 +532,28 @@ static void console_start_usb_serial_jtag(void) {
 #if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     esp_console_repl_t *repl = nullptr;
 
-    // Route stdin/stdout to USB Serial/JTAG.
-    usb_serial_jtag_vfs_set_rx_line_endings(ESP_LINE_ENDINGS_CRLF);
-    usb_serial_jtag_vfs_set_tx_line_endings(ESP_LINE_ENDINGS_CRLF);
-    usb_serial_jtag_vfs_use_driver();
-
-    esp_console_config_t console_config = ESP_CONSOLE_CONFIG_DEFAULT();
-    console_config.max_cmdline_length = 256;
-    console_config.max_cmdline_args = 8;
-    ESP_ERROR_CHECK(esp_console_init(&console_config));
-    esp_console_register_help_command();
-
-    console_register_commands();
-
+    // IMPORTANT (ESP-IDF 5.4.1):
+    // `esp_console_new_repl_usb_serial_jtag()` internally installs the USB Serial/JTAG driver
+    // and also initializes `esp_console`. If we call `esp_console_init()` ourselves first,
+    // `esp_console_new_repl_usb_serial_jtag()` will fail with ESP_ERR_INVALID_STATE.
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "gif> ";
 
     esp_console_dev_usb_serial_jtag_config_t hw_config = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl));
-    ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    esp_err_t err = esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_console_new_repl_usb_serial_jtag failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    esp_console_register_help_command();
+    console_register_commands();
+
+    err = esp_console_start_repl(repl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_console_start_repl failed: %s", esp_err_to_name(err));
+        return;
+    }
 
     ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG");
 #else
@@ -580,15 +583,15 @@ extern "C" void app_main(void) {
     // This helps distinguish "backlight/power flicker" from "frame update tearing".
     ESP_LOGI(TAG, "visual test: solid colors (red/green/blue/white/black)");
     s_display.fillScreen(TFT_RED);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(120));
     s_display.fillScreen(TFT_GREEN);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(120));
     s_display.fillScreen(TFT_BLUE);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(120));
     s_display.fillScreen(TFT_WHITE);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(120));
     s_display.fillScreen(TFT_BLACK);
-    vTaskDelay(pdMS_TO_TICKS(500));
+    vTaskDelay(pdMS_TO_TICKS(120));
 
     // Offscreen canvas (LovyanGFX sprite). Keep it out of PSRAM by default:
     // - sprite buffers allocate using AllocationSource::Dma when PSRAM is disabled
