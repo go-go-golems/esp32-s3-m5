@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+#include <deque>
+#include <string>
 
 #include "sdkconfig.h"
 
@@ -53,6 +55,12 @@ static const char *TAG = "cardputer_typewriter_0012";
 #endif
 #ifndef CONFIG_TUTORIAL_0012_LOG_KEY_EVENTS
 #define CONFIG_TUTORIAL_0012_LOG_KEY_EVENTS 0
+#endif
+#ifndef CONFIG_TUTORIAL_0012_MAX_LINES
+#define CONFIG_TUTORIAL_0012_MAX_LINES 256
+#endif
+#ifndef CONFIG_TUTORIAL_0012_LOG_EVERY_N_EVENTS
+#define CONFIG_TUTORIAL_0012_LOG_EVERY_N_EVENTS 0
 #endif
 
 typedef struct {
@@ -174,6 +182,46 @@ static bool pos_is_pressed(const key_pos_t *keys, int n, int x, int y) {
     return false;
 }
 
+static void buf_trim(std::deque<std::string> &lines, size_t max_lines, size_t &dropped_lines) {
+    while (lines.size() > max_lines) {
+        lines.pop_front();
+        dropped_lines++;
+    }
+    if (lines.empty()) {
+        lines.push_back(std::string());
+    }
+}
+
+static void buf_insert_char(std::deque<std::string> &lines, char c) {
+    if (lines.empty()) {
+        lines.push_back(std::string());
+    }
+    lines.back().push_back(c);
+}
+
+static void buf_backspace(std::deque<std::string> &lines) {
+    if (lines.empty()) {
+        lines.push_back(std::string());
+        return;
+    }
+    if (!lines.back().empty()) {
+        lines.back().pop_back();
+        return;
+    }
+    // At column 0: join with previous line by removing this (empty) line.
+    if (lines.size() > 1) {
+        lines.pop_back();
+    }
+}
+
+static void buf_newline(std::deque<std::string> &lines, size_t max_lines, size_t &dropped_lines) {
+    if (lines.empty()) {
+        lines.push_back(std::string());
+    }
+    lines.push_back(std::string());
+    buf_trim(lines, max_lines, dropped_lines);
+}
+
 extern "C" void app_main(void) {
     ESP_LOGI(TAG, "boot; free_heap=%" PRIu32 " dma_free=%" PRIu32,
              esp_get_free_heap_size(),
@@ -185,6 +233,19 @@ extern "C" void app_main(void) {
     display.setColorDepth(16);
 
     ESP_LOGI(TAG, "display ready: width=%d height=%d", (int)display.width(), (int)display.height());
+
+    // Visual sanity test: show solid colors before starting UI work.
+    ESP_LOGI(TAG, "visual test: solid colors (red/green/blue/white/black)");
+    display.fillScreen(TFT_RED);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    display.fillScreen(TFT_GREEN);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    display.fillScreen(TFT_BLUE);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    display.fillScreen(TFT_WHITE);
+    vTaskDelay(pdMS_TO_TICKS(250));
+    display.fillScreen(TFT_BLACK);
+    vTaskDelay(pdMS_TO_TICKS(150));
 
     const int w = (int)display.width();
     const int h = (int)display.height();
@@ -209,9 +270,10 @@ extern "C" void app_main(void) {
 
     canvas.fillScreen(TFT_BLACK);
     canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+    canvas.setTextWrap(false);
     canvas.setCursor(0, 0);
     canvas.printf("Cardputer Typewriter (0012)\n\n");
-    canvas.printf("Keyboard scan: bringing up...\n");
+    canvas.printf("Keyboard: ready. Type to write.\n");
     canvas.printf("Refs: 0007 (keyboard), 0011 (display)\n");
     canvas.pushSprite(0, 0);
 #if CONFIG_TUTORIAL_0012_PRESENT_WAIT_DMA
@@ -282,6 +344,11 @@ extern "C" void app_main(void) {
     int last_y = -1;
     bool dirty = true;
 
+    std::deque<std::string> lines;
+    lines.push_back(std::string());
+    size_t dropped_lines = 0;
+    uint32_t edit_events = 0;
+
     while (true) {
         key_pos_t keys[24];
         int n = kb_scan_pressed(keys, (int)(sizeof(keys) / sizeof(keys[0])), in_pins_primary, in_pins_alt);
@@ -329,6 +396,39 @@ extern "C" void app_main(void) {
                                 (void)snprintf(last_token, sizeof(last_token), "%s", s);
                                 last_x = x;
                                 last_y = y;
+                                bool did_edit = false;
+                                if (strcmp(s, "space") == 0) {
+                                    buf_insert_char(lines, ' ');
+                                    did_edit = true;
+                                } else if (strcmp(s, "tab") == 0) {
+                                    // MVP: treat tab as 4 spaces.
+                                    buf_insert_char(lines, ' ');
+                                    buf_insert_char(lines, ' ');
+                                    buf_insert_char(lines, ' ');
+                                    buf_insert_char(lines, ' ');
+                                    did_edit = true;
+                                } else if (strcmp(s, "enter") == 0) {
+                                    buf_newline(lines, (size_t)CONFIG_TUTORIAL_0012_MAX_LINES, dropped_lines);
+                                    did_edit = true;
+                                } else if (strcmp(s, "del") == 0) {
+                                    buf_backspace(lines);
+                                    did_edit = true;
+                                } else if (strlen(s) == 1) {
+                                    buf_insert_char(lines, s[0]);
+                                    did_edit = true;
+                                } else {
+                                    // Non-printable token: keep as "last token", but don't edit document.
+                                }
+
+                                if (did_edit) {
+                                    edit_events++;
+#if CONFIG_TUTORIAL_0012_LOG_EVERY_N_EVENTS > 0
+                                    if ((edit_events % (uint32_t)CONFIG_TUTORIAL_0012_LOG_EVERY_N_EVENTS) == 0) {
+                                        ESP_LOGI(TAG, "edit heartbeat: events=%" PRIu32 " lines=%u dropped=%u free_heap=%" PRIu32,
+                                                 edit_events, (unsigned)lines.size(), (unsigned)dropped_lines, esp_get_free_heap_size());
+                                    }
+#endif
+                                }
                                 dirty = true;
                             }
                         }
@@ -355,11 +455,55 @@ extern "C" void app_main(void) {
             canvas.fillScreen(TFT_BLACK);
             canvas.setTextColor(TFT_WHITE, TFT_BLACK);
             canvas.setCursor(0, 0);
-            canvas.printf("Cardputer Typewriter (0012)\n\n");
-            canvas.printf("Last token: %s\n", last_token);
-            canvas.printf("Pos: (%d,%d) mods: shift=%d ctrl=%d alt=%d\n",
-                          last_x, last_y, (int)shift, (int)ctrl, (int)alt);
-            canvas.printf("\nNext: route tokens into a text buffer + render\n");
+            canvas.printf("Cardputer Typewriter (0012)\n");
+            canvas.printf("Last: %s @(%d,%d) shift=%d ctrl=%d alt=%d\n",
+                          last_token, last_x, last_y, (int)shift, (int)ctrl, (int)alt);
+            canvas.printf("Lines: %u (dropped=%u)  Events: %" PRIu32 "\n",
+                          (unsigned)lines.size(), (unsigned)dropped_lines, edit_events);
+
+            const int line_h = canvas.fontHeight();
+            const int header_rows = 3;
+            const int max_rows = (line_h > 0) ? (canvas.height() / line_h) : 0;
+            int text_rows = max_rows - header_rows;
+            if (text_rows < 1) {
+                text_rows = 1;
+            }
+
+            const size_t visible = (lines.size() > (size_t)text_rows) ? (size_t)text_rows : lines.size();
+            const size_t start = (lines.size() > visible) ? (lines.size() - visible) : 0;
+
+            int y0 = header_rows * line_h;
+            int y_cursor = y0;
+            for (size_t i = start; i < lines.size(); i++) {
+                canvas.setCursor(0, y0);
+                canvas.print(lines[i].c_str());
+                y_cursor = y0;
+                y0 += line_h;
+            }
+
+            // Cursor UX (MVP): draw underscore at end of the last line.
+            if (!lines.empty() && line_h > 0) {
+                int x_cursor = canvas.textWidth(lines.back().c_str());
+                if (x_cursor < 0) {
+                    x_cursor = 0;
+                }
+                if (x_cursor > canvas.width() - 2) {
+                    x_cursor = canvas.width() - 2;
+                }
+                int cursor_w = canvas.textWidth("_");
+                if (cursor_w <= 0) {
+                    cursor_w = 6;
+                }
+                int y_underline = y_cursor + line_h - 2;
+                if (y_underline < 0) {
+                    y_underline = 0;
+                }
+                if (y_underline > canvas.height() - 2) {
+                    y_underline = canvas.height() - 2;
+                }
+                canvas.fillRect(x_cursor, y_underline, cursor_w, 2, TFT_WHITE);
+            }
+
             canvas.pushSprite(0, 0);
 #if CONFIG_TUTORIAL_0012_PRESENT_WAIT_DMA
             display.waitDMA();
