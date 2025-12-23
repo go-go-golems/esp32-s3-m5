@@ -313,6 +313,12 @@ typedef struct gif_render_ctx_tag {
 
 static AnimatedGIF s_gif;
 
+__attribute__((unused)) static void *gif_alloc(uint32_t size) {
+    void *p = heap_caps_malloc((size_t)size, MALLOC_CAP_8BIT);
+    ESP_LOGI(TAG, "gif alloc: size=%" PRIu32 " -> %p", size, p);
+    return p;
+}
+
 static void GIFDraw(GIFDRAW *pDraw) {
     auto *ctx = (GifRenderCtx *)pDraw->pUser;
     if (!ctx || !ctx->canvas) {
@@ -320,7 +326,18 @@ static void GIFDraw(GIFDRAW *pDraw) {
     }
 
     auto *dst = (uint16_t *)ctx->canvas->getBuffer();
-    const uint8_t *s = pDraw->pPixels;
+
+    const bool cooked =
+        (pDraw->ucPaletteType == GIF_PALETTE_RGB565_LE || pDraw->ucPaletteType == GIF_PALETTE_RGB565_BE) &&
+#if CONFIG_TUTORIAL_0014_GIF_USE_COOKED
+        true
+#else
+        false
+#endif
+        ;
+
+    const uint8_t *src_idx = pDraw->pPixels;
+    const uint16_t *src565 = (const uint16_t *)pDraw->pPixels;
     const uint16_t *pal = pDraw->pPalette;
 
     // Map this scanline into the output canvas. We treat AnimatedGIF coordinates as being
@@ -341,10 +358,10 @@ static void GIFDraw(GIFDRAW *pDraw) {
         }
         uint16_t *row = &dst[y * ctx->canvas_w];
 
-        if (pDraw->ucHasTransparency) {
+        if (!cooked && pDraw->ucHasTransparency) {
             const uint8_t t = pDraw->ucTransparent;
             for (int i = 0; i < src_w; i++) {
-                const uint8_t idx = s[i];
+                const uint8_t idx = src_idx[i];
                 if (idx == t) {
                     continue;
                 }
@@ -360,9 +377,25 @@ static void GIFDraw(GIFDRAW *pDraw) {
                     }
                 }
             }
-        } else {
+        } else if (!cooked) {
             for (int i = 0; i < src_w; i++) {
-                uint16_t c = pal[s[i]];
+                uint16_t c = pal[src_idx[i]];
+#if CONFIG_TUTORIAL_0014_GIF_SWAP_BYTES
+                c = __builtin_bswap16(c);
+#endif
+                const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
+                for (int dx = 0; dx < sx; dx++) {
+                    const int x = dst_x0 + dx;
+                    if ((unsigned)x < (unsigned)ctx->canvas_w) {
+                        row[x] = c;
+                    }
+                }
+            }
+        } else {
+            // COOKED mode: pPixels points to an RGB565 scanline ready for display; disposal/transparency
+            // are handled inside AnimatedGIF's framebuffer logic.
+            for (int i = 0; i < src_w; i++) {
+                uint16_t c = src565[i];
 #if CONFIG_TUTORIAL_0014_GIF_SWAP_BYTES
                 c = __builtin_bswap16(c);
 #endif
@@ -450,6 +483,20 @@ extern "C" void app_main(void) {
         ESP_LOGE(TAG, "gif open failed: open_ok=%d last_error=%d", open_ok, err);
         return;
     }
+
+#if CONFIG_TUTORIAL_0014_GIF_USE_COOKED
+    // COOKED mode requires a framebuffer to support correct disposal/transparency handling.
+    int fb_rc = s_gif.allocFrameBuf(gif_alloc);
+    if (fb_rc != GIF_SUCCESS) {
+        ESP_LOGE(TAG, "gif allocFrameBuf failed: rc=%d", fb_rc);
+        return;
+    }
+    int dt_rc = s_gif.setDrawType(GIF_DRAW_COOKED);
+    if (dt_rc != GIF_SUCCESS) {
+        ESP_LOGE(TAG, "gif setDrawType(COOKED) failed: rc=%d", dt_rc);
+        return;
+    }
+#endif
 
     GIFINFO info = {};
     const int info_rc = s_gif.getInfo(&info);
