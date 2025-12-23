@@ -15,6 +15,46 @@ config TUTORIAL_0007_DEBOUNCE_MS
         Minimum time between emitting the same key again (per key position).
         This is a simple debounce guardrail.
 
+config TUTORIAL_0007_SCAN_SETTLE_US
+    int "Settle delay after changing scan outputs (us)"
+    range 0 1000
+    default 30
+    help
+        Small delay after updating the 3 output pins before reading input pins.
+        Some boards/wiring benefit from a short settle time.
+
+config TUTORIAL_0007_AUTODETECT_IN01
+    bool "Autodetect IN0/IN1 pins (13/15 vs 1/2)"
+    default y
+    help
+        Some Cardputer revisions appear to route keyboard IN0/IN1 to GPIO1/GPIO2 instead of GPIO13/GPIO15.
+        When enabled, the firmware will automatically switch to the alternate pin pair if key activity is detected there.
+
+config TUTORIAL_0007_KB_ALT_IN0_GPIO
+    int "Alt IN0 GPIO (autodetect)"
+    range 0 48
+    default 1
+    depends on TUTORIAL_0007_AUTODETECT_IN01
+
+config TUTORIAL_0007_KB_ALT_IN1_GPIO
+    int "Alt IN1 GPIO (autodetect)"
+    range 0 48
+    default 2
+    depends on TUTORIAL_0007_AUTODETECT_IN01
+
+config TUTORIAL_0007_DEBUG_RAW_SCAN
+    bool "Debug: log raw scan masks when keys are detected"
+    default n
+    help
+        When enabled, logs the raw per-scan-state input mask whenever a key press is detected.
+
+config TUTORIAL_0007_LOG_KEY_EVENTS
+    bool "Debug: log a line for every key press event"
+    default n
+    help
+        When enabled, prints an ESP_LOGI line for every emitted key press event.
+        This makes it obvious that the keyboard is working even if you miss the inline echo.
+
 config TUTORIAL_0007_KB_OUT0_GPIO
     int "Keyboard OUT0 GPIO"
     range 0 48

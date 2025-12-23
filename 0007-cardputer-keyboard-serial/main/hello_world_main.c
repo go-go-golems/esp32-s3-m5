@@ -12,8 +12,24 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_rom_sys.h"
 
 static const char *TAG = "cardputer_keyboard";
+
+// Backwards compatibility: if the project was configured before new Kconfig options existed,
+// the CONFIG_ macros may be missing until you run `idf.py reconfigure` or `idf.py fullclean`.
+#ifndef CONFIG_TUTORIAL_0007_SCAN_SETTLE_US
+#define CONFIG_TUTORIAL_0007_SCAN_SETTLE_US 0
+#endif
+#ifndef CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO
+#define CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO 1
+#endif
+#ifndef CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO
+#define CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO 2
+#endif
+#ifndef CONFIG_TUTORIAL_0007_LOG_KEY_EVENTS
+#define CONFIG_TUTORIAL_0007_LOG_KEY_EVENTS 0
+#endif
 
 typedef struct {
     const char *first;
@@ -58,17 +74,78 @@ static inline uint8_t kb_get_input_mask(void) {
     return mask;
 }
 
+static inline uint8_t kb_get_input_mask_alt_in01(void) {
+#if CONFIG_TUTORIAL_0007_AUTODETECT_IN01
+    // Alternate wiring hypothesis from vendor keyboard.h (some revisions): IN0/IN1 are GPIO1/GPIO2.
+    const int in_pins[7] = {
+        CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO,
+        CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO,
+        CONFIG_TUTORIAL_0007_KB_IN2_GPIO,
+        CONFIG_TUTORIAL_0007_KB_IN3_GPIO,
+        CONFIG_TUTORIAL_0007_KB_IN4_GPIO,
+        CONFIG_TUTORIAL_0007_KB_IN5_GPIO,
+        CONFIG_TUTORIAL_0007_KB_IN6_GPIO,
+    };
+    uint8_t mask = 0;
+    for (int i = 0; i < 7; i++) {
+        int level = gpio_get_level((gpio_num_t)in_pins[i]);
+        if (level == 0) {
+            mask |= (uint8_t)(1U << i);
+        }
+    }
+    return mask;
+#else
+    return 0;
+#endif
+}
+
 typedef struct {
     int x; // 0..13
     int y; // 0..3
 } key_pos_t;
+
+static bool s_use_alt_in01 = false;
 
 static int kb_scan_pressed(key_pos_t *out_keys, int out_cap) {
     int count = 0;
 
     for (int scan_state = 0; scan_state < 8; scan_state++) {
         kb_set_output((uint8_t)scan_state);
-        uint8_t in_mask = kb_get_input_mask();
+        if (CONFIG_TUTORIAL_0007_SCAN_SETTLE_US > 0) {
+            esp_rom_delay_us((uint32_t)CONFIG_TUTORIAL_0007_SCAN_SETTLE_US);
+        }
+
+        uint8_t in_mask = 0;
+        if (s_use_alt_in01) {
+            in_mask = kb_get_input_mask_alt_in01();
+        } else {
+            in_mask = kb_get_input_mask();
+        }
+
+#if CONFIG_TUTORIAL_0007_AUTODETECT_IN01
+        // If the primary wiring shows no activity, also check the alternate IN0/IN1 pins.
+        // If we see activity there, switch permanently and log once.
+        if (!s_use_alt_in01 && in_mask == 0) {
+            uint8_t alt = kb_get_input_mask_alt_in01();
+            if (alt != 0) {
+                s_use_alt_in01 = true;
+                in_mask = alt;
+                ESP_LOGW(TAG, "keyboard autodetect: switching IN0/IN1 to alt pins [%d,%d] (was [%d,%d])",
+                         CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO,
+                         CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO,
+                         CONFIG_TUTORIAL_0007_KB_IN0_GPIO,
+                         CONFIG_TUTORIAL_0007_KB_IN1_GPIO);
+            }
+        }
+#endif
+
+#if CONFIG_TUTORIAL_0007_DEBUG_RAW_SCAN
+        if (in_mask != 0) {
+            ESP_LOGI(TAG, "scan_state=%d out=0x%x in_mask=0x%02x pinset=%s",
+                     scan_state, scan_state, (unsigned)in_mask,
+                     s_use_alt_in01 ? "alt_in01" : "primary");
+        }
+#endif
         if (in_mask == 0) {
             continue;
         }
@@ -113,10 +190,12 @@ static void serial_write_str(const char *s) {
         return;
     }
     fputs(s, stdout);
+    fflush(stdout);
 }
 
 static void serial_write_ch(char c) {
     fputc((int)c, stdout);
+    fflush(stdout);
 }
 
 static void keyboard_echo_task(void *arg) {
@@ -153,12 +232,26 @@ static void keyboard_echo_task(void *arg) {
         gpio_set_pull_mode((gpio_num_t)in_pins[i], GPIO_PULLUP_ONLY);
     }
 
+#if CONFIG_TUTORIAL_0007_AUTODETECT_IN01
+    // Configure alt IN0/IN1 pins too, so we can autodetect at runtime.
+    const int alt_in_pins[2] = {CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO, CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO};
+    for (int i = 0; i < 2; i++) {
+        gpio_reset_pin((gpio_num_t)alt_in_pins[i]);
+        gpio_set_direction((gpio_num_t)alt_in_pins[i], GPIO_MODE_INPUT);
+        gpio_set_pull_mode((gpio_num_t)alt_in_pins[i], GPIO_PULLUP_ONLY);
+    }
+    ESP_LOGI(TAG, "keyboard autodetect enabled: primary IN0/IN1=[%d,%d], alt IN0/IN1=[%d,%d]",
+             CONFIG_TUTORIAL_0007_KB_IN0_GPIO, CONFIG_TUTORIAL_0007_KB_IN1_GPIO,
+             CONFIG_TUTORIAL_0007_KB_ALT_IN0_GPIO, CONFIG_TUTORIAL_0007_KB_ALT_IN1_GPIO);
+#endif
+
     kb_set_output(0);
 
     ESP_LOGI(TAG, "keyboard scan pins: OUT=[%d,%d,%d] IN=[%d,%d,%d,%d,%d,%d,%d]",
              out_pins[0], out_pins[1], out_pins[2],
              in_pins[0], in_pins[1], in_pins[2], in_pins[3], in_pins[4], in_pins[5], in_pins[6]);
-    ESP_LOGI(TAG, "type on the Cardputer keyboard; characters will echo below:");
+    ESP_LOGI(TAG, "type on the Cardputer keyboard; characters echo INLINE after the prompt (no newline until Enter).");
+    ESP_LOGI(TAG, "tip: enable menuconfig -> \"Debug: log a line for every key press event\" for newline-per-key feedback.");
     serial_write_str("\r\n> ");
 
     bool prev_pressed[4][14] = {0};
@@ -245,6 +338,14 @@ static void keyboard_echo_task(void *arg) {
                             // Unknown/non-printable token.
                             ESP_LOGI(TAG, "key pressed @(%d,%d): %s (ctrl=%d alt=%d shift=%d)", x, y, s, ctrl, alt, shift);
                         }
+
+#if CONFIG_TUTORIAL_0007_LOG_KEY_EVENTS
+                        // Extra, unmistakable feedback (one log line per key event).
+                        if (s != NULL) {
+                            ESP_LOGI(TAG, "key event @(%d,%d): %s (ctrl=%d alt=%d shift=%d len=%u)",
+                                     x, y, s, ctrl, alt, shift, (unsigned)line_len);
+                        }
+#endif
                     }
                 }
 
