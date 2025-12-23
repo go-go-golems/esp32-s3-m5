@@ -36,6 +36,24 @@ If you need to specify the serial port:
 source /home/manuel/esp/esp-idf-5.4.1/export.sh && cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0007-cardputer-keyboard-serial && idf.py -p /dev/ttyACM0 flash monitor
 ```
 
+#### Note on “realtime” echo vs host line buffering
+
+This firmware echoes typed characters **inline** after the prompt (it does **not** print a newline until you press `enter`).
+
+- With `idf.py monitor`, you should usually see inline characters immediately.
+- Some IDE consoles / log capture layers are **line-buffered** and won’t display partial lines until a newline appears. In that case, the typed characters may “show up all at once” only after you press `enter`.
+
+Workarounds:
+
+- **Use per-key event logging**: enable `Tutorial 0007: ... -> Debug: log a line for every key press event` (`CONFIG_TUTORIAL_0007_LOG_KEY_EVENTS=y`)
+- **Use `screen`** (shows bytes as they arrive):
+
+```bash
+screen -L -U /dev/ttyACM0 115200
+```
+
+To exit `screen`: `Ctrl-A` then `k` then `y`.
+
 ### Configure pins / scan period (menuconfig)
 
 ```bash
@@ -49,7 +67,7 @@ Go to:
 ### Expected output
 
 - You’ll see a prompt `> `
-- As you type, characters echo immediately
+- As you type, characters echo **inline** immediately (no newline until `enter`)
 - `enter` prints the captured line via `ESP_LOGI(...)` and shows a new prompt
   - (Backspace is supported as `del`)
 
