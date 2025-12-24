@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <strings.h>
 
@@ -394,6 +395,7 @@ static void GIFDraw(GIFDRAW *pDraw) {
 static char s_gif_paths[CONFIG_TUTORIAL_0013_GIF_MAX_COUNT][CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN];
 static int s_gif_count = 0;
 static char s_current_gif[CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN] = {0};
+static int32_t s_current_gif_file_size = 0;
 
 static int refresh_gif_list(void) {
     s_gif_count = gif_storage_list_gifs((char *)s_gif_paths, CONFIG_TUTORIAL_0013_GIF_MAX_COUNT, CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN);
@@ -423,36 +425,75 @@ static int find_gif_index_by_name(const char *name) {
     return -1;
 }
 
-static bool open_gif_index(int idx, GifRenderCtx *ctx, uint8_t **gif_buf, size_t *gif_len) {
-    if (idx < 0 || idx >= s_gif_count || !ctx || !gif_buf || !gif_len) {
+// AnimatedGIF file callbacks (stream from FATFS; avoid loading whole file into RAM)
+static void *gif_open_cb(const char *szFilename, int32_t *pFileSize) {
+    if (pFileSize) *pFileSize = 0;
+    FILE *f = fopen(szFilename, "rb");
+    if (!f) {
+        ESP_LOGE(TAG, "gif_open_cb: fopen failed: %s errno=%d", szFilename, errno);
+        return nullptr;
+    }
+    if (fseek(f, 0, SEEK_END) != 0) {
+        fclose(f);
+        return nullptr;
+    }
+    const long size = ftell(f);
+    if (size <= 0) {
+        fclose(f);
+        return nullptr;
+    }
+    if (fseek(f, 0, SEEK_SET) != 0) {
+        fclose(f);
+        return nullptr;
+    }
+    if (pFileSize) *pFileSize = (int32_t)size;
+    s_current_gif_file_size = (int32_t)size;
+    return (void *)f;
+}
+
+static void gif_close_cb(void *pHandle) {
+    if (!pHandle) return;
+    fclose((FILE *)pHandle);
+}
+
+static int32_t gif_read_cb(GIFFILE *pFile, uint8_t *pBuf, int32_t iLen) {
+    if (!pFile || !pBuf || iLen <= 0) return 0;
+    FILE *f = (FILE *)pFile->fHandle;
+    if (!f) return 0;
+    const size_t n = fread(pBuf, 1, (size_t)iLen, f);
+    pFile->iPos += (int32_t)n;
+    return (int32_t)n;
+}
+
+static int32_t gif_seek_cb(GIFFILE *pFile, int32_t iPosition) {
+    if (!pFile) return -1;
+    FILE *f = (FILE *)pFile->fHandle;
+    if (!f) return -1;
+    if (fseek(f, (long)iPosition, SEEK_SET) != 0) {
+        return -1;
+    }
+    pFile->iPos = iPosition;
+    return iPosition;
+}
+
+static bool open_gif_index(int idx, GifRenderCtx *ctx) {
+    if (idx < 0 || idx >= s_gif_count || !ctx) {
         return false;
     }
 
     const char *path = s_gif_paths[idx];
-    uint8_t *new_buf = nullptr;
-    size_t new_len = 0;
-    const esp_err_t err = gif_storage_read_file(path, &new_buf, &new_len);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "failed to read gif: %s (%s)", path, esp_err_to_name(err));
-        return false;
-    }
 
-    // Close previous and attempt open.
+    // Close previous and attempt open. Re-begin resets internal state, including file position.
     s_gif.close();
-    const int open_ok = s_gif.open((uint8_t *)new_buf, (int)new_len, GIFDraw);
+    s_gif.begin(GIF_PALETTE_RGB565_LE);
+    s_current_gif_file_size = 0;
+    const int open_ok = s_gif.open(path, gif_open_cb, gif_close_cb, gif_read_cb, gif_seek_cb, GIFDraw);
     if (!open_ok) {
         const int last_err = s_gif.getLastError();
         ESP_LOGE(TAG, "gif open failed: %s open_ok=%d last_error=%d", path, open_ok, last_err);
-        gif_storage_free(new_buf);
         return false;
     }
 
-    // Success: swap in buffer.
-    if (*gif_buf) {
-        gif_storage_free(*gif_buf);
-    }
-    *gif_buf = new_buf;
-    *gif_len = new_len;
     snprintf(s_current_gif, sizeof(s_current_gif), "%s", path);
 
     // Update render ctx with GIF canvas geometry.
@@ -474,7 +515,7 @@ static bool open_gif_index(int idx, GifRenderCtx *ctx, uint8_t **gif_buf, size_t
 
     ESP_LOGI(TAG, "gif open ok: %s bytes=%u canvas=%dx%d frame=%dx%d off=(%d,%d)",
              path,
-             (unsigned)new_len,
+             (unsigned)s_current_gif_file_size,
              s_gif.getCanvasWidth(),
              s_gif.getCanvasHeight(),
              s_gif.getFrameWidth(),
@@ -789,16 +830,11 @@ extern "C" void app_main(void) {
     const int n_gifs = refresh_gif_list();
     ESP_LOGI(TAG, "gif registry: %d asset(s) found under /storage/gifs", n_gifs);
 
-    // Decoder setup (RAW draw mode: palettized pixels translated via RGB565 palette).
-    s_gif.begin(GIF_PALETTE_RGB565_LE);
-
     GifRenderCtx gif_ctx = {};
     gif_ctx.canvas = &canvas;
     gif_ctx.canvas_w = w;
     gif_ctx.canvas_h = h;
 
-    uint8_t *gif_buf = nullptr;
-    size_t gif_len = 0;
     int gif_idx = 0;
     bool playing = false;
     int delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
@@ -808,7 +844,7 @@ extern "C" void app_main(void) {
     if (n_gifs > 0) {
         canvas.fillScreen(TFT_BLACK);
         present_canvas(canvas);
-        if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+        if (open_gif_index(gif_idx, &gif_ctx)) {
             playing = true;
             printf("playing: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
         }
@@ -845,7 +881,7 @@ extern "C" void app_main(void) {
                     if (idx >= 0 && idx < s_gif_count) {
                         gif_idx = idx;
                         frame = 0;
-                        if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+                        if (open_gif_index(gif_idx, &gif_ctx)) {
                             playing = true;
                             delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
                             printf("playing: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
@@ -871,7 +907,7 @@ extern "C" void app_main(void) {
                     }
                     gif_idx = (gif_idx + 1) % s_gif_count;
                     frame = 0;
-                    if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+                    if (open_gif_index(gif_idx, &gif_ctx)) {
                         playing = true;
                         delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
                         printf("next: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
@@ -887,7 +923,7 @@ extern "C" void app_main(void) {
                            gif_idx,
                            s_gif_count,
                            s_current_gif[0] ? path_basename(s_current_gif) : "(none)",
-                           (unsigned)gif_len,
+                           (unsigned)s_current_gif_file_size,
                            frame,
                            CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS,
                            delay_ms);

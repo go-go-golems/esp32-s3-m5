@@ -7,11 +7,9 @@
 
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
-#include "wear_levelling.h"
 
 static const char *TAG = "gif_storage";
 
-static wl_handle_t s_wl_handle = WL_INVALID_HANDLE;
 static bool s_mounted = false;
 
 static constexpr const char *kMountPath = "/storage";
@@ -33,11 +31,15 @@ esp_err_t gif_storage_mount(void) {
     };
 
     ESP_LOGI(TAG, "mounting FATFS: partition=%s at %s", kPartitionLabel, kMountPath);
-    esp_err_t err = esp_vfs_fat_spiflash_mount_rw_wl(
+    // IMPORTANT: we flash a prebuilt FATFS image into the partition using `fatfsgen.py` + parttool.
+    // Mount it read-only without wear levelling.
+    //
+    // If we mount with wear levelling (`*_mount_rw_wl`), the WL layer expects its own metadata and the
+    // prebuilt image will not be recognized (you'll see FatFs FR_NO_FILESYSTEM a.k.a. "f_mount failed (13)").
+    esp_err_t err = esp_vfs_fat_spiflash_mount_ro(
         kMountPath,
         kPartitionLabel,
-        &mount_config,
-        &s_wl_handle);
+        &mount_config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "mount failed: %s", esp_err_to_name(err));
         return err;

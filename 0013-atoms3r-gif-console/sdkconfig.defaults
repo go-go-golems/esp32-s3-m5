@@ -19,6 +19,10 @@ CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
 # Main task stack: M5GFX is C++ and can be stack-hungry.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
 
+# FATFS: enable long file name support so we can use real GIF filenames from the storage image.
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+
 # Tutorial defaults (match known-good bring-up):
 CONFIG_TUTORIAL_0013_LCD_Y_OFFSET=32
 CONFIG_TUTORIAL_0013_LCD_SPI_PCLK_HZ=40000000
