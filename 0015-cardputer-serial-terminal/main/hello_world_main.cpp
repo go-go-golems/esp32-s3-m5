@@ -28,6 +28,7 @@
 #include "driver/usb_serial_jtag.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_err.h"
 #include "esp_rom_sys.h"
 #include "esp_system.h"
 
@@ -348,7 +349,16 @@ static void backend_init(serial_backend_t &b) {
     b.uart_num = UART_NUM_0;
     b.usb_driver_ok = usb_serial_jtag_is_driver_installed();
     if (!b.usb_driver_ok) {
-        ESP_LOGW(TAG, "USB-Serial-JTAG driver not installed (console may be disabled); writes/reads may be no-op");
+        // If the driver isn't installed, host writes to /dev/ttyACM* can time out because the device isn't consuming RX.
+        // Install the driver explicitly so the USB-Serial-JTAG endpoint behaves like a real serial link.
+        usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
+        cfg.rx_buffer_size = 1024;
+        cfg.tx_buffer_size = 1024;
+        esp_err_t err = usb_serial_jtag_driver_install(&cfg);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "USB-Serial-JTAG driver install failed: %s", esp_err_to_name(err));
+        }
+        b.usb_driver_ok = usb_serial_jtag_is_driver_installed();
     }
     ESP_LOGI(TAG, "serial backend: USB-Serial-JTAG (installed=%d)", (int)b.usb_driver_ok);
 #endif
