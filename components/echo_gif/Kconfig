@@ -1,0 +1,48 @@
+menu "echo_gif: GIF storage + registry + playback"
+
+config ECHO_GIF_MIN_FRAME_DELAY_MS
+    int "Minimum frame delay (ms)"
+    range 0 1000
+    default 10
+    help
+        Some GIFs request a 0ms delay. This sets a floor so the playback loop yields.
+
+config ECHO_GIF_MAX_COUNT
+    int "Maximum number of GIF assets to list"
+    range 1 256
+    default 32
+
+config ECHO_GIF_MAX_PATH_LEN
+    int "Maximum GIF path length"
+    range 32 256
+    default 96
+
+config ECHO_GIF_SWAP_BYTES
+    bool "Byte-swap RGB565 pixels before writing into M5Canvas"
+    default y
+    help
+        Some pipelines produce RGB565 in MSB-first byte order. Toggle this if colors look wrong.
+
+config ECHO_GIF_SCALE_TO_FULL_SCREEN
+    bool "Scale GIF canvas to fill screen (nearest-neighbor integer scaling)"
+    default y
+
+config ECHO_GIF_STORAGE_MOUNT_PATH
+    string "FATFS mount point"
+    default "/storage"
+
+config ECHO_GIF_STORAGE_PARTITION_LABEL
+    string "Flash partition label containing FATFS image"
+    default "storage"
+
+config ECHO_GIF_STORAGE_GIF_DIR
+    string "Preferred directory containing GIFs"
+    default "/storage/gifs"
+
+config ECHO_GIF_STORAGE_GIF_DIR_FALLBACK
+    string "Fallback GIF directory"
+    default "/storage"
+
+endmenu
+
+

@@ -33,10 +33,11 @@
 #include "console_repl.h"
 #include "control_plane.h"
 #include "display_hal.h"
-#include "gif_player.h"
-#include "gif_registry.h"
-#include "gif_storage.h"
 #include "uart_rx_heartbeat.h"
+
+#include "echo_gif/gif_player.h"
+#include "echo_gif/gif_registry.h"
+#include "echo_gif/gif_storage.h"
 
 static const char *TAG = "atoms3r_gif_console";
 
@@ -108,37 +109,37 @@ extern "C" void app_main(void) {
     button_poll_debug_log();
 
     // Storage + asset registry.
-    esp_err_t storage_err = gif_storage_mount();
+    esp_err_t storage_err = echo_gif_storage_mount();
     if (storage_err != ESP_OK) {
         ESP_LOGW(TAG, "storage mount failed: %s (no GIFs will be available)", esp_err_to_name(storage_err));
     }
-    const int n_gifs = gif_registry_refresh();
+    const int n_gifs = echo_gif_registry_refresh();
     ESP_LOGI(TAG, "gif registry: %d asset(s) found under /storage/gifs", n_gifs);
 
-    GifRenderCtx gif_ctx = {};
+    EchoGifRenderCtx gif_ctx = {};
     gif_ctx.canvas = &canvas;
     gif_ctx.canvas_w = w;
     gif_ctx.canvas_h = h;
 
     int gif_idx = 0;
     bool playing = false;
-    int delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+    int delay_ms = CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS;
     uint32_t frame = 0;
     uint32_t last_next_ms = 0;
 
     if (n_gifs > 0) {
         canvas.fillScreen(TFT_BLACK);
         display_present_canvas(canvas);
-        if (gif_player_open_index(gif_idx, &gif_ctx)) {
+        if (echo_gif_player_open_index(gif_idx, &gif_ctx)) {
             playing = true;
-            printf("playing: %d (%s)\n", gif_idx, path_basename(gif_registry_path(gif_idx)));
+            printf("playing: %d (%s)\n", gif_idx, echo_gif_path_basename(echo_gif_registry_path(gif_idx)));
         }
     } else {
         printf("no gifs found under /storage/gifs (flash a storage partition image)\n");
     }
 
     ESP_LOGI(TAG, "starting GIF playback loop (min_delay_ms=%d dma_present=%d psram=%d)",
-             CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS,
+             CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS,
              (int)(0
 #if CONFIG_TUTORIAL_0013_PRESENT_USE_DMA
                    + 1
@@ -153,7 +154,7 @@ extern "C" void app_main(void) {
     while (true) {
         TickType_t wait_ticks = portMAX_DELAY;
         if (playing) {
-            const int wms = (delay_ms > 0) ? delay_ms : CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+            const int wms = (delay_ms > 0) ? delay_ms : CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS;
             wait_ticks = pdMS_TO_TICKS((uint32_t)wms);
         }
 
@@ -163,13 +164,13 @@ extern "C" void app_main(void) {
             switch (ev.type) {
                 case CtrlType::PlayIndex: {
                     int idx = (int)ev.arg;
-                    if (idx >= 0 && idx < gif_registry_count()) {
+                    if (idx >= 0 && idx < echo_gif_registry_count()) {
                         gif_idx = idx;
                         frame = 0;
-                        if (gif_player_open_index(gif_idx, &gif_ctx)) {
+                        if (echo_gif_player_open_index(gif_idx, &gif_ctx)) {
                             playing = true;
-                            delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
-                            printf("playing: %d (%s)\n", gif_idx, path_basename(gif_registry_path(gif_idx)));
+                            delay_ms = CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS;
+                            printf("playing: %d (%s)\n", gif_idx, echo_gif_path_basename(echo_gif_registry_path(gif_idx)));
                         } else {
                             playing = false;
                             printf("failed to open: %d\n", gif_idx);
@@ -187,15 +188,15 @@ extern "C" void app_main(void) {
                         break;
                     }
                     last_next_ms = now_ms;
-                    if (gif_registry_count() <= 0) {
+                    if (echo_gif_registry_count() <= 0) {
                         break;
                     }
-                    gif_idx = (gif_idx + 1) % gif_registry_count();
+                    gif_idx = (gif_idx + 1) % echo_gif_registry_count();
                     frame = 0;
-                    if (gif_player_open_index(gif_idx, &gif_ctx)) {
+                    if (echo_gif_player_open_index(gif_idx, &gif_ctx)) {
                         playing = true;
-                        delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
-                        printf("next: %d (%s)\n", gif_idx, path_basename(gif_registry_path(gif_idx)));
+                        delay_ms = CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS;
+                        printf("next: %d (%s)\n", gif_idx, echo_gif_path_basename(echo_gif_registry_path(gif_idx)));
                     } else {
                         playing = false;
                         printf("failed to open: %d\n", gif_idx);
@@ -203,23 +204,23 @@ extern "C" void app_main(void) {
                     break;
                 }
                 case CtrlType::Info: {
-                    const char *cur = gif_player_current_path();
+                    const char *cur = echo_gif_player_current_path();
                     printf("state: playing=%d gif=%d/%d name=%s bytes=%u frame=%" PRIu32 " min_delay_ms=%d last_delay_ms=%d\n",
                            playing ? 1 : 0,
                            gif_idx,
-                           gif_registry_count(),
-                           (cur && cur[0]) ? path_basename(cur) : "(none)",
-                           (unsigned)gif_player_current_file_size(),
+                           echo_gif_registry_count(),
+                           (cur && cur[0]) ? echo_gif_path_basename(cur) : "(none)",
+                           (unsigned)echo_gif_player_current_file_size(),
                            frame,
-                           CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS,
+                           CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS,
                            delay_ms);
                     printf("gif geom: canvas=%dx%d frame=%dx%d off=(%d,%d) render_scale=%dx%d render_off=(%d,%d)\n",
-                           gif_player_canvas_width(),
-                           gif_player_canvas_height(),
-                           gif_player_frame_width(),
-                           gif_player_frame_height(),
-                           gif_player_frame_x_off(),
-                           gif_player_frame_y_off(),
+                           echo_gif_player_canvas_width(),
+                           echo_gif_player_canvas_height(),
+                           echo_gif_player_frame_width(),
+                           echo_gif_player_frame_height(),
+                           echo_gif_player_frame_x_off(),
+                           echo_gif_player_frame_y_off(),
                            gif_ctx.scale_x,
                            gif_ctx.scale_y,
                            gif_ctx.off_x,
@@ -241,8 +242,8 @@ extern "C" void app_main(void) {
         }
 
         int frame_delay_ms = 0;
-        const int prc = gif_player_play_frame(&frame_delay_ms, &gif_ctx);
-        const int last_err = gif_player_last_error();
+        const int prc = echo_gif_player_play_frame(&frame_delay_ms, &gif_ctx);
+        const int last_err = echo_gif_player_last_error();
 
         // IMPORTANT: per AnimatedGIF docs:
         // - playFrame() can return 0 even if it successfully rendered a frame (EOF reached right after).
@@ -251,20 +252,20 @@ extern "C" void app_main(void) {
             display_present_canvas(canvas);
             frame++;
 
-            if (frame_delay_ms < CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS) {
-                frame_delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+        if (frame_delay_ms < CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS) {
+            frame_delay_ms = CONFIG_ECHO_GIF_MIN_FRAME_DELAY_MS;
             }
             delay_ms = frame_delay_ms;
         }
 
         if (prc == 0) {
             canvas.fillScreen(TFT_BLACK);
-            gif_player_reset();
+            echo_gif_player_reset();
             vTaskDelay(pdMS_TO_TICKS(1));
         } else if (prc < 0) {
             ESP_LOGE(TAG, "gif playFrame failed: last_error=%d", last_err);
             canvas.fillScreen(TFT_BLACK);
-            gif_player_reset();
+            echo_gif_player_reset();
             vTaskDelay(pdMS_TO_TICKS(100));
         }
 

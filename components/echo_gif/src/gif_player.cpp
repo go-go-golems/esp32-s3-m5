@@ -1,5 +1,8 @@
 /*
- * Tutorial 0013: GIF playback (AnimatedGIF + FATFS assets).
+ * echo_gif: GIF playback (AnimatedGIF + FATFS assets).
+ *
+ * NOTE: include order matters when combining AnimatedGIF and LovyanGFX/M5GFX due to
+ * macro helpers like memcpy_P in pgmspace headers. Keep M5GFX included before AnimatedGIF.
  */
 
 #include <errno.h>
@@ -10,22 +13,21 @@
 
 #include "esp_log.h"
 
-// IMPORTANT: include M5GFX (via gif_player.h) before AnimatedGIF.h to avoid
-// a macro collision between AnimatedGIF's memcpy_P macro and LovyanGFX pgmspace helpers.
-#include "gif_player.h"
+#include "M5GFX.h"
 #include "AnimatedGIF.h"
 
-#include "gif_registry.h"
+#include "echo_gif/gif_player.h"
+#include "echo_gif/gif_registry.h"
 
-static const char *TAG = "atoms3r_gif_console";
+static const char *TAG = "echo_gif_player";
 
 static AnimatedGIF s_gif;
 
-static char s_current_gif[CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN] = {0};
+static char s_current_gif[CONFIG_ECHO_GIF_MAX_PATH_LEN] = {0};
 static int32_t s_current_gif_file_size = 0;
 
 static void GIFDraw(GIFDRAW *pDraw) {
-    auto *ctx = (GifRenderCtx *)pDraw->pUser;
+    auto *ctx = (EchoGifRenderCtx *)pDraw->pUser;
     if (!ctx || !ctx->canvas) {
         return;
     }
@@ -57,7 +59,7 @@ static void GIFDraw(GIFDRAW *pDraw) {
                     continue;
                 }
                 uint16_t c = pal[idx];
-#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
+#if CONFIG_ECHO_GIF_SWAP_BYTES
                 c = __builtin_bswap16(c);
 #endif
                 const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
@@ -71,7 +73,7 @@ static void GIFDraw(GIFDRAW *pDraw) {
         } else {
             for (int i = 0; i < src_w; i++) {
                 uint16_t c = pal[s[i]];
-#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
+#if CONFIG_ECHO_GIF_SWAP_BYTES
                 c = __builtin_bswap16(c);
 #endif
                 const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
@@ -137,12 +139,11 @@ static int32_t gif_seek_cb(GIFFILE *pFile, int32_t iPosition) {
     return iPosition;
 }
 
-bool gif_player_open_path(const char *path, GifRenderCtx *ctx) {
+bool echo_gif_player_open_path(const char *path, EchoGifRenderCtx *ctx) {
     if (!path || !*path || !ctx) {
         return false;
     }
 
-    // Close previous and attempt open. Re-begin resets internal state, including file position.
     s_gif.close();
     s_gif.begin(GIF_PALETTE_RGB565_LE);
     s_current_gif_file_size = 0;
@@ -155,10 +156,9 @@ bool gif_player_open_path(const char *path, GifRenderCtx *ctx) {
 
     snprintf(s_current_gif, sizeof(s_current_gif), "%s", path);
 
-    // Update render ctx with GIF canvas geometry.
     ctx->gif_canvas_w = s_gif.getCanvasWidth();
     ctx->gif_canvas_h = s_gif.getCanvasHeight();
-#if CONFIG_TUTORIAL_0013_GIF_SCALE_TO_FULL_SCREEN
+#if CONFIG_ECHO_GIF_SCALE_TO_FULL_SCREEN
     ctx->scale_x = (ctx->gif_canvas_w > 0) ? (ctx->canvas_w / ctx->gif_canvas_w) : 1;
     ctx->scale_y = (ctx->gif_canvas_h > 0) ? (ctx->canvas_h / ctx->gif_canvas_h) : 1;
     if (ctx->scale_x < 1) ctx->scale_x = 1;
@@ -182,36 +182,21 @@ bool gif_player_open_path(const char *path, GifRenderCtx *ctx) {
              s_gif.getFrameXOff(),
              s_gif.getFrameYOff());
 
-    ESP_LOGI(TAG, "gif render: swap_bytes=%d scale=%dx%d gif_canvas=%dx%d -> scaled=%dx%d off=(%d,%d)",
-             (int)(0
-#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
-                   + 1
-#endif
-                   ),
-             ctx->scale_x, ctx->scale_y,
-             ctx->gif_canvas_w, ctx->gif_canvas_h,
-             scaled_w, scaled_h,
-             ctx->off_x, ctx->off_y);
-
     return true;
 }
 
-bool gif_player_open_index(int idx, GifRenderCtx *ctx) {
-    const char *path = gif_registry_path(idx);
+bool echo_gif_player_open_index(int idx, EchoGifRenderCtx *ctx) {
+    const char *path = echo_gif_registry_path(idx);
     if (!path) {
         return false;
     }
-    return gif_player_open_path(path, ctx);
+    return echo_gif_player_open_path(path, ctx);
 }
 
-int gif_player_play_frame(int *out_frame_delay_ms, GifRenderCtx *ctx) {
+int echo_gif_player_play_frame(int *out_frame_delay_ms, EchoGifRenderCtx *ctx) {
     if (out_frame_delay_ms) {
         *out_frame_delay_ms = 0;
     }
-    // Keep the same semantics as the pre-refactor code:
-    // - pass bSync=false
-    // - pass an explicit delay output pointer
-    // - pass ctx as the user pointer (GIFDraw reads it via pDraw->pUser)
     int frame_delay_ms = 0;
     const int prc = s_gif.playFrame(false, &frame_delay_ms, ctx);
     if (out_frame_delay_ms) {
@@ -220,43 +205,43 @@ int gif_player_play_frame(int *out_frame_delay_ms, GifRenderCtx *ctx) {
     return prc;
 }
 
-int gif_player_last_error(void) {
+int echo_gif_player_last_error(void) {
     return s_gif.getLastError();
 }
 
-void gif_player_reset(void) {
+void echo_gif_player_reset(void) {
     s_gif.reset();
 }
 
-int gif_player_canvas_width(void) {
+int echo_gif_player_canvas_width(void) {
     return s_gif.getCanvasWidth();
 }
 
-int gif_player_canvas_height(void) {
+int echo_gif_player_canvas_height(void) {
     return s_gif.getCanvasHeight();
 }
 
-int gif_player_frame_width(void) {
+int echo_gif_player_frame_width(void) {
     return s_gif.getFrameWidth();
 }
 
-int gif_player_frame_height(void) {
+int echo_gif_player_frame_height(void) {
     return s_gif.getFrameHeight();
 }
 
-int gif_player_frame_x_off(void) {
+int echo_gif_player_frame_x_off(void) {
     return s_gif.getFrameXOff();
 }
 
-int gif_player_frame_y_off(void) {
+int echo_gif_player_frame_y_off(void) {
     return s_gif.getFrameYOff();
 }
 
-const char *gif_player_current_path(void) {
+const char *echo_gif_player_current_path(void) {
     return s_current_gif;
 }
 
-int32_t gif_player_current_file_size(void) {
+int32_t echo_gif_player_current_file_size(void) {
     return s_current_gif_file_size;
 }
 

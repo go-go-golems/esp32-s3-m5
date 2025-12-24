@@ -1,23 +1,20 @@
-#include "gif_storage.h"
+#include "echo_gif/gif_storage.h"
 
 #include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "sdkconfig.h"
+
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 
-static const char *TAG = "gif_storage";
+static const char *TAG = "echo_gif_storage";
 
 static bool s_mounted = false;
 
-static constexpr const char *kMountPath = "/storage";
-static constexpr const char *kPartitionLabel = "storage";
-static constexpr const char *kGifDirPreferred = "/storage/gifs";
-static constexpr const char *kGifDirFallback = "/storage";
-
-esp_err_t gif_storage_mount(void) {
+esp_err_t echo_gif_storage_mount(void) {
     if (s_mounted) {
         return ESP_OK;
     }
@@ -30,15 +27,15 @@ esp_err_t gif_storage_mount(void) {
         .use_one_fat = false,
     };
 
-    ESP_LOGI(TAG, "mounting FATFS: partition=%s at %s", kPartitionLabel, kMountPath);
+    ESP_LOGI(TAG, "mounting FATFS: partition=%s at %s", CONFIG_ECHO_GIF_STORAGE_PARTITION_LABEL, CONFIG_ECHO_GIF_STORAGE_MOUNT_PATH);
     // IMPORTANT: we flash a prebuilt FATFS image into the partition using `fatfsgen.py` + parttool.
     // Mount it read-only without wear levelling.
     //
     // If we mount with wear levelling (`*_mount_rw_wl`), the WL layer expects its own metadata and the
     // prebuilt image will not be recognized (you'll see FatFs FR_NO_FILESYSTEM a.k.a. "f_mount failed (13)").
     esp_err_t err = esp_vfs_fat_spiflash_mount_ro(
-        kMountPath,
-        kPartitionLabel,
+        CONFIG_ECHO_GIF_STORAGE_MOUNT_PATH,
+        CONFIG_ECHO_GIF_STORAGE_PARTITION_LABEL,
         &mount_config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "mount failed: %s", esp_err_to_name(err));
@@ -62,30 +59,30 @@ static bool has_gif_ext(const char *name) {
             (ext[3] == 'f' || ext[3] == 'F'));
 }
 
-int gif_storage_list_gifs(char *out_paths, int max_paths, int max_path_len) {
+int echo_gif_storage_list_gifs(char *out_paths, int max_paths, int max_path_len) {
     if (!out_paths || max_paths <= 0 || max_path_len <= 0) {
         return 0;
     }
 
     if (!s_mounted) {
-        const esp_err_t err = gif_storage_mount();
+        const esp_err_t err = echo_gif_storage_mount();
         if (err != ESP_OK) {
             return 0;
         }
     }
 
-    const char *base_dir = kGifDirPreferred;
+    const char *base_dir = CONFIG_ECHO_GIF_STORAGE_GIF_DIR;
     DIR *dir = opendir(base_dir);
     if (!dir) {
         // Allow "flat" FATFS images where the GIFs are placed in the root of the storage partition.
-        base_dir = kGifDirFallback;
+        base_dir = CONFIG_ECHO_GIF_STORAGE_GIF_DIR_FALLBACK;
         dir = opendir(base_dir);
         if (!dir) {
             ESP_LOGW(TAG, "opendir(%s) and fallback opendir(%s) failed: errno=%d",
-                     kGifDirPreferred, kGifDirFallback, errno);
+                     CONFIG_ECHO_GIF_STORAGE_GIF_DIR, CONFIG_ECHO_GIF_STORAGE_GIF_DIR_FALLBACK, errno);
             return 0;
         }
-        ESP_LOGW(TAG, "GIF dir %s not found; falling back to %s", kGifDirPreferred, base_dir);
+        ESP_LOGW(TAG, "GIF dir %s not found; falling back to %s", CONFIG_ECHO_GIF_STORAGE_GIF_DIR, base_dir);
     }
 
     int count = 0;
@@ -109,7 +106,7 @@ int gif_storage_list_gifs(char *out_paths, int max_paths, int max_path_len) {
     return count;
 }
 
-esp_err_t gif_storage_read_file(const char *path, uint8_t **out_buf, size_t *out_len) {
+esp_err_t echo_gif_storage_read_file(const char *path, uint8_t **out_buf, size_t *out_len) {
     if (!path || !out_buf || !out_len) {
         return ESP_ERR_INVALID_ARG;
     }
@@ -156,7 +153,7 @@ esp_err_t gif_storage_read_file(const char *path, uint8_t **out_buf, size_t *out
     return ESP_OK;
 }
 
-void gif_storage_free(uint8_t *buf) {
+void echo_gif_storage_free(uint8_t *buf) {
     free(buf);
 }
 

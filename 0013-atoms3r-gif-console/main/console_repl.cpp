@@ -12,7 +12,7 @@
 #include "esp_log.h"
 
 #include "control_plane.h"
-#include "gif_registry.h"
+#include "echo_gif/gif_registry.h"
 
 #include "console_repl.h"
 
@@ -28,11 +28,11 @@ static bool try_parse_int(const char *s, int *out) {
 }
 
 static int cmd_list(int, char **) {
-    const int n = gif_registry_refresh();
+    const int n = echo_gif_registry_refresh();
     printf("gif assets (%d):\n", n);
     for (int i = 0; i < n; i++) {
-        const char *p = gif_registry_path(i);
-        printf("  %d: %s\n", i, path_basename(p));
+        const char *p = echo_gif_registry_path(i);
+        printf("  %d: %s\n", i, echo_gif_path_basename(p));
     }
     return 0;
 }
@@ -43,15 +43,15 @@ static int cmd_play(int argc, char **argv) {
         return 1;
     }
 
-    (void)gif_registry_refresh();
+    (void)echo_gif_registry_refresh();
 
     int idx = -1;
     if (try_parse_int(argv[1], &idx)) {
         // ok
     } else {
-        idx = gif_registry_find_by_name(argv[1]);
+        idx = echo_gif_registry_find_by_name(argv[1]);
     }
-    if (idx < 0 || idx >= gif_registry_count()) {
+    if (idx < 0 || idx >= echo_gif_registry_count()) {
         printf("invalid gif: %s\n", argv[1]);
         return 1;
     }

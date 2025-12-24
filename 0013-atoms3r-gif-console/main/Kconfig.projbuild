@@ -221,41 +221,6 @@ config TUTORIAL_0013_BUTTON_DEBOUNCE_MS
 
 endmenu
 
-menu "Tutorial 0013: GIF playback (AnimatedGIF + FATFS assets)"
-
-config TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS
-    int "Minimum frame delay (ms)"
-    range 0 1000
-    default 10
-    help
-        Some GIFs request a 0ms delay. This sets a floor so the playback loop yields.
-
-config TUTORIAL_0013_GIF_MAX_COUNT
-    int "Maximum number of GIF assets to list"
-    range 1 256
-    default 32
-    help
-        Maximum number of GIF files to read from /storage/gifs and expose via the console.
-
-config TUTORIAL_0013_GIF_MAX_PATH_LEN
-    int "Maximum GIF path length"
-    range 32 256
-    default 96
-    help
-        Maximum full path length for entries like /storage/gifs/foo.gif.
-
-config TUTORIAL_0013_GIF_SWAP_BYTES
-    bool "Byte-swap RGB565 pixels before writing into M5Canvas"
-    default y
-    help
-        Some pipelines produce RGB565 in MSB-first byte order. Toggle this if colors look wrong.
-
-config TUTORIAL_0013_GIF_SCALE_TO_FULL_SCREEN
-    bool "Scale GIF canvas to fill 128x128 (nearest-neighbor integer scaling)"
-    default y
-
-endmenu
-
 menu "Tutorial 0013: Debug Logging"
 
 config TUTORIAL_0013_LOG_EVERY_N_FRAMES
