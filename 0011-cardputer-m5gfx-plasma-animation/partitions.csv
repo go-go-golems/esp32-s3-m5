@@ -6,3 +6,4 @@ factory,  app,  factory, 0x10000, 4M,
 storage,  data, fat,     ,        1M,
 
 
+
