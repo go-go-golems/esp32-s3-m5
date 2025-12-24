@@ -12,7 +12,8 @@ set -euo pipefail
 PROJ_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INPUT_DIR="${1:-$PROJ_DIR/assets}"
 OUT_FILE="${2:-$PROJ_DIR/storage.bin}"
-PARTITION_SIZE_BYTES="${3:-1048576}" # 1MiB (matches partitions.csv default)
+# Default matches partitions.csv storage size (0x5F0000 bytes).
+PARTITION_SIZE_BYTES="${3:-6225920}"
 
 if [[ -z "${IDF_PATH:-}" ]]; then
   echo "ERROR: IDF_PATH is not set. Run: source ~/esp/esp-idf-5.4.1/export.sh" >&2
