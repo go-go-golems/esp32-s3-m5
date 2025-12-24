@@ -74,6 +74,80 @@ The `esp_console_new_repl_*` convenience functions wire these layers together fo
   - Enable: `USB Serial/JTAG` console (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`)
   - Disable UART default if you want USB-only (`CONFIG_ESP_CONSOLE_UART_DEFAULT=n`)
 
+### AtomS3R: run the REPL on the GROVE port (UART on G1/G2)
+
+`esp_console` is **not** “USB-only”. On ESP-IDF 5.x, the REPL can run over:
+- USB Serial/JTAG (`esp_console_new_repl_usb_serial_jtag`)
+- UART (`esp_console_new_repl_uart`)
+- USB CDC (`esp_console_new_repl_usb_cdc`)
+
+For AtomS3R specifically, you can run the REPL on the external GROVE connector by using the UART transport.
+
+#### AtomS3R GROVE (Port.A) pin mapping (M5Stack standard)
+
+Per the M5Stack AtomS3 docs, the 4-pin HY2.0/GROVE port exposes:
+
+- **GND**: black wire
+- **5V**: red wire
+- **G2**: yellow wire → `GPIO2`
+- **G1**: white wire → `GPIO1`
+
+Important: **G1/G2 are just GPIOs** (they’re *not inherently* RX vs TX). You decide which one is TX/RX via `menuconfig` / `sdkconfig`.
+
+#### Minimal `sdkconfig.defaults` for GROVE UART console
+
+This is the “most copy/paste” configuration (UART1, 115200 baud, TX on G1/GPIO1, RX on G2/GPIO2):
+
+```ini
+CONFIG_ESP_CONSOLE_UART_CUSTOM=y
+CONFIG_ESP_CONSOLE_UART_CUSTOM_NUM_1=y
+CONFIG_ESP_CONSOLE_UART_NUM=1
+CONFIG_ESP_CONSOLE_UART_TX_GPIO=1
+CONFIG_ESP_CONSOLE_UART_RX_GPIO=2
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
+```
+
+If you prefer to use a different UART controller (e.g. UART2), set `CONFIG_ESP_CONSOLE_UART_NUM=2` and select the matching UART option in `menuconfig` (ESP-IDF will generate the corresponding `CONFIG_ESP_CONSOLE_UART_CUSTOM_NUM_*` flag for you).
+
+#### Wiring a USB↔UART adapter to AtomS3R GROVE
+
+- **Adapter GND → Atom GND** (black)
+- **Adapter RX → Atom TX** (whatever pin you set as `CONFIG_ESP_CONSOLE_UART_TX_GPIO`)
+- **Adapter TX → Atom RX** (whatever pin you set as `CONFIG_ESP_CONSOLE_UART_RX_GPIO`)
+
+Make sure the adapter is **3.3V TTL** (do not drive GPIOs with 5V).
+
+#### Minimal code pattern (UART)
+
+With the Kconfig above, you typically don’t need custom UART init code; this uses the Kconfig-selected UART+pins:
+
+```c
+#include "esp_console.h"
+
+static void start_console_uart(void) {
+#if defined(CONFIG_ESP_CONSOLE_UART_DEFAULT) || defined(CONFIG_ESP_CONSOLE_UART_CUSTOM)
+    esp_console_repl_t *repl = NULL;
+
+    esp_console_repl_config_t repl_cfg = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_cfg.prompt = "app> ";
+
+    esp_console_dev_uart_config_t hw_cfg = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_cfg, &repl_cfg, &repl));
+
+    esp_console_register_help_command();
+    register_commands();
+
+    ESP_ERROR_CHECK(esp_console_start_repl(repl));
+#else
+    ESP_LOGW("console", "UART console disabled in sdkconfig");
+#endif
+}
+```
+
+#### Operational note: logs vs REPL transport
+
+The REPL uses `stdin/stdout` under the hood, so **your prompt + `printf()` output + (often) `ESP_LOG*` output will share the same transport**. If you switch the console to GROVE UART, expect most output to go there too.
+
 ### CMake component dependency
 
 In your `main/CMakeLists.txt`, ensure you depend on `console`:
@@ -254,4 +328,9 @@ Not console-specific, but common in “console-controlled demo” projects:
 - ESP-IDF `esp_console` component source (local, authoritative for your IDF version):
   - `$IDF_PATH/components/console/esp_console.h`
   - `$IDF_PATH/components/console/esp_console_repl_chip.c`
-
+- M5Stack AtomS3 documentation:
+  - https://docs.m5stack.com/en/core/AtomS3 — AtomS3/AtomS3R GROVE Port.A pin mapping (G1=GPIO1, G2=GPIO2) and wire colors
+- ESP-IDF console documentation:
+  - https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/console.html — esp_console REPL APIs (esp_console_new_repl_uart / esp_console_new_repl_usb_serial_jtag)
+  - https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/stdio.html — Standard I/O + console routing and UART console Kconfig options (pins/baud)
+  - https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-guides/usb-serial-jtag-console.html — USB Serial/JTAG console details on ESP32-S3

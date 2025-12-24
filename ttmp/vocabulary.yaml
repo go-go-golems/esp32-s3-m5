@@ -1,3 +1,32 @@
-topics: []
-docTypes: []
-intent: []
+topics:
+    - slug: animation
+      description: Animation-related topics
+    - slug: assets
+      description: Asset management and bundling
+    - slug: atoms3r
+      description: M5Stack AtomS3R board
+    - slug: display
+      description: Display and graphics
+    - slug: esp-idf
+      description: ESP-IDF framework
+    - slug: esp32s3
+      description: ESP32-S3 microcontroller
+    - slug: gif
+      description: GIF format and decoding
+    - slug: m5gfx
+      description: M5GFX graphics library
+    - slug: serial
+      description: Serial communication
+    - slug: ui
+      description: User interface
+    - slug: usb-serial-jtag
+      description: USB Serial/JTAG interface
+docTypes:
+    - slug: index
+      description: Ticket index document
+intent:
+    - slug: long-term
+      description: Long-term reference documentation
+status:
+    - slug: active
+      description: Active ticket status

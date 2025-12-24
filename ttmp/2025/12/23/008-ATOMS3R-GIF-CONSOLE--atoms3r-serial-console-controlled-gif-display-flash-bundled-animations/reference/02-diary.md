@@ -210,6 +210,110 @@ I also committed the small `sdkconfig` delta produced by `idf.py set-target esp3
   - `idf.py set-target esp32s3`
   - `idf.py build`
 
+## Step 6: Document running `esp_console` over AtomS3R GROVE UART (G1/G2)
+
+This step answered a concrete workflow question for ticket 008: “is `esp_console` stuck on USB Serial/JTAG, or can we run it on the GROVE port UART?” The key outcome is that the REPL transport is a build/runtime choice in ESP-IDF 5.x: we can run the console over **USB Serial/JTAG** *or* over an external **UART**, and AtomS3R’s GROVE port exposes two GPIOs (`G1/G2`) that are suitable for that UART wiring.
+
+I intentionally grounded this in repo-local evidence (ESP-IDF helper code + an existing project’s `sdkconfig`) and then updated the playbook so future work can copy/paste a known-good configuration.
+
+### What I did
+- Read the existing playbook:
+  - `playbooks/01-esp-console-repl-usb-serial-jtag-quickstart.md`
+- Confirmed repo-local “official” usage patterns:
+  - `echo-base--openai-realtime-embedded-sdk/components/esp-protocols/components/console_simple_init/console_simple_init.c`
+    - shows `ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT()` + `esp_console_new_repl_uart(...)`
+- Confirmed the Kconfig knob names for UART console pins/baud by inspecting an existing project:
+  - `ATOMS3R-CAM-M12-UserDemo/sdkconfig` (has `CONFIG_ESP_CONSOLE_UART_CUSTOM=y`, `CONFIG_ESP_CONSOLE_UART_NUM=...`, `..._TX_GPIO`, `..._RX_GPIO`, `..._BAUDRATE`)
+- Looked up AtomS3/AtomS3R GROVE `G1/G2` mapping in M5Stack docs (external source)
+- Updated the playbook to include:
+  - GROVE `G1/G2` → `GPIO1/GPIO2` mapping + wire colors
+  - minimal `sdkconfig.defaults` snippet for `CONFIG_ESP_CONSOLE_UART_CUSTOM`
+  - UART adapter wiring notes (TX↔RX crossing, 3.3V TTL)
+  - added ExternalSources links for the above
+
+### Why
+- We want the “control plane” (REPL) to be flexible:
+  - USB Serial/JTAG is great during dev, but an external UART is sometimes more stable / integrates better with other hardware.
+- AtomS3R has a convenient GROVE port; documenting it avoids repeated pinout rediscovery.
+
+### What worked
+- Repo helper code demonstrates the intended API surface: `esp_console_new_repl_uart()` exists and is used in upstream components.
+- Existing `sdkconfig` in this repo shows the real Kconfig option names for UART console pin/baud selection.
+
+### What didn't work
+- N/A (this was research + documentation)
+
+### What I learned
+- `esp_console` REPL is transport-agnostic in ESP-IDF 5.x (USB Serial/JTAG, UART, USB CDC).
+- For AtomS3R, GROVE `G1/G2` map to `GPIO1/GPIO2`, and **RX/TX direction is determined by configuration**, not by the labels themselves.
+
+### What was tricky to build
+- Avoiding “cargo-cult UART init”: the clean path is to let `ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT()` pick up Kconfig (pins/baud/UART num), rather than hand-installing drivers.
+
+### What warrants a second pair of eyes
+- Confirm, on real AtomS3R hardware, that `GPIO1/GPIO2` are free in the final firmware configuration (no peripheral conflicts), and that the chosen UART number (UART1 vs UART2) matches expectations.
+
+### What should be done in the future
+- If we decide we need **logs on USB** but **REPL on GROVE UART**, capture that as a deliberate design choice and document the exact IDF settings (secondary console / log routing). N/A for now.
+
+### Code review instructions
+- Start with the updated playbook:
+  - `playbooks/01-esp-console-repl-usb-serial-jtag-quickstart.md`
+- Then inspect the repo helper that informed the API usage:
+  - `echo-base--openai-realtime-embedded-sdk/components/esp-protocols/components/console_simple_init/console_simple_init.c`
+
+## Step 7: Deep-dive `esp_console` internals (ESP-IDF 5.4.1) and write a contributor guidebook
+
+This step answered a more “systems” question that came up naturally once we started using `esp_console` as a control-plane tool: where exactly is the global state, what is per-task vs global in ESP-IDF, and what does that mean for running multiple REPLs at once. Rather than relying on folklore (or web snippets that contradict each other), I read the ESP-IDF 5.4.1 source directly and then wrote a guidebook that points to the exact files and symbols.
+
+The key outcome is clarity: `esp_console` is implemented as a **global command engine** plus a **convenience REPL task**. The “new_repl” helpers call the global init and the delete helpers call the global deinit, which makes “two concurrent `esp_console_new_repl_*` REPLs” unsupported out of the box.
+
+### What I did
+- Located the actual ESP-IDF checkout used by our `0013` build by parsing `compile_commands.json`.
+- Read core implementation files in ESP-IDF 5.4.1:
+  - `$IDF_PATH/components/console/commands.c`
+  - `$IDF_PATH/components/console/esp_console_common.c`
+  - `$IDF_PATH/components/console/esp_console_repl_chip.c`
+  - `$IDF_PATH/components/console/linenoise/linenoise.c`
+  - `$IDF_PATH/components/esp_vfs_console/vfs_console.c`
+  - `$IDF_PATH/components/esp_driver_uart/src/uart_vfs.c`
+  - `$IDF_PATH/components/esp_driver_usb_serial_jtag/src/usb_serial_jtag_vfs.c`
+- Wrote a new guidebook document for contributors:
+  - `reference/03-esp-console-internals-guidebook.md`
+- Added a reusable ticket script:
+  - `scripts/extract_idf_paths_from_compile_commands.py`
+
+### Why
+- We need a trustworthy mental model of `esp_console` to make good architectural decisions (especially around multi-port console I/O and avoiding invalid-state crashes).
+- Having a guidebook drastically lowers the barrier for future contributors to make safe changes in this area.
+
+### What worked
+- `commands.c` makes global state and init semantics unambiguous (`s_tmp_line_buf` is the “already initialized” sentinel).
+- `esp_console_repl_task()` shows explicitly how the REPL uses `stdin/stdout` (and where per-task rebinding happens for non-default UART channels).
+- `esp_vfs_console` provides a clean alternative for “output to two ports” without trying to run two REPLs.
+
+### What didn't work
+- My first attempt to fetch ESP-IDF sources via GitHub “tag” URLs returned 404 (the repo layout/refs didn’t match the assumed paths). The local ESP-IDF checkout used by our builds is the correct source of truth.
+
+### What I learned
+- The `esp_console` module core is global (command registry + parse scratch buffer + config).
+- `linenoise` also uses global state (completion callbacks, history, dumb-mode).
+- The REPL “all-in-one” helpers are example-oriented by design; they make strong lifecycle choices (init/deinit) that aren’t compatible with multiple concurrent REPL instances.
+
+### What was tricky to build
+- Separating “what’s global” from “what’s per-task” without oversimplifying. ESP-IDF uses Newlib reentrancy so `stdin/stdout` can be per-task, but the console command engine itself is still global.
+
+### What warrants a second pair of eyes
+- The multi-REPL conclusion: while global init/deinit strongly suggests “not supported”, it’s worth double-checking whether ESP-IDF has any officially supported patterns for multiple interactive endpoints (beyond `/dev/console` secondary output).
+
+### What should be done in the future
+- If we truly need two independent interactive endpoints, treat it as a deliberate design/engineering effort:
+  - either implement a second lightweight parser loop for the second transport, or
+  - propose an upstream ESP-IDF change (refcounted init/deinit, re-entrant parsing, clarified per-REPL vs global semantics).
+
+### Code review instructions
+- Start with `reference/03-esp-console-internals-guidebook.md` and verify that each claim is backed by a specific file/symbol.
+
 ## Context
 
 <!-- Provide background context needed to use this reference -->

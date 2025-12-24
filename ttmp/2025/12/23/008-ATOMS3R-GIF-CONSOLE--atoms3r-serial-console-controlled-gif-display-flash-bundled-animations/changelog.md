@@ -38,3 +38,24 @@ Validated Phase A MVP builds for `esp32-s3-m5/0013-atoms3r-gif-console/` against
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/echo-base--openai-realtime-embedded-sdk/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/tasks.md — Task status updated
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/echo-base--openai-realtime-embedded-sdk/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/reference/02-diary.md — Step 5 build/commit diary entry
 
+
+## 2025-12-24
+
+Documented how to run `esp_console` over AtomS3R’s GROVE port UART (`G1/G2`) in ESP-IDF 5.x and captured the investigation as a diary step (so we don’t re-derive pinout + Kconfig names later).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/playbooks/01-esp-console-repl-usb-serial-jtag-quickstart.md — Added GROVE UART console configuration + wiring notes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/reference/02-diary.md — Added Step 6 (GROVE UART console investigation)
+
+
+## 2025-12-24
+
+Read ESP-IDF 5.4.1 `esp_console` implementation sources (console core, REPL glue, VFS backends) and wrote a contributor-focused internals guidebook explaining where global state lives and what that implies for multi-REPL designs.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/reference/03-esp-console-internals-guidebook.md — New guidebook (ESP-IDF 5.4.1 esp_console internals)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/reference/02-diary.md — Added Step 7 (esp_console internals deep dive)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/23/008-ATOMS3R-GIF-CONSOLE--atoms3r-serial-console-controlled-gif-display-flash-bundled-animations/scripts/extract_idf_paths_from_compile_commands.py — Script to locate ESP-IDF paths from compile_commands.json
+
