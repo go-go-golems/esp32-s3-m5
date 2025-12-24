@@ -1,0 +1,5 @@
+# Keep this directory in git, but do not commit GIF binaries.
+*.gif
+*.GIF
+
+

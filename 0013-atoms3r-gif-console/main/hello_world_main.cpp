@@ -1,9 +1,10 @@
 /*
  * ESP32-S3 tutorial 0013:
- * AtomS3R “GIF console” MVP (mock animations + button + esp_console).
+ * AtomS3R “GIF console” (real GIF playback + button + esp_console).
  *
- * This chapter focuses on the control plane first. Real GIF decoding and flash
- * asset bundling come later.
+ * This chapter started as a control-plane MVP (mock animations). It now plays
+ * real GIFs using bitbank2/AnimatedGIF, loaded from a flash-bundled FATFS
+ * partition ("storage") mounted at /storage (see partitions.csv).
  *
  * Hardware (AtomS3R) wiring (from schematic / prior investigation):
  * - DISP_CS    = GPIO14
@@ -20,6 +21,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 
 #include "sdkconfig.h"
@@ -45,7 +47,10 @@
 #include "lgfx/v1/panel/Panel_GC9A01.hpp"
 #include "lgfx/v1/platforms/esp32/Bus_SPI.hpp"
 
-static const char *TAG = "atoms3r_gif_console_mock";
+#include "AnimatedGIF.h"
+#include "gif_storage.h"
+
+static const char *TAG = "atoms3r_gif_console";
 
 // Fixed AtomS3R wiring.
 static constexpr int PIN_LCD_CS = 14;
@@ -294,58 +299,202 @@ static bool display_init_m5gfx(void) {
     return true;
 }
 
-// -------------------------
-// Mock animations (Phase A)
-// -------------------------
-
-struct MockAnim {
-    const char *name;
-    void (*render)(M5Canvas &canvas, uint32_t frame, uint32_t t_ms);
-};
-
-static void anim_solid(M5Canvas &canvas, uint16_t color565) {
-    canvas.fillScreen(color565);
+static void present_canvas(M5Canvas &canvas) {
+#if CONFIG_TUTORIAL_0013_PRESENT_USE_DMA
+    canvas.pushSprite(0, 0);
+    s_display.waitDMA();
+#else
+    canvas.pushSprite(0, 0);
+#endif
 }
 
-static void render_red(M5Canvas &canvas, uint32_t, uint32_t) { anim_solid(canvas, TFT_RED); }
-static void render_green(M5Canvas &canvas, uint32_t, uint32_t) { anim_solid(canvas, TFT_GREEN); }
-static void render_blue(M5Canvas &canvas, uint32_t, uint32_t) { anim_solid(canvas, TFT_BLUE); }
+// -------------------------
+// GIF playback (AnimatedGIF + FATFS assets)
+// -------------------------
 
-static void render_bounce_square(M5Canvas &canvas, uint32_t frame, uint32_t) {
-    const int w = canvas.width();
-    const int h = canvas.height();
-    canvas.fillScreen(TFT_BLACK);
+typedef struct gif_render_ctx_tag {
+    M5Canvas *canvas;
+    int canvas_w;
+    int canvas_h;
+    int gif_canvas_w;
+    int gif_canvas_h;
+    int scale_x;
+    int scale_y;
+    int off_x;
+    int off_y;
+} GifRenderCtx;
 
-    const int size = (w < h ? w : h) / 4;
-    const int period_x = (w - size) > 0 ? (w - size) : 1;
-    const int period_y = (h - size) > 0 ? (h - size) : 1;
-    const int x = (int)((frame * 4) % (uint32_t)period_x);
-    const int y = (int)((frame * 3) % (uint32_t)period_y);
-    canvas.fillRect(x, y, size, size, TFT_YELLOW);
-}
+static AnimatedGIF s_gif;
 
-static void render_checker(M5Canvas &canvas, uint32_t frame, uint32_t) {
-    const int w = canvas.width();
-    const int h = canvas.height();
-    const int cell = 16;
-    const bool phase = ((frame / 5) % 2) != 0;
-    for (int y = 0; y < h; y += cell) {
-        for (int x = 0; x < w; x += cell) {
-            const bool on = ((((x / cell) + (y / cell)) % 2) != 0) ^ phase;
-            canvas.fillRect(x, y, cell, cell, on ? TFT_WHITE : TFT_DARKGREY);
+static void GIFDraw(GIFDRAW *pDraw) {
+    auto *ctx = (GifRenderCtx *)pDraw->pUser;
+    if (!ctx || !ctx->canvas) {
+        return;
+    }
+
+    auto *dst = (uint16_t *)ctx->canvas->getBuffer();
+    const uint8_t *s = pDraw->pPixels;
+    const uint16_t *pal = pDraw->pPalette;
+
+    // Map this scanline into the output canvas. We treat AnimatedGIF coordinates as being
+    // relative to the GIF canvas, then scale/offset into our 128x128 screen canvas.
+    const int src_y = pDraw->iY + pDraw->y;
+    const int src_x0 = pDraw->iX;
+    const int src_w = pDraw->iWidth;
+
+    // Nearest-neighbor scaling (integer scale factors).
+    const int sx = (ctx->scale_x > 0) ? ctx->scale_x : 1;
+    const int sy = (ctx->scale_y > 0) ? ctx->scale_y : 1;
+
+    const int dst_y0 = ctx->off_y + src_y * sy;
+    for (int dy = 0; dy < sy; dy++) {
+        const int y = dst_y0 + dy;
+        if ((unsigned)y >= (unsigned)ctx->canvas_h) {
+            continue;
+        }
+        uint16_t *row = &dst[y * ctx->canvas_w];
+
+        if (pDraw->ucHasTransparency) {
+            const uint8_t t = pDraw->ucTransparent;
+            for (int i = 0; i < src_w; i++) {
+                const uint8_t idx = s[i];
+                if (idx == t) {
+                    continue;
+                }
+                uint16_t c = pal[idx];
+#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
+                c = __builtin_bswap16(c);
+#endif
+                const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
+                for (int dx = 0; dx < sx; dx++) {
+                    const int x = dst_x0 + dx;
+                    if ((unsigned)x < (unsigned)ctx->canvas_w) {
+                        row[x] = c;
+                    }
+                }
+            }
+        } else {
+            for (int i = 0; i < src_w; i++) {
+                uint16_t c = pal[s[i]];
+#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
+                c = __builtin_bswap16(c);
+#endif
+                const int dst_x0 = ctx->off_x + (src_x0 + i) * sx;
+                for (int dx = 0; dx < sx; dx++) {
+                    const int x = dst_x0 + dx;
+                    if ((unsigned)x < (unsigned)ctx->canvas_w) {
+                        row[x] = c;
+                    }
+                }
+            }
         }
     }
 }
 
-static const MockAnim kAnims[] = {
-    {"red", render_red},
-    {"green", render_green},
-    {"blue", render_blue},
-    {"bounce", render_bounce_square},
-    {"checker", render_checker},
-};
+static char s_gif_paths[CONFIG_TUTORIAL_0013_GIF_MAX_COUNT][CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN];
+static int s_gif_count = 0;
+static char s_current_gif[CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN] = {0};
 
-static constexpr int kAnimCount = (int)(sizeof(kAnims) / sizeof(kAnims[0]));
+static int refresh_gif_list(void) {
+    s_gif_count = gif_storage_list_gifs((char *)s_gif_paths, CONFIG_TUTORIAL_0013_GIF_MAX_COUNT, CONFIG_TUTORIAL_0013_GIF_MAX_PATH_LEN);
+    return s_gif_count;
+}
+
+static const char *path_basename(const char *path) {
+    if (!path) return "";
+    const char *slash = strrchr(path, '/');
+    return slash ? (slash + 1) : path;
+}
+
+static int find_gif_index_by_name(const char *name) {
+    if (!name || !*name) return -1;
+    for (int i = 0; i < s_gif_count; i++) {
+        const char *base = path_basename(s_gif_paths[i]);
+        if (strcasecmp(name, base) == 0) return i;
+        // Allow omitting ".gif"
+        const size_t base_len = strlen(base);
+        if (base_len > 4 && strcasecmp(base + (base_len - 4), ".gif") == 0) {
+            const size_t stem_len = base_len - 4;
+            if (strlen(name) == stem_len && strncasecmp(name, base, stem_len) == 0) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+
+static bool open_gif_index(int idx, GifRenderCtx *ctx, uint8_t **gif_buf, size_t *gif_len) {
+    if (idx < 0 || idx >= s_gif_count || !ctx || !gif_buf || !gif_len) {
+        return false;
+    }
+
+    const char *path = s_gif_paths[idx];
+    uint8_t *new_buf = nullptr;
+    size_t new_len = 0;
+    const esp_err_t err = gif_storage_read_file(path, &new_buf, &new_len);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "failed to read gif: %s (%s)", path, esp_err_to_name(err));
+        return false;
+    }
+
+    // Close previous and attempt open.
+    s_gif.close();
+    const int open_ok = s_gif.open((uint8_t *)new_buf, (int)new_len, GIFDraw);
+    if (!open_ok) {
+        const int last_err = s_gif.getLastError();
+        ESP_LOGE(TAG, "gif open failed: %s open_ok=%d last_error=%d", path, open_ok, last_err);
+        gif_storage_free(new_buf);
+        return false;
+    }
+
+    // Success: swap in buffer.
+    if (*gif_buf) {
+        gif_storage_free(*gif_buf);
+    }
+    *gif_buf = new_buf;
+    *gif_len = new_len;
+    snprintf(s_current_gif, sizeof(s_current_gif), "%s", path);
+
+    // Update render ctx with GIF canvas geometry.
+    ctx->gif_canvas_w = s_gif.getCanvasWidth();
+    ctx->gif_canvas_h = s_gif.getCanvasHeight();
+#if CONFIG_TUTORIAL_0013_GIF_SCALE_TO_FULL_SCREEN
+    ctx->scale_x = (ctx->gif_canvas_w > 0) ? (ctx->canvas_w / ctx->gif_canvas_w) : 1;
+    ctx->scale_y = (ctx->gif_canvas_h > 0) ? (ctx->canvas_h / ctx->gif_canvas_h) : 1;
+    if (ctx->scale_x < 1) ctx->scale_x = 1;
+    if (ctx->scale_y < 1) ctx->scale_y = 1;
+#else
+    ctx->scale_x = 1;
+    ctx->scale_y = 1;
+#endif
+    const int scaled_w = ctx->gif_canvas_w * ctx->scale_x;
+    const int scaled_h = ctx->gif_canvas_h * ctx->scale_y;
+    ctx->off_x = (scaled_w < ctx->canvas_w) ? ((ctx->canvas_w - scaled_w) / 2) : 0;
+    ctx->off_y = (scaled_h < ctx->canvas_h) ? ((ctx->canvas_h - scaled_h) / 2) : 0;
+
+    ESP_LOGI(TAG, "gif open ok: %s bytes=%u canvas=%dx%d frame=%dx%d off=(%d,%d)",
+             path,
+             (unsigned)new_len,
+             s_gif.getCanvasWidth(),
+             s_gif.getCanvasHeight(),
+             s_gif.getFrameWidth(),
+             s_gif.getFrameHeight(),
+             s_gif.getFrameXOff(),
+             s_gif.getFrameYOff());
+
+    ESP_LOGI(TAG, "gif render: swap_bytes=%d scale=%dx%d gif_canvas=%dx%d -> scaled=%dx%d off=(%d,%d)",
+             (int)(0
+#if CONFIG_TUTORIAL_0013_GIF_SWAP_BYTES
+                   + 1
+#endif
+                   ),
+             ctx->scale_x, ctx->scale_y,
+             ctx->gif_canvas_w, ctx->gif_canvas_h,
+             scaled_w, scaled_h,
+             ctx->off_x, ctx->off_y);
+
+    return true;
+}
 
 // -------------------------
 // Control plane: queue + button + console commands
@@ -373,14 +522,6 @@ static bool try_parse_int(const char *s, int *out) {
     if (!end || *end != '\0') return false;
     *out = (int)v;
     return true;
-}
-
-static int find_anim_index_by_name(const char *name) {
-    if (!name) return -1;
-    for (int i = 0; i < kAnimCount; i++) {
-        if (strcasecmp(name, kAnims[i].name) == 0) return i;
-    }
-    return -1;
 }
 
 static void ctrl_send(const CtrlEvent &ev) {
@@ -444,9 +585,10 @@ static void button_poll_debug_log(void) {
 }
 
 static int cmd_list(int, char **) {
-    printf("mock animations (%d):\n", kAnimCount);
-    for (int i = 0; i < kAnimCount; i++) {
-        printf("  %d: %s\n", i, kAnims[i].name);
+    const int n = refresh_gif_list();
+    printf("gif assets (%d):\n", n);
+    for (int i = 0; i < n; i++) {
+        printf("  %d: %s\n", i, path_basename(s_gif_paths[i]));
     }
     return 0;
 }
@@ -456,14 +598,17 @@ static int cmd_play(int argc, char **argv) {
         printf("usage: play <id|name>\n");
         return 1;
     }
+    // Refresh on demand so list/play reflects whatever is currently flashed into storage.
+    (void)refresh_gif_list();
+
     int idx = -1;
     if (try_parse_int(argv[1], &idx)) {
         // ok
     } else {
-        idx = find_anim_index_by_name(argv[1]);
+        idx = find_gif_index_by_name(argv[1]);
     }
-    if (idx < 0 || idx >= kAnimCount) {
-        printf("invalid animation: %s\n", argv[1]);
+    if (idx < 0 || idx >= s_gif_count) {
+        printf("invalid gif: %s\n", argv[1]);
         return 1;
     }
     ctrl_send({.type = CtrlType::PlayIndex, .arg = idx});
@@ -504,13 +649,13 @@ static void console_register_commands(void) {
 
     cmd = {};
     cmd.command = "list";
-    cmd.help = "List available mock animations";
+    cmd.help = "List available GIFs (from /storage/gifs)";
     cmd.func = &cmd_list;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = {};
     cmd.command = "play";
-    cmd.help = "Play animation by id or name: play <id|name>";
+    cmd.help = "Play GIF by id or name: play <id|name>";
     cmd.func = &cmd_play;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -522,7 +667,7 @@ static void console_register_commands(void) {
 
     cmd = {};
     cmd.command = "next";
-    cmd.help = "Select next animation and play";
+    cmd.help = "Select next GIF and play";
     cmd.func = &cmd_next;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -636,13 +781,43 @@ extern "C" void app_main(void) {
     console_start_usb_serial_jtag();
     button_poll_debug_log();
 
-    bool playing = true;
-    int anim_idx = 0;
+    // Storage + asset registry.
+    esp_err_t storage_err = gif_storage_mount();
+    if (storage_err != ESP_OK) {
+        ESP_LOGW(TAG, "storage mount failed: %s (no GIFs will be available)", esp_err_to_name(storage_err));
+    }
+    const int n_gifs = refresh_gif_list();
+    ESP_LOGI(TAG, "gif registry: %d asset(s) found under /storage/gifs", n_gifs);
+
+    // Decoder setup (RAW draw mode: palettized pixels translated via RGB565 palette).
+    s_gif.begin(GIF_PALETTE_RGB565_LE);
+
+    GifRenderCtx gif_ctx = {};
+    gif_ctx.canvas = &canvas;
+    gif_ctx.canvas_w = w;
+    gif_ctx.canvas_h = h;
+
+    uint8_t *gif_buf = nullptr;
+    size_t gif_len = 0;
+    int gif_idx = 0;
+    bool playing = false;
+    int delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
     uint32_t frame = 0;
     uint32_t last_next_ms = 0;
 
-    ESP_LOGI(TAG, "starting mock playback loop (frame_delay_ms=%d dma_present=%d psram=%d)",
-             CONFIG_TUTORIAL_0013_FRAME_DELAY_MS,
+    if (n_gifs > 0) {
+        canvas.fillScreen(TFT_BLACK);
+        present_canvas(canvas);
+        if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+            playing = true;
+            printf("playing: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
+        }
+    } else {
+        printf("no gifs found under /storage/gifs (flash a storage partition image)\n");
+    }
+
+    ESP_LOGI(TAG, "starting GIF playback loop (min_delay_ms=%d dma_present=%d psram=%d)",
+             CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS,
              (int)(0
 #if CONFIG_TUTORIAL_0013_PRESENT_USE_DMA
                    + 1
@@ -654,29 +829,30 @@ extern "C" void app_main(void) {
 #endif
                    ));
 
-    int64_t next_frame_us = esp_timer_get_time();
     while (true) {
-        const int64_t now_us = esp_timer_get_time();
-        const uint32_t now_ms = (uint32_t)(now_us / 1000);
-
         TickType_t wait_ticks = portMAX_DELAY;
         if (playing) {
-            int64_t dt_us = next_frame_us - now_us;
-            if (dt_us < 0) dt_us = 0;
-            wait_ticks = pdMS_TO_TICKS((uint32_t)(dt_us / 1000));
+            const int wms = (delay_ms > 0) ? delay_ms : CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+            wait_ticks = pdMS_TO_TICKS((uint32_t)wms);
         }
 
         CtrlEvent ev = {};
         if (xQueueReceive(s_ctrl_q, &ev, wait_ticks) == pdTRUE) {
+            const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
             switch (ev.type) {
                 case CtrlType::PlayIndex: {
                     int idx = (int)ev.arg;
-                    if (idx >= 0 && idx < kAnimCount) {
-                        anim_idx = idx;
-                        playing = true;
+                    if (idx >= 0 && idx < s_gif_count) {
+                        gif_idx = idx;
                         frame = 0;
-                        next_frame_us = esp_timer_get_time();
-                        printf("playing: %d (%s)\n", anim_idx, kAnims[anim_idx].name);
+                        if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+                            playing = true;
+                            delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+                            printf("playing: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
+                        } else {
+                            playing = false;
+                            printf("failed to open: %d\n", gif_idx);
+                        }
                     }
                     break;
                 }
@@ -690,20 +866,42 @@ extern "C" void app_main(void) {
                         break;
                     }
                     last_next_ms = now_ms;
-                    anim_idx = (anim_idx + 1) % kAnimCount;
-                    playing = true;
+                    if (s_gif_count <= 0) {
+                        break;
+                    }
+                    gif_idx = (gif_idx + 1) % s_gif_count;
                     frame = 0;
-                    next_frame_us = esp_timer_get_time();
-                    printf("next: %d (%s)\n", anim_idx, kAnims[anim_idx].name);
+                    if (open_gif_index(gif_idx, &gif_ctx, &gif_buf, &gif_len)) {
+                        playing = true;
+                        delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+                        printf("next: %d (%s)\n", gif_idx, path_basename(s_gif_paths[gif_idx]));
+                    } else {
+                        playing = false;
+                        printf("failed to open: %d\n", gif_idx);
+                    }
                     break;
                 }
                 case CtrlType::Info:
-                    printf("state: playing=%d anim=%d (%s) frame=%" PRIu32 " frame_delay_ms=%d\n",
+                    printf("state: playing=%d gif=%d/%d name=%s bytes=%u frame=%" PRIu32 " min_delay_ms=%d last_delay_ms=%d\n",
                            playing ? 1 : 0,
-                           anim_idx,
-                           kAnims[anim_idx].name,
+                           gif_idx,
+                           s_gif_count,
+                           s_current_gif[0] ? path_basename(s_current_gif) : "(none)",
+                           (unsigned)gif_len,
                            frame,
-                           CONFIG_TUTORIAL_0013_FRAME_DELAY_MS);
+                           CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS,
+                           delay_ms);
+                    printf("gif geom: canvas=%dx%d frame=%dx%d off=(%d,%d) render_scale=%dx%d render_off=(%d,%d)\n",
+                           s_gif.getCanvasWidth(),
+                           s_gif.getCanvasHeight(),
+                           s_gif.getFrameWidth(),
+                           s_gif.getFrameHeight(),
+                           s_gif.getFrameXOff(),
+                           s_gif.getFrameYOff(),
+                           gif_ctx.scale_x,
+                           gif_ctx.scale_y,
+                           gif_ctx.off_x,
+                           gif_ctx.off_y);
                     break;
                 case CtrlType::SetBrightness: {
                     int v = (int)ev.arg;
@@ -712,29 +910,39 @@ extern "C" void app_main(void) {
                     break;
                 }
             }
+            continue;
         }
 
         if (!playing) {
             continue;
         }
+        int frame_delay_ms = 0;
+        const int prc = s_gif.playFrame(false, &frame_delay_ms, &gif_ctx);
+        const int last_err = s_gif.getLastError();
 
-        const int64_t now2_us = esp_timer_get_time();
-        if (now2_us < next_frame_us) {
-            continue;
+        // IMPORTANT: per AnimatedGIF docs:
+        // - playFrame() can return 0 even if it successfully rendered a frame (EOF reached right after).
+        //   In that case last_err will be GIF_SUCCESS and we still must present the canvas at least once.
+        if (prc > 0 || last_err == GIF_SUCCESS) {
+            present_canvas(canvas);
+            frame++;
+
+            if (frame_delay_ms < CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS) {
+                frame_delay_ms = CONFIG_TUTORIAL_0013_GIF_MIN_FRAME_DELAY_MS;
+            }
+            delay_ms = frame_delay_ms;
         }
 
-        const uint32_t t_ms = (uint32_t)(now2_us / 1000);
-        kAnims[anim_idx].render(canvas, frame, t_ms);
-
-#if CONFIG_TUTORIAL_0013_PRESENT_USE_DMA
-        canvas.pushSprite(0, 0);
-        s_display.waitDMA();
-#else
-        canvas.pushSprite(0, 0);
-#endif
-
-        frame++;
-        next_frame_us = now2_us + ((int64_t)CONFIG_TUTORIAL_0013_FRAME_DELAY_MS * 1000);
+        if (prc == 0) {
+            canvas.fillScreen(TFT_BLACK);
+            s_gif.reset();
+            vTaskDelay(pdMS_TO_TICKS(1));
+        } else if (prc < 0) {
+            ESP_LOGE(TAG, "gif playFrame failed: last_error=%d", last_err);
+            canvas.fillScreen(TFT_BLACK);
+            s_gif.reset();
+            vTaskDelay(pdMS_TO_TICKS(100));
+        }
 
 #if CONFIG_TUTORIAL_0013_LOG_EVERY_N_FRAMES > 0
         if ((frame % (uint32_t)CONFIG_TUTORIAL_0013_LOG_EVERY_N_FRAMES) == 0) {
@@ -743,5 +951,6 @@ extern "C" void app_main(void) {
 #endif
     }
 }
+
 
 

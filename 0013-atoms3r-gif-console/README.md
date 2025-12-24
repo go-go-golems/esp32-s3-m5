@@ -1,9 +1,9 @@
-## AtomS3R Tutorial 0013 — “GIF Console” MVP (mock animations + button + `esp_console`) (ESP-IDF 5.4.1)
+## AtomS3R Tutorial 0013 — “GIF Console” (real GIFs + button + `esp_console`) (ESP-IDF 5.4.1)
 
-This tutorial is the **Phase A MVP** for ticket `008-ATOMS3R-GIF-CONSOLE`: it does *not* play real GIFs yet. Instead it plays **mock “GIFs”** (simple built-in animations like colored squares) so we can focus on:
+This tutorial is the “control plane + real payload” chapter: it plays **real GIFs** (decoded with **bitbank2/AnimatedGIF**) selected via **serial console commands** and a **hardware button**. GIF files are stored on a flash-bundled FATFS partition (`storage`) mounted at `/storage`.
 
 - **Serial console control** (`esp_console`): `list`, `play`, `stop`, `next`, `info` (and optional `brightness`)
-- **Button control**: press a GPIO button to go to the **next** animation
+- **Button control**: press a GPIO button to go to the **next** GIF
 - **Stable present**: M5GFX `M5Canvas` + `pushSprite()` + `waitDMA()`
 
 ### Why this exists
@@ -14,7 +14,7 @@ This complements the other AtomS3R chapters:
 - `0009` (M5GFX full-frame blit): immediate-mode rendering
 - `0010` (M5GFX canvas): known-good canvas + DMA present pattern
 
-`0013` is the “control plane first” reference: **commands + button + playback state machine** without introducing GIF decoding or asset bundling yet.
+`0013` is the “control plane + playback engine” reference: **commands + button + playback state machine + decoder + flash-bundled assets**.
 
 ### Hardware wiring (AtomS3R)
 
@@ -37,14 +37,32 @@ These are configurable via `idf.py menuconfig` (`Tutorial 0010: Backlight`).
 
 ### Expected output
 
-- The LCD shows one of several **mock animations** (e.g. solid color / moving square).
+- The LCD shows frames from the selected **GIF** (decoded on-device).
 - Over serial console you can:
-  - `list` to see animations
+  - `list` to see GIF assets from `/storage/gifs`
   - `play <id|name>` to select one
   - `stop` to pause
   - `next` to cycle
   - `info` to view current state
-- Pressing the configured button triggers `next`.
+- Pressing the configured button triggers `next` (debounced).
+
+### Assets: where GIF files live
+
+- Partition: `storage` (FATFS), defined in `partitions.csv`
+- Mount point: `/storage`
+- Directory scanned for GIFs:
+  - preferred: `/storage/gifs`
+  - fallback: `/storage` (for “flat” FATFS images)
+
+### Build + flash a FATFS image with GIF files
+
+This tutorial includes two helper scripts:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0013-atoms3r-gif-console && \
+./make_storage_fatfs.sh && \
+./flash_storage.sh /dev/ttyACM0
+```
 
 ### Build (ESP-IDF 5.4.1)
 
@@ -68,6 +86,7 @@ This project does **not** copy M5GFX into the tutorial directory. Instead it use
 
 - `EXTRA_COMPONENT_DIRS` in `CMakeLists.txt` pointing at:
   - `M5Cardputer-UserDemo/components/M5GFX`
+  - `esp32-s3-m5/components` (symlinked `animatedgif` component)
 
 So `0013` stays small, but we reuse the exact M5GFX code we already vendor in the repo.
 

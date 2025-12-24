@@ -5,3 +5,5 @@ managed_components
 .cache
 .history
 .pio
+**/sdkconfig.old
+**/storage.bin
