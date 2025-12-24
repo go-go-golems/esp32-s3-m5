@@ -53,6 +53,113 @@
 
 static const char *TAG = "atoms3r_gif_console";
 
+// -------------------------
+// Debug: UART RX heartbeat (edge counter on RX GPIO)
+// -------------------------
+
+#if CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
+static volatile uint32_t s_uart_rx_edges = 0;
+static volatile uint32_t s_uart_rx_rises = 0;
+static volatile uint32_t s_uart_rx_falls = 0;
+
+static void IRAM_ATTR uart_rx_edge_isr(void *arg) {
+    const int gpio = (int)(intptr_t)arg;
+    int level = gpio_get_level((gpio_num_t)gpio);
+    __atomic_fetch_add(&s_uart_rx_edges, 1, __ATOMIC_RELAXED);
+    if (level) {
+        __atomic_fetch_add(&s_uart_rx_rises, 1, __ATOMIC_RELAXED);
+    } else {
+        __atomic_fetch_add(&s_uart_rx_falls, 1, __ATOMIC_RELAXED);
+    }
+}
+
+static void uart_rx_heartbeat_task(void *arg) {
+    const int rx_gpio = (int)(intptr_t)arg;
+    uint32_t last_edges = 0;
+    uint32_t last_rises = 0;
+    uint32_t last_falls = 0;
+
+    while (true) {
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_INTERVAL_MS));
+
+        const uint32_t edges = s_uart_rx_edges;
+        const uint32_t rises = s_uart_rx_rises;
+        const uint32_t falls = s_uart_rx_falls;
+
+        const uint32_t d_edges = edges - last_edges;
+        const uint32_t d_rises = rises - last_rises;
+        const uint32_t d_falls = falls - last_falls;
+
+        last_edges = edges;
+        last_rises = rises;
+        last_falls = falls;
+
+        // UART idle is high, so "some traffic" should typically show both rises and falls.
+        ESP_LOGI(TAG, "uart rx heartbeat: rx_gpio=%d level=%d edges=%" PRIu32 " (d=%" PRIu32 ") rises=%" PRIu32 " falls=%" PRIu32,
+                 rx_gpio,
+                 gpio_get_level((gpio_num_t)rx_gpio),
+                 edges, d_edges,
+                 d_rises, d_falls);
+    }
+}
+
+static void uart_rx_heartbeat_start(void) {
+    const int rx_gpio = CONFIG_TUTORIAL_0013_CONSOLE_UART_RX_GPIO;
+
+    // IMPORTANT:
+    // Do NOT call gpio_config() here. The UART driver configures this pin for UART RX,
+    // and gpio_config() can steal the pin back to "GPIO function", breaking UART input.
+    //
+    // We only enable a GPIO interrupt on the same pin to prove "electrical activity".
+    esp_err_t err = gpio_set_intr_type((gpio_num_t)rx_gpio, GPIO_INTR_ANYEDGE);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "uart rx heartbeat: gpio_set_intr_type failed: rx_gpio=%d err=%s",
+                 rx_gpio, esp_err_to_name(err));
+        return;
+    }
+    (void)gpio_pullup_en((gpio_num_t)rx_gpio);    // UART idle-high; ignore error if pin doesn't support pull-ups
+    (void)gpio_pulldown_dis((gpio_num_t)rx_gpio); // best-effort
+
+    // ISR service may already be installed by button_init(); INVALID_STATE is OK.
+    err = gpio_install_isr_service(0);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(TAG, "uart rx heartbeat: gpio_install_isr_service failed: %s", esp_err_to_name(err));
+        return;
+    }
+    err = gpio_isr_handler_add((gpio_num_t)rx_gpio, uart_rx_edge_isr, (void *)(intptr_t)rx_gpio);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "uart rx heartbeat: gpio_isr_handler_add failed: rx_gpio=%d err=%s",
+                 rx_gpio, esp_err_to_name(err));
+        return;
+    }
+
+    static TaskHandle_t s_uart_rx_task = nullptr;
+    if (!s_uart_rx_task) {
+        BaseType_t ok = xTaskCreatePinnedToCore(
+            uart_rx_heartbeat_task,
+            "uart_rx_hb",
+            2048,
+            (void *)(intptr_t)rx_gpio,
+            1,
+            &s_uart_rx_task,
+            tskNO_AFFINITY);
+        if (ok != pdPASS) {
+            ESP_LOGW(TAG, "uart rx heartbeat: failed to create task");
+            s_uart_rx_task = nullptr;
+            return;
+        }
+    }
+
+    ESP_LOGI(TAG, "uart rx heartbeat enabled: rx_gpio=%d interval_ms=%d",
+             rx_gpio,
+             CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_INTERVAL_MS);
+}
+#else
+static void uart_rx_heartbeat_start(void) {
+    // disabled
+}
+#endif
+
 // Fixed AtomS3R wiring.
 static constexpr int PIN_LCD_CS = 14;
 static constexpr int PIN_LCD_SCK = 15;
@@ -725,14 +832,14 @@ static void console_register_commands(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
+static void console_start_uart_grove(void) __attribute__((unused));
 static void console_start_uart_grove(void) {
 #if CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM
     esp_console_repl_t *repl = nullptr;
 
     // IMPORTANT:
-    // Like the USB Serial/JTAG helper, `esp_console_new_repl_uart()` also calls
-    // `esp_console_init()` internally (via esp_console_common_init). Don’t call
-    // esp_console_init() yourself beforehand.
+    // `esp_console_new_repl_uart()` internally initializes `esp_console` (via esp_console_common_init).
+    // Don't call `esp_console_init()` yourself beforehand.
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = CONFIG_TUTORIAL_0013_CONSOLE_PROMPT;
 
@@ -768,6 +875,7 @@ static void console_start_uart_grove(void) {
 #endif
 }
 
+static void console_start_usb_serial_jtag(void) __attribute__((unused));
 static void console_start_usb_serial_jtag(void) {
 #if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     esp_console_repl_t *repl = nullptr;
@@ -874,6 +982,7 @@ extern "C" void app_main(void) {
 
     button_init();
     console_start();
+    uart_rx_heartbeat_start();
     button_poll_debug_log();
 
     // Storage + asset registry.

@@ -59,15 +59,21 @@ choice TUTORIAL_0013_CONSOLE_BINDING
 
 config TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
     bool "UART on GROVE (G1/G2)"
+    depends on ESP_CONSOLE_UART_CUSTOM
     help
         Bind the REPL to an external UART connected via the AtomS3R GROVE Port.A pins.
         Default pinout for AtomS3R: G1=GPIO1, G2=GPIO2.
 
+        Requires ESP-IDF's console output channel to be set to Custom UART:
+        Component config → ESP System Settings → Channel for console output → Custom UART
+
 config TUTORIAL_0013_CONSOLE_BINDING_USB_SERIAL_JTAG
     bool "USB Serial/JTAG"
+    depends on ESP_CONSOLE_USB_SERIAL_JTAG
     help
         Bind the REPL to the built-in USB Serial/JTAG interface (ESP32-S3).
-        Requires `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y` in ESP-IDF Console config.
+        Requires ESP-IDF's console output channel to be set to USB Serial/JTAG:
+        Component config → ESP System Settings → Channel for console output → USB Serial/JTAG Controller
 
 endchoice
 
@@ -100,6 +106,28 @@ config TUTORIAL_0013_CONSOLE_UART_RX_GPIO
 config TUTORIAL_0013_CONSOLE_PROMPT
     string "REPL prompt"
     default "gif> "
+
+endmenu
+
+menu "Tutorial 0013: Console Debug"
+
+config TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
+    bool "Log UART RX heartbeat (edge counter on RX GPIO)"
+    default y
+    depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+    help
+        When enabled, installs a GPIO interrupt handler on the configured UART RX GPIO
+        (default: GPIO2 / GROVE G2) and logs a periodic heartbeat showing how many edges
+        were observed.
+
+        This is a non-invasive debug tool to answer: "Is the AtomS3R *physically* seeing UART RX traffic?"
+        It does NOT consume UART bytes, so it should not interfere with esp_console.
+
+config TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_INTERVAL_MS
+    int "UART RX heartbeat interval (ms)"
+    range 100 10000
+    default 1000
+    depends on TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
 
 endmenu
 

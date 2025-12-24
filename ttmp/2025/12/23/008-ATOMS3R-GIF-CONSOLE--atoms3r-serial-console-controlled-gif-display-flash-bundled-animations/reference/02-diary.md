@@ -314,6 +314,149 @@ The key outcome is clarity: `esp_console` is implemented as a **global command e
 ### Code review instructions
 - Start with `reference/03-esp-console-internals-guidebook.md` and verify that each claim is backed by a specific file/symbol.
 
+## Step 8: Fix GROVE UART console selection (REPL helper gated by ESP-IDF console channel choice)
+
+This step fixed a confusing real-device symptom: after selecting “UART on GROVE” in the tutorial settings, the firmware still printed `W ... UART console support is disabled in sdkconfig (CONFIG_ESP_CONSOLE_UART_*); no console started` and no REPL prompt appeared on the GROVE UART. The device itself was healthy (display, canvas, button, storage mount all worked), but the console subsystem wasn’t being started.
+
+The crux is that ESP-IDF’s `esp_console_new_repl_uart()` helper is **compiled only when the global ESP-IDF “Channel for console output” choice is set to UART** (default or custom). Our tutorial-level “binding” choice initially didn’t enforce that, so it was easy to end up with a mismatch: tutorial wants UART, but ESP-IDF is still configured for USB Serial/JTAG console output, so UART REPL support is compiled out.
+
+### What I did
+- Reproduced the on-device warning and captured the relevant snippet:
+  - `W (956) atoms3r_gif_console: UART console support is disabled in sdkconfig (CONFIG_ESP_CONSOLE_UART_*); no console started`
+- Read ESP-IDF Kconfig and implementation sources to confirm the gating:
+  - `$IDF_PATH/components/console/esp_console_repl_chip.c`
+    - `esp_console_new_repl_uart()` is guarded by `#if CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM`
+  - `$IDF_PATH/components/esp_system/Kconfig`
+    - the console channel is a `choice` (`choice ESP_CONSOLE_UART`), so we cannot reliably “select” it from project Kconfig
+- Attempted an initial workaround: manually registering `/dev/uart` VFS + spawning a custom REPL task.
+  - This was a wrong direction for our goals: it made the code more complex and drifted away from the standard ESP-IDF REPL helper.
+  - It also caused build errors (missing UART types / `uart_port_t` vs `int`) which reinforced that we were rebuilding the helper in userland.
+- Reverted back to the standard approach:
+  - Keep using `esp_console_new_repl_uart()` / `esp_console_new_repl_usb_serial_jtag()`
+  - Add **Kconfig constraints** so the tutorial binding options are only selectable when the corresponding ESP-IDF console channel is enabled.
+- Updated the tutorial Kconfig and rebuilt:
+  - `idf.py reconfigure && idf.py build`
+
+### Why
+- Our objective is a clean compile-time switch between USB Serial/JTAG and GROVE UART using standard ESP-IDF mechanisms.
+- A “manual REPL” workaround makes maintenance harder and increases risk (especially for future ESP-IDF upgrades).
+
+### What worked
+- The source-level confirmation removed ambiguity: the helper really is compiled out unless `CONFIG_ESP_CONSOLE_UART_*` is enabled.
+- Using `depends on ESP_CONSOLE_UART_CUSTOM` / `depends on ESP_CONSOLE_USB_SERIAL_JTAG` in our tutorial Kconfig prevents mismatched selections.
+- After reverting to the helper-based implementation, the project builds cleanly again.
+
+### What didn't work (failures worth recording)
+- Trying to “select the ESP-IDF console channel choice symbol” from project Kconfig:
+  - ESP-IDF warns that selecting a `choice` symbol has no effect.
+- The “manual REPL task” workaround:
+  - Increased complexity and created compilation issues; ultimately not needed for our intended workflow.
+
+### What I learned
+- ESP-IDF’s REPL convenience helpers (`esp_console_new_repl_*`) have compile-time guards that reflect the **global console output channel choice**, not just whether the `console` component is present.
+- Because the channel is a `choice`, the right way to keep UX clean is:
+  - make our tutorial options depend on the underlying IDF selection, and
+  - set sane defaults in `sdkconfig.defaults` (but remember: existing `sdkconfig` files won’t be overwritten automatically).
+
+### What was tricky to build
+- “Two layers of configuration” can easily drift:
+  - tutorial-level “binding” (our Kconfig)
+  - ESP-IDF-level “Channel for console output” (IDF Kconfig choice)
+  When they disagree, compilation guards silently remove the REPL helper and you only see the failure at runtime.
+
+### What warrants a second pair of eyes
+- Confirm the UX in `menuconfig` feels right:
+  - If a user wants GROVE UART but hasn’t set the ESP-IDF console channel to Custom UART, the tutorial option should be unavailable (or clearly explained).
+
+### What should be done in the future
+- Consider adding a short “first-time setup” note in the tutorial README:
+  - when switching console transports, run `idf.py menuconfig` and check `Channel for console output`, because an existing `sdkconfig` overrides `sdkconfig.defaults`.
+
+### Code review instructions
+- `esp32-s3-m5/0013-atoms3r-gif-console/main/Kconfig.projbuild`:
+  - `choice TUTORIAL_0013_CONSOLE_BINDING` and its `depends on` constraints
+- `esp32-s3-m5/0013-atoms3r-gif-console/main/hello_world_main.cpp`:
+  - `console_start_uart_grove()` uses `esp_console_new_repl_uart()`
+  - `console_start_usb_serial_jtag()` remains the USB path
+
+## Step 9: Add a non-invasive UART RX heartbeat (prove whether bytes are arriving on GROVE RX)
+
+This step addressed the next debugging fork after the GROVE UART REPL started emitting output: **output works, but input appears dead** (typing from a Cardputer serial console produces no visible action on the AtomS3R). At this point it’s easy to waste time in higher-level parsing assumptions, but the first question is more basic:
+
+> Is the AtomS3R *physically* seeing activity on the UART RX pin at all?
+
+To answer that without disturbing `esp_console` or consuming bytes, I added a “UART RX heartbeat” which counts GPIO edges on the configured RX pin (default: `GPIO2` / GROVE `G2`). This gives an immediate signal:
+
+- **edges stay at 0** while typing: wiring / ground / wrong pin / TX↔RX not crossed
+- **edges increase** while typing: electrical RX is alive; focus shifts to baud/UART selection/line endings/REPL binding
+
+### What I did
+- Added a new tutorial Kconfig debug option:
+  - `CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE` (default `y` when GROVE UART binding is selected)
+  - `CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_INTERVAL_MS` (default `1000`)
+- Implemented a GPIO ISR edge counter on the selected RX GPIO:
+  - `GPIO_INTR_ANYEDGE` on `CONFIG_TUTORIAL_0013_CONSOLE_UART_RX_GPIO`
+  - counters: total edges + rises + falls (UART idle is high, so traffic should generally show both)
+- Added a low-priority FreeRTOS task that logs once per interval:
+  - `uart rx heartbeat: rx_gpio=<N> level=<0|1> edges=<total> (d=<delta>) rises=<d> falls=<d>`
+- Rebuilt `0013` successfully with the heartbeat enabled.
+
+### Why
+- Reading from UART in a second task would race/steal bytes from `esp_console` and make the situation harder to reason about.
+- Edge counting is intentionally “dumb” but reliable: it tells us whether there’s real signal on the wire.
+
+### What worked
+- The heartbeat is non-invasive and should not interfere with the UART driver’s RX path (we never call `uart_read_bytes` or touch the UART driver at all).
+- Logging a delta per interval provides a clear “yes/no” signal about RX activity.
+
+### What didn't work
+- N/A (this is additive instrumentation)
+
+### What I learned
+- For UART debugging, it’s valuable to separate “bytes arriving electrically” from “bytes being parsed”.
+- A GPIO-edge heartbeat is a fast way to validate wiring assumptions before diving into line-ending or REPL issues.
+
+### What was tricky to build
+- Ensuring the heartbeat doesn’t perturb the UART: using GPIO interrupts (not UART RX reads) avoids consuming bytes.
+- Making the ISR counter safe: use atomic increments in the ISR so the task can read consistent counters without locks.
+
+### What warrants a second pair of eyes
+- Confirm that enabling a GPIO interrupt on the RX pin does not cause issues on any AtomS3R board variants (it *shouldn’t*, but worth validating).
+
+### What should be done in the future
+- If we confirm edges are present but the REPL still doesn’t respond, add a *separate* “application-level echo” debug mode (not enabled by default) that prints raw received bytes **only when esp_console is disabled**, to avoid interference.
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/0013-atoms3r-gif-console/main/Kconfig.projbuild` (Console Debug menu)
+  - `esp32-s3-m5/0013-atoms3r-gif-console/main/hello_world_main.cpp`:
+    - `uart_rx_heartbeat_start()`
+    - `uart_rx_edge_isr()`
+    - `uart_rx_heartbeat_task()`
+
+## Step 10: Regression notes (RX heartbeat toggle changes console behavior + resets persist)
+
+After adding the RX heartbeat, we got new field observations while toggling the feature:
+
+- **RX heartbeat disabled**:
+  - Build compiles.
+  - The REPL behavior is inconsistent across runs/attempts:
+    - In one attempt: the console “worked”, but keystrokes appeared repeated (likely terminal-side local echo).
+    - In later attempts: the console “didn’t work” (user could see output but input/commands weren’t accepted, or the prompt didn’t behave interactively).
+- **RX heartbeat enabled**:
+  - Build compiles.
+  - The device still resets (software restart signature).
+  - The serial console becomes worse (in some runs we don’t even get interactive serial working / the expected prompt/input path is not stable).
+
+This suggests we have **two separate issues** that accidentally coupled during instrumentation:
+
+1. **The reset/restart issue** is likely independent of the REPL transport and is still present even if the UART REPL can sometimes work.
+2. **The RX heartbeat instrumentation itself** can change behavior, either by:
+   - perturbing the RX pin’s configuration (pin mux / pull-up / GPIO interrupt routing), or
+   - creating an interrupt load pattern that changes timing/latency of the REPL task.
+
+At this point, the diary branches into a “back to fundamentals” analysis (see the analysis document added next), because continuing to iterate on instrumentation without a clear model risks chasing symptoms.
+
 ## Context
 
 <!-- Provide background context needed to use this reference -->
