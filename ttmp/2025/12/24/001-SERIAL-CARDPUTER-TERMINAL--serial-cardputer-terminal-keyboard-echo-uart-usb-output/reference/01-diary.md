@@ -110,6 +110,8 @@ This step turned the “build plan” into actual firmware code by creating a ne
 
 The key design choice is to treat both typed keys and received bytes as the same thing: a stream of bytes applied to a terminal buffer. That keeps “local echo” and “RX-to-screen” easy to reason about.
 
+**Commit (code+docs):** c8c6f30e51f0502398bb7dd1f69e6965724b0521 — "Tutorial 0015: serial terminal (USB vs GROVE UART + baud)"
+
 ### What I did
 - Created `esp32-s3-m5/0015-cardputer-serial-terminal/` by cloning `0012` and removing generated artifacts.
 - Renamed build identity (`project(cardputer_serial_terminal)`), README, and Kconfig surfaces to `0015`.
@@ -118,7 +120,7 @@ The key design choice is to treat both typed keys and received bytes as the same
   - Keyboard scan + debounce + key mapping (from `0012`/`0007`)
   - Serial backend selection:
     - USB-Serial-JTAG: `usb_serial_jtag_write_bytes` / `usb_serial_jtag_read_bytes`
-    - UART: `uart_driver_install` / `uart_param_config` / `uart_set_pin` / `uart_write_bytes` / `uart_read_bytes`
+    - GROVE UART: `uart_driver_install` / `uart_param_config` / `uart_set_pin` / `uart_write_bytes` / `uart_read_bytes`
   - Local echo + optional RX-to-screen
 
 ### Why

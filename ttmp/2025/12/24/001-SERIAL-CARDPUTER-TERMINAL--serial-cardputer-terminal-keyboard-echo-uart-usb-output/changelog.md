@@ -27,3 +27,15 @@ Implemented chapter 0015-cardputer-serial-terminal (keyboard echo to screen + TX
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/24/001-SERIAL-CARDPUTER-TERMINAL--serial-cardputer-terminal-keyboard-echo-uart-usb-output/analysis/01-build-plan-cardputer-serial-terminal-keyboard-echo-uart-usb-backend.md — Updated references to 0015
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/24/001-SERIAL-CARDPUTER-TERMINAL--serial-cardputer-terminal-keyboard-echo-uart-usb-output/reference/01-diary.md — Recorded implementation step
 
+
+## 2025-12-24
+
+Refined the serial interface selection to **USB vs GROVE UART (G1/G2)**, added a menuconfig “speed” knob (baud) for GROVE, and guarded against a pin conflict between GROVE UART (GPIO1/2) and keyboard IN0/IN1 autodetect.
+
+**Commit:** c8c6f30e51f0502398bb7dd1f69e6965724b0521
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0015-cardputer-serial-terminal/main/Kconfig.projbuild — USB vs GROVE selection + GROVE baud + default RX/TX pins
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0015-cardputer-serial-terminal/main/hello_world_main.cpp — Runtime guard disabling keyboard autodetect when it conflicts with GROVE UART pins
+
