@@ -136,6 +136,28 @@ The key design choice is to treat both typed keys and received bytes as the same
 ### What should be done in the future
 - Add a short hardware note in the `0015` README about which GPIOs are sensible defaults for external UART wiring on Cardputer, since TX/RX pins are board-specific.
 
+## Step 4: Fix USB-Serial-JTAG “write timeouts” by installing the driver explicitly
+
+When running the terminal in **USB mode**, the host (e.g. `idf.py monitor`) may attempt to write to `/dev/ttyACM*` and time out if the device firmware hasn’t installed the USB-Serial-JTAG driver (because the device won’t consume the RX endpoint). In the logs this looks like:
+
+- `USB-Serial-JTAG driver not installed ...`
+- repeated host warnings like “Writing to serial is timing out …”
+
+This step fixes that by explicitly installing the driver when the USB backend is selected.
+
+**Commit (code):** 9d1236cd4875026eab1e393833e024bb7488c71d — "0015: install USB-Serial-JTAG driver for USB backend"
+
+### What I did
+- Updated `esp32-s3-m5/0015-cardputer-serial-terminal/main/hello_world_main.cpp` to:
+  - detect when `usb_serial_jtag_is_driver_installed()` is false
+  - call `usb_serial_jtag_driver_install(...)` with larger RX/TX buffers
+
+### Why
+- Make “USB mode” behave like a real bidirectional serial link (so host writes don’t stall).
+
+### What warrants a second pair of eyes
+- Confirm `usb_serial_jtag_driver_install()` is safe alongside any console setup you may have enabled in `sdkconfig` (it should be, but it’s worth verifying on real hardware).
+
 ## Quick Reference
 
 ### Key prior art
