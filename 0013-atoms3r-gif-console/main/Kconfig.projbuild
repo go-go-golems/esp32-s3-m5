@@ -113,7 +113,7 @@ menu "Tutorial 0013: Console Debug"
 
 config TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
     bool "Log UART RX heartbeat (edge counter on RX GPIO)"
-    default y
+    default n
     depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
     help
         When enabled, installs a GPIO interrupt handler on the configured UART RX GPIO
@@ -122,6 +122,9 @@ config TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
 
         This is a non-invasive debug tool to answer: "Is the AtomS3R *physically* seeing UART RX traffic?"
         It does NOT consume UART bytes, so it should not interfere with esp_console.
+
+        Note: This feature spawns a small task and logs periodically. If enabled, ensure the task
+        stack is sufficient for logging/formatting.
 
 config TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_INTERVAL_MS
     int "UART RX heartbeat interval (ms)"

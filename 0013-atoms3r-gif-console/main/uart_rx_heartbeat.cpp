@@ -18,9 +18,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-static const char *TAG = "atoms3r_gif_console";
-
 #if CONFIG_TUTORIAL_0013_CONSOLE_RX_HEARTBEAT_ENABLE
+static const char *TAG = "atoms3r_gif_console";
 static volatile uint32_t s_uart_rx_edges = 0;
 static volatile uint32_t s_uart_rx_rises = 0;
 static volatile uint32_t s_uart_rx_falls = 0;
@@ -97,7 +96,7 @@ void uart_rx_heartbeat_start(void) {
         BaseType_t ok = xTaskCreatePinnedToCore(
             uart_rx_heartbeat_task,
             "uart_rx_hb",
-            2048,
+            4096,
             (void *)(intptr_t)rx_gpio,
             1,
             &s_uart_rx_task,
