@@ -1,6 +1,13 @@
 idf_component_register(
     SRCS
         "hello_world_main.cpp"
+        "uart_rx_heartbeat.cpp"
+        "control_plane.cpp"
+        "gif_registry.cpp"
+        "gif_player.cpp"
+        "console_repl.cpp"
+        "backlight.cpp"
+        "display_hal.cpp"
         "gif_storage.cpp"
     PRIV_REQUIRES
         spi_flash
