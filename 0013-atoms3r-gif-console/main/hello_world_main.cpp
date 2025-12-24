@@ -725,6 +725,49 @@ static void console_register_commands(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
+static void console_start_uart_grove(void) {
+#if CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM
+    esp_console_repl_t *repl = nullptr;
+
+    // IMPORTANT:
+    // Like the USB Serial/JTAG helper, `esp_console_new_repl_uart()` also calls
+    // `esp_console_init()` internally (via esp_console_common_init). Don’t call
+    // esp_console_init() yourself beforehand.
+    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_config.prompt = CONFIG_TUTORIAL_0013_CONSOLE_PROMPT;
+
+    esp_console_dev_uart_config_t hw_config = {
+        .channel = CONFIG_TUTORIAL_0013_CONSOLE_UART_NUM,
+        .baud_rate = CONFIG_TUTORIAL_0013_CONSOLE_UART_BAUDRATE,
+        .tx_gpio_num = CONFIG_TUTORIAL_0013_CONSOLE_UART_TX_GPIO,
+        .rx_gpio_num = CONFIG_TUTORIAL_0013_CONSOLE_UART_RX_GPIO,
+    };
+
+    esp_err_t err = esp_console_new_repl_uart(&hw_config, &repl_config, &repl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_console_new_repl_uart failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    esp_console_register_help_command();
+    console_register_commands();
+
+    err = esp_console_start_repl(repl);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "esp_console_start_repl failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    ESP_LOGI(TAG, "esp_console started over UART (channel=%d tx=%d rx=%d baud=%d)",
+             CONFIG_TUTORIAL_0013_CONSOLE_UART_NUM,
+             CONFIG_TUTORIAL_0013_CONSOLE_UART_TX_GPIO,
+             CONFIG_TUTORIAL_0013_CONSOLE_UART_RX_GPIO,
+             CONFIG_TUTORIAL_0013_CONSOLE_UART_BAUDRATE);
+#else
+    ESP_LOGW(TAG, "UART console support is disabled in sdkconfig (CONFIG_ESP_CONSOLE_UART_*); no console started");
+#endif
+}
+
 static void console_start_usb_serial_jtag(void) {
 #if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     esp_console_repl_t *repl = nullptr;
@@ -755,6 +798,17 @@ static void console_start_usb_serial_jtag(void) {
     ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG");
 #else
     ESP_LOGW(TAG, "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is disabled; no console started");
+#endif
+}
+
+static void console_start(void) {
+#if CONFIG_TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+    console_start_uart_grove();
+#elif CONFIG_TUTORIAL_0013_CONSOLE_BINDING_USB_SERIAL_JTAG
+    console_start_usb_serial_jtag();
+#else
+    // Should not happen (choice), but keep it safe.
+    console_start_uart_grove();
 #endif
 }
 
@@ -819,7 +873,7 @@ extern "C" void app_main(void) {
     }
 
     button_init();
-    console_start_usb_serial_jtag();
+    console_start();
     button_poll_debug_log();
 
     // Storage + asset registry.

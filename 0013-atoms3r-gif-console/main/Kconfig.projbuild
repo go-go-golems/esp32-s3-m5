@@ -44,6 +44,65 @@ config TUTORIAL_0013_FRAME_DELAY_MS
 
 endmenu
 
+menu "Tutorial 0013: Console / esp_console"
+
+choice TUTORIAL_0013_CONSOLE_BINDING
+    prompt "Console binding (interactive REPL transport)"
+    default TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+    help
+        Select where the esp_console REPL should be bound.
+
+        Notes:
+        - This controls which `esp_console_new_repl_*()` helper we start in this tutorial.
+        - The ESP-IDF "Console" component settings (Component config → Console) still
+          control which transport is enabled/compiled.
+
+config TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+    bool "UART on GROVE (G1/G2)"
+    help
+        Bind the REPL to an external UART connected via the AtomS3R GROVE Port.A pins.
+        Default pinout for AtomS3R: G1=GPIO1, G2=GPIO2.
+
+config TUTORIAL_0013_CONSOLE_BINDING_USB_SERIAL_JTAG
+    bool "USB Serial/JTAG"
+    help
+        Bind the REPL to the built-in USB Serial/JTAG interface (ESP32-S3).
+        Requires `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y` in ESP-IDF Console config.
+
+endchoice
+
+config TUTORIAL_0013_CONSOLE_UART_NUM
+    int "UART channel"
+    range 0 2
+    default 1
+    depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+    help
+        UART controller used for the REPL. UART1 is a good default for external wiring.
+
+config TUTORIAL_0013_CONSOLE_UART_BAUDRATE
+    int "UART baud rate"
+    range 1200 3000000
+    default 115200
+    depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+
+config TUTORIAL_0013_CONSOLE_UART_TX_GPIO
+    int "UART TX GPIO (to adapter RX)"
+    range -1 48
+    default 1
+    depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+
+config TUTORIAL_0013_CONSOLE_UART_RX_GPIO
+    int "UART RX GPIO (to adapter TX)"
+    range -1 48
+    default 2
+    depends on TUTORIAL_0013_CONSOLE_BINDING_GROVE_UART
+
+config TUTORIAL_0013_CONSOLE_PROMPT
+    string "REPL prompt"
+    default "gif> "
+
+endmenu
+
 menu "Tutorial 0013: Canvas / Present"
 
 config TUTORIAL_0013_CANVAS_USE_PSRAM
