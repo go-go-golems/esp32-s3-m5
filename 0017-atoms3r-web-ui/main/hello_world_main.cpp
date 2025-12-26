@@ -9,6 +9,7 @@
 #include "freertos/task.h"
 
 #include "display_app.h"
+#include "http_server.h"
 #include "storage_fatfs.h"
 #include "wifi_softap.h"
 
@@ -21,6 +22,9 @@ extern "C" void app_main(void) {
 
     // Storage baseline for future uploads.
     ESP_ERROR_CHECK(storage_fatfs_ensure_graphics_dir());
+
+    // HTTP server baseline.
+    ESP_ERROR_CHECK(http_server_start());
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000));

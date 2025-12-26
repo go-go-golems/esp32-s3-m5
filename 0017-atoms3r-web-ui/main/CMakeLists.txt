@@ -4,6 +4,7 @@ idf_component_register(
         "wifi_softap.cpp"
         "storage_fatfs.cpp"
         "display_app.cpp"
+        "http_server.cpp"
         "backlight.cpp"
         "display_hal.cpp"
     PRIV_REQUIRES
@@ -14,6 +15,7 @@ idf_component_register(
         esp_wifi
         fatfs
         wear_levelling
+        esp_http_server
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c
