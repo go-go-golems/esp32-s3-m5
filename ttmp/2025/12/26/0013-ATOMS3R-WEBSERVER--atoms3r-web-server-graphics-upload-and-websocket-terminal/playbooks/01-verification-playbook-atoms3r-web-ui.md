@@ -30,7 +30,7 @@ RelatedFiles:
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0017-atoms3r-web-ui/web/src/app.tsx
       Note: Browser UI (upload + terminal + button events)
 ExternalSources: []
-Summary: "End-to-end verification steps for the MVP: SoftAP + embedded web UI + PNG upload/render + WebSocket button events + WebSocket UART RX/TX + persistence across reboot."
+Summary: "End-to-end verification steps for the MVP: SoftAP or STA(DHCP) connectivity + embedded web UI + PNG upload/render + WebSocket button events + WebSocket UART RX/TX + persistence across reboot."
 LastUpdated: 2025-12-26
 WhatFor: "Confirm that ticket 0013 acceptance criteria are met on real hardware."
 WhenToUse: "After any significant change to HTTP/WS/storage/display/UART/button code, or before declaring the ticket done."
@@ -40,7 +40,7 @@ WhenToUse: "After any significant change to HTTP/WS/storage/display/UART/button 
 
 ## Success criteria (MVP)
 
-- Device boots and starts **SoftAP**.
+- Device boots and provides WiFi connectivity in the configured mode (**SoftAP**, **STA DHCP**, or **AP+STA**).
 - Browser can load **web UI** from the device (`/`, plus `/assets/app.js` and `/assets/app.css`).
 - Browser can **upload a PNG**; device stores it on FATFS and **renders it to the display**.
 - Browser receives **button events** over **WebSocket**.
@@ -50,7 +50,9 @@ WhenToUse: "After any significant change to HTTP/WS/storage/display/UART/button 
 ## Prereqs
 
 - AtomS3R connected via USB (for flashing + logs).
-- A client device (laptop/phone) that can connect to WiFi SoftAP.
+- A client device (laptop/phone) that can connect to:
+  - the device SoftAP (SoftAP/AP+STA modes), and/or
+  - the upstream WiFi network (STA/AP+STA modes).
 - For UART test (pick one):
   - **Loopback**: a way to short **GROVE UART TX ↔ RX** at the GROVE header.
   - **USB-UART adapter** wired to GROVE TX/RX/GND (3.3V).
@@ -76,6 +78,9 @@ From the project directory:
 ```bash
 cd esp32-s3-m5/0017-atoms3r-web-ui
 
+# Optional: configure WiFi mode (SoftAP vs STA vs AP+STA) and STA credentials:
+./build.sh menuconfig
+
 # Optional: rebuild frontend assets if you changed web code:
 cd web
 npm ci
@@ -89,18 +94,38 @@ cd ..
 ./build.sh -p /dev/ttyACM0 flash monitor
 ```
 
-## Step 1: Confirm SoftAP + base HTTP
+## Step 0: Discover the device URL for your chosen WiFi mode
 
-1. In serial logs, confirm it prints SoftAP SSID and IP (typically `192.168.4.1`).
-2. On your client device, connect to **`AtomS3R-WebUI`**.
-3. In a browser, open:
-   - `http://192.168.4.1/api/status`
-   - Expect JSON with `"ok":true`.
+This playbook is easiest to follow if you define a single base URL and reuse it for all HTTP checks.
+
+- **SoftAP mode**:
+  - Connect your client device to the SoftAP SSID (default: `AtomS3R-WebUI`)
+  - Set:
+    - `DEVICE_URL=http://192.168.4.1`
+- **STA (DHCP) mode**:
+  - Look at serial logs for `STA IP: x.x.x.x`
+  - Set:
+    - `DEVICE_URL=http://<that-sta-ip>`
+- **AP+STA mode**:
+  - You can use either:
+    - SoftAP path: `http://192.168.4.1`
+    - STA path: `http://<sta-ip>`
+
+Tip: `GET ${DEVICE_URL}/api/status` returns JSON with `mode`, `ap_ip`, and `sta_ip` to confirm you’re hitting the expected interface.
+
+## Step 1: Confirm WiFi + base HTTP
+
+1. In serial logs, confirm it prints either:
+   - SoftAP info (and “browse (SoftAP): ...”), and/or
+   - `STA got DHCP lease` and `STA IP: x.x.x.x` (STA/AP+STA).
+2. In a browser, open:
+   - `${DEVICE_URL}/api/status`
+3. Expect JSON with `"ok":true` and a `mode` string (`softap|sta|apsta`).
 
 ## Step 2: Confirm UI loads from embedded assets
 
 1. Open:
-   - `http://192.168.4.1/`
+   - `${DEVICE_URL}/`
 2. Confirm the page renders and the UI shows:
    - “Device status” JSON
    - “WS: connected” (or connect button works)
@@ -116,8 +141,8 @@ cd ..
    - UI refreshes “Graphics” list and the uploaded filename appears.
    - The AtomS3R display updates (auto-render newest upload).
 4. Confirm by direct API:
-   - `GET http://192.168.4.1/api/graphics` includes the filename.
-   - `GET http://192.168.4.1/api/graphics/<name>` downloads the file.
+   - `GET ${DEVICE_URL}/api/graphics` includes the filename.
+   - `GET ${DEVICE_URL}/api/graphics/<name>` downloads the file.
 
 ### Negative test: too-large upload
 
@@ -164,7 +189,7 @@ If you see nothing:
 
 1. Upload a PNG and confirm it appears in “Graphics”.
 2. Reset/power-cycle the device.
-3. Reconnect to SoftAP and reload the UI.
+3. Reconnect (SoftAP or upstream WiFi) and reload the UI.
 4. Verify:
    - `GET /api/graphics` still lists the uploaded file
    - Download still works

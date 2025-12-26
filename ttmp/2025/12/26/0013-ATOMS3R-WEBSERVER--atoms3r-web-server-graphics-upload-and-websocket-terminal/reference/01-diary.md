@@ -663,3 +663,19 @@ Added a menuconfig-selectable WiFi bring-up that can either:
 ### Why
 - It’s common to want the AtomS3R reachable on an existing LAN (DHCP) for easier development and integration, while still keeping SoftAP available as a “recovery” path.
 
+## Step 13: Update verification playbook for STA/AP+STA + write WiFi guide
+
+This step expands the system documentation now that the firmware supports both “device-hosted network” and “join existing network” workflows.
+
+### What I did
+- Updated the verification playbook to be **mode-agnostic** by introducing a `DEVICE_URL` variable and documenting how to discover the device URL for:
+  - SoftAP
+  - STA (DHCP)
+  - AP+STA
+- Wrote a long-form WiFi guide aimed at senior embedded developers new to ESP-IDF networking:
+  - `reference/02-esp-idf-wifi-softap-sta-apsta-guide.md`
+
+### Why
+- Without STA/AP+STA guidance, “verification” becomes brittle and assumes `192.168.4.1` even when the device is running on DHCP.
+- The WiFi guide bridges ESP-IDF concepts (`esp_wifi`, `esp_netif`, `esp_event`) into an actionable mental model for extending and debugging the project.
+
