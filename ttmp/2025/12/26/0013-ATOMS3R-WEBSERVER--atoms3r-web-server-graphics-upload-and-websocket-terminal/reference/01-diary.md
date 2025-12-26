@@ -341,3 +341,51 @@ This step created a new ESP-IDF-first tutorial project (`0017-atoms3r-web-ui`) t
 ### Code review instructions
 - Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/hello_world_main.cpp` (boot + display smoke test).
 - Review `esp32-s3-m5/0017-atoms3r-web-ui/main/display_hal.cpp` + `backlight.cpp` for AtomS3R wiring assumptions.
+
+## Step 5: Add WiFi SoftAP Bring-up (Boot Logs + Menuconfig Defaults)
+
+This step added a minimal but complete WiFi SoftAP bring-up to the new `0017-atoms3r-web-ui` firmware. The goal was to establish the networking baseline early: the device should boot, start an AP, and print connection instructions before we start layering in `esp_http_server` and WebSockets.
+
+**Commit (code):** bc4d09db056806ebbf914626471cbbe4530a89d1 — "Tutorial 0017: add WiFi SoftAP bring-up"
+
+### What I did
+- Added a `wifi_softap` module:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/wifi_softap.cpp`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/wifi_softap.h`
+- Wired it into boot:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/hello_world_main.cpp` now calls `wifi_softap_start()` after the display smoke test.
+- Added the required component deps in `main/CMakeLists.txt` (`nvs_flash`, `esp_event`, `esp_netif`, `esp_wifi`).
+- Implemented boot logs:
+  - SSID, channel, max connections, auth mode
+  - SoftAP IP (via `esp_netif_get_ip_info`) and a “browse `http://192.168.4.1/`” hint
+
+### Why
+- We want a tight incremental loop: WiFi first, then HTTP routes, then uploads, then WebSocket terminal.
+- Printing the connection instructions at boot avoids “it works but I don’t know where to connect” friction during manual testing.
+
+### What worked
+- Clean build after adding WiFi dependencies and module.
+- SoftAP configuration supports both open and WPA2 (password empty → open).
+
+### What didn't work
+- Initial build failed due to `-Werror` complaining about `strnlen()` being called with a bound larger than the known string-literal size. This was fixed by computing `ssid_len` from the destination buffer after copying (avoiding GCC’s overread heuristic).
+
+### What I learned
+- When compiling with `-Werror`, some “safe” libc patterns can still be flagged if the compiler can reason about the string object size. In those cases, measuring length from a local fixed-size buffer is a robust workaround.
+
+### What was tricky to build
+- Getting the “just works” sequence right without dragging in extra complexity:
+  - NVS init (including erase-on-version mismatch)
+  - netif/event loop init
+  - AP netif creation + WiFi init + set mode/config + start
+
+### What warrants a second pair of eyes
+- The assumption that SoftAP default IP is always `192.168.4.1` is true for the default ESP-IDF AP netif, but we should confirm it remains correct if we later customize netif config.
+
+### What should be done in the future
+- (Optional) Add STA mode behind menuconfig as planned (without complicating the MVP path).
+- When `esp_http_server` is added, print the actual URL based on `esp_netif_get_ip_info` rather than relying on the default.
+
+### Code review instructions
+- Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/wifi_softap.cpp` (`wifi_softap_start`).
+- Confirm `main/CMakeLists.txt` includes the WiFi + NVS dependencies.

@@ -29,8 +29,8 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 3. WiFi bring-up
 
-- [ ] Implement SoftAP mode first (SSID like `AtomS3R-WebUI-<suffix>`)
-- [ ] Print IP/SSID instructions on serial log at boot
+- [x] Implement SoftAP mode first (SSID like `AtomS3R-WebUI-<suffix>`)
+- [x] Print IP/SSID instructions on serial log at boot
 - [ ] (Optional) Add STA mode behind menuconfig (SSID/password) for later
 
 ## 4. Storage (FATFS RW for uploads)
