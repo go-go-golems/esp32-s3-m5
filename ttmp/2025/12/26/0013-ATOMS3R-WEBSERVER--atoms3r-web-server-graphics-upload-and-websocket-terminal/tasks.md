@@ -35,9 +35,9 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 4. Storage (FATFS RW for uploads)
 
-- [ ] Mount `/storage` using `esp_vfs_fat_spiflash_mount_rw_wl("/storage", "storage", &cfg, &wl_handle)`
-- [ ] Ensure `/storage/graphics` exists (create on first boot)
-- [ ] Implement safe filename validation (no `..`, no `/`, enforce max length)
+- [x] Mount `/storage` using `esp_vfs_fat_spiflash_mount_rw_wl("/storage", "storage", &cfg, &wl_handle)`
+- [x] Ensure `/storage/graphics` exists (create on first boot)
+- [x] Implement safe filename validation (no `..`, no `/`, enforce max length)
 - [ ] Enforce max upload size (menuconfig; start with e.g. 256KB)
 
 ## 5. Display subsystem

@@ -389,3 +389,51 @@ This step added a minimal but complete WiFi SoftAP bring-up to the new `0017-ato
 ### Code review instructions
 - Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/wifi_softap.cpp` (`wifi_softap_start`).
 - Confirm `main/CMakeLists.txt` includes the WiFi + NVS dependencies.
+
+## Step 6: Mount FATFS RW (Wear-Levelled) and Prepare `/storage/graphics` for Uploads
+
+This step added the “runtime writable storage” foundation the MVP needs for graphics uploads. Unlike the GIF console tutorial (which mounts a prebuilt FATFS image read-only), the web UI needs a writable partition so uploads can persist across reboots.
+
+**Commit (code):** 4adadf62f36b7c38ea8e356de85d384dc45988fb — "Tutorial 0017: add FATFS RW storage mount"
+
+### What I did
+- Added a storage module:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/storage_fatfs.cpp`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/storage_fatfs.h`
+- Mounted the `storage` partition at `/storage` using:
+  - `esp_vfs_fat_spiflash_mount_rw_wl(...)` with `format_if_mount_failed=true`
+- Ensured the uploads directory exists on boot:
+  - `mkdir("/storage/graphics")` (ignore `EEXIST`)
+- Implemented filename validation for future `/api/graphics/<name>` routes:
+  - rejects `/` and `\\`
+  - rejects `..`
+  - enforces a max length
+- Wired storage init into boot (`hello_world_main.cpp`) right after SoftAP start.
+
+### Why
+- The MVP requires “upload → persist → render after reboot”. That means a writable filesystem partition and a stable directory layout.
+- We want to keep the upload handler streaming-to-disk later; having mount + directory creation handled early simplifies the HTTP code.
+
+### What worked
+- Clean build with FATFS + WL components added to `main/CMakeLists.txt`.
+- Mount success path logs clearly (“mount ok”) and errors are logged with `esp_err_to_name`.
+
+### What didn't work
+- N/A (this step built cleanly).
+
+### What I learned
+- For this repo, it’s useful to treat FATFS as two distinct “modes”:
+  - prebuilt-image + RO mount (no WL) for bundled assets
+  - runtime-writable + WL mount for user uploads
+
+### What was tricky to build
+- Deciding on `format_if_mount_failed=true`: it’s great for first boot on a blank partition, but it can also hide corruption by reformatting. For the tutorial MVP that trade-off is acceptable, but worth calling out.
+
+### What warrants a second pair of eyes
+- Confirm the “format on mount failure” behavior is desired for your workflow (especially if you expect uploads to survive across reflashes that don’t erase the storage partition).
+
+### What should be done in the future
+- When implementing the upload endpoint, enforce `CONFIG_TUTORIAL_0017_MAX_UPLOAD_BYTES` while streaming (stop early, delete partial file).
+
+### Code review instructions
+- Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/storage_fatfs.cpp` (`storage_fatfs_mount`, `storage_fatfs_ensure_graphics_dir`, `storage_fatfs_is_valid_filename`).
