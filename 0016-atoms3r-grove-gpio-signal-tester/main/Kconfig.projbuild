@@ -1,0 +1,122 @@
+menu "Tutorial 0016: AtomS3R GROVE GPIO signal tester"
+
+config TUTORIAL_0016_DEFAULT_ACTIVE_PIN
+    int "Default active pin (1=GPIO1, 2=GPIO2)"
+    range 1 2
+    default 2
+
+config TUTORIAL_0016_UI_REFRESH_MS
+    int "LCD UI refresh interval (ms)"
+    range 20 2000
+    default 100
+
+config TUTORIAL_0016_CONSOLE_PROMPT
+    string "REPL prompt"
+    default "sig> "
+
+menu "Tutorial 0016: LCD (AtomS3R GC9107 via M5GFX)"
+
+config TUTORIAL_0016_LCD_HRES
+    int "Horizontal resolution"
+    range 1 1024
+    default 128
+
+config TUTORIAL_0016_LCD_VRES
+    int "Vertical resolution"
+    range 1 1024
+    default 128
+
+config TUTORIAL_0016_LCD_X_OFFSET
+    int "X offset (panel RAM window)"
+    range 0 64
+    default 0
+
+config TUTORIAL_0016_LCD_Y_OFFSET
+    int "Y offset (panel RAM window)"
+    range 0 64
+    default 32
+    help
+        AtomS3R GC9107 uses 128x160 internal RAM; the visible 128x128 window typically sits at y-offset 32.
+
+config TUTORIAL_0016_LCD_INVERT
+    bool "Invert colors"
+    default n
+
+config TUTORIAL_0016_LCD_RGB_ORDER_RGB
+    bool "RGB order (disable for BGR)"
+    default n
+
+config TUTORIAL_0016_LCD_SPI_PCLK_HZ
+    int "SPI pixel clock (Hz)"
+    range 1000000 80000000
+    default 40000000
+
+endmenu
+
+menu "Tutorial 0016: Canvas / Present"
+
+config TUTORIAL_0016_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+
+config TUTORIAL_0016_PRESENT_USE_DMA
+    bool "Wait for DMA completion after present (avoid tearing)"
+    default y
+
+endmenu
+
+menu "Tutorial 0016: Backlight"
+
+config TUTORIAL_0016_BACKLIGHT_GATE_ENABLE
+    bool "Drive backlight gate GPIO"
+    default y
+
+config TUTORIAL_0016_BACKLIGHT_GATE_GPIO
+    int "Backlight gate GPIO"
+    range 0 48
+    default 7
+    depends on TUTORIAL_0016_BACKLIGHT_GATE_ENABLE
+
+config TUTORIAL_0016_BACKLIGHT_GATE_ACTIVE_LOW
+    bool "Backlight gate is active-low"
+    default y
+    depends on TUTORIAL_0016_BACKLIGHT_GATE_ENABLE
+
+config TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+    bool "Use I2C brightness device"
+    default y
+
+config TUTORIAL_0016_BL_I2C_SCL_GPIO
+    int "Backlight I2C SCL GPIO"
+    range 0 48
+    default 0
+    depends on TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0016_BL_I2C_SDA_GPIO
+    int "Backlight I2C SDA GPIO"
+    range 0 48
+    default 45
+    depends on TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0016_BL_I2C_ADDR
+    hex "Backlight I2C address"
+    default 0x30
+    depends on TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0016_BL_I2C_REG
+    hex "Backlight brightness register"
+    default 0x0e
+    depends on TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0016_BL_BRIGHTNESS_ON
+    int "Backlight brightness (0..255)"
+    range 0 255
+    default 255
+    depends on TUTORIAL_0016_BACKLIGHT_I2C_ENABLE
+
+endmenu
+
+endmenu
+
+
+

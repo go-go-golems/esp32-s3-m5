@@ -24,14 +24,14 @@ WhenToUse: "When a UART transmitter is confirmed on a scope but the receiver rep
 
 ## Executive summary
 
-We will build a small firmware “instrument” that can act as either a **signal source** (TX) or **signal sink** (RX) on two specific pins: **GPIO1 and GPIO2** (the pins typically exposed as GROVE `G1` and `G2` on AtomS3R/Cardputer).
+We will build a small firmware “instrument” for **AtomS3R** that can act as either a **signal source** (TX) or **signal sink** (RX) on two specific pins: **GPIO1 and GPIO2** (the pins typically exposed as GROVE `G1` and `G2`).
 
 The firmware has two user-facing interfaces:
 
 - **Control plane**: an interactive `esp_console` REPL over **USB Serial/JTAG** (stable, easy to use, doesn’t depend on the GROVE UART we’re debugging).
 - **Status plane**: a minimal **LCD text UI** showing the current mode (TX/RX), selected pin, output pattern or RX stats, and any warnings.
 
-The result is a tool you can flash onto both boards and use to answer, in minutes:
+The result is a tool you can flash onto the AtomS3R and use to answer, in minutes:
 
 - “Is the signal actually present at the receiving header?”
 - “Are G1/G2 swapped between these boards or the cable?”
@@ -49,6 +49,58 @@ When the observed symptom is “no input”, it’s easy to spend hours changing
 
 This tool is designed to break that loop by producing binary answers at the GPIO layer.
 
+## Key field observation (scope) and what it implies
+
+During the investigation we observed a very strong electrical hint:
+
+- **Unloaded Cardputer TX**: UART waveform is normal **0–3.3V**.
+- **Cardputer TX connected to AtomS3R**: the same waveform becomes approximately **1.5V–3.3V** (the “low” level no longer reaches ~0V).
+
+This observation matters because a UART start bit *requires* a real low level. A “low” stuck around ~1.5V can be interpreted as neither a valid low nor a clean edge by the receiver, and it strongly suggests the issue is **below** the REPL layer.
+
+### Most likely interpretations (hypotheses)
+
+The tool we’re building should help confirm which of these is true:
+
+- **TX↔TX contention (very likely)**:
+  - Cardputer TX is connected (directly or effectively) to an AtomS3R pin that is being driven high (e.g., AtomS3R TX),
+    so when Cardputer drives low, the two outputs fight and the line settles at an intermediate voltage.
+  - This aligns well with “low rises to ~1.5V only when the other board is connected”.
+
+- **Strong pull-up / external circuitry on the AtomS3R pin**:
+  - The AtomS3R-side pin might have an external pull-up or other circuitry connected (not a pure high‑Z input),
+    so the Cardputer TX can’t pull low enough.
+  - Internal ESP32 pull-ups are typically weak; an intermediate low more often points to *stronger* bias or contention.
+
+- **Ground/reference problem**:
+  - If the reference/ground path is not solid, the apparent “low level” can float.
+  - This is less likely when the waveform timing looks clean, but should still be tested explicitly.
+
+- **Wrong pin mapping (G1/G2 swapped)**:
+  - The signal might be physically reaching the GROVE connector, but landing on a different GPIO than assumed,
+    so “RX on GPIO2” is simply the wrong pin on the AtomS3R side.
+
+### What the signal tester must support because of this
+
+Given this symptom, a “good” v1 tool must include:
+
+- a **true high‑impedance (Hi‑Z) input mode** (pulls off) so we can see if the peer TX returns to 0–3.3V when AtomS3R stops influencing the line
+- a **strong-drive test mode** (drive low, drive high) so we can detect if the pin is being fought
+- a **pin-swap workflow** (switch between GPIO1 and GPIO2 quickly, with clear on-device UI) to diagnose G1/G2 ambiguity
+
+## Acceptance criteria (current symptom captured explicitly)
+
+The v1 signal tester is “good enough” when it can make the following symptom **deterministic and explainable**:
+
+- **Unloaded peer TX**: waveform is normal ~0–3.3V.
+- **Peer TX connected to AtomS3R**: low level lifts to ~**1.5V** (suspected contention/bias).
+
+To diagnose this deterministically, the tester must provide the following electrical states (without reflashing):
+
+- **Hi‑Z baseline**: `mode idle` (both pins input, pulls off, interrupts off)
+- **Pulled input**: `mode rx` + `rx pull none|up|down`
+- **Driven output**: `mode tx` + `tx high|low` (and patterns like square/pulse)
+
 ## Scope
 
 ### In scope
@@ -56,7 +108,7 @@ This tool is designed to break that loop by producing binary answers at the GPIO
 - GPIO-level TX/RX tests for **GPIO1** and **GPIO2**.
 - A small REPL for changing modes at runtime.
 - Live status on LCD.
-- A repeatable “pin mapping discovery” workflow across AtomS3R and Cardputer.
+- A repeatable “pin mapping discovery” workflow across AtomS3R and a peer device/cable (often Cardputer, but not limited to it).
 
 ### Out of scope (for v1)
 
@@ -102,6 +154,8 @@ This separation matters:
 ## CLI (esp_console) command set (proposed)
 
 We’ll keep commands boring and explicit.
+
+Note: the authoritative “stable contract” lives in `reference/02-cli-contract-0016-signal-tester.md`. This section is a readable summary; update both if the CLI surface changes.
 
 ### Core commands
 
@@ -202,11 +256,32 @@ TX GPIO2   ?       ?
 
 Exactly one cell “should” show strong edge counts if the cable and labels are consistent.
 
+Reference: `reference/04-test-matrix-cable-mapping-contention-diagnosis.md` (copy/paste-ready recording sheet).
+
 ### Test 3: receiver-only electrical reachability
 
 If TX is visible on Board A scope but not visible on Board B header:
 
 - the root cause is physical (cable/pin/ground), not software.
+
+### Test 4: detect contention vs. high‑Z input
+
+This test is directly motivated by the ~1.5V low-level symptom.
+
+1. Peer device transmits UART on its TX pin (confirmed 0–3.3V when unloaded).
+2. AtomS3R sets the corresponding pin to **Hi‑Z input** (no pull).
+3. Observe on scope at AtomS3R pin:
+   - if the low level returns to ~0V: AtomS3R was previously biasing/driving the line
+   - if low remains ~1.5V: the bias is elsewhere (cable, peer output strength, external circuitry)
+
+We then repeat the same test with AtomS3R configured as:
+
+- input pull-up
+- input pull-down
+- output drive-high
+- output drive-low
+
+The patterns of resulting voltages identify whether we’re dealing with contention, pull-up bias, or grounding/reference issues.
 
 ## Risks and mitigations
 
