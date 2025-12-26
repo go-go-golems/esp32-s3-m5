@@ -68,3 +68,13 @@ Implemented initial AtomS3R-only signal tester firmware as new ESP-IDF project 0
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/hello_world_main.cpp — New firmware entrypoint
 
+
+## 2025-12-26
+
+0016: remove esp_console; add manual USB Serial/JTAG line REPL (commit 4167ebf)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/CMakeLists.txt — Drops console dependency; adds usb-serial-jtag driver
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/manual_repl.cpp — New control plane implementation (no esp_console)
+

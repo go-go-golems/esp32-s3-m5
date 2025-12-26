@@ -298,3 +298,69 @@ The outcome is that Milestone A is now documented in copy/paste form, and we can
   - `esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/console_repl.cpp`
   - `esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/signal_state.cpp`
 
+## Step 9: Remove esp_console from 0016 (manual REPL over USB Serial/JTAG)
+
+This step removed `esp_console` entirely from the 0016 signal tester, replacing it with a small manual line-based REPL task. The intent is to keep the tester as electrically deterministic as possible and avoid any side effects from `esp_console` (linenoise, command registry, stdio rebinding, etc.) while keeping the command surface (`mode`, `pin`, `tx`, `rx`, `status`) stable.
+
+The key outcome is that the tester still has an interactive control plane over USB Serial/JTAG, but it now owns the “read bytes → assemble line → parse tokens” pipeline explicitly. That makes it easier to reason about what the firmware is doing while we debug mid-level “low lifts to ~1.5V” symptoms.
+
+**Commit (code):** 4167ebf189c9282e31651db092cf381ad82e1376 — "0016: drop esp_console; add manual USB Serial/JTAG REPL"
+
+### What I did
+- Replaced `main/console_repl.{h,cpp}` with `main/manual_repl.{h,cpp}` (FreeRTOS task; USB-Serial-JTAG driver read/write; simple token parser).
+- Updated `main/CMakeLists.txt` to drop the `console` component dependency and add `esp_driver_usb_serial_jtag`.
+- Updated `main/hello_world_main.cpp` to start the manual REPL instead of `esp_console`.
+- Updated docs to reflect the control-plane change:
+  - `reference/02-cli-contract-0016-signal-tester.md`
+  - `tasks.md` (Milestone G checked)
+  - `0016/README.md`
+
+### Why
+- If the signal tester is used to debug subtle electrical problems, the control plane itself should be as “boring” and explicit as possible.
+- Removing `esp_console` reduces the risk of hidden behavior (line editing, global state, lifecycle) confusing interpretation of measurements.
+
+### What worked
+- The command surface remained stable; only UX features were removed (history/tab completion).
+
+### What didn't work
+- N/A (implementation step; failures—if any—should be captured after the next build/flash run).
+
+### What I learned
+- A minimal REPL is easiest to make deterministic when we restrict input to simple printable ASCII and explicitly accept CR/LF/CRLF line endings.
+
+### What was tricky to build
+- Handling CRLF cleanly without double-submitting commands (CR then LF) while keeping the parser intentionally dumb.
+
+### What warrants a second pair of eyes
+- Confirm the manual REPL task doesn’t starve under load and that the USB Serial/JTAG driver install is safe alongside the existing logging configuration.
+
+### What should be done in the future
+- Run a real-device validation pass (flash + manual REPL interaction) and capture any issues with host terminals (line endings, backspace behavior).
+
+### Code review instructions
+- Start in `esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester/main/manual_repl.cpp`, then `main/CMakeLists.txt`, then `main/hello_world_main.cpp`.
+
+## Step 10: Milestone F playbooks — bring-up + cable mapping (0016)
+
+This step created the missing “do this again later” docs for Milestone F: a bring-up playbook to reliably get `0016` onto an AtomS3R and into a working `sig> ` prompt, and a dedicated cable-mapping playbook to answer “are G1/G2 swapped?” using a simple 1 kHz square wave truth table.
+
+The goal is to keep future investigations disciplined: we should always prove pin mapping and basic signal reachability before interpreting UART-level failures or chasing REPL semantics.
+
+### What I did
+- Added two playbooks:
+  - `playbook/03-bring-up-build-flash-monitor-the-0016-signal-tester-atoms3r.md`
+  - `playbook/04-cable-mapping-determine-whether-grove-g1-g2-are-swapped-using-0016.md`
+- Updated `tasks.md` to mark the two Milestone F playbook tasks complete.
+
+### Why
+- These are the two most commonly repeated procedures in this ticket; without explicit playbooks, every session starts with re-deriving steps.
+
+### What worked
+- Both playbooks are copy/paste-friendly and reference the stable CLI contract and the test matrix.
+
+### What warrants a second pair of eyes
+- Validate the “expected observation” language matches how you probe in your actual setup (scope ground point, where “peer G1/G2” labels exist).
+
+### What should be done in the future
+- When you capture real scope/logic analyzer screenshots, relate them to the ticket and attach them to the “Collect evidence” task.
+

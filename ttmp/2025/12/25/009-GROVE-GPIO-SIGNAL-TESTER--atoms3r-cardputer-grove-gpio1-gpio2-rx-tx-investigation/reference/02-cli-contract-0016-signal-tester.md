@@ -43,6 +43,8 @@ Define the **stable REPL interface** (commands, arguments, semantics, and expect
 - Commands map to `CtrlEvent` messages; a **single-writer** state machine applies changes to GPIO1/GPIO2.
 - On every apply, the state machine **stops TX and disables RX**, then resets both GPIO1 and GPIO2 into a safe input baseline, then configures only the active pin (see `main/signal_state.cpp`).
 
+Update: `0016` now uses a **manual line-based REPL** (no `esp_console`). The command surface is intentionally kept compatible (`help`, `mode`, `pin`, `tx`, `rx`, `status`), but UX features like history/tab completion are gone by design.
+
 ## Quick Reference
 
 ### Transport + prompt

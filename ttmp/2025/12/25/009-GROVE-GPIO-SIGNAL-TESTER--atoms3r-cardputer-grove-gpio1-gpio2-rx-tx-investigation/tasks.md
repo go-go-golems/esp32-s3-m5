@@ -66,8 +66,8 @@ These tasks are only needed if GPIO-level tests prove the physical path is corre
 
 ## Milestone F — Validation playbooks + evidence capture
 
-- [ ] Write “bring-up” playbook: build/flash/monitor steps for AtomS3R (and how to connect a peer device)
-- [ ] Write “cable mapping” playbook: how to determine if GROVE is pin-to-pin and whether G1/G2 are swapped
+- [x] Write “bring-up” playbook: build/flash/monitor steps for AtomS3R (and how to connect a peer device)
+- [x] Write “cable mapping” playbook: how to determine if GROVE is pin-to-pin and whether G1/G2 are swapped
 - [ ] Collect evidence: scope screenshots, measured frequencies, observed edge counts
 - [ ] Summarize root cause hypotheses and which are ruled in/out
 
@@ -77,23 +77,22 @@ Rationale: `0016-atoms3r-grove-gpio-signal-tester` currently uses `esp_console` 
 
 Tasks:
 
-- [ ] Define the manual control-plane contract (no `esp_console` semantics):
+- [x] Define the manual control-plane contract (no `esp_console` semantics):
   - keep command names compatible with the current REPL (`mode`, `pin`, `tx`, `rx`, `status`)
   - define prompt behavior (e.g. print `sig> ` before each read)
   - define line ending acceptance (`CR`, `LF`, `CRLF`)
-- [ ] Remove `esp_console` usage from `0016`:
+- [x] Remove `esp_console` usage from `0016`:
   - delete/stop calling `esp_console_new_repl_usb_serial_jtag()` / `esp_console_start_repl()`
   - remove all `esp_console_cmd_register(...)` command registration
   - remove `console_repl.{h,cpp}` (or rename it to the manual REPL module)
-- [ ] Implement a minimal manual REPL task (line-based parsing) over system console stdio:
-  - spawn a FreeRTOS task that does `fgets()`/`read()` on `stdin`
+- [x] Implement a minimal manual REPL task (line-based parsing) over system console stdio:
+  - spawn a FreeRTOS task that does line-based reads on USB Serial/JTAG
   - parse tokens into `CtrlEvent` and send via `ctrl_send(...)`
   - avoid linenoise/history; keep parsing intentionally dumb and deterministic
-- [ ] Remove the `console` component dependency from `0016` build:
+- [x] Remove the `console` component dependency from `0016` build:
   - update `main/CMakeLists.txt` `PRIV_REQUIRES` so `console` is no longer required
-  - ensure the firmware still builds and runs with USB Serial/JTAG stdio only
-- [ ] Update `0016` README and ticket playbooks:
-  - explain how to select the manual control plane via `menuconfig`
+  - ensure the firmware still builds and runs with USB Serial/JTAG console I/O
+- [x] Update `0016` README and ticket playbooks:
   - document behavioral differences vs `esp_console` (no tab-completion/history, simpler prompt)
 - [ ] Validation: run the 0016 tester in both control-plane modes and confirm identical GPIO behavior:
   - N/A (we will not maintain two modes)

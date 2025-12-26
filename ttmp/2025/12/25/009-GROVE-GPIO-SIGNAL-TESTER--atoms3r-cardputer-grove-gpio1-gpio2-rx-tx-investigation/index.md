@@ -18,14 +18,14 @@ Owners: []
 RelatedFiles:
     - Path: 0016-atoms3r-grove-gpio-signal-tester/README.md
       Note: How to build/flash + REPL commands for the new AtomS3R signal tester
-    - Path: 0016-atoms3r-grove-gpio-signal-tester/main/console_repl.cpp
-      Note: USB Serial/JTAG esp_console commands -> CtrlEvent
     - Path: 0016-atoms3r-grove-gpio-signal-tester/main/gpio_rx.cpp
       Note: GPIO ISR edge counter (RX stats)
     - Path: 0016-atoms3r-grove-gpio-signal-tester/main/gpio_tx.cpp
       Note: TX generator (esp_timer square/pulse)
     - Path: 0016-atoms3r-grove-gpio-signal-tester/main/hello_world_main.cpp
       Note: App orchestrator (display+backlight init
+    - Path: 0016-atoms3r-grove-gpio-signal-tester/main/manual_repl.cpp
+      Note: Manual USB Serial/JTAG line REPL -> CtrlEvent (no esp_console)
     - Path: 0016-atoms3r-grove-gpio-signal-tester/main/signal_state.cpp
       Note: Single-writer state machine that applies GPIO TX/RX config
 ExternalSources: []
@@ -34,6 +34,8 @@ LastUpdated: 2025-12-25T00:00:00Z
 WhatFor: Stop guessing about GROVE pin mappings and RX path behavior by building a deterministic, controllable signal source/sink on AtomS3R (with any peer device as the test counterpart).
 WhenToUse: When UART TX looks good on a scope but the receiving board reports no RX activity, or when GROVE G1/G2 mapping is uncertain across boards/cables.
 ---
+
+
 
 
 # GROVE GPIO signal tester (GPIO1/GPIO2): investigate AtomS3R RX vs Cardputer TX
