@@ -1,0 +1,194 @@
+menu "Tutorial 0017: AtomS3R Web UI (graphics upload + WebSocket terminal)"
+
+menu "Tutorial 0017: LCD (AtomS3R GC9107 via M5GFX)"
+
+config TUTORIAL_0017_LCD_HRES
+    int "Horizontal resolution"
+    range 1 1024
+    default 128
+
+config TUTORIAL_0017_LCD_VRES
+    int "Vertical resolution"
+    range 1 1024
+    default 128
+
+config TUTORIAL_0017_LCD_X_OFFSET
+    int "X offset (panel RAM window)"
+    range 0 64
+    default 0
+
+config TUTORIAL_0017_LCD_Y_OFFSET
+    int "Y offset (panel RAM window)"
+    range 0 64
+    default 32
+    help
+        AtomS3R GC9107 uses 128x160 internal RAM; the visible 128x128 window typically sits at y-offset 32.
+
+config TUTORIAL_0017_LCD_INVERT
+    bool "Invert colors"
+    default n
+
+config TUTORIAL_0017_LCD_RGB_ORDER_RGB
+    bool "RGB order (disable for BGR)"
+    default n
+
+config TUTORIAL_0017_LCD_SPI_PCLK_HZ
+    int "SPI pixel clock (Hz)"
+    range 1000000 80000000
+    default 40000000
+
+endmenu
+
+menu "Tutorial 0017: Canvas / Present"
+
+config TUTORIAL_0017_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+
+config TUTORIAL_0017_PRESENT_USE_DMA
+    bool "Wait for DMA completion after present (avoid tearing)"
+    default y
+
+endmenu
+
+menu "Tutorial 0017: Backlight"
+
+config TUTORIAL_0017_BACKLIGHT_GATE_ENABLE
+    bool "Drive backlight gate GPIO"
+    default y
+
+config TUTORIAL_0017_BACKLIGHT_GATE_GPIO
+    int "Backlight gate GPIO"
+    range 0 48
+    default 7
+    depends on TUTORIAL_0017_BACKLIGHT_GATE_ENABLE
+
+config TUTORIAL_0017_BACKLIGHT_GATE_ACTIVE_LOW
+    bool "Backlight gate is active-low"
+    default y
+    depends on TUTORIAL_0017_BACKLIGHT_GATE_ENABLE
+
+config TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+    bool "Use I2C brightness device"
+    default y
+
+config TUTORIAL_0017_BL_I2C_SCL_GPIO
+    int "Backlight I2C SCL GPIO"
+    range 0 48
+    default 0
+    depends on TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0017_BL_I2C_SDA_GPIO
+    int "Backlight I2C SDA GPIO"
+    range 0 48
+    default 45
+    depends on TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0017_BL_I2C_ADDR
+    hex "Backlight I2C address"
+    default 0x30
+    depends on TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0017_BL_I2C_REG
+    hex "Backlight brightness register"
+    default 0x0e
+    depends on TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+
+config TUTORIAL_0017_BL_BRIGHTNESS_ON
+    int "Backlight brightness (0..255)"
+    range 0 255
+    default 255
+    depends on TUTORIAL_0017_BACKLIGHT_I2C_ENABLE
+
+endmenu
+
+menu "Tutorial 0017: WiFi (SoftAP)"
+
+config TUTORIAL_0017_WIFI_SOFTAP_SSID
+    string "SoftAP SSID"
+    default "AtomS3R-WebUI"
+
+config TUTORIAL_0017_WIFI_SOFTAP_PASSWORD
+    string "SoftAP password (empty=open)"
+    default ""
+
+config TUTORIAL_0017_WIFI_SOFTAP_CHANNEL
+    int "SoftAP channel"
+    range 1 13
+    default 6
+
+config TUTORIAL_0017_WIFI_SOFTAP_MAX_CONN
+    int "SoftAP max connections"
+    range 1 10
+    default 4
+
+endmenu
+
+menu "Tutorial 0017: Storage (FATFS RW for uploads)"
+
+config TUTORIAL_0017_STORAGE_PARTITION_LABEL
+    string "FATFS partition label"
+    default "storage"
+
+config TUTORIAL_0017_STORAGE_MOUNT_PATH
+    string "Mount path"
+    default "/storage"
+
+config TUTORIAL_0017_STORAGE_GRAPHICS_DIR
+    string "Graphics dir"
+    default "/storage/graphics"
+
+config TUTORIAL_0017_MAX_UPLOAD_BYTES
+    int "Max upload bytes"
+    range 1024 10485760
+    default 262144
+
+endmenu
+
+menu "Tutorial 0017: UART terminal (GROVE)"
+
+config TUTORIAL_0017_UART_NUM
+    int "UART channel"
+    range 0 2
+    default 1
+
+config TUTORIAL_0017_UART_BAUDRATE
+    int "UART baud rate"
+    range 1200 3000000
+    default 115200
+
+config TUTORIAL_0017_UART_TX_GPIO
+    int "UART TX GPIO (to adapter RX)"
+    range -1 48
+    default 1
+
+config TUTORIAL_0017_UART_RX_GPIO
+    int "UART RX GPIO (to adapter TX)"
+    range -1 48
+    default 2
+
+endmenu
+
+menu "Tutorial 0017: Button input"
+
+config TUTORIAL_0017_BUTTON_GPIO
+    int "Button GPIO"
+    range 0 48
+    default 41
+    help
+        GPIO for the AtomS3R button. Defaults to 41 on some revisions; override if needed.
+
+config TUTORIAL_0017_BUTTON_ACTIVE_LOW
+    bool "Button is active-low (pressed=0)"
+    default y
+
+config TUTORIAL_0017_BUTTON_DEBOUNCE_MS
+    int "Debounce window (ms)"
+    range 0 1000
+    default 50
+
+endmenu
+
+endmenu
+
+
