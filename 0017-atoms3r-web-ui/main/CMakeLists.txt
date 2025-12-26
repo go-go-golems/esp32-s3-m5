@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "hello_world_main.cpp"
         "wifi_softap.cpp"
+        "storage_fatfs.cpp"
         "backlight.cpp"
         "display_hal.cpp"
     PRIV_REQUIRES
@@ -10,6 +11,8 @@ idf_component_register(
         esp_event
         esp_netif
         esp_wifi
+        fatfs
+        wear_levelling
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c

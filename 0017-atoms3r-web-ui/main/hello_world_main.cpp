@@ -20,6 +20,7 @@
 
 #include "backlight.h"
 #include "display_hal.h"
+#include "storage_fatfs.h"
 #include "wifi_softap.h"
 
 static const char *TAG = "atoms3r_web_ui_0017";
@@ -83,6 +84,9 @@ extern "C" void app_main(void) {
 
     // Next milestone: WiFi SoftAP + logs for connection instructions.
     ESP_ERROR_CHECK(wifi_softap_start());
+
+    // Storage baseline for future uploads.
+    ESP_ERROR_CHECK(storage_fatfs_ensure_graphics_dir());
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000));
