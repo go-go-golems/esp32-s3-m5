@@ -591,3 +591,38 @@ This step turned the web server into an interactive control surface by adding a 
 ### Code review instructions
 - Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp` (WS pieces + client tracking + broadcast helpers).
 - Then review `uart_terminal.cpp` and `button_input.cpp` for the task/ISR patterns.
+
+## Step 10: Frontend (Vite + Preact + Zustand) + Embed Built Assets + One-Command Build Script
+
+This step adds the browser UI and wires it into the device APIs. It also makes the “build + embed” loop deterministic and low-friction by producing stable asset names and embedding the build outputs directly into the firmware image.
+
+**Commits (code):**
+- 2126d49 — "Tutorial 0017: embed web UI assets"
+- 7dbb0af — "Tutorial 0017: add one-command build script"
+- 0891b70 — "Tutorial 0017: web build outputs directly into embedded assets"
+
+### What I did
+- Added `web/` (Vite + Preact + Zustand) with:
+  - `PUT /api/graphics/<name>` upload (raw body)
+  - WebSocket client to `/ws`:
+    - binary frames → terminal RX display
+    - JSON text frames → button event list
+    - typed line (ASCII) → binary TX to UART
+- Made build outputs deterministic and firmware-friendly:
+  - Vite builds a single JS bundle and a single CSS file at fixed paths:
+    - `/assets/app.js`
+    - `/assets/app.css`
+  - Vite outputs directly into `main/assets/` (so `npm run build` updates the embedded files).
+- Embedded the built assets in firmware via `main/CMakeLists.txt` (`EMBED_TXTFILES`) and served them:
+  - `GET /` → embedded `index.html`
+  - `GET /assets/app.js`
+  - `GET /assets/app.css`
+- Added `esp32-s3-m5/0017-atoms3r-web-ui/build.sh`:
+  - sources ESP-IDF only when needed (checks `ESP_IDF_VERSION`)
+  - runs `idf.py ...` so building is one command (`./build.sh build`)
+
+### Why
+- The MVP needs a real browser UI, not just curl-able endpoints.
+- Stable filenames avoid needing a manifest on-device and keep firmware routes fixed.
+- Writing the Vite build directly into `main/assets/` removes “copy artifacts” steps and reduces chances of embedding stale assets.
+

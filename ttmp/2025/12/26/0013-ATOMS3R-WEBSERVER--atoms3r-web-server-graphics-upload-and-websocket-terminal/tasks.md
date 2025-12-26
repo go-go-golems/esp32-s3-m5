@@ -52,11 +52,11 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 ## 6. HTTP server (`esp_http_server`)
 
 - [x] Start server with `httpd_start(&hd, &HTTPD_DEFAULT_CONFIG())`
-- [ ] Serve frontend assets:
-  - [ ] `GET /` → `index.html`
-  - [ ] `GET /assets/app.js`
-  - [ ] `GET /assets/app.css`
-  - [ ] correct `Content-Type` headers
+- [x] Serve frontend assets:
+  - [x] `GET /` → `index.html`
+  - [x] `GET /assets/app.js`
+  - [x] `GET /assets/app.css`
+  - [x] correct `Content-Type` headers
   - [ ] (optional) gzip + `Content-Encoding: gzip`
 - [ ] Implement REST endpoints:
   - [x] `GET /api/status` (JSON)
@@ -90,19 +90,19 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 10. Frontend (Preact + Zustand)
 
-- [ ] Create `web/` app (Vite + Preact + Zustand)
-- [ ] Configure deterministic output names (no hash) so firmware routes are stable
+- [x] Create `web/` app (Vite + Preact + Zustand)
+- [x] Configure deterministic output names (no hash) so firmware routes are stable
 - [ ] Implement WS store:
-  - [ ] connect/reconnect
-  - [ ] binary RX handling (terminal)
-  - [ ] JSON text handling (button/status)
+  - [x] connect/reconnect
+  - [x] binary RX handling (terminal)
+  - [x] JSON text handling (button/status)
 - [ ] Implement upload flow using raw-body PUT:
-  - [ ] `fetch(PUT /api/graphics/<name>, body=file)`
+  - [x] `fetch(PUT /api/graphics/<name>, body=file)`
   - [ ] show progress (optional)
 - [ ] Terminal UI:
-  - [ ] display RX stream
-  - [ ] send typed bytes on Enter
-- [ ] Build pipeline to embed assets into firmware (CMake `EMBED_FILES`/`EMBED_TXTFILES`)
+  - [x] display RX stream
+  - [x] send typed bytes on Enter
+- [x] Build pipeline to embed assets into firmware (CMake `EMBED_FILES`/`EMBED_TXTFILES`)
 
 ## 11. Testing / verification playbook
 
