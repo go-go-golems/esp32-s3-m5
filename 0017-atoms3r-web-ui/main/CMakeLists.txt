@@ -3,6 +3,7 @@ idf_component_register(
         "hello_world_main.cpp"
         "wifi_softap.cpp"
         "storage_fatfs.cpp"
+        "display_app.cpp"
         "backlight.cpp"
         "display_hal.cpp"
     PRIV_REQUIRES
