@@ -27,6 +27,14 @@ static const char *TAG = "atoms3r_web_ui_0017";
 
 static httpd_handle_t s_server = nullptr;
 
+// Embedded frontend assets (built from web/ and copied into main/assets/).
+extern const uint8_t assets_index_html_start[] asm("_binary_index_html_start");
+extern const uint8_t assets_index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t assets_app_js_start[] asm("_binary_app_js_start");
+extern const uint8_t assets_app_js_end[] asm("_binary_app_js_end");
+extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
+extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
+
 #if CONFIG_HTTPD_WS_SUPPORT
 static SemaphoreHandle_t s_ws_mu = nullptr;
 static int s_ws_clients[8] = {};
@@ -205,22 +213,21 @@ static esp_err_t send_json(httpd_req_t *req, const char *json) {
 }
 
 static esp_err_t root_get(httpd_req_t *req) {
-    static const char *html =
-        "<!doctype html><html><head><meta charset=\"utf-8\">"
-        "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-        "<title>AtomS3R Web UI</title></head>"
-        "<body><h1>AtomS3R Web UI</h1>"
-        "<p>MVP server is running.</p>"
-        "<ul>"
-        "<li><code>GET /api/status</code></li>"
-        "<li><code>GET /api/graphics</code></li>"
-        "<li><code>PUT /api/graphics/&lt;name&gt;</code> (raw body)</li>"
-        "<li><code>GET /api/graphics/&lt;name&gt;</code></li>"
-        "<li><code>DELETE /api/graphics/&lt;name&gt;</code></li>"
-        "</ul>"
-        "</body></html>";
     httpd_resp_set_type(req, "text/html; charset=utf-8");
-    return httpd_resp_send(req, html, HTTPD_RESP_USE_STRLEN);
+    const size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
+    return httpd_resp_send(req, (const char *)assets_index_html_start, len);
+}
+
+static esp_err_t asset_app_js_get(httpd_req_t *req) {
+    httpd_resp_set_type(req, "application/javascript");
+    const size_t len = (size_t)(assets_app_js_end - assets_app_js_start);
+    return httpd_resp_send(req, (const char *)assets_app_js_start, len);
+}
+
+static esp_err_t asset_app_css_get(httpd_req_t *req) {
+    httpd_resp_set_type(req, "text/css");
+    const size_t len = (size_t)(assets_app_css_end - assets_app_css_start);
+    return httpd_resp_send(req, (const char *)assets_app_css_start, len);
 }
 
 static esp_err_t status_get(httpd_req_t *req) {
@@ -443,6 +450,22 @@ esp_err_t http_server_start(void) {
         .user_ctx = nullptr,
     };
     httpd_register_uri_handler(s_server, &root);
+
+    httpd_uri_t app_js = {
+        .uri = "/assets/app.js",
+        .method = HTTP_GET,
+        .handler = asset_app_js_get,
+        .user_ctx = nullptr,
+    };
+    httpd_register_uri_handler(s_server, &app_js);
+
+    httpd_uri_t app_css = {
+        .uri = "/assets/app.css",
+        .method = HTTP_GET,
+        .handler = asset_app_css_get,
+        .user_ctx = nullptr,
+    };
+    httpd_register_uri_handler(s_server, &app_css);
 
     httpd_uri_t status = {
         .uri = "/api/status",

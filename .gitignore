@@ -8,3 +8,7 @@ managed_components
 **/sdkconfig
 **/sdkconfig.old
 **/storage.bin
+
+# Tutorial 0017 (AtomS3R Web UI) frontend build outputs
+0017-atoms3r-web-ui/web/node_modules/
+0017-atoms3r-web-ui/web/dist/

@@ -26,6 +26,10 @@ idf_component_register(
         esp_timer
     REQUIRES
         M5GFX
+    EMBED_TXTFILES
+        "assets/index.html"
+        "assets/app.js"
+        "assets/app.css"
     INCLUDE_DIRS ""
 )
 
