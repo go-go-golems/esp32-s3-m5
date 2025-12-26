@@ -106,6 +106,8 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 11. Testing / verification playbook
 
+- [x] Write verification playbook doc:
+  - `ttmp/2025/12/26/0013-ATOMS3R-WEBSERVER--atoms3r-web-server-graphics-upload-and-websocket-terminal/playbooks/01-verification-playbook-atoms3r-web-ui.md`
 - [ ] Flash firmware, connect to AP, load `/`
 - [ ] Upload PNG and verify display updates
 - [ ] Press button and verify browser event

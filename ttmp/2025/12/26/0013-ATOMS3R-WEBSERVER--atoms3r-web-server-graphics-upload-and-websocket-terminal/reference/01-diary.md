@@ -626,3 +626,14 @@ This step adds the browser UI and wires it into the device APIs. It also makes t
 - Stable filenames avoid needing a manifest on-device and keep firmware routes fixed.
 - Writing the Vite build directly into `main/assets/` removes “copy artifacts” steps and reduces chances of embedding stale assets.
 
+## Step 11: Verification playbook (flash + connect + UI + upload + WS + persistence)
+
+Created an end-to-end verification playbook for running the MVP on real AtomS3R hardware.
+
+### What I did
+- Wrote the step-by-step test procedure:
+  - `ttmp/2025/12/26/0013-ATOMS3R-WEBSERVER--atoms3r-web-server-graphics-upload-and-websocket-terminal/playbooks/01-verification-playbook-atoms3r-web-ui.md`
+
+### Why
+- This ticket’s acceptance criteria are inherently “system-level” (WiFi + HTTP + FATFS + display + WS + UART + button). A written playbook reduces guesswork and makes regressions repeatable.
+
