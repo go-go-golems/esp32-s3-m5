@@ -19,9 +19,12 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_http_server.h"
+#include "esp_netif.h"
+#include "esp_netif_ip_addr.h"
 
 #include "display_app.h"
 #include "storage_fatfs.h"
+#include "wifi_app.h"
 
 static const char *TAG = "atoms3r_web_ui_0017";
 
@@ -231,12 +234,50 @@ static esp_err_t asset_app_css_get(httpd_req_t *req) {
 }
 
 static esp_err_t status_get(httpd_req_t *req) {
-    // Keep this extremely small and dependency-free.
     char buf[256];
+    char ap_ip[16] = "0.0.0.0";
+    char sta_ip[16] = "0.0.0.0";
+
+    esp_netif_t *ap = wifi_app_get_ap_netif();
+    if (ap) {
+        esp_netif_ip_info_t ip = {};
+        if (esp_netif_get_ip_info(ap, &ip) == ESP_OK) {
+            snprintf(ap_ip, sizeof(ap_ip), IPSTR, IP2STR(&ip.ip));
+        }
+    }
+
+    esp_netif_t *sta = wifi_app_get_sta_netif();
+    if (sta) {
+        esp_netif_ip_info_t ip = {};
+        if (esp_netif_get_ip_info(sta, &ip) == ESP_OK) {
+            snprintf(sta_ip, sizeof(sta_ip), IPSTR, IP2STR(&ip.ip));
+        }
+    }
+
+    const char *mode =
+#if CONFIG_TUTORIAL_0017_WIFI_MODE_SOFTAP
+        "softap";
+#elif CONFIG_TUTORIAL_0017_WIFI_MODE_STA
+        "sta";
+#elif CONFIG_TUTORIAL_0017_WIFI_MODE_APSTA
+        "apsta";
+#else
+        "unknown";
+#endif
+
+#if CONFIG_TUTORIAL_0017_WIFI_MODE_STA || CONFIG_TUTORIAL_0017_WIFI_MODE_APSTA
+    const char *sta_ssid = CONFIG_TUTORIAL_0017_WIFI_STA_SSID;
+#else
+    const char *sta_ssid = "";
+#endif
+
     const int n = snprintf(buf, sizeof(buf),
-                           "{\"ok\":true,\"ssid\":\"%s\",\"ap_ip\":\"%s\"}",
+                           "{\"ok\":true,\"mode\":\"%s\",\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\",\"sta_ssid\":\"%s\",\"sta_ip\":\"%s\"}",
+                           mode,
                            CONFIG_TUTORIAL_0017_WIFI_SOFTAP_SSID,
-                           "192.168.4.1");
+                           ap_ip,
+                           sta_ssid,
+                           sta_ip);
     if (n <= 0 || n >= (int)sizeof(buf)) {
         return send_json(req, "{\"ok\":false}");
     }

@@ -1,7 +1,7 @@
 idf_component_register(
     SRCS
         "hello_world_main.cpp"
-        "wifi_softap.cpp"
+        "wifi_app.cpp"
         "storage_fatfs.cpp"
         "display_app.cpp"
         "http_server.cpp"

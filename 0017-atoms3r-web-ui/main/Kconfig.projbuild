@@ -102,7 +102,29 @@ config TUTORIAL_0017_BL_BRIGHTNESS_ON
 
 endmenu
 
-menu "Tutorial 0017: WiFi (SoftAP)"
+menu "Tutorial 0017: WiFi"
+
+choice TUTORIAL_0017_WIFI_MODE
+    prompt "WiFi mode"
+    default TUTORIAL_0017_WIFI_MODE_SOFTAP
+    help
+        Choose how the device gets network connectivity:
+        - SoftAP: device hosts a WiFi network (clients connect to it)
+        - STA (DHCP): device joins an existing WiFi and gets an IP via DHCP
+        - AP+STA: keep SoftAP up while also joining an existing WiFi
+
+config TUTORIAL_0017_WIFI_MODE_SOFTAP
+    bool "SoftAP (device-hosted network)"
+
+config TUTORIAL_0017_WIFI_MODE_STA
+    bool "STA (join existing network, DHCP)"
+
+config TUTORIAL_0017_WIFI_MODE_APSTA
+    bool "AP+STA (SoftAP + join existing network)"
+
+endchoice
+
+menu "SoftAP settings"
 
 config TUTORIAL_0017_WIFI_SOFTAP_SSID
     string "SoftAP SSID"
@@ -121,6 +143,41 @@ config TUTORIAL_0017_WIFI_SOFTAP_MAX_CONN
     int "SoftAP max connections"
     range 1 10
     default 4
+
+endmenu
+
+menu "STA (join existing WiFi) settings"
+
+config TUTORIAL_0017_WIFI_STA_SSID
+    string "STA SSID"
+    default ""
+    depends on TUTORIAL_0017_WIFI_MODE_STA || TUTORIAL_0017_WIFI_MODE_APSTA
+
+config TUTORIAL_0017_WIFI_STA_PASSWORD
+    string "STA password"
+    default ""
+    depends on TUTORIAL_0017_WIFI_MODE_STA || TUTORIAL_0017_WIFI_MODE_APSTA
+
+config TUTORIAL_0017_WIFI_STA_HOSTNAME
+    string "DHCP hostname (optional)"
+    default "atoms3r-webui"
+    depends on TUTORIAL_0017_WIFI_MODE_STA || TUTORIAL_0017_WIFI_MODE_APSTA
+
+config TUTORIAL_0017_WIFI_STA_CONNECT_TIMEOUT_MS
+    int "Connect timeout (ms)"
+    range 1000 60000
+    default 15000
+    depends on TUTORIAL_0017_WIFI_MODE_STA || TUTORIAL_0017_WIFI_MODE_APSTA
+
+config TUTORIAL_0017_WIFI_STA_FALLBACK_TO_SOFTAP
+    bool "If STA fails, fall back to SoftAP"
+    default y
+    depends on TUTORIAL_0017_WIFI_MODE_STA
+    help
+        If enabled and the device fails to acquire a DHCP lease within the timeout,
+        it will bring up SoftAP so you can still connect for debugging.
+
+endmenu
 
 endmenu
 

@@ -12,15 +12,15 @@
 #include "http_server.h"
 #include "storage_fatfs.h"
 #include "uart_terminal.h"
-#include "wifi_softap.h"
+#include "wifi_app.h"
 #include "button_input.h"
 
 extern "C" void app_main(void) {
     ESP_ERROR_CHECK(display_app_init());
     display_app_show_boot_screen("AtomS3R Web UI", "Tutorial 0017");
 
-    // Next milestone: WiFi SoftAP + logs for connection instructions.
-    ESP_ERROR_CHECK(wifi_softap_start());
+    // WiFi (SoftAP / STA DHCP / AP+STA) based on menuconfig.
+    ESP_ERROR_CHECK(wifi_app_start());
 
     // Storage baseline for future uploads.
     ESP_ERROR_CHECK(storage_fatfs_ensure_graphics_dir());
