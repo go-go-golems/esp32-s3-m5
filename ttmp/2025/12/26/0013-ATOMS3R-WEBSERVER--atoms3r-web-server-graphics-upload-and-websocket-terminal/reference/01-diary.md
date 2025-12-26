@@ -661,7 +661,36 @@ Added a menuconfig-selectable WiFi bring-up that can either:
   - actual IPs derived from `esp_netif_get_ip_info` (not hardcoded `192.168.4.1`)
 
 ### Why
-- It’s common to want the AtomS3R reachable on an existing LAN (DHCP) for easier development and integration, while still keeping SoftAP available as a “recovery” path.
+- It's common to want the AtomS3R reachable on an existing LAN (DHCP) for easier development and integration, while still keeping SoftAP available as a "recovery" path.
+
+## Step 13: Documentation updates (WiFi guide + verification playbook + writing guidelines)
+
+Updated project documentation to reflect the WiFi mode selection feature and capture the writing approach used.
+
+**Commit (docs):** 38eac27 — "Ticket 0013: update verification playbook for STA/AP+STA + add WiFi guide"
+**Commit (docs):** 08d9981 — "Ticket 0013: expand WiFi guide with detailed narrative and examples"
+
+### What I did
+- **Updated verification playbook** (`playbooks/01-verification-playbook-atoms3r-web-ui.md`):
+  - Made it mode-agnostic (works with SoftAP, STA, or AP+STA)
+  - Uses `${DEVICE_URL}` variable determined from `/api/status`
+  - Added instructions for finding device IP in each mode
+- **Expanded WiFi guide** (`reference/02-esp-idf-wifi-softap-sta-apsta-guide.md`):
+  - Rewrote with much more narrative context and explanations
+  - Added complete code examples with inline comments
+  - Included detailed troubleshooting for common failure modes
+  - Explained lifecycle, state machines, and synchronization patterns
+  - Added "when to use" sections for each mode with concrete scenarios
+  - Expanded from ~365 lines to ~1,376 lines
+- **Created writing guidelines** (`reference/03-technical-writing-guidelines-esp32-embedded-docs.md`):
+  - Captured the approach used in the WiFi guide
+  - Provides patterns and templates for future documentation
+  - Includes examples of good vs. problematic patterns
+
+### Why
+- The verification playbook needs to work regardless of WiFi mode now that we support STA/AP+STA.
+- The WiFi guide provides a reference for anyone implementing WiFi on ESP-IDF (common task across many tutorials).
+- Writing guidelines document the approach so future docs can follow consistent patterns.
 
 ## Step 13: Update verification playbook for STA/AP+STA + write WiFi guide
 
