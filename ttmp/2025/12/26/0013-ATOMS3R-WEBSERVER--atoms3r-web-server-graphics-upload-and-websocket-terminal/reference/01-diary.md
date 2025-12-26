@@ -637,3 +637,29 @@ Created an end-to-end verification playbook for running the MVP on real AtomS3R 
 ### Why
 - This ticket’s acceptance criteria are inherently “system-level” (WiFi + HTTP + FATFS + display + WS + UART + button). A written playbook reduces guesswork and makes regressions repeatable.
 
+## Step 12: WiFi mode selection (SoftAP vs STA DHCP vs AP+STA)
+
+Added a menuconfig-selectable WiFi bring-up that can either:
+
+- host a **SoftAP** (existing behavior),
+- **join an existing WiFi network** as STA and acquire an IP via **DHCP**, or
+- do **AP+STA** (keep SoftAP while also joining an upstream network).
+
+**Commit (code):** 4148abd — "Tutorial 0017: add WiFi STA DHCP mode (menuconfig selectable)"
+
+### What I did
+- Implemented `wifi_app_start()` (`main/wifi_app.cpp`) with three modes:
+  - SoftAP (`WIFI_MODE_AP`)
+  - STA (`WIFI_MODE_STA`, DHCP)
+  - AP+STA (`WIFI_MODE_APSTA`)
+- Added `menuconfig` options under `Tutorial 0017: WiFi`:
+  - WiFi mode choice
+  - STA SSID/password/hostname + connect timeout
+  - STA-only fallback option to bring up SoftAP if DHCP fails
+- Updated `/api/status` to report:
+  - current mode (`softap|sta|apsta`)
+  - actual IPs derived from `esp_netif_get_ip_info` (not hardcoded `192.168.4.1`)
+
+### Why
+- It’s common to want the AtomS3R reachable on an existing LAN (DHCP) for easier development and integration, while still keeping SoftAP available as a “recovery” path.
+
