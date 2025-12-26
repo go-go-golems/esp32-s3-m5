@@ -28,8 +28,8 @@ idf_component_register(
         M5GFX
     EMBED_TXTFILES
         "assets/index.html"
-        "assets/app.js"
-        "assets/app.css"
+        "assets/assets/app.js"
+        "assets/assets/app.css"
     INCLUDE_DIRS ""
 )
 

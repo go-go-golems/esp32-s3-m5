@@ -5,7 +5,13 @@ import preact from '@preact/preset-vite'
 export default defineConfig({
   plugins: [preact()],
   base: '/',
+  // Avoid copying `public/` into the firmware asset directory (e.g. `vite.svg`).
+  publicDir: false,
   build: {
+    // Write build outputs directly into the firmware-embedded asset directory.
+    // This keeps the "embed assets" workflow to a single `npm run build`.
+    outDir: '../main/assets',
+    emptyOutDir: true,
     cssCodeSplit: false,
     assetsDir: 'assets',
     rollupOptions: {

@@ -18,10 +18,20 @@ type WsState = {
 
 let ws: WebSocket | null = null
 let decoder = new TextDecoder('utf-8')
+let reconnectTimer: number | null = null
+let shouldReconnect = true
+let reconnectAttempt = 0
 
 function wsUrl(): string {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${proto}//${window.location.host}/ws`
+}
+
+function clearReconnectTimer() {
+  if (reconnectTimer !== null) {
+    window.clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
 }
 
 export const useWsStore = create<WsState>((set) => ({
@@ -34,11 +44,29 @@ export const useWsStore = create<WsState>((set) => ({
     if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
       return
     }
+    shouldReconnect = true
+    clearReconnectTimer()
+
     ws = new WebSocket(wsUrl())
     ws.binaryType = 'arraybuffer'
 
-    ws.onopen = () => set({ connected: true, lastError: null })
-    ws.onclose = () => set({ connected: false })
+    ws.onopen = () => {
+      reconnectAttempt = 0
+      set({ connected: true, lastError: null })
+    }
+    ws.onclose = () => {
+      set({ connected: false })
+      ws = null
+      if (!shouldReconnect) return
+
+      // Basic backoff reconnect (max ~5s).
+      reconnectAttempt++
+      const delayMs = Math.min(5000, 250 * Math.pow(2, reconnectAttempt - 1))
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null
+        useWsStore.getState().connect()
+      }, delayMs)
+    }
     ws.onerror = () => set({ lastError: 'WebSocket error' })
     ws.onmessage = (ev) => {
       if (typeof ev.data === 'string') {
@@ -63,6 +91,8 @@ export const useWsStore = create<WsState>((set) => ({
   },
 
   disconnect: () => {
+    shouldReconnect = false
+    clearReconnectTimer()
     if (ws) {
       ws.close()
       ws = null
