@@ -481,3 +481,58 @@ This step refactored the early display smoke-test code into a small display “a
 
 ### Code review instructions
 - Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/display_app.cpp` (`display_app_init`, `display_app_png_from_file`).
+
+## Step 8: Add `esp_http_server` + Streaming Upload API (Upload → FATFS → Auto-Display)
+
+This step introduced the first “real” web server capabilities in the ESP-IDF tutorial: a running `esp_http_server` instance with JSON status + a minimal graphics CRUD API. The most important property is the upload path: it writes the request body to FATFS **incrementally** (no whole-file RAM buffer), then immediately renders the uploaded PNG on the screen to prove the end-to-end loop.
+
+**Commit (code):** be7fb78770de05cc617513aec216369a741c64b4 — "Tutorial 0017: add HTTP server + graphics API"
+
+### What I did
+- Added `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp` + `.h`
+- Started the server with `HTTPD_DEFAULT_CONFIG()` and enabled wildcard URI matching (`httpd_uri_match_wildcard`) for `/api/graphics/*`.
+- Implemented routes:
+  - `GET /`: small HTML page indicating server is up (temporary placeholder until embedded frontend assets exist)
+  - `GET /api/status`: minimal JSON status
+  - `GET /api/graphics`: JSON list from `/storage/graphics`
+  - `PUT /api/graphics/<name>`: **stream** request body to `/storage/graphics/<name>` using repeated `httpd_req_recv` → `fwrite`
+    - validates filename (no slashes, no `..`, max length)
+    - enforces `CONFIG_TUTORIAL_0017_MAX_UPLOAD_BYTES`
+    - deletes partial files on error
+    - auto-renders the newest upload via `display_app_png_from_file(path)` (MVP display policy)
+  - `GET /api/graphics/<name>`: download with chunked responses
+  - `DELETE /api/graphics/<name>`: delete file
+- Wired server startup into `hello_world_main.cpp` after SoftAP + storage init.
+
+### Why
+- This moves the project from “device boots on the bench” to “device provides a usable API surface” — which is the foundation for the frontend UI, WebSocket terminal, and upload workflow.
+- Implementing streaming upload early enforces the “no giant RAM buffers” constraint up-front, not as a late refactor.
+
+### What worked
+- Clean build after adding the HTTP server component dependency.
+- Upload handler streams correctly using request `content_len` and a small fixed buffer.
+
+### What didn't work
+- Build initially failed because the constant name for HTTP 413 differs in ESP-IDF (`HTTPD_413_CONTENT_TOO_LARGE` vs the guessed `HTTPD_413_PAYLOAD_TOO_LARGE`). Fixed by switching to the correct IDF constant.
+
+### What I learned
+- `esp_http_server` wildcard routing (`/api/graphics/*`) is a good fit for “file-like” endpoints without adding a full router.
+
+### What was tricky to build
+- Getting the failure cases right for uploads:
+  - reject too-large uploads early (413)
+  - ensure partial files are cleaned up on any recv/write error
+
+### What warrants a second pair of eyes
+- The status endpoint currently prints a default AP IP string (`192.168.4.1`) instead of deriving it from the actual netif. This is OK for MVP, but should be tightened.
+- Auto-display on upload runs inside the HTTP handler path; we should confirm this doesn’t starve the server under rapid uploads (it’s fine for MVP, but worth reviewing).
+
+### What should be done in the future
+- Replace `GET /` placeholder string with embedded frontend assets (index.html + JS + CSS) and correct `Content-Type` headers.
+- Improve `/api/status` to report the actual IP address via `esp_netif_get_ip_info`.
+
+### Code review instructions
+- Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp`:
+  - `http_server_start`
+  - `graphics_put` (streaming upload)
+  - `graphics_list_get`

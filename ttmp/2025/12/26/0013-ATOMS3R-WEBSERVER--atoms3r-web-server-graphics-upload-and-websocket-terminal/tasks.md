@@ -38,7 +38,7 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 - [x] Mount `/storage` using `esp_vfs_fat_spiflash_mount_rw_wl("/storage", "storage", &cfg, &wl_handle)`
 - [x] Ensure `/storage/graphics` exists (create on first boot)
 - [x] Implement safe filename validation (no `..`, no `/`, enforce max length)
-- [ ] Enforce max upload size (menuconfig; start with e.g. 256KB)
+- [x] Enforce max upload size (menuconfig; start with e.g. 256KB)
 
 ## 5. Display subsystem
 
@@ -46,12 +46,12 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 - [x] Create `M5Canvas` and a `display_present_canvas(...)` equivalent (DMA wait pattern)
 - [x] Implement `display_png_from_file(path)` (MVP: read file into memory with size cap, call M5GFX PNG draw)
 - [ ] Define “what gets displayed when”:
-  - [ ] default: newest upload auto-displays
+  - [x] default: newest upload auto-displays
   - [ ] (optional) endpoint to select which file to display
 
 ## 6. HTTP server (`esp_http_server`)
 
-- [ ] Start server with `httpd_start(&hd, &HTTPD_DEFAULT_CONFIG())`
+- [x] Start server with `httpd_start(&hd, &HTTPD_DEFAULT_CONFIG())`
 - [ ] Serve frontend assets:
   - [ ] `GET /` → `index.html`
   - [ ] `GET /assets/app.js`
@@ -59,11 +59,11 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
   - [ ] correct `Content-Type` headers
   - [ ] (optional) gzip + `Content-Encoding: gzip`
 - [ ] Implement REST endpoints:
-  - [ ] `GET /api/status` (JSON)
-  - [ ] `GET /api/graphics` (JSON list)
-  - [ ] `PUT /api/graphics/<name>` (raw body upload streamed to FATFS)
-  - [ ] `GET /api/graphics/<name>` (download)
-  - [ ] `DELETE /api/graphics/<name>` (delete)
+  - [x] `GET /api/status` (JSON)
+  - [x] `GET /api/graphics` (JSON list)
+  - [x] `PUT /api/graphics/<name>` (raw body upload streamed to FATFS)
+  - [x] `GET /api/graphics/<name>` (download)
+  - [x] `DELETE /api/graphics/<name>` (delete)
 
 ## 7. WebSocket (`/ws`)
 
