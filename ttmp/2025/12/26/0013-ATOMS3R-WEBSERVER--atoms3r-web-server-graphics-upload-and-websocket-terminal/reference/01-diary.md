@@ -437,3 +437,47 @@ This step added the “runtime writable storage” foundation the MVP needs for 
 
 ### Code review instructions
 - Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/storage_fatfs.cpp` (`storage_fatfs_mount`, `storage_fatfs_ensure_graphics_dir`, `storage_fatfs_is_valid_filename`).
+
+## Step 7: Display “App Layer” (Persistent Canvas + PNG-from-File Rendering)
+
+This step refactored the early display smoke-test code into a small display “app layer” that owns a persistent `M5Canvas` and exposes a simple API: show a boot screen, present, and render a PNG from a filesystem path. This is the shape we’ll need once HTTP uploads trigger display updates from non-main code paths.
+
+**Commit (code):** b5ebdb85311c0f50ad4ae745afd2a00dee83c25b — "Tutorial 0017: display canvas + PNG render"
+
+### What I did
+- Added `display_app` wrapper:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/display_app.cpp`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/display_app.h`
+- Moved display/backlight init + sprite allocation into `display_app_init()`.
+- Added `display_app_png_from_file(path)` which:
+  - draws the PNG onto the offscreen canvas using `drawPngFile(...)` (stdio/VFS-backed)
+  - presents the canvas using the existing DMA wait pattern
+  - frees PNG decoder scratch memory via `releasePngMemory()`
+- Updated `hello_world_main.cpp` to use the new `display_app_*` API (less top-level clutter, easier future integration).
+
+### Why
+- Once the HTTP server is added, “render newest upload” won’t live in `app_main`; it will be triggered by request handlers/tasks. A module-owned canvas avoids passing pointers around or duplicating display init logic.
+- Rendering PNGs directly from VFS avoids reading whole images into RAM (better aligned with the “no giant buffers” constraint).
+
+### What worked
+- Clean build after refactor; the boot flow remains: display init → SoftAP → storage mount.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- LovyanGFX’s default `DataWrapperT<void>` supports `FILE*` reads under ESP-IDF, so `drawPngFile("/storage/graphics/foo.png")` can stream decode directly from FATFS.
+
+### What was tricky to build
+- Avoiding static init order pitfalls while still keeping the canvas global. The approach here is: global `M5Canvas` object exists, but sprite allocation happens explicitly inside `display_app_init()` after the panel is initialized.
+
+### What warrants a second pair of eyes
+- Confirm that calling `releasePngMemory()` on the display/canvas after drawing is the right lifecycle for repeated draws (we don’t want slow memory growth across many uploads).
+
+### What should be done in the future
+- Define and document the “display policy”:
+  - default to auto-render newest upload
+  - optionally add an API to select a specific file
+
+### Code review instructions
+- Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/display_app.cpp` (`display_app_init`, `display_app_png_from_file`).

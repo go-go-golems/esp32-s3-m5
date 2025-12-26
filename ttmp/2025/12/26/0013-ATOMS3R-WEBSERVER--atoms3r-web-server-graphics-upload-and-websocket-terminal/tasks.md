@@ -42,9 +42,9 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 5. Display subsystem
 
-- [ ] Integrate display init from `display_hal.cpp` (GC9107 via M5GFX/LovyanGFX)
-- [ ] Create `M5Canvas` and a `display_present_canvas(...)` equivalent (DMA wait pattern)
-- [ ] Implement `display_png_from_file(path)` (MVP: read file into memory with size cap, call M5GFX PNG draw)
+- [x] Integrate display init from `display_hal.cpp` (GC9107 via M5GFX/LovyanGFX)
+- [x] Create `M5Canvas` and a `display_present_canvas(...)` equivalent (DMA wait pattern)
+- [x] Implement `display_png_from_file(path)` (MVP: read file into memory with size cap, call M5GFX PNG draw)
 - [ ] Define “what gets displayed when”:
   - [ ] default: newest upload auto-displays
   - [ ] (optional) endpoint to select which file to display
