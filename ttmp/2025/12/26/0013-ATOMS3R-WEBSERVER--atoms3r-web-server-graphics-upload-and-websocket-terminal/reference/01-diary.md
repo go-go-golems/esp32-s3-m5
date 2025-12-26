@@ -536,3 +536,58 @@ This step introduced the first “real” web server capabilities in the ESP-IDF
   - `http_server_start`
   - `graphics_put` (streaming upload)
   - `graphics_list_get`
+
+## Step 9: Enable `/ws` WebSocket + UART Terminal Bridge + Button Events
+
+This step turned the web server into an interactive control surface by adding a WebSocket endpoint (`/ws`) and wiring it to two real-time streams: UART bytes and button press events. The browser can now send binary frames to transmit UART bytes, and it receives UART RX bytes (binary frames) plus button events (JSON text frames).
+
+**Commit (code):** 2b35945badfd22b4c9ddc47bfd0d63732af8560d — "Tutorial 0017: add WebSocket UART terminal + button events"
+
+### What I did
+- Enabled WebSocket support in the ESP-IDF HTTP server config:
+  - `CONFIG_HTTPD_WS_SUPPORT=y` (required for `httpd_uri_t.is_websocket` and WS APIs)
+- Implemented `/ws` endpoint inside `http_server`:
+  - Registers a WebSocket URI with `is_websocket=true`
+  - Tracks connected client socket fds for broadcast
+  - Receives binary frames and forwards them to a callback (`http_server_ws_set_binary_rx_cb`)
+  - Provides broadcast helpers:
+    - `http_server_ws_broadcast_binary(...)` for UART RX bytes
+    - `http_server_ws_broadcast_text(...)` for JSON events
+- Added UART terminal bridge:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/uart_terminal.cpp`
+  - RX task: `uart_read_bytes` → `http_server_ws_broadcast_binary`
+  - WS binary RX callback: `uart_write_bytes`
+- Added button input module:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/button_input.cpp`
+  - GPIO ISR → FreeRTOS queue → task with debounce → `http_server_ws_broadcast_text("{...}")`
+- Wired both modules into boot after the HTTP server starts (`hello_world_main.cpp`).
+
+### Why
+- The MVP explicitly requires “WebSocket terminal” and “button events streamed to browser” — this step establishes the bidirectional real-time channel the frontend will consume.
+- Keeping the UART stream binary avoids JSON overhead and preserves raw bytes.
+
+### What worked
+- Clean build with WebSocket support enabled.
+- Uses `httpd_ws_send_data_async(...)` so sends are queued onto the HTTP server work queue (safe from non-server tasks).
+
+### What didn't work
+- Setting `CONFIG_HTTPD_WS_SUPPORT=y` in `sdkconfig.defaults` alone didn’t take effect because the tracked `sdkconfig` had the option explicitly “not set”. We fixed this by updating the tracked `sdkconfig` to enable WS support.
+
+### What I learned
+- For this repo, `sdkconfig.defaults` is not an override layer; if an option is already set (or “not set”) in the tracked `sdkconfig`, defaults won’t flip it. For feature gates like WebSockets, update the tracked `sdkconfig` too.
+
+### What was tricky to build
+- Avoiding blocking sends from non-HTTP-server tasks: the UART RX task and button task both need to enqueue work rather than writing directly to the socket.
+- Getting the ISR path right: ISR does only `xQueueSendFromISR` and yields; formatting and broadcasting happens in a task.
+
+### What warrants a second pair of eyes
+- Confirm the WS handler’s handshake/receive behavior matches ESP-IDF’s contract (handshake call is `HTTP_GET`, subsequent frames invoke the handler with a different method).
+- Confirm the chosen buffer sizes (UART RX buffer/task stack and WS frame max 1024) are appropriate for your intended terminal usage.
+
+### What should be done in the future
+- Define the browser-side WS protocol more formally (message types, framing expectations) once the Preact frontend is implemented.
+- Add a “pin conflict verification” playbook step to ensure the chosen button GPIO and GROVE UART pins don’t collide on your AtomS3R revision.
+
+### Code review instructions
+- Start at `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp` (WS pieces + client tracking + broadcast helpers).
+- Then review `uart_terminal.cpp` and `button_input.cpp` for the task/ISR patterns.

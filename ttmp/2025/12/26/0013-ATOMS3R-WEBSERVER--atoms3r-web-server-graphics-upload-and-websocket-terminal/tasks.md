@@ -67,25 +67,25 @@ This is the implementation checklist for ticket `0013-ATOMS3R-WEBSERVER`.
 
 ## 7. WebSocket (`/ws`)
 
-- [ ] Register WS handler (`httpd_uri_t` with `is_websocket = true`)
-- [ ] Track connected WS client fds (add/remove on connect/close)
+- [x] Register WS handler (`httpd_uri_t` with `is_websocket = true`)
+- [x] Track connected WS client fds (add/remove on connect/close)
 - [ ] Device → browser:
-  - [ ] Button events as JSON text frames
-  - [ ] UART RX as binary frames
+  - [x] Button events as JSON text frames
+  - [x] UART RX as binary frames
 - [ ] Browser → device:
-  - [ ] UART TX as binary frames
+  - [x] UART TX as binary frames
 
 ## 8. UART terminal
 
-- [ ] Add menuconfig for UART num, TX GPIO, RX GPIO, baudrate
-- [ ] Install UART driver + ring buffers (`uart_driver_install`, `uart_param_config`, `uart_set_pin`)
-- [ ] UART RX task: `uart_read_bytes` → WS broadcast (binary)
-- [ ] WS RX handler: binary → `uart_write_bytes`
+- [x] Add menuconfig for UART num, TX GPIO, RX GPIO, baudrate
+- [x] Install UART driver + ring buffers (`uart_driver_install`, `uart_param_config`, `uart_set_pin`)
+- [x] UART RX task: `uart_read_bytes` → WS broadcast (binary)
+- [x] WS RX handler: binary → `uart_write_bytes`
 
 ## 9. Button input
 
-- [ ] Configure GPIO + ISR (or polling) with debounce strategy
-- [ ] ISR → queue → WS broadcast pattern (avoid heavy work in ISR)
+- [x] Configure GPIO + ISR (or polling) with debounce strategy
+- [x] ISR → queue → WS broadcast pattern (avoid heavy work in ISR)
 - [ ] Verify no conflicts with UART pins / display pins
 
 ## 10. Frontend (Preact + Zustand)
