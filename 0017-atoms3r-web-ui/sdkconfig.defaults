@@ -25,6 +25,9 @@ CONFIG_ESP_CONSOLE_UART_DEFAULT=n
 CONFIG_ESP_CONSOLE_UART_CUSTOM=n
 CONFIG_ESP_CONSOLE_USB_CDC=n
 
+# HTTP server: enable WebSocket support (for /ws terminal + button events).
+CONFIG_HTTPD_WS_SUPPORT=y
+
 # FATFS: enable long file name support for uploaded graphics.
 CONFIG_FATFS_LFN_HEAP=y
 CONFIG_FATFS_MAX_LFN=255
