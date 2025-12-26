@@ -20,6 +20,7 @@
 
 #include "backlight.h"
 #include "display_hal.h"
+#include "wifi_softap.h"
 
 static const char *TAG = "atoms3r_web_ui_0017";
 
@@ -79,6 +80,9 @@ extern "C" void app_main(void) {
     canvas.printf("\n");
     canvas.printf("Next: WiFi+HTTP\n");
     display_present_canvas(canvas);
+
+    // Next milestone: WiFi SoftAP + logs for connection instructions.
+    ESP_ERROR_CHECK(wifi_softap_start());
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000));
