@@ -1,7 +1,7 @@
 /*
  * ESP32-S3 tutorial 0016:
  * AtomS3R GROVE GPIO signal tester (GPIO1/GPIO2) with:
- * - esp_console control plane over USB Serial/JTAG
+ * - manual REPL control plane over USB Serial/JTAG (no esp_console)
  * - LCD status UI
  * - GPIO TX patterns and GPIO RX edge counting
  */
@@ -23,10 +23,10 @@
 #include "M5GFX.h"
 
 #include "backlight.h"
-#include "console_repl.h"
 #include "control_plane.h"
 #include "display_hal.h"
 #include "lcd_ui.h"
+#include "manual_repl.h"
 #include "signal_state.h"
 
 static const char *TAG = "atoms3r_gpio_sig_tester";
@@ -74,7 +74,7 @@ extern "C" void app_main(void) {
 
     tester_state_init();
     lcd_ui_start(&canvas);
-    console_start();
+    manual_repl_start();
 
     ESP_LOGI(TAG, "ready: type 'help' at the USB Serial/JTAG console");
 

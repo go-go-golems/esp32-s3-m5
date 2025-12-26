@@ -1,4 +1,4 @@
-## AtomS3R Tutorial 0016 — GROVE GPIO1/GPIO2 Signal Tester (USB Serial/JTAG esp_console + LCD status) (ESP-IDF 5.4.1)
+## AtomS3R Tutorial 0016 — GROVE GPIO1/GPIO2 Signal Tester (USB Serial/JTAG manual REPL + LCD status) (ESP-IDF 5.4.1)
 
 This project is an **AtomS3R-only** firmware “instrument” to generate and observe signals on the GROVE pins:
 
@@ -7,7 +7,7 @@ This project is an **AtomS3R-only** firmware “instrument” to generate and ob
 
 It uses:
 
-- **Control plane**: `esp_console` REPL over **USB Serial/JTAG** (stable; independent of the GROVE pins being debugged)
+- **Control plane**: a minimal **manual REPL** over **USB Serial/JTAG** (**no** `esp_console`; no tab-completion/history)
 - **Status plane**: LCD text UI showing mode/pin/TX pattern or RX counters
 
 ### Build (ESP-IDF 5.4.1)

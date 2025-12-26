@@ -2,7 +2,7 @@ idf_component_register(
     SRCS
         "hello_world_main.cpp"
         "control_plane.cpp"
-        "console_repl.cpp"
+        "manual_repl.cpp"
         "signal_state.cpp"
         "gpio_tx.cpp"
         "gpio_rx.cpp"
@@ -14,8 +14,8 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c
+        esp_driver_usb_serial_jtag
         esp_timer
-        console
     REQUIRES
         M5GFX
     INCLUDE_DIRS ""
