@@ -132,7 +132,7 @@ No code changes yet (docs only). To review:
 
 **Configuration findings**:
 - `sdkconfig` line 1164: `CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y` (Track E prime suspect)
-- `sdkconfig` line 1828: `CONFIG_NEWLIB_STDIN_LINE_ENDING_CR=y` (expects \r not \n, but firmware handles both)
+- `sdkconfig` line 1828: `CONFIG_NEWLIB_STDIN_LINE_ENDING_CR=y` (expects `\r` not `\n`, but firmware handles both)
 - REPL loop: `main.c:347` blocks in `uart_read_bytes(UART_NUM_0, data, BUF_SIZE, portMAX_DELAY)`
 
 **Web research key findings**:
