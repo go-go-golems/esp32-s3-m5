@@ -1,0 +1,22 @@
+I (...) mqjs-repl: Starting ESP32-S3 MicroQuickJS REPL with Storage
+I (...) mqjs-repl: Initializing SPIFFS
+W (...) SPIFFS: mount failed, -10025. formatting...
+I (...) mqjs-repl: SPIFFS: total=896321 bytes, used=0 bytes
+I (...) mqjs-repl: First boot - creating example libraries
+I (...) mqjs-repl: Creating example JavaScript libraries
+I (...) mqjs-repl: Created math.js
+I (...) mqjs-repl: Created string.js
+I (...) mqjs-repl: Created array.js
+I (...) mqjs-repl: Initializing JavaScript engine with 65536 bytes
+I (...) mqjs-repl: JavaScript engine initialized successfully
+I (...) mqjs-repl: Loading libraries from /spiffs/autoload
+I (...) mqjs-repl: Loading JavaScript file: /spiffs/autoload/math.js
+Error loading /spiffs/autoload/math.js: [mtag]: expecting ';'
+    at /spiffs/autoload/math.js:1:5
+I (...) mqjs-repl: Loading JavaScript file: /spiffs/autoload/string.js
+Error loading /spiffs/autoload/string.js: [mtag]: expecting ';'
+    at /spiffs/autoload/string.js:1:5
+I (...) mqjs-repl: Loading JavaScript file: /spiffs/autoload/array.js
+Error loading /spiffs/autoload/array.js: [mtag]: expecting ';'
+    at /spiffs/autoload/array.js:1:5
+
