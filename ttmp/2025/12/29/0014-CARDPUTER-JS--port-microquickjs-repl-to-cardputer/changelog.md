@@ -35,3 +35,8 @@ Validated QEMU boot reaches js> prompt after fixing partition-table config; disc
 
 Closing as blocked on QEMU/serial input bug; investigation moved to new bug ticket.
 
+
+## 2025-12-29
+
+Checked off completed meta-tasks (analysis docs, build wrapper, qemu-xtensa install, and spin-off bug tickets 0015 + 0016). Leaving Cardputer port implementation tasks open/deferred.
+

@@ -10,3 +10,8 @@
 - [ ] Verify memory budget: ensure 64KB JS heap + buffers fit within Cardputer's 512KB SRAM constraint
 - [ ] Test firmware on Cardputer hardware (verify USB Serial JTAG works, SPIFFS mounts, REPL functions)
 - [ ] Consider optional enhancements: keyboard input integration, display output, speaker feedback
+- [x] Create analysis docs for current firmware config + Cardputer port requirements
+- [x] Add mqjs-repl build.sh wrapper for reproducible ESP-IDF env sourcing
+- [x] Install qemu-xtensa via idf_tools so idf.py qemu can run
+- [x] Spin off QEMU REPL input bug into ticket 0015-QEMU-REPL-INPUT
+- [x] Spin off SPIFFS/autoload JS parse errors into ticket 0016-SPIFFS-AUTOLOAD
