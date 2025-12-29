@@ -13,20 +13,13 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles:
-    - Path: imports/DELIVERY_SUMMARY.md
-      Note: Manus deliverable testing claims (Step 2)
-    - Path: imports/FINAL_DELIVERY_README.md
-      Note: Manus deliverable claiming working QEMU REPL (Step 2 analysis)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig
-      Note: Console config with USB-Serial-JTAG secondary (Track E suspect)
+RelatedFiles: []
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-29T14:00:36.913079214-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
-
 
 # Diary
 
@@ -134,6 +127,99 @@ No code changes yet (docs only). To review:
 - Check that each track has: clear question, rationale, commands, interpretation guidance
 - Verify external links work (GitHub issues, Espressif docs)
 - Confirm decision matrix makes sense
+
+### Technical details
+
+**Configuration findings**:
+- `sdkconfig` line 1164: `CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y` (Track E prime suspect)
+- `sdkconfig` line 1828: `CONFIG_NEWLIB_STDIN_LINE_ENDING_CR=y` (expects \r not \n, but firmware handles both)
+- REPL loop: `main.c:347` blocks in `uart_read_bytes(UART_NUM_0, data, BUF_SIZE, portMAX_DELAY)`
+
+**Web research key findings**:
+- GitHub issue #9369: Console REPL fails with USB-Serial-JTAG primary output
+- QEMU flash compatibility: DIO mode @ 80 MHz recommended (QIO may fail)
+- No definitive upstream confirmation that ESP32-S3 QEMU UART RX is broken, so we need to test
+
+### What I'd do differently next time
+
+- Check sdkconfig for console conflicts *before* spending time on tmux automation theories
+- Verify Manus "tested" claims by looking for actual transcript artifacts earlier
+
+## Step 3: Enhanced debugging plan with narrative and technical writing improvements
+
+Iterated on the debugging plan document to follow technical writing guidelines: added purpose/background sections, enriched each investigation track with narrative context explaining *why* each test matters and *how* to interpret results, and included practical sections (decision matrix, common pitfalls, copy-paste commands).
+
+**Commit (docs):** 11ceffd87a718aacfa88dd424659b30d98ed768e — "Docs: enrich QEMU REPL debugging plan with narrative context"
+
+### What I did
+
+- Expanded "Purpose" section explaining why REPL input debugging is tricky under QEMU
+- Added "Background: Why This Is Tricky" explaining the multi-layer input pipeline
+- Rewrote each investigation track (A-E) with:
+  - Explicit "question this track answers" framing
+  - Detailed rationale (why this test matters, what it isolates)
+  - Step-by-step execution instructions with expected outputs
+  - Interpretation guidance for each possible outcome
+- Added "Quick Start: Recommended Order" section for newcomers
+- Enhanced "Commands" section with context for each command
+- Added "Decision Matrix" table to route next steps based on results
+- Created "Common Pitfalls" section with known issues + solutions
+- Added "External Resources" with categorized links
+- Enhanced "Success Criteria" section with multiple acceptable outcomes
+- Added key sdkconfig analysis findings to diary Step 2
+
+### Why
+
+- Original debugging plan was terse (just bullets); hard for someone unfamiliar to execute confidently
+- User requested following technical writing guidelines for better onboarding
+- Want this to be a reference doc that future developers can pick up and immediately understand/act on
+- Decision matrix makes the "what to do next" explicit rather than implicit
+
+### What worked
+
+- Writing guidelines doc (03-technical-writing-guidelines.md) provided clear structure patterns
+- Breaking each track into: question → rationale → commands → interpretation made it scannable
+- Adding "Quick Start" section gives impatient developers a fast path
+- Common Pitfalls section captures web research findings in actionable form
+
+### What didn't work
+
+- N/A (doc improvements, no failures)
+
+### What I learned
+
+- Technical docs benefit hugely from explicit "question this answers" framing
+- Providing both "happy path" and "failure mode" interpretations reduces ambiguity
+- External resource links need context ("what this provides") not just URLs
+
+### What was tricky to build
+
+- Balancing comprehensive context vs keeping it scannable (solved with clear subsection headings)
+- Deciding how much sdkconfig detail to inline vs reference (went with key findings + pointer to full file)
+- Making the decision matrix compact but complete
+
+### What warrants a second pair of eyes
+
+- Whether the track ordering (A → B → C/D/E) makes sense given execution cost
+- Whether the "acceptable outcomes" section sets appropriate expectations
+- Whether the common pitfalls are specific enough to be actionable
+
+### What should be done in the future
+
+- After executing the plan, update it with "what we actually found" addendum
+- If we discover new pitfalls during debugging, add them to the Common Pitfalls section
+- Convert this pattern (question/rationale/commands/interpretation) into a template for other debugging playbooks
+
+### Code review instructions
+
+- Read `playbooks/01-debugging-plan-qemu-repl-input.md` top-to-bottom
+- Check if narrative sections provide enough context for someone unfamiliar with the issue
+- Verify each track has actionable commands (copy/paste ready)
+- Confirm external links are relevant and include context
+
+### What I'd do differently next time
+
+- Could have written the enriched version first (instead of terse → enrich), but sometimes seeing the skeleton helps understand what context is missing
 
 ## Step 2: Review Manus deliverables and reconcile “QEMU tested” vs evidence
 
