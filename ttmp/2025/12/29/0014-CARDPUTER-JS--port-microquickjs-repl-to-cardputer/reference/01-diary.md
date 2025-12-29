@@ -185,3 +185,53 @@ unset ESP_IDF_VERSION
 ```
 
 This forces `build.sh` to source `~/esp/esp-idf-5.4.1/export.sh` again (with qemu now installed), and `idf.py` should stop complaining about missing `qemu-system-xtensa`.
+
+## Step 4: Validate firmware under QEMU (found SPIFFS/partition mismatch)
+
+This step attempts the actual firmware validation we care about: boot in QEMU and reach the `js>` prompt. We got QEMU + `idf_monitor` running interactively in tmux, but the firmware exited early because SPIFFS couldn’t find its partition.
+
+### What I did
+
+- Started `idf.py qemu monitor` in a detached tmux session so we can interact with it:
+
+```bash
+tmux new-session -d -s mqjs-qemu -c /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl \
+  "unset ESP_IDF_VERSION; ./build.sh qemu monitor"
+```
+
+- Captured the monitor output from tmux to confirm boot behavior.
+- Decoded the generated partition-table binary to see what QEMU actually flashed:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl
+unset ESP_IDF_VERSION
+. /home/manuel/esp/esp-idf-5.4.1/export.sh >/dev/null
+python "$IDF_PATH/components/partition_table/gen_esp32part.py" build/partition_table/partition-table.bin | head -50
+```
+
+### What worked
+
+- QEMU launched and `idf_monitor` attached to `socket://localhost:5555`, showing ESP-IDF boot logs.
+
+### What didn’t work
+
+- Firmware aborted before starting the REPL:
+  - `E (...) SPIFFS: spiffs partition could not be found`
+  - `E (...) mqjs-repl: Failed to initialize SPIFFS`
+
+### What I learned
+
+- The built partition table **does not include the `storage` partition**, despite the repo having a `partitions.csv` that defines it.
+- Root cause is in `sdkconfig`: it’s currently set to `CONFIG_PARTITION_TABLE_SINGLE_APP=y` and `CONFIG_PARTITION_TABLE_FILENAME="partitions_singleapp.csv"`, so the build ignores our custom `partitions.csv`.
+
+### What was tricky
+
+- This is a good example of why “runs in QEMU” needs to be validated in *our* environment: the project’s source `partitions.csv` looked correct, but the generated binary used by QEMU didn’t match.
+
+### What should be done next
+
+- Switch the project to use the custom partition table:
+  - Enable `CONFIG_PARTITION_TABLE_CUSTOM=y`
+  - Set `CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"`
+  - Disable `CONFIG_PARTITION_TABLE_SINGLE_APP`
+- Rebuild, confirm `gen_esp32part.py` shows the `storage` entry, then re-run QEMU and validate we reach `js>` and can evaluate expressions.
