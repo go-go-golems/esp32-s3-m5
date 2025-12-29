@@ -137,3 +137,51 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 ### What should be done in the future
 
 - Install the required ESP-IDF QEMU tool (`qemu-xtensa`) and re-run `./build.sh qemu monitor` to confirm we can boot into the REPL before starting the Cardputer port.
+
+## Step 3: Install QEMU tool + run monitor in tmux (interactive)
+
+This step installs the missing ESP-IDF-managed Xtensa QEMU binary and sets up an interactive workflow via tmux. The key nuance is that after installing a new ESP-IDF tool, you need a freshly-exported environment so `idf.py` can find the new binaries.
+
+### What I did
+
+- Installed the ESP-IDF QEMU tool:
+
+```bash
+cd ~/esp/esp-idf-5.4.1
+. ./export.sh >/dev/null
+python "$IDF_PATH/tools/idf_tools.py" install qemu-xtensa
+```
+
+- Tried to run QEMU again via:
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./build.sh qemu monitor
+```
+
+### What didn’t work
+
+- `idf.py qemu monitor` still reported:
+  - `qemu-system-xtensa is not installed`
+
+### What I learned
+
+- The failure is caused by environment drift: if `ESP_IDF_VERSION` is already set in your shell, our `build.sh` **skips sourcing** `export.sh`, and `idf.py` may not pick up newly installed tool paths.
+- Running `qemu monitor` in a **fresh shell** (or forcing `export.sh` to re-run) should resolve it.
+
+### What I’d do next (recommended interactive workflow)
+
+- Run QEMU in tmux so the monitor stays up and you can interact with it:
+
+```bash
+tmux new-session -s mqjs-qemu -c /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl
+```
+
+Then inside tmux, run:
+
+```bash
+unset ESP_IDF_VERSION
+./build.sh qemu monitor
+```
+
+This forces `build.sh` to source `~/esp/esp-idf-5.4.1/export.sh` again (with qemu now installed), and `idf.py` should stop complaining about missing `qemu-system-xtensa`.
