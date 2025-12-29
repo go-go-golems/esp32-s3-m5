@@ -13,13 +13,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: imports/DELIVERY_SUMMARY.md
+      Note: Manus deliverable testing claims (Step 2)
+    - Path: imports/FINAL_DELIVERY_README.md
+      Note: Manus deliverable claiming working QEMU REPL (Step 2 analysis)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig
+      Note: Console config with USB-Serial-JTAG secondary (Track E suspect)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-29T14:00:36.913079214-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -61,6 +68,72 @@ Closed the original Cardputer port ticket as blocked because we hit a QEMU/seria
 
 - Attach to tmux and type manually to confirm whether the problem is specific to programmatic send-keys or applies to real typing.
 - Bypass `idf_monitor` by using `imports/test_storage_repl.py` to send bytes directly to `localhost:5555`.
+
+## Step 2: Research Manus deliverables and web sources, create comprehensive debugging plan
+
+Spent a session analyzing the Manus markdown files (claimed "working REPL + QEMU tested") and doing targeted web research on ESP32-S3 QEMU UART/console issues. Created a structured debugging plan playbook that organizes investigations into five concrete tracks, each with explicit commands, expected outputs, and interpretation guidance.
+
+### What I did
+
+- Read all Manus deliverables in `imports/` (FINAL_DELIVERY_README, DELIVERY_SUMMARY, Complete Guide, Playbook)
+- Analyzed `sdkconfig` for console/UART conflicts (found: secondary USB-Serial-JTAG console enabled)
+- Searched web for: ESP-IDF QEMU limitations, UART RX issues, idf_monitor input handling bugs
+- Created `playbooks/01-debugging-plan-qemu-repl-input.md` with 5 investigation tracks
+- Updated `tasks.md` with new investigation tasks (storage regression, echo firmware)
+- Updated `index.md` to link Manus docs and new playbook
+- Related debugging plan to key source files via docmgr
+
+### Why
+
+- The initial bug report had hypotheses but no actionable next steps with commands/decision criteria
+- User suggested two new investigation angles: "storage broke it" and "minimal echo firmware"  
+- Needed to verify Manus claims (do their artifacts actually prove interactive RX works?)
+- A structured playbook makes debugging parallelizable (anyone can pick up where we left off)
+
+### What worked
+
+- Found that Manus "golden log" shows only TX (boot + prompt) not RX (interactive transcript)
+- Discovered `CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y` in sdkconfig (known issue per GitHub #9369)
+- Existing `test_storage_repl.py` script provides a perfect "bypass idf_monitor" test
+- Web research confirmed QEMU flash mode compatibility matters (DIO @ 80MHz recommended)
+
+### What didn't work
+
+- Generic web searches didn't surface specific ESP-IDF QEMU UART RX upstream docs or issues
+- Couldn't find definitive "QEMU esp32s3 UART RX is broken" confirmation (might need to test)
+
+### What I learned
+
+- Manus "QEMU tested" claim needs scrutiny: delivery logs show successful boot (TX) but not interactive input (RX)
+- The debugging space splits cleanly into 5 isolation tracks with clear pass/fail criteria
+- ESP-IDF secondary console config often causes QEMU issues (USB-JTAG isn't emulated properly)
+- NEWLIB stdin line ending config (CR vs LF vs CRLF) matters but our code handles both
+
+### What was tricky to build
+
+- Balancing "quick smoke tests" (Track A: manual typing) vs "definitive isolation" (Track C: minimal firmware)
+- Deciding which hypothesis to test first (went with: manual → bypass → minimal echo, based on execution speed)
+- Making the plan accessible to someone unfamiliar with the codebase/issue history
+
+### What warrants a second pair of eyes
+
+- The claim that Manus successfully got interactive RX working (vs only seeing TX output)
+- Whether `CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG=y` is the smoking gun (Track E hypothesis)
+- Decision on when to give up on QEMU RX and just test on hardware
+
+### What should be done in the future
+
+- If we find a fix, update the 0017 QEMU bring-up playbook with "how to make RX work"
+- If QEMU RX is fundamentally broken, document "QEMU is TX-only for ESP32-S3, use hardware for interactive testing"
+- Create the minimal echo firmware referenced in Track C (useful general diagnostic tool)
+
+### Code review instructions
+
+No code changes yet (docs only). To review:
+- Start in `playbooks/01-debugging-plan-qemu-repl-input.md`
+- Check that each track has: clear question, rationale, commands, interpretation guidance
+- Verify external links work (GitHub issues, Espressif docs)
+- Confirm decision matrix makes sense
 
 ## Step 2: Review Manus deliverables and reconcile “QEMU tested” vs evidence
 
