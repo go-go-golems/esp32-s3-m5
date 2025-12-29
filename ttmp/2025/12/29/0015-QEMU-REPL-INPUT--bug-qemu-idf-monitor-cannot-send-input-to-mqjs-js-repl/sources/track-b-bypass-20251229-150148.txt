@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/test_storage_repl.py", line 37, in main
+    sock.connect(('localhost', 5555))
+ConnectionRefusedError: [Errno 111] Connection refused
+============================================================
+ESP32-S3 MicroQuickJS REPL - Storage Test
+============================================================
+
+Connecting to QEMU on localhost:5555...
+Error: [Errno 111] Connection refused

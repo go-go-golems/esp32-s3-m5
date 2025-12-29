@@ -221,6 +221,39 @@ Iterated on the debugging plan document to follow technical writing guidelines: 
 
 - Could have written the enriched version first (instead of terse → enrich), but sometimes seeing the skeleton helps understand what context is missing
 
+## Step 4: Run Track A + initial Track B attempt (bypass script) — confirm current failure mode
+
+This step captures the first real “fresh session” execution of the playbook. You (manuel) confirmed that **manual typing in `idf_monitor` is still broken** (Track A). I then ran Track B (bypass `idf_monitor` via raw TCP to `localhost:5555`) but hit an unexpected infrastructure issue: the TCP port was not accepting connections at that moment.
+
+This is still useful: it separates “REPL RX broken” from “our bypass tooling couldn’t reach QEMU”, and it tells us the next step is to **confirm QEMU is actually running and listening on the expected port** before we can interpret any RX results.
+
+### What I did
+
+- Recorded manual test result for Track A: typing `1+2<enter>` in the `idf_monitor` terminal does not echo or evaluate.
+- Ran Track B using the repo’s bypass client:
+  - `python3 .../imports/test_storage_repl.py`
+- Saved full output as a ticket artifact:
+  - `sources/track-b-bypass-20251229-150148.txt`
+
+### What worked
+
+- We confirmed Track A is reproducibly broken (manual typing, no automation).
+
+### What didn’t work
+
+- Track B failed immediately with:
+  - `ConnectionRefusedError: [Errno 111] Connection refused`
+  - meaning `localhost:5555` was not listening at the time of the test.
+
+### What I learned
+
+- We can’t yet use Track B to distinguish “idf_monitor vs QEMU UART RX” because we didn’t reach QEMU at all.
+- Next action is operational: confirm QEMU is up and which port it is using (it should be `-serial tcp::5555,server` for the default `idf.py qemu monitor` flow, but we need to verify).
+
+### What should be done next
+
+- Re-run Track B after confirming QEMU is listening on `:5555` (or after determining the correct port from the running QEMU command line / `idf.py` output).
+
 ## Step 2: Review Manus deliverables and reconcile “QEMU tested” vs evidence
 
 This step was about reducing uncertainty: several Manus markdown deliverables in `imports/` claim a “working REPL” and “QEMU tested”, but our ticket’s observed bug is precisely “boot reaches `js>` but RX never arrives”. The most valuable outcome here is a crisp gap statement: **we have boot logs and a prompt, but we do not yet have a captured interactive transcript proving RX works**.
