@@ -80,3 +80,60 @@ Need to establish baseline understanding before making changes. Also wanted to c
 - Review analysis documents: `analysis/01-current-firmware-configuration-analysis.md` and `analysis/02-cardputer-port-requirements.md`
 - Check imported firmware: `imports/esp32-mqjs-repl/mqjs-repl/main/main.c`
 - Compare with Cardputer reference: `0015-cardputer-serial-terminal/main/hello_world_main.cpp`
+
+## Step 2: Make builds reproducible + run the baseline build
+
+This step makes it easy to build the imported `mqjs-repl` project without remembering to source ESP-IDF in each shell. It also validates that the project still compiles cleanly in *this* environment before we start Cardputer-specific changes.
+
+**Commit (code):** 1a42a4e7049383498a3473765889c219815137ad — "Build: add ESP-IDF auto-source wrapper for mqjs-repl"
+
+### What I did
+
+- Found the repo’s standard “auto-source ESP-IDF” wrapper script at:
+  - `0017-atoms3r-web-ui/build.sh`
+  - `0016-atoms3r-grove-gpio-signal-tester/build.sh`
+- Copied that pattern into the imported project as `imports/esp32-mqjs-repl/mqjs-repl/build.sh` and committed it.
+- Ran a baseline build using the wrapper:
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./build.sh set-target esp32s3
+./build.sh build
+```
+
+- Attempted a QEMU run (to validate the workflow on this machine):
+
+```bash
+./build.sh qemu monitor
+```
+
+### Why
+
+- I want every subsequent compile step to be “one command”, so we can iterate quickly and keep commits tightly scoped.
+- Before porting to Cardputer, we need a known-good baseline build in our local toolchain (ESP-IDF 5.4.1).
+
+### What worked
+
+- `./build.sh set-target esp32s3 && ./build.sh build` succeeded and produced `build/mqjs-repl.bin`.
+
+### What didn’t work
+
+- QEMU run failed with:
+  - `qemu-system-xtensa is not installed. Please install it using "python $IDF_PATH/tools/idf_tools.py install qemu-xtensa"`
+
+### What I learned
+
+- The wrapper script does what we want: it detects `ESP_IDF_VERSION` and sources `~/esp/esp-idf-5.4.1/export.sh` only when needed.
+- On this environment, ESP-IDF is installed, but the **QEMU Xtensa binary** is not yet installed via `idf_tools.py`.
+
+### What was tricky
+
+- Keeping work scoped: the git repo has unrelated local changes, so every commit needs explicit `git add <paths...>` to avoid staging noise.
+
+### What warrants a second pair of eyes
+
+- Whether we want to keep QEMU support as a first-class workflow for Cardputer (USB Serial JTAG vs UART/monitoring differences may matter).
+
+### What should be done in the future
+
+- Install the required ESP-IDF QEMU tool (`qemu-xtensa`) and re-run `./build.sh qemu monitor` to confirm we can boot into the REPL before starting the Cardputer port.
