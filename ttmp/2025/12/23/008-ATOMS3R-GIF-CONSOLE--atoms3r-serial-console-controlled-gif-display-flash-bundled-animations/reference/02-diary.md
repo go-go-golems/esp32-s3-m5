@@ -20,7 +20,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2025-12-23T15:00:50.269180196-05:00
+LastUpdated: 2025-12-25T00:00:00.000000000+00:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -456,6 +456,181 @@ This suggests we have **two separate issues** that accidentally coupled during i
    - creating an interrupt load pattern that changes timing/latency of the REPL task.
 
 At this point, the diary branches into a “back to fundamentals” analysis (see the analysis document added next), because continuing to iterate on instrumentation without a clear model risks chasing symptoms.
+
+## Step 11: Write “fundamentals first” analysis for UART console debugging (separate wiring vs REPL vs resets)
+
+This step took a deliberate pause from iterative “try a thing” debugging and instead wrote down a fundamentals-first model of what we are *actually doing* when we “run `esp_console` over an external UART” on ESP32-S3. The intent was to make the problem decomposable: isolate electrical/wiring faults from UART driver issues from VFS/REPL behavior from unrelated resets.
+
+The outcome is a reference analysis we can keep coming back to when symptoms are confusing (e.g. “TX works but RX doesn’t”, “instrumentation changes behavior”, “device resets after starting the prompt”).
+
+**Commit (docs):** f26e583 — "008/0013: UART console debugging notes + fundamentals analysis"
+
+### What I did
+- Wrote: `analysis/03-uart-console-fundamentals-and-debugging-analysis.md`
+
+### Why
+- We were at risk of chasing coupled symptoms without a stable mental model.
+
+### What worked
+- Separating “console output channel” vs “REPL transport” vs “per-task stdio” clarified multiple false leads immediately.
+
+### What didn't work
+- N/A (documentation step)
+
+### What I learned
+- GPIO/ISR instrumentation on the RX pin can change pin mux / interrupt load enough to perturb UART behavior, even when “it shouldn’t”.
+
+### What was tricky to build
+- Explaining *why* an ISR can make something appear “more working” (pullups, mux side effects, timing) without implying the ISR is a “fix”.
+
+### What warrants a second pair of eyes
+- Confirm the decision tree is ordered correctly (lowest-level checks first) so we don’t reintroduce “debug by folklore”.
+
+### What should be done in the future
+- Treat “does RX electrically toggle” and “does the REPL accept commands” as separate acceptance criteria; avoid mixing instrumentation with the mainline REPL path unless strictly necessary.
+
+## Step 12: Refactor `0013` firmware into readable modules (reduce cognitive load while debugging)
+
+This step made the firmware easier to reason about by extracting subsystems into dedicated translation units. This matters for debugging because it reduces accidental coupling: we can inspect and instrument “console bring-up” without tripping over display or GIF playback concerns.
+
+**Commit (code):** e51e774 — "0013: refactor firmware into readable modules"
+
+### What I did
+- Refactored `0013-atoms3r-gif-console/main/` into focused modules (console REPL, control plane, display HAL, backlight, etc.).
+
+### Why
+- Debugging UART/REPL issues is hard enough; keeping everything in one `main` file makes it worse.
+
+### What worked
+- The refactor preserved behavior while making the console stack easier to audit.
+
+### What warrants a second pair of eyes
+- Ensure no initialization order regressions slipped in (console start timing and any side effects of module-level statics).
+
+## Step 13: Write firmware organization guidelines (ESP-IDF idioms + long-term maintenance rules)
+
+This step captured an explicit set of ESP-IDF-idiomatic organization rules (components vs “main”, API boundaries, Kconfig patterns, debug instrumentation hygiene). The point is to reduce future refactor churn and make reviews consistent across firmware tickets.
+
+**Commit (docs):** 22cd22a — "008: add ESP-IDF firmware organization guidelines"
+
+### What I did
+- Wrote: `reference/04-firmware-organization-guidelines-esp-idf.md`
+
+### Why
+- We were repeatedly making the same “how should this be organized?” decisions ad hoc.
+
+### What warrants a second pair of eyes
+- Validate these guidelines against ESP-IDF upstream examples and team preferences (especially around component boundaries and Kconfig defaults).
+
+## Step 14: Extract GIF subsystem into an ESP-IDF component (`echo_gif`)
+
+This step split GIF storage/registry/player logic into a reusable component so future firmware projects can consume it without copying implementation details. It also made the `0013` tutorial less cluttered: `main/` focuses on wiring/control/UI while `echo_gif` owns the GIF domain logic.
+
+**Commit (code):** 8ca52b3 — "008/0013: extract GIF subsystem into echo_gif component"
+
+### What I did
+- Created component: `components/echo_gif/` with public headers and implementation (`gif_storage`, `gif_registry`, `gif_player`).
+- Updated `0013` to use the component APIs.
+- Wrote a “fool-proof” extraction playbook: `playbooks/02-extract-gif-functionality-into-an-esp-idf-component.md`
+
+### Why
+- Avoid “one-off tutorial code” turning into an unmaintainable fork; make GIF playback a proper library unit.
+
+### What warrants a second pair of eyes
+- Component dependency list (`PRIV_REQUIRES`) and include ordering (AnimatedGIF/M5GFX macro collisions are easy to regress).
+
+## Step 15: Stabilize the UART RX heartbeat instrumentation defaults (avoid accidental crashes)
+
+This step fixed a concrete failure mode: enabling the RX heartbeat task could trigger a stack overflow and reset. The goal was to keep the debug tool available while ensuring it doesn’t destabilize the default firmware configuration.
+
+**Commit (code):** 76a3b55 — "0013: disable RX heartbeat by default; fix task stack overflow"
+
+### What I did
+- Disabled the heartbeat by default in Kconfig defaults.
+- Increased the heartbeat task stack to avoid `***ERROR*** A stack overflow in task uar...`.
+
+### Why
+- Debug instrumentation should not be “default on” if it can crash the board.
+
+### What warrants a second pair of eyes
+- Confirm the task stack size is appropriate for logging and that enabling/disabling doesn’t change REPL behavior unintentionally.
+
+## Step 16: Create a dedicated ticket for GROVE GPIO electrical investigation (separate from `esp_console` logic)
+
+This step created a new ticket focused on the *electrical layer* of GROVE GPIO1/GPIO2 behavior, because scope observations suggested contention or unexpected driving on the supposed RX line. The goal is to build a small signal-tester firmware that can explicitly put pins into known modes (input high-Z vs driven high/low) and measure behavior with a scope/logic analyzer.
+
+**Commit (docs):** dd1686c — "009: add GROVE GPIO1/GPIO2 signal tester ticket (spec + tasks)"
+
+### What I did
+- Created ticket: `ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/`
+
+### Why
+- When you see mid-level voltages (~1.5V lows), that’s an electrical problem first; we shouldn’t keep “debugging `esp_console`” until the line behaves like a real UART RX input.
+
+### What should be done in the future
+- Use the signal tester to answer “is the Atom pin high-Z when it should be?” before spending more cycles on REPL/VFS hypotheses.
+
+## Step 17: New scope observation — GROVE pins appear to change “TX ownership” after ~400ms (suspect ROM console output phase vs driver remap)
+
+This step records a key observation made while the Cardputer was disconnected (so the AtomS3R was the only possible driver). For roughly the first ~400ms after reset, the line believed to be **GPIO2** showed UART-like transitions consistent with early boot logging. After ~400ms, the `esp_console` prompt began emitting on the line believed to be **GPIO1**, while the “GPIO2” line stayed high.
+
+This strongly suggests a two-phase bring-up:
+- an early phase where **ROM output** (pre-VFS/driver) is using a UART/pin mapping that differs from our eventual REPL TX pin, and
+- a later phase where `esp_console_new_repl_uart()` installs the UART driver and maps TX to the configured GPIO (TX=GPIO1), which is when the prompt starts.
+
+### What I did
+- Captured the observation and compared it against `sdkconfig`:
+  - `CONFIG_ESP_CONSOLE_ROM_SERIAL_PORT_NUM=1`
+  - `CONFIG_ESP_CONSOLE_UART_TX_GPIO=1`
+  - `CONFIG_ESP_CONSOLE_UART_RX_GPIO=2`
+- Located the ESP-IDF startup code where ROM output is bound:
+  - `components/esp_system/port/cpu_start.c` calls `esp_rom_output_set_as_console(CONFIG_ESP_CONSOLE_ROM_SERIAL_PORT_NUM)`
+- Confirmed ESP32-S3’s IOMUX “default” UART1 pins in ESP-IDF:
+  - `components/soc/esp32s3/include/soc/uart_pins.h` defines `U1TXD_GPIO_NUM=17`, `U1RXD_GPIO_NUM=18`
+
+### What I learned
+- “Console output channel pin settings” and “ROM output selection” are related but not identical:
+  - early boot can emit via ROM output before the UART driver remaps pins,
+  - which can look like “wrong pin is TX” until the driver finishes setup.
+
+### What should be done next
+- Flash **bootloader + partition table + app** (not only the app) to remove config drift as a variable when investigating early boot behavior.
+
+## Step 18: Flashing bootloader + app makes console output consistent (prompt + early boot now on GPIO1)
+
+This step confirms that the earlier “GPIO2 looks like TX for ~400ms” symptom was very likely caused by flashing **only the app**. After flashing both **bootloader** and **app**, the observed serial output up through the initial `esp_console` prompt is now consistently emitted on **GPIO1** (the configured UART TX pin for the GROVE console).
+
+This is a big simplification: we no longer have to interpret early-boot UART output as “maybe our pins are swapped” — instead, we can focus on the remaining core issue: **UART RX on GPIO2** (electrical high‑Z vs contention, wiring cross, terminal settings).
+
+### What I did
+- Re-flashed the device including the bootloader (not app-only).
+- Re-checked the boot-to-prompt UART waveform with Cardputer disconnected.
+
+### What worked
+- Boot-to-prompt output is now consistently on `GPIO1` (TX), matching `CONFIG_ESP_CONSOLE_UART_TX_GPIO=1`.
+
+### What I learned
+- For console transport/pin debugging, “app-only flash” can create misleading symptoms because early boot stages may not match the app’s console config.
+
+### What should be done next
+- Treat **TX as solved** (GPIO1).
+- Continue debugging **RX** (GPIO2) as a separate problem: verify wiring cross (peer TX → Atom RX), check for contention/bias (scope), then move up-stack to UART/REPL expectations (line endings, local echo, etc.).
+
+## Step 19: Write a debugger-first guide to untangle `esp_console` + custom UART stdio
+
+This step captures a “how would we debug this if we had full JTAG access?” workflow, because the remaining issue feels tangled: TX is now stable after flashing bootloader+app, but RX/input behavior is still ambiguous and easy to misinterpret (especially when output is mirrored to USB Serial/JTAG).
+
+The main outcome is a practical, layer-by-layer debugging guide with concrete breakpoints and proof steps to locate where bytes stop flowing: wire → pad → GPIO matrix → UART FIFO → UART driver → VFS stdin → linenoise → command dispatch.
+
+### What I did
+- Wrote: `analysis/04-debugger-first-guide-esp-console-custom-uart.md`
+
+### Why
+- We need a reliable procedure that avoids “debug by vibes” and explicitly separates electrical/pinmux failures from esp_console/VFS/line-ending issues.
+
+### What warrants a second pair of eyes
+- Validate the breakpoint list and the “mirrored output illusion” explanation against ESP-IDF’s current stdio docs and your actual `sdkconfig` (especially `CONFIG_ESP_CONSOLE_SECONDARY_*` semantics).
+
 
 ## Context
 

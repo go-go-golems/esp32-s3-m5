@@ -39,3 +39,8 @@ Refined the serial interface selection to **USB vs GROVE UART (G1/G2)**, added a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0015-cardputer-serial-terminal/main/Kconfig.projbuild — USB vs GROVE selection + GROVE baud + default RX/TX pins
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0015-cardputer-serial-terminal/main/hello_world_main.cpp — Runtime guard disabling keyboard autodetect when it conflicts with GROVE UART pins
 
+
+## 2025-12-25
+
+Ticket complete: implemented chapter 0015-cardputer-serial-terminal with USB-Serial-JTAG and GROVE UART backend selection, keyboard echo to screen, and configurable baud rate. Fixed USB driver install to prevent host write timeouts.
+
