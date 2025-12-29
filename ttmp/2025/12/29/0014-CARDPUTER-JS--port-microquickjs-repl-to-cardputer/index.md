@@ -41,6 +41,10 @@ Port the MicroQuickJS REPL firmware from a generic ESP32-S3 configuration to the
 - [Current Firmware Configuration Analysis](./analysis/01-current-firmware-configuration-analysis.md) - Baseline firmware structure and configuration
 - [Cardputer Port Requirements](./analysis/02-cardputer-port-requirements.md) - Required changes and differences
 
+**MicroQuickJS Extension & Architecture Docs:**
+- [MicroQuickJS native extensions on ESP32 (playbook + reference manual)](./reference/02-microquickjs-native-extensions-on-esp32-playbook-reference-manual.md) - How to expose ESP-IDF functionality to JS (repo-accurate)
+- [MicroQuickJS + FreeRTOS: multi-VM / multi-task architecture + communication brainstorm](./design-doc/01-microquickjs-freertos-multi-vm-multi-task-architecture-communication-brainstorm.md) - Design options for running multiple scripts/VMs and letting them communicate
+
 **Process Documentation:**
 - [Diary](./reference/01-diary.md) - Step-by-step implementation process
 

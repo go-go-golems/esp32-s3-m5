@@ -1,0 +1,41 @@
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/home/manuel/esp/esp-idf-5.4.1'.
+* Checking python version ... 3.11.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Shell completion ... Autocompletion code generated
+Running qemu on socket://localhost:5555
+Adding "qemu"'s dependency "all" to list of commands with default set of options.
+Executing action: all (aliases: build)
+Running ninja in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/build
+Executing "ninja all"...
+Executing action: qemu
+Generating flash image: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/build/qemu_flash.bin
+Running qemu (bg): qemu-system-xtensa -M esp32s3 ... -serial tcp::5555,server
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl
+--- esp-idf-monitor 1.8.0 on socket://localhost:5555 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+I (226) app_init: Project name:     mqjs-repl
+I (226) app_init: App version:      685d74d-dirty
+I (226) app_init: ESP-IDF:          v5.4.1
+I (253) mqjs-repl: Starting ESP32-S3 MicroQuickJS REPL with Storage
+I (263) mqjs-repl: Initializing SPIFFS
+W (283) SPIFFS: mount failed, -10025. formatting...
+I (1483) mqjs-repl: SPIFFS: total=896321 bytes, used=0 bytes
+I (2613) mqjs-repl: Initializing JavaScript engine with 65536 bytes
+I (2633) mqjs-repl: JavaScript engine initialized successfully
+
+========================================
+  ESP32-S3 MicroQuickJS REPL
+  with Flash Storage Support
+========================================
+JavaScript Engine: MicroQuickJS
+Memory: 65536 bytes
+Free heap: 302808 bytes
+========================================
+
+js>
+

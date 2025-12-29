@@ -2,7 +2,7 @@
 
 ## TODO
 
-- [ ] Test QEMU execution of current firmware to verify it builds and runs correctly
+- [x] Test QEMU execution of current firmware to verify it builds and runs correctly
 - [ ] Create implementation plan document outlining code changes needed for Cardputer port
 - [ ] Create sdkconfig.defaults with Cardputer configuration (8MB flash, 240MHz CPU, 8000 byte main task stack)
 - [ ] Update partitions.csv for Cardputer (4MB app partition, 1MB SPIFFS storage partition)
