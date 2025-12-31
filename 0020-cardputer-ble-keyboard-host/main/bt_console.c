@@ -8,6 +8,7 @@
 
 #include "esp_console.h"
 #include "esp_err.h"
+#include "esp_gap_ble_api.h"
 #include "esp_log.h"
 
 #include "ble_host.h"
@@ -325,4 +326,3 @@ void bt_console_start(void) {
 
     ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG");
 }
-

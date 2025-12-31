@@ -184,7 +184,7 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
 
 static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param) {
     // Critical: forward GATTC events so the HID host can function.
-    hid_host_forward_gattc_event(event, gattc_if, param);
+    hid_host_forward_gattc_event((int)event, (int)gattc_if, (void *)param);
 
     switch (event) {
     case ESP_GATTC_CONNECT_EVT:
@@ -369,4 +369,3 @@ bool ble_host_confirm_reply(const uint8_t bda[6], bool accept) {
     }
     return true;
 }
-

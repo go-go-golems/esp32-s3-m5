@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "esp_bt_defs.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,4 +38,3 @@ bool ble_host_confirm_reply(const uint8_t bda[6], bool accept);
 #ifdef __cplusplus
 }
 #endif
-
