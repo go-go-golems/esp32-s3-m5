@@ -219,3 +219,52 @@ The result is the `esp32-s3-m5/0021-atoms3-memo-website/` ESP-IDF project: SoftA
 
 ### What I'd do differently next time
 - Run a clean `./build.sh build` immediately after creating the project skeleton, before adding more subsystems, to catch toolchain/partition issues earlier.
+
+## Step 4: Default WiFi = STA join + keep SoftAP fallback
+
+This step makes day-to-day testing much faster by having the device join an existing WiFi network by default (instead of requiring SoftAP every time). The implementation is still safe for bring-up: if STA isn’t configured (empty SSID) or if STA start fails, the firmware falls back to SoftAP so you always have a recovery path.
+
+In practice this means you can power-cycle, watch the logs print the assigned IP address, then hit the web UI and API endpoints directly from your laptop/phone on the same LAN.
+
+**Commit (code):** bbedc38 — "0021: add WiFi STA + safer SPIFFS storage"
+
+### What I did
+- Added WiFi STA support (`wifi_sta_start`) and a `wifi_start()` selector that prefers STA when configured, else falls back to SoftAP
+- Added menuconfig knobs for STA SSID/password/retry/timeout in `0021-atoms3-memo-website/main/Kconfig.projbuild`
+- Fixed a runtime crash caused by attempting to `mkdir("/spiffs/rec")` on SPIFFS (now warns + falls back to `/spiffs`)
+- Flashed and monitored the firmware via USB Serial/JTAG on `/dev/ttyACM0` inside a tmux session
+
+### Why
+- SoftAP-first is good for demos, but STA-first is much better for iterative debugging (stable IP, no phone hotspot juggling).
+- SPIFFS often runs without real directory support; treating recordings as flat files avoids startup crashes.
+
+### What worked
+- Device successfully connected in STA mode and printed a stable IP + browse URL in logs.
+- HTTP server started and the device stayed up (no more early abort on SPIFFS directory creation).
+
+### What didn't work
+- First boot after adding STA hit an abort in `storage_spiffs_init()` due to `mkdir` failing for `/spiffs/rec` (fixed by making directory creation non-fatal).
+
+### What I learned
+- For “always recoverable” networking on ESP32, a simple rule works well: **STA if configured, else SoftAP** (and log the URL).
+- SPIFFS + directories are an easy footgun; prefer flat paths unless you’ve explicitly enabled directory support.
+
+### What was tricky to build
+- Making STA the default behavior without accidentally committing WiFi credentials into tracked files.
+
+### What warrants a second pair of eyes
+- Whether we should switch from “fallback to SoftAP only on STA start error” to “fallback on connect timeout” (tradeoff: recovery vs flapping).
+- The flash-size mismatch warning (device reports 8MB flash, binary header uses 2MB); decide whether to update the project defaults to 8MB.
+
+### What should be done in the future
+- Add a small “network status” block to `/api/v1/status` (SSID, RSSI, IP) for easier UI diagnostics.
+- Decide on flash size + partition sizing once the target board variant is locked down.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0021-atoms3-memo-website/main/wifi.cpp` and `esp32-s3-m5/0021-atoms3-memo-website/main/wifi_sta.cpp`
+- Build/flash/monitor:
+  - `cd esp32-s3-m5/0021-atoms3-memo-website && ./build.sh build`
+  - `./build.sh -p /dev/ttyACM0 flash && ./build.sh -p /dev/ttyACM0 monitor`
+
+### Technical details
+- WiFi STA credentials are set locally in `esp32-s3-m5/0021-atoms3-memo-website/sdkconfig` (this file is ignored by git); use `esp32-s3-m5/0021-atoms3-memo-website/tools/set_wifi_sta_creds.sh` to update without committing secrets.

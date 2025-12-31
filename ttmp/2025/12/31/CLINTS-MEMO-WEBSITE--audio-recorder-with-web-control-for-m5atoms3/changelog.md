@@ -8,3 +8,4 @@
 - Added waveform preview spec (`GET /api/v1/waveform`) and a dedicated API contract doc.
 - Added an end-to-end manual verification playbook (connect → record → stop → list → download/play → delete).
 - Landed a buildable ESP-IDF firmware baseline in `esp32-s3-m5/0021-atoms3-memo-website/` and documented build recovery/toolchain fixes in the diary (commit 5807ac2).
+- Added WiFi STA-by-default (with SoftAP fallback) and made SPIFFS recordings path startup-safe for `0021` (commit bbedc38).
