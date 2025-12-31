@@ -12,3 +12,4 @@
 - Added AP+STA mode + per-request HTTP logging to debug network segmentation/timeouts (commit fef0c11).
 - Reduced HTTP log spam (polling endpoints) and fixed recording start on SPIFFS by avoiding directory-only assumptions (commit 778c414).
 - Reduced noisy ESP-IDF WiFi init logs to keep boot output readable (commit c91abca).
+- Added analysis of SPIFFS directory limitations (ENOTSUP/134 on `mkdir`) and updated tasks to reflect implemented MVP.

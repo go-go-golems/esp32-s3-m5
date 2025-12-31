@@ -62,6 +62,7 @@ Current status: **Analysis phase complete** - Ready for implementation planning.
 - **External Sources**: See frontmatter ExternalSources field
 - **Design doc**: `design-doc/01-website-audio-recorder-design-document.md`
 - **Analysis**: `analysis/01-audio-recorder-architecture-analysis-files-symbols-and-concepts.md`
+- **SPIFFS mkdir analysis**: `analysis/02-spiffs-mkdir-enotsup-and-recordings-layout.md`
 - **Diary**: `reference/01-diary.md`
 - **Waveform API contract**: `reference/02-waveform-api-contract.md`
 - **Verification playbook**: `playbooks/01-verification-playbook-website-audio-recorder.md`
