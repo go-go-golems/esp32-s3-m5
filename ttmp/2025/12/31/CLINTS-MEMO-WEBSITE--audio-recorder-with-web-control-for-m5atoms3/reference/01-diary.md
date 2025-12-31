@@ -268,3 +268,49 @@ In practice this means you can power-cycle, watch the logs print the assigned IP
 
 ### Technical details
 - WiFi STA credentials are set locally in `esp32-s3-m5/0021-atoms3-memo-website/sdkconfig` (this file is ignored by git); use `esp32-s3-m5/0021-atoms3-memo-website/tools/set_wifi_sta_creds.sh` to update without committing secrets.
+
+## Step 5: Debug “server hangs” — AP+STA mode + request logging
+
+This step addressed a confusing symptom: the firmware logs a valid STA IP and says the HTTP server started, but requests from the dev machine time out (“hang”). The key insight is that the dev machine and the ESP32 ended up on *different* subnets even though the SSID looks the same: the laptop is on 5GHz (192.168.102.x) while the ESP32 is on 2.4GHz (192.168.101.x). In this network setup there’s no routing between those subnets, so TCP SYNs never reach the device.
+
+To make testing unblocked regardless of home-network segmentation, the firmware now supports AP+STA: it keeps a SoftAP running while it joins STA. That gives a reliable backdoor (`http://192.168.4.1/`) even when the STA IP is unreachable from your current host network. I also added per-request logging so you can immediately see if requests are hitting the device and from where.
+
+**Commit (code):** fef0c11 — "0021: AP+STA mode and HTTP request logs"
+
+### What I did
+- Verified the mismatch:
+  - Host WiFi was on 5GHz with an IP in `192.168.102.0/24`
+  - ESP32 STA got `192.168.101.130/24` via DHCP on 2.4GHz (channel 7)
+- Added AP+STA support (`wifi_apsta_start`) and a config knob `CLINTS_MEMO_WIFI_SOFTAP_WITH_STA` (default enabled)
+- Added HTTP request logging (method/URI/peer IP:port) to all handlers in `main/http_server.cpp`
+
+### Why
+- When the router isolates 2.4GHz clients (ESP32) from 5GHz clients (laptop), “it hangs” is actually “it’s unroutable”.
+- AP+STA preserves the “join existing WiFi” workflow while keeping a deterministic debug access path.
+
+### What worked
+- Firmware logs both:
+  - `SoftAP browse: http://192.168.4.1/`
+  - `STA browse: http://192.168.101.130/`
+- HTTP server starts reliably; once you hit endpoints, the firmware prints `HTTP GET /api/v1/status from ...`.
+
+### What didn't work
+- `curl http://192.168.101.130/...` from the dev machine timed out due to subnet isolation (not an HTTP server bug).
+
+### What I learned
+- ESP32 is 2.4GHz-only; “same SSID” does not imply “same IP network” on some routers with band steering / segmentation.
+- Adding request logs (peer IP + URI) is the fastest way to distinguish “server down” vs “routing blocked”.
+
+### What was tricky to build
+- Keeping the STA join behavior while also enabling SoftAP without overriding WiFi mode (`APSTA` vs `STA` vs `AP`).
+
+### What warrants a second pair of eyes
+- Whether AP+STA should be default long-term vs debug-only (power/channel constraints).
+- Whether we should add a `/api/v1/net` endpoint to surface the same diagnostics in JSON (IP, gw, channel, RSSI).
+
+### What should be done in the future
+- Consider updating docs/playbook to explicitly mention “connect your laptop to the 2.4GHz side / same VLAN” or use the SoftAP URL.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0021-atoms3-memo-website/main/wifi_apsta.cpp` and `esp32-s3-m5/0021-atoms3-memo-website/main/http_server.cpp`
+- Validate by flashing and watching logs for both `SoftAP browse` and `STA browse`.
