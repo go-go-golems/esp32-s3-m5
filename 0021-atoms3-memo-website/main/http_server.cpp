@@ -61,7 +61,7 @@ static void json_send_error(httpd_req_t *req, int code, const char *msg) {
     (void)httpd_resp_send(req, json.c_str(), (ssize_t)json.size());
 }
 
-static const char *http_method_str(int method) {
+[[maybe_unused]] static const char *http_method_str(int method) {
     switch (method) {
     case HTTP_GET: return "GET";
     case HTTP_POST: return "POST";
@@ -73,6 +73,15 @@ static const char *http_method_str(int method) {
 }
 
 static void log_request(httpd_req_t *req) {
+#if CONFIG_CLINTS_MEMO_HTTP_LOG_REQUESTS
+#if !CONFIG_CLINTS_MEMO_HTTP_LOG_POLLING
+    if (strcmp(req->uri, "/api/v1/status") == 0 || strcmp(req->uri, "/api/v1/waveform") == 0) return;
+#endif
+#else
+    // Default: keep logs quiet; log only mutating requests.
+    if (req->method == HTTP_GET) return;
+#endif
+
     const int sock = httpd_req_to_sockfd(req);
     struct sockaddr_storage ss = {};
     socklen_t sl = sizeof(ss);

@@ -8,6 +8,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <errno.h>
+
 #include "esp_log.h"
 #include "esp_spiffs.h"
 #include "sdkconfig.h"
@@ -21,11 +23,11 @@ static esp_err_t ensure_dir_exists(const char *path) {
     struct stat st = {};
     if (stat(path, &st) == 0) {
         if (S_ISDIR(st.st_mode)) return ESP_OK;
-        ESP_LOGE(TAG, "path exists but is not a directory: %s", path);
+        ESP_LOGW(TAG, "path exists but is not a directory: %s", path);
         return ESP_FAIL;
     }
     if (mkdir(path, 0755) != 0) {
-        ESP_LOGE(TAG, "mkdir failed: %s", path);
+        ESP_LOGW(TAG, "mkdir failed: %s errno=%d", path, errno);
         return ESP_FAIL;
     }
     return ESP_OK;

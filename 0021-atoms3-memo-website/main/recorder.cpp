@@ -16,6 +16,8 @@
 
 #include <dirent.h>
 #include <sys/stat.h>
+
+#include <cerrno>
 #include <unistd.h>
 
 #include "freertos/FreeRTOS.h"
@@ -371,10 +373,6 @@ private:
     esp_err_t create_new_recording_file_(std::string &out_basename) {
         const char *dir = storage_recordings_dir();
         struct stat st = {};
-        if (stat(dir, &st) != 0 || !S_ISDIR(st.st_mode)) {
-            ESP_LOGE(TAG, "recordings dir missing: %s", dir);
-            return ESP_FAIL;
-        }
 
         for (int attempt = 0; attempt < 1000; attempt++) {
             const uint32_t n = ++file_counter_;
@@ -382,15 +380,16 @@ private:
             snprintf(name, sizeof(name), "rec_%05" PRIu32 ".wav", n);
             const std::string basename(name);
 
-            char path[192];
-            snprintf(path, sizeof(path), "%s/%s", dir, name);
-            if (stat(path, &st) == 0) {
+            const std::string path = std::string(dir) + "/" + name;
+            if (stat(path.c_str(), &st) == 0) {
                 continue; // exists
             }
 
-            FILE *fp = fopen(path, "wb");
+            FILE *fp = fopen(path.c_str(), "wb");
             if (!fp) {
-                ESP_LOGE(TAG, "failed to open for write: %s", path);
+                // SPIFFS root may not report as a directory via stat(), but file creation can still work.
+                // Log errno to help diagnose mount/path issues.
+                ESP_LOGE(TAG, "failed to open for write: %s errno=%d", path.c_str(), errno);
                 return ESP_FAIL;
             }
 
@@ -404,8 +403,8 @@ private:
             const size_t wrote = fwrite(&hdr, 1, sizeof(hdr), fp);
             if (wrote != sizeof(hdr)) {
                 fclose(fp);
-                unlink(path);
-                ESP_LOGE(TAG, "failed writing WAV header: %s", path);
+                unlink(path.c_str());
+                ESP_LOGE(TAG, "failed writing WAV header: %s", path.c_str());
                 return ESP_FAIL;
             }
             fflush(fp);

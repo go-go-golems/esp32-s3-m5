@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
+#include "sdkconfig.h"
 
 static const char *TAG = "atoms3_memo_wifi";
 
@@ -43,7 +44,13 @@ esp_err_t wifi_common_init(void) {
     }
     if (err != ESP_OK) return err;
 
+#if !defined(CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS) || CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS
+    esp_log_level_set("wifi", ESP_LOG_WARN);
+    esp_log_level_set("pp", ESP_LOG_WARN);
+    esp_log_level_set("esp_netif_lwip", ESP_LOG_WARN);
+    esp_log_level_set("esp_netif_handlers", ESP_LOG_WARN);
+#endif
+
     s_inited = true;
     return ESP_OK;
 }
-

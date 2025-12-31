@@ -55,6 +55,24 @@ config CLINTS_MEMO_WIFI_STA_CONNECT_TIMEOUT_MS
     default 15000
     depends on CLINTS_MEMO_WIFI_STA_ENABLE
 
+config CLINTS_MEMO_WIFI_QUIET_IDF_LOGS
+    bool "Reduce noisy ESP-IDF WiFi logs"
+    default y
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
+endmenu
+
+menu "HTTP logging"
+
+config CLINTS_MEMO_HTTP_LOG_REQUESTS
+    bool "Log HTTP requests (verbose)"
+    default n
+
+config CLINTS_MEMO_HTTP_LOG_POLLING
+    bool "Log polling endpoints (/status, /waveform)"
+    default n
+    depends on CLINTS_MEMO_HTTP_LOG_REQUESTS
+
 endmenu
 
 menu "Storage (SPIFFS)"
