@@ -12,18 +12,26 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: esp32-s3-m5/0019-cardputer-ble-temp-logger/main/ble_temp_logger_main.c
-      Note: Reference BLE bring-up pattern (Bluedroid init + callback wiring)
-    - Path: esp32-s3-m5/0013-atoms3r-gif-console/main/console_repl.cpp
+    - Path: 0013-atoms3r-gif-console/main/console_repl.cpp
       Note: Reference esp_console over USB Serial/JTAG (command registration + REPL startup)
+    - Path: 0019-cardputer-ble-temp-logger/main/ble_temp_logger_main.c
+      Note: Reference BLE bring-up pattern (Bluedroid init + callback wiring)
+    - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
+      Note: Adds decoded logs for GATTC open/disconnect/close; defers connect until scan stop complete (commit 6a96946)
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/playbook/03-using-ble-console-to-scan-connect-pair-and-keylog-a-ble-keyboard.md
+      Note: Operator playbook for driving ble> console during pairing/connect attempts
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md
+      Note: Step 7 records mapping and sequencing change (commit 6a96946)
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md
+      Note: Intern research summary mapping 0x85/0x0100 and likely root causes (scan/connect overlap
 ExternalSources: []
-Summary: >
-  Build an ESP32-S3 firmware that acts as a BLE Central (host) to connect to a BLE keyboard (HOGP) and ingest key reports, plus a USB Serial/JTAG `esp_console`
-  REPL that provides bluetoothctl-like commands (scan/connect/pair/unpair/trust/info/bonds) to manage devices from a host terminal.
+Summary: |
+    Build an ESP32-S3 firmware that acts as a BLE Central (host) to connect to a BLE keyboard (HOGP) and ingest key reports, plus a USB Serial/JTAG `esp_console` REPL that provides bluetoothctl-like commands (scan/connect/pair/unpair/trust/info/bonds) to manage devices from a host terminal.
 LastUpdated: 2025-12-30T20:03:33.973096356-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # BLE keyboard host firmware + bluetoothctl-like console
 

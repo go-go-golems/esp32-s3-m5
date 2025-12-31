@@ -13,15 +13,20 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
-      Note: Crash-loop forwarding path captured in Step 6
+      Note: |-
+        Crash-loop forwarding path captured in Step 6
+        Implements decoded logging + scan-stop→open sequencing (commit 6a96946)
     - Path: 0020-cardputer-ble-keyboard-host/main/hid_host.c
       Note: Crash-loop and fix captured in Step 6
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md
+      Note: Source material for Step 7 mapping (0x85/0x0100)
 ExternalSources: []
 Summary: Implementation diary tracking research and design for BLE HID keyboard host firmware + bluetoothctl-like esp_console.
 LastUpdated: 2025-12-30T20:04:39.868197534-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -275,3 +280,69 @@ This firmware is intended to be “bluetoothctl for an ESP32”: it must never c
   - ESP-IDF: `/home/manuel/esp/esp-idf-5.4.1/`
   - Monitor port: `/dev/ttyACM0` (USB Serial/JTAG)
 - Target device (desired): `DC:2C:26:FD:03:B7`
+
+---
+
+## Step 7: Decode connect failures and tighten scan→connect sequencing
+
+This step is about turning opaque “it failed” signals into actionable diagnostics, and removing a known Bluedroid failure mode. The intern research clarified that `0x85` is a generic GATT error (`ESP_GATT_ERROR`, widely known as “133”) and that `0x0100` is `ESP_GATT_CONN_CONN_CANCEL` (“L2CAP connection cancelled”), which is consistent with attempting to connect to a device that is not currently connectable/advertising at that address.
+
+The practical upshot is that two issues can stack: (1) we may be trying to connect to a stale “identity” address while the keyboard is actually advertising with a privacy/RPA address, and (2) Bluedroid is known to return `0x85` if you attempt to open/connect while scanning is still active. I implemented better logging and a safer connect sequence (“stop scan → wait for scan stop complete → open”) to help you drive the experiments interactively.
+
+**Commit (code):** `6a96946c2133900eb8511b61fc15ffeb0186daf7` — "BLE: decode GATTC status/reason and connect after scan stop"
+
+### What I did
+
+- Read the intern research report and extracted the two key mappings:
+  - `0x85` → `ESP_GATT_ERROR`
+  - `0x0100` → `ESP_GATT_CONN_CONN_CANCEL` (connection cancelled at the GATT/L2CAP layer)
+- Updated BLE host logging to print decoded strings for:
+  - `ESP_GATTC_OPEN_EVT` (`status=... (ESP_GATT_...)`)
+  - `ESP_GATTC_DISCONNECT_EVT` (`reason=... (ESP_GATT_CONN_...)`)
+  - `ESP_GATTC_CLOSE_EVT` (status + reason)
+- Changed connect sequencing so a `connect ...` request made during scanning is deferred until `ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT` fires (instead of “stop scan and immediately open”).
+
+### Why
+
+We can’t efficiently debug the connect failure when the output is only hex codes. Also, if scanning is still running, Bluedroid has a known behavior where open/connect can fail with `0x85`, which produces confusing noise if we’re simultaneously fighting privacy/RPA or “not in pairing mode” issues.
+
+### What worked
+
+- The firmware now prints a line that decodes the GATT open status and disconnect reason, which should directly confirm whether we are hitting:
+  - “scan/connect overlap” (often `ESP_GATT_ERROR` at open), and/or
+  - “connect cancelled” (`ESP_GATT_CONN_CONN_CANCEL`) consistent with “not connectable at this address”.
+
+### What didn't work
+
+- We still do not have a confirmed successful connect to the keyboard, so the root cause remains open (privacy/RPA vs device not advertising vs other stack constraints).
+
+### What I learned
+
+- In ESP-IDF’s Bluedroid layer, `ESP_GATTC_DISCONNECT_EVT.reason` is an `esp_gatt_conn_reason_t`, which includes “special” 16-bit values like `0x0100` and cannot be treated as a plain 8-bit HCI reason.
+
+### What was tricky to build
+
+- A naive “stop scanning” before connect isn’t sufficient; to actually remove the race you need to wait for `ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT` before starting the GATT open.
+
+### What warrants a second pair of eyes
+
+- Confirm the new “pending connect” state machine can’t be confused by overlapping scan/scan-stop/connect commands (especially if the user spams `scan on` while a connect is pending).
+
+### What should be done in the future
+
+- Improve scanning UX so we can identify the keyboard more reliably:
+  - increase `MAX_DEVICES` or add a “pin”/“watch” list so it doesn’t get evicted,
+  - parse scan response (`scan_rsp_len`) in addition to advertising data so names show up more often,
+  - consider printing HID-related hints (UUID 0x1812 / appearance) when present.
+
+### Code review instructions
+
+- Start at `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`:
+  - `gatt_status_to_str(...)`
+  - `gatt_conn_reason_to_str(...)`
+  - connect deferral in `ble_host_connect(...)` and `ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT`.
+
+### Technical details
+
+- Intern report (source artifact):
+  - `ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md`
