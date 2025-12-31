@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "app_main.c"
+        "bt_decode.c"
         "bt_console.c"
         "ble_host.c"
         "hid_host.c"
@@ -16,4 +17,3 @@ idf_component_register(
     INCLUDE_DIRS
         "."
 )
-

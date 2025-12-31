@@ -16,6 +16,7 @@
 #include "esp_timer.h"
 #include "nvs_flash.h"
 
+#include "bt_decode.h"
 #include "hid_host.h"
 
 static const char *TAG = "ble_host";
@@ -45,92 +46,6 @@ static bool bda_equal(const uint8_t a[6], const uint8_t b[6]) {
 
 static void bda_to_str(const uint8_t bda[6], char out[18]) {
     snprintf(out, 18, "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
-}
-
-static const char *gatt_status_to_str(esp_gatt_status_t status) {
-    switch (status) {
-    case ESP_GATT_OK:
-        return "ESP_GATT_OK";
-    case ESP_GATT_ERROR:
-        return "ESP_GATT_ERROR";
-    case ESP_GATT_INVALID_HANDLE:
-        return "ESP_GATT_INVALID_HANDLE";
-    case ESP_GATT_READ_NOT_PERMIT:
-        return "ESP_GATT_READ_NOT_PERMIT";
-    case ESP_GATT_WRITE_NOT_PERMIT:
-        return "ESP_GATT_WRITE_NOT_PERMIT";
-    case ESP_GATT_INVALID_PDU:
-        return "ESP_GATT_INVALID_PDU";
-    case ESP_GATT_INSUF_AUTHENTICATION:
-        return "ESP_GATT_INSUF_AUTHENTICATION";
-    case ESP_GATT_REQ_NOT_SUPPORTED:
-        return "ESP_GATT_REQ_NOT_SUPPORTED";
-    case ESP_GATT_INVALID_OFFSET:
-        return "ESP_GATT_INVALID_OFFSET";
-    case ESP_GATT_INSUF_AUTHORIZATION:
-        return "ESP_GATT_INSUF_AUTHORIZATION";
-    case ESP_GATT_PREPARE_Q_FULL:
-        return "ESP_GATT_PREPARE_Q_FULL";
-    case ESP_GATT_NOT_FOUND:
-        return "ESP_GATT_NOT_FOUND";
-    case ESP_GATT_NOT_LONG:
-        return "ESP_GATT_NOT_LONG";
-    case ESP_GATT_INSUF_KEY_SIZE:
-        return "ESP_GATT_INSUF_KEY_SIZE";
-    case ESP_GATT_INVALID_ATTR_LEN:
-        return "ESP_GATT_INVALID_ATTR_LEN";
-    case ESP_GATT_ERR_UNLIKELY:
-        return "ESP_GATT_ERR_UNLIKELY";
-    case ESP_GATT_INSUF_ENCRYPTION:
-        return "ESP_GATT_INSUF_ENCRYPTION";
-    case ESP_GATT_UNSUPPORT_GRP_TYPE:
-        return "ESP_GATT_UNSUPPORT_GRP_TYPE";
-    case ESP_GATT_INSUF_RESOURCE:
-        return "ESP_GATT_INSUF_RESOURCE";
-    case ESP_GATT_NO_RESOURCES:
-        return "ESP_GATT_NO_RESOURCES";
-    case ESP_GATT_INTERNAL_ERROR:
-        return "ESP_GATT_INTERNAL_ERROR";
-    case ESP_GATT_WRONG_STATE:
-        return "ESP_GATT_WRONG_STATE";
-    case ESP_GATT_DB_FULL:
-        return "ESP_GATT_DB_FULL";
-    case ESP_GATT_BUSY:
-        return "ESP_GATT_BUSY";
-    case ESP_GATT_STACK_RSP:
-        return "ESP_GATT_STACK_RSP";
-    case ESP_GATT_APP_RSP:
-        return "ESP_GATT_APP_RSP";
-    case ESP_GATT_UNKNOWN_ERROR:
-        return "ESP_GATT_UNKNOWN_ERROR";
-    default:
-        return "ESP_GATT_STATUS_UNKNOWN";
-    }
-}
-
-static const char *gatt_conn_reason_to_str(esp_gatt_conn_reason_t reason) {
-    switch (reason) {
-    case ESP_GATT_CONN_UNKNOWN:
-        return "ESP_GATT_CONN_UNKNOWN";
-    case ESP_GATT_CONN_L2C_FAILURE:
-        return "ESP_GATT_CONN_L2C_FAILURE";
-    case ESP_GATT_CONN_TIMEOUT:
-        return "ESP_GATT_CONN_TIMEOUT";
-    case ESP_GATT_CONN_TERMINATE_PEER_USER:
-        return "ESP_GATT_CONN_TERMINATE_PEER_USER";
-    case ESP_GATT_CONN_TERMINATE_LOCAL_HOST:
-        return "ESP_GATT_CONN_TERMINATE_LOCAL_HOST";
-    case ESP_GATT_CONN_FAIL_ESTABLISH:
-        return "ESP_GATT_CONN_FAIL_ESTABLISH";
-    case ESP_GATT_CONN_LMP_TIMEOUT:
-        return "ESP_GATT_CONN_LMP_TIMEOUT";
-    case ESP_GATT_CONN_CONN_CANCEL:
-        return "ESP_GATT_CONN_CONN_CANCEL";
-    case ESP_GATT_CONN_NONE:
-        return "ESP_GATT_CONN_NONE";
-    default:
-        return "ESP_GATT_CONN_REASON_UNKNOWN";
-    }
 }
 
 static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int rssi, const char *name) {
@@ -233,12 +148,20 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
     }
 
     case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
-        ESP_LOGI(TAG, "scan start: status=%u", (unsigned)param->scan_start_cmpl.status);
+        ESP_LOGI(TAG,
+                 "scan start: status=0x%04x (%s) (%s)",
+                 (unsigned)param->scan_start_cmpl.status,
+                 bt_decode_bt_status_name(param->scan_start_cmpl.status),
+                 bt_decode_bt_status_desc(param->scan_start_cmpl.status));
         break;
 
     case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
         s_scanning = false;
-        ESP_LOGI(TAG, "scan stop: status=%u", (unsigned)param->scan_stop_cmpl.status);
+        ESP_LOGI(TAG,
+                 "scan stop: status=0x%04x (%s) (%s)",
+                 (unsigned)param->scan_stop_cmpl.status,
+                 bt_decode_bt_status_name(param->scan_stop_cmpl.status),
+                 bt_decode_bt_status_desc(param->scan_stop_cmpl.status));
         if (s_pending_connect) {
             char a[18] = {0};
             bda_to_str(s_pending_connect_bda, a);
@@ -330,9 +253,10 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
         char a[18] = {0};
         bda_to_str(param->open.remote_bda, a);
         ESP_LOGI(TAG,
-                 "gattc open: status=0x%02x (%s) conn_id=%u mtu=%u addr=%s",
+                 "gattc open: status=0x%02x (%s) (%s) conn_id=%u mtu=%u addr=%s",
                  (unsigned)param->open.status,
-                 gatt_status_to_str(param->open.status),
+                 bt_decode_gatt_status_name(param->open.status),
+                 bt_decode_gatt_status_desc(param->open.status),
                  (unsigned)param->open.conn_id,
                  (unsigned)param->open.mtu,
                  a);
@@ -340,18 +264,21 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
     }
     case ESP_GATTC_DISCONNECT_EVT:
         ESP_LOGI(TAG,
-                 "gattc disconnect: reason=0x%04x (%s) conn_id=%u",
+                 "gattc disconnect: reason=0x%04x (%s) (%s) conn_id=%u",
                  (unsigned)param->disconnect.reason,
-                 gatt_conn_reason_to_str(param->disconnect.reason),
+                 bt_decode_gatt_conn_reason_name(param->disconnect.reason),
+                 bt_decode_gatt_conn_reason_desc(param->disconnect.reason),
                  (unsigned)param->disconnect.conn_id);
         break;
     case ESP_GATTC_CLOSE_EVT:
         ESP_LOGI(TAG,
-                 "gattc close: status=0x%02x (%s) reason=0x%04x (%s) conn_id=%u",
+                 "gattc close: status=0x%02x (%s) (%s) reason=0x%04x (%s) (%s) conn_id=%u",
                  (unsigned)param->close.status,
-                 gatt_status_to_str(param->close.status),
+                 bt_decode_gatt_status_name(param->close.status),
+                 bt_decode_gatt_status_desc(param->close.status),
                  (unsigned)param->close.reason,
-                 gatt_conn_reason_to_str(param->close.reason),
+                 bt_decode_gatt_conn_reason_name(param->close.reason),
+                 bt_decode_gatt_conn_reason_desc(param->close.reason),
                  (unsigned)param->close.conn_id);
         break;
     default:

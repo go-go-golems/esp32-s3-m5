@@ -13,6 +13,7 @@
 #include "esp_hidh_bluedroid.h"
 #include "esp_hidh_gattc.h"
 
+#include "bt_decode.h"
 #include "keylog.h"
 
 static const char *TAG = "hid_host";
@@ -64,7 +65,13 @@ static void hidh_event_handler(void *handler_arg, esp_event_base_t base, int32_t
 
     case ESP_HIDH_CLOSE_EVENT: {
         esp_hidh_dev_t *dev = data ? data->close.dev : NULL;
-        ESP_LOGI(TAG, "close: dev=%p reason=%d", (void *)dev, data ? data->close.reason : -1);
+        const int reason = data ? data->close.reason : -1;
+        ESP_LOGI(TAG,
+                 "close: dev=%p reason=0x%04x (%s) (%s)",
+                 (void *)dev,
+                 (unsigned)reason,
+                 bt_decode_gatt_conn_reason_name((esp_gatt_conn_reason_t)reason),
+                 bt_decode_gatt_conn_reason_desc((esp_gatt_conn_reason_t)reason));
         if (dev) {
             esp_hidh_dev_free(dev);
         }

@@ -11,6 +11,7 @@
 #include "esp_gap_ble_api.h"
 #include "esp_log.h"
 
+#include "bt_decode.h"
 #include "ble_host.h"
 #include "keylog.h"
 
@@ -142,6 +143,11 @@ static int cmd_pair(int argc, char **argv) {
 
 static int cmd_bonds(int, char **) {
     ble_host_bonds_print();
+    return 0;
+}
+
+static int cmd_codes(int, char **) {
+    bt_decode_print_all();
     return 0;
 }
 
@@ -280,6 +286,12 @@ static void register_commands(void) {
     cmd.command = "bonds";
     cmd.help = "List bonded devices";
     cmd.func = &cmd_bonds;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = (esp_console_cmd_t){0};
+    cmd.command = "codes";
+    cmd.help = "Print decoded BLE/GATT status codes";
+    cmd.func = &cmd_codes;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = (esp_console_cmd_t){0};
