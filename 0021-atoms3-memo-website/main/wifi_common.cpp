@@ -17,6 +17,14 @@ static bool s_inited = false;
 esp_err_t wifi_common_init(void) {
     if (s_inited) return ESP_OK;
 
+#if !defined(CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS) || CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS
+    // Must be set before esp_wifi_init() to suppress the very noisy init logs.
+    esp_log_level_set("wifi", ESP_LOG_WARN);
+    esp_log_level_set("pp", ESP_LOG_WARN);
+    esp_log_level_set("esp_netif_lwip", ESP_LOG_WARN);
+    esp_log_level_set("esp_netif_handlers", ESP_LOG_WARN);
+#endif
+
     // NVS is required by WiFi (for PHY calibration data, etc).
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -43,13 +51,6 @@ esp_err_t wifi_common_init(void) {
         err = ESP_OK;
     }
     if (err != ESP_OK) return err;
-
-#if !defined(CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS) || CONFIG_CLINTS_MEMO_WIFI_QUIET_IDF_LOGS
-    esp_log_level_set("wifi", ESP_LOG_WARN);
-    esp_log_level_set("pp", ESP_LOG_WARN);
-    esp_log_level_set("esp_netif_lwip", ESP_LOG_WARN);
-    esp_log_level_set("esp_netif_handlers", ESP_LOG_WARN);
-#endif
 
     s_inited = true;
     return ESP_OK;
