@@ -65,7 +65,13 @@ esp_err_t storage_spiffs_init(void) {
         ESP_LOGE(TAG, "failed building recordings dir path");
         return ESP_FAIL;
     }
-    ESP_ERROR_CHECK(ensure_dir_exists(s_recordings_dir));
+    err = ensure_dir_exists(s_recordings_dir);
+    if (err != ESP_OK) {
+        // SPIFFS is often configured without directory support. If mkdir fails, fall back to
+        // the mount base and treat recordings as flat files under base_path.
+        ESP_LOGW(TAG, "recordings dir unavailable (%s); using base path: %s", s_recordings_dir, base_path);
+        snprintf(s_recordings_dir, sizeof(s_recordings_dir), "%s", base_path);
+    }
 
     s_mounted = true;
     return ESP_OK;
@@ -74,4 +80,3 @@ esp_err_t storage_spiffs_init(void) {
 const char *storage_recordings_dir(void) {
     return s_recordings_dir[0] ? s_recordings_dir : "/spiffs/rec";
 }
-

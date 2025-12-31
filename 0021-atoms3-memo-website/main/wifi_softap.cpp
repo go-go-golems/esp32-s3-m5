@@ -8,12 +8,12 @@
 
 #include "sdkconfig.h"
 
-#include "esp_event.h"
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_netif_ip_addr.h"
 #include "esp_wifi.h"
-#include "nvs_flash.h"
+
+#include "wifi_common.h"
 
 static const char *TAG = "atoms3_memo_website_0021";
 
@@ -32,30 +32,10 @@ static void log_ap_ip(void) {
 esp_err_t wifi_softap_start(void) {
     if (s_started) return ESP_OK;
 
-    // NVS is required by WiFi (for PHY calibration data, etc).
-    esp_err_t err = nvs_flash_init();
-    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_LOGW(TAG, "nvs_flash_init failed (%s), erasing NVS and retrying", esp_err_to_name(err));
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        err = nvs_flash_init();
-    }
-    if (err != ESP_OK) return err;
-
-    // init netif/event loop (avoid failing if already created by other modules).
-    err = esp_netif_init();
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        return err;
-    }
-    err = esp_event_loop_create_default();
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        return err;
-    }
+    ESP_ERROR_CHECK(wifi_common_init());
 
     s_ap_netif = esp_netif_create_default_wifi_ap();
     if (!s_ap_netif) return ESP_FAIL;
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     wifi_config_t ap_cfg = {};
     const char *ssid = CONFIG_CLINTS_MEMO_WIFI_SOFTAP_SSID;
@@ -94,5 +74,4 @@ esp_err_t wifi_softap_start(void) {
     s_started = true;
     return ESP_OK;
 }
-
 

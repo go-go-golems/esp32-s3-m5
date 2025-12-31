@@ -10,6 +10,16 @@ From this directory:
 ./build.sh
 ```
 
+## Configure WiFi STA (recommended)
+
+This firmware will connect to WiFi STA if `CONFIG_CLINTS_MEMO_WIFI_STA_SSID` is set (otherwise it starts SoftAP).
+
+To set credentials locally (without committing secrets), edit `sdkconfig` via script:
+
+```bash
+WIFI_SSID='YourNetwork' WIFI_PASSWORD='YourPassword' ./tools/set_wifi_sta_creds.sh
+```
+
 ## Flash + monitor
 
 ```bash
@@ -23,5 +33,4 @@ This opens 2 panes: left = flash, right = monitor.
 ```bash
 ./build.sh tmux-flash-monitor -p /dev/ttyACM0
 ```
-
 

@@ -11,19 +11,18 @@
 #include "esp_log.h"
 
 #include "http_server.h"
-#include "wifi_softap.h"
+#include "wifi.h"
 
 static const char *TAG = "atoms3_memo_website_0021";
 
 extern "C" void app_main(void) {
     ESP_LOGI(TAG, "boot");
 
-    ESP_ERROR_CHECK(wifi_softap_start());
+    ESP_ERROR_CHECK(wifi_start());
     ESP_ERROR_CHECK(http_server_start());
 
     while (true) {
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
-
 

@@ -22,6 +22,36 @@ config CLINTS_MEMO_WIFI_SOFTAP_MAX_CONN
 
 endmenu
 
+menu "WiFi (Station)"
+
+config CLINTS_MEMO_WIFI_STA_ENABLE
+    bool "Enable STA (connect to existing WiFi)"
+    default y
+
+config CLINTS_MEMO_WIFI_STA_SSID
+    string "STA SSID"
+    default ""
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
+config CLINTS_MEMO_WIFI_STA_PASSWORD
+    string "STA password"
+    default ""
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
+config CLINTS_MEMO_WIFI_STA_MAX_RETRY
+    int "STA max reconnect retries"
+    range 0 20
+    default 10
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
+config CLINTS_MEMO_WIFI_STA_CONNECT_TIMEOUT_MS
+    int "STA initial connect wait (ms)"
+    range 1000 60000
+    default 15000
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
+endmenu
+
 menu "Storage (SPIFFS)"
 
 config CLINTS_MEMO_STORAGE_BASE_PATH
@@ -149,4 +179,3 @@ config CLINTS_MEMO_CODEC_I2C_FREQ_HZ
 endmenu
 
 endmenu
-

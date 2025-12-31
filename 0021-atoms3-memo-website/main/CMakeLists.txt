@@ -1,7 +1,10 @@
 idf_component_register(
     SRCS
         "main.cpp"
+        "wifi_common.cpp"
+        "wifi_sta.cpp"
         "wifi_softap.cpp"
+        "wifi.cpp"
         "http_server.cpp"
         "storage_spiffs.cpp"
         "recorder.cpp"
