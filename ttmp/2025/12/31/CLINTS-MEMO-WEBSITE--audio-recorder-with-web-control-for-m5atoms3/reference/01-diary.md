@@ -373,3 +373,38 @@ This step is purely about developer ergonomics: even after fixing our HTTP loggi
 
 ### What warrants a second pair of eyes
 - Ensure we’re not hiding any important diagnostic logs we’ll want during bring-up; if so, gate behind a config flag or temporarily bump log levels during debugging.
+
+## Step 8: Document SPIFFS mkdir behavior (ENOTSUP/134) + align tasks with MVP reality
+
+This step is documentation-only, but it closes the loop on a recurring “why did mkdir fail?” question seen in the boot logs. The key point is that on ESP-IDF’s SPIFFS VFS layer, `mkdir()` is intentionally unsupported (`ENOTSUP`), and on ESP32 toolchains that maps to errno `134` — so a failing `mkdir(/spiffs/rec)` can be expected even when file creation under `/spiffs` works fine.
+
+I wrote a dedicated analysis doc explaining the behavior and updated `tasks.md` to reflect what is already implemented in the `0021` firmware/web UI (waveform canvas + polling, REST API surface, WAV recording, and the current flat-recordings-on-SPIFFS approach).
+
+**Commit (code):** 483c846 — "CLINTS-MEMO-WEBSITE: document SPIFFS mkdir ENOTSUP"
+
+### What I did
+- Added `analysis/02-spiffs-mkdir-enotsup-and-recordings-layout.md` explaining `mkdir` failure vs successful recording on SPIFFS
+- Updated `tasks.md` checkboxes to match the current MVP implementation
+- Linked the new analysis doc from the ticket `index.md` and noted it in `changelog.md`
+
+### Why
+- The log line `mkdir failed ... errno=134` looks like a storage corruption/permissions issue, but it’s actually the expected “directories unsupported” behavior in ESP-IDF’s SPIFFS VFS.
+- Keeping tasks aligned with reality makes it easier to decide what’s actually left (e.g., duration metadata) vs already done.
+
+### What worked
+- Recordings can be treated as flat files under `/spiffs` without blocking the product UX (start/stop/list/download/play/delete).
+
+### What didn't work
+- Creating a “real” recordings directory via `mkdir(/spiffs/rec)` on SPIFFS (expected; ENOTSUP).
+
+### What I learned
+- `ENOTSUP` errno numeric values differ between Linux (dev host) and ESP32 toolchains; logging only the number can be misleading without context.
+
+### What was tricky to build
+- Keeping the explanation precise: SPIFFS *mounts and stores files fine*, it just doesn’t implement POSIX directory creation.
+
+### What warrants a second pair of eyes
+- Whether we want to migrate to LittleFS if we ever truly require hierarchical directories (vs continuing with flat files on SPIFFS).
+
+### What should be done in the future
+- If we keep SPIFFS: consider adjusting boot log severity for the expected `mkdir ENOTSUP` case (to avoid “warning fatigue”).
