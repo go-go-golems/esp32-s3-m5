@@ -1,0 +1,16 @@
+=== port check (ss) ===
+
+=== qemu process check ===
+manuel   2249719  5.5  0.2 2551476 140044 pts/1  Sl+  15:03   0:04 qemu-system-xtensa -M esp32s3 -drive file=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/build/qemu_flash.bin,if=mtd,format=raw -drive file=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/build/qemu_efuse.bin,if=none,format=raw,id=efuse -global driver=nvram.esp32c3.efuse,property=drive,value=efuse -global driver=timer.esp32s3.timg,property=wdt_disable,value=true -nic user,model=open_eth -nographic -serial mon:stdio
+
+=== running test_storage_repl.py ===
+Traceback (most recent call last):
+  File "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/test_storage_repl.py", line 37, in main
+    sock.connect(('localhost', 5555))
+ConnectionRefusedError: [Errno 111] Connection refused
+============================================================
+ESP32-S3 MicroQuickJS REPL - Storage Test
+============================================================
+
+Connecting to QEMU on localhost:5555...
+Error: [Errno 111] Connection refused

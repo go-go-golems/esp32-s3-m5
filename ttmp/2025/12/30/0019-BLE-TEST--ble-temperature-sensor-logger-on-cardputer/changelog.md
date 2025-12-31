@@ -66,3 +66,8 @@ Implemented and validated the BLE 5.0 baseline firmware for 0019 (Bluedroid GATT
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0019-cardputer-ble-temp-logger/tools/run_fw_flash_monitor.sh — Firmware runner script (tmux-friendly)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0019-cardputer-ble-temp-logger/tools/run_host_ble_client.sh — Host runner script (scan/connect/read/notify)
 
+
+## 2025-12-31
+
+Created comprehensive BLE stack architecture analysis covering HOGP vs GAP/GATTC, state machine location (global in Bluedroid), and component communication patterns (callback-driven, layered abstraction).
+

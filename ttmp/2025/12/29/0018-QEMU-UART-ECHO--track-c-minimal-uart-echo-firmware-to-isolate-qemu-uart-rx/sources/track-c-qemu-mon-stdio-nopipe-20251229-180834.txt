@@ -1,0 +1,103 @@
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/home/manuel/esp/esp-idf-5.4.1'.
+* Checking python version ... 3.11.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... Found tools that are not used by active ESP-IDF version.
+For removing old versions of xtensa-esp32s3-elf, riscv32-esp-elf-gdb, 
+openocd-esp32, xtensa-esp32s2-elf, xtensa-esp32-elf, riscv32-esp-elf, 
+xtensa-esp-elf-gdb, esp32ulp-elf, esp-rom-elfs, esp-clang use command 'python 
+/home/manuel/esp/esp-idf-5.4.1/tools/idf_tools.py uninstall'
+To free up even more space, remove installation packages of those tools.
+Use option python /home/manuel/esp/esp-idf-5.4.1/tools/idf_tools.py uninstall 
+--remove-archives.
+* Shell completion ... Autocompletion code generated
+Adding "qemu"'s dependency "all" to list of commands with default set of options.
+Executing action: all (aliases: build)
+Running ninja in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build
+Executing "ninja all"...
+[1/4] cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/partition_table/partition-table.bin /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_uart_echo_0018.bin
+qemu_uart_echo_0018.bin binary size 0x34e20 bytes. Smallest app partition is 0x100000 bytes. 0xcb1e0 bytes (79%) free.
+[2/4] Performing build step for 'bootloader'
+[1/1] cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/bootloader/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/bootloader/bootloader.bin
+Bootloader binary size 0x5220 bytes. 0x2de0 bytes (36%) free.
+[3/4] No install step for 'bootloader'
+[4/4] Completed 'bootloader'
+[0;33mGenerating flash image: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_flash.bin[0m
+esptool.py --chip=esp32s3 merge_bin --output=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_flash.bin --fill-flash-size=2MB --flash_mode dio --flash_freq 80m --flash_size 2MB 0x0 bootloader/bootloader.bin 0x10000 qemu_uart_echo_0018.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.10.0
+SHA digest in image updated
+Wrote 0x200000 bytes to file /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_flash.bin, ready to flash to offset 0x0
+[0;33mUsing existing efuse image: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_efuse.bin[0m
+[0;33mRunning qemu (fg): qemu-system-xtensa -M esp32s3 -drive file=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_flash.bin,if=mtd,format=raw -drive file=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/qemu_efuse.bin,if=none,format=raw,id=efuse -global driver=nvram.esp32c3.efuse,property=drive,value=efuse -global driver=timer.esp32s3.timg,property=wdt_disable,value=true -nic user,model=open_eth -nographic -serial mon:stdio[0m
+Adding SPI flash device
+qemu-system-xtensa: warning: global timer.esp32s3.timg.wdt_disable has invalid class name
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x4 (SPI_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x15a0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xd20
+load:0x403cb700,len:0x2f00
+entry 0x403c8928
+I (38) boot: ESP-IDF v5.4.1 2nd stage bootloader
+I (39) boot: compile time Dec 29 2025 15:41:17
+I (39) boot: Multicore bootloader
+I (44) boot: chip revision: v0.3
+I (45) boot: efuse block revision: v0.0
+I (46) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : DIO
+I (47) boot.esp32s3: SPI Flash Size : 2MB
+I (49) boot: Enabling RNG early entropy source...
+I (52) boot: Partition Table:
+I (53) boot: ## Label            Usage          Type ST Offset   Length
+I (53) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (54) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (54) boot:  2 factory          factory app      00 00 00010000 00100000
+I (55) boot: End of partition table
+I (58) esp_image: segment 0: paddr=00010020 vaddr=3c020020 size=0abc0h ( 43968) map
+I (72) esp_image: segment 1: paddr=0001abe8 vaddr=3fc93100 size=0298ch ( 10636) load
+I (76) esp_image: segment 2: paddr=0001d57c vaddr=40374000 size=02a9ch ( 10908) load
+I (82) esp_image: segment 3: paddr=00020020 vaddr=42000020 size=18854h (100436) map
+I (109) esp_image: segment 4: paddr=0003887c vaddr=40376a9c size=0c55ch ( 50524) load
+I (124) esp_image: segment 5: paddr=00044de0 vaddr=600fe100 size=0001ch (    28) load
+I (127) boot: Loaded app from partition at offset 0x10000
+I (128) boot: Disabling RNG early entropy source...
+W (294) rtcinit: o_code calibration fail
+
+I (152) cpu_start: Multicore app
+I (168) cpu_start: Pro cpu start user code
+I (168) cpu_start: cpu freq: 160000000 Hz
+I (168) app_init: Application information:
+I (168) app_init: Project name:     qemu_uart_echo_0018
+I (168) app_init: App version:      a9d186a-dirty
+I (168) app_init: Compile time:     Dec 29 2025 15:41:05
+I (169) app_init: ELF file SHA256:  21b398f30...
+I (169) app_init: ESP-IDF:          v5.4.1
+I (169) efuse_init: Min chip rev:     v0.0
+I (169) efuse_init: Max chip rev:     v0.99 
+I (169) efuse_init: Chip rev:         v0.3
+I (170) heap_init: Initializing. RAM available for dynamic allocation:
+I (170) heap_init: At 3FC96320 len 000533F0 (332 KiB): RAM
+I (171) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (171) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (171) heap_init: At 600FE11C len 00001ECC (7 KiB): RTCRAM
+I (179) spi_flash: detected chip: winbond
+I (179) spi_flash: flash io: dio
+I (180) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (181) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (183) main_task: Started on CPU0
+I (193) main_task: Calling app_main()
+I (193) uart-echo: Configuring UART0 @ 115200 8N1
+I (193) uart-echo: UART echo task started. Type bytes; they will be echoed back.
+I (193) uart-echo: app_main done; uart_echo task should now own the loop.
+I (193) main_task: Returned from app_main()
+I (5263) uart-echo: No RX for ~5s (still alive).
+qemu-system-xtensa: terminating on signal 2 from pid 2320222 (timeout)
+
+Aborted!
+Executing action: qemu

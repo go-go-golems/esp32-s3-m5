@@ -15,15 +15,11 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/main.c
-      Note: |-
-        The REPL loop blocks in uart_read_bytes(UART_NUM_0, ..., portMAX_DELAY)
-        REPL loop blocks in uart_read_bytes with portMAX_DELAY (lines 347-353)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig
-      Note: Console config reveals USB-Serial-JTAG secondary console (prime suspect for Track E)
-    - Path: imports/qemu_storage_repl.txt
-      Note: Golden boot log showing js> prompt (TX path)
+      Note: The REPL loop blocks in uart_read_bytes(UART_NUM_0, ..., portMAX_DELAY)
     - Path: imports/test_storage_repl.py
       Note: Raw TCP client to localhost:5555 to bypass idf_monitor input path
+    - Path: imports/qemu_storage_repl.txt
+      Note: Golden boot log showing js> prompt (TX path)
     - Path: ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/analysis/01-bug-report-qemu-monitor-input-not-delivered-to-uart-repl.md
       Note: Bug report + initial hypotheses
 ExternalSources:
@@ -33,7 +29,6 @@ LastUpdated: 2025-12-29T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
-
 
 # Debugging plan: QEMU REPL input (ESP32-S3, UART RX)
 

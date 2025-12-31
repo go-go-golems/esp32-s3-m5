@@ -1,0 +1,29 @@
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/home/manuel/esp/esp-idf-5.4.1'.
+* Checking python version ... 3.11.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... Found tools that are not used by active ESP-IDF version.
+For removing old versions of xtensa-esp32s3-elf, riscv32-esp-elf-gdb, 
+openocd-esp32, xtensa-esp32s2-elf, xtensa-esp32-elf, riscv32-esp-elf, 
+xtensa-esp-elf-gdb, esp32ulp-elf, esp-rom-elfs, esp-clang use command 'python 
+/home/manuel/esp/esp-idf-5.4.1/tools/idf_tools.py uninstall'
+To free up even more space, remove installation packages of those tools.
+Use option python /home/manuel/esp/esp-idf-5.4.1/tools/idf_tools.py uninstall 
+--remove-archives.
+* Shell completion ... Autocompletion code generated
+Adding "qemu"'s dependency "all" to list of commands with default set of options.
+Executing action: all (aliases: build)
+Running ninja in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build
+Executing "ninja all"...
+[1/7] Performing build step for 'bootloader'
+[1/1] cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/bootloader/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/bootloader/bootloader.bin
+Bootloader binary size 0x5220 bytes. 0x2de0 bytes (36%) free.
+[2/7] No install step for 'bootloader'
+[3/7] Completed 'bootloader'
+[1;31m
+ninja process terminated
+[0m
+ninja failed with exit code 2, output of the command is in the /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/log/idf_py_stderr_output_2286866 and /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0018-qemu-uart-echo-firmware/build/log/idf_py_stdout_output_2286866

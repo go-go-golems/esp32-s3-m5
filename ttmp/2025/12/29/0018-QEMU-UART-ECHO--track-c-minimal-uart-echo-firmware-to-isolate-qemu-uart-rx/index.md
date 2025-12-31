@@ -13,22 +13,26 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: 0018-qemu-uart-echo-firmware/README.md
+    - Path: esp32-s3-m5/0018-qemu-uart-echo-firmware/README.md
       Note: How to build and run the echo firmware under QEMU
-    - Path: 0018-qemu-uart-echo-firmware/main/uart_echo_main.c
+    - Path: esp32-s3-m5/0018-qemu-uart-echo-firmware/main/uart_echo_main.c
       Note: Track C minimal UART0 RX/TX echo loop with heartbeat
-    - Path: 0018-qemu-uart-echo-firmware/sdkconfig.defaults
+    - Path: esp32-s3-m5/0018-qemu-uart-echo-firmware/sdkconfig.defaults
       Note: QEMU-friendly console settings (disable USB-Serial-JTAG secondary console)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/main.c
+    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/main.c
       Note: Original REPL firmware UART RX loop using uart_read_bytes(UART_NUM_0,...)
-    - Path: imports/test_storage_repl.py
+    - Path: esp32-s3-m5/imports/test_storage_repl.py
       Note: Existing raw TCP client for QEMU tcp serial ports (used for bypass testing)
-    - Path: ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/playbooks/01-debugging-plan-qemu-repl-input.md
+    - Path: esp32-s3-m5/ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/playbooks/01-debugging-plan-qemu-repl-input.md
       Note: Parent investigation playbook (Track C is extracted into this ticket)
-    - Path: ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/reference/01-diary.md
+    - Path: esp32-s3-m5/ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/reference/01-diary.md
       Note: Prior investigation diary (Track A broken; Track B blocked by serial backend mismatch)
-    - Path: ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/sources/track-b-bypass-20251229-150439.txt
+    - Path: esp32-s3-m5/ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/sources/track-b-bypass-20251229-150439.txt
       Note: 'Evidence: QEMU running with -serial mon:stdio, so localhost:5555 bypass tests fail by design'
+    - Path: esp32-s3-m5/ttmp/2025/12/29/0018-QEMU-UART-ECHO--track-c-minimal-uart-echo-firmware-to-isolate-qemu-uart-rx/scripts/01-run-qemu-tcp-serial-5555.py
+      Note: Reusable script to run QEMU with -serial tcp::5555 and send bytes
+    - Path: esp32-s3-m5/ttmp/2025/12/29/0018-QEMU-UART-ECHO--track-c-minimal-uart-echo-firmware-to-isolate-qemu-uart-rx/scripts/02-run-qemu-mon-stdio-pty.py
+      Note: Reusable PTY-based script to exercise mon:stdio and send bytes (closer to manual typing)
 ExternalSources:
     - https://github.com/espressif/esp-idf/issues/9369
     - https://nuttx.apache.org/docs/latest/platforms/xtensa/esp32s3/index.html
@@ -37,6 +41,7 @@ LastUpdated: 2025-12-29T15:09:28.464945816-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Track C: Minimal UART echo firmware to isolate QEMU UART RX
