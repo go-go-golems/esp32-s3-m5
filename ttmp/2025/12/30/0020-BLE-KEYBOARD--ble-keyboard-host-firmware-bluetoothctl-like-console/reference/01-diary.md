@@ -403,3 +403,40 @@ During pairing bring-up, we need to iterate quickly. If the firmware prints only
   - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`
   - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/hid_host.c`
   - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c` (`codes` command)
+
+---
+
+## Step 9: Upload key docs to reMarkable (PDF)
+
+This step publishes the current research + bug reports + operator playbook to the reMarkable device as PDFs so the material is easy to read and annotate while doing live pairing attempts. The upload script mirrors the ticket structure on-device, which keeps “0020” documents grouped and avoids filename collisions across tickets.
+
+One small operational nuance: a prior attempt was aborted mid-run, so a subsequent run without `--force` failed with “entry already exists”. The final upload run used `--force` to overwrite/refresh the PDFs.
+
+### What I did
+
+- Used the repo’s standard uploader script (`pandoc` + `xelatex` → `rmapi`) to upload these markdown docs:
+  - `analysis/*`
+  - `design-doc/*`
+  - `playbook/*`
+  - `reference/01-diary.md`
+  - `sources/ble-gatt-bug-report-research.md`
+- Command (as run from the ticket root context):
+
+```bash
+python3 /home/manuel/.local/bin/remarkable_upload.py \
+  --force \
+  --ticket-dir /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console \
+  --mirror-ticket-structure \
+  --remote-ticket-root 0020-BLE-KEYBOARD \
+  <doc1.md> <doc2.md> ...
+```
+
+### What worked
+
+- Upload succeeded and was verified with:
+  - `rmapi ls ai/2025/12/30/0020-BLE-KEYBOARD`
+
+### What didn't work
+
+- Re-running the upload without `--force` failed with:
+  - `Error: entry already exists (use --force to recreate, --content-only to replace content)`

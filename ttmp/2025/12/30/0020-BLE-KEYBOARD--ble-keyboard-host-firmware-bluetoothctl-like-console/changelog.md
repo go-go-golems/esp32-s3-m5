@@ -41,3 +41,12 @@ Centralized BLE/GATT code decoding (esp_gatt_status_t / esp_gatt_conn_reason_t /
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/playbook/03-using-ble-console-to-scan-connect-pair-and-keylog-a-ble-keyboard.md — Playbook updated to mention codes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Step 8 documents the decoding module and codes command
 
+
+## 2025-12-30
+
+Uploaded 0020 BLE keyboard host research/bug reports/playbooks/diary to reMarkable as PDFs under ai/2025/12/30/0020-BLE-KEYBOARD/ (mirrored ticket structure; used --force to refresh existing entries).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Step 9 records the reMarkable upload and verification commands
+
