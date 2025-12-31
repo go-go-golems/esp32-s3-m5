@@ -15,7 +15,9 @@ RelatedFiles:
     - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
       Note: Implements scan/connect/pair/bonds backing the console
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_console.c
-      Note: Defines the ble> commands used in this playbook
+      Note: |-
+        Defines the ble> commands used in this playbook
+        Defines ble> codes (and other commands) referenced by this playbook
     - Path: 0020-cardputer-ble-keyboard-host/main/keylog.c
       Note: Implements keylog output verification
 ExternalSources: []
@@ -24,6 +26,7 @@ LastUpdated: 2025-12-30T21:06:06.794149804-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Using ble> console to scan, connect, pair, and keylog a BLE keyboard
@@ -138,6 +141,14 @@ Now type on the keyboard. You should see lines for key events printed over the m
 ble> disconnect
 ble> bonds
 ble> unpair <addr>
+```
+
+### 7) Print code tables (debugging helper)
+
+If you see a hex code in logs and want the name/meaning, print the built-in tables:
+
+```text
+ble> codes
 ```
 
 ## Exit Criteria

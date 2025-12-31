@@ -28,3 +28,16 @@ Added operator playbook and improved connect diagnostics: decode GATTC open stat
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Step 7 records conclusions + changes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md — Intern research mapping the error codes
 
+
+## 2025-12-30
+
+Centralized BLE/GATT code decoding (esp_gatt_status_t / esp_gatt_conn_reason_t / esp_bt_status_t), added ble> codes command to print all mappings, and upgraded logs to include name+description (commit 005f98f).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c — Decoded logging for scan/gatt open/close/disconnect (commit 005f98f)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c — New codes command to dump tables (commit 005f98f)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_decode.c — New decoder tables + print_all helper (commit 005f98f)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/playbook/03-using-ble-console-to-scan-connect-pair-and-keylog-a-ble-keyboard.md — Playbook updated to mention codes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Step 8 documents the decoding module and codes command
+

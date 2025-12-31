@@ -18,6 +18,12 @@ RelatedFiles:
       Note: Reference BLE bring-up pattern (Bluedroid init + callback wiring)
     - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
       Note: Adds decoded logs for GATTC open/disconnect/close; defers connect until scan stop complete (commit 6a96946)
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.c
+      Note: |-
+        Central mapping of esp_gatt_status_t / esp_gatt_conn_reason_t / esp_bt_status_t to name+desc; used for decoded logs and  command (commit 005f98f)
+        Central mapping of esp_gatt_status_t / esp_gatt_conn_reason_t / esp_bt_status_t to name+desc; used for decoded logs and the codes console command (commit 005f98f)
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.h
+      Note: Decoder public interface for use across modules (commit 005f98f)
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/playbook/03-using-ble-console-to-scan-connect-pair-and-keylog-a-ble-keyboard.md
       Note: Operator playbook for driving ble> console during pairing/connect attempts
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md
@@ -31,6 +37,8 @@ LastUpdated: 2025-12-30T20:03:33.973096356-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 # BLE keyboard host firmware + bluetoothctl-like console

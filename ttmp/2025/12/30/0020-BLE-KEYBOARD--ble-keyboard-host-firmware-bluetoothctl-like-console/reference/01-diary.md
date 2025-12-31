@@ -16,6 +16,14 @@ RelatedFiles:
       Note: |-
         Crash-loop forwarding path captured in Step 6
         Implements decoded logging + scan-stop→open sequencing (commit 6a96946)
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_console.c
+      Note: |-
+        Step 8 adds  command (commit 005f98f)
+        Step 8 adds the codes command entrypoint (commit 005f98f)
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.c
+      Note: |-
+        Step 8 adds centralized decoding + codes command (commit 005f98f)
+        Step 8 adds centralized decoding + codes console command (commit 005f98f)
     - Path: 0020-cardputer-ble-keyboard-host/main/hid_host.c
       Note: Crash-loop and fix captured in Step 6
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md
@@ -26,6 +34,8 @@ LastUpdated: 2025-12-30T20:04:39.868197534-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -346,3 +356,50 @@ We can’t efficiently debug the connect failure when the output is only hex cod
 
 - Intern report (source artifact):
   - `ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md`
+
+---
+
+## Step 8: Centralize enum decoding and add a `codes` console command
+
+This step generalizes the earlier “decode 0x85 / 0x0100” work into a reusable decoding module that maps the relevant ESP-IDF enums to stable name+description strings. It also adds a `ble> codes` command that prints the full mapping tables on demand so you don’t have to grep headers mid-debug.
+
+The intent is to make every “mystery hex” quickly actionable during live pairing attempts, and to avoid partial/incorrect decoding (for example: treating GATT disconnect reasons as an 8-bit HCI reason).
+
+**Commit (code):** `005f98f35264abb4f49afbada3ed021d98e45a8a` — "BLE: add full status decode + codes command"
+
+### What I did
+
+- Added a dedicated decoder module:
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_decode.c`
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_decode.h`
+- Implemented “full table” mappings (as defined by ESP-IDF 5.4.1 headers) for:
+  - `esp_gatt_status_t` (includes `ESP_GATT_ERROR=0x85` and the other common BLE/GATT statuses)
+  - `esp_gatt_conn_reason_t` (includes `ESP_GATT_CONN_CONN_CANCEL=0x0100`)
+  - `esp_bt_status_t` (non-HCI subset; HCI errors are flagged as `ESP_BT_STATUS_HCI_ERR` with a note)
+- Updated logs to always print:
+  - value + enum name + short description.
+- Added `ble> codes` in `bt_console.c` to print all tables.
+- Updated HID close logging to decode `ESP_HIDH_CLOSE_EVENT.close.reason` using the same GATT connection reason mapping.
+
+### Why
+
+During pairing bring-up, we need to iterate quickly. If the firmware prints only hex values, we burn time cross-referencing headers and we risk misinterpreting fields (notably the 16-bit GATT connection reasons). A built-in “print the tables” command and consistent decoded logs makes the console usable as a debugging instrument.
+
+### What worked
+
+- `idf.py build` succeeds with the new module.
+- The console now has a self-serve “what does this code mean?” command (`codes`).
+
+### What warrants a second pair of eyes
+
+- Confirm the choice for BT status decoding: we decode the “base” non-HCI statuses and treat `>= 0x0100` as an HCI error bucket. If you need specific HCI error names, we can extend the table later, but it’s a lot of enumerators.
+
+### Code review instructions
+
+- Start at `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_decode.c` and validate the mapping tables align with:
+  - `/home/manuel/esp/esp-idf-5.4.1/components/bt/host/bluedroid/api/include/api/esp_gatt_defs.h`
+  - `/home/manuel/esp/esp-idf-5.4.1/components/bt/host/bluedroid/api/include/api/esp_bt_defs.h`
+- Then check the call sites:
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/hid_host.c`
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c` (`codes` command)
