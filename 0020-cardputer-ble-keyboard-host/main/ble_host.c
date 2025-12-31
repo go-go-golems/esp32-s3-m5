@@ -29,6 +29,7 @@ static int s_num_devices = 0;
 static uint32_t s_pending_scan_seconds = 0;
 static bool s_scanning = false;
 static bool s_auto_accept_sec_req = true;
+static bool s_auto_confirm_nc = true;
 
 static uint32_t now_ms(void) {
     return (uint32_t)(esp_timer_get_time() / 1000);
@@ -159,19 +160,52 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
         break;
 
     case ESP_GAP_BLE_PASSKEY_NOTIF_EVT:
-        ESP_LOGI(TAG, "passkey notif: %u", (unsigned)param->ble_security.key_notif.passkey);
+        ESP_LOGI(TAG,
+                 "passkey notif: addr=%02x:%02x:%02x:%02x:%02x:%02x passkey=%u",
+                 param->ble_security.key_notif.bd_addr[0],
+                 param->ble_security.key_notif.bd_addr[1],
+                 param->ble_security.key_notif.bd_addr[2],
+                 param->ble_security.key_notif.bd_addr[3],
+                 param->ble_security.key_notif.bd_addr[4],
+                 param->ble_security.key_notif.bd_addr[5],
+                 (unsigned)param->ble_security.key_notif.passkey);
         break;
 
     case ESP_GAP_BLE_PASSKEY_REQ_EVT:
-        ESP_LOGI(TAG, "passkey req");
+        ESP_LOGI(TAG,
+                 "passkey req: addr=%02x:%02x:%02x:%02x:%02x:%02x (use: passkey <addr> <6digits>)",
+                 param->ble_security.ble_req.bd_addr[0],
+                 param->ble_security.ble_req.bd_addr[1],
+                 param->ble_security.ble_req.bd_addr[2],
+                 param->ble_security.ble_req.bd_addr[3],
+                 param->ble_security.ble_req.bd_addr[4],
+                 param->ble_security.ble_req.bd_addr[5]);
         break;
 
     case ESP_GAP_BLE_NC_REQ_EVT:
-        ESP_LOGI(TAG, "numeric compare req: %u", (unsigned)param->ble_security.key_notif.passkey);
+        ESP_LOGI(TAG,
+                 "numeric compare req: addr=%02x:%02x:%02x:%02x:%02x:%02x passkey=%u",
+                 param->ble_security.key_notif.bd_addr[0],
+                 param->ble_security.key_notif.bd_addr[1],
+                 param->ble_security.key_notif.bd_addr[2],
+                 param->ble_security.key_notif.bd_addr[3],
+                 param->ble_security.key_notif.bd_addr[4],
+                 param->ble_security.key_notif.bd_addr[5],
+                 (unsigned)param->ble_security.key_notif.passkey);
+        if (s_auto_confirm_nc) {
+            (void)esp_ble_confirm_reply(param->ble_security.key_notif.bd_addr, true);
+        }
         break;
 
     case ESP_GAP_BLE_SEC_REQ_EVT:
-        ESP_LOGI(TAG, "sec req");
+        ESP_LOGI(TAG,
+                 "sec req: addr=%02x:%02x:%02x:%02x:%02x:%02x",
+                 param->ble_security.ble_req.bd_addr[0],
+                 param->ble_security.ble_req.bd_addr[1],
+                 param->ble_security.ble_req.bd_addr[2],
+                 param->ble_security.ble_req.bd_addr[3],
+                 param->ble_security.ble_req.bd_addr[4],
+                 param->ble_security.ble_req.bd_addr[5]);
         if (s_auto_accept_sec_req) {
             (void)esp_ble_gap_security_rsp(param->ble_security.ble_req.bd_addr, true);
         }

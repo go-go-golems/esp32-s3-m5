@@ -73,7 +73,7 @@ static int cmd_devices(int, char **) {
 
 static int cmd_connect(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: connect <index|addr>\n");
+        printf("usage: connect <index|addr> [pub|rand]\n");
         return 1;
     }
 
@@ -94,7 +94,18 @@ static int cmd_connect(int argc, char **argv) {
             printf("invalid addr: %s\n", argv[1]);
             return 1;
         }
-        addr_type = BLE_ADDR_TYPE_PUBLIC;
+        if (argc >= 3) {
+            if (strcmp(argv[2], "pub") == 0) {
+                addr_type = BLE_ADDR_TYPE_PUBLIC;
+            } else if (strcmp(argv[2], "rand") == 0) {
+                addr_type = BLE_ADDR_TYPE_RANDOM;
+            } else {
+                printf("invalid addr type: %s (expected pub|rand)\n", argv[2]);
+                return 1;
+            }
+        } else {
+            addr_type = BLE_ADDR_TYPE_PUBLIC;
+        }
     }
 
     if (!ble_host_connect(bda, addr_type)) {
