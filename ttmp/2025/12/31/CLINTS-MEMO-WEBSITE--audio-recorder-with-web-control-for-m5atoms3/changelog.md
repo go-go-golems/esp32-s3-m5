@@ -10,3 +10,4 @@
 - Landed a buildable ESP-IDF firmware baseline in `esp32-s3-m5/0021-atoms3-memo-website/` and documented build recovery/toolchain fixes in the diary (commit 5807ac2).
 - Added WiFi STA-by-default (with SoftAP fallback) and made SPIFFS recordings path startup-safe for `0021` (commit bbedc38).
 - Added AP+STA mode + per-request HTTP logging to debug network segmentation/timeouts (commit fef0c11).
+- Reduced HTTP log spam (polling endpoints) and fixed recording start on SPIFFS by avoiding directory-only assumptions (commit 778c414).

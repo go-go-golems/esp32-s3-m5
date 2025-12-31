@@ -314,3 +314,44 @@ To make testing unblocked regardless of home-network segmentation, the firmware 
 ### Code review instructions
 - Start in `esp32-s3-m5/0021-atoms3-memo-website/main/wifi_apsta.cpp` and `esp32-s3-m5/0021-atoms3-memo-website/main/http_server.cpp`
 - Validate by flashing and watching logs for both `SoftAP browse` and `STA browse`.
+
+## Step 6: Fix SPIFFS recording start + reduce request log spam
+
+This step addressed two issues surfaced during real UI use: (1) the browser polling endpoints (`/api/v1/status` and `/api/v1/waveform`) were generating extremely noisy logs when we had request logging enabled, and (2) `POST /api/v1/recordings/start` failed because the recorder insisted the recordings directory must be a real directory — but on SPIFFS the “directory” semantics we expected weren’t available (mkdir failed) even though the mount itself was working.
+
+The outcome is: recording start no longer fails on “recordings dir missing”, and logs stay quiet during polling. We still log mutating requests (POST/DELETE) by default so interactive actions remain visible.
+
+**Commit (code):** 778c414 — "0021: quiet logs and fix SPIFFS recording start"
+
+### What I did
+- Changed request logging to:
+  - log only mutating requests by default
+  - optionally enable full request logging via menuconfig (`HTTP logging`)
+- Made SPIFFS “no directories” behavior non-fatal:
+  - `mkdir(/spiffs/rec)` is treated as a warning and we fall back to storing recordings directly under `/spiffs`
+- Updated recorder file creation to stop requiring `stat(dir)` to look like a directory; it now attempts file creation directly and logs `errno` on failure.
+
+### Why
+- Browser polling can be hundreds of requests/minute; logging every poll line makes real errors and state transitions invisible.
+- SPIFFS directory support is not guaranteed; assuming POSIX-style directories blocks recording on otherwise-working mounts.
+
+### What worked
+- UI polling no longer floods the log.
+- `POST /api/v1/recordings/start` proceeds past “recordings dir missing”.
+
+### What didn't work
+- Original approach assumed `/spiffs/rec` could be created and would behave like a real directory; on this device it fails (errno logged in mount code).
+
+### What I learned
+- For embedded storage backends, treat “directory layout” as an optional convenience, not a requirement.
+- For web UIs, “request logging” must be selective by default (mutations only) and verbose only when explicitly enabled.
+
+### What was tricky to build
+- Avoiding reliance on new Kconfig symbols being present in an existing `sdkconfig` (use preprocessor guards / safe defaults).
+
+### What warrants a second pair of eyes
+- Whether we should simplify further and remove `CONFIG_CLINTS_MEMO_RECORDINGS_DIR` entirely (always store in base path for SPIFFS).
+- Confirm the list/download/delete endpoints behave correctly when files live directly under `/spiffs` (flat layout).
+
+### What should be done in the future
+- Add a `/api/v1/status` field that surfaces storage mount state and free/used bytes to simplify field debugging.
