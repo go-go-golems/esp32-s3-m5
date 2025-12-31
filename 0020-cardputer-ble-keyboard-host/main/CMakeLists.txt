@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "bt_console.c"
+        "ble_host.c"
+        "hid_host.c"
+        "keylog.c"
+    PRIV_REQUIRES
+        bt
+        nvs_flash
+        esp_timer
+        esp_event
+        console
+        esp_hid
+        esp_driver_usb_serial_jtag
+    INCLUDE_DIRS
+        "."
+)
+

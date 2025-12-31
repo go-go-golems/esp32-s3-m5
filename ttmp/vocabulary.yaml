@@ -17,6 +17,8 @@ topics:
       description: M5GFX graphics library
     - slug: serial
       description: Serial communication
+    - slug: console
+      description: Command consoles and REPLs (esp_console, CLIs)
     - slug: ui
       description: User interface
     - slug: usb-serial-jtag
@@ -35,6 +37,12 @@ topics:
       description: Backend services
     - slug: websocket
       description: WebSocket lifecycle & events
+    - slug: ble
+      description: Bluetooth Low Energy
+    - slug: keyboard
+      description: Keyboards and HID input (BLE/USB)
+    - slug: sensors
+      description: Hardware sensor integration (I2C/SPI/ADC/etc)
 docTypes:
     - slug: index
       description: Ticket index document
