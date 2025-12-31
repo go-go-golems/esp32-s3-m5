@@ -31,6 +31,10 @@ static bool s_scanning = false;
 static bool s_auto_accept_sec_req = true;
 static bool s_auto_confirm_nc = true;
 
+static bool s_pending_connect = false;
+static uint8_t s_pending_connect_bda[6] = {0};
+static uint8_t s_pending_connect_addr_type = BLE_ADDR_TYPE_PUBLIC;
+
 static uint32_t now_ms(void) {
     return (uint32_t)(esp_timer_get_time() / 1000);
 }
@@ -41,6 +45,92 @@ static bool bda_equal(const uint8_t a[6], const uint8_t b[6]) {
 
 static void bda_to_str(const uint8_t bda[6], char out[18]) {
     snprintf(out, 18, "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+}
+
+static const char *gatt_status_to_str(esp_gatt_status_t status) {
+    switch (status) {
+    case ESP_GATT_OK:
+        return "ESP_GATT_OK";
+    case ESP_GATT_ERROR:
+        return "ESP_GATT_ERROR";
+    case ESP_GATT_INVALID_HANDLE:
+        return "ESP_GATT_INVALID_HANDLE";
+    case ESP_GATT_READ_NOT_PERMIT:
+        return "ESP_GATT_READ_NOT_PERMIT";
+    case ESP_GATT_WRITE_NOT_PERMIT:
+        return "ESP_GATT_WRITE_NOT_PERMIT";
+    case ESP_GATT_INVALID_PDU:
+        return "ESP_GATT_INVALID_PDU";
+    case ESP_GATT_INSUF_AUTHENTICATION:
+        return "ESP_GATT_INSUF_AUTHENTICATION";
+    case ESP_GATT_REQ_NOT_SUPPORTED:
+        return "ESP_GATT_REQ_NOT_SUPPORTED";
+    case ESP_GATT_INVALID_OFFSET:
+        return "ESP_GATT_INVALID_OFFSET";
+    case ESP_GATT_INSUF_AUTHORIZATION:
+        return "ESP_GATT_INSUF_AUTHORIZATION";
+    case ESP_GATT_PREPARE_Q_FULL:
+        return "ESP_GATT_PREPARE_Q_FULL";
+    case ESP_GATT_NOT_FOUND:
+        return "ESP_GATT_NOT_FOUND";
+    case ESP_GATT_NOT_LONG:
+        return "ESP_GATT_NOT_LONG";
+    case ESP_GATT_INSUF_KEY_SIZE:
+        return "ESP_GATT_INSUF_KEY_SIZE";
+    case ESP_GATT_INVALID_ATTR_LEN:
+        return "ESP_GATT_INVALID_ATTR_LEN";
+    case ESP_GATT_ERR_UNLIKELY:
+        return "ESP_GATT_ERR_UNLIKELY";
+    case ESP_GATT_INSUF_ENCRYPTION:
+        return "ESP_GATT_INSUF_ENCRYPTION";
+    case ESP_GATT_UNSUPPORT_GRP_TYPE:
+        return "ESP_GATT_UNSUPPORT_GRP_TYPE";
+    case ESP_GATT_INSUF_RESOURCE:
+        return "ESP_GATT_INSUF_RESOURCE";
+    case ESP_GATT_NO_RESOURCES:
+        return "ESP_GATT_NO_RESOURCES";
+    case ESP_GATT_INTERNAL_ERROR:
+        return "ESP_GATT_INTERNAL_ERROR";
+    case ESP_GATT_WRONG_STATE:
+        return "ESP_GATT_WRONG_STATE";
+    case ESP_GATT_DB_FULL:
+        return "ESP_GATT_DB_FULL";
+    case ESP_GATT_BUSY:
+        return "ESP_GATT_BUSY";
+    case ESP_GATT_STACK_RSP:
+        return "ESP_GATT_STACK_RSP";
+    case ESP_GATT_APP_RSP:
+        return "ESP_GATT_APP_RSP";
+    case ESP_GATT_UNKNOWN_ERROR:
+        return "ESP_GATT_UNKNOWN_ERROR";
+    default:
+        return "ESP_GATT_STATUS_UNKNOWN";
+    }
+}
+
+static const char *gatt_conn_reason_to_str(esp_gatt_conn_reason_t reason) {
+    switch (reason) {
+    case ESP_GATT_CONN_UNKNOWN:
+        return "ESP_GATT_CONN_UNKNOWN";
+    case ESP_GATT_CONN_L2C_FAILURE:
+        return "ESP_GATT_CONN_L2C_FAILURE";
+    case ESP_GATT_CONN_TIMEOUT:
+        return "ESP_GATT_CONN_TIMEOUT";
+    case ESP_GATT_CONN_TERMINATE_PEER_USER:
+        return "ESP_GATT_CONN_TERMINATE_PEER_USER";
+    case ESP_GATT_CONN_TERMINATE_LOCAL_HOST:
+        return "ESP_GATT_CONN_TERMINATE_LOCAL_HOST";
+    case ESP_GATT_CONN_FAIL_ESTABLISH:
+        return "ESP_GATT_CONN_FAIL_ESTABLISH";
+    case ESP_GATT_CONN_LMP_TIMEOUT:
+        return "ESP_GATT_CONN_LMP_TIMEOUT";
+    case ESP_GATT_CONN_CONN_CANCEL:
+        return "ESP_GATT_CONN_CONN_CANCEL";
+    case ESP_GATT_CONN_NONE:
+        return "ESP_GATT_CONN_NONE";
+    default:
+        return "ESP_GATT_CONN_REASON_UNKNOWN";
+    }
 }
 
 static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int rssi, const char *name) {
@@ -149,6 +239,18 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
     case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
         s_scanning = false;
         ESP_LOGI(TAG, "scan stop: status=%u", (unsigned)param->scan_stop_cmpl.status);
+        if (s_pending_connect) {
+            char a[18] = {0};
+            bda_to_str(s_pending_connect_bda, a);
+            ESP_LOGI(TAG, "connect pending: starting open now (addr=%s type=%s)",
+                     a,
+                     (s_pending_connect_addr_type == BLE_ADDR_TYPE_PUBLIC) ? "pub" : "rand");
+            const bool ok = hid_host_open(s_pending_connect_bda, s_pending_connect_addr_type);
+            if (!ok) {
+                ESP_LOGE(TAG, "connect pending: hid_host_open failed");
+            }
+            s_pending_connect = false;
+        }
         break;
 
     case ESP_GAP_BLE_AUTH_CMPL_EVT:
@@ -224,8 +326,33 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
     case ESP_GATTC_CONNECT_EVT:
         ESP_LOGI(TAG, "gattc connect: conn_id=%u", (unsigned)param->connect.conn_id);
         break;
+    case ESP_GATTC_OPEN_EVT: {
+        char a[18] = {0};
+        bda_to_str(param->open.remote_bda, a);
+        ESP_LOGI(TAG,
+                 "gattc open: status=0x%02x (%s) conn_id=%u mtu=%u addr=%s",
+                 (unsigned)param->open.status,
+                 gatt_status_to_str(param->open.status),
+                 (unsigned)param->open.conn_id,
+                 (unsigned)param->open.mtu,
+                 a);
+        break;
+    }
     case ESP_GATTC_DISCONNECT_EVT:
-        ESP_LOGI(TAG, "gattc disconnect: reason=0x%02x", (unsigned)param->disconnect.reason);
+        ESP_LOGI(TAG,
+                 "gattc disconnect: reason=0x%04x (%s) conn_id=%u",
+                 (unsigned)param->disconnect.reason,
+                 gatt_conn_reason_to_str(param->disconnect.reason),
+                 (unsigned)param->disconnect.conn_id);
+        break;
+    case ESP_GATTC_CLOSE_EVT:
+        ESP_LOGI(TAG,
+                 "gattc close: status=0x%02x (%s) reason=0x%04x (%s) conn_id=%u",
+                 (unsigned)param->close.status,
+                 gatt_status_to_str(param->close.status),
+                 (unsigned)param->close.reason,
+                 gatt_conn_reason_to_str(param->close.reason),
+                 (unsigned)param->close.conn_id);
         break;
     default:
         break;
@@ -290,6 +417,21 @@ void ble_host_scan_stop(void) {
     esp_err_t err = esp_ble_gap_stop_scanning();
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "stop_scanning failed: %s", esp_err_to_name(err));
+        // If we were stopping scan in order to connect, we may never receive
+        // ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT; fail "open" forward here.
+        s_scanning = false;
+        if (s_pending_connect) {
+            char a[18] = {0};
+            bda_to_str(s_pending_connect_bda, a);
+            ESP_LOGI(TAG, "connect pending: starting open now after stop_scanning error (addr=%s type=%s)",
+                     a,
+                     (s_pending_connect_addr_type == BLE_ADDR_TYPE_PUBLIC) ? "pub" : "rand");
+            const bool ok = hid_host_open(s_pending_connect_bda, s_pending_connect_addr_type);
+            if (!ok) {
+                ESP_LOGE(TAG, "connect pending: hid_host_open failed");
+            }
+            s_pending_connect = false;
+        }
     }
 }
 
@@ -320,7 +462,11 @@ bool ble_host_device_get_by_index(int index, ble_host_device_t *out) {
 bool ble_host_connect(const uint8_t bda[6], uint8_t addr_type) {
     if (!bda) return false;
     if (s_scanning) {
+        memcpy(s_pending_connect_bda, bda, sizeof(s_pending_connect_bda));
+        s_pending_connect_addr_type = addr_type;
+        s_pending_connect = true;
         ble_host_scan_stop();
+        return true;
     }
     return hid_host_open(bda, addr_type);
 }
