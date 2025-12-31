@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        "main.cpp"
+        "wifi_softap.cpp"
+        "http_server.cpp"
+        "storage_spiffs.cpp"
+        "recorder.cpp"
+    PRIV_REQUIRES
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_wifi
+        esp_http_server
+        spiffs
+        esp_driver_i2s
+        esp_driver_i2c
+        espressif__es8311
+    EMBED_TXTFILES
+        "assets/index.html"
+    INCLUDE_DIRS "."
+)

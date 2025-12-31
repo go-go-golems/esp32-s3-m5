@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AtomS3 Memo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 16px; }
+      code { background: #f3f3f3; padding: 2px 4px; border-radius: 4px; }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      button { padding: 8px 12px; }
+      pre { background: #0b1020; color: #d6e0ff; padding: 12px; border-radius: 6px; overflow: auto; }
+      canvas { border: 1px solid #ddd; border-radius: 6px; background: #fff; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    </style>
+  </head>
+  <body>
+    <h1>AtomS3 Memo</h1>
+
+    <div class="row" style="margin-bottom: 12px">
+      <button id="btnStart">Start</button>
+      <button id="btnStop">Stop</button>
+      <button id="btnRefresh">Refresh list</button>
+      <span id="statusText"></span>
+    </div>
+
+    <h2 style="margin: 12px 0 8px">Waveform</h2>
+    <canvas id="wave" width="640" height="160"></canvas>
+
+    <h2 style="margin: 12px 0 8px">Recordings</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Size</th>
+          <th>Play</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="recs"></tbody>
+    </table>
+
+    <h2 style="margin: 12px 0 8px">Debug</h2>
+    <pre id="out">{}</pre>
+    <script>
+      const out = document.getElementById("out");
+      const statusText = document.getElementById("statusText");
+      const recs = document.getElementById("recs");
+      const canvas = document.getElementById("wave");
+      const ctx = canvas.getContext("2d");
+
+      function log(obj) {
+        out.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+      }
+
+      async function api(path, opts = {}) {
+        const res = await fetch(path, opts);
+        const text = await res.text();
+        let json = null;
+        try { json = JSON.parse(text); } catch (e) {}
+        if (!res.ok) {
+          throw new Error(json?.error || text || `HTTP ${res.status}`);
+        }
+        return json ?? text;
+      }
+
+      async function refreshStatus() {
+        const st = await api("/api/v1/status");
+        statusText.textContent = st.recording
+          ? `REC • ${st.filename} • ${st.bytes_written} bytes`
+          : `IDLE`;
+        return st;
+      }
+
+      async function refreshList() {
+        const list = await api("/api/v1/recordings");
+        recs.innerHTML = "";
+        for (const r of list.recordings || []) {
+          const tr = document.createElement("tr");
+
+          const tdName = document.createElement("td");
+          tdName.textContent = r.name;
+
+          const tdSize = document.createElement("td");
+          tdSize.textContent = `${r.size_bytes} bytes`;
+
+          const tdPlay = document.createElement("td");
+          const audio = document.createElement("audio");
+          audio.controls = true;
+          audio.src = `/api/v1/recordings/${encodeURIComponent(r.name)}`;
+          tdPlay.appendChild(audio);
+
+          const tdActions = document.createElement("td");
+          const a = document.createElement("a");
+          a.href = `/api/v1/recordings/${encodeURIComponent(r.name)}`;
+          a.textContent = "download";
+          a.style.marginRight = "12px";
+
+          const del = document.createElement("button");
+          del.textContent = "delete";
+          del.addEventListener("click", async () => {
+            try {
+              await api(`/api/v1/recordings/${encodeURIComponent(r.name)}`, { method: "DELETE" });
+              await refreshList();
+            } catch (e) { log(String(e)); }
+          });
+
+          tdActions.appendChild(a);
+          tdActions.appendChild(del);
+
+          tr.appendChild(tdName);
+          tr.appendChild(tdSize);
+          tr.appendChild(tdPlay);
+          tr.appendChild(tdActions);
+          recs.appendChild(tr);
+        }
+      }
+
+      function drawWave(points) {
+        const w = canvas.width;
+        const h = canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+
+        const mid = h / 2;
+        ctx.strokeStyle = "#ddd";
+        ctx.beginPath();
+        ctx.moveTo(0, mid);
+        ctx.lineTo(w, mid);
+        ctx.stroke();
+
+        if (!points || points.length === 0) return;
+
+        ctx.strokeStyle = "#0b5";
+        ctx.beginPath();
+        for (let i = 0; i < points.length; i++) {
+          const x = (i / (points.length - 1)) * w;
+          const v = points[i] / 32768.0;
+          const y = mid - v * (mid - 8);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      async function pollWaveform() {
+        try {
+          const wf = await api("/api/v1/waveform");
+          drawWave(wf.points_i16 || []);
+        } catch (e) {
+          // Keep UI alive even if endpoint not ready yet.
+        }
+      }
+
+      document.getElementById("btnStart").addEventListener("click", async () => {
+        try {
+          const r = await api("/api/v1/recordings/start", { method: "POST" });
+          log(r);
+          await refreshStatus();
+        } catch (e) { log(String(e)); }
+      });
+
+      document.getElementById("btnStop").addEventListener("click", async () => {
+        try {
+          const r = await api("/api/v1/recordings/stop", { method: "POST" });
+          log(r);
+          await refreshStatus();
+          await refreshList();
+        } catch (e) { log(String(e)); }
+      });
+
+      document.getElementById("btnRefresh").addEventListener("click", async () => {
+        try {
+          await refreshList();
+        } catch (e) { log(String(e)); }
+      });
+
+      // Background polling.
+      setInterval(() => refreshStatus().catch(() => {}), 1000);
+      setInterval(() => pollWaveform().catch(() => {}), 500);
+
+      refreshStatus().catch(log);
+      refreshList().catch(log);
+      pollWaveform().catch(log);
+    </script>
+  </body>
+</html>

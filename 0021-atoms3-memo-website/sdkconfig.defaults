@@ -1,0 +1,15 @@
+# 0021 — AtomS3 Memo Website (CLINTS-MEMO-WEBSITE)
+
+# Partition table (needs a data partition for recordings).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# SPIFFS for recordings storage.
+CONFIG_SPIFFS_MAX_PARTITIONS=1
+CONFIG_SPIFFS_USE_MAGIC=y
+CONFIG_SPIFFS_USE_MAGIC_LENGTH=y
+CONFIG_SPIFFS_META_LENGTH=4
+
+# Slightly larger main task stack for HTTP + recorder glue.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+

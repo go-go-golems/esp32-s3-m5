@@ -1,0 +1,152 @@
+menu "Ticket CLINTS-MEMO-WEBSITE (0021): AtomS3 Memo Website"
+
+menu "WiFi (SoftAP)"
+
+config CLINTS_MEMO_WIFI_SOFTAP_SSID
+    string "SoftAP SSID"
+    default "AtomS3-Memo"
+
+config CLINTS_MEMO_WIFI_SOFTAP_PASSWORD
+    string "SoftAP password (empty=open)"
+    default ""
+
+config CLINTS_MEMO_WIFI_SOFTAP_CHANNEL
+    int "SoftAP channel"
+    range 1 13
+    default 6
+
+config CLINTS_MEMO_WIFI_SOFTAP_MAX_CONN
+    int "SoftAP max connections"
+    range 1 10
+    default 4
+
+endmenu
+
+menu "Storage (SPIFFS)"
+
+config CLINTS_MEMO_STORAGE_BASE_PATH
+    string "VFS mount base path"
+    default "/spiffs"
+
+config CLINTS_MEMO_STORAGE_PARTITION_LABEL
+    string "SPIFFS partition label"
+    default "storage"
+
+config CLINTS_MEMO_RECORDINGS_DIR
+    string "Recordings directory (relative to base path)"
+    default "rec"
+
+config CLINTS_MEMO_STORAGE_FORMAT_IF_MOUNT_FAILED
+    bool "Format partition if mount failed"
+    default y
+
+config CLINTS_MEMO_STORAGE_MAX_OPEN_FILES
+    int "Max open files for SPIFFS"
+    range 1 32
+    default 8
+
+endmenu
+
+menu "Audio (I2S)"
+
+config CLINTS_MEMO_AUDIO_SAMPLE_RATE_HZ
+    int "Sample rate (Hz)"
+    range 8000 48000
+    default 16000
+
+config CLINTS_MEMO_AUDIO_FRAME_SAMPLES
+    int "I2S read frame size (samples)"
+    range 160 4096
+    default 640
+
+choice CLINTS_MEMO_I2S_PORT
+    prompt "I2S port"
+    default CLINTS_MEMO_I2S_PORT_1
+    help
+        Select the I2S peripheral instance to use for audio capture.
+
+config CLINTS_MEMO_I2S_PORT_0
+    bool "I2S0"
+
+config CLINTS_MEMO_I2S_PORT_1
+    bool "I2S1"
+
+endchoice
+
+config CLINTS_MEMO_I2S_BCLK_GPIO
+    int "I2S BCLK GPIO"
+    range -1 48
+    default 8
+
+config CLINTS_MEMO_I2S_WS_GPIO
+    int "I2S WS/LRCLK GPIO"
+    range -1 48
+    default 6
+
+config CLINTS_MEMO_I2S_DOUT_GPIO
+    int "I2S DOUT GPIO (-1 disables TX)"
+    range -1 48
+    default 5
+
+config CLINTS_MEMO_I2S_DIN_GPIO
+    int "I2S DIN GPIO"
+    range -1 48
+    default 7
+
+config CLINTS_MEMO_I2S_MCLK_GPIO
+    int "I2S MCLK GPIO (-1 disables)"
+    range -1 48
+    default -1
+
+config CLINTS_MEMO_I2S_CHANNEL_FMT_ALL_LEFT
+    bool "Use I2S_CHANNEL_FMT_ALL_LEFT (EchoBase)"
+    default y
+    help
+        EchoBase+ES8311 requires ALL_LEFT to get correct mono capture.
+
+config CLINTS_MEMO_WAVEFORM_N_POINTS
+    int "Waveform points returned by /api/v1/waveform"
+    range 32 1024
+    default 256
+
+config CLINTS_MEMO_WAVEFORM_WINDOW_MS
+    int "Waveform window (ms)"
+    range 100 5000
+    default 1000
+
+endmenu
+
+menu "Codec (ES8311 over I2C)"
+
+config CLINTS_MEMO_CODEC_ES8311_ENABLE
+    bool "Enable ES8311 init (EchoBase)"
+    default y
+
+config CLINTS_MEMO_CODEC_I2C_PORT
+    int "I2C port (0 or 1)"
+    range 0 1
+    default 1
+    depends on CLINTS_MEMO_CODEC_ES8311_ENABLE
+
+config CLINTS_MEMO_CODEC_I2C_SDA_GPIO
+    int "I2C SDA GPIO"
+    range -1 48
+    default 38
+    depends on CLINTS_MEMO_CODEC_ES8311_ENABLE
+
+config CLINTS_MEMO_CODEC_I2C_SCL_GPIO
+    int "I2C SCL GPIO"
+    range -1 48
+    default 39
+    depends on CLINTS_MEMO_CODEC_ES8311_ENABLE
+
+config CLINTS_MEMO_CODEC_I2C_FREQ_HZ
+    int "I2C frequency (Hz)"
+    range 100000 1000000
+    default 400000
+    depends on CLINTS_MEMO_CODEC_ES8311_ENABLE
+
+endmenu
+
+endmenu
+
