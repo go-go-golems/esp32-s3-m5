@@ -4,6 +4,7 @@ idf_component_register(
         "wifi_common.cpp"
         "wifi_sta.cpp"
         "wifi_softap.cpp"
+        "wifi_apsta.cpp"
         "wifi.cpp"
         "http_server.cpp"
         "storage_spiffs.cpp"

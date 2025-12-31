@@ -28,6 +28,11 @@ config CLINTS_MEMO_WIFI_STA_ENABLE
     bool "Enable STA (connect to existing WiFi)"
     default y
 
+config CLINTS_MEMO_WIFI_SOFTAP_WITH_STA
+    bool "Also run SoftAP while on STA"
+    default y
+    depends on CLINTS_MEMO_WIFI_STA_ENABLE
+
 config CLINTS_MEMO_WIFI_STA_SSID
     string "STA SSID"
     default ""

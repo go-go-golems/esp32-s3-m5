@@ -26,6 +26,9 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 
+#include "lwip/inet.h"
+#include "lwip/sockets.h"
+
 #include "recorder.h"
 #include "storage_spiffs.h"
 
@@ -58,13 +61,48 @@ static void json_send_error(httpd_req_t *req, int code, const char *msg) {
     (void)httpd_resp_send(req, json.c_str(), (ssize_t)json.size());
 }
 
+static const char *http_method_str(int method) {
+    switch (method) {
+    case HTTP_GET: return "GET";
+    case HTTP_POST: return "POST";
+    case HTTP_PUT: return "PUT";
+    case HTTP_DELETE: return "DELETE";
+    case HTTP_HEAD: return "HEAD";
+    default: return "?";
+    }
+}
+
+static void log_request(httpd_req_t *req) {
+    const int sock = httpd_req_to_sockfd(req);
+    struct sockaddr_storage ss = {};
+    socklen_t sl = sizeof(ss);
+    char addr[64] = "unknown";
+    uint16_t port = 0;
+
+    if (sock >= 0 && getpeername(sock, (struct sockaddr *)&ss, &sl) == 0) {
+        if (ss.ss_family == AF_INET) {
+            const struct sockaddr_in *in = (const struct sockaddr_in *)&ss;
+            inet_ntoa_r(in->sin_addr, addr, sizeof(addr));
+            port = ntohs(in->sin_port);
+        } else if (ss.ss_family == AF_INET6) {
+            const struct sockaddr_in6 *in6 = (const struct sockaddr_in6 *)&ss;
+            inet6_ntoa_r(in6->sin6_addr, addr, sizeof(addr));
+            port = ntohs(in6->sin6_port);
+        }
+    }
+
+    ESP_LOGI(TAG, "HTTP %s %s from %s:%u", http_method_str(req->method), req->uri, addr, (unsigned)port);
+}
+
 static esp_err_t root_get(httpd_req_t *req) {
+    log_request(req);
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     const size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
     return httpd_resp_send(req, (const char *)assets_index_html_start, (ssize_t)len);
 }
 
 static esp_err_t api_v1_status_get(httpd_req_t *req) {
+    log_request(req);
     const RecorderStatus st = recorder_get_status();
     std::string json;
     json.reserve(256);
@@ -93,13 +131,14 @@ static esp_err_t api_v1_status_get(httpd_req_t *req) {
 }
 
 static esp_err_t api_v1_waveform_get(httpd_req_t *req) {
+    log_request(req);
     const std::string json = recorder_get_waveform_json();
     httpd_resp_set_type(req, "application/json");
     return httpd_resp_send(req, json.c_str(), (ssize_t)json.size());
 }
 
 static esp_err_t api_v1_recordings_start_post(httpd_req_t *req) {
-    (void)req;
+    log_request(req);
     std::string filename;
     const esp_err_t err = recorder_start(filename);
     if (err == ESP_ERR_INVALID_STATE) {
@@ -116,7 +155,7 @@ static esp_err_t api_v1_recordings_start_post(httpd_req_t *req) {
 }
 
 static esp_err_t api_v1_recordings_stop_post(httpd_req_t *req) {
-    (void)req;
+    log_request(req);
     std::string filename;
     const esp_err_t err = recorder_stop(filename);
     if (err == ESP_ERR_INVALID_STATE) {
@@ -133,6 +172,7 @@ static esp_err_t api_v1_recordings_stop_post(httpd_req_t *req) {
 }
 
 static esp_err_t api_v1_recordings_list_get(httpd_req_t *req) {
+    log_request(req);
     const char *dir = storage_recordings_dir();
     DIR *d = opendir(dir);
     if (!d) {
@@ -181,6 +221,7 @@ static bool uri_to_recording_name(httpd_req_t *req, std::string &out_name) {
 }
 
 static esp_err_t api_v1_recordings_download_get(httpd_req_t *req) {
+    log_request(req);
     std::string name;
     if (!uri_to_recording_name(req, name)) {
         json_send_error(req, 400, "invalid filename");
@@ -215,6 +256,7 @@ static esp_err_t api_v1_recordings_download_get(httpd_req_t *req) {
 }
 
 static esp_err_t api_v1_recordings_delete(httpd_req_t *req) {
+    log_request(req);
     std::string name;
     if (!uri_to_recording_name(req, name)) {
         json_send_error(req, 400, "invalid filename");
