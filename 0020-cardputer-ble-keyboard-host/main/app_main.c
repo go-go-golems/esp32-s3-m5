@@ -17,8 +17,8 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     keylog_init();
-    hid_host_init();
     ble_host_init();
+    hid_host_init();
 
     bt_console_start();
 }

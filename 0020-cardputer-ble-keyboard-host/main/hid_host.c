@@ -20,6 +20,7 @@ static const char *TAG = "hid_host";
 static esp_hidh_dev_t *s_dev = NULL;
 static uint8_t s_last_bda[6] = {0};
 static bool s_has_last_bda = false;
+static bool s_forward_enabled = false;
 
 static void hidh_event_handler(void *handler_arg, esp_event_base_t base, int32_t id, void *event_data) {
     (void)handler_arg;
@@ -85,8 +86,11 @@ void hid_host_init(void) {
         .callback_arg = NULL,
     };
 
+    // Enable forwarding during init: the BLE HID host uses GATTC events internally.
+    s_forward_enabled = true;
     esp_err_t err = esp_hidh_init(&cfg);
     if (err != ESP_OK) {
+        s_forward_enabled = false;
         ESP_LOGE(TAG, "esp_hidh_init failed: %s", esp_err_to_name(err));
         return;
     }
@@ -121,5 +125,10 @@ void hid_host_close(void) {
 }
 
 void hid_host_forward_gattc_event(int event, int gattc_if, void *param) {
-    esp_hidh_gattc_event_handler((esp_gattc_cb_event_t)event, (esp_gatt_if_t)gattc_if, (esp_ble_gattc_cb_param_t *)param);
+    if (!s_forward_enabled) {
+        return;
+    }
+    esp_hidh_gattc_event_handler((esp_gattc_cb_event_t)event,
+                                 (esp_gatt_if_t)gattc_if,
+                                 (esp_ble_gattc_cb_param_t *)param);
 }

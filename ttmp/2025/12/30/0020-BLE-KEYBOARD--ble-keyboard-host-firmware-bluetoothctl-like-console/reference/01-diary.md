@@ -170,3 +170,79 @@ These documents are intended to be “human-readable starting maps” that point
 
 - `025343acfa4da274528bcec5bafb70480f324c2a` — initial ticket docs + new firmware project
 - `18ef2e364e2498bf8288cb23b394ec3ef31cd8f6` — config + HID host glue fixes; project builds
+
+---
+
+## Step 6: First on-device run, crash-loop, and current connect failure
+
+### Goal
+
+Get to the “happy path” for the target keyboard address `DC:2C:26:FD:03:B7`:
+
+1) scan → 2) connect → 3) pair/bond → 4) enable `keylog` → 5) see typed keys over USB serial.
+
+### What happened (timeline)
+
+1) **Crash loop on first flash**
+
+- Initial boot crashed repeatedly with:
+  - `E (...) BLE_HIDH: esp_ble_gattc_app_register failed!`
+  - `E (...) hid_host: esp_hidh_init failed: ESP_ERR_INVALID_STATE`
+  - followed by an assert in the HID host’s internal callback queue:
+    - `assert failed: xQueueGenericSend queue.c:936 (pxQueue)`
+    - backtrace showed `esp_hidh_gattc_event_handler()` calling `SEND_CB()` in `components/esp_hid/src/ble_hidh.c`.
+
+Interpretation:
+
+- We were forwarding GATTC events into the HID host **before** the HID host internal synchronization/queue was initialized.
+- Also, both the app and HID host were competing to call `esp_ble_gattc_app_register(...)`, causing `ESP_ERR_INVALID_STATE`.
+
+Fix applied:
+
+- Ensure BLE stack init happens before HID host init (init order).
+- Stop double-registering a GATTC “app id” in our own code; rely on HID host internals.
+- Allow GATTC forwarding during `esp_hidh_init()` (it depends on GATTC callbacks) but disable forwarding if init fails.
+
+After this, the device boots cleanly and the `ble>` console prompt appears.
+
+2) **Scan results do not include the target address**
+
+- Running `scan on 15` and then `devices` prints a populated registry, but `DC:2C:26:FD:03:B7` is not present.
+
+This may indicate:
+
+- the keyboard is not advertising (or not in connectable/pairing mode),
+- the keyboard is advertising but with a different address (e.g., resolvable private address / random address rotation),
+- our scanning mode is missing relevant frames (scan response parsing, extended scanning, etc.).
+
+3) **Direct connect attempts fail**
+
+Even without seeing the device in scan results, we attempted direct connect/open:
+
+- `connect DC:2C:26:FD:03:B7 pub`
+- `connect DC:2C:26:FD:03:B7 rand`
+
+Observed failure pattern:
+
+- `gattc disconnect: reason=0x100`
+- `BLE_HIDH: OPEN failed: 0x85`
+  - `0x85` corresponds to `ESP_GATT_ERROR` (generic error)
+- `hid_host: esp_hidh_dev_open failed`
+
+So at the moment: **no successful ACL connection / GATT open**, therefore no pairing and no input events.
+
+### Current status
+
+- Firmware boots reliably, console works, scan works, but connecting to `DC:2C:26:FD:03:B7` fails with `reason=0x100` and HID open status `0x85`.
+
+### Artifacts / environment notes
+
+- Firmware project: `esp32-s3-m5/0020-cardputer-ble-keyboard-host/`
+- Running from a tmux session using `idf.py -p /dev/ttyACM0 flash monitor`.
+- Target address to reach: `DC:2C:26:FD:03:B7`
+
+### Next hypotheses to test (local, no-internet)
+
+- If the keyboard rotates addresses (RPA), the address `DC:2C:26:FD:03:B7` might be an identity address or an “old” address; we may need to discover the current RPA via scanning.
+- The “legacy scan registry” currently parses only `adv_data_len` bytes for name; verify whether we should parse the combined buffer (adv + scan response) when looking for HID hints and device name (not necessarily needed for connect, but helps confirm the keyboard is actually seen).
+- Try longer scan durations and ensure keyboard is in connectable mode; connect immediately after it appears.

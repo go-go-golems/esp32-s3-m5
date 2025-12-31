@@ -265,7 +265,6 @@ void ble_host_init(void) {
 
     ESP_ERROR_CHECK(esp_ble_gap_register_callback(gap_cb));
     ESP_ERROR_CHECK(esp_ble_gattc_register_callback(gattc_cb));
-    ESP_ERROR_CHECK(esp_ble_gattc_app_register(0));
 
     set_security_defaults();
 
