@@ -141,3 +141,32 @@ Pairing and scanning are callback-driven, so the console must provide a stable a
 ### Why
 
 These documents are intended to be “human-readable starting maps” that point directly to the ESP-IDF symbols and in-repo examples we will reuse when implementing the actual firmware.
+
+---
+
+## Step 5: Implemented the firmware skeleton + console + key logging
+
+### What I did
+
+- Created a new ESP-IDF project:
+  - `esp32-s3-m5/0020-cardputer-ble-keyboard-host/`
+- Implemented the core modules:
+  - `main/ble_host.c` — Bluedroid init, scan registry, scan control, bond list helpers
+  - `main/hid_host.c` — `esp_hidh` init + HID input handling + GATTC forwarding glue
+  - `main/bt_console.c` — USB Serial/JTAG `esp_console` REPL with bluetoothctl-like commands
+  - `main/keylog.c` — queue-based key logging + minimal HID usage → ASCII (US layout first pass)
+- Built successfully with ESP-IDF v5.4.1 after updating config defaults (flash size + BLE feature flags):
+  - `idf.py set-target esp32s3 && idf.py build`
+
+### Commands implemented
+
+- Discovery: `scan on [seconds]`, `scan off`, `devices`
+- Connection: `connect <index|addr>`, `disconnect`
+- Pairing/bonds: `pair <addr>`, `bonds`, `unpair <addr>`
+- Key output: `keylog on|off`
+- Security replies (when needed): `sec-accept`, `passkey`, `confirm`
+
+### Commits (regular intervals)
+
+- `025343acfa4da274528bcec5bafb70480f324c2a` — initial ticket docs + new firmware project
+- `18ef2e364e2498bf8288cb23b394ec3ef31cd8f6` — config + HID host glue fixes; project builds
