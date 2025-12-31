@@ -11,3 +11,4 @@
 - Added WiFi STA-by-default (with SoftAP fallback) and made SPIFFS recordings path startup-safe for `0021` (commit bbedc38).
 - Added AP+STA mode + per-request HTTP logging to debug network segmentation/timeouts (commit fef0c11).
 - Reduced HTTP log spam (polling endpoints) and fixed recording start on SPIFFS by avoiding directory-only assumptions (commit 778c414).
+- Reduced noisy ESP-IDF WiFi init logs to keep boot output readable (commit c91abca).

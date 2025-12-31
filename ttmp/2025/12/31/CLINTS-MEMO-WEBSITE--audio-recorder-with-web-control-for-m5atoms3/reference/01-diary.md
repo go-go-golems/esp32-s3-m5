@@ -355,3 +355,21 @@ The outcome is: recording start no longer fails on “recordings dir missing”,
 
 ### What should be done in the future
 - Add a `/api/v1/status` field that surfaces storage mount state and free/used bytes to simplify field debugging.
+
+## Step 7: Quiet ESP-IDF WiFi logs earlier (boot readability)
+
+This step is purely about developer ergonomics: even after fixing our HTTP logging, the ESP-IDF WiFi stack still emits a bunch of info logs during init that can bury the handful of lines we actually care about (SoftAP URL, STA IP, storage mount, HTTP server start). The fix is to set ESP-IDF log levels for the noisy WiFi tags *before* `esp_wifi_init()` runs.
+
+**Commit (code):** c91abca — "0021: quiet WiFi logs earlier"
+
+### What I did
+- Moved `esp_log_level_set()` calls earlier in `wifi_common_init()` so they apply before WiFi init log bursts.
+
+### Why
+- Makes the boot sequence readable; the important “what URL do I hit” lines stay visible without scrolling.
+
+### What worked
+- Boot logs are noticeably less noisy while still showing our `atoms3_memo_wifi` summaries and server start.
+
+### What warrants a second pair of eyes
+- Ensure we’re not hiding any important diagnostic logs we’ll want during bring-up; if so, gate behind a config flag or temporarily bump log levels during debugging.
