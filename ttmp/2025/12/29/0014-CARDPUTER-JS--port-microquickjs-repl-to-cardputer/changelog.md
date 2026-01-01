@@ -40,3 +40,25 @@ Closing as blocked on QEMU/serial input bug; investigation moved to new bug tick
 
 Checked off completed meta-tasks (analysis docs, build wrapper, qemu-xtensa install, and spin-off bug tickets 0015 + 0016). Leaving Cardputer port implementation tasks open/deferred.
 
+
+## 2025-12-31
+
+Backfilled diary with stdlib generator provenance (+ -m32 plan), wrote C++ REPL split design + stdlib analysis docs, uploaded PDFs to reMarkable, and added tasks for REPL-only milestone + esp32 stdlib generation.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md — Recorded where 64-bit stdlib comes from and how to generate 32-bit via -m32
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md — Design for C++ split and RepeatEvaluator-first REPL-only bring-up
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Added Steps 7-9 with commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/tasks.md — Added task breakdown for REPL-only firmware and esp32 stdlib generation
+
+
+## 2025-12-31
+
+Step 10: Cardputer flash/CPU defaults + partition sizing (commit 881a761)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/partitions.csv — Enlarge app/storage partitions to Cardputer-friendly sizes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults — Board defaults to avoid 2MB flash partition-table failures
+

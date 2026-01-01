@@ -12,13 +12,35 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: ../../../../../../../../../../.local/bin/remarkable_upload.py
+      Note: Uploader script used to convert ticket markdown to PDF and upload to reMarkable
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c
+      Note: Implements build_atoms and supports -m32/-m64; key to generating an ESP32-safe 32-bit stdlib
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
+      Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
+      Note: Host stdlib generator binary; confirms why esp_stdlib.h was generated as 64-bit by default
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h
+      Note: Firmware-selected empty stdlib; explains missing keyword atoms and 'var' parse failures
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c
+      Note: Generator program main() that calls build_atoms() to emit esp_stdlib.h
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/partitions.csv
+      Note: Cardputer partition layout baseline (4MB app + 1MB SPIFFS) for commit 881a761
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults
+      Note: Cardputer build defaults (8MB flash
+    - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md
+      Note: Primary analysis of stdlib/atom-table split and -m32 generation plan
+    - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md
+      Note: Design doc for splitting firmware main into C++ components and adding RepeatEvaluator
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 # Diary
 
@@ -322,3 +344,259 @@ This step converts the “how it works” understanding into two documents that 
 ### What warrants a second pair of eyes
 
 - Sanity-check the recommended “VM ownership + message passing” architecture against ESP-IDF/FreeRTOS realities (WDT, ISR constraints, timer callbacks).
+
+## Step 7: Track down stdlib generator provenance (why our stdlib is 64-bit) and how to generate an ESP32-safe 32-bit version
+
+This step was prompted by a concrete symptom: our firmware autoload scripts start with `var ...`, but QEMU logs show parse errors like `expecting ';' at 1:5`. That pushed us to scrutinize *how* the MicroQuickJS stdlib/atom table is generated and whether we’re accidentally using a host-architecture table on a 32-bit target.
+
+The key outcome is a practical recipe: we already have a host generator binary in-tree (`esp_stdlib_gen`) and it supports `-m32` to emit a 32-bit ROM table layout suitable for ESP32-S3. The 64-bit table we have today exists because the generator defaulted to `-m64` on an x86_64 host.
+
+### What I did
+
+- Read the diary and code to confirm where stdlib selection happens (`minimal_stdlib.h` included by firmware).
+- Located the generator program source in the imported tree:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c`
+- Located the generator implementation and verified it supports `-m32` / `-m64`:
+  - `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c`
+- Confirmed the prebuilt generator binary is a 64-bit host executable:
+  - Command: `file imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen`
+  - Result: `ELF 64-bit ... x86-64 ...`
+- Verified the generator is what emits `uint64_t` vs `uint32_t` for `js_stdlib_table` by reading the print logic:
+  - It prints `uint%u_t` where `%u = JSW*8`.
+  - `JSW` defaults to pointer width, but can be forced with `-m32` or `-m64`.
+- Captured these findings in the analysis doc so they don’t get lost:
+  - `analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md`
+
+### Why
+
+- We need a stdlib/atom table that matches the embedded engine’s `JSWord` size (ESP32-S3 is 32-bit).
+- The symptom (`var` not parsing) is consistent with the “empty stdlib table” lacking keyword atoms, but we also need to avoid accidentally switching to a host-generated 64-bit stdlib table that won’t match the embedded layout.
+
+### What worked
+
+- Found a direct lever in the generator: `-m32` is explicitly supported and designed to generate a 32-bit ROM table layout from a host tool.
+- Confirmed our checked-in `esp_stdlib.h` is 64-bit in shape (`uint64_t js_stdlib_table[]`), which is consistent with it being produced by running the generator on x86_64 without `-m32`.
+
+### What didn’t work
+
+- The existing diary (before this step) explained the “stdlib table” concept, but didn’t record the crucial “where 64-bit comes from” provenance nor the explicit `-m32` mechanism. That gap likely would have cost time later.
+
+### What I learned
+
+- MicroQuickJS’s stdlib generator (`build_atoms`) is architecture-aware:
+  - it defaults to host pointer width, but has a supported override (`-m32`/`-m64`).
+- This means we can generate correct ESP32 tables without needing a 32-bit host toolchain:
+  - `./esp_stdlib_gen -m32 > esp32_stdlib.h` is the conceptual move.
+
+### What was tricky to build
+
+- Separating two independent issues that look similar in logs:
+  1) “minimal stdlib has no keyword atoms so `var` may not parse”, and
+  2) “full stdlib exists but our checked-in version is likely host-64-bit layout and not safe to use on ESP32”.
+
+### What warrants a second pair of eyes
+
+- Confirm the exact contract between ROM table layout and target `JSWord` size:
+  - we should validate (by inspection and/or a small runtime test) that a `-m32` generated header is correct for ESP32-S3 and doesn’t assume host endianness or pointer tagging details beyond `JSW`.
+
+### What should be done in the future
+
+- Introduce a reproducible regeneration path for an ESP32-safe stdlib header and wire build-time selection so we never accidentally compile in a 64-bit stdlib on ESP32.
+
+### Code review instructions
+
+- Start with `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c` and search for `-m32` / `-m64` to see how the generator sets `JSW`.
+- Then open `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h` and confirm it declares `uint64_t` to understand why it’s host-shaped.
+
+### Technical details
+
+Example command for generating a 32-bit header from the existing host binary:
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl/main
+./esp_stdlib_gen -m32 > esp32_stdlib.h
+```
+
+Expected sanity check:
+
+- `esp32_stdlib.h` starts with `static const uint32_t ... js_stdlib_table[]`.
+
+### What I’d do differently next time
+
+- When we first noticed `minimal_stdlib.h` was in use, I should have immediately checked whether the generator supports `-m32` and recorded it in the diary before moving on.
+
+## Step 8: Write a C++ split design + stdlib analysis and publish PDFs to reMarkable for review
+
+This step turned the “we should decouple REPL I/O from JS/storage” intuition into two long-form documents: a design doc for splitting the firmware into C++ components with pluggable evaluators, and an analysis doc explaining the stdlib/atom-table situation (including the 64-bit generator provenance and the `-m32` plan).
+
+The impact is that we now have a shareable reference artifact (PDF on reMarkable) that can guide implementation and review without re-reading the codebase from scratch.
+
+### What I did
+
+- Created and filled a design document for modularizing the firmware:
+  - `design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md`
+  - Included proposed module boundaries, interfaces, meta-commands, diagrams, and a “RepeatEvaluator” to validate REPL I/O without JS.
+- Created and filled an analysis document on stdlib/atom tables:
+  - `analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md`
+  - Added an explicit section on “where 64-bit comes from” and how to generate 32-bit via `-m32`.
+- Uploaded all ticket analysis + design docs as PDFs to reMarkable using:
+  - `python3 /home/manuel/.local/bin/remarkable_upload.py`
+  - Using `--ticket-dir ... --mirror-ticket-structure` to avoid name collisions.
+
+### Why
+
+- We need a clear implementation plan that separates “REPL correctness” from “JS correctness”.
+- We need a durable explanation of the stdlib/keyword situation so future work doesn’t keep rediscovering the same conclusions.
+
+### What worked
+
+- The uploader workflow (dry-run, then upload) produced PDFs under `ai/2025/12/29/...` mirroring the ticket structure, which is ideal for annotation.
+
+### What didn’t work
+
+- N/A (no failures encountered during doc generation and upload).
+
+### What I learned
+
+- Writing the docs forced clarity on the *first* test milestone: a REPL that works even when JS and storage are disabled.
+
+### What was tricky to build
+
+- Keeping the docs “intern-friendly” while also being precise about MicroQuickJS’s table-driven model (C function indices, finalizer tables, and GC ref patterns).
+
+### What warrants a second pair of eyes
+
+- Reviewers should sanity-check that the proposed REPL split doesn’t accidentally reintroduce global shared state or encourage cross-task `JSContext` access.
+
+### What should be done in the future
+
+- Once the REPL-only firmware exists, confirm it behaves the same across:
+  - QEMU (TCP serial)
+  - Cardputer USB Serial JTAG
+
+### Code review instructions
+
+- Start with the design doc and confirm the proposed interfaces match what ESP-IDF can realistically implement (UART, USB Serial JTAG).
+- Then check the analysis doc’s generator details against `mquickjs_build.c` to ensure the `-m32` plan is correct.
+
+### Technical details
+
+Uploader invocation pattern used:
+
+```bash
+ticket_dir="/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer"
+python3 /home/manuel/.local/bin/remarkable_upload.py --ticket-dir "$ticket_dir" --mirror-ticket-structure --dry-run "$ticket_dir"/analysis/*.md "$ticket_dir"/design-doc/*.md
+python3 /home/manuel/.local/bin/remarkable_upload.py --ticket-dir "$ticket_dir" --mirror-ticket-structure "$ticket_dir"/analysis/*.md "$ticket_dir"/design-doc/*.md
+```
+
+### What I’d do differently next time
+
+- Draft the REPL split interfaces earlier (even as pseudocode) before diving into deeper engine internals, since the REPL split governs how we debug everything else.
+
+## Step 9: Convert design into an actionable task plan (REPL-only first, then JS, then storage)
+
+After writing the design, the next risk was “we have a doc but no actionable checklist”. This step translated the design into docmgr tasks so progress can be tracked, delegated, and resumed without re-deriving scope.
+
+The output is a concrete set of tasks that start with the smallest shippable milestone: a “REPL-only firmware variant” with a repeat evaluator (no MicroQuickJS, no SPIFFS) to validate the console + line discipline first.
+
+### What I did
+
+- Added docmgr tasks to ticket `0014-CARDPUTER-JS` covering:
+  - C++ component split
+  - `IConsole`/`UartConsole`
+  - `LineEditor`/`ReplLoop`
+  - `IEvaluator` + `RepeatEvaluator`
+  - meta-commands (`:help`, `:mode`, `:prompt`)
+  - REPL-only build variant and QEMU smoke test
+- Added docmgr tasks for the stdlib generation work:
+  - provenance + `-m32` regeneration
+  - script/target for regeneration
+  - build-time selection between minimal and generated stdlib
+  - validation that `var` parses once wired
+
+### Why
+
+- The project has multiple interleaved workstreams (Cardputer port, QEMU input, SPIFFS, stdlib correctness). Tasks let us pick a path (REPL-only) without losing the other threads.
+
+### What worked
+
+- Tasks are now explicit and ordered so that we can unblock REPL correctness first, then revisit MicroQuickJS and storage.
+
+### What didn’t work
+
+- N/A.
+
+### What I learned
+
+- Making the “stdlib generation” work explicit as tasks reduces the chance that we keep assuming `esp_stdlib.h` is safe for ESP32 when it may be host-shaped.
+
+### What was tricky to build
+
+- Choosing task granularity: too coarse and we can’t track progress; too fine and we drown in checklist items.
+
+### What warrants a second pair of eyes
+
+- Review the task ordering: ensure “REPL-only firmware” genuinely avoids storage + JS initialization so it can serve as a clean transport test.
+
+### What should be done in the future
+
+- When we start implementing these tasks, capture each major milestone as a diary step with build/test commands and any QEMU/Cardputer behavioral differences.
+
+### Code review instructions
+
+- Open `tasks.md` and confirm tasks for:
+  - REPL-only milestone
+  - stdlib regeneration (`-m32`)
+  - build-system updates
+
+### Technical details
+
+Commands used:
+
+```bash
+docmgr task list --ticket 0014-CARDPUTER-JS
+docmgr task add --ticket 0014-CARDPUTER-JS --text "..."
+```
+
+## Step 10: Add Cardputer flash/CPU defaults + enlarge partition table
+
+This step updates the imported `mqjs-repl` firmware project so its default configuration matches Cardputer expectations: 8MB flash, 240MHz CPU, a larger main task stack, and a partition table that can actually hold the REPL firmware plus a usable SPIFFS storage region.
+
+The practical unlock is that we stop fighting the “2MB flash” default and can move forward with the Cardputer port (USB Serial JTAG console, storage, and JS fixes) without repeatedly hitting partition sizing errors.
+
+**Commit (code):** 881a761 — "mqjs-repl: Cardputer flash+partition defaults"
+
+### What I did
+- Added `imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults` with Cardputer-oriented defaults (8MB flash, 240MHz CPU, 8k main task stack)
+- Updated `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv` to:
+  - `factory` app = 4MB
+  - `storage` SPIFFS = 1MB
+- Rebuilt the project with `./build.sh build` to confirm the partition table passes size checks
+
+### Why
+- Cardputer typically ships with 8MB flash; keeping a 2MB flash config guarantees partition table failures once we allocate a realistic app + storage layout.
+- A 4MB app partition leaves room for the MicroQuickJS REPL + future C++ split work without immediately running into “app too big” constraints.
+
+### What worked
+- `./build.sh build` succeeds and reports the generated flash args using `--flash_size 8MB`.
+
+### What didn't work
+- Before the flash-size config was aligned, the build failed when generating the partition table with:
+  - `Partitions tables occupies 5.1MB of flash (5308416 bytes) which does not fit in configured flash size 2MB.`
+
+### What I learned
+- `sdkconfig.defaults` is the right place to carry “board defaults” for reproducible builds, especially since `sdkconfig` is gitignored in this repo and won’t be present/consistent across environments.
+
+### What was tricky to build
+- Avoiding the trap of “it builds for me” by relying on a local `sdkconfig` file that isn’t tracked; defaults must be sufficient on their own for a clean configure/build.
+
+### What warrants a second pair of eyes
+- Confirm the Cardputer partition sizing is the right baseline (4MB app + 1MB SPIFFS) and whether we should reserve additional partitions (e.g., coredump) before we start depending on the layout.
+
+### What should be done in the future
+- Add a `Cardputer`-specific bring-up note: how to apply these defaults from a clean tree (e.g., delete build artifacts and regenerate config) so contributors don’t accidentally keep a stale 2MB flash config.
+
+### Code review instructions
+- Review `imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults` and `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv`
+- Validate with:
+  - `cd imports/esp32-mqjs-repl/mqjs-repl && ./build.sh build`

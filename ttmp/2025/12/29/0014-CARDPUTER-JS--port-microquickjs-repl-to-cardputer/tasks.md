@@ -4,8 +4,8 @@
 
 - [x] Test QEMU execution of current firmware to verify it builds and runs correctly
 - [ ] Create implementation plan document outlining code changes needed for Cardputer port
-- [ ] Create sdkconfig.defaults with Cardputer configuration (8MB flash, 240MHz CPU, 8000 byte main task stack)
-- [ ] Update partitions.csv for Cardputer (4MB app partition, 1MB SPIFFS storage partition)
+- [x] Create sdkconfig.defaults with Cardputer configuration (8MB flash, 240MHz CPU, 8000 byte main task stack)
+- [x] Update partitions.csv for Cardputer (4MB app partition, 1MB SPIFFS storage partition)
 - [ ] Replace UART driver with USB Serial JTAG driver in main.c (repl_task and initialization)
 - [ ] Verify memory budget: ensure 64KB JS heap + buffers fit within Cardputer's 512KB SRAM constraint
 - [ ] Test firmware on Cardputer hardware (verify USB Serial JTAG works, SPIFFS mounts, REPL functions)
@@ -15,3 +15,16 @@
 - [x] Install qemu-xtensa via idf_tools so idf.py qemu can run
 - [x] Spin off QEMU REPL input bug into ticket 0015-QEMU-REPL-INPUT
 - [x] Spin off SPIFFS/autoload JS parse errors into ticket 0016-SPIFFS-AUTOLOAD
+- [ ] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially
+- [ ] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
+- [ ] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
+- [ ] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS
+- [ ] Add REPL meta-commands (e.g. :help, :mode, :prompt) and default to repeat mode in QEMU/dev builds
+- [ ] Build 'REPL-only' firmware variant: disable SPIFFS/autoload and do not initialize MicroQuickJS (repeat evaluator only)
+- [ ] Update ESP-IDF build config (main/CMakeLists, .cpp sources, includes) to compile the new component split cleanly
+- [ ] Smoke-test REPL-only firmware under QEMU: verify interactive input echoes and prompt redraw works (no JS, no storage)
+- [ ] Stdlib: trace provenance of esp_stdlib.h (host generator) and document how to regenerate for ESP32 (use -m32)
+- [ ] Stdlib: generate and commit a 32-bit stdlib header (e.g. esp32_stdlib.h) using esp_stdlib_gen -m32; verify it contains keyword atoms (var/function/return)
+- [ ] Stdlib: add a reproducible script/Make target to regenerate the ESP32 stdlib header (and optionally atom defines via -a)
+- [ ] Firmware: add build-time selection between minimal_stdlib and generated esp32 stdlib (Kconfig/sdkconfig.defaults), without mixing 64-bit tables on ESP32
+- [ ] Validation: once esp32 stdlib is wired, run a minimal script that starts with 'var' (and a function) to confirm parsing works on target/QEMU
