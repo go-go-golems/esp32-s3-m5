@@ -103,7 +103,7 @@ send_line() {
 }
 
 echo "Waiting for REPL prompt in QEMU..." >&2
-if ! wait_for_fixed "repeat> "; then
+if ! wait_for_fixed "repeat>"; then
   capture >"${LOG_PATH}"
   echo "Timed out waiting for prompt; captured output at: ${LOG_PATH}" >&2
   exit 1
@@ -113,6 +113,7 @@ send_line ":mode"
 if ! wait_for_fixed "mode: repeat"; then
   capture >"${LOG_PATH}"
   echo "Did not see expected ':mode' output; captured output at: ${LOG_PATH}" >&2
+  echo "Hint: if the log shows 'repeat> ' but none of the typed input is echoed, QEMU monitor input is likely still broken (ticket 0015)." >&2
   exit 1
 fi
 
@@ -124,7 +125,7 @@ if ! wait_for_fixed "hello-qemu"; then
 fi
 
 send_line ":prompt test> "
-if ! wait_for_fixed "test> "; then
+if ! wait_for_fixed "test>"; then
   capture >"${LOG_PATH}"
   echo "Did not see updated prompt; captured output at: ${LOG_PATH}" >&2
   exit 1

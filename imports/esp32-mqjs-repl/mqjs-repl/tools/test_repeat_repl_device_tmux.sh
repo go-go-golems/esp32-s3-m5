@@ -125,7 +125,7 @@ send_line() {
 }
 
 echo "Waiting for REPL prompt on device (${PORT})..." >&2
-if ! wait_for_fixed "repeat> "; then
+if ! wait_for_fixed "repeat>"; then
   capture >"${LOG_PATH}"
   echo "Timed out waiting for prompt; captured output at: ${LOG_PATH}" >&2
   exit 1
@@ -146,7 +146,7 @@ if ! wait_for_fixed "hello-device"; then
 fi
 
 send_line ":prompt test> "
-if ! wait_for_fixed "test> "; then
+if ! wait_for_fixed "test>"; then
   capture >"${LOG_PATH}"
   echo "Did not see updated prompt; captured output at: ${LOG_PATH}" >&2
   exit 1
