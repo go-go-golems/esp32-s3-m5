@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "freertos/FreeRTOS.h"
 
@@ -21,8 +22,10 @@
 
 static const char *TAG = "ble_host";
 
-// Keep the "device registry" small and bounded.
-#define MAX_DEVICES 20
+// Keep the "device registry" bounded; this is the list shown by `devices`.
+// (Scan results can be much larger; we keep the most recently seen devices.)
+#define MAX_DEVICES 100
+#define DEVICE_STALE_MS 30000
 
 static ble_host_device_t s_devices[MAX_DEVICES];
 static int s_num_devices = 0;
@@ -31,10 +34,18 @@ static uint32_t s_pending_scan_seconds = 0;
 static bool s_scanning = false;
 static bool s_auto_accept_sec_req = true;
 static bool s_auto_confirm_nc = true;
+static bool s_device_events_enabled = true;
+static uint32_t s_last_prune_ms = 0;
 
 static bool s_pending_connect = false;
 static uint8_t s_pending_connect_bda[6] = {0};
 static uint8_t s_pending_connect_addr_type = BLE_ADDR_TYPE_PUBLIC;
+
+static bool s_connected = false;
+static uint8_t s_connected_bda[6] = {0};
+
+static bool s_pending_pair = false;
+static uint8_t s_pending_pair_bda[6] = {0};
 
 static uint32_t now_ms(void) {
     return (uint32_t)(esp_timer_get_time() / 1000);
@@ -48,6 +59,89 @@ static void bda_to_str(const uint8_t bda[6], char out[18]) {
     snprintf(out, 18, "%02x:%02x:%02x:%02x:%02x:%02x", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
 }
 
+static void bda_to_str_dash(const uint8_t bda[6], char out[18]) {
+    snprintf(out, 18, "%02X-%02X-%02X-%02X-%02X-%02X", bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
+}
+
+static void clear_connection_state(void) {
+    s_connected = false;
+    memset(s_connected_bda, 0, sizeof(s_connected_bda));
+}
+
+static bool start_encryption_for_peer(const uint8_t bda[6]) {
+    if (!bda) return false;
+    esp_err_t err = esp_ble_set_encryption((uint8_t *)bda, ESP_BLE_SEC_ENCRYPT_NO_MITM);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "set_encryption failed: %s", esp_err_to_name(err));
+        return false;
+    }
+    return true;
+}
+
+static void print_device_event_new(const uint8_t bda[6], const char *name) {
+    if (!s_device_events_enabled) return;
+    char addr[18] = {0};
+    bda_to_str(bda, addr);
+    if (name && *name) {
+        printf("[NEW] Device %s %s\n", addr, name);
+    } else {
+        char dash[18] = {0};
+        bda_to_str_dash(bda, dash);
+        printf("[NEW] Device %s %s\n", addr, dash);
+    }
+}
+
+static void print_device_event_del(const uint8_t bda[6], const char *name) {
+    if (!s_device_events_enabled) return;
+    char addr[18] = {0};
+    bda_to_str(bda, addr);
+    if (name && *name) {
+        printf("[DEL] Device %s %s\n", addr, name);
+    } else {
+        char dash[18] = {0};
+        bda_to_str_dash(bda, dash);
+        printf("[DEL] Device %s %s\n", addr, dash);
+    }
+}
+
+static void print_device_event_chg_rssi(const uint8_t bda[6], int rssi) {
+    if (!s_device_events_enabled) return;
+    char addr[18] = {0};
+    bda_to_str(bda, addr);
+    printf("[CHG] Device %s RSSI: 0x%08" PRIx32 " (%d)\n", addr, (uint32_t)rssi, rssi);
+}
+
+static void print_device_event_chg_name(const uint8_t bda[6], const char *name) {
+    if (!s_device_events_enabled) return;
+    if (!name || !*name) return;
+    char addr[18] = {0};
+    bda_to_str(bda, addr);
+    printf("[CHG] Device %s Name: %s\n", addr, name);
+}
+
+static void remove_device_at(int idx) {
+    if (idx < 0 || idx >= s_num_devices) return;
+    print_device_event_del(s_devices[idx].bda, s_devices[idx].name);
+    for (int i = idx + 1; i < s_num_devices; i++) {
+        s_devices[i - 1] = s_devices[i];
+    }
+    s_num_devices--;
+    if (s_num_devices < 0) s_num_devices = 0;
+}
+
+static void prune_stale_devices(uint32_t now) {
+    if (now - s_last_prune_ms < 1000) return;
+    s_last_prune_ms = now;
+
+    // Remove devices that haven't been seen in a while.
+    for (int i = s_num_devices - 1; i >= 0; i--) {
+        const uint32_t age = now - s_devices[i].last_seen_ms;
+        if (age > DEVICE_STALE_MS) {
+            remove_device_at(i);
+        }
+    }
+}
+
 static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int rssi, const char *name) {
     int idx = -1;
     for (int i = 0; i < s_num_devices; i++) {
@@ -56,7 +150,15 @@ static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int 
             break;
         }
     }
-    if (idx < 0) {
+    const bool is_new = (idx < 0);
+    int prev_rssi = 0;
+    char prev_name[32] = {0};
+    if (!is_new) {
+        prev_rssi = s_devices[idx].rssi;
+        snprintf(prev_name, sizeof(prev_name), "%s", s_devices[idx].name);
+    }
+
+    if (is_new) {
         if (s_num_devices >= MAX_DEVICES) {
             // Simple eviction: overwrite oldest by last_seen_ms.
             uint32_t oldest = s_devices[0].last_seen_ms;
@@ -67,6 +169,8 @@ static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int 
                     idx = i;
                 }
             }
+            // Overwrite implies eviction (a DEL + NEW pair).
+            print_device_event_del(s_devices[idx].bda, s_devices[idx].name);
         } else {
             idx = s_num_devices++;
         }
@@ -80,19 +184,35 @@ static void update_device_registry(const uint8_t bda[6], uint8_t addr_type, int 
     if (name && *name) {
         snprintf(s_devices[idx].name, sizeof(s_devices[idx].name), "%s", name);
     }
+
+    if (is_new && idx < s_num_devices) {
+        print_device_event_new(bda, s_devices[idx].name);
+        return;
+    }
+
+    // Change events for existing devices.
+    if (!is_new) {
+        if (rssi != prev_rssi) {
+            print_device_event_chg_rssi(bda, rssi);
+        }
+        if (name && *name && strncmp(prev_name, s_devices[idx].name, sizeof(s_devices[idx].name)) != 0) {
+            print_device_event_chg_name(bda, s_devices[idx].name);
+        }
+    }
 }
 
 static void handle_scan_result(const struct ble_scan_result_evt_param *scan_rst) {
     char name_buf[32] = {0};
 
     uint8_t name_len = 0;
+    const uint16_t eir_len = (uint16_t)scan_rst->adv_data_len + (uint16_t)scan_rst->scan_rsp_len;
     uint8_t *name = esp_ble_resolve_adv_data_by_type((uint8_t *)scan_rst->ble_adv,
-                                                    (uint16_t)scan_rst->adv_data_len,
+                                                    eir_len,
                                                     ESP_BLE_AD_TYPE_NAME_CMPL,
                                                     &name_len);
     if (!name) {
         name = esp_ble_resolve_adv_data_by_type((uint8_t *)scan_rst->ble_adv,
-                                               (uint16_t)scan_rst->adv_data_len,
+                                               eir_len,
                                                ESP_BLE_AD_TYPE_NAME_SHORT,
                                                &name_len);
     }
@@ -106,6 +226,8 @@ static void handle_scan_result(const struct ble_scan_result_evt_param *scan_rst)
                            (uint8_t)scan_rst->ble_addr_type,
                            (int)scan_rst->rssi,
                            name_buf[0] ? name_buf : NULL);
+
+    prune_stale_devices(now_ms());
 }
 
 static esp_ble_scan_params_t s_scan_params = {
@@ -140,6 +262,7 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
         case ESP_GAP_SEARCH_INQ_CMPL_EVT:
             s_scanning = false;
             ESP_LOGI(TAG, "scan complete: num_resps=%u", (unsigned)param->scan_rst.num_resps);
+            prune_stale_devices(now_ms());
             break;
         default:
             break;
@@ -162,6 +285,7 @@ static void gap_cb(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) 
                  (unsigned)param->scan_stop_cmpl.status,
                  bt_decode_bt_status_name(param->scan_stop_cmpl.status),
                  bt_decode_bt_status_desc(param->scan_stop_cmpl.status));
+        prune_stale_devices(now_ms());
         if (s_pending_connect) {
             char a[18] = {0};
             bda_to_str(s_pending_connect_bda, a);
@@ -247,6 +371,10 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
 
     switch (event) {
     case ESP_GATTC_CONNECT_EVT:
+        if (param) {
+            s_connected = true;
+            memcpy(s_connected_bda, param->connect.remote_bda, sizeof(s_connected_bda));
+        }
         ESP_LOGI(TAG, "gattc connect: conn_id=%u", (unsigned)param->connect.conn_id);
         break;
     case ESP_GATTC_OPEN_EVT: {
@@ -260,6 +388,21 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
                  (unsigned)param->open.conn_id,
                  (unsigned)param->open.mtu,
                  a);
+
+        if (param->open.status == ESP_GATT_OK) {
+            s_connected = true;
+            memcpy(s_connected_bda, param->open.remote_bda, sizeof(s_connected_bda));
+        }
+
+        if (s_pending_pair && bda_equal(s_pending_pair_bda, param->open.remote_bda)) {
+            if (param->open.status != ESP_GATT_OK) {
+                ESP_LOGW(TAG, "pair pending: open failed; not starting encryption");
+            } else {
+                ESP_LOGI(TAG, "pair pending: starting encryption now");
+                (void)start_encryption_for_peer(param->open.remote_bda);
+            }
+            s_pending_pair = false;
+        }
         break;
     }
     case ESP_GATTC_DISCONNECT_EVT:
@@ -269,6 +412,8 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
                  bt_decode_gatt_conn_reason_name(param->disconnect.reason),
                  bt_decode_gatt_conn_reason_desc(param->disconnect.reason),
                  (unsigned)param->disconnect.conn_id);
+        clear_connection_state();
+        s_pending_pair = false;
         break;
     case ESP_GATTC_CLOSE_EVT:
         ESP_LOGI(TAG,
@@ -280,6 +425,8 @@ static void gattc_cb(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble
                  bt_decode_gatt_conn_reason_name(param->close.reason),
                  bt_decode_gatt_conn_reason_desc(param->close.reason),
                  (unsigned)param->close.conn_id);
+        clear_connection_state();
+        s_pending_pair = false;
         break;
     default:
         break;
@@ -362,13 +509,41 @@ void ble_host_scan_stop(void) {
     }
 }
 
-void ble_host_devices_print(void) {
+static bool strcasestr_simple(const char *haystack, const char *needle) {
+    if (!needle || !*needle) return true;
+    if (!haystack) return false;
+    const size_t nlen = strlen(needle);
+    for (const char *p = haystack; *p; p++) {
+        size_t i = 0;
+        for (; i < nlen; i++) {
+            const unsigned char hc = (unsigned char)p[i];
+            if (!hc) break;
+            const unsigned char nc = (unsigned char)needle[i];
+            if ((unsigned char)tolower(hc) != (unsigned char)tolower(nc)) break;
+        }
+        if (i == nlen) return true;
+    }
+    return false;
+}
+
+void ble_host_devices_print(const char *filter_substr) {
+    const char *filter = (filter_substr && *filter_substr) ? filter_substr : NULL;
+    printf("devices: %d/%d (most recently seen)%s%s\n",
+           s_num_devices,
+           MAX_DEVICES,
+           filter ? " filter=" : "",
+           filter ? filter : "");
     printf("idx  addr              type rssi  age_ms  name\n");
     const uint32_t now = now_ms();
     for (int i = 0; i < s_num_devices; i++) {
         char a[18] = {0};
         bda_to_str(s_devices[i].bda, a);
         const uint32_t age = now - s_devices[i].last_seen_ms;
+        if (filter) {
+            if (!strcasestr_simple(a, filter) && !strcasestr_simple(s_devices[i].name, filter)) {
+                continue;
+            }
+        }
         printf("%-4d %-17s %-4s %-5d %-7" PRIu32 " %s\n",
                i,
                a,
@@ -379,11 +554,39 @@ void ble_host_devices_print(void) {
     }
 }
 
+void ble_host_devices_clear(void) {
+    for (int i = s_num_devices - 1; i >= 0; i--) {
+        remove_device_at(i);
+    }
+    memset(s_devices, 0, sizeof(s_devices));
+    s_num_devices = 0;
+    s_last_prune_ms = 0;
+}
+
+void ble_host_devices_events_set_enabled(bool enabled) {
+    s_device_events_enabled = enabled;
+}
+
+bool ble_host_devices_events_get_enabled(void) {
+    return s_device_events_enabled;
+}
+
 bool ble_host_device_get_by_index(int index, ble_host_device_t *out) {
     if (!out) return false;
     if (index < 0 || index >= s_num_devices) return false;
     *out = s_devices[index];
     return true;
+}
+
+bool ble_host_device_get_by_bda(const uint8_t bda[6], ble_host_device_t *out) {
+    if (!bda || !out) return false;
+    for (int i = 0; i < s_num_devices; i++) {
+        if (bda_equal(s_devices[i].bda, bda)) {
+            *out = s_devices[i];
+            return true;
+        }
+    }
+    return false;
 }
 
 bool ble_host_connect(const uint8_t bda[6], uint8_t addr_type) {
@@ -402,14 +605,24 @@ void ble_host_disconnect(void) {
     hid_host_close();
 }
 
-bool ble_host_pair(const uint8_t bda[6]) {
+bool ble_host_pair(const uint8_t bda[6], uint8_t addr_type) {
     if (!bda) return false;
-    esp_err_t err = esp_ble_set_encryption((uint8_t *)bda, ESP_BLE_SEC_ENCRYPT_NO_MITM);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "set_encryption failed: %s", esp_err_to_name(err));
-        return false;
+
+    if (s_connected) {
+        if (!bda_equal(s_connected_bda, bda)) {
+            char want[18] = {0};
+            char have[18] = {0};
+            bda_to_str(bda, want);
+            bda_to_str(s_connected_bda, have);
+            ESP_LOGE(TAG, "pair: already connected to %s; disconnect first (wanted %s)", have, want);
+            return false;
+        }
+        return start_encryption_for_peer(bda);
     }
-    return true;
+
+    s_pending_pair = true;
+    memcpy(s_pending_pair_bda, bda, sizeof(s_pending_pair_bda));
+    return ble_host_connect(bda, addr_type);
 }
 
 void ble_host_bonds_print(void) {

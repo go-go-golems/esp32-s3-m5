@@ -12,20 +12,34 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0020-cardputer-ble-keyboard-host/README.md
+      Note: Updated console quickstart with new commands
     - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
       Note: |-
         Crash-loop forwarding path captured in Step 6
         Implements decoded logging + scan-stop→open sequencing (commit 6a96946)
+        Device registry events
+    - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.h
+      Note: Public APIs for devices filtering/clear/events and updated pair signature
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_console.c
       Note: |-
         Step 8 adds  command (commit 005f98f)
         Step 8 adds the codes command entrypoint (commit 005f98f)
+        Console UX for devices filter/clear/events and pair by index
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.c
       Note: |-
         Step 8 adds centralized decoding + codes command (commit 005f98f)
         Step 8 adds centralized decoding + codes console command (commit 005f98f)
     - Path: 0020-cardputer-ble-keyboard-host/main/hid_host.c
       Note: Crash-loop and fix captured in Step 6
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/playbook/03-using-ble-console-to-scan-connect-pair-and-keylog-a-ble-keyboard.md
+      Note: Updated operator instructions for devices filter/events and pair-by-index
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/flash_monitor_tmux.sh
+      Note: One-command flash + tmux monitor session
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py
+      Note: plz-confirm-driven flash/scan/pair flow to avoid timing gaps
+    - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.sh
+      Note: Wrapper for pair_debug.py
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/sources/ble-gatt-bug-report-research.md
       Note: Source material for Step 7 mapping (0x85/0x0100)
 ExternalSources: []
@@ -34,6 +48,7 @@ LastUpdated: 2025-12-30T20:04:39.868197534-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -440,3 +455,226 @@ python3 /home/manuel/.local/bin/remarkable_upload.py \
 
 - Re-running the upload without `--force` failed with:
   - `Error: entry already exists (use --force to recreate, --content-only to replace content)`
+
+---
+
+## Step 10: Make discovery usable (bigger list, filter, clear, events, better names)
+
+This step was about making live pairing attempts actually operable in a noisy RF environment. The prior `devices` view was too small and too hard to “grep”, which meant the keyboard was often missed even when scanning succeeded. The goal was a tight loop: scan → identify → connect/pair, with minimal cognitive overhead.
+
+The biggest correctness fix here was name extraction: many devices only provide the “Complete Local Name” in the scan response, not the advertisement. If you pass only `adv_data_len` into `esp_ble_resolve_adv_data_by_type`, you end up with a device list that looks unnamed (and therefore useless) even though the information is present.
+
+**Commit (code):** N/A (uncommitted working tree)
+
+### What I did
+- Increased the device registry cap and made `devices` print `devices: <count>/<cap>` so it’s obvious when we’re dropping/evicting.
+- Added substring filtering to `devices`:
+  - `ble> devices c5:24` matches `f1:c5:24:...`
+  - filter matches case-insensitively against both address and name.
+- Added device registry management:
+  - `ble> devices clear`
+  - `ble> devices events on|off` (tames noisy `[CHG]` output).
+- Implemented bluetoothctl-like discovery events on the serial console:
+  - `[NEW] Device <addr> <name-or-dashed-addr>`
+  - `[CHG] Device <addr> RSSI: 0x<hex> (<dec>)`
+  - `[CHG] Device <addr> Name: <name>`
+  - `[DEL] Device <addr> <name-or-dashed-addr>`
+- Added stale pruning (age-based deletion) to surface `[DEL]` when a device “disappears”:
+  - `DEVICE_STALE_MS=30000` (hard-coded for now).
+- Fixed name parsing by treating scan response bytes as part of the EIR buffer:
+  - `eir_len = adv_data_len + scan_rsp_len`
+  - use that combined length for both `ESP_BLE_AD_TYPE_NAME_CMPL` and `ESP_BLE_AD_TYPE_NAME_SHORT` resolution.
+
+### Why
+- A 20-entry registry was a hard UX failure in dense environments (the keyboard may be discovered, but evicted before you can act).
+- Substring filtering is the operator equivalent of `bluetoothctl | grep`: it’s the fastest path from “I saw a partial address elsewhere” to “I can target it here”.
+- `[NEW]/[CHG]/[DEL]` makes it obvious when devices are flapping, when RSSI is changing, and when they’re aging out.
+- “Only a few names” was a data-parsing bug, not a device behavior; fixing it reduces guesswork dramatically.
+
+### What worked
+- After the EIR length fix, names appear for many more devices (especially those that only reply with names in scan response).
+- During scans, the console now produces “bluetoothctl-like” evidence that something is happening (without requiring you to spam `devices`).
+- `devices <substr>` is sufficient to narrow to a candidate address quickly.
+
+### What didn't work
+- Before the EIR fix, scans looked like they succeeded (RSSI populated) but most names remained `(no name)`, which was misleading during keyboard hunting.
+- The first version of `devices` filtering didn’t exist, so “I know the keyboard has `…c5:24…`” was not actionable without manually eyeballing the whole table.
+
+### What I learned
+- In ESP-IDF’s GAP scan result struct, `ble_adv` is a combined buffer and you must use `adv_data_len + scan_rsp_len` when parsing higher-level fields like names.
+- UX improvements can be correctness improvements: better name extraction turns a “random list of MACs” into something operators can reason about.
+
+### What was tricky to build
+- Index stability vs. deletion: `connect <idx>`/`pair <idx>` is very convenient, but any deletion (pruning/eviction) shifts indices. This is safe as long as operators treat indices as ephemeral, but it’s easy to accidentally use a stale index after more scan traffic.
+- Logging volume: printing `[CHG]` on every RSSI update can be noisy; the events toggle exists to keep the tool usable.
+
+### What warrants a second pair of eyes
+- Confirm that pruning + index-based connect/pair is an acceptable UX contract (or decide to remove pruning, or switch to tombstones/stable IDs).
+- Validate that printing from the GAP callback won’t cause timing issues or starve other BT work in dense environments.
+
+### What should be done in the future
+- Document the operator contract explicitly: “device indices are a live view and can change while scanning”.
+- Consider making `DEVICE_STALE_MS` configurable via a console command (or disable pruning by default and make it opt-in).
+- If event spam is still too high, add simple throttling (e.g., only print RSSI changes if delta ≥ N dB or after X ms).
+
+### Code review instructions
+- Start in `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`:
+  - `handle_scan_result` (EIR length and name resolution)
+  - `update_device_registry` (events + change detection)
+  - `prune_stale_devices` / `remove_device_at` (deletion semantics)
+- Then review `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c` for:
+  - `devices` parsing (`clear`, `events`, substring filtering).
+
+### Technical details
+- ESP-IDF scan result layout (why `eir_len` matters):
+  - `/home/manuel/esp/esp-idf-5.3.4/components/bt/host/bluedroid/api/include/api/esp_gap_ble_api.h`
+  - `struct ble_scan_result_evt_param` fields: `ble_adv`, `adv_data_len`, `scan_rsp_len`.
+
+### What I'd do differently next time
+- Decide up-front whether the UI is meant to be “stable index registry” or “streaming live view”; supporting both needs explicit UX guardrails.
+
+---
+
+## Step 11: Fix pairing/encryption flow (“pair” should connect first)
+
+This step addressed a specific recurring failure during bring-up: operators would run `ble> pair <addr>` right after scanning and see what looked like a cryptography error from Bluedroid. In reality, the command was attempting to start encryption without an established connection. That made debugging harder because it blurred the line between “we can’t pair” and “we never connected”.
+
+The fix changes the semantics of `pair` from “blindly request encryption on this address” to “drive the required state transitions”: connect first (using the correct address type), then start encryption once the open completes.
+
+**Commit (code):** N/A (uncommitted working tree)
+
+### What I did
+- Updated `ble> pair` to accept:
+  - `pair <index|addr> [pub|rand]`
+  - and to infer `addr_type` from the scan registry when pairing by raw `<addr>` without specifying `pub|rand`.
+- Changed `ble_host_pair(...)` behavior so it:
+  - connects first if no current connection exists,
+  - triggers `esp_ble_set_encryption(...)` after a successful `ESP_GATTC_OPEN_EVT` for that peer.
+- Added a guard: if already connected to a different peer, `pair` fails and asks the operator to `disconnect` first (prevents “pair the wrong device” surprises).
+
+### Why
+- The observed error was:
+  - `E (...) BT_APPL: bta_dm_set_encryption, not find peer_bdaddr or peer_bdaddr connection state`
+- That error indicates there is no known peer connection state at the moment encryption is requested. Treating it as a crypto failure is misleading.
+
+### What worked
+- `pair <idx>` becomes the preferred operator flow: it carries correct address type and avoids typing/copy errors.
+- `pair <addr>` now works more often because it will:
+  - infer address type (when available in the registry),
+  - connect first,
+  - then request encryption.
+
+### What didn't work
+- We hit an ESP-IDF environment mismatch during build:
+  - `'/home/manuel/.espressif/python_env/idf5.3_py3.11_env/bin/python' is currently active in the environment while the project was configured with '/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python'. Run 'idf.py fullclean' to start again.`
+  and resolved it by running `idf.py fullclean` before building.
+
+### What I learned
+- `esp_ble_set_encryption()` is not a “start pairing with that address” API; it’s “start encryption for an already-connected peer”.
+- The operator experience improves when commands are stateful (“do the right steps”) rather than thin wrappers around a single API call.
+
+### What was tricky to build
+- Address type correctness: the most subtle failure mode is pairing using the wrong address type (`pub` vs `rand`), especially with privacy/RPA. Carrying the scan registry’s address type through the console is critical.
+- Event ordering: requesting encryption “after open” requires a reliable hook; `ESP_GATTC_OPEN_EVT` was used as the point where the link is known-good for this peer.
+
+### What warrants a second pair of eyes
+- Confirm that relying on `ESP_GATTC_OPEN_EVT` is correct for the `esp_hidh_dev_open` path in all cases (and that there aren’t paths where “connected enough for encryption” happens earlier/later).
+- Confirm that refusing to pair a second peer while connected matches the desired workflow (some tooling expects implicit switching).
+
+### What should be done in the future
+- Add a `status`/`conn` command to print the current peer address and state (so errors like “already connected” are self-explanatory).
+- Consider exposing “pair mode” selection (NO_MITM vs MITM) via a console command once bring-up stabilizes.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`:
+  - `ble_host_pair`
+  - `gattc_cb` (`ESP_GATTC_OPEN_EVT` pairing trigger + guards)
+- Then check `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c`:
+  - `cmd_pair` parsing for index/addr and addr_type inference.
+
+### Technical details
+- The Bluedroid error string (root symptom):
+  - `bta_dm_set_encryption, not find peer_bdaddr or peer_bdaddr connection state`
+  which is consistent with requesting encryption while disconnected.
+
+---
+
+## Step 12: Add “don’t miss the window” operator scripts (plz-confirm + tmux monitor)
+
+This step was about operational timing. A BLE keyboard’s pairing advertisement window is often short and human-controlled (“press the pairing keys now”), and any delay between “OK it’s in pairing mode” and “start scanning/connecting” can make the attempt fail for reasons unrelated to code. The fix is to run a scripted flow that asks for confirmation and then immediately executes the next steps without pauses for agent deliberation.
+
+In parallel, we standardized on using tmux for `idf.py monitor` so we can detach/reattach without losing the console stream while iterating on pairing attempts.
+
+**Commit (code):** N/A (uncommitted working tree)
+
+### What I did
+- Wrote a ticket-local automation script that uses `plz-confirm` as the human gate:
+  - `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py`
+  - `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.sh`
+  Flow:
+  - ask user to put device in pairing mode (confirm),
+  - run `idf.py fullclean`, `idf.py build`, `idf.py flash`,
+  - run `scan on <N>`, `devices`,
+  - ask user to pick a device index,
+  - run `pair <idx>`,
+  - if prompted by logs, request passkey/numeric compare via `plz-confirm`,
+  - run `bonds` and prompt for final “did it work?” feedback.
+- Wrote a “flash + tmux monitor” helper:
+  - `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/flash_monitor_tmux.sh`
+- Ran monitor in tmux session `blekbd` (so the console is always reachable):
+  - `tmux attach -t blekbd`
+
+### Why
+- Human-controlled pairing mode is a synchronization point; we need tooling that respects that timing.
+- A script is deterministic in timing; an interactive agent is not.
+- tmux avoids “I lost my monitor output and have to restart everything” friction.
+
+### What worked
+- `plz-confirm` output parsing:
+  - `plz-confirm confirm --output json` returns a JSON array of objects (not a single object).
+  - `plz-confirm form --output json` returns an array whose first element includes `data_json` (a JSON string) which must be decoded a second time.
+- Server startup:
+  - `plz-confirm serve` accepts `--addr`, not `--base-url`; the script now derives `addr` from the configured base URL.
+- Serial interaction robustness:
+  - “read until prompt” was brittle; the script now uses a “collect until idle” approach when capturing `devices` output.
+
+### What didn't work
+- Network sandboxing blocked `plz-confirm` initially:
+  - `Post "http://localhost:3000/api/requests": dial tcp 127.0.0.1:3000: socket: operation not permitted`
+  This was resolved once the environment allowed network access.
+- Earlier versions of the script assumed `plz-confirm` returned a single JSON object, which caused parsing failures until we verified the actual output shape by running:
+  - `plz-confirm confirm --output json`
+  - `plz-confirm form --output json`
+- We saw “no devices discovered” false negatives when serial capture relied on `ble>` prompts rather than output-idle detection.
+
+### What I learned
+- “Human in pairing mode” needs explicit synchronization, ideally enforced by tooling, not conversational timing.
+- `plz-confirm`’s JSON output format is structured for Glazed/tabular output: arrays of rows; for `form` you then parse `data_json`.
+- Serial console parsing needs to assume output buffering and non-deterministic prompt timing.
+
+### What was tricky to build
+- Keeping scripts ticket-local but still correctly referencing the project root (`0020-cardputer-ble-keyboard-host`) requires careful path resolution; the script walks up to find `.git` and then points at the project directory.
+- There are multiple timing windows (post-flash boot, console prompt availability, scan completion); the script errs on “wait a bit longer” to avoid flaky behavior.
+
+### What warrants a second pair of eyes
+- Validate that the scripts behave correctly on different host machines (port naming, tmux availability, serial permissions).
+- Confirm that always doing `fullclean` is acceptable (it is robust but slower); decide if we want an explicit “fast path” option.
+
+### What should be done in the future
+- Add flags to skip `fullclean`/`build` when intentionally iterating quickly (with a loud warning about environment mismatch risk).
+- Add a “select by substring” mode (aligns with `devices <substr>` UX) to avoid the index-stability caveat during long scans.
+
+### Code review instructions
+- Script behavior:
+  - review `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py`
+  - run: `python3 …/scripts/pair_debug.py --help`
+- tmux helper:
+  - review `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/flash_monitor_tmux.sh`
+  - run: `…/scripts/flash_monitor_tmux.sh` then `tmux attach -t blekbd`
+
+### Technical details
+- tmux session name used for monitor:
+  - `blekbd`
+- `plz-confirm` output shapes (observed):
+  - `confirm --output json` → `[{ "approved": true, ... }]`
+  - `form --output json` → `[{ "data_json": "{\"x\":\"...\"}", ... }]`

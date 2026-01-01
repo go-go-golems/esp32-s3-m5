@@ -24,8 +24,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 At the `ble>` prompt:
 
 - `scan on 30`
-- `devices`
+- `devices`  # or: devices <substr> | devices clear | devices events on|off
 - `connect 0`
-- `pair <addr>`
+- `pair 0`  # or: pair <addr> [pub|rand]
 - `keylog on`
-

@@ -67,8 +67,34 @@ static int cmd_scan(int argc, char **argv) {
     return 1;
 }
 
-static int cmd_devices(int, char **) {
-    ble_host_devices_print();
+static int cmd_devices(int argc, char **argv) {
+    if (argc >= 2 && strcmp(argv[1], "clear") == 0) {
+        ble_host_devices_clear();
+        printf("devices cleared\n");
+        return 0;
+    }
+
+    if (argc >= 2 && strcmp(argv[1], "events") == 0) {
+        if (argc < 3) {
+            printf("devices events: %s\n", ble_host_devices_events_get_enabled() ? "on" : "off");
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            ble_host_devices_events_set_enabled(true);
+            printf("devices events: on\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            ble_host_devices_events_set_enabled(false);
+            printf("devices events: off\n");
+            return 0;
+        }
+        printf("usage: devices events on|off\n");
+        return 1;
+    }
+
+    const char *filter = (argc >= 2) ? argv[1] : NULL;
+    ble_host_devices_print(filter);
     return 0;
 }
 
@@ -105,7 +131,12 @@ static int cmd_connect(int argc, char **argv) {
                 return 1;
             }
         } else {
-            addr_type = BLE_ADDR_TYPE_PUBLIC;
+            ble_host_device_t found = {0};
+            if (ble_host_device_get_by_bda(bda, &found)) {
+                addr_type = found.addr_type;
+            } else {
+                addr_type = BLE_ADDR_TYPE_PUBLIC;
+            }
         }
     }
 
@@ -125,15 +156,47 @@ static int cmd_disconnect(int, char **) {
 
 static int cmd_pair(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: pair <addr>\n");
+        printf("usage: pair <index|addr> [pub|rand]\n");
         return 1;
     }
+
     uint8_t bda[6] = {0};
-    if (!parse_bda(argv[1], bda)) {
-        printf("invalid addr: %s\n", argv[1]);
-        return 1;
+    uint8_t addr_type = BLE_ADDR_TYPE_PUBLIC;
+
+    int idx = -1;
+    ble_host_device_t dev = {0};
+    if (try_parse_int(argv[1], &idx)) {
+        if (!ble_host_device_get_by_index(idx, &dev)) {
+            printf("invalid index: %d\n", idx);
+            return 1;
+        }
+        memcpy(bda, dev.bda, sizeof(bda));
+        addr_type = dev.addr_type;
+    } else {
+        if (!parse_bda(argv[1], bda)) {
+            printf("invalid addr: %s\n", argv[1]);
+            return 1;
+        }
+        if (argc >= 3) {
+            if (strcmp(argv[2], "pub") == 0) {
+                addr_type = BLE_ADDR_TYPE_PUBLIC;
+            } else if (strcmp(argv[2], "rand") == 0) {
+                addr_type = BLE_ADDR_TYPE_RANDOM;
+            } else {
+                printf("invalid addr type: %s (expected pub|rand)\n", argv[2]);
+                return 1;
+            }
+        } else {
+            ble_host_device_t found = {0};
+            if (ble_host_device_get_by_bda(bda, &found)) {
+                addr_type = found.addr_type;
+            } else {
+                addr_type = BLE_ADDR_TYPE_PUBLIC;
+            }
+        }
     }
-    if (!ble_host_pair(bda)) {
+
+    if (!ble_host_pair(bda, addr_type)) {
         printf("pair failed\n");
         return 1;
     }
@@ -260,7 +323,7 @@ static void register_commands(void) {
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "devices";
-    cmd.help = "List discovered devices";
+    cmd.help = "List/clear devices: devices [substr] | devices clear | devices events on|off";
     cmd.func = &cmd_devices;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -278,7 +341,7 @@ static void register_commands(void) {
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "pair";
-    cmd.help = "Initiate pairing/encryption: pair <addr>";
+    cmd.help = "Initiate pairing/encryption: pair <index|addr> [pub|rand]";
     cmd.func = &cmd_pair;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 

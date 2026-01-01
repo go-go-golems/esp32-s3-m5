@@ -80,11 +80,23 @@ After it completes, print the registry:
 ble> devices
 ```
 
+You can also filter for an address/name substring:
+
+```text
+ble> devices c5:24
+```
+
 What to look for in `devices` output:
 
 - a device name that resembles the keyboard (often present only in scan response),
 - and/or a strong RSSI when the keyboard is very close,
 - and the address type column (`pub` vs `rand`).
+
+Operational note: scanning may also print bluetoothctl-like events (`[NEW]`, `[CHG]`, `[DEL]`) as advertisements arrive and devices age out. If this is too noisy during debugging, disable it:
+
+```text
+ble> devices events off
+```
 
 If you don’t see the keyboard, repeat:
 
@@ -110,13 +122,19 @@ Why index is preferred:
 
 ### 4) If needed, pair / bond
 
-After a successful connect, request encryption/bonding:
+Request encryption/bonding using the scan table index (preferred):
 
 ```text
-ble> pair <addr>
+ble> pair <idx>
 ```
 
-You can copy `<addr>` from the `devices` output line you connected to.
+If you need to pair by address, prefer using the discovered address type (or let the console infer it from the device registry):
+
+```text
+ble> pair <addr> [pub|rand]
+```
+
+Note: `pair` will connect first if needed, then start encryption once the link is up.
 
 If the device requests security interaction, the firmware will print hints. Respond with:
 

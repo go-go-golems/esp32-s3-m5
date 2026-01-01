@@ -50,3 +50,51 @@ Uploaded 0020 BLE keyboard host research/bug reports/playbooks/diary to reMarkab
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Step 9 records the reMarkable upload and verification commands
 
+
+## 2025-12-31
+
+Step 10-12: Improve BLE discovery UX (filter/clear/events + better names), fix pair/encrypt sequencing, add scripts for plz-confirm pairing and tmux monitor.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c — Discovery events + scan name parsing + pair connect-first
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c — devices clear/events + pair-by-index
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py — Automated pairing flow to avoid timing gaps
+
+
+## 2025-12-31
+
+Analysis: explain why keyboard appears in bluetoothctl but not ESP32 BLE scan; add LE vs BR/EDR confirmation steps.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/analysis/03-why-keyboard-shows-in-bluetoothctl-but-not-on-esp32-scan.md — Investigation guide and decision tree
+
+
+## 2025-12-31
+
+Analysis: explain Classic (BR/EDR) vs BLE for keyboards and what it takes to add Classic HID host / dual-mode in ESP-IDF.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/analysis/04-adding-classic-br-edr-hid-keyboard-support-and-dual-mode-in-esp-idf.md — Architecture + config + API pointers for Classic HID support
+
+
+## 2025-12-31
+
+Analysis: explain BLE vs BR/EDR security registries (bond databases), CTKD caveats, and how to build a safe unified peer registry.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/analysis/05-ble-vs-br-edr-security-registries-bond-databases-why-they-aren-t-trivially-mergeable.md — Security model deep dive
+
+
+## 2025-12-31
+
+Design: document dual discovery + dual security registries and unified peer registry for LE+BR/EDR; add tasks to implement dual-mode.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/design-doc/03-design-dual-security-registries-unified-peer-registry-le-br-edr.md — Dual-mode registry design and console UX
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/tasks.md — Added dual-mode implementation tasks
+

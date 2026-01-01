@@ -52,3 +52,14 @@
 - [ ] Write a minimal playbook for humans in `playbooks/`:
   - [ ] Flash + monitor commands
   - [ ] Example session: `scan on`, `devices`, `connect`, `pair`, `keylog on`
+- [ ] [Dual-mode] Decide scope: Classic-only vs BTDM (dual-mode) keyboard host
+- [ ] [Dual-mode] Enable Classic + HID Host in sdkconfig.defaults (CONFIG_BT_CLASSIC_ENABLED=y, CONFIG_BT_HID_HOST_ENABLED=y)
+- [ ] [Dual-mode] Switch controller mode to ESP_BT_MODE_BTDM (stop releasing Classic mem; update ble_host_init/renamed host init)
+- [ ] [Dual-mode] Implement Classic discovery registry (inquiry) + console commands: scan bredr, devices bredr
+- [ ] [Dual-mode] Implement Classic pairing prompts/handlers (PIN + SSP): expose console replies analogous to sec-accept/passkey/confirm
+- [ ] [Dual-mode] Add Classic bonds management: bonds bredr, unpair bredr (esp_bt_gap_get_bond_device_list/remove_bond_device)
+- [ ] [Dual-mode] Open keyboards via esp_hidh transport selection (ESP_HID_TRANSPORT_BT vs _BLE) based on discovery record
+- [ ] [Dual-mode] Add unified peer registry (peers) that merges: BLE scan registry, BR/EDR inquiry registry, BLE bonds, BR/EDR bonds
+- [ ] [Dual-mode] Define mapping rules (no CTKD assumptions): how a Classic peer and LE peer may or may not map to one physical device
+- [ ] [Dual-mode] Update playbook: how to use scan le/bredr, peers, connect/pair for both transports
+- [ ] [Dual-mode] Validation matrix: test with one Classic-only keyboard and one BLE HOGP keyboard; record expected console traces
