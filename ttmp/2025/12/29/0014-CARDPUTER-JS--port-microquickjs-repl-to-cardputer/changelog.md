@@ -184,3 +184,19 @@ Device validation: flash Cardputer and validate JS eval + `:stats`; add `:stats`
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Now asserts `:stats` output contains `heap_free=`
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — Now asserts `:stats` output contains `heap_free=`
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 21: device flash + stats + editor improvements
+
+
+## 2026-01-01
+
+Storage: reintroduce SPIFFS + `:autoload` (with explicit `--format` path) and wire JS `load(path)` to read from SPIFFS; validate on QEMU and Cardputer.
+ (commit 18d4409)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/storage/Spiffs.cpp — SPIFFS mount + file read helper
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp — Adds `:autoload` meta-command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp — Implements autoload loop over `/spiffs/autoload/*.js`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c — Implements JS `load(path)` from SPIFFS
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — Smoke test now asserts `:autoload --format` output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Smoke test now asserts `:autoload --format` output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 22: SPIFFS/autoload bring-up

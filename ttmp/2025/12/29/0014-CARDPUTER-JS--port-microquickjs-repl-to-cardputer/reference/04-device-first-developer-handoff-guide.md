@@ -100,7 +100,7 @@ Evaluator interface + current evaluator:
 - `imports/esp32-mqjs-repl/mqjs-repl/main/eval/ModeSwitchingEvaluator.cpp:1`
 
 REPL meta-commands:
-- `:help`, `:mode repeat|js`, `:stats`, `:reset`, `:prompt TEXT`
+- `:help`, `:mode repeat|js`, `:stats`, `:reset`, `:autoload [--format]`, `:prompt TEXT`
 
 Line editor shortcuts:
 - `Ctrl+C` cancel line, `Ctrl+U` kill line, `Ctrl+L` clear screen
@@ -161,13 +161,12 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 
 These are the open tasks as of now; use this as a “what to do next” explainer.
 
-- Task 2 (implementation plan doc): Create a short “what’s left” plan now that console + QEMU input + JS mode are solved; focus on storage/autoload sequencing.
 - Task 6 (memory budget): Determine peak heap use on Cardputer once JS is enabled (JS heap + buffers + SPIFFS + any caches). The Cardputer’s effective SRAM budget is tight; document measured numbers and constraints.
-- Task 7 (hardware test): Extend the existing device smoke tests beyond RepeatEvaluator:
-  - prove JS evaluation works on-device (`:mode js`, run a script containing `var`)
-  - prove storage mounts and autoload doesn’t brick the REPL
 - Task 8 (optional enhancements): Only after core REPL is stable; keep separate from correctness work.
 - Task 14 (finish split): Move remaining legacy concerns into components (Storage/Autoload) while keeping behavior unchanged where possible.
+- Related tickets:
+  - `0015-QEMU-REPL-INPUT` — QEMU interactive input issues beyond the UART RX threshold workaround.
+  - `0016-SPIFFS-AUTOLOAD` — JS parse errors / edge cases observed while autoloading scripts.
 
 ## Usage Examples
 
@@ -193,6 +192,13 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 ./build.sh build
 ./build.sh -p /dev/ttyACM0 flash
 ./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 25
+```
+
+### Example: “I need to verify storage/autoload works on device”
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 45
 ```
 
 ### Example: “I’m about to touch REPL parsing; what tests should I run?”

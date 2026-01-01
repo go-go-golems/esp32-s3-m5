@@ -1049,3 +1049,62 @@ The main gotcha was that our QEMU test script switches the build to UART0 via `s
 
 ### What should be done in the future
 - Add a dedicated “device JS tmux” script (flash+monitor+smoke) similar to the existing RepeatEvaluator tmux harness so interactive workflows are one-command.
+
+## Step 22: Reintroduce SPIFFS + autoload (device-first)
+
+This step reintroduces storage in a way that doesn’t block or brick the REPL: SPIFFS is mounted lazily and autoload is explicitly triggered via a meta-command. The user-visible contract is `:autoload` (non-destructive; requires an already-formatted partition) and `:autoload --format` (formats+mounts SPIFFS if needed, then loads any `*.js` files in `/spiffs/autoload/`).
+
+I also wired up `load(path)` inside JS mode to actually read from SPIFFS, which is the core primitive needed to grow this into a usable on-device interpreter (autoload just becomes a thin loop over `load()`).
+
+**Commit (code):** 18d4409 — "mqjs-repl: SPIFFS load() and autoload"
+
+### What I did
+- Added SPIFFS support and file reading helpers:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/storage/Spiffs.cpp`
+- Implemented `:autoload`/`:autoload --format` in the REPL and hooked it into `JsEvaluator`:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp`
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp`
+- Implemented JS `load(path)` to read a file from SPIFFS and `JS_Eval` it:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c`
+- Extended smoke tests to exercise autoload:
+  - QEMU: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh`
+  - Device: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py`
+- Validated on Cardputer (USB Serial/JTAG on `/dev/ttyACM0`) and QEMU:
+  - `:autoload --format` prints an `autoload:` summary and returns to prompt.
+
+### Why
+- To make JS usable as an interpreter (ability to load code) without adding hidden boot-time work or risky automatic formatting.
+
+### What worked
+- `:autoload --format` works on a brand-new device partition (formats if required) and returns to the REPL prompt.
+- `load("/spiffs/autoload/foo.js")` evaluates JS from SPIFFS, enabling a “stdlib-in-files” workflow.
+
+### What didn't work
+- N/A (no hard failures in this step; prior autoload parse-error work is tracked in ticket `0016-SPIFFS-AUTOLOAD`).
+
+### What I learned
+- Storage UX matters on embedded: making formatting an explicit opt-in (`--format`) keeps experimentation safe and reviewable.
+
+### What was tricky to build
+- Keeping SPIFFS behavior safe: default `:autoload` won’t format; `--format` is the explicit “yes, wipe if needed” path.
+- Avoiding REPL lockups: everything runs synchronously but is user-triggered (no hidden boot-time blocking).
+
+### What warrants a second pair of eyes
+- The SPIFFS formatting semantics: confirm `:autoload --format` is the right UX and that we never format unless explicitly requested.
+- The `load(path)` size limit (currently 32 KiB) and whether that’s appropriate for expected scripts/libs.
+
+### What should be done in the future
+- Add an explicit size/CPU-time budget story for `load()` + `:autoload` (e.g., chunked reads, tighter limits, and error messaging for oversized scripts).
+- Consider an autoload seed story (even a one-file example) so first-run isn’t “empty directory”.
+
+### Code review instructions
+- Start with `imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp` for `:autoload` parsing/dispatch.
+- Review SPIFFS helpers in `imports/esp32-mqjs-repl/mqjs-repl/main/storage/Spiffs.cpp`.
+- Validate with `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh --timeout 120` and `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 45`.
+
+### Technical details
+- Autoload directory: `/spiffs/autoload/` (loads `*.js` files; prints `autoload:` summary).
+- `load(path)` currently enforces a 32 KiB limit to avoid large allocations on constrained SRAM.
+
+### What I'd do differently next time
+- N/A

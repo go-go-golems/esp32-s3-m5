@@ -3,12 +3,13 @@
 ## TODO
 
 - [x] Test QEMU execution of current firmware to verify it builds and runs correctly
-- [ ] Create implementation plan document outlining code changes needed for Cardputer port
+- [x] Create implementation plan document outlining code changes needed for Cardputer port (skipped; handoff guide + diary now serve this role)
 - [x] Create sdkconfig.defaults with Cardputer configuration (8MB flash, 240MHz CPU, 8000 byte main task stack)
 - [x] Update partitions.csv for Cardputer (4MB app partition, 1MB SPIFFS storage partition)
 - [x] Replace UART driver with USB Serial JTAG driver in main.c (repl_task and initialization)
 - [ ] Verify memory budget: ensure 64KB JS heap + buffers fit within Cardputer's 512KB SRAM constraint
-- [ ] Test firmware on Cardputer hardware (verify USB Serial JTAG works, SPIFFS mounts, REPL functions)
+- [x] Test firmware on Cardputer hardware (USB Serial/JTAG console, JS eval, `:stats`)
+- [x] Test storage on Cardputer hardware (SPIFFS mounts, autoload works, REPL remains responsive on failures)
 - [ ] Consider optional enhancements: keyboard input integration, display output, speaker feedback
 - [x] Create analysis docs for current firmware config + Cardputer port requirements
 - [x] Add mqjs-repl build.sh wrapper for reproducible ESP-IDF env sourcing
@@ -31,6 +32,7 @@
 - [x] REPL: add `:stats` and `:reset` to support debugging on device/QEMU
 - [x] REPL: improve line editing (ignore ANSI escapes; Ctrl+C/Ctrl+U/Ctrl+L)
 - [x] Device validation: JS eval + `:stats` works on /dev/ttyACM0
+- [x] Device validation: `:autoload --format` works on /dev/ttyACM0 (SPIFFS mount + autoload)
 - [x] Add tmux-driven RepeatEvaluator REPL smoke-test scripts (QEMU + device)
 - [x] Add UART-direct REPL smoke tests (QEMU stdio + raw TCP; device pyserial) to isolate QEMU UART RX
 - [x] QEMU workaround: set UART0 RX full threshold=1 in UartConsole (post uart_driver_install)
