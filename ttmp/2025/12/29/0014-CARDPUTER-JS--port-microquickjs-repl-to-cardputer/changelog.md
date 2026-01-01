@@ -102,3 +102,12 @@ Step 14: UART-direct QEMU tests still show no RX echo (commit bf99dc4)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh — Proves missing input echo even with QEMU UART on stdio
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_tcp_raw.sh — Proves missing input echo even without idf_monitor
 
+
+## 2025-12-31
+
+Add intern internet research guide for QEMU UART RX + Cardputer console
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/03-intern-research-guide-qemu-uart-rx-cardputer-console.md — Defines search questions
+

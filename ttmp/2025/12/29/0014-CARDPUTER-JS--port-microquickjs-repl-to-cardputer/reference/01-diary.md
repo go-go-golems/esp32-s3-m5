@@ -771,3 +771,24 @@ The result strongly points at **QEMU UART RX**. In both cases below, we can reli
 
 ### What warrants a second pair of eyes
 - Confirm whether any alternative QEMU serial device mapping exists for ESP32-S3 (UART0 vs UART1) and whether ESP-IDF’s QEMU glue expects a different console transport for RX.
+
+## Step 15: Create an intern-facing internet research guide (QEMU UART RX + Cardputer console)
+
+This step packages what we need from external research into a single, intern-friendly guide: specific questions to answer, copy/paste search queries, source-priority rules, and a reporting template that makes the results actionable. The goal is to quickly determine whether the QEMU UART RX limitation is a known unsupported feature (or a known bug with an upstream fix), and to document the correct interactive console transport for Cardputer under ESP-IDF.
+
+**Commit (code):** N/A — documentation only
+
+### What I did
+- Added a new reference doc:
+  - `reference/03-intern-research-guide-qemu-uart-rx-cardputer-console.md`
+- Included:
+  - research questions (UART RX support, QEMU serial mapping, ESP-IDF console expectations, Cardputer console path)
+  - search queries
+  - evidence checklist + reporting template
+  - pointers to our local reproduction scripts
+
+### Why
+- We need authoritative answers fast, and we don’t want engineering time spent chasing low-signal sources or repeating searches.
+
+### What should be done in the future
+- Once the intern returns findings, convert “proposed actions” into concrete repo tasks (e.g., change QEMU serial mapping, implement USB Serial JTAG console for Cardputer, or stop relying on QEMU for RX).
