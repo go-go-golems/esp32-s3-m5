@@ -886,3 +886,23 @@ With a dedicated `UsbSerialJtagConsole` implementation and a build-time selectio
 
 ### What warrants a second pair of eyes
 - Confirm that using `usb_serial_jtag_is_connected()` to gate output is the right behavior (tradeoff: avoids blocking when unplugged vs potentially dropping early boot output).
+
+## Step 18: Write a device-first handoff guide for the next developer
+
+This step is documentation-only. The goal is to make handoff clean: a new developer should be able to find the real entrypoints (firmware wiring, REPL loop, console transports), know which scripts to run to validate changes on Cardputer, and understand what each open task actually means and which prior docs to consult before changing behavior.
+
+**Commit (code):** N/A — documentation only
+
+### What I did
+- Added a device-first handoff guide:
+  - `reference/04-device-first-developer-handoff-guide.md`
+- Included:
+  - “marks” (key files + symbols)
+  - device-first smoke tests and console selection commands
+  - a task map describing the intent of the remaining open tasks
+
+### Why
+- This ticket has a lot of historical context (QEMU RX, stdlib generation, REPL split, Cardputer console). Without a guide, new contributors will re-derive the same context and waste time.
+
+### What should be done in the future
+- Keep the handoff guide updated as we introduce JS evaluation and storage/autoload back into the system.

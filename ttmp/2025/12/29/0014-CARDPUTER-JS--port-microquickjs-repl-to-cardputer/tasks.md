@@ -38,3 +38,4 @@
 - [x] Add build-time console selection (UART0 vs USB Serial/JTAG) and default to UART0 for QEMU
 - [x] Update device smoke test script to flash+monitor with USB Serial/JTAG console enabled
 - [x] Verify Cardputer REPL prompt+echo works on /dev/ttyACM0 (tmux + pyserial)
+- [x] Write device-first developer handoff guide (entry points, scripts, task map)

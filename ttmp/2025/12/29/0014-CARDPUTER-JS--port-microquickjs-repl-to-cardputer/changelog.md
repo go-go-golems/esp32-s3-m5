@@ -130,3 +130,12 @@ Step 17: Cardputer REPL works on /dev/ttyACM0 via USB Serial/JTAG (commit d3e9f1
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/console/UsbSerialJtagConsole.cpp — Interactive REPL I/O over USB Serial/JTAG
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh — Device smoke test now selects console mode before flash/monitor
 
+
+## 2025-12-31
+
+Add device-first developer handoff guide
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/04-device-first-developer-handoff-guide.md — Entry points
+
