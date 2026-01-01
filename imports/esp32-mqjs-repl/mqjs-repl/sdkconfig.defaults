@@ -1,0 +1,16 @@
+#
+# Cardputer-oriented defaults (ESP32-S3)
+#
+# Keep this file free of secrets (WiFi creds, tokens, etc).
+#
+
+# Cardputer commonly ships with 8MB flash
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+
+# Cardputer: run CPU at 240MHz
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+
+# Give app_main a bit more headroom
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
