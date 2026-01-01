@@ -3,7 +3,7 @@ idf_component_register(
         "app_main.c"
         "bt_decode.c"
         "bt_console.c"
-        "ble_host.c"
+        "bt_host.c"
         "hid_host.c"
         "keylog.c"
     PRIV_REQUIRES

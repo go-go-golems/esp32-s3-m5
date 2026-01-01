@@ -66,12 +66,22 @@ static void hidh_event_handler(void *handler_arg, esp_event_base_t base, int32_t
     case ESP_HIDH_CLOSE_EVENT: {
         esp_hidh_dev_t *dev = data ? data->close.dev : NULL;
         const int reason = data ? data->close.reason : -1;
-        ESP_LOGI(TAG,
-                 "close: dev=%p reason=0x%04x (%s) (%s)",
-                 (void *)dev,
-                 (unsigned)reason,
-                 bt_decode_gatt_conn_reason_name((esp_gatt_conn_reason_t)reason),
-                 bt_decode_gatt_conn_reason_desc((esp_gatt_conn_reason_t)reason));
+        const int transport = dev ? (int)esp_hidh_dev_transport_get(dev) : -1;
+        if (transport == ESP_HID_TRANSPORT_BT) {
+            ESP_LOGI(TAG,
+                     "close: dev=%p transport=bredr reason=0x%04x (%s) (%s)",
+                     (void *)dev,
+                     (unsigned)reason,
+                     bt_decode_bt_status_name((esp_bt_status_t)reason),
+                     bt_decode_bt_status_desc((esp_bt_status_t)reason));
+        } else {
+            ESP_LOGI(TAG,
+                     "close: dev=%p transport=le reason=0x%04x (%s) (%s)",
+                     (void *)dev,
+                     (unsigned)reason,
+                     bt_decode_gatt_conn_reason_name((esp_gatt_conn_reason_t)reason),
+                     bt_decode_gatt_conn_reason_desc((esp_gatt_conn_reason_t)reason));
+        }
         if (dev) {
             esp_hidh_dev_free(dev);
         }
@@ -105,16 +115,31 @@ void hid_host_init(void) {
     ESP_LOGI(TAG, "esp_hidh initialized");
 }
 
-bool hid_host_open(const uint8_t bda[6], uint8_t addr_type) {
+bool hid_host_open(hid_host_transport_t transport, const uint8_t bda[6], uint8_t addr_type) {
     if (!bda) return false;
 
-    esp_hidh_dev_t *dev = esp_hidh_dev_open((uint8_t *)bda, ESP_HID_TRANSPORT_BLE, addr_type);
+    esp_hid_transport_t t = ESP_HID_TRANSPORT_BLE;
+    uint8_t remote_addr_type = addr_type;
+    if (transport == HID_HOST_TRANSPORT_BR_EDR) {
+        t = ESP_HID_TRANSPORT_BT;
+        remote_addr_type = 0;
+    }
+
+    esp_hidh_dev_t *dev = esp_hidh_dev_open((uint8_t *)bda, t, remote_addr_type);
     if (!dev) {
         ESP_LOGE(TAG, "esp_hidh_dev_open failed");
         return false;
     }
-    ESP_LOGI(TAG, "open requested: %02x:%02x:%02x:%02x:%02x:%02x addr_type=%u",
-             bda[0], bda[1], bda[2], bda[3], bda[4], bda[5], (unsigned)addr_type);
+    ESP_LOGI(TAG,
+             "open requested: %02x:%02x:%02x:%02x:%02x:%02x transport=%s addr_type=%u",
+             bda[0],
+             bda[1],
+             bda[2],
+             bda[3],
+             bda[4],
+             bda[5],
+             (transport == HID_HOST_TRANSPORT_BR_EDR) ? "bredr" : "le",
+             (unsigned)addr_type);
     return true;
 }
 

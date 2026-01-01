@@ -7,8 +7,13 @@
 extern "C" {
 #endif
 
+typedef enum {
+    HID_HOST_TRANSPORT_LE = 0,
+    HID_HOST_TRANSPORT_BR_EDR = 1,
+} hid_host_transport_t;
+
 void hid_host_init(void);
-bool hid_host_open(const uint8_t bda[6], uint8_t addr_type);
+bool hid_host_open(hid_host_transport_t transport, const uint8_t bda[6], uint8_t addr_type);
 void hid_host_close(void);
 
 // Glue: forward GATTC events so the HID host stack can function.

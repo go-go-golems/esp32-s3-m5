@@ -12,7 +12,7 @@
 #include "esp_log.h"
 
 #include "bt_decode.h"
-#include "ble_host.h"
+#include "bt_host.h"
 #include "keylog.h"
 
 static const char *TAG = "bt_console";
@@ -38,174 +38,271 @@ static bool try_parse_int(const char *s, int *out) {
 
 static int cmd_scan(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: scan on [seconds] | scan off\n");
+        printf("usage: scan [le|bredr] on [seconds] | scan [le|bredr] off\n");
         return 1;
     }
 
-    if (strcmp(argv[1], "on") == 0) {
+    int argi = 1;
+    bool bredr = false;
+    if (argc >= 3 && (strcmp(argv[1], "le") == 0 || strcmp(argv[1], "bredr") == 0)) {
+        bredr = (strcmp(argv[1], "bredr") == 0);
+        argi++;
+    }
+
+    if (strcmp(argv[argi], "on") == 0) {
         uint32_t sec = 30;
-        if (argc >= 3) {
+        if (argc >= argi + 2) {
             int v = 0;
-            if (!try_parse_int(argv[2], &v) || v <= 0) {
-                printf("invalid seconds: %s\n", argv[2]);
+            if (!try_parse_int(argv[argi + 1], &v) || v <= 0) {
+                printf("invalid seconds: %s\n", argv[argi + 1]);
                 return 1;
             }
             sec = (uint32_t)v;
         }
-        ble_host_scan_start(sec);
-        printf("scan started (%" PRIu32 "s)\n", sec);
+        if (bredr) {
+            bt_host_scan_bredr_start(sec);
+            printf("scan bredr started (%" PRIu32 "s)\n", sec);
+        } else {
+            bt_host_scan_le_start(sec);
+            printf("scan le started (%" PRIu32 "s)\n", sec);
+        }
         return 0;
     }
 
-    if (strcmp(argv[1], "off") == 0) {
-        ble_host_scan_stop();
-        printf("scan stop requested\n");
+    if (strcmp(argv[argi], "off") == 0) {
+        if (bredr) {
+            bt_host_scan_bredr_stop();
+            printf("scan bredr stop requested\n");
+        } else {
+            bt_host_scan_le_stop();
+            printf("scan le stop requested\n");
+        }
         return 0;
     }
 
-    printf("usage: scan on [seconds] | scan off\n");
+    printf("usage: scan [le|bredr] on [seconds] | scan [le|bredr] off\n");
     return 1;
 }
 
 static int cmd_devices(int argc, char **argv) {
-    if (argc >= 2 && strcmp(argv[1], "clear") == 0) {
-        ble_host_devices_clear();
-        printf("devices cleared\n");
+    int argi = 1;
+    bool bredr = false;
+    if (argc >= 2 && (strcmp(argv[1], "le") == 0 || strcmp(argv[1], "bredr") == 0)) {
+        bredr = (strcmp(argv[1], "bredr") == 0);
+        argi++;
+    }
+
+    if (argc > argi && strcmp(argv[argi], "clear") == 0) {
+        if (bredr) {
+            bt_host_devices_bredr_clear();
+            printf("devices bredr cleared\n");
+        } else {
+            bt_host_devices_le_clear();
+            printf("devices le cleared\n");
+        }
         return 0;
     }
 
-    if (argc >= 2 && strcmp(argv[1], "events") == 0) {
-        if (argc < 3) {
-            printf("devices events: %s\n", ble_host_devices_events_get_enabled() ? "on" : "off");
+    if (argc > argi && strcmp(argv[argi], "events") == 0) {
+        if (argc <= argi + 1) {
+            printf("devices %s events: %s\n",
+                   bredr ? "bredr" : "le",
+                   bredr ? (bt_host_devices_bredr_events_get_enabled() ? "on" : "off")
+                         : (bt_host_devices_le_events_get_enabled() ? "on" : "off"));
             return 0;
         }
-        if (strcmp(argv[2], "on") == 0) {
-            ble_host_devices_events_set_enabled(true);
-            printf("devices events: on\n");
+        if (strcmp(argv[argi + 1], "on") == 0) {
+            if (bredr) {
+                bt_host_devices_bredr_events_set_enabled(true);
+            } else {
+                bt_host_devices_le_events_set_enabled(true);
+            }
+            printf("devices %s events: on\n", bredr ? "bredr" : "le");
             return 0;
         }
-        if (strcmp(argv[2], "off") == 0) {
-            ble_host_devices_events_set_enabled(false);
-            printf("devices events: off\n");
+        if (strcmp(argv[argi + 1], "off") == 0) {
+            if (bredr) {
+                bt_host_devices_bredr_events_set_enabled(false);
+            } else {
+                bt_host_devices_le_events_set_enabled(false);
+            }
+            printf("devices %s events: off\n", bredr ? "bredr" : "le");
             return 0;
         }
-        printf("usage: devices events on|off\n");
+        printf("usage: devices [le|bredr] events on|off\n");
         return 1;
     }
 
-    const char *filter = (argc >= 2) ? argv[1] : NULL;
-    ble_host_devices_print(filter);
+    const char *filter = (argc > argi) ? argv[argi] : NULL;
+    if (bredr) {
+        bt_host_devices_bredr_print(filter);
+    } else {
+        bt_host_devices_le_print(filter);
+    }
     return 0;
 }
 
 static int cmd_connect(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: connect <index|addr> [pub|rand]\n");
+        printf("usage: connect [le] <index|addr> [pub|rand] | connect bredr <index|addr>\n");
         return 1;
     }
 
     uint8_t bda[6] = {0};
     uint8_t addr_type = BLE_ADDR_TYPE_PUBLIC;
 
+    int argi = 1;
+    bool bredr = false;
+    if (argc >= 3 && (strcmp(argv[1], "le") == 0 || strcmp(argv[1], "bredr") == 0)) {
+        bredr = (strcmp(argv[1], "bredr") == 0);
+        argi++;
+    }
+
     int idx = -1;
-    ble_host_device_t dev = {0};
-    if (try_parse_int(argv[1], &idx)) {
-        if (!ble_host_device_get_by_index(idx, &dev)) {
-            printf("invalid index: %d\n", idx);
-            return 1;
-        }
-        memcpy(bda, dev.bda, sizeof(bda));
-        addr_type = dev.addr_type;
-    } else {
-        if (!parse_bda(argv[1], bda)) {
-            printf("invalid addr: %s\n", argv[1]);
-            return 1;
-        }
-        if (argc >= 3) {
-            if (strcmp(argv[2], "pub") == 0) {
-                addr_type = BLE_ADDR_TYPE_PUBLIC;
-            } else if (strcmp(argv[2], "rand") == 0) {
-                addr_type = BLE_ADDR_TYPE_RANDOM;
-            } else {
-                printf("invalid addr type: %s (expected pub|rand)\n", argv[2]);
+    if (try_parse_int(argv[argi], &idx)) {
+        if (bredr) {
+            bt_bredr_device_t dev = {0};
+            if (!bt_host_bredr_device_get_by_index(idx, &dev)) {
+                printf("invalid bredr index: %d\n", idx);
                 return 1;
             }
+            memcpy(bda, dev.bda, sizeof(bda));
         } else {
-            ble_host_device_t found = {0};
-            if (ble_host_device_get_by_bda(bda, &found)) {
-                addr_type = found.addr_type;
+            bt_le_device_t dev = {0};
+            if (!bt_host_le_device_get_by_index(idx, &dev)) {
+                printf("invalid le index: %d\n", idx);
+                return 1;
+            }
+            memcpy(bda, dev.bda, sizeof(bda));
+            addr_type = dev.addr_type;
+        }
+    } else {
+        if (!parse_bda(argv[argi], bda)) {
+            printf("invalid addr: %s\n", argv[argi]);
+            return 1;
+        }
+        if (!bredr) {
+            if (argc >= argi + 2) {
+                if (strcmp(argv[argi + 1], "pub") == 0) {
+                    addr_type = BLE_ADDR_TYPE_PUBLIC;
+                } else if (strcmp(argv[argi + 1], "rand") == 0) {
+                    addr_type = BLE_ADDR_TYPE_RANDOM;
+                } else {
+                    printf("invalid addr type: %s (expected pub|rand)\n", argv[argi + 1]);
+                    return 1;
+                }
             } else {
-                addr_type = BLE_ADDR_TYPE_PUBLIC;
+                bt_le_device_t found = {0};
+                if (bt_host_le_device_get_by_bda(bda, &found)) {
+                    addr_type = found.addr_type;
+                } else {
+                    addr_type = BLE_ADDR_TYPE_PUBLIC;
+                }
             }
         }
     }
 
-    if (!ble_host_connect(bda, addr_type)) {
-        printf("connect failed\n");
-        return 1;
+    if (bredr) {
+        if (!bt_host_bredr_connect(bda)) {
+            printf("connect bredr failed\n");
+            return 1;
+        }
+        printf("connect bredr requested\n");
+    } else {
+        if (!bt_host_le_connect(bda, addr_type)) {
+            printf("connect le failed\n");
+            return 1;
+        }
+        printf("connect le requested\n");
     }
-    printf("connect requested\n");
     return 0;
 }
 
 static int cmd_disconnect(int, char **) {
-    ble_host_disconnect();
+    bt_host_disconnect();
     printf("disconnect requested\n");
     return 0;
 }
 
 static int cmd_pair(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: pair <index|addr> [pub|rand]\n");
+        printf("usage: pair [le] <index|addr> [pub|rand] | pair bredr <index|addr>\n");
         return 1;
     }
 
     uint8_t bda[6] = {0};
     uint8_t addr_type = BLE_ADDR_TYPE_PUBLIC;
 
+    int argi = 1;
+    bool bredr = false;
+    if (argc >= 3 && (strcmp(argv[1], "le") == 0 || strcmp(argv[1], "bredr") == 0)) {
+        bredr = (strcmp(argv[1], "bredr") == 0);
+        argi++;
+    }
+
     int idx = -1;
-    ble_host_device_t dev = {0};
-    if (try_parse_int(argv[1], &idx)) {
-        if (!ble_host_device_get_by_index(idx, &dev)) {
-            printf("invalid index: %d\n", idx);
-            return 1;
-        }
-        memcpy(bda, dev.bda, sizeof(bda));
-        addr_type = dev.addr_type;
-    } else {
-        if (!parse_bda(argv[1], bda)) {
-            printf("invalid addr: %s\n", argv[1]);
-            return 1;
-        }
-        if (argc >= 3) {
-            if (strcmp(argv[2], "pub") == 0) {
-                addr_type = BLE_ADDR_TYPE_PUBLIC;
-            } else if (strcmp(argv[2], "rand") == 0) {
-                addr_type = BLE_ADDR_TYPE_RANDOM;
-            } else {
-                printf("invalid addr type: %s (expected pub|rand)\n", argv[2]);
+    if (try_parse_int(argv[argi], &idx)) {
+        if (bredr) {
+            bt_bredr_device_t dev = {0};
+            if (!bt_host_bredr_device_get_by_index(idx, &dev)) {
+                printf("invalid bredr index: %d\n", idx);
                 return 1;
             }
+            memcpy(bda, dev.bda, sizeof(bda));
         } else {
-            ble_host_device_t found = {0};
-            if (ble_host_device_get_by_bda(bda, &found)) {
-                addr_type = found.addr_type;
+            bt_le_device_t dev = {0};
+            if (!bt_host_le_device_get_by_index(idx, &dev)) {
+                printf("invalid le index: %d\n", idx);
+                return 1;
+            }
+            memcpy(bda, dev.bda, sizeof(bda));
+            addr_type = dev.addr_type;
+        }
+    } else {
+        if (!parse_bda(argv[argi], bda)) {
+            printf("invalid addr: %s\n", argv[argi]);
+            return 1;
+        }
+        if (!bredr) {
+            if (argc >= argi + 2) {
+                if (strcmp(argv[argi + 1], "pub") == 0) {
+                    addr_type = BLE_ADDR_TYPE_PUBLIC;
+                } else if (strcmp(argv[argi + 1], "rand") == 0) {
+                    addr_type = BLE_ADDR_TYPE_RANDOM;
+                } else {
+                    printf("invalid addr type: %s (expected pub|rand)\n", argv[argi + 1]);
+                    return 1;
+                }
             } else {
-                addr_type = BLE_ADDR_TYPE_PUBLIC;
+                bt_le_device_t found = {0};
+                if (bt_host_le_device_get_by_bda(bda, &found)) {
+                    addr_type = found.addr_type;
+                } else {
+                    addr_type = BLE_ADDR_TYPE_PUBLIC;
+                }
             }
         }
     }
 
-    if (!ble_host_pair(bda, addr_type)) {
-        printf("pair failed\n");
-        return 1;
+    if (bredr) {
+        if (!bt_host_bredr_pair(bda)) {
+            printf("pair bredr failed\n");
+            return 1;
+        }
+        printf("pair/connect bredr requested\n");
+    } else {
+        if (!bt_host_le_pair(bda, addr_type)) {
+            printf("pair le failed\n");
+            return 1;
+        }
+        printf("pair/encrypt le requested\n");
     }
-    printf("pair/encrypt requested\n");
     return 0;
 }
 
 static int cmd_bonds(int, char **) {
-    ble_host_bonds_print();
+    bt_host_le_bonds_print();
+    bt_host_bredr_bonds_print();
     return 0;
 }
 
@@ -216,19 +313,33 @@ static int cmd_codes(int, char **) {
 
 static int cmd_unpair(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage: unpair <addr>\n");
+        printf("usage: unpair <addr> | unpair bredr <addr>\n");
         return 1;
+    }
+    int argi = 1;
+    bool bredr = false;
+    if (argc >= 3 && strcmp(argv[1], "bredr") == 0) {
+        bredr = true;
+        argi++;
     }
     uint8_t bda[6] = {0};
-    if (!parse_bda(argv[1], bda)) {
-        printf("invalid addr: %s\n", argv[1]);
+    if (!parse_bda(argv[argi], bda)) {
+        printf("invalid addr: %s\n", argv[argi]);
         return 1;
     }
-    if (!ble_host_unpair(bda)) {
-        printf("unpair failed\n");
-        return 1;
+    if (bredr) {
+        if (!bt_host_bredr_unpair(bda)) {
+            printf("unpair bredr failed\n");
+            return 1;
+        }
+        printf("unpaired bredr\n");
+    } else {
+        if (!bt_host_le_unpair(bda)) {
+            printf("unpair le failed\n");
+            return 1;
+        }
+        printf("unpaired le\n");
     }
-    printf("unpaired\n");
     return 0;
 }
 
@@ -262,7 +373,7 @@ static int cmd_sec_accept(int argc, char **argv) {
         return 1;
     }
     const bool accept = (strcmp(argv[2], "yes") == 0);
-    if (!ble_host_sec_accept(bda, accept)) {
+    if (!bt_host_le_sec_accept(bda, accept)) {
         printf("sec-accept failed\n");
         return 1;
     }
@@ -285,7 +396,7 @@ static int cmd_passkey(int argc, char **argv) {
         printf("invalid passkey: %s\n", argv[2]);
         return 1;
     }
-    if (!ble_host_passkey_reply(bda, true, (uint32_t)v)) {
+    if (!bt_host_le_passkey_reply(bda, true, (uint32_t)v)) {
         printf("passkey reply failed\n");
         return 1;
     }
@@ -304,11 +415,73 @@ static int cmd_confirm(int argc, char **argv) {
         return 1;
     }
     const bool accept = (strcmp(argv[2], "yes") == 0);
-    if (!ble_host_confirm_reply(bda, accept)) {
+    if (!bt_host_le_confirm_reply(bda, accept)) {
         printf("confirm reply failed\n");
         return 1;
     }
     printf("confirm reply sent\n");
+    return 0;
+}
+
+static int cmd_bt_pin(int argc, char **argv) {
+    if (argc < 3) {
+        printf("usage: bt-pin <addr> <pin|->\n");
+        return 1;
+    }
+    uint8_t bda[6] = {0};
+    if (!parse_bda(argv[1], bda)) {
+        printf("invalid addr: %s\n", argv[1]);
+        return 1;
+    }
+    const bool accept = (strcmp(argv[2], "-") != 0);
+    const char *pin = accept ? argv[2] : NULL;
+    if (!bt_host_bredr_pin_reply(bda, accept, pin)) {
+        printf("bt-pin failed\n");
+        return 1;
+    }
+    printf("bt-pin sent\n");
+    return 0;
+}
+
+static int cmd_bt_passkey(int argc, char **argv) {
+    if (argc < 3) {
+        printf("usage: bt-passkey <addr> <6digits>\n");
+        return 1;
+    }
+    uint8_t bda[6] = {0};
+    if (!parse_bda(argv[1], bda)) {
+        printf("invalid addr: %s\n", argv[1]);
+        return 1;
+    }
+    int v = 0;
+    if (!try_parse_int(argv[2], &v) || v < 0 || v > 999999) {
+        printf("invalid passkey: %s\n", argv[2]);
+        return 1;
+    }
+    if (!bt_host_bredr_ssp_passkey_reply(bda, true, (uint32_t)v)) {
+        printf("bt-passkey failed\n");
+        return 1;
+    }
+    printf("bt-passkey sent\n");
+    return 0;
+}
+
+static int cmd_bt_confirm(int argc, char **argv) {
+    if (argc < 3) {
+        printf("usage: bt-confirm <addr> yes|no\n");
+        return 1;
+    }
+    uint8_t bda[6] = {0};
+    if (!parse_bda(argv[1], bda)) {
+        printf("invalid addr: %s\n", argv[1]);
+        return 1;
+    }
+    const bool accept = (strcmp(argv[2], "yes") == 0);
+    if (!bt_host_bredr_ssp_confirm_reply(bda, accept)) {
+        printf("bt-confirm failed\n");
+        return 1;
+    }
+    printf("bt-confirm sent\n");
     return 0;
 }
 
@@ -317,19 +490,19 @@ static void register_commands(void) {
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "scan";
-    cmd.help = "scan on [seconds] | scan off";
+    cmd.help = "scan [le|bredr] on [seconds] | scan [le|bredr] off";
     cmd.func = &cmd_scan;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "devices";
-    cmd.help = "List/clear devices: devices [substr] | devices clear | devices events on|off";
+    cmd.help = "List/clear devices: devices [le|bredr] [substr] | devices [le|bredr] clear | devices [le|bredr] events on|off";
     cmd.func = &cmd_devices;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "connect";
-    cmd.help = "Connect to device by index or addr: connect <index|addr>";
+    cmd.help = "Connect to device: connect [le] <index|addr> | connect bredr <index|addr>";
     cmd.func = &cmd_connect;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -341,13 +514,13 @@ static void register_commands(void) {
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "pair";
-    cmd.help = "Initiate pairing/encryption: pair <index|addr> [pub|rand]";
+    cmd.help = "Initiate pairing: pair [le] <index|addr> [pub|rand] | pair bredr <index|addr>";
     cmd.func = &cmd_pair;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "bonds";
-    cmd.help = "List bonded devices";
+    cmd.help = "List bonded devices (both LE and BR/EDR)";
     cmd.func = &cmd_bonds;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -359,7 +532,7 @@ static void register_commands(void) {
 
     cmd = (esp_console_cmd_t){0};
     cmd.command = "unpair";
-    cmd.help = "Remove bond: unpair <addr>";
+    cmd.help = "Remove bond: unpair <addr> | unpair bredr <addr>";
     cmd.func = &cmd_unpair;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -385,6 +558,24 @@ static void register_commands(void) {
     cmd.command = "confirm";
     cmd.help = "Reply numeric comparison: confirm <addr> yes|no";
     cmd.func = &cmd_confirm;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = (esp_console_cmd_t){0};
+    cmd.command = "bt-pin";
+    cmd.help = "Reply to Classic PIN request: bt-pin <addr> <pin|->";
+    cmd.func = &cmd_bt_pin;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = (esp_console_cmd_t){0};
+    cmd.command = "bt-passkey";
+    cmd.help = "Reply Classic SSP passkey: bt-passkey <addr> <6digits>";
+    cmd.func = &cmd_bt_passkey;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = (esp_console_cmd_t){0};
+    cmd.command = "bt-confirm";
+    cmd.help = "Reply Classic numeric comparison: bt-confirm <addr> yes|no";
+    cmd.func = &cmd_bt_confirm;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
