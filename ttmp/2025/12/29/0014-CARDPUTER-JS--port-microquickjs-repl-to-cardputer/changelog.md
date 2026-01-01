@@ -62,3 +62,13 @@ Step 10: Cardputer flash/CPU defaults + partition sizing (commit 881a761)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/partitions.csv — Enlarge app/storage partitions to Cardputer-friendly sizes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults — Board defaults to avoid 2MB flash partition-table failures
 
+
+## 2025-12-31
+
+Step 11: start C++ split + REPL-only RepeatEvaluator bring-up (commit 1a25a10)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/CMakeLists.txt — Switch main component to new C++ modules
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp — REPL loop now dispatches to RepeatEvaluator and supports :help/:mode/:prompt
+

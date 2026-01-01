@@ -16,12 +16,12 @@
 - [x] Spin off QEMU REPL input bug into ticket 0015-QEMU-REPL-INPUT
 - [x] Spin off SPIFFS/autoload JS parse errors into ticket 0016-SPIFFS-AUTOLOAD
 - [ ] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially
-- [ ] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
-- [ ] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
-- [ ] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS
+- [x] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
+- [x] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
+- [x] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS
 - [ ] Add REPL meta-commands (e.g. :help, :mode, :prompt) and default to repeat mode in QEMU/dev builds
-- [ ] Build 'REPL-only' firmware variant: disable SPIFFS/autoload and do not initialize MicroQuickJS (repeat evaluator only)
-- [ ] Update ESP-IDF build config (main/CMakeLists, .cpp sources, includes) to compile the new component split cleanly
+- [x] Build 'REPL-only' firmware variant: disable SPIFFS/autoload and do not initialize MicroQuickJS (repeat evaluator only)
+- [x] Update ESP-IDF build config (main/CMakeLists, .cpp sources, includes) to compile the new component split cleanly
 - [ ] Smoke-test REPL-only firmware under QEMU: verify interactive input echoes and prompt redraw works (no JS, no storage)
 - [ ] Stdlib: trace provenance of esp_stdlib.h (host generator) and document how to regenerate for ESP32 (use -m32)
 - [ ] Stdlib: generate and commit a 32-bit stdlib header (e.g. esp32_stdlib.h) using esp_stdlib_gen -m32; verify it contains keyword atoms (var/function/return)

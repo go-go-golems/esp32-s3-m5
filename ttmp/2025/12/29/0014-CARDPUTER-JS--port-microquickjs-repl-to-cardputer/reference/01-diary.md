@@ -17,6 +17,10 @@ RelatedFiles:
       Note: Uploader script used to convert ticket markdown to PDF and upload to reMarkable
     - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c
       Note: Implements build_atoms and supports -m32/-m64; key to generating an ESP32-safe 32-bit stdlib
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp
+      Note: New C++ REPL-only entrypoint wiring console+editor+repeat evaluator (commit 1a25a10)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UartConsole.cpp
+      Note: UART-backed console abstraction used for QEMU bring-up (commit 1a25a10)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
       Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
@@ -25,6 +29,8 @@ RelatedFiles:
       Note: Firmware-selected empty stdlib; explains missing keyword atoms and 'var' parse failures
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c
       Note: Generator program main() that calls build_atoms() to emit esp_stdlib.h
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp
+      Note: Core REPL loop + meta-commands + evaluator dispatch (commit 1a25a10)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/partitions.csv
       Note: Cardputer partition layout baseline (4MB app + 1MB SPIFFS) for commit 881a761
     - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults
@@ -39,6 +45,7 @@ LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -600,3 +607,57 @@ The practical unlock is that we stop fighting the “2MB flash” default and ca
 - Review `imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults` and `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv`
 - Validate with:
   - `cd imports/esp32-mqjs-repl/mqjs-repl && ./build.sh build`
+
+## Step 11: Start the C++ split + REPL-only bring-up (RepeatEvaluator)
+
+This step begins the “split main into components” work by introducing a minimal C++ REPL stack: a console abstraction, a line editor, and a REPL loop with a pluggable evaluator. To keep iteration fast and isolate I/O issues (especially under QEMU), the default firmware path is now **REPL-only** and uses a `RepeatEvaluator` that simply echoes submitted lines.
+
+The key unlock is that we can validate prompt/echo/backspace/newline behavior without pulling in SPIFFS, autoload scripts, or the MicroQuickJS engine. Once the REPL harness is trusted, we can layer JS evaluation back in as a separate evaluator and reintroduce storage/autoload as optional plumbing.
+
+**Commit (code):** 1a25a10 — "mqjs-repl: start C++ REPL-only split"
+
+### What I did
+- Updated the `main` component to build a new C++ entrypoint and modules:
+  - `console/IConsole` + `console/UartConsole`
+  - `repl/LineEditor` + `repl/ReplLoop`
+  - `eval/IEvaluator` + `eval/RepeatEvaluator`
+- Made the REPL print a prompt (`repeat> `), accept input bytes from UART, and echo completed lines
+- Added minimal meta-commands:
+  - `:help`
+  - `:mode`
+  - `:prompt TEXT`
+- Built the firmware and did a short QEMU boot smoke check
+
+### Why
+- We need a transport-agnostic REPL core before swapping UART → USB Serial JTAG for Cardputer.
+- QEMU input issues and SPIFFS/autoload JS parse issues are easier to debug when the REPL itself can run without JS/storage.
+
+### What worked
+- `./build.sh build` succeeds with the new C++ modules.
+- `timeout 15s ./build.sh qemu` boots to the `repeat> ` prompt and shows the updated partition table.
+
+### What didn't work
+- N/A in this step (we intentionally did not attempt interactive QEMU input yet; that’s still tracked in ticket `0015-QEMU-REPL-INPUT`).
+
+### What I learned
+- Keeping the bring-up evaluator trivial (repeat) makes the REPL harness useful immediately even while JS/storage layers are still unstable.
+
+### What was tricky to build
+- Getting the component build wiring right (`main/CMakeLists.txt`) while keeping the module boundaries clean enough for the next steps (USB Serial JTAG console + JS evaluator).
+
+### What warrants a second pair of eyes
+- The REPL line-discipline behavior: confirm Enter/backspace handling is correct across UART/USB Serial JTAG and doesn’t regress when we add JS evaluation output.
+- Whether meta-commands should be parsed before trimming (to preserve intentional leading/trailing whitespace use-cases for JS).
+
+### What should be done in the future
+- Implement `UsbSerialJtagConsole` (Cardputer input) and make the console selectable.
+- Add a `JsEvaluator` that wraps MicroQuickJS and supports `:mode js` once stdlib/atom-table issues are resolved.
+- Add a QEMU interactive smoke test once the monitor input path is fixed (ticket `0015`).
+
+### Code review instructions
+- Start at:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp`
+- Validate with:
+  - `cd imports/esp32-mqjs-repl/mqjs-repl && ./build.sh build`
+  - `timeout 15s ./build.sh qemu`
