@@ -92,3 +92,13 @@ Step 13: tmux QEMU script sees prompt but no input echo (still 0015) (commit 167
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh — Same harness for device bring-up once hardware is connected
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh — Now reliably waits for prompt; still fails at :mode due to missing QEMU UART RX
 
+
+## 2025-12-31
+
+Step 14: UART-direct QEMU tests still show no RX echo (commit bf99dc4)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh — Proves missing input echo even with QEMU UART on stdio
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_tcp_raw.sh — Proves missing input echo even without idf_monitor
+

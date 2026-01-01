@@ -37,10 +37,16 @@ RelatedFiles:
       Note: Cardputer build defaults (8MB flash
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh
       Note: tmux-driven device repeat REPL smoke test (commit 5aeb539)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_uart_raw.py
+      Note: UART-direct device test using pyserial (commit bf99dc4)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh
       Note: |-
         tmux-driven QEMU repeat REPL smoke test (commit 5aeb539)
         Validated prompt-detection; input still not delivered under QEMU (commit 167c629)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh
+      Note: UART-direct QEMU stdio test to bypass idf_monitor (commit bf99dc4)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_tcp_raw.sh
+      Note: UART-direct QEMU TCP test to bypass idf_monitor (commit bf99dc4)
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md
       Note: Primary analysis of stdlib/atom-table split and -m32 generation plan
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md
@@ -51,6 +57,7 @@ LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -731,3 +738,36 @@ This is a strong signal that the underlying issue remains in the QEMU UART RX pa
 
 ### What warrants a second pair of eyes
 - Confirm whether this is a QEMU machine/UART routing issue (UART0 vs USB-Serial vs console) or an `idf_monitor` socket transport issue.
+
+## Step 14: Isolate further — raw UART tests still show no input echo under QEMU
+
+This step adds “UART-direct” tests to eliminate `idf_monitor` and tmux from the equation. The goal is to answer: is the failure happening because `idf_monitor` doesn’t forward input correctly, or because the QEMU ESP32-S3 UART RX path simply isn’t working?
+
+The result strongly points at **QEMU UART RX**. In both cases below, we can reliably see the firmware print the `repeat>` prompt, but we cannot get the firmware to echo *any* characters back (and therefore never see `mode: repeat`). Since the RepeatEvaluator REPL echoes each received byte immediately, this indicates the firmware is not receiving UART RX bytes at all.
+
+**Commit (code):** bf99dc4 — "mqjs-repl: add UART-direct REPL tests"
+
+### What I did
+- Added a QEMU UART-on-stdio test (no idf_monitor):
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh`
+- Added a QEMU raw TCP UART test (no idf_monitor; connect via plain TCP socket):
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_tcp_raw.sh`
+- Added a device-side direct UART test (no idf_monitor; uses pyserial):
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_uart_raw.py`
+
+### What worked
+- Both QEMU scripts can observe the REPL prompt deterministically and capture logs.
+
+### What didn't work
+- QEMU UART RX still appears non-functional:
+  - QEMU prints `repeat>` but never echoes `:mode` and never prints `mode: repeat`, even when bypassing `idf_monitor` entirely.
+
+### What I learned
+- The interactive-input bug reproduces across:
+  - `idf_monitor` (tmux script),
+  - raw TCP socket input (no monitor),
+  - and qemu stdio mode (no monitor),
+  which makes it very likely the issue is in the QEMU ESP32-S3 UART RX implementation or wiring, not in our REPL code.
+
+### What warrants a second pair of eyes
+- Confirm whether any alternative QEMU serial device mapping exists for ESP32-S3 (UART0 vs UART1) and whether ESP-IDF’s QEMU glue expects a different console transport for RX.
