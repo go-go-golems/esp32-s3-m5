@@ -3,6 +3,7 @@ idf_component_register(
     "app_main.cpp"
     "console/IConsole.cpp"
     "console/UartConsole.cpp"
+    "console/UsbSerialJtagConsole.cpp"
     "eval/RepeatEvaluator.cpp"
     "repl/LineEditor.cpp"
     "repl/ReplLoop.cpp"

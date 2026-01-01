@@ -6,6 +6,7 @@
 #include "esp_log.h"
 
 #include "console/UartConsole.h"
+#include "console/UsbSerialJtagConsole.h"
 #include "eval/RepeatEvaluator.h"
 #include "repl/LineEditor.h"
 #include "repl/ReplLoop.h"
@@ -42,7 +43,11 @@ extern "C" void app_main(void) {
   ESP_LOGI(kTag, "Starting REPL-only firmware (RepeatEvaluator)");
 
   auto ctx = std::make_unique<ReplTaskContext>();
+#if CONFIG_MQJS_REPL_CONSOLE_USB_SERIAL_JTAG
+  ctx->console = std::make_unique<UsbSerialJtagConsole>();
+#else
   ctx->console = std::make_unique<UartConsole>(UART_NUM_0, 115200);
+#endif
   ctx->evaluator = std::make_unique<RepeatEvaluator>();
   ctx->editor = std::make_unique<LineEditor>("repeat> ");
   ctx->repl = std::make_unique<ReplLoop>();
@@ -55,4 +60,3 @@ extern "C" void app_main(void) {
       5,
       nullptr);
 }
-

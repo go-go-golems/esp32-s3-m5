@@ -22,6 +22,7 @@ DO_FLASH="0"
 SESSION="mqjs-repl-dev-test-$$"
 TIMEOUT_SECS="45"
 KEEP_SESSION="0"
+CONSOLE_MODE="usb-serial-jtag"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -32,6 +33,10 @@ while [[ $# -gt 0 ]]; do
     --flash)
       DO_FLASH="1"
       shift 1
+      ;;
+    --console)
+      CONSOLE_MODE="$2"
+      shift 2
       ;;
     --session)
       SESSION="$2"
@@ -70,6 +75,9 @@ fi
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${PROJECT_DIR}"
+
+./tools/set_repl_console.sh "${CONSOLE_MODE}"
+
 LOG_DIR="${PROJECT_DIR}/build"
 mkdir -p "${LOG_DIR}"
 LOG_PATH="${LOG_DIR}/repeat_repl_device_tmux_${SESSION}.log"

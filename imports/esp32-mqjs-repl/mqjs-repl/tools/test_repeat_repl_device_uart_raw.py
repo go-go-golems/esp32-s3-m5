@@ -30,15 +30,8 @@ def main() -> int:
         ser.reset_input_buffer()
         ser.reset_output_buffer()
 
-        # Wait for prompt
-        while "repeat>" not in buf:
-            if deadline():
-                print("Timed out waiting for prompt", file=sys.stderr)
-                return 1
-            chunk = ser.read(4096)
-            if chunk:
-                buf += chunk.decode("utf-8", errors="replace")
-
+        # Don't rely on seeing the initial prompt: it may have printed before we opened the port
+        # (and we reset the input buffer). Instead, trigger output by issuing a command.
         ser.write(b":mode\r\n")
         ser.flush()
 
@@ -67,4 +60,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
