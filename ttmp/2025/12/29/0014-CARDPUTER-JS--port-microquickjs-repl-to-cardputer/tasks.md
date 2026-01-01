@@ -22,7 +22,7 @@
 - [ ] Add REPL meta-commands (e.g. :help, :mode, :prompt) and default to repeat mode in QEMU/dev builds
 - [x] Build 'REPL-only' firmware variant: disable SPIFFS/autoload and do not initialize MicroQuickJS (repeat evaluator only)
 - [x] Update ESP-IDF build config (main/CMakeLists, .cpp sources, includes) to compile the new component split cleanly
-- [ ] Smoke-test REPL-only firmware under QEMU: verify interactive input echoes and prompt redraw works (no JS, no storage)
+- [x] Smoke-test REPL-only firmware under QEMU: verify interactive input echoes and prompt redraw works (no JS, no storage)
 - [ ] Stdlib: trace provenance of esp_stdlib.h (host generator) and document how to regenerate for ESP32 (use -m32)
 - [ ] Stdlib: generate and commit a 32-bit stdlib header (e.g. esp32_stdlib.h) using esp_stdlib_gen -m32; verify it contains keyword atoms (var/function/return)
 - [ ] Stdlib: add a reproducible script/Make target to regenerate the ESP32 stdlib header (and optionally atom defines via -a)
@@ -30,3 +30,7 @@
 - [ ] Validation: once esp32 stdlib is wired, run a minimal script that starts with 'var' (and a function) to confirm parsing works on target/QEMU
 - [x] Add tmux-driven RepeatEvaluator REPL smoke-test scripts (QEMU + device)
 - [x] Add UART-direct REPL smoke tests (QEMU stdio + raw TCP; device pyserial) to isolate QEMU UART RX
+- [x] QEMU workaround: set UART0 RX full threshold=1 in UartConsole (post uart_driver_install)
+- [x] Validate QEMU interactive input after threshold change (tmux + raw TCP + stdio UART scripts)
+- [ ] Device validation: run repeat REPL smoke tests on Cardputer (/dev/ttyACM0) (tmux + pyserial)
+- [x] Document QEMU UART RX workaround and evidence in design-doc/03

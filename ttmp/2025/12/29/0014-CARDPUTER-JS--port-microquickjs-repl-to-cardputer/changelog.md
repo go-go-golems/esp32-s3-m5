@@ -111,3 +111,12 @@ Add intern internet research guide for QEMU UART RX + Cardputer console
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/03-intern-research-guide-qemu-uart-rx-cardputer-console.md — Defines search questions
 
+
+## 2025-12-31
+
+Fix: restore QEMU REPL input via UART RX FIFO polling (commit 7bc80f2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/console/UartConsole.cpp — Work around QEMU UART RX interrupt gaps by polling FIFO when ring buffer is empty
+

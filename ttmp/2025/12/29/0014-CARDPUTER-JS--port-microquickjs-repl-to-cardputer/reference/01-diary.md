@@ -20,7 +20,9 @@ RelatedFiles:
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp
       Note: New C++ REPL-only entrypoint wiring console+editor+repeat evaluator (commit 1a25a10)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UartConsole.cpp
-      Note: UART-backed console abstraction used for QEMU bring-up (commit 1a25a10)
+      Note: |-
+        UART-backed console abstraction used for QEMU bring-up (commit 1a25a10)
+        QEMU input fix via FIFO polling (commit 7bc80f2)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
       Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
@@ -51,12 +53,17 @@ RelatedFiles:
       Note: Primary analysis of stdlib/atom-table split and -m32 generation plan
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md
       Note: Design doc for splitting firmware main into C++ components and adding RepeatEvaluator
+    - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/03-qemu-uart-rx-root-cause-workaround-plan.md
+      Note: Consolidated analysis+plan from intern research
+    - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/sources/intern-research-qemu-uart-results.md
+      Note: Evidence for QEMU UART RX interrupt limitations
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -792,3 +799,53 @@ This step packages what we need from external research into a single, intern-fri
 
 ### What should be done in the future
 - Once the intern returns findings, convert “proposed actions” into concrete repo tasks (e.g., change QEMU serial mapping, implement USB Serial JTAG console for Cardputer, or stop relying on QEMU for RX).
+
+## Step 16: Fix QEMU interactive RX by polling UART FIFO (and keep tmux tests green)
+
+This step turns the intern’s “RX timeout interrupt missing” research into a practical fix we can validate locally: instead of depending on UART RX interrupts to move bytes into the driver’s ring buffer, the REPL console now polls the UART RX FIFO directly when no buffered bytes are available. This restores interactive input under QEMU across all of our harnesses (tmux + idf_monitor, raw TCP UART, and stdio).
+
+In addition, I attempted device-side testing on the attached Cardputer at `/dev/ttyACM0`. Flashing and monitoring works (boot logs + `ESP_LOGI` lines show up), but the REPL prompt does not appear because our REPL console currently writes to UART0 via `uart_write_bytes`, while `/dev/ttyACM0` is the USB Serial/JTAG console. This confirms the next required step for real-device REPL is implementing a USB Serial/JTAG-backed console transport.
+
+**Commit (code):** 7bc80f2 — "mqjs-repl: poll UART RX FIFO for QEMU"
+
+### What I did
+- Implemented a robust `UartConsole::Read()` path that:
+  - first reads any buffered bytes via `uart_read_bytes(..., timeout=0)`,
+  - then polls the hardware RX FIFO via `uart_ll_get_rxfifo_len()` + `uart_ll_read_rxfifo()` when interrupts don’t deliver bytes (QEMU),
+  - blocks with a small `vTaskDelay(1)` loop to honor the requested timeout.
+- Re-ran QEMU smoke tests:
+  - `tools/test_repeat_repl_qemu_tmux.sh`
+  - `tools/test_repeat_repl_qemu_uart_tcp_raw.sh`
+  - `tools/test_repeat_repl_qemu_uart_stdio.sh`
+- Flashed and monitored on Cardputer:
+  - `tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash` (flash succeeds; monitor shows logs but no REPL prompt)
+
+### Why
+- QEMU appears to not deliver RX reliably through the ESP-IDF UART driver’s interrupt-driven path for short inputs, even after reducing RX FIFO threshold. Polling the FIFO avoids dependence on missing/quirky IRQ behavior in the emulator.
+- Cardputer REPL needs a console implementation that matches the device’s actual interactive transport (USB Serial/JTAG on `/dev/ttyACM*`).
+
+### What worked
+- QEMU interactive REPL input works again via all harnesses; `:mode` prints `mode: repeat` and `hello-*` echoes.
+- Cardputer flashing and monitor connectivity on `/dev/ttyACM0` works.
+
+### What didn't work
+- Cardputer REPL prompt/output is not visible on `/dev/ttyACM0` because the REPL console currently writes to UART0 (not USB Serial/JTAG).
+
+### What I learned
+- Treat QEMU as “UART RX is not interrupt-reliable”: a polling fallback makes the REPL usable without waiting on emulator feature completeness.
+- Device console output path matters: `ESP_LOG*` can show up on USB Serial/JTAG while UART0 traffic remains invisible unless separately wired.
+
+### What was tricky to build
+- Making the console read path work in both worlds:
+  - real ESP-IDF driver ring buffer when interrupts do work, and
+  - raw FIFO polling when they don’t.
+
+### What warrants a second pair of eyes
+- The FIFO polling loop in `UartConsole::Read()` for correctness/perf: ensure it doesn’t starve other tasks or spin too aggressively under high throughput.
+- Whether we should limit FIFO polling to “QEMU builds only” vs keeping it always-on as a resilience feature.
+
+### What should be done in the future
+- Implement `UsbSerialJtagConsole` and select it for Cardputer builds so `repeat>` is visible and interactive on `/dev/ttyACM0`.
+- Once Cardputer console is in place, re-run:
+  - `tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash`
+  - `tools/test_repeat_repl_device_uart_raw.py --port /dev/ttyACM0`
