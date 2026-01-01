@@ -23,6 +23,8 @@ RelatedFiles:
       Note: |-
         UART-backed console abstraction used for QEMU bring-up (commit 1a25a10)
         QEMU input fix via FIFO polling (commit 7bc80f2)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UsbSerialJtagConsole.cpp
+      Note: USB Serial/JTAG console implementation for Cardputer REPL (commit d3e9f19)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
       Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
@@ -37,6 +39,8 @@ RelatedFiles:
       Note: Cardputer partition layout baseline (4MB app + 1MB SPIFFS) for commit 881a761
     - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults
       Note: Cardputer build defaults (8MB flash
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/set_repl_console.sh
+      Note: Local helper to switch REPL console transport via sdkconfig (commit d3e9f19)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh
       Note: tmux-driven device repeat REPL smoke test (commit 5aeb539)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_uart_raw.py
@@ -63,6 +67,7 @@ LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -849,3 +854,35 @@ In addition, I attempted device-side testing on the attached Cardputer at `/dev/
 - Once Cardputer console is in place, re-run:
   - `tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash`
   - `tools/test_repeat_repl_device_uart_raw.py --port /dev/ttyACM0`
+
+## Step 17: Cardputer REPL on /dev/ttyACM0 via USB Serial/JTAG console
+
+This step makes the REPL actually usable on real Cardputer hardware by switching the interactive console transport from UART0 to the ESP32-S3 USB Serial/JTAG peripheral. Previously, flashing and log monitoring worked on `/dev/ttyACM0`, but the REPL prompt didn’t show up because our REPL used `uart_write_bytes()` (UART0), which is not the USB Serial/JTAG console.
+
+With a dedicated `UsbSerialJtagConsole` implementation and a build-time selection knob, the REPL prompt and echo now work on `/dev/ttyACM0`. This closes the loop on the “device validation” tasks and gives us a reliable interactive dev loop for the next REPL and JS bring-up steps.
+
+**Commit (code):** d3e9f19 — "mqjs-repl: add USB Serial/JTAG console"
+
+### What I did
+- Added `UsbSerialJtagConsole` implementing `IConsole` via `usb_serial_jtag_{read,write}_bytes`
+- Added a Kconfig choice for REPL console transport (UART0 vs USB Serial/JTAG)
+- Added a helper script `tools/set_repl_console.sh` to update local (gitignored) `sdkconfig`
+- Updated the device tmux smoke test script to select the desired console mode before flash/monitor
+- Validated on Cardputer `/dev/ttyACM0`:
+  - `tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash --timeout 220` (passes)
+  - `tools/test_repeat_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 20` (passes; sends `:mode` without relying on seeing the initial prompt)
+
+### Why
+- Cardputer’s interactive console is USB Serial/JTAG (`/dev/ttyACM*`); using UART0 for the REPL made the prompt invisible during normal development.
+
+### What worked
+- The REPL prompt appears and is interactive on `/dev/ttyACM0`.
+
+### What didn't work
+- N/A in this step.
+
+### What I learned
+- “Monitor works” doesn’t imply “UART0 REPL works”: console output can be on USB Serial/JTAG while UART0 is effectively disconnected from the developer workflow.
+
+### What warrants a second pair of eyes
+- Confirm that using `usb_serial_jtag_is_connected()` to gate output is the right behavior (tradeoff: avoids blocking when unplugged vs potentially dropping early boot output).

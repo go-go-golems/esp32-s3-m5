@@ -6,7 +6,7 @@
 - [ ] Create implementation plan document outlining code changes needed for Cardputer port
 - [x] Create sdkconfig.defaults with Cardputer configuration (8MB flash, 240MHz CPU, 8000 byte main task stack)
 - [x] Update partitions.csv for Cardputer (4MB app partition, 1MB SPIFFS storage partition)
-- [ ] Replace UART driver with USB Serial JTAG driver in main.c (repl_task and initialization)
+- [x] Replace UART driver with USB Serial JTAG driver in main.c (repl_task and initialization)
 - [ ] Verify memory budget: ensure 64KB JS heap + buffers fit within Cardputer's 512KB SRAM constraint
 - [ ] Test firmware on Cardputer hardware (verify USB Serial JTAG works, SPIFFS mounts, REPL functions)
 - [ ] Consider optional enhancements: keyboard input integration, display output, speaker feedback
@@ -32,5 +32,9 @@
 - [x] Add UART-direct REPL smoke tests (QEMU stdio + raw TCP; device pyserial) to isolate QEMU UART RX
 - [x] QEMU workaround: set UART0 RX full threshold=1 in UartConsole (post uart_driver_install)
 - [x] Validate QEMU interactive input after threshold change (tmux + raw TCP + stdio UART scripts)
-- [ ] Device validation: run repeat REPL smoke tests on Cardputer (/dev/ttyACM0) (tmux + pyserial)
+- [x] Device validation: run repeat REPL smoke tests on Cardputer (/dev/ttyACM0) (tmux + pyserial)
 - [x] Document QEMU UART RX workaround and evidence in design-doc/03
+- [x] Implement UsbSerialJtagConsole (IConsole) for Cardputer interactive REPL on /dev/ttyACM*
+- [x] Add build-time console selection (UART0 vs USB Serial/JTAG) and default to UART0 for QEMU
+- [x] Update device smoke test script to flash+monitor with USB Serial/JTAG console enabled
+- [x] Verify Cardputer REPL prompt+echo works on /dev/ttyACM0 (tmux + pyserial)

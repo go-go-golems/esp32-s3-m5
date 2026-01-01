@@ -120,3 +120,13 @@ Fix: restore QEMU REPL input via UART RX FIFO polling (commit 7bc80f2)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/console/UartConsole.cpp — Work around QEMU UART RX interrupt gaps by polling FIFO when ring buffer is empty
 
+
+## 2025-12-31
+
+Step 17: Cardputer REPL works on /dev/ttyACM0 via USB Serial/JTAG (commit d3e9f19)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/console/UsbSerialJtagConsole.cpp — Interactive REPL I/O over USB Serial/JTAG
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh — Device smoke test now selects console mode before flash/monitor
+
