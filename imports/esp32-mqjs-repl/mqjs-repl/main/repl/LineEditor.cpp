@@ -13,6 +13,48 @@ void LineEditor::PrintPrompt(IConsole& console) {
 }
 
 std::optional<std::string> LineEditor::FeedByte(uint8_t byte, IConsole& console) {
+  if (in_escape_) {
+    escape_len_++;
+    if (byte >= 0x40 && byte <= 0x7e) {
+      in_escape_ = false;
+      escape_len_ = 0;
+    } else if (escape_len_ > 16) {
+      in_escape_ = false;
+      escape_len_ = 0;
+    }
+    return std::nullopt;
+  }
+
+  if (byte == 0x1b) {  // ESC (start of an ANSI escape sequence)
+    in_escape_ = true;
+    escape_len_ = 0;
+    return std::nullopt;
+  }
+
+  if (byte == 0x03) {  // Ctrl+C
+    line_.clear();
+    console.WriteString("^C\n");
+    return std::string();
+  }
+
+  if (byte == 0x15) {  // Ctrl+U (kill line)
+    while (!line_.empty()) {
+      line_.pop_back();
+      console.WriteString("\b \b");
+    }
+    return std::nullopt;
+  }
+
+  if (byte == 0x0c) {  // Ctrl+L (clear screen)
+    console.WriteString("\033[2J\033[H");
+    PrintPrompt(console);
+    if (!line_.empty()) {
+      console.Write(reinterpret_cast<const uint8_t*>(line_.data()),
+                    static_cast<int>(line_.size()));
+    }
+    return std::nullopt;
+  }
+
   if (byte == '\n' || byte == '\r') {
     console.WriteString("\n");
     std::string completed;
@@ -39,4 +81,3 @@ std::optional<std::string> LineEditor::FeedByte(uint8_t byte, IConsole& console)
 
   return std::nullopt;
 }
-

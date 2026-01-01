@@ -18,5 +18,8 @@ config MQJS_REPL_CONSOLE_USB_SERIAL_JTAG
 
 endchoice
 
-endmenu
+config MQJS_STDLIB_ESP32_GENERATED
+    bool
+    default y
 
+endmenu

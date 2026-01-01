@@ -17,5 +17,6 @@ class LineEditor {
  private:
   std::string prompt_;
   std::string line_;
+  bool in_escape_ = false;
+  int escape_len_ = 0;
 };
-

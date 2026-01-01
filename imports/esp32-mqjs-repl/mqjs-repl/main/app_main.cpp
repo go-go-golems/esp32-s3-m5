@@ -7,7 +7,7 @@
 
 #include "console/UartConsole.h"
 #include "console/UsbSerialJtagConsole.h"
-#include "eval/RepeatEvaluator.h"
+#include "eval/ModeSwitchingEvaluator.h"
 #include "repl/LineEditor.h"
 #include "repl/ReplLoop.h"
 
@@ -40,7 +40,7 @@ void repl_task(void* pvParameters) {
 }  // namespace
 
 extern "C" void app_main(void) {
-  ESP_LOGI(kTag, "Starting REPL-only firmware (RepeatEvaluator)");
+  ESP_LOGI(kTag, "Starting REPL firmware (mode switching)");
 
   auto ctx = std::make_unique<ReplTaskContext>();
 #if CONFIG_MQJS_REPL_CONSOLE_USB_SERIAL_JTAG
@@ -48,8 +48,9 @@ extern "C" void app_main(void) {
 #else
   ctx->console = std::make_unique<UartConsole>(UART_NUM_0, 115200);
 #endif
-  ctx->evaluator = std::make_unique<RepeatEvaluator>();
-  ctx->editor = std::make_unique<LineEditor>("repeat> ");
+  ctx->evaluator = std::make_unique<ModeSwitchingEvaluator>();
+  const char* prompt = ctx->evaluator->Prompt();
+  ctx->editor = std::make_unique<LineEditor>(prompt ? prompt : "repl> ");
   ctx->repl = std::make_unique<ReplLoop>();
 
   xTaskCreate(
