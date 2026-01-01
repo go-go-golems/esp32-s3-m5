@@ -28,3 +28,4 @@
 - [ ] Stdlib: add a reproducible script/Make target to regenerate the ESP32 stdlib header (and optionally atom defines via -a)
 - [ ] Firmware: add build-time selection between minimal_stdlib and generated esp32 stdlib (Kconfig/sdkconfig.defaults), without mixing 64-bit tables on ESP32
 - [ ] Validation: once esp32 stdlib is wired, run a minimal script that starts with 'var' (and a function) to confirm parsing works on target/QEMU
+- [x] Add tmux-driven RepeatEvaluator REPL smoke-test scripts (QEMU + device)
