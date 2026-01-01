@@ -35,6 +35,12 @@ RelatedFiles:
       Note: Cardputer partition layout baseline (4MB app + 1MB SPIFFS) for commit 881a761
     - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults
       Note: Cardputer build defaults (8MB flash
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh
+      Note: tmux-driven device repeat REPL smoke test (commit 5aeb539)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh
+      Note: |-
+        tmux-driven QEMU repeat REPL smoke test (commit 5aeb539)
+        Validated prompt-detection; input still not delivered under QEMU (commit 167c629)
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md
       Note: Primary analysis of stdlib/atom-table split and -m32 generation plan
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md
@@ -45,6 +51,8 @@ LastUpdated: 2025-12-29T13:24:53.129865004-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -661,3 +669,65 @@ The key unlock is that we can validate prompt/echo/backspace/newline behavior wi
 - Validate with:
   - `cd imports/esp32-mqjs-repl/mqjs-repl && ./build.sh build`
   - `timeout 15s ./build.sh qemu`
+
+## Step 12: Add tmux-based smoke tests for RepeatEvaluator REPL (QEMU + device)
+
+This step adds two small automation scripts that use tmux to drive the `idf.py monitor` console like a human would: wait for the `repeat> ` prompt, send a few lines (`:mode`, a test string, and `:prompt`), and assert the expected output shows up in the captured console buffer. The intent is to make REPL bring-up repeatable and to have a “known-good” check when we swap consoles (UART → USB Serial JTAG) or change line editing behavior.
+
+In this Codex sandbox environment, tmux cannot create/connect to its socket (EPERM), so the scripts couldn’t be executed here; they are intended to be run on a normal dev host.
+
+**Commit (code):** 5aeb539 — "mqjs-repl: add tmux REPL smoke tests"
+
+### What I did
+- Added:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh`
+- Each script:
+  - starts a tmux session running `./build.sh ... monitor`
+  - waits for `repeat> `
+  - sends `:mode`, a `hello-*` line, and `:prompt test> `
+  - captures output to `imports/esp32-mqjs-repl/mqjs-repl/build/*.log`
+
+### Why
+- We want a fast regression check for the REPL loop before adding JS evaluation and before changing transports for Cardputer.
+
+### What worked
+- Script logic is self-contained and writes a captured log on both success and failure for easy debugging.
+
+### What didn't work
+- Running tmux inside this sandbox failed with:
+  - `error connecting ... (Operation not permitted)`
+
+### What warrants a second pair of eyes
+- Confirm the patterns we grep for are stable across `idf_monitor` output formatting (timestamps, log prefixes, echo behavior).
+
+### Code review instructions
+- Start in:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh`
+
+## Step 13: Run the tmux QEMU script — prompt appears, but input still doesn’t reach UART RX
+
+This step is a quick validation of the new tmux automation scripts in a less-restricted environment. The script can now start `idf.py qemu monitor`, wait for the `repeat>` prompt, and capture logs reliably — but it still cannot get the firmware to echo any typed bytes. That means the original “QEMU REPL can’t receive interactive input” problem is **not** caused by MicroQuickJS parsing, SPIFFS, or autoload scripts: it reproduces even in the REPL-only RepeatEvaluator firmware.
+
+This is a strong signal that the underlying issue remains in the QEMU UART RX path or the `idf_monitor` → socket → QEMU wiring, and should continue to be treated as ticket `0015-QEMU-REPL-INPUT`.
+
+**Commit (code):** 167c629 — "mqjs-repl: harden tmux REPL tests"
+
+### What I did
+- Ran the QEMU script:
+  - `cd imports/esp32-mqjs-repl/mqjs-repl && ./tools/test_repeat_repl_qemu_tmux.sh --timeout 90`
+- Confirmed the script sees the prompt, then fails waiting for `mode: repeat` after sending `:mode`
+- Hardened the prompt matching in the scripts to look for `repeat>`/`test>` (without relying on a trailing space), since the console output can interleave logs and wrap
+
+### What worked
+- The QEMU script consistently detects the REPL prompt and captures the full console output to `imports/esp32-mqjs-repl/mqjs-repl/build/*.log`.
+
+### What didn't work
+- The firmware did not echo any of the input sent by the script (`:mode`, `hello-qemu`, `:prompt ...`), even though the REPL echoes every printable byte as it is typed.
+
+### What I learned
+- The QEMU input problem reproduces in the minimal REPL-only build, so it is a transport/UART RX issue, not a JS/stdlib/storage issue.
+
+### What warrants a second pair of eyes
+- Confirm whether this is a QEMU machine/UART routing issue (UART0 vs USB-Serial vs console) or an `idf_monitor` socket transport issue.

@@ -72,3 +72,23 @@ Step 11: start C++ split + REPL-only RepeatEvaluator bring-up (commit 1a25a10)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/CMakeLists.txt — Switch main component to new C++ modules
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp — REPL loop now dispatches to RepeatEvaluator and supports :help/:mode/:prompt
 
+
+## 2025-12-31
+
+Step 12: add tmux smoke tests for RepeatEvaluator REPL (commit 5aeb539)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh — Automates device monitor-driven REPL echo checks
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh — Automates QEMU monitor-driven REPL echo checks
+
+
+## 2025-12-31
+
+Step 13: tmux QEMU script sees prompt but no input echo (still 0015) (commit 167c629)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh — Same harness for device bring-up once hardware is connected
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh — Now reliably waits for prompt; still fails at :mode due to missing QEMU UART RX
+
