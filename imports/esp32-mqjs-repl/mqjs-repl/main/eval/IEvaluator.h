@@ -36,4 +36,13 @@ class IEvaluator {
     (void)out;
     return false;
   }
+
+  virtual bool Autoload(bool format_if_mount_failed, std::string* out, std::string* error) {
+    (void)format_if_mount_failed;
+    (void)out;
+    if (error) {
+      *error = "autoload is not supported";
+    }
+    return false;
+  }
 };

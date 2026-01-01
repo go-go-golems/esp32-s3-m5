@@ -65,6 +65,17 @@ def main() -> int:
             if chunk:
                 buf += chunk.decode("utf-8", errors="replace")
 
+        ser.write(b":autoload --format\r\n")
+        ser.flush()
+
+        while "autoload:" not in buf:
+            if deadline():
+                print("Timed out waiting for ':autoload' output (missing 'autoload:')", file=sys.stderr)
+                return 1
+            chunk = ser.read(4096)
+            if chunk:
+                buf += chunk.decode("utf-8", errors="replace")
+
     print("OK: device JS UART raw smoke test passed", file=sys.stderr)
     return 0
 

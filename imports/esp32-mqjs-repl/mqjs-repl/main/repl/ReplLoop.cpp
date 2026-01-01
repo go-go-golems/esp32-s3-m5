@@ -82,6 +82,8 @@ void ReplLoop::HandleLine(IConsole& console, LineEditor& editor, IEvaluator& eva
     console.WriteString(
         "  :reset         Reset current evaluator\n"
         "  :stats         Print memory stats\n"
+        "  :autoload      Run /spiffs/autoload/*.js\n"
+        "  :autoload --format  Format+mount SPIFFS if needed\n"
         "  :prompt TEXT   Set prompt\n");
     return;
   }
@@ -144,6 +146,23 @@ void ReplLoop::HandleLine(IConsole& console, LineEditor& editor, IEvaluator& eva
       }
     }
 
+    return;
+  }
+
+  if (stripped == ":autoload" || stripped.rfind(":autoload ", 0) == 0) {
+    const bool format = stripped.find("--format") != std::string::npos;
+    std::string output;
+    std::string error;
+    if (!evaluator.Autoload(format, &output, &error)) {
+      console.WriteString("error: ");
+      console.WriteString(error.c_str());
+      console.WriteString("\n");
+      return;
+    }
+    if (!output.empty()) {
+      console.Write(reinterpret_cast<const uint8_t*>(output.data()),
+                    static_cast<int>(output.size()));
+    }
     return;
   }
 

@@ -19,6 +19,7 @@ class ModeSwitchingEvaluator final : public IEvaluator {
   bool SetMode(std::string_view mode, std::string* error) override;
   bool Reset(std::string* error) override;
   bool GetStats(std::string* out) override;
+  bool Autoload(bool format_if_mount_failed, std::string* out, std::string* error) override;
 
  private:
   RepeatEvaluator repeat_;

@@ -124,6 +124,7 @@ start = time.time()
 sent_mode_js = False
 sent_eval = False
 sent_stats = False
+sent_autoload = False
 
 def write_line(line: str) -> None:
     os.write(master_fd, (line + "\r\n").encode("utf-8"))
@@ -156,7 +157,11 @@ try:
             write_line(":stats")
             sent_stats = True
 
-        if sent_stats and (b"heap_free=" in buf):
+        if sent_stats and (b"heap_free=" in buf) and (not sent_autoload):
+            write_line(":autoload --format")
+            sent_autoload = True
+
+        if sent_autoload and (b"autoload:" in buf):
             with open(log_path, "wb") as f:
                 f.write(buf)
             print(f"OK: QEMU JS UART stdio smoke test passed (log: {log_path})", file=sys.stderr)

@@ -86,3 +86,13 @@ bool ModeSwitchingEvaluator::GetStats(std::string* out) {
   }
   return current_->GetStats(out);
 }
+
+bool ModeSwitchingEvaluator::Autoload(bool format_if_mount_failed, std::string* out, std::string* error) {
+  if (!current_) {
+    if (error) {
+      *error = "no evaluator selected";
+    }
+    return false;
+  }
+  return current_->Autoload(format_if_mount_failed, out, error);
+}

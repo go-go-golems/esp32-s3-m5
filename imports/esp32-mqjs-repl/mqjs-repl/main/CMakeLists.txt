@@ -10,6 +10,7 @@ idf_component_register(
     "eval/RepeatEvaluator.cpp"
     "repl/LineEditor.cpp"
     "repl/ReplLoop.cpp"
+    "storage/Spiffs.cpp"
   INCLUDE_DIRS
     "."
 )

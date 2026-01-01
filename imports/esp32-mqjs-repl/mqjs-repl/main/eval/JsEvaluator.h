@@ -18,6 +18,7 @@ class JsEvaluator final : public IEvaluator {
   EvalResult EvalLine(std::string_view line) override;
   bool Reset(std::string* error) override;
   bool GetStats(std::string* out) override;
+  bool Autoload(bool format_if_mount_failed, std::string* out, std::string* error) override;
 
  private:
   static constexpr size_t kJsMemSize = 64 * 1024;
