@@ -1,3 +1,22 @@
+---
+Title: BLE GATT bug report research
+Ticket: 0020-BLE-KEYBOARD
+Status: active
+Topics:
+  - ble
+  - esp32s3
+  - keyboard
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: Drop-in research report on GATTC disconnect reason 0x0100 and HIDH open status 0x85.
+LastUpdated: 2026-01-01T00:00:00Z
+WhatFor: ""
+WhenToUse: ""
+---
+
 Below is a “drop-in” research report for ticket **0020-BLE-KEYBOARD** (ESP-IDF **v5.4.1**, **Bluedroid**, **BLE HID Host / HOGP**) focused on the two codes you’re seeing:
 
 * **GATTC disconnect reason `0x0100`**

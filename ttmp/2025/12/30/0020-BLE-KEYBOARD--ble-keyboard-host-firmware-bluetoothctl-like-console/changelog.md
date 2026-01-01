@@ -98,3 +98,15 @@ Design: document dual discovery + dual security registries and unified peer regi
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/design-doc/03-design-dual-security-registries-unified-peer-registry-le-br-edr.md — Dual-mode registry design and console UX
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/tasks.md — Added dual-mode implementation tasks
 
+
+## 2025-12-31
+
+Step 13: Attempt BR/EDR dual-mode; discover ESP32-S3 is BLE-only; refactor ble_host→bt_host and gate BR/EDR support, extend pair_debug transport flag (commit 3e5e878)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c — Add explicit le/bredr console commands and Classic reply commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_host.c — Refactor host module to be transport-aware; gate BR/EDR for non-Classic targets
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/hid_host.c — Generalize esp_hidh open to select BLE vs BR/EDR transport
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/reference/01-diary.md — Record Step 13 and update related file paths
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py — Add --transport le|bredr and parse devices bredr output

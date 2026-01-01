@@ -16,10 +16,6 @@ RelatedFiles:
       Note: Reference esp_console over USB Serial/JTAG (command registration + REPL startup)
     - Path: 0019-cardputer-ble-temp-logger/main/ble_temp_logger_main.c
       Note: Reference BLE bring-up pattern (Bluedroid init + callback wiring)
-    - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
-      Note: |-
-        Adds decoded logs for GATTC open/disconnect/close; defers connect until scan stop complete (commit 6a96946)
-        Core BLE scan/pair logic + bluetoothctl-like device events
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_console.c
       Note: Console commands (devices filter/clear/events
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.c
@@ -28,6 +24,8 @@ RelatedFiles:
         Central mapping of esp_gatt_status_t / esp_gatt_conn_reason_t / esp_bt_status_t to name+desc; used for decoded logs and the codes console command (commit 005f98f)
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_decode.h
       Note: Decoder public interface for use across modules (commit 005f98f)
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_host.c
+      Note: Renamed from ble_host.c; BLE host logic + transport-aware scaffolding
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/analysis/03-why-keyboard-shows-in-bluetoothctl-but-not-on-esp32-scan.md
       Note: Root-cause analysis + bluetoothctl commands to confirm LE vs BR/EDR
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/analysis/04-adding-classic-br-edr-hid-keyboard-support-and-dual-mode-in-esp-idf.md
@@ -51,6 +49,7 @@ LastUpdated: 2025-12-30T20:03:33.973096356-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

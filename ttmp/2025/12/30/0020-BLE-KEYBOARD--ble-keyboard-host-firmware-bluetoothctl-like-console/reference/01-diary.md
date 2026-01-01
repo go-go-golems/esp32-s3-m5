@@ -14,12 +14,12 @@ Owners: []
 RelatedFiles:
     - Path: 0020-cardputer-ble-keyboard-host/README.md
       Note: Updated console quickstart with new commands
-    - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.c
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_host.c
       Note: |-
         Crash-loop forwarding path captured in Step 6
         Implements decoded logging + scan-stop→open sequencing (commit 6a96946)
         Device registry events
-    - Path: 0020-cardputer-ble-keyboard-host/main/ble_host.h
+    - Path: 0020-cardputer-ble-keyboard-host/main/bt_host.h
       Note: Public APIs for devices filtering/clear/events and updated pair signature
     - Path: 0020-cardputer-ble-keyboard-host/main/bt_console.c
       Note: |-
@@ -464,7 +464,7 @@ This step was about making live pairing attempts actually operable in a noisy RF
 
 The biggest correctness fix here was name extraction: many devices only provide the “Complete Local Name” in the scan response, not the advertisement. If you pass only `adv_data_len` into `esp_ble_resolve_adv_data_by_type`, you end up with a device list that looks unnamed (and therefore useless) even though the information is present.
 
-**Commit (code):** N/A (uncommitted working tree)
+**Commit (code):** 3e5e878 — "0020: Refactor host into bt_host (transport-aware)"
 
 ### What I did
 - Increased the device registry cap and made `devices` print `devices: <count>/<cap>` so it’s obvious when we’re dropping/evicting.
@@ -586,8 +586,8 @@ The fix changes the semantics of `pair` from “blindly request encryption on th
 - Consider exposing “pair mode” selection (NO_MITM vs MITM) via a console command once bring-up stabilizes.
 
 ### Code review instructions
-- Start in `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/ble_host.c`:
-  - `ble_host_pair`
+- Start in `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_host.c`:
+  - `bt_host_le_pair`
   - `gattc_cb` (`ESP_GATTC_OPEN_EVT` pairing trigger + guards)
 - Then check `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_console.c`:
   - `cmd_pair` parsing for index/addr and addr_type inference.
@@ -678,3 +678,92 @@ In parallel, we standardized on using tmux for `idf.py monitor` so we can detach
 - `plz-confirm` output shapes (observed):
   - `confirm --output json` → `[{ "approved": true, ... }]`
   - `form --output json` → `[{ "data_json": "{\"x\":\"...\"}", ... }]`
+
+---
+
+## Step 13: Start “dual-mode” work, discover ESP32-S3 is BLE-only, refactor toward a BT-aware host
+
+This step attempted to begin Classic (BR/EDR) + BLE “dual-mode” keyboard support, motivated by the observation that some keyboards only appear in `bluetoothctl scan bredr`. The key outcome is a target reality check: for ESP32-S3, Classic GAP/HID host APIs are not available in the build, so BR/EDR isn’t achievable on this hardware/target.
+
+Even though BR/EDR can’t work on ESP32-S3, I still refactored the code toward a transport-aware “BT host” so the console and host APIs won’t need a second large refactor if we later switch to an ESP32 (Classic-capable) board.
+
+**Commit (code):** N/A (uncommitted working tree)
+
+### What I did
+- Refactored the host module:
+  - Renamed `ble_host.{c,h}` → `bt_host.{c,h}` and renamed APIs to be explicit about transport (`bt_host_scan_le_*`, `bt_host_le_pair`, etc).
+- Generalized HID open to support multiple transports:
+  - `hid_host_open(hid_host_transport_t transport, ...)` in `main/hid_host.{c,h}`
+- Added BR/EDR-oriented console syntax (guarded by target capabilities):
+  - `scan bredr on|off`, `devices bredr`, `connect bredr`, `pair bredr`, `bt-pin`, `bt-passkey`, `bt-confirm`
+- Extended the pairing automation script to be transport-aware:
+  - `scripts/pair_debug.py --transport le|bredr`
+- Updated ticket bookkeeping:
+  - checked Task 49 (“Decide scope: Classic-only vs BTDM”) because the constraint is now clear: ESP32-S3 can’t do BR/EDR.
+
+### Why
+- The console UX and the firmware architecture need to make transport explicit (LE vs BR/EDR) to avoid address/security confusion.
+- Even if BR/EDR isn’t usable on ESP32-S3, shaping the APIs now prevents a later “rename everything” refactor if we move to ESP32.
+
+### What worked
+- Building BLE-only still works after refactor:
+  - `idf.py -C 0020-cardputer-ble-keyboard-host build`
+- Transport-aware command parsing keeps existing workflows usable:
+  - `scan on 15`, `devices`, `pair <idx>` still operate on LE as before.
+- On-device runtime check in monitor:
+  - `devices bredr` prints `devices bredr: not supported on this target` (expected, since BR/EDR is gated).
+
+### What didn't work
+- Attempting to implement Classic (BR/EDR) on `esp32s3` failed at link time (meaning the Classic GAP APIs aren’t available for this target build). Example linker errors from `idf.py -C 0020-cardputer-ble-keyboard-host build`:
+  - `undefined reference to 'esp_bt_gap_register_callback'`
+  - `undefined reference to 'esp_bt_gap_start_discovery'`
+  - `undefined reference to 'esp_bt_gap_cancel_discovery'`
+  - `undefined reference to 'esp_bt_gap_set_pin'`
+  - `undefined reference to 'esp_bt_gap_get_bond_device_num'`
+  - `undefined reference to 'esp_bt_gap_pin_reply'`
+  - `undefined reference to 'esp_bt_gap_ssp_confirm_reply'`
+
+### What I learned
+- ESP32-S3 builds in this repo are BLE-only in practice: Classic/BR/EDR symbols are not available, so “dual-mode” (BTDM) isn’t achievable on this target.
+- The right way to keep the codebase future-proof is to gate BR/EDR features behind `CONFIG_SOC_BT_CLASSIC_SUPPORTED` and keep the LE path fully functional.
+
+### What was tricky to build
+- Avoiding accidental runtime failures:
+  - enabling `ESP_BT_MODE_BTDM` unconditionally is wrong on BLE-only targets; init now selects `ESP_BT_MODE_BLE` vs `ESP_BT_MODE_BTDM` based on target capability.
+- Preventing ambiguous prompts:
+  - BR/EDR pairing events overlap in naming with LE SMP events (passkey/numeric compare), so BR/EDR logs are prefixed with `bredr ...` so scripts/operators can key off the right prompt.
+- Keeping BR/EDR code paths compile-safe:
+  - most BR/EDR-only functions are wrapped in `#if BT_HOST_HAS_BREDR` and stubbed otherwise, so we avoid unresolved symbols while still keeping the API surface stable.
+
+### What warrants a second pair of eyes
+- Verify the refactor didn’t subtly change LE behavior:
+  - scan stop → connect sequencing
+  - “pair connects first then encrypts” flow
+  - bond list/unpair semantics
+- Confirm we didn’t accidentally regress HID close/error decoding:
+  - `hid_host.c` now decodes close reasons as either GATT reason (LE) or BT status (BR/EDR).
+
+### What should be done in the future
+- Decide the actual path for “keyboard shows only in `scan bredr`”:
+  - switch hardware to ESP32 (Classic-capable), or
+  - constrain project scope to BLE keyboards only and document the limitation clearly.
+- If we stick with ESP32-S3:
+  - update the project’s “supported keyboard” statement to explicitly say “BLE HOGP only; BR/EDR HIDP not supported on ESP32-S3”.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/bt_host.c`:
+  - `bt_host_init` (capability-gated controller mode)
+  - `bt_host_scan_le_start/stop` and connect/pair flow
+- Then check `esp32-s3-m5/0020-cardputer-ble-keyboard-host/main/hid_host.c`:
+  - `hid_host_open` transport selection
+- Script changes:
+  - `esp32-s3-m5/ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py`
+
+### Technical details
+- Quick “is BR/EDR supported?” runtime probe:
+  - `devices bredr` → `devices bredr: not supported on this target`
+- The capability gate is driven by:
+  - `CONFIG_SOC_BT_CLASSIC_SUPPORTED` (BR/EDR present) vs BLE-only targets.
+
+### What I'd do differently next time
+- Before implementing Classic APIs, confirm target capability first by checking `SOC_BT_CLASSIC_SUPPORTED` (or by trying to link a minimal `esp_bt_gap_*` call) to avoid spending time on an impossible target.

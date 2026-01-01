@@ -52,7 +52,7 @@
 - [ ] Write a minimal playbook for humans in `playbooks/`:
   - [ ] Flash + monitor commands
   - [ ] Example session: `scan on`, `devices`, `connect`, `pair`, `keylog on`
-- [ ] [Dual-mode] Decide scope: Classic-only vs BTDM (dual-mode) keyboard host
+- [x] [Dual-mode] Decide scope: Classic-only vs BTDM (dual-mode) keyboard host
 - [ ] [Dual-mode] Enable Classic + HID Host in sdkconfig.defaults (CONFIG_BT_CLASSIC_ENABLED=y, CONFIG_BT_HID_HOST_ENABLED=y)
 - [ ] [Dual-mode] Switch controller mode to ESP_BT_MODE_BTDM (stop releasing Classic mem; update ble_host_init/renamed host init)
 - [ ] [Dual-mode] Implement Classic discovery registry (inquiry) + console commands: scan bredr, devices bredr
@@ -63,3 +63,4 @@
 - [ ] [Dual-mode] Define mapping rules (no CTKD assumptions): how a Classic peer and LE peer may or may not map to one physical device
 - [ ] [Dual-mode] Update playbook: how to use scan le/bredr, peers, connect/pair for both transports
 - [ ] [Dual-mode] Validation matrix: test with one Classic-only keyboard and one BLE HOGP keyboard; record expected console traces
+- [ ] [Dual-mode] Hardware constraint: ESP32-S3 is BLE-only; if BR/EDR keyboards are required, switch target/hardware to ESP32 (Classic-capable)

@@ -230,6 +230,7 @@ class SerialSession:
 
 
 DEVICE_LINE_RE = re.compile(r"^\\s*(\\d+)\\s+([0-9a-fA-F:]{17})\\s+(pub|rand)\\s+(-?\\d+)\\s+(\\d+)\\s+(.*)$")
+DEVICE_BREDR_LINE_RE = re.compile(r"^\\s*(\\d+)\\s+([0-9a-fA-F:]{17})\\s+(-?\\d+)\\s+(\\d+)\\s+0x([0-9a-fA-F]{6})\\s+(yes|no)\\s+(.*)$")
 
 
 def parse_devices_table(text: str) -> list[dict]:
@@ -251,6 +252,26 @@ def parse_devices_table(text: str) -> list[dict]:
     return rows
 
 
+def parse_devices_bredr_table(text: str) -> list[dict]:
+    rows: list[dict] = []
+    for line in text.splitlines():
+        m = DEVICE_BREDR_LINE_RE.match(line)
+        if not m:
+            continue
+        rows.append(
+            {
+                "idx": int(m.group(1)),
+                "addr": m.group(2).lower(),
+                "rssi": int(m.group(3)),
+                "age_ms": int(m.group(4)),
+                "cod": m.group(5).lower(),
+                "kbd": m.group(6),
+                "name": m.group(7).strip(),
+            }
+        )
+    return rows
+
+
 def format_devices_for_prompt(devs: list[dict], limit: int = 30) -> str:
     lines = []
     for d in devs[:limit]:
@@ -267,6 +288,7 @@ def main() -> int:
     ap.add_argument("--port", default=None, help="Serial port (default: auto-detect)")
     ap.add_argument("--baud", type=int, default=115200, help="Serial baud rate")
     ap.add_argument("--scan-seconds", type=int, default=15, help="Scan duration")
+    ap.add_argument("--transport", choices=["le", "bredr"], default="le", help="Transport to scan/pair (le or bredr)")
     ap.add_argument("--plz-confirm-base-url", default=DEFAULT_PLZ_CONFIRM_BASE_URL, help="plz-confirm base URL")
     ap.add_argument("--plz-wait-timeout", type=int, default=300, help="plz-confirm wait timeout seconds")
     ap.add_argument("--log-file", default=None, help="Optional serial log path")
@@ -276,7 +298,7 @@ def main() -> int:
 
     port = pick_serial_port(args.port)
     approved = plz_confirm(
-        "Ready to run BLE pairing flow?",
+        f"Ready to run pairing flow ({args.transport})?",
         f"Please confirm:\n\n- Your keyboard/device is in pairing mode\n- The ESP32-S3 is connected on {port}\n\nI will fullclean+build+flash, then scan and attempt to pair.",
         base_url=args.plz_confirm_base_url,
         wait_timeout_s=args.plz_wait_timeout,
@@ -299,11 +321,11 @@ def main() -> int:
         session.write_line("")
         session.write_line("")
         session.read_until("ble> ", timeout_s=20)
-        session.write_line(f"scan on {args.scan_seconds}")
+        session.write_line(f"scan {args.transport} on {args.scan_seconds}")
         time.sleep(max(1, args.scan_seconds + 2))
-        session.write_line("devices")
+        session.write_line("devices" if args.transport == "le" else "devices bredr")
         devices_out = session.read_collect(timeout_s=8, idle_s=0.4)
-        devs = parse_devices_table(devices_out)
+        devs = parse_devices_table(devices_out) if args.transport == "le" else parse_devices_bredr_table(devices_out)
 
         if not devs:
             approved = plz_confirm(
@@ -314,11 +336,11 @@ def main() -> int:
             )
             if not approved:
                 return 1
-            session.write_line("scan on 30")
+            session.write_line(f"scan {args.transport} on 30")
             time.sleep(32)
-            session.write_line("devices")
+            session.write_line("devices" if args.transport == "le" else "devices bredr")
             devices_out = session.read_collect(timeout_s=8, idle_s=0.4)
-            devs = parse_devices_table(devices_out)
+            devs = parse_devices_table(devices_out) if args.transport == "le" else parse_devices_bredr_table(devices_out)
 
         if not devs:
             print("No devices discovered; aborting.")
@@ -347,7 +369,10 @@ def main() -> int:
             raise RuntimeError(f"Selected index {index} not present in parsed device list")
 
         addr = chosen["addr"]
-        session.write_line(f"pair {index}")
+        if args.transport == "le":
+            session.write_line(f"pair {index}")
+        else:
+            session.write_line(f"pair bredr {index}")
 
         auth_deadline = time.time() + 90
         saw_auth = False
@@ -359,7 +384,7 @@ def main() -> int:
             sys.stdout.write(chunk)
             sys.stdout.flush()
 
-            if "passkey req:" in chunk:
+            if args.transport == "le" and "passkey req:" in chunk:
                 resp = plz_form_json(
                     "Passkey required",
                     {
@@ -380,7 +405,7 @@ def main() -> int:
                 passkey = int(resp["passkey"])
                 session.write_line(f"passkey {addr} {passkey:06d}")
 
-            if "numeric compare req:" in chunk:
+            if args.transport == "le" and "numeric compare req:" in chunk:
                 approved = plz_confirm(
                     "Numeric comparison",
                     f"Accept numeric comparison for {addr}?\n\n(If you see a number on the keyboard/device, it should match the log.)",
@@ -389,10 +414,67 @@ def main() -> int:
                 )
                 session.write_line(f"confirm {addr} {'yes' if approved else 'no'}")
 
-            if "auth complete: success" in chunk:
+            if args.transport == "bredr" and "bredr pin req:" in chunk:
+                resp = plz_form_json(
+                    "PIN required (BR/EDR)",
+                    {
+                        "type": "object",
+                        "required": ["pin"],
+                        "properties": {
+                            "pin": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 16,
+                                "description": f"Enter the PIN for {addr}. (Common values: 0000, 1234)",
+                            }
+                        },
+                    },
+                    base_url=args.plz_confirm_base_url,
+                    wait_timeout_s=args.plz_wait_timeout,
+                )
+                pin = str(resp["pin"])
+                session.write_line(f"bt-pin {addr} {pin}")
+
+            if args.transport == "bredr" and "bredr passkey req:" in chunk:
+                resp = plz_form_json(
+                    "Passkey required (BR/EDR)",
+                    {
+                        "type": "object",
+                        "required": ["passkey"],
+                        "properties": {
+                            "passkey": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 999999,
+                                "description": f"Enter the 6-digit passkey for {addr}.",
+                            }
+                        },
+                    },
+                    base_url=args.plz_confirm_base_url,
+                    wait_timeout_s=args.plz_wait_timeout,
+                )
+                passkey = int(resp["passkey"])
+                session.write_line(f"bt-passkey {addr} {passkey:06d}")
+
+            if args.transport == "bredr" and "bredr numeric compare req:" in chunk:
+                approved = plz_confirm(
+                    "Numeric comparison (BR/EDR)",
+                    f"Accept numeric comparison for {addr}?",
+                    base_url=args.plz_confirm_base_url,
+                    wait_timeout_s=args.plz_wait_timeout,
+                )
+                session.write_line(f"bt-confirm {addr} {'yes' if approved else 'no'}")
+
+            if args.transport == "le" and "auth complete: success" in chunk:
                 saw_auth = True
                 break
-            if "auth complete: fail_reason=" in chunk:
+            if args.transport == "le" and "auth complete: fail_reason=" in chunk:
+                saw_auth = True
+                break
+            if args.transport == "bredr" and "bredr auth complete: success" in chunk:
+                saw_auth = True
+                break
+            if args.transport == "bredr" and "bredr auth complete:" in chunk:
                 saw_auth = True
                 break
 
@@ -416,4 +498,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
