@@ -1,0 +1,10 @@
+#pragma once
+
+#include "eval/IEvaluator.h"
+
+class RepeatEvaluator final : public IEvaluator {
+ public:
+  const char* Name() const override { return "repeat"; }
+  EvalResult EvalLine(std::string_view line) override;
+};
+

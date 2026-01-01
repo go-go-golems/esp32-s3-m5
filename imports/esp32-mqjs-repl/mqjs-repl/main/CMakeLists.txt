@@ -1,2 +1,11 @@
-idf_component_register(SRCS "main.c"
-                    INCLUDE_DIRS ".")
+idf_component_register(
+  SRCS
+    "app_main.cpp"
+    "console/IConsole.cpp"
+    "console/UartConsole.cpp"
+    "eval/RepeatEvaluator.cpp"
+    "repl/LineEditor.cpp"
+    "repl/ReplLoop.cpp"
+  INCLUDE_DIRS
+    "."
+)
