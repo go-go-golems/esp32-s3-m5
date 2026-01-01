@@ -17,10 +17,28 @@ RelatedFiles:
       Note: Entrypoint and wiring for REPL-only firmware
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UsbSerialJtagConsole.cpp
       Note: Cardputer interactive console transport
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h
+      Note: Generated 32-bit stdlib tables (ESP32-safe) to unblock JS parsing of keywords like 'var'
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_atom.h
+      Note: Generated 32-bit atom offsets used by parser/lexer; must match esp32_stdlib.h
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
+      Note: Firmware-side stubs + includes that define js_stdlib from esp32_stdlib.h
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp
+      Note: JavaScript evaluator (JS_NewContext + JS_Eval + error/value printing)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/eval/ModeSwitchingEvaluator.cpp
+      Note: Implements :mode repeat|js switching without REPL loop knowing evaluator internals
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp
       Note: REPL command handling and evaluator dispatch
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/Kconfig.projbuild
+      Note: Kconfig knobs (console transport; stdlib is always the generated ESP32 one)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh
       Note: Fast device-first smoke test
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh
+      Note: Regenerates the ESP32 32-bit stdlib header deterministically
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh
+      Note: QEMU JS smoke test that proves `var` parsing works
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py
+      Note: Device JS smoke test (pyserial) that proves `var` parsing works
 ExternalSources: []
 Summary: Device-first handoff guide for continuing 0014-CARDPUTER-JS (REPL → JS → storage) with concrete entry points, symbols, scripts, and task-by-task notes.
 LastUpdated: 2026-01-01T00:00:00Z
@@ -48,9 +66,8 @@ Current state (important):
 Open work (high-level):
 
 - Finish the “split” by moving remaining legacy features (SPIFFS/autoload + MicroQuickJS) behind optional components.
-- Fix stdlib/atom-table correctness for ESP32 (generate 32-bit stdlib header).
-- Add a `JsEvaluator` and mode switching (`:mode js`) to enable actual JavaScript evaluation.
 - Reintroduce storage/autoload without blocking the REPL.
+- Verify memory budget once JS+storage are enabled (heap usage under load).
 
 ## Quick Reference
 
@@ -79,9 +96,24 @@ Console transports (device-first):
 Evaluator interface + current evaluator:
 - `imports/esp32-mqjs-repl/mqjs-repl/main/eval/IEvaluator.h:1`
 - `imports/esp32-mqjs-repl/mqjs-repl/main/eval/RepeatEvaluator.cpp:1`
+- `imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp:1`
+- `imports/esp32-mqjs-repl/mqjs-repl/main/eval/ModeSwitchingEvaluator.cpp:1`
+
+REPL meta-commands:
+- `:help`, `:mode repeat|js`, `:stats`, `:reset`, `:prompt TEXT`
+
+Line editor shortcuts:
+- `Ctrl+C` cancel line, `Ctrl+U` kill line, `Ctrl+L` clear screen
 
 Kconfig “knobs”:
 - `imports/esp32-mqjs-repl/mqjs-repl/main/Kconfig.projbuild:1` (choose REPL console transport)
+
+Stdlib regeneration:
+- `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh:1` (regenerate `main/esp32_stdlib.h` via `esp_stdlib_gen -m32`)
+
+JS smoke tests:
+- QEMU: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh:1`
+- Device: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py:1`
 
 ### Device-first workflows (recommended)
 
@@ -129,15 +161,13 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 
 These are the open tasks as of now; use this as a “what to do next” explainer.
 
-- Task 2 (implementation plan doc): Create a short “what’s left” plan now that console + QEMU input are solved; include evaluator + stdlib + storage sequencing.
+- Task 2 (implementation plan doc): Create a short “what’s left” plan now that console + QEMU input + JS mode are solved; focus on storage/autoload sequencing.
 - Task 6 (memory budget): Determine peak heap use on Cardputer once JS is enabled (JS heap + buffers + SPIFFS + any caches). The Cardputer’s effective SRAM budget is tight; document measured numbers and constraints.
 - Task 7 (hardware test): Extend the existing device smoke tests beyond RepeatEvaluator:
-  - prove JS evaluation works (`:mode js`, run a script containing `var`)
+  - prove JS evaluation works on-device (`:mode js`, run a script containing `var`)
   - prove storage mounts and autoload doesn’t brick the REPL
 - Task 8 (optional enhancements): Only after core REPL is stable; keep separate from correctness work.
-- Task 14 (finish split): Move remaining legacy concerns into components (Storage/Autoload/JsEvaluator) while keeping behavior unchanged where possible.
-- Task 18 (meta-commands/modes): Expand meta-commands so they can switch evaluators (e.g. `:mode repeat|js`) and provide help/output that makes debugging easy.
-- Tasks 22–26 (stdlib): Generate a 32-bit stdlib header for ESP32 and wire it correctly so keywords like `var` parse and basic scripts run.
+- Task 14 (finish split): Move remaining legacy concerns into components (Storage/Autoload) while keeping behavior unchanged where possible.
 
 ## Usage Examples
 
@@ -148,12 +178,30 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 ./tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash --timeout 220
 ```
 
+### Example: “I need to verify JS parsing works in QEMU”
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./tools/test_js_repl_qemu_uart_stdio.sh --timeout 120
+```
+
+### Example: “I need to verify JS parsing works on device”
+
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./tools/set_repl_console.sh usb-serial-jtag
+./build.sh build
+./build.sh -p /dev/ttyACM0 flash
+./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 25
+```
+
 ### Example: “I’m about to touch REPL parsing; what tests should I run?”
 
 - Device (primary):
   - `./tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --timeout 220`
 - QEMU (secondary regression):
   - `./tools/test_repeat_repl_qemu_tmux.sh --timeout 120`
+  - `./tools/test_js_repl_qemu_uart_stdio.sh --timeout 120`
 
 ## Related
 

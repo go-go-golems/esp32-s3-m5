@@ -139,3 +139,48 @@ Add device-first developer handoff guide
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/04-device-first-developer-handoff-guide.md — Entry points
 
+
+## 2026-01-01
+
+Stdlib: generate and check in an ESP32-safe 32-bit stdlib header and add a regen script (foundation for enabling JS parsing on ESP32).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h — Generated 32-bit stdlib tables (includes keyword atoms like 'var')
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh — Deterministic regen helper (runs esp_stdlib_gen -m32)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/Kconfig.projbuild — Stdlib config (now pinned to generated ESP32 tables)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/tasks.md — Checked off stdlib/meta-command tasks
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 19: stdlib generation + wiring notes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/04-device-first-developer-handoff-guide.md — Updated open-work notes + pointers
+
+
+## 2026-01-01
+
+JS: add `:mode js` + `JsEvaluator`, switch firmware to always use the generated ESP32 stdlib + matching atom header, and add QEMU/device smoke tests that prove `var` parses (QEMU validated).
+ (commit 53f5c26)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp — JS evaluator (prints values/exceptions)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/ModeSwitchingEvaluator.cpp — `:mode repeat|js` support
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c — Firmware stubs + `js_stdlib` definition site
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h — Generated 32-bit stdlib tables
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_atom.h — Generated 32-bit atom offsets (required for `var` parsing)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh — Regenerates stdlib + atom header
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — QEMU JS smoke test (`var x = 1 + 2; x`)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Device JS smoke test (`var x = 1 + 2; x`)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 20: JS evaluator + atom header fix + QEMU proof
+
+
+## 2026-01-01
+
+Device validation: flash Cardputer and validate JS eval + `:stats`; add `:stats`/`:reset` meta-commands and improve line editing (Ctrl+C/Ctrl+U/Ctrl+L, ignore ANSI escapes).
+ (commit 53f5c26)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp — Adds `:stats` and `:reset`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/repl/LineEditor.cpp — Ctrl+C/Ctrl+U/Ctrl+L + ignore escape sequences
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Now asserts `:stats` output contains `heap_free=`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — Now asserts `:stats` output contains `heap_free=`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 21: device flash + stats + editor improvements

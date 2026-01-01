@@ -19,15 +19,18 @@
 - [x] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
 - [x] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
 - [x] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS
-- [ ] Add REPL meta-commands (e.g. :help, :mode, :prompt) and default to repeat mode in QEMU/dev builds
+- [x] Add REPL meta-commands (e.g. :help, :mode, :prompt) and default to repeat mode in QEMU/dev builds
 - [x] Build 'REPL-only' firmware variant: disable SPIFFS/autoload and do not initialize MicroQuickJS (repeat evaluator only)
 - [x] Update ESP-IDF build config (main/CMakeLists, .cpp sources, includes) to compile the new component split cleanly
 - [x] Smoke-test REPL-only firmware under QEMU: verify interactive input echoes and prompt redraw works (no JS, no storage)
-- [ ] Stdlib: trace provenance of esp_stdlib.h (host generator) and document how to regenerate for ESP32 (use -m32)
-- [ ] Stdlib: generate and commit a 32-bit stdlib header (e.g. esp32_stdlib.h) using esp_stdlib_gen -m32; verify it contains keyword atoms (var/function/return)
-- [ ] Stdlib: add a reproducible script/Make target to regenerate the ESP32 stdlib header (and optionally atom defines via -a)
-- [ ] Firmware: add build-time selection between minimal_stdlib and generated esp32 stdlib (Kconfig/sdkconfig.defaults), without mixing 64-bit tables on ESP32
-- [ ] Validation: once esp32 stdlib is wired, run a minimal script that starts with 'var' (and a function) to confirm parsing works on target/QEMU
+- [x] Stdlib: trace provenance of esp_stdlib.h (host generator) and document how to regenerate for ESP32 (use -m32)
+- [x] Stdlib: generate and commit a 32-bit stdlib header (e.g. esp32_stdlib.h) using esp_stdlib_gen -m32; verify it contains keyword atoms (var/function/return)
+- [x] Stdlib: add a reproducible script to regenerate the ESP32 stdlib header + atom header (esp_stdlib_gen -m32 -a)
+- [x] Firmware: always use generated ESP32 stdlib + atom header (no minimal fallback; avoid 64-bit tables on ESP32)
+- [x] Validation: once esp32 stdlib+atoms are wired, run a minimal script that starts with 'var' to confirm parsing works on target/QEMU
+- [x] REPL: add `:stats` and `:reset` to support debugging on device/QEMU
+- [x] REPL: improve line editing (ignore ANSI escapes; Ctrl+C/Ctrl+U/Ctrl+L)
+- [x] Device validation: JS eval + `:stats` works on /dev/ttyACM0
 - [x] Add tmux-driven RepeatEvaluator REPL smoke-test scripts (QEMU + device)
 - [x] Add UART-direct REPL smoke tests (QEMU stdio + raw TCP; device pyserial) to isolate QEMU UART RX
 - [x] QEMU workaround: set UART0 RX full threshold=1 in UartConsole (post uart_driver_install)

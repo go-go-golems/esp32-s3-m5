@@ -17,6 +17,8 @@ RelatedFiles:
       Note: Uploader script used to convert ticket markdown to PDF and upload to reMarkable
     - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c
       Note: Implements build_atoms and supports -m32/-m64; key to generating an ESP32-safe 32-bit stdlib
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_atom.h
+      Note: Atom offset header used by the parser; must be generated with -m32/-a to match esp32_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp
       Note: New C++ REPL-only entrypoint wiring console+editor+repeat evaluator (commit 1a25a10)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UartConsole.cpp
@@ -27,14 +29,22 @@ RelatedFiles:
       Note: USB Serial/JTAG console implementation for Cardputer REPL (commit d3e9f19)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
       Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h
+      Note: Generated 32-bit ESP32-safe stdlib header (created via esp_stdlib_gen -m32)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
+      Note: Firmware-side stubs + include site that defines js_stdlib from esp32_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
       Note: Host stdlib generator binary; confirms why esp_stdlib.h was generated as 64-bit by default
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h
-      Note: Firmware-selected empty stdlib; explains missing keyword atoms and 'var' parse failures
+      Note: Legacy bring-up-only stdlib; no longer used now that JS mode is enabled
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c
       Note: Generator program main() that calls build_atoms() to emit esp_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp
       Note: Core REPL loop + meta-commands + evaluator dispatch (commit 1a25a10)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp
+      Note: JavaScript evaluator (JS_NewContext + JS_Eval + JS_PrintValueF capture)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/eval/ModeSwitchingEvaluator.cpp
+      Note: Implements :mode repeat|js switching
     - Path: imports/esp32-mqjs-repl/mqjs-repl/partitions.csv
       Note: Cardputer partition layout baseline (4MB app + 1MB SPIFFS) for commit 881a761
     - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig.defaults
@@ -43,6 +53,8 @@ RelatedFiles:
       Note: Local helper to switch REPL console transport via sdkconfig (commit d3e9f19)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_tmux.sh
       Note: tmux-driven device repeat REPL smoke test (commit 5aeb539)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh
+      Note: Regenerates the ESP32 32-bit stdlib header + atom header deterministically (this step)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_device_uart_raw.py
       Note: UART-direct device test using pyserial (commit bf99dc4)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_tmux.sh
@@ -53,6 +65,10 @@ RelatedFiles:
       Note: UART-direct QEMU stdio test to bypass idf_monitor (commit bf99dc4)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_tcp_raw.sh
       Note: UART-direct QEMU TCP test to bypass idf_monitor (commit bf99dc4)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh
+      Note: UART-direct QEMU JS smoke test (proves `var` parses and runs)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py
+      Note: UART-direct device JS smoke test (pyserial)
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md
       Note: Primary analysis of stdlib/atom-table split and -m32 generation plan
     - Path: ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md
@@ -63,7 +79,7 @@ RelatedFiles:
       Note: Evidence for QEMU UART RX interrupt limitations
 ExternalSources: []
 Summary: ""
-LastUpdated: 2025-12-29T13:24:53.129865004-05:00
+LastUpdated: 2026-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -906,3 +922,130 @@ This step is documentation-only. The goal is to make handoff clean: a new develo
 
 ### What should be done in the future
 - Keep the handoff guide updated as we introduce JS evaluation and storage/autoload back into the system.
+
+## Step 19: Generate and commit the ESP32 32-bit stdlib header (+ regen script + Kconfig knob)
+
+This step unblocks the next “JS actually works” milestone by adding a generated 32-bit stdlib table for ESP32. The previously checked-in `main/esp_stdlib.h` is a 64-bit table (generated on a 64-bit host), which is known to be unsafe for ESP32 and contributes to parse failures when we later re-enable JavaScript evaluation.
+
+With `main/esp32_stdlib.h` generated via `esp_stdlib_gen -m32`, we now have an ESP32-safe table that includes keyword atoms like `var`, `function`, and `return`. The important follow-up is that the parser also depends on `mquickjs_atom.h`, which must be generated with the same word size (`-m32 -a`) or `var` still won’t parse.
+
+**Commit (code):** 53f5c26 — "mqjs-repl: JS mode, stats, and smoke tests"
+
+### What I did
+- Generated a 32-bit stdlib header:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h`
+- Added a deterministic regen helper:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh`
+- Generated the matching 32-bit atom header (via `-m32 -a`):
+  - `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_atom.h`
+
+### Why
+- MicroQuickJS’s ROM stdlib tables are word-size sensitive; the 64-bit-generated stdlib table should not be used on ESP32.
+- To make the “enable JS evaluation” work item actually actionable, we need a checked-in, ESP32-safe stdlib header plus a regen mechanism.
+
+### What worked
+- `esp_stdlib_gen -m32` produces a `uint32_t` table and includes keyword atoms (`"var"`, `"function"`, `"return"`).
+
+### What didn't work
+- The generator prints a warning while building hash tables:
+  - `Too many properties, consider increasing ATOM_ALIGN`
+  It still generates output, but this should be understood and (if needed) addressed before we treat the generated tables as a locked-down contract.
+
+### What I learned
+- We do *not* need a 32-bit host toolchain: `mquickjs_build.c` supports a runtime `-m32` flag and emits a 32-bit table even when the generator binary itself is 64-bit.
+
+### What was tricky to build
+- Avoiding accidental symbol/table mixing: the generated headers define concrete data (not just declarations), so future wiring needs to ensure exactly one stdlib header is compiled into the firmware.
+
+### What warrants a second pair of eyes
+- Whether we should increase `ATOM_ALIGN` (currently 64) for the generated tables to avoid the “Too many properties…” warning (tradeoff: alignment vs hash table size vs memory/perf).
+- Confirm that `main/esp32_stdlib.h` is the *only* stdlib header we should ever use on ESP32 once JS evaluation is enabled (and that we should treat `main/esp_stdlib.h` as host/reference only).
+
+### What should be done in the future
+- Wire the generated ESP32 stdlib + atom header into the eventual `JsEvaluator` path and run a minimal script that starts with `var` on both:
+  - Cardputer (USB Serial/JTAG)
+  - QEMU (UART0)
+
+## Step 20: Add `JsEvaluator`, mode switching (`:mode js`), and prove `var` parses in QEMU
+
+This step turns the bring-up REPL into a real JS REPL by adding a `JsEvaluator` and a mode switcher so the REPL can flip between repeat echo and JavaScript evaluation. The key lesson here is that enabling JS evaluation on ESP32 is a *pair* of generated artifacts: the stdlib table (`esp32_stdlib.h`) and the parser atom offsets (`mquickjs_atom.h`). If they don’t match, the lexer/parser misclassifies tokens and `var` fails in confusing ways.
+
+To keep things simple and avoid fallback paths, the firmware now always compiles with the generated ESP32 stdlib table + matching atom header. With both in place, a QEMU smoke test that runs `var x = 1 + 2; x` succeeds and prints `3`.
+
+**Commit (code):** 53f5c26 — "mqjs-repl: JS mode, stats, and smoke tests"
+
+### What I did
+- Added `JsEvaluator` (`JS_NewContext` + `JS_Eval`) and printed values/exceptions via `JS_PrintValueF` capture.
+- Added `ModeSwitchingEvaluator` and wired it into `app_main` so the REPL supports `:mode repeat|js`.
+- Defined `js_stdlib` in a C compilation unit (`main/esp32_stdlib_runtime.c`) that provides the required stubs (`js_print`, `js_gc`, etc) and includes `main/esp32_stdlib.h`.
+- Updated `tools/gen_esp32_stdlib.sh` to regenerate both:
+  - `main/esp32_stdlib.h` (via `-m32`)
+  - `components/mquickjs/mquickjs_atom.h` (via `-m32 -a`)
+- Added JS smoke tests:
+  - QEMU: `tools/test_js_repl_qemu_uart_stdio.sh`
+  - Device: `tools/test_js_repl_device_uart_raw.py`
+
+### Why
+- We need an actual JS evaluator to make progress on storage/autoload and on-device JS workflows.
+- `var` parsing failures are an atom-table mismatch problem; the fix must include the atom header, not just the stdlib table.
+
+### What worked
+- QEMU passes: `tools/test_js_repl_qemu_uart_stdio.sh` prints `3` for `var x = 1 + 2; x`.
+
+### What didn't work
+- Before regenerating `components/mquickjs/mquickjs_atom.h` for 32-bit, JS mode consistently failed to parse `var` (confusing errors like `[mtag] ...`).
+
+### What I learned
+- `mquickjs_atom.h` is part of the JS parsing contract; it must be generated with the same `-m32` word-size as the stdlib table.
+
+### What was tricky to build
+- The generated stdlib header must be compiled as C (including it from C++ triggers narrowing errors).
+- `JS_PrintValueF` writes through `ctx->write_func`/`ctx->opaque`; capturing output requires temporarily repointing `ctx->opaque`.
+
+### What warrants a second pair of eyes
+- Confirm no other code in this project relies on the previous `mquickjs_atom.h` offsets (this change is intentionally not backwards compatible).
+- Sanity-check that the `JsEvaluator` log capture doesn’t break if multiple contexts are used in the future.
+
+### What should be done in the future
+- Run the device JS smoke test on Cardputer (`/dev/ttyACM0`) and keep it green while reintroducing storage/autoload.
+
+## Step 21: Validate JS + `:stats` on Cardputer and tighten REPL ergonomics
+
+This step closes the loop on “JS interpreter on the real device” by actually flashing Cardputer and running an automated smoke test against `/dev/ttyACM0`. Once that was green, I added a `:stats` command (heap stats + JS memory dump) and a few small line editor improvements that make interactive work less frustrating (Ctrl+C cancel, Ctrl+U kill line, ignore arrow-key escape sequences).
+
+The main gotcha was that our QEMU test script switches the build to UART0 via `sdkconfig`, so device tests will silently fail unless we flip back to USB Serial/JTAG and re-flash first. I captured that failure mode here so it’s easy to recognize next time.
+
+**Commit (code):** N/A (not committed in this session)
+
+### What I did
+- Flashed Cardputer and ran the device JS smoke test:
+  - `./tools/set_repl_console.sh usb-serial-jtag`
+  - `./build.sh build`
+  - `./build.sh -p /dev/ttyACM0 flash`
+  - `./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 25`
+- Added `:stats` (heap + JS dump) and `:reset`:
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp`
+- Improved line editing:
+  - ignore ANSI escape sequences (arrow keys)
+  - `Ctrl+C` cancels line, `Ctrl+U` kills line, `Ctrl+L` clears screen
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/repl/LineEditor.cpp`
+- Extended smoke tests to validate `:stats` output:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh`
+
+### What worked
+- Device: JS eval (`var x = 1 + 2; x`) prints `3` and `:stats` prints `heap_free=...`.
+- QEMU: JS + `:stats` smoke test passes.
+
+### What didn't work
+- Device test initially timed out waiting for `mode: js` when the firmware on the device hadn’t been flashed yet.
+- After running the QEMU tests, device tests timed out again until switching the console back to USB Serial/JTAG (because QEMU uses UART0).
+
+### What was tricky to build
+- Keeping device vs QEMU console selection straight: `sdkconfig` is local and scripts mutate it.
+
+### What warrants a second pair of eyes
+- Ensure `:stats` output is actually meaningful for the “memory budget” task (heap metrics are system heap; JS heap is fixed-buffer and reported via `JS_DumpMemory`).
+
+### What should be done in the future
+- Add a dedicated “device JS tmux” script (flash+monitor+smoke) similar to the existing RepeatEvaluator tmux harness so interactive workflows are one-command.
