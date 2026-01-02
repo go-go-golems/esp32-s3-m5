@@ -31,6 +31,10 @@
 
 static const char *TAG = "cardputer_lvgl_demo";
 
+extern "C" volatile uint32_t g_ui_loop_counter = 0;
+extern "C" volatile uint32_t g_lvgl_handler_us_last = 0;
+extern "C" volatile uint32_t g_lvgl_handler_us_avg = 0;
+
 extern "C" void app_main(void) {
     ESP_LOGI(TAG, "boot; free_heap=%" PRIu32 " dma_free=%" PRIu32, esp_get_free_heap_size(),
              (uint32_t)heap_caps_get_free_size(MALLOC_CAP_DMA));
@@ -75,6 +79,8 @@ extern "C" void app_main(void) {
     command_palette_init(kb_indev, demos.group, ctrl_q);
 
     while (true) {
+        g_ui_loop_counter++;
+
         const std::vector<KeyEvent> events = keyboard.poll();
 
         std::vector<KeyEvent> filtered;
@@ -96,7 +102,16 @@ extern "C" void app_main(void) {
         }
         lvgl_port_cardputer_kb_feed(filtered);
 
+        const int64_t t0 = esp_timer_get_time();
         lv_timer_handler();
+        const uint32_t us = (uint32_t)(esp_timer_get_time() - t0);
+        g_lvgl_handler_us_last = us;
+        if (g_lvgl_handler_us_avg == 0) {
+            g_lvgl_handler_us_avg = us;
+        } else {
+            // EMA shift=3 (~1/8 smoothing), matching repo patterns in 0022.
+            g_lvgl_handler_us_avg = g_lvgl_handler_us_avg - (g_lvgl_handler_us_avg >> 3) + (us >> 3);
+        }
 
         // Drain any host control-plane events (esp_console) on the UI thread.
         // This ensures no cross-thread LVGL or display access.
@@ -121,6 +136,8 @@ extern "C" void app_main(void) {
                 demo_manager_load(&demos, DemoId::SplitConsole);
             } else if (ev.type == CtrlType::TogglePalette) {
                 command_palette_toggle();
+            } else if (ev.type == CtrlType::OpenSystemMonitor) {
+                demo_manager_load(&demos, DemoId::SystemMonitor);
             }
         }
 

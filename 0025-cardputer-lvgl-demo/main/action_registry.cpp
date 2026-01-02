@@ -30,6 +30,12 @@ constexpr Action kActions[] = {
         .keywords = "console repl split",
     },
     {
+        .id = ActionId::OpenSystemMonitor,
+        .command = "sysmon",
+        .title = "Open System Monitor",
+        .keywords = "sysmon system monitor heap dma fps",
+    },
+    {
         .id = ActionId::PomodoroSet15,
         .command = nullptr,
         .title = "Pomodoro: Set minutes 15",
@@ -83,6 +89,7 @@ bool action_registry_to_ctrl_event(ActionId id, CtrlEvent *out, TaskHandle_t rep
     case ActionId::OpenBasics: ev.type = CtrlType::OpenBasics; break;
     case ActionId::OpenPomodoro: ev.type = CtrlType::OpenPomodoro; break;
     case ActionId::OpenConsole: ev.type = CtrlType::OpenSplitConsole; break;
+    case ActionId::OpenSystemMonitor: ev.type = CtrlType::OpenSystemMonitor; break;
     case ActionId::PomodoroSet15:
         ev.type = CtrlType::PomodoroSetMinutes;
         ev.arg = 15;
@@ -114,4 +121,3 @@ bool action_registry_enqueue_by_command(QueueHandle_t ctrl_q, const char *comman
     if (!a) return false;
     return action_registry_enqueue(ctrl_q, a->id, wait);
 }
-

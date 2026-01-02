@@ -33,6 +33,7 @@ This demo starts an `esp_console` REPL over **USB-Serial/JTAG**. You can type co
 - `basics`
 - `pomodoro`
 - `console`
+- `sysmon`
 - `palette`
 - `setmins <minutes>`
 - `screenshot` — emits a framed PNG over the same serial port:
@@ -97,3 +98,8 @@ pinocchio code professional --images screenshot.png "OCR this screenshot and con
 - `Up` / `Down`: move selection
 - `Enter`: run selected action
 - `Esc`: close palette
+
+### System Monitor demo
+
+- Shows `heap`/`dma` trends + UI loop timing and an estimated `fps` signal.
+- `Fn + \``: return to menu

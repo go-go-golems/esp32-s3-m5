@@ -91,7 +91,7 @@ static void cmd_help(SplitConsoleState *st) {
     append_line(st, "Commands:");
     append_line(st, "  help");
     append_line(st, "  heap");
-    append_line(st, "  menu | basics | pomodoro");
+    append_line(st, "  menu | basics | pomodoro | sysmon");
     append_line(st, "  setmins <1-99>");
     append_line(st, "  screenshot (host-only)");
 }
@@ -134,6 +134,10 @@ static void run_line(SplitConsoleState *st, std::string_view line) {
     }
     if (cmd == "pomodoro") {
         demo_manager_load(st->mgr, DemoId::Pomodoro);
+        return;
+    }
+    if (cmd == "sysmon") {
+        demo_manager_load(st->mgr, DemoId::SystemMonitor);
         return;
     }
 

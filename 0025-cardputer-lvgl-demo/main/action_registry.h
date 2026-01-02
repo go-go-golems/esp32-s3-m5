@@ -14,10 +14,11 @@ enum class ActionId : uint8_t {
     OpenBasics = 2,
     OpenPomodoro = 3,
     OpenConsole = 4,
-    PomodoroSet15 = 5,
-    PomodoroSet25 = 6,
-    PomodoroSet50 = 7,
-    Screenshot = 8,
+    OpenSystemMonitor = 5,
+    PomodoroSet15 = 6,
+    PomodoroSet25 = 7,
+    PomodoroSet50 = 8,
+    Screenshot = 9,
 };
 
 struct Action {
@@ -42,4 +43,3 @@ bool action_registry_enqueue_by_command(QueueHandle_t ctrl_q, const char *comman
 
 // Convenience: enqueue by ActionId.
 bool action_registry_enqueue(QueueHandle_t ctrl_q, ActionId id, TickType_t wait = 0, TaskHandle_t reply_task = nullptr);
-

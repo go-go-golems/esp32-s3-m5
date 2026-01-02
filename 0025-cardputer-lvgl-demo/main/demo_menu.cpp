@@ -6,7 +6,7 @@
 
 namespace {
 
-static constexpr int kItemCount = 3;
+static constexpr int kItemCount = 4;
 
 struct MenuState {
     DemoManager *mgr = nullptr;
@@ -48,8 +48,10 @@ static void open_selected(MenuState *st) {
         demo_manager_load(st->mgr, DemoId::Basics);
     } else if (st->selected == 1) {
         demo_manager_load(st->mgr, DemoId::Pomodoro);
-    } else {
+    } else if (st->selected == 2) {
         demo_manager_load(st->mgr, DemoId::SplitConsole);
+    } else {
+        demo_manager_load(st->mgr, DemoId::SystemMonitor);
     }
 }
 
@@ -95,7 +97,7 @@ lv_obj_t *demo_menu_create(DemoManager *mgr) {
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
 
     // Menu rows.
-    static const char *kItems[kItemCount] = {"Basics", "Pomodoro", "Console"};
+    static const char *kItems[kItemCount] = {"Basics", "Pomodoro", "Console", "SysMon"};
     for (int i = 0; i < kItemCount; i++) {
         lv_obj_t *row = lv_obj_create(s_menu.root);
         s_menu.rows[i] = row;

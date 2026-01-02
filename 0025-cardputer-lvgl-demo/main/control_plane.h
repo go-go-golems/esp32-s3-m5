@@ -15,6 +15,7 @@ enum class CtrlType : uint8_t {
     ScreenshotPngToUsbSerialJtag = 5,
     OpenSplitConsole = 6,
     TogglePalette = 7,
+    OpenSystemMonitor = 8,
 };
 
 struct CtrlEvent {
