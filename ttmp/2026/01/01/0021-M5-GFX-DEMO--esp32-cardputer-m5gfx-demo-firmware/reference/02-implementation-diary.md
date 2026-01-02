@@ -551,6 +551,8 @@ This step responds to a new real-device failure: triggering the screenshot send 
 
 This step starts fulfilling the “demo modules” part of the ticket by adding two actual content scenes to the demo suite: a plasma effect (ported from tutorial `0011`) and a static primitives showcase. The immediate goal is to move beyond placeholder screens and validate that the scene infrastructure supports both animated and static renderers.
 
+**Commit (code):** 25d9dbd — "Demo: add plasma and primitives scenes"
+
 ### What I did
 - Added C1 Plasma demo:
   - Ported the `sin8`/palette precompute + `draw_plasma()` algorithm from `esp32-s3-m5/0011-cardputer-m5gfx-plasma-animation/main/hello_world_main.cpp`.
