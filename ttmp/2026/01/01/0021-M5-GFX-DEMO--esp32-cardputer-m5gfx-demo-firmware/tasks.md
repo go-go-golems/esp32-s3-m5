@@ -20,9 +20,9 @@ These are the remaining chunks under “Implement demo modules …”, broken do
 
 ### Text / fonts
 
-- [ ] D1 Text: builtin fonts showcase + text metrics (`textWidth`, datum/alignment)
-- [ ] D2 Text: wrapping/ellipsis demo (reusing `ui_list_view` truncation behavior)
-- [ ] D3 Text: UTF-8 / symbol rendering sanity (what works, what doesn’t)
+- [x] D1 Text: builtin fonts showcase + text metrics (`textWidth`, datum/alignment)
+- [x] D2 Text: wrapping/ellipsis demo (reusing `ui_list_view` truncation behavior)
+- [x] D3 Text: UTF-8 / symbol rendering sanity (what works, what doesn’t)
 
 ### Sprites / transforms
 

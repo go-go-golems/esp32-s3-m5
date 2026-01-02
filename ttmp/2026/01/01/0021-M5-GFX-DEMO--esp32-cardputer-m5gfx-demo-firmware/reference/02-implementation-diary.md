@@ -645,3 +645,56 @@ This step removes the confusing “TODO: implement demo module” placeholder co
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_a1_hud.cpp`
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp`
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b3_screenshot.cpp`
+
+## Step 16: Implement D1-D3 text demos (fonts/metrics, wrap/ellipsis, UTF-8 sanity)
+
+This step implements the first “text/fonts” tranche of the decomposed demo-module backlog by adding three new scenes:
+
+- D1: builtin fonts showcase + simple metrics
+- D2: wrapping vs ellipsis patterns (small-screen text constraints)
+- D3: UTF-8 / symbols sanity check (glyph coverage varies by font)
+
+### What I did
+- Added new scenes and menu entries:
+  - `SceneId::D1TextFontsDemo`, `SceneId::D2TextWrapDemo`, `SceneId::D3TextUtf8Demo`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`
+- Implemented D1 renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d1_text_fonts.cpp`
+  - Shows `Font0/Font2/Font4` samples and `textWidth`/`fontHeight` metrics.
+- Implemented D2 renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d2_text_wrap.cpp`
+  - Shows a “hard wrap” box and a “single-line ellipsis” box.
+- Implemented D3 renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d3_text_utf8.cpp`
+  - Shows accented Latin, arrow symbols, and a few math/misc glyphs.
+- Wired new sources into the build:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/CMakeLists.txt`
+- Built successfully:
+  - `cd esp32-s3-m5/0022-cardputer-m5gfx-demo-suite && ./build.sh build`
+
+### Why
+- These demos make text behavior explicit (width, wrap, truncation, glyph coverage), which is essential for designing any UI on a 240×135 display.
+
+### What worked
+- Build passes; new scenes render via the same scene dispatch used by the other demos.
+
+### What didn't work
+- N/A in this step (no device flash requested).
+
+### What I learned
+- With `-std=gnu++2b`, `u8"..."` is `char8_t*` and doesn’t match LovyanGFX’s `const char*` APIs; plain UTF-8 string literals are the simplest approach here.
+
+### What was tricky to build
+- Keeping D1 readable within the small body height (header/footer consume 32px).
+
+### What warrants a second pair of eyes
+- D2 wrap behavior is byte-based (not Unicode grapheme-safe). That’s okay for the demo, but if we later build production UI wrapping, we should decide on a UTF-8 aware strategy.
+
+### What should be done in the future
+- Next text-related demos should exercise datums/alignment more thoroughly and include a “scrollable text view” widget.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`, then review:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d1_text_fonts.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d2_text_wrap.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d3_text_utf8.cpp`

@@ -186,3 +186,16 @@ Decomposed remaining demo-module work into D1..D11 tasks
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/tasks.md — Expanded demo-module backlog
 
+
+## 2026-01-01
+
+Implemented D1-D3 text demos: fonts+metrics, wrap+ellipsis, UTF-8/symbol sanity
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Added D1-D3 scenes to menu and dispatch
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d1_text_fonts.cpp — D1 scene renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d2_text_wrap.cpp — D2 scene renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_d3_text_utf8.cpp — D3 scene renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/tasks.md — Checked off D1-D3
+

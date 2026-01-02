@@ -28,6 +28,9 @@
 #include "demo_a1_hud.h"
 #include "demo_b2_perf.h"
 #include "demo_b3_screenshot.h"
+#include "demo_d1_text_fonts.h"
+#include "demo_d2_text_wrap.h"
+#include "demo_d3_text_utf8.h"
 #include "input_keyboard.h"
 #include "screenshot_png.h"
 #include "ui_console.h"
@@ -49,6 +52,9 @@ enum class SceneId {
     B3ScreenshotDemo,
     C1PlasmaDemo,
     C2PrimitivesDemo,
+    D1TextFontsDemo,
+    D2TextWrapDemo,
+    D3TextUtf8Demo,
 };
 
 static const char *scene_name(SceneId id) {
@@ -60,6 +66,9 @@ static const char *scene_name(SceneId id) {
         case SceneId::B3ScreenshotDemo: return "B3 Screenshot";
         case SceneId::C1PlasmaDemo: return "C1 Plasma";
         case SceneId::C2PrimitivesDemo: return "C2 Primitives";
+        case SceneId::D1TextFontsDemo: return "D1 Text fonts";
+        case SceneId::D2TextWrapDemo: return "D2 Text wrap";
+        case SceneId::D3TextUtf8Demo: return "D3 Text UTF-8";
         default: return "Unknown";
     }
 }
@@ -73,6 +82,9 @@ static SceneId next_scene(SceneId cur, bool backwards) {
         SceneId::B3ScreenshotDemo,
         SceneId::C1PlasmaDemo,
         SceneId::C2PrimitivesDemo,
+        SceneId::D1TextFontsDemo,
+        SceneId::D2TextWrapDemo,
+        SceneId::D3TextUtf8Demo,
     };
 
     int idx = 0;
@@ -200,6 +212,9 @@ extern "C" void app_main(void) {
         {"B3 Screenshot to serial", SceneId::B3ScreenshotDemo},
         {"C1 Plasma (port of 0011)", SceneId::C1PlasmaDemo},
         {"C2 Primitives (lines/rects/circles/triangles)", SceneId::C2PrimitivesDemo},
+        {"D1 Text fonts + metrics", SceneId::D1TextFontsDemo},
+        {"D2 Text wrap + ellipsis", SceneId::D2TextWrapDemo},
+        {"D3 UTF-8 / symbols sanity", SceneId::D3TextUtf8Demo},
     };
 
     ListView list;
@@ -402,6 +417,12 @@ extern "C" void app_main(void) {
                 plasma_render(body, plasma);
             } else if (scene == SceneId::C2PrimitivesDemo) {
                 primitives_render(body);
+            } else if (scene == SceneId::D1TextFontsDemo) {
+                demo_d1_text_fonts_render(body);
+            } else if (scene == SceneId::D2TextWrapDemo) {
+                demo_d2_text_wrap_render(body);
+            } else if (scene == SceneId::D3TextUtf8Demo) {
+                demo_d3_text_utf8_render(body);
             } else {
                 render_placeholder(body, scene_name(scene));
             }
