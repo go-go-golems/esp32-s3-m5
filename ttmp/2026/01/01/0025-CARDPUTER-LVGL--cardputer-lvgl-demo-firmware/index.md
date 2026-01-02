@@ -24,18 +24,23 @@ RelatedFiles:
         esp_console REPL + screenshot command
         Provides  command used by playbook
         Provides the esp_console command 'screenshot' used by the playbook
+        esp_console REPL commands including console/menu/basics/pomodoro/setmins/screenshot
     - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
       Note: CtrlEvent queue contract between console and UI
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Demo catalog screen switching + shared LVGL group
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
       Note: Pomodoro demo implementation
+    - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
+      Note: SplitConsole LVGL screen (output+input; scrollback/follow-tail)
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
       Note: LVGL keypad indev adapter for Cardputer keyboard events
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: LVGL display driver (draw buffers + flush callback)
     - Path: 0025-cardputer-lvgl-demo/main/screenshot_png.cpp
       Note: Framed PNG capture over USB-Serial/JTAG
+    - Path: 0025-cardputer-lvgl-demo/main/split_console_log.h
+      Note: UI-thread console append API (for command responses)
     - Path: 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py
       Note: |-
         Host validation script (send command + capture PNG)
@@ -54,6 +59,8 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 

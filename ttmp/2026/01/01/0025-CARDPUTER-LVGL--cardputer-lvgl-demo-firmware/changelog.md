@@ -174,3 +174,15 @@ Add v0 esp_console demo-control commands (menu/basics/pomodoro/setmins) and docu
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/02-project-analysis-split-pane-console-esp-console-scripting.md — Defines v0 command set and expected outputs
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 8 diary entry with commands and OCR results
 
+
+## 2026-01-02
+
+Add SplitConsole LVGL demo screen (output+input, scrollback/follow-tail) and menu entry; add host REPL 'console' command; validated via screenshot OCR (commit 3c6d8ea)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — Adds host 'console' command to open SplitConsole via CtrlEvent
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_menu.cpp — Menu now lists Console entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_split_console.cpp — New LVGL split-pane console screen with scrollback and command parsing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 9 diary entry with validation commands and OCR output
+

@@ -27,6 +27,8 @@ RelatedFiles:
       Note: v0 esp_console command set and CtrlEvent enqueue pattern
     - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
       Note: CtrlType/CtrlEvent contract used to keep LVGL single-threaded
+    - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
+      Note: LVGL SplitConsole screen implementation (log+input)
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
       Note: KeyEvent->LVGL key translation and feed queue
     - Path: THE_BOOK.md
@@ -37,6 +39,7 @@ LastUpdated: 2026-01-02T09:39:23.861596859-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Project analysis: Split-pane console + `esp_console` scripting
@@ -517,6 +520,8 @@ This section is the “stable scripting surface” for v0. Commands should remai
 - `basics`
   - Expected: `OK`
 - `pomodoro`
+  - Expected: `OK`
+- `console`
   - Expected: `OK`
 - `setmins <minutes>`
   - Expected: `OK minutes=<n>` (where `<n>` is clamped to `1..99`)

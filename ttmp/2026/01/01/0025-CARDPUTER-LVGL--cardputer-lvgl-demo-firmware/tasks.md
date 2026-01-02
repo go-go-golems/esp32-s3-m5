@@ -23,11 +23,11 @@
 - [x] [Console/esp_console] Implement demo-control events: OpenMenu/OpenBasics/OpenPomodoro + parameterized PomodoroSetMinutes
 - [x] [Console/esp_console] Add esp_console REPL startup module for Cardputer (model after 0013-atoms3r-gif-console/main/console_repl.cpp)
 - [x] [Console/esp_console] Decide REPL transport for Cardputer (USB-Serial/JTAG vs UART) and set sdkconfig.defaults/Kconfig accordingly
-- [x] [Console/esp_console] Register esp_console commands (help, menu, basics, pomodoro, setmins, heap, screenshot) that enqueue CtrlEvents
-- [ ] [Console/esp_console] Add LVGL demo screen: SplitConsole (output + input) and add it to menu + DemoManager
-- [ ] [Console/esp_console] Implement LVGL SplitConsole UI (read-only output textarea + one-line input textarea + submit on Enter)
-- [ ] [Console/esp_console] Implement SplitConsole scrollback/follow-tail behavior (port concepts from 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp)
-- [ ] [Console/esp_console] Add a safe UI-thread log append API (for command responses); avoid routing global ESP_LOG until needed
+- [x] [Console/esp_console] Register esp_console commands (help, heap, menu, basics, pomodoro, console, setmins, screenshot) that enqueue CtrlEvents
+- [x] [Console/esp_console] Add LVGL demo screen: SplitConsole (output + input) and add it to menu + DemoManager
+- [x] [Console/esp_console] Implement LVGL SplitConsole UI (read-only output textarea + one-line input textarea + submit on Enter)
+- [x] [Console/esp_console] Implement SplitConsole scrollback/follow-tail behavior (port concepts from 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp)
+- [x] [Console/esp_console] Add a safe UI-thread log append API (for command responses); avoid routing global ESP_LOG until needed
 - [x] [Console/esp_console] Update README with scripting workflow + sample session + key bindings
 - [x] [Console/esp_console] Validate: build+flash; run esp_console commands; confirm no LVGL cross-thread access; confirm device stays responsive
 - [x] [Screenshot] Read existing screenshot implementation + pitfalls (0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp, tickets 0024/0026)

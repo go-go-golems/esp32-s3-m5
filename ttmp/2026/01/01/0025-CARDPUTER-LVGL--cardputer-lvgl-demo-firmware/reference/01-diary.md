@@ -32,11 +32,15 @@ RelatedFiles:
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Step 4 screen switching and shared group
     - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
-      Note: Step 4 menu screen implementation
+      Note: |-
+        Step 4 menu screen implementation
+        Step 9 menu lists Console entry
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
       Note: |-
         Step 4 Pomodoro screen implementation
         Step 6 timer cleanup on screen delete
+    - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
+      Note: Step 9 SplitConsole implementation
     - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
       Note: Step 5 Fn+1 Esc override
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -53,6 +57,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -461,6 +466,77 @@ The key technical decision is to keep using the control-plane/queue boundary: co
 
 ### What I'd do differently next time
 - Add a tiny host helper to send arbitrary console commands (not just `screenshot`) so this workflow doesn’t need ad-hoc `pyserial` snippets.
+
+## Step 9: Add LVGL SplitConsole demo screen (output + input + scrollback)
+
+This step adds a new LVGL demo screen called “Console”: a split-pane UI with a scrollable output area and a single-line input at the bottom. The intent is to have an on-device console surface that’s keyboard-first and can grow into a richer debugging UX (history, autocomplete, log sinks) without violating the core constraint that LVGL remains single-threaded.
+
+The main architectural choice is to keep all UI mutation on the LVGL loop and treat the SplitConsole as just another `DemoManager` screen. For validation and automation, the host `esp_console` REPL now also exposes a `console` command that switches to this screen via the existing control-plane queue.
+
+**Commit (code):** 3c6d8ea — "Cardputer LVGL: add SplitConsole demo screen"
+
+### What I did
+- Added `DemoId::SplitConsole` and registered it in `DemoManager` and the menu.
+- Implemented `demo_split_console.cpp`:
+  - read-only output `lv_textarea` with scrollbars
+  - one-line input `lv_textarea` with `Enter` submit
+  - in-memory scrollback (bounded line count) + follow-tail behavior based on scroll position
+  - minimal v0 command parsing for on-device use (`help`, `heap`, `menu|basics|pomodoro`, `setmins`)
+- Added a small UI append API (`split_console_ui_log_line`) for future UI-thread responses (not wired to global `ESP_LOG*`).
+- Added an `esp_console` command `console` to open the SplitConsole screen from the host REPL (enqueues a CtrlEvent; UI thread performs the screen switch).
+
+### Why
+- The on-device split-pane console is a “debug UX multiplier”: it reduces reliance on serial monitors and makes interactive inspection possible directly on the device.
+- Keeping it as a demo screen keeps lifecycle rules consistent (create screen, bind group focus, cleanup on delete).
+
+### What worked
+- Build succeeded:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Flash succeeded:
+  - `./build.sh -p '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' flash`
+- Screenshot/OCR validation confirmed the new UI text:
+  - Menu screenshot includes the new entry `Console`.
+  - SplitConsole screenshot shows `Console`, `lvgl console ready; type 'help'`, and the hint string `Enter submit  Tab focus  Fn+backtick menu`.
+
+### What didn't work
+- N/A (no runtime failures observed during this step)
+
+### What I learned
+- `lv_obj_get_scroll_bottom(out)` is a convenient follow-tail signal: when it reaches ~0, the textarea is scrolled to the bottom and auto-follow can re-enable.
+
+### What was tricky to build
+- Avoiding screen-switch hazards: commands that call `demo_manager_load(...)` must be the last thing done in the handler, because the current screen is deleted asynchronously.
+- Keeping the textarea-based scrollback deterministic: `lv_textarea_add_text` is convenient but doesn’t support trimming head content, so we keep a bounded line deque and re-render.
+
+### What warrants a second pair of eyes
+- Confirm the scrollback strategy (re-render full text) is acceptable on-device under rapid appends, and tune limits if needed.
+- Confirm focus behavior is ergonomic: `Tab` cycles output/input, and output scrolling behaves as expected with the Cardputer key mapping.
+
+### What should be done in the future
+- Add Ctrl+P palette integration by sharing a single Action/Command registry across:
+  - esp_console registrations
+  - SplitConsole parsing/autocomplete
+  - command palette overlay
+- Add command history + simple line editing UX rules (likely by porting the data model patterns from `0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp`).
+
+### Code review instructions
+- Start in `0025-cardputer-lvgl-demo/main/demo_split_console.cpp` (UI + command parsing + scrollback model).
+- Then review menu integration in `0025-cardputer-lvgl-demo/main/demo_menu.cpp` and screen switching in `0025-cardputer-lvgl-demo/main/demo_manager.cpp`.
+- Validate with:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+  - `./build.sh -p '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' flash`
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' /tmp/menu.png --timeout-s 30`
+  - `python3 -c 'import serial,time; ser=serial.Serial(\"/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*\",115200,timeout=0.2); ser.write(b\"console\\r\\n\"); ser.flush(); time.sleep(0.2); print(ser.read(4096).decode(\"utf-8\",errors=\"replace\")); ser.close()'`
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' /tmp/console.png --timeout-s 30`
+  - `pinocchio code professional --images /tmp/menu.png,/tmp/console.png \"OCR both screenshots. Summarize what changed (titles, labels, hints, layout cues).\"`
+
+### Technical details
+- Commands used for validation:
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' /tmp/cardputer_lvgl_menu_console.png --timeout-s 30`
+  - `pinocchio code professional --images /tmp/cardputer_lvgl_menu_console.png \"OCR this screenshot and list the visible UI text (titles, labels, hints).\"`
+  - `python3 - <<'PY'\nimport serial, time\nport = '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00'\nwith serial.Serial(port, 115200, timeout=0.2) as ser:\n    ser.reset_input_buffer()\n    ser.write(b\"console\\r\\n\")\n    ser.flush()\n    time.sleep(0.2)\n    print(ser.read(4096).decode('utf-8', errors='replace'))\nPY`
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' /tmp/cardputer_lvgl_split_console.png --timeout-s 30`
+  - `pinocchio code professional --images /tmp/cardputer_lvgl_split_console.png \"OCR this screenshot and list the visible UI text (titles, labels, hints).\"`
 
 ## Quick Reference
 
