@@ -186,3 +186,17 @@ Add SplitConsole LVGL demo screen (output+input, scrollback/follow-tail) and men
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_split_console.cpp — New LVGL split-pane console screen with scrollback and command parsing
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 9 diary entry with validation commands and OCR output
 
+
+## 2026-01-02
+
+Add Ctrl+P command palette overlay (ActionRegistry + LVGL modal on lv_layer_top) with filtering/selection and CtrlEvent execution; add host 'palette' toggle command; build OK but flash/screenshot blocked (missing /dev tty) (commit 5ed4599)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/README.md — Docs for palette usage and updated command list
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/action_registry.cpp — Shared action list (title/keywords) mapping to CtrlEvents
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Ctrl+P chord detection + palette init + TogglePalette CtrlEvent
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/command_palette.cpp — LVGL command palette overlay UI and filtering/selection
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — Registers palette command and uses ActionRegistry for nav commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/03-project-analysis-command-palette-overlay-ctrl-p.md — Records v0 action list and expected UI text
+

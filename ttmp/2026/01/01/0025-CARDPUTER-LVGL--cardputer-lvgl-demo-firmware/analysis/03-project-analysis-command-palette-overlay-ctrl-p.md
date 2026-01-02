@@ -13,18 +13,24 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
-      Note: Best place to detect global key chords (Ctrl+P) before feeding LVGL
-    - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
-      Note: Screen switching and shared lv_group_t ownership model
-    - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
-      Note: Current KeyEvent->LVGL translation drops modifier state; informs shortcut strategy
-    - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
-      Note: Produces KeyEvent including ctrl/alt/fn flags; usable for chord detection
-    - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
-      Note: Minimal keyboard-driven selection UI pattern in LVGL
     - Path: 0022-cardputer-m5gfx-demo-suite/main/ui_list_view.cpp
       Note: Non-LVGL list selection + scrolling model to port conceptually
+    - Path: 0025-cardputer-lvgl-demo/main/action_registry.cpp
+      Note: v0 action list backing palette
+    - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
+      Note: |-
+        Best place to detect global key chords (Ctrl+P) before feeding LVGL
+        Ctrl+P chord detection and palette toggle integration
+    - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
+      Note: Palette overlay implementation
+    - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
+      Note: Screen switching and shared lv_group_t ownership model
+    - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
+      Note: Minimal keyboard-driven selection UI pattern in LVGL
+    - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
+      Note: Produces KeyEvent including ctrl/alt/fn flags; usable for chord detection
+    - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
+      Note: Current KeyEvent->LVGL translation drops modifier state; informs shortcut strategy
     - Path: ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/design-doc/02-screen-state-lifecycle-pattern-lvgl-demo-catalog.md
       Note: Screen lifecycle constraints that matter for modal overlays
 ExternalSources: []
@@ -33,6 +39,7 @@ LastUpdated: 2026-01-02T09:39:30.635547986-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Project analysis: Command palette overlay (Ctrl+P)
 
@@ -403,3 +410,30 @@ If we later *want* LVGL to see modifier state, that becomes a porting decision (
 5. Add focus capture/restore logic.
 6. Make each action enqueue a `CtrlEvent` so it can also be triggered from `esp_console`.
 
+---
+
+## v0 action list (implemented)
+
+The v0 palette actions are intentionally small and map 1:1 onto UI-thread-safe `CtrlEvent`s:
+
+- Open Menu
+- Open Basics
+- Open Pomodoro
+- Open Console
+- Pomodoro: Set minutes 15
+- Pomodoro: Set minutes 25
+- Pomodoro: Set minutes 50
+- Screenshot (USB-Serial/JTAG)
+
+Expected keyboard behavior while open:
+
+- `Ctrl+P`: toggle palette
+- Type: updates query and filters actions
+- `Up`/`Down`: changes selection
+- `Enter`: runs selected action (then closes palette)
+- `Esc`: closes palette
+
+Expected visible UI text (OCR regression anchors):
+
+- Title placeholder: `Search...`
+- At least one result row title (e.g., `Open Menu`)

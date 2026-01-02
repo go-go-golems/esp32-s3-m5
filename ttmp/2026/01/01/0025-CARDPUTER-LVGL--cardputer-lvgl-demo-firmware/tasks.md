@@ -37,13 +37,13 @@
 - [x] [Screenshot] Add a demo action and esp_console command screenshot that triggers capture via CtrlEvent
 - [x] [Screenshot] Add host capture helper for 0025 (reuse or copy tools/capture_screenshot_png.py pattern)
 - [x] [Screenshot] Validate: capture a PNG on host; confirm protocol framing (PNG_BEGIN/PNG_END) and image correctness
-- [ ] [Palette] Read analysis doc analysis/03-project-analysis-command-palette-overlay-ctrl-p.md and define v0 action list
-- [ ] [Palette] Add Ctrl+P chord detection in 0025-cardputer-lvgl-demo/main/app_main.cpp using KeyEvent.ctrl before LVGL feed
-- [ ] [Palette] Implement ActionRegistry (ActionId + title + keywords) shared by palette and esp_console command list
-- [ ] [Palette] Implement palette overlay module (create/destroy on lv_layer_top, backdrop + panel + query + results)
-- [ ] [Palette] Implement palette filtering + selection + run selected action (enqueue CtrlEvent)
-- [ ] [Palette] Implement focus capture/restore so palette owns keys while open and returns focus safely on close
-- [ ] [Palette] Add README docs for palette usage and shortcut keys
+- [x] [Palette] Read analysis doc analysis/03-project-analysis-command-palette-overlay-ctrl-p.md and define v0 action list
+- [x] [Palette] Add Ctrl+P chord detection in 0025-cardputer-lvgl-demo/main/app_main.cpp using KeyEvent.ctrl before LVGL feed
+- [x] [Palette] Implement ActionRegistry (ActionId + title + keywords) shared by palette and esp_console command list
+- [x] [Palette] Implement palette overlay module (create/destroy on lv_layer_top, backdrop + panel + query + results)
+- [x] [Palette] Implement palette filtering + selection + run selected action (enqueue CtrlEvent)
+- [x] [Palette] Implement focus capture/restore so palette owns keys while open and returns focus safely on close
+- [x] [Palette] Add README docs for palette usage and shortcut keys
 - [ ] [SysMon] Read analysis doc analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md and choose metrics
 - [ ] [SysMon] Add DemoId::SystemMonitor + new screen module demo_system_monitor.cpp and register in menu
 - [ ] [SysMon] Implement periodic sampling (heap + dma + loop timing) using lv_timer; delete timer on LV_EVENT_DELETE

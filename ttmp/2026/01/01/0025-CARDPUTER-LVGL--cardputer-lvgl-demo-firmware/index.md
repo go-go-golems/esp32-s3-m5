@@ -17,8 +17,16 @@ RelatedFiles:
       Note: Reference Cardputer app setup (display bring-up + main loop)
     - Path: 0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
       Note: Keyboard events stream to adapt into LVGL indev
+    - Path: 0025-cardputer-lvgl-demo/main/action_registry.cpp
+      Note: ActionRegistry list and CtrlEvent mapping
+    - Path: 0025-cardputer-lvgl-demo/main/action_registry.h
+      Note: Shared ActionRegistry contract (ActionId/title/keywords)
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Cardputer LVGL demo main loop + UI creation
+    - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
+      Note: Ctrl+P palette overlay (modal LVGL layer_top UI
+    - Path: 0025-cardputer-lvgl-demo/main/command_palette.h
+      Note: Palette init/toggle API used by app_main
     - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
       Note: |-
         esp_console REPL + screenshot command
@@ -59,6 +67,7 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

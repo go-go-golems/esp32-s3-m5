@@ -21,10 +21,16 @@ RelatedFiles:
       Note: Key event decoding decisions referenced in Step 1
     - Path: 0025-cardputer-lvgl-demo/build.sh
       Note: Step 3 flash workflow + tmux monitor guidance
+    - Path: 0025-cardputer-lvgl-demo/main/action_registry.cpp
+      Note: Step 10 action list and CtrlEvent mapping
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Step 2 UI loop + stable UiState callbacks
+    - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
+      Note: Step 10 palette implementation
     - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
-      Note: Step 8 adds menu/basics/pomodoro/setmins commands
+      Note: |-
+        Step 8 adds menu/basics/pomodoro/setmins commands
+        Step 10 uses ActionRegistry for command registration and adds palette command
     - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
       Note: Step 8 expands CtrlType/CtrlEvent for UI-thread-safe demo control
     - Path: 0025-cardputer-lvgl-demo/main/demo_basics.cpp
@@ -57,6 +63,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -537,6 +544,80 @@ The main architectural choice is to keep all UI mutation on the LVGL loop and tr
   - `python3 - <<'PY'\nimport serial, time\nport = '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00'\nwith serial.Serial(port, 115200, timeout=0.2) as ser:\n    ser.reset_input_buffer()\n    ser.write(b\"console\\r\\n\")\n    ser.flush()\n    time.sleep(0.2)\n    print(ser.read(4096).decode('utf-8', errors='replace'))\nPY`
   - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' /tmp/cardputer_lvgl_split_console.png --timeout-s 30`
   - `pinocchio code professional --images /tmp/cardputer_lvgl_split_console.png \"OCR this screenshot and list the visible UI text (titles, labels, hints).\"`
+
+## Step 10: Add Ctrl+P command palette overlay (ActionRegistry + LVGL modal)
+
+This step adds a command palette overlay (Ctrl+P) to the Cardputer LVGL demo. The palette is a modal LVGL UI on `lv_layer_top()` that accepts a query, filters a small set of actions, and runs the selected action. This turns the demo catalog into something that feels closer to a “micro OS”: fast navigation and discoverability without leaving the keyboard.
+
+The key architecture constraint remains unchanged: LVGL is single-threaded. Even though the palette runs on the UI thread, actions are still represented as `CtrlEvent`s so the same action set can be reused by host scripting (`esp_console`) without cross-thread LVGL access.
+
+**Commit (code):** 5ed4599 — "Cardputer LVGL: add Ctrl+P command palette overlay"
+
+### What I did
+- Implemented a shared `ActionRegistry` (`ActionId`, titles, keywords) and a mapping from `ActionId` → `CtrlEvent`.
+- Implemented the palette overlay module:
+  - backdrop + panel on `lv_layer_top()`
+  - query `lv_textarea` + 5 visible result rows
+  - substring filtering over titles/keywords
+  - Up/Down selection, Enter run, Esc close
+  - focus capture/restore by temporarily binding the keyboard indev to a dedicated LVGL group
+- Wired Ctrl+P chord detection in `app_main` using `KeyEvent.ctrl` (pre-LVGL feed), and added a `palette` host command that toggles the overlay via `CtrlEvent::TogglePalette`.
+- Updated `esp_console` command registration to reuse `ActionRegistry` for navigation commands (menu/basics/pomodoro/console), while keeping special commands (`screenshot`, `setmins`, `heap`) as explicit handlers.
+- Updated `0025-cardputer-lvgl-demo/README.md` with palette usage + updated command list.
+
+### Why
+- A command palette is a high-leverage UX primitive for embedded devices: it makes features discoverable and reduces “menu diving”.
+- The action registry is reusable infrastructure for the next planned features (command palette, split console, and future actions).
+- Keeping actions as `CtrlEvent`s preserves the “LVGL single-thread” rule across both UI and `esp_console`.
+
+### What worked
+- Build succeeded:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+
+### What didn't work
+- Flash + screenshot/OCR validation was blocked in this harness because the device node disappeared mid-run.
+  - Flash failure:
+    - `A fatal error occurred: Could not open ... the port is busy or doesn't exist.`
+  - After that, `ls -la /dev/serial/by-id` returned: `No such file or directory`, and no `/dev/ttyACM*` devices were present.
+
+### What I learned
+- Modifier-aware shortcuts like Ctrl+P are easiest to implement at the `KeyEvent` layer (pre-LVGL feed) because the current LVGL key translation intentionally drops modifier state.
+- A dedicated LVGL group for a modal overlay is simpler than trying to “borrow” the demo’s group: it avoids Tab/selection routing into underlying screens.
+
+### What was tricky to build
+- Sequencing: for actions that switch demos, the safest ordering is “enqueue action, close palette, then let the UI loop process the event” so we don’t restore focus into soon-to-be-deleted objects.
+- Ensuring the palette doesn’t interfere with the global “Esc to menu” behavior: the app loop bypasses the global Esc handler while the palette is open so Esc closes the palette instead.
+
+### What warrants a second pair of eyes
+- Focus restoration correctness:
+  - verify `lv_obj_is_valid(prev_focused)` is sufficient for guarding stale focus pointers
+  - verify no edge cases when an action switches screens immediately after closing the palette
+- `ActionRegistry`/`esp_console` integration:
+  - confirm the “dispatch by argv[0]” approach is acceptable and won’t create confusing error messages for future commands.
+
+### What should be done in the future
+- Add fuzzy matching (or better scoring) if simple substring filtering feels limiting.
+- Add ActionRegistry reuse in the on-device SplitConsole (so typed commands and palette actions share a single source of truth).
+- Once device access is stable in this harness, add screenshot/OCR regression anchors for the palette UI (e.g., `Search...`, `Open Menu`) using the existing playbook.
+
+### Code review instructions
+- Start in `0025-cardputer-lvgl-demo/main/command_palette.cpp` and review:
+  - lifecycle (open/close), filtering, selection behavior, focus capture/restore
+- Then review `0025-cardputer-lvgl-demo/main/action_registry.cpp` for action list and CtrlEvent mapping.
+- Then review `0025-cardputer-lvgl-demo/main/app_main.cpp` for Ctrl+P chord detection + global key interactions.
+- Build: `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Hardware validation (once `/dev/serial/by-id/...` exists again):
+  - flash
+  - run `palette` command from host REPL, then capture a screenshot and OCR it for `Search...` and action titles.
+
+### Technical details
+- Commands run (build):
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Commands attempted (flash, failed due to missing device node):
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh -p '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' flash`
+
+### What I'd do differently next time
+- Add a tiny host command to “force open palette” earlier in development (before wiring Ctrl+P) to keep screenshot/OCR regression checks fully automated.
 
 ## Quick Reference
 
