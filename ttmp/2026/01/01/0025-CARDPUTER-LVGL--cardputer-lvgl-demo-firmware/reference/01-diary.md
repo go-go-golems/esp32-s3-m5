@@ -310,6 +310,8 @@ This step adds a host-scriptable screenshot flow to the LVGL demo by starting an
 
 This step also validates the end-to-end use case on real hardware: we flashed the firmware, invoked `screenshot` via the serial console, captured the framed PNG on the host, and used OCR to confirm the image contains the expected LVGL menu text.
 
+**Commit (code+docs):** feed537b — "Cardputer LVGL: esp_console screenshot + OCR playbook"
+
 ### What I did
 - Implemented an `esp_console` REPL over USB-Serial/JTAG in the LVGL demo project:
   - Added `0025-cardputer-lvgl-demo/main/console_repl.{h,cpp}` with `heap` + `screenshot` commands.
