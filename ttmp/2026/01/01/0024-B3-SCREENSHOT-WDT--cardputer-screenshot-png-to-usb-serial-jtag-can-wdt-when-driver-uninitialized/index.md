@@ -18,12 +18,15 @@ RelatedFiles:
       Note: Buggy busy-loop write path used by screenshot feature
     - Path: esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md
       Note: Primary bug report + suspected root cause + validation
+    - Path: esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/02-postmortem-screenshot-png-over-usb-serial-jtag-caused-wdt-root-cause-fix.md
+      Note: New-developer postmortem (what/why/how fixed + future pitfalls)
 ExternalSources: []
 Summary: B3 screenshot-to-serial can spin forever when USB-Serial/JTAG driver is unavailable and trigger Task WDT.
 LastUpdated: 2026-01-01T21:21:43.502917114-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Cardputer: screenshot PNG to USB-Serial/JTAG can WDT when driver uninitialized
