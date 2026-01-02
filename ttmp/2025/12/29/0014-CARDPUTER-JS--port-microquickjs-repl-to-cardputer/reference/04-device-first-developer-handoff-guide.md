@@ -198,7 +198,7 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 
 ```bash
 cd imports/esp32-mqjs-repl/mqjs-repl
-./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 45
+./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 90
 ```
 
 ### Example: “I’m about to touch REPL parsing; what tests should I run?”
@@ -218,3 +218,13 @@ Deep context docs (read as needed):
 - Stdlib/atom-table analysis: `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md`
 - Intern research notes: `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/sources/intern-research-qemu-uart-results.md`
 - MicroQuickJS native extensions reference: `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/02-microquickjs-native-extensions-on-esp32-playbook-reference-manual.md`
+
+## SPIFFS Seed (autoload “real thing”)
+
+The firmware now flashes a small SPIFFS image (built from `imports/esp32-mqjs-repl/mqjs-repl/spiffs_image/`) that includes:
+
+- `/spiffs/autoload/00-seed.js` which sets `globalThis.AUTOLOAD_SEED = 123`
+
+The device/QEMU JS smoke tests assert that `:autoload --format` runs and that evaluating `globalThis.AUTOLOAD_SEED` returns `123`.
+
+Tip: USB Serial/JTAG ports can re-enumerate across resets; prefer `/dev/serial/by-id/...` over a hard-coded `/dev/ttyACM0` when scripting.

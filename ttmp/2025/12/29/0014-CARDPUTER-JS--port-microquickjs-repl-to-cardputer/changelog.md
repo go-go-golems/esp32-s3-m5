@@ -221,3 +221,16 @@ Cleanup: delete archived legacy monolithic firmware sources now that the split i
 ### Related Files
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp — Current firmware entrypoint; the only supported REPL implementation
+
+
+## 2026-01-02
+
+Storage: add a seeded SPIFFS image containing `/spiffs/autoload/00-seed.js` so `:autoload` loads at least one real script; update QEMU/device smoke tests to assert the seeded symbol is present.
+ (commit 084ef0e)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/spiffs_image/autoload/00-seed.js — Seeded autoload script flashed into SPIFFS
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/CMakeLists.txt — Builds SPIFFS image (`storage.bin`) into the project
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Asserts `globalThis.AUTOLOAD_SEED === 123` after `:autoload --format`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — Merges `storage.bin` into QEMU flash and asserts `AUTOLOAD_SEED`

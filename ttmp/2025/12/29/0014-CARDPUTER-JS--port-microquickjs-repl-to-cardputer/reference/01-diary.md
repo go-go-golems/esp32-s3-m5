@@ -1155,3 +1155,56 @@ It’s intentionally non-behavioral: the running firmware doesn’t change, but 
 
 ### What I'd do differently next time
 - N/A
+
+## Step 24: Seed SPIFFS autoload image and validate real library loading on Cardputer
+
+This step makes `:autoload` do “the real thing” by ensuring there is at least one JavaScript file actually present on the SPIFFS partition after flashing. Instead of only proving that SPIFFS can mount/format, we now prove that a concrete script is read and evaluated successfully, and that it leaves a stable JS-visible signal we can assert in smoke tests.
+
+On-device flashing exposed a practical quirk: USB Serial/JTAG ports can re-enumerate (e.g. `/dev/ttyACM0` → `/dev/ttyACM1`) after resets. Using `/dev/serial/by-id/...` (or re-checking the current tty) makes automation more robust.
+
+**Commit (code):** 084ef0e — "mqjs-repl: seed SPIFFS autoload image"
+
+### What I did
+- Added a seeded SPIFFS image directory with an autoload script:
+  - `imports/esp32-mqjs-repl/mqjs-repl/spiffs_image/autoload/00-seed.js`
+- Wired the project to build and flash `storage.bin` as part of normal builds:
+  - `imports/esp32-mqjs-repl/mqjs-repl/CMakeLists.txt`
+- Strengthened smoke tests (device + QEMU) to assert a real autoloaded symbol:
+  - Device: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py` now checks `globalThis.AUTOLOAD_SEED` after `:autoload --format`
+  - QEMU: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh` now merges `build/storage.bin` into the emulated flash image and checks `AUTOLOAD_SEED`
+
+### Why
+- To move from “SPIFFS mounts” to “autoload truly loads code”, which is the actual next step toward a usable on-device JS interpreter.
+
+### What worked
+- Cardputer: after flashing (including `storage.bin`), `:autoload --format` loads the seeded script and `globalThis.AUTOLOAD_SEED` evaluates to `123`.
+- QEMU: the UART stdio harness now verifies the same property by merging the SPIFFS image into `qemu_flash.bin`.
+
+### What didn't work
+- `idf.py flash` via USB Serial/JTAG can hit transient disconnects while flashing; a manual `esptool.py` invocation using `--before usb_reset` avoided the loop.
+
+### What I learned
+- For USB Serial/JTAG flashing, `--before usb_reset` is often more stable than the default reset behavior.
+- A seeded SPIFFS image is the simplest way to make “autoload tests” meaningful without needing a runtime file uploader.
+
+### What was tricky to build
+- Getting “one repo directory” to reliably become an on-device SPIFFS filesystem image (`storage.bin`) and ensuring both QEMU and device paths flash that image at the correct offset.
+
+### What warrants a second pair of eyes
+- Confirm the seed script is acceptable long-term (tiny, deterministic, and doesn’t mask real autoload errors).
+- Confirm the `storage` partition offset used in the QEMU merge script matches `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv` and remains correct if partitions change.
+
+### What should be done in the future
+- Consider adding a tiny “SPIFFS upload” workflow (or CI-friendly regeneration) once we outgrow the seed-only approach.
+
+### Code review instructions
+- Start with `imports/esp32-mqjs-repl/mqjs-repl/CMakeLists.txt` and confirm `spiffs_create_partition_image(storage spiffs_image FLASH_IN_PROJECT)` is appropriate.
+- Verify `imports/esp32-mqjs-repl/mqjs-repl/spiffs_image/autoload/00-seed.js` and then run:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh --timeout 120`
+  - On device, flash and run `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py --port /dev/serial/by-id/... --timeout 90`
+
+### Technical details
+- Seeded signal: `globalThis.AUTOLOAD_SEED = 123` (used for deterministic assertions).
+
+### What I'd do differently next time
+- Use `/dev/serial/by-id/...` in all device scripts by default to avoid port-number churn.
