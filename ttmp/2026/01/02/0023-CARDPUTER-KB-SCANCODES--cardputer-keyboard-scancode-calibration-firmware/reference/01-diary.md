@@ -98,3 +98,51 @@ This step bootstraps a new, dedicated ESP-IDF firmware project for keyboard scan
 - Start in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/kb_scan.cpp`:
   - `KbScanner::scan()` mapping and autodetect behavior
 - Then review the UI wiring in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp`.
+
+## Step 2: Flash to device + set up serial sniff loop (tmux) + extract reusable scanner component
+
+This step makes the calibration firmware actually usable on hardware: it’s flashed to the connected Cardputer, and a durable monitoring workflow is put in place so keypresses can be “sniffed” from logs while you press keys/combo chords. It also extracts the raw matrix scan + legend into a reusable ESP-IDF component (`cardputer_kb`) so other firmwares can share the same “physical key” representation (`KeyPos`/`keyNum`) without copy/paste drift.
+
+**Commit (code):** cdb68fa — "Cardputer: add reusable keyboard matrix scanner component"
+
+### What I did
+- Flashed the calibrator to the Cardputer using the stable by-id port:
+  - `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00`
+- Started a tmux-based monitor session (monitor needs a TTY and locks the port):
+  - session name: `cardputer-kb-scancodes`
+  - command: `./build.sh -p <port> monitor`
+- Extracted a reusable component:
+  - `esp32-s3-m5/components/cardputer_kb/`
+  - `cardputer_kb::MatrixScanner` returns `ScanSnapshot{pressed KeyPos, pressed_keynums, use_alt_in01}`
+  - `cardputer_kb::kKeyLegend` provides the 4×14 legend table for UI/debug output
+- Updated the calibrator firmware to use `cardputer_kb` instead of local `kb_scan.*`.
+
+### Why
+- “Sniffing” key scancodes requires a stable host loop. In practice `idf.py monitor` must run in tmux, and it will block flashing until stopped.
+- Multiple projects need consistent key identity. The reusable component is the foundation for a “decoder config” shared across firmwares.
+
+### What worked
+- Flash succeeded and boot logs appear over the USB-Serial/JTAG port.
+- The live matrix UI updates as keys are pressed, and logs emit `pressed keynums=[...]` on changes.
+- IN0/IN1 autodetect logs once when the alternate wiring is detected.
+
+### What didn't work
+- Fully deriving the “complete” semantic key setup (especially arrows/Fn-combos) still requires physical keypress sampling on hardware; we can’t infer it purely from static code.
+
+### What I learned
+- ESP-IDF’s serial monitor holds an exclusive lock on the device node; treat “stop monitor before flash” as a hard operational constraint.
+
+### What was tricky to build
+- Component discovery: ESP-IDF only discovers local components if they’re on the component search path; the project’s `CMakeLists.txt` must include `../components/cardputer_kb` in `EXTRA_COMPONENT_DIRS`.
+
+### What warrants a second pair of eyes
+- Confirm the component boundary is the right one (scanner + layout/legend). We may later want to add a stable “binding/decoder” API here as well.
+
+### Code review instructions
+- Start in `esp32-s3-m5/components/cardputer_kb/matrix_scanner.cpp`.
+- Then see the consumer in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp`.
+
+### Technical details
+- To sniff chords as you press keys:
+  - attach: `tmux attach -t cardputer-kb-scancodes`
+  - stop (to free the port for flashing): `tmux kill-session -t cardputer-kb-scancodes`

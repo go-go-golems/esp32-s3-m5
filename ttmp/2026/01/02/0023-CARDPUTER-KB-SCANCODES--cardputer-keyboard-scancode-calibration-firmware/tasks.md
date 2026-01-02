@@ -22,3 +22,4 @@
   - `Enter`, `Tab`, `Esc`/Back, `Space`
 - [ ] Firmware prints a single “config blob” to serial that can be pasted into another project to decode keys reliably.
 
+- [x] Extract keyboard matrix scan + legend into reusable ESP-IDF component (cardputer_kb)

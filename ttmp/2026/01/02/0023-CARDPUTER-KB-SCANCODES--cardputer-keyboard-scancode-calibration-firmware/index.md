@@ -22,11 +22,11 @@ RelatedFiles:
       Note: Vendor HAL key-value map and key-number (matrix index) conventions
     - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keymap.h
       Note: HID usage constants (includes arrow keys) and modifier bit definitions
-    - Path: 0007-cardputer-keyboard-serial/main/hello_world_main.c
+    - Path: esp32-s3-m5/0007-cardputer-keyboard-serial/main/hello_world_main.c
       Note: Raw matrix scanning + debug logging reference (scan_state/in_mask)
-    - Path: 0015-cardputer-serial-terminal/main/hello_world_main.cpp
+    - Path: esp32-s3-m5/0015-cardputer-serial-terminal/main/hello_world_main.cpp
       Note: Keyboard scan + higher-level key mapping patterns used in Cardputer projects
-    - Path: 0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
+    - Path: esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
       Note: Current CardputerKeyboard scanner used by the demo-suite (edge events + modifiers)
     - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/build.sh
       Note: Build/flash/monitor helper (commit 1fc1f77)
@@ -34,12 +34,17 @@ RelatedFiles:
       Note: Live 4x14 matrix UI + pressed keyNum logging (commit 1fc1f77)
     - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/kb_scan.cpp
       Note: Raw matrix scan + alt IN0/IN1 autodetect (commit 1fc1f77)
+    - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/layout.h
+      Note: Shared key legend table + keynum helpers (commit cdb68fa)
+    - Path: esp32-s3-m5/components/cardputer_kb/matrix_scanner.cpp
+      Note: Reusable scanner implementation (commit cdb68fa)
 ExternalSources: []
 Summary: Design + plan for a standalone ESP-IDF firmware that interactively discovers Cardputer keyboard scan codes (including Fn-combos) and outputs a reusable decoder configuration.
 LastUpdated: 2026-01-02T02:30:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Cardputer: keyboard scancode calibration firmware
