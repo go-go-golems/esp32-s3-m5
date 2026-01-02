@@ -29,6 +29,12 @@ This demo starts an `esp_console` REPL over **USB-Serial/JTAG**. You can type co
 
 - `help`
 - `heap`
+- `menu`
+- `basics`
+- `pomodoro`
+- `console`
+- `palette`
+- `setmins <minutes>`
 - `screenshot` — emits a framed PNG over the same serial port:
   - `PNG_BEGIN <len>\n<raw png bytes>\nPNG_END\n`
 
@@ -77,3 +83,17 @@ pinocchio code professional --images screenshot.png "OCR this screenshot and con
 - `R` / `Backspace`: reset
 - `[` / `]`: -1 / +1 minute (when paused)
 - `Fn + \``: return to menu
+
+### Console demo
+
+- Type a command and press `Enter`:
+  - `help`, `heap`, `menu`, `basics`, `pomodoro`, `setmins <minutes>`
+- `Fn + \``: return to menu
+
+### Command palette (overlay)
+
+- `Ctrl + P`: open/close palette
+- Type to filter actions
+- `Up` / `Down`: move selection
+- `Enter`: run selected action
+- `Esc`: close palette

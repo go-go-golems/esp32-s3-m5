@@ -1,6 +1,8 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "action_registry.cpp"
+        "command_palette.cpp"
         "console_repl.cpp"
         "control_plane.cpp"
         "demo_manager.cpp"

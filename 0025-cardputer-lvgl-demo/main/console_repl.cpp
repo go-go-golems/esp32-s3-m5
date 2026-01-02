@@ -10,8 +10,11 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "sdkconfig.h"
+
+#include "action_registry.h"
 
 #include "esp_console.h"
 #include "esp_err.h"
@@ -36,54 +39,20 @@ static int cmd_heap(int, char **) {
     return 0;
 }
 
-static int cmd_menu(int, char **) {
+static int cmd_action_dispatch(int argc, char **argv) {
+    (void)argc;
     if (!ensure_ctrl_queue()) return 1;
-
-    CtrlEvent ev{};
-    ev.type = CtrlType::OpenMenu;
-    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
-        printf("ERR: menu busy (queue full)\n");
+    if (!argv || !argv[0] || argv[0][0] == '\0') {
+        printf("ERR: missing command name\n");
         return 1;
     }
-    printf("OK\n");
-    return 0;
-}
 
-static int cmd_basics(int, char **) {
-    if (!ensure_ctrl_queue()) return 1;
-
-    CtrlEvent ev{};
-    ev.type = CtrlType::OpenBasics;
-    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
-        printf("ERR: basics busy (queue full)\n");
+    const bool ok = action_registry_enqueue_by_command(s_ctrl_q, argv[0], pdMS_TO_TICKS(250));
+    if (!ok) {
+        printf("ERR: %s busy (queue full)\n", argv[0]);
         return 1;
     }
-    printf("OK\n");
-    return 0;
-}
 
-static int cmd_pomodoro(int, char **) {
-    if (!ensure_ctrl_queue()) return 1;
-
-    CtrlEvent ev{};
-    ev.type = CtrlType::OpenPomodoro;
-    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
-        printf("ERR: pomodoro busy (queue full)\n");
-        return 1;
-    }
-    printf("OK\n");
-    return 0;
-}
-
-static int cmd_console(int, char **) {
-    if (!ensure_ctrl_queue()) return 1;
-
-    CtrlEvent ev{};
-    ev.type = CtrlType::OpenSplitConsole;
-    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
-        printf("ERR: console busy (queue full)\n");
-        return 1;
-    }
     printf("OK\n");
     return 0;
 }
@@ -144,6 +113,20 @@ static int cmd_screenshot(int, char **) {
     return 0;
 }
 
+static int cmd_palette(int, char **) {
+    if (!ensure_ctrl_queue()) return 1;
+
+    CtrlEvent ev{};
+    ev.type = CtrlType::TogglePalette;
+    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
+        printf("ERR: palette busy (queue full)\n");
+        return 1;
+    }
+
+    printf("OK\n");
+    return 0;
+}
+
 static void console_register_commands(void) {
     esp_console_cmd_t cmd = {};
 
@@ -153,28 +136,26 @@ static void console_register_commands(void) {
     cmd.func = &cmd_heap;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
-    cmd = {};
-    cmd.command = "menu";
-    cmd.help = "Open the LVGL demo menu screen";
-    cmd.func = &cmd_menu;
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+    // Screen navigation commands come from the shared ActionRegistry (also used by the on-device palette).
+    size_t action_count = 0;
+    const Action *actions = action_registry_actions(&action_count);
+    for (size_t i = 0; i < action_count; i++) {
+        const Action &a = actions[i];
+        if (!a.command || a.command[0] == '\0') continue;
+        if (strcmp(a.command, "screenshot") == 0) continue; // handled by cmd_screenshot (blocking + reply_task)
+        if (strcmp(a.command, "heap") == 0) continue;       // handled by cmd_heap (direct response)
+
+        cmd = {};
+        cmd.command = a.command;
+        cmd.help = a.title;
+        cmd.func = &cmd_action_dispatch;
+        ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+    }
 
     cmd = {};
-    cmd.command = "basics";
-    cmd.help = "Open the Basics demo screen";
-    cmd.func = &cmd_basics;
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
-
-    cmd = {};
-    cmd.command = "pomodoro";
-    cmd.help = "Open the Pomodoro demo screen";
-    cmd.func = &cmd_pomodoro;
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
-
-    cmd = {};
-    cmd.command = "console";
-    cmd.help = "Open the SplitConsole demo screen";
-    cmd.func = &cmd_console;
+    cmd.command = "palette";
+    cmd.help = "Toggle the Ctrl+P command palette overlay";
+    cmd.func = &cmd_palette;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = {};
@@ -220,7 +201,6 @@ void console_start(QueueHandle_t ctrl_queue) {
         return;
     }
 
-    ESP_LOGI(TAG,
-             "esp_console started over USB-Serial/JTAG (commands: help, heap, menu, basics, pomodoro, console, setmins, screenshot)");
+    ESP_LOGI(TAG, "esp_console started over USB-Serial/JTAG (commands: help, heap, menu, basics, pomodoro, console, setmins, screenshot)");
 #endif
 }

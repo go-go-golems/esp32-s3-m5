@@ -20,6 +20,7 @@
 
 #include "M5GFX.h"
 
+#include "command_palette.h"
 #include "console_repl.h"
 #include "control_plane.h"
 #include "demo_manager.h"
@@ -71,6 +72,7 @@ extern "C" void app_main(void) {
         return;
     }
     console_start(ctrl_q);
+    command_palette_init(kb_indev, demos.group, ctrl_q);
 
     while (true) {
         const std::vector<KeyEvent> events = keyboard.poll();
@@ -78,11 +80,16 @@ extern "C" void app_main(void) {
         std::vector<KeyEvent> filtered;
         filtered.reserve(events.size());
         for (const auto &ev : events) {
+            if (ev.ctrl && (ev.key == "p" || ev.key == "P")) {
+                command_palette_toggle();
+                continue;
+            }
+
             const uint32_t key = lvgl_port_cardputer_kb_translate(ev);
             if (key != 0) {
                 demos.last_key = key;
             }
-            if (key != 0 && demo_manager_handle_global_key(&demos, key)) {
+            if (!command_palette_is_open() && key != 0 && demo_manager_handle_global_key(&demos, key)) {
                 continue;
             }
             filtered.push_back(ev);
@@ -112,6 +119,8 @@ extern "C" void app_main(void) {
                 }
             } else if (ev.type == CtrlType::OpenSplitConsole) {
                 demo_manager_load(&demos, DemoId::SplitConsole);
+            } else if (ev.type == CtrlType::TogglePalette) {
+                command_palette_toggle();
             }
         }
 
