@@ -23,6 +23,8 @@
 
 #include "M5GFX.h"
 
+#include "demo_plasma.h"
+#include "demo_primitives.h"
 #include "input_keyboard.h"
 #include "screenshot_png.h"
 #include "ui_console.h"
@@ -42,6 +44,8 @@ enum class SceneId {
     B2PerfDemo,
     E1TerminalDemo,
     B3ScreenshotDemo,
+    C1PlasmaDemo,
+    C2PrimitivesDemo,
 };
 
 static const char *scene_name(SceneId id) {
@@ -51,6 +55,8 @@ static const char *scene_name(SceneId id) {
         case SceneId::B2PerfDemo: return "B2 Perf overlay";
         case SceneId::E1TerminalDemo: return "E1 Terminal";
         case SceneId::B3ScreenshotDemo: return "B3 Screenshot";
+        case SceneId::C1PlasmaDemo: return "C1 Plasma";
+        case SceneId::C2PrimitivesDemo: return "C2 Primitives";
         default: return "Unknown";
     }
 }
@@ -62,6 +68,8 @@ static SceneId next_scene(SceneId cur, bool backwards) {
         SceneId::B2PerfDemo,
         SceneId::E1TerminalDemo,
         SceneId::B3ScreenshotDemo,
+        SceneId::C1PlasmaDemo,
+        SceneId::C2PrimitivesDemo,
     };
 
     int idx = 0;
@@ -187,6 +195,8 @@ extern "C" void app_main(void) {
         {"B2 Frame-time / perf overlay", SceneId::B2PerfDemo},
         {"E1 Terminal / log console", SceneId::E1TerminalDemo},
         {"B3 Screenshot to serial", SceneId::B3ScreenshotDemo},
+        {"C1 Plasma (port of 0011)", SceneId::C1PlasmaDemo},
+        {"C2 Primitives (lines/rects/circles/triangles)", SceneId::C2PrimitivesDemo},
     };
 
     ListView list;
@@ -217,6 +227,7 @@ extern "C" void app_main(void) {
     int64_t last_footer_update_us = 0;
 
     ConsoleState console{};
+    PlasmaState plasma{};
 
     while (true) {
         const int64_t loop_start_us = esp_timer_get_time();
@@ -348,12 +359,19 @@ extern "C" void app_main(void) {
         if (scene == SceneId::E1TerminalDemo && console.dirty) {
             body_dirty = true;
         }
+        if (scene == SceneId::C1PlasmaDemo) {
+            body_dirty = true;
+        }
         if (body_dirty) {
             const int64_t r0 = esp_timer_get_time();
             if (scene == SceneId::Menu) {
                 list.render(body);
             } else if (scene == SceneId::E1TerminalDemo) {
                 console_render(body, console);
+            } else if (scene == SceneId::C1PlasmaDemo) {
+                plasma_render(body, plasma);
+            } else if (scene == SceneId::C2PrimitivesDemo) {
+                primitives_render(body);
             } else {
                 render_placeholder(body, scene_name(scene));
             }

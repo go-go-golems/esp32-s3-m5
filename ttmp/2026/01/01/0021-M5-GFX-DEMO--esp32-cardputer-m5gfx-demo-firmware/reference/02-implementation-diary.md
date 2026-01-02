@@ -546,3 +546,54 @@ This step responds to a new real-device failure: triggering the screenshot send 
 
 ### Code review instructions
 - Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp`.
+
+## Step 14: Add real demos: C1 Plasma + C2 Primitives
+
+This step starts fulfilling the “demo modules” part of the ticket by adding two actual content scenes to the demo suite: a plasma effect (ported from tutorial `0011`) and a static primitives showcase. The immediate goal is to move beyond placeholder screens and validate that the scene infrastructure supports both animated and static renderers.
+
+### What I did
+- Added C1 Plasma demo:
+  - Ported the `sin8`/palette precompute + `draw_plasma()` algorithm from `esp32-s3-m5/0011-cardputer-m5gfx-plasma-animation/main/hello_world_main.cpp`.
+  - Implemented it as `PlasmaState` + `plasma_render()` in:
+    - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_plasma.cpp`
+    - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_plasma.h`
+  - Integrated into the scene switcher and menu as `SceneId::C1PlasmaDemo`, and marked the body as dirty every frame to animate.
+- Added C2 Primitives demo:
+  - Implemented `primitives_render()` in:
+    - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.cpp`
+    - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.h`
+  - Renders a small set of representative 2D primitives (rect/line/circle/triangle) and static labels.
+- Wired both into the build:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/CMakeLists.txt`
+- Updated 0021 task list to track these as explicit checkboxes:
+  - `esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/tasks.md`
+
+### Why
+- Plasma is a “real” pixel effect that exercises:
+  - direct access to the canvas backbuffer (`getBuffer()`),
+  - consistent present timing (`waitDMA()` in the main loop),
+  - perf overlay behavior under continuous redraw.
+- Primitives is a simple baseline to validate draw APIs and colors without worrying about animation timing or per-pixel loops.
+
+### What worked
+- `./build.sh build` succeeds after adding the new demos.
+
+### What didn't work
+- N/A in this step (no device flash requested).
+
+### What I learned
+- Keeping animated demos as “always dirty” scenes is an easy integration path; later we can refine this into a per-scene `tick()` contract that declares its desired frame rate.
+
+### What was tricky to build
+- Ensuring plasma writes into the correct pixel format: the body sprite must remain 16-bit and we must treat its buffer as `uint16_t*` in row-major order.
+
+### What warrants a second pair of eyes
+- Whether we want to clamp plasma’s redraw rate (currently it redraws every loop iteration for that scene) or let the global `vTaskDelay(10)` be the cap.
+
+### What should be done in the future
+- Add additional demos incrementally from the remaining categories: fonts/text, sprites/rotation, image decode, QR/widgets.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp` (scene wiring), then review:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_plasma.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.cpp`

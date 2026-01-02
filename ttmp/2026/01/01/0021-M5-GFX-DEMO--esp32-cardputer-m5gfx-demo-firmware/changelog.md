@@ -153,3 +153,15 @@ Switched demo-suite input to cardputer_kb; adjusted esc/del bindings; began fixi
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Task-based PNG encode/send to avoid main stack overflow
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/reference/02-implementation-diary.md — Added steps 12-13
 
+
+## 2026-01-01
+
+Added C1 Plasma and C2 Primitives demos to the suite (first real demo modules beyond placeholders)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Scene/menu integration for new demos
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_plasma.cpp — Ported plasma effect renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.cpp — Primitives showcase renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/reference/02-implementation-diary.md — Added Step 14
+
