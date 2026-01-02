@@ -33,6 +33,15 @@ Implemented shared demo-suite infrastructure (scene switching + layered sprites)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Scene switcher + layered present pipeline (body/header/footer)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp — HUD + perf overlay drawing and perf EMA tracking
 
+## 2026-01-02
+
+Implemented starter scenario E1: a reusable terminal/log console scene (scrollback, input line, wrapping) and flashed it to the Cardputer for validation.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp — Console buffer + wrapping + rendering
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Console scene integration and key bindings
+
 
 ## 2026-01-01
 

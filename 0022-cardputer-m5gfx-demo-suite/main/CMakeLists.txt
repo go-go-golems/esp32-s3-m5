@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "input_keyboard.cpp"
+        "ui_console.cpp"
         "ui_hud.cpp"
         "ui_list_view.cpp"
     PRIV_REQUIRES spi_flash esp_driver_gpio esp_timer

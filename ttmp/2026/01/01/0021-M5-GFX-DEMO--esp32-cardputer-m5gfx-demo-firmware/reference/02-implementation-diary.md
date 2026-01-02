@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T01:15:00Z
+LastUpdated: 2026-01-02T01:45:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -258,3 +258,39 @@ This step turns the demo-suite from a single full-screen list into a small “ca
   - sprite allocation and present order
   - key mapping and scene transitions
   - HUD/perf cadence and dirty logic
+
+## Step 7: Implement E1 terminal/log console scene
+
+This step implements the first “real” demo module beyond the launcher: a console UI you can reuse for logs, REPL output, and interactive text input. It exercises scrolling, wrapping, and incremental redraw patterns.
+
+### What I did
+- Added a `ConsoleState` buffer with scrollback, input line, and dirty flag.
+- Implemented wrapping via `textWidth()` when appending lines to the buffer.
+- Rendered the console into the `body` sprite (excluding header/footer).
+- Integrated the console as a real scene (`E1TerminalDemo`) in the scene switcher.
+- Flashed the updated firmware to the Cardputer.
+
+### Why
+- A console is one of the most reusable UI building blocks for firmware and is a good stress test for text metrics + redraw strategies.
+
+### What worked
+- `idf.py build` succeeded.
+- Flash succeeded and the device booted with expected autodetect logs.
+
+### What didn't work
+- N/A (no new blockers beyond the known “monitor holds the port” constraint).
+
+### What I learned
+- Wrapping at append-time keeps rendering predictable, but the line budget must remain bounded to prevent memory growth (hard cap at 256 lines).
+
+### What was tricky to build
+- Key binding trade-offs: on Cardputer there’s no dedicated Backspace key, so the console uses `Del` as backspace and reserves `Fn+Del` for “back to menu”.
+
+### What warrants a second pair of eyes
+- Whether `Fn+W/S` is the right scrollback control, or if you prefer a different mapping (to avoid interfering with normal typing).
+
+### What should be done in the future
+- Add optional “fast mode” (scrollRect incremental append) once the stable redraw-on-dirty path is battle-tested.
+
+### Code review instructions
+- Start with `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp` then review its integration in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`.

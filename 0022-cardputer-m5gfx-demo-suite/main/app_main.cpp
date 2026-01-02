@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 
+#include <algorithm>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -23,6 +24,7 @@
 #include "M5GFX.h"
 
 #include "input_keyboard.h"
+#include "ui_console.h"
 #include "ui_hud.h"
 #include "ui_list_view.h"
 
@@ -200,12 +202,28 @@ extern "C" void app_main(void) {
     int64_t last_hud_update_us = 0;
     int64_t last_footer_update_us = 0;
 
+    ConsoleState console{};
+
     while (true) {
         const int64_t loop_start_us = esp_timer_get_time();
 
         bool selection_opened = false;
         bool pushed_any = false;
         int64_t present_start_us = -1;
+
+        auto set_scene = [&](SceneId next) {
+            if (scene == next) {
+                return;
+            }
+            scene = next;
+            if (scene == SceneId::E1TerminalDemo) {
+                console_init(console);
+                console.scrollback = 0;
+                console.dirty = true;
+            }
+            body_dirty = true;
+            header_dirty = true;
+        };
 
         for (const auto &ev : keyboard.poll()) {
             if (ev.key == "h" || ev.key == "H") {
@@ -220,21 +238,18 @@ extern "C" void app_main(void) {
             }
 
             if (ev.key == "tab") {
-                scene = next_scene(scene, ev.shift);
-                body_dirty = true;
-                header_dirty = true;
+                set_scene(next_scene(scene, ev.shift));
                 continue;
             }
 
             if (ev.key == "del") {
-                if (scene != SceneId::Menu) {
-                    scene = SceneId::Menu;
-                    body_dirty = true;
-                    header_dirty = true;
+                if (scene == SceneId::E1TerminalDemo && !ev.fn && !ev.ctrl && !ev.alt) {
+                    // In terminal mode, plain "del" is backspace; Fn+Del is back to menu.
+                } else if (scene != SceneId::Menu) {
+                    set_scene(SceneId::Menu);
                 } else {
                     ESP_LOGI(TAG, "back (del) pressed");
                 }
-                continue;
             }
 
             bool is_nav = false;
@@ -248,25 +263,74 @@ extern "C" void app_main(void) {
                 }
                 continue;
             }
+
+            if (scene == SceneId::E1TerminalDemo) {
+                if (ev.fn && (ev.key == "w" || ev.key == "W")) {
+                    console.scrollback++;
+                    console.dirty = true;
+                    continue;
+                }
+                if (ev.fn && (ev.key == "s" || ev.key == "S")) {
+                    console.scrollback = std::max(0, console.scrollback - 1);
+                    console.dirty = true;
+                    continue;
+                }
+
+                if (ev.key == "enter") {
+                    if (!console.input.empty()) {
+                        std::string line = "> " + console.input;
+                        console_append_line_wrapped(console, body, line, body.width() - 4, 256);
+                    } else {
+                        console_append_line_wrapped(console, body, "> ", body.width() - 4, 256);
+                    }
+                    console.input.clear();
+                    console.scrollback = 0;
+                    console.dirty = true;
+                    continue;
+                }
+
+                if (ev.key == "del" && !ev.fn && !ev.ctrl && !ev.alt) {
+                    if (!console.input.empty()) {
+                        console.input.pop_back();
+                        console.dirty = true;
+                    }
+                    continue;
+                }
+
+                if (ev.key == "space") {
+                    console.input.push_back(' ');
+                    console.dirty = true;
+                    continue;
+                }
+
+                if (ev.key.size() == 1) {
+                    console.input.push_back(ev.key[0]);
+                    console.dirty = true;
+                    continue;
+                }
+            }
         }
 
         if (selection_opened) {
             int idx = list.selected_index();
             if (idx >= 0 && idx < (int)menu_items.size()) {
-                scene = menu_items[(size_t)idx].scene;
+                set_scene(menu_items[(size_t)idx].scene);
                 ESP_LOGI(TAG, "open: idx=%d scene=%s", idx, scene_name(scene));
-                body_dirty = true;
-                header_dirty = true;
             }
         }
 
         const int64_t after_update_us = esp_timer_get_time();
 
         uint32_t render_us = 0;
+        if (scene == SceneId::E1TerminalDemo && console.dirty) {
+            body_dirty = true;
+        }
         if (body_dirty) {
             const int64_t r0 = esp_timer_get_time();
             if (scene == SceneId::Menu) {
                 list.render(body);
+            } else if (scene == SceneId::E1TerminalDemo) {
+                console_render(body, console);
             } else {
                 render_placeholder(body, scene_name(scene));
             }
