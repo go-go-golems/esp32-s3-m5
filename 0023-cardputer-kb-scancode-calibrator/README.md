@@ -19,3 +19,10 @@ Monitoring requires a TTY; use tmux:
 ./build.sh tmux-flash-monitor
 ```
 
+## Collect chords (host helper)
+
+If you want a machine-readable list of all unique chords you pressed:
+
+```bash
+python3 tools/collect_chords.py /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_* --out chords.json
+```
