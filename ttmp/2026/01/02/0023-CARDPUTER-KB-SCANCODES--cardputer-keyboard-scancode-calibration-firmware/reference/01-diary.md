@@ -179,3 +179,37 @@ Mode switching is bound to the external `GPIO0` button (G0): press it to toggle 
 ### Code review instructions
 - Start in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp`.
 - Then review the GPIO0 handling and UI wiring in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp`.
+
+## Step 4: Capture semantic bindings (arrows/back) and turn them into a reusable decoder table
+
+This step takes the wizard output (the actual physical keyNum chords the user pressed for “NavUp/Down/Left/Right/Back/Enter/Tab/Space”) and makes it reusable across firmwares. The key idea is that “arrows” are not a hardware scancode on this device; they’re a semantic mapping to physical keys, so we store them explicitly as binding rules (action → required_keynums chord).
+
+Captured wizard output (from serial):
+
+- `NavUp` = `[40]`
+- `NavDown` = `[54]`
+- `NavLeft` = `[53]`
+- `NavRight` = `[55]`
+- `Back` = `[1]`
+- `Enter` = `[42]`
+- `Tab` = `[15]`
+- `Space` = `[56]`
+
+### What I did
+- Added a reusable “binding decoder” API:
+  - `cardputer_kb::Binding` + `cardputer_kb::decode_best()` (subset test; most-specific chord wins)
+- Checked in the captured bindings in two formats:
+  - JSON: `esp32-s3-m5/components/cardputer_kb/config/m5cardputer_bindings_captured.json`
+  - C++ header table: `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h`
+- Added a host helper to convert a captured wizard JSON blob into a header:
+  - `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/tools/cfg_to_header.py`
+
+### Why
+- This turns the calibrator’s “one-off measurement” into a stable artifact that other firmware (e.g. the demo-suite) can include to get consistent navigation behavior.
+
+### What warrants a second pair of eyes
+- The captured mapping uses punctuation keys for navigation (consistent with vendor apps) rather than Fn-chords. If the goal is “real arrows via Fn”, we should run the wizard again and press Fn+<key> for the arrow prompts.
+
+### Code review instructions
+- Start in `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings.h`.
+- Then inspect the captured table in `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h`.

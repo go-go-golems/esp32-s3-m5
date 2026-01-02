@@ -5,7 +5,7 @@
 - [x] Create new ESP-IDF project `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator`
 - [x] Implement raw matrix scanner (pins + alt IN0/IN1 autodetect + multi-key support)
 - [x] Implement on-device calibration UX (prompt -> capture -> confirm -> next)
-- [ ] Define and implement “decoder config” output format (JSON + C header snippet)
+- [x] Define and implement “decoder config” output format (JSON + C header snippet)
 - [ ] Add verbose serial logging (raw scan_state/in_mask, derived key positions, chord timing)
 - [ ] Add host-side capture helpers (optional): parse JSON output into a ready-to-commit header
 - [ ] Add build/flash/monitor playbook (reuse the 0022 `build.sh` style)
@@ -20,6 +20,6 @@
 - [ ] Firmware can guide the user through calibrating at least:
   - `Up/Down/Left/Right` (Fn-combos)
   - `Enter`, `Tab`, `Esc`/Back, `Space`
-- [ ] Firmware prints a single “config blob” to serial that can be pasted into another project to decode keys reliably.
+- [x] Firmware prints a single “config blob” to serial that can be pasted into another project to decode keys reliably.
 
 - [x] Extract keyboard matrix scan + legend into reusable ESP-IDF component (cardputer_kb)

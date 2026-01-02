@@ -34,6 +34,12 @@ RelatedFiles:
       Note: Live 4x14 matrix UI + pressed keyNum logging (commit 1fc1f77)
     - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/kb_scan.cpp
       Note: Raw matrix scan + alt IN0/IN1 autodetect (commit 1fc1f77)
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/tools/cfg_to_header.py
+      Note: Host helper to convert CFG JSON into a header
+    - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings.h
+      Note: Reusable action/chord decoder (subset match
+    - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h
+      Note: Captured semantic binding table from wizard output
     - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/layout.h
       Note: Shared key legend table + keynum helpers (commit cdb68fa)
     - Path: esp32-s3-m5/components/cardputer_kb/matrix_scanner.cpp
@@ -44,6 +50,7 @@ LastUpdated: 2026-01-02T02:30:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
