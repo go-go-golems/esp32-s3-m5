@@ -26,3 +26,11 @@ If you want a machine-readable list of all unique chords you pressed:
 ```bash
 python3 tools/collect_chords.py /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_* --out chords.json
 ```
+
+## Convert wizard CFG to header
+
+If you captured a wizard `CFG_BEGIN...CFG_END` JSON blob into a file, convert it to a header table:
+
+```bash
+python3 tools/cfg_to_header.py cfg.json > bindings.h
+```
