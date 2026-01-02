@@ -13,23 +13,22 @@ It uses:
 ### Build (ESP-IDF 5.4.1)
 
 ```bash
-source /home/manuel/esp/esp-idf-5.4.1/export.sh && \
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester && \
-idf.py set-target esp32s3 && idf.py build
+./build.sh set-target esp32s3 && \
+./build.sh build
 ```
 
 ### Flash + Monitor
 
 ```bash
-source /home/manuel/esp/esp-idf-5.4.1/export.sh && \
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0016-atoms3r-grove-gpio-signal-tester && \
-idf.py flash monitor
+./build.sh flash monitor
 ```
 
 ### REPL commands (MVP)
 
 - `help`
-- `mode tx|rx|idle`
+- `mode tx|rx|idle|uart_tx|uart_rx`
 - `pin 1|2`
 - `tx high|low|stop`
 - `tx square <hz>`
@@ -37,6 +36,12 @@ idf.py flash monitor
 - `rx edges rising|falling|both`
 - `rx pull none|up|down`
 - `rx reset`
+- `uart baud <baud>`
+- `uart map normal|swapped`
+- `uart tx <token> <delay_ms>`
+- `uart tx stop`
+- `uart rx get [max_bytes]`
+- `uart rx clear`
 - `status`
 
 

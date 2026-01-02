@@ -6,6 +6,7 @@ idf_component_register(
         "signal_state.cpp"
         "gpio_tx.cpp"
         "gpio_rx.cpp"
+        "uart_tester.cpp"
         "lcd_ui.cpp"
         "backlight.cpp"
         "display_hal.cpp"
@@ -14,6 +15,7 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c
+        esp_driver_uart
         esp_driver_usb_serial_jtag
         esp_timer
     REQUIRES

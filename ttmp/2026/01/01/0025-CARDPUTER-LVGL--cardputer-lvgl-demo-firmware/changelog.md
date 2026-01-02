@@ -65,3 +65,90 @@ Fix crash when switching demos by deleting LVGL timers/state on screen delete (p
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_basics.cpp — Delete status timer via LV_EVENT_DELETE
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp — Delete tick timer via LV_EVENT_DELETE
 
+
+## 2026-01-02
+
+Added design doc explaining current screen-state pattern (cleanup-on-delete) and a roadmap for a more robust lifecycle framework (async switching, ScreenContext, destroy hooks).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/design-doc/02-screen-state-lifecycle-pattern-lvgl-demo-catalog.md — New doc: screen state and lifecycle patterns
+
+
+## 2026-01-02
+
+Added next tasks: esp_console scripting support; screenshot capture for UI inspection.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/tasks.md — New tasks
+
+
+## 2026-01-02
+
+Added verbose analyses for next demo projects: split-pane console+esp_console, command palette, system monitor, MicroSD file browser.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/02-project-analysis-split-pane-console-esp-console-scripting.md — New analysis
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/03-project-analysis-command-palette-overlay-ctrl-p.md — New analysis
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md — New analysis
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md — New analysis
+
+
+## 2026-01-02
+
+Updated ticket index with links to new project analysis docs.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/index.md — Link new analyses
+
+
+## 2026-01-02
+
+Expanded tasks into detailed workflows for Console/esp_console, Screenshot, Command Palette, System Monitor, and MicroSD browser; fixed screenshot command task text.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/tasks.md — Detailed task breakdown
+
+
+## 2026-01-02
+
+Minor: normalize screenshot task wording (remove escaped quotes).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/tasks.md — Task wording
+
+
+## 2026-01-02
+
+Implemented esp_console REPL over USB-Serial/JTAG with screenshot capture command; added host capture tools and validated end-to-end (captured 240x135 PNG + OCR verified menu text).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — UI-thread dispatch for screenshot
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — esp_console commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/screenshot_png.cpp — PNG encode/send + framing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py — Host validation tool
+
+
+## 2026-01-02
+
+Related new screenshot/console implementation files to the ticket index.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/index.md — RelatedFiles updated
+
+
+## 2026-01-02
+
+Added playbook for screenshot capture + OCR verification feedback loop.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/playbooks/01-screenshot-verification-feedback-loop-cardputer-lvgl.md — New playbook
+

@@ -87,3 +87,8 @@ Diary updated with Step 6 (plasma implementation); ticket tasks now complete.
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/echo-base--openai-realtime-embedded-sdk/ttmp/2025/12/22/004-CARDPUTER-M5GFX--cardputer-using-m5gfx-bring-up-plasma-animation/reference/01-diary.md — Added Step 6 with commit bbb22f5
 
+
+## 2026-01-02
+
+Closing: all tasks complete; project/demos and docs are in place.
+

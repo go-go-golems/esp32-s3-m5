@@ -39,6 +39,7 @@ static void apply_config_snapshot(const tester_state_t &st) {
     // Always keep both pins in a safe base state, then configure the active pin only.
     gpio_tx_stop();
     gpio_rx_disable();
+    uart_tester_stop();
 
     safe_reset_pin(GPIO_NUM_1);
     safe_reset_pin(GPIO_NUM_2);
@@ -56,6 +57,23 @@ static void apply_config_snapshot(const tester_state_t &st) {
         gpio_rx_configure(pin, st.rx_edges, st.rx_pull);
         return;
     }
+    if (st.mode == TesterMode::UartTx) {
+        uart_tester_config_t cfg = {};
+        cfg.baud = st.uart_baud;
+        cfg.map = st.uart_map;
+        (void)uart_tester_start_tx(cfg, st.uart_tx_token, st.uart_tx_delay_ms);
+        if (!st.uart_tx_enabled) {
+            uart_tester_tx_stop();
+        }
+        return;
+    }
+    if (st.mode == TesterMode::UartRx) {
+        uart_tester_config_t cfg = {};
+        cfg.baud = st.uart_baud;
+        cfg.map = st.uart_map;
+        (void)uart_tester_start_rx(cfg);
+        return;
+    }
 }
 
 static const char *mode_str(TesterMode m) {
@@ -66,6 +84,10 @@ static const char *mode_str(TesterMode m) {
             return "TX";
         case TesterMode::Rx:
             return "RX";
+        case TesterMode::UartTx:
+            return "UART_TX";
+        case TesterMode::UartRx:
+            return "UART_RX";
     }
     return "?";
 }
@@ -122,6 +144,11 @@ void tester_state_init(void) {
     s_state.tx.period_ms = 10;
     s_state.rx_edges = RxEdgeMode::Both;
     s_state.rx_pull = RxPullMode::Up;
+    s_state.uart_baud = 115200;
+    s_state.uart_map = UartMap::Normal;
+    s_state.uart_tx_enabled = false;
+    s_state.uart_tx_delay_ms = 1000;
+    s_state.uart_tx_token[0] = '\0';
     snapshot = s_state;
     portEXIT_CRITICAL(&s_state_mux);
 
@@ -140,6 +167,7 @@ tester_state_t tester_state_snapshot(void) {
 
 static void print_status_snapshot(const tester_state_t &st) {
     rx_stats_t rx = gpio_rx_snapshot();
+    uart_tester_stats_t us = uart_tester_stats_snapshot();
     printf("mode=%s pin=%d (gpio=%d) tx=%s",
            mode_str(st.mode),
            st.active_pin,
@@ -156,12 +184,28 @@ static void print_status_snapshot(const tester_state_t &st) {
            rx.edges, rx.rises, rx.falls,
            rx.last_tick,
            rx.last_level);
+
+    if (st.mode == TesterMode::UartTx || st.mode == TesterMode::UartRx) {
+        printf("uart: baud=%d map=%s tx_en=%d tx_delay_ms=%d tx_token=%s tx_bytes=%" PRIu32 " rx_bytes=%" PRIu32 " rx_buf_used=%" PRIu32 " rx_buf_dropped=%" PRIu32 "\n",
+               st.uart_baud,
+               (st.uart_map == UartMap::Swapped) ? "swapped" : "normal",
+               st.uart_tx_enabled ? 1 : 0,
+               st.uart_tx_delay_ms,
+               st.uart_tx_token,
+               us.tx_bytes_total,
+               us.rx_bytes_total,
+               us.rx_buf_used,
+               us.rx_buf_dropped);
+    }
 }
 
 void tester_state_apply_event(const CtrlEvent &ev) {
     tester_state_t snapshot = {};
     bool do_apply = false;
     bool do_status = false;
+    bool do_uart_rx_get = false;
+    bool do_uart_tx_set = false;
+    bool do_uart_tx_stop = false;
 
     portENTER_CRITICAL(&s_state_mux);
     switch (ev.type) {
@@ -169,6 +213,8 @@ void tester_state_apply_event(const CtrlEvent &ev) {
             if (ev.arg0 == 0) s_state.mode = TesterMode::Idle;
             else if (ev.arg0 == 1) s_state.mode = TesterMode::Tx;
             else if (ev.arg0 == 2) s_state.mode = TesterMode::Rx;
+            else if (ev.arg0 == 3) s_state.mode = TesterMode::UartTx;
+            else if (ev.arg0 == 4) s_state.mode = TesterMode::UartRx;
             do_apply = true;
             break;
         case CtrlType::SetPin:
@@ -230,6 +276,61 @@ void tester_state_apply_event(const CtrlEvent &ev) {
             // Safe to call outside the critical section (atomics only), but keep ordering deterministic:
             // we just mark the intent here and do it after we release the mux.
             break;
+
+        case CtrlType::UartBaud:
+            if (ev.arg0 > 0) {
+                s_state.uart_baud = (int)ev.arg0;
+                if (s_state.mode == TesterMode::UartTx || s_state.mode == TesterMode::UartRx) {
+                    do_apply = true;
+                }
+            }
+            break;
+        case CtrlType::UartMap:
+            s_state.uart_map = (ev.arg0 != 0) ? UartMap::Swapped : UartMap::Normal;
+            if (s_state.mode == TesterMode::UartTx || s_state.mode == TesterMode::UartRx) {
+                do_apply = true;
+            }
+            break;
+        case CtrlType::UartTxStart:
+            {
+                const bool was_uart_tx = (s_state.mode == TesterMode::UartTx);
+                s_state.mode = TesterMode::UartTx;
+                s_state.uart_tx_delay_ms = (int)ev.arg0;
+                s_state.uart_tx_enabled = true;
+                s_state.uart_tx_token[0] = '\0';
+                if (ev.str0[0]) {
+                    strlcpy(s_state.uart_tx_token, ev.str0, sizeof(s_state.uart_tx_token));
+                }
+                do_apply = !was_uart_tx;
+                do_uart_tx_set = was_uart_tx;
+            }
+            break;
+        case CtrlType::UartTxStop:
+            // Stay in UART_TX mode; just disable TX loop.
+            {
+                const bool was_uart_tx = (s_state.mode == TesterMode::UartTx);
+                if (!was_uart_tx) {
+                    s_state.mode = TesterMode::UartTx;
+                    do_apply = true;  // need to start UART driver/tasks, then stop TX
+                }
+                s_state.uart_tx_enabled = false;
+                do_uart_tx_stop = true;
+            }
+            break;
+        case CtrlType::UartRxGet:
+            // Drain/print is done outside the mux (non-deterministic latency and printf).
+            if (s_state.mode != TesterMode::UartRx) {
+                s_state.mode = TesterMode::UartRx;
+                do_apply = true;
+            }
+            do_uart_rx_get = true;
+            break;
+        case CtrlType::UartRxClear:
+            if (s_state.mode != TesterMode::UartRx) {
+                s_state.mode = TesterMode::UartRx;
+                do_apply = true;
+            }
+            break;
     }
     snapshot = s_state;
     portEXIT_CRITICAL(&s_state_mux);
@@ -238,8 +339,33 @@ void tester_state_apply_event(const CtrlEvent &ev) {
     if (ev.type == CtrlType::RxReset) {
         gpio_rx_reset();
     }
+    if (ev.type == CtrlType::UartRxClear) {
+        uart_tester_rx_clear();
+    }
+    if (do_uart_tx_set) {
+        uart_tester_tx_set(snapshot.uart_tx_token, snapshot.uart_tx_delay_ms);
+    }
     if (do_apply) {
         apply_config_snapshot(snapshot);
+    }
+    if (do_uart_tx_stop) {
+        uart_tester_tx_stop();
+    }
+    if (do_uart_rx_get) {
+        const int max_default = 64;
+        int want = (int)ev.arg0;
+        if (want <= 0) want = max_default;
+        if (want > 1024) want = 1024;
+        uint8_t buf[1024] = {};
+        size_t n = uart_tester_rx_drain(buf, (size_t)want);
+        printf("uart_rx_get: %u bytes\n", (unsigned)n);
+        if (n > 0) {
+            // Print as hex + ASCII-ish (printable bytes), but keep it simple.
+            for (size_t i = 0; i < n; i++) {
+                printf("%02X ", (unsigned)buf[i]);
+            }
+            printf("\n");
+        }
     }
     if (do_status) {
         print_status_snapshot(snapshot);

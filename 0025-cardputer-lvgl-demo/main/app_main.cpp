@@ -20,10 +20,13 @@
 
 #include "M5GFX.h"
 
+#include "console_repl.h"
+#include "control_plane.h"
 #include "demo_manager.h"
 #include "input_keyboard.h"
 #include "lvgl_port_cardputer_kb.h"
 #include "lvgl_port_m5gfx.h"
+#include "screenshot_png.h"
 
 static const char *TAG = "cardputer_lvgl_demo";
 
@@ -62,6 +65,13 @@ extern "C" void app_main(void) {
     demo_manager_init(&demos, kb_indev);
     demo_manager_load(&demos, DemoId::Menu);
 
+    QueueHandle_t ctrl_q = ctrl_create_queue(8);
+    if (!ctrl_q) {
+        ESP_LOGE(TAG, "failed to create control-plane queue");
+        return;
+    }
+    console_start(ctrl_q);
+
     while (true) {
         const std::vector<KeyEvent> events = keyboard.poll();
 
@@ -80,6 +90,21 @@ extern "C" void app_main(void) {
         lvgl_port_cardputer_kb_feed(filtered);
 
         lv_timer_handler();
+
+        // Drain any host control-plane events (esp_console) on the UI thread.
+        // This ensures no cross-thread LVGL or display access.
+        CtrlEvent ev{};
+        while (ctrl_recv(ctrl_q, &ev, 0)) {
+            if (ev.type == CtrlType::ScreenshotPngToUsbSerialJtag) {
+                size_t len = 0;
+                const bool ok = screenshot_png_to_usb_serial_jtag_ex(display, &len);
+                const uint32_t notify = ok ? (uint32_t)len : 0U;
+                if (ev.reply_task) {
+                    (void)xTaskNotify(ev.reply_task, notify, eSetValueWithOverwrite);
+                }
+            }
+        }
+
         // Ensure we actually block for >= 1 RTOS tick; otherwise IDLE0 can starve and trip task_wdt.
         vTaskDelay(1);
     }

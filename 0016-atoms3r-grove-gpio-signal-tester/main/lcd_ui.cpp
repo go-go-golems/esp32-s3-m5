@@ -30,6 +30,10 @@ static const char *mode_str(TesterMode m) {
             return "TX";
         case TesterMode::Rx:
             return "RX";
+        case TesterMode::UartTx:
+            return "UART_TX";
+        case TesterMode::UartRx:
+            return "UART_RX";
     }
     return "?";
 }
@@ -94,6 +98,15 @@ static void ui_task(void *arg) {
         s_canvas->printf("RX:   edges=%" PRIu32 " (+%" PRIu32 "/s)\n", rx.edges, per_s);
         s_canvas->printf("      rises=%" PRIu32 " falls=%" PRIu32 " last=%" PRIu32 " lvl=%d\n",
                          rx.rises, rx.falls, rx.last_tick, rx.last_level);
+
+        if (st.mode == TesterMode::UartTx || st.mode == TesterMode::UartRx) {
+            uart_tester_stats_t us = uart_tester_stats_snapshot();
+            s_canvas->printf("UART: %d %s\n",
+                             st.uart_baud,
+                             (st.uart_map == UartMap::Swapped) ? "swapped" : "normal");
+            s_canvas->printf("      tx=%" PRIu32 " rx=%" PRIu32 "\n", us.tx_bytes_total, us.rx_bytes_total);
+            s_canvas->printf("      buf=%" PRIu32 " drop=%" PRIu32 "\n", us.rx_buf_used, us.rx_buf_dropped);
+        }
 
         display_present_canvas(*s_canvas);
         vTaskDelay(pdMS_TO_TICKS(CONFIG_TUTORIAL_0016_UI_REFRESH_MS));

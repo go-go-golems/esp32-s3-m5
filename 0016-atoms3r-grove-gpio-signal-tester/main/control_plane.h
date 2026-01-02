@@ -20,12 +20,23 @@ enum class CtrlType : uint8_t {
     RxEdges,     // arg0: 0=rising 1=falling 2=both
     RxPull,      // arg0: 0=none 1=up 2=down
     RxReset,
+
+    // UART peripheral test mode controls.
+    UartBaud,        // arg0: baud
+    UartMap,         // arg0: 0=normal 1=swapped
+    UartTxStart,     // arg0: delay_ms, str0: payload token (single whitespace-delimited token)
+    UartTxStop,
+    UartRxGet,       // arg0: max_bytes (0 => default)
+    UartRxClear,
 };
 
 struct CtrlEvent {
     CtrlType type;
     int32_t arg0;
     int32_t arg1;
+    // Small string payload for commands that need one token (keeps REPL deterministic; no quoting in v1).
+    // Always null-terminated (producer must ensure).
+    char str0[64];
 };
 
 // Create the control queue and install it as the global target for ctrl_send().

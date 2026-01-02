@@ -1,0 +1,7 @@
+title: "🎫 Cardputer: add keyboard scancode calibrator ticket"
+description: |
+  - Add doc workspace for `0023-CARDPUTER-KB-SCANCODES` (standalone keyboard scancode calibration firmware)
+  - Include implementation-ready analysis/design with relevant file/symbol pointers and a task list
+
+  Tests:
+  - N/A (docs-only)

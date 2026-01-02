@@ -108,6 +108,8 @@ Be careful: adding escape parsing changes how terminals interact and can regress
 
 ## How to Validate Changes
 
+These are scripts that can be used as inspiration on how to validate using the REPL component.
+
 ### QEMU (non-interactive, UART stdio)
 
 Repeat-mode smoke:

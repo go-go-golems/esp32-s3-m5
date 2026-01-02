@@ -21,6 +21,41 @@ cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-c
 idf.py flash monitor
 ```
 
+## Host scripting + screenshot (esp_console)
+
+This demo starts an `esp_console` REPL over **USB-Serial/JTAG**. You can type commands from a host terminal (via `idf.py monitor` or any serial terminal).
+
+### Commands
+
+- `help`
+- `heap`
+- `screenshot` — emits a framed PNG over the same serial port:
+  - `PNG_BEGIN <len>\n<raw png bytes>\nPNG_END\n`
+
+### Capture PNG on host
+
+Recommended (triggers the `screenshot` console command and captures the PNG):
+
+```bash
+python3 tools/capture_screenshot_png_from_console.py \
+  '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' \
+  screenshot.png
+```
+
+Capture-only (if you trigger `screenshot` manually in a terminal):
+
+```bash
+python3 tools/capture_screenshot_png.py \
+  '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' \
+  screenshot.png
+```
+
+Optional: validate the screenshot contents via OCR:
+
+```bash
+pinocchio code professional --images screenshot.png "OCR this screenshot and confirm it shows the expected LVGL UI (menu/title) for the current demo."
+```
+
 ## Controls
 
 ### Menu

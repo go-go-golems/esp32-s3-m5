@@ -24,3 +24,10 @@ CONFIG_LV_MEM_SIZE_KILOBYTES=64
 # Fonts (needed for the Pomodoro "premium" layout).
 CONFIG_LV_FONT_MONTSERRAT_12=y
 CONFIG_LV_FONT_MONTSERRAT_32=y
+
+# esp_console REPL over USB-Serial/JTAG (host scripting + screenshot capture).
+# Note: this selects USB-Serial/JTAG as the primary console output channel.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# CONFIG_ESP_CONSOLE_UART_DEFAULT is not set
+# CONFIG_ESP_CONSOLE_SECONDARY_USB_SERIAL_JTAG is not set
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y

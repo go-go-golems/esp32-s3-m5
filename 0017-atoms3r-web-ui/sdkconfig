@@ -596,13 +596,26 @@ CONFIG_TUTORIAL_0017_BL_BRIGHTNESS_ON=255
 # end of Tutorial 0017: Backlight
 
 #
-# Tutorial 0017: WiFi (SoftAP)
+# Tutorial 0017: WiFi
+#
+CONFIG_TUTORIAL_0017_WIFI_MODE_SOFTAP=y
+# CONFIG_TUTORIAL_0017_WIFI_MODE_STA is not set
+# CONFIG_TUTORIAL_0017_WIFI_MODE_APSTA is not set
+
+#
+# SoftAP settings
 #
 CONFIG_TUTORIAL_0017_WIFI_SOFTAP_SSID="AtomS3R-WebUI"
 CONFIG_TUTORIAL_0017_WIFI_SOFTAP_PASSWORD=""
 CONFIG_TUTORIAL_0017_WIFI_SOFTAP_CHANNEL=6
 CONFIG_TUTORIAL_0017_WIFI_SOFTAP_MAX_CONN=4
-# end of Tutorial 0017: WiFi (SoftAP)
+# end of SoftAP settings
+
+#
+# STA (join existing WiFi) settings
+#
+# end of STA (join existing WiFi) settings
+# end of Tutorial 0017: WiFi
 
 #
 # Tutorial 0017: Storage (FATFS RW for uploads)

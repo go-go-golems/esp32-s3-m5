@@ -19,6 +19,13 @@ RelatedFiles:
       Note: Keyboard events stream to adapt into LVGL indev
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Cardputer LVGL demo main loop + UI creation
+    - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
+      Note: |-
+        esp_console REPL + screenshot command
+        Provides  command used by playbook
+        Provides the esp_console command 'screenshot' used by the playbook
+    - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
+      Note: CtrlEvent queue contract between console and UI
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Demo catalog screen switching + shared LVGL group
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
@@ -27,16 +34,30 @@ RelatedFiles:
       Note: LVGL keypad indev adapter for Cardputer keyboard events
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: LVGL display driver (draw buffers + flush callback)
+    - Path: 0025-cardputer-lvgl-demo/main/screenshot_png.cpp
+      Note: Framed PNG capture over USB-Serial/JTAG
+    - Path: 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py
+      Note: |-
+        Host validation script (send command + capture PNG)
+        Scripted capture
     - Path: components/cardputer_kb/matrix_scanner.cpp
       Note: Cardputer keyboard matrix scan implementation
     - Path: imports/lv_m5_emulator/src/utility/lvgl_port_m5stack.cpp
       Note: LVGL<->M5GFX port reference (flush/tick/handler patterns)
+    - Path: ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/design-doc/02-screen-state-lifecycle-pattern-lvgl-demo-catalog.md
+      Note: Explains screen state + lifecycle pattern and robust evolution
+    - Path: ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/playbooks/01-screenshot-verification-feedback-loop-cardputer-lvgl.md
+      Note: How to capture + OCR-verify screenshots
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
+
+
 
 
 
@@ -53,6 +74,11 @@ The intent is to establish a high-quality â€œLVGL + M5GFX + Cardputer keyboardâ€
 
 - Firmware project: `esp32-s3-m5/0025-cardputer-lvgl-demo` (created in this ticket)
 - Analysis: `analysis/01-lvgl-on-cardputer-esp-idf-m5gfx-integration-plan.md`
+- Project analyses:
+  - `analysis/02-project-analysis-split-pane-console-esp-console-scripting.md`
+  - `analysis/03-project-analysis-command-palette-overlay-ctrl-p.md`
+  - `analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md`
+  - `analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md`
 - Diary: `reference/01-diary.md`
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field

@@ -1,7 +1,7 @@
 ---
 Title: 'Cardputer: typewriter (keyboard -> on-screen text)'
 Ticket: 006-CARDPUTER-TYPEWRITER
-Status: review
+Status: closed
 Topics:
     - esp32s3
     - esp-idf
@@ -41,10 +41,11 @@ RelatedFiles:
       Note: Reproducible Cardputer defaults for 0012
 ExternalSources: []
 Summary: ""
-LastUpdated: 2025-12-22T23:13:08.203401827-05:00
+LastUpdated: 2026-01-02T09:33:44.49508917-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

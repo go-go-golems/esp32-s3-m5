@@ -1,7 +1,7 @@
 ---
 Title: 'Cardputer: using M5GFX (bring-up + plasma animation)'
 Ticket: 004-CARDPUTER-M5GFX
-Status: active
+Status: closed
 Topics:
     - esp32s3
     - esp-idf
@@ -31,10 +31,11 @@ RelatedFiles:
       Note: New Cardputer chapter 0011 scaffold using M5GFX autodetect
 ExternalSources: []
 Summary: ""
-LastUpdated: 2025-12-22T22:06:59.427230297-05:00
+LastUpdated: 2026-01-02T09:33:43.213018713-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

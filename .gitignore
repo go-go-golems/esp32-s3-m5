@@ -12,3 +12,10 @@ managed_components
 # Tutorial 0017 (AtomS3R Web UI) frontend build outputs
 0017-atoms3r-web-ui/web/node_modules/
 0017-atoms3r-web-ui/web/dist/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local clone (embedded git repo); track as a real submodule if needed.
+imports/lv_m5_emulator/

@@ -15,3 +15,47 @@
 - [x] Update README with menu navigation + Pomodoro controls; verify build compiles
 - [x] Fix Esc (Fn+`) chord not triggering; ensure it maps to LV_KEY_ESC reliably
 - [x] Fix crash when switching demos (delete LVGL timers/state when screen is destroyed)
+- [x] Add esp_console support for scripting the demo
+- [x] Add screenshot capture functionality so you can inspect what is going on
+- [ ] [Console/esp_console] Read analysis doc analysis/02-project-analysis-split-pane-console-esp-console-scripting.md and define v0 command set + expected outputs
+- [x] [Console/esp_console] Add control-plane queue module (CtrlEvent + xQueue) for UI-thread-safe commands
+- [x] [Console/esp_console] Wire CtrlEvent drain/dispatch into 0025-cardputer-lvgl-demo/main/app_main.cpp (apply on UI thread)
+- [ ] [Console/esp_console] Implement demo-control events: OpenMenu/OpenBasics/OpenPomodoro + parameterized PomodoroSetMinutes
+- [x] [Console/esp_console] Add esp_console REPL startup module for Cardputer (model after 0013-atoms3r-gif-console/main/console_repl.cpp)
+- [x] [Console/esp_console] Decide REPL transport for Cardputer (USB-Serial/JTAG vs UART) and set sdkconfig.defaults/Kconfig accordingly
+- [ ] [Console/esp_console] Register esp_console commands (help, menu, basics, pomodoro, setmins, heap, screenshot) that enqueue CtrlEvents
+- [ ] [Console/esp_console] Add LVGL demo screen: SplitConsole (output + input) and add it to menu + DemoManager
+- [ ] [Console/esp_console] Implement LVGL SplitConsole UI (read-only output textarea + one-line input textarea + submit on Enter)
+- [ ] [Console/esp_console] Implement SplitConsole scrollback/follow-tail behavior (port concepts from 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp)
+- [ ] [Console/esp_console] Add a safe UI-thread log append API (for command responses); avoid routing global ESP_LOG until needed
+- [x] [Console/esp_console] Update README with scripting workflow + sample session + key bindings
+- [x] [Console/esp_console] Validate: build+flash; run esp_console commands; confirm no LVGL cross-thread access; confirm device stays responsive
+- [x] [Screenshot] Read existing screenshot implementation + pitfalls (0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp, tickets 0024/0026)
+- [x] [Screenshot] Choose screenshot transport(s): framed PNG to serial (USB-Serial/JTAG) and/or save to FATFS/SD
+- [x] [Screenshot] Port/reuse screenshot_png_to_usb_serial_jtag_ex() into 0025 (chunked writes, ensure driver installed, bounded retries)
+- [x] [Screenshot] Ensure PNG encode runs in dedicated task with adequate stack (avoid main-task stack overflow)
+- [x] [Screenshot] Add a demo action and esp_console command screenshot that triggers capture via CtrlEvent
+- [x] [Screenshot] Add host capture helper for 0025 (reuse or copy tools/capture_screenshot_png.py pattern)
+- [x] [Screenshot] Validate: capture a PNG on host; confirm protocol framing (PNG_BEGIN/PNG_END) and image correctness
+- [ ] [Palette] Read analysis doc analysis/03-project-analysis-command-palette-overlay-ctrl-p.md and define v0 action list
+- [ ] [Palette] Add Ctrl+P chord detection in 0025-cardputer-lvgl-demo/main/app_main.cpp using KeyEvent.ctrl before LVGL feed
+- [ ] [Palette] Implement ActionRegistry (ActionId + title + keywords) shared by palette and esp_console command list
+- [ ] [Palette] Implement palette overlay module (create/destroy on lv_layer_top, backdrop + panel + query + results)
+- [ ] [Palette] Implement palette filtering + selection + run selected action (enqueue CtrlEvent)
+- [ ] [Palette] Implement focus capture/restore so palette owns keys while open and returns focus safely on close
+- [ ] [Palette] Add README docs for palette usage and shortcut keys
+- [ ] [SysMon] Read analysis doc analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md and choose metrics
+- [ ] [SysMon] Add DemoId::SystemMonitor + new screen module demo_system_monitor.cpp and register in menu
+- [ ] [SysMon] Implement periodic sampling (heap + dma + loop timing) using lv_timer; delete timer on LV_EVENT_DELETE
+- [ ] [SysMon] Add sparklines using lv_chart (point count tuned for 240x135) and update at ~250ms cadence
+- [ ] [SysMon] Add EMA smoothing helper (port idea from 0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp)
+- [ ] [SysMon] Optional: add Wi-Fi state (event loop pattern from 0005-wifi-event-loop) and display status/RSSI
+- [ ] [SysMon] Validate: run under load (switch demos, screenshot) and confirm monitor stays responsive
+- [ ] [MicroSD] Read analysis doc analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md and decide mount path (/sd)
+- [ ] [MicroSD] Research Cardputer MicroSD wiring and select host type (SDMMC vs SDSPI); document pinout choice in code/README
+- [ ] [MicroSD] Implement sdcard mount module using esp_vfs_fat_sdmmc_mount or esp_vfs_fat_sdspi_mount (no auto-format)
+- [ ] [MicroSD] Add DemoId::FileBrowser + FileViewer screens and register in menu
+- [ ] [MicroSD] Implement directory listing (opendir/readdir) + selection/scroll UX (port concepts from ui_list_view.cpp)
+- [ ] [MicroSD] Implement text/log viewer (read-only textarea) with size-limited preview and scrolling
+- [ ] [MicroSD] Integrate screenshot save-to-sd (write PNG bytes to /sd/screenshots/...) and expose via command/action
+- [ ] [MicroSD] Validate: mount SD, browse dirs, open files, save screenshot, reopen to confirm

@@ -23,4 +23,13 @@ CONFIG_ESPTOOLPY_FLASHMODE_DIO=y
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
 CONFIG_ESPTOOLPY_FLASHSIZE_2MB=y
 
+# Disable watchdogs for QEMU runs.
+#
+# ESP-IDF's QEMU runner attempts to disable the timer-group WDT via a QEMU
+# "-global ...wdt_disable..." knob, but on esp32s3 QEMU this can be ignored
+# (you'll see "warning: global timer.esp32s3.timg.wdt_disable has invalid class name"),
+# which leads to early Task WDT interrupts and panics before `app_main` runs.
+CONFIG_ESP_TASK_WDT_EN=n
+CONFIG_ESP_INT_WDT=n
+
 

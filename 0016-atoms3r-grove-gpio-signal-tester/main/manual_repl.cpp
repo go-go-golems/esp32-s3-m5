@@ -62,7 +62,7 @@ static void print_help(void) {
     repl_puts(
         "Commands:\r\n"
         "  help\r\n"
-        "  mode tx|rx|idle\r\n"
+        "  mode tx|rx|idle|uart_tx|uart_rx\r\n"
         "  pin 1|2\r\n"
         "  tx high|low|stop\r\n"
         "  tx square <hz>\r\n"
@@ -70,6 +70,12 @@ static void print_help(void) {
         "  rx edges rising|falling|both\r\n"
         "  rx pull none|up|down\r\n"
         "  rx reset\r\n"
+        "  uart baud <baud>\r\n"
+        "  uart map normal|swapped\r\n"
+        "  uart tx <token> <delay_ms>\r\n"
+        "  uart tx stop\r\n"
+        "  uart rx get [max_bytes]\r\n"
+        "  uart rx clear\r\n"
         "  status\r\n");
 }
 
@@ -83,13 +89,15 @@ static void handle_tokens(int argc, char **argv) {
     }
     if (streq(argv[0], "mode")) {
         if (argc < 2) {
-            repl_puts("usage: mode tx|rx|idle\r\n");
+            repl_puts("usage: mode tx|rx|idle|uart_tx|uart_rx\r\n");
             return;
         }
         int m = -1;
         if (streq(argv[1], "idle")) m = 0;
         else if (streq(argv[1], "tx")) m = 1;
         else if (streq(argv[1], "rx")) m = 2;
+        else if (streq(argv[1], "uart_tx")) m = 3;
+        else if (streq(argv[1], "uart_rx")) m = 4;
         else {
             repl_puts("invalid mode\r\n");
             return;
@@ -207,6 +215,107 @@ static void handle_tokens(int argc, char **argv) {
             return;
         }
         repl_puts("unknown rx subcommand\r\n");
+        return;
+    }
+
+    if (streq(argv[0], "uart")) {
+        if (argc < 2) {
+            repl_puts("usage: uart baud|map|tx|rx ...\r\n");
+            return;
+        }
+        if (streq(argv[1], "baud")) {
+            if (argc < 3) {
+                repl_puts("usage: uart baud <baud>\r\n");
+                return;
+            }
+            int baud = 0;
+            if (!try_parse_int(argv[2], &baud) || baud <= 0) {
+                repl_puts("invalid baud\r\n");
+                return;
+            }
+            CtrlEvent ev = {};
+            ev.type = CtrlType::UartBaud;
+            ev.arg0 = baud;
+            ctrl_send(ev);
+            return;
+        }
+        if (streq(argv[1], "map")) {
+            if (argc < 3) {
+                repl_puts("usage: uart map normal|swapped\r\n");
+                return;
+            }
+            int map = -1;
+            if (streq(argv[2], "normal")) map = 0;
+            else if (streq(argv[2], "swapped")) map = 1;
+            else {
+                repl_puts("invalid map\r\n");
+                return;
+            }
+            CtrlEvent ev = {};
+            ev.type = CtrlType::UartMap;
+            ev.arg0 = map;
+            ctrl_send(ev);
+            return;
+        }
+        if (streq(argv[1], "tx")) {
+            if (argc < 3) {
+                repl_puts("usage: uart tx <token> <delay_ms> | uart tx stop\r\n");
+                return;
+            }
+            if (streq(argv[2], "stop")) {
+                CtrlEvent ev = {};
+                ev.type = CtrlType::UartTxStop;
+                ctrl_send(ev);
+                return;
+            }
+            if (argc < 4) {
+                repl_puts("usage: uart tx <token> <delay_ms>\r\n");
+                return;
+            }
+            int delay_ms = 0;
+            if (!try_parse_int(argv[3], &delay_ms) || delay_ms < 0) {
+                repl_puts("invalid delay_ms\r\n");
+                return;
+            }
+            CtrlEvent ev = {};
+            ev.type = CtrlType::UartTxStart;
+            ev.arg0 = delay_ms;
+            // payload token (single token)
+            strncpy(ev.str0, argv[2], sizeof(ev.str0) - 1);
+            ev.str0[sizeof(ev.str0) - 1] = '\0';
+            ctrl_send(ev);
+            return;
+        }
+        if (streq(argv[1], "rx")) {
+            if (argc < 3) {
+                repl_puts("usage: uart rx get [max_bytes] | uart rx clear\r\n");
+                return;
+            }
+            if (streq(argv[2], "clear")) {
+                CtrlEvent ev = {};
+                ev.type = CtrlType::UartRxClear;
+                ctrl_send(ev);
+                return;
+            }
+            if (streq(argv[2], "get")) {
+                int max_bytes = 0;
+                if (argc >= 4) {
+                    if (!try_parse_int(argv[3], &max_bytes) || max_bytes < 0) {
+                        repl_puts("invalid max_bytes\r\n");
+                        return;
+                    }
+                }
+                CtrlEvent ev = {};
+                ev.type = CtrlType::UartRxGet;
+                ev.arg0 = max_bytes;
+                ctrl_send(ev);
+                return;
+            }
+            repl_puts("unknown uart rx subcommand\r\n");
+            return;
+        }
+
+        repl_puts("unknown uart subcommand\r\n");
         return;
     }
 

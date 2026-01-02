@@ -304,6 +304,73 @@ The fix is to treat timers as screen-scoped resources: each demo allocates a per
 ### What warrants a second pair of eyes
 - Confirm `lv_obj_del_async()` + `LV_EVENT_DELETE` timer deletion is safe under LVGL’s internal timer scheduling (no edge-case double-delete).
 
+## Step 7: Add `esp_console` screenshot command (host-scriptable capture + OCR validation)
+
+This step adds a host-scriptable screenshot flow to the LVGL demo by starting an `esp_console` REPL over USB-Serial/JTAG and registering a `screenshot` command. The key constraint is correctness under concurrency: the REPL runs in its own FreeRTOS task, but LVGL and display access must remain single-threaded and predictable. The solution is to treat `screenshot` as a control-plane request: the console command enqueues an event, and the main UI loop executes the capture and notifies the console task when it’s done.
+
+This step also validates the end-to-end use case on real hardware: we flashed the firmware, invoked `screenshot` via the serial console, captured the framed PNG on the host, and used OCR to confirm the image contains the expected LVGL menu text.
+
+### What I did
+- Implemented an `esp_console` REPL over USB-Serial/JTAG in the LVGL demo project:
+  - Added `0025-cardputer-lvgl-demo/main/console_repl.{h,cpp}` with `heap` + `screenshot` commands.
+  - Updated console configuration to enable `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y` (REPL supported by ESP-IDF’s `esp_console_new_repl_usb_serial_jtag`).
+- Implemented a small control-plane queue so the REPL never touches LVGL directly:
+  - Added `0025-cardputer-lvgl-demo/main/control_plane.{h,cpp}` (FreeRTOS queue of `CtrlEvent`).
+  - In `0025-cardputer-lvgl-demo/main/app_main.cpp`, drained `CtrlEvent`s on the UI thread and executed screenshot capture there.
+- Ported the hardened screenshot sender into the LVGL demo:
+  - Added `0025-cardputer-lvgl-demo/main/screenshot_png.{h,cpp}` (framed PNG over USB-Serial/JTAG).
+  - Kept the safety properties from the demo-suite’s implementation:
+    - driver install guard
+    - chunked writes
+    - bounded retries with yields
+    - PNG encode/send in a dedicated task (avoid `main` stack overflow)
+- Added host capture tools and documented the workflow:
+  - Added `0025-cardputer-lvgl-demo/tools/capture_screenshot_png.py` (capture-only)
+  - Added `0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py` (sends `screenshot` then captures)
+  - Updated `0025-cardputer-lvgl-demo/README.md` with usage and OCR validation command.
+
+### Why
+- We want deterministic “inspect what is going on” debugging without relying on camera photos of the screen.
+- `esp_console` enables scripting/automation (e.g., capture screenshots repeatedly during UI changes).
+- The repo already learned the hard lessons:
+  - USB-Serial/JTAG driver can be uninitialized (WDT wedge risk) if you assume it exists.
+  - `createPng()` can overflow the `main` task stack if run directly.
+  - LVGL must not be mutated from arbitrary tasks.
+
+### What worked
+- Build succeeded:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Flash succeeded:
+  - `./build.sh -p /dev/ttyACM0 flash`
+- End-to-end capture succeeded (host triggered the console command and saved the PNG):
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py /dev/ttyACM0 /tmp/cardputer_lvgl.png --timeout-s 30`
+  - `file /tmp/cardputer_lvgl.png` reports: `PNG image data, 240 x 135, ...`
+- OCR validation matched the expected UI:
+  - `pinocchio code professional --images /tmp/cardputer_lvgl.png "OCR the screenshot and tell me what UI text is visible (title/menu labels)."`
+  - OCR output included: `LVGL Demos`, `Basics`, `Pomodoro`, `Up/Down select  Enter open`
+
+### What didn't work
+- Python PIL wasn’t installed in this environment (so we used `file` + OCR instead of `PIL.Image` for validation).
+
+### What I learned
+- ESP-IDF’s `esp_console_new_repl_usb_serial_jtag` is compiled only when `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`, so enabling the Kconfig option is required for a USB REPL.
+- Waiting inside the console command (instead of printing progress) is important so we don’t interleave text output with the binary PNG payload.
+
+### What was tricky to build
+- Keeping the PNG stream “clean” for host capture while still using a REPL on the same port:
+  - The command handler blocks while the UI thread sends the framed PNG.
+  - Only after `PNG_END` does the command print `OK len=...`.
+- Ensuring screenshot capture doesn’t race with LVGL:
+  - the REPL enqueues a request; the UI loop performs capture; the PNG encoder runs in a worker task while the UI loop waits.
+
+### What warrants a second pair of eyes
+- Confirm the chosen console configuration (USB-Serial/JTAG as primary) doesn’t regress any preferred debugging workflows for this repo (e.g., `idf.py monitor` assumptions).
+- Confirm no unexpected LVGL/display concurrency remains (the current design should serialize capture behind the UI loop, but it’s worth sanity-checking).
+
+### What should be done in the future
+- Add a `screenshot` “save-to-SD” option once MicroSD mounting exists (so captures can persist without a host).
+- Expand the command set beyond `heap`/`screenshot` (menu navigation, demo switching, param tweaks) using the same control-plane queue pattern.
+
 ## Quick Reference
 
 ### LVGL key mapping (proposed)

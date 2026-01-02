@@ -56,7 +56,7 @@ export function App() {
   return (
     <div class="page">
       <header class="header">
-        <div>
+      <div>
           <div class="title">AtomS3R Web UI</div>
           <div class="subtitle">Graphics upload + WebSocket terminal</div>
         </div>
@@ -93,9 +93,9 @@ export function App() {
           </div>
           {uploadError ? <div class="error mono">{uploadError}</div> : null}
           <div class="hint">Uploaded image is auto-rendered on the device display.</div>
-        </div>
+      </div>
 
-        <div class="card">
+      <div class="card">
           <div class="cardTitle">Graphics</div>
           <ul class="list mono">
             {graphics.map((g) => (
@@ -122,7 +122,7 @@ export function App() {
           </button>
           <button class="btn" onClick={() => ws.clearTerminal()}>
             Clear
-          </button>
+        </button>
         </div>
         <pre class="terminal mono">{ws.terminalText || '(no data yet)'}</pre>
       </section>
@@ -135,6 +135,6 @@ export function App() {
           ))}
         </ul>
       </section>
-    </div>
+      </div>
   )
 }
