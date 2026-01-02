@@ -13,18 +13,22 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
-      Note: Main LVGL loop + global key handling insertion point for console/palette
-    - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
-      Note: KeyEvent->LVGL key translation and feed queue
-    - Path: 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp
-      Note: Existing split-pane console model (log + input + scrollback) in M5GFX
     - Path: 0013-atoms3r-gif-console/main/console_repl.cpp
       Note: Canonical esp_console REPL startup + command registration pattern in this repo
     - Path: 0016-atoms3r-grove-gpio-signal-tester/main/manual_repl.cpp
       Note: Manual line-based REPL (no esp_console) and control-plane patterns
     - Path: 0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp
       Note: Screenshot framing + task-based PNG encode/send (reusable command target)
+    - Path: 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp
+      Note: Existing split-pane console model (log + input + scrollback) in M5GFX
+    - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
+      Note: Main LVGL loop + global key handling insertion point for console/palette
+    - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
+      Note: v0 esp_console command set and CtrlEvent enqueue pattern
+    - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
+      Note: CtrlType/CtrlEvent contract used to keep LVGL single-threaded
+    - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
+      Note: KeyEvent->LVGL key translation and feed queue
     - Path: THE_BOOK.md
       Note: High-level rationale and patterns for console systems in this repo
 ExternalSources: []
@@ -33,6 +37,7 @@ LastUpdated: 2026-01-02T09:39:23.861596859-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Project analysis: Split-pane console + `esp_console` scripting
 
@@ -497,3 +502,32 @@ When in doubt, look for:
 5. Add an LVGL console screen (optional at first; REPL alone already pays off).
 6. Add screenshot command using the proven implementation from `0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` (task-based, chunked, framed).
 
+---
+
+## v0 command set + expected outputs (implemented)
+
+This section is the “stable scripting surface” for v0. Commands should remain safe to call from the REPL task because they enqueue `CtrlEvent`s and do not touch LVGL directly.
+
+- `help`
+  - Expected: ESP-IDF `esp_console` help output listing registered commands.
+- `heap`
+  - Expected: `heap_free=<bytes>`
+- `menu`
+  - Expected: `OK`
+- `basics`
+  - Expected: `OK`
+- `pomodoro`
+  - Expected: `OK`
+- `setmins <minutes>`
+  - Expected: `OK minutes=<n>` (where `<n>` is clamped to `1..99`)
+  - Errors:
+    - `ERR: usage: setmins <minutes>`
+    - `ERR: invalid minutes: <arg>`
+- `screenshot`
+  - Expected: a framed PNG stream followed by a status line:
+    - `PNG_BEGIN <len>\n` + `<len>` bytes + `\nPNG_END\n`
+    - `OK len=<len>`
+  - Errors:
+    - `ERR: screenshot busy (queue full)`
+    - `ERR: screenshot timeout`
+    - `ERR: screenshot failed`

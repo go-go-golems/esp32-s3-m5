@@ -23,6 +23,10 @@ RelatedFiles:
       Note: Step 3 flash workflow + tmux monitor guidance
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Step 2 UI loop + stable UiState callbacks
+    - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
+      Note: Step 8 adds menu/basics/pomodoro/setmins commands
+    - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
+      Note: Step 8 expands CtrlType/CtrlEvent for UI-thread-safe demo control
     - Path: 0025-cardputer-lvgl-demo/main/demo_basics.cpp
       Note: Step 6 timer cleanup on screen delete
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
@@ -49,6 +53,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -372,6 +377,90 @@ This step also validates the end-to-end use case on real hardware: we flashed th
 ### What should be done in the future
 - Add a `screenshot` “save-to-SD” option once MicroSD mounting exists (so captures can persist without a host).
 - Expand the command set beyond `heap`/`screenshot` (menu navigation, demo switching, param tweaks) using the same control-plane queue pattern.
+
+## Step 8: Add v0 esp_console demo-control commands (menu/basics/pomodoro/setmins)
+
+This step extends the host-scriptable control plane from “screenshot-only” into a minimal but useful v0 command set: open the Menu/Basics/Pomodoro screens and set the Pomodoro duration in minutes. The goal is to make it easy to drive UI state deterministically from scripts (or a human REPL) while preserving the core architectural constraint: **LVGL remains single-threaded**.
+
+The key technical decision is to keep using the control-plane/queue boundary: console commands enqueue `CtrlEvent`s, and the LVGL loop drains and applies them. For Pomodoro duration, we store a “default minutes” in `DemoManager` so `setmins` can be called before opening Pomodoro, while still applying immediately if Pomodoro is already active.
+
+**Commit (code):** a623875 — "Cardputer LVGL: add esp_console demo control commands"
+
+### What I did
+- Extended `CtrlType`/`CtrlEvent` to support demo control:
+  - OpenMenu/OpenBasics/OpenPomodoro
+  - PomodoroSetMinutes (with `arg`)
+- Implemented UI-thread handling in the `app_main` LVGL loop:
+  - screen loads via `demo_manager_load(...)`
+  - Pomodoro minutes updates via `demo_manager_pomodoro_set_minutes(...)`
+- Added esp_console commands that enqueue events:
+  - `menu`, `basics`, `pomodoro`, `setmins <minutes>`
+- Made Pomodoro duration configurable via `DemoManager::pomodoro_minutes` and applied it when:
+  - creating the Pomodoro screen, and
+  - receiving `PomodoroSetMinutes` while Pomodoro is active.
+
+### Why
+- Host scripting should be able to put the UI into a known state (“open pomodoro”, “set duration 15”, “screenshot”) for fast verification and regressions.
+- Keeping LVGL single-threaded avoids “works until it doesn’t” crashes from cross-thread UI mutation.
+
+### What worked
+- Build succeeded:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Flash succeeded:
+  - `./build.sh -p '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' flash`
+- REPL commands successfully switched screens and updated Pomodoro duration:
+  - `pomodoro` → `OK`
+  - `setmins 15` → `OK minutes=15`
+  - `basics` → `OK`
+  - `menu` → `OK`
+- Screenshot + OCR validated the screen state transitions:
+  - Menu screenshot OCR: `LVGL Demos`, `Basics`, `Pomodoro`, `Up/Down select`, `Enter open`
+  - Pomodoro screenshot OCR: `POMODORO`, `25:00`, `PAUSED`
+  - After `setmins 15`, OCR diff confirmed timer changed `25:00` → `15:00`
+
+### What didn't work
+- OCR sometimes truncates the bottom hint string on Pomodoro (small font); it still consistently captures the title + timer + status, which are the main regression signals.
+
+### What I learned
+- Treating “default state” (Pomodoro minutes) as part of `DemoManager` makes the control plane more predictable: `setmins` works even if the screen isn’t currently active.
+
+### What was tricky to build
+- Preserving the LVGL single-thread rule while still allowing the console task to “wait for completion” (we only do that for `screenshot`; demo-control commands just enqueue and return).
+- Making `setmins` both:
+  - update the current Pomodoro screen when it’s active, and
+  - persist as the default for future Pomodoro screen creation.
+
+### What warrants a second pair of eyes
+- Confirm the `CtrlType` expansion and UI-thread dispatch in `app_main` can’t starve the UI loop under repeated host commands (queue depth, per-event work, no blocking).
+- Confirm `demo_pomodoro_apply_minutes(...)` cannot accidentally apply to a stale screen (it relies on `LV_EVENT_DELETE` cleanup nulling the static pointer).
+
+### What should be done in the future
+- Add a “command registry” abstraction so the esp_console command list and future LVGL SplitConsole/command-palette can share a single source of truth (names/help/keywords).
+- Add a small “reply” mechanism for non-screenshot commands if we later want deterministic “screen switch complete” acknowledgements (without touching LVGL from the REPL task).
+
+### Code review instructions
+- Start with `0025-cardputer-lvgl-demo/main/console_repl.cpp` (new commands + argument parsing).
+- Then review `0025-cardputer-lvgl-demo/main/app_main.cpp` (CtrlEvent drain + dispatch on UI thread).
+- Then review `0025-cardputer-lvgl-demo/main/demo_manager.cpp` + `0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp` (Pomodoro minutes default/apply).
+- Validate:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+  - flash and run `menu`, `pomodoro`, `setmins 15`, `screenshot`
+  - capture: `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' /tmp/after.png --timeout-s 30`
+
+### Technical details
+- Commands and outputs observed (REPL over USB-Serial/JTAG @ 115200):
+  - `pomodoro` → `OK`
+  - `setmins 15` → `OK minutes=15`
+  - `basics` → `OK`
+  - `menu` → `OK`
+- Screenshot verification loop commands used:
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' /tmp/cardputer_lvgl_pomodoro.png --timeout-s 30`
+  - `pinocchio code professional --images /tmp/cardputer_lvgl_pomodoro.png \"OCR this screenshot and list the visible UI text (titles, labels, hints).\"`
+  - `python3 tools/capture_screenshot_png_from_console.py '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00' /tmp/cardputer_lvgl_pomodoro_15.png --timeout-s 30`
+  - `pinocchio code professional --images /tmp/cardputer_lvgl_pomodoro.png,/tmp/cardputer_lvgl_pomodoro_15.png \"OCR both screenshots. Summarize what changed (titles, labels, hints, layout cues).\"`
+
+### What I'd do differently next time
+- Add a tiny host helper to send arbitrary console commands (not just `screenshot`) so this workflow doesn’t need ad-hoc `pyserial` snippets.
 
 ## Quick Reference
 

@@ -17,13 +17,13 @@
 - [x] Fix crash when switching demos (delete LVGL timers/state when screen is destroyed)
 - [x] Add esp_console support for scripting the demo
 - [x] Add screenshot capture functionality so you can inspect what is going on
-- [ ] [Console/esp_console] Read analysis doc analysis/02-project-analysis-split-pane-console-esp-console-scripting.md and define v0 command set + expected outputs
+- [x] [Console/esp_console] Read analysis doc analysis/02-project-analysis-split-pane-console-esp-console-scripting.md and define v0 command set + expected outputs
 - [x] [Console/esp_console] Add control-plane queue module (CtrlEvent + xQueue) for UI-thread-safe commands
 - [x] [Console/esp_console] Wire CtrlEvent drain/dispatch into 0025-cardputer-lvgl-demo/main/app_main.cpp (apply on UI thread)
-- [ ] [Console/esp_console] Implement demo-control events: OpenMenu/OpenBasics/OpenPomodoro + parameterized PomodoroSetMinutes
+- [x] [Console/esp_console] Implement demo-control events: OpenMenu/OpenBasics/OpenPomodoro + parameterized PomodoroSetMinutes
 - [x] [Console/esp_console] Add esp_console REPL startup module for Cardputer (model after 0013-atoms3r-gif-console/main/console_repl.cpp)
 - [x] [Console/esp_console] Decide REPL transport for Cardputer (USB-Serial/JTAG vs UART) and set sdkconfig.defaults/Kconfig accordingly
-- [ ] [Console/esp_console] Register esp_console commands (help, menu, basics, pomodoro, setmins, heap, screenshot) that enqueue CtrlEvents
+- [x] [Console/esp_console] Register esp_console commands (help, menu, basics, pomodoro, setmins, heap, screenshot) that enqueue CtrlEvents
 - [ ] [Console/esp_console] Add LVGL demo screen: SplitConsole (output + input) and add it to menu + DemoManager
 - [ ] [Console/esp_console] Implement LVGL SplitConsole UI (read-only output textarea + one-line input textarea + submit on Enter)
 - [ ] [Console/esp_console] Implement SplitConsole scrollback/follow-tail behavior (port concepts from 0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp)

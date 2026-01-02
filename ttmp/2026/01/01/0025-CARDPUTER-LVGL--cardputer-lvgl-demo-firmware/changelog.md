@@ -161,3 +161,16 @@ Diary updated with commit reference for screenshot/OCR workflow. (docs commit fd
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 7 commit reference
 
+
+## 2026-01-02
+
+Add v0 esp_console demo-control commands (menu/basics/pomodoro/setmins) and document expected outputs; screenshot OCR validated (commit a623875)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — UI-thread CtrlEvent dispatch for demo-control commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — Registers menu/basics/pomodoro/setmins commands that enqueue CtrlEvents
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_manager.cpp — Stores/apply Pomodoro minutes default and screen switching
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/02-project-analysis-split-pane-console-esp-console-scripting.md — Defines v0 command set and expected outputs
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 8 diary entry with commands and OCR results
+
