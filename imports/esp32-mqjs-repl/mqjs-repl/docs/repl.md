@@ -144,3 +144,57 @@ python3 ./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
   - Prefer `/dev/serial/by-id/...` or `--port auto` (scripts) to avoid port churn.
 - **Blocking behavior**: `ReplLoop::Run` blocks forever on reads; keep any new work (parsing, file I/O) bounded and avoid hidden boot-time operations.
 - **Output buffering**: `console_printf(...)` in `ReplLoop.cpp` uses a fixed 256-byte buffer; large dumps should stream instead of formatting huge lines.
+
+## Usage Sketches (Snippets)
+
+### Add a new meta-command
+
+Add a new branch in `ReplLoop::HandleLine(...)` (in `imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp`):
+
+```cpp
+if (stripped == ":ping") {
+  console.WriteString("pong\n");
+  return;
+}
+```
+
+Validate by typing `:ping` over device/QEMU and ensuring it prints `pong` and returns to the prompt.
+
+### Add a new evaluator mode
+
+1) Implement `IEvaluator` (new file under `imports/esp32-mqjs-repl/mqjs-repl/main/eval/`):
+
+```cpp
+class MyEvaluator final : public IEvaluator {
+ public:
+  const char* Name() const override { return "my"; }
+  const char* Prompt() const override { return "my> "; }
+  EvalResult EvalLine(std::string_view line) override { return {.ok=true, .output="ok\n"}; }
+};
+```
+
+2) Wire it into `ModeSwitchingEvaluator::SetMode(...)`:
+
+```cpp
+if (mode == "my") {
+  current_ = &my_;
+  return true;
+}
+```
+
+3) Update `ModeHelp()` string (so `:help` lists the mode).
+
+### Prototype history/arrows in the line editor
+
+The intended extension point is `LineEditor::FeedByte(...)`:
+
+```cpp
+// Pseudocode sketch: when you see ESC [ A, replace current line with previous history entry.
+if (in_escape_sequence && escape_is_arrow_up) {
+  line_ = history_.Prev();
+  RedrawLine(console);  // clear + print prompt + line_
+  return std::nullopt;
+}
+```
+
+Keep the initial implementation conservative: maintain a small ring buffer and avoid dynamic allocation in hot input paths.

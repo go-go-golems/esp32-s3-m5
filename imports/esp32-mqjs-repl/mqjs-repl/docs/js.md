@@ -180,3 +180,60 @@ If you need a new native callable function in the global object, you must:
    - `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh`
 
 Then ensure the runtime stubs (`esp32_stdlib_runtime.c`) provide any referenced symbols.
+
+## Usage Sketches (Snippets)
+
+### Run JS and inspect the result
+
+In the REPL:
+```text
+:mode js
+var x = 1 + 2; x
+```
+
+Expected output includes `3`.
+
+### Load a script from SPIFFS
+
+In JS mode:
+```text
+load("/spiffs/autoload/00-seed.js")
+globalThis.AUTOLOAD_SEED
+```
+
+This exercises the `load(path)` primitive directly.
+
+### Add a shipped “stdlib-in-files” library
+
+Add a file under `spiffs_image/autoload/`:
+```js
+// spiffs_image/autoload/10-mylib.js
+globalThis.MyLib = {
+  add: (a, b) => a + b,
+};
+```
+
+Rebuild and flash:
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./build.sh build
+./tools/flash_device_usb_jtag.sh --port auto
+```
+
+Then in the REPL:
+```text
+:mode js
+:autoload --format
+MyLib.add(2, 3)
+```
+
+### Tighten `load(path)` policy (example sketch)
+
+If you decide to restrict `load()` to SPIFFS-only paths, do it in `js_load(...)`:
+```c
+if (strncmp(path, "/spiffs/", 8) != 0) {
+  return JS_ThrowTypeError(ctx, "load: path must start with /spiffs/");
+}
+```
+
+Validate by attempting `load("relative.js")` (should error) and `load("/spiffs/autoload/00-seed.js")` (should work).

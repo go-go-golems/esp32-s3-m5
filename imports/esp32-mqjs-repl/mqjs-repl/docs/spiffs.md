@@ -145,3 +145,43 @@ python3 ./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
 - **Port churn**: USB Serial/JTAG can re-enumerate; use `/dev/serial/by-id/...` or `--port auto`.
 - **Autoload ordering**: `readdir()` order is not deterministic. If library dependencies require order, collect names and sort before eval.
 - **“Mounted” vs “Contains files”**: a successful mount does not imply any `.js` files exist unless you flash a SPIFFS image or otherwise populate the FS.
+
+## Usage Sketches (Snippets)
+
+### Add a new autoloaded script to ship by default
+
+1) Add a file under `spiffs_image/autoload/`:
+```js
+// imports/esp32-mqjs-repl/mqjs-repl/spiffs_image/autoload/20-hello.js
+print("hello from SPIFFS");
+globalThis.HELLO_FROM_SPIFFS = true;
+```
+
+2) Build (generates `build/storage.bin`):
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./build.sh build
+```
+
+3) Flash (writes `storage.bin` at `0x410000` per `partitions.csv`):
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./tools/flash_device_usb_jtag.sh --port auto
+```
+
+4) Verify in REPL:
+```text
+:mode js
+:autoload --format
+globalThis.HELLO_FROM_SPIFFS
+```
+
+### Verify the SPIFFS image is included in QEMU flash
+
+The QEMU harness merges `build/storage.bin` into the emulated flash:
+```bash
+cd imports/esp32-mqjs-repl/mqjs-repl
+./tools/test_js_repl_qemu_uart_stdio.sh --timeout 120
+```
+
+If you change `partitions.csv` offsets/sizes, update any merge/flash logic to match the new `storage` offset.
