@@ -14,26 +14,33 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ../../../../../../0007-cardputer-keyboard-serial/main/hello_world_main.c
-      Note: Raw matrix scanning + debug logging reference (scan_state/in_mask)
-    - Path: ../../../../../../0015-cardputer-serial-terminal/main/hello_world_main.cpp
-      Note: Keyboard scan + higher-level key mapping patterns used in Cardputer projects
-    - Path: ../../../../../../0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
-      Note: Current CardputerKeyboard scanner used by the demo-suite (edge events + modifiers)
-    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keyboard.h
-      Note: Vendor HAL key-value map and key-number (matrix index) conventions
-    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keyboard.cpp
-      Note: Vendor HAL matrix scan implementation (ground truth reference)
-    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keymap.h
-      Note: HID usage constants (includes arrow keys) and modifier bit definitions
     - Path: ../../../../../../../M5Cardputer-UserDemo/main/apps/app_keyboard/select_menu/select_menu.cpp
       Note: Example of navigation using raw key numbers (not arrow HID codes)
+    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keyboard.cpp
+      Note: Vendor HAL matrix scan implementation (ground truth reference)
+    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keyboard.h
+      Note: Vendor HAL key-value map and key-number (matrix index) conventions
+    - Path: ../../../../../../../M5Cardputer-UserDemo/main/hal/keyboard/keymap.h
+      Note: HID usage constants (includes arrow keys) and modifier bit definitions
+    - Path: 0007-cardputer-keyboard-serial/main/hello_world_main.c
+      Note: Raw matrix scanning + debug logging reference (scan_state/in_mask)
+    - Path: 0015-cardputer-serial-terminal/main/hello_world_main.cpp
+      Note: Keyboard scan + higher-level key mapping patterns used in Cardputer projects
+    - Path: 0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
+      Note: Current CardputerKeyboard scanner used by the demo-suite (edge events + modifiers)
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/build.sh
+      Note: Build/flash/monitor helper (commit 1fc1f77)
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp
+      Note: Live 4x14 matrix UI + pressed keyNum logging (commit 1fc1f77)
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/kb_scan.cpp
+      Note: Raw matrix scan + alt IN0/IN1 autodetect (commit 1fc1f77)
 ExternalSources: []
 Summary: Design + plan for a standalone ESP-IDF firmware that interactively discovers Cardputer keyboard scan codes (including Fn-combos) and outputs a reusable decoder configuration.
 LastUpdated: 2026-01-02T02:30:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Cardputer: keyboard scancode calibration firmware
 
