@@ -174,6 +174,7 @@ extern "C" void app_main(void) {
         screen.setCursor(2, h - bottom_h + 2);
         if (mode == UiMode::Wizard) {
             const WizardBinding *cur = wizard.current();
+            const std::string &status = wizard.status_text();
             if (wizard.phase() == WizardPhase::Done) {
                 screen.printf("DONE: Enter prints config");
             } else if (cur) {
@@ -181,7 +182,11 @@ extern "C" void app_main(void) {
                     screen.printf("%s captured:[%s] Enter=ok Del=redo Tab=skip", cur->prompt.c_str(),
                                   join_keynums(cur->required_keynums).c_str());
                 } else {
-                    screen.printf("%s pressed:[%s]", cur->prompt.c_str(), join_keynums(snap.pressed_keynums).c_str());
+                    if (!status.empty()) {
+                        screen.printf("%s %s", cur->prompt.c_str(), status.c_str());
+                    } else {
+                        screen.printf("%s pressed:[%s]", cur->prompt.c_str(), join_keynums(snap.pressed_keynums).c_str());
+                    }
                 }
             } else {
                 screen.printf("wizard: (no current)");

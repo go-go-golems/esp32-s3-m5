@@ -2,14 +2,13 @@
   "device": "M5Cardputer",
   "matrix": {"rows": 4, "cols": 14},
   "bindings": [
-    {"name": "NavUp", "required_keynums": [40]},
-    {"name": "NavDown", "required_keynums": [54]},
-    {"name": "NavLeft", "required_keynums": [53]},
-    {"name": "NavRight", "required_keynums": [55]},
+    {"name": "NavUp", "required_keynums": [29, 40]},
+    {"name": "NavDown", "required_keynums": [29, 54]},
+    {"name": "NavLeft", "required_keynums": [29, 53]},
+    {"name": "NavRight", "required_keynums": [29, 55]},
     {"name": "Back", "required_keynums": [1]},
     {"name": "Enter", "required_keynums": [42]},
     {"name": "Tab", "required_keynums": [15]},
     {"name": "Space", "required_keynums": [56]}
   ]
 }
-

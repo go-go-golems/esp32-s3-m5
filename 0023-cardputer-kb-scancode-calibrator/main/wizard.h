@@ -35,6 +35,7 @@ class CalibrationWizard {
 
     bool printed_config() const { return printed_config_; }
     std::string config_json() const;
+    const std::string &status_text() const { return status_text_; }
 
   private:
     WizardPhase phase_ = WizardPhase::WaitingForPress;
@@ -44,5 +45,5 @@ class CalibrationWizard {
     std::vector<uint8_t> stable_candidate_;
     int64_t stable_since_us_ = 0;
     bool printed_config_ = false;
+    std::string status_text_;
 };
-

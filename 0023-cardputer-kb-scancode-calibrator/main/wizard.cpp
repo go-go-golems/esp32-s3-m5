@@ -4,12 +4,27 @@
 #include <sstream>
 
 static constexpr int64_t kStableHoldUs = 400 * 1000;
+static constexpr uint8_t kFnKeynum = 29; // (x=0,y=2) in Cardputer picture coords
 
 static bool contains_keynum(const std::vector<uint8_t> &v, uint8_t n) {
     for (auto x : v) {
         if (x == n) return true;
     }
     return false;
+}
+
+static bool is_nav_binding_name(const std::string &name) {
+    return name == "NavUp" || name == "NavDown" || name == "NavLeft" || name == "NavRight";
+}
+
+static std::vector<uint8_t> normalize_nav_chord(const std::vector<uint8_t> &keynums) {
+    std::vector<uint8_t> out = keynums;
+    if (!contains_keynum(out, kFnKeynum)) {
+        out.push_back(kFnKeynum);
+    }
+    std::sort(out.begin(), out.end());
+    out.erase(std::unique(out.begin(), out.end()), out.end());
+    return out;
 }
 
 static bool edge_pressed(const std::vector<uint8_t> &now, const std::vector<uint8_t> &prev, uint8_t keynum) {
@@ -31,6 +46,7 @@ void CalibrationWizard::reset() {
     stable_candidate_.clear();
     stable_since_us_ = 0;
     printed_config_ = false;
+    status_text_.clear();
 
     bindings_.clear();
     bindings_.push_back({"NavUp", "Press: Up (Fn+?)", {}, false});
@@ -59,6 +75,7 @@ bool CalibrationWizard::update(const cardputer_kb::ScanSnapshot &scan, const car
     static constexpr uint8_t kSkipKey = 15;
 
     bool changed = false;
+    status_text_.clear();
 
     if (phase_ == WizardPhase::Done) {
         // Print config once when user presses Enter.
@@ -126,8 +143,18 @@ bool CalibrationWizard::update(const cardputer_kb::ScanSnapshot &scan, const car
     }
 
     if (now_us - stable_since_us_ >= kStableHoldUs) {
-        bindings_[(size_t)index_].required_keynums = stable_candidate_;
-        bindings_[(size_t)index_].captured = true;
+        auto &b = bindings_[(size_t)index_];
+        if (is_nav_binding_name(b.name)) {
+            if (!contains_keynum(stable_candidate_, kFnKeynum)) {
+                status_text_ = "Hold Fn too (Fn key not detected)";
+                stable_since_us_ = now_us;
+                return true;
+            }
+            b.required_keynums = normalize_nav_chord(stable_candidate_);
+        } else {
+            b.required_keynums = stable_candidate_;
+        }
+        b.captured = true;
         phase_ = WizardPhase::CapturedAwaitConfirm;
         return true;
     }
@@ -147,11 +174,13 @@ std::string CalibrationWizard::config_json() const {
         if (!b.captured) continue;
         if (!first) ss << ",\\n";
         first = false;
-        ss << "    {\\\"name\\\":\\\"" << b.name << "\\\", \\\"required_keynums\\\":[" << join_nums(b.required_keynums)
-           << "]}";
+        std::vector<uint8_t> kn = b.required_keynums;
+        if (is_nav_binding_name(b.name)) {
+            kn = normalize_nav_chord(kn);
+        }
+        ss << "    {\\\"name\\\":\\\"" << b.name << "\\\", \\\"required_keynums\\\":[" << join_nums(kn) << "]}";
     }
     ss << "\\n  ]\\n";
     ss << "}\\n";
     return ss.str();
 }
-
