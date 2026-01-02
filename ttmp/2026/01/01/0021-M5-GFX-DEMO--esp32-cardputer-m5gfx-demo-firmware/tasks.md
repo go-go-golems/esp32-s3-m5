@@ -14,6 +14,36 @@
 - [x] Harden B3 screenshot-to-serial (driver init guard + bounded retries; see `0024-B3-SCREENSHOT-WDT`)
 - [x] Replace placeholder bodies for A1/B2/B3 scenes
 
+## Demo modules backlog (decomposed)
+
+These are the remaining chunks under “Implement demo modules …”, broken down so each item can be implemented/tested/committed independently.
+
+### Text / fonts
+
+- [ ] D1 Text: builtin fonts showcase + text metrics (`textWidth`, datum/alignment)
+- [ ] D2 Text: wrapping/ellipsis demo (reusing `ui_list_view` truncation behavior)
+- [ ] D3 Text: UTF-8 / symbol rendering sanity (what works, what doesn’t)
+
+### Sprites / transforms
+
+- [ ] D4 Sprites: sprite compose demo (multiple sprites, transparency/colorkey)
+- [ ] D5 Transforms: rotate/scale demo (pivot, `pushRotateZoom`, clipping)
+
+### Images / assets
+
+- [ ] D6 Assets: add tiny embedded image set (BMP/JPG/PNG/QOI) + loader helpers
+- [ ] D7 Images: decode/render demo (draw each format + show timing + memory)
+- [ ] D8 Images: scaling/cropping demo (fit/fill/center-crop patterns)
+
+### QR / widgets
+
+- [ ] D9 QR: QR code demo (vary size/error correction; render text payload)
+- [ ] D10 Widgets: basic “UI kit” demo (buttons, progress bars, toggles, focus state)
+
+### Perf / stress
+
+- [ ] D11 Stress: fill-rate / primitives throughput micro-bench (with B2 overlay visible)
+
 ## Starter Scenarios (implement first)
 
 - [x] A2 List view + selection (menu/settings/file picker pattern)

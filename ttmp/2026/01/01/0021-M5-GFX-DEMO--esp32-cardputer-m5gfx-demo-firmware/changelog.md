@@ -177,3 +177,12 @@ Filled placeholder bodies for A1/B2/B3 with real renderers (HUD info, perf bars,
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp — B2 body renderer
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b3_screenshot.cpp — B3 body renderer
 
+
+## 2026-01-01
+
+Decomposed remaining demo-module work into D1..D11 tasks
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/tasks.md — Expanded demo-module backlog
+
