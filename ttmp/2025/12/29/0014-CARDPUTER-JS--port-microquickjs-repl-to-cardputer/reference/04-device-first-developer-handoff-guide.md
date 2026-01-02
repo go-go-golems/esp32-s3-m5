@@ -133,7 +133,7 @@ Device raw UART smoke test (no idf_monitor; requires pyserial):
 ```bash
 cd imports/esp32-mqjs-repl/mqjs-repl
 python3 -m pip install pyserial
-./tools/test_repeat_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 20
+./tools/test_repeat_repl_device_uart_raw.py --port auto --timeout 20
 ```
 
 Switch REPL console transport (local, edits gitignored `sdkconfig`):
@@ -190,15 +190,15 @@ cd imports/esp32-mqjs-repl/mqjs-repl
 cd imports/esp32-mqjs-repl/mqjs-repl
 ./tools/set_repl_console.sh usb-serial-jtag
 ./build.sh build
-./build.sh -p /dev/ttyACM0 flash
-./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 25
+./tools/flash_device_usb_jtag.sh --port auto
+./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
 ```
 
 ### Example: “I need to verify storage/autoload works on device”
 
 ```bash
 cd imports/esp32-mqjs-repl/mqjs-repl
-./tools/test_js_repl_device_uart_raw.py --port /dev/ttyACM0 --timeout 90
+./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
 ```
 
 ### Example: “I’m about to touch REPL parsing; what tests should I run?”
@@ -228,3 +228,5 @@ The firmware now flashes a small SPIFFS image (built from `imports/esp32-mqjs-re
 The device/QEMU JS smoke tests assert that `:autoload --format` runs and that evaluating `globalThis.AUTOLOAD_SEED` returns `123`.
 
 Tip: USB Serial/JTAG ports can re-enumerate across resets; prefer `/dev/serial/by-id/...` over a hard-coded `/dev/ttyACM0` when scripting.
+
+If `idf.py flash` is flaky on your host, use `./tools/flash_device_usb_jtag.sh` (it uses `esptool.py --before usb_reset` and is resilient to `/dev/ttyACM*` renumbering when combined with `--port auto`).
