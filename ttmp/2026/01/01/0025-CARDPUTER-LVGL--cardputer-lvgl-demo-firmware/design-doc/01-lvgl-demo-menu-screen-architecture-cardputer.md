@@ -53,7 +53,7 @@ Add a small “demo manager” that:
 - owns the demo list (names + factory functions),
 - switches screens via `lv_scr_load(new_screen)`,
 - preserves a single shared `lv_group_t` and assigns it to the keypad indev, and
-- provides a consistent way to return to the menu (key = `Esc`).
+- provides a consistent way to return to the menu (LVGL key = `LV_KEY_ESC`, physical chord = `Fn+\``).
 
 Represent demos as an enum + functions (not polymorphic classes):
 - `Menu`
@@ -93,7 +93,7 @@ Controls:
 - `Space` / `Enter`: start/pause
 - `R` / `Backspace`: reset
 - `[` / `]`: -1 / +1 minute (only when paused)
-- `Esc`: return to menu
+- `Fn+\``: return to menu
 
 Timing:
 - LVGL timer every 50ms to update the arc smoothly-ish
@@ -157,7 +157,7 @@ Decision: use plain functions + structs; refactor later only if demo count grows
 
 ## Open Questions
 
-- Do we want `Del` / `Esc` to always return to menu, or should Basics keep `Del` as backspace inside the textarea only? (Current plan: `Esc` returns to menu; `bksp` remains backspace.)
+- Do we want `Del` / `Fn+\`` to always return to menu, or should Basics keep `Del` as backspace inside the textarea only? (Current plan: `Fn+\`` returns to menu; `bksp` remains backspace.)
 - If colors appear swapped on the arc/time label, which knob do we standardize on: `M5GFX::setSwapBytes(true)` or LVGL `LV_COLOR_16_SWAP`?
 
 ## References

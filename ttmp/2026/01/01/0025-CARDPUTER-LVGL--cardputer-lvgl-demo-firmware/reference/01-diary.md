@@ -29,10 +29,14 @@ RelatedFiles:
       Note: Step 4 menu screen implementation
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
       Note: Step 4 Pomodoro screen implementation
+    - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
+      Note: Step 5 Fn+1 Esc override
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: Step 2 display flush + tick timer
     - Path: 0025-cardputer-lvgl-demo/sdkconfig.defaults
       Note: Step 2 LVGL Kconfig defaults (disable example build)
+    - Path: components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h
+      Note: Step 5 corrected Back/Esc chord (Fn+`)
     - Path: imports/lv_m5_emulator/src/utility/lvgl_port_m5stack.cpp
       Note: Flush/tick/handler reference used in Step 1
 ExternalSources: []
@@ -41,6 +45,8 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -242,6 +248,32 @@ The key technical choice here is to keep a single shared `lv_group_t` and re-bin
   - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp`
 - Build: `cd esp32-s3-m5/0025-cardputer-lvgl-demo && ./build.sh build`
 - Flash: `cd esp32-s3-m5/0025-cardputer-lvgl-demo && ./build.sh flash`
+
+## Step 5: Fix Esc chord mapping (Fn+`)
+
+This step fixes two on-device issues: (1) the “Back/Esc” chord was mapped to the wrong keynum for this Cardputer (`Fn+\`` is keynum 29 + 1, not 29 + 2), and (2) the main loop was using `vTaskDelay(pdMS_TO_TICKS(5))`, which can round down to 0 ticks depending on the FreeRTOS tick rate, starving `IDLE0` and triggering task watchdog warnings.
+
+Rather than adding “escape hatch” overrides in the app, the correct fix is to make the shared binding table match reality and to ensure the main task actually blocks for at least one RTOS tick each iteration.
+
+### What I did
+- Updated `cardputer_kb` captured bindings to use Back/Esc = `Fn(29) + keynum 1` (backtick key).
+- Removed the earlier `Fn+1` override logic from `CardputerKeyboard::poll()`.
+- Changed the app loop delay to `vTaskDelay(1)` to guarantee a real block/yield (avoids task_wdt spam).
+- Updated UI hints/README to say `Fn+\`` instead of “Esc”.
+- Built the firmware to ensure it compiles.
+
+### Why
+- `Fn+\`` is the “menu/back” chord in this firmware; it must map correctly.
+- Task watchdog warnings are noise and can hide real problems.
+
+### What worked
+- `./build.sh build` succeeds with the change.
+
+### What didn't work
+- Flashing from this harness can fail if the serial port is held by another running monitor session (“port is busy”). Close the other monitor or use a single `tmux-flash-monitor` session.
+
+### What warrants a second pair of eyes
+- Confirm `Fn+\`` is the correct Back/Esc chord across Cardputer variants and doesn’t regress other firmwares that rely on `cardputer_kb`.
 
 ## Quick Reference
 

@@ -36,3 +36,22 @@ Added demo menu + Pomodoro screen; refactored Basics into demo catalog; build+fl
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp — Pomodoro UI + timer + key controls
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/design-doc/01-lvgl-demo-menu-screen-architecture-cardputer.md — Design for menu/screen architecture
 
+
+## 2026-01-01
+
+Fix Fn+1 (Esc) chord reliability by prioritizing Back binding when keynum 2 is held with Fn.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/input_keyboard.cpp — Force Fn+1 to map to Action::Back (Esc)
+
+
+## 2026-01-01
+
+Fix Back/Esc chord mapping to Fn+` (keynum 29+1) and reduce task_wdt noise by blocking at least 1 tick per loop.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Use vTaskDelay(1) to ensure yielding
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h — Back/Esc binding corrected to keynum 1
+

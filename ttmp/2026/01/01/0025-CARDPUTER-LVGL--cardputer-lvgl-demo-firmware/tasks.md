@@ -13,3 +13,4 @@
 - [x] Add LVGL menu screen to choose demos (Baselines + Pomodoro) and allow returning to menu
 - [x] Add Pomodoro demo screen (arc ring + big time + keyboard controls) as a selectable demo
 - [x] Update README with menu navigation + Pomodoro controls; verify build compiles
+- [x] Fix Esc (Fn+`) chord not triggering; ensure it maps to LV_KEY_ESC reliably
