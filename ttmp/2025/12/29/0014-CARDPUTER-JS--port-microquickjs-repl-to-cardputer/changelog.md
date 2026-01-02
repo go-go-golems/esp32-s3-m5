@@ -209,7 +209,15 @@ Split cleanup: move legacy monolithic firmware sources out of `main/` and reloca
 
 ### Related Files
 
-- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c — Legacy pre-split monolith (reference-only; not built)
-- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h — Legacy empty stdlib (reference-only; not used by current firmware)
+- (deleted) legacy monolithic firmware sources — removed after split cleanup; see git history for prior content
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen — Host generator binary used for `-m32` stdlib/atom generation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh — Updated to point at the relocated generator binary
+
+
+## 2026-01-02
+
+Cleanup: delete archived legacy monolithic firmware sources now that the split is complete and recorded in git history.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp — Current firmware entrypoint; the only supported REPL implementation

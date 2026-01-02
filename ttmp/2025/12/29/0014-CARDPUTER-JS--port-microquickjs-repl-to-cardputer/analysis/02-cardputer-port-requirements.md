@@ -190,7 +190,7 @@ storage,  data, spiffs,  ,        1M,
 
 ## Code Changes Summary
 
-1. **legacy/main.c (pre-split reference):**
+1. **(Historical) pre-split monolith:**
    - Replace UART driver with USB Serial JTAG driver
    - Update `repl_task()` to use `usb_serial_jtag_read_bytes`
    - Update `printf` calls (should work via VFS, but verify)

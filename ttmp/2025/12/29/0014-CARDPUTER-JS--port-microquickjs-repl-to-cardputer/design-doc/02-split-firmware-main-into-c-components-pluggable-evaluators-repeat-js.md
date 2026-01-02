@@ -19,8 +19,8 @@ RelatedFiles:
       Note: MicroQuickJS public embedding API used by a future JsEvaluator wrapper
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/CMakeLists.txt
       Note: Build wiring for the split C++ firmware (console/repl/eval/storage)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c
-      Note: Legacy monolithic REPL+SPIFFS+JS implementation this design proposed to split (kept for reference only; not built)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp
+      Note: Current firmware entrypoint that wires the split components together
     - Path: imports/esp32-mqjs-repl/mqjs-repl/sdkconfig
       Note: Console transport defaults (UART primary
 ExternalSources: []
@@ -35,7 +35,7 @@ WhenToUse: ""
 
 ## Executive Summary
 
-The legacy firmware entrypoint (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`) mixes several concerns in one file: storage (SPIFFS), library autoloading, UART transport, a line editor, JS engine initialization, and REPL evaluation. This makes it hard to:
+The original firmware entrypoint (pre-split monolith) mixed several concerns in one file: storage (SPIFFS), library autoloading, UART transport, a line editor, JS engine initialization, and REPL evaluation. This makes it hard to:
 
 - Debug I/O problems (e.g., “does QEMU deliver bytes to UART RX?”) without also bringing up storage + JS.
 - Swap transports (UART → USB Serial JTAG for Cardputer) without touching core REPL/eval logic.
@@ -469,7 +469,7 @@ Success criteria:
 
 ## References
 
-- Current monolithic implementation (legacy, reference-only): `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
+- Current split implementation entrypoint: `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`
 - MicroQuickJS embedding API: `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h`
 - Existing ticket context: `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/index.md`
 - QEMU REPL input bug: `ttmp/2025/12/29/0015-QEMU-REPL-INPUT--bug-qemu-idf-monitor-cannot-send-input-to-mqjs-js-repl/index.md`

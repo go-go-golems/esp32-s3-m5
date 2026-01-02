@@ -35,8 +35,6 @@ RelatedFiles:
       Note: Firmware-side stubs + include site that defines js_stdlib from esp32_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen
       Note: Host stdlib generator binary; used by tools/gen_esp32_stdlib.sh
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h
-      Note: Legacy bring-up-only stdlib (kept for historical reference; not used by current firmware)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
       Note: Generator program main() that calls build_atoms() to emit esp_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp
@@ -150,7 +148,7 @@ Need to establish baseline understanding before making changes. Also wanted to c
 ### Code review instructions
 
 - Review analysis documents: `analysis/01-current-firmware-configuration-analysis.md` and `analysis/02-cardputer-port-requirements.md`
-- Check imported firmware: `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
+- Check imported firmware history (pre-split monolith): see commit `2d482af` (legacy sources were later deleted).
 - Compare with Cardputer reference: `0015-cardputer-serial-terminal/main/hello_world_main.cpp`
 
 ## Step 2: Make builds reproducible + run the baseline build
@@ -316,7 +314,7 @@ In practice this means: if we want to expose “higher-level ESP32 functionality
 
 ### What I did
 
-- Read the legacy embedded firmware entry point (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`) to see how the VM was created and used from FreeRTOS before the split.
+- Read the legacy embedded firmware entry point (pre-split monolith): see commit `2d482af` (legacy sources were later deleted).
 - Read MicroQuickJS public API (`imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h`) to understand what’s available (and what’s *not*).
 - Read the stdlib build utility interfaces (`.../components/mquickjs/mquickjs_build.h` + `mquickjs_build.c`) to understand how `esp_stdlib.h` is generated.
 - Read MicroQuickJS internal wiring for stdlib and C-function dispatch (`.../components/mquickjs/mquickjs.c`) at the call sites for `stdlib_def->stdlib_table`, `c_function_table`, `c_finalizer_table`.
@@ -1118,7 +1116,7 @@ It’s intentionally non-behavioral: the running firmware doesn’t change, but 
 **Commit (code):** 2d482af — "mqjs-repl: move legacy firmware and stdlib generator"
 
 ### What I did
-- Moved the legacy monolithic firmware sources out of `imports/esp32-mqjs-repl/mqjs-repl/main/` into `imports/esp32-mqjs-repl/mqjs-repl/legacy/`.
+- Moved the legacy monolithic firmware sources out of `imports/esp32-mqjs-repl/mqjs-repl/main/` into a `legacy/` folder (later deleted once captured in git history).
 - Moved the host stdlib generator artifacts into `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/`.
 - Updated `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh` to point at the relocated generator binary.
 
@@ -1148,7 +1146,6 @@ It’s intentionally non-behavioral: the running firmware doesn’t change, but 
 - Verify the moved paths and the generator script update:
   - `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh`
   - `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/`
-  - `imports/esp32-mqjs-repl/mqjs-repl/legacy/`
 - Run:
   - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh --timeout 120`
   - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh --timeout 120`

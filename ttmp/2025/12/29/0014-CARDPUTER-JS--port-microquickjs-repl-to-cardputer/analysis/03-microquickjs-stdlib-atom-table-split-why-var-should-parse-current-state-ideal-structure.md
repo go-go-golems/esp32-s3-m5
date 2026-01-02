@@ -23,8 +23,8 @@ RelatedFiles:
       Note: Host-generated stdlib blob containing keyword atoms; generated as 64-bit by default and not usable on ESP32 as-is
     - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_simple.c
       Note: Stdlib composition file showing CONFIG_MINIMAL_STDLIB approach; reference-only (not built by ESP-IDF)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h
-      Note: Legacy firmware-selected empty stdlib; explains missing keyword atoms and parse symptoms in pre-fix builds
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h
+      Note: ESP32-safe generated stdlib header used by the current firmware (includes keyword atoms)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-31T20:17:32.611433518-05:00
@@ -52,7 +52,7 @@ The goal here is to make this understandable for a new engineer and to outline w
   - a finalizer table (`c_finalizer_table`) for user classes.
   See `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h:245`.
 
-- The legacy firmware used an “empty stdlib” (`imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h:1`) which contains essentially *no atoms*.
+- The pre-fix firmware used an “empty stdlib” (historical) which contained essentially *no atoms*.
 
 - If the keyword atoms (like `"var"`, `"function"`, `"return"`) are missing, the parser can treat those words as ordinary identifiers. That makes code like `var x = 1;` parse like `identifier identifier ...` and fail with a syntax error that *looks* unrelated.
 
@@ -62,17 +62,17 @@ The goal here is to make this understandable for a new engineer and to outline w
 
 ## The pieces: what files exist and what they do
 
-### 1) The legacy firmware entry point used a minimal stdlib
+### 1) The pre-fix firmware used a minimal stdlib
 
 The embedded firmware lives in:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:1`
+- Legacy reference: see git history around the pre-split monolith (the file was deleted after cleanup).
 
 Key line:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:261` creates the context with:
+- The pre-fix monolithic firmware created the context with:
   - `JS_NewContext(js_mem_buf, JS_MEM_SIZE, &js_stdlib);`
-  - and `js_stdlib` comes from `imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h:14`.
+  - and `js_stdlib` came from an empty “minimal stdlib” header at the time.
 
 `minimal_stdlib.h` defines:
 
@@ -331,7 +331,7 @@ The codebase appears to have grown from multiple upstream contexts:
    - `tools/esp_stdlib_gen/esp_stdlib_simple.c` defines `CONFIG_MINIMAL_STDLIB` to disable some features (Date/timers/load) and include a smaller set.
 
 3) **An embedded “minimal stdlib” shortcut**
-   - `legacy/minimal_stdlib.h` is explicitly described as “just enough to initialize the engine” and is table-empty.
+   - A legacy “minimal stdlib” header was explicitly described as “just enough to initialize the engine” and was table-empty.
    - This is consistent with early-stage “get something running” work where only expressions like `1+2` were needed.
 
 4) **Generated headers committed from a host environment**
@@ -456,7 +456,7 @@ These are ordered from “improves clarity immediately” to “bigger refactors
    - Ensure any “full” stdlib is not accidentally compiled in if we need footprint.
 
 5) **Align REPL UX with actual capabilities**
-   - If autoload fails, do not claim “Loaded libraries: MathUtils …” in the banner (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:334`).
+   - If autoload fails, do not claim “Loaded libraries: MathUtils …” in the banner (keep boot output honest).
    - Prefer: print what loaded successfully, and keep REPL usable even if autoload fails.
 
 ## Appendix: diagrams and mental models

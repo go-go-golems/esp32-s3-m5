@@ -24,7 +24,7 @@ WhenToUse: ""
 
 ## Overview
 
-Analysis of the imported (pre-refactor) MicroQuickJS REPL firmware to understand its original configuration, structure, and device target before porting to Cardputer. The legacy implementation is preserved at `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c` for reference; the current firmware entrypoint is `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`.
+Analysis of the imported (pre-refactor) MicroQuickJS REPL firmware to understand its original configuration, structure, and device target before porting to Cardputer. The current firmware entrypoint is `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`; the pre-split monolith was later deleted after being captured in git history.
 
 ## Firmware Structure
 
@@ -117,7 +117,7 @@ idf.py qemu monitor
 
 ## Code Structure
 
-### Legacy Main Entry Point (`legacy/main.c`)
+### Legacy Main Entry Point (historical)
 
 **Key Functions:**
 - `app_main()` - Initialization and setup
@@ -163,7 +163,7 @@ ESP_ERROR_CHECK(uart_driver_install(UART_NUM, BUF_SIZE * 2, 0, 0, NULL, 0));
 
 ## References
 
-- Legacy main implementation: `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
+- Legacy main implementation: (deleted; see git history)
 - Partition table: `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv`
 - Configuration: `imports/esp32-mqjs-repl/mqjs-repl/sdkconfig`
 - QEMU logs: `imports/qemu_storage_repl.txt`
