@@ -418,3 +418,44 @@ Additional log context from a later repro suggests this often happens after navi
 
 - `cardputer_m5gfx_demo_suite: open: idx=4 scene=B3 Screenshot`
 - followed by repeated `usb_serial_jtag_write_bytes(...): The driver hasn't been initialized`
+
+## Step 11: Fix B3 screenshot-to-serial WDT (install USJ driver + chunked writes + bounded retries)
+
+This step implements the fix described in the `0024-B3-SCREENSHOT-WDT` ticket. The key outcome is that the screenshot send path can no longer busy-loop forever when `usb_serial_jtag_write_bytes()` fails, and it now writes the PNG in small chunks so large payloads don’t fail as a single ringbuffer item.
+
+**Commit (code):** da2f85f — "Fix: harden screenshot PNG send over USB-Serial/JTAG"
+
+### What I did
+- Updated `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp`:
+  - install USB-Serial/JTAG driver if missing (`usb_serial_jtag_driver_install`)
+  - chunk the send (`kTxChunkBytes=128`)
+  - treat negative return values as fatal (no infinite retry)
+  - bound 0-byte writes with a retry budget + `vTaskDelay(1)` yield
+- Rebuilt and flashed the firmware.
+
+### Why
+- The prior implementation could wedge the main loop and trip Task WDT when the driver was not initialized (or when the ringbuffer couldn’t accept a large item).
+
+### What worked
+- Build succeeded and flash worked after stopping an existing monitor process that had the serial port locked.
+
+### What didn't work
+- Full end-to-end screenshot capture (press `P` + host capture script produces a valid PNG) still needs a manual validation run.
+
+### What I learned
+- `usb_serial_jtag_write_bytes()` returns an `esp_err_t` (negative) when the driver is not installed; a `<= 0` retry loop is unsafe unless negative is treated as fatal.
+
+### What was tricky to build
+- The driver uses an internal ringbuffer; `usb_serial_jtag_write_bytes(buf, huge_len, ...)` is not safe because it attempts to enqueue a single large ringbuffer item.
+
+### What warrants a second pair of eyes
+- Confirm the chosen chunk size and retry budgets are reasonable for the expected host throughput and don’t introduce “mysterious partial screenshots” under load.
+
+### What should be done in the future
+- Add an on-screen toast after screenshot send success/failure (after the raw transfer completes), so users don’t need to look at the host terminal.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` and review:
+  - `ensure_usb_serial_jtag_driver_ready()`
+  - `serial_write_all()`
+  - `kTxChunkBytes`

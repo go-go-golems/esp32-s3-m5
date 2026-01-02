@@ -158,6 +158,15 @@ Optional robustness improvements:
 - Chunk writes to a reasonable size (e.g. 256–1024 bytes) and yield (`vTaskDelay(0/1)`) between chunks so IDLE can run.
 - Consider temporarily suppressing logging while sending raw PNG (log interleaving can corrupt the host capture).
 
+## Fix status
+
+Implemented in the demo-suite:
+
+- Commit `da2f85f` — "Fix: harden screenshot PNG send over USB-Serial/JTAG"
+  - installs the USB-Serial/JTAG driver if missing
+  - chunks writes so large PNG payloads don’t fail as single ringbuffer items
+  - treats `n < 0` as fatal and bounds `n == 0` retries with a yield to avoid WDT
+
 ## Validation checklist (post-fix)
 
 - Trigger screenshot with host capture script running:

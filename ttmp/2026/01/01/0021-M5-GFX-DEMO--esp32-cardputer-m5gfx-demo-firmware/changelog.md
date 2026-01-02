@@ -133,3 +133,12 @@ Opened bug ticket 0024 for B3 screenshot-to-serial WDT (USB-Serial/JTAG driver n
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Screenshot send path implicated in watchdog
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md — Bug report with backtrace and fix direction
 
+
+## 2026-01-01
+
+Fixed B3 screenshot-to-serial WDT by guarding/initializing USB-Serial/JTAG and chunking writes (commit da2f85f).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Fixed serial_write_all and driver init
+

@@ -9,7 +9,7 @@
 - [x] Implement shared infrastructure: display init, frame loop, input, scene switcher
 - [ ] Implement demo modules (primitives, text/fonts, sprites/transforms, images, QR, widgets, perf)
 - [x] Add build/flash/run playbook and expected outputs
-- [ ] Harden B3 screenshot-to-serial (driver init guard + bounded retries; see `0024-B3-SCREENSHOT-WDT`)
+- [x] Harden B3 screenshot-to-serial (driver init guard + bounded retries; see `0024-B3-SCREENSHOT-WDT`)
 
 ## Starter Scenarios (implement first)
 
