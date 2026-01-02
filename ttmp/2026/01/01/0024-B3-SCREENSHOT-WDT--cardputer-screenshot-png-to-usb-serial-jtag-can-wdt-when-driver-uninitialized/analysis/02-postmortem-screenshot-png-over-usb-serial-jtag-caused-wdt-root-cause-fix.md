@@ -71,6 +71,20 @@ Then Task Watchdog fired, showing CPU0 stuck in the main task and a backtrace in
 
 The reproduction often correlated with being on the B3 screen (then pressing `P`), but the core trigger is the screenshot send attempt itself.
 
+## Crash artifacts (previous stacktrace / backtrace)
+
+The full captured log + backtrace is recorded in the original bug report:
+
+- `esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md`
+
+Key frames from that backtrace (the “why did we wedge” proof):
+
+- `usb_serial_jtag_write_bytes()` (ESP-IDF) emitted “driver hasn't been initialized”
+- `serial_write_all()` in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` spun in a tight retry loop
+- Task watchdog then triggered because IDLE0 did not run/reset the WDT in time
+
+If you capture a new backtrace, keep the raw log as-is and use `xtensa-esp32s3-elf-addr2line` (or `idf.py monitor`’s built-in decoding) against the exact `.elf` that was flashed to map addresses to file/line numbers.
+
 ## Root cause (what was actually wrong)
 
 Two independent bugs compounded into a wedge:
