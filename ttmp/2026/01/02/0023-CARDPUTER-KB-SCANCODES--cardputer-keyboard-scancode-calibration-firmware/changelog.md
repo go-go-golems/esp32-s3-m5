@@ -54,3 +54,13 @@ Normalized nav bindings to require Fn (keynum 29) and updated wizard to enforce 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp — Nav bindings now require Fn; shows warning if Fn not detected
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/config/m5cardputer_bindings_captured.json — Nav bindings stored as [29
 
+
+## 2026-01-01
+
+Closed: calibrator firmware implemented (live view + wizard + CFG export) and reusable cardputer_kb component extracted. Remaining: verbose raw scan logging + acceptance criteria cleanup.
+
+
+## 2026-01-01
+
+Close ticket: calibrator firmware + cardputer_kb component delivered
+

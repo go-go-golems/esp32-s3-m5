@@ -1,7 +1,7 @@
 ---
 Title: 'Cardputer: keyboard scancode calibration firmware'
 Ticket: 0023-CARDPUTER-KB-SCANCODES
-Status: active
+Status: closed
 Topics:
     - cardputer
     - keyboard
@@ -46,10 +46,12 @@ RelatedFiles:
       Note: Reusable scanner implementation (commit cdb68fa)
 ExternalSources: []
 Summary: Design + plan for a standalone ESP-IDF firmware that interactively discovers Cardputer keyboard scan codes (including Fn-combos) and outputs a reusable decoder configuration.
-LastUpdated: 2026-01-02T02:30:00Z
+LastUpdated: 2026-01-01T22:43:42.397768635-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
