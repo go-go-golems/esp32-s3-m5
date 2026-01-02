@@ -1,6 +1,9 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "demo_a1_hud.cpp"
+        "demo_b2_perf.cpp"
+        "demo_b3_screenshot.cpp"
         "demo_plasma.cpp"
         "demo_primitives.cpp"
         "input_keyboard.cpp"

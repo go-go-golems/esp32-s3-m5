@@ -25,6 +25,9 @@
 
 #include "demo_plasma.h"
 #include "demo_primitives.h"
+#include "demo_a1_hud.h"
+#include "demo_b2_perf.h"
+#include "demo_b3_screenshot.h"
 #include "input_keyboard.h"
 #include "screenshot_png.h"
 #include "ui_console.h"
@@ -225,9 +228,11 @@ extern "C" void app_main(void) {
 
     int64_t last_hud_update_us = 0;
     int64_t last_footer_update_us = 0;
+    int64_t last_demo_body_update_us = 0;
 
     ConsoleState console{};
     PlasmaState plasma{};
+    ScreenshotDemoState screenshot_demo{};
 
     while (true) {
         const int64_t loop_start_us = esp_timer_get_time();
@@ -294,6 +299,11 @@ extern "C" void app_main(void) {
                 continue;
             }
 
+            if (scene == SceneId::B3ScreenshotDemo && ev.key == "enter") {
+                screenshot_requested = true;
+                continue;
+            }
+
             if (scene == SceneId::E1TerminalDemo) {
                 if (ev.key == "up") {
                     console.scrollback++;
@@ -350,10 +360,18 @@ extern "C" void app_main(void) {
         }
 
         if (screenshot_requested) {
-            screenshot_png_to_usb_serial_jtag(display);
+            size_t len = 0;
+            bool ok = screenshot_png_to_usb_serial_jtag_ex(display, &len);
+            screenshot_demo.has_result = true;
+            screenshot_demo.last_ok = ok;
+            screenshot_demo.last_len = len;
+            screenshot_demo.count++;
+            screenshot_demo.last_sent_us = esp_timer_get_time();
+            body_dirty = true;
         }
 
         const int64_t after_update_us = esp_timer_get_time();
+        const int64_t now_us = esp_timer_get_time();
 
         uint32_t render_us = 0;
         if (scene == SceneId::E1TerminalDemo && console.dirty) {
@@ -362,12 +380,24 @@ extern "C" void app_main(void) {
         if (scene == SceneId::C1PlasmaDemo) {
             body_dirty = true;
         }
+        if (scene == SceneId::A1HudDemo || scene == SceneId::B2PerfDemo || scene == SceneId::B3ScreenshotDemo) {
+            if (now_us - last_demo_body_update_us >= 250000) {
+                last_demo_body_update_us = now_us;
+                body_dirty = true;
+            }
+        }
         if (body_dirty) {
             const int64_t r0 = esp_timer_get_time();
             if (scene == SceneId::Menu) {
                 list.render(body);
+            } else if (scene == SceneId::A1HudDemo) {
+                demo_a1_hud_render(body, last_hud, hud_enabled, perf_enabled);
+            } else if (scene == SceneId::B2PerfDemo) {
+                demo_b2_perf_render(body, perf.snapshot(), perf_enabled);
             } else if (scene == SceneId::E1TerminalDemo) {
                 console_render(body, console);
+            } else if (scene == SceneId::B3ScreenshotDemo) {
+                demo_b3_screenshot_render(body, screenshot_demo);
             } else if (scene == SceneId::C1PlasmaDemo) {
                 plasma_render(body, plasma);
             } else if (scene == SceneId::C2PrimitivesDemo) {
@@ -383,8 +413,6 @@ extern "C" void app_main(void) {
             body_dirty = false;
             pushed_any = true;
         }
-
-        const int64_t now_us = esp_timer_get_time();
         if (now_us - last_hud_update_us >= 250000) {
             last_hud_update_us = now_us;
 

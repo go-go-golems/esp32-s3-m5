@@ -165,3 +165,15 @@ Added C1 Plasma and C2 Primitives demos to the suite (first real demo modules be
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.cpp — Primitives showcase renderer
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/reference/02-implementation-diary.md — Added Step 14
 
+
+## 2026-01-01
+
+Filled placeholder bodies for A1/B2/B3 with real renderers (HUD info, perf bars, screenshot instructions+status)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Scene dispatch and Enter-to-screenshot
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_a1_hud.cpp — A1 body renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp — B2 body renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b3_screenshot.cpp — B3 body renderer
+

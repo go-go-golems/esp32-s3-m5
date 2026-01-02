@@ -12,6 +12,7 @@
 - [x] Implement C2 Primitives demo (lines/rects/circles/triangles)
 - [x] Add build/flash/run playbook and expected outputs
 - [x] Harden B3 screenshot-to-serial (driver init guard + bounded retries; see `0024-B3-SCREENSHOT-WDT`)
+- [x] Replace placeholder bodies for A1/B2/B3 scenes
 
 ## Starter Scenarios (implement first)
 

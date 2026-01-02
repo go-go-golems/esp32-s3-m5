@@ -599,3 +599,49 @@ This step starts fulfilling the “demo modules” part of the ticket by adding 
 - Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp` (scene wiring), then review:
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_plasma.cpp`
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_primitives.cpp`
+
+## Step 15: Fill placeholder bodies for A1/B2/B3 scenes
+
+This step removes the confusing “TODO: implement demo module” placeholder content for the A1/B2/B3 scenes by giving each its own body renderer. The goal is that every menu entry now displays something meaningful even if it’s primarily an overlay feature (HUD/perf) or a host-integrated action (screenshot).
+
+### What I did
+- Added A1 body renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_a1_hud.cpp`
+  - Shows current HUD/perf toggle state and live `HudState` values.
+- Added B2 body renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp`
+  - Shows simple bar visualizations for avg render/present/total, plus last/avg numbers.
+- Added B3 body renderer:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b3_screenshot.cpp`
+  - Shows the serial framing protocol and host script usage; tracks last send status.
+  - `Enter` on the B3 scene triggers screenshot send (in addition to global `P`).
+- Wired renderers into the scene dispatch:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`
+
+### Why
+- Previously, A1/B2/B3 were “implemented” but still displayed a placeholder body, which makes it look unfinished.
+- Giving these scenes a dedicated body makes the suite feel coherent and reduces “what does this menu item do?” friction.
+
+### What worked
+- `./build.sh build` succeeds after the changes.
+
+### What didn't work
+- N/A (no device flash requested for this step).
+
+### What I learned
+- “Overlay features” still benefit from a body page that documents the controls and shows the live data feeding the overlay.
+
+### What was tricky to build
+- Keeping B3’s status reporting simple without introducing extra protocol or requiring the host capture tool to be running.
+
+### What warrants a second pair of eyes
+- Whether we want B3 to *only* send when host is connected (and show a toast otherwise), or keep the current “best effort” behavior.
+
+### What should be done in the future
+- Add additional demo bodies for the remaining categories (fonts, sprites/transforms, image decode, QR/widgets) so task [6] can be completed fully.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`, then review:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_a1_hud.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/demo_b3_screenshot.cpp`
