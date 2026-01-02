@@ -50,3 +50,8 @@ Postmortem now explicitly links to the original captured backtrace/stacktrace an
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/02-postmortem-screenshot-png-over-usb-serial-jtag-caused-wdt-root-cause-fix.md — Added crash artifacts section
 
+
+## 2026-01-01
+
+Closed: root cause identified and fixed (commit da2f85f) + postmortem written. Remaining: end-to-end validation of PNG capture and fail-fast behavior (tasks 4,7).
+
