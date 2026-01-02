@@ -1,0 +1,27 @@
+# Changelog
+
+## 2026-01-01
+
+- Initial workspace created
+
+
+## 2026-01-01
+
+Created LVGL Cardputer demo plan + scaffolded 0025-cardputer-lvgl-demo (LVGL display+keyboard ports, initial textarea/button UI); build succeeds.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Initial LVGL demo UI and loop
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp — LVGL flush to M5GFX + tick
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/01-lvgl-on-cardputer-esp-idf-m5gfx-integration-plan.md — Integration plan and API references
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Research/implementation diary
+
+
+## 2026-01-01
+
+Flashed 0025-cardputer-lvgl-demo to Cardputer; demo UI appears to work on hardware (monitor not captured due to non-TTY harness).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 3 flash smoke test notes
+
