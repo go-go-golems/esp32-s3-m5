@@ -44,3 +44,13 @@ Captured semantic navigation bindings via wizard and materialized them as reusab
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/config/m5cardputer_bindings_captured.json — Captured wizard output
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h — Reusable C++ binding table
 
+
+## 2026-01-01
+
+Normalized nav bindings to require Fn (keynum 29) and updated wizard to enforce Fn for Nav* captures.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp — Nav bindings now require Fn; shows warning if Fn not detected
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/config/m5cardputer_bindings_captured.json — Nav bindings stored as [29
+

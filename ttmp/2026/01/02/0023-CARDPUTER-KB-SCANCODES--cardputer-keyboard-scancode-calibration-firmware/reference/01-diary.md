@@ -213,3 +213,22 @@ Captured wizard output (from serial):
 ### Code review instructions
 - Start in `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings.h`.
 - Then inspect the captured table in `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h`.
+
+## Step 5: Unify “arrows” as Fn+key (enforce Fn for Nav* bindings)
+
+This step addresses a key semantic requirement: for navigation, we want to treat the “arrow” actions as **Fn-chords** (so that the base key on its own remains a normal character). Practically, this means `NavUp` etc should only match when `fn` is held down.
+
+To enforce this, the wizard now requires that the captured chord includes the physical Fn key (`keyNum=29`). If Fn is not detected during a Nav* capture attempt, the UI shows “Hold Fn too” and does not accept the capture. As a safety measure, the JSON export path also normalizes Nav bindings by injecting Fn if it was missing.
+
+### Captured/normalized mapping
+
+- `NavUp` = `[29,40]`
+- `NavDown` = `[29,54]`
+- `NavLeft` = `[29,53]`
+- `NavRight` = `[29,55]`
+
+### Code review instructions
+- Start in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp`:
+  - `kFnKeynum`
+  - `normalize_nav_chord`
+  - Nav* capture enforcement (reject if Fn not present)
