@@ -4,7 +4,7 @@
 
 - [x] Create new ESP-IDF project `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator`
 - [x] Implement raw matrix scanner (pins + alt IN0/IN1 autodetect + multi-key support)
-- [ ] Implement on-device calibration UX (prompt -> capture -> confirm -> next)
+- [x] Implement on-device calibration UX (prompt -> capture -> confirm -> next)
 - [ ] Define and implement “decoder config” output format (JSON + C header snippet)
 - [ ] Add verbose serial logging (raw scan_state/in_mask, derived key positions, chord timing)
 - [ ] Add host-side capture helpers (optional): parse JSON output into a ready-to-commit header

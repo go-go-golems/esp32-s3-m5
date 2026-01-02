@@ -20,12 +20,17 @@ RelatedFiles:
       Note: Raw scan_state/in_mask logging and IN0/IN1 variant handling
     - Path: esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
       Note: Existing scanner patterns we may reuse
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp
+      Note: GPIO0 mode toggle and on-screen prompt rendering
+    - Path: esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp
+      Note: Wizard prompt/capture/confirm implementation
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-01T21:41:57.721916763-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -146,3 +151,31 @@ This step makes the calibration firmware actually usable on hardware: it’s fla
 - To sniff chords as you press keys:
   - attach: `tmux attach -t cardputer-kb-scancodes`
   - stop (to free the port for flashing): `tmux kill-session -t cardputer-kb-scancodes`
+
+## Step 3: Add on-device wizard prompts + mode toggle on external button GPIO0
+
+This step adds a second “mode” to the firmware: a guided wizard that prompts for specific semantic actions (Up/Down/Left/Right, Back/Esc, Enter, Tab, Space) and captures the corresponding physical chord (`required_keynums`) once it’s held stable. The goal is to stop guessing where arrows/esc live and instead record them explicitly on-device.
+
+Mode switching is bound to the external `GPIO0` button (G0): press it to toggle between the existing live matrix mode and the new wizard mode.
+
+### What I did
+- Added a wizard state machine (`Waiting → Stabilizing → CapturedAwaitConfirm → Done`) with a default 400ms stability hold.
+- Added `GPIO0` input setup + debounced edge detection to toggle modes.
+- In wizard mode:
+  - prompt text appears in the footer
+  - after capture, `Enter=accept`, `Del=redo`, `Tab=skip`
+  - when done, pressing Enter prints a JSON config blob framed by `CFG_BEGIN ... CFG_END`.
+
+### Why
+- Arrow keys and other Fn functionality are not discoverable from the key legend; they are *semantic bindings* that must be measured as physical chords on the real device.
+
+### What worked
+- Build succeeded and the firmware flashes and boots.
+- tmux monitor shows mode toggle log: `mode=wizard (GPIO0 toggle)` / `mode=live (GPIO0 toggle)`.
+
+### What warrants a second pair of eyes
+- The assumption that `GPIO0` is safe to use as a runtime “mode toggle” on all target devices (it is a strapping pin).
+
+### Code review instructions
+- Start in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp`.
+- Then review the GPIO0 handling and UI wiring in `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp`.

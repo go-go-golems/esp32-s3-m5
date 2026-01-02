@@ -24,3 +24,13 @@ Step 2: flashed calibrator + established tmux monitor sniff loop; extracted reus
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp — Consumer UI using the component
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/matrix_scanner.cpp — New shared scanner
 
+
+## 2026-01-01
+
+Added on-device calibration wizard mode with prompts; toggle between live view and wizard using external GPIO0 button.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp — Mode switch on GPIO0 and wizard UI
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/wizard.cpp — Prompt/capture/confirm state machine
+
