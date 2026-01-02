@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T01:45:00Z
+LastUpdated: 2026-01-02T02:10:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -294,3 +294,41 @@ This step implements the first “real” demo module beyond the launcher: a con
 
 ### Code review instructions
 - Start with `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp` then review its integration in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp`.
+
+## Step 8: Implement B3 screenshot-to-serial (PNG framing + host capture script)
+
+This step adds a “developer workflow” feature: capture the current UI as a PNG over USB-Serial/JTAG. This is intended for documentation, bug reports, and rapid UI iteration without taking photos.
+
+### What I did
+- Implemented device-side PNG capture using `createPng()` and a framing protocol:
+  - `PNG_BEGIN <len>\\n` + raw bytes + `\\nPNG_END\\n`
+- Wired global key `P` to trigger screenshot capture.
+- Added a small host helper script (`pyserial`) to capture the framed PNG into a file.
+- Built and flashed the firmware to the Cardputer.
+
+### Why
+- Screenshots make UI iteration and bug reporting dramatically faster than photographing the device.
+
+### What worked
+- `idf.py build` succeeded with the new USB-Serial/JTAG write path.
+- Flash succeeded.
+
+### What didn't work
+- Full end-to-end host validation (press `P` + script produces a valid PNG) still needs a quick manual run, because the capture requires a physical keypress on the device.
+
+### What I learned
+- Using `usb_serial_jtag_write_bytes(...)` is mandatory for binary output; `printf`/logs will corrupt the PNG payload.
+
+### What was tricky to build
+- Avoiding serial interleaving: any log output during the raw PNG transfer can corrupt the capture. The current implementation minimizes logging in the screenshot path but does not globally silence other logs.
+
+### What warrants a second pair of eyes
+- Whether we should temporarily suppress logging around screenshot transfer (global log level / stdout lock) to make B3 more robust under noisy firmware.
+
+### What should be done in the future
+- Add a “toast” overlay after sending the screenshot (but only after the raw transfer completes).
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` and confirm:
+  - framing protocol is stable
+  - `free(png)` matches the allocator used by `createPng`

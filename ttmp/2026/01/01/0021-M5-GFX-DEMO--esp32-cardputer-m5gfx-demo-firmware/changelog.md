@@ -42,6 +42,15 @@ Implemented starter scenario E1: a reusable terminal/log console scene (scrollba
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_console.cpp — Console buffer + wrapping + rendering
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Console scene integration and key bindings
 
+## 2026-01-02
+
+Implemented starter scenario B3 (screenshot-to-serial) using `createPng()` and USB-Serial/JTAG framing, plus a host capture script; flashed to device (host capture validation pending).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — PNG capture + serial framing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/tools/capture_screenshot_png.py — Host capture helper
+
 
 ## 2026-01-01
 

@@ -32,3 +32,20 @@ idf.py flash monitor
 - `Del`: back to home menu
 - `H`: toggle HUD header bar
 - `F`: toggle perf footer bar
+- `P`: screenshot PNG to serial (framed)
+
+### Screenshot capture (host)
+
+Device prints:
+
+```
+PNG_BEGIN <len>\n<raw bytes>\nPNG_END\n
+```
+
+Capture example:
+
+```bash
+python3 tools/capture_screenshot_png.py \
+  '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*' \
+  screenshot.png
+```

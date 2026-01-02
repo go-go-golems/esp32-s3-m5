@@ -24,6 +24,7 @@
 #include "M5GFX.h"
 
 #include "input_keyboard.h"
+#include "screenshot_png.h"
 #include "ui_console.h"
 #include "ui_hud.h"
 #include "ui_list_view.h"
@@ -108,6 +109,7 @@ static void render_placeholder(M5Canvas &body, const char *title) {
     body.drawString("TODO: implement demo module", 6, 28);
     body.drawString("Del: back   Tab: next   Shift+Tab: prev", 6, 46);
     body.drawString("H: toggle HUD   F: toggle perf", 6, 64);
+    body.drawString("P: screenshot to serial", 6, 82);
 }
 
 static bool hud_equals(const HudState &a, const HudState &b) {
@@ -210,6 +212,7 @@ extern "C" void app_main(void) {
         bool selection_opened = false;
         bool pushed_any = false;
         int64_t present_start_us = -1;
+        bool screenshot_requested = false;
 
         auto set_scene = [&](SceneId next) {
             if (scene == next) {
@@ -226,6 +229,11 @@ extern "C" void app_main(void) {
         };
 
         for (const auto &ev : keyboard.poll()) {
+            if (ev.key == "p" || ev.key == "P") {
+                screenshot_requested = true;
+                continue;
+            }
+
             if (ev.key == "h" || ev.key == "H") {
                 hud_enabled = !hud_enabled;
                 header_dirty = true;
@@ -317,6 +325,10 @@ extern "C" void app_main(void) {
                 set_scene(menu_items[(size_t)idx].scene);
                 ESP_LOGI(TAG, "open: idx=%d scene=%s", idx, scene_name(scene));
             }
+        }
+
+        if (screenshot_requested) {
+            screenshot_png_to_usb_serial_jtag(display);
         }
 
         const int64_t after_update_us = esp_timer_get_time();
