@@ -55,3 +55,13 @@ Fix Back/Esc chord mapping to Fn+` (keynum 29+1) and reduce task_wdt noise by bl
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Use vTaskDelay(1) to ensure yielding
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h — Back/Esc binding corrected to keynum 1
 
+
+## 2026-01-01
+
+Fix crash when switching demos by deleting LVGL timers/state on screen delete (prevents use-after-free in demo timers).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_basics.cpp — Delete status timer via LV_EVENT_DELETE
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp — Delete tick timer via LV_EVENT_DELETE
+

@@ -23,12 +23,16 @@ RelatedFiles:
       Note: Step 3 flash workflow + tmux monitor guidance
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Step 2 UI loop + stable UiState callbacks
+    - Path: 0025-cardputer-lvgl-demo/main/demo_basics.cpp
+      Note: Step 6 timer cleanup on screen delete
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Step 4 screen switching and shared group
     - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
       Note: Step 4 menu screen implementation
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
-      Note: Step 4 Pomodoro screen implementation
+      Note: |-
+        Step 4 Pomodoro screen implementation
+        Step 6 timer cleanup on screen delete
     - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
       Note: Step 5 Fn+1 Esc override
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -45,6 +49,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -274,6 +279,30 @@ Rather than adding “escape hatch” overrides in the app, the correct fix is t
 
 ### What warrants a second pair of eyes
 - Confirm `Fn+\`` is the correct Back/Esc chord across Cardputer variants and doesn’t regress other firmwares that rely on `cardputer_kb`.
+
+## Step 6: Fix crash when switching demos (LVGL timer use-after-free)
+
+This step fixes a hard crash (Guru Meditation / `LoadProhibited`) that occurs after switching away from the Basics demo. The panic showed `lv_label_set_text()` called from `status_timer_cb`, and the LVGL object pointer was clearly poisoned (`0xa1b2c3d4` pattern), which is consistent with use-after-free: the screen was destroyed, but the LVGL timer kept running and continued updating a freed label.
+
+The fix is to treat timers as screen-scoped resources: each demo allocates a per-screen state struct and registers an `LV_EVENT_DELETE` handler on the screen root to delete the timer and free the state. This prevents timers from firing after a screen is deleted and also avoids reusing a single global state struct across multiple screen instances.
+
+### What I did
+- Refactored Basics and Pomodoro demos to allocate per-screen state (`new ...State`) instead of reusing a single static struct.
+- Added `LV_EVENT_DELETE` cleanup callbacks on demo roots to:
+  - `lv_timer_del()` any active timers
+  - clear pointers
+  - `delete` the state
+- Built and flashed.
+
+### Why
+- LVGL timers are not automatically tied to object lifetimes; deleting a screen does not delete its timers.
+
+### What worked
+- Reproduced symptom from backtrace: timer callback touching freed LVGL objects.
+- After cleanup-on-delete, switching between Menu/Basics/Pomodoro no longer leaves background timers running.
+
+### What warrants a second pair of eyes
+- Confirm `lv_obj_del_async()` + `LV_EVENT_DELETE` timer deletion is safe under LVGL’s internal timer scheduling (no edge-case double-delete).
 
 ## Quick Reference
 

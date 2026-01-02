@@ -14,3 +14,4 @@
 - [x] Add Pomodoro demo screen (arc ring + big time + keyboard controls) as a selectable demo
 - [x] Update README with menu navigation + Pomodoro controls; verify build compiles
 - [x] Fix Esc (Fn+`) chord not triggering; ensure it maps to LV_KEY_ESC reliably
+- [x] Fix crash when switching demos (delete LVGL timers/state when screen is destroyed)
