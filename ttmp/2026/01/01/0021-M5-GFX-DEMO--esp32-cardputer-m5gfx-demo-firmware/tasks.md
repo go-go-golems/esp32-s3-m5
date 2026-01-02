@@ -16,4 +16,4 @@
 - [x] A1 Status bar + HUD overlay (persistent chrome + small dirty redraws)
 - [x] B2 Frame-time + perf overlay (instrumentation for all other demos)
 - [x] E1 Terminal/log console (scrollback + append performance)
-- [ ] B3 Screenshot to serial (createPng + USB-Serial-JTAG framing)
+- [x] B3 Screenshot to serial (createPng + USB-Serial-JTAG framing)
