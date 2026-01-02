@@ -10,13 +10,15 @@
 - [ ] Verify memory budget: ensure 64KB JS heap + buffers fit within Cardputer's 512KB SRAM constraint
 - [x] Test firmware on Cardputer hardware (USB Serial/JTAG console, JS eval, `:stats`)
 - [x] Test storage on Cardputer hardware (SPIFFS mounts, autoload works, REPL remains responsive on failures)
+- [x] Seed SPIFFS with an autoload script and assert it loads (AUTOLOAD_SEED smoke-test on device + QEMU)
+- [x] Make flashing stable on USB Serial/JTAG (prefer /dev/serial/by-id; usb_reset-based flashing helper; device scripts accept --port auto)
 - [ ] Consider optional enhancements: keyboard input integration, display output, speaker feedback
 - [x] Create analysis docs for current firmware config + Cardputer port requirements
 - [x] Add mqjs-repl build.sh wrapper for reproducible ESP-IDF env sourcing
 - [x] Install qemu-xtensa via idf_tools so idf.py qemu can run
 - [x] Spin off QEMU REPL input bug into ticket 0015-QEMU-REPL-INPUT
 - [x] Spin off SPIFFS/autoload JS parse errors into ticket 0016-SPIFFS-AUTOLOAD
-- [x] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially (legacy monolith moved to imports/.../legacy/)
+- [x] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially (legacy monolith removed after split cleanup)
 - [x] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
 - [x] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
 - [x] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS
