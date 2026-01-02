@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T00:45:00Z
+LastUpdated: 2026-01-02T01:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -140,3 +140,75 @@ This step records the point where the demo-suite scaffold first compiled success
 - Start with `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp` (menu + wiring), then:
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_list_view.cpp`
   - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp`
+
+## Step 4: Flash to the connected Cardputer + capture boot logs
+
+This step validates the end-to-end “host -> flash -> device runs -> serial logs” loop on real hardware. It also confirmed the stable by-id serial path for the Cardputer’s USB-Serial/JTAG interface in this environment.
+
+### What I did
+- Detected the Cardputer serial device:
+  - `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00` (symlink to `/dev/ttyACM1`)
+- Flashed the firmware:
+  - `cd esp32-s3-m5/0022-cardputer-m5gfx-demo-suite`
+  - `./build.sh -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00 flash`
+- Started `idf.py monitor` in tmux (monitor requires a TTY) and captured boot output.
+
+### Why
+- A compile-only baseline is not enough; we need a repeatable “flash + observe” loop before implementing more scenarios.
+
+### What worked
+- Flash succeeded over USB-Serial/JTAG and the device rebooted cleanly.
+- Serial logs show:
+  - `M5GFX: [Autodetect] board_M5Cardputer`
+  - `display ready: width=240 height=135`
+
+### What didn't work
+- Running `idf.py monitor` from a non-interactive runner fails with:
+  - `Monitor requires standard input to be attached to TTY.`
+  - This is expected; the workflow uses tmux for monitoring.
+
+### What I learned
+- `idf.py monitor` holds an exclusive lock on the serial port; if monitor is running, `idf.py flash` may fail with “port busy”. This shaped the “flash monitor as a single command” recommendation in the playbook.
+
+### What was tricky to build
+- Making the build helper resilient in tmux: relying on `idf.py` from PATH can lead to python/module mismatches. Using `${IDF_PATH}/tools/idf.py` via the IDF venv python is more robust.
+
+### What warrants a second pair of eyes
+- Confirm the proposed tmux workflow is the preferred house style for firmware iteration (versus a pure one-shot `flash monitor` command each time).
+
+### What should be done in the future
+- Add a small on-screen “controls footer” so the validation checklist can be performed without referencing docs.
+
+## Step 5: Add a repeatable debug loop (build.sh + tmux playbook)
+
+This step focuses on shortening the edit/build/flash/observe loop. The key outcome is a single entry point (`build.sh`) and a documented tmux-based workflow that works around monitor’s TTY requirement and serial-port locking constraints.
+
+### What I did
+- Added `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/build.sh`:
+  - sources ESP-IDF 5.4.1 (only when needed)
+  - prefers explicit `${IDF_PYTHON_ENV_PATH}/bin/python` + `${IDF_PATH}/tools/idf.py` (tmux-safe)
+  - provides `tmux-flash-monitor` to run `flash monitor` in a tmux pane
+- Wrote a playbook design doc:
+  - `esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/07-playbook-build-flash-monitor-validate.md`
+
+### Why
+- The firmware iteration loop is dominated by friction (port selection, monitor TTY, environment drift) unless we standardize a single “happy path”.
+
+### What worked
+- `flash monitor` works reliably inside tmux (real TTY), and produces expected boot logs after flashing.
+
+### What didn't work
+- Attempting to run `idf.py monitor` from non-interactive runners fails (expected).
+- Running monitor and flash concurrently leads to serial-port lock conflicts; the workflow avoids this by running `flash monitor` as a single command.
+
+### What I learned
+- For this repo’s environment, “explicit python + explicit idf.py path” avoids the most common tmux/pyenv/direnv confusion.
+
+### What was tricky to build
+- Getting the tmux workflow right without accidentally creating a “monitor holds the port forever, flash always fails” loop.
+
+### What warrants a second pair of eyes
+- Whether `tmux-flash-monitor` should be the default command name, or if we want a more general `tmux-run` wrapper for future projects.
+
+### What should be done in the future
+- Add a `build.sh run` alias (or a tiny `tools/run_fw_flash_monitor.sh`) if we want “auto-pick port + flash monitor” without passing `-p` manually.

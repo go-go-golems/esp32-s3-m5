@@ -8,7 +8,7 @@
 - [x] Create new ESP-IDF project under `esp32-s3-m5/` for the demo suite
 - [ ] Implement shared infrastructure: display init, frame loop, input, scene switcher
 - [ ] Implement demo modules (primitives, text/fonts, sprites/transforms, images, QR, widgets, perf)
-- [ ] Add build/flash/run playbook and expected outputs
+- [x] Add build/flash/run playbook and expected outputs
 
 ## Starter Scenarios (implement first)
 

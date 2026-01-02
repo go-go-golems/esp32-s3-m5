@@ -15,6 +15,15 @@ Created the initial demo-suite firmware scaffold as a new ESP-IDF project and im
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp — Cardputer keyboard matrix scan + key events
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/reference/02-implementation-diary.md — New implementation diary
 
+## 2026-01-02
+
+Flashed the demo-suite firmware to a real Cardputer and documented the build/flash/monitor/validate workflow (including tmux constraints and serial-port locking gotchas).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/build.sh — Build/flash helper with a tmux entry point
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/07-playbook-build-flash-monitor-validate.md — Playbook for device validation loop
+
 
 ## 2026-01-01
 
