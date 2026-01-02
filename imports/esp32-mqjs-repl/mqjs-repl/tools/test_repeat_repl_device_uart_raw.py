@@ -9,7 +9,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Direct UART smoke test for RepeatEvaluator REPL (no idf_monitor)."
     )
-    parser.add_argument("--port", required=True, help="Serial port (e.g. /dev/ttyACM0)")
+    parser.add_argument(
+        "--port",
+        default="auto",
+        help="Serial port (e.g. /dev/ttyACM0) or 'auto' (default: auto)",
+    )
     parser.add_argument("--baud", type=int, default=115200, help="Baud rate (default: 115200)")
     parser.add_argument("--timeout", type=float, default=20.0, help="Timeout seconds")
     args = parser.parse_args()
@@ -26,7 +30,24 @@ def main() -> int:
     def deadline() -> bool:
         return (time.time() - start) > args.timeout
 
-    with serial.Serial(args.port, args.baud, timeout=0.2) as ser:
+    port = args.port
+    if port == "auto":
+        import glob
+
+        candidates = sorted(glob.glob("/dev/serial/by-id/*Espressif*USB_JTAG*"))
+        if len(candidates) == 1:
+            port = candidates[0]
+        elif len(candidates) > 1:
+            print(
+                "Multiple Espressif USB_JTAG ports found; pass --port explicitly:\n"
+                + "\n".join(candidates),
+                file=sys.stderr,
+            )
+            return 2
+        else:
+            port = "/dev/ttyACM0"
+
+    with serial.Serial(port, args.baud, timeout=0.2) as ser:
         ser.reset_input_buffer()
         ser.reset_output_buffer()
 

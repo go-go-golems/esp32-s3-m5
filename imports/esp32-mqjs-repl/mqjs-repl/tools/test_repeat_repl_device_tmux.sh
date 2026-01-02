@@ -9,7 +9,7 @@ Runs `idf.py monitor` (optionally flash first) in a tmux session, sends a few RE
 and checks output.
 
 Usage:
-  ./tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 [--flash] [--session NAME] [--timeout SECONDS] [--keep-session]
+  ./tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0|auto [--flash] [--session NAME] [--timeout SECONDS] [--keep-session]
 
 Examples:
   ./tools/test_repeat_repl_device_tmux.sh --port /dev/ttyACM0 --flash
@@ -17,7 +17,7 @@ Examples:
 EOF
 }
 
-PORT=""
+PORT="auto"
 DO_FLASH="0"
 SESSION="mqjs-repl-dev-test-$$"
 TIMEOUT_SECS="45"
@@ -62,12 +62,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${PORT}" ]]; then
-  echo "--port is required" >&2
-  usage >&2
-  exit 2
-fi
-
 if ! command -v tmux >/dev/null 2>&1; then
   echo "tmux is required" >&2
   exit 1
@@ -101,7 +95,7 @@ trap cleanup EXIT
 tmux_cmd kill-session -t "${SESSION}" >/dev/null 2>&1 || true
 
 if [[ "${DO_FLASH}" == "1" ]]; then
-  TMUX_CMD="unset ESP_IDF_VERSION; ./build.sh -p \"${PORT}\" flash monitor"
+  TMUX_CMD="unset ESP_IDF_VERSION; ./build.sh build && ./tools/flash_device_usb_jtag.sh --port \"${PORT}\" && ./build.sh -p \"${PORT}\" monitor"
 else
   TMUX_CMD="unset ESP_IDF_VERSION; ./build.sh -p \"${PORT}\" monitor"
 fi
