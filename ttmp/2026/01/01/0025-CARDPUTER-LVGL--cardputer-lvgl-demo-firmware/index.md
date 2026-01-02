@@ -19,6 +19,10 @@ RelatedFiles:
       Note: Keyboard events stream to adapt into LVGL indev
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Cardputer LVGL demo main loop + UI creation
+    - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
+      Note: Demo catalog screen switching + shared LVGL group
+    - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
+      Note: Pomodoro demo implementation
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
       Note: LVGL keypad indev adapter for Cardputer keyboard events
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -33,6 +37,7 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
