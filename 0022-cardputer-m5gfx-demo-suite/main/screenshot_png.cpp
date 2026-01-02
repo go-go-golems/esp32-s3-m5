@@ -1,5 +1,6 @@
 #include "screenshot_png.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -43,9 +44,9 @@ static bool serial_write_all(const void *data, size_t len, TickType_t ticks_per_
     return true;
 }
 
-void screenshot_png_to_usb_serial_jtag(m5gfx::M5GFX &display) {
+static bool screenshot_png_to_usb_serial_jtag_impl(m5gfx::M5GFX &display) {
     if (!ensure_usb_serial_jtag_driver_ready()) {
-        return;
+        return false;
     }
 
     display.waitDMA();
@@ -60,14 +61,14 @@ void screenshot_png_to_usb_serial_jtag(m5gfx::M5GFX &display) {
             if (png) {
                 free(png);
             }
-            return;
+            return false;
         }
     }
 
     if (png && len > 0) {
         if (!serial_write_all(png, len, pdMS_TO_TICKS(25), 200)) {
             free(png);
-            return;
+            return false;
         }
     }
 
@@ -77,4 +78,46 @@ void screenshot_png_to_usb_serial_jtag(m5gfx::M5GFX &display) {
     if (png) {
         free(png);
     }
+
+    return true;
+}
+
+struct ScreenshotTaskArgs {
+    m5gfx::M5GFX *display = nullptr;
+    TaskHandle_t notify_task = nullptr;
+};
+
+static void screenshot_task(void *arg) {
+    ScreenshotTaskArgs *a = (ScreenshotTaskArgs *)arg;
+    bool ok = false;
+    if (a && a->display) {
+        ok = screenshot_png_to_usb_serial_jtag_impl(*a->display);
+    }
+    if (a && a->notify_task) {
+        (void)xTaskNotify(a->notify_task, ok ? 1U : 2U, eSetValueWithOverwrite);
+    }
+    free(a);
+    vTaskDelete(nullptr);
+}
+
+void screenshot_png_to_usb_serial_jtag(m5gfx::M5GFX &display) {
+    // PNG encoding (miniz/tdefl) can be stack-hungry. Avoid running it in the ESP-IDF `main` task.
+    // Instead, run the encode/send in a dedicated task with a larger stack, and block until it completes.
+    ScreenshotTaskArgs *args = (ScreenshotTaskArgs *)calloc(1, sizeof(ScreenshotTaskArgs));
+    if (!args) {
+        return;
+    }
+    args->display = &display;
+    args->notify_task = xTaskGetCurrentTaskHandle();
+
+    TaskHandle_t task = nullptr;
+    BaseType_t ok = xTaskCreatePinnedToCore(screenshot_task, "screenshot_png", 8192, args, 2, &task, tskNO_AFFINITY);
+    if (ok != pdPASS) {
+        free(args);
+        return;
+    }
+
+    uint32_t value = 0;
+    (void)xTaskNotifyWait(0, UINT32_MAX, &value, pdMS_TO_TICKS(15000));
+    (void)value;
 }
