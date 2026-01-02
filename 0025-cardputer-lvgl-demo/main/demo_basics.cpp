@@ -18,7 +18,7 @@ struct BasicsState {
     lv_timer_t *status_timer = nullptr;
 };
 
-static BasicsState s_basics;
+static BasicsState *s_basics = nullptr;
 
 static void on_clear(lv_event_t *e) {
     auto *st = static_cast<BasicsState *>(lv_event_get_user_data(e));
@@ -39,56 +39,78 @@ static void status_timer_cb(lv_timer_t *t) {
     lv_label_set_text(st->status, buf);
 }
 
+static void root_delete_cb(lv_event_t *e) {
+    auto *st = static_cast<BasicsState *>(lv_event_get_user_data(e));
+    if (!st) return;
+
+    if (st->status_timer) {
+        lv_timer_del(st->status_timer);
+        st->status_timer = nullptr;
+    }
+
+    st->root = nullptr;
+    st->ta = nullptr;
+    st->btn = nullptr;
+    st->status = nullptr;
+
+    if (s_basics == st) {
+        s_basics = nullptr;
+    }
+    delete st;
+}
+
 } // namespace
 
 lv_obj_t *demo_basics_create(DemoManager *mgr) {
-    s_basics = BasicsState{};
-    s_basics.mgr = mgr;
+    auto *st = new BasicsState{};
+    st->mgr = mgr;
+    s_basics = st;
 
-    s_basics.root = lv_obj_create(nullptr);
-    lv_obj_set_style_bg_color(s_basics.root, lv_color_black(), 0);
-    lv_obj_set_style_text_color(s_basics.root, lv_palette_main(LV_PALETTE_GREEN), 0);
+    st->root = lv_obj_create(nullptr);
+    lv_obj_set_style_bg_color(st->root, lv_color_black(), 0);
+    lv_obj_set_style_text_color(st->root, lv_palette_main(LV_PALETTE_GREEN), 0);
 
-    lv_obj_t *title = lv_label_create(s_basics.root);
+    lv_obj_t *title = lv_label_create(st->root);
     lv_label_set_text(title, "Basics");
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
 
-    s_basics.ta = lv_textarea_create(s_basics.root);
-    lv_obj_set_width(s_basics.ta, 240 - 16);
-    lv_obj_set_height(s_basics.ta, 60);
-    lv_obj_align(s_basics.ta, LV_ALIGN_TOP_MID, 0, 24);
-    lv_textarea_set_placeholder_text(s_basics.ta, "Type here...");
-    lv_textarea_set_one_line(s_basics.ta, false);
+    st->ta = lv_textarea_create(st->root);
+    lv_obj_set_width(st->ta, 240 - 16);
+    lv_obj_set_height(st->ta, 60);
+    lv_obj_align(st->ta, LV_ALIGN_TOP_MID, 0, 24);
+    lv_textarea_set_placeholder_text(st->ta, "Type here...");
+    lv_textarea_set_one_line(st->ta, false);
 
-    s_basics.btn = lv_btn_create(s_basics.root);
-    lv_obj_set_size(s_basics.btn, 80, 28);
-    lv_obj_align(s_basics.btn, LV_ALIGN_TOP_MID, 0, 92);
-    lv_obj_add_flag(s_basics.btn, LV_OBJ_FLAG_CLICK_FOCUSABLE);
-    lv_obj_add_event_cb(s_basics.btn, on_clear, LV_EVENT_CLICKED, &s_basics);
-    lv_obj_t *btn_label = lv_label_create(s_basics.btn);
+    st->btn = lv_btn_create(st->root);
+    lv_obj_set_size(st->btn, 80, 28);
+    lv_obj_align(st->btn, LV_ALIGN_TOP_MID, 0, 92);
+    lv_obj_add_flag(st->btn, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_event_cb(st->btn, on_clear, LV_EVENT_CLICKED, st);
+    lv_obj_t *btn_label = lv_label_create(st->btn);
     lv_label_set_text(btn_label, "Clear");
     lv_obj_center(btn_label);
 
-    s_basics.status = lv_label_create(s_basics.root);
-    lv_obj_set_style_text_font(s_basics.status, lvgl_font_small(), 0);
-    lv_label_set_text(s_basics.status, "heap=? dma=? last=?");
-    lv_obj_align(s_basics.status, LV_ALIGN_BOTTOM_MID, 0, -14);
+    st->status = lv_label_create(st->root);
+    lv_obj_set_style_text_font(st->status, lvgl_font_small(), 0);
+    lv_label_set_text(st->status, "heap=? dma=? last=?");
+    lv_obj_align(st->status, LV_ALIGN_BOTTOM_MID, 0, -14);
 
-    lv_obj_t *hint = lv_label_create(s_basics.root);
+    lv_obj_t *hint = lv_label_create(st->root);
     lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
     lv_label_set_text(hint, "Type  Tab focus  Enter click  Fn+` menu");
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
 
-    s_basics.status_timer = lv_timer_create(status_timer_cb, 250, &s_basics);
+    lv_obj_add_event_cb(st->root, root_delete_cb, LV_EVENT_DELETE, st);
+    st->status_timer = lv_timer_create(status_timer_cb, 250, st);
 
-    return s_basics.root;
+    return st->root;
 }
 
 void demo_basics_bind_group(DemoManager *mgr) {
     if (!mgr || !mgr->group) return;
-    if (!s_basics.ta || !s_basics.btn) return;
+    if (!s_basics || !s_basics->ta || !s_basics->btn) return;
 
-    lv_group_add_obj(mgr->group, s_basics.ta);
-    lv_group_add_obj(mgr->group, s_basics.btn);
-    lv_group_focus_obj(s_basics.ta);
+    lv_group_add_obj(mgr->group, s_basics->ta);
+    lv_group_add_obj(mgr->group, s_basics->btn);
+    lv_group_focus_obj(s_basics->ta);
 }

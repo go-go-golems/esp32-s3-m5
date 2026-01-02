@@ -25,7 +25,7 @@ struct PomodoroState {
     bool running = false;
 };
 
-static PomodoroState s_pomodoro;
+static PomodoroState *s_pomodoro = nullptr;
 
 static void fmt_mmss(char *out, size_t n, int32_t ms) {
     if (ms < 0) ms = 0;
@@ -116,6 +116,26 @@ static void tick_cb(lv_timer_t *t) {
     }
 }
 
+static void root_delete_cb(lv_event_t *e) {
+    auto *p = static_cast<PomodoroState *>(lv_event_get_user_data(e));
+    if (!p) return;
+
+    if (p->tick_timer) {
+        lv_timer_del(p->tick_timer);
+        p->tick_timer = nullptr;
+    }
+
+    p->root = nullptr;
+    p->arc = nullptr;
+    p->time_label = nullptr;
+    p->status_label = nullptr;
+
+    if (s_pomodoro == p) {
+        s_pomodoro = nullptr;
+    }
+    delete p;
+}
+
 static void key_cb(lv_event_t *e) {
     auto *p = static_cast<PomodoroState *>(lv_event_get_user_data(e));
     const uint32_t key = lv_event_get_key(e);
@@ -144,55 +164,57 @@ static void key_cb(lv_event_t *e) {
 } // namespace
 
 lv_obj_t *demo_pomodoro_create(DemoManager *mgr) {
-    s_pomodoro = PomodoroState{};
-    s_pomodoro.mgr = mgr;
+    auto *p = new PomodoroState{};
+    p->mgr = mgr;
+    s_pomodoro = p;
 
-    s_pomodoro.root = lv_obj_create(nullptr);
-    lv_obj_set_style_bg_color(s_pomodoro.root, lv_color_black(), 0);
-    lv_obj_set_style_text_color(s_pomodoro.root, lv_palette_main(LV_PALETTE_GREEN), 0);
+    p->root = lv_obj_create(nullptr);
+    lv_obj_set_style_bg_color(p->root, lv_color_black(), 0);
+    lv_obj_set_style_text_color(p->root, lv_palette_main(LV_PALETTE_GREEN), 0);
 
-    lv_obj_t *title = lv_label_create(s_pomodoro.root);
+    lv_obj_t *title = lv_label_create(p->root);
     lv_label_set_text(title, "POMODORO");
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
 
-    s_pomodoro.arc = lv_arc_create(s_pomodoro.root);
-    lv_obj_set_size(s_pomodoro.arc, 110, 110);
-    lv_obj_align(s_pomodoro.arc, LV_ALIGN_CENTER, 0, 0);
-    lv_arc_set_rotation(s_pomodoro.arc, 270);
-    lv_arc_set_bg_angles(s_pomodoro.arc, 0, 360);
-    lv_arc_set_mode(s_pomodoro.arc, LV_ARC_MODE_NORMAL);
+    p->arc = lv_arc_create(p->root);
+    lv_obj_set_size(p->arc, 110, 110);
+    lv_obj_align(p->arc, LV_ALIGN_CENTER, 0, 0);
+    lv_arc_set_rotation(p->arc, 270);
+    lv_arc_set_bg_angles(p->arc, 0, 360);
+    lv_arc_set_mode(p->arc, LV_ARC_MODE_NORMAL);
 
-    lv_obj_remove_style(s_pomodoro.arc, nullptr, LV_PART_KNOB);
-    lv_obj_set_style_arc_width(s_pomodoro.arc, 10, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(s_pomodoro.arc, 10, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(s_pomodoro.arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
+    lv_obj_remove_style(p->arc, nullptr, LV_PART_KNOB);
+    lv_obj_set_style_arc_width(p->arc, 10, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(p->arc, 10, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(p->arc, lv_palette_main(LV_PALETTE_GREEN), LV_PART_INDICATOR);
 
-    s_pomodoro.time_label = lv_label_create(s_pomodoro.root);
-    lv_obj_set_style_text_font(s_pomodoro.time_label, lvgl_font_time_big(), 0);
-    lv_obj_align(s_pomodoro.time_label, LV_ALIGN_CENTER, 0, -2);
+    p->time_label = lv_label_create(p->root);
+    lv_obj_set_style_text_font(p->time_label, lvgl_font_time_big(), 0);
+    lv_obj_align(p->time_label, LV_ALIGN_CENTER, 0, -2);
 
-    s_pomodoro.status_label = lv_label_create(s_pomodoro.root);
-    lv_obj_set_style_text_font(s_pomodoro.status_label, lvgl_font_body(), 0);
-    lv_obj_align(s_pomodoro.status_label, LV_ALIGN_CENTER, 0, 36);
+    p->status_label = lv_label_create(p->root);
+    lv_obj_set_style_text_font(p->status_label, lvgl_font_body(), 0);
+    lv_obj_align(p->status_label, LV_ALIGN_CENTER, 0, 36);
 
-    lv_obj_t *hint = lv_label_create(s_pomodoro.root);
+    lv_obj_t *hint = lv_label_create(p->root);
     lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
     lv_label_set_text(hint, "Space start/pause  R reset  [ ] minutes  Fn+` menu");
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
 
-    lv_obj_add_event_cb(s_pomodoro.root, key_cb, LV_EVENT_KEY, &s_pomodoro);
-    lv_obj_add_flag(s_pomodoro.root, LV_OBJ_FLAG_CLICK_FOCUSABLE);
+    lv_obj_add_event_cb(p->root, root_delete_cb, LV_EVENT_DELETE, p);
+    lv_obj_add_event_cb(p->root, key_cb, LV_EVENT_KEY, p);
+    lv_obj_add_flag(p->root, LV_OBJ_FLAG_CLICK_FOCUSABLE);
 
-    set_duration_minutes(&s_pomodoro, 25);
-    s_pomodoro.last_tick_ms = lv_tick_get();
-    s_pomodoro.tick_timer = lv_timer_create(tick_cb, 50, &s_pomodoro);
+    set_duration_minutes(p, 25);
+    p->last_tick_ms = lv_tick_get();
+    p->tick_timer = lv_timer_create(tick_cb, 50, p);
 
-    return s_pomodoro.root;
+    return p->root;
 }
 
 void demo_pomodoro_bind_group(DemoManager *mgr) {
     if (!mgr || !mgr->group) return;
-    if (!s_pomodoro.root) return;
-    lv_group_add_obj(mgr->group, s_pomodoro.root);
-    lv_group_focus_obj(s_pomodoro.root);
+    if (!s_pomodoro || !s_pomodoro->root) return;
+    lv_group_add_obj(mgr->group, s_pomodoro->root);
+    lv_group_focus_obj(s_pomodoro->root);
 }
