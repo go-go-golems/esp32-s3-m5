@@ -124,9 +124,28 @@ On screen:
 
 Press keys on the Cardputer keyboard:
 
-- `W` / `S` moves selection up/down
+- `Fn+;` / `Fn+.` moves selection up/down (Cardputer “arrow” chords)
+- `Fn+,` / `Fn+/` moves selection left/right (page up/down in list view)
+- `W` / `S` also works as a fallback (raw key events)
 - `Enter` prints `open: idx=<n>` to serial
-- `Del` prints `back (del) pressed` to serial
+- `Fn+1` (Esc/back) returns to the menu
+- `Fn+Del` returns to the menu
+- In terminal mode: `Del` is backspace (`bksp`)
+
+### Screenshot (B3)
+
+To validate the screenshot-to-serial path end-to-end:
+
+1) Start the host capture script:
+
+```bash
+python3 esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/tools/capture_screenshot_png.py \
+  /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_* \
+  /tmp/cardputer_demo.png
+```
+
+2) On the device, press `P` (screenshot).
+3) Verify the script prints `wrote /tmp/cardputer_demo.png (...)` and the PNG opens.
 
 ## Troubleshooting
 
@@ -146,4 +165,3 @@ Stop any running monitor first (or use the single-command workflow):
 ### `No module named 'esp_idf_monitor'`
 
 This indicates you’re not using the ESP-IDF python env. Use `./build.sh` (it sources the correct `export.sh` and invokes `${IDF_PATH}/tools/idf.py` via the IDF venv python).
-

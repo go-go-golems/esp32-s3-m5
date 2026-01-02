@@ -142,3 +142,14 @@ Fixed B3 screenshot-to-serial WDT by guarding/initializing USB-Serial/JTAG and c
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Fixed serial_write_all and driver init
 
+
+## 2026-01-01
+
+Switched demo-suite input to cardputer_kb; adjusted esc/del bindings; began fixing screenshot stack overflow (tracked in 0026)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp — Use cardputer_kb scanner+bindings for nav/esc/del
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Task-based PNG encode/send to avoid main stack overflow
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/reference/02-implementation-diary.md — Added steps 12-13
+

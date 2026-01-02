@@ -459,3 +459,90 @@ This step implements the fix described in the `0024-B3-SCREENSHOT-WDT` ticket. T
   - `ensure_usb_serial_jtag_driver_ready()`
   - `serial_write_all()`
   - `kTxChunkBytes`
+
+## Step 12: Switch demo-suite input to `cardputer_kb` (Fn-chord nav + Fn+1 Esc, Fn+Del menu)
+
+This step removes the demo-suite’s ad-hoc Cardputer keyboard scanner and replaces it with the reusable `cardputer_kb` component. The outcome is that navigation is consistent with the physical keyboard reality (arrows are Fn-chords), and we can share bindings across firmwares.
+
+**Commits (code):**
+- 91c94f0 — "Input: use cardputer_kb + fn esc/del bindings"
+- f2161b0 — "Input: map Esc to Fn+1"
+
+### What I did
+- Updated `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite` to include and require `cardputer_kb`.
+- Reimplemented `CardputerKeyboard` in `main/input_keyboard.cpp` as a thin adapter:
+  - calls `cardputer_kb::MatrixScanner::scan()`
+  - uses `cardputer_kb::decode_best()` with `kCapturedBindingsM5Cardputer` to emit semantic events:
+    - `up/down/left/right`
+    - `esc` (now `Fn+1`)
+    - `del` (now `Fn+Del`)
+  - still emits raw “typing” keys as 1-character strings for the terminal demo, and maps the physical `del` key to `bksp`
+- Updated `main/app_main.cpp`:
+  - menu navigation recognizes `up/down/left/right` events
+  - `esc`/`del` both return to the menu
+  - terminal scrollback uses `up/down` (instead of `Fn+w/s`)
+- Flashed the new firmware to the connected Cardputer (`/dev/ttyACM0` via `/dev/serial/by-id/...`).
+
+### Why
+- Cardputer “arrow keys” are not standalone physical keys; they are Fn-combos. The demo suite should reflect that so navigation works for users without memorizing letter fallbacks.
+- We now have a reusable scanner + binding table so future firmwares don’t copy/paste matrix code.
+
+### What worked
+- `./build.sh build` succeeded after the refactor.
+- Flash succeeded once the serial port was not held by an existing monitor process.
+
+### What didn't work
+- End-to-end screenshot capture validation still needs a coordinated run (host capture script + press `P` on device). My automated host-side wait timed out when no screenshot was triggered.
+
+### What I learned
+- A “best match binding” layer is a clean way to unify Fn+key navigation without losing raw keys for text entry.
+
+### What was tricky to build
+- Avoiding duplicate events: when a chord binding matches, we must not also emit raw key events for the chord members.
+
+### What warrants a second pair of eyes
+- Confirm the chosen defaults in `cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h` match the intended UX contracts across demos (especially `Fn+1` for Esc/back and `Fn+Del` for menu).
+
+### What should be done in the future
+- Add a small on-screen “controls footer” that shows the current navigation chords (so users don’t need the playbook open).
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp` and then review:
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings_m5cardputer_captured.h`
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/bindings.h`
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
+
+## Step 13: Fix screenshot crash: stack overflow in `main` during `createPng`
+
+This step responds to a new real-device failure: triggering the screenshot send (`P`) can overflow the FreeRTOS `main` task stack and reboot. The fix avoids patching M5GFX/miniz by running the screenshot encode+send in a dedicated task with a larger stack.
+
+### What I did
+- Created ticket `0026-B3-SCREENSHOT-STACKOVERFLOW` with a bug report + investigation notes.
+- Implemented a task-based screenshot sender in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp`:
+  - `createPng()` and the USB-Serial/JTAG transfer run in a worker task with a larger stack
+  - `main` blocks until completion to avoid concurrent display access
+
+### Why
+- `LGFXBase::createPng()` (M5GFX) calls miniz’ deflate encoder (`tdefl_*`) which is likely stack-heavy.
+- The crash explicitly reports a `main` task stack overflow, so moving the heavy work out of `main` is the most direct mitigation.
+
+### What worked
+- Build succeeded after the change.
+
+### What didn't work
+- Full end-to-end validation still depends on pressing `P` on-device while the host capture script is running.
+
+### What I learned
+- “Convenient” library helpers can hide large stack requirements; treating `main` as a thin control loop is safer.
+
+### What was tricky to build
+- Ensuring the display bus isn’t used concurrently while `readRectRGB()` is fetching rows for PNG encoding.
+
+### What warrants a second pair of eyes
+- Confirm the worker task stack size is sufficient; if crashes persist, increase it and/or switch to a non-deflate debug format.
+
+### What should be done in the future
+- Add a UI toast for screenshot success/failure so validation is visible without host tools.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp`.

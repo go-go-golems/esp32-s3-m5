@@ -106,6 +106,27 @@ This step implements the minimal safety fix so the screenshot feature cannot wed
   - `serial_write_all()`
   - `kTxChunkBytes`
 
+## Step 3: Follow-up crash observed during screenshot send (stack overflow in `main`)
+
+After the WDT-specific fix, a different failure mode was observed on real hardware: triggering the screenshot path can overflow the FreeRTOS `main` task stack and reboot.
+
+### What I did
+- Recorded the new symptom:
+  - `***ERROR*** A stack overflow in task main has been detected.`
+  - it occurs after `PNG_BEGIN ...` and partial PNG bytes are emitted
+- Identified the likely root: `m5gfx::M5GFX::createPng()` calls miniz’ deflate encoder (`tdefl_*`), which can be stack-hungry.
+- Opened a new dedicated ticket for this separate issue: `0026-B3-SCREENSHOT-STACKOVERFLOW`.
+
+### Why this is a separate ticket
+- 0024 is specifically about WDT caused by uninitialized USB-Serial/JTAG driver + busy-loop retry.
+- The new crash is not a WDT; it’s a stack overflow/panic likely inside PNG encoding.
+
+### What warrants a second pair of eyes
+- Whether the preferred long-term approach is:
+  - a dedicated screenshot task with an explicit larger stack budget (recommended), or
+  - increasing `CONFIG_ESP_MAIN_TASK_STACK_SIZE`, or
+  - switching screenshot format away from PNG (QOI/raw) for a debug-safe path.
+
 ## Quick Reference
 
 <!-- Provide copy/paste-ready content, API contracts, or quick-look tables -->

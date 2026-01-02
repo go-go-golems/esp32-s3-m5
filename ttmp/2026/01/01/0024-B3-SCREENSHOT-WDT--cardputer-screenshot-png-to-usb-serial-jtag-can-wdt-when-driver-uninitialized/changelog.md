@@ -55,3 +55,12 @@ Postmortem now explicitly links to the original captured backtrace/stacktrace an
 
 Closed: root cause identified and fixed (commit da2f85f) + postmortem written. Remaining: end-to-end validation of PNG capture and fail-fast behavior (tasks 4,7).
 
+
+## 2026-01-01
+
+Noted follow-up crash during screenshot send: stack overflow in main; tracked separately in 0026
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/reference/01-diary.md — Added Step 3 follow-up crash context
+
