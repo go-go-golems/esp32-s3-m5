@@ -1,7 +1,7 @@
 ---
 Title: 'Cardputer: screenshot PNG to USB-Serial/JTAG can WDT when driver uninitialized'
 Ticket: 0024-B3-SCREENSHOT-WDT
-Status: review
+Status: closed
 Topics:
     - cardputer
     - m5gfx
@@ -22,10 +22,11 @@ RelatedFiles:
       Note: New-developer postmortem (what/why/how fixed + future pitfalls)
 ExternalSources: []
 Summary: B3 screenshot-to-serial can spin forever when USB-Serial/JTAG driver is unavailable and trigger Task WDT.
-LastUpdated: 2026-01-01T21:41:03.224600831-05:00
+LastUpdated: 2026-01-01T23:12:43.968917823-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
