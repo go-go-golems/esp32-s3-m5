@@ -25,3 +25,14 @@ Flashed 0025-cardputer-lvgl-demo to Cardputer; demo UI appears to work on hardwa
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 3 flash smoke test notes
 
+
+## 2026-01-01
+
+Added demo menu + Pomodoro screen; refactored Basics into demo catalog; build+flash verified.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_manager.cpp — Screen switching + shared LVGL group
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp — Pomodoro UI + timer + key controls
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/design-doc/01-lvgl-demo-menu-screen-architecture-cardputer.md — Design for menu/screen architecture
+

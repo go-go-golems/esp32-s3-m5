@@ -23,6 +23,12 @@ RelatedFiles:
       Note: Step 3 flash workflow + tmux monitor guidance
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
       Note: Step 2 UI loop + stable UiState callbacks
+    - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
+      Note: Step 4 screen switching and shared group
+    - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
+      Note: Step 4 menu screen implementation
+    - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
+      Note: Step 4 Pomodoro screen implementation
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: Step 2 display flush + tick timer
     - Path: 0025-cardputer-lvgl-demo/sdkconfig.defaults
@@ -35,6 +41,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -187,6 +194,54 @@ I didn’t capture a full interactive `idf.py monitor` session from this CLI env
 
 ### Code review instructions
 - Flash+monitor (recommended): `cd esp32-s3-m5/0025-cardputer-lvgl-demo && ./build.sh tmux-flash-monitor`
+
+## Step 4: Add demo menu + Pomodoro screen
+
+This step turns the firmware from a single-screen bring-up into a tiny “demo catalog” by introducing a menu screen and a lightweight screen manager. The menu allows selecting demos from the keyboard, and we add a Pomodoro screen that uses LVGL’s `lv_arc` with a big time label and timer-driven updates to feel smooth on the Cardputer display.
+
+The key technical choice here is to keep a single shared `lv_group_t` and re-bind focusable objects per screen. That keeps keypad routing predictable and avoids accumulating groups. Another important detail is that “Esc returns to menu” is implemented globally in the app loop so it works even when focus is inside a textarea.
+
+### What I did
+- Added a demo manager and screens:
+  - Menu screen (select demo)
+  - Basics screen (textarea + clear button, refactored from the original single-screen demo)
+  - Pomodoro screen (arc ring + big MM:SS + timer-based tick)
+- Updated keyboard delivery so the app can see the translated LVGL keycode (for global `Esc` handling and “last key” display).
+- Built and flashed the updated firmware.
+
+### Why
+- Make the firmware useful as a multi-demo baseline.
+- Provide a polished Pomodoro example that exercises LVGL widgets, fonts, and timers.
+
+### What worked
+- `./build.sh build` succeeds after adding the new screens and manager.
+- `./build.sh -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_* flash` succeeds.
+
+### What didn't work
+- Still cannot capture `idf.py monitor` output from this harness (requires TTY). Use `tmux-flash-monitor` for live logs.
+
+### What I learned
+- Managing focus via a single shared `lv_group_t` is the simplest way to keep LVGL keypad routing sane across screen switches.
+
+### What was tricky to build
+- LVGL key events go to the focused object. For the Basics demo, we must add the textarea and button (not just the screen root) to the group so typing and “Enter to click” both work.
+- Font availability depends on LVGL config. The Pomodoro screen uses a small helper to pick the “best available” font at compile time.
+
+### What warrants a second pair of eyes
+- Screen switching safety: calling `lv_scr_load()` from an LVGL event callback is generally OK, but we should watch for any LVGL re-entrancy edge cases.
+- Global `Esc` handling: confirm it doesn’t interfere with any future text-entry needs (it currently bypasses LVGL and immediately returns to menu).
+
+### What should be done in the future
+- If we add more demos, consider turning the menu into a scrollable list and adding a “demo description” panel (still keyboard-first).
+- Capture a boot log in a real terminal and paste it into the diary for regression checks.
+
+### Code review instructions
+- Start in:
+  - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_manager.cpp`
+  - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_menu.cpp`
+  - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp`
+- Build: `cd esp32-s3-m5/0025-cardputer-lvgl-demo && ./build.sh build`
+- Flash: `cd esp32-s3-m5/0025-cardputer-lvgl-demo && ./build.sh flash`
 
 ## Quick Reference
 
