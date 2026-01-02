@@ -8,16 +8,10 @@
 #include "M5GFX.h"
 #include "lgfx/v1/LGFX_Sprite.hpp"
 
-#include "kb_scan.h"
+#include "cardputer_kb/layout.h"
+#include "cardputer_kb/scanner.h"
 
 static const char *TAG = "kb_scancode_cal";
-
-static const char *kKeyLegend[4][14] = {
-    {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "del"},
-    {"tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"},
-    {"fn", "shift", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "enter"},
-    {"ctrl", "opt", "alt", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "space"},
-};
 
 static std::string join_keynums(const std::vector<uint8_t> &nums) {
     std::string s;
@@ -30,7 +24,7 @@ static std::string join_keynums(const std::vector<uint8_t> &nums) {
     return s;
 }
 
-static bool pos_is_pressed(const std::vector<KeyPos> &pressed, int x, int y) {
+static bool pos_is_pressed(const std::vector<cardputer_kb::KeyPos> &pressed, int x, int y) {
     for (const auto &p : pressed) {
         if (p.x == x && p.y == y) {
             return true;
@@ -51,14 +45,14 @@ extern "C" void app_main(void) {
     screen.setFont(&fonts::Font0);
     screen.setTextSize(1);
 
-    KbScanner kb;
+    cardputer_kb::MatrixScanner kb;
     kb.init();
 
     std::vector<uint8_t> last_keynums;
     int64_t last_render_us = 0;
 
     while (true) {
-        ScanSnapshot snap = kb.scan();
+        cardputer_kb::ScanSnapshot snap = kb.scan();
         if (snap.pressed_keynums != last_keynums) {
             last_keynums = snap.pressed_keynums;
             if (!last_keynums.empty()) {
@@ -102,7 +96,7 @@ extern "C" void app_main(void) {
                 screen.setCursor(x0 + 2, y0 + 2);
                 screen.printf("%d", keynum);
                 screen.setCursor(x0 + 2, y0 + 10);
-                screen.printf("%s", kKeyLegend[y][x]);
+                screen.printf("%s", cardputer_kb::legend_for_xy(x, y));
             }
         }
 
@@ -121,4 +115,3 @@ extern "C" void app_main(void) {
         vTaskDelay(1);
     }
 }
-

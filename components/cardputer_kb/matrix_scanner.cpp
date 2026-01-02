@@ -1,4 +1,4 @@
-#include "kb_scan.h"
+#include "cardputer_kb/scanner.h"
 
 #include <algorithm>
 
@@ -6,7 +6,9 @@
 #include "esp_log.h"
 #include "esp_rom_sys.h"
 
-static const char *TAG = "kb_scan";
+#include "cardputer_kb/layout.h"
+
+static const char *TAG = "cardputer_kb";
 
 static constexpr int kOutPins[3] = {8, 9, 11};
 static constexpr int kInPinsPrimary[7] = {13, 15, 3, 4, 5, 6, 7};
@@ -30,14 +32,7 @@ static inline uint8_t kb_get_input_mask(const int pins[7]) {
     return mask;
 }
 
-static inline uint8_t keynum_from_pos(const KeyPos &p) {
-    if (p.x < 0 || p.x > 13 || p.y < 0 || p.y > 3) {
-        return 0;
-    }
-    return (uint8_t)((p.y * 14) + (p.x + 1));
-}
-
-void KbScanner::init() {
+void cardputer_kb::MatrixScanner::init() {
     for (int i = 0; i < 3; i++) {
         int pin = kOutPins[i];
         gpio_reset_pin((gpio_num_t)pin);
@@ -60,7 +55,7 @@ void KbScanner::init() {
     kb_set_output(0);
 }
 
-ScanSnapshot KbScanner::scan() {
+cardputer_kb::ScanSnapshot cardputer_kb::MatrixScanner::scan() {
     ScanSnapshot snap;
     snap.use_alt_in01 = use_alt_in01_;
 
@@ -113,7 +108,7 @@ ScanSnapshot KbScanner::scan() {
 
     snap.pressed_keynums.reserve(snap.pressed.size());
     for (const auto &p : snap.pressed) {
-        uint8_t kn = keynum_from_pos(p);
+        uint8_t kn = keynum_from_xy(p.x, p.y);
         if (kn != 0) {
             snap.pressed_keynums.push_back(kn);
         }

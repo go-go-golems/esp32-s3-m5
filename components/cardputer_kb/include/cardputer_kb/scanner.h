@@ -4,6 +4,8 @@
 
 #include <vector>
 
+namespace cardputer_kb {
+
 struct KeyPos {
     int x; // 0..13
     int y; // 0..3
@@ -17,7 +19,9 @@ struct ScanSnapshot {
     std::vector<uint8_t> pressed_keynums;
 };
 
-class KbScanner {
+// Matrix scanner for Cardputer keyboard.
+// Returns physical key positions and vendor-style keyNum values (1..56).
+class MatrixScanner {
   public:
     void init();
     ScanSnapshot scan();
@@ -25,4 +29,6 @@ class KbScanner {
   private:
     bool use_alt_in01_ = false;
 };
+
+} // namespace cardputer_kb
 
