@@ -98,3 +98,31 @@ This step implements the chosen fix: perform `createPng()` and the USB-Serial/JT
   - `screenshot_png_to_usb_serial_jtag_impl()`
   - `screenshot_task()`
   - `ScreenshotTaskArgs`
+
+## Step 3: Validate host capture after task-based fix
+
+This step validates the end-to-end capture loop: device emits framed PNG bytes, host script saves a valid PNG, and the device stays responsive (no WDT, no stack overflow).
+
+### What I did
+- Flashed the demo-suite and ran the host capture tool:
+  - `python3 esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/tools/capture_screenshot_png.py /dev/serial/by-id/... /tmp/cardputer_demo.png`
+- Triggered screenshot (`P`) on the device while the script was running.
+
+### What worked
+- Host reported: `wrote /tmp/cardputer_demo.png (2140 bytes)`
+- `file /tmp/cardputer_demo.png` reports a valid PNG: `240 x 135, 8-bit/color RGB`
+
+### What didn't work
+- N/A for this step.
+
+### What I learned
+- The task-based approach fixes the observed stack overflow while preserving the existing PNG framing protocol.
+
+### What was tricky to build
+- N/A (validation step).
+
+### What warrants a second pair of eyes
+- Whether we should surface a “screenshot succeeded/failed” toast on-device (currently validation is mostly host-side).
+
+### What should be done in the future
+- Consider capturing the worker task’s stack high-water mark in logs (optional) so we can lock in a minimum safe stack size.

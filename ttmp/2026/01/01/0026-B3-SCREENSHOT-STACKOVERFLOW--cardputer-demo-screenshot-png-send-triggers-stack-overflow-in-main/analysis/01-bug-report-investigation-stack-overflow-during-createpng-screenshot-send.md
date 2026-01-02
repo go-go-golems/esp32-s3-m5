@@ -48,6 +48,10 @@ Backtrace: 0x40375c2d:0x3fc9b780 0x4037b75d:0x3fc9b7a0 ...
 --- vTaskSwitchContext ...
 ```
 
+Additional context from the same report:
+
+- `ELF file SHA256: 9d390e569` (as printed by panic handler; truncated in the pasted snippet)
+
 ## Expected behavior
 
 - Screenshot send should not crash the firmware.
@@ -93,6 +97,23 @@ Avoid running stack-heavy PNG encode in the `main` task:
 - Block `main` until the task finishes (so display access remains serialized and we don’t contend with the render loop).
 
 This avoids patching the upstream M5GFX/miniz implementation while keeping the screenshot feature.
+
+## Fix status
+
+Implemented in the demo-suite:
+
+- Commit `9087658` — "Fix: avoid main stack overflow on screenshot"
+  - `screenshot_png_to_usb_serial_jtag()` now runs encode+send in a worker task (`screenshot_task`) with a larger stack and blocks until completion.
+
+## Validation results (post-fix)
+
+Host-side capture succeeded after flashing the fix:
+
+- Command:
+  - `python3 esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/tools/capture_screenshot_png.py /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00 /tmp/cardputer_demo.png`
+- Result:
+  - `wrote /tmp/cardputer_demo.png (2140 bytes)`
+  - `/tmp/cardputer_demo.png: PNG image data, 240 x 135, 8-bit/color RGB, non-interlaced`
 
 ## Files / symbols to review first
 
