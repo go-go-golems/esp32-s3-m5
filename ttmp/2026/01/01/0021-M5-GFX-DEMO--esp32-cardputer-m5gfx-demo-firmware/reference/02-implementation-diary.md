@@ -14,18 +14,21 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp
+    - Path: esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp
       Note: Demo-suite firmware scaffold (display init + keyboard + list view)
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_list_view.h
-      Note: Reusable ListView widget API (A2)
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
+    - Path: esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
       Note: Cardputer matrix keyboard scanner used for input mapping
+    - Path: esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_list_view.h
+      Note: Reusable ListView widget API (A2)
+    - Path: esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md
+      Note: Bug report ticket created after real-device WDT during screenshot send
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
 LastUpdated: 2026-01-02T02:20:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Implementation diary
 
@@ -362,3 +365,56 @@ This step updates the ticket task list to reflect that the “inventory” and �
 
 ### What should be done in the future
 - Decide the asset strategy next (SD vs embedded) before implementing image-heavy demos, to avoid rework.
+
+## Step 10: Bug report — screenshot-to-serial can WDT if USB-Serial/JTAG driver is not initialized
+
+This step records a real-device failure encountered while using the B3 screenshot feature. The key outcome is that the current `serial_write_all()` implementation can spin forever when `usb_serial_jtag_write_bytes()` returns `<= 0`, and that failure mode can spiral into watchdog resets due to log spam and IDLE starvation.
+
+I opened a dedicated bug ticket with a detailed reproduction hypothesis and pointers for a fix: `0024-B3-SCREENSHOT-WDT`.
+
+### What I did
+- Captured the reported console output showing repeated `usb_serial_jtag_write_bytes(...): The driver hasn't been initialized` and a subsequent Task WDT backtrace into:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp`
+  - `serial_write_all()`
+- Created the bug ticket + bug report doc:
+  - `esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md`
+
+### Why
+- The screenshot feature is meant to accelerate UI iteration and debugging; if it can brick the device loop, it becomes too risky to use during development.
+
+### What worked
+- The backtrace clearly implicates the screenshot path and provides line numbers in our code (`screenshot_png.cpp:13`, `:31`).
+
+### What didn't work
+- The current screenshot send loop can be an infinite retry loop when the USB-Serial/JTAG driver is unavailable, and it has no backoff/yield.
+
+### What I learned
+- `usb_serial_jtag_write_bytes()` can fail in a way that is not “temporary” (driver not initialized). In that case, retrying forever is incorrect and can cascade into WDT resets.
+
+### What was tricky to build
+- This is a cross-layer failure (ESP-IDF console config + driver init + app-level retry logic). The “right” fix likely touches both Kconfig choices and app behavior (guard, bounded timeouts, yielding).
+
+### What warrants a second pair of eyes
+- Decide whether we should:
+  - explicitly install/guard the USB-Serial/JTAG driver in the app (recommended for B3), or
+  - change the demo-suite’s console configuration so the driver is always installed, or
+  - both.
+
+### What should be done in the future
+- Fix `serial_write_all()` to fail fast on permanent errors and yield/bound retries on transient “0 bytes written” conditions.
+- Add a small on-screen toast indicating screenshot send success/failure (after the send completes).
+
+### Code review instructions
+- Start with `esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md` and then inspect:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` (`serial_write_all`)
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/sdkconfig` (`CONFIG_ESP_CONSOLE_*`)
+
+### Technical details
+- The reported error/wdt sequence includes:
+  - `usb_serial_jtag_write_bytes(269): The driver hasn't been initialized`
+  - `task_wdt: ... IDLE0 (CPU 0)`
+
+Additional log context from a later repro suggests this often happens after navigating to the “B3 Screenshot” scene (then triggering the screenshot send):
+
+- `cardputer_m5gfx_demo_suite: open: idx=4 scene=B3 Screenshot`
+- followed by repeated `usb_serial_jtag_write_bytes(...): The driver hasn't been initialized`

@@ -123,3 +123,13 @@ Uploaded five starter-scenario implementation guide PDFs to reMarkable under ai/
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/04-implementation-guide-frame-time-perf-overlay-b2.md — Published to reMarkable
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/05-implementation-guide-terminal-log-console-e1.md — Published to reMarkable
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/06-implementation-guide-screenshot-to-serial-b3.md — Published to reMarkable
+
+## 2026-01-01
+
+Opened bug ticket 0024 for B3 screenshot-to-serial WDT (USB-Serial/JTAG driver not initialized + busy-loop).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — Screenshot send path implicated in watchdog
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0024-B3-SCREENSHOT-WDT--cardputer-screenshot-png-to-usb-serial-jtag-can-wdt-when-driver-uninitialized/analysis/01-bug-report-usb-serial-jtag-write-bytes-not-initialized-busy-loop-causes-wdt-during-screenshot.md — Bug report with backtrace and fix direction
+
