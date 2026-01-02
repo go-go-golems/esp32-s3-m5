@@ -20,3 +20,7 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=10000
 # The LVGL managed component uses Kconfig; this disables compiling the full examples set.
 # CONFIG_LV_BUILD_EXAMPLES is not set
 CONFIG_LV_MEM_SIZE_KILOBYTES=64
+
+# Fonts (needed for the Pomodoro "premium" layout).
+CONFIG_LV_FONT_MONTSERRAT_12=y
+CONFIG_LV_FONT_MONTSERRAT_32=y

@@ -23,8 +23,22 @@ idf.py flash monitor
 
 ## Controls
 
-- Type into the text area (letters, digits, punctuation).
-- `Enter`: activate focused widget (e.g. press the button).
-- `Tab`: move focus to the next widget.
-- Fn-chord navigation (if captured by the keyboard binding decoder): Up/Down/Left/Right.
+### Menu
 
+- `Up` / `Down`: select demo
+- `Enter` / `Space`: open selected demo
+- `Esc`: return to menu (from any demo)
+
+### Basics demo
+
+- Type into the text area (letters, digits, punctuation).
+- `Tab`: move focus (textarea ↔ button)
+- `Enter`: activate focused widget (e.g. press the button)
+- `Esc`: return to menu
+
+### Pomodoro demo
+
+- `Space` / `Enter`: start / pause
+- `R` / `Backspace`: reset
+- `[` / `]`: -1 / +1 minute (when paused)
+- `Esc`: return to menu

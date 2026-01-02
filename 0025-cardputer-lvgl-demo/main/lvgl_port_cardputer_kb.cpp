@@ -2,6 +2,24 @@
 
 #include <deque>
 
+uint32_t lvgl_port_cardputer_kb_translate(const KeyEvent &ev) {
+    if (ev.key == "up") return LV_KEY_UP;
+    if (ev.key == "down") return LV_KEY_DOWN;
+    if (ev.key == "left") return LV_KEY_LEFT;
+    if (ev.key == "right") return LV_KEY_RIGHT;
+    if (ev.key == "enter") return LV_KEY_ENTER;
+    if (ev.key == "tab") return LV_KEY_NEXT;
+    if (ev.key == "esc") return LV_KEY_ESC;
+    if (ev.key == "bksp") return LV_KEY_BACKSPACE;
+    if (ev.key == "space") return (uint32_t)' ';
+
+    if (ev.key.size() == 1) {
+        return (uint32_t)(unsigned char)ev.key[0];
+    }
+
+    return 0;
+}
+
 namespace {
 
 struct KeyQueue {
@@ -27,24 +45,6 @@ struct KeyQueue {
 
 static KeyQueue s_queue;
 static lv_indev_t *s_indev = nullptr;
-
-static uint32_t lv_key_from_event(const KeyEvent &ev) {
-    if (ev.key == "up") return LV_KEY_UP;
-    if (ev.key == "down") return LV_KEY_DOWN;
-    if (ev.key == "left") return LV_KEY_LEFT;
-    if (ev.key == "right") return LV_KEY_RIGHT;
-    if (ev.key == "enter") return LV_KEY_ENTER;
-    if (ev.key == "tab") return LV_KEY_NEXT;
-    if (ev.key == "esc") return LV_KEY_ESC;
-    if (ev.key == "bksp") return LV_KEY_BACKSPACE;
-    if (ev.key == "space") return (uint32_t)' ';
-
-    if (ev.key.size() == 1) {
-        return (uint32_t)(unsigned char)ev.key[0];
-    }
-
-    return 0;
-}
 
 static void indev_read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
     (void)drv;
@@ -72,10 +72,9 @@ lv_indev_t *lvgl_port_cardputer_kb_init(void) {
 
 void lvgl_port_cardputer_kb_feed(const std::vector<KeyEvent> &events) {
     for (const auto &ev : events) {
-        const uint32_t key = lv_key_from_event(ev);
+        const uint32_t key = lvgl_port_cardputer_kb_translate(ev);
         if (key != 0) {
             s_queue.push(key);
         }
     }
 }
-
