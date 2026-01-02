@@ -9,8 +9,13 @@ Reusable Cardputer keyboard matrix scan + layout helpers.
   - vendor-style `keyNum` (`y*14 + (x+1)`)
 - Optional alt IN0/IN1 autodetect (`{13,15,...}` → `{1,2,...}`).
 - Static key legend table (same as vendor HAL) for UI/debug output.
+- Optional semantic binding decoder (actions → required chords), with captured examples.
 
 ## Why this exists
 
 We have multiple firmwares that need a consistent definition of “which physical key is pressed”, especially for Fn-combos (arrow navigation etc). This component keeps that logic in one place.
 
+## Developer docs
+
+- Reference: `components/cardputer_kb/REFERENCE.md`
+- Tutorial: `components/cardputer_kb/TUTORIAL.md`
