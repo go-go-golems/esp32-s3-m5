@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-GENERATOR="${ROOT_DIR}/main/esp_stdlib_gen"
+GENERATOR="${ROOT_DIR}/tools/esp_stdlib_gen/esp_stdlib_gen"
 OUT_FILE="${ROOT_DIR}/main/esp32_stdlib.h"
 ATOM_FILE="${ROOT_DIR}/components/mquickjs/mquickjs_atom.h"
 
