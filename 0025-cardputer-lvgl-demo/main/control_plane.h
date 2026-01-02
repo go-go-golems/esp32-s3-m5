@@ -8,15 +8,19 @@
 #include "freertos/task.h"
 
 enum class CtrlType : uint8_t {
-    ScreenshotPngToUsbSerialJtag = 1,
+    OpenMenu = 1,
+    OpenBasics = 2,
+    OpenPomodoro = 3,
+    PomodoroSetMinutes = 4,
+    ScreenshotPngToUsbSerialJtag = 5,
 };
 
 struct CtrlEvent {
     CtrlType type{};
+    int32_t arg = 0;
     TaskHandle_t reply_task = nullptr;
 };
 
 QueueHandle_t ctrl_create_queue(size_t len);
 bool ctrl_send(QueueHandle_t q, const CtrlEvent &ev, TickType_t wait);
 bool ctrl_recv(QueueHandle_t q, CtrlEvent *out, TickType_t wait);
-

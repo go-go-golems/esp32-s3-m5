@@ -10,6 +10,7 @@ lv_obj_t *demo_basics_create(DemoManager *mgr);
 void demo_basics_bind_group(DemoManager *mgr);
 lv_obj_t *demo_pomodoro_create(DemoManager *mgr);
 void demo_pomodoro_bind_group(DemoManager *mgr);
+void demo_pomodoro_apply_minutes(DemoManager *mgr, int minutes);
 
 static lv_obj_t *create_screen_for(DemoManager *mgr, DemoId id) {
     switch (id) {
@@ -70,4 +71,15 @@ bool demo_manager_handle_global_key(DemoManager *mgr, uint32_t key) {
     }
 
     return false;
+}
+
+void demo_manager_pomodoro_set_minutes(DemoManager *mgr, int minutes) {
+    if (!mgr) return;
+    if (minutes < 1) minutes = 1;
+    if (minutes > 99) minutes = 99;
+    mgr->pomodoro_minutes = minutes;
+
+    if (mgr->active == DemoId::Pomodoro) {
+        demo_pomodoro_apply_minutes(mgr, minutes);
+    }
 }

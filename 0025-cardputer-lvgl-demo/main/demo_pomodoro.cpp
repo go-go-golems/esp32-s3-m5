@@ -205,7 +205,8 @@ lv_obj_t *demo_pomodoro_create(DemoManager *mgr) {
     lv_obj_add_event_cb(p->root, key_cb, LV_EVENT_KEY, p);
     lv_obj_add_flag(p->root, LV_OBJ_FLAG_CLICK_FOCUSABLE);
 
-    set_duration_minutes(p, 25);
+    const int minutes = mgr ? mgr->pomodoro_minutes : 25;
+    set_duration_minutes(p, minutes);
     p->last_tick_ms = lv_tick_get();
     p->tick_timer = lv_timer_create(tick_cb, 50, p);
 
@@ -217,4 +218,9 @@ void demo_pomodoro_bind_group(DemoManager *mgr) {
     if (!s_pomodoro || !s_pomodoro->root) return;
     lv_group_add_obj(mgr->group, s_pomodoro->root);
     lv_group_focus_obj(s_pomodoro->root);
+}
+
+void demo_pomodoro_apply_minutes(DemoManager *, int minutes) {
+    if (!s_pomodoro) return;
+    set_duration_minutes(s_pomodoro, minutes);
 }

@@ -95,7 +95,15 @@ extern "C" void app_main(void) {
         // This ensures no cross-thread LVGL or display access.
         CtrlEvent ev{};
         while (ctrl_recv(ctrl_q, &ev, 0)) {
-            if (ev.type == CtrlType::ScreenshotPngToUsbSerialJtag) {
+            if (ev.type == CtrlType::OpenMenu) {
+                demo_manager_load(&demos, DemoId::Menu);
+            } else if (ev.type == CtrlType::OpenBasics) {
+                demo_manager_load(&demos, DemoId::Basics);
+            } else if (ev.type == CtrlType::OpenPomodoro) {
+                demo_manager_load(&demos, DemoId::Pomodoro);
+            } else if (ev.type == CtrlType::PomodoroSetMinutes) {
+                demo_manager_pomodoro_set_minutes(&demos, (int)ev.arg);
+            } else if (ev.type == CtrlType::ScreenshotPngToUsbSerialJtag) {
                 size_t len = 0;
                 const bool ok = screenshot_png_to_usb_serial_jtag_ex(display, &len);
                 const uint32_t notify = ok ? (uint32_t)len : 0U;

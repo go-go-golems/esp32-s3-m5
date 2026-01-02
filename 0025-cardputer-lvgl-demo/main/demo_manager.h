@@ -15,6 +15,7 @@ struct DemoManager {
     lv_group_t *group = nullptr;
     DemoId active = DemoId::Menu;
     uint32_t last_key = 0;
+    int pomodoro_minutes = 25;
 };
 
 // Initializes global LVGL focus behavior for demos (group, indev binding, etc).
@@ -25,3 +26,6 @@ void demo_manager_load(DemoManager *mgr, DemoId id);
 
 // Convenience used by the app loop to treat Esc as "back to menu".
 bool demo_manager_handle_global_key(DemoManager *mgr, uint32_t key);
+
+// Update the default Pomodoro duration and apply it if the screen is active.
+void demo_manager_pomodoro_set_minutes(DemoManager *mgr, int minutes);
