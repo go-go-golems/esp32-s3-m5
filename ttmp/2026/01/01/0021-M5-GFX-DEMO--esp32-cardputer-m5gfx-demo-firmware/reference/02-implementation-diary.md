@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T02:10:00Z
+LastUpdated: 2026-01-02T02:20:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -332,3 +332,33 @@ This step adds a “developer workflow” feature: capture the current UI as a P
 - Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp` and confirm:
   - framing protocol is stable
   - `free(png)` matches the allocator used by `createPng`
+
+## Step 9: Close out doc-only tasks (inventory + UX scope)
+
+This step updates the ticket task list to reflect that the “inventory” and “firmware UX/scope” work is already captured in the existing analysis/design docs, so implementation can focus on remaining gaps (assets + additional demo modules).
+
+### What I did
+- Marked these tasks as complete in the ticket task list:
+  - “Finish exhaustive M5GFX feature inventory”
+  - “Define demo-suite firmware scope and UX”
+
+### Why
+- The work exists in the ticket workspace already; leaving those unchecked made it unclear what “next” should be.
+
+### What worked
+- N/A (documentation bookkeeping).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- N/A.
+
+### What was tricky to build
+- Avoiding “task drift”: checking items off only after confirming there are no lingering TODOs/TBDs in the docs.
+
+### What warrants a second pair of eyes
+- Confirm the inventory doc is truly complete enough for your intended “coverage” definition, and whether any missing demos should be added to the plan.
+
+### What should be done in the future
+- Decide the asset strategy next (SD vs embedded) before implementing image-heavy demos, to avoid rework.

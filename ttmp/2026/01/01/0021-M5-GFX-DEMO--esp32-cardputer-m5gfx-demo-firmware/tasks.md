@@ -2,8 +2,8 @@
 
 ## TODO
 
-- [ ] Finish exhaustive M5GFX feature inventory (API + files + demos)
-- [ ] Define demo-suite firmware scope and UX (menu/navigation, keyboard controls)
+- [x] Finish exhaustive M5GFX feature inventory (API + files + demos)
+- [x] Define demo-suite firmware scope and UX (menu/navigation, keyboard controls)
 - [ ] Decide asset strategy (embedded arrays vs SD card; formats: BMP/JPG/PNG/QOI)
 - [x] Create new ESP-IDF project under `esp32-s3-m5/` for the demo suite
 - [x] Implement shared infrastructure: display init, frame loop, input, scene switcher
