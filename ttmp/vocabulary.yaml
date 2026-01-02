@@ -43,6 +43,14 @@ topics:
       description: Keyboards and HID input (BLE/USB)
     - slug: sensors
       description: Hardware sensor integration (I2C/SPI/ADC/etc)
+    - slug: tooling
+      description: Build/debug/flash helper tooling
+    - slug: tmux
+      description: tmux-based development workflows
+    - slug: flashing
+      description: Flashing firmware to devices
+    - slug: esp32
+      description: ESP32 family (generic; not S2/S3 specific)
 docTypes:
     - slug: index
       description: Ticket index document
