@@ -66,6 +66,12 @@ static void key_cb(lv_event_t *e) {
         open_selected(st);
         return;
     }
+
+    // Allow "Esc/back" to re-open the selected demo (useful muscle memory).
+    if (key == LV_KEY_ESC) {
+        open_selected(st);
+        return;
+    }
 }
 
 } // namespace
@@ -103,7 +109,7 @@ lv_obj_t *demo_menu_create(DemoManager *mgr) {
     }
 
     lv_obj_t *hint = lv_label_create(s_menu.root);
-    lv_label_set_text(hint, "Up/Down select  Enter open  Esc back");
+    lv_label_set_text(hint, "Up/Down select  Enter open");
     lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
 

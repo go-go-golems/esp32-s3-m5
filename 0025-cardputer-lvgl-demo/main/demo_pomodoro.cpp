@@ -177,7 +177,7 @@ lv_obj_t *demo_pomodoro_create(DemoManager *mgr) {
 
     lv_obj_t *hint = lv_label_create(s_pomodoro.root);
     lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
-    lv_label_set_text(hint, "Space start/pause  R reset  [ ] minutes  Esc menu");
+    lv_label_set_text(hint, "Space start/pause  R reset  [ ] minutes  Fn+` menu");
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
 
     lv_obj_add_event_cb(s_pomodoro.root, key_cb, LV_EVENT_KEY, &s_pomodoro);

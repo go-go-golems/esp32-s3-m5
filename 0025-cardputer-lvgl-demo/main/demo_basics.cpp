@@ -76,7 +76,7 @@ lv_obj_t *demo_basics_create(DemoManager *mgr) {
 
     lv_obj_t *hint = lv_label_create(s_basics.root);
     lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
-    lv_label_set_text(hint, "Type  Tab focus  Enter click  Esc menu");
+    lv_label_set_text(hint, "Type  Tab focus  Enter click  Fn+` menu");
     lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
 
     s_basics.status_timer = lv_timer_create(status_timer_cb, 250, &s_basics);

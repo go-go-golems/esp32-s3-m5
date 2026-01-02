@@ -150,4 +150,3 @@ std::vector<KeyEvent> CardputerKeyboard::poll() {
     prev_pressed_keynums_ = down_keynums;
     return events;
 }
-

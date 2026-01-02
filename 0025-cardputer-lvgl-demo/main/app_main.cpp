@@ -80,6 +80,7 @@ extern "C" void app_main(void) {
         lvgl_port_cardputer_kb_feed(filtered);
 
         lv_timer_handler();
-        vTaskDelay(pdMS_TO_TICKS(5));
+        // Ensure we actually block for >= 1 RTOS tick; otherwise IDLE0 can starve and trip task_wdt.
+        vTaskDelay(1);
     }
 }

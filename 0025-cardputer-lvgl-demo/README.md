@@ -27,18 +27,18 @@ idf.py flash monitor
 
 - `Up` / `Down`: select demo
 - `Enter` / `Space`: open selected demo
-- `Esc`: return to menu (from any demo)
+- `Fn + \``: return to menu (from any demo)
 
 ### Basics demo
 
 - Type into the text area (letters, digits, punctuation).
 - `Tab`: move focus (textarea ↔ button)
 - `Enter`: activate focused widget (e.g. press the button)
-- `Esc`: return to menu
+- `Fn + \``: return to menu
 
 ### Pomodoro demo
 
 - `Space` / `Enter`: start / pause
 - `R` / `Backspace`: reset
 - `[` / `]`: -1 / +1 minute (when paused)
-- `Esc`: return to menu
+- `Fn + \``: return to menu
