@@ -75,6 +75,19 @@ static int cmd_pomodoro(int, char **) {
     return 0;
 }
 
+static int cmd_console(int, char **) {
+    if (!ensure_ctrl_queue()) return 1;
+
+    CtrlEvent ev{};
+    ev.type = CtrlType::OpenSplitConsole;
+    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
+        printf("ERR: console busy (queue full)\n");
+        return 1;
+    }
+    printf("OK\n");
+    return 0;
+}
+
 static int cmd_setmins(int argc, char **argv) {
     if (!ensure_ctrl_queue()) return 1;
     if (argc < 2 || !argv[1] || argv[1][0] == '\0') {
@@ -159,6 +172,12 @@ static void console_register_commands(void) {
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = {};
+    cmd.command = "console";
+    cmd.help = "Open the SplitConsole demo screen";
+    cmd.func = &cmd_console;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = {};
     cmd.command = "setmins";
     cmd.help = "Set Pomodoro duration in minutes (1-99)";
     cmd.func = &cmd_setmins;
@@ -201,6 +220,7 @@ void console_start(QueueHandle_t ctrl_queue) {
         return;
     }
 
-    ESP_LOGI(TAG, "esp_console started over USB-Serial/JTAG (commands: help, heap, menu, basics, pomodoro, setmins, screenshot)");
+    ESP_LOGI(TAG,
+             "esp_console started over USB-Serial/JTAG (commands: help, heap, menu, basics, pomodoro, console, setmins, screenshot)");
 #endif
 }

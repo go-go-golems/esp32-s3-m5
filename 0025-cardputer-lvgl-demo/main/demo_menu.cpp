@@ -6,18 +6,20 @@
 
 namespace {
 
+static constexpr int kItemCount = 3;
+
 struct MenuState {
     DemoManager *mgr = nullptr;
     lv_obj_t *root = nullptr;
-    lv_obj_t *rows[2] = {nullptr, nullptr};
-    lv_obj_t *labels[2] = {nullptr, nullptr};
+    lv_obj_t *rows[kItemCount] = {nullptr};
+    lv_obj_t *labels[kItemCount] = {nullptr};
     int selected = 0;
 };
 
 static MenuState s_menu;
 
 static void apply_row_style(MenuState *st, int idx, bool selected) {
-    if (!st || idx < 0 || idx >= 2) return;
+    if (!st || idx < 0 || idx >= kItemCount) return;
     lv_obj_t *row = st->rows[idx];
     lv_obj_t *label = st->labels[idx];
     if (!row || !label) return;
@@ -34,17 +36,20 @@ static void apply_row_style(MenuState *st, int idx, bool selected) {
 
 static void refresh(MenuState *st) {
     if (!st) return;
-    st->selected = std::clamp(st->selected, 0, 1);
-    apply_row_style(st, 0, st->selected == 0);
-    apply_row_style(st, 1, st->selected == 1);
+    st->selected = std::clamp(st->selected, 0, kItemCount - 1);
+    for (int i = 0; i < kItemCount; i++) {
+        apply_row_style(st, i, st->selected == i);
+    }
 }
 
 static void open_selected(MenuState *st) {
     if (!st || !st->mgr) return;
     if (st->selected == 0) {
         demo_manager_load(st->mgr, DemoId::Basics);
-    } else {
+    } else if (st->selected == 1) {
         demo_manager_load(st->mgr, DemoId::Pomodoro);
+    } else {
+        demo_manager_load(st->mgr, DemoId::SplitConsole);
     }
 }
 
@@ -53,12 +58,12 @@ static void key_cb(lv_event_t *e) {
     const uint32_t key = lv_event_get_key(e);
 
     if (key == LV_KEY_UP) {
-        st->selected = (st->selected + 2 - 1) % 2;
+        st->selected = (st->selected + kItemCount - 1) % kItemCount;
         refresh(st);
         return;
     }
     if (key == LV_KEY_DOWN) {
-        st->selected = (st->selected + 1) % 2;
+        st->selected = (st->selected + 1) % kItemCount;
         refresh(st);
         return;
     }
@@ -90,8 +95,8 @@ lv_obj_t *demo_menu_create(DemoManager *mgr) {
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
 
     // Menu rows.
-    static const char *kItems[2] = {"Basics", "Pomodoro"};
-    for (int i = 0; i < 2; i++) {
+    static const char *kItems[kItemCount] = {"Basics", "Pomodoro", "Console"};
+    for (int i = 0; i < kItemCount; i++) {
         lv_obj_t *row = lv_obj_create(s_menu.root);
         s_menu.rows[i] = row;
 

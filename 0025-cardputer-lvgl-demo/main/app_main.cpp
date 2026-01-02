@@ -110,6 +110,8 @@ extern "C" void app_main(void) {
                 if (ev.reply_task) {
                     (void)xTaskNotify(ev.reply_task, notify, eSetValueWithOverwrite);
                 }
+            } else if (ev.type == CtrlType::OpenSplitConsole) {
+                demo_manager_load(&demos, DemoId::SplitConsole);
             }
         }
 

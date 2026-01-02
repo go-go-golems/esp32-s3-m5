@@ -11,12 +11,15 @@ void demo_basics_bind_group(DemoManager *mgr);
 lv_obj_t *demo_pomodoro_create(DemoManager *mgr);
 void demo_pomodoro_bind_group(DemoManager *mgr);
 void demo_pomodoro_apply_minutes(DemoManager *mgr, int minutes);
+lv_obj_t *demo_split_console_create(DemoManager *mgr);
+void demo_split_console_bind_group(DemoManager *mgr);
 
 static lv_obj_t *create_screen_for(DemoManager *mgr, DemoId id) {
     switch (id) {
     case DemoId::Menu: return demo_menu_create(mgr);
     case DemoId::Basics: return demo_basics_create(mgr);
     case DemoId::Pomodoro: return demo_pomodoro_create(mgr);
+    case DemoId::SplitConsole: return demo_split_console_create(mgr);
     }
     return nullptr;
 }
@@ -53,6 +56,7 @@ void demo_manager_load(DemoManager *mgr, DemoId id) {
         case DemoId::Menu: demo_menu_bind_group(mgr); break;
         case DemoId::Basics: demo_basics_bind_group(mgr); break;
         case DemoId::Pomodoro: demo_pomodoro_bind_group(mgr); break;
+        case DemoId::SplitConsole: demo_split_console_bind_group(mgr); break;
         }
     }
 

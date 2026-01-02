@@ -7,6 +7,7 @@ idf_component_register(
         "demo_menu.cpp"
         "demo_basics.cpp"
         "demo_pomodoro.cpp"
+        "demo_split_console.cpp"
         "input_keyboard.cpp"
         "lvgl_port_cardputer_kb.cpp"
         "lvgl_port_m5gfx.cpp"

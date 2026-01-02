@@ -8,6 +8,7 @@ enum class DemoId {
     Menu = 0,
     Basics = 1,
     Pomodoro = 2,
+    SplitConsole = 3,
 };
 
 struct DemoManager {

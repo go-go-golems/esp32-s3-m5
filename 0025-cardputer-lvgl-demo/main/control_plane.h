@@ -13,6 +13,7 @@ enum class CtrlType : uint8_t {
     OpenPomodoro = 3,
     PomodoroSetMinutes = 4,
     ScreenshotPngToUsbSerialJtag = 5,
+    OpenSplitConsole = 6,
 };
 
 struct CtrlEvent {
