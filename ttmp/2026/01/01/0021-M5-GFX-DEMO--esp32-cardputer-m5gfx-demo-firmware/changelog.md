@@ -51,6 +51,14 @@ Implemented starter scenario B3 (screenshot-to-serial) using `createPng()` and U
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/screenshot_png.cpp — PNG capture + serial framing
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/tools/capture_screenshot_png.py — Host capture helper
 
+## 2026-01-02
+
+Decided the asset strategy for the demo suite: use the existing flash-backed `storage` FATFS partition for large assets (images/gifs), and embed only tiny UI icons in firmware.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/08-asset-strategy-storage-partition.md — Asset strategy decision
+
 
 ## 2026-01-01
 
