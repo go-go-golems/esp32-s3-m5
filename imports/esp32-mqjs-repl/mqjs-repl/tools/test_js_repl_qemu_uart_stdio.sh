@@ -76,7 +76,8 @@ python -m esptool --chip=esp32s3 merge_bin \
   --flash_size 8MB \
   0x0 build/bootloader/bootloader.bin \
   0x8000 build/partition_table/partition-table.bin \
-  0x10000 build/mqjs-repl.bin >/dev/null
+  0x10000 build/mqjs-repl.bin \
+  0x410000 build/storage.bin >/dev/null
 
 if ! command -v qemu-system-xtensa >/dev/null 2>&1; then
   echo "qemu-system-xtensa not found on PATH (did you install qemu-xtensa via idf_tools?)" >&2
@@ -125,6 +126,7 @@ sent_mode_js = False
 sent_eval = False
 sent_stats = False
 sent_autoload = False
+sent_autoload_check = False
 
 def write_line(line: str) -> None:
     os.write(master_fd, (line + "\r\n").encode("utf-8"))
@@ -161,7 +163,11 @@ try:
             write_line(":autoload --format")
             sent_autoload = True
 
-        if sent_autoload and (b"autoload:" in buf):
+        if sent_autoload and (b"autoload:" in buf) and (not sent_autoload_check):
+            write_line("globalThis.AUTOLOAD_SEED")
+            sent_autoload_check = True
+
+        if sent_autoload_check and (b"\n123\n" in buf or b"123\r\n" in buf or b"123\n" in buf):
             with open(log_path, "wb") as f:
                 f.write(buf)
             print(f"OK: QEMU JS UART stdio smoke test passed (log: {log_path})", file=sys.stderr)
