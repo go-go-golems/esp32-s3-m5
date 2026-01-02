@@ -24,7 +24,9 @@ RelatedFiles:
     - Path: 0025-cardputer-lvgl-demo/main/action_registry.cpp
       Note: Step 10 action list and CtrlEvent mapping
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
-      Note: Step 2 UI loop + stable UiState callbacks
+      Note: |-
+        Step 2 UI loop + stable UiState callbacks
+        Step 11 perf counters for SysMon
     - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
       Note: Step 10 palette implementation
     - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
@@ -47,6 +49,8 @@ RelatedFiles:
         Step 6 timer cleanup on screen delete
     - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
       Note: Step 9 SplitConsole implementation
+    - Path: 0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp
+      Note: Step 11 SysMon implementation
     - Path: 0025-cardputer-lvgl-demo/main/input_keyboard.cpp
       Note: Step 5 Fn+1 Esc override
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -63,6 +67,7 @@ LastUpdated: 2026-01-01T22:49:10.13641006-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -618,6 +623,68 @@ The key architecture constraint remains unchanged: LVGL is single-threaded. Even
 
 ### What I'd do differently next time
 - Add a tiny host command to “force open palette” earlier in development (before wiring Ctrl+P) to keep screenshot/OCR regression checks fully automated.
+
+## Step 11: Add System Monitor demo (sparklines for heap/DMA/fps-ish)
+
+This step adds a new “System Monitor” demo screen (`SysMon`) to the LVGL demo catalog. It’s intended as a lightweight “top-like” dashboard while developing other demos: it shows free heap, DMA-capable free heap, an approximate UI loop rate, and an “fps-ish” responsiveness signal derived from LVGL handler time. The visualization is a set of small `lv_chart` sparklines updated at a ~250ms cadence.
+
+The design deliberately keeps everything on the LVGL UI thread: sampling happens in a screen-local `lv_timer` which is deleted on `LV_EVENT_DELETE`. We do export a few timing counters from `app_main` (loop counter + LVGL handler duration) so the monitor can display a useful responsiveness metric without having to instrument LVGL internals.
+
+**Commit (code):** c93aace — "Cardputer LVGL: add System Monitor demo screen"
+
+### What I did
+- Added `DemoId::SystemMonitor` and registered it in:
+  - demo menu (`SysMon` entry)
+  - demo manager (screen creation + group focus)
+- Implemented `demo_system_monitor.cpp`:
+  - header label with `heap/dma/loop Hz/lv us/fps`
+  - three `lv_chart` sparklines (heap KiB, dma KiB, fps estimate)
+  - `lv_timer` sampling at 250ms; timer deleted via `LV_EVENT_DELETE`
+- Added lightweight perf counters in `app_main`:
+  - `g_ui_loop_counter` incremented each loop
+  - `g_lvgl_handler_us_last` / `g_lvgl_handler_us_avg` measured around `lv_timer_handler()` with EMA smoothing
+- Exposed an action/command to open the screen:
+  - `sysmon` in host `esp_console` (via ActionRegistry + CtrlEvent)
+  - “Open System Monitor” in the Ctrl+P palette
+  - `sysmon` command in the on-device SplitConsole v0 parser
+
+### Why
+- A system monitor makes performance/memory regressions obvious while iterating on UI work (especially when adding heavier features like screenshot, palette, future SD/Wi‑Fi).
+- Tracking DMA free is specifically valuable for LVGL+M5GFX because DMA exhaustion tends to show up as graphics instability before general heap runs out.
+
+### What worked
+- Build succeeded:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+
+### What didn't work
+- Screenshot/OCR validation was intentionally deferred for this step (per request to validate once the whole chunk is done). Hardware device nodes were also unstable earlier in this harness, so flashing is best done once `/dev/serial/by-id/...` is present again.
+
+### What I learned
+- Measuring LVGL handler duration around `lv_timer_handler()` is a pragmatic “responsiveness signal” that correlates with UI load even if it isn’t a literal display FPS.
+- `lv_chart_set_next_value(...)` gives an easy scrolling sparkline without managing a ring buffer manually.
+
+### What was tricky to build
+- Avoiding cross-thread state: all LVGL object updates live in the SysMon screen timer; perf counters are simple globals updated in the same thread.
+- Avoiding lifecycle hazards: screen-local `lv_timer_t` must be deleted on `LV_EVENT_DELETE` to prevent use-after-free (same pattern as earlier demos).
+
+### What warrants a second pair of eyes
+- Confirm the EMA smoothing and chart ranges are sensible for the Cardputer’s actual memory profile (heap KiB range `0..512`, dma KiB `0..128`, fps `0..60`).
+- Confirm the loop counter metric remains meaningful under palette usage and screenshot capture load (no overflow/precision issues in the displayed “loop Hz”).
+
+### What should be done in the future
+- Add a Wi‑Fi panel (event-loop driven) if/when a demo enables networking (task 47).
+- Add a screenshot/OCR regression anchor for the SysMon screen once device capture is stable (`System Monitor`, `heap=`, `dma=` visible).
+- Consider a “reset charts” key binding (e.g., `R`) if the screen becomes a long-running dashboard.
+
+### Code review instructions
+- Start in `0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp` (timer lifecycle + chart updates).
+- Then review `0025-cardputer-lvgl-demo/main/app_main.cpp` (perf counters around `lv_timer_handler()`).
+- Then review `0025-cardputer-lvgl-demo/main/action_registry.cpp` (sysmon action/command mapping).
+- Build: `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+
+### Technical details
+- SysMon sampling cadence: `lv_timer_create(..., 250, ...)`
+- LVGL handler EMA: `avg = avg - (avg >> 3) + (us >> 3)`
 
 ## Quick Reference
 

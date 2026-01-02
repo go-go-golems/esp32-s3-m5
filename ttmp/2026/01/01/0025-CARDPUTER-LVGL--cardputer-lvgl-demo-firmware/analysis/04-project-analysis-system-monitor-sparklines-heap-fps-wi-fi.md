@@ -13,18 +13,22 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0005-wifi-event-loop/main/hello_world_main.c
+      Note: ESP-IDF Wi-Fi event loop and state transitions; useful for “Wi-Fi status” panel
+    - Path: 0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp
+      Note: Existing perf visualization patterns (bars, timing breakdown)
+    - Path: 0022-cardputer-m5gfx-demo-suite/main/ui_hud.h
+      Note: Existing perf/memory snapshot model (EMA) and header/footer overlays (non-LVGL)
+    - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
+      Note: Provides loop counter + LVGL handler time metrics used by SysMon
     - Path: 0025-cardputer-lvgl-demo/main/demo_basics.cpp
       Note: Existing periodic status label (heap/dma/last_key) and timer cleanup pattern
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Where a new “System Monitor” screen would be integrated
+    - Path: 0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp
+      Note: Implements SysMon screen (charts + sampling timer)
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: Display flush path; informs what “FPS” actually measures
-    - Path: 0022-cardputer-m5gfx-demo-suite/main/ui_hud.h
-      Note: Existing perf/memory snapshot model (EMA) and header/footer overlays (non-LVGL)
-    - Path: 0022-cardputer-m5gfx-demo-suite/main/demo_b2_perf.cpp
-      Note: Existing perf visualization patterns (bars, timing breakdown)
-    - Path: 0005-wifi-event-loop/main/hello_world_main.c
-      Note: ESP-IDF Wi-Fi event loop and state transitions; useful for “Wi-Fi status” panel
     - Path: THE_BOOK.md
       Note: Repo-wide discussion of perf/memory and “keep loop responsive” patterns
 ExternalSources: []
@@ -33,6 +37,7 @@ LastUpdated: 2026-01-02T09:39:37.682048256-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Project analysis: System monitor + sparklines (heap/FPS/Wi‑Fi)
 
@@ -338,6 +343,37 @@ Treat it as a regression signal, not a literal frame compositor metric.
 
 ---
 
+## v0 metrics + UI (implemented)
+
+This ticket’s v0 System Monitor intentionally stays “UI-thread only” (all sampling and widget updates occur in an `lv_timer` owned by the System Monitor screen) to preserve LVGL’s single-thread constraint.
+
+### Metrics sampled (every ~250ms)
+
+- `heap_free` (KiB): `esp_get_free_heap_size()`
+- `dma_free` (KiB): `heap_caps_get_free_size(MALLOC_CAP_DMA)`
+- `lvgl_handler_us_last` / `lvgl_handler_us_avg`:
+  - measured around `lv_timer_handler()` in the main loop
+  - EMA smoothing uses `shift=3` (~1/8)
+- `loop_hz` (smoothed):
+  - derived from the delta of an `app_main` loop counter over the sample interval
+- `fps_est`:
+  - `1e6 / lvgl_handler_us_avg` (a responsiveness signal, not literal display FPS)
+
+### Visuals (240×135)
+
+- Header line: compact text showing heap/dma/loop Hz/LVGL handler us/fps
+- Three `lv_chart` sparklines:
+  - heap KiB (range `0..512`)
+  - dma KiB (range `0..128`)
+  - fps estimate (range `0..60`)
+
+### Control plane
+
+- The SysMon screen is reachable via:
+  - menu entry `SysMon`
+  - host REPL command `sysmon` (enqueues a `CtrlEvent`)
+  - command palette action “Open System Monitor”
+
 ## Implementation checklist (pragmatic)
 
 1. Add a new `DemoId::SystemMonitor` and a new `demo_system_monitor.cpp`.
@@ -348,4 +384,3 @@ Treat it as a regression signal, not a literal frame compositor metric.
 3. Sample heap/dma and update labels + charts every 250ms.
 4. Add optional Wi‑Fi state fields (compile-time optional if Wi‑Fi not enabled).
 5. Ensure `LV_EVENT_DELETE` deletes the sampling timer (per lifecycle doc).
-

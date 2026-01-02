@@ -44,11 +44,11 @@
 - [x] [Palette] Implement palette filtering + selection + run selected action (enqueue CtrlEvent)
 - [x] [Palette] Implement focus capture/restore so palette owns keys while open and returns focus safely on close
 - [x] [Palette] Add README docs for palette usage and shortcut keys
-- [ ] [SysMon] Read analysis doc analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md and choose metrics
-- [ ] [SysMon] Add DemoId::SystemMonitor + new screen module demo_system_monitor.cpp and register in menu
-- [ ] [SysMon] Implement periodic sampling (heap + dma + loop timing) using lv_timer; delete timer on LV_EVENT_DELETE
-- [ ] [SysMon] Add sparklines using lv_chart (point count tuned for 240x135) and update at ~250ms cadence
-- [ ] [SysMon] Add EMA smoothing helper (port idea from 0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp)
+- [x] [SysMon] Read analysis doc analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md and choose metrics
+- [x] [SysMon] Add DemoId::SystemMonitor + new screen module demo_system_monitor.cpp and register in menu
+- [x] [SysMon] Implement periodic sampling (heap + dma + loop timing) using lv_timer; delete timer on LV_EVENT_DELETE
+- [x] [SysMon] Add sparklines using lv_chart (point count tuned for 240x135) and update at ~250ms cadence
+- [x] [SysMon] Add EMA smoothing helper (port idea from 0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp)
 - [ ] [SysMon] Optional: add Wi-Fi state (event loop pattern from 0005-wifi-event-loop) and display status/RSSI
 - [ ] [SysMon] Validate: run under load (switch demos, screenshot) and confirm monitor stays responsive
 - [ ] [MicroSD] Read analysis doc analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md and decide mount path (/sd)

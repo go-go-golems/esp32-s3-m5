@@ -523,6 +523,8 @@ This section is the “stable scripting surface” for v0. Commands should remai
   - Expected: `OK`
 - `console`
   - Expected: `OK`
+- `sysmon`
+  - Expected: `OK`
 - `setmins <minutes>`
   - Expected: `OK minutes=<n>` (where `<n>` is clamped to `1..99`)
   - Errors:

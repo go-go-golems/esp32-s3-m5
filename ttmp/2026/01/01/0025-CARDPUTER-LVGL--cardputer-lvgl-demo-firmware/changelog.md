@@ -200,3 +200,16 @@ Add Ctrl+P command palette overlay (ActionRegistry + LVGL modal on lv_layer_top)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — Registers palette command and uses ActionRegistry for nav commands
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/03-project-analysis-command-palette-overlay-ctrl-p.md — Records v0 action list and expected UI text
 
+
+## 2026-01-02
+
+Add System Monitor demo (heap/dma + LVGL handler time + fps estimate) with sparklines and 250ms sampling; add sysmon command/action; build OK (commit c93aace)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/action_registry.cpp — Add Open System Monitor action (sysmon) and CtrlEvent mapping
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Tracks LVGL handler time and loop counter for SysMon metrics
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_menu.cpp — Menu includes SysMon entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp — New SysMon screen with lv_chart sparklines and lv_timer sampling
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md — Records chosen v0 metrics and UI layout
+

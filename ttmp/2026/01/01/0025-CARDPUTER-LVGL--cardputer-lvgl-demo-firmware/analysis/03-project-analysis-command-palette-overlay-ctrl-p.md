@@ -420,6 +420,7 @@ The v0 palette actions are intentionally small and map 1:1 onto UI-thread-safe `
 - Open Basics
 - Open Pomodoro
 - Open Console
+- Open System Monitor
 - Pomodoro: Set minutes 15
 - Pomodoro: Set minutes 25
 - Pomodoro: Set minutes 50

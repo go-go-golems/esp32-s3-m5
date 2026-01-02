@@ -22,7 +22,9 @@ RelatedFiles:
     - Path: 0025-cardputer-lvgl-demo/main/action_registry.h
       Note: Shared ActionRegistry contract (ActionId/title/keywords)
     - Path: 0025-cardputer-lvgl-demo/main/app_main.cpp
-      Note: Cardputer LVGL demo main loop + UI creation
+      Note: |-
+        Cardputer LVGL demo main loop + UI creation
+        Exports loop counter + LVGL handler timing metrics for SysMon
     - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
       Note: Ctrl+P palette overlay (modal LVGL layer_top UI
     - Path: 0025-cardputer-lvgl-demo/main/command_palette.h
@@ -41,6 +43,8 @@ RelatedFiles:
       Note: Pomodoro demo implementation
     - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
       Note: SplitConsole LVGL screen (output+input; scrollback/follow-tail)
+    - Path: 0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp
+      Note: System Monitor demo screen (sparklines + 250ms sampling)
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
       Note: LVGL keypad indev adapter for Cardputer keyboard events
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -67,6 +71,7 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
