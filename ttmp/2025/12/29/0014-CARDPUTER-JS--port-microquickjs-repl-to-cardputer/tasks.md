@@ -16,7 +16,7 @@
 - [x] Install qemu-xtensa via idf_tools so idf.py qemu can run
 - [x] Spin off QEMU REPL input bug into ticket 0015-QEMU-REPL-INPUT
 - [x] Spin off SPIFFS/autoload JS parse errors into ticket 0016-SPIFFS-AUTOLOAD
-- [ ] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially
+- [x] Split mqjs firmware into C++ components (console/repl/eval/storage) per design-doc/02; keep behavior unchanged initially (legacy monolith moved to imports/.../legacy/)
 - [x] Introduce IConsole + UartConsole wrapper (uart_read_bytes/uart_write_bytes) so REPL loop is transport-agnostic
 - [x] Implement LineEditor (byte->line, backspace, prompt) and ReplLoop that prints prompt and dispatches completed lines
 - [x] Add IEvaluator interface + EvalResult and implement RepeatEvaluator (echo line) to validate REPL I/O without JS

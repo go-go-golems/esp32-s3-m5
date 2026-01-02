@@ -40,7 +40,7 @@ This doc captures the analysis and a concrete design sketch for both, with a bia
 
 ## Problem Statement
 
-Our current example firmware (`imports/esp32-mqjs-repl/mqjs-repl/main/main.c`) is a blocking REPL:
+Our legacy example firmware (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`) is a blocking REPL:
 
 - It creates a `JSContext` and then runs a `repl_task()` that blocks on UART reads.
 - It can evaluate JS expressions interactively, and it can load JS files from SPIFFS at startup.
@@ -235,7 +235,7 @@ This is a high-level plan; we’ll refine it after the Cardputer REPL port is st
 ## References
 
 - Native extensions playbook: `../reference/02-microquickjs-native-extensions-on-esp32-playbook-reference-manual.md`
-- Current firmware entry: `imports/esp32-mqjs-repl/mqjs-repl/main/main.c`
+- Current firmware entry (legacy reference): `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
 - MicroQuickJS API: `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h`
 - Upstream “how to extend” example:
   - `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/example.c`

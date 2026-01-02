@@ -27,17 +27,17 @@ RelatedFiles:
         QEMU input fix via FIFO polling (commit 7bc80f2)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/console/UsbSerialJtagConsole.cpp
       Note: USB Serial/JTAG console implementation for Cardputer REPL (commit d3e9f19)
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
-      Note: Currently checked-in generated stdlib; shows uint64_t table shape and keyword atoms
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h
+      Note: Host-generated stdlib header (64-bit shaped by default); useful for comparing against esp32_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h
       Note: Generated 32-bit ESP32-safe stdlib header (created via esp_stdlib_gen -m32)
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
       Note: Firmware-side stubs + include site that defines js_stdlib from esp32_stdlib.h
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen
-      Note: Host stdlib generator binary; confirms why esp_stdlib.h was generated as 64-bit by default
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h
-      Note: Legacy bring-up-only stdlib; no longer used now that JS mode is enabled
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen
+      Note: Host stdlib generator binary; used by tools/gen_esp32_stdlib.sh
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h
+      Note: Legacy bring-up-only stdlib (kept for historical reference; not used by current firmware)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
       Note: Generator program main() that calls build_atoms() to emit esp_stdlib.h
     - Path: imports/esp32-mqjs-repl/mqjs-repl/main/repl/ReplLoop.cpp
       Note: Core REPL loop + meta-commands + evaluator dispatch (commit 1a25a10)
@@ -150,7 +150,7 @@ Need to establish baseline understanding before making changes. Also wanted to c
 ### Code review instructions
 
 - Review analysis documents: `analysis/01-current-firmware-configuration-analysis.md` and `analysis/02-cardputer-port-requirements.md`
-- Check imported firmware: `imports/esp32-mqjs-repl/mqjs-repl/main/main.c`
+- Check imported firmware: `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
 - Compare with Cardputer reference: `0015-cardputer-serial-terminal/main/hello_world_main.cpp`
 
 ## Step 2: Make builds reproducible + run the baseline build
@@ -316,7 +316,7 @@ In practice this means: if we want to expose “higher-level ESP32 functionality
 
 ### What I did
 
-- Read the embedded firmware entry point (`imports/esp32-mqjs-repl/mqjs-repl/main/main.c`) to see how the VM is created and used from FreeRTOS.
+- Read the legacy embedded firmware entry point (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`) to see how the VM was created and used from FreeRTOS before the split.
 - Read MicroQuickJS public API (`imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h`) to understand what’s available (and what’s *not*).
 - Read the stdlib build utility interfaces (`.../components/mquickjs/mquickjs_build.h` + `mquickjs_build.c`) to understand how `esp_stdlib.h` is generated.
 - Read MicroQuickJS internal wiring for stdlib and C-function dispatch (`.../components/mquickjs/mquickjs.c`) at the call sites for `stdlib_def->stdlib_table`, `c_function_table`, `c_finalizer_table`.
@@ -405,11 +405,11 @@ The key outcome is a practical recipe: we already have a host generator binary i
 
 - Read the diary and code to confirm where stdlib selection happens (`minimal_stdlib.h` included by firmware).
 - Located the generator program source in the imported tree:
-  - `imports/esp32-mqjs-repl/mqjs-repl/main/mqjs_stdlib.c`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c`
 - Located the generator implementation and verified it supports `-m32` / `-m64`:
   - `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c`
 - Confirmed the prebuilt generator binary is a 64-bit host executable:
-  - Command: `file imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen`
+  - Command: `file imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen`
   - Result: `ELF 64-bit ... x86-64 ...`
 - Verified the generator is what emits `uint64_t` vs `uint32_t` for `js_stdlib_table` by reading the print logic:
   - It prints `uint%u_t` where `%u = JSW*8`.
@@ -456,7 +456,7 @@ The key outcome is a practical recipe: we already have a host generator binary i
 ### Code review instructions
 
 - Start with `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.c` and search for `-m32` / `-m64` to see how the generator sets `JSW`.
-- Then open `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h` and confirm it declares `uint64_t` to understand why it’s host-shaped.
+- Then open `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h` and confirm it declares `uint64_t` to understand why it’s host-shaped.
 
 ### Technical details
 
@@ -1105,6 +1105,56 @@ I also wired up `load(path)` inside JS mode to actually read from SPIFFS, which 
 ### Technical details
 - Autoload directory: `/spiffs/autoload/` (loads `*.js` files; prints `autoload:` summary).
 - `load(path)` currently enforces a 32 KiB limit to avoid large allocations on constrained SRAM.
+
+### What I'd do differently next time
+- N/A
+
+## Step 23: Finish split cleanup (archive legacy monolith; relocate stdlib generator)
+
+This step finishes the “split cleanup” by removing leftover, confusing artifacts from the firmware `main/` folder while keeping the old monolithic implementation available for historical reference. The goal is to make it obvious what code is actually built and where the supporting host tools live.
+
+It’s intentionally non-behavioral: the running firmware doesn’t change, but the repo structure becomes easier to navigate and less likely to regress into “accidentally editing the legacy file”.
+
+**Commit (code):** 2d482af — "mqjs-repl: move legacy firmware and stdlib generator"
+
+### What I did
+- Moved the legacy monolithic firmware sources out of `imports/esp32-mqjs-repl/mqjs-repl/main/` into `imports/esp32-mqjs-repl/mqjs-repl/legacy/`.
+- Moved the host stdlib generator artifacts into `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/`.
+- Updated `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh` to point at the relocated generator binary.
+
+### Why
+- To make the “real” firmware code paths unambiguous (everything built lives under `main/`, not in leftover `main/main.c`).
+- To keep host tooling (the stdlib generator) out of the firmware source tree and reduce accidental coupling.
+
+### What worked
+- QEMU smoke tests still pass after the cleanup (repeat + JS).
+
+### What didn't work
+- N/A
+
+### What I learned
+- Doing a “structure-only” cleanup right after functional milestones pays off: it prevents stale files from becoming a second, divergent truth.
+
+### What was tricky to build
+- Keeping historical references intact (docs and analysis) while still making `main/` clearly “the build”.
+
+### What warrants a second pair of eyes
+- Confirm that no scripts/CI/docs still assume the old generator location under `main/`.
+
+### What should be done in the future
+- If we ever want `esp_stdlib_gen` to be rebuildable (rather than checked-in as an ELF), add a small host build script and document toolchain expectations.
+
+### Code review instructions
+- Verify the moved paths and the generator script update:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/`
+  - `imports/esp32-mqjs-repl/mqjs-repl/legacy/`
+- Run:
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_repeat_repl_qemu_uart_stdio.sh --timeout 120`
+  - `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh --timeout 120`
+
+### Technical details
+- Firmware build remains driven by `imports/esp32-mqjs-repl/mqjs-repl/main/CMakeLists.txt`; `legacy/` is reference-only and not compiled.
 
 ### What I'd do differently next time
 - N/A

@@ -19,12 +19,12 @@ RelatedFiles:
       Note: Stdlib generator description DSL (JSPropDef/JSClassDef) used to build atom tables and builtins
     - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_priv.h
       Note: Defines JS_ROM_VALUE and ROM table expectations; highlights word-size/layout concerns
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h
-      Note: Generated stdlib blob containing keyword atoms; likely host-64-bit generated and not yet wired for ESP32
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_simple.c
-      Note: Stdlib composition file showing CONFIG_MINIMAL_STDLIB approach; currently unused by ESP-IDF build
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h
-      Note: Current firmware-selected empty stdlib; explains missing keyword atoms and parse symptoms
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h
+      Note: Host-generated stdlib blob containing keyword atoms; generated as 64-bit by default and not usable on ESP32 as-is
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_simple.c
+      Note: Stdlib composition file showing CONFIG_MINIMAL_STDLIB approach; reference-only (not built by ESP-IDF)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h
+      Note: Legacy firmware-selected empty stdlib; explains missing keyword atoms and parse symptoms in pre-fix builds
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-31T20:17:32.611433518-05:00
@@ -40,7 +40,7 @@ This document explains a confusing-but-critical aspect of MicroQuickJS (“mquic
 - The “standard library” is not just “built-in objects like `Math`”.
 - In MicroQuickJS, the stdlib definition can also effectively control whether core language tokens (like `var`) are recognized as *keywords* during parsing.
 
-This matters immediately because the firmware’s autoload example scripts begin with `var ...`, yet QEMU logs show parse errors like `expecting ';' at 1:5`. That error is consistent with `var` being tokenized as a normal identifier rather than a keyword.
+This mattered immediately because the legacy firmware’s autoload example scripts begin with `var ...`, yet early QEMU logs showed parse errors like `expecting ';' at 1:5`. That error is consistent with `var` being tokenized as a normal identifier rather than a keyword.
 
 The goal here is to make this understandable for a new engineer and to outline what the project should look like “in an ideal world”, including how we should generate and select an appropriate stdlib for ESP32 (32-bit) vs host (64-bit).
 
@@ -52,27 +52,27 @@ The goal here is to make this understandable for a new engineer and to outline w
   - a finalizer table (`c_finalizer_table`) for user classes.
   See `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h:245`.
 
-- The firmware currently uses an “empty stdlib” (`imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h:1`) which contains essentially *no atoms*.
+- The legacy firmware used an “empty stdlib” (`imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h:1`) which contains essentially *no atoms*.
 
 - If the keyword atoms (like `"var"`, `"function"`, `"return"`) are missing, the parser can treat those words as ordinary identifiers. That makes code like `var x = 1;` parse like `identifier identifier ...` and fail with a syntax error that *looks* unrelated.
 
-- There is a large generated stdlib header (`imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:1`) that *does* contain keyword atoms, but it is currently not used by the firmware.
+- There is a large generated stdlib header (`imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:1`) that *does* contain keyword atoms, but it was not usable on ESP32 as-is because it was host-generated as 64-bit.
 
-- Crucially: the checked-in `esp_stdlib.h` appears to be generated for a **64-bit host** (it declares `uint64_t js_stdlib_table[]` at `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:5`). ESP32-S3 is a **32-bit** target where MicroQuickJS uses 32-bit `JSWord` (`imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h:49`). Mixing those is likely incorrect without regenerating a 32-bit table.
+- Crucially: the checked-in `esp_stdlib.h` appears to be generated for a **64-bit host** (it declares `uint64_t js_stdlib_table[]` at `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:5`). ESP32-S3 is a **32-bit** target where MicroQuickJS uses 32-bit `JSWord` (`imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h:49`). Mixing those is incorrect without regenerating a 32-bit table.
 
 ## The pieces: what files exist and what they do
 
-### 1) The firmware entry point uses a minimal stdlib
+### 1) The legacy firmware entry point used a minimal stdlib
 
 The embedded firmware lives in:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/main/main.c:1`
+- `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:1`
 
 Key line:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/main/main.c:261` creates the context with:
+- `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:261` creates the context with:
   - `JS_NewContext(js_mem_buf, JS_MEM_SIZE, &js_stdlib);`
-  - and `js_stdlib` comes from `imports/esp32-mqjs-repl/mqjs-repl/main/minimal_stdlib.h:14`.
+  - and `js_stdlib` comes from `imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h:14`.
 
 `minimal_stdlib.h` defines:
 
@@ -129,12 +129,12 @@ In `imports/esp32-mqjs-repl/mqjs-repl/main/`:
   - “automatically generated - do not edit”
   - contains a large atom table (including keyword strings like `"var"`)
   - defines a non-empty `js_c_function_table` including symbols like `print`, `gc`, `Date.now`, etc.
-  - declares `uint64_t js_stdlib_table[]` at `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:5`
-  - defines `const JSSTDLibraryDef js_stdlib = {...}` at `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:2673`
+  - declares `uint64_t js_stdlib_table[]` at `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:5`
+  - defines `const JSSTDLibraryDef js_stdlib = {...}` at `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:2673`
 
 - `esp_stdlib.c` / `esp_stdlib_simple.c`
   - appear to be host-side “stdlib composition” sources that include `mqjs_stdlib.c`
-  - `esp_stdlib_simple.c` defines `CONFIG_MINIMAL_STDLIB` then `#include "mqjs_stdlib.c"` (`imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_simple.c:10`)
+  - `esp_stdlib_simple.c` defines `CONFIG_MINIMAL_STDLIB` then `#include "mqjs_stdlib.c"` (`imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_simple.c:10`)
   - these are not currently compiled by ESP-IDF because `main/CMakeLists.txt` only lists `main.c` (`imports/esp32-mqjs-repl/mqjs-repl/main/CMakeLists.txt:1`)
 
 Also in `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/`:
@@ -162,8 +162,8 @@ Conceptually:
 
 In this implementation, the stdlib table includes an atom table stored in ROM-ish memory. You can see this explicitly at the top of `esp_stdlib.h`:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:6` begins with `/* atom_table */`
-- and soon after includes strings like `"var"` at `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:19`.
+- `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:6` begins with `/* atom_table */`
+- and soon after includes strings like `"var"` at `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:19`.
 
 ### Why would keyword recognition depend on atoms?
 
@@ -222,7 +222,7 @@ This explains why the QEMU autoload parse error is completely consistent with �
 Even if we decide “just use `esp_stdlib.h`”, we need to be careful:
 
 - The ESP32-S3 target is 32-bit, so MicroQuickJS uses 32-bit `JSWord` (`imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h:49`).
-- The checked-in `esp_stdlib.h` declares `uint64_t js_stdlib_table[]` (`imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:5`).
+- The checked-in `esp_stdlib.h` declares `uint64_t js_stdlib_table[]` (`imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:5`).
 
 This strongly suggests that `esp_stdlib.h` was generated on a 64-bit host with `JS_PTR64` enabled and is not necessarily the correct ROM table layout for a 32-bit embedded target.
 
@@ -235,7 +235,7 @@ In other words:
 
 This repo already includes the host-side stdlib generator binary:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib_gen`
+- `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen`
 
 It is an x86-64 ELF, i.e. a host tool, not an ESP32 binary. On this machine it reports as:
 
@@ -275,7 +275,7 @@ On a 64-bit host, `build_atoms` defaults `JSW` to 8 (because `INTPTR_MAX >= INT6
 
 That is exactly what we see in the checked-in:
 
-- `imports/esp32-mqjs-repl/mqjs-repl/main/esp_stdlib.h:5`
+- `imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib.h:5`
 
 ## How to generate a 32-bit stdlib header (and why this is the right lever)
 
@@ -327,16 +327,16 @@ The codebase appears to have grown from multiple upstream contexts:
      - provide `print`, timers, etc.
 
 2) **An “ESP flavored stdlib” effort**
-   - `main/esp_stdlib.c` implements time and `print/gc` and then includes `mqjs_stdlib.c` to assemble a stdlib that makes sense on ESP.
-   - `main/esp_stdlib_simple.c` defines `CONFIG_MINIMAL_STDLIB` to disable some features (Date/timers/load) and include a smaller set.
+   - `tools/esp_stdlib_gen/esp_stdlib.c` implements time and `print/gc` and then includes `mqjs_stdlib.c` to assemble a stdlib that makes sense on ESP.
+   - `tools/esp_stdlib_gen/esp_stdlib_simple.c` defines `CONFIG_MINIMAL_STDLIB` to disable some features (Date/timers/load) and include a smaller set.
 
 3) **An embedded “minimal stdlib” shortcut**
-   - `main/minimal_stdlib.h` is explicitly described as “just enough to initialize the engine” and is table-empty.
+   - `legacy/minimal_stdlib.h` is explicitly described as “just enough to initialize the engine” and is table-empty.
    - This is consistent with early-stage “get something running” work where only expressions like `1+2` were needed.
 
 4) **Generated headers committed from a host environment**
-   - `main/esp_stdlib.h` is a generated artifact that looks like it came from a host build (64-bit table).
-   - A prebuilt `main/esp_stdlib_gen` binary exists in the repo, which is unusual for source control and further hints at a host-generated pipeline being “checked in” rather than integrated properly into ESP-IDF build steps.
+   - `tools/esp_stdlib_gen/esp_stdlib.h` is a generated artifact that looks like it came from a host build (64-bit table).
+   - A prebuilt `tools/esp_stdlib_gen/esp_stdlib_gen` binary exists in the repo, which is unusual for source control and further hints at a host-generated pipeline being “checked in” rather than integrated properly into ESP-IDF build steps.
 
 Result: the project contains artifacts from “host REPL land” and “embedded minimal land” without a single, clean story for “how stdlib is built and chosen” on the actual target.
 
@@ -449,14 +449,14 @@ These are ordered from “improves clarity immediately” to “bigger refactors
 
 3) **Regenerate stdlib for ESP32 word size**
    - Ensure the generator produces a 32-bit `js_stdlib_table` matching `JSWord` on ESP32.
-   - Treat `main/esp_stdlib.h` as a host artifact unless proven correct for ESP32.
+   - Treat `tools/esp_stdlib_gen/esp_stdlib.h` as a host artifact unless proven correct for ESP32.
 
 4) **Wire stdlib choice explicitly in firmware**
    - Make stdlib selection a build-time choice (e.g. `CONFIG_MQJS_STDLIB_MIN` vs `CONFIG_MQJS_STDLIB_FULL`).
    - Ensure any “full” stdlib is not accidentally compiled in if we need footprint.
 
 5) **Align REPL UX with actual capabilities**
-   - If autoload fails, do not claim “Loaded libraries: MathUtils …” in the banner (`imports/esp32-mqjs-repl/mqjs-repl/main/main.c:334`).
+   - If autoload fails, do not claim “Loaded libraries: MathUtils …” in the banner (`imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c:334`).
    - Prefer: print what loaded successfully, and keep REPL usable even if autoload fails.
 
 ## Appendix: diagrams and mental models

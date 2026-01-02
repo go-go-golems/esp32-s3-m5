@@ -15,8 +15,10 @@ Owners: []
 RelatedFiles:
     - Path: 0015-cardputer-serial-terminal/main/hello_world_main.cpp
       Note: Cardputer USB Serial JTAG reference
-    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/main.c
-      Note: Current firmware REPL implementation
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp
+      Note: Current firmware entrypoint (wires console + REPL + evaluators)
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c
+      Note: Legacy pre-split monolithic firmware (kept for reference only; not built)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-29T13:24:50.215173612-05:00

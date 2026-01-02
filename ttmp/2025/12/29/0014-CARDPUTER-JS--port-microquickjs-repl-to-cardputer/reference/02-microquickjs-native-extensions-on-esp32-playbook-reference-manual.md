@@ -50,20 +50,22 @@ All paths below are under:
 
 Key files you’ll keep jumping between:
 
-- **Firmware embedding / FreeRTOS usage**: `main/main.c`
+- **Firmware entrypoint (current)**: `main/app_main.cpp`
+- **Firmware embedding (legacy, pre-split reference)**: `legacy/main.c`
 - **MicroQuickJS public API**: `components/mquickjs/mquickjs.h`
 - **Engine implementation**: `components/mquickjs/mquickjs.c`
 - **Stdlib generator (host-side)**:
   - `components/mquickjs/mquickjs_build.h` (declarative macros like `JS_CFUNC_DEF`)
   - `components/mquickjs/mquickjs_build.c` (prints generated header)
-- **Generated stdlib header (already in repo)**: `main/esp_stdlib.h`
+- **Host-generated stdlib header (already in repo)**: `tools/esp_stdlib_gen/esp_stdlib.h`
+- **ESP32-safe generated stdlib header (used by firmware)**: `main/esp32_stdlib.h`
 - **“How to add user classes / closures” example (upstream)**:
   - `components/mquickjs/example.c`
   - `components/mquickjs/example_stdlib.c`
 
-### Our current firmware configuration nuance
+### Our firmware configuration nuance
 
-The REPL firmware (`main/main.c`) currently uses `minimal_stdlib.h` (an empty stdlib definition) to keep things minimal. That’s fine for a toy REPL, but to expose meaningful native APIs we’ll almost certainly switch to a generated stdlib header (or generate a smaller custom one) so JS can call into C.
+The legacy REPL firmware (`legacy/main.c`) used `legacy/minimal_stdlib.h` (an empty stdlib definition) during early bring-up. The current firmware uses the generated ESP32-safe stdlib (`main/esp32_stdlib.h`) plus the matching atom header (`components/mquickjs/mquickjs_atom.h`) so keyword parsing (e.g. `var`) works on ESP32.
 
 ## Quick Reference
 
@@ -311,6 +313,7 @@ This design is expanded in:
   - `imports/ESP32_MicroQuickJS_Playbook.md`
   - `imports/MicroQuickJS_ESP32_Complete_Guide.md`
 - Code entry points:
-  - Firmware: `imports/esp32-mqjs-repl/mqjs-repl/main/main.c`
+  - Firmware (current): `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`
+  - Firmware (legacy): `imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c`
   - Engine API: `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h`
   - Stdlib generator: `imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs_build.{h,c}`

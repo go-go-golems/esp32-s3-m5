@@ -109,7 +109,7 @@ Kconfig “knobs”:
 - `imports/esp32-mqjs-repl/mqjs-repl/main/Kconfig.projbuild:1` (choose REPL console transport)
 
 Stdlib regeneration:
-- `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh:1` (regenerate `main/esp32_stdlib.h` via `esp_stdlib_gen -m32`)
+- `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh:1` (regenerate `main/esp32_stdlib.h` via `tools/esp_stdlib_gen/esp_stdlib_gen -m32`)
 
 JS smoke tests:
 - QEMU: `imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh:1`

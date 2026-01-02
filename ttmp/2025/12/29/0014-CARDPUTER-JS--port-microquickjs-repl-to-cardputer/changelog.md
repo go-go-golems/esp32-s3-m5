@@ -200,3 +200,16 @@ Storage: reintroduce SPIFFS + `:autoload` (with explicit `--format` path) and wi
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_qemu_uart_stdio.sh — Smoke test now asserts `:autoload --format` output
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/test_js_repl_device_uart_raw.py — Smoke test now asserts `:autoload --format` output
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/01-diary.md — Step 22: SPIFFS/autoload bring-up
+
+
+## 2026-01-02
+
+Split cleanup: move legacy monolithic firmware sources out of `main/` and relocate the host stdlib generator into `tools/` to keep the firmware tree focused.
+ (commit 2d482af)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/legacy/main.c — Legacy pre-split monolith (reference-only; not built)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/legacy/minimal_stdlib.h — Legacy empty stdlib (reference-only; not used by current firmware)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/esp_stdlib_gen — Host generator binary used for `-m32` stdlib/atom generation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh — Updated to point at the relocated generator binary
