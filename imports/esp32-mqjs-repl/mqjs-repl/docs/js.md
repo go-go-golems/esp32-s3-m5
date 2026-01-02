@@ -30,6 +30,19 @@ The “JS component” is the MicroQuickJS-backed evaluator that implements:
 
 This doc is for developers who want to add JS-facing capabilities, improve REPL UX, or change how code is loaded.
 
+## Narrative Walkthrough (Mental Model)
+
+At runtime, “JS mode” is just a different evaluator plugged into the same REPL loop. The REPL doesn’t know anything about JavaScript; it simply forwards completed lines to `JsEvaluator::EvalLine`. That separation is what keeps the firmware debuggable: if JS is broken, the repeat evaluator still proves that input/output and prompt handling work.
+
+MicroQuickJS is not QuickJS-in-a-library. The important conceptual shift is that a lot of what normally feels “built into the engine” (atoms, builtins, global objects, and even some parsing behavior around keywords) is described by a ROM-style stdlib table. On ESP32-S3, getting those tables right is the difference between “real JS” and bizarre parse errors that look unrelated (like `var` not being recognized).
+
+The current implementation deliberately keeps the JS story simple:
+
+- there is exactly one context owned by the REPL task,
+- the heap is a fixed 64 KiB arena,
+- `load(path)` and `:autoload` are the basic primitives for growing the interpreter with libraries,
+- and “risky” operations (SPIFFS formatting) are always explicit.
+
 ## MicroQuickJS Constraints (Critical)
 
 MicroQuickJS in this repo is **table-driven**:
@@ -167,4 +180,3 @@ If you need a new native callable function in the global object, you must:
    - `imports/esp32-mqjs-repl/mqjs-repl/tools/gen_esp32_stdlib.sh`
 
 Then ensure the runtime stubs (`esp32_stdlib_runtime.c`) provide any referenced symbols.
-

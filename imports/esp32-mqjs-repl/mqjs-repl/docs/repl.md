@@ -34,6 +34,18 @@ This doc is for developers who want to change REPL behavior without breaking:
 - meta-commands (`:help`, `:mode`, `:stats`, `:reset`, `:autoload`, `:prompt`),
 - and transport independence (`UART0` vs `USB Serial/JTAG`).
 
+## Narrative Walkthrough (What’s Actually Happening)
+
+When you interact with the firmware, you’re really talking to a single FreeRTOS task that runs an infinite loop: read some bytes, feed them into a line editor, and act only when a full line is complete. That architecture is boring on purpose—it keeps the “interactive contract” predictable, and it makes it much easier to debug issues like “did the device receive bytes?” without involving unrelated subsystems.
+
+The REPL is intentionally split into three responsibilities:
+
+- **Transport (`IConsole`)**: “Where do bytes come from, and where does output go?” This can be UART0 (QEMU) or USB Serial/JTAG (Cardputer). Everything else treats it as a byte stream.
+- **Line discipline (`LineEditor`)**: “How do raw bytes become a human-friendly line?” This is where backspace, Ctrl shortcuts, and prompt printing live.
+- **Dispatch (`ReplLoop`)**: “What do we do with a line?” Command lines (starting with `:`) are handled by the REPL itself; all other lines are forwarded to the active evaluator.
+
+One practical implication: if you want to improve the user experience (history, arrow keys, multiline input), those changes belong almost entirely in the line editor and should not require changing transports or the evaluator.
+
 ## Code Map (Start Here)
 
 - Entry wiring: `imports/esp32-mqjs-repl/mqjs-repl/main/app_main.cpp`
@@ -132,4 +144,3 @@ python3 ./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
   - Prefer `/dev/serial/by-id/...` or `--port auto` (scripts) to avoid port churn.
 - **Blocking behavior**: `ReplLoop::Run` blocks forever on reads; keep any new work (parsing, file I/O) bounded and avoid hidden boot-time operations.
 - **Output buffering**: `console_printf(...)` in `ReplLoop.cpp` uses a fixed 256-byte buffer; large dumps should stream instead of formatting huge lines.
-

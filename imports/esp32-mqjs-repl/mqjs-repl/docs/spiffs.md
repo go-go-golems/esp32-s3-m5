@@ -30,6 +30,17 @@ The design goal is “safe by default”:
 - SPIFFS is mounted lazily (not at boot).
 - Formatting is explicit: only `:autoload --format` will format if mount fails.
 
+## Narrative Walkthrough (Why SPIFFS Exists Here)
+
+The storage layer is what turns the REPL from a “toy evaluator” into something you can actually use on a device. If you can only type one-liners over serial, you’ll never run meaningful programs. SPIFFS gives us a simple way to ship JavaScript files onto the device and then load them at runtime using the same mechanism on both QEMU and hardware.
+
+There are two ways SPIFFS shows up in practice:
+
+1) **Build-time**: we generate a SPIFFS image (`storage.bin`) from a repo directory (`spiffs_image/`) and flash it into the `storage` partition. This is how we ship default libraries and seed files.
+2) **Runtime**: when you run `:autoload` or `load(path)`, the firmware mounts the filesystem and reads files from `/spiffs/...`.
+
+The “safe-by-default” contract is important on embedded hardware. Formatting a filesystem can erase user data, so the firmware never formats implicitly: `:autoload` will fail with an error if it can’t mount, and `:autoload --format` is the explicit opt-in path that formats only when required to mount.
+
 ## Partition Layout (Offsets Matter)
 
 Partition table: `imports/esp32-mqjs-repl/mqjs-repl/partitions.csv`
@@ -134,4 +145,3 @@ python3 ./tools/test_js_repl_device_uart_raw.py --port auto --timeout 90
 - **Port churn**: USB Serial/JTAG can re-enumerate; use `/dev/serial/by-id/...` or `--port auto`.
 - **Autoload ordering**: `readdir()` order is not deterministic. If library dependencies require order, collect names and sort before eval.
 - **“Mounted” vs “Contains files”**: a successful mount does not imply any `.js` files exist unless you flash a SPIFFS image or otherwise populate the FS.
-
