@@ -152,3 +152,12 @@ Added playbook for screenshot capture + OCR verification feedback loop.
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/playbooks/01-screenshot-verification-feedback-loop-cardputer-lvgl.md — New playbook
 
+
+## 2026-01-02
+
+Diary updated with commit reference for screenshot/OCR workflow. (docs commit fdc2df1)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/reference/01-diary.md — Step 7 commit reference
+
