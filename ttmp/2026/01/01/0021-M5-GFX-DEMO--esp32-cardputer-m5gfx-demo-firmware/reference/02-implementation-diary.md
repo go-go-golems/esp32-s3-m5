@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T01:00:00Z
+LastUpdated: 2026-01-02T01:15:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -212,3 +212,49 @@ This step focuses on shortening the edit/build/flash/observe loop. The key outco
 
 ### What should be done in the future
 - Add a `build.sh run` alias (or a tiny `tools/run_fw_flash_monitor.sh`) if we want “auto-pick port + flash monitor” without passing `-p` manually.
+
+## Step 6: Implement A1 (HUD header) + B2 (perf overlay) + scene switching
+
+This step turns the demo-suite from a single full-screen list into a small “catalog app” that matches the ticket’s UX contract: a menu-driven launcher with consistent chrome. It also implements the perf overlay early so later demos can be debugged with on-device timings.
+
+### What I did
+- Refactored rendering into layered sprites:
+  - `header` (16px), `body` (content), `footer` (16px).
+- Added a minimal scene switcher:
+  - `Enter` opens a demo from the menu
+  - `Tab` / `Shift+Tab` cycles scenes
+  - `Del` returns to the home menu
+- Implemented A1: HUD header bar with screen name + fps + heap/dma.
+- Implemented B2: perf footer bar with EMA-smoothed totals (update/render/present).
+- Flashed to the device and confirmed boot logs + display bring-up.
+
+### Why
+- A1 (chrome) and B2 (perf) are foundational. Without them, later demos are harder to validate and you end up “blind debugging” stutter/flicker.
+
+### What worked
+- `idf.py build` succeeded for the updated firmware.
+- Flash succeeded once the serial port was not held by a running monitor.
+- Boot logs show Cardputer autodetect and expected resolution:
+  - `M5GFX: [Autodetect] board_M5Cardputer`
+  - `display ready: width=240 height=135`
+
+### What didn't work
+- Flash failed once with “port is busy” when a monitor process was holding `/dev/serial/by-id/...` open. Killing the tmux session freed the port and the retry succeeded.
+
+### What I learned
+- With USB-Serial/JTAG, exclusive port locking is strict: you can’t reliably run flash and monitor concurrently in separate processes.
+
+### What was tricky to build
+- Measuring timings while still using dirty redraws: the “frame” notion becomes “a present event” (only update perf EMA when something is actually pushed).
+
+### What warrants a second pair of eyes
+- Perf accounting: confirm the definition of `present_us` (push + waitDMA) matches how you want to reason about stutter across demos.
+
+### What should be done in the future
+- Add key-repeat support for menu navigation (holding W/S) if it feels too “clicky” with edge-only events.
+
+### Code review instructions
+- Start in `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp` and follow:
+  - sprite allocation and present order
+  - key mapping and scene transitions
+  - HUD/perf cadence and dirty logic

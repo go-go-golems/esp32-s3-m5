@@ -24,6 +24,15 @@ Flashed the demo-suite firmware to a real Cardputer and documented the build/fla
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/build.sh — Build/flash helper with a tmux entry point
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0021-M5-GFX-DEMO--esp32-cardputer-m5gfx-demo-firmware/design/07-playbook-build-flash-monitor-validate.md — Playbook for device validation loop
 
+## 2026-01-02
+
+Implemented shared demo-suite infrastructure (scene switching + layered sprites) and completed starter scenarios A1 (HUD header) and B2 (perf footer overlay).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp — Scene switcher + layered present pipeline (body/header/footer)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp — HUD + perf overlay drawing and perf EMA tracking
+
 
 ## 2026-01-01
 

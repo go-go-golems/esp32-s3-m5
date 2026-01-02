@@ -25,7 +25,10 @@ idf.py flash monitor
 
 ### Controls (current scaffold)
 
-- `W` / `S`: move selection up/down
-- `Enter`: open (currently logs selection)
-- `Del`: back (currently no-op)
-
+- `W` / `S`: move selection up/down (home menu)
+- `Enter`: open selected demo
+- `Tab`: next demo
+- `Shift+Tab`: previous demo
+- `Del`: back to home menu
+- `H`: toggle HUD header bar
+- `F`: toggle perf footer bar
