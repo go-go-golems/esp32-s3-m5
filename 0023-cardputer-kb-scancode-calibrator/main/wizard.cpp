@@ -57,7 +57,7 @@ void CalibrationWizard::reset() {
     bindings_.push_back({"NavDown", "Press: Down (Fn+?)", {}, false});
     bindings_.push_back({"NavLeft", "Press: Left (Fn+?)", {}, false});
     bindings_.push_back({"NavRight", "Press: Right (Fn+?)", {}, false});
-    bindings_.push_back({"Back", "Press: Back/Esc (Fn+`)", {}, false});
+    bindings_.push_back({"Back", "Press: Back/Esc (Fn+1)", {}, false});
     bindings_.push_back({"Del", "Press: Del (Fn+Del)", {}, false});
     bindings_.push_back({"Enter", "Press: Enter", {}, false});
     bindings_.push_back({"Tab", "Press: Tab", {}, false});

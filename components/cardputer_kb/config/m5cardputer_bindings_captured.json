@@ -6,7 +6,7 @@
     {"name": "NavDown", "required_keynums": [29, 54]},
     {"name": "NavLeft", "required_keynums": [29, 53]},
     {"name": "NavRight", "required_keynums": [29, 55]},
-    {"name": "Back", "required_keynums": [29, 1]},
+    {"name": "Back", "required_keynums": [29, 2]},
     {"name": "Del", "required_keynums": [29, 14]},
     {"name": "Enter", "required_keynums": [42]},
     {"name": "Tab", "required_keynums": [15]},

@@ -92,7 +92,7 @@ Current defaults in `kCapturedBindingsM5Cardputer`:
 - `NavDown` = `Fn(29)` + `keyNum 54` (`.`)
 - `NavLeft` = `Fn(29)` + `keyNum 53` (`,`)
 - `NavRight` = `Fn(29)` + `keyNum 55` (`/`)
-- `Back` (Esc/back) = `Fn(29)` + `keyNum 1` (`` ` ``)
+- `Back` (Esc/back) = `Fn(29)` + `keyNum 2` (`1`)
 - `Del` = `Fn(29)` + `keyNum 14` (`del`)
 - `Enter` = `keyNum 42`
 - `Tab` = `keyNum 15`
