@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Cardputer matrix keyboard scanner used for input mapping
 ExternalSources: []
 Summary: Step-by-step implementation diary for the 0021 M5GFX demo-suite firmware, separate from the initial research diary.
-LastUpdated: 2026-01-02T00:30:00Z
+LastUpdated: 2026-01-02T00:45:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -105,3 +105,38 @@ This step validates that the new project builds cleanly under ESP-IDF 5.4.1 and 
 ### Code review instructions
 - Rebuild from scratch and confirm no local-only state is required:
   - `idf.py fullclean && idf.py build`
+
+## Step 3: Commit the compile-ready baseline
+
+This step records the point where the demo-suite scaffold first compiled successfully and was committed, so subsequent work (A1/B2/E1/B3) can build on a known-good baseline.
+
+**Commit:** `4a751b7` — "✨ Cardputer: add M5GFX demo-suite scaffold"
+
+### What I did
+- Committed the new project (`0022-cardputer-m5gfx-demo-suite`) plus the `0021-M5-GFX-DEMO` ticket workspace updates.
+
+### Why
+- The fastest way to iterate is to lock in a working baseline early, then layer scenarios on top without mixing in unrelated changes.
+
+### What worked
+- Commit includes a successful `idf.py build` baseline.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- N/A.
+
+### What was tricky to build
+- Keeping the commit limited to the demo-suite + its ticket docs, because the repo working tree contained unrelated modifications.
+
+### What warrants a second pair of eyes
+- Whether committing the full ticket workspace docs (analysis + design + diaries) in the same baseline commit is desirable, or if future tickets prefer a docs-only commit separate from the code scaffold.
+
+### What should be done in the future
+- Keep commits per scenario small (A1, B2, E1, B3) so regressions are easy to bisect.
+
+### Code review instructions
+- Start with `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/app_main.cpp` (menu + wiring), then:
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/ui_list_view.cpp`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp`
