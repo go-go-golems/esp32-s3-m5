@@ -14,7 +14,8 @@ namespace cardputer_kb {
 // - NavDown  = fn(29) + keynum 54   (".")
 // - NavLeft  = fn(29) + keynum 53   (",")
 // - NavRight = fn(29) + keynum 55   ("/")
-// - Back     = keynum 1    ("`" physical key)
+// - Back     = fn(29) + keynum 1    ("`" physical key; used as Esc/back)
+// - Del      = fn(29) + keynum 14   ("del" physical key)
 // - Enter    = keynum 42
 // - Tab      = keynum 15
 // - Space    = keynum 56
@@ -23,7 +24,8 @@ static constexpr Binding kCapturedBindingsM5Cardputer[] = {
     {Action::NavDown, 2, {29, 54, 0, 0}},
     {Action::NavLeft, 2, {29, 53, 0, 0}},
     {Action::NavRight, 2, {29, 55, 0, 0}},
-    {Action::Back, 1, {1, 0, 0, 0}},
+    {Action::Back, 2, {29, 1, 0, 0}},
+    {Action::Del, 2, {29, 14, 0, 0}},
     {Action::Enter, 1, {42, 0, 0, 0}},
     {Action::Tab, 1, {15, 0, 0, 0}},
     {Action::Space, 1, {56, 0, 0, 0}},

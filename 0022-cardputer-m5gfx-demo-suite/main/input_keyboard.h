@@ -5,6 +5,9 @@
 
 #include "esp_err.h"
 
+#include "cardputer_kb/bindings.h"
+#include "cardputer_kb/scanner.h"
+
 struct KeyEvent {
     std::string key;
     bool shift = false;
@@ -15,18 +18,14 @@ struct KeyEvent {
 
 class CardputerKeyboard {
 public:
-    struct KeyPos {
-        int x = 0;
-        int y = 0;
-    };
-
     esp_err_t init();
     std::vector<KeyEvent> poll();
 
 private:
     bool inited_ = false;
-    bool allow_autodetect_in01_ = true;
-    bool use_alt_in01_ = false;
 
-    std::vector<KeyPos> prev_down_{};
+    cardputer_kb::MatrixScanner scanner_{};
+    std::vector<uint8_t> prev_pressed_keynums_{};
+    bool prev_action_valid_ = false;
+    cardputer_kb::Action prev_action_{};
 };

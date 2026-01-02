@@ -12,6 +12,7 @@ ACTION_ENUM = {
     "NavLeft": "cardputer_kb::Action::NavLeft",
     "NavRight": "cardputer_kb::Action::NavRight",
     "Back": "cardputer_kb::Action::Back",
+    "Del": "cardputer_kb::Action::Del",
     "Enter": "cardputer_kb::Action::Enter",
     "Tab": "cardputer_kb::Action::Tab",
     "Space": "cardputer_kb::Action::Space",
@@ -72,4 +73,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

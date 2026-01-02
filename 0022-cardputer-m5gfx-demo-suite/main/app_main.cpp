@@ -79,6 +79,18 @@ static SceneId next_scene(SceneId cur, bool backwards) {
 
 static NavKey nav_key_from_event(const KeyEvent &ev, bool *out_is_nav) {
     *out_is_nav = true;
+    if (ev.key == "up") {
+        return NavKey::Up;
+    }
+    if (ev.key == "down") {
+        return NavKey::Down;
+    }
+    if (ev.key == "left") {
+        return NavKey::PageUp;
+    }
+    if (ev.key == "right") {
+        return NavKey::PageDown;
+    }
     if (ev.key == "w" || ev.key == "W" || ev.key == "k" || ev.key == "K") {
         return NavKey::Up;
     }
@@ -107,7 +119,7 @@ static void render_placeholder(M5Canvas &body, const char *title) {
     body.drawString(title, 6, 8);
     body.setTextColor(TFT_DARKGREY, TFT_BLACK);
     body.drawString("TODO: implement demo module", 6, 28);
-    body.drawString("Del: back   Tab: next   Shift+Tab: prev", 6, 46);
+    body.drawString("Esc/Del: back   Tab: next   Shift+Tab: prev", 6, 46);
     body.drawString("H: toggle HUD   F: toggle perf", 6, 64);
     body.drawString("P: screenshot to serial", 6, 82);
 }
@@ -250,14 +262,13 @@ extern "C" void app_main(void) {
                 continue;
             }
 
-            if (ev.key == "del") {
-                if (scene == SceneId::E1TerminalDemo && !ev.fn && !ev.ctrl && !ev.alt) {
-                    // In terminal mode, plain "del" is backspace; Fn+Del is back to menu.
-                } else if (scene != SceneId::Menu) {
+            if (ev.key == "esc" || ev.key == "del") {
+                if (scene != SceneId::Menu) {
                     set_scene(SceneId::Menu);
                 } else {
-                    ESP_LOGI(TAG, "back (del) pressed");
+                    ESP_LOGI(TAG, "back (%s) pressed", ev.key.c_str());
                 }
+                continue;
             }
 
             bool is_nav = false;
@@ -273,12 +284,12 @@ extern "C" void app_main(void) {
             }
 
             if (scene == SceneId::E1TerminalDemo) {
-                if (ev.fn && (ev.key == "w" || ev.key == "W")) {
+                if (ev.key == "up") {
                     console.scrollback++;
                     console.dirty = true;
                     continue;
                 }
-                if (ev.fn && (ev.key == "s" || ev.key == "S")) {
+                if (ev.key == "down") {
                     console.scrollback = std::max(0, console.scrollback - 1);
                     console.dirty = true;
                     continue;
@@ -297,7 +308,7 @@ extern "C" void app_main(void) {
                     continue;
                 }
 
-                if (ev.key == "del" && !ev.fn && !ev.ctrl && !ev.alt) {
+                if (ev.key == "bksp" && !ev.fn && !ev.ctrl && !ev.alt) {
                     if (!console.input.empty()) {
                         console.input.pop_back();
                         console.dirty = true;

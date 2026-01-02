@@ -110,6 +110,7 @@ Notes:
 
 - A binding is a set of required `keyNum`s; chords are naturally supported.
 - “Most specific wins” means `[fn, x]` can override `[x]` if both match.
+- The included Cardputer bindings intentionally use **Fn-chords** for navigation (and for Esc/back, Del) so these actions don't collide with printable punctuation keys.
 
 ## 6) Regenerate bindings (recommended)
 
@@ -131,4 +132,3 @@ Workflow:
 - If keys never register:
   - confirm the scanner autodetect switched to alt IN0/IN1 if needed
   - verify the Cardputer is on GPIO matrix pins (not a different keyboard accessory)
-

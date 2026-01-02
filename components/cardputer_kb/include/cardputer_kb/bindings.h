@@ -13,6 +13,7 @@ enum class Action : uint8_t {
     NavLeft,
     NavRight,
     Back,
+    Del,
     Enter,
     Tab,
     Space,
@@ -31,6 +32,7 @@ inline const char *action_name(Action a) {
     case Action::NavLeft: return "NavLeft";
     case Action::NavRight: return "NavRight";
     case Action::Back: return "Back";
+    case Action::Del: return "Del";
     case Action::Enter: return "Enter";
     case Action::Tab: return "Tab";
     case Action::Space: return "Space";
@@ -71,4 +73,3 @@ inline const Binding *decode_best(const std::vector<uint8_t> &pressed_keynums, c
 }
 
 } // namespace cardputer_kb
-

@@ -1,22 +1,12 @@
 #include "input_keyboard.h"
 
-#include <algorithm>
 #include <cstring>
+#include <string_view>
 
-#include "esp_check.h"
-#include "esp_log.h"
-#include "esp_rom_sys.h"
-
-#include "driver/gpio.h"
-
-static const char *TAG = "cardputer_keyboard";
+#include "cardputer_kb/bindings_m5cardputer_captured.h"
+#include "cardputer_kb/layout.h"
 
 namespace {
-
-constexpr int kKbOutPins[3] = {8, 9, 11};
-
-constexpr int kKbInPinsPrimary[7] = {13, 15, 3, 4, 5, 6, 7};
-constexpr int kKbInPinsAlt[7] = {1, 2, 3, 4, 5, 6, 7};
 
 struct KeyValue {
     const char *first;
@@ -32,133 +22,56 @@ constexpr KeyValue kKeyMap[4][14] = {
     {{"ctrl", "ctrl"}, {"opt", "opt"}, {"alt", "alt"}, {"z", "Z"}, {"x", "X"}, {"c", "C"}, {"v", "V"}, {"b", "B"}, {"n", "N"}, {"m", "M"}, {",", "<"}, {".", ">"}, {"/", "?"}, {"space", "space"}},
 };
 
-static inline void kb_set_output(uint8_t out_bits3) {
-    out_bits3 &= 0x07;
-    gpio_set_level((gpio_num_t)kKbOutPins[0], (out_bits3 & 0x01) ? 1 : 0);
-    gpio_set_level((gpio_num_t)kKbOutPins[1], (out_bits3 & 0x02) ? 1 : 0);
-    gpio_set_level((gpio_num_t)kKbOutPins[2], (out_bits3 & 0x04) ? 1 : 0);
-}
-
-static inline uint8_t kb_get_input_mask(const int in_pins[7]) {
-    // Input pins are pulled up; a pressed key reads low -> we invert to build a 7-bit pressed mask.
-    uint8_t mask = 0;
-    for (int i = 0; i < 7; i++) {
-        int level = gpio_get_level((gpio_num_t)in_pins[i]);
-        if (level == 0) {
-            mask |= (uint8_t)(1U << i);
-        }
-    }
-    return mask;
-}
-
-static int kb_scan_pressed(CardputerKeyboard::KeyPos *out_keys, int out_cap, bool *io_use_alt_in01,
-                           bool *io_allow_autodetect_in01) {
-    int count = 0;
-
-    for (int scan_state = 0; scan_state < 8; scan_state++) {
-        kb_set_output((uint8_t)scan_state);
-
-        uint8_t in_mask = 0;
-        if (*io_use_alt_in01) {
-            in_mask = kb_get_input_mask(kKbInPinsAlt);
-        } else {
-            in_mask = kb_get_input_mask(kKbInPinsPrimary);
-        }
-
-        if (*io_allow_autodetect_in01) {
-            // If the primary wiring shows no activity, also check the alternate IN0/IN1 pins.
-            // If we see activity there, switch permanently and log once.
-            if (!*io_use_alt_in01 && in_mask == 0) {
-                uint8_t alt = kb_get_input_mask(kKbInPinsAlt);
-                if (alt != 0) {
-                    *io_use_alt_in01 = true;
-                    in_mask = alt;
-                    ESP_LOGW(TAG, "keyboard autodetect: switching IN0/IN1 to alt pins [%d,%d] (was [%d,%d])",
-                             kKbInPinsAlt[0], kKbInPinsAlt[1], kKbInPinsPrimary[0], kKbInPinsPrimary[1]);
-                }
-            }
-        }
-
-        if (in_mask == 0) {
-            continue;
-        }
-
-        // For each asserted input bit, map to x/y based on vendor chart.
-        for (int j = 0; j < 7; j++) {
-            if ((in_mask & (1U << j)) == 0) {
-                continue;
-            }
-
-            int x = (scan_state > 3) ? (2 * j) : (2 * j + 1);
-            int y_base = (scan_state > 3) ? (scan_state - 4) : scan_state; // 0..3
-            int y = (-y_base) + 3;                                          // flip to match "picture"
-
-            if (x < 0 || x > 13 || y < 0 || y > 3) {
-                continue;
-            }
-
-            if (count < out_cap) {
-                out_keys[count].x = x;
-                out_keys[count].y = y;
-                count++;
-            }
-        }
-    }
-
-    kb_set_output(0);
-    return count;
-}
-
-static bool pos_eq(const CardputerKeyboard::KeyPos &a, const CardputerKeyboard::KeyPos &b) {
-    return a.x == b.x && a.y == b.y;
-}
-
-static bool pos_contains(const std::vector<CardputerKeyboard::KeyPos> &v, const CardputerKeyboard::KeyPos &pos) {
-    for (const auto &p : v) {
-        if (pos_eq(p, pos)) {
-            return true;
-        }
+static bool contains_keynum(const std::vector<uint8_t> &v, uint8_t keynum) {
+    for (auto x : v) {
+        if (x == keynum) return true;
     }
     return false;
 }
 
-static const KeyValue &key_value_at(const CardputerKeyboard::KeyPos &pos) {
-    return kKeyMap[pos.y][pos.x];
+static const KeyValue *key_value_for_keynum(uint8_t keynum) {
+    int x = -1;
+    int y = -1;
+    cardputer_kb::xy_from_keynum(keynum, &x, &y);
+    if (x < 0 || x >= 14 || y < 0 || y >= 4) {
+        return nullptr;
+    }
+    return &kKeyMap[y][x];
 }
 
-static bool is_modifier(const char *k) {
-    return strcmp(k, "shift") == 0 || strcmp(k, "fn") == 0 || strcmp(k, "ctrl") == 0 || strcmp(k, "alt") == 0 ||
-           strcmp(k, "opt") == 0;
+static bool is_modifier_keynum(uint8_t keynum) {
+    const KeyValue *kv = key_value_for_keynum(keynum);
+    if (!kv) return false;
+    return strcmp(kv->first, "shift") == 0 || strcmp(kv->first, "fn") == 0 || strcmp(kv->first, "ctrl") == 0 ||
+           strcmp(kv->first, "alt") == 0 || strcmp(kv->first, "opt") == 0;
+}
+
+static bool binding_contains_keynum(const cardputer_kb::Binding &b, uint8_t keynum) {
+    for (uint8_t i = 0; i < b.n; i++) {
+        if (b.keynums[i] == keynum) return true;
+    }
+    return false;
+}
+
+static std::string_view key_for_action(cardputer_kb::Action a) {
+    switch (a) {
+    case cardputer_kb::Action::NavUp: return "up";
+    case cardputer_kb::Action::NavDown: return "down";
+    case cardputer_kb::Action::NavLeft: return "left";
+    case cardputer_kb::Action::NavRight: return "right";
+    case cardputer_kb::Action::Back: return "esc";
+    case cardputer_kb::Action::Del: return "del";
+    case cardputer_kb::Action::Enter: return "enter";
+    case cardputer_kb::Action::Tab: return "tab";
+    case cardputer_kb::Action::Space: return "space";
+    }
+    return "";
 }
 
 } // namespace
 
 esp_err_t CardputerKeyboard::init() {
-    gpio_config_t out_cfg = {};
-    out_cfg.pin_bit_mask = (1ULL << kKbOutPins[0]) | (1ULL << kKbOutPins[1]) | (1ULL << kKbOutPins[2]);
-    out_cfg.mode = GPIO_MODE_OUTPUT;
-    out_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    out_cfg.pull_up_en = GPIO_PULLUP_DISABLE;
-    out_cfg.intr_type = GPIO_INTR_DISABLE;
-    ESP_RETURN_ON_ERROR(gpio_config(&out_cfg), TAG, "gpio_config(out)");
-
-    gpio_config_t in_cfg = {};
-    in_cfg.pin_bit_mask = 0;
-    for (int i = 0; i < 7; i++) {
-        in_cfg.pin_bit_mask |= (1ULL << kKbInPinsPrimary[i]);
-    }
-    in_cfg.mode = GPIO_MODE_INPUT;
-    in_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    in_cfg.pull_up_en = GPIO_PULLUP_ENABLE;
-    in_cfg.intr_type = GPIO_INTR_DISABLE;
-    ESP_RETURN_ON_ERROR(gpio_config(&in_cfg), TAG, "gpio_config(in_primary)");
-
-    gpio_config_t in_alt_cfg = in_cfg;
-    in_alt_cfg.pin_bit_mask = 0;
-    in_alt_cfg.pin_bit_mask |= (1ULL << kKbInPinsAlt[0]) | (1ULL << kKbInPinsAlt[1]);
-    ESP_RETURN_ON_ERROR(gpio_config(&in_alt_cfg), TAG, "gpio_config(in_alt01)");
-
-    kb_set_output(0);
+    scanner_.init();
     inited_ = true;
     return ESP_OK;
 }
@@ -169,42 +82,60 @@ std::vector<KeyEvent> CardputerKeyboard::poll() {
         return events;
     }
 
-    CardputerKeyboard::KeyPos down_buf[32] = {};
-    int down_n = kb_scan_pressed(down_buf, (int)(sizeof(down_buf) / sizeof(down_buf[0])), &use_alt_in01_,
-                                 &allow_autodetect_in01_);
+    cardputer_kb::ScanSnapshot snap = scanner_.scan();
+    const std::vector<uint8_t> &down_keynums = snap.pressed_keynums;
 
-    std::vector<KeyPos> down;
-    down.reserve((size_t)down_n);
-    for (int i = 0; i < down_n; i++) {
-        down.push_back(down_buf[i]);
-    }
+    static constexpr uint8_t kKeynumFn = 29;
+    static constexpr uint8_t kKeynumShift = 30;
+    static constexpr uint8_t kKeynumCtrl = 43;
+    static constexpr uint8_t kKeynumOpt = 44;
+    static constexpr uint8_t kKeynumAlt = 45;
 
-    bool shift = false;
-    bool ctrl = false;
-    bool alt = false;
-    bool fn = false;
-    for (const auto &pos : down) {
-        const auto &kv = key_value_at(pos);
-        if (strcmp(kv.first, "shift") == 0) {
-            shift = true;
-        } else if (strcmp(kv.first, "ctrl") == 0) {
-            ctrl = true;
-        } else if (strcmp(kv.first, "alt") == 0) {
-            alt = true;
-        } else if (strcmp(kv.first, "fn") == 0) {
-            fn = true;
+    const bool shift = contains_keynum(down_keynums, kKeynumShift);
+    const bool ctrl = contains_keynum(down_keynums, kKeynumCtrl);
+    const bool alt = contains_keynum(down_keynums, kKeynumAlt) || contains_keynum(down_keynums, kKeynumOpt);
+    const bool fn = contains_keynum(down_keynums, kKeynumFn);
+
+    const cardputer_kb::Binding *active = cardputer_kb::decode_best(
+        down_keynums, cardputer_kb::kCapturedBindingsM5Cardputer,
+        sizeof(cardputer_kb::kCapturedBindingsM5Cardputer) / sizeof(cardputer_kb::kCapturedBindingsM5Cardputer[0]));
+
+    if (active) {
+        if (!prev_action_valid_ || prev_action_ != active->action) {
+            KeyEvent ev;
+            ev.shift = shift;
+            ev.ctrl = ctrl;
+            ev.alt = alt;
+            ev.fn = fn;
+            ev.key = std::string(key_for_action(active->action));
+            events.push_back(std::move(ev));
         }
+        prev_action_valid_ = true;
+        prev_action_ = active->action;
+    } else {
+        prev_action_valid_ = false;
     }
 
-    // Emit "edge" events: keys that are down now but were not down previously.
-    for (const auto &pos : down) {
-        if (pos_contains(prev_down_, pos)) {
+    // Emit "edge" events for raw keys (excluding any key that is part of the active binding chord).
+    for (auto keynum : down_keynums) {
+        if (contains_keynum(prev_pressed_keynums_, keynum)) {
+            continue;
+        }
+        if (is_modifier_keynum(keynum)) {
+            continue;
+        }
+        if (active && binding_contains_keynum(*active, keynum)) {
             continue;
         }
 
-        const auto &kv = key_value_at(pos);
-        if (is_modifier(kv.first)) {
+        const KeyValue *kv = key_value_for_keynum(keynum);
+        if (!kv) {
             continue;
+        }
+
+        std::string key = shift ? kv->second : kv->first;
+        if (key == "del") {
+            key = "bksp";
         }
 
         KeyEvent ev;
@@ -212,10 +143,10 @@ std::vector<KeyEvent> CardputerKeyboard::poll() {
         ev.ctrl = ctrl;
         ev.alt = alt;
         ev.fn = fn;
-        ev.key = shift ? kv.second : kv.first;
+        ev.key = std::move(key);
         events.push_back(std::move(ev));
     }
 
-    prev_down_ = std::move(down);
+    prev_pressed_keynums_ = down_keynums;
     return events;
 }

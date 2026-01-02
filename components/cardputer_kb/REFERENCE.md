@@ -86,3 +86,14 @@ Example captured nav bindings are provided as:
 
 These are intended as a starting point and may be regenerated using the 0023 calibrator.
 
+Current defaults in `kCapturedBindingsM5Cardputer`:
+
+- `NavUp` = `Fn(29)` + `keyNum 40` (`;`)
+- `NavDown` = `Fn(29)` + `keyNum 54` (`.`)
+- `NavLeft` = `Fn(29)` + `keyNum 53` (`,`)
+- `NavRight` = `Fn(29)` + `keyNum 55` (`/`)
+- `Back` (Esc/back) = `Fn(29)` + `keyNum 1` (`` ` ``)
+- `Del` = `Fn(29)` + `keyNum 14` (`del`)
+- `Enter` = `keyNum 42`
+- `Tab` = `keyNum 15`
+- `Space` = `keyNum 56`

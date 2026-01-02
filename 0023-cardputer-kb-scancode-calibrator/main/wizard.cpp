@@ -17,7 +17,11 @@ static bool is_nav_binding_name(const std::string &name) {
     return name == "NavUp" || name == "NavDown" || name == "NavLeft" || name == "NavRight";
 }
 
-static std::vector<uint8_t> normalize_nav_chord(const std::vector<uint8_t> &keynums) {
+static bool is_fn_combo_binding_name(const std::string &name) {
+    return is_nav_binding_name(name) || name == "Back" || name == "Del";
+}
+
+static std::vector<uint8_t> normalize_fn_chord(const std::vector<uint8_t> &keynums) {
     std::vector<uint8_t> out = keynums;
     if (!contains_keynum(out, kFnKeynum)) {
         out.push_back(kFnKeynum);
@@ -53,7 +57,8 @@ void CalibrationWizard::reset() {
     bindings_.push_back({"NavDown", "Press: Down (Fn+?)", {}, false});
     bindings_.push_back({"NavLeft", "Press: Left (Fn+?)", {}, false});
     bindings_.push_back({"NavRight", "Press: Right (Fn+?)", {}, false});
-    bindings_.push_back({"Back", "Press: Back/Esc", {}, false});
+    bindings_.push_back({"Back", "Press: Back/Esc (Fn+`)", {}, false});
+    bindings_.push_back({"Del", "Press: Del (Fn+Del)", {}, false});
     bindings_.push_back({"Enter", "Press: Enter", {}, false});
     bindings_.push_back({"Tab", "Press: Tab", {}, false});
     bindings_.push_back({"Space", "Press: Space", {}, false});
@@ -144,13 +149,13 @@ bool CalibrationWizard::update(const cardputer_kb::ScanSnapshot &scan, const car
 
     if (now_us - stable_since_us_ >= kStableHoldUs) {
         auto &b = bindings_[(size_t)index_];
-        if (is_nav_binding_name(b.name)) {
+        if (is_fn_combo_binding_name(b.name)) {
             if (!contains_keynum(stable_candidate_, kFnKeynum)) {
                 status_text_ = "Hold Fn too (Fn key not detected)";
                 stable_since_us_ = now_us;
                 return true;
             }
-            b.required_keynums = normalize_nav_chord(stable_candidate_);
+            b.required_keynums = normalize_fn_chord(stable_candidate_);
         } else {
             b.required_keynums = stable_candidate_;
         }
@@ -175,8 +180,8 @@ std::string CalibrationWizard::config_json() const {
         if (!first) ss << ",\\n";
         first = false;
         std::vector<uint8_t> kn = b.required_keynums;
-        if (is_nav_binding_name(b.name)) {
-            kn = normalize_nav_chord(kn);
+        if (is_fn_combo_binding_name(b.name)) {
+            kn = normalize_fn_chord(kn);
         }
         ss << "    {\\\"name\\\":\\\"" << b.name << "\\\", \\\"required_keynums\\\":[" << join_nums(kn) << "]}";
     }
