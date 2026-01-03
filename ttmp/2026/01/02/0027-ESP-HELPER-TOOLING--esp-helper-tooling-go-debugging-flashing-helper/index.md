@@ -15,6 +15,10 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../../../esp/esp-idf-5.4.1/tools/idf.py
+      Note: idf.py entrypoint analyzed (ESP-IDF 5.4.1)
+    - Path: ../../../../../../../../../esp/esp-idf-5.4.1/tools/idf_py_actions/tools.py
+      Note: Core build/tool helpers (RunTool/ensure_build_directory)
     - Path: 0013-atoms3r-gif-console/flash_storage.sh
       Note: parttool.py write storage partition
     - Path: 0019-cardputer-ble-temp-logger/tools/run_fw_flash_monitor.sh
@@ -61,6 +65,8 @@ RelatedFiles:
       Note: older tmux monitor helper (bash -lc + export.sh)
     - Path: ttmp/2025/12/30/0020-BLE-KEYBOARD--ble-keyboard-host-firmware-bluetoothctl-like-console/scripts/pair_debug.py
       Note: operator workflow automation (idf.py + serial + plz-confirm)
+    - Path: ttmp/2026/01/02/0027-ESP-HELPER-TOOLING--esp-helper-tooling-go-debugging-flashing-helper/analysis/02-esp-idf-idf-py-architecture-commands-and-internals.md
+      Note: Deep dive into ESP-IDF idf.py internals and extension API
     - Path: ttmp/2026/01/02/0027-ESP-HELPER-TOOLING--esp-helper-tooling-go-debugging-flashing-helper/design-doc/01-go-helper-tool-design-env-ports-flash-monitor-tmux.md
       Note: Design proposal for consolidated Go helper tool
 ExternalSources: []
@@ -69,6 +75,8 @@ LastUpdated: 2026-01-02T09:01:10.021314819-05:00
 WhatFor: Reduce friction and failure modes in build/flash/monitor workflows by consolidating environment, port selection, tmux, and stable flashing patterns into one Go tool.
 WhenToUse: Use when repeated manual shell/tmux/serial steps are causing errors or slowing iteration (port selection, missing esp-idf-monitor, USB-JTAG flash flakiness, repeatable smoke tests).
 ---
+
+
 
 
 
@@ -82,6 +90,7 @@ This ticket captures an inventory of the repo’s existing ESP-IDF helper script
 ## Key Links
 
 - Analysis: [Inventory: ESP-IDF helper scripts (tmux/serial/idf.py)](./analysis/01-inventory-esp-idf-helper-scripts-tmux-serial-idf-py.md)
+- Analysis: [ESP-IDF idf.py: architecture, commands, and internals](./analysis/02-esp-idf-idf-py-architecture-commands-and-internals.md)
 - Design: [Go helper tool: design (env/ports/flash/monitor/tmux)](./design-doc/01-go-helper-tool-design-env-ports-flash-monitor-tmux.md)
 - Diary: [Diary](./reference/01-diary.md)
 - **Related Files**: See frontmatter `RelatedFiles`

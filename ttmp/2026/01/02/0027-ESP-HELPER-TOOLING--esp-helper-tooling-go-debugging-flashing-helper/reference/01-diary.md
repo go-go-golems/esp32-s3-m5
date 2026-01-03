@@ -405,3 +405,64 @@ This step keeps the ticket index’s `RelatedFiles` field complete by adding the
 ### Technical details
 - Command run:
   - `docmgr doc relate --ticket 0027-ESP-HELPER-TOOLING --file-note ...`
+
+## Step 10: Start idf.py deep dive (locate source + map modules)
+
+This step starts a source-level read of ESP-IDF’s `idf.py` entrypoint so we can design wrapper tooling that matches its real execution semantics (Click chain + task graph + extensions), rather than treating it as a thin “one command = one subprocess” wrapper.
+
+The immediate goal is to identify where commands actually come from (extensions), where build/flash/monitor contracts live (`project_description.json`, `flasher_args.json`, `flash_args`), and which behaviors are chain-dependent (e.g. `qemu monitor` rewriting `--port`).
+
+### What I did
+- Located the ESP-IDF 5.4.1 checkout used in this workspace: `/home/manuel/esp/esp-idf-5.4.1`.
+- Confirmed `idf.py` location and help surface:
+  - `python3 /home/manuel/esp/esp-idf-5.4.1/tools/idf.py --help`
+- Read the entrypoint script and identified its major phases:
+  - `check_environment()` (IDF_PATH + python deps check)
+  - `init_cli()` (Click CLI construction)
+  - extension discovery (`*_ext.py` modules) + merge into an action list
+  - task scheduling and execution for chained commands
+
+### What worked
+- The source is relatively self-documenting: `idf.py` intentionally delays importing Click until after `check_environment()`, and keeps extension loading explicit.
+
+### What didn't work
+- My first attempt to create the analysis doc did not persist to disk (the file wasn’t present in `analysis/`), so I re-ran `docmgr doc add` and verified it existed before writing into it.
+
+### Technical details
+- Commands run (representative):
+  - `python3 /home/manuel/esp/esp-idf-5.4.1/tools/idf.py --help`
+  - `sed -n '1,200p' /home/manuel/esp/esp-idf-5.4.1/tools/idf.py`
+  - `find /home/manuel/esp/esp-idf-5.4.1/tools/idf_py_actions -maxdepth 2 -type f -name '*.py'`
+
+## Step 11: Write idf.py analysis doc (capabilities + internals + extension API)
+
+This step turns the reading into a structured document: what `idf.py` can do, how it’s implemented (extensions + Click chain), what “interfaces” exist (extension schema, build metadata files), and what this implies for wrapper tooling.
+
+### What I did
+- Wrote:
+  - `ttmp/2026/01/02/0027-ESP-HELPER-TOOLING--esp-helper-tooling-go-debugging-flashing-helper/analysis/02-esp-idf-idf-py-architecture-commands-and-internals.md`
+- Included:
+  - prose explanation and bullet-point capability map
+  - diagrams (mermaid call flow + flash/monitor sequence)
+  - pseudocode for the task scheduler
+  - a structured description of the extension “action list” schema
+  - build/flash/monitor/qemu contracts and env vars relevant to wrappers
+- Related upstream ESP-IDF files to both the analysis doc and the ticket index using `docmgr doc relate`.
+
+### What worked
+- `core_ext.py`, `serial_ext.py`, and `qemu_ext.py` all implement the same `action_extensions()` pattern, which makes it possible to describe as a quasi-public internal API.
+
+### What warrants a second pair of eyes
+- Validate the “dependency vs order dependency” interpretation by checking a few common chained invocations you rely on most (`flash monitor`, `qemu monitor`, `fullclean build`).
+
+### What should be done in the future
+- Use this idf.py analysis to tighten the Go tooling design doc around:
+  - chain-level callbacks as a compatibility requirement
+  - build metadata as explicit contracts (instead of ad-hoc parsing)
+
+### Technical details
+- Commands run (representative):
+  - `sed -n '1,260p' /home/manuel/esp/esp-idf-5.4.1/tools/idf_py_actions/tools.py`
+  - `sed -n '1,260p' /home/manuel/esp/esp-idf-5.4.1/tools/idf_py_actions/serial_ext.py`
+  - `sed -n '1,260p' /home/manuel/esp/esp-idf-5.4.1/tools/idf_py_actions/qemu_ext.py`
+  - `docmgr doc relate --doc .../analysis/02-esp-idf-idf-py-architecture-commands-and-internals.md --file-note ...`

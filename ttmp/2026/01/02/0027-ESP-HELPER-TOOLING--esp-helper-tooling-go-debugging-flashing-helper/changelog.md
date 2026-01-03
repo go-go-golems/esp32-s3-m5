@@ -8,3 +8,4 @@
 - Expanded inventory with additional ticket-scoped QEMU isolation scripts and prior context
 - Added a design-doc for the proposed Go helper tool (`env`/ports/flash/monitor/tmux/procedures)
 - Updated RelatedFiles with additional historical QEMU and IDF-debugging probes
+- Added a deep-dive analysis of ESP-IDF `idf.py` internals (extensions, task scheduling, build/flash/monitor contracts)
