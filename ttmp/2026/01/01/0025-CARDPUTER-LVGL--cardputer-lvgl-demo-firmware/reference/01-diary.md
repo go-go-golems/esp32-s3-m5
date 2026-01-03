@@ -903,3 +903,82 @@ The two big constraints followed here:
 - Mount path: `/sd` (config `CONFIG_0025_SDCARD_MOUNT_PATH`)
 - SDSPI pins defaults: `MISO=39 MOSI=14 SCK=40 CS=12`
 - File preview limit: `4096` bytes (shows “(truncated)” if larger)
+
+## Step 14: Save screenshot to MicroSD + make screenshot capture robust after SD mount
+
+This step completed tasks 55/56 by adding a “save screenshot to MicroSD” action/command and validating the full mount→browse→save→reopen loop. While validating, we found a subtle failure mode: after mounting the SD card, heap fragmentation could prevent allocating a large contiguous PNG buffer, causing `screenshot` to emit `PNG_BEGIN 0` (0-byte PNG). The fix was to switch the screenshot path to a streamed PNG encoder that never needs a single large allocation, and to update the host capture tools to parse the streamed PNG until the `IEND` chunk when `<len> == 0`.
+
+**Commit (code):** 5ff6578902454c29d80c3378e53ee0b784d2a7fb — "MicroSD: saveshot + sd debug; screenshot: stream PNG"
+
+### What I did
+- Added `saveshot` action/command that saves a PNG to MicroSD under `/sd/shots/` using 8.3-compatible filenames (`SXXXXXX.PNG`).
+- Reworked screenshot capture to stream PNG bytes (no large contiguous buffer), and adjusted host capture tools to parse the PNG stream when `PNG_BEGIN 0`.
+- Added SD debug console commands (`sdstat`, `sdmount`, `sdumount`, `sdls`, `sdcat`) to make SD bring-up self-debuggable.
+- Added `waitms <ms>` for scripting sequences that need time for LVGL to process key events.
+- Adjusted SysMon charts to ensure 1px stroke width.
+- Validated with repeated flash + scripted screenshots + OCR.
+
+### Why
+- Task 55/56 required a full end-to-end SD workflow including saving screenshots.
+- The previous “in-memory PNG buffer” approach failed after SD mount due to heap fragmentation (large contiguous allocation required by miniz’s PNG helper).
+- Using 8.3 paths avoids FATFS long filename assumptions on-device (mkdir of `screenshots` failed with `errno=22`).
+
+### What worked
+- Build/flash:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh -p /dev/ttyACM0 flash`
+- Screenshot capture after SD mount (streamed protocol):
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py /dev/ttyACM0 /tmp/menu.png --cmd $'menu\nscreenshot' --timeout-s 60`
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py /dev/ttyACM0 /tmp/files.png --cmd $'sdmount\nfiles\nscreenshot' --timeout-s 60`
+- Save screenshot to SD:
+  - `sdmount`
+  - `saveshot` → example output:
+    - `OK len=3625 path=/sd/shots/SBBF6B2.PNG`
+  - `sdls /sd/shots` shows the created `S*.PNG` files.
+- Validation screenshots + OCR:
+  - `pinocchio code professional --images /tmp/0025_ui_menu.png,/tmp/0025_ui_files_root.png,/tmp/0025_ui_files_shots.png "OCR all screenshots and summarize visible UI text + truncation/overlap."`
+
+### What didn't work
+- Heap-fragmentation failure after SD mount (old screenshot path):
+  - `ERR: screenshot_png encode failed (png=0x0 len=0 heap=231268 dma=223764 psram=0)`
+  - resulted in `PNG_BEGIN 0` + empty capture.
+- First streaming implementation hit a stack overflow with 8k stack:
+  - `***ERROR*** A stack overflow in task screenshot_png has been detected.`
+  - fixed by increasing screenshot worker stack to 16k.
+- FATFS long filename assumptions:
+  - `mkdir(/sd/screenshots) failed: errno=22`
+  - fixed by switching to `/sd/shots` + 8.3 filenames.
+
+### What I learned
+- SD mounting can fragment heap enough to break “single large allocation” helpers (even when `esp_get_free_heap_size()` looks healthy); streaming is more robust.
+- On-device FATFS may not have long filename support enabled; default to 8.3-compatible names for “must work” paths.
+
+### What was tricky to build
+- Maintaining the screenshot framing protocol while eliminating the `<len>` dependency: host tools now parse the streamed PNG until `IEND` when `<len> == 0`.
+- Keeping the LVGL single-thread rule intact while improving scripting ergonomics (`waitms` avoids trying to “pump LVGL” from the wrong thread).
+
+### What warrants a second pair of eyes
+- PNG streaming correctness: chunk framing (IHDR/IDAT/IEND) and CRCs in `0025-cardputer-lvgl-demo/main/screenshot_png.cpp`.
+- Confirm 8.3 naming choice is acceptable UX (directory name `SHOTS` and `SXXXXXX.PNG` filenames) vs enabling LFN in sdkconfig.
+
+### What should be done in the future
+- Consider showing a clearer hint string on Files screens (current OCR often ends with “Bksp pa”, likely “Bksp parent” truncation).
+- Optional: add a `shotpath` command that prints the last saved path (useful for scripting without parsing output).
+
+### Code review instructions
+- Start in:
+  - `0025-cardputer-lvgl-demo/main/screenshot_png.cpp` (`stream_png`, `screenshot_png_save_to_sd_impl`)
+  - `0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py` (len==0 parsing)
+  - `0025-cardputer-lvgl-demo/main/console_repl.cpp` (`saveshot`, `sd*`, `waitms`)
+  - `0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp` (SDSPI host + mount)
+- Validate:
+  - Flash and run:
+    - `sdmount`
+    - `files` (confirm `/sd/SHOTS` exists)
+    - `saveshot` then `sdls /sd/shots`
+  - Capture and OCR:
+    - `python3 tools/capture_screenshot_png_from_console.py /dev/ttyACM0 /tmp/out.png --cmd $'sdmount\nfiles\nscreenshot' --timeout-s 60`
+
+### Technical details
+- Screenshot framing remains `PNG_BEGIN <len>` ... `PNG_END`, but `<len>` is now `0` and the host tools parse the streamed PNG until `IEND`.
+- Save-to-SD path: `/sd/shots/SXXXXXX.PNG` (8.3-friendly).

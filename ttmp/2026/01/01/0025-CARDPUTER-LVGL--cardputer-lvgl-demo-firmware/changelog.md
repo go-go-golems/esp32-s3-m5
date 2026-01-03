@@ -236,3 +236,14 @@ MicroSD: add /sd mount (SDSPI) + Files browser/viewer demo; add esp_console 'key
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_file_viewer.cpp — Viewer UI screen
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp — Mount/list/read preview for MicroSD
 
+
+## 2026-01-02
+
+MicroSD: add saveshot action/command saving screenshots to /sd/shots (8.3) and validate browse+save loop; Screenshot: switch to streamed PNG transport (PNG_BEGIN 0, host parses IEND) to avoid heap fragmentation after SD mount (commit 5ff6578).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — Add saveshot/waitms/keycodes + sd debug commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/screenshot_png.cpp — Streamed PNG encoder and /sd/shots save
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py — Parse streamed PNG when len==0
+

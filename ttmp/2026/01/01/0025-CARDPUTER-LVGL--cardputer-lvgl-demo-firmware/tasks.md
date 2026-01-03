@@ -57,5 +57,5 @@
 - [x] [MicroSD] Add DemoId::FileBrowser + FileViewer screens and register in menu
 - [x] [MicroSD] Implement directory listing (opendir/readdir) + selection/scroll UX (port concepts from ui_list_view.cpp)
 - [x] [MicroSD] Implement text/log viewer (read-only textarea) with size-limited preview and scrolling
-- [ ] [MicroSD] Integrate screenshot save-to-sd (write PNG bytes to /sd/screenshots/...) and expose via command/action
-- [ ] [MicroSD] Validate: mount SD, browse dirs, open files, save screenshot, reopen to confirm
+- [x] [MicroSD] Integrate screenshot save-to-sd (write PNG bytes to /sd/shots/ (8.3 names) and expose via command/action)
+- [x] [MicroSD] Validate: mount SD, browse dirs, open files, save screenshot, reopen to confirm

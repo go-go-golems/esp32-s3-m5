@@ -41,6 +41,7 @@ RelatedFiles:
         Provides the esp_console command 'screenshot' used by the playbook
         esp_console REPL commands including console/menu/basics/pomodoro/setmins/screenshot
         Add 'keys' esp_console command to inject LVGL keycodes remotely
+        esp_console commands (saveshot
     - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
       Note: CtrlEvent queue contract between console and UI
     - Path: 0025-cardputer-lvgl-demo/main/demo_file_browser.cpp
@@ -68,9 +69,13 @@ RelatedFiles:
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: LVGL display driver (draw buffers + flush callback)
     - Path: 0025-cardputer-lvgl-demo/main/screenshot_png.cpp
-      Note: Framed PNG capture over USB-Serial/JTAG
+      Note: |-
+        Framed PNG capture over USB-Serial/JTAG
+        Streaming PNG encoder + MicroSD saveshot support
     - Path: 0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp
-      Note: MicroSD FATFS mount/unmount + directory listing + file preview helpers (SDSPI)
+      Note: |-
+        MicroSD FATFS mount/unmount + directory listing + file preview helpers (SDSPI)
+        SDSPI mount + diagnostics used for task 56 validation
     - Path: 0025-cardputer-lvgl-demo/main/sdcard_fatfs.h
       Note: MicroSD module API and wiring notes
     - Path: 0025-cardputer-lvgl-demo/main/split_console_log.h
@@ -79,6 +84,7 @@ RelatedFiles:
       Note: |-
         Host validation script (send command + capture PNG)
         Scripted capture
+        Host capture tool supports streamed PNG (len==0)
     - Path: components/cardputer_kb/matrix_scanner.cpp
       Note: Cardputer keyboard matrix scan implementation
     - Path: imports/lv_m5_emulator/src/utility/lvgl_port_m5stack.cpp
@@ -87,12 +93,15 @@ RelatedFiles:
       Note: Explains screen state + lifecycle pattern and robust evolution
     - Path: ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/playbooks/01-screenshot-verification-feedback-loop-cardputer-lvgl.md
       Note: How to capture + OCR-verify screenshots
+    - Path: ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/scripts/validate_task_56.sh
+      Note: Repeatable validation script for tasks 55/56
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

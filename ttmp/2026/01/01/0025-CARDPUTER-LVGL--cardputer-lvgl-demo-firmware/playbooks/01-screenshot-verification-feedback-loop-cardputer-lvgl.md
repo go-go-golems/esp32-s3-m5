@@ -63,7 +63,10 @@ cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-c
 
 ## Step 1: Capture a screenshot (automation-friendly)
 
-This tool opens the serial port, sends `screenshot`, waits for `PNG_BEGIN`, reads exactly `<len>` bytes, then waits for `PNG_END` and writes the PNG.
+This tool opens the serial port, sends `screenshot`, waits for `PNG_BEGIN`, then:
+- if `<len> > 0`: reads exactly `<len>` bytes, or
+- if `<len> == 0`: parses the streamed PNG until the `IEND` chunk,
+then waits for `PNG_END` and writes the PNG.
 
 ```bash
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo
@@ -143,4 +146,3 @@ Likely causes:
 Fix:
 
 - retry once; if persistent, re-open monitor after capture attempt and inspect logs
-
