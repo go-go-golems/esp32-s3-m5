@@ -18,6 +18,7 @@ enum class CtrlType : uint8_t {
     OpenSystemMonitor = 8,
     OpenFileBrowser = 9,
     InjectKeys = 10,
+    ScreenshotPngSaveToSd = 11,
 };
 
 struct CtrlEvent {

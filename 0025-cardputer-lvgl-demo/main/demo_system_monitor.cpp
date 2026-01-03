@@ -66,8 +66,10 @@ static lv_obj_t *make_chart(lv_obj_t *parent, lv_coord_t h) {
     lv_obj_set_style_border_width(c, 1, 0);
     lv_obj_set_style_border_color(c, lv_palette_darken(LV_PALETTE_GREEN, 3), 0);
     lv_obj_set_style_pad_all(c, 2, 0);
+    // Ensure series strokes are 1px (avoid chunky sparklines on 240x135).
     lv_obj_set_style_line_width(c, 1, LV_PART_ITEMS);
-    // Hide per-point squares (keep a 1px line).
+    lv_obj_set_style_line_width(c, 1, LV_PART_INDICATOR);
+    // Hide per-point squares.
     lv_obj_set_style_width(c, 0, LV_PART_INDICATOR);
     lv_obj_set_style_height(c, 0, LV_PART_INDICATOR);
     lv_obj_clear_flag(c, LV_OBJ_FLAG_SCROLLABLE);

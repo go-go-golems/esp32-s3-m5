@@ -40,12 +40,14 @@ static bool s_mounted = false;
 static bool s_bus_inited = false;
 static sdmmc_card_t *s_card = nullptr;
 static sdmmc_host_t s_host = SDSPI_HOST_DEFAULT();
+static esp_err_t s_last_err = ESP_OK;
+static int s_last_errno = 0;
 
 static esp_err_t mount_impl(void) {
     s_host = SDSPI_HOST_DEFAULT();
-    // Avoid clobbering any SPI bus already owned by the display (M5GFX/LovyanGFX).
-    // SDSPI can use any SPI host; SPI3 is typically free on Cardputer.
-    s_host.slot = SPI3_HOST;
+    // Cardputer MicroSD uses SDSPI on a separate SPI host from the display.
+    // (Vendor demo uses SDSPI_HOST_DEFAULT with pins: MISO=39, MOSI=14, SCK=40, CS=12.)
+    s_host.slot = SPI2_HOST;
 
     spi_bus_config_t bus_cfg = {};
     bus_cfg.mosi_io_num = CONFIG_0025_SDCARD_PIN_MOSI;
@@ -64,6 +66,8 @@ static esp_err_t mount_impl(void) {
     esp_err_t err = spi_bus_initialize((spi_host_device_t)s_host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "spi_bus_initialize failed: %s", esp_err_to_name(err));
+        s_last_err = err;
+        s_last_errno = errno;
         return err;
     }
     s_bus_inited = true;
@@ -80,13 +84,19 @@ static esp_err_t mount_impl(void) {
     err = esp_vfs_fat_sdspi_mount(CONFIG_0025_SDCARD_MOUNT_PATH, &s_host, &slot_config, &mount_cfg, &s_card);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_vfs_fat_sdspi_mount(%s) failed: %s", CONFIG_0025_SDCARD_MOUNT_PATH, esp_err_to_name(err));
-        (void)spi_bus_free((spi_host_device_t)s_host.slot);
-        s_bus_inited = false;
+        s_last_err = err;
+        s_last_errno = errno;
+        if (s_bus_inited) {
+            (void)spi_bus_free((spi_host_device_t)s_host.slot);
+            s_bus_inited = false;
+        }
         s_card = nullptr;
         return err;
     }
 
     s_mounted = true;
+    s_last_err = ESP_OK;
+    s_last_errno = 0;
     sdmmc_card_print_info(stdout, s_card);
     return ESP_OK;
 }
@@ -106,6 +116,8 @@ esp_err_t sdcard_unmount(void) {
     }
     s_card = nullptr;
     s_mounted = false;
+    s_last_err = err;
+    s_last_errno = errno;
 
     if (s_bus_inited) {
         esp_err_t err2 = spi_bus_free((spi_host_device_t)s_host.slot);
@@ -126,6 +138,31 @@ const char *sdcard_mount_path(void) {
     return CONFIG_0025_SDCARD_MOUNT_PATH;
 }
 
+esp_err_t sdcard_last_error(void) {
+    return s_last_err;
+}
+
+int sdcard_last_errno(void) {
+    return s_last_errno;
+}
+
+int sdcard_spi_host_slot(void) {
+    return (int)s_host.slot;
+}
+
+int sdcard_pin_miso(void) {
+    return CONFIG_0025_SDCARD_PIN_MISO;
+}
+int sdcard_pin_mosi(void) {
+    return CONFIG_0025_SDCARD_PIN_MOSI;
+}
+int sdcard_pin_sck(void) {
+    return CONFIG_0025_SDCARD_PIN_SCK;
+}
+int sdcard_pin_cs(void) {
+    return CONFIG_0025_SDCARD_PIN_CS;
+}
+
 esp_err_t sdcard_list_dir(const char *abs_dir, std::vector<SdDirEntry> *out) {
     if (!abs_dir || !out) return ESP_ERR_INVALID_ARG;
     out->clear();
@@ -134,6 +171,8 @@ esp_err_t sdcard_list_dir(const char *abs_dir, std::vector<SdDirEntry> *out) {
     if (!d) {
         const int e = errno;
         ESP_LOGW(TAG, "opendir(%s) failed: errno=%d (%s)", abs_dir, e, strerror(e));
+        s_last_err = ESP_FAIL;
+        s_last_errno = e;
         return ESP_FAIL;
     }
 
@@ -148,7 +187,16 @@ esp_err_t sdcard_list_dir(const char *abs_dir, std::vector<SdDirEntry> *out) {
 
         SdDirEntry e;
         e.name = name;
-        e.is_dir = (ent->d_type == DT_DIR);
+        if (ent->d_type == DT_UNKNOWN) {
+            // FATFS sometimes reports unknown; fall back to stat.
+            std::string p = abs_dir;
+            if (!p.empty() && p.back() != '/') p.push_back('/');
+            p += name;
+            struct stat st = {};
+            e.is_dir = (stat(p.c_str(), &st) == 0) && S_ISDIR(st.st_mode);
+        } else {
+            e.is_dir = (ent->d_type == DT_DIR);
+        }
         out->push_back(std::move(e));
     }
 
@@ -171,6 +219,8 @@ esp_err_t sdcard_read_file_preview(const char *abs_path, size_t max_bytes, std::
     if (stat(abs_path, &st) != 0) {
         const int e = errno;
         ESP_LOGW(TAG, "stat(%s) failed: errno=%d (%s)", abs_path, e, strerror(e));
+        s_last_err = ESP_FAIL;
+        s_last_errno = e;
         return ESP_FAIL;
     }
 
@@ -178,6 +228,8 @@ esp_err_t sdcard_read_file_preview(const char *abs_path, size_t max_bytes, std::
     if (!f) {
         const int e = errno;
         ESP_LOGW(TAG, "fopen(%s) failed: errno=%d (%s)", abs_path, e, strerror(e));
+        s_last_err = ESP_FAIL;
+        s_last_errno = e;
         return ESP_FAIL;
     }
 
@@ -199,5 +251,7 @@ esp_err_t sdcard_read_file_preview(const char *abs_path, size_t max_bytes, std::
         *out_truncated = true;
     }
 
+    s_last_err = ESP_OK;
+    s_last_errno = 0;
     return ESP_OK;
 }

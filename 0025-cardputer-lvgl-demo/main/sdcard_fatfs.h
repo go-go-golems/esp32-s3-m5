@@ -26,6 +26,15 @@ esp_err_t sdcard_unmount(void);
 bool sdcard_is_mounted(void);
 const char *sdcard_mount_path(void);
 
+// Debug/diagnostics.
+esp_err_t sdcard_last_error(void);
+int sdcard_last_errno(void);
+int sdcard_spi_host_slot(void);
+int sdcard_pin_miso(void);
+int sdcard_pin_mosi(void);
+int sdcard_pin_sck(void);
+int sdcard_pin_cs(void);
+
 // Lists entries in `abs_dir` (absolute path, e.g. "/sd" or "/sd/logs").
 // Output is sorted: dirs first, then files; both lexicographically.
 esp_err_t sdcard_list_dir(const char *abs_dir, std::vector<SdDirEntry> *out);

@@ -130,8 +130,21 @@ extern "C" void app_main(void) {
             } else if (ev.type == CtrlType::PomodoroSetMinutes) {
                 demo_manager_pomodoro_set_minutes(&demos, (int)ev.arg);
             } else if (ev.type == CtrlType::ScreenshotPngToUsbSerialJtag) {
+                // Ensure the most recent UI changes have been rendered/flushed before capturing.
+                lv_timer_handler();
                 size_t len = 0;
                 const bool ok = screenshot_png_to_usb_serial_jtag_ex(display, &len);
+                const uint32_t notify = ok ? (uint32_t)len : 0U;
+                if (ev.reply_task) {
+                    (void)xTaskNotify(ev.reply_task, notify, eSetValueWithOverwrite);
+                }
+            } else if (ev.type == CtrlType::ScreenshotPngSaveToSd) {
+                char *out_path = static_cast<char *>(ev.ptr);
+                const size_t cap = (ev.arg > 0) ? (size_t)ev.arg : 0U;
+                // Ensure the most recent UI changes have been rendered/flushed before capturing.
+                lv_timer_handler();
+                size_t len = 0;
+                const bool ok = screenshot_png_save_to_sd_ex(display, out_path, cap, &len);
                 const uint32_t notify = ok ? (uint32_t)len : 0U;
                 if (ev.reply_task) {
                     (void)xTaskNotify(ev.reply_task, notify, eSetValueWithOverwrite);
@@ -152,6 +165,10 @@ extern "C" void app_main(void) {
                 const uint32_t *keys = static_cast<const uint32_t *>(ev.ptr);
                 for (uint32_t i = 0; i < count; i++) {
                     lvgl_port_cardputer_kb_queue_key(keys[i]);
+                    // Process key press+release promptly so scripted multi-key sequences
+                    // (keys down down enter) take effect before a following screenshot.
+                    lv_timer_handler();
+                    lv_timer_handler();
                 }
                 if (ev.ptr) {
                     free(ev.ptr);

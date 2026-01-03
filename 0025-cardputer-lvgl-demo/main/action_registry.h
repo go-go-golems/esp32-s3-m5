@@ -20,6 +20,7 @@ enum class ActionId : uint8_t {
     PomodoroSet25 = 8,
     PomodoroSet50 = 9,
     Screenshot = 10,
+    SaveScreenshot = 11,
 };
 
 struct Action {

@@ -65,6 +65,12 @@ constexpr Action kActions[] = {
         .title = "Screenshot (USB-Serial/JTAG)",
         .keywords = "screenshot png capture",
     },
+    {
+        .id = ActionId::SaveScreenshot,
+        .command = "saveshot",
+        .title = "Screenshot (save to MicroSD /sd/shots)",
+        .keywords = "screenshot save sd microsd file shots",
+    },
 };
 
 constexpr size_t kActionCount = sizeof(kActions) / sizeof(kActions[0]);
@@ -110,6 +116,7 @@ bool action_registry_to_ctrl_event(ActionId id, CtrlEvent *out, TaskHandle_t rep
         ev.arg = 50;
         break;
     case ActionId::Screenshot: ev.type = CtrlType::ScreenshotPngToUsbSerialJtag; break;
+    case ActionId::SaveScreenshot: ev.type = CtrlType::ScreenshotPngSaveToSd; break;
     }
 
     ev.reply_task = reply_task;

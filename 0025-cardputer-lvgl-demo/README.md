@@ -42,6 +42,7 @@ This demo starts an `esp_console` REPL over **USB-Serial/JTAG**. You can type co
   - tokens: `<single-char>` | `0xNN` | `<decimal>` | `str:hello`
 - `screenshot` — emits a framed PNG over the same serial port:
   - `PNG_BEGIN <len>\n<raw png bytes>\nPNG_END\n`
+  - Note: `<len>` may be `0`; the host tools will parse the streamed PNG until the `IEND` chunk.
 
 ### Capture PNG on host
 

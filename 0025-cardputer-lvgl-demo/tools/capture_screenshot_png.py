@@ -8,6 +8,8 @@ import serial  # type: ignore
 
 HEADER_RE = re.compile(rb"^PNG_BEGIN (\d+)\n$")
 
+PNG_SIG = b"\x89PNG\r\n\x1a\n"
+
 
 def read_exact(ser: serial.Serial, n: int) -> bytes:
     buf = bytearray()
@@ -17,6 +19,23 @@ def read_exact(ser: serial.Serial, n: int) -> bytes:
             continue
         buf.extend(chunk)
     return bytes(buf)
+
+def read_png_stream(ser: serial.Serial) -> bytes:
+    sig = read_exact(ser, 8)
+    if sig != PNG_SIG:
+        raise ValueError(f"unexpected PNG signature: {sig!r}")
+    out = bytearray(sig)
+
+    while True:
+        hdr = read_exact(ser, 8)
+        out.extend(hdr)
+        chunk_len = int.from_bytes(hdr[0:4], byteorder="big", signed=False)
+        chunk_type = hdr[4:8]
+        out.extend(read_exact(ser, chunk_len + 4))  # data + CRC
+        if chunk_type == b"IEND":
+            break
+
+    return bytes(out)
 
 
 def main() -> int:
@@ -36,7 +55,10 @@ def main() -> int:
                 continue
 
             length = int(m.group(1))
-            data = read_exact(ser, length) if length > 0 else b""
+            if length > 0:
+                data = read_exact(ser, length)
+            else:
+                data = read_png_stream(ser)
 
             # Consume until footer line; tolerate any stray newlines.
             while True:
@@ -52,4 +74,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
