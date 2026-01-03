@@ -7,6 +7,7 @@
 
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <vector>
 
@@ -143,6 +144,18 @@ extern "C" void app_main(void) {
             } else if (ev.type == CtrlType::OpenSystemMonitor) {
                 if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::SystemMonitor);
+            } else if (ev.type == CtrlType::OpenFileBrowser) {
+                if (command_palette_is_open()) command_palette_close();
+                demo_manager_load(&demos, DemoId::FileBrowser);
+            } else if (ev.type == CtrlType::InjectKeys) {
+                const uint32_t count = (ev.arg > 0) ? (uint32_t)ev.arg : 0U;
+                const uint32_t *keys = static_cast<const uint32_t *>(ev.ptr);
+                for (uint32_t i = 0; i < count; i++) {
+                    lvgl_port_cardputer_kb_queue_key(keys[i]);
+                }
+                if (ev.ptr) {
+                    free(ev.ptr);
+                }
             }
         }
 

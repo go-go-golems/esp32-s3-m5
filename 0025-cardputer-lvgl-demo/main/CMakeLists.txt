@@ -11,11 +11,14 @@ idf_component_register(
         "demo_pomodoro.cpp"
         "demo_split_console.cpp"
         "demo_system_monitor.cpp"
+        "demo_file_browser.cpp"
+        "demo_file_viewer.cpp"
         "input_keyboard.cpp"
         "lvgl_port_cardputer_kb.cpp"
         "lvgl_port_m5gfx.cpp"
+        "sdcard_fatfs.cpp"
         "screenshot_png.cpp"
-    PRIV_REQUIRES esp_timer console esp_driver_usb_serial_jtag
+    PRIV_REQUIRES esp_timer console esp_driver_usb_serial_jtag fatfs sdmmc esp_driver_sdspi esp_driver_spi
     REQUIRES M5GFX cardputer_kb lvgl
     INCLUDE_DIRS "."
 )

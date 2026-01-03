@@ -24,7 +24,7 @@ namespace {
 
 struct KeyQueue {
     std::deque<uint32_t> keys;
-    size_t max = 64;
+    size_t max = 128;
 
     void push(uint32_t key) {
         if (keys.size() >= max) {
@@ -49,9 +49,14 @@ static lv_indev_t *s_indev = nullptr;
 static void indev_read_cb(lv_indev_drv_t *drv, lv_indev_data_t *data) {
     (void)drv;
     uint32_t key = 0;
-    if (s_queue.pop(&key) && key != 0) {
-        data->state = LV_INDEV_STATE_PR;
-        data->key = key;
+    if (s_queue.pop(&key)) {
+        if (key != 0) {
+            data->state = LV_INDEV_STATE_PR;
+            data->key = key;
+        } else {
+            data->state = LV_INDEV_STATE_REL;
+            data->key = 0;
+        }
         return;
     }
 
@@ -74,7 +79,13 @@ void lvgl_port_cardputer_kb_feed(const std::vector<KeyEvent> &events) {
     for (const auto &ev : events) {
         const uint32_t key = lvgl_port_cardputer_kb_translate(ev);
         if (key != 0) {
-            s_queue.push(key);
+            lvgl_port_cardputer_kb_queue_key(key);
         }
     }
+}
+
+void lvgl_port_cardputer_kb_queue_key(uint32_t key) {
+    if (key == 0) return;
+    s_queue.push(key);
+    s_queue.push(0); // release
 }

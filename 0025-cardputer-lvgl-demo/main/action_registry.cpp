@@ -36,6 +36,12 @@ constexpr Action kActions[] = {
         .keywords = "sysmon system monitor heap dma fps",
     },
     {
+        .id = ActionId::OpenFileBrowser,
+        .command = "files",
+        .title = "Open Files (MicroSD)",
+        .keywords = "files sd microsd browser viewer",
+    },
+    {
         .id = ActionId::PomodoroSet15,
         .command = nullptr,
         .title = "Pomodoro: Set minutes 15",
@@ -90,6 +96,7 @@ bool action_registry_to_ctrl_event(ActionId id, CtrlEvent *out, TaskHandle_t rep
     case ActionId::OpenPomodoro: ev.type = CtrlType::OpenPomodoro; break;
     case ActionId::OpenConsole: ev.type = CtrlType::OpenSplitConsole; break;
     case ActionId::OpenSystemMonitor: ev.type = CtrlType::OpenSystemMonitor; break;
+    case ActionId::OpenFileBrowser: ev.type = CtrlType::OpenFileBrowser; break;
     case ActionId::PomodoroSet15:
         ev.type = CtrlType::PomodoroSetMinutes;
         ev.arg = 15;

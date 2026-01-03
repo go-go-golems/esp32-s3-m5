@@ -16,12 +16,15 @@ enum class CtrlType : uint8_t {
     OpenSplitConsole = 6,
     TogglePalette = 7,
     OpenSystemMonitor = 8,
+    OpenFileBrowser = 9,
+    InjectKeys = 10,
 };
 
 struct CtrlEvent {
     CtrlType type{};
     int32_t arg = 0;
     TaskHandle_t reply_task = nullptr;
+    void *ptr = nullptr;
 };
 
 QueueHandle_t ctrl_create_queue(size_t len);

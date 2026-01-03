@@ -34,8 +34,12 @@ This demo starts an `esp_console` REPL over **USB-Serial/JTAG**. You can type co
 - `pomodoro`
 - `console`
 - `sysmon`
+- `files`
 - `palette`
 - `setmins <minutes>`
+- `keys <token...>` — inject LVGL keycodes remotely (lets you drive the UI without touching the device):
+  - tokens: `up down left right enter tab esc bksp space`
+  - tokens: `<single-char>` | `0xNN` | `<decimal>` | `str:hello`
 - `screenshot` — emits a framed PNG over the same serial port:
   - `PNG_BEGIN <len>\n<raw png bytes>\nPNG_END\n`
 
@@ -101,5 +105,16 @@ pinocchio code professional --images screenshot.png "OCR this screenshot and con
 
 ### System Monitor demo
 
-- Shows `heap`/`dma` trends + UI loop timing and an estimated `fps` signal.
+- Shows `heap`/`dma` trends + UI loop Hz and LVGL handler duration.
 - `Fn + \``: return to menu
+
+### Files demo (MicroSD)
+
+- Mounts MicroSD at `/sd` (FATFS over SDSPI) and browses directories.
+- `Up` / `Down`: select entry
+- `Enter`: open directory / view file preview
+- `Backspace`: go to parent directory / return from viewer
+- `Fn + \``: return to menu
+
+MicroSD wiring (Cardputer SDSPI reference):
+- `MISO=GPIO39`, `MOSI=GPIO14`, `SCK=GPIO40`, `CS=GPIO12`

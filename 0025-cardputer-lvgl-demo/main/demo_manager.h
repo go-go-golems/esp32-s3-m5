@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 extern "C" {
 #include "lvgl.h"
 }
@@ -10,6 +12,8 @@ enum class DemoId {
     Pomodoro = 2,
     SplitConsole = 3,
     SystemMonitor = 4,
+    FileBrowser = 5,
+    FileViewer = 6,
 };
 
 struct DemoManager {
@@ -18,6 +22,8 @@ struct DemoManager {
     DemoId active = DemoId::Menu;
     uint32_t last_key = 0;
     int pomodoro_minutes = 25;
+    std::string file_browser_cwd{};
+    std::string file_viewer_path{};
 };
 
 // Initializes global LVGL focus behavior for demos (group, indev binding, etc).

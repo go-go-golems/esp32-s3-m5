@@ -1,0 +1,33 @@
+menu "0025 Cardputer LVGL Demo"
+
+config 0025_SDCARD_MOUNT_PATH
+    string "MicroSD mount path"
+    default "/sd"
+    help
+        Base path where the MicroSD FATFS is mounted.
+
+config 0025_SDCARD_PIN_MISO
+    int "MicroSD (SDSPI) MISO GPIO"
+    default 39
+    help
+        Cardputer MicroSD wiring reference (vendor demo): GPIO39.
+
+config 0025_SDCARD_PIN_MOSI
+    int "MicroSD (SDSPI) MOSI GPIO"
+    default 14
+    help
+        Cardputer MicroSD wiring reference (vendor demo): GPIO14.
+
+config 0025_SDCARD_PIN_SCK
+    int "MicroSD (SDSPI) SCK GPIO"
+    default 40
+    help
+        Cardputer MicroSD wiring reference (vendor demo): GPIO40.
+
+config 0025_SDCARD_PIN_CS
+    int "MicroSD (SDSPI) CS GPIO"
+    default 12
+    help
+        Cardputer MicroSD wiring reference (vendor demo): GPIO12.
+
+endmenu

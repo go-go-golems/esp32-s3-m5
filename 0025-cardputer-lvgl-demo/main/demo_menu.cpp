@@ -6,7 +6,7 @@
 
 namespace {
 
-static constexpr int kItemCount = 4;
+static constexpr int kItemCount = 5;
 
 struct MenuState {
     DemoManager *mgr = nullptr;
@@ -50,8 +50,10 @@ static void open_selected(MenuState *st) {
         demo_manager_load(st->mgr, DemoId::Pomodoro);
     } else if (st->selected == 2) {
         demo_manager_load(st->mgr, DemoId::SplitConsole);
-    } else {
+    } else if (st->selected == 3) {
         demo_manager_load(st->mgr, DemoId::SystemMonitor);
+    } else {
+        demo_manager_load(st->mgr, DemoId::FileBrowser);
     }
 }
 
@@ -97,17 +99,17 @@ lv_obj_t *demo_menu_create(DemoManager *mgr) {
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 4);
 
     // Menu rows.
-    static const char *kItems[kItemCount] = {"Basics", "Pomodoro", "Console", "SysMon"};
+    static const char *kItems[kItemCount] = {"Basics", "Pomodoro", "Console", "SysMon", "Files"};
     for (int i = 0; i < kItemCount; i++) {
         lv_obj_t *row = lv_obj_create(s_menu.root);
         s_menu.rows[i] = row;
 
-        lv_obj_set_size(row, 240 - 16, 20);
+        lv_obj_set_size(row, 240 - 16, 18);
         lv_obj_set_style_border_width(row, 0, 0);
         lv_obj_set_style_radius(row, 6, 0);
         lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
 
-        lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 24 + i * 22);
+        lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 22 + i * 20);
 
         lv_obj_t *label = lv_label_create(row);
         s_menu.labels[i] = label;

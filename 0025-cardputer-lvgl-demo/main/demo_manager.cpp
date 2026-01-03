@@ -15,6 +15,10 @@ lv_obj_t *demo_split_console_create(DemoManager *mgr);
 void demo_split_console_bind_group(DemoManager *mgr);
 lv_obj_t *demo_system_monitor_create(DemoManager *mgr);
 void demo_system_monitor_bind_group(DemoManager *mgr);
+lv_obj_t *demo_file_browser_create(DemoManager *mgr);
+void demo_file_browser_bind_group(DemoManager *mgr);
+lv_obj_t *demo_file_viewer_create(DemoManager *mgr);
+void demo_file_viewer_bind_group(DemoManager *mgr);
 
 static lv_obj_t *create_screen_for(DemoManager *mgr, DemoId id) {
     switch (id) {
@@ -23,6 +27,8 @@ static lv_obj_t *create_screen_for(DemoManager *mgr, DemoId id) {
     case DemoId::Pomodoro: return demo_pomodoro_create(mgr);
     case DemoId::SplitConsole: return demo_split_console_create(mgr);
     case DemoId::SystemMonitor: return demo_system_monitor_create(mgr);
+    case DemoId::FileBrowser: return demo_file_browser_create(mgr);
+    case DemoId::FileViewer: return demo_file_viewer_create(mgr);
     }
     return nullptr;
 }
@@ -61,6 +67,8 @@ void demo_manager_load(DemoManager *mgr, DemoId id) {
         case DemoId::Pomodoro: demo_pomodoro_bind_group(mgr); break;
         case DemoId::SplitConsole: demo_split_console_bind_group(mgr); break;
         case DemoId::SystemMonitor: demo_system_monitor_bind_group(mgr); break;
+        case DemoId::FileBrowser: demo_file_browser_bind_group(mgr); break;
+        case DemoId::FileViewer: demo_file_viewer_bind_group(mgr); break;
         }
     }
 

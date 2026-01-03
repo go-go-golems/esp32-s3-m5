@@ -11,8 +11,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+
+#include <vector>
 
 #include "sdkconfig.h"
+
+#include "lvgl.h"
 
 #include "action_registry.h"
 
@@ -127,6 +132,135 @@ static int cmd_palette(int, char **) {
     return 0;
 }
 
+static bool parse_key_token(const char *tok, std::vector<uint32_t> *out) {
+    if (!tok || !out) return false;
+    if (tok[0] == '\0') return false;
+
+    if (strcmp(tok, "up") == 0) {
+        out->push_back(LV_KEY_UP);
+        return true;
+    }
+    if (strcmp(tok, "down") == 0) {
+        out->push_back(LV_KEY_DOWN);
+        return true;
+    }
+    if (strcmp(tok, "left") == 0) {
+        out->push_back(LV_KEY_LEFT);
+        return true;
+    }
+    if (strcmp(tok, "right") == 0) {
+        out->push_back(LV_KEY_RIGHT);
+        return true;
+    }
+    if (strcmp(tok, "enter") == 0) {
+        out->push_back(LV_KEY_ENTER);
+        return true;
+    }
+    if (strcmp(tok, "tab") == 0) {
+        out->push_back(LV_KEY_NEXT);
+        return true;
+    }
+    if (strcmp(tok, "esc") == 0) {
+        out->push_back(LV_KEY_ESC);
+        return true;
+    }
+    if (strcmp(tok, "bksp") == 0 || strcmp(tok, "backspace") == 0) {
+        out->push_back(LV_KEY_BACKSPACE);
+        return true;
+    }
+    if (strcmp(tok, "space") == 0) {
+        out->push_back((uint32_t)' ');
+        return true;
+    }
+
+    if (strncmp(tok, "str:", 4) == 0) {
+        const char *s = tok + 4;
+        while (*s) {
+            out->push_back((uint32_t)(unsigned char)*s);
+            s++;
+        }
+        return true;
+    }
+
+    if (strlen(tok) == 1) {
+        out->push_back((uint32_t)(unsigned char)tok[0]);
+        return true;
+    }
+
+    char *end = nullptr;
+    long v = 0;
+    if (strncmp(tok, "0x", 2) == 0 || strncmp(tok, "0X", 2) == 0) {
+        v = strtol(tok, &end, 16);
+    } else {
+        bool all_digits = true;
+        for (const char *p = tok; *p; p++) {
+            if (!isdigit((unsigned char)*p)) {
+                all_digits = false;
+                break;
+            }
+        }
+        if (all_digits) {
+            v = strtol(tok, &end, 10);
+        }
+    }
+
+    if (end && *end == '\0' && v > 0 && v <= 0xFFFF) {
+        out->push_back((uint32_t)v);
+        return true;
+    }
+
+    return false;
+}
+
+static int cmd_keys(int argc, char **argv) {
+    if (!ensure_ctrl_queue()) return 1;
+    if (argc < 2) {
+        printf("ERR: usage: keys <token...>\n");
+        printf("  tokens: up down left right enter tab esc bksp space\n");
+        printf("  tokens: <single-char> | 0xNN | <decimal> | str:hello\n");
+        return 1;
+    }
+
+    std::vector<uint32_t> keys;
+    keys.reserve((size_t)(argc - 1));
+    for (int i = 1; i < argc; i++) {
+        if (!parse_key_token(argv[i], &keys)) {
+            printf("ERR: invalid token: %s\n", argv[i] ? argv[i] : "(null)");
+            return 1;
+        }
+    }
+    if (keys.empty()) {
+        printf("ERR: no keys\n");
+        return 1;
+    }
+    if (keys.size() > 64) {
+        printf("ERR: too many keys (max 64)\n");
+        return 1;
+    }
+
+    uint32_t *buf = (uint32_t *)malloc(keys.size() * sizeof(uint32_t));
+    if (!buf) {
+        printf("ERR: oom\n");
+        return 1;
+    }
+    for (size_t i = 0; i < keys.size(); i++) {
+        buf[i] = keys[i];
+    }
+
+    CtrlEvent ev{};
+    ev.type = CtrlType::InjectKeys;
+    ev.arg = (int32_t)keys.size();
+    ev.ptr = buf;
+    if (!ctrl_send(s_ctrl_q, ev, pdMS_TO_TICKS(250))) {
+        free(buf);
+        printf("ERR: keys busy (queue full)\n");
+        return 1;
+    }
+
+    printf("OK count=%u\n", (unsigned)keys.size());
+    return 0;
+}
+
 static void console_register_commands(void) {
     esp_console_cmd_t cmd = {};
 
@@ -156,6 +290,12 @@ static void console_register_commands(void) {
     cmd.command = "palette";
     cmd.help = "Toggle the Ctrl+P command palette overlay";
     cmd.func = &cmd_palette;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = {};
+    cmd.command = "keys";
+    cmd.help = "Inject LVGL keycodes (tokens like up/down/enter, char, 0xNN, str:hello)";
+    cmd.func = &cmd_keys;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
     cmd = {};

@@ -17,3 +17,7 @@ uint32_t lvgl_port_cardputer_kb_translate(const KeyEvent &ev);
 
 // Feed keyboard edge events into the LVGL indev queue.
 void lvgl_port_cardputer_kb_feed(const std::vector<KeyEvent> &events);
+
+// Queue a single LVGL keycode as a "tap" (press + release).
+// Must be called on the LVGL/UI thread.
+void lvgl_port_cardputer_kb_queue_key(uint32_t key);

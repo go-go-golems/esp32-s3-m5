@@ -15,10 +15,11 @@ enum class ActionId : uint8_t {
     OpenPomodoro = 3,
     OpenConsole = 4,
     OpenSystemMonitor = 5,
-    PomodoroSet15 = 6,
-    PomodoroSet25 = 7,
-    PomodoroSet50 = 8,
-    Screenshot = 9,
+    OpenFileBrowser = 6,
+    PomodoroSet15 = 7,
+    PomodoroSet25 = 8,
+    PomodoroSet50 = 9,
+    Screenshot = 10,
 };
 
 struct Action {
