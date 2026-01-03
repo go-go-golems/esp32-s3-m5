@@ -816,4 +816,90 @@ This step is a UI polish and regression pass driven by the screenshot verificati
   - `/tmp/0025_menu_after9.png`
   - `/tmp/0025_sysmon_after9.png`
   - `/tmp/0025_palette_after9.png`
-  - `/tmp/0025_console_after9.png`
+- `/tmp/0025_console_after9.png`
+
+## Step 13: MicroSD Files demo + remote key injection via esp_console
+
+This step starts the MicroSD track (tasks 49–52): mount a FATFS MicroSD card at `/sd`, add a simple on-device file browser + text preview viewer, and add a host `esp_console` command to inject LVGL key events so the entire UI can be driven remotely (useful for scripted screenshot/OCR loops).
+
+The two big constraints followed here:
+- **LVGL is single-threaded**: all LVGL key injections happen on the UI thread via the existing CtrlEvent queue.
+- **Don’t block the UI**: file viewing is a bounded “preview” read (first 4KB) to avoid stalling the loop; this is the “Pattern A” approach from analysis/05.
+
+**Commit (code):** 6f1564b — "MicroSD: files demo + remote key injection"
+
+### What I did
+- MicroSD mount module (SDSPI):
+  - Added `sdcard_fatfs.*` with `sdcard_mount()` (cached), `sdcard_list_dir()`, and `sdcard_read_file_preview()`.
+  - Mount path: `/sd` (via `Kconfig.projbuild` config).
+  - Wiring + host type: SDSPI pins referenced from the vendor demo (`MISO=39 MOSI=14 SCK=40 CS=12`).
+  - SPI host: forced `SPI3_HOST` to avoid conflicting with the display’s SPI bus.
+- Files demo screens:
+  - `FileBrowser` (`Files` in menu + `files` action/command): shows current path, 4-row list with selection + scrolling, and a footer hint bar.
+  - `FileViewer`: shows a read-only text preview (4KB max, adds “(truncated)” marker).
+  - Navigation:
+    - `Up/Down` select/scroll
+    - `Enter` open dir or view file
+    - `Backspace` go to parent / go back
+- Remote UI control (`esp_console`):
+  - Added `keys <token...>` command which parses tokens and enqueues `CtrlType::InjectKeys`.
+  - Implemented synthetic key “tap” as press+release (`lvgl_port_cardputer_kb_queue_key()`).
+  - Example tokens:
+    - `keys down down down down enter` (navigate menu)
+    - `keys str:fi` (type into palette query)
+    - `keys esc` (close)
+
+### Why
+- MicroSD browsing/viewing is a high-leverage “self-debugging” tool (logs/configs/screenshots later) and is the next planned major demo per ticket tasks.
+- Remote key injection lets us automate end-to-end UI interactions from the host without physically touching the device, enabling more reliable screenshot/OCR regression loops.
+
+### What worked
+- Build:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+- Flash:
+  - `PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00 ./build.sh -p \"$PORT\" flash`
+- Screenshot verification (new flows):
+  - Menu shows new `Files` entry: `/tmp/0025_menu_files2.png`
+  - Files screen (no SD inserted) shows `/sd` + “Insert SD and reopen”: `/tmp/0025_files2.png`
+  - Remote navigation via `keys` reliably lands on Files: `/tmp/0025_files_via_keys2.png`
+  - Palette filter via injected typing works:
+    - `keys str:fi` results in “Open Files (MicroSD)” match: `/tmp/0025_palette_filter_fi2.png`
+  - OCR validation:
+    - `pinocchio code professional --images /tmp/0025_menu_files2.png,/tmp/0025_files2.png,/tmp/0025_palette_files2.png,/tmp/0025_palette_filter_fi2.png \"OCR each image...\"`
+  - Human confirmation via `plz-confirm image` selected all screenshots as acceptable.
+
+### What didn't work
+- Initial SD mount implementation returned 0-byte screenshots after `files` (root cause: SDSPI default host slot likely conflicted with display SPI; fixed by forcing `SPI3_HOST`).
+
+### What I learned
+- On Cardputer with M5GFX, “just use SDSPI_HOST_DEFAULT()” is risky because the SPI host selection can collide with display wiring; setting `host.slot = SPI3_HOST` is a practical default for a second SPI peripheral.
+- For automated UI driving, it’s essential that key injection includes release events; a press-only queue makes widgets behave “stuck”.
+
+### What was tricky to build
+- Keeping LVGL thread safety while still enabling host-driven key injection: the REPL task must only enqueue CtrlEvents; the UI thread drains and touches LVGL.
+- Making the file viewer safe by default: a bounded preview prevents RAM blowups and UI stalls, but still must show a clear “truncated” cue.
+
+### What warrants a second pair of eyes
+- Confirm the SDSPI pins and `SPI3_HOST` selection are correct for all Cardputer variants; if not, we may need a small runtime “mount failed” diagnostic string that includes the selected pins/host for easier field debugging.
+- Confirm the `keys` command token grammar is sufficient (we currently avoid spaces inside `str:` payload).
+
+### What should be done in the future
+- Add screenshot save-to-sd (`/sd/screenshots/...`) once the file browser is stable (task 55 later in list).
+- Consider background loading (“Pattern B”) if the 4KB preview is too limiting for logs.
+
+### Code review instructions
+- Start in:
+  - `0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp`
+  - `0025-cardputer-lvgl-demo/main/demo_file_browser.cpp`
+  - `0025-cardputer-lvgl-demo/main/demo_file_viewer.cpp`
+  - `0025-cardputer-lvgl-demo/main/console_repl.cpp` (`cmd_keys`)
+  - `0025-cardputer-lvgl-demo/main/app_main.cpp` (`CtrlType::InjectKeys`)
+- Validate:
+  - build/flash commands above
+  - run `files` and `keys ...` via esp_console, then capture screenshots with:
+    - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py \"$PORT\" /tmp/out.png`
+
+### Technical details
+- Mount path: `/sd` (config `CONFIG_0025_SDCARD_MOUNT_PATH`)
+- SDSPI pins defaults: `MISO=39 MOSI=14 SCK=40 CS=12`
+- File preview limit: `4096` bytes (shows “(truncated)” if larger)

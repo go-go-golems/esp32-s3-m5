@@ -51,11 +51,11 @@
 - [x] [SysMon] Add EMA smoothing helper (port idea from 0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp)
 - [ ] [SysMon] Optional: add Wi-Fi state (event loop pattern from 0005-wifi-event-loop) and display status/RSSI
 - [x] [SysMon] Validate: run under load (switch demos, screenshot) and confirm monitor stays responsive
-- [ ] [MicroSD] Read analysis doc analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md and decide mount path (/sd)
-- [ ] [MicroSD] Research Cardputer MicroSD wiring and select host type (SDMMC vs SDSPI); document pinout choice in code/README
-- [ ] [MicroSD] Implement sdcard mount module using esp_vfs_fat_sdmmc_mount or esp_vfs_fat_sdspi_mount (no auto-format)
-- [ ] [MicroSD] Add DemoId::FileBrowser + FileViewer screens and register in menu
-- [ ] [MicroSD] Implement directory listing (opendir/readdir) + selection/scroll UX (port concepts from ui_list_view.cpp)
-- [ ] [MicroSD] Implement text/log viewer (read-only textarea) with size-limited preview and scrolling
+- [x] [MicroSD] Read analysis doc analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md and decide mount path (/sd)
+- [x] [MicroSD] Research Cardputer MicroSD wiring and select host type (SDMMC vs SDSPI); document pinout choice in code/README
+- [x] [MicroSD] Implement sdcard mount module using esp_vfs_fat_sdmmc_mount or esp_vfs_fat_sdspi_mount (no auto-format)
+- [x] [MicroSD] Add DemoId::FileBrowser + FileViewer screens and register in menu
+- [x] [MicroSD] Implement directory listing (opendir/readdir) + selection/scroll UX (port concepts from ui_list_view.cpp)
+- [x] [MicroSD] Implement text/log viewer (read-only textarea) with size-limited preview and scrolling
 - [ ] [MicroSD] Integrate screenshot save-to-sd (write PNG bytes to /sd/screenshots/...) and expose via command/action
 - [ ] [MicroSD] Validate: mount SD, browse dirs, open files, save screenshot, reopen to confirm

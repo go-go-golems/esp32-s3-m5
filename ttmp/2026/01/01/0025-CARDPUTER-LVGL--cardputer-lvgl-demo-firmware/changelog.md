@@ -224,3 +224,15 @@ UI polish + screenshot verification: SysMon layout/1px charts + footer bar; comm
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/command_palette.cpp — Palette overlay layout + footer hint
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp — SysMon header/footer/plot styling adjustments
 
+
+## 2026-01-02
+
+MicroSD: add /sd mount (SDSPI) + Files browser/viewer demo; add esp_console 'keys' to inject LVGL keycodes for full remote UI control (commit 6f1564b)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/console_repl.cpp — keys command parses tokens and enqueues InjectKeys
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_file_browser.cpp — Files UI screen
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_file_viewer.cpp — Viewer UI screen
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp — Mount/list/read preview for MicroSD
+

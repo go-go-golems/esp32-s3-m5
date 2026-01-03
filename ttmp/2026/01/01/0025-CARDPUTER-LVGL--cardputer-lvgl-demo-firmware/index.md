@@ -17,6 +17,8 @@ RelatedFiles:
       Note: Reference Cardputer app setup (display bring-up + main loop)
     - Path: 0022-cardputer-m5gfx-demo-suite/main/input_keyboard.cpp
       Note: Keyboard events stream to adapt into LVGL indev
+    - Path: 0025-cardputer-lvgl-demo/README.md
+      Note: Document Files demo and 'keys' command
     - Path: 0025-cardputer-lvgl-demo/main/action_registry.cpp
       Note: ActionRegistry list and CtrlEvent mapping
     - Path: 0025-cardputer-lvgl-demo/main/action_registry.h
@@ -38,8 +40,13 @@ RelatedFiles:
         Provides  command used by playbook
         Provides the esp_console command 'screenshot' used by the playbook
         esp_console REPL commands including console/menu/basics/pomodoro/setmins/screenshot
+        Add 'keys' esp_console command to inject LVGL keycodes remotely
     - Path: 0025-cardputer-lvgl-demo/main/control_plane.h
       Note: CtrlEvent queue contract between console and UI
+    - Path: 0025-cardputer-lvgl-demo/main/demo_file_browser.cpp
+      Note: New Files demo (directory browser UI
+    - Path: 0025-cardputer-lvgl-demo/main/demo_file_viewer.cpp
+      Note: New file preview viewer (read-only textarea
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Demo catalog screen switching + shared LVGL group
     - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
@@ -55,11 +62,17 @@ RelatedFiles:
         System Monitor demo screen (sparklines + 250ms sampling)
         SysMon layout fixes (header alignment
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
-      Note: LVGL keypad indev adapter for Cardputer keyboard events
+      Note: |-
+        LVGL keypad indev adapter for Cardputer keyboard events
+        Support synthetic key taps (press+release) for remote injection
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: LVGL display driver (draw buffers + flush callback)
     - Path: 0025-cardputer-lvgl-demo/main/screenshot_png.cpp
       Note: Framed PNG capture over USB-Serial/JTAG
+    - Path: 0025-cardputer-lvgl-demo/main/sdcard_fatfs.cpp
+      Note: MicroSD FATFS mount/unmount + directory listing + file preview helpers (SDSPI)
+    - Path: 0025-cardputer-lvgl-demo/main/sdcard_fatfs.h
+      Note: MicroSD module API and wiring notes
     - Path: 0025-cardputer-lvgl-demo/main/split_console_log.h
       Note: UI-thread console append API (for command responses)
     - Path: 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py
@@ -80,6 +93,7 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
