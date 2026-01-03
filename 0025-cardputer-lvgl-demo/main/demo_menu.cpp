@@ -102,12 +102,12 @@ lv_obj_t *demo_menu_create(DemoManager *mgr) {
         lv_obj_t *row = lv_obj_create(s_menu.root);
         s_menu.rows[i] = row;
 
-        lv_obj_set_size(row, 240 - 16, 28);
+        lv_obj_set_size(row, 240 - 16, 20);
         lv_obj_set_style_border_width(row, 0, 0);
         lv_obj_set_style_radius(row, 6, 0);
         lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
 
-        lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 28 + i * 32);
+        lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 24 + i * 22);
 
         lv_obj_t *label = lv_label_create(row);
         s_menu.labels[i] = label;

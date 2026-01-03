@@ -230,6 +230,7 @@ lv_obj_t *demo_split_console_create(DemoManager *mgr) {
     lv_textarea_set_cursor_click_pos(st->out, false);
     lv_textarea_set_text(st->out, "");
     lv_obj_set_style_text_font(st->out, lvgl_font_small(), 0);
+    lv_obj_set_style_text_color(st->out, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_obj_set_style_bg_opa(st->out, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(st->out, 1, 0);
     lv_obj_set_style_border_color(st->out, lv_palette_darken(LV_PALETTE_GREEN, 3), 0);
@@ -247,6 +248,7 @@ lv_obj_t *demo_split_console_create(DemoManager *mgr) {
     lv_textarea_set_text_selection(st->in, false);
     lv_textarea_set_cursor_click_pos(st->in, false);
     lv_obj_set_style_text_font(st->in, lvgl_font_body(), 0);
+    lv_obj_set_style_text_color(st->in, lv_palette_main(LV_PALETTE_GREEN), 0);
     lv_obj_set_style_bg_opa(st->in, LV_OPA_TRANSP, 0);
     lv_obj_set_style_border_width(st->in, 1, 0);
     lv_obj_set_style_border_color(st->in, lv_palette_main(LV_PALETTE_GREEN), 0);
@@ -254,14 +256,10 @@ lv_obj_t *demo_split_console_create(DemoManager *mgr) {
     lv_obj_add_flag(st->in, LV_OBJ_FLAG_CLICK_FOCUSABLE);
     lv_obj_add_event_cb(st->in, in_key_cb, LV_EVENT_KEY, st);
 
-    lv_obj_t *hint = lv_label_create(st->root);
-    lv_obj_set_style_text_font(hint, lvgl_font_small(), 0);
-    lv_label_set_text(hint, "Enter submit  Tab focus  Fn+` menu");
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
-
     lv_obj_add_event_cb(st->root, root_delete_cb, LV_EVENT_DELETE, st);
 
     append_line(st, "lvgl console ready; type 'help'");
+    append_line(st, "Enter submit | Tab focus | Fn+` menu");
 
     return st->root;
 }

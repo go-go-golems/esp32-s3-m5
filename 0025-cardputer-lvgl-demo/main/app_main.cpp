@@ -118,10 +118,13 @@ extern "C" void app_main(void) {
         CtrlEvent ev{};
         while (ctrl_recv(ctrl_q, &ev, 0)) {
             if (ev.type == CtrlType::OpenMenu) {
+                if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::Menu);
             } else if (ev.type == CtrlType::OpenBasics) {
+                if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::Basics);
             } else if (ev.type == CtrlType::OpenPomodoro) {
+                if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::Pomodoro);
             } else if (ev.type == CtrlType::PomodoroSetMinutes) {
                 demo_manager_pomodoro_set_minutes(&demos, (int)ev.arg);
@@ -133,10 +136,12 @@ extern "C" void app_main(void) {
                     (void)xTaskNotify(ev.reply_task, notify, eSetValueWithOverwrite);
                 }
             } else if (ev.type == CtrlType::OpenSplitConsole) {
+                if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::SplitConsole);
             } else if (ev.type == CtrlType::TogglePalette) {
                 command_palette_toggle();
             } else if (ev.type == CtrlType::OpenSystemMonitor) {
+                if (command_palette_is_open()) command_palette_close();
                 demo_manager_load(&demos, DemoId::SystemMonitor);
             }
         }
