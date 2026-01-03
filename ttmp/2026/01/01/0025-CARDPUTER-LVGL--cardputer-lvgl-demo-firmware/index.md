@@ -25,8 +25,11 @@ RelatedFiles:
       Note: |-
         Cardputer LVGL demo main loop + UI creation
         Exports loop counter + LVGL handler timing metrics for SysMon
+        Close palette before processing Open* CtrlEvents so overlays don’t persist across host-driven screen switches
     - Path: 0025-cardputer-lvgl-demo/main/command_palette.cpp
-      Note: Ctrl+P palette overlay (modal LVGL layer_top UI
+      Note: |-
+        Ctrl+P palette overlay (modal LVGL layer_top UI
+        Full-screen palette overlay with dedicated footer hint; scroll selection in filtered results
     - Path: 0025-cardputer-lvgl-demo/main/command_palette.h
       Note: Palette init/toggle API used by app_main
     - Path: 0025-cardputer-lvgl-demo/main/console_repl.cpp
@@ -39,12 +42,18 @@ RelatedFiles:
       Note: CtrlEvent queue contract between console and UI
     - Path: 0025-cardputer-lvgl-demo/main/demo_manager.cpp
       Note: Demo catalog screen switching + shared LVGL group
+    - Path: 0025-cardputer-lvgl-demo/main/demo_menu.cpp
+      Note: Menu row spacing adjustments to fit all items without overlapping hint
     - Path: 0025-cardputer-lvgl-demo/main/demo_pomodoro.cpp
       Note: Pomodoro demo implementation
     - Path: 0025-cardputer-lvgl-demo/main/demo_split_console.cpp
-      Note: SplitConsole LVGL screen (output+input; scrollback/follow-tail)
+      Note: |-
+        SplitConsole LVGL screen (output+input; scrollback/follow-tail)
+        Console readability tweaks (text color + hint via output
     - Path: 0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp
-      Note: System Monitor demo screen (sparklines + 250ms sampling)
+      Note: |-
+        System Monitor demo screen (sparklines + 250ms sampling)
+        SysMon layout fixes (header alignment
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_cardputer_kb.cpp
       Note: LVGL keypad indev adapter for Cardputer keyboard events
     - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
@@ -71,6 +80,7 @@ LastUpdated: 2026-01-01T22:48:53.528781539-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

@@ -731,3 +731,89 @@ static void flush_cb(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* colo
 
 - Ticket index: `ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/index.md`
 - Analysis plan: `ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/01-lvgl-on-cardputer-esp-idf-m5gfx-integration-plan.md`
+
+## Step 12: UI polish + screenshot-verified layout fixes (Menu/SysMon/Palette/Console)
+
+This step is a UI polish and regression pass driven by the screenshot verification feedback loop: flash → capture screenshots → OCR + human review → adjust LVGL layout/styling. The goal was to eliminate text overlap/clipping on the 240×135 display, make the command palette reliably usable, and ensure host-driven screen switches don’t leave the palette overlay stuck on top.
+
+**Commit (code):** 1d858fe — "UI: polish SysMon + palette + console"
+
+### What I did
+- Menu: adjusted row height/spacing so all 4 items fit without colliding with the bottom hint.
+- SysMon:
+  - aligned the header left and constrained width to avoid left-edge clipping
+  - shortened the header string to reliably fit (`h=... d=... L=... lv=...`)
+  - added a dedicated footer bar for `Fn+` menu` to avoid chart overlap
+  - set chart line width to 1px and hid per-point markers (no chunky squares)
+- Command palette:
+  - made the overlay truly full-screen (opaque backdrop + border) so underlying screen doesn’t bleed through
+  - added a dedicated footer area for the hint (`Enter run  Esc close`) so it can’t overwrite list rows
+  - implemented a “windowed” render so selection can move through more actions than visible rows
+- Console:
+  - removed overlapping hint label and instead print a hint line into the output log
+  - ensured textarea text is the intended green for readability
+- Host control-plane: auto-close the palette when processing any Open* screen-switch CtrlEvent so scripted screen switching can’t leave the overlay stuck.
+
+### Why
+- Screenshot/OCR is unforgiving: any overlap/clipping becomes hard to debug and can hide regressions.
+- The palette is a “global overlay”, so it must behave like one (no bleed-through, no stuck overlay after host commands).
+- The SysMon screen is intended to run while developing other demos; its UI needs to remain legible under load.
+
+### What worked
+- Build + flash:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+  - `PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:0E:BE:00-if00 ./build.sh -p \"$PORT\" flash`
+- Screenshot capture (examples):
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py \"$PORT\" /tmp/0025_menu_after9.png --timeout-s 30`
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py \"$PORT\" /tmp/0025_sysmon_after9.png --timeout-s 30`
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py \"$PORT\" /tmp/0025_palette_after9.png --timeout-s 30`
+  - `python3 0025-cardputer-lvgl-demo/tools/capture_screenshot_png_from_console.py \"$PORT\" /tmp/0025_console_after9.png --timeout-s 30`
+- OCR regression check:
+  - `pinocchio code professional --images /tmp/0025_menu_after9.png,/tmp/0025_sysmon_after9.png,/tmp/0025_palette_after9.png,/tmp/0025_console_after9.png \"OCR each screenshot; list visible UI text per image; call out overlap/clipping\"`
+- Human review via `plz-confirm image` caught remaining layout issues quickly and confirmed the final screenshots.
+
+### What didn't work
+- SysMon footer initially overlapped chart content (fixed by reserving a footer bar and shrinking chart container).
+- Palette hint line was initially missing or collided with list rows (fixed by placing the hint in a dedicated footer area).
+- `plz-confirm image` pitfalls:
+  - `--multi true` caused `Too many arguments` (worked with bare `--multi`)
+  - `--image-caption` count mismatch errors (worked by omitting captions and relying on labels)
+
+### What I learned
+- LVGL chart styling:
+  - line thickness is `LV_PART_ITEMS`
+  - per-point squares are `LV_PART_INDICATOR` (set width/height to `0` to hide)
+- On 240×135, “hint bars” work better as opaque containers than transparent labels laid over content.
+- For global overlays, it’s safer to proactively close them when the app switches screens via external control-plane events.
+
+### What was tricky to build
+- The palette overlay is not a screen, so it must manage:
+  - focus capture/restore
+  - lifecycle cleanup (delete the whole overlay tree safely)
+  - interaction with host-driven screen switches
+- Fitting 3 sparklines + header + footer in 135px while preserving legibility required several iteration cycles with screenshots.
+
+### What warrants a second pair of eyes
+- Confirm palette focus restoration is always safe even if the underlying focused object changes/deletes during screen switches.
+- Confirm “SysMon third chart == loop Hz” is acceptable naming/meaning vs the previous “fps-ish” signal (it’s now “UI loop rate-ish”).
+
+### What should be done in the future
+- N/A (next feature work should come from remaining ticket tasks: Wi‑Fi status, MicroSD browser, etc.).
+
+### Code review instructions
+- Start in:
+  - `0025-cardputer-lvgl-demo/main/command_palette.cpp`
+  - `0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp`
+  - `0025-cardputer-lvgl-demo/main/app_main.cpp`
+  - `0025-cardputer-lvgl-demo/main/demo_menu.cpp`
+  - `0025-cardputer-lvgl-demo/main/demo_split_console.cpp`
+- Validate with:
+  - `cd 0025-cardputer-lvgl-demo && ./build.sh build`
+  - flash + screenshot capture commands above
+
+### Technical details
+- Key screenshot baselines used for review:
+  - `/tmp/0025_menu_after9.png`
+  - `/tmp/0025_sysmon_after9.png`
+  - `/tmp/0025_palette_after9.png`
+  - `/tmp/0025_console_after9.png`

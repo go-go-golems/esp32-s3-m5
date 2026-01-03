@@ -213,3 +213,14 @@ Add System Monitor demo (heap/dma + LVGL handler time + fps estimate) with spark
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp — New SysMon screen with lv_chart sparklines and lv_timer sampling
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/01/0025-CARDPUTER-LVGL--cardputer-lvgl-demo-firmware/analysis/04-project-analysis-system-monitor-sparklines-heap-fps-wi-fi.md — Records chosen v0 metrics and UI layout
 
+
+## 2026-01-02
+
+UI polish + screenshot verification: SysMon layout/1px charts + footer bar; command palette full-screen overlay with footer hint; menu spacing; console hint output; palette closes on host screen switches (commit 1d858fe)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/app_main.cpp — Auto-close palette on screen-switch CtrlEvents
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/command_palette.cpp — Palette overlay layout + footer hint
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0025-cardputer-lvgl-demo/main/demo_system_monitor.cpp — SysMon header/footer/plot styling adjustments
+

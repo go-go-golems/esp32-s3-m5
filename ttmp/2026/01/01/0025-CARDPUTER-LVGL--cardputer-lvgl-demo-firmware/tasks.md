@@ -50,7 +50,7 @@
 - [x] [SysMon] Add sparklines using lv_chart (point count tuned for 240x135) and update at ~250ms cadence
 - [x] [SysMon] Add EMA smoothing helper (port idea from 0022-cardputer-m5gfx-demo-suite/main/ui_hud.cpp)
 - [ ] [SysMon] Optional: add Wi-Fi state (event loop pattern from 0005-wifi-event-loop) and display status/RSSI
-- [ ] [SysMon] Validate: run under load (switch demos, screenshot) and confirm monitor stays responsive
+- [x] [SysMon] Validate: run under load (switch demos, screenshot) and confirm monitor stays responsive
 - [ ] [MicroSD] Read analysis doc analysis/05-project-analysis-microsd-file-browser-quick-viewer-text-json-log.md and decide mount path (/sd)
 - [ ] [MicroSD] Research Cardputer MicroSD wiring and select host type (SDMMC vs SDSPI); document pinout choice in code/README
 - [ ] [MicroSD] Implement sdcard mount module using esp_vfs_fat_sdmmc_mount or esp_vfs_fat_sdspi_mount (no auto-format)
