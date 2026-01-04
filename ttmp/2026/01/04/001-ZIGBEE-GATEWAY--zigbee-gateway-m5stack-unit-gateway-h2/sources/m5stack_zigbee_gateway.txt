@@ -1,0 +1,393 @@
+   [m5logo2022.svg]
+     * SOLUTION
+       SOLUTION
+       [smart_factory.svg]
+     Smart Factory
+       [smart_agriculture.svg]
+     Smart Agriculture
+       [smart_retail.svg]
+     Smart Retail
+       [smart_weather.svg]
+     * Weather Station
+     * STORE
+       STORE
+       [controllers.svg]
+     Controllers
+       [sensors.svg]
+     Sensors
+       [modules.svg]
+     Modules
+       [camera.svg]
+     * Cameras
+       [kits.svg]
+     * Kits
+       [hobby.svg]
+     * Hobby
+       [accessories.svg]
+     * Accessories
+     * SOFTWARE
+       SOFTWARE
+       [uiflow_ide.svg]
+     UiFlow Coding IDE
+     - UiFlow1
+     - UiFlow2
+       [developer_tools.svg]
+     * Developer Tools
+     - M5Burner
+     * - Block Designer
+     * - Ezdata 2.0
+     * - EasyLoader Packer
+     * - Stacking Screw Length Calculator
+     * - vlw Font Creator
+       [platform.svg]
+     * Device Driver
+     - Device USB Driver
+     * DOCUMENT
+       DOCUMENT
+       [products_document.svg]
+     Products Document
+     - Controllers
+     - Unit
+     - For Stick
+     - For Stack
+     * - For Atom
+     * - For Stamp
+     * - Hobby
+     * - Accessories
+     * - Other
+       [platform.svg]
+     * Platform
+     - UiFlow1
+     * - UiFlow2
+     * - Arduino
+     * - ESP-IDF
+     * - StackFlow AI
+     * - Home Assistant
+     * - nanoFramework
+     * - Product Guide
+       [related_datasheet.svg]
+     * Datasheet & Files
+     - Products Certification
+     * - I2C Table
+     * - Product Selector
+     * - 3D STL Files
+     * - PCB Files
+     * EXPLORE
+       EXPLORE
+       [project_hub.svg]
+     Project HUB
+       [youtube.svg]
+     YouTube
+       [forum.svg]
+     Forum
+       [github.svg]
+     * Github
+       [global-contest.svg]
+     * Global Contest
+     * ABOUT US
+       ABOUT US
+       [about_us.svg]
+     About us
+       [news.svg]
+     News
+     * FAQ
+
+   [English_____]
+   pdf-icon
+   [guide.png]
+
+   ESP-IDF Quick Start
+
+   Overview
+
+   Devices & Examples
+
+   Core2
+
+   BSP
+
+   CoreS3
+
+   BSP
+
+   Dial
+
+   BSP
+
+   Tab5
+
+   User Demo Compile
+
+   Zigbee
+
+   Module Gateway H2
+
+   ESP Zigbee Gateway
+
+   ESP Zigbee NCP
+
+   Unit Gateway H2
+
+   ESP Zigbee Gateway
+
+   ESP Zigbee NCP
+
+   Thread
+
+   Module Gateway H2
+
+   ESP Thread Boarder Router
+
+   Unit Gateway H2
+
+   ESP Thread Boarder Router
+   ____________________
+   Not Search Result
+   HOT SEARCHES
+   Camera
+   WiFi
+   RS485
+   RS232
+   Relay
+   LoRaWAN
+   GPS
+   NB-IoT
+   LTE
+   GSM
+   Zigbee
+   Servo
+   StepMotor
+   Ethernet
+   E-Paper
+   (BUTTON) Product (BUTTON) Tutorial
+   (BUTTON)
+
+   Search
+
+ESP Zigbee Gateway
+
+   This tutorial will guide you on how to run the ESP Zigbee Gateway
+   example program using the Unit Gateway H2 paired with the CoreS3
+   controller. The ESP Zigbee Gateway is a gateway device based on the
+   ESP32 series Wi-Fi SoC and the ESP32-H2 802.15.4 SoC. It connects
+   Zigbee networks with Wi-Fi networks, enabling interoperability between
+   smart home devices.
+
+1. Preparation
+
+     * 1. Environment Setup: Refer to the ESP-IDF - ESP32S3 Getting
+       Started Tutorial to complete the basic compilation environment
+       setup.
+
+   ESP-IDF version
+   It is recommended to use ESP-IDF version v5.3.1 for compiling this
+   example.
+git clone --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+git checkout v5.3.1 # recommend
+./install.sh
+. ./export.sh
+
+   (BUTTON) git clone --recursive https://github.com/espressif/esp-idf.git
+   cd esp-idf git checkout v5.3.1 # recommend ./install.sh . ./export.sh
+     * 2. Use the Git command clone recursive to recursively clone the
+       ESP-Zigbee-SDK repository:
+
+git clone --recursive https://github.com/espressif/esp-zigbee-sdk.git
+cd esp-zigbee-sdk
+
+   (BUTTON) git clone --recursive
+   https://github.com/espressif/esp-zigbee-sdk.git cd esp-zigbee-sdk
+     * 3. Hardware Products Used:
+          + Unit Gateway H2
+          + CoreS3
+
+   [img-2f6b5728-af80-4934-854f-4771a7fe859e.webp] [U195_10.webp]
+     * **4. The idf.py commands used in the subsequent tutorials depend on
+       ESP-IDF. Before running the commands, you need to execute .
+       ./export.sh in ESP-IDF to activate the relevant environment
+       variables. For detailed instructions, please refer to the ESP-IDF -
+       ESP32S3 Getting Started Tutorial.
+
+2. Compile RCP Firmware
+
+     * 1. Before compiling the Gateway firmware, you need to generate the
+       RCP firmware first. Refer to the following commands to enter the
+       corresponding RCP firmware directory and set the compilation target
+       to esp32h2:
+
+cd $IDF_PATH/examples/openthread/ot_rcp
+idf.py set-target esp32h2
+idf.py menuconfig
+
+   (BUTTON) cd $IDF_PATH/examples/openthread/ot_rcp idf.py set-target
+   esp32h2 idf.py menuconfig
+     * 2. Use idf.py menuconfig to enter the configuration page. In
+       menuconfig, configure: Component config -> OpenThread RCP Example -
+       Enable OPENTHREAD_NCP_VENDOR_HOOK.
+
+   Baud Rate Modification
+   Due to factors such as the pin drive capability of the chip, the serial
+   port may not work properly when using a long connecting cable with the
+   Unit. If this happens, you need to reduce the speed appropriately.
+   Here, the default baud rate of 460800 is reduced to 230400.
+     * 3. Modify the baud rate by opening main/esp_ot_config.h and
+       changing line 43 .baud_rate = 460800; to .baud_rate = 230400;.
+
+   [esp_thread_boarder_rcp_baudrate_change_01.png]
+     * 4. After completing the configuration, execute the following
+       command to compile the RCP firmware:
+
+idf.py build
+
+   (BUTTON) idf.py build
+     * 5. Open the Unit Gateway H2 case, press the boot button, and then
+       connect the USB power supply to put it into download mode. Execute
+       the following command to flash the firmware:
+
+   [U195_download_mode1.gif]
+idf.py flash
+
+   (BUTTON) idf.py flash
+
+3. Compile Gateway Firmware
+
+     * 1. Enter the esp_zigbee_gateway example program path and set the
+       compilation target:
+
+cd esp-zigbee-sdk/examples/esp_zigbee_gateway
+idf.py set-target esp32s3
+idf.py menuconfig
+
+   (BUTTON) cd esp-zigbee-sdk/examples/esp_zigbee_gateway idf.py
+   set-target esp32s3 idf.py menuconfig
+     * 2. Configure the correct communication pins in menuconfig. This pin
+       configuration is for the CoreS3 controller. If you are using a
+       different controller, modify it according to the actual situation:
+
+- Board Configuration
+  - Pin to RCP reset: -1
+  - Pin to RCP boot: -1
+  - Pin to RCP TX: 18
+  - Pin to RCP RX: 17
+
+   (BUTTON) - Board Configuration - Pin to RCP reset: -1 - Pin to RCP
+   boot: -1 - Pin to RCP TX: 18 - Pin to RCP RX: 17
+   [esp_zigbee_gateway_config_01.jpg]
+     * 3. Gateway WiFi Connection Configuration:
+
+- Example Connection Configuration
+  - WiFi SSID
+  - WiFi Password
+
+   (BUTTON) - Example Connection Configuration - WiFi SSID - WiFi Password
+   [esp_thread_boarder_router_config_01.png]
+
+   Add the following functions and header files, and call and initialize
+   them at the beginning of app_main to enable the Grove power supply
+   output capability of CoreS3.
+#include "driver/i2c.h"
+
+void fix_aw9523_p0_pull_up(void)
+{
+    /* AW9523 P0 is in push-pull mode */
+    const i2c_config_t i2c_conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = GPIO_NUM_12,
+        .sda_pullup_en = GPIO_PULLUP_DISABLE,
+        .scl_io_num = GPIO_NUM_11,
+        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .master.clk_speed = 400000
+    };
+    i2c_param_config(I2C_NUM_1, &i2c_conf);
+    i2c_driver_install(I2C_NUM_1, i2c_conf.mode, 0, 0, 0);
+
+    uint8_t data[2];
+    data[0] = 0x11;
+    data[1] = 0x10;
+    i2c_master_write_to_device(I2C_NUM_1, 0x58, data, sizeof(data), 1000 / portT
+ICK_PERIOD_MS);
+    i2c_driver_delete(I2C_NUM_1);
+}
+
+   (BUTTON) #include "driver/i2c.h" void fix_aw9523_p0_pull_up(void) { /*
+   AW9523 P0 is in push-pull mode */ const i2c_config_t i2c_conf = { .mode
+   = I2C_MODE_MASTER, .sda_io_num = GPIO_NUM_12, .sda_pullup_en =
+   GPIO_PULLUP_DISABLE, .scl_io_num = GPIO_NUM_11, .scl_pullup_en =
+   GPIO_PULLUP_DISABLE, .master.clk_speed = 400000 };
+   i2c_param_config(I2C_NUM_1, &i2c_conf); i2c_driver_install(I2C_NUM_1,
+   i2c_conf.mode, 0, 0, 0); uint8_t data[2]; data[0] = 0x11; data[1] =
+   0x10; i2c_master_write_to_device(I2C_NUM_1, 0x58, data, sizeof(data),
+   1000 / portTICK_PERIOD_MS); i2c_driver_delete(I2C_NUM_1); }
+
+4. Compile and Flash
+
+idf.py build
+idf.py erase_flash
+idf.py flash
+
+   (BUTTON) idf.py build idf.py erase_flash idf.py flash
+
+5. Start Running
+
+     * Connect the CoreS3 with the Unit Gateway H2.
+     * Connect the CoreS3 to the computer.
+     * Use idf.py monitor or other serial debugging tools to view the
+       running logs at 115200bps.
+
+   [esp_thread_boarder_router_unit_connect_01.jpg]
+   [esp_zigbee_gateway_monitor_01.png]
+
+   Normal running log content:
+     * RCP firmware version check
+     * Wi-Fi connection successful
+     * Zigbee network creation successful
+     * Network open for device joining
+
+   Next Overview
+
+On This Page
+
+   Where to buy
+     * Distributors
+     * AliExpress
+     * Amazon
+     * Taobao
+
+   Support
+     * FAQ
+     * Forum
+     * Contact Us
+
+   Document
+     * UiFlow1
+     * UiFlow2
+     * Arduino
+     * StackFlow AI
+     * Product Guide
+
+   Terms & Conditions
+     * Terms of Service
+     * Privacy Policy
+     * Shipping Policy
+     * Refund Policy
+     * Payment Method
+
+   Stay tuned
+
+   Weekly product releases, news, special offers, and more.
+   ____________________ (BUTTON) Subscribe
+
+   Email is invalid!
+   Thanks for subscribing
+   [sociallist10.svg] [sociallist2.svg] [sociallist3.svg]
+   [sociallist4.svg] [sociallist5.svg] [sociallist6.svg] [sociallist7.svg]
+   [sociallist8.svg]
+   Address:
+   Block A10, Expo Bay South Coast, Fuhai Street, Bao'an District,
+   Shenzhen, China
+   TEL: +86 755 8657 5379
+   Copyright ©2021- M5Stack
+   [footer-bottom01.png] [footer-bottom02.png] [footer-bottom03.png]
+   [footer-bottom04.png]
+   【粤ICP备16010631号】

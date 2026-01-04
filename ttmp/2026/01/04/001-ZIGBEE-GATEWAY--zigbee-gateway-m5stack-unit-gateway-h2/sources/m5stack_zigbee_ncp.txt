@@ -1,0 +1,387 @@
+   [m5logo2022.svg]
+     * SOLUTION
+       SOLUTION
+       [smart_factory.svg]
+     Smart Factory
+       [smart_agriculture.svg]
+     Smart Agriculture
+       [smart_retail.svg]
+     Smart Retail
+       [smart_weather.svg]
+     * Weather Station
+     * STORE
+       STORE
+       [controllers.svg]
+     Controllers
+       [sensors.svg]
+     Sensors
+       [modules.svg]
+     Modules
+       [camera.svg]
+     * Cameras
+       [kits.svg]
+     * Kits
+       [hobby.svg]
+     * Hobby
+       [accessories.svg]
+     * Accessories
+     * SOFTWARE
+       SOFTWARE
+       [uiflow_ide.svg]
+     UiFlow Coding IDE
+     - UiFlow1
+     - UiFlow2
+       [developer_tools.svg]
+     * Developer Tools
+     - M5Burner
+     * - Block Designer
+     * - Ezdata 2.0
+     * - EasyLoader Packer
+     * - Stacking Screw Length Calculator
+     * - vlw Font Creator
+       [platform.svg]
+     * Device Driver
+     - Device USB Driver
+     * DOCUMENT
+       DOCUMENT
+       [products_document.svg]
+     Products Document
+     - Controllers
+     - Unit
+     - For Stick
+     - For Stack
+     * - For Atom
+     * - For Stamp
+     * - Hobby
+     * - Accessories
+     * - Other
+       [platform.svg]
+     * Platform
+     - UiFlow1
+     * - UiFlow2
+     * - Arduino
+     * - ESP-IDF
+     * - StackFlow AI
+     * - Home Assistant
+     * - nanoFramework
+     * - Product Guide
+       [related_datasheet.svg]
+     * Datasheet & Files
+     - Products Certification
+     * - I2C Table
+     * - Product Selector
+     * - 3D STL Files
+     * - PCB Files
+     * EXPLORE
+       EXPLORE
+       [project_hub.svg]
+     Project HUB
+       [youtube.svg]
+     YouTube
+       [forum.svg]
+     Forum
+       [github.svg]
+     * Github
+       [global-contest.svg]
+     * Global Contest
+     * ABOUT US
+       ABOUT US
+       [about_us.svg]
+     About us
+       [news.svg]
+     News
+     * FAQ
+
+   [English_____]
+   pdf-icon
+   [guide.png]
+
+   ESP-IDF Quick Start
+
+   Overview
+
+   Devices & Examples
+
+   Core2
+
+   BSP
+
+   CoreS3
+
+   BSP
+
+   Dial
+
+   BSP
+
+   Tab5
+
+   User Demo Compile
+
+   Zigbee
+
+   Module Gateway H2
+
+   ESP Zigbee Gateway
+
+   ESP Zigbee NCP
+
+   Unit Gateway H2
+
+   ESP Zigbee Gateway
+
+   ESP Zigbee NCP
+
+   Thread
+
+   Module Gateway H2
+
+   ESP Thread Boarder Router
+
+   Unit Gateway H2
+
+   ESP Thread Boarder Router
+   ____________________
+   Not Search Result
+   HOT SEARCHES
+   Camera
+   WiFi
+   RS485
+   RS232
+   Relay
+   LoRaWAN
+   GPS
+   NB-IoT
+   LTE
+   GSM
+   Zigbee
+   Servo
+   StepMotor
+   Ethernet
+   E-Paper
+   (BUTTON) Product (BUTTON) Tutorial
+   (BUTTON)
+
+   Search
+
+ESP Zigbee NCP
+
+   This tutorial will guide you on how to run the ESP Zigbee Host/NCP
+   example program using the Unit Gateway H2 paired with the CoreS3 main
+   controller. ESP Zigbee NCP (Network Co-Processor) is a network
+   co-processor mode that runs the Zigbee protocol stack on a separate
+   processor, communicating with the main processor via a serial
+   interface. This architecture allows the main processor to focus on
+   application-layer logic while offloading Zigbee network-related
+   processing to the co-processor. Follow the tutorial below to flash the
+   ESP Zigbee NCP firmware onto the Unit Gateway H2 and the ESP Zigbee
+   Host firmware onto the CoreS3 to create a Coordinator node.
+
+1. Preparations
+
+     * 1. Environment Setup: Refer to the ESP-IDF - ESP32S3 Getting
+       Started Guide to complete the basic compilation environment setup.
+
+   ESP-IDF version
+   It is recommended to use ESP-IDF version v5.3.1 for compiling this
+   example.
+git clone --recursive https://github.com/espressif/esp-idf.git
+cd esp-idf
+git checkout v5.3.1 # recommend
+./install.sh
+. ./export.sh
+
+   (BUTTON) git clone --recursive https://github.com/espressif/esp-idf.git
+   cd esp-idf git checkout v5.3.1 # recommend ./install.sh . ./export.sh
+     * 2. Clone the ESP-Zigbee-SDK Repository: Use the Git command clone
+       recursive to clone the ESP-Zigbee-SDK repository.
+
+git clone --recursive https://github.com/espressif/esp-zigbee-sdk.git
+cd esp-zigbee-sdk
+
+   (BUTTON) git clone --recursive
+   https://github.com/espressif/esp-zigbee-sdk.git cd esp-zigbee-sdk
+     * 3. Hardware Products Used:
+          + Unit Gateway H2
+          + CoreS3
+
+   [img-2f6b5728-af80-4934-854f-4771a7fe859e.webp] [U195_10.webp]
+     * 4. IDF.py Commands: All subsequent tutorial commands using idf.py
+       depend on ESP-IDF. Before running the commands, execute .
+       ./export.sh in ESP-IDF to activate the relevant environment
+       variables. For detailed instructions, refer to the ESP-IDF -
+       ESP32S3 Getting Started Guide.
+
+2. Compile NCP Firmware
+
+     * 1. Navigate to the NCP Firmware Directory: Use the following
+       commands to enter the corresponding NCP firmware directory and set
+       the compilation target to esp32h2.
+
+cd examples/esp_zigbee_ncp
+idf.py set-target esp32h2
+idf.py menuconfig
+
+   (BUTTON) cd examples/esp_zigbee_ncp idf.py set-target esp32h2 idf.py
+   menuconfig
+     * 2. Configure Pin Information: Use idf.py menuconfig to enter the
+       configuration page. Configure the device pin information under
+       Component config -> Zigbee Network Co-processor.
+
+- Component config → Zigbee Network Co-processor
+  - UART RX Pin: 23
+  - UART TX Pin: 24
+- Component config → ESP Zigbee → Configure the Zigbee device type
+  - Zigbee Coordinator or Router device # or Zigbee End Device
+
+   (BUTTON) - Component config → Zigbee Network Co-processor - UART RX
+   Pin: 23 - UART TX Pin: 24 - Component config → ESP Zigbee → Configure
+   the Zigbee device type - Zigbee Coordinator or Router device # or
+   Zigbee End Device
+   [esp_zigbee_ncp_config_01.png] [esp_zigbee_ncp_config_02.png]
+     * 3. Compile the NCP Firmware: After completing the configuration,
+       execute the following command to compile the NCP firmware.
+
+idf.py build
+
+   (BUTTON) idf.py build
+     * 4. Flash the Firmware: Open the Unit Gateway H2 case, press the
+       boot button, and then connect the USB power supply to enter
+       download mode. Execute the following command to flash the firmware.
+       Note: Before flashing, it is recommended to use the command idf.py
+       erase_flash to erase the flash.
+
+   [U195_download_mode1.gif]
+idf.py erase_flash
+idf.py flash
+
+   (BUTTON) idf.py erase_flash idf.py flash
+
+3. Compile HOST Firmware
+
+     * 1. Navigate to the HOST Firmware Directory: Use the following
+       commands to enter the corresponding HOST firmware directory and set
+       the compilation target to esp32s3.
+
+cd examples/esp_zigbee_host
+idf.py set-target esp32s3 # Use CoreS3
+idf.py menuconfig
+
+   (BUTTON) cd examples/esp_zigbee_host idf.py set-target esp32s3 # Use
+   CoreS3 idf.py menuconfig
+     * 2. Configure Pin Information: Use idf.py menuconfig to enter the
+       configuration page. Configure the device pin information under
+       Component config -> Zigbee NCP Host.
+
+- Component config → Zigbee NCP Host
+  - UART RX Pin: 18
+  - UART TX Pin: 17
+
+   (BUTTON) - Component config → Zigbee NCP Host - UART RX Pin: 18 - UART
+   TX Pin: 17
+   [esp_zigbee_ncp_config_03.jpg]
+
+   Add the following functions and header files, and call and initialize
+   them at the beginning of app_main to enable the Grove power supply
+   output capability of CoreS3.
+#include "driver/i2c.h"
+
+void fix_aw9523_p0_pull_up(void)
+{
+    /* AW9523 P0 is in push-pull mode */
+    const i2c_config_t i2c_conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = GPIO_NUM_12,
+        .sda_pullup_en = GPIO_PULLUP_DISABLE,
+        .scl_io_num = GPIO_NUM_11,
+        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .master.clk_speed = 400000
+    };
+    i2c_param_config(I2C_NUM_1, &i2c_conf);
+    i2c_driver_install(I2C_NUM_1, i2c_conf.mode, 0, 0, 0);
+
+    uint8_t data[2];
+    data[0] = 0x11;
+    data[1] = 0x10;
+    i2c_master_write_to_device(I2C_NUM_1, 0x58, data, sizeof(data), 1000 / portT
+ICK_PERIOD_MS);
+    i2c_driver_delete(I2C_NUM_1);
+}
+
+   (BUTTON) #include "driver/i2c.h" void fix_aw9523_p0_pull_up(void) { /*
+   AW9523 P0 is in push-pull mode */ const i2c_config_t i2c_conf = { .mode
+   = I2C_MODE_MASTER, .sda_io_num = GPIO_NUM_12, .sda_pullup_en =
+   GPIO_PULLUP_DISABLE, .scl_io_num = GPIO_NUM_11, .scl_pullup_en =
+   GPIO_PULLUP_DISABLE, .master.clk_speed = 400000 };
+   i2c_param_config(I2C_NUM_1, &i2c_conf); i2c_driver_install(I2C_NUM_1,
+   i2c_conf.mode, 0, 0, 0); uint8_t data[2]; data[0] = 0x11; data[1] =
+   0x10; i2c_master_write_to_device(I2C_NUM_1, 0x58, data, sizeof(data),
+   1000 / portTICK_PERIOD_MS); i2c_driver_delete(I2C_NUM_1); }
+idf.py build
+idf.py flash
+
+   (BUTTON) idf.py build idf.py flash
+
+4. Start Running
+
+     * Connect the CoreS3 to the Unit Gateway H2.
+     * Connect the CoreS3 to your computer.
+     * Use idf.py monitor or other serial debugging tools to view the
+       running logs at 115200bps.
+
+   [esp_thread_boarder_router_unit_connect_01.jpg]
+   [esp_zigbee_ncp_monitor_01.png]
+
+   Normal Running Log Content:
+     * NCP side shows successful initialization of the Zigbee protocol
+       stack.
+     * Host side shows successful connection to the NCP.
+     * Zigbee network creation successful (Coordinator mode).
+
+   Next Overview
+
+On This Page
+
+   Where to buy
+     * Distributors
+     * AliExpress
+     * Amazon
+     * Taobao
+
+   Support
+     * FAQ
+     * Forum
+     * Contact Us
+
+   Document
+     * UiFlow1
+     * UiFlow2
+     * Arduino
+     * StackFlow AI
+     * Product Guide
+
+   Terms & Conditions
+     * Terms of Service
+     * Privacy Policy
+     * Shipping Policy
+     * Refund Policy
+     * Payment Method
+
+   Stay tuned
+
+   Weekly product releases, news, special offers, and more.
+   ____________________ (BUTTON) Subscribe
+
+   Email is invalid!
+   Thanks for subscribing
+   [sociallist10.svg] [sociallist2.svg] [sociallist3.svg]
+   [sociallist4.svg] [sociallist5.svg] [sociallist6.svg] [sociallist7.svg]
+   [sociallist8.svg]
+   Address:
+   Block A10, Expo Bay South Coast, Fuhai Street, Bao'an District,
+   Shenzhen, China
+   TEL: +86 755 8657 5379
+   Copyright ©2021- M5Stack
+   [footer-bottom01.png] [footer-bottom02.png] [footer-bottom03.png]
+   [footer-bottom04.png]
+   【粤ICP备16010631号】

@@ -51,6 +51,10 @@ topics:
       description: Flashing firmware to devices
     - slug: esp32
       description: ESP32 family (generic; not S2/S3 specific)
+    - slug: zigbee
+      description: Zigbee stack, commissioning, and gateway integration
+    - slug: esp32h2
+      description: ESP32-H2 (802.15.4/Zigbee/Thread)
 docTypes:
     - slug: index
       description: Ticket index document
