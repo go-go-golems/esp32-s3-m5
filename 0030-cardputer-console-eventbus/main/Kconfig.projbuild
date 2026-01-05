@@ -1,0 +1,51 @@
+menu "Tutorial 0030: Cardputer console + esp_event bus"
+
+config TUTORIAL_0030_EVENT_QUEUE_SIZE
+    int "Event loop queue size"
+    range 8 256
+    default 48
+
+config TUTORIAL_0030_DISPATCH_TICKS
+    int "UI dispatch budget (ticks)"
+    range 0 100
+    default 1
+    help
+        Each UI loop iteration calls esp_event_loop_run(loop, ticks).
+
+config TUTORIAL_0030_UI_MAX_LINES
+    int "UI log max lines"
+    range 32 2048
+    default 256
+
+config TUTORIAL_0030_UI_TARGET_FPS
+    int "UI target FPS"
+    range 1 60
+    default 30
+
+config TUTORIAL_0030_KB_SCAN_PERIOD_MS
+    int "Keyboard scan period (ms)"
+    range 1 100
+    default 10
+
+config TUTORIAL_0030_RAND_PRODUCERS
+    int "Random event producers"
+    range 0 8
+    default 2
+
+config TUTORIAL_0030_RAND_MIN_PERIOD_MS
+    int "Random producer min period (ms)"
+    range 10 10000
+    default 250
+
+config TUTORIAL_0030_RAND_MAX_PERIOD_MS
+    int "Random producer max period (ms)"
+    range 10 60000
+    default 1200
+
+config TUTORIAL_0030_HEARTBEAT_PERIOD_MS
+    int "Heartbeat period (ms)"
+    range 100 60000
+    default 1000
+
+endmenu
+
