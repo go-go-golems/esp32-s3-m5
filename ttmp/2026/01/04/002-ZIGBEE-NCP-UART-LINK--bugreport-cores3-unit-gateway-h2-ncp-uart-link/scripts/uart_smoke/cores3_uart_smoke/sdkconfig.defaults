@@ -1,0 +1,6 @@
+# Prefer USB-Serial/JTAG for console (avoid any confusion about UART0 console pins).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# CONFIG_ESP_CONSOLE_UART is not set
+
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+

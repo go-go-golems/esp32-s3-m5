@@ -1,0 +1,186 @@
+bash -lc source\ \"/home/manuel/esp/esp-
+5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1\;
+\ cd\ \"/home/manuel/esp/esp-zigbee-sdk/
+examples/esp_zigbee_ncp\"\;\ idf.py\ -p\
+ \"/dev/ttyACM1\"\ monitor
+workspaces/2025-12-21/echo-base-document
+ation on ☁️   ttc (us-east-1)  🔧 echo-ba
+se-documentation
+❯ bash -lc source\ \"/home/manuel/esp/es
+p-5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1
+\;\ cd\ \"/home/manuel/esp/esp-zigbee-sd
+k/examples/esp_zigbee_ncp\"\;\ idf.py\ -
+p\ \"/dev/ttyACM1\"\ monitor
+/home/manuel/.hishtory/config.sh: line 7
+2: bind: warning: line editing not enabl
+ed
+Executing action: monitor
+Running idf_monitor in directory /home/m
+anuel/esp/esp-zigbee-sdk/examples/esp_zi
+gbee_ncp
+Executing "/home/manuel/.espressif/pytho
+n_env/idf5.4_py3.11_env/bin/python /home
+/manuel/esp/esp-idf-5.4.1/tools/idf_moni
+tor.py -p /dev/ttyACM1 -b 115200 --toolc
+hain-prefix riscv32-esp-elf- --target es
+p32h2 --revision 0 --decode-panic backtr
+ace /home/manuel/esp/esp-zigbee-sdk/exam
+ples/esp_zigbee_ncp/build/esp_zigbee_ncp
+.elf -m '/home/manuel/.espressif/python_
+env/idf5.4_py3.11_env/bin/python' '/home
+/manuel/esp/esp-idf-5.4.1/tools/idf.py'
+'-p' '/dev/ttyACM1'"...
+--- esp-idf-monitor 1.8.0 on /dev/ttyACM
+1 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help:
+Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32h2-20221101
+Build:Nov  1 2022
+rst:0x15 (USB_UART_HPSYS),boot:0xc (SPI_
+FAST_FLASH_BOOT)
+Saved PC:0x408047a0
+--- 0x408047a0: rv_utils_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compone
+nts/riscv/include/riscv/rv_utils.h:62
+--- (inlined by) esp_cpu_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compone
+nts/esp_hw_support/cpu.c:62
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x408460f0,len:0x538
+load:0x4083cad0,len:0xba4
+load:0x4083efd0,len:0x24ec
+entry 0x4083cad0
+I (214) cpu_start: Unicore app
+I (223) cpu_start: Pro cpu start user co
+de
+I (223) cpu_start: cpu freq: 96000000 Hz
+I (223) app_init: Application informatio
+n:
+I (223) app_init: Project name:     esp_
+zigbee_ncp
+I (224) app_init: App version:      3d86
+dd0-dirty
+I (224) app_init: Compile time:     Jan
+ 4 2026 18:08:04
+I (224) app_init: ELF file SHA256:  7d45
+de28f...
+I (225) app_init: ESP-IDF:          v5.4
+.1
+I (225) efuse_init: Min chip rev:     v0
+.0
+I (225) efuse_init: Max chip rev:     v1
+.99
+I (226) efuse_init: Chip rev:         v0
+.1
+I (226) heap_init: Initializing. RAM ava
+ilable for dynamic allocation:
+I (227) heap_init: At 408156B0 len 00037
+CD0 (223 KiB): RAM
+I (227) heap_init: At 4084D380 len 00002
+B60 (10 KiB): RAM
+I (227) heap_init: At 50000000 len 00000
+FE8 (3 KiB): RTCRAM
+I (229) spi_flash: detected chip: generi
+c
+I (229) spi_flash: flash io: dio
+I (230) sleep_gpio: Configure to isolate
+ all GPIO pins in sleep state
+I (230) sleep_gpio: Enable automatic swi
+tching of GPIO sleep configuration
+I (232) main_task: Started on CPU0
+I (232) main_task: Calling app_main()
+I (242) uart: queue free spaces: 20
+I (242) main_task: Returned from app_mai
+n()
+I (282) ESP_NCP_BUS: uart pattern detect
+ion
+I (282) ESP_NCP_BUS: uart pattern detect
+ion
+I (282) ESP_NCP_FRAME: 00 00 00 00 ba 00
+ 00 c7 06
+I (302) ESP_NCP_BUS: uart pattern detect
+ion
+I (302) ESP_NCP_BUS: uart pattern detect
+ion
+I (302) ESP_NCP_FRAME: 00 00 04 00 88 10
+ 00 00 00 00 00 00 00 00 00 0a
+I (302) ESP_NCP_FRAME: 00 00 00 00 00 00
+ 00 64 b0
+I (332) phy: phy_version: 321,2, 632dc08
+, Feb 13 2025, 16:29:11
+I (332) phy: libbtbb version: 509a2a6, F
+eb 13 2025, 16:29:25
+I (342) ESP_NCP_BUS: uart pattern detect
+ion
+I (342) ESP_NCP_BUS: uart pattern detect
+ion
+I (342) ESP_NCP_FRAME: 00 00 00 01 ad 10
+ 00 01 04 01 00 00 00 02 02 03
+I (342) ESP_NCP_FRAME: 00 06 00 00 00 03
+ 00 b9 01
+I (342) ESP_NCP_ZB: endpoint 1, profileI
+d 104, deviceId 00, appFlags 0, inputClu
+sterCount 2, outputClusterCount 2
+I (352) ESP_NCP_BUS: uart pattern detect
+ion
+I (352) ESP_NCP_BUS: uart pattern detect
+ion
+I (352) ESP_NCP_FRAME: 00 00 10 00 07 04
+ 00 00 20 00 00 e4 d4
+I (372) ESP_NCP_BUS: uart pattern detect
+ion
+I (372) ESP_NCP_BUS: uart pattern detect
+ion
+I (372) ESP_NCP_FRAME: 00 00 01 00 3f 01
+ 00 00 03 5f
+I (392) ESP_NCP_ZB: Initialize Zigbee st
+ack
+W (392) ESP_NCP_ZB: Network(0x4641) clos
+ed, devices joining not allowed.
+I (402) ESP_NCP_ZB: Start network format
+ion
+I (402) ESP_NCP_ZB: Formed network succe
+ssfully (Extended PAN ID: 48:31:b7:ff:fe
+:ca:45:5b, PAN ID: 0x4641, Channel:13)
+I (402) ESP_NCP_BUS: uart pattern detect
+ion
+I (402) ESP_NCP_BUS: uart pattern detect
+ion
+I (402) ESP_NCP_FRAME: 00 00 0b 00 5c 00
+ 00 53 9e
+I (432) ESP_NCP_BUS: uart pattern detect
+ion
+I (432) ESP_NCP_BUS: uart pattern detect
+ion
+I (432) ESP_NCP_FRAME: 00 00 0d 00 e9 00
+ 00 34 16
+I (452) ESP_NCP_BUS: uart pattern detect
+ion
+I (452) ESP_NCP_BUS: uart pattern detect
+ion
+I (452) ESP_NCP_FRAME: 00 00 0b 00 83 00
+ 00 9b 5b
+I (462) ESP_NCP_BUS: uart pattern detect
+ion
+I (462) ESP_NCP_BUS: uart pattern detect
+ion
+I (462) ESP_NCP_FRAME: 00 00 13 00 76 00
+ 00 72 00
+I (482) ESP_NCP_BUS: uart pattern detect
+ion
+I (482) ESP_NCP_BUS: uart pattern detect
+ion
+I (482) ESP_NCP_FRAME: 00 00 1d 00 24 00
+ 00 91 57
+I (1002) ESP_NCP_ZB: Network(0x4641) is
+open for 180 seconds
+I (1002) ESP_NCP_ZB: Network steering st
+arted
+I (1002) ESP_NCP_BUS: uart pattern detec
+tion
+I (1002) ESP_NCP_BUS: uart pattern detec
+tion
+I (1002) ESP_NCP_FRAME: 00 00 0b 00 f0 0
+0 00 27 34
+

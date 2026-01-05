@@ -56,3 +56,35 @@ Uploaded ticket docs to reMarkable; built+flashed esp_zigbee_ncp (H2) per M5Stac
 - /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/build/esp_zigbee_ncp.bin — Flashed NCP firmware
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/reference/01-diary.md — Steps 7-9 (reMarkable upload
 
+
+## 2026-01-04
+
+Step 12: Created bugreport ticket + UART smoke tests; after reseating Grove cable, confirmed bidirectional UART bytes on Port C pins.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/reference/01-diary.md — Record cable reseat + smoke test validation
+
+
+## 2026-01-04
+
+Step 13: Zigbee NCP host↔NCP handshake succeeds; network formed and steering started after fixing UART pattern queue reset.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/reference/01-diary.md — Record successful NCP run
+
+
+## 2026-01-04
+
+Step 15: Re-tested CoreS3 host with enclosed H2; host↔NCP UART ZNSP traffic and permit-join still works.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-185952-cores3-host-only-retest-script-120s.log — Evidence log (host-only)
+
+
+## 2026-01-04
+
+Ticket closed
+

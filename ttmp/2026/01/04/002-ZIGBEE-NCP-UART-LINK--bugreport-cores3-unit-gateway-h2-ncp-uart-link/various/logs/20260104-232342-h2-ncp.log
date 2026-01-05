@@ -1,0 +1,368 @@
+bash -lc source\ \"/home/manuel/esp/esp-
+5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1\;
+\ cd\ \"/home/manuel/workspaces/2025-12-
+21/echo-base-documentation/esp32-s3-m5/t
+tmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK-
+-bugreport-cores3-unit-gateway-h2-ncp-ua
+rt-link/scripts/uart_smoke/h2_uart_smoke
+\"\;\ idf.py\ -p\ \"/dev/ttyACM1\"\ moni
+tor
+workspaces/2025-12-21/echo-base-document
+ation on ☁️   ttc (us-east-1)  🔧 echo-ba
+se-documentation
+❯ bash -lc source\ \"/home/manuel/esp/es
+p-5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1
+\;\ cd\ \"/home/manuel/workspaces/2025-1
+2-21/echo-base-documentation/esp32-s3-m5
+/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LIN
+K--bugreport-cores3-unit-gateway-h2-ncp-
+uart-link/scripts/uart_smoke/h2_uart_smo
+ke\"\;\ idf.py\ -p\ \"/dev/ttyACM1\"\ mo
+nitor
+/home/manuel/.hishtory/config.sh: line 7
+2: bind: warning: line editing not enabl
+ed
+Executing action: monitor
+Running idf_monitor in directory /home/m
+anuel/workspaces/2025-12-21/echo-base-do
+cumentation/esp32-s3-m5/ttmp/2026/01/04/
+002-ZIGBEE-NCP-UART-LINK--bugreport-core
+s3-unit-gateway-h2-ncp-uart-link/scripts
+/uart_smoke/h2_uart_smoke
+Executing "/home/manuel/.espressif/pytho
+n_env/idf5.4_py3.11_env/bin/python /home
+/manuel/esp/esp-idf-5.4.1/tools/idf_moni
+tor.py -p /dev/ttyACM1 -b 115200 --toolc
+hain-prefix riscv32-esp-elf- --target es
+p32h2 --revision 0 --decode-panic backtr
+ace /home/manuel/workspaces/2025-12-21/e
+cho-base-documentation/esp32-s3-m5/ttmp/
+2026/01/04/002-ZIGBEE-NCP-UART-LINK--bug
+report-cores3-unit-gateway-h2-ncp-uart-l
+ink/scripts/uart_smoke/h2_uart_smoke/bui
+ld/h2_uart_smoke.elf -m '/home/manuel/.e
+spressif/python_env/idf5.4_py3.11_env/bi
+n/python' '/home/manuel/esp/esp-idf-5.4.
+1/tools/idf.py' '-p' '/dev/ttyACM1'"...
+--- esp-idf-monitor 1.8.0 on /dev/ttyACM
+1 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help:
+Ctrl+T followed by Ctrl+H
+I (119) heap_init: Initializing. RAM ava
+ilable for dynamic allocESP-ROM:esp32h2-
+20221101
+Build:Nov  1 2022
+rst:0x15 (USB_UART_HPSYS),boot:0xc (SPI_
+FAST_FLASH_BOOT)
+Saved PC:0x40802d56
+--- 0x40802d56: rv_utils_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compone
+nts/riscv/include/riscv/rv_utils.h:62
+--- (inlined by) esp_cpu_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compone
+nts/esp_hw_support/cpu.c:62
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x408460f0,len:0x1678
+load:0x4083cad0,len:0xe80
+load:0x4083efd0,len:0x2f04
+entry 0x4083cada
+I (23) boot: ESP-IDF v5.4.1 2nd stage bo
+otloader
+I (23) boot: compile time Jan  4 2026 18
+:22:59
+I (24) boot: chip revision: v0.1
+I (24) boot: efuse block revision: v0.3
+I (24) boot.esp32h2: SPI Speed      : 64
+MHz
+I (25) boot.esp32h2: SPI Mode       : DI
+O
+I (25) boot.esp32h2: SPI Flash Size : 2M
+B
+I (25) boot: Enabling RNG early entropy
+source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage
+        Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi da
+ta        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data
+          01 01 0000f000 00001000
+I (28) boot:  2 factory          factory
+ app      00 00 00010000 00100000
+I (29) boot: End of partition table
+I (29) esp_image: segment 0: paddr=00010
+020 vaddr=42020020 size=0a378h ( 41848)
+map
+I (41) esp_image: segment 1: paddr=0001a
+3a0 vaddr=40800000 size=05c78h ( 23672)
+load
+I (48) esp_image: segment 2: paddr=00020
+020 vaddr=42000020 size=1c07ch (114812)
+map
+I (78) esp_image: segment 3: paddr=0003c
+0a4 vaddr=40805c78 size=05614h ( 22036)
+load
+I (85) esp_image: segment 4: paddr=00041
+6c0 vaddr=4080b290 size=01588h (  5512)
+load
+I (91) boot: Loaded app from partition a
+t offset 0x10000
+I (91) boot: Disabling RNG early entropy
+ source...
+I (93) cpu_start: Unicore app
+I (101) cpu_start: Pro cpu start user co
+de
+I (102) cpu_start: cpu freq: 96000000 Hz
+I (102) app_init: Application informatio
+n:
+I (102) app_init: Project name:     h2_u
+art_smoke
+I (102) app_init: App version:      68ad
+3f8-dirty
+I (103) app_init: Compile time:     Jan
+ 4 2026 18:22:49
+I (103) app_init: ELF file SHA256:  3567
+d7215...
+I (104) app_init: ESP-IDF:          v5.4
+.1
+I (104) efuse_init: Min chip rev:     v0
+.0
+I (104) efuse_init: Max chip rev:     v1
+.99
+I (104) efuse_init: Chip rev:         v0
+.1
+I (105) heap_init: Initializing. RAM ava
+ilable for dynamic allocation:
+I (105) heap_init: At 4080D8A0 len 0003F
+AE0 (254 KiB): RAM
+I (106) heap_init: At 4084D380 len 00002
+B60 (10 KiB): RAM
+I (106) heap_init: At 50000000 len 00000
+FE8 (3 KiB): RTCRAM
+I (108) spi_flash: detected chip: generi
+c
+I (108) spi_flash: flash io: dio
+I (108) sleep_gpio: Configure to isolate
+ all GPIO pins in sleep state
+I (109) sleep_gpio: Enable automatic swi
+tching of GPIO sleep configuration
+I (110) main_task: Started on CPU0
+I (110) main_task: Calling app_main()
+I (110) H2_UART_SMOKE: Configured BUS_UA
+RT=1 TX=24 RX=23 @115200
+I (110) main_task: Returned from app_mai
+n()
+I (440) H2_UART_SMOKE: RX <- PING 0
+
+I (440) H2_UART_SMOKE: TX -> PONG 0
+
+I (930) H2_UART_SMOKE: RX <- PING 1
+
+I (930) H2_UART_SMOKE: TX -> PONG 1
+
+I (1430) H2_UART_SMOKE: RX <- PING 2
+
+I (1430) H2_UART_SMOKE: TX -> PONG 2
+
+I (1930) H2_UART_SMOKE: RX <- PING 3
+
+I (1930) H2_UART_SMOKE: TX -> PONG 3
+
+I (2430) H2_UART_SMOKE: RX <- PING 4
+
+I (2430) H2_UART_SMOKE: TX -> PONG 4
+
+I (2930) H2_UART_SMOKE: RX <- PING 5
+
+I (2930) H2_UART_SMOKE: TX -> PONG 5
+
+I (3430) H2_UART_SMOKE: RX <- PING 6
+
+I (3430) H2_UART_SMOKE: TX -> PONG 6
+
+I (3930) H2_UART_SMOKE: RX <- PING 7
+
+I (3930) H2_UART_SMOKE: TX -> PONG 7
+
+I (4430) H2_UART_SMOKE: RX <- PING 8
+
+I (4430) H2_UART_SMOKE: TX -> PONG 8
+
+I (4930) H2_UART_SMOKE: RX <- PING 9
+
+I (4930) H2_UART_SMOKE: TX -> PONG 9
+
+I (5430) H2_UART_SMOKE: RX <- PING 10
+
+I (5430) H2_UART_SMOKE: TX -> PONG 10
+
+I (5930) H2_UART_SMOKE: RX <- PING 11
+
+I (5930) H2_UART_SMOKE: TX -> PONG 11
+
+I (6430) H2_UART_SMOKE: RX <- PING 12
+
+I (6430) H2_UART_SMOKE: TX -> PONG 12
+
+I (6930) H2_UART_SMOKE: RX <- PING 13
+
+I (6930) H2_UART_SMOKE: TX -> PONG 13
+
+I (7430) H2_UART_SMOKE: RX <- PING 14
+
+I (7430) H2_UART_SMOKE: TX -> PONG 14
+
+I (7930) H2_UART_SMOKE: RX <- PING 15
+
+I (7930) H2_UART_SMOKE: TX -> PONG 15
+
+I (8430) H2_UART_SMOKE: RX <- PING 16
+
+I (8430) H2_UART_SMOKE: TX -> PONG 16
+
+I (8930) H2_UART_SMOKE: RX <- PING 17
+
+I (8930) H2_UART_SMOKE: TX -> PONG 17
+
+I (9430) H2_UART_SMOKE: RX <- PING 18
+
+I (9430) H2_UART_SMOKE: TX -> PONG 18
+
+I (9930) H2_UART_SMOKE: RX <- PING 19
+
+I (9930) H2_UART_SMOKE: TX -> PONG 19
+
+I (10430) H2_UART_SMOKE: RX <- PING 20
+
+I (10430) H2_UART_SMOKE: TX -> PONG 20
+
+I (10930) H2_UART_SMOKE: RX <- PING 21
+
+I (10930) H2_UART_SMOKE: TX -> PONG 21
+
+I (11430) H2_UART_SMOKE: RX <- PING 22
+
+I (11430) H2_UART_SMOKE: TX -> PONG 22
+
+I (11930) H2_UART_SMOKE: RX <- PING 23
+
+I (11930) H2_UART_SMOKE: TX -> PONG 23
+
+I (12430) H2_UART_SMOKE: RX <- PING 24
+
+I (12430) H2_UART_SMOKE: TX -> PONG 24
+
+I (12930) H2_UART_SMOKE: RX <- PING 25
+
+I (12930) H2_UART_SMOKE: TX -> PONG 25
+
+I (13430) H2_UART_SMOKE: RX <- PING 26
+
+I (13430) H2_UART_SMOKE: TX -> PONG 26
+
+I (13930) H2_UART_SMOKE: RX <- PING 27
+
+I (13930) H2_UART_SMOKE: TX -> PONG 27
+
+I (14430) H2_UART_SMOKE: RX <- PING 28
+
+I (14430) H2_UART_SMOKE: TX -> PONG 28
+
+I (14930) H2_UART_SMOKE: RX <- PING 29
+
+I (14930) H2_UART_SMOKE: TX -> PONG 29
+
+I (15430) H2_UART_SMOKE: RX <- PING 30
+
+I (15430) H2_UART_SMOKE: TX -> PONG 30
+
+I (15930) H2_UART_SMOKE: RX <- PING 31
+
+I (15930) H2_UART_SMOKE: TX -> PONG 31
+
+I (16430) H2_UART_SMOKE: RX <- PING 32
+
+I (16430) H2_UART_SMOKE: TX -> PONG 32
+
+I (16930) H2_UART_SMOKE: RX <- PING 33
+
+I (16930) H2_UART_SMOKE: TX -> PONG 33
+
+I (17430) H2_UART_SMOKE: RX <- PING 34
+
+I (17430) H2_UART_SMOKE: TX -> PONG 34
+
+I (17930) H2_UART_SMOKE: RX <- PING 35
+
+I (17930) H2_UART_SMOKE: TX -> PONG 35
+
+I (18430) H2_UART_SMOKE: RX <- PING 36
+
+I (18430) H2_UART_SMOKE: TX -> PONG 36
+
+I (18930) H2_UART_SMOKE: RX <- PING 37
+
+I (18930) H2_UART_SMOKE: TX -> PONG 37
+
+I (19430) H2_UART_SMOKE: RX <- PING 38
+
+I (19430) H2_UART_SMOKE: TX -> PONG 38
+
+I (19930) H2_UART_SMOKE: RX <- PING 39
+
+I (19930) H2_UART_SMOKE: TX -> PONG 39
+
+I (20430) H2_UART_SMOKE: RX <- PING 40
+
+I (20430) H2_UART_SMOKE: TX -> PONG 40
+
+I (20930) H2_UART_SMOKE: RX <- PING 41
+
+I (20930) H2_UART_SMOKE: TX -> PONG 41
+
+I (21430) H2_UART_SMOKE: RX <- PING 42
+
+I (21430) H2_UART_SMOKE: TX -> PONG 42
+
+I (21930) H2_UART_SMOKE: RX <- PING 43
+
+I (21930) H2_UART_SMOKE: TX -> PONG 43
+
+I (22430) H2_UART_SMOKE: RX <- PING 44
+
+I (22430) H2_UART_SMOKE: TX -> PONG 44
+
+I (22930) H2_UART_SMOKE: RX <- PING 45
+
+I (22930) H2_UART_SMOKE: TX -> PONG 45
+
+I (23430) H2_UART_SMOKE: RX <- PING 46
+
+I (23430) H2_UART_SMOKE: TX -> PONG 46
+
+I (23930) H2_UART_SMOKE: RX <- PING 47
+
+I (23930) H2_UART_SMOKE: TX -> PONG 47
+
+I (24430) H2_UART_SMOKE: RX <- PING 48
+
+I (24430) H2_UART_SMOKE: TX -> PONG 48
+
+I (24930) H2_UART_SMOKE: RX <- PING 49
+
+I (24930) H2_UART_SMOKE: TX -> PONG 49
+
+I (25430) H2_UART_SMOKE: RX <- PING 50
+
+I (25430) H2_UART_SMOKE: TX -> PONG 50
+
+I (25930) H2_UART_SMOKE: RX <- PING 51
+
+I (25930) H2_UART_SMOKE: TX -> PONG 51
+
+I (26430) H2_UART_SMOKE: RX <- PING 52
+
+I (26430) H2_UART_SMOKE: TX -> PONG 52
+
+

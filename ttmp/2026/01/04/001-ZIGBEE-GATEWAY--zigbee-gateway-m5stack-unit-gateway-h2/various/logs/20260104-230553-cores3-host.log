@@ -1,0 +1,110 @@
+bash -lc source\ \"/home/manuel/esp/esp
+-5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1
+\;\ cd\ \"/home/manuel/esp/esp-zigbee-s
+dk/examples/esp_zigbee_host\"\;\ idf.py
+\ -p\ \"/dev/ttyACM0\"\ monitor
+workspaces/2025-12-21/echo-base-documen
+tation on ☁️   ttc (us-east-1)  🔧 echo-
+base-documentation
+❯ bash -lc source\ \"/home/manuel/esp/e
+sp-5.4.1/export.sh\"\ \>/dev/null\ 2\>\
+&1\;\ cd\ \"/home/manuel/esp/esp-zigbee
+-sdk/examples/esp_zigbee_host\"\;\ idf.
+py\ -p\ \"/dev/ttyACM0\"\ monitor
+/home/manuel/.hishtory/config.sh: line
+72: bind: warning: line editing not ena
+bled
+Executing action: monitor
+Running idf_monitor in directory /home/
+manuel/esp/esp-zigbee-sdk/examples/esp_
+zigbee_host
+Executing "/home/manuel/.espressif/pyth
+on_env/idf5.4_py3.11_env/bin/python /ho
+me/manuel/esp/esp-idf-5.4.1/tools/idf_m
+onitor.py -p /dev/ttyACM0 -b 115200 --t
+oolchain-prefix xtensa-esp32s3-elf- --t
+arget esp32s3 --revision 0 /home/manuel
+/esp/esp-zigbee-sdk/examples/esp_zigbee
+_host/build/esp_zigbee_host.elf -m '/ho
+me/manuel/.espressif/python_env/idf5.4_
+py3.11_env/bin/python' '/home/manuel/es
+p/esp-idf-5.4.1/tools/idf.py' '-p' '/de
+v/ttyACM0'"...
+--- esp-idf-monitor 1.8.0 on /dev/ttyAC
+M0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help:
+ Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2
+8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037925a
+--- 0x4037925a: esp_cpu_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compon
+ents/esp_hw_support/cpu.c:64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1120
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xb2c
+load:0x403cb700,len:0x2d28
+entry 0x403c88a8
+I (87) cpu_start: Multicore app
+I (96) cpu_start: Pro cpu start user co
+de
+I (96) cpu_start: cpu freq: 160000000 H
+z
+I (96) app_init: Application informatio
+n:
+I (96) app_init: Project name:     esp_
+zigbee_host
+I (100) app_init: App version:      3d8
+6dd0-dirty
+I (104) app_init: Compile time:     Jan
+  4 2026 17:29:18
+I (109) app_init: ELF file SHA256:  6a5
+983541...
+I (114) app_init: ESP-IDF:          v5.
+4.1
+I (118) efuse_init: Min chip rev:     v
+0.0
+I (121) efuse_init: Max chip rev:     v
+0.99
+I (125) efuse_init: Chip rev:         v
+0.2
+I (129) heap_init: Initializing. RAM av
+ailable for dynamic allocation:
+I (136) heap_init: At 3FC97F50 len 0005
+17C0 (325 KiB): RAM
+I (141) heap_init: At 3FCE9710 len 0000
+5724 (21 KiB): RAM
+I (146) heap_init: At 3FCF0000 len 0000
+8000 (32 KiB): DRAM
+I (151) heap_init: At 600FE11C len 0000
+1ECC (7 KiB): RTCRAM
+I (157) spi_flash: detected chip: gener
+ic
+I (160) spi_flash: flash io: dio
+W (163) spi_flash: Detected size(16384k
+) larger than the size in the binary im
+age header(2048k). Using the size in th
+e binary image header.
+W (175) i2c: This driver is an old driv
+er, please migrate your application cod
+e to adapt `driver/i2c_master.h`
+I (185) sleep_gpio: Configure to isolat
+e all GPIO pins in sleep state
+I (191) sleep_gpio: Enable automatic sw
+itching of GPIO sleep configuration
+I (198) main_task: Started on CPU0
+I (208) main_task: Calling app_main()
+I (228) uart: queue free spaces: 20
+I (228) ESP_ZB_ON_OFF_SWITCH: esp_zb_ta
+sk started
+I (228) ESP_ZNSP_FRAME: TX id=0 sn=242
+size=9 slip=11
+I (228) ESP_ZNSP_BUS: uart write 11 byt
+es
+I (238) main_task: Returned from app_ma
+in()
+

@@ -1,7 +1,7 @@
 ---
 Title: Zigbee Gateway (M5Stack Unit Gateway H2)
 Ticket: 001-ZIGBEE-GATEWAY
-Status: active
+Status: complete
 Topics:
     - zigbee
     - esp-idf
@@ -26,10 +26,11 @@ RelatedFiles:
 ExternalSources:
     - https://docs.m5stack.com/en/esp_idf/zigbee/unit_gateway_h2/zigbee_gateway:M5Stack guide (Unit Gateway H2 + CoreS3, ESP Zigbee Gateway)
 Summary: Ticket workspace for running the ESP Zigbee Gateway example with Unit Gateway H2 (ESP32-H2 RCP) + CoreS3 (ESP32-S3 gateway).
-LastUpdated: 2026-01-04T15:47:58.323452966-05:00
+LastUpdated: 2026-01-04T19:11:11.911671419-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

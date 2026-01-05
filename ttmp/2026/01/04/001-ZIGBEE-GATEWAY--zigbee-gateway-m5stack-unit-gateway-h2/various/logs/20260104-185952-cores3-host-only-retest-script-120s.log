@@ -1,0 +1,92 @@
+Script started on 2026-01-04 18:59:55-05:00 [COMMAND="timeout 120s idf.py -p /dev/ttyACM0 monitor" <not executed on terminal>]
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host
+Executing "/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host/build/esp_zigbee_host.elf -m '/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python' '/home/manuel/esp/esp-idf-5.4.1/tools/idf.py' '-p' '/dev/ttyACM0'"...
+[0;33m--- esp-idf-monitor 1.8.0 on /dev/ttyACM0 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037925a
+[0m--- 0x4037925a: [0;33mesp_cpu_wait_for_intr[0m[0m at [0;32m/home/manuel/esp/esp-idf-5.4.1/components/esp_hw_support/cpu.c[0m[0m:[1;31m64[0m
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1120
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xb2c
+load:0x403cb700,len:0x2d28
+entry 0x403c88a8
+[0;32mI (87) cpu_start: Multicore app[0m
+[0;32mI (96) cpu_start: Pro cpu start user code[0m
+[0;32mI (96) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (96) app_init: Application information:[0m
+[0;32mI (96) app_init: Project name:     esp_zigbee_host[0m
+[0;32mI (100) app_init: App version:      3d86dd0-dirty[0m
+[0;32mI (104) app_init: Compile time:     Jan  4 2026 17:29:18[0m
+[0;32mI (109) app_init: ELF file SHA256:  f61ffec5e...[0m
+[0;32mI (114) app_init: ESP-IDF:          v5.4.1[0m
+[0;32mI (118) efuse_init: Min chip rev:     v0.0[0m
+[0;32mI (121) efuse_init: Max chip rev:     v0.99 [0m
+[0;32mI (125) efuse_init: Chip rev:         v0.2[0m
+[0;32mI (129) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (136) heap_init: At 3FC97F50 len 000517C0 (325 KiB): RAM[0m
+[0;32mI (141) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM[0m
+[0;32mI (146) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (151) heap_init: At 600FE11C len 00001ECC (7 KiB): RTCRAM[0m
+[0;32mI (157) spi_flash: detected chip: generic[0m
+[0;32mI (160) spi_flash: flash io: dio[0m
+[0;33mW (163) spi_flash: Detected size(16384k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;33mW (175) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`[0m
+[0;32mI (185) sleep_gpio: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (191) sleep_gpio: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (198) main_task: Started on CPU0[0m
+[0;32mI (208) main_task: Calling app_main()[0m
+[0;32mI (228) uart: queue free spaces: 20[0m
+[0;32mI (228) ESP_ZB_ON_OFF_SWITCH: esp_zb_task started[0m
+[0;32mI (228) ESP_ZNSP_FRAME: TX id=0 sn=121 size=9 slip=11[0m
+[0;32mI (228) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (238) main_task: Returned from app_main()[0m
+[0;32mI (238) ESP_ZNSP_FRAME: 10 00 00 00 79 01 00 00 7d 5d[0m
+[0;32mI (238) ESP_ZB_ON_OFF_SWITCH: Initialize Zigbee stack[0m
+[0;32mI (248) ESP_ZNSP_FRAME: TX id=4 sn=253 size=25 slip=27[0m
+[0;32mI (248) ESP_ZNSP_BUS: uart write 27 bytes[0m
+[0;32mI (278) ESP_ZNSP_FRAME: 10 00 04 00 fd 01 00 00 53 12[0m
+[0;32mI (278) ESP_ZNSP_FRAME: TX id=256 sn=82 size=25 slip=27[0m
+[0;32mI (278) ESP_ZNSP_BUS: uart write 27 bytes[0m
+[0;32mI (278) ESP_ZNSP_FRAME: 10 00 00 01 52 01 00 00 7f 19[0m
+[0;32mI (288) ESP_ZNSP_FRAME: TX id=16 sn=211 size=13 slip=15[0m
+[0;32mI (288) ESP_ZNSP_BUS: uart write 15 bytes[0m
+[0;32mI (298) ESP_ZNSP_FRAME: 10 00 10 00 d3 01 00 00 5e 61[0m
+[0;32mI (298) ESP_ZB_ON_OFF_SWITCH: calling esp_zb_start()[0m
+[0;32mI (298) ESP_ZNSP_FRAME: TX id=1 sn=219 size=10 slip=13[0m
+[0;32mI (308) ESP_ZNSP_BUS: uart write 13 bytes[0m
+[0;32mI (328) ESP_ZNSP_FRAME: 10 00 01 00 db 01 00 00 1d c2[0m
+[0;32mI (328) ESP_ZB_ON_OFF_SWITCH: entering esp_zb_stack_main_loop()[0m
+[0;32mI (338) ESP_ZNSP_FRAME: 20 00 05 00 60 01 00 00 b0 9e[0m
+[0;32mI (338) ESP_ZNSP_FRAME: TX id=11 sn=6 size=9 slip=11[0m
+[0;32mI (338) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (338) ESP_ZNSP_FRAME: 20 00 04 00 b0 0b 00 5b 45 ca fe ff b7 31 48 41[0m
+[0;32mI (348) ESP_ZNSP_FRAME: 46 0d 35 8b[0m
+[0;32mI (348) ESP_ZNSP_FRAME: 10 00 0b 00 06 02 00 41 46 8b 0c[0m
+[0;33mW (338) ESP_ZB_ON_OFF_SWITCH: Network(0x4641) closed, devices joining not allowed.[0m
+[0;32mI (358) ESP_ZNSP_FRAME: TX id=13 sn=160 size=9 slip=11[0m
+[0;32mI (368) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (378) ESP_ZNSP_FRAME: 10 00 0d 00 a0 08 00 5b 45 ca fe ff b7 31 48 52[0m
+[0;32mI (378) ESP_ZNSP_FRAME: a6[0m
+[0;32mI (378) ESP_ZNSP_FRAME: TX id=11 sn=27 size=9 slip=11[0m
+[0;32mI (388) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (388) ESP_ZNSP_FRAME: 10 00 0b 00 1b 02 00 41 46 bf c4[0m
+[0;32mI (398) ESP_ZNSP_FRAME: TX id=19 sn=165 size=9 slip=11[0m
+[0;32mI (398) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (408) ESP_ZNSP_FRAME: 10 00 13 00 a5 01 00 0d 19 a7[0m
+[0;32mI (408) ESP_ZNSP_FRAME: TX id=29 sn=86 size=9 slip=11[0m
+[0;32mI (408) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (418) ESP_ZNSP_FRAME: 10 00 1d 00 56 02 00 00 00 61 ec[0m
+[0;32mI (378) ESP_ZB_ON_OFF_SWITCH: Formed network successfully (Extended PAN ID: 48:31:b7:ff:fe:ca:45:5b, PAN ID: 0x4641, Channel:13, Short Address: 0x0000)[0m
+[0;32mI (938) ESP_ZNSP_FRAME: 20 00 05 00 98 01 00 b4 ec ff[0m
+[0;32mI (938) ESP_ZNSP_FRAME: TX id=11 sn=78 size=9 slip=11[0m
+[0;32mI (938) ESP_ZNSP_BUS: uart write 11 bytes[0m
+[0;32mI (948) ESP_ZNSP_FRAME: 10 00 0b 00 4e 02 00 41 46 89 97[0m
+[0;32mI (938) ESP_ZB_ON_OFF_SWITCH: Network(0x4641) is open for 180 seconds[0m
+
+Script done on 2026-01-04 19:01:55-05:00 [COMMAND_EXIT_CODE="124"]

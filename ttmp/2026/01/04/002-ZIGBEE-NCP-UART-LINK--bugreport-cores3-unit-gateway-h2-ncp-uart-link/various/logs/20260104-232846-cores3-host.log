@@ -1,0 +1,263 @@
+bash -lc source\ \"/home/manuel/esp/esp
+-5.4.1/export.sh\"\ \>/dev/null\ 2\>\&1
+\;\ cd\ \"/home/manuel/workspaces/2025-
+12-21/echo-base-documentation/esp32-s3-
+m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-
+LINK--bugreport-cores3-unit-gateway-h2-
+ncp-uart-link/scripts/uart_smoke/cores3
+_uart_smoke\"\;\ idf.py\ -p\ \"/dev/tty
+ACM0\"\ monitor
+workspaces/2025-12-21/echo-base-documen
+tation on ☁️   ttc (us-east-1)  🔧 echo-
+base-documentation
+❯ bash -lc source\ \"/home/manuel/esp/e
+sp-5.4.1/export.sh\"\ \>/dev/null\ 2\>\
+&1\;\ cd\ \"/home/manuel/workspaces/202
+5-12-21/echo-base-documentation/esp32-s
+3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UAR
+T-LINK--bugreport-cores3-unit-gateway-h
+2-ncp-uart-link/scripts/uart_smoke/core
+s3_uart_smoke\"\;\ idf.py\ -p\ \"/dev/t
+tyACM0\"\ monitor
+/home/manuel/.hishtory/config.sh: line
+72: bind: warning: line editing not ena
+bled
+Executing action: monitor
+Running idf_monitor in directory /home/
+manuel/workspaces/2025-12-21/echo-base-
+documentation/esp32-s3-m5/ttmp/2026/01/
+04/002-ZIGBEE-NCP-UART-LINK--bugreport-
+cores3-unit-gateway-h2-ncp-uart-link/sc
+ripts/uart_smoke/cores3_uart_smoke
+Executing "/home/manuel/.espressif/pyth
+on_env/idf5.4_py3.11_env/bin/python /ho
+me/manuel/esp/esp-idf-5.4.1/tools/idf_m
+onitor.py -p /dev/ttyACM0 -b 115200 --t
+oolchain-prefix xtensa-esp32s3-elf- --t
+arget esp32s3 --revision 0 /home/manuel
+/workspaces/2025-12-21/echo-base-docume
+ntation/esp32-s3-m5/ttmp/2026/01/04/002
+-ZIGBEE-NCP-UART-LINK--bugreport-cores3
+-unit-gateway-h2-ncp-uart-link/scripts/
+uart_smoke/cores3_uart_smoke/build/core
+s3_uart_smoke.elf -m '/home/manuel/.esp
+ressif/python_env/idf5.4_py3.11_env/bin
+/python' '/home/manuel/esp/esp-idf-5.4.
+1/tools/idf.py' '-p' '/dev/ttyACM0'"...
+--- esp-idf-monitor 1.8.0 on /dev/ttyAC
+M0 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help:
+ Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x2
+8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40378372
+--- 0x40378372: esp_cpu_wait_for_intr a
+t /home/manuel/esp/esp-idf-5.4.1/compon
+ents/esp_hw_support/cpu.c:64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x15a0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xc80
+load:0x403cb700,len:0x2f0c
+entry 0x403c8914
+I (26) boot: ESP-IDF v5.4.1 2nd stage b
+ootloader
+I (27) boot: compile time Jan  4 2026 1
+8:22:01
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (27) boot: efuse block revision: v1.3
+I (27) boot.esp32s3: Boot SPI Speed : 8
+0MHz
+I (28) boot.esp32s3: SPI Mode       : D
+IO
+I (28) boot.esp32s3: SPI Flash Size : 2
+MB
+I (28) boot: Enabling RNG early entropy
+ source...
+I (28) boot: Partition Table:
+I (28) boot: ## Label            Usage
+         Type ST Offset   Length
+I (29) boot:  0 nvs              WiFi d
+ata        01 02 00009000 00006000
+I (29) boot:  1 phy_init         RF dat
+a          01 01 0000f000 00001000
+I (29) boot:  2 factory          factor
+y app      00 00 00010000 00100000
+I (30) boot: End of partition table
+I (30) esp_image: segment 0: paddr=0001
+0020 vaddr=3c020020 size=0b1c8h ( 45512
+) map
+I (39) esp_image: segment 1: paddr=0001
+b1f0 vaddr=3fc93200 size=02968h ( 10600
+) load
+I (41) esp_image: segment 2: paddr=0001
+db60 vaddr=40374000 size=024b8h (  9400
+) load
+I (44) esp_image: segment 3: paddr=0002
+0020 vaddr=42000020 size=1bb74h (113524
+) map
+I (64) esp_image: segment 4: paddr=0003
+bb9c vaddr=403764b8 size=0ccc8h ( 52424
+) load
+I (76) esp_image: segment 5: paddr=0004
+886c vaddr=600fe100 size=0001ch (    28
+) load
+I (82) boot: Loaded app from partition
+at offset 0x10000
+I (82) boot: Disabling RNG early entrop
+y source...
+I (83) cpu_start: Multicore app
+I (92) cpu_start: Pro cpu start user co
+de
+I (92) cpu_start: cpu freq: 160000000 H
+z
+I (92) app_init: Application informatio
+n:
+I (92) app_init: Project name:     core
+s3_uart_smoke
+I (92) app_init: App version:      68ad
+3f8-dirty
+I (93) app_init: Compile time:     Jan
+ 4 2026 18:21:53
+I (93) app_init: ELF file SHA256:  6857
+3b604...
+I (93) app_init: ESP-IDF:          v5.4
+.1
+I (93) efuse_init: Min chip rev:     v0
+.0
+I (93) efuse_init: Max chip rev:     v0
+.99
+I (93) efuse_init: Chip rev:         v0
+.2
+I (94) heap_init: Initializing. RAM ava
+ilable for dynamic allocation:
+I (94) heap_init: At 3FC96418 len 00053
+2F8 (332 KiB): RAM
+I (94) heap_init: At 3FCE9710 len 00005
+724 (21 KiB): RAM
+I (94) heap_init: At 3FCF0000 len 00008
+000 (32 KiB): DRAM
+I (94) heap_init: At 600FE11C len 00001
+ECC (7 KiB): RTCRAM
+I (96) spi_flash: detected chip: generi
+c
+I (96) spi_flash: flash io: dio
+W (96) spi_flash: Detected size(16384k)
+ larger than the size in the binary ima
+ge header(2048k). Using the size in the
+ binary image header.
+I (97) sleep_gpio: Configure to isolate
+ all GPIO pins in sleep state
+I (97) sleep_gpio: Enable automatic swi
+tching of GPIO sleep configuration
+I (98) main_task: Started on CPU0
+I (108) main_task: Calling app_main()
+I (108) CORES3_UART_SMOKE: Configured B
+US_UART=1 TX=17 RX=18 @115200
+I (108) CORES3_UART_SMOKE: TX -> PING 0
+
+I (108) main_task: Returned from app_ma
+in()
+I (608) CORES3_UART_SMOKE: TX -> PING 1
+
+I (1108) CORES3_UART_SMOKE: TX -> PING
+2
+
+I (1608) CORES3_UART_SMOKE: TX -> PING
+3
+
+I (2108) CORES3_UART_SMOKE: TX -> PING
+4
+
+I (2608) CORES3_UART_SMOKE: TX -> PING
+5
+
+I (3108) CORES3_UART_SMOKE: TX -> PING
+6
+
+I (3608) CORES3_UART_SMOKE: TX -> PING
+7
+
+I (4108) CORES3_UART_SMOKE: TX -> PING
+8
+
+I (4608) CORES3_UART_SMOKE: TX -> PING
+9
+
+I (5108) CORES3_UART_SMOKE: TX -> PING
+10
+
+I (5608) CORES3_UART_SMOKE: TX -> PING
+11
+
+I (6108) CORES3_UART_SMOKE: TX -> PING
+12
+
+I (6608) CORES3_UART_SMOKE: TX -> PING
+13
+
+I (7108) CORES3_UART_SMOKE: TX -> PING
+14
+
+I (7608) CORES3_UART_SMOKE: TX -> PING
+15
+
+I (8108) CORES3_UART_SMOKE: TX -> PING
+16
+
+I (8608) CORES3_UART_SMOKE: TX -> PING
+17
+
+I (9108) CORES3_UART_SMOKE: TX -> PING
+18
+
+I (9608) CORES3_UART_SMOKE: TX -> PING
+19
+
+I (10108) CORES3_UART_SMOKE: TX -> PING
+ 20
+
+I (10608) CORES3_UART_SMOKE: TX -> PING
+ 21
+
+I (11108) CORES3_UART_SMOKE: TX -> PING
+ 22
+
+I (11608) CORES3_UART_SMOKE: TX -> PING
+ 23
+
+I (12108) CORES3_UART_SMOKE: TX -> PING
+ 24
+
+I (12608) CORES3_UART_SMOKE: TX -> PING
+ 25
+
+I (13108) CORES3_UART_SMOKE: TX -> PING
+ 26
+
+I (13608) CORES3_UART_SMOKE: TX -> PING
+ 27
+
+I (14108) CORES3_UART_SMOKE: TX -> PING
+ 28
+
+I (14608) CORES3_UART_SMOKE: TX -> PING
+ 29
+
+I (15108) CORES3_UART_SMOKE: TX -> PING
+ 30
+
+I (15608) CORES3_UART_SMOKE: TX -> PING
+ 31
+
+I (16108) CORES3_UART_SMOKE: TX -> PING
+ 32
+
+I (16608) CORES3_UART_SMOKE: TX -> PING
+ 33
+
+

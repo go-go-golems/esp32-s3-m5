@@ -1,0 +1,8 @@
+# 2026-01-04T18:57:58-05:00
+# PROJECT=/home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host
+# COMMAND=timeout 35s idf.py -p /dev/ttyACM0 monitor
+Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.
+idf_monitor failed with exit code 1, output of the command is in the /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host/build/log/idf_py_stderr_output_3058376 and /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host/build/log/idf_py_stdout_output_3058376
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host
+Executing "/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_host/build/esp_zigbee_host.elf -m '/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python' '/home/manuel/esp/esp-idf-5.4.1/tools/idf.py' '-p' '/dev/ttyACM0'"...

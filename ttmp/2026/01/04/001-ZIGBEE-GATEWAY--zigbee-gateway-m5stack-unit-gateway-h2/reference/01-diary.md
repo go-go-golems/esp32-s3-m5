@@ -39,6 +39,18 @@ RelatedFiles:
       Note: Upstream guide snapshot used as source material
     - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/sources/m5stack_zigbee_ncp.txt
       Note: Archived source referenced in Step 6
+    - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-185815-cores3-host-only-retest-script.log
+      Note: Short host-only capture using script/PTY; shows TTY requirement and a transient stall
+    - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-185952-cores3-host-only-retest-script-120s.log
+      Note: Host-only retest after H2 enclosure closed; shows full ZNSP exchange + network formed + permit-join open
+    - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-235331-cores3-host-only.log
+      Note: Step 14 CoreS3-only validation (H2 not USB-attached)
+    - Path: esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/index.md
+      Note: Bugreport ticket created in Step 12
+    - Path: esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-234318-cores3-host.log
+      Note: Step 13 paired capture (host) shows handshake + formation
+    - Path: esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-234318-h2-ncp.log
+      Note: Step 13 paired capture (ncp) shows pattern detect + formation/steering
 ExternalSources:
     - https://docs.m5stack.com/en/esp_idf/zigbee/unit_gateway_h2/zigbee_gateway:M5Stack guide (Unit Gateway H2 + CoreS3, ESP Zigbee Gateway)
     - https://github.com/espressif/esp-zigbee-sdk/tree/master/examples/esp_zigbee_gateway:Upstream example and expected logs
@@ -47,6 +59,10 @@ LastUpdated: 2026-01-04T21:05:00Z
 WhatFor: Capture the exact commands, decisions, and gotchas while bringing up Zigbee gateway firmware.
 WhenToUse: When repeating bring-up, debugging boot/flash issues, or reviewing why specific config choices were made.
 ---
+
+
+
+
 
 
 
@@ -528,6 +544,202 @@ cd ~/esp/esp-5.4.1/examples/zigbee/esp_zigbee_gateway
 idf.py set-target esp32s3
 idf.py build
 ```
+
+## Step 10: Build + flash + run `esp_zigbee_host` on CoreS3 (NCP host) and hit host↔NCP framing errors
+
+This step attempted to run the NCP architecture “host firmware” (`esp_zigbee_host`) on the CoreS3 and talk to the Unit Gateway H2 (running `esp_zigbee_ncp`) over UART (the user connected the Unit Gateway H2 to CoreS3 “port C”). The firmware booted, but the host task aborted with `ESP_ZNSP_FRAME: Invalid packet format` / `ESP_ZNSP_MAIN: Process event fail`, indicating that the bytes arriving on the host UART did not decode into a complete host-frame + CRC payload.
+
+### What I did
+- Detected the CoreS3 USB-Serial/JTAG port as `/dev/ttyACM0` and verified the chip is `ESP32-S3` via `esptool.py chip_id`.
+- Built and flashed `~/esp/esp-zigbee-sdk/examples/esp_zigbee_host` to `/dev/ttyACM0`.
+- Ran monitor for ~25 seconds via `script` to provide a TTY.
+
+### Why
+- Validate the M5Stack `zigbee_ncp` tutorial end-to-end: CoreS3 host firmware should connect to the H2 NCP firmware and then form a Zigbee network.
+
+### What worked
+- CoreS3 flash succeeded on `/dev/ttyACM0` and the program boots.
+- The earlier hard crash (`assert failed: xStreamBufferGenericCreate stream_buffer.c:355`) was resolved by patching SLIP buffer creation in:
+  - `~/esp/esp-zigbee-sdk/examples/esp_zigbee_host/components/src/slip.c`
+  - `~/esp/esp-zigbee-sdk/components/esp-zigbee-ncp/src/slip.c`
+
+### What didn't work
+- The host still aborts with:
+  - `E (...) ESP_ZNSP_FRAME: Invalid packet format`
+  - `E (...) ESP_ZNSP_MAIN: Process event fail`
+
+### What I learned
+- The host bus input path feeds each `UART_DATA` chunk directly into `slip_decode()` / `esp_host_frame_input()`; if a SLIP frame arrives split across multiple UART events, decode will see an incomplete frame and report `Invalid packet format`. This likely needs a higher-level “buffer until SLIP_END” reassembly in the host bus layer, or UART pattern/timeout configuration so reads align with complete SLIP frames.
+
+### What warrants a second pair of eyes
+- Confirm whether the CoreS3↔H2 UART wiring on this hardware revision actually matches the tutorial pinout (host RX=18/TX=17; NCP RX=23/TX=24) and whether the H2 is powered/enabled correctly from port C.
+- Confirm whether the upstream `esp_zigbee_host` implementation is expected to work without SLIP frame reassembly (i.e., whether UART events typically align with full frames on the reference hardware).
+
+### Technical details
+Chip detection:
+```bash
+source ~/esp/esp-5.4.1/export.sh
+python ~/esp/esp-5.4.1/components/esptool_py/esptool/esptool.py --port /dev/ttyACM0 chip_id
+```
+
+Build/flash/run:
+```bash
+source ~/esp/esp-5.4.1/export.sh
+cd ~/esp/esp-zigbee-sdk/examples/esp_zigbee_host
+idf.py set-target esp32s3
+idf.py build
+idf.py -p /dev/ttyACM0 flash
+timeout 25s script -q -c "idf.py -p /dev/ttyACM0 monitor" /dev/null
+```
+
+## Step 11: Confirm host UART TX, but H2 sees no UART RX (likely wiring/connection issue)
+
+This step focused on separating “software framing bugs” from “no electrical link”. I fixed the H2 console output so it no longer pollutes the NCP UART pins, updated the CoreS3 host bus to forward only complete SLIP frames (pattern detection), and then added instrumentation to prove that the host actually writes SLIP frames out on the configured UART pins. The host does transmit, but the H2 shows no `UART_DATA` events at all, strongly suggesting that the CoreS3→H2 direction is not physically connected (or the H2 isn’t actually on port C / isn’t sharing ground).
+
+### What I did
+- Regenerated `~/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/sdkconfig` from `sdkconfig.defaults` so:
+  - the H2 console uses `USB-Serial/JTAG` (to keep GPIO23/24 quiet), and
+  - bootloader log level is `NONE`.
+- Updated the CoreS3 host bus UART reader to use SLIP `0xC0` pattern detection (so it only forwards complete SLIP frames to the host frame decoder).
+- Fixed a startup race where `esp_host_send_event()` could drop early events because `dev->queue` was created after the bus task started (and the same issue on the NCP side).
+- Added minimal debug logs:
+  - Host prints `ESP_ZNSP_FRAME: TX ...` and `ESP_ZNSP_BUS: uart write ...` when it transmits a SLIP frame.
+  - NCP prints `ESP_NCP_BUS: UART_DATA: ...` whenever *any* UART bytes arrive on the NCP bus (even if they’re not SLIP framed).
+- Used the tmux helper script to capture paired logs:
+  - `scripts/run_ncp_host_and_h2_ncp_tmux.sh` (captures into `various/logs/`).
+
+### What worked
+- The CoreS3 host reliably transmits a SLIP frame early in startup:
+  - example: `ESP_ZNSP_FRAME: TX id=0 ... slip=11` + `ESP_ZNSP_BUS: uart write 11 bytes`
+  - captured in `various/logs/20260104-230020-cores3-host.log`
+- With H2 console moved to USB, host decoding is no longer polluted by H2 boot log ASCII.
+
+### What didn't work
+- The H2 never logs `ESP_NCP_BUS: UART_DATA: ...`, even though the host logs confirm it is writing bytes out to the configured UART.
+  - example capture: `various/logs/20260104-230245-h2-ncp.log` (no `UART_DATA`)
+
+### What I learned
+- At this point the blocker is no longer “SLIP framing” or “host aborts on garbage input”; it’s that the H2 is not seeing *any* bytes on its NCP UART RX pin during host transmission. That points to a physical link problem (cable/port/ground), not firmware.
+
+### What was tricky to build
+- `sdkconfig.defaults` changes don’t apply retroactively; to move the H2 console off UART pins I had to remove the existing `sdkconfig`/`build` and reconfigure so defaults were actually applied.
+- The host stack can block before app-level logs appear (it sends an early request and then waits for a response), so I had to add explicit TX/write logs to prove bytes are leaving the host.
+
+### What warrants a second pair of eyes
+- Confirm the physical setup matches the tutorial:
+  - CoreS3 port C is actually connected to the Unit Gateway H2 via the Grove cable.
+  - Both sides share ground (if H2 is USB-powered, the Grove GND still needs to be connected).
+  - There isn’t a “straight-through vs crossed” UART wiring mismatch for this specific cable/adapter.
+
+### What should be done in the future
+- If the wiring is correct, add a dedicated “UART smoke test” firmware for both boards (send a known byte pattern and confirm reception) to rule out hardware/port issues before bringing up the full Zigbee host/NCP protocol. N/A otherwise.
+
+### Code review instructions
+- Host UART framing changes: `~/esp/esp-zigbee-sdk/examples/esp_zigbee_host/components/src/esp_host_bus.c`
+- Host startup race fix: `~/esp/esp-zigbee-sdk/examples/esp_zigbee_host/components/src/esp_host_main.c`
+- H2 console config: `~/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/sdkconfig.defaults`
+- H2 bus RX instrumentation: `~/esp/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_bus.c`
+
+### Technical details
+Used tmux capture:
+```bash
+chmod +x esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/scripts/run_ncp_host_and_h2_ncp_tmux.sh
+DURATION_SECONDS=30 CORES3_PORT=/dev/ttyACM0 H2_PORT=/dev/ttyACM1 \
+  esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/scripts/run_ncp_host_and_h2_ncp_tmux.sh
+```
+
+## Step 12: Confirm the physical UART link was the issue (cable reseat) via a dedicated smoke test ticket
+
+This step created a dedicated bugreport ticket and minimal UART smoke-test firmware to conclusively separate “protocol issues” from “wiring issues”. After reseating the Grove cable more firmly, the smoke test showed stable bidirectional `PING`/`PONG` exchange over the expected pins (CoreS3 UART1 TX=17 RX=18 ↔ H2 UART1 TX=24 RX=23), confirming that the earlier “H2 sees zero bytes” behavior was extremely likely a bad cable seating or incomplete connection.
+
+### What I did
+- Created a new bugreport ticket: `002-ZIGBEE-NCP-UART-LINK`.
+- Wrote a bugreport doc summarizing deltas vs the M5Stack guide and the evidence collected.
+- Added two minimal ESP-IDF projects under the new ticket:
+  - CoreS3: periodically sends `PING n\n` on UART1 pins 17/18 and logs RX.
+  - H2: logs received lines and replies `PONG n\n` on UART1 pins 24/23.
+- Flashed both smoke-test firmwares and captured paired logs with tmux.
+
+### What worked
+- The UART link now clearly works in both directions with the smoke test:
+  - CoreS3 logs show `TX -> PING ...` and `RX <- PONG ...`
+  - H2 logs show `RX <- PING ...` and `TX -> PONG ...`
+
+### What I learned
+- The “host TX confirmed but H2 sees no UART RX bytes” symptom is exactly what you get from a partially seated Grove cable; the smoke test is a fast way to validate physical connectivity before debugging higher-level ZNSP/SLIP protocol.
+
+### Technical details
+Bugreport ticket docs and code live at:
+- `esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/index.md`
+
+Evidence logs (smoke test):
+- `esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-232342-cores3-host.log`
+- `esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-232342-h2-ncp.log`
+
+## Step 13: NCP host↔NCP protocol handshake succeeds (network formed + steering started)
+
+This step revisited the actual `esp_zigbee_host` + `esp_zigbee_ncp` setup after confirming the physical UART link and fixing a missing ESP-IDF UART pattern queue reset. With `uart_pattern_queue_reset()` added on both the host and NCP bus layers, `UART_PATTERN_DET` events fire as expected, SLIP frames are reassembled, and the ZNSP protocol handshake completes. Both sides then proceed to Zigbee network formation and start network steering, matching the M5Stack guide’s expected “Normal Running Log Content”.
+
+### What worked
+- H2 NCP shows `ESP_NCP_ZB: Initialize Zigbee stack`, `Formed network successfully`, and `Network steering started`.
+- CoreS3 host shows decoded ZNSP frames and logs `Formed network successfully ...` and `Network ... is open for 180 seconds`.
+
+### Technical details
+Paired capture logs:
+- `esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-234318-cores3-host.log`
+- `esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/various/logs/20260104-234318-h2-ncp.log`
+
+## Step 14: Validate CoreS3 host behavior with H2 closed up (H2 not USB-attached)
+
+This step validated the “CoreS3 side” in the physical configuration you’d actually use: the Unit Gateway H2 is closed up and not connected to the computer over USB (no `/dev/ttyACM1`), but it is still powered and connected to the CoreS3 via Grove Port C. The CoreS3 host firmware still connects to the NCP over UART, initializes Zigbee, forms the network, and opens permit-join for 180 seconds.
+
+### What worked
+- CoreS3 host shows ZNSP request/response traffic and logs:
+  - `Initialize Zigbee stack`
+  - `Formed network successfully ...`
+  - `Network(0x....) is open for 180 seconds`
+
+### Technical details
+Host-only capture:
+- `esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-235331-cores3-host-only.log`
+
+## Step 15: Re-test CoreS3 host after H2 was physically closed (sanity check)
+
+This step re-validated that “the S3 side” is still healthy now that the Unit Gateway H2 is fully closed up (no USB access) and connected only via Grove Port C. The key validation is that the CoreS3 can still exchange ZNSP/SLIP frames with the H2 NCP and reach the expected steady state (network formed + permit-join open).
+
+### What I did
+- Confirmed only `/dev/ttyACM0` is present (CoreS3) and the H2 is not USB-attached.
+- Captured a new host-only boot + run log from `esp_zigbee_host` using `script` (because `idf.py monitor` requires an interactive TTY).
+
+### What worked
+- CoreS3 still receives valid ZNSP responses from the enclosed H2 NCP and reaches:
+  - `Formed network successfully ...`
+  - `Network(0x....) is open for 180 seconds`
+
+### What didn't work
+- Running `idf.py monitor` without a TTY fails with: `Error: Monitor requires standard input to be attached to TTY.` (fixed by using `script`).
+- One short capture showed a transient stall after `TX id=4 ...` with no immediate response (likely a transient link/readiness issue); the subsequent longer capture was fully successful.
+
+### What I learned
+- For “headless” captures in this environment, `script -q -c "idf.py monitor"` is the simplest way to satisfy `idf_monitor`’s TTY requirement.
+- The NCP can remain fully operational without USB attached; the CoreS3-only view is enough to validate the end-to-end host↔NCP UART path.
+
+### What was tricky to build
+- `idf.py monitor` is fundamentally interactive; piping output breaks it. The workaround needs a pseudo-tty.
+
+### What warrants a second pair of eyes
+- If we ever see the “stall after `TX id=4`” pattern again, confirm whether it correlates with cable strain/port seating after the H2 enclosure is closed.
+
+### What should be done in the future
+- If this becomes intermittent, add a “host-side UART heartbeat” (periodic stats: RX bytes, frames decoded, last response time) so the failure mode is visible without NCP logs. N/A otherwise.
+
+### Code review instructions
+- N/A (no code changes in this step).
+
+### Technical details
+Host-only captures:
+- `esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-185815-cores3-host-only-retest-script.log`
+- `esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-185952-cores3-host-only-retest-script-120s.log`
 
 <!-- Provide background context needed to use this reference -->
 
