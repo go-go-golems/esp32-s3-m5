@@ -108,7 +108,7 @@ message Event {
 Targeted usage:
 
 - Embedded runtime: nanopb runtime (`pb_encode.h` / `pb_decode.h`)
-- Codegen: nanopb generator (via `protoc` plugin or generator script)
+- Codegen: nanopb generator integrated via CMake (`find_package(Nanopb)` + `nanopb_generate_cpp`)
 
 Encoding (bridge side) looks like:
 
@@ -133,6 +133,20 @@ if (!pb_encode(&stream, demo_bus_v1_Event_fields, &ev)) {
 }
 size_t n = stream.bytes_written;
 ```
+
+### 2a) ESP-IDF integration detail: nanopb as a component is non-trivial
+
+ESP-IDF evaluates component `CMakeLists.txt` in an “early expansion” phase (script mode) to expand `CONFIG_*`. If you naively call `idf_component_register()` and then `FetchContent_MakeAvailable(nanopb)`, CMake’s directory-level `link_libraries()` behavior can leak ESP-IDF core libraries into nanopb targets. That can trigger errors like:
+
+- `install(EXPORT "nanopb-targets" ...) includes target "protobuf-nanopb-static" which requires target "__idf_..." that is not in any export set`
+
+Additionally, nanopb’s CMake helper functions (e.g. `nanopb_generate_cpp`) are typically provided via `find_package(Nanopb)` using module files in `${nanopb_SOURCE_DIR}/extra`, which must be available at configure-time.
+
+The working approach (per ESP-IDF issue `IDFGH-14996`, GitHub `espressif/esp-idf#15693`) is:
+
+- use `FetchContent` + `find_package(Nanopb)` guarded by `if(NOT CMAKE_BUILD_EARLY_EXPANSION)`
+- call `idf_component_register()` outside/after the early-expansion guarded block
+- run `nanopb_generate_cpp(...)` only when not in early expansion
 
 ### 3) Bridge bus events to WebSocket binary frames
 
@@ -208,17 +222,44 @@ Cons:
 ## Implementation Plan
 
 1) Add `main/idl/demo_bus.proto` for the 0030 bus.
-2) Decide whether generated files are checked in (recommended initially).
-3) Add a generator script:
-   - `0030-cardputer-console-eventbus/scripts/gen_proto.sh` running nanopb generation (one of):
-     - `protoc --nanopb_out=... --proto_path=... demo_bus.proto` (requires `protoc-gen-nanopb` in `PATH`)
-     - or run nanopb’s `nanopb_generator.py` directly (no protoc plugin needed; still needs `protoc` for descriptors)
-   - In the `.proto`, use nanopb options to bound fields so generated structs are fixed-size (recommended for embedded):
-     - `string msg = 2 [(nanopb).max_length = 96];`
-     - `repeated uint32 keynums = 3 [(nanopb).max_count = 8];`
-4) Update firmware build:
-   - Add a vendored `nanopb` component (runtime) to the project (e.g. `components/nanopb/`)
-   - Compile generated `demo_bus.pb.c` and include generated headers
+2) Add a `proto` component that owns schema + generation (recommended structure):
+   - `0030-cardputer-console-eventbus/components/proto/defs/*.proto`
+   - `0030-cardputer-console-eventbus/components/proto/CMakeLists.txt`
+3) Vendor nanopb via FetchContent inside the `proto` component (guarded for ESP-IDF early expansion), and enable the `nanopb_generate_cpp` helper:
+
+```cmake
+# components/proto/CMakeLists.txt
+include(FetchContent)
+
+if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+  FetchContent_Declare(
+    nanopb
+    GIT_REPOSITORY https://github.com/nanopb/nanopb.git
+    GIT_TAG        0.4.9.1
+    GIT_SHALLOW    TRUE
+  )
+  FetchContent_MakeAvailable(nanopb)
+
+  set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${nanopb_SOURCE_DIR}/extra)
+  find_package(Nanopb REQUIRED)
+endif()
+
+idf_component_register()
+
+if(NOT CMAKE_BUILD_EARLY_EXPANSION)
+  nanopb_generate_cpp(TARGET proto RELPATH defs
+    defs/demo_bus.proto
+  )
+  target_link_libraries(${COMPONENT_LIB} INTERFACE proto)
+endif()
+```
+
+4) In the `.proto`, use nanopb options to bound fields so generated structs are fixed-size (recommended for embedded):
+   - `string msg = 2 [(nanopb).max_length = 96];`
+   - `repeated uint32 keynums = 3 [(nanopb).max_count = 8];`
+
+5) Update `main/CMakeLists.txt` to `REQUIRES proto` (so `pb_encode.h` and generated headers are available).
+
 5) Add `esp_http_server` WS endpoint (reuse patterns from `0029-mock-zigbee-http-hub`).
 6) Add a bus→protobuf→WS bridge module and enable it behind a Kconfig flag.
 7) Add a minimal web client and TS decoder driven by the same `.proto` (codegen approach).
@@ -237,3 +278,5 @@ Cons:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp`
 - Proto-as-IDL (format-agnostic) discussion:
   - `ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/03-idl-idea-protobuf-defined-esp-event-payloads-not-necessarily-protobuf-wire.md`
+- ESP-IDF nanopb component integration pitfall and workaround (`CMAKE_BUILD_EARLY_EXPANSION`):
+  - `espressif/esp-idf#15693` (IDFGH-14996)
