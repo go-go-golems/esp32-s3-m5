@@ -42,3 +42,12 @@ Re-uploaded updated design doc PDF to reMarkable (force overwrite)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/design-doc/01-mock-zigbee-hub-over-http-event-driven-architecture.md — Updated source markdown re-uploaded
 
+
+## 2026-01-05
+
+Add analysis+plan to stabilize 0029 using proven 0030 patterns (console reliability, monitoring queues, WS decoupling, nanopb protobuf boundary)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/analysis/01-plan-stabilize-0029-mock-hub-using-0030-patterns-console-monitoring-nanopb-protobuf.md — Step-by-step plan and cross-file map
+

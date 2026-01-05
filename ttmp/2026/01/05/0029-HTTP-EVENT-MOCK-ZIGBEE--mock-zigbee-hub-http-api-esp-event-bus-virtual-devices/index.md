@@ -23,12 +23,15 @@ RelatedFiles:
       Note: In-memory device registry
     - Path: 0029-mock-zigbee-http-hub/main/hub_sim.c
       Note: Virtual device telemetry simulator
+    - Path: ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/analysis/01-plan-stabilize-0029-mock-hub-using-0030-patterns-console-monitoring-nanopb-protobuf.md
+      Note: Detailed stabilization plan derived from comparing 0029 and 0030
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T00:08:55.896097047-05:00
 WhatFor: Ticket hub for a mock Zigbee coordinator-style HTTP + esp_event demo (virtual devices, scenes, event stream).
 WhenToUse: Use when implementing the mock hub firmware or reviewing the API/event-bus design before swapping in a real Zigbee driver.
 ---
+
 
 
 # Mock Zigbee hub: HTTP API + esp_event bus + virtual devices
