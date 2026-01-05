@@ -20,3 +20,5 @@
 - [x] [Phase 2] Validate encoding with real hub events (hex dump + size)
 - [x] [Phase 3] Remove JSON codepaths entirely; implement protobuf binary WS endpoint
 - [x] [Phase 3] Decouple WS sending from hub event loop (queue + drop counters)
+- [x] [Phase 4] Add embedded UI (WS protobuf decode + seed button)
+- [x] [Phase 5] Replace JSON HTTP API with protobuf-only (nanopb)

@@ -29,18 +29,27 @@ RelatedFiles:
         Build protobuf envelope for hub events
     - Path: 0029-mock-zigbee-http-hub/main/hub_stream.c
       Note: Queue+task bridge (protobuf WS stream)
+    - Path: 0029-mock-zigbee-http-hub/main/ui/app.js
+      Note: In-browser protobuf decoder + WS client
+    - Path: 0029-mock-zigbee-http-hub/main/ui/index.html
+      Note: Embedded web UI (served from /)
     - Path: 0029-mock-zigbee-http-hub/main/wifi_console.c
       Note: |-
         esp_console commands (wifi + hub pb/seed)
         Console-based validation (pb
     - Path: 0029-mock-zigbee-http-hub/sdkconfig.defaults
       Note: Console backend defaults and quiet logs
+    - Path: ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/http_pb_hub.js
+      Note: Host protobuf HTTP client
+    - Path: ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/ws_hub_events.js
+      Note: Host WS smoke client
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T10:49:37.935828904-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -480,3 +489,89 @@ This also fixed a secondary issue observed during HTTP testing: `/v1/scenes/1/tr
 
 ### Technical details
 - The WS path is now intended to be “server push only”; clients don’t need to send data to receive events.
+
+## Step 6: Phase 4–5 — embedded web UI + protobuf-only HTTP API (kill JSON)
+
+This step makes the demo feel “alive” immediately from a browser: `/` now serves a small embedded UI that connects to `/v1/events/ws` and **decodes the protobuf frames client-side**. It also removes the last major JSON surface area by migrating the HTTP API to protobuf requests/responses (`application/x-protobuf`) so we can delete `cJSON` and the `json` component dependency.
+
+The key design choice for the UI is to **avoid a JS protobuf runtime** for now: the browser ships with a tiny hand-written proto3 decoder for `hub.v1.HubEvent` (varints + length-delimited submessages + float32), which is sufficient for bring-up and can later be replaced by generated TypeScript.
+
+**Commit (code):** N/A (will be filled once committed)
+
+### What I did
+- Embedded UI served from firmware:
+  - Added `0029-mock-zigbee-http-hub/main/ui/index.html` and `0029-mock-zigbee-http-hub/main/ui/app.js`.
+  - Embedded both files via `EMBED_FILES` in `0029-mock-zigbee-http-hub/main/CMakeLists.txt` and served them from `/` and `/app.js`.
+  - Added `POST /v1/debug/seed` (plain text) so the UI can generate traffic without using the serial console.
+- Fixed HTTPD URI handler exhaustion:
+  - Increased `cfg.max_uri_handlers` because adding UI routes pushed the server past the default handler slot limit.
+  - Root symptom in logs when the limit was hit: `httpd_register_uri_handler: no slots left for registering handler`.
+- Migrated HTTP API from JSON to protobuf-only:
+  - Removed all `cJSON` usage from `0029-mock-zigbee-http-hub/main/hub_http.c`.
+  - `GET /v1/devices` now returns protobuf `hub.v1.DeviceList`.
+  - `POST /v1/devices` expects protobuf `hub.v1.CmdDeviceAdd` and returns protobuf `hub.v1.Device`.
+  - `POST /v1/devices/{id}/set` expects protobuf `hub.v1.CmdDeviceSet` and returns protobuf `hub.v1.ReplyStatus`.
+  - Similar protobuf replies for interview/scene trigger.
+  - Added `ReplyStatus` + `DeviceList` messages in `0029-mock-zigbee-http-hub/components/hub_proto/defs/hub_events.proto`.
+  - Removed the `json` component dependency from `0029-mock-zigbee-http-hub/main/CMakeLists.txt`.
+- Added host-side scripts into the ticket workspace for repeatable validation:
+  - `ttmp/.../scripts/ws_hub_events.js` (WS stream smoke)
+  - `ttmp/.../scripts/http_pb_hub.js` (protobuf HTTP client)
+
+### Why
+- UI makes the demo approachable: no need to watch logs to confirm the event bus is alive.
+- Protobuf-only HTTP eliminates the JSON overhead (formatting, heap churn, bigger stacks) and aligns with the “protobuf everywhere” direction (WS + HTTP + future TS).
+
+### What worked
+- Firmware serves UI and JS:
+  - `curl -D - http://192.168.0.18/` → `Content-Type: text/html`
+  - `curl -D - http://192.168.0.18/app.js` → `Content-Type: application/javascript`
+- WS stream works from browser/host when events exist:
+  - `node .../scripts/ws_hub_events.js --host 192.168.0.18 --seed` receives binary frames.
+- Protobuf HTTP endpoints work end-to-end:
+  - `node .../scripts/http_pb_hub.js --host 192.168.0.18 add ...`
+  - `node .../scripts/http_pb_hub.js --host 192.168.0.18 set ...`
+  - `node .../scripts/http_pb_hub.js --host 192.168.0.18 list`
+
+### What didn't work
+- Initially the UI caused `/v1/events/ws` to 404 because the WS handler failed to register:
+  - Log: `httpd_register_uri_handler: no slots left for registering handler`
+  - Fix: `cfg.max_uri_handlers = 16`.
+- The old JSON curl examples now fail (expected):
+  - `POST /v1/devices` with JSON now returns `400 bad protobuf`.
+
+### What I learned
+- ESP-IDF’s default `max_uri_handlers` can be surprisingly tight once you start adding UI routes and a WS endpoint.
+- A small hand-written protobuf decoder is a practical bridge for a bring-up UI (as long as we document the schema coupling clearly).
+
+### What was tricky to build
+- Keeping the decoder strict-but-forgiving:
+  - ignore unknown fields (future-proofing)
+  - decode only the fields we care about (bring-up)
+  - avoid allocations in JS hot path
+
+### What warrants a second pair of eyes
+- Schema drift risk:
+  - ensure `ui/app.js` decoder stays aligned with `hub_events.proto` as fields evolve.
+- HTTP protobuf ergonomics:
+  - confirm we like `CmdDeviceAdd/CmdDeviceSet` as HTTP request messages (vs introducing dedicated HTTP request/response messages).
+
+### What should be done in the future
+- Replace the hand-written browser decoder with generated TS types once the frontend project starts.
+- Consider adding a tiny “control panel” in the UI that can POST protobuf commands (add/set) directly.
+
+### Code review instructions
+- Start with:
+  - `0029-mock-zigbee-http-hub/main/ui/app.js`
+  - `0029-mock-zigbee-http-hub/main/hub_http.c`
+  - `0029-mock-zigbee-http-hub/components/hub_proto/defs/hub_events.proto`
+- Validate on hardware:
+  - `tmux new-session -d -s hub-0029 "source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor"`
+  - open `http://192.168.0.18/` and click `Connect WS`, then `Seed Devices`.
+  - run scripts:
+    - `node ttmp/.../scripts/ws_hub_events.js --host 192.168.0.18 --seed`
+    - `node ttmp/.../scripts/http_pb_hub.js --host 192.168.0.18 list`
+
+### Technical details
+- HTTP protobuf content-type: `application/x-protobuf`
+- WS frames: protobuf-encoded `hub.v1.HubEvent` as binary frames

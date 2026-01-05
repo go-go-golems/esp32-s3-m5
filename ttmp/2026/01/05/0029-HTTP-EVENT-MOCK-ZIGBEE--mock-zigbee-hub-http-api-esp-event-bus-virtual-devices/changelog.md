@@ -101,3 +101,17 @@ Phase 4: enable protobuf WS stream by default; fix WS client lifecycle + / index
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — stream status client count
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/sdkconfig.defaults — default WS enabled
 
+
+## 2026-01-05
+
+Phase 4-5: add embedded UI (protobuf WS decode) and migrate HTTP API from JSON to protobuf-only; add host-side node scripts
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/components/hub_proto/defs/hub_events.proto — add DeviceList + ReplyStatus
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c — serve UI + protobuf HTTP endpoints
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/ui/app.js — in-browser protobuf decoder + seed button
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/ui/index.html — embedded UI shell
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/http_pb_hub.js — protobuf HTTP client
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/ws_hub_events.js — WS stream smoke script
+
