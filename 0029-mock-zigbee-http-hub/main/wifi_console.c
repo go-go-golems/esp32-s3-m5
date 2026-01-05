@@ -23,7 +23,6 @@
 
 static const char *TAG = "wifi_console_0029";
 
-#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
 static const char *authmode_to_str(uint8_t authmode_u8) {
     const wifi_auth_mode_t m = (wifi_auth_mode_t)authmode_u8;
     switch (m) {
@@ -235,19 +234,33 @@ static void register_commands(void) {
     cmd.func = &cmd_wifi;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
-#endif
 
 void wifi_console_start(void) {
-#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     esp_console_repl_t *repl = NULL;
 
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
     repl_config.prompt = "hub> ";
 
+    esp_err_t err = ESP_ERR_NOT_SUPPORTED;
+
+#if CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG
     esp_console_dev_usb_serial_jtag_config_t hw_config = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
-    esp_err_t err = esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl);
+    err = esp_console_new_repl_usb_serial_jtag(&hw_config, &repl_config, &repl);
+    const char *backend = "USB Serial/JTAG";
+#elif CONFIG_ESP_CONSOLE_USB_CDC
+    esp_console_dev_usb_cdc_config_t hw_config = ESP_CONSOLE_DEV_CDC_CONFIG_DEFAULT();
+    err = esp_console_new_repl_usb_cdc(&hw_config, &repl_config, &repl);
+    const char *backend = "USB CDC";
+#elif CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM
+    esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    err = esp_console_new_repl_uart(&hw_config, &repl_config, &repl);
+    const char *backend = "UART";
+#else
+    const char *backend = "none";
+#endif
+
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "esp_console_new_repl_usb_serial_jtag failed: %s", esp_err_to_name(err));
+        ESP_LOGW(TAG, "esp_console is not available (backend=%s, err=%s)", backend, esp_err_to_name(err));
         return;
     }
 
@@ -260,8 +273,5 @@ void wifi_console_start(void) {
         return;
     }
 
-    ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG (try: help, wifi status)");
-#else
-    ESP_LOGW(TAG, "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is disabled; console not started");
-#endif
+    ESP_LOGI(TAG, "esp_console started over %s (try: help, wifi status)", backend);
 }
