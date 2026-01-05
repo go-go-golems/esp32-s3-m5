@@ -10,3 +10,13 @@
 - [ ] Plan persistence: device registry in-memory + NVS snapshot/debounce
 - [x] Implement firmware skeleton (WiFi connect, http server, app event loop)
 - [x] Implement device_sim (timers) + registry + scenes + SSE/WS event stream
+- [ ] [Phase 3] Validate protobuf WS stream (multi-client, backpressure, drops)
+- [x] [Phase 1] Disable WebSocket event stream (compile-time) and remove JSON broadcast hot path
+- [x] [Phase 1] Clean up concurrent console output (minimize non-console printing; make hub quiet by default)
+- [ ] [Phase 1] Validate WiFi console + HTTP API without WS (curl smoke)
+- [ ] [Phase 2] Add nanopb toolchain component (FetchContent + early-expansion guard)
+- [ ] [Phase 2] Define hub_bus.proto mirroring hub_types.h payloads (bounded fields)
+- [ ] [Phase 2] Implement embedded hub->protobuf encoder + console dump command (no WS)
+- [ ] [Phase 2] Validate encoding with real hub events (hex dump + size)
+- [ ] [Phase 3] Remove JSON codepaths entirely; implement protobuf binary WS endpoint
+- [ ] [Phase 3] Decouple WS sending from hub event loop (queue + drop counters)
