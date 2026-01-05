@@ -19,3 +19,12 @@ Implement WiFi esp_console REPL (status/set/connect/disconnect/clear/scan) with 
 
 Ticket closed
 
+
+## 2026-01-05
+
+Fix: start esp_console REPL on whichever backend is selected in sdkconfig (USB Serial/JTAG, USB CDC, or UART) (commit 05cb0ad).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — Backend selection to avoid 'console disabled' when sdkconfig uses UART.
+

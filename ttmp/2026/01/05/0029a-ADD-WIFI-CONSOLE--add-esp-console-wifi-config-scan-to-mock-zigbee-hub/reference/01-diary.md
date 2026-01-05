@@ -101,3 +101,42 @@ The WiFi module was refactored into a small stateful STA wrapper (`hub_wifi_*`) 
 - NVS namespace: `wifi`
 - Keys: `ssid` (string), `pass` (string)
 - Console prompt: `hub> `
+
+## Step 2: Fix console backend selection (UART fallback)
+
+While testing on a setup where the project `sdkconfig` still had `CONFIG_ESP_CONSOLE_UART_DEFAULT=y` and `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG` disabled, the firmware printed a warning that the console was disabled and the REPL never started. This was confusing because the device was clearly logging over serial, just not exposing the REPL.
+
+Changed the console startup code to start the REPL on whatever console backend is selected in `sdkconfig` (USB Serial/JTAG, USB CDC, or UART), instead of hard-requiring USB Serial/JTAG.
+
+**Commit (code):** 05cb0ad — "0029: start esp_console on selected backend"
+
+### What I did
+- Updated console startup logic to select the REPL backend based on `sdkconfig` options.
+- Verified build succeeds: `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub build`
+
+### Why
+- Ensure the `wifi ...` commands are accessible even when local `sdkconfig` overrides `sdkconfig.defaults` and uses UART console.
+
+### What worked
+- The project now builds with UART console selected and still provides the `hub>` REPL.
+
+### What didn't work
+- N/A
+
+### What I learned
+- `sdkconfig.defaults` does not override an existing `sdkconfig`; firmware behavior must tolerate both.
+
+### What was tricky to build
+- The `esp_console_new_repl_*` APIs are only compiled when their corresponding `CONFIG_ESP_CONSOLE_*` option is enabled, so backend selection must be done with compile-time `#if` guards.
+
+### What warrants a second pair of eyes
+- Confirm that starting the REPL over UART doesn’t interfere with any other UART-based input paths on Cardputer setups.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `0029-mock-zigbee-http-hub/main/wifi_console.c` (`wifi_console_start`) and confirm backend selection matches expected `sdkconfig` values.
+
+### Technical details
+- The relevant `sdkconfig` options are `CONFIG_ESP_CONSOLE_UART_DEFAULT`, `CONFIG_ESP_CONSOLE_USB_CDC`, and `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG`.
