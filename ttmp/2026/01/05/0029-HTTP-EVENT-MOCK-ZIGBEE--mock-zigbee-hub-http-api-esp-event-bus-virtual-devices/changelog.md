@@ -89,3 +89,15 @@ Phase 3: replace JSON WS path with protobuf WS architecture (disabled by default
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_pb.c — Protobuf envelope builder
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_stream.c — Queue+task protobuf WS bridge
 
+
+## 2026-01-05
+
+Phase 4: enable protobuf WS stream by default; fix WS client lifecycle + / index + scene trigger routing; validate WS stream (commit 13016a2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/Kconfig.projbuild — enable WS by default
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c — WS handler + broadcaster + / + scenes wildcard dispatch
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — stream status client count
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/sdkconfig.defaults — default WS enabled
+

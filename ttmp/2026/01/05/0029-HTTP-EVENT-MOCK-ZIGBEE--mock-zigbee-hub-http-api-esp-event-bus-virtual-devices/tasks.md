@@ -10,7 +10,7 @@
 - [ ] Plan persistence: device registry in-memory + NVS snapshot/debounce
 - [x] Implement firmware skeleton (WiFi connect, http server, app event loop)
 - [x] Implement device_sim (timers) + registry + scenes + SSE/WS event stream
-- [ ] [Phase 3] Validate protobuf WS stream (multi-client, backpressure, drops)
+- [x] [Phase 3] Validate protobuf WS stream (multi-client, backpressure, drops)
 - [x] [Phase 1] Disable WebSocket event stream (compile-time) and remove JSON broadcast hot path
 - [x] [Phase 1] Clean up concurrent console output (minimize non-console printing; make hub quiet by default)
 - [x] [Phase 1] Validate WiFi console + HTTP API without WS (curl smoke)

@@ -172,7 +172,7 @@ Once the hub was quiet enough to interact with, the next step was to introduce p
 
 ### What didn't work
 - Attempting to connect to the provided Wi‑Fi credentials failed on this network during validation:
-  - `hub> wifi set yolobolo bring3248camera`
+  - `hub> wifi set <ssid> <password>`
   - `hub> wifi connect`
   - Observed disconnect reason: `STA disconnected (reason=201) -> retry`
   - This is likely an environment issue (bad credentials / AP not reachable), not a firmware structural issue.
@@ -253,7 +253,7 @@ While validating HTTP bring-up, we also hit two issues that explained why “002
   - `hub stream status` prints counters (with WS disabled: `clients=0 ...`)
   - `wifi scan 5` shows nearby networks (including `yolobolo`)
 - Connected to Wi‑Fi and validated the HTTP API from the host:
-  - `hub> wifi set yolobolo bring3248camera`
+  - `hub> wifi set <ssid> <password>`
   - `hub> wifi connect` (device got `192.168.0.18`)
   - `curl http://192.168.0.18/v1/health` → `{"ok":true,...}`
   - `curl http://192.168.0.18/v1/devices` → `[]`
@@ -304,8 +304,179 @@ While validating HTTP bring-up, we also hit two issues that explained why “002
 - Validate:
   - `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub build`
   - `idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor`
-  - console: `wifi set yolobolo bring3248camera`, `wifi connect`, `hub pb on`, `hub seed`, `hub pb last`
+  - console: `wifi set <ssid> <password>`, `wifi connect`, `hub pb on`, `hub seed`, `hub pb last`
   - host: `curl http://192.168.0.18/v1/health`, `curl http://192.168.0.18/v1/devices`, `POST /v1/devices/1/set`
 
 ### Technical details
 - The WS protobuf stream is implemented but disabled by default; console `hub stream status` should still work and show `clients=0`.
+
+## Step 4: Phase 4 — enable WS protobuf by default + debug WS client disconnects
+
+After completing Phase 3, the next push is to actually **turn the protobuf WebSocket stream on** and validate it end-to-end. This step also addresses a common usability warning we saw in the logs: `httpd_uri: URI '/' not found` — which was simply because the firmware had no “home page” route yet.
+
+Enabling WS uncovered a real integration issue: the WS handshake works, but clients disconnect quickly (and we aren’t seeing binary frames arrive on the host), even though the stream bridge starts and the event bus can generate traffic. This step captures the exact symptoms and the first mitigation attempts.
+
+**Commit (code):** 13016a2 — "0029: enable protobuf WS stream by default"
+
+### What I did
+- Enabled WS protobuf by default:
+  - `0029-mock-zigbee-http-hub/main/Kconfig.projbuild` changed `CONFIG_TUTORIAL_0029_ENABLE_WS_PB` default to `y`
+  - `0029-mock-zigbee-http-hub/sdkconfig.defaults` set `CONFIG_TUTORIAL_0029_ENABLE_WS_PB=y`
+  - `0029-mock-zigbee-http-hub/sdkconfig` set `CONFIG_TUTORIAL_0029_ENABLE_WS_PB=y` for local builds
+- Added a minimal `/` route to avoid the “URI '/' not found” warning:
+  - `0029-mock-zigbee-http-hub/main/hub_http.c` adds `index_get()` returning a plaintext endpoint list
+- Ran on-device validation in tmux (USB Serial/JTAG console):
+  - `idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor`
+  - Verified Wi‑Fi autoconnect (from NVS), verified HTTP reachability:
+    - `curl http://192.168.0.18/`
+    - `curl http://192.168.0.18/v1/health`
+- Tested WS client from the host using Node’s built-in WebSocket:
+  - `node` script connects to `ws://192.168.0.18/v1/events/ws` and waits for frames
+  - Also tried sending periodic text frames (`ws.send("ping")`) to keep the connection alive
+- Began hardening the WS handler to not treat transient `EAGAIN` reads as fatal:
+  - attempted to detect “socket would block” during `httpd_ws_recv_frame`
+  - fixed compile error where I referenced a non-existent constant `ESP_ERR_HTTPD_SOCK_ERR` (ESP-IDF uses `ESP_FAIL` for ws recv failures)
+
+### Why
+- `CONFIG_TUTORIAL_0029_ENABLE_WS_PB` needs real end-to-end validation before we delete the remaining JSON HTTP API.
+- The root route is used by humans; without it, browsers and curl tests are noisy and confusing.
+
+### What worked
+- `/dev/ttyACM0` flashing and USB Serial/JTAG console worked once the device was not physically disturbed and no other monitor session held the port.
+- Firmware comes up, autoconnects to Wi‑Fi, and HTTP endpoints respond:
+  - `curl http://192.168.0.18/` returns the endpoint list.
+- WS handshake succeeds:
+  - `hub> hub stream status` briefly shows `clients=1` after the host connects.
+
+### What didn't work
+- Serial contention is easy to trigger (and looks like “port missing”):
+  - Error when a tmux session still had the port open:
+    - `Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable`
+  - Fix: `tmux kill-session -t hub-0029` (or close monitor) before flashing.
+- WS client disconnects quickly and no frames are observed on the host:
+  - Node client sees close code `1006` (abnormal close) after a few seconds.
+  - Server logs show repeated recv/read warnings on the WS path:
+    - `W (...) httpd_txrx: httpd_sock_err: error in recv : 11`
+    - `W (...) httpd_ws: httpd_ws_recv_frame: Failed to receive the second byte`
+  - `hub stream status` flips from `clients=1` back to `clients=0`, so the stream bridge stops enqueueing.
+- Attempting to ignore transient WS recv errors initially failed to compile:
+  - Error: `error: 'ESP_ERR_HTTPD_SOCK_ERR' undeclared`
+
+### What I learned
+- ESP-IDF’s WS receive path is sensitive to non-blocking reads (errno `11`/`EAGAIN`) and will log warnings if the handler calls `httpd_ws_recv_frame` when there isn’t a full header available yet.
+- The “URI '/' not found” warning is expected when there is no index route; adding one removes noise without committing to a full web UI.
+
+### What was tricky to build
+- Validating WS requires coordinating three concurrent “clients”:
+  - the serial monitor (tmux),
+  - the Wi‑Fi/HTTP reachability tests (curl),
+  - and a WS client that stays connected long enough to receive frames.
+  Small timing issues (port bumps, reconnects) can make results look random.
+
+### What warrants a second pair of eyes
+- The WS receive handler logic in `events_ws_handler()`:
+  - we want WS to be “read-only”, but we must not accidentally disconnect well-behaved clients due to transient recv timing.
+- Client bookkeeping:
+  - ensure `ws_client_add()`/`ws_client_remove()` reflect true connection state under error conditions.
+
+### What should be done in the future
+- Finish WS validation and check task `[8]`:
+  - use a WS client that can stay connected and confirm we receive binary frames when hub events occur (`hub seed`, HTTP commands).
+  - if needed, adjust `events_ws_handler()` to only parse frames when they are complete or to ignore certain recv errors without removing the client.
+
+### Code review instructions
+- Start with:
+  - `0029-mock-zigbee-http-hub/main/hub_http.c` (`events_ws_handler`, `hub_http_events_broadcast_pb`, `index_get`)
+  - `0029-mock-zigbee-http-hub/main/hub_stream.c` (enqueue gating on client count)
+  - `0029-mock-zigbee-http-hub/main/wifi_console.c` (`hub stream status`)
+- Validate:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub build`
+  - `idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor`
+  - console: `hub seed`, `hub stream status`
+  - host: `curl http://192.168.0.18/`
+
+### Technical details
+- Key log lines for this phase:
+  - `httpd_uri: URI '/' not found` (fixed by adding `/`)
+  - `httpd_sock_err: error in recv : 11` and `httpd_ws_recv_frame: Failed to receive the second byte` (WS instability)
+
+## Step 5: Phase 4 (completed) — WS stream validation + console visibility + HTTP routing cleanup
+
+The goal of this step was to make the protobuf WS stream reliably usable during bring-up: **connect a WS client, generate hub events, and see protobuf binary frames arrive**, while keeping the `hub>` console responsive and providing accurate “stream status” introspection.
+
+This also fixed a secondary issue observed during HTTP testing: `/v1/scenes/1/trigger` returned “Nothing matches the given URI” due to wildcard-matching limitations, even though the handler existed.
+
+**Commit (code):** 13016a2 — "0029: enable protobuf WS stream by default"
+
+### What I did
+- WS handler + registration hardening in `0029-mock-zigbee-http-hub/main/hub_http.c`:
+  - Set `.handle_ws_control_frames = false` so the HTTPD core handles PING/PONG/CLOSE internally (reduces noisy recv issues for idle clients).
+  - Ensured the handler is “read-only” and just drains frames when invoked.
+  - Fixed broadcaster behavior to **not aggressively drop clients** when `httpd_ws_get_fd_info(...)` reports `HTTPD_WS_CLIENT_HTTP` (handshake still in progress).
+  - Replaced `atomic_size_t` client-count tracking with a simple cached value updated under the same mutex to avoid inconsistent visibility in practice.
+- Fixed `/v1/scenes/*/trigger` routing to actually match:
+  - Added a `scenes_post_subroute()` dispatcher and registered `HTTP_POST /v1/scenes/*` in `0029-mock-zigbee-http-hub/main/hub_http.c`.
+- Fixed `hub stream status` “clients=0” misleading output path in `0029-mock-zigbee-http-hub/main/wifi_console.c`:
+  - Print client count via a stable integer type (`uint32_t`) (and then ultimately fixed the underlying count logic as described above).
+- Validation runs were done in tmux to avoid serial lock issues:
+  - `tmux kill-session -t hub-0029 || true`
+  - `tmux new-session -d -s hub-0029 "source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor"`
+
+### Why
+- The protobuf WS stream is the new “observability plane” and must be stable before we delete JSON/WS legacy paths.
+- The console must be trusted during bring-up; if `hub stream status` lies, it makes debugging much slower.
+- Fixing scene route matching removes a class of confusing 404s during API testing.
+
+### What worked
+- End-to-end WS stream validation from the host:
+  - `node` WebSocket client connected to `ws://192.168.0.18/v1/events/ws` and received binary protobuf frames when events were generated.
+  - Verified multi-client: two WS clients both received events in parallel.
+- HTTP scene trigger routing now matches and returns a semantic response (instead of a wildcard-404):
+  - `curl -sS -X POST http://192.168.0.18/v1/scenes/1/trigger`
+  - Result: `{"ok":true}`
+
+### What didn't work
+- A build failed after introducing the new scenes subroute due to a missing forward declaration:
+  - Command: `idf.py -C 0029-mock-zigbee-http-hub build`
+  - Error (excerpt):
+    - `hub_http.c:564:16: error: implicit declaration of function 'scene_trigger_post'`
+    - `hub_http.c:571:18: error: static declaration of 'scene_trigger_post' follows non-static declaration`
+  - Fix: added a prototype `static esp_err_t scene_trigger_post(httpd_req_t *req);` near the top of `hub_http.c`.
+- `hub stream status` showed `clients=0` even while WS frames were clearly being delivered.
+  - Root cause: the `atomic_size_t` tracking approach did not behave reliably for our usage; replaced with a cached count updated under the same mutex as the client list.
+
+### What I learned
+- `httpd_ws_get_fd_info()` can report `HTTPD_WS_CLIENT_HTTP` transiently; treating that as “disconnect” is too aggressive.
+- In embedded bring-up, correctness of diagnostics (console `status` commands) is as important as feature correctness.
+
+### What was tricky to build
+- Coordinating timing between:
+  - WS handshake completion,
+  - event generation (seed/HTTP commands),
+  - and the broadcaster’s interpretation of connection state (`httpd_ws_get_fd_info`).
+
+### What warrants a second pair of eyes
+- WS client lifecycle and edge cases:
+  - confirm we don’t leak client fds in `hub_http.c` under churn (connect/close storms),
+  - confirm the broadcaster’s behavior under slow clients (async queue growth).
+
+### What should be done in the future
+- Add explicit backpressure metrics per-client (if we keep async WS) or drop-policy tuning if the event rate increases.
+- Continue Phase 4 follow-ups: move remaining JSON HTTP payloads to protobuf once the on-device schema is stable.
+
+### Code review instructions
+- Start with:
+  - `0029-mock-zigbee-http-hub/main/hub_http.c` (WS registration, broadcaster, scene routing)
+  - `0029-mock-zigbee-http-hub/main/wifi_console.c` (`hub stream status`)
+- Validate on hardware:
+  - Flash/monitor in tmux as described above.
+  - Host checks:
+    - `curl http://192.168.0.18/`
+    - `curl http://192.168.0.18/v1/health`
+    - `node -e 'const ws=new WebSocket(\"ws://192.168.0.18/v1/events/ws\"); ws.binaryType=\"arraybuffer\"; ws.onmessage=e=>console.log(Buffer.from(e.data).length);'`
+  - Console checks:
+    - `hub seed`
+    - `hub stream status`
+
+### Technical details
+- The WS path is now intended to be “server push only”; clients don’t need to send data to receive events.
