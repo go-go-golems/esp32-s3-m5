@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdatomic.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -30,13 +31,17 @@ static const char *TAG = "hub_http_0029";
 
 static httpd_handle_t s_server = NULL;
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+static esp_err_t device_set_post(httpd_req_t *req);
+static esp_err_t device_interview_post(httpd_req_t *req);
+
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static SemaphoreHandle_t s_ws_mu = NULL;
 static int s_ws_clients[8];
 static size_t s_ws_clients_n = 0;
+static atomic_size_t s_ws_clients_n_atomic;
 #endif
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static void ws_client_add(int fd) {
     if (!s_ws_mu) return;
     xSemaphoreTake(s_ws_mu, portMAX_DELAY);
@@ -49,6 +54,7 @@ static void ws_client_add(int fd) {
     if (s_ws_clients_n < (sizeof(s_ws_clients) / sizeof(s_ws_clients[0]))) {
         s_ws_clients[s_ws_clients_n++] = fd;
     }
+    atomic_store(&s_ws_clients_n_atomic, s_ws_clients_n);
     xSemaphoreGive(s_ws_mu);
 }
 
@@ -62,6 +68,7 @@ static void ws_client_remove(int fd) {
             break;
         }
     }
+    atomic_store(&s_ws_clients_n_atomic, s_ws_clients_n);
     xSemaphoreGive(s_ws_mu);
 }
 
@@ -77,45 +84,72 @@ static size_t ws_clients_snapshot(int *out, size_t max_out) {
 }
 #endif
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
+typedef struct {
+    atomic_int refcnt;
+    size_t len;
+    uint8_t data[];
+} ws_shared_buf_t;
+
 static void ws_send_free_cb(esp_err_t err, int fd, void *arg) {
     (void)err;
     (void)fd;
-    free(arg);
+    ws_shared_buf_t *b = (ws_shared_buf_t *)arg;
+    if (!b) return;
+    if (atomic_fetch_sub(&b->refcnt, 1) == 1) {
+        free(b);
+    }
 }
 #endif
 
-esp_err_t hub_http_events_broadcast_json(const char *json) {
-    if (!s_server) return ESP_ERR_INVALID_STATE;
-    if (!json) return ESP_OK;
-
-#if !CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
-    (void)json;
-    return ESP_OK; // WS JSON stream disabled
+size_t hub_http_events_client_count(void) {
+    if (!s_server) return 0;
+#if !CONFIG_TUTORIAL_0029_ENABLE_WS_PB
+    return 0;
 #else
-    const size_t len = strlen(json);
-    if (len == 0) return ESP_OK;
+    return atomic_load(&s_ws_clients_n_atomic);
+#endif
+}
+
+esp_err_t hub_http_events_broadcast_pb(const uint8_t *data, size_t len) {
+    if (!s_server) return ESP_ERR_INVALID_STATE;
+    if (!data || len == 0) return ESP_OK;
+
+#if !CONFIG_TUTORIAL_0029_ENABLE_WS_PB
+    (void)data;
+    (void)len;
+    return ESP_OK; // WS stream disabled
+#else
+    if (hub_http_events_client_count() == 0) return ESP_OK;
 
     int fds[8];
     const size_t n = ws_clients_snapshot(fds, sizeof(fds) / sizeof(fds[0]));
+    if (n == 0) return ESP_OK;
+
+    ws_shared_buf_t *b = (ws_shared_buf_t *)malloc(sizeof(*b) + len);
+    if (!b) return ESP_ERR_NO_MEM;
+    memcpy(b->data, data, len);
+    b->len = len;
+    atomic_init(&b->refcnt, (int)n);
+
     for (size_t i = 0; i < n; i++) {
         const int fd = fds[i];
         if (httpd_ws_get_fd_info(s_server, fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+            ws_client_remove(fd);
+            if (atomic_fetch_sub(&b->refcnt, 1) == 1) free(b);
             continue;
         }
 
-        char *copy = (char *)malloc(len);
-        if (!copy) {
-            return ESP_ERR_NO_MEM;
-        }
-        memcpy(copy, json, len);
-
         httpd_ws_frame_t frame = {0};
-        frame.type = HTTPD_WS_TYPE_TEXT;
-        frame.payload = (uint8_t *)copy;
+        frame.type = HTTPD_WS_TYPE_BINARY;
+        frame.payload = (uint8_t *)b->data;
         frame.len = len;
 
-        (void)httpd_ws_send_data_async(s_server, fd, &frame, ws_send_free_cb, copy);
+        esp_err_t err = httpd_ws_send_data_async(s_server, fd, &frame, ws_send_free_cb, b);
+        if (err != ESP_OK) {
+            ws_client_remove(fd);
+            if (atomic_fetch_sub(&b->refcnt, 1) == 1) free(b);
+        }
     }
 
     return ESP_OK;
@@ -272,6 +306,33 @@ static esp_err_t devices_get(httpd_req_t *req) {
     esp_err_t err = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
     free(json);
     return err;
+}
+
+static esp_err_t devices_post_subroute(httpd_req_t *req) {
+    if (!req) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bad request");
+        return ESP_OK;
+    }
+    const char *uri = req->uri;
+    const size_t ulen = strlen(uri);
+
+    const char *suffix_set = "/set";
+    const size_t set_len = strlen(suffix_set);
+
+    const char *suffix_interview = "/interview";
+    const size_t interview_len = strlen(suffix_interview);
+
+    // The wildcard match function used by ESP-IDF doesn't reliably match
+    // patterns like "/v1/devices/*/set", so register "/v1/devices/*" once for
+    // POST and dispatch based on suffix.
+    if (ulen >= set_len && strcmp(uri + (ulen - set_len), suffix_set) == 0) {
+        return device_set_post(req);
+    }
+    if (ulen >= interview_len && strcmp(uri + (ulen - interview_len), suffix_interview) == 0) {
+        return device_interview_post(req);
+    }
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "unknown device action");
+    return ESP_OK;
 }
 
 static esp_err_t devices_post(httpd_req_t *req) {
@@ -515,7 +576,7 @@ static esp_err_t scene_trigger_post(httpd_req_t *req) {
     return send_json(req, "{\"ok\":true}");
 }
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static esp_err_t events_ws_handler(httpd_req_t *req) {
     const int fd = httpd_req_to_sockfd(req);
     ws_client_add(fd);
@@ -558,17 +619,21 @@ esp_err_t hub_http_start(void) {
         return ESP_OK;
     }
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
     if (!s_ws_mu) {
         s_ws_mu = xSemaphoreCreateMutex();
     }
     if (!s_ws_mu) {
         return ESP_ERR_NO_MEM;
     }
+    atomic_init(&s_ws_clients_n_atomic, 0);
 #endif
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
+    // cJSON printing can be stack-hungry; keep some headroom to avoid
+    // hard-to-debug crashes in the httpd task.
+    cfg.stack_size = 8192;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
     esp_err_t err = httpd_start(&s_server, &cfg);
@@ -586,19 +651,16 @@ esp_err_t hub_http_start(void) {
     httpd_uri_t devices_post_u = {.uri = "/v1/devices", .method = HTTP_POST, .handler = devices_post, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &devices_post_u);
 
+    httpd_uri_t device_post_u = {.uri = "/v1/devices/*", .method = HTTP_POST, .handler = devices_post_subroute, .user_ctx = NULL};
+    httpd_register_uri_handler(s_server, &device_post_u);
+
     httpd_uri_t device_get_u = {.uri = "/v1/devices/*", .method = HTTP_GET, .handler = devices_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &device_get_u);
-
-    httpd_uri_t device_set_u = {.uri = "/v1/devices/*/set", .method = HTTP_POST, .handler = device_set_post, .user_ctx = NULL};
-    httpd_register_uri_handler(s_server, &device_set_u);
-
-    httpd_uri_t device_int_u = {.uri = "/v1/devices/*/interview", .method = HTTP_POST, .handler = device_interview_post, .user_ctx = NULL};
-    httpd_register_uri_handler(s_server, &device_int_u);
 
     httpd_uri_t scene_u = {.uri = "/v1/scenes/*/trigger", .method = HTTP_POST, .handler = scene_trigger_post, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &scene_u);
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
     httpd_uri_t ws = {
         .uri = "/v1/events/ws",
         .method = HTTP_GET,
@@ -609,9 +671,6 @@ esp_err_t hub_http_start(void) {
         .supported_subprotocol = NULL,
     };
     httpd_register_uri_handler(s_server, &ws);
-
-    // Emit a "server started" message.
-    (void)hub_http_events_broadcast_json("{\"name\":\"server_started\"}");
 #endif
 
     return ESP_OK;

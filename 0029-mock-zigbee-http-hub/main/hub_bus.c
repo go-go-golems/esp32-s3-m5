@@ -16,7 +16,6 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#include "hub_http.h"
 #include "hub_registry.h"
 #include "hub_types.h"
 
@@ -216,75 +215,6 @@ static void on_cmd_scene_trigger(void *arg, esp_event_base_t base, int32_t id, v
     reply_status(&cmd->hdr, ESP_ERR_NOT_FOUND);
 }
 
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
-static const char *event_name(int32_t id) {
-    switch (id) {
-        case HUB_CMD_DEVICE_ADD: return "HUB_CMD_DEVICE_ADD";
-        case HUB_CMD_DEVICE_REMOVE: return "HUB_CMD_DEVICE_REMOVE";
-        case HUB_CMD_DEVICE_INTERVIEW: return "HUB_CMD_DEVICE_INTERVIEW";
-        case HUB_CMD_DEVICE_SET: return "HUB_CMD_DEVICE_SET";
-        case HUB_CMD_SCENE_TRIGGER: return "HUB_CMD_SCENE_TRIGGER";
-        case HUB_EVT_DEVICE_ADDED: return "HUB_EVT_DEVICE_ADDED";
-        case HUB_EVT_DEVICE_REMOVED: return "HUB_EVT_DEVICE_REMOVED";
-        case HUB_EVT_DEVICE_INTERVIEWED: return "HUB_EVT_DEVICE_INTERVIEWED";
-        case HUB_EVT_DEVICE_STATE: return "HUB_EVT_DEVICE_STATE";
-        case HUB_EVT_DEVICE_REPORT: return "HUB_EVT_DEVICE_REPORT";
-        default: return "UNKNOWN";
-    }
-}
-
-// Best-effort: publish every bus event as one JSON line on the websocket event stream.
-static void on_any_event_stream(void *arg, esp_event_base_t base, int32_t id, void *data) {
-    (void)arg;
-    (void)base;
-
-    char buf[512];
-    const int64_t ts_us = esp_timer_get_time();
-    const char *name = event_name(id);
-
-    // Minimal per-event payload projection.
-    if (id == HUB_EVT_DEVICE_ADDED || id == HUB_EVT_DEVICE_INTERVIEWED) {
-        const hub_device_t *d = (const hub_device_t *)data;
-        if (!d) return;
-        snprintf(buf, sizeof(buf),
-                 "{\"ts_us\":%" PRIi64 ",\"name\":\"%s\",\"device\":{\"id\":%" PRIu32 ",\"type\":%d,\"caps\":%" PRIu32 ",\"name\":\"%s\",\"on\":%s,\"level\":%u}}",
-                 ts_us, name, d->id, (int)d->type, d->caps, d->name, d->on ? "true" : "false", (unsigned)d->level);
-        (void)hub_http_events_broadcast_json(buf);
-        return;
-    }
-    if (id == HUB_EVT_DEVICE_STATE) {
-        const hub_evt_device_state_t *ev = (const hub_evt_device_state_t *)data;
-        if (!ev) return;
-        snprintf(buf, sizeof(buf),
-                 "{\"ts_us\":%" PRIi64 ",\"name\":\"%s\",\"device_id\":%" PRIu32 ",\"on\":%s,\"level\":%u}",
-                 ts_us, name, ev->device_id, ev->on ? "true" : "false", (unsigned)ev->level);
-        (void)hub_http_events_broadcast_json(buf);
-        return;
-    }
-    if (id == HUB_EVT_DEVICE_REPORT) {
-        const hub_evt_device_report_t *ev = (const hub_evt_device_report_t *)data;
-        if (!ev) return;
-        char pbuf[32] = "null";
-        char tbuf[32] = "null";
-        if (ev->has_power) {
-            // Note: floats are printed as double by printf.
-            snprintf(pbuf, sizeof(pbuf), "%.2f", (double)ev->power_w);
-        }
-        if (ev->has_temperature) {
-            snprintf(tbuf, sizeof(tbuf), "%.2f", (double)ev->temperature_c);
-        }
-        snprintf(buf, sizeof(buf),
-                 "{\"ts_us\":%" PRIi64 ",\"name\":\"%s\",\"device_id\":%" PRIu32 ",\"power_w\":%s,\"temperature_c\":%s}",
-                 ts_us, name, ev->device_id, pbuf, tbuf);
-        (void)hub_http_events_broadcast_json(buf);
-        return;
-    }
-
-    snprintf(buf, sizeof(buf), "{\"ts_us\":%" PRIi64 ",\"name\":\"%s\"}", ts_us, name);
-    (void)hub_http_events_broadcast_json(buf);
-}
-#endif
-
 esp_err_t hub_bus_start(void) {
     if (s_loop) {
         return ESP_OK;
@@ -310,11 +240,6 @@ esp_err_t hub_bus_start(void) {
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, HUB_CMD_DEVICE_SET, &on_cmd_device_set, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, HUB_CMD_DEVICE_INTERVIEW, &on_cmd_device_interview, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, HUB_CMD_SCENE_TRIGGER, &on_cmd_scene_trigger, NULL));
-
-#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
-    // Always-on event stream publisher.
-    ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, ESP_EVENT_ANY_ID, &on_any_event_stream, NULL));
-#endif
 
     return ESP_OK;
 }

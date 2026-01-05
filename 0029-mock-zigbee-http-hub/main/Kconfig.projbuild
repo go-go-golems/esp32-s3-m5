@@ -1,13 +1,11 @@
 menu "Tutorial 0029: Mock Zigbee HTTP hub"
 
-config TUTORIAL_0029_ENABLE_WS_JSON
-    bool "Enable WebSocket JSON event stream (/v1/events/ws)"
+config TUTORIAL_0029_ENABLE_WS_PB
+    bool "Enable WebSocket protobuf event stream (/v1/events/ws)"
     default n
     help
-        When enabled, the hub publishes every bus event as a JSON line over a WebSocket.
-        This is convenient for early debugging, but allocates per event per client and can
-        add CPU load in the bus handler path. We disable it by default while migrating to
-        protobuf/nanopb streaming.
+        When enabled, the hub publishes bus events as protobuf envelopes over a WebSocket
+        as binary frames.
 
 config TUTORIAL_0029_QUIET_LOGS_WHILE_CONSOLE
     bool "Reduce hub logs while console is running"

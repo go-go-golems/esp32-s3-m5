@@ -21,7 +21,9 @@
 #include "lwip/inet.h"
 
 #include "hub_bus.h"
+#include "hub_http.h"
 #include "hub_pb.h"
+#include "hub_stream.h"
 #include "hub_types.h"
 
 #include "wifi_sta.h"
@@ -77,6 +79,7 @@ static bool try_parse_int(const char *s, int *out) {
 static void hub_print_usage(void) {
     printf("usage:\n");
     printf("  hub seed\n");
+    printf("  hub stream status\n");
     printf("  hub pb status\n");
     printf("  hub pb on\n");
     printf("  hub pb off\n");
@@ -169,6 +172,23 @@ static int cmd_hub(int argc, char **argv) {
 
         printf("seeded devices: plug=%" PRIu32 " bulb=%" PRIu32 " temp=%" PRIu32 "\n", plug_id, bulb_id, temp_id);
         return 0;
+    }
+
+    if (strcmp(argv[1], "stream") == 0) {
+        if (argc >= 3 && strcmp(argv[2], "status") == 0) {
+            uint32_t drops = 0;
+            uint32_t enc_fail = 0;
+            uint32_t send_fail = 0;
+            hub_stream_get_stats(&drops, &enc_fail, &send_fail);
+            printf("clients=%zu drops=%" PRIu32 " enc_fail=%" PRIu32 " send_fail=%" PRIu32 "\n",
+                   hub_http_events_client_count(),
+                   drops,
+                   enc_fail,
+                   send_fail);
+            return 0;
+        }
+        hub_print_usage();
+        return 1;
     }
 
     if (strcmp(argv[1], "pb") == 0) {
@@ -390,7 +410,7 @@ static void register_commands(void) {
 
     esp_console_cmd_t hub_cmd = {0};
     hub_cmd.command = "hub";
-    hub_cmd.help = "Hub debug: hub seed, hub pb on|off|status|last";
+    hub_cmd.help = "Hub debug: hub seed, hub stream status, hub pb on|off|status|last";
     hub_cmd.func = &cmd_hub;
     ESP_ERROR_CHECK(esp_console_cmd_register(&hub_cmd));
 }

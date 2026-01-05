@@ -61,10 +61,10 @@ idf.py build flash monitor
 - `POST /v1/devices/{id}/set`
 - `POST /v1/devices/{id}/interview`
 - `POST /v1/scenes/{id}/trigger`
-- WebSocket event stream (currently disabled by default while migrating to protobuf): `GET /v1/events/ws`
+- WebSocket event stream (protobuf binary frames; optional): `GET /v1/events/ws`
 
-To enable the JSON WebSocket stream temporarily:
+To enable the protobuf WebSocket stream:
 
 ```bash
-idf.py menuconfig  # Tutorial 0029: Mock Zigbee HTTP hub -> Enable WebSocket JSON event stream
+idf.py menuconfig  # Tutorial 0029: Mock Zigbee HTTP hub -> Enable WebSocket protobuf event stream
 ```

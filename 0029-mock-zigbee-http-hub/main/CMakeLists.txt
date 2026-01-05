@@ -6,6 +6,7 @@ idf_component_register(
         "hub_pb.c"
         "hub_registry.c"
         "hub_sim.c"
+        "hub_stream.c"
         "wifi_sta.c"
         "wifi_console.c"
     PRIV_REQUIRES

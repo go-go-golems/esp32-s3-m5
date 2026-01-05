@@ -58,11 +58,8 @@ static void fill_device(hub_v1_Device *out, const hub_device_t *d) {
     out->temperature_c = d->temperature_c;
 }
 
-static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, void *data) {
-    (void)arg;
-    (void)base;
-
-    if (!s_capture_enabled) return;
+bool hub_pb_build_event(int32_t id, const void *data, hub_v1_HubEvent *out) {
+    if (!out) return false;
 
     hub_v1_HubEvent ev = hub_v1_HubEvent_init_zero;
     ev.schema_version = 1;
@@ -71,12 +68,12 @@ static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, v
 
     if (id == HUB_EVT_DEVICE_ADDED || id == HUB_EVT_DEVICE_INTERVIEWED) {
         const hub_device_t *d = (const hub_device_t *)data;
-        if (!d) return;
+        if (!d) return false;
         ev.which_payload = hub_v1_HubEvent_device_tag;
         fill_device(&ev.payload.device, d);
     } else if (id == HUB_EVT_DEVICE_STATE) {
         const hub_evt_device_state_t *st = (const hub_evt_device_state_t *)data;
-        if (!st) return;
+        if (!st) return false;
         ev.ts_us = st->ts_us;
         ev.which_payload = hub_v1_HubEvent_device_state_tag;
         ev.payload.device_state.ts_us = st->ts_us;
@@ -85,7 +82,7 @@ static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, v
         ev.payload.device_state.level = (uint32_t)st->level;
     } else if (id == HUB_EVT_DEVICE_REPORT) {
         const hub_evt_device_report_t *rep = (const hub_evt_device_report_t *)data;
-        if (!rep) return;
+        if (!rep) return false;
         ev.ts_us = rep->ts_us;
         ev.which_payload = hub_v1_HubEvent_device_report_tag;
         ev.payload.device_report.ts_us = rep->ts_us;
@@ -96,7 +93,7 @@ static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, v
         ev.payload.device_report.temperature_c = rep->temperature_c;
     } else if (id == HUB_CMD_DEVICE_ADD) {
         const hub_cmd_device_add_t *cmd = (const hub_cmd_device_add_t *)data;
-        if (!cmd) return;
+        if (!cmd) return false;
         ev.which_payload = hub_v1_HubEvent_cmd_device_add_tag;
         ev.payload.cmd_device_add.req_id = (uint64_t)cmd->hdr.req_id;
         ev.payload.cmd_device_add.type = to_pb_device_type(cmd->type);
@@ -104,7 +101,7 @@ static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, v
         strlcpy(ev.payload.cmd_device_add.name, cmd->name, sizeof(ev.payload.cmd_device_add.name));
     } else if (id == HUB_CMD_DEVICE_SET) {
         const hub_cmd_device_set_t *cmd = (const hub_cmd_device_set_t *)data;
-        if (!cmd) return;
+        if (!cmd) return false;
         ev.which_payload = hub_v1_HubEvent_cmd_device_set_tag;
         ev.payload.cmd_device_set.req_id = (uint64_t)cmd->hdr.req_id;
         ev.payload.cmd_device_set.device_id = cmd->device_id;
@@ -114,19 +111,32 @@ static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, v
         ev.payload.cmd_device_set.level = (uint32_t)cmd->level;
     } else if (id == HUB_CMD_DEVICE_INTERVIEW) {
         const hub_cmd_device_interview_t *cmd = (const hub_cmd_device_interview_t *)data;
-        if (!cmd) return;
+        if (!cmd) return false;
         ev.which_payload = hub_v1_HubEvent_cmd_device_interview_tag;
         ev.payload.cmd_device_interview.req_id = (uint64_t)cmd->hdr.req_id;
         ev.payload.cmd_device_interview.device_id = cmd->device_id;
     } else if (id == HUB_CMD_SCENE_TRIGGER) {
         const hub_cmd_scene_trigger_t *cmd = (const hub_cmd_scene_trigger_t *)data;
-        if (!cmd) return;
+        if (!cmd) return false;
         ev.which_payload = hub_v1_HubEvent_cmd_scene_trigger_tag;
         ev.payload.cmd_scene_trigger.req_id = (uint64_t)cmd->hdr.req_id;
         ev.payload.cmd_scene_trigger.scene_id = cmd->scene_id;
     } else {
-        return;
+        return false;
     }
+
+    *out = ev;
+    return true;
+}
+
+static void on_hub_event_capture(void *arg, esp_event_base_t base, int32_t id, void *data) {
+    (void)arg;
+    (void)base;
+
+    if (!s_capture_enabled) return;
+
+    hub_v1_HubEvent ev = hub_v1_HubEvent_init_zero;
+    if (!hub_pb_build_event(id, data, &ev)) return;
 
     lock();
     s_last = ev;
@@ -195,4 +205,3 @@ esp_err_t hub_pb_encode_last(uint8_t *buf, size_t cap, size_t *out_len) {
     *out_len = (size_t)s.bytes_written;
     return ESP_OK;
 }
-
