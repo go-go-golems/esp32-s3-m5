@@ -14,13 +14,16 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/playbook/01-playbook-esp-console-keyboard-ui-esp-event-nanopb-protobuf-0030.md
+      Note: Exhaustive build+architecture+operations guide for the 0030 setup
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T09:27:00.106956073-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

@@ -46,3 +46,12 @@ Add nanopb protobuf schema + embedded encoder path for bus events (commit 35f8f0
 
 Ticket closed
 
+
+## 2026-01-05
+
+Add detailed playbook covering build system + esp_console + keyboard + UI + esp_event + nanopb protobuf architecture
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/playbook/01-playbook-esp-console-keyboard-ui-esp-event-nanopb-protobuf-0030.md — New exhaustive onboarding+architecture+operations doc
+
