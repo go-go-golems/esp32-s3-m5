@@ -33,3 +33,12 @@ Implemented initial mock hub firmware (WiFi STA + esp_event bus + HTTP API + WS 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c — HTTP endpoints + /v1/events/ws
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_sim.c — Telemetry reports
 
+
+## 2026-01-05
+
+Re-uploaded updated design doc PDF to reMarkable (force overwrite)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/design-doc/01-mock-zigbee-hub-over-http-event-driven-architecture.md — Updated source markdown re-uploaded
+
