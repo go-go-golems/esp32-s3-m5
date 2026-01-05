@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdatomic.h>
+#include <sys/types.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -22,9 +23,11 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#include "cJSON.h"
+#include "pb_decode.h"
+#include "pb_encode.h"
 
 #include "hub_bus.h"
+#include "hub_pb.h"
 #include "hub_registry.h"
 #include "hub_types.h"
 
@@ -35,6 +38,13 @@ static httpd_handle_t s_server = NULL;
 static esp_err_t device_set_post(httpd_req_t *req);
 static esp_err_t device_interview_post(httpd_req_t *req);
 static esp_err_t scene_trigger_post(httpd_req_t *req);
+
+#if CONFIG_HTTPD_WS_SUPPORT
+extern const uint8_t index_html_start[] asm("_binary_index_html_start");
+extern const uint8_t index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t app_js_start[] asm("_binary_app_js_start");
+extern const uint8_t app_js_end[] asm("_binary_app_js_end");
+#endif
 
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static SemaphoreHandle_t s_ws_mu = NULL;
@@ -165,32 +175,28 @@ esp_err_t hub_http_events_broadcast_pb(const uint8_t *data, size_t len) {
 #endif
 }
 
-static esp_err_t send_json(httpd_req_t *req, const char *json) {
-    httpd_resp_set_type(req, "application/json");
-    return httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-}
-
-static esp_err_t read_body(httpd_req_t *req, char *buf, size_t cap) {
-    if (!req || !buf || cap == 0) return ESP_ERR_INVALID_ARG;
+static esp_err_t read_body_raw(httpd_req_t *req, uint8_t *buf, size_t cap, size_t *out_len) {
+    if (out_len) *out_len = 0;
+    if (!req || !buf || cap == 0 || !out_len) return ESP_ERR_INVALID_ARG;
     if (req->content_len <= 0) {
-        buf[0] = '\0';
+        *out_len = 0;
         return ESP_OK;
     }
-    if ((size_t)req->content_len >= cap) {
+    if ((size_t)req->content_len > cap) {
         return ESP_ERR_NO_MEM;
     }
 
     int remaining = req->content_len;
     size_t off = 0;
     while (remaining > 0) {
-        const int n = httpd_req_recv(req, buf + off, remaining);
+        const int n = httpd_req_recv(req, (char *)buf + off, remaining);
         if (n <= 0) {
             return ESP_FAIL;
         }
         off += (size_t)n;
         remaining -= n;
     }
-    buf[off] = '\0';
+    *out_len = off;
     return ESP_OK;
 }
 
@@ -217,77 +223,110 @@ static bool parse_u32_path_param(const char *uri, const char *prefix, const char
     return true;
 }
 
-static hub_device_type_t parse_type(const char *s) {
-    if (!s) return 0;
-    if (strcmp(s, "plug") == 0) return HUB_DEVICE_PLUG;
-    if (strcmp(s, "bulb") == 0) return HUB_DEVICE_BULB;
-    if (strcmp(s, "temp_sensor") == 0) return HUB_DEVICE_TEMP_SENSOR;
-    return 0;
-}
-
-static uint32_t parse_caps(const cJSON *caps) {
-    if (!caps || !cJSON_IsArray(caps)) {
-        return 0;
-    }
-    uint32_t mask = 0;
-    cJSON *it = NULL;
-    cJSON_ArrayForEach(it, caps) {
-        if (!cJSON_IsString(it) || !it->valuestring) continue;
-        const char *s = it->valuestring;
-        if (strcmp(s, "onoff") == 0) mask |= HUB_CAP_ONOFF;
-        else if (strcmp(s, "level") == 0) mask |= HUB_CAP_LEVEL;
-        else if (strcmp(s, "power") == 0) mask |= HUB_CAP_POWER;
-        else if (strcmp(s, "temperature") == 0) mask |= HUB_CAP_TEMPERATURE;
-    }
-    return mask;
-}
-
 static esp_err_t health_get(httpd_req_t *req) {
     char buf[160];
-    snprintf(buf, sizeof(buf), "{\"ok\":true,\"uptime_ms\":%" PRIu32 "}", (uint32_t)(esp_timer_get_time() / 1000));
-    return send_json(req, buf);
+    snprintf(buf, sizeof(buf), "ok uptime_ms=%" PRIu32 "\n", (uint32_t)(esp_timer_get_time() / 1000));
+    httpd_resp_set_type(req, "text/plain");
+    return httpd_resp_send(req, buf, HTTPD_RESP_USE_STRLEN);
+}
+
+static esp_err_t send_embedded(httpd_req_t *req, const uint8_t *start, const uint8_t *end, const char *content_type) {
+    if (!req || !start || !end || end < start) return ESP_ERR_INVALID_ARG;
+    if (content_type) httpd_resp_set_type(req, content_type);
+    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+    return httpd_resp_send(req, (const char *)start, (ssize_t)(end - start));
 }
 
 static esp_err_t index_get(httpd_req_t *req) {
-    static const char *body =
-        "mock_zigbee_http_hub\n"
-        "\n"
-        "Endpoints:\n"
-        "  GET  /v1/health\n"
-        "  GET  /v1/devices\n"
-        "  POST /v1/devices\n"
-        "  GET  /v1/devices/{id}\n"
-        "  POST /v1/devices/{id}/set\n"
-        "  POST /v1/devices/{id}/interview\n"
-        "  POST /v1/scenes/{id}/trigger\n"
-        "  WS   /v1/events/ws  (protobuf binary frames)\n";
-
+#if CONFIG_HTTPD_WS_SUPPORT
+    return send_embedded(req, index_html_start, index_html_end, "text/html");
+#else
     httpd_resp_set_type(req, "text/plain");
-    return httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
+    return httpd_resp_sendstr(req, "HTTPD WS support is disabled; rebuild with CONFIG_HTTPD_WS_SUPPORT=y\n");
+#endif
 }
 
-static cJSON *device_to_json(const hub_device_t *d) {
-    cJSON *o = cJSON_CreateObject();
-    cJSON_AddNumberToObject(o, "id", (double)d->id);
-    const char *type = "unknown";
-    if (d->type == HUB_DEVICE_PLUG) type = "plug";
-    else if (d->type == HUB_DEVICE_BULB) type = "bulb";
-    else if (d->type == HUB_DEVICE_TEMP_SENSOR) type = "temp_sensor";
-    cJSON_AddStringToObject(o, "type", type);
-    cJSON_AddStringToObject(o, "name", d->name);
+static esp_err_t app_js_get(httpd_req_t *req) {
+#if CONFIG_HTTPD_WS_SUPPORT
+    return send_embedded(req, app_js_start, app_js_end, "application/javascript");
+#else
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "not found");
+    return ESP_OK;
+#endif
+}
 
-    cJSON *caps = cJSON_AddArrayToObject(o, "caps");
-    if (d->caps & HUB_CAP_ONOFF) cJSON_AddItemToArray(caps, cJSON_CreateString("onoff"));
-    if (d->caps & HUB_CAP_LEVEL) cJSON_AddItemToArray(caps, cJSON_CreateString("level"));
-    if (d->caps & HUB_CAP_POWER) cJSON_AddItemToArray(caps, cJSON_CreateString("power"));
-    if (d->caps & HUB_CAP_TEMPERATURE) cJSON_AddItemToArray(caps, cJSON_CreateString("temperature"));
+static esp_err_t debug_seed_post(httpd_req_t *req) {
+    esp_event_loop_handle_t loop = hub_bus_get_loop();
+    if (!loop) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bus not ready");
+        return ESP_OK;
+    }
 
-    cJSON *state = cJSON_AddObjectToObject(o, "state");
-    if (d->caps & HUB_CAP_ONOFF) cJSON_AddBoolToObject(state, "on", d->on);
-    if (d->caps & HUB_CAP_LEVEL) cJSON_AddNumberToObject(state, "level", (double)d->level);
-    if (d->caps & HUB_CAP_POWER) cJSON_AddNumberToObject(state, "power_w", (double)d->power_w);
-    if (d->caps & HUB_CAP_TEMPERATURE) cJSON_AddNumberToObject(state, "temperature_c", (double)d->temperature_c);
-    return o;
+    const struct {
+        const char *name;
+        hub_device_type_t type;
+        uint32_t caps;
+    } seeds[] = {
+        {.name = "desk", .type = HUB_DEVICE_PLUG, .caps = HUB_CAP_ONOFF | HUB_CAP_POWER},
+        {.name = "lamp", .type = HUB_DEVICE_BULB, .caps = HUB_CAP_ONOFF | HUB_CAP_LEVEL},
+        {.name = "t1", .type = HUB_DEVICE_TEMP_SENSOR, .caps = HUB_CAP_TEMPERATURE},
+    };
+
+    for (size_t i = 0; i < sizeof(seeds) / sizeof(seeds[0]); i++) {
+        QueueHandle_t q = xQueueCreate(1, sizeof(hub_reply_device_t));
+        if (!q) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no mem");
+            return ESP_OK;
+        }
+        hub_cmd_device_add_t cmd = {
+            .hdr = {.req_id = (uint32_t)esp_timer_get_time(), .reply_q = q},
+            .type = seeds[i].type,
+            .caps = seeds[i].caps,
+        };
+        strlcpy(cmd.name, seeds[i].name, sizeof(cmd.name));
+
+        esp_err_t err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_ADD, &cmd, sizeof(cmd), pdMS_TO_TICKS(200));
+        if (err != ESP_OK) {
+            vQueueDelete(q);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bus busy");
+            return ESP_OK;
+        }
+        hub_reply_device_t rep = {0};
+        if (xQueueReceive(q, &rep, pdMS_TO_TICKS(500)) != pdTRUE) {
+            vQueueDelete(q);
+            httpd_resp_send_err(req, HTTPD_408_REQ_TIMEOUT, "no reply");
+            return ESP_OK;
+        }
+        vQueueDelete(q);
+        if (rep.status != ESP_OK) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "seed failed");
+            return ESP_OK;
+        }
+
+        // Interview each seeded device for more traffic/cap state normalization.
+        QueueHandle_t qi = xQueueCreate(1, sizeof(hub_reply_status_t));
+        if (!qi) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no mem");
+            return ESP_OK;
+        }
+        hub_cmd_device_interview_t icmd = {
+            .hdr = {.req_id = (uint32_t)esp_timer_get_time(), .reply_q = qi},
+            .device_id = rep.device_id,
+        };
+        err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_INTERVIEW, &icmd, sizeof(icmd), pdMS_TO_TICKS(200));
+        if (err != ESP_OK) {
+            vQueueDelete(qi);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bus busy");
+            return ESP_OK;
+        }
+        hub_reply_status_t irep = {0};
+        (void)xQueueReceive(qi, &irep, pdMS_TO_TICKS(500));
+        vQueueDelete(qi);
+    }
+
+    httpd_resp_set_type(req, "text/plain");
+    httpd_resp_sendstr(req, "ok\n");
+    return ESP_OK;
 }
 
 static esp_err_t devices_list_get(httpd_req_t *req) {
@@ -295,20 +334,22 @@ static esp_err_t devices_list_get(httpd_req_t *req) {
     size_t n = 0;
     (void)hub_registry_snapshot(snap, sizeof(snap) / sizeof(snap[0]), &n);
 
-    cJSON *arr = cJSON_CreateArray();
-    for (size_t i = 0; i < n; i++) {
-        cJSON_AddItemToArray(arr, device_to_json(&snap[i]));
+    hub_v1_DeviceList list = hub_v1_DeviceList_init_zero;
+    list.devices_count = 0;
+    for (size_t i = 0; i < n && list.devices_count < (sizeof(list.devices) / sizeof(list.devices[0])); i++) {
+        hub_pb_fill_device(&list.devices[list.devices_count], &snap[i]);
+        list.devices_count++;
     }
 
-    char *json = cJSON_PrintUnformatted(arr);
-    cJSON_Delete(arr);
-    if (!json) {
-        return send_json(req, "[]");
+    uint8_t buf[1024];
+    pb_ostream_t s = pb_ostream_from_buffer(buf, sizeof(buf));
+    if (!pb_encode(&s, hub_v1_DeviceList_fields, &list)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
     }
-    httpd_resp_set_type(req, "application/json");
-    esp_err_t err = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-    free(json);
-    return err;
+
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)buf, (ssize_t)s.bytes_written);
 }
 
 static esp_err_t devices_get(httpd_req_t *req) {
@@ -323,16 +364,18 @@ static esp_err_t devices_get(httpd_req_t *req) {
         return ESP_OK;
     }
 
-    cJSON *o = device_to_json(&d);
-    char *json = cJSON_PrintUnformatted(o);
-    cJSON_Delete(o);
-    if (!json) {
-        return send_json(req, "{\"ok\":false}");
+    hub_v1_Device dev = hub_v1_Device_init_zero;
+    hub_pb_fill_device(&dev, &d);
+
+    uint8_t buf[512];
+    pb_ostream_t s = pb_ostream_from_buffer(buf, sizeof(buf));
+    if (!pb_encode(&s, hub_v1_Device_fields, &dev)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
     }
-    httpd_resp_set_type(req, "application/json");
-    esp_err_t err = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-    free(json);
-    return err;
+
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)buf, (ssize_t)s.bytes_written);
 }
 
 static esp_err_t devices_post_subroute(httpd_req_t *req) {
@@ -363,54 +406,44 @@ static esp_err_t devices_post_subroute(httpd_req_t *req) {
 }
 
 static esp_err_t devices_post(httpd_req_t *req) {
-    char body[768];
-    esp_err_t err = read_body(req, body, sizeof(body));
+    uint8_t body[256];
+    size_t n = 0;
+    esp_err_t err = read_body_raw(req, body, sizeof(body), &n);
     if (err != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "body too large");
         return ESP_OK;
     }
-
-    cJSON *root = cJSON_Parse(body);
-    if (!root) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
+    if (n == 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty body");
         return ESP_OK;
     }
 
-    const cJSON *type = cJSON_GetObjectItem(root, "type");
-    const cJSON *name = cJSON_GetObjectItem(root, "name");
-    const cJSON *caps = cJSON_GetObjectItem(root, "caps");
-    if (!cJSON_IsString(type) || !cJSON_IsString(name)) {
-        cJSON_Delete(root);
+    hub_v1_CmdDeviceAdd in = hub_v1_CmdDeviceAdd_init_zero;
+    pb_istream_t s = pb_istream_from_buffer(body, n);
+    if (!pb_decode(&s, hub_v1_CmdDeviceAdd_fields, &in)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad protobuf");
+        return ESP_OK;
+    }
+    if (in.type == hub_v1_DeviceType_DEVICE_TYPE_UNSPECIFIED || in.name[0] == '\0') {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "missing type/name");
         return ESP_OK;
     }
 
-    hub_device_type_t t = parse_type(type->valuestring);
-    if (!t) {
-        cJSON_Delete(root);
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "unknown type");
-        return ESP_OK;
-    }
-    const uint32_t cap_mask = parse_caps(caps);
-
     QueueHandle_t q = xQueueCreate(1, sizeof(hub_reply_device_t));
     if (!q) {
-        cJSON_Delete(root);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "no mem");
         return ESP_OK;
     }
 
     hub_cmd_device_add_t cmd = {
         .hdr = {.req_id = (uint32_t)esp_timer_get_time(), .reply_q = q},
-        .type = t,
-        .caps = cap_mask,
-        .name = {0},
+        .type = (hub_device_type_t)in.type,
+        .caps = in.caps,
     };
-    strncpy(cmd.name, name->valuestring, sizeof(cmd.name) - 1);
-    cJSON_Delete(root);
+    strlcpy(cmd.name, in.name, sizeof(cmd.name));
 
     esp_event_loop_handle_t loop = hub_bus_get_loop();
-    err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_ADD, &cmd, sizeof(cmd), pdMS_TO_TICKS(100));
+    err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_ADD, &cmd, sizeof(cmd), pdMS_TO_TICKS(200));
     if (err != ESP_OK) {
         vQueueDelete(q);
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bus busy");
@@ -418,28 +451,27 @@ static esp_err_t devices_post(httpd_req_t *req) {
     }
 
     hub_reply_device_t rep = {0};
-    if (xQueueReceive(q, &rep, pdMS_TO_TICKS(250)) != pdTRUE) {
+    if (xQueueReceive(q, &rep, pdMS_TO_TICKS(500)) != pdTRUE) {
         vQueueDelete(q);
         httpd_resp_send_err(req, HTTPD_408_REQ_TIMEOUT, "no reply");
         return ESP_OK;
     }
     vQueueDelete(q);
-
     if (rep.status != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "add failed");
         return ESP_OK;
     }
 
-    cJSON *o = device_to_json(&rep.device);
-    char *json = cJSON_PrintUnformatted(o);
-    cJSON_Delete(o);
-    if (!json) {
-        return send_json(req, "{\"ok\":true}");
+    hub_v1_Device dev = hub_v1_Device_init_zero;
+    hub_pb_fill_device(&dev, &rep.device);
+    uint8_t outbuf[512];
+    pb_ostream_t os = pb_ostream_from_buffer(outbuf, sizeof(outbuf));
+    if (!pb_encode(&os, hub_v1_Device_fields, &dev)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
     }
-    httpd_resp_set_type(req, "application/json");
-    err = httpd_resp_send(req, json, HTTPD_RESP_USE_STRLEN);
-    free(json);
-    return err;
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)outbuf, (ssize_t)os.bytes_written);
 }
 
 static esp_err_t device_set_post(httpd_req_t *req) {
@@ -449,34 +481,36 @@ static esp_err_t device_set_post(httpd_req_t *req) {
         return ESP_OK;
     }
 
-    char body[512];
-    esp_err_t err = read_body(req, body, sizeof(body));
+    uint8_t body[128];
+    size_t n = 0;
+    esp_err_t err = read_body_raw(req, body, sizeof(body), &n);
     if (err != ESP_OK) {
         httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "body too large");
         return ESP_OK;
     }
-
-    cJSON *root = cJSON_Parse(body);
-    if (!root) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
+    if (n == 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty body");
         return ESP_OK;
     }
 
-    const cJSON *on = cJSON_GetObjectItem(root, "on");
-    const cJSON *level = cJSON_GetObjectItem(root, "level");
+    hub_v1_CmdDeviceSet in = hub_v1_CmdDeviceSet_init_zero;
+    pb_istream_t s = pb_istream_from_buffer(body, n);
+    if (!pb_decode(&s, hub_v1_CmdDeviceSet_fields, &in)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "bad protobuf");
+        return ESP_OK;
+    }
+    if (!in.has_on && !in.has_level) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "no fields set");
+        return ESP_OK;
+    }
 
     hub_cmd_device_set_t cmd = {0};
     cmd.hdr.req_id = (uint32_t)esp_timer_get_time();
     cmd.device_id = id;
-    if (cJSON_IsBool(on)) {
-        cmd.has_on = true;
-        cmd.on = cJSON_IsTrue(on);
-    }
-    if (cJSON_IsNumber(level)) {
-        cmd.has_level = true;
-        cmd.level = (uint8_t)level->valuedouble;
-    }
-    cJSON_Delete(root);
+    cmd.has_on = in.has_on;
+    cmd.on = in.on;
+    cmd.has_level = in.has_level;
+    cmd.level = (uint8_t)in.level;
 
     QueueHandle_t q = xQueueCreate(1, sizeof(hub_reply_status_t));
     if (!q) {
@@ -510,7 +544,17 @@ static esp_err_t device_set_post(httpd_req_t *req) {
         return ESP_OK;
     }
 
-    return send_json(req, "{\"ok\":true}");
+    hub_v1_ReplyStatus out = hub_v1_ReplyStatus_init_zero;
+    out.ok = true;
+    out.status = 0;
+    uint8_t outbuf[32];
+    pb_ostream_t os = pb_ostream_from_buffer(outbuf, sizeof(outbuf));
+    if (!pb_encode(&os, hub_v1_ReplyStatus_fields, &out)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
+    }
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)outbuf, (ssize_t)os.bytes_written);
 }
 
 static esp_err_t device_interview_post(httpd_req_t *req) {
@@ -555,7 +599,17 @@ static esp_err_t device_interview_post(httpd_req_t *req) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "interview failed");
         return ESP_OK;
     }
-    return send_json(req, "{\"ok\":true}");
+    hub_v1_ReplyStatus out = hub_v1_ReplyStatus_init_zero;
+    out.ok = true;
+    out.status = 0;
+    uint8_t outbuf[32];
+    pb_ostream_t os = pb_ostream_from_buffer(outbuf, sizeof(outbuf));
+    if (!pb_encode(&os, hub_v1_ReplyStatus_fields, &out)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
+    }
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)outbuf, (ssize_t)os.bytes_written);
 }
 
 static esp_err_t scenes_post_subroute(httpd_req_t *req) {
@@ -618,7 +672,17 @@ static esp_err_t scene_trigger_post(httpd_req_t *req) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "scene failed");
         return ESP_OK;
     }
-    return send_json(req, "{\"ok\":true}");
+    hub_v1_ReplyStatus out = hub_v1_ReplyStatus_init_zero;
+    out.ok = true;
+    out.status = 0;
+    uint8_t outbuf[32];
+    pb_ostream_t os = pb_ostream_from_buffer(outbuf, sizeof(outbuf));
+    if (!pb_encode(&os, hub_v1_ReplyStatus_fields, &out)) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+        return ESP_OK;
+    }
+    httpd_resp_set_type(req, "application/x-protobuf");
+    return httpd_resp_send(req, (const char *)outbuf, (ssize_t)os.bytes_written);
 }
 
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
@@ -690,8 +754,8 @@ esp_err_t hub_http_start(void) {
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
-    // cJSON printing can be stack-hungry; keep some headroom to avoid
-    // hard-to-debug crashes in the httpd task.
+    cfg.max_uri_handlers = 16;
+    // Some handlers do protobuf encode/decode; keep some headroom in the httpd task.
     cfg.stack_size = 8192;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
@@ -706,6 +770,12 @@ esp_err_t hub_http_start(void) {
 
     httpd_uri_t index = {.uri = "/", .method = HTTP_GET, .handler = index_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &index);
+
+    httpd_uri_t appjs = {.uri = "/app.js", .method = HTTP_GET, .handler = app_js_get, .user_ctx = NULL};
+    httpd_register_uri_handler(s_server, &appjs);
+
+    httpd_uri_t seed = {.uri = "/v1/debug/seed", .method = HTTP_POST, .handler = debug_seed_post, .user_ctx = NULL};
+    httpd_register_uri_handler(s_server, &seed);
 
     httpd_uri_t devices_list = {.uri = "/v1/devices", .method = HTTP_GET, .handler = devices_list_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &devices_list);

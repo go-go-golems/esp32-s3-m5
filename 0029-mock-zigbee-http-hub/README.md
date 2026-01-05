@@ -55,16 +55,19 @@ idf.py build flash monitor
 
 ## API quickstart
 
-- `GET /v1/health`
-- `GET /v1/devices`
-- `POST /v1/devices`
-- `POST /v1/devices/{id}/set`
-- `POST /v1/devices/{id}/interview`
-- `POST /v1/scenes/{id}/trigger`
-- WebSocket event stream (protobuf binary frames; optional): `GET /v1/events/ws`
+- `GET /` — embedded UI (connects to WS and decodes protobuf events in-browser)
+- `GET /v1/health` — plain text
+- `WS /v1/events/ws` — protobuf `hub.v1.HubEvent` as binary frames
+- **HTTP API is protobuf-only** (`Content-Type: application/x-protobuf`):
+  - `GET /v1/devices` → `hub.v1.DeviceList`
+  - `GET /v1/devices/{id}` → `hub.v1.Device`
+  - `POST /v1/devices` (body: `hub.v1.CmdDeviceAdd`) → `hub.v1.Device`
+  - `POST /v1/devices/{id}/set` (body: `hub.v1.CmdDeviceSet`) → `hub.v1.ReplyStatus`
+  - `POST /v1/devices/{id}/interview` → `hub.v1.ReplyStatus`
+  - `POST /v1/scenes/{id}/trigger` → `hub.v1.ReplyStatus`
+  - `POST /v1/debug/seed` — convenience endpoint to generate demo traffic (plain text)
 
-To enable the protobuf WebSocket stream:
+Host-side helper scripts live in the ticket workspace:
 
-```bash
-idf.py menuconfig  # Tutorial 0029: Mock Zigbee HTTP hub -> Enable WebSocket protobuf event stream
-```
+- WS stream smoke test: `ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/ws_hub_events.js`
+- Protobuf HTTP client: `ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/scripts/http_pb_hub.js`

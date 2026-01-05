@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>0029 Mock Zigbee Hub</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --panel: #121a33;
+        --muted: #9fb0d0;
+        --fg: #e9eeff;
+        --accent: #7aa2ff;
+        --border: rgba(255, 255, 255, 0.08);
+        --danger: #ff6b6b;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
+        background: radial-gradient(1200px 800px at 40% -10%, rgba(122, 162, 255, 0.25), transparent 60%), var(--bg);
+        color: var(--fg);
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(18, 26, 51, 0.7);
+        backdrop-filter: blur(10px);
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+
+      header .title {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
+      header .sub {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      button {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--fg);
+        padding: 8px 10px;
+        border-radius: 10px;
+        font-weight: 650;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      button.primary {
+        background: rgba(122, 162, 255, 0.2);
+        border-color: rgba(122, 162, 255, 0.45);
+        color: var(--fg);
+      }
+
+      button.danger {
+        background: rgba(255, 107, 107, 0.15);
+        border-color: rgba(255, 107, 107, 0.35);
+        color: var(--fg);
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        background: rgba(18, 26, 51, 0.6);
+        border-radius: 14px;
+        overflow: hidden;
+        min-height: 240px;
+      }
+
+      .panel h2 {
+        margin: 0;
+        padding: 10px 12px;
+        font-size: 12px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+      }
+
+      #events {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: calc(100vh - 140px);
+        overflow: auto;
+      }
+
+      #events li {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 10px 12px;
+        cursor: pointer;
+      }
+
+      #events li:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      #events li.active {
+        background: rgba(122, 162, 255, 0.15);
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .k {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .v {
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      #detail {
+        padding: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        overflow: auto;
+        max-height: calc(100vh - 140px);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--danger);
+        display: inline-block;
+        margin-right: 8px;
+      }
+
+      .status-dot.ok {
+        background: #37d27b;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="title">
+        <h1>0029 Mock Zigbee Hub</h1>
+        <div class="sub">
+          <span class="status-dot" id="statusDot"></span><span id="statusText">Disconnected</span> ·
+          <span id="msgCount">0</span> events
+        </div>
+      </div>
+      <div class="actions">
+        <button id="connectBtn" class="primary">Connect WS</button>
+        <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+        <button id="seedBtn">Seed Devices</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Events</h2>
+        <ul id="events"></ul>
+      </section>
+      <section class="panel">
+        <h2>Detail</h2>
+        <div id="detail">Click an event to inspect decoded protobuf.</div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

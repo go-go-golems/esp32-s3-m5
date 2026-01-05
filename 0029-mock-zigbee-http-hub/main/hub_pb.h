@@ -6,6 +6,8 @@
 #include "esp_err.h"
 #include "esp_event.h"
 
+#include "hub_types.h"
+
 // Generated nanopb types for 0029 hub events.
 #include "hub_events.pb.h"
 
@@ -23,3 +25,6 @@ esp_err_t hub_pb_encode_last(uint8_t *buf, size_t cap, size_t *out_len);
 // Builds a protobuf envelope for a hub bus event.
 // Returns true if the event is recognized and `out` was filled.
 bool hub_pb_build_event(int32_t id, const void *data, hub_v1_HubEvent *out);
+
+// Fill a hub.v1.Device protobuf from an internal hub_device_t snapshot.
+void hub_pb_fill_device(hub_v1_Device *out, const hub_device_t *d);

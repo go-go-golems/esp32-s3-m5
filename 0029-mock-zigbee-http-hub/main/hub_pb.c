@@ -45,7 +45,7 @@ static hub_v1_EventId to_pb_event_id(int32_t id) {
     return (hub_v1_EventId)id;
 }
 
-static void fill_device(hub_v1_Device *out, const hub_device_t *d) {
+void hub_pb_fill_device(hub_v1_Device *out, const hub_device_t *d) {
     if (!out || !d) return;
     memset(out, 0, sizeof(*out));
     out->id = d->id;
@@ -70,7 +70,7 @@ bool hub_pb_build_event(int32_t id, const void *data, hub_v1_HubEvent *out) {
         const hub_device_t *d = (const hub_device_t *)data;
         if (!d) return false;
         ev.which_payload = hub_v1_HubEvent_device_tag;
-        fill_device(&ev.payload.device, d);
+        hub_pb_fill_device(&ev.payload.device, d);
     } else if (id == HUB_EVT_DEVICE_STATE) {
         const hub_evt_device_state_t *st = (const hub_evt_device_state_t *)data;
         if (!st) return false;

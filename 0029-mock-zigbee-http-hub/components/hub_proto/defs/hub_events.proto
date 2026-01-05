@@ -100,3 +100,12 @@ message HubEvent {
     CmdSceneTrigger cmd_scene_trigger = 23;
   }
 }
+
+message ReplyStatus {
+  bool ok = 1;
+  uint32 status = 2; // esp_err_t (best effort) or app-defined error code
+}
+
+message DeviceList {
+  repeated Device devices = 1 [(nanopb).max_count = 32];
+}

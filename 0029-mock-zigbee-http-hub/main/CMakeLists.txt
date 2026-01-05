@@ -17,9 +17,11 @@ idf_component_register(
         esp_netif
         nvs_flash
         esp_http_server
-        json
         console
         hub_proto
     INCLUDE_DIRS
         "."
+    EMBED_FILES
+        "ui/index.html"
+        "ui/app.js"
 )
