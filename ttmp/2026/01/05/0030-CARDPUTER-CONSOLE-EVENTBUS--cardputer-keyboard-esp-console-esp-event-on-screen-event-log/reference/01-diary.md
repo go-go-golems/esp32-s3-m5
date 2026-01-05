@@ -136,6 +136,47 @@ Implemented a new ESP-IDF firmware project that posts keyboard edges and console
   - `evt clear`
   - `evt status`
 
+## Step 3: Add console bus monitor + extract reusable architecture pattern
+
+Added a `evt monitor on|off` control to mirror bus traffic to the console. This is useful when the on-screen log is too limited or when debugging queue pressure; it also helps with “headless” runs where the screen isn’t visible. The implementation avoids printing directly in the event handler by enqueueing formatted lines to a small queue drained by a low-priority task.
+
+In parallel, wrote a design/pattern document describing how to turn this style of firmware into reusable C modules or C++ classes (RAII wrappers), and what parts should become generic components for other firmwares.
+
+### What I did
+- Added a monitor queue + task and an `evt monitor on|off|status` verb in `0030-cardputer-console-eventbus/main/app_main.cpp`.
+- Updated `0030-cardputer-console-eventbus/README.md` with the new command.
+- Added the pattern doc: `ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/02-pattern-esp-event-centric-architecture-c-and-c.md`
+
+### Why
+- Provide a second observation channel for event-driven firmware: screen + console.
+- Capture a reusable architecture (“event bus is the spine”) for onboarding and future refactors into components.
+
+### What worked
+- `idf.py -C 0030-cardputer-console-eventbus build` succeeds after changes.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Printing from arbitrary tasks while a linenoise REPL is running can garble the prompt; a monitor is still worth it, but should be togglable and use a queue to keep handlers non-blocking.
+
+### What was tricky to build
+- Ensuring the event handler stays fast: it now formats a short line and enqueues it with `xQueueSend(..., 0)` so it never blocks UI dispatch.
+
+### What warrants a second pair of eyes
+- Confirm the console monitor formatting for `BUS_EVT_CONSOLE_POST` is correct and that the monitor queue size/priority are appropriate under event storms.
+
+### What should be done in the future
+- If we turn this into a reusable component, make the monitor formatting pluggable (callback or per-event formatter table).
+
+### Code review instructions
+- Review `0030-cardputer-console-eventbus/main/app_main.cpp` for:
+  - `monitor_task`, `monitor_enqueue_line`
+  - `cmd_evt` `monitor` verb
+  - event handler enqueue points
+- Read the architecture writeup:
+  - `ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/02-pattern-esp-event-centric-architecture-c-and-c.md`
+
 ## Related
 
 - Onboarding analysis: `ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/01-onboarding-how-the-demo-fits-together.md`
