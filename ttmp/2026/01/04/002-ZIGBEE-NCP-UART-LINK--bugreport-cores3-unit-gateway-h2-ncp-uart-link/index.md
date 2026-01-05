@@ -1,7 +1,7 @@
 ---
 Title: 'Bugreport: CoreS3↔Unit Gateway H2 NCP UART link'
 Ticket: 002-ZIGBEE-NCP-UART-LINK
-Status: active
+Status: complete
 Topics:
     - zigbee
     - esp-idf
@@ -17,10 +17,11 @@ RelatedFiles:
       Note: Main bugreport
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-04T18:17:14.019092532-05:00
+LastUpdated: 2026-01-04T19:11:56.61840962-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Bugreport: CoreS3↔Unit Gateway H2 NCP UART link

@@ -23,3 +23,8 @@ NCP now works: after adding uart_pattern_queue_reset() on host+NCP, UART_PATTERN
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/04/002-ZIGBEE-NCP-UART-LINK--bugreport-cores3-unit-gateway-h2-ncp-uart-link/reference/01-bugreport-cores3-h2-ncp-uart-link-appears-dead.md — Added resolved status + evidence logs
 
+
+## 2026-01-04
+
+Ticket closed
+
