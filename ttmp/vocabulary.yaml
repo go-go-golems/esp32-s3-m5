@@ -55,6 +55,8 @@ topics:
       description: Zigbee stack, commissioning, and gateway integration
     - slug: esp32h2
       description: ESP32-H2 (802.15.4/Zigbee/Thread)
+    - slug: http
+      description: HTTP server/client and web APIs
 docTypes:
     - slug: index
       description: Ticket index document
