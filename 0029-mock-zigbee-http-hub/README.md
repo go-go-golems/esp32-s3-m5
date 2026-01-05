@@ -25,6 +25,8 @@ hub> wifi connect
 hub> wifi status
 ```
 
+If you don't see a `hub>` prompt, ensure the console channel is set to USB Serial/JTAG (this project ships `sdkconfig.defaults` for that; existing local `sdkconfig` values can override it).
+
 To forget saved credentials:
 
 ```text
