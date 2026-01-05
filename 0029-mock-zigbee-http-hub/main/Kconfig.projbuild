@@ -2,7 +2,7 @@ menu "Tutorial 0029: Mock Zigbee HTTP hub"
 
 config TUTORIAL_0029_ENABLE_WS_PB
     bool "Enable WebSocket protobuf event stream (/v1/events/ws)"
-    default n
+    default y
     help
         When enabled, the hub publishes bus events as protobuf envelopes over a WebSocket
         as binary frames.

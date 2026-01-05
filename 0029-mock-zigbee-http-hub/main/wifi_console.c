@@ -180,8 +180,9 @@ static int cmd_hub(int argc, char **argv) {
             uint32_t enc_fail = 0;
             uint32_t send_fail = 0;
             hub_stream_get_stats(&drops, &enc_fail, &send_fail);
-            printf("clients=%zu drops=%" PRIu32 " enc_fail=%" PRIu32 " send_fail=%" PRIu32 "\n",
-                   hub_http_events_client_count(),
+            const uint32_t clients = (uint32_t)hub_http_events_client_count();
+            printf("clients=%" PRIu32 " drops=%" PRIu32 " enc_fail=%" PRIu32 " send_fail=%" PRIu32 "\n",
+                   clients,
                    drops,
                    enc_fail,
                    send_fail);

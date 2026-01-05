@@ -15,10 +15,8 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
 # Enable HTTPD WebSocket support for /v1/events/ws.
 CONFIG_HTTPD_WS_SUPPORT=y
 
-# WS protobuf event stream is implemented but kept disabled by default until
-# Wi-Fi + HTTP bring-up is stable in your environment.
-# (Enable via menuconfig: Tutorial 0029: Mock Zigbee HTTP hub)
-# CONFIG_TUTORIAL_0029_ENABLE_WS_PB is not set
+# Protobuf WebSocket event stream (/v1/events/ws).
+CONFIG_TUTORIAL_0029_ENABLE_WS_PB=y
 
 # Reduce hub logs once the console REPL is running (keeps `hub>` usable).
 CONFIG_TUTORIAL_0029_QUIET_LOGS_WHILE_CONSOLE=y

@@ -8,6 +8,7 @@
 #include "hub_http.h"
 
 #include <inttypes.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -33,12 +34,13 @@ static httpd_handle_t s_server = NULL;
 
 static esp_err_t device_set_post(httpd_req_t *req);
 static esp_err_t device_interview_post(httpd_req_t *req);
+static esp_err_t scene_trigger_post(httpd_req_t *req);
 
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static SemaphoreHandle_t s_ws_mu = NULL;
 static int s_ws_clients[8];
 static size_t s_ws_clients_n = 0;
-static atomic_size_t s_ws_clients_n_atomic;
+static volatile size_t s_ws_clients_n_cached = 0;
 #endif
 
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
@@ -54,7 +56,7 @@ static void ws_client_add(int fd) {
     if (s_ws_clients_n < (sizeof(s_ws_clients) / sizeof(s_ws_clients[0]))) {
         s_ws_clients[s_ws_clients_n++] = fd;
     }
-    atomic_store(&s_ws_clients_n_atomic, s_ws_clients_n);
+    s_ws_clients_n_cached = s_ws_clients_n;
     xSemaphoreGive(s_ws_mu);
 }
 
@@ -68,7 +70,7 @@ static void ws_client_remove(int fd) {
             break;
         }
     }
-    atomic_store(&s_ws_clients_n_atomic, s_ws_clients_n);
+    s_ws_clients_n_cached = s_ws_clients_n;
     xSemaphoreGive(s_ws_mu);
 }
 
@@ -107,7 +109,7 @@ size_t hub_http_events_client_count(void) {
 #if !CONFIG_TUTORIAL_0029_ENABLE_WS_PB
     return 0;
 #else
-    return atomic_load(&s_ws_clients_n_atomic);
+    return s_ws_clients_n_cached;
 #endif
 }
 
@@ -134,8 +136,15 @@ esp_err_t hub_http_events_broadcast_pb(const uint8_t *data, size_t len) {
 
     for (size_t i = 0; i < n; i++) {
         const int fd = fds[i];
-        if (httpd_ws_get_fd_info(s_server, fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+        const httpd_ws_client_info_t info = httpd_ws_get_fd_info(s_server, fd);
+        if (info == HTTPD_WS_CLIENT_INVALID) {
             ws_client_remove(fd);
+            if (atomic_fetch_sub(&b->refcnt, 1) == 1) free(b);
+            continue;
+        }
+        if (info != HTTPD_WS_CLIENT_WEBSOCKET) {
+            // Connection exists but isn't upgraded yet (HTTP). Keep it around; it'll become
+            // a WebSocket after the handshake completes.
             if (atomic_fetch_sub(&b->refcnt, 1) == 1) free(b);
             continue;
         }
@@ -237,6 +246,24 @@ static esp_err_t health_get(httpd_req_t *req) {
     char buf[160];
     snprintf(buf, sizeof(buf), "{\"ok\":true,\"uptime_ms\":%" PRIu32 "}", (uint32_t)(esp_timer_get_time() / 1000));
     return send_json(req, buf);
+}
+
+static esp_err_t index_get(httpd_req_t *req) {
+    static const char *body =
+        "mock_zigbee_http_hub\n"
+        "\n"
+        "Endpoints:\n"
+        "  GET  /v1/health\n"
+        "  GET  /v1/devices\n"
+        "  POST /v1/devices\n"
+        "  GET  /v1/devices/{id}\n"
+        "  POST /v1/devices/{id}/set\n"
+        "  POST /v1/devices/{id}/interview\n"
+        "  POST /v1/scenes/{id}/trigger\n"
+        "  WS   /v1/events/ws  (protobuf binary frames)\n";
+
+    httpd_resp_set_type(req, "text/plain");
+    return httpd_resp_send(req, body, HTTPD_RESP_USE_STRLEN);
 }
 
 static cJSON *device_to_json(const hub_device_t *d) {
@@ -531,6 +558,24 @@ static esp_err_t device_interview_post(httpd_req_t *req) {
     return send_json(req, "{\"ok\":true}");
 }
 
+static esp_err_t scenes_post_subroute(httpd_req_t *req) {
+    if (!req) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bad request");
+        return ESP_OK;
+    }
+
+    const char *uri = req->uri;
+    const char *suffix = "/trigger";
+    const size_t ulen = strlen(uri);
+    const size_t sfx = strlen(suffix);
+    if (ulen >= sfx && strcmp(uri + (ulen - sfx), suffix) == 0) {
+        return scene_trigger_post(req);
+    }
+
+    httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Nothing matches the given URI");
+    return ESP_OK;
+}
+
 static esp_err_t scene_trigger_post(httpd_req_t *req) {
     uint32_t id = 0;
     if (!parse_u32_path_param(req->uri, "/v1/scenes/", "/trigger", &id)) {
@@ -579,28 +624,41 @@ static esp_err_t scene_trigger_post(httpd_req_t *req) {
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
 static esp_err_t events_ws_handler(httpd_req_t *req) {
     const int fd = httpd_req_to_sockfd(req);
-    ws_client_add(fd);
-
     if (req->method == HTTP_GET) {
+        ws_client_add(fd);
         ESP_LOGI(TAG, "ws connected fd=%d", fd);
         return ESP_OK;
     }
 
+    // Called for websocket DATA frames (and optionally control frames, depending on registration flags).
+    // We keep this endpoint read-only, but we still drain incoming frames so well-behaved clients
+    // (that send pings or other frames) don't back up the socket receive buffer.
+    ws_client_add(fd);
+
     httpd_ws_frame_t frame = {0};
     esp_err_t err = httpd_ws_recv_frame(req, &frame, 0);
     if (err != ESP_OK) {
-        return err;
+        if (err == ESP_FAIL && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return ESP_OK;
+        }
+        ws_client_remove(fd);
+        return ESP_OK;
     }
 
     uint8_t tmp[64];
     if (frame.len > sizeof(tmp)) {
         ESP_LOGW(TAG, "ws frame too large (fd=%d len=%u)", fd, (unsigned)frame.len);
-        return ESP_FAIL;
+        ws_client_remove(fd);
+        return ESP_OK;
     }
     frame.payload = tmp;
     err = httpd_ws_recv_frame(req, &frame, frame.len);
     if (err != ESP_OK) {
-        return err;
+        if (err == ESP_FAIL && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            return ESP_OK;
+        }
+        ws_client_remove(fd);
+        return ESP_OK;
     }
 
     if (frame.type == HTTPD_WS_TYPE_CLOSE) {
@@ -626,7 +684,8 @@ esp_err_t hub_http_start(void) {
     if (!s_ws_mu) {
         return ESP_ERR_NO_MEM;
     }
-    atomic_init(&s_ws_clients_n_atomic, 0);
+    s_ws_clients_n = 0;
+    s_ws_clients_n_cached = 0;
 #endif
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
@@ -645,6 +704,9 @@ esp_err_t hub_http_start(void) {
     httpd_uri_t health = {.uri = "/v1/health", .method = HTTP_GET, .handler = health_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &health);
 
+    httpd_uri_t index = {.uri = "/", .method = HTTP_GET, .handler = index_get, .user_ctx = NULL};
+    httpd_register_uri_handler(s_server, &index);
+
     httpd_uri_t devices_list = {.uri = "/v1/devices", .method = HTTP_GET, .handler = devices_list_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &devices_list);
 
@@ -657,7 +719,7 @@ esp_err_t hub_http_start(void) {
     httpd_uri_t device_get_u = {.uri = "/v1/devices/*", .method = HTTP_GET, .handler = devices_get, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &device_get_u);
 
-    httpd_uri_t scene_u = {.uri = "/v1/scenes/*/trigger", .method = HTTP_POST, .handler = scene_trigger_post, .user_ctx = NULL};
+    httpd_uri_t scene_u = {.uri = "/v1/scenes/*", .method = HTTP_POST, .handler = scenes_post_subroute, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &scene_u);
 
 #if CONFIG_TUTORIAL_0029_ENABLE_WS_PB
@@ -667,7 +729,10 @@ esp_err_t hub_http_start(void) {
         .handler = events_ws_handler,
         .user_ctx = NULL,
         .is_websocket = true,
-        .handle_ws_control_frames = true,
+        // Keep this endpoint read-only; let the HTTP server handle control frames internally.
+        // Passing control frames to the handler can trigger noisy recv errors/timeouts when the
+        // client is idle, depending on socket timing.
+        .handle_ws_control_frames = false,
         .supported_subprotocol = NULL,
     };
     httpd_register_uri_handler(s_server, &ws);
