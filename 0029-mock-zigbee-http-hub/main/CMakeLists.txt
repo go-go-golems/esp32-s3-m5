@@ -1,0 +1,20 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "hub_bus.c"
+        "hub_http.c"
+        "hub_registry.c"
+        "hub_sim.c"
+        "wifi_sta.c"
+    PRIV_REQUIRES
+        spi_flash
+        esp_event
+        esp_timer
+        esp_wifi
+        esp_netif
+        nvs_flash
+        esp_http_server
+        json
+    INCLUDE_DIRS
+        "."
+)

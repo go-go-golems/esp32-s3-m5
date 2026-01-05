@@ -12,13 +12,24 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0029-mock-zigbee-http-hub/main/app_main.c
+      Note: Firmware entrypoint and module wiring
+    - Path: 0029-mock-zigbee-http-hub/main/hub_bus.c
+      Note: App esp_event loop + command handlers
+    - Path: 0029-mock-zigbee-http-hub/main/hub_http.c
+      Note: HTTP API + WebSocket event stream
+    - Path: 0029-mock-zigbee-http-hub/main/hub_registry.c
+      Note: In-memory device registry
+    - Path: 0029-mock-zigbee-http-hub/main/hub_sim.c
+      Note: Virtual device telemetry simulator
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T00:08:55.896097047-05:00
-WhatFor: "Ticket hub for a mock Zigbee coordinator-style HTTP + esp_event demo (virtual devices, scenes, event stream)."
-WhenToUse: "Use when implementing the mock hub firmware or reviewing the API/event-bus design before swapping in a real Zigbee driver."
+WhatFor: Ticket hub for a mock Zigbee coordinator-style HTTP + esp_event demo (virtual devices, scenes, event stream).
+WhenToUse: Use when implementing the mock hub firmware or reviewing the API/event-bus design before swapping in a real Zigbee driver.
 ---
+
 
 # Mock Zigbee hub: HTTP API + esp_event bus + virtual devices
 
@@ -35,6 +46,7 @@ Design/implementation ticket for a “Mock Home Hub” firmware:
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
 - Design doc: `design-doc/01-mock-zigbee-hub-over-http-event-driven-architecture.md`
+- Firmware: `0029-mock-zigbee-http-hub/` (repo root)
 
 ## Status
 

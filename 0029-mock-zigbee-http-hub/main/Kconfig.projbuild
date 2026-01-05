@@ -1,0 +1,32 @@
+menu "Tutorial 0029: Mock Zigbee HTTP hub"
+
+config TUTORIAL_0029_WIFI_SSID
+    string "WiFi SSID (STA)"
+    default ""
+
+config TUTORIAL_0029_WIFI_PASSWORD
+    string "WiFi password (STA)"
+    default ""
+
+config TUTORIAL_0029_WIFI_CONNECT_TIMEOUT_MS
+    int "WiFi connect timeout (ms)"
+    range 1000 60000
+    default 15000
+
+config TUTORIAL_0029_WIFI_MAX_RETRY
+    int "WiFi max reconnect retries"
+    range 0 100
+    default 10
+
+config TUTORIAL_0029_HUB_EVENT_QUEUE_SIZE
+    int "Hub esp_event queue size"
+    range 8 256
+    default 64
+
+config TUTORIAL_0029_SIM_PERIOD_MS
+    int "Device simulator tick period (ms)"
+    range 100 60000
+    default 1000
+
+endmenu
+

@@ -17,12 +17,15 @@ RelatedFiles:
       Note: esp_event API referenced by this design
     - Path: ../../../../../../../../../../esp/esp-idf-5.4.1/components/esp_http_server/include/esp_http_server.h
       Note: HTTP server API referenced by this design
+    - Path: 0029-mock-zigbee-http-hub/main/hub_types.h
+      Note: Concrete event IDs and payload structs used by the firmware
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T00:09:03.916108809-05:00
 WhatFor: Design for a firmware demo that combines esp_http_server + esp_event to simulate a Zigbee-coordinator-style architecture using virtual devices.
 WhenToUse: Use when implementing the 0029 mock hub firmware, reviewing the HTTP API shape, or mapping the mock architecture to a future real Zigbee driver.
 ---
+
 
 
 # Mock Zigbee hub over HTTP: event-driven architecture
@@ -230,7 +233,7 @@ Rejected for MVP because Zigbee integration complicates the loop (toolchain, com
 
 ## Implementation Plan
 
-1. Create a new firmware project (e.g. `0030-cardputer-mock-zigbee-http-hub/` or an AtomS3R variant if headless).
+1. Create the firmware project `0029-mock-zigbee-http-hub/` (headless, HTTP + event bus).
 2. Implement `bus`:
    - define `HUB_EVT`, IDs, and payload structs
    - create app event loop and register core handlers
