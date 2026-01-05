@@ -65,3 +65,16 @@ Phase 1: disable WS JSON stream and reduce hub logging noise to stabilize consol
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — Lower hub log levels after REPL starts
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/sdkconfig.defaults — Default WS off + quiet logs on
 
+
+## 2026-01-05
+
+Phase 2: add nanopb schema + capture/encode console tooling (hub pb ...) while WS remains disabled (commit a389e64)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/components/hub_proto/CMakeLists.txt — FetchContent nanopb + codegen with CMAKE_BUILD_EARLY_EXPANSION guard
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/components/hub_proto/defs/hub_events.proto — Hub event schema mirrored from hub_types.h
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/app_main.c — Register protobuf capture handler
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_pb.c — Capture last hub event and encode via nanopb
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — Add hub console command (hub seed
+

@@ -14,9 +14,9 @@
 - [x] [Phase 1] Disable WebSocket event stream (compile-time) and remove JSON broadcast hot path
 - [x] [Phase 1] Clean up concurrent console output (minimize non-console printing; make hub quiet by default)
 - [ ] [Phase 1] Validate WiFi console + HTTP API without WS (curl smoke)
-- [ ] [Phase 2] Add nanopb toolchain component (FetchContent + early-expansion guard)
-- [ ] [Phase 2] Define hub_bus.proto mirroring hub_types.h payloads (bounded fields)
-- [ ] [Phase 2] Implement embedded hub->protobuf encoder + console dump command (no WS)
-- [ ] [Phase 2] Validate encoding with real hub events (hex dump + size)
+- [x] [Phase 2] Add nanopb toolchain component (FetchContent + early-expansion guard)
+- [x] [Phase 2] Define hub_bus.proto mirroring hub_types.h payloads (bounded fields)
+- [x] [Phase 2] Implement embedded hub->protobuf encoder + console dump command (no WS)
+- [x] [Phase 2] Validate encoding with real hub events (hex dump + size)
 - [ ] [Phase 3] Remove JSON codepaths entirely; implement protobuf binary WS endpoint
 - [ ] [Phase 3] Decouple WS sending from hub event loop (queue + drop counters)
