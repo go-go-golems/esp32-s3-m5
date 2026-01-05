@@ -14,10 +14,12 @@
 #include "hub_http.h"
 #include "hub_registry.h"
 #include "hub_sim.h"
+#include "wifi_console.h"
 #include "wifi_sta.h"
 
 void app_main(void) {
-    ESP_ERROR_CHECK(wifi_sta_start());
+    ESP_ERROR_CHECK(hub_wifi_start());
+    wifi_console_start();
     ESP_ERROR_CHECK(hub_registry_init());
     ESP_ERROR_CHECK(hub_bus_start());
     ESP_ERROR_CHECK(hub_http_start());

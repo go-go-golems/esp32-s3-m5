@@ -16,6 +16,21 @@ idf.py set-target esp32s3
 idf.py menuconfig  # Tutorial 0029: Mock Zigbee HTTP hub
 ```
 
+Or configure at runtime over the USB Serial/JTAG `esp_console` REPL (credentials persist in NVS):
+
+```text
+hub> wifi scan
+hub> wifi set <ssid> <password> save
+hub> wifi connect
+hub> wifi status
+```
+
+To forget saved credentials:
+
+```text
+hub> wifi clear
+```
+
 Or write credentials into the local `sdkconfig` (gitignored):
 
 ```bash

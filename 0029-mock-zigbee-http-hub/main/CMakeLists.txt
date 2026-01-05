@@ -6,6 +6,7 @@ idf_component_register(
         "hub_registry.c"
         "hub_sim.c"
         "wifi_sta.c"
+        "wifi_console.c"
     PRIV_REQUIRES
         spi_flash
         esp_event
@@ -15,6 +16,7 @@ idf_component_register(
         nvs_flash
         esp_http_server
         json
+        console
     INCLUDE_DIRS
         "."
 )
