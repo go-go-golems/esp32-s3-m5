@@ -9,7 +9,7 @@ idf_component_register(
     REQUIRES
         M5GFX
         cardputer_kb
+        proto
     INCLUDE_DIRS
         "."
 )
-

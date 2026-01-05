@@ -25,6 +25,9 @@ bus> evt spam 10
 bus> evt status
 bus> evt monitor on
 bus> evt monitor off
+bus> evt pb on
+bus> evt pb last
+bus> evt pb off
 bus> evt clear
 ```
 

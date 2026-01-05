@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package demo.bus.v1;
+
+import "nanopb.proto";
+
+enum EventId {
+  EVENT_ID_UNSPECIFIED = 0;
+  EVENT_ID_KB_KEY = 1;
+  EVENT_ID_KB_ACTION = 2;
+  EVENT_ID_CONSOLE_POST = 3;
+  EVENT_ID_HEARTBEAT = 4;
+  EVENT_ID_RAND = 5;
+  EVENT_ID_CONSOLE_CLEAR = 6;
+}
+
+message KbKey {
+  int64 ts_us = 1;
+  uint32 keynum = 2;
+  uint32 modifiers = 3;
+}
+
+message KbAction {
+  int64 ts_us = 1;
+  uint32 action = 2;
+  uint32 modifiers = 3;
+}
+
+message ConsolePost {
+  int64 ts_us = 1;
+  string msg = 2 [(nanopb).max_length = 96];
+}
+
+message Heartbeat {
+  int64 ts_us = 1;
+  uint32 heap_free = 2;
+  uint32 dma_free = 3;
+  uint32 drops = 4;
+}
+
+message Rand {
+  int64 ts_us = 1;
+  uint32 producer_id = 2;
+  uint32 value = 3;
+}
+
+message Event {
+  uint32 schema_version = 1;
+  EventId id = 2;
+
+  oneof payload {
+    KbKey kb_key = 10;
+    KbAction kb_action = 11;
+    ConsolePost console_post = 12;
+    Heartbeat heartbeat = 13;
+    Rand rand = 14;
+  }
+}

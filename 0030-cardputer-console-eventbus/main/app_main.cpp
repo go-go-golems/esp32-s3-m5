@@ -36,10 +36,14 @@
 
 #include "M5GFX.h"
 
+#include "pb_encode.h"
+
 #include "cardputer_kb/bindings.h"
 #include "cardputer_kb/bindings_m5cardputer_captured.h"
 #include "cardputer_kb/layout.h"
 #include "cardputer_kb/scanner.h"
+
+#include "demo_bus.pb.h"
 
 static const char *TAG = "cardputer_console_eventbus_0030";
 
@@ -95,6 +99,11 @@ static std::atomic<uint32_t> s_post_drops{0};
 static std::atomic<bool> s_monitor_enabled{false};
 static std::atomic<uint32_t> s_monitor_drops{0};
 static QueueHandle_t s_monitor_q = NULL;
+
+static std::atomic<bool> s_pb_capture_enabled{false};
+static SemaphoreHandle_t s_pb_mu = NULL;
+static bool s_pb_last_valid = false;
+static demo_bus_v1_Event s_pb_last = demo_bus_v1_Event_init_zero;
 
 typedef struct {
     char line[192];
@@ -274,6 +283,73 @@ static void render_ui(UiState &ui) {
 static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
     auto *ui = (UiState *)arg;
     if (event_base != CARDPUTER_BUS_EVENT || !ui) return;
+
+    if (s_pb_capture_enabled.load()) {
+        demo_bus_v1_Event pb = demo_bus_v1_Event_init_zero;
+        pb.schema_version = 1;
+        pb.which_payload = 0;
+
+        if (event_id == BUS_EVT_KB_KEY) {
+            const demo_kb_key_event_t *ev = (const demo_kb_key_event_t *)event_data;
+            if (ev) {
+                pb.id = demo_bus_v1_EventId_EVENT_ID_KB_KEY;
+                pb.which_payload = demo_bus_v1_Event_kb_key_tag;
+                pb.payload.kb_key.ts_us = ev->ts_us;
+                pb.payload.kb_key.keynum = ev->keynum;
+                pb.payload.kb_key.modifiers = ev->modifiers;
+            }
+        } else if (event_id == BUS_EVT_KB_ACTION) {
+            const demo_kb_action_event_t *ev = (const demo_kb_action_event_t *)event_data;
+            if (ev) {
+                pb.id = demo_bus_v1_EventId_EVENT_ID_KB_ACTION;
+                pb.which_payload = demo_bus_v1_Event_kb_action_tag;
+                pb.payload.kb_action.ts_us = ev->ts_us;
+                pb.payload.kb_action.action = ev->action;
+                pb.payload.kb_action.modifiers = ev->modifiers;
+            }
+        } else if (event_id == BUS_EVT_CONSOLE_POST) {
+            const demo_console_post_event_t *ev = (const demo_console_post_event_t *)event_data;
+            if (ev) {
+                pb.id = demo_bus_v1_EventId_EVENT_ID_CONSOLE_POST;
+                pb.which_payload = demo_bus_v1_Event_console_post_tag;
+                pb.payload.console_post.ts_us = ev->ts_us;
+                strlcpy(pb.payload.console_post.msg, ev->msg, sizeof(pb.payload.console_post.msg));
+            }
+        } else if (event_id == BUS_EVT_CONSOLE_CLEAR) {
+            pb.id = demo_bus_v1_EventId_EVENT_ID_CONSOLE_CLEAR;
+        } else if (event_id == BUS_EVT_RAND) {
+            const demo_rand_event_t *ev = (const demo_rand_event_t *)event_data;
+            if (ev) {
+                pb.id = demo_bus_v1_EventId_EVENT_ID_RAND;
+                pb.which_payload = demo_bus_v1_Event_rand_tag;
+                pb.payload.rand.ts_us = ev->ts_us;
+                pb.payload.rand.producer_id = ev->producer_id;
+                pb.payload.rand.value = ev->value;
+            }
+        } else if (event_id == BUS_EVT_HEARTBEAT) {
+            const demo_heartbeat_event_t *ev = (const demo_heartbeat_event_t *)event_data;
+            if (ev) {
+                pb.id = demo_bus_v1_EventId_EVENT_ID_HEARTBEAT;
+                pb.which_payload = demo_bus_v1_Event_heartbeat_tag;
+                pb.payload.heartbeat.ts_us = ev->ts_us;
+                pb.payload.heartbeat.heap_free = ev->heap_free;
+                pb.payload.heartbeat.dma_free = ev->dma_free;
+                pb.payload.heartbeat.drops = s_post_drops.load();
+            }
+        }
+
+        if (pb.id != demo_bus_v1_EventId_EVENT_ID_UNSPECIFIED) {
+            if (!s_pb_mu) {
+                s_pb_mu = xSemaphoreCreateMutex();
+            }
+            if (s_pb_mu) {
+                xSemaphoreTake(s_pb_mu, portMAX_DELAY);
+                s_pb_last = pb;
+                s_pb_last_valid = true;
+                xSemaphoreGive(s_pb_mu);
+            }
+        }
+    }
 
     if (event_id == BUS_EVT_KB_KEY) {
         ui->kb_key_events++;
@@ -500,7 +576,64 @@ static int cmd_evt(int argc, char **argv) {
     }
 
     if (argc < 2) {
-        printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status\n");
+        printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status | evt pb on|off|status|last\n");
+        return 1;
+    }
+
+    if (strcmp(argv[1], "pb") == 0) {
+        if (argc < 3 || strcmp(argv[2], "status") == 0) {
+            printf("pb_capture=%s last=%s\n", s_pb_capture_enabled.load() ? "on" : "off", s_pb_last_valid ? "yes" : "no");
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            s_pb_capture_enabled.store(true);
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            s_pb_capture_enabled.store(false);
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "last") == 0) {
+            if (!s_pb_mu || !s_pb_last_valid) {
+                printf("no last protobuf event (turn on capture: evt pb on)\n");
+                return 1;
+            }
+
+            demo_bus_v1_Event pb = demo_bus_v1_Event_init_zero;
+            xSemaphoreTake(s_pb_mu, portMAX_DELAY);
+            pb = s_pb_last;
+            xSemaphoreGive(s_pb_mu);
+
+            size_t need = 0;
+            if (!pb_get_encoded_size(&need, demo_bus_v1_Event_fields, &pb)) {
+                printf("encode sizing failed\n");
+                return 1;
+            }
+
+            uint8_t buf[256];
+            if (need > sizeof(buf)) {
+                printf("event too large (%zu > %zu)\n", need, sizeof(buf));
+                return 1;
+            }
+
+            pb_ostream_t s = pb_ostream_from_buffer(buf, sizeof(buf));
+            if (!pb_encode(&s, demo_bus_v1_Event_fields, &pb)) {
+                printf("encode failed: %s\n", PB_GET_ERROR(&s));
+                return 1;
+            }
+
+            printf("len=%zu\n", (size_t)s.bytes_written);
+            for (size_t i = 0; i < (size_t)s.bytes_written; i++) {
+                if (i % 16 == 0) printf("%04zx: ", i);
+                printf("%02x ", buf[i]);
+                if (i % 16 == 15 || i + 1 == (size_t)s.bytes_written) printf("\n");
+            }
+            return 0;
+        }
+
+        printf("usage: evt pb on|off|status|last\n");
         return 1;
     }
 
@@ -574,7 +707,7 @@ static int cmd_evt(int argc, char **argv) {
         return 0;
     }
 
-    printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status\n");
+    printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status | evt pb on|off|status|last\n");
     return 1;
 }
 
