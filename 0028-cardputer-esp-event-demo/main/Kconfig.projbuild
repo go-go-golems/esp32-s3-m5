@@ -1,0 +1,69 @@
+menu "Tutorial 0028: Cardputer esp_event demo"
+
+config TUTORIAL_0028_EVENT_QUEUE_SIZE
+    int "Event loop queue size"
+    range 8 256
+    default 32
+    help
+        Queue size for the application event loop created via esp_event_loop_create().
+
+config TUTORIAL_0028_DISPATCH_TICKS
+    int "UI dispatch budget (ticks)"
+    range 0 100
+    default 1
+    help
+        Each UI loop iteration calls esp_event_loop_run(loop, ticks).
+        This sets the max time spent waiting on events before returning to rendering.
+        If you set this too high, rendering may stutter; too low increases CPU usage.
+
+config TUTORIAL_0028_UI_MAX_LINES
+    int "UI log max lines"
+    range 32 2048
+    default 256
+    help
+        Maximum number of log lines kept in memory for the on-screen event log.
+
+config TUTORIAL_0028_UI_TARGET_FPS
+    int "UI target FPS"
+    range 1 60
+    default 30
+    help
+        Maximum redraw rate for the UI. Redraws are skipped if nothing is dirty.
+
+config TUTORIAL_0028_KB_SCAN_PERIOD_MS
+    int "Keyboard scan period (ms)"
+    range 1 100
+    default 10
+    help
+        Polling period for the Cardputer keyboard matrix scanner.
+
+config TUTORIAL_0028_RAND_PRODUCERS
+    int "Random event producers"
+    range 0 8
+    default 3
+    help
+        Number of background tasks generating random events.
+
+config TUTORIAL_0028_RAND_MIN_PERIOD_MS
+    int "Random producer min period (ms)"
+    range 10 10000
+    default 200
+    help
+        Lower bound for random producer delay between posts.
+
+config TUTORIAL_0028_RAND_MAX_PERIOD_MS
+    int "Random producer max period (ms)"
+    range 10 60000
+    default 1200
+    help
+        Upper bound for random producer delay between posts.
+
+config TUTORIAL_0028_HEARTBEAT_PERIOD_MS
+    int "Heartbeat period (ms)"
+    range 100 60000
+    default 1000
+    help
+        Period for the heartbeat task to post memory statistics events.
+
+endmenu
+
