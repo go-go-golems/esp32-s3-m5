@@ -1,7 +1,7 @@
 ---
 Title: 'Cardputer: keyboard + esp_console + esp_event + on-screen event log'
 Ticket: 0030-CARDPUTER-CONSOLE-EVENTBUS
-Status: active
+Status: complete
 Topics:
     - cardputer
     - keyboard
@@ -17,10 +17,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-05T07:48:59.196302012-05:00
+LastUpdated: 2026-01-05T08:00:03.229730502-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Cardputer: keyboard + esp_console + esp_event + on-screen event log
 

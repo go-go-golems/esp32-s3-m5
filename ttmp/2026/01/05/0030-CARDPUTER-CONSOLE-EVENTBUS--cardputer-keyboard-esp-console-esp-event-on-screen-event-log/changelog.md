@@ -14,3 +14,8 @@ Implement new Cardputer demo combining keyboard -> esp_event, esp_console REPL -
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp — Core demo implementation.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/sdkconfig.defaults — Defaults enabling USB-Serial-JTAG console.
 
+
+## 2026-01-05
+
+Ticket closed
+

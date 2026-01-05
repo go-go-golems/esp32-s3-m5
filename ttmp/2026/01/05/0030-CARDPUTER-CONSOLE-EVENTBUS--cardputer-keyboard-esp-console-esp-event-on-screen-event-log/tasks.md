@@ -2,7 +2,7 @@
 
 ## TODO
 
-- [ ] Add tasks here
+- [x] Add tasks here
 
 - [x] Scaffold new ESP-IDF project 0030-cardputer-console-eventbus
 - [x] Implement esp_event loop + on-screen event log (M5GFX)
