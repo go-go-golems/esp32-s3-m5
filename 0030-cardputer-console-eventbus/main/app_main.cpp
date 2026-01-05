@@ -23,6 +23,7 @@
 #include "sdkconfig.h"
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 
 #include "esp_console.h"
@@ -91,6 +92,33 @@ typedef struct {
 
 static esp_event_loop_handle_t s_loop = NULL;
 static std::atomic<uint32_t> s_post_drops{0};
+static std::atomic<bool> s_monitor_enabled{false};
+static std::atomic<uint32_t> s_monitor_drops{0};
+static QueueHandle_t s_monitor_q = NULL;
+
+typedef struct {
+    char line[192];
+} monitor_line_t;
+
+static void monitor_enqueue_line(const char *line) {
+    if (!line || !s_monitor_enabled.load() || !s_monitor_q) return;
+    monitor_line_t m = {};
+    strlcpy(m.line, line, sizeof(m.line));
+    if (xQueueSend(s_monitor_q, &m, 0) != pdTRUE) {
+        s_monitor_drops.fetch_add(1);
+    }
+}
+
+static void monitor_task(void *arg) {
+    (void)arg;
+    monitor_line_t m = {};
+    while (true) {
+        if (xQueueReceive(s_monitor_q, &m, portMAX_DELAY) != pdTRUE) continue;
+        if (!s_monitor_enabled.load()) continue;
+        printf("%s\n", m.line);
+        fflush(stdout);
+    }
+}
 
 static bool contains_u8(const std::vector<uint8_t> &v, uint8_t x) {
     for (auto it : v) {
@@ -266,6 +294,7 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
                  legend ? legend : "?",
                  mods.empty() ? "-" : mods.c_str());
         lines_append(*ui, line);
+        monitor_enqueue_line(line);
 
         // UI controls handled on receive side (same spirit as 0028):
         // - Del with no modifiers clears the log
@@ -291,6 +320,7 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         char line[160];
         snprintf(line, sizeof(line), "[kb] action=%s", name ? name : "?");
         lines_append(*ui, line);
+        monitor_enqueue_line(line);
 
         // Use nav actions for scroll control.
         switch ((cardputer_kb::Action)ev->action) {
@@ -326,11 +356,13 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         if (!ev) return;
         std::string s = "[con] ";
         s += ev->msg;
+        monitor_enqueue_line(s.c_str());
         lines_append(*ui, std::move(s));
         return;
     }
 
     if (event_id == BUS_EVT_CONSOLE_CLEAR) {
+        monitor_enqueue_line("[con] clear");
         lines_clear(*ui);
         return;
     }
@@ -343,6 +375,7 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
         char line[120];
         snprintf(line, sizeof(line), "[rnd] p%u value=%" PRIu32, ev->producer_id, ev->value);
         lines_append(*ui, line);
+        monitor_enqueue_line(line);
         return;
     }
 
@@ -360,6 +393,7 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
                  ev->dma_free,
                  s_post_drops.load());
         lines_append(*ui, line);
+        monitor_enqueue_line(line);
         return;
     }
 }
@@ -466,7 +500,27 @@ static int cmd_evt(int argc, char **argv) {
     }
 
     if (argc < 2) {
-        printf("usage: evt post <text> | evt spam <n> | evt clear | evt status\n");
+        printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status\n");
+        return 1;
+    }
+
+    if (strcmp(argv[1], "monitor") == 0) {
+        if (argc < 3 || strcmp(argv[2], "status") == 0) {
+            printf("monitor=%s drops=%" PRIu32 "\n", s_monitor_enabled.load() ? "on" : "off", s_monitor_drops.load());
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            s_monitor_enabled.store(true);
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            s_monitor_enabled.store(false);
+            if (s_monitor_q) xQueueReset(s_monitor_q);
+            printf("ok\n");
+            return 0;
+        }
+        printf("usage: evt monitor on|off|status\n");
         return 1;
     }
 
@@ -520,7 +574,7 @@ static int cmd_evt(int argc, char **argv) {
         return 0;
     }
 
-    printf("usage: evt post <text> | evt spam <n> | evt clear | evt status\n");
+    printf("usage: evt post <text> | evt spam <n> | evt clear | evt status | evt monitor on|off|status\n");
     return 1;
 }
 
@@ -579,6 +633,13 @@ extern "C" void app_main(void) {
         .task_core_id = 0,
     };
     ESP_ERROR_CHECK(esp_event_loop_create(&args, &s_loop));
+
+    if (!s_monitor_q) {
+        s_monitor_q = xQueueCreate(64, sizeof(monitor_line_t));
+        if (s_monitor_q) {
+            xTaskCreate(&monitor_task, "evt_mon", 4096, NULL, 1, NULL);
+        }
+    }
 
     UiState ui{};
     ESP_LOGI(TAG, "display init via M5GFX autodetect...");

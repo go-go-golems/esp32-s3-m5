@@ -23,8 +23,9 @@ bus> help
 bus> evt post hello
 bus> evt spam 10
 bus> evt status
+bus> evt monitor on
+bus> evt monitor off
 bus> evt clear
 ```
 
 If `idf.py monitor` can't send input to the device, use a real serial terminal (e.g. `picocom`/`minicom`) on the same port.
-
