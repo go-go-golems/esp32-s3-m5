@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.c"
         "hub_bus.c"
         "hub_http.c"
+        "hub_pb.c"
         "hub_registry.c"
         "hub_sim.c"
         "wifi_sta.c"
@@ -17,6 +18,7 @@ idf_component_register(
         esp_http_server
         json
         console
+        hub_proto
     INCLUDE_DIRS
         "."
 )

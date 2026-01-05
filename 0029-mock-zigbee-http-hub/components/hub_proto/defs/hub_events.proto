@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package hub.v1;
+
+import "nanopb.proto";
+
+// Keep numeric values aligned with hub_event_id_t (hub_types.h).
+enum EventId {
+  EVENT_ID_UNSPECIFIED = 0;
+
+  // Commands
+  HUB_CMD_DEVICE_ADD = 1;
+  HUB_CMD_DEVICE_REMOVE = 2;
+  HUB_CMD_DEVICE_INTERVIEW = 3;
+  HUB_CMD_DEVICE_SET = 4;
+  HUB_CMD_SCENE_TRIGGER = 5;
+
+  // Notifications
+  HUB_EVT_DEVICE_ADDED = 6;
+  HUB_EVT_DEVICE_REMOVED = 7;
+  HUB_EVT_DEVICE_INTERVIEWED = 8;
+  HUB_EVT_DEVICE_STATE = 9;
+  HUB_EVT_DEVICE_REPORT = 10;
+}
+
+enum DeviceType {
+  DEVICE_TYPE_UNSPECIFIED = 0;
+  HUB_DEVICE_PLUG = 1;
+  HUB_DEVICE_BULB = 2;
+  HUB_DEVICE_TEMP_SENSOR = 3;
+}
+
+message Device {
+  uint32 id = 1;
+  DeviceType type = 2;
+  uint32 caps = 3;
+  string name = 4 [(nanopb).max_length = 31];
+
+  bool on = 10;
+  uint32 level = 11; // 0..100
+  float power_w = 12;
+  float temperature_c = 13;
+}
+
+message CmdDeviceAdd {
+  uint64 req_id = 1;
+  DeviceType type = 2;
+  uint32 caps = 3;
+  string name = 4 [(nanopb).max_length = 31];
+}
+
+message CmdDeviceSet {
+  uint64 req_id = 1;
+  uint32 device_id = 2;
+  bool has_on = 3;
+  bool on = 4;
+  bool has_level = 5;
+  uint32 level = 6;
+}
+
+message CmdDeviceInterview {
+  uint64 req_id = 1;
+  uint32 device_id = 2;
+}
+
+message CmdSceneTrigger {
+  uint64 req_id = 1;
+  uint32 scene_id = 2;
+}
+
+message DeviceState {
+  int64 ts_us = 1;
+  uint32 device_id = 2;
+  bool on = 3;
+  uint32 level = 4;
+}
+
+message DeviceReport {
+  int64 ts_us = 1;
+  uint32 device_id = 2;
+  bool has_power = 3;
+  float power_w = 4;
+  bool has_temperature = 5;
+  float temperature_c = 6;
+}
+
+message HubEvent {
+  uint32 schema_version = 1; // start at 1
+  EventId id = 2;
+  int64 ts_us = 3; // best-effort "event timestamp" for external tooling
+
+  oneof payload {
+    Device device = 10;                // device added/interviewed snapshots
+    DeviceState device_state = 11;
+    DeviceReport device_report = 12;
+
+    CmdDeviceAdd cmd_device_add = 20;
+    CmdDeviceSet cmd_device_set = 21;
+    CmdDeviceInterview cmd_device_interview = 22;
+    CmdSceneTrigger cmd_scene_trigger = 23;
+  }
+}

@@ -16,8 +16,13 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_netif_ip_addr.h"
+#include "esp_timer.h"
 #include "esp_wifi.h"
 #include "lwip/inet.h"
+
+#include "hub_bus.h"
+#include "hub_pb.h"
+#include "hub_types.h"
 
 #include "wifi_sta.h"
 
@@ -67,6 +72,155 @@ static bool try_parse_int(const char *s, int *out) {
     if (!end || *end != '\0') return false;
     *out = (int)v;
     return true;
+}
+
+static void hub_print_usage(void) {
+    printf("usage:\n");
+    printf("  hub seed\n");
+    printf("  hub pb status\n");
+    printf("  hub pb on\n");
+    printf("  hub pb off\n");
+    printf("  hub pb last\n");
+}
+
+static esp_err_t hub_post_add(const char *name, hub_device_type_t type, uint32_t caps, uint32_t *out_id) {
+    if (out_id) *out_id = 0;
+    esp_event_loop_handle_t loop = hub_bus_get_loop();
+    if (!loop) return ESP_ERR_INVALID_STATE;
+
+    QueueHandle_t q = xQueueCreate(1, sizeof(hub_reply_device_t));
+    if (!q) return ESP_ERR_NO_MEM;
+
+    hub_cmd_device_add_t cmd = {
+        .hdr = {.req_id = (uint32_t)esp_timer_get_time(), .reply_q = q},
+        .type = type,
+        .caps = caps,
+    };
+    strlcpy(cmd.name, name ? name : "", sizeof(cmd.name));
+
+    esp_err_t err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_ADD, &cmd, sizeof(cmd), pdMS_TO_TICKS(100));
+    if (err != ESP_OK) {
+        vQueueDelete(q);
+        return err;
+    }
+
+    hub_reply_device_t rep = {0};
+    if (xQueueReceive(q, &rep, pdMS_TO_TICKS(500)) != pdTRUE) {
+        vQueueDelete(q);
+        return ESP_ERR_TIMEOUT;
+    }
+    vQueueDelete(q);
+
+    if (rep.status != ESP_OK) return rep.status;
+    if (out_id) *out_id = rep.device_id;
+    return ESP_OK;
+}
+
+static esp_err_t hub_post_interview(uint32_t device_id) {
+    esp_event_loop_handle_t loop = hub_bus_get_loop();
+    if (!loop) return ESP_ERR_INVALID_STATE;
+
+    QueueHandle_t q = xQueueCreate(1, sizeof(hub_reply_status_t));
+    if (!q) return ESP_ERR_NO_MEM;
+
+    hub_cmd_device_interview_t cmd = {
+        .hdr = {.req_id = (uint32_t)esp_timer_get_time(), .reply_q = q},
+        .device_id = device_id,
+    };
+
+    esp_err_t err = esp_event_post_to(loop, HUB_EVT, HUB_CMD_DEVICE_INTERVIEW, &cmd, sizeof(cmd), pdMS_TO_TICKS(100));
+    if (err != ESP_OK) {
+        vQueueDelete(q);
+        return err;
+    }
+
+    hub_reply_status_t rep = {0};
+    if (xQueueReceive(q, &rep, pdMS_TO_TICKS(500)) != pdTRUE) {
+        vQueueDelete(q);
+        return ESP_ERR_TIMEOUT;
+    }
+    vQueueDelete(q);
+    return rep.status;
+}
+
+static int cmd_hub(int argc, char **argv) {
+    if (argc < 2) {
+        hub_print_usage();
+        return 1;
+    }
+
+    if (strcmp(argv[1], "seed") == 0) {
+        uint32_t plug_id = 0;
+        uint32_t bulb_id = 0;
+        uint32_t temp_id = 0;
+
+        esp_err_t err = hub_post_add("desk", HUB_DEVICE_PLUG, 0, &plug_id);
+        if (err == ESP_OK) err = hub_post_add("lamp", HUB_DEVICE_BULB, 0, &bulb_id);
+        if (err == ESP_OK) err = hub_post_add("t1", HUB_DEVICE_TEMP_SENSOR, 0, &temp_id);
+        if (err != ESP_OK) {
+            printf("seed failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+
+        // Interview to populate type-based caps and trigger more event traffic.
+        (void)hub_post_interview(plug_id);
+        (void)hub_post_interview(bulb_id);
+        (void)hub_post_interview(temp_id);
+
+        printf("seeded devices: plug=%" PRIu32 " bulb=%" PRIu32 " temp=%" PRIu32 "\n", plug_id, bulb_id, temp_id);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "pb") == 0) {
+        if (argc < 3 || strcmp(argv[2], "status") == 0) {
+            bool enabled = false;
+            bool have_last = false;
+            hub_pb_get_status(&enabled, &have_last);
+            printf("pb_capture=%s last=%s\n", enabled ? "on" : "off", have_last ? "yes" : "no");
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            hub_pb_set_capture(true);
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            hub_pb_set_capture(false);
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "last") == 0) {
+            uint8_t buf[512];
+            size_t n = 0;
+            esp_err_t err = hub_pb_encode_last(buf, sizeof(buf), &n);
+            if (err == ESP_ERR_INVALID_STATE) {
+                printf("no last protobuf event (turn on capture: hub pb on)\n");
+                return 1;
+            }
+            if (err == ESP_ERR_NO_MEM) {
+                printf("event too large for buffer (%zu)\n", sizeof(buf));
+                return 1;
+            }
+            if (err != ESP_OK) {
+                printf("encode failed: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+
+            printf("len=%zu\n", n);
+            for (size_t i = 0; i < n; i++) {
+                if (i % 16 == 0) printf("%04zx: ", i);
+                printf("%02x ", buf[i]);
+                if (i % 16 == 15 || i + 1 == n) printf("\n");
+            }
+            return 0;
+        }
+
+        hub_print_usage();
+        return 1;
+    }
+
+    hub_print_usage();
+    return 1;
 }
 
 static int cmd_wifi(int argc, char **argv) {
@@ -233,6 +387,12 @@ static void register_commands(void) {
     cmd.help = "WiFi STA config: wifi status|scan|set|connect|disconnect|clear";
     cmd.func = &cmd_wifi;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    esp_console_cmd_t hub_cmd = {0};
+    hub_cmd.command = "hub";
+    hub_cmd.help = "Hub debug: hub seed, hub pb on|off|status|last";
+    hub_cmd.func = &cmd_hub;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&hub_cmd));
 }
 
 void wifi_console_start(void) {

@@ -12,6 +12,7 @@
 
 #include "hub_bus.h"
 #include "hub_http.h"
+#include "hub_pb.h"
 #include "hub_registry.h"
 #include "hub_sim.h"
 #include "wifi_console.h"
@@ -22,6 +23,7 @@ void app_main(void) {
     wifi_console_start();
     ESP_ERROR_CHECK(hub_registry_init());
     ESP_ERROR_CHECK(hub_bus_start());
+    ESP_ERROR_CHECK(hub_pb_register(hub_bus_get_loop()));
     ESP_ERROR_CHECK(hub_http_start());
     ESP_ERROR_CHECK(hub_sim_start());
 
