@@ -29,3 +29,20 @@ Add console event monitor (evt monitor on|off) to mirror bus events to the conso
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp — Event monitor queue + command.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/02-pattern-esp-event-centric-architecture-c-and-c.md — Reusable architecture writeup.
 
+
+## 2026-01-05
+
+Add nanopb protobuf schema + embedded encoder path for bus events (commit 35f8f08)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/README.md — Document evt pb commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/components/proto/CMakeLists.txt — FetchContent nanopb + codegen with CMAKE_BUILD_EARLY_EXPANSION guard
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto — New .proto schema for 0030 bus events
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp — Capture last bus event and encode via nanopb (evt pb ...)
+
+
+## 2026-01-05
+
+Ticket closed
+

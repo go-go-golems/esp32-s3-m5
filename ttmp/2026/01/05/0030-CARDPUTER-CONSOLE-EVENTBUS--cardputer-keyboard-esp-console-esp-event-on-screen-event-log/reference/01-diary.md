@@ -15,6 +15,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0030-cardputer-console-eventbus/components/proto/CMakeLists.txt
+      Note: Codegen wiring introduced in Step 4
+    - Path: 0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto
+      Note: Schema introduced in Step 4
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
       Note: Implementation work recorded in this diary.
     - Path: 0030-cardputer-console-eventbus/partitions.csv
@@ -25,6 +29,7 @@ LastUpdated: 2026-01-05T07:49:04.828361218-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -176,6 +181,62 @@ In parallel, wrote a design/pattern document describing how to turn this style o
   - event handler enqueue points
 - Read the architecture writeup:
   - `ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/analysis/02-pattern-esp-event-centric-architecture-c-and-c.md`
+
+## Step 4: Add nanopb + protobuf schema and encode path (embedded-only)
+
+Added a nanopb-backed protobuf schema for the 0030 bus and wired codegen + encoding into the firmware. The event bus remains fixed-size C structs for `esp_event`, and protobuf is used only as a boundary/serialization format (for now, validated by printing an encoded hex dump on the console).
+
+This step is meant to “prove the toolchain”: `.proto` file → generated `.pb.c/.h` → encode an envelope from a real bus event with bounded memory usage.
+
+**Commit (code):** 35f8f08 — "0030: add nanopb protobuf event encoding"
+
+### What I did
+- Added a new ESP-IDF component `proto`:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/components/proto/CMakeLists.txt`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto`
+- Integrated nanopb via `FetchContent` with an ESP-IDF-safe `CMAKE_BUILD_EARLY_EXPANSION` guard and `find_package(Nanopb)` so `nanopb_generate_cpp(...)` runs at configure/build time.
+- Updated `main` to `REQUIRES proto` and added an embedded-only encode path:
+  - `evt pb on|off|status|last` captures the last bus event, encodes it via nanopb, and prints hex + length.
+- Updated the firmware README with the new console verbs.
+- Built to confirm generator + firmware link end-to-end:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0030-cardputer-console-eventbus build`
+
+### Why
+- Use protobuf as an IDL (“single source of truth”) for event payload shapes while keeping internal bus payloads fast and POD-friendly.
+- Keep the current iteration embedded-only; WebSocket/TypeScript decoding can be layered later once the schema + encoder are stable.
+
+### What worked
+- `nanopb_generate_cpp(...)` produces `demo_bus.pb.c/.h` during the build and the firmware links cleanly.
+- Encoding is bounded and deterministic (stack buffer + `pb_get_encoded_size` check).
+
+### What didn't work
+- Nanopb generator can fail if the Python protobuf runtime is missing in the Python env used by the generator plugin:
+  - Error: `ModuleNotFoundError: No module named 'google'`
+  - Fix (example for IDF 5.4 env): `/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python -m pip install protobuf`
+
+### What I learned
+- ESP-IDF component “early expansion” can break naïve `FetchContent` usage; nanopb integration needs to be guarded with `if(NOT CMAKE_BUILD_EARLY_EXPANSION)` (see `espressif/esp-idf#15693`).
+
+### What was tricky to build
+- Mapping `BUS_EVT_*` IDs and fixed-size structs to a protobuf `oneof` envelope without introducing heap allocation or blocking inside event handlers.
+- Keeping the console-friendly “pb last” encoding path robust (buffer sizing, `pb_encode` error handling).
+
+### What warrants a second pair of eyes
+- Confirm the chosen bounds in `demo_bus.proto` (e.g. `(nanopb).max_length`) match real-world usage and won’t silently truncate important logs.
+- Confirm the buffer sizing strategy for encoding (`uint8_t buf[256]`) is acceptable, or decide on a shared max payload constant for all firmwares.
+
+### What should be done in the future
+- Add a dedicated “bus→protobuf bridge” module (and optionally WebSocket binary frames) rather than encoding inside the demo handler path.
+- Add decode-side tooling (host/TS) in a separate ticket once schema stability is acceptable.
+
+### Code review instructions
+- Start at `0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto` (schema + bounds).
+- Then review `0030-cardputer-console-eventbus/components/proto/CMakeLists.txt` for the IDF-safe nanopb integration.
+- Finally review `0030-cardputer-console-eventbus/main/app_main.cpp`:
+  - `s_pb_capture_enabled`, `s_pb_last`, `evt pb ...` verb, and the encoding path.
+- Validate:
+  - Build: `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0030-cardputer-console-eventbus build`
+  - Run (console): `evt pb on` then generate events (keyboard or `evt post hi`) then `evt pb last`
 
 ## Related
 

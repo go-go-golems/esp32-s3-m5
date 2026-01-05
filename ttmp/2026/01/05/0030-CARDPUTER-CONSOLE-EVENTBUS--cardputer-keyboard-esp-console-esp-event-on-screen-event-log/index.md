@@ -17,10 +17,12 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-05T08:00:03.229730502-05:00
+LastUpdated: 2026-01-05T09:27:00.106956073-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 # Cardputer: keyboard + esp_console + esp_event + on-screen event log

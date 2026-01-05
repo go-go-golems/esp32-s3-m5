@@ -17,14 +17,25 @@ Owners: []
 RelatedFiles:
     - Path: 0029-mock-zigbee-http-hub/main/hub_http.c
       Note: Reference for esp_http_server + WebSocket plumbing patterns.
+    - Path: 0030-cardputer-console-eventbus/components/proto/CMakeLists.txt
+      Note: |-
+        ESP-IDF-safe nanopb FetchContent + codegen integration (CMAKE_BUILD_EARLY_EXPANSION workaround).
+        nanopb FetchContent + codegen
+    - Path: 0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto
+      Note: |-
+        Protobuf schema for the 0030 bus (nanopb codegen input).
+        0030 bus protobuf schema (nanopb bounded fields)
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
-      Note: Defines the current bus IDs and fixed-size payload structs that the protobuf schema will mirror.
+      Note: |-
+        Defines the current bus IDs and fixed-size payload structs that the protobuf schema will mirror.
+        Maps BUS_EVT_* payloads to protobuf envelope; evt pb/monitor console verbs
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T08:40:38.530213909-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Design: protobuf event payloads + WebSocket bridge for 0030
@@ -37,9 +48,9 @@ Recommended path:
 
 - Keep internal bus payloads as **fixed-size C structs** (as they are today).
 - Add a **bridge** that subscribes to bus events and emits a **protobuf envelope** over WebSocket (binary frames).
-- Generate TypeScript types/decoders from the same `.proto` so web clients share the schema.
+- (Future) Generate TypeScript types/decoders from the same `.proto` so web clients share the schema.
 
-This uses **nanopb** on the device (small embedded-focused protobuf implementation), and a TypeScript codegen decoder on the client.
+This uses **nanopb** on the device (small embedded-focused protobuf implementation). TypeScript/web decoding is intentionally out-of-scope for the current embedded-only iteration.
 
 ## Problem Statement
 
@@ -56,7 +67,7 @@ That is great for embedded correctness and performance, but it becomes painful a
 We want a **single source of truth** for event payloads that supports:
 
 - embedded producers/consumers
-- WebSocket clients
+- WebSocket clients (future)
 - future tooling (schema/version checks, dumps, replay)
 
 ## Proposed Solution
@@ -65,7 +76,7 @@ We want a **single source of truth** for event payloads that supports:
 
 Add a `.proto` file for the 0030 bus, for example:
 
-- `0030-cardputer-console-eventbus/main/idl/demo_bus.proto` (new)
+- `0030-cardputer-console-eventbus/components/proto/defs/demo_bus.proto` (current)
 
 Schema shape:
 
@@ -221,7 +232,7 @@ Cons:
 
 ## Implementation Plan
 
-1) Add `main/idl/demo_bus.proto` for the 0030 bus.
+1) Add `components/proto/defs/demo_bus.proto` for the 0030 bus.
 2) Add a `proto` component that owns schema + generation (recommended structure):
    - `0030-cardputer-console-eventbus/components/proto/defs/*.proto`
    - `0030-cardputer-console-eventbus/components/proto/CMakeLists.txt`
@@ -260,9 +271,32 @@ endif()
 
 5) Update `main/CMakeLists.txt` to `REQUIRES proto` (so `pb_encode.h` and generated headers are available).
 
-5) Add `esp_http_server` WS endpoint (reuse patterns from `0029-mock-zigbee-http-hub`).
-6) Add a bus→protobuf→WS bridge module and enable it behind a Kconfig flag.
-7) Add a minimal web client and TS decoder driven by the same `.proto` (codegen approach).
+6) (Future) Add `esp_http_server` WS endpoint (reuse patterns from `0029-mock-zigbee-http-hub`).
+7) (Future) Add a bus→protobuf→WS bridge module and enable it behind a Kconfig flag.
+8) (Future) Add a minimal web client and TS decoder driven by the same `.proto` (codegen approach).
+
+## Current Embedded Implementation (0030)
+
+Embedded-only is implemented as a “capture + encode” path for validation:
+
+- `evt pb on|off|status|last`: capture the most recent bus event, encode it via nanopb, and print the encoded protobuf as a hex dump (plus byte length).
+- `evt monitor on|off|status`: stream human-readable event lines to the console using a queue+task (keeps event handlers fast; avoids printing from inside handlers).
+
+This is enough to validate:
+
+- `.proto` matches the current bus structs
+- codegen is wired correctly
+- encoding works and stays within a bounded buffer
+
+### Known sharp edge: nanopb generator Python dependency
+
+The nanopb generator runs as a Python plugin. If the ESP-IDF Python environment used by `protoc-gen-nanopb` does not have the Python `protobuf` package, generation can fail with:
+
+`ModuleNotFoundError: No module named 'google'`
+
+Fix by installing into the ESP-IDF Python env (example; adjust if your IDF env differs):
+
+`/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python -m pip install protobuf`
 
 ## Open Questions
 
