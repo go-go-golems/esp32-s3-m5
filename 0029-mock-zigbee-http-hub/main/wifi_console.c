@@ -274,4 +274,12 @@ void wifi_console_start(void) {
     }
 
     ESP_LOGI(TAG, "esp_console started over %s (try: help, wifi status)", backend);
+
+#if CONFIG_TUTORIAL_0029_QUIET_LOGS_WHILE_CONSOLE
+    // Keep the interactive prompt usable by reducing non-console logging noise.
+    esp_log_level_set("hub_http_0029", ESP_LOG_WARN);
+    esp_log_level_set("hub_bus_0029", ESP_LOG_WARN);
+    esp_log_level_set("hub_registry_0029", ESP_LOG_WARN);
+    esp_log_level_set("hub_sim_0029", ESP_LOG_WARN);
+#endif
 }

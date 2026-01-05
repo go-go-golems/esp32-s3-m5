@@ -63,7 +63,7 @@ esp_err_t hub_registry_add(const hub_device_t *in, hub_device_t *out_created) {
     *out_created = d;
     xSemaphoreGive(s_mu);
 
-    ESP_LOGI(TAG, "added device id=%" PRIu32 " type=%d caps=0x%08" PRIx32 " name=%s",
+    ESP_LOGD(TAG, "added device id=%" PRIu32 " type=%d caps=0x%08" PRIx32 " name=%s",
              d.id, (int)d.type, d.caps, d.name);
     return ESP_OK;
 }

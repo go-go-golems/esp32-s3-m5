@@ -30,10 +30,13 @@ static const char *TAG = "hub_http_0029";
 
 static httpd_handle_t s_server = NULL;
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
 static SemaphoreHandle_t s_ws_mu = NULL;
 static int s_ws_clients[8];
 static size_t s_ws_clients_n = 0;
+#endif
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
 static void ws_client_add(int fd) {
     if (!s_ws_mu) return;
     xSemaphoreTake(s_ws_mu, portMAX_DELAY);
@@ -72,17 +75,24 @@ static size_t ws_clients_snapshot(int *out, size_t max_out) {
     xSemaphoreGive(s_ws_mu);
     return n;
 }
+#endif
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
 static void ws_send_free_cb(esp_err_t err, int fd, void *arg) {
     (void)err;
     (void)fd;
     free(arg);
 }
+#endif
 
 esp_err_t hub_http_events_broadcast_json(const char *json) {
     if (!s_server) return ESP_ERR_INVALID_STATE;
     if (!json) return ESP_OK;
 
+#if !CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
+    (void)json;
+    return ESP_OK; // WS JSON stream disabled
+#else
     const size_t len = strlen(json);
     if (len == 0) return ESP_OK;
 
@@ -109,6 +119,7 @@ esp_err_t hub_http_events_broadcast_json(const char *json) {
     }
 
     return ESP_OK;
+#endif
 }
 
 static esp_err_t send_json(httpd_req_t *req, const char *json) {
@@ -504,6 +515,7 @@ static esp_err_t scene_trigger_post(httpd_req_t *req) {
     return send_json(req, "{\"ok\":true}");
 }
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
 static esp_err_t events_ws_handler(httpd_req_t *req) {
     const int fd = httpd_req_to_sockfd(req);
     ws_client_add(fd);
@@ -539,18 +551,21 @@ static esp_err_t events_ws_handler(httpd_req_t *req) {
     // MVP: ignore incoming frames (read-only stream).
     return ESP_OK;
 }
+#endif
 
 esp_err_t hub_http_start(void) {
     if (s_server) {
         return ESP_OK;
     }
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
     if (!s_ws_mu) {
         s_ws_mu = xSemaphoreCreateMutex();
     }
     if (!s_ws_mu) {
         return ESP_ERR_NO_MEM;
     }
+#endif
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
@@ -583,6 +598,7 @@ esp_err_t hub_http_start(void) {
     httpd_uri_t scene_u = {.uri = "/v1/scenes/*/trigger", .method = HTTP_POST, .handler = scene_trigger_post, .user_ctx = NULL};
     httpd_register_uri_handler(s_server, &scene_u);
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
     httpd_uri_t ws = {
         .uri = "/v1/events/ws",
         .method = HTTP_GET,
@@ -596,6 +612,7 @@ esp_err_t hub_http_start(void) {
 
     // Emit a "server started" message.
     (void)hub_http_events_broadcast_json("{\"name\":\"server_started\"}");
+#endif
 
     return ESP_OK;
 }

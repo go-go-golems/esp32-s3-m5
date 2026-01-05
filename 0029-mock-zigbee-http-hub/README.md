@@ -27,6 +27,11 @@ hub> wifi status
 
 If you don't see a `hub>` prompt, ensure the console channel is set to USB Serial/JTAG (this project ships `sdkconfig.defaults` for that; existing local `sdkconfig` values can override it).
 
+If you see `esp_console started over UART`, the firmware was built with a UART console backend and the REPL likely won't be interactive over the Cardputer’s USB port (`/dev/ttyACM0`). Fix by:
+
+- `idf.py menuconfig` → enable USB Serial/JTAG console, disable UART console, or
+- delete the local `sdkconfig` so `sdkconfig.defaults` can be applied on next configure/build.
+
 To forget saved credentials:
 
 ```text
@@ -56,4 +61,10 @@ idf.py build flash monitor
 - `POST /v1/devices/{id}/set`
 - `POST /v1/devices/{id}/interview`
 - `POST /v1/scenes/{id}/trigger`
-- WebSocket event stream: `GET /v1/events/ws`
+- WebSocket event stream (currently disabled by default while migrating to protobuf): `GET /v1/events/ws`
+
+To enable the JSON WebSocket stream temporarily:
+
+```bash
+idf.py menuconfig  # Tutorial 0029: Mock Zigbee HTTP hub -> Enable WebSocket JSON event stream
+```

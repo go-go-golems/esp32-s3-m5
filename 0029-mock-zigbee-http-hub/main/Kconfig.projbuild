@@ -1,5 +1,21 @@
 menu "Tutorial 0029: Mock Zigbee HTTP hub"
 
+config TUTORIAL_0029_ENABLE_WS_JSON
+    bool "Enable WebSocket JSON event stream (/v1/events/ws)"
+    default n
+    help
+        When enabled, the hub publishes every bus event as a JSON line over a WebSocket.
+        This is convenient for early debugging, but allocates per event per client and can
+        add CPU load in the bus handler path. We disable it by default while migrating to
+        protobuf/nanopb streaming.
+
+config TUTORIAL_0029_QUIET_LOGS_WHILE_CONSOLE
+    bool "Reduce hub logs while console is running"
+    default y
+    help
+        When enabled, hub component log levels are lowered after esp_console starts so the
+        interactive prompt stays usable (less interleaved logging).
+
 config TUTORIAL_0029_WIFI_SSID
     string "WiFi SSID (STA)"
     default ""
@@ -29,4 +45,3 @@ config TUTORIAL_0029_SIM_PERIOD_MS
     default 1000
 
 endmenu
-

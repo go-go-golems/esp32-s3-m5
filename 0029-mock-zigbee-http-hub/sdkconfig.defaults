@@ -15,6 +15,13 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8000
 # Enable HTTPD WebSocket support for /v1/events/ws.
 CONFIG_HTTPD_WS_SUPPORT=y
 
+# Disable WS JSON stream by default while migrating to protobuf streaming.
+# (Can be enabled via menuconfig: Tutorial 0029: Mock Zigbee HTTP hub)
+# CONFIG_TUTORIAL_0029_ENABLE_WS_JSON is not set
+
+# Reduce hub logs once the console REPL is running (keeps `hub>` usable).
+CONFIG_TUTORIAL_0029_QUIET_LOGS_WHILE_CONSOLE=y
+
 # Use USB Serial/JTAG as the primary console channel (Cardputer-friendly).
 CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_CONSOLE_UART_DEFAULT=n

@@ -216,6 +216,7 @@ static void on_cmd_scene_trigger(void *arg, esp_event_base_t base, int32_t id, v
     reply_status(&cmd->hdr, ESP_ERR_NOT_FOUND);
 }
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
 static const char *event_name(int32_t id) {
     switch (id) {
         case HUB_CMD_DEVICE_ADD: return "HUB_CMD_DEVICE_ADD";
@@ -282,6 +283,7 @@ static void on_any_event_stream(void *arg, esp_event_base_t base, int32_t id, vo
     snprintf(buf, sizeof(buf), "{\"ts_us\":%" PRIi64 ",\"name\":\"%s\"}", ts_us, name);
     (void)hub_http_events_broadcast_json(buf);
 }
+#endif
 
 esp_err_t hub_bus_start(void) {
     if (s_loop) {
@@ -309,8 +311,10 @@ esp_err_t hub_bus_start(void) {
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, HUB_CMD_DEVICE_INTERVIEW, &on_cmd_device_interview, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, HUB_CMD_SCENE_TRIGGER, &on_cmd_scene_trigger, NULL));
 
+#if CONFIG_TUTORIAL_0029_ENABLE_WS_JSON
     // Always-on event stream publisher.
     ESP_ERROR_CHECK(esp_event_handler_register_with(s_loop, HUB_EVT, ESP_EVENT_ANY_ID, &on_any_event_stream, NULL));
+#endif
 
     return ESP_OK;
 }
