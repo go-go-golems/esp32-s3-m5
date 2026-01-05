@@ -496,7 +496,8 @@ This step makes the demo feel “alive” immediately from a browser: `/` now se
 
 The key design choice for the UI is to **avoid a JS protobuf runtime** for now: the browser ships with a tiny hand-written proto3 decoder for `hub.v1.HubEvent` (varints + length-delimited submessages + float32), which is sufficient for bring-up and can later be replaced by generated TypeScript.
 
-**Commit (code):** N/A (will be filled once committed)
+**Commit (code):** f0c0f79 — "0029: add embedded UI and protobuf-only HTTP API"  
+**Commit (docs):** f0ac40d — "0029 docs: add UI/protobuf tasks and host scripts"
 
 ### What I did
 - Embedded UI served from firmware:
