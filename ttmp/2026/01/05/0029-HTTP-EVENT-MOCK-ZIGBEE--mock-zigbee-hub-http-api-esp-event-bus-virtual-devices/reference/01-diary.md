@@ -20,11 +20,19 @@ RelatedFiles:
     - Path: 0029-mock-zigbee-http-hub/main/hub_bus.c
       Note: Hub event loop task and handlers
     - Path: 0029-mock-zigbee-http-hub/main/hub_http.c
-      Note: WS broadcaster and HTTP server wiring
+      Note: |-
+        WS broadcaster and HTTP server wiring
+        HTTP server + WS client list + route matching fixes
     - Path: 0029-mock-zigbee-http-hub/main/hub_pb.c
-      Note: nanopb capture+encode implementation
+      Note: |-
+        nanopb capture+encode implementation
+        Build protobuf envelope for hub events
+    - Path: 0029-mock-zigbee-http-hub/main/hub_stream.c
+      Note: Queue+task bridge (protobuf WS stream)
     - Path: 0029-mock-zigbee-http-hub/main/wifi_console.c
-      Note: esp_console commands (wifi + hub pb/seed)
+      Note: |-
+        esp_console commands (wifi + hub pb/seed)
+        Console-based validation (pb
     - Path: 0029-mock-zigbee-http-hub/sdkconfig.defaults
       Note: Console backend defaults and quiet logs
 ExternalSources: []
@@ -33,6 +41,7 @@ LastUpdated: 2026-01-05T10:49:37.935828904-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -199,43 +208,104 @@ Once the hub was quiet enough to interact with, the next step was to introduce p
 ### Technical details
 - Console validation works reliably when run in tmux and commands are injected via `tmux send-keys`.
 
-## Step 3: Phase 3 (in progress) — switch WS endpoint to protobuf binary frames (no JSON, no backwards-compat)
+## Step 3: Phase 3 — protobuf WS stream architecture + HTTP stabilization (no JSON WS, decouple bus from IO)
 
-This step is in progress. The intended end state is:
+Phase 3 brings the event stream back, but **not** as JSON: `/v1/events/ws` is now a protobuf-binary WebSocket (still disabled by default via `CONFIG_TUTORIAL_0029_ENABLE_WS_PB=n`). The architectural goal is that the hub event loop stays “cheap” and deterministic, so the expensive bits (protobuf encode + WS send + iterating clients) happen in a dedicated task, not inside the bus handler.
 
-- keep HTTP API intact,
-- implement `/v1/events/ws` as **protobuf** binary frames only,
-- remove all JSON serialization codepaths,
-- and ensure WS sending does not run inside the hub event loop task (queue + drops).
+While validating HTTP bring-up, we also hit two issues that explained why “0029 doesn’t work” in practice: the default httpd task stack was too small for `cJSON_PrintUnformatted()` in `/v1/devices`, and ESP-IDF’s wildcard matcher didn’t match URIs like `/v1/devices/*/set` as expected. Both were fixed so the JSON HTTP API remains usable until we migrate it to protobuf.
 
-### What I did (so far)
-- Began refactoring `hub_http.*` toward protobuf WS broadcast and removing JSON references.
-- Began refactoring Kconfig from “WS JSON” to “WS protobuf”.
+**Commit (code):** 4af0531 — "0029: protobuf WS stream bridge + HTTP fixes"
 
-### What didn't work / current state
-- The Phase 3 refactor is not finished yet; there are uncommitted changes in:
+### What I did
+- Removed JSON WebSocket stream codepaths (and renamed the feature flag) so the bus loop no longer formats JSON:
+  - `0029-mock-zigbee-http-hub/main/hub_bus.c`
+  - `0029-mock-zigbee-http-hub/main/Kconfig.projbuild` (`CONFIG_TUTORIAL_0029_ENABLE_WS_PB`)
+- Added a protobuf WS “bridge task” with a bounded queue:
+  - bus handler copies payload into a queue item (cheap)
+  - a dedicated task encodes nanopb + broadcasts binary WS frames
+  - files: `0029-mock-zigbee-http-hub/main/hub_stream.c`, `0029-mock-zigbee-http-hub/main/hub_stream.h`
+- Implemented protobuf WS broadcaster + client bookkeeping:
   - `0029-mock-zigbee-http-hub/main/hub_http.c`
   - `0029-mock-zigbee-http-hub/main/hub_http.h`
-  - `0029-mock-zigbee-http-hub/main/hub_bus.c`
-  - `0029-mock-zigbee-http-hub/main/Kconfig.projbuild`
-  - `0029-mock-zigbee-http-hub/sdkconfig.defaults`
+- Exposed a shared “build protobuf envelope from hub event” helper used by console tools and WS bridge:
+  - `0029-mock-zigbee-http-hub/main/hub_pb.c`
+  - `0029-mock-zigbee-http-hub/main/hub_pb.h`
+- Added console observability for the stream bridge:
+  - `hub stream status` prints `clients`, `drops`, `enc_fail`, `send_fail`
+  - implemented in `0029-mock-zigbee-http-hub/main/wifi_console.c`
+- Fixed `/v1/devices` crash:
+  - increased httpd task stack to avoid `LoadStoreAlignment` crashes inside `cJSON_PrintUnformatted()`
+  - change in `0029-mock-zigbee-http-hub/main/hub_http.c` (`cfg.stack_size = 8192`)
+- Fixed HTTP route matching:
+  - `/v1/devices/*/set` and `/v1/devices/*/interview` did not match reliably with ESP-IDF wildcard matching
+  - registered `POST /v1/devices/*` once and dispatches based on suffix inside the handler
+  - change in `0029-mock-zigbee-http-hub/main/hub_http.c`
+
+### Why
+- JSON WS was expensive and noisy; protobuf is the intended on-wire format and is bounded + schema-driven.
+- Doing network I/O and encoding work inside an `esp_event` callback is a responsiveness hazard; the queue+task bridge keeps the bus loop predictable.
+- `/v1/devices` and `/v1/devices/{id}/set` must work reliably so we can debug the hub via HTTP while WS is disabled.
+
+### What worked
+- Built successfully: `idf.py -C 0029-mock-zigbee-http-hub build`
+- Flashed and interacted in tmux (USB Serial/JTAG console):
+  - `hub pb on; hub seed; hub pb last` produced `len=...` and a hex dump
+  - `hub stream status` prints counters (with WS disabled: `clients=0 ...`)
+  - `wifi scan 5` shows nearby networks (including `yolobolo`)
+- Connected to Wi‑Fi and validated the HTTP API from the host:
+  - `hub> wifi set yolobolo bring3248camera`
+  - `hub> wifi connect` (device got `192.168.0.18`)
+  - `curl http://192.168.0.18/v1/health` → `{"ok":true,...}`
+  - `curl http://192.168.0.18/v1/devices` → `[]`
+  - `POST /v1/devices` creates a device
+  - `POST /v1/devices/1/set` now works (`{"ok":true}`)
+  - `POST /v1/devices/1/interview` now works (`{"ok":true}`)
+
+### What didn't work
+- Serial/JTAG enumeration was flaky depending on which physical USB port the Cardputer was connected to:
+  - `/dev/ttyACM0` sometimes disappeared and `esptool.py` failed with host-side I/O errors such as:
+    - `termios.error: (5, 'Input/output error')`
+    - `Could not open /dev/ttyACM0, the port is busy or doesn't exist`
+  - Fix in practice: replug into a different USB port and retry.
+- Before increasing httpd stack size, `GET /v1/devices` could crash the firmware:
+  - `Guru Meditation Error: Core 0 panic'ed (LoadStoreAlignment)`
+  - backtrace pointed to `devices_list_get` → `cJSON_PrintUnformatted`
+- Before the route-dispatch fix, `POST /v1/devices/1/set` returned:
+  - `Specified method is invalid for this resource`
+
+### What I learned
+- `esp_http_server` wildcard matching works well for “prefix-ish” routes like `/v1/devices/*`, but patterns like `/v1/devices/*/set` are not reliable; dispatching on suffix inside a single POST handler is a robust workaround.
+- cJSON printing can be stack-hungry enough to crash the default httpd task stack; bumping `cfg.stack_size` is a pragmatic fix while we still serve JSON.
+
+### What was tricky to build
+- Keeping the “bus thread” clean required a strict boundary:
+  - copy payloads into a bounded queue item
+  - encode/send only in another task
+- The queue payload union intentionally includes full command structs (including `hdr.reply_q`), but the protobuf builder must never dereference it; it only uses `hdr.req_id`.
+
+### What warrants a second pair of eyes
+- `hub_stream_payload_u` coverage and sizing:
+  - confirm `payload_size_for_id()` matches the union members exactly,
+  - confirm there are no future payload structs with pointers/variable data that would make “memcpy into union” unsafe.
+- WS client list correctness when enabled:
+  - confirm disconnect handling and refcount buffer lifetime are correct under churn.
 
 ### What should be done in the future
-- Finish Phase 3 by introducing a dedicated “stream bridge” task/queue (like 0030’s monitor queue pattern).
-- Add `hub_pb_build_event(...)` (or equivalent) so WS publishing can be event-driven without re-encoding JSON.
+- Validate Phase 3 with WS protobuf enabled:
+  - enable `CONFIG_TUTORIAL_0029_ENABLE_WS_PB=y`
+  - connect a WS client and confirm binary frames decode as `hub_v1.HubEvent`
+- Replace the JSON HTTP API with protobuf (no backwards compatibility required per ticket).
 
-## Technical details (commands and exact outputs worth preserving)
+### Code review instructions
+- Start with:
+  - `0029-mock-zigbee-http-hub/main/hub_stream.c`
+  - `0029-mock-zigbee-http-hub/main/hub_http.c`
+  - `0029-mock-zigbee-http-hub/main/hub_pb.c`
+- Validate:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && idf.py -C 0029-mock-zigbee-http-hub build`
+  - `idf.py -C 0029-mock-zigbee-http-hub -p /dev/ttyACM0 flash monitor`
+  - console: `wifi set yolobolo bring3248camera`, `wifi connect`, `hub pb on`, `hub seed`, `hub pb last`
+  - host: `curl http://192.168.0.18/v1/health`, `curl http://192.168.0.18/v1/devices`, `POST /v1/devices/1/set`
 
-- Serial contention failure:
-  - `Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable`
-- `idf.py monitor` console warning (host-side):
-  - `--- Warning: Writing to serial is timing out. Please make sure that your application supports an interactive console ...`
-- Verified console scanning output example:
-  - `found 5 networks (showing up to 5): ...`
-- Verified protobuf dump example:
-  - `len=25` plus hex dump after `hub pb on; hub seed; hub pb last`
-
-## Related
-
-- Design doc: `ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/design-doc/01-mock-zigbee-hub-over-http-event-driven-architecture.md`
-- Stabilization plan: `ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/analysis/01-plan-stabilize-0029-mock-hub-using-0030-patterns-console-monitoring-nanopb-protobuf.md`
+### Technical details
+- The WS protobuf stream is implemented but disabled by default; console `hub stream status` should still work and show `clients=0`.
