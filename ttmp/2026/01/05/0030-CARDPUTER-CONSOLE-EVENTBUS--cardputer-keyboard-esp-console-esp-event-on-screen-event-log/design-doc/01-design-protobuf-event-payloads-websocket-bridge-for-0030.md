@@ -207,21 +207,23 @@ Cons:
 3) Add a generator script:
    - `0030-cardputer-console-eventbus/scripts/gen_proto.sh` running:
      - `protoc --c_out=... --proto_path=... demo_bus.proto`
+   - Tooling note (Linux):
+     - System install: `sudo apt-get install protobuf-c-compiler`
+     - No-root fallback: `apt-get download protobuf-c-compiler && dpkg-deb -x ...` then copy `usr/bin/protoc-gen-c` into `~/.local/bin/`
 4) Update firmware build:
    - Add `protobuf-c` to `0030-cardputer-console-eventbus/main/CMakeLists.txt`
    - Compile generated `demo_bus.pb-c.c`
 5) Add `esp_http_server` WS endpoint (reuse patterns from `0029-mock-zigbee-http-hub`).
 6) Add a bus→protobuf→WS bridge module and enable it behind a Kconfig flag.
-7) Add a minimal web client and TS decoder driven by the same `.proto`.
+7) Add a minimal web client and TS decoder driven by the same `.proto` (codegen approach).
 
 ## Open Questions
 
-1) **TypeScript tooling preference**
-   - Do you prefer `protobufjs` runtime loading or a codegen approach (`ts-proto`, etc.)?
+1) **TypeScript codegen choice**
+   - We want codegen; the remaining decision is *which* generator/runtime (e.g. `ts-proto` vs protobufjs static module) and how you want it wired into the web build.
 
-2) **Host tooling availability**
-   - This environment has `protoc`, but does not currently have `protoc-gen-c` (`protobuf-c` compiler plugin).
-   - If you want, you can research which package you prefer for dev/CI on your OS, and I’ll wire the scripts accordingly.
+2) **Generated code policy**
+   - Commit generated `.pb-c.c/.h` and TS outputs to the repo (reproducible builds without generator deps), or generate in CI (cleaner tree but requires toolchain setup in CI)?
 
 ## References
 
