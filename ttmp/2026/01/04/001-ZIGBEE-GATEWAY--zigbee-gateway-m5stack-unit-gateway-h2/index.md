@@ -11,6 +11,8 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/design-doc/01-developer-guide-cores3-host-unit-gateway-h2-ncp-znsp-over-slip-uart.md
+      Note: Architecture + onboarding guide for the NCP-based build
     - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/playbook/01-esp-zigbee-gateway-unit-gateway-h2-cores3.md
       Note: Playbook to build/flash/run the gateway
     - Path: esp32-s3-m5/ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/reference/02-rcp-spinel-vs-ncp-znp-style-on-unit-gateway-h2.md
@@ -30,6 +32,7 @@ LastUpdated: 2026-01-04T19:11:11.911671419-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

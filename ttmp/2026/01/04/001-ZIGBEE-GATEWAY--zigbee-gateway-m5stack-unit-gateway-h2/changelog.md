@@ -88,3 +88,17 @@ Step 15: Re-tested CoreS3 host with enclosed H2; host↔NCP UART ZNSP traffic an
 
 Ticket closed
 
+
+## 2026-01-04
+
+Added architecture/onboarding design-doc for the NCP-based CoreS3 host + Unit Gateway H2 setup (ZNSP over SLIP/UART), including build steps, diagrams, API references, and test evidence.
+
+
+## 2026-01-04
+
+Uploaded developer guide PDF to reMarkable: ai/2026/01/04/001-ZIGBEE-GATEWAY/design-doc/01-developer-guide-cores3-host-unit-gateway-h2-ncp-znsp-over-slip-uart.pdf
+
+### Related Files
+
+- 2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/design-doc/01-developer-guide-cores3-host-unit-gateway-h2-ncp-znsp-over-slip-uart.md — Source markdown uploaded via remarkable_upload.py
+
