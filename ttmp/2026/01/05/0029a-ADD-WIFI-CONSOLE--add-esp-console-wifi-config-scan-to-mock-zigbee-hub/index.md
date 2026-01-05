@@ -1,7 +1,7 @@
 ---
 Title: Add esp_console WiFi config + scan to mock Zigbee hub
 Ticket: 0029a-ADD-WIFI-CONSOLE
-Status: active
+Status: complete
 Topics:
     - esp-idf
     - esp32s3
@@ -15,10 +15,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-05T07:22:55.982175916-05:00
+LastUpdated: 2026-01-05T07:38:27.642275682-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Add esp_console WiFi config + scan to mock Zigbee hub
 

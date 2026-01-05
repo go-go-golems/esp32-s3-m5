@@ -14,3 +14,8 @@ Implement WiFi esp_console REPL (status/set/connect/disconnect/clear/scan) with 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_console.c — New console command implementation.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0029-mock-zigbee-http-hub/main/wifi_sta.c — NVS credential storage + scan + state tracking.
 
+
+## 2026-01-05
+
+Ticket closed
+
