@@ -1310,6 +1310,9 @@ During Zigbee bring-up we discovered a subtle but very practical failure mode: s
 
 The outcome of this step is a safer default monitoring playbook: always pass `--no-reset` when monitoring both devices, and treat “ESP-ROM:esp32h2-…” observed on the Grove bus as a sign that the H2 rebooted at the wrong time (so the host should be rebooted too, or requests should be retried only after the H2 is stable).
 
+**Commit (code):** 7143ab8 — "0031: add pairing capture tools + console fixes"
+**Commit (docs):** a12f0c2 — "Docs: 0031 diary + pairing evidence"
+
 ### What I did
 - Updated the tmux dual-monitor helper to always run monitors without toggling reset lines:
   - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`
@@ -1360,6 +1363,9 @@ The outcome of this step is a safer default monitoring playbook: always pass `--
 This step validated that our new TCLK/LKE controls are not just “host-side prints”, but actually reach the H2 NCP and produce the expected request frames. It also addressed a practical tooling mismatch: `idf.py monitor` refuses to run unless stdin is a real TTY in this environment, which makes it unreliable for automated capture from within scripts.
 
 The key outcome is a simple, robust alternative: a tiny pyserial-based capture script that can record the H2’s USB-Serial/JTAG console output to a file while we drive the host console automation. With that, we have a reproducible artifact proving that ZNSP request IDs `0x0028` (set TCLK), `0x0027` (get TCLK), `0x002A` (set LKE mode), `0x0029` (get LKE mode), and `0x0005` (permit-join) are flowing over the bus correctly.
+
+**Commit (code):** 7143ab8 — "0031: add pairing capture tools + console fixes"
+**Commit (docs):** a12f0c2 — "Docs: 0031 diary + pairing evidence"
 
 ### What I did
 - Added a serial capture script to the ticket workspace:
@@ -1414,6 +1420,9 @@ The key outcome is a simple, robust alternative: a tiny pyserial-based capture s
 This step focused on answering the simplest question: “is the plug actually attempting to join, and if it does join, where does it get stuck?” We ran several pairing windows while capturing both the host console and the H2 NCP logs into a timestamped run directory. The capture method evolved during the step: first we used background `nohup` captures and ad-hoc tailing, then we consolidated into a single script that drives the host commands and captures both ports concurrently.
 
 The key outcome is a clean reproduction of the suspected failure mode: with **LKE on**, the plug announces and gets a short address, but we repeatedly see **`Device authorized ... status=0x01` (authorization timeout)** and the short address changes over time. With **LKE off**, we sometimes saw “nothing happens” (no announce at all), suggesting some devices may not attempt joining (or we were missing the timing window) when the coordinator is configured that way.
+
+**Commit (code):** 7143ab8 — "0031: add pairing capture tools + console fixes"
+**Commit (docs):** a12f0c2 — "Docs: 0031 diary + pairing evidence"
 
 ### What I did
 - Implemented a combined driver + dual capture tool:
