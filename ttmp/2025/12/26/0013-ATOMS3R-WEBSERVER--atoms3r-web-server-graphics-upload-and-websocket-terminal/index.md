@@ -13,28 +13,31 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ATOMS3R-CAM-M12-UserDemo/main/service/service_web_server.cpp
+    - Path: ../../../../../../ATOMS3R-CAM-M12-UserDemo/main/service/service_web_server.cpp
       Note: ESPAsyncWebServer implementation example
-    - Path: ATOMS3R-CAM-M12-UserDemo/main/utils/assets/assets.h
+    - Path: ../../../../../../ATOMS3R-CAM-M12-UserDemo/main/utils/assets/assets.h
       Note: Asset pool interface for memory-mapped flash assets
-    - Path: M5AtomS3-UserDemo/platformio.ini
+    - Path: ../../../../../../M5AtomS3-UserDemo/platformio.ini
       Note: Build configuration for Arduino/PlatformIO framework
-    - Path: M5AtomS3-UserDemo/src/main.cpp
+    - Path: ../../../../../../M5AtomS3-UserDemo/src/main.cpp
       Note: Main application demonstrating display rendering
-    - Path: esp32-s3-m5/0013-atoms3r-gif-console/main/console_repl.cpp
+    - Path: 0013-atoms3r-gif-console/main/console_repl.cpp
       Note: Console REPL implementation using esp_console
-    - Path: esp32-s3-m5/0013-atoms3r-gif-console/main/control_plane.cpp
+    - Path: 0013-atoms3r-gif-console/main/control_plane.cpp
       Note: Button ISR and FreeRTOS queue pattern for event handling
-    - Path: esp32-s3-m5/0017-atoms3r-web-ui/main/hello_world_main.cpp
-      Note: New ESP-IDF-first tutorial project scaffold (display/backlight smoke test baseline)
-    - Path: esp32-s3-m5/0017-atoms3r-web-ui/main/Kconfig.projbuild
+    - Path: 0017-atoms3r-web-ui/main/Kconfig.projbuild
       Note: Menuconfig options for pins + storage + WiFi defaults for the web UI project
+    - Path: 0017-atoms3r-web-ui/main/hello_world_main.cpp
+      Note: New ESP-IDF-first tutorial project scaffold (display/backlight smoke test baseline)
+    - Path: docs/playbook-embedded-preact-zustand-webui.md
+      Note: JS-focused playbook for bundling and embedding a Vite (Preact+Zustand) frontend into firmware
 ExternalSources: []
 Summary: ""
 LastUpdated: 2025-12-26T08:53:37.045351299-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # AtomS3R Web Server - Graphics Upload and WebSocket Terminal

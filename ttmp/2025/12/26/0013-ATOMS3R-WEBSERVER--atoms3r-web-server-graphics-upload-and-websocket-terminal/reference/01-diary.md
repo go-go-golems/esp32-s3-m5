@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: Step-by-step narrative of research and implementation work for AtomS3R web server with graphics upload and WebSocket terminal
-LastUpdated: 2025-12-26T08:54:18.638857926-05:00
+LastUpdated: 2026-01-05
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -679,3 +679,54 @@ This step expands the system documentation now that the firmware supports both �
 - Without STA/AP+STA guidance, “verification” becomes brittle and assumes `192.168.4.1` even when the device is running on DHCP.
 - The WiFi guide bridges ESP-IDF concepts (`esp_wifi`, `esp_netif`, `esp_event`) into an actionable mental model for extending and debugging the project.
 
+## Step 14: JS-focused playbook for bundling + embedding Preact/Zustand web assets
+
+This step documents the reusable frontend pattern behind the AtomS3R device-hosted web UI: how to structure a small Preact + Zustand app, how to configure Vite for deterministic “firmware routes”, and how to embed/serve the resulting artifacts from ESP-IDF. The goal is to make the “JS side” repeatable for future firmware projects without rediscovering the bundling details.
+
+**Commit (code):** N/A — Documentation only
+
+### What I did
+- Studied the concrete implementation in Tutorial `esp32-s3-m5/0017-atoms3r-web-ui/`, focusing on:
+  - Vite bundling rules for deterministic outputs (`web/vite.config.ts`)
+  - Asset embedding via ESP-IDF CMake (`main/CMakeLists.txt`, `EMBED_TXTFILES`)
+  - Preact app structure + Zustand WebSocket store (`web/src/*`)
+  - Firmware handlers serving embedded assets (`main/http_server.cpp`)
+- Wrote a new JS-focused playbook at `docs/playbook-embedded-preact-zustand-webui.md`.
+
+### Why
+- The ticket docs cover the full system design, but future work often starts by “I need to embed a small web UI into firmware” and needs a single, focused reference for the frontend build/structure decisions.
+- Deterministic file naming (no hashes) is a recurring constraint for embedded asset serving and should be documented as a first-class pattern, not an incidental Vite configuration detail.
+
+### What worked
+- The `0017` tutorial provides an end-to-end reference where the outputs are small (~30KB JS) and the build pipeline is straightforward: `npm run build` emits directly into `main/assets/`, and ESP-IDF embeds the results.
+
+### What didn't work
+- N/A (no debugging or implementation failures in this step).
+
+### What I learned
+- The most important firmware-facing Vite knobs are:
+  - stable filenames (`assets/app.js`, `assets/app.css`)
+  - a single JS chunk (`inlineDynamicImports: true`)
+  - no accidental extra files (`publicDir: false`, `emptyOutDir: true`)
+- Using deterministic filenames shifts the problem from “cache busting via hashes” to “being intentional about Cache-Control”, which should be addressed explicitly in docs for device-hosted UIs.
+
+### What was tricky to build
+- Explaining (for future maintainers) why the Vite config looks “odd” compared to typical web apps: disabling hashed filenames and chunking is the opposite of common best practices, but it is the right tradeoff for firmware embedding.
+
+### What warrants a second pair of eyes
+- N/A (documentation-only change).
+
+### What should be done in the future
+- Consider adding a small “manifest-driven” alternative in the playbook (hashed filenames + generated route table) if/when embedded UIs in this repo grow beyond “one JS + one CSS”.
+
+### Code review instructions
+- Start with `docs/playbook-embedded-preact-zustand-webui.md` and verify the referenced examples match the repo:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/web/vite.config.ts`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/CMakeLists.txt`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp`
+  - `esp32-s3-m5/0017-atoms3r-web-ui/web/src/store/ws.ts`
+
+### Technical details
+- Commands used to locate relevant sources:
+  - `docmgr doc list --ticket 0013-ATOMS3R-WEBSERVER`
+  - `rg -n "preact|zustand|vite" -S .`

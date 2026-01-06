@@ -1,0 +1,21 @@
+menu "Ticket 0031: Zigbee orchestrator (Cardputer host)"
+
+config GW_EVENT_QUEUE_SIZE
+    int "GW esp_event queue size"
+    range 8 256
+    default 64
+
+config GW_MONITOR_MAX_LINES_PER_SEC
+    int "Console monitor max lines/sec"
+    range 1 1000
+    default 50
+    help
+        Upper bound for the `monitor on` console output rate. When exceeded, monitor
+        output is dropped and the drop counter increments.
+
+config GW_CONSOLE_PROMPT
+    string "Console prompt"
+    default "gw> "
+
+endmenu
+
