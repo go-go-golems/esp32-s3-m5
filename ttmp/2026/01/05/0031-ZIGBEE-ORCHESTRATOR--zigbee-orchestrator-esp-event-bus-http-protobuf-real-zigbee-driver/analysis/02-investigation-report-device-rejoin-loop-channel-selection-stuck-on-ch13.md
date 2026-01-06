@@ -15,10 +15,6 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ../../../../../../../../../../esp/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c
-      Note: NCP request handlers + signal logs; channel mask deferral; join/rejoin debug
-    - Path: ../../../../../../../../../../esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/partitions.csv
-      Note: Defines zb_storage/zb_fct partitions that may override channel selection
     - Path: 0031-zigbee-orchestrator/main/gw_console_cmds.c
       Note: Console verbs for zb/gw/znsp; used to reproduce and debug
     - Path: 0031-zigbee-orchestrator/main/gw_registry.c
@@ -27,12 +23,41 @@ RelatedFiles:
       Note: Host↔NCP ZNSP transport
     - Path: 0031-zigbee-orchestrator/main/gw_zb_app_signal.c
       Note: Host-side decode of NCP signals into bus events; announce/rejoin observability
+    - Path: thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c
+      Note: Vendored NCP request handlers + security/nvram/channel config; main debug surface
+    - Path: thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp/partitions.csv
+      Note: Vendored partition layout (zb_storage/zb_fct) relevant to channel persistence
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh
+      Note: Repro helper for dual monitoring (H2 + host).
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/11-capture-serial.py
+      Note: Capture H2 logs without idf.py monitor (no TTY/DTR issues)
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/13-dual-drive-and-capture.py
+      Note: Repeatable pairing run capture (host+H2)
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/20-h2-erase-and-flash.sh
+      Note: One-shot erase+flash for the H2 NCP.
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/21-h2-erase-zigbee-storage-only.sh
+      Note: Targeted erase of zb_fct/zb_storage partitions.
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/Zigbee debug logs.md
+      Note: External analysis decoding join/authorization logs; proposes TCLK + link-key exchange hypotheses.
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/h2.log
+      Note: Pairing evidence (LKE=on)
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/host.log
+      Note: Pairing evidence (LKE=on)
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/h2-raw.log
+      Note: 'Evidence: H2 received TCLK/LKE/permit_join frames during Experiment 0'
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/host-exp0.log
+      Note: 'Evidence: host console transcript for Experiment 0'
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-05T21:06:48.8288329-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
+
+
+
 
 
 # Investigation report: device rejoin loop + channel selection stuck on ch13
@@ -77,12 +102,16 @@ Expected behavior (baseline): after a successful join + key establishment, the d
 - Host REPL + logs: USB Serial/JTAG (`/dev/ttyACM1`)
 - NCP logs: USB Serial/JTAG (`/dev/ttyACM0`)
 - Important: `idf.py monitor` holds the port; flashing requires stopping the monitor process (tmux sessions often need to be killed before reflashing).
+- Important: monitor resets can corrupt the host↔NCP UART bus.
+  - `idf.py monitor` toggles DTR/RTS by default, which can reset the H2.
+  - If the H2 resets while its Grove UART is wired to the host, the H2 boot ROM banner (`ESP-ROM:esp32h2-...`) can spill onto the SLIP/ZNSP link and corrupt framing / in-flight requests.
+  - Mitigation: always monitor with `--no-reset` (see `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`) and avoid hot-plugging USB on the H2 while the host is running.
 
 ### Firmware locations (source of truth)
 
 - Host project: `esp32-s3-m5/0031-zigbee-orchestrator/`
-- NCP example project: `/home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/`
-- NCP Zigbee request handlers: `/home/manuel/esp/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+- NCP example project (vendored): `thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp/`
+- NCP Zigbee request handlers (vendored): `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
 
 ## What we can already do (confirmed working path)
 
@@ -112,6 +141,43 @@ NCP-side confirmation:
 ```text
 ESP_NCP_ZB: Network(0x4641) is open for 180 seconds
 ```
+
+### 1.1) Confirm security debug controls (TCLK + link-key exchange requirement) end-to-end
+
+We can now drive the key commissioning knobs end-to-end across the host↔NCP boundary:
+
+- Host console can set/get the Trust Center Link Key (“TCLK join key”) via ZNSP 0x0028/0x0027.
+- Host console can toggle “link key exchange required” via ZNSP 0x002A/0x0029.
+
+This matters because the external decode of our logs indicates the join instability is very likely a **TCLK authorization timeout** loop. Being able to flip these controls deterministically is the foundation for Experiment 0 (“turn LKE requirement off and see if the device stabilizes”).
+
+Example host transcript (successful request/response status codes):
+
+```text
+zb tclk set default
+zb tclk set: status=0x00 (ESP_OK)
+
+zb tclk get
+zb tclk: tc_ieee=48:31:b7:ff:fe:ca:45:5b key=5a6967426565416c6c69616e63653039
+
+zb lke off
+zb lke off: status=0x00 (ESP_OK)
+
+zb lke status
+zb lke: off (mode=0)
+
+gw post permit_join 180
+... permit_join response status=0x00 (ESP_OK) ...
+```
+
+NCP-side frame capture (no TTY required):
+
+- Capture: `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/h2-raw.log`
+- Capture tool: `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/11-capture-serial.py`
+
+Notes:
+
+- The ZNSP permit-join request uses an 8-bit seconds field, so we currently clamp any requested value >255 down to 255 on the host. This previously caused confusion when scripts used 300s (it became 255s on-wire). The host now logs when clamping occurs.
 
 ### 2) Observe a device join/announce (including IEEE)
 
@@ -170,7 +236,7 @@ Added/expanded signals:
 
 Relevant file:
 
-- `/home/manuel/esp/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+- `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
 
 ## Channel selection work (what we tried, and what happened)
 
@@ -220,6 +286,17 @@ Fix: store the requested masks when received early, but apply them only after `e
 
 ## Working theories (ranked) + how to confirm each
 
+## New evidence: “authorization timeout” strongly indicates a TCLK/link-key exchange problem
+
+A separate decode of our logs (see `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/Zigbee debug logs.md`) points out a key detail:
+
+- `Device update status=0x01` means **standard unsecured join**
+- `Device authorized type=0x01 status=0x01` means **authorization timeout** (TCLK / key exchange did not complete)
+
+That combination explains the observed behavior perfectly: the device joins at MAC/NWK, but never finishes the security procedure, so it times out and retries → repeated “fresh joins” and short address churn for the same IEEE.
+
+This shifts the highest-signal next steps from “channel only” to “security handshake first, then channel”.
+
 ### H1: Zigbee persistent storage overrides our channel config (likely `zb_fct` / `zb_storage`)
 
 Why it fits:
@@ -230,13 +307,43 @@ Why it fits:
 How to test:
 
 - Erase Zigbee storage partitions on the H2 (preferably only those partitions), then re-form:
-  - Option A: full erase: `idf.py -C /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 erase-flash`
+  - Option A: full erase: `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 erase-flash`
   - Option B: targeted erase: use `parttool.py` to erase only `zb_storage` and `zb_fct` (recommended once we confirm names/offsets).
 - After erase, set mask (`zb ch 25`) and reboot NCP, then confirm formation channel.
 
 What “success” looks like:
 
 - `Formed network successfully ... Channel:25`
+
+### H0 (new, highest-signal): Trust Center Link Key (TCLK) mismatch OR link-key exchange not completing
+
+Why it fits:
+
+- Our logs indicate repeated “unsecured join” and “authorization timeout” rather than “authorized success”.
+- Many Zigbee 3.0 devices expect the default preconfigured Trust Center key `ZigBeeAlliance09` unless using install codes.
+
+How to test (fast, decisive):
+
+1) Check and (re)apply the preconfigured Trust Center key (TCLK) on the NCP:
+
+   - `zb tclk get`
+   - `zb tclk set default` (sets `ZigBeeAlliance09`)
+
+2) Confirm diagnosis by temporarily disabling link-key exchange requirement:
+
+   - `zb lke off`
+
+   If the device stabilizes (short stops changing; no more repeated announces), that confirms the join loop is caused by the authorization/key-exchange step.
+
+3) Once stable, re-enable for “secure final” behavior:
+
+   - `zb lke on`
+
+Notes:
+
+- These are implemented via ZNSP requests to the H2:
+  - `0x0027/0x0028` (link key get/set)
+  - `0x0029/0x002A` (secure mode get/set → mapped to “link key exchange required”)
 
 ### H2: We are applying the mask at the wrong time relative to BDB formation
 
@@ -290,16 +397,38 @@ How to test:
 
 ## What to do next (concrete experiment plan)
 
+### Experiment 0: Fix/confirm the authorization step (before deep channel work)
+
+1) Set and verify the Trust Center preconfigured key:
+   - `zb tclk set default`
+   - `zb tclk get` (confirm the key is `5a6967426565416c6c69616e63653039`)
+2) Pair the plug again (factory-reset the plug first).
+3) If you still see `authorization timeout`, do a diagnostic run:
+   - `zb lke off`
+   - pair again with the plug physically close to the coordinator
+4) If this stabilizes the device, proceed to Experiment 1 to resolve channel selection and then re-enable `zb lke on`.
+
 ### Experiment 1: Erase Zigbee storage partitions on H2 and retest channel selection
 
 1) Stop monitors so the ports are free.
 2) Erase flash on H2:
-   - `idf.py -C /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 erase-flash`
+   - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 erase-flash`
 3) Flash H2, monitor, and confirm it forms again.
 4) On host:
    - `zb ch 25`
    - `zb reboot`
 5) Confirm formation channel in NCP log.
+
+Notes / helpers:
+
+- Full erase + flash helper: `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/20-h2-erase-and-flash.sh`
+- Targeted storage wipe (preferred once firmware is stable): `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/21-h2-erase-zigbee-storage-only.sh`
+- Dual monitor helper: `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`
+- Offline PDFs for reMarkable/manual transfer: `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/exports/remarkable-pdf/`
+
+Alternative (debug, “erase every start”):
+
+- Use `zb nvram on` to enable `esp_zb_nvram_erase_at_start(true)` on the H2 (clears `zb_storage` before parameters are loaded at `esp_zb_start()`), then re-form/restart and observe the channel again.
 
 ### Experiment 2: After channel is fixed, measure “rejoin frequency” objectively
 

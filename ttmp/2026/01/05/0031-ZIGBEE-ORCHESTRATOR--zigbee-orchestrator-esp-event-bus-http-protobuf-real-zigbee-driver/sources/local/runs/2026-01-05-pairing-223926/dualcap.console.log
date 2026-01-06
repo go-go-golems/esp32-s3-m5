@@ -1,0 +1,15 @@
+[dualcap] run_dir=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-223926
+[dualcap] host=/dev/ttyACM1 h2=/dev/ttyACM0 baud=115200
+[dualcap] duration=600.0s permit_join=300s
+[dualcap] Commands sent. Put the device into pairing mode now.
+[h2] I (8212) ESP_NCP_ZB: permit_join seconds=255
+[host] I (8824) gw_zb_sig_0031: ZB permit-join status: seconds=254
+[host] [gw] GW_EVT_ZB_PERMIT_JOIN_STATUS (200) seconds=254
+[host] I (262834) gw_zb_sig_0031: ZB permit-join status: seconds=0
+[host] [gw] GW_EVT_ZB_PERMIT_JOIN_STATUS (200) seconds=0
+[host] I (2314) gw_zb_sig_0031: ZB permit-join status: seconds=0
+[host] I (2914) gw_zb_sig_0031: ZB permit-join status: seconds=180
+[host] I (6974) gw_zb_sig_0031: ZB device announce: short=0xadb6 cap=0x8e
+[h2] I (6932) ESP_NCP_ZB: Device update (status=0x01 short=0xadb6 ieee=28:2c:02:bf:ff:e6:98:70)
+[h2] I (6962) ESP_NCP_ZB: New device commissioned or rejoined (short: 0xadb6, ieee: 28:2c:02:bf:ff:e6:98:70, cap: 0x8e)
+[host] I (7414) gw_zb_sig_0031: ZB permit-join status: seconds=180

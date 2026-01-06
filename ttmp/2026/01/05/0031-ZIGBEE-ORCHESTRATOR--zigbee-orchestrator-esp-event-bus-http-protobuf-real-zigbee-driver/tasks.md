@@ -175,3 +175,12 @@
 - [ ] Write playbook: tmux pane 3 (WS decode script invocation)
 - [ ] Write playbook: common failures + fixes (wrong UART pins, wrong USB port, WS 404, no IP, NCP silent)
 - [ ] Add a “demo script” checklist (what to do live in a demo)
+- [ ] Experiment 1: erase H2 Zigbee storage (zb_fct/zb_storage) and verify formation channel respects zb ch 25
+- [x] Add scripts (tmux + flash/erase helpers) so devs can reproduce channel/commissioning experiments reliably
+- [x] Implement NCP: apply Trust Center preconfigured key (TCLK) from ZNSP 0x0028 + expose/get it via 0x0027
+- [x] Implement NCP: allow toggling link-key exchange requirement via ZNSP secure-mode (0x002A) for diagnosis
+- [x] Implement NCP: expose esp_zb_nvram_erase_at_start via ZNSP (0x002E/0x002F) to force fresh formation/channel
+- [x] Host console: add zb commands for tclk get/set, lke on/off, nvram erase_at_start
+- [ ] Validate on hardware: set TCLK to ZigBeeAlliance09, observe Device authorized status=0x00, and verify short address stabilizes
+- [x] Update tmux dual monitor script to use 'idf.py monitor --no-reset' for both H2+host (avoid H2 reset corrupting ZNSP bus)
+- [x] Add pyserial-based serial capture script for H2 (/dev/ttyACM0) so we can log without idf.py monitor TTY/DTR side effects

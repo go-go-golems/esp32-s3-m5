@@ -1,0 +1,2 @@
+[capture] port=/dev/ttyACM0 baud=115200 seconds=300.0
+[capture] out=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-222052/h2.log append=False

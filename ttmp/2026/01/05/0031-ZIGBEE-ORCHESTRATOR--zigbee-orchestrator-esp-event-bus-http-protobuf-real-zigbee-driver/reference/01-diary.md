@@ -20,17 +20,39 @@ RelatedFiles:
     - Path: ../../../../../../../../../../esp/esp-zigbee-sdk/examples/esp_zigbee_ncp/partitions.csv
       Note: Persistent Zigbee storage partitions relevant to channel/debug
     - Path: 0031-zigbee-orchestrator/main/gw_console_cmds.c
-      Note: Chronicles most console-facing changes (gw/zb/znsp/monitor verbs)
+      Note: |-
+        Chronicles most console-facing changes (gw/zb/znsp/monitor verbs)
+        Step 19 adds zb tclk/lke/nvram commands.
     - Path: 0031-zigbee-orchestrator/main/gw_registry.c
       Note: Device list keyed by IEEE (added while debugging rejoin/short churn)
     - Path: 0031-zigbee-orchestrator/main/gw_zb.c
       Note: Core Zigbee host logic and debugging changes (transactions
+    - Path: thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c
+      Note: Step 19 adds TCLK/LKE/NVRAM controls and fixes stub handlers.
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/analysis/02-investigation-report-device-rejoin-loop-channel-selection-stuck-on-ch13.md
+      Note: Document monitor-reset failure mode and mitigations
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh
+      Note: |-
+        Created while investigating environment constraints and reproducibility.
+        Ensure H2 monitor uses --no-reset to avoid corrupting Grove ZNSP bus
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/13-dual-drive-and-capture.py
+      Note: Dual capture + host command driver used for pairing runs
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/90-remarkable-pdf-only.sh
+      Note: Offline PDF export when rmapi upload is blocked.
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/h2.log
+      Note: 'Evidence: device announce + authorization timeout + short churn'
+    - Path: ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/host.log
+      Note: 'Evidence: host device announce + registry short change'
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-05T21:04:52-05:00
+LastUpdated: 2026-01-05T21:54:02-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
+
+
 
 
 # Diary
@@ -1026,3 +1048,440 @@ The outcome so far is “inconclusive but actionable”: we can now set and pers
 - Example observed mismatch:
   - NCP: `apply primary channel mask: 0x02000000 (ESP_OK)`
   - NCP: `Formed network successfully ... Channel:13`
+
+## Step 17: Attempt reMarkable upload + attempt to run “erase storage” experiment (blocked by environment)
+
+This step tried to (1) upload the newly updated docs to reMarkable and (2) execute the highest-signal experiment (erase H2 Zigbee storage and re-test channel selection). Both attempts exposed environment-level blockers: DNS resolution is broken in this runtime, and direct access to `/dev/ttyACM*` is denied (even though device node ACLs look correct).
+
+The outcome is that the ticket now contains runnable helper scripts for a developer machine (tmux monitor, erase/flash, targeted storage erase, and PDF-only export). These scripts let us proceed with the same experiments outside this restricted runtime while keeping a single source of truth in the ticket.
+
+### What I did
+- Tried to upload 0031 docs to reMarkable using the standard uploader:
+  - `python3 /home/manuel/.local/bin/remarkable_upload.py --ticket-dir ... <doc.md>`
+- Verified DNS is non-functional in this environment:
+  - `curl -I https://example.com -m 5` → `Could not resolve host: example.com`
+  - `getent hosts google.com` → no output
+- Tried to run the H2 “erase-flash” experiment using `idf.py` and direct serial tooling:
+  - `idf.py -C /home/manuel/esp/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 erase-flash` (failed)
+  - `esptool.py ... -p /dev/ttyACM0 erase_flash` (failed)
+  - `python3 -c 'import serial; serial.Serial(\"/dev/ttyACM0\",115200)'` → `Permission denied`
+- Confirmed the OS-level ACLs look permissive, but open() still fails:
+  - `getfacl -p /dev/ttyACM0` shows `user:manuel:rw-`
+- Confirmed we cannot use `sudo` here to change system DNS because `no new privileges` is set:
+  - `sudo ...` → `The "no new privileges" flag is set`
+- Added helper scripts directly into the ticket to run these workflows on a normal developer machine:
+  - `.../scripts/10-tmux-dual-monitor.sh` (two-pane tmux monitors: H2 + host)
+  - `.../scripts/20-h2-erase-and-flash.sh` (erase-flash + flash via idf.py)
+  - `.../scripts/21-h2-erase-zigbee-storage-only.sh` (parttool erase `zb_fct` + `zb_storage`)
+  - `.../scripts/90-remarkable-pdf-only.sh` (offline PDF generation without rmapi)
+- Updated the investigation report to reference the new scripts.
+- Generated PDFs offline (no upload) for the main 0031 docs:
+  - `ttmp/.../scripts/90-remarkable-pdf-only.sh`
+  - Output: `ttmp/.../exports/remarkable-pdf/*.pdf`
+
+### Why
+- The next debugging step (erasing Zigbee persistent storage) requires reliable flash/serial access and is the highest-signal way to confirm whether `zb_fct` / `zb_storage` is overriding our requested channel mask.
+- Uploading to reMarkable is part of the workflow, but it depends on working DNS + rmapi connectivity.
+
+### What worked
+- The scripts are now present in the ticket so the workflow is reproducible on a developer machine with working serial + DNS.
+- PDF generation works offline and produces shareable artifacts even when rmapi upload is blocked.
+
+### What should be done in the future
+- Vendor the H2 NCP firmware sources into this repo so we can build/flash from here without relying on `/home/manuel/esp/...` paths (done in the next step).
+
+### What didn't work
+- reMarkable upload failed due to DNS resolution failure:
+  - `rmapi mkdir failed ... dial tcp: lookup internal.cloud.remarkable.com: no such host`
+- Serial access to `/dev/ttyACM0` and `/dev/ttyACM1` failed with `Errno 13 Permission denied` even though device ACLs list user access.
+- Writing under `/home/manuel/esp/...` also fails with `Permission denied`, so running `idf.py` there cannot create its stdout/stderr log files.
+
+### What I learned
+- This runtime cannot be used to flash/monitor physical devices or reach external network services; “continue” must be executed via scripts on the developer machine.
+
+### What was tricky to build
+- Diagnosing why serial access fails: the device node permissions are correct, so the denial is likely coming from a higher-level restriction (e.g., container device/cgroup restrictions), not Unix file permissions.
+
+### What warrants a second pair of eyes
+- Whether the team wants to vendor the H2 NCP example into this repo (so all required firmware sources are in the workspace and don’t depend on `/home/manuel/esp/...` write access), or keep using the external SDK tree.
+
+### What should be done in the future
+- Run Experiment 1 on the developer machine:
+  - `scripts/21-h2-erase-zigbee-storage-only.sh` (preferred) or `scripts/20-h2-erase-and-flash.sh`
+  - then `zb ch 25` + `zb reboot` from the host console and confirm formation channel.
+- Run the PDF-only script and upload PDFs manually if rmapi continues to fail in some environments:
+  - `scripts/90-remarkable-pdf-only.sh`
+
+### Code review instructions
+- Scripts:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/20-h2-erase-and-flash.sh`
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/21-h2-erase-zigbee-storage-only.sh`
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/90-remarkable-pdf-only.sh`
+- Investigation report update:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/analysis/02-investigation-report-device-rejoin-loop-channel-selection-stuck-on-ch13.md`
+
+### Technical details
+- reMarkable failure:
+  - `rmapi ... dial tcp: lookup internal.cloud.remarkable.com: no such host`
+- Serial failure:
+  - `SerialException(13, "could not open port /dev/ttyACM0: [Errno 13] Permission denied")`
+
+## Step 18: Vendor the H2 NCP firmware into this repo (thirdparty) and build it locally
+
+This step moves the ESP32‑H2 NCP firmware sources we were previously building from `/home/manuel/esp/esp-zigbee-sdk/...` into this repository under `thirdparty/`. The reason is stability and reviewability: the NCP firmware is part of our product stack, we are modifying it during bring-up, and we want it under git control next to the host firmware and ticket docs.
+
+The outcome is a reproducible, workspace-local NCP build path: `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp set-target esp32h2 && idf.py -C ... build`.
+
+### What I did
+- Copied a minimal subset of `esp-zigbee-sdk` into this repository:
+  - `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/`
+  - `thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp/` (including `managed_components/`)
+- Removed the checked-in `sdkconfig` from the vendored example and added local `.gitignore` rules so build outputs don’t get committed.
+- Added vendored README:
+  - `thirdparty/esp-zigbee-sdk/README.md` (includes upstream origin commit `3d86dd0c...`)
+- Updated ticket scripts to use the vendored project path by default:
+  - `.../scripts/10-tmux-dual-monitor.sh`
+  - `.../scripts/20-h2-erase-and-flash.sh`
+  - `.../scripts/21-h2-erase-zigbee-storage-only.sh`
+- Built the vendored NCP project from this repo (and fixed the target):
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp set-target esp32h2`
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp build`
+
+### Why
+- We are actively patching NCP behavior (permit join handling, signal logs, channel config timing). Keeping those changes in `/home/manuel/esp/...` makes code review, CI, and long-term maintenance harder.
+- Vendoring the exact sources used to produce the running H2 firmware ensures we can bisect/debug and share a reproducible build with new developers.
+
+### What worked
+- The vendored NCP firmware builds successfully from the workspace.
+- The example includes `managed_components/`, so it can build without relying on fetching components during build.
+
+### What didn't work
+- The component manager still “updates” `dependencies.lock` during configure and may record absolute paths; we patched it to a repo-relative path to keep it portable, but developers should treat this file as “generated metadata” if it changes.
+
+### What I learned
+- The upstream example expects `idf.py set-target esp32h2` to be run at least once; otherwise it may build for the default target (esp32). Our scripts now enforce this.
+
+### What was tricky to build
+- Keeping the vendored example clean: the upstream example directory tends to accumulate `sdkconfig` from local builds; we explicitly remove/ignore it so the repo stays tidy.
+
+### What warrants a second pair of eyes
+- Whether we want to pin and enforce `dependencies.lock` strictly in git, or ignore it and rely on `managed_components/` + `idf_component.yml` for reproducibility.
+
+### What should be done in the future
+- Update remaining docs to prefer the vendored NCP paths (some diary entries reference the old `/home/manuel/esp/...` locations for historical accuracy).
+- Add a CI check that the vendored NCP firmware builds (optional, if CI exists for this repo).
+
+### Code review instructions
+- Vendored NCP:
+  - `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+  - `thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp/main/esp_zigbee_ncp.c`
+  - `thirdparty/esp-zigbee-sdk/README.md`
+- Updated scripts:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/20-h2-erase-and-flash.sh`
+
+### Technical details
+- Build commands:
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp set-target esp32h2`
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp build`
+
+## Step 19: Use “authorization timeout” diagnosis to add TCLK/link-key debug controls (host + NCP)
+
+This step incorporated a decode of our join/rejoin logs that points to the most likely explanation for the “short address churn”: the device is joining, but it never completes Trust Center authorization (TCLK/key exchange), so it times out and retries. That failure mode looks exactly like what we observed: repeated `Device update (unsecured join)` and repeated `Device authorized ... status=timeout`.
+
+The outcome is a set of concrete knobs we can exercise from the Cardputer console: get/set the Trust Center preconfigured key (TCLK), temporarily disable the link-key exchange requirement to confirm the diagnosis, and (optionally) enable `nvram_erase_at_start` to force fresh formation and avoid NVRAM overriding channel settings.
+
+### What I did
+- Read and related the decoded log analysis:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/Zigbee debug logs.md`
+- NCP: implemented real behavior for previously-stubbed ZNSP handlers:
+  - `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+    - Apply the Trust Center preconfigured key via `esp_zb_secur_TC_standard_preconfigure_key_set()` during form-network.
+    - Store/apply `link_key_exchange_required` via `esp_zb_secur_link_key_exchange_required_set()`.
+    - Expose `esp_zb_nvram_erase_at_start()` via new request IDs `0x002E/0x002F`.
+    - Make `0x0027/0x0028` (link key get/set) return/use the configured key instead of hardcoded values.
+- Protocol: added new NCP request IDs for nvram erase flag:
+  - `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/priv/esp_ncp_zb.h` (`0x002E/0x002F`)
+  - `0031-zigbee-orchestrator/components/zb_host/src/priv/esp_host_zb.h` (mirror)
+- Host console: added friendly `zb` commands so this is not “raw-hex-only”:
+  - `0031-zigbee-orchestrator/main/gw_console_cmds.c`
+    - `zb tclk get|set default|<16 bytes>`
+    - `zb lke on|off|status` (link-key exchange required)
+    - `zb nvram on|off|status` (erase zb_storage at start)
+- Updated investigation report with an explicit “Experiment 0” (security first), and referenced the decoded-log doc.
+
+### Why
+- The fastest way to stop guessing is to confirm whether the join loop is truly “authorization/TCLK exchange failing”. If disabling the requirement stabilizes the device, we can focus on the right layer (security + RF) instead of chasing symptoms.
+- If NVRAM restore is overriding channel config, `esp_zb_nvram_erase_at_start(true)` is a controlled way to force a clean formation and verify channel selection logic.
+
+### What worked
+- Both the vendored H2 NCP project and the Cardputer host firmware build clean after these changes:
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp build`
+  - `idf.py -C 0031-zigbee-orchestrator build`
+
+### What didn't work
+- Hardware validation is still blocked in this environment (serial access + DNS issues noted in Step 17), so the new knobs are unverified on-device in this runtime.
+
+### What I learned
+- The NCP code had stubs for link key and security mode that returned fixed values; this makes it easy to believe we “set the key” when we actually didn’t. Making these real is necessary before we can interpret authorization failures.
+
+### What was tricky to build
+- Keeping semantics minimal and safe: these controls must be usable for diagnosis without inadvertently bricking commissioning (e.g., enabling NVRAM erase at start permanently by accident). The console verbs are explicit so it’s obvious what mode is active.
+
+### What warrants a second pair of eyes
+- Security API mapping: confirm `esp_zb_secur_TC_standard_preconfigure_key_set()` is the correct hook for “TCLK join key” behavior for our device set (vs distributed key or install-code policy).
+
+### What should be done in the future
+- Validate on real hardware:
+  - `zb tclk set default`
+  - `zb lke off` (diagnostic) → pair → confirm stability
+  - `zb lke on` (secure) → pair again
+  - if channel remains 13: `zb nvram on` and re-form / reboot
+
+### Code review instructions
+- Start at the NCP request handlers:
+  - `thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+- Review console UX and request IDs:
+  - `0031-zigbee-orchestrator/main/gw_console_cmds.c`
+  - `0031-zigbee-orchestrator/components/zb_host/src/priv/esp_host_zb.h`
+
+### Technical details
+- Default TCLK key bytes (`ZigBeeAlliance09`):
+  - `5a 69 67 42 65 65 41 6c 6c 69 61 6e 63 65 30 39`
+
+## Step 20: Create and run Experiment 0 script (blocked here, ready for developer machine)
+
+This step focused on turning the new “security-first” debug flow into an executable playbook: a script that (optionally) flashes both devices and then drives the Cardputer console to set TCLK, disable link-key exchange requirement, and open permit-join. This is meant to remove friction and make it easy to reproduce the same investigation sequence when someone else joins the team.
+
+In this environment, we still cannot open the USB serial/JTAG devices, so the script can’t be executed end-to-end here. However, it is now committed in the ticket and should work on the normal developer machine.
+
+### What I did
+- Added flash helper for the host:
+  - `ttmp/.../scripts/22-host-flash.sh`
+- Added Experiment 0 driver script:
+  - `ttmp/.../scripts/30-experiment0-security.sh`
+  - It sends:
+    - `zb tclk set default`
+    - `zb tclk get`
+    - `zb lke off`
+    - `gw post permit_join 180`
+- Attempted to run it here:
+  - `bash ttmp/.../scripts/30-experiment0-security.sh`
+
+### Why
+- The join-loop issue is time-consuming to debug if the sequence is “manual and different every time”. A scripted experiment makes results comparable and makes it easier to hand off debugging to another developer.
+
+### What worked
+- Script is present and runnable in the repo; it uses `/dev/serial/by-id/` defaults but supports `HOST_PORT`/`H2_PORT` overrides.
+
+### What didn't work
+- The script fails here because the runtime cannot open the serial device:
+  - `SerialException(13, "... [Errno 13] Permission denied: '/dev/serial/by-id/...')`
+
+### What I learned
+- Even with correct code and tooling, this environment cannot perform the real “flash + interactive console + pairing” loop. We must run these experiment scripts on the developer machine directly attached to the hardware.
+
+### What was tricky to build
+- Keeping the script robust against timing: the console prompt may appear after boot logs; the script waits for `gw>` before/after commands and warns if it can’t find the prompt.
+
+### What warrants a second pair of eyes
+- The script’s prompt detection (`gw>`): if we ever change the prompt, the automation will need updates.
+
+### What should be done in the future
+- Run the experiment on the dev machine:
+  - `ttmp/.../scripts/10-tmux-dual-monitor.sh`
+  - `ttmp/.../scripts/30-experiment0-security.sh`
+  - Put the plug into pairing mode and observe whether `Device authorized ... status=0x00` appears.
+
+### Code review instructions
+- Review scripts:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/30-experiment0-security.sh`
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/22-host-flash.sh`
+
+### Technical details
+- Expected “good” console transcript (high level):
+  - `zb tclk set default` → status OK
+  - `zb lke off` → status OK
+  - `gw post permit_join 180` → status OK
+
+## Step 21: Fix the monitoring workflow (avoid resetting the H2 and corrupting the Grove ZNSP bus)
+
+During Zigbee bring-up we discovered a subtle but very practical failure mode: simply starting `idf.py monitor` on the H2 can reset the H2 (because the tool toggles DTR/RTS by default). When the H2 resets while it is still wired to the Cardputer over the Grove UART, its boot ROM banner text can spill onto the same UART lines that carry SLIP/ZNSP, which then corrupts framing and can make the host interpret garbage as protocol responses.
+
+The outcome of this step is a safer default monitoring playbook: always pass `--no-reset` when monitoring both devices, and treat “ESP-ROM:esp32h2-…” observed on the Grove bus as a sign that the H2 rebooted at the wrong time (so the host should be rebooted too, or requests should be retried only after the H2 is stable).
+
+### What I did
+- Updated the tmux dual-monitor helper to always run monitors without toggling reset lines:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`
+    - `idf.py ... monitor --no-reset` for both H2 and host
+- Updated the investigation report with an explicit “monitor reset” warning and mitigation:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/analysis/02-investigation-report-device-rejoin-loop-channel-selection-stuck-on-ch13.md`
+
+### Why
+- When the H2 resets mid-session, the host UART sees ASCII boot logs (not SLIP frames), which can:
+  - trigger SLIP parse errors (`Invalid packet len ...` in `zb_host`), and
+  - cause in-flight ZNSP request/response pairs to desynchronize (making subsequent debug conclusions unreliable).
+- Avoiding unintended resets makes Experiment 0 (TCLK/LKE) and channel/NVRAM experiments reproducible and comparable across runs.
+
+### What worked
+- The tmux helper now uses a safe default (`--no-reset`) so the common “open monitor” action doesn’t destabilize the bus.
+- The investigation report now documents this trap so a new developer doesn’t lose time chasing phantom protocol errors.
+
+### What didn't work
+- N/A (this step is a workflow hardening change; it doesn’t by itself fix the underlying join/authorization loop).
+
+### What I learned
+- On this topology (host↔NCP over a “real” UART), monitor tooling and control-line behavior can materially affect protocol correctness; debugging needs “do no harm” defaults.
+
+### What was tricky to build
+- The failure mode is non-obvious because it looks like a protocol/stack bug at first: the host sees invalid frames and timeouts, but the root cause is out-of-band ASCII boot logs injected onto the protocol UART during NCP reset.
+
+### What warrants a second pair of eyes
+- Whether we should additionally harden the host ZNSP transport with a “detect reset + resync” strategy (e.g. detect `ESP-ROM` strings on the protocol UART and temporarily block/flush until a clean SLIP frame boundary).
+
+### What should be done in the future
+- When capturing logs for commissioning experiments, always use:
+  - `idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 monitor --no-reset`
+  - `idf.py -C 0031-zigbee-orchestrator -p /dev/ttyACM1 monitor --no-reset`
+- If the H2 is reset (intentional or not), reboot the host (or at minimum restart its ZNSP stack/task) before interpreting further ZNSP results.
+
+### Code review instructions
+- Start with the tmux helper change:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/10-tmux-dual-monitor.sh`
+- Review the new warning text:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/analysis/02-investigation-report-device-rejoin-loop-channel-selection-stuck-on-ch13.md`
+
+### Technical details
+- Unsafe (may reset H2): `idf.py monitor`
+- Safe: `idf.py monitor --no-reset`
+
+## Step 22: Capture H2 logs without `idf.py monitor` (serial capture script) and re-run Experiment 0
+
+This step validated that our new TCLK/LKE controls are not just “host-side prints”, but actually reach the H2 NCP and produce the expected request frames. It also addressed a practical tooling mismatch: `idf.py monitor` refuses to run unless stdin is a real TTY in this environment, which makes it unreliable for automated capture from within scripts.
+
+The key outcome is a simple, robust alternative: a tiny pyserial-based capture script that can record the H2’s USB-Serial/JTAG console output to a file while we drive the host console automation. With that, we have a reproducible artifact proving that ZNSP request IDs `0x0028` (set TCLK), `0x0027` (get TCLK), `0x002A` (set LKE mode), `0x0029` (get LKE mode), and `0x0005` (permit-join) are flowing over the bus correctly.
+
+### What I did
+- Added a serial capture script to the ticket workspace:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/11-capture-serial.py`
+- Re-ran Experiment 0 while capturing the H2 UART/JTAG console to a file:
+  - Created run folder:
+    - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/`
+  - Commands (high level):
+    - `python3 .../scripts/11-capture-serial.py --port /dev/ttyACM0 --seconds 25 --out .../h2-raw.log &`
+    - `HOST_PORT=/dev/ttyACM1 bash .../scripts/30-experiment0-security.sh | tee .../host-exp0.log`
+
+### Why
+- `idf.py monitor` errors in this environment when stdin isn’t a TTY:
+  - `Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.`
+- We still need continuous H2 visibility while driving the host console (especially while debugging commissioning/authorization).
+
+### What worked
+- `scripts/11-capture-serial.py` successfully captured H2 logs without any TTY requirements.
+- The captured H2 log includes the expected frames corresponding to our Experiment 0 host actions (example excerpt):
+  - `ESP_NCP_FRAME: 00 00 28 00 ... 5a 69 67 42 65 65 41 6c 6c 69 61 6e 63 65 30 39 ...` (set TCLK to ZigBeeAlliance09)
+  - `ESP_NCP_FRAME: 00 00 27 00 ...` (get TCLK)
+  - (and subsequent frames for LKE and permit-join)
+
+### What didn't work
+- Using `idf.py monitor` for programmatic capture remains unreliable here due to the TTY constraint (even when wrapped in `timeout`).
+
+### What I learned
+- For automated investigations, raw serial capture via pyserial is often a better building block than `idf.py monitor` because it avoids stdin/terminal assumptions and avoids side effects like DTR/RTS toggling.
+
+### What was tricky to build
+- Making the capture script behave “like a passive tap”: it must not change control lines, must not block, and must flush frequently so partial logs are visible during an ongoing run.
+
+### What warrants a second pair of eyes
+- Whether we should standardize on this capture script for all “dual-device” workflows (host+NCP), or keep it as a fallback only when TTY/monitor is problematic.
+
+### What should be done in the future
+- Extend the capture script to optionally timestamp each line on write (helpful when correlating host vs H2 logs precisely).
+- Capture both ports simultaneously into separate files (host + H2) and add a small merge tool for timeline correlation.
+
+### Code review instructions
+- Review the capture script:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/11-capture-serial.py`
+- Review the evidence artifact:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/h2-raw.log`
+
+### Technical details
+- The host console output for this run is in:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-06-exp0b/host-exp0.log`
+
+## Step 23: Pairing attempts (LKE off vs on) + dual host/H2 capture
+
+This step focused on answering the simplest question: “is the plug actually attempting to join, and if it does join, where does it get stuck?” We ran several pairing windows while capturing both the host console and the H2 NCP logs into a timestamped run directory. The capture method evolved during the step: first we used background `nohup` captures and ad-hoc tailing, then we consolidated into a single script that drives the host commands and captures both ports concurrently.
+
+The key outcome is a clean reproduction of the suspected failure mode: with **LKE on**, the plug announces and gets a short address, but we repeatedly see **`Device authorized ... status=0x01` (authorization timeout)** and the short address changes over time. With **LKE off**, we sometimes saw “nothing happens” (no announce at all), suggesting some devices may not attempt joining (or we were missing the timing window) when the coordinator is configured that way.
+
+### What I did
+- Implemented a combined driver + dual capture tool:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/13-dual-drive-and-capture.py`
+  - It:
+    - sends `monitor on`, `zb tclk set default`, `zb lke <on/off>`, and `gw post permit_join <seconds>`
+    - captures `/dev/ttyACM0` (H2) and `/dev/ttyACM1` (host) concurrently to `h2.log` and `host.log`
+    - prints “interesting” lines live to stdout (announce/authorized/update/leave keywords)
+- Fixed a real-world gotcha during repeated relaunches: serial ports can’t be opened by two processes at once.
+  - Example failure:
+    - `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
+  - Root cause: an earlier tmux capture session still held `/dev/ttyACM0` and `/dev/ttyACM1`.
+  - Fix: kill the old tmux session before relaunching a new capture.
+- Captured runs (selected):
+  - “Nothing joins” window (permit-join open, no announce):
+    - `.../sources/local/runs/2026-01-05-pairing-223926/`
+  - LKE=on pairing (announce observed, but authorization timeouts + short churn):
+    - `.../sources/local/runs/2026-01-05-pairing-lke-on-224457/`
+
+### Why
+- We needed evidence that separates:
+  - “the plug never even tries to join” vs
+  - “it joins but fails authorization” vs
+  - “our host registry/command path is wrong”
+- Capturing both sides simultaneously is the only reliable way to correlate the join procedure.
+
+### What worked
+- With LKE=on we consistently captured the full chain:
+  - `Device update (status=0x01 ...)` on H2
+  - `GW_EVT_ZB_DEVICE_ANNCE` on host
+  - then `Device authorized (type=0x01 status=0x01 ...)` (authorization timeout) on H2
+  - and later, the same IEEE returning with a *different* short address (churn)
+- The “dual capture” script makes relaunching a debug window fast and produces stable artifacts (logs) that can be reviewed after the fact.
+
+### What didn't work
+- With LKE=off, we sometimes observed no join activity at all during the permit-join window (no announce/update logs).
+  - This might be a timing issue (plug not actually in join mode while the window is open), or a behavior difference in the device when the coordinator is configured this way.
+- We also observed H2 reboot banners (`ESP-ROM:esp32h2-...`) appearing inside one capture; this indicates the H2 reset during/near commissioning, which can invalidate conclusions for that window unless the reset was intentional.
+
+### What I learned
+- “Permit join is open” is necessary but not sufficient; you still need a reliable repeatable method to confirm whether the device is actually sending join requests on-air.
+- Repro tooling needs to own the serial ports end-to-end; otherwise old monitor/capture processes will silently sabotage new runs.
+
+### What was tricky to build
+- Coordinating two serial streams without `idf.py monitor` (TTY requirements, DTR/RTS behavior) while still getting useful timestamps and context.
+- Avoiding side effects from serial control lines (best-effort disabling DTR/RTS in the capture scripts).
+
+### What warrants a second pair of eyes
+- Whether the H2 reset observed in `.../2026-01-05-pairing-lke-on-224457/h2.log` is:
+  - an artifact of capture/tooling (control lines/power),
+  - a stability issue in the NCP firmware,
+  - or something triggered by the commissioning/security flow.
+
+### What should be done in the future
+- Re-run the LKE=on capture with the H2 physically stable (no USB replugging, avoid any tools that toggle reset) and confirm whether the H2 resets recur.
+- Focus next debugging on why authorization times out:
+  - channel interference (still forming on ch13 despite mask),
+  - NVRAM persistence overriding config,
+  - Trust Center key / policy mismatch,
+  - or device-specific commissioning requirements.
+
+### Code review instructions
+- Start with the dual capture tooling:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/scripts/13-dual-drive-and-capture.py`
+- Review pairing evidence logs:
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/h2.log`
+  - `ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/sources/local/runs/2026-01-05-pairing-lke-on-224457/host.log`
+
+### Technical details
+- LKE=on run excerpt (symptom):
+  - `Device authorized (type=0x01 status=0x01 ...)` followed later by the same IEEE reappearing with a new short address.

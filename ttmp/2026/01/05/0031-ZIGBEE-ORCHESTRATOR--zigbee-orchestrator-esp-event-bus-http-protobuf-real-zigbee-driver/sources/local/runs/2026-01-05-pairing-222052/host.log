@@ -1,0 +1,6 @@
+I (529436) ESP_ZNSP_FRAME: 20 00 05 00 ba 01 00 b4 c9 49
+I (529436) gw_zb_sig_0031: ZB permit-join status: seconds=180
+[gw] GW_EVT_ZB_PERMIT_JOIN_STATUS (200) seconds=180
+I (709446) ESP_ZNSP_FRAME: 20 00 05 00 e5 01 00 00 89 dd
+I (709446) gw_zb_sig_0031: ZB permit-join status: seconds=0
+[gw] GW_EVT_ZB_PERMIT_JOIN_STATUS (200) seconds=0

@@ -1,0 +1,26 @@
+Script started on 2026-01-05 22:12:29-05:00 [COMMAND="timeout 140s idf.py -C thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp -p /dev/ttyACM0 monitor --no-reset" <not executed on terminal>]
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp
+Executing "/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.4.1/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix riscv32-esp-elf- --target esp32h2 --revision 0 --decode-panic backtrace /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp/build/esp_zigbee_ncp.elf --no-reset -m '/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python' '/home/manuel/esp/esp-idf-5.4.1/tools/idf.py' '-C' 'thirdparty/esp-zigbee-sdk/examples/esp_zigbee_ncp' '-p' '/dev/ttyACM0'"...
+[0;33m--- esp-idf-monitor 1.8.0 on /dev/ttyACM0 115200[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+[0;32mI (39646) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39646) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39646) ESP_NCP_FRAME: 00 00 28 00 83 10 00 5a 69 67 42 65 65 41 6c 6c[0m
+[0;32mI (39646) ESP_NCP_FRAME: 69 61 6e 63 65 30 39 a0 40[0m
+[0;32mI (39746) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39746) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39746) ESP_NCP_FRAME: 00 00 27 00 b8 00 00 32 e3[0m
+[0;32mI (39846) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39846) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39846) ESP_NCP_FRAME: 00 00 2a 00 8b 01 00 00 36 e4[0m
+[0;32mI (39946) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39946) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (39946) ESP_NCP_FRAME: 00 00 29 00 06 00 00 d3 18[0m
+[0;32mI (40046) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (40046) ESP_NCP_BUS: uart pattern detection[0m
+[0;32mI (40046) ESP_NCP_FRAME: 00 00 05 00 65 01 00 b4 b8 b5[0m
+[0;32mI (40046) ESP_NCP_ZB: permit_join seconds=180[0m
+[0;32mI (40656) ESP_NCP_ZB: Network(0x4641) is open for 180 seconds[0m
+
+Script done on 2026-01-05 22:14:14-05:00 [COMMAND_EXIT_CODE="0"]

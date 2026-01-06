@@ -1,0 +1,49 @@
+[exp0] connected: /dev/ttyACM1
+
+gw>  
+gw>  
+[exp0] 1) Set TCLK to ZigBeeAlliance09 and read it back
+zb tclk set default
+I (27606) ESP_ZNSP_FRAME: TX id=40 sn=131 size=25 slip=27
+I (27606) ESP_ZNSP_BUS: uart write 27 bytes
+I (27616) ESP_ZNSP_FRAME: 10 00 28 00 83 01 00 00 c0 52
+zb tclk set: status=0x00 (ESP_OK)
+gw>  
+gw>  zb tclk get
+I (27706) ESP_ZNSP_FRAME: TX id=39 sn=184 size=9 slip=11
+I (27706) ESP_ZNSP_BUS: uart write 11 bytes
+I (27706) ESP_ZNSP_FRAME: 10 00 27 00 b8 18 00 5b 45 ca fe ff b7 31 48 5a
+I (27716) ESP_ZNSP_FRAME: 69 67 42 65 65 41 6c 6c 69 61 6e 63 65 30 39 9d
+I (27716) ESP_ZNSP_FRAME: cb
+zb tclk: tc_ieee=48:31:b7:ff:fe:ca:45:5b key=5a6967426565416c6c69616e63653039
+gw>  
+gw>  
+[exp0] 2) Disable link-key exchange requirement temporarily (diagnostic)
+zb lke off
+I (27806) ESP_ZNSP_FRAME: TX id=42 sn=139 size=10 slip=12
+I (27806) ESP_ZNSP_BUS: uart write 12 bytes
+I (27806) ESP_ZNSP_FRAME: 10 00 2a 00 8b 01 00 00 4e bf
+zb lke off: status=0x00 (ESP_OK)
+gw>  
+gw>  zb lke status
+I (27906) ESP_ZNSP_FRAME: TX id=41 sn=6 size=9 slip=11
+I (27906) ESP_ZNSP_BUS: uart write 11 bytes
+I (27906) ESP_ZNSP_FRAME: 10 00 29 00 06 01 00 00 d2 15
+zb lke: off (mode=0)
+gw>  
+gw>  
+[exp0] 3) Open permit join (pair your device now)
+gw post permit_join 180
+posted GW_CMD_PERMIT_JOIN req_id=1
+I (28006) gw_zb_0031: permit_join request seconds=180 req_id=1
+I (28006) ESP_ZNSP_FRAME: TX id=5 sn=101 size=10 slip=12
+I (28006) ESP_ZNSP_BUS: uart write 12 bytes
+gw>  
+gw>  I (28016) ESP_ZNSP_FRAME: 10 00 05 00 65 01 00 00 6f 1d
+I (28016) gw_zb_0031: permit_join response status=0x00 (ESP_OK) req_id=1
+
+[exp0] Next manual steps:
+- Put plug into pairing mode.
+- Watch H2 logs for 'Device authorized ... status=0x00' (success) or status=0x01 (timeout).
+- If stable with lke=off, later try: 'zb lke on' and pair again.
+

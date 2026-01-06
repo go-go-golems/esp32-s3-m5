@@ -1,0 +1,72 @@
+ESP-ROM:esp32h2-20221101
+Build:Nov  1 2022
+rst:0x15 (USB_UART_HPSYS),boot:0xc (SPI_FAST_FLASH_BOOT)
+Saved PC:0x408047a0
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x408460f0,len:0x538
+load:0x4083cad0,len:0xba4
+load:0x4083efd0,len:0x24ec
+entry 0x4083cad0
+I (215) cpu_start: Unicore app
+I (223) cpu_start: Pro cpu start user code
+I (223) cpu_start: cpu freq: 96000000 Hz
+I (224) app_init: Application information:
+I (224) app_init: Project name:     esp_zigbee_ncp
+I (224) app_init: App version:      0cc43bb-dirty
+I (225) app_init: Compile time:     Jan  5 2026 22:09:09
+I (225) app_init: ELF file SHA256:  f9bc6f6aa...
+I (225) app_init: ESP-IDF:          v5.4.1
+I (226) efuse_init: Min chip rev:     v0.0
+I (226) efuse_init: Max chip rev:     v1.99 
+I (226) efuse_init: Chip rev:         v0.1
+I (227) heap_init: Initializing. RAM available for dynamic allocation:
+I (227) heap_init: At 408156E0 len 00037CA0 (223 KiB): RAM
+I (228) heap_init: At 4084D380 len 00002B60 (10 KiB): RAM
+I (228) heap_init: At 50000000 len 00000FE8 (3 KiB): RTCRAM
+I (229) spi_flash: detected chip: generic
+I (230) spi_flash: flash io: dio
+I (230) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (231) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (232) main_task: Started on CPU0
+I (232) main_task: Calling app_main()
+I (242) uart: queue free spaces: 20
+I (242) main_task: Returned from app_main()
+I (2132) ESP_NCP_BUS: uart pattern detection
+I (2132) ESP_NCP_BUS: uart pattern detection
+I (2132) ESP_NCP_FRAME: 00 00 14 00 c8 04 00 00 00 00 02 c7 93
+I (2132) ESP_NCP_BUS: uart pattern detection
+I (2132) ESP_NCP_BUS: uart pattern detection
+I (2132) ESP_NCP_FRAME: 00 00 10 00 a9 04 00 00 00 00 02 72 97
+I (2142) ESP_NCP_BUS: uart pattern detection
+I (2142) ESP_NCP_BUS: uart pattern detection
+I (2142) ESP_NCP_FRAME: 00 00 00 00 27 00 00 c1 70
+I (2142) ESP_NCP_BUS: uart pattern detection
+I (2142) ESP_NCP_BUS: uart pattern detection
+I (2152) ESP_NCP_FRAME: 00 00 04 00 ab 10 00 00 00 00 00 00 00 00 00 10
+I (2152) ESP_NCP_FRAME: 00 00 00 00 00 00 00 17 88
+I (2172) phy: phy_version: 321,2, 632dc08, Feb 13 2025, 16:29:11
+I (2172) phy: libbtbb version: 509a2a6, Feb 13 2025, 16:29:25
+I (2172) ESP_NCP_BUS: uart pattern detection
+I (2182) ESP_NCP_BUS: uart pattern detection
+I (2182) ESP_NCP_FRAME: 00 00 01 00 6b 01 00 00 f9 f8
+I (2212) ESP_NCP_ZB: Initialize Zigbee stack
+W (2212) ESP_NCP_ZB: Network(0x4641) closed, devices joining not allowed.
+I (2222) ESP_NCP_ZB: apply channel mask: 0x02000000 (ESP_OK)
+I (2222) ESP_NCP_ZB: apply primary channel mask: 0x02000000 (ESP_OK)
+I (2222) ESP_NCP_ZB: Start network formation
+I (2222) ESP_NCP_ZB: Formed network successfully (Extended PAN ID: 48:31:b7:ff:fe:ca:45:5b, PAN ID: 0x4641, Channel:13)
+I (2822) ESP_NCP_ZB: Network(0x4641) is open for 180 seconds
+I (2822) ESP_NCP_ZB: Network steering started
+I (8102) ESP_NCP_BUS: uart pattern detection
+I (8102) ESP_NCP_BUS: uart pattern detection
+I (8102) ESP_NCP_FRAME: 00 00 28 00 f2 10 00 5a 69 67 42 65 65 41 6c 6c
+I (8102) ESP_NCP_FRAME: 69 61 6e 63 65 30 39 c7 af
+I (8152) ESP_NCP_BUS: uart pattern detection
+I (8152) ESP_NCP_BUS: uart pattern detection
+I (8152) ESP_NCP_FRAME: 00 00 2a 00 2a 01 00 00 b0 5a
+I (8202) ESP_NCP_BUS: uart pattern detection
+I (8202) ESP_NCP_BUS: uart pattern detection
+I (8202) ESP_NCP_FRAME: 00 00 05 00 af 01 00 05 cd f6
+I (8202) ESP_NCP_ZB: permit_join seconds=5
+I (8812) ESP_NCP_ZB: Network(0x4641) is open for 5 seconds
