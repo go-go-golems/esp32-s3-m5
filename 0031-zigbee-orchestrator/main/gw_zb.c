@@ -186,10 +186,18 @@ static void gw_zb_cmd_task_main(void *arg) {
 
         switch (cmd.kind) {
             case GW_ZB_CMD_PERMIT_JOIN: {
-                const uint8_t sec8 = (cmd.seconds > 255) ? 255 : (uint8_t)cmd.seconds;
+                const uint16_t requested = cmd.seconds;
+                const uint8_t sec8 = (requested > 255) ? 255 : (uint8_t)requested;
                 uint8_t out = 0xFF;
                 uint16_t outlen = sizeof(out);
 
+                if (requested != (uint16_t)sec8) {
+                    ESP_LOGW(TAG,
+                             "permit_join seconds clamped: requested=%u -> sending=%u req_id=%" PRIu64,
+                             (unsigned)requested,
+                             (unsigned)sec8,
+                             cmd.req_id);
+                }
                 ESP_LOGI(TAG, "permit_join request seconds=%u req_id=%" PRIu64, (unsigned)sec8, cmd.req_id);
                 const esp_err_t txerr = gw_zb_znsp_request(ZNSP_NETWORK_PERMIT_JOINING,
                                                           &sec8,

@@ -1,7 +1,12 @@
+# ESP-IDF build outputs
 build/
+**/build/
 .envrc
 .vscode
 managed_components
+
+# docmgr / ticket workspaces
+ttmp/**/.meta/
 .cache
 .history
 .pio

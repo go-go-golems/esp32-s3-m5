@@ -38,11 +38,20 @@ static void print_usage_zb(void) {
     printf("  zb status\n");
     printf("  zb ch <20|25>\n");
     printf("  zb mask <hex_u32>\n");
+    printf("  zb tclk get\n");
+    printf("  zb tclk set default\n");
+    printf("  zb tclk set <16 hex bytes>\n");
+    printf("  zb lke status\n");
+    printf("  zb lke on|off\n");
+    printf("  zb nvram status\n");
+    printf("  zb nvram on|off\n");
     printf("  zb reboot\n");
     printf("\n");
     printf("Notes:\n");
     printf("  - The primary channel mask only reliably affects the next network formation.\n");
     printf("  - After changing it, reboot the Cardputer and power-cycle/reset the H2, then re-pair devices.\n");
+    printf("  - If a device keeps rejoining and you see authorization timeouts, try setting TCLK and/or disabling\n");
+    printf("    link-key exchange requirement temporarily (zb lke off) to confirm the diagnosis.\n");
 }
 
 static void print_usage_znsp(void) {
@@ -60,6 +69,20 @@ static bool parse_u8_hex(const char *s, uint8_t *out) {
     if (v > 0xFF) return false;
     *out = (uint8_t)v;
     return true;
+}
+
+static esp_err_t znsp_status_to_err(uint8_t status) {
+    switch (status) {
+        case 0x00:
+            return ESP_OK;
+        case 0x02:
+            return ESP_ERR_INVALID_ARG;
+        case 0x03:
+            return ESP_ERR_NO_MEM;
+        case 0x01:
+        default:
+            return ESP_FAIL;
+    }
 }
 
 static int cmd_znsp(int argc, char **argv) {
@@ -151,6 +174,23 @@ static int cmd_zb(int argc, char **argv) {
     if (strcmp(argv[1], "status") == 0) {
         const uint32_t mask = gw_zb_get_primary_channel_mask();
         printf("zb: primary_channel_mask=0x%08" PRIx32 "\n", mask);
+
+        uint8_t lke = 0xFF;
+        uint16_t lke_len = sizeof(lke);
+        if (gw_zb_znsp_request(0x0029, NULL, 0, &lke, &lke_len, pdMS_TO_TICKS(1000)) == ESP_OK && lke_len == 1) {
+            printf("zb: link_key_exchange_required=%s (mode=%u)\n", (lke != 0) ? "on" : "off", (unsigned)lke);
+        } else {
+            printf("zb: link_key_exchange_required=unknown (read failed)\n");
+        }
+
+        uint8_t nvram = 0xFF;
+        uint16_t nvram_len = sizeof(nvram);
+        if (gw_zb_znsp_request(0x002F, NULL, 0, &nvram, &nvram_len, pdMS_TO_TICKS(1000)) == ESP_OK && nvram_len == 1) {
+            printf("zb: nvram_erase_at_start=%s\n", (nvram != 0) ? "on" : "off");
+        } else {
+            printf("zb: nvram_erase_at_start=unknown (read failed)\n");
+        }
+
         return 0;
     }
 
@@ -192,6 +232,136 @@ static int cmd_zb(int argc, char **argv) {
         fflush(stdout);
         esp_restart();
         return 0;
+    }
+
+    if (strcmp(argv[1], "tclk") == 0) {
+        if (argc < 3) {
+            print_usage_zb();
+            return 1;
+        }
+
+        if (strcmp(argv[2], "get") == 0) {
+            uint8_t out[64];
+            uint16_t outlen = sizeof(out);
+            const esp_err_t err = gw_zb_znsp_request(0x0027, NULL, 0, out, &outlen, pdMS_TO_TICKS(3000));
+            if (err != ESP_OK) {
+                printf("zb tclk get: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            if (outlen != 24) {
+                printf("zb tclk get: unexpected len=%u\n", (unsigned)outlen);
+                return 1;
+            }
+            printf("zb tclk: tc_ieee=%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x key=",
+                   out[7], out[6], out[5], out[4], out[3], out[2], out[1], out[0]);
+            for (int i = 8; i < 24; i++) printf("%02x", out[i]);
+            printf("\n");
+            return 0;
+        }
+
+        if (strcmp(argv[2], "set") == 0) {
+            if (argc < 4) {
+                print_usage_zb();
+                return 1;
+            }
+            uint8_t key[16];
+            if (strcmp(argv[3], "default") == 0) {
+                const uint8_t def[16] = {
+                    0x5a, 0x69, 0x67, 0x42, 0x65, 0x65, 0x41, 0x6c, 0x6c, 0x69, 0x61, 0x6e, 0x63, 0x65, 0x30, 0x39
+                };
+                memcpy(key, def, sizeof(key));
+            } else {
+                if (argc != 3 + 16) {
+                    printf("zb tclk set: expected 16 hex bytes, got %d\n", argc - 3);
+                    return 1;
+                }
+                for (int i = 0; i < 16; i++) {
+                    if (!parse_u8_hex(argv[3 + i], &key[i])) {
+                        printf("invalid byte: %s\n", argv[3 + i]);
+                        return 1;
+                    }
+                }
+            }
+            uint8_t status = 0xFF;
+            uint16_t status_len = sizeof(status);
+            const esp_err_t err = gw_zb_znsp_request(0x0028, key, sizeof(key), &status, &status_len, pdMS_TO_TICKS(3000));
+            if (err != ESP_OK) {
+                printf("zb tclk set: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            const esp_err_t mapped = (status_len == 1) ? znsp_status_to_err(status) : ESP_FAIL;
+            printf("zb tclk set: status=0x%02x (%s)\n", (unsigned)status, esp_err_to_name(mapped));
+            return (mapped == ESP_OK) ? 0 : 1;
+        }
+
+        print_usage_zb();
+        return 1;
+    }
+
+    if (strcmp(argv[1], "lke") == 0) {
+        if (argc != 3) {
+            print_usage_zb();
+            return 1;
+        }
+        if (strcmp(argv[2], "status") == 0) {
+            uint8_t mode = 0xFF;
+            uint16_t mode_len = sizeof(mode);
+            const esp_err_t err = gw_zb_znsp_request(0x0029, NULL, 0, &mode, &mode_len, pdMS_TO_TICKS(2000));
+            if (err != ESP_OK || mode_len != 1) {
+                printf("zb lke status: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            printf("zb lke: %s (mode=%u)\n", (mode != 0) ? "on" : "off", (unsigned)mode);
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0 || strcmp(argv[2], "off") == 0) {
+            const uint8_t mode = (strcmp(argv[2], "on") == 0) ? 1 : 0;
+            uint8_t status = 0xFF;
+            uint16_t status_len = sizeof(status);
+            const esp_err_t err = gw_zb_znsp_request(0x002A, &mode, sizeof(mode), &status, &status_len, pdMS_TO_TICKS(2000));
+            if (err != ESP_OK) {
+                printf("zb lke %s: %s\n", argv[2], esp_err_to_name(err));
+                return 1;
+            }
+            const esp_err_t mapped = (status_len == 1) ? znsp_status_to_err(status) : ESP_FAIL;
+            printf("zb lke %s: status=0x%02x (%s)\n", argv[2], (unsigned)status, esp_err_to_name(mapped));
+            return (mapped == ESP_OK) ? 0 : 1;
+        }
+        print_usage_zb();
+        return 1;
+    }
+
+    if (strcmp(argv[1], "nvram") == 0) {
+        if (argc != 3) {
+            print_usage_zb();
+            return 1;
+        }
+        if (strcmp(argv[2], "status") == 0) {
+            uint8_t mode = 0xFF;
+            uint16_t mode_len = sizeof(mode);
+            const esp_err_t err = gw_zb_znsp_request(0x002F, NULL, 0, &mode, &mode_len, pdMS_TO_TICKS(2000));
+            if (err != ESP_OK || mode_len != 1) {
+                printf("zb nvram status: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            printf("zb nvram: erase_at_start=%s\n", (mode != 0) ? "on" : "off");
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0 || strcmp(argv[2], "off") == 0) {
+            const uint8_t mode = (strcmp(argv[2], "on") == 0) ? 1 : 0;
+            uint8_t status = 0xFF;
+            uint16_t status_len = sizeof(status);
+            const esp_err_t err = gw_zb_znsp_request(0x002E, &mode, sizeof(mode), &status, &status_len, pdMS_TO_TICKS(2000));
+            if (err != ESP_OK) {
+                printf("zb nvram %s: %s\n", argv[2], esp_err_to_name(err));
+                return 1;
+            }
+            const esp_err_t mapped = (status_len == 1) ? znsp_status_to_err(status) : ESP_FAIL;
+            printf("zb nvram %s: status=0x%02x (%s)\n", argv[2], (unsigned)status, esp_err_to_name(mapped));
+            return (mapped == ESP_OK) ? 0 : 1;
+        }
+        print_usage_zb();
+        return 1;
     }
 
     print_usage_zb();
@@ -253,8 +423,8 @@ static int cmd_gw(int argc, char **argv) {
         }
         if (strcmp(argv[2], "permit_join") == 0) {
             const int seconds_i = atoi(argv[3]);
-            if (seconds_i < 0 || seconds_i > 3600) {
-                printf("invalid seconds: %d\n", seconds_i);
+            if (seconds_i < 0 || seconds_i > 255) {
+                printf("invalid seconds: %d (range: 0..255)\n", seconds_i);
                 return 1;
             }
             uint64_t req_id = 0;

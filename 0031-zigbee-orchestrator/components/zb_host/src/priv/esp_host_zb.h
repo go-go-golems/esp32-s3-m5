@@ -82,6 +82,8 @@ typedef enum {
 #define ESP_ZNSP_NETWORK_PREDEFINED_PANID        0x002B  /*!< Enable or disable predefined network panid */
 #define ESP_ZNSP_NETWORK_SHORT_TO_IEEE           0x002C  /*!< Get the network IEEE address by the short address */
 #define ESP_ZNSP_NETWORK_IEEE_TO_SHORT           0x002D  /*!< Get the network short address by the IEEE address */
+#define ESP_ZNSP_NETWORK_NVRAM_ERASE_AT_START_SET 0x002E /*!< Enable/disable erasing zb_storage at next start */
+#define ESP_ZNSP_NETWORK_NVRAM_ERASE_AT_START_GET 0x002F /*!< Get the nvram-erase-at-start flag */
 #define ESP_ZNSP_ZCL_ENDPOINT_ADD                0x0100  /*!< Configures endpoint information */
 #define ESP_ZNSP_ZCL_ENDPOINT_DEL                0x0101  /*!< Remove endpoint information */
 #define ESP_ZNSP_ZCL_ATTR_READ                   0x0102  /*!< Read attribute data */
