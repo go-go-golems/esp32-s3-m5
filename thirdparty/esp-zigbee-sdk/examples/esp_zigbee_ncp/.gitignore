@@ -1,0 +1,6 @@
+build/
+sdkconfig
+sdkconfig.old
+sdkconfig.old.*
+sdkconfig.defaults.*
+managed_components/idf_component.lock

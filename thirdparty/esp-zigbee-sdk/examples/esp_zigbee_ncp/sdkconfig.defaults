@@ -1,0 +1,35 @@
+# Keep UART pins quiet (NCP bus uses GPIO23/24): use USB-Serial/JTAG console
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# CONFIG_ESP_CONSOLE_UART is not set
+
+# Reduce bootloader log verbosity (avoid UART0 noise)
+CONFIG_BOOTLOADER_LOG_LEVEL_NONE=y
+CONFIG_BOOTLOADER_LOG_LEVEL=0
+
+# Increase main task stack size
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=7168
+
+# Enable filesystem
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# Enable FreeRTOS stats formatting functions, needed for 'tasks' command
+CONFIG_FREERTOS_USE_TRACE_FACILITY=y
+CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
+
+#
+# Zboss
+#
+CONFIG_ZB_ENABLED=y
+CONFIG_ZB_ZCZR=y
+# CONFIG_ZB_ZED is not set
+# end of Zboss
+# end of Component config
+
+# Unit Gateway H2 (ESP32-H2) pin config per M5Stack `zigbee_ncp` guide:
+# Component config -> Zigbee Network Co-processor
+#   - UART RX Pin: 23
+#   - UART TX Pin: 24
+CONFIG_NCP_BUS_UART_RX_PIN=23
+CONFIG_NCP_BUS_UART_TX_PIN=24
