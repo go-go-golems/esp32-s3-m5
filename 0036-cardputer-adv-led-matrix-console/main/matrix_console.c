@@ -20,12 +20,14 @@ static const char *TAG = "matrix_console";
 static max7219_t s_matrix;
 static bool s_matrix_ready = false;
 static bool s_reverse_modules = false;
-static bool s_flip_vertical = false;
+static bool s_flip_vertical = true;
 
 static uint8_t s_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
 
 static esp_err_t fb_flush_all(void);
 static void try_autoinit(void);
+static int x_to_module(int x);
+static uint8_t x_to_bit(int x);
 
 static SemaphoreHandle_t s_matrix_mu;
 static TaskHandle_t s_blink_task;
@@ -34,6 +36,15 @@ static uint32_t s_blink_on_ms = 250;
 static uint32_t s_blink_off_ms = 250;
 static uint8_t s_blink_saved_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
 static bool s_blink_have_saved_fb = false;
+
+static TaskHandle_t s_scroll_task;
+static bool s_scroll_enabled = false;
+static uint32_t s_scroll_fps = 15;
+static uint32_t s_scroll_pause_ms = 250;
+static uint8_t *s_scroll_text_cols;
+static int s_scroll_text_w = 0;
+static uint8_t s_scroll_saved_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
+static bool s_scroll_have_saved_fb = false;
 
 static void matrix_lock(void) {
     if (s_matrix_mu) xSemaphoreTake(s_matrix_mu, portMAX_DELAY);
@@ -52,6 +63,9 @@ static void print_matrix_help(void) {
     printf("  matrix safe on|off                            (RAM-based full-on/full-off; good for wiring bring-up)\n");
     printf("  matrix text <ABCD>                            (renders 4 chars: one per 8x8 module)\n");
     printf("  matrix text <A> <B> <C> <D>                   (same, but split args)\n");
+    printf("  matrix scroll on <TEXT> [fps] [pause_ms]      (smooth 1px scroll; A-Z 0-9 space)\n");
+    printf("  matrix scroll off\n");
+    printf("  matrix scroll status\n");
     printf("  matrix intensity <0..15>\n");
     printf("  matrix spi [hz]                               (get/set SPI clock; default is compile-time)\n");
     printf("  matrix reverse on|off\n");
@@ -69,6 +83,18 @@ static void print_matrix_help(void) {
 
 static void fb_clear(void) {
     memset(s_fb, 0, sizeof(s_fb));
+}
+
+static void fb_from_cols32(const uint8_t cols[32]) {
+    fb_clear();
+    for (int x = 0; x < 32; x++) {
+        const int module = x_to_module(x);
+        const uint8_t mask = x_to_bit(x);
+        const uint8_t col = cols[x];
+        for (int y = 0; y < 8; y++) {
+            if (col & (uint8_t)(1u << y)) s_fb[y][module] |= mask;
+        }
+    }
 }
 
 static void fb_set_ids_pattern(void) {
@@ -257,6 +283,134 @@ static void blink_off(void) {
     }
 }
 
+static void scroll_task(void *arg) {
+    (void)arg;
+    for (;;) {
+        if (!s_scroll_enabled) {
+            (void)ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            continue;
+        }
+
+        if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
+
+        const uint32_t frame_ms = (s_scroll_fps > 0) ? (1000u / s_scroll_fps) : 66u;
+        int pos = 32;
+        for (;;) {
+            if (!s_scroll_enabled) break;
+
+            uint8_t cols[32] = {0};
+            for (int x = 0; x < 32; x++) {
+                const int t = x - pos;
+                if (t >= 0 && t < s_scroll_text_w && s_scroll_text_cols) cols[x] = s_scroll_text_cols[t];
+            }
+
+            matrix_lock();
+            fb_from_cols32(cols);
+            matrix_unlock();
+            (void)fb_flush_all();
+
+            vTaskDelay(pdMS_TO_TICKS(frame_ms));
+            pos--;
+            if (pos < -s_scroll_text_w) {
+                pos = 32;
+                if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
+            }
+        }
+    }
+}
+
+static void scroll_ensure_task(void) {
+    if (s_scroll_task) return;
+    xTaskCreate(&scroll_task, "matrix_scroll", 4096, NULL, 2, &s_scroll_task);
+}
+
+static void scroll_free_text(void) {
+    if (s_scroll_text_cols) free(s_scroll_text_cols);
+    s_scroll_text_cols = NULL;
+    s_scroll_text_w = 0;
+}
+
+static bool char_supported_for_scroll(char c) {
+    c = ascii_upper(c);
+    if (c == ' ') return true;
+    if (c >= '0' && c <= '9') return true;
+    if (c >= 'A' && c <= 'Z') return true;
+    return false;
+}
+
+static void scroll_set_text(const char *text) {
+    scroll_free_text();
+    if (!text) return;
+
+    size_t len = strlen(text);
+    if (len == 0) return;
+    if (len > 128) len = 128;
+
+    const int cell = 6; // 5 cols + 1 spacing
+    const int w = (int)(len * (size_t)cell);
+    uint8_t *cols = (uint8_t *)calloc((size_t)w, 1);
+    if (!cols) return;
+
+    int x = 0;
+    for (size_t i = 0; i < len; i++) {
+        char c = ascii_upper(text[i]);
+        if (!char_supported_for_scroll(c)) c = ' ';
+        const uint8_t *g = font5x7_get_cols(c);
+        for (int col = 0; col < 5; col++) cols[x++] = g[col];
+        cols[x++] = 0x00;
+    }
+
+    s_scroll_text_cols = cols;
+    s_scroll_text_w = w;
+}
+
+static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms) {
+    if (!s_matrix_ready) {
+        printf("matrix not initialized (run: matrix init)\n");
+        return;
+    }
+    scroll_set_text(text);
+    if (!s_scroll_text_cols || s_scroll_text_w <= 0) {
+        printf("scroll: empty/unsupported text\n");
+        scroll_free_text();
+        return;
+    }
+
+    if (!s_scroll_have_saved_fb) {
+        matrix_lock();
+        memcpy(s_scroll_saved_fb, s_fb, sizeof(s_fb));
+        matrix_unlock();
+        s_scroll_have_saved_fb = true;
+    }
+
+    if (fps < 1) fps = 1;
+    if (fps > 60) fps = 60;
+    if (pause_ms > 60000) pause_ms = 60000;
+    s_scroll_fps = fps;
+    s_scroll_pause_ms = pause_ms;
+    s_scroll_enabled = true;
+    scroll_ensure_task();
+    xTaskNotifyGive(s_scroll_task);
+}
+
+static void scroll_off(void) {
+    s_scroll_enabled = false;
+    if (s_scroll_have_saved_fb) {
+        matrix_lock();
+        memcpy(s_fb, s_scroll_saved_fb, sizeof(s_fb));
+        matrix_unlock();
+        (void)fb_flush_all();
+        s_scroll_have_saved_fb = false;
+    }
+    scroll_free_text();
+    if (s_scroll_task) xTaskNotifyGive(s_scroll_task);
+}
+
+static void stop_animations(void) {
+    blink_off();
+    scroll_off();
+}
+
 static void try_autoinit(void) {
     if (s_matrix_ready) return;
 
@@ -329,19 +483,22 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "status") == 0) {
-        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s flipv=%s blink=%s on_ms=%u off_ms=%u\n",
+        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s flipv=%s blink=%s on_ms=%u off_ms=%u scroll=%s fps=%u pause_ms=%u\n",
                s_matrix.chain_len,
                s_matrix.clock_hz,
                s_reverse_modules ? "on" : "off",
                s_flip_vertical ? "on" : "off",
                s_blink_enabled ? "on" : "off",
                (unsigned)s_blink_on_ms,
-               (unsigned)s_blink_off_ms);
+               (unsigned)s_blink_off_ms,
+               s_scroll_enabled ? "on" : "off",
+               (unsigned)s_scroll_fps,
+               (unsigned)s_scroll_pause_ms);
         return 0;
     }
 
     if (strcmp(argv[1], "spi") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 3) {
             printf("ok: spi_hz=%d\n", s_matrix.clock_hz);
             return 0;
@@ -364,6 +521,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "blink") == 0) {
+        scroll_off();
         if (argc < 3) {
             printf("usage: matrix blink on [on_ms] [off_ms] | matrix blink off | matrix blink status\n");
             return 1;
@@ -409,8 +567,63 @@ static int cmd_matrix(int argc, char **argv) {
         return 1;
     }
 
+    if (strcmp(argv[1], "scroll") == 0) {
+        if (argc < 3) {
+            printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+            printf("       matrix scroll off\n");
+            printf("       matrix scroll status\n");
+            return 1;
+        }
+        if (strcmp(argv[2], "status") == 0) {
+            printf("ok: scroll=%s fps=%u pause_ms=%u\n",
+                   s_scroll_enabled ? "on" : "off",
+                   (unsigned)s_scroll_fps,
+                   (unsigned)s_scroll_pause_ms);
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            scroll_off();
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            if (argc < 4) {
+                printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+                return 1;
+            }
+            uint32_t fps = s_scroll_fps;
+            uint32_t pause_ms = s_scroll_pause_ms;
+            if (argc >= 5) {
+                char *end = NULL;
+                long v = strtol(argv[4], &end, 0);
+                if (!end || *end != '\0' || v < 1 || v > 60) {
+                    printf("invalid fps: %s\n", argv[4]);
+                    return 1;
+                }
+                fps = (uint32_t)v;
+            }
+            if (argc >= 6) {
+                char *end = NULL;
+                long v = strtol(argv[5], &end, 0);
+                if (!end || *end != '\0' || v < 0 || v > 60000) {
+                    printf("invalid pause_ms: %s\n", argv[5]);
+                    return 1;
+                }
+                pause_ms = (uint32_t)v;
+            }
+            blink_off();
+            scroll_on(argv[3], fps, pause_ms);
+            if (s_scroll_enabled) printf("ok\n");
+            return s_scroll_enabled ? 0 : 1;
+        }
+        printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+        printf("       matrix scroll off\n");
+        printf("       matrix scroll status\n");
+        return 1;
+    }
+
     if (strcmp(argv[1], "clear") == 0) {
-        blink_off();
+        stop_animations();
         fb_clear();
         esp_err_t err = max7219_clear(&s_matrix);
         if (err != ESP_OK) {
@@ -422,7 +635,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "test") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix test on|off\n");
             return 1;
@@ -446,7 +659,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "safe") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix safe on|off\n");
             return 1;
@@ -474,7 +687,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "text") == 0) {
-        blink_off();
+        stop_animations();
 
         char chars[4] = {' ', ' ', ' ', ' '};
         if (argc == 3) {
@@ -507,7 +720,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "intensity") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix intensity <0..15>\n");
             return 1;
@@ -528,6 +741,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "reverse") == 0) {
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix reverse on|off\n");
             return 1;
@@ -545,6 +759,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "flipv") == 0) {
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix flipv on|off\n");
             return 1;
@@ -563,7 +778,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "row") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 4) {
             printf("usage: matrix row <0..7> <0x00..0xff>\n");
             return 1;
@@ -594,7 +809,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "row4") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 7) {
             printf("usage: matrix row4 <0..7> <b0> <b1> <b2> <b3>\n");
             return 1;
@@ -626,7 +841,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "px") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 5) {
             printf("usage: matrix px <0..%d> <0..7> <0|1>\n", fb_width() - 1);
             return 1;
@@ -668,7 +883,7 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "pattern") == 0) {
-        blink_off();
+        stop_animations();
         if (argc < 3) {
             printf("usage: matrix pattern rows|cols|diag|checker|off|ids\n");
             printf("       matrix pattern onehot <0..3>\n");
