@@ -22,6 +22,7 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix init` (re-inits + clears + shows `ids` pattern)
 - `matrix clear`
 - `matrix test on|off`
+- `matrix safe on|off` (RAM-based full-on/full-off; prefer this over `matrix test` for wiring bring-up)
 - `matrix intensity <0..15>`
 - `matrix spi [hz]` (get/set SPI clock in Hz; useful for marginal wiring)
 - `matrix blink on [on_ms] [off_ms]` / `matrix blink off` (continuous on/off with pauses)

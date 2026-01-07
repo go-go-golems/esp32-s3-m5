@@ -48,6 +48,7 @@ static void print_matrix_help(void) {
     printf("  matrix status\n");
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
+    printf("  matrix safe on|off                            (RAM-based full-on/full-off; good for wiring bring-up)\n");
     printf("  matrix intensity <0..15>\n");
     printf("  matrix spi [hz]                               (get/set SPI clock; default is compile-time)\n");
     printf("  matrix reverse on|off\n");
@@ -362,6 +363,34 @@ static int cmd_matrix(int argc, char **argv) {
         esp_err_t err = max7219_set_test(&s_matrix, on);
         if (err != ESP_OK) {
             printf("test failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "safe") == 0) {
+        blink_off();
+        if (argc < 3) {
+            printf("usage: matrix safe on|off\n");
+            return 1;
+        }
+
+        const bool on = (strcmp(argv[2], "on") == 0);
+        const bool off = (strcmp(argv[2], "off") == 0);
+        if (!on && !off) {
+            printf("usage: matrix safe on|off\n");
+            return 1;
+        }
+
+        for (int y = 0; y < 8; y++) {
+            for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+                s_fb[y][m] = on ? 0xFF : 0x00;
+            }
+        }
+        esp_err_t err = fb_flush_all();
+        if (err != ESP_OK) {
+            printf("safe failed: %s\n", esp_err_to_name(err));
             return 1;
         }
         printf("ok\n");
