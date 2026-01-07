@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "sdkconfig.h"
 
@@ -108,6 +109,7 @@ typedef enum {
     TEXT_ANIM_DROP_BOUNCE,
     TEXT_ANIM_WAVE,
     TEXT_ANIM_FLIPBOARD,
+    TEXT_ANIM_SPIN_LETTERS,
 } text_anim_mode_t;
 
 static TaskHandle_t s_text_anim_task;
@@ -287,6 +289,7 @@ static void print_matrix_help(void) {
     printf("  matrix scroll status\n");
     printf("  matrix anim drop <TEXT> [fps] [pause_ms]      (drop + bounce into place)\n");
     printf("  matrix anim wave <TEXT> [fps]                (wave text in place)\n");
+    printf("  matrix anim spin <TEXT> [fps] [pause_ms]     (spin letters / card-flip per character)\n");
     printf("  matrix anim flip <A|B|C...> [fps] [hold_ms]   (flipboard between texts)\n");
     printf("  matrix anim off\n");
     printf("  matrix anim status\n");
@@ -861,6 +864,13 @@ static uint16_t q8_ease_out_quad(uint16_t t_q8) {
     return (uint16_t)(256u - inv2);
 }
 
+static uint16_t q8_ease_out_cubic(uint16_t t_q8) {
+    uint32_t inv = 256u - (uint32_t)t_q8;
+    uint32_t inv2 = (inv * inv) >> 8;
+    uint32_t inv3 = (inv2 * inv) >> 8;
+    return (uint16_t)(256u - inv3);
+}
+
 static uint8_t col_scale_y(uint8_t bits, uint16_t scale_y_q8) {
     if (scale_y_q8 < 16) return 0;
     const int center = 3;
@@ -872,6 +882,53 @@ static uint8_t col_scale_y(uint8_t bits, uint16_t scale_y_q8) {
         if ((bits >> src_y) & 1u) out |= (uint8_t)(1u << y);
     }
     return out;
+}
+
+static uint8_t col_scale_x(uint8_t cols5[5], int out_col, uint16_t scale_x_q8) {
+    // Scale a 5-column glyph around its center (2), returning the bits for output column out_col.
+    // Mapping is nearest-neighbor; for a “card flip” look we use abs(cos) for scale_x.
+    if (scale_x_q8 < 16) return 0;
+    const int center = 2;
+    const int dx = out_col - center;
+    const int src_col = center + (int)((dx * 256) / (int)scale_x_q8);
+    if (src_col < 0 || src_col > 4) return 0;
+    return cols5[src_col];
+}
+
+static void render_text_centered_cols_scaled_x(uint8_t *out_cols,
+                                              int width,
+                                              const char *text,
+                                              int text_len,
+                                              const uint16_t *scale_x_q8) {
+    if (!out_cols) return;
+    if (width <= 0) return;
+    memset(out_cols, 0, (size_t)width);
+    if (!text || text_len <= 0) return;
+
+    const int cell = 6; // 5 cols + 1 spacing
+    const int total_w = text_len * cell;
+    const int start_x = (width - total_w) / 2;
+
+    for (int i = 0; i < text_len; i++) {
+        char c = ascii_upper(text[i]);
+        if (!char_supported_for_scroll(c)) c = ' ';
+        const uint8_t *g = font5x7_get_cols(c);
+
+        uint16_t sx = 256;
+        if (scale_x_q8) sx = scale_x_q8[i];
+        if (sx < 32) continue; // too thin to bother rendering
+
+        // Copy glyph columns into a local array for mapping.
+        uint8_t cols5[5];
+        for (int k = 0; k < 5; k++) cols5[k] = g[k];
+
+        const int base_x = start_x + i * cell;
+        for (int out_col = 0; out_col < 5; out_col++) {
+            const int x = base_x + out_col;
+            if (x < 0 || x >= width) continue;
+            out_cols[x] |= col_scale_x(cols5, out_col, sx);
+        }
+    }
 }
 
 static int flipboard_set_texts(const char *spec) {
@@ -998,12 +1055,19 @@ static void scroll_off(void) {
 static void text_anim_task(void *arg) {
     (void)arg;
 
+    static const float k_pi = 3.14159265358979323846f;
+
     static const int8_t wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
     static const int8_t drop_seq[] = {-7, -6, -5, -4, -3, -2, -1, 0, 1, 0, 1, 0, 0};
     const int drop_len = (int)(sizeof(drop_seq) / sizeof(drop_seq[0]));
     const int drop_stagger = 2;
     const int drop_hold_frames = 20;
     const int drop_gap_frames = 10;
+
+    const int spin_duration = 20;
+    const int spin_hold_frames = 40;
+    const int spin_out_duration = 15;
+    const int spin_char_delay = 6;
 
     uint32_t frame = 0;
 
@@ -1094,6 +1158,71 @@ static void text_anim_task(void *arg) {
                 frame++;
                 vTaskDelay(pdMS_TO_TICKS(frame_ms));
                 if (frame % (uint32_t)cycle == 0 && pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
+            }
+            continue;
+        }
+
+	        if (s_text_anim_mode == TEXT_ANIM_SPIN_LETTERS) {
+	            for (;;) {
+	                if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_SPIN_LETTERS) break;
+	                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
+	                    frame = 0;
+	                    s_text_anim_restart = false;
+	                }
+
+	                const uint32_t gap_frames = (pause_ms > 0) ? (uint32_t)((pause_ms * fps) / 1000u) : 0u;
+	                const int stagger_total =
+	                    (s_text_anim_len > 0) ? ((s_text_anim_len - 1) * spin_char_delay) : 0; // last char starts here
+	                const int entry_total = stagger_total + spin_duration + spin_hold_frames;
+	                const int exit_start = entry_total;
+	                const int cycle = entry_total + spin_out_duration + (int)gap_frames;
+	                const int f = (cycle > 0) ? (int)(frame % (uint32_t)cycle) : 0;
+
+	                uint16_t scales[64];
+	                memset(scales, 0, sizeof(scales));
+
+	                if (f >= exit_start) {
+	                    const int exit_frame = f - exit_start;
+	                    if (exit_frame < spin_out_duration) {
+	                        const uint16_t t_q8 = (uint16_t)((exit_frame * 256) / spin_out_duration);
+	                        const uint16_t eased_q8 = q8_ease_in_quad(t_q8);
+	                        const float eased = (float)eased_q8 / 256.0f;
+	                        const float s = cosf(eased * (k_pi / 2.0f)); // 1..0
+	                        const uint16_t q8 = (uint16_t)(fabsf(s) * 256.0f);
+	                        for (int i = 0; i < s_text_anim_len && i < (int)(sizeof(scales) / sizeof(scales[0])); i++) {
+	                            scales[i] = q8;
+	                        }
+	                    }
+	                } else {
+	                    for (int i = 0; i < s_text_anim_len && i < (int)(sizeof(scales) / sizeof(scales[0])); i++) {
+	                        const int char_start = i * spin_char_delay;
+	                        if (f < char_start) {
+	                            scales[i] = 0;
+	                            continue;
+	                        }
+	                        const int char_frame = f - char_start;
+	                        if (char_frame < spin_duration) {
+	                            const uint16_t t_q8 = (uint16_t)((char_frame * 256) / spin_duration);
+	                            const uint16_t eased_q8 = q8_ease_out_cubic(t_q8);
+	                            const float eased = (float)eased_q8 / 256.0f;
+	                            const float theta = (1.0f - eased) * 4.0f * k_pi; // 2 full rotations
+	                            const float s = cosf(theta);
+	                            const uint16_t q8 = (uint16_t)(fabsf(s) * 256.0f);
+                            scales[i] = q8;
+                        } else {
+                            scales[i] = 256;
+                        }
+                    }
+                }
+
+                render_text_centered_cols_scaled_x(cols, width, s_text_anim_text, s_text_anim_len, scales);
+                matrix_lock();
+                fb_from_cols(cols, width);
+                matrix_unlock();
+                (void)fb_flush_all();
+
+                frame++;
+                vTaskDelay(pdMS_TO_TICKS(frame_ms));
             }
             continue;
         }
@@ -1590,6 +1719,7 @@ static int cmd_matrix(int argc, char **argv) {
         if (argc < 3) {
             printf("usage: matrix anim drop <TEXT> [fps] [pause_ms]\n");
             printf("       matrix anim wave <TEXT> [fps]\n");
+            printf("       matrix anim spin <TEXT> [fps] [pause_ms]\n");
             printf("       matrix anim flip <A|B|C...> [fps] [hold_ms]\n");
             printf("       matrix anim off\n");
             printf("       matrix anim status\n");
@@ -1600,6 +1730,7 @@ static int cmd_matrix(int argc, char **argv) {
             if (s_text_anim_mode == TEXT_ANIM_DROP_BOUNCE) mode = "drop";
             if (s_text_anim_mode == TEXT_ANIM_WAVE) mode = "wave";
             if (s_text_anim_mode == TEXT_ANIM_FLIPBOARD) mode = "flip";
+            if (s_text_anim_mode == TEXT_ANIM_SPIN_LETTERS) mode = "spin";
             printf("ok: anim=%s fps=%u pause_ms=%u hold_ms=%u text_len=%d flip_count=%d\n",
                    s_text_anim_enabled ? mode : "off",
                    (unsigned)s_text_anim_fps,
@@ -1644,7 +1775,7 @@ static int cmd_matrix(int argc, char **argv) {
             if (s_text_anim_enabled) printf("ok\n");
             return s_text_anim_enabled ? 0 : 1;
         }
-        if (strcmp(argv[2], "drop") == 0 || strcmp(argv[2], "wave") == 0) {
+        if (strcmp(argv[2], "drop") == 0 || strcmp(argv[2], "wave") == 0 || strcmp(argv[2], "spin") == 0) {
             if (argc < 4) {
                 printf("usage: matrix anim %s <TEXT> [fps] [pause_ms]\n", argv[2]);
                 return 1;
@@ -1670,7 +1801,10 @@ static int cmd_matrix(int argc, char **argv) {
                 pause_ms = (uint32_t)v;
             }
             stop_animations();
-            const text_anim_mode_t mode = (strcmp(argv[2], "drop") == 0) ? TEXT_ANIM_DROP_BOUNCE : TEXT_ANIM_WAVE;
+            text_anim_mode_t mode = TEXT_ANIM_DROP_BOUNCE;
+            if (strcmp(argv[2], "drop") == 0) mode = TEXT_ANIM_DROP_BOUNCE;
+            if (strcmp(argv[2], "wave") == 0) mode = TEXT_ANIM_WAVE;
+            if (strcmp(argv[2], "spin") == 0) mode = TEXT_ANIM_SPIN_LETTERS;
             if (mode == TEXT_ANIM_WAVE) pause_ms = 0;
             text_anim_on(mode, argv[3], fps, pause_ms);
             if (s_text_anim_enabled) printf("ok\n");
@@ -1678,6 +1812,7 @@ static int cmd_matrix(int argc, char **argv) {
         }
         printf("usage: matrix anim drop <TEXT> [fps] [pause_ms]\n");
         printf("       matrix anim wave <TEXT> [fps]\n");
+        printf("       matrix anim spin <TEXT> [fps] [pause_ms]\n");
         printf("       matrix anim flip <A|B|C...> [fps] [hold_ms]\n");
         printf("       matrix anim off\n");
         printf("       matrix anim status\n");
