@@ -865,3 +865,46 @@ To keep the project small and easy to reason about, I implemented a minimal regi
   - `matrix chain 12`
   - `matrix init`
   - Type on the Cardputer-ADV keyboard; look for `kbd: evt=...` logs and the last 12 chars on the strip.
+
+## Step 18: Fix I2C Init Failure (Disable Async Mode)
+
+This step fixes a keyboard bring-up regression on-device: the new `esp_driver_i2c` bus was configured with a non-zero `trans_queue_depth`, which enables ESP-IDF’s I²C “async transaction” mode. During the TCA8418 register-init sequence, that async mode quickly filled its internal ops list and hard-failed the init (`ops list is full` / `ESP_ERR_INVALID_STATE`).
+
+The fix is to keep the bus in synchronous mode by setting `trans_queue_depth = 0` for our use case (simple, sequential register reads/writes). This removes the warning spam and prevents the queue overflow during init.
+
+**Commit (code):** e243cc62dd2b77a926f5983648bb8006f938d265 — "0036: fix TCA8418 init by disabling I2C async mode"
+
+### What I did
+- Changed the I²C master bus config to `trans_queue_depth = 0` so the driver uses synchronous transactions.
+- Rebuilt locally (`./build.sh build`).
+
+### Why
+- We don’t need async I²C for keyboard bring-up; we need reliability and clear errors.
+
+### What worked
+- Local build succeeded.
+
+### What didn't work
+- Previously observed failure on hardware:
+  - `E i2c.master: ops list is full, please increase your trans_queue_depth`
+  - `W kbd: keyboard init failed: ESP_ERR_INVALID_STATE`
+
+### What I learned
+- In ESP-IDF 5.4, setting `trans_queue_depth` enables async mode; it’s not just “queue sizing”. For simple polled devices, keeping it synchronous avoids surprising failure modes.
+
+### What was tricky to build
+- N/A (configuration fix).
+
+### What warrants a second pair of eyes
+- Verify on-device that TCA8418 init succeeds and keypress logging works with the synchronous bus config.
+
+### What should be done in the future
+- If we ever want async mode, wrap the TCA init writes into fewer transactions or explicitly size the queue and add backpressure.
+
+### Code review instructions
+- I²C bus config for keyboard: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+
+### Technical details
+- After flashing:
+  - Expect the earlier async warning and ops-list errors to be gone.
+  - `kbd status` should report `ready=yes` if wiring is correct.
