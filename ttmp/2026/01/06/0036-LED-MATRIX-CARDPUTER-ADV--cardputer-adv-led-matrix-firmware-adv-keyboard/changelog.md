@@ -224,3 +224,12 @@ Step 21: Tune drop-bounce speed + bounce height
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Adjust drop sequence and hold/gap timing
 
+
+## 2026-01-07
+
+Step 22: Make drop-bounce bouncy + add dropcfg (commit 7b7a4b8)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Drop physics + tuning command
+

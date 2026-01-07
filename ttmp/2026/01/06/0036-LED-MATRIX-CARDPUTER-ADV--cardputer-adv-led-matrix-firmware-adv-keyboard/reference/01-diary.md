@@ -21,6 +21,7 @@ RelatedFiles:
       Note: |-
         User-facing usage notes
         Document matrix anim spin command
+        Document matrix anim dropcfg
     - Path: 0036-cardputer-adv-led-matrix-console/main/matrix_console.c
       Note: |-
         Console commands for validation
@@ -28,6 +29,7 @@ RelatedFiles:
         Add scroll text + default flipv
         Implement matrix anim spin (spin letters)
         Tune drop-bounce (speed
+        Drop physics model + matrix anim dropcfg
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
     - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.c
@@ -42,6 +44,7 @@ LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1066,3 +1069,60 @@ This step makes the drop feel snappier and more “bouncy” by (1) increasing t
 
 ### Technical details
 - The drop-bounce animation is still “sequence-driven” (predefined Y offsets). The changes here adjust the sequence and the timing constants, not the renderer.
+
+## Step 22: Make Drop-Bounce Truly Bouncy (Multiple Bounces) + Add `dropcfg`
+
+The “drop” animation still didn’t read as a real bounce on hardware: the glyph would hit the bottom and then only “blip” briefly. The core issue is that our display is only 8 pixels tall and our 5×7 font is already nearly full-height; if the text is anchored at the very top of the cell, upward motion is clipped away and the bounce becomes almost invisible.
+
+This step replaces the hand-tuned, fixed per-frame list with a small physics-style model (gravity + restitution) that naturally produces multiple diminishing bounces. It also adds a REPL tuning command so we can dial the “gravity” and “bounciness” to match what looks good on real hardware.
+
+**Commit (code):** 7b7a4b8f5d1c4a2a962f1b0434b1cebca09f1192 — "0036: make drop-bounce bouncy + add dropcfg"
+
+### What I did
+- Replaced the fixed drop sequence with a generated per-frame sequence driven by:
+  - Gravity (in `px/s^2`, converted to `px/frame^2` based on FPS).
+  - Restitution (“bounce” factor, 0..1), applied on impact.
+  - A small settle threshold so the motion converges cleanly.
+- Increased effective bounce visibility:
+  - Start from higher above the baseline (off-screen) so impact velocity is larger and rebounds are bigger.
+  - Keep a 1px baseline shift so there is at least some headroom for upward bounces.
+- Added `matrix anim dropcfg [gravity_px_s2] [bounce]`:
+  - With no args it prints the current tuning parameters.
+  - With args it updates the tuning live and restarts drop mode if it’s active.
+- Documented `dropcfg` in the firmware README.
+
+### Why
+- A fixed frame list is hard to tune for “multiple bounces” and tends to either look too small (barely visible) or too large (clips badly) depending on FPS and text length.
+- A tiny gravity/restitution model makes the animation easier to tune and more consistent across different FPS settings.
+
+### What worked
+- Local build succeeded: `./build.sh build`.
+
+### What didn't work
+- N/A (needs on-device validation to dial in the default values).
+
+### What I learned
+- With a nearly full-height glyph, you often need either vertical headroom (baseline shift) or a different visual cue (squash/stretch) to make “bounces” legible. The baseline shift + higher-energy rebounds help, but the 8px limit will always constrain the look.
+
+### What was tricky to build
+- Making the tuning parameters intuitive:
+  - Gravity is in `px/s^2` so changing FPS doesn’t dramatically change the “real time” feel.
+  - Bounce is a unitless 0..1 factor.
+- Keeping the drop cycle logic predictable with staggered text (motion → hold → blank gap).
+
+### What warrants a second pair of eyes
+- The default tuning values (gravity/restitution/settle threshold) may need adjustment to avoid either “too floaty” or “too chaotic” depending on wiring/orientation and on how much clipping is acceptable.
+
+### What should be done in the future
+- On-device tuning:
+  - Start: `matrix anim drop HELLO 15 250`
+  - Try: `matrix anim dropcfg 120 0.92` (more floaty + more bouncy)
+  - Try: `matrix anim dropcfg 250 0.75` (heavier + more damped)
+  - Report what looks best and set defaults accordingly.
+
+### Code review instructions
+- Drop physics + tuning command: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- README update: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+
+### Technical details
+- `dropcfg` prints extra parameters (baseline shift, stagger, hold), but currently only gravity and bounce are user-adjustable from the console.
