@@ -2,6 +2,12 @@
 
 #include "esp_err.h"
 
+static int clamp_spi_hz(int hz) {
+    if (hz < 1000) return 1000;
+    if (hz > 10000000) return 10000000;
+    return hz;
+}
+
 static esp_err_t max7219_write_u16(max7219_t *dev, uint8_t reg, uint8_t data) {
     if (!dev || !dev->spi) return ESP_ERR_INVALID_STATE;
     uint8_t tx[2] = {reg, data};
@@ -49,7 +55,7 @@ esp_err_t max7219_open(max7219_t *dev,
         .sclk_io_num = pin_sck,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = 2,
+        .max_transfer_sz = 2 * MAX7219_DEFAULT_CHAIN_LEN,
     };
 
     esp_err_t err = spi_bus_initialize(host, &buscfg, SPI_DMA_CH_AUTO);
@@ -69,7 +75,10 @@ esp_err_t max7219_open(max7219_t *dev,
     if (err != ESP_OK) return err;
 
     dev->spi = handle;
+    dev->host = host;
+    dev->pin_cs = pin_cs;
     dev->chain_len = chain_len;
+    dev->clock_hz = devcfg.clock_speed_hz;
     return ESP_OK;
 }
 
@@ -112,6 +121,33 @@ esp_err_t max7219_set_intensity(max7219_t *dev, uint8_t intensity) {
 
 esp_err_t max7219_set_test(max7219_t *dev, bool on) {
     return max7219_write_broadcast(dev, MAX7219_REG_DISPLAY_TEST, on ? 0x01 : 0x00);
+}
+
+esp_err_t max7219_set_spi_clock_hz(max7219_t *dev, int clock_hz) {
+    if (!dev || !dev->spi) return ESP_ERR_INVALID_STATE;
+    if (dev->host != SPI2_HOST && dev->host != SPI3_HOST) return ESP_ERR_INVALID_STATE;
+    if (dev->pin_cs < 0) return ESP_ERR_INVALID_STATE;
+
+    const int hz = clamp_spi_hz(clock_hz);
+
+    esp_err_t err = spi_bus_remove_device(dev->spi);
+    if (err != ESP_OK) return err;
+    dev->spi = NULL;
+
+    spi_device_interface_config_t devcfg = {
+        .clock_speed_hz = hz,
+        .mode = 0,
+        .spics_io_num = dev->pin_cs,
+        .queue_size = 1,
+    };
+
+    spi_device_handle_t handle = NULL;
+    err = spi_bus_add_device(dev->host, &devcfg, &handle);
+    if (err != ESP_OK) return err;
+
+    dev->spi = handle;
+    dev->clock_hz = hz;
+    return ESP_OK;
 }
 
 esp_err_t max7219_set_row_raw(max7219_t *dev, uint8_t row, uint8_t bits) {

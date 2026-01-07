@@ -49,6 +49,7 @@ static void print_matrix_help(void) {
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
     printf("  matrix intensity <0..15>\n");
+    printf("  matrix spi [hz]                               (get/set SPI clock; default is compile-time)\n");
     printf("  matrix reverse on|off\n");
     printf("  matrix row <0..7> <0x00..0xff>                 (sets this row on all modules)\n");
     printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (one byte per module)\n");
@@ -252,12 +253,36 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "status") == 0) {
-        printf("ok: chain_len=%d reverse_modules=%s blink=%s on_ms=%u off_ms=%u\n",
+        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s blink=%s on_ms=%u off_ms=%u\n",
                s_matrix.chain_len,
+               s_matrix.clock_hz,
                s_reverse_modules ? "on" : "off",
                s_blink_enabled ? "on" : "off",
                (unsigned)s_blink_on_ms,
                (unsigned)s_blink_off_ms);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "spi") == 0) {
+        blink_off();
+        if (argc < 3) {
+            printf("ok: spi_hz=%d\n", s_matrix.clock_hz);
+            return 0;
+        }
+        char *end = NULL;
+        long v = strtol(argv[2], &end, 0);
+        if (!end || *end != '\0' || v < 1000 || v > 10000000) {
+            printf("invalid hz: %s (expected 1000..10000000)\n", argv[2]);
+            return 1;
+        }
+        matrix_lock();
+        esp_err_t err = max7219_set_spi_clock_hz(&s_matrix, (int)v);
+        matrix_unlock();
+        if (err != ESP_OK) {
+            printf("spi failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("ok: spi_hz=%d\n", s_matrix.clock_hz);
         return 0;
     }
 
