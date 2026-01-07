@@ -27,6 +27,7 @@ RelatedFiles:
         Matrix bring-up commands incl. safe test
         Add scroll text + default flipv
         Implement matrix anim spin (spin letters)
+        Tune drop-bounce (speed
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
     - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.c
@@ -41,6 +42,7 @@ LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1024,3 +1026,43 @@ This is intentionally kept simple and deterministic: there is no “back face”
 - Command shape:
   - `matrix anim spin <TEXT> [fps] [pause_ms]`
   - `pause_ms` is used as the blank “gap” between cycles; the in-place hold window is a fixed number of frames.
+
+## Step 21: Tune Drop-Bounce Speed and Bounce Height
+
+The original drop-bounce mode was visually sluggish and the “bounce” was barely noticeable. This wasn’t due to complicated math; it was primarily because the animation used a fairly long fixed frame sequence plus large fixed hold/gap windows in frames. At the default `15fps` that created a multi-second cycle, especially for longer text where each character is staggered.
+
+This step makes the drop feel snappier and more “bouncy” by (1) increasing the overshoot and rebound in the drop sequence and (2) converting the settle/blank windows from fixed frames to **milliseconds scaled by the selected FPS**, so changing FPS keeps the “timing in real time” more consistent.
+
+### What I did
+- Updated the drop sequence to overshoot below baseline and bounce above baseline before settling.
+- Reduced per-character stagger (letters start closer together).
+- Replaced fixed `drop_hold_frames`/`drop_gap_frames` with `drop_hold_ms`/`drop_gap_ms` converted to frames based on the active FPS.
+
+### Why
+- Default `matrix anim drop ...` should look good without needing to manually pass an FPS every time.
+- Bounce amplitude needs to be visible on an 8px-tall display; a 1px overshoot is easy to miss.
+
+### What worked
+- Local build succeeded: `./build.sh build`.
+
+### What didn't work
+- N/A (needs on-device validation for subjective “feel” and for any edge cases with very low FPS).
+
+### What I learned
+- For “time-based feel”, it’s better to express holds/gaps in milliseconds and derive frames, rather than baking frame counts that silently change meaning when FPS changes.
+
+### What was tricky to build
+- Avoiding off-by-one timing quirks with staggered text: keeping the cycle start/end intuitive (no unexpected dead frames before/after the last character’s motion).
+
+### What warrants a second pair of eyes
+- The new drop sequence values (overshoot + rebound) might need tuning depending on module orientation and how “baseline” is perceived on the physical layout.
+
+### What should be done in the future
+- On-device validation:
+  - Run `matrix anim drop HELLO` at default FPS, then try `matrix anim drop HELLO 10` and `matrix anim drop HELLO 30` and confirm the hold/gap durations still “feel” similar in real time.
+
+### Code review instructions
+- Drop-bounce constants and loop: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+
+### Technical details
+- The drop-bounce animation is still “sequence-driven” (predefined Y offsets). The changes here adjust the sequence and the timing constants, not the renderer.
