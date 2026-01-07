@@ -23,8 +23,6 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix clear`
 - `matrix test on|off`
 - `matrix intensity <0..15>`
-- `matrix bright <0..100>` (gamma-mapped brightness, more “human linear”)
-- `matrix gamma <1.0..3.0>` (adjust brightness curve; default 2.2)
 - `matrix blink on [on_ms] [off_ms]` / `matrix blink off` (continuous on/off with pauses)
 - `matrix row <0..7> <0x00..0xff>`
 - `matrix row4 <0..7> <b0> <b1> <b2> <b3>` (one byte per 8×8 module)
@@ -40,13 +38,6 @@ On boot, the firmware auto-initializes the MAX7219 chain and shows the `ids` pat
 ## Signal integrity
 
 SPI clock is intentionally conservative (`1 MHz`) to improve signal margins on longer wires / breadboards.
-
-## Brightness notes
-
-MAX7219 only has 16 hardware intensity steps (`0..15`), which are not perceptually linear. Use:
-
-- `matrix intensity <0..15>` for raw access
-- `matrix bright <0..100>` for a gamma-mapped “more even” brightness ramp (default gamma `2.2`)
 
 ## Build / Flash / Monitor
 

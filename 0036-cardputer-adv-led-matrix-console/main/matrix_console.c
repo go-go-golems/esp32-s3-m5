@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 
 #include "sdkconfig.h"
 
@@ -35,8 +34,6 @@ static uint32_t s_blink_off_ms = 250;
 static uint8_t s_blink_saved_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
 static bool s_blink_have_saved_fb = false;
 
-static float s_brightness_gamma = 2.2f;
-
 static void matrix_lock(void) {
     if (s_matrix_mu) xSemaphoreTake(s_matrix_mu, portMAX_DELAY);
 }
@@ -52,8 +49,6 @@ static void print_matrix_help(void) {
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
     printf("  matrix intensity <0..15>\n");
-    printf("  matrix bright <0..100>                           (gamma-mapped to intensity 0..15)\n");
-    printf("  matrix gamma <1.0..3.0>                          (set brightness gamma, default 2.2)\n");
     printf("  matrix reverse on|off\n");
     printf("  matrix row <0..7> <0x00..0xff>                 (sets this row on all modules)\n");
     printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (one byte per module)\n");
@@ -64,18 +59,6 @@ static void print_matrix_help(void) {
     printf("  matrix blink on [on_ms] [off_ms]                 (loop full-on/full-off)\n");
     printf("  matrix blink off\n");
     printf("  matrix blink status\n");
-}
-
-static uint8_t brightness_to_intensity(uint32_t bright_0_100) {
-    if (bright_0_100 == 0) return 0;
-    if (bright_0_100 >= 100) return 15;
-
-    const float x = (float)bright_0_100 / 100.0f;
-    const float y = powf(x, s_brightness_gamma);
-    int v = (int)lroundf(y * 15.0f);
-    if (v < 0) v = 0;
-    if (v > 15) v = 15;
-    return (uint8_t)v;
 }
 
 static void fb_clear(void) {
@@ -378,44 +361,6 @@ static int cmd_matrix(int argc, char **argv) {
             return 1;
         }
         printf("ok\n");
-        return 0;
-    }
-
-    if (strcmp(argv[1], "bright") == 0) {
-        blink_off();
-        if (argc < 3) {
-            printf("usage: matrix bright <0..100>\n");
-            return 1;
-        }
-        char *end = NULL;
-        long v = strtol(argv[2], &end, 0);
-        if (!end || *end != '\0' || v < 0 || v > 100) {
-            printf("invalid brightness: %s\n", argv[2]);
-            return 1;
-        }
-        const uint8_t intensity = brightness_to_intensity((uint32_t)v);
-        esp_err_t err = max7219_set_intensity(&s_matrix, intensity);
-        if (err != ESP_OK) {
-            printf("bright failed: %s\n", esp_err_to_name(err));
-            return 1;
-        }
-        printf("ok (brightness=%ld intensity=%u gamma=%.2f)\n", v, (unsigned)intensity, (double)s_brightness_gamma);
-        return 0;
-    }
-
-    if (strcmp(argv[1], "gamma") == 0) {
-        if (argc < 3) {
-            printf("usage: matrix gamma <1.0..3.0>\n");
-            return 1;
-        }
-        char *end = NULL;
-        double g = strtod(argv[2], &end);
-        if (!end || *end != '\0' || g < 1.0 || g > 3.0) {
-            printf("invalid gamma: %s\n", argv[2]);
-            return 1;
-        }
-        s_brightness_gamma = (float)g;
-        printf("ok (gamma=%.2f)\n", (double)s_brightness_gamma);
         return 0;
     }
 
