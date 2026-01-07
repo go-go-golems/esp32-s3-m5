@@ -22,3 +22,6 @@
 - [x] Phase 1: Add drop-bounce text animation command (REPL)
 - [x] Phase 1: Add wave text animation command (REPL)
 - [ ] Phase 1: Validate drop/wave on 12-module chain
+- [x] Phase 1: Add scroll+wave mode (matrix scroll wave)
+- [x] Phase 1: Add flipboard text animation (matrix anim flip)
+- [ ] Phase 1: Validate scroll wave + flipboard on 12-module chain

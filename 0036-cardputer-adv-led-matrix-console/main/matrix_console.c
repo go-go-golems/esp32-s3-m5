@@ -41,6 +41,7 @@ static bool s_blink_have_saved_fb = false;
 
 static TaskHandle_t s_scroll_task;
 static bool s_scroll_enabled = false;
+static bool s_scroll_wave = false;
 static uint32_t s_scroll_fps = 15;
 static uint32_t s_scroll_pause_ms = 250;
 static uint8_t *s_scroll_text_cols;
@@ -52,6 +53,7 @@ typedef enum {
     TEXT_ANIM_NONE = 0,
     TEXT_ANIM_DROP_BOUNCE,
     TEXT_ANIM_WAVE,
+    TEXT_ANIM_FLIPBOARD,
 } text_anim_mode_t;
 
 static TaskHandle_t s_text_anim_task;
@@ -59,10 +61,16 @@ static bool s_text_anim_enabled = false;
 static text_anim_mode_t s_text_anim_mode = TEXT_ANIM_NONE;
 static uint32_t s_text_anim_fps = 15;
 static uint32_t s_text_anim_pause_ms = 250;
+static uint32_t s_text_anim_hold_ms = 750;
 static char s_text_anim_text[65];
 static int s_text_anim_len = 0;
 static uint8_t s_text_anim_saved_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 static bool s_text_anim_have_saved_fb = false;
+
+#define FLIPBOARD_MAX_TEXTS 8
+static char s_flipboard_buf[129];
+static const char *s_flipboard_texts[FLIPBOARD_MAX_TEXTS];
+static int s_flipboard_count = 0;
 
 static void matrix_lock(void) {
     if (s_matrix_mu) xSemaphoreTake(s_matrix_mu, portMAX_DELAY);
@@ -92,10 +100,12 @@ static void print_matrix_help(void) {
     printf("  matrix chain [n]                              (get/set chained modules, max %d)\n", MAX7219_MAX_CHAIN_LEN);
     printf("  matrix text <TEXT>                            (renders 1 char per module)\n");
     printf("  matrix scroll on <TEXT> [fps] [pause_ms]      (smooth 1px scroll; A-Z 0-9 space)\n");
+    printf("  matrix scroll wave <TEXT> [fps] [pause_ms]    (scroll + wave)\n");
     printf("  matrix scroll off\n");
     printf("  matrix scroll status\n");
     printf("  matrix anim drop <TEXT> [fps] [pause_ms]      (drop + bounce into place)\n");
     printf("  matrix anim wave <TEXT> [fps]                (wave text in place)\n");
+    printf("  matrix anim flip <A|B|C...> [fps] [hold_ms]   (flipboard between texts)\n");
     printf("  matrix anim off\n");
     printf("  matrix anim status\n");
     printf("  matrix intensity <0..15>\n");
@@ -146,6 +156,21 @@ static void fb_set_ids_pattern(void) {
 static char ascii_upper(char c) {
     if (c >= 'a' && c <= 'z') return (char)(c - ('a' - 'A'));
     return c;
+}
+
+static const int8_t s_wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
+
+static uint8_t col_shift_y(uint8_t bits, int8_t y_offset) {
+    if (y_offset > 0) {
+        if (y_offset > 7) y_offset = 7;
+        return (uint8_t)(bits << y_offset);
+    }
+    if (y_offset < 0) {
+        int s = -y_offset;
+        if (s > 7) s = 7;
+        return (uint8_t)(bits >> s);
+    }
+    return bits;
 }
 
 // 5x7 font, column-major: 5 bytes per glyph, LSB = top row.
@@ -325,9 +350,11 @@ static void blink_off(void) {
 
 static void scroll_task(void *arg) {
     (void)arg;
+    uint32_t frame = 0;
     for (;;) {
         if (!s_scroll_enabled) {
             (void)ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            frame = 0;
             continue;
         }
 
@@ -342,7 +369,15 @@ static void scroll_task(void *arg) {
             uint8_t cols[8 * MAX7219_MAX_CHAIN_LEN] = {0};
             for (int x = 0; x < width; x++) {
                 const int t = x - pos;
-                if (t >= 0 && t < s_scroll_text_w && s_scroll_text_cols) cols[x] = s_scroll_text_cols[t];
+                if (t >= 0 && t < s_scroll_text_w && s_scroll_text_cols) {
+                    uint8_t bits = s_scroll_text_cols[t];
+                    if (s_scroll_wave) {
+                        const int char_idx = t / 6;
+                        const int8_t yoff = s_wave16[(int)((frame + (uint32_t)(char_idx * 2)) & 0x0F)];
+                        bits = col_shift_y(bits, yoff);
+                    }
+                    cols[x] = bits;
+                }
             }
 
             matrix_lock();
@@ -352,6 +387,7 @@ static void scroll_task(void *arg) {
 
             vTaskDelay(pdMS_TO_TICKS(frame_ms));
             pos--;
+            frame++;
             if (pos < -s_scroll_text_w) {
                 pos = width;
                 if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
@@ -417,6 +453,67 @@ static void render_text_centered_cols(uint8_t *out_cols,
     }
 }
 
+static uint16_t q8_ease_in_quad(uint16_t t_q8) {
+    uint32_t t = t_q8;
+    return (uint16_t)((t * t) >> 8);
+}
+
+static uint16_t q8_ease_out_quad(uint16_t t_q8) {
+    uint32_t inv = 256u - (uint32_t)t_q8;
+    uint32_t inv2 = (inv * inv) >> 8;
+    return (uint16_t)(256u - inv2);
+}
+
+static uint8_t col_scale_y(uint8_t bits, uint16_t scale_y_q8) {
+    if (scale_y_q8 < 16) return 0;
+    const int center = 3;
+    uint8_t out = 0;
+    for (int y = 0; y < 8; y++) {
+        const int dy = y - center;
+        const int src_y = center + (int)((dy * 256) / (int)scale_y_q8);
+        if (src_y < 0 || src_y > 7) continue;
+        if ((bits >> src_y) & 1u) out |= (uint8_t)(1u << y);
+    }
+    return out;
+}
+
+static int flipboard_set_texts(const char *spec) {
+    memset(s_flipboard_buf, 0, sizeof(s_flipboard_buf));
+    s_flipboard_count = 0;
+    if (!spec || *spec == '\0') return 0;
+
+    size_t n = strlen(spec);
+    if (n >= sizeof(s_flipboard_buf)) n = sizeof(s_flipboard_buf) - 1;
+    memcpy(s_flipboard_buf, spec, n);
+
+    // Sanitize in-place: uppercase and unsupported -> space.
+    for (size_t i = 0; i < n; i++) {
+        if (s_flipboard_buf[i] == '|') continue;
+        char c = ascii_upper(s_flipboard_buf[i]);
+        if (!char_supported_for_scroll(c)) c = ' ';
+        s_flipboard_buf[i] = c;
+    }
+
+    // Split on '|'
+    char *p = s_flipboard_buf;
+    while (p && *p && s_flipboard_count < FLIPBOARD_MAX_TEXTS) {
+        char *sep = strchr(p, '|');
+        if (sep) *sep = '\0';
+        // Skip empty segments
+        while (*p == ' ') p++;
+        if (*p != '\0') {
+            s_flipboard_texts[s_flipboard_count++] = p;
+        }
+        p = sep ? (sep + 1) : NULL;
+    }
+
+    if (s_flipboard_count == 1 && s_flipboard_count < FLIPBOARD_MAX_TEXTS) {
+        s_flipboard_texts[s_flipboard_count++] = " ";
+    }
+
+    return s_flipboard_count;
+}
+
 static void scroll_set_text(const char *text) {
     scroll_free_text();
     if (!text) return;
@@ -443,7 +540,7 @@ static void scroll_set_text(const char *text) {
     s_scroll_text_w = w;
 }
 
-static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms) {
+static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms, bool wave) {
     if (!s_matrix_ready) {
         printf("matrix not initialized (run: matrix init)\n");
         return;
@@ -467,6 +564,7 @@ static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms) {
     if (pause_ms > 60000) pause_ms = 60000;
     s_scroll_fps = fps;
     s_scroll_pause_ms = pause_ms;
+    s_scroll_wave = wave;
     s_scroll_enabled = true;
     scroll_ensure_task();
     xTaskNotifyGive(s_scroll_task);
@@ -474,6 +572,7 @@ static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms) {
 
 static void scroll_off(void) {
     s_scroll_enabled = false;
+    s_scroll_wave = false;
     if (s_scroll_have_saved_fb) {
         matrix_lock();
         memcpy(s_fb, s_scroll_saved_fb, sizeof(s_fb));
@@ -513,9 +612,16 @@ static void text_anim_task(void *arg) {
         uint8_t cols[max_cols];
         int8_t yoffs[64];
 
-        if (s_text_anim_len <= 0) {
-            vTaskDelay(pdMS_TO_TICKS(50));
-            continue;
+        if (s_text_anim_mode == TEXT_ANIM_FLIPBOARD) {
+            if (s_flipboard_count < 2) {
+                vTaskDelay(pdMS_TO_TICKS(50));
+                continue;
+            }
+        } else {
+            if (s_text_anim_len <= 0) {
+                vTaskDelay(pdMS_TO_TICKS(50));
+                continue;
+            }
         }
 
         if (s_text_anim_mode == TEXT_ANIM_WAVE) {
@@ -572,6 +678,57 @@ static void text_anim_task(void *arg) {
             }
             continue;
         }
+
+        if (s_text_anim_mode == TEXT_ANIM_FLIPBOARD) {
+            const int flip_frames = 12;
+            const int half = flip_frames / 2;
+            int hold_frames = (int)((s_text_anim_hold_ms * fps) / 1000u);
+            if (hold_frames < 1) hold_frames = 1;
+            const int segment = flip_frames + hold_frames;
+            const int cycle = s_flipboard_count * segment;
+
+            for (;;) {
+                if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_FLIPBOARD) break;
+
+                const int f = (int)(frame % (uint32_t)cycle);
+                const int idx = f / segment;
+                const int segf = f % segment;
+                const char *cur = s_flipboard_texts[idx % s_flipboard_count];
+                const char *nxt = s_flipboard_texts[(idx + 1) % s_flipboard_count];
+
+                const char *display = cur;
+                uint16_t scale_q8 = 256;
+                if (segf < flip_frames) {
+                    if (segf < half) {
+                        display = cur;
+                        const uint16_t t = (uint16_t)((segf * 256) / half);
+                        const uint16_t eased = q8_ease_in_quad(t);
+                        scale_q8 = (uint16_t)(256u - eased);
+                    } else {
+                        display = nxt;
+                        const uint16_t t = (uint16_t)(((segf - half) * 256) / half);
+                        scale_q8 = q8_ease_out_quad(t);
+                    }
+                } else {
+                    display = nxt;
+                    scale_q8 = 256;
+                }
+
+                int len = (int)strlen(display);
+                if (len > 64) len = 64;
+                render_text_centered_cols(cols, width, display, len, NULL);
+                for (int x = 0; x < width; x++) cols[x] = col_scale_y(cols[x], scale_q8);
+
+                matrix_lock();
+                fb_from_cols(cols, width);
+                matrix_unlock();
+                (void)fb_flush_all();
+
+                frame++;
+                vTaskDelay(pdMS_TO_TICKS(frame_ms));
+            }
+            continue;
+        }
     }
 }
 
@@ -600,6 +757,7 @@ static void text_anim_on(text_anim_mode_t mode, const char *text, uint32_t fps, 
         return;
     }
     if (mode == TEXT_ANIM_NONE) return;
+    if (mode == TEXT_ANIM_FLIPBOARD) return;
     text_anim_set_text(text);
     if (s_text_anim_len <= 0) {
         printf("anim: empty text\n");
@@ -624,9 +782,39 @@ static void text_anim_on(text_anim_mode_t mode, const char *text, uint32_t fps, 
     xTaskNotifyGive(s_text_anim_task);
 }
 
+static void text_anim_on_flipboard(const char *spec, uint32_t fps, uint32_t hold_ms) {
+    if (!s_matrix_ready) {
+        printf("matrix not initialized (run: matrix init)\n");
+        return;
+    }
+    if (flipboard_set_texts(spec) < 2) {
+        printf("anim flip: need at least 1 text (use A|B|C...)\n");
+        return;
+    }
+
+    if (!s_text_anim_have_saved_fb) {
+        matrix_lock();
+        memcpy(s_text_anim_saved_fb, s_fb, sizeof(s_fb));
+        matrix_unlock();
+        s_text_anim_have_saved_fb = true;
+    }
+
+    if (fps < 1) fps = 1;
+    if (fps > 60) fps = 60;
+    if (hold_ms > 60000) hold_ms = 60000;
+    s_text_anim_fps = fps;
+    s_text_anim_hold_ms = hold_ms;
+    s_text_anim_pause_ms = 0;
+    s_text_anim_mode = TEXT_ANIM_FLIPBOARD;
+    s_text_anim_enabled = true;
+    text_anim_ensure_task();
+    xTaskNotifyGive(s_text_anim_task);
+}
+
 static void text_anim_off(void) {
     s_text_anim_enabled = false;
     s_text_anim_mode = TEXT_ANIM_NONE;
+    s_flipboard_count = 0;
     if (s_text_anim_have_saved_fb) {
         matrix_lock();
         memcpy(s_fb, s_text_anim_saved_fb, sizeof(s_fb));
@@ -837,13 +1025,15 @@ static int cmd_matrix(int argc, char **argv) {
     if (strcmp(argv[1], "scroll") == 0) {
         if (argc < 3) {
             printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+            printf("       matrix scroll wave <TEXT> [fps] [pause_ms]\n");
             printf("       matrix scroll off\n");
             printf("       matrix scroll status\n");
             return 1;
         }
         if (strcmp(argv[2], "status") == 0) {
-            printf("ok: scroll=%s fps=%u pause_ms=%u\n",
+            printf("ok: scroll=%s mode=%s fps=%u pause_ms=%u\n",
                    s_scroll_enabled ? "on" : "off",
+                   s_scroll_wave ? "wave" : "plain",
                    (unsigned)s_scroll_fps,
                    (unsigned)s_scroll_pause_ms);
             return 0;
@@ -853,9 +1043,10 @@ static int cmd_matrix(int argc, char **argv) {
             printf("ok\n");
             return 0;
         }
-        if (strcmp(argv[2], "on") == 0) {
+        if (strcmp(argv[2], "on") == 0 || strcmp(argv[2], "wave") == 0) {
+            const bool wave = (strcmp(argv[2], "wave") == 0);
             if (argc < 4) {
-                printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+                printf("usage: matrix scroll %s <TEXT> [fps] [pause_ms]\n", wave ? "wave" : "on");
                 return 1;
             }
             uint32_t fps = s_scroll_fps;
@@ -879,11 +1070,12 @@ static int cmd_matrix(int argc, char **argv) {
                 pause_ms = (uint32_t)v;
             }
             blink_off();
-            scroll_on(argv[3], fps, pause_ms);
+            scroll_on(argv[3], fps, pause_ms, wave);
             if (s_scroll_enabled) printf("ok\n");
             return s_scroll_enabled ? 0 : 1;
         }
         printf("usage: matrix scroll on <TEXT> [fps] [pause_ms]\n");
+        printf("       matrix scroll wave <TEXT> [fps] [pause_ms]\n");
         printf("       matrix scroll off\n");
         printf("       matrix scroll status\n");
         return 1;
@@ -893,6 +1085,7 @@ static int cmd_matrix(int argc, char **argv) {
         if (argc < 3) {
             printf("usage: matrix anim drop <TEXT> [fps] [pause_ms]\n");
             printf("       matrix anim wave <TEXT> [fps]\n");
+            printf("       matrix anim flip <A|B|C...> [fps] [hold_ms]\n");
             printf("       matrix anim off\n");
             printf("       matrix anim status\n");
             return 1;
@@ -901,17 +1094,50 @@ static int cmd_matrix(int argc, char **argv) {
             const char *mode = "off";
             if (s_text_anim_mode == TEXT_ANIM_DROP_BOUNCE) mode = "drop";
             if (s_text_anim_mode == TEXT_ANIM_WAVE) mode = "wave";
-            printf("ok: anim=%s fps=%u pause_ms=%u text_len=%d\n",
+            if (s_text_anim_mode == TEXT_ANIM_FLIPBOARD) mode = "flip";
+            printf("ok: anim=%s fps=%u pause_ms=%u hold_ms=%u text_len=%d flip_count=%d\n",
                    s_text_anim_enabled ? mode : "off",
                    (unsigned)s_text_anim_fps,
                    (unsigned)s_text_anim_pause_ms,
-                   s_text_anim_len);
+                   (unsigned)s_text_anim_hold_ms,
+                   s_text_anim_len,
+                   s_flipboard_count);
             return 0;
         }
         if (strcmp(argv[2], "off") == 0) {
             text_anim_off();
             printf("ok\n");
             return 0;
+        }
+        if (strcmp(argv[2], "flip") == 0) {
+            if (argc < 4) {
+                printf("usage: matrix anim flip <A|B|C...> [fps] [hold_ms]\n");
+                return 1;
+            }
+            uint32_t fps = s_text_anim_fps;
+            uint32_t hold_ms = s_text_anim_hold_ms;
+            if (argc >= 5) {
+                char *end = NULL;
+                long v = strtol(argv[4], &end, 0);
+                if (!end || *end != '\0' || v < 1 || v > 60) {
+                    printf("invalid fps: %s\n", argv[4]);
+                    return 1;
+                }
+                fps = (uint32_t)v;
+            }
+            if (argc >= 6) {
+                char *end = NULL;
+                long v = strtol(argv[5], &end, 0);
+                if (!end || *end != '\0' || v < 0 || v > 60000) {
+                    printf("invalid hold_ms: %s\n", argv[5]);
+                    return 1;
+                }
+                hold_ms = (uint32_t)v;
+            }
+            stop_animations();
+            text_anim_on_flipboard(argv[3], fps, hold_ms);
+            if (s_text_anim_enabled) printf("ok\n");
+            return s_text_anim_enabled ? 0 : 1;
         }
         if (strcmp(argv[2], "drop") == 0 || strcmp(argv[2], "wave") == 0) {
             if (argc < 4) {
@@ -947,6 +1173,7 @@ static int cmd_matrix(int argc, char **argv) {
         }
         printf("usage: matrix anim drop <TEXT> [fps] [pause_ms]\n");
         printf("       matrix anim wave <TEXT> [fps]\n");
+        printf("       matrix anim flip <A|B|C...> [fps] [hold_ms]\n");
         printf("       matrix anim off\n");
         printf("       matrix anim status\n");
         return 1;
