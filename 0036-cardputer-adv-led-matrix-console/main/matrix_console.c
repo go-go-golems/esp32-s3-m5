@@ -1055,14 +1055,15 @@ static void scroll_off(void) {
 static void text_anim_task(void *arg) {
     (void)arg;
 
-    static const float k_pi = 3.14159265358979323846f;
+	static const float k_pi = 3.14159265358979323846f;
 
-    static const int8_t wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
-    static const int8_t drop_seq[] = {-7, -6, -5, -4, -3, -2, -1, 0, 1, 0, 1, 0, 0};
-    const int drop_len = (int)(sizeof(drop_seq) / sizeof(drop_seq[0]));
-    const int drop_stagger = 2;
-    const int drop_hold_frames = 20;
-    const int drop_gap_frames = 10;
+	static const int8_t wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
+	// Drop + bounce: fall in from above, overshoot below baseline, bounce up, settle.
+	static const int8_t drop_seq[] = {-7, -6, -5, -4, -3, -2, -1, 0, 2, -2, 1, 0, 0};
+	const int drop_len = (int)(sizeof(drop_seq) / sizeof(drop_seq[0]));
+	const int drop_stagger = 1;
+	const uint32_t drop_hold_ms = 250;
+	const uint32_t drop_gap_ms = 150;
 
     const int spin_duration = 20;
     const int spin_hold_frames = 40;
@@ -1121,16 +1122,20 @@ static void text_anim_task(void *arg) {
             continue;
         }
 
-        if (s_text_anim_mode == TEXT_ANIM_DROP_BOUNCE) {
-            for (;;) {
-                if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_DROP_BOUNCE) break;
-                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
-                    frame = 0;
-                    s_text_anim_restart = false;
-                }
-                const int text_frames = drop_len + drop_stagger * (s_text_anim_len - 1);
-                const int cycle = text_frames + drop_hold_frames + drop_gap_frames;
-                const int f = (int)(frame % (uint32_t)cycle);
+	        if (s_text_anim_mode == TEXT_ANIM_DROP_BOUNCE) {
+	            for (;;) {
+	                if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_DROP_BOUNCE) break;
+	                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
+	                    frame = 0;
+	                    s_text_anim_restart = false;
+	                }
+	                int drop_hold_frames = (int)((drop_hold_ms * fps) / 1000u);
+	                if (drop_hold_frames < 1) drop_hold_frames = 1;
+	                int drop_gap_frames = (int)((drop_gap_ms * fps) / 1000u);
+	                if (drop_gap_frames < 1) drop_gap_frames = 1;
+	                const int text_frames = drop_len + drop_stagger * (s_text_anim_len - 1);
+	                const int cycle = text_frames + drop_hold_frames + drop_gap_frames;
+	                const int f = (int)(frame % (uint32_t)cycle);
 
                 if (f >= (text_frames + drop_hold_frames)) {
                     memset(cols, 0, (size_t)width);
