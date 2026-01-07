@@ -629,7 +629,7 @@ The implementation is deliberately simple and stable for bring-up: it reuses the
 - Added `matrix anim drop <TEXT> [fps] [pause_ms]` (sequential drop-in with small bounce).
 - Added `matrix anim wave <TEXT> [fps]` (per-character sine-like vertical offsets).
 - Added `matrix anim off` / `matrix anim status`.
-- Added docmgr tasks for drop/wave and marked them complete.
+- Added docmgr tasks for drop/wave; marked implementation tasks complete and left on-device validation as a separate task.
 - Built locally (`./build.sh build`).
 
 ### Why

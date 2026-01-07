@@ -21,4 +21,4 @@
 - [ ] Phase 3: Update docs with verified pinout + known-good module wiring
 - [x] Phase 1: Add drop-bounce text animation command (REPL)
 - [x] Phase 1: Add wave text animation command (REPL)
-- [x] Phase 1: Validate drop/wave on 12-module chain
+- [ ] Phase 1: Validate drop/wave on 12-module chain
