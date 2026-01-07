@@ -262,44 +262,6 @@ This step removes the `matrix bright` / `matrix gamma` commands and returns to t
 ### Code review instructions
 - Revert changes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
 
-## Step 7: Make SPI Clock Configurable (Lower Default + `matrix spi <hz>`)
-
-This step adds a `matrix spi <hz>` command so we can adjust the MAX7219 SPI clock while diagnosing signal-integrity issues (e.g. edges not looking square on a scope, or flaky behavior depending on wiring length). It also lowers the default SPI clock further to a conservative baseline (`100 kHz`) so a freshly flashed firmware is more likely to “just work” on long wires.
-
-Implementation note: ESP-IDF’s SPI device clock is configured when the device is added to the SPI bus, so changing the clock is implemented as a close+reopen of the SPI device (and bus when owned).
-
-### What I did
-- Lowered the default MAX7219 SPI clock to `100 kHz`.
-- Added `max7219_close()` + `max7219_set_spi_hz()` to recreate the SPI device at a new clock speed.
-- Added `matrix spi <hz>` command and printed the active clock in `matrix status`.
-- Updated firmware README with the new default and example values.
-
-### Why
-- Slow clocks are a common, low-effort mitigation for marginal wiring (ringing, overshoot, long jumpers).
-- A runtime command lets us iterate quickly without rebuilding/flashing for each clock tweak.
-
-### What worked
-- Build succeeded after adding the SPI clock configuration plumbing.
-
-### What didn't work
-- N/A
-
-### What I learned
-- When debugging “it’s flaky” hardware, having a single command to change one electrical variable (clock) is extremely valuable.
-
-### What was tricky to build
-- SPI clock changes aren’t a simple “set a variable”; they require recreating the SPI device to guarantee the new timing takes effect.
-
-### What warrants a second pair of eyes
-- If we ever share the SPI bus with another device in this firmware, we should revisit the close/free semantics and ensure we don’t free a bus that another device depends on.
-
-### What should be done in the future
-- Consider adding a `matrix spi status` subcommand that also prints the configured pins/host if we start supporting multiple pinouts.
-
-### Code review instructions
-- SPI clock plumbing: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.c`
-- Console command: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
-
 ## Step 5: Identify “Which Chip Is This?” (MCU vs MAX7219/Clone)
 
 This step clarifies what we can and can’t identify from software logs alone. The setup contains at least two relevant ICs: the ESP32-S3 MCU (which ESP-IDF tools can identify precisely), and the LED-matrix driver ICs (MAX7219-style) on the 8×8 modules, which are typically write-only and often clones with compatible behavior.
