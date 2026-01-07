@@ -52,3 +52,13 @@ Revert perceptual brightness mapping (matrix bright/gamma) to return to a simple
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Remove bright/gamma commands
 
+
+## 2026-01-06
+
+Fix MAX7219 SPI reliability (max_transfer_sz) and add safe `matrix spi` clock control (commit 98e0a2c)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Add `matrix spi` command and status output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.c — Fix SPI transfer sizing; add device clock retune
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/reference/01-diary.md — Record regression fix

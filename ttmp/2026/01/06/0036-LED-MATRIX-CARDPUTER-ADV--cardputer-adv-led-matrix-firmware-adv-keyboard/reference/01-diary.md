@@ -16,13 +16,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0036-cardputer-adv-led-matrix-console/README.md
+      Note: User-facing usage notes
+    - Path: 0036-cardputer-adv-led-matrix-console/main/matrix_console.c
+      Note: Console commands for validation
+    - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
+      Note: MAX7219 SPI init/transfer handling
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -303,3 +310,61 @@ The practical outcome is: use ESP-IDF tooling (`espefuse.py`) to identify the MC
   - `source ~/esp/esp-idf-5.4.1/export.sh && espefuse.py -p /dev/ttyACM0 summary`
 - Identify LED driver IC:
   - inspect the chip marking on the module (or take a close-up photo)
+
+## Step 7: Fix SPI Transfer Sizing + Add Safe Clock Control (Restore Reliability)
+
+This step focuses on restoring a stable baseline after “it used to work, now it’s borked” reports and confusing scope captures. The main firmware-side issue was that the SPI bus was configured with an unrealistically small `max_transfer_sz`, which can cause truncated/garbled transfers once we send more than one MAX7219 frame (2 bytes per module) in a single transaction.
+
+With transfer sizing corrected, this step also re-introduces a *safe* SPI clock control (`matrix spi [hz]`) and lowers the default SPI clock to improve edge quality on marginal wiring, without trying to free/reopen the SPI bus (which previously risked destabilizing the setup).
+
+**Commit (code):** 98e0a2c68b2733fa2332bb8f627f04bc6b2893a5 — "0036: harden MAX7219 SPI and add clock control"
+
+### What I did
+- Fixed MAX7219 SPI bus configuration to allow multi-module transactions by setting `spi_bus_config_t.max_transfer_sz` to `2 * MAX7219_DEFAULT_CHAIN_LEN`.
+- Lowered default MAX7219 SPI clock to `100 kHz` for better signal margin.
+- Added `matrix spi [hz]` console command to read/set the SPI clock safely by removing/re-adding the device (no `spi_bus_free()`).
+- Updated `matrix status` to print `spi_hz`.
+- Built and flashed the firmware, and re-checked console bring-up via the non-TTY validation scripts.
+
+### Why
+- Chained MAX7219 updates are 8 bytes per row for 4 modules; the bus config must permit those transfers or behavior becomes unpredictable.
+- A conservative SPI clock helps when wire lengths / breadboards / level shifting create slow edges or ringing.
+- A REPL-accessible clock knob helps correlate scope observations with functional behavior without repeated reflashes.
+
+### What worked
+- `./build.sh build` succeeded.
+- Flashing succeeded once `/dev/ttyACM0` was no longer locked.
+- Boot shows `MAX7219 ready (auto-init)` and `matrix help` now includes `matrix spi`.
+
+### What didn't work
+- Flash initially failed because the serial port was already in use:
+  - `./build.sh -p /dev/ttyACM0 flash`
+  - Error: `Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable`
+
+### What I learned
+- Setting `spi_bus_config_t.max_transfer_sz` too low can produce “half works” symptoms that look electrical (odd edges, only some modules responding), even when the wiring is fine.
+- A busy `/dev/ttyACM0` is easy to confuse with “broken flashing”; checking locks early saves time.
+
+### What was tricky to build
+- Re-adding a clock-control command without reintroducing the earlier “SPI reopen” complexity: the safer approach is to remove/re-add the device only, leaving the bus initialized.
+
+### What warrants a second pair of eyes
+- Whether `SPI_DMA_CH_AUTO` is necessary here; if instability persists, consider forcing `SPI_DMA_DISABLED` for these tiny (≤8 byte) transactions.
+- Confirm the MAX7219 chain order assumption (“bytes[0] is closest to MCU”) matches the physical wiring, especially if module 4 remains unresponsive.
+
+### What should be done in the future
+- Validate with a scope after this change:
+  - compare `matrix spi 100000` vs `matrix spi 1000000` and check edge shape + functional response.
+- If only 3 of 4 modules still respond, treat it as a hardware chain/power/link issue (swap module order, inspect DIN/DOUT between module 3→4, check module 4 IC marking).
+
+### Code review instructions
+- Start at: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.c`
+- Then: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Validate build: `cd esp32-s3-m5/0036-cardputer-adv-led-matrix-console && ./build.sh build`
+
+### Technical details
+- Reproduce the port-lock check:
+  - `lsof /dev/ttyACM0`
+  - `fuser /dev/ttyACM0`
+- Quick REPL validation (non-TTY):
+  - `python3 esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_send_matrix_commands.py --port /dev/ttyACM0`
