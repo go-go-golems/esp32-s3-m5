@@ -564,3 +564,55 @@ The scroll implementation is intentionally minimal and “bring-up friendly”: 
   - `matrix text TEST`  (should be right-side-up now; if not: `matrix flipv off`)
   - `matrix scroll on HELLO 15 250`
   - `matrix scroll off`
+
+## Step 12: Make Chain Length Configurable (12 Modules / 96×8 and Beyond)
+
+This step upgrades the firmware from a fixed “4 modules / 32×8” assumption to a configurable MAX7219 chain length, because the physical setup grew to 12 modules (96×8). The approach is intentionally conservative for embedded bring-up: we support up to a fixed maximum (16 modules) with static buffers, and use a runtime `matrix chain` command to tell the firmware how many modules are actually in the chain.
+
+With the correct chain length set, all existing features (patterns, `px`, `text`, `scroll`, blink, safe test) automatically operate over the full width and stop doing confusing partial updates.
+
+**Commit (code):** 1e11f2210d90fd9e3d3de2c03d0d2b6f593a0dfb — "0036: support configurable MAX7219 chain length"
+
+### What I did
+- Added `MAX7219_MAX_CHAIN_LEN` (16) and changed default chain length to 12.
+- Added `matrix chain [n]` to get/set the active chain length at runtime.
+- Updated framebuffer flush logic and patterns to respect `chain_len` instead of a hard-coded 4-module assumption.
+- Updated SPI driver limits (`max_transfer_sz` and tx buffers) to support multi-module transactions up to the max chain length.
+- Updated README to reflect 12-module default and variable-width commands.
+- Built locally (`./build.sh build`).
+
+### Why
+- The hardware now uses 12 modules; the firmware must be able to address the full chain (96×8) without recompiling.
+- A runtime knob avoids “mystery missing modules” when the physical chain is reconfigured.
+
+### What worked
+- Build succeeded; the firmware now has an explicit chain-length configuration path.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Keeping a fixed maximum buffer size (instead of heap allocation) is a good trade-off for early bring-up: predictable memory, fewer failure modes, still flexible enough for common chain lengths.
+
+### What was tricky to build
+- Ensuring every command that iterates modules (`safe`, `row`, patterns, `onehot`, `scroll`) consistently uses the active chain length.
+
+### What warrants a second pair of eyes
+- Confirm the chosen `MAX7219_MAX_CHAIN_LEN=16` is sufficient for the expected “largest plausible” chain in this project; if not, bump it and re-verify stack/IRAM pressure.
+
+### What should be done in the future
+- Add `matrix rowm` support to scripts/validation flows when you start using per-module row patterns across >4 modules.
+
+### Code review instructions
+- Chain config + per-command loops: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- SPI buffer sizing + chain max: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.c`
+- Limits/defines: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.h`
+- Docs: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+
+### Technical details
+- After flashing:
+  - `matrix chain 12`
+  - `matrix init`
+  - `matrix safe on`
+  - `matrix text HELLOWORLD12`  (renders first 12 chars)
+  - `matrix scroll on HELLO 15 250`
