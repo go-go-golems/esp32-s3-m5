@@ -1,0 +1,93 @@
+menu "Tutorial 0038: Cardputer-ADV Serial Terminal"
+
+config TUTORIAL_0038_PRESENT_WAIT_DMA
+    bool "Wait for DMA completion after present (avoid tearing)"
+    default y
+
+config TUTORIAL_0038_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+
+config TUTORIAL_0038_MAX_LINES
+    int "Maximum stored lines in buffer"
+    range 16 4096
+    default 256
+
+choice
+    prompt "Serial backend"
+    default TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG
+
+config TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG
+    bool "USB (USB-Serial-JTAG / ttyACM*)"
+
+config TUTORIAL_0038_BACKEND_UART
+    bool "GROVE UART (G1/G2)"
+endchoice
+
+config TUTORIAL_0038_UART_NUM
+    int "UART port number (controller)"
+    range 0 2
+    default 1
+    depends on TUTORIAL_0038_BACKEND_UART
+
+config TUTORIAL_0038_UART_BAUD
+    int "GROVE UART baud rate"
+    range 1200 3000000
+    default 115200
+    depends on TUTORIAL_0038_BACKEND_UART
+
+config TUTORIAL_0038_UART_TX_GPIO
+    int "GROVE UART TX GPIO (default: G2)"
+    range 0 48
+    default 2
+    depends on TUTORIAL_0038_BACKEND_UART
+
+config TUTORIAL_0038_UART_RX_GPIO
+    int "GROVE UART RX GPIO (default: G1)"
+    range 0 48
+    default 1
+    depends on TUTORIAL_0038_BACKEND_UART
+
+config TUTORIAL_0038_LOCAL_ECHO
+    bool "Local echo typed bytes to screen"
+    default y
+
+config TUTORIAL_0038_SHOW_RX
+    bool "Show incoming bytes on screen"
+    default y
+
+config TUTORIAL_0038_NEWLINE_CRLF
+    bool "Transmit CRLF on Enter"
+    default y
+
+choice
+    prompt "Backspace transmit byte"
+    default TUTORIAL_0038_BS_SEND_DEL
+
+config TUTORIAL_0038_BS_SEND_BS
+    bool "0x08 (BS)"
+
+config TUTORIAL_0038_BS_SEND_DEL
+    bool "0x7f (DEL)"
+endchoice
+
+config TUTORIAL_0038_LOG_KEY_EVENTS
+    bool "Debug: log every key event"
+    default n
+
+config TUTORIAL_0038_RELAY_ENABLE
+    bool "Enable local relay control (GPIO)"
+    default y
+
+config TUTORIAL_0038_RELAY_GPIO
+    int "Relay GPIO (default: 3)"
+    range 0 48
+    default 3
+    depends on TUTORIAL_0038_RELAY_ENABLE
+
+config TUTORIAL_0038_RELAY_ACTIVE_HIGH
+    bool "Relay polarity active-high (default: active-low)"
+    default n
+    depends on TUTORIAL_0038_RELAY_ENABLE
+
+endmenu

@@ -1,0 +1,15 @@
+idf_component_register(
+    SRCS
+        "hello_world_main.cpp"
+        "Adafruit_TCA8418.cpp"
+        "relay_control.cpp"
+    PRIV_REQUIRES
+        spi_flash
+        esp_driver_gpio
+        esp_driver_uart
+        esp_driver_usb_serial_jtag
+    REQUIRES
+        M5Unified
+    INCLUDE_DIRS
+        "."
+)
