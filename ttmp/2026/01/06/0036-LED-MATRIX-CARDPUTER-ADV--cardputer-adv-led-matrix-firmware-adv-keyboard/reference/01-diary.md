@@ -761,3 +761,47 @@ The corrected behavior is: hold the current word for `hold_ms`, then flip to the
 ### Technical details
 - After flashing:
   - `matrix anim flip COOL|NICE|OK 20 750`
+
+## Step 16: Stop Other Animations When Switching Modes
+
+This step fixes a practical UX issue: after adding more animation modes (`scroll`, `flipboard`, `drop`, `wave`, `blink`), it was possible to start a new mode without reliably stopping the old one. The most visible symptom was “scroll” and “flip” fighting each other when switching between them.
+
+The fix is simple and makes the console predictable: any command that starts an animation-like mode now calls `stop_animations()` first (which disables all other animation tasks and restores the previous framebuffer snapshot).
+
+**Commit (code):** 640c3fc687d2cfdfcf97168b2eb8ecfecb58aaec — "0036: stop other animations when switching modes"
+
+### What I did
+- Updated `matrix blink on ...` to call `stop_animations()` before enabling the blink task.
+- Updated `matrix scroll on|wave ...` to call `stop_animations()` (instead of only disabling blink).
+- Added a validation task to explicitly test mode switching on real hardware.
+
+### Why
+- Without a single rule (“starting a mode stops all others”), concurrent tasks can write the framebuffer alternately and the strip looks unstable.
+
+### What worked
+- Switching between `matrix anim flip ...` and `matrix scroll on|wave ...` no longer leaves both tasks enabled.
+
+### What didn't work
+- N/A
+
+### What I learned
+- As the REPL grows, “mode switching semantics” matter as much as the animations themselves; a small oversight in one command handler is enough to make the system feel broken.
+
+### What was tricky to build
+- N/A (small command-level fix).
+
+### What warrants a second pair of eyes
+- The current `stop_animations()` restores a saved framebuffer and flushes it; if the on-device transition flash is annoying, we may want a variant that stops tasks without restoring state when switching modes.
+
+### What should be done in the future
+- Run through a quick “mode switching matrix” on-device (scroll ↔ flip, scroll ↔ drop, flip ↔ drop, blink ↔ anything) and check the new validation task when confirmed.
+
+### Code review instructions
+- Command handlers and `stop_animations()`: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Tasks bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Repro (previously problematic):
+  - `matrix anim flip COOL|NICE|OK 20 750`
+  - `matrix scroll on HELLO 15 250`
+  - `matrix scroll off`

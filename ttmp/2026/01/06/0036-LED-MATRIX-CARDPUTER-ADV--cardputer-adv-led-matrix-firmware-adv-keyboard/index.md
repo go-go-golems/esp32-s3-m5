@@ -26,10 +26,14 @@ RelatedFiles:
         Gamma-mapped brightness command (bright/gamma) on top of MAX7219 intensity
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: Reduced SPI clock for signal integrity
+    - Path: ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/reference/01-diary.md
+      Note: Implementation diary (step-by-step notes)
     - Path: ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_read_boot_log.py
       Note: Non-TTY boot-log capture helper (used for validation in automation)
     - Path: ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_send_matrix_commands.py
       Note: Non-TTY esp_console command sender (init + patterns) for validation
+    - Path: ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md
+      Note: Ticket task list (docmgr task list/check)
 ExternalSources:
     - local:01-cardputer-adv-comparison.md
     - local:Embedded text blinking patterns.md
@@ -38,6 +42,7 @@ LastUpdated: 2026-01-06T21:35:10.321006196-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
