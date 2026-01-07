@@ -18,24 +18,30 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: 0036-cardputer-adv-led-matrix-console/README.md
-      Note: User-facing usage notes
+      Note: |-
+        User-facing usage notes
+        Document matrix anim spin command
     - Path: 0036-cardputer-adv-led-matrix-console/main/matrix_console.c
       Note: |-
         Console commands for validation
         Matrix bring-up commands incl. safe test
         Add scroll text + default flipv
+        Implement matrix anim spin (spin letters)
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
     - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.c
       Note: Minimal TCA8418 register helper over esp_driver_i2c
     - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.h
       Note: TCA8418 register/CFG/INT_STAT definitions + API
+    - Path: ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/sources/local/Embedded text blinking patterns.md
+      Note: Reference pseudocode for Animation 12 (spin letters)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -964,3 +970,57 @@ To make that safe, I also had to address an underlying concurrency hazard: the s
   - `matrix scroll on HELLO 15 250`
   - Type `WORLD` → the scroller should update to include the typed string (sanitized to supported glyphs).
   - Press Enter → buffer clears (display becomes blank/space in the active mode).
+
+## Step 20: Add Spin Letters Text Animation (Per-Character Card Flip)
+
+This step adds a new text animation mode that makes each character “spin” around its vertical axis like a flipping card. The effect is implemented as a per-character **horizontal scaling** curve driven by `abs(cos(θ))`, staggered so letters begin spinning one after another, then a shared “spin out” phase collapses all letters together before an optional blank gap.
+
+This is intentionally kept simple and deterministic: there is no “back face” rendering (we treat negative scale as the same as positive), and the renderer stays within each glyph’s 5-column cell so the animation remains readable on a low-resolution 8×8-per-module strip.
+
+**Commit (code):** 6a671a8bac2ca4896bbf73aed5972f4251d32cd8 — "0036: add spin letters text animation"
+
+### What I did
+- Implemented `matrix anim spin <TEXT> [fps] [pause_ms]` in the matrix REPL.
+- Added a horizontally-scaled text renderer:
+  - `col_scale_x(...)` to map 5-column glyphs by a Q8 scale factor.
+  - `render_text_centered_cols_scaled_x(...)` to render centered text while applying per-character scaling.
+- Implemented the spin animation state machine in `text_anim_task()`:
+  - Staggered per-character spin-in timing.
+  - Full-size hold window.
+  - Shared spin-out collapse + optional blank gap based on `pause_ms`.
+- Updated the firmware README to document the new command.
+
+### Why
+- Spin/flip is a very “matrix-appropriate” way to animate short text without needing more vertical pixels or complex per-pixel effects.
+- It complements the existing `drop` and `wave` modes, and is suitable for keyboard-driven “live text” since it supports immediate text replacement + restart.
+
+### What worked
+- Local build succeeded: `./build.sh build`.
+
+### What didn't work
+- N/A (not yet validated on-device for “feel” and legibility on the real MAX7219 chain).
+
+### What I learned
+- For 5-column glyphs, you can get a convincing card-flip illusion just by blanking the outer columns as the scale shrinks; you don’t necessarily need to remap columns across character boundaries.
+
+### What was tricky to build
+- Getting the cycle timing right: the exit phase should start after the last character has had time to spin-in and then hold, without an off-by-one “dead” delay.
+- Balancing readability vs. effect: very small scale factors quickly make letters vanish; the animation needs a threshold (`< ~12.5% width`) to avoid noisy flicker.
+
+### What warrants a second pair of eyes
+- The float math in the animation task (`cosf`, `fabsf`) and its per-frame CPU cost; if we see missed frames on-device, we should consider a LUT-based cosine.
+
+### What should be done in the future
+- On-device validation:
+  - `matrix anim spin HELLO 15 250` on a long chain (12 modules / 96×8) and confirm the effect is readable.
+  - Type while spin mode is active and verify the animation restarts cleanly with the new text (Enter clears).
+
+### Code review instructions
+- Animation implementation: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Command docs: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Task bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Command shape:
+  - `matrix anim spin <TEXT> [fps] [pause_ms]`
+  - `pause_ms` is used as the blank “gap” between cycles; the in-place hold window is a fixed number of frames.

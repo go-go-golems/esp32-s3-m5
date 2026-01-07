@@ -32,3 +32,5 @@
 - [ ] Phase 2: Validate on-device: typing updates matrix and logs raw events; confirm press/release polarity
 - [x] Phase 2: Feed typed text into active text mode (scroll/anim) without stopping it; Enter clears
 - [ ] Phase 2: Validate on-device: typing updates active scroll/anim text live and does not fight the animation
+- [x] Phase 2: Add spin letters text animation (matrix anim spin)
+- [ ] Phase 2: Validate on-device: spin letters animation looks OK and typed input updates it live
