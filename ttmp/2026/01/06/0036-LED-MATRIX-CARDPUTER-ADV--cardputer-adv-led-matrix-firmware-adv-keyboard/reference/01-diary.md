@@ -228,6 +228,40 @@ This doesn’t create more hardware steps, but it makes low-end brightness contr
 ### Code review instructions
 - Brightness/gamma commands: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
 
+## Step 6: Revert Bright/Gamma Mapping (Stability Baseline)
+
+This step removes the `matrix bright` / `matrix gamma` commands and returns to the raw `matrix intensity 0..15` control. The goal is to eliminate any new moving parts while validating wiring and baseline reliability (especially while only 3 of 4 modules appear to respond).
+
+### What I did
+- Removed `matrix bright` and `matrix gamma` from the `matrix` command set.
+- Removed the README section describing gamma-mapped brightness.
+- Kept `matrix intensity` as the only brightness control.
+
+### Why
+- When the system feels electrically marginal/unreliable, reducing features helps isolate root causes.
+- MAX7219 intensity is only 16 steps anyway; perceptual mapping can be reintroduced once the hardware path is stable.
+
+### What worked
+- Build succeeds after removing the brightness mapping code.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Hardware bring-up benefits from “boring” baselines; defer ergonomic improvements until link stability is proven.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- Whether the original instability was actually due to the brightness mapping changes or a coincidental wiring/port-lock issue.
+
+### What should be done in the future
+- Once the chain is stable (all 4 modules responding), re-add perceptual controls or add optional dithering as a separate step.
+
+### Code review instructions
+- Revert changes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+
 ## Step 5: Identify “Which Chip Is This?” (MCU vs MAX7219/Clone)
 
 This step clarifies what we can and can’t identify from software logs alone. The setup contains at least two relevant ICs: the ESP32-S3 MCU (which ESP-IDF tools can identify precisely), and the LED-matrix driver ICs (MAX7219-style) on the 8×8 modules, which are typically write-only and often clones with compatible behavior.

@@ -43,3 +43,12 @@ Step 5: Document how to identify MCU vs MAX7219/clone (espefuse.py vs physical m
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/reference/01-diary.md — Record chip-identification procedure and limitations
 
+
+## 2026-01-06
+
+Revert perceptual brightness mapping (matrix bright/gamma) to return to a simpler, more stable baseline
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Remove bright/gamma commands
+
