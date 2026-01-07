@@ -233,3 +233,12 @@ Step 22: Make drop-bounce bouncy + add dropcfg (commit 7b7a4b8)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Drop physics + tuning command
 
+
+## 2026-01-07
+
+Step 23: Fix drop top-row plateau (start moving immediately)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Avoid early clamp in drop sequence generation
+

@@ -1126,3 +1126,43 @@ This step replaces the hand-tuned, fixed per-frame list with a small physics-sty
 
 ### Technical details
 - `dropcfg` prints extra parameters (baseline shift, stagger, hold), but currently only gravity and bounce are user-adjustable from the console.
+
+## Step 23: Remove “Top Row Plateau” So Drop Starts Moving Immediately
+
+On-device, the drop animation could show a thin “first row” for a moment before the letters visibly started falling. This wasn’t an ESP32 timing issue; it was a logic artifact from the drop sequence generator. We were clamping generated positions into the renderable range (`-7..+7`) during sequence generation, which collapses all “more off-screen than -7” positions into the single value `-7`. After applying our baseline shift (`base_y=1`), that became `-6` for multiple frames — exactly the “single-row plateau” you observed.
+
+This step fixes the issue by preserving more-negative positions in the generated sequence (so “off-screen” stays truly off-screen), and only clamping to the renderable range at the final rendering step.
+
+### What I did
+- Stopped clamping the generated drop positions to `-7..+7` in `drop_rebuild_seq()`.
+- Added a final clamp after applying `base_y` when filling `yoffs[]` so the renderer still sees a safe `-7..+7` range.
+- Rebuilt successfully: `./build.sh build`.
+
+### Why
+- If “off-screen” positions collapse to a single value, the first visible frame can repeat, which reads like a delay or hitch.
+- Preserving the full range of off-screen positions makes the first visible pixels coincide with actual motion.
+
+### What worked
+- Local build succeeded: `./build.sh build`.
+
+### What didn't work
+- N/A (needs on-device validation to confirm the plateau is gone).
+
+### What I learned
+- In tiny displays, *where you clamp* matters as much as *what you clamp to*: clamping early can quantize motion into visible plateaus.
+
+### What was tricky to build
+- Keeping the renderer robust while allowing the physics generator to use a wider internal numeric range.
+
+### What warrants a second pair of eyes
+- The interaction between `base_y` (headroom) and “first visible frame” behavior; if we change defaults later, we should re-check for reintroduced plateaus.
+
+### What should be done in the future
+- On-device validation:
+  - `matrix anim drop HELLO 15 250` and watch the first visible pixels; confirm they are already moving, not holding.
+
+### Code review instructions
+- Drop sequence generation vs. final clamp: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+
+### Technical details
+- The key change is “no clamp to -7” inside `drop_rebuild_seq()`; clamping happens after `base_y` is applied during frame render.
