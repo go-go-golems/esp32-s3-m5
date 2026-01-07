@@ -1,0 +1,24 @@
+# Tutorial 0036 defaults (ESP-IDF 5.4.x)
+#
+# Reproducible defaults for Cardputer-ADV-style bring-up.
+#
+
+# Flash size: Cardputer/ADV is commonly 8MB.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+
+# Partition table: project-local partitions.csv (factory 4M + storage 1M).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# CPU frequency: common default for Cardputer demos.
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+
+# Prefer USB Serial/JTAG for the interactive console on Cardputer/ADV.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=n
+CONFIG_ESP_CONSOLE_UART_CUSTOM=n
+CONFIG_ESP_CONSOLE_USB_CDC=n
+
