@@ -20,6 +20,7 @@ static const char *TAG = "matrix_console";
 static max7219_t s_matrix;
 static bool s_matrix_ready = false;
 static bool s_reverse_modules = false;
+static bool s_flip_vertical = false;
 
 static uint8_t s_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
 
@@ -49,9 +50,12 @@ static void print_matrix_help(void) {
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
     printf("  matrix safe on|off                            (RAM-based full-on/full-off; good for wiring bring-up)\n");
+    printf("  matrix text <ABCD>                            (renders 4 chars: one per 8x8 module)\n");
+    printf("  matrix text <A> <B> <C> <D>                   (same, but split args)\n");
     printf("  matrix intensity <0..15>\n");
     printf("  matrix spi [hz]                               (get/set SPI clock; default is compile-time)\n");
     printf("  matrix reverse on|off\n");
+    printf("  matrix flipv on|off                           (flip vertically; fixes upside-down glyphs)\n");
     printf("  matrix row <0..7> <0x00..0xff>                 (sets this row on all modules)\n");
     printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (one byte per module)\n");
     printf("  matrix px <0..%d> <0..7> <0|1>                   (pixel on the 32x8 strip)\n",
@@ -76,6 +80,75 @@ static void fb_set_ids_pattern(void) {
     }
 }
 
+static char ascii_upper(char c) {
+    if (c >= 'a' && c <= 'z') return (char)(c - ('a' - 'A'));
+    return c;
+}
+
+// 5x7 font, column-major: 5 bytes per glyph, LSB = top row.
+static const uint8_t s_font5x7[59][5] = {
+    [' ' - 32] = {0x00, 0x00, 0x00, 0x00, 0x00},
+
+    ['0' - 32] = {0x3E, 0x51, 0x49, 0x45, 0x3E},
+    ['1' - 32] = {0x00, 0x42, 0x7F, 0x40, 0x00},
+    ['2' - 32] = {0x42, 0x61, 0x51, 0x49, 0x46},
+    ['3' - 32] = {0x21, 0x41, 0x45, 0x4B, 0x31},
+    ['4' - 32] = {0x18, 0x14, 0x12, 0x7F, 0x10},
+    ['5' - 32] = {0x27, 0x45, 0x45, 0x45, 0x39},
+    ['6' - 32] = {0x3C, 0x4A, 0x49, 0x49, 0x30},
+    ['7' - 32] = {0x01, 0x71, 0x09, 0x05, 0x03},
+    ['8' - 32] = {0x36, 0x49, 0x49, 0x49, 0x36},
+    ['9' - 32] = {0x06, 0x49, 0x49, 0x29, 0x1E},
+
+    ['A' - 32] = {0x7C, 0x12, 0x11, 0x12, 0x7C},
+    ['B' - 32] = {0x7F, 0x49, 0x49, 0x49, 0x36},
+    ['C' - 32] = {0x3E, 0x41, 0x41, 0x41, 0x22},
+    ['D' - 32] = {0x7F, 0x41, 0x41, 0x22, 0x1C},
+    ['E' - 32] = {0x7F, 0x49, 0x49, 0x49, 0x41},
+    ['F' - 32] = {0x7F, 0x09, 0x09, 0x09, 0x01},
+    ['G' - 32] = {0x3E, 0x41, 0x49, 0x49, 0x7A},
+    ['H' - 32] = {0x7F, 0x08, 0x08, 0x08, 0x7F},
+    ['I' - 32] = {0x00, 0x41, 0x7F, 0x41, 0x00},
+    ['J' - 32] = {0x20, 0x40, 0x41, 0x3F, 0x01},
+    ['K' - 32] = {0x7F, 0x08, 0x14, 0x22, 0x41},
+    ['L' - 32] = {0x7F, 0x40, 0x40, 0x40, 0x40},
+    ['M' - 32] = {0x7F, 0x02, 0x0C, 0x02, 0x7F},
+    ['N' - 32] = {0x7F, 0x04, 0x08, 0x10, 0x7F},
+    ['O' - 32] = {0x3E, 0x41, 0x41, 0x41, 0x3E},
+    ['P' - 32] = {0x7F, 0x09, 0x09, 0x09, 0x06},
+    ['Q' - 32] = {0x3E, 0x41, 0x51, 0x21, 0x5E},
+    ['R' - 32] = {0x7F, 0x09, 0x19, 0x29, 0x46},
+    ['S' - 32] = {0x46, 0x49, 0x49, 0x49, 0x31},
+    ['T' - 32] = {0x01, 0x01, 0x7F, 0x01, 0x01},
+    ['U' - 32] = {0x3F, 0x40, 0x40, 0x40, 0x3F},
+    ['V' - 32] = {0x1F, 0x20, 0x40, 0x20, 0x1F},
+    ['W' - 32] = {0x3F, 0x40, 0x38, 0x40, 0x3F},
+    ['X' - 32] = {0x63, 0x14, 0x08, 0x14, 0x63},
+    ['Y' - 32] = {0x07, 0x08, 0x70, 0x08, 0x07},
+    ['Z' - 32] = {0x61, 0x51, 0x49, 0x45, 0x43},
+};
+
+static const uint8_t *font5x7_get_cols(char c) {
+    c = ascii_upper(c);
+    if (c < 32 || c > 90) c = ' ';
+    return s_font5x7[c - 32];
+}
+
+static void render_char_8x8_rows(char c, uint8_t out_rows[8]) {
+    memset(out_rows, 0, 8);
+    const uint8_t *cols = font5x7_get_cols(c);
+    const int x0 = 1;
+
+    for (int col = 0; col < 5; col++) {
+        const uint8_t column_bits = cols[col];
+        for (int y = 0; y < 7; y++) {
+            if (column_bits & (uint8_t)(1u << y)) {
+                out_rows[y] |= (uint8_t)(1u << (x0 + col));
+            }
+        }
+    }
+}
+
 static int fb_width(void) {
     return 8 * MAX7219_DEFAULT_CHAIN_LEN;
 }
@@ -91,6 +164,8 @@ static uint8_t x_to_bit(int x) {
 static esp_err_t fb_flush_row(int y) {
     if (y < 0 || y >= 8) return ESP_ERR_INVALID_ARG;
 
+    const int phy_row = s_flip_vertical ? (7 - y) : y;
+
     matrix_lock();
     const int n = (s_matrix.chain_len > 0) ? s_matrix.chain_len : MAX7219_DEFAULT_CHAIN_LEN;
     uint8_t phy[MAX7219_DEFAULT_CHAIN_LEN] = {0};
@@ -99,7 +174,7 @@ static esp_err_t fb_flush_row(int y) {
         phy[m] = s_fb[y][src];
     }
 
-    esp_err_t err = max7219_set_row_chain(&s_matrix, (uint8_t)y, phy);
+    esp_err_t err = max7219_set_row_chain(&s_matrix, (uint8_t)phy_row, phy);
     matrix_unlock();
     return err;
 }
@@ -254,10 +329,11 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "status") == 0) {
-        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s blink=%s on_ms=%u off_ms=%u\n",
+        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s flipv=%s blink=%s on_ms=%u off_ms=%u\n",
                s_matrix.chain_len,
                s_matrix.clock_hz,
                s_reverse_modules ? "on" : "off",
+               s_flip_vertical ? "on" : "off",
                s_blink_enabled ? "on" : "off",
                (unsigned)s_blink_on_ms,
                (unsigned)s_blink_off_ms);
@@ -397,6 +473,39 @@ static int cmd_matrix(int argc, char **argv) {
         return 0;
     }
 
+    if (strcmp(argv[1], "text") == 0) {
+        blink_off();
+
+        char chars[4] = {' ', ' ', ' ', ' '};
+        if (argc == 3) {
+            const char *s = argv[2];
+            const size_t n = strlen(s);
+            for (size_t i = 0; i < 4 && i < n; i++) chars[i] = s[i];
+        } else if (argc == 6) {
+            for (int i = 0; i < 4; i++) chars[i] = argv[2 + i][0];
+        } else {
+            printf("usage: matrix text <ABCD>\n");
+            printf("       matrix text <A> <B> <C> <D>\n");
+            return 1;
+        }
+
+        for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+            uint8_t rows[8];
+            render_char_8x8_rows(chars[m], rows);
+            for (int y = 0; y < 8; y++) {
+                s_fb[y][m] = rows[y];
+            }
+        }
+
+        esp_err_t err = fb_flush_all();
+        if (err != ESP_OK) {
+            printf("text failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("ok\n");
+        return 0;
+    }
+
     if (strcmp(argv[1], "intensity") == 0) {
         blink_off();
         if (argc < 3) {
@@ -431,6 +540,24 @@ static int cmd_matrix(int argc, char **argv) {
             printf("usage: matrix reverse on|off\n");
             return 1;
         }
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "flipv") == 0) {
+        if (argc < 3) {
+            printf("usage: matrix flipv on|off\n");
+            return 1;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            s_flip_vertical = true;
+        } else if (strcmp(argv[2], "off") == 0) {
+            s_flip_vertical = false;
+        } else {
+            printf("usage: matrix flipv on|off\n");
+            return 1;
+        }
+        (void)fb_flush_all();
         printf("ok\n");
         return 0;
     }
