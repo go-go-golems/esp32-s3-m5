@@ -20,7 +20,6 @@ static const char *TAG = "matrix_console";
 static max7219_t s_matrix;
 static bool s_matrix_ready = false;
 static bool s_reverse_modules = false;
-static int s_spi_hz = MAX7219_DEFAULT_SPI_HZ;
 
 static uint8_t s_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
 
@@ -50,7 +49,6 @@ static void print_matrix_help(void) {
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
     printf("  matrix intensity <0..15>\n");
-    printf("  matrix spi <hz>                                 (set SPI clock; default %d)\n", MAX7219_DEFAULT_SPI_HZ);
     printf("  matrix reverse on|off\n");
     printf("  matrix row <0..7> <0x00..0xff>                 (sets this row on all modules)\n");
     printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (one byte per module)\n");
@@ -190,8 +188,7 @@ static void try_autoinit(void) {
                                  MAX7219_DEFAULT_PIN_SCK,
                                  MAX7219_DEFAULT_PIN_MOSI,
                                  MAX7219_DEFAULT_PIN_CS,
-                                 MAX7219_DEFAULT_CHAIN_LEN,
-                                 s_spi_hz);
+                                 MAX7219_DEFAULT_CHAIN_LEN);
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "MAX7219 auto-open failed: %s (use `matrix init` to retry)", esp_err_to_name(err));
         return;
@@ -231,7 +228,7 @@ static int cmd_matrix(int argc, char **argv) {
     if (strcmp(argv[1], "init") == 0) {
         if (!s_matrix_mu) s_matrix_mu = xSemaphoreCreateMutex();
         esp_err_t err = max7219_open(&s_matrix, MAX7219_DEFAULT_SPI_HOST, MAX7219_DEFAULT_PIN_SCK,
-                                     MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, MAX7219_DEFAULT_CHAIN_LEN, s_spi_hz);
+                                     MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, MAX7219_DEFAULT_CHAIN_LEN);
         if (err != ESP_OK) {
             printf("init failed: %s\n", esp_err_to_name(err));
             return 1;
@@ -249,41 +246,6 @@ static int cmd_matrix(int argc, char **argv) {
         return 0;
     }
 
-    if (strcmp(argv[1], "spi") == 0) {
-        if (argc < 2 + 1) {
-            printf("usage: matrix spi <hz>\n");
-            return 1;
-        }
-        char *end = NULL;
-        long hz = strtol(argv[2], &end, 0);
-        if (!end || *end != '\0' || hz < 100 || hz > 10000000) {
-            printf("invalid hz: %s (expected 100..10000000)\n", argv[2]);
-            return 1;
-        }
-        s_spi_hz = (int)hz;
-        if (s_matrix_ready) {
-            blink_off();
-            esp_err_t err = max7219_set_spi_hz(&s_matrix, s_spi_hz);
-            if (err != ESP_OK) {
-                printf("spi failed: %s\n", esp_err_to_name(err));
-                return 1;
-            }
-            // Re-init chip regs after re-opening and restore framebuffer.
-            err = max7219_init(&s_matrix);
-            if (err != ESP_OK) {
-                printf("spi reinit failed: %s\n", esp_err_to_name(err));
-                return 1;
-            }
-            err = fb_flush_all();
-            if (err != ESP_OK) {
-                printf("spi refresh failed: %s\n", esp_err_to_name(err));
-                return 1;
-            }
-        }
-        printf("ok (spi_hz=%d)\n", s_spi_hz);
-        return 0;
-    }
-
     if (!s_matrix_ready) {
         printf("matrix not initialized (run: matrix init)\n");
         return 1;
@@ -296,7 +258,6 @@ static int cmd_matrix(int argc, char **argv) {
                s_blink_enabled ? "on" : "off",
                (unsigned)s_blink_on_ms,
                (unsigned)s_blink_off_ms);
-        printf("ok: spi_hz=%d (default %d)\n", s_matrix.spi_hz ? s_matrix.spi_hz : s_spi_hz, MAX7219_DEFAULT_SPI_HZ);
         return 0;
     }
 

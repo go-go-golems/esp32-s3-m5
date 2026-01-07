@@ -29,40 +29,18 @@ static esp_err_t max7219_write_broadcast(max7219_t *dev, uint8_t reg, uint8_t da
     return spi_device_transmit(dev->spi, &t);
 }
 
-esp_err_t max7219_close(max7219_t *dev) {
-    if (!dev) return ESP_ERR_INVALID_ARG;
-
-    if (dev->spi) {
-        (void)spi_bus_remove_device(dev->spi);
-        dev->spi = NULL;
-    }
-    if (dev->bus_owned) {
-        (void)spi_bus_free(dev->host);
-        dev->bus_owned = false;
-    }
-    return ESP_OK;
-}
-
 esp_err_t max7219_open(max7219_t *dev,
                        spi_host_device_t host,
                        int pin_sck,
                        int pin_mosi,
                        int pin_cs,
-                       int chain_len,
-                       int spi_hz) {
+                       int chain_len) {
     if (!dev) return ESP_ERR_INVALID_ARG;
     if (chain_len <= 0) return ESP_ERR_INVALID_ARG;
     if (chain_len > MAX7219_DEFAULT_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
-    if (spi_hz <= 0) return ESP_ERR_INVALID_ARG;
-
-    // If already open with the same config, keep the existing device handle.
-    if (dev->spi && dev->configured && dev->host == host && dev->pin_sck == pin_sck && dev->pin_mosi == pin_mosi &&
-        dev->pin_cs == pin_cs && dev->chain_len == chain_len && dev->spi_hz == spi_hz) {
-        return ESP_OK;
-    }
-
     if (dev->spi) {
-        (void)max7219_close(dev);
+        dev->chain_len = chain_len;
+        return ESP_OK;
     }
 
     spi_bus_config_t buscfg = {
@@ -78,10 +56,9 @@ esp_err_t max7219_open(max7219_t *dev,
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
         return err;
     }
-    dev->bus_owned = (err == ESP_OK);
 
     spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = spi_hz,
+        .clock_speed_hz = MAX7219_DEFAULT_SPI_HZ,
         .mode = 0,
         .spics_io_num = pin_cs,
         .queue_size = 1,
@@ -93,29 +70,7 @@ esp_err_t max7219_open(max7219_t *dev,
 
     dev->spi = handle;
     dev->chain_len = chain_len;
-    dev->spi_hz = spi_hz;
-    dev->host = host;
-    dev->pin_sck = pin_sck;
-    dev->pin_mosi = pin_mosi;
-    dev->pin_cs = pin_cs;
-    dev->configured = true;
     return ESP_OK;
-}
-
-esp_err_t max7219_set_spi_hz(max7219_t *dev, int spi_hz) {
-    if (!dev) return ESP_ERR_INVALID_ARG;
-    if (spi_hz <= 0) return ESP_ERR_INVALID_ARG;
-    if (!dev->spi || !dev->configured) return ESP_ERR_INVALID_STATE;
-    if (dev->spi_hz == spi_hz) return ESP_OK;
-
-    const int chain_len = dev->chain_len;
-    const spi_host_device_t host = dev->host;
-    const int pin_sck = dev->pin_sck;
-    const int pin_mosi = dev->pin_mosi;
-    const int pin_cs = dev->pin_cs;
-
-    (void)max7219_close(dev);
-    return max7219_open(dev, host, pin_sck, pin_mosi, pin_cs, chain_len, spi_hz);
 }
 
 esp_err_t max7219_init(max7219_t *dev) {
