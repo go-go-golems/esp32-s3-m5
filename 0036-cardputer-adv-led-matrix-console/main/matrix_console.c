@@ -919,8 +919,10 @@ static void drop_rebuild_seq(uint32_t fps) {
     bool settled = false;
     for (int i = 0; i < DROP_SEQ_MAX; i++) {
         int8_t y_px = q8_round_to_i8(y_q8);
-        if (y_px < -7) y_px = -7;
-        if (y_px > 7) y_px = 7;
+        // Do not clamp to the renderable range here: values < -7 should remain "more off-screen"
+        // so we don't get a plateau where only a single row is visible before the fall begins.
+        if (y_px < -32) y_px = -32;
+        if (y_px > 32) y_px = 32;
         s_drop_seq[out++] = y_px;
 
         if (settled) continue;
@@ -1243,6 +1245,8 @@ static void text_anim_task(void *arg) {
 	                        const int t = f - i * (int)s_drop_cfg.char_delay_frames;
 	                        int8_t off = drop_sample_y(t, fps);
 	                        off = (int8_t)(off + (int8_t)s_drop_cfg.base_y_px);
+	                        if (off < -7) off = -7;
+	                        if (off > 7) off = 7;
 	                        yoffs[i] = off;
 	                    }
 	                    render_text_centered_cols(cols, width, s_text_anim_text, s_text_anim_len, yoffs);
