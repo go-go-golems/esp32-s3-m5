@@ -12,7 +12,7 @@
 #define MAX7219_DEFAULT_PIN_MOSI 14
 #define MAX7219_DEFAULT_PIN_CS   5
 #define MAX7219_DEFAULT_CHAIN_LEN 4
-#define MAX7219_DEFAULT_SPI_HZ (1000 * 1000)
+#define MAX7219_DEFAULT_SPI_HZ (100 * 1000)
 
 #define MAX7219_REG_DIGIT0       0x01
 #define MAX7219_REG_DECODE_MODE  0x09
@@ -24,6 +24,13 @@
 typedef struct {
     spi_device_handle_t spi;
     int chain_len;
+    int spi_hz;
+    spi_host_device_t host;
+    int pin_sck;
+    int pin_mosi;
+    int pin_cs;
+    bool bus_owned;
+    bool configured;
 } max7219_t;
 
 esp_err_t max7219_open(max7219_t *dev,
@@ -31,7 +38,11 @@ esp_err_t max7219_open(max7219_t *dev,
                        int pin_sck,
                        int pin_mosi,
                        int pin_cs,
-                       int chain_len);
+                       int chain_len,
+                       int spi_hz);
+
+esp_err_t max7219_close(max7219_t *dev);
+esp_err_t max7219_set_spi_hz(max7219_t *dev, int spi_hz);
 
 esp_err_t max7219_init(max7219_t *dev);
 esp_err_t max7219_clear(max7219_t *dev);
