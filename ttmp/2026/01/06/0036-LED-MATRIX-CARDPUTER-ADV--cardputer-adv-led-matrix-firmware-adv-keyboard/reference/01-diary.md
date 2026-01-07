@@ -36,6 +36,8 @@ This step sets up the docmgr workspace for the ticket, imports the “Cardputer 
 
 No firmware code is written yet; the output is documentation and a staged task list that we can execute in small, verifiable increments.
 
+**Commit (docs):** 609c343e9972844b32717900a4106b7982f91df1 — "docs(0036): add ticket workspace, playbook, diary"
+
 ### What I did
 - Created the ticket workspace: `docmgr ticket create-ticket --ticket 0036-LED-MATRIX-CARDPUTER-ADV ...`
 - Imported the comparison notes into ticket sources: `docmgr import file --ticket 0036-LED-MATRIX-CARDPUTER-ADV --file /tmp/cardputer-vs-cardputer-adv.md --name "Cardputer ADV comparison"`
@@ -91,6 +93,8 @@ No firmware code is written yet; the output is documentation and a staged task l
 This step adds a ticket-local tmux playbook for reliable flash/monitor/REPL workflows and then implements the Phase-1 firmware: an `esp_console` REPL over USB Serial/JTAG that controls a **4-module chained MAX7219** (32×8 strip). It also captures “non-interactive validation” scripts because `idf.py monitor` requires a TTY and fails in automation/non-TTY contexts.
 
 The result is a minimal bring-up harness: you can `matrix init`, run obvious order/orientation patterns, and set individual pixels across the 32×8 strip. This provides a stable base before we add the ADV keyboard (TCA8418) input path.
+
+**Commit (code):** b81b51d495ff3fc1c051069ccb7ba073c00bcb2d — "0036: add MAX7219 matrix console firmware"
 
 ### What I did
 - Added tmux playbook:
