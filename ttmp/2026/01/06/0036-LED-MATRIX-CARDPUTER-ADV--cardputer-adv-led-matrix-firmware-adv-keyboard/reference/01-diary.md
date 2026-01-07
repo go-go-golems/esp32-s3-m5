@@ -421,3 +421,93 @@ To make bring-up less confusing and more repeatable, I added a RAM-based “safe
   - `matrix intensity 4`
   - `matrix safe on`
   - `matrix safe off`
+
+## Step 9: Add Frontmatter for Local “Embedded Text Blinking Patterns” Source
+
+This step formalizes a useful local reference document (text rendering + animation pseudocode) by adding standard docmgr frontmatter. That makes it discoverable/searchable in the ticket workspace and clarifies its intended use as a reference source (not firmware code).
+
+It also updates the ticket index so the source is listed under `ExternalSources`, keeping the workspace tidy as we accumulate supporting material for scrolling text and future keyboard-driven rendering.
+
+**Commit (docs):** 4149a54b8864ee3763c3127dc2482e85730a5d65 — "docs(0036): add frontmatter for embedded text patterns source"
+
+### What I did
+- Added YAML frontmatter to:
+  - `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/sources/local/Embedded text blinking patterns.md`
+- Linked the source from the ticket workspace index so it shows up under `ExternalSources`.
+
+### Why
+- Make the document searchable and clearly scoped as a local reference for later “text on matrix” work.
+
+### What worked
+- The source now has consistent metadata and is linked from the ticket index.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Keeping sources “first-class” in the ticket workspace reduces future archeology when we revisit text rendering/animation ideas.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- When we start scrolling/animation work, explicitly cite which parts of the source we actually implement and keep the firmware-side font assumptions aligned with hardware orientation flags.
+
+### Code review instructions
+- Frontmatter: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/sources/local/Embedded text blinking patterns.md`
+- Index link: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/index.md`
+
+### Technical details
+- N/A
+
+## Step 10: Add “matrix text” + Vertical Flip Option (First Text Rendering Bring-Up)
+
+This step adds the first minimal text rendering path for the 4× 8×8 chain: a single `matrix text` command that renders exactly 4 characters (one character per module). This gives us an immediate way to confirm glyph rendering, module order, and orientation without implementing scrolling yet.
+
+It also adds a `matrix flipv on|off` calibration knob because the most common bring-up failure for 8×8 modules is a vertical flip (e.g. `T` appears as an upside-down shape). The flip is implemented at the row-flush layer so it applies uniformly to all existing patterns/commands.
+
+**Commit (code):** fa2ae1cb09a804d40198b2ca34278dcf73c87f15 — "0036: add matrix text + vertical flip"
+
+### What I did
+- Added a tiny 5×7 ASCII subset font (digits + A–Z) and a renderer to center it inside an 8×8 cell.
+- Added `matrix text <ABCD>` and `matrix text <A> <B> <C> <D>` to render one char per module.
+- Added `matrix flipv on|off` which flips the physical row mapping (fixes upside-down glyphs).
+- Updated README to document the new commands.
+- Built locally (`./build.sh build`). Flashing was skipped here because the port was in use; you can flash from your side.
+
+### Why
+- We need a “first text” command before attempting scrolling or keyboard integration; it makes orientation problems obvious and easy to correct.
+- A vertical flip is a low-risk, high-value calibration flag for common MAX7219 module orientations.
+
+### What worked
+- Build succeeds with the new command set.
+- `matrix flipv` applies globally since it sits in `fb_flush_row`.
+
+### What didn't work
+- Flash attempt failed while `/dev/ttyACM0` was locked by another process (expected in a multi-terminal setup).
+
+### What I learned
+- Flipping at the “row to DIGIT register” boundary is the cleanest way to correct vertical orientation without duplicating logic in every command.
+
+### What was tricky to build
+- Making sure `flipv` affects everything consistently (patterns, pixels, rows, text) without touching the SPI driver or introducing per-command conditionals.
+
+### What warrants a second pair of eyes
+- The 5×7 font bit convention (LSB=top row) vs the physical module orientation; if we later add `fliph`/rotate, we should verify the mapping with a photo and lock it down.
+
+### What should be done in the future
+- If text still looks “sideways”, add `matrix fliph on|off` or a `matrix rotate 0|90|180|270` abstraction (but only after we confirm the most common orientation on your specific module strip).
+- Expand the font table or switch to a well-known public-domain 5×7 font once we’re confident about orientation.
+
+### Code review instructions
+- New command + orientation knob: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Command docs: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+
+### Technical details
+- Quick manual test after flashing:
+  - `matrix init`
+  - `matrix text TEST`
+  - If upside-down: `matrix flipv on`
