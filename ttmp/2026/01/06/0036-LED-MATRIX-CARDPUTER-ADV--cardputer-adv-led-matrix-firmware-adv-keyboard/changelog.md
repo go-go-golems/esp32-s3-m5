@@ -184,3 +184,12 @@ Fix TCA8418 init failure by keeping esp_driver_i2c in synchronous mode (trans_qu
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Disable I2C async mode for keyboard bus
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/reference/01-diary.md — Record Step 18
 
+
+## 2026-01-06
+
+Add deep-dive analysis doc explaining esp_driver_i2c async mode and why the internal ops list overflowed during TCA8418 init
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/analysis/01-esp-idf-esp-driver-i2c-async-mode-ops-list-overflow-explained.md — Root-cause explanation with diagrams/pseudocode
+
