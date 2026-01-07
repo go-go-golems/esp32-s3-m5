@@ -30,3 +30,5 @@
 - [x] Phase 2: Map ADV key events to ASCII (shift/caps/backspace) and show typed text on LED matrix
 - [x] Phase 2: Add kbd esp_console commands (status/on/off/clear) for debugging
 - [ ] Phase 2: Validate on-device: typing updates matrix and logs raw events; confirm press/release polarity
+- [x] Phase 2: Feed typed text into active text mode (scroll/anim) without stopping it; Enter clears
+- [ ] Phase 2: Validate on-device: typing updates active scroll/anim text live and does not fight the animation

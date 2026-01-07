@@ -908,3 +908,59 @@ The fix is to keep the bus in synchronous mode by setting `trans_queue_depth = 0
 - After flashing:
   - Expect the earlier async warning and ops-list errors to be gone.
   - `kbd status` should report `ready=yes` if wiring is correct.
+
+## Step 19: Feed Typed Text Into Active Text Animations (No Mode Fighting)
+
+This step changes the keyboard UX from “keypresses always stop animations and render directly” to “keypresses update the currently active text mode”. In practice, that means: if you are running `matrix scroll ...` or `matrix anim ...`, typing updates the animation’s text live (and pressing Enter clears the typed buffer). Only when no text mode is active do we fall back to rendering the last `chain_len` characters directly on the strip.
+
+To make that safe, I also had to address an underlying concurrency hazard: the scroll mode stores its rendered column stream in a heap buffer (`s_scroll_text_cols`) while the scroll task is reading it. Updating that pointer from the keyboard task can cause a use-after-free unless access is serialized. The solution here is a simple mutex around the scroll text buffer and its length during both update and per-frame readout.
+
+**Commit (code):** 0c22e33019ce25ad73a1c18e95d7926a16d63523 — "0036: feed typed text into active scroll/anim modes"
+
+### What I did
+- Refactored keyboard rendering:
+  - Keyboard no longer calls `stop_animations()` on every keypress.
+  - Keypresses call a new “apply” function that updates the active mode’s text (scroll/anim) or renders directly if no mode is active.
+  - `enter` clears the buffer and pushes an empty/blank text update.
+- Made scroll text updates safe:
+  - Added a mutex around `s_scroll_text_cols` / `s_scroll_text_w`.
+  - Scroll task holds the mutex while it reads the current text buffer for a frame; updates hold it while swapping/freeing.
+  - Added a `restart` hint so scroll restarts cleanly when the text changes.
+- Added a small “restart” hook for text animations so they can restart from frame 0 when the typed text changes.
+- Updated docs and checked off the new “feed typed text into active mode” task.
+
+### Why
+- It’s much more useful if the keyboard is an input source for the currently running presentation mode (scroll, wave, drop, flipboard) rather than forcibly cancelling it.
+- Without the scroll-buffer mutex, live text updates can crash or corrupt the display due to a race between the scroll task and the keyboard task.
+
+### What worked
+- Local build succeeded (`./build.sh build`).
+
+### What didn't work
+- N/A (still needs on-device validation for “feel” and to ensure there’s no flicker/fighting when typing quickly).
+
+### What I learned
+- The moment you make animation parameters live-updatable, you need to treat animation state like shared mutable data: either make it lock-free by design (static buffers, single writer) or add explicit synchronization.
+
+### What was tricky to build
+- Balancing correctness vs. simplicity: the scroll task reads the buffer every frame, so the mutex needs to be held only briefly and predictably (not around delays), otherwise mode switching becomes sluggish.
+
+### What warrants a second pair of eyes
+- The scroll mutex + “restart on notify” logic: ensure there is no deadlock or long lock hold that could delay REPL commands or other tasks.
+
+### What should be done in the future
+- On-device validation:
+  - Start `matrix scroll on ...` and type; confirm the message updates live and scroll doesn’t “fight” or crash.
+  - Start `matrix anim drop ...` / `matrix anim wave ...` and type; confirm updates are visible and Enter clears.
+
+### Code review instructions
+- Keyboard → active mode routing: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Updated keyboard usage notes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Tasks bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Example on-device scenario:
+  - `matrix init`
+  - `matrix scroll on HELLO 15 250`
+  - Type `WORLD` → the scroller should update to include the typed string (sanitized to supported glyphs).
+  - Press Enter → buffer clears (display becomes blank/space in the active mode).
