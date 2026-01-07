@@ -10,12 +10,18 @@
 #include "esp_log.h"
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include "driver/gpio.h"
+#include "driver/i2c_master.h"
+
 #include "max7219.h"
+#include "tca8418.h"
 
 static const char *TAG = "matrix_console";
+static const char *KBD_TAG = "kbd";
 
 static max7219_t s_matrix;
 static bool s_matrix_ready = false;
@@ -27,11 +33,53 @@ static int s_chain_len_cfg = MAX7219_DEFAULT_CHAIN_LEN;
 static uint8_t s_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 
 static esp_err_t fb_flush_all(void);
+static void stop_animations(void);
 static void try_autoinit(void);
 static int x_to_module(int x);
 static uint8_t x_to_bit(int x);
 
 static SemaphoreHandle_t s_matrix_mu;
+
+// ---------------- Keyboard (Cardputer-ADV TCA8418) ----------------
+
+#define KBD_I2C_PORT I2C_NUM_0
+#define KBD_I2C_SDA GPIO_NUM_8
+#define KBD_I2C_SCL GPIO_NUM_9
+#define KBD_INT GPIO_NUM_11
+#define KBD_I2C_HZ 400000
+#define KBD_TCA8418_ADDR7 0x34
+#define KBD_TCA_ROWS 7
+#define KBD_TCA_COLS 8
+
+static bool s_kbd_ready = false;
+static bool s_kbd_enabled = true;
+static bool s_kbd_log_events = true;
+static i2c_master_bus_handle_t s_kbd_bus;
+static tca8418_t s_kbd;
+static QueueHandle_t s_kbd_evt_q;
+static TaskHandle_t s_kbd_task;
+
+static bool s_kbd_shift = false;
+static bool s_kbd_capslock = false;
+
+static char s_kbd_text[129];
+static size_t s_kbd_text_len = 0;
+
+// Key legend matches the vendor HAL's "picture" coordinate system (4 rows x 14 columns).
+// Derived from M5Cardputer-UserDemo-ADV/main/hal/keyboard/keybaord.cpp.
+static const char *s_key_first[4][14] = {
+    {"`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "del"},
+    {"tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"},
+    {"shift", "capslock", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "enter"},
+    {"ctrl", "opt", "alt", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", " "},
+};
+
+static const char *s_key_second[4][14] = {
+    {"~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+", "del"},
+    {"tab", "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|"},
+    {"shift", "capslock", "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\"", "enter"},
+    {"ctrl", "opt", "alt", "Z", "X", "C", "V", "B", "N", "M", "<", ">", "?", " "},
+};
 static TaskHandle_t s_blink_task;
 static bool s_blink_enabled = false;
 static uint32_t s_blink_on_ms = 250;
@@ -88,6 +136,125 @@ static int chain_len_active(void) {
 
 static int width_active(void) {
     return 8 * chain_len_active();
+}
+
+static void print_kbd_help(void) {
+    printf("kbd commands:\n");
+    printf("  kbd status\n");
+    printf("  kbd on|off\n");
+    printf("  kbd clear\n");
+    printf("  kbd log on|off\n");
+}
+
+typedef struct {
+    bool pressed;
+    uint8_t row;
+    uint8_t col;
+} kbd_key_t;
+
+static bool kbd_decode_event(uint8_t event_raw, kbd_key_t *out);
+static void kbd_handle_key(const kbd_key_t *k, uint8_t event_raw);
+
+static void IRAM_ATTR kbd_int_isr(void *arg) {
+    (void)arg;
+    if (!s_kbd_evt_q) return;
+    const uint32_t one = 1;
+    BaseType_t hp = pdFALSE;
+    (void)xQueueSendFromISR(s_kbd_evt_q, &one, &hp);
+    if (hp) portYIELD_FROM_ISR();
+}
+
+static esp_err_t kbd_i2c_init(void) {
+    if (s_kbd_bus) return ESP_OK;
+
+    i2c_master_bus_config_t bus_cfg = {
+        .i2c_port = KBD_I2C_PORT,
+        .sda_io_num = KBD_I2C_SDA,
+        .scl_io_num = KBD_I2C_SCL,
+        .clk_source = I2C_CLK_SRC_DEFAULT,
+        .glitch_ignore_cnt = 7,
+        .intr_priority = 0,
+        .trans_queue_depth = 8,
+        .flags.enable_internal_pullup = 1,
+    };
+
+    return i2c_new_master_bus(&bus_cfg, &s_kbd_bus);
+}
+
+static esp_err_t kbd_hw_init(void) {
+    if (s_kbd_ready) return ESP_OK;
+
+    esp_err_t err = kbd_i2c_init();
+    if (err != ESP_OK) return err;
+
+    err = tca8418_open(&s_kbd, s_kbd_bus, KBD_TCA8418_ADDR7, KBD_I2C_HZ, KBD_TCA_ROWS, KBD_TCA_COLS);
+    if (err != ESP_OK) return err;
+    err = tca8418_begin(&s_kbd);
+    if (err != ESP_OK) return err;
+
+    if (!s_kbd_evt_q) {
+        s_kbd_evt_q = xQueueCreate(8, sizeof(uint32_t));
+        if (!s_kbd_evt_q) return ESP_ERR_NO_MEM;
+    }
+
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_ANYEDGE,
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << KBD_INT),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+    };
+    err = gpio_config(&io_conf);
+    if (err != ESP_OK) return err;
+
+    err = gpio_install_isr_service((int)ESP_INTR_FLAG_IRAM);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
+
+    err = gpio_isr_handler_add(KBD_INT, &kbd_int_isr, NULL);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
+
+    s_kbd_ready = true;
+    return ESP_OK;
+}
+
+static void kbd_task(void *arg) {
+    (void)arg;
+    for (;;) {
+        uint32_t token = 0;
+        (void)xQueueReceive(s_kbd_evt_q, &token, portMAX_DELAY);
+
+        if (!s_kbd_ready) continue;
+
+        for (;;) {
+            uint8_t count = 0;
+            esp_err_t err = tca8418_available(&s_kbd, &count);
+            if (err != ESP_OK || count == 0) break;
+
+            for (uint8_t i = 0; i < count; i++) {
+                uint8_t evt = 0;
+                err = tca8418_get_event(&s_kbd, &evt);
+                if (err != ESP_OK) break;
+                if (evt == 0) break;
+
+                if (s_kbd_enabled) {
+                    kbd_key_t k;
+                    if (kbd_decode_event(evt, &k)) {
+                        kbd_handle_key(&k, evt);
+                    } else if (s_kbd_log_events) {
+                        printf("kbd: evt=0x%02x (unmapped)\n", (unsigned)evt);
+                    }
+                }
+            }
+        }
+
+        // Try to clear K_INT once we've drained events.
+        (void)tca8418_write_reg8(&s_kbd, TCA8418_REG_INT_STAT, TCA8418_INTSTAT_K_INT);
+    }
+}
+
+static void kbd_ensure_task(void) {
+    if (s_kbd_task) return;
+    xTaskCreate(&kbd_task, "kbd", 4096, NULL, 3, &s_kbd_task);
 }
 
 static void print_matrix_help(void) {
@@ -235,6 +402,152 @@ static void render_char_8x8_rows(char c, uint8_t out_rows[8]) {
             }
         }
     }
+}
+
+static void kbd_text_clear(void) {
+    s_kbd_text_len = 0;
+    s_kbd_text[0] = '\0';
+}
+
+static void kbd_text_backspace(void) {
+    if (s_kbd_text_len == 0) return;
+    s_kbd_text_len--;
+    s_kbd_text[s_kbd_text_len] = '\0';
+}
+
+static void kbd_text_append(char c) {
+    if (s_kbd_text_len + 1 >= sizeof(s_kbd_text)) {
+        memmove(s_kbd_text, s_kbd_text + 1, sizeof(s_kbd_text) - 2);
+        s_kbd_text_len = sizeof(s_kbd_text) - 2;
+        s_kbd_text[s_kbd_text_len] = '\0';
+    }
+    s_kbd_text[s_kbd_text_len++] = c;
+    s_kbd_text[s_kbd_text_len] = '\0';
+}
+
+static void kbd_render_text_to_matrix(void) {
+    if (!s_matrix_ready) return;
+
+    stop_animations();
+
+    const int n = chain_len_active();
+    const size_t slen = s_kbd_text_len;
+    const size_t start = (slen > (size_t)n) ? (slen - (size_t)n) : 0;
+
+    for (int m = 0; m < n; m++) {
+        const size_t idx = start + (size_t)m;
+        const char c = (idx < slen) ? s_kbd_text[idx] : ' ';
+        uint8_t rows[8];
+        render_char_8x8_rows(c, rows);
+        matrix_lock();
+        for (int y = 0; y < 8; y++) {
+            s_fb[y][m] = rows[y];
+        }
+        matrix_unlock();
+    }
+
+    (void)fb_flush_all();
+}
+
+static bool kbd_is_letter(const char *s) {
+    if (!s || s[0] == '\0' || s[1] != '\0') return false;
+    const char c = s[0];
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+static bool kbd_key_is(const char *s, const char *name) {
+    if (!s || !name) return false;
+    return strcmp(s, name) == 0;
+}
+
+static bool kbd_decode_event(uint8_t event_raw, kbd_key_t *out) {
+    if (!out) return false;
+    if (event_raw == 0) return false;
+
+    // TCA8418 KEY_EVENT: bit7 is state, bits6..0 are key number (1-based).
+    // Cardputer-ADV firmware assumes bit7=1 means key press.
+    out->pressed = (event_raw & 0x80) != 0;
+    uint8_t keynum = (uint8_t)(event_raw & 0x7F);
+    if (keynum == 0) return false;
+    keynum--; // 0-based
+
+    // Convert 1..80 key number into row/col for a 10-wide internal matrix, then remap to Cardputer-style layout.
+    uint8_t row = (uint8_t)(keynum / 10);
+    uint8_t col = (uint8_t)(keynum % 10);
+
+    // Remap to match Cardputer "picture" coordinates (4 rows x 14 columns).
+    uint8_t out_col = (uint8_t)(row * 2);
+    if (col > 3) out_col++;
+    uint8_t out_row = (uint8_t)((col + 4) % 4);
+
+    out->row = out_row;
+    out->col = out_col;
+    return (out->row < 4 && out->col < 14);
+}
+
+static void kbd_handle_key(const kbd_key_t *k, uint8_t event_raw) {
+    if (!k) return;
+
+    const char *first = s_key_first[k->row][k->col];
+    const char *second = s_key_second[k->row][k->col];
+
+    if (s_kbd_log_events) {
+        printf("kbd: evt=0x%02x pressed=%d pos=(%u,%u) key=%s\n",
+               (unsigned)event_raw,
+               k->pressed ? 1 : 0,
+               (unsigned)k->row,
+               (unsigned)k->col,
+               first ? first : "?");
+    }
+
+    // Modifiers
+    if (k->row == 2 && k->col == 0) { // shift
+        s_kbd_shift = k->pressed;
+        return;
+    }
+    if (k->row == 2 && k->col == 1) { // capslock
+        if (k->pressed) s_kbd_capslock = !s_kbd_capslock;
+        return;
+    }
+
+    // Only emit characters on press.
+    if (!k->pressed) return;
+    if (!first || !second) return;
+
+    // Special controls.
+    if (kbd_key_is(first, "del")) {
+        kbd_text_backspace();
+        kbd_render_text_to_matrix();
+        return;
+    }
+    if (kbd_key_is(first, "enter")) {
+        kbd_text_clear();
+        kbd_render_text_to_matrix();
+        return;
+    }
+    if (kbd_key_is(first, "tab")) {
+        kbd_text_append(' ');
+        kbd_render_text_to_matrix();
+        return;
+    }
+
+    // Ignore non-printing modifiers.
+    if (kbd_key_is(first, "ctrl") || kbd_key_is(first, "opt") || kbd_key_is(first, "alt")) {
+        return;
+    }
+
+    bool use_shifted = s_kbd_shift;
+    if (kbd_is_letter(first)) {
+        use_shifted = s_kbd_shift ^ s_kbd_capslock;
+    }
+    const char *name = use_shifted ? second : first;
+
+    if (!name) return;
+    if (name[0] == '\0') return;
+    if (name[1] != '\0') return; // only handle single-char keys for now
+
+    kbd_text_append(name[0]);
+    kbd_render_text_to_matrix();
 }
 
 static int fb_width(void) {
@@ -862,6 +1175,82 @@ static void try_autoinit(void) {
     ESP_LOGI(TAG, "MAX7219 ready (auto-init); showing 'ids' pattern (try: matrix help, matrix test on)");
 }
 
+static int cmd_kbd(int argc, char **argv) {
+    if (argc < 2) {
+        print_kbd_help();
+        return 1;
+    }
+
+    if (strcmp(argv[1], "status") == 0) {
+        const int n = chain_len_active();
+        const size_t slen = s_kbd_text_len;
+        const size_t start = (slen > (size_t)n) ? (slen - (size_t)n) : 0;
+        char tail[65];
+        size_t out = 0;
+        for (size_t i = start; i < slen && out + 1 < sizeof(tail); i++) {
+            tail[out++] = s_kbd_text[i];
+        }
+        tail[out] = '\0';
+
+        printf("ok: ready=%s enabled=%s log=%s shift=%s caps=%s len=%u tail=\"%s\"\n",
+               s_kbd_ready ? "yes" : "no",
+               s_kbd_enabled ? "on" : "off",
+               s_kbd_log_events ? "on" : "off",
+               s_kbd_shift ? "down" : "up",
+               s_kbd_capslock ? "on" : "off",
+               (unsigned)s_kbd_text_len,
+               tail);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "on") == 0) {
+        esp_err_t err = kbd_hw_init();
+        if (err != ESP_OK) {
+            printf("kbd init failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        kbd_ensure_task();
+        s_kbd_enabled = true;
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "off") == 0) {
+        s_kbd_enabled = false;
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "clear") == 0) {
+        kbd_text_clear();
+        kbd_render_text_to_matrix();
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "log") == 0) {
+        if (argc < 3) {
+            printf("usage: kbd log on|off\n");
+            return 1;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            s_kbd_log_events = true;
+            printf("ok\n");
+            return 0;
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            s_kbd_log_events = false;
+            printf("ok\n");
+            return 0;
+        }
+        printf("usage: kbd log on|off\n");
+        return 1;
+    }
+
+    print_kbd_help();
+    return 1;
+}
+
 static int cmd_matrix(int argc, char **argv) {
     if (argc < 2) {
         // Treat bare `matrix` as `matrix help` to avoid confusing "non-zero error" messages in idf.py monitor.
@@ -891,6 +1280,9 @@ static int cmd_matrix(int argc, char **argv) {
         fb_clear();
         fb_set_ids_pattern();
         (void)fb_flush_all();
+        if (s_kbd_enabled && s_kbd_text_len > 0) {
+            kbd_render_text_to_matrix();
+        }
         printf("ok\n");
         return 0;
     }
@@ -940,6 +1332,9 @@ static int cmd_matrix(int argc, char **argv) {
             fb_clear();
             fb_set_ids_pattern();
             (void)fb_flush_all();
+            if (s_kbd_enabled && s_kbd_text_len > 0) {
+                kbd_render_text_to_matrix();
+            }
         }
         printf("ok: chain_cfg=%d\n", s_chain_len_cfg);
         return 0;
@@ -1540,6 +1935,12 @@ static void register_commands(void) {
     cmd.help = "MAX7219 LED matrix control: matrix help";
     cmd.func = &cmd_matrix;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    cmd = (esp_console_cmd_t){0};
+    cmd.command = "kbd";
+    cmd.help = "Cardputer-ADV keyboard (TCA8418): kbd status|on|off|clear|log";
+    cmd.func = &cmd_kbd;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
 void matrix_console_start(void) {
@@ -1572,5 +1973,13 @@ void matrix_console_start(void) {
 
     ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG (try: help, matrix help)");
     try_autoinit();
+
+    err = kbd_hw_init();
+    if (err != ESP_OK) {
+        ESP_LOGW(KBD_TAG, "keyboard init failed: %s (kbd on to retry)", esp_err_to_name(err));
+    } else {
+        kbd_ensure_task();
+        ESP_LOGI(KBD_TAG, "keyboard ready (type on Cardputer-ADV; keys are logged and last N chars show on matrix)");
+    }
 #endif
 }

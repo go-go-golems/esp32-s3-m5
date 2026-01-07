@@ -3,12 +3,13 @@ idf_component_register(
         "app_main.c"
         "matrix_console.c"
         "max7219.c"
+        "tca8418.c"
     PRIV_REQUIRES
         spi_flash
         console
         esp_driver_gpio
+        esp_driver_i2c
         esp_driver_spi
     INCLUDE_DIRS
         "."
 )
-

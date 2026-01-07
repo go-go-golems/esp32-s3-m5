@@ -9,6 +9,7 @@ This firmware supports up to **16** chained 8×8 modules. Default is **12** modu
 - SPI SCK: `GPIO40`
 - SPI MOSI: `GPIO14`
 - SPI CS: `GPIO5` (**verify**; may conflict with on-board peripherals depending on your setup)
+- Keyboard (TCA8418): I2C SDA=`GPIO8`, SCL=`GPIO9`, INT=`GPIO11`
 
 ## Console
 
@@ -40,6 +41,20 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix pattern rows|cols|diag|checker|off`
 - `matrix pattern onehot <0..N-1>` (turn on exactly one module; helps find module order)
 - `matrix reverse on|off` (reverse module order if the strip is wired opposite)
+- `kbd status` (keyboard status + last-N chars being shown)
+- `kbd on|off` (enable/disable keyboard processing; `kbd on` retries init)
+- `kbd clear` (clear typed buffer + display)
+- `kbd log on|off` (print raw key events to console for debugging)
+
+## Keyboard -> display
+
+On boot, the firmware also initializes the Cardputer-ADV keyboard (TCA8418). When it’s working:
+
+- Every key event prints a debug line like `kbd: evt=0x8f pressed=1 pos=(2,2) key=a`.
+- The last `N` typed characters (where `N = chain_len`) are rendered 1 character per module.
+- `del` acts like backspace.
+- `enter` clears the buffer.
+- Shift + Caps Lock are supported (letters only); other modifiers are ignored for now.
 
 ## What you should see
 
