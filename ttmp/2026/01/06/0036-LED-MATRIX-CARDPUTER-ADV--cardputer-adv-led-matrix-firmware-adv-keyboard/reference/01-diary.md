@@ -26,12 +26,17 @@ RelatedFiles:
         Add scroll text + default flipv
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
+    - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.c
+      Note: Minimal TCA8418 register helper over esp_driver_i2c
+    - Path: 0036-cardputer-adv-led-matrix-console/main/tca8418.h
+      Note: TCA8418 register/CFG/INT_STAT definitions + API
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -805,3 +810,58 @@ The fix is simple and makes the console predictable: any command that starts an 
   - `matrix anim flip COOL|NICE|OK 20 750`
   - `matrix scroll on HELLO 15 250`
   - `matrix scroll off`
+
+## Step 17: Keyboard Input (TCA8418) -> Typed Text on Matrix
+
+This step brings up the Cardputer-ADV keyboard input path (TCA8418 over I²C + INT) inside the 0036 firmware. The goal is a tight debug loop: pressing keys should produce a raw event log line on the console and also update the LED matrix with the last `N` typed characters (where `N = chain_len`).
+
+To keep the project small and easy to reason about, I implemented a minimal register-level TCA8418 helper (based on the vendor demo’s Adafruit-derived init sequence), then wired an ISR+queue+task loop that drains the TCA event FIFO and maps it into Cardputer-style `(row,col)` positions and printable characters (shift/caps/backspace).
+
+**Commit (code):** cda10a977d04ee81a3cf4b88422ad380f4a61fc2 — "0036: add ADV keyboard input and typed text display"
+
+### What I did
+- Added a minimal `tca8418` register helper using ESP-IDF’s `esp_driver_i2c` master API.
+- Initialized I²C on `GPIO8/9` and attached the keyboard `INT` on `GPIO11` (ISR enqueues a token; task drains FIFO).
+- Added a `kbd` REPL command (`kbd status|on|off|clear|log`) and enabled keyboard bring-up automatically on boot.
+- Implemented a small typed buffer (last ~128 chars) and render the last `chain_len` chars onto the strip; special keys:
+  - `del` → backspace
+  - `enter` → clear
+  - shift/caps lock for letters
+
+### Why
+- We need a stable Phase-2 base where keyboard events are observable (raw logs) and have an immediate visual feedback path (matrix render) before we take on more complex “keyboard drives animations” behaviors.
+
+### What worked
+- Local build succeeded (`./build.sh build`).
+- Keyboard event processing is decoupled from the REPL (ISR→queue→task), so key scanning doesn’t depend on console input.
+
+### What didn't work
+- N/A (needs on-device validation for press/release polarity and full key coverage).
+
+### What I learned
+- The vendor remap from TCA8418’s internal key numbering to the “Cardputer picture” coordinates is a useful abstraction layer: once you’re in `(row,col)` space, mapping to characters is straightforward.
+
+### What was tricky to build
+- Avoiding animation “fighting”: keyboard rendering uses `stop_animations()` before writing the framebuffer so keypresses always win.
+- Using the newer `esp_driver_i2c` APIs (bus+device handles) instead of the legacy `driver/i2c.h` API.
+
+### What warrants a second pair of eyes
+- Confirm the TCA8418 event bit semantics on real hardware: this code assumes `bit7=1` means “pressed” (matching the vendor firmware), but this should be verified with real press/release logs.
+
+### What should be done in the future
+- Validate on device and check the new validation task; adjust event polarity if needed.
+- Expand the 5×7 font table if we want punctuation to visibly render (right now non A–Z/0–9/space often appears blank).
+
+### Code review instructions
+- Keyboard bring-up + mapping + console command: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- TCA8418 register helper: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/tca8418.c`
+- Usage notes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Tasks bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Expected wiring:
+  - Keyboard: `SDA=GPIO8`, `SCL=GPIO9`, `INT=GPIO11`, address `0x34`
+- Quick smoke test after flashing:
+  - `matrix chain 12`
+  - `matrix init`
+  - Type on the Cardputer-ADV keyboard; look for `kbd: evt=...` logs and the last 12 chars on the strip.
