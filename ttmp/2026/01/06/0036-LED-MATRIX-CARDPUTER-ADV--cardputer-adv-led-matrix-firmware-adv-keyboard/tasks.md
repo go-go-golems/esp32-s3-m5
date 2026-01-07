@@ -19,3 +19,6 @@
 - [ ] Phase 2: Render keypresses to LED matrix (glyph render + optional scroll)
 - [ ] Phase 3: Add robustness (FIFO overflow handling, I2C error recovery, log-noise reduction while REPL active)
 - [ ] Phase 3: Update docs with verified pinout + known-good module wiring
+- [x] Phase 1: Add drop-bounce text animation command (REPL)
+- [x] Phase 1: Add wave text animation command (REPL)
+- [x] Phase 1: Validate drop/wave on 12-module chain

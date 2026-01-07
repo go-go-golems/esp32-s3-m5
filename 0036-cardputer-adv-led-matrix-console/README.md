@@ -29,6 +29,7 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix spi [hz]` (get/set SPI clock in Hz; useful for marginal wiring)
 - `matrix blink on [on_ms] [off_ms]` / `matrix blink off` (continuous on/off with pauses)
 - `matrix scroll on <TEXT> [fps] [pause_ms]` / `matrix scroll off` (smooth 1px scroll, defaults `15fps` + `250ms` pauses)
+- `matrix anim drop <TEXT> [fps] [pause_ms]` / `matrix anim wave <TEXT> [fps]` / `matrix anim off` (drop-bounce + wave text animations)
 - `matrix flipv on|off` (flip vertically; defaults to `on` for common module orientation)
 - `matrix row <0..7> <0x00..0xff>`
 - `matrix rowm <0..7> <b0..bN-1>` (set a row with one byte per module)
