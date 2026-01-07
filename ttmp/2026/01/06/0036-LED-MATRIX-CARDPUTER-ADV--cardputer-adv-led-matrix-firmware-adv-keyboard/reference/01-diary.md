@@ -616,3 +616,55 @@ With the correct chain length set, all existing features (patterns, `px`, `text`
   - `matrix safe on`
   - `matrix text HELLOWORLD12`  (renders first 12 chars)
   - `matrix scroll on HELLO 15 250`
+
+## Step 13: Add Drop-Bounce + Wave Text Animations (REPL)
+
+This step adds two additional text animations from the embedded animation notes: a “drop bounce” intro effect and a “wave” effect. Both are implemented as `esp_console` commands so we can iterate visually on the real 12-module (96×8) strip without rebuilding UI code or keyboard integration.
+
+The implementation is deliberately simple and stable for bring-up: it reuses the same column-based text rasterization (5×7 font), keeps only one animation active at a time, and routes all rendering through the existing framebuffer + flush path so orientation (`flipv`) and module order (`reverse`) still apply.
+
+**Commit (code):** 8cc47ffc71da919e930c74e93c4ffed41af5dc4c — "0036: add drop-bounce and wave text animations"
+
+### What I did
+- Added `matrix anim drop <TEXT> [fps] [pause_ms]` (sequential drop-in with small bounce).
+- Added `matrix anim wave <TEXT> [fps]` (per-character sine-like vertical offsets).
+- Added `matrix anim off` / `matrix anim status`.
+- Added docmgr tasks for drop/wave and marked them complete.
+- Built locally (`./build.sh build`).
+
+### Why
+- These effects are useful “UX primitives” for later keyboard-driven text output (keypress → animate into place, status messages → wave attention).
+- Implementing them as console-driven animations keeps bring-up iteration fast and reduces the risk of adding unrelated complexity.
+
+### What worked
+- Build succeeded.
+- Animations reuse the existing framebuffer flush path, so they work across variable chain lengths and respect `flipv`/`reverse`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Treating the display as `width` columns (where `width = 8 * chain_len`) is still the cleanest abstraction as the strip grows; higher-level effects just become different ways to fill the column buffer.
+
+### What was tricky to build
+- Making sure only one animation runs at a time and that interactive commands reliably stop animation tasks before writing the display.
+
+### What warrants a second pair of eyes
+- The drop-bounce curve is a small hard-coded sequence; if you want it to feel “heavier” or “snappier”, we should tune the sequence or move to a small fixed-point easing function.
+
+### What should be done in the future
+- Add punctuation support in the font (or a wider font table) once we confirm the final physical orientation and desired glyph style.
+- If we want mixed-case, add a lowercase table or a case-folding policy.
+
+### Code review instructions
+- Animation task + command parsing: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Updated command list: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Tasks bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Example usage after flashing:
+  - `matrix chain 12`
+  - `matrix init`
+  - `matrix anim drop HELLO 15 250`
+  - `matrix anim wave HELLO 15`
+  - `matrix anim off`
