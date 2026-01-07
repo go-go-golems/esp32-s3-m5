@@ -51,7 +51,8 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 On boot, the firmware also initializes the Cardputer-ADV keyboard (TCA8418). When it’s working:
 
 - Every key event prints a debug line like `kbd: evt=0x8f pressed=1 pos=(2,2) key=a`.
-- The last `N` typed characters (where `N = chain_len`) are rendered 1 character per module.
+- If a text mode is active (`matrix scroll ...` or `matrix anim ...`), your typed text is fed into that mode live.
+- Otherwise, the last `N` typed characters (where `N = chain_len`) are rendered 1 character per module.
 - `del` acts like backspace.
 - `enter` clears the buffer.
 - Shift + Caps Lock are supported (letters only); other modifiers are ignored for now.

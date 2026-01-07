@@ -37,6 +37,10 @@ static void stop_animations(void);
 static void try_autoinit(void);
 static int x_to_module(int x);
 static uint8_t x_to_bit(int x);
+static void blink_off(void);
+static void scroll_set_text(const char *text);
+static void text_anim_set_text(const char *text);
+static int flipboard_set_texts(const char *spec);
 
 static SemaphoreHandle_t s_matrix_mu;
 
@@ -94,8 +98,10 @@ static uint32_t s_scroll_fps = 15;
 static uint32_t s_scroll_pause_ms = 250;
 static uint8_t *s_scroll_text_cols;
 static int s_scroll_text_w = 0;
+static bool s_scroll_restart = false;
 static uint8_t s_scroll_saved_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 static bool s_scroll_have_saved_fb = false;
+static SemaphoreHandle_t s_scroll_mu;
 
 typedef enum {
     TEXT_ANIM_NONE = 0,
@@ -112,6 +118,7 @@ static uint32_t s_text_anim_pause_ms = 250;
 static uint32_t s_text_anim_hold_ms = 750;
 static char s_text_anim_text[65];
 static int s_text_anim_len = 0;
+static bool s_text_anim_restart = false;
 static uint8_t s_text_anim_saved_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 static bool s_text_anim_have_saved_fb = false;
 
@@ -126,6 +133,14 @@ static void matrix_lock(void) {
 
 static void matrix_unlock(void) {
     if (s_matrix_mu) xSemaphoreGive(s_matrix_mu);
+}
+
+static void scroll_lock(void) {
+    if (s_scroll_mu) xSemaphoreTake(s_scroll_mu, portMAX_DELAY);
+}
+
+static void scroll_unlock(void) {
+    if (s_scroll_mu) xSemaphoreGive(s_scroll_mu);
 }
 
 static int chain_len_active(void) {
@@ -425,28 +440,67 @@ static void kbd_text_append(char c) {
     s_kbd_text[s_kbd_text_len] = '\0';
 }
 
-static void kbd_render_text_to_matrix(void) {
+static void kbd_render_tail_to_matrix(void) {
     if (!s_matrix_ready) return;
-
-    stop_animations();
 
     const int n = chain_len_active();
     const size_t slen = s_kbd_text_len;
     const size_t start = (slen > (size_t)n) ? (slen - (size_t)n) : 0;
 
+    matrix_lock();
     for (int m = 0; m < n; m++) {
         const size_t idx = start + (size_t)m;
         const char c = (idx < slen) ? s_kbd_text[idx] : ' ';
         uint8_t rows[8];
         render_char_8x8_rows(c, rows);
-        matrix_lock();
         for (int y = 0; y < 8; y++) {
             s_fb[y][m] = rows[y];
         }
-        matrix_unlock();
     }
+    matrix_unlock();
 
     (void)fb_flush_all();
+}
+
+static void kbd_apply_text_to_active_mode(void) {
+    // Feed typed text into the currently active *text* mode (scroll/anim) without stopping it.
+    // If no text mode is active, render directly to the matrix.
+    const char *text = (s_kbd_text_len > 0) ? s_kbd_text : " ";
+
+    if (s_scroll_enabled) {
+        scroll_set_text(text);
+        return;
+    }
+
+    if (s_text_anim_enabled) {
+        if (s_text_anim_mode == TEXT_ANIM_FLIPBOARD) {
+            // Keep flipboard mode active while typing by flipping between identical texts.
+            // This makes the mode deterministic and avoids alternating with a blank segment.
+            if (s_kbd_text_len == 0) {
+                s_flipboard_texts[0] = " ";
+                s_flipboard_texts[1] = " ";
+                s_flipboard_count = 2;
+            } else {
+                char spec[129];
+                size_t n = strlen(text);
+                if (n > 60) n = 60; // leave room for '|' + second copy + NUL within 128 bytes
+                memset(spec, 0, sizeof(spec));
+                memcpy(spec, text, n);
+                spec[n] = '|';
+                memcpy(spec + n + 1, text, n);
+                spec[(n * 2) + 1] = '\0';
+                (void)flipboard_set_texts(spec);
+            }
+        } else {
+            text_anim_set_text(text);
+        }
+        s_text_anim_restart = true;
+        if (s_text_anim_task) xTaskNotifyGive(s_text_anim_task);
+        return;
+    }
+
+    if (s_blink_enabled) blink_off();
+    kbd_render_tail_to_matrix();
 }
 
 static bool kbd_is_letter(const char *s) {
@@ -517,17 +571,17 @@ static void kbd_handle_key(const kbd_key_t *k, uint8_t event_raw) {
     // Special controls.
     if (kbd_key_is(first, "del")) {
         kbd_text_backspace();
-        kbd_render_text_to_matrix();
+        kbd_apply_text_to_active_mode();
         return;
     }
     if (kbd_key_is(first, "enter")) {
         kbd_text_clear();
-        kbd_render_text_to_matrix();
+        kbd_apply_text_to_active_mode();
         return;
     }
     if (kbd_key_is(first, "tab")) {
         kbd_text_append(' ');
-        kbd_render_text_to_matrix();
+        kbd_apply_text_to_active_mode();
         return;
     }
 
@@ -547,7 +601,7 @@ static void kbd_handle_key(const kbd_key_t *k, uint8_t event_raw) {
     if (name[1] != '\0') return; // only handle single-char keys for now
 
     kbd_text_append(name[0]);
-    kbd_render_text_to_matrix();
+    kbd_apply_text_to_active_mode();
 }
 
 static int fb_width(void) {
@@ -671,20 +725,42 @@ static void scroll_task(void *arg) {
             continue;
         }
 
-        if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
+        uint32_t pause_ms = s_scroll_pause_ms;
+        if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
 
-        const uint32_t frame_ms = (s_scroll_fps > 0) ? (1000u / s_scroll_fps) : 66u;
+        uint32_t fps = s_scroll_fps;
+        if (fps < 1) fps = 1;
+        if (fps > 60) fps = 60;
+
+        const uint32_t frame_ms = 1000u / fps;
         const int width = fb_width();
         int pos = width;
         for (;;) {
             if (!s_scroll_enabled) break;
 
+            if (ulTaskNotifyTake(pdTRUE, 0) > 0) {
+                scroll_lock();
+                const bool restart = s_scroll_restart;
+                s_scroll_restart = false;
+                scroll_unlock();
+                if (restart) {
+                    frame = 0;
+                    pos = width;
+                }
+            }
+
             uint8_t cols[8 * MAX7219_MAX_CHAIN_LEN] = {0};
+            int text_w_snapshot = 0;
+            scroll_lock();
+            const uint8_t *text_cols = s_scroll_text_cols;
+            const int text_w = s_scroll_text_w;
+            const bool wave = s_scroll_wave;
+            text_w_snapshot = text_w;
             for (int x = 0; x < width; x++) {
                 const int t = x - pos;
-                if (t >= 0 && t < s_scroll_text_w && s_scroll_text_cols) {
-                    uint8_t bits = s_scroll_text_cols[t];
-                    if (s_scroll_wave) {
+                if (t >= 0 && t < text_w && text_cols) {
+                    uint8_t bits = text_cols[t];
+                    if (wave) {
                         const int char_idx = t / 6;
                         const int8_t yoff = s_wave16[(int)((frame + (uint32_t)(char_idx * 2)) & 0x0F)];
                         bits = col_shift_y(bits, yoff);
@@ -692,6 +768,7 @@ static void scroll_task(void *arg) {
                     cols[x] = bits;
                 }
             }
+            scroll_unlock();
 
             matrix_lock();
             fb_from_cols(cols, width);
@@ -701,9 +778,10 @@ static void scroll_task(void *arg) {
             vTaskDelay(pdMS_TO_TICKS(frame_ms));
             pos--;
             frame++;
-            if (pos < -s_scroll_text_w) {
+            if (pos < -text_w_snapshot) {
                 pos = width;
-                if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
+                pause_ms = s_scroll_pause_ms;
+                if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
             }
         }
     }
@@ -714,10 +792,16 @@ static void scroll_ensure_task(void) {
     xTaskCreate(&scroll_task, "matrix_scroll", 4096, NULL, 2, &s_scroll_task);
 }
 
-static void scroll_free_text(void) {
+static void scroll_free_text_locked(void) {
     if (s_scroll_text_cols) free(s_scroll_text_cols);
     s_scroll_text_cols = NULL;
     s_scroll_text_w = 0;
+}
+
+static void scroll_free_text(void) {
+    scroll_lock();
+    scroll_free_text_locked();
+    scroll_unlock();
 }
 
 static bool char_supported_for_scroll(char c) {
@@ -828,11 +912,20 @@ static int flipboard_set_texts(const char *spec) {
 }
 
 static void scroll_set_text(const char *text) {
-    scroll_free_text();
-    if (!text) return;
+    if (!text) {
+        scroll_lock();
+        scroll_free_text_locked();
+        scroll_unlock();
+        return;
+    }
 
     size_t len = strlen(text);
-    if (len == 0) return;
+    if (len == 0) {
+        scroll_lock();
+        scroll_free_text_locked();
+        scroll_unlock();
+        return;
+    }
     if (len > 128) len = 128;
 
     const int cell = 6; // 5 cols + 1 spacing
@@ -849,8 +942,13 @@ static void scroll_set_text(const char *text) {
         cols[x++] = 0x00;
     }
 
+    scroll_lock();
+    scroll_free_text_locked();
     s_scroll_text_cols = cols;
     s_scroll_text_w = w;
+    s_scroll_restart = true;
+    scroll_unlock();
+    if (s_scroll_task) xTaskNotifyGive(s_scroll_task);
 }
 
 static void scroll_on(const char *text, uint32_t fps, uint32_t pause_ms, bool wave) {
@@ -940,6 +1038,10 @@ static void text_anim_task(void *arg) {
         if (s_text_anim_mode == TEXT_ANIM_WAVE) {
             for (;;) {
                 if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_WAVE) break;
+                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
+                    frame = 0;
+                    s_text_anim_restart = false;
+                }
                 for (int i = 0; i < s_text_anim_len && i < (int)(sizeof(yoffs) / sizeof(yoffs[0])); i++) {
                     const int idx = (int)((frame + (uint32_t)(i * 2)) & 0x0F);
                     yoffs[i] = wave16[idx];
@@ -958,6 +1060,10 @@ static void text_anim_task(void *arg) {
         if (s_text_anim_mode == TEXT_ANIM_DROP_BOUNCE) {
             for (;;) {
                 if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_DROP_BOUNCE) break;
+                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
+                    frame = 0;
+                    s_text_anim_restart = false;
+                }
                 const int text_frames = drop_len + drop_stagger * (s_text_anim_len - 1);
                 const int cycle = text_frames + drop_hold_frames + drop_gap_frames;
                 const int f = (int)(frame % (uint32_t)cycle);
@@ -1002,6 +1108,10 @@ static void text_anim_task(void *arg) {
 
             for (;;) {
                 if (!s_text_anim_enabled || s_text_anim_mode != TEXT_ANIM_FLIPBOARD) break;
+                if (ulTaskNotifyTake(pdTRUE, 0) > 0 || s_text_anim_restart) {
+                    frame = 0;
+                    s_text_anim_restart = false;
+                }
 
                 const int f = (int)(frame % (uint32_t)cycle);
                 const int idx = f / segment;
@@ -1164,6 +1274,7 @@ static void try_autoinit(void) {
 
     s_matrix_ready = true;
     if (!s_matrix_mu) s_matrix_mu = xSemaphoreCreateMutex();
+    if (!s_scroll_mu) s_scroll_mu = xSemaphoreCreateMutex();
     fb_clear();
     fb_set_ids_pattern();
     err = fb_flush_all();
@@ -1223,7 +1334,7 @@ static int cmd_kbd(int argc, char **argv) {
 
     if (strcmp(argv[1], "clear") == 0) {
         kbd_text_clear();
-        kbd_render_text_to_matrix();
+        kbd_apply_text_to_active_mode();
         printf("ok\n");
         return 0;
     }
@@ -1265,6 +1376,7 @@ static int cmd_matrix(int argc, char **argv) {
 
     if (strcmp(argv[1], "init") == 0) {
         if (!s_matrix_mu) s_matrix_mu = xSemaphoreCreateMutex();
+        if (!s_scroll_mu) s_scroll_mu = xSemaphoreCreateMutex();
         esp_err_t err = max7219_open(&s_matrix, MAX7219_DEFAULT_SPI_HOST, MAX7219_DEFAULT_PIN_SCK,
                                      MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, s_chain_len_cfg);
         if (err != ESP_OK) {
@@ -1281,7 +1393,7 @@ static int cmd_matrix(int argc, char **argv) {
         fb_set_ids_pattern();
         (void)fb_flush_all();
         if (s_kbd_enabled && s_kbd_text_len > 0) {
-            kbd_render_text_to_matrix();
+            kbd_render_tail_to_matrix();
         }
         printf("ok\n");
         return 0;
@@ -1333,7 +1445,7 @@ static int cmd_matrix(int argc, char **argv) {
             fb_set_ids_pattern();
             (void)fb_flush_all();
             if (s_kbd_enabled && s_kbd_text_len > 0) {
-                kbd_render_text_to_matrix();
+                kbd_render_tail_to_matrix();
             }
         }
         printf("ok: chain_cfg=%d\n", s_chain_len_cfg);
