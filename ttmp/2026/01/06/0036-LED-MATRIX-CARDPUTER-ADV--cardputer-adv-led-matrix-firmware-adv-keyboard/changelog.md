@@ -52,3 +52,13 @@ Revert perceptual brightness mapping (matrix bright/gamma) to return to a simple
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Remove bright/gamma commands
 
+
+## 2026-01-06
+
+Add matrix spi <hz> command to change MAX7219 SPI clock at runtime; lower default SPI clock to 100kHz
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Add 'matrix spi' command and show spi_hz in status
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/max7219.c — Add close/reopen + set_spi_hz to reconfigure SPI clock
+
