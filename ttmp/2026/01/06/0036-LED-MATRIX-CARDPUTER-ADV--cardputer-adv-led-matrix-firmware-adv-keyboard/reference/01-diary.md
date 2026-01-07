@@ -668,3 +668,54 @@ The implementation is deliberately simple and stable for bring-up: it reuses the
   - `matrix anim drop HELLO 15 250`
   - `matrix anim wave HELLO 15`
   - `matrix anim off`
+
+## Step 14: Add Scroll-Wave + Flipboard Animations
+
+This step adds two more “text motion” primitives: a wave-modulated scroll (so the scrolling text also ripples vertically), and a flipboard/split-flap style animation that flips between a list of centered words. These two effects cover common UI cases: long messages that need motion to draw attention, and short “status words” that should transition cleanly.
+
+Both features are exposed via `esp_console` commands and intentionally reuse the same column-rendering + framebuffer flush path, so they automatically respect `chain_len`, `reverse`, and `flipv`.
+
+**Commit (code):** 0d8cc04b32335bd2b11f663e6fa5847fb989d7ae — "0036: add scroll wave and flipboard"
+
+### What I did
+- Added `matrix scroll wave <TEXT> [fps] [pause_ms]` (scroll + per-character wave Y offsets).
+- Added flipboard animation: `matrix anim flip <A|B|C...> [fps] [hold_ms]`.
+- Added ticket tasks for scroll-wave + flipboard and marked implementation tasks complete (validation remains pending).
+- Built locally (`./build.sh build`).
+
+### Why
+- Scroll-wave is a stronger visual cue than plain scrolling for “notice me” messages.
+- Flipboard is a nice low-bandwidth way to cycle through a few short status words on the strip.
+
+### What worked
+- Build succeeded.
+- Both effects operate over the configured chain width and share the same flush path as other patterns/commands.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Keeping all “effects” as transformations over a column buffer pays off: scroll-wave becomes “scroll + shift columns”, and flipboard becomes “render + scale Y”.
+
+### What was tricky to build
+- Ensuring animation modes don’t fight each other: `stop_animations()` still serves as the single rule before any command mutates the display.
+
+### What warrants a second pair of eyes
+- Flipboard scaling math around the squash midpoint (very small scales): if you see flicker/odd lines, we may want to clamp the minimum scale more aggressively.
+
+### What should be done in the future
+- Validate on-device for subjective motion quality and tweak defaults (`fps`, `hold_ms`, flip duration) based on what looks best on your physical 12-module strip.
+
+### Code review instructions
+- Scroll-wave: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Flipboard: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- Commands list: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Task bookkeeping: `ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/tasks.md`
+
+### Technical details
+- Example usage after flashing:
+  - `matrix chain 12`
+  - `matrix init`
+  - `matrix scroll wave HELLO 15 250`
+  - `matrix anim flip COOL|NICE|OK 20 750`
+  - `matrix anim off`
