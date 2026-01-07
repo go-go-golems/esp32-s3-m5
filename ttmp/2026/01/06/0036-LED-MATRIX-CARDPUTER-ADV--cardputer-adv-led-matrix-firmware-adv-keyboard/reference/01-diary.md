@@ -719,3 +719,45 @@ Both features are exposed via `esp_console` commands and intentionally reuse the
   - `matrix scroll wave HELLO 15 250`
   - `matrix anim flip COOL|NICE|OK 20 750`
   - `matrix anim off`
+
+## Step 15: Fix Flipboard Timing (Hold Each Word, Including First)
+
+This step fixes an off-by-design issue in the initial flipboard implementation: it would immediately start flipping the first word (no initial hold), and the “hold” period was associated with the *next* word rather than the current one. Visually, that felt like “COOL flips immediately” and the sequence could appear to get stuck on a later word depending on hold duration and how you were watching it.
+
+The corrected behavior is: hold the current word for `hold_ms`, then flip to the next word; repeat forever, including flipping from the last word back to the first.
+
+**Commit (code):** 1e715a0c63a2a3222e9794b1d08a7ff0c0bbf76f — "0036: fix flipboard hold/loop timing"
+
+### What I did
+- Changed the flipboard segment order to `hold -> flip` (instead of `flip -> hold(next)`).
+- Kept the same flip duration (12 frames) and scaling curve; only the time partitioning changed.
+- Built locally (`./build.sh build`).
+
+### Why
+- A flipboard reads like a “split flap”: you expect to see each word fully before it flips away.
+
+### What worked
+- Build succeeded.
+- The animation now holds the first word and cycles cleanly through all entries.
+
+### What didn't work
+- N/A
+
+### What I learned
+- For word-cycling animations, “segment semantics” matter more than the easing curve: holding the wrong text makes the sequence feel broken even if the flip itself looks fine.
+
+### What was tricky to build
+- N/A (small logic change).
+
+### What warrants a second pair of eyes
+- Confirm the 12-frame flip duration is visually smooth at the chosen `fps` (e.g. at 20fps it’s a fast 0.6s transition).
+
+### What should be done in the future
+- If you want the flip to feel more “mechanical”, we can add a brief 1–2 frame fully-blank midline or random “noise” during the squash.
+
+### Code review instructions
+- Flipboard segment math: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+
+### Technical details
+- After flashing:
+  - `matrix anim flip COOL|NICE|OK 20 750`
