@@ -684,7 +684,7 @@ static void text_anim_task(void *arg) {
             const int half = flip_frames / 2;
             int hold_frames = (int)((s_text_anim_hold_ms * fps) / 1000u);
             if (hold_frames < 1) hold_frames = 1;
-            const int segment = flip_frames + hold_frames;
+            const int segment = hold_frames + flip_frames;
             const int cycle = s_flipboard_count * segment;
 
             for (;;) {
@@ -698,20 +698,18 @@ static void text_anim_task(void *arg) {
 
                 const char *display = cur;
                 uint16_t scale_q8 = 256;
-                if (segf < flip_frames) {
-                    if (segf < half) {
+                if (segf >= hold_frames) {
+                    const int flipf = segf - hold_frames;
+                    if (flipf < half) {
                         display = cur;
-                        const uint16_t t = (uint16_t)((segf * 256) / half);
+                        const uint16_t t = (uint16_t)((flipf * 256) / half);
                         const uint16_t eased = q8_ease_in_quad(t);
                         scale_q8 = (uint16_t)(256u - eased);
                     } else {
                         display = nxt;
-                        const uint16_t t = (uint16_t)(((segf - half) * 256) / half);
+                        const uint16_t t = (uint16_t)(((flipf - half) * 256) / half);
                         scale_q8 = q8_ease_out_quad(t);
                     }
-                } else {
-                    display = nxt;
-                    scale_q8 = 256;
                 }
 
                 int len = (int)strlen(display);
