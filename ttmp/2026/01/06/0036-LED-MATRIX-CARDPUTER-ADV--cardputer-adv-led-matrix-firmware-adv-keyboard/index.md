@@ -32,11 +32,13 @@ RelatedFiles:
       Note: Non-TTY esp_console command sender (init + patterns) for validation
 ExternalSources:
     - local:01-cardputer-adv-comparison.md
+    - local:Embedded text blinking patterns.md
 Summary: ""
-LastUpdated: 2026-01-06T19:38:40-05:00
+LastUpdated: 2026-01-06T21:35:10.321006196-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
