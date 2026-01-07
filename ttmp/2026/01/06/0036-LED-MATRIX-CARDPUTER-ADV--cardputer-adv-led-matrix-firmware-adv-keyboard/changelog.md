@@ -93,3 +93,14 @@ Add `matrix text` (4 chars) and `matrix flipv` orientation knob for the 4× 8×8
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Add 5×7 font renderer + new commands
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md — Document `matrix text` and `matrix flipv`
+
+
+## 2026-01-07
+
+Default `flipv` to on and add smooth scrolling text (`matrix scroll`) (commit 1698127)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c — Default vertical flip; add scroll task/commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md — Document scroll usage and defaults
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/reference/01-diary.md — Record scroll bring-up step

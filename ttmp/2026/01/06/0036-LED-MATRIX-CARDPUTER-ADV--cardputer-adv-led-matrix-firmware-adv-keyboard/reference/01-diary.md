@@ -23,6 +23,7 @@ RelatedFiles:
       Note: |-
         Console commands for validation
         Matrix bring-up commands incl. safe test
+        Add scroll text + default flipv
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
 ExternalSources: []
@@ -31,6 +32,7 @@ LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -511,3 +513,54 @@ It also adds a `matrix flipv on|off` calibration knob because the most common br
   - `matrix init`
   - `matrix text TEST`
   - If upside-down: `matrix flipv on`
+
+## Step 11: Default Vertical Flip + Add Smooth Scroll Command
+
+This step turns `flipv` on by default (so text and patterns render in the “common” physical orientation without manual calibration) and adds the first scrolling-text animation. The goal is to move from static per-module glyphs (`matrix text`) to a smooth 1-pixel-per-frame scroll across the full 32×8 strip, while keeping everything controllable via `esp_console`.
+
+The scroll implementation is intentionally minimal and “bring-up friendly”: it supports A–Z, 0–9, and space, scrolls at a configurable FPS, includes a small pause between cycles, and cleanly stops/restores the previous framebuffer when turned off.
+
+**Commit (code):** 16981271bfb92c8c3b38f784c7fc38af77cc54e1 — "0036: default flipv and add smooth scroll"
+
+### What I did
+- Set `flipv` default to `on` so characters aren’t upside-down by default.
+- Added `matrix scroll on <TEXT> [fps] [pause_ms]`, `matrix scroll off`, `matrix scroll status`.
+- Implemented a column-based scroll renderer that reuses the existing framebuffer + `fb_flush_all()` path (so `flipv` and module-order handling still apply).
+- Ensured other commands stop animations (`blink`/`scroll`) before changing the display, to avoid “fighting” updates.
+- Built locally (`./build.sh build`).
+
+### Why
+- Manual calibration steps slow iteration; if the hardware is consistently upside-down, defaulting to `flipv on` reduces friction.
+- Smooth scroll is the next incremental step toward “real” text output before we wire in the ADV keyboard events.
+
+### What worked
+- Build succeeded with the new scroll task + commands.
+- Scrolling uses the same flush path as patterns/pixels, so orientation knobs apply consistently.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Modeling the 32×8 display as 32 vertical “columns” is the simplest way to implement scrolling cleanly, then convert to the MAX7219 row-by-row representation at flush time.
+
+### What was tricky to build
+- Avoiding animation contention: a scroll task plus interactive commands requires a clear “stop animations before mutating” rule to keep output deterministic.
+
+### What warrants a second pair of eyes
+- Memory usage/lifecycle in `matrix scroll on/off` (heap allocation for the text column buffer) to ensure we don’t leak on repeated `scroll on` calls.
+
+### What should be done in the future
+- If we need punctuation/lowercase, expand the font table or switch to a broader font source once orientation is fully validated.
+- Add optional “start/end hold when text fully visible” behavior if the loop pause isn’t sufficient.
+
+### Code review instructions
+- Scroll + flip default: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- User-facing command notes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+- Build: `cd esp32-s3-m5/0036-cardputer-adv-led-matrix-console && ./build.sh build`
+
+### Technical details
+- After flashing:
+  - `matrix init`
+  - `matrix text TEST`  (should be right-side-up now; if not: `matrix flipv off`)
+  - `matrix scroll on HELLO 15 250`
+  - `matrix scroll off`
