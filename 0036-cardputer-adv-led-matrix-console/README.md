@@ -32,6 +32,7 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix scroll on <TEXT> [fps] [pause_ms]` / `matrix scroll off` (smooth 1px scroll, defaults `15fps` + `250ms` pauses)
 - `matrix scroll wave <TEXT> [fps] [pause_ms]` (scroll + wave)
 - `matrix anim drop <TEXT> [fps] [pause_ms]` / `matrix anim wave <TEXT> [fps]` / `matrix anim off` (drop-bounce + wave text animations)
+- `matrix anim dropcfg [gravity_px_s2] [bounce]` (tune drop-bounce physics: gravity in px/s^2, bounce in 0..1)
 - `matrix anim spin <TEXT> [fps] [pause_ms]` (spin letters / per-character “card flip”)
 - `matrix anim flip <A|B|C...> [fps] [hold_ms]` (flipboard / split-flap style transitions between texts)
 - `matrix flipv on|off` (flip vertically; defaults to `on` for common module orientation)
