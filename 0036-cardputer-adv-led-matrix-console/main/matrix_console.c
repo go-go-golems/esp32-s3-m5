@@ -174,7 +174,7 @@ static esp_err_t kbd_i2c_init(void) {
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .glitch_ignore_cnt = 7,
         .intr_priority = 0,
-        .trans_queue_depth = 8,
+        .trans_queue_depth = 0, // keep synchronous mode; async mode can overflow during register init
         .flags.enable_internal_pullup = 1,
     };
 
