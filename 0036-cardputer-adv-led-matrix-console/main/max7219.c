@@ -20,9 +20,9 @@ static esp_err_t max7219_write_u16(max7219_t *dev, uint8_t reg, uint8_t data) {
 
 static esp_err_t max7219_write_broadcast(max7219_t *dev, uint8_t reg, uint8_t data) {
     if (!dev || !dev->spi || dev->chain_len <= 0) return ESP_ERR_INVALID_STATE;
-    uint8_t tx[2 * MAX7219_DEFAULT_CHAIN_LEN] = {0};
+    uint8_t tx[2 * MAX7219_MAX_CHAIN_LEN] = {0};
     const int n = dev->chain_len;
-    if (n > (int)MAX7219_DEFAULT_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
+    if (n > (int)MAX7219_MAX_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
 
     for (int i = 0; i < n; i++) {
         tx[2 * i + 0] = reg;
@@ -43,7 +43,7 @@ esp_err_t max7219_open(max7219_t *dev,
                        int chain_len) {
     if (!dev) return ESP_ERR_INVALID_ARG;
     if (chain_len <= 0) return ESP_ERR_INVALID_ARG;
-    if (chain_len > MAX7219_DEFAULT_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
+    if (chain_len > MAX7219_MAX_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
     if (dev->spi) {
         dev->chain_len = chain_len;
         return ESP_OK;
@@ -55,7 +55,7 @@ esp_err_t max7219_open(max7219_t *dev,
         .sclk_io_num = pin_sck,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = 2 * MAX7219_DEFAULT_CHAIN_LEN,
+        .max_transfer_sz = 2 * MAX7219_MAX_CHAIN_LEN,
     };
 
     esp_err_t err = spi_bus_initialize(host, &buscfg, SPI_DMA_CH_AUTO);
@@ -106,7 +106,7 @@ esp_err_t max7219_init(max7219_t *dev) {
 esp_err_t max7219_clear(max7219_t *dev) {
     if (!dev || !dev->spi || dev->chain_len <= 0) return ESP_ERR_INVALID_STATE;
 
-    uint8_t zeros[MAX7219_DEFAULT_CHAIN_LEN] = {0};
+    uint8_t zeros[MAX7219_MAX_CHAIN_LEN] = {0};
     for (int row = 0; row < 8; row++) {
         esp_err_t err = max7219_set_row_chain(dev, (uint8_t)row, zeros);
         if (err != ESP_OK) return err;
@@ -172,9 +172,9 @@ esp_err_t max7219_set_row_chain(max7219_t *dev, uint8_t row, const uint8_t *byte
     if (row >= 8) return ESP_ERR_INVALID_ARG;
 
     const int n = dev->chain_len;
-    if (n > MAX7219_DEFAULT_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
+    if (n > MAX7219_MAX_CHAIN_LEN) return ESP_ERR_INVALID_ARG;
 
-    uint8_t tx[2 * MAX7219_DEFAULT_CHAIN_LEN] = {0};
+    uint8_t tx[2 * MAX7219_MAX_CHAIN_LEN] = {0};
     const uint8_t reg = (uint8_t)(MAX7219_REG_DIGIT0 + row);
 
     // Daisy-chain order: first shifted bits land in the furthest module.

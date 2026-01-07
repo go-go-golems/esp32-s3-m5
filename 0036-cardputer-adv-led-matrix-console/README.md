@@ -2,7 +2,7 @@
 
 This firmware is a Phase-1 bring-up tool for driving an external MAX7219-style 8×8 LED matrix from an interactive `esp_console` REPL over **USB Serial/JTAG**.
 
-This setup assumes **4** chained 8×8 modules (a 32×8 “strip”).
+This firmware supports up to **16** chained 8×8 modules. Default is **12** modules (a 96×8 strip); override with `matrix chain N`.
 
 ## Pins (currently assumed; verify for your hardware)
 
@@ -23,17 +23,19 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `matrix clear`
 - `matrix test on|off`
 - `matrix safe on|off` (RAM-based full-on/full-off; prefer this over `matrix test` for wiring bring-up)
-- `matrix text <ABCD>` (render 4 characters: one per 8×8 module)
+- `matrix chain [n]` (get/set chain length; max 16)
+- `matrix text <TEXT>` (render 1 character per 8×8 module)
 - `matrix intensity <0..15>`
 - `matrix spi [hz]` (get/set SPI clock in Hz; useful for marginal wiring)
 - `matrix blink on [on_ms] [off_ms]` / `matrix blink off` (continuous on/off with pauses)
 - `matrix scroll on <TEXT> [fps] [pause_ms]` / `matrix scroll off` (smooth 1px scroll, defaults `15fps` + `250ms` pauses)
 - `matrix flipv on|off` (flip vertically; defaults to `on` for common module orientation)
 - `matrix row <0..7> <0x00..0xff>`
-- `matrix row4 <0..7> <b0> <b1> <b2> <b3>` (one byte per 8×8 module)
-- `matrix px <0..31> <0..7> <0|1>` (set pixel on the 32×8 strip)
+- `matrix rowm <0..7> <b0..bN-1>` (set a row with one byte per module)
+- `matrix row4 <0..7> <b0> <b1> <b2> <b3>` (compat: set first 4 modules)
+- `matrix px <0..W-1> <0..7> <0|1>` (set pixel on the strip, where W = 8×chain_len)
 - `matrix pattern rows|cols|diag|checker|off`
-- `matrix pattern onehot <0..3>` (turn on exactly one module; helps find module order)
+- `matrix pattern onehot <0..N-1>` (turn on exactly one module; helps find module order)
 - `matrix reverse on|off` (reverse module order if the strip is wired opposite)
 
 ## What you should see

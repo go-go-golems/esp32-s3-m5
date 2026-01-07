@@ -22,7 +22,9 @@ static bool s_matrix_ready = false;
 static bool s_reverse_modules = false;
 static bool s_flip_vertical = true;
 
-static uint8_t s_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
+static int s_chain_len_cfg = MAX7219_DEFAULT_CHAIN_LEN;
+
+static uint8_t s_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 
 static esp_err_t fb_flush_all(void);
 static void try_autoinit(void);
@@ -34,7 +36,7 @@ static TaskHandle_t s_blink_task;
 static bool s_blink_enabled = false;
 static uint32_t s_blink_on_ms = 250;
 static uint32_t s_blink_off_ms = 250;
-static uint8_t s_blink_saved_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
+static uint8_t s_blink_saved_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 static bool s_blink_have_saved_fb = false;
 
 static TaskHandle_t s_scroll_task;
@@ -43,7 +45,7 @@ static uint32_t s_scroll_fps = 15;
 static uint32_t s_scroll_pause_ms = 250;
 static uint8_t *s_scroll_text_cols;
 static int s_scroll_text_w = 0;
-static uint8_t s_scroll_saved_fb[8][MAX7219_DEFAULT_CHAIN_LEN] = {0};
+static uint8_t s_scroll_saved_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 static bool s_scroll_have_saved_fb = false;
 
 static void matrix_lock(void) {
@@ -54,6 +56,16 @@ static void matrix_unlock(void) {
     if (s_matrix_mu) xSemaphoreGive(s_matrix_mu);
 }
 
+static int chain_len_active(void) {
+    if (s_matrix_ready && s_matrix.chain_len > 0) return s_matrix.chain_len;
+    if (s_chain_len_cfg > 0) return s_chain_len_cfg;
+    return MAX7219_DEFAULT_CHAIN_LEN;
+}
+
+static int width_active(void) {
+    return 8 * chain_len_active();
+}
+
 static void print_matrix_help(void) {
     printf("matrix commands:\n");
     printf("  matrix init\n");
@@ -61,8 +73,8 @@ static void print_matrix_help(void) {
     printf("  matrix clear\n");
     printf("  matrix test on|off\n");
     printf("  matrix safe on|off                            (RAM-based full-on/full-off; good for wiring bring-up)\n");
-    printf("  matrix text <ABCD>                            (renders 4 chars: one per 8x8 module)\n");
-    printf("  matrix text <A> <B> <C> <D>                   (same, but split args)\n");
+    printf("  matrix chain [n]                              (get/set chained modules, max %d)\n", MAX7219_MAX_CHAIN_LEN);
+    printf("  matrix text <TEXT>                            (renders 1 char per module)\n");
     printf("  matrix scroll on <TEXT> [fps] [pause_ms]      (smooth 1px scroll; A-Z 0-9 space)\n");
     printf("  matrix scroll off\n");
     printf("  matrix scroll status\n");
@@ -71,11 +83,13 @@ static void print_matrix_help(void) {
     printf("  matrix reverse on|off\n");
     printf("  matrix flipv on|off                           (flip vertically; fixes upside-down glyphs)\n");
     printf("  matrix row <0..7> <0x00..0xff>                 (sets this row on all modules)\n");
-    printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (one byte per module)\n");
-    printf("  matrix px <0..%d> <0..7> <0|1>                   (pixel on the 32x8 strip)\n",
-           8 * MAX7219_DEFAULT_CHAIN_LEN - 1);
+    printf("  matrix rowm <0..7> <b0..bN-1>                  (one byte per module, N=chain_len)\n");
+    printf("  matrix row4 <0..7> <b0> <b1> <b2> <b3>          (compat: set first 4 modules)\n");
+    printf("  matrix px <0..%d> <0..7> <0|1>                   (pixel on the %dx8 strip)\n",
+           width_active() - 1,
+           width_active());
     printf("  matrix pattern rows|cols|diag|checker|off|ids\n");
-    printf("  matrix pattern onehot <0..3>                     (turn on exactly one module)\n");
+    printf("  matrix pattern onehot <0..N-1>                   (turn on exactly one module)\n");
     printf("  matrix blink on [on_ms] [off_ms]                 (loop full-on/full-off)\n");
     printf("  matrix blink off\n");
     printf("  matrix blink status\n");
@@ -85,9 +99,12 @@ static void fb_clear(void) {
     memset(s_fb, 0, sizeof(s_fb));
 }
 
-static void fb_from_cols32(const uint8_t cols[32]) {
+static void fb_from_cols(const uint8_t *cols, int width) {
+    if (!cols) return;
+    if (width <= 0) return;
+    if (width > (8 * MAX7219_MAX_CHAIN_LEN)) width = 8 * MAX7219_MAX_CHAIN_LEN;
     fb_clear();
-    for (int x = 0; x < 32; x++) {
+    for (int x = 0; x < width; x++) {
         const int module = x_to_module(x);
         const uint8_t mask = x_to_bit(x);
         const uint8_t col = cols[x];
@@ -98,10 +115,10 @@ static void fb_from_cols32(const uint8_t cols[32]) {
 }
 
 static void fb_set_ids_pattern(void) {
-    const uint8_t fills[MAX7219_DEFAULT_CHAIN_LEN] = {0x81, 0x42, 0x24, 0x18};
+    const int n = chain_len_active();
     for (int y = 0; y < 8; y++) {
-        for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
-            s_fb[y][m] = fills[m];
+        for (int m = 0; m < n; m++) {
+            s_fb[y][m] = (uint8_t)(1u << ((m + y) & 7));
         }
     }
 }
@@ -176,7 +193,7 @@ static void render_char_8x8_rows(char c, uint8_t out_rows[8]) {
 }
 
 static int fb_width(void) {
-    return 8 * MAX7219_DEFAULT_CHAIN_LEN;
+    return width_active();
 }
 
 static int x_to_module(int x) {
@@ -193,9 +210,9 @@ static esp_err_t fb_flush_row(int y) {
     const int phy_row = s_flip_vertical ? (7 - y) : y;
 
     matrix_lock();
-    const int n = (s_matrix.chain_len > 0) ? s_matrix.chain_len : MAX7219_DEFAULT_CHAIN_LEN;
-    uint8_t phy[MAX7219_DEFAULT_CHAIN_LEN] = {0};
-    for (int m = 0; m < n && m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+    const int n = chain_len_active();
+    uint8_t phy[MAX7219_MAX_CHAIN_LEN] = {0};
+    for (int m = 0; m < n && m < MAX7219_MAX_CHAIN_LEN; m++) {
         const int src = s_reverse_modules ? ((n - 1) - m) : m;
         phy[m] = s_fb[y][src];
     }
@@ -221,10 +238,13 @@ static void blink_task(void *arg) {
             continue;
         }
 
-        uint8_t ones[8][MAX7219_DEFAULT_CHAIN_LEN];
-        uint8_t zeros[8][MAX7219_DEFAULT_CHAIN_LEN];
+        const int n = chain_len_active();
+        uint8_t ones[8][MAX7219_MAX_CHAIN_LEN];
+        uint8_t zeros[8][MAX7219_MAX_CHAIN_LEN];
+        memset(ones, 0, sizeof(ones));
+        memset(zeros, 0, sizeof(zeros));
         for (int y = 0; y < 8; y++) {
-            for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+            for (int m = 0; m < n; m++) {
                 ones[y][m] = 0xFF;
                 zeros[y][m] = 0x00;
             }
@@ -294,25 +314,26 @@ static void scroll_task(void *arg) {
         if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
 
         const uint32_t frame_ms = (s_scroll_fps > 0) ? (1000u / s_scroll_fps) : 66u;
-        int pos = 32;
+        const int width = fb_width();
+        int pos = width;
         for (;;) {
             if (!s_scroll_enabled) break;
 
-            uint8_t cols[32] = {0};
-            for (int x = 0; x < 32; x++) {
+            uint8_t cols[8 * MAX7219_MAX_CHAIN_LEN] = {0};
+            for (int x = 0; x < width; x++) {
                 const int t = x - pos;
                 if (t >= 0 && t < s_scroll_text_w && s_scroll_text_cols) cols[x] = s_scroll_text_cols[t];
             }
 
             matrix_lock();
-            fb_from_cols32(cols);
+            fb_from_cols(cols, width);
             matrix_unlock();
             (void)fb_flush_all();
 
             vTaskDelay(pdMS_TO_TICKS(frame_ms));
             pos--;
             if (pos < -s_scroll_text_w) {
-                pos = 32;
+                pos = width;
                 if (s_scroll_pause_ms) vTaskDelay(pdMS_TO_TICKS(s_scroll_pause_ms));
             }
         }
@@ -419,7 +440,7 @@ static void try_autoinit(void) {
                                  MAX7219_DEFAULT_PIN_SCK,
                                  MAX7219_DEFAULT_PIN_MOSI,
                                  MAX7219_DEFAULT_PIN_CS,
-                                 MAX7219_DEFAULT_CHAIN_LEN);
+                                 s_chain_len_cfg);
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "MAX7219 auto-open failed: %s (use `matrix init` to retry)", esp_err_to_name(err));
         return;
@@ -459,7 +480,7 @@ static int cmd_matrix(int argc, char **argv) {
     if (strcmp(argv[1], "init") == 0) {
         if (!s_matrix_mu) s_matrix_mu = xSemaphoreCreateMutex();
         esp_err_t err = max7219_open(&s_matrix, MAX7219_DEFAULT_SPI_HOST, MAX7219_DEFAULT_PIN_SCK,
-                                     MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, MAX7219_DEFAULT_CHAIN_LEN);
+                                     MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, s_chain_len_cfg);
         if (err != ESP_OK) {
             printf("init failed: %s\n", esp_err_to_name(err));
             return 1;
@@ -477,15 +498,12 @@ static int cmd_matrix(int argc, char **argv) {
         return 0;
     }
 
-    if (!s_matrix_ready) {
-        printf("matrix not initialized (run: matrix init)\n");
-        return 1;
-    }
-
     if (strcmp(argv[1], "status") == 0) {
-        printf("ok: chain_len=%d spi_hz=%d reverse_modules=%s flipv=%s blink=%s on_ms=%u off_ms=%u scroll=%s fps=%u pause_ms=%u\n",
-               s_matrix.chain_len,
-               s_matrix.clock_hz,
+        printf("ok: chain_cfg=%d chain_len=%d width=%d spi_hz=%d reverse_modules=%s flipv=%s blink=%s on_ms=%u off_ms=%u scroll=%s fps=%u pause_ms=%u\n",
+               s_chain_len_cfg,
+               s_matrix_ready ? s_matrix.chain_len : 0,
+               width_active(),
+               s_matrix_ready ? s_matrix.clock_hz : 0,
                s_reverse_modules ? "on" : "off",
                s_flip_vertical ? "on" : "off",
                s_blink_enabled ? "on" : "off",
@@ -495,6 +513,44 @@ static int cmd_matrix(int argc, char **argv) {
                (unsigned)s_scroll_fps,
                (unsigned)s_scroll_pause_ms);
         return 0;
+    }
+
+    if (strcmp(argv[1], "chain") == 0) {
+        if (argc < 3) {
+            printf("ok: chain_cfg=%d\n", s_chain_len_cfg);
+            return 0;
+        }
+        char *end = NULL;
+        long v = strtol(argv[2], &end, 0);
+        if (!end || *end != '\0' || v < 1 || v > MAX7219_MAX_CHAIN_LEN) {
+            printf("invalid chain len: %s (expected 1..%d)\n", argv[2], MAX7219_MAX_CHAIN_LEN);
+            return 1;
+        }
+        stop_animations();
+        s_chain_len_cfg = (int)v;
+        if (s_matrix_ready) {
+            esp_err_t err = max7219_open(&s_matrix, MAX7219_DEFAULT_SPI_HOST, MAX7219_DEFAULT_PIN_SCK,
+                                         MAX7219_DEFAULT_PIN_MOSI, MAX7219_DEFAULT_PIN_CS, s_chain_len_cfg);
+            if (err != ESP_OK) {
+                printf("chain failed: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            err = max7219_init(&s_matrix);
+            if (err != ESP_OK) {
+                printf("chain failed: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+            fb_clear();
+            fb_set_ids_pattern();
+            (void)fb_flush_all();
+        }
+        printf("ok: chain_cfg=%d\n", s_chain_len_cfg);
+        return 0;
+    }
+
+    if (!s_matrix_ready) {
+        printf("matrix not initialized (run: matrix init)\n");
+        return 1;
     }
 
     if (strcmp(argv[1], "spi") == 0) {
@@ -672,8 +728,9 @@ static int cmd_matrix(int argc, char **argv) {
             return 1;
         }
 
+        const int n = chain_len_active();
         for (int y = 0; y < 8; y++) {
-            for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+            for (int m = 0; m < n; m++) {
                 s_fb[y][m] = on ? 0xFF : 0x00;
             }
         }
@@ -689,22 +746,18 @@ static int cmd_matrix(int argc, char **argv) {
     if (strcmp(argv[1], "text") == 0) {
         stop_animations();
 
-        char chars[4] = {' ', ' ', ' ', ' '};
-        if (argc == 3) {
-            const char *s = argv[2];
-            const size_t n = strlen(s);
-            for (size_t i = 0; i < 4 && i < n; i++) chars[i] = s[i];
-        } else if (argc == 6) {
-            for (int i = 0; i < 4; i++) chars[i] = argv[2 + i][0];
-        } else {
-            printf("usage: matrix text <ABCD>\n");
-            printf("       matrix text <A> <B> <C> <D>\n");
+        if (argc < 3) {
+            printf("usage: matrix text <TEXT>\n");
             return 1;
         }
 
-        for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+        const char *s = argv[2];
+        const size_t slen = strlen(s);
+        const int n = chain_len_active();
+        for (int m = 0; m < n; m++) {
+            const char c = ((size_t)m < slen) ? s[m] : ' ';
             uint8_t rows[8];
-            render_char_8x8_rows(chars[m], rows);
+            render_char_8x8_rows(c, rows);
             for (int y = 0; y < 8; y++) {
                 s_fb[y][m] = rows[y];
             }
@@ -796,12 +849,44 @@ static int cmd_matrix(int argc, char **argv) {
             return 1;
         }
 
-        for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+        const int n = chain_len_active();
+        for (int m = 0; m < n; m++) {
             s_fb[row][m] = (uint8_t)val;
         }
         esp_err_t err = fb_flush_row((int)row);
         if (err != ESP_OK) {
             printf("row failed: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("ok\n");
+        return 0;
+    }
+
+    if (strcmp(argv[1], "rowm") == 0) {
+        stop_animations();
+        const int n = chain_len_active();
+        if (argc < 3 + n) {
+            printf("usage: matrix rowm <0..7> <b0..b%d>\n", n - 1);
+            return 1;
+        }
+        char *end0 = NULL;
+        long row = strtol(argv[2], &end0, 0);
+        if (!end0 || *end0 != '\0' || row < 0 || row > 7) {
+            printf("invalid row: %s\n", argv[2]);
+            return 1;
+        }
+        for (int m = 0; m < n; m++) {
+            char *end = NULL;
+            long v = strtol(argv[3 + m], &end, 0);
+            if (!end || *end != '\0' || v < 0 || v > 255) {
+                printf("invalid byte[%d]: %s\n", m, argv[3 + m]);
+                return 1;
+            }
+            s_fb[row][m] = (uint8_t)v;
+        }
+        esp_err_t err = fb_flush_row((int)row);
+        if (err != ESP_OK) {
+            printf("rowm failed: %s\n", esp_err_to_name(err));
             return 1;
         }
         printf("ok\n");
@@ -886,22 +971,23 @@ static int cmd_matrix(int argc, char **argv) {
         stop_animations();
         if (argc < 3) {
             printf("usage: matrix pattern rows|cols|diag|checker|off|ids\n");
-            printf("       matrix pattern onehot <0..3>\n");
+            printf("       matrix pattern onehot <0..N-1>\n");
             return 1;
         }
         fb_clear();
+        const int n = chain_len_active();
 
         if (strcmp(argv[2], "off") == 0) {
             // already cleared
         } else if (strcmp(argv[2], "rows") == 0) {
             for (int y = 0; y < 8; y++) {
-                for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+                for (int m = 0; m < n; m++) {
                     s_fb[y][m] = (y & 1) ? 0xFF : 0x00;
                 }
             }
         } else if (strcmp(argv[2], "cols") == 0) {
             for (int y = 0; y < 8; y++) {
-                for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+                for (int m = 0; m < n; m++) {
                     s_fb[y][m] = 0xAA;
                 }
             }
@@ -911,7 +997,7 @@ static int cmd_matrix(int argc, char **argv) {
             }
         } else if (strcmp(argv[2], "checker") == 0) {
             for (int y = 0; y < 8; y++) {
-                for (int m = 0; m < MAX7219_DEFAULT_CHAIN_LEN; m++) {
+                for (int m = 0; m < n; m++) {
                     s_fb[y][m] = (y & 1) ? 0xAA : 0x55;
                 }
             }
@@ -919,12 +1005,12 @@ static int cmd_matrix(int argc, char **argv) {
             fb_set_ids_pattern();
         } else if (strcmp(argv[2], "onehot") == 0) {
             if (argc < 4) {
-                printf("usage: matrix pattern onehot <0..3>\n");
+                printf("usage: matrix pattern onehot <0..N-1>\n");
                 return 1;
             }
             char *end = NULL;
             long m = strtol(argv[3], &end, 0);
-            if (!end || *end != '\0' || m < 0 || m >= MAX7219_DEFAULT_CHAIN_LEN) {
+            if (!end || *end != '\0' || m < 0 || m >= n) {
                 printf("invalid module: %s\n", argv[3]);
                 return 1;
             }
