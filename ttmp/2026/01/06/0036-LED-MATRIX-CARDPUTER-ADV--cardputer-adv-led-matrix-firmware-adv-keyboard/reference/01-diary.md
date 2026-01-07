@@ -20,7 +20,9 @@ RelatedFiles:
     - Path: 0036-cardputer-adv-led-matrix-console/README.md
       Note: User-facing usage notes
     - Path: 0036-cardputer-adv-led-matrix-console/main/matrix_console.c
-      Note: Console commands for validation
+      Note: |-
+        Console commands for validation
+        Matrix bring-up commands incl. safe test
     - Path: 0036-cardputer-adv-led-matrix-console/main/max7219.c
       Note: MAX7219 SPI init/transfer handling
 ExternalSources: []
@@ -29,6 +31,7 @@ LastUpdated: 2026-01-06T19:33:00.521454858-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -368,3 +371,53 @@ With transfer sizing corrected, this step also re-introduces a *safe* SPI clock 
   - `fuser /dev/ttyACM0`
 - Quick REPL validation (non-TTY):
   - `python3 esp32-s3-m5/ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_send_matrix_commands.py --port /dev/ttyACM0`
+
+## Step 8: Add RAM-Based Safe Test + Confirm Root Cause Was Power
+
+This step resolves the confusion where `matrix blink` looked stable but `matrix test on` produced “weird” or inconsistent behavior across modules. The key realization is that `matrix test on` switches the MAX7219 into DISPLAY_TEST mode, which behaves differently (and can stress the power path differently) than normal display-RAM updates used by blink and patterns.
+
+To make bring-up less confusing and more repeatable, I added a RAM-based “safe test” command that turns the whole strip fully on/off using normal row writes (same mechanism as blink, but static). With that in place, we verified the underlying issue was the external power path (supply/ground/current capacity), not the firmware logic.
+
+**Commit (code):** 125f6ab5edaa545902d27d0cf16abdc3f9f1aac8 — "0036: add RAM-based safe test command"
+
+### What I did
+- Added `matrix safe on|off` which fills the framebuffer with `0xFF`/`0x00` and flushes rows (no DISPLAY_TEST usage).
+- Updated README to recommend `matrix safe` over `matrix test` for wiring bring-up.
+- Used `matrix safe on` / `matrix safe off` alongside `matrix blink on` to validate consistent behavior.
+
+### Why
+- DISPLAY_TEST is a different operating mode than normal scanning and can lead to confusing “it works in blink but not test” symptoms.
+- A RAM-based full-on/full-off command provides a clean, static test that matches normal updates and avoids mode changes.
+
+### What worked
+- `matrix safe on` behaves like the “on” half of blink, but steady.
+- Once power was fixed, the earlier “weird test” behavior went away; the matrix behavior became consistent.
+
+### What didn't work
+- `matrix test on` was a poor bring-up tool under marginal power: it produced misleading patterns that looked like firmware timing/clock issues.
+
+### What I learned
+- For MAX7219 chains, “works in blink but not in display-test” is a strong hint to check power integrity (5V drop, ground reference, current limit), not just SPI.
+
+### What was tricky to build
+- Keeping the new command simple and obviously “same path as blink” (framebuffer + row flush), so it’s useful as a wiring/power diagnostic.
+
+### What warrants a second pair of eyes
+- N/A (small command addition).
+
+### What should be done in the future
+- When reproducing issues, start with:
+  - `matrix safe on` / `matrix safe off`
+  - then `matrix spi <hz>` sweeps if needed
+  - reserve `matrix test on` only for verifying DISPLAY_TEST specifically.
+
+### Code review instructions
+- Command implementation: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/main/matrix_console.c`
+- README notes: `esp32-s3-m5/0036-cardputer-adv-led-matrix-console/README.md`
+
+### Technical details
+- Bring-up command sequence:
+  - `matrix init`
+  - `matrix intensity 4`
+  - `matrix safe on`
+  - `matrix safe off`
