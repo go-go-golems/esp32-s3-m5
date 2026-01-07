@@ -974,7 +974,6 @@ static int cmd_matrix(int argc, char **argv) {
     }
 
     if (strcmp(argv[1], "blink") == 0) {
-        scroll_off();
         if (argc < 3) {
             printf("usage: matrix blink on [on_ms] [off_ms] | matrix blink off | matrix blink status\n");
             return 1;
@@ -992,6 +991,7 @@ static int cmd_matrix(int argc, char **argv) {
             return 0;
         }
         if (strcmp(argv[2], "on") == 0) {
+            stop_animations();
             uint32_t on_ms = s_blink_on_ms;
             uint32_t off_ms = s_blink_off_ms;
             if (argc >= 4) {
@@ -1067,7 +1067,7 @@ static int cmd_matrix(int argc, char **argv) {
                 }
                 pause_ms = (uint32_t)v;
             }
-            blink_off();
+            stop_animations();
             scroll_on(argv[3], fps, pause_ms, wave);
             if (s_scroll_enabled) printf("ok\n");
             return s_scroll_enabled ? 0 : 1;
