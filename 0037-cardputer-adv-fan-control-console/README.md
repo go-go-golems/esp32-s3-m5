@@ -18,11 +18,12 @@ Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`).
 - `fan status`
 - `fan on` / `fan off` / `fan toggle`
 - `fan stop` (stop animations and restore last manual state)
-- `fan blink [on_ms] [off_ms]` (default `500 500`)
+- `fan blink [on_ms] [off_ms]` (default `2000 2000`)
 - `fan strobe [ms]` (fast blink; default `100`)
-- `fan tick [on_ms] [period_ms]` (default `50 1000`)
-- `fan beat` (heartbeat pattern: `100-100-100-700`)
-- `fan burst [count] [on_ms] [off_ms] [pause_ms]` (default `3 75 75 1000`)
+- `fan tick [on_ms] [period_ms]` (default `200 2000`)
+- `fan beat` (heartbeat pattern: `250-250-250-2250`)
+- `fan burst [count] [on_ms] [off_ms] [pause_ms]` (default `3 200 200 2000`)
+- `fan preset <name>` (named slow patterns; run `fan preset` for list)
 
 ## Build / Flash / Monitor
 

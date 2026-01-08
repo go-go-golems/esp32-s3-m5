@@ -23,6 +23,7 @@ typedef enum {
     FAN_ANIM_TICK,
     FAN_ANIM_BEAT,
     FAN_ANIM_BURST,
+    FAN_ANIM_PRESET,
 } fan_anim_mode_t;
 
 static TaskHandle_t s_anim_task;
@@ -32,16 +33,37 @@ static fan_anim_mode_t s_anim_mode = FAN_ANIM_NONE;
 static bool s_saved_manual_valid = false;
 static bool s_saved_manual_on = false;
 
-static uint32_t s_blink_on_ms = 500;
-static uint32_t s_blink_off_ms = 500;
+static uint32_t s_blink_on_ms = 2000;
+static uint32_t s_blink_off_ms = 2000;
 
-static uint32_t s_tick_on_ms = 50;
-static uint32_t s_tick_period_ms = 1000;
+static uint32_t s_tick_on_ms = 200;
+static uint32_t s_tick_period_ms = 2000;
 
 static uint32_t s_burst_count = 3;
-static uint32_t s_burst_on_ms = 75;
-static uint32_t s_burst_off_ms = 75;
-static uint32_t s_burst_pause_ms = 1000;
+static uint32_t s_burst_on_ms = 200;
+static uint32_t s_burst_off_ms = 200;
+static uint32_t s_burst_pause_ms = 2000;
+
+typedef struct {
+    const char *name;
+    // Looping script: alternating on/off durations, starting with ON.
+    // For multi-pulse patterns, include multiple on/off pairs and end with a longer off.
+    const uint32_t steps_ms[10];
+    int steps_len; // number of entries in steps_ms
+} fan_preset_t;
+
+static const fan_preset_t s_presets[] = {
+    {.name = "slow", .steps_ms = {2000, 2000}, .steps_len = 2},
+    {.name = "slower", .steps_ms = {5000, 5000}, .steps_len = 2},
+    {.name = "pulse", .steps_ms = {250, 2750}, .steps_len = 2},
+    {.name = "duty25", .steps_ms = {1000, 3000}, .steps_len = 2},
+    {.name = "duty75", .steps_ms = {3000, 1000}, .steps_len = 2},
+    {.name = "double", .steps_ms = {250, 250, 250, 2250}, .steps_len = 4},
+    {.name = "triple", .steps_ms = {250, 250, 250, 250, 250, 1750}, .steps_len = 6},
+    {.name = "sos", .steps_ms = {250, 250, 250, 250, 250, 750, 750, 250, 750, 1750}, .steps_len = 10},
+};
+
+static const fan_preset_t *s_active_preset = NULL;
 
 static void print_help(void) {
     printf("fan commands:\n");
@@ -53,6 +75,7 @@ static void print_help(void) {
     printf("  fan tick [on_ms] [period_ms]\n");
     printf("  fan beat\n");
     printf("  fan burst [count] [on_ms] [off_ms] [pause_ms]\n");
+    printf("  fan preset [name]\n");
 }
 
 static const char *anim_mode_name(fan_anim_mode_t m) {
@@ -67,6 +90,8 @@ static const char *anim_mode_name(fan_anim_mode_t m) {
             return "beat";
         case FAN_ANIM_BURST:
             return "burst";
+        case FAN_ANIM_PRESET:
+            return "preset";
     }
     return "?";
 }
@@ -133,16 +158,16 @@ static void anim_task(void *arg) {
         if (mode == FAN_ANIM_BEAT) {
             while (s_anim_enabled && s_anim_mode == FAN_ANIM_BEAT) {
                 fan_relay_set_on();
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(250));
                 if (!s_anim_enabled || s_anim_mode != FAN_ANIM_BEAT) break;
                 fan_relay_set_off();
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(250));
                 if (!s_anim_enabled || s_anim_mode != FAN_ANIM_BEAT) break;
                 fan_relay_set_on();
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(250));
                 if (!s_anim_enabled || s_anim_mode != FAN_ANIM_BEAT) break;
                 fan_relay_set_off();
-                vTaskDelay(pdMS_TO_TICKS(700));
+                vTaskDelay(pdMS_TO_TICKS(2250));
             }
             continue;
         }
@@ -164,6 +189,25 @@ static void anim_task(void *arg) {
                 }
                 if (!s_anim_enabled || s_anim_mode != FAN_ANIM_BURST) break;
                 if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
+            }
+            continue;
+        }
+
+        if (mode == FAN_ANIM_PRESET) {
+            const fan_preset_t *preset = s_active_preset;
+            if (!preset || preset->steps_len <= 0) {
+                s_anim_mode = FAN_ANIM_NONE;
+                continue;
+            }
+            while (s_anim_enabled && s_anim_mode == FAN_ANIM_PRESET) {
+                for (int i = 0; i < preset->steps_len; i++) {
+                    if (!s_anim_enabled || s_anim_mode != FAN_ANIM_PRESET) break;
+                    const bool on = (i % 2) == 0;
+                    fan_relay_set(on);
+                    uint32_t ms = preset->steps_ms[i];
+                    if (ms == 0) ms = 1;
+                    vTaskDelay(pdMS_TO_TICKS(ms));
+                }
             }
             continue;
         }
@@ -234,6 +278,8 @@ int cmd_fan(int argc, char **argv) {
                    s_burst_on_ms,
                    s_burst_off_ms,
                    s_burst_pause_ms);
+        } else if (s_anim_mode == FAN_ANIM_PRESET) {
+            printf("preset: %s\n", s_active_preset ? s_active_preset->name : "(none)");
         }
         return 0;
     }
@@ -324,6 +370,36 @@ int cmd_fan(int argc, char **argv) {
         return 0;
     }
 
+    if (strcmp(argv[1], "preset") == 0) {
+        if (argc < 3) {
+            printf("presets:\n");
+            for (size_t i = 0; i < (sizeof(s_presets) / sizeof(s_presets[0])); i++) {
+                printf("  %s\n", s_presets[i].name);
+            }
+            printf("usage: fan preset <name>\n");
+            return 0;
+        }
+
+        const char *name = argv[2];
+        const fan_preset_t *p = NULL;
+        for (size_t i = 0; i < (sizeof(s_presets) / sizeof(s_presets[0])); i++) {
+            if (strcmp(s_presets[i].name, name) == 0) {
+                p = &s_presets[i];
+                break;
+            }
+        }
+        if (!p) {
+            printf("unknown preset: %s\n", name);
+            printf("run: fan preset\n");
+            return 1;
+        }
+
+        s_active_preset = p;
+        anim_start(FAN_ANIM_PRESET);
+        printf("ok\n");
+        return 0;
+    }
+
     if (strcmp(argv[1], "burst") == 0) {
         uint32_t count = s_burst_count;
         uint32_t on_ms = s_burst_on_ms;
@@ -391,4 +467,3 @@ void fan_console_start(void) {
     ESP_LOGI(TAG, "esp_console started over USB Serial/JTAG (try: help, fan help)");
 #endif
 }
-

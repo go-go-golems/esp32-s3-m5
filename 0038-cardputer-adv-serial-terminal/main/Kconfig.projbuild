@@ -15,7 +15,7 @@ config TUTORIAL_0038_MAX_LINES
 
 choice
     prompt "Serial backend"
-    default TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG
+    default TUTORIAL_0038_BACKEND_UART
 
 config TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG
     bool "USB (USB-Serial-JTAG / ttyACM*)"

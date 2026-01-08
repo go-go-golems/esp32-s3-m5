@@ -3,11 +3,17 @@ idf_component_register(
         "hello_world_main.cpp"
         "Adafruit_TCA8418.cpp"
         "relay_control.cpp"
+        "fan_control.cpp"
+        "app_state.cpp"
+        "fan_cmd.cpp"
+        "console_repl.cpp"
     PRIV_REQUIRES
         spi_flash
         esp_driver_gpio
         esp_driver_uart
         esp_driver_usb_serial_jtag
+        console
+        esp_vfs_console
     REQUIRES
         M5Unified
     INCLUDE_DIRS

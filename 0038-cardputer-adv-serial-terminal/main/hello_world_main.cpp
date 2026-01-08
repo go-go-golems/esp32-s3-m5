@@ -16,6 +16,8 @@
 
 #include <deque>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include "sdkconfig.h"
 
@@ -32,7 +34,9 @@
 
 #include <M5Unified.hpp>
 
-#include "relay_control.h"
+#include "app_state.h"
+#include "console_repl.h"
+#include "fan_cmd.h"
 
 static const char *TAG = "cardputer_adv_serial_terminal_0038";
 static const char *KBD_TAG = "adv_kbd";
@@ -51,7 +55,7 @@ static const char *KBD_TAG = "adv_kbd";
 
 // Serial backend defaults (choice)
 #if !defined(CONFIG_TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG) && !defined(CONFIG_TUTORIAL_0038_BACKEND_UART)
-#define CONFIG_TUTORIAL_0038_BACKEND_USB_SERIAL_JTAG 1
+#define CONFIG_TUTORIAL_0038_BACKEND_UART 1
 #endif
 #ifndef CONFIG_TUTORIAL_0038_UART_NUM
 #define CONFIG_TUTORIAL_0038_UART_NUM 1
@@ -93,6 +97,27 @@ static const char *KBD_TAG = "adv_kbd";
 #ifndef CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH
 #define CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH 0
 #endif
+
+static std::string trim_copy(std::string_view in) {
+    size_t start = 0;
+    while (start < in.size() && (in[start] == ' ' || in[start] == '\t')) start++;
+    size_t end = in.size();
+    while (end > start && (in[end - 1] == ' ' || in[end - 1] == '\t')) end--;
+    return std::string(in.substr(start, end - start));
+}
+
+static std::vector<std::string_view> split_ws(std::string_view in) {
+    std::vector<std::string_view> out;
+    size_t i = 0;
+    while (i < in.size()) {
+        while (i < in.size() && (in[i] == ' ' || in[i] == '\t')) i++;
+        if (i >= in.size()) break;
+        const size_t start = i;
+        while (i < in.size() && in[i] != ' ' && in[i] != '\t') i++;
+        out.emplace_back(in.substr(start, i - start));
+    }
+    return out;
+}
 
 // ---------------- Serial backend (copied from 0015) ----------------
 
@@ -216,6 +241,20 @@ static void buf_trim(std::deque<std::string> &lines, size_t max_lines, size_t &d
         dropped_lines++;
     }
     if (lines.empty()) lines.push_back(std::string());
+}
+
+typedef struct {
+    std::deque<std::string> *lines;
+    size_t *dropped_lines;
+    size_t max_lines;
+} ui_out_ctx_t;
+
+static void ui_out(void *ctx, const char *line) {
+    if (!ctx || !line) return;
+    auto *st = (ui_out_ctx_t *)ctx;
+    if (!st->lines || !st->dropped_lines) return;
+    st->lines->push_back(std::string(line));
+    buf_trim(*st->lines, st->max_lines, *st->dropped_lines);
 }
 
 static void buf_insert_char(std::deque<std::string> &lines, char c) {
@@ -421,16 +460,20 @@ extern "C" void app_main(void) {
     serial_backend_t backend{};
     backend_init(backend);
 
-    relay_control_t relay{};
+    fan_control_init_defaults(&g_fan);
+
 #if CONFIG_TUTORIAL_0038_RELAY_ENABLE
-    const bool relay_ok = relay_control_init(&relay,
-                                             (gpio_num_t)CONFIG_TUTORIAL_0038_RELAY_GPIO,
-                                             (bool)CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH,
-                                             false);
-    if (!relay_ok) {
-        ESP_LOGW(TAG, "relay init failed (gpio=%d)", (int)CONFIG_TUTORIAL_0038_RELAY_GPIO);
+    const bool fan_ok = fan_control_init_relay(&g_fan,
+                                               (gpio_num_t)CONFIG_TUTORIAL_0038_RELAY_GPIO,
+                                               (bool)CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH,
+                                               false);
+    if (!fan_ok) {
+        ESP_LOGW(TAG, "fan relay init failed (gpio=%d)", (int)CONFIG_TUTORIAL_0038_RELAY_GPIO);
     } else {
-        ESP_LOGI(TAG, "relay ready: gpio=%d active_high=%d", (int)relay.gpio, relay.active_high ? 1 : 0);
+        ESP_LOGI(TAG,
+                 "fan relay ready: gpio=%d active_high=%d",
+                 (int)CONFIG_TUTORIAL_0038_RELAY_GPIO,
+                 (int)CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH);
     }
 #endif
 
@@ -458,6 +501,8 @@ extern "C" void app_main(void) {
              (int)CONFIG_TUTORIAL_0038_LOCAL_ECHO,
              (int)CONFIG_TUTORIAL_0038_SHOW_RX,
              (int)CONFIG_TUTORIAL_0038_NEWLINE_CRLF);
+
+    console_start();
 
     while (true) {
         if (s_kbd_ready && s_kbd_isr_flag) {
@@ -520,31 +565,67 @@ extern "C" void app_main(void) {
                 last_row = (int)k.row;
                 last_col = (int)k.col;
 
-                // Local relay hotkeys (do not send to backend):
+                // Local fan hotkeys (do not send to backend):
                 // - opt+1: toggle
                 // - opt+2: on
                 // - opt+3: off
+                // - opt+4: preset slow
+                // - opt+5: preset pulse
+                // - opt+6: preset double
+                // - opt+7: stop
 #if CONFIG_TUTORIAL_0038_RELAY_ENABLE
-                if (relay_control_is_ready(&relay) && s_kbd_opt && strlen(tok) == 1) {
+                if (fan_control_is_ready(&g_fan) && s_kbd_opt && strlen(tok) == 1) {
                     if (tok[0] == '1') {
-                        relay_control_toggle(&relay);
-                        lines.push_back(std::string("[relay] toggle -> ").append(relay.on ? "on" : "off"));
+                        fan_control_toggle_manual(&g_fan);
+                        lines.push_back(std::string("[fan] toggle -> ").append(fan_control_is_on(&g_fan) ? "on" : "off"));
                         buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
                         edit_events++;
                         dirty = true;
                         continue;
                     }
                     if (tok[0] == '2') {
-                        relay_control_set(&relay, true);
-                        lines.push_back("[relay] set on");
+                        fan_control_set_manual(&g_fan, true);
+                        lines.push_back("[fan] set on");
                         buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
                         edit_events++;
                         dirty = true;
                         continue;
                     }
                     if (tok[0] == '3') {
-                        relay_control_set(&relay, false);
-                        lines.push_back("[relay] set off");
+                        fan_control_set_manual(&g_fan, false);
+                        lines.push_back("[fan] set off");
+                        buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+                        edit_events++;
+                        dirty = true;
+                        continue;
+                    }
+                    if (tok[0] == '4') {
+                        (void)fan_control_start_preset(&g_fan, "slow");
+                        lines.push_back("[fan] preset slow");
+                        buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+                        edit_events++;
+                        dirty = true;
+                        continue;
+                    }
+                    if (tok[0] == '5') {
+                        (void)fan_control_start_preset(&g_fan, "pulse");
+                        lines.push_back("[fan] preset pulse");
+                        buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+                        edit_events++;
+                        dirty = true;
+                        continue;
+                    }
+                    if (tok[0] == '6') {
+                        (void)fan_control_start_preset(&g_fan, "double");
+                        lines.push_back("[fan] preset double");
+                        buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+                        edit_events++;
+                        dirty = true;
+                        continue;
+                    }
+                    if (tok[0] == '7') {
+                        fan_control_stop(&g_fan);
+                        lines.push_back("[fan] stop");
                         buf_trim(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
                         edit_events++;
                         dirty = true;
@@ -552,6 +633,30 @@ extern "C" void app_main(void) {
                     }
                 }
 #endif
+
+                // Local command mode: if the current line starts with `fan`, execute locally on Enter.
+                if (strcmp(tok, "enter") == 0) {
+                    const std::string cmdline = trim_copy(lines.empty() ? "" : std::string_view(lines.back()));
+                    const auto toks = split_ws(cmdline);
+                    if (!toks.empty() && toks[0] == "fan") {
+                        buf_newline(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+
+                        std::vector<std::string> args;
+                        args.reserve(toks.size());
+                        for (const auto &sv : toks) args.emplace_back(sv);
+                        std::vector<const char *> argv;
+                        argv.reserve(args.size());
+                        for (const auto &s : args) argv.push_back(s.c_str());
+
+                        ui_out_ctx_t out_ctx{.lines = &lines, .dropped_lines = &dropped_lines, .max_lines = (size_t)CONFIG_TUTORIAL_0038_MAX_LINES};
+                        (void)fan_cmd_exec(&g_fan, (int)argv.size(), argv.data(), &ui_out, &out_ctx);
+                        buf_newline(lines, (size_t)CONFIG_TUTORIAL_0038_MAX_LINES, dropped_lines);
+
+                        edit_events++;
+                        dirty = true;
+                        continue;
+                    }
+                }
 
                 uint8_t tx[8] = {0};
                 const size_t tx_n = token_to_tx_bytes(tok, tx);
@@ -611,18 +716,24 @@ extern "C" void app_main(void) {
                           s_kbd_opt ? 1 : 0,
                           s_kbd_alt ? 1 : 0);
 #if CONFIG_TUTORIAL_0038_RELAY_ENABLE
-            canvas.printf("Relay: gpio=%d active_high=%d state=%s (hotkeys: opt+1 toggle, opt+2 on, opt+3 off)\n",
+            const char *fan_mode = fan_control_mode_name(fan_control_mode(&g_fan));
+            const char *fan_preset = fan_control_active_preset_name(&g_fan);
+            canvas.printf("Fan: gpio=%d active_high=%d state=%s mode=%s%s%s\n",
                           (int)CONFIG_TUTORIAL_0038_RELAY_GPIO,
                           (int)CONFIG_TUTORIAL_0038_RELAY_ACTIVE_HIGH,
-                          relay_control_is_ready(&relay) ? (relay.on ? "on" : "off") : "n/a");
+                          fan_control_is_ready(&g_fan) ? (fan_control_is_on(&g_fan) ? "on" : "off") : "n/a",
+                          fan_mode ? fan_mode : "?",
+                          fan_preset ? " preset=" : "",
+                          fan_preset ? fan_preset : "");
+            canvas.printf("Fan: opt+1 toggle opt+2 on opt+3 off opt+4 slow opt+5 pulse opt+6 double opt+7 stop; type `fan ...` + Enter\n");
 #else
-            canvas.printf("Relay: disabled\n");
+            canvas.printf("Fan: disabled\n");
 #endif
             canvas.printf("Lines: %u (dropped=%u)  Events: %" PRIu32 "\n",
                           (unsigned)lines.size(), (unsigned)dropped_lines, edit_events);
 
             const int line_h = canvas.fontHeight();
-            const int header_rows = 5;
+            const int header_rows = 6;
             const int max_rows = (line_h > 0) ? (canvas.height() / line_h) : 0;
             int text_rows = max_rows - header_rows;
             if (text_rows < 1) text_rows = 1;
