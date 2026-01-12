@@ -35,6 +35,7 @@ RelatedFiles:
         I2C scan/readReg/writeReg JS helpers (commit 788ba5f)
         i2c.deconfig JS helper binding (commit 5ac692e)
         i2c.config object-only API parsing (commit c3c219b)
+        i2c.config object null/undefined guard (commit cf37da2)
         i2c.config object-only API (commit c3c219b)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
       Note: |-
@@ -43,7 +44,7 @@ RelatedFiles:
         Expose i2c.deconfig in stdlib table (commit 5ac692e)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T21:43:57-05:00
+LastUpdated: 2026-01-11T21:52:12-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
@@ -635,3 +636,46 @@ The change is localized to the JS runtime binding and the synced `0039` firmware
 ### Technical details
 - Example REPL usage:
   - `i2c.config({ sda: 3, scl: 4, hz: 40000, addr: 0x50 })`
+
+## Step 14: Fix build error in i2c.config object check
+
+I fixed the build failure caused by using `JS_IsObject`, which is not available in the MicroQuickJS headers. The guard now checks only for null/undefined and lets the property parser handle other invalid inputs.
+
+After the fix, the firmware builds cleanly when sourcing the ESP-IDF environment, confirming the object-only API compiles in `0039`.
+
+**Commit (code):** cf37da2 — "Fix i2c.config object check"
+
+### What I did
+- Removed the `JS_IsObject` check from `js_i2c_config` and replaced it with a null/undefined guard
+- Synced the runtime file into `0039-cardputer-adv-js-gpio-exercizer`
+- Rebuilt with ESP-IDF export
+
+### Why
+- `JS_IsObject` is not defined in MicroQuickJS, causing compile failures
+
+### What worked
+- `idf.py build` succeeds after the change
+
+### What didn't work
+- Build failed before the fix:
+  - `error: implicit declaration of function 'JS_IsObject' [-Wimplicit-function-declaration]`
+
+### What I learned
+- The MicroQuickJS headers expose limited helper macros, so runtime checks need to use available primitives
+
+### What was tricky to build
+- Confirming object validation without the standard QuickJS helper
+
+### What warrants a second pair of eyes
+- Confirm the object parsing errors are acceptable when a non-object (e.g. number) is passed
+
+### What should be done in the future
+- If we want stricter object detection, add a small helper in MicroQuickJS instead of ad-hoc checks
+
+### Code review instructions
+- Start in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c` (js_i2c_config guard)
+- Confirm sync in `esp32-s3-m5/0039-cardputer-adv-js-gpio-exercizer/main/esp32_stdlib_runtime.c`
+
+### Technical details
+- Commands run:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh && idf.py build`

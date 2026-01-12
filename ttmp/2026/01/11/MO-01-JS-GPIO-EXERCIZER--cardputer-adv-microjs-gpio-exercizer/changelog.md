@@ -118,3 +118,12 @@ Step 13: switch i2c.config to object-only API (commit c3c219b)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c — Object-based i2c.config parser
 
+
+## 2026-01-11
+
+Step 14: fix i2c.config object guard + rebuild (commit cf37da2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c — Remove JS_IsObject usage
+
