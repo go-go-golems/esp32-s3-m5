@@ -28,7 +28,7 @@ RelatedFiles:
       Note: Expose gpio.setMany in stdlib generator (commit 7203698)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T20:55:06-05:00
+LastUpdated: 2026-01-11T21:05:42-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
@@ -430,3 +430,47 @@ I also added a `gpio.setMany()` JS helper to batch multiple GPIO configs, update
 - Example:
   - `gpio.setMany([{ pin: 3, mode: "square", hz: 1000 }, { pin: 4, mode: "pulse", width_us: 50, period_ms: 5 }])`
   - `gpio.stop(4)` or `gpio.stop()` to stop all
+
+## Step 10: Flash + validate multi-pin GPIO on Cardputer-ADV
+
+I flashed the updated firmware to the Cardputer-ADV and validated that concurrent GPIO patterns are working from the JS REPL. This confirms the multi-channel engine and `gpio.setMany()` API behave correctly in real hardware.
+
+I also captured the monitor limitation in this shell environment: `idf_monitor` needs a TTY, so monitoring must be done in a real terminal or tmux pane.
+
+### What I did
+- Built the firmware and flashed to `/dev/ttyACM0`
+- Started REPL and validated multi-pin patterns
+- Recorded the `idf_monitor` TTY error in this environment
+
+### Why
+- Ensure the multi-pin GPIO engine works on real hardware before moving to additional protocol engines
+
+### What worked
+- Flash succeeded to `/dev/ttyACM0`
+- User confirmed multi-pin patterns work on hardware
+
+### What didn't work
+- `idf_monitor` failed in this non-TTY shell:
+  - `Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.`
+
+### What I learned
+- REPL validation should be done from tmux or an interactive terminal when running `idf_monitor`
+
+### What was tricky to build
+- Managing flash + monitor in a non-interactive shell without a TTY
+
+### What warrants a second pair of eyes
+- Observe multi-pin jitter at higher frequencies (timer task contention)
+
+### What should be done in the future
+- If high-frequency multi-pin accuracy is needed, add LEDC/RMT backends
+
+### Code review instructions
+- N/A (validation step only)
+
+### Technical details
+- Commands run:
+  - `idf.py -p /dev/ttyACM0 flash monitor`
+- Example REPL usage:
+  - `gpio.square(3, 1000); gpio.square(4, 250); gpio.pulse(5, 50, 5);`
+  - `gpio.setMany([{ pin: 3, mode: "square", hz: 1000 }, { pin: 4, mode: "square", hz: 250 }])`

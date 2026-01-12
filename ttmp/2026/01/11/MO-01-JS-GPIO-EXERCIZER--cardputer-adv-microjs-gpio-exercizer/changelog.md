@@ -82,3 +82,12 @@ Step 9: Multi-pin GPIO engine + gpio.setMany JS API (commit 7203698)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp — Introduce multi-channel GPIO scheduling
 
+
+## 2026-01-11
+
+Step 10: Flash + validate multi-pin GPIO on hardware
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/11/MO-01-JS-GPIO-EXERCIZER--cardputer-adv-microjs-gpio-exercizer/reference/01-diary.md — Record flash/monitor validation step
+
