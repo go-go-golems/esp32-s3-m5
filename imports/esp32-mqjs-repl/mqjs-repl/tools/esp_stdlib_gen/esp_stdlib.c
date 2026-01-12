@@ -96,6 +96,12 @@ static JSValue js_gpio_pulse(JSContext *ctx, JSValue *this_val, int argc, JSValu
     return JS_UNDEFINED;
 }
 
+static JSValue js_gpio_set_many(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    (void)ctx; (void)this_val; (void)argc; (void)argv;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_gpio_stop(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     (void)ctx; (void)this_val; (void)argc; (void)argv;

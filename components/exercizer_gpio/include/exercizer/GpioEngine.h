@@ -10,22 +10,29 @@
 class GpioEngine {
  public:
   void HandleEvent(const exercizer_ctrl_event_t &ev);
-  void Stop();
+  void StopAll();
+  void StopPin(uint8_t pin);
 
  private:
-  void ApplyConfig(const exercizer_gpio_config_t &cfg);
-  void StopTimers();
-  void EnsureTimer(esp_timer_handle_t *h, const char *name, esp_timer_cb_t cb);
+  struct Channel {
+    gpio_num_t pin = GPIO_NUM_NC;
+    exercizer_gpio_config_t cfg = {};
+    volatile int level = 0;
+    esp_timer_handle_t square_timer = nullptr;
+    esp_timer_handle_t pulse_periodic = nullptr;
+    esp_timer_handle_t pulse_low_oneshot = nullptr;
+  };
+
+  void ApplyConfig(Channel *ch, const exercizer_gpio_config_t &cfg);
+  void StopChannel(Channel *ch, bool release);
+  void EnsureTimer(esp_timer_handle_t *h, const char *name, esp_timer_cb_t cb, void *arg);
+  Channel *FindChannel(uint8_t pin);
+  Channel *AllocChannel(uint8_t pin);
 
   static void SquareCb(void *arg);
   static void PulsePeriodicCb(void *arg);
   static void PulseLowCb(void *arg);
 
-  gpio_num_t pin_ = GPIO_NUM_NC;
-  exercizer_gpio_config_t cfg_ = {};
-  volatile int level_ = 0;
-
-  esp_timer_handle_t square_timer_ = nullptr;
-  esp_timer_handle_t pulse_periodic_ = nullptr;
-  esp_timer_handle_t pulse_low_oneshot_ = nullptr;
+  static constexpr size_t kMaxChannels = 8;
+  Channel channels_[kMaxChannels] = {};
 };

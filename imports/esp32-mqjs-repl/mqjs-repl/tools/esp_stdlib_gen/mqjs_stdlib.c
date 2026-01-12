@@ -330,7 +330,8 @@ static const JSPropDef js_gpio[] = {
     JS_CFUNC_DEF("low", 1, js_gpio_low),
     JS_CFUNC_DEF("square", 2, js_gpio_square),
     JS_CFUNC_DEF("pulse", 3, js_gpio_pulse),
-    JS_CFUNC_DEF("stop", 0, js_gpio_stop),
+    JS_CFUNC_DEF("setMany", 1, js_gpio_set_many),
+    JS_CFUNC_DEF("stop", 1, js_gpio_stop),
     JS_PROP_END,
 };
 

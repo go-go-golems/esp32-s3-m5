@@ -287,6 +287,154 @@ static JSValue js_gpio_square(JSContext* ctx, JSValue* this_val, int argc, JSVal
   return JS_UNDEFINED;
 }
 
+static bool js_read_gpio_mode(JSContext *ctx, JSValue obj, uint8_t *out_mode, uint32_t idx) {
+  JSValue mode_val = JS_GetPropertyStr(ctx, obj, "mode");
+  if (JS_IsException(mode_val)) {
+    return false;
+  }
+  if (JS_IsUndefined(mode_val)) {
+    JS_ThrowTypeError(ctx, "gpio.setMany[%u] missing mode", (unsigned)idx);
+    return false;
+  }
+  if (JS_IsString(ctx, mode_val)) {
+    JSCStringBuf sbuf;
+    memset(&sbuf, 0, sizeof(sbuf));
+    size_t mode_len = 0;
+    const char *mode_str = JS_ToCStringLen(ctx, &mode_len, mode_val, &sbuf);
+    if (!mode_str || mode_len == 0) {
+      JS_ThrowTypeError(ctx, "gpio.setMany[%u] invalid mode", (unsigned)idx);
+      return false;
+    }
+    if (strcmp(mode_str, "high") == 0) {
+      *out_mode = EXERCIZER_GPIO_MODE_HIGH;
+    } else if (strcmp(mode_str, "low") == 0) {
+      *out_mode = EXERCIZER_GPIO_MODE_LOW;
+    } else if (strcmp(mode_str, "square") == 0) {
+      *out_mode = EXERCIZER_GPIO_MODE_SQUARE;
+    } else if (strcmp(mode_str, "pulse") == 0) {
+      *out_mode = EXERCIZER_GPIO_MODE_PULSE;
+    } else {
+      JS_ThrowTypeError(ctx, "gpio.setMany[%u] invalid mode", (unsigned)idx);
+      return false;
+    }
+    return true;
+  }
+  if (JS_IsNumber(ctx, mode_val)) {
+    uint32_t mode_num = 0;
+    if (JS_ToUint32(ctx, &mode_num, mode_val)) {
+      return false;
+    }
+    if (mode_num < EXERCIZER_GPIO_MODE_HIGH || mode_num > EXERCIZER_GPIO_MODE_PULSE) {
+      JS_ThrowRangeError(ctx, "gpio.setMany[%u] mode out of range", (unsigned)idx);
+      return false;
+    }
+    *out_mode = (uint8_t)mode_num;
+    return true;
+  }
+  JS_ThrowTypeError(ctx, "gpio.setMany[%u] mode must be string or number", (unsigned)idx);
+  return false;
+}
+
+static bool js_read_u32_prop(JSContext *ctx, JSValue obj, const char *name, uint32_t *out, bool required, uint32_t idx) {
+  JSValue v = JS_GetPropertyStr(ctx, obj, name);
+  if (JS_IsException(v)) {
+    return false;
+  }
+  if (JS_IsUndefined(v)) {
+    if (required) {
+      JS_ThrowTypeError(ctx, "gpio.setMany[%u] missing %s", (unsigned)idx, name);
+      return false;
+    }
+    *out = 0;
+    return true;
+  }
+  if (JS_ToUint32(ctx, out, v)) {
+    return false;
+  }
+  return true;
+}
+
+static bool js_read_gpio_config_obj(JSContext *ctx, JSValue obj, exercizer_gpio_config_t *out, uint32_t idx) {
+  uint32_t pin = 0;
+  uint32_t hz = 0;
+  uint32_t width_us = 0;
+  uint32_t period_ms = 0;
+  uint8_t mode = 0;
+
+  if (!js_read_u32_prop(ctx, obj, "pin", &pin, true, idx)) {
+    return false;
+  }
+  if (!js_read_gpio_mode(ctx, obj, &mode, idx)) {
+    return false;
+  }
+
+  if (mode == EXERCIZER_GPIO_MODE_SQUARE) {
+    if (!js_read_u32_prop(ctx, obj, "hz", &hz, true, idx)) {
+      return false;
+    }
+    if (hz == 0) {
+      JS_ThrowRangeError(ctx, "gpio.setMany[%u] hz must be > 0", (unsigned)idx);
+      return false;
+    }
+  } else if (mode == EXERCIZER_GPIO_MODE_PULSE) {
+    if (!js_read_u32_prop(ctx, obj, "width_us", &width_us, true, idx) ||
+        !js_read_u32_prop(ctx, obj, "period_ms", &period_ms, true, idx)) {
+      return false;
+    }
+    if (width_us == 0 || period_ms == 0) {
+      JS_ThrowRangeError(ctx, "gpio.setMany[%u] width_us/period_ms must be > 0", (unsigned)idx);
+      return false;
+    }
+  }
+
+  memset(out, 0, sizeof(*out));
+  out->pin = (uint8_t)pin;
+  out->mode = mode;
+  out->hz = hz;
+  out->width_us = width_us;
+  out->period_ms = period_ms;
+  return true;
+}
+
+static JSValue js_gpio_set_many(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
+  (void)this_val;
+  if (argc < 1) {
+    return js_throw_ctrl(ctx, "gpio.setMany(list) requires 1 argument");
+  }
+  uint32_t len = 0;
+  JSValue len_val = JS_GetPropertyStr(ctx, argv[0], "length");
+  if (JS_IsException(len_val)) {
+    return JS_EXCEPTION;
+  }
+  if (JS_ToUint32(ctx, &len, len_val)) {
+    return JS_EXCEPTION;
+  }
+  for (uint32_t i = 0; i < len; i++) {
+    JSValue item = JS_GetPropertyUint32(ctx, argv[0], i);
+    if (JS_IsException(item)) {
+      return JS_EXCEPTION;
+    }
+    if (JS_IsUndefined(item) || JS_IsNull(item)) {
+      return JS_ThrowTypeError(ctx, "gpio.setMany[%u] must be object", (unsigned)i);
+    }
+    exercizer_gpio_config_t cfg = {};
+    bool ok = js_read_gpio_config_obj(ctx, item, &cfg, i);
+    if (!ok) {
+      return JS_EXCEPTION;
+    }
+
+    exercizer_ctrl_event_t ev = {
+        .type = EXERCIZER_CTRL_GPIO_SET,
+        .data_len = sizeof(cfg),
+    };
+    memcpy(ev.data, &cfg, sizeof(cfg));
+    if (!exercizer_control_send(&ev)) {
+      return js_throw_ctrl(ctx, "gpio.setMany: control plane not ready");
+    }
+  }
+  return JS_UNDEFINED;
+}
+
 static JSValue js_gpio_pulse(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
   (void)this_val;
   if (argc < 3) {
@@ -324,12 +472,24 @@ static JSValue js_gpio_pulse(JSContext* ctx, JSValue* this_val, int argc, JSValu
 
 static JSValue js_gpio_stop(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
   (void)this_val;
-  (void)argc;
-  (void)argv;
+  if (argc > 1) {
+    return js_throw_ctrl(ctx, "gpio.stop([pin]) accepts at most 1 argument");
+  }
   exercizer_ctrl_event_t ev = {
       .type = EXERCIZER_CTRL_GPIO_STOP,
       .data_len = 0,
   };
+  if (argc == 1) {
+    int pin = 0;
+    if (JS_ToInt32(ctx, &pin, argv[0])) {
+      return JS_EXCEPTION;
+    }
+    exercizer_gpio_stop_t stop = {
+        .pin = (uint8_t)pin,
+    };
+    ev.data_len = sizeof(stop);
+    memcpy(ev.data, &stop, sizeof(stop));
+  }
   if (!exercizer_control_send(&ev)) {
     return js_throw_ctrl(ctx, "gpio.stop: control plane not ready");
   }

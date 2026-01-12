@@ -9,6 +9,7 @@ extern "C" {
 
 #define EXERCIZER_CTRL_DATA_MAX 64
 #define EXERCIZER_I2C_WRITE_MAX 32
+#define EXERCIZER_GPIO_STOP_ALL 0xFF
 
 typedef enum {
     EXERCIZER_CTRL_GPIO_SET = 1,
@@ -33,6 +34,10 @@ typedef struct {
     uint32_t width_us;
     uint32_t period_ms;
 } exercizer_gpio_config_t;
+
+typedef struct {
+    uint8_t pin;
+} exercizer_gpio_stop_t;
 
 typedef struct {
     int8_t port;
