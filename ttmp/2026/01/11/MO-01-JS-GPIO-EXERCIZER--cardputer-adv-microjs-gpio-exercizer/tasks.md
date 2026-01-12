@@ -14,3 +14,14 @@
 - [x] Implement multi-channel GPIO engine for concurrent pins
 - [x] Add gpio.setMany + stop(pin) JS bindings and regenerate stdlib
 - [x] Rebuild exercizer firmware after multi-pin changes
+- [x] (2) Define JS protocol helper APIs (i2c.scan/readReg/writeReg, gpio burst if needed)
+- [x] (2) Add I2C scan control-plane event + engine implementation (probe range, log hits)
+- [x] (2) Implement JS helpers: i2c.scan/readReg/writeReg (+ wiring in stdlib generator)
+- [x] (2) Regenerate stdlib/atoms + sync into 0039 firmware
+- [ ] (2) Validate protocol helpers in REPL (scan + reg read/write)
+- [ ] (3) Design status/query API for active GPIO/I2C state (JS shape + control-plane transport)
+- [ ] (3) Implement status/query responses (engine snapshots + JS return objects)
+- [ ] (3) Validate status/query output in REPL
+- [ ] (1) Evaluate LEDC for multi-pin square wave backend + limits
+- [ ] (1) Prototype RMT backend for high-frequency pulse/burst patterns
+- [ ] (1) Integrate LEDC/RMT backends into GPIO engine + JS selection

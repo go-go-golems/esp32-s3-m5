@@ -91,3 +91,12 @@ Step 10: Flash + validate multi-pin GPIO on hardware
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/11/MO-01-JS-GPIO-EXERCIZER--cardputer-adv-microjs-gpio-exercizer/reference/01-diary.md — Record flash/monitor validation step
 
+
+## 2026-01-11
+
+Step 11: Add I2C scan + register helpers (commit 788ba5f)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp — I2C scan implementation
+

@@ -19,19 +19,31 @@ RelatedFiles:
     - Path: esp32-s3-m5/0039-cardputer-adv-js-gpio-exercizer/spiffs_image/.gitkeep
       Note: Track SPIFFS image dir so builds succeed on clean clones (commit 520973b)
     - Path: esp32-s3-m5/components/exercizer_control/include/exercizer/ControlPlaneTypes.h
-      Note: Stop-pin payload and STOP_ALL constant (commit 7203698)
+      Note: |-
+        Stop-pin payload and STOP_ALL constant (commit 7203698)
+        Add I2C scan control-plane payload (commit 788ba5f)
     - Path: esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp
       Note: Multi-channel GPIO scheduling and per-pin timers (commit 7203698)
+    - Path: esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp
+      Note: I2C scan implementation via i2c_master_probe (commit 788ba5f)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
-      Note: gpio.setMany + stop(pin) JS binding implementation (commit 7203698)
+      Note: |-
+        gpio.setMany + stop(pin) JS binding implementation (commit 7203698)
+        I2C scan/readReg/writeReg JS helpers (commit 788ba5f)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
-      Note: Expose gpio.setMany in stdlib generator (commit 7203698)
+      Note: |-
+        Expose gpio.setMany in stdlib generator (commit 7203698)
+        Expose new i2c helpers in stdlib table (commit 788ba5f)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T21:05:42-05:00
+LastUpdated: 2026-01-11T21:20:11-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
+
+
+
+
 
 
 
@@ -474,3 +486,51 @@ I also captured the monitor limitation in this shell environment: `idf_monitor` 
 - Example REPL usage:
   - `gpio.square(3, 1000); gpio.square(4, 250); gpio.pulse(5, 50, 5);`
   - `gpio.setMany([{ pin: 3, mode: "square", hz: 1000 }, { pin: 4, mode: "square", hz: 250 }])`
+
+## Step 11: Add I2C scan + register helpers (JS + engine)
+
+I added a new I2C scan control-plane event and JS protocol helpers for scanning and register reads/writes. This keeps the REPL ergonomics focused on protocol-style operations while still delegating timing and bus access to the engine layer.
+
+The scan runs inside the I2C engine using `i2c_master_probe` and logs hits, while `i2c.readReg` and `i2c.writeReg` are JS convenience wrappers over the existing TX/TXRX queue. I regenerated the MicroQuickJS stdlib/atom table and synced the runtime files into the `0039` firmware, then rebuilt successfully.
+
+**Commit (code):** 788ba5f — "Add I2C scan and register helpers"
+
+### What I did
+- Added `EXERCIZER_CTRL_I2C_SCAN` + `exercizer_i2c_scan_t` in control-plane types
+- Implemented `I2cEngine::Scan()` using `i2c_master_probe`
+- Added JS helpers: `i2c.scan`, `i2c.readReg`, `i2c.writeReg`
+- Updated stdlib generator and regenerated stdlib/atom headers
+- Synced generated runtime + stdlib into `0039` and rebuilt (`idf.py build`)
+
+### Why
+- Provide protocol-friendly I2C helpers without JS-side timing
+
+### What worked
+- `idf.py build` succeeds after the new helpers and scan event
+
+### What didn't work
+- Stdlib regeneration warning repeats:
+  - `Too many properties, consider increasing ATOM_ALIGN`
+
+### What I learned
+- `i2c_master_probe` allows scanning without switching the configured device handle
+
+### What was tricky to build
+- Keeping the JS helpers compatible with the MicroQuickJS API subset (no JS_FreeValue/JS_IsArray helpers)
+
+### What warrants a second pair of eyes
+- Verify scan range defaults and timeout choices are reasonable for common I2C peripherals
+
+### What should be done in the future
+- Validate `i2c.scan` and register helpers on hardware in the REPL
+
+### Code review instructions
+- Start in `esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp` (scan implementation)
+- Review JS helpers in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c`
+- Confirm stdlib generation sources in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c`
+
+### Technical details
+- Example REPL usage:
+  - `i2c.scan(0x08, 0x77, 50)`
+  - `i2c.writeReg(0x01, 0x80)`
+  - `i2c.readReg(0x00, 2)`
