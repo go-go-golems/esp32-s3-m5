@@ -17,6 +17,7 @@ typedef enum {
     EXERCIZER_CTRL_I2C_CONFIG = 3,
     EXERCIZER_CTRL_I2C_TXN = 4,
     EXERCIZER_CTRL_STATUS = 5,
+    EXERCIZER_CTRL_I2C_SCAN = 6,
 } exercizer_ctrl_type_t;
 
 typedef enum {
@@ -53,6 +54,12 @@ typedef struct {
     uint8_t read_len;
     uint8_t write[EXERCIZER_I2C_WRITE_MAX];
 } exercizer_i2c_txn_t;
+
+typedef struct {
+    uint8_t start_addr;
+    uint8_t end_addr;
+    int16_t timeout_ms;
+} exercizer_i2c_scan_t;
 
 typedef struct {
     uint8_t type;

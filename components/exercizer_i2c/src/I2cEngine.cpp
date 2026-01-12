@@ -79,6 +79,49 @@ bool I2cEngine::EnqueueTxn(const exercizer_i2c_txn_t &txn) {
   return xQueueSend(queue_, &txn, 0) == pdTRUE;
 }
 
+void I2cEngine::Scan(const exercizer_i2c_scan_t &scan) {
+  if (!bus_) {
+    ESP_LOGW(TAG, "i2c scan skipped; bus not configured");
+    return;
+  }
+
+  uint8_t start = scan.start_addr;
+  uint8_t end = scan.end_addr;
+  if (start == 0 && end == 0) {
+    start = 0x08;
+    end = 0x77;
+  }
+  if (start > 0x7f) {
+    start = 0x7f;
+  }
+  if (end > 0x7f) {
+    end = 0x7f;
+  }
+  if (start > end) {
+    uint8_t tmp = start;
+    start = end;
+    end = tmp;
+  }
+
+  int timeout_ms = scan.timeout_ms;
+  if (timeout_ms <= 0) {
+    timeout_ms = 50;
+  }
+
+  int found = 0;
+  for (uint8_t addr = start;; addr++) {
+    esp_err_t err = i2c_master_probe(bus_, addr, timeout_ms);
+    if (err == ESP_OK) {
+      ESP_LOGI(TAG, "i2c scan hit: addr=0x%02x", addr);
+      found++;
+    }
+    if (addr == end) {
+      break;
+    }
+  }
+  ESP_LOGI(TAG, "i2c scan done: start=0x%02x end=0x%02x found=%d", start, end, found);
+}
+
 void I2cEngine::HandleEvent(const exercizer_ctrl_event_t &ev) {
   if (ev.type == EXERCIZER_CTRL_I2C_CONFIG) {
     if (ev.data_len < sizeof(exercizer_i2c_config_t)) {
@@ -101,6 +144,16 @@ void I2cEngine::HandleEvent(const exercizer_ctrl_event_t &ev) {
     if (!EnqueueTxn(txn)) {
       ESP_LOGW(TAG, "i2c txn queue full");
     }
+  }
+
+  if (ev.type == EXERCIZER_CTRL_I2C_SCAN) {
+    if (ev.data_len < sizeof(exercizer_i2c_scan_t)) {
+      ESP_LOGW(TAG, "i2c scan payload too small (len=%u)", ev.data_len);
+      return;
+    }
+    exercizer_i2c_scan_t scan = {};
+    memcpy(&scan, ev.data, sizeof(scan));
+    Scan(scan);
   }
 }
 

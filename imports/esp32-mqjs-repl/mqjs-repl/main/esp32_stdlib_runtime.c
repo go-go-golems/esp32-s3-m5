@@ -538,6 +538,147 @@ static JSValue js_i2c_config(JSContext* ctx, JSValue* this_val, int argc, JSValu
   return JS_UNDEFINED;
 }
 
+static bool js_read_u8_value_or_array(JSContext *ctx, JSValue val, uint8_t *out, size_t max_len, size_t *out_len) {
+  if (!out || !out_len) {
+    return false;
+  }
+  *out_len = 0;
+  if (JS_IsNumber(ctx, val)) {
+    uint32_t b = 0;
+    if (JS_ToUint32(ctx, &b, val)) {
+      return false;
+    }
+    if (b > 0xff) {
+      JS_ThrowRangeError(ctx, "byte value must be 0..255");
+      return false;
+    }
+    if (max_len < 1) {
+      JS_ThrowRangeError(ctx, "buffer too small");
+      return false;
+    }
+    out[0] = (uint8_t)b;
+    *out_len = 1;
+    return true;
+  }
+  return js_read_u8_array(ctx, val, out, max_len, out_len);
+}
+
+static JSValue js_i2c_scan(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
+  (void)this_val;
+  int start = 0x08;
+  int end = 0x77;
+  int timeout_ms = 50;
+
+  if (argc == 1) {
+    if (JS_ToInt32(ctx, &end, argv[0])) {
+      return JS_EXCEPTION;
+    }
+  }
+  if (argc >= 2) {
+    if (JS_ToInt32(ctx, &start, argv[0]) ||
+        JS_ToInt32(ctx, &end, argv[1])) {
+      return JS_EXCEPTION;
+    }
+  }
+  if (argc >= 3) {
+    if (JS_ToInt32(ctx, &timeout_ms, argv[2])) {
+      return JS_EXCEPTION;
+    }
+  }
+  if (start < 0 || start > 0x7f || end < 0 || end > 0x7f) {
+    return JS_ThrowRangeError(ctx, "i2c.scan: addr range must be 0..0x7f");
+  }
+
+  exercizer_i2c_scan_t scan = {
+      .start_addr = (uint8_t)start,
+      .end_addr = (uint8_t)end,
+      .timeout_ms = (int16_t)timeout_ms,
+  };
+  exercizer_ctrl_event_t ev = {
+      .type = EXERCIZER_CTRL_I2C_SCAN,
+      .data_len = sizeof(scan),
+  };
+  memcpy(ev.data, &scan, sizeof(scan));
+  if (!exercizer_control_send(&ev)) {
+    return js_throw_ctrl(ctx, "i2c.scan: control plane not ready");
+  }
+  return JS_UNDEFINED;
+}
+
+static JSValue js_i2c_write_reg(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
+  (void)this_val;
+  if (argc < 2) {
+    return js_throw_ctrl(ctx, "i2c.writeReg(reg, value|bytes) requires 2 arguments");
+  }
+  int reg = 0;
+  if (JS_ToInt32(ctx, &reg, argv[0])) {
+    return JS_EXCEPTION;
+  }
+  if (reg < 0 || reg > 0xff) {
+    return JS_ThrowRangeError(ctx, "i2c.writeReg: reg must be 0..255");
+  }
+
+  uint8_t buf[EXERCIZER_I2C_WRITE_MAX] = {0};
+  size_t tail_len = 0;
+  if (!js_read_u8_value_or_array(ctx, argv[1], buf + 1, EXERCIZER_I2C_WRITE_MAX - 1, &tail_len)) {
+    return JS_EXCEPTION;
+  }
+  buf[0] = (uint8_t)reg;
+
+  exercizer_i2c_txn_t txn = {};
+  txn.write_len = (uint8_t)(tail_len + 1);
+  txn.read_len = 0;
+  memcpy(txn.write, buf, txn.write_len);
+
+  exercizer_ctrl_event_t ev = {
+      .type = EXERCIZER_CTRL_I2C_TXN,
+      .data_len = sizeof(txn),
+  };
+  memcpy(ev.data, &txn, sizeof(txn));
+  if (!exercizer_control_send(&ev)) {
+    return js_throw_ctrl(ctx, "i2c.writeReg: control plane not ready");
+  }
+  return JS_UNDEFINED;
+}
+
+static JSValue js_i2c_read_reg(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
+  (void)this_val;
+  if (argc < 1) {
+    return js_throw_ctrl(ctx, "i2c.readReg(reg, len=1) requires 1 argument");
+  }
+  int reg = 0;
+  int read_len = 1;
+  if (JS_ToInt32(ctx, &reg, argv[0])) {
+    return JS_EXCEPTION;
+  }
+  if (argc >= 2) {
+    if (JS_ToInt32(ctx, &read_len, argv[1])) {
+      return JS_EXCEPTION;
+    }
+  }
+  if (reg < 0 || reg > 0xff) {
+    return JS_ThrowRangeError(ctx, "i2c.readReg: reg must be 0..255");
+  }
+  if (read_len < 0 || read_len > EXERCIZER_I2C_WRITE_MAX) {
+    return JS_ThrowRangeError(ctx, "i2c.readReg: len must be 0..%u", EXERCIZER_I2C_WRITE_MAX);
+  }
+
+  exercizer_i2c_txn_t txn = {};
+  txn.write_len = 1;
+  txn.read_len = (uint8_t)read_len;
+  txn.write[0] = (uint8_t)reg;
+
+  exercizer_ctrl_event_t ev = {
+      .type = EXERCIZER_CTRL_I2C_TXN,
+      .data_len = sizeof(txn),
+  };
+  memcpy(ev.data, &txn, sizeof(txn));
+  if (!exercizer_control_send(&ev)) {
+    return js_throw_ctrl(ctx, "i2c.readReg: control plane not ready");
+  }
+  return JS_UNDEFINED;
+}
+
 static JSValue js_i2c_tx(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
   (void)this_val;
   if (argc < 1) {

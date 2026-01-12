@@ -114,6 +114,24 @@ static JSValue js_i2c_config(JSContext *ctx, JSValue *this_val, int argc, JSValu
     return JS_UNDEFINED;
 }
 
+static JSValue js_i2c_scan(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    (void)ctx; (void)this_val; (void)argc; (void)argv;
+    return JS_UNDEFINED;
+}
+
+static JSValue js_i2c_write_reg(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    (void)ctx; (void)this_val; (void)argc; (void)argv;
+    return JS_UNDEFINED;
+}
+
+static JSValue js_i2c_read_reg(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    (void)ctx; (void)this_val; (void)argc; (void)argv;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_i2c_tx(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     (void)ctx; (void)this_val; (void)argc; (void)argv;
