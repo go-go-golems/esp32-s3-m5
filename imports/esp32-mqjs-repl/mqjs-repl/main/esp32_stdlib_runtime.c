@@ -496,24 +496,46 @@ static JSValue js_gpio_stop(JSContext* ctx, JSValue* this_val, int argc, JSValue
   return JS_UNDEFINED;
 }
 
+static bool js_read_u32_prop_i2c(JSContext *ctx, JSValue obj, const char *name, uint32_t *out, bool required) {
+  JSValue v = JS_GetPropertyStr(ctx, obj, name);
+  if (JS_IsException(v)) {
+    return false;
+  }
+  if (JS_IsUndefined(v)) {
+    if (required) {
+      JS_ThrowTypeError(ctx, "i2c.config missing %s", name);
+      return false;
+    }
+    *out = 0;
+    return true;
+  }
+  if (JS_ToUint32(ctx, out, v)) {
+    return false;
+  }
+  return true;
+}
+
 static JSValue js_i2c_config(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
   (void)this_val;
-  if (argc < 5) {
-    return js_throw_ctrl(ctx, "i2c.config(port, sda, scl, addr, hz) requires 5 arguments");
+  if (argc != 1) {
+    return js_throw_ctrl(ctx, "i2c.config({sda, scl, addr, hz, port}) requires 1 object argument");
   }
-  int port = 0;
-  int sda = 0;
-  int scl = 0;
-  int addr = 0;
-  int hz = 0;
-  if (JS_ToInt32(ctx, &port, argv[0]) ||
-      JS_ToInt32(ctx, &sda, argv[1]) ||
-      JS_ToInt32(ctx, &scl, argv[2]) ||
-      JS_ToInt32(ctx, &addr, argv[3]) ||
-      JS_ToInt32(ctx, &hz, argv[4])) {
+  if (!JS_IsObject(argv[0])) {
+    return JS_ThrowTypeError(ctx, "i2c.config expects an object");
+  }
+  uint32_t port = 0;
+  uint32_t sda = 0;
+  uint32_t scl = 0;
+  uint32_t addr = 0;
+  uint32_t hz = 0;
+  if (!js_read_u32_prop_i2c(ctx, argv[0], "port", &port, false) ||
+      !js_read_u32_prop_i2c(ctx, argv[0], "sda", &sda, true) ||
+      !js_read_u32_prop_i2c(ctx, argv[0], "scl", &scl, true) ||
+      !js_read_u32_prop_i2c(ctx, argv[0], "addr", &addr, true) ||
+      !js_read_u32_prop_i2c(ctx, argv[0], "hz", &hz, true)) {
     return JS_EXCEPTION;
   }
-  if (addr < 0 || addr > 0x7f) {
+  if (addr > 0x7f) {
     return JS_ThrowRangeError(ctx, "i2c.config: addr must be 0..0x7f");
   }
   if (hz <= 0) {
@@ -525,7 +547,7 @@ static JSValue js_i2c_config(JSContext* ctx, JSValue* this_val, int argc, JSValu
       .sda = (uint8_t)sda,
       .scl = (uint8_t)scl,
       .addr = (uint8_t)addr,
-      .hz = (uint32_t)hz,
+      .hz = hz,
   };
   exercizer_ctrl_event_t ev = {
       .type = EXERCIZER_CTRL_I2C_CONFIG,
