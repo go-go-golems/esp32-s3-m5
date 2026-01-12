@@ -34,6 +34,8 @@ RelatedFiles:
         gpio.setMany + stop(pin) JS binding implementation (commit 7203698)
         I2C scan/readReg/writeReg JS helpers (commit 788ba5f)
         i2c.deconfig JS helper binding (commit 5ac692e)
+        i2c.config object-only API parsing (commit c3c219b)
+        i2c.config object-only API (commit c3c219b)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
       Note: |-
         Expose gpio.setMany in stdlib generator (commit 7203698)
@@ -41,10 +43,11 @@ RelatedFiles:
         Expose i2c.deconfig in stdlib table (commit 5ac692e)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T21:38:25-05:00
+LastUpdated: 2026-01-11T21:43:57-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
+
 
 
 
@@ -588,3 +591,47 @@ The engine now treats `i2c.config(...)` as a reconfiguration request, deconfigur
 - Example REPL usage:
   - `i2c.deconfig()`
   - `i2c.config({ sda: 1, scl: 2, hz: 400000, addr: 0x50 })`
+
+## Step 13: Switch i2c.config to object-only API
+
+I changed the JS binding so `i2c.config` only accepts an object argument, matching the self-describing style you want at the REPL. This keeps the API explicit and avoids ambiguous positional parameters, while still allowing an optional `port` field for multi-port boards.
+
+The change is localized to the JS runtime binding and the synced `0039` firmware copy. I attempted a build, but `idf.py` was not available in this shell environment.
+
+**Commit (code):** c3c219b — "Switch i2c.config to object API"
+
+### What I did
+- Added `js_read_u32_prop_i2c` helper for object property parsing
+- Updated `i2c.config` to require a single object argument with `sda/scl/addr/hz` and optional `port`
+- Synced the runtime file into `0039-cardputer-adv-js-gpio-exercizer`
+- Attempted `idf.py build`
+
+### Why
+- Make the I2C API self-explicit and reduce argument ordering mistakes in the REPL
+
+### What worked
+- Build logic compiles cleanly in the runtime code path
+
+### What didn't work
+- `idf.py build` failed because the tool wasn't on PATH:
+  - `zsh:1: command not found: idf.py`
+
+### What I learned
+- The object-based API feels more consistent with `gpio.setMany` style, and avoids positional confusion
+
+### What was tricky to build
+- Ensuring the property parser reports useful errors when required fields are missing
+
+### What warrants a second pair of eyes
+- Validate the error messaging and edge cases for missing/invalid object properties
+
+### What should be done in the future
+- Re-run `idf.py build` in an environment with ESP-IDF exported
+
+### Code review instructions
+- Start in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c` (js_i2c_config)
+- Confirm sync in `esp32-s3-m5/0039-cardputer-adv-js-gpio-exercizer/main/esp32_stdlib_runtime.c`
+
+### Technical details
+- Example REPL usage:
+  - `i2c.config({ sda: 3, scl: 4, hz: 40000, addr: 0x50 })`

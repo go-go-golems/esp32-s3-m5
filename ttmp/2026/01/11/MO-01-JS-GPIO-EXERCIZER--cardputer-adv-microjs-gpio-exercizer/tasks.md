@@ -33,3 +33,4 @@
 - [ ] (UART) Wire UART engine into app_main control task
 - [ ] (UART) Validate UART output on scope/logic analyzer (baud/format/break)
 - [x] (2) Add i2c.deconfig + allow reconfig in engine
+- [x] Switch i2c.config to object-only API (sda/scl/addr/hz/port)

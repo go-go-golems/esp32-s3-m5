@@ -109,3 +109,12 @@ Step 12: add I2C deconfig helper (commit 5ac692e)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp — Deconfig + reconfig handling
 
+
+## 2026-01-11
+
+Step 13: switch i2c.config to object-only API (commit c3c219b)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c — Object-based i2c.config parser
+
