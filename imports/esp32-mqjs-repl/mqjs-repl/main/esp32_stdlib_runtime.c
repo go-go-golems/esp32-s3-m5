@@ -520,7 +520,7 @@ static JSValue js_i2c_config(JSContext* ctx, JSValue* this_val, int argc, JSValu
   if (argc != 1) {
     return js_throw_ctrl(ctx, "i2c.config({sda, scl, addr, hz, port}) requires 1 object argument");
   }
-  if (!JS_IsObject(argv[0])) {
+  if (JS_IsNull(argv[0]) || JS_IsUndefined(argv[0])) {
     return JS_ThrowTypeError(ctx, "i2c.config expects an object");
   }
   uint32_t port = 0;
