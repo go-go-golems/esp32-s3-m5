@@ -1,0 +1,11 @@
+idf_component_register(
+  SRCS
+    "src/I2cEngine.cpp"
+  INCLUDE_DIRS
+    "include"
+  REQUIRES
+    exercizer_control
+    esp_driver_i2c
+    freertos
+    log
+)

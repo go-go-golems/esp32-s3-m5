@@ -1,0 +1,25 @@
+menu "mqjs-repl"
+
+choice MQJS_REPL_CONSOLE
+    prompt "REPL console transport"
+    default MQJS_REPL_CONSOLE_UART0
+    help
+        Select which transport the REPL uses for interactive input/output.
+
+config MQJS_REPL_CONSOLE_UART0
+    bool "UART0 (QEMU-friendly)"
+    help
+        Use the ESP-IDF UART driver on UART0 for REPL I/O.
+
+config MQJS_REPL_CONSOLE_USB_SERIAL_JTAG
+    bool "USB Serial/JTAG (Cardputer)"
+    help
+        Use the ESP32-S3 USB Serial/JTAG peripheral for REPL I/O (appears as /dev/ttyACM*).
+
+endchoice
+
+config MQJS_STDLIB_ESP32_GENERATED
+    bool
+    default y
+
+endmenu

@@ -1,0 +1,11 @@
+idf_component_register(
+  SRCS
+    "src/GpioEngine.cpp"
+  INCLUDE_DIRS
+    "include"
+  REQUIRES
+    exercizer_control
+    esp_driver_gpio
+    esp_timer
+    log
+)

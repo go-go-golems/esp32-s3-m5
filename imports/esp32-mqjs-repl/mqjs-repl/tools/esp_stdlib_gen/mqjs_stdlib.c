@@ -325,6 +325,28 @@ static const JSPropDef js_performance[] = {
 static const JSClassDef js_performance_obj =
     JS_OBJECT_DEF("Performance", js_performance);
 
+static const JSPropDef js_gpio[] = {
+    JS_CFUNC_DEF("high", 1, js_gpio_high),
+    JS_CFUNC_DEF("low", 1, js_gpio_low),
+    JS_CFUNC_DEF("square", 2, js_gpio_square),
+    JS_CFUNC_DEF("pulse", 3, js_gpio_pulse),
+    JS_CFUNC_DEF("stop", 0, js_gpio_stop),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_gpio_obj =
+    JS_OBJECT_DEF("gpio", js_gpio);
+
+static const JSPropDef js_i2c[] = {
+    JS_CFUNC_DEF("config", 5, js_i2c_config),
+    JS_CFUNC_DEF("tx", 1, js_i2c_tx),
+    JS_CFUNC_DEF("txrx", 2, js_i2c_txrx),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_i2c_obj =
+    JS_OBJECT_DEF("i2c", js_i2c);
+
 static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("Object", &js_object_class),
     JS_PROP_CLASS_DEF("Function", &js_function_class),
@@ -371,6 +393,8 @@ static const JSPropDef js_global_object[] = {
 
     JS_PROP_CLASS_DEF("console", &js_console_obj),
     JS_PROP_CLASS_DEF("performance", &js_performance_obj),
+    JS_PROP_CLASS_DEF("gpio", &js_gpio_obj),
+    JS_PROP_CLASS_DEF("i2c", &js_i2c_obj),
     JS_CFUNC_DEF("print", 1, js_print),
 #ifdef CONFIG_CLASS_EXAMPLE
     JS_PROP_CLASS_DEF("Rectangle", &js_rectangle_class),
