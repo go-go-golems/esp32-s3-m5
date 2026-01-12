@@ -73,3 +73,12 @@ Step 8: Stabilize control plane lifetime + esp_timer init (commit 520973b)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0039-cardputer-adv-js-gpio-exercizer/main/app_main.cpp — Keep control plane alive and tolerate esp_timer already-initialized state
 
+
+## 2026-01-11
+
+Step 9: Multi-pin GPIO engine + gpio.setMany JS API (commit 7203698)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp — Introduce multi-channel GPIO scheduling
+

@@ -18,12 +18,24 @@ RelatedFiles:
       Note: Persist control plane + engines after app_main (commit 520973b)
     - Path: esp32-s3-m5/0039-cardputer-adv-js-gpio-exercizer/spiffs_image/.gitkeep
       Note: Track SPIFFS image dir so builds succeed on clean clones (commit 520973b)
+    - Path: esp32-s3-m5/components/exercizer_control/include/exercizer/ControlPlaneTypes.h
+      Note: Stop-pin payload and STOP_ALL constant (commit 7203698)
+    - Path: esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp
+      Note: Multi-channel GPIO scheduling and per-pin timers (commit 7203698)
+    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
+      Note: gpio.setMany + stop(pin) JS binding implementation (commit 7203698)
+    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
+      Note: Expose gpio.setMany in stdlib generator (commit 7203698)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T20:36:14-05:00
+LastUpdated: 2026-01-11T20:55:06-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
+
+
+
+
 
 
 # Diary
@@ -366,3 +378,55 @@ With the control plane kept alive for the lifetime of the firmware, JS commands 
 - Errors captured:
   - `E (296) esp_timer: Task is already initialized`
   - `TypeError: gpio.square: control plane not ready`
+
+## Step 9: Add multi-pin GPIO engine + JS setMany
+
+I expanded the GPIO exercizer to run multiple pins concurrently by moving from a single-pin engine to a multi-channel model. This lets you drive separate square and pulse patterns on different GPIOs at the same time without the JS layer doing any timing.
+
+I also added a `gpio.setMany()` JS helper to batch multiple GPIO configs, updated the stop API to accept an optional pin, and regenerated the MicroQuickJS stdlib/atom table to keep bindings in sync. A small runtime fix was required because MicroQuickJS does not expose the full QuickJS free/array helpers.
+
+**Commit (code):** 7203698 — "Add multi-pin GPIO engine and setMany JS API"
+
+### What I did
+- Added `exercizer_gpio_stop_t` + `EXERCIZER_GPIO_STOP_ALL` to the control-plane types
+- Reworked `GpioEngine` to manage multiple channels (per-pin timers and config)
+- Implemented `gpio.setMany()` and optional `gpio.stop(pin)` in the JS runtime
+- Regenerated stdlib + atom headers and synced the generated stdlib into `0039`
+- Rebuilt the firmware (`idf.py build`)
+
+### Why
+- Enable concurrent GPIO patterns (3–4 pins) without JS-driven timing
+
+### What worked
+- Multi-channel engine compiles and links
+- `idf.py build` succeeds after binding/API fixes
+
+### What didn't work
+- Initial rebuild failed because MicroQuickJS lacks QuickJS helpers:
+  - `error: implicit declaration of function 'JS_FreeValue'`
+  - `error: too few arguments to function 'JS_IsString'`
+  - `error: implicit declaration of function 'JS_IsArray'`
+
+### What I learned
+- MicroQuickJS uses a smaller API surface (no `JS_FreeValue`, `JS_IsArray`, or `JS_IsObject`)
+- Using property lookup + length is the safest way to read arrays in this environment
+
+### What was tricky to build
+- Keeping per-pin timers stable while allowing rapid reconfiguration and stop-all behavior
+
+### What warrants a second pair of eyes
+- Timer load/jitter when multiple pins are active at higher frequencies
+- Channel allocation when more than `kMaxChannels` pins are requested
+
+### What should be done in the future
+- Consider LEDC/RMT backends if higher-frequency multi-pin accuracy is needed
+
+### Code review instructions
+- Start in `esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp` for the multi-channel scheduler
+- Review JS bindings in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c`
+- Validate with `idf.py build` and a REPL test
+
+### Technical details
+- Example:
+  - `gpio.setMany([{ pin: 3, mode: "square", hz: 1000 }, { pin: 4, mode: "pulse", width_us: 50, period_ms: 5 }])`
+  - `gpio.stop(4)` or `gpio.stop()` to stop all
