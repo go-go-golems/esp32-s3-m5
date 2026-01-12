@@ -30,8 +30,8 @@ bool I2cEngine::Start(size_t queue_len) {
 
 bool I2cEngine::ApplyConfig(const exercizer_i2c_config_t &cfg) {
   if (configured_) {
-    ESP_LOGW(TAG, "i2c already configured; ignoring reconfigure");
-    return false;
+    ESP_LOGI(TAG, "i2c reconfig requested; deconfiguring existing bus");
+    Deconfig();
   }
 
   i2c_master_bus_config_t bus_cfg = {};
@@ -122,6 +122,25 @@ void I2cEngine::Scan(const exercizer_i2c_scan_t &scan) {
   ESP_LOGI(TAG, "i2c scan done: start=0x%02x end=0x%02x found=%d", start, end, found);
 }
 
+void I2cEngine::Deconfig() {
+  if (dev_) {
+    esp_err_t err = i2c_master_bus_rm_device(dev_);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "i2c rm device failed: %s", esp_err_to_name(err));
+    }
+    dev_ = nullptr;
+  }
+  if (bus_) {
+    esp_err_t err = i2c_del_master_bus(bus_);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "i2c del bus failed: %s", esp_err_to_name(err));
+    }
+    bus_ = nullptr;
+  }
+  memset(&cfg_, 0, sizeof(cfg_));
+  configured_ = false;
+}
+
 void I2cEngine::HandleEvent(const exercizer_ctrl_event_t &ev) {
   if (ev.type == EXERCIZER_CTRL_I2C_CONFIG) {
     if (ev.data_len < sizeof(exercizer_i2c_config_t)) {
@@ -154,6 +173,10 @@ void I2cEngine::HandleEvent(const exercizer_ctrl_event_t &ev) {
     exercizer_i2c_scan_t scan = {};
     memcpy(&scan, ev.data, sizeof(scan));
     Scan(scan);
+  }
+
+  if (ev.type == EXERCIZER_CTRL_I2C_DECONFIG) {
+    Deconfig();
   }
 }
 

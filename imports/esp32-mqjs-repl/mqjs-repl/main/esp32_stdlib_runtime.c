@@ -679,6 +679,20 @@ static JSValue js_i2c_read_reg(JSContext* ctx, JSValue* this_val, int argc, JSVa
   return JS_UNDEFINED;
 }
 
+static JSValue js_i2c_deconfig(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
+  (void)this_val;
+  (void)argc;
+  (void)argv;
+  exercizer_ctrl_event_t ev = {
+      .type = EXERCIZER_CTRL_I2C_DECONFIG,
+      .data_len = 0,
+  };
+  if (!exercizer_control_send(&ev)) {
+    return js_throw_ctrl(ctx, "i2c.deconfig: control plane not ready");
+  }
+  return JS_UNDEFINED;
+}
+
 static JSValue js_i2c_tx(JSContext* ctx, JSValue* this_val, int argc, JSValue* argv) {
   (void)this_val;
   if (argc < 1) {

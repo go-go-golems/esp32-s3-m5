@@ -19,6 +19,7 @@ class I2cEngine {
   bool ApplyConfig(const exercizer_i2c_config_t &cfg);
   bool EnqueueTxn(const exercizer_i2c_txn_t &txn);
   void Scan(const exercizer_i2c_scan_t &scan);
+  void Deconfig();
 
   static void TaskEntry(void *arg);
 

@@ -18,6 +18,7 @@ typedef enum {
     EXERCIZER_CTRL_I2C_TXN = 4,
     EXERCIZER_CTRL_STATUS = 5,
     EXERCIZER_CTRL_I2C_SCAN = 6,
+    EXERCIZER_CTRL_I2C_DECONFIG = 7,
 } exercizer_ctrl_type_t;
 
 typedef enum {

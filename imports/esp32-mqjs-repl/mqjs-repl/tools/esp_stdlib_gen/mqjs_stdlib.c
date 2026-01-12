@@ -343,6 +343,7 @@ static const JSPropDef js_i2c[] = {
     JS_CFUNC_DEF("scan", 3, js_i2c_scan),
     JS_CFUNC_DEF("writeReg", 2, js_i2c_write_reg),
     JS_CFUNC_DEF("readReg", 2, js_i2c_read_reg),
+    JS_CFUNC_DEF("deconfig", 0, js_i2c_deconfig),
     JS_CFUNC_DEF("tx", 1, js_i2c_tx),
     JS_CFUNC_DEF("txrx", 2, js_i2c_txrx),
     JS_PROP_END,

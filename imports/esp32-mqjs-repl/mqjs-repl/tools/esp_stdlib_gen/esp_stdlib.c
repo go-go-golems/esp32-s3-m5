@@ -132,6 +132,12 @@ static JSValue js_i2c_read_reg(JSContext *ctx, JSValue *this_val, int argc, JSVa
     return JS_UNDEFINED;
 }
 
+static JSValue js_i2c_deconfig(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
+{
+    (void)ctx; (void)this_val; (void)argc; (void)argv;
+    return JS_UNDEFINED;
+}
+
 static JSValue js_i2c_tx(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 {
     (void)ctx; (void)this_val; (void)argc; (void)argv;
