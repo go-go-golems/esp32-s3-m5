@@ -100,3 +100,12 @@ Step 11: Add I2C scan + register helpers (commit 788ba5f)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp — I2C scan implementation
 
+
+## 2026-01-11
+
+Step 12: add I2C deconfig helper (commit 5ac692e)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp — Deconfig + reconfig handling
+

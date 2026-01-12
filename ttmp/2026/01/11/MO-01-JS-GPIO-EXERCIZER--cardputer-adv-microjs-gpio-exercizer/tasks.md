@@ -25,3 +25,11 @@
 - [ ] (1) Evaluate LEDC for multi-pin square wave backend + limits
 - [ ] (1) Prototype RMT backend for high-frequency pulse/burst patterns
 - [ ] (1) Integrate LEDC/RMT backends into GPIO engine + JS selection
+- [ ] (UART) Define JS UART API + framing options (uart.config/tx/txHex/break)
+- [ ] (UART) Add control-plane types for UART config + tx + break
+- [ ] (UART) Implement UART engine component (driver init, pin mux, tx queue)
+- [ ] (UART) Implement JS helpers + stdlib generator hooks
+- [ ] (UART) Regenerate stdlib/atoms + sync into 0039 firmware
+- [ ] (UART) Wire UART engine into app_main control task
+- [ ] (UART) Validate UART output on scope/logic analyzer (baud/format/break)
+- [x] (2) Add i2c.deconfig + allow reconfig in engine

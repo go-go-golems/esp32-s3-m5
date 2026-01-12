@@ -22,24 +22,32 @@ RelatedFiles:
       Note: |-
         Stop-pin payload and STOP_ALL constant (commit 7203698)
         Add I2C scan control-plane payload (commit 788ba5f)
+        Add I2C deconfig control-plane type (commit 5ac692e)
     - Path: esp32-s3-m5/components/exercizer_gpio/src/GpioEngine.cpp
       Note: Multi-channel GPIO scheduling and per-pin timers (commit 7203698)
     - Path: esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp
-      Note: I2C scan implementation via i2c_master_probe (commit 788ba5f)
+      Note: |-
+        I2C scan implementation via i2c_master_probe (commit 788ba5f)
+        I2C deconfig + reconfig handling (commit 5ac692e)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c
       Note: |-
         gpio.setMany + stop(pin) JS binding implementation (commit 7203698)
         I2C scan/readReg/writeReg JS helpers (commit 788ba5f)
+        i2c.deconfig JS helper binding (commit 5ac692e)
     - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/tools/esp_stdlib_gen/mqjs_stdlib.c
       Note: |-
         Expose gpio.setMany in stdlib generator (commit 7203698)
         Expose new i2c helpers in stdlib table (commit 788ba5f)
+        Expose i2c.deconfig in stdlib table (commit 5ac692e)
 ExternalSources: []
 Summary: Implementation diary for the Cardputer-ADV MicroQuickJS GPIO exercizer.
-LastUpdated: 2026-01-11T21:20:11-05:00
+LastUpdated: 2026-01-11T21:38:25-05:00
 WhatFor: Track implementation progress, failures, and validation steps for the JS GPIO exercizer firmware.
 WhenToUse: ""
 ---
+
+
+
 
 
 
@@ -534,3 +542,49 @@ The scan runs inside the I2C engine using `i2c_master_probe` and logs hits, whil
   - `i2c.scan(0x08, 0x77, 50)`
   - `i2c.writeReg(0x01, 0x80)`
   - `i2c.readReg(0x00, 2)`
+
+## Step 12: Add I2C deconfig + reconfig path
+
+I added an explicit `i2c.deconfig()` control-plane event and JS helper so the I2C bus can be torn down cleanly between tests. This lets us reconfigure pins or speed without rebooting, and keeps the REPL flow consistent when switching between devices.
+
+The engine now treats `i2c.config(...)` as a reconfiguration request, deconfiguring any existing bus/device and reinitializing cleanly. I regenerated the stdlib/atoms and synced the new runtime files into the `0039` firmware.
+
+**Commit (code):** 5ac692e — "Add I2C deconfig helper"
+
+### What I did
+- Added `EXERCIZER_CTRL_I2C_DECONFIG` to the control-plane types
+- Implemented `I2cEngine::Deconfig()` and used it for reconfiguration
+- Added `i2c.deconfig()` JS binding and stdlib generator entries
+- Regenerated stdlib/atoms and synced into `0039`
+
+### Why
+- Allow clean I2C teardown and pin/speed changes without restarting the firmware
+
+### What worked
+- `idf.py build` succeeds after the new helper and stdlib regeneration
+
+### What didn't work
+- Stdlib regeneration warning repeats:
+  - `Too many properties, consider increasing ATOM_ALIGN`
+
+### What I learned
+- A safe reconfig path is to remove the device first, then delete the bus and reset config state
+
+### What was tricky to build
+- Ensuring the deconfig path clears both device and bus handles in the correct order
+
+### What warrants a second pair of eyes
+- Confirm deconfig is only invoked when no in-flight I2C transactions are queued (control-plane sequencing)
+
+### What should be done in the future
+- Add a control-plane status response to confirm I2C idle state before reconfig
+
+### Code review instructions
+- Start in `esp32-s3-m5/components/exercizer_i2c/src/I2cEngine.cpp` (Deconfig + ApplyConfig)
+- Review JS binding in `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c`
+- Confirm control-plane type in `esp32-s3-m5/components/exercizer_control/include/exercizer/ControlPlaneTypes.h`
+
+### Technical details
+- Example REPL usage:
+  - `i2c.deconfig()`
+  - `i2c.config({ sda: 1, scl: 2, hz: 400000, addr: 0x50 })`
