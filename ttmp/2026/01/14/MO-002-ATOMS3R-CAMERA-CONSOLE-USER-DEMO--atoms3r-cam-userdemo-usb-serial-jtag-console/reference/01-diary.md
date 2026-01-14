@@ -413,6 +413,47 @@ This step pulls in the esp32-camera component locally, adds pin configuration an
 - **Commands**
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test build`
 
+## Step 9: Align 0041 camera init flow with UserDemo
+
+I compared the new 0041 camera-only app with the AtomS3R-CAM UserDemo and brought the init sequence closer to the demo’s behavior. The goal was to remove differences that could explain why our other firmware fails camera init.
+
+The updated 0041 app now performs the same GPIO18 power enable style, runs a SCCB/I2C scan before camera init, and applies the same sensor tuning (vflip/brightness/saturation adjustments) that the UserDemo uses.
+
+**Commit (code):** 5e8f1f4 — "Align 0041 camera init flow with UserDemo"
+
+### What I did
+- Added a SCCB/I2C bus scan before `esp_camera_init`, mirroring the demo’s scan.
+- Set the camera power GPIO pull-down mode like the demo’s `enable_camera_power`.
+- Applied the same sensor tuning logic from `camera_init.c` (vflip, brightness/saturation tweaks by PID).
+
+### Why
+- To make the camera-only probe behave like the known-good UserDemo implementation.
+
+### What worked
+- The project builds successfully after the alignment changes.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The UserDemo explicitly scans SCCB and configures GPIO18 pull-down before init; matching this sequence is safer for comparisons.
+
+### What was tricky to build
+- Keeping the alignment minimal while retaining the extra debug logging we need.
+
+### What warrants a second pair of eyes
+- Confirm that the SCCB scan doesn’t interfere with the sensor on your hardware (it should be non-invasive).
+
+### What should be done in the future
+- Flash 0041 and capture the SCCB scan + sensor ID logs for comparison.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c` for the SCCB scan and sensor tuning additions.
+
+### Technical details
+- **Command**
+- `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test build`
+
 ## Step 5: Bump esp_insights via project manifest and rebuild
 
 This step adds a project-level `idf_component.yml` to request a newer `esp_insights` release and refreshes managed dependencies. The dependency solver resolved to `esp_insights` 1.3.1 (not 1.2.2), and the subsequent build completed successfully with a generated `usb_webcam.bin`.
