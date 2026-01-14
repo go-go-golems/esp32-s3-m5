@@ -316,6 +316,47 @@ I also set the target to `esp32s3`, added explicit USB Serial/JTAG console defau
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test set-target esp32s3`
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test build`
 
+## Step 7: Attempt flash/monitor for 0041 and capture USB port failure
+
+I tried to flash and monitor the minimal JTAG Serial test firmware to validate USB Serial/JTAG enumeration, but the flash step failed because `/dev/ttyACM0` was busy or not present. The intent here was to move from a successful build to an on-device check.
+
+The failure indicates the port is either occupied by another process (monitor, modem manager, etc.) or the device enumerated under a different node. We need the correct port or an exclusive lock before proceeding.
+
+### What I did
+- Ran `idf.py flash monitor` for the 0041 project using the IDF 5.1.4 environment.
+
+### Why
+- To validate that the minimal firmware enumerates the USB Serial/JTAG console on real hardware.
+
+### What worked
+- The project rebuilt and generated the binary during the flash attempt.
+
+### What didn't work
+- Flash failed due to an unavailable port:
+  ```
+  A fatal error occurred: Could not open /dev/ttyACM0, the port is busy or doesn't exist.
+  ([Errno 11] Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable)
+  ```
+
+### What I learned
+- The current device node is either incorrect or locked; we need to identify the active USB device or free the port.
+
+### What was tricky to build
+- N/A (flash-stage failure).
+
+### What warrants a second pair of eyes
+- Confirm which device node the AtomS3R-CAM enumerates on this host when USB Serial/JTAG is enabled.
+
+### What should be done in the future
+- Retry flashing with the correct port once the device is free.
+
+### Code review instructions
+- N/A (no code changes in this step).
+
+### Technical details
+- **Command**
+- `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test -p /dev/ttyACM0 flash monitor`
+
 ## Step 5: Bump esp_insights via project manifest and rebuild
 
 This step adds a project-level `idf_component.yml` to request a newer `esp_insights` release and refreshes managed dependencies. The dependency solver resolved to `esp_insights` 1.3.1 (not 1.2.2), and the subsequent build completed successfully with a generated `usb_webcam.bin`.

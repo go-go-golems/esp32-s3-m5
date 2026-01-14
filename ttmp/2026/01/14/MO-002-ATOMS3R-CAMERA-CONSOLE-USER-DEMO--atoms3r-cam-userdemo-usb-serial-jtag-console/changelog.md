@@ -74,3 +74,8 @@ Step 6: Add 0041 minimal USB Serial/JTAG test firmware (commit f573748).
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Minimal USB Serial/JTAG tick loop.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults — Console defaults for USB Serial/JTAG.
 
+
+## 2026-01-14
+
+Step 7: Flash attempt failed due to /dev/ttyACM0 busy/not present.
+
