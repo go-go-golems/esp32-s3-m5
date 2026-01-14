@@ -99,3 +99,8 @@ Step 9: Align 0041 camera init flow with UserDemo (commit 5e8f1f4).
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — SCCB scan and sensor tuning aligned to UserDemo.
 
+
+## 2026-01-14
+
+Step 10: Flash attempt blocked by busy /dev/ttyACM0.
+

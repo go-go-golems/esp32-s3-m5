@@ -454,6 +454,45 @@ The updated 0041 app now performs the same GPIO18 power enable style, runs a SCC
 - **Command**
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test build`
 
+## Step 10: Flash attempt blocked by busy /dev/ttyACM0
+
+I attempted to flash and monitor the updated 0041 camera-only firmware, but the flash failed because the USB serial device was busy. This prevents verifying the camera init logs on hardware until the port is freed.
+
+### What I did
+- Ran `idf.py -p /dev/ttyACM0 flash monitor` for 0041 inside tmux.
+
+### Why
+- To validate the camera-only firmware and capture SCCB/sensor logs.
+
+### What worked
+- Build artifacts were ready; flashing started before the port lock failure.
+
+### What didn't work
+- Flash failed due to port lock:
+  ```
+  A fatal error occurred: Could not open /dev/ttyACM0, the port is busy or doesn't exist.
+  ([Errno 11] Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable)
+  ```
+
+### What I learned
+- Something else is holding `/dev/ttyACM0` (likely an existing monitor session).
+
+### What was tricky to build
+- N/A (flash-stage failure).
+
+### What warrants a second pair of eyes
+- Confirm which process owns `/dev/ttyACM0` before the next flash attempt.
+
+### What should be done in the future
+- Free `/dev/ttyACM0` and retry flashing to capture logs.
+
+### Code review instructions
+- N/A (no code changes in this step).
+
+### Technical details
+- **Command**
+- `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test -p /dev/ttyACM0 flash monitor`
+
 ## Step 5: Bump esp_insights via project manifest and rebuild
 
 This step adds a project-level `idf_component.yml` to request a newer `esp_insights` release and refreshes managed dependencies. The dependency solver resolved to `esp_insights` 1.3.1 (not 1.2.2), and the subsequent build completed successfully with a generated `usb_webcam.bin`.
