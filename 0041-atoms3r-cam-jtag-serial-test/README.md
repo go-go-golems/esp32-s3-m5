@@ -1,6 +1,7 @@
-# AtomS3R-CAM JTAG Serial Test
+# AtomS3R-CAM Camera Init Test
 
-Minimal ESP-IDF app that prints a 1 Hz tick on the USB Serial/JTAG console.
+Minimal ESP-IDF app that initializes the camera and logs frame metadata over
+USB Serial/JTAG. No Wi-Fi or USB UVC is included.
 
 ## Build
 
