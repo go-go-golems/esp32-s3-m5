@@ -364,6 +364,56 @@ The failure indicates the port is either occupied by another process (monitor, m
 - **Command**
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test -p /dev/ttyACM0 flash monitor`
 
+## Step 11: Flash 0041 camera-only firmware and capture init failure logs
+
+I flashed the updated 0041 camera-only firmware and captured the boot logs over USB Serial/JTAG. The firmware boots and the camera init path runs, but SCCB/I2C scan finds no devices and `esp_camera_init` fails with `ESP_ERR_NOT_FOUND`.
+
+The logs also show `PSRAM disabled (CONFIG_SPIRAM not set)` despite the defaults file, which suggests `sdkconfig` retained an older value. This likely affects frame buffer placement, but the failure happens earlier during sensor probe.
+
+### What I did
+- Flashed and monitored 0041 in a tmux session, then captured the boot logs.
+
+### Why
+- To verify whether the camera-only firmware can detect the sensor and capture frames.
+
+### What worked
+- Flash succeeded and the firmware booted to `app_main`.
+- The SCCB scan and camera config logging ran as expected.
+
+### What didn't work
+- SCCB scan found no devices and `esp_camera_init` failed:
+  ```
+  W (241) cam_test: sccb scan: no devices found
+  E (251) camera: Camera probe failed with error 0x105(ESP_ERR_NOT_FOUND)
+  E (251) cam_test: esp_camera_init failed: ESP_ERR_NOT_FOUND
+  ```
+- PSRAM reported disabled:
+  ```
+  W (241) cam_test: PSRAM disabled (CONFIG_SPIRAM not set)
+  ```
+
+### What I learned
+- The failure is at sensor probe time (SCCB), not frame capture.
+- The current `sdkconfig` is not honoring `CONFIG_SPIRAM=y` from defaults.
+
+### What was tricky to build
+- N/A (flash/boot outcome).
+
+### What warrants a second pair of eyes
+- Confirm whether the camera power rail is actually enabled on GPIO18 for the non‑M12 board.
+- Confirm whether `sdkconfig` needs regeneration to apply PSRAM defaults.
+
+### What should be done in the future
+- Regenerate `sdkconfig` (or `fullclean`) to force `CONFIG_SPIRAM=y`.
+- Reflash and recheck SCCB scan results.
+
+### Code review instructions
+- N/A (no code changes in this step).
+
+### Technical details
+- **Command**
+- `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test -p /dev/ttyACM0 flash monitor`
+
 ## Step 8: Add camera-only init/capture loop to 0041
 
 I replaced the minimal tick firmware with a camera-only probe app that initializes the AtomS3R-CAM sensor, logs configuration and sensor status, and captures frames in a loop. The goal is to isolate camera bring-up from Wi-Fi/USB so we can compare logs against the failing firmware.

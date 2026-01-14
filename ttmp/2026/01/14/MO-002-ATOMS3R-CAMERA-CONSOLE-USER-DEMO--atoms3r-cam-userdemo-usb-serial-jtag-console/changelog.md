@@ -104,3 +104,8 @@ Step 9: Align 0041 camera init flow with UserDemo (commit 5e8f1f4).
 
 Step 10: Flash attempt blocked by busy /dev/ttyACM0.
 
+
+## 2026-01-14
+
+Step 11: Flash 0041 and capture camera init failure logs (SCCB scan empty, ESP_ERR_NOT_FOUND).
+
