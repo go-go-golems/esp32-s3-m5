@@ -79,3 +79,14 @@ Step 6: Add 0041 minimal USB Serial/JTAG test firmware (commit f573748).
 
 Step 7: Flash attempt failed due to /dev/ttyACM0 busy/not present.
 
+
+## 2026-01-14
+
+Step 8: Add camera-only init/capture firmware in 0041 (commit efc7afc).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/Kconfig.projbuild — Camera pin/power Kconfig options.
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Camera init
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults — Camera/PSRAM/SCCB defaults.
+

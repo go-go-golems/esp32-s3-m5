@@ -36,8 +36,14 @@ RelatedFiles:
       Note: Project entry point for the minimal JTAG serial test firmware.
     - Path: 0041-atoms3r-cam-jtag-serial-test/README.md
       Note: Build/flash steps for the minimal test app.
+    - Path: 0041-atoms3r-cam-jtag-serial-test/dependencies.lock
+      Note: Component manager lockfile for the 0041 camera test.
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt
       Note: Registers the minimal main component.
+    - Path: 0041-atoms3r-cam-jtag-serial-test/main/Kconfig.projbuild
+      Note: Camera pin and power Kconfig options for the minimal probe app.
+    - Path: 0041-atoms3r-cam-jtag-serial-test/main/camera_pin.h
+      Note: AtomS3R-CAM pin definitions used by the camera-only app.
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
       Note: USB Serial/JTAG tick loop used to validate console enumeration.
     - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults
@@ -50,6 +56,7 @@ LastUpdated: 2026-01-14T17:03:20.928121044-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -356,6 +363,55 @@ The failure indicates the port is either occupied by another process (monitor, m
 ### Technical details
 - **Command**
 - `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test -p /dev/ttyACM0 flash monitor`
+
+## Step 8: Add camera-only init/capture loop to 0041
+
+I replaced the minimal tick firmware with a camera-only probe app that initializes the AtomS3R-CAM sensor, logs configuration and sensor status, and captures frames in a loop. The goal is to isolate camera bring-up from Wi-Fi/USB so we can compare logs against the failing firmware.
+
+This step pulls in the esp32-camera component locally, adds pin configuration and power GPIO controls, and adds verbose logging for SCCB/I2C, PSRAM, sensor IDs, and frame metadata. I also fixed a build break caused by an unnecessary esp_timer include.
+
+**Commit (code):** efc7afc — "Add camera-only test firmware for AtomS3R"
+
+### What I did
+- Copied the `esp32-camera` component into `0041-atoms3r-cam-jtag-serial-test/components`.
+- Added camera pin configuration (`camera_pin.h`) and a new `Kconfig.projbuild`.
+- Rewrote `main.c` to initialize the camera and capture frames with verbose logging.
+- Updated `sdkconfig.defaults` with camera, PSRAM, and SCCB defaults.
+- Updated `README.md` to reflect the camera test focus.
+
+### Why
+- We need a minimal camera-only firmware to diagnose sensor init failures without Wi-Fi/USB complexity.
+
+### What worked
+- The project builds successfully with IDF 5.1.4, producing `atoms3r_cam_jtag_serial_test.bin`.
+
+### What didn't work
+- Initial build failed due to a missing component dependency:
+  ```
+  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c:11:10: fatal error: esp_timer.h: No such file or directory
+  ```
+  I removed the unused include to fix it.
+
+### What I learned
+- The camera-only app can stay minimal without pulling in extra component dependencies.
+
+### What was tricky to build
+- Ensuring the new camera component and Kconfig options stayed minimal while still mirroring AtomS3R-CAM pin and SCCB settings.
+
+### What warrants a second pair of eyes
+- Validate that the chosen pixel format/framesize and power GPIO assumptions match the non-M12 AtomS3R-CAM board.
+
+### What should be done in the future
+- Flash and capture logs from the new camera-only firmware to compare sensor init behavior.
+
+### Code review instructions
+- Start at `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c` for the camera init flow and logging.
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/Kconfig.projbuild` for pin/power config options.
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults` for the default settings.
+
+### Technical details
+- **Commands**
+- `unset IDF_PYTHON_ENV_PATH; source /home/manuel/esp/esp-idf-5.1.4/export.sh; export IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.1_py3.11_env; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test build`
 
 ## Step 5: Bump esp_insights via project manifest and rebuild
 
