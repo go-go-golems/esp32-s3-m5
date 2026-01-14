@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
+#include "driver/i2c.h"
 #include "esp_camera.h"
 #include "esp_chip_info.h"
 #include "esp_err.h"
@@ -110,6 +111,70 @@ static int sccb_port_from_config(void)
 #endif
 }
 
+static void camera_sccb_scan(void)
+{
+#if CONFIG_SCCB_HARDWARE_I2C_PORT1
+    const i2c_port_t port = I2C_NUM_1;
+#else
+    const i2c_port_t port = I2C_NUM_0;
+#endif
+    ESP_LOGI(TAG, "sccb scan: port=%d sda=%d scl=%d freq=%u",
+             (int)port,
+             CAMERA_PIN_SIOD,
+             CAMERA_PIN_SIOC,
+             (unsigned)CONFIG_SCCB_CLK_FREQ);
+
+    i2c_config_t conf = {};
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = (gpio_num_t)CAMERA_PIN_SIOD;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_io_num = (gpio_num_t)CAMERA_PIN_SIOC;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = CONFIG_SCCB_CLK_FREQ;
+
+    esp_err_t err = i2c_param_config(port, &conf);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "sccb scan: i2c_param_config failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    bool installed = false;
+    err = i2c_driver_install(port, conf.mode, 0, 0, 0);
+    if (err == ESP_OK) {
+        installed = true;
+    } else if (err == ESP_ERR_INVALID_STATE) {
+        ESP_LOGW(TAG, "sccb scan: i2c driver already installed on port %d", (int)port);
+    } else {
+        ESP_LOGE(TAG, "sccb scan: i2c_driver_install failed: %s", esp_err_to_name(err));
+        return;
+    }
+
+    bool found = false;
+    for (int addr = 0x08; addr <= 0x77; ++addr) {
+        i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+        i2c_master_start(cmd);
+        i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
+        i2c_master_stop(cmd);
+        esp_err_t ret = i2c_master_cmd_begin(port, cmd, pdMS_TO_TICKS(50));
+        i2c_cmd_link_delete(cmd);
+        if (ret == ESP_OK) {
+            ESP_LOGI(TAG, "sccb scan: found device at 0x%02x", addr);
+            found = true;
+        }
+    }
+
+    if (!found) {
+        ESP_LOGW(TAG, "sccb scan: no devices found");
+    }
+
+    if (installed) {
+        err = i2c_driver_delete(port);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "sccb scan: i2c_driver_delete failed: %s", esp_err_to_name(err));
+        }
+    }
+}
+
 static bool psram_ready(void)
 {
 #if CONFIG_SPIRAM
@@ -140,6 +205,7 @@ static void camera_power_set(bool enable)
     const int gpio_num = CONFIG_ATOMS3R_CAMERA_POWER_GPIO;
     gpio_reset_pin(gpio_num);
     gpio_set_direction(gpio_num, GPIO_MODE_OUTPUT);
+    gpio_set_pull_mode(gpio_num, GPIO_PULLDOWN_ONLY);
     gpio_set_level(gpio_num, camera_power_gpio_level(enable));
     vTaskDelay(pdMS_TO_TICKS(10));
     ESP_LOGI(TAG, "camera power: gpio=%d active_low=%s level=%d",
@@ -210,6 +276,7 @@ static void log_sensor_status(const sensor_t *sensor)
 static esp_err_t camera_init_and_log(void)
 {
     const bool use_psram = psram_ready();
+    (void)use_psram;
 
     camera_config_t cfg = {
         .pin_pwdn     = CAMERA_PIN_PWDN,
@@ -234,14 +301,20 @@ static esp_err_t camera_init_and_log(void)
         .pixel_format = PIXFORMAT_RGB565,
         .frame_size   = FRAMESIZE_QVGA,
         .jpeg_quality = 14,
-        .fb_count     = use_psram ? 2 : 1,
+        .fb_count     = 2,
         .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
-        .fb_location  = use_psram ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM,
+        .fb_location  = CAMERA_FB_IN_PSRAM,
         .sccb_i2c_port = sccb_port_from_config(),
     };
 
     log_camera_component_options();
     ESP_LOGI(TAG, "camera module: %s", CAMERA_MODULE_NAME);
+    ESP_LOGI(TAG, "camera request: xclk=%u fmt=%s frame=%s quality=%d fb_count=%u",
+             (unsigned)cfg.xclk_freq_hz,
+             pixformat_name(cfg.pixel_format),
+             framesize_name(cfg.frame_size),
+             cfg.jpeg_quality,
+             (unsigned)cfg.fb_count);
     ESP_LOGI(TAG,
              "camera cfg: xclk=%u fmt=%s frame=%s quality=%d fb_count=%u fb_loc=%s sccb_port=%d",
              (unsigned)cfg.xclk_freq_hz,
@@ -291,6 +364,20 @@ static esp_err_t camera_init_and_log(void)
                  info->support_jpeg ? "yes" : "no");
     }
 
+    sensor->set_vflip(sensor, 1);
+    if (sensor->id.PID == OV3660_PID) {
+        sensor->set_brightness(sensor, 1);
+        sensor->set_saturation(sensor, -2);
+    }
+
+    if (sensor->id.PID == OV3660_PID || sensor->id.PID == OV2640_PID) {
+        sensor->set_vflip(sensor, 1);
+    } else if (sensor->id.PID == GC0308_PID) {
+        sensor->set_hmirror(sensor, 0);
+    } else if (sensor->id.PID == GC032A_PID) {
+        sensor->set_vflip(sensor, 1);
+    }
+
     log_sensor_status(sensor);
     return ESP_OK;
 }
@@ -320,6 +407,7 @@ void app_main(void)
     ESP_LOGI(TAG, "chip: model=%d rev=%d cores=%d", chip_info.model, chip_info.revision, chip_info.cores);
 
     camera_power_set(true);
+    camera_sccb_scan();
 
     esp_err_t err = camera_init_and_log();
     if (err != ESP_OK) {
