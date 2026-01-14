@@ -1,0 +1,31 @@
+menu "AtomS3R Camera Stream"
+
+    config ATOMS3R_STREAM_HOST
+        string "Default stream host"
+        default ""
+        help
+            Optional default host/IP for the WebSocket camera endpoint.
+            Leave empty and configure at runtime via the console.
+
+    config ATOMS3R_STREAM_PORT
+        int "Default stream port"
+        range 1 65535
+        default 8080
+        help
+            Default TCP port for ws://<host>:<port>/ws/camera.
+
+    config ATOMS3R_STREAM_INTERVAL_MS
+        int "Frame interval (ms)"
+        range 10 1000
+        default 66
+        help
+            Delay between frames (approx 15 fps at 66 ms).
+
+    config ATOMS3R_JPEG_QUALITY
+        int "JPEG quality (lower is higher quality)"
+        range 4 63
+        default 12
+        help
+            JPEG quality passed to frame2jpg. Lower values increase quality and size.
+
+endmenu

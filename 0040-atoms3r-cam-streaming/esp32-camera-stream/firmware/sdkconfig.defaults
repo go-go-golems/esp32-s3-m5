@@ -1,0 +1,18 @@
+# AtomS3R camera streaming firmware defaults.
+CONFIG_IDF_TARGET_ESP32S3=y
+
+# Console: USB Serial/JTAG (keep UART free).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+# CONFIG_ESP_CONSOLE_UART is not set
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+
+# PSRAM is required for camera frame buffers.
+CONFIG_ESP32S3_SPIRAM_SUPPORT=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+
+# Room for camera/websocket tasks.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Logs.
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y

@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "wifi_sta.c"
+        "console.c"
+        "stream_client.c"
+    PRIV_REQUIRES
+        esp_event
+        esp_timer
+        esp_wifi
+        esp_netif
+        nvs_flash
+        esp_websocket_client
+        esp_http_client
+        console
+        esp32-camera
+    INCLUDE_DIRS
+        "."
+)
