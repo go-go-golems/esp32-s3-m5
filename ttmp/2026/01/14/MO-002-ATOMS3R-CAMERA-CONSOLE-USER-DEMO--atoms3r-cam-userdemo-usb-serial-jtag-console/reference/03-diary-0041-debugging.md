@@ -14,6 +14,10 @@ Owners: []
 RelatedFiles:
     - Path: 0041-atoms3r-cam-jtag-serial-test/.envrc
       Note: Unset IDF_PYTHON_ENV_PATH for IDF 5.1.4
+    - Path: 0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt
+      Note: |-
+        Add esp_psram component requirement for CONFIG_SPIRAM builds
+        Add esp_psram component requirement for PSRAM builds
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
       Note: Step marker logs and power sweep instrumentation
     - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig
@@ -38,10 +42,11 @@ RelatedFiles:
       Note: User-provided Step 1 monitor output (IDF 5.1.4)
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T18:58:34-05:00
+LastUpdated: 2026-01-14T22:18:27-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -415,3 +420,41 @@ This was an intermediate attempt; the `.envrc` fix (Step 8) should prevent the P
 
 ### Technical details
 - Intended tmux run: `idf.py fullclean && idf.py build && idf.py -p /dev/ttyACM0 flash`, with a parallel `idf.py monitor` pane.
+
+## Step 10: Add esp_psram component requirement to fix build
+
+I addressed the missing `esp_psram.h` build error by adding the `esp_psram` component to the 0041 firmware’s component requirements. This should unblock compilation when PSRAM is enabled and allow the next build/flash step to proceed under IDF 5.1.4.
+
+This change focuses strictly on build plumbing; it does not alter runtime camera behavior, but it is required for the PSRAM initialization checks in `main.c` to compile.
+
+**Commit (code):** ad7e772 — "Build: require esp_psram component"
+
+### What I did
+- Added `esp_psram` to the `REQUIRES` list in `0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt`.
+
+### Why
+- The previous build failed with `fatal error: esp_psram.h: No such file or directory` after enabling `CONFIG_SPIRAM`.
+
+### What worked
+- N/A (change staged for the next build).
+
+### What didn't work
+- N/A (build/flash not run yet after this change).
+
+### What I learned
+- `esp_psram.h` is provided by the `esp_psram` component and must be listed in `REQUIRES` when included directly.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm that adding `esp_psram` to `REQUIRES` is sufficient for IDF 5.1.4 and does not introduce unwanted linkage or memory config changes.
+
+### What should be done in the future
+- Re-run the Step 3 build/flash/monitor workflow and capture logs.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt` and the `idf_component_register` `REQUIRES` list.
+
+### Technical details
+- Build error referenced: `fatal error: esp_psram.h: No such file or directory`.

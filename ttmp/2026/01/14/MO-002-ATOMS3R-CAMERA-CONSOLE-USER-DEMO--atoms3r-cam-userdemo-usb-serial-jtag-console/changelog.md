@@ -219,3 +219,12 @@ Noted attempted Step 3 tmux rebuild/flash; no logs captured, rerun pending.
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/reference/03-diary-0041-debugging.md — Diary Step 9
 
+
+## 2026-01-14
+
+Step 10: add esp_psram component requirement (commit ad7e772)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt — Fix build error for esp_psram.h include
+
