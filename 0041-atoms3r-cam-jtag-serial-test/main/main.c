@@ -297,7 +297,19 @@ static void log_sensor_status(const sensor_t *sensor)
 static esp_err_t camera_init_and_log(void)
 {
     const bool use_psram = psram_ready();
-    (void)use_psram;
+    framesize_t frame_size = FRAMESIZE_QVGA;
+    int fb_count = 2;
+    camera_fb_location_t fb_location = CAMERA_FB_IN_PSRAM;
+
+    if (!use_psram) {
+        frame_size = FRAMESIZE_QQVGA;
+        fb_count = 1;
+        fb_location = CAMERA_FB_IN_DRAM;
+        ESP_LOGW(TAG,
+                 "PSRAM unavailable; fallback to DRAM (frame=%s fb_count=%d)",
+                 framesize_name(frame_size),
+                 fb_count);
+    }
 
     camera_config_t cfg = {
         .pin_pwdn     = CAMERA_PIN_PWDN,
@@ -320,11 +332,11 @@ static esp_err_t camera_init_and_log(void)
         .ledc_timer   = LEDC_TIMER_0,
         .ledc_channel = LEDC_CHANNEL_0,
         .pixel_format = PIXFORMAT_RGB565,
-        .frame_size   = FRAMESIZE_QVGA,
+        .frame_size   = frame_size,
         .jpeg_quality = 14,
-        .fb_count     = 2,
+        .fb_count     = fb_count,
         .grab_mode    = CAMERA_GRAB_WHEN_EMPTY,
-        .fb_location  = CAMERA_FB_IN_PSRAM,
+        .fb_location  = fb_location,
         .sccb_i2c_port = sccb_port_from_config(),
     };
 
