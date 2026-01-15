@@ -258,6 +258,8 @@ I captured the monitor output you provided from an IDF 5.1.4 build, stored it as
 
 The log shows that SCCB scans did not detect any devices, yet the camera probe later detects a GC0308 at address 0x21. The init then fails because PSRAM is disabled, and the driver cannot allocate a 153,600-byte frame buffer in PSRAM. This points to a configuration mismatch between `sdkconfig.defaults` (PSRAM enabled) and the actual build `sdkconfig` (PSRAM disabled).
 
+**Commit (code):** 2623249 — "Debug Step 1: import IDF 5.1.4 monitor log"
+
 ### What I did
 - Saved the provided monitor output to `various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log`.
 - Fixed a syntax error in `import_log.py` and re-imported the log into sqlite.
