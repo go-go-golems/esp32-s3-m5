@@ -228,3 +228,12 @@ Step 10: add esp_psram component requirement (commit ad7e772)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt — Fix build error for esp_psram.h include
 
+
+## 2026-01-14
+
+Update analysis PSRAM notes after restoring UserDemo sdkconfig
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md — Refresh PSRAM alignment statements
+

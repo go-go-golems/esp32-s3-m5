@@ -28,7 +28,7 @@ RelatedFiles:
       Note: 0041 console
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T18:53:21.311480709-05:00
+LastUpdated: 2026-01-14T22:28:35-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -61,7 +61,7 @@ Camera frames are large. A QVGA RGB565 frame is 320 * 240 * 2 bytes = 153,600 by
 - `CAMERA_FB_IN_PSRAM`: store frame buffers in external PSRAM (requires `CONFIG_SPIRAM=y`).
 - `CAMERA_FB_IN_DRAM`: store buffers in internal DRAM (fast but limited).
 
-If `CAMERA_FB_IN_PSRAM` is selected while `CONFIG_SPIRAM` is disabled, buffer allocation may fail, or it may silently fall back to DRAM depending on the driver version. This is why the UserDemo config mismatch is a serious risk even though the firmware appears to work.
+If `CAMERA_FB_IN_PSRAM` is selected while `CONFIG_SPIRAM` is disabled, buffer allocation may fail, or it may silently fall back to DRAM depending on the driver version. This is why PSRAM enablement must match `fb_location`, especially when the firmware relies on PSRAM-sized buffers.
 
 ### What `esp_camera_init()` actually does
 
@@ -299,7 +299,7 @@ UserDemo:
 
 **0041:** calls `camera_init_and_log()` with the same parameters, but includes additional logging and explicit `sccb_i2c_port`.
 
-**Implication:** the core configuration is the same. Differences are logging, SCCB scan ordering, and PSRAM setup.
+**Implication:** the core configuration is the same. Differences are logging, SCCB scan ordering, and PSRAM validation (0041 logs PSRAM status before init).
 
 **Config equivalence check (both):**
 - `xclk_freq_hz = 20000000`
@@ -390,11 +390,10 @@ UserDemo:
    - If the power gate is not active-low, 0041 will keep the camera off.
    - If the power gate is active-low (likely), UserDemo’s implicit low level is sufficient, while 0041 depends on `CONFIG_ATOMS3R_CAMERA_POWER_ACTIVE_LOW`.
 
-2) **PSRAM enablement and buffer location**
-   - UserDemo config sets `CAMERA_FB_IN_PSRAM` but `CONFIG_SPIRAM` is disabled.
-   - 0041 enables PSRAM explicitly and relies on PSRAM for buffers.
-   - A PSRAM hardware or config mismatch can break 0041 while UserDemo still appears to work.
-   - If PSRAM fails to init on 0041, frame buffer allocation can fail and `esp_camera_init()` will return errors (often `ESP_ERR_NO_MEM`).
+2) **PSRAM availability and active sdkconfig**
+   - UserDemo now has `CONFIG_SPIRAM=y` and uses `CAMERA_FB_IN_PSRAM`.
+   - 0041 must also have `CONFIG_SPIRAM=y` in the active `sdkconfig` (not just defaults), or frame buffer allocation will fail.
+   - If PSRAM fails to init on 0041 (hardware or config), frame buffer allocation can fail and `esp_camera_init()` will return errors (often `ESP_ERR_NO_MEM`).
 
 3) **SCCB pre-scan timing and I2C ownership**
    - 0041 installs and deletes an I2C driver on the camera pins before `esp_camera_init()`.
@@ -663,11 +662,11 @@ Key camera and console options:
 - `CONFIG_CAMERA_DMA_BUFFER_SIZE_MAX=32768`
 - `CONFIG_CAMERA_JPEG_MODE_FRAME_SIZE_AUTO=y`
 - `CONFIG_CAMERA_CONVERTER_ENABLED` is not set
-- `CONFIG_SPIRAM` is not set (PSRAM disabled in sdkconfig)
+- `CONFIG_SPIRAM=y` (PSRAM enabled)
 - Console uses UART0 (`CONFIG_ESP_CONSOLE_UART=y`), USB Serial/JTAG enabled as secondary.
 - UVC uses isochronous mode and frame sizes defined in `uvc_frame_config.h` via sdkconfig.
 
-Note: Camera frame buffers are configured as `CAMERA_FB_IN_PSRAM` even though `CONFIG_SPIRAM` is disabled. The working firmware suggests PSRAM is actually available at runtime, but this is a configuration mismatch worth flagging.
+Note: Camera frame buffers are configured as `CAMERA_FB_IN_PSRAM`, and PSRAM is enabled in the restored UserDemo `sdkconfig`. If runtime logs still report PSRAM disabled, verify the build picked up the correct `sdkconfig` and IDF environment.
 
 ## 0041: initialization phases (order as executed in `app_main`)
 
@@ -737,10 +736,10 @@ Both firmwares use the same `esp_camera_init()` driver behavior:
    - 0041 explicitly sets level with an active-low assumption.
    - If the power gate is active-high, UserDemo would never enable the camera; the fact that it works suggests active-low is correct, but this is an implicit dependency.
 
-2) **PSRAM configuration mismatch (UserDemo)**
-   - UserDemo sets `CAMERA_FB_IN_PSRAM` but `CONFIG_SPIRAM` is disabled in sdkconfig.
-   - If the build truly has PSRAM disabled, camera init would likely fail or allocate in DRAM unexpectedly.
-   - 0041 explicitly enables PSRAM and also logs PSRAM status.
+2) **PSRAM configuration alignment**
+   - UserDemo `sdkconfig` now enables `CONFIG_SPIRAM=y` and uses PSRAM buffers.
+   - Ensure 0041 is built with the same active `sdkconfig` (not just defaults), or PSRAM allocation can fail at `esp_camera_init()`.
+   - 0041 logs PSRAM status before init, which should match the UserDemo build behavior.
 
 3) **SCCB pre-scan**
    - 0041 performs an SCCB scan before `esp_camera_init()`.

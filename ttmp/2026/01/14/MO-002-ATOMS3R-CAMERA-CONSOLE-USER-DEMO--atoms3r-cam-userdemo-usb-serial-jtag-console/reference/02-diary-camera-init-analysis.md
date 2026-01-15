@@ -16,7 +16,7 @@ RelatedFiles:
       Note: Detailed camera init comparison produced in this step
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T18:53:24.767269269-05:00
+LastUpdated: 2026-01-14T22:28:35-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -81,6 +81,44 @@ The main outcome was a single, end-to-end map of all camera-related init phases 
 ### Technical details
 - Key commands: `rg -n "app_main" -S main`, `sed -n '1,240p' main/usb_webcam_main.cpp`, `sed -n '1,200p' main/utils/camera/camera_init.c`, `diff -u .../camera_pin.h .../camera_pin.h`.
 - Key config checks: `rg -n "CONFIG_(ESP_CONSOLE|CAMERA_|SCCB|SPIRAM|UVC|USB|WIFI)" sdkconfig` in both projects.
+
+## Step 3: Update PSRAM notes after restoring UserDemo sdkconfig
+
+I re-checked the UserDemo `sdkconfig` after it was restored and updated the analysis to remove the stale PSRAM mismatch statements. The document now reflects that UserDemo has `CONFIG_SPIRAM=y` and that PSRAM alignment is a build-time requirement for 0041 rather than a permanent difference between the two projects.
+
+This keeps the comparison accurate and avoids anchoring on a mismatch that no longer exists in the working firmware configuration.
+
+### What I did
+- Re-validated `ATOMS3R-CAM-UserDemo/sdkconfig` for PSRAM settings.
+- Updated the analysis doc sections that previously claimed UserDemo had `CONFIG_SPIRAM` disabled.
+
+### Why
+- The user restored the correct UserDemo `sdkconfig`, so the analysis needed to match current reality.
+
+### What worked
+- PSRAM notes now align with the restored configuration.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The analysis needs to treat PSRAM alignment as a build/active-sdkconfig concern, not a permanent project difference.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the updated PSRAM statements match the latest UserDemo `sdkconfig` and the 0041 active `sdkconfig` path used during builds.
+
+### What should be done in the future
+- If the UserDemo sdkconfig changes again, re-check the PSRAM comparison for drift.
+
+### Code review instructions
+- Start in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md`.
+- Verify the PSRAM sections and the UserDemo configuration highlights.
+
+### Technical details
+- Command: `rg -n "CONFIG_SPIRAM|ESP PSRAM" /home/manuel/workspaces/2025-12-21/echo-base-documentation/ATOMS3R-CAM-UserDemo/sdkconfig`.
 
 ## Step 2: Add a textbook-style camera pipeline background section
 
