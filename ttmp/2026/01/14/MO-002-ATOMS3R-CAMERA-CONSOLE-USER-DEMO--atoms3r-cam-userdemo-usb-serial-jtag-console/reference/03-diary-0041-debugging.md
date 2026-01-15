@@ -14,6 +14,10 @@ Owners: []
 RelatedFiles:
     - Path: 0041-atoms3r-cam-jtag-serial-test/.envrc
       Note: Unset IDF_PYTHON_ENV_PATH for IDF 5.1.4
+    - Path: 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c
+      Note: Driver probe order explains SCCB scan discrepancy
+    - Path: 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/sccb.c
+      Note: SCCB_Probe implementation details
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/CMakeLists.txt
       Note: |-
         Add esp_psram component requirement for CONFIG_SPIRAM builds
@@ -48,10 +52,11 @@ RelatedFiles:
       Note: User-provided successful PSRAM-aligned monitor log
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T16:03:18-05:00
+LastUpdated: 2026-01-15T16:07:20-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -739,3 +744,43 @@ The log still shows SCCB scans reporting no devices, but the driver probe and ca
 ### Technical details
 - Log: `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-17-psram-align-monitor-user.log`.
 - Import command: `python3 .../import_log.py --run-name run-2026-01-15-0041-step17-psram-align-user --step-name "Step 3: camera init (PSRAM aligned)" --log .../step-17-psram-align-monitor-user.log --ticket MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO --firmware 0041-atoms3r-cam-jtag-serial-test --git-hash 388a848 --idf-version 5.1.4 --device-port /dev/ttyACM0 --result success`.
+
+## Step 18: Trace SCCB probe behavior in esp32-camera
+
+I traced the SCCB probe path inside the esp32-camera driver to explain why our pre-init I2C scan reports no devices while the driver still detects the sensor. The key difference is that the driver enables XCLK before probing and uses a known-address probe with a longer timeout; our scan runs before XCLK and uses a short timeout across all addresses.
+
+This provides closure on the SCCB scan discrepancy and frames it as an expected artifact of when and how the scan runs rather than a functional failure.
+
+### What I did
+- Read `esp_camera.c` to follow the `camera_probe()` sequence and confirm XCLK is enabled before `SCCB_Probe()`.
+- Read `sccb.c` to document how `SCCB_Probe()` performs address probing and timeouts.
+- Updated the analysis doc with a “SCCB scan discrepancy deep dive” section.
+
+### Why
+- The user requested closure on why the SCCB scan reports no devices even though the camera works.
+
+### What worked
+- The driver probe sequence explains the behavior: XCLK is on, probe uses known addresses, 1-second timeout.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Without XCLK, many sensors will not ACK SCCB; our scan happens before XCLK is enabled.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm whether any sensors used on AtomS3R-CAM can ACK SCCB without XCLK (to validate the conclusion).
+
+### What should be done in the future
+- Decide whether to move or remove the pre-init SCCB scan now that we understand its false-negative behavior.
+
+### Code review instructions
+- Start in `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c` at `camera_probe()`.
+- Review `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/sccb.c` for `SCCB_Probe()`.
+- Review the updated analysis section in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md`.
+
+### Technical details
+- Commands: `rg -n "SCCB_Probe|SCCB_Init" 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver`, `sed -n '140,260p' .../esp_camera.c`, `sed -n '1,140p' .../sccb.c`.

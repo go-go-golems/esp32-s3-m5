@@ -16,7 +16,7 @@ RelatedFiles:
       Note: Detailed camera init comparison produced in this step
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T15:57:07-05:00
+LastUpdated: 2026-01-15T16:07:20-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -157,6 +157,44 @@ This keeps the analysis aligned with the current debugging direction and avoids 
 
 ### Technical details
 - No commands run; documentation-only update.
+
+## Step 5: Document SCCB scan discrepancy and driver probe behavior
+
+I added a deep-dive section to the analysis document explaining how the esp32-camera driver probes SCCB and why the 0041 pre-init scan reports no devices even when the camera works. The new section ties the false-negative scan to XCLK timing and the driver’s known-address probe strategy.
+
+This clarifies the discrepancy as an expected artifact rather than a functional fault, and it provides closure on the SCCB scan question.
+
+### What I did
+- Read the driver probe path in `esp_camera.c` and `sccb.c`.
+- Added a “SCCB scan discrepancy deep dive” section to the analysis.
+
+### Why
+- The user requested closure on why the SCCB scan does not find devices while the camera probe succeeds.
+
+### What worked
+- The analysis now explains the XCLK-before-probe ordering and the `SCCB_Probe()` address strategy.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The camera driver uses a known-address probe with a long timeout and requires XCLK to be running.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Validate that the conclusions about XCLK gating apply to the GC0308 used in AtomS3R-CAM.
+
+### What should be done in the future
+- If we keep SCCB scans, move them to a phase where XCLK is enabled.
+
+### Code review instructions
+- Start in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md` in the SCCB deep dive section.
+- Reference `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c` and `.../sccb.c`.
+
+### Technical details
+- Commands: `rg -n "SCCB_Probe|SCCB_Init" .../esp_camera.c .../sccb.c`, `sed -n '140,260p' .../esp_camera.c`, `sed -n '1,140p' .../sccb.c`.
 
 ## Step 2: Add a textbook-style camera pipeline background section
 

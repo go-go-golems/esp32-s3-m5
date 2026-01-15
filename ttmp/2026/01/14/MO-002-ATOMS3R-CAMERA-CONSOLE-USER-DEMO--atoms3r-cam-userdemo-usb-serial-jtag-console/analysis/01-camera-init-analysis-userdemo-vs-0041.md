@@ -20,6 +20,10 @@ RelatedFiles:
       Note: UserDemo init order and hardware bring-up
     - Path: ../../../../../../../ATOMS3R-CAM-UserDemo/main/utils/camera/camera_init.c
       Note: UserDemo camera_config_t setup and sensor tweaks
+    - Path: 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c
+      Note: Driver probe order (XCLK before SCCB probe)
+    - Path: 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/sccb.c
+      Note: SCCB_Probe implementation and timeouts
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/camera_pin.h
       Note: Camera pin map used by 0041 (matches UserDemo)
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
@@ -28,10 +32,11 @@ RelatedFiles:
       Note: 0041 console
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T15:57:07-05:00
+LastUpdated: 2026-01-15T16:06:51-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Camera Init Analysis: UserDemo vs 0041
@@ -746,6 +751,40 @@ Both firmwares use the same `esp_camera_init()` driver behavior:
 3) **SCCB pre-scan**
    - 0041 performs an SCCB scan before `esp_camera_init()`.
    - This is a useful diagnostic step, but it adds I2C driver install/delete and a timing difference vs UserDemo.
+   - The camera driver does not run a full bus scan; it enables XCLK first and probes only known SCCB addresses with a longer timeout (details below).
+
+### SCCB scan discrepancy deep dive (why 0041 scan returns “no devices”)
+
+The camera driver does **not** do a generic I2C scan. The probe happens inside `camera_probe()` after XCLK is enabled, and it calls `SCCB_Probe()` which tries **only known camera addresses** with a 1-second timeout per address.
+
+**Driver probe sequence (simplified):**
+```
+if pin_xclk >= 0:
+  CAMERA_ENABLE_OUT_CLOCK()        // start XCLK (LEDC)
+SCCB_Init(sda, scl)                 // config I2C pins + pullups
+vTaskDelay(10ms)
+slv_addr = SCCB_Probe()             // try known camera addresses
+```
+
+**SCCB_Probe() (simplified):**
+```
+for addr in camera_sensor[].sccb_addr (deduped):
+  write addr (ACK_CHECK_EN)
+  if ESP_OK: return addr
+return 0
+```
+
+**Key differences vs 0041 `camera_sccb_scan()`:**
+1) **XCLK is ON in the driver probe.** Our scan runs before `esp_camera_init()`, so XCLK is **off**. Many sensors will not ACK SCCB unless XCLK is present.
+2) **Address set:** driver probes only known camera SCCB addresses (e.g., 0x21 for GC0308) rather than all 0x08–0x77.
+3) **Timeout:** driver uses `i2c_master_cmd_begin(..., 1000 / portTICK_RATE_MS)` (≈1s). Our scan uses `pdMS_TO_TICKS(50)`.
+
+**Conclusion:** the “no devices found” scan in 0041 is expected when XCLK is off. The camera driver later succeeds because it enables XCLK first and then probes using `SCCB_Probe()` with longer timeouts.
+
+**Closure options (if we want the scan to succeed):**
+- Move the scan **after** XCLK is enabled (or after `esp_camera_init()`), or
+- Replace the generic scan with a `SCCB_Probe()`-style probe that runs after XCLK starts, or
+- Keep the scan but treat it as “pre-XCLK only” and expect false negatives.
 
 4) **UVC-driven reinit (UserDemo)**
    - UVC start callback can reinitialize the camera with new frame sizes and JPEG quality values.
