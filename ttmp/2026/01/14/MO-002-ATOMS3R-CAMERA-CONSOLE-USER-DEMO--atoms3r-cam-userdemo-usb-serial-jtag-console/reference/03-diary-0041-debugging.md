@@ -14,6 +14,8 @@ Owners: []
 RelatedFiles:
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
       Note: Step marker logs and power sweep instrumentation
+    - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig
+      Note: Enabled CONFIG_SPIRAM for PSRAM allocation
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md
       Note: Debugging plan and analysis context for 0041
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/README.md
@@ -26,6 +28,8 @@ RelatedFiles:
       Note: Log import utility
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/schema.sql
       Note: Debug sqlite schema
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/tasks.md
+      Note: Added SCCB scan investigation task
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-01-power-sweep-flash.log
       Note: Step 1 flash log
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log
@@ -36,6 +40,7 @@ LastUpdated: 2026-01-14T18:58:34-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -293,3 +298,41 @@ The log shows that SCCB scans did not detect any devices, yet the camera probe l
 
 ### Technical details
 - Import command: `python3 .../import_log.py --run-name run-2026-01-14-0041-step1-idf514 --log .../step-01-power-sweep-monitor-idf5.1.4-user.log`.
+
+## Step 7: Enable PSRAM in active sdkconfig and add SCCB scan task
+
+I flipped `CONFIG_SPIRAM` on in the active `sdkconfig` for the 0041 firmware to address the PSRAM allocation failure seen in the IDF 5.1.4 log. This aligns the runtime configuration with `sdkconfig.defaults` and should unblock frame buffer allocation during `esp_camera_init()`.
+
+I also added a ticket task to investigate the SCCB scan discrepancy (scan reports no devices while the driver probe succeeds), since it remains unresolved but is likely not the root cause.
+
+### What I did
+- Set `CONFIG_SPIRAM=y` in `0041-atoms3r-cam-jtag-serial-test/sdkconfig`.
+- Added a ticket task: “Investigate SCCB scan discrepancy (scan reports no devices but camera probe succeeds)”.
+
+### Why
+- The log shows a definitive PSRAM allocation failure, so enabling PSRAM is the next corrective step.
+
+### What worked
+- N/A (config change recorded; build/flash pending).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The runtime `sdkconfig` is authoritative; `sdkconfig.defaults` alone does not guarantee PSRAM is enabled.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm that enabling PSRAM in `sdkconfig` is sufficient without additional PSRAM-related settings in menuconfig.
+
+### What should be done in the future
+- Rebuild/flash under IDF 5.1.4 (direnv) and re-run Step 1 to confirm PSRAM allocation succeeds.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/sdkconfig` for the PSRAM flag.
+- Review `ttmp/.../tasks.md` for the new SCCB scan task.
+
+### Technical details
+- Command used: `docmgr task add --ticket MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO --text \"Investigate SCCB scan discrepancy (scan reports no devices but camera probe succeeds)\"`.
