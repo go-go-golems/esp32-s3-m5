@@ -92,6 +92,72 @@ def parse_line(raw: str) -> Tuple[Optional[str], Optional[str], Optional[str], O
     return None, None, None, raw.strip()
 
 
+def update_step_metrics(conn: sqlite3.Connection, step_id: int) -> None:
+    row = conn.execute(
+        """
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN level = 'E' THEN 1 ELSE 0 END) AS errors,
+            SUM(CASE WHEN level = 'W' THEN 1 ELSE 0 END) AS warns,
+            SUM(CASE WHEN level = 'I' THEN 1 ELSE 0 END) AS infos,
+            SUM(CASE WHEN level = 'D' THEN 1 ELSE 0 END) AS debugs
+        FROM parsed_log_lines
+        WHERE log_id IN (SELECT id FROM log_files WHERE step_id = ?)
+        """,
+        (step_id,),
+    ).fetchone()
+    other = (row["total"] or 0) - (row["errors"] or 0) - (row["warns"] or 0) - (row["infos"] or 0) - (row["debugs"] or 0)
+    updated_at = datetime.datetime.utcnow().isoformat() + "Z"
+    conn.execute(
+        """
+        INSERT INTO step_metrics (step_id, line_count, error_count, warn_count, info_count, debug_count, other_count, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(step_id) DO UPDATE SET
+            line_count = excluded.line_count,
+            error_count = excluded.error_count,
+            warn_count = excluded.warn_count,
+            info_count = excluded.info_count,
+            debug_count = excluded.debug_count,
+            other_count = excluded.other_count,
+            updated_at = excluded.updated_at
+        """,
+        (step_id, row["total"] or 0, row["errors"] or 0, row["warns"] or 0, row["infos"] or 0, row["debugs"] or 0, other, updated_at),
+    )
+
+
+def update_run_metrics(conn: sqlite3.Connection, run_id: int) -> None:
+    row = conn.execute(
+        """
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN level = 'E' THEN 1 ELSE 0 END) AS errors,
+            SUM(CASE WHEN level = 'W' THEN 1 ELSE 0 END) AS warns,
+            SUM(CASE WHEN level = 'I' THEN 1 ELSE 0 END) AS infos,
+            SUM(CASE WHEN level = 'D' THEN 1 ELSE 0 END) AS debugs
+        FROM parsed_log_lines
+        WHERE log_id IN (SELECT id FROM log_files WHERE run_id = ?)
+        """,
+        (run_id,),
+    ).fetchone()
+    other = (row["total"] or 0) - (row["errors"] or 0) - (row["warns"] or 0) - (row["infos"] or 0) - (row["debugs"] or 0)
+    updated_at = datetime.datetime.utcnow().isoformat() + "Z"
+    conn.execute(
+        """
+        INSERT INTO run_metrics (run_id, line_count, error_count, warn_count, info_count, debug_count, other_count, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(run_id) DO UPDATE SET
+            line_count = excluded.line_count,
+            error_count = excluded.error_count,
+            warn_count = excluded.warn_count,
+            info_count = excluded.info_count,
+            debug_count = excluded.debug_count,
+            other_count = excluded.other_count,
+            updated_at = excluded.updated_at
+        """,
+        (run_id, row["total"] or 0, row["errors"] or 0, row["warns"] or 0, row["infos"] or 0, row["debugs"] or 0, other, updated_at),
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Import a debug log into the sqlite database")
     parser.add_argument("--db", required=True, help="Path to sqlite db")
@@ -122,6 +188,7 @@ def main() -> None:
     created_at = datetime.datetime.utcnow().isoformat() + "Z"
 
     with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         run_id = get_or_create_run(
             conn,
@@ -155,16 +222,44 @@ def main() -> None:
         log_id = cur.lastrowid
 
         current_step = args.step_name
+        last_step = current_step
+        step_change_count = 0
         raw_rows = []
         parsed_rows = []
+        line_count = 0
+        error_count = 0
+        warn_count = 0
+        info_count = 0
+        debug_count = 0
+        other_count = 0
+        first_ts = None
+        last_ts = None
         with log_path.open("r", encoding="utf-8", errors="replace") as handle:
             for idx, line in enumerate(handle, start=1):
+                line_count += 1
                 raw_rows.append((log_id, idx, line.rstrip("\n")))
                 step_match = STEP_RE.search(line)
                 if step_match:
                     current_step = step_match.group("step").strip()
+                    if current_step != last_step:
+                        step_change_count += 1
+                        last_step = current_step
 
                 ts, level, tag, message = parse_line(line)
+                if ts and not first_ts:
+                    first_ts = ts
+                if ts:
+                    last_ts = ts
+                if level == "E":
+                    error_count += 1
+                elif level == "W":
+                    warn_count += 1
+                elif level == "I":
+                    info_count += 1
+                elif level == "D":
+                    debug_count += 1
+                else:
+                    other_count += 1
                 parsed_rows.append((log_id, idx, ts, level, tag, message, current_step, line.rstrip("\n")))
 
         conn.executemany(
@@ -178,8 +273,34 @@ def main() -> None:
             """,
             parsed_rows,
         )
+        conn.execute(
+            """
+            INSERT INTO log_metrics (
+                log_id, line_count, error_count, warn_count, info_count, debug_count, other_count,
+                step_change_count, first_ts, last_ts
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                log_id,
+                line_count,
+                error_count,
+                warn_count,
+                info_count,
+                debug_count,
+                other_count,
+                step_change_count,
+                first_ts,
+                last_ts,
+            ),
+        )
+        update_step_metrics(conn, step_id)
+        update_run_metrics(conn, run_id)
 
-    print(f"Imported log: {log_path}\nrun_id={run_id} step_id={step_id} log_id={log_id}")
+    print(
+        \"\\n\".join(
+            [
+                f\"Imported log: {log_path}\",\n                f\"run_id={run_id} step_id={step_id} log_id={log_id}\",\n                f\"lines={line_count} errors={error_count} warns={warn_count} infos={info_count} debugs={debug_count} other={other_count}\",\n                f\"step_changes={step_change_count} first_ts={first_ts} last_ts={last_ts}\",\n            ]\n        )\n    )
 
 
 if __name__ == "__main__":

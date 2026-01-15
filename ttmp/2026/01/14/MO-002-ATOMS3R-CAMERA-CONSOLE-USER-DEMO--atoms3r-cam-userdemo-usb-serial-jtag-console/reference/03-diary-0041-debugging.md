@@ -16,6 +16,10 @@ RelatedFiles:
       Note: Step marker logs and power sweep instrumentation
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md
       Note: Debugging plan and analysis context for 0041
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/README.md
+      Note: Dashboard usage and metrics documentation
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/backfill_metrics.py
+      Note: Backfills metrics tables for existing logs
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/debug.sqlite3
       Note: Debug run data store
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/import_log.py
@@ -30,6 +34,7 @@ LastUpdated: 2026-01-14T18:58:34-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -198,3 +203,46 @@ This step produced the first stored debug logs and imported them into the sqlite
 
 ### Technical details
 - tmux command used: `tmux new-session -d -s atoms3r-step1 "bash -lc 'cd .../0041-atoms3r-cam-jtag-serial-test && idf.py -p /dev/ttyACM0 flash |& tee .../step-01-power-sweep-flash.log'"` and `tmux split-window -h -t atoms3r-step1 "bash -lc 'cd .../0041-atoms3r-cam-jtag-serial-test && timeout 15s idf.py -p /dev/ttyACM0 monitor |& tee .../step-01-power-sweep-monitor.log'"`.
+
+## Step 5: Expand dashboard verbosity and backfill metrics
+
+I made the dashboard output significantly more verbose, added metrics tables to the sqlite schema, and introduced a backfill script to compute summary metrics for existing logs. This ensures we can run detailed, structured queries for run-level, step-level, and log-level statistics without re-deriving them on the fly.
+
+I also updated the README so it documents the expanded dashboard output and the new metrics tables.
+
+### What I did
+- Added `log_metrics`, `step_metrics`, and `run_metrics` tables to `schema.sql`.
+- Expanded `import_log.py` to compute and store summary counts when importing logs.
+- Added `backfill_metrics.py` to compute metrics for existing logs.
+- Re-initialized the sqlite db to add new tables and ran backfill.
+- Expanded `dashboard.py` output (run summary, steps, log files, step markers, tag counts, recent errors/warnings).
+- Updated `README.md` with new usage notes.
+
+### Why
+- The user requested much more verbose dashboards and a richer sqlite-backed data model.
+
+### What worked
+- The dashboard now surfaces detailed metrics and log file metadata by default.
+- Metrics are stored in sqlite for fast, repeatable queries.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Persisted metrics reduce repeated heavy queries and are useful for dashboards that will grow over time.
+
+### What was tricky to build
+- Ensuring backfill logic correctly derives step change counts and timestamps from existing parsed logs.
+
+### What warrants a second pair of eyes
+- Validate that metrics remain correct when multiple logs are imported into the same step/run.
+
+### What should be done in the future
+- Extend the dashboard with export formats (CSV/JSON) if we need to integrate with external dashboards.
+
+### Code review instructions
+- Start in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/dashboard.py`.
+- Review `import_log.py`, `schema.sql`, and `backfill_metrics.py` for correctness.
+
+### Technical details
+- Commands: `python3 .../init_db.py --db .../debug.sqlite3`, `python3 .../backfill_metrics.py --db .../debug.sqlite3`.

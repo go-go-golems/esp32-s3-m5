@@ -62,6 +62,44 @@ CREATE TABLE IF NOT EXISTS parsed_log_lines (
     FOREIGN KEY(log_id) REFERENCES log_files(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS log_metrics (
+    log_id INTEGER PRIMARY KEY,
+    line_count INTEGER,
+    error_count INTEGER,
+    warn_count INTEGER,
+    info_count INTEGER,
+    debug_count INTEGER,
+    other_count INTEGER,
+    step_change_count INTEGER,
+    first_ts TEXT,
+    last_ts TEXT,
+    FOREIGN KEY(log_id) REFERENCES log_files(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS step_metrics (
+    step_id INTEGER PRIMARY KEY,
+    line_count INTEGER,
+    error_count INTEGER,
+    warn_count INTEGER,
+    info_count INTEGER,
+    debug_count INTEGER,
+    other_count INTEGER,
+    updated_at TEXT,
+    FOREIGN KEY(step_id) REFERENCES debug_steps(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS run_metrics (
+    run_id INTEGER PRIMARY KEY,
+    line_count INTEGER,
+    error_count INTEGER,
+    warn_count INTEGER,
+    info_count INTEGER,
+    debug_count INTEGER,
+    other_count INTEGER,
+    updated_at TEXT,
+    FOREIGN KEY(run_id) REFERENCES debug_runs(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS debug_artifacts (
     id INTEGER PRIMARY KEY,
     run_id INTEGER NOT NULL,
