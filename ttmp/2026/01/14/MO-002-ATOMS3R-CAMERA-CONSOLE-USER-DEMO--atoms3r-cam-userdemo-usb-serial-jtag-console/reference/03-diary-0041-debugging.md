@@ -21,7 +21,11 @@ RelatedFiles:
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
       Note: Step marker logs and power sweep instrumentation
     - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig
-      Note: Enabled CONFIG_SPIRAM for PSRAM allocation
+      Note: |-
+        Enabled CONFIG_SPIRAM for PSRAM allocation
+        Align active PSRAM settings with UserDemo (gitignored)
+    - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults
+      Note: Match UserDemo PSRAM defaults
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md
       Note: Debugging plan and analysis context for 0041
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/scripts/debug_db/README.md
@@ -42,10 +46,12 @@ RelatedFiles:
       Note: User-provided Step 1 monitor output (IDF 5.1.4)
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T22:31:08-05:00
+LastUpdated: 2026-01-15T15:56:22-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -535,3 +541,81 @@ This step changes only the `camera_config_t` selection logic; it does not alter 
 
 ### Technical details
 - Fallback rule: `psram_ready() == false` → `fb_location = CAMERA_FB_IN_DRAM`, `frame_size = FRAMESIZE_QQVGA`, `fb_count = 1`.
+
+## Step 13: Plan removal of fallback and align 0041 PSRAM config to UserDemo
+
+I reviewed the updated request to match UserDemo as closely as possible and decided to remove the PSRAM fallback from 0041. The correct approach is to align 0041’s PSRAM config values with the restored UserDemo `sdkconfig`, then keep the camera init path identical (PSRAM buffers, QVGA, fb_count=2) without conditional fallbacks.
+
+This step logs the plan before implementation so the diary reflects the shift in strategy and the requirement to mirror UserDemo’s configuration.
+
+### What I did
+- Confirmed that UserDemo now has PSRAM enabled in `sdkconfig`.
+- Planned to remove the runtime fallback and update 0041 `sdkconfig.defaults` (and active sdkconfig if needed) to match UserDemo’s PSRAM values.
+
+### Why
+- The user wants 0041 to match UserDemo’s behavior; a DRAM fallback diverges from that path.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The correct fix is configuration alignment, not runtime fallback logic.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the PSRAM config values chosen in 0041 exactly match the restored UserDemo `sdkconfig`.
+
+### What should be done in the future
+- Remove the fallback and re-run the Step 3 build/flash/monitor workflow.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Reference config: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/ATOMS3R-CAM-UserDemo/sdkconfig` PSRAM block.
+
+## Step 14: Remove fallback and align 0041 PSRAM defaults with UserDemo
+
+I removed the PSRAM fallback path in 0041 so the camera init path mirrors UserDemo, and I updated `sdkconfig.defaults` to match the restored UserDemo PSRAM values. This keeps the bring-up logic identical across both projects while still logging PSRAM status for diagnostics.
+
+The active `sdkconfig` in 0041 was also updated locally (ignored by git) to match the same PSRAM settings so a build will use the aligned values without requiring a menuconfig pass.
+
+**Commit (code):** 09daa21 — "0041: match UserDemo PSRAM config and remove fallback"
+
+### What I did
+- Removed the DRAM fallback logic from `camera_init_and_log()` so 0041 always uses PSRAM buffers.
+- Updated `sdkconfig.defaults` PSRAM settings to match UserDemo (octal, 80 MHz, malloc settings).
+- Updated the local `sdkconfig` PSRAM settings to match the same values for active builds (file is gitignored).
+
+### Why
+- The user wants the 0041 bring-up path to match UserDemo as closely as possible; fallback logic diverged from that path.
+
+### What worked
+- N/A (build/flash not run yet with these aligned settings).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Aligning `sdkconfig.defaults` is not enough for current builds unless the active `sdkconfig` is updated or regenerated.
+
+### What was tricky to build
+- Keeping the config alignment while avoiding additional runtime changes.
+
+### What warrants a second pair of eyes
+- Confirm the PSRAM defaults in `sdkconfig.defaults` exactly match the restored UserDemo `sdkconfig`.
+
+### What should be done in the future
+- Re-run the Step 3 build/flash/monitor workflow to confirm PSRAM init and camera bring-up succeed.
+
+### Code review instructions
+- Start in `0041-atoms3r-cam-jtag-serial-test/main/main.c` and verify `camera_init_and_log()` uses PSRAM without fallback.
+- Review `0041-atoms3r-cam-jtag-serial-test/sdkconfig.defaults` PSRAM block.
+
+### Technical details
+- Local config note: `0041-atoms3r-cam-jtag-serial-test/sdkconfig` updated to octal/80M settings (gitignored).

@@ -28,7 +28,7 @@ RelatedFiles:
       Note: 0041 console
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T22:28:35-05:00
+LastUpdated: 2026-01-15T15:57:07-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -426,9 +426,10 @@ UserDemo:
    - If `esp_camera_init()` starts working, the scan is interfering.
    - Alternative: keep scan but do not delete the driver before init.
 
-3) **PSRAM check**
+3) **PSRAM alignment check**
    - Log `esp_psram_is_initialized()` and `esp_psram_get_size()` before init.
-   - If PSRAM is absent, force `CAMERA_FB_IN_DRAM` and reduce frame size to QVGA or lower.
+   - Ensure the active `sdkconfig` in 0041 uses the same PSRAM settings as UserDemo (octal mode, 80 MHz, malloc settings).
+   - Do not add a DRAM fallback; keep `CAMERA_FB_IN_PSRAM` to match UserDemo’s init path.
 
 4) **Timing check**
    - Increase delay after power enable to 200-300 ms, matching UserDemo.
@@ -515,9 +516,9 @@ This plan is a staged debugging guide intended to bring the 0041 firmware to par
 
 **Commit:** `0041: debug step 2 - SCCB scan isolation`
 
-### Step 3: PSRAM presence and buffer fallback
+### Step 3: PSRAM presence and config alignment
 
-**Goal:** verify PSRAM availability and prevent allocation failures.
+**Goal:** verify PSRAM availability and align runtime configuration with UserDemo.
 
 **References:** "Differences" item 2; "Background" PSRAM subsection.
 
@@ -527,12 +528,13 @@ This plan is a staged debugging guide intended to bring the 0041 firmware to par
 
 **Actions:**
 - Log PSRAM status (`esp_psram_is_initialized()`, size).
-- If PSRAM is missing, switch `fb_location` to `CAMERA_FB_IN_DRAM` and reduce frame size to QVGA or QQVGA.
+- Confirm `sdkconfig` uses the same PSRAM settings as UserDemo (octal, 80 MHz, malloc settings).
+- Keep `fb_location = CAMERA_FB_IN_PSRAM` to match UserDemo’s init path.
 
 **Expected result:**
-- `esp_camera_init()` succeeds even when PSRAM is absent.
+- `esp_camera_init()` succeeds with PSRAM enabled and aligned config values.
 
-**Commit:** `0041: debug step 3 - PSRAM fallback`
+**Commit:** `0041: debug step 3 - PSRAM alignment`
 
 ### Step 4: Capture timing and buffer health
 

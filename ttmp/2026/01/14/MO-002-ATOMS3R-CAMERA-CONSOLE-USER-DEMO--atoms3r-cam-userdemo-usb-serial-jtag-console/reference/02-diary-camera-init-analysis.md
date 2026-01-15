@@ -16,7 +16,7 @@ RelatedFiles:
       Note: Detailed camera init comparison produced in this step
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T22:28:35-05:00
+LastUpdated: 2026-01-15T15:57:07-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -119,6 +119,44 @@ This keeps the comparison accurate and avoids anchoring on a mismatch that no lo
 
 ### Technical details
 - Command: `rg -n "CONFIG_SPIRAM|ESP PSRAM" /home/manuel/workspaces/2025-12-21/echo-base-documentation/ATOMS3R-CAM-UserDemo/sdkconfig`.
+
+## Step 4: Update PSRAM plan to remove fallback and match UserDemo
+
+I updated the analysis plan to reflect the new requirement: 0041 should match UserDemo’s PSRAM configuration and should not introduce a DRAM fallback. The debugging plan Step 3 now focuses on aligning `sdkconfig` values and verifying PSRAM status rather than changing `fb_location`.
+
+This keeps the analysis aligned with the current debugging direction and avoids recommending a path that diverges from the desired UserDemo parity.
+
+### What I did
+- Updated the “What to do about it” PSRAM check to focus on config alignment, not fallback.
+- Updated the Debugging plan Step 3 to require PSRAM alignment and no fallback.
+
+### Why
+- The user requested that 0041 match UserDemo as closely as possible and avoid fallbacks.
+
+### What worked
+- The analysis plan now matches the intended debugging path.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The analysis doc needs to evolve with the debugging strategy to avoid stale guidance.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the updated PSRAM plan is consistent with the latest 0041 config changes.
+
+### What should be done in the future
+- If the debugging strategy changes again, re-sync the plan sections.
+
+### Code review instructions
+- Start in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md`.
+- Review “What to do about it” and “Debugging plan Step 3” sections.
+
+### Technical details
+- No commands run; documentation-only update.
 
 ## Step 2: Add a textbook-style camera pipeline background section
 
