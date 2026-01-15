@@ -12,6 +12,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0041-atoms3r-cam-jtag-serial-test/.envrc
+      Note: Unset IDF_PYTHON_ENV_PATH for IDF 5.1.4
     - Path: 0041-atoms3r-cam-jtag-serial-test/main/main.c
       Note: Step marker logs and power sweep instrumentation
     - Path: 0041-atoms3r-cam-jtag-serial-test/sdkconfig
@@ -40,6 +42,7 @@ LastUpdated: 2026-01-14T18:58:34-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -338,3 +341,41 @@ I also added a ticket task to investigate the SCCB scan discrepancy (scan report
 
 ### Technical details
 - Command used: `docmgr task add --ticket MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO --text \"Investigate SCCB scan discrepancy (scan reports no devices but camera probe succeeds)\"`.
+
+## Step 8: Fix .envrc to avoid IDF Python env mismatch
+
+I updated the project `.envrc` to unset `IDF_PYTHON_ENV_PATH` before sourcing the IDF 5.1.4 environment. This prevents the python env mismatch error when switching from other IDF versions.
+
+This keeps the direnv workflow consistent for future debug runs, so `idf.py` uses the correct IDF-managed Python environment by default.
+
+**Commit (code):** 0b4e68b — "Build: normalize IDF env via .envrc"
+
+### What I did
+- Added `unset IDF_PYTHON_ENV_PATH` to `0041-atoms3r-cam-jtag-serial-test/.envrc`.
+
+### Why
+- The environment error blocked previous automated flashing and required manual unsetting.
+
+### What worked
+- N/A (config-only change; will validate on next build/flash).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- `.envrc` needs to neutralize cross-IDF python env variables to avoid mismatches.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm this change does not interfere with other IDF workflows in this repo.
+
+### What should be done in the future
+- Re-run `idf.py build/flash` to confirm no environment mismatch warnings.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/.envrc`.
+
+### Technical details
+- No commands run; config-only change.
