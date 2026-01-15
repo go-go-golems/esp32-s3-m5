@@ -1,0 +1,2 @@
+'/home/manuel/.espressif/python_env/idf5.4_py3.11_env/bin/python' is currently active in the environment while the project was configured with '/home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python'. Run 'idf.py fullclean' to start again.
+Executing action: flash

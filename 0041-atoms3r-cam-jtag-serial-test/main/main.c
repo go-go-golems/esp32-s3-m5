@@ -16,6 +16,12 @@
 #include "camera_pin.h"
 
 static const char *TAG = "cam_test";
+static const uint32_t CAMERA_POWER_DELAY_MS = 200;
+
+static void log_step(const char *step)
+{
+    ESP_LOGI(TAG, "STEP: %s", step);
+}
 
 static const char *camera_task_core_name(void)
 {
@@ -221,6 +227,21 @@ static void camera_power_set(bool enable)
 #endif
 }
 
+static void camera_power_force_level(int level)
+{
+#if CONFIG_ATOMS3R_CAMERA_POWER_GPIO >= 0
+    const int gpio_num = CONFIG_ATOMS3R_CAMERA_POWER_GPIO;
+    gpio_reset_pin(gpio_num);
+    gpio_set_direction(gpio_num, GPIO_MODE_OUTPUT);
+    gpio_set_pull_mode(gpio_num, GPIO_PULLDOWN_ONLY);
+    gpio_set_level(gpio_num, level);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    ESP_LOGI(TAG, "camera power: force gpio=%d level=%d", gpio_num, gpio_get_level(gpio_num));
+#else
+    ESP_LOGI(TAG, "camera power: force level skipped (GPIO=-1)");
+#endif
+}
+
 static void log_camera_component_options(void)
 {
     ESP_LOGI(TAG,
@@ -403,17 +424,35 @@ void app_main(void)
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
 
+    log_step("Step 0: boot");
     ESP_LOGI(TAG, "boot: atomS3R camera init test");
     ESP_LOGI(TAG, "chip: model=%d rev=%d cores=%d", chip_info.model, chip_info.revision, chip_info.cores);
 
-    camera_power_set(true);
+    log_step("Step 1A: power polarity sweep (level=0)");
+    camera_power_force_level(0);
+    vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
+    log_step("Step 1A: sccb scan (level=0)");
     camera_sccb_scan();
 
+    log_step("Step 1B: power polarity sweep (level=1)");
+    camera_power_force_level(1);
+    vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
+    log_step("Step 1B: sccb scan (level=1)");
+    camera_sccb_scan();
+
+    log_step("Step 1C: power enable (config)");
+    camera_power_set(true);
+    vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
+    log_step("Step 2: sccb scan (post-enable)");
+    camera_sccb_scan();
+
+    log_step("Step 3: camera init");
     esp_err_t err = camera_init_and_log();
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "camera init failed: %s", esp_err_to_name(err));
     }
 
+    log_step("Step 4: capture loop");
     uint32_t frame_count = 0;
     while (true) {
         camera_fb_t *fb = esp_camera_fb_get();
