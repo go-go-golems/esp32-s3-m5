@@ -83,6 +83,8 @@ I set up a dedicated sqlite schema and helper scripts for tracking debug runs, s
 
 The database now exists in the ticket’s `scripts/` directory, and a small dashboard script is available for summarizing runs and error counts.
 
+**Commit (code):** a1da196 — "0041: debug step 1 power sweep + logs"
+
 ### What I did
 - Created `scripts/debug_db/schema.sql`, `init_db.py`, `import_log.py`, and `dashboard.py`.
 - Initialized `scripts/debug_db/debug.sqlite3`.
@@ -122,6 +124,8 @@ The database now exists in the ticket’s `scripts/` directory, and a small dash
 I updated the 0041 firmware to emit step markers (`STEP: ...`) and added a power polarity sweep before SCCB scanning and camera init. This creates clear, step-labeled serial output and provides immediate evidence about whether GPIO18 power gating is inverted.
 
 These changes are the first functional debugging experiment and align with Step 1 of the guidebook in the analysis document.
+
+**Commit (code):** a1da196 — "0041: debug step 1 power sweep + logs"
 
 ### What I did
 - Added `log_step()` and `camera_power_force_level()` helpers.
