@@ -42,7 +42,7 @@ RelatedFiles:
       Note: User-provided Step 1 monitor output (IDF 5.1.4)
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-14T22:18:27-05:00
+LastUpdated: 2026-01-14T22:31:08-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -458,3 +458,80 @@ This change focuses strictly on build plumbing; it does not alter runtime camera
 
 ### Technical details
 - Build error referenced: `fatal error: esp_psram.h: No such file or directory`.
+
+## Step 11: Plan PSRAM-aware fallback using restored UserDemo config
+
+I reviewed the restored UserDemo `sdkconfig` and confirmed PSRAM is now enabled there. The immediate fix for 0041 is to make its camera init resilient when PSRAM is unavailable at runtime, so `esp_camera_init()` can succeed even if the active `sdkconfig` or hardware state is wrong.
+
+This step captures the intent to add a PSRAM-aware fallback in 0041 before touching code, so the debugging diary reflects the decision rationale before the implementation is made.
+
+### What I did
+- Re-validated PSRAM enablement in the restored UserDemo config.
+- Decided to add a runtime fallback in 0041 (DRAM + smaller frame) when PSRAM is not initialized.
+
+### Why
+- The failure mode in the 0041 logs is a frame buffer allocation error with PSRAM disabled; a fallback keeps bring-up moving even if PSRAM is absent.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- PSRAM enablement now matches between UserDemo and 0041; remaining risk is the active sdkconfig used during build.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm that a DRAM fallback with smaller frames is acceptable for the debugging phase and does not mask other issues.
+
+### What should be done in the future
+- Implement the fallback and re-run Step 3 with new logs.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Reference log: PSRAM disabled in 0041 `esp_camera_init()` failure.
+
+## Step 12: Add PSRAM-aware fallback to camera init
+
+I implemented a PSRAM-aware fallback in 0041 so the camera can initialize even when PSRAM is unavailable or the active sdkconfig disables it. This keeps bring-up moving and makes the failure mode explicit in logs by switching to DRAM and a smaller frame size when PSRAM is missing.
+
+This step changes only the `camera_config_t` selection logic; it does not alter the pin map or SCCB behavior. It is intended to remove the PSRAM allocation failure as the immediate blocker so the next flash/monitor run can advance to SCCB or capture timing diagnostics.
+
+**Commit (code):** ea54895 — "0041: add PSRAM-aware camera fallback"
+
+### What I did
+- Added a runtime fallback path in `camera_init_and_log()` to choose DRAM + smaller frame size when PSRAM is not initialized.
+- Logged the fallback choice with an explicit warning to make it obvious in serial output.
+
+### Why
+- The 0041 failure was `cam_dma_config` frame buffer allocation failure with PSRAM disabled; fallback avoids a hard stop.
+
+### What worked
+- N/A (needs build/flash/monitor to validate).
+
+### What didn't work
+- N/A (no runtime test yet).
+
+### What I learned
+- A small DRAM-only configuration is a low-risk way to confirm SCCB and capture paths before re-enabling PSRAM buffers.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the fallback frame size (`QQVGA`) and `fb_count` are appropriate for DRAM limits and do not hide other memory regressions.
+
+### What should be done in the future
+- Re-run Step 3 build/flash/monitor to verify `esp_camera_init()` succeeds with the fallback.
+
+### Code review instructions
+- Start in `0041-atoms3r-cam-jtag-serial-test/main/main.c` at `camera_init_and_log()`.
+- Verify the fallback path and log message wiring.
+
+### Technical details
+- Fallback rule: `psram_ready() == false` → `fb_location = CAMERA_FB_IN_DRAM`, `frame_size = FRAMESIZE_QQVGA`, `fb_count = 1`.
