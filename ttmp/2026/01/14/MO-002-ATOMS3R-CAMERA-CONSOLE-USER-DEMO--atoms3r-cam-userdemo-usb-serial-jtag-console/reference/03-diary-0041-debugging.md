@@ -379,3 +379,39 @@ This keeps the direnv workflow consistent for future debug runs, so `idf.py` use
 
 ### Technical details
 - No commands run; config-only change.
+
+## Step 9: Attempt Step 3 flash with direnv; logs not captured
+
+I attempted to run the Step 3 rebuild/flash workflow using tmux and the project’s direnv setup. The tmux session terminated without producing logs, which suggests the environment mismatch or a missing port path interrupted the process before log capture began.
+
+This was an intermediate attempt; the `.envrc` fix (Step 8) should prevent the Python env mismatch on the next run, but Step 3 needs to be re-run to gather a real device log.
+
+### What I did
+- Started a tmux session to run `idf.py fullclean`, `idf.py build`, `idf.py flash`, and `idf.py monitor` with `source .envrc`.
+
+### Why
+- Validate that enabling PSRAM in `sdkconfig` actually resolves the framebuffer allocation failure.
+
+### What worked
+- N/A (no logs captured).
+
+### What didn't work
+- tmux session exited early; no step-03 log files were produced.
+
+### What I learned
+- We need a confirmed IDF environment and device port before re-running Step 3.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the correct serial device path and verify the tmux command sequence.
+
+### What should be done in the future
+- Re-run Step 3 after confirming the port and verifying `.envrc` is active.
+
+### Code review instructions
+- N/A (no code changes).
+
+### Technical details
+- Intended tmux run: `idf.py fullclean && idf.py build && idf.py -p /dev/ttyACM0 flash`, with a parallel `idf.py monitor` pane.
