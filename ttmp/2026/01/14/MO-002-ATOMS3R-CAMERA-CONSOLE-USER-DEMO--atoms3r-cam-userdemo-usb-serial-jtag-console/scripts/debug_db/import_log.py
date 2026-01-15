@@ -298,9 +298,19 @@ def main() -> None:
         update_run_metrics(conn, run_id)
 
     print(
-        \"\\n\".join(
+        "\n".join(
             [
-                f\"Imported log: {log_path}\",\n                f\"run_id={run_id} step_id={step_id} log_id={log_id}\",\n                f\"lines={line_count} errors={error_count} warns={warn_count} infos={info_count} debugs={debug_count} other={other_count}\",\n                f\"step_changes={step_change_count} first_ts={first_ts} last_ts={last_ts}\",\n            ]\n        )\n    )
+                f"Imported log: {log_path}",
+                f"run_id={run_id} step_id={step_id} log_id={log_id}",
+                (
+                    "lines="
+                    f"{line_count} errors={error_count} warns={warn_count} "
+                    f"infos={info_count} debugs={debug_count} other={other_count}"
+                ),
+                f"step_changes={step_change_count} first_ts={first_ts} last_ts={last_ts}",
+            ]
+        )
+    )
 
 
 if __name__ == "__main__":

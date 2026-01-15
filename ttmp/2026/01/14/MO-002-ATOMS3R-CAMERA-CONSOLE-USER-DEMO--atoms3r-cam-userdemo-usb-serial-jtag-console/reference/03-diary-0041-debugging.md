@@ -28,12 +28,15 @@ RelatedFiles:
       Note: Debug sqlite schema
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-01-power-sweep-flash.log
       Note: Step 1 flash log
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log
+      Note: User-provided Step 1 monitor output (IDF 5.1.4)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-14T18:58:34-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -248,3 +251,43 @@ I also updated the README so it documents the expanded dashboard output and the 
 
 ### Technical details
 - Commands: `python3 .../init_db.py --db .../debug.sqlite3`, `python3 .../backfill_metrics.py --db .../debug.sqlite3`.
+
+## Step 6: Import user-provided Step 1 logs (IDF 5.1.4) and record findings
+
+I captured the monitor output you provided from an IDF 5.1.4 build, stored it as a log file in the ticket, and imported it into the sqlite database as a dedicated run. This gave us the first complete device-side trace for Step 1, including SCCB scan results and the exact camera init failure.
+
+The log shows that SCCB scans did not detect any devices, yet the camera probe later detects a GC0308 at address 0x21. The init then fails because PSRAM is disabled, and the driver cannot allocate a 153,600-byte frame buffer in PSRAM. This points to a configuration mismatch between `sdkconfig.defaults` (PSRAM enabled) and the actual build `sdkconfig` (PSRAM disabled).
+
+### What I did
+- Saved the provided monitor output to `various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log`.
+- Fixed a syntax error in `import_log.py` and re-imported the log into sqlite.
+- Backfilled metrics after import to keep run/step summaries current.
+
+### Why
+- We need the full runtime log in the ticket and database so we can query it and tie findings to a specific run.
+
+### What worked
+- The log imported successfully, with metrics captured for lines, errors, warnings, and step changes.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The camera probe can succeed even when SCCB scan reports no devices, which suggests the scan is not authoritative.
+- The immediate failure is a PSRAM allocation error, not SCCB or power gating.
+
+### What was tricky to build
+- Ensuring the log import script was fixed before re-running the import to avoid corrupt or partial records.
+
+### What warrants a second pair of eyes
+- Confirm whether the PSRAM-disable state is due to `sdkconfig` (build config) or actual hardware availability.
+
+### What should be done in the future
+- Enable `CONFIG_SPIRAM` in the active `sdkconfig` and rebuild to confirm the PSRAM failure disappears.
+
+### Code review instructions
+- Review the log in `various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log`.
+- Check sqlite run `run-2026-01-14-0041-step1-idf514` via the dashboard.
+
+### Technical details
+- Import command: `python3 .../import_log.py --run-name run-2026-01-14-0041-step1-idf514 --log .../step-01-power-sweep-monitor-idf5.1.4-user.log`.
