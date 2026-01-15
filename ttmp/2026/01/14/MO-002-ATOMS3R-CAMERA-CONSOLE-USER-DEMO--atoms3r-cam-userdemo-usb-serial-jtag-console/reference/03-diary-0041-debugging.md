@@ -210,6 +210,8 @@ I made the dashboard output significantly more verbose, added metrics tables to 
 
 I also updated the README so it documents the expanded dashboard output and the new metrics tables.
 
+**Commit (code):** da5c44b — "Debug DB: add metrics + verbose dashboard"
+
 ### What I did
 - Added `log_metrics`, `step_metrics`, and `run_metrics` tables to `schema.sql`.
 - Expanded `import_log.py` to compute and store summary counts when importing logs.
