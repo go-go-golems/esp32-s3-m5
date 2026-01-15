@@ -201,3 +201,12 @@ Enabled CONFIG_SPIRAM in 0041 sdkconfig and added SCCB scan investigation task.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/sdkconfig — Enable PSRAM for camera buffer allocation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/tasks.md — New SCCB scan task
 
+
+## 2026-01-14
+
+Updated .envrc to clear IDF_PYTHON_ENV_PATH before sourcing IDF 5.1.4.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/.envrc — Prevent IDF env mismatch
+
