@@ -305,6 +305,8 @@ I flipped `CONFIG_SPIRAM` on in the active `sdkconfig` for the 0041 firmware to 
 
 I also added a ticket task to investigate the SCCB scan discrepancy (scan reports no devices while the driver probe succeeds), since it remains unresolved but is likely not the root cause.
 
+**Commit (code):** 495f0f0 — "Debug Step 3: enable PSRAM + add SCCB task"
+
 ### What I did
 - Set `CONFIG_SPIRAM=y` in `0041-atoms3r-cam-jtag-serial-test/sdkconfig`.
 - Added a ticket task: “Investigate SCCB scan discrepancy (scan reports no devices but camera probe succeeds)”.
