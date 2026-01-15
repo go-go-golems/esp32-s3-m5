@@ -1,0 +1,111 @@
+I (198) octal_psram: Latency      : 0x01 (Fixed)
+I (203) octal_psram: VCC          : 0x01 (3V)
+I (208) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (214) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (220) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (226) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (232) octal_psram: DriveStrength: 0x00 (1/1)
+I (238) MSPI Timing: PSRAM timing tuning index: 4
+I (242) esp_psram: Found 8MB PSRAM device
+I (247) esp_psram: Speed: 80MHz
+I (251) cpu_start: Pro cpu up.
+I (254) cpu_start: Starting app cpu, entry point is 0x403754e0
+--- 0x403754e0: call_start_cpu1 at /home/manuel/esp/esp-idf-5.1.4/components/esp_system/port/cpu_start.c:159
+I (0) cpu_start: App cpu up.
+I (707) esp_psram: SPI SRAM memory test OK
+I (716) cpu_start: Pro cpu start user code
+I (716) cpu_start: cpu freq: 160000000 Hz
+I (716) cpu_start: Application information:
+I (716) cpu_start: Project name:     atoms3r_cam_jtag_serial_test
+I (717) cpu_start: App version:      388a848-dirty
+I (717) cpu_start: Compile time:     Jan 15 2026 15:59:20
+I (717) cpu_start: ELF file SHA256:  6c3351650ce821f3...
+I (717) cpu_start: ESP-IDF:          v5.1.4
+I (718) cpu_start: Min chip rev:     v0.0
+I (718) cpu_start: Max chip rev:     v0.99 
+I (718) cpu_start: Chip rev:         v0.2
+I (718) heap_init: Initializing. RAM available for dynamic allocation:
+I (719) heap_init: At 3FC98378 len 00051398 (324 KiB): DRAM
+I (719) heap_init: At 3FCE9710 len 00005724 (21 KiB): STACK/DRAM
+I (719) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (720) heap_init: At 600FE010 len 00001FD8 (7 KiB): RTCRAM
+I (720) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (721) spi_flash: detected chip: gd
+I (721) spi_flash: flash io: dio
+W (721) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (722) sleep: Configure to isolate all GPIO pins in sleep state
+I (723) sleep: Enable automatic switching of GPIO sleep configuration
+I (723) app_start: Starting scheduler on CPU0
+I (724) app_start: Starting scheduler on CPU1
+I (724) main_task: Started on CPU0
+I (734) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (734) main_task: Calling app_main()
+I (734) cam_test: STEP: Step 0: boot
+I (734) cam_test: boot: atomS3R camera init test
+I (734) cam_test: chip: model=9 rev=2 cores=2
+I (734) cam_test: STEP: Step 1A: power polarity sweep (level=0)
+I (734) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (744) cam_test: camera power: force gpio=18 level=0
+I (944) cam_test: STEP: Step 1A: sccb scan (level=0)
+I (944) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000
+W (964) cam_test: sccb scan: no devices found
+I (964) cam_test: STEP: Step 1B: power polarity sweep (level=1)
+I (964) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (974) cam_test: camera power: force gpio=18 level=0
+I (1174) cam_test: STEP: Step 1B: sccb scan (level=1)
+I (1174) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000
+W (6774) cam_test: sccb scan: no devices found
+I (6774) cam_test: STEP: Step 1C: power enable (config)
+I (6774) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (6784) cam_test: camera power: gpio=18 active_low=yes level=0
+I (6984) cam_test: STEP: Step 2: sccb scan (post-enable)
+I (6984) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000
+W (7004) cam_test: sccb scan: no devices found
+I (7004) cam_test: STEP: Step 3: camera init
+I (7004) cam_test: PSRAM detected (8388608 bytes)
+I (7004) cam_test: camera options: sccb_port=1 sccb_freq=100000 cam_task_stack=2048 cam_task_core=core0 dma_buf=32768
+I (7004) cam_test: camera options: jpeg_frame_size=auto
+I (7004) cam_test: camera module: M5STACK AtomS3R-CAM
+I (7004) cam_test: camera request: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2
+I (7004) cam_test: camera cfg: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2 fb_loc=psram sccb_port=1
+I (7004) cam_test: camera pins: xclk=21 sda=12 scl=9 vsync=10 href=14 pclk=40 d0=3 d7=13
+I (7004) s3 ll_cam: DMA Channel=0
+I (7004) cam_hal: cam init ok
+I (7004) sccb: pin_sda 12 pin_scl 9
+I (7004) sccb: sccb_i2c_port=1
+I (7014) camera: Detected camera at address=0x21
+I (7014) ov7725: Mismatch PID=0xe8
+I (7014) ov7760: Mismatch PID=0xe8
+I (7014) gc032a: Mismatch PID=0xf302
+I (7014) camera: Detected GC0308 camera
+I (7014) camera: Camera PID=0x9b VER=0x00 MIDL=0x00 MIDH=0x00
+I (7274) s3 ll_cam: node_size: 3840, nodes_per_line: 1, lines_per_node: 6
+I (7274) s3 ll_cam: dma_half_buffer_min:  3840, dma_half_buffer: 15360, lines_per_half_buffer: 24, dma_buffer_size: 30720
+I (7274) cam_hal: buffer_size: 30720, half_buffer_size: 15360, node_buffer_size: 3840, node_cnt: 8, total_cnt: 10
+I (7274) cam_hal: Allocating 153600 Byte frame buffer in PSRAM
+I (7274) cam_hal: Allocating 153600 Byte frame buffer in PSRAM
+I (7274) cam_hal: cam config ok
+I (7274) gc0308: subsample win:640x480, ratio:0.500000
+I (7284) cam_test: sensor id: PID=0x009b MIDH=0x00 MIDL=0x00
+I (7284) cam_test: sensor addr: 0x21 pixformat=RGB565 xclk=20000000
+I (7284) cam_test: sensor info: model=8 name=GC0308 sccb=0x21 max_size=8 jpeg=no
+I (7284) cam_test: sensor status: framesize=5 quality=0 brightness=0 contrast=0 saturation=0 sharpness=0
+I (7284) cam_test: sensor status: awb=0 awb_gain=0 aec=0 aec2=0 ae_level=0 aec_value=0
+I (7284) cam_test: sensor status: agc=0 agc_gain=0 gainceiling=0 bpc=0 wpc=0 lenc=0 hmirror=0 vflip=1
+I (7294) cam_test: STEP: Step 4: capture loop
+I (7344) cam_test: frame 0: len=153600 320x240 fmt=RGB565 ts=7.293585
+I (7344) cam_test: frame preview: 51 c8 51 c8 51 c8 51 a8 
+I (8344) cam_test: frame 1: len=153600 320x240 fmt=RGB565 ts=7.343708
+I (8344) cam_test: frame preview: 51 a8 49 a8 49 a8 49 a8 
+I (9344) cam_test: frame 2: len=153600 320x240 fmt=RGB565 ts=7.393696
+I (9344) cam_test: frame preview: 41 47 41 27 39 27 41 27 
+I (10344) cam_test: frame 3: len=153600 320x240 fmt=RGB565 ts=8.343535
+I (10344) cam_test: frame preview: 39 05 31 05 30 e5 30 e5 
+I (11344) cam_test: frame 4: len=153600 320x240 fmt=RGB565 ts=9.343533
+I (11344) cam_test: frame preview: 30 c4 28 e4 28 c4 28 c4 
+I (12344) cam_test: frame 5: len=153600 320x240 fmt=RGB565 ts=10.343535
+I (12344) cam_test: frame preview: 28 84 28 64 28 64 20 64 
+I (13344) cam_test: frame 6: len=153600 320x240 fmt=RGB565 ts=11.343533
+I (13344) cam_test: frame preview: 28 84 28 84 20 64 28 64 
+I (14344) cam_test: frame 7: len=153600 320x240 fmt=RGB565 ts=12.343535
+I (14344) cam_test: frame preview: 28 83 20 83 20 83 20 63

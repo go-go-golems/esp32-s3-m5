@@ -44,12 +44,15 @@ RelatedFiles:
       Note: Step 1 flash log
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-01-power-sweep-monitor-idf5.1.4-user.log
       Note: User-provided Step 1 monitor output (IDF 5.1.4)
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-17-psram-align-monitor-user.log
+      Note: User-provided successful PSRAM-aligned monitor log
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T15:56:22-05:00
+LastUpdated: 2026-01-15T16:03:18-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -619,3 +622,120 @@ The active `sdkconfig` in 0041 was also updated locally (ignored by git) to matc
 
 ### Technical details
 - Local config note: `0041-atoms3r-cam-jtag-serial-test/sdkconfig` updated to octal/80M settings (gitignored).
+
+## Step 15: Plan PSRAM-aligned flash/monitor run (tmux)
+
+I’m preparing a tmux-based build/flash/monitor run to validate the PSRAM-aligned configuration. This step is the execution of the updated Step 3 plan in the analysis, and the goal is to capture logs that confirm PSRAM initializes and `esp_camera_init()` completes.
+
+This entry records the intent and the exact logging paths before executing the commands, so the resulting logs can be correlated with the step name in the serial output.
+
+### What I did
+- Selected new log filenames for the PSRAM-aligned run in the ticket `various/debug-logs/` directory.
+- Prepared to run build/flash and monitor in tmux using the project `.envrc`.
+
+### Why
+- We need a clean, log-backed run to confirm the aligned PSRAM settings resolve the camera init failure.
+
+### What worked
+- N/A (plan only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- N/A.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the tmux command sequence and log destinations are correct before execution.
+
+### What should be done in the future
+- Execute the run, import logs into sqlite, and update this diary with results.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Planned logs:
+  - `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-15-psram-align-flash.log`
+  - `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-15-psram-align-monitor.log`
+
+## Step 16: Plan sequential flash → monitor run to avoid port lock
+
+I’m planning a second tmux run that starts the flash first, then opens the monitor only after the flash completes. This avoids the `Errno 11` port lock observed when the monitor grabs `/dev/ttyACM0` during flashing.
+
+This step records the revised execution plan and the new log paths before running it.
+
+### What I did
+- Chose a new pair of log filenames for the sequential flash/monitor run.
+- Switched to a sequential approach to prevent the monitor from locking the serial port during flash.
+
+### Why
+- The previous run failed because the monitor was already holding `/dev/ttyACM0` when esptool attempted to flash.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The monitor must not hold the port during flash; sequencing is required.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the sequencing plan will still capture the boot log after flash reset.
+
+### What should be done in the future
+- Execute the sequential run and import logs into sqlite.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Planned logs:
+  - `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-16-psram-align-flash.log`
+  - `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-16-psram-align-monitor.log`
+
+## Step 17: Record successful PSRAM-aligned run from user logs
+
+I recorded the user-provided monitor output showing PSRAM initialization, successful `esp_camera_init()`, and a working capture loop. This confirms the aligned PSRAM settings are working in practice and that the camera path now matches the UserDemo behavior.
+
+The log still shows SCCB scans reporting no devices, but the driver probe and capture succeed, so the SCCB scan discrepancy remains a diagnostic oddity rather than a blocker.
+
+### What I did
+- Stored the user-provided serial output in the ticket logs.
+- Imported the log into the sqlite debug database with step metadata.
+
+### Why
+- We need a permanent, queryable record that the PSRAM-aligned configuration successfully initializes the camera.
+
+### What worked
+- PSRAM initialized at 80 MHz, 8 MB detected, memory test passed.
+- `esp_camera_init()` succeeded and frame captures produced RGB565 QVGA frames.
+
+### What didn't work
+- Initial import failed with `import_log.py: error: the following arguments are required: --step-name` when the `--step-name` flag was omitted.
+
+### What I learned
+- SCCB scans can report no devices even when the camera probe and capture succeed; the scan remains a weak signal.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm whether the SCCB scan should be removed or reworked now that it produces false negatives.
+
+### What should be done in the future
+- Decide whether to keep the SCCB scan as a diagnostic or remove it for parity with UserDemo.
+
+### Code review instructions
+- Review the log file and sqlite import metadata in the debug database.
+
+### Technical details
+- Log: `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-17-psram-align-monitor-user.log`.
+- Import command: `python3 .../import_log.py --run-name run-2026-01-15-0041-step17-psram-align-user --step-name "Step 3: camera init (PSRAM aligned)" --log .../step-17-psram-align-monitor-user.log --ticket MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO --firmware 0041-atoms3r-cam-jtag-serial-test --git-hash 388a848 --idf-version 5.1.4 --device-port /dev/ttyACM0 --result success`.
