@@ -55,6 +55,7 @@ static TaskHandle_t s_stream_task = NULL;
 static bool s_camera_ready = false;
 static int s_camera_power_level = 0;
 static bool s_logged_frame_info = false;
+static bool s_logged_jpeg_info = false;
 
 typedef struct {
     uint64_t frames;
@@ -473,11 +474,14 @@ static esp_err_t camera_init_once(void) {
 
         .jpeg_quality = CONFIG_ATOMS3R_SENSOR_JPEG_QUALITY,
         .fb_count = 2,
-        .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
+        .grab_mode = CAMERA_GRAB_LATEST,
         .fb_location = CAMERA_FB_IN_PSRAM,
     };
 
     log_camera_config(&cfg, use_psram);
+    ESP_LOGV(TAG, "jpeg quality: sensor=%u convert=%u",
+             (unsigned)CONFIG_ATOMS3R_SENSOR_JPEG_QUALITY,
+             (unsigned)CONFIG_ATOMS3R_CONVERT_JPEG_QUALITY);
 
     esp_err_t err = esp_camera_init(&cfg);
     if (err != ESP_OK) {
@@ -513,11 +517,8 @@ static esp_err_t camera_init_once(void) {
 
 static void stream_task(void *arg) {
     (void)arg;
-    const TickType_t delay_ticks = pdMS_TO_TICKS(CONFIG_ATOMS3R_STREAM_INTERVAL_MS);
-
     while (true) {
         if (!s_stream_enabled) {
-            log_stream_state("disabled");
             vTaskDelay(pdMS_TO_TICKS(200));
             continue;
         }
@@ -563,7 +564,7 @@ static void stream_task(void *arg) {
         s_stats.capture_us += (uint64_t)(capture_end - capture_start);
 
         if (!s_logged_frame_info) {
-            ESP_LOGI(TAG, "frame: %ux%u fmt=%d len=%u",
+            ESP_LOGV(TAG, "input frame: %ux%u fmt=%d len=%u",
                      (unsigned)fb->width,
                      (unsigned)fb->height,
                      fb->format,
@@ -589,6 +590,21 @@ static void stream_task(void *arg) {
             s_stats.convert_ok++;
             s_stats.convert_us += (uint64_t)(convert_end - convert_start);
             needs_free = true;
+            if (!s_logged_jpeg_info) {
+                ESP_LOGV(TAG, "jpeg convert: quality=%u in=%ux%u out_len=%u",
+                         (unsigned)CONFIG_ATOMS3R_CONVERT_JPEG_QUALITY,
+                         (unsigned)fb->width,
+                         (unsigned)fb->height,
+                         (unsigned)jpeg_len);
+                s_logged_jpeg_info = true;
+            }
+        } else if (!s_logged_jpeg_info) {
+            ESP_LOGV(TAG, "jpeg passthrough: quality=%u in=%ux%u len=%u",
+                     (unsigned)CONFIG_ATOMS3R_SENSOR_JPEG_QUALITY,
+                     (unsigned)fb->width,
+                     (unsigned)fb->height,
+                     (unsigned)jpeg_len);
+            s_logged_jpeg_info = true;
         }
 
         int64_t send_start = esp_timer_get_time();
@@ -610,7 +626,7 @@ static void stream_task(void *arg) {
         esp_camera_fb_return(fb);
 
         stats_log_maybe();
-        vTaskDelay(delay_ticks);
+        taskYIELD();
     }
 }
 
