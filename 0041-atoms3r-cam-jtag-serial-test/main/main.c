@@ -17,6 +17,7 @@
 
 static const char *TAG = "cam_test";
 static const uint32_t CAMERA_POWER_DELAY_MS = 200;
+static const uint32_t CAMERA_WARMUP_DELAY_MS = 1000;
 
 static void log_step(const char *step)
 {
@@ -445,6 +446,10 @@ void app_main(void)
     log_step("Step 1C: power enable (config)");
     camera_power_set(true);
     vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
+
+    log_step("Step 1D: power warmup delay");
+    ESP_LOGI(TAG, "camera power: warmup delay=%u ms", (unsigned)CAMERA_WARMUP_DELAY_MS);
+    vTaskDelay(pdMS_TO_TICKS(CAMERA_WARMUP_DELAY_MS));
 
     log_step("Step 2: camera init");
     esp_err_t err = camera_init_and_log();
