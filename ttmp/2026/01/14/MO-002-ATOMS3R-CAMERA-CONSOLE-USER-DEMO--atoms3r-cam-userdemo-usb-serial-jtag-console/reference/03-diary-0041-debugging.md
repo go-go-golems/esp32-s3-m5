@@ -52,7 +52,7 @@ RelatedFiles:
       Note: User-provided successful PSRAM-aligned monitor log
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T16:07:20-05:00
+LastUpdated: 2026-01-15T19:42:22-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -784,3 +784,80 @@ This provides closure on the SCCB scan discrepancy and frames it as an expected 
 
 ### Technical details
 - Commands: `rg -n "SCCB_Probe|SCCB_Init" 0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver`, `sed -n '140,260p' .../esp_camera.c`, `sed -n '1,140p' .../sccb.c`.
+
+## Step 19: Plan to replace generic scan with SCCB-style probe after XCLK
+
+I’m preparing a code change to remove the generic pre-init I2C scan and replace it with a driver-style probe that runs after XCLK is enabled. This aligns the diagnostic with how the camera library actually probes SCCB and should eliminate the misleading “no devices found” logs.
+
+This step captures the plan before code changes, per the diary requirements.
+
+### What I did
+- Decided to move SCCB diagnostics to a post-init phase (after XCLK is running).
+- Chose to probe only known camera addresses with a longer timeout (SCCB_Probe-style).
+
+### Why
+- The pre-init scan is a false negative because XCLK is off and timeouts are short.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Matching the driver’s probe behavior requires XCLK and longer I2C timeouts.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the known-address list matches the camera driver’s address set.
+
+### What should be done in the future
+- Implement the new probe and update step labels to reflect the new order.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Target files: `0041-atoms3r-cam-jtag-serial-test/main/main.c`.
+
+## Step 20: Replace generic scan with SCCB-style probe after XCLK
+
+I replaced the generic pre-init SCCB scan with a known-address probe that runs after `esp_camera_init()`. The new probe uses the driver’s address set and a longer timeout, and it runs only when XCLK is active, which should eliminate the false-negative scan behavior.
+
+The step labels were updated so the SCCB probe now explicitly happens after camera init, aligning the logs with the actual driver probe sequence.
+
+**Commit (code):** d9e5911 — "0041: probe SCCB after XCLK with known addrs"
+
+### What I did
+- Replaced `camera_sccb_scan()` with `camera_sccb_probe_known_addrs()` using known SCCB addresses and a 1-second timeout.
+- Removed the pre-init scan calls and added a post-init SCCB probe step.
+- Updated step labels to reflect the new order (camera init before SCCB probe).
+
+### Why
+- The driver probe runs after XCLK starts and only checks known addresses; matching this behavior avoids false negatives.
+
+### What worked
+- N/A (build/flash not run yet).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- SCCB diagnostics are only meaningful after XCLK is running.
+
+### What was tricky to build
+- Ensuring the probe doesn’t uninstall the I2C driver that the camera uses.
+
+### What warrants a second pair of eyes
+- Confirm the known-address list matches the driver’s sensor table and that leaving the I2C driver installed is safe.
+
+### What should be done in the future
+- Run a new monitor log to confirm the SCCB probe now reports the camera address.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/main/main.c` in `camera_sccb_probe_known_addrs()` and `app_main()`.
+
+### Technical details
+- Probe addresses: 0x21, 0x30, 0x3C, 0x2A, 0x6E, 0x68.

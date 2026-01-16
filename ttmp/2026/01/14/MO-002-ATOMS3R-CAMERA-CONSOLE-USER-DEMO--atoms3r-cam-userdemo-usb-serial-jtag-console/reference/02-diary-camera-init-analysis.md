@@ -16,7 +16,7 @@ RelatedFiles:
       Note: Detailed camera init comparison produced in this step
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T16:07:20-05:00
+LastUpdated: 2026-01-15T19:43:05-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -195,6 +195,40 @@ This clarifies the discrepancy as an expected artifact rather than a functional 
 
 ### Technical details
 - Commands: `rg -n "SCCB_Probe|SCCB_Init" .../esp_camera.c .../sccb.c`, `sed -n '140,260p' .../esp_camera.c`, `sed -n '1,140p' .../sccb.c`.
+
+## Step 6: Note 0041 uses post-XCLK SCCB probe
+
+I updated the analysis to reflect that 0041 now uses a post-init SCCB probe aligned with the driver’s behavior. This keeps the doc in sync with the firmware change and closes the loop on the scan discrepancy resolution.
+
+### What I did
+- Added a short note stating the pre-init scan was replaced by a post-XCLK known-address probe.
+
+### Why
+- The analysis should match the current diagnostic behavior in 0041.
+
+### What worked
+- The SCCB deep dive now reflects the updated 0041 path.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Documentation needs frequent sync when debugging steps change.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the analysis note matches the current `app_main()` step order.
+
+### What should be done in the future
+- If the SCCB diagnostic changes again, re-sync this section.
+
+### Code review instructions
+- Review the SCCB deep dive section in `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md`.
+
+### Technical details
+- No commands run; documentation-only update.
 
 ## Step 2: Add a textbook-style camera pipeline background section
 

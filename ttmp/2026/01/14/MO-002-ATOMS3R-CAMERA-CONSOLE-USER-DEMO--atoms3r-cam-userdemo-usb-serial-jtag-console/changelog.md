@@ -282,3 +282,21 @@ Document SCCB scan discrepancy (driver probe order)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md — SCCB deep dive section
 
+
+## 2026-01-15
+
+Step 20: SCCB probe after XCLK (commit d9e5911)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Replace pre-init scan with post-XCLK known-address probe
+
+
+## 2026-01-15
+
+Update analysis: post-XCLK SCCB probe note
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md — Document 0041 scan replacement
+

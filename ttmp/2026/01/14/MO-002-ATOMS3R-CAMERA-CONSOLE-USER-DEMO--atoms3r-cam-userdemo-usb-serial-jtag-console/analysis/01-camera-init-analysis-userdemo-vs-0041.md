@@ -32,7 +32,7 @@ RelatedFiles:
       Note: 0041 console
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T16:06:51-05:00
+LastUpdated: 2026-01-15T19:42:47-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -785,6 +785,8 @@ return 0
 - Move the scan **after** XCLK is enabled (or after `esp_camera_init()`), or
 - Replace the generic scan with a `SCCB_Probe()`-style probe that runs after XCLK starts, or
 - Keep the scan but treat it as “pre-XCLK only” and expect false negatives.
+
+**Current 0041 path:** the pre-init scan has been replaced with a post-init, known-address probe that runs after XCLK starts to align with the driver’s behavior.
 
 4) **UVC-driven reinit (UserDemo)**
    - UVC start callback can reinitialize the camera with new frame sizes and JPEG quality values.
