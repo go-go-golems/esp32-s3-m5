@@ -84,6 +84,31 @@ static void status_log_ip(uint32_t ip4_host_order) {
     ESP_LOGI(TAG, "STA IP: " IPSTR, IP2STR(&ip));
 }
 
+static const char *wifi_reason_name(int reason) {
+    switch (reason) {
+        case WIFI_REASON_UNSPECIFIED:
+            return "UNSPECIFIED";
+        case WIFI_REASON_AUTH_EXPIRE:
+            return "AUTH_EXPIRE";
+        case WIFI_REASON_AUTH_FAIL:
+            return "AUTH_FAIL";
+        case WIFI_REASON_ASSOC_FAIL:
+            return "ASSOC_FAIL";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT:
+            return "HANDSHAKE_TIMEOUT";
+        case WIFI_REASON_BEACON_TIMEOUT:
+            return "BEACON_TIMEOUT";
+        case WIFI_REASON_NO_AP_FOUND:
+            return "NO_AP_FOUND";
+        case WIFI_REASON_CONNECTION_FAIL:
+            return "CONNECTION_FAIL";
+        case WIFI_REASON_DISASSOC_DUE_TO_INACTIVITY:
+            return "INACTIVITY";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 static bool creds_present_unsafe(void) {
     return s_runtime_ssid[0] != '\0';
 }
@@ -157,6 +182,9 @@ static esp_err_t apply_runtime_config(void) {
     strlcpy((char *)sta_cfg.sta.password, s_runtime_pass, sizeof(sta_cfg.sta.password));
     unlock_mu();
 
+    ESP_LOGI(TAG, "apply WiFi config: ssid=%s pass_len=%u",
+             (const char *)sta_cfg.sta.ssid,
+             (unsigned)strlen((const char *)sta_cfg.sta.password));
     sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
     sta_cfg.sta.pmf_cfg.capable = true;
     sta_cfg.sta.pmf_cfg.required = false;
@@ -192,6 +220,18 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
     }
 
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_CONNECTED) {
+        const wifi_event_sta_connected_t *conn = (const wifi_event_sta_connected_t *)data;
+        if (conn) {
+            ESP_LOGI(TAG,
+                     "STA connected: ssid=%.*s bssid=%02x:%02x:%02x:%02x:%02x:%02x ch=%u auth=%u aid=%u",
+                     conn->ssid_len,
+                     (const char *)conn->ssid,
+                     conn->bssid[0], conn->bssid[1], conn->bssid[2],
+                     conn->bssid[3], conn->bssid[4], conn->bssid[5],
+                     conn->channel,
+                     conn->authmode,
+                     conn->aid);
+        }
         lock_mu();
         if (s_status.state != CAM_WIFI_STATE_CONNECTED) {
             s_status.state = CAM_WIFI_STATE_CONNECTING;
@@ -213,7 +253,21 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
         const bool do_retry = s_autoconnect && creds_present_unsafe() && (s_retry < CAM_WIFI_MAX_RETRY);
         unlock_mu();
 
-        ESP_LOGW(TAG, "STA disconnected (reason=%d)%s", reason, do_retry ? " -> retry" : "");
+        if (disc) {
+            ESP_LOGW(TAG,
+                     "STA disconnected: ssid=%.*s bssid=%02x:%02x:%02x:%02x:%02x:%02x reason=%d (%s) rssi=%d%s",
+                     disc->ssid_len,
+                     (const char *)disc->ssid,
+                     disc->bssid[0], disc->bssid[1], disc->bssid[2],
+                     disc->bssid[3], disc->bssid[4], disc->bssid[5],
+                     reason,
+                     wifi_reason_name(reason),
+                     disc->rssi,
+                     do_retry ? " -> retry" : "");
+        } else {
+            ESP_LOGW(TAG, "STA disconnected (reason=%d %s)%s", reason, wifi_reason_name(reason),
+                     do_retry ? " -> retry" : "");
+        }
         if (do_retry) {
             s_retry++;
             esp_wifi_connect();
@@ -317,6 +371,7 @@ esp_err_t cam_wifi_set_credentials(const char *ssid, const char *password, bool 
     strlcpy(s_status.ssid, s_runtime_ssid, sizeof(s_status.ssid));
     s_status.has_runtime_creds = s_has_runtime;
     unlock_mu();
+    ESP_LOGI(TAG, "WiFi credentials set: ssid=%s save=%s", s_runtime_ssid, save_to_nvs ? "yes" : "no");
 
     if (save_to_nvs) {
         esp_err_t err = save_credentials_to_nvs(ssid, password ? password : "");
@@ -353,6 +408,7 @@ esp_err_t cam_wifi_clear_credentials(void) {
         (void)esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
     }
 
+    ESP_LOGI(TAG, "WiFi credentials cleared");
     return err;
 }
 
@@ -364,6 +420,7 @@ esp_err_t cam_wifi_connect(void) {
     unlock_mu();
 
     if (!have_creds) return ESP_ERR_INVALID_STATE;
+    ESP_LOGI(TAG, "WiFi connect requested (ssid=%s)", s_runtime_ssid);
     s_retry = 0;
     esp_err_t err = apply_runtime_config();
     if (err != ESP_OK) return err;
@@ -384,6 +441,7 @@ esp_err_t cam_wifi_disconnect(void) {
     s_status.ip4 = 0;
     if (s_status.state != CAM_WIFI_STATE_UNINIT) s_status.state = CAM_WIFI_STATE_IDLE;
     unlock_mu();
+    ESP_LOGI(TAG, "WiFi disconnect requested");
     return esp_wifi_disconnect();
 }
 

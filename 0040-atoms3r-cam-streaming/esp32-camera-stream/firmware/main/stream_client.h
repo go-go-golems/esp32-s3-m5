@@ -24,6 +24,8 @@ void stream_client_start(void);
 void stream_client_stop(void);
 bool stream_client_is_running(void);
 bool stream_client_is_connected(void);
+void stream_camera_power_set(int level);
+void stream_camera_power_dump(void);
 
 #ifdef __cplusplus
 }

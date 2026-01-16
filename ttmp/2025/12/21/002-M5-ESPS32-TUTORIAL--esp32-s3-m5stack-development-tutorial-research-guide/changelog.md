@@ -159,3 +159,8 @@ Tutorial 0008 updated for AtomS3R: GC9107 panel via esp_lcd_gc9107, default y_of
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0008-atoms3r-display-animation/main/hello_world_main.c — Use esp_lcd_gc9107 + AtomS3R backlight modes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0008-atoms3r-display-animation/main/idf_component.yml — Add espressif/esp_lcd_gc9107 dependency
 
+
+## 2026-01-15
+
+Ticket closed
+

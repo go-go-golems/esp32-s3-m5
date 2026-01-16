@@ -1,7 +1,7 @@
 ---
 Title: 'Host debug compile: run typewriter on host + device'
 Ticket: 0011-HOST-DEBUG-COMPILE
-Status: active
+Status: complete
 Topics:
     - esp-idf
     - linux
@@ -18,10 +18,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2025-12-23T19:11:44.39131657-05:00
+LastUpdated: 2026-01-15T22:18:58.247865807-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Host debug compile: run typewriter on host + device
 

@@ -1,0 +1,29 @@
+Executing action: flash
+Running ninja in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build
+Executing "ninja flash"...
+[1/5] cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.1.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/partition_table/partition-table.bin /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/atoms3r_cam_jtag_serial_test.bin
+atoms3r_cam_jtag_serial_test.bin binary size 0x4a790 bytes. Smallest app partition is 0x100000 bytes. 0xb5870 bytes (71%) free.
+[2/5] Performing build step for 'bootloader'
+[1/1] cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/bootloader/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.1.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/bootloader/bootloader.bin
+Bootloader binary size 0x50c0 bytes. 0x2f40 bytes (37%) free.
+[3/5] No install step for 'bootloader'
+[4/5] Completed 'bootloader'
+[4/5] cd /home/manuel/esp/esp-idf-5.1.4/components/esptool_py && /home/manuel/.pyenv/versions/3.11.3/lib/python3.11/site-packages/cmake/data/bin/cmake -D IDF_PATH=/home/manuel/esp/esp-idf-5.1.4 -D "SERIAL_TOOL=/home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python;;/home/manuel/esp/esp-idf-5.1.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build -P /home/manuel/esp/esp-idf-5.1.4/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/ttyACM0 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 2MB 0x0 bootloader/bootloader.bin 0x10000 atoms3r_cam_jtag_serial_test.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.10.0
+Serial port /dev/ttyACM0
+
+A fatal error occurred: Could not open /dev/ttyACM0, the port is busy or doesn't exist.
+([Errno 11] Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable)
+
+CMake Error at run_serial_tool.cmake:66 (message):
+  
+  /home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python;;/home/manuel/esp/esp-idf-5.1.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3
+  failed.
+
+
+
+FAILED: CMakeFiles/flash /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/CMakeFiles/flash 
+cd /home/manuel/esp/esp-idf-5.1.4/components/esptool_py && /home/manuel/.pyenv/versions/3.11.3/lib/python3.11/site-packages/cmake/data/bin/cmake -D IDF_PATH=/home/manuel/esp/esp-idf-5.1.4 -D "SERIAL_TOOL=/home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python;;/home/manuel/esp/esp-idf-5.1.4/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build -P /home/manuel/esp/esp-idf-5.1.4/components/esptool_py/run_serial_tool.cmake
+ninja: build stopped: subcommand failed.
+ninja failed with exit code 1, output of the command is in the /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/log/idf_py_stderr_output_1098007 and /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/log/idf_py_stdout_output_1098007

@@ -1,5 +1,248 @@
 menu "AtomS3R Camera Stream"
 
+    config CAMERA_XCLK_FREQ
+        int "XCLK frequency"
+        range 1000000 40000000
+        default 20000000
+        help
+            Select XCLK frequency.
+
+    menu "Camera Pin Configuration"
+
+        choice CAMERA_MODULE
+            bool "Select Camera Pinout"
+            default CAMERA_MODULE_M5STACK_ATOMS3R_CAM if IDF_TARGET_ESP32S3
+            default CAMERA_MODULE_ESP_S2_KALUGA if IDF_TARGET_ESP32S2
+            help
+                Select Camera Pinout.
+
+            config CAMERA_MODULE_ESP_S2_KALUGA
+                bool "ESP32-S2-Kaluga-1 V1.3"
+            config CAMERA_MODULE_ESP_S3_EYE
+                bool "ESP-S3-EYE DevKit"
+            config CAMERA_MODULE_ESP_S3_KORVO2
+                bool "ESP-S3-Korvo-2"
+            config CAMERA_MODULE_M5STACK_ATOMS3R_CAM
+                bool "M5Stack-AtomS3R-CAM"
+            config CAMERA_MODULE_CUSTOM
+                bool "Custom Camera Pinout"
+        endchoice
+
+        config CAMERA_PIN_PWDN
+            depends on CAMERA_MODULE_CUSTOM
+            int "Power Down pin"
+            range -1 33
+            default -1
+            help
+                Select Power Down pin or -1 for unmanaged.
+
+        config CAMERA_PIN_RESET
+            depends on CAMERA_MODULE_CUSTOM
+            int "Reset pin"
+            range -1 33
+            default -1
+            help
+                Select Camera Reset pin or -1 for software reset.
+
+        config CAMERA_PIN_XCLK
+            depends on CAMERA_MODULE_CUSTOM
+            int "XCLK pin"
+            range 0 33
+            default 21
+            help
+                Select Camera XCLK pin.
+
+        config CAMERA_PIN_SIOD
+            depends on CAMERA_MODULE_CUSTOM
+            int "SIOD pin"
+            range 0 33
+            default 26
+            help
+                Select Camera SIOD pin.
+
+        config CAMERA_PIN_SIOC
+            depends on CAMERA_MODULE_CUSTOM
+            int "SIOC pin"
+            range 0 33
+            default 27
+            help
+                Select Camera SIOC pin.
+
+        config CAMERA_PIN_VSYNC
+            depends on CAMERA_MODULE_CUSTOM
+            int "VSYNC pin"
+            range 0 39
+            default 25
+            help
+                Select Camera VSYNC pin.
+
+        config CAMERA_PIN_HREF
+            depends on CAMERA_MODULE_CUSTOM
+            int "HREF pin"
+            range 0 39
+            default 23
+            help
+                Select Camera HREF pin.
+
+        config CAMERA_PIN_PCLK
+            depends on CAMERA_MODULE_CUSTOM
+            int "PCLK pin"
+            range 0 39
+            default 25
+            help
+                Select Camera PCLK pin.
+
+        config CAMERA_PIN_Y2
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y2 pin"
+            range 0 39
+            default 4
+            help
+                Select Camera Y2 pin.
+
+        config CAMERA_PIN_Y3
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y3 pin"
+            range 0 39
+            default 5
+            help
+                Select Camera Y3 pin.
+
+        config CAMERA_PIN_Y4
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y4 pin"
+            range 0 39
+            default 18
+            help
+                Select Camera Y4 pin.
+
+        config CAMERA_PIN_Y5
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y5 pin"
+            range 0 39
+            default 19
+            help
+                Select Camera Y5 pin.
+
+        config CAMERA_PIN_Y6
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y6 pin"
+            range 0 39
+            default 36
+            help
+                Select Camera Y6 pin.
+
+        config CAMERA_PIN_Y7
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y7 pin"
+            range 0 39
+            default 39
+            help
+                Select Camera Y7 pin.
+
+        config CAMERA_PIN_Y8
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y8 pin"
+            range 0 39
+            default 34
+            help
+                Select Camera Y8 pin.
+
+        config CAMERA_PIN_Y9
+            depends on CAMERA_MODULE_CUSTOM
+            int "Y9 pin"
+            range 0 39
+            default 35
+            help
+                Select Camera Y9 pin.
+    endmenu
+
+    menu "Camera Component Options"
+
+        choice SCCB_HARDWARE_I2C_PORT
+            bool "I2C peripheral to use for SCCB"
+            default SCCB_HARDWARE_I2C_PORT1
+
+            config SCCB_HARDWARE_I2C_PORT0
+                bool "I2C0"
+            config SCCB_HARDWARE_I2C_PORT1
+                bool "I2C1"
+
+        endchoice
+
+        config SCCB_CLK_FREQ
+            int "SCCB clk frequency"
+            default 100000
+            range 100000 400000
+            help
+                Increasing this value can reduce the initialization time of the sensor.
+                Please refer to the relevant instructions of the sensor to adjust the value.
+
+        config CAMERA_TASK_STACK_SIZE
+            int "CAM task stack size"
+            default 2048
+            help
+                Camera task stack size.
+
+        choice CAMERA_TASK_PINNED_TO_CORE
+            bool "Camera task pinned to core"
+            default CAMERA_CORE0
+            help
+                Pin the camera handle task to a certain core(0/1). It can also be done automatically choosing NO_AFFINITY.
+
+            config CAMERA_CORE0
+                bool "CORE0"
+            config CAMERA_CORE1
+                bool "CORE1"
+            config CAMERA_NO_AFFINITY
+                bool "NO_AFFINITY"
+
+        endchoice
+
+        config CAMERA_DMA_BUFFER_SIZE_MAX
+            int "DMA buffer size"
+            range 8192 32768
+            default 32768
+            help
+                Maximum value of DMA buffer.
+                Larger values may fail to allocate due to insufficient contiguous memory blocks, and smaller values may cause DMA interrupt to be too frequent.
+
+        choice CAMERA_JPEG_MODE_FRAME_SIZE_OPTION
+            prompt "JPEG mode frame size option"
+            default CAMERA_JPEG_MODE_FRAME_SIZE_AUTO
+            help
+                Select whether to use automatic calculation for JPEG mode frame size or specify a custom value.
+
+            config CAMERA_JPEG_MODE_FRAME_SIZE_AUTO
+                bool "Use automatic calculation (width * height / 5)"
+                help
+                    Use the default calculation for JPEG mode frame size.
+                    Note: In very low resolutions like QQVGA, the default calculation tends to result in insufficient buffer size.
+
+            config CAMERA_JPEG_MODE_FRAME_SIZE_CUSTOM
+                bool "Specify custom frame size"
+                help
+                    Specify a custom frame size in bytes for JPEG mode.
+
+        endchoice
+
+        config CAMERA_JPEG_MODE_FRAME_SIZE
+            int "Custom JPEG mode frame size (bytes)"
+            default 8192
+            depends on CAMERA_JPEG_MODE_FRAME_SIZE_CUSTOM
+            help
+                This option sets the custom frame size in JPEG mode.
+                Specify the desired buffer size in bytes.
+
+    endmenu
+
+    config ATOMS3R_CAMERA_POWER_ACTIVE_LOW
+        bool "Camera power GPIO is active low"
+        default y
+        help
+            When enabled, cam power 1 drives the GPIO low (matches the demo's
+            pulldown-only enable behavior).
+
     config ATOMS3R_STREAM_HOST
         string "Default stream host"
         default ""
@@ -21,11 +264,18 @@ menu "AtomS3R Camera Stream"
         help
             Delay between frames (approx 15 fps at 66 ms).
 
-    config ATOMS3R_JPEG_QUALITY
-        int "JPEG quality (lower is higher quality)"
+    config ATOMS3R_SENSOR_JPEG_QUALITY
+        int "Sensor JPEG quality (lower is higher quality)"
         range 4 63
-        default 12
+        default 14
         help
-            JPEG quality passed to frame2jpg. Lower values increase quality and size.
+            JPEG quality used by the camera sensor when PIXFORMAT_JPEG is active.
+
+    config ATOMS3R_CONVERT_JPEG_QUALITY
+        int "RGB->JPEG conversion quality (higher is higher quality)"
+        range 10 100
+        default 80
+        help
+            JPEG quality passed to frame2jpg when converting RGB565 frames.
 
 endmenu

@@ -12,6 +12,10 @@
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_netif_ip_addr.h"
+#include "esp_heap_caps.h"
+#if CONFIG_SPIRAM
+#include "esp_psram.h"
+#endif
 #include "esp_timer.h"
 #include "esp_wifi.h"
 #include "lwip/inet.h"
@@ -66,6 +70,17 @@ static void print_stream_usage(void) {
     printf("  stream start\n");
     printf("  stream stop\n");
     printf("  stream clear\n");
+}
+
+static void print_cam_usage(void) {
+    printf("usage:\n");
+    printf("  cam power <0|1>  (1=on, 0=off)\n");
+    printf("  cam dump\n");
+}
+
+static void print_psram_usage(void) {
+    printf("usage:\n");
+    printf("  psram status\n");
 }
 
 static bool try_parse_int(const char *s, int *out) {
@@ -347,6 +362,64 @@ static int cmd_stream(int argc, char **argv) {
     return 1;
 }
 
+static int cmd_cam(int argc, char **argv) {
+    if (argc < 2) {
+        print_cam_usage();
+        return 1;
+    }
+
+    if (strcmp(argv[1], "power") == 0) {
+        if (argc < 3) {
+            print_cam_usage();
+            return 1;
+        }
+        int level = 0;
+        if (!try_parse_int(argv[2], &level) || (level != 0 && level != 1)) {
+            printf("cam power: expected 0 or 1\n");
+            return 1;
+        }
+        stream_camera_power_set(level);
+        stream_camera_power_dump();
+        printf("camera power set to %d\n", level);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "dump") == 0) {
+        stream_camera_power_dump();
+        return 0;
+    }
+
+    print_cam_usage();
+    return 1;
+}
+
+static int cmd_psram(int argc, char **argv) {
+    if (argc < 2 || strcmp(argv[1], "status") != 0) {
+        print_psram_usage();
+        return 1;
+    }
+
+#if CONFIG_SPIRAM
+    bool initialized = esp_psram_is_initialized();
+    size_t size = initialized ? esp_psram_get_size() : 0;
+    size_t free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM);
+    size_t internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    size_t internal_largest = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
+    printf("psram init=%s size=%u free=%u largest=%u internal_free=%u internal_largest=%u\n",
+           initialized ? "yes" : "no",
+           (unsigned)size,
+           (unsigned)free,
+           (unsigned)largest,
+           (unsigned)internal_free,
+           (unsigned)internal_largest);
+#else
+    printf("psram disabled (CONFIG_SPIRAM is not set)\n");
+#endif
+
+    return 0;
+}
+
 static void register_commands(void) {
     esp_console_cmd_t wifi_cmd = {0};
     wifi_cmd.command = "wifi";
@@ -359,6 +432,18 @@ static void register_commands(void) {
     stream_cmd.help = "Stream control: stream status|set|start|stop|clear";
     stream_cmd.func = &cmd_stream;
     ESP_ERROR_CHECK(esp_console_cmd_register(&stream_cmd));
+
+    esp_console_cmd_t cam_cmd = {0};
+    cam_cmd.command = "cam";
+    cam_cmd.help = "Camera power debug: cam power 0|1 (1=on), cam dump";
+    cam_cmd.func = &cmd_cam;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cam_cmd));
+
+    esp_console_cmd_t psram_cmd = {0};
+    psram_cmd.command = "psram";
+    psram_cmd.help = "PSRAM status: psram status";
+    psram_cmd.func = &cmd_psram;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&psram_cmd));
 }
 
 void cam_console_start(void) {

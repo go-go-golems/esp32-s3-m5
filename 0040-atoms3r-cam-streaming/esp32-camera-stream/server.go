@@ -3,15 +3,19 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -33,12 +37,70 @@ type StreamServer struct {
 	bufferMutex   sync.RWMutex
 	isStreaming   bool
 	streamMutex   sync.Mutex
+	lastCamLog    time.Time
+	camFrameCount uint64
+	camByteCount  uint64
+	lastViewLog   time.Time
+	viewByteCount uint64
 }
 
 func NewStreamServer() *StreamServer {
 	return &StreamServer{
 		h264Buffer: bytes.NewBuffer(make([]byte, 0, 2*1024*1024)),
 	}
+}
+
+func countClients(m *sync.Map) int {
+	count := 0
+	m.Range(func(key, value interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+func (s *StreamServer) recordCameraFrame(size int) {
+	if size <= 0 {
+		return
+	}
+	s.camFrameCount++
+	s.camByteCount += uint64(size)
+	now := time.Now()
+	if s.lastCamLog.IsZero() {
+		s.lastCamLog = now
+		return
+	}
+	elapsed := now.Sub(s.lastCamLog)
+	if elapsed < 5*time.Second {
+		return
+	}
+	fps := float64(s.camFrameCount) / elapsed.Seconds()
+	avg := float64(s.camByteCount) / float64(s.camFrameCount)
+	log.Printf("Camera stats: frames=%d fps=%.1f avg_bytes=%.0f connected=%d",
+		s.camFrameCount, fps, avg, countClients(&s.cameraClients))
+	s.camFrameCount = 0
+	s.camByteCount = 0
+	s.lastCamLog = now
+}
+
+func (s *StreamServer) recordViewerBytes(size int) {
+	if size <= 0 {
+		return
+	}
+	s.viewByteCount += uint64(size)
+	now := time.Now()
+	if s.lastViewLog.IsZero() {
+		s.lastViewLog = now
+		return
+	}
+	elapsed := now.Sub(s.lastViewLog)
+	if elapsed < 5*time.Second {
+		return
+	}
+	log.Printf("Viewer stats: bytes=%d viewers=%d",
+		s.viewByteCount, countClients(&s.viewerClients))
+	s.viewByteCount = 0
+	s.lastViewLog = now
 }
 
 func (s *StreamServer) handleCameraWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -50,10 +112,18 @@ func (s *StreamServer) handleCameraWebSocket(w http.ResponseWriter, r *http.Requ
 	defer conn.Close()
 
 	clientAddr := conn.RemoteAddr().String()
-	log.Printf("Camera connected from %s", clientAddr)
+	userAgent := r.UserAgent()
+	if userAgent == "" {
+		userAgent = "-"
+	}
+	log.Printf("Camera connected from %s ua=%s", clientAddr, userAgent)
 
 	s.cameraClients.Store(conn, true)
-	defer s.cameraClients.Delete(conn)
+	log.Printf("Camera clients: %d", countClients(&s.cameraClients))
+	defer func() {
+		s.cameraClients.Delete(conn)
+		log.Printf("Camera clients: %d", countClients(&s.cameraClients))
+	}()
 
 	// Start FFmpeg if not already running
 	if err := s.startFFmpeg(); err != nil {
@@ -66,14 +136,21 @@ func (s *StreamServer) handleCameraWebSocket(w http.ResponseWriter, r *http.Requ
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("Camera WebSocket error: %v", err)
+			} else if closeErr, ok := err.(*websocket.CloseError); ok {
+				log.Printf("Camera WebSocket closed: code=%d text=%s", closeErr.Code, closeErr.Text)
+			} else {
+				log.Printf("Camera WebSocket read error: %v", err)
 			}
 			break
 		}
 
 		if messageType == websocket.BinaryMessage {
+			s.recordCameraFrame(len(message))
 			if err := s.processJPEGFrame(message); err != nil {
 				log.Printf("Error processing JPEG frame: %v", err)
 			}
+		} else {
+			log.Printf("Camera message type %d (%d bytes)", messageType, len(message))
 		}
 	}
 
@@ -100,10 +177,18 @@ func (s *StreamServer) handleViewerWebSocket(w http.ResponseWriter, r *http.Requ
 	defer conn.Close()
 
 	clientAddr := conn.RemoteAddr().String()
-	log.Printf("Viewer connected from %s", clientAddr)
+	userAgent := r.UserAgent()
+	if userAgent == "" {
+		userAgent = "-"
+	}
+	log.Printf("Viewer connected from %s ua=%s", clientAddr, userAgent)
 
 	s.viewerClients.Store(conn, true)
-	defer s.viewerClients.Delete(conn)
+	log.Printf("Viewer clients: %d", countClients(&s.viewerClients))
+	defer func() {
+		s.viewerClients.Delete(conn)
+		log.Printf("Viewer clients: %d", countClients(&s.viewerClients))
+	}()
 
 	// Send buffered data first
 	s.bufferMutex.RLock()
@@ -122,9 +207,17 @@ func (s *StreamServer) handleViewerWebSocket(w http.ResponseWriter, r *http.Requ
 
 	// Keep connection alive
 	for {
-		_, _, err := conn.ReadMessage()
+		messageType, message, err := conn.ReadMessage()
 		if err != nil {
+			if closeErr, ok := err.(*websocket.CloseError); ok {
+				log.Printf("Viewer WebSocket closed: code=%d text=%s", closeErr.Code, closeErr.Text)
+			} else {
+				log.Printf("Viewer WebSocket read error: %v", err)
+			}
 			break
+		}
+		if messageType != websocket.BinaryMessage {
+			log.Printf("Viewer message type %d (%d bytes)", messageType, len(message))
 		}
 	}
 
@@ -154,6 +247,7 @@ func (s *StreamServer) startFFmpeg() error {
 		"-f", "mpegts",
 		"-",
 	)
+	log.Printf("FFmpeg command: %s", strings.Join(s.ffmpegCmd.Args, " "))
 
 	stdin, err := s.ffmpegCmd.StdinPipe()
 	if err != nil {
@@ -268,7 +362,9 @@ func (s *StreamServer) logFFmpegStderr(stderr io.Reader) {
 }
 
 func (s *StreamServer) broadcastH264(data []byte) {
+	viewerCount := 0
 	s.viewerClients.Range(func(key, value interface{}) bool {
+		viewerCount++
 		conn := key.(*websocket.Conn)
 		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 			log.Printf("Error broadcasting to viewer: %v", err)
@@ -276,6 +372,9 @@ func (s *StreamServer) broadcastH264(data []byte) {
 		}
 		return true
 	})
+	if viewerCount > 0 {
+		s.recordViewerBytes(len(data) * viewerCount)
+	}
 }
 
 func (s *StreamServer) handleStatus(w http.ResponseWriter, r *http.Request) {
@@ -307,8 +406,66 @@ func (s *StreamServer) serveFile(filename string) http.HandlerFunc {
 	}
 }
 
+func splitAddr(addr string, defaultPort string) (string, string, error) {
+	if addr == "" {
+		addr = ":" + defaultPort
+	}
+	if strings.HasPrefix(addr, ":") {
+		addr = "0.0.0.0" + addr
+	}
+	host, port, err := net.SplitHostPort(addr)
+	if err == nil {
+		return host, port, nil
+	}
+	if strings.Contains(addr, ":") {
+		return "", "", err
+	}
+	addr = net.JoinHostPort(addr, defaultPort)
+	host, port, err = net.SplitHostPort(addr)
+	if err != nil {
+		return "", "", err
+	}
+	return host, port, nil
+}
+
+func localIPv4s() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	ips := []string{}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip == nil {
+				continue
+			}
+			if ipv4 := ip.To4(); ipv4 != nil {
+				ips = append(ips, ipv4.String())
+			}
+		}
+	}
+	return ips
+}
+
 func main() {
 	server := NewStreamServer()
+
+	addrFlag := flag.String("addr", "127.0.0.1:8080", "HTTP bind address (host:port)")
+	flag.Parse()
 
 	// HTTP handlers
 	http.HandleFunc("/", server.serveFile("client.html"))
@@ -319,18 +476,38 @@ func main() {
 	http.HandleFunc("/ws/camera", server.handleCameraWebSocket)
 	http.HandleFunc("/ws/viewer", server.handleViewerWebSocket)
 
+	host, port, err := splitAddr(*addrFlag, "8080")
+	if err != nil {
+		log.Fatalf("Invalid -addr %q: %v", *addrFlag, err)
+	}
+
 	// Start HTTP server
 	go func() {
-		log.Println("HTTP server started on port 8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Printf("HTTP server started on %s", net.JoinHostPort(host, port))
+		if err := http.ListenAndServe(net.JoinHostPort(host, port), nil); err != nil {
 			log.Fatalf("HTTP server error: %v", err)
 		}
 	}()
 
 	log.Println("Server is ready!")
-	log.Println("- Camera should connect to: ws://localhost:8080/ws/camera")
-	log.Println("- Viewer should connect to: ws://localhost:8080/ws/viewer")
-	log.Println("- Web client available at: http://localhost:8080")
+	if host == "0.0.0.0" || host == "::" || host == "" {
+		ips := localIPv4s()
+		if len(ips) > 0 {
+			for _, ip := range ips {
+				log.Printf("- Camera should connect to: ws://%s:%s/ws/camera", ip, port)
+				log.Printf("- Viewer should connect to: ws://%s:%s/ws/viewer", ip, port)
+				log.Printf("- Web client available at: http://%s:%s", ip, port)
+			}
+		} else {
+			log.Printf("- Camera should connect to: ws://<host>:%s/ws/camera", port)
+			log.Printf("- Viewer should connect to: ws://<host>:%s/ws/viewer", port)
+			log.Printf("- Web client available at: http://<host>:%s", port)
+		}
+	} else {
+		log.Printf("- Camera should connect to: ws://%s:%s/ws/camera", host, port)
+		log.Printf("- Viewer should connect to: ws://%s:%s/ws/viewer", host, port)
+		log.Printf("- Web client available at: http://%s:%s", host, port)
+	}
 
 	// Wait for interrupt signal
 	sigChan := make(chan os.Signal, 1)

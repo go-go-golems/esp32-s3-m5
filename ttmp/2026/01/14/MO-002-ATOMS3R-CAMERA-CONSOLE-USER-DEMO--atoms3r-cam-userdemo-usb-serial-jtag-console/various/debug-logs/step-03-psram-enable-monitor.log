@@ -1,0 +1,2 @@
+[0;33m--- esp-idf-monitor 1.9.0 on /dev/ttyACM0 115200[0m
+[0;33m--- Warning: ELF file '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/atoms3r_cam_jtag_serial_test.elf' does not exist[0m

@@ -1,0 +1,166 @@
+[0;33m--- esp-idf-monitor 1.9.0 on /dev/ttyACM0 115200[0m
+[0;33m--- Warning: ELF file '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/atoms3r_cam_jtag_serial_test.elf' does not exist[0m
+[0;33m--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H[0m
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test
+Executing "/home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python /home/manuel/esp/esp-idf-5.1.4/tools/idf_monitor.py -p /dev/ttyACM0 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/build/atoms3r_cam_jtag_serial_test.elf -m '/home/manuel/.espressif/python_env/idf5.1_py3.11_env/bin/python' '/home/manuel/esp/esp-idf-5.1.4/tools/idf.py' '-p' '/dev/ttyACM0'"...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x3a (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40378a72
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3818,len:0x1750
+load:0x403c9700,len:0x4
+load:0x403c9704,len:0xbe4
+load:0x403cc700,len:0x2d20
+entry 0x403c9908
+[0;32mI (26) boot: ESP-IDF v5.1.4 2nd stage bootloader[0m
+[0;32mI (27) boot: compile time Jan 14 2026 18:07:39[0m
+[0;32mI (27) boot: Multicore bootloader[0m
+[0;32mI (30) boot: chip revision: v0.2[0m
+[0;32mI (34) boot.esp32s3: Boot SPI Speed : 80MHz[0m
+[0;32mI (38) boot.esp32s3: SPI Mode       : DIO[0m
+[0;32mI (43) boot.esp32s3: SPI Flash Size : 2MB[0m
+[0;32mI (48) boot: Enabling RNG early entropy source...[0m
+[0;32mI (53) boot: Partition Table:[0m
+[0;32mI (57) boot: ## Label            Usage          Type ST Offset   Length[0m
+[0;32mI (64) boot:  0 nvs              WiFi data        01 02 00009000 00006000[0m
+[0;32mI (72) boot:  1 phy_init         RF data          01 01 0000f000 00001000[0m
+[0;32mI (79) boot:  2 factory          factory app      00 00 00010000 00100000[0m
+[0;32mI (87) boot: End of partition table[0m
+[0;32mI (91) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=0eb20h ( 60192) map[0m
+[0;32mI (110) esp_image: segment 1: paddr=0001eb48 vaddr=3fc92d00 size=014d0h (  5328) load[0m
+[0;32mI (112) esp_image: segment 2: paddr=00020020 vaddr=42000020 size=272c8h (160456) map[0m
+[0;32mI (145) esp_image: segment 3: paddr=000472f0 vaddr=3fc941d0 size=022b0h (  8880) load[0m
+[0;32mI (147) esp_image: segment 4: paddr=000495a8 vaddr=40374000 size=0ecd4h ( 60628) load[0m
+[0;32mI (170) boot: Loaded app from partition at offset 0x10000[0m
+[0;32mI (171) boot: Disabling RNG early entropy source...[0m
+[0;32mI (171) cpu_start: Multicore app[0m
+[0;32mI (175) cpu_start: Pro cpu up.[0m
+[0;32mI (178) cpu_start: Starting app cpu, entry point is 0x403753ac[0m
+[0;32mI (0) cpu_start: App cpu up.[0m
+[0;32mI (194) cpu_start: Pro cpu start user code[0m
+[0;32mI (194) cpu_start: cpu freq: 160000000 Hz[0m
+[0;32mI (194) cpu_start: Application information:[0m
+[0;32mI (195) cpu_start: Project name:     atoms3r_cam_jtag_serial_test[0m
+[0;32mI (195) cpu_start: App version:      c2f452c-dirty[0m
+[0;32mI (195) cpu_start: Compile time:     Jan 14 2026 21:32:32[0m
+[0;32mI (195) cpu_start: ELF file SHA256:  8e18c72e1eeb315e...[0m
+[0;32mI (196) cpu_start: ESP-IDF:          v5.1.4[0m
+[0;32mI (196) cpu_start: Min chip rev:     v0.0[0m
+[0;32mI (196) cpu_start: Max chip rev:     v0.99 [0m
+[0;32mI (196) cpu_start: Chip rev:         v0.2[0m
+[0;32mI (196) heap_init: Initializing. RAM available for dynamic allocation:[0m
+[0;32mI (197) heap_init: At 3FC96CE8 len 00052A28 (330 KiB): DRAM[0m
+[0;32mI (197) heap_init: At 3FCE9710 len 00005724 (21 KiB): STACK/DRAM[0m
+[0;32mI (197) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM[0m
+[0;32mI (198) heap_init: At 600FE010 len 00001FD8 (7 KiB): RTCRAM[0m
+[0;32mI (199) spi_flash: detected chip: gd[0m
+[0;32mI (199) spi_flash: flash io: dio[0m
+[0;33mW (199) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.[0m
+[0;32mI (200) sleep: Configure to isolate all GPIO pins in sleep state[0m
+[0;32mI (201) sleep: Enable automatic switching of GPIO sleep configuration[0m
+[0;32mI (201) app_start: Starting scheduler on CPU0[0m
+[0;32mI (201) app_start: Starting scheduler on CPU1[0m
+[0;32mI (201) main_task: Started on CPU0[0m
+[0;32mI (211) main_task: Calling app_main()[0m
+[0;32mI (211) cam_test: STEP: Step 0: boot[0m
+[0;32mI (211) cam_test: boot: atomS3R camera init test[0m
+[0;32mI (211) cam_test: chip: model=9 rev=2 cores=2[0m
+[0;32mI (211) cam_test: STEP: Step 1A: power polarity sweep (level=0)[0m
+[0;32mI (211) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (221) cam_test: camera power: force gpio=18 level=0[0m
+[0;32mI (421) cam_test: STEP: Step 1A: sccb scan (level=0)[0m
+[0;32mI (421) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000[0m
+[0;33mW (441) cam_test: sccb scan: no devices found[0m
+[0;32mI (441) cam_test: STEP: Step 1B: power polarity sweep (level=1)[0m
+[0;32mI (441) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (451) cam_test: camera power: force gpio=18 level=0[0m
+[0;32mI (651) cam_test: STEP: Step 1B: sccb scan (level=1)[0m
+[0;32mI (651) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000[0m
+[0;33mW (6251) cam_test: sccb scan: no devices found[0m
+[0;32mI (6251) cam_test: STEP: Step 1C: power enable (config)[0m
+[0;32mI (6251) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 [0m
+[0;32mI (6261) cam_test: camera power: gpio=18 active_low=yes level=0[0m
+[0;32mI (6461) cam_test: STEP: Step 2: sccb scan (post-enable)[0m
+[0;32mI (6461) cam_test: sccb scan: port=1 sda=12 scl=9 freq=100000[0m
+[0;33mW (6481) cam_test: sccb scan: no devices found[0m
+[0;32mI (6481) cam_test: STEP: Step 3: camera init[0m
+[0;33mW (6481) cam_test: PSRAM disabled (CONFIG_SPIRAM not set)[0m
+[0;32mI (6481) cam_test: camera options: sccb_port=1 sccb_freq=100000 cam_task_stack=2048 cam_task_core=core0 dma_buf=32768[0m
+[0;32mI (6481) cam_test: camera options: jpeg_frame_size=auto[0m
+[0;32mI (6481) cam_test: camera module: M5STACK AtomS3R-CAM[0m
+[0;32mI (6481) cam_test: camera request: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2[0m
+[0;32mI (6481) cam_test: camera cfg: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2 fb_loc=psram sccb_port=1[0m
+[0;32mI (6481) cam_test: camera pins: xclk=21 sda=12 scl=9 vsync=10 href=14 pclk=40 d0=3 d7=13[0m
+[0;32mI (6481) s3 ll_cam: DMA Channel=0[0m
+[0;32mI (6481) cam_hal: cam init ok[0m
+[0;32mI (6481) sccb: pin_sda 12 pin_scl 9[0m
+[0;32mI (6481) sccb: sccb_i2c_port=1[0m
+[0;32mI (6491) camera: Detected camera at address=0x21[0m
+[0;32mI (6491) ov7725: Mismatch PID=0xe8[0m
+[0;32mI (6491) ov7760: Mismatch PID=0xe8[0m
+[0;32mI (6491) gc032a: Mismatch PID=0xf302[0m
+[0;32mI (6491) camera: Detected GC0308 camera[0m
+[0;32mI (6491) camera: Camera PID=0x9b VER=0x00 MIDL=0x00 MIDH=0x00[0m
+[0;32mI (6751) s3 ll_cam: node_size: 3840, nodes_per_line: 1, lines_per_node: 6[0m
+[0;32mI (6751) s3 ll_cam: dma_half_buffer_min:  3840, dma_half_buffer: 15360, lines_per_half_buffer: 24, dma_buffer_size: 30720[0m
+[0;32mI (6751) cam_hal: buffer_size: 30720, half_buffer_size: 15360, node_buffer_size: 3840, node_cnt: 8, total_cnt: 10[0m
+[0;32mI (6751) cam_hal: Allocating 153600 Byte frame buffer in PSRAM[0m
+[0;31mE (6751) cam_hal: cam_dma_config(301): frame buffer malloc failed[0m
+[0;31mE (6751) cam_hal: cam_config(389): cam_dma_config failed[0m
+[0;31mE (6751) gdma: gdma_disconnect(238): no peripheral is connected to the channel[0m
+[0;31mE (6751) camera: Camera config failed with error 0xffffffff[0m
+[0;31mE (6751) cam_test: esp_camera_init failed: ESP_FAIL[0m
+[0;33mW (6751) cam_test: camera init failed: ESP_FAIL[0m
+[0;32mI (6751) cam_test: STEP: Step 4: capture loop[0m
+[0;31mE (6751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (7751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (8751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (9751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (10751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (11751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (12751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (13751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (14751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (15751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (16751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (17751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (18751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (19751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (20751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (21751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (22751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (23751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (24751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (25751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (26751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (27751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (28751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (29751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (30751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (31751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (32751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (33751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (34751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (35751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (36751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (37751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (38751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (39751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (40751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (41751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (42751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (43751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (44751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (45751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (46751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (47751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (48751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (49751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (50751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (51751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (52751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (53751) cam_test: esp_camera_fb_get failed[0m
+[0;31mE (54751) cam_test: esp_camera_fb_get failed[0m
