@@ -315,15 +315,8 @@
             // Connect to viewer WebSocket
             // Use wss:// for secure connection when accessed via https
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            // For proxied environment, construct the correct WebSocket URL
-            let wsHost = window.location.host;
-            if (wsHost.includes('8080-')) {
-                // Replace port in hostname for proxied environment
-                wsHost = wsHost.replace('8080-', '8766-');
-            } else {
-                // Local development
-                wsHost = window.location.hostname + ':8766';
-            }
+            // Use the same host/port as the page by default.
+            const wsHost = window.location.host;
             const wsUrl = protocol + '//' + wsHost + '/ws/viewer';
             console.log('Connecting to:', wsUrl);
             ws = new WebSocket(wsUrl);
