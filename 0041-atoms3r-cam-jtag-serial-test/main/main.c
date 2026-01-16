@@ -138,31 +138,7 @@ static void camera_sccb_probe_known_addrs(void)
              CAMERA_PIN_SIOD,
              CAMERA_PIN_SIOC,
              (unsigned)CONFIG_SCCB_CLK_FREQ);
-
-    i2c_config_t conf = {};
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = (gpio_num_t)CAMERA_PIN_SIOD;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_io_num = (gpio_num_t)CAMERA_PIN_SIOC;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = CONFIG_SCCB_CLK_FREQ;
-
-    esp_err_t err = i2c_param_config(port, &conf);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "sccb probe: i2c_param_config failed: %s", esp_err_to_name(err));
-        return;
-    }
-
-    bool installed = false;
-    err = i2c_driver_install(port, conf.mode, 0, 0, 0);
-    if (err == ESP_OK) {
-        installed = true;
-    } else if (err == ESP_ERR_INVALID_STATE) {
-        ESP_LOGW(TAG, "sccb probe: i2c driver already installed on port %d", (int)port);
-    } else {
-        ESP_LOGE(TAG, "sccb probe: i2c_driver_install failed: %s", esp_err_to_name(err));
-        return;
-    }
+    ESP_LOGI(TAG, "sccb probe: using existing i2c driver");
 
     bool found = false;
     for (size_t i = 0; i < sizeof(known_addrs) / sizeof(known_addrs[0]); ++i) {
@@ -182,10 +158,6 @@ static void camera_sccb_probe_known_addrs(void)
 
     if (!found) {
         ESP_LOGW(TAG, "sccb probe: no known devices found");
-    }
-
-    if (installed) {
-        ESP_LOGI(TAG, "sccb probe: leaving i2c driver installed");
     }
 }
 
