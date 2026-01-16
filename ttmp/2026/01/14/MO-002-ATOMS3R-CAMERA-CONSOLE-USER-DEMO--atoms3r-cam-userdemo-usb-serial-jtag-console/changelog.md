@@ -336,3 +336,12 @@ Add camera bootstrap playbook reference
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/reference/04-camera-bootstrap-playbook.md — Camera bootstrapping reference with SCCB probe and troubleshooting
 
+
+## 2026-01-15
+
+Expand camera bootstrap playbook with prose, filenames, and functions
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/reference/04-camera-bootstrap-playbook.md — Add detailed references and troubleshooting
+

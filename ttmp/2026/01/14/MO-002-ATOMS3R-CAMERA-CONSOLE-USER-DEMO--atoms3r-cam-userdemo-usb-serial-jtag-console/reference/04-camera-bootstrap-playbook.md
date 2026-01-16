@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Baseline sdkconfig values referenced in the playbook
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T22:12:34-05:00
+LastUpdated: 2026-01-15T22:17:35-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -42,6 +42,10 @@ This playbook assumes:
 - XCLK driven by LEDC at 20 MHz.
 - External PSRAM enabled and used for frame buffers.
 - USB Serial/JTAG console enabled (UART pins are often repurposed).
+
+The camera bring-up is sensitive to ordering. The esp32-camera driver enables XCLK, initializes SCCB, probes known sensor addresses, and only then configures DMA and frame buffers. If power or XCLK timing is wrong, the sensor will not ACK SCCB and `esp_camera_init()` can return `ESP_ERR_NOT_FOUND`.
+
+This document references the concrete implementation in `0041-atoms3r-cam-jtag-serial-test/main/main.c` and the driver internals in `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c` and `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/sccb.c`.
 
 Key facts:
 - Many sensors will not ACK SCCB unless XCLK is running.
@@ -133,6 +137,26 @@ if (err != ESP_OK) {
 }
 ```
 
+### Filenames and functions (where to look)
+
+Core application flow (0041):
+- File: `0041-atoms3r-cam-jtag-serial-test/main/main.c`
+  - `app_main()` boot sequence and step labels
+  - `camera_power_set()` and `camera_power_force_level()` for GPIO18 control
+  - `camera_init_and_log()` wraps `esp_camera_init()`
+  - `camera_sccb_probe_known_addrs()` optional post-XCLK probe
+  - `log_frame_preview()` frame hex preview logging
+
+Driver probe and SCCB:
+- File: `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/esp_camera.c`
+  - `camera_probe()` (XCLK on, SCCB init, `SCCB_Probe()`)
+- File: `0041-atoms3r-cam-jtag-serial-test/components/esp32-camera/driver/sccb.c`
+  - `SCCB_Init()`, `SCCB_Use_Port()`, `SCCB_Probe()`
+
+UserDemo reference for power delay:
+- File: `ATOMS3R-CAM-UserDemo/main/usb_webcam_main.cpp`
+  - `enable_camera_power()` uses `vTaskDelay(pdMS_TO_TICKS(200))`
+
 ### Optional SCCB probe (post-XCLK)
 
 Use known addresses and the existing driver (no install):
@@ -164,6 +188,22 @@ Rules:
 - Always return the buffer with `esp_camera_fb_return()`.
 - Use PSRAM buffers for QVGA+ frames.
 - If frames stall, confirm all buffers are returned.
+
+### Capture loop pseudocode (with filenames)
+
+```c
+// File: 0041-atoms3r-cam-jtag-serial-test/main/main.c
+while (true) {
+  camera_fb_t *fb = esp_camera_fb_get();
+  if (!fb) {
+    ESP_LOGE(TAG, "esp_camera_fb_get failed");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    continue;
+  }
+  // use fb->buf / fb->len / fb->width / fb->height / fb->format
+  esp_camera_fb_return(fb);
+}
+```
 
 ### Required sdkconfig values (baseline)
 
@@ -232,6 +272,8 @@ if (esp_camera_init(&cfg) == ESP_OK) {
 
 ## Troubleshooting and Investigation Approach
 
+This section summarizes the troubleshooting pattern that proved effective during the bring-up. Treat it as a short runbook when the camera fails to probe or frames do not appear.
+
 ### Symptom: `ESP_ERR_NOT_FOUND` in `esp_camera_init()`
 - Likely causes:
   - Sensor not ready yet (insufficient warmup delay).
@@ -264,6 +306,7 @@ if (esp_camera_init(&cfg) == ESP_OK) {
 - Favor explicit delays over incidental timing.
 - Keep step logs and use `STEP:` markers for correlation.
 - Change one variable per experiment and log the result.
+- Keep logs per run and record the firmware commit hash that produced them.
 
 ## Related
 
