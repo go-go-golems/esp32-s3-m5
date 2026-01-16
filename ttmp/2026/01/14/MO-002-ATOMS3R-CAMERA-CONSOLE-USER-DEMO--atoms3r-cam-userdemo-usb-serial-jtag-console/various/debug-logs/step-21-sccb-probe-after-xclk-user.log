@@ -1,0 +1,107 @@
+entry 0x403c9908
+I (26) boot: ESP-IDF v5.1.4 2nd stage bootloader
+I (27) boot: compile time Jan 14 2026 22:15:50
+I (27) boot: Multicore bootloader
+I (30) boot: chip revision: v0.2
+I (34) boot.esp32s3: Boot SPI Speed : 80MHz
+I (38) boot.esp32s3: SPI Mode       : DIO
+I (43) boot.esp32s3: SPI Flash Size : 2MB
+I (48) boot: Enabling RNG early entropy source...
+I (53) boot: Partition Table:
+I (57) boot: ## Label            Usage          Type ST Offset   Length
+I (64) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (72) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (79) boot:  2 factory          factory app      00 00 00010000 00100000
+I (87) boot: End of partition table
+I (91) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=0efd8h ( 61400) map
+I (110) esp_image: segment 1: paddr=0001f000 vaddr=3fc93f00 size=01018h (  4120) load
+I (112) esp_image: segment 2: paddr=00020020 vaddr=42000020 size=27d48h (163144) map
+I (145) esp_image: segment 3: paddr=00047d70 vaddr=3fc94f18 size=02bach ( 11180) load
+I (148) esp_image: segment 4: paddr=0004a924 vaddr=40374000 size=0fe44h ( 65092) load
+I (172) boot: Loaded app from partition at offset 0x10000
+I (172) boot: Disabling RNG early entropy source...
+I (173) cpu_start: Multicore app
+I (177) octal_psram: vendor id    : 0x0d (AP)
+I (181) octal_psram: dev id       : 0x02 (generation 3)
+I (187) octal_psram: density      : 0x03 (64 Mbit)
+I (193) octal_psram: good-die     : 0x01 (Pass)
+I (198) octal_psram: Latency      : 0x01 (Fixed)
+I (203) octal_psram: VCC          : 0x01 (3V)
+I (208) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (214) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (220) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (226) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (232) octal_psram: DriveStrength: 0x00 (1/1)
+I (238) MSPI Timing: PSRAM timing tuning index: 4
+I (242) esp_psram: Found 8MB PSRAM device
+I (247) esp_psram: Speed: 80MHz
+I (251) cpu_start: Pro cpu up.
+I (254) cpu_start: Starting app cpu, entry point is 0x403754e0
+--- 0x403754e0: call_start_cpu1 at /home/manuel/esp/esp-idf-5.1.4/components/esp_system/port/cpu_start.c:159
+I (0) cpu_start: App cpu up.
+I (707) esp_psram: SPI SRAM memory test OK
+I (716) cpu_start: Pro cpu start user code
+I (716) cpu_start: cpu freq: 160000000 Hz
+I (716) cpu_start: Application information:
+I (716) cpu_start: Project name:     atoms3r_cam_jtag_serial_test
+I (717) cpu_start: App version:      023e4a2-dirty
+I (717) cpu_start: Compile time:     Jan 15 2026 20:58:36
+I (717) cpu_start: ELF file SHA256:  469271b45bdc82c1...
+I (717) cpu_start: ESP-IDF:          v5.1.4
+I (718) cpu_start: Min chip rev:     v0.0
+I (718) cpu_start: Max chip rev:     v0.99 
+I (718) cpu_start: Chip rev:         v0.2
+I (718) heap_init: Initializing. RAM available for dynamic allocation:
+I (719) heap_init: At 3FC98378 len 00051398 (324 KiB): DRAM
+I (719) heap_init: At 3FCE9710 len 00005724 (21 KiB): STACK/DRAM
+I (719) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (719) heap_init: At 600FE010 len 00001FD8 (7 KiB): RTCRAM
+I (720) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (721) spi_flash: detected chip: gd
+I (721) spi_flash: flash io: dio
+W (721) spi_flash: Detected size(8192k) larger than the size in the binary image header(2048k). Using the size in the binary image header.
+I (722) sleep: Configure to isolate all GPIO pins in sleep state
+I (722) sleep: Enable automatic switching of GPIO sleep configuration
+I (723) app_start: Starting scheduler on CPU0
+I (723) app_start: Starting scheduler on CPU1
+I (723) main_task: Started on CPU0
+I (733) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (733) main_task: Calling app_main()
+I (733) cam_test: STEP: Step 0: boot
+I (733) cam_test: boot: atomS3R camera init test
+I (733) cam_test: chip: model=9 rev=2 cores=2
+I (733) cam_test: STEP: Step 1A: power polarity sweep (level=0)
+I (733) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (743) cam_test: camera power: force gpio=18 level=0
+I (943) cam_test: STEP: Step 1B: power polarity sweep (level=1)
+I (943) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (953) cam_test: camera power: force gpio=18 level=0
+I (1153) cam_test: STEP: Step 1C: power enable (config)
+I (1153) gpio: GPIO[18]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1163) cam_test: camera power: gpio=18 active_low=yes level=0
+I (1363) cam_test: STEP: Step 2: camera init
+I (1363) cam_test: PSRAM detected (8388608 bytes)
+I (1363) cam_test: camera options: sccb_port=1 sccb_freq=100000 cam_task_stack=2048 cam_task_core=core0 dma_buf=32768
+I (1363) cam_test: camera options: jpeg_frame_size=auto
+I (1363) cam_test: camera module: M5STACK AtomS3R-CAM
+I (1363) cam_test: camera request: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2
+I (1363) cam_test: camera cfg: xclk=20000000 fmt=RGB565 frame=QVGA quality=14 fb_count=2 fb_loc=psram sccb_port=1
+I (1363) cam_test: camera pins: xclk=21 sda=12 scl=9 vsync=10 href=14 pclk=40 d0=3 d7=13
+I (1363) s3 ll_cam: DMA Channel=0
+I (1363) cam_hal: cam init ok
+I (1363) sccb: pin_sda 12 pin_scl 9
+I (1363) sccb: sccb_i2c_port=1
+E (1373) camera: Camera probe failed with error 0x105(ESP_ERR_NOT_FOUND)
+E (1373) gdma: gdma_disconnect(238): no peripheral is connected to the channel
+E (1373) cam_test: esp_camera_init failed: ESP_ERR_NOT_FOUND
+W (1373) cam_test: camera init failed: ESP_ERR_NOT_FOUND
+I (1373) cam_test: STEP: Step 3: sccb probe (post-xclk)
+W (1373) cam_test: sccb probe skipped (camera init failed)
+I (1373) cam_test: STEP: Step 4: capture loop
+E (1373) cam_test: esp_camera_fb_get failed
+E (2373) cam_test: esp_camera_fb_get failed
+E (3373) cam_test: esp_camera_fb_get failed
+E (4373) cam_test: esp_camera_fb_get failed
+E (5373) cam_test: esp_camera_fb_get failed
+E (6373) cam_test: esp_camera_fb_get failed
+E (7373) cam_test: esp_camera_fb_get failed

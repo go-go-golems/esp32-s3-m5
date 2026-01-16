@@ -300,3 +300,12 @@ Update analysis: post-XCLK SCCB probe note
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md — Document 0041 scan replacement
 
+
+## 2026-01-15
+
+Step 21: record ESP_ERR_NOT_FOUND after scan removal
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-21-sccb-probe-after-xclk-user.log — Camera probe failed
+

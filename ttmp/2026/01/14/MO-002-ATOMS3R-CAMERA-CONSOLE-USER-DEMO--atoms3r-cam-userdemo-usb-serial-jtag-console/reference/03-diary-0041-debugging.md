@@ -50,12 +50,15 @@ RelatedFiles:
       Note: User-provided Step 1 monitor output (IDF 5.1.4)
     - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-17-psram-align-monitor-user.log
       Note: User-provided successful PSRAM-aligned monitor log
+    - Path: ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-21-sccb-probe-after-xclk-user.log
+      Note: User log showing ESP_ERR_NOT_FOUND after scan removal
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T19:42:22-05:00
+LastUpdated: 2026-01-15T21:00:58-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -861,3 +864,42 @@ The step labels were updated so the SCCB probe now explicitly happens after came
 
 ### Technical details
 - Probe addresses: 0x21, 0x30, 0x3C, 0x2A, 0x6E, 0x68.
+
+## Step 21: Record camera probe failure after scan removal
+
+I captured the user log from the new build where the pre-init scan was removed and the post-XCLK probe was added. In this run, `esp_camera_init()` failed with `ESP_ERR_NOT_FOUND`, indicating the driver’s SCCB probe did not see the camera.
+
+This suggests that removing the pre-init scan also removed an implicit stabilization delay; the driver now probes earlier in the boot and may need more time after power enable.
+
+### What I did
+- Saved the user log to the ticket.
+- Imported the log into the sqlite debug database with failure metadata.
+
+### Why
+- We need a record of the regression and enough data to correlate it to timing changes.
+
+### What worked
+- PSRAM initialized correctly at 80 MHz and was added to the heap.
+
+### What didn't work
+- `esp_camera_init()` failed: `Camera probe failed with error 0x105(ESP_ERR_NOT_FOUND)`.
+- Post-XCLK SCCB probe was skipped because init failed.
+
+### What I learned
+- The pre-init scan may have been providing enough delay for the camera to respond; without it, probe can fail.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the timing hypothesis and whether the camera requires a longer power-up delay.
+
+### What should be done in the future
+- Add an explicit post-power delay before camera init to replace the removed scan delay.
+
+### Code review instructions
+- Review the log file and compare timestamps against the previous successful run.
+
+### Technical details
+- Log: `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-21-sccb-probe-after-xclk-user.log`.
+- Import command: `python3 .../import_log.py --run-name run-2026-01-15-0041-step21-sccb-probe-user --step-name "Step 2: camera init (post-scan removal)" --log .../step-21-sccb-probe-after-xclk-user.log --result failure`.
