@@ -327,3 +327,12 @@ Step 25: reuse existing I2C driver for SCCB probe (commit 343b97e)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Remove redundant I2C install from probe
 
+
+## 2026-01-15
+
+Add camera bootstrap playbook reference
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/reference/04-camera-bootstrap-playbook.md — Camera bootstrapping reference with SCCB probe and troubleshooting
+
