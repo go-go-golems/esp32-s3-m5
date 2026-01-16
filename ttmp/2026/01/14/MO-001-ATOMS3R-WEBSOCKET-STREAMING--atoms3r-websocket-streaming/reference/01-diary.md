@@ -73,6 +73,7 @@ RelatedFiles:
         Added active-low camera power mapping and input-output readback.
         Logs camera component options at init.
         WebSocket backpressure/start gating and send timeout (commit 3a40f51)
+        WebSocket backpressure/start gating + error log compatibility (commits 3a40f51
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.h
       Note: Camera power debug API added.
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/wifi_sta.c
@@ -109,10 +110,11 @@ RelatedFiles:
       Note: Unified sdkconfig diff output.
 ExternalSources: []
 Summary: Step-by-step diary for analysis and implementation work on MO-001-ATOMS3R-WEBSOCKET-STREAMING.
-LastUpdated: 2026-01-15T23:12:56-05:00
+LastUpdated: 2026-01-15T23:14:40-05:00
 WhatFor: Capture research and implementation steps for the ATOMS3R streaming ticket.
 WhenToUse: Update after each analysis or implementation step.
 ---
+
 
 
 
@@ -1531,3 +1533,45 @@ This step introduces a start-in-flight guard, a larger websocket buffer, a sane 
 ### Technical details
 - `esp_websocket_client_config_t`: `network_timeout_ms=15000`, `buffer_size=16384`.
 - Send path: `esp_websocket_client_send_bin(..., pdMS_TO_TICKS(1000))`.
+
+## Step 32: Fix websocket error logging for IDF 5.4
+
+After the websocket stabilization changes, the build failed because I referenced error fields that do not exist in the vendored `esp_websocket_client` component for IDF 5.4. I corrected the logging to use the available fields so the build succeeds and still captures transport and TLS context.
+
+This keeps the richer error context without breaking compilation.
+
+**Commit (code):** 1f387df — "0040: fix websocket error logging fields"
+
+### What I did
+- Swapped websocket error logging to use `esp_tls_stack_err`, `esp_tls_cert_verify_flags`, and `esp_transport_sock_errno`.
+- Rebuilt with `idf.py build` to confirm compilation success.
+
+### Why
+- The earlier log used `esp_tls_error_code` and `esp_tls_flags`, which are not present in this component version.
+
+### What worked
+- `idf.py build` completed after the fix.
+
+### What didn't work
+- `idf.py build` failed with:
+  - `error: 'esp_websocket_error_codes_t' has no member named 'esp_tls_error_code'`
+  - `error: 'esp_websocket_error_codes_t' has no member named 'esp_tls_flags'`
+
+### What I learned
+- The websocket error struct fields vary across IDF/esp-protocols versions; logging must match the vendored component.
+
+### What was tricky to build
+- Keeping error logs detailed while staying compatible with the local component version.
+
+### What warrants a second pair of eyes
+- Confirm the updated error fields are the most useful for diagnosing transport failures in this project.
+
+### What should be done in the future
+- Consider version-gating error logs if we upgrade the websocket component.
+
+### Code review instructions
+- Review `ws_event_handler()` in `0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c`.
+- Validate by running `idf.py build` in the firmware directory.
+
+### Technical details
+- Log format now includes `tls_stack`, `tls_verify`, and `sock_errno` from `esp_websocket_error_codes_t`.
