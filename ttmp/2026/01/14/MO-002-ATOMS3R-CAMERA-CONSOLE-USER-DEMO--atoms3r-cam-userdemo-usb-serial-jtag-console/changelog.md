@@ -309,3 +309,12 @@ Step 21: record ESP_ERR_NOT_FOUND after scan removal
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-21-sccb-probe-after-xclk-user.log — Camera probe failed
 
+
+## 2026-01-15
+
+Step 23: add post-power warmup delay (commit e0d71c8)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Add explicit delay before camera init
+

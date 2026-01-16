@@ -54,7 +54,7 @@ RelatedFiles:
       Note: User log showing ESP_ERR_NOT_FOUND after scan removal
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T21:00:58-05:00
+LastUpdated: 2026-01-15T22:02:39-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -903,3 +903,77 @@ This suggests that removing the pre-init scan also removed an implicit stabiliza
 ### Technical details
 - Log: `ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/various/debug-logs/step-21-sccb-probe-after-xclk-user.log`.
 - Import command: `python3 .../import_log.py --run-name run-2026-01-15-0041-step21-sccb-probe-user --step-name "Step 2: camera init (post-scan removal)" --log .../step-21-sccb-probe-after-xclk-user.log --result failure`.
+
+## Step 22: Plan explicit post-power warmup delay
+
+I’m adding an explicit warmup delay between power enable and `esp_camera_init()` to replace the implicit delay we lost when removing the pre-init scan. This aligns better with the UserDemo timing (which has extra init work between power enable and camera init) and should prevent `ESP_ERR_NOT_FOUND` on probe.
+
+### What I did
+- Chose to add a dedicated post-power delay before camera init.
+- Planned to log the delay so it is visible in serial output and step correlation.
+
+### Why
+- The regression log suggests the camera is probed too early once the scan is removed.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The pre-init scan was providing a large implicit stabilization delay.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the chosen delay value is sufficient without masking other issues.
+
+### What should be done in the future
+- Implement the delay and re-run a monitor log to verify camera probe success.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Target file: `0041-atoms3r-cam-jtag-serial-test/main/main.c`.
+
+## Step 23: Add explicit post-power warmup delay
+
+I added a dedicated warmup delay after power enable and before `esp_camera_init()`. This replaces the implicit delay we previously got from the full SCCB scan and should give the sensor enough time to respond to the driver probe.
+
+The delay is logged as its own step so it is visible in serial output and easy to correlate with future logs.
+
+**Commit (code):** e0d71c8 — "0041: add post-power camera warmup delay"
+
+### What I did
+- Added `CAMERA_WARMUP_DELAY_MS` and a new Step 1D delay before camera init.
+- Logged the warmup delay value for visibility in serial output.
+
+### Why
+- The regression log showed `ESP_ERR_NOT_FOUND` after removing the scan, likely due to insufficient post-power settle time.
+
+### What worked
+- N/A (build/flash not run yet).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The scan removal changed timing enough to break the probe; an explicit delay is needed.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the 1000 ms delay is appropriate and does not unnecessarily slow boot.
+
+### What should be done in the future
+- Re-run monitor logs to confirm camera probe succeeds with the new delay.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/main/main.c` for the new warmup delay and step label.
+
+### Technical details
+- Delay inserted between Step 1C (power enable) and Step 2 (camera init).
