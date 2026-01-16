@@ -117,14 +117,22 @@ static int sccb_port_from_config(void)
 #endif
 }
 
-static void camera_sccb_scan(void)
+static void camera_sccb_probe_known_addrs(void)
 {
 #if CONFIG_SCCB_HARDWARE_I2C_PORT1
     const i2c_port_t port = I2C_NUM_1;
 #else
     const i2c_port_t port = I2C_NUM_0;
 #endif
-    ESP_LOGI(TAG, "sccb scan: port=%d sda=%d scl=%d freq=%u",
+    static const uint8_t known_addrs[] = {
+        0x21, // OV7725/OV7670/GC032A/GC0308
+        0x30, // OV2640/SC031GS
+        0x3C, // OV5640/OV3660/GC2145
+        0x2A, // NT99141
+        0x6E, // BF3005/BF20A6
+        0x68, // SC101IOT/SC030IOT
+    };
+    ESP_LOGI(TAG, "sccb probe: port=%d sda=%d scl=%d freq=%u",
              (int)port,
              CAMERA_PIN_SIOD,
              CAMERA_PIN_SIOC,
@@ -140,7 +148,7 @@ static void camera_sccb_scan(void)
 
     esp_err_t err = i2c_param_config(port, &conf);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "sccb scan: i2c_param_config failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "sccb probe: i2c_param_config failed: %s", esp_err_to_name(err));
         return;
     }
 
@@ -149,35 +157,34 @@ static void camera_sccb_scan(void)
     if (err == ESP_OK) {
         installed = true;
     } else if (err == ESP_ERR_INVALID_STATE) {
-        ESP_LOGW(TAG, "sccb scan: i2c driver already installed on port %d", (int)port);
+        ESP_LOGW(TAG, "sccb probe: i2c driver already installed on port %d", (int)port);
     } else {
-        ESP_LOGE(TAG, "sccb scan: i2c_driver_install failed: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "sccb probe: i2c_driver_install failed: %s", esp_err_to_name(err));
         return;
     }
 
     bool found = false;
-    for (int addr = 0x08; addr <= 0x77; ++addr) {
+    for (size_t i = 0; i < sizeof(known_addrs) / sizeof(known_addrs[0]); ++i) {
+        const uint8_t addr = known_addrs[i];
         i2c_cmd_handle_t cmd = i2c_cmd_link_create();
         i2c_master_start(cmd);
         i2c_master_write_byte(cmd, (addr << 1) | I2C_MASTER_WRITE, true);
         i2c_master_stop(cmd);
-        esp_err_t ret = i2c_master_cmd_begin(port, cmd, pdMS_TO_TICKS(50));
+        esp_err_t ret = i2c_master_cmd_begin(port, cmd, pdMS_TO_TICKS(1000));
         i2c_cmd_link_delete(cmd);
         if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "sccb scan: found device at 0x%02x", addr);
+            ESP_LOGI(TAG, "sccb probe: ack at 0x%02x", addr);
             found = true;
+            break;
         }
     }
 
     if (!found) {
-        ESP_LOGW(TAG, "sccb scan: no devices found");
+        ESP_LOGW(TAG, "sccb probe: no known devices found");
     }
 
     if (installed) {
-        err = i2c_driver_delete(port);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "sccb scan: i2c_driver_delete failed: %s", esp_err_to_name(err));
-        }
+        ESP_LOGI(TAG, "sccb probe: leaving i2c driver installed");
     }
 }
 
@@ -430,25 +437,26 @@ void app_main(void)
     log_step("Step 1A: power polarity sweep (level=0)");
     camera_power_force_level(0);
     vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
-    log_step("Step 1A: sccb scan (level=0)");
-    camera_sccb_scan();
 
     log_step("Step 1B: power polarity sweep (level=1)");
     camera_power_force_level(1);
     vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
-    log_step("Step 1B: sccb scan (level=1)");
-    camera_sccb_scan();
 
     log_step("Step 1C: power enable (config)");
     camera_power_set(true);
     vTaskDelay(pdMS_TO_TICKS(CAMERA_POWER_DELAY_MS));
-    log_step("Step 2: sccb scan (post-enable)");
-    camera_sccb_scan();
 
-    log_step("Step 3: camera init");
+    log_step("Step 2: camera init");
     esp_err_t err = camera_init_and_log();
     if (err != ESP_OK) {
         ESP_LOGW(TAG, "camera init failed: %s", esp_err_to_name(err));
+    }
+
+    log_step("Step 3: sccb probe (post-xclk)");
+    if (err == ESP_OK) {
+        camera_sccb_probe_known_addrs();
+    } else {
+        ESP_LOGW(TAG, "sccb probe skipped (camera init failed)");
     }
 
     log_step("Step 4: capture loop");
