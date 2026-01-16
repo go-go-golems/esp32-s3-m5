@@ -282,3 +282,12 @@ Step 32: fix websocket error logging fields for IDF 5.4 (commit 1f387df)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c — Use esp_tls_stack_err and cert flags
 
+
+## 2026-01-15
+
+Step 33: fix viewer websocket URL (commit 25b3a6c)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0040-atoms3r-cam-streaming/esp32-camera-stream/client.html — Use page host for /ws/viewer
+

@@ -48,6 +48,8 @@ RelatedFiles:
       Note: Pointed readers to the new firmware implementation
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/README.md
       Note: Noted the firmware path for real hardware
+    - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/client.html
+      Note: Viewer websocket URL fix (commit 25b3a6c)
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/README.md
       Note: Firmware build + console usage
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/components/esp32-camera
@@ -110,10 +112,11 @@ RelatedFiles:
       Note: Unified sdkconfig diff output.
 ExternalSources: []
 Summary: Step-by-step diary for analysis and implementation work on MO-001-ATOMS3R-WEBSOCKET-STREAMING.
-LastUpdated: 2026-01-15T23:14:40-05:00
+LastUpdated: 2026-01-15T23:18:45-05:00
 WhatFor: Capture research and implementation steps for the ATOMS3R streaming ticket.
 WhenToUse: Update after each analysis or implementation step.
 ---
+
 
 
 
@@ -1575,3 +1578,42 @@ This keeps the richer error context without breaking compilation.
 
 ### Technical details
 - Log format now includes `tls_stack`, `tls_verify`, and `sock_errno` from `esp_websocket_error_codes_t`.
+
+## Step 33: Fix viewer WebSocket URL in the client HTML
+
+The viewer page was hard-coding `:8766` for local development, which caused `NS_ERROR_CONNECTION_REFUSED` when the server is actually running on port 8080. I updated the client to use the same host/port as the page so the viewer WebSocket connects correctly in the default setup.
+
+This aligns the browser UI with the server log guidance (viewer connects to the same port as HTTP).
+
+**Commit (code):** 25b3a6c — "client: use page host for viewer websocket"
+
+### What I did
+- Removed the local-dev `:8766` override in `client.html`.
+- Use `window.location.host` for the viewer websocket URL.
+
+### Why
+- The server binds to port 8080 and serves `/ws/viewer` there; the UI was pointing at a port that wasn’t listening.
+
+### What worked
+- N/A (needs browser retest).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The current server doesn’t use a separate viewer websocket port; the client should always default to the page host/port.
+
+### What was tricky to build
+- Ensuring the change doesn’t break proxied environments that previously expected a port rewrite.
+
+### What warrants a second pair of eyes
+- Confirm whether any dev environment still requires the `8080- → 8766-` substitution before removing it entirely.
+
+### What should be done in the future
+- Retest `client.html` in the target environment (browser + server on 8080).
+
+### Code review instructions
+- Review `connect()` in `0040-atoms3r-cam-streaming/esp32-camera-stream/client.html`.
+
+### Technical details
+- WebSocket URL now derives from `window.location.host` and `/ws/viewer`.
