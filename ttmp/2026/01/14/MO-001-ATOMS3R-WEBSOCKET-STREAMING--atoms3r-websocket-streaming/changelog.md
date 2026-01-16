@@ -264,3 +264,12 @@ Align 0040 camera init: warmup delay, post-XCLK SCCB probe, PSRAM-only
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c — Camera init timing and SCCB diagnostics
 
+
+## 2026-01-15
+
+Step 31: stabilize websocket send/start (commit 3a40f51)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c — Backpressure timeout + start gating
+

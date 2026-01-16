@@ -72,6 +72,7 @@ RelatedFiles:
         Added stream stats
         Added active-low camera power mapping and input-output readback.
         Logs camera component options at init.
+        WebSocket backpressure/start gating and send timeout (commit 3a40f51)
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.h
       Note: Camera power debug API added.
     - Path: 0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/wifi_sta.c
@@ -108,10 +109,11 @@ RelatedFiles:
       Note: Unified sdkconfig diff output.
 ExternalSources: []
 Summary: Step-by-step diary for analysis and implementation work on MO-001-ATOMS3R-WEBSOCKET-STREAMING.
-LastUpdated: 2026-01-15T22:53:55-05:00
+LastUpdated: 2026-01-15T23:12:56-05:00
 WhatFor: Capture research and implementation steps for the ATOMS3R streaming ticket.
 WhenToUse: Update after each analysis or implementation step.
 ---
+
 
 
 
@@ -1485,3 +1487,47 @@ I updated the streaming firmware to match the verified camera bootstrap playbook
 
 ### Technical details
 - Added constants: `CAMERA_WARMUP_DELAY_MS`, `CAMERA_SIOD_GPIO`, `CAMERA_SIOC_GPIO`, `CAMERA_XCLK_GPIO`.
+
+## Step 31: Stabilize WebSocket streaming under load
+
+I tuned the websocket client path to avoid rapid restarts and fragile non-blocking writes. The existing stream loop was repeatedly calling `esp_websocket_client_start()` while a connection was already in flight, and all frame sends used a zero timeout; once the socket backpressured, the client aborted the connection and the server logged EOFs.
+
+This step introduces a start-in-flight guard, a larger websocket buffer, a sane send timeout, and richer error logging so we can correlate on-device failures to transport details.
+
+**Commit (code):** 3a40f51 — "0040: stabilize websocket send/start"
+
+### What I did
+- Added a `s_ws_start_pending` flag to avoid calling `esp_websocket_client_start()` while a start is already in flight.
+- Increased websocket buffer size and configured a 15s network timeout in `esp_websocket_client_config_t`.
+- Switched websocket frame sends to use a 1000 ms timeout instead of zero.
+- Logged websocket error details (type, handshake status, TLS error/flags) on error events.
+
+### Why
+- The logs showed repeated `websocket start failed: ESP_FAIL` and `esp_transport_write() returned 0`, indicating we were fighting the connection state and using a non-blocking send that fails under backpressure.
+
+### What worked
+- N/A (awaiting a flash/monitor run after the change).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Zero-timeout websocket sends can make the client abort connections under normal network backpressure.
+- Calling `esp_websocket_client_start()` in a tight loop makes reconnect storms worse rather than better.
+
+### What was tricky to build
+- Ensuring start gating doesn’t block legitimate reconnect attempts (cleared on CONNECTED, DISCONNECTED, and ERROR).
+
+### What warrants a second pair of eyes
+- Confirm the new timeouts and buffer size won’t starve other tasks or hide real connectivity failures.
+
+### What should be done in the future
+- Flash and capture logs to confirm the transport errors disappear and sustained streaming is stable.
+
+### Code review instructions
+- Start in `0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c`.
+- Review `ws_event_handler()`, `ensure_ws_client()`, and the send path in the stream loop.
+
+### Technical details
+- `esp_websocket_client_config_t`: `network_timeout_ms=15000`, `buffer_size=16384`.
+- Send path: `esp_websocket_client_send_bin(..., pdMS_TO_TICKS(1000))`.
