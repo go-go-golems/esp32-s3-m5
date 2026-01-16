@@ -318,3 +318,12 @@ Step 23: add post-power warmup delay (commit e0d71c8)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Add explicit delay before camera init
 
+
+## 2026-01-15
+
+Step 25: reuse existing I2C driver for SCCB probe (commit 343b97e)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0041-atoms3r-cam-jtag-serial-test/main/main.c — Remove redundant I2C install from probe
+

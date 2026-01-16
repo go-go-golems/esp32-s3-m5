@@ -54,7 +54,7 @@ RelatedFiles:
       Note: User log showing ESP_ERR_NOT_FOUND after scan removal
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T22:02:39-05:00
+LastUpdated: 2026-01-15T22:06:56-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -977,3 +977,75 @@ The delay is logged as its own step so it is visible in serial output and easy t
 
 ### Technical details
 - Delay inserted between Step 1C (power enable) and Step 2 (camera init).
+
+## Step 24: Plan to reuse existing I2C driver for SCCB probe
+
+I’m updating the post-XCLK SCCB probe so it does not attempt to install the I2C driver again. The camera driver already installs and owns the port during `esp_camera_init()`, and our probe should reuse that driver to avoid the `i2c driver install error`.
+
+### What I did
+- Decided to remove `i2c_driver_install()` from the post-init probe path.
+- Planned to run the probe using the existing I2C driver configured by the camera stack.
+
+### Why
+- The latest log shows `i2c_driver_install failed: ESP_FAIL` during the post-XCLK probe, even though the camera is working.
+
+### What worked
+- N/A (planning step only).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Re-installing the I2C driver after `esp_camera_init()` can fail and is unnecessary.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm that probing with the existing driver is safe and does not conflict with SCCB usage.
+
+### What should be done in the future
+- Implement the probe change and re-run logs to confirm the error disappears.
+
+### Code review instructions
+- N/A (no code changes yet).
+
+### Technical details
+- Target file: `0041-atoms3r-cam-jtag-serial-test/main/main.c`.
+
+## Step 25: Reuse existing I2C driver for SCCB probe
+
+I updated the post-XCLK SCCB probe to reuse the camera driver’s existing I2C setup instead of attempting a new `i2c_driver_install()`. This removes the spurious “driver install error” while keeping the known‑address probe intact.
+
+**Commit (code):** 343b97e — "0041: reuse I2C driver for SCCB probe"
+
+### What I did
+- Removed I2C reconfiguration and driver installation from `camera_sccb_probe_known_addrs()`.
+- Logged that the probe is using the existing driver.
+
+### Why
+- The prior run logged `i2c_driver_install failed: ESP_FAIL` after successful camera init; re-install is unnecessary.
+
+### What worked
+- N/A (build/flash not run yet).
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The SCCB probe can run safely on the driver’s existing I2C port after `esp_camera_init()`.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the probe does not need to reconfigure SDA/SCL pulls or clock speed.
+
+### What should be done in the future
+- Re-run the monitor log and confirm the probe now reports an ACK without install errors.
+
+### Code review instructions
+- Review `0041-atoms3r-cam-jtag-serial-test/main/main.c` in `camera_sccb_probe_known_addrs()`.
+
+### Technical details
+- Removed `i2c_param_config()` + `i2c_driver_install()` from the post-XCLK probe path.
