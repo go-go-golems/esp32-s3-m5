@@ -48,6 +48,7 @@ static bool s_has_runtime = false;
 
 static volatile bool s_stream_enabled = false;
 static volatile bool s_ws_connected = false;
+static volatile bool s_ws_start_pending = false;
 
 static esp_websocket_client_handle_t s_ws = NULL;
 static TaskHandle_t s_stream_task = NULL;
@@ -218,16 +219,28 @@ static void ws_event_handler(void *handler_args, esp_event_base_t base, int32_t 
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             s_ws_connected = true;
+            s_ws_start_pending = false;
             ESP_LOGI(TAG, "WebSocket connected");
             break;
         case WEBSOCKET_EVENT_DISCONNECTED:
         case WEBSOCKET_EVENT_CLOSED:
             s_ws_connected = false;
+            s_ws_start_pending = false;
             ESP_LOGW(TAG, "WebSocket disconnected");
             break;
         case WEBSOCKET_EVENT_ERROR:
             s_ws_connected = false;
+            s_ws_start_pending = false;
             ESP_LOGE(TAG, "WebSocket error");
+            if (event_data) {
+                const esp_websocket_event_data_t *data = (const esp_websocket_event_data_t *)event_data;
+                ESP_LOGE(TAG,
+                         "WebSocket error details: type=%d ws_status=%d tls_code=%d tls_flags=%d",
+                         data->error_handle.error_type,
+                         data->error_handle.esp_ws_handshake_status_code,
+                         data->error_handle.esp_tls_error_code,
+                         data->error_handle.esp_tls_flags);
+            }
             break;
         case WEBSOCKET_EVENT_DATA: {
             const esp_websocket_event_data_t *data = (const esp_websocket_event_data_t *)event_data;
@@ -249,6 +262,7 @@ static void stop_ws_client(void) {
     esp_websocket_client_destroy(s_ws);
     s_ws = NULL;
     s_ws_connected = false;
+    s_ws_start_pending = false;
 }
 
 static void ensure_ws_client(void) {
@@ -262,7 +276,8 @@ static void ensure_ws_client(void) {
         esp_websocket_client_config_t cfg = {
             .uri = uri,
             .reconnect_timeout_ms = 5000,
-            .buffer_size = 8 * 1024,
+            .network_timeout_ms = 15000,
+            .buffer_size = 16 * 1024,
         };
         s_ws = esp_websocket_client_init(&cfg);
         if (!s_ws) {
@@ -273,11 +288,16 @@ static void ensure_ws_client(void) {
     }
 
     if (s_ws && !esp_websocket_client_is_connected(s_ws)) {
+        if (s_ws_start_pending) {
+            return;
+        }
         esp_err_t err = esp_websocket_client_start(s_ws);
         if (err != ESP_OK) {
             ESP_LOGW(TAG, "websocket start failed: %s", esp_err_to_name(err));
+            s_ws_start_pending = false;
         } else {
             ESP_LOGI(TAG, "websocket start requested");
+            s_ws_start_pending = true;
         }
     }
 }
@@ -571,7 +591,8 @@ static void stream_task(void *arg) {
         }
 
         int64_t send_start = esp_timer_get_time();
-        int sent = esp_websocket_client_send_bin(s_ws, (const char *)jpeg_buf, (int)jpeg_len, 0);
+        TickType_t ws_timeout = pdMS_TO_TICKS(1000);
+        int sent = esp_websocket_client_send_bin(s_ws, (const char *)jpeg_buf, (int)jpeg_len, ws_timeout);
         int64_t send_end = esp_timer_get_time();
         if (sent < 0) {
             s_stats.ws_send_fail++;
