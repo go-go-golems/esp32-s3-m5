@@ -255,3 +255,12 @@ Add 0040 camera init alignment analysis (post MO-002)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/14/MO-001-ATOMS3R-WEBSOCKET-STREAMING--atoms3r-websocket-streaming/analysis/06-0040-camera-init-alignment-post-mo-002.md — Analysis of app_main + sdkconfig divergences
 
+
+## 2026-01-15
+
+Align 0040 camera init: warmup delay, post-XCLK SCCB probe, PSRAM-only
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0040-atoms3r-cam-streaming/esp32-camera-stream/firmware/main/stream_client.c — Camera init timing and SCCB diagnostics
+

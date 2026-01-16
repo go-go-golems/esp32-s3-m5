@@ -32,7 +32,7 @@ RelatedFiles:
       Note: Camera bootstrap playbook with timing and SCCB probe guidance
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-15T22:17:35-05:00
+LastUpdated: 2026-01-15T22:39:50-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -192,6 +192,13 @@ If robustness is preferred:
 
 Add explicit log lines around power enable, warmup, and camera init so failures can be correlated to timing.
 
+## Status Update (Applied Changes)
+
+The following changes have been applied in `stream_client.c`:
+- Added an explicit 1000 ms warmup delay after `camera_power_on()`.
+- Added a post-XCLK SCCB probe using known addresses and the existing I2C driver.
+- Removed the DRAM fallback; camera init now fails if PSRAM is not available.
+
 ## Validation Checklist
 
 - `esp_camera_init()` returns `ESP_OK` and logs sensor ID.
@@ -201,11 +208,11 @@ Add explicit log lines around power enable, warmup, and camera init so failures 
 
 ## Open Questions
 
-- Should 0040 enforce strict PSRAM usage to match UserDemo, or keep DRAM fallback for robustness?
+- PSRAM-only policy is now enforced; if this causes regressions, decide whether to reintroduce a DRAM fallback with reduced frame size.
 - Should camera init move earlier (boot-time) or remain lazy in the stream task?
 
 ## Recommended Next Steps
 
-1) Add the warmup delay in `stream_client.c` and re-test camera init.
-2) Add optional post-XCLK SCCB probe for diagnostics.
-3) Decide on PSRAM fallback policy and document it in the README.
+1) Re-test camera init and capture a new log with the warmup delay and SCCB probe enabled.
+2) Decide whether to keep lazy init or move camera init to boot for deterministic timing.
+3) Document the PSRAM-only policy in `firmware/README.md` if it is now required.
