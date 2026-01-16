@@ -235,11 +235,12 @@ static void ws_event_handler(void *handler_args, esp_event_base_t base, int32_t 
             if (event_data) {
                 const esp_websocket_event_data_t *data = (const esp_websocket_event_data_t *)event_data;
                 ESP_LOGE(TAG,
-                         "WebSocket error details: type=%d ws_status=%d tls_code=%d tls_flags=%d",
+                         "WebSocket error details: type=%d ws_status=%d tls_stack=%d tls_verify=0x%x sock_errno=%d",
                          data->error_handle.error_type,
                          data->error_handle.esp_ws_handshake_status_code,
-                         data->error_handle.esp_tls_error_code,
-                         data->error_handle.esp_tls_flags);
+                         data->error_handle.esp_tls_stack_err,
+                         data->error_handle.esp_tls_cert_verify_flags,
+                         data->error_handle.esp_transport_sock_errno);
             }
             break;
         case WEBSOCKET_EVENT_DATA: {
