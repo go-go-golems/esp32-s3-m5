@@ -25,3 +25,14 @@ Step 2: add ESP32-C6 D0 GPIO toggle firmware + tmux build (commit b620c4e)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/main.c — GPIO toggle implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 2
 
+
+## 2026-01-19
+
+Step 3: add tmux playbook + complete ticket tasks (commits 335f501, e967161)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/playbook/01-tmux-workflow-build-flash-monitor-esp32-c6.md — Copy/paste tmux workflow
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 3
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/tasks.md — Completed tasks list
+

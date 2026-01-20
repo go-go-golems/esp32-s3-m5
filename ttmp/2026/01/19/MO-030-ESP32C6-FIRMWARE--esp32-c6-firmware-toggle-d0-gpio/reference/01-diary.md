@@ -136,6 +136,45 @@ Built the firmware in a tmux session to validate the toolchain + build pipeline 
 ### Technical details
 - Build log: `/tmp/mo030-esp32c6-build.log`
 
+## Step 3: Playbook + Ticket Bookkeeping
+
+Added a dedicated tmux playbook for build/flash/monitor and updated the ticket’s bookkeeping (tasks, relationships, changelog) so the project is easy to pick up later.
+
+**Commit (docs):** 335f501 — "MO-030 diary: steps 1-2, tasks, tmux playbook"  
+**Commit (docs):** e967161 — "MO-030: mark tasks complete"
+
+### What I did
+- Added a playbook: `playbook/01-tmux-workflow-build-flash-monitor-esp32-c6.md`
+- Related key code + docs to the diary/design/playbook via `docmgr doc relate`
+- Checked off the ticket tasks
+
+### Why
+- Make the “how to build/flash/monitor” workflow copy/paste-ready and reduce setup friction.
+
+### What worked
+- `docmgr doc relate` kept `RelatedFiles` current across the docs.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Start with: `ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/playbook/01-tmux-workflow-build-flash-monitor-esp32-c6.md`
+
+### Technical details
+- N/A
+
 ## Related
 
 - `../design-doc/01-esp32-c6-idf-notes-analysis.md`
