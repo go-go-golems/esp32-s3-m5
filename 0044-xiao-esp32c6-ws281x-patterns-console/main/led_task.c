@@ -103,7 +103,27 @@ static void apply_msg(led_task_ctx_t *ctx, const led_msg_t *m)
         break;
 
     case LED_MSG_WS_SET_CFG:
-        ctx->ws_cfg_staged = m->u.ws_cfg;
+        if (m->u.ws_update.set_mask & LED_WS_CFG_GPIO) {
+            ctx->ws_cfg_staged.gpio_num = m->u.ws_update.cfg.gpio_num;
+        }
+        if (m->u.ws_update.set_mask & LED_WS_CFG_LED_COUNT) {
+            ctx->ws_cfg_staged.led_count = m->u.ws_update.cfg.led_count;
+        }
+        if (m->u.ws_update.set_mask & LED_WS_CFG_ORDER) {
+            ctx->ws_cfg_staged.order = m->u.ws_update.cfg.order;
+        }
+        if (m->u.ws_update.set_mask & LED_WS_CFG_TIMING) {
+            ctx->ws_cfg_staged.t0h_ns = m->u.ws_update.cfg.t0h_ns;
+            ctx->ws_cfg_staged.t0l_ns = m->u.ws_update.cfg.t0l_ns;
+            ctx->ws_cfg_staged.t1h_ns = m->u.ws_update.cfg.t1h_ns;
+            ctx->ws_cfg_staged.t1l_ns = m->u.ws_update.cfg.t1l_ns;
+        }
+        if (m->u.ws_update.set_mask & LED_WS_CFG_RESET_US) {
+            ctx->ws_cfg_staged.reset_us = m->u.ws_update.cfg.reset_us;
+        }
+        if (m->u.ws_update.set_mask & LED_WS_CFG_RESOLUTION_HZ) {
+            ctx->ws_cfg_staged.resolution_hz = m->u.ws_update.cfg.resolution_hz;
+        }
         break;
     case LED_MSG_WS_APPLY_CFG: {
         const led_ws281x_cfg_t next = ctx->ws_cfg_staged;

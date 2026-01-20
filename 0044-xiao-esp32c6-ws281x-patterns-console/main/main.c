@@ -9,6 +9,7 @@
 #include "esp_system.h"
 
 #include "led_patterns.h"
+#include "led_console.h"
 #include "led_task.h"
 #include "led_ws281x.h"
 
@@ -48,6 +49,7 @@ void app_main(void)
     ESP_ERROR_CHECK(led_task_start(&cfg, &pat_cfg, frame_ms));
 
     ESP_LOGI(TAG, "boot ok; led task running (type=rainbow)");
+    led_console_start();
 
     int64_t last_log_us = 0;
     for (;;) {

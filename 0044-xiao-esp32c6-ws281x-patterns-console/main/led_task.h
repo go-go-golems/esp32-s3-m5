@@ -23,13 +23,27 @@ typedef enum {
     LED_MSG_SET_BREATHING,
     LED_MSG_SET_SPARKLE,
 
-    LED_MSG_WS_SET_CFG,   // stage driver config
+    LED_MSG_WS_SET_CFG,   // stage driver config (partial update)
     LED_MSG_WS_APPLY_CFG, // apply staged config (reinit)
 
     LED_MSG_PAUSE,
     LED_MSG_RESUME,
     LED_MSG_CLEAR,
 } led_msg_type_t;
+
+typedef enum {
+    LED_WS_CFG_GPIO = (1u << 0),
+    LED_WS_CFG_LED_COUNT = (1u << 1),
+    LED_WS_CFG_ORDER = (1u << 2),
+    LED_WS_CFG_TIMING = (1u << 3),     // t0/t1 timing fields
+    LED_WS_CFG_RESET_US = (1u << 4),
+    LED_WS_CFG_RESOLUTION_HZ = (1u << 5),
+} led_ws_cfg_mask_t;
+
+typedef struct {
+    uint32_t set_mask;
+    led_ws281x_cfg_t cfg;
+} led_ws281x_cfg_update_t;
 
 typedef struct {
     bool running;
@@ -51,7 +65,7 @@ typedef struct {
         led_chase_cfg_t chase;
         led_breathing_cfg_t breathing;
         led_sparkle_cfg_t sparkle;
-        led_ws281x_cfg_t ws_cfg;
+        led_ws281x_cfg_update_t ws_update;
     } u;
 } led_msg_t;
 
@@ -62,4 +76,3 @@ void led_task_get_status(led_status_t *out); // snapshot (best-effort)
 #ifdef __cplusplus
 }
 #endif
-

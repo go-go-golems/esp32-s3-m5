@@ -4,10 +4,12 @@ idf_component_register(
         "led_ws281x.c"
         "led_patterns.c"
         "led_task.c"
+        "led_console.c"
         "ws281x_encoder.c"
     PRIV_REQUIRES
         esp_timer
         esp_driver_rmt
+        console
     INCLUDE_DIRS
         "."
 )
