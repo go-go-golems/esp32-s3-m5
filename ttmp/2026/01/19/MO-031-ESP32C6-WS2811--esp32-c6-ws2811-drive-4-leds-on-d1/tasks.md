@@ -10,3 +10,4 @@
 - [x] Build firmware
 - [ ] Flash + monitor smoke test on hardware
 - [x] Port rainbow pattern (10 LEDs) from inspiration file
+- [x] Make rainbow smoother/faster + modulate intensity

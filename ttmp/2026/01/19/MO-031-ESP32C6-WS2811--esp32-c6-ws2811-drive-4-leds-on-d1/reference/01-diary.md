@@ -169,7 +169,8 @@ Ported the “rainbow” algorithm from the local inspiration file into the `004
 
 This change keeps the loop liveness logs, so you can still confirm the firmware isn’t hanging if the LEDs don’t light.
 
-**Commit (code):** N/A
+**Commit (code):** c6dd2a9 — "0043: rainbow pattern, default 10 LEDs"  
+**Commit (docs):** f0cde3a — "MO-031 diary: Step 4 rainbow"
 
 ### What I did
 - Read `0043-xiao-esp32c6-ws2811-4led-d1/inspiration/led_patterns.c` and ported the rainbow logic:
@@ -205,6 +206,48 @@ This change keeps the loop liveness logs, so you can still confirm the firmware 
 - Review rainbow implementation: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
 - Review config defaults: `0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild`
 - Build: `source ~/esp/esp-idf-5.4.1/export.sh && cd 0043-xiao-esp32c6-ws2811-4led-d1 && idf.py set-target esp32c6 && idf.py build`
+
+### Technical details
+- N/A
+
+## Step 5: Faster + Smoother Rainbow + Intensity Modulation
+
+Adjusted the animation loop to be significantly smoother by running at a configurable frame rate (default 16ms), and added a smooth sine-like intensity modulation so brightness “breathes” over time while the rainbow rotates. This makes the pattern more visually informative and helps catch wiring/timing issues quickly.
+
+**Commit (code):** 852e8af — "0043: smoother rainbow + intensity modulation"
+
+### What I did
+- Added `menuconfig` knobs for:
+  - animation frame time (`MO031_ANIM_FRAME_MS`)
+  - intensity modulation min/period (`MO031_INTENSITY_MIN_PCT`, `MO031_INTENSITY_PERIOD_MS`)
+- Implemented a small sine-easing function and used it to modulate intensity each frame.
+- Made rainbow motion time-based so it’s smooth even if frame timing varies slightly.
+
+### Why
+- 250ms updates were “steppy” and made it harder to judge whether the signal was stable.
+- Varying intensity helps confirm the full pipeline is working (data, timing, latch) and makes the pattern more obvious at low brightness.
+
+### What worked
+- `idf.py build` succeeded after the change.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Keeping the intensity modulation stable and bounded while using integer math (avoid divide-by-zero, avoid overflow).
+
+### What warrants a second pair of eyes
+- The chosen default hue rotation rate may need tuning depending on taste; it’s currently tied to `rainbow_speed`.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review loop/timing/intensity changes: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
+- Review Kconfig defaults: `0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild`
 
 ### Technical details
 - N/A

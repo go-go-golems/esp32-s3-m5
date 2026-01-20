@@ -38,16 +38,6 @@ Step 3: add periodic serial log inside loop (commit 86290dd)
 
 ## 2026-01-19
 
-Step 4: port rainbow pattern and default to 10 LEDs (pending commit)
-
-### Related Files
-
-- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild — Default LED count=10 + rainbow config
-- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/main.c — Rainbow pattern implementation
-
-
-## 2026-01-19
-
 Step 4: port rainbow pattern + default 10 LEDs (commit c6dd2a9)
 
 ### Related Files
@@ -55,4 +45,14 @@ Step 4: port rainbow pattern + default 10 LEDs (commit c6dd2a9)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild — Defaults + rainbow knobs
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/main.c — Rainbow rendering loop
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/reference/01-diary.md — Diary Step 4
+
+## 2026-01-19
+
+Step 5: smoother/faster rainbow + intensity modulation (commit 852e8af)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild — New animation/intensity knobs
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/main.c — Frame timing + intensity modulation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/reference/01-diary.md — Diary Step 5
 
