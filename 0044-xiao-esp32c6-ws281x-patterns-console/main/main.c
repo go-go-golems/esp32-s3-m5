@@ -51,25 +51,7 @@ void app_main(void)
     ESP_LOGI(TAG, "boot ok; led task running (type=rainbow)");
     led_console_start();
 
-    int64_t last_log_us = 0;
     for (;;) {
-        const int64_t now_us = esp_timer_get_time();
-
-        if (now_us - last_log_us >= 1000000) {
-            led_status_t st = {};
-            led_task_get_status(&st);
-
-            ESP_LOGI(TAG, "loop: uptime=%" PRIi64 "ms", now_us / 1000);
-            ESP_LOGI(TAG, "status: running=%d paused=%d pattern=%d frame_ms=%u bri=%u%% leds=%u gpio=%d",
-                     (int)st.running,
-                     (int)st.paused,
-                     (int)st.pat_cfg.type,
-                     (unsigned)st.frame_ms,
-                     (unsigned)st.pat_cfg.global_brightness_pct,
-                     (unsigned)st.ws_cfg.led_count,
-                     st.ws_cfg.gpio_num);
-            last_log_us = now_us;
-        }
-        vTaskDelay(pdMS_TO_TICKS(frame_ms));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

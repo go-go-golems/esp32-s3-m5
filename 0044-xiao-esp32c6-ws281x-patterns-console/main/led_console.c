@@ -19,6 +19,7 @@ static void print_usage(void)
 {
     printf("usage:\n");
     printf("  led status\n");
+    printf("  led log on|off|status\n");
     printf("  led pause | led resume | led clear\n");
     printf("  led brightness <1..100>\n");
     printf("  led frame <ms>\n");
@@ -241,11 +242,33 @@ static int cmd_led(int argc, char **argv)
         return 1;
     }
 
+    if (strcmp(argv[1], "log") == 0) {
+        if (argc < 3) {
+            printf("usage: led log on|off|status\n");
+            return 1;
+        }
+        if (strcmp(argv[2], "status") == 0) {
+            led_status_t st = {};
+            led_task_get_status(&st);
+            printf("enabled=%d\n", (int)st.log_enabled);
+            return 0;
+        }
+        if (strcmp(argv[2], "on") == 0) {
+            return send_msg(&(led_msg_t){.type = LED_MSG_SET_LOG_ENABLED, .u.log_enabled = true});
+        }
+        if (strcmp(argv[2], "off") == 0) {
+            return send_msg(&(led_msg_t){.type = LED_MSG_SET_LOG_ENABLED, .u.log_enabled = false});
+        }
+        printf("invalid log mode\n");
+        return 1;
+    }
+
     if (strcmp(argv[1], "status") == 0) {
         led_status_t st = {};
         led_task_get_status(&st);
         printf("running=%d paused=%d\n", (int)st.running, (int)st.paused);
         printf("pattern=%d frame_ms=%u brightness_pct=%u\n", (int)st.pat_cfg.type, (unsigned)st.frame_ms, (unsigned)st.pat_cfg.global_brightness_pct);
+        printf("log_enabled=%d\n", (int)st.log_enabled);
         printf("ws: gpio=%d count=%u order=%s res_hz=%u\n",
                st.ws_cfg.gpio_num,
                (unsigned)st.ws_cfg.led_count,
@@ -746,7 +769,7 @@ void led_console_start(void)
 
     esp_console_cmd_t cmd = {};
     cmd.command = "led";
-    cmd.help = "Control WS281x patterns: led status|pause|resume|clear|brightness|frame|pattern|rainbow|chase|breathing|sparkle|ws";
+    cmd.help = "Control WS281x patterns: led status|log|pause|resume|clear|brightness|frame|pattern|rainbow|chase|breathing|sparkle|ws";
     cmd.func = &cmd_led;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 
@@ -758,4 +781,3 @@ void led_console_start(void)
 
     ESP_LOGI(TAG, "esp_console started over %s (try: help, led status)", backend);
 }
-
