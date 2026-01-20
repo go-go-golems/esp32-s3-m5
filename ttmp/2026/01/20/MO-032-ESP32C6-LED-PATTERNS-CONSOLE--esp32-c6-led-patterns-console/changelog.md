@@ -59,3 +59,14 @@ Step 18: Add tmux flash/monitor helper + smoke commands list for interactive par
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/playbook/01-0044-build-flash-led-console-smoke-test.md — document tmux workflow
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — step-by-step record
 
+
+## 2026-01-20
+
+Step 19: Rebuilt 0044 with ESP-IDF 5.4.1 (idf.py build ok) after REPL + tmux workflow changes.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c — Verified build after help/status changes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh — Verified build after adding scripts
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Build record
+

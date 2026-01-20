@@ -903,3 +903,32 @@ This step is captured in commit `6e4825518f1d98c3b7dc51b3d2199782737681df`.
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/led_smoke_commands.txt`
 - playbook update:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/playbook/01-0044-build-flash-led-console-smoke-test.md`
+
+## Step 19: Validate With `idf.py build` (ESP-IDF 5.4.1)
+
+After the console UX and tmux workflow changes, I ran a full rebuild to ensure the firmware still compiles cleanly for `esp32c6`.
+
+### What I did
+- Build command:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `cd 0044-xiao-esp32c6-ws281x-patterns-console`
+  - `idf.py set-target esp32c6`
+  - `idf.py build`
+
+### What worked
+- Build succeeded; generated `build/xiao_esp32c6_ws281x_patterns_console_0044.bin`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Run the tmux flash/monitor workflow against real hardware and record any parameter edge cases found in the smoke list.
