@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "main.c"
+        "led_ws281x.c"
         "ws281x_encoder.c"
     PRIV_REQUIRES
         esp_timer
@@ -8,4 +9,3 @@ idf_component_register(
     INCLUDE_DIRS
         "."
 )
-
