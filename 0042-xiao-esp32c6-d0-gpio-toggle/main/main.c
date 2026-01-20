@@ -3,11 +3,22 @@
 
 #include "driver/gpio.h"
 #include "esp_err.h"
+#include "esp_idf_version.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 static const char *TAG = "mo030_gpio_toggle";
+
+static inline int mo030_active_low(void)
+{
+#if CONFIG_MO030_TOGGLE_ACTIVE_LOW
+    return 1;
+#else
+    return 0;
+#endif
+}
 
 static inline int mo030_level_for_state(bool state)
 {
@@ -21,6 +32,15 @@ static inline int mo030_level_for_state(bool state)
 void app_main(void)
 {
     const gpio_num_t pin = (gpio_num_t)CONFIG_MO030_TOGGLE_GPIO_NUM;
+
+    ESP_LOGI(TAG, "boot: ESP-IDF %s", esp_get_idf_version());
+    ESP_LOGI(
+        TAG,
+        "config: gpio=%d active_low=%d period_ms=%d",
+        (int)pin,
+        mo030_active_low(),
+        (int)CONFIG_MO030_TOGGLE_PERIOD_MS);
+    ESP_LOGI(TAG, "reset_reason=%d", (int)esp_reset_reason());
 
     gpio_config_t io_conf = {
         .pin_bit_mask = 1ULL << (uint32_t)pin,
