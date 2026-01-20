@@ -1058,3 +1058,51 @@ Per request, I moved the tmux flash/monitor helper and the smoke command list fr
 
 ### What didn't work
 - N/A
+
+## Step 24: Update Speed Mappings + Add Multi-Train Chase (Firmware)
+
+Based on feedback about “speed feels too fast / saturates” across multiple patterns, I reworked how speed values are interpreted so the operator-facing range matches how we actually want to tune animations. I also extended the chase pattern to support multiple trains and configurable spacing.
+
+This step is captured in commit `fd67b4ac271a0383a3807ebdb931840537262b2b`.
+
+### What I changed
+- Rainbow:
+  - `speed` is now `0..20` and interpreted as **rotations per minute (RPM)** (0 = static).
+- Chase:
+  - `speed` is now interpreted as **LEDs per second** (0 = static) instead of “step interval”.
+  - Added `gap_len` and `trains` so we can configure the spacing between trains and run multiple trains at once.
+  - Implemented train rendering using wrap-around distance so tails behave consistently on a ring.
+- Breathing:
+  - `speed` is now `0..20` and interpreted as **breaths per minute** (0 = static at max).
+  - Fixed the sine curve implementation (previous lookup logic produced discontinuities and visible “jumps”).
+- Sparkle:
+  - `speed` is now `0..20` and interpreted as a **spawn rate**, mapped to `0.0..4.0 sparkles/sec` (0 = no new sparkles).
+  - `density_pct` now acts as a **cap** on concurrent sparkles (max % LEDs sparkling at once), rather than a per-frame probability.
+  - Fade is made roughly time-consistent by scaling fade amount with the actual frame delta (baseline ~25ms).
+- Console:
+  - Updated help/usage text and parsing to match the new ranges and semantics (`--gap`, `--trains`, new speed ranges).
+
+### Why
+- Chase “speed stops changing above ~30” happened because the old implementation advanced at most one LED per frame once the internal step interval dropped below `frame_ms`. Defining speed in LEDs/sec and integrating over `dt_ms` keeps it meaningful at higher values.
+- Breathing “drastic brightness changes at high settings” were not a deliberate perception mapping; it was primarily caused by a buggy sine lookup and too-fast periods. Fixing the wave and constraining the speed range makes the curve smooth and tunable.
+- Sparkle needed a “few sparkles per second (or slower)” regime; a time-based spawn accumulator provides fractional sparkles/sec cleanly.
+
+### What worked
+- `idf.py build` succeeded after the changes.
+
+### What didn't work
+- N/A
+
+### What warrants a second pair of eyes
+- Confirm the chosen speed semantics are the right “human interface” for your use cases:
+  - Rainbow speed in RPM
+  - Chase speed in LEDs/sec
+  - Breathing speed in breaths/min
+  - Sparkle speed as sparkles/sec (scaled)
+
+### Code review instructions
+- Pattern math + new chase train config + speed mapping:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h`
+- Console parsing/help/status updates:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c`
