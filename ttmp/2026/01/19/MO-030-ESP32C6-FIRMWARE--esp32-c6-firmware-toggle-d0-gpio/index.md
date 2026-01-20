@@ -12,7 +12,15 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/README.md
+      Note: Firmware entry point + build/flash/monitor
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/main.c
+      Note: GPIO toggle loop
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/playbook/01-tmux-workflow-build-flash-monitor-esp32-c6.md
+      Note: tmux workflow
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md
+      Note: Implementation diary
 ExternalSources:
     - local:esp32c6-idf.md.md
 Summary: ""
@@ -20,6 +28,7 @@ LastUpdated: 2026-01-19T21:28:49.578787537-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # ESP32-C6 firmware: toggle D0 GPIO
