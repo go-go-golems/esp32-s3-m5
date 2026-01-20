@@ -1,0 +1,27 @@
+menu "MO-030: ESP32-C6 D0 GPIO toggle"
+
+config MO030_TOGGLE_GPIO_NUM
+    int "GPIO number to toggle"
+    range 0 48
+    default 0
+    help
+        GPIO number to toggle.
+
+        Default is 0, which matches the Seeed XIAO ESP32C6 pin map:
+        D0 = GPIO0.
+
+config MO030_TOGGLE_ACTIVE_LOW
+    bool "Active-low output (invert levels)"
+    default n
+    help
+        If enabled, the pin level is inverted (useful for active-low LEDs).
+
+config MO030_TOGGLE_PERIOD_MS
+    int "Toggle period (ms)"
+    range 10 60000
+    default 500
+    help
+        Delay between toggles.
+
+endmenu
+
