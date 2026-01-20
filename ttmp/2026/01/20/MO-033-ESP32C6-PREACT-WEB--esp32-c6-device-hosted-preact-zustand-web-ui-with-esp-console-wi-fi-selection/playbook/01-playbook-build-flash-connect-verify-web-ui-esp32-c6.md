@@ -57,6 +57,13 @@ npm run build
 cd ..
 ```
 
+Or:
+
+```bash
+cd 0045-xiao-esp32c6-preact-web
+./build.sh web
+```
+
 Expected outputs exist at deterministic paths:
 
 - `main/assets/index.html`
@@ -71,6 +78,20 @@ cd 0045-xiao-esp32c6-preact-web
 
 idf.py set-target esp32c6
 idf.py build
+```
+
+Or:
+
+```bash
+cd 0045-xiao-esp32c6-preact-web
+./build.sh set-target esp32c6 build
+```
+
+Or build everything in one go:
+
+```bash
+cd 0045-xiao-esp32c6-preact-web
+./build.sh all
 ```
 
 ### 3) Flash + monitor
