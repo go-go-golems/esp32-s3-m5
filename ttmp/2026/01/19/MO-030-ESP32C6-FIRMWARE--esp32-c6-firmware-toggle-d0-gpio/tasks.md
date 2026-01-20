@@ -8,4 +8,4 @@
 - [x] Add Kconfig options (pin, active-low, period)
 - [x] Build firmware in tmux (idf.py set-target esp32c6 && idf.py build)
 - [x] Document flash/monitor + tmux workflow
-- [ ] Commit code + update diary/changelog
+- [x] Commit code + update diary/changelog
