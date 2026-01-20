@@ -65,3 +65,8 @@ Step 6: fix embedded JS `U+0000` parse error; serve gzipped sourcemap (commit 1c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/main/CMakeLists.txt — Embed `app.js.map.gz` via `EMBED_FILES`
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/web/vite.config.ts — Enable `build.sourcemap`
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/build.sh — Generate `app.js.map.gz` after `vite build`
+
+## 2026-01-20
+
+Closed: implementation + U+0000 + sourcemap work complete (see 0045 tutorial + diary)
+

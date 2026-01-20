@@ -1,7 +1,7 @@
 ---
 Title: ESP32-C6 device-hosted Preact+Zustand web UI with esp_console Wi-Fi selection
 Ticket: MO-033-ESP32C6-PREACT-WEB
-Status: active
+Status: complete
 Topics:
     - esp32c6
     - esp-idf
@@ -25,10 +25,11 @@ RelatedFiles:
       Note: Reference for deterministic Vite bundling and firmware embedding
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-20T15:06:17.373060182-05:00
+LastUpdated: 2026-01-20T17:08:53.050109479-05:00
 WhatFor: Design and implement a tiny ESP32-C6 firmware that uses an interactive esp_console REPL to scan/select/join Wi-Fi networks (credentials persisted in NVS) and serves an embedded Preact+Zustand counter web UI bundle from esp_http_server.
 WhenToUse: Use when building a minimal device-hosted web UI demo on ESP32-C6 that needs runtime Wi-Fi selection via esp_console and a firmware-embedded SPA bundle.
 ---
+
 
 
 # ESP32-C6 device-hosted Preact+Zustand web UI with esp_console Wi-Fi selection
