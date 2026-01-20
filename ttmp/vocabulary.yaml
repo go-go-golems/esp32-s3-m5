@@ -57,6 +57,16 @@ topics:
       description: ESP32-H2 (802.15.4/Zigbee/Thread)
     - slug: http
       description: HTTP server/client and web APIs
+    - slug: wifi
+      description: Wi-Fi station/softap networking
+    - slug: esp32c6
+      description: ESP32-C6 microcontroller
+    - slug: webserver
+      description: Device-hosted HTTP servers and static asset serving
+    - slug: preact
+      description: Preact UI framework
+    - slug: zustand
+      description: Zustand state management library
 docTypes:
     - slug: index
       description: Ticket index document
