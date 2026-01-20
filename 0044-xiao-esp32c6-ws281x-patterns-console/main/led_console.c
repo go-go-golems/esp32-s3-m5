@@ -25,10 +25,10 @@ static void print_usage(void)
     printf("  led brightness <1..100>\n");
     printf("  led frame <ms>\n");
     printf("  led pattern set <off|rainbow|chase|breathing|sparkle>\n");
-    printf("  led rainbow set [--speed N] [--sat N] [--spread X10]\n");
-    printf("  led chase set [--speed N] [--tail N] [--fg #RRGGBB] [--bg #RRGGBB] [--dir forward|reverse|bounce] [--fade 0|1]\n");
-    printf("  led breathing set [--speed N] [--color #RRGGBB] [--min 0..255] [--max 0..255] [--curve sine|linear|ease]\n");
-    printf("  led sparkle set [--speed N] [--color #RRGGBB] [--density 0..100] [--fade 1..255] [--mode fixed|random|rainbow] [--bg #RRGGBB]\n");
+    printf("  led rainbow set [--speed 0..20] [--sat 0..100] [--spread 1..50]\n");
+    printf("  led chase set [--speed 0..255] [--tail 1..255] [--gap 0..255] [--trains 1..255] [--fg #RRGGBB] [--bg #RRGGBB] [--dir forward|reverse|bounce] [--fade 0|1]\n");
+    printf("  led breathing set [--speed 0..20] [--color #RRGGBB] [--min 0..255] [--max 0..255] [--curve sine|linear|ease]\n");
+    printf("  led sparkle set [--speed 0..20] [--color #RRGGBB] [--density 0..100] [--fade 1..255] [--mode fixed|random|rainbow] [--bg #RRGGBB]\n");
     printf("  led ws status\n");
     printf("  led ws set gpio <n>\n");
     printf("  led ws set count <n>\n");
@@ -78,26 +78,28 @@ static void print_help(void)
     printf("  Pattern selection:\n");
     printf("    led pattern set <off|rainbow|chase|breathing|sparkle>\n");
     printf("\n  Rainbow:\n");
-    printf("    led rainbow set [--speed 1..255] [--sat 0..100] [--spread 1..50]\n");
-    printf("      --speed  Higher = hue rotates faster over time.\n");
+    printf("    led rainbow set [--speed 0..20] [--sat 0..100] [--spread 1..50]\n");
+    printf("      --speed  Rotations per minute (RPM). 0 = static.\n");
     printf("      --sat    Saturation percentage.\n");
     printf("      --spread Hue range across strip, in tenths of 360 degrees.\n");
     printf("\n  Chase:\n");
-    printf("    led chase set [--speed 1..255] [--tail 1..255] [--fg #RRGGBB] [--bg #RRGGBB]\n");
-    printf("                 [--dir forward|reverse|bounce] [--fade 0|1]\n");
-    printf("      --speed  Higher = head advances more often (clamped by frame_ms).\n");
-    printf("      --tail   Number of LEDs in the tail.\n");
+    printf("    led chase set [--speed 0..255] [--tail 1..255] [--gap 0..255] [--trains 1..255]\n");
+    printf("                 [--fg #RRGGBB] [--bg #RRGGBB] [--dir forward|reverse|bounce] [--fade 0|1]\n");
+    printf("      --speed  Head speed in LEDs/sec. 0 = static.\n");
+    printf("      --tail   Tail length in LEDs.\n");
+    printf("      --gap    Background LEDs between trains (tail+gap = spacing).\n");
+    printf("      --trains Number of trains; spaced by (tail+gap). Bounce uses 1.\n");
     printf("      --fade   1 enables tail fade (head bright, tail dim).\n");
     printf("\n  Breathing:\n");
-    printf("    led breathing set [--speed 1..255] [--color #RRGGBB] [--min 0..255] [--max 0..255]\n");
+    printf("    led breathing set [--speed 0..20] [--color #RRGGBB] [--min 0..255] [--max 0..255]\n");
     printf("                    [--curve sine|linear|ease]\n");
-    printf("      --speed  Higher = shorter breathe period (min period is clamped).\n");
+    printf("      --speed  Breaths per minute. 0 = static at max.\n");
     printf("\n  Sparkle:\n");
-    printf("    led sparkle set [--speed 1..255] [--color #RRGGBB] [--density 0..100] [--fade 1..255]\n");
+    printf("    led sparkle set [--speed 0..20] [--color #RRGGBB] [--density 0..100] [--fade 1..255]\n");
     printf("                  [--mode fixed|random|rainbow] [--bg #RRGGBB]\n");
-    printf("      --density  Percent chance per LED per frame to spawn a sparkle.\n");
-    printf("      --fade     Fade amount per frame.\n");
-    printf("      --speed    Multiplier for spawn/fade dynamics (10 keeps base behavior).\n");
+    printf("      --density  Max %% of LEDs sparkling concurrently.\n");
+    printf("      --fade     Fade amount per ~25ms (scales with frame delta).\n");
+    printf("      --speed    Spawn rate (0..20 maps to 0.0..4.0 sparkles/sec).\n");
     printf("\nWS281x driver:\n");
     printf("  led ws status\n");
     printf("    Shows current applied driver configuration.\n");
@@ -124,7 +126,7 @@ static void print_pattern_status(const led_pattern_cfg_t *cfg)
     }
     case LED_PATTERN_CHASE: {
         const led_chase_cfg_t *c = &cfg->u.chase;
-        printf("chase: speed=%u tail=%u fg=", (unsigned)c->speed, (unsigned)c->tail_len);
+        printf("chase: speed=%u tail=%u gap=%u trains=%u fg=", (unsigned)c->speed, (unsigned)c->tail_len, (unsigned)c->gap_len, (unsigned)c->trains);
         print_rgb_hex(c->fg);
         printf(" bg=");
         print_rgb_hex(c->bg);
@@ -484,7 +486,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
+                if (!parse_u32(v, &tmp) || tmp > 20) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -524,8 +526,10 @@ static int cmd_led(int argc, char **argv)
         led_task_get_status(&st);
 
         led_chase_cfg_t cfg = {
-            .speed = 5,
+            .speed = 20,
             .tail_len = 5,
+            .gap_len = 5,
+            .trains = 1,
             .fg = {.r = 0, .g = 255, .b = 255},
             .bg = {.r = 0, .g = 0, .b = 10},
             .dir = LED_DIR_FORWARD,
@@ -540,7 +544,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
+                if (!parse_u32(v, &tmp) || tmp > 255) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -555,6 +559,26 @@ static int cmd_led(int argc, char **argv)
                     return 1;
                 }
                 cfg.tail_len = (uint8_t)tmp;
+                i++;
+                continue;
+            }
+            if (strcmp(k, "--gap") == 0 && v) {
+                uint32_t tmp = 0;
+                if (!parse_u32(v, &tmp) || tmp > 255) {
+                    printf("invalid --gap\n");
+                    return 1;
+                }
+                cfg.gap_len = (uint8_t)tmp;
+                i++;
+                continue;
+            }
+            if (strcmp(k, "--trains") == 0 && v) {
+                uint32_t tmp = 0;
+                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
+                    printf("invalid --trains\n");
+                    return 1;
+                }
+                cfg.trains = (uint8_t)tmp;
                 i++;
                 continue;
             }
@@ -606,7 +630,7 @@ static int cmd_led(int argc, char **argv)
         led_task_get_status(&st);
 
         led_breathing_cfg_t cfg = {
-            .speed = 3,
+            .speed = 4,
             .color = {.r = 255, .g = 0, .b = 255},
             .min_bri = 10,
             .max_bri = 255,
@@ -621,7 +645,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
+                if (!parse_u32(v, &tmp) || tmp > 20) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -679,7 +703,7 @@ static int cmd_led(int argc, char **argv)
         led_task_get_status(&st);
 
         led_sparkle_cfg_t cfg = {
-            .speed = 5,
+            .speed = 2,
             .color = {.r = 255, .g = 255, .b = 255},
             .density_pct = 8,
             .fade_speed = 30,
@@ -695,7 +719,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
+                if (!parse_u32(v, &tmp) || tmp > 20) {
                     printf("invalid --speed\n");
                     return 1;
                 }

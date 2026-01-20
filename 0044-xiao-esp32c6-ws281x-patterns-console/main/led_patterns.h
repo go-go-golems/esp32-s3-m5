@@ -20,7 +20,7 @@ typedef enum {
 } led_pattern_type_t;
 
 typedef struct {
-    uint8_t speed;      // 1..255
+    uint8_t speed;      // 0..20 (rainbow rotations per minute; 0 = static)
     uint8_t saturation; // 0..100
     uint8_t spread_x10; // 10 => full 360° across strip
 } led_rainbow_cfg_t;
@@ -32,8 +32,10 @@ typedef enum {
 } led_direction_t;
 
 typedef struct {
-    uint8_t speed;      // 1..255
+    uint8_t speed;      // 0..255 (LEDs per second; 0 = static)
     uint8_t tail_len;   // >= 1
+    uint8_t gap_len;    // >= 0 (LEDs between train tails and the next train head)
+    uint8_t trains;     // >= 1 (multiple trains spaced by tail_len+gap_len; bounce mode uses 1)
     led_rgb8_t fg;
     led_rgb8_t bg;
     led_direction_t dir;
@@ -47,7 +49,7 @@ typedef enum {
 } led_curve_t;
 
 typedef struct {
-    uint8_t speed; // 1..255
+    uint8_t speed; // 0..20 (breaths per minute; 0 = static at max)
     led_rgb8_t color;
     uint8_t min_bri; // 0..255
     uint8_t max_bri; // 0..255
@@ -61,10 +63,10 @@ typedef enum {
 } led_sparkle_color_mode_t;
 
 typedef struct {
-    uint8_t speed;       // 1..255 (multiplier for fade/spawn dynamics, baseline is 10)
+    uint8_t speed;       // 0..20 (sparkles/sec control; 0 = no new sparkles)
     led_rgb8_t color;    // used for FIXED mode
-    uint8_t density_pct; // 0..100 (% chance per LED per frame)
-    uint8_t fade_speed;  // 1..255 (brightness decrement per frame)
+    uint8_t density_pct; // 0..100 (max % LEDs sparkling concurrently)
+    uint8_t fade_speed;  // 1..255 (brightness decrement per ~25ms; scales with frame delta)
     led_sparkle_color_mode_t color_mode;
     led_rgb8_t background;
 } led_sparkle_cfg_t;
@@ -85,11 +87,12 @@ typedef struct {
 typedef struct {
     uint32_t frame;
     uint32_t last_step_ms;
-    int16_t chase_pos;
-    int8_t chase_dir; // 1 or -1
+    uint32_t chase_pos_q16; // Q16.16
+    int8_t chase_dir;       // 1 or -1 (bounce direction)
 
     uint8_t *sparkle_bri;  // len = led_count
     uint16_t sparkle_len;  // == led_count
+    uint32_t sparkle_accum_q16; // Q16.16 expected-spawns accumulator
     uint32_t rng;
 } led_pattern_state_t;
 

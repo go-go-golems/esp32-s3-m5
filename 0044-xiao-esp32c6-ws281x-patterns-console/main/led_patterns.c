@@ -31,24 +31,27 @@ static inline led_rgb8_t rgb_scale_u8(led_rgb8_t c, uint8_t scale)
 
 static uint8_t ease_sine_u8(uint8_t x)
 {
-    static const uint8_t sine_table[64] = {
-        0,   6,  12,  18,  25,  31,  37,  43,  49,  55,  61,  67,  73,  79,  85,  90,
-        96, 101, 106, 112, 117, 122, 126, 131, 135, 140, 144, 148, 152, 155, 159, 162,
-        165, 168, 171, 174, 176, 179, 181, 183, 185, 187, 188, 190, 191, 192, 193, 194,
-        195, 196, 196, 197, 197, 197, 197, 197, 197, 197, 197, 197, 196, 196, 195, 194,
+    // Full-cycle sine wave mapped to [0..255]. Generated from:
+    // round((sin(2*pi*i/256)+1)/2*255), i=0..255
+    static const uint8_t sine_u8[256] = {
+        128, 131, 134, 137, 140, 143, 146, 149, 152, 155, 158, 162, 165, 167, 170, 173,
+        176, 179, 182, 185, 188, 190, 193, 196, 198, 201, 203, 206, 208, 211, 213, 215,
+        218, 220, 222, 224, 226, 228, 230, 232, 234, 235, 237, 238, 240, 241, 243, 244,
+        245, 246, 248, 249, 250, 250, 251, 252, 253, 253, 254, 254, 254, 255, 255, 255,
+        255, 255, 255, 255, 254, 254, 254, 253, 253, 252, 251, 250, 250, 249, 248, 246,
+        245, 244, 243, 241, 240, 238, 237, 235, 234, 232, 230, 228, 226, 224, 222, 220,
+        218, 215, 213, 211, 208, 206, 203, 201, 198, 196, 193, 190, 188, 185, 182, 179,
+        176, 173, 170, 167, 165, 162, 158, 155, 152, 149, 146, 143, 140, 137, 134, 131,
+        128, 124, 121, 118, 115, 112, 109, 106, 103, 100,  97,  93,  90,  88,  85,  82,
+         79,  76,  73,  70,  67,  65,  62,  59,  57,  54,  52,  49,  47,  44,  42,  40,
+         37,  35,  33,  31,  29,  27,  25,  23,  21,  20,  18,  17,  15,  14,  12,  11,
+         10,   9,   7,   6,   5,   5,   4,   3,   2,   2,   1,   1,   1,   0,   0,   0,
+          0,   0,   0,   0,   1,   1,   1,   2,   2,   3,   4,   5,   5,   6,   7,   9,
+         10,  11,  12,  14,  15,  17,  18,  20,  21,  23,  25,  27,  29,  31,  33,  35,
+         37,  40,  42,  44,  47,  49,  52,  54,  57,  59,  62,  65,  67,  70,  73,  76,
+         79,  82,  85,  88,  90,  93,  97, 100, 103, 106, 109, 112, 115, 118, 121, 124,
     };
-
-    const uint8_t index = x >> 2; // 0-63
-    if (x < 64) {
-        return sine_table[index];
-    }
-    if (x < 128) {
-        return sine_table[63 - (index - 16)];
-    }
-    if (x < 192) {
-        return (uint8_t)(255 - sine_table[index - 32]);
-    }
-    return (uint8_t)(255 - sine_table[63 - (index - 48)]);
+    return sine_u8[x];
 }
 
 static void hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t *g, uint32_t *b)
@@ -102,17 +105,13 @@ static uint32_t rand32_next(led_patterns_t *p)
     return p->st.rng;
 }
 
-static uint8_t rand8(led_patterns_t *p)
-{
-    return (uint8_t)(rand32_next(p) >> 16);
-}
-
 static void state_reset(led_patterns_t *p)
 {
     p->st.frame = 0;
     p->st.last_step_ms = 0;
-    p->st.chase_pos = 0;
+    p->st.chase_pos_q16 = 0;
     p->st.chase_dir = 1;
+    p->st.sparkle_accum_q16 = 0;
     if (p->st.sparkle_bri && p->st.sparkle_len) {
         memset(p->st.sparkle_bri, 0, p->st.sparkle_len);
     }
@@ -137,10 +136,11 @@ esp_err_t led_patterns_init(led_patterns_t *p, uint16_t led_count)
             {
                 .frame = 0,
                 .last_step_ms = 0,
-                .chase_pos = 0,
+                .chase_pos_q16 = 0,
                 .chase_dir = 1,
                 .sparkle_bri = NULL,
                 .sparkle_len = 0,
+                .sparkle_accum_q16 = 0,
                 .rng = 0x12345678u,
             },
     };
@@ -189,11 +189,12 @@ static void render_off(led_patterns_t *p, led_ws281x_t *strip)
 static void render_rainbow(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *strip)
 {
     const led_rainbow_cfg_t *cfg = &p->cfg.u.rainbow;
-    const uint32_t speed = cfg->speed ? cfg->speed : 1;
+    const uint32_t speed_rpm = (cfg->speed > 20) ? 20 : cfg->speed;
     const uint32_t sat = (cfg->saturation > 100) ? 100 : cfg->saturation;
     const uint32_t spread_x10 = cfg->spread_x10 ? cfg->spread_x10 : 10;
 
-    const uint32_t hue_offset = (uint32_t)(((uint64_t)now_ms * speed * 360ULL) / 10000ULL) % 360;
+    // speed is rotations per minute (RPM). hue_offset is degrees [0..359].
+    const uint32_t hue_offset = (speed_rpm == 0) ? 0 : (uint32_t)(((uint64_t)now_ms * speed_rpm * 360ULL) / 60000ULL) % 360;
     const uint32_t hue_range = (360 * spread_x10) / 10;
 
     for (uint16_t i = 0; i < p->led_count; i++) {
@@ -212,49 +213,60 @@ static void render_rainbow(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *str
     }
 }
 
-static void chase_step_update(led_patterns_t *p, uint32_t now_ms)
+static uint32_t chase_train_period(const led_chase_cfg_t *cfg)
+{
+    const uint32_t tail = cfg->tail_len ? cfg->tail_len : 1;
+    const uint32_t gap = cfg->gap_len;
+    const uint32_t period = tail + gap;
+    return period ? period : 1;
+}
+
+static void chase_update_pos(led_patterns_t *p, uint32_t now_ms)
 {
     led_chase_cfg_t *cfg = &p->cfg.u.chase;
-    const uint8_t speed = cfg->speed ? cfg->speed : 1;
-    uint32_t step_ms = 200u / speed; // higher speed => smaller step interval
-    if (step_ms == 0) {
-        step_ms = 1;
-    }
-
     if (p->st.last_step_ms == 0) {
         p->st.last_step_ms = now_ms;
         return;
     }
-    if ((uint32_t)(now_ms - p->st.last_step_ms) < step_ms) {
-        return;
-    }
+    const uint32_t dt_ms = (uint32_t)(now_ms - p->st.last_step_ms);
     p->st.last_step_ms = now_ms;
 
-    p->st.chase_pos += p->st.chase_dir;
+    const uint32_t speed_lps = cfg->speed; // LEDs per second
+    if (speed_lps == 0 || p->led_count == 0) {
+        return;
+    }
 
-    const int16_t tail = (int16_t)(cfg->tail_len ? cfg->tail_len : 1);
-    switch (cfg->dir) {
-    case LED_DIR_BOUNCE:
-        if (p->st.chase_pos >= (int16_t)(p->led_count - 1)) {
-            p->st.chase_pos = (int16_t)(p->led_count - 1);
+    // delta in Q16.16 (leds)
+    const uint32_t delta_q16 = (uint32_t)(((uint64_t)speed_lps * (uint64_t)dt_ms * 65536ULL) / 1000ULL);
+
+    if (cfg->dir == LED_DIR_BOUNCE) {
+        const int64_t max_q16 = ((int64_t)(p->led_count - 1) << 16);
+        int64_t pos = (int64_t)p->st.chase_pos_q16;
+        pos += (int64_t)p->st.chase_dir * (int64_t)delta_q16;
+        if (pos > max_q16) {
+            pos = max_q16;
             p->st.chase_dir = -1;
-        } else if (p->st.chase_pos <= 0) {
-            p->st.chase_pos = 0;
+        } else if (pos < 0) {
+            pos = 0;
             p->st.chase_dir = 1;
         }
-        break;
-    case LED_DIR_REVERSE:
-        if (p->st.chase_pos < -tail) {
-            p->st.chase_pos = (int16_t)p->led_count;
-        }
-        break;
-    case LED_DIR_FORWARD:
-    default:
-        if (p->st.chase_pos >= (int16_t)p->led_count) {
-            p->st.chase_pos = -tail;
-        }
-        break;
+        p->st.chase_pos_q16 = (uint32_t)pos;
+        return;
     }
+
+    const uint32_t period_q16 = ((uint32_t)p->led_count) << 16;
+    int64_t pos = (int64_t)p->st.chase_pos_q16;
+    if (cfg->dir == LED_DIR_REVERSE) {
+        pos -= (int64_t)delta_q16;
+    } else {
+        pos += (int64_t)delta_q16;
+    }
+    // Wrap to [0..period_q16)
+    pos %= (int64_t)period_q16;
+    if (pos < 0) {
+        pos += (int64_t)period_q16;
+    }
+    p->st.chase_pos_q16 = (uint32_t)pos;
 }
 
 static void render_chase(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *strip)
@@ -263,17 +275,48 @@ static void render_chase(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *strip
     if (cfg->tail_len == 0) {
         cfg->tail_len = 1;
     }
-    chase_step_update(p, now_ms);
+    chase_update_pos(p, now_ms);
+
+    const uint16_t head_base = (uint16_t)(p->st.chase_pos_q16 >> 16);
+    const uint32_t train_period = chase_train_period(cfg);
+    uint32_t trains = cfg->trains ? cfg->trains : 1;
+    if (cfg->dir == LED_DIR_BOUNCE) {
+        trains = 1;
+    }
+    if (train_period > 0) {
+        const uint32_t max_trains = (uint32_t)p->led_count / train_period;
+        if (max_trains == 0) {
+            trains = 1;
+        } else if (trains > max_trains) {
+            trains = max_trains;
+        }
+    }
+    if (trains == 0) {
+        trains = 1;
+    }
 
     for (uint16_t i = 0; i < p->led_count; i++) {
-        int16_t dist = p->st.chase_pos - (int16_t)i;
-        if (cfg->dir == LED_DIR_REVERSE) {
-            dist = (int16_t)i - p->st.chase_pos;
+        uint16_t best_dist = 0xffffu;
+        for (uint32_t t = 0; t < trains; t++) {
+            const uint16_t head = (uint16_t)((head_base + (uint16_t)(t * train_period)) % p->led_count);
+            uint16_t dist = 0;
+            if (cfg->dir == LED_DIR_REVERSE) {
+                dist = (uint16_t)((i + p->led_count - head) % p->led_count);
+            } else {
+                dist = (uint16_t)((head + p->led_count - i) % p->led_count);
+            }
+            if (dist < best_dist) {
+                best_dist = dist;
+                if (best_dist == 0) {
+                    break;
+                }
+            }
         }
-        if (dist >= 0 && dist < (int16_t)cfg->tail_len) {
+
+        if (best_dist < cfg->tail_len) {
             led_rgb8_t c = cfg->fg;
             if (cfg->fade_tail) {
-                const uint8_t fade_u8 = (uint8_t)(255u - ((uint32_t)dist * 255u) / cfg->tail_len);
+                const uint8_t fade_u8 = (uint8_t)(255u - ((uint32_t)best_dist * 255u) / cfg->tail_len);
                 c = rgb_scale_u8(c, fade_u8);
             }
             led_ws281x_set_pixel_rgb(strip, i, c, p->cfg.global_brightness_pct);
@@ -308,15 +351,14 @@ static uint8_t curve_eval_u8(led_curve_t curve, uint8_t phase_u8)
 static void render_breathing(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *strip)
 {
     led_breathing_cfg_t *cfg = &p->cfg.u.breathing;
-    const uint8_t speed = cfg->speed ? cfg->speed : 1;
-
-    uint32_t period_ms = 2500u / speed;
-    if (period_ms < 200) {
-        period_ms = 200;
+    const uint8_t bpm = (cfg->speed > 20) ? 20 : cfg->speed;
+    uint8_t wave_u8 = 255;
+    if (bpm != 0) {
+        // speed is breaths per minute. 1 => 60s period, 20 => 3s period.
+        const uint32_t period_ms = 60000u / bpm;
+        const uint8_t phase_u8 = (uint8_t)(((uint64_t)(now_ms % period_ms) * 256ULL) / period_ms);
+        wave_u8 = curve_eval_u8(cfg->curve, phase_u8);
     }
-
-    const uint8_t phase_u8 = (uint8_t)(((uint64_t)(now_ms % period_ms) * 256ULL) / period_ms);
-    const uint8_t wave_u8 = curve_eval_u8(cfg->curve, phase_u8);
 
     uint8_t min_b = cfg->min_bri;
     uint8_t max_b = cfg->max_bri;
@@ -335,9 +377,7 @@ static void render_breathing(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *s
 
 static void render_sparkle(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *strip)
 {
-    (void)now_ms;
     led_sparkle_cfg_t *cfg = &p->cfg.u.sparkle;
-    const uint8_t speed = cfg->speed ? cfg->speed : 1;
     if (cfg->fade_speed == 0) {
         cfg->fade_speed = 1;
     }
@@ -346,28 +386,61 @@ static void render_sparkle(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *str
     }
 
     // Fade existing sparkles.
-    uint32_t fade_amount_u32 = ((uint32_t)cfg->fade_speed * (uint32_t)speed + 9u) / 10u;
-    if (fade_amount_u32 < 1) {
-        fade_amount_u32 = 1;
-    } else if (fade_amount_u32 > 255) {
-        fade_amount_u32 = 255;
-    }
-    const uint8_t fade_amount = (uint8_t)fade_amount_u32;
-    for (uint16_t i = 0; i < p->led_count; i++) {
-        uint8_t v = p->st.sparkle_bri[i];
-        p->st.sparkle_bri[i] = (v > fade_amount) ? (uint8_t)(v - fade_amount) : 0;
+    uint32_t dt_ms = 25;
+    if (p->st.last_step_ms == 0) {
+        p->st.last_step_ms = now_ms;
+        dt_ms = 0;
+    } else {
+        dt_ms = (uint32_t)(now_ms - p->st.last_step_ms);
+        p->st.last_step_ms = now_ms;
     }
 
-    // Spawn new sparkles.
-    uint32_t density_u32 = ((uint32_t)cfg->density_pct * (uint32_t)speed + 9u) / 10u;
-    if (density_u32 > 100) {
-        density_u32 = 100;
+    uint8_t fade_amount = 0;
+    if (dt_ms) {
+        uint32_t fade_amount_u32 = ((uint32_t)cfg->fade_speed * dt_ms + 24u) / 25u; // baseline ~25ms
+        if (fade_amount_u32 < 1u) {
+            fade_amount_u32 = 1u;
+        } else if (fade_amount_u32 > 255u) {
+            fade_amount_u32 = 255u;
+        }
+        fade_amount = (uint8_t)fade_amount_u32;
     }
-    const uint8_t density_pct = (uint8_t)density_u32;
-    const uint8_t spawn_threshold = (uint8_t)(255 - ((uint16_t)density_pct * 255u) / 100u);
+    uint32_t active = 0;
     for (uint16_t i = 0; i < p->led_count; i++) {
-        if (rand8(p) > spawn_threshold) {
-            p->st.sparkle_bri[i] = 255;
+        uint8_t v = p->st.sparkle_bri[i];
+        v = (v > fade_amount) ? (uint8_t)(v - fade_amount) : 0;
+        p->st.sparkle_bri[i] = v;
+        if (v) {
+            active++;
+        }
+    }
+
+    // Spawn new sparkles (time-based rate + cap on concurrent sparkles).
+    const uint32_t max_active = ((uint32_t)p->led_count * (uint32_t)cfg->density_pct) / 100u;
+    if (dt_ms && cfg->speed && (max_active == 0 || active < max_active)) {
+        const uint8_t speed = (cfg->speed > 20) ? 20 : cfg->speed;
+        // speed 0..20 maps to 0.0..4.0 sparkles/sec (rate_x10 = speed*2).
+        const uint32_t rate_x10 = (uint32_t)speed * 2u; // sparkles/sec * 10
+        const uint32_t add_q16 = (uint32_t)(((uint64_t)rate_x10 * (uint64_t)dt_ms * 65536ULL) / 10000ULL);
+        p->st.sparkle_accum_q16 += add_q16;
+        uint32_t spawn_n = p->st.sparkle_accum_q16 >> 16;
+        p->st.sparkle_accum_q16 &= 0xffffu;
+
+        if (max_active > 0) {
+            const uint32_t room = max_active - active;
+            if (spawn_n > room) {
+                spawn_n = room;
+            }
+        }
+
+        uint32_t tries = 0;
+        while (spawn_n && tries < (uint32_t)p->led_count * 2u) {
+            const uint16_t idx = (uint16_t)(rand32_next(p) % p->led_count);
+            if (p->st.sparkle_bri[idx] == 0) {
+                p->st.sparkle_bri[idx] = 255;
+                spawn_n--;
+            }
+            tries++;
         }
     }
 
