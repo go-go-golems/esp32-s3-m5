@@ -127,8 +127,8 @@ This step creates the working “home” for implementation: a new ESP32‑C6 fi
 - `http_server.c` JSON encoding size limits and content-type/header correctness.
 
 ### What should be done in the future
-- Run `npm ci && npm run build` in `0045-xiao-esp32c6-preact-web/web` and commit the resulting embedded assets in `0045-xiao-esp32c6-preact-web/main/assets/`.
-- Run `idf.py set-target esp32c6 build` and document any ESP32‑C6-specific tweaks required.
+- Flash + run the end-to-end console + HTTP verification playbook on real hardware (and capture logs).
+- Decide whether to address `npm audit` findings (policy decision).
 
 ### Code review instructions
 - Start with firmware entrypoint: `0045-xiao-esp32c6-preact-web/main/app_main.c`.
@@ -142,10 +142,97 @@ This step creates the working “home” for implementation: a new ESP32‑C6 fi
   - `inlineDynamicImports: true`
   - `entryFileNames: 'assets/app.js'` + CSS mapped to `assets/app.css`
 
-## Usage Examples
+## Step 3: Build the real web bundle and embed it (Vite → main/assets)
 
-<!-- Show how to use this reference in practice -->
+This step replaces the placeholder embedded assets with a real Vite production build of the Preact+Zustand counter UI. The key outcome is that `main/assets/index.html`, `main/assets/assets/app.js`, and `main/assets/assets/app.css` are now the actual bundle the device will serve.
 
-## Related
+**Commit (code):** a64dc8f — "build(0045): embed built web assets"
 
-<!-- Link to related documents or resources -->
+### What I did
+- Installed frontend deps:
+  - `cd 0045-xiao-esp32c6-preact-web/web && npm ci`
+- Built the bundle (configured to output directly to firmware assets dir):
+  - `cd 0045-xiao-esp32c6-preact-web/web && npm run build`
+- Verified outputs landed at:
+  - `0045-xiao-esp32c6-preact-web/main/assets/index.html`
+  - `0045-xiao-esp32c6-preact-web/main/assets/assets/app.js`
+  - `0045-xiao-esp32c6-preact-web/main/assets/assets/app.css`
+- Committed those built artifacts (so firmware embedding is deterministic and reproducible).
+
+### Why
+- The firmware uses `EMBED_TXTFILES` and hard-coded routes. That model depends on stable filenames and having the built artifacts present at compile time.
+
+### What worked
+- `vite build` produced a small bundle (JS ~26 KB) and wrote directly into `main/assets/`.
+
+### What didn't work
+- `npm ci` reported: `1 high severity vulnerability`.
+  - Not addressed here; this repo may want a separate, intentional dependency refresh pass.
+
+### What I learned
+- The “deterministic bundle” approach is token-and-risk efficient for embedded demos: no manifest, no FS partition, minimal routes.
+
+### What was tricky to build
+- Ensuring `web/node_modules` stays out of Git while built artifacts remain in Git (handled via `web/.gitignore` and committing only `main/assets/*`).
+
+### What warrants a second pair of eyes
+- Whether we should treat `npm audit` as a gating policy for tutorial web bundles in this repo.
+
+### What should be done in the future
+- Decide if/when to run `npm audit fix` (and if we accept the resulting dependency churn).
+
+### Code review instructions
+- Confirm deterministic build outputs and paths:
+  - `0045-xiao-esp32c6-preact-web/web/vite.config.ts`
+  - `0045-xiao-esp32c6-preact-web/main/assets/index.html`
+  - `0045-xiao-esp32c6-preact-web/main/assets/assets/app.js`
+
+### Technical details
+- Build output excerpt:
+  - `../main/assets/assets/app.js   26.46 kB │ gzip: 10.43 kB`
+
+## Step 4: Fix build helper Python selection; run ESP32-C6 build
+
+This step makes the build helper robust in this repo’s shell environment and validates that the firmware builds for `esp32c6`. The issue was `idf.py` being invoked under a global Python (pyenv) instead of the ESP-IDF venv, causing `esp_idf_monitor` import failures.
+
+**Commit (code):** e7f279c — "chore(0045): fix build.sh python env + add sdkconfig"
+
+### What I did
+- Reproduced the failure:
+  - `cd 0045-xiao-esp32c6-preact-web && ./build.sh set-target esp32c6 build`
+  - Error: `No module named 'esp_idf_monitor'`
+- Verified the ESP-IDF venv Python contains the missing module:
+  - `$HOME/.espressif/python_env/idf5.4_py3.11_env/bin/python -c "import esp_idf_monitor"`
+- Updated `0045-xiao-esp32c6-preact-web/build.sh` to prepend `${IDF_PYTHON_ENV_PATH}/bin` to `PATH` when available.
+- Ran a successful build:
+  - `cd 0045-xiao-esp32c6-preact-web && ./build.sh set-target esp32c6 build`
+- Captured a baseline `sdkconfig`:
+  - repo `.gitignore` ignores new `sdkconfig` files by default (`**/sdkconfig`)
+  - added with `git add -f 0045-xiao-esp32c6-preact-web/sdkconfig` to preserve this tutorial’s baseline
+
+### Why
+- This repo’s shell environment can have pyenv earlier in `PATH`; explicitly preferring `IDF_PYTHON_ENV_PATH` avoids confusing idf.py failures.
+- A committed `sdkconfig` gives a concrete baseline for others to build/flash the same configuration.
+
+### What worked
+- `idf.py` build succeeded and produced:
+  - `build/xiao_esp32c6_preact_web_0045.bin`
+
+### What didn't work
+- The initial build helper relied on ambient `PATH` ordering and picked the wrong Python interpreter.
+
+### What I learned
+- For “team tutorial” projects in this repo, build scripts should not assume `python` points at the ESP-IDF venv.
+
+### What was tricky to build
+- Reconciling the repo-wide ignore rule for `sdkconfig` with the desire to version a tutorial baseline.
+
+### What warrants a second pair of eyes
+- Whether committing `sdkconfig` for new tutorials should be a documented convention (vs relying on only `sdkconfig.defaults`).
+
+### What should be done in the future
+- Flash + monitor on real hardware and record boot logs / console interaction in the ticket.
+
+### Code review instructions
+- Validate build script behavior:
+  - `cd 0045-xiao-esp32c6-preact-web && ./build.sh set-target esp32c6 build`
