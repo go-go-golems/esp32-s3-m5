@@ -8,7 +8,7 @@
 #include "wifi_console.h"
 #include "wifi_mgr.h"
 
-static const char *TAG = "mo033_0044";
+static const char *TAG = "mo033_0045";
 
 static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
 {
@@ -29,4 +29,3 @@ void app_main(void)
     // appears quickly and early Wi-Fi logs are visible.
     wifi_console_start();
 }
-
