@@ -1009,3 +1009,30 @@ With a board present at `/dev/ttyACM0`, I used the tmux workflow to flash, open 
 
 ### What should be done in the future
 - Expand the smoke list to cover WS timing updates (`led ws set timing ...` + `led ws apply`) on real hardware once baseline visuals are confirmed.
+
+## Step 22: Plan Updates for Speed Mapping + Multi-Train Chase + Analysis Doc
+
+New feedback on pattern behavior indicated the current speed mappings are not operator-friendly:
+
+- Rainbow speed: no need to exceed 20.
+- Chase speed: changes above ~30 don’t feel meaningful; need train spacing and multiple trains.
+- Breathing: too fast and shows abrupt brightness changes at high settings.
+- Sparkle: far too fast; needs settings that produce only a few sparkles per second (or less).
+
+I added new ticket tasks to capture these changes and will implement them with small, reviewable commits and a fresh analysis document that explains the speed/brightness math.
+
+### What I did
+- Added tasks 12–15 to the ticket task list to track:
+  - moving scripts into the ticket
+  - revising speed scaling
+  - implementing multi-train chase
+  - writing and uploading an analysis document
+
+### Why
+- Make the behavior more intuitive to tune from the REPL and document the math so future changes don’t regress UX.
+
+### What worked
+- Tasks are now tracked in `tasks.md` and can be checked off as we implement.
+
+### What didn't work
+- N/A
