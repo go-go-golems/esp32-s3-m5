@@ -41,7 +41,7 @@ Maintain a step-by-step implementation diary for MO-031 (XIAO ESP32C6 driving 4 
 
 Created the docmgr ticket workspace and wrote an initial design doc capturing the wiring, power, level shifting, and the firmware approach (RMT-based LED strip encoder). This establishes the “what/why” before we start coding and reduces the chance we burn time on avoidable hardware gotchas (missing common ground, marginal data voltage, etc.).
 
-**Commit (code):** N/A
+**Commit (code):** c6dd2a9 — "0043: rainbow pattern, default 10 LEDs"
 
 ### What I did
 - Created the ticket: `docmgr ticket create-ticket --ticket MO-031-ESP32C6-WS2811 --title "ESP32-C6 WS2811: drive 4 LEDs on D1" --topics esp-idf,esp32,gpio,tooling,tmux,flashing`
@@ -159,6 +159,52 @@ Added a periodic `ESP_LOGI` line once per second during the main loop, so it’s
 
 ### Code review instructions
 - Review: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
+
+### Technical details
+- N/A
+
+## Step 4: Port Rainbow Pattern + Default to 10 LEDs
+
+Ported the “rainbow” algorithm from the local inspiration file into the `0043` firmware, switching the default LED count to **10** and generating a full-strip rainbow that rotates over time. This makes it much easier to visually validate that all LEDs are being addressed, compared to the earlier single-pixel chase.
+
+This change keeps the loop liveness logs, so you can still confirm the firmware isn’t hanging if the LEDs don’t light.
+
+**Commit (code):** N/A
+
+### What I did
+- Read `0043-xiao-esp32c6-ws2811-4led-d1/inspiration/led_patterns.c` and ported the rainbow logic:
+  - `hue_offset` advances over time based on `speed`
+  - hue is distributed across the strip based on `spread`
+- Updated defaults and added `menuconfig` knobs:
+  - Default `LED count = 10`
+  - Rainbow speed/saturation/spread controls
+
+### Why
+- A rainbow across the full strip makes “indexing works” obvious immediately.
+- Making the count 10 matches the current hardware setup and reduces config friction.
+
+### What worked
+- `idf.py build` succeeded after the port.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Keeping the rainbow math integer-safe and producing stable colors while still outputting GRB byte order.
+
+### What warrants a second pair of eyes
+- Verify the chosen defaults for `rainbow_spread_x10` match expectations (full 360° over the strip when set to 10).
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review rainbow implementation: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
+- Review config defaults: `0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild`
+- Build: `source ~/esp/esp-idf-5.4.1/export.sh && cd 0043-xiao-esp32c6-ws2811-4led-d1 && idf.py set-target esp32c6 && idf.py build`
 
 ### Technical details
 - N/A

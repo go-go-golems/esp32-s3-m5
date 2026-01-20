@@ -9,3 +9,4 @@
 - [x] Implement RMT LED-strip encoder + 4-LED test pattern
 - [x] Build firmware
 - [ ] Flash + monitor smoke test on hardware
+- [x] Port rainbow pattern (10 LEDs) from inspiration file
