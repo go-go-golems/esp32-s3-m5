@@ -46,3 +46,13 @@ Step 4: add frontmatter to imported source so docmgr doctor passes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 4
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md — Add YAML frontmatter
 
+
+## 2026-01-19
+
+Step 5: add startup logs so monitor shows firmware is running (commit 3b8d9e7)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/main.c — Startup log lines
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 5
+

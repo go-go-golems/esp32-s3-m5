@@ -213,6 +213,43 @@ Ran `docmgr doctor` and fixed a frontmatter parse error on the imported source f
 ### Technical details
 - N/A
 
+## Step 5: Add Startup Logs (Firmware Running Indicator)
+
+Added a few startup log lines so it’s obvious in `idf.py monitor` that the firmware is running even before you notice the GPIO toggling. The logs include the ESP-IDF version, the configured pin/period, and the reset reason.
+
+**Commit (code):** 3b8d9e7 — "0042: log startup banner"
+
+### What I did
+- Added startup `ESP_LOGI` lines in `app_main()` before configuring the GPIO.
+
+### Why
+- When testing a GPIO output (especially on a header pin like D0), it’s easy to miss whether the firmware actually booted; logs give immediate confirmation.
+
+### What worked
+- `idf.py build` succeeded after the change.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Kconfig bools are not always safe to reference as plain C macros (when disabled they may be undefined); use `#if`/helpers when logging.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review: `0042-xiao-esp32c6-d0-gpio-toggle/main/main.c`
+- Build: `source ~/esp/esp-idf-5.4.1/export.sh && cd 0042-xiao-esp32c6-d0-gpio-toggle && idf.py set-target esp32c6 && idf.py build`
+
+### Technical details
+- N/A
+
 ## Related
 
 - `../design-doc/01-esp32-c6-idf-notes-analysis.md`
