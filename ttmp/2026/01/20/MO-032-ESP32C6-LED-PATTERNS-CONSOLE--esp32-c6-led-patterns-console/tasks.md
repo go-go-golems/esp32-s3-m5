@@ -14,4 +14,4 @@
 - [x] Make periodic loop/status logs opt-in (default off) + add REPL toggle
 - [x] Add led help + pattern-aware led status; widen pattern speed validation to 1..255
 - [x] Add tmux flash/monitor workflow + curated smoke command list
-- [ ] Update design doc for latest REPL semantics and upload updated PDF to reMarkable
+- [x] Update design doc for latest REPL semantics and upload updated PDF to reMarkable

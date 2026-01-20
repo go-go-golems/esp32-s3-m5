@@ -70,3 +70,14 @@ Step 19: Rebuilt 0044 with ESP-IDF 5.4.1 (idf.py build ok) after REPL + tmux wor
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh — Verified build after adding scripts
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Build record
 
+
+## 2026-01-20
+
+Step 20: Updated design doc to match current REPL/message semantics and uploaded updated PDF to reMarkable (/ai/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/design-doc/01-led-pattern-engine-esp-console-repl-ws281x.md — Updated REPL semantics and queue protocol naming
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Documented upload and validation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/tasks.md — Checked off remaining tasks
+

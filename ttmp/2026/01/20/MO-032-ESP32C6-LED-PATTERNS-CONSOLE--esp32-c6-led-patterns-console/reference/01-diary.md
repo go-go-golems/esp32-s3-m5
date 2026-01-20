@@ -932,3 +932,45 @@ After the console UX and tmux workflow changes, I ran a full rebuild to ensure t
 
 ### What should be done in the future
 - Run the tmux flash/monitor workflow against real hardware and record any parameter edge cases found in the smoke list.
+
+## Step 20: Refresh Design Doc + Upload Updated PDF to reMarkable
+
+After finalizing the console UX (`led help`, pattern-aware `led status`, widened speed ranges) and the tmux smoke workflow, I refreshed the design doc so it reflects the current firmware behavior and message naming, then uploaded an updated PDF to reMarkable.
+
+This doc refresh is captured in commit `fdc930275ddfb2bc6743964be00693fdfd9e5049`.
+
+### What I did
+- Updated the design doc to reflect:
+  - `led help` and `led log on|off|status`
+  - speed range `1..255` and sparkle speed semantics (baseline 10)
+  - queue message naming aligned with code (`LED_MSG_WS_SET_CFG`, `LED_MSG_WS_APPLY_CFG`, `LED_MSG_SET_GLOBAL_BRIGHTNESS_PCT`)
+- Uploaded updated PDF via `remarquee upload bundle`:
+  - Remote dir: `/ai/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE`
+  - Name: `MO-032 LED Pattern Engine + esp_console REPL (WS281x) - update 2026-01-20`
+- Checked off the remaining ticket task so the task list is now complete.
+
+### What worked
+- Upload succeeded; `remarquee cloud ls` shows both the original and the updated document in the ticket folder.
+
+### What didn't work
+- N/A
+
+### What I learned
+- For iterative docs, it’s safer to upload with a new name (no overwrite) to preserve any existing annotations on the earlier PDF.
+
+### What was tricky to build
+- Ensuring the doc remains consistent after code refactors (message/type naming drift).
+
+### What warrants a second pair of eyes
+- Quick scan the “queue protocol” section for any remaining naming mismatches (doc vs code).
+
+### What should be done in the future
+- If/when this becomes a shared operator tool, consider splitting the design doc into:
+  - a shorter operator guide (commands + parameter meanings)
+  - a deeper architecture doc (task/queue/driver internals)
+
+### Code review instructions
+- Updated design doc:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/design-doc/01-led-pattern-engine-esp-console-repl-ws281x.md`
+- Ticket tasks:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/tasks.md`
