@@ -216,7 +216,10 @@ static void chase_step_update(led_patterns_t *p, uint32_t now_ms)
 {
     led_chase_cfg_t *cfg = &p->cfg.u.chase;
     const uint8_t speed = cfg->speed ? cfg->speed : 1;
-    const uint32_t step_ms = 200u / speed; // speed 1 => 200ms, speed 10 => 20ms
+    uint32_t step_ms = 200u / speed; // higher speed => smaller step interval
+    if (step_ms == 0) {
+        step_ms = 1;
+    }
 
     if (p->st.last_step_ms == 0) {
         p->st.last_step_ms = now_ms;
@@ -334,6 +337,7 @@ static void render_sparkle(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *str
 {
     (void)now_ms;
     led_sparkle_cfg_t *cfg = &p->cfg.u.sparkle;
+    const uint8_t speed = cfg->speed ? cfg->speed : 1;
     if (cfg->fade_speed == 0) {
         cfg->fade_speed = 1;
     }
@@ -342,14 +346,25 @@ static void render_sparkle(led_patterns_t *p, uint32_t now_ms, led_ws281x_t *str
     }
 
     // Fade existing sparkles.
-    const uint8_t fade_amount = cfg->fade_speed;
+    uint32_t fade_amount_u32 = ((uint32_t)cfg->fade_speed * (uint32_t)speed + 9u) / 10u;
+    if (fade_amount_u32 < 1) {
+        fade_amount_u32 = 1;
+    } else if (fade_amount_u32 > 255) {
+        fade_amount_u32 = 255;
+    }
+    const uint8_t fade_amount = (uint8_t)fade_amount_u32;
     for (uint16_t i = 0; i < p->led_count; i++) {
         uint8_t v = p->st.sparkle_bri[i];
         p->st.sparkle_bri[i] = (v > fade_amount) ? (uint8_t)(v - fade_amount) : 0;
     }
 
     // Spawn new sparkles.
-    const uint8_t spawn_threshold = (uint8_t)(255 - ((uint16_t)cfg->density_pct * 255u) / 100u);
+    uint32_t density_u32 = ((uint32_t)cfg->density_pct * (uint32_t)speed + 9u) / 10u;
+    if (density_u32 > 100) {
+        density_u32 = 100;
+    }
+    const uint8_t density_pct = (uint8_t)density_u32;
+    const uint8_t spawn_threshold = (uint8_t)(255 - ((uint16_t)density_pct * 255u) / 100u);
     for (uint16_t i = 0; i < p->led_count; i++) {
         if (rand8(p) > spawn_threshold) {
             p->st.sparkle_bri[i] = 255;
@@ -421,4 +436,3 @@ void led_patterns_render_to_ws281x(led_patterns_t *p, uint32_t now_ms, led_ws281
 
     p->st.frame++;
 }
-

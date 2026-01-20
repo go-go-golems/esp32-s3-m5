@@ -18,6 +18,7 @@ static const char *TAG = "led_console";
 static void print_usage(void)
 {
     printf("usage:\n");
+    printf("  led help\n");
     printf("  led status\n");
     printf("  led log on|off|status\n");
     printf("  led pause | led resume | led clear\n");
@@ -34,6 +35,132 @@ static void print_usage(void)
     printf("  led ws set order <grb|rgb>\n");
     printf("  led ws set timing [--t0h ns] [--t0l ns] [--t1h ns] [--t1l ns] [--reset us] [--res hz]\n");
     printf("  led ws apply\n");
+}
+
+static const char *pattern_name(led_pattern_type_t t)
+{
+    switch (t) {
+    case LED_PATTERN_OFF:
+        return "off";
+    case LED_PATTERN_RAINBOW:
+        return "rainbow";
+    case LED_PATTERN_CHASE:
+        return "chase";
+    case LED_PATTERN_BREATHING:
+        return "breathing";
+    case LED_PATTERN_SPARKLE:
+        return "sparkle";
+    default:
+        return "unknown";
+    }
+}
+
+static void print_rgb_hex(led_rgb8_t c)
+{
+    printf("#%02x%02x%02x", (unsigned)c.r, (unsigned)c.g, (unsigned)c.b);
+}
+
+static void print_help(void)
+{
+    printf("led command help\n\n");
+    printf("Core:\n");
+    printf("  led status\n");
+    printf("    Shows driver config, animation state, and the active pattern parameters.\n");
+    printf("  led log on|off|status\n");
+    printf("    Controls periodic ESP_LOGI status output from the LED task (default: off).\n");
+    printf("  led brightness <1..100>\n");
+    printf("    Sets global brightness scaling (applied after pattern math).\n");
+    printf("  led frame <ms>\n");
+    printf("    Sets the animation frame period (task vTaskDelayUntil cadence).\n");
+    printf("  led pause | led resume | led clear\n");
+    printf("    Pause/resume animation, or clear pixels immediately.\n");
+    printf("\nPatterns:\n");
+    printf("  Pattern selection:\n");
+    printf("    led pattern set <off|rainbow|chase|breathing|sparkle>\n");
+    printf("\n  Rainbow:\n");
+    printf("    led rainbow set [--speed 1..255] [--sat 0..100] [--spread 1..50]\n");
+    printf("      --speed  Higher = hue rotates faster over time.\n");
+    printf("      --sat    Saturation percentage.\n");
+    printf("      --spread Hue range across strip, in tenths of 360 degrees.\n");
+    printf("\n  Chase:\n");
+    printf("    led chase set [--speed 1..255] [--tail 1..255] [--fg #RRGGBB] [--bg #RRGGBB]\n");
+    printf("                 [--dir forward|reverse|bounce] [--fade 0|1]\n");
+    printf("      --speed  Higher = head advances more often (clamped by frame_ms).\n");
+    printf("      --tail   Number of LEDs in the tail.\n");
+    printf("      --fade   1 enables tail fade (head bright, tail dim).\n");
+    printf("\n  Breathing:\n");
+    printf("    led breathing set [--speed 1..255] [--color #RRGGBB] [--min 0..255] [--max 0..255]\n");
+    printf("                    [--curve sine|linear|ease]\n");
+    printf("      --speed  Higher = shorter breathe period (min period is clamped).\n");
+    printf("\n  Sparkle:\n");
+    printf("    led sparkle set [--speed 1..255] [--color #RRGGBB] [--density 0..100] [--fade 1..255]\n");
+    printf("                  [--mode fixed|random|rainbow] [--bg #RRGGBB]\n");
+    printf("      --density  Percent chance per LED per frame to spawn a sparkle.\n");
+    printf("      --fade     Fade amount per frame.\n");
+    printf("      --speed    Multiplier for spawn/fade dynamics (10 keeps base behavior).\n");
+    printf("\nWS281x driver:\n");
+    printf("  led ws status\n");
+    printf("    Shows current applied driver configuration.\n");
+    printf("  led ws set gpio <n> | count <n> | order <grb|rgb>\n");
+    printf("  led ws set timing [--t0h ns] [--t0l ns] [--t1h ns] [--t1l ns] [--reset us] [--res hz]\n");
+    printf("  led ws apply\n");
+    printf("    Applies the staged driver config (reinitializes the RMT driver).\n");
+}
+
+static void print_pattern_status(const led_pattern_cfg_t *cfg)
+{
+    if (!cfg) {
+        return;
+    }
+
+    printf("pattern=%s\n", pattern_name(cfg->type));
+    switch (cfg->type) {
+    case LED_PATTERN_OFF:
+        break;
+    case LED_PATTERN_RAINBOW: {
+        const led_rainbow_cfg_t *c = &cfg->u.rainbow;
+        printf("rainbow: speed=%u sat=%u spread_x10=%u\n", (unsigned)c->speed, (unsigned)c->saturation, (unsigned)c->spread_x10);
+        break;
+    }
+    case LED_PATTERN_CHASE: {
+        const led_chase_cfg_t *c = &cfg->u.chase;
+        printf("chase: speed=%u tail=%u fg=", (unsigned)c->speed, (unsigned)c->tail_len);
+        print_rgb_hex(c->fg);
+        printf(" bg=");
+        print_rgb_hex(c->bg);
+        printf(" dir=%s fade=%u\n",
+               (c->dir == LED_DIR_REVERSE) ? "reverse" : (c->dir == LED_DIR_BOUNCE) ? "bounce"
+                                                                                    : "forward",
+               (unsigned)c->fade_tail);
+        break;
+    }
+    case LED_PATTERN_BREATHING: {
+        const led_breathing_cfg_t *c = &cfg->u.breathing;
+        printf("breathing: speed=%u color=", (unsigned)c->speed);
+        print_rgb_hex(c->color);
+        printf(" min=%u max=%u curve=%s\n",
+               (unsigned)c->min_bri,
+               (unsigned)c->max_bri,
+               (c->curve == LED_CURVE_LINEAR) ? "linear" : (c->curve == LED_CURVE_EASE_IN_OUT) ? "ease"
+                                                                                               : "sine");
+        break;
+    }
+    case LED_PATTERN_SPARKLE: {
+        const led_sparkle_cfg_t *c = &cfg->u.sparkle;
+        printf("sparkle: speed=%u color=", (unsigned)c->speed);
+        print_rgb_hex(c->color);
+        printf(" density=%u fade=%u mode=%s bg=",
+               (unsigned)c->density_pct,
+               (unsigned)c->fade_speed,
+               (c->color_mode == LED_SPARKLE_RANDOM) ? "random" : (c->color_mode == LED_SPARKLE_RAINBOW) ? "rainbow"
+                                                                                                         : "fixed");
+        print_rgb_hex(c->background);
+        printf("\n");
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 static bool parse_u32(const char *s, uint32_t *out)
@@ -242,6 +369,11 @@ static int cmd_led(int argc, char **argv)
         return 1;
     }
 
+    if (strcmp(argv[1], "help") == 0) {
+        print_help();
+        return 0;
+    }
+
     if (strcmp(argv[1], "log") == 0) {
         if (argc < 3) {
             printf("usage: led log on|off|status\n");
@@ -267,7 +399,7 @@ static int cmd_led(int argc, char **argv)
         led_status_t st = {};
         led_task_get_status(&st);
         printf("running=%d paused=%d\n", (int)st.running, (int)st.paused);
-        printf("pattern=%d frame_ms=%u brightness_pct=%u\n", (int)st.pat_cfg.type, (unsigned)st.frame_ms, (unsigned)st.pat_cfg.global_brightness_pct);
+        printf("frame_ms=%u brightness_pct=%u\n", (unsigned)st.frame_ms, (unsigned)st.pat_cfg.global_brightness_pct);
         printf("log_enabled=%d\n", (int)st.log_enabled);
         printf("ws: gpio=%d count=%u order=%s res_hz=%u\n",
                st.ws_cfg.gpio_num,
@@ -280,6 +412,7 @@ static int cmd_led(int argc, char **argv)
                (unsigned)st.ws_cfg.t1h_ns,
                (unsigned)st.ws_cfg.t1l_ns,
                (unsigned)st.ws_cfg.reset_us);
+        print_pattern_status(&st.pat_cfg);
         return 0;
     }
 
@@ -351,7 +484,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 10) {
+                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -407,7 +540,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 10) {
+                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -488,7 +621,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 10) {
+                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -562,7 +695,7 @@ static int cmd_led(int argc, char **argv)
             const char *v = (i + 1 < argc) ? argv[i + 1] : NULL;
             if (strcmp(k, "--speed") == 0 && v) {
                 uint32_t tmp = 0;
-                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 10) {
+                if (!parse_u32(v, &tmp) || tmp < 1 || tmp > 255) {
                     printf("invalid --speed\n");
                     return 1;
                 }
@@ -769,7 +902,7 @@ void led_console_start(void)
 
     esp_console_cmd_t cmd = {};
     cmd.command = "led";
-    cmd.help = "Control WS281x patterns: led status|log|pause|resume|clear|brightness|frame|pattern|rainbow|chase|breathing|sparkle|ws";
+    cmd.help = "Control WS281x patterns (try: led help, led status)";
     cmd.func = &cmd_led;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 

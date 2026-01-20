@@ -20,7 +20,7 @@ typedef enum {
 } led_pattern_type_t;
 
 typedef struct {
-    uint8_t speed;      // 1..10
+    uint8_t speed;      // 1..255
     uint8_t saturation; // 0..100
     uint8_t spread_x10; // 10 => full 360° across strip
 } led_rainbow_cfg_t;
@@ -32,7 +32,7 @@ typedef enum {
 } led_direction_t;
 
 typedef struct {
-    uint8_t speed;      // 1..10
+    uint8_t speed;      // 1..255
     uint8_t tail_len;   // >= 1
     led_rgb8_t fg;
     led_rgb8_t bg;
@@ -47,7 +47,7 @@ typedef enum {
 } led_curve_t;
 
 typedef struct {
-    uint8_t speed; // 1..10
+    uint8_t speed; // 1..255
     led_rgb8_t color;
     uint8_t min_bri; // 0..255
     uint8_t max_bri; // 0..255
@@ -61,7 +61,7 @@ typedef enum {
 } led_sparkle_color_mode_t;
 
 typedef struct {
-    uint8_t speed;       // 1..10 (affects fade/spawn dynamics)
+    uint8_t speed;       // 1..255 (multiplier for fade/spawn dynamics, baseline is 10)
     led_rgb8_t color;    // used for FIXED mode
     uint8_t density_pct; // 0..100 (% chance per LED per frame)
     uint8_t fade_speed;  // 1..255 (brightness decrement per frame)
@@ -108,4 +108,3 @@ void led_patterns_render_to_ws281x(led_patterns_t *p, uint32_t now_ms, led_ws281
 #ifdef __cplusplus
 }
 #endif
-
