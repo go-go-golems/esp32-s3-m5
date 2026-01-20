@@ -29,6 +29,8 @@ typedef enum {
     LED_MSG_PAUSE,
     LED_MSG_RESUME,
     LED_MSG_CLEAR,
+
+    LED_MSG_SET_LOG_ENABLED,
 } led_msg_type_t;
 
 typedef enum {
@@ -48,6 +50,7 @@ typedef struct {
 typedef struct {
     bool running;
     bool paused;
+    bool log_enabled;
     uint32_t frame_ms;
 
     led_ws281x_cfg_t ws_cfg;
@@ -66,6 +69,7 @@ typedef struct {
         led_breathing_cfg_t breathing;
         led_sparkle_cfg_t sparkle;
         led_ws281x_cfg_update_t ws_update;
+        bool log_enabled;
     } u;
 } led_msg_t;
 

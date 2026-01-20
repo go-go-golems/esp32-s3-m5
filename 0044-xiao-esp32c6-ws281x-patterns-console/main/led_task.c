@@ -27,6 +27,7 @@ typedef struct {
     uint32_t frame_ms;
     bool paused;
     bool running;
+    bool log_enabled;
 } led_task_ctx_t;
 
 static led_task_ctx_t s_ctx = {};
@@ -149,6 +150,9 @@ static void apply_msg(led_task_ctx_t *ctx, const led_msg_t *m)
         led_ws281x_clear(&ctx->strip);
         (void)led_ws281x_show(&ctx->strip);
         break;
+    case LED_MSG_SET_LOG_ENABLED:
+        ctx->log_enabled = m->u.log_enabled;
+        break;
     default:
         break;
     }
@@ -160,6 +164,7 @@ static void led_task_main(void *arg)
     ctx->running = true;
 
     TickType_t last_wake = xTaskGetTickCount();
+    int64_t last_log_us = 0;
     for (;;) {
         led_msg_t msg;
         while (xQueueReceive(ctx->q, &msg, 0) == pdTRUE) {
@@ -172,9 +177,26 @@ static void led_task_main(void *arg)
             (void)led_ws281x_show(&ctx->strip);
         }
 
+        if (ctx->log_enabled) {
+            const int64_t now_us = esp_timer_get_time();
+            if (now_us - last_log_us >= 1000000) {
+                ESP_LOGI(
+                    TAG,
+                    "status: paused=%d pattern=%d frame_ms=%u bri=%u%% gpio=%d leds=%u",
+                    (int)ctx->paused,
+                    (int)ctx->pat_cfg.type,
+                    (unsigned)ctx->frame_ms,
+                    (unsigned)ctx->pat_cfg.global_brightness_pct,
+                    ctx->ws_cfg_applied.gpio_num,
+                    (unsigned)ctx->ws_cfg_applied.led_count);
+                last_log_us = now_us;
+            }
+        }
+
         if (s_status_mux && xSemaphoreTake(s_status_mux, 0) == pdTRUE) {
             s_status.running = ctx->running;
             s_status.paused = ctx->paused;
+            s_status.log_enabled = ctx->log_enabled;
             s_status.frame_ms = ctx->frame_ms;
             s_status.ws_cfg = ctx->ws_cfg_applied;
             s_status.pat_cfg = ctx->pat_cfg;
@@ -203,6 +225,7 @@ esp_err_t led_task_start(const led_ws281x_cfg_t *ws_cfg, const led_pattern_cfg_t
         .frame_ms = (frame_ms == 0) ? 1 : frame_ms,
         .paused = false,
         .running = false,
+        .log_enabled = false,
     };
 
     s_ctx.q = xQueueCreate(8, sizeof(led_msg_t));
@@ -216,6 +239,7 @@ esp_err_t led_task_start(const led_ws281x_cfg_t *ws_cfg, const led_pattern_cfg_t
         s_status = (led_status_t){
             .running = false,
             .paused = s_ctx.paused,
+            .log_enabled = s_ctx.log_enabled,
             .frame_ms = s_ctx.frame_ms,
             .ws_cfg = s_ctx.ws_cfg_applied,
             .pat_cfg = s_ctx.pat_cfg,
