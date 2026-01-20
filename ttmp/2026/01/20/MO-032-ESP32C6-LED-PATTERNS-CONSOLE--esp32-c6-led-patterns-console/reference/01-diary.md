@@ -1106,3 +1106,24 @@ This step is captured in commit `fd67b4ac271a0383a3807ebdb931840537262b2b`.
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h`
 - Console parsing/help/status updates:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c`
+
+## Step 25: Write Analysis Doc (Speed Mapping + Brightness/Power + Scripts)
+
+Created a new analysis document that directly answers the tuning questions (speed scaling for rainbow/chase/breathing/sparkle, why chase saturated before, and how brightness relates to actual LED current/power). It also documents the ticket-local operator scripts.
+
+### What I did
+- Added analysis doc:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/analysis/01-speed-scaling-brightness-power-and-operator-scripts.md`
+- Related the key implementation files and ticket scripts to that doc via `docmgr doc relate`.
+
+### Why
+- We want the “meaning” of each speed knob to be explicit and stable over time, and we want a clear explanation of the brightness → current relationship to support safe power sizing.
+
+### What worked
+- Doc created and linked to the core implementation modules and scripts.
+
+### What didn't work
+- N/A
+
+### What should be done next
+- Upload this analysis doc to reMarkable and check off task 15.
