@@ -23,6 +23,27 @@ config MO031_WS281X_BRIGHTNESS_PCT
     help
         Simple brightness scaler applied to RGB values before sending.
 
+config MO031_INTENSITY_MIN_PCT
+    int "Intensity min (%)"
+    range 1 100
+    default 5
+    help
+        Minimum intensity when modulation is enabled.
+
+config MO031_INTENSITY_PERIOD_MS
+    int "Intensity period (ms)"
+    range 100 60000
+    default 2500
+    help
+        Period of the intensity modulation waveform.
+
+config MO031_ANIM_FRAME_MS
+    int "Animation frame time (ms)"
+    range 1 1000
+    default 16
+    help
+        Delay between frames. Lower is smoother but uses more CPU.
+
 config MO031_RAINBOW_SPEED
     int "Rainbow speed (1-10)"
     range 1 10

@@ -8,6 +8,10 @@ Defaults:
 - Timing defaults are set for a typical **WS2811 800kHz**-style protocol, but are configurable via `menuconfig`.
 - Pattern: rotating rainbow (GRB byte order).
 
+Tuning:
+- `Animation frame time (ms)` controls smoothness (default 16ms).
+- Intensity is modulated between `Intensity min (%)` and `Brightness (%)`.
+
 ## Wiring (typical)
 
 - XIAO `GND` → strip `GND`
