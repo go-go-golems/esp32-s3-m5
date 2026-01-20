@@ -805,3 +805,56 @@ I corrected the changelog entry text afterward.
 ### Code review instructions
 - Check latest entry in:
   - `ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/changelog.md`
+
+## Step 17: Add `led help` + Pattern-Aware `led status` + Widen Speed Range
+
+The console UX needed two improvements:
+
+1) Operators should have a discoverable `led help` that explains the meaning of each parameter (speed/tail/curve/density/fade, etc.).
+2) `led status` should show the **active pattern name and its parameters**, not just a numeric pattern ID.
+
+While testing, `led chase set --speed 20` failed due to overly strict parsing (speed was capped at 10). I widened speed validation to accept `1..255` across all patterns so values like 20 work, and I adjusted the pattern implementation where needed to safely handle higher speeds.
+
+This step is captured in commit `6c1fa6937e12a72d14278395e11235376b7f8577`.
+
+### What I did
+- Added `led help` subcommand with detailed parameter explanations.
+- Enhanced `led status` to print:
+  - driver config and timings
+  - active pattern name (off/rainbow/chase/breathing/sparkle)
+  - active pattern parameters (colors printed as `#RRGGBB`)
+- Widened `--speed` parsing validation from `1..10` to `1..255` for all patterns.
+- Updated pattern engine behavior to tolerate high speeds:
+  - Chase step interval clamps to a minimum of 1ms.
+  - Sparkle uses speed as a multiplier for fade/spawn dynamics (baseline 10).
+
+### Why
+- `led help` reduces operator guesswork and makes testing faster in the field.
+- Pattern-aware status makes it obvious what is actually running and with which parameters.
+- Speed values like 20 are normal for chase-style animations; rejecting them made the REPL frustrating.
+
+### What worked
+- The REPL now accepts `led chase set --speed 20` (and other patterns accept speeds up to 255).
+- `led status` shows a single “source of truth” snapshot including pattern parameters.
+
+### What didn't work
+- N/A
+
+### What I learned
+- When the config struct is `uint8_t`, the console should validate against the actual representable range (and only clamp semantics in the renderer if necessary).
+
+### What was tricky to build
+- Keeping status output readable while showing enough parameter detail (colors, enums) without spamming the console.
+
+### What warrants a second pair of eyes
+- Confirm the sparkle `speed` semantics (baseline 10) are acceptable for users; the simulator reference file includes a speed knob but doesn’t use it, so we’re defining the embedded behavior here.
+
+### What should be done in the future
+- If we want `led status` to show “last used” configs for *non-active* patterns, store per-pattern config snapshots in the LED task state (right now only the active config exists).
+
+### Code review instructions
+- Console verbs/help/status formatting:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c`
+- Pattern speed semantics updates:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h`

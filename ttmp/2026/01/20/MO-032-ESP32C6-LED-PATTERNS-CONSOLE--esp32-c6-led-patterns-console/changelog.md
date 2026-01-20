@@ -36,3 +36,14 @@ Made periodic loop/status logging opt-in; added `led log on|off` toggle and remo
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c — REPL toggle for logs
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c — Optional periodic status logging under task owner
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c — Removed periodic loop/status logs
+
+## 2026-01-20
+
+Step 17: Add led help + pattern-aware led status; widen pattern speed validation to 1..255 (commit 6c1fa69).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c — Implement led help and improve status output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c — Clamp chase step interval and define sparkle speed semantics
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h — Update speed range documentation
+
