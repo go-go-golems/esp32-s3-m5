@@ -9,5 +9,5 @@
 - [x] Implement pattern configs + algorithms: rainbow/chase/breathing/sparkle
 - [x] Implement animation task + FreeRTOS queue control protocol
 - [x] Implement esp_console REPL over USB Serial/JTAG (led verbs + ws staging/apply)
-- [ ] idf.py build (esp32c6) + record build output
-- [ ] Write minimal run/usage notes + smoke checklist
+- [x] idf.py build (esp32c6) + record build output
+- [x] Write minimal run/usage notes + smoke checklist

@@ -676,3 +676,43 @@ Added an interactive `esp_console` REPL over USB Serial/JTAG and implemented a f
   - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
 - Task check:
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 5`
+
+## Step 14: Final Build Record + Smoke-Test Playbook
+
+Ran a fresh `idf.py build` on the fully-integrated 0044 firmware (driver + patterns + task/queue + console) and wrote a repeatable smoke-test playbook with the exact command sequences and a build output excerpt. This closes the loop on “implementation is buildable and operable” and makes future regression checks easy.
+
+### What I did
+- Ran a fresh build for `esp32c6` target and captured the key output excerpt (binary sizes and success marker).
+- Created a ticket playbook doc: “0044 Build/Flash + LED Console Smoke Test”.
+- Checked off the remaining tasks: build record + smoke checklist.
+
+### Why
+- A playbook plus a recorded build excerpt ensures the work can be re-validated quickly after future refactors, and makes it easy for someone else to pick up the hardware and test without tribal knowledge.
+
+### What worked
+- `idf.py build` succeeded and produced `xiao_esp32c6_ws281x_patterns_console_0044.bin`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Capturing only the build “tail” (size summary + “Project build complete”) is usually sufficient for a ticket record without bloating the repo with full build logs.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- If we add more patterns or change command grammar, update the smoke session in the playbook to keep it aligned with the firmware.
+
+### Code review instructions
+- Read playbook:
+  - `ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/playbook/01-0044-build-flash-led-console-smoke-test.md`
+
+### Technical details
+- Build command:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
+- Task checks:
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 6,7`
