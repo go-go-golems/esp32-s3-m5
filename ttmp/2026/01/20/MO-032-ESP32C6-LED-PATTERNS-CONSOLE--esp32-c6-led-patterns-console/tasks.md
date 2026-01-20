@@ -11,3 +11,4 @@
 - [x] Implement esp_console REPL over USB Serial/JTAG (led verbs + ws staging/apply)
 - [x] idf.py build (esp32c6) + record build output
 - [x] Write minimal run/usage notes + smoke checklist
+- [x] Make periodic loop/status logs opt-in (default off) + add REPL toggle

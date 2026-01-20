@@ -716,3 +716,92 @@ Ran a fresh `idf.py build` on the fully-integrated 0044 firmware (driver + patte
   - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
 - Task checks:
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 6,7`
+
+## Step 15: Make Periodic Logs Opt-In (No Loop/Status Spam by Default)
+
+Removed the periodic “loop/status” logging from `app_main()` and made periodic status logging an explicit opt-in behavior controlled at runtime. This keeps serial logs clean by default (especially important when the console is used interactively), while still allowing debugging output when desired.
+
+This is implemented with:
+
+- a new queue message `LED_MSG_SET_LOG_ENABLED` owned by the LED task
+- a `led log on|off|status` REPL subcommand to toggle it
+- the animation task emitting a once-per-second status line only when enabled
+
+**Commit (code):** d83206f — "0044: make periodic status logs opt-in"  
+**Commit (code):** ad3bb50 — "0044: quiet main logs; add led log toggle"
+
+### What I did
+- Removed the `app_main()` loop that printed uptime + status once per second.
+- Added `log_enabled` state to the LED task and included it in the status snapshot.
+- Added `led log on|off|status` to the `esp_console` command handler.
+- Verified `idf.py build` still succeeds after the change.
+- Added and checked a new ticket task to track this behavior requirement.
+
+### Why
+- Periodic logs drown interactive REPL output and make `idf.py monitor` sessions noisy; logs should be explicit when you want them.
+
+### What worked
+- Default behavior is quiet (no periodic “loop/status” logs).
+- Debug logging can be enabled at runtime with `led log on` and disabled with `led log off`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- It’s cleaner to make “periodic logs” a feature of the task that owns the state (the LED task) rather than sprinkling logging across `app_main()`.
+
+### What was tricky to build
+- Ensuring the REPL command can toggle logging without violating the single-owner invariant (solution: queue message).
+
+### What warrants a second pair of eyes
+- Confirm the exact wording/format of the periodic status log line is acceptable; it’s currently a compact single-line summary intended for grep.
+
+### What should be done in the future
+- If additional subsystems want periodic logs, use the same “opt-in via console command” pattern so default logs remain clean.
+
+### Code review instructions
+- Toggle plumbing:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c`
+- REPL command:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c`
+- `app_main()` no longer prints periodic loop logs:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c`
+
+### Technical details
+- Commands:
+  - `docmgr task add --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --text "Make periodic loop/status logs opt-in (default off) + add REPL toggle"`
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 8`
+
+## Step 16: Fix Changelog Entry (Shell Backticks Got Expanded)
+
+While updating the ticket changelog, I mistakenly included backticks in the shell command string (e.g. `` `led log on|off` ``). In zsh, backticks trigger command substitution, so the shell attempted to execute `led` and `off`, and the resulting changelog entry lost that text.
+
+I corrected the changelog entry text afterward.
+
+### What I did
+- Patched the latest changelog entry to include the literal console command name.
+
+### Why
+- The changelog needs to be readable and accurately reflect the user-facing behavior (`led log on|off` exists).
+
+### What worked
+- The corrected changelog entry now includes the intended command name.
+
+### What didn't work
+- Initial `docmgr changelog update` invocation used backticks and triggered zsh command substitution (`command not found: led`).
+
+### What I learned
+- For `docmgr` CLI commands, avoid unquoted backticks in arguments; prefer plain text or quote the whole argument.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Keep changelog entries free of shell backticks unless the entire argument is quoted.
+
+### Code review instructions
+- Check latest entry in:
+  - `ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/changelog.md`
