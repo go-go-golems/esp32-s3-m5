@@ -23,6 +23,10 @@ RelatedFiles:
       Note: RMT encoder for WS281x timings + reset pulse
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/Kconfig.projbuild
       Note: MO-032 initial Kconfig knobs for WS281x
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.c
+      Note: WS281x driver wrapper (RMT channel + encoder + pixels)
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.h
+      Note: Driver wrapper API + config structs
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/main.c
       Note: MO-032 implementation project entrypoint
     - Path: ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/sources/local/patterns.jsx
@@ -33,6 +37,7 @@ LastUpdated: 2026-01-20T14:48:03.56417003-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -446,3 +451,56 @@ This step establishes a buildable baseline commit so future changes can be valid
   - `docmgr task list --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE`
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 1`
   - `docmgr task uncheck --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 2`
+
+## Step 10: Implement `led_ws281x` Driver Wrapper Module (RMT + Encoder)
+
+Implemented a reusable `led_ws281x` module that owns the RMT TX channel, WS281x encoder, and a wire-order pixel buffer. This pulls the critical “WS281x communication” pieces into a single place and provides a clean API (`init/deinit/clear/show/set_pixel`) that the upcoming pattern engine + animation task can build on.
+
+I validated compilation immediately, captured a build failure (`portMAX_DELAY` undeclared), fixed it by adding the correct FreeRTOS include, and re-built successfully.
+
+**Commit (code):** 485ed78 — "0044: add led_ws281x driver wrapper"
+
+### What I did
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.[ch]`.
+- Updated `main/CMakeLists.txt` to compile the new module.
+- Updated `main/main.c` to do a minimal bring-up:
+  - init strip from Kconfig
+  - clear + set pixel 0 to red
+  - transmit one frame
+- Ran `idf.py build` to verify.
+
+### Why
+- The pattern engine should not directly manage RMT handles; encapsulating driver lifetimes reduces complexity and makes “reinit on apply” straightforward later.
+
+### What worked
+- The driver wrapper cleanly reuses the existing `ws281x_encoder` implementation and compiles/builds on ESP-IDF 5.4.1.
+
+### What didn't work
+- Initial build failed:
+  - Error: `portMAX_DELAY undeclared`
+  - Root cause: missing `#include "freertos/FreeRTOS.h"` in `led_ws281x.c`.
+  - Fix: added the include and rebuilt.
+
+### What I learned
+- Even when a translation unit includes ESP-IDF headers, you still need an explicit FreeRTOS include for `portMAX_DELAY`.
+
+### What was tricky to build
+- Getting the “ownership” boundary right: the driver now owns the pixel buffer, which simplifies the animation task design but requires careful sequencing when we later add driver reinit.
+
+### What warrants a second pair of eyes
+- Confirm we want the driver module to own the pixel buffer (vs. the animation task owning it). Either is valid; the later queue/task design must match.
+
+### What should be done in the future
+- Add staged-vs-applied driver config and a safe `apply()` reinit path (per design doc).
+
+### Code review instructions
+- Review driver wrapper:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.c`
+- Review minimal bring-up usage:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c`
+
+### Technical details
+- Build command:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
+- Task check:
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 2`
