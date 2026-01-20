@@ -1143,3 +1143,12 @@ Uploaded the new analysis doc PDF to the existing MO-032 reMarkable folder and m
 
 ### What should be done in the future
 - If we iterate on this analysis doc frequently, keep using “new name per upload” to avoid overwriting and losing annotations on the reMarkable.
+
+## Step 27: Refresh Smoke Command List for New Speed Semantics
+
+After changing the meaning/range of several `--speed` knobs and adding `--gap/--trains` for chase, I updated the ticket-local smoke command list so future interactive testing uses the current semantics.
+
+### What I did
+- Updated:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/scripts/led_smoke_commands.txt`
+  to annotate the current meaning of each speed knob and include a multi-train chase example.

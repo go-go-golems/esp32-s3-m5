@@ -9,19 +9,23 @@ led log on
 led log status
 
 # Rainbow
+# speed is RPM (0..20); 5 RPM = 1 rotation / 12s
 led rainbow set --speed 5 --sat 100 --spread 10
 led status
 
-# Chase (note: speed accepts 1..255 now, so 20 is valid)
+# Chase
+# speed is LEDs/sec (0..255); gap=LEDs between trains; trains=number of trains
 led pattern set chase
-led chase set --speed 20 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1
+led chase set --speed 30 --tail 6 --gap 10 --trains 3 --fg #00ffff --bg #000044 --dir forward --fade 1
 led status
 
 # Breathing
+# speed is breaths/min (0..20); 8 BPM = 7.5s period
 led breathing set --speed 8 --color #ff00ff --min 10 --max 255 --curve sine
 led status
 
 # Sparkle
+# speed is spawn rate (0..20 => 0.0..4.0 sparkles/sec); density caps max concurrent sparkles (%)
 led sparkle set --speed 5 --color #ffffff --density 8 --fade 30 --mode random --bg #050505
 led status
 

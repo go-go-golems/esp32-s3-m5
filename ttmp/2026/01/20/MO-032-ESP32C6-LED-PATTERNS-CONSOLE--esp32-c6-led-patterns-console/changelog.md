@@ -148,3 +148,13 @@ Step 26: Uploaded speed/brightness analysis PDF to reMarkable (/ai/2026/01/20/MO
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Recorded upload
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/tasks.md — Task 15 checked
 
+
+## 2026-01-20
+
+Step 27: Updated ticket smoke command list to match current speed semantics and chase gap/trains knobs.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Recorded update
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/scripts/led_smoke_commands.txt — Updated examples + semantics
+
