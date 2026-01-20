@@ -12,7 +12,7 @@ config MO031_WS281X_GPIO_NUM
 config MO031_WS281X_LED_COUNT
     int "LED count"
     range 1 1024
-    default 10
+    default 50
     help
         Number of addressable LEDs in the chain.
 

@@ -4,7 +4,7 @@ Drives a small WS2811 1-wire LED chain (RGB) using the ESP-IDF RMT TX driver.
 
 Defaults:
 - XIAO ESP32C6 **D1 = GPIO1** (data output)
-- `LED_COUNT = 10`
+- `LED_COUNT = 50`
 - Timing defaults are set for a typical **WS2811 800kHz**-style protocol, but are configurable via `menuconfig`.
 - Pattern: rotating rainbow (GRB byte order).
 
