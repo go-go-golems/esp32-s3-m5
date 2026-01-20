@@ -13,6 +13,10 @@ description: Find, reuse, and implement the repo’s proven pattern for a device
   - `0017-atoms3r-web-ui/main/CMakeLists.txt` (`EMBED_TXTFILES` for `index.html`, `assets/app.js`, `assets/app.css`)
   - `0017-atoms3r-web-ui/main/http_server.cpp` (routes for `/`, `/assets/app.js`, `/assets/app.css`, `/api/*`, `/ws`)
   - `0017-atoms3r-web-ui/web/src/store/ws.ts` (minimal Zustand WebSocket store pattern)
+- Use `0045-xiao-esp32c6-preact-web/` as the ESP32‑C6 worked example (wifi console + embedded UI + sourcemap):
+  - `0045-xiao-esp32c6-preact-web/main/http_server.c` (NUL-trimmed embedded assets, `/assets/app.js.map`)
+  - `0045-xiao-esp32c6-preact-web/web/vite.config.ts` (`build.sourcemap: true`)
+  - `0045-xiao-esp32c6-preact-web/build.sh` (post-build gzip for sourcemap)
 
 ## Fast search workflow (docmgr + rg)
 
@@ -30,3 +34,9 @@ description: Find, reuse, and implement the repo’s proven pattern for a device
 - Emit deterministic asset names (`/assets/app.js`, `/assets/app.css`) and avoid extra files (`publicDir: false`, `emptyOutDir: true`).
 - Keep the initial UI to “1 JS + 1 CSS” (disable chunking via `inlineDynamicImports: true`).
 - Embed assets with `EMBED_TXTFILES` (or `EMBED_FILES` for binary/gz) and ensure basenames won’t collide.
+
+## Common pitfalls (fix fast)
+
+- **`Uncaught SyntaxError: illegal character U+0000`**: `EMBED_TXTFILES` typically appends a trailing `0x00` terminator. If you serve `end - start` bytes verbatim for JS/CSS/HTML, the browser may reject the payload. Fix by trimming a single trailing NUL before `httpd_resp_send`.
+- **Garbled UTF-8 in UI text** (e.g. `loadingâ€¦`): explicitly include `charset=utf-8` in `Content-Type` for `text/html`, `text/css`, and `application/javascript`.
+- **Sourcemaps can bloat flash**: prefer gzipping the map and embedding via `EMBED_FILES`, then serve `/assets/app.js.map` with `Content-Encoding: gzip` (browser devtools will still decode it).
