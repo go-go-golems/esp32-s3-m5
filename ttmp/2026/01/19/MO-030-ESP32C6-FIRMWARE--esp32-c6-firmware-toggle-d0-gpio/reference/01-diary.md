@@ -175,6 +175,44 @@ Added a dedicated tmux playbook for build/flash/monitor and updated the ticket�
 ### Technical details
 - N/A
 
+## Step 4: Docmgr Hygiene for Imported Source
+
+Ran `docmgr doctor` and fixed a frontmatter parse error on the imported source file by adding minimal YAML frontmatter. This keeps ticket hygiene checks clean and makes the imported notes easier to index/search.
+
+**Commit (docs):** N/A
+
+### What I did
+- Ran: `docmgr doctor --ticket MO-030-ESP32C6-FIRMWARE`
+- Added YAML frontmatter to: `sources/local/esp32c6-idf.md.md`
+
+### Why
+- `docmgr doctor` treats the imported markdown under `sources/` as a document and reports missing frontmatter as an error.
+
+### What worked
+- `docmgr doctor` no longer reports a frontmatter syntax error for the ticket (only a non-blocking numeric prefix warning remains for the source file name).
+
+### What didn't work
+- N/A
+
+### What I learned
+- Not all imported `sources/local/*.md` files in this workspace include frontmatter; when `docmgr doctor` is used as a hygiene gate, adding frontmatter avoids false-negative “syntax error” reports.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Consider renaming the imported source file to include a numeric prefix if we want the ticket to be “doctor clean” with zero warnings.
+
+### Code review instructions
+- Review the frontmatter addition at: `ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md`
+- Re-run: `docmgr doctor --ticket MO-030-ESP32C6-FIRMWARE`
+
+### Technical details
+- N/A
+
 ## Related
 
 - `../design-doc/01-esp32-c6-idf-notes-analysis.md`

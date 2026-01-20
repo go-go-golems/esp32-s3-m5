@@ -36,3 +36,13 @@ Step 3: add tmux playbook + complete ticket tasks (commits 335f501, e967161)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 3
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/tasks.md — Completed tasks list
 
+
+## 2026-01-19
+
+Step 4: add frontmatter to imported source so docmgr doctor passes
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/reference/01-diary.md — Diary Step 4
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md — Add YAML frontmatter
+

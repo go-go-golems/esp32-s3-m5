@@ -1,3 +1,22 @@
+---
+Title: "ESP32-C6 IDF GPIO toggle notes (imported)"
+Ticket: MO-030-ESP32C6-FIRMWARE
+Status: active
+Topics:
+    - esp-idf
+    - esp32
+    - gpio
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Imported from /tmp/esp32c6-idf.md"
+LastUpdated: 2026-01-19T21:28:49.578669191-05:00
+WhatFor: ""
+WhenToUse: ""
+---
+
 Below is a solid **ESP-IDF GPIO toggle (LED blink) demo** for the **Seeed Studio XIAO ESP32C6** (ESP32-C6). I’ll give you a plan, explain what’s happening, show a working demo project, and include references + links.
 
 ---
@@ -174,4 +193,3 @@ If you tell me **which exact Seeed ESP32-C6 board** you have (XIAO vs another Se
 [1]: https://wiki.seeedstudio.com/xiao_idf/ "Developed on XIAO using Espressif ESP-IDF | Seeed Studio Wiki"
 [2]: https://wiki.seeedstudio.com/xiao_wifi_usage_esp32c6/ "WiFi Usage | Seeed Studio Wiki"
 [3]: https://docs.espressif.com/projects/esp-idf/en/stable/esp32c6/api-reference/peripherals/gpio.html "GPIO & RTC GPIO - ESP32-C6 -  — ESP-IDF Programming Guide v5.5.2 documentation"
-
