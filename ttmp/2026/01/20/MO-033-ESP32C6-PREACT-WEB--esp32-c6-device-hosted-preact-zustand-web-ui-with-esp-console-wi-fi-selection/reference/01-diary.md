@@ -33,7 +33,7 @@ RelatedFiles:
       Note: Deterministic Vite output targeting firmware assets
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-20T15:21:22.944938179-05:00
+LastUpdated: 2026-01-20T16:58:53-05:00
 WhatFor: Track the step-by-step implementation of MO-033, including commands, failures, decisions, and review instructions.
 WhenToUse: Use while implementing MO-033 to keep a reliable narrative and validation trail.
 ---
@@ -269,3 +269,55 @@ This is a tiny correctness cleanup: the firmware entrypoint log tag referenced t
 
 ### Code review instructions
 - `0045-xiao-esp32c6-preact-web/main/app_main.c`
+
+## Step 6: Fix `U+0000` JS parse error; add (gzipped) sourcemaps
+
+This step addresses a browser runtime error when serving embedded JS:
+
+- Browser error: `Uncaught SyntaxError: illegal character U+0000`
+- Cause: ESP-IDF’s `EMBED_TXTFILES` appends a trailing NUL byte (`0x00`) to embedded text blobs, and we were serving `end - start` bytes verbatim (including that NUL).
+
+It also adds a stable sourcemap endpoint for better debugging, while keeping flash usage reasonable by gzipping the map.
+
+**Commit (code):** 1ce953e — "fix(0045): trim embedded NULs + serve sourcemap"
+
+### What I did
+- Confirmed the trailing NUL by inspecting the generated assembly for the embedded JS (`build/app.js.S` ends in `... 0x0a, 0x00`).
+- Updated the HTTP server to:
+  - Trim a trailing `0x00` from embedded *text* assets before sending
+  - Serve JS/CSS/JSON with explicit UTF‑8 charsets
+  - Serve `/assets/app.js.map` from a gzipped embedded sourcemap (`Content-Encoding: gzip`)
+- Updated the web build pipeline to:
+  - Enable Vite sourcemap generation (`build.sourcemap: true`)
+  - Generate `app.js.map.gz` after `vite build` (Node `zlib` gzip) so the firmware embeds a smaller artifact
+- Updated firmware asset embedding:
+  - Keep HTML/JS/CSS via `EMBED_TXTFILES`
+  - Embed `app.js.map.gz` via `EMBED_FILES`
+
+### Why
+- Trailing NUL in JS payload is invalid in the JS grammar, so browsers reject the script.
+- Sourcemaps significantly improve debugging of device-hosted web UIs; gzipping the map saves flash space and keeps the app partition from getting too tight.
+
+### What worked
+- `./build.sh web` produces both `app.js.map` and `app.js.map.gz`.
+- `./build.sh build` succeeds and embeds `app.js.map.gz` (seen as `app.js.map.gz.S` generation during build).
+
+### What didn't work
+- N/A (the fix is straightforward once the trailing NUL is identified).
+
+### What I learned
+- Treat `EMBED_TXTFILES` as “C string blob”: it commonly includes a terminator. If you’re serving it as a raw HTTP payload, you must send the correct length.
+
+### What warrants a second pair of eyes
+- Whether we want a “release build” mode that disables sourcemaps entirely (flash headroom vs. debugging convenience).
+
+### What should be done in the future
+- Flash and verify end-to-end on hardware:
+  - UI loads without the `U+0000` error
+  - Browser devtools successfully requests `/assets/app.js.map`
+
+### Code review instructions
+- NUL trimming and headers: `0045-xiao-esp32c6-preact-web/main/http_server.c`
+- Sourcemap embedding config: `0045-xiao-esp32c6-preact-web/main/CMakeLists.txt`
+- Sourcemap generation: `0045-xiao-esp32c6-preact-web/web/vite.config.ts`
+- Build pipeline gzip step: `0045-xiao-esp32c6-preact-web/build.sh`

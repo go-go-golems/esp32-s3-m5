@@ -3,6 +3,7 @@
 ## TODO
 
 - [ ] Define scope + acceptance criteria
+- [ ] Flash + verify browser loads UI (no `U+0000`) and devtools loads sourcemap
 <!-- Keep TODO focused on remaining validation/polish. -->
 
 ## Done
@@ -15,6 +16,8 @@
 - [x] Add build.sh helper + README instructions
 - [x] Build web bundle (npm) and embed assets
 - [x] Build firmware (idf.py) and capture sdkconfig
+- [x] Fix `U+0000` parse error by trimming embedded NUL terminators
+- [x] Enable and serve JS sourcemap at `/assets/app.js.map` (gzipped)
 
 <!-- Notes:
   - Keep TODO as "needs validation" items; move here once implemented. -->
