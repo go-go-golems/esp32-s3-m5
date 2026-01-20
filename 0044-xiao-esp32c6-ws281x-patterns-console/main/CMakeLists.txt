@@ -3,6 +3,7 @@ idf_component_register(
         "main.c"
         "led_ws281x.c"
         "led_patterns.c"
+        "led_task.c"
         "ws281x_encoder.c"
     PRIV_REQUIRES
         esp_timer
