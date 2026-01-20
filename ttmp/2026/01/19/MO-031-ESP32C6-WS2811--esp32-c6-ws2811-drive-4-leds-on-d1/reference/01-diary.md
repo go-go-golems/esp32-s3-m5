@@ -127,6 +127,42 @@ Built the firmware locally with `idf.py` to confirm it compiles and produces a f
 ### Technical details
 - N/A
 
+## Step 3: Add Serial Progress Logs in Main Loop
+
+Added a periodic `ESP_LOGI` line once per second during the main loop, so it’s easy to confirm in `idf.py monitor` that the firmware is running even if you can’t observe the D1 waveform with your current tools.
+
+**Commit (code):** 86290dd — "0043: log loop progress over serial"
+
+### What I did
+- Logged `pos/led/phase` once per second from the pattern loop in `0043`.
+
+### Why
+- WS281x waveforms are fast and a multimeter/LED probe won’t show much; serial logs confirm liveness and that the loop is not stuck on an RMT call.
+
+### What worked
+- `idf.py build` succeeded after adding the periodic logging.
+
+### What didn't work
+- N/A
+
+### What I learned
+- ESP-IDF headers from other components (e.g. `esp_timer.h`) require adding that component to `idf_component_register(... PRIV_REQUIRES ...)`.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- If you have a scope/logic analyzer, capture the D1 waveform to confirm timing and whether a level shifter is needed.
+
+### Code review instructions
+- Review: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
+
+### Technical details
+- N/A
+
 ## Related
 
 - `../design-doc/01-ws2811-on-xiao-esp32c6-d1-wiring-firmware-plan.md`
