@@ -27,6 +27,10 @@ RelatedFiles:
       Note: Pattern engine implementations (rainbow/chase/breathing/sparkle)
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h
       Note: Pattern config structs + state
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c
+      Note: Animation task + queue protocol implementation
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.h
+      Note: Queue message types + status snapshot API
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.c
       Note: WS281x driver wrapper (RMT channel + encoder + pixels)
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.h
@@ -41,6 +45,7 @@ LastUpdated: 2026-01-20T14:48:03.56417003-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -561,3 +566,53 @@ At this stage the firmware runs a default **rainbow** pattern in a simple loop; 
   - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
 - Task check:
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 3`
+
+## Step 12: Add Realtime Animation Task + Queue Control Protocol
+
+Refactored the firmware so the animation loop runs in a dedicated FreeRTOS task that “owns” the WS281x driver instance and the pattern engine state. Other code interacts with it via a queue (`led_task_send()`), which sets us up cleanly for the upcoming `esp_console` REPL command handlers.
+
+This aligns the implementation with the single-owner + queue model described in the design doc and avoids shared mutable state between console/other tasks and the renderer.
+
+**Commit (code):** 1f12a12 — "0044: add led animation task + queue control"
+
+### What I did
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.[ch]`:
+  - `led_msg_t` protocol: set pattern configs, pause/resume, clear, stage/apply WS config
+  - animation task loop: drain queue each frame, render (if not paused), transmit
+  - best-effort status snapshot for logging / future `led status`
+- Updated `main/main.c` to start the LED task and periodically log status snapshots.
+- Built successfully with `idf.py build`.
+
+### Why
+- Once `esp_console` is added, command handlers must not directly mutate the driver/pattern state; the queue boundary is the simplest safe concurrency model.
+
+### What worked
+- The animation loop now runs independently of `app_main()` and continues to render rainbow by default.
+- Queue message handlers are structured so future REPL commands can map 1:1 to messages.
+
+### What didn't work
+- N/A
+
+### What I learned
+- A “status snapshot” is easiest to implement as a separate struct protected by a mutex, rather than trying to treat the live task context as the snapshot.
+
+### What was tricky to build
+- Ensuring driver “apply” semantics reinitialize both the WS281x driver and the pattern engine state when LED count changes.
+
+### What warrants a second pair of eyes
+- Review whether `led_ws281x_show()` blocking behavior inside the animation task is acceptable for the expected LED counts; if we scale up, we may want to pipeline RMT transmissions.
+
+### What should be done in the future
+- Add the `esp_console` REPL and wire each verb to a `led_task_send()` message.
+
+### Code review instructions
+- Queue + task implementation:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c`
+- Entry-point wiring:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c`
+
+### Technical details
+- Build:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
+- Task check:
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 4`

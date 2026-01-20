@@ -23,6 +23,8 @@ RelatedFiles:
       Note: Custom RMT WS281x encoder
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c
       Note: Implementation of the pattern algorithms described in this doc
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c
+      Note: Implementation of the queue-driven single-owner animation task
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.c
       Note: Implementation of WS281x driver layer described in this doc
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/main.c
@@ -35,6 +37,7 @@ LastUpdated: 2026-01-20T14:51:22.075430826-05:00
 WhatFor: Design a WS281x LED pattern engine for ESP32-C6 with realtime animation task + queue-driven live reconfiguration and an esp_console REPL over USB Serial/JTAG.
 WhenToUse: Use when implementing LED animations + runtime console control for ESP-IDF firmwares targeting WS2811/WS2812-style addressable LED chains.
 ---
+
 
 
 
