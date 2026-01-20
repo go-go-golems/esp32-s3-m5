@@ -22,6 +22,50 @@ static inline uint8_t scale_u8(uint8_t v, uint32_t pct)
     return (uint8_t)(((uint32_t)v * pct) / 100u);
 }
 
+static void hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t *g, uint32_t *b)
+{
+    h %= 360;
+    const uint32_t rgb_max = (uint32_t)(v * 2.55f);
+    const uint32_t rgb_min = rgb_max * (100 - s) / 100.0f;
+
+    const uint32_t i = h / 60;
+    const uint32_t diff = h % 60;
+    const uint32_t rgb_adj = (rgb_max - rgb_min) * diff / 60;
+
+    switch (i) {
+    case 0:
+        *r = rgb_max;
+        *g = rgb_min + rgb_adj;
+        *b = rgb_min;
+        break;
+    case 1:
+        *r = rgb_max - rgb_adj;
+        *g = rgb_max;
+        *b = rgb_min;
+        break;
+    case 2:
+        *r = rgb_min;
+        *g = rgb_max;
+        *b = rgb_min + rgb_adj;
+        break;
+    case 3:
+        *r = rgb_min;
+        *g = rgb_max - rgb_adj;
+        *b = rgb_max;
+        break;
+    case 4:
+        *r = rgb_min + rgb_adj;
+        *g = rgb_min;
+        *b = rgb_max;
+        break;
+    default:
+        *r = rgb_max;
+        *g = rgb_min;
+        *b = rgb_max - rgb_adj;
+        break;
+    }
+}
+
 static void set_pixel_grb(uint8_t *buf, uint32_t idx, uint8_t r, uint8_t g, uint8_t b, uint32_t brightness_pct)
 {
     buf[idx * 3 + 0] = scale_u8(g, brightness_pct);
@@ -39,6 +83,9 @@ void app_main(void)
     const uint32_t led_count = (uint32_t)CONFIG_MO031_WS281X_LED_COUNT;
     const uint32_t brightness_pct = (uint32_t)CONFIG_MO031_WS281X_BRIGHTNESS_PCT;
     const int gpio_num = CONFIG_MO031_WS281X_GPIO_NUM;
+    const uint32_t rainbow_speed = (uint32_t)CONFIG_MO031_RAINBOW_SPEED;
+    const uint32_t rainbow_saturation = (uint32_t)CONFIG_MO031_RAINBOW_SATURATION;
+    const uint32_t rainbow_spread_x10 = (uint32_t)CONFIG_MO031_RAINBOW_SPREAD_X10;
 
     ESP_LOGI(TAG, "boot: reset_reason=%d", (int)esp_reset_reason());
     ESP_LOGI(TAG, "config: gpio=%d leds=%u brightness=%u%%", gpio_num, (unsigned)led_count, (unsigned)brightness_pct);
@@ -51,6 +98,12 @@ void app_main(void)
         (int)CONFIG_MO031_WS281X_T1L_NS,
         (int)CONFIG_MO031_WS281X_RESET_US,
         (unsigned)RMT_RESOLUTION_HZ);
+    ESP_LOGI(
+        TAG,
+        "rainbow: speed=%u sat=%u spread_x10=%u",
+        (unsigned)rainbow_speed,
+        (unsigned)rainbow_saturation,
+        (unsigned)rainbow_spread_x10);
 
     ESP_LOGI(TAG, "Create RMT TX channel");
     rmt_channel_handle_t chan = NULL;
@@ -93,34 +146,23 @@ void app_main(void)
     uint32_t pos = 0;
     int64_t last_progress_log_us = 0;
     while (true) {
-        clear_pixels(pixels, led_count);
+        // Ported from inspiration/led_patterns.c: hue_offset + hue spread across strip.
+        const uint32_t hue_offset = (pos * rainbow_speed * 2) % 360;
+        const uint32_t hue_range = (360 * rainbow_spread_x10) / 10;
 
-        // Moving "one-hot" pixel with rotating color to confirm indexing.
-        const uint32_t i = pos % led_count;
-        const uint32_t phase = (pos / led_count) % 4;
-        uint8_t r = 0, g = 0, b = 0;
-        switch (phase) {
-        case 0:
-            r = 255;
-            break;
-        case 1:
-            g = 255;
-            break;
-        case 2:
-            b = 255;
-            break;
-        default:
-            r = g = b = 255;
-            break;
+        for (uint32_t i = 0; i < led_count; i++) {
+            const uint32_t hue = (hue_offset + (i * hue_range / led_count)) % 360;
+            uint32_t r = 0, g = 0, b = 0;
+            hsv2rgb(hue, rainbow_saturation, 100, &r, &g, &b);
+            set_pixel_grb(pixels, i, (uint8_t)r, (uint8_t)g, (uint8_t)b, brightness_pct);
         }
-        set_pixel_grb(pixels, i, r, g, b, brightness_pct);
 
         ESP_ERROR_CHECK(rmt_transmit(chan, encoder, pixels, led_count * 3, &tx_x));
         ESP_ERROR_CHECK(rmt_tx_wait_all_done(chan, portMAX_DELAY));
 
         const int64_t now_us = esp_timer_get_time();
         if (now_us - last_progress_log_us >= 1000000) {
-            ESP_LOGI(TAG, "loop: pos=%u led=%u phase=%u", (unsigned)pos, (unsigned)i, (unsigned)phase);
+            ESP_LOGI(TAG, "loop: pos=%u hue_offset=%u", (unsigned)pos, (unsigned)hue_offset);
             last_progress_log_us = now_us;
         }
 

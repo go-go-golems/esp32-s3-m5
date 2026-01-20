@@ -12,7 +12,7 @@ config MO031_WS281X_GPIO_NUM
 config MO031_WS281X_LED_COUNT
     int "LED count"
     range 1 1024
-    default 4
+    default 10
     help
         Number of addressable LEDs in the chain.
 
@@ -22,6 +22,28 @@ config MO031_WS281X_BRIGHTNESS_PCT
     default 25
     help
         Simple brightness scaler applied to RGB values before sending.
+
+config MO031_RAINBOW_SPEED
+    int "Rainbow speed (1-10)"
+    range 1 10
+    default 5
+    help
+        Speed of the rainbow rotation. Higher is faster.
+
+config MO031_RAINBOW_SATURATION
+    int "Rainbow saturation (0-100)"
+    range 0 100
+    default 100
+    help
+        Color saturation. 0 yields white/gray.
+
+config MO031_RAINBOW_SPREAD_X10
+    int "Rainbow spread (x10)"
+    range 1 50
+    default 10
+    help
+        Controls how much hue range is distributed across the strip.
+        10 means 1.0x (full 360 degrees across the strip).
 
 config MO031_WS281X_T0H_NS
     int "T0H (ns)"
@@ -59,4 +81,3 @@ config MO031_WS281X_RESET_US
         Low reset time after sending a frame.
 
 endmenu
-
