@@ -8,6 +8,7 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 
+#include "led_patterns.h"
 #include "led_ws281x.h"
 
 static const char *TAG = "mo032_ws281x";
@@ -34,19 +35,36 @@ void app_main(void)
 
     ESP_ERROR_CHECK(led_ws281x_init(&strip, &cfg));
 
-    // Minimal bring-up frame: one red pixel so wiring/order is obvious.
-    led_ws281x_clear(&strip);
-    led_ws281x_set_pixel_rgb(&strip, 0, (led_rgb8_t){.r = 255, .g = 0, .b = 0}, (uint8_t)CONFIG_MO032_WS281X_BRIGHTNESS_PCT);
-    ESP_ERROR_CHECK(led_ws281x_show(&strip));
+    led_patterns_t pat = {};
+    ESP_ERROR_CHECK(led_patterns_init(&pat, cfg.led_count));
 
-    ESP_LOGI(TAG, "boot ok; running placeholder loop (uptime logging)");
+    led_pattern_cfg_t pat_cfg = {
+        .type = LED_PATTERN_RAINBOW,
+        .global_brightness_pct = (uint8_t)CONFIG_MO032_WS281X_BRIGHTNESS_PCT,
+        .u.rainbow =
+            {
+                .speed = 5,
+                .saturation = 100,
+                .spread_x10 = 10,
+            },
+    };
+    led_patterns_set_cfg(&pat, &pat_cfg);
+
+    ESP_LOGI(TAG, "boot ok; starting pattern loop (type=rainbow)");
+
+    const uint32_t frame_ms = (uint32_t)CONFIG_MO032_ANIM_FRAME_MS;
     int64_t last_log_us = 0;
     for (;;) {
         const int64_t now_us = esp_timer_get_time();
+        const uint32_t now_ms = (uint32_t)(now_us / 1000);
+
+        led_patterns_render_to_ws281x(&pat, now_ms, &strip);
+        ESP_ERROR_CHECK(led_ws281x_show(&strip));
+
         if (now_us - last_log_us >= 1000000) {
-            ESP_LOGI(TAG, "uptime=%" PRIi64 "ms", now_us / 1000);
+            ESP_LOGI(TAG, "loop: uptime=%" PRIi64 "ms", now_us / 1000);
             last_log_us = now_us;
         }
-        vTaskDelay(pdMS_TO_TICKS(50));
+        vTaskDelay(pdMS_TO_TICKS(frame_ms));
     }
 }
