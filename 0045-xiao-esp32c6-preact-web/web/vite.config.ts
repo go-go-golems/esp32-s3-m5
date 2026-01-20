@@ -11,6 +11,7 @@ export default defineConfig({
     // Write build outputs directly into the firmware-embedded asset directory.
     outDir: '../main/assets',
     emptyOutDir: true,
+    sourcemap: true,
     cssCodeSplit: false,
     assetsDir: 'assets',
     rollupOptions: {
@@ -29,4 +30,3 @@ export default defineConfig({
     },
   },
 })
-

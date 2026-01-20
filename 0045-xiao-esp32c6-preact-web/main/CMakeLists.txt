@@ -13,10 +13,11 @@ idf_component_register(
         esp_timer
         esp_driver_usb_serial_jtag
         console
+    EMBED_FILES
+        "assets/assets/app.js.map.gz"
     EMBED_TXTFILES
         "assets/index.html"
         "assets/assets/app.js"
         "assets/assets/app.css"
     INCLUDE_DIRS "."
 )
-

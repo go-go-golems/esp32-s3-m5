@@ -46,6 +46,32 @@ if [[ "${cmd}" == "web" ]]; then
   cd web
   npm ci
   npm run build
+  node - <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const zlib = require('node:zlib');
+
+const cwd = process.cwd();
+const src = path.resolve(cwd, '..', 'main', 'assets', 'assets', 'app.js.map');
+const dst = path.resolve(cwd, '..', 'main', 'assets', 'assets', 'app.js.map.gz');
+
+if (!fs.existsSync(src)) {
+  console.error(`ERROR: sourcemap not found: ${src}`);
+  process.exit(1);
+}
+
+const input = fs.createReadStream(src);
+const output = fs.createWriteStream(dst);
+
+input
+  .pipe(zlib.createGzip({ level: 9 }))
+  .pipe(output)
+  .on('finish', () => console.log(`wrote ${dst}`))
+  .on('error', (e) => {
+    console.error(e);
+    process.exit(1);
+  });
+NODE
   exit 0
 fi
 
