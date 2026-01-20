@@ -160,7 +160,7 @@ typedef struct { uint8_t r, g, b; } led_rgb8_t;
 
 typedef struct {
     // “time knobs”
-    uint8_t speed;          // normalized 1..10 (interpretation depends on pattern)
+    uint8_t speed;          // 1..255 (interpretation depends on pattern)
 
     // “color knobs”
     uint8_t saturation;     // 0..100
@@ -174,7 +174,7 @@ typedef enum {
 } led_direction_t;
 
 typedef struct {
-    uint8_t speed;          // 1..10
+    uint8_t speed;          // 1..255
     uint8_t tail_len;       // LEDs in tail (>=1)
     led_rgb8_t fg;          // head/tail color
     led_rgb8_t bg;          // background color
@@ -189,7 +189,7 @@ typedef enum {
 } led_curve_t;
 
 typedef struct {
-    uint8_t speed;          // 1..10
+    uint8_t speed;          // 1..255
     led_rgb8_t color;
     uint8_t min_bri;        // 0..255
     uint8_t max_bri;        // 0..255
@@ -203,7 +203,7 @@ typedef enum {
 } led_sparkle_color_mode_t;
 
 typedef struct {
-    uint8_t speed;          // 1..10 (interpreted as fade/spawn dynamics)
+    uint8_t speed;          // 1..255 (multiplier for fade/spawn dynamics, baseline is 10)
     led_rgb8_t color;       // used for FIXED mode
     uint8_t density_pct;    // 0..100 (% chance per LED per frame)
     uint8_t fade_speed;     // 1..255 (brightness decrement per frame)
@@ -420,22 +420,24 @@ Example:
 
 ```c
 typedef enum {
-  LED_MSG_SET_PATTERN_CFG = 1,   // replace pattern cfg atomically
-  LED_MSG_SET_PATTERN_TYPE,      // change type and reset state
-  LED_MSG_SET_GLOBAL_BRIGHTNESS, // percent 1..100
+  LED_MSG_SET_PATTERN_CFG = 1,        // replace pattern cfg atomically
+  LED_MSG_SET_PATTERN_TYPE,           // change type and reset state
+  LED_MSG_SET_GLOBAL_BRIGHTNESS_PCT,  // percent 1..100
+  LED_MSG_SET_FRAME_MS,               // frame period (ms)
 
-  LED_MSG_SET_RAINBOW,           // partial updates by pattern
+  LED_MSG_SET_RAINBOW,                // partial updates by pattern
   LED_MSG_SET_CHASE,
   LED_MSG_SET_BREATHING,
   LED_MSG_SET_SPARKLE,
 
-  LED_MSG_DRIVER_SET_CFG,        // staging config only (does not apply)
-  LED_MSG_DRIVER_APPLY_CFG,      // reinit driver using staged cfg
+  LED_MSG_WS_SET_CFG,                 // stage driver config only (does not apply)
+  LED_MSG_WS_APPLY_CFG,               // reinit driver using staged cfg
 
   LED_MSG_PAUSE,
   LED_MSG_RESUME,
   LED_MSG_CLEAR,
-  LED_MSG_STATUS_SNAPSHOT,       // optional: return status via a reply queue
+
+  LED_MSG_SET_LOG_ENABLED,            // opt-in periodic status logs
 } led_msg_type_t;
 
 typedef struct {
@@ -444,11 +446,13 @@ typedef struct {
     led_pattern_cfg_t pattern;      // for SET_PATTERN_CFG
     led_pattern_type_t pattern_type;
     uint8_t brightness_pct;
+    uint32_t frame_ms;
     led_rainbow_cfg_t rainbow;
     led_chase_cfg_t chase;
     led_breathing_cfg_t breathing;
     led_sparkle_cfg_t sparkle;
-    led_driver_cfg_t driver;
+    led_ws281x_cfg_update_t ws_update;
+    bool log_enabled;
   } u;
 } led_msg_t;
 ```
@@ -507,12 +511,13 @@ static void led_apply_msg(led_ctx_t *ctx, const led_msg_t *m) {
       led_pattern_state_reset(ctx);
       break;
 
-    case LED_MSG_DRIVER_SET_CFG:
-      if (validate_driver_cfg(&m->u.driver)) ctx->driver_cfg_staged = m->u.driver;
+    case LED_MSG_WS_SET_CFG:
+      // Partial update: copy only the fields indicated by ws_update.set_mask.
+      led_ws281x_stage_cfg(ctx, &m->u.ws_update);
       break;
 
-    case LED_MSG_DRIVER_APPLY_CFG:
-      led_driver_apply(ctx);
+    case LED_MSG_WS_APPLY_CFG:
+      led_ws281x_apply_cfg(ctx);   // reinit boundary
       led_pattern_state_reset(ctx);
       break;
 
@@ -533,12 +538,12 @@ Some driver fields are not safe to change “in place” because they affect all
 3. Apply them with a separate “apply/reinit” command.
 
 ```c
-typedef enum { LED_ORDER_GRB = 0, LED_ORDER_RGB } led_color_order_t;
+typedef enum { LED_WS281X_ORDER_GRB = 0, LED_WS281X_ORDER_RGB } led_ws281x_color_order_t;
 
 typedef struct {
   int gpio_num;
   uint16_t led_count;
-  led_color_order_t order;
+  led_ws281x_color_order_t order;
 
   // WS281x timing, in ns/us
   uint32_t t0h_ns, t0l_ns;
@@ -547,13 +552,13 @@ typedef struct {
 
   // RMT resolution, in Hz (tick size)
   uint32_t resolution_hz;
-} led_driver_cfg_t;
+} led_ws281x_cfg_t;
 ```
 
 Recommended behavior:
 
-- `LED_MSG_DRIVER_SET_CFG`: validates and stores into `driver_cfg_staged` but does not disrupt output.
-- `LED_MSG_DRIVER_APPLY_CFG`: stops output, deinitializes RMT+encoder, reallocates pixel buffer, initializes with staged config, then resumes.
+- `LED_MSG_WS_SET_CFG`: validates and stores into `ws_cfg_staged` but does not disrupt output.
+- `LED_MSG_WS_APPLY_CFG`: stops output, deinitializes RMT+encoder, reallocates pixel buffer, initializes with staged config, then resumes.
 
 ### WS281x Driver Integration Details (ESP-IDF + RMT)
 
@@ -614,14 +619,14 @@ Recommended rule:
 Pseudocode:
 
 ```c
-static inline void pixel_pack(uint8_t *buf, uint32_t i, led_rgb8_t rgb, led_color_order_t order, uint8_t bri_pct) {
+static inline void pixel_pack(uint8_t *buf, uint32_t i, led_rgb8_t rgb, led_ws281x_color_order_t order, uint8_t bri_pct) {
   uint8_t r = scale_u8(rgb.r, bri_pct);
   uint8_t g = scale_u8(rgb.g, bri_pct);
   uint8_t b = scale_u8(rgb.b, bri_pct);
 
   switch (order) {
-    case LED_ORDER_GRB: buf[i*3+0]=g; buf[i*3+1]=r; buf[i*3+2]=b; break;
-    case LED_ORDER_RGB: buf[i*3+0]=r; buf[i*3+1]=g; buf[i*3+2]=b; break;
+    case LED_WS281X_ORDER_GRB: buf[i*3+0]=g; buf[i*3+1]=r; buf[i*3+2]=b; break;
+    case LED_WS281X_ORDER_RGB: buf[i*3+0]=r; buf[i*3+1]=g; buf[i*3+2]=b; break;
   }
 }
 ```
@@ -705,8 +710,14 @@ Reference implementation for bringing up `esp_console` over USB Serial/JTAG:
 
 **Core:**
 
+- `led help`  
+  Prints detailed parameter meaning and ranges for each pattern and WS281x driver knobs.
+
 - `led status`  
-  Prints: running/paused, pattern type, key pattern params, global brightness, frame ms, driver config (gpio/count/order/timings).
+  Prints: running/paused, frame ms, global brightness, driver config (gpio/count/order/timings), and the active pattern name + parameters.
+
+- `led log on|off|status`  
+  Enables/disables periodic LED-task status logs (default is off to avoid console spam).
 
 - `led pause` / `led resume` / `led clear`
 
@@ -715,9 +726,9 @@ Reference implementation for bringing up `esp_console` over USB Serial/JTAG:
 **Pattern configuration (examples):**
 
 - `led rainbow set --speed 5 --sat 100 --spread 10`
-- `led chase set --speed 6 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1`
-- `led breathing set --speed 3 --color #ff00ff --min 10 --max 255 --curve sine`
-- `led sparkle set --speed 5 --color #ffffff --density 8 --fade 30 --mode random --bg #050505`
+- `led chase set --speed 20 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1`
+- `led breathing set --speed 8 --color #ff00ff --min 10 --max 255 --curve sine`
+- `led sparkle set --speed 10 --color #ffffff --density 8 --fade 30 --mode random --bg #050505`
 
 **Global knobs:**
 
