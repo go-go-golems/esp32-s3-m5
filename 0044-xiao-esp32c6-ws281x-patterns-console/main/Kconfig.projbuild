@@ -1,0 +1,69 @@
+menu "MO-032: WS281x patterns + console"
+
+config MO032_WS281X_GPIO_NUM
+    int "Data GPIO (XIAO D1 default)"
+    range 0 48
+    default 1
+    help
+        Data output GPIO used to drive the strip.
+
+        For Seeed XIAO ESP32C6, D1 maps to GPIO1.
+
+config MO032_WS281X_LED_COUNT
+    int "LED count"
+    range 1 1024
+    default 50
+    help
+        Number of addressable LEDs in the chain.
+
+config MO032_WS281X_BRIGHTNESS_PCT
+    int "Global brightness (%)"
+    range 1 100
+    default 25
+    help
+        Global brightness scaler applied to RGB values before sending.
+
+config MO032_ANIM_FRAME_MS
+    int "Animation frame time (ms)"
+    range 1 1000
+    default 16
+    help
+        Delay between frames. Lower is smoother but uses more CPU.
+
+config MO032_WS281X_T0H_NS
+    int "T0H (ns)"
+    range 50 2000
+    default 350
+    help
+        High time for a logical 0 bit.
+
+config MO032_WS281X_T0L_NS
+    int "T0L (ns)"
+    range 50 2000
+    default 800
+    help
+        Low time for a logical 0 bit.
+
+config MO032_WS281X_T1H_NS
+    int "T1H (ns)"
+    range 50 2000
+    default 700
+    help
+        High time for a logical 1 bit.
+
+config MO032_WS281X_T1L_NS
+    int "T1L (ns)"
+    range 50 2000
+    default 600
+    help
+        Low time for a logical 1 bit.
+
+config MO032_WS281X_RESET_US
+    int "Reset time (us)"
+    range 10 500
+    default 80
+    help
+        Low reset time after sending a frame.
+
+endmenu
+
