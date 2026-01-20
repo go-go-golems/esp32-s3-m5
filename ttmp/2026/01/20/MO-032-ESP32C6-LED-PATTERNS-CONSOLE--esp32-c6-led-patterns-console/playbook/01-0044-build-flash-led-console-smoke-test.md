@@ -76,6 +76,7 @@ idf.py -p /dev/ttyACM0 flash monitor
 Optional tmux workflow (flash/monitor + command pane):
 
 ```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console
 ./scripts/tmux_flash_monitor.sh /dev/ttyACM0
 ```
 

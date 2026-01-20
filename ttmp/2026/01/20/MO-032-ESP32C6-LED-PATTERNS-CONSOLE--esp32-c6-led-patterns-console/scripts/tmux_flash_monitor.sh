@@ -4,6 +4,7 @@ set -euo pipefail
 PORT=${1:-/dev/ttyACM0}
 SESSION=${SESSION:-mo032-0044}
 
+TICKET_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT_DIR="/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console"
 IDF_EXPORT="${IDF_EXPORT:-$HOME/esp/esp-idf-5.4.1/export.sh}"
 
@@ -20,7 +21,7 @@ fi
 
 tmux new-session -d -s "$SESSION" -c "$PROJECT_DIR" "bash -lc 'source \"$IDF_EXPORT\" && idf.py -p \"$PORT\" flash monitor'"
 
-tmux split-window -h -t "$SESSION" -c "$PROJECT_DIR" "bash -lc 'echo \"Paste commands from scripts/led_smoke_commands.txt\"; echo; sed -n \"1,200p\" scripts/led_smoke_commands.txt; echo; echo \"Tip: to enable periodic logs: led log on\"; exec bash'"
+tmux split-window -h -t "$SESSION" -c "$TICKET_DIR" "bash -lc 'echo \"Paste commands from scripts/led_smoke_commands.txt\"; echo; sed -n \"1,200p\" scripts/led_smoke_commands.txt; echo; echo \"Tip: to enable periodic logs: led log on\"; exec bash'"
 
 tmux select-pane -t "$SESSION":0.0
 

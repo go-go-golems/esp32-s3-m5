@@ -1036,3 +1036,25 @@ I added new ticket tasks to capture these changes and will implement them with s
 
 ### What didn't work
 - N/A
+
+## Step 23: Move tmux/smoke Scripts into the Ticket
+
+Per request, I moved the tmux flash/monitor helper and the smoke command list from the firmware project directory into the ticket’s `scripts/` folder so the ticket stays self-contained.
+
+### What I did
+- Moved:
+  - `0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh`
+  - `0044-xiao-esp32c6-ws281x-patterns-console/scripts/led_smoke_commands.txt`
+  into:
+  - `ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/scripts/`
+- Updated the playbook so the tmux workflow is run from the ticket directory.
+- Updated the tmux helper to render the smoke commands from the ticket `scripts/` directory.
+
+### Why
+- Keeps operational scripts co-located with the ticket documentation (and avoids losing them if the firmware project is copied elsewhere).
+
+### What worked
+- `bash -n` validates the updated tmux script after refactoring the working directory.
+
+### What didn't work
+- N/A
