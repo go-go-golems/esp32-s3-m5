@@ -179,7 +179,7 @@ Added a dedicated tmux playbook for build/flash/monitor and updated the ticketâ€
 
 Ran `docmgr doctor` and fixed a frontmatter parse error on the imported source file by adding minimal YAML frontmatter. This keeps ticket hygiene checks clean and makes the imported notes easier to index/search.
 
-**Commit (docs):** N/A
+**Commit (docs):** e19def5 â€” "MO-030: add frontmatter to imported source"
 
 ### What I did
 - Ran: `docmgr doctor --ticket MO-030-ESP32C6-FIRMWARE`
