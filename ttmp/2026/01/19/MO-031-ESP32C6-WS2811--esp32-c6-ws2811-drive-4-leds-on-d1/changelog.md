@@ -56,3 +56,13 @@ Step 5: smoother/faster rainbow + intensity modulation (commit 852e8af)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/main.c — Frame timing + intensity modulation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/reference/01-diary.md — Diary Step 5
 
+
+## 2026-01-19
+
+Step 6: change default LED count to 50
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/README.md — Updated defaults
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild — Default LED count
+

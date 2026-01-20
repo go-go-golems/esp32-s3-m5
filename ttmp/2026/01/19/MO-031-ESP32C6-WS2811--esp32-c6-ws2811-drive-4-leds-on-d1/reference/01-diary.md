@@ -252,6 +252,43 @@ Adjusted the animation loop to be significantly smoother by running at a configu
 ### Technical details
 - N/A
 
+## Step 6: Default to 50 LEDs
+
+Updated the firmware defaults to assume a 50‑LED strip, which matches the new target hardware. This is just a default; the LED count remains configurable in `menuconfig`.
+
+**Commit (code):** 6df6af7 — "0043: default to 50 LEDs"
+
+### What I did
+- Changed the default `LED count` Kconfig value from 10 to 50.
+- Updated the `0043` README to match.
+
+### Why
+- Avoid repetitive `menuconfig` edits when iterating on a 50‑LED strip.
+
+### What worked
+- `idf.py build` succeeded with the new defaults.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review: `0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild`
+
+### Technical details
+- N/A
+
 ## Related
 
 - `../design-doc/01-ws2811-on-xiao-esp32c6-d1-wiring-firmware-plan.md`
