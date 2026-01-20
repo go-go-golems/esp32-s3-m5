@@ -12,13 +12,26 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/README.md
+      Note: Build/flash/monitor instructions + XIAO pin notes
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/Kconfig.projbuild
+      Note: Exposes pin/active-low/period via menuconfig
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/main.c
+      Note: Implements the GPIO toggle loop
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/design-doc/01-esp32-c6-idf-notes-analysis.md
+      Note: D0 mapping + design context
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/playbook/01-tmux-workflow-build-flash-monitor-esp32-c6.md
+      Note: tmux workflow for build/flash/monitor
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md
+      Note: Imported ESP-IDF notes
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-19T21:28:50.480013293-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -30,7 +43,7 @@ Maintain a step-by-step implementation diary for MO-030 (ESP32-C6 firmware that 
 
 Created the docmgr ticket workspace and imported the provided ESP-IDF notes into `sources/` so the work stays traceable. The imported notes are written for the Seeed Studio XIAO ESP32C6 and focus on a minimal GPIO toggle demo, which we’ll adapt into a new firmware project that targets the board’s D0 pin.
 
-**Commit (code):** N/A
+**Commit (docs):** 996a0d8 — "MO-030: init ticket, import ESP32C6 notes"
 
 ### What I did
 - Created the ticket: `docmgr ticket create-ticket --ticket MO-030-ESP32C6-FIRMWARE --title "ESP32-C6 firmware: toggle D0 GPIO" --topics esp-idf,esp32,gpio,tooling,tmux,flashing`
@@ -74,9 +87,54 @@ Created the docmgr ticket workspace and imported the provided ESP-IDF notes into
 - Imported file path: `/tmp/esp32c6-idf.md`
 - Imported destination: `ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md`
 
-## Step 2: (pending)
+## Step 2: Implement ESP32-C6 D0 Toggle Firmware + Build in tmux
 
-N/A
+Implemented a minimal ESP-IDF firmware project targeting `esp32c6` that toggles a configurable GPIO output with a FreeRTOS delay. The default mapping is for Seeed XIAO ESP32C6, where **D0 maps to GPIO0**; the pin number, active-low inversion, and period are exposed via `menuconfig`.
+
+Built the firmware in a tmux session to validate the toolchain + build pipeline end-to-end for `esp32c6` in this repo.
+
+**Commit (code):** b620c4e — "0042: add ESP32-C6 D0 GPIO toggle firmware"
+
+### What I did
+- Confirmed pin naming: for Seeed XIAO ESP32C6, `D0 = GPIO0` (recorded in the design doc).
+- Added new firmware project:
+  - `0042-xiao-esp32c6-d0-gpio-toggle/`
+  - `main/Kconfig.projbuild` for `menuconfig` options
+  - `main/main.c` toggling the configured pin and logging levels
+- Built inside tmux and captured logs:
+  - tmux session: `mo030-esp32c6`
+  - build log captured to `/tmp/mo030-esp32c6-build.log`
+
+### Why
+- Provide a known-good “GPIO toggle” baseline for ESP32-C6 work that’s easy to adapt to other pins/boards without code edits.
+- Keep the workflow consistent with the repo’s tmux-based build/flash/monitor patterns.
+
+### What worked
+- `idf.py set-target esp32c6 && idf.py build` produced `Project build complete.` for the new project.
+
+### What didn't work
+- N/A (no build errors observed).
+
+### What I learned
+- When running long commands inside tmux via a non-interactive shell, quoting needs care to avoid expanding `$...` variables in the wrong shell.
+
+### What was tricky to build
+- Keeping the project minimal while still making the “which GPIO is D0?” detail explicit and configurable.
+
+### What warrants a second pair of eyes
+- Confirm that using `GPIO0` as a default “D0” toggle is safe for the intended wiring (no strapping/peripheral conflicts).
+
+### What should be done in the future
+- Add a “flash + monitor” smoke run on real hardware and paste the serial output snippet into the diary.
+
+### Code review instructions
+- Start with: `0042-xiao-esp32c6-d0-gpio-toggle/main/main.c`
+- Review config surface: `0042-xiao-esp32c6-d0-gpio-toggle/main/Kconfig.projbuild`
+- Validate build:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && cd 0042-xiao-esp32c6-d0-gpio-toggle && idf.py set-target esp32c6 && idf.py build`
+
+### Technical details
+- Build log: `/tmp/mo030-esp32c6-build.log`
 
 ## Related
 

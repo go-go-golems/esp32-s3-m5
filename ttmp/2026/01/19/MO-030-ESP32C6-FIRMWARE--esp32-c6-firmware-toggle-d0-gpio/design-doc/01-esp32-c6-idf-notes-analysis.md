@@ -12,13 +12,18 @@ Topics:
 DocType: design-doc
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0042-xiao-esp32c6-d0-gpio-toggle/main/Kconfig.projbuild
+      Note: Implements configurable D0(GPIO0) default
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-030-ESP32C6-FIRMWARE--esp32-c6-firmware-toggle-d0-gpio/sources/local/esp32c6-idf.md.md
+      Note: Original notes that mention GPIO15 active-low and idf.py usage
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-19T21:28:51.77469331-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # ESP32-C6 IDF notes: analysis
 
