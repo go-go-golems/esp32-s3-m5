@@ -81,3 +81,14 @@ Step 20: Updated design doc to match current REPL/message semantics and uploaded
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Documented upload and validation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/tasks.md — Checked off remaining tasks
 
+
+## 2026-01-20
+
+Step 21: Flashed + monitored via tmux on /dev/ttyACM0; verified led chase set --speed 20 works and status/help/log toggles behave.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c — Verified help/status parsing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh — Used for flash/monitor
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/reference/01-diary.md — Recorded results
+

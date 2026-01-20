@@ -974,3 +974,38 @@ This doc refresh is captured in commit `fdc930275ddfb2bc6743964be00693fdfd9e5049
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/design-doc/01-led-pattern-engine-esp-console-repl-ws281x.md`
 - Ticket tasks:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/tasks.md`
+
+## Step 21: tmux Flash/Monitor Smoke Test on `/dev/ttyACM0`
+
+With a board present at `/dev/ttyACM0`, I used the tmux workflow to flash, open the USB Serial/JTAG monitor, and exercise the key console parameters interactively.
+
+### What I did
+- Started tmux session:
+  - `0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh /dev/ttyACM0`
+- Ran a focused command set in the monitor session:
+  - `led help`
+  - `led status`
+  - `led chase set --speed 20 ...` (validated the original reported failure case)
+  - `led breathing set --speed 8 ...`
+  - `led sparkle set --speed 10 ...`
+  - `led log status`, `led log on`, `led log off`
+
+### What worked
+- `led chase set --speed 20` succeeded (no invalid --speed).
+- `led status` printed the active pattern name and parameters after each change.
+- Periodic logging remained off by default (`enabled=0`) and toggled correctly with `led log on|off`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The status output is sufficient to validate parameter changes without enabling periodic logs.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Expand the smoke list to cover WS timing updates (`led ws set timing ...` + `led ws apply`) on real hardware once baseline visuals are confirmed.
