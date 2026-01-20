@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -90,6 +91,7 @@ void app_main(void)
     };
 
     uint32_t pos = 0;
+    int64_t last_progress_log_us = 0;
     while (true) {
         clear_pixels(pixels, led_count);
 
@@ -115,6 +117,12 @@ void app_main(void)
 
         ESP_ERROR_CHECK(rmt_transmit(chan, encoder, pixels, led_count * 3, &tx_x));
         ESP_ERROR_CHECK(rmt_tx_wait_all_done(chan, portMAX_DELAY));
+
+        const int64_t now_us = esp_timer_get_time();
+        if (now_us - last_progress_log_us >= 1000000) {
+            ESP_LOGI(TAG, "loop: pos=%u led=%u phase=%u", (unsigned)pos, (unsigned)i, (unsigned)phase);
+            last_progress_log_us = now_us;
+        }
 
         pos++;
         vTaskDelay(pdMS_TO_TICKS(250));
