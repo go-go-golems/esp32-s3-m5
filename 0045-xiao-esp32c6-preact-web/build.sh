@@ -26,6 +26,12 @@ if [[ "${ESP_IDF_VERSION:-}" != ${REQUIRED_ESP_IDF_VERSION_PREFIX}* ]]; then
   source "${IDF_EXPORT_SH}" >/dev/null
 fi
 
+# Prefer the ESP-IDF python venv if available. Some shell environments leave a
+# global python earlier in PATH (e.g. pyenv), which can break idf.py imports.
+if [[ -n "${IDF_PYTHON_ENV_PATH:-}" && -x "${IDF_PYTHON_ENV_PATH}/bin/python" ]]; then
+  export PATH="${IDF_PYTHON_ENV_PATH}/bin:${PATH}"
+fi
+
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
