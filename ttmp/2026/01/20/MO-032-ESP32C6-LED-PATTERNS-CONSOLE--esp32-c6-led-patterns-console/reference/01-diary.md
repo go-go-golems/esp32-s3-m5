@@ -23,6 +23,10 @@ RelatedFiles:
       Note: RMT encoder for WS281x timings + reset pulse
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/Kconfig.projbuild
       Note: MO-032 initial Kconfig knobs for WS281x
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c
+      Note: Pattern engine implementations (rainbow/chase/breathing/sparkle)
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h
+      Note: Pattern config structs + state
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.c
       Note: WS281x driver wrapper (RMT channel + encoder + pixels)
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_ws281x.h
@@ -37,6 +41,7 @@ LastUpdated: 2026-01-20T14:48:03.56417003-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -504,3 +509,55 @@ I validated compilation immediately, captured a build failure (`portMAX_DELAY` u
   - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
 - Task check:
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 2`
+
+## Step 11: Implement Core Patterns (Rainbow/Chase/Breathing/Sparkle)
+
+Implemented the initial pattern engine module (`led_patterns.[ch]`) with the four requested patterns and a unified configuration struct + runtime state. The module renders directly into the WS281x pixel buffer via the driver wrapper, keeping rendering fast and avoiding extra intermediate buffers.
+
+At this stage the firmware runs a default **rainbow** pattern in a simple loop; the next step will move this into a dedicated animation task with a queue so runtime console commands can reconfigure patterns safely.
+
+**Commit (code):** dfa665f — "0044: add basic pattern engine (rainbow/chase/breath/sparkle)"
+
+### What I did
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.[ch]`:
+  - `led_pattern_cfg_t` with a per-pattern union (rainbow/chase/breathing/sparkle)
+  - `led_pattern_state_t` with chase position/dir and per-LED sparkle brightness state
+  - Time-based rendering functions for each pattern
+- Updated `main/main.c` to:
+  - init the pattern engine
+  - set a default rainbow config
+  - render + `led_ws281x_show()` every `CONFIG_MO032_ANIM_FRAME_MS`
+- Built successfully with `idf.py build`.
+
+### Why
+- Getting the core math + state handling correct first makes the queue/task + console steps much lower risk (those layers should be “control plumbing”, not animation logic).
+
+### What worked
+- All four patterns compile and render into the driver buffer, with time-based motion and deterministic per-LED state for sparkle.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Sparkle looks better with per-LED fade state than the simulator’s “instantaneous per-frame” sparkle; the stateful approach also behaves better under frame jitter.
+
+### What was tricky to build
+- Keeping the engine independent of a fixed LED count: sparkle state needs dynamic allocation (`led_count` bytes) so the design remains portable.
+
+### What warrants a second pair of eyes
+- `hsv2rgb()` currently uses a small amount of float math (mirroring the prior firmware). If we need to remove floats entirely for perf/size, we should swap in a fully integer implementation.
+
+### What should be done in the future
+- Wire this engine into an animation task + queue message protocol (single-owner model), then expose it via `esp_console`.
+
+### Code review instructions
+- Pattern engine:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c`
+- Current “demo loop” usage:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c`
+
+### Technical details
+- Build:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
+- Task check:
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 3`
