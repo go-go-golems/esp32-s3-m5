@@ -236,3 +236,36 @@ This step makes the build helper robust in this repo’s shell environment and v
 ### Code review instructions
 - Validate build script behavior:
   - `cd 0045-xiao-esp32c6-preact-web && ./build.sh set-target esp32c6 build`
+
+## Step 5: Small polish fix (log tag)
+
+This is a tiny correctness cleanup: the firmware entrypoint log tag referenced the old tutorial number. It doesn’t change behavior, but it avoids confusion when scanning logs.
+
+**Commit (code):** b562047 — "fix(0045): correct log tag"
+
+### What I did
+- Updated the `TAG` string in `0045-xiao-esp32c6-preact-web/main/app_main.c`.
+
+### Why
+- Log tags show up in every line; having the wrong suffix is confusing during bring-up.
+
+### What worked
+- N/A (one-line change).
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- `0045-xiao-esp32c6-preact-web/main/app_main.c`

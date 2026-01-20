@@ -44,3 +44,12 @@ Step 4: idf.py build OK on esp32c6; harden build.sh python selection (commit e7f
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/build.sh — Prepend IDF python venv to PATH to avoid esp_idf_monitor import issues
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/sdkconfig — Captured ESP32-C6 sdkconfig baseline (force-added)
+
+
+## 2026-01-20
+
+Step 5: small polish fix (commit b562047)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0045-xiao-esp32c6-preact-web/main/app_main.c — Fix log tag to match tutorial number
