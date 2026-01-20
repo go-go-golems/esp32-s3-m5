@@ -16,13 +16,20 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0045-xiao-esp32c6-preact-web/README.md
+      Note: Implementation tutorial entrypoint (build/flash + usage)
+    - Path: 0045-xiao-esp32c6-preact-web/main/app_main.c
+      Note: Starts Wi-Fi manager
+    - Path: docs/playbook-embedded-preact-zustand-webui.md
+      Note: Reference for deterministic Vite bundling and firmware embedding
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-20T15:06:17.373060182-05:00
-WhatFor: "Design and implement a tiny ESP32-C6 firmware that uses an interactive esp_console REPL to scan/select/join Wi-Fi networks (credentials persisted in NVS) and serves an embedded Preact+Zustand counter web UI bundle from esp_http_server."
-WhenToUse: "Use when building a minimal device-hosted web UI demo on ESP32-C6 that needs runtime Wi-Fi selection via esp_console and a firmware-embedded SPA bundle."
+WhatFor: Design and implement a tiny ESP32-C6 firmware that uses an interactive esp_console REPL to scan/select/join Wi-Fi networks (credentials persisted in NVS) and serves an embedded Preact+Zustand counter web UI bundle from esp_http_server.
+WhenToUse: Use when building a minimal device-hosted web UI demo on ESP32-C6 that needs runtime Wi-Fi selection via esp_console and a firmware-embedded SPA bundle.
 ---
+
 
 # ESP32-C6 device-hosted Preact+Zustand web UI with esp_console Wi-Fi selection
 
