@@ -43,6 +43,26 @@ export PROJ=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-
 export PORT=/dev/ttyACM0
 ```
 
+Build + configure:
+
+```bash
+source "$IDF_SH"
+cd "$PROJ"
+
+idf.py set-target esp32c6
+idf.py menuconfig
+idf.py build
+```
+
+Flash + monitor:
+
+```bash
+source "$IDF_SH"
+cd "$PROJ"
+
+idf.py -p "$PORT" flash monitor
+```
+
 ## Exit Criteria
 
 - `idf.py monitor` prints a startup banner with the configured GPIO and timing values

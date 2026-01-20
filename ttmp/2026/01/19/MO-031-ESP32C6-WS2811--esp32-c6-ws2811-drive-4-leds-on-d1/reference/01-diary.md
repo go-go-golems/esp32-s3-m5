@@ -12,13 +12,24 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/Kconfig.projbuild
+      Note: menuconfig parameters (GPIO
+    - Path: esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/main.c
+      Note: WS2811 test pattern + startup logs
+    - Path: esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/main/ws281x_encoder.c
+      Note: RMT encoder with configurable timings
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/design-doc/01-ws2811-on-xiao-esp32c6-d1-wiring-firmware-plan.md
+      Note: Wiring + rationale
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/playbook/01-flash-monitor-ws2811-smoke-test.md
+      Note: Smoke test steps
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-19T22:13:24.424428534-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -63,6 +74,55 @@ Created the docmgr ticket workspace and wrote an initial design doc capturing th
 
 ### Code review instructions
 - Start with: `ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/design-doc/01-ws2811-on-xiao-esp32c6-d1-wiring-firmware-plan.md`
+
+### Technical details
+- N/A
+
+## Step 2: Implement WS2811 RMT Driver + Build
+
+Implemented a minimal ESP-IDF firmware project for ESP32-C6 that drives a WS281x-style strip via the RMT TX peripheral, defaulting to XIAO ESP32C6 **D1 = GPIO1** and **4 LEDs**. The encoder is built from ESP-IDF primitives (bytes encoder + reset code), with timing parameters exposed in `menuconfig` so we can tune for the exact WS2811 variant if needed.
+
+Built the firmware locally with `idf.py` to confirm it compiles and produces a flashable binary.
+
+**Commit (code):** 0ef3fbd — "0043: add ESP32-C6 WS2811 4-LED driver (RMT)"  
+**Commit (code):** 69b78bd — "0043: drop accidental datasheet"
+
+### What I did
+- Added firmware project: `0043-xiao-esp32c6-ws2811-4led-d1/`
+- Implemented a configurable WS281x RMT encoder:
+  - `main/ws281x_encoder.c`
+  - `main/ws281x_encoder.h`
+- Implemented a 4-LED “one-hot” chase pattern + startup logs:
+  - `main/main.c`
+- Verified build:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && cd 0043-xiao-esp32c6-ws2811-4led-d1 && idf.py set-target esp32c6 && idf.py build`
+
+### Why
+- RMT is the most reliable way to generate sub‑microsecond WS281x waveforms on ESP32-class chips without CPU busy-wait loops.
+- Exposing timings in Kconfig makes it easy to handle real-world WS2811 timing tolerance differences.
+
+### What worked
+- `idf.py build` completed successfully for target `esp32c6`.
+
+### What didn't work
+- I accidentally staged a datasheet PDF that was present in the directory; removed it in a follow-up commit so the project stays source-only.
+
+### What I learned
+- Keeping `git add` scoped to specific files (not whole directories) avoids unintentionally committing local artifacts.
+
+### What was tricky to build
+- Converting nanosecond timing parameters into RMT ticks without accidentally producing 0-tick pulses (round-up logic).
+
+### What warrants a second pair of eyes
+- Default timing values (T0H/T0L/T1H/T1L/reset) may need adjustment for your exact WS2811 hardware; review the defaults against your strip’s datasheet if behavior is unstable.
+
+### What should be done in the future
+- Run the hardware smoke test and record the observed color order and any timing tweaks needed.
+
+### Code review instructions
+- Start with: `0043-xiao-esp32c6-ws2811-4led-d1/main/main.c`
+- Review encoder math: `0043-xiao-esp32c6-ws2811-4led-d1/main/ws281x_encoder.c`
+- Build: `source ~/esp/esp-idf-5.4.1/export.sh && cd 0043-xiao-esp32c6-ws2811-4led-d1 && idf.py set-target esp32c6 && idf.py build`
 
 ### Technical details
 - N/A

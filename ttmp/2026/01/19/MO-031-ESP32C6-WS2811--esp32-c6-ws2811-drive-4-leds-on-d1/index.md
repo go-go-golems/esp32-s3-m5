@@ -12,13 +12,20 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0043-xiao-esp32c6-ws2811-4led-d1/README.md
+      Note: Project overview + wiring
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/playbook/01-flash-monitor-ws2811-smoke-test.md
+      Note: Flash/monitor procedure
+    - Path: esp32-s3-m5/ttmp/2026/01/19/MO-031-ESP32C6-WS2811--esp32-c6-ws2811-drive-4-leds-on-d1/reference/01-diary.md
+      Note: Implementation diary
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-19T22:13:13.652433648-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # ESP32-C6 WS2811: drive 4 LEDs on D1
 
