@@ -858,3 +858,48 @@ This step is captured in commit `6c1fa6937e12a72d14278395e11235376b7f8577`.
 - Pattern speed semantics updates:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c`
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h`
+
+## Step 18: Add tmux Flash/Monitor Workflow + Command List
+
+To make interactive testing less error-prone, I added a small tmux helper that starts `idf.py flash monitor` in one pane and shows a curated list of smoke-test commands in another pane.
+
+This step is captured in commit `6e4825518f1d98c3b7dc51b3d2199782737681df`.
+
+### What I did
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh`:
+  - starts a new tmux session
+  - left pane runs `idf.py -p <PORT> flash monitor`
+  - right pane prints `scripts/led_smoke_commands.txt` for copy/paste
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/scripts/led_smoke_commands.txt`:
+  - includes `led help`, `led status`, pattern set examples, and `led log on|off`
+- Updated the ticket playbook to reference the tmux workflow and updated smoke commands.
+
+### Why
+- Reduces “typing mistakes in the monitor” during parameter exploration.
+- Encourages a consistent validation path (help/status, pattern config, ws apply boundary).
+
+### What worked
+- Script passes `bash -n` and uses quoting that preserves the IDF export path and port argument.
+
+### What didn't work
+- I did not run the tmux workflow against real hardware in this environment; the script is ready but requires a connected board and correct `PORT`.
+
+### What I learned
+- tmux shell-command quoting is easy to get subtly wrong; validate with `bash -n` and avoid unescaped nested quotes.
+
+### What was tricky to build
+- Getting the quoting right so the `source <export.sh>` path and the `idf.py -p <PORT>` argument survive multiple layers (bash -> tmux -> bash -lc).
+
+### What warrants a second pair of eyes
+- Confirm the default `PORT` (`/dev/ttyACM0`) matches the common USB Serial/JTAG enumeration on your setup.
+
+### What should be done in the future
+- If we want a fully non-interactive smoke test, add an `expect`/monitor-script based harness; for now, interactive is fine for tuning.
+
+### Code review instructions
+- tmux helper:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/tmux_flash_monitor.sh`
+- smoke commands:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/scripts/led_smoke_commands.txt`
+- playbook update:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/playbook/01-0044-build-flash-led-console-smoke-test.md`
