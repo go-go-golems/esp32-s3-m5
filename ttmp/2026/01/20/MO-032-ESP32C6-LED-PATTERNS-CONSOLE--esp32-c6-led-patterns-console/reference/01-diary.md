@@ -23,6 +23,10 @@ RelatedFiles:
       Note: RMT encoder for WS281x timings + reset pulse
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/Kconfig.projbuild
       Note: MO-032 initial Kconfig knobs for WS281x
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c
+      Note: esp_console REPL + led command parser
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.h
+      Note: Console start API
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.c
       Note: Pattern engine implementations (rainbow/chase/breathing/sparkle)
     - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h
@@ -45,6 +49,7 @@ LastUpdated: 2026-01-20T14:48:03.56417003-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -616,3 +621,58 @@ This aligns the implementation with the single-owner + queue model described in 
   - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
 - Task check:
   - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 4`
+
+## Step 13: Implement `esp_console` REPL (`led ...`) Over USB Serial/JTAG
+
+Added an interactive `esp_console` REPL over USB Serial/JTAG and implemented a first-pass `led` command with subcommands for status, pattern selection/configuration, and WS281x driver staging/apply. Each command maps to a queue message (`led_task_send()`), keeping the single-owner task invariant intact.
+
+**Commit (code):** 98b86a3 — "0044: add esp_console led REPL"
+
+### What I did
+- Added `0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.[ch]`:
+  - REPL bootstrap (USB Serial/JTAG backend selection)
+  - `led` command registration
+  - Manual argv parsing for subcommands and `--flag value` pairs
+- Extended the queue protocol so WS281x driver config can be staged via partial updates (bitmask) and applied later:
+  - `LED_MSG_WS_SET_CFG` + `LED_WS_CFG_*` mask fields
+  - `LED_MSG_WS_APPLY_CFG` for reinit
+- Updated `main/main.c` to start the REPL after the LED task starts.
+- Built successfully with `idf.py build`.
+
+### Why
+- Runtime control is the whole point of MO-032; `esp_console` gives a reliable interactive control plane on ESP targets, and USB Serial/JTAG avoids UART pin conflicts.
+
+### What worked
+- The `led` command can:
+  - query status (`led status`)
+  - pause/resume/clear
+  - set global brightness and frame time
+  - configure rainbow/chase/breathing/sparkle via `... set --flags`
+  - stage WS settings and apply them (`led ws set ...`, `led ws apply`)
+
+### What didn't work
+- N/A
+
+### What I learned
+- For staging driver config interactively, sending “partial updates with a set-mask” is much less error-prone than overwriting the whole config struct each time.
+
+### What was tricky to build
+- Keeping the console handlers fast and non-blocking while still providing useful parsing and validation. The implementation uses non-blocking queue sends and prints `err=<...>` on backpressure.
+
+### What warrants a second pair of eyes
+- Review the console grammar and ensure it’s acceptable ergonomically (especially the `led ws set timing ...` flag names and units).
+
+### What should be done in the future
+- Add a richer `led status` that prints per-pattern config fields (currently prints core/common fields + WS fields).
+
+### Code review instructions
+- Console entry + command parser:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_console.c`
+- Queue protocol updates:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.h`
+
+### Technical details
+- Build:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py build'`
+- Task check:
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 5`
