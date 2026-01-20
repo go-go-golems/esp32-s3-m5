@@ -18,4 +18,4 @@
 - [x] Move tmux/smoke scripts into ticket scripts/ folder and update playbook references
 - [x] Revise pattern speed scaling: rainbow 0..20, chase meaningful >30, breathing slower/smoother, sparkle slower
 - [x] Extend chase pattern: configurable train spacing and multiple trains
-- [ ] Write analysis doc answering speed mapping + brightness/power questions and upload to reMarkable
+- [x] Write analysis doc answering speed mapping + brightness/power questions and upload to reMarkable

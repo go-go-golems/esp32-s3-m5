@@ -1127,3 +1127,19 @@ Created a new analysis document that directly answers the tuning questions (spee
 
 ### What should be done next
 - Upload this analysis doc to reMarkable and check off task 15.
+
+## Step 26: Upload Analysis Doc to reMarkable + Close Remaining Task
+
+Uploaded the new analysis doc PDF to the existing MO-032 reMarkable folder and marked the remaining task complete.
+
+### What I did
+- Uploaded via `remarquee upload bundle`:
+  - Source: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/analysis/01-speed-scaling-brightness-power-and-operator-scripts.md`
+  - Remote dir: `/ai/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE`
+  - Name: `MO-032 Speed+Brightness Analysis (Patterns + Power + Scripts) - 2026-01-20`
+
+### What worked
+- Upload succeeded; the cloud listing shows the new analysis PDF alongside the earlier design doc PDFs.
+
+### What should be done in the future
+- If we iterate on this analysis doc frequently, keep using “new name per upload” to avoid overwriting and losing annotations on the reMarkable.
