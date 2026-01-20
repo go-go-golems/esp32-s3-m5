@@ -4,7 +4,7 @@
 
 <!-- Managed via `docmgr task add/check/list` -->
 
-- [ ] Scaffold new ESP32-C6 WS281x console firmware project (0044)
+- [x] Scaffold new ESP32-C6 WS281x console firmware project (0044)
 - [ ] Port WS281x RMT driver + encoder into reusable module
 - [ ] Implement pattern configs + algorithms: rainbow/chase/breathing/sparkle
 - [ ] Implement animation task + FreeRTOS queue control protocol

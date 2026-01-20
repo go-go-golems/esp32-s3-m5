@@ -21,14 +21,17 @@ RelatedFiles:
       Note: Known-good WS281x driver + rainbow loop
     - Path: 0043-xiao-esp32c6-ws2811-4led-d1/main/ws281x_encoder.c
       Note: Custom RMT WS281x encoder
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/main.c
+      Note: Implementation target for this design
     - Path: ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/sources/local/patterns.jsx
       Note: Simulator patterns + parameter baselines
 ExternalSources: []
-Summary: "Design for a WS281x LED animation engine on ESP32-C6: pattern configs (rainbow/chase/breathing/sparkle), a realtime task with queue-driven reconfiguration, and an esp_console REPL over USB Serial/JTAG including staged driver config + apply."
+Summary: 'Design for a WS281x LED animation engine on ESP32-C6: pattern configs (rainbow/chase/breathing/sparkle), a realtime task with queue-driven reconfiguration, and an esp_console REPL over USB Serial/JTAG including staged driver config + apply.'
 LastUpdated: 2026-01-20T14:51:22.075430826-05:00
 WhatFor: Design a WS281x LED pattern engine for ESP32-C6 with realtime animation task + queue-driven live reconfiguration and an esp_console REPL over USB Serial/JTAG.
 WhenToUse: Use when implementing LED animations + runtime console control for ESP-IDF firmwares targeting WS2811/WS2812-style addressable LED chains.
 ---
+
 
 
 # LED Pattern Engine + esp_console REPL (WS281x)

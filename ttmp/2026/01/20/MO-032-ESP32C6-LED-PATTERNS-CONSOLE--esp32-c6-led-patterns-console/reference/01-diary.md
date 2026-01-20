@@ -21,6 +21,10 @@ RelatedFiles:
       Note: Prior working time-based rainbow + WS281x transmit loop
     - Path: 0043-xiao-esp32c6-ws2811-4led-d1/main/ws281x_encoder.c
       Note: RMT encoder for WS281x timings + reset pulse
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/Kconfig.projbuild
+      Note: MO-032 initial Kconfig knobs for WS281x
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/main.c
+      Note: MO-032 implementation project entrypoint
     - Path: ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/sources/local/patterns.jsx
       Note: Reference simulator patterns + parameter extraction
 ExternalSources: []
@@ -29,6 +33,7 @@ LastUpdated: 2026-01-20T14:48:03.56417003-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -388,3 +393,56 @@ Created a concrete task list in the ticket so implementation can proceed in smal
 - Commands:
   - `docmgr task add --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --text "..."`
   - `docmgr task list --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE`
+
+## Step 9: Scaffold Firmware Project `0044` + Verify `idf.py build`
+
+Created a new ESP32-C6 firmware project (`0044`) as the implementation home for MO-032, seeded with the proven WS281x RMT encoder code from `0043` and the correct console backend defaults (USB Serial/JTAG). I then ran a clean `idf.py set-target esp32c6` + `idf.py build` to make sure the scaffold compiles in our ESP-IDF 5.4.1 environment before layering on the pattern engine and console verbs.
+
+This step establishes a buildable baseline commit so future changes can be validated incrementally.
+
+**Commit (code):** dccb2cd — "0044: scaffold ESP32-C6 WS281x console"
+
+### What I did
+- Created directory `0044-xiao-esp32c6-ws281x-patterns-console/` with:
+  - top-level `CMakeLists.txt`
+  - `main/` with `main.c`, `Kconfig.projbuild`, component CMake, and `ws281x_encoder.[ch]`
+  - `sdkconfig.defaults` with `CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`
+- Built the project:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py set-target esp32c6`
+  - `idf.py build`
+- Checked off the scaffold task (and corrected an initial mistaken check-off of the wrong task ID using `docmgr task uncheck`).
+
+### Why
+- A clean baseline build reduces risk: subsequent steps can focus on logic changes rather than build-system issues.
+
+### What worked
+- `idf.py build` completed successfully for target `esp32c6`.
+
+### What didn't work
+- I initially checked the wrong task ID due to the task list being renumbered after removing the placeholder line; fixed immediately with `docmgr task uncheck` + `docmgr task check`.
+
+### What I learned
+- Task IDs in `docmgr task list` are positional; removing/reordering tasks can shift IDs, so it’s important to re-run `docmgr task list` before checking.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Keep `idf.py build` passing after each milestone commit (driver module, patterns, queue/task, console).
+
+### Code review instructions
+- Start at:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/main.c`
+- Confirm USB Serial/JTAG console defaults:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/sdkconfig.defaults`
+
+### Technical details
+- Commands:
+  - `bash -lc 'source ~/esp/esp-idf-5.4.1/export.sh && idf.py set-target esp32c6 && idf.py build'`
+  - `docmgr task list --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE`
+  - `docmgr task check --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 1`
+  - `docmgr task uncheck --ticket MO-032-ESP32C6-LED-PATTERNS-CONSOLE --id 2`
