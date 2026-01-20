@@ -1,0 +1,41 @@
+# Paste these into the idf.py monitor session (USB Serial/JTAG REPL).
+
+help
+led help
+led status
+
+# Enable periodic status logs (optional) then check status
+led log on
+led log status
+
+# Rainbow
+led rainbow set --speed 5 --sat 100 --spread 10
+led status
+
+# Chase (note: speed accepts 1..255 now, so 20 is valid)
+led pattern set chase
+led chase set --speed 20 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1
+led status
+
+# Breathing
+led breathing set --speed 8 --color #ff00ff --min 10 --max 255 --curve sine
+led status
+
+# Sparkle
+led sparkle set --speed 5 --color #ffffff --density 8 --fade 30 --mode random --bg #050505
+led status
+
+# Global controls
+led brightness 10
+led frame 25
+led pause
+led resume
+led clear
+
+# WS staging/apply (WARNING: reinitializes driver)
+led ws status
+# led ws set count 50
+# led ws apply
+
+# Disable periodic logs
+led log off

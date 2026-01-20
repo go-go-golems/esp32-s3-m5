@@ -73,22 +73,33 @@ Flash + monitor:
 idf.py -p /dev/ttyACM0 flash monitor
 ```
 
+Optional tmux workflow (flash/monitor + command pane):
+
+```bash
+./scripts/tmux_flash_monitor.sh /dev/ttyACM0
+```
+
 Console smoke session (run inside the monitor session):
 
 ```text
 help
+led help
 led status
 
 led rainbow set --speed 5 --sat 100 --spread 10
-led chase set --speed 6 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1
-led breathing set --speed 3 --color #ff00ff --min 10 --max 255 --curve sine
-led sparkle set --density 8 --fade 30 --mode random --bg #050505
+led chase set --speed 20 --tail 5 --fg #00ffff --bg #000044 --dir forward --fade 1
+led breathing set --speed 8 --color #ff00ff --min 10 --max 255 --curve sine
+led sparkle set --speed 10 --density 8 --fade 30 --mode random --bg #050505
 
 led brightness 10
 led frame 25
 led pause
 led resume
 led clear
+
+led log on
+led log status
+led log off
 
 led ws status
 led ws set count 50
@@ -117,4 +128,5 @@ Project build complete. To flash, run:
 ## Notes
 
 - If `led ws apply` changes `count`, the firmware reinitializes the driver and pattern engine; expect a brief blink/off during reinit.
+- Periodic status logging is opt-in; use `led log on` to enable and `led log off` to disable.
 - If you ever see a UART console backend selected, check `0044-xiao-esp32c6-ws281x-patterns-console/sdkconfig.defaults`.
