@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T12:12:09-05:00
+LastUpdated: 2026-01-21T12:14:30-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -74,6 +74,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 25: Implement JS service task and route eval through it
 - Step 26: Phase 2B MVP: encoder.on callbacks invoked on-device via js_service
 - Step 27: Phase 2C MVP: emit() + flush js_events to browser over WebSocket
+- Step 28: Phase 2C: emit overflow emits js_events_dropped frame
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1613,4 +1614,52 @@ I implemented Phase 2C as an explicit API (not print capture): `emit(topic, payl
 - Emission bounds:
   - `__0048.maxEvents` default 64; overflow increments `__0048.dropped`.
 - WS frame shape:
-  - `{"type":"js_events","seq":N,"ts_ms":T,"source":"eval"|"callback","events":[...],"dropped":K?}`
+  - `{"type":"js_events","seq":N,"ts_ms":T,"source":"eval"|"callback","events":[...]}`
+  - `{"type":"js_events_dropped","seq":N,"ts_ms":T,"source":"eval"|"callback","dropped":K}` (only when drops occurred)
+
+## Step 28: Phase 2C: emit overflow emits js_events_dropped frame
+
+The initial Phase 2C implementation included the drop count as a field on the `js_events` frame. That is useful, but it doesn’t give the UI a clean “this is a drop signal” type discriminator, and it makes it easy to miss drops when you’re scanning event history during bursty activity.
+
+I adjusted the flush protocol so an overflow produces a **separate** `{"type":"js_events_dropped",...}` frame (in addition to the `js_events` frame). This matches the original Phase 2C design intent more closely and makes drop behavior obvious in the UI event history.
+
+**Commit (code):** 1a7506c — "0048: flush js_events_dropped as separate WS frame"
+
+### What I did
+- Changed the Phase 2C bootstrap to return newline-separated JSON frames:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`:
+    - `__0048_take_lines(source)` returns:
+      - `""` if nothing to send
+      - otherwise one line of `js_events` JSON
+      - plus a second line of `js_events_dropped` JSON if drops occurred
+- Updated the C-side flush to split on `\n` and broadcast each line as an independent WS frame.
+
+### Why
+- It’s easier for the frontend (and humans reading logs) to handle and notice a dedicated `type:"js_events_dropped"` frame.
+
+### What worked
+- No JSON parsing is required on the device: the VM produces both frames, C only splits and forwards.
+
+### What didn't work
+- N/A
+
+### What I learned
+- A “newline-delimited JSON frames” pattern is a practical way to batch multiple outbound messages without building a JSON parser into the firmware.
+
+### What was tricky to build
+- Ensuring the flush remains bounded and doesn’t spam frames when there’s nothing to send (`""` short-circuit).
+
+### What warrants a second pair of eyes
+- Confirm the outbox/broadcast path’s `strlen` use is safe for all VM-produced strings (should be, since JSON shouldn’t contain embedded NULs).
+
+### What should be done in the future
+- Consider moving WS sends behind a dedicated outbox queue/task if we observe callback latency spikes when many browser clients are connected.
+
+### Code review instructions
+- Review the new flush path:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+
+### Technical details
+- The WS frame types emitted are now:
+  - `js_events`
+  - `js_events_dropped` (optional)

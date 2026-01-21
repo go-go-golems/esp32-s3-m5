@@ -259,3 +259,13 @@ Step 27: Phase 2C emit() + flush js_events over WS (commit 70e5b89)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — emit() bootstrap + __0048_take_for_ws + flush/broadcast
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Document emit() + encoder callbacks in UI help
 
+
+## 2026-01-21
+
+Step 28: Emit overflow produces js_events_dropped WS frame (commit 1a7506c)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Flush now broadcasts js_events_dropped as a separate frame
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Check legacy Phase 2C tasks 72/73
+

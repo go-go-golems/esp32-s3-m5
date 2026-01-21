@@ -99,8 +99,8 @@
 - [x] Phase 2C: Write JS→WS event stream design doc
 - [x] Phase 2C: Upload design doc 04 to reMarkable
 - [x] Phase 2C: UI bounded WS event history panel
-- [ ] Phase 2C: Firmware JS emit accumulator + flush + WS broadcast (MVP)
-- [ ] Phase 2C: Update JS help panel with emit() docs
+- [x] Phase 2C: Firmware JS emit accumulator + flush + WS broadcast (MVP)
+- [x] Phase 2C: Update JS help panel with emit() docs
 - [x] Phase 2B+C: Design JS service task + inbound/outbound queue structures
 - [x] Phase 2B+C: Upload JS service design doc 05 to reMarkable
 - [x] Phase 2 tweak: only broadcast encoder snapshot when changed
