@@ -11,6 +11,7 @@ idf_component_register(
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         httpd_assets_embed
+        httpd_ws_hub
         wifi_mgr
         wifi_console
         nvs_flash

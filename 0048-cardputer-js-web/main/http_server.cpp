@@ -11,7 +11,6 @@
 #include "sdkconfig.h"
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -20,6 +19,7 @@
 
 #include "encoder_telemetry.h"
 #include "httpd_assets_embed.h"
+#include "httpd_ws_hub.h"
 #include "js_service.h"
 #include "lwip/inet.h"
 
@@ -37,119 +37,18 @@ extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
 extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
 
 #if CONFIG_HTTPD_WS_SUPPORT
-static SemaphoreHandle_t s_ws_mu = nullptr;
-static int s_ws_clients[8] = {};
-static size_t s_ws_clients_n = 0;
-
-static void ws_client_add(int fd) {
-  if (!s_ws_mu) return;
-  xSemaphoreTake(s_ws_mu, portMAX_DELAY);
-  for (size_t i = 0; i < s_ws_clients_n; i++) {
-    if (s_ws_clients[i] == fd) {
-      xSemaphoreGive(s_ws_mu);
-      return;
-    }
-  }
-  if (s_ws_clients_n < (sizeof(s_ws_clients) / sizeof(s_ws_clients[0]))) {
-    s_ws_clients[s_ws_clients_n++] = fd;
-  }
-  xSemaphoreGive(s_ws_mu);
-}
-
-static void ws_client_remove(int fd) {
-  if (!s_ws_mu) return;
-  xSemaphoreTake(s_ws_mu, portMAX_DELAY);
-  for (size_t i = 0; i < s_ws_clients_n; i++) {
-    if (s_ws_clients[i] == fd) {
-      s_ws_clients[i] = s_ws_clients[s_ws_clients_n - 1];
-      s_ws_clients_n--;
-      break;
-    }
-  }
-  xSemaphoreGive(s_ws_mu);
-}
-
-static size_t ws_clients_snapshot(int* out, size_t max_out) {
-  if (!out || max_out == 0 || !s_ws_mu) return 0;
-  xSemaphoreTake(s_ws_mu, portMAX_DELAY);
-  const size_t n = (s_ws_clients_n < max_out) ? s_ws_clients_n : max_out;
-  for (size_t i = 0; i < n; i++) {
-    out[i] = s_ws_clients[i];
-  }
-  xSemaphoreGive(s_ws_mu);
-  return n;
-}
-
-static void ws_send_free_cb(esp_err_t err, int fd, void* arg) {
-  (void)err;
-  (void)fd;
-  free(arg);
-}
+static httpd_ws_hub_t s_ws_hub = {};
 
 esp_err_t http_server_ws_broadcast_text(const char* text) {
-  if (!s_server) return ESP_ERR_INVALID_STATE;
-  if (!text) return ESP_OK;
-  const size_t len = strlen(text);
-  if (len == 0) return ESP_OK;
-
-  int fds[8];
-  const size_t n = ws_clients_snapshot(fds, sizeof(fds) / sizeof(fds[0]));
-  for (size_t i = 0; i < n; i++) {
-    const int fd = fds[i];
-    if (httpd_ws_get_fd_info(s_server, fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
-      ws_client_remove(fd);
-      continue;
-    }
-
-    char* copy = (char*)malloc(len);
-    if (!copy) {
-      return ESP_ERR_NO_MEM;
-    }
-    memcpy(copy, text, len);
-
-    httpd_ws_frame_t frame = {};
-    frame.type = HTTPD_WS_TYPE_TEXT;
-    frame.payload = (uint8_t*)copy;
-    frame.len = len;
-
-    (void)httpd_ws_send_data_async(s_server, fd, &frame, ws_send_free_cb, copy);
-  }
-  return ESP_OK;
+  return httpd_ws_hub_broadcast_text(&s_ws_hub, text);
 }
 
 static esp_err_t ws_handler(httpd_req_t* req) {
-  const int fd = httpd_req_to_sockfd(req);
-  ws_client_add(fd);
-
   // The handshake request is an HTTP GET, but subsequent WS frames arrive with a different method.
   if (req->method == HTTP_GET) {
-    ESP_LOGI(TAG, "ws connected: fd=%d", fd);
-    return ESP_OK;
+    ESP_LOGI(TAG, "ws connected: fd=%d", httpd_req_to_sockfd(req));
   }
-
-  httpd_ws_frame_t frame = {};
-  esp_err_t err = httpd_ws_recv_frame(req, &frame, 0);
-  if (err != ESP_OK) return err;
-
-  // We currently don't accept payloads from the browser; only handle close/control frames.
-  if (frame.type == HTTPD_WS_TYPE_CLOSE) {
-    ESP_LOGI(TAG, "ws closed: fd=%d", fd);
-    ws_client_remove(fd);
-    return ESP_OK;
-  }
-
-  if (frame.len > 1024) {
-    ESP_LOGW(TAG, "ws frame too large: fd=%d len=%u", fd, (unsigned)frame.len);
-    return ESP_FAIL; // closes socket
-  }
-  if (frame.len > 0) {
-    uint8_t tmp[1024];
-    frame.payload = tmp;
-    err = httpd_ws_recv_frame(req, &frame, frame.len);
-    if (err != ESP_OK) return err;
-  }
-
-  return ESP_OK;
+  return httpd_ws_hub_handle_req(&s_ws_hub, req);
 }
 #else
 esp_err_t http_server_ws_broadcast_text(const char* text) {
@@ -284,9 +183,7 @@ esp_err_t http_server_start(void) {
   }
 
 #if CONFIG_HTTPD_WS_SUPPORT
-  if (!s_ws_mu) {
-    s_ws_mu = xSemaphoreCreateMutex();
-  }
+  (void)httpd_ws_hub_init(&s_ws_hub, s_server);
 #endif
 
   httpd_uri_t root = {};

@@ -19,6 +19,7 @@ idf_component_register(
         wear_levelling
         esp_http_server
         httpd_assets_embed
+        httpd_ws_hub
         esp_driver_gpio
         esp_driver_spi
         esp_driver_i2c
@@ -33,4 +34,3 @@ idf_component_register(
         "assets/assets/app.css"
     INCLUDE_DIRS ""
 )
-
