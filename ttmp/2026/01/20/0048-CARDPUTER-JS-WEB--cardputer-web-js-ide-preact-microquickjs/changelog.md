@@ -60,3 +60,13 @@ Step 8: Add consolidated MicroQuickJS guide
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/03-guide-using-microquickjs-mquickjs-in-our-esp-idf-setting.md — Repo-specific MicroQuickJS embedding/operation guide
 
+
+## 2026-01-20
+
+Step 10: Backfill diary + expand implementation task breakdown
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Rewrote diary into chronological complete steps
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Expanded implementation checklist
+
