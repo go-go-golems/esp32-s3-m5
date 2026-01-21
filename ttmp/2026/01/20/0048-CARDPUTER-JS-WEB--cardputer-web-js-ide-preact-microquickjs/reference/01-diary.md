@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:42:44-05:00
+LastUpdated: 2026-01-21T10:46:06-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -72,6 +72,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 23: Implement bounded WebSocket event history panel in the Web IDE UI
 - Step 24: Reduce WS encoder spam; make UI text white
 - Step 25: Implement JS service task and route eval through it
+- Step 26: Phase 2B MVP: encoder.on callbacks invoked on-device via js_service
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1478,3 +1479,71 @@ I added a `js_service` module that owns the MicroQuickJS `JSContext*` and proces
 ### Technical details
 - Queue length: 16 messages (`xQueueCreate(16, sizeof(Msg))`).
 - Task stack/priority: `xTaskCreate("js_svc", 6144, prio=8, ...)`.
+
+## Step 26: Phase 2B MVP: encoder.on callbacks invoked on-device via js_service
+
+With the JS service task in place, Phase 2B’s core requirement is now feasible: allow user JS to register callbacks that run on the device when hardware events happen. To keep the MVP lightweight (and avoid stdlib regeneration), I implemented callback registration entirely in injected JS and callback invocation entirely in the JS service.
+
+Concretely: on VM init, the firmware installs `encoder.on('delta'|'click', fn)` and `encoder.off(...)` in JS (a small bootstrap snippet). The encoder telemetry task now forwards click and delta events into `js_service`, which looks up the registered callback functions from `globalThis.__0048.encoder` and calls them with an event object. Callbacks are time-bounded (short deadline) and exceptions are logged.
+
+**Commit (code):** 36e7b63 — "0048: Phase 2B encoder.on callbacks via js_service"
+
+### What I did
+- Added a Phase 2B bootstrap snippet installed at VM init:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`install_bootstrap_phase2b`)
+  - Defines:
+    - `globalThis.__0048.encoder.on_delta`
+    - `globalThis.__0048.encoder.on_click`
+    - `globalThis.encoder.on(...)` / `encoder.off(...)`
+- Implemented callback invocation inside the JS service:
+  - `handle_encoder_delta()` creates `{pos, delta, ts_ms, seq}` and calls `on_delta`
+  - `handle_encoder_click(kind)` creates `{kind, ts_ms}` and calls `on_click`
+  - Uses MicroQuickJS calling convention: `JS_PushArg(arg0)`, `JS_PushArg(func)`, `JS_PushArg(this)`, `JS_Call(argc)`
+  - Adds a short per-callback deadline (25ms) via the existing interrupt handler deadline mechanism.
+- Delivered encoder events into the service:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+  - On rotation: calls `js_service_update_encoder_delta(pos, delta_accum)`
+  - On click: calls `js_service_post_encoder_click(kind)`
+- Implemented delta coalescing without a separate notify primitive:
+  - `js_service_update_encoder_delta` stores the latest snapshot and enqueues at most one `MSG_ENCODER_DELTA` at a time; additional updates overwrite the snapshot until the service drains it.
+- Verified build:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_js_svc build`
+
+### Why
+- Phase 2B requires on-device execution that is safe with respect to VM thread-safety and event burstiness.
+- Injected-JS registration avoids modifying the generated MicroQuickJS stdlib (fast iteration).
+
+### What worked
+- Encoder callbacks are now a real capability: user JS can write `encoder.on('delta', fn)` and `encoder.on('click', fn)` and have them run on-device.
+- Delta events are coalesced to “latest wins” behavior without queue flooding.
+
+### What didn't work
+- N/A (build succeeded; behavior validation requires flashing and exercising hardware)
+
+### What I learned
+- We can get surprisingly far without native bindings by using:
+  - injected JS “API surface” (registration helpers)
+  - C-side lookup + invocation (MicroQuickJS stack-call)
+
+### What was tricky to build
+- Coalescing delta events while still using the single inbound queue (avoid needing a second wait primitive in the service loop).
+
+### What warrants a second pair of eyes
+- Callback lookup and error handling:
+  - ensure we don’t treat non-functions as callable
+  - confirm exception logging is sufficient for debugging without Phase 2C emit yet
+
+### What should be done in the future
+- Add Phase 2C `emit()` + flush so callbacks can publish structured events to the browser UI.
+
+### Code review instructions
+- Review JS bootstrap and callback invocation:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+- Review encoder event delivery:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+
+### Technical details
+- Callback storage keys:
+  - `globalThis.__0048.encoder.on_delta`
+  - `globalThis.__0048.encoder.on_click`

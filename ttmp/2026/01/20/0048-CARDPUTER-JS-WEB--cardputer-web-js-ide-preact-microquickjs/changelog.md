@@ -239,3 +239,13 @@ Step 25: Add js_service task; route REST/console eval through it (commit caff6ce
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp — js eval now routes through js_service
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Single-owner MicroQuickJS service task + eval queue
 
+
+## 2026-01-21
+
+Step 26: Phase 2B encoder.on callbacks (commit 36e7b63)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp — Forward delta/click events into js_service
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Inject encoder.on/off and invoke callbacks in VM
+

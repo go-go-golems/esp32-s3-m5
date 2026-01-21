@@ -109,10 +109,10 @@
 - [x] JS service: implement eval request (sync wait + JSON reply)
 - [x] JS service: route POST /api/js/eval through js_service
 - [x] JS service: route esp_console js eval through js_service
-- [ ] Phase 2B: add JS bootstrap encoder.on/off callback registration
-- [ ] Phase 2B: deliver encoder click events into js_service
-- [ ] Phase 2B: deliver encoder delta (coalesced mailbox) into js_service
-- [ ] Phase 2B: invoke encoder callbacks in VM with timeout + exception reporting
+- [x] Phase 2B: add JS bootstrap encoder.on/off callback registration
+- [x] Phase 2B: deliver encoder click events into js_service
+- [x] Phase 2B: deliver encoder delta (coalesced mailbox) into js_service
+- [x] Phase 2B: invoke encoder callbacks in VM with timeout + exception reporting
 - [ ] Phase 2C: add JS bootstrap emit() + __0048_take
 - [ ] Phase 2C: flush JS-emitted events after eval/callback and broadcast over WS
 - [ ] Phase 2C: broadcast dropped-event counters (js_events_dropped)
