@@ -157,15 +157,18 @@ static void install_bootstrap_phase2c(void) {
       "  if (__0048.events.length >= __0048.maxEvents) { __0048.dropped = (__0048.dropped || 0) + 1; return; }\n"
       "  __0048.events.push({ topic, payload, ts_ms: Date.now() });\n"
       "};\n"
-      "globalThis.__0048_take_for_ws = (source) => {\n"
+      "globalThis.__0048_take_lines = (source) => {\n"
       "  const dropped = __0048.dropped || 0;\n"
       "  const ev = __0048.events || [];\n"
-      "  if (ev.length === 0 && dropped === 0) return null;\n"
+      "  if (ev.length === 0 && dropped === 0) return '';\n"
       "  __0048.events = [];\n"
       "  __0048.dropped = 0;\n"
-      "  const out = { type: 'js_events', seq: (__0048.ws_seq++), ts_ms: Date.now(), source: String(source || 'eval'), events: ev };\n"
-      "  if (dropped) out.dropped = dropped;\n"
-      "  return out;\n"
+      "  const src = String(source || 'eval');\n"
+      "  let s = JSON.stringify({ type: 'js_events', seq: (__0048.ws_seq++), ts_ms: Date.now(), source: src, events: ev });\n"
+      "  if (dropped) {\n"
+      "    s += '\\n' + JSON.stringify({ type: 'js_events_dropped', seq: (__0048.ws_seq++), ts_ms: Date.now(), source: src, dropped: dropped });\n"
+      "  }\n"
+      "  return s;\n"
       "};\n";
 
   const int flags = JS_EVAL_REPL;
@@ -181,7 +184,7 @@ static void flush_js_events_to_ws(const char* source) {
 
   const char* src = source ? source : "eval";
   char expr[96];
-  snprintf(expr, sizeof(expr), "JSON.stringify(__0048_take_for_ws('%s'))", src);
+  snprintf(expr, sizeof(expr), "__0048_take_lines('%s')", src);
 
   // Keep flush bounded as it's on the critical path.
   s_deadline.deadline_us = esp_timer_get_time() + 50 * 1000;
@@ -201,11 +204,20 @@ static void flush_js_events_to_ws(const char* source) {
   const char* s = JS_ToCStringLen(s_ctx, &n, v, &sbuf);
   if (!s || n == 0) return;
 
-  // JSON.stringify(null) => "null"; skip if nothing to send.
-  if (n == 4 && memcmp(s, "null", 4) == 0) return;
-
   // Best-effort: broadcast only if the server is up.
-  (void)http_server_ws_broadcast_text(s);
+  const char* p = s;
+  size_t remaining = n;
+  while (remaining > 0) {
+    const void* nl = memchr(p, '\n', remaining);
+    const size_t len = nl ? (size_t)((const char*)nl - p) : remaining;
+    if (len > 0) {
+      std::string line(p, len);
+      (void)http_server_ws_broadcast_text(line.c_str());
+    }
+    if (!nl) break;
+    p += len + 1;
+    remaining -= len + 1;
+  }
 }
 
 static JSValue get_encoder_cb(const char* which) {
