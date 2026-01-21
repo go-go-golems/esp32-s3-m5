@@ -122,7 +122,7 @@ static void install_bootstrap_phase2b(void) {
   // Keep this minimal: registration helpers only. No native bindings required.
   static const char* kBootstrap =
       // NOTE: MicroQuickJS stdlib in this repo doesn't support arrow functions; keep ES5 syntax.
-      "var g = this;\n"
+      "var g = globalThis;\n"
       "g.__0048 = g.__0048 || {};\n"
       "var __0048 = g.__0048;\n"
       "__0048.encoder = __0048.encoder || { on_delta: null, on_click: null };\n"
@@ -152,7 +152,7 @@ static esp_err_t ensure_ctx(void);
 static void install_bootstrap_phase2c(void) {
   static const char* kBootstrap =
       // NOTE: MicroQuickJS stdlib in this repo doesn't support arrow functions; keep ES5 syntax.
-      "var g = this;\n"
+      "var g = globalThis;\n"
       "g.__0048 = g.__0048 || {};\n"
       "var __0048 = g.__0048;\n"
       "__0048.maxEvents = __0048.maxEvents || 64;\n"
@@ -313,6 +313,11 @@ static esp_err_t ensure_ctx(void) {
 
   JS_SetContextOpaque(s_ctx, &s_deadline);
   JS_SetInterruptHandler(s_ctx, interrupt_handler);
+
+  // The imported stdlib currently defines `globalThis` as `null` (placeholder).
+  // For our JS bootstraps we need a real global object reference.
+  JSValue glob = JS_GetGlobalObject(s_ctx);
+  (void)JS_SetPropertyStr(s_ctx, glob, "globalThis", glob);
 
   install_bootstrap_phase2b();
   install_bootstrap_phase2c();
