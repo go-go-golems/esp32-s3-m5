@@ -486,3 +486,59 @@ After additional work (uploads, MQJS guide, and implementation planning) accumul
 
 ### Technical details
 - N/A
+
+## Step 11: Start implementation (create 0048 firmware + web skeleton)
+
+With the designs and playbooks in place, I started the actual implementation by creating a new ESP-IDF project directory and wiring the minimal end-to-end path for Phase 1:
+
+- SoftAP Wi‑Fi bring-up (so you can connect directly with a phone/laptop)
+- `esp_http_server` serving embedded assets (`/`, `/assets/app.js`, `/assets/app.css`)
+- `POST /api/js/eval` that runs MicroQuickJS and returns JSON
+- a minimal Preact+Zustand UI (currently a `<textarea>` editor + output panel) built by Vite into `main/assets/`
+
+This is intentionally “minimum viable wiring”: it gives us something to build/flash and then iterate on (replace textarea with CodeMirror, refine output capture, add WS encoder telemetry).
+
+**Commit (code):** 9340ed4 — "0048: add cardputer web JS IDE skeleton"
+
+### What I did
+- Created firmware project skeleton:
+  - `esp32-s3-m5/0048-cardputer-js-web/`
+- Committed the initial skeleton as a focused code commit:
+  - `git add 0048-cardputer-js-web`
+  - `git commit -m "0048: add cardputer web JS IDE skeleton"`
+- Implemented:
+  - Wi‑Fi SoftAP bring-up: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_app.cpp`
+  - HTTP server + routes: `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - MicroQuickJS runner: `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp`
+- Added deterministic Vite build output to embedded assets:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/vite.config.ts`
+
+### Why
+- A working vertical slice is the fastest way to shake out build-system and runtime assumptions (wifi, HTTPD, embedding, MQJS linkage).
+
+### What worked
+- Reusing known-good patterns from `0017` (HTTP server + SoftAP) and the MQJS REPL stdlib wiring reduced guesswork.
+
+### What didn't work
+- N/A (implementation is new; validation comes next)
+
+### What I learned
+- N/A (pending first build/flash validation)
+
+### What was tricky to build
+- Stdlib wiring: the MVP approach uses the imports tree’s `esp32_stdlib_runtime.c` and generated `esp32_stdlib.h` via `#include` to avoid duplicating the giant generated header.
+
+### What warrants a second pair of eyes
+- The `#include`-based reuse of `esp32_stdlib_runtime.c`/`esp32_stdlib.h` inside our project (it’s pragmatic, but worth reviewing for build hygiene).
+
+### What should be done in the future
+- Replace the `<textarea>` editor with CodeMirror 6 (per the design doc), once end-to-end firmware build is verified.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/app_main.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp`
+
+### Technical details
+- N/A

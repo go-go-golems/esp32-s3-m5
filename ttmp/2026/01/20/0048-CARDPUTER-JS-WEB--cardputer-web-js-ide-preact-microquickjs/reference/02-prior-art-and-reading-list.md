@@ -83,6 +83,12 @@ All the pieces already exist somewhere in this repo. The point of this document 
 
 - `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/design-doc/02-split-firmware-main-into-c-components-pluggable-evaluators-repeat-js.md`
   - Why: clean component split (console, REPL, evaluator) and a `JsEvaluator` pattern that maps naturally onto a REST execution endpoint.
+- `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/02-microquickjs-native-extensions-on-esp32-playbook-reference-manual.md`
+  - Why: repo-accurate, copy/paste-ready manual for adding native bindings and user objects in MicroQuickJS (exact APIs and patterns).
+- `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/analysis/03-microquickjs-stdlib-atom-table-split-why-var-should-parse-current-state-ideal-structure.md`
+  - Why: deep explanation of stdlib vs atom table generation and why “it compiles but crashes” happens when they drift.
+- `ttmp/2026/01/01/0023-CARDPUTER-JS-NEXT--cardputer-js-repl-enhancements-and-next-steps-handoff/reference/01-enhancements-and-next-developer-handoff.md`
+  - Why: practical handoff notes about stdlib regeneration, `mquickjs_atom.h`, and “what breaks first” when changing bindings.
 - `imports/ESP32_MicroQuickJS_Playbook.md`
   - Why: end-to-end developer playbook (setup → integrate → debug) for MicroQuickJS on ESP32.
 - `imports/MicroQuickJS_ESP32_Complete_Guide.md`

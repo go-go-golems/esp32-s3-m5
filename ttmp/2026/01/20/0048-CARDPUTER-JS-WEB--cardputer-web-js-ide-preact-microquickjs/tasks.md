@@ -14,54 +14,62 @@
 
 ### Repo wiring + skeleton
 
-- [ ] Create firmware project dir `esp32-s3-m5/0048-cardputer-js-web/` (CMakeLists + README + partitions)
-- [ ] Add `sdkconfig.defaults` for Cardputer console defaults (USB Serial/JTAG)
-- [ ] Add `main/Kconfig.projbuild` for Wi‑Fi mode + credentials + JS limits
-- [ ] Add deterministic embedded asset pipeline (`web/` Vite outDir → `main/assets/`)
+- [x] Create firmware project dir `esp32-s3-m5/0048-cardputer-js-web/` (CMakeLists + README + partitions)
+- [x] Add `sdkconfig.defaults` for Cardputer console defaults (USB Serial/JTAG)
+- [x] Add `main/Kconfig.projbuild` for Wi‑Fi mode + credentials + JS limits
+- [x] Add deterministic embedded asset pipeline (`web/` Vite outDir → `main/assets/`)
 
 ### Firmware: Wi‑Fi bring-up
 
-- [ ] Implement Wi‑Fi bring-up module (choose: SoftAP, STA, or APSTA fallback)
-- [ ] Print browse URL and serve `/api/status` with mode + IP(s)
+- [x] Implement Wi‑Fi bring-up module (SoftAP MVP)
+- [x] Print browse URL and serve `/api/status` with mode + IP(s)
 
 ### Firmware: HTTP server + static assets
 
-- [ ] Add embedded asset symbols (`_binary_index_html_start`, `_binary_app_js_start`, `_binary_app_css_start`)
-- [ ] Implement routes:
-  - [ ] `GET /` (index)
-  - [ ] `GET /assets/app.js`
-  - [ ] `GET /assets/app.css`
-  - [ ] `GET /api/status`
-- [ ] Add cache headers strategy (avoid stale UI while keeping bundle small)
+- [x] Add embedded asset symbols (`_binary_index_html_start`, `_binary_app_js_start`, `_binary_app_css_start`)
+- [x] Implement routes:
+  - [x] `GET /` (index)
+  - [x] `GET /assets/app.js`
+  - [x] `GET /assets/app.css`
+  - [x] `GET /api/status`
+- [x] Add cache headers strategy (no-store MVP)
 
 ### Firmware: MicroQuickJS runner (`/api/js/eval`)
 
-- [ ] Decide stdlib strategy:
-  - [ ] reuse `esp32_stdlib_runtime.c` + generated stdlib (imports), or
+- [x] Decide stdlib strategy (MVP: reuse imports stdlib wiring)
+  - [x] reuse `esp32_stdlib_runtime.c` + generated stdlib (imports)
   - [ ] generate a minimal stdlib for web IDE
-- [ ] Implement `js_runner` module:
-  - [ ] fixed memory pool (configurable size)
-  - [ ] mutex or dedicated task ownership
-  - [ ] `eval(code) -> { ok, output, error }` contract
-- [ ] Implement `POST /api/js/eval`:
-  - [ ] bounded body read (e.g. 16 KiB max)
-  - [ ] return JSON result (and proper HTTP error codes on bad requests)
+- [x] Implement `js_runner` module:
+  - [x] fixed memory pool (configurable size)
+  - [x] mutex ownership (MVP)
+  - [x] `eval(code) -> { ok, output, error }` contract
+- [x] Implement `POST /api/js/eval`:
+  - [x] bounded body read (default 16 KiB max)
+  - [x] return JSON result (and proper HTTP error codes on bad requests)
 - [ ] Add safety:
-  - [ ] timeout via `JS_SetInterruptHandler` + deadline
+  - [x] timeout via `JS_SetInterruptHandler` + deadline
   - [ ] optional `/api/js/reset`
 
 ### Frontend: Preact/Zustand + editor
 
-- [ ] Create Preact app shell
-- [ ] Add Zustand store for:
-  - [ ] editor text
-  - [ ] running/last response
-  - [ ] REST call wrapper with errors
+- [x] Create Preact app shell
+- [x] Add Zustand store for:
+  - [x] editor text
+  - [x] running/last response
+  - [x] REST call wrapper with errors
 - [ ] Integrate editor (CodeMirror 6 preferred):
   - [ ] JS syntax highlighting
   - [ ] minimal keymap
   - [ ] avoid rerender/recreate editor on keystrokes
-- [ ] Render output panel (stdout-like + error)
+- [x] Render output panel (stdout-like + error)
+
+### Frontend: CodeMirror 6 integration (next iteration)
+
+- [ ] Add CodeMirror deps (codemirror 6 packages) with deterministic Vite output preserved
+- [ ] Implement a `CodeEditor` component (mount/unmount lifecycle, no re-init per keystroke)
+- [ ] Wire editor value to Zustand (debounced or on-change, but avoid expensive rerenders)
+- [ ] Add JS language + basic keymap (Ctrl/Cmd-Enter to run, Tab indent)
+- [ ] Add minimal editor theming (dark-ish, readable on phone)
 
 ### Phase 2: encoder telemetry over WebSocket
 

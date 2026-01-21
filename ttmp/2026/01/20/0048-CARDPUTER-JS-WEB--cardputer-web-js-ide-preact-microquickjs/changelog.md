@@ -79,3 +79,13 @@ Step 10: Backfill diary + expand implementation task breakdown (commit c35795d)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Added commit hash for step 10
 
+
+## 2026-01-20
+
+Step 11: Start implementation (create 0048-cardputer-js-web skeleton) (commit 9340ed4)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — Added embedded asset serving + /api/js/eval
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp — Added MicroQuickJS init + eval formatting
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Added minimal UI state + eval call
