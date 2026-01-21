@@ -7,4 +7,4 @@
 - [x] Move protocol/time/node sources into component (no behavior change)
 - [x] Update `0049-xiao-esp32c6-mled-node` to consume component
 - [x] Validate: `idf.py -C 0049-xiao-esp32c6-mled-node build`
-- [ ] Validate: flash + host `mled_ping.py` and `mled_smoke.py`
+- [x] Validate: flash + host `mled_ping.py` and `mled_smoke.py`

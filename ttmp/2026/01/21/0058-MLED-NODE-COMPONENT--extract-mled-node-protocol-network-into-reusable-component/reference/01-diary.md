@@ -156,3 +156,58 @@ This step validates the extraction at the first gate: the `0049-xiao-esp32c6-mle
 ### Technical details
 - The discovered-components explosion was avoided by setting:
   - `EXTRA_COMPONENT_DIRS = ../components/mled_node` (not `../components`).
+
+## Step 4: Validate runtime behavior on real hardware (flash + host smoke)
+
+This step validates the second gate: that the extracted component still behaves correctly when flashed to an ESP32‑C6 and driven by the host Python tools. The goal is to confirm the end-to-end control loop is intact: Wi‑Fi join, multicast receive, unicast replies, BEACON epoch/time gating, TIME_REQ/RESP refinement, cue prepare/ack, and cue fire/apply.
+
+**Commit (code):** 5cfb36f — "mled_node: extract node protocol/network into component" (no code changes in this validation step)
+
+### What I did
+- Flashed `0049-xiao-esp32c6-mled-node` to a XIAO ESP32C6 and monitored logs.
+- Provisioned Wi‑Fi via the console and confirmed STA IP assignment.
+- Ran host smoke tests:
+  - `python3 tools/mled_ping.py`
+  - `python3 tools/mled_smoke.py`
+- Captured key device log lines showing:
+  - node startup (`started: id=... group=239.255.32.6:4626`)
+  - TIME_RESP refinement with RTT measurements and updated offsets
+  - cue lifecycle: `CUE_PREPARE`, `CUE_FIRE`, and `APPLY`
+
+### Why
+- The build can succeed while runtime behavior is broken (multicast join, socket options, endian issues, time math).
+- This provides high confidence that `components/mled_node` is safe to reuse in other projects.
+
+### What worked
+- The full flow worked on hardware:
+  - GOT_IP triggered node start
+  - TIME_REQ/RESP refinement converged quickly (single-digit to tens of ms RTT)
+  - Cue prepare/fire executed and applied close to the scheduled show-time
+
+### What didn't work
+- N/A (there was a Wi‑Fi warning line, but it did not affect protocol behavior).
+
+### What I learned
+- The component boundary did not introduce any latent timing/regression issues; protocol state is preserved across the refactor.
+
+### What was tricky to build
+- N/A (validation-only step).
+
+### What warrants a second pair of eyes
+- Show-time offset magnitude can look “surprisingly large” in logs; that’s expected when the controller uses a long-running monotonic clock. What matters operationally is RTT and that scheduled `execute_at` aligns with `APPLY`.
+
+### What should be done in the future
+- Add an optional “debug hook” to emit a compact periodic status line (epoch, offset, drift estimate) for long-running sync verification.
+
+### Code review instructions
+- Follow the playbook:
+  - `ttmp/2026/01/21/0058-MLED-NODE-COMPONENT--extract-mled-node-protocol-network-into-reusable-component/playbook/01-playbook-validate-component-in-0049.md`
+- Confirm log lines for TIME_RESP + APPLY appear as expected.
+
+### Technical details
+- Example observed log excerpt (device):
+  - `mled_node: started: id=3019688450 name=c6-node group=239.255.32.6:4626`
+  - `mled_node: TIME_RESP req_id=1 rtt=6ms new_offset=...`
+  - `mled_node: CUE_PREPARE cue=42 pattern=1 bri=25%`
+  - `mled_node: CUE_FIRE cue=42 execute_at=...`
+  - `mled_node: APPLY cue=42 pattern=1 bri=25% show_ms=...`
