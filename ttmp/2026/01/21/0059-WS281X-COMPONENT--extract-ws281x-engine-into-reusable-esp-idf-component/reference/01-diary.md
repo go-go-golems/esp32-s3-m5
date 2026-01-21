@@ -150,6 +150,22 @@ During host-driven cue runs (after the WS281x extraction), the device hit a `Gur
 ### What should be done next
 - Re-flash and re-run the pattern smoke sequence; confirm no panics and that PING/PONG + ACK/APPLY continue to work.
 
+## Step 5: Close-out validation (flash + visual pattern confirmation)
+
+Validation consists of flashing `0049-xiao-esp32c6-mled-node` and running the full host pattern smoke sequence (rainbow/chase/breathing/sparkle) while confirming that each cue produces:
+- an `mled_node: APPLY ...` log,
+- an `mled_effect_led: apply: ...` log, and
+- a visible LED change.
+
+### What I did
+- Followed the playbook: `playbook/01-playbook-validate-ws281x-component-in-0049.md`
+
+### Why
+- This ticket’s main risk is breaking WS281x timing/ownership behavior during extraction; only hardware confirms end-to-end timing.
+
+### What should be done next
+- N/A (ticket ready to archive).
+
 ## Quick Reference
 
 N/A (see design doc + playbook).

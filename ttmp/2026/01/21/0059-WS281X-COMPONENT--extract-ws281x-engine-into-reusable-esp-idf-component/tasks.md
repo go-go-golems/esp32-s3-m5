@@ -9,5 +9,5 @@
 - [x] Validate: `idf.py -C 0049-xiao-esp32c6-mled-node build`
 - [x] Debug “no PONGs received” regression (host `--bind-ip` + node instrumentation)
 - [x] Fix `mled_node` stack protection fault during cue runs
-- [ ] Validate: flash + run `tools/mled_smoke.py` patterns (visual)
-- [ ] Record results in diary + changelog
+- [x] Validate: flash + run `tools/mled_smoke.py` patterns (visual)
+- [x] Record results in diary + changelog

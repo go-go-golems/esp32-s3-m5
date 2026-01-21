@@ -1,7 +1,7 @@
 ---
 Title: Extract WS281x engine into reusable ESP-IDF component
 Ticket: 0059-WS281X-COMPONENT
-Status: active
+Status: review
 Topics:
     - esp32c6
     - esp-idf
@@ -32,7 +32,7 @@ WhenToUse: ""
 
 ## Status
 
-Current status: **active**
+Current status: **review** (tasks complete; ready to archive)
 
 ## Topics
 
