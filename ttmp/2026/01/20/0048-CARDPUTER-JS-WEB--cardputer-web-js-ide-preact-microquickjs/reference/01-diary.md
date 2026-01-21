@@ -1792,7 +1792,7 @@ After the “encoder/emit undefined” incident, you asked for two durable artif
 
 I created both documents under the `0048` ticket, grounded in the concrete implementation files and the generated stdlib table that caused the failure (`globalThis` mapped to `JS_NULL`). The postmortem captures the incident signature, root causes, and a prevention checklist. The playbook is an end-to-end recipe: build UI assets, build/flash firmware, verify REST eval, verify `encoder`/`emit`, register callbacks, and observe `js_events` in the browser WS history.
 
-**Commit (docs):** TBD (this step commits the docs)
+**Commit (docs):** ceba6e5 — "Docs: postmortem + playbook for JS service"
 
 ### What I did
 - Wrote the postmortem reference doc:
