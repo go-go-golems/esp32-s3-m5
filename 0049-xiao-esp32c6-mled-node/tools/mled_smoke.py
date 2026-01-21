@@ -259,6 +259,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--group", default=MCAST_GRP)
     ap.add_argument("--port", type=int, default=MCAST_PORT)
+    ap.add_argument("--bind-ip", default=None, help="Bind the UDP socket to a specific local IPv4 (fixes multi-NIC multicast routing)")
     ap.add_argument("--timeout", type=float, default=2.0)
     ap.add_argument("--repeat", type=int, default=2)
     ap.add_argument("--epoch", type=lambda s: int(s, 0), default=None, help="epoch id (default: random u32)")
@@ -302,6 +303,10 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
     sock.settimeout(0.05)
+
+    if args.bind_ip:
+        sock.bind((args.bind_ip, 0))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(args.bind_ip))
 
     # 1) Discover nodes
     nodes = discover(sock, group=args.group, port=args.port, timeout_s=args.timeout, repeat=args.repeat)

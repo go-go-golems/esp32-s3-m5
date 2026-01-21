@@ -91,6 +91,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--group", default=MCAST_GRP)
     ap.add_argument("--port", type=int, default=MCAST_PORT)
+    ap.add_argument("--bind-ip", default=None, help="Bind the UDP socket to a specific local IPv4 (fixes multi-NIC multicast routing)")
     ap.add_argument("--timeout", type=float, default=2.0, help="Seconds to wait for PONGs")
     ap.add_argument("--repeat", type=int, default=1)
     args = ap.parse_args()
@@ -99,6 +100,10 @@ def main():
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
     sock.settimeout(0.2)
 
+    if args.bind_ip:
+        sock.bind((args.bind_ip, 0))
+        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(args.bind_ip))
+
     msg_id = random.randint(1, 0xFFFFFFFF)
     hdr = build_header(0x20, epoch_id=0, msg_id=msg_id, sender_id=0, payload_len=0)  # PING
 
@@ -106,7 +111,8 @@ def main():
         sock.sendto(hdr, (args.group, args.port))
         time.sleep(0.02)
 
-    print(f"sent PING msg_id={msg_id} to {args.group}:{args.port} from local port {sock.getsockname()[1]}")
+    local_ip, local_port = sock.getsockname()
+    print(f"sent PING msg_id={msg_id} to {args.group}:{args.port} from {local_ip}:{local_port}")
 
     deadline = time.time() + args.timeout
     seen = set()
@@ -146,4 +152,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
