@@ -26,7 +26,7 @@
 ## Implementation (Host Tools)
 
 - [x] Add Python smoke script to send `PING` and print `PONG` (std-lib only)
-- [ ] Extend Python smoke script: `BEACON` + `CUE_PREPARE` + scheduled `CUE_FIRE`
+- [x] Extend Python smoke script: `BEACON` + `CUE_PREPARE` + scheduled `CUE_FIRE`
 
 ## Validation
 

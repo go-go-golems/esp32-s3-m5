@@ -480,6 +480,36 @@ Filled in the playbook with a concrete “build → flash/monitor → provision 
 - Extend the playbook with a second stage once host tooling supports it:
   - BEACON (epoch + coarse sync) + CUE_PREPARE + scheduled CUE_FIRE, and confirm `APPLY cue=...` in device logs.
 
+## Step 11: Add a full two-phase cue host smoke tool (BEACON + PREPARE + FIRE)
+
+Extended the host tooling beyond “PING only” by adding a second script that drives the full minimum MLED/1 flow end-to-end:
+
+- discover nodes with `PING`/`PONG`
+- establish epoch and coarse show-time sync with `BEACON`
+- optionally answer `TIME_REQ` with `TIME_RESP`
+- send `CUE_PREPARE` targeted to a discovered node and wait for `ACK`
+- send a scheduled `CUE_FIRE` and then re-ping to confirm the node reports `active_cue_id`
+
+This makes it possible to test protocol correctness (epoch gating + cue store + scheduler) with no additional controller software.
+
+### What I did
+- Added `esp32-s3-m5/0049-xiao-esp32c6-mled-node/tools/mled_smoke.py`.
+- Updated the playbook with a new “two-phase cue” stage:
+  - `ttmp/2026/01/21/0049-NODE-PROTOCOL--esp32-c6-node-protocol-firmware/playbook/01-playbook-flash-esp32-c6-node-python-smoke-test.md`
+- Checked off the corresponding host-tools task in `tasks.md`.
+
+### Why
+- It’s faster to validate the protocol in isolation with a tiny std-lib Python harness than to immediately depend on a larger controller UI stack.
+
+### What worked
+- The script uses the same wire layout as the firmware and includes an optional TIME_RESP responder, which exercises the node’s refinement codepath.
+
+### What didn't work
+- N/A (this is ready to be exercised on real hardware next).
+
+### What should be done in the future
+- If we decide on dedup semantics for repeated `CUE_FIRE`, extend the script to retransmit fires and verify node behavior.
+
 <!-- Provide background context needed to use this reference -->
 
 ## Quick Reference

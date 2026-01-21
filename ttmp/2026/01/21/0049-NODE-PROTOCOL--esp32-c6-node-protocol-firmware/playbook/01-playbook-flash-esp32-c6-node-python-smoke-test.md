@@ -103,6 +103,26 @@ If you see no PONGs:
 - try increasing `--timeout` to `5.0`
 - try running the python script from a different machine on the same Wi‑Fi
 
+### 4) Run “two-phase cue” smoke test (BEACON + PREPARE + scheduled FIRE)
+
+This validates:
+- `BEACON` epoch + coarse time sync
+- optional `TIME_REQ/TIME_RESP` refinement
+- `CUE_PREPARE` store + `ACK`
+- `CUE_FIRE` scheduling + `APPLY cue=...` log on the device
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-xiao-esp32c6-mled-node
+python3 tools/mled_smoke.py --timeout 2.0 --cue 42 --delay-ms 800
+```
+
+Expected:
+- On the host: `found node_id=...`, `sent CUE_PREPARE ...`, `got ACK ...`, `sent CUE_FIRE ...`, `post-fire status: ... cue=42`
+- On the device monitor: log lines containing:
+  - `CUE_PREPARE cue=42 ...`
+  - `CUE_FIRE cue=42 execute_at=...`
+  - `APPLY cue=42 ...`
+
 ## Exit Criteria
 
 - Firmware builds locally (`idf.py build` succeeds).
@@ -111,5 +131,5 @@ If you see no PONGs:
 
 ## Notes
 
-- This playbook validates discovery and basic socket/protocol parsing only. A cue prepare/fire test will be added next (BEACON + CUE_PREPARE + scheduled CUE_FIRE).
+- The cue smoke test uses a host-generated show clock based on `time.monotonic()`; it’s sufficient for correctness testing, not for “performance grade” sync characterization.
 - The node currently applies cues in a “log-only” mode (it updates PONG state and prints `APPLY cue=...`). Hardware LED integration is a follow-up task.
