@@ -67,6 +67,7 @@ struct Service {
 
   TaskHandle_t task = nullptr;
   QueueHandle_t q = nullptr;
+  SemaphoreHandle_t ready = nullptr;
 
   uint8_t* arena = nullptr;
   MqjsVm* vm = nullptr;
@@ -105,7 +106,19 @@ static void service_ensure_ctx(Service* s) {
 
 static void service_task(void* arg) {
   auto* s = static_cast<Service*>(arg);
-  if (!s) vTaskDelete(nullptr);
+  if (!s) {
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  // Signal creator that the task started and is safe to interact with.
+  if (s->ready) {
+    xSemaphoreGive(s->ready);
+  }
+  if (!s->q) {
+    vTaskDelete(nullptr);
+    return;
+  }
 
   for (;;) {
     Msg msg = {};
@@ -217,8 +230,15 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
     // keep explicit bool; no-op
   }
 
+  s->ready = xSemaphoreCreateBinary();
+  if (!s->ready) {
+    delete s;
+    return ESP_ERR_NO_MEM;
+  }
+
   s->q = xQueueCreate(static_cast<UBaseType_t>(s->cfg.queue_len), sizeof(Msg));
   if (!s->q) {
+    vSemaphoreDelete(s->ready);
     delete s;
     return ESP_ERR_NO_MEM;
   }
@@ -242,9 +262,22 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
   }
   if (ok != pdPASS) {
     vQueueDelete(s->q);
+    vSemaphoreDelete(s->ready);
     delete s;
     return ESP_ERR_NO_MEM;
   }
+
+  // Ensure the created task is running before returning. If the task fails to start,
+  // consumers could otherwise enqueue work and then deadlock waiting on completions.
+  if (xSemaphoreTake(s->ready, pdMS_TO_TICKS(1000)) != pdTRUE) {
+    vTaskDelete(s->task);
+    vQueueDelete(s->q);
+    vSemaphoreDelete(s->ready);
+    delete s;
+    return ESP_FAIL;
+  }
+  vSemaphoreDelete(s->ready);
+  s->ready = nullptr;
 
   *out = reinterpret_cast<mqjs_service_t*>(s);
   return ESP_OK;
