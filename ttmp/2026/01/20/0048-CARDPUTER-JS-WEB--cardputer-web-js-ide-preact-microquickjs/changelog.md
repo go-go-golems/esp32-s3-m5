@@ -269,3 +269,13 @@ Step 28: Emit overflow produces js_events_dropped WS frame (commit 1a7506c)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Flush now broadcasts js_events_dropped as a separate frame
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Check legacy Phase 2C tasks 72/73
 
+
+## 2026-01-21
+
+Step 29: Fix JS bootstraps (MicroQuickJS no arrow functions) (commits 88cdfc6,eae0173)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Rewrite bootstraps to ES5 function syntax
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Help panel no longer recommends arrow functions
+

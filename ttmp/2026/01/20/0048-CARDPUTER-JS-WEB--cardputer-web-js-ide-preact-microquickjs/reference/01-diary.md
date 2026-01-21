@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T12:14:30-05:00
+LastUpdated: 2026-01-21T14:44:04-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -75,6 +75,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 26: Phase 2B MVP: encoder.on callbacks invoked on-device via js_service
 - Step 27: Phase 2C MVP: emit() + flush js_events to browser over WebSocket
 - Step 28: Phase 2C: emit overflow emits js_events_dropped frame
+- Step 29: Fix bootstraps: MicroQuickJS lacks arrow functions (encoder/emit undefined)
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1663,3 +1664,68 @@ I adjusted the flush protocol so an overflow produces a **separate** `{"type":"j
 - The WS frame types emitted are now:
   - `js_events`
   - `js_events_dropped` (optional)
+
+## Step 29: Fix bootstraps: MicroQuickJS lacks arrow functions (encoder/emit undefined)
+
+You observed `ReferenceError: variable 'encoder' is not defined` and `ReferenceError: variable 'emit' is not defined`, and the device logs showed:
+
+- `bootstrap 2B failed: SyntaxError: invalid lvalue`
+- `bootstrap 2C failed: SyntaxError: invalid lvalue`
+- then flush failures because `__0048_take_lines` was never installed.
+
+The root cause is that the MicroQuickJS stdlib/runtime in this repo does **not** accept ES6 arrow functions (`=>`). In this engine build, the parser reports `SyntaxError: invalid lvalue` at the `=>` token. Because the bootstrap snippets used arrow functions, they failed to parse, so the globals were never created.
+
+I rewrote both bootstraps to ES5 syntax (`function(...) { ... }`) and also switched from `globalThis` to `this` (top-level global object in non-strict scripts) to avoid relying on `globalThis` semantics in this embedding. I updated the UI help panel accordingly to avoid suggesting arrow functions in examples.
+
+**Commit (code):** 88cdfc6 — "0048: fix JS bootstrap (no arrow functions)"  
+**Commit (code):** eae0173 — "0048: clarify no-arrow JS in help"
+
+### What I did
+- Fixed Phase 2B bootstrap (`encoder.on/off`) to ES5 syntax:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`install_bootstrap_phase2b`)
+  - Now uses:
+    - `var g = this;`
+    - `encoder.on = function(t, fn) { ... }`
+    - `encoder.off = function(t) { ... }`
+- Fixed Phase 2C bootstrap (`emit`, `__0048_take_lines`) to ES5 syntax:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`install_bootstrap_phase2c`)
+  - Now uses:
+    - `g.emit = function(topic, payload) { ... }`
+    - `g.__0048_take_lines = function(source) { ... }`
+- Updated the Web IDE help text examples to avoid arrow functions:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+  - rebuilt embedded assets into `main/assets/assets/app.js`
+- Rebuilt firmware successfully:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_js_svc build`
+
+### Why
+- Without working bootstraps, Phase 2B and 2C features simply do not exist at runtime; fixing parser compatibility is required for correctness.
+
+### What worked
+- The firmware now builds with ES5-only bootstraps.
+- The help panel no longer recommends unsupported syntax.
+
+### What didn't work
+- The earlier bootstraps used arrow functions and failed with `SyntaxError: invalid lvalue`.
+
+### What I learned
+- In this repo’s MicroQuickJS build, “invalid lvalue” at bootstrap time is an indicator of unsupported syntax like `=>` (not necessarily a bad assignment target).
+
+### What was tricky to build
+- Ensuring the fix is robust across this embedding’s global semantics (`this` vs `globalThis`) while keeping the bootstrap snippets small and deterministic.
+
+### What warrants a second pair of eyes
+- Confirm whether other ES6 features are missing (e.g., `let`/`const`) and whether we should add a short “ES5-only” note to the MicroQuickJS guide doc.
+
+### What should be done in the future
+- Add a small runtime self-test in `js_service` that evaluates a minimal snippet at init and logs a clear “JS feature level” banner (optional).
+
+### Code review instructions
+- Review bootstrap changes:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+- Review help text:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+
+### Technical details
+- The specific parse failure was at the `=>` token (arrow function), reported as `SyntaxError: invalid lvalue` by this MicroQuickJS build.
