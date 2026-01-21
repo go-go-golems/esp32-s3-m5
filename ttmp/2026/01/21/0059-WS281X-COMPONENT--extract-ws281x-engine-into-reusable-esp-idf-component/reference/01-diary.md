@@ -133,6 +133,23 @@ After the extraction, a “no PONGs received” symptom can happen even when the
   - `python3 tools/mled_ping.py --timeout 2 --repeat 2`
   - If no PONGs, retry with `--bind-ip <your-host-lan-ip>` and check device logs for `mled_node: PING ...` lines.
 
+## Step 4: Fix stack protection fault in `mled_node` during cue runs
+
+During host-driven cue runs (after the WS281x extraction), the device hit a `Guru Meditation Error: Stack protection fault` in the `mled_node` task shortly after `CUE_FIRE`. This is consistent with the node task stack being too small / too close to the guard, especially with a 2KB receive buffer allocated on the task stack and additional logging/handler call depth.
+
+**Commit (code):** e576d5f — "mled_node: reduce stack use and bump task stack"
+
+### What I did
+- Reduced `mled_node` task stack pressure by moving the 2048-byte RX buffer off the task stack into a static buffer.
+- Increased the node task stack size (and made it configurable via `CONFIG_MLED_NODE_TASK_STACK`, with a safe fallback default).
+
+### Why
+- Stack protection faults are often “Heisenbugs”: adding logs or slightly different timing can tip a marginal stack into overflow.
+- Reducing stack usage at the source is more reliable than chasing individual call paths.
+
+### What should be done next
+- Re-flash and re-run the pattern smoke sequence; confirm no panics and that PING/PONG + ACK/APPLY continue to work.
+
 ## Quick Reference
 
 N/A (see design doc + playbook).
