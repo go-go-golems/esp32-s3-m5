@@ -210,6 +210,8 @@ I also related the highest-leverage files (0017 HTTP server + asset pipeline, an
 
 At this point the design docs exist, but a design without an executable “how to validate it” procedure tends to rot. So I added two playbooks (Phase 1 and Phase 2 smoke tests) that turn the designs into repeatable checklists. I also updated the ticket index and task list so a new reader can start at `index.md` and immediately find the correct docs and the concrete next implementation steps.
 
+**Commit (docs):** 1d235f8 — "Docs: add 0048 playbooks + update index/tasks"
+
 ### What I did
 - Created and wrote Phase 1 playbook:
   - `.../playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md`

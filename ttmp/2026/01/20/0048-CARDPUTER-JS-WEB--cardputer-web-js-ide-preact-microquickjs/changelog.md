@@ -41,3 +41,13 @@ Step 4: Draft Phase 2 WS encoder telemetry design (commit feae3f7)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/02-phase-2-design-encoder-position-click-over-websocket.md — Added Phase 2 WS message schema and encoder streaming architecture
 
+
+## 2026-01-20
+
+Step 5: Add playbooks and update index/tasks (commit 1d235f8)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md — Added Phase 1 smoke-test procedure
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/02-playbook-phase-2-websocket-encoder-telemetry-smoke-test.md — Added Phase 2 WS telemetry smoke-test procedure
+
