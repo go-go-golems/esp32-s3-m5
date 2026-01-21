@@ -118,6 +118,50 @@ This step creates a reusable FreeRTOS task that owns a `MqjsVm` instance and pro
   - `mqjs_service_start`, `mqjs_service_eval`, `mqjs_service_run`, `mqjs_service_post`
   - `job_bootstrap`, `job_handle_encoder_delta`, `job_handle_encoder_click`, `flush_js_events_to_ws`
 
+## Step 2: Fix early-boot panic in service task (NULL queue / task start race)
+
+After flashing the `mqjs_service` refactor, the device immediately panicked during boot inside the service task’s first `xQueueReceive`. The backtrace pointed at `vPortEnterCritical`/`spinlock_acquire` with a very small invalid address (EXCVADDR `0x4d`), consistent with attempting to enter a critical section using a queue handle that was `NULL` (field-offset address) or otherwise not safely initialized for the running task.
+
+**Commit (code):** 1cbd51f — "0055: handshake-start mqjs_service task"
+
+### What I did
+- Added a task-start handshake so `mqjs_service_start` only returns after the created task has actually started running.
+- Added an early guard in the task: if `s->q` is `NULL`, the task exits instead of calling `xQueueReceive` and panicking.
+
+### Why
+- Without an explicit “task is alive and has its queue pointer” handshake, a failure mode can become a hard-to-debug boot panic (or a deadlock if the creator blocks waiting for a completion that can never arrive).
+
+### What worked
+- `idf.py -B build_esp32s3_mqjs_service_comp build` still succeeds after the change.
+
+### What didn't work
+- Boot on device previously panicked with:
+  - `Guru Meditation Error: Core  0 panic'ed (LoadProhibited)`
+  - Backtrace into `components/mqjs_service/mqjs_service.cpp` at the `xQueueReceive` line.
+
+### What I learned
+- For “single-owner task services” that expose synchronous APIs, it’s worth paying a tiny one-time cost to ensure the worker task is running before returning from `*_start()`.
+
+### What was tricky to build
+- N/A (small control-plane change).
+
+### What warrants a second pair of eyes
+- Confirm that the 1-second handshake timeout is appropriate for all targets and that failure cleanup is correct.
+
+### What should be done in the future
+- Re-flash and re-run the smoke test (task 9) to confirm:
+  - boot is stable
+  - REST eval works
+  - encoder callbacks and WS event flush still work
+
+### Code review instructions
+- Review `components/mqjs_service/mqjs_service.cpp`:
+  - `mqjs_service_start` readiness semaphore logic
+  - `service_task` early signal + `NULL` queue guard
+
+### Technical details
+- The panic location was `service_task` → `xQueueReceive` → `vPortEnterCritical` → `spinlock_acquire`, with EXCVADDR `0x4d` (consistent with a `NULL` queue handle leading to an invalid field-offset address).
+
 ## Related
 
 <!-- Link to related documents or resources -->
