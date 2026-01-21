@@ -8,7 +8,7 @@
 #include "esp_console.h"
 #include "esp_err.h"
 
-#include "js_runner.h"
+#include "js_service.h"
 
 namespace {
 
@@ -38,7 +38,7 @@ static int cmd_js(int argc, char** argv) {
       code += argv[i];
     }
 
-    const std::string json = js_runner_eval_to_json(code.c_str(), code.size());
+    const std::string json = js_service_eval_to_json(code.c_str(), code.size(), 0, "<console>");
     printf("%s\n", json.c_str());
     return 0;
   }
@@ -56,4 +56,3 @@ extern "C" void js_console_register_commands(void) {
   cmd.func = &cmd_js;
   ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
-

@@ -6,6 +6,7 @@ idf_component_register(
         "js_console.cpp"
         "http_server.cpp"
         "js_runner.cpp"
+        "js_service.cpp"
         "encoder_telemetry.cpp"
         "chain_encoder_uart.cpp"
         "esp32_stdlib_runtime.c"

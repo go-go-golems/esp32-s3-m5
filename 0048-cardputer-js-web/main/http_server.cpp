@@ -19,7 +19,7 @@
 #include "esp_netif_ip_addr.h"
 
 #include "encoder_telemetry.h"
-#include "js_runner.h"
+#include "js_service.h"
 #include "lwip/inet.h"
 
 #include "wifi_mgr.h"
@@ -262,7 +262,7 @@ static esp_err_t js_eval_post(httpd_req_t* req) {
   }
   buf[n] = 0;
 
-  std::string json = js_runner_eval_to_json(buf, n);
+  std::string json = js_service_eval_to_json(buf, n, 0, "<http>");
   free(buf);
   return send_json(req, json.c_str());
 }
@@ -270,7 +270,7 @@ static esp_err_t js_eval_post(httpd_req_t* req) {
 esp_err_t http_server_start(void) {
   if (s_server) return ESP_OK;
 
-  ESP_ERROR_CHECK(js_runner_init());
+  ESP_ERROR_CHECK(js_service_start());
 
   httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
   cfg.uri_match_fn = httpd_uri_match_wildcard;
