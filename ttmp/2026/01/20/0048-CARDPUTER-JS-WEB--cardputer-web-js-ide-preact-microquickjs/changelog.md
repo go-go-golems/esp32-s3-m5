@@ -51,3 +51,12 @@ Step 5: Add playbooks and update index/tasks (commit 1d235f8)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md — Added Phase 1 smoke-test procedure
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/02-playbook-phase-2-websocket-encoder-telemetry-smoke-test.md — Added Phase 2 WS telemetry smoke-test procedure
 
+
+## 2026-01-20
+
+Step 8: Add consolidated MicroQuickJS guide
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/03-guide-using-microquickjs-mquickjs-in-our-esp-idf-setting.md — Repo-specific MicroQuickJS embedding/operation guide
+

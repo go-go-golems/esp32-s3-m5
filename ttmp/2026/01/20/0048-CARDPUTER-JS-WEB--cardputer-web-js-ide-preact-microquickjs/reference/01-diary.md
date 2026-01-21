@@ -257,6 +257,144 @@ At this point the design docs exist, but a design without an executable “how t
 ### Technical details
 - N/A (documentation-only step)
 
+## Step 6: Upload current ticket bundle to reMarkable
+
+After the Phase 1/Phase 2 docs and playbooks existed, I exported the “core reading set” as a single bundled PDF and uploaded it to the reMarkable. This is useful because it turns the ticket into a portable artifact that can be reviewed without a laptop, and because it preserves the exact snapshot of documentation that the implementation work should follow.
+
+Notably, this upload step does not modify the git repo; it’s an external sync action. I still record it here because it’s part of the workflow provenance.
+
+### What I did
+- Verified the uploader tool is available:
+  - `remarquee status`
+- Dry-run a bundle upload (to ensure the right docs are included and ordered):
+  - `remarquee upload bundle --dry-run <index + prior art + designs + playbooks + diary> --name "0048 CARDPUTER JS WEB (Design + Playbooks + Diary)" --remote-dir "/ai/2026/01/21/0048-CARDPUTER-JS-WEB" --toc-depth 3`
+- Uploaded the bundle (no overwrite; new doc):
+  - `remarquee upload bundle ... --name "0048 CARDPUTER JS WEB (Design + Playbooks + Diary)" --remote-dir "/ai/2026/01/21/0048-CARDPUTER-JS-WEB" --toc-depth 3`
+- Verified remote contents:
+  - `remarquee cloud ls /ai/2026/01/21/0048-CARDPUTER-JS-WEB --long --non-interactive`
+
+### Why
+- A single PDF with a ToC is easier to review and annotate on reMarkable than a folder of Markdown files.
+
+### What worked
+- `remarquee upload bundle` succeeded and the PDF appeared under:
+  - `/ai/2026/01/21/0048-CARDPUTER-JS-WEB`
+
+### What didn't work
+- N/A
+
+### What I learned
+- Bundling is the best “default” export mode for tickets: it captures narrative + contracts + playbooks together.
+
+### What was tricky to build
+- Choosing a stable remote name that won’t overwrite annotations. I avoided `--force` and used a new upload.
+
+### What warrants a second pair of eyes
+- N/A (operational step)
+
+### What should be done in the future
+- When implementation begins and docs evolve, re-upload an updated bundle with a new name suffix (date/time) to avoid destroying annotations.
+
+### Code review instructions
+- N/A
+
+### Technical details
+- Uploaded bundle name: `0048 CARDPUTER JS WEB (Design + Playbooks + Diary).pdf`
+
+## Step 7: Find and enumerate MicroQuickJS usage playbooks (docmgr search)
+
+Before implementing the REST execution endpoint, I wanted to confirm whether the repo already has “how to use MicroQuickJS properly” guidance beyond the `JsEvaluator` code itself. So I used `docmgr doc search` for `mquickjs`, `microquickjs`, `JsEvaluator`, and `JS_Eval` and then captured the top relevant results.
+
+### What I did
+- Searched docmgr:
+  - `docmgr doc search --query "mquickjs"`
+  - `docmgr doc search --query "microquickjs"`
+  - `docmgr doc search --query "JsEvaluator"`
+  - `docmgr doc search --query "JS_Eval"`
+
+### Why
+- MicroQuickJS has sharp edges (stdlib generation, memory pools, interrupt handling, SPIFFS integration). If the repo already has canonical guidance, we should cite and reuse it.
+
+### What worked
+- Search surfaced several high-signal documents:
+  - `ttmp/2025/12/29/0014-CARDPUTER-JS--port-microquickjs-repl-to-cardputer/reference/02-microquickjs-native-extensions-on-esp32-playbook-reference-manual.md`
+  - `ttmp/2026/01/11/MO-02-ESP32-DOCS--esp32-firmware-diary-synthesis/playbook/15-guide-microquickjs-repl-extensions.md`
+  - `ttmp/2026/01/11/MO-02-MQJS-REPL-COMPONENTS--extract-microquickjs-repl-components/design-doc/01-component-extraction-plan-replloop-jsevaluator-spiffs.md`
+  - Plus the original 0014 design docs and diary.
+
+### What didn't work
+- N/A
+
+### What I learned
+- There is enough existing MicroQuickJS documentation in this repo to justify writing a “single consolidated guide” for our specific setting, rather than relying on scattered tickets.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Add the newly found MQJS docs to `0048`’s prior art list (or link them from the new MQJS guide doc).
+
+### Code review instructions
+- N/A
+
+### Technical details
+- N/A
+
+## Step 8: Consolidate “how to use MicroQuickJS properly” into a single guide
+
+At this point, I had (a) our Phase 1/Phase 2 designs, and (b) lots of scattered MicroQuickJS prior art across tickets and code. The missing piece was a single “house style” guide that answers: *what is the right way to embed MicroQuickJS in ESP-IDF in this repo?* In particular, we repeatedly need to get the details right for:
+
+- wiring the stdlib (`js_stdlib`) correctly (it’s generated and easy to mismatch),
+- using a fixed memory pool (predictability and anti-fragmentation),
+- bounding evaluation time (interrupt handler) to prevent hangs,
+- producing stable, UI-friendly output strings,
+- and adding extensions safely.
+
+So I created a consolidated reference doc and grounded it in the concrete implementation files we already have.
+
+### What I did
+- Created the doc:
+  - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type reference --title "Guide: Using MicroQuickJS (mquickjs) in our ESP-IDF setting"`
+- Wrote the guide content:
+  - `.../reference/03-guide-using-microquickjs-mquickjs-in-our-esp-idf-setting.md`
+- Related the primary in-repo sources (absolute paths) to the guide:
+  - `docmgr doc relate --doc .../reference/03-...md --file-note "...:reason"`
+
+### Why
+- Without a single guide, every new “JS evaluation surface” (REPL, REST, WS-driven scripts) re-discovers the same sharp edges.
+
+### What worked
+- The existing codebase already contains a canonical evaluation pattern (`JsEvaluator`) and a canonical stdlib wiring (`esp32_stdlib_runtime.c` + generated `esp32_stdlib.h`). That made it possible to write a guide that is evidence-based rather than speculative.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The `js_stdlib` contract in this repo is “non-obvious but stable”: it is defined in a generated header and included by the runtime C file, so “half-copying” pieces causes link failures or subtle mismatches.
+
+### What was tricky to build
+- Keeping the guide concise enough to be usable while still making the critical invariants explicit (memory pool, timeouts, concurrency).
+
+### What warrants a second pair of eyes
+- Confirm the “house rules” in the guide match actual expectations for future work (especially around concurrency model: mutex vs dedicated task ownership).
+
+### What should be done in the future
+- As we implement `0048-cardputer-js-web`, update the guide with any new failure modes we hit in practice (timeout behavior, output capture semantics, memory tuning).
+
+### Code review instructions
+- Read:
+  - `esp32-s3-m5/ttmp/.../reference/03-guide-using-microquickjs-mquickjs-in-our-esp-idf-setting.md`
+- Spot-check file pointers resolve:
+  - `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp`
+  - `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib_runtime.c`
+  - `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h`
+
+### Technical details
+- N/A (documentation-only step)
+
 ## Step 4: Write Phase 2 design doc (encoder telemetry over WebSocket)
 
 Phase 2 is where the system becomes “alive”: instead of the browser only sending requests (REST) and waiting for replies, the device continuously streams state changes (encoder position and click) to the UI. That shift forces us to specify ordering, rate limits, coalescing semantics, and reconnection behavior—exactly the parts that are easy to handwave and painful to debug later.
