@@ -8,6 +8,7 @@ idf_component_register(
         "led_console.c"
         "http_server.c"
     PRIV_REQUIRES
+        httpd_assets_embed
         wifi_mgr
         wifi_console
         nvs_flash

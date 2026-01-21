@@ -2191,6 +2191,27 @@ CONFIG_ECHO_GIF_STORAGE_PARTITION_LABEL="storage"
 CONFIG_ECHO_GIF_STORAGE_GIF_DIR="/storage/gifs"
 CONFIG_ECHO_GIF_STORAGE_GIF_DIR_FALLBACK="/storage"
 # end of echo_gif: GIF storage + registry + playback
+
+#
+# mled_node: MLED/1 UDP multicast node
+#
+CONFIG_MLED_NODE_NAME="c6-node"
+CONFIG_MLED_NODE_TIME_REQ_ENABLE=y
+CONFIG_MLED_NODE_TIME_REQ_MIN_INTERVAL_MS=500
+# end of mled_node: MLED/1 UDP multicast node
+
+#
+# Wi-Fi console
+#
+CONFIG_WIFI_CONSOLE_MAX_SCAN_RESULTS=20
+# end of Wi-Fi console
+
+#
+# wifi_mgr: Wi-Fi STA manager
+#
+CONFIG_WIFI_MGR_MAX_RETRY=10
+CONFIG_WIFI_MGR_AUTOCONNECT_ON_BOOT=y
+# end of wifi_mgr: Wi-Fi STA manager
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set

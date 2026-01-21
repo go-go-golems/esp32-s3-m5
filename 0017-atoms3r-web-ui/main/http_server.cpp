@@ -23,6 +23,7 @@
 #include "esp_netif_ip_addr.h"
 
 #include "display_app.h"
+#include "httpd_assets_embed.h"
 #include "storage_fatfs.h"
 #include "wifi_app.h"
 
@@ -216,21 +217,30 @@ static esp_err_t send_json(httpd_req_t *req, const char *json) {
 }
 
 static esp_err_t root_get(httpd_req_t *req) {
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    const size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
-    return httpd_resp_send(req, (const char *)assets_index_html_start, len);
+    return httpd_assets_embed_send(req,
+                                  assets_index_html_start,
+                                  assets_index_html_end,
+                                  "text/html; charset=utf-8",
+                                  NULL,
+                                  true);
 }
 
 static esp_err_t asset_app_js_get(httpd_req_t *req) {
-    httpd_resp_set_type(req, "application/javascript");
-    const size_t len = (size_t)(assets_app_js_end - assets_app_js_start);
-    return httpd_resp_send(req, (const char *)assets_app_js_start, len);
+    return httpd_assets_embed_send(req,
+                                  assets_app_js_start,
+                                  assets_app_js_end,
+                                  "application/javascript",
+                                  NULL,
+                                  true);
 }
 
 static esp_err_t asset_app_css_get(httpd_req_t *req) {
-    httpd_resp_set_type(req, "text/css");
-    const size_t len = (size_t)(assets_app_css_end - assets_app_css_start);
-    return httpd_resp_send(req, (const char *)assets_app_css_start, len);
+    return httpd_assets_embed_send(req,
+                                  assets_app_css_start,
+                                  assets_app_css_end,
+                                  "text/css",
+                                  NULL,
+                                  true);
 }
 
 static esp_err_t status_get(httpd_req_t *req) {
@@ -563,5 +573,4 @@ esp_err_t http_server_start(void) {
 
     return ESP_OK;
 }
-
 

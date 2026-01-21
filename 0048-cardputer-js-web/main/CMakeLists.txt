@@ -10,6 +10,7 @@ idf_component_register(
         "esp32_stdlib_runtime.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
+        httpd_assets_embed
         wifi_mgr
         wifi_console
         nvs_flash

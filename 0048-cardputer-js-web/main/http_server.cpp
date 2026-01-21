@@ -19,6 +19,7 @@
 #include "esp_netif_ip_addr.h"
 
 #include "encoder_telemetry.h"
+#include "httpd_assets_embed.h"
 #include "js_service.h"
 #include "lwip/inet.h"
 
@@ -34,12 +35,6 @@ extern const uint8_t assets_app_js_start[] asm("_binary_app_js_start");
 extern const uint8_t assets_app_js_end[] asm("_binary_app_js_end");
 extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
 extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
-
-static size_t embedded_txt_len(const uint8_t* start, const uint8_t* end) {
-  size_t len = (size_t)(end - start);
-  if (len > 0 && start[len - 1] == 0) len--;
-  return len;
-}
 
 #if CONFIG_HTTPD_WS_SUPPORT
 static SemaphoreHandle_t s_ws_mu = nullptr;
@@ -170,24 +165,30 @@ static esp_err_t send_json(httpd_req_t* req, const char* body) {
 }
 
 static esp_err_t root_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "text/html; charset=utf-8");
-  httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = embedded_txt_len(assets_index_html_start, assets_index_html_end);
-  return httpd_resp_send(req, (const char*)assets_index_html_start, len);
+  return httpd_assets_embed_send(req,
+                                assets_index_html_start,
+                                assets_index_html_end,
+                                "text/html; charset=utf-8",
+                                "no-store",
+                                true);
 }
 
 static esp_err_t asset_app_js_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "application/javascript; charset=utf-8");
-  httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = embedded_txt_len(assets_app_js_start, assets_app_js_end);
-  return httpd_resp_send(req, (const char*)assets_app_js_start, len);
+  return httpd_assets_embed_send(req,
+                                assets_app_js_start,
+                                assets_app_js_end,
+                                "application/javascript; charset=utf-8",
+                                "no-store",
+                                true);
 }
 
 static esp_err_t asset_app_css_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "text/css; charset=utf-8");
-  httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = embedded_txt_len(assets_app_css_start, assets_app_css_end);
-  return httpd_resp_send(req, (const char*)assets_app_css_start, len);
+  return httpd_assets_embed_send(req,
+                                assets_app_css_start,
+                                assets_app_css_end,
+                                "text/css; charset=utf-8",
+                                "no-store",
+                                true);
 }
 
 static esp_err_t status_get(httpd_req_t* req) {

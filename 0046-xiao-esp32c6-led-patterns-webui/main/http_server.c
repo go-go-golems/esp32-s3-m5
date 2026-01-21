@@ -21,6 +21,7 @@
 
 #include "cJSON.h"
 
+#include "httpd_assets_embed.h"
 #include "led_task.h"
 #include "wifi_mgr.h"
 
@@ -37,18 +38,6 @@ extern const uint8_t assets_app_js_map_gz_start[] asm("_binary_app_js_map_gz_sta
 extern const uint8_t assets_app_js_map_gz_end[] asm("_binary_app_js_map_gz_end");
 extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
 extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
-
-static size_t embedded_txt_len(const uint8_t *start, const uint8_t *end)
-{
-    size_t len = (size_t)(end - start);
-    if (len > 0 && start[len - 1] == 0) len--;
-    return len;
-}
-
-static size_t embedded_bin_len(const uint8_t *start, const uint8_t *end)
-{
-    return (size_t)(end - start);
-}
 
 static void maybe_set_no_store(httpd_req_t *req)
 {
@@ -75,35 +64,63 @@ static void register_or_log(const httpd_uri_t *uri)
 
 static esp_err_t root_get(httpd_req_t *req)
 {
-    maybe_set_no_store(req);
-    httpd_resp_set_type(req, "text/html; charset=utf-8");
-    const size_t len = embedded_txt_len(assets_index_html_start, assets_index_html_end);
-    return httpd_resp_send(req, (const char *)assets_index_html_start, len);
+#if CONFIG_MO033_HTTP_CACHE_NO_STORE
+    const char *cache = "no-store";
+#else
+    const char *cache = NULL;
+#endif
+    return httpd_assets_embed_send(req,
+                                  assets_index_html_start,
+                                  assets_index_html_end,
+                                  "text/html; charset=utf-8",
+                                  cache,
+                                  true);
 }
 
 static esp_err_t asset_app_js_get(httpd_req_t *req)
 {
-    maybe_set_no_store(req);
-    httpd_resp_set_type(req, "application/javascript; charset=utf-8");
-    const size_t len = embedded_txt_len(assets_app_js_start, assets_app_js_end);
-    return httpd_resp_send(req, (const char *)assets_app_js_start, len);
+#if CONFIG_MO033_HTTP_CACHE_NO_STORE
+    const char *cache = "no-store";
+#else
+    const char *cache = NULL;
+#endif
+    return httpd_assets_embed_send(req,
+                                  assets_app_js_start,
+                                  assets_app_js_end,
+                                  "application/javascript; charset=utf-8",
+                                  cache,
+                                  true);
 }
 
 static esp_err_t asset_app_css_get(httpd_req_t *req)
 {
-    maybe_set_no_store(req);
-    httpd_resp_set_type(req, "text/css; charset=utf-8");
-    const size_t len = embedded_txt_len(assets_app_css_start, assets_app_css_end);
-    return httpd_resp_send(req, (const char *)assets_app_css_start, len);
+#if CONFIG_MO033_HTTP_CACHE_NO_STORE
+    const char *cache = "no-store";
+#else
+    const char *cache = NULL;
+#endif
+    return httpd_assets_embed_send(req,
+                                  assets_app_css_start,
+                                  assets_app_css_end,
+                                  "text/css; charset=utf-8",
+                                  cache,
+                                  true);
 }
 
 static esp_err_t asset_app_js_map_get(httpd_req_t *req)
 {
-    maybe_set_no_store(req);
-    httpd_resp_set_type(req, "application/json; charset=utf-8");
     (void)httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
-    const size_t len = embedded_bin_len(assets_app_js_map_gz_start, assets_app_js_map_gz_end);
-    return httpd_resp_send(req, (const char *)assets_app_js_map_gz_start, len);
+#if CONFIG_MO033_HTTP_CACHE_NO_STORE
+    const char *cache = "no-store";
+#else
+    const char *cache = NULL;
+#endif
+    return httpd_assets_embed_send(req,
+                                  assets_app_js_map_gz_start,
+                                  assets_app_js_map_gz_end,
+                                  "application/json; charset=utf-8",
+                                  cache,
+                                  false);
 }
 
 static esp_err_t status_get(httpd_req_t *req)
