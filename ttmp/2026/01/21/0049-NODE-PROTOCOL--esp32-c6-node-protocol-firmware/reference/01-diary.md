@@ -464,6 +464,8 @@ Filled in the playbook with a concrete “build → flash/monitor → provision 
 ### What I did
 - Updated the playbook:
   - `ttmp/2026/01/21/0049-NODE-PROTOCOL--esp32-c6-node-protocol-firmware/playbook/01-playbook-flash-esp32-c6-node-python-smoke-test.md`
+ - Landed the first implementation milestone in the `esp32-s3-m5` git repo and referenced it from the playbook:
+   - `28eada6` — "0049: add ESP32-C6 MLED node firmware + ping tool"
 
 ### Why
 - The fastest feedback loop is “flash + ping”; it validates the protocol plumbing without needing any additional controller features or UI.
