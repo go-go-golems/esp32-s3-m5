@@ -154,3 +154,14 @@ Design docs: add implementation retrospectives + divergences + revised designs (
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md — Added Implementation Retrospective section grounded in shipped code/commits
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/02-phase-2-design-encoder-position-click-over-websocket.md — Added Implementation Retrospective section grounded in shipped code/commits
 
+
+## 2026-01-21
+
+Step 18: Fix U+0000 JS parse error by trimming EMBED_TXTFILES NUL; add esp_console 'js eval' (commit d59d037)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — Trim trailing NUL for embedded app.js/app.css/index.html
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp — New 'js eval' console command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 18
+

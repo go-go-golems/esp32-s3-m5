@@ -964,3 +964,65 @@ Because the hardware “encoder” was ambiguous, the firmware-side encoder work
 ### Technical details
 - Encoder telemetry JSON schema (text frame):
   - `{"type":"encoder","seq":N,"ts_ms":T,"pos":P,"delta":D,"pressed":true|false}`
+
+## Step 18: Fix `Uncaught SyntaxError: illegal character U+0000` by trimming embedded TXT NUL terminators; add `js eval` console command
+
+While loading the web UI, the browser reported `Uncaught SyntaxError: illegal character U+0000`. This was a regression I’ve seen before in `0046`: when using `EMBED_TXTFILES`, the embedded data includes a trailing `0x00` terminator. If the HTTP server sends that terminator as part of `app.js`, the JS parser sees a NUL character at EOF and errors.
+
+I confirmed the exact fix in `0046-xiao-esp32c6-led-patterns-webui/main/http_server.c` and ported the same `embedded_txt_len()` helper into `0048` so we always strip a trailing `0x00` from embedded “text” assets. In the same step, I added an `esp_console` command `js eval <code...>` so we can evaluate a JavaScript snippet from the serial console without using the browser.
+
+**Commit (code):** d59d037 — "0048: trim embedded TXT NUL + add js console command"
+
+### What I did
+- Investigated the prior fix in `0046`:
+  - `0046-xiao-esp32c6-led-patterns-webui/main/http_server.c` (`embedded_txt_len()` trims trailing NUL)
+- Fixed asset serving in `0048`:
+  - Added `embedded_txt_len()` and used it for:
+    - `GET /` (`index.html`)
+    - `GET /assets/app.js`
+    - `GET /assets/app.css`
+  - Also set `charset=utf-8` on those responses.
+- Added a JS console command:
+  - Added `0048-cardputer-js-web/main/js_console.{h,cpp}` implementing `js eval <code...>`
+  - Registered it from `wifi_console_start()` (same REPL instance) via `js_console_register_commands()`.
+- Verified the firmware still builds:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0048-cardputer-js-web && idf.py -B build_esp32s3_v2 build`
+
+### Why
+- `EMBED_TXTFILES` is convenient, but it is “C string shaped”: it commonly appends a NUL terminator.
+- Browsers treat that NUL as an illegal JS source character (U+0000) even when it appears at EOF.
+- A `js eval` console command is a high-leverage debugging tool: it validates the JS engine independent of Wi‑Fi/browser issues.
+
+### What worked
+- The fix is identical to known-good `0046`: trimming `start[len-1]==0` before `httpd_resp_send()`.
+- `js eval` now provides a fast sanity check path:
+  - `0048> js eval 1+1`
+
+### What didn't work
+- N/A (this step is a straight port of a prior proven fix + a small new console command)
+
+### What I learned
+- When embedding via `EMBED_TXTFILES`, treat the byte range as `len = (end-start)-1` iff the last byte is `0`.
+
+### What was tricky to build
+- Ensuring the new console command is registered on the existing REPL instance (we cannot start a second REPL).
+
+### What warrants a second pair of eyes
+- Confirm we want to keep `EMBED_TXTFILES` (and trim) versus switching to `EMBED_FILES` for JS/CSS to avoid terminators entirely.
+
+### What should be done in the future
+- Run Phase 1 playbook on hardware and confirm the browser now loads `app.js` without the U+0000 error.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/wifi_console.c`
+- Validate build:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0048-cardputer-js-web && idf.py -B build_esp32s3_v2 build`
+
+### Technical details
+- Reference fix source:
+  - `esp32-s3-m5/0046-xiao-esp32c6-led-patterns-webui/main/http_server.c:embedded_txt_len`
