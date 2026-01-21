@@ -32,3 +32,12 @@ Step 3: Draft Phase 1 design doc (commit 1daac0a)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md — Added Phase 1 architecture
 
+
+## 2026-01-20
+
+Step 4: Draft Phase 2 WS encoder telemetry design (commit feae3f7)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/02-phase-2-design-encoder-position-click-over-websocket.md — Added Phase 2 WS message schema and encoder streaming architecture
+

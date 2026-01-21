@@ -212,6 +212,8 @@ Phase 2 is where the system becomes “alive”: instead of the browser only sen
 
 I wrote a Phase 2 design doc that makes the signal model explicit (“authoritative state + optional deltas”), defines a minimal JSON frame schema, and outlines a firmware architecture that remains stable under bursty encoder input. I grounded the design in the in-repo WS broadcaster patterns (0017/0029) and the Chain Encoder protocol prior art (MO-036 + protocol PDF).
 
+**Commit (docs):** feae3f7 — "Docs: Phase 2 WS encoder telemetry design (0048)"
+
 ### What I did
 - Created the Phase 2 design doc:
   - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type design-doc --title "Phase 2 Design: Encoder position + click over WebSocket"`
