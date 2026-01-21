@@ -107,3 +107,45 @@ This step also migrated the two immediate consumers (`0048-cardputer-js-web` and
   - a capture buffer (`MqjsVm::capture_`) for helpers like `PrintValue`, or
   - `stdout` for normal prints.
 - `MqjsVm::InterruptHandler(JSContext*, void*)` uses `deadline_us_` (set via `SetDeadlineMs`) to interrupt long-running eval/flush/callbacks.
+
+## Step 2: Regression verified on device (no crash)
+
+The remaining work for this ticket was to validate the original crash scenario on real hardware after the refactor. The user verified the key reproductions now behave correctly, which effectively closes the loop on the “unstable ctx->opaque” bug class for this firmware family.
+
+**Validation (user-reported):** 2026-01-21 — `print({a:1})` works; `encoder.on('click', function(ev){ print(ev); })` works and does not panic.
+
+### What I did
+- Marked task 10 complete in docmgr.
+- Recorded the regression validation result here so we don’t re-test or re-litigate this later.
+
+### Why
+- The original StoreProhibited panic was triggered by log/print plumbing interacting with callback execution; this is the minimum safety check that proves the new invariant is correct in practice.
+
+### What worked
+- User confirmed both:
+  - object printing (`print({a:1})`)
+  - callback-event printing (`print(ev)` inside `encoder.on('click', ...)`)
+  without a crash.
+
+### What didn't work
+- N/A (validation passed).
+
+### What I learned
+- The stability invariant (“never repoint `ctx->opaque`”) is the right abstraction boundary: once enforced by `MqjsVm`, consumers can safely use print/exception helpers from any execution path (eval or callback).
+
+### What was tricky to build
+- N/A (this step was validation only).
+
+### What warrants a second pair of eyes
+- N/A (no new code).
+
+### What should be done in the future
+- When adding new “capture output” features, ensure they follow the same pattern (stable opaque + internal capture pointer) and never reintroduce `JS_SetContextOpaque` in consumer code.
+
+### Code review instructions
+- N/A (no new code).
+
+### Technical details
+- Repro snippets:
+  - `print({a:1})`
+  - `encoder.on('click', function(ev){ print(ev); })`

@@ -11,4 +11,4 @@
 - [x] Refactor `JsEvaluator` internally (no API change):
 - [x] Keep `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.h` unchanged
 - [x] Update `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp` to use `MqjsVm`
-- [ ] Regression: ensure `print({a:1})` and `print(ev)` do not crash in callback-driven use cases
+- [x] Regression: ensure `print({a:1})` and `print(ev)` do not crash in callback-driven use cases
