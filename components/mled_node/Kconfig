@@ -1,0 +1,24 @@
+menu "mled_node: MLED/1 UDP multicast node"
+
+config MLED_NODE_NAME
+    string "Node name (PONG name[16])"
+    default "c6-node"
+    help
+        Name reported in PONG payload (truncated to 16 bytes).
+
+config MLED_NODE_TIME_REQ_ENABLE
+    bool "Enable TIME_REQ refinement (send after BEACON)"
+    default y
+    help
+        If enabled, the node sends TIME_REQ unicast messages to the controller address learned from BEACON.
+        This refines show-time offset beyond the coarse BEACON sync.
+
+config MLED_NODE_TIME_REQ_MIN_INTERVAL_MS
+    int "Minimum TIME_REQ interval (ms)"
+    range 0 60000
+    default 500
+    help
+        Minimum time between successive TIME_REQ messages (rate-limit).
+
+endmenu
+

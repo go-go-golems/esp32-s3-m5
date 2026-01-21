@@ -14,17 +14,4 @@ config MLEDNODE_WIFI_AUTOCONNECT_ON_BOOT
         If enabled, and runtime credentials are present at STA start (e.g. loaded from NVS),
         the device will attempt to connect automatically.
 
-config MLEDNODE_NODE_NAME
-    string "Node name (PONG name[16])"
-    default "c6-node"
-    help
-        Name reported in PONG payload (truncated to 16 bytes).
-
-config MLEDNODE_TIME_REQ_ENABLE
-    bool "Enable TIME_REQ refinement (send after BEACON)"
-    default y
-    help
-        If enabled, the node sends TIME_REQ unicast messages to the controller address learned from BEACON.
-        This refines show-time offset beyond the coarse BEACON sync.
-
 endmenu

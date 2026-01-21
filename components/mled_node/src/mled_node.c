@@ -13,22 +13,19 @@
 
 #include "esp_log.h"
 #include "esp_mac.h"
-#include "esp_system.h"
 #include "esp_wifi.h"
 
 #include "lwip/inet.h"
-#include "lwip/ip4_addr.h"
 #include "lwip/sockets.h"
-#include "lwip/sys.h"
 
 #include "mled_protocol.h"
 #include "mled_time.h"
 
-static const char *TAG = "mlednode_node";
+static const char *TAG = "mled_node";
 
-#define MLEDNODE_MAX_CUES 64
-#define MLEDNODE_MAX_PENDING_FIRES 64
-#define MLEDNODE_MAX_TIME_REQS 16
+#define MLED_NODE_MAX_CUES 64
+#define MLED_NODE_MAX_PENDING_FIRES 64
+#define MLED_NODE_MAX_TIME_REQS 16
 
 typedef struct {
     bool valid;
@@ -74,15 +71,35 @@ typedef struct {
     uint16_t frame_ms;
     uint32_t active_cue_id;
 
-    cue_entry_t cues[MLEDNODE_MAX_CUES];
-    pending_fire_t fires[MLEDNODE_MAX_PENDING_FIRES];
+    cue_entry_t cues[MLED_NODE_MAX_CUES];
+    pending_fire_t fires[MLED_NODE_MAX_PENDING_FIRES];
     uint32_t fires_len;
 
     uint32_t time_req_counter;
-    time_req_entry_t time_reqs[MLEDNODE_MAX_TIME_REQS];
+    time_req_entry_t time_reqs[MLED_NODE_MAX_TIME_REQS];
 } node_ctx_t;
 
 static node_ctx_t s_ctx = {0};
+static mled_node_on_apply_fn s_on_apply = NULL;
+static void *s_on_apply_ctx = NULL;
+
+void mled_node_set_on_apply(mled_node_on_apply_fn fn, void *ctx)
+{
+    s_on_apply = fn;
+    s_on_apply_ctx = ctx;
+}
+
+void mled_node_set_effect_status(const mled_node_effect_status_t *st)
+{
+    if (!st) {
+        return;
+    }
+    s_ctx.current_pattern = st->pattern_type;
+    s_ctx.brightness_pct = st->brightness_pct ? st->brightness_pct : 1;
+    if (st->frame_ms) {
+        s_ctx.frame_ms = st->frame_ms;
+    }
+}
 
 static uint32_t fnv1a32(const uint8_t *data, size_t n)
 {
@@ -118,14 +135,14 @@ static uint32_t show_ms(void)
 
 static void cues_clear(void)
 {
-    for (size_t i = 0; i < MLEDNODE_MAX_CUES; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_CUES; i++) {
         s_ctx.cues[i].valid = false;
     }
 }
 
 static cue_entry_t *cue_find(uint32_t cue_id)
 {
-    for (size_t i = 0; i < MLEDNODE_MAX_CUES; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_CUES; i++) {
         if (s_ctx.cues[i].valid && s_ctx.cues[i].cue_id == cue_id) {
             return &s_ctx.cues[i];
         }
@@ -143,7 +160,7 @@ static cue_entry_t *cue_put(const mled_cue_prepare_t *p)
         return existing;
     }
 
-    for (size_t i = 0; i < MLEDNODE_MAX_CUES; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_CUES; i++) {
         if (!s_ctx.cues[i].valid) {
             s_ctx.cues[i].valid = true;
             s_ctx.cues[i].cue_id = p->cue_id;
@@ -159,7 +176,7 @@ static cue_entry_t *cue_put(const mled_cue_prepare_t *p)
 
 static void fires_add(uint32_t cue_id, uint32_t execute_at_ms)
 {
-    if (s_ctx.fires_len >= MLEDNODE_MAX_PENDING_FIRES) {
+    if (s_ctx.fires_len >= MLED_NODE_MAX_PENDING_FIRES) {
         return;
     }
     s_ctx.fires[s_ctx.fires_len].cue_id = cue_id;
@@ -214,12 +231,11 @@ static void apply_cue(uint32_t cue_id)
     s_ctx.brightness_pct = entry->pattern.brightness_pct ? entry->pattern.brightness_pct : 1;
     s_ctx.active_cue_id = cue_id;
 
-    ESP_LOGI(TAG,
-             "APPLY cue=%" PRIu32 " pattern=%u bri=%u%% show_ms=%" PRIu32,
-             cue_id,
-             (unsigned)s_ctx.current_pattern,
-             (unsigned)s_ctx.brightness_pct,
-             show_ms());
+    if (s_on_apply) {
+        s_on_apply(cue_id, &entry->pattern, s_on_apply_ctx);
+    }
+
+    ESP_LOGI(TAG, "APPLY cue=%" PRIu32 " pattern=%u bri=%u%% show_ms=%" PRIu32, cue_id, (unsigned)s_ctx.current_pattern, (unsigned)s_ctx.brightness_pct, show_ms());
 }
 
 static void process_due_fires(void)
@@ -336,7 +352,7 @@ static int send_ack(const struct sockaddr_in *dest, uint32_t ack_for_msg_id, uin
 
 static bool time_req_store(uint32_t req_id, uint32_t t0_local_ms)
 {
-    for (size_t i = 0; i < MLEDNODE_MAX_TIME_REQS; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_TIME_REQS; i++) {
         if (!s_ctx.time_reqs[i].valid) {
             s_ctx.time_reqs[i].valid = true;
             s_ctx.time_reqs[i].req_id = req_id;
@@ -349,7 +365,7 @@ static bool time_req_store(uint32_t req_id, uint32_t t0_local_ms)
 
 static bool time_req_take(uint32_t req_id, uint32_t *out_t0)
 {
-    for (size_t i = 0; i < MLEDNODE_MAX_TIME_REQS; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_TIME_REQS; i++) {
         if (s_ctx.time_reqs[i].valid && s_ctx.time_reqs[i].req_id == req_id) {
             *out_t0 = s_ctx.time_reqs[i].t0_local_ms;
             s_ctx.time_reqs[i].valid = false;
@@ -361,7 +377,7 @@ static bool time_req_take(uint32_t req_id, uint32_t *out_t0)
 
 static bool send_time_req(void)
 {
-#if !CONFIG_MLEDNODE_TIME_REQ_ENABLE
+#if !CONFIG_MLED_NODE_TIME_REQ_ENABLE
     return false;
 #else
     if (!s_ctx.controller_addr_valid) {
@@ -369,7 +385,7 @@ static bool send_time_req(void)
     }
 
     const uint32_t now = mled_time_local_ms();
-    if (mled_time_u32_duration(s_ctx.last_time_req_local_ms, now) < 500) {
+    if (mled_time_u32_duration(s_ctx.last_time_req_local_ms, now) < CONFIG_MLED_NODE_TIME_REQ_MIN_INTERVAL_MS) {
         return false;
     }
     s_ctx.last_time_req_local_ms = now;
@@ -449,10 +465,6 @@ static void handle_beacon(const mled_header_t *hdr, const struct sockaddr_in *sr
     s_ctx.time_synced = true;
     s_ctx.last_time_sync_method = "BEACON";
 
-    char ip[32];
-    inet_ntoa_r(src->sin_addr, ip, sizeof(ip));
-    ESP_LOGD(TAG, "BEACON epoch=%" PRIu32 " from %s:%u offset=%" PRIi32 "ms", s_ctx.controller_epoch, ip, ntohs(src->sin_port), s_ctx.show_time_offset_ms);
-
     (void)send_time_req();
 }
 
@@ -505,7 +517,7 @@ static void handle_cue_cancel(const uint8_t *payload, uint32_t payload_len)
     if (!mled_cue_fire_unpack(&cf, payload, payload_len)) {
         return;
     }
-    for (size_t i = 0; i < MLEDNODE_MAX_CUES; i++) {
+    for (size_t i = 0; i < MLED_NODE_MAX_CUES; i++) {
         if (s_ctx.cues[i].valid && s_ctx.cues[i].cue_id == cf.cue_id) {
             s_ctx.cues[i].valid = false;
         }
@@ -562,7 +574,7 @@ static void node_task_main(void *arg)
         return;
     }
 
-    ESP_LOGI(TAG, "node started: id=%" PRIu32 " name=%s group=%s:%d", s_ctx.node_id, s_ctx.name, MLED_MULTICAST_GROUP, MLED_MULTICAST_PORT);
+    ESP_LOGI(TAG, "started: id=%" PRIu32 " name=%s group=%s:%d", s_ctx.node_id, s_ctx.name, MLED_MULTICAST_GROUP, MLED_MULTICAST_PORT);
 
     uint8_t buf[2048];
     while (!s_ctx.stop) {
@@ -664,7 +676,7 @@ void mled_node_start(void)
     s_ctx.time_req_counter = 0;
 
     memset(s_ctx.name, 0, sizeof(s_ctx.name));
-    strlcpy(s_ctx.name, CONFIG_MLEDNODE_NODE_NAME, sizeof(s_ctx.name));
+    strlcpy(s_ctx.name, CONFIG_MLED_NODE_NAME, sizeof(s_ctx.name));
     cues_clear();
 
     BaseType_t ok = xTaskCreate(&node_task_main, "mled_node", 4096, NULL, 5, &s_ctx.task);
@@ -678,3 +690,4 @@ void mled_node_stop(void)
 {
     s_ctx.stop = true;
 }
+
