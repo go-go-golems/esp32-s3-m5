@@ -23,6 +23,27 @@ export function App() {
     return last.error ?? ''
   }, [last])
 
+  const jsHelp = useMemo(
+    () => `What JS can do (0048):
+
+- Run arbitrary JS snippets via "Run" (POST /api/js/eval)
+- JS VM is stateful across runs (globals persist until reboot/reset)
+- Ctrl/Cmd-Enter runs from the editor
+
+Builtins / notes:
+- Return value of the last expression is shown in the Output pane
+- Exceptions are shown in the Output pane
+- print(...) exists, but currently prints to the device console (USB Serial/JTAG), not to the browser output
+- load("/spiffs/foo.js") exists if SPIFFS is present (see partitions.csv); file size limit ~32 KiB
+- Date.now() and performance.now() exist (ms since boot)
+- gc() triggers a JS GC cycle
+
+Device console:
+- There is also: 0048> js eval <code...>   (prints JSON result)
+`,
+    []
+  )
+
   return (
     <div>
       <div class="toolbar">
@@ -42,6 +63,10 @@ export function App() {
         )}
         {lastClick ? <span class="enc">click kind={lastClick.kind}</span> : null}
       </div>
+      <details class="help" open>
+        <summary>JS help</summary>
+        <pre>{jsHelp}</pre>
+      </details>
       <div class="row">
         <div class="col">
           <CodeEditor initialValue={initialCode} onChange={setCode} onRun={run} />
