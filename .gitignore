@@ -1,6 +1,7 @@
 # ESP-IDF build outputs
 build/
 **/build/
+**/build.esp32.bak/
 .envrc
 .vscode
 managed_components

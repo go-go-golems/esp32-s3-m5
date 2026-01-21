@@ -4,16 +4,13 @@
 
 - [ ] Define scope + acceptance criteria (network mode: STA via console like 0045 vs SoftAP)
 - [ ] Implement HTTP API mapping to `led_task_send` (minimal set first):
-  - [ ] `GET /api/led/status`
   - [ ] `POST /api/led/pause|resume|clear`
   - [ ] `POST /api/led/brightness` + `POST /api/led/frame`
   - [ ] `POST /api/led/pattern` (type)
-  - [ ] Per-pattern config endpoints (`/api/led/rainbow`, `/api/led/chase`, `/api/led/breathing`, `/api/led/sparkle`)
   - [ ] WS staging/apply endpoints (`/api/led/ws/stage`, `/api/led/ws/apply`)
 - [ ] Implement Preact+Zustand UI:
   - [ ] Status panel (polling)
   - [ ] Global controls (pause/resume/clear, brightness, frame_ms, log toggle if exposed)
-  - [ ] Pattern selector + per-pattern forms
   - [ ] Driver config editor + apply confirmation
 - [ ] Bundle pipeline:
   - [ ] Deterministic filenames (`/assets/app.js`, `/assets/app.css`)
@@ -28,6 +25,9 @@
 
 - [x] Create new tutorial project `0046-xiao-esp32c6-led-patterns-webui/` combining 0044 patterns + 0045 embedded web UI pattern
 - [x] Add minimal LED control HTTP API (`/api/led/status`, `/api/led/pattern`, `/api/led/brightness`, `/api/led/frame`, `/api/led/pause|resume|clear`)
-- [x] Add minimal Preact+Zustand UI with pattern selector + brightness/frame controls
+- [x] Add per-pattern config endpoints (`/api/led/rainbow`, `/api/led/chase`, `/api/led/breathing`, `/api/led/sparkle`) matching console parameter names/ranges
+- [x] Expand `GET /api/led/status` to include active-pattern parameters (console naming)
+- [x] Add Preact+Zustand UI with global controls + per-pattern forms (console naming/units)
+- [x] Fix `frame_ms` < RTOS tick causing `xTaskDelayUntil` assert (clamp/normalize)
 
 <!-- Notes: keep TODO as "needs validation" items; move here once implemented. -->
