@@ -93,6 +93,8 @@ The repo already contains multiple “nearly the same” systems: embedded Preac
 
 So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, encoder) and opened the highest-signal tickets. Then I created a dedicated “Prior Art and Reading List” reference doc and filled it with the *exact* filenames and symbols to start from.
 
+**Commit (docs):** 82fa6d7 — "Docs: add prior art reading list (0048)"
+
 ### What I did
 - Searched docmgr for existing work:
   - `docmgr doc search --query "esp_http_server"`
