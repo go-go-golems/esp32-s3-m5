@@ -207,3 +207,14 @@ Step 22: Draft JS service task + queue structures design (commit 02c4e3e)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/05-phase-2bc-design-js-service-task-event-queues-eval-callbacks-emit-ws.md — Concrete design for JS service ownership + inbound/outbound queues
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Add Phase 2B+C tasks (design+upload)
 
+
+## 2026-01-21
+
+Step 23: Add bounded WS event history panel in Web IDE (commit 9b40b88)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js — Rebuilt embedded UI bundle
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — UI renders scrolling event history + Clear button
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Store keeps bounded history of WS frames
+

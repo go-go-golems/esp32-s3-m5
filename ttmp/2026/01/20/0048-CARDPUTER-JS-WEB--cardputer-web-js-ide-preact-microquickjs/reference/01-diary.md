@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:11:20-05:00
+LastUpdated: 2026-01-21T10:14:36-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -69,6 +69,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 20: Design Option B (Phase 2B) — on-device JS callbacks for encoder events; show JS capability help in the Web IDE
 - Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) + task breakdown
 - Step 22: Draft JS service task + queue structures design (unifies Phase 2B and Phase 2C)
+- Step 23: Implement bounded WebSocket event history panel in the Web IDE UI
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1288,3 +1289,65 @@ I wrote a dedicated design doc that turns this into a concrete implementation pl
   - `js_eval_req_t` + `SemaphoreHandle_t done` + `reply_json` allocated by JS service.
 - The proposed delta coalescing is:
   - mailbox snapshot + `xTaskNotifyGive` to wake the JS service (latest-wins).
+
+## Step 23: Implement bounded WebSocket event history panel in the Web IDE UI
+
+Phase 2C needs a place to *see* the device→browser stream. Even before the firmware can emit arbitrary JS events, the WS channel already carries encoder snapshots and click events, and we need an always-on “flight recorder” view in the main page so we can debug framing, ordering, and drop behavior without opening devtools.
+
+I implemented a bounded WebSocket event history panel (scrolling, last 200 frames) and wired it directly into the existing WS client. Every WS message is appended to history (raw string + parsed JSON if possible), and encoder telemetry continues to be parsed into the existing UI widgets. The panel also includes a “Clear WS” button and auto-scrolls when you are already near the bottom.
+
+**Commit (code):** 9b40b88 — "0048: add bounded WS event history panel"
+
+### What I did
+- Added a bounded WS history ring in the Zustand store:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts`
+  - new fields: `wsHistory`, `clearWsHistory()`
+  - WS `onmessage` now:
+    - captures raw payload
+    - attempts `JSON.parse`
+    - appends `{rx_ms, raw, parsed, parse_error}` to history (max 200)
+    - still updates `encoder` / `lastClick` from parsed frames when applicable
+- Rendered the event history panel in the main UI:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+  - added “Clear WS” button
+  - added a scrollable log view (bounded history) and a small WS help note
+- Styled the panel for readability:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.css`
+- Rebuilt the embedded assets into firmware:
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web && npm run build`
+  - updated `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js`
+  - updated `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.css`
+
+### Why
+- Phase 2C’s success depends on being able to observe the WS stream easily.
+- A bounded, in-app log is the quickest way to debug framing issues (including the earlier U+0000 problem class) and makes later JS→WS events immediately visible.
+
+### What worked
+- `npm run build` succeeds and produces deterministic embedded assets (no hash-based filenames).
+- The panel is resilient: malformed frames show up as parse errors but do not crash the app.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Keeping “raw frames” in the UI is valuable even when we already parse known types: it protects us against schema drift when we add `js_events` envelopes.
+
+### What was tricky to build
+- Avoiding log “fight the user” behavior: the panel only auto-scrolls if the user is already near the bottom.
+
+### What warrants a second pair of eyes
+- The store update strategy for history (`slice` + spread) is simple and fine at 200 entries; confirm it remains acceptable on low-power browsers if we later increase the bound.
+
+### What should be done in the future
+- When Phase 2C firmware `js_events` is implemented, update the UI to render parsed `events[]` in a more structured view (topic + payload).
+
+### Code review instructions
+- Review store + UI changes:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts`
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+- Confirm embedded assets updated:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.css`
+
+### Technical details
+- History bound constant: `WS_HISTORY_MAX = 200` in `store.ts`.
