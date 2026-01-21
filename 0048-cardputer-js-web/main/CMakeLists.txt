@@ -5,6 +5,8 @@ idf_component_register(
         "wifi_console.c"
         "http_server.cpp"
         "js_runner.cpp"
+        "encoder_telemetry.cpp"
+        "chain_encoder_uart.cpp"
         "esp32_stdlib_runtime.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
@@ -14,6 +16,7 @@ idf_component_register(
         esp_wifi
         esp_http_server
         esp_timer
+        driver
         spiffs
         exercizer_control
         mquickjs

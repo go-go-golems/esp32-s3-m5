@@ -1,4 +1,4 @@
-import { useMemo } from 'preact/hooks'
+import { useEffect, useMemo } from 'preact/hooks'
 import { useStore } from '../ui/store'
 import { CodeEditor } from './code_editor'
 
@@ -7,7 +7,14 @@ export function App() {
   const run = useStore((s) => s.run)
   const running = useStore((s) => s.running)
   const last = useStore((s) => s.last)
+  const wsConnected = useStore((s) => s.wsConnected)
+  const encoder = useStore((s) => s.encoder)
+  const connectWs = useStore((s) => s.connectWs)
   const initialCode = useMemo(() => useStore.getState().code, [])
+
+  useEffect(() => {
+    connectWs()
+  }, [connectWs])
 
   const output = useMemo(() => {
     if (!last) return ''
@@ -24,6 +31,14 @@ export function App() {
         <a href="/api/status" target="_blank" rel="noreferrer">
           /api/status
         </a>
+        <span class={'ws ' + (wsConnected ? 'ok' : 'bad')}>{wsConnected ? 'WS: connected' : 'WS: disconnected'}</span>
+        {encoder ? (
+          <span class="enc">
+            enc pos={encoder.pos} delta={encoder.delta} pressed={String(encoder.pressed)}
+          </span>
+        ) : (
+          <span class="enc">enc: -</span>
+        )}
       </div>
       <div class="row">
         <div class="col">

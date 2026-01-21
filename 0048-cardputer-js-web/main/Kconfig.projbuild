@@ -26,4 +26,53 @@ config TUTORIAL_0048_JS_TIMEOUT_MS
     int "Eval timeout in milliseconds (0 disables)"
     default 2000
 
+menu "Phase 2: Encoder telemetry (WebSocket)"
+
+config TUTORIAL_0048_ENCODER_CHAIN_UART
+    bool "Enable M5 Chain Encoder (U207) over Grove UART"
+    default n
+    help
+        If enabled, start a background task that polls a Chain Encoder over UART
+        and broadcasts telemetry JSON frames over WebSocket (/ws).
+
+config TUTORIAL_0048_CHAIN_ENCODER_UART_NUM
+    int "Chain Encoder UART port number"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    default 1
+
+config TUTORIAL_0048_CHAIN_ENCODER_BAUD
+    int "Chain Encoder baud rate"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    default 115200
+
+config TUTORIAL_0048_CHAIN_ENCODER_TX_GPIO
+    int "Chain Encoder TX GPIO (device -> encoder)"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    default 2
+
+config TUTORIAL_0048_CHAIN_ENCODER_RX_GPIO
+    int "Chain Encoder RX GPIO (encoder -> device)"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    default 1
+
+config TUTORIAL_0048_CHAIN_ENCODER_INDEX_ID
+    int "Chain Encoder index_id"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    range 1 255
+    default 1
+
+config TUTORIAL_0048_CHAIN_ENCODER_POLL_MS
+    int "Chain Encoder polling interval (ms)"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    range 5 200
+    default 20
+
+config TUTORIAL_0048_ENCODER_WS_BROADCAST_MS
+    int "WebSocket broadcast interval (ms)"
+    depends on TUTORIAL_0048_ENCODER_CHAIN_UART
+    range 10 1000
+    default 50
+
+endmenu
+
 endmenu
