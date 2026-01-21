@@ -1,7 +1,8 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
-        "wifi_app.cpp"
+        "wifi_mgr.c"
+        "wifi_console.c"
         "http_server.cpp"
         "js_runner.cpp"
         "esp32_stdlib_runtime.c"
@@ -16,6 +17,8 @@ idf_component_register(
         spiffs
         exercizer_control
         mquickjs
+        esp_driver_usb_serial_jtag
+        console
     EMBED_TXTFILES
         "assets/index.html"
         "assets/assets/app.js"

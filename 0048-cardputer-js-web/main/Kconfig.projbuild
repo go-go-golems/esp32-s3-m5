@@ -1,20 +1,18 @@
 menu "0048 Cardputer Web JS IDE"
 
-config TUTORIAL_0048_WIFI_SOFTAP_SSID
-    string "SoftAP SSID"
-    default "cardputer-js"
+config TUTORIAL_0048_WIFI_MAX_RETRY
+    int "Wi-Fi max retries"
+    range 0 100
+    default 10
+    help
+        Maximum number of retries after a STA disconnect when autoconnect is enabled.
 
-config TUTORIAL_0048_WIFI_SOFTAP_PASSWORD
-    string "SoftAP password (empty for open)"
-    default "cardputer-js"
-
-config TUTORIAL_0048_WIFI_SOFTAP_CHANNEL
-    int "SoftAP channel"
-    default 6
-
-config TUTORIAL_0048_WIFI_SOFTAP_MAX_CONN
-    int "SoftAP max connections"
-    default 4
+config TUTORIAL_0048_WIFI_AUTOCONNECT_ON_BOOT
+    bool "Autoconnect on boot when credentials exist"
+    default y
+    help
+        If enabled, and runtime credentials are present at STA start (e.g. loaded from NVS),
+        the device will attempt to connect automatically.
 
 config TUTORIAL_0048_JS_MAX_BODY
     int "Max JS request body bytes"
@@ -29,4 +27,3 @@ config TUTORIAL_0048_JS_TIMEOUT_MS
     default 2000
 
 endmenu
-

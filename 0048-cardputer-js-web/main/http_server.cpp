@@ -16,7 +16,9 @@
 #include "esp_netif_ip_addr.h"
 
 #include "js_runner.h"
-#include "wifi_app.h"
+#include "lwip/inet.h"
+
+#include "wifi_mgr.h"
 
 static const char* TAG = "http_server_0048";
 
@@ -57,19 +59,42 @@ static esp_err_t asset_app_css_get(httpd_req_t* req) {
 }
 
 static esp_err_t status_get(httpd_req_t* req) {
-  char ap_ip[16] = "0.0.0.0";
-  esp_netif_t* ap = wifi_app_get_ap_netif();
-  if (ap) {
-    esp_netif_ip_info_t ip = {};
-    if (esp_netif_get_ip_info(ap, &ip) == ESP_OK) {
-      snprintf(ap_ip, sizeof(ap_ip), IPSTR, IP2STR(&ip.ip));
-    }
+  wifi_mgr_status_t st = {};
+  if (wifi_mgr_get_status(&st) != ESP_OK) {
+    return send_json(req, "{\"ok\":false,\"error\":\"wifi status unavailable\"}");
+  }
+
+  const char* state = "?";
+  switch (st.state) {
+    case WIFI_MGR_STATE_UNINIT:
+      state = "UNINIT";
+      break;
+    case WIFI_MGR_STATE_IDLE:
+      state = "IDLE";
+      break;
+    case WIFI_MGR_STATE_CONNECTING:
+      state = "CONNECTING";
+      break;
+    case WIFI_MGR_STATE_CONNECTED:
+      state = "CONNECTED";
+      break;
+  }
+
+  char ip[16] = "0.0.0.0";
+  if (st.ip4) {
+    ip4_addr_t ip4 = {.addr = htonl(st.ip4)};
+    snprintf(ip, sizeof(ip), IPSTR, IP2STR(&ip4));
   }
   char buf[256];
-  snprintf(buf, sizeof(buf),
-           "{\"ok\":true,\"mode\":\"softap\",\"ap_ssid\":\"%s\",\"ap_ip\":\"%s\"}",
-           CONFIG_TUTORIAL_0048_WIFI_SOFTAP_SSID,
-           ap_ip);
+  snprintf(buf,
+           sizeof(buf),
+           "{\"ok\":true,\"mode\":\"sta\",\"state\":\"%s\",\"ssid\":\"%s\",\"ip\":\"%s\",\"saved\":%s,\"runtime\":%s,\"reason\":%d}",
+           state,
+           st.ssid[0] ? st.ssid : "",
+           ip,
+           st.has_saved_creds ? "true" : "false",
+           st.has_runtime_creds ? "true" : "false",
+           st.last_disconnect_reason);
   return send_json(req, buf);
 }
 
