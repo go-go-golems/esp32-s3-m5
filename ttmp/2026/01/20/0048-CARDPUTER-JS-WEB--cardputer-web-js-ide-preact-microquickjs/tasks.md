@@ -58,18 +58,18 @@
   - [x] running/last response
   - [x] REST call wrapper with errors
 - [ ] Integrate editor (CodeMirror 6 preferred):
-  - [ ] JS syntax highlighting
-  - [ ] minimal keymap
-  - [ ] avoid rerender/recreate editor on keystrokes
+  - [x] JS syntax highlighting
+  - [x] minimal keymap
+  - [x] avoid rerender/recreate editor on keystrokes
 - [x] Render output panel (stdout-like + error)
 
-### Frontend: CodeMirror 6 integration (next iteration)
+### Frontend: CodeMirror 6 integration (done)
 
-- [ ] Add CodeMirror deps (codemirror 6 packages) with deterministic Vite output preserved
-- [ ] Implement a `CodeEditor` component (mount/unmount lifecycle, no re-init per keystroke)
-- [ ] Wire editor value to Zustand (debounced or on-change, but avoid expensive rerenders)
-- [ ] Add JS language + basic keymap (Ctrl/Cmd-Enter to run, Tab indent)
-- [ ] Add minimal editor theming (dark-ish, readable on phone)
+- [x] Add CodeMirror deps (codemirror 6 packages) with deterministic Vite output preserved
+- [x] Implement a `CodeEditor` component (mount/unmount lifecycle, no re-init per keystroke)
+- [x] Wire editor value to Zustand (debounced or on-change, but avoid expensive rerenders)
+- [x] Add JS language + basic keymap (Ctrl/Cmd-Enter to run, Tab indent)
+- [x] Add minimal editor theming (dark-ish, readable on phone)
 
 ### Phase 2: encoder telemetry over WebSocket
 
@@ -80,5 +80,6 @@
 
 ### Validation
 
+- [ ] Ensure ESP-IDF tooling is available (`idf.py` on PATH or sourced environment)
 - [ ] Run Phase 1 playbook and record results
 - [ ] Run Phase 2 playbook and record results

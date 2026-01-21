@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-01-20
+## 2026-01-21
 
 - Initial workspace created
 
@@ -89,3 +89,13 @@ Step 11: Start implementation (create 0048-cardputer-js-web skeleton) (commit 93
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — Added embedded asset serving + /api/js/eval
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp — Added MicroQuickJS init + eval formatting
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Added minimal UI state + eval call
+
+## 2026-01-20
+
+Step 13: Replace textarea with CodeMirror 6 and rebuild embedded assets (commit b6f3f3e)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js — Built deterministic embedded JS bundle
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/package.json — Added CodeMirror deps and stabilized build script
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/code_editor.tsx — Added CodeMirror 6 editor component (Mod-Enter run)

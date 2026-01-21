@@ -17,13 +17,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0048-cardputer-js-web/main/http_server.cpp
+      Note: Phase 1 routes and asset serving
+    - Path: 0048-cardputer-js-web/main/js_runner.cpp
+      Note: MicroQuickJS init/eval/timeout hook
+    - Path: 0048-cardputer-js-web/web/src/ui/code_editor.tsx
+      Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-21T00:00:00-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -145,6 +152,114 @@ So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, 
 
 ### Technical details
 - N/A
+
+## Step 12: Attempt local firmware build (blocked: ESP-IDF tooling missing in this environment)
+
+Before expanding the feature set, I tried to do the obvious “close the loop” validation: build the new ESP-IDF project locally so we can start iterating with confidence. That immediately uncovered an environment constraint: this sandbox does not have `idf.py` (ESP-IDF) available on `PATH`, and there is no vendored ESP-IDF checkout in the workspace to source.
+
+Rather than guessing at compilation errors, I recorded the exact failure and proceeded with web-side work that can still be validated here (node toolchain exists), while leaving firmware build/flash validation for a machine that has ESP-IDF installed.
+
+**Commit (code):** N/A
+
+### What I did
+- Tried to check the ESP-IDF tooling in the new project:
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `idf.py --version`
+- Confirmed there is no vendored `idf.py` in the workspace:
+  - `find .. -maxdepth 3 -name idf.py`
+
+### Why
+- Phase 1 requires end-to-end build/flash smoke tests to validate assumptions about component linkage and embedded asset symbols.
+
+### What worked
+- The failure is explicit and immediately actionable: install/source ESP-IDF before attempting an `idf.py build`.
+
+### What didn't work
+- `idf.py --version` failed with:
+  - `zsh:1: command not found: idf.py`
+
+### What I learned
+- This environment can run Node/Vite builds, but cannot run ESP-IDF builds without additional setup.
+
+### What was tricky to build
+- N/A (environment constraint, not a code change)
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Run the Phase 1 playbook on a machine with ESP-IDF installed and capture the first real `idf.py build` output in the diary (that’s where the real linkage issues will appear).
+
+### Code review instructions
+- N/A
+
+### Technical details
+- N/A
+
+## Step 13: Replace `<textarea>` with CodeMirror 6 (JS highlighting + Mod-Enter run) and rebuild embedded assets
+
+The initial UI used a `<textarea>` purely as a wiring placeholder. To make the Web IDE credible, I integrated CodeMirror 6 (the modern, modular editor) with Preact and the existing Zustand store.
+
+This step adds a dedicated `CodeEditor` component that mounts a single `EditorView` instance, streams edits into Zustand without recreating the editor, and binds `Ctrl/Cmd-Enter` (`Mod-Enter`) to run the current program. Then it rebuilds the embedded assets so the firmware can serve the real editor UI from `main/assets/`.
+
+**Commit (code):** b6f3f3e — "0048: use CodeMirror editor + rebuild embedded assets"
+
+### What I did
+- Added CodeMirror 6 dependencies and stabilized the build script:
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/web/package.json`
+  - Generated: `esp32-s3-m5/0048-cardputer-js-web/web/package-lock.json`
+  - Added ignore rules: `esp32-s3-m5/0048-cardputer-js-web/web/.gitignore`
+- Implemented CodeMirror editor component:
+  - Added: `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/code_editor.tsx`
+  - Key bindings: `Mod-Enter` → `run()`, `Tab` → indent (`indentWithTab`)
+  - Language mode: `@codemirror/lang-javascript` (`javascript()`)
+- Updated app UI to use `CodeEditor` and avoid keystroke-driven rerenders:
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+- Built deterministic embedded assets into firmware tree:
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web`
+  - `npm install --no-fund --no-audit`
+  - `npm run build`
+  - Produced:
+    - `esp32-s3-m5/0048-cardputer-js-web/main/assets/index.html`
+    - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js` (~406 KiB; gzip ~141 KiB)
+    - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.css`
+
+### Why
+- A real editor is a core part of the Phase 1 product requirement (Web IDE), and CodeMirror 6 is the best match for embedded UIs (modular, controllable feature set).
+- Rebuilding `main/assets/` ensures firmware-embedded symbols point at the actual UI, not placeholders.
+
+### What worked
+- Vite deterministic output stayed stable: `/assets/app.js` and `/assets/app.css` remain fixed paths suitable for firmware routes.
+- Editor lifecycle is stable: `EditorView` is created once and not recreated on each keystroke.
+
+### What didn't work
+- N/A
+
+### What I learned
+- CodeMirror 6 adds noticeable bundle weight, but gzip size remains reasonable for an embedded web UI MVP.
+
+### What was tricky to build
+- Avoiding feedback loops between “programmatic doc set” and “updateListener”: the editor uses a suppression flag when it performs a sync write.
+
+### What warrants a second pair of eyes
+- Bundle size: check whether additional CodeMirror extensions should be deferred to keep `/assets/app.js` small.
+- Editor/store coupling: confirm the approach (initialize once from store, then stream changes outward) matches expected future features (loading snippets, reset, etc.).
+
+### What should be done in the future
+- Add a “load snippet” mechanism that intentionally overwrites the editor content (and then make the editor truly controlled, if needed).
+- Add basic “console-like output” semantics (separate stdout vs return value vs exception) if we decide to support richer results.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/code_editor.tsx` (`CodeEditor`)
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx` (`App`)
+  - `esp32-s3-m5/0048-cardputer-js-web/web/vite.config.ts` (deterministic output rules)
+- Validate the asset build:
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web && npm ci && npm run build`
+
+### Technical details
+- Editor extensions used:
+  - `oneDark`, `javascript()`, `EditorView.lineWrapping`, `keymap.of([...])`
 
 ## Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
 
