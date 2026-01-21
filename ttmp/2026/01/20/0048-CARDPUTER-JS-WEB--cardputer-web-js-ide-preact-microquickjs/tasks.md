@@ -73,10 +73,22 @@
 
 ### Phase 2: encoder telemetry over WebSocket
 
-- [ ] Implement `/ws` endpoint (WS upgrade + client tracking)
-- [ ] Implement encoder driver interface (`encoder_init`, `encoder_read`)
-- [ ] Implement sample/coalesce/broadcast loop (bounded rate + seq)
-- [ ] Implement browser WS store + UI rendering of `pos` and `pressed`
+- [ ] Firmware: WebSocket plumbing
+  - [ ] Implement `/ws` endpoint (upgrade + client tracking)
+  - [ ] Define a minimal text-frame schema for telemetry (`type:"encoder"`, `seq`, `ts_ms`, `pos`, `delta`, `pressed`)
+  - [ ] Add a small broadcast helper (async send, backpressure-safe, client removal on send failure)
+  - [ ] Add a periodic “ping/keepalive” plan (or document why we don’t need it for MVP)
+- [ ] Firmware: encoder input
+  - [ ] Decide hardware backend (built-in GPIO rotary vs M5 Chain Encoder UART)
+  - [ ] Implement encoder driver interface (`encoder_init`, `encoder_read`)
+  - [ ] Add config (Kconfig) for driver selection + pins/UART config (don’t hardcode)
+  - [ ] Implement sample/coalesce/broadcast loop (bounded rate + seq; immediate send on click edge)
+  - [ ] Add `/api/status` fields or log lines that make it obvious when encoder init fails
+- [ ] Frontend: WebSocket client + UI
+  - [ ] Add a small WS client module (connect/reconnect with backoff; “connected” indicator)
+  - [ ] Add Zustand store slice for encoder telemetry (`pos`, `delta`, `pressed`, `seq`, `ts_ms`)
+  - [ ] Render encoder telemetry in the UI (pos + pressed; optional debug fields)
+  - [ ] Handle parse errors / unknown `type` defensively (ignore, don’t crash)
 
 ### Validation
 

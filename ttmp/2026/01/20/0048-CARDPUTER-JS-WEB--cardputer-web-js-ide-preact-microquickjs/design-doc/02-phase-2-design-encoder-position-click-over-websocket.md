@@ -18,15 +18,13 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: M5Chain-Series-Internal-FW/Chain-Encder/protocol/M5Stack-Chain-Encoder-Protocol-V1-EN.pdf
-      Note: Primary Chain Encoder protocol spec referenced by encoder driver design
-    - Path: esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp
+    - Path: 0017-atoms3r-web-ui/main/http_server.cpp
       Note: Reference WS handler + async broadcast helpers for small text frames
-    - Path: esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c
+    - Path: 0029-mock-zigbee-http-hub/main/hub_http.c
       Note: Reference WS broadcasting patterns and backpressure handling
-    - Path: esp32-s3-m5/ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/playbook/01-websocket-over-wi-fi-esp-idf-playbook.md
+    - Path: ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/playbook/01-websocket-over-wi-fi-esp-idf-playbook.md
       Note: Step-by-step WS debugging and reliability playbook
-    - Path: esp32-s3-m5/ttmp/2026/01/20/MO-036-CHAIN-ENCODER-LVGL--cardputer-lvgl-list-chain-encoder-navigation/design-doc/01-lvgl-lists-chain-encoder-cardputer-adv.md
+    - Path: ttmp/2026/01/20/MO-036-CHAIN-ENCODER-LVGL--cardputer-lvgl-list-chain-encoder-navigation/design-doc/01-lvgl-lists-chain-encoder-cardputer-adv.md
       Note: Encoder protocol + LVGL integration prior art
 ExternalSources: []
 Summary: 'Design for Phase 2: read encoder position + click on the device and stream updates to the browser UI over esp_http_server WebSocket, with a minimal JSON message schema and backpressure-safe broadcasting.'
@@ -34,6 +32,7 @@ LastUpdated: 2026-01-20T23:06:08.017231774-05:00
 WhatFor: Blueprint for adding a realtime WS channel to the Phase 1 Web IDE UI so the browser can display encoder telemetry (position + click) without polling.
 WhenToUse: Use when implementing Phase 2 or reviewing how encoder input should be represented and transported over WebSocket.
 ---
+
 
 
 # Phase 2 Design: Encoder position + click over WebSocket

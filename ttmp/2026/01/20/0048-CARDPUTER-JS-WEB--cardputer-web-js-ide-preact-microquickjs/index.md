@@ -18,8 +18,6 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ../../../../../../M5Chain-Series-Internal-FW/Chain-Encder/protocol/M5Stack-Chain-Encoder-Protocol-V1-EN.pdf
-      Note: Encoder protocol contract (Phase 2)
     - Path: 0017-atoms3r-web-ui/main/http_server.cpp
       Note: Reference esp_http_server patterns for embedded assets + WS
     - Path: 0017-atoms3r-web-ui/web/vite.config.ts
@@ -52,6 +50,9 @@ LastUpdated: 2026-01-20T22:54:37.222738591-05:00
 WhatFor: Collect designs, playbooks, and prior art for implementing an ESP-IDF device-hosted Web IDE on Cardputer.
 WhenToUse: Use when implementing the firmware/UI, reviewing architecture choices, or onboarding someone new to the repo’s device-hosted UI patterns.
 ---
+
+
+
 
 
 

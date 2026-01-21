@@ -122,3 +122,13 @@ Step 15: Switch to esp_console-configured STA Wi-Fi (0046 pattern) (commit 0ed4c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.c — STA Wi-Fi manager with NVS credentials + status snapshot
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md — Updated Phase 1 playbook to STA/console-first
 
+
+## 2026-01-21
+
+Step 16: Record ESP-IDF v5.4.1 build verification + expand Phase 2 task breakdown (no code changes)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 16 build validation and index
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Phase 2 tasks broken down
+

@@ -43,6 +43,26 @@ WhenToUse: ""
 
 Maintain a high-frequency, highly detailed record of work on `0048-CARDPUTER-JS-WEB`: what changed, why, what commands ran, what failed, and how to review/validate.
 
+## Index (step numbers)
+
+This diary was written incrementally; step blocks may not appear in numeric order. Use this index to jump by step number.
+
+- Step 1: Bootstrap ticket + vocabulary + diary
+- Step 2: Locate prior art (docs + firmwares) and record a reading list
+- Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
+- Step 4: Draft Phase 2 design doc (encoder telemetry over WebSocket)
+- Step 5: Add playbooks + wire ticket index/tasks
+- Step 6: Upload initial bundle to reMarkable
+- Step 7: Find and enumerate MicroQuickJS usage playbooks (docmgr search)
+- Step 8: Consolidate “how to use MicroQuickJS properly” into a single guide
+- Step 9: Upload updated bundle (includes MQJS guide) to reMarkable
+- Step 10: Backfill diary + expand implementation task breakdown
+- Step 11: Start implementation (create 0048 firmware + web skeleton)
+- Step 12: Attempt local firmware build (blocked: ESP-IDF tooling missing in this environment)
+- Step 13: Replace `<textarea>` with CodeMirror 6 (JS highlighting + Mod-Enter run) and rebuild embedded assets
+- Step 14: Source ESP-IDF 5.4.1, fix build blockers, and get the firmware building end-to-end
+- Step 15: Switch from SoftAP-only to esp_console-configured STA Wi‑Fi (0046 pattern) and update `/api/status` + Phase 1 playbook
+
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
 This ticket is documentation-first: it aims to produce a “textbook style” design-and-playbook bundle for building a Cardputer-hosted Web IDE (Preact/Zustand editor UI + REST execution endpoint backed by MicroQuickJS), and then extending it with WebSocket telemetry (encoder position + click).
@@ -823,3 +843,54 @@ This is intentionally “minimum viable wiring”: it gives us something to buil
 
 ### Technical details
 - N/A
+
+## Step 16: Verify ESP-IDF v5.4.1 build in this environment (source `export.sh`)
+
+The diary previously recorded an “`idf.py` missing” state (Step 12). On this machine, ESP-IDF v5.4.1 is installed under `/home/manuel/esp/esp-idf-5.4.1`, so I validated the actual end-to-end build by sourcing `export.sh` and running a clean out-of-tree build.
+
+This step is intentionally boring-but-important: it closes the loop that the current `0048-cardputer-js-web` firmware compiles successfully under the exact ESP-IDF version we’ve standardized on, and it gives us a stable baseline before Phase 2 (WebSocket + encoder).
+
+**Commit (code):** N/A
+
+### What I did
+- Verified ESP-IDF is available after sourcing:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py --version` → `ESP-IDF v5.4.1`
+- Built the project (target esp32s3, isolated build dir):
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `idf.py -B build_esp32s3_v2 set-target esp32s3`
+  - `idf.py -B build_esp32s3_v2 build`
+
+### Why
+- Phase 2 work (WS + encoder) should not start until we have a known-good compile baseline; otherwise we’ll conflate “new bug” with “existing build issue”.
+
+### What worked
+- `idf.py -B build_esp32s3_v2 build` completed successfully.
+- Size check passed with ample headroom (factory app partition is 4 MiB).
+
+### What didn't work
+- N/A
+
+### What I learned
+- The earlier “`idf.py` missing” constraint was environment-specific; in this environment, sourcing `/home/manuel/esp/esp-idf-5.4.1/export.sh` is sufficient to build.
+
+### What was tricky to build
+- N/A (validation-only step)
+
+### What warrants a second pair of eyes
+- Confirm the chosen build directory convention (`-B build_esp32s3_v2`) matches how you want to manage multiple local configs/targets.
+
+### What should be done in the future
+- Run the Phase 1 playbook on real hardware and capture the first successful `flash monitor` session logs in the diary.
+
+### Code review instructions
+- Build validation:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `idf.py -B build_esp32s3_v2 set-target esp32s3`
+  - `idf.py -B build_esp32s3_v2 build`
+
+### Technical details
+- Build output included:
+  - `Generated .../cardputer_js_web_0048.bin`
+  - `cardputer_js_web_0048.bin binary size 0x158410 bytes` with `0x2a7bf0 bytes (66%) free`.
