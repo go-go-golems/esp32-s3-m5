@@ -373,6 +373,111 @@ This step is where the work transitions from “analysis” to “implementation
   - `ttmp/2026/01/21/0049-NODE-PROTOCOL--esp32-c6-node-protocol-firmware/tasks.md`
   - `ttmp/2026/01/21/0049-NODE-PROTOCOL--esp32-c6-node-protocol-firmware/playbook/01-playbook-flash-esp32-c6-node-python-smoke-test.md`
 
+## Step 8: Scaffold the ESP32‑C6 MLED node firmware + implement the first protocol slice
+
+Created a new ESP32‑C6 tutorial firmware project (`0049-xiao-esp32c6-mled-node`) by reusing the proven Wi‑Fi console provisioning modules from `0045`. Then implemented a first “vertical slice” of the MLED/1 node protocol: open/bind a UDP socket on port 4626, join the multicast group, parse/validate headers, and handle the core messages required for discovery and cue scheduling (`PING/PONG`, `BEACON`, `CUE_PREPARE`, `CUE_FIRE`, `CUE_CANCEL`, plus optional `TIME_REQ/TIME_RESP` refinement).
+
+At this stage, cue application is intentionally “log-only”: when a scheduled fire becomes due, the node logs an APPLY line and updates the state reported in PONG. This makes it testable on day one without requiring LED hardware integration.
+
+### What I did
+- Created a new project directory:
+  - `esp32-s3-m5/0049-xiao-esp32c6-mled-node/`
+- Reused Wi‑Fi provisioning patterns from `0045`:
+  - `main/wifi_mgr.c`, `main/wifi_console.c`
+- Added protocol modules:
+  - `main/mled_protocol.[ch]` (wire structs + pack/unpack)
+  - `main/mled_time.[ch]` (wrap-around-safe `u32` time helpers)
+  - `main/mled_node.[ch]` (UDP socket + node loop + handlers)
+- Added a host-side Python ping tool (std-lib only):
+  - `tools/mled_ping.py`
+
+### Why
+- Getting to an end-to-end smoke test early (flash → join Wi‑Fi → receive PONGs) de-risks the network and protocol plumbing before we integrate a hardware “effect task”.
+
+### What worked
+- Reusing `0045`’s `wifi join` UX keeps Wi‑Fi provisioning identical to other C6 tutorials in this repo.
+
+### What didn't work
+- N/A (implementation step; build/flash validation is the next step).
+
+### What I learned
+- The fastest “first test” is PING/PONG with log-only cue application; it lets us validate multicast membership, unicast replies, and epoch gating with minimal dependencies.
+
+### What was tricky to build
+- Being strict about wire parsing (header length, payload length) while still keeping the node loop simple and single-owner.
+
+### What warrants a second pair of eyes
+- The multicast join behavior on ESP‑IDF/lwIP after Wi‑Fi reconnect (we may need to recreate sockets on got-IP/lost-IP events).
+
+### What should be done in the future
+- After the first smoke test passes, integrate cue application into the existing `0044` LED task (queue boundary) so cues drive WS281x patterns on real hardware.
+
+### Code review instructions
+- Start at `esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/mled_node.c` and trace the message handlers (`BEACON`, `PING`, `CUE_*`).
+- Review `esp32-s3-m5/0049-xiao-esp32c6-mled-node/tools/mled_ping.py` for the host-side smoke test harness.
+
+## Step 9: Make the firmware build cleanly (ESP-IDF 5.4.1) and record the first real compile failure
+
+Validated that the new firmware project compiles under ESP‑IDF 5.4.1. The first build attempt failed due to `-Werror=missing-braces` on a large static struct initializer in `mled_node.c`. I fixed it by simplifying initialization: rely on zero-init (`(node_ctx_t){0}`) and set fields explicitly. After that, the firmware builds successfully and produces a flashable `.bin`.
+
+### What I did
+- Built the project:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -C 0049-xiao-esp32c6-mled-node set-target esp32c6`
+  - `idf.py -C 0049-xiao-esp32c6-mled-node build`
+- Fixed the compile error in `main/mled_node.c`.
+- Rebuilt:
+  - `idf.py -C 0049-xiao-esp32c6-mled-node build`
+
+### Why
+- A “build green” baseline is the prerequisite for any flash-and-test playbook.
+
+### What worked
+- After the fix, `idf.py build` completes and generates:
+  - `0049-xiao-esp32c6-mled-node/build/xiao_esp32c6_mled_node_0049.bin`
+
+### What didn't work
+- Initial build failure:
+  - `error: missing braces around initializer [-Werror=missing-braces]`
+  - root cause: nested arrays in `static node_ctx_t s_ctx = {...}` initializer.
+
+### What I learned
+- ESP‑IDF toolchains are often configured with aggressive warnings; for large structs with arrays, it’s safer to zero-init and set fields explicitly.
+
+### What was tricky to build
+- Keeping initialization readable while avoiding brace warnings.
+
+### What warrants a second pair of eyes
+- N/A (straightforward compile fix).
+
+### What should be done in the future
+- Add a lightweight `node status` console command once we start live testing, so we can view epoch/offset/cue counts without relying on log spam.
+
+### Code review instructions
+- Review the initialization + loop ownership in:
+  - `esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/mled_node.c`
+
+## Step 10: Write the “you can test now” playbook (flash + ping)
+
+Filled in the playbook with a concrete “build → flash/monitor → provision Wi‑Fi → run Python ping” loop, including expected outputs and the common failure modes (no multicast on guest networks, etc.). This answers “when can I start testing?”: as soon as the firmware builds successfully, you can flash and run the ping script.
+
+### What I did
+- Updated the playbook:
+  - `ttmp/2026/01/21/0049-NODE-PROTOCOL--esp32-c6-node-protocol-firmware/playbook/01-playbook-flash-esp32-c6-node-python-smoke-test.md`
+
+### Why
+- The fastest feedback loop is “flash + ping”; it validates the protocol plumbing without needing any additional controller features or UI.
+
+### What worked
+- The playbook aligns with other ESP32-C6 tutorials in this repo (same IDF version and console workflow).
+
+### What didn't work
+- N/A
+
+### What should be done in the future
+- Extend the playbook with a second stage once host tooling supports it:
+  - BEACON (epoch + coarse sync) + CUE_PREPARE + scheduled CUE_FIRE, and confirm `APPLY cue=...` in device logs.
+
 <!-- Provide background context needed to use this reference -->
 
 ## Quick Reference
