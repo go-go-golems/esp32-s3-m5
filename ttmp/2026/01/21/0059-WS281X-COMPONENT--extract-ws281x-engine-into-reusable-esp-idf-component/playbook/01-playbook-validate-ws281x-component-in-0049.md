@@ -64,11 +64,15 @@ In another terminal:
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-xiao-esp32c6-mled-node
 
 python3 tools/mled_ping.py --timeout 2.0 --repeat 2
+# If you get no PONGs but can ping the device IP, try forcing the multicast egress interface:
+# python3 tools/mled_ping.py --bind-ip <your-host-lan-ip> --timeout 2.0 --repeat 2
 
 python3 tools/mled_smoke.py --timeout 2.0 --cue 42 --delay-ms 800 --pattern rainbow
 python3 tools/mled_smoke.py --timeout 2.0 --cue 43 --delay-ms 800 --pattern chase --chase-fg '#ff0000' --chase-bg '#000010'
 python3 tools/mled_smoke.py --timeout 2.0 --cue 44 --delay-ms 800 --pattern breathing --breathing-color '#00a0ff'
 python3 tools/mled_smoke.py --timeout 2.0 --cue 45 --delay-ms 800 --pattern sparkle --sparkle-mode 2 --sparkle-density 15
+# Same bind-ip hint applies:
+# python3 tools/mled_smoke.py --bind-ip <your-host-lan-ip> ...
 ```
 
 ## Exit Criteria

@@ -107,6 +107,32 @@ This step turns the WS281x driver/pattern engine into a proper ESP-IDF component
 - Start at `components/ws281x/CMakeLists.txt` and confirm `REQUIRES esp_driver_rmt`.
 - Confirm `0049-xiao-esp32c6-mled-node` no longer contains the engine sources in `main/`, and builds cleanly.
 
+## Step 3: Debug discovery regression (no PONGs) with instrumentation + host bind option
+
+After the extraction, a “no PONGs received” symptom can happen even when the device is reachable by ICMP ping. The fastest way to separate “host multicast routing problem” from “node send/receive problem” is:
+1) instrument the node to log the first few PINGs it receives (and log send errors), and
+2) allow the host tools to force the multicast egress interface/IP to avoid multi-NIC routing surprises.
+
+**Commit (code):** 8c5b566 — "mled_node: log first PINGs and pong send errors"  
+**Commit (code):** 07edd6a — "tools: add --bind-ip for multicast routing"
+
+### What I did
+- Added limited PING receipt logging in `components/mled_node/src/mled_node.c`:
+  - logs the first 5 PINGs with source IP:port
+  - logs a warning if `send_pong` fails with `errno`
+- Added `--bind-ip` to host tools:
+  - `tools/mled_ping.py --bind-ip <host-ip>`
+  - `tools/mled_smoke.py --bind-ip <host-ip>`
+  - also sets `IP_MULTICAST_IF` so multicast egress is deterministic.
+
+### Why
+- On hosts with multiple interfaces (Wi‑Fi + Ethernet + VPN + Docker), multicast packets can leave on the “wrong” interface and nodes may reply to an unreachable source IP/port.
+
+### What should be done next
+- Flash the latest `0049` build and run:
+  - `python3 tools/mled_ping.py --timeout 2 --repeat 2`
+  - If no PONGs, retry with `--bind-ip <your-host-lan-ip>` and check device logs for `mled_node: PING ...` lines.
+
 ## Quick Reference
 
 N/A (see design doc + playbook).
