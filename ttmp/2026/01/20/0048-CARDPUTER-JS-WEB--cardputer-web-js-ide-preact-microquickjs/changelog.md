@@ -279,3 +279,12 @@ Step 29: Fix JS bootstraps (MicroQuickJS no arrow functions) (commits 88cdfc6,ea
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Rewrite bootstraps to ES5 function syntax
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Help panel no longer recommends arrow functions
 
+
+## 2026-01-21
+
+Step 30: Fix globalThis=null placeholder in stdlib (commit 5581587)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Set globalThis to JS_GetGlobalObject() before bootstraps
+

@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T14:44:04-05:00
+LastUpdated: 2026-01-21T14:50:31-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -76,6 +76,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 27: Phase 2C MVP: emit() + flush js_events to browser over WebSocket
 - Step 28: Phase 2C: emit overflow emits js_events_dropped frame
 - Step 29: Fix bootstraps: MicroQuickJS lacks arrow functions (encoder/emit undefined)
+- Step 30: Fix globalThis placeholder (was null) so bootstraps can install encoder/emit
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1729,3 +1730,54 @@ I rewrote both bootstraps to ES5 syntax (`function(...) { ... }`) and also switc
 
 ### Technical details
 - The specific parse failure was at the `=>` token (arrow function), reported as `SyntaxError: invalid lvalue` by this MicroQuickJS build.
+
+## Step 30: Fix globalThis placeholder (was null) so bootstraps can install encoder/emit
+
+After fixing the arrow-function syntax, bootstraps were still failing with:
+
+- `TypeError: cannot read property '__0048' of null` at `<boot:2b>:2:13` / `<boot:2c>:2:13`
+
+This turned out to be a property of the imported MicroQuickJS stdlib table in this repo: `globalThis` is present as a global name, but its value is literally `null` (placeholder), not the global object. That means any bootstrap that tries to use `globalThis` will crash immediately, and as a result `encoder`, `emit`, and `__0048_take_lines` never get installed.
+
+The fix is to explicitly set `globalThis` to the true global object from C at VM init using `JS_GetGlobalObject()` + `JS_SetPropertyStr()`. Once that is done, our ES5 bootstraps can safely use `globalThis`.
+
+**Commit (code):** 5581587 — "0048: fix globalThis in MicroQuickJS bootstraps"
+
+### What I did
+- At `js_service` VM initialization, overwrite the placeholder `globalThis`:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`ensure_ctx`)
+  - `JSValue glob = JS_GetGlobalObject(s_ctx);`
+  - `JS_SetPropertyStr(s_ctx, glob, "globalThis", glob);`
+- Updated bootstraps to consistently use `var g = globalThis;` (now valid after the above fix).
+- Verified firmware build:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_js_svc build`
+
+### Why
+- The stdlib’s placeholder `globalThis=null` makes Phase 2B and Phase 2C unusable because the bootstraps cannot install the API surface.
+
+### What worked
+- We now control `globalThis` semantics explicitly; the bootstraps should install reliably on boot.
+
+### What didn't work
+- Assuming `globalThis` already pointed to the global object was incorrect for this stdlib.
+
+### What I learned
+- This MicroQuickJS embedding can ship “API-shaped” globals (names exist) with placeholder values. When bootstrapping, it’s safer to derive critical roots (global object) from C (`JS_GetGlobalObject`) and set or validate globals explicitly.
+
+### What was tricky to build
+- Detecting that `globalThis` existed but was `null` required reading the generated stdlib table (it was not obvious from JS-level errors alone).
+
+### What warrants a second pair of eyes
+- Whether setting `globalThis` to self has any GC/relocation quirks in MicroQuickJS (expected to be safe because the global object is rooted).
+
+### What should be done in the future
+- Add a one-time runtime assert/banner at VM init:
+  - log whether `typeof globalThis === "object"` (and not null), so future regressions are obvious.
+
+### Code review instructions
+- Review the `globalThis` fix:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+
+### Technical details
+- The underlying stdlib issue is visible in the generated table where `globalThis` is mapped to `JS_NULL`.
