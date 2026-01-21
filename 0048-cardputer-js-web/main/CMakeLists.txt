@@ -1,7 +1,6 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
-        "wifi_console.c"
         "js_console.cpp"
         "http_server.cpp"
         "js_runner.cpp"
@@ -12,6 +11,7 @@ idf_component_register(
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         wifi_mgr
+        wifi_console
         nvs_flash
         esp_event
         esp_netif

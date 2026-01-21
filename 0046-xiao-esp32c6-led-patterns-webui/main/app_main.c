@@ -11,6 +11,7 @@
 #include "wifi_mgr.h"
 
 #include "led_patterns.h"
+#include "led_console.h"
 #include "led_task.h"
 #include "led_ws281x.h"
 
@@ -59,5 +60,9 @@ void app_main(void)
 
     // Console is intentionally started after Wi-Fi stack bring-up, so the first prompt
     // appears quickly and early Wi-Fi logs are visible.
-    wifi_console_start();
+    const wifi_console_config_t wifi_console_cfg = {
+        .prompt = "c6> ",
+        .register_extra = led_console_register_commands,
+    };
+    wifi_console_start(&wifi_console_cfg);
 }

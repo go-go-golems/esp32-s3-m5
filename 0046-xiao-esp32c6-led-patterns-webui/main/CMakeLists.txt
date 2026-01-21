@@ -6,10 +6,10 @@ idf_component_register(
         "led_patterns.c"
         "led_task.c"
         "led_console.c"
-        "wifi_console.c"
         "http_server.c"
     PRIV_REQUIRES
         wifi_mgr
+        wifi_console
         nvs_flash
         esp_event
         esp_netif

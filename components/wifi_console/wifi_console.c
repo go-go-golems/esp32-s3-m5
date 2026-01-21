@@ -1,7 +1,15 @@
 /*
- * MO-033 / 0044: esp_console REPL for configuring Wi-Fi STA at runtime.
+ * Shared esp_console REPL for configuring Wi-Fi STA at runtime.
  *
- * Pattern and UX based on 0029-mock-zigbee-http-hub/main/wifi_console.c.
+ * Commands:
+ *   wifi status
+ *   wifi scan [max]
+ *   wifi join <index> <password> [--save]
+ *   wifi set <ssid> <password> [--save]
+ *   wifi set --ssid <ssid> --pass <password> [--save]
+ *   wifi connect
+ *   wifi disconnect
+ *   wifi clear
  */
 
 #include "wifi_console.h"
@@ -21,9 +29,8 @@
 #include "lwip/inet.h"
 
 #include "wifi_mgr.h"
-#include "led_console.h"
 
-static const char *TAG = "mo033_wifi_console";
+static const char *TAG = "wifi_console";
 
 static const char *authmode_to_str(uint8_t authmode_u8)
 {
@@ -58,7 +65,7 @@ static void print_usage(void)
     printf("  wifi status\n");
     printf("  wifi scan [max]\n");
     printf("  wifi join <index> <password> [--save]\n");
-    printf("  wifi set <ssid> <password> [save]\n");
+    printf("  wifi set <ssid> <password> [--save]\n");
     printf("  wifi set --ssid <ssid> --pass <password> [--save]\n");
     printf("  wifi connect\n");
     printf("  wifi disconnect\n");
@@ -75,7 +82,7 @@ static bool try_parse_int(const char *s, int *out)
     return true;
 }
 
-static wifi_mgr_scan_entry_t s_last_scan[20];
+static wifi_mgr_scan_entry_t s_last_scan[CONFIG_WIFI_CONSOLE_MAX_SCAN_RESULTS];
 static size_t s_last_scan_n = 0;
 
 static int cmd_wifi(int argc, char **argv)
@@ -279,21 +286,23 @@ static int cmd_wifi(int argc, char **argv)
     return 1;
 }
 
-static void register_commands(void)
+static void register_commands(wifi_console_register_extra_fn_t register_extra)
 {
     esp_console_cmd_t cmd = {0};
     cmd.command = "wifi";
     cmd.help = "Wi-Fi STA config: wifi status|scan|join|set|connect|disconnect|clear";
     cmd.func = &cmd_wifi;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+    if (register_extra) register_extra();
 }
 
-void wifi_console_start(void)
+void wifi_console_start(const wifi_console_config_t *cfg)
 {
     esp_console_repl_t *repl = NULL;
 
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
-    repl_config.prompt = "c6> ";
+    repl_config.prompt = (cfg && cfg->prompt) ? cfg->prompt : "wifi> ";
 
     esp_err_t err = ESP_ERR_NOT_SUPPORTED;
 
@@ -319,8 +328,7 @@ void wifi_console_start(void)
     }
 
     esp_console_register_help_command();
-    register_commands();
-    led_console_register_commands();
+    register_commands(cfg ? cfg->register_extra : NULL);
 
     err = esp_console_start_repl(repl);
     if (err != ESP_OK) {
@@ -330,3 +338,4 @@ void wifi_console_start(void)
 
     ESP_LOGI(TAG, "esp_console started over %s (try: help, wifi scan)", backend);
 }
+

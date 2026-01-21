@@ -1,0 +1,11 @@
+menu "Wi-Fi console"
+
+config WIFI_CONSOLE_MAX_SCAN_RESULTS
+    int "Max scan results cached"
+    range 1 200
+    default 20
+    help
+        Maximum number of scan results cached for `wifi join <index> ...`.
+
+endmenu
+
