@@ -99,3 +99,14 @@ Step 13: Replace textarea with CodeMirror 6 and rebuild embedded assets (commit 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js — Built deterministic embedded JS bundle
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/package.json — Added CodeMirror deps and stabilized build script
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/code_editor.tsx — Added CodeMirror 6 editor component (Mod-Enter run)
+
+## 2026-01-21
+
+Step 14: Source ESP-IDF 5.4.1 and fix firmware build blockers (commit 1f181e1)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/CMakeLists.txt — Limit EXTRA_COMPONENT_DIRS and add required exercizer_control component
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — Fix HTTP 413 macro + silence httpd_uri initializers
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/sdkconfig.defaults — Enable custom partitions.csv + Cardputer flash defaults
+

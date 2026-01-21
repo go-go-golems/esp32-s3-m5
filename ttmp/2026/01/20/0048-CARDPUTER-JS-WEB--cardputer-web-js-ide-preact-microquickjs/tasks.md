@@ -80,6 +80,7 @@
 
 ### Validation
 
-- [ ] Ensure ESP-IDF tooling is available (`idf.py` on PATH or sourced environment)
+- [x] Ensure ESP-IDF tooling is available (`idf.py` on PATH or sourced environment)
+- [x] `idf.py build` succeeds for esp32s3 (local build dir via `-B build_esp32s3_v2`)
 - [ ] Run Phase 1 playbook and record results
 - [ ] Run Phase 2 playbook and record results

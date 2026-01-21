@@ -18,10 +18,14 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0048-cardputer-js-web/CMakeLists.txt
+      Note: Component dir wiring for mquickjs + exercizer_control
     - Path: 0048-cardputer-js-web/main/http_server.cpp
       Note: Phase 1 routes and asset serving
     - Path: 0048-cardputer-js-web/main/js_runner.cpp
       Note: MicroQuickJS init/eval/timeout hook
+    - Path: 0048-cardputer-js-web/sdkconfig.defaults
+      Note: Cardputer flash + partition table defaults for reproducible builds
     - Path: 0048-cardputer-js-web/web/src/ui/code_editor.tsx
       Note: CodeMirror 6 editor integration
 ExternalSources: []
@@ -30,6 +34,7 @@ LastUpdated: 2026-01-21T00:00:00-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -153,9 +158,54 @@ So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, 
 ### Technical details
 - N/A
 
+## Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
+
+With prior art located, I wrote the Phase 1 design as a “textbook”: it defines the system contract (routes + request/response schemas), decomposes the firmware into modules, and makes embedded constraints explicit (bounded request sizes, timeouts, memory budgets).
+
+**Commit (docs):** 1daac0a — "Docs: Phase 1 Web JS IDE design (0048)"  
+**Commit (diary/changelog):** 740c825 — "Diary: step 3 Phase 1 design drafted"
+
+### What I did
+- Created and filled the Phase 1 design doc:
+  - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Related canonical code files to the design doc:
+  - `docmgr doc relate --doc .../design-doc/01-...md --file-note "...:reason"`
+- Updated ticket changelog with a Phase 1 design milestone.
+
+### Why
+- Phase 1 is the spine: once REST eval + embedded assets work, Phase 2 is “just” WS telemetry.
+
+### What worked
+- The repo already contains building blocks that map cleanly onto this design:
+  - `0017-atoms3r-web-ui/main/http_server.cpp`
+  - `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp`
+
+### What didn't work
+- N/A
+
+### What I learned
+- Treating timeouts as first-class requirements changes architecture: you must plan for `JS_SetInterruptHandler` early.
+
+### What was tricky to build
+- Balancing completeness and focus: implementable but not a 50-page treatise on HTTP and JS engines.
+
+### What warrants a second pair of eyes
+- REST schema minimality and evolvability (`/api/js/eval` response shape).
+- Interpreter lifecycle (single VM + mutex vs per-session/per-request).
+
+### What should be done in the future
+- If UI needs richer output semantics, split return-value formatting vs captured logs vs exceptions.
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/ttmp/.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+
+### Technical details
+- N/A
+
 ## Step 12: Attempt local firmware build (blocked: ESP-IDF tooling missing in this environment)
 
-Before expanding the feature set, I tried to do the obvious “close the loop” validation: build the new ESP-IDF project locally so we can start iterating with confidence. That immediately uncovered an environment constraint: this sandbox does not have `idf.py` (ESP-IDF) available on `PATH`, and there is no vendored ESP-IDF checkout in the workspace to source.
+Before expanding the feature set, I tried to do the obvious “close the loop” validation: build the new ESP-IDF project locally so we can start iterating with confidence. That immediately uncovered an environment constraint: this sandbox did not have `idf.py` (ESP-IDF) available on `PATH`, and there was no vendored ESP-IDF checkout in the workspace to source.
 
 Rather than guessing at compilation errors, I recorded the exact failure and proceeded with web-side work that can still be validated here (node toolchain exists), while leaving firmware build/flash validation for a machine that has ESP-IDF installed.
 
@@ -261,50 +311,85 @@ This step adds a dedicated `CodeEditor` component that mounts a single `EditorVi
 - Editor extensions used:
   - `oneDark`, `javascript()`, `EditorView.lineWrapping`, `keymap.of([...])`
 
-## Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
+## Step 14: Source ESP-IDF 5.4.1, fix build blockers, and get the firmware building end-to-end
 
-With prior art located, I wrote the Phase 1 design as a “textbook”: it defines the system contract (routes + request/response schemas), decomposes the firmware into modules, and makes embedded constraints explicit (bounded request sizes, timeouts, memory budgets).
+Once ESP-IDF 5.4.1 was available (via `source /home/manuel/esp/esp-idf-5.4.1/export.sh`), I ran the first real build of the `0048-cardputer-js-web` firmware and iteratively fixed the blockers that showed up: missing/renamed components, transitive assumptions baked into the imported MicroQuickJS stdlib wiring, and a partition-table mismatch that made the final binary fail size checks.
 
-**Commit (docs):** 1daac0a — "Docs: Phase 1 Web JS IDE design (0048)"  
-**Commit (diary/changelog):** 740c825 — "Diary: step 3 Phase 1 design drafted"
+The result is that `idf.py -B build_esp32s3_v2 build` completes successfully for `esp32s3` and produces a flashable binary, with a project-local partition table that leaves comfortable headroom for the current CodeMirror-heavy web bundle.
+
+**Commit (code):** 1f181e1 — "0048: make firmware buildable on ESP-IDF 5.4.1"
 
 ### What I did
-- Created and filled the Phase 1 design doc:
-  - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
-- Related canonical code files to the design doc:
-  - `docmgr doc relate --doc .../design-doc/01-...md --file-note "...:reason"`
-- Updated ticket changelog with a Phase 1 design milestone.
+- Activated ESP-IDF in this shell:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py --version`
+- Used an explicit build directory (to avoid interacting with unrelated `build/` directories):
+  - `idf.py -B build_esp32s3_v2 set-target esp32s3`
+- Fixed build blockers revealed by the initial CMake configure/build:
+  - Replaced component name `esp_spiffs` → `spiffs` in `main/CMakeLists.txt` (ESP-IDF 5.4 component name).
+  - Reduced `EXTRA_COMPONENT_DIRS` to avoid importing the entire repo `components/` set (some components require `M5GFX` and other dependencies not relevant to this project).
+  - Added only the single required repo component `components/exercizer_control` because the imported MQJS stdlib runtime includes `exercizer/ControlPlaneC.h`.
+  - Updated HTTP status macro:
+    - `HTTPD_413_PAYLOAD_TOO_LARGE` → `HTTPD_413_CONTENT_TOO_LARGE` (ESP-IDF 5.4 name).
+  - Fixed JSON escaping bug (incorrect multi-character char constant) in `js_runner.cpp`.
+- Fixed the “app partition too small” failure by ensuring the build uses our project-local partition table and Cardputer flash defaults:
+  - Updated `sdkconfig.defaults` to set:
+    - flash size 8MB
+    - custom partition table `partitions.csv`
+- Rebuilt successfully:
+  - `idf.py -B build_esp32s3_v2 build`
+  - Confirmed partition table used `factory` 4M and size check passed with substantial free space.
 
 ### Why
-- Phase 1 is the spine: once REST eval + embedded assets work, Phase 2 is “just” WS telemetry.
+- We can’t meaningfully iterate on Phase 1 behavior (HTTPD + MQJS eval) until the firmware builds cleanly in a reproducible ESP-IDF environment.
 
 ### What worked
-- The repo already contains building blocks that map cleanly onto this design:
-  - `0017-atoms3r-web-ui/main/http_server.cpp`
-  - `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp`
+- After narrowing `EXTRA_COMPONENT_DIRS` and adding only the missing `exercizer_control` component, the imported stdlib wiring compiled cleanly.
+- Using a project-local partition table (4M app) allowed the binary to pass size checks.
 
 ### What didn't work
-- N/A
+- Initial build blockers (recorded verbatim from the first attempt):
+  - Unknown component:
+    - `Failed to resolve component 'esp_spiffs' required by component 'main': unknown name.`
+  - Missing component due to importing unrelated components:
+    - `Failed to resolve component 'M5GFX' required by component 'echo_gif': unknown name.`
+  - Missing header pulled by imported MQJS stdlib runtime:
+    - `fatal error: exercizer/ControlPlaneC.h: No such file or directory`
+  - API constant mismatch:
+    - `error: 'HTTPD_413_PAYLOAD_TOO_LARGE' was not declared in this scope; did you mean 'HTTPD_413_CONTENT_TOO_LARGE'?`
+  - Size check failure before enabling custom partitions:
+    - `Error: app partition is too small for binary cardputer_js_web_0048.bin ... (overflow 0x485f0)`
 
 ### What I learned
-- Treating timeouts as first-class requirements changes architecture: you must plan for `JS_SetInterruptHandler` early.
+- In ESP-IDF, dumping a large shared `components/` directory into `EXTRA_COMPONENT_DIRS` is brittle: every component must have its dependencies resolvable, even if the application doesn’t use it.
+- Reusing the imports MQJS stdlib wiring “as-is” implies you must also satisfy its assumed in-repo bindings (here: the exercizer control plane header).
 
 ### What was tricky to build
-- Balancing completeness and focus: implementable but not a 50-page treatise on HTTP and JS engines.
+- Distinguishing “component is present but not required” vs “component still needs to resolve”: ESP-IDF treats the component set holistically during the configure step, so missing deps anywhere can block the project.
+- Partition tables: `partitions.csv` existing in the repo is not enough — you must also set the sdkconfig knobs so IDF uses it.
 
 ### What warrants a second pair of eyes
-- REST schema minimality and evolvability (`/api/js/eval` response shape).
-- Interpreter lifecycle (single VM + mutex vs per-session/per-request).
+- Whether `exercizer_control` should remain a dependency of this tutorial, or whether we should instead generate a web-IDE-specific minimal stdlib that does not import the exercizer surface at all.
+- The current JSON formatting contract (manual escaping) vs adopting a small JSON builder to avoid future edge-case bugs.
 
 ### What should be done in the future
-- If UI needs richer output semantics, split return-value formatting vs captured logs vs exceptions.
+- Consider creating a minimal MQJS stdlib for this project (reduce surface area, reduce dependencies, potentially reduce code size).
+- Run the Phase 1 smoke-test playbook end-to-end on hardware (`idf.py flash monitor`) and capture actual runtime behavior (Wi‑Fi + HTTP + eval).
 
 ### Code review instructions
-- Start here:
-  - `esp32-s3-m5/ttmp/.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/CMakeLists.txt`
+  - `esp32-s3-m5/0048-cardputer-js-web/sdkconfig.defaults`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp`
+- Validate:
+  - `cd esp32-s3-m5/0048-cardputer-js-web && source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_v2 set-target esp32s3`
+  - `idf.py -B build_esp32s3_v2 build`
 
 ### Technical details
-- N/A
+- Built binary size observed during size check:
+  - `cardputer_js_web_0048.bin binary size 0x1485f0 bytes. Smallest app partition is 0x400000 bytes. 0x2b7a10 bytes (68%) free.`
 
 ## Step 4: Draft Phase 2 design doc (encoder telemetry over WebSocket)
 
