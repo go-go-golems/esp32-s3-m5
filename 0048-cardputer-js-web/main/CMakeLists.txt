@@ -13,7 +13,7 @@ idf_component_register(
         esp_wifi
         esp_http_server
         esp_timer
-        esp_spiffs
+        spiffs
         exercizer_control
         mquickjs
     EMBED_TXTFILES
@@ -21,4 +21,3 @@ idf_component_register(
         "assets/assets/app.js"
         "assets/assets/app.css"
 )
-

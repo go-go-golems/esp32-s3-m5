@@ -111,7 +111,7 @@ std::string js_runner_eval_to_json(const char* code, size_t code_len) {
     std::string err = print_value(s_ctx, exc);
     json = "{\"ok\":false,\"output\":\"\",\"error\":\"";
     for (char c : err) {
-      if (c == '\\\\' || c == '\"') json.push_back('\\\\');
+      if (c == '\\' || c == '\"') json.push_back('\\');
       if (c == '\n') {
         json += "\\n";
       } else {
@@ -133,7 +133,7 @@ std::string js_runner_eval_to_json(const char* code, size_t code_len) {
 
   json = "{\"ok\":true,\"output\":\"";
   for (char c : out) {
-    if (c == '\\\\' || c == '\"') json.push_back('\\\\');
+    if (c == '\\' || c == '\"') json.push_back('\\');
     if (c == '\n') {
       json += "\\n";
     } else {
@@ -147,4 +147,3 @@ std::string js_runner_eval_to_json(const char* code, size_t code_len) {
   xSemaphoreGive(s_mu);
   return json;
 }
-

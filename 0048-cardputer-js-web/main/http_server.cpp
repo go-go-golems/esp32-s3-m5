@@ -83,7 +83,7 @@ static esp_err_t js_eval_post(httpd_req_t* req) {
     return ESP_OK;
   }
   if (req->content_len > max_body) {
-    httpd_resp_send_err(req, HTTPD_413_PAYLOAD_TOO_LARGE, "body too large");
+    httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "body too large");
     return ESP_OK;
   }
 
@@ -125,19 +125,35 @@ esp_err_t http_server_start(void) {
     return err;
   }
 
-  httpd_uri_t root = {.uri = "/", .method = HTTP_GET, .handler = root_get, .user_ctx = nullptr};
+  httpd_uri_t root = {};
+  root.uri = "/";
+  root.method = HTTP_GET;
+  root.handler = root_get;
   httpd_register_uri_handler(s_server, &root);
-  httpd_uri_t app_js = {.uri = "/assets/app.js", .method = HTTP_GET, .handler = asset_app_js_get, .user_ctx = nullptr};
+
+  httpd_uri_t app_js = {};
+  app_js.uri = "/assets/app.js";
+  app_js.method = HTTP_GET;
+  app_js.handler = asset_app_js_get;
   httpd_register_uri_handler(s_server, &app_js);
-  httpd_uri_t app_css = {.uri = "/assets/app.css", .method = HTTP_GET, .handler = asset_app_css_get, .user_ctx = nullptr};
+
+  httpd_uri_t app_css = {};
+  app_css.uri = "/assets/app.css";
+  app_css.method = HTTP_GET;
+  app_css.handler = asset_app_css_get;
   httpd_register_uri_handler(s_server, &app_css);
 
-  httpd_uri_t status = {.uri = "/api/status", .method = HTTP_GET, .handler = status_get, .user_ctx = nullptr};
+  httpd_uri_t status = {};
+  status.uri = "/api/status";
+  status.method = HTTP_GET;
+  status.handler = status_get;
   httpd_register_uri_handler(s_server, &status);
 
-  httpd_uri_t eval = {.uri = "/api/js/eval", .method = HTTP_POST, .handler = js_eval_post, .user_ctx = nullptr};
+  httpd_uri_t eval = {};
+  eval.uri = "/api/js/eval";
+  eval.method = HTTP_POST;
+  eval.handler = js_eval_post;
   httpd_register_uri_handler(s_server, &eval);
 
   return ESP_OK;
 }
-
