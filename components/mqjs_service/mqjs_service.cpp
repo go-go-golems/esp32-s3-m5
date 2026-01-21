@@ -10,14 +10,20 @@ extern "C" {
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/idf_additions.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "esp_memory_utils.h"
 #include "esp_timer.h"
 
 #include "mqjs_vm.h"
 
 namespace {
+
+static const char* TAG = "mqjs_service";
 
 enum MsgType : uint8_t {
   MSG_EVAL = 1,
@@ -120,11 +126,19 @@ static void service_task(void* arg) {
     return;
   }
 
+  ESP_LOGI(TAG, "task start s=%p q=%p ready=%p core=%d", s, s->q, s->ready, (int)xPortGetCoreID());
+
   // Signal creator that the task started and is safe to interact with.
   if (s->ready) {
     xSemaphoreGive(s->ready);
   }
   if (!s->q) {
+    ESP_LOGE(TAG, "queue is NULL; exiting");
+    vTaskDelete(nullptr);
+    return;
+  }
+  if (!esp_ptr_internal(s->q)) {
+    ESP_LOGE(TAG, "queue not internal (%p); exiting", s->q);
     vTaskDelete(nullptr);
     return;
   }
@@ -239,15 +253,17 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
     // keep explicit bool; no-op
   }
 
-  s->ready = xSemaphoreCreateBinary();
+  s->ready = xSemaphoreCreateBinaryWithCaps(MALLOC_CAP_INTERNAL);
   if (!s->ready) {
     delete s;
     return ESP_ERR_NO_MEM;
   }
 
-  s->q = xQueueCreate(static_cast<UBaseType_t>(s->cfg.queue_len), sizeof(Msg));
+  s->q = xQueueCreateWithCaps(static_cast<UBaseType_t>(s->cfg.queue_len),
+                             sizeof(Msg),
+                             MALLOC_CAP_INTERNAL);
   if (!s->q) {
-    vSemaphoreDelete(s->ready);
+    vSemaphoreDeleteWithCaps(s->ready);
     delete s;
     return ESP_ERR_NO_MEM;
   }
@@ -270,8 +286,8 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
                     &s->task);
   }
   if (ok != pdPASS) {
-    vQueueDelete(s->q);
-    vSemaphoreDelete(s->ready);
+    vQueueDeleteWithCaps(s->q);
+    vSemaphoreDeleteWithCaps(s->ready);
     delete s;
     return ESP_ERR_NO_MEM;
   }
@@ -280,12 +296,12 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
   // consumers could otherwise enqueue work and then deadlock waiting on completions.
   if (xSemaphoreTake(s->ready, pdMS_TO_TICKS(1000)) != pdTRUE) {
     vTaskDelete(s->task);
-    vQueueDelete(s->q);
-    vSemaphoreDelete(s->ready);
+    vQueueDeleteWithCaps(s->q);
+    vSemaphoreDeleteWithCaps(s->ready);
     delete s;
     return ESP_FAIL;
   }
-  vSemaphoreDelete(s->ready);
+  vSemaphoreDeleteWithCaps(s->ready);
   s->ready = nullptr;
 
   *out = reinterpret_cast<mqjs_service_t*>(s);
@@ -300,7 +316,7 @@ void mqjs_service_stop(mqjs_service_t* s_) {
     s->task = nullptr;
   }
   if (s->q) {
-    vQueueDelete(s->q);
+    vQueueDeleteWithCaps(s->q);
     s->q = nullptr;
   }
   if (s->vm) {
