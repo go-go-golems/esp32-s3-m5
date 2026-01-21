@@ -117,3 +117,4 @@
 - [x] Phase 2C: flush JS-emitted events after eval/callback and broadcast over WS
 - [x] Phase 2C: broadcast dropped-event counters (js_events_dropped)
 - [x] Phase 2C: update JS help panel to document emit() + encoder callbacks
+- [x] Fix crash when JS print(ev) runs inside encoder callback (ctx->opaque/log_func)

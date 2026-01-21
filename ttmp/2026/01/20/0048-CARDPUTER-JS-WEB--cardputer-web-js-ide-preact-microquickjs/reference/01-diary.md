@@ -24,16 +24,21 @@ RelatedFiles:
       Note: Phase 1 routes and asset serving
     - Path: 0048-cardputer-js-web/main/js_runner.cpp
       Note: MicroQuickJS init/eval/timeout hook
+    - Path: 0048-cardputer-js-web/main/js_service.cpp
+      Note: Step 32 fix for print(ev) crash
     - Path: 0048-cardputer-js-web/sdkconfig.defaults
       Note: Cardputer flash + partition table defaults for reproducible builds
     - Path: 0048-cardputer-js-web/web/src/ui/code_editor.tsx
       Note: CodeMirror 6 editor integration
+    - Path: ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md
+      Note: Step 32 postmortem doc
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-21T14:58:30-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -78,6 +83,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 29: Fix bootstraps: MicroQuickJS lacks arrow functions (encoder/emit undefined)
 - Step 30: Fix globalThis placeholder (was null) so bootstraps can install encoder/emit
 - Step 31: Write postmortem + playbook for queue-based JS service/bindings/events
+- Step 32: Fix JS `print(ev)` crash in encoder callback (ctx->opaque/log_func)
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1841,3 +1847,66 @@ I created both documents under the `0048` ticket, grounded in the concrete imple
 - The postmortem calls out two distinct root causes:
   - arrow functions unsupported (`SyntaxError: invalid lvalue`)
   - `globalThis` bound to `null` in generated stdlib table (`JS_NULL`), requiring a C-side fix at VM init.
+
+## Step 32: Fix JS `print(ev)` crash in encoder callback (ctx->opaque/log_func)
+
+After Phase 2B+C came online, a new failure surfaced under real usage: registering an encoder click callback and printing the event object (`print(ev)`) reliably crashed the device with a StoreProhibited panic. This was confusing because the callback itself was small, and the failure looked like a random memcpy fault rather than a “JS error”.
+
+The root cause ended up being a subtle MicroQuickJS integration invariant: **the same `ctx->opaque` is used by both the interrupt handler path and the log/printf path**. We had installed a log function that assumed `ctx->opaque` was a `std::string*`, while the rest of the runtime assumed it was an `EvalDeadline*` (for `JS_SetInterruptHandler`). Printing objects via `JS_PrintValueF` (inside stdlib `print()`) invoked the log function with the wrong opaque type, causing a type-confusion crash in `std::string::append`.
+
+**Commit (code):** 2fa0533 — "js_service: fix JS print(ev) crash"
+
+### What I did
+- Used the user-provided backtrace to identify the call chain:
+  - `js_print` → `JS_PrintValueF` → `js_dump_object` → `js_vprintf` → log function → `std::string::append` → `memcpy` fault.
+- Implemented a stable, multiplexed context-opaque:
+  - `struct CtxOpaque { EvalDeadline deadline; std::string* log_out; };`
+  - Installed once at VM init (`ensure_ctx()`):
+    - `JS_SetContextOpaque(s_ctx, &s_opaque);`
+    - `JS_SetLogFunc(s_ctx, write_to_log);`
+    - `JS_SetInterruptHandler(s_ctx, interrupt_handler);`
+- Made `write_to_log(...)` route output:
+  - to the console by default (`stdout`)
+  - to a captured `std::string` when `log_out` is set (used by `print_value()`).
+- Rebuilt the firmware:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_js_svc build`
+
+### Why
+- JS-side `print(ev)` is a natural debugging move when building callback-driven systems; it must never be able to crash the device.
+- A single-owner JS service task is only safe if all its ancillary plumbing (timeouts, printing, logging) shares consistent ownership/state.
+
+### What worked
+- The code now keeps a single stable `ctx->opaque` type (`CtxOpaque`) throughout runtime operation.
+- `print_value()` can still capture JS values for HTTP responses and exception logs without leaving the VM in a “capture-only log sink” state.
+
+### What didn't work
+- The previous “swap `ctx->opaque` to a local std::string, print, restore” approach was fundamentally brittle:
+  - it mutated global VM state for a helper routine, and
+  - it left the log function installed in a way that later `print()` calls could not safely use.
+
+### What I learned
+- In MicroQuickJS, treat `ctx->opaque` as part of the engine’s ABI, not an app-level scratch pointer: multiple subsystems may read it.
+- If you need “capture log output into a string”, use a routing struct (or dedicated VM instances), not pointer swapping.
+
+### What was tricky to build
+- Understanding that the panic was not “encoder” or “WS” related at all; it was a `print()` formatting path triggered by printing an object argument.
+- Recognizing that un-restored log sinks can turn into latent crashes triggered much later, in a completely different code path.
+
+### What warrants a second pair of eyes
+- Confirm `write_to_log(...)` is safe for the intended output volume and does not introduce reentrancy problems for the UART console (should be fine because the JS VM runs on a single task).
+
+### What should be done in the future
+- Add a “VM invariant self-test” at init:
+  - run a trivial `print({a:1})` and ensure it does not fault,
+  - or at least validate that `ctx->opaque` points at our expected struct.
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`struct CtxOpaque`, `write_to_log`, `interrupt_handler`, `print_value`, `ensure_ctx`)
+- Validate by flashing and running:
+  - `encoder.on("click", function(ev){ print(ev); emit("click", ev); })`
+
+### Technical details
+- Postmortem reference doc:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md`

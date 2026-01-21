@@ -298,3 +298,13 @@ Step 31: Add postmortem + playbook for JS service/bindings/events
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md — End-to-end playbook for queue-based JS service + callbacks + emit
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/04-postmortem-microquickjs-bootstrap-failures-arrow-functions-globalthis-null.md — Postmortem and prevention checklist
 
+
+## 2026-01-21
+
+Fix crash when JS print(ev) runs inside encoder callback (commit 2fa0533); add postmortem reference 05
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Route MicroQuickJS logging via stable ctx opaque
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md — Postmortem + prevention checklist
+
