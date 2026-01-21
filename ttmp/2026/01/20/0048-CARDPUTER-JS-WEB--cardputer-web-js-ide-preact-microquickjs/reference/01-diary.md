@@ -30,6 +30,10 @@ RelatedFiles:
       Note: Cardputer flash + partition table defaults for reproducible builds
     - Path: 0048-cardputer-js-web/web/src/ui/code_editor.tsx
       Note: CodeMirror 6 editor integration
+    - Path: ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/analysis/01-analysis-componentizing-0048-firmware-into-reusable-modules-wi-fi-http-ws-js-vm-service-bindings.md
+      Note: Step 33 analysis doc
+    - Path: ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md
+      Note: Step 33 playbook updates
     - Path: ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md
       Note: Step 32 postmortem doc
 ExternalSources: []
@@ -38,6 +42,7 @@ LastUpdated: 2026-01-21T14:58:30-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -84,6 +89,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 30: Fix globalThis placeholder (was null) so bootstraps can install encoder/emit
 - Step 31: Write postmortem + playbook for queue-based JS service/bindings/events
 - Step 32: Fix JS `print(ev)` crash in encoder callback (ctx->opaque/log_func)
+- Step 33: Document componentization strategy (reusable modules) and update playbook 03
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1910,3 +1916,60 @@ The root cause ended up being a subtle MicroQuickJS integration invariant: **the
 ### Technical details
 - Postmortem reference doc:
   - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md`
+
+## Step 33: Document componentization strategy (reusable modules) and update playbook 03
+
+Now that 0048 has grown from “one firmware” into a small architecture (Wi‑Fi provisioning + esp_console + httpd + WS hub + queue-owned JS VM + hardware event producers), the most likely failure mode isn’t a single bug — it’s repeating this whole build-out on the next ticket and re-learning the same lessons. So I wrote a dedicated analysis document that identifies which 0048 subsystems are actually reusable components, how they relate to our existing prior art (especially `imports/esp32-mqjs-repl`’s `JsEvaluator`), and which refactors can be done without breaking existing firmwares.
+
+At the same time, I updated the main “queue-based JS service” playbook to include a concrete regression test (`print(ev)` inside an encoder callback) and to explicitly state the MicroQuickJS invariant that caused the crash: `ctx->opaque` and `ctx->write_func` are coupled and must be treated as shared runtime state, not a scratch pointer you can swap casually.
+
+**Commit (docs):** pending — will commit playbook + analysis + diary/changelog updates together.
+
+### What I did
+- Updated playbook 03 to include:
+  - a `print(ev)` regression step (`encoder.on("click", function(ev){ print(ev); emit(...) })`)
+  - an explicit note about `ctx->opaque` being shared by timeouts + printing/logging
+  - an “anti-pattern to avoid copying” callout for `JsEvaluator.cpp`’s pointer-swapping `print_value` implementation.
+- Wrote a new analysis document:
+  - `analysis/01-analysis-componentizing-0048-firmware-into-reusable-modules-wi-fi-http-ws-js-vm-service-bindings.md`
+  - Includes a compatibility analysis: how to refactor internals (e.g. `JsEvaluator`) without changing their public API.
+- Added and checked docmgr tasks for these doc updates.
+- Related high-signal files to the analysis doc:
+  - 0048: `wifi_mgr`, `http_server`, `js_service`
+  - prior art: `0017` and `0029` WS broadcasters; `imports/.../JsEvaluator`; `mquickjs.c` write path.
+
+### Why
+- Componentization is the highest-leverage next step: it reduces future tickets to “compose known components” rather than “rebuild by copy-paste”.
+- The `print(ev)` crash is a perfect example of why we need component-level invariants captured in one place rather than scattered through ticket-specific memory.
+
+### What worked
+- The analysis doc is anchored to concrete files/symbols (not generic “shoulds”).
+- The playbook now has an executable regression test for the crash class.
+
+### What didn't work
+- N/A
+
+### What I learned
+- `JsEvaluator` in `imports/esp32-mqjs-repl` is good prior art for REPL UX, but its `print_value` implementation is not a safe template for multi-producer/callback-driven systems because it mutates `ctx->opaque`/`ctx->write_func` without restoring stable VM invariants.
+
+### What was tricky to build
+- Writing compatibility analysis in a way that is actionable: naming the exact minimal public API surfaces that must remain stable, and separating them from internal refactors we can do freely.
+
+### What warrants a second pair of eyes
+- The proposed component boundaries and naming: verify they align with how we already structure `esp32-s3-m5/components/` and won’t create “two slightly different wifi_mgr components” again.
+
+### What should be done in the future
+- If we decide to actually implement this refactor:
+  - start with `wifi_mgr` + `wifi_console` extraction (low risk),
+  - then WS hub extraction,
+  - then `mqjs_vm` introduction + internal refactors of `js_service` and later `JsEvaluator`.
+
+### Code review instructions
+- Read the analysis doc first:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/analysis/01-analysis-componentizing-0048-firmware-into-reusable-modules-wi-fi-http-ws-js-vm-service-bindings.md`
+- Then review the playbook changes:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md`
+
+### Technical details
+- Key engine fact (from `imports/.../components/mquickjs/mquickjs.c`):
+  - printing uses `ctx->write_func(ctx->opaque, ...)` — i.e. log sink and opaque are coupled.

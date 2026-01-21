@@ -308,3 +308,13 @@ Fix crash when JS print(ev) runs inside encoder callback (commit 2fa0533); add p
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Route MicroQuickJS logging via stable ctx opaque
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md — Postmortem + prevention checklist
 
+
+## 2026-01-21
+
+Docs: update playbook 03 with print(ev) regression + write componentization analysis doc
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/analysis/01-analysis-componentizing-0048-firmware-into-reusable-modules-wi-fi-http-ws-js-vm-service-bindings.md — Componentization + compatibility analysis
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md — Add print(ev) regression + ctx->opaque invariant
+

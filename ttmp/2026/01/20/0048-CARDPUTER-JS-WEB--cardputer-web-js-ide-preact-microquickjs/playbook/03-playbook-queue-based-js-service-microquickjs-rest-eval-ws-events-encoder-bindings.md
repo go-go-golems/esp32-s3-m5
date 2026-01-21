@@ -182,6 +182,26 @@ Then rotate/click the encoder:
 
 - you should see `js_events` frames with topic `click` and `delta` in WS history.
 
+### 6a) Verify `print(ev)` inside callbacks does not crash
+
+This is the fastest regression test for a specific class of MicroQuickJS integration bugs (log sink + `ctx->opaque` type confusion).
+
+Run:
+
+```js
+encoder.on("click", function(ev) {
+  print(ev);           // should print to serial console without crashing
+  emit("click", ev);   // should appear in WS history
+})
+"ok"
+```
+
+Exit criteria:
+
+- Pressing the encoder button does not reboot/panic the device.
+- Serial console prints a dumped object (or at least prints something sane).
+- Browser WS history shows `js_events` with topic `click`.
+
 ## Exit Criteria
 
 By the end you can demonstrate all four layers working together:
@@ -192,6 +212,27 @@ By the end you can demonstrate all four layers working together:
 4) JS-emitted events show up in the browser WS history as `type:"js_events"`.
 
 ## Notes
+
+### MicroQuickJS invariant: `ctx->opaque` is shared by timeouts and printing
+
+MicroQuickJS uses `ctx->opaque` in multiple subsystems. In particular:
+
+- The `JS_SetInterruptHandler` timeout path receives `ctx->opaque` as its `opaque` argument.
+- `print()` and object formatting (`JS_PrintValueF` / `js_dump_object`) write bytes via `ctx->log_func`, which also receives an `opaque` pointer derived from the same place.
+
+Implication:
+
+- Do not install a log sink that assumes `ctx->opaque` points at some other type (like `std::string*`) unless `ctx->opaque` is *always* of that type.
+- If you need to “capture printing into a string”, implement a **log router**: keep `ctx->opaque` a stable struct containing both timeout state and an optional capture pointer, and have the log sink branch on whether capture is active.
+
+Reference implementation:
+
+- `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`struct CtxOpaque`, `write_to_log`, `print_value`)
+- Postmortem: `reference/05-postmortem-js-print-ev-crash-ctx-opaque-log-func.md`
+
+Anti-pattern to avoid copying:
+
+- `imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp` currently uses a “swap `ctx->opaque` to a local `std::string`” pattern in `print_value(...)` and does not restore a stable `ctx->opaque`. It works for that REPL use-case only as long as no JS code path triggers printing while `ctx->opaque` is in an invalid state; it is not a safe template for callback-driven or timeout-enabled systems.
 
 ## Implementation guide (textbook-style “build the machine”)
 

@@ -118,3 +118,5 @@
 - [x] Phase 2C: broadcast dropped-event counters (js_events_dropped)
 - [x] Phase 2C: update JS help panel to document emit() + encoder callbacks
 - [x] Fix crash when JS print(ev) runs inside encoder callback (ctx->opaque/log_func)
+- [x] Update playbook 03 with print(ev) crash invariant + anti-pattern note
+- [x] Write analysis doc on componentizing 0048 firmware into reusable modules
