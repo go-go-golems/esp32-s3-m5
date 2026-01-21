@@ -96,3 +96,8 @@
 - [x] `idf.py build` succeeds for esp32s3 (local build dir via `-B build_esp32s3_v2`)
 - [ ] Run Phase 1 playbook and record results
 - [ ] Run Phase 2 playbook and record results
+- [x] Phase 2C: Write JS→WS event stream design doc
+- [ ] Phase 2C: Upload design doc 04 to reMarkable
+- [ ] Phase 2C: UI bounded WS event history panel
+- [ ] Phase 2C: Firmware JS emit accumulator + flush + WS broadcast (MVP)
+- [ ] Phase 2C: Update JS help panel with emit() docs

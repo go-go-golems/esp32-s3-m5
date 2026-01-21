@@ -187,3 +187,13 @@ Docs: add Phase 2B design for on-device JS callbacks (Option B); UI: add JS capa
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Help text rendered on main page
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/03-phase-2b-design-on-device-js-callbacks-for-encoder-events.md — New design doc for event-driven JS on device
 
+
+## 2026-01-21
+
+Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) (commit 0b27788)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/04-phase-2c-design-js-websocket-event-stream-device-emits-arbitrary-payloads-to-ui.md — Design doc for JS→WS event stream and UI event history
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Add Phase 2C task breakdown
+

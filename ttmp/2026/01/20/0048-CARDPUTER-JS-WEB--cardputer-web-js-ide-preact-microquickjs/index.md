@@ -46,7 +46,7 @@ RelatedFiles:
       Note: Reference MicroQuickJS eval semantics and formatting
 ExternalSources: []
 Summary: 'Ticket workspace for designing a Cardputer-hosted Web IDE: embedded Preact/Zustand editor UI, REST endpoint to execute JS via MicroQuickJS, and (Phase 2) WebSocket streaming of encoder telemetry.'
-LastUpdated: 2026-01-20T22:54:37.222738591-05:00
+LastUpdated: 2026-01-21T10:05:23-05:00
 WhatFor: Collect designs, playbooks, and prior art for implementing an ESP-IDF device-hosted Web IDE on Cardputer.
 WhenToUse: Use when implementing the firmware/UI, reviewing architecture choices, or onboarding someone new to the repo’s device-hosted UI patterns.
 ---
@@ -78,6 +78,10 @@ Phase 2 extends the UI with realtime telemetry:
   - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
 - Phase 2 design (encoder telemetry over WS):
   - `design-doc/02-phase-2-design-encoder-position-click-over-websocket.md`
+- Phase 2B design (Option B: on-device JS callbacks for encoder events):
+  - `design-doc/03-phase-2b-design-on-device-js-callbacks-for-encoder-events.md`
+- Phase 2C design (JS→WS event stream: device emits arbitrary payloads to UI):
+  - `design-doc/04-phase-2c-design-js-websocket-event-stream-device-emits-arbitrary-payloads-to-ui.md`
 - Prior art map (docs + firmwares + symbol names):
   - `reference/02-prior-art-and-reading-list.md`
 - Diary (frequent step-by-step record):

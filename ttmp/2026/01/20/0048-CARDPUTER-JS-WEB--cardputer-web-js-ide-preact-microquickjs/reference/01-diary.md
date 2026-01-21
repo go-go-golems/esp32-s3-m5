@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T00:00:00-05:00
+LastUpdated: 2026-01-21T10:05:23-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -62,6 +62,12 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 13: Replace `<textarea>` with CodeMirror 6 (JS highlighting + Mod-Enter run) and rebuild embedded assets
 - Step 14: Source ESP-IDF 5.4.1, fix build blockers, and get the firmware building end-to-end
 - Step 15: Switch from SoftAP-only to esp_console-configured STA Wi‑Fi (0046 pattern) and update `/api/status` + Phase 1 playbook
+- Step 16: Verify ESP-IDF v5.4.1 build in this environment (source `export.sh`)
+- Step 17: Phase 2 MVP — add `/ws` endpoint, browser WS client UI, and best-effort encoder telemetry broadcaster
+- Step 18: Fix `Uncaught SyntaxError: illegal character U+0000` by trimming embedded TXT NUL terminators; add `js eval` console command
+- Step 19: Phase 2 — send encoder button clicks as explicit WS events (and fix single-click handling)
+- Step 20: Design Option B (Phase 2B) — on-device JS callbacks for encoder events; show JS capability help in the Web IDE
+- Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) + task breakdown
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1144,3 +1150,71 @@ I wrote a dedicated Phase 2B design document that proposes a queue-driven “JS 
   - `JS_NewObject`, `JS_SetPropertyStr`, `JS_PushArg`, `JS_Call`, `JS_GetException`
 - Callback references should be held with:
   - `JSGCRef` + `JS_AddGCRef` / `JS_DeleteGCRef`
+
+## Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) + task breakdown
+
+We have WebSocket telemetry in Phase 2 (encoder snapshots + click events), but there is still no general-purpose way for user JS to publish structured “things happened” events to the browser UI. Phase 2C is about making that explicit: JS emits events intentionally (not by capturing `print()`), the firmware forwards them over WebSocket, and the browser shows a bounded event history stream.
+
+I wrote a dedicated Phase 2C design doc that frames the problem, proposes a bounded, debuggable architecture, and outlines a minimal MVP that fits our current MicroQuickJS setup (no custom stdlib work required): accumulate events in a JS-side queue and flush them by running `JSON.stringify(...)` inside the VM, then broadcast an envelope over the existing WS channel.
+
+**Commit (docs):** 0b27788 — "Docs: Phase 2C JS→WS event stream design"
+
+### What I did
+- Authored the Phase 2C design doc:
+  - `design-doc/04-phase-2c-design-js-websocket-event-stream-device-emits-arbitrary-payloads-to-ui.md`
+  - Includes: wire schema for `js_events` and `js_events_dropped`, JS API surface (`emit(...)`), bounded buffer policy, and an implementation plan (MVP + Phase 2B alignment).
+- Validated frontmatter:
+  - `docmgr validate frontmatter --doc 2026/01/20/.../design-doc/04-...md --suggest-fixes`
+  - (Initially failed because I mistakenly passed a path prefixed with `ttmp/`; docmgr expects doc paths relative to the docs root.)
+- Expanded task breakdown to cover Phase 2C:
+  - Added tasks `[69]..[73]` for the doc, upload, UI event history panel, firmware emit+flush MVP, and JS help updates.
+  - Checked task `[69]` after committing the doc.
+
+### Why
+- We want a unified “device pushed events” channel so we can:
+  - debug on-device JS logic without a serial console,
+  - and later drive UI behavior (or at least observability) from JS callbacks (Phase 2B).
+- Keeping “emit” explicit avoids the complexity of “capturing prints” (semantics + backpressure + unstructured data).
+
+### What worked
+- The design doc is grounded in our actual implementation touchpoints:
+  - WS broadcaster: `0048.../main/http_server.cpp` (`http_server_ws_broadcast_text`)
+  - JS eval baseline: `0048.../main/js_runner.cpp` (`js_runner_eval_to_json`)
+  - MicroQuickJS API constraints: `imports/.../mquickjs.h` (no JSON helper → stringify inside VM)
+
+### What didn't work
+- I initially ran:
+  - `docmgr validate frontmatter --doc ttmp/2026/...`
+  - which failed with “no such file or directory” because docmgr doc paths are already rooted at the docs tree and should not include the `ttmp/` prefix.
+
+### What I learned
+- The “no JSON helper in MicroQuickJS headers” constraint is real and shapes the MVP: we either call `JSON.stringify` within JS, or we take on stdlib generation / native binding work.
+
+### What was tricky to build
+- Making the contract bounded and observable without overreaching into “print capture” (which is a separate feature with different failure modes).
+
+### What warrants a second pair of eyes
+- The chosen wire schema and backpressure policy:
+  - max events per flush,
+  - max WS frame length,
+  - and how we represent “dropped events” to avoid silent failure.
+
+### What should be done in the future
+- Implement the Phase 2C UI event history panel (bounded ring, scroll, clear).
+- Implement the firmware MVP:
+  - JS-side accumulator bootstrap
+  - flush after eval/callback
+  - WS broadcast envelope + dropped counter
+
+### Code review instructions
+- Read the Phase 2C design doc:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/04-phase-2c-design-js-websocket-event-stream-device-emits-arbitrary-payloads-to-ui.md`
+- Compare against current WS + JS baselines:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp`
+
+### Technical details
+- Proposed JS-side accumulator (MVP) concept:
+  - `globalThis.__0048.events` bounded array
+  - `emit(topic, payload)` pushes `{topic, payload, ts_ms: Date.now()}`
+  - flush runs `JSON.stringify(__0048_take())` inside the VM, then C broadcasts an envelope over WS
