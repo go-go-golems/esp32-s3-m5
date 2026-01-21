@@ -23,3 +23,12 @@ Fix boot crash: add task-start handshake and early NULL-queue guard in mqjs_serv
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Service task now signals readiness before blocking on queue
 
+
+## 2026-01-21
+
+Step 3: Fix FreeRTOS assert in mqjs_service sync completion (commit 39a30bf)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Heap-pending + static binary semaphore for sync eval/run
+

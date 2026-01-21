@@ -162,6 +162,71 @@ After flashing the `mqjs_service` refactor, the device immediately panicked duri
 ### Technical details
 - The panic location was `service_task` → `xQueueReceive` → `vPortEnterCritical` → `spinlock_acquire`, with EXCVADDR `0x4d` (consistent with a `NULL` queue handle leading to an invalid field-offset address).
 
+## Step 3: Fix FreeRTOS assert in sync completion path (corrupted semaphore handle)
+
+After resolving the early boot panic, the next device boot failure was a FreeRTOS assert inside `xQueueGenericSend` when the service task tried to signal a synchronous caller via `xSemaphoreGive(p->done)`. The assert indicates the “semaphore handle” passed to `xSemaphoreGive()` was actually a queue handle with a non-zero item size (i.e. not a semaphore), which would deadlock or crash any synchronous eval/run caller.
+
+The fix is to stop passing pointers to stack-allocated “pending” structs across the service queue, and to avoid heap-allocated semaphore objects in the synchronous path by using `xSemaphoreCreateBinaryStatic()` with storage embedded in the pending object. This makes the completion handle lifetime explicit and removes a class of early-boot heap/stack fragility.
+
+**Commit (code):** 39a30bf — "0055: fix mqjs_service sync completion semaphore"
+
+### What I did
+- Reworked synchronous APIs (`mqjs_service_eval`, `mqjs_service_run`) in `components/mqjs_service/mqjs_service.cpp`:
+  - allocate `EvalPending` / `JobPending` on the heap (instead of stack)
+  - create the completion semaphore via `xSemaphoreCreateBinaryStatic()` into embedded storage (`Pending::done_storage`)
+  - free the pending struct after `xSemaphoreTake(...)` returns
+- Hardened the “heap-owned job” cleanup path to only call `vSemaphoreDelete` when the completion semaphore is not static (`!p->done_static`).
+- Rebuilt 0048:
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_mqjs_service_comp build`
+
+### Why
+- The observed assert:
+  - `assert failed: xQueueGenericSend queue.c:937 (!( ( pvItemToQueue == ((void *)0) ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ))`
+  - backtrace to `components/mqjs_service/mqjs_service.cpp` at the `xSemaphoreGive(p->done)` line
+- This assert is exactly what happens when `xSemaphoreGive()` is passed something that is not a semaphore (e.g. a regular queue with item size > 0). In our design, the only plausible way to get that state is corruption/misinterpretation of the `Pending` object or its `done` handle.
+- Passing a pointer to a stack object through a queue to another task is brittle even if the caller blocks “forever”; a small refactor or hidden scheduler interaction can turn it into an immediate crash. Heap-pending + embedded-static semaphore makes the lifetime rules unambiguous.
+
+### What worked
+- `idf.py -B build_esp32s3_mqjs_service_comp build` succeeds after the fix (no compile/link regressions).
+
+### What didn't work
+- Boot on device previously failed with the FreeRTOS assert above and a backtrace pointing into the sync completion path.
+
+### What I learned
+- In ESP-IDF/FreeRTOS service patterns, avoid “stack pending structs” when the struct pointer crosses a task boundary (even if you think the caller will block until completion).
+- `xSemaphoreCreateBinaryStatic()` is a good default for “one-shot completion” objects embedded in request structs; it avoids heap reliance during early boot and makes ownership trivial (free the struct).
+
+### What was tricky to build
+- Keeping cleanup correct for both async and sync:
+  - async posted jobs should still be freed by the VM task (`heap_owned=true`)
+  - sync jobs are freed by the caller after completion (`heap_owned=false`)
+  - and we must not `vSemaphoreDelete()` a statically-created semaphore
+
+### What warrants a second pair of eyes
+- Concurrency/lifetime review of `mqjs_service_eval` and `mqjs_service_run`:
+  - confirm no path can free the pending struct before the worker finishes
+  - confirm `Pending::done_static` is set correctly in all sync callers
+
+### What should be done in the future
+- Re-flash and complete the device smoke test (task 9):
+  - confirm boot is stable
+  - run REST eval from browser UI
+  - confirm encoder delta/click callbacks still flush WS events
+
+### Code review instructions
+- Review the sync request changes in:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
+    - `pending_init_static`
+    - `mqjs_service_eval`
+    - `mqjs_service_run`
+- Then re-check 0048 boot bootstrap and callback routing (unchanged behavior, but depends on sync boot job):
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+
+### Technical details
+- The failing assertion occurs when FreeRTOS treats the handle passed to `xSemaphoreGive()` as a normal queue (non-zero item size). In our design, that can only happen if the “done semaphore handle” is corrupted, since all valid semaphores have zero-sized queue items.
+
 ## Related
 
 <!-- Link to related documents or resources -->
