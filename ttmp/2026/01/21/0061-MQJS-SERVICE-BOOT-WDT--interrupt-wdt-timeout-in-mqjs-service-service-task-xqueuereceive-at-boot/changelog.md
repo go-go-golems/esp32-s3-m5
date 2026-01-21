@@ -31,3 +31,12 @@ Step 3: Improve mqjs_service boot instrumentation (commit 6a562f3)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Log task name/priority/core before first xQueueReceive
 
+
+## 2026-01-21
+
+Analysis: explain why WDT started after extracting mqjs_service (stack-depth unit mismatch)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/21/0061-MQJS-SERVICE-BOOT-WDT--interrupt-wdt-timeout-in-mqjs-service-service-task-xqueuereceive-at-boot/analysis/02-why-boot-wdt-started-after-extracting-mqjs-service.md — Compares pre/post extraction; identifies stack words vs bytes
+
