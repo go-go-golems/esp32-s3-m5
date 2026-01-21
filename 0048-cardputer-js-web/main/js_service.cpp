@@ -33,6 +33,11 @@ struct EvalDeadline {
   int64_t deadline_us = 0;
 };
 
+struct CtxOpaque {
+  EvalDeadline deadline = {};
+  std::string* log_out = nullptr;  // if set, JS log output is captured here
+};
+
 struct EncoderDeltaSnap {
   int32_t pos = 0;
   int32_t delta = 0;
@@ -69,7 +74,7 @@ static SemaphoreHandle_t s_start_mu = nullptr;
 
 static uint8_t* s_js_mem = nullptr;
 static JSContext* s_ctx = nullptr;
-static EvalDeadline s_deadline;
+static CtxOpaque s_opaque;
 
 static portMUX_TYPE s_enc_mu = portMUX_INITIALIZER_UNLOCKED;
 static EncoderDeltaSnap s_enc_delta = {};
@@ -77,15 +82,20 @@ static bool s_enc_delta_pending = false;
 
 int interrupt_handler(JSContext* ctx, void* opaque) {
   (void)ctx;
-  auto* d = static_cast<EvalDeadline*>(opaque);
-  if (!d || d->deadline_us == 0) return 0;
-  return esp_timer_get_time() > d->deadline_us;
+  auto* st = static_cast<CtxOpaque*>(opaque);
+  if (!st || st->deadline.deadline_us == 0) return 0;
+  return esp_timer_get_time() > st->deadline.deadline_us;
 }
 
-void write_to_string(void* opaque, const void* buf, size_t buf_len) {
+void write_to_log(void* opaque, const void* buf, size_t buf_len) {
   if (!opaque || !buf || buf_len == 0) return;
-  auto* out = static_cast<std::string*>(opaque);
-  out->append(static_cast<const char*>(buf), buf_len);
+  auto* st = static_cast<CtxOpaque*>(opaque);
+  if (!st) return;
+  if (st->log_out) {
+    st->log_out->append(static_cast<const char*>(buf), buf_len);
+    return;
+  }
+  (void)fwrite(buf, 1, buf_len, stdout);
 }
 
 static void json_escape_append(std::string* out, const std::string& s) {
@@ -100,14 +110,14 @@ static void json_escape_append(std::string* out, const std::string& s) {
 }
 
 std::string print_value(JSContext* ctx, JSValue v) {
-  std::string out;
+  struct Capture {
+    explicit Capture(std::string* out) { s_opaque.log_out = out; }
+    ~Capture() { s_opaque.log_out = nullptr; }
+  };
 
-  // MicroQuickJS uses ctx->opaque as the log sink AND as the interrupt opaque.
-  // Keep interrupts working by restoring ctx->opaque after printing.
-  JS_SetContextOpaque(ctx, &out);
-  JS_SetLogFunc(ctx, write_to_string);
+  std::string out;
+  Capture cap(&out);
   JS_PrintValueF(ctx, v, JS_DUMP_LONG);
-  JS_SetContextOpaque(ctx, &s_deadline);
 
   return out;
 }
@@ -194,9 +204,9 @@ static void flush_js_events_to_ws(const char* source) {
   snprintf(expr, sizeof(expr), "__0048_take_lines('%s')", src);
 
   // Keep flush bounded as it's on the critical path.
-  s_deadline.deadline_us = esp_timer_get_time() + 50 * 1000;
+  s_opaque.deadline.deadline_us = esp_timer_get_time() + 50 * 1000;
   JSValue v = JS_Eval(s_ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
-  s_deadline.deadline_us = 0;
+  s_opaque.deadline.deadline_us = 0;
 
   if (JS_IsException(v)) {
     log_js_exception("flush js events failed");
@@ -244,9 +254,9 @@ static void call_cb(JSValue cb, JSValue arg0, uint32_t timeout_ms) {
   if (JS_StackCheck(s_ctx, 3)) return;
 
   if (timeout_ms > 0) {
-    s_deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
+    s_opaque.deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
   } else {
-    s_deadline.deadline_us = 0;
+    s_opaque.deadline.deadline_us = 0;
   }
 
   JS_PushArg(s_ctx, arg0);
@@ -254,7 +264,7 @@ static void call_cb(JSValue cb, JSValue arg0, uint32_t timeout_ms) {
   JS_PushArg(s_ctx, JS_NULL);
   JSValue ret = JS_Call(s_ctx, 1);
   const bool threw = JS_IsException(ret);
-  s_deadline.deadline_us = 0;
+  s_opaque.deadline.deadline_us = 0;
   if (threw) {
     log_js_exception("encoder callback threw");
   }
@@ -311,7 +321,9 @@ static esp_err_t ensure_ctx(void) {
     return ESP_FAIL;
   }
 
-  JS_SetContextOpaque(s_ctx, &s_deadline);
+  s_opaque = {};
+  JS_SetContextOpaque(s_ctx, &s_opaque);
+  JS_SetLogFunc(s_ctx, write_to_log);
   JS_SetInterruptHandler(s_ctx, interrupt_handler);
 
   // The imported stdlib currently defines `globalThis` as `null` (placeholder).
@@ -340,16 +352,16 @@ static std::string eval_to_json(const char* code, size_t code_len, uint32_t time
   if (timeout_ms == 0) timeout_ms = CONFIG_TUTORIAL_0048_JS_TIMEOUT_MS;
 
   if (timeout_ms > 0) {
-    s_deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
+    s_opaque.deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
   } else {
-    s_deadline.deadline_us = 0;
+    s_opaque.deadline.deadline_us = 0;
   }
 
   const int flags = JS_EVAL_REPL | JS_EVAL_RETVAL;
   JSValue val = JS_Eval(s_ctx, code, code_len, filename, flags);
 
-  const bool timed_out = (timeout_ms > 0) && (esp_timer_get_time() > s_deadline.deadline_us);
-  s_deadline.deadline_us = 0;
+  const bool timed_out = (timeout_ms > 0) && (esp_timer_get_time() > s_opaque.deadline.deadline_us);
+  s_opaque.deadline.deadline_us = 0;
 
   std::string json;
   if (JS_IsException(val)) {
