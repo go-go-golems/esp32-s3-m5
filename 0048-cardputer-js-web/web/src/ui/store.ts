@@ -13,7 +13,13 @@ type EncoderMsg = {
   ts_ms: number
   pos: number
   delta: number
-  pressed: boolean
+}
+
+type EncoderClickMsg = {
+  type: 'encoder_click'
+  seq: number
+  ts_ms: number
+  kind: number // 0=single, 1=double, 2=long
 }
 
 type Store = {
@@ -24,6 +30,7 @@ type Store = {
   run: () => Promise<void>
   wsConnected: boolean
   encoder: EncoderMsg | null
+  lastClick: EncoderClickMsg | null
   connectWs: () => void
 }
 
@@ -37,6 +44,7 @@ export const useStore = create<Store>((set, get) => ({
   last: null,
   wsConnected: false,
   encoder: null,
+  lastClick: null,
   setCode: (code) => set({ code }),
   run: async () => {
     set({ running: true })
@@ -88,10 +96,10 @@ export const useStore = create<Store>((set, get) => ({
 
     ws.onmessage = (ev) => {
       try {
-        const msg = JSON.parse(ev.data) as EncoderMsg
-        if (msg && msg.type === 'encoder') {
-          set({ encoder: msg })
-        }
+        const msg = JSON.parse(ev.data) as EncoderMsg | EncoderClickMsg
+        if (!msg) return
+        if (msg.type === 'encoder') set({ encoder: msg })
+        if (msg.type === 'encoder_click') set({ lastClick: msg })
       } catch {
         // ignore malformed frames
       }

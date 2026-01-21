@@ -79,6 +79,12 @@ int32_t ChainEncoderUart::take_delta() {
   return delta_accum_.exchange(0);
 }
 
+int ChainEncoderUart::take_click_kind() {
+  const uint8_t v = click_pending_.exchange(0);
+  if (v == 0) return -1;
+  return (int)v - 1;
+}
+
 bool ChainEncoderUart::has_click_pending() const {
   return click_pending_.load() != 0;
 }
@@ -319,6 +325,9 @@ bool ChainEncoderUart::try_extract_one(Frame* out) {
 void ChainEncoderUart::handle_unsolicited(const Frame& f) {
   if (f.cmd != kCmdButtonEvent) return;
   if (f.data.size() < 1) return;
-  // Protocol: 0=single, 1=double, 2=long
-  click_pending_.store(f.data[0]);
+  // Protocol: 0=single, 1=double, 2=long. Store kind+1 so 0 can mean "none".
+  const uint8_t kind = f.data[0];
+  if (kind <= 2) {
+    click_pending_.store((uint8_t)(kind + 1));
+  }
 }

@@ -43,7 +43,6 @@ static void telemetry_task(void* arg) {
 
   int32_t pos = 0;
   int32_t last_sent_pos = 0;
-  bool pending_click = false;
   uint32_t seq = 0;
 
   const int broadcast_ms = CONFIG_TUTORIAL_0048_ENCODER_WS_BROADCAST_MS;
@@ -56,28 +55,32 @@ static void telemetry_task(void* arg) {
       pos += delta_accum;
     }
 
-    if (enc.has_click_pending()) {
-      pending_click = true;
-      enc.clear_click_pending();
-    }
+    const int click_kind = enc.take_click_kind();
 
     const int32_t delta = pos - last_sent_pos;
     last_sent_pos = pos;
 
     const uint32_t ts_ms = (uint32_t)esp_log_timestamp();
-    const bool pressed = pending_click;
-    pending_click = false;
+
+    if (click_kind >= 0) {
+      char click_msg[160];
+      snprintf(click_msg,
+               sizeof(click_msg),
+               "{\"type\":\"encoder_click\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu32 ",\"kind\":%d}",
+               seq++,
+               ts_ms,
+               click_kind);
+      (void)http_server_ws_broadcast_text(click_msg);
+    }
 
     char msg[192];
     snprintf(msg,
              sizeof(msg),
-             "{\"type\":\"encoder\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu32 ",\"pos\":%" PRId32 ",\"delta\":%" PRId32
-             ",\"pressed\":%s}",
+             "{\"type\":\"encoder\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu32 ",\"pos\":%" PRId32 ",\"delta\":%" PRId32 "}",
              seq++,
              ts_ms,
              pos,
-             delta,
-             pressed ? "true" : "false");
+             delta);
 
     (void)http_server_ws_broadcast_text(msg);
 

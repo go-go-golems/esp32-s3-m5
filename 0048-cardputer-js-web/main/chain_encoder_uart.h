@@ -32,6 +32,10 @@ public:
   // Returns accumulated delta since last call (clears accumulator).
   int32_t take_delta();
 
+  // Returns click kind if a click event has occurred since last call; otherwise -1.
+  // Kinds follow the protocol: 0=single, 1=double, 2=long.
+  int take_click_kind();
+
   bool has_click_pending() const;
   void clear_click_pending();
 
@@ -59,8 +63,7 @@ private:
   TaskHandle_t task_ = nullptr;
 
   std::atomic<int32_t> delta_accum_{0};
-  std::atomic<uint8_t> click_pending_{0}; // 0=no, else last trigger status (0 single,1 double,2 long)
+  std::atomic<uint8_t> click_pending_{0}; // 0=no, else (kind+1): 1 single, 2 double, 3 long
 
   std::vector<uint8_t> buf_;
 };
-

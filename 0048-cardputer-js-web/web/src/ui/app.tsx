@@ -9,6 +9,7 @@ export function App() {
   const last = useStore((s) => s.last)
   const wsConnected = useStore((s) => s.wsConnected)
   const encoder = useStore((s) => s.encoder)
+  const lastClick = useStore((s) => s.lastClick)
   const connectWs = useStore((s) => s.connectWs)
   const initialCode = useMemo(() => useStore.getState().code, [])
 
@@ -34,11 +35,12 @@ export function App() {
         <span class={'ws ' + (wsConnected ? 'ok' : 'bad')}>{wsConnected ? 'WS: connected' : 'WS: disconnected'}</span>
         {encoder ? (
           <span class="enc">
-            enc pos={encoder.pos} delta={encoder.delta} pressed={String(encoder.pressed)}
+            enc pos={encoder.pos} delta={encoder.delta}
           </span>
         ) : (
           <span class="enc">enc: -</span>
         )}
+        {lastClick ? <span class="enc">click kind={lastClick.kind}</span> : null}
       </div>
       <div class="row">
         <div class="col">
