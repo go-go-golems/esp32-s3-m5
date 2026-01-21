@@ -470,7 +470,26 @@ static void handle_beacon(const mled_header_t *hdr, const struct sockaddr_in *sr
 
 static void handle_ping(const mled_header_t *hdr, const struct sockaddr_in *src)
 {
-    (void)send_pong(src, hdr->msg_id);
+    static uint32_t s_ping_log_budget = 5;
+    if (s_ping_log_budget > 0) {
+        ESP_LOGI(
+            TAG,
+            "PING msg_id=%" PRIu32 " from %s:%u",
+            hdr->msg_id,
+            inet_ntoa(src->sin_addr),
+            (unsigned)ntohs(src->sin_port));
+        s_ping_log_budget--;
+    }
+
+    if (send_pong(src, hdr->msg_id) != 0) {
+        ESP_LOGW(
+            TAG,
+            "send_pong failed: msg_id=%" PRIu32 " to %s:%u errno=%d",
+            hdr->msg_id,
+            inet_ntoa(src->sin_addr),
+            (unsigned)ntohs(src->sin_port),
+            errno);
+    }
 }
 
 static void handle_cue_prepare(const mled_header_t *hdr, const uint8_t *payload, uint32_t payload_len, const struct sockaddr_in *src)
@@ -690,4 +709,3 @@ void mled_node_stop(void)
 {
     s_ctx.stop = true;
 }
-
