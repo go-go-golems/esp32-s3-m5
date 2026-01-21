@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'preact/hooks'
+import { useEffect, useMemo, useRef } from 'preact/hooks'
 import { useStore } from '../ui/store'
 import { CodeEditor } from './code_editor'
 
@@ -11,11 +11,21 @@ export function App() {
   const encoder = useStore((s) => s.encoder)
   const lastClick = useStore((s) => s.lastClick)
   const connectWs = useStore((s) => s.connectWs)
+  const wsHistory = useStore((s) => s.wsHistory)
+  const clearWsHistory = useStore((s) => s.clearWsHistory)
   const initialCode = useMemo(() => useStore.getState().code, [])
+  const wsLogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     connectWs()
   }, [connectWs])
+
+  useEffect(() => {
+    const el = wsLogRef.current
+    if (!el) return
+    const nearBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 24
+    if (nearBottom) el.scrollTop = el.scrollHeight
+  }, [wsHistory.length])
 
   const output = useMemo(() => {
     if (!last) return ''
@@ -40,6 +50,10 @@ Builtins / notes:
 
 Device console:
 - There is also: 0048> js eval <code...>   (prints JSON result)
+
+WebSocket:
+- /ws pushes device->browser JSON frames (encoder snapshots + click events today)
+- The UI below shows a bounded history of raw WS frames for debugging
 `,
     []
   )
@@ -53,6 +67,9 @@ Device console:
         <a href="/api/status" target="_blank" rel="noreferrer">
           /api/status
         </a>
+        <button onClick={() => clearWsHistory()} title="Clear WS event history">
+          Clear WS
+        </button>
         <span class={'ws ' + (wsConnected ? 'ok' : 'bad')}>{wsConnected ? 'WS: connected' : 'WS: disconnected'}</span>
         {encoder ? (
           <span class="enc">
@@ -74,6 +91,25 @@ Device console:
         </div>
         <div class="col">
           <div class={'output' + (last && !last.ok ? ' error' : '')}>{output}</div>
+        </div>
+      </div>
+      <div class="events">
+        <div class="eventsHead">
+          <div class="eventsTitle">WebSocket event history (last {wsHistory.length})</div>
+          <div class="eventsHint">bounded to 200 frames</div>
+        </div>
+        <div class="eventLog" ref={wsLogRef}>
+          {wsHistory.map((e) => {
+            const t = new Date(e.rx_ms).toISOString().slice(11, 19)
+            const typ = e.parsed && typeof e.parsed === 'object' ? String((e.parsed as any).type ?? 'json') : 'raw'
+            return (
+              <div class="eventLine" key={e.id}>
+                <span class="eventTime">{t}</span>
+                <span class="eventType">{typ}</span>
+                <span class={'eventBody' + (e.parse_error ? ' bad' : '')}>{e.raw || e.parse_error || ''}</span>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

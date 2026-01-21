@@ -11,3 +11,14 @@
 .output { white-space: pre-wrap; background: #111; color: #eee; padding: 8px; border-radius: 6px; min-height: 120px; }
 .error { color: #ff6b6b; }
 .hint { margin-top: 6px; opacity: 0.7; font-size: 12px; }
+.events { margin-top: 12px; }
+.eventsHead { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; }
+.eventsTitle { font-size: 13px; opacity: 0.9; }
+.eventsHint { font-size: 12px; opacity: 0.6; }
+.eventLog { height: 220px; overflow: auto; background: #0b0b0b; border: 1px solid #222; border-radius: 6px; padding: 6px; }
+.eventLine { display: flex; gap: 8px; padding: 2px 0; border-bottom: 1px solid #141414; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; line-height: 1.35; }
+.eventLine:last-child { border-bottom: none; }
+.eventTime { opacity: 0.6; flex: 0 0 64px; }
+.eventType { opacity: 0.85; color: #74c0fc; flex: 0 0 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eventBody { white-space: pre-wrap; word-break: break-word; flex: 1; opacity: 0.9; }
+.eventBody.bad { color: #ff6b6b; }

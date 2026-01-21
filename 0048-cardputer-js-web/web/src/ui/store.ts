@@ -7,6 +7,14 @@ type EvalResponse = {
   timed_out?: boolean
 }
 
+type WsHistoryItem = {
+  id: number
+  rx_ms: number
+  raw: string
+  parsed: any | null
+  parse_error: string | null
+}
+
 type EncoderMsg = {
   type: 'encoder'
   seq: number
@@ -31,12 +39,17 @@ type Store = {
   wsConnected: boolean
   encoder: EncoderMsg | null
   lastClick: EncoderClickMsg | null
+  wsHistory: WsHistoryItem[]
+  clearWsHistory: () => void
   connectWs: () => void
 }
 
 let ws: WebSocket | null = null
 let reconnectTimer: number | null = null
 let reconnectBackoffMs = 250
+let wsHistoryNextId = 1
+
+const WS_HISTORY_MAX = 200
 
 export const useStore = create<Store>((set, get) => ({
   code: '1+1',
@@ -45,6 +58,8 @@ export const useStore = create<Store>((set, get) => ({
   wsConnected: false,
   encoder: null,
   lastClick: null,
+  wsHistory: [],
+  clearWsHistory: () => set({ wsHistory: [] }),
   setCode: (code) => set({ code }),
   run: async () => {
     set({ running: true })
@@ -95,13 +110,28 @@ export const useStore = create<Store>((set, get) => ({
     }
 
     ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data) as EncoderMsg | EncoderClickMsg
-        if (!msg) return
+      const raw = typeof ev.data === 'string' ? ev.data : ''
+      let parsed: any | null = null
+      let parse_error: string | null = null
+      if (raw) {
+        try {
+          parsed = JSON.parse(raw)
+        } catch (e: any) {
+          parse_error = String(e)
+        }
+      }
+
+      const id = wsHistoryNextId++
+      const item: WsHistoryItem = { id, rx_ms: Date.now(), raw, parsed, parse_error }
+      set((s) => {
+        const next = s.wsHistory.length >= WS_HISTORY_MAX ? s.wsHistory.slice(s.wsHistory.length - WS_HISTORY_MAX + 1) : s.wsHistory
+        return { wsHistory: [...next, item] }
+      })
+
+      if (parsed && typeof parsed === 'object') {
+        const msg = parsed as EncoderMsg | EncoderClickMsg
         if (msg.type === 'encoder') set({ encoder: msg })
         if (msg.type === 'encoder_click') set({ lastClick: msg })
-      } catch {
-        // ignore malformed frames
       }
     }
   },
