@@ -110,3 +110,15 @@ Step 14: Source ESP-IDF 5.4.1 and fix firmware build blockers (commit 1f181e1)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — Fix HTTP 413 macro + silence httpd_uri initializers
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/sdkconfig.defaults — Enable custom partitions.csv + Cardputer flash defaults
 
+
+## 2026-01-21
+
+Step 15: Switch to esp_console-configured STA Wi-Fi (0046 pattern) (commit 0ed4cda)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — /api/status now reports STA state + IP
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/wifi_console.c — esp_console Wi-Fi commands (wifi scan/join/status)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.c — STA Wi-Fi manager with NVS credentials + status snapshot
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md — Updated Phase 1 playbook to STA/console-first
+

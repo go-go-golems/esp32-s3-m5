@@ -18,25 +18,33 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: M5Chain-Series-Internal-FW/Chain-Encder/protocol/M5Stack-Chain-Encoder-Protocol-V1-EN.pdf
+    - Path: ../../../../../../M5Chain-Series-Internal-FW/Chain-Encder/protocol/M5Stack-Chain-Encoder-Protocol-V1-EN.pdf
       Note: Encoder protocol contract (Phase 2)
-    - Path: esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp
+    - Path: 0017-atoms3r-web-ui/main/http_server.cpp
       Note: Reference esp_http_server patterns for embedded assets + WS
-    - Path: esp32-s3-m5/0017-atoms3r-web-ui/web/vite.config.ts
+    - Path: 0017-atoms3r-web-ui/web/vite.config.ts
       Note: Reference deterministic Vite bundling for firmware embedding
-    - Path: esp32-s3-m5/0048-cardputer-js-web/main/app_main.cpp
+    - Path: 0048-cardputer-js-web/main/app_main.cpp
       Note: Firmware entrypoint wiring wifi + http server
-    - Path: esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp
+    - Path: 0048-cardputer-js-web/main/http_server.cpp
       Note: esp_http_server routes for embedded UI and /api/js/eval
-    - Path: esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp
+    - Path: 0048-cardputer-js-web/main/js_runner.cpp
       Note: MicroQuickJS init + eval formatting + timeout hook
-    - Path: esp32-s3-m5/0048-cardputer-js-web/partitions.csv
+    - Path: 0048-cardputer-js-web/main/wifi_console.c
+      Note: |-
+        esp_console Wi-Fi commands (wifi scan/join/status) and connection-status UX (0046 pattern)
+        esp_console Wi-Fi commands and status UX (0046 pattern)
+    - Path: 0048-cardputer-js-web/main/wifi_mgr.c
+      Note: |-
+        STA Wi-Fi manager with NVS-backed credentials and status snapshots (0046 pattern)
+        STA Wi-Fi manager with NVS credentials (0046 pattern)
+    - Path: 0048-cardputer-js-web/partitions.csv
       Note: Defines storage SPIFFS partition required by MQJS stdlib load/autoload helpers
-    - Path: esp32-s3-m5/0048-cardputer-js-web/web/vite.config.ts
+    - Path: 0048-cardputer-js-web/web/vite.config.ts
       Note: Deterministic bundling into main/assets for firmware embedding
-    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h
       Note: Authoritative JS engine API primitives
-    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp
+    - Path: imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp
       Note: Reference MicroQuickJS eval semantics and formatting
 ExternalSources: []
 Summary: 'Ticket workspace for designing a Cardputer-hosted Web IDE: embedded Preact/Zustand editor UI, REST endpoint to execute JS via MicroQuickJS, and (Phase 2) WebSocket streaming of encoder telemetry.'
@@ -44,6 +52,7 @@ LastUpdated: 2026-01-20T22:54:37.222738591-05:00
 WhatFor: Collect designs, playbooks, and prior art for implementing an ESP-IDF device-hosted Web IDE on Cardputer.
 WhenToUse: Use when implementing the firmware/UI, reviewing architecture choices, or onboarding someone new to the repo’s device-hosted UI patterns.
 ---
+
 
 
 

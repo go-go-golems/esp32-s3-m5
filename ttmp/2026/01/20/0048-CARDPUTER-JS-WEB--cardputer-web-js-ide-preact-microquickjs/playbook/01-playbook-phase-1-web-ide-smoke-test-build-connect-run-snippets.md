@@ -52,8 +52,7 @@ Validate the Phase 1 MVP end-to-end:
 - The firmware embeds web assets under `main/assets/` with deterministic filenames:
   - `index.html`, `assets/app.js`, `assets/app.css`
 - The device is reachable either via:
-  - SoftAP (phone/laptop connects directly to the device), or
-  - STA (device joins your Wi‑Fi and prints an IP).
+  - STA (device joins your Wi‑Fi via `esp_console` configuration and prints an IP).
 
 ## Commands
 
@@ -65,18 +64,27 @@ npm run build
 
 # 1) Build + flash firmware
 cd ../
-idf.py set-target esp32s3
-idf.py build
-idf.py flash monitor
+idf.py -B build_esp32s3_v2 set-target esp32s3
+idf.py -B build_esp32s3_v2 build
+idf.py -B build_esp32s3_v2 flash monitor
 ```
 
 ## Exit Criteria
 
 In serial logs you see:
 
-- Wi‑Fi connected or SoftAP started
-- a browse URL printed, e.g. `http://192.168.4.1/` or `http://192.168.1.123/`
-- HTTP server started and routes registered
+- `esp_console` prompt appears (e.g. `0048>`)
+- you can run `wifi scan` and `wifi status`
+- after `wifi join ... --save` (or `wifi set ... --save` + `wifi connect`), a browse URL printed, e.g. `http://192.168.1.123/`
+- HTTP server starts after STA got-IP (and routes register)
+
+Console commands (example):
+
+```text
+0048> wifi scan
+0048> wifi join 0 mypassword --save
+0048> wifi status
+```
 
 From a host machine (replace `<ip>` with the device IP):
 

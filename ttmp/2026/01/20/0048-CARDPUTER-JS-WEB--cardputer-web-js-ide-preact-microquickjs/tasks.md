@@ -21,8 +21,8 @@
 
 ### Firmware: Wi‑Fi bring-up
 
-- [x] Implement Wi‑Fi bring-up module (SoftAP MVP)
-- [x] Print browse URL and serve `/api/status` with mode + IP(s)
+- [x] Implement Wi‑Fi bring-up module (STA + esp_console, like 0046)
+- [x] Print browse URL on got-IP and serve `/api/status` with STA state + IP
 
 ### Firmware: HTTP server + static assets
 

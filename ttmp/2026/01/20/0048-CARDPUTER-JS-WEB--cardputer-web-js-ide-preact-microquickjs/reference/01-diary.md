@@ -158,51 +158,6 @@ So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, 
 ### Technical details
 - N/A
 
-## Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
-
-With prior art located, I wrote the Phase 1 design as a “textbook”: it defines the system contract (routes + request/response schemas), decomposes the firmware into modules, and makes embedded constraints explicit (bounded request sizes, timeouts, memory budgets).
-
-**Commit (docs):** 1daac0a — "Docs: Phase 1 Web JS IDE design (0048)"  
-**Commit (diary/changelog):** 740c825 — "Diary: step 3 Phase 1 design drafted"
-
-### What I did
-- Created and filled the Phase 1 design doc:
-  - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
-- Related canonical code files to the design doc:
-  - `docmgr doc relate --doc .../design-doc/01-...md --file-note "...:reason"`
-- Updated ticket changelog with a Phase 1 design milestone.
-
-### Why
-- Phase 1 is the spine: once REST eval + embedded assets work, Phase 2 is “just” WS telemetry.
-
-### What worked
-- The repo already contains building blocks that map cleanly onto this design:
-  - `0017-atoms3r-web-ui/main/http_server.cpp`
-  - `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp`
-
-### What didn't work
-- N/A
-
-### What I learned
-- Treating timeouts as first-class requirements changes architecture: you must plan for `JS_SetInterruptHandler` early.
-
-### What was tricky to build
-- Balancing completeness and focus: implementable but not a 50-page treatise on HTTP and JS engines.
-
-### What warrants a second pair of eyes
-- REST schema minimality and evolvability (`/api/js/eval` response shape).
-- Interpreter lifecycle (single VM + mutex vs per-session/per-request).
-
-### What should be done in the future
-- If UI needs richer output semantics, split return-value formatting vs captured logs vs exceptions.
-
-### Code review instructions
-- Start here:
-  - `esp32-s3-m5/ttmp/.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
-
-### Technical details
-- N/A
-
 ## Step 12: Attempt local firmware build (blocked: ESP-IDF tooling missing in this environment)
 
 Before expanding the feature set, I tried to do the obvious “close the loop” validation: build the new ESP-IDF project locally so we can start iterating with confidence. That immediately uncovered an environment constraint: this sandbox did not have `idf.py` (ESP-IDF) available on `PATH`, and there was no vendored ESP-IDF checkout in the workspace to source.
@@ -390,6 +345,132 @@ The result is that `idf.py -B build_esp32s3_v2 build` completes successfully for
 ### Technical details
 - Built binary size observed during size check:
   - `cardputer_js_web_0048.bin binary size 0x1485f0 bytes. Smallest app partition is 0x400000 bytes. 0x2b7a10 bytes (68%) free.`
+
+## Step 15: Switch from SoftAP-only to esp_console-configured STA Wi‑Fi (0046 pattern) and update `/api/status` + Phase 1 playbook
+
+SoftAP-only was a convenient MVP, but it’s not the desired UX for this project. I switched `0048-cardputer-js-web` to the same console-driven STA Wi‑Fi flow used by `0046-xiao-esp32c6-led-patterns-webui`: bring up the STA stack early, start an `esp_console` REPL, let the developer `wifi scan` + `wifi join ... --save`, and only start the HTTP server once STA has an IP.
+
+This makes the device behave like a “normal” LAN host: once it’s joined your Wi‑Fi, you browse to the printed IP, the Web IDE loads, and REST eval works. `/api/status` now reports STA connection state (and is useful in the browser without needing serial access).
+
+**Commit (code):** 0ed4cda — "0048: add esp_console Wi-Fi STA manager (0046 pattern)"
+
+### What I did
+- Studied the reference implementation:
+  - `esp32-s3-m5/0046-xiao-esp32c6-led-patterns-webui/main/wifi_mgr.c`
+  - `esp32-s3-m5/0046-xiao-esp32c6-led-patterns-webui/main/wifi_console.c`
+- Replaced the SoftAP-only module with a small STA manager + console:
+  - Deleted: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_app.cpp`
+  - Deleted: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_app.h`
+  - Added: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.c`
+  - Added: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.h`
+  - Added: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_console.c`
+  - Added: `esp32-s3-m5/0048-cardputer-js-web/main/wifi_console.h`
+- Updated the firmware entrypoint to:
+  - start Wi‑Fi STA (`wifi_mgr_start()`)
+  - start `esp_console` (`wifi_console_start()`)
+  - start the HTTP server on STA got-IP (`wifi_mgr_set_on_got_ip_cb(...)`)
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/main/app_main.cpp`
+- Updated `/api/status` to report STA state, SSID, IP, and last disconnect reason:
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+- Updated Kconfig to remove SoftAP knobs and add STA console knobs:
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/main/Kconfig.projbuild`
+    - `CONFIG_TUTORIAL_0048_WIFI_MAX_RETRY`
+    - `CONFIG_TUTORIAL_0048_WIFI_AUTOCONNECT_ON_BOOT`
+- Updated component deps to include REPL backend + console:
+  - Updated: `esp32-s3-m5/0048-cardputer-js-web/main/CMakeLists.txt` (`console`, `esp_driver_usb_serial_jtag`)
+- Verified the project still builds:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_v2 build`
+
+### Why
+- This ticket’s desired workflow is “connect device to the same Wi‑Fi as your laptop” and then browse to it — the SoftAP-only MVP was an implementation convenience, not the target UX.
+- Reusing the known-good 0046 Wi‑Fi console pattern reduces new surface area and gives a familiar command set (`wifi status|scan|join|set|connect|disconnect|clear`).
+
+### What worked
+- Build succeeded after swapping in the STA manager and adding the right ESP-IDF console dependencies.
+- Starting the HTTP server only after got-IP matches the mental model of “this device is now a LAN host”.
+
+### What didn't work
+- N/A (the pattern port was straightforward once the 0046 code was copied/adapted)
+
+### What I learned
+- Treating Wi‑Fi as a “control-plane” problem (configured by `esp_console`) pairs well with a device-hosted Web UI: the console does enrollment, the UI does runtime interaction.
+
+### What was tricky to build
+- Managing dependency scope: the STA manager pulls in NVS, event loop, and Wi‑Fi; the console pulls in the REPL backend; `main/CMakeLists.txt` must name those explicitly.
+
+### What warrants a second pair of eyes
+- `/api/status` contract changes (SoftAP fields removed, STA fields added). Confirm this is acceptable vs versioning the schema.
+- Whether we want an AP fallback mode (e.g., if STA never connects) for demo resilience.
+
+### What should be done in the future
+- Update the Phase 1 smoke-test playbook to be STA/console-first (done in this step), and then run it on real hardware to capture runtime logs.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.c`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/wifi_console.c`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/app_main.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+- Validate locally:
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_v2 build`
+  - `idf.py -B build_esp32s3_v2 flash monitor`
+  - At the `0048>` prompt:
+    - `wifi scan`
+    - `wifi join 0 <password> --save`
+    - `wifi status`
+  - Then browse to the printed URL and confirm `/api/status` and `/api/js/eval`.
+
+### Technical details
+- `/api/status` now reports:
+  - `mode=sta`, `state`, `ssid`, `ip`, `saved`, `runtime`, `reason`
+
+## Step 3: Draft Phase 1 design doc (REST eval + embedded editor UI)
+
+With prior art located, I wrote the Phase 1 design as a “textbook”: it defines the system contract (routes + request/response schemas), decomposes the firmware into modules, and makes embedded constraints explicit (bounded request sizes, timeouts, memory budgets).
+
+**Commit (docs):** 1daac0a — "Docs: Phase 1 Web JS IDE design (0048)"  
+**Commit (diary/changelog):** 740c825 — "Diary: step 3 Phase 1 design drafted"
+
+### What I did
+- Created and filled the Phase 1 design doc:
+  - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Related canonical code files to the design doc:
+  - `docmgr doc relate --doc .../design-doc/01-...md --file-note "...:reason"`
+- Updated ticket changelog with a Phase 1 design milestone.
+
+### Why
+- Phase 1 is the spine: once REST eval + embedded assets work, Phase 2 is “just” WS telemetry.
+
+### What worked
+- The repo already contains building blocks that map cleanly onto this design:
+  - `0017-atoms3r-web-ui/main/http_server.cpp`
+  - `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp`
+
+### What didn't work
+- N/A
+
+### What I learned
+- Treating timeouts as first-class requirements changes architecture: you must plan for `JS_SetInterruptHandler` early.
+
+### What was tricky to build
+- Balancing completeness and focus: implementable but not a 50-page treatise on HTTP and JS engines.
+
+### What warrants a second pair of eyes
+- REST schema minimality and evolvability (`/api/js/eval` response shape).
+- Interpreter lifecycle (single VM + mutex vs per-session/per-request).
+
+### What should be done in the future
+- If UI needs richer output semantics, split return-value formatting vs captured logs vs exceptions.
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/ttmp/.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+
+### Technical details
+- N/A
 
 ## Step 4: Draft Phase 2 design doc (encoder telemetry over WebSocket)
 
