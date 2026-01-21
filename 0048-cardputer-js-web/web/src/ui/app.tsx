@@ -1,12 +1,13 @@
 import { useMemo } from 'preact/hooks'
 import { useStore } from '../ui/store'
+import { CodeEditor } from './code_editor'
 
 export function App() {
-  const code = useStore((s) => s.code)
   const setCode = useStore((s) => s.setCode)
   const run = useStore((s) => s.run)
   const running = useStore((s) => s.running)
   const last = useStore((s) => s.last)
+  const initialCode = useMemo(() => useStore.getState().code, [])
 
   const output = useMemo(() => {
     if (!last) return ''
@@ -26,11 +27,8 @@ export function App() {
       </div>
       <div class="row">
         <div class="col">
-          <textarea
-            style="width:100%;height:300px"
-            value={code}
-            onInput={(e) => setCode((e.target as HTMLTextAreaElement).value)}
-          />
+          <CodeEditor initialValue={initialCode} onChange={setCode} onRun={run} />
+          <div class="hint">Tip: Ctrl/Cmd-Enter runs.</div>
         </div>
         <div class="col">
           <div class={'output' + (last && !last.ok ? ' error' : '')}>{output}</div>
@@ -39,4 +37,3 @@ export function App() {
     </div>
   )
 }
-

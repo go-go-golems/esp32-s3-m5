@@ -3,4 +3,4 @@
 .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .output { white-space: pre-wrap; background: #111; color: #eee; padding: 8px; border-radius: 6px; min-height: 120px; }
 .error { color: #ff6b6b; }
-
+.hint { margin-top: 6px; opacity: 0.7; font-size: 12px; }
