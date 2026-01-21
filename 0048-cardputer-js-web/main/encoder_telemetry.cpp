@@ -42,7 +42,7 @@ static void telemetry_task(void* arg) {
   }
 
   int32_t pos = 0;
-  int32_t last_sent_pos = 0;
+  int32_t last_broadcast_pos = 0;
   uint32_t seq = 0;
 
   const int broadcast_ms = CONFIG_TUTORIAL_0048_ENCODER_WS_BROADCAST_MS;
@@ -57,8 +57,7 @@ static void telemetry_task(void* arg) {
 
     const int click_kind = enc.take_click_kind();
 
-    const int32_t delta = pos - last_sent_pos;
-    last_sent_pos = pos;
+    const int32_t delta = pos - last_broadcast_pos;
 
     const uint32_t ts_ms = (uint32_t)esp_log_timestamp();
 
@@ -73,16 +72,19 @@ static void telemetry_task(void* arg) {
       (void)http_server_ws_broadcast_text(click_msg);
     }
 
-    char msg[192];
-    snprintf(msg,
-             sizeof(msg),
-             "{\"type\":\"encoder\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu32 ",\"pos\":%" PRId32 ",\"delta\":%" PRId32 "}",
-             seq++,
-             ts_ms,
-             pos,
-             delta);
+    if (delta != 0) {
+      last_broadcast_pos = pos;
+      char msg[192];
+      snprintf(msg,
+               sizeof(msg),
+               "{\"type\":\"encoder\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu32 ",\"pos\":%" PRId32 ",\"delta\":%" PRId32 "}",
+               seq++,
+               ts_ms,
+               pos,
+               delta);
 
-    (void)http_server_ws_broadcast_text(msg);
+      (void)http_server_ws_broadcast_text(msg);
+    }
 
     vTaskDelayUntil(&last_wake, period);
   }
