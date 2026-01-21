@@ -35,6 +35,12 @@ extern const uint8_t assets_app_js_end[] asm("_binary_app_js_end");
 extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
 extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
 
+static size_t embedded_txt_len(const uint8_t* start, const uint8_t* end) {
+  size_t len = (size_t)(end - start);
+  if (len > 0 && start[len - 1] == 0) len--;
+  return len;
+}
+
 #if CONFIG_HTTPD_WS_SUPPORT
 static SemaphoreHandle_t s_ws_mu = nullptr;
 static int s_ws_clients[8] = {};
@@ -158,29 +164,29 @@ esp_err_t http_server_ws_broadcast_text(const char* text) {
 #endif
 
 static esp_err_t send_json(httpd_req_t* req, const char* body) {
-  httpd_resp_set_type(req, "application/json");
+  httpd_resp_set_type(req, "application/json; charset=utf-8");
   httpd_resp_set_hdr(req, "cache-control", "no-store");
   return httpd_resp_sendstr(req, body);
 }
 
 static esp_err_t root_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "text/html");
+  httpd_resp_set_type(req, "text/html; charset=utf-8");
   httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
+  const size_t len = embedded_txt_len(assets_index_html_start, assets_index_html_end);
   return httpd_resp_send(req, (const char*)assets_index_html_start, len);
 }
 
 static esp_err_t asset_app_js_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "application/javascript");
+  httpd_resp_set_type(req, "application/javascript; charset=utf-8");
   httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = (size_t)(assets_app_js_end - assets_app_js_start);
+  const size_t len = embedded_txt_len(assets_app_js_start, assets_app_js_end);
   return httpd_resp_send(req, (const char*)assets_app_js_start, len);
 }
 
 static esp_err_t asset_app_css_get(httpd_req_t* req) {
-  httpd_resp_set_type(req, "text/css");
+  httpd_resp_set_type(req, "text/css; charset=utf-8");
   httpd_resp_set_hdr(req, "cache-control", "no-store");
-  const size_t len = (size_t)(assets_app_css_end - assets_app_css_start);
+  const size_t len = embedded_txt_len(assets_app_css_start, assets_app_css_end);
   return httpd_resp_send(req, (const char*)assets_app_css_start, len);
 }
 

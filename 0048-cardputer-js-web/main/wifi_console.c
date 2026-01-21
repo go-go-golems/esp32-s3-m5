@@ -31,6 +31,8 @@
 
 #include "wifi_mgr.h"
 
+#include "js_console.h"
+
 static const char* TAG = "wifi_console_0048";
 
 static const char* authmode_to_str(uint8_t authmode_u8) {
@@ -289,6 +291,8 @@ static void register_commands(void) {
   cmd.help = "Wi-Fi STA config: wifi status|scan|join|set|connect|disconnect|clear";
   cmd.func = &cmd_wifi;
   ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+  js_console_register_commands();
 }
 
 void wifi_console_start(void) {
@@ -331,4 +335,3 @@ void wifi_console_start(void) {
 
   ESP_LOGI(TAG, "esp_console started over %s (try: help, wifi scan)", backend);
 }
-

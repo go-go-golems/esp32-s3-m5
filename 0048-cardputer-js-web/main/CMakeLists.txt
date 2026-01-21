@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.cpp"
         "wifi_mgr.c"
         "wifi_console.c"
+        "js_console.cpp"
         "http_server.cpp"
         "js_runner.cpp"
         "encoder_telemetry.cpp"
