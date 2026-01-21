@@ -205,3 +205,54 @@ I also related the highest-leverage files (0017 HTTP server + asset pipeline, an
 
 ### Technical details
 - N/A (documentation-only step)
+
+## Step 4: Write Phase 2 design doc (encoder telemetry over WebSocket)
+
+Phase 2 is where the system becomes “alive”: instead of the browser only sending requests (REST) and waiting for replies, the device continuously streams state changes (encoder position and click) to the UI. That shift forces us to specify ordering, rate limits, coalescing semantics, and reconnection behavior—exactly the parts that are easy to handwave and painful to debug later.
+
+I wrote a Phase 2 design doc that makes the signal model explicit (“authoritative state + optional deltas”), defines a minimal JSON frame schema, and outlines a firmware architecture that remains stable under bursty encoder input. I grounded the design in the in-repo WS broadcaster patterns (0017/0029) and the Chain Encoder protocol prior art (MO-036 + protocol PDF).
+
+### What I did
+- Created the Phase 2 design doc:
+  - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type design-doc --title "Phase 2 Design: Encoder position + click over WebSocket"`
+- Wrote the Phase 2 design content:
+  - `.../design-doc/02-phase-2-design-encoder-position-click-over-websocket.md`
+- Related the key prior-art sources:
+  - `docmgr doc relate --doc .../design-doc/02-...md --file-note "...:reason"`
+
+### Why
+- WebSocket changes the operational failure modes (disconnects, backpressure, bursts); design needs to pre-commit to a rate/coalescing model.
+- The encoder driver itself is ambiguous (built-in vs Chain Encoder). The design must isolate that ambiguity behind a narrow interface.
+
+### What worked
+- WS prior art in this repo already solves the two hard parts:
+  - client tracking + async send without blocking the server task
+  - practical debugging strategy (playbook 0029)
+- Encoder prior art already exists at the protocol level (MO-036), which reduces guesswork.
+
+### What didn't work
+- N/A
+
+### What I learned
+- For human-facing UIs, coalescing encoder bursts into a bounded-rate “latest state” stream produces a better UX than faithfully emitting every tick.
+
+### What was tricky to build
+- Writing a design that remains correct even if the “encoder” is not the Chain Encoder (hardware ambiguity).
+
+### What warrants a second pair of eyes
+- Message schema evolution strategy: ensure `type` and `seq` are sufficient for future extensions (logs/status) without breaking clients.
+- Rate/coalescing defaults (sample vs broadcast): confirm they match expected UX and don’t starve other device work.
+
+### What should be done in the future
+- If Phase 2 implementation needs richer button semantics (double-click/long-press), extend the schema carefully (edge events vs state).
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/ttmp/.../design-doc/02-phase-2-design-encoder-position-click-over-websocket.md`
+- Verify the cited prior art exists:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp`
+  - `esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c`
+  - `esp32-s3-m5/ttmp/.../MO-036-CHAIN-ENCODER-LVGL.../design-doc/01-lvgl-lists-chain-encoder-cardputer-adv.md`
+
+### Technical details
+- N/A (documentation-only step)
