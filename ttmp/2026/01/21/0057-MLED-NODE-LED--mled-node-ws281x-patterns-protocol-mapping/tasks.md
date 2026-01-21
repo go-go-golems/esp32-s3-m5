@@ -7,5 +7,5 @@
 - [ ] Implement `PatternConfig` → `led_pattern_cfg_t` mapping (RAINBOW/CHASE/BREATHING/SPARKLE)
 - [ ] Wire node cue apply to LED task (`led_task_send`) and report status in PONG
 - [ ] Add host test script support for all patterns (extend `tools/mled_smoke.py`)
-- [ ] Write host test playbook (flash + run python + expected visuals)
+- [x] Write host test playbook (flash + run python + expected visuals)
 - [ ] Ask user to test; record results in diary
