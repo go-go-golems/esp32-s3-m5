@@ -12,22 +12,35 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/mled_node.c
-      Note: Node cue apply path (where we will call into LED task)
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/mled_protocol.h
-      Note: Protocol pattern_type IDs and PatternConfig layout
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c
-      Note: Queue-owned LED owner task (desired integration target)
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_patterns.h
       Note: Internal pattern config structs/ranges (mapping target)
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-xiao-esp32c6-mled-node/tools/mled_smoke.py
-      Note: Host-driven BEACON+PREPARE+FIRE smoke harness we extend to choose patterns
+    - Path: 0044-xiao-esp32c6-ws281x-patterns-console/main/led_task.c
+      Note: Queue-owned LED owner task (desired integration target)
+    - Path: 0049-xiao-esp32c6-mled-node/main/led_task.c
+      Note: Single-owner LED task that receives pattern updates
+    - Path: 0049-xiao-esp32c6-mled-node/main/mled_effect_led.c
+      Note: |-
+        Adapter: PatternConfig -> led_pattern_cfg_t + led_task_send + PONG status updates
+        Wire mapping + enqueue into led_task + update node PONG status
+    - Path: 0049-xiao-esp32c6-mled-node/tools/mled_smoke.py
+      Note: |-
+        Host-driven BEACON+PREPARE+FIRE smoke harness we extend to choose patterns
+        Host smoke tool now supports selecting all patterns
+    - Path: components/mled_node/include/mled_protocol.h
+      Note: |-
+        Protocol pattern_type IDs and PatternConfig layout
+        Protocol PatternConfig layout and pattern_type IDs
+    - Path: components/mled_node/src/mled_node.c
+      Note: |-
+        Node cue apply path (calls the registered on-apply callback)
+        Node apply callback entrypoint
 ExternalSources: []
-Summary: "Implement real WS281x LED output in the 0049 MLED node by integrating 0044's led_task engine and mapping protocol PatternConfig (type + data[12]) into led_pattern_cfg_t."
+Summary: Implement real WS281x LED output in the 0049 MLED node by integrating 0044's led_task engine and mapping protocol PatternConfig (type + data[12]) into led_pattern_cfg_t.
 LastUpdated: 2026-01-21T15:37:51.627768515-05:00
-WhatFor: "Provide an implementable blueprint for mapping protocol cues to WS281x patterns and for wiring node cue scheduling into the existing queue-owned LED engine."
-WhenToUse: "Use when implementing the mapping, reviewing correctness (ranges, clamping, idempotency), or extending host tests to validate visual behavior."
+WhatFor: Provide an implementable blueprint for mapping protocol cues to WS281x patterns and for wiring node cue scheduling into the existing queue-owned LED engine.
+WhenToUse: Use when implementing the mapping, reviewing correctness (ranges, clamping, idempotency), or extending host tests to validate visual behavior.
 ---
+
 
 # Design: Protocol PatternConfig → WS281x Patterns (0049 + 0044 integration)
 

@@ -11,13 +11,18 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0049-xiao-esp32c6-mled-node/main/mled_effect_led.c
+      Note: Diary Step 3 mapping + integration
+    - Path: 0049-xiao-esp32c6-mled-node/tools/mled_smoke.py
+      Note: Diary Step 4 host pattern selector
 ExternalSources: []
-Summary: "Work log for integrating WS281x LED patterns into the 0049 MLED node (protocol PatternConfig mapping + host smoke tests)."
+Summary: Work log for integrating WS281x LED patterns into the 0049 MLED node (protocol PatternConfig mapping + host smoke tests).
 LastUpdated: 2026-01-21T15:37:51.361584652-05:00
-WhatFor: "Track implementation steps, commits, failures, and test results while wiring 0044's WS281x pattern engine into the 0049 MLED node."
-WhenToUse: "Use when continuing the work, reviewing decisions, or reproducing build/flash/host test procedures."
+WhatFor: Track implementation steps, commits, failures, and test results while wiring 0044's WS281x pattern engine into the 0049 MLED node.
+WhenToUse: Use when continuing the work, reviewing decisions, or reproducing build/flash/host test procedures.
 ---
+
 
 # Diary
 
@@ -80,6 +85,75 @@ This step turns the previously empty playbook stub into a runnable, copy/paste s
 
 ### What should be done next
 - Land the actual firmware integration (port/copy the `0044` engine, implement mapping, and wire cue apply into the LED task).
+
+## Step 3: Integrate WS281x engine into 0049 and apply patterns from protocol cues
+
+This step turns the node’s “log-only APPLY” into real hardware output by embedding the proven `0044` WS281x engine (single-owner `led_task` + `led_patterns` + RMT driver) into the `0049-xiao-esp32c6-mled-node` firmware. The node registers an `on_apply` callback with the shared `mled_node` component; when a cue fires, we translate the protocol’s fixed-size `PatternConfig` into `led_pattern_cfg_t` and push it into the LED task queue with a non-blocking send.
+
+**Commit (code):** b191c40 — "0049: drive WS281x patterns from MLED PatternConfig"
+
+### What I did
+- Ported/copied the required 0044 sources into `0049-xiao-esp32c6-mled-node/main/`:
+  - `led_task.[ch]`, `led_patterns.[ch]`, `led_ws281x.[ch]`, `ws281x_encoder.[ch]`
+- Added `mled_effect_led.[ch]` as the adapter that:
+  - starts the LED task with Kconfig defaults (GPIO, LED count, timing, frame_ms)
+  - maps `mled_pattern_config_t` to `led_pattern_cfg_t`
+  - enqueues updates via `led_task_send(..., timeout_ms=0)` to keep the node task non-blocking
+  - updates node-visible PONG fields via `mled_node_set_effect_status()`
+- Wired the node callback:
+  - `mled_node_set_on_apply(...)` in `app_main.c`
+
+### Why
+- Keeping WS281x driving in a single owner task avoids race conditions and makes timing predictable.
+- Mapping is centralized in one small adapter module, keeping the node networking component generic and reusable.
+
+### What worked
+- `idf.py -C 0049-xiao-esp32c6-mled-node build` succeeded with the new LED engine sources linked in.
+
+### What didn't work
+- N/A (the main sharp edge was ensuring new sources were tracked; otherwise the build system can’t see them reliably).
+
+### What I learned
+- The “node callback → enqueue work” seam is the right place to integrate hardware effects without contaminating the protocol component.
+
+### What was tricky to build
+- The mapping has to be robust to invalid/odd values; for now we clamp the key fields (brightness, per-pattern ranges) to match the existing 0044 console semantics.
+
+### What warrants a second pair of eyes
+- Confirm that the protocol `data[12]` field packing for CHASE/BREATHING/SPARKLE matches the intended spec (byte layout and ranges).
+
+### What should be done in the future
+- If deterministic sparkle is needed, expose a “set RNG seed” control in the LED engine and honor protocol `seed`.
+
+### Code review instructions
+- Start at `0049-xiao-esp32c6-mled-node/main/mled_effect_led.c`.
+- Follow the apply path:
+  - node cue APPLY → callback → `led_task_send(LED_MSG_SET_PATTERN_CFG)`
+- Build:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -C 0049-xiao-esp32c6-mled-node build`
+
+## Step 4: Extend host smoke tool to select patterns
+
+This step extends the host-side smoke harness so you can drive each pattern type with explicit parameters (and confirm the device-side mapping visually). It keeps the protocol flow the same (discover → BEACON → TIME_RESP → PREPARE/ACK → FIRE) but adds `--pattern ...` and per-pattern argument flags.
+
+**Commit (code):** b93231a — "tools: add multi-pattern support to mled_smoke.py"
+
+### What I did
+- Added `--pattern {off,rainbow,chase,breathing,sparkle}` plus per-pattern parameter flags.
+- Implemented the `PatternConfig.data[12]` packing for each pattern.
+
+### Why
+- Once LEDs are real, the fastest validation is “single command per pattern” from the host.
+
+### What worked
+- `python3 -m py_compile tools/mled_smoke.py` succeeded after the change.
+
+### What didn't work
+- N/A
+
+### What should be done next
+- Flash and run the playbook to verify the patterns visually, then capture “what you saw” + logs into this diary.
 
 ## Quick Reference
 

@@ -68,8 +68,11 @@ cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0049-x
 # 1) Basic discovery
 python3 tools/mled_ping.py --timeout 2.0 --repeat 3
 
-# 2) Time sync + cue scheduling (currently uses a RAINBOW PatternConfig)
-python3 tools/mled_smoke.py --timeout 2.0 --cue 42 --delay-ms 800
+# 2) Time sync + cue scheduling + pattern selection
+python3 tools/mled_smoke.py --timeout 2.0 --cue 42 --delay-ms 800 --pattern rainbow
+python3 tools/mled_smoke.py --timeout 2.0 --cue 43 --delay-ms 800 --pattern chase --chase-fg '#ff0000' --chase-bg '#000010'
+python3 tools/mled_smoke.py --timeout 2.0 --cue 44 --delay-ms 800 --pattern breathing --breathing-color '#00a0ff'
+python3 tools/mled_smoke.py --timeout 2.0 --cue 45 --delay-ms 800 --pattern sparkle --sparkle-mode 2 --sparkle-density 15
 ```
 
 ## Exit Criteria
@@ -81,7 +84,7 @@ python3 tools/mled_smoke.py --timeout 2.0 --cue 42 --delay-ms 800
   - `sent CUE_PREPARE ... (awaiting ACK)` then `got ACK ...`
   - and later a `sent CUE_FIRE ...`
 - Device monitor logs an `APPLY cue=...` for the fired cue.
-- After `0057` is implemented: the LEDs visibly switch to the expected pattern for the sent `PatternConfig` (currently `mled_smoke.py` sends a RAINBOW pattern).
+- The LEDs visibly switch to the expected pattern for the sent `PatternConfig`.
 
 ## Notes
 
