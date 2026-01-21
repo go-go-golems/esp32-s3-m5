@@ -69,9 +69,13 @@ Even after the sync semaphore fix, the device can still fail at boot with the WD
 
 ### Current failing log (boot interrupt WDT)
 
-User report excerpt:
+User report excerpt (confirmed build/flash):
 
 ```text
+I (310) app_init: Project name:     cardputer_js_web_0048
+I (310) app_init: App version:      856f869
+I (311) app_init: Compile time:     Jan 21 2026 18:31:08
+I (311) app_init: ELF file SHA256:  ff471e8ac...
 I (325) main_task: Calling app_main()
 I (325) cardputer_js_web_0048: boot
 Guru Meditation Error: Core  0 panic'ed (Interrupt wdt timeout on CPU0).
@@ -81,7 +85,7 @@ Backtrace: ...
 --- 0x42017ec1: (anonymous namespace)::service_task(void*) at .../components/mqjs_service/mqjs_service.cpp:134
 ```
 
-Key observation: in the current `mqjs_service.cpp`, line 134 is exactly the `xQueueReceive(s->q, &msg, portMAX_DELAY)` call in the worker loop. If the line number matches your local file, this is evidence you are at least running a recent build of the refactor (but we still need to confirm via `app_init` “App version”).
+Key observation: in the current `mqjs_service.cpp`, line 134 is exactly the `xQueueReceive(s->q, &msg, portMAX_DELAY)` call in the worker loop. The `app_init` header above confirms this is not a stale build: the flashed firmware matches git commit `856f869` and ELF SHA `ff471e8ac`.
 
 ### Previously observed (related) failure modes
 
@@ -132,20 +136,26 @@ On boot, capture the full `app_init` header including:
 
 - Added task-start handshake (`ready` semaphore) so `mqjs_service_start()` blocks until the worker task has started (commit `1cbd51f`).
 - Reworked sync completion semantics to avoid stack cross-task pointers and heap semaphores (commit `39a30bf`).
-- Rebuilt `0048-cardputer-js-web` successfully after each change.
+- Verified the build/flash pipeline:
+  - ran `idf.py -B build_esp32s3_mqjs_service_comp fullclean build flash monitor`
+  - captured `app_init` `App version: 856f869` and `ELF file SHA256: ff471e8ac...` from the failing boot.
+- Implemented “force internal RAM” allocation for the service’s critical RTOS primitives (commit `0b17809`):
+  - `s->q` allocated via `xQueueCreateWithCaps(..., MALLOC_CAP_INTERNAL)`
+  - `s->ready` allocated via `xSemaphoreCreateBinaryWithCaps(MALLOC_CAP_INTERNAL)`
+  - added a minimal boot log line in `service_task` before the first `xQueueReceive`.
 
 ## Next experiments (reasoned approach)
 
-1) **Confirm we are flashing the right binary**
-   - Use `fullclean` + `flash monitor`.
-   - If in doubt, use `erase-flash` once.
-   - Ensure the printed `App version` matches the local git `HEAD`.
+1) **Re-flash after the internal-RAM queue/semaphore change**
+   - `idf.py -B build_esp32s3_mqjs_service_comp build flash monitor`
+   - Confirm `App version` now includes `0b17809` (or later) and the WDT behavior changes.
 
-2) **Add instrumentation before the first queue receive**
-   - In `service_task` (before the `for(;;)` loop), log:
-     - `s` pointer, `s->q` pointer, `s->ready` pointer
-     - core id (`xPortGetCoreID()`), task name (`pcTaskGetName(nullptr)`), priority
-   - Add a one-shot “queue sanity” probe with a short timeout (e.g. `xQueuePeek` with `0` or `uxQueueMessagesWaiting`) to distinguish “invalid handle” vs “valid but empty”.
+2) **If the WDT persists, extend instrumentation without touching the queue**
+   - Avoid calling any queue API (if the lock is corrupted, they will hang too).
+   - Log pointer provenance:
+     - `esp_ptr_internal(s->q)` and `esp_ptr_internal(s)` results
+   - Log CPU/core placement:
+     - pin worker to core1 (diagnostic), or confirm scheduler placement.
 
 3) **Move worker task to core1 (diagnostic)**
    - If the WDT is CPU0-specific (or interactions with the main task), pinning the JS worker to core1 may change the symptom.

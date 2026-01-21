@@ -90,6 +90,58 @@ This step creates a dedicated bug ticket, records the observed logs and the exac
   - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp:134` (worker loop `xQueueReceive`)
   - FreeRTOS critical section / spinlock acquisition path (`xPortEnterCriticalTimeout` → `spinlock_acquire`).
 
+## Step 2: Confirm flashed binary + force internal allocation for queue/semaphore
+
+The first order of business was eliminating “wrong build directory / stale binary” uncertainty. The captured `app_init` header shows `App version: 856f869` and `ELF file SHA256: ff471e8ac...`, so the device is running a deterministic, reproducible build that still fails with the interrupt watchdog timeout at `service_task()` → `xQueueReceive(...)`.
+
+Given the failure is inside `spinlock_acquire` during queue receive, a high-probability explanation is that the queue (or its embedded lock) was allocated in a memory region where ESP-IDF/FreeRTOS spinlocks are unsafe or unreliable (e.g. external RAM / PSRAM). ESP-IDF provides `xQueueCreateWithCaps(..., MALLOC_CAP_INTERNAL)` and `xSemaphoreCreateBinaryWithCaps(MALLOC_CAP_INTERNAL)` specifically for this class of problem, so we switched the service’s queue and startup handshake semaphore to internal-RAM-only allocations and added a minimal “task start” log before the first receive.
+
+**Commit (code):** 0b17809 — "0061: allocate mqjs_service queue in internal RAM"
+
+### What I did
+- Confirmed reproduction evidence includes the build identity:
+  - `App version: 856f869`
+  - `ELF file SHA256: ff471e8ac...`
+- Updated `components/mqjs_service/mqjs_service.cpp`:
+  - `s->q = xQueueCreateWithCaps(..., MALLOC_CAP_INTERNAL)`
+  - `s->ready = xSemaphoreCreateBinaryWithCaps(MALLOC_CAP_INTERNAL)`
+  - `mqjs_service_stop()` uses `vQueueDeleteWithCaps`
+  - Added a one-line boot log in `service_task` before the first `xQueueReceive`:
+    - prints `s`, `s->q`, `s->ready`, core id
+  - Added a guard that exits early if `s->q` is not internal (`esp_ptr_internal(s->q)`).
+- Rebuilt:
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_mqjs_service_comp build`
+
+### Why
+- If a FreeRTOS queue is allocated outside internal RAM, its lock/metadata can behave pathologically under `spinlock_acquire`, leading to exactly the observed “interrupt WDT timeout while acquiring a lock”.
+- Using the `*WithCaps(MALLOC_CAP_INTERNAL)` APIs lets us force the queue/semaphore into internal RAM regardless of global malloc/PSRAM policy.
+
+### What worked
+- Build succeeded after switching to `*WithCaps` APIs.
+
+### What didn't work
+- Not yet validated on device; still pending a flash/monitor run with the new commit hash visible in `app_init`.
+
+### What I learned
+- On ESP32-class targets with PSRAM, it’s not enough to “assume FreeRTOS objects are internal” when the project’s malloc policy can be configured to prefer external RAM.
+
+### What was tricky to build
+- Cleanup correctness: queues created with `xQueueCreateWithCaps()` must be deleted with `vQueueDeleteWithCaps()`; mixing the APIs silently risks heap corruption.
+
+### What warrants a second pair of eyes
+- Verify that every failure cleanup path in `mqjs_service_start()` uses the matching `WithCaps` deleters and that we never call `vQueueDelete()` on a `WithCaps` queue.
+
+### What should be done in the future
+- Flash and re-test immediately:
+  - confirm `App version` includes `0b17809` (or later)
+  - confirm whether the boot WDT disappears or changes character.
+
+### Code review instructions
+- Review the allocation/cleanup changes in:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
+
 ## Quick Reference
 
 ### “Are we flashing the right thing?” verification snippet
