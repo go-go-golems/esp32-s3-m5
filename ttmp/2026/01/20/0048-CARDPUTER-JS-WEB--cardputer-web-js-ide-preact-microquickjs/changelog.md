@@ -218,3 +218,13 @@ Step 23: Add bounded WS event history panel in Web IDE (commit 9b40b88)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — UI renders scrolling event history + Clear button
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Store keeps bounded history of WS frames
 
+
+## 2026-01-21
+
+Step 24: Change-driven encoder WS snapshots + white UI text (commit d08c0d2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp — Only broadcast encoder snapshots on pos/delta changes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.css — White base text color
+

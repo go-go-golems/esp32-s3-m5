@@ -103,3 +103,5 @@
 - [ ] Phase 2C: Update JS help panel with emit() docs
 - [x] Phase 2B+C: Design JS service task + inbound/outbound queue structures
 - [x] Phase 2B+C: Upload JS service design doc 05 to reMarkable
+- [x] Phase 2 tweak: only broadcast encoder snapshot when changed
+- [x] UI tweak: ensure fonts render white

@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:14:36-05:00
+LastUpdated: 2026-01-21T10:34:07-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -70,6 +70,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) + task breakdown
 - Step 22: Draft JS service task + queue structures design (unifies Phase 2B and Phase 2C)
 - Step 23: Implement bounded WebSocket event history panel in the Web IDE UI
+- Step 24: Reduce WS encoder spam; make UI text white
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1351,3 +1352,55 @@ I implemented a bounded WebSocket event history panel (scrolling, last 200 frame
 
 ### Technical details
 - History bound constant: `WS_HISTORY_MAX = 200` in `store.ts`.
+
+## Step 24: Reduce WS encoder spam; make UI text white
+
+After adding the WS event history panel, the constant 50ms encoder snapshot rate makes the log noisy even when the encoder is idle, which makes it harder to visually pick out “interesting” events (clicks now, and later `js_events`). Separately, you requested that the UI font color be white to improve readability.
+
+I updated the encoder telemetry broadcaster so it only sends `{"type":"encoder",...}` snapshots when there is a real change (position/delta), while still sending click events immediately. I also made the UI base text color white and rebuilt the embedded assets so the firmware serves the updated CSS.
+
+**Commit (code):** d08c0d2 — "0048: only broadcast encoder snapshot on change; white UI text"
+
+### What I did
+- Made encoder snapshots change-driven:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+  - Now only broadcasts the `encoder` snapshot frame when `delta != 0` (position changed since last broadcast).
+  - Click frames are still broadcast immediately on detection.
+- Updated UI CSS to render white text:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.css` sets base `color: #fff` (and makes event type text white too).
+- Rebuilt embedded assets:
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web && npm run build`
+  - Updated `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.css`
+
+### Why
+- The WS history panel is meant for debugging; idle snapshots drown out meaningful events.
+- White foreground improves readability on dark backgrounds.
+
+### What worked
+- Snapshot broadcast is now naturally sparse at rest.
+- UI text is consistently white in both help/output/log areas.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Logging UX requirements feed back into backend message policy; the “event history” view makes WS traffic costs visible immediately.
+
+### What was tricky to build
+- Ensuring “delta” semantics remain meaningful: it now represents “movement since last snapshot”, which only exists when movement occurs (rather than being forced to 0 on every tick).
+
+### What warrants a second pair of eyes
+- Confirm consumers don’t rely on periodic `encoder` frames while idle (today the UI doesn’t, but future code might).
+
+### What should be done in the future
+- If we later need a periodic “still alive” signal, add a dedicated lightweight heartbeat frame rather than sending encoder snapshots at rest.
+
+### Code review instructions
+- Review encoder telemetry change:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+- Review CSS change and that assets are rebuilt:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.css`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.css`
+
+### Technical details
+- The change-driven logic tracks `last_broadcast_pos` and computes `delta = pos - last_broadcast_pos`.
