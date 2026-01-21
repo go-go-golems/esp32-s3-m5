@@ -29,6 +29,7 @@ Flash the ESP32‑C6 firmware (`0049-xiao-esp32c6-mled-node`), provision Wi‑Fi
 You can start testing as soon as `idf.py -C 0049-xiao-esp32c6-mled-node build` succeeds on your machine.
 
 As of `esp32-s3-m5` commit `28eada6` (2026-01-21), this project builds under ESP‑IDF 5.4.1 and supports the PING→PONG smoke test.
+As of commit `44e8e42`, the host tooling also includes a BEACON+PREPARE+FIRE two-phase cue smoke script.
 
 The “minimum viable test” is:
 - flash + monitor,
