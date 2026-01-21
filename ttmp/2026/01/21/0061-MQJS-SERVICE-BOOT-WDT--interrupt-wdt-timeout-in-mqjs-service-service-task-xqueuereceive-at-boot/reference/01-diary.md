@@ -142,6 +142,42 @@ Given the failure is inside `spinlock_acquire` during queue receive, a high-prob
 - Review the allocation/cleanup changes in:
   - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
 
+## Step 3: Improve boot instrumentation (task name/priority)
+
+The first “task start” log line was useful, but it did not include task name/priority, which are important when reasoning about watchdog interactions and SMP scheduling. This step extends the one-line startup log to print the current task name and priority without touching any queue APIs (so it remains safe even if the queue lock itself is corrupted).
+
+**Commit (code):** 6a562f3 — "0061: improve mqjs_service boot instrumentation"
+
+### What I did
+- Updated the `service_task()` startup log in:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
+  - log now includes: `pcTaskGetName(nullptr)` and `uxTaskPriorityGet(nullptr)` plus core + pointer values.
+
+### Why
+- If the interrupt WDT is triggered by starvation or a high-priority task “spinning” in a critical section, task priority is a key part of the diagnosis.
+
+### What worked
+- Build still succeeds after adding the extra log fields.
+
+### What didn't work
+- Not yet validated on device; next flash should show the extended log line right before any WDT.
+
+### What I learned
+- “Minimal instrumentation” is still only useful if it captures scheduling identity (name/priority/core), not just addresses.
+
+### What was tricky to build
+- N/A (small logging change).
+
+### What warrants a second pair of eyes
+- Confirm the logging calls are safe in this early boot context and won’t themselves introduce lock contention.
+
+### What should be done in the future
+- Flash and capture the first ~1s of logs after `cardputer_js_web_0048: boot`, including the `mqjs_service` task-start line.
+
+### Code review instructions
+- Review the updated log line in:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
+
 ## Quick Reference
 
 ### “Are we flashing the right thing?” verification snippet

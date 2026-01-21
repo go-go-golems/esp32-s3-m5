@@ -22,3 +22,12 @@ Step 2: Confirm flashed binary; force mqjs_service queue/semaphore internal RAM 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Use xQueueCreateWithCaps/xSemaphoreCreateBinaryWithCaps + vQueueDeleteWithCaps
 
+
+## 2026-01-21
+
+Step 3: Improve mqjs_service boot instrumentation (commit 6a562f3)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Log task name/priority/core before first xQueueReceive
+
