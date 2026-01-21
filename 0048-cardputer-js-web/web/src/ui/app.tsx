@@ -48,6 +48,17 @@ Builtins / notes:
 - Date.now() and performance.now() exist (ms since boot)
 - gc() triggers a JS GC cycle
 
+Phase 2B (callbacks):
+- encoder.on('delta', (ev)=>{...})  where ev={pos,delta,ts_ms,seq}
+- encoder.on('click', (ev)=>{...})  where ev={kind,ts_ms} (kind:0 single,1 double,2 long)
+- encoder.off('delta'|'click')
+- Callbacks run on-device (best-effort) and are time-bounded; exceptions are logged to the device console
+
+Phase 2C (events to browser):
+- emit(topic, payload) records a structured event in the JS VM
+- After eval/callback, the VM flushes and the device broadcasts a WS frame:
+  {type:"js_events", source:"eval"|"callback", events:[{topic,payload,ts_ms}], dropped?:N}
+
 Device console:
 - There is also: 0048> js eval <code...>   (prints JSON result)
 
