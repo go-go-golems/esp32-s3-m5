@@ -3,6 +3,7 @@
 ## TODO
 
 - [ ] Define scope + acceptance criteria (network mode: STA via console like 0045 vs SoftAP)
+- [ ] Align 0046 for XIAO ESP32C6 flash/partitions (4MB flash; larger app partition; release/size optimization for non-debug builds)
 - [ ] Implement HTTP API mapping to `led_task_send` (minimal set first):
   - [ ] `POST /api/led/pause|resume|clear`
   - [ ] `POST /api/led/brightness` + `POST /api/led/frame`
@@ -29,5 +30,6 @@
 - [x] Expand `GET /api/led/status` to include active-pattern parameters (console naming)
 - [x] Add Preact+Zustand UI with global controls + per-pattern forms (console naming/units)
 - [x] Fix `frame_ms` < RTOS tick causing `xTaskDelayUntil` assert (clamp/normalize)
+- [x] Write firmware flash/partition/size optimization walkthrough for XIAO ESP32C6
 
 <!-- Notes: keep TODO as "needs validation" items; move here once implemented. -->

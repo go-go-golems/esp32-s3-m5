@@ -54,4 +54,4 @@ Files:
   - Confirm no crash when setting `frame_ms` to values below the RTOS tick (status should report the normalized effective `frame_ms`).
   - Verify `/api/led/*` endpoints map 1:1 to console behavior for each pattern.
 - Consider reducing flash usage (disable sourcemaps by default or gate behind Kconfig) to regain partition headroom.
-
+- Document the firmware-space situation for XIAO ESP32C6 (flash size vs app partition size) and how to measure/optimize.
