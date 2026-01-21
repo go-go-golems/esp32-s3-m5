@@ -1,7 +1,6 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
-        "wifi_mgr.c"
         "wifi_console.c"
         "js_console.cpp"
         "http_server.cpp"
@@ -12,6 +11,7 @@ idf_component_register(
         "esp32_stdlib_runtime.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
+        wifi_mgr
         nvs_flash
         esp_event
         esp_netif

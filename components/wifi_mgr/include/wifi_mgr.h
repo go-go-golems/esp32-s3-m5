@@ -6,6 +6,10 @@
 
 #include "esp_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     WIFI_MGR_STATE_UNINIT = 0,
     WIFI_MGR_STATE_IDLE = 1,
@@ -44,4 +48,8 @@ esp_err_t wifi_mgr_disconnect(void);
 esp_err_t wifi_mgr_scan(wifi_mgr_scan_entry_t *out, size_t max_out, size_t *out_n);
 
 void wifi_mgr_set_on_got_ip_cb(wifi_mgr_on_got_ip_cb_t cb, void *ctx);
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
 

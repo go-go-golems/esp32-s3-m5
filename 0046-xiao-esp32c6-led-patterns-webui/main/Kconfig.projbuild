@@ -69,19 +69,7 @@ endmenu
 
 menu "MO-033: Wi-Fi + embedded web UI"
 
-config MO033_WIFI_MAX_RETRY
-    int "Wi-Fi max retries"
-    range 0 100
-    default 10
-    help
-        Maximum number of retries after a STA disconnect when autoconnect is enabled.
-
-config MO033_WIFI_AUTOCONNECT_ON_BOOT
-    bool "Autoconnect on boot when credentials exist"
-    default y
-    help
-        If enabled, and runtime credentials are present at STA start (e.g. loaded from NVS),
-        the device will attempt to connect automatically.
+comment "Wi-Fi settings are provided by components/wifi_mgr (CONFIG_WIFI_MGR_*)"
 
 config MO033_HTTP_CACHE_NO_STORE
     bool "Serve Cache-Control: no-store for static assets"

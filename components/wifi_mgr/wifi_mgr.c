@@ -1,10 +1,17 @@
 /*
- * MO-033 / 0044: Wi-Fi STA manager (console-friendly).
+ * wifi_mgr: Wi-Fi STA manager (console-friendly).
  *
- * Derived from patterns in 0029-mock-zigbee-http-hub (wifi_console.c + wifi_sta.c),
- * but kept small and self-contained for an ESP32-C6 tutorial.
+ * Derived from:
+ * - esp32-s3-m5/0046-xiao-esp32c6-led-patterns-webui/main/wifi_mgr.c
+ * - esp32-s3-m5/0048-cardputer-js-web/main/wifi_mgr.c
+ *
+ * Goal: provide a small, self-contained STA manager with:
+ * - runtime credentials (set via esp_console)
+ * - optional persistence to NVS
+ * - simple "status" snapshot for /api/status and console UX
+ * - autoconnect retry loop (bounded)
  */
-
+ 
 #include "wifi_mgr.h"
 
 #include <stdlib.h>
@@ -24,7 +31,7 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-static const char *TAG = "mo033_wifi_mgr";
+static const char *TAG = "wifi_mgr";
 
 static SemaphoreHandle_t s_mu = NULL;
 
@@ -189,8 +196,6 @@ static esp_err_t apply_runtime_config(void)
 
 static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, void *data)
 {
-    esp_netif_t *sta = (esp_netif_t *)arg;
-
     if (base == WIFI_EVENT && id == WIFI_EVENT_STA_START) {
         lock_mu();
         s_started = true;
@@ -230,35 +235,42 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
         const int reason = disc ? (int)disc->reason : -1;
 
         lock_mu();
+        s_status.state = WIFI_MGR_STATE_IDLE;
         s_status.ip4 = 0;
         s_status.last_disconnect_reason = reason;
-        if (s_status.state != WIFI_MGR_STATE_UNINIT) {
-            s_status.state = WIFI_MGR_STATE_IDLE;
-        }
-        const bool do_retry = s_autoconnect && creds_present_unsafe() && (s_retry < CONFIG_MO033_WIFI_MAX_RETRY);
+        const bool do_retry =
+            s_autoconnect && creds_present_unsafe() && (s_retry < CONFIG_WIFI_MGR_MAX_RETRY);
         unlock_mu();
 
         ESP_LOGW(TAG, "STA disconnected (reason=%d)%s", reason, do_retry ? " -> retry" : "");
         if (do_retry) {
+            lock_mu();
             s_retry++;
+            unlock_mu();
             esp_wifi_connect();
-        } else if (s_autoconnect && creds_present_unsafe()) {
-            ESP_LOGE(TAG, "max retries reached (%d)", CONFIG_MO033_WIFI_MAX_RETRY);
+            return;
+        }
+
+        if (s_autoconnect && creds_present_unsafe()) {
+            ESP_LOGE(TAG, "max retries reached (%d)", CONFIG_WIFI_MGR_MAX_RETRY);
         }
         return;
     }
 
     if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
-        s_retry = 0;
+        const ip_event_got_ip_t *got = (const ip_event_got_ip_t *)data;
+        const uint32_t ip4 = got ? ntohl(got->ip_info.ip.addr) : 0;
+
         lock_mu();
+        s_retry = 0;
         s_status.state = WIFI_MGR_STATE_CONNECTED;
-        status_set_ip_from_netif(sta);
-        const uint32_t ip4 = s_status.ip4;
-        const wifi_mgr_on_got_ip_cb_t cb = s_on_got_ip_cb;
-        void *cb_ctx = s_on_got_ip_ctx;
+        s_status.ip4 = ip4;
         unlock_mu();
 
         status_log_ip(ip4);
+
+        const wifi_mgr_on_got_ip_cb_t cb = s_on_got_ip_cb;
+        void *cb_ctx = s_on_got_ip_ctx;
         if (cb) cb(ip4, cb_ctx);
         return;
     }
@@ -266,9 +278,6 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
     if (base == IP_EVENT && id == IP_EVENT_STA_LOST_IP) {
         lock_mu();
         s_status.ip4 = 0;
-        if (s_status.state != WIFI_MGR_STATE_UNINIT) {
-            s_status.state = WIFI_MGR_STATE_CONNECTING;
-        }
         unlock_mu();
         return;
     }
@@ -284,17 +293,21 @@ void wifi_mgr_set_on_got_ip_cb(wifi_mgr_on_got_ip_cb_t cb, void *ctx)
 
 esp_err_t wifi_mgr_start(void)
 {
+    if (!s_mu) s_mu = xSemaphoreCreateMutex();
+    if (!s_mu) return ESP_ERR_NO_MEM;
+
+    lock_mu();
+    if (s_wifi_inited) {
+        unlock_mu();
+        return ESP_OK;
+    }
+    unlock_mu();
+
     ESP_ERROR_CHECK(ensure_nvs());
     ensure_netif_and_loop();
 
-    if (!s_mu) {
-        s_mu = xSemaphoreCreateMutex();
-        if (!s_mu) return ESP_ERR_NO_MEM;
-    }
-
     if (!s_sta_netif) {
         s_sta_netif = esp_netif_create_default_wifi_sta();
-        if (!s_sta_netif) return ESP_ERR_NO_MEM;
     }
 
     if (!s_wifi_inited) {
@@ -307,33 +320,22 @@ esp_err_t wifi_mgr_start(void)
         ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_LOST_IP, &wifi_event_handler, s_sta_netif));
     }
 
+    (void)load_saved_credentials();
+
     lock_mu();
-    s_status.state = WIFI_MGR_STATE_IDLE;
+    s_autoconnect = CONFIG_WIFI_MGR_AUTOCONNECT_ON_BOOT && s_has_runtime;
     unlock_mu();
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-
-    const esp_err_t saved_err = load_saved_credentials();
-    if (saved_err == ESP_OK) {
-        ESP_LOGI(TAG, "loaded Wi-Fi credentials from NVS (ssid=%s)", s_runtime_ssid);
-    } else if (saved_err != ESP_ERR_NOT_FOUND) {
-        ESP_LOGW(TAG, "failed to load Wi-Fi credentials from NVS: %s", esp_err_to_name(saved_err));
-    }
-
-    lock_mu();
-    s_autoconnect = CONFIG_MO033_WIFI_AUTOCONNECT_ON_BOOT && s_has_runtime;
-    unlock_mu();
-
-    if (s_has_runtime) {
-        ESP_ERROR_CHECK(apply_runtime_config());
-        ESP_LOGI(TAG, "Wi-Fi ready: %s (ssid=%s)", s_autoconnect ? "autoconnect enabled" : "autoconnect disabled", s_runtime_ssid);
-    } else {
-        ESP_LOGW(TAG, "Wi-Fi ready: no credentials yet; configure via console");
-    }
+    status_set_ip_from_netif(s_sta_netif);
 
     if (!s_started) {
         ESP_ERROR_CHECK(esp_wifi_start());
     }
+
+    lock_mu();
+    ESP_LOGI(TAG, "Wi-Fi ready: %s (ssid=%s)", s_autoconnect ? "autoconnect enabled" : "autoconnect disabled", s_runtime_ssid);
+    unlock_mu();
 
     return ESP_OK;
 }
@@ -349,46 +351,48 @@ esp_err_t wifi_mgr_get_status(wifi_mgr_status_t *out)
 
 esp_err_t wifi_mgr_set_credentials(const char *ssid, const char *password, bool save_to_nvs)
 {
-    if (!ssid) return ESP_ERR_INVALID_ARG;
-    if (strlen(ssid) > 32) return ESP_ERR_INVALID_SIZE;
-    if (password && strlen(password) > 64) return ESP_ERR_INVALID_SIZE;
+    if (!ssid || ssid[0] == '\0') return ESP_ERR_INVALID_ARG;
+    if (!password) password = "";
 
     lock_mu();
     strlcpy(s_runtime_ssid, ssid, sizeof(s_runtime_ssid));
-    strlcpy(s_runtime_pass, password ? password : "", sizeof(s_runtime_pass));
-    s_has_runtime = (s_runtime_ssid[0] != '\0');
+    strlcpy(s_runtime_pass, password, sizeof(s_runtime_pass));
+    s_has_runtime = true;
+    s_has_saved = s_has_saved && save_to_nvs;
     strlcpy(s_status.ssid, s_runtime_ssid, sizeof(s_status.ssid));
-    s_status.has_runtime_creds = s_has_runtime;
+    s_status.has_runtime_creds = true;
+    s_status.has_saved_creds = s_has_saved;
     unlock_mu();
 
+    esp_err_t err = ESP_OK;
     if (save_to_nvs) {
-        esp_err_t err = save_credentials_to_nvs(ssid, password ? password : "");
-        if (err != ESP_OK) return err;
-        lock_mu();
-        s_has_saved = true;
-        s_status.has_saved_creds = true;
-        unlock_mu();
+        err = save_credentials_to_nvs(ssid, password);
+        if (err == ESP_OK) {
+            lock_mu();
+            s_has_saved = true;
+            s_status.has_saved_creds = true;
+            unlock_mu();
+        }
     }
 
     if (s_wifi_inited) {
-        return apply_runtime_config();
+        (void)apply_runtime_config();
     }
-    return ESP_OK;
+    return err;
 }
 
 esp_err_t wifi_mgr_clear_credentials(void)
 {
-    const esp_err_t err = clear_credentials_in_nvs();
-
     lock_mu();
     s_runtime_ssid[0] = '\0';
     s_runtime_pass[0] = '\0';
     s_has_runtime = false;
     s_has_saved = false;
     s_autoconnect = false;
+    s_retry = 0;
+    s_status.ssid[0] = '\0';
     s_status.has_runtime_creds = false;
     s_status.has_saved_creds = false;
-    s_status.ssid[0] = '\0';
     unlock_mu();
 
     if (s_wifi_inited) {
@@ -396,24 +400,21 @@ esp_err_t wifi_mgr_clear_credentials(void)
         wifi_config_t sta_cfg = {0};
         (void)esp_wifi_set_config(WIFI_IF_STA, &sta_cfg);
     }
-
-    return err;
+    return clear_credentials_in_nvs();
 }
 
 esp_err_t wifi_mgr_connect(void)
 {
     if (!s_wifi_inited) return ESP_ERR_INVALID_STATE;
-
     lock_mu();
     const bool have_creds = creds_present_unsafe();
     if (have_creds) s_autoconnect = true;
+    s_retry = 0;
     unlock_mu();
 
-    if (!have_creds) return ESP_ERR_INVALID_STATE;
-    s_retry = 0;
+    if (!have_creds) return ESP_ERR_INVALID_ARG;
     esp_err_t err = apply_runtime_config();
     if (err != ESP_OK) return err;
-
     err = esp_wifi_connect();
     if (err == ESP_OK) {
         lock_mu();
@@ -428,25 +429,22 @@ esp_err_t wifi_mgr_disconnect(void)
     if (!s_wifi_inited) return ESP_ERR_INVALID_STATE;
     lock_mu();
     s_autoconnect = false;
-    s_status.ip4 = 0;
-    if (s_status.state != WIFI_MGR_STATE_UNINIT) s_status.state = WIFI_MGR_STATE_IDLE;
     unlock_mu();
     return esp_wifi_disconnect();
 }
 
 esp_err_t wifi_mgr_scan(wifi_mgr_scan_entry_t *out, size_t max_out, size_t *out_n)
 {
+    if (out_n) *out_n = 0;
     if (!out || max_out == 0 || !out_n) return ESP_ERR_INVALID_ARG;
     if (!s_wifi_inited) return ESP_ERR_INVALID_STATE;
 
     wifi_scan_config_t scan_cfg = {
-        .ssid = NULL,
-        .bssid = NULL,
+        .ssid = 0,
+        .bssid = 0,
         .channel = 0,
         .show_hidden = true,
-        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
     };
-
     esp_err_t err = esp_wifi_scan_start(&scan_cfg, true /* block */);
     if (err != ESP_OK) return err;
 
@@ -454,8 +452,7 @@ esp_err_t wifi_mgr_scan(wifi_mgr_scan_entry_t *out, size_t max_out, size_t *out_
     err = esp_wifi_scan_get_ap_num(&ap_num);
     if (err != ESP_OK) return err;
 
-    uint16_t want = ap_num;
-    if (want > max_out) want = (uint16_t)max_out;
+    const size_t want = (ap_num < max_out) ? ap_num : max_out;
     if (want == 0) {
         *out_n = 0;
         return ESP_OK;
@@ -463,23 +460,26 @@ esp_err_t wifi_mgr_scan(wifi_mgr_scan_entry_t *out, size_t max_out, size_t *out_
 
     wifi_ap_record_t *recs = (wifi_ap_record_t *)calloc(want, sizeof(*recs));
     if (!recs) return ESP_ERR_NO_MEM;
-    uint16_t n = want;
+
+    uint16_t n = (uint16_t)want;
     err = esp_wifi_scan_get_ap_records(&n, recs);
     if (err != ESP_OK) {
         free(recs);
         return err;
     }
 
-    for (uint16_t i = 0; i < n; i++) {
-        memset(&out[i], 0, sizeof(out[i]));
-        strlcpy(out[i].ssid, (const char *)recs[i].ssid, sizeof(out[i].ssid));
-        out[i].rssi = recs[i].rssi;
-        out[i].channel = recs[i].primary;
-        out[i].authmode = (uint8_t)recs[i].authmode;
+    size_t out_i = 0;
+    for (uint16_t i = 0; i < n && out_i < max_out; i++) {
+        wifi_mgr_scan_entry_t e = {0};
+        strlcpy(e.ssid, (const char *)recs[i].ssid, sizeof(e.ssid));
+        e.rssi = recs[i].rssi;
+        e.channel = recs[i].primary;
+        e.authmode = (uint8_t)recs[i].authmode;
+        out[out_i++] = e;
     }
     free(recs);
-    (void)esp_wifi_clear_ap_list();
 
-    *out_n = (size_t)n;
+    *out_n = out_i;
+    (void)esp_wifi_clear_ap_list();
     return ESP_OK;
 }

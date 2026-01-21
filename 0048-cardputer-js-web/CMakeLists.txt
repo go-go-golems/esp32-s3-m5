@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.16)
 #
 # Pull in the MicroQuickJS component from the imports tree.
 set(EXTRA_COMPONENT_DIRS
+    "${CMAKE_CURRENT_LIST_DIR}/../components/wifi_mgr"
     "${CMAKE_CURRENT_LIST_DIR}/../components/exercizer_control"
     "${CMAKE_CURRENT_LIST_DIR}/../imports/esp32-mqjs-repl/mqjs-repl/components"
 )
