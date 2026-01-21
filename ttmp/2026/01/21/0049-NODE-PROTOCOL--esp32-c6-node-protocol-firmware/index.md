@@ -1,7 +1,7 @@
 ---
 Title: ESP32-C6 node protocol + firmware
 Ticket: 0049-NODE-PROTOCOL
-Status: active
+Status: review
 Topics:
     - esp32c6
     - wifi
@@ -37,7 +37,7 @@ This ticket produces a detailed, implementation-ready analysis of how to build a
 
 ## Status
 
-Current status: **active**
+Current status: **review** (analysis done; implementation complete)
 
 ## Topics
 

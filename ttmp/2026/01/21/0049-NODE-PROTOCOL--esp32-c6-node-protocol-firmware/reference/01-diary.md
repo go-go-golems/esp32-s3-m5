@@ -510,7 +510,45 @@ This makes it possible to test protocol correctness (epoch gating + cue store + 
 ### What should be done in the future
 - If we decide on dedup semantics for repeated `CUE_FIRE`, extend the script to retransmit fires and verify node behavior.
 
-<!-- Provide background context needed to use this reference -->
+## Step 6: Hardware smoke test follow-ups (multicast routing + Wi‑Fi lost-IP lifecycle)
+
+After running the host smoke tools against real hardware, two “real world” issues showed up frequently: (1) multicast egress ambiguity on multi-NIC hosts (leading to intermittent “no PONGs”), and (2) node lifecycle behavior when Wi‑Fi loses IP (node task should stop and be restartable on reconnect). This step tightens those edges so the system behaves more predictably during development and in unstable Wi‑Fi environments.
+
+**Commit (code):** fb3ae32 — "tools: auto-select multicast egress interface"  
+**Commit (code):** 099b1c0 — "mled_node: stop/restart + stop on Wi-Fi lost IP"
+
+### What I did
+- Improved host tooling (`0049-xiao-esp32c6-mled-node/tools/mled_smoke.py`) to auto-select a multicast egress interface after discovery (best-effort route-to-target heuristic), and to print a concrete hint to use `--bind-ip` when post-fire status cannot be fetched.
+- Added a Wi‑Fi “lost IP” callback to the `0049` Wi‑Fi manager and used it to stop the node task.
+- Made the node task restartable by clearing its `started` flag on clean task exit.
+- Build-validated:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -C 0049-xiao-esp32c6-mled-node build`
+
+### Why
+- Developers often have multiple interfaces (Wi‑Fi + Ethernet + VPN + Docker); multicast routing can silently pick the wrong egress even when unicast works.
+- Without a clean stop/restart story, a transient Wi‑Fi drop can leave the node task wedged or unable to restart without reboot.
+
+### What worked
+- Build stayed green after the lifecycle changes.
+- The tooling now provides deterministic next steps when PONGs are missing: `--bind-ip <host-lan-ip>`.
+
+### What didn't work
+- N/A (no new failures observed in build).
+
+### What was tricky to build
+- `mled_node_start()` guards on a `started` flag; for stop/restart to work safely, that flag must be cleared only after the task is done touching shared state.
+
+### What warrants a second pair of eyes
+- Concurrency: `mled_node_start()` and `mled_node_stop()` are intentionally minimal; review whether any future changes might make “restart while old task is exiting” unsafe.
+
+### What should be done in the future
+- Consider making stop synchronous (`mled_node_stop_and_wait(timeout_ms)`) if we ever need strict guarantees for rapid reconnect cycles.
+
+### Code review instructions
+- Host tool routing heuristic: `esp32-s3-m5/0049-xiao-esp32c6-mled-node/tools/mled_smoke.py`
+- Wi‑Fi lost-IP stop: `esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/wifi_mgr.c`, `esp32-s3-m5/0049-xiao-esp32c6-mled-node/main/app_main.c`
+- Node restart semantics: `esp32-s3-m5/components/mled_node/src/mled_node.c`
 
 ## Quick Reference
 
