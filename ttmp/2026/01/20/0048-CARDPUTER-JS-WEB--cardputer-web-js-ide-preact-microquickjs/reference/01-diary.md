@@ -160,6 +160,8 @@ With prior art located, I wrote the Phase 1 design as a “textbook”: it defin
 
 I also related the highest-leverage files (0017 HTTP server + asset pipeline, and the MicroQuickJS `JsEvaluator`) so the doc is anchored in evidence rather than speculation.
 
+**Commit (docs):** 1daac0a — "Docs: Phase 1 Web JS IDE design (0048)"
+
 ### What I did
 - Created the Phase 1 design doc:
   - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type design-doc --title "Phase 1 Design: Device-hosted Web JS IDE (Preact+Zustand + MicroQuickJS over REST)"`
