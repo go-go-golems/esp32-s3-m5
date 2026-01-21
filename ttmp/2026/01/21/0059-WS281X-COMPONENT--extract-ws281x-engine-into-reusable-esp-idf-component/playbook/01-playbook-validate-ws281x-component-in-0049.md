@@ -87,3 +87,4 @@ python3 tools/mled_smoke.py --timeout 2.0 --cue 45 --delay-ms 800 --pattern spar
 ## Notes
 
 - If you see no LED change but `mled_effect_led: apply` logs, double-check the WS281x wiring (GPIO, power, ground).
+- If you previously hit a `Guru Meditation Error: Stack protection fault` in task `mled_node` during cue runs, re-flash from commit `e576d5f` (or newer) and retry; that change moves the RX buffer off the node task stack and increases the stack size.
