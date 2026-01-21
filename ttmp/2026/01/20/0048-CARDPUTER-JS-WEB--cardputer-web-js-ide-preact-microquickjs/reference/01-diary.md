@@ -206,6 +206,55 @@ I also related the highest-leverage files (0017 HTTP server + asset pipeline, an
 ### Technical details
 - N/A (documentation-only step)
 
+## Step 5: Add Phase 1/2 playbooks + wire ticket index/tasks
+
+At this point the design docs exist, but a design without an executable “how to validate it” procedure tends to rot. So I added two playbooks (Phase 1 and Phase 2 smoke tests) that turn the designs into repeatable checklists. I also updated the ticket index and task list so a new reader can start at `index.md` and immediately find the correct docs and the concrete next implementation steps.
+
+### What I did
+- Created and wrote Phase 1 playbook:
+  - `.../playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md`
+- Created and wrote Phase 2 playbook:
+  - `.../playbook/02-playbook-phase-2-websocket-encoder-telemetry-smoke-test.md`
+- Updated ticket index and tasks:
+  - `.../index.md`
+  - `.../tasks.md`
+- Related “ticket-level” canonical files to `index.md`:
+  - `docmgr doc relate --ticket 0048-CARDPUTER-JS-WEB --file-note "...:reason"`
+
+### Why
+- Playbooks are the bridge between “architecture” and “confidence”: they make success criteria explicit and give future maintainers a reliable regression checklist.
+- Updating the index/tasks prevents the ticket from becoming a pile of unlinked documents.
+
+### What worked
+- The playbooks can lean on existing repo conventions (Phase 1: curl-based eval tests; Phase 2: websocat/wscat + browser UI).
+
+### What didn't work
+- N/A
+
+### What I learned
+- Even for documentation-only tickets, the “operationalization” step (playbooks + exit criteria) is what makes the docs actionable.
+
+### What was tricky to build
+- Writing playbooks in a way that is concrete without assuming a final firmware directory name; the playbooks therefore use `esp32-s3-m5/0048-cardputer-js-web` as an explicit placeholder.
+
+### What warrants a second pair of eyes
+- Confirm the playbooks’ assumptions match the expected eventual implementation:
+  - route paths (`/api/js/eval`, `/ws`)
+  - suggested firmware directory naming
+
+### What should be done in the future
+- Once the actual firmware project exists, update the playbooks to remove placeholders and to include the exact console/Wi‑Fi steps used by the chosen implementation.
+
+### Code review instructions
+- Verify the index is now a functional entry point:
+  - `esp32-s3-m5/ttmp/.../index.md`
+- Review the playbooks for clarity and correctness:
+  - `esp32-s3-m5/ttmp/.../playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md`
+  - `esp32-s3-m5/ttmp/.../playbook/02-playbook-phase-2-websocket-encoder-telemetry-smoke-test.md`
+
+### Technical details
+- N/A (documentation-only step)
+
 ## Step 4: Write Phase 2 design doc (encoder telemetry over WebSocket)
 
 Phase 2 is where the system becomes “alive”: instead of the browser only sending requests (REST) and waiting for replies, the device continuously streams state changes (encoder position and click) to the UI. That shift forces us to specify ordering, rate limits, coalescing semantics, and reconnection behavior—exactly the parts that are easy to handwave and painful to debug later.

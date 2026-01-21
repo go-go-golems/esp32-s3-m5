@@ -17,24 +17,53 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: M5Chain-Series-Internal-FW/Chain-Encder/protocol/M5Stack-Chain-Encoder-Protocol-V1-EN.pdf
+      Note: Encoder protocol contract (Phase 2)
+    - Path: esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp
+      Note: Reference esp_http_server patterns for embedded assets + WS
+    - Path: esp32-s3-m5/0017-atoms3r-web-ui/web/vite.config.ts
+      Note: Reference deterministic Vite bundling for firmware embedding
+    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/components/mquickjs/mquickjs.h
+      Note: Authoritative JS engine API primitives
+    - Path: esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp
+      Note: Reference MicroQuickJS eval semantics and formatting
 ExternalSources: []
-Summary: ""
+Summary: 'Ticket workspace for designing a Cardputer-hosted Web IDE: embedded Preact/Zustand editor UI, REST endpoint to execute JS via MicroQuickJS, and (Phase 2) WebSocket streaming of encoder telemetry.'
 LastUpdated: 2026-01-20T22:54:37.222738591-05:00
-WhatFor: ""
-WhenToUse: ""
+WhatFor: Collect designs, playbooks, and prior art for implementing an ESP-IDF device-hosted Web IDE on Cardputer.
+WhenToUse: Use when implementing the firmware/UI, reviewing architecture choices, or onboarding someone new to the repo’s device-hosted UI patterns.
 ---
+
 
 # Cardputer: Web JS IDE (Preact + microquickjs)
 
 ## Overview
 
-<!-- Provide a brief overview of the ticket, its goals, and current status -->
+This ticket documents how to build a **device-hosted Web IDE** on Cardputer:
+
+- The firmware serves an embedded **Preact + Zustand** web UI that includes a JavaScript code editor.
+- The web UI POSTs JavaScript to the device over REST.
+- The firmware executes that code via **MicroQuickJS** and returns the formatted result or error.
+
+Phase 2 extends the UI with realtime telemetry:
+
+- read encoder position + click on-device
+- stream those values to the browser over WebSocket (`/ws`)
 
 ## Key Links
 
-- **Related Files**: See frontmatter RelatedFiles field
-- **External Sources**: See frontmatter ExternalSources field
+- Phase 1 design (REST eval + embedded UI):
+  - `design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Phase 2 design (encoder telemetry over WS):
+  - `design-doc/02-phase-2-design-encoder-position-click-over-websocket.md`
+- Prior art map (docs + firmwares + symbol names):
+  - `reference/02-prior-art-and-reading-list.md`
+- Diary (frequent step-by-step record):
+  - `reference/01-diary.md`
+- Playbooks:
+  - `playbook/01-playbook-phase-1-web-ide-smoke-test-build-connect-run-snippets.md`
+  - `playbook/02-playbook-phase-2-websocket-encoder-telemetry-smoke-test.md`
 
 ## Status
 
@@ -70,3 +99,7 @@ See [changelog.md](./changelog.md) for recent changes and decisions.
 - scripts/ - Temporary code and tooling
 - various/ - Working notes and research
 - archive/ - Deprecated or reference-only artifacts
+
+## Next step (implementation)
+
+Create an ESP-IDF project (suggested: `esp32-s3-m5/0048-cardputer-js-web/`) that follows the Phase 1 design doc, then validate it via the Phase 1 playbook. Once Phase 1 is stable, add the `/ws` channel and encoder driver per the Phase 2 design and validate via the Phase 2 playbook.
