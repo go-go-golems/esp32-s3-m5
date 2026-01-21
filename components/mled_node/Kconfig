@@ -1,5 +1,12 @@
 menu "mled_node: MLED/1 UDP multicast node"
 
+config MLED_NODE_TASK_STACK
+    int "Node task stack size (bytes)"
+    range 2048 16384
+    default 6144
+    help
+        Stack size for the `mled_node` FreeRTOS task.
+
 config MLED_NODE_NAME
     string "Node name (PONG name[16])"
     default "c6-node"
@@ -21,4 +28,3 @@ config MLED_NODE_TIME_REQ_MIN_INTERVAL_MS
         Minimum time between successive TIME_REQ messages (rate-limit).
 
 endmenu
-

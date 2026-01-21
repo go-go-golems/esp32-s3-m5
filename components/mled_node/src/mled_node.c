@@ -27,6 +27,12 @@ static const char *TAG = "mled_node";
 #define MLED_NODE_MAX_PENDING_FIRES 64
 #define MLED_NODE_MAX_TIME_REQS 16
 
+#ifndef CONFIG_MLED_NODE_TASK_STACK
+#define CONFIG_MLED_NODE_TASK_STACK 6144
+#endif
+
+static uint8_t s_rx_buf[2048];
+
 typedef struct {
     bool valid;
     uint32_t cue_id;
@@ -595,7 +601,6 @@ static void node_task_main(void *arg)
 
     ESP_LOGI(TAG, "started: id=%" PRIu32 " name=%s group=%s:%d", s_ctx.node_id, s_ctx.name, MLED_MULTICAST_GROUP, MLED_MULTICAST_PORT);
 
-    uint8_t buf[2048];
     while (!s_ctx.stop) {
         process_due_fires();
         const int timeout_ms = next_due_timeout_ms();
@@ -616,20 +621,20 @@ static void node_task_main(void *arg)
 
         struct sockaddr_in src = {0};
         socklen_t slen = sizeof(src);
-        const int nread = recvfrom(s_ctx.fd, buf, sizeof(buf), 0, (struct sockaddr *)&src, &slen);
+        const int nread = recvfrom(s_ctx.fd, s_rx_buf, sizeof(s_rx_buf), 0, (struct sockaddr *)&src, &slen);
         if (nread <= 0) {
             continue;
         }
 
         mled_header_t hdr = {0};
-        if (!mled_header_unpack(&hdr, buf, (size_t)nread)) {
+        if (!mled_header_unpack(&hdr, s_rx_buf, (size_t)nread)) {
             continue;
         }
         if (!mled_header_validate(&hdr)) {
             continue;
         }
 
-        const uint8_t *payload = buf + MLED_HEADER_SIZE;
+        const uint8_t *payload = s_rx_buf + MLED_HEADER_SIZE;
         const uint32_t payload_len = hdr.payload_len;
         if (MLED_HEADER_SIZE + payload_len > (uint32_t)nread) {
             continue;
@@ -698,7 +703,7 @@ void mled_node_start(void)
     strlcpy(s_ctx.name, CONFIG_MLED_NODE_NAME, sizeof(s_ctx.name));
     cues_clear();
 
-    BaseType_t ok = xTaskCreate(&node_task_main, "mled_node", 4096, NULL, 5, &s_ctx.task);
+    BaseType_t ok = xTaskCreate(&node_task_main, "mled_node", CONFIG_MLED_NODE_TASK_STACK, NULL, 5, &s_ctx.task);
     if (ok != pdPASS) {
         s_ctx.started = false;
         ESP_LOGE(TAG, "xTaskCreate failed");
