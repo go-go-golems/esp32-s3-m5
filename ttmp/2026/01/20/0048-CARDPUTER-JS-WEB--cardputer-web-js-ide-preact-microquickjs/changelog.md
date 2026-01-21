@@ -70,3 +70,12 @@ Step 10: Backfill diary + expand implementation task breakdown
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Rewrote diary into chronological complete steps
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/tasks.md — Expanded implementation checklist
 
+
+## 2026-01-20
+
+Step 10: Backfill diary + expand implementation task breakdown (commit c35795d)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Added commit hash for step 10
+

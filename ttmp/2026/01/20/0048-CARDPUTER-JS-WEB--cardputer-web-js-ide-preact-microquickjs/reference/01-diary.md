@@ -449,7 +449,7 @@ Once the MicroQuickJS guide existed, I exported an updated ticket bundle and upl
 
 After additional work (uploads, MQJS guide, and implementation planning) accumulated outside the original diary steps, I rewrote the diary into a clean, strictly ordered set of steps that captures *everything done so far*. I also expanded the ticket task list from a few one-liners into a granular execution checklist organized by subsystem (Wi‑Fi, HTTP/assets, JS runner, frontend editor, Phase 2 WS telemetry, validation).
 
-**Commit:** TBD
+**Commit (docs):** c35795d — "Docs: backfill diary + expand 0048 tasks"
 
 ### What I did
 - Rewrote this diary file for completeness and chronological clarity:
