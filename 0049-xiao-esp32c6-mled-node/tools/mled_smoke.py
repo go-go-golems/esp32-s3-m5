@@ -255,6 +255,20 @@ def discover(sock: socket.socket, *, group: str, port: int, timeout_s: float, re
     return nodes
 
 
+def pick_multicast_if_for_target(target_ip: str) -> str | None:
+    # Best-effort: ask the OS which source IP it would use to reach the target.
+    # This helps on multi-NIC hosts where multicast routing can be surprising.
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s.connect((target_ip, 9))
+            return s.getsockname()[0]
+        finally:
+            s.close()
+    except OSError:
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--group", default=MCAST_GRP)
@@ -322,6 +336,13 @@ def main():
     if target_node_id not in nodes:
         print(f"node-id {target_node_id} not in discovered set")
         return 1
+
+    if not args.bind_ip:
+        target_ip = nodes[target_node_id]["addr"][0]
+        mc_if = pick_multicast_if_for_target(target_ip)
+        if mc_if:
+            sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(mc_if))
+            print(f"multicast egress: auto-selected {mc_if} (override with --bind-ip)")
 
     epoch = args.epoch if args.epoch is not None else random.randint(1, 0xFFFFFFFF)
     print(f"using epoch_id={epoch} target_node_id={target_node_id} cue_id={args.cue}")
@@ -434,7 +455,10 @@ def main():
         pong = nodes2[target_node_id]["pong"]
         print(f"post-fire status: node_id={target_node_id} pat={pong['pattern_type']} bri={pong['brightness_pct']} cue={pong['active_cue_id']}")
     else:
-        print("post-fire: did not receive updated PONG from target node (multicast might be flaky)")
+        if args.bind_ip:
+            print("post-fire: did not receive updated PONG from target node")
+        else:
+            print("post-fire: did not receive updated PONG from target node (try --bind-ip <your-host-lan-ip>)")
 
     return 0
 
