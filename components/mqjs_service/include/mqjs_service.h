@@ -22,7 +22,7 @@ typedef struct mqjs_service mqjs_service_t;
 
 typedef struct {
   const char* task_name;            // default: "mqjs_svc"
-  uint32_t task_stack_words;        // default: 6144/4
+  uint32_t task_stack_words;        // default: 6144 (words)
   uint32_t task_priority;           // default: 8
   int32_t task_core_id;             // default: -1 (no pin)
   uint32_t queue_len;               // default: 16

@@ -253,7 +253,7 @@ esp_err_t mqjs_service_start(const mqjs_service_config_t* cfg, mqjs_service_t** 
   auto* s = new Service();
   s->cfg = *cfg;
   if (!s->cfg.task_name) s->cfg.task_name = "mqjs_svc";
-  if (s->cfg.task_stack_words == 0) s->cfg.task_stack_words = 6144 / 4;
+  if (s->cfg.task_stack_words == 0) s->cfg.task_stack_words = 6144;
   if (s->cfg.task_priority == 0) s->cfg.task_priority = 8;
   if (s->cfg.queue_len == 0) s->cfg.queue_len = 16;
   if (!s->cfg.fix_global_this) {

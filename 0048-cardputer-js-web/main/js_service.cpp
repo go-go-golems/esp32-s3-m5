@@ -274,7 +274,8 @@ esp_err_t js_service_start(void) {
 
   mqjs_service_config_t cfg = {};
   cfg.task_name = "js_svc";
-  cfg.task_stack_words = 6144 / 4;
+  // FreeRTOS stack depth is expressed in words (not bytes).
+  cfg.task_stack_words = 6144;
   cfg.task_priority = 8;
   cfg.task_core_id = -1;
   cfg.queue_len = 16;
