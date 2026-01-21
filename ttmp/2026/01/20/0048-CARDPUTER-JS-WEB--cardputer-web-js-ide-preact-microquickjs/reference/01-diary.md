@@ -86,3 +86,68 @@ I started by ensuring the docmgr workspace was healthy, then created the ticket 
   - Root: `esp32-s3-m5/ttmp`
   - Config: `.ttmp.yaml`
   - Vocabulary: `esp32-s3-m5/ttmp/vocabulary.yaml`
+
+## Step 2: Locate prior art (docs + firmwares) and record a reading list
+
+The repo already contains multiple “nearly the same” systems: embedded Preact/Zustand UIs served by `esp_http_server`, multiple WebSocket implementations, and a MicroQuickJS REPL that already solves “evaluate code + format result + show exceptions”. The key to writing a credible design doc is to anchor every major claim to a concrete file and symbol in this repo.
+
+So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, encoder) and opened the highest-signal tickets. Then I created a dedicated “Prior Art and Reading List” reference doc and filled it with the *exact* filenames and symbols to start from.
+
+### What I did
+- Searched docmgr for existing work:
+  - `docmgr doc search --query "esp_http_server"`
+  - `docmgr doc search --query "websocket"`
+  - `docmgr doc search --query "preact"`
+  - `docmgr doc search --query "SPIFFS"`
+  - `docmgr doc search --query "encoder"`
+- Opened and skimmed the most relevant docs (frontmatter + executive summary + file pointers):
+  - `ttmp/.../0013-ATOMS3R-WEBSERVER.../design-doc/02-final-design-...md`
+  - `ttmp/.../MO-033-ESP32C6-PREACT-WEB.../design-doc/01-design-...md`
+  - `ttmp/.../0014-CARDPUTER-JS.../design-doc/02-split-firmware-...md`
+  - `ttmp/.../0029-HTTP-EVENT-MOCK-ZIGBEE.../playbook/01-websocket-over-wi-fi-esp-idf-playbook.md`
+  - `ttmp/.../MO-036-CHAIN-ENCODER-LVGL.../design-doc/01-lvgl-lists-chain-encoder-cardputer-adv.md`
+- Created a reference doc and wrote the reading list:
+  - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type reference --title "Prior Art and Reading List"`
+  - Edited: `.../reference/02-prior-art-and-reading-list.md`
+- Related the “canonical” implementation files to that doc via absolute paths:
+  - `docmgr doc relate --doc .../reference/02-prior-art-and-reading-list.md --file-note "...:reason"`
+
+### Why
+- The Phase 1/Phase 2 design docs must be “reproducible”: a reviewer should be able to jump directly from a statement to the example implementation that motivated it.
+- The repo already contains mature patterns (embedded assets, WS broadcasting, MicroQuickJS evaluation) that should be reused instead of re-invented.
+
+### What worked
+- docmgr search surfaced strong, on-point tickets:
+  - 0013 (device-hosted UI + WS)
+  - MO-033 (embedded Preact/Zustand pipeline)
+  - 0014 (MicroQuickJS evaluator/REPL architecture)
+  - MO-036 (encoder protocol + LVGL integration)
+
+### What didn't work
+- N/A
+
+### What I learned
+- There is already a MicroQuickJS evaluator with an explicit “eval line → printable output” contract:
+  - `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp` (`JsEvaluator::EvalLine`, `JS_Eval`, `JS_GetException`, `JS_PrintValueF`)
+- There is already a compact C++ WS broadcast pattern with client tracking:
+  - `0017-atoms3r-web-ui/main/http_server.cpp` (`http_server_ws_broadcast_text`, `http_server_ws_broadcast_binary`)
+
+### What was tricky to build
+- Keeping the “reading list” tight: too many links make it useless; too few links risk missing important constraints (e.g., deterministic asset bundling, WS send semantics).
+
+### What warrants a second pair of eyes
+- Verify the reading list is *complete enough* for Phase 1/Phase 2, and that the chosen “canonical examples” are the right ones to imitate (0017 vs 0029 vs other WS variants).
+
+### What should be done in the future
+- Expand the reading list as new constraints appear (e.g., if the chosen code editor library changes the asset pipeline or memory budget).
+
+### Code review instructions
+- Start with:
+  - `esp32-s3-m5/ttmp/.../reference/02-prior-art-and-reading-list.md`
+- Verify it cites real files/symbols in:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp`
+  - `esp32-s3-m5/0029-mock-zigbee-http-hub/main/hub_http.c`
+  - `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp`
+
+### Technical details
+- N/A (survey/documentation-only step)
