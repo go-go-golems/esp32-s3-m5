@@ -37,6 +37,8 @@ This ticket is documentation-first: it aims to produce a “textbook style” de
 
 I started by ensuring the docmgr workspace was healthy, then created the ticket workspace, and finally created a `Diary` reference doc to record the work as it happens.
 
+**Commit (docs):** bb71c08 — "docmgr: create ticket 0048-CARDPUTER-JS-WEB"
+
 ### What I did
 - Confirmed docmgr root and vocabulary location via:
   - `docmgr status --summary-only`
