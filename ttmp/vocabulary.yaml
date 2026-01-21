@@ -67,6 +67,14 @@ topics:
       description: Preact UI framework
     - slug: zustand
       description: Zustand state management library
+    - slug: javascript
+      description: JavaScript language and runtimes
+    - slug: quickjs
+      description: QuickJS JavaScript engine
+    - slug: microquickjs
+      description: micro-quickjs embedding wrapper for QuickJS
+    - slug: rest
+      description: REST-style HTTP APIs
 docTypes:
     - slug: index
       description: Ticket index document
