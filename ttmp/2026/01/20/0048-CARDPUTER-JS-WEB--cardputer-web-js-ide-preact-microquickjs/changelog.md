@@ -177,3 +177,13 @@ Step 19: Send encoder clicks as explicit WS events; fix single-click pending bug
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Parse encoder_click
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 19
 
+
+## 2026-01-21
+
+Docs: add Phase 2B design for on-device JS callbacks (Option B); UI: add JS capabilities help panel (commit 731d880)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Help text rendered on main page
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/03-phase-2b-design-on-device-js-callbacks-for-encoder-events.md — New design doc for event-driven JS on device
+

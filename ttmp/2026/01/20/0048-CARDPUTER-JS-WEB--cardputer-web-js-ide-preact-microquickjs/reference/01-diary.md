@@ -1088,3 +1088,59 @@ This step makes clicks first-class:
   - `{"type":"encoder_click","seq":N,"ts_ms":T,"kind":0|1|2}`
 - Position snapshot message:
   - `{"type":"encoder","seq":N,"ts_ms":T,"pos":P,"delta":D}`
+
+## Step 20: Design Option B (Phase 2B) — on-device JS callbacks for encoder events; show JS capability help in the Web IDE
+
+You asked for Option B: define a callback through the JS editor so encoder events can drive behavior *on the device* (not just in the browser over WebSocket). That requires a stronger concurrency story than the current “HTTP handler calls JS under a mutex”: callbacks are asynchronous, and we must never call into MicroQuickJS from encoder driver tasks.
+
+I wrote a dedicated Phase 2B design document that proposes a queue-driven “JS service task” which is the sole owner of `JSContext*` and processes both eval requests and encoder events. Separately, I added a small “JS help” panel to the main web UI explaining what’s currently possible in `0048` (what the REST eval does, persistence model, and what builtins are present).
+
+**Commit (code):** 731d880 — "0048: show JS capabilities help on main page"
+
+### What I did
+- Added a Phase 2B design doc:
+  - `design-doc/03-phase-2b-design-on-device-js-callbacks-for-encoder-events.md`
+  - Includes: message types, queue ownership model, `encoder.on/off` JS API, MicroQuickJS call pattern (`JS_PushArg`/`JS_Call`) and GC ref strategy (`JSGCRef`).
+- Related the design doc to the concrete files and API references it depends on:
+  - MicroQuickJS API: `imports/.../mquickjs.h`, `imports/.../example.c`
+  - Current eval baseline: `0048.../main/js_runner.cpp`
+  - Current encoder event source: `0048.../main/encoder_telemetry.cpp`
+- Updated the web UI to display “JS help” on the main page:
+  - `web/src/ui/app.tsx` adds a `<details>` section with a short capability summary and notes.
+  - `web/src/ui/app.css` styles it for readability.
+  - Rebuilt assets into `main/assets/` via `npm run build`.
+
+### Why
+- On-device callbacks require a single JSContext owner task; otherwise the system will eventually deadlock or corrupt VM state.
+- A built-in help panel reduces repeated “what can JS do here?” questions and makes the demo usable without reading the repo.
+
+### What worked
+- The help panel is embedded in the firmware UI bundle (deterministic assets preserved).
+- The Phase 2B design doc is grounded in the repo’s authoritative calling conventions (MicroQuickJS example.c).
+
+### What didn't work
+- N/A (design + UI documentation only; Option B implementation is not yet shipped)
+
+### What I learned
+- MicroQuickJS’s `JS_Call` API is stack-based and differs from “QuickJS host bindings” many people expect; the design doc should always include a worked calling pattern reference.
+
+### What was tricky to build
+- Keeping the help text precise without overstating capabilities (e.g., `print()` currently goes to the device console, not the browser output panel).
+
+### What warrants a second pair of eyes
+- The proposed Option B API surface (`encoder.on('delta'|'click', fn)`) and the queue/backpressure policy.
+
+### What should be done in the future
+- Implement `js_service` (owner task) and move `/api/js/eval` over to it.
+- Add encoder→JS event enqueue path (delta coalescing, click reliability) and implement the `encoder` JS binding.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/03-phase-2b-design-on-device-js-callbacks-for-encoder-events.md`
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+
+### Technical details
+- Option B calls into JS using:
+  - `JS_NewObject`, `JS_SetPropertyStr`, `JS_PushArg`, `JS_Call`, `JS_GetException`
+- Callback references should be held with:
+  - `JSGCRef` + `JS_AddGCRef` / `JS_DeleteGCRef`
