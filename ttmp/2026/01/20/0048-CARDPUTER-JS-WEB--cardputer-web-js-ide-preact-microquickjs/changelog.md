@@ -165,3 +165,15 @@ Step 18: Fix U+0000 JS parse error by trimming EMBED_TXTFILES NUL; add esp_conso
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp — New 'js eval' console command
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 18
 
+
+## 2026-01-21
+
+Step 19: Send encoder clicks as explicit WS events; fix single-click pending bug (commit 52d4f1f)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/chain_encoder_uart.cpp — Store kind+1; add take_click_kind
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp — Broadcast encoder_click events and encoder snapshots
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — Parse encoder_click
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 19
+

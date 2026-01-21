@@ -1026,3 +1026,65 @@ I confirmed the exact fix in `0046-xiao-esp32c6-led-patterns-webui/main/http_ser
 ### Technical details
 - Reference fix source:
   - `esp32-s3-m5/0046-xiao-esp32c6-led-patterns-webui/main/http_server.c:embedded_txt_len`
+
+## Step 19: Phase 2 — send encoder button clicks as explicit WS events (and fix single-click handling)
+
+In Phase 2 MVP we overloaded a `pressed` boolean to represent a click, which is semantically wrong: the Chain Encoder delivers a *button event* (0=single, 1=double, 2=long), not a stable pressed state. While revisiting this, I also found a subtle bug: we stored the raw kind byte in an atomic where `0` also meant “no click pending”, which meant **single clicks were never detected**.
+
+This step makes clicks first-class:
+
+- the device emits an explicit WebSocket message `{type:"encoder_click", kind}` when a click occurs
+- the periodic `{type:"encoder", pos, delta}` broadcast remains unchanged in cadence
+- single-click now works (we store `kind+1` internally so 0 can mean “none”)
+
+**Commit (code):** 52d4f1f — "0048: send encoder clicks as events (fix single-click)"
+
+### What I did
+- Fixed Chain Encoder click pending representation:
+  - `ChainEncoderUart::handle_unsolicited()` now stores `(kind+1)` so `0` can mean “none”.
+  - Added `ChainEncoderUart::take_click_kind()` to read+clear (returns `-1` if none).
+- Updated telemetry framing:
+  - `encoder_telemetry.cpp` now broadcasts:
+    - `{"type":"encoder_click","seq":...,"ts_ms":...,"kind":0|1|2}` when a click is observed
+    - `{"type":"encoder","seq":...,"ts_ms":...,"pos":...,"delta":...}` on the regular interval
+- Updated browser WS parsing/UI:
+  - store keeps `encoder` state and `lastClick`
+  - UI renders `click kind=...`
+- Rebuilt embedded assets and verified firmware builds:
+  - `cd .../web && npm run build`
+  - `idf.py -B build_esp32s3_v2 build`
+
+### Why
+- A click is an event, not a state; representing it as `pressed=true` for one tick is confusing and easy to misinterpret.
+- The prior encoding silently dropped single-click because `0` was both “single click” and “none”.
+
+### What worked
+- The event message is small and unambiguous, and it doesn’t require changing the periodic broadcast cadence.
+
+### What didn't work
+- N/A
+
+### What I learned
+- When an upstream protocol uses `0` as a legitimate enum value, don’t use `0` as “no pending event” unless you offset it.
+
+### What was tricky to build
+- Keeping the “position broadcast loop” behavior stable while adding a separate event message stream.
+
+### What warrants a second pair of eyes
+- Confirm the desired frontend UX for click events:
+  - do we want `lastClick` (sticky) or a transient pulse/animation?
+
+### What should be done in the future
+- Update the Phase 2 design doc schema to reflect `encoder_click` vs `encoder` if we want the docs to match the implementation exactly.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/chain_encoder_uart.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts`
+
+### Technical details
+- Click event message:
+  - `{"type":"encoder_click","seq":N,"ts_ms":T,"kind":0|1|2}`
+- Position snapshot message:
+  - `{"type":"encoder","seq":N,"ts_ms":T,"pos":P,"delta":D}`
