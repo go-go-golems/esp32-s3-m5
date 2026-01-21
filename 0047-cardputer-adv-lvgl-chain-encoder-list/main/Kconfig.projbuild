@@ -1,0 +1,39 @@
+menu "Tutorial 0047: Cardputer-ADV LVGL List + Chain Encoder"
+
+config TUTORIAL_0047_UART_NUM
+    int "Chain Encoder UART port number (controller)"
+    range 0 2
+    default 1
+
+config TUTORIAL_0047_UART_BAUD
+    int "Chain Encoder baud rate"
+    range 1200 3000000
+    default 115200
+
+config TUTORIAL_0047_UART_TX_GPIO
+    int "Chain Encoder UART TX GPIO (default: G2)"
+    range 0 48
+    default 2
+
+config TUTORIAL_0047_UART_RX_GPIO
+    int "Chain Encoder UART RX GPIO (default: G1)"
+    range 0 48
+    default 1
+
+config TUTORIAL_0047_CHAIN_INDEX_ID
+    int "Chain Index_id (1 for single device)"
+    range 1 255
+    default 1
+
+config TUTORIAL_0047_POLL_MS
+    int "Polling interval for encoder delta (ms)"
+    range 5 500
+    default 20
+
+config TUTORIAL_0047_DELTA_CLAMP
+    int "Clamp absolute delta per LVGL read (0 disables)"
+    range 0 100
+    default 10
+
+endmenu
+
