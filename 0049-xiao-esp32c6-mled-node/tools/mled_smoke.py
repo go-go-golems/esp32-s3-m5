@@ -109,6 +109,30 @@ def parse_pong(payload: bytes):
     }
 
 
+def parse_rgb(s: str):
+    s = s.strip()
+    if s.startswith("#"):
+        s = s[1:]
+    if len(s) == 6 and all(c in "0123456789abcdefABCDEF" for c in s):
+        r = int(s[0:2], 16)
+        g = int(s[2:4], 16)
+        b = int(s[4:6], 16)
+        return (r, g, b)
+    parts = [p.strip() for p in s.split(",")]
+    if len(parts) != 3:
+        raise ValueError("RGB must be '#RRGGBB' or 'R,G,B'")
+    r, g, b = (int(parts[0]), int(parts[1]), int(parts[2]))
+    for v in (r, g, b):
+        if v < 0 or v > 255:
+            raise ValueError("RGB components must be 0..255")
+    return (r, g, b)
+
+
+def build_pattern_off(*, brightness_pct: int = 1) -> bytes:
+    data = bytes(12)
+    return struct.pack(PATTERN_FMT, 0, brightness_pct & 0xFF, 0, 0, 0, data)
+
+
 def build_pattern_rainbow(*, speed: int = 5, saturation: int = 100, spread_x10: int = 10, brightness_pct: int = 25) -> bytes:
     data = bytearray(12)
     data[0] = speed & 0xFF
@@ -116,6 +140,78 @@ def build_pattern_rainbow(*, speed: int = 5, saturation: int = 100, spread_x10: 
     data[2] = spread_x10 & 0xFF
     # pattern_type=1 (RAINBOW), flags=0, seed=0
     return struct.pack(PATTERN_FMT, 1, brightness_pct & 0xFF, 0, 0, 0, bytes(data))
+
+
+def build_pattern_chase(
+    *,
+    speed: int = 30,
+    tail_len: int = 6,
+    gap_len: int = 4,
+    trains: int = 2,
+    fg=(255, 0, 0),
+    bg=(0, 0, 0),
+    direction: int = 0,
+    fade_tail: bool = True,
+    brightness_pct: int = 25,
+) -> bytes:
+    data = bytearray(12)
+    data[0] = speed & 0xFF
+    data[1] = max(1, tail_len) & 0xFF
+    data[2] = max(0, gap_len) & 0xFF
+    data[3] = max(1, trains) & 0xFF
+    data[4] = fg[0] & 0xFF
+    data[5] = fg[1] & 0xFF
+    data[6] = fg[2] & 0xFF
+    data[7] = bg[0] & 0xFF
+    data[8] = bg[1] & 0xFF
+    data[9] = bg[2] & 0xFF
+    data[10] = direction & 0xFF  # 0=fwd,1=rev,2=bounce
+    data[11] = 1 if fade_tail else 0
+    return struct.pack(PATTERN_FMT, 2, brightness_pct & 0xFF, 0, 0, 0, bytes(data))
+
+
+def build_pattern_breathing(
+    *,
+    speed: int = 6,
+    color=(0, 128, 255),
+    min_bri: int = 10,
+    max_bri: int = 255,
+    curve: int = 0,
+    brightness_pct: int = 25,
+) -> bytes:
+    data = bytearray(12)
+    data[0] = speed & 0xFF
+    data[1] = color[0] & 0xFF
+    data[2] = color[1] & 0xFF
+    data[3] = color[2] & 0xFF
+    data[4] = max(0, min(255, min_bri)) & 0xFF
+    data[5] = max(0, min(255, max_bri)) & 0xFF
+    data[6] = curve & 0xFF  # 0=sine,1=linear,2=ease_in_out
+    return struct.pack(PATTERN_FMT, 3, brightness_pct & 0xFF, 0, 0, 0, bytes(data))
+
+
+def build_pattern_sparkle(
+    *,
+    speed: int = 10,
+    color=(255, 255, 255),
+    density_pct: int = 20,
+    fade_speed: int = 18,
+    mode: int = 1,
+    background=(0, 0, 0),
+    brightness_pct: int = 25,
+) -> bytes:
+    data = bytearray(12)
+    data[0] = speed & 0xFF
+    data[1] = color[0] & 0xFF
+    data[2] = color[1] & 0xFF
+    data[3] = color[2] & 0xFF
+    data[4] = max(0, min(100, density_pct)) & 0xFF
+    data[5] = max(1, min(255, fade_speed)) & 0xFF
+    data[6] = mode & 0xFF  # 0=fixed,1=random,2=rainbow
+    data[7] = background[0] & 0xFF
+    data[8] = background[1] & 0xFF
+    data[9] = background[2] & 0xFF
+    return struct.pack(PATTERN_FMT, 4, brightness_pct & 0xFF, 0, 0, 0, bytes(data))
 
 
 def build_cue_prepare_payload(*, cue_id: int, fade_in_ms: int = 0, fade_out_ms: int = 0, pattern: bytes) -> bytes:
@@ -171,6 +267,36 @@ def main():
     ap.add_argument("--beacon-ms", type=int, default=1200, help="how long to send BEACONs (ms)")
     ap.add_argument("--node-id", type=lambda s: int(s, 0), default=None, help="target node_id (default: first discovered)")
     ap.add_argument("--no-time-resp", action="store_true", help="do not reply to TIME_REQ (node will stay BEACON-synced)")
+
+    ap.add_argument("--pattern", choices=["off", "rainbow", "chase", "breathing", "sparkle"], default="rainbow")
+    ap.add_argument("--brightness", type=int, default=25, help="pattern global brightness (1..100)")
+
+    ap.add_argument("--rainbow-speed", type=int, default=5)
+    ap.add_argument("--rainbow-saturation", type=int, default=100)
+    ap.add_argument("--rainbow-spread-x10", type=int, default=10)
+
+    ap.add_argument("--chase-speed", type=int, default=30)
+    ap.add_argument("--chase-tail-len", type=int, default=6)
+    ap.add_argument("--chase-gap-len", type=int, default=4)
+    ap.add_argument("--chase-trains", type=int, default=2)
+    ap.add_argument("--chase-fg", type=parse_rgb, default=(255, 0, 0))
+    ap.add_argument("--chase-bg", type=parse_rgb, default=(0, 0, 0))
+    ap.add_argument("--chase-dir", type=int, choices=[0, 1, 2], default=0, help="0=fwd,1=rev,2=bounce")
+    ap.add_argument("--chase-fade-tail", action="store_true", default=True)
+    ap.add_argument("--chase-no-fade-tail", action="store_true", default=False)
+
+    ap.add_argument("--breathing-speed", type=int, default=6)
+    ap.add_argument("--breathing-color", type=parse_rgb, default=(0, 128, 255))
+    ap.add_argument("--breathing-min-bri", type=int, default=10)
+    ap.add_argument("--breathing-max-bri", type=int, default=255)
+    ap.add_argument("--breathing-curve", type=int, choices=[0, 1, 2], default=0, help="0=sine,1=linear,2=ease")
+
+    ap.add_argument("--sparkle-speed", type=int, default=10)
+    ap.add_argument("--sparkle-color", type=parse_rgb, default=(255, 255, 255))
+    ap.add_argument("--sparkle-density", type=int, default=20)
+    ap.add_argument("--sparkle-fade", type=int, default=18)
+    ap.add_argument("--sparkle-mode", type=int, choices=[0, 1, 2], default=1, help="0=fixed,1=random,2=rainbow")
+    ap.add_argument("--sparkle-bg", type=parse_rgb, default=(0, 0, 0))
     args = ap.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -226,7 +352,45 @@ def main():
         time.sleep(0.05)
 
     # 3) Send CUE_PREPARE targeted to the node, request ACK
-    pattern = build_pattern_rainbow(speed=5, saturation=100, spread_x10=10, brightness_pct=25)
+    bri = max(1, min(100, int(args.brightness)))
+    fade_tail = bool(args.chase_fade_tail) and not bool(args.chase_no_fade_tail)
+    if args.pattern == "off":
+        pattern = build_pattern_off(brightness_pct=bri)
+    elif args.pattern == "rainbow":
+        pattern = build_pattern_rainbow(speed=args.rainbow_speed, saturation=args.rainbow_saturation, spread_x10=args.rainbow_spread_x10, brightness_pct=bri)
+    elif args.pattern == "chase":
+        pattern = build_pattern_chase(
+            speed=args.chase_speed,
+            tail_len=args.chase_tail_len,
+            gap_len=args.chase_gap_len,
+            trains=args.chase_trains,
+            fg=args.chase_fg,
+            bg=args.chase_bg,
+            direction=args.chase_dir,
+            fade_tail=fade_tail,
+            brightness_pct=bri,
+        )
+    elif args.pattern == "breathing":
+        pattern = build_pattern_breathing(
+            speed=args.breathing_speed,
+            color=args.breathing_color,
+            min_bri=args.breathing_min_bri,
+            max_bri=args.breathing_max_bri,
+            curve=args.breathing_curve,
+            brightness_pct=bri,
+        )
+    elif args.pattern == "sparkle":
+        pattern = build_pattern_sparkle(
+            speed=args.sparkle_speed,
+            color=args.sparkle_color,
+            density_pct=args.sparkle_density,
+            fade_speed=args.sparkle_fade,
+            mode=args.sparkle_mode,
+            background=args.sparkle_bg,
+            brightness_pct=bri,
+        )
+    else:
+        raise RuntimeError(f"unknown pattern: {args.pattern}")
     prep_payload = build_cue_prepare_payload(cue_id=args.cue, fade_in_ms=0, fade_out_ms=0, pattern=pattern)
     flags = 0x01 | 0x04  # TARGET_NODE + ACK_REQ
     prep_hdr = build_header(0x10, epoch_id=epoch, msg_id=msg_id, sender_id=0, flags=flags, target=target_node_id, payload_len=len(prep_payload))
@@ -272,4 +436,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
