@@ -126,7 +126,14 @@ static void service_task(void* arg) {
     return;
   }
 
-  ESP_LOGI(TAG, "task start s=%p q=%p ready=%p core=%d", s, s->q, s->ready, (int)xPortGetCoreID());
+  ESP_LOGI(TAG,
+           "task start name=%s prio=%u core=%d s=%p q=%p ready=%p",
+           pcTaskGetName(nullptr),
+           (unsigned)uxTaskPriorityGet(nullptr),
+           (int)xPortGetCoreID(),
+           s,
+           s->q,
+           s->ready);
 
   // Signal creator that the task started and is safe to interact with.
   if (s->ready) {
