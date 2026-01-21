@@ -288,3 +288,13 @@ Step 30: Fix globalThis=null placeholder in stdlib (commit 5581587)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Set globalThis to JS_GetGlobalObject() before bootstraps
 
+
+## 2026-01-21
+
+Step 31: Add postmortem + playbook for JS service/bindings/events
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md — End-to-end playbook for queue-based JS service + callbacks + emit
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/04-postmortem-microquickjs-bootstrap-failures-arrow-functions-globalthis-null.md — Postmortem and prevention checklist
+

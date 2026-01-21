@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T14:50:31-05:00
+LastUpdated: 2026-01-21T14:58:30-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -77,6 +77,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 28: Phase 2C: emit overflow emits js_events_dropped frame
 - Step 29: Fix bootstraps: MicroQuickJS lacks arrow functions (encoder/emit undefined)
 - Step 30: Fix globalThis placeholder (was null) so bootstraps can install encoder/emit
+- Step 31: Write postmortem + playbook for queue-based JS service/bindings/events
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1781,3 +1782,62 @@ The fix is to explicitly set `globalThis` to the true global object from C at VM
 
 ### Technical details
 - The underlying stdlib issue is visible in the generated table where `globalThis` is mapped to `JS_NULL`.
+
+## Step 31: Write postmortem + playbook for queue-based JS service/bindings/events
+
+After the “encoder/emit undefined” incident, you asked for two durable artifacts:
+
+1) a bug report postmortem to prevent repeating the mistake, and
+2) a detailed, new-developer-ready playbook for building a queue-owned MicroQuickJS VM integrated with REST, WebSocket, and firmware object bindings (encoder).
+
+I created both documents under the `0048` ticket, grounded in the concrete implementation files and the generated stdlib table that caused the failure (`globalThis` mapped to `JS_NULL`). The postmortem captures the incident signature, root causes, and a prevention checklist. The playbook is an end-to-end recipe: build UI assets, build/flash firmware, verify REST eval, verify `encoder`/`emit`, register callbacks, and observe `js_events` in the browser WS history.
+
+**Commit (docs):** TBD (this step commits the docs)
+
+### What I did
+- Wrote the postmortem reference doc:
+  - `reference/04-postmortem-microquickjs-bootstrap-failures-arrow-functions-globalthis-null.md`
+- Wrote the detailed playbook:
+  - `playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md`
+- Related both docs to the most relevant code/sources:
+  - `0048-cardputer-js-web/main/js_service.cpp`
+  - `imports/esp32-mqjs-repl/mqjs-repl/main/esp32_stdlib.h`
+  - `0048-cardputer-js-web/main/http_server.cpp`
+  - `0048-cardputer-js-web/main/encoder_telemetry.cpp`
+  - `0048-cardputer-js-web/web/src/ui/store.ts`
+
+### Why
+- Postmortems turn “tribal debugging history” into explicit guardrails (syntax constraints + global binding pitfalls).
+- The playbook makes this architecture reproducible for new developers: not just how it works, but how to validate it and how to debug common failure modes.
+
+### What worked
+- Both docs validate with docmgr frontmatter checks.
+- The playbook is consistent with the current implementation and known constraints (ES5-only bootstrap; globalThis fix from C).
+
+### What didn't work
+- N/A
+
+### What I learned
+- The most valuable postmortems include an “incident signature” section: a handful of log lines that allow future you to recognize the failure within seconds.
+
+### What was tricky to build
+- Writing the playbook in a way that is both:
+  - command-oriented (what to run), and
+  - conceptual (why the single-owner rule matters), without becoming vague.
+
+### What warrants a second pair of eyes
+- The playbook’s “native bindings” section: verify it doesn’t overpromise about stdlib regeneration complexity and stays aligned with our repo’s actual MicroQuickJS workflow.
+
+### What should be done in the future
+- Optionally add a runtime self-test/banner at VM init (per postmortem) to detect unsupported syntax and `globalThis` placeholder regressions automatically.
+
+### Code review instructions
+- Read the postmortem:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/04-postmortem-microquickjs-bootstrap-failures-arrow-functions-globalthis-null.md`
+- Read the playbook:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/playbook/03-playbook-queue-based-js-service-microquickjs-rest-eval-ws-events-encoder-bindings.md`
+
+### Technical details
+- The postmortem calls out two distinct root causes:
+  - arrow functions unsupported (`SyntaxError: invalid lvalue`)
+  - `globalThis` bound to `null` in generated stdlib table (`JS_NULL`), requiring a C-side fix at VM init.
