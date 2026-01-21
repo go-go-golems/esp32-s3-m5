@@ -30,6 +30,13 @@ struct EvalDeadline {
   int64_t deadline_us = 0;
 };
 
+struct EncoderDeltaSnap {
+  int32_t pos = 0;
+  int32_t delta = 0;
+  uint32_t ts_ms = 0;
+  uint32_t seq = 0;
+};
+
 struct EvalReq {
   char* code = nullptr;
   size_t code_len = 0;
@@ -60,6 +67,10 @@ static SemaphoreHandle_t s_start_mu = nullptr;
 static uint8_t* s_js_mem = nullptr;
 static JSContext* s_ctx = nullptr;
 static EvalDeadline s_deadline;
+
+static portMUX_TYPE s_enc_mu = portMUX_INITIALIZER_UNLOCKED;
+static EncoderDeltaSnap s_enc_delta = {};
+static bool s_enc_delta_pending = false;
 
 int interrupt_handler(JSContext* ctx, void* opaque) {
   (void)ctx;
@@ -98,6 +109,104 @@ std::string print_value(JSContext* ctx, JSValue v) {
   return out;
 }
 
+static void log_js_exception(const char* what) {
+  JSValue exc = JS_GetException(s_ctx);
+  const std::string err = print_value(s_ctx, exc);
+  ESP_LOGW(TAG, "%s: %s", what ? what : "js exception", err.c_str());
+}
+
+static void install_bootstrap_phase2b(void) {
+  // Keep this minimal: registration helpers only. No native bindings required.
+  static const char* kBootstrap =
+      "globalThis.__0048 = globalThis.__0048 || {};\n"
+      "__0048.encoder = __0048.encoder || { on_delta: null, on_click: null };\n"
+      "globalThis.encoder = globalThis.encoder || {};\n"
+      "encoder.on = (t, fn) => {\n"
+      "  if (t !== 'delta' && t !== 'click') throw new TypeError('encoder.on: type must be \"delta\" or \"click\"');\n"
+      "  if (typeof fn !== 'function') throw new TypeError('encoder.on: fn must be a function');\n"
+      "  if (t === 'delta') __0048.encoder.on_delta = fn;\n"
+      "  if (t === 'click') __0048.encoder.on_click = fn;\n"
+      "};\n"
+      "encoder.off = (t) => {\n"
+      "  if (t !== 'delta' && t !== 'click') throw new TypeError('encoder.off: type must be \"delta\" or \"click\"');\n"
+      "  if (t === 'delta') __0048.encoder.on_delta = null;\n"
+      "  if (t === 'click') __0048.encoder.on_click = null;\n"
+      "};\n";
+
+  const int flags = JS_EVAL_REPL;
+  JSValue v = JS_Eval(s_ctx, kBootstrap, strlen(kBootstrap), "<boot:2b>", flags);
+  if (JS_IsException(v)) {
+    log_js_exception("bootstrap 2B failed");
+  }
+}
+
+static JSValue get_encoder_cb(const char* which) {
+  if (!which) return JS_UNDEFINED;
+  JSValue glob = JS_GetGlobalObject(s_ctx);
+  JSValue ns = JS_GetPropertyStr(s_ctx, glob, "__0048");
+  if (JS_IsException(ns)) return ns;
+  JSValue enc = JS_GetPropertyStr(s_ctx, ns, "encoder");
+  if (JS_IsException(enc)) return enc;
+  JSValue cb = JS_GetPropertyStr(s_ctx, enc, which);
+  return cb;
+}
+
+static void call_cb(JSValue cb, JSValue arg0, uint32_t timeout_ms) {
+  if (JS_IsUndefined(cb) || JS_IsNull(cb)) return;
+  if (!JS_IsFunction(s_ctx, cb)) return;
+  if (JS_StackCheck(s_ctx, 3)) return;
+
+  if (timeout_ms > 0) {
+    s_deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
+  } else {
+    s_deadline.deadline_us = 0;
+  }
+
+  JS_PushArg(s_ctx, arg0);
+  JS_PushArg(s_ctx, cb);
+  JS_PushArg(s_ctx, JS_NULL);
+  JSValue ret = JS_Call(s_ctx, 1);
+  const bool threw = JS_IsException(ret);
+  s_deadline.deadline_us = 0;
+  if (threw) {
+    log_js_exception("encoder callback threw");
+  }
+}
+
+static void handle_encoder_delta(void) {
+  EncoderDeltaSnap snap;
+  taskENTER_CRITICAL(&s_enc_mu);
+  snap = s_enc_delta;
+  s_enc_delta_pending = false;
+  taskEXIT_CRITICAL(&s_enc_mu);
+
+  JSValue cb = get_encoder_cb("on_delta");
+  if (JS_IsException(cb)) {
+    log_js_exception("get on_delta failed");
+    return;
+  }
+
+  JSValue ev = JS_NewObject(s_ctx);
+  JS_SetPropertyStr(s_ctx, ev, "pos", JS_NewInt32(s_ctx, snap.pos));
+  JS_SetPropertyStr(s_ctx, ev, "delta", JS_NewInt32(s_ctx, snap.delta));
+  JS_SetPropertyStr(s_ctx, ev, "ts_ms", JS_NewUint32(s_ctx, snap.ts_ms));
+  JS_SetPropertyStr(s_ctx, ev, "seq", JS_NewUint32(s_ctx, snap.seq));
+  call_cb(cb, ev, 25);
+}
+
+static void handle_encoder_click(int kind) {
+  JSValue cb = get_encoder_cb("on_click");
+  if (JS_IsException(cb)) {
+    log_js_exception("get on_click failed");
+    return;
+  }
+
+  JSValue ev = JS_NewObject(s_ctx);
+  JS_SetPropertyStr(s_ctx, ev, "kind", JS_NewInt32(s_ctx, kind));
+  JS_SetPropertyStr(s_ctx, ev, "ts_ms", JS_NewUint32(s_ctx, (uint32_t)esp_log_timestamp()));
+  call_cb(cb, ev, 25);
+}
+
 static esp_err_t ensure_ctx(void) {
   if (s_ctx) return ESP_OK;
 
@@ -117,6 +226,8 @@ static esp_err_t ensure_ctx(void) {
 
   JS_SetContextOpaque(s_ctx, &s_deadline);
   JS_SetInterruptHandler(s_ctx, interrupt_handler);
+
+  install_bootstrap_phase2b();
 
   ESP_LOGI(TAG, "js initialized (mem=%d)", mem_bytes);
   return ESP_OK;
@@ -196,7 +307,18 @@ static void service_task(void* arg) {
       continue;
     }
 
-    // Phase 2B hooks (implemented later).
+    const esp_err_t init_err = ensure_ctx();
+    if (init_err != ESP_OK) continue;
+
+    if (msg.type == MSG_ENCODER_DELTA) {
+      handle_encoder_delta();
+      continue;
+    }
+
+    if (msg.type == MSG_ENCODER_CLICK) {
+      handle_encoder_click(msg.a);
+      continue;
+    }
   }
 }
 
@@ -277,16 +399,42 @@ std::string js_service_eval_to_json(const char* code, size_t code_len, uint32_t 
 }
 
 esp_err_t js_service_post_encoder_click(int kind) {
-  (void)kind;
   const esp_err_t err = js_service_start();
   if (err != ESP_OK) return err;
+  Msg msg = {};
+  msg.type = MSG_ENCODER_CLICK;
+  msg.a = kind;
+  if (xQueueSend(s_q, &msg, 0) != pdTRUE) {
+    return ESP_ERR_TIMEOUT;
+  }
   return ESP_OK;
 }
 
 esp_err_t js_service_update_encoder_delta(int32_t pos, int32_t delta) {
-  (void)pos;
-  (void)delta;
   const esp_err_t err = js_service_start();
   if (err != ESP_OK) return err;
+
+  bool need_wakeup = false;
+  taskENTER_CRITICAL(&s_enc_mu);
+  s_enc_delta.pos = pos;
+  s_enc_delta.delta = delta;
+  s_enc_delta.ts_ms = (uint32_t)esp_log_timestamp();
+  s_enc_delta.seq++;
+  if (!s_enc_delta_pending) {
+    s_enc_delta_pending = true;
+    need_wakeup = true;
+  }
+  taskEXIT_CRITICAL(&s_enc_mu);
+
+  if (need_wakeup) {
+    Msg msg = {};
+    msg.type = MSG_ENCODER_DELTA;
+    if (xQueueSend(s_q, &msg, 0) != pdTRUE) {
+      taskENTER_CRITICAL(&s_enc_mu);
+      s_enc_delta_pending = false;
+      taskEXIT_CRITICAL(&s_enc_mu);
+      return ESP_ERR_TIMEOUT;
+    }
+  }
   return ESP_OK;
 }

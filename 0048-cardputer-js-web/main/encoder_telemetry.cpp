@@ -12,6 +12,7 @@
 #include "esp_log.h"
 
 #include "http_server.h"
+#include "js_service.h"
 
 #if CONFIG_TUTORIAL_0048_ENCODER_CHAIN_UART
 #include "chain_encoder_uart.h"
@@ -53,6 +54,7 @@ static void telemetry_task(void* arg) {
     const int32_t delta_accum = enc.take_delta();
     if (delta_accum != 0) {
       pos += delta_accum;
+      (void)js_service_update_encoder_delta(pos, delta_accum);
     }
 
     const int click_kind = enc.take_click_kind();
@@ -62,6 +64,7 @@ static void telemetry_task(void* arg) {
     const uint32_t ts_ms = (uint32_t)esp_log_timestamp();
 
     if (click_kind >= 0) {
+      (void)js_service_post_encoder_click(click_kind);
       char click_msg[160];
       snprintf(click_msg,
                sizeof(click_msg),
