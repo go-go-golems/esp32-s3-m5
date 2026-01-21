@@ -120,6 +120,9 @@ void mled_effect_led_apply_pattern(const mled_pattern_config_t *p)
     led_pattern_cfg_t cfg;
     map_pattern_cfg(&cfg, p);
 
+    // Intentionally INFO-level: this is our end-to-end "did the LED adapter run?" breadcrumb.
+    ESP_LOGI(TAG, "apply: type=%u bri=%u%%", (unsigned)p->pattern_type, (unsigned)cfg.global_brightness_pct);
+
     led_msg_t msg = {
         .type = LED_MSG_SET_PATTERN_CFG,
         .u.pattern = cfg,
@@ -138,4 +141,3 @@ void mled_effect_led_apply_pattern(const mled_pattern_config_t *p)
     };
     mled_node_set_effect_status(&st);
 }
-
