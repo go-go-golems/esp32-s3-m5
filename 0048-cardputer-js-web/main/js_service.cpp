@@ -22,6 +22,9 @@ extern const JSSTDLibraryDef js_stdlib;
 
 #include "sdkconfig.h"
 
+// Phase 2C: WS broadcast helper.
+#include "http_server.h"
+
 static const char* TAG = "js_service_0048";
 
 namespace {
@@ -140,6 +143,71 @@ static void install_bootstrap_phase2b(void) {
   }
 }
 
+static esp_err_t ensure_ctx(void);
+
+static void install_bootstrap_phase2c(void) {
+  static const char* kBootstrap =
+      "globalThis.__0048 = globalThis.__0048 || {};\n"
+      "__0048.maxEvents = __0048.maxEvents || 64;\n"
+      "__0048.events = __0048.events || [];\n"
+      "__0048.dropped = __0048.dropped || 0;\n"
+      "__0048.ws_seq = __0048.ws_seq || 0;\n"
+      "globalThis.emit = (topic, payload) => {\n"
+      "  if (typeof topic !== 'string' || topic.length === 0) throw new TypeError('emit: topic must be non-empty string');\n"
+      "  if (__0048.events.length >= __0048.maxEvents) { __0048.dropped = (__0048.dropped || 0) + 1; return; }\n"
+      "  __0048.events.push({ topic, payload, ts_ms: Date.now() });\n"
+      "};\n"
+      "globalThis.__0048_take_for_ws = (source) => {\n"
+      "  const dropped = __0048.dropped || 0;\n"
+      "  const ev = __0048.events || [];\n"
+      "  if (ev.length === 0 && dropped === 0) return null;\n"
+      "  __0048.events = [];\n"
+      "  __0048.dropped = 0;\n"
+      "  const out = { type: 'js_events', seq: (__0048.ws_seq++), ts_ms: Date.now(), source: String(source || 'eval'), events: ev };\n"
+      "  if (dropped) out.dropped = dropped;\n"
+      "  return out;\n"
+      "};\n";
+
+  const int flags = JS_EVAL_REPL;
+  JSValue v = JS_Eval(s_ctx, kBootstrap, strlen(kBootstrap), "<boot:2c>", flags);
+  if (JS_IsException(v)) {
+    log_js_exception("bootstrap 2C failed");
+  }
+}
+
+static void flush_js_events_to_ws(const char* source) {
+  const esp_err_t init_err = ensure_ctx();
+  if (init_err != ESP_OK) return;
+
+  const char* src = source ? source : "eval";
+  char expr[96];
+  snprintf(expr, sizeof(expr), "JSON.stringify(__0048_take_for_ws('%s'))", src);
+
+  // Keep flush bounded as it's on the critical path.
+  s_deadline.deadline_us = esp_timer_get_time() + 50 * 1000;
+  JSValue v = JS_Eval(s_ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
+  s_deadline.deadline_us = 0;
+
+  if (JS_IsException(v)) {
+    log_js_exception("flush js events failed");
+    return;
+  }
+
+  if (!JS_IsString(s_ctx, v)) return;
+
+  JSCStringBuf sbuf;
+  memset(&sbuf, 0, sizeof(sbuf));
+  size_t n = 0;
+  const char* s = JS_ToCStringLen(s_ctx, &n, v, &sbuf);
+  if (!s || n == 0) return;
+
+  // JSON.stringify(null) => "null"; skip if nothing to send.
+  if (n == 4 && memcmp(s, "null", 4) == 0) return;
+
+  // Best-effort: broadcast only if the server is up.
+  (void)http_server_ws_broadcast_text(s);
+}
+
 static JSValue get_encoder_cb(const char* which) {
   if (!which) return JS_UNDEFINED;
   JSValue glob = JS_GetGlobalObject(s_ctx);
@@ -228,6 +296,7 @@ static esp_err_t ensure_ctx(void) {
   JS_SetInterruptHandler(s_ctx, interrupt_handler);
 
   install_bootstrap_phase2b();
+  install_bootstrap_phase2c();
 
   ESP_LOGI(TAG, "js initialized (mem=%d)", mem_bytes);
   return ESP_OK;
@@ -303,6 +372,7 @@ static void service_task(void* arg) {
       }
       free(req->code);
       req->code = nullptr;
+      flush_js_events_to_ws("eval");
       xSemaphoreGive(req->done);
       continue;
     }
@@ -312,11 +382,13 @@ static void service_task(void* arg) {
 
     if (msg.type == MSG_ENCODER_DELTA) {
       handle_encoder_delta();
+      flush_js_events_to_ws("callback");
       continue;
     }
 
     if (msg.type == MSG_ENCODER_CLICK) {
       handle_encoder_click(msg.a);
+      flush_js_events_to_ws("callback");
       continue;
     }
   }
