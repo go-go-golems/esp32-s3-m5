@@ -26,6 +26,8 @@ enum MsgType : uint8_t {
 
 struct Pending {
   SemaphoreHandle_t done = nullptr;
+  StaticSemaphore_t done_storage = {};
+  bool done_static = false;
   esp_err_t status = ESP_OK;
 };
 
@@ -52,6 +54,13 @@ struct Msg {
 static inline TickType_t ms_to_ticks(uint32_t ms) {
   if (ms == 0) return 0;
   return pdMS_TO_TICKS(ms);
+}
+
+static inline bool pending_init_static(Pending* p) {
+  if (!p) return false;
+  p->done = xSemaphoreCreateBinaryStatic(&p->done_storage);
+  p->done_static = (p->done != nullptr);
+  return p->done_static;
 }
 
 static inline char* dup_cstr(const std::string& s) {
@@ -188,7 +197,7 @@ static void service_task(void* arg) {
           xSemaphoreGive(p->done);
         }
         if (p->heap_owned) {
-          if (p->done) vSemaphoreDelete(p->done);
+          if (p->done && !p->done_static) vSemaphoreDelete(p->done);
           free(p);
         }
         continue;
@@ -205,7 +214,7 @@ static void service_task(void* arg) {
         xSemaphoreGive(p->done);
       }
       if (p->heap_owned) {
-        if (p->done) vSemaphoreDelete(p->done);
+        if (p->done && !p->done_static) vSemaphoreDelete(p->done);
         free(p);
       }
       continue;
@@ -322,48 +331,56 @@ esp_err_t mqjs_service_eval(mqjs_service_t* s_,
   auto* s = reinterpret_cast<Service*>(s_);
   if (!s || !code || len == 0 || !out) return ESP_ERR_INVALID_ARG;
 
-  EvalPending p = {};
-  p.done = xSemaphoreCreateBinary();
-  if (!p.done) return ESP_ERR_NO_MEM;
-  p.code = code;
-  p.len = len;
-  p.timeout_ms = timeout_ms;
-  p.filename = filename ? filename : "<eval>";
-  p.out = out;
+  auto* p = static_cast<EvalPending*>(calloc(1, sizeof(EvalPending)));
+  if (!p) return ESP_ERR_NO_MEM;
+  if (!pending_init_static(p)) {
+    free(p);
+    return ESP_ERR_NO_MEM;
+  }
+  p->code = code;
+  p->len = len;
+  p->timeout_ms = timeout_ms;
+  p->filename = filename ? filename : "<eval>";
+  p->out = out;
 
   Msg msg = {};
   msg.type = MSG_EVAL;
-  msg.pending = &p;
+  msg.pending = p;
   if (xQueueSend(s->q, &msg, ms_to_ticks(100)) != pdTRUE) {
-    vSemaphoreDelete(p.done);
+    free(p);
     return ESP_ERR_TIMEOUT;
   }
-  xSemaphoreTake(p.done, portMAX_DELAY);
-  vSemaphoreDelete(p.done);
-  return p.status;
+  xSemaphoreTake(p->done, portMAX_DELAY);
+  const esp_err_t status = p->status;
+  free(p);
+  return status;
 }
 
 esp_err_t mqjs_service_run(mqjs_service_t* s_, const mqjs_job_t* job) {
   auto* s = reinterpret_cast<Service*>(s_);
   if (!s || !job || !job->fn) return ESP_ERR_INVALID_ARG;
 
-  JobPending p = {};
-  p.done = xSemaphoreCreateBinary();
-  if (!p.done) return ESP_ERR_NO_MEM;
-  p.fn = job->fn;
-  p.user = job->user;
-  p.timeout_ms = job->timeout_ms;
+  auto* p = static_cast<JobPending*>(calloc(1, sizeof(JobPending)));
+  if (!p) return ESP_ERR_NO_MEM;
+  if (!pending_init_static(p)) {
+    free(p);
+    return ESP_ERR_NO_MEM;
+  }
+  p->fn = job->fn;
+  p->user = job->user;
+  p->timeout_ms = job->timeout_ms;
 
   Msg msg = {};
   msg.type = MSG_JOB;
-  msg.pending = &p;
+  msg.pending = p;
   if (xQueueSend(s->q, &msg, ms_to_ticks(100)) != pdTRUE) {
-    vSemaphoreDelete(p.done);
+    free(p);
     return ESP_ERR_TIMEOUT;
   }
-  xSemaphoreTake(p.done, portMAX_DELAY);
-  vSemaphoreDelete(p.done);
-  return p.status;
+  xSemaphoreTake(p->done, portMAX_DELAY);
+  const esp_err_t status = p->status;
+  free(p);
+  return status;
 }
 
 esp_err_t mqjs_service_post(mqjs_service_t* s_, const mqjs_job_t* job) {
