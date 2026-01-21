@@ -671,6 +671,8 @@ static void node_task_main(void *arg)
     close(s_ctx.fd);
     s_ctx.fd = -1;
     s_ctx.task = NULL;
+    s_ctx.started = false;
+    s_ctx.stop = false;
     vTaskDelete(NULL);
 }
 

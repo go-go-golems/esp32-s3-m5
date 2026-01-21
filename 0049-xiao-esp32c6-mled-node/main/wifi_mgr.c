@@ -51,6 +51,8 @@ static wifi_mgr_status_t s_status = {
 
 static wifi_mgr_on_got_ip_cb_t s_on_got_ip_cb = NULL;
 static void *s_on_got_ip_ctx = NULL;
+static wifi_mgr_on_lost_ip_cb_t s_on_lost_ip_cb = NULL;
+static void *s_on_lost_ip_ctx = NULL;
 
 static void lock_mu(void)
 {
@@ -269,7 +271,10 @@ static void wifi_event_handler(void *arg, esp_event_base_t base, int32_t id, voi
         if (s_status.state != WIFI_MGR_STATE_UNINIT) {
             s_status.state = WIFI_MGR_STATE_CONNECTING;
         }
+        const wifi_mgr_on_lost_ip_cb_t cb = s_on_lost_ip_cb;
+        void *cb_ctx = s_on_lost_ip_ctx;
         unlock_mu();
+        if (cb) cb(cb_ctx);
         return;
     }
 }
@@ -279,6 +284,14 @@ void wifi_mgr_set_on_got_ip_cb(wifi_mgr_on_got_ip_cb_t cb, void *ctx)
     lock_mu();
     s_on_got_ip_cb = cb;
     s_on_got_ip_ctx = ctx;
+    unlock_mu();
+}
+
+void wifi_mgr_set_on_lost_ip_cb(wifi_mgr_on_lost_ip_cb_t cb, void *ctx)
+{
+    lock_mu();
+    s_on_lost_ip_cb = cb;
+    s_on_lost_ip_ctx = ctx;
     unlock_mu();
 }
 

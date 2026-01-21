@@ -25,6 +25,12 @@ static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
     mled_node_start();
 }
 
+static void on_wifi_lost_ip(void *ctx)
+{
+    (void)ctx;
+    mled_node_stop();
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "boot: ESP-IDF %s", esp_get_idf_version());
@@ -34,6 +40,7 @@ void app_main(void)
     mled_node_set_on_apply(on_node_apply, NULL);
 
     wifi_mgr_set_on_got_ip_cb(on_wifi_got_ip, NULL);
+    wifi_mgr_set_on_lost_ip_cb(on_wifi_lost_ip, NULL);
     ESP_ERROR_CHECK(wifi_mgr_start());
 
     // Console is intentionally started after Wi-Fi stack bring-up, so the first prompt

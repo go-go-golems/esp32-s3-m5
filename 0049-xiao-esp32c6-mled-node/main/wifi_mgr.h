@@ -30,6 +30,7 @@ typedef struct {
 } wifi_mgr_scan_entry_t;
 
 typedef void (*wifi_mgr_on_got_ip_cb_t)(uint32_t ip4_host_order, void *ctx);
+typedef void (*wifi_mgr_on_lost_ip_cb_t)(void *ctx);
 
 esp_err_t wifi_mgr_start(void);
 
@@ -44,4 +45,4 @@ esp_err_t wifi_mgr_disconnect(void);
 esp_err_t wifi_mgr_scan(wifi_mgr_scan_entry_t *out, size_t max_out, size_t *out_n);
 
 void wifi_mgr_set_on_got_ip_cb(wifi_mgr_on_got_ip_cb_t cb, void *ctx);
-
+void wifi_mgr_set_on_lost_ip_cb(wifi_mgr_on_lost_ip_cb_t cb, void *ctx);
