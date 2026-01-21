@@ -1,22 +1,18 @@
 idf_component_register(
     SRCS
         "app_main.c"
-        "led_ws281x.c"
-        "led_patterns.c"
-        "led_task.c"
         "mled_effect_led.c"
         "wifi_mgr.c"
         "wifi_console.c"
-        "ws281x_encoder.c"
     PRIV_REQUIRES
         nvs_flash
         esp_event
         esp_netif
         esp_wifi
         esp_timer
-        esp_driver_rmt
         esp_driver_usb_serial_jtag
         console
         mled_node
+        ws281x
     INCLUDE_DIRS "."
 )

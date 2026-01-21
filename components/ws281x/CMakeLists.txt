@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "src/led_ws281x.c"
+        "src/ws281x_encoder.c"
+        "src/led_patterns.c"
+        "src/led_task.c"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        esp_driver_rmt
+    PRIV_REQUIRES
+        esp_timer
+        log
+)
