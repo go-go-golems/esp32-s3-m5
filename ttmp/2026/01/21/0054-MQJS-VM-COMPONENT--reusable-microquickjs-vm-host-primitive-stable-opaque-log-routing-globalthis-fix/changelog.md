@@ -24,3 +24,8 @@ Regression verified on device: print({a:1}) and print(ev) in encoder click callb
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/21/0054-MQJS-VM-COMPONENT--reusable-microquickjs-vm-host-primitive-stable-opaque-log-routing-globalthis-fix/reference/01-diary.md — Recorded validation result
 
+
+## 2026-01-21
+
+Ticket closed
+

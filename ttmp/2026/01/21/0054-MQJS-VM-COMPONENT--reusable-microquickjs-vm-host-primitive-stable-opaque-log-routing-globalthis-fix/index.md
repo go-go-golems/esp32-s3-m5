@@ -1,7 +1,7 @@
 ---
 Title: Reusable MicroQuickJS VM host primitive (stable opaque + log routing + globalThis fix)
 Ticket: 0054-MQJS-VM-COMPONENT
-Status: active
+Status: complete
 Topics:
     - esp-idf
     - javascript
@@ -13,10 +13,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T15:36:11.705949798-05:00
+LastUpdated: 2026-01-21T17:42:20.095227555-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Reusable MicroQuickJS VM host primitive (stable opaque + log routing + globalThis fix)
 
