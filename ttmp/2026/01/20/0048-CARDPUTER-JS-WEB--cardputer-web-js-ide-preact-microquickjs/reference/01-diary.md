@@ -894,3 +894,73 @@ This step is intentionally boring-but-important: it closes the loop that the cur
 - Build output included:
   - `Generated .../cardputer_js_web_0048.bin`
   - `cardputer_js_web_0048.bin binary size 0x158410 bytes` with `0x2a7bf0 bytes (66%) free`.
+
+## Step 17: Phase 2 MVP — add `/ws` endpoint, browser WS client UI, and best-effort encoder telemetry broadcaster
+
+Phase 2’s core architectural shift is from request/response (REST) to streaming (WebSocket). I implemented the minimum viable WebSocket path on both sides: the ESP32 serves `GET /ws` as a WS upgrade endpoint and can broadcast small JSON text frames, while the browser UI connects, reconnects, parses `type:"encoder"` messages, and renders the latest telemetry.
+
+Because the hardware “encoder” was ambiguous, the firmware-side encoder work is deliberately modular: it includes a best-effort Chain Encoder (U207) UART driver + a periodic telemetry broadcaster behind a Kconfig flag (`CONFIG_TUTORIAL_0048_ENCODER_CHAIN_UART`). This lets us validate the WS transport and UI plumbing even before we finalize which physical encoder backend (built-in GPIO rotary vs external Chain Encoder) is the intended target.
+
+**Commit (code):** a771bb8 — "0048: phase2 ws endpoint + encoder telemetry plumbing"
+
+### What I did
+- Firmware: added WebSocket support to the existing `esp_http_server` instance:
+  - `GET /ws` handler that tracks connected clients.
+  - Async broadcast helper for small JSON text frames.
+- Firmware: added Phase 2 encoder telemetry plumbing (best-effort):
+  - `encoder_telemetry_start()` starts a periodic broadcaster task.
+  - Added a Chain Encoder UART backend driver (`ChainEncoderUart`) copied/adapted from `0047`.
+  - Added Kconfig options for the chain encoder UART/pins and the broadcast interval.
+- Frontend: added a WebSocket client and UI display:
+  - Connect/reconnect with backoff.
+  - Parse encoder telemetry JSON and render `pos/delta/pressed` with a “WS connected” indicator.
+- Rebuilt embedded frontend assets:
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web && npm run build`
+- Rebuilt firmware:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0048-cardputer-js-web && idf.py -B build_esp32s3_v2 build`
+
+### Why
+- REST polling for encoder state is wasteful and feels laggy; a WS stream is the natural transport for realtime telemetry.
+- Implementing the WS “pipe” first de-risks Phase 2: once transport works, we can swap encoder backends without rewriting the browser side.
+
+### What worked
+- `idf.py -B build_esp32s3_v2 build` succeeds with WS code, new modules, and rebuilt embedded assets.
+- Frontend bundle remains deterministic (still embeds `index.html`, `assets/app.js`, `assets/app.css`).
+
+### What didn't work
+- N/A (no runtime validation/flash in this step; that belongs in the Phase 2 playbook run)
+
+### What I learned
+- For Phase 2, the “hard part” is often not the encoder math — it’s the lifecycle details: client tracking, async sends, and reconnect behavior.
+
+### What was tricky to build
+- Ensuring Phase 2 can be compiled in/out cleanly:
+  - the encoder task must not be started when the backend is disabled (avoids dead handles and unused-function warnings)
+  - Kconfig defaults should be “safe off” so hardware-absent boards don’t spam logs
+
+### What warrants a second pair of eyes
+- The WS handler/broadcast pattern in `0048-cardputer-js-web/main/http_server.cpp`:
+  - confirm close/removal/backpressure behavior is acceptable for multiple reconnects
+- The encoder backend decision:
+  - confirm whether Phase 2 should target Cardputer’s built-in rotary (GPIO) or the M5 Chain Encoder over Grove UART
+
+### What should be done in the future
+- Run the Phase 2 playbook on hardware and capture the first successful `/ws` session in the diary (including the observed encoder message stream).
+- If the intended encoder is built-in GPIO, add a second backend (PCNT/GPIO) and make the selection explicit in Kconfig.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/chain_encoder_uart.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts`
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+- Validate build:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0048-cardputer-js-web && idf.py -B build_esp32s3_v2 build`
+  - `cd esp32-s3-m5/0048-cardputer-js-web/web && npm run build`
+
+### Technical details
+- Encoder telemetry JSON schema (text frame):
+  - `{"type":"encoder","seq":N,"ts_ms":T,"pos":P,"delta":D,"pressed":true|false}`
