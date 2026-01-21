@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:05:23-05:00
+LastUpdated: 2026-01-21T10:11:20-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -68,6 +68,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 19: Phase 2 — send encoder button clicks as explicit WS events (and fix single-click handling)
 - Step 20: Design Option B (Phase 2B) — on-device JS callbacks for encoder events; show JS capability help in the Web IDE
 - Step 21: Draft Phase 2C design doc (JS→WS arbitrary events) + task breakdown
+- Step 22: Draft JS service task + queue structures design (unifies Phase 2B and Phase 2C)
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1218,3 +1219,72 @@ I wrote a dedicated Phase 2C design doc that frames the problem, proposes a boun
   - `globalThis.__0048.events` bounded array
   - `emit(topic, payload)` pushes `{topic, payload, ts_ms: Date.now()}`
   - flush runs `JSON.stringify(__0048_take())` inside the VM, then C broadcasts an envelope over WS
+
+## Step 22: Draft JS service task + queue structures design (unifies Phase 2B and Phase 2C)
+
+Phase 2B (callbacks) and Phase 2C (emit→WS) both force us to stop thinking of “JS execution” as something that happens inside an HTTP handler. Once hardware events can invoke JS and JS can publish events to the UI, the system becomes a small concurrent runtime: multiple producers, one interpreter, bounded buffers, and explicit backpressure.
+
+I wrote a dedicated design doc that turns this into a concrete implementation plan: a single-owner **JS service task** that owns `JSContext*`, plus explicit queue/mailbox structures for eval requests, encoder click/delta delivery, and outbound WebSocket frames. The doc is intentionally concrete: it proposes actual `typedef` layouts, ownership rules for heap buffers, and a service loop pseudocode that flushes JS-emitted events deterministically after each eval/callback.
+
+**Commit (docs):** 02c4e3e — "Docs: JS service task + queue structures (Phase 2B+C)"
+
+### What I did
+- Authored the JS service design document:
+  - `design-doc/05-phase-2bc-design-js-service-task-event-queues-eval-callbacks-emit-ws.md`
+  - Covers:
+    - inbound queue `js_in_q` with message union `js_msg_t`
+    - eval request indirection `js_eval_req_t` with reply semaphore and explicit buffer ownership
+    - encoder delta mailbox coalescer + task notification to avoid queue flooding
+    - outbound `ws_out_q` outbox queue (and an optional hi/lo split for priorities)
+    - MicroQuickJS ownership invariants and timeout discipline (short callback timeouts)
+    - deterministic “flush emit→WS” points in the interpreter loop
+- Added new implementation tasks for this phase and checked the “design doc” task:
+  - `[74]` design JS service + queues (checked)
+  - `[75]` upload this doc to reMarkable (pending)
+- Updated the ticket index to link the new design doc.
+
+### Why
+- A “mutex around eval” doesn’t scale to asynchronous callbacks and event emission without subtle deadlocks and starvation.
+- The JS service task turns the interpreter into an explicit sequential resource with a visible scheduling policy.
+- Mailboxes and bounded queues encode the essential backpressure decisions:
+  - delta is coalesced (latest wins),
+  - clicks are discrete (should not be dropped),
+  - WS frames are bounded and droppable with explicit counters.
+
+### What worked
+- The design doc is aligned with our existing code’s realities:
+  - MicroQuickJS is stack-call oriented (`JS_PushArg`, `JS_Call`) and uses `JSGCRef` for callback rooting.
+  - `0048` already uses an interrupt handler; the doc keeps that as the safety mechanism.
+
+### What didn't work
+- N/A (documentation-only step)
+
+### What I learned
+- Having a separate WS outbox task is a surprisingly high-leverage simplification: it centralizes the “drop policy” and prevents interpreter latency spikes from multi-client WS fanout.
+
+### What was tricky to build
+- Making buffer ownership explicit for eval requests (who allocates/free’s the request body and reply JSON) while keeping `js_msg_t` queue items small.
+
+### What warrants a second pair of eyes
+- The queue priority/backpressure policy, especially:
+  - whether clicks get their own high-priority queue,
+  - and whether encoder snapshots should bypass the outbox in MVP for simplicity.
+
+### What should be done in the future
+- Upload the new design doc to reMarkable.
+- Implement `js_service` and route `/api/js/eval` + console eval through it.
+- Implement encoder→JS callbacks and JS→WS event flushing using the outbox.
+
+### Code review instructions
+- Read the new design doc:
+  - `esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/05-phase-2bc-design-js-service-task-event-queues-eval-callbacks-emit-ws.md`
+- Cross-check against current baselines:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp`
+
+### Technical details
+- The proposed eval request reply mechanism is:
+  - `js_eval_req_t` + `SemaphoreHandle_t done` + `reply_json` allocated by JS service.
+- The proposed delta coalescing is:
+  - mailbox snapshot + `xTaskNotifyGive` to wake the JS service (latest-wins).
