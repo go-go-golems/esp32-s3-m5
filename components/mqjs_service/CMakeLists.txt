@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "mqjs_service.cpp"
+    INCLUDE_DIRS
+        "include"
+    PRIV_REQUIRES
+        freertos
+        esp_timer
+        mquickjs
+        mqjs_vm
+)

@@ -12,7 +12,6 @@ extern const JSSTDLibraryDef js_stdlib;
 #include <string>
 
 #include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
@@ -25,6 +24,7 @@ extern const JSSTDLibraryDef js_stdlib;
 // Phase 2C: WS broadcast helper.
 #include "http_server.h"
 
+#include "mqjs_service.h"
 #include "mqjs_vm.h"
 
 static const char* TAG = "js_service_0048";
@@ -38,36 +38,12 @@ struct EncoderDeltaSnap {
   uint32_t seq = 0;
 };
 
-struct EvalReq {
-  char* code = nullptr;
-  size_t code_len = 0;
-  uint32_t timeout_ms = 0;
-  const char* filename = "<eval>";
-
-  SemaphoreHandle_t done = nullptr;
-  char* reply_json = nullptr;
+struct ClickArg {
+  int kind = 0;
 };
 
-enum MsgType : uint8_t {
-  MSG_EVAL_REQ = 1,
-  MSG_ENCODER_CLICK = 2,
-  MSG_ENCODER_DELTA = 3,
-};
-
-struct Msg {
-  MsgType type = MSG_EVAL_REQ;
-  void* ptr = nullptr;  // EvalReq*
-  int32_t a = 0;
-  int32_t b = 0;
-};
-
-static TaskHandle_t s_task = nullptr;
-static QueueHandle_t s_q = nullptr;
 static SemaphoreHandle_t s_start_mu = nullptr;
-
-static uint8_t* s_js_mem = nullptr;
-static MqjsVm* s_vm = nullptr;
-static JSContext* s_ctx = nullptr;
+static mqjs_service_t* s_svc = nullptr;
 
 static portMUX_TYPE s_enc_mu = portMUX_INITIALIZER_UNLOCKED;
 static EncoderDeltaSnap s_enc_delta = {};
@@ -84,15 +60,91 @@ static void json_escape_append(std::string* out, const std::string& s) {
   }
 }
 
-static void log_js_exception(const char* what) {
-  if (!s_vm) return;
-  const std::string err = s_vm->GetExceptionString(JS_DUMP_LONG);
+static void log_js_exception(JSContext* ctx, const char* what) {
+  if (!ctx) return;
+  MqjsVm* vm = MqjsVm::From(ctx);
+  const std::string err = vm ? vm->GetExceptionString(JS_DUMP_LONG) : "<exception>";
   ESP_LOGW(TAG, "%s: %s", what ? what : "js exception", err.c_str());
 }
 
-static void install_bootstrap_phase2b(void) {
-  // Keep this minimal: registration helpers only. No native bindings required.
-  static const char* kBootstrap =
+static void flush_js_events_to_ws(JSContext* ctx, const char* source) {
+  if (!ctx) return;
+
+  MqjsVm* vm = MqjsVm::From(ctx);
+  if (!vm) return;
+
+  const char* src = source ? source : "eval";
+  char expr[96];
+  snprintf(expr, sizeof(expr), "__0048_take_lines('%s')", src);
+
+  vm->SetDeadlineMs(50);
+  JSValue v = JS_Eval(ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
+  vm->ClearDeadline();
+
+  if (JS_IsException(v)) {
+    log_js_exception(ctx, "flush js events failed");
+    return;
+  }
+
+  if (!JS_IsString(ctx, v)) return;
+
+  JSCStringBuf sbuf;
+  memset(&sbuf, 0, sizeof(sbuf));
+  size_t n = 0;
+  const char* s = JS_ToCStringLen(ctx, &n, v, &sbuf);
+  if (!s || n == 0) return;
+
+  const char* p = s;
+  size_t remaining = n;
+  while (remaining > 0) {
+    const void* nl = memchr(p, '\n', remaining);
+    const size_t len = nl ? (size_t)((const char*)nl - p) : remaining;
+    if (len > 0) {
+      std::string line(p, len);
+      (void)http_server_ws_broadcast_text(line.c_str());
+    }
+    if (!nl) break;
+    p += len + 1;
+    remaining -= len + 1;
+  }
+}
+
+static JSValue get_encoder_cb(JSContext* ctx, const char* which) {
+  if (!ctx || !which) return JS_UNDEFINED;
+  JSValue glob = JS_GetGlobalObject(ctx);
+  JSValue ns = JS_GetPropertyStr(ctx, glob, "__0048");
+  if (JS_IsException(ns)) return ns;
+  JSValue enc = JS_GetPropertyStr(ctx, ns, "encoder");
+  if (JS_IsException(enc)) return enc;
+  return JS_GetPropertyStr(ctx, enc, which);
+}
+
+static void call_cb(JSContext* ctx, JSValue cb, JSValue arg0, uint32_t timeout_ms) {
+  if (!ctx) return;
+  if (JS_IsUndefined(cb) || JS_IsNull(cb)) return;
+  if (!JS_IsFunction(ctx, cb)) return;
+  if (JS_StackCheck(ctx, 3)) return;
+
+  MqjsVm* vm = MqjsVm::From(ctx);
+  if (vm) vm->SetDeadlineMs(timeout_ms);
+
+  JS_PushArg(ctx, arg0);
+  JS_PushArg(ctx, cb);
+  JS_PushArg(ctx, JS_NULL);
+  JSValue ret = JS_Call(ctx, 1);
+  const bool threw = JS_IsException(ret);
+
+  if (vm) vm->ClearDeadline();
+
+  if (threw) {
+    log_js_exception(ctx, "encoder callback threw");
+  }
+}
+
+static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
+  (void)user;
+
+  static const char* kBootstrap2b =
       // NOTE: MicroQuickJS stdlib in this repo doesn't support arrow functions; keep ES5 syntax.
       "var g = globalThis;\n"
       "g.__0048 = g.__0048 || {};\n"
@@ -112,17 +164,7 @@ static void install_bootstrap_phase2b(void) {
       "  if (t === 'click') __0048.encoder.on_click = null;\n"
       "};\n";
 
-  const int flags = JS_EVAL_REPL;
-  JSValue v = JS_Eval(s_ctx, kBootstrap, strlen(kBootstrap), "<boot:2b>", flags);
-  if (JS_IsException(v)) {
-    log_js_exception("bootstrap 2B failed");
-  }
-}
-
-static esp_err_t ensure_ctx(void);
-
-static void install_bootstrap_phase2c(void) {
-  static const char* kBootstrap =
+  static const char* kBootstrap2c =
       // NOTE: MicroQuickJS stdlib in this repo doesn't support arrow functions; keep ES5 syntax.
       "var g = globalThis;\n"
       "g.__0048 = g.__0048 || {};\n"
@@ -151,234 +193,71 @@ static void install_bootstrap_phase2c(void) {
       "};\n";
 
   const int flags = JS_EVAL_REPL;
-  JSValue v = JS_Eval(s_ctx, kBootstrap, strlen(kBootstrap), "<boot:2c>", flags);
+  JSValue v = JS_Eval(ctx, kBootstrap2b, strlen(kBootstrap2b), "<boot:2b>", flags);
   if (JS_IsException(v)) {
-    log_js_exception("bootstrap 2C failed");
+    log_js_exception(ctx, "bootstrap 2B failed");
   }
-}
-
-static void flush_js_events_to_ws(const char* source) {
-  const esp_err_t init_err = ensure_ctx();
-  if (init_err != ESP_OK) return;
-
-  const char* src = source ? source : "eval";
-  char expr[96];
-  snprintf(expr, sizeof(expr), "__0048_take_lines('%s')", src);
-
-  // Keep flush bounded as it's on the critical path.
-  s_vm->SetDeadlineMs(50);
-  JSValue v = JS_Eval(s_ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
-  s_vm->ClearDeadline();
-
+  v = JS_Eval(ctx, kBootstrap2c, strlen(kBootstrap2c), "<boot:2c>", flags);
   if (JS_IsException(v)) {
-    log_js_exception("flush js events failed");
-    return;
+    log_js_exception(ctx, "bootstrap 2C failed");
   }
 
-  if (!JS_IsString(s_ctx, v)) return;
-
-  JSCStringBuf sbuf;
-  memset(&sbuf, 0, sizeof(sbuf));
-  size_t n = 0;
-  const char* s = JS_ToCStringLen(s_ctx, &n, v, &sbuf);
-  if (!s || n == 0) return;
-
-  // Best-effort: broadcast only if the server is up.
-  const char* p = s;
-  size_t remaining = n;
-  while (remaining > 0) {
-    const void* nl = memchr(p, '\n', remaining);
-    const size_t len = nl ? (size_t)((const char*)nl - p) : remaining;
-    if (len > 0) {
-      std::string line(p, len);
-      (void)http_server_ws_broadcast_text(line.c_str());
-    }
-    if (!nl) break;
-    p += len + 1;
-    remaining -= len + 1;
-  }
+  return ESP_OK;
 }
 
-static JSValue get_encoder_cb(const char* which) {
-  if (!which) return JS_UNDEFINED;
-  JSValue glob = JS_GetGlobalObject(s_ctx);
-  JSValue ns = JS_GetPropertyStr(s_ctx, glob, "__0048");
-  if (JS_IsException(ns)) return ns;
-  JSValue enc = JS_GetPropertyStr(s_ctx, ns, "encoder");
-  if (JS_IsException(enc)) return enc;
-  JSValue cb = JS_GetPropertyStr(s_ctx, enc, which);
-  return cb;
-}
+static esp_err_t job_handle_encoder_delta(JSContext* ctx, void* user) {
+  (void)user;
 
-static void call_cb(JSValue cb, JSValue arg0, uint32_t timeout_ms) {
-  if (JS_IsUndefined(cb) || JS_IsNull(cb)) return;
-  if (!JS_IsFunction(s_ctx, cb)) return;
-  if (JS_StackCheck(s_ctx, 3)) return;
-
-  s_vm->SetDeadlineMs(timeout_ms);
-
-  JS_PushArg(s_ctx, arg0);
-  JS_PushArg(s_ctx, cb);
-  JS_PushArg(s_ctx, JS_NULL);
-  JSValue ret = JS_Call(s_ctx, 1);
-  const bool threw = JS_IsException(ret);
-  s_vm->ClearDeadline();
-  if (threw) {
-    log_js_exception("encoder callback threw");
-  }
-}
-
-static void handle_encoder_delta(void) {
   EncoderDeltaSnap snap;
   taskENTER_CRITICAL(&s_enc_mu);
   snap = s_enc_delta;
   s_enc_delta_pending = false;
   taskEXIT_CRITICAL(&s_enc_mu);
 
-  JSValue cb = get_encoder_cb("on_delta");
+  JSValue cb = get_encoder_cb(ctx, "on_delta");
   if (JS_IsException(cb)) {
-    log_js_exception("get on_delta failed");
-    return;
+    log_js_exception(ctx, "get on_delta failed");
+    return ESP_OK;
   }
 
-  JSValue ev = JS_NewObject(s_ctx);
-  JS_SetPropertyStr(s_ctx, ev, "pos", JS_NewInt32(s_ctx, snap.pos));
-  JS_SetPropertyStr(s_ctx, ev, "delta", JS_NewInt32(s_ctx, snap.delta));
-  JS_SetPropertyStr(s_ctx, ev, "ts_ms", JS_NewUint32(s_ctx, snap.ts_ms));
-  JS_SetPropertyStr(s_ctx, ev, "seq", JS_NewUint32(s_ctx, snap.seq));
-  call_cb(cb, ev, 25);
-}
+  JSValue ev = JS_NewObject(ctx);
+  JS_SetPropertyStr(ctx, ev, "pos", JS_NewInt32(ctx, snap.pos));
+  JS_SetPropertyStr(ctx, ev, "delta", JS_NewInt32(ctx, snap.delta));
+  JS_SetPropertyStr(ctx, ev, "ts_ms", JS_NewUint32(ctx, snap.ts_ms));
+  JS_SetPropertyStr(ctx, ev, "seq", JS_NewUint32(ctx, snap.seq));
+  call_cb(ctx, cb, ev, 25);
 
-static void handle_encoder_click(int kind) {
-  JSValue cb = get_encoder_cb("on_click");
-  if (JS_IsException(cb)) {
-    log_js_exception("get on_click failed");
-    return;
-  }
-
-  JSValue ev = JS_NewObject(s_ctx);
-  JS_SetPropertyStr(s_ctx, ev, "kind", JS_NewInt32(s_ctx, kind));
-  JS_SetPropertyStr(s_ctx, ev, "ts_ms", JS_NewUint32(s_ctx, (uint32_t)esp_log_timestamp()));
-  call_cb(cb, ev, 25);
-}
-
-static esp_err_t ensure_ctx(void) {
-  if (s_ctx) return ESP_OK;
-
-  const int mem_bytes = CONFIG_TUTORIAL_0048_JS_MEM_BYTES;
-  if (mem_bytes <= 0) return ESP_ERR_INVALID_ARG;
-
-  s_js_mem = static_cast<uint8_t*>(malloc(static_cast<size_t>(mem_bytes)));
-  if (!s_js_mem) return ESP_ERR_NO_MEM;
-  memset(s_js_mem, 0, static_cast<size_t>(mem_bytes));
-
-  MqjsVmConfig cfg = {};
-  cfg.arena = s_js_mem;
-  cfg.arena_bytes = static_cast<size_t>(mem_bytes);
-  cfg.stdlib = &js_stdlib;
-  cfg.fix_global_this = true;
-
-  s_vm = MqjsVm::Create(cfg);
-  if (!s_vm) {
-    free(s_js_mem);
-    s_js_mem = nullptr;
-    return ESP_FAIL;
-  }
-  s_ctx = s_vm->ctx();
-
-  install_bootstrap_phase2b();
-  install_bootstrap_phase2c();
-
-  ESP_LOGI(TAG, "js initialized (mem=%d)", mem_bytes);
+  flush_js_events_to_ws(ctx, "callback");
   return ESP_OK;
 }
 
-static std::string eval_to_json(const char* code, size_t code_len, uint32_t timeout_ms, const char* filename) {
-  if (!code || code_len == 0) {
-    return "{\"ok\":false,\"output\":\"\",\"error\":\"empty body\",\"timed_out\":false}";
+static esp_err_t job_handle_encoder_click(JSContext* ctx, void* user) {
+  int kind = 0;
+  if (user) {
+    auto* a = static_cast<ClickArg*>(user);
+    kind = a->kind;
+    free(a);
   }
 
-  const esp_err_t init_err = ensure_ctx();
-  if (init_err != ESP_OK) {
-    return "{\"ok\":false,\"output\":\"\",\"error\":\"js init failed\",\"timed_out\":false}";
+  JSValue cb = get_encoder_cb(ctx, "on_click");
+  if (JS_IsException(cb)) {
+    log_js_exception(ctx, "get on_click failed");
+    return ESP_OK;
   }
 
-  if (!filename) filename = "<eval>";
-  if (timeout_ms == 0) timeout_ms = CONFIG_TUTORIAL_0048_JS_TIMEOUT_MS;
+  JSValue ev = JS_NewObject(ctx);
+  JS_SetPropertyStr(ctx, ev, "kind", JS_NewInt32(ctx, kind));
+  JS_SetPropertyStr(ctx, ev, "ts_ms", JS_NewUint32(ctx, (uint32_t)esp_log_timestamp()));
+  call_cb(ctx, cb, ev, 25);
 
-  const int64_t deadline_us = (timeout_ms > 0) ? (esp_timer_get_time() + (int64_t)timeout_ms * 1000) : 0;
-  s_vm->SetDeadlineMs(timeout_ms);
-
-  const int flags = JS_EVAL_REPL | JS_EVAL_RETVAL;
-  JSValue val = JS_Eval(s_ctx, code, code_len, filename, flags);
-
-  const bool timed_out = (deadline_us != 0) && (esp_timer_get_time() > deadline_us);
-  s_vm->ClearDeadline();
-
-  std::string json;
-  if (JS_IsException(val)) {
-    const std::string err = s_vm->GetExceptionString(JS_DUMP_LONG);
-    json = "{\"ok\":false,\"output\":\"\",\"error\":\"";
-    json_escape_append(&json, err);
-    json += "\",\"timed_out\":";
-    json += timed_out ? "true" : "false";
-    json += "}";
-    return json;
-  }
-
-  std::string out;
-  if (!JS_IsUndefined(val)) {
-    out = s_vm->PrintValue(val, JS_DUMP_LONG);
-    out.push_back('\n');
-  }
-
-  json = "{\"ok\":true,\"output\":\"";
-  json_escape_append(&json, out);
-  json += "\",\"error\":null,\"timed_out\":";
-  json += timed_out ? "true" : "false";
-  json += "}";
-  return json;
+  flush_js_events_to_ws(ctx, "callback");
+  return ESP_OK;
 }
 
-static void service_task(void* arg) {
-  (void)arg;
-  ESP_LOGI(TAG, "task start");
-
-  for (;;) {
-    Msg msg = {};
-    if (xQueueReceive(s_q, &msg, portMAX_DELAY) != pdTRUE) continue;
-
-    if (msg.type == MSG_EVAL_REQ) {
-      auto* req = static_cast<EvalReq*>(msg.ptr);
-      if (!req) continue;
-      const std::string json = eval_to_json(req->code, req->code_len, req->timeout_ms, req->filename);
-      req->reply_json = static_cast<char*>(malloc(json.size() + 1));
-      if (req->reply_json) {
-        memcpy(req->reply_json, json.data(), json.size());
-        req->reply_json[json.size()] = 0;
-      }
-      free(req->code);
-      req->code = nullptr;
-      flush_js_events_to_ws("eval");
-      xSemaphoreGive(req->done);
-      continue;
-    }
-
-    const esp_err_t init_err = ensure_ctx();
-    if (init_err != ESP_OK) continue;
-
-    if (msg.type == MSG_ENCODER_DELTA) {
-      handle_encoder_delta();
-      flush_js_events_to_ws("callback");
-      continue;
-    }
-
-    if (msg.type == MSG_ENCODER_CLICK) {
-      handle_encoder_click(msg.a);
-      flush_js_events_to_ws("callback");
-      continue;
-    }
-  }
+static esp_err_t job_flush_eval(JSContext* ctx, void* user) {
+  (void)user;
+  flush_js_events_to_ws(ctx, "eval");
+  return ESP_OK;
 }
 
 }  // namespace
@@ -388,25 +267,32 @@ esp_err_t js_service_start(void) {
   if (!s_start_mu) return ESP_ERR_NO_MEM;
 
   xSemaphoreTake(s_start_mu, portMAX_DELAY);
-  if (s_task) {
+  if (s_svc) {
     xSemaphoreGive(s_start_mu);
     return ESP_OK;
   }
 
-  s_q = xQueueCreate(16, sizeof(Msg));
-  if (!s_q) {
+  mqjs_service_config_t cfg = {};
+  cfg.task_name = "js_svc";
+  cfg.task_stack_words = 6144 / 4;
+  cfg.task_priority = 8;
+  cfg.task_core_id = -1;
+  cfg.queue_len = 16;
+  cfg.arena_bytes = (size_t)CONFIG_TUTORIAL_0048_JS_MEM_BYTES;
+  cfg.stdlib = &js_stdlib;
+  cfg.fix_global_this = true;
+
+  esp_err_t err = mqjs_service_start(&cfg, &s_svc);
+  if (err != ESP_OK) {
+    s_svc = nullptr;
     xSemaphoreGive(s_start_mu);
-    return ESP_ERR_NO_MEM;
+    return err;
   }
 
-  BaseType_t ok = xTaskCreate(&service_task, "js_svc", 6144, nullptr, 8, &s_task);
-  if (ok != pdPASS) {
-    vQueueDelete(s_q);
-    s_q = nullptr;
-    s_task = nullptr;
-    xSemaphoreGive(s_start_mu);
-    return ESP_ERR_NO_MEM;
-  }
+  const mqjs_job_t boot = {.fn = &job_bootstrap, .user = nullptr, .timeout_ms = 250};
+  (void)mqjs_service_run(s_svc, &boot);
+
+  ESP_LOGI(TAG, "js service started (mem=%u)", (unsigned)cfg.arena_bytes);
 
   xSemaphoreGive(s_start_mu);
   return ESP_OK;
@@ -414,7 +300,7 @@ esp_err_t js_service_start(void) {
 
 std::string js_service_eval_to_json(const char* code, size_t code_len, uint32_t timeout_ms, const char* filename) {
   const esp_err_t err = js_service_start();
-  if (err != ESP_OK) {
+  if (err != ESP_OK || !s_svc) {
     return "{\"ok\":false,\"output\":\"\",\"error\":\"js service unavailable\",\"timed_out\":false}";
   }
 
@@ -422,56 +308,64 @@ std::string js_service_eval_to_json(const char* code, size_t code_len, uint32_t 
     return "{\"ok\":false,\"output\":\"\",\"error\":\"empty body\",\"timed_out\":false}";
   }
 
-  EvalReq req = {};
-  req.timeout_ms = timeout_ms;
-  req.filename = filename ? filename : "<eval>";
-  req.done = xSemaphoreCreateBinary();
-  if (!req.done) {
-    return "{\"ok\":false,\"output\":\"\",\"error\":\"oom\",\"timed_out\":false}";
-  }
+  const uint32_t effective_timeout_ms =
+      (timeout_ms == 0) ? (uint32_t)CONFIG_TUTORIAL_0048_JS_TIMEOUT_MS : timeout_ms;
 
-  req.code = static_cast<char*>(malloc(code_len + 1));
-  if (!req.code) {
-    vSemaphoreDelete(req.done);
-    return "{\"ok\":false,\"output\":\"\",\"error\":\"oom\",\"timed_out\":false}";
-  }
-  memcpy(req.code, code, code_len);
-  req.code[code_len] = 0;
-  req.code_len = code_len;
-
-  Msg msg = {};
-  msg.type = MSG_EVAL_REQ;
-  msg.ptr = &req;
-  if (xQueueSend(s_q, &msg, pdMS_TO_TICKS(100)) != pdTRUE) {
-    free(req.code);
-    vSemaphoreDelete(req.done);
+  mqjs_eval_result_t r = {};
+  const esp_err_t st = mqjs_service_eval(s_svc,
+                                        code,
+                                        code_len,
+                                        effective_timeout_ms,
+                                        filename ? filename : "<eval>",
+                                        &r);
+  if (st != ESP_OK) {
     return "{\"ok\":false,\"output\":\"\",\"error\":\"busy\",\"timed_out\":false}";
   }
 
-  // We rely on the VM-level timeout; the service must always respond to avoid UAF on `req`.
-  xSemaphoreTake(req.done, portMAX_DELAY);
+  std::string json;
+  if (!r.ok) {
+    json = "{\"ok\":false,\"output\":\"";
+    json_escape_append(&json, r.output ? r.output : "");
+    json += "\",\"error\":\"";
+    json_escape_append(&json, r.error ? r.error : "error");
+    json += "\",\"timed_out\":";
+    json += r.timed_out ? "true" : "false";
+    json += "}";
+  } else {
+    json = "{\"ok\":true,\"output\":\"";
+    json_escape_append(&json, r.output ? r.output : "");
+    json += "\",\"error\":null,\"timed_out\":";
+    json += r.timed_out ? "true" : "false";
+    json += "}";
+  }
 
-  std::string out = req.reply_json ? req.reply_json : "{\"ok\":false,\"output\":\"\",\"error\":\"oom\",\"timed_out\":false}";
-  if (req.reply_json) free(req.reply_json);
-  vSemaphoreDelete(req.done);
-  return out;
+  mqjs_eval_result_free(&r);
+
+  const mqjs_job_t flush = {.fn = &job_flush_eval, .user = nullptr, .timeout_ms = 0};
+  (void)mqjs_service_post(s_svc, &flush);
+
+  return json;
 }
 
 esp_err_t js_service_post_encoder_click(int kind) {
   const esp_err_t err = js_service_start();
-  if (err != ESP_OK) return err;
-  Msg msg = {};
-  msg.type = MSG_ENCODER_CLICK;
-  msg.a = kind;
-  if (xQueueSend(s_q, &msg, 0) != pdTRUE) {
-    return ESP_ERR_TIMEOUT;
+  if (err != ESP_OK || !s_svc) return err;
+
+  auto* a = static_cast<ClickArg*>(malloc(sizeof(ClickArg)));
+  if (!a) return ESP_ERR_NO_MEM;
+  a->kind = kind;
+
+  const mqjs_job_t job = {.fn = &job_handle_encoder_click, .user = a, .timeout_ms = 0};
+  esp_err_t st = mqjs_service_post(s_svc, &job);
+  if (st != ESP_OK) {
+    free(a);
   }
-  return ESP_OK;
+  return st;
 }
 
 esp_err_t js_service_update_encoder_delta(int32_t pos, int32_t delta) {
   const esp_err_t err = js_service_start();
-  if (err != ESP_OK) return err;
+  if (err != ESP_OK || !s_svc) return err;
 
   bool need_wakeup = false;
   taskENTER_CRITICAL(&s_enc_mu);
@@ -485,15 +379,14 @@ esp_err_t js_service_update_encoder_delta(int32_t pos, int32_t delta) {
   }
   taskEXIT_CRITICAL(&s_enc_mu);
 
-  if (need_wakeup) {
-    Msg msg = {};
-    msg.type = MSG_ENCODER_DELTA;
-    if (xQueueSend(s_q, &msg, 0) != pdTRUE) {
-      taskENTER_CRITICAL(&s_enc_mu);
-      s_enc_delta_pending = false;
-      taskEXIT_CRITICAL(&s_enc_mu);
-      return ESP_ERR_TIMEOUT;
-    }
+  if (!need_wakeup) return ESP_OK;
+
+  const mqjs_job_t job = {.fn = &job_handle_encoder_delta, .user = nullptr, .timeout_ms = 0};
+  esp_err_t st = mqjs_service_post(s_svc, &job);
+  if (st != ESP_OK) {
+    taskENTER_CRITICAL(&s_enc_mu);
+    s_enc_delta_pending = false;
+    taskEXIT_CRITICAL(&s_enc_mu);
   }
-  return ESP_OK;
+  return st;
 }
