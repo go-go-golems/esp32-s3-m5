@@ -144,3 +144,13 @@ Step 17: Phase 2 MVP WS endpoint + browser WS UI + encoder telemetry plumbing (c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/store.ts — WS connect/reconnect + parse
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/reference/01-diary.md — Step 17
 
+
+## 2026-01-21
+
+Design docs: add implementation retrospectives + divergences + revised designs (Phase 1 + Phase 2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md — Added Implementation Retrospective section grounded in shipped code/commits
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/design-doc/02-phase-2-design-encoder-position-click-over-websocket.md — Added Implementation Retrospective section grounded in shipped code/commits
+

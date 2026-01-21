@@ -512,11 +512,237 @@ Plausible, but not chosen for Phase 1:
    - connect + open UI
    - run a set of “known good” snippets and failure cases (syntax error, OOM, timeout)
 
+## Implementation Retrospective (as of 2026-01-21)
+
+This section describes what was actually implemented in the repo, where it diverged from the earlier design intent, and how the design should be written if we were starting from a blank page today.
+
+### What shipped (file + symbol map)
+
+Firmware (`esp32-s3-m5/0048-cardputer-js-web/`):
+
+- `main/app_main.cpp`
+  - `app_main()` — wires Wi‑Fi, console, and (on got-IP) starts the HTTP server.
+  - `on_wifi_got_ip()` — got-IP callback that calls `http_server_start()`.
+- `main/wifi_mgr.c`
+  - `wifi_mgr_start()` — initializes NVS/netif/event loop/Wi‑Fi STA and registers event handlers.
+  - `wifi_mgr_set_on_got_ip_cb()` — registers got-IP callback used to start the HTTP server.
+  - `wifi_mgr_scan()`, `wifi_mgr_set_credentials()`, `wifi_mgr_connect()`, `wifi_mgr_disconnect()` — console-driven STA UX.
+- `main/wifi_console.c`
+  - `wifi_console_start()` — registers an `esp_console` command named `wifi`.
+  - `cmd_wifi()` — implements `wifi status|scan|join|set|connect|disconnect|clear`.
+- `main/http_server.cpp`
+  - `http_server_start()` — starts `esp_http_server`, registers routes, and initializes JS runner.
+  - `js_eval_post()` — `POST /api/js/eval` handler (bounded body read + JSON response).
+  - `status_get()` — `GET /api/status` (STA state + IP + credential flags).
+  - `root_get()`, `asset_app_js_get()`, `asset_app_css_get()` — static embedded assets.
+  - (Phase 2) `ws_handler()` and `http_server_ws_broadcast_text()` — WS endpoint and broadcaster.
+- `main/js_runner.cpp`
+  - `js_runner_init()` — allocates fixed memory pool, creates `JSContext*`, installs interrupt handler.
+  - `js_runner_eval_to_json()` — `eval(code) -> JSON` contract used by `js_eval_post()`.
+  - `interrupt_handler()` — deadline-based evaluation timeout via `JS_SetInterruptHandler()`.
+  - `print_value()` — formatting via `JS_SetLogFunc()` + `JS_PrintValueF()`.
+- `main/CMakeLists.txt`
+  - `EMBED_TXTFILES` — embeds the deterministic Vite output (`assets/index.html`, `assets/assets/app.js`, `assets/assets/app.css`).
+  - `PRIV_REQUIRES mquickjs` — pulls in MicroQuickJS engine + stdlib.
+- `main/Kconfig.projbuild`
+  - `CONFIG_TUTORIAL_0048_JS_MAX_BODY`, `CONFIG_TUTORIAL_0048_JS_MEM_BYTES`, `CONFIG_TUTORIAL_0048_JS_TIMEOUT_MS` — bounds for the REST execution contract.
+
+Frontend (`esp32-s3-m5/0048-cardputer-js-web/web/`):
+
+- `web/src/ui/code_editor.tsx`
+  - `CodeEditor` — CodeMirror 6 editor instance (mount once, updates via callbacks; `Mod-Enter` runs).
+- `web/src/ui/store.ts`
+  - `useStore` — Zustand store with `run()` (REST eval) and (Phase 2) `connectWs()` (WS connect/reconnect).
+- `web/src/ui/app.tsx`
+  - `App` — renders editor + output panel; shows `/api/status` link; shows WS/encoder telemetry (Phase 2).
+
+### What changed relative to the original Phase 1 design
+
+The code evolved across these commits (chronological, most relevant to Phase 1):
+
+- `9340ed4` — initial skeleton: HTTP server + embedded assets + SoftAP (early) + `/api/js/eval`.
+- `b6f3f3e` — replaced `<textarea>` with CodeMirror 6 and rebuilt embedded assets.
+- `1f181e1` — build fixes so the firmware builds cleanly on ESP-IDF v5.4.1.
+- `0ed4cda` — shifted to STA + `esp_console` Wi‑Fi manager (0046 pattern), starting HTTP server after got-IP.
+
+### Runtime sequence (actual wiring)
+
+The simplest way to understand the “as-built” system is as a sequence diagram with explicit ownership boundaries:
+
+```
+app_main()
+  wifi_mgr_set_on_got_ip_cb(on_wifi_got_ip)
+  wifi_mgr_start()                // starts STA + registers event handlers
+  wifi_console_start()            // registers `wifi` console command
+
+on_wifi_got_ip()
+  http_server_start()
+    js_runner_init()              // creates global JSContext with fixed pool + timeout hook
+    httpd_start()
+    register routes:
+      GET  /                      -> root_get()
+      GET  /assets/app.js         -> asset_app_js_get()
+      GET  /assets/app.css        -> asset_app_css_get()
+      GET  /api/status            -> status_get()
+      POST /api/js/eval           -> js_eval_post()
+
+js_eval_post(req)
+  read bounded body into buf      // size <= CONFIG_TUTORIAL_0048_JS_MAX_BODY
+  json = js_runner_eval_to_json(buf)
+  send_json(json)
+
+js_runner_eval_to_json(code)
+  lock global mutex
+  set deadline = now + timeout
+  val = JS_Eval(ctx, code, "<http>", JS_EVAL_REPL|JS_EVAL_RETVAL)
+  if exception:
+    exc = JS_GetException(ctx)
+    err_string = JS_PrintValueF(exc)   // via log func -> std::string
+    return {"ok":false,"error":...,"timed_out":...}
+  else:
+    if val !== undefined:
+      out_string = JS_PrintValueF(val)
+    return {"ok":true,"output":...,"timed_out":...}
+  unlock global mutex
+```
+
+Three deliberate properties fall out of this:
+
+1) **Evaluation is serialized** (mutex) so one global `JSContext` is safe-ish for MVP.
+2) **Evaluation is bounded** (interrupt handler + deadline) so user code cannot stall forever.
+3) **Assets are deterministic** (`app.js`/`app.css` stable names), so firmware routing is constant.
+
+### Divergences (design intent vs implementation reality)
+
+#### Wi‑Fi UX: hybrid/SoftAP vs STA+console
+
+- Design intent: “SoftAP or STA” left as an open question.
+- Implementation: **STA-only**, configured via `esp_console` (`wifi scan/join/status`), patterned after `0046`.
+- Why: the user explicitly asked for the `esp_console` STA experience, and it yields a reproducible “device joins real network” workflow.
+- Implication for the design: this shouldn’t have been an open question in Phase 1; it affects when the HTTP server can start and what `/api/status` should return.
+
+#### Output semantics: return value/exception vs captured `print()`
+
+- Design intent: optional captured “print/console output”.
+- Implementation: Phase 1 returns **formatted return value or formatted exception**, but **does not capture `print()` output into the HTTP response**.
+  - `print()` (from `imports/.../esp32_stdlib_runtime.c:js_print`) writes to `stdout` via `putchar/fwrite` and `JS_PrintValueF`, which means logs go to the device console, not back to the browser.
+- Why: the simplest stable value contract is return-value/exception, and stdout capture requires a deeper integration between stdlib and per-request buffers.
+- Implication: the design should distinguish “value printing” (pure formatting) from “user logging” (stdout), because they have different routing.
+
+#### Execution model: mutex vs evaluator task
+
+- Design intent: suggested mutex model as MVP and mentioned “don’t stall server task forever”.
+- Implementation: mutex model is used; timeouts are installed; however **evaluation still happens inside the HTTP handler task**.
+- Why: lowest complexity to get the vertical slice working.
+- Implication: the design should have treated “HTTP handler must not run user code” as a first-class invariant, not a suggestion.
+
+#### `/api/js/reset`
+
+- Design intent: optional but recommended.
+- Implementation: not implemented yet (design already predicted it would be valuable).
+
+### What I learned (and what the design should have been from the start)
+
+The “real” design is not “HTTP handler calls `JS_Eval`”. The real design is a small, explicit *execution service* with two carefully chosen contracts:
+
+1) **An input contract** that bounds cost (bytes, time, and concurrency).
+2) **An output contract** that is complete enough for a UI (value, logs, error, timing).
+
+If I were writing the Phase 1 design from scratch today, I would start from these invariants:
+
+- The HTTP task should do **parsing and I/O only**. User code runs in a dedicated evaluator task.
+- Every request is “executed” by sending a message to the evaluator task and waiting (bounded) for the result.
+- Logging and value printing are separate channels:
+  - `result_value` (formatted return value)
+  - `logs` (captured `print()` / console-like output)
+- The JSON encoding must be correct and boring (a real JSON string encoder, not ad-hoc escaping).
+
+#### Revised architecture (recommended)
+
+```
+HTTP Task
+  POST /api/js/eval
+    parse + bound body
+    send EvalRequest(code, request_id) -> evaluator queue
+    wait (bounded) for EvalResponse(request_id)
+    return JSON
+
+Evaluator Task (owns JSContext)
+  loop:
+    req = queue.recv()
+    set up per-request output buffers
+    install interrupt deadline
+    run JS_Eval
+    collect:
+      logs (from print)
+      value (from return)
+      exception (if any)
+      duration
+    send response back
+```
+
+#### Revised pseudocode (with explicit request/response structs)
+
+```c
+typedef struct {
+  uint32_t id;
+  const char* code;
+  size_t code_len;
+  uint32_t timeout_ms;
+} EvalRequest;
+
+typedef struct {
+  uint32_t id;
+  bool ok;
+  bool timed_out;
+  uint32_t duration_ms;
+  char* value;   // formatted return value (or "")
+  char* logs;    // captured print output
+  char* error;   // formatted exception (or "")
+} EvalResponse;
+
+// HTTP handler (no JS engine calls)
+httpd_handler_eval(req):
+  code = read_body_bounded(req, MAX_BODY)
+  id = next_id()
+  send(eval_q, {id, code, len, TIMEOUT})
+  if (!recv(reply_q, id, DEADLINE)):
+    return 504 + {"ok":false,"timed_out":true,...}
+  return 200 + encode_json(response)
+
+// Evaluator task (single owner of ctx)
+eval_task():
+  ctx = JS_NewContext(fixed_pool, &js_stdlib)
+  while (recv(eval_q, &r)):
+    buf_reset(value_buf, logs_buf, err_buf)
+    set_deadline(ctx, now + r.timeout_ms)
+    install_print_sink(ctx, &logs_buf)  // see note below
+    v = JS_Eval(ctx, r.code, r.code_len, "<http>", JS_EVAL_REPL|JS_EVAL_RETVAL)
+    if (JS_IsException(v)):
+      exc = JS_GetException(ctx)
+      err_buf = format(exc)
+      send(reply_q, {r.id, ok=false, error=err_buf, logs=logs_buf, ...})
+    else:
+      if (!JS_IsUndefined(v)):
+        value_buf = format(v)
+      send(reply_q, {r.id, ok=true, value=value_buf, logs=logs_buf, ...})
+```
+
+#### Note: how to capture `print()` properly in our repo
+
+In the current stdlib (`imports/.../esp32_stdlib_runtime.c:js_print`), `print()` writes to `stdout`. For browser-returned logs, you want either:
+
+1) a “host log function” native binding (e.g. `__host_log(str)`) that appends to a per-request buffer, and redefine:
+   - `globalThis.print = (...args) => __host_log(args.join(' '))`
+2) or a modified stdlib generator/runtime where `js_print` writes to an opaque per-request sink instead of `stdout`.
+
+The correct choice depends on whether you want to keep using the imported generator/stdlib unchanged (choice 1) or treat `0048` as owning its own minimal stdlib (choice 2).
+
 ## Open Questions
 
-- Wi‑Fi UX: SoftAP-only, STA-only, or hybrid? (Prior art exists for both.)
+- Wi‑Fi UX: **resolved for 0048** as STA + `esp_console` Wi‑Fi selection (0046 pattern). The remaining question is whether we ever want a hybrid STA+SoftAP fallback.
 - Execution model: should we introduce “sessions” (per-browser VM) or keep a single device-global VM?
-- Output semantics: do we require `console.log` capture in Phase 1, or only return values/exceptions?
+- Output semantics: do we require browser-returned `print()`/`console.log` capture (logs channel), or only return values/exceptions?
 - Authentication: do we require a token/password for eval endpoints, or assume isolated networks?
 
 ## References
