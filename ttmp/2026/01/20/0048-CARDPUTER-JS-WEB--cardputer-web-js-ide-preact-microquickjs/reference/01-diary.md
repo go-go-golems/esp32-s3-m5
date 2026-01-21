@@ -153,3 +153,53 @@ So I searched docmgr for key terms (websocket, esp_http_server, preact, spiffs, 
 
 ### Technical details
 - N/A (survey/documentation-only step)
+
+## Step 3: Write Phase 1 design doc (REST eval + embedded editor UI)
+
+With prior art located, I wrote the Phase 1 design as a “textbook”: it defines the system contract (routes + request/response schemas), decomposes the firmware into modules, and makes the implicit embedded constraints explicit (bounded request sizes, timeouts, memory budgets). The writing goal here is not “pretty prose”; it is to make implementation and review *mechanical*—a reader should be able to implement the MVP by following the implementation plan and jumping to the referenced symbols in the repo.
+
+I also related the highest-leverage files (0017 HTTP server + asset pipeline, and the MicroQuickJS `JsEvaluator`) so the doc is anchored in evidence rather than speculation.
+
+### What I did
+- Created the Phase 1 design doc:
+  - `docmgr doc add --ticket 0048-CARDPUTER-JS-WEB --doc-type design-doc --title "Phase 1 Design: Device-hosted Web JS IDE (Preact+Zustand + MicroQuickJS over REST)"`
+- Wrote the Phase 1 design content:
+  - `.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Related “canonical” code files to the design doc via absolute paths:
+  - `docmgr doc relate --doc .../design-doc/01-...md --file-note "...:reason"`
+
+### Why
+- Phase 1 is the “spine” of the project: once REST eval + embedded assets work, Phase 2 is “just” another transport (WS) for telemetry.
+- The design must explicitly state limits and failure modes; otherwise the system fails in predictable embedded ways (OOM, long-running JS, route drift due to hashed assets).
+
+### What worked
+- The repo already contains proven building blocks that map cleanly onto this design:
+  - `http_server_start()` and embedded asset symbols in `0017-atoms3r-web-ui/main/http_server.cpp`
+  - `JsEvaluator::EvalLine()` in `imports/esp32-mqjs-repl/.../eval/JsEvaluator.cpp`
+
+### What didn't work
+- N/A
+
+### What I learned
+- Treating “timeouts” as a first-class requirement changes architectural choices (interrupt handler vs “hope user code is short”).
+
+### What was tricky to build
+- Balancing completeness and focus: Phase 1 needs enough detail to be implementable without turning into an entire book on HTTP, JS engines, and bundlers.
+
+### What warrants a second pair of eyes
+- REST contract shape (`/api/js/eval` response schema): confirm it’s the minimal useful contract for the UI and that it can evolve without breaking clients.
+- Interpreter lifecycle decision (single VM vs per-request/per-session): confirm the chosen default (single VM + mutex) matches expected UX and threat model.
+
+### What should be done in the future
+- If Phase 1 implementation discovers “UI needs richer output semantics”, revisit the response schema to separate:
+  - return value formatting vs captured logs vs exceptions.
+
+### Code review instructions
+- Start here:
+  - `esp32-s3-m5/ttmp/.../design-doc/01-phase-1-design-device-hosted-web-js-ide-preact-zustand-microquickjs-over-rest.md`
+- Spot-check that the referenced symbols exist in:
+  - `esp32-s3-m5/0017-atoms3r-web-ui/main/http_server.cpp`
+  - `esp32-s3-m5/imports/esp32-mqjs-repl/mqjs-repl/main/eval/JsEvaluator.cpp`
+
+### Technical details
+- N/A (documentation-only step)
