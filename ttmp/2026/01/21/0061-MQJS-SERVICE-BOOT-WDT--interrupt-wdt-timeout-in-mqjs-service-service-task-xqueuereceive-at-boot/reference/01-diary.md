@@ -178,6 +178,55 @@ The first “task start” log line was useful, but it did not include task name
 - Review the updated log line in:
   - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
 
+## Step 4: Fix task stack depth regression (FreeRTOS words vs bytes)
+
+The analysis document identified a concrete regression introduced by the extraction: the JS worker task stack depth changed from `6144` (pre-extraction, passed directly to `xTaskCreate`) to `6144/4` (post-extraction, via `mqjs_service_config_t.task_stack_words`). In ESP-IDF FreeRTOS, stack depth is expressed in **words**, so dividing by 4 reduced the worker stack from ~24 KiB to ~6 KiB.
+
+Given the current WDT is inside `xQueueReceive`/`spinlock_acquire`, a plausible mechanism is: the smaller stack overflows or scribbles adjacent memory, corrupting queue metadata or locks, which then manifests later as a spinlock acquisition that never completes.
+
+This step corrects the unit mismatch by restoring the known-good stack depth of `6144` words both in the component defaults and in 0048’s config.
+
+**Commit (code):** a470f39 — "0061: restore mqjs_service task stack depth"
+
+### What I did
+- Restored FreeRTOS “words” semantics end-to-end:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`: default `task_stack_words = 6144`
+  - `esp32-s3-m5/components/mqjs_service/include/mqjs_service.h`: updated default comment to `6144 (words)`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`: set `cfg.task_stack_words = 6144` (removed `/4`)
+- Rebuilt:
+  - `cd esp32-s3-m5/0048-cardputer-js-web`
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_mqjs_service_comp build`
+
+### Why
+- This is the largest mechanically provable behavioral difference between pre/post extraction, and it directly affects memory safety.
+
+### What worked
+- Build succeeded after restoring stack depth to `6144` words.
+
+### What didn't work
+- Not yet validated on device; next flash must confirm whether the boot WDT disappears.
+
+### What I learned
+- Configuration fields that mirror FreeRTOS API parameters must encode the same units as FreeRTOS (words), or be explicitly byte-oriented and converted.
+
+### What was tricky to build
+- N/A (straightforward config correction).
+
+### What warrants a second pair of eyes
+- Confirm there are no other “/4” conversions in other firmwares that use `mqjs_service_config_t.task_stack_words`.
+
+### What should be done in the future
+- Flash and re-test:
+  - `idf.py -B build_esp32s3_mqjs_service_comp flash monitor`
+  - Confirm the `App version` corresponds to the new commit and observe whether the WDT is resolved.
+
+### Code review instructions
+- Review the stack-depth changes in:
+  - `esp32-s3-m5/components/mqjs_service/mqjs_service.cpp`
+  - `esp32-s3-m5/components/mqjs_service/include/mqjs_service.h`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+
 ## Quick Reference
 
 ### “Are we flashing the right thing?” verification snippet

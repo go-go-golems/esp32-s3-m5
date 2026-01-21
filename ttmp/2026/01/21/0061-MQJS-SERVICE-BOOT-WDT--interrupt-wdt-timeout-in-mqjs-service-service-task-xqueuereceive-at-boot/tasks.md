@@ -18,3 +18,4 @@
   - [ ] If the ack fails, return a clear error (and log a single-line reason)
 - [x] Force mqjs_service queue allocation in internal RAM via xQueueCreateWithCaps(MALLOC_CAP_INTERNAL)
 - [x] Force mqjs_service start handshake semaphore allocation in internal RAM (xSemaphoreCreateBinaryWithCaps) or static
+- [x] Fix mqjs_service/0048 task stack depth unit mismatch (FreeRTOS words). Set to 6144 words and update defaults/docs.

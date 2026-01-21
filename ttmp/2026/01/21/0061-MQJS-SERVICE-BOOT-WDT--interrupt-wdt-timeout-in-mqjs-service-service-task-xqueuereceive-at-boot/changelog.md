@@ -40,3 +40,13 @@ Analysis: explain why WDT started after extracting mqjs_service (stack-depth uni
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/21/0061-MQJS-SERVICE-BOOT-WDT--interrupt-wdt-timeout-in-mqjs-service-service-task-xqueuereceive-at-boot/analysis/02-why-boot-wdt-started-after-extracting-mqjs-service.md — Compares pre/post extraction; identifies stack words vs bytes
 
+
+## 2026-01-21
+
+Step 4: Restore mqjs_service task stack depth to 6144 words (commit a470f39)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — cfg.task_stack_words back to 6144
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/mqjs_service/mqjs_service.cpp — Default stack depth back to 6144 words
+
