@@ -8,6 +8,36 @@ export type LedStatus = {
   pattern: {
     type: 'off' | 'rainbow' | 'chase' | 'breathing' | 'sparkle' | string
     global_brightness_pct: number
+    rainbow?: {
+      speed: number
+      sat: number
+      spread: number
+    }
+    chase?: {
+      speed: number
+      tail: number
+      gap: number
+      trains: number
+      fg: string
+      bg: string
+      dir: 'forward' | 'reverse' | 'bounce' | string
+      fade: boolean
+    }
+    breathing?: {
+      speed: number
+      color: string
+      min: number
+      max: number
+      curve: 'sine' | 'linear' | 'ease' | string
+    }
+    sparkle?: {
+      speed: number
+      color: string
+      density: number
+      fade: number
+      mode: 'fixed' | 'random' | 'rainbow' | string
+      bg: string
+    }
   }
 }
 
@@ -18,6 +48,10 @@ type LedStore = {
   setPattern: (type: string) => Promise<void>
   setBrightness: (brightness_pct: number) => Promise<void>
   setFrame: (frame_ms: number) => Promise<void>
+  setRainbow: (cfg: Partial<NonNullable<LedStatus['pattern']['rainbow']>>) => Promise<void>
+  setChase: (cfg: Partial<NonNullable<LedStatus['pattern']['chase']>>) => Promise<void>
+  setBreathing: (cfg: Partial<NonNullable<LedStatus['pattern']['breathing']>>) => Promise<void>
+  setSparkle: (cfg: Partial<NonNullable<LedStatus['pattern']['sparkle']>>) => Promise<void>
   pause: () => Promise<void>
   resume: () => Promise<void>
   clear: () => Promise<void>
@@ -60,6 +94,22 @@ export const useLedStore = create<LedStore>((set, get) => ({
     await postJson('/api/led/frame', { frame_ms })
     await get().refresh()
   },
+  setRainbow: async (cfg) => {
+    await postJson('/api/led/rainbow', cfg)
+    await get().refresh()
+  },
+  setChase: async (cfg) => {
+    await postJson('/api/led/chase', cfg)
+    await get().refresh()
+  },
+  setBreathing: async (cfg) => {
+    await postJson('/api/led/breathing', cfg)
+    await get().refresh()
+  },
+  setSparkle: async (cfg) => {
+    await postJson('/api/led/sparkle', cfg)
+    await get().refresh()
+  },
   pause: async () => {
     await postJson('/api/led/pause')
     await get().refresh()
@@ -73,4 +123,3 @@ export const useLedStore = create<LedStore>((set, get) => ({
     await get().refresh()
   },
 }))
-
