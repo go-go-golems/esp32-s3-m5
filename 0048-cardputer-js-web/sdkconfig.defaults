@@ -1,0 +1,9 @@
+# Console defaults (repo guidance prefers USB Serial/JTAG for interactive work).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=n
+CONFIG_ESP_CONSOLE_UART_CUSTOM=n
+CONFIG_ESP_CONSOLE_USB_CDC=n
+
+# Enable WebSocket support (Phase 2 uses it; harmless in Phase 1).
+CONFIG_HTTPD_WS_SUPPORT=y
+

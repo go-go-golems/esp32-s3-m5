@@ -1,0 +1,32 @@
+menu "0048 Cardputer Web JS IDE"
+
+config TUTORIAL_0048_WIFI_SOFTAP_SSID
+    string "SoftAP SSID"
+    default "cardputer-js"
+
+config TUTORIAL_0048_WIFI_SOFTAP_PASSWORD
+    string "SoftAP password (empty for open)"
+    default "cardputer-js"
+
+config TUTORIAL_0048_WIFI_SOFTAP_CHANNEL
+    int "SoftAP channel"
+    default 6
+
+config TUTORIAL_0048_WIFI_SOFTAP_MAX_CONN
+    int "SoftAP max connections"
+    default 4
+
+config TUTORIAL_0048_JS_MAX_BODY
+    int "Max JS request body bytes"
+    default 16384
+
+config TUTORIAL_0048_JS_MEM_BYTES
+    int "MicroQuickJS memory pool bytes"
+    default 65536
+
+config TUTORIAL_0048_JS_TIMEOUT_MS
+    int "Eval timeout in milliseconds (0 disables)"
+    default 2000
+
+endmenu
+

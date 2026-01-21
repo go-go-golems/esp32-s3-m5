@@ -1,0 +1,24 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "wifi_app.cpp"
+        "http_server.cpp"
+        "js_runner.cpp"
+        "esp32_stdlib_runtime.c"
+    INCLUDE_DIRS "."
+    PRIV_REQUIRES
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_wifi
+        esp_http_server
+        esp_timer
+        esp_spiffs
+        exercizer_control
+        mquickjs
+    EMBED_TXTFILES
+        "assets/index.html"
+        "assets/assets/app.js"
+        "assets/assets/app.css"
+)
+
