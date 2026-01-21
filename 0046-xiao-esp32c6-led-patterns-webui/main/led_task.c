@@ -35,6 +35,14 @@ static led_status_t s_status = {};
 static StaticSemaphore_t s_status_mux_buf;
 static SemaphoreHandle_t s_status_mux;
 
+static uint32_t normalize_frame_ms(uint32_t requested_ms)
+{
+    if (requested_ms == 0) requested_ms = 1;
+    TickType_t ticks = pdMS_TO_TICKS(requested_ms);
+    if (ticks < 1) ticks = 1;
+    return (uint32_t)(ticks * portTICK_PERIOD_MS);
+}
+
 static void status_mux_init_once(void)
 {
     if (!s_status_mux) {
@@ -79,7 +87,7 @@ static void apply_msg(led_task_ctx_t *ctx, const led_msg_t *m)
         led_patterns_set_cfg(&ctx->patterns, &ctx->pat_cfg);
         break;
     case LED_MSG_SET_FRAME_MS:
-        ctx->frame_ms = (m->u.frame_ms == 0) ? 1 : m->u.frame_ms;
+        ctx->frame_ms = normalize_frame_ms(m->u.frame_ms);
         break;
 
     case LED_MSG_SET_RAINBOW:
@@ -203,7 +211,9 @@ static void led_task_main(void *arg)
             xSemaphoreGive(s_status_mux);
         }
 
-        vTaskDelayUntil(&last_wake, pdMS_TO_TICKS(ctx->frame_ms));
+        TickType_t delay_ticks = pdMS_TO_TICKS(ctx->frame_ms);
+        if (delay_ticks < 1) delay_ticks = 1;
+        vTaskDelayUntil(&last_wake, delay_ticks);
     }
 }
 
@@ -222,7 +232,7 @@ esp_err_t led_task_start(const led_ws281x_cfg_t *ws_cfg, const led_pattern_cfg_t
         .ws_cfg_staged = *ws_cfg,
         .patterns = {},
         .pat_cfg = *pat_cfg,
-        .frame_ms = (frame_ms == 0) ? 1 : frame_ms,
+        .frame_ms = normalize_frame_ms(frame_ms),
         .paused = false,
         .running = false,
         .log_enabled = false,
