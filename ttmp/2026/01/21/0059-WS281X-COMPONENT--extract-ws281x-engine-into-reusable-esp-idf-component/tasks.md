@@ -7,5 +7,7 @@
 - [x] Move/copy WS281x engine sources into component (no behavior change)
 - [x] Update `0049-xiao-esp32c6-mled-node` to consume component and delete local copies
 - [x] Validate: `idf.py -C 0049-xiao-esp32c6-mled-node build`
+- [x] Debug “no PONGs received” regression (host `--bind-ip` + node instrumentation)
+- [x] Fix `mled_node` stack protection fault during cue runs
 - [ ] Validate: flash + run `tools/mled_smoke.py` patterns (visual)
 - [ ] Record results in diary + changelog
