@@ -228,3 +228,14 @@ Step 24: Change-driven encoder WS snapshots + white UI text (commit d08c0d2)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp — Only broadcast encoder snapshots on pos/delta changes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.css — White base text color
 
+
+## 2026-01-21
+
+Step 25: Add js_service task; route REST/console eval through it (commit caff6ce)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp — /api/js/eval now routes through js_service
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp — js eval now routes through js_service
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Single-owner MicroQuickJS service task + eval queue
+

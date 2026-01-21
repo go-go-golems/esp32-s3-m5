@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:34:07-05:00
+LastUpdated: 2026-01-21T10:42:44-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -71,6 +71,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 22: Draft JS service task + queue structures design (unifies Phase 2B and Phase 2C)
 - Step 23: Implement bounded WebSocket event history panel in the Web IDE UI
 - Step 24: Reduce WS encoder spam; make UI text white
+- Step 25: Implement JS service task and route eval through it
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1404,3 +1405,76 @@ I updated the encoder telemetry broadcaster so it only sends `{"type":"encoder",
 
 ### Technical details
 - The change-driven logic tracks `last_broadcast_pos` and computes `delta = pos - last_broadcast_pos`.
+
+## Step 25: Implement JS service task and route eval through it
+
+You asked to implement the “JS service task” so we can safely layer Phase 2B (event-driven callbacks) and Phase 2C (emit→WS event stream) on top. The immediate goal for this step is narrower: replace “HTTP handler directly calls MicroQuickJS under a mutex” with “HTTP handler sends an eval request to a single-owner JS task and waits for the reply”.
+
+I added a `js_service` module that owns the MicroQuickJS `JSContext*` and processes eval requests from a bounded FreeRTOS queue. Then I routed both `/api/js/eval` and the `esp_console` `js eval ...` command through the service. This establishes a single execution order for all JS work and removes the concurrency pressure that would otherwise make callbacks unsafe.
+
+**Commit (code):** caff6ce — "0048: add js_service task; route eval through it"
+
+### What I did
+- Added the JS service module:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.h`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+  - Implements:
+    - a single FreeRTOS task `js_svc` that owns MicroQuickJS
+    - a bounded inbound queue (length 16) of eval requests
+    - per-request reply via a binary semaphore + `reply_json` buffer
+    - the existing timeout behavior via `JS_SetInterruptHandler` + deadline
+- Routed HTTP eval through the service:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp` now calls `js_service_eval_to_json(..., "<http>")`
+- Routed console eval through the service:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp` now calls `js_service_eval_to_json(..., "<console>")`
+- Started the JS service at boot:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/app_main.cpp` calls `js_service_start()`
+- Turned `js_runner` into a compatibility shim:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_runner.cpp` now forwards to `js_service` (prevents duplicate VM allocation paths)
+- Updated build wiring:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/CMakeLists.txt` includes `js_service.cpp`
+- Verified the firmware builds:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `idf.py -B build_esp32s3_js_svc build`
+
+### Why
+- MicroQuickJS is not thread-safe; Phase 2B callbacks require a single VM owner.
+- The service task gives us a clean place to add:
+  - encoder→JS callback invocation (Phase 2B)
+  - deterministic flush of JS-emitted events (Phase 2C)
+
+### What worked
+- End-to-end build succeeds with ESP-IDF 5.4.1.
+- Both REST and console eval now go through the same single-owner execution path.
+
+### What didn't work
+- I initially tried `idf.py build -B builddir`, but in this environment `-B` is a global option, so the correct form is:
+  - `idf.py -B builddir build`
+
+### What I learned
+- MicroQuickJS uses `ctx->opaque` for both interrupt handler and log sink; the service’s `print_value()` restores `ctx->opaque` after formatting values so interrupts keep working across runs.
+
+### What was tricky to build
+- Reply-path correctness: the eval request object must stay valid until the service responds. The current implementation blocks the caller until completion and relies on VM-level timeout (instead of timing out the request wait) to avoid use-after-free.
+
+### What warrants a second pair of eyes
+- The service request lifetime and failure modes:
+  - queue full behavior (`busy`)
+  - ensuring the service always signals `done` for eval requests
+
+### What should be done in the future
+- Extend `js_service` with Phase 2B message types (encoder click/delta) and callback invocation.
+- Add Phase 2C event accumulation + flush + WS broadcast once callbacks exist.
+
+### Code review instructions
+- Start at:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+- Confirm call sites now route through the service:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/http_server.cpp`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_console.cpp`
+- Verify build:
+  - `cd esp32-s3-m5/0048-cardputer-js-web && source /home/manuel/esp/esp-idf-5.4.1/export.sh && idf.py -B build_esp32s3_js_svc build`
+
+### Technical details
+- Queue length: 16 messages (`xQueueCreate(16, sizeof(Msg))`).
+- Task stack/priority: `xTaskCreate("js_svc", 6144, prio=8, ...)`.
