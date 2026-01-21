@@ -113,7 +113,7 @@
 - [x] Phase 2B: deliver encoder click events into js_service
 - [x] Phase 2B: deliver encoder delta (coalesced mailbox) into js_service
 - [x] Phase 2B: invoke encoder callbacks in VM with timeout + exception reporting
-- [ ] Phase 2C: add JS bootstrap emit() + __0048_take
-- [ ] Phase 2C: flush JS-emitted events after eval/callback and broadcast over WS
-- [ ] Phase 2C: broadcast dropped-event counters (js_events_dropped)
-- [ ] Phase 2C: update JS help panel to document emit() + encoder callbacks
+- [x] Phase 2C: add JS bootstrap emit() + __0048_take
+- [x] Phase 2C: flush JS-emitted events after eval/callback and broadcast over WS
+- [x] Phase 2C: broadcast dropped-event counters (js_events_dropped)
+- [x] Phase 2C: update JS help panel to document emit() + encoder callbacks

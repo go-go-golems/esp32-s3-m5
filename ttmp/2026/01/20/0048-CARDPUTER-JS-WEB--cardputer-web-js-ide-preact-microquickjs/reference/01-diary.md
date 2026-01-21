@@ -30,7 +30,7 @@ RelatedFiles:
       Note: CodeMirror 6 editor integration
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-21T10:46:06-05:00
+LastUpdated: 2026-01-21T12:12:09-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -73,6 +73,7 @@ This diary was written incrementally; step blocks may not appear in numeric orde
 - Step 24: Reduce WS encoder spam; make UI text white
 - Step 25: Implement JS service task and route eval through it
 - Step 26: Phase 2B MVP: encoder.on callbacks invoked on-device via js_service
+- Step 27: Phase 2C MVP: emit() + flush js_events to browser over WebSocket
 
 ## Step 1: Bootstrap ticket + vocabulary + diary
 
@@ -1547,3 +1548,69 @@ Concretely: on VM init, the firmware installs `encoder.on('delta'|'click', fn)` 
 - Callback storage keys:
   - `globalThis.__0048.encoder.on_delta`
   - `globalThis.__0048.encoder.on_click`
+
+## Step 27: Phase 2C MVP: emit() + flush js_events to browser over WebSocket
+
+Phase 2B makes the device event-driven, but without Phase 2C you still have to keep a serial console open to understand what your callbacks are doing. The Phase 2C goal is to let JS publish structured “events happened” payloads directly to the browser UI over the existing WebSocket channel, so the Web IDE can act like a real live-debugger surface.
+
+I implemented Phase 2C as an explicit API (not print capture): `emit(topic, payload)` records events into a bounded in-VM queue. After each eval or callback, the JS service flushes that queue by running `JSON.stringify(__0048_take_for_ws(...))` inside the VM and broadcasting the resulting `{"type":"js_events",...}` frame over `/ws`. The existing WS event history panel now makes these frames immediately visible.
+
+**Commit (code):** 70e5b89 — "0048: Phase 2C emit() + flush js_events to WS"  
+**Commit (code):** 1650036 — "0048: document emit() + encoder callbacks in UI help"
+
+### What I did
+- Added Phase 2C JS bootstrap at VM init:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp` (`install_bootstrap_phase2c`)
+  - Defines:
+    - `emit(topic, payload)` (bounded by `__0048.maxEvents`, increments `__0048.dropped` on overflow)
+    - `__0048_take_for_ws(source)` which returns either:
+      - `null` when nothing to send, or
+      - `{type:"js_events", seq, ts_ms, source, events:[...], dropped?:N}`
+- Implemented deterministic flush points:
+  - `js_service.cpp` now calls `flush_js_events_to_ws("eval")` after eval requests
+  - and `flush_js_events_to_ws("callback")` after encoder delta/click callbacks
+  - Flush is time-bounded (short deadline) and uses `http_server_ws_broadcast_text(...)` best-effort.
+- Updated the Web IDE “JS help” panel to document:
+  - encoder callbacks (`encoder.on/off`)
+  - emit() and the `js_events` WS frame schema
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+  - rebuilt embedded assets into:
+    - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js`
+
+### Why
+- We need browser-visible observability of on-device JS behavior, without requiring a serial console.
+- Explicit `emit` avoids the semantic/backpressure complexity of capturing `print()` output.
+
+### What worked
+- Phase 2C is implemented without stdlib regeneration: the API surface is injected JS + VM-side stringify.
+- The WS event history panel provides immediate visibility into `js_events` frames.
+
+### What didn't work
+- N/A (build succeeds; end-to-end validation requires flashing and exercising callbacks + emit)
+
+### What I learned
+- The “prior firmware custom JS functions” exist in the imported stdlib runtime (`imports/.../esp32_stdlib_runtime.c`) and are compiled into `js_stdlib`; for rapid iteration it’s often cheaper to inject JS helpers and call existing globals than to regenerate the stdlib for every new binding.
+
+### What was tricky to build
+- Avoiding noisy WS traffic: the flush returns `"null"` when nothing is pending so we don’t spam the browser.
+- Ensuring the interrupt deadline remains usable even though MicroQuickJS reuses `ctx->opaque` for logging; `print_value()` restores the opaque pointer after formatting.
+
+### What warrants a second pair of eyes
+- Flush safety and string lifetime:
+  - `JS_ToCStringLen` → `http_server_ws_broadcast_text` relies on immediate copy semantics; confirm no future refactor introduces async use of the returned pointer.
+
+### What should be done in the future
+- Add a WS outbox queue (per design doc 05) if we see contention or want strict drop policy across telemetry + JS events.
+
+### Code review instructions
+- Review Phase 2C implementation:
+  - `esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp`
+- Review help text and embedded bundle rebuild:
+  - `esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx`
+  - `esp32-s3-m5/0048-cardputer-js-web/main/assets/assets/app.js`
+
+### Technical details
+- Emission bounds:
+  - `__0048.maxEvents` default 64; overflow increments `__0048.dropped`.
+- WS frame shape:
+  - `{"type":"js_events","seq":N,"ts_ms":T,"source":"eval"|"callback","events":[...],"dropped":K?}`

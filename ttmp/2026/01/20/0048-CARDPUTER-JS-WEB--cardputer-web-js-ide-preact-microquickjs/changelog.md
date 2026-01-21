@@ -249,3 +249,13 @@ Step 26: Phase 2B encoder.on callbacks (commit 36e7b63)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/encoder_telemetry.cpp — Forward delta/click events into js_service
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — Inject encoder.on/off and invoke callbacks in VM
 
+
+## 2026-01-21
+
+Step 27: Phase 2C emit() + flush js_events over WS (commit 70e5b89)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/main/js_service.cpp — emit() bootstrap + __0048_take_for_ws + flush/broadcast
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0048-cardputer-js-web/web/src/ui/app.tsx — Document emit() + encoder callbacks in UI help
+
