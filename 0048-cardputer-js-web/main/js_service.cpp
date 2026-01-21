@@ -25,18 +25,11 @@ extern const JSSTDLibraryDef js_stdlib;
 // Phase 2C: WS broadcast helper.
 #include "http_server.h"
 
+#include "mqjs_vm.h"
+
 static const char* TAG = "js_service_0048";
 
 namespace {
-
-struct EvalDeadline {
-  int64_t deadline_us = 0;
-};
-
-struct CtxOpaque {
-  EvalDeadline deadline = {};
-  std::string* log_out = nullptr;  // if set, JS log output is captured here
-};
 
 struct EncoderDeltaSnap {
   int32_t pos = 0;
@@ -73,30 +66,12 @@ static QueueHandle_t s_q = nullptr;
 static SemaphoreHandle_t s_start_mu = nullptr;
 
 static uint8_t* s_js_mem = nullptr;
+static MqjsVm* s_vm = nullptr;
 static JSContext* s_ctx = nullptr;
-static CtxOpaque s_opaque;
 
 static portMUX_TYPE s_enc_mu = portMUX_INITIALIZER_UNLOCKED;
 static EncoderDeltaSnap s_enc_delta = {};
 static bool s_enc_delta_pending = false;
-
-int interrupt_handler(JSContext* ctx, void* opaque) {
-  (void)ctx;
-  auto* st = static_cast<CtxOpaque*>(opaque);
-  if (!st || st->deadline.deadline_us == 0) return 0;
-  return esp_timer_get_time() > st->deadline.deadline_us;
-}
-
-void write_to_log(void* opaque, const void* buf, size_t buf_len) {
-  if (!opaque || !buf || buf_len == 0) return;
-  auto* st = static_cast<CtxOpaque*>(opaque);
-  if (!st) return;
-  if (st->log_out) {
-    st->log_out->append(static_cast<const char*>(buf), buf_len);
-    return;
-  }
-  (void)fwrite(buf, 1, buf_len, stdout);
-}
 
 static void json_escape_append(std::string* out, const std::string& s) {
   for (char c : s) {
@@ -109,22 +84,9 @@ static void json_escape_append(std::string* out, const std::string& s) {
   }
 }
 
-std::string print_value(JSContext* ctx, JSValue v) {
-  struct Capture {
-    explicit Capture(std::string* out) { s_opaque.log_out = out; }
-    ~Capture() { s_opaque.log_out = nullptr; }
-  };
-
-  std::string out;
-  Capture cap(&out);
-  JS_PrintValueF(ctx, v, JS_DUMP_LONG);
-
-  return out;
-}
-
 static void log_js_exception(const char* what) {
-  JSValue exc = JS_GetException(s_ctx);
-  const std::string err = print_value(s_ctx, exc);
+  if (!s_vm) return;
+  const std::string err = s_vm->GetExceptionString(JS_DUMP_LONG);
   ESP_LOGW(TAG, "%s: %s", what ? what : "js exception", err.c_str());
 }
 
@@ -204,9 +166,9 @@ static void flush_js_events_to_ws(const char* source) {
   snprintf(expr, sizeof(expr), "__0048_take_lines('%s')", src);
 
   // Keep flush bounded as it's on the critical path.
-  s_opaque.deadline.deadline_us = esp_timer_get_time() + 50 * 1000;
+  s_vm->SetDeadlineMs(50);
   JSValue v = JS_Eval(s_ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
-  s_opaque.deadline.deadline_us = 0;
+  s_vm->ClearDeadline();
 
   if (JS_IsException(v)) {
     log_js_exception("flush js events failed");
@@ -253,18 +215,14 @@ static void call_cb(JSValue cb, JSValue arg0, uint32_t timeout_ms) {
   if (!JS_IsFunction(s_ctx, cb)) return;
   if (JS_StackCheck(s_ctx, 3)) return;
 
-  if (timeout_ms > 0) {
-    s_opaque.deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
-  } else {
-    s_opaque.deadline.deadline_us = 0;
-  }
+  s_vm->SetDeadlineMs(timeout_ms);
 
   JS_PushArg(s_ctx, arg0);
   JS_PushArg(s_ctx, cb);
   JS_PushArg(s_ctx, JS_NULL);
   JSValue ret = JS_Call(s_ctx, 1);
   const bool threw = JS_IsException(ret);
-  s_opaque.deadline.deadline_us = 0;
+  s_vm->ClearDeadline();
   if (threw) {
     log_js_exception("encoder callback threw");
   }
@@ -314,22 +272,19 @@ static esp_err_t ensure_ctx(void) {
   if (!s_js_mem) return ESP_ERR_NO_MEM;
   memset(s_js_mem, 0, static_cast<size_t>(mem_bytes));
 
-  s_ctx = JS_NewContext(s_js_mem, static_cast<size_t>(mem_bytes), &js_stdlib);
-  if (!s_ctx) {
+  MqjsVmConfig cfg = {};
+  cfg.arena = s_js_mem;
+  cfg.arena_bytes = static_cast<size_t>(mem_bytes);
+  cfg.stdlib = &js_stdlib;
+  cfg.fix_global_this = true;
+
+  s_vm = MqjsVm::Create(cfg);
+  if (!s_vm) {
     free(s_js_mem);
     s_js_mem = nullptr;
     return ESP_FAIL;
   }
-
-  s_opaque = {};
-  JS_SetContextOpaque(s_ctx, &s_opaque);
-  JS_SetLogFunc(s_ctx, write_to_log);
-  JS_SetInterruptHandler(s_ctx, interrupt_handler);
-
-  // The imported stdlib currently defines `globalThis` as `null` (placeholder).
-  // For our JS bootstraps we need a real global object reference.
-  JSValue glob = JS_GetGlobalObject(s_ctx);
-  (void)JS_SetPropertyStr(s_ctx, glob, "globalThis", glob);
+  s_ctx = s_vm->ctx();
 
   install_bootstrap_phase2b();
   install_bootstrap_phase2c();
@@ -351,22 +306,18 @@ static std::string eval_to_json(const char* code, size_t code_len, uint32_t time
   if (!filename) filename = "<eval>";
   if (timeout_ms == 0) timeout_ms = CONFIG_TUTORIAL_0048_JS_TIMEOUT_MS;
 
-  if (timeout_ms > 0) {
-    s_opaque.deadline.deadline_us = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
-  } else {
-    s_opaque.deadline.deadline_us = 0;
-  }
+  const int64_t deadline_us = (timeout_ms > 0) ? (esp_timer_get_time() + (int64_t)timeout_ms * 1000) : 0;
+  s_vm->SetDeadlineMs(timeout_ms);
 
   const int flags = JS_EVAL_REPL | JS_EVAL_RETVAL;
   JSValue val = JS_Eval(s_ctx, code, code_len, filename, flags);
 
-  const bool timed_out = (timeout_ms > 0) && (esp_timer_get_time() > s_opaque.deadline.deadline_us);
-  s_opaque.deadline.deadline_us = 0;
+  const bool timed_out = (deadline_us != 0) && (esp_timer_get_time() > deadline_us);
+  s_vm->ClearDeadline();
 
   std::string json;
   if (JS_IsException(val)) {
-    JSValue exc = JS_GetException(s_ctx);
-    const std::string err = print_value(s_ctx, exc);
+    const std::string err = s_vm->GetExceptionString(JS_DUMP_LONG);
     json = "{\"ok\":false,\"output\":\"\",\"error\":\"";
     json_escape_append(&json, err);
     json += "\",\"timed_out\":";
@@ -377,7 +328,7 @@ static std::string eval_to_json(const char* code, size_t code_len, uint32_t time
 
   std::string out;
   if (!JS_IsUndefined(val)) {
-    out = print_value(s_ctx, val);
+    out = s_vm->PrintValue(val, JS_DUMP_LONG);
     out.push_back('\n');
   }
 

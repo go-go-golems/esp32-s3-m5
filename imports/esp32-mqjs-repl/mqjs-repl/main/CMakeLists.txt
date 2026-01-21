@@ -13,4 +13,12 @@ idf_component_register(
     "storage/Spiffs.cpp"
   INCLUDE_DIRS
     "."
+  PRIV_REQUIRES
+    esp_driver_uart
+    esp_driver_usb_serial_jtag
+    spiffs
+    esp_timer
+    exercizer_control
+    mquickjs
+    mqjs_vm
 )
