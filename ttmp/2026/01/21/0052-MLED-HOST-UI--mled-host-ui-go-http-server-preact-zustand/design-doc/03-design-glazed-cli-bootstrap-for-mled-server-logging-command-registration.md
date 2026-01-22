@@ -16,16 +16,29 @@ Owners: []
 RelatedFiles:
     - Path: esp32-s3-m5/mled-server/cmd/mled-server/main.go
       Note: CLI bootstrap entrypoint to add Glazed logging init + centralized command registration
+    - Path: esp32-s3-m5/mled-server/internal/commands/apply.go
+      Note: REST client verb to apply patterns via /api/apply
     - Path: esp32-s3-m5/mled-server/internal/commands/discover.go
       Note: Existing Glazed GlazeCommand; register via shared helper and inherit root logging
+    - Path: esp32-s3-m5/mled-server/internal/commands/nodes.go
+      Note: REST client verb to list nodes via /api/nodes
+    - Path: esp32-s3-m5/mled-server/internal/commands/presets.go
+      Note: REST client verb to list presets via /api/presets
     - Path: esp32-s3-m5/mled-server/internal/commands/serve.go
       Note: Candidate to refactor from plain Cobra to Glazed BareCommand for consistent registration
+    - Path: esp32-s3-m5/mled-server/internal/commands/status.go
+      Note: REST client verb to query /api/status
+    - Path: esp32-s3-m5/mled-server/internal/httpapi/request_logging.go
+      Note: HTTP request logging middleware (INFO for mutating
+    - Path: esp32-s3-m5/mled-server/internal/restclient/client.go
+      Note: Shared HTTP client for CLI verbs
 ExternalSources: []
 Summary: 'Standardize `mled-server` CLI bootstrap on Glazed: root-level logging flags + early initialization, plus consistent registration of subcommands via `cli.BuildCobraCommand`.'
 LastUpdated: 2026-01-21T19:48:39-05:00
 WhatFor: 'Describe how `mled-server` should standardize on Glazed for CLI bootstrap: root-level logging initialization plus consistent registration of both structured-output and server commands.'
 WhenToUse: Use when refactoring `cmd/mled-server/main.go`, adding new subcommands, or aligning logging/config behavior across CLI tools and long-running server mode.
 ---
+
 
 
 # Design: Glazed CLI bootstrap for mled-server (logging + command registration)

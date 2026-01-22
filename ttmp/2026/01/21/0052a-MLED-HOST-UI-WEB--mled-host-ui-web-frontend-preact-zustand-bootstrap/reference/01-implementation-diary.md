@@ -796,6 +796,115 @@ const filteredEmojis = useMemo(() => {
 
 ---
 
+## Step 6: Update Patterns to Match MLED/1 Protocol
+
+The frontend pattern types were invented (solid, gradient, pulse) but don't match the actual MLED/1 wire protocol. Updated to use the real pattern types from `0049-NODE-PROTOCOL` design doc.
+
+**Commit (code):** a9e7af6 — "Update patterns to match MLED/1 protocol (0049-NODE-PROTOCOL)"
+
+### What I did
+
+1. Updated `types.ts` with protocol-compliant types:
+   - `PatternType = 'off' | 'rainbow' | 'chase' | 'breathing' | 'sparkle'`
+   - Typed interfaces: `RainbowParams`, `ChaseParams`, `BreathingParams`, `SparkleParams`, `OffParams`
+   - Each interface documents the wire format mapping (e.g., `data[0]` → `speed`)
+
+2. Updated `store.ts` with new default presets:
+   - Rainbow: 10 rpm, 100% saturation
+   - Calm: breathing 4 bpm, blue
+   - Magic: sparkle rainbow mode
+   - Fire Chase: 3 trains, orange/red, fade tail
+   - Pulse: fast breathing 12 bpm, white
+   - Off: all LEDs off
+
+3. Updated `Patterns.tsx` with full editors:
+   - Created helper components: `SliderRow`, `ColorRow`, `SelectRow`
+   - RAINBOW: speed (0-20 rpm), saturation (0-100%), spread (1-50)
+   - CHASE: speed (1-255 LED/s), tail/gap lengths, trains, fg/bg colors, direction, fade_tail
+   - BREATHING: speed (1-20 bpm), color, min/max brightness, curve (sine/linear/ease)
+   - SPARKLE: speed, color, density, fade_speed, color_mode (fixed/random/rainbow), bg_color
+   - OFF: simple message, no params
+
+### Why
+
+The frontend needs to generate valid wire payloads that nodes can decode. Using invented pattern types would cause nodes to ignore commands.
+
+### What worked
+
+- Type-safe param interfaces prevent invalid configurations
+- Helper components (SliderRow, ColorRow) reduce code duplication
+- Dropdown selects for enums (direction, curve, color_mode) are intuitive
+
+### What didn't work
+
+- Initial pattern editor had manual onChange handlers for each field — refactored to use `useParamChange` helper
+
+### What I learned
+
+- Always check the wire protocol before implementing UI patterns
+- Fixed-size byte arrays (`data[12]`) require careful range limits in UI
+- Enum mappings (0/1/2 → forward/reverse/bounce) should be explicit
+
+### What was tricky to build
+
+- Mapping protocol byte ranges to sensible slider limits (e.g., speed 0-20 vs 0-255)
+- Ensuring default values match what nodes expect
+
+### What warrants a second pair of eyes
+
+1. Verify param byte positions match `protocol.h` exactly
+2. Check range limits are correct (some params are 0-255, others 0-20, others 0-100)
+3. Verify enum values match wire format (e.g., curve: 0=sine, 1=linear, 2=ease)
+
+### What should be done in the future
+
+- Add validation on param ranges before sending to API
+- Add visual preview of patterns (canvas animation)
+- Add pattern import/export as JSON
+
+### Code review instructions
+
+1. Compare `types.ts` PatternParams with `0049-NODE-PROTOCOL` section 6.12
+2. Open Patterns screen, click each pattern type, verify all params are editable
+3. Check that changing type resets params to sensible defaults
+
+### Technical details
+
+**Protocol mapping (from 0049-NODE-PROTOCOL):**
+```
+RAINBOW (type=1):
+  data[0] = speed (0-20, rotations/min)
+  data[1] = saturation (0-100)
+  data[2] = spread_x10 (1-50)
+
+CHASE (type=2):
+  data[0] = speed (0-255, LED/s)
+  data[1] = tail_len (1-255)
+  data[2] = gap_len (0-255)
+  data[3] = trains (1-255)
+  data[4..6] = fg RGB
+  data[7..9] = bg RGB
+  data[10] = direction (0=fwd, 1=rev, 2=bounce)
+  data[11] = fade_tail (0/1)
+
+BREATHING (type=3):
+  data[0] = speed (0-20, breaths/min)
+  data[1..3] = color RGB
+  data[4] = min_bri (0-255)
+  data[5] = max_bri (0-255)
+  data[6] = curve (0=sine, 1=linear, 2=ease)
+
+SPARKLE (type=4):
+  data[0] = speed (0-20, spawn rate)
+  data[1..3] = color RGB
+  data[4] = density_pct (0-100)
+  data[5] = fade_speed (1-255)
+  data[6] = color_mode (0=fixed, 1=random, 2=rainbow)
+  data[7..9] = bg RGB
+```
+
+---
+
 ## Related
 
 - Parent ticket: [0052-MLED-HOST-UI](../../../0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/index.md)
