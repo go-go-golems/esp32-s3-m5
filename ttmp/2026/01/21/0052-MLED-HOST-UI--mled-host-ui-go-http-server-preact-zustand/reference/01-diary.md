@@ -13,13 +13,34 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/mled-server/cmd/mled-server/main.go
+      Note: Glazed root bootstrap
+    - Path: esp32-s3-m5/mled-server/internal/commands/apply.go
+      Note: CLI verb to apply patterns via /api/apply
+    - Path: esp32-s3-m5/mled-server/internal/commands/preset_add.go
+      Note: CLI preset create (POST /api/presets)
+    - Path: esp32-s3-m5/mled-server/internal/commands/serve.go
+      Note: Server command refactor to Glazed BareCommand and server-side logging
+    - Path: esp32-s3-m5/mled-server/internal/commands/settings_set.go
+      Note: CLI settings update (GET+PUT /api/settings)
+    - Path: esp32-s3-m5/mled-server/internal/httpapi/request_logging.go
+      Note: HTTP request logging middleware
+    - Path: esp32-s3-m5/mled-server/internal/httpapi/server.go
+      Note: REST+WS endpoints with INFO/DEBUG logging on key operations
+    - Path: esp32-s3-m5/mled-server/internal/restclient/client.go
+      Note: Shared REST client used by CLI verbs
+    - Path: esp32-s3-m5/ttmp/2026/01/21/0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/scripts/e2e-rest-verbs.sh
+      Note: Repeatable end-to-end CLI verb smoke test
+    - Path: esp32-s3-m5/ttmp/2026/01/21/0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/scripts/tmux-run-mled-server.sh
+      Note: Start server in tmux for manual/e2e testing
 ExternalSources: []
-Summary: ""
-LastUpdated: 2026-01-21T18:40:53.815135986-05:00
-WhatFor: ""
-WhenToUse: ""
+Summary: 'Implementation diary for ticket 0052: Glazed CLI bootstrap + logging, REST client verbs, tmux/e2e scripts, and task bookkeeping.'
+LastUpdated: 2026-01-21T20:44:06-05:00
+WhatFor: Record what changed in the Go host controller and CLI (Glazed bootstrap, server logging, REST verbs) with exact commands/errors for repeatable review and debugging.
+WhenToUse: Use when extending CLI verbs, debugging server behavior/logging, or validating the REST API via the provided tmux/e2e scripts.
 ---
+
 
 # Diary
 
@@ -216,3 +237,239 @@ This step publishes the two main documents (protocol analysis + Go host/UI desig
 ### Technical details
 - Remote folder: `/ai/2026/01/21/0052-MLED-HOST-UI`.
 - Updated docs folder: `/ai/2026/01/21/0052-MLED-HOST-UI/v2`.
+
+## Step 5: Glazed CLI Bootstrap + Server Logging
+
+This step standardizes `mled-server` on Glazed for CLI bootstrap: root-level logging flags and consistent Glazed command registration, while keeping the existing HTTP+WS server behavior intact. The practical goal was to make debugging reliable (INFO-level operational logs, DEBUG-level “busy” logs) and to make it easy to add future CLI verbs without “special casing” Cobra vs Glazed commands.
+
+**Commit (code):** f1ca094 — "mled-server: glazed CLI, REST verbs, SSE events"
+
+### What I did
+- Read `glaze help build-first-command` and extracted the recommended logging integration:
+  - add logging flags to root: `logging.AddLoggingLayerToRootCommand(...)`
+  - initialize logging via Cobra parsing: `logging.InitLoggerFromCobra(cmd)` in `PersistentPreRunE`
+- Refactored `serve` from plain Cobra into a Glazed `cmds.BareCommand` (still long-running, no structured output).
+- Centralized command registration under Glazed so we can group verbs (e.g., `preset ...`, `settings ...`) and keep consistent parser/middleware config:
+  - used `cmds.WithParents(...)` for grouping
+  - used `cli.AddCommandsToRootCommand(...)` to auto-create parent commands and register all subcommands
+- Added “lots of logging”:
+  - request logging middleware (INFO for mutating; DEBUG for most GETs)
+  - server-side logs for apply/preset/settings changes and WS connect/disconnect
+  - engine event logs (node updates at DEBUG; offline/ack at INFO; errors at ERROR)
+- Routed stdlib `log` through Zerolog (so legacy `log.Printf(...)` uses Glazed-configured output).
+- Implemented `GET /api/events` (SSE) for UI connection state and push updates.
+
+### Why
+- Reduce drift between command styles and make it trivial to add future “verbs” that talk to the server over REST.
+- Ensure operational visibility: see what the server is doing without adding temporary printf debugging.
+
+### What worked
+- Root-level Glazed logging flags show up on `mled-server --help` and apply to all subcommands.
+- `serve` runs with richer logs and request logging without changing the external REST API.
+- Command grouping works: `mled-server preset ...` and `mled-server settings ...` appear as proper subtrees.
+
+### What didn't work
+- Initial build/test failed due to missing `go.sum` entry for Glazed logging’s log rotation dependency:
+  - Command: `cd esp32-s3-m5/mled-server && go test ./...`
+  - Error:
+    - `/home/manuel/go/pkg/mod/github.com/go-go-golems/glazed@v0.7.14/pkg/cmds/logging/init.go:15:2: missing go.sum entry for module providing package gopkg.in/natefinch/lumberjack.v2`
+  - Fix: `cd esp32-s3-m5/mled-server && go mod tidy`
+- I initially typed the wrong Glazed type name in `client_flags.go` (`fields.Field`), which doesn’t exist:
+  - Compile error: `undefined: fields.Field`
+  - Fix: use `*fields.Definition` (type alias for parameter definitions).
+
+### What I learned
+- Glazed’s `cli.AddCommandsToRootCommand` is ideal when you want nested subcommands driven by `WithParents(...)` without manually wiring Cobra parents.
+- Root-level logging initialization is the cleanest way to get consistent logs across both Glazed-bridged commands and any residual Cobra usage.
+
+### What was tricky to build
+- Glazed structured output prints “no output” when a command yields zero rows; tests/scripts must handle empty output when using `--output json` for list commands.
+- Keeping INFO vs DEBUG sane: node updates are noisy and belong in DEBUG, while “offline” and “apply ack” are operator-relevant and belong in INFO.
+
+### What warrants a second pair of eyes
+- Confirm the request-logging policy (GET=DEBUG, mutating=INFO) matches expected operator workflows; we may want certain GET endpoints at INFO when running headless.
+- Confirm the default HTTP address choice. The tasks doc says `localhost:8080`, but the server currently defaults to `localhost:8765` (and scripts use `localhost:18765` for isolated tests).
+
+### What should be done in the future
+- Consider adding a dedicated `discover` REST endpoint (server-side) and a corresponding CLI verb if we want discovery to be entirely server-driven.
+
+### Code review instructions
+- Start at:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/cmd/mled-server/main.go`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/commands/serve.go`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/httpapi/request_logging.go`
+- Validate:
+  - `cd esp32-s3-m5/mled-server && go test ./...`
+  - `cd esp32-s3-m5/mled-server && go run ./cmd/mled-server --help`
+
+### Technical details
+- Glazed logging hook: `PersistentPreRunE` calls `logging.InitLoggerFromCobra(cmd)` and routes stdlib `log` to Zerolog.
+- Request logging: INFO for POST/PUT/PATCH/DELETE; ERROR for 5xx; DEBUG otherwise.
+
+## Step 6: REST Client Verbs (Apply / Presets / Settings)
+
+This step adds the operator-facing CLI verbs that talk to a running `mled-server` instance via REST. The goal is for “verbs” like applying patterns/presets and managing settings/presets to be scriptable and to share a consistent flag surface (`--server`, `--timeout-ms`, plus `--output json` via Glazed).
+
+**Commit (code):** f1ca094 — "mled-server: glazed CLI, REST verbs, SSE events"
+
+### What I did
+- Added a shared HTTP client package for CLI verbs:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/restclient/client.go`
+- Implemented verbs:
+  - `mled-server status`, `mled-server nodes`, `mled-server presets`
+  - `mled-server apply` (builds PatternConfig or applies `--preset`)
+  - convenience: `mled-server apply-preset`, `apply-solid`, `apply-rainbow`
+  - preset CRUD: `mled-server preset add|list|update|delete`
+  - settings: `mled-server settings get|set`
+- Ensured verbs are registered and grouped correctly via Glazed `WithParents(...)` and the central `AddCommandsToRootCommand`.
+
+### Why
+- The UI is useful, but the fastest debug/ops workflow is still “CLI verb → REST → observe logs/WS/events”.
+- A REST client CLI makes it easy to integrate into scripts and smoke tests.
+
+### What worked
+- After fixes, this works as expected:
+  - `cd esp32-s3-m5/mled-server && go run ./cmd/mled-server nodes`
+  - `cd esp32-s3-m5/mled-server && go run ./cmd/mled-server apply --type off --all`
+
+### What didn't work
+- The first attempt to run `nodes` failed because `--server` default did not populate (settings.Server ended up empty):
+  - Command: `cd esp32-s3-m5/mled-server && go run ./cmd/mled-server nodes`
+  - Error: `Error: Get "/api/nodes": unsupported protocol scheme ""`
+  - Cause: embedding a `ClientSettings` struct didn’t get populated by `values.DecodeSectionInto(...)` as expected.
+  - Fix: flatten `Server` and `TimeoutMS` into each command’s settings struct (so decoding reliably sets them).
+- `settings get --output json` initially produced keys like `multicastgroup` instead of `multicast_group` because `types.NewRowFromStruct(..., true)` lowercased field names, not JSON tags.
+  - Fix: for settings/nodes outputs, build rows explicitly with map keys matching API JSON tags (`bind_ip`, `multicast_group`, etc.).
+
+### What I learned
+- For Glazed output, `types.NewRowFromStruct(..., true)` lowercases Go field names (it does not honor JSON tags). For “API-shaped” output, prefer `types.NewRowFromMap` with explicit keys.
+
+### What was tricky to build
+- Maintaining contract symmetry:
+  - The server speaks JSON using struct tags (`bind_ip`, `multicast_group`, ...).
+  - The CLI output should also use those keys if we want round-trippable scripts and predictable `jq` usage.
+
+### What warrants a second pair of eyes
+- The mapping of “convenience commands” to `PatternConfig` should be kept in sync with `mledhost.BuildWirePattern`; if new wire patterns are added, we should update both places.
+
+### What should be done in the future
+- Add `preset export/import` (file-based) for moving presets between machines.
+- Add `apply --all` default behavior confirmation flag when running in “exhibition” environments (optional safety).
+
+### Code review instructions
+- Start at:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/restclient/client.go`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/commands/apply.go`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/commands/preset_add.go`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/commands/settings_get.go`
+- Validate:
+  - `cd esp32-s3-m5/mled-server && go test ./...`
+  - With a running server: `go run ./cmd/mled-server preset list --output json`
+
+### Technical details
+- All REST verbs share `--server` (default `http://localhost:8765`) and `--timeout-ms` (default `5000`).
+- Apply endpoint used: `POST /api/apply` with `node_ids: "all"|[]string` and `config: PatternConfig`.
+
+## Step 7: Ticket Scripts (tmux + E2E REST Verbs)
+
+This step packages the exact manual commands used during development into reusable scripts stored under the ticket’s `scripts/` folder. The intent is to make local validation repeatable and low-friction: one script starts the server in tmux, another runs an end-to-end suite of CLI verbs against it.
+
+**Commit (code):** f1ca094 — "mled-server: glazed CLI, REST verbs, SSE events"
+
+### What I did
+- Added scripts to:
+  - `.../scripts/tmux-run-mled-server.sh`
+  - `.../scripts/tmux-stop-mled-server.sh`
+  - `.../scripts/e2e-rest-verbs.sh`
+  - `.../scripts/e2e-rest-verbs-tmux.sh`
+  - `.../scripts/ps-mled-server.sh`
+  - `.../scripts/kill-mled-server-serve.sh`
+  - `.../scripts/README.md`
+- Used `tmux` to run an isolated server instance:
+  - `tmux new-session -d -s mled-server-test "cd .../mled-server && go run ./cmd/mled-server serve --http-addr localhost:18765 --data-dir /tmp/mled-server-test-var --log-level info"`
+- Ran the e2e verb suite against the tmux server (preset CRUD + apply verbs + settings get/set).
+
+### Why
+- This makes “local smoke plan” concrete and runnable without retyping commands.
+- tmux keeps the server running while running multiple CLI invocations from another shell.
+
+### What worked
+- The tmux-run script starts a server and prints how to attach.
+- The e2e script exercises:
+  - `status`, `nodes`, `presets`, `preset list`
+  - `preset add/update/delete`
+  - `apply`, `apply-solid`, `apply-rainbow`, `apply-preset`
+  - `settings get/set`
+
+### What didn't work
+- The first e2e script run failed when `presets --output json` printed nothing (no rows), causing `jq` to error:
+  - Fix: treat empty output as `[]` via a `json_or_empty_array` helper in the script.
+
+### What I learned
+- When validating Glazed commands with `--output json`, scripts should handle “no rows” as an empty array explicitly.
+
+### What was tricky to build
+- Avoiding side effects: the e2e scripts use a dedicated `--data-dir` under `/tmp` and a dedicated port (`18765`) so they can run without interfering with an existing server session.
+
+### What warrants a second pair of eyes
+- Confirm whether we want the scripts to keep the tmux session running by default or always stop it (currently it stops unless `KEEP_RUNNING=1`).
+
+### What should be done in the future
+- Add a second e2e mode that runs against a user-provided server without modifying settings (read-only validation mode).
+
+### Code review instructions
+- Run:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/21/0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/scripts/e2e-rest-verbs-tmux.sh`
+- Inspect server logs:
+  - `tmux attach -t mled-server-e2e`
+
+### Technical details
+- `e2e-rest-verbs-tmux.sh` starts the server in tmux on `localhost:18765`, runs verbs, and stops the tmux session unless `KEEP_RUNNING=1`.
+
+## Step 8: Finalize + Smoke Test (tmux + E2E) + Capture Glazed Help
+
+This step is a final validation and “make it repeatable” pass: I started the server under tmux (to avoid orphaned processes), ran the end-to-end REST verb suite against it, and captured the full `glaze help build-first-command` output into the ticket so we can refer back to Glazed’s recommended patterns when adding more verbs.
+
+**Commit (code):** f1ca094 — "mled-server: glazed CLI, REST verbs, SSE events"
+
+### What I did
+- Started an isolated server in tmux:
+  - `MCAST_PORT=14626 ./scripts/tmux-run-mled-server.sh`
+- Ran the verb suite:
+  - `./scripts/e2e-rest-verbs.sh`
+- Captured Glazed tutorial output:
+  - `glaze help build-first-command > reference/02-glaze-help-build-first-command.txt`
+
+### Why
+- tmux makes it obvious what server instance is “the one”, and provides a single place to tail logs.
+- A stored Glazed tutorial snapshot keeps the “how should we structure future commands?” reference local to the ticket.
+
+### What worked
+- `./scripts/e2e-rest-verbs.sh` passed against the tmux server (`http://localhost:18765`).
+- `GET /api/events` returned `200` and a valid SSE stream (smoke-checked by the script).
+
+### What didn't work
+- N/A
+
+### What I learned
+- `go run` will spawn both a wrapper process and a compiled child binary; tmux helps keep that from turning into “how many servers are running?” confusion.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- Confirm whether `MCAST_PORT=14626` is the right default for tests in this repo (it avoids collisions, but it won’t talk to real devices if they’re on `4626`).
+
+### What should be done in the future
+- Add a second `e2e` mode that runs with real device defaults (`MCAST_PORT=4626`) and optionally requires at least one node online.
+
+### Code review instructions
+- Start at:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/21/0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/scripts/e2e-rest-verbs.sh`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/internal/httpapi/sse.go`
+- Validate:
+  - `cd esp32-s3-m5/mled-server && go test ./...`
+  - `./scripts/e2e-rest-verbs-tmux.sh`
+
+### Technical details
+- SSE endpoint: `GET /api/events` (EventSource-compatible stream).
