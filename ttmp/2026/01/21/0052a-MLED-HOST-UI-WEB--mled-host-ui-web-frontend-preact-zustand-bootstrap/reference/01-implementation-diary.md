@@ -238,6 +238,47 @@ Zustand's shallow comparison triggers re-renders when selector returns a new obj
 
 ---
 
+## Step 3: API Response Format Fixes
+
+Connected the frontend to the real backend and fixed response format mismatches that prevented data from loading.
+
+**Commit (code):** ac7d8db — "Web UI: Fix API response format to match backend"
+
+### What I did
+
+1. Fixed `fetchNodes()`: Backend returns array directly `[...]`, not `{ nodes: [...] }`
+2. Fixed `fetchPresets()`: Backend returns `null` when no presets saved, not empty array
+3. Fixed `fetchStatus()`: Backend returns `{ epoch_id, running, show_ms }`, mapped to frontend's `{ epochId, showMs, connected }`
+
+### Why
+
+The design doc specified one format but the backend implemented a slightly different one. Normal integration work.
+
+### What worked
+
+- Vite proxy correctly forwards `/api/*` requests to `localhost:8765`
+- Real MLED node discovered and displayed: "c6-node" with -72dBm signal
+- Presets can be created and saved to backend
+- Node status (online/weak/offline) computed correctly
+
+### What warrants a second pair of eyes
+
+1. SSE endpoint returns `text/plain` instead of `text/event-stream` (backend fix needed)
+2. When backend has no presets, UI shows only user-created presets (default presets don't persist to backend)
+
+### What should be done in the future
+
+- Backend should seed default presets on first run
+- SSE MIME type fix in backend
+- Consider merging backend presets with frontend defaults
+
+### Code review instructions
+
+- Check `api.ts` lines 34-37 (fetchNodes), 68-71 (fetchPresets), 88-98 (fetchStatus)
+- Test by running backend and frontend together
+
+---
+
 ## Related
 
 - Parent ticket: [0052-MLED-HOST-UI](../../../0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/index.md)
