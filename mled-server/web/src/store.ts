@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Node, Preset, Settings, ControllerStatus, PatternConfig } from './types';
 
-// Default presets
+// Default presets (using MLED/1 protocol pattern types)
 export const DEFAULT_PRESETS: Preset[] = [
   {
     id: 'preset-rainbow',
@@ -10,37 +10,47 @@ export const DEFAULT_PRESETS: Preset[] = [
     config: {
       type: 'rainbow',
       brightness: 75,
-      params: { speed: 50 },
+      params: { speed: 10, saturation: 100, spread_x10: 10 },
     },
   },
   {
-    id: 'preset-calm',
+    id: 'preset-breathing-calm',
     name: 'Calm',
     icon: '💙',
     config: {
-      type: 'solid',
+      type: 'breathing',
       brightness: 60,
-      params: { color: '#2244AA' },
+      params: { speed: 4, color: '#2244AA', min_bri: 20, max_bri: 200, curve: 'sine' },
     },
   },
   {
-    id: 'preset-warm',
-    name: 'Warm',
+    id: 'preset-sparkle-magic',
+    name: 'Magic',
+    icon: '✨',
+    config: {
+      type: 'sparkle',
+      brightness: 80,
+      params: { speed: 12, color: '#FFFFFF', density_pct: 40, fade_speed: 80, color_mode: 'rainbow', bg_color: '#000022' },
+    },
+  },
+  {
+    id: 'preset-chase-fire',
+    name: 'Fire Chase',
     icon: '🔥',
     config: {
-      type: 'gradient',
-      brightness: 70,
-      params: { color_start: '#FF6B35', color_end: '#AA2200' },
+      type: 'chase',
+      brightness: 85,
+      params: { speed: 60, tail_len: 8, gap_len: 4, trains: 3, fg_color: '#FF4400', bg_color: '#110000', direction: 'forward', fade_tail: true },
     },
   },
   {
-    id: 'preset-pulse',
+    id: 'preset-breathing-pulse',
     name: 'Pulse',
     icon: '⚡',
     config: {
-      type: 'pulse',
-      brightness: 80,
-      params: { color: '#FFFFFF', speed: 60 },
+      type: 'breathing',
+      brightness: 90,
+      params: { speed: 12, color: '#FFFFFF', min_bri: 0, max_bri: 255, curve: 'linear' },
     },
   },
   {

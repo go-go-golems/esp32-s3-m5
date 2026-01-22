@@ -5,26 +5,28 @@ import { usePresets, useEditingPreset, useSelectedNodeIds } from '../lib/useStab
 import { EmojiPicker } from '../components/EmojiPicker';
 import type { Preset, PatternType, PatternConfig } from '../types';
 
-const PATTERN_TYPES: { value: PatternType; label: string }[] = [
-  { value: 'rainbow', label: 'Rainbow Cycle' },
-  { value: 'solid', label: 'Solid Color' },
-  { value: 'gradient', label: 'Gradient' },
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'off', label: 'Off' },
+// Pattern types from MLED/1 protocol (see 0049-NODE-PROTOCOL design doc)
+const PATTERN_TYPES: { value: PatternType; label: string; description: string }[] = [
+  { value: 'rainbow', label: 'Rainbow', description: 'Rotating hue cycle' },
+  { value: 'chase', label: 'Chase', description: 'Moving LED segments' },
+  { value: 'breathing', label: 'Breathing', description: 'Pulsing brightness' },
+  { value: 'sparkle', label: 'Sparkle', description: 'Random twinkling' },
+  { value: 'off', label: 'Off', description: 'All LEDs off' },
 ];
 
 function getPatternSummary(config: PatternConfig): string {
+  const p = config.params as Record<string, unknown>;
   switch (config.type) {
     case 'rainbow':
-      return `cycle, speed ${config.params.speed || 50}`;
-    case 'solid':
-      return `solid ${config.params.color || '#FFFFFF'}, ${config.brightness}%`;
-    case 'gradient':
-      return `gradient ${config.params.color_start}→${config.params.color_end}`;
-    case 'pulse':
-      return `strobe ${config.params.color}, ${config.params.speed || 50}Hz`;
+      return `cycle ${p.speed ?? 10} rpm, sat ${p.saturation ?? 100}%`;
+    case 'chase':
+      return `chase ${p.speed ?? 30} LED/s, ${p.trains ?? 1} trains`;
+    case 'breathing':
+      return `breathe ${p.speed ?? 6} bpm, ${p.color ?? '#FFFFFF'}`;
+    case 'sparkle':
+      return `sparkle ${p.density_pct ?? 30}%, ${p.color_mode ?? 'fixed'}`;
     case 'off':
-      return 'solid black';
+      return 'all off';
     default:
       return config.type;
   }
@@ -51,146 +53,294 @@ function PresetListItem({
   );
 }
 
+// Generic param change helper
+function useParamChange(
+  params: Record<string, unknown>,
+  onChange: (params: Record<string, unknown>) => void
+) {
+  return useCallback((key: string, value: unknown) => {
+    onChange({ ...params, [key]: value });
+  }, [params, onChange]);
+}
+
+// Color picker row component
+function ColorRow({ 
+  label, 
+  value, 
+  onChange 
+}: { 
+  label: string; 
+  value: string; 
+  onChange: (v: string) => void; 
+}) {
+  return (
+    <div class="mb-3">
+      <label class="form-label">{label}</label>
+      <div class="color-input-wrapper">
+        <div class="color-preview" style={{ background: value }} />
+        <input
+          type="color"
+          value={value}
+          onInput={(e) => onChange((e.target as HTMLInputElement).value)}
+        />
+        <input
+          type="text"
+          class="form-control"
+          style={{ maxWidth: '100px' }}
+          value={value}
+          onInput={(e) => onChange((e.target as HTMLInputElement).value)}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Slider row component
+function SliderRow({ 
+  label, 
+  value, 
+  min, 
+  max, 
+  unit,
+  onChange 
+}: { 
+  label: string; 
+  value: number; 
+  min: number; 
+  max: number; 
+  unit?: string;
+  onChange: (v: number) => void; 
+}) {
+  return (
+    <div class="mb-3">
+      <label class="form-label">{label}</label>
+      <div class="d-flex align-items-center gap-3">
+        <input
+          type="range"
+          class="form-range flex-grow-1"
+          min={min}
+          max={max}
+          value={value}
+          onInput={(e) => onChange(Number((e.target as HTMLInputElement).value))}
+        />
+        <span class="text-primary" style={{ minWidth: '50px' }}>
+          {value}{unit || ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Select row component
+function SelectRow<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div class="mb-3">
+      <label class="form-label">{label}</label>
+      <select
+        class="form-select"
+        value={value}
+        onChange={(e) => onChange((e.target as HTMLSelectElement).value as T)}
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function PatternParamsEditor({ 
   type, 
   params, 
   onChange 
 }: { 
   type: PatternType;
-  params: Record<string, number | string>;
-  onChange: (params: Record<string, number | string>) => void;
+  params: Record<string, unknown>;
+  onChange: (params: Record<string, unknown>) => void;
 }) {
-  const handleSpeedChange = useCallback((e: Event) => {
-    onChange({ ...params, speed: Number((e.target as HTMLInputElement).value) });
-  }, [params, onChange]);
-
-  const handleColorChange = useCallback((e: Event) => {
-    onChange({ ...params, color: (e.target as HTMLInputElement).value });
-  }, [params, onChange]);
-
-  const handleColorStartChange = useCallback((e: Event) => {
-    onChange({ ...params, color_start: (e.target as HTMLInputElement).value });
-  }, [params, onChange]);
-
-  const handleColorEndChange = useCallback((e: Event) => {
-    onChange({ ...params, color_end: (e.target as HTMLInputElement).value });
-  }, [params, onChange]);
+  const setParam = useParamChange(params, onChange);
 
   switch (type) {
     case 'rainbow':
       return (
-        <div class="mb-3">
-          <label class="form-label">Speed</label>
-          <div class="d-flex align-items-center gap-3">
-            <input
-              type="range"
-              class="form-range flex-grow-1"
-              min="0"
-              max="100"
-              value={params.speed as number || 50}
-              onInput={handleSpeedChange}
-            />
-            <span class="text-primary" style={{ minWidth: '40px' }}>{params.speed || 50}</span>
-          </div>
-        </div>
+        <>
+          <SliderRow 
+            label="Speed (rotations/min)" 
+            value={(params.speed as number) ?? 10} 
+            min={0} max={20} unit=" rpm"
+            onChange={(v) => setParam('speed', v)} 
+          />
+          <SliderRow 
+            label="Saturation" 
+            value={(params.saturation as number) ?? 100} 
+            min={0} max={100} unit="%"
+            onChange={(v) => setParam('saturation', v)} 
+          />
+          <SliderRow 
+            label="Color Spread" 
+            value={(params.spread_x10 as number) ?? 10} 
+            min={1} max={50}
+            onChange={(v) => setParam('spread_x10', v)} 
+          />
+        </>
       );
 
-    case 'solid':
-      return (
-        <div class="mb-3">
-          <label class="form-label">Color</label>
-          <div class="color-input-wrapper">
-            <div 
-              class="color-preview" 
-              style={{ background: params.color as string || '#FFFFFF' }} 
-            />
-            <input
-              type="color"
-              value={params.color as string || '#FFFFFF'}
-              onInput={handleColorChange}
-            />
-            <input
-              type="text"
-              class="form-control"
-              style={{ maxWidth: '120px' }}
-              value={params.color as string || '#FFFFFF'}
-              onInput={handleColorChange}
-            />
-          </div>
-        </div>
-      );
-
-    case 'gradient':
+    case 'chase':
       return (
         <>
-          <div class="mb-3">
-            <label class="form-label">Start Color</label>
-            <div class="color-input-wrapper">
-              <div 
-                class="color-preview" 
-                style={{ background: params.color_start as string || '#FF6B35' }} 
-              />
-              <input
-                type="color"
-                value={params.color_start as string || '#FF6B35'}
-                onInput={handleColorStartChange}
-              />
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">End Color</label>
-            <div class="color-input-wrapper">
-              <div 
-                class="color-preview" 
-                style={{ background: params.color_end as string || '#AA2200' }} 
-              />
-              <input
-                type="color"
-                value={params.color_end as string || '#AA2200'}
-                onInput={handleColorEndChange}
-              />
-            </div>
+          <SliderRow 
+            label="Speed (LEDs/sec)" 
+            value={(params.speed as number) ?? 30} 
+            min={1} max={255}
+            onChange={(v) => setParam('speed', v)} 
+          />
+          <SliderRow 
+            label="Tail Length" 
+            value={(params.tail_len as number) ?? 5} 
+            min={1} max={50}
+            onChange={(v) => setParam('tail_len', v)} 
+          />
+          <SliderRow 
+            label="Gap Length" 
+            value={(params.gap_len as number) ?? 10} 
+            min={0} max={50}
+            onChange={(v) => setParam('gap_len', v)} 
+          />
+          <SliderRow 
+            label="Number of Trains" 
+            value={(params.trains as number) ?? 1} 
+            min={1} max={10}
+            onChange={(v) => setParam('trains', v)} 
+          />
+          <ColorRow 
+            label="Foreground Color" 
+            value={(params.fg_color as string) ?? '#FFFFFF'} 
+            onChange={(v) => setParam('fg_color', v)} 
+          />
+          <ColorRow 
+            label="Background Color" 
+            value={(params.bg_color as string) ?? '#000000'} 
+            onChange={(v) => setParam('bg_color', v)} 
+          />
+          <SelectRow
+            label="Direction"
+            value={(params.direction as 'forward' | 'reverse' | 'bounce') ?? 'forward'}
+            options={[
+              { value: 'forward', label: 'Forward →' },
+              { value: 'reverse', label: '← Reverse' },
+              { value: 'bounce', label: '↔ Bounce' },
+            ]}
+            onChange={(v) => setParam('direction', v)}
+          />
+          <div class="mb-3 form-check">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="fade-tail"
+              checked={!!params.fade_tail}
+              onChange={(e) => setParam('fade_tail', (e.target as HTMLInputElement).checked)}
+            />
+            <label class="form-check-label" for="fade-tail">Fade tail</label>
           </div>
         </>
       );
 
-    case 'pulse':
+    case 'breathing':
       return (
         <>
-          <div class="mb-3">
-            <label class="form-label">Color</label>
-            <div class="color-input-wrapper">
-              <div 
-                class="color-preview" 
-                style={{ background: params.color as string || '#FFFFFF' }} 
-              />
-              <input
-                type="color"
-                value={params.color as string || '#FFFFFF'}
-                onInput={handleColorChange}
-              />
-            </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Speed</label>
-            <div class="d-flex align-items-center gap-3">
-              <input
-                type="range"
-                class="form-range flex-grow-1"
-                min="0"
-                max="100"
-                value={params.speed as number || 60}
-                onInput={handleSpeedChange}
-              />
-              <span class="text-primary" style={{ minWidth: '40px' }}>{params.speed || 60}</span>
-            </div>
-          </div>
+          <SliderRow 
+            label="Speed (breaths/min)" 
+            value={(params.speed as number) ?? 6} 
+            min={1} max={20} unit=" bpm"
+            onChange={(v) => setParam('speed', v)} 
+          />
+          <ColorRow 
+            label="Color" 
+            value={(params.color as string) ?? '#FFFFFF'} 
+            onChange={(v) => setParam('color', v)} 
+          />
+          <SliderRow 
+            label="Min Brightness" 
+            value={(params.min_bri as number) ?? 10} 
+            min={0} max={255}
+            onChange={(v) => setParam('min_bri', v)} 
+          />
+          <SliderRow 
+            label="Max Brightness" 
+            value={(params.max_bri as number) ?? 255} 
+            min={0} max={255}
+            onChange={(v) => setParam('max_bri', v)} 
+          />
+          <SelectRow
+            label="Curve"
+            value={(params.curve as 'sine' | 'linear' | 'ease') ?? 'sine'}
+            options={[
+              { value: 'sine', label: 'Sine (smooth)' },
+              { value: 'linear', label: 'Linear' },
+              { value: 'ease', label: 'Ease in/out' },
+            ]}
+            onChange={(v) => setParam('curve', v)}
+          />
+        </>
+      );
+
+    case 'sparkle':
+      return (
+        <>
+          <SliderRow 
+            label="Speed (spawn rate)" 
+            value={(params.speed as number) ?? 10} 
+            min={1} max={20}
+            onChange={(v) => setParam('speed', v)} 
+          />
+          <ColorRow 
+            label="Sparkle Color" 
+            value={(params.color as string) ?? '#FFFFFF'} 
+            onChange={(v) => setParam('color', v)} 
+          />
+          <SliderRow 
+            label="Density" 
+            value={(params.density_pct as number) ?? 30} 
+            min={1} max={100} unit="%"
+            onChange={(v) => setParam('density_pct', v)} 
+          />
+          <SliderRow 
+            label="Fade Speed" 
+            value={(params.fade_speed as number) ?? 50} 
+            min={1} max={255}
+            onChange={(v) => setParam('fade_speed', v)} 
+          />
+          <SelectRow
+            label="Color Mode"
+            value={(params.color_mode as 'fixed' | 'random' | 'rainbow') ?? 'fixed'}
+            options={[
+              { value: 'fixed', label: 'Fixed Color' },
+              { value: 'random', label: 'Random Colors' },
+              { value: 'rainbow', label: 'Rainbow Colors' },
+            ]}
+            onChange={(v) => setParam('color_mode', v)}
+          />
+          <ColorRow 
+            label="Background Color" 
+            value={(params.bg_color as string) ?? '#000000'} 
+            onChange={(v) => setParam('bg_color', v)} 
+          />
         </>
       );
 
     case 'off':
     default:
-      return <p class="text-secondary">No parameters for this pattern type.</p>;
+      return <p class="text-secondary">All LEDs will be turned off.</p>;
   }
 }
 
@@ -238,19 +388,45 @@ function PresetEditor({
   const handleTypeChange = useCallback((e: Event) => {
     const newType = (e.target as HTMLSelectElement).value as PatternType;
     setType(newType);
-    // Reset params to defaults for new type
+    // Reset params to defaults for new type (from MLED/1 protocol)
     switch (newType) {
       case 'rainbow':
-        setParams({ speed: 50 });
+        setParams({ 
+          speed: 10,           // 10 rotations/min
+          saturation: 100,     // full saturation
+          spread_x10: 10,      // spread = 1.0
+        });
         break;
-      case 'solid':
-        setParams({ color: '#2244AA' });
+      case 'chase':
+        setParams({ 
+          speed: 30,           // 30 LEDs/sec
+          tail_len: 5,
+          gap_len: 10,
+          trains: 1,
+          fg_color: '#FFFFFF',
+          bg_color: '#000000',
+          direction: 'forward',
+          fade_tail: true,
+        });
         break;
-      case 'gradient':
-        setParams({ color_start: '#FF6B35', color_end: '#AA2200' });
+      case 'breathing':
+        setParams({ 
+          speed: 6,            // 6 breaths/min
+          color: '#FFFFFF',
+          min_bri: 10,
+          max_bri: 255,
+          curve: 'sine',
+        });
         break;
-      case 'pulse':
-        setParams({ color: '#FFFFFF', speed: 60 });
+      case 'sparkle':
+        setParams({ 
+          speed: 10,           // spawn rate
+          color: '#FFFFFF',
+          density_pct: 30,
+          fade_speed: 50,
+          color_mode: 'fixed',
+          bg_color: '#000000',
+        });
         break;
       case 'off':
         setParams({});
