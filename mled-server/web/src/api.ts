@@ -35,8 +35,8 @@ async function fetchJson<T>(
 // === Nodes API ===
 
 export async function fetchNodes(): Promise<Node[]> {
-  const data = await fetchJson<{ nodes: Node[] }>('/nodes');
-  return data.nodes;
+  // Backend returns array directly, not wrapped in { nodes: [...] }
+  return fetchJson<Node[]>('/nodes');
 }
 
 export async function discoverNodes(timeoutMs: number = 500): Promise<Node[]> {
@@ -65,7 +65,8 @@ export async function applyPattern(request: ApplyRequest): Promise<ApplyResponse
 // === Presets API ===
 
 export async function fetchPresets(): Promise<Preset[]> {
-  return fetchJson<Preset[]>('/presets');
+  const data = await fetchJson<Preset[] | null>('/presets');
+  return data || []; // Backend returns null if no presets saved
 }
 
 export async function createPreset(preset: Preset): Promise<Preset> {
@@ -90,8 +91,19 @@ export async function deletePreset(id: string): Promise<void> {
 
 // === Status API ===
 
-export async function fetchStatus(): Promise<ControllerStatus> {
-  return fetchJson<ControllerStatus>('/status');
+interface BackendStatus {
+  epoch_id: number;
+  running: boolean;
+  show_ms: number;
+}
+
+export async function fetchStatus(): Promise<Partial<ControllerStatus>> {
+  const data = await fetchJson<BackendStatus>('/status');
+  return {
+    epochId: data.epoch_id,
+    showMs: data.show_ms,
+    connected: data.running,
+  };
 }
 
 // === Settings API ===
