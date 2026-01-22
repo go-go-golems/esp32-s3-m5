@@ -156,7 +156,6 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   return data as T;
 }
 
-export { ApiError };
 
 // ============================================================================
 // API Client
