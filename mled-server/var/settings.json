@@ -1,0 +1,7 @@
+{
+  "bind_ip": "auto",
+  "multicast_group": "239.255.32.6",
+  "multicast_port": 4626,
+  "discovery_interval_ms": 1000,
+  "offline_threshold_s": 30
+}

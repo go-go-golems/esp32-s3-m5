@@ -19,6 +19,7 @@ import type {
   ApplyRequest,
   ApplyResponse,
   NetworkInterface,
+  PatternType,
 } from '../types';
 
 const API_BASE = '/api';
@@ -77,7 +78,7 @@ function transformNode(backend: BackendNode): Node {
     uptime_ms: backend.uptime_ms,
     last_seen: backend.last_seen,
     current_pattern: backend.current_pattern ? {
-      type: backend.current_pattern.type as Node['current_pattern']['type'],
+      type: backend.current_pattern.type as PatternType,
       brightness: backend.current_pattern.brightness,
       params: backend.current_pattern.params as Record<string, number | string>,
     } : null,

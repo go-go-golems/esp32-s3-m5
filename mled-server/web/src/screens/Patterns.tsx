@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'preact/hooks';
+import { useState, useEffect, useCallback, useRef } from 'preact/hooks';
 import { useAppStore } from '../store';
 import { apiClient, ApiError } from '../lib/apiClient';
 import { usePresets, useEditingPreset, useSelectedNodeIds } from '../lib/useStableSelector';
@@ -347,6 +347,7 @@ function PatternParamsEditor({
 function PresetEditor({ 
   preset, 
   isNew,
+  canPreview,
   onSave,
   onCancel,
   onDelete,
@@ -354,6 +355,7 @@ function PresetEditor({
 }: { 
   preset: Preset;
   isNew: boolean;
+  canPreview: boolean;
   onSave: (preset: Preset) => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -364,6 +366,9 @@ function PresetEditor({
   const [type, setType] = useState<PatternType>(preset.config.type);
   const [brightness, setBrightness] = useState(preset.config.brightness);
   const [params, setParams] = useState(preset.config.params);
+  const [pinPreview, setPinPreview] = useState(false);
+  const previewTimeoutRef = useRef<number | null>(null);
+  const PREVIEW_DEBOUNCE_MS = 350;
 
   // Reset when preset changes
   useEffect(() => {
@@ -454,6 +459,35 @@ function PresetEditor({
     setBrightness(Number((e.target as HTMLInputElement).value));
   }, []);
 
+  const handlePinPreviewChange = useCallback((e: Event) => {
+    setPinPreview((e.target as HTMLInputElement).checked);
+  }, []);
+
+  useEffect(() => {
+    if (!pinPreview || !canPreview) {
+      if (previewTimeoutRef.current !== null) {
+        window.clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (previewTimeoutRef.current !== null) {
+      window.clearTimeout(previewTimeoutRef.current);
+    }
+    previewTimeoutRef.current = window.setTimeout(() => {
+      onPreview(buildPreset());
+      previewTimeoutRef.current = null;
+    }, PREVIEW_DEBOUNCE_MS);
+
+    return () => {
+      if (previewTimeoutRef.current !== null) {
+        window.clearTimeout(previewTimeoutRef.current);
+        previewTimeoutRef.current = null;
+      }
+    };
+  }, [pinPreview, canPreview, type, brightness, params, onPreview, buildPreset]);
+
   return (
     <div class="card">
       <div class="card-header">
@@ -510,6 +544,19 @@ function PresetEditor({
         </div>
 
         <div class="d-flex gap-2">
+          <div class="form-check d-flex align-items-center me-2">
+            <input
+              type="checkbox"
+              class="form-check-input"
+              id="pin-preview"
+              checked={pinPreview}
+              disabled={!canPreview}
+              onChange={handlePinPreviewChange}
+            />
+            <label class="form-check-label ms-1" for="pin-preview">
+              Pin preview (auto-apply)
+            </label>
+          </div>
           <button
             class="btn btn-outline-primary"
             onClick={handlePreviewClick}
@@ -648,6 +695,7 @@ export function PatternsScreen() {
   }, [selectedNodeIdsArray, addLogEntry]);
 
   const currentPreset = isCreatingNew ? tempPreset : editingPreset;
+  const canPreview = selectedNodeIdsArray.length > 0;
 
   return (
     <div class="container-fluid px-0">
@@ -680,6 +728,7 @@ export function PatternsScreen() {
         <PresetEditor
           preset={currentPreset}
           isNew={isCreatingNew}
+          canPreview={canPreview}
           onSave={handleSave}
           onCancel={handleCancel}
           onDelete={handleDelete}

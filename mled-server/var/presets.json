@@ -7,8 +7,8 @@
       "type": "rainbow",
       "brightness": 80,
       "params": {
-        "speed": 5,
         "saturation": 100,
+        "speed": 5,
         "spread_x10": 10
       }
     }
@@ -21,8 +21,8 @@
       "type": "rainbow",
       "brightness": 90,
       "params": {
-        "speed": 18,
         "saturation": 100,
+        "speed": 18,
         "spread_x10": 15
       }
     }
@@ -35,8 +35,8 @@
       "type": "rainbow",
       "brightness": 70,
       "params": {
-        "speed": 8,
         "saturation": 50,
+        "speed": 8,
         "spread_x10": 20
       }
     }
@@ -49,14 +49,14 @@
       "type": "chase",
       "brightness": 85,
       "params": {
-        "speed": 60,
-        "tail_len": 8,
-        "gap_len": 4,
-        "trains": 3,
-        "fg_color": "#FF4400",
         "bg_color": "#110000",
         "direction": "forward",
-        "fade_tail": true
+        "fade_tail": true,
+        "fg_color": "#FF4400",
+        "gap_len": 4,
+        "speed": 60,
+        "tail_len": 8,
+        "trains": 3
       }
     }
   },
@@ -68,14 +68,14 @@
       "type": "chase",
       "brightness": 80,
       "params": {
-        "speed": 40,
-        "tail_len": 12,
-        "gap_len": 8,
-        "trains": 2,
-        "fg_color": "#00CCFF",
         "bg_color": "#000011",
         "direction": "reverse",
-        "fade_tail": true
+        "fade_tail": true,
+        "fg_color": "#00CCFF",
+        "gap_len": 8,
+        "speed": 40,
+        "tail_len": 12,
+        "trains": 2
       }
     }
   },
@@ -87,14 +87,14 @@
       "type": "chase",
       "brightness": 100,
       "params": {
-        "speed": 120,
-        "tail_len": 20,
-        "gap_len": 20,
-        "trains": 2,
-        "fg_color": "#0000FF",
         "bg_color": "#FF0000",
         "direction": "bounce",
-        "fade_tail": false
+        "fade_tail": false,
+        "fg_color": "#0000FF",
+        "gap_len": 20,
+        "speed": 120,
+        "tail_len": 20,
+        "trains": 2
       }
     }
   },
@@ -106,14 +106,14 @@
       "type": "chase",
       "brightness": 90,
       "params": {
-        "speed": 80,
-        "tail_len": 25,
-        "gap_len": 30,
-        "trains": 1,
-        "fg_color": "#FFFF00",
         "bg_color": "#000000",
         "direction": "forward",
-        "fade_tail": true
+        "fade_tail": true,
+        "fg_color": "#FFFF00",
+        "gap_len": 30,
+        "speed": 80,
+        "tail_len": 25,
+        "trains": 1
       }
     }
   },
@@ -125,14 +125,14 @@
       "type": "chase",
       "brightness": 85,
       "params": {
-        "speed": 25,
-        "tail_len": 8,
-        "gap_len": 8,
-        "trains": 5,
-        "fg_color": "#FF0033",
         "bg_color": "#FFFFFF",
         "direction": "forward",
-        "fade_tail": false
+        "fade_tail": false,
+        "fg_color": "#FF0033",
+        "gap_len": 8,
+        "speed": 25,
+        "tail_len": 8,
+        "trains": 5
       }
     }
   },
@@ -144,11 +144,11 @@
       "type": "breathing",
       "brightness": 60,
       "params": {
-        "speed": 4,
         "color": "#2244AA",
-        "min_bri": 20,
+        "curve": "sine",
         "max_bri": 200,
-        "curve": "sine"
+        "min_bri": 20,
+        "speed": 4
       }
     }
   },
@@ -160,11 +160,11 @@
       "type": "breathing",
       "brightness": 70,
       "params": {
-        "speed": 6,
         "color": "#0088AA",
-        "min_bri": 30,
+        "curve": "ease",
         "max_bri": 220,
-        "curve": "ease"
+        "min_bri": 30,
+        "speed": 6
       }
     }
   },
@@ -176,11 +176,11 @@
       "type": "breathing",
       "brightness": 75,
       "params": {
-        "speed": 3,
         "color": "#FF6622",
-        "min_bri": 40,
+        "curve": "sine",
         "max_bri": 255,
-        "curve": "sine"
+        "min_bri": 40,
+        "speed": 3
       }
     }
   },
@@ -192,11 +192,11 @@
       "type": "breathing",
       "brightness": 90,
       "params": {
-        "speed": 12,
         "color": "#FF0044",
-        "min_bri": 0,
+        "curve": "linear",
         "max_bri": 255,
-        "curve": "linear"
+        "min_bri": 0,
+        "speed": 12
       }
     }
   },
@@ -208,11 +208,11 @@
       "type": "breathing",
       "brightness": 65,
       "params": {
-        "speed": 5,
         "color": "#22AA44",
-        "min_bri": 30,
+        "curve": "ease",
         "max_bri": 180,
-        "curve": "ease"
+        "min_bri": 30,
+        "speed": 5
       }
     }
   },
@@ -224,11 +224,11 @@
       "type": "breathing",
       "brightness": 100,
       "params": {
-        "speed": 18,
-        "color": "#FFFFFF",
-        "min_bri": 0,
+        "color": "#ffa348",
+        "curve": "linear",
         "max_bri": 255,
-        "curve": "linear"
+        "min_bri": 0,
+        "speed": 18
       }
     }
   },
@@ -240,12 +240,12 @@
       "type": "sparkle",
       "brightness": 85,
       "params": {
-        "speed": 12,
+        "bg_color": "#000022",
         "color": "#FFFFFF",
+        "color_mode": "rainbow",
         "density_pct": 40,
         "fade_speed": 80,
-        "color_mode": "rainbow",
-        "bg_color": "#000022"
+        "speed": 12
       }
     }
   },
@@ -257,12 +257,12 @@
       "type": "sparkle",
       "brightness": 75,
       "params": {
-        "speed": 8,
+        "bg_color": "#000008",
         "color": "#FFFFFF",
+        "color_mode": "fixed",
         "density_pct": 20,
         "fade_speed": 40,
-        "color_mode": "fixed",
-        "bg_color": "#000008"
+        "speed": 8
       }
     }
   },
@@ -274,12 +274,12 @@
       "type": "sparkle",
       "brightness": 70,
       "params": {
-        "speed": 6,
+        "bg_color": "#001100",
         "color": "#AAFF00",
+        "color_mode": "fixed",
         "density_pct": 15,
         "fade_speed": 30,
-        "color_mode": "fixed",
-        "bg_color": "#001100"
+        "speed": 6
       }
     }
   },
@@ -291,12 +291,12 @@
       "type": "sparkle",
       "brightness": 100,
       "params": {
-        "speed": 18,
+        "bg_color": "#000000",
         "color": "#FFFFFF",
+        "color_mode": "random",
         "density_pct": 60,
         "fade_speed": 120,
-        "color_mode": "random",
-        "bg_color": "#000000"
+        "speed": 18
       }
     }
   },
@@ -306,14 +306,14 @@
     "icon": "❄️",
     "config": {
       "type": "sparkle",
-      "brightness": 80,
+      "brightness": 0,
       "params": {
-        "speed": 10,
+        "bg_color": "#001122",
         "color": "#FFFFFF",
-        "density_pct": 35,
-        "fade_speed": 60,
         "color_mode": "fixed",
-        "bg_color": "#001122"
+        "density_pct": 67,
+        "fade_speed": 13,
+        "speed": 14
       }
     }
   },
@@ -325,12 +325,12 @@
       "type": "sparkle",
       "brightness": 75,
       "params": {
-        "speed": 4,
+        "bg_color": "#110000",
         "color": "#FF4400",
+        "color_mode": "fixed",
         "density_pct": 25,
         "fade_speed": 20,
-        "color_mode": "fixed",
-        "bg_color": "#110000"
+        "speed": 4
       }
     }
   },

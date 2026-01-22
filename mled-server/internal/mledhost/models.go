@@ -91,4 +91,3 @@ func deriveStatus(now, lastSeen time.Time, rssi, weakRSSIDbm int, offlineAfter t
 	}
 	return NodeOnline
 }
-

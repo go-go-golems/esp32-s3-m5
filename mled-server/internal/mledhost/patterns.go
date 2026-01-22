@@ -286,4 +286,3 @@ func parseHexColor(s string) (uint8, uint8, uint8, error) {
 	}
 	return b[0], b[1], b[2], nil
 }
-
