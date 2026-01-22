@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'preact/hooks';
-import { useAppStore, useEditingPreset } from '../store';
+import { useState, useEffect, useCallback, useMemo } from 'preact/hooks';
+import { useAppStore } from '../store';
 import { applyPattern, createPreset, updatePreset, deletePreset as apiDeletePreset } from '../api';
 import type { Preset, PatternType, PatternConfig } from '../types';
 
@@ -58,6 +58,22 @@ function PatternParamsEditor({
   params: Record<string, number | string>;
   onChange: (params: Record<string, number | string>) => void;
 }) {
+  const handleSpeedChange = useCallback((e: Event) => {
+    onChange({ ...params, speed: Number((e.target as HTMLInputElement).value) });
+  }, [params, onChange]);
+
+  const handleColorChange = useCallback((e: Event) => {
+    onChange({ ...params, color: (e.target as HTMLInputElement).value });
+  }, [params, onChange]);
+
+  const handleColorStartChange = useCallback((e: Event) => {
+    onChange({ ...params, color_start: (e.target as HTMLInputElement).value });
+  }, [params, onChange]);
+
+  const handleColorEndChange = useCallback((e: Event) => {
+    onChange({ ...params, color_end: (e.target as HTMLInputElement).value });
+  }, [params, onChange]);
+
   switch (type) {
     case 'rainbow':
       return (
@@ -70,7 +86,7 @@ function PatternParamsEditor({
               min="0"
               max="100"
               value={params.speed as number || 50}
-              onInput={(e) => onChange({ ...params, speed: Number((e.target as HTMLInputElement).value) })}
+              onInput={handleSpeedChange}
             />
             <span class="text-primary" style={{ minWidth: '40px' }}>{params.speed || 50}</span>
           </div>
@@ -89,14 +105,14 @@ function PatternParamsEditor({
             <input
               type="color"
               value={params.color as string || '#FFFFFF'}
-              onInput={(e) => onChange({ ...params, color: (e.target as HTMLInputElement).value })}
+              onInput={handleColorChange}
             />
             <input
               type="text"
               class="form-control"
               style={{ maxWidth: '120px' }}
               value={params.color as string || '#FFFFFF'}
-              onInput={(e) => onChange({ ...params, color: (e.target as HTMLInputElement).value })}
+              onInput={handleColorChange}
             />
           </div>
         </div>
@@ -115,7 +131,7 @@ function PatternParamsEditor({
               <input
                 type="color"
                 value={params.color_start as string || '#FF6B35'}
-                onInput={(e) => onChange({ ...params, color_start: (e.target as HTMLInputElement).value })}
+                onInput={handleColorStartChange}
               />
             </div>
           </div>
@@ -129,7 +145,7 @@ function PatternParamsEditor({
               <input
                 type="color"
                 value={params.color_end as string || '#AA2200'}
-                onInput={(e) => onChange({ ...params, color_end: (e.target as HTMLInputElement).value })}
+                onInput={handleColorEndChange}
               />
             </div>
           </div>
@@ -149,7 +165,7 @@ function PatternParamsEditor({
               <input
                 type="color"
                 value={params.color as string || '#FFFFFF'}
-                onInput={(e) => onChange({ ...params, color: (e.target as HTMLInputElement).value })}
+                onInput={handleColorChange}
               />
             </div>
           </div>
@@ -162,7 +178,7 @@ function PatternParamsEditor({
                 min="0"
                 max="100"
                 value={params.speed as number || 60}
-                onInput={(e) => onChange({ ...params, speed: Number((e.target as HTMLInputElement).value) })}
+                onInput={handleSpeedChange}
               />
               <span class="text-primary" style={{ minWidth: '40px' }}>{params.speed || 60}</span>
             </div>
@@ -206,7 +222,7 @@ function PresetEditor({
     setParams(preset.config.params);
   }, [preset.id]);
 
-  const buildPreset = (): Preset => ({
+  const buildPreset = useCallback((): Preset => ({
     ...preset,
     name,
     icon,
@@ -215,9 +231,10 @@ function PresetEditor({
       brightness,
       params,
     },
-  });
+  }), [preset, name, icon, type, brightness, params]);
 
-  const handleTypeChange = (newType: PatternType) => {
+  const handleTypeChange = useCallback((e: Event) => {
+    const newType = (e.target as HTMLSelectElement).value as PatternType;
     setType(newType);
     // Reset params to defaults for new type
     switch (newType) {
@@ -237,7 +254,27 @@ function PresetEditor({
         setParams({});
         break;
     }
-  };
+  }, []);
+
+  const handleSaveClick = useCallback(() => {
+    onSave(buildPreset());
+  }, [onSave, buildPreset]);
+
+  const handlePreviewClick = useCallback(() => {
+    onPreview(buildPreset());
+  }, [onPreview, buildPreset]);
+
+  const handleNameChange = useCallback((e: Event) => {
+    setName((e.target as HTMLInputElement).value);
+  }, []);
+
+  const handleIconChange = useCallback((e: Event) => {
+    setIcon((e.target as HTMLInputElement).value);
+  }, []);
+
+  const handleBrightnessChange = useCallback((e: Event) => {
+    setBrightness(Number((e.target as HTMLInputElement).value));
+  }, []);
 
   return (
     <div class="card">
@@ -251,7 +288,7 @@ function PresetEditor({
             type="text"
             class="form-control"
             value={name}
-            onInput={(e) => setName((e.target as HTMLInputElement).value)}
+            onInput={handleNameChange}
           />
         </div>
 
@@ -262,7 +299,7 @@ function PresetEditor({
             class="form-control"
             style={{ maxWidth: '80px' }}
             value={icon}
-            onInput={(e) => setIcon((e.target as HTMLInputElement).value)}
+            onInput={handleIconChange}
           />
         </div>
 
@@ -271,7 +308,7 @@ function PresetEditor({
           <select
             class="form-select"
             value={type}
-            onChange={(e) => handleTypeChange((e.target as HTMLSelectElement).value as PatternType)}
+            onChange={handleTypeChange}
           >
             {PATTERN_TYPES.map((pt) => (
               <option key={pt.value} value={pt.value}>{pt.label}</option>
@@ -294,7 +331,7 @@ function PresetEditor({
               min="0"
               max="100"
               value={brightness}
-              onInput={(e) => setBrightness(Number((e.target as HTMLInputElement).value))}
+              onInput={handleBrightnessChange}
             />
             <span class="text-primary" style={{ minWidth: '40px' }}>{brightness}%</span>
           </div>
@@ -303,14 +340,14 @@ function PresetEditor({
         <div class="d-flex gap-2">
           <button
             class="btn btn-outline-primary"
-            onClick={() => onPreview(buildPreset())}
+            onClick={handlePreviewClick}
             type="button"
           >
             👁️ Preview on Selected
           </button>
           <button
             class="btn btn-primary"
-            onClick={() => onSave(buildPreset())}
+            onClick={handleSaveClick}
             type="button"
           >
             💾 Save
@@ -347,11 +384,14 @@ export function PatternsScreen() {
   const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
 
-  const editingPreset = useEditingPreset();
+  const editingPreset = useMemo(
+    () => presets.find((p) => p.id === editingPresetId) || null,
+    [presets, editingPresetId]
+  );
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [tempPreset, setTempPreset] = useState<Preset | null>(null);
 
-  const handleNewPreset = () => {
+  const handleNewPreset = useCallback(() => {
     const newPreset: Preset = {
       id: `preset-${Date.now()}`,
       name: 'New Preset',
@@ -365,15 +405,15 @@ export function PatternsScreen() {
     setTempPreset(newPreset);
     setIsCreatingNew(true);
     setEditingPresetId(null);
-  };
+  }, [setEditingPresetId]);
 
-  const handleSelectPreset = (id: string) => {
+  const handleSelectPreset = useCallback((id: string) => {
     setIsCreatingNew(false);
     setTempPreset(null);
     setEditingPresetId(id);
-  };
+  }, [setEditingPresetId]);
 
-  const handleSave = async (preset: Preset) => {
+  const handleSave = useCallback(async (preset: Preset) => {
     try {
       if (isCreatingNew) {
         await createPreset(preset);
@@ -390,9 +430,9 @@ export function PatternsScreen() {
     } catch (err) {
       addLogEntry(`Error saving preset: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
-  };
+  }, [isCreatingNew, storeAddPreset, storeUpdatePreset, addLogEntry, setEditingPresetId]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!editingPreset) return;
     
     if (confirm(`Delete preset "${editingPreset.name}"?`)) {
@@ -405,15 +445,15 @@ export function PatternsScreen() {
         addLogEntry(`Error deleting preset: ${err instanceof Error ? err.message : 'Unknown'}`);
       }
     }
-  };
+  }, [editingPreset, storeDeletePreset, addLogEntry, setEditingPresetId]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     setIsCreatingNew(false);
     setTempPreset(null);
     setEditingPresetId(null);
-  };
+  }, [setEditingPresetId]);
 
-  const handlePreview = async (preset: Preset) => {
+  const handlePreview = useCallback(async (preset: Preset) => {
     if (selectedNodeIds.size === 0) {
       addLogEntry('No nodes selected for preview');
       return;
@@ -429,7 +469,7 @@ export function PatternsScreen() {
     } catch (err) {
       addLogEntry(`Preview error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
-  };
+  }, [selectedNodeIds, addLogEntry]);
 
   const currentPreset = isCreatingNew ? tempPreset : editingPreset;
 

@@ -114,8 +114,12 @@ export async function fetchNetworkInterfaces(): Promise<NetworkInterface[]> {
 // === SSE Events ===
 
 let eventSource: EventSource | null = null;
+let lastErrorTime = 0;
+let sseEnabled = true;
 
 export function connectSSE(): void {
+  if (!sseEnabled) return;
+  
   if (eventSource) {
     eventSource.close();
   }
@@ -131,9 +135,29 @@ export function connectSSE(): void {
   };
 
   eventSource.onerror = () => {
+    // Debounce error handling to prevent rapid state updates
+    const now = Date.now();
+    if (now - lastErrorTime < 5000) {
+      // If we've had an error in the last 5 seconds, don't update state again
+      return;
+    }
+    lastErrorTime = now;
+
     store.setConnected(false);
     store.setLastError('Connection lost. Reconnecting...');
     store.addLogEntry('Connection lost');
+
+    // Close and disable SSE after repeated failures (backend not running)
+    if (eventSource) {
+      eventSource.close();
+      eventSource = null;
+    }
+    sseEnabled = false;
+    
+    // Re-enable SSE after 10 seconds
+    setTimeout(() => {
+      sseEnabled = true;
+    }, 10000);
   };
 
   // Node update event
@@ -221,6 +245,12 @@ export async function loadInitialData(): Promise<void> {
 
     store.setConnected(true);
     store.setLastError(null);
+    
+    // Re-enable SSE if it was disabled
+    if (!sseEnabled) {
+      sseEnabled = true;
+      connectSSE();
+    }
   } catch (error) {
     store.setConnected(false);
     store.setLastError(error instanceof Error ? error.message : 'Failed to load data');

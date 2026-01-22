@@ -1,4 +1,5 @@
-import { useAppStore, useSelectedNodes } from '../store';
+import { useMemo, useCallback } from 'preact/hooks';
+import { useAppStore } from '../store';
 import { applyPattern } from '../api';
 import type { Preset, PatternConfig } from '../types';
 
@@ -85,9 +86,13 @@ function NodeRow({ nodeId }: { nodeId: string }) {
   );
 }
 
-function PresetButton({ preset, onClick }: { preset: Preset; onClick: () => void }) {
+function PresetButton({ preset, onApply }: { preset: Preset; onApply: (preset: Preset) => void }) {
+  const handleClick = useCallback(() => {
+    onApply(preset);
+  }, [preset, onApply]);
+
   return (
-    <button class="preset-btn" onClick={onClick} type="button">
+    <button class="preset-btn" onClick={handleClick} type="button">
       <span>{preset.icon}</span>
       <span>{preset.name}</span>
     </button>
@@ -95,7 +100,8 @@ function PresetButton({ preset, onClick }: { preset: Preset; onClick: () => void
 }
 
 export function NodesScreen() {
-  const nodes = useAppStore((s) => Array.from(s.nodes.values()));
+  // Get stable references from store
+  const nodesMap = useAppStore((s) => s.nodes);
   const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
   const presets = useAppStore((s) => s.presets);
   const globalBrightness = useAppStore((s) => s.globalBrightness);
@@ -104,12 +110,32 @@ export function NodesScreen() {
   const selectNone = useAppStore((s) => s.selectNone);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
 
-  const onlineNodes = nodes.filter((n) => n.status !== 'offline');
-  const offlineNodes = nodes.filter((n) => n.status === 'offline');
+  // Derive node arrays with useMemo to avoid recreating on every render
+  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
+  
+  const sortedNodeIds = useMemo(() => {
+    return [...nodes]
+      .sort((a, b) => {
+        if (a.status === 'offline' && b.status !== 'offline') return 1;
+        if (a.status !== 'offline' && b.status === 'offline') return -1;
+        return (a.name || a.node_id).localeCompare(b.name || b.node_id);
+      })
+      .map((n) => n.node_id);
+  }, [nodes]);
+
+  const onlineNodes = useMemo(
+    () => nodes.filter((n) => n.status !== 'offline'),
+    [nodes]
+  );
+  const offlineNodes = useMemo(
+    () => nodes.filter((n) => n.status === 'offline'),
+    [nodes]
+  );
+
   const selectedCount = selectedNodeIds.size;
 
-  const handleApplyPreset = async (preset: Preset) => {
-    if (selectedCount === 0) {
+  const handleApplyPreset = useCallback(async (preset: Preset) => {
+    if (selectedNodeIds.size === 0) {
       addLogEntry('No nodes selected');
       return;
     }
@@ -131,10 +157,10 @@ export function NodesScreen() {
     } catch (err) {
       addLogEntry(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  };
+  }, [selectedNodeIds, globalBrightness, addLogEntry]);
 
-  const handleApplySelected = async () => {
-    if (selectedCount === 0) {
+  const handleApplySelected = useCallback(async () => {
+    if (selectedNodeIds.size === 0) {
       addLogEntry('No nodes selected');
       return;
     }
@@ -144,14 +170,19 @@ export function NodesScreen() {
     if (defaultPreset) {
       await handleApplyPreset(defaultPreset);
     }
-  };
+  }, [selectedNodeIds, presets, handleApplyPreset, addLogEntry]);
 
-  // Sort: online first, then by name
-  const sortedNodes = [...nodes].sort((a, b) => {
-    if (a.status === 'offline' && b.status !== 'offline') return 1;
-    if (a.status !== 'offline' && b.status === 'offline') return -1;
-    return (a.name || a.node_id).localeCompare(b.name || b.node_id);
-  });
+  const handleToggleSelectAll = useCallback(() => {
+    if (selectedCount === onlineNodes.length) {
+      selectNone();
+    } else {
+      selectAll();
+    }
+  }, [selectedCount, onlineNodes.length, selectAll, selectNone]);
+
+  const handleBrightnessChange = useCallback((e: Event) => {
+    setGlobalBrightness(Number((e.target as HTMLInputElement).value));
+  }, [setGlobalBrightness]);
 
   return (
     <div class="container-fluid px-0">
@@ -161,26 +192,20 @@ export function NodesScreen() {
           <span>Nodes</span>
           <button
             class="btn btn-sm btn-outline-primary"
-            onClick={() => {
-              if (selectedCount === onlineNodes.length) {
-                selectNone();
-              } else {
-                selectAll();
-              }
-            }}
+            onClick={handleToggleSelectAll}
             type="button"
           >
-            {selectedCount === onlineNodes.length ? 'Deselect All' : 'Select All'}
+            {selectedCount === onlineNodes.length && onlineNodes.length > 0 ? 'Deselect All' : 'Select All'}
           </button>
         </div>
         <ul class="node-list">
-          {sortedNodes.length === 0 ? (
+          {sortedNodeIds.length === 0 ? (
             <li class="node-row text-secondary">
               No nodes discovered yet. Make sure the backend is running.
             </li>
           ) : (
-            sortedNodes.map((node) => (
-              <NodeRow key={node.node_id} nodeId={node.node_id} />
+            sortedNodeIds.map((nodeId) => (
+              <NodeRow key={nodeId} nodeId={nodeId} />
             ))
           )}
         </ul>
@@ -210,7 +235,7 @@ export function NodesScreen() {
               <PresetButton
                 key={preset.id}
                 preset={preset}
-                onClick={() => handleApplyPreset(preset)}
+                onApply={handleApplyPreset}
               />
             ))}
           </div>
@@ -228,7 +253,7 @@ export function NodesScreen() {
           min="0"
           max="100"
           value={globalBrightness}
-          onInput={(e) => setGlobalBrightness(Number((e.target as HTMLInputElement).value))}
+          onInput={handleBrightnessChange}
         />
         <span class="brightness-value">{globalBrightness}%</span>
         <button

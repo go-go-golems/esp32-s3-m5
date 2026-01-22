@@ -2,7 +2,8 @@ import { useEffect } from 'preact/hooks';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
-import { useAppStore, TabId } from './store';
+import { useAppStore } from './store';
+import type { TabId } from './store';
 import { connectSSE, loadInitialData } from './api';
 import { NodesScreen } from './screens/Nodes';
 import { PatternsScreen } from './screens/Patterns';

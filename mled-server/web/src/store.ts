@@ -157,7 +157,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Node actions
   setNodes: (nodes) =>
     set(() => ({
-      nodes: new Map(nodes.map((n) => [n.node_id, n])),
+      nodes: new Map((nodes || []).map((n) => [n.node_id, n])),
     })),
 
   updateNode: (node) =>

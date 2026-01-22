@@ -1,4 +1,5 @@
-import { useAppStore, useProblematicNodes } from '../store';
+import { useMemo, useCallback } from 'preact/hooks';
+import { useAppStore } from '../store';
 import { discoverNodes } from '../api';
 import type { Node } from '../types';
 
@@ -72,11 +73,18 @@ function detectProblems(nodes: Node[]): Problem[] {
 }
 
 function SystemBanner() {
-  const nodes = useAppStore((s) => Array.from(s.nodes.values()));
+  const nodesMap = useAppStore((s) => s.nodes);
   const status = useAppStore((s) => s.status);
 
-  const onlineNodes = nodes.filter((n) => n.status !== 'offline');
-  const problematicNodes = useProblematicNodes();
+  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
+  const onlineNodes = useMemo(
+    () => nodes.filter((n) => n.status !== 'offline'),
+    [nodes]
+  );
+  const problematicNodes = useMemo(
+    () => nodes.filter((n) => n.status === 'offline' || n.status === 'weak'),
+    [nodes]
+  );
 
   let healthStatus: 'healthy' | 'degraded' | 'offline';
   let healthIcon: string;
@@ -116,8 +124,9 @@ function SystemBanner() {
 }
 
 function ProblemList() {
-  const nodes = useAppStore((s) => Array.from(s.nodes.values()));
-  const problems = detectProblems(nodes);
+  const nodesMap = useAppStore((s) => s.nodes);
+  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
+  const problems = useMemo(() => detectProblems(nodes), [nodes]);
 
   if (problems.length === 0) {
     return (
@@ -148,16 +157,19 @@ function ProblemList() {
 }
 
 function NodeTable() {
-  const nodes = useAppStore((s) => Array.from(s.nodes.values()));
+  const nodesMap = useAppStore((s) => s.nodes);
+  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
 
   // Sort: online first, then weak, then offline
-  const sortedNodes = [...nodes].sort((a, b) => {
-    const statusOrder = { online: 0, weak: 1, offline: 2 };
-    const aOrder = statusOrder[a.status] ?? 2;
-    const bOrder = statusOrder[b.status] ?? 2;
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return (a.name || a.node_id).localeCompare(b.name || b.node_id);
-  });
+  const sortedNodes = useMemo(() => {
+    return [...nodes].sort((a, b) => {
+      const statusOrder = { online: 0, weak: 1, offline: 2 };
+      const aOrder = statusOrder[a.status] ?? 2;
+      const bOrder = statusOrder[b.status] ?? 2;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return (a.name || a.node_id).localeCompare(b.name || b.node_id);
+    });
+  }, [nodes]);
 
   return (
     <div class="card mb-4">
@@ -211,7 +223,7 @@ export function StatusScreen() {
   const setNodes = useAppStore((s) => s.setNodes);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     try {
       addLogEntry('Refreshing nodes...');
       const nodes = await discoverNodes(1000);
@@ -220,7 +232,11 @@ export function StatusScreen() {
     } catch (err) {
       addLogEntry(`Refresh error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
-  };
+  }, [addLogEntry, setNodes]);
+
+  const handleOpenSettings = useCallback(() => {
+    setShowSettings(true);
+  }, [setShowSettings]);
 
   return (
     <div class="container-fluid px-0">
@@ -239,7 +255,7 @@ export function StatusScreen() {
         </button>
         <button
           class="btn btn-secondary ms-auto"
-          onClick={() => setShowSettings(true)}
+          onClick={handleOpenSettings}
           type="button"
         >
           ⚙️ Settings
