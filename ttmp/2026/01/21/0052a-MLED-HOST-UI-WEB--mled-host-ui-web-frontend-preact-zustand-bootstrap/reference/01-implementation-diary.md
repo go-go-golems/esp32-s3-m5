@@ -673,6 +673,129 @@ const offlineCount = nodes.length - onlineNodes.length;
 
 ---
 
+## Step 5: Add Emoji Picker and Fix Text Contrast
+
+Added an emoji picker component with search functionality (user doesn't have an emoji keyboard). Fixed multiple dark-on-dark contrast issues where text was unreadable.
+
+**Commit (code):** 17318f0 — "Add emoji picker with search + fix dark-on-dark text contrast"
+
+### What I did
+
+1. Created `src/components/EmojiPicker.tsx`:
+   - Dropdown-based picker with 70+ categorized emojis
+   - Search by keyword (fire, rainbow, calm, pulse, etc.)
+   - Categories: Lighting/Effects, Colors, Nature, Mood, Objects, Patterns, Power
+   - Click to select, Escape to close
+   - Highlights currently selected emoji
+
+2. Updated `src/screens/Patterns.tsx`:
+   - Replaced text input for icon with `<EmojiPicker />` component
+   - Changed `handleIconChange` to accept string directly
+
+3. Fixed text contrast issues in `src/index.css`:
+   - `.node-row .fw-medium` → explicit `color: var(--text-primary)`
+   - `.form-label` → explicit `color: var(--text-secondary)`
+   - `.form-control, .form-select` → added `!important` for color overrides
+   - `.form-control::placeholder` → uses `var(--text-muted)`
+   - `.table > tbody > tr > td` → explicit `color: var(--text-primary)`
+   - `.table > tbody > tr > td:first-child` → extra weight for node names
+
+4. Added CSS for emoji picker:
+   - `.emoji-picker-container` with relative positioning
+   - `.emoji-picker-dropdown` absolute positioned with dark theme
+   - `.emoji-grid` 8-column responsive grid
+   - `.emoji-option` with hover scale and selected highlight
+
+### Why
+
+- User requested emoji picker because they don't have an emoji keyboard
+- Dark-on-dark contrast was making node names hard to read
+- Bootstrap's default text colors don't work well with custom dark theme
+
+### What worked
+
+- Keyword search works well (type "fire" → shows 🔥)
+- Emoji categories cover typical lighting/effects use cases
+- Dropdown closes on selection (good UX)
+- Contrast fixes make all text readable
+
+### What didn't work
+
+- Initial attempt to use `onInput` event didn't trigger filtering fast enough
+- Had to add `!important` to override Bootstrap's dark mode specificity
+
+### What I learned
+
+- Bootstrap's `.fw-medium` and other utility classes don't set color explicitly
+- When using custom CSS variables, need to override with `!important` on form controls
+- Preact's `onInput` vs `onChange` - use `onInput` for real-time filtering
+
+### What was tricky to build
+
+- Getting the dropdown positioning right (absolute inside relative)
+- Ensuring search clears when dropdown closes
+- Balancing emoji count (too few = missing options, too many = overwhelming)
+
+### What warrants a second pair of eyes
+
+1. Emoji selection - verify all relevant emojis for lighting presets are included
+2. Contrast fixes - verify no regressions in other screens (Status, Settings)
+3. Dropdown z-index - verify it doesn't get clipped by other elements
+
+### What should be done in the future
+
+- Consider adding emoji categories as tabs (lighting, colors, mood)
+- Add keyboard navigation (arrow keys, Enter to select)
+- Consider allowing custom emoji input as fallback
+
+### Code review instructions
+
+1. Open Patterns screen, click on a preset
+2. Click the emoji button → verify dropdown appears
+3. Type "rainbow" → verify only rainbow-related emojis show
+4. Click an emoji → verify selection updates
+5. Navigate to Nodes → verify node names are readable
+6. Check form labels in Settings → verify labels are visible
+
+### Technical details
+
+**Emoji data structure:**
+```typescript
+interface EmojiData {
+  emoji: string;
+  keywords: string[];
+}
+
+const EMOJI_DATA: EmojiData[] = [
+  { emoji: '✨', keywords: ['sparkles', 'magic', 'shine'] },
+  { emoji: '🔥', keywords: ['fire', 'hot', 'flame', 'warm'] },
+  // ... 70+ entries
+];
+```
+
+**Search implementation:**
+```typescript
+const filteredEmojis = useMemo(() => {
+  if (!search.trim()) return EMOJI_DATA;
+  const searchLower = search.toLowerCase();
+  return EMOJI_DATA.filter((item) =>
+    item.keywords.some((kw) => kw.includes(searchLower)) ||
+    item.emoji === search
+  );
+}, [search]);
+```
+
+**CSS contrast fix pattern:**
+```css
+/* Override Bootstrap with explicit colors + !important */
+.form-control {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+```
+
+---
+
 ## Related
 
 - Parent ticket: [0052-MLED-HOST-UI](../../../0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/index.md)
