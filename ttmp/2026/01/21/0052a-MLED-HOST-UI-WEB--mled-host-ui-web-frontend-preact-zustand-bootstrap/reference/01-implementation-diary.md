@@ -16,17 +16,23 @@ RelatedFiles:
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/store.ts
       Note: "Zustand store with nodes, presets, settings, selection state"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/api.ts
-      Note: "API client module with HTTP endpoints and SSE event handling"
+      Note: "API layer: re-exports from apiClient + loadInitialData (commit 79e4300)"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/app.tsx
-      Note: "Main App shell with 3-tab navigation"
+      Note: "Main App shell with 3-tab navigation, uses connectionManager (commit 79e4300)"
+    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/useStableSelector.ts
+      Note: "Pattern 1: Stable selector hooks to prevent render loops (commit b62ce3c)"
+    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/connectionManager.ts
+      Note: "Pattern 2: SSE connection manager with exponential backoff (commit b62ce3c)"
+    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/apiClient.ts
+      Note: "Pattern 3: API client with backend/frontend type transformers (commit b62ce3c)"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/screens/Nodes.tsx
-      Note: "Nodes screen: node list, preset bar, brightness control"
+      Note: "Nodes screen: uses useNodes, useSortedNodeIds, apiClient (commit 79e4300)"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/screens/Patterns.tsx
-      Note: "Patterns screen: preset list and editor with dynamic params"
+      Note: "Patterns screen: uses usePresets, useEditingPreset, apiClient (commit 79e4300)"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/screens/Status.tsx
-      Note: "Status screen: system banner, problem list, node table"
+      Note: "Status screen: uses useNodes, useOnlineNodes, useSortedNodes (commit 79e4300)"
     - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/screens/Settings.tsx
-      Note: "Settings modal: network config, timing, import/export"
+      Note: "Settings modal: uses usePresets, apiClient (commit 79e4300)"
 ExternalSources: []
 Summary: "Step-by-step implementation diary for the MLED Controller web frontend built with Vite + Preact + Zustand + Bootstrap."
 LastUpdated: 2026-01-21T19:11:10.883982216-05:00
@@ -272,10 +278,170 @@ The design doc specified one format but the backend implemented a slightly diffe
 - SSE MIME type fix in backend
 - Consider merging backend presets with frontend defaults
 
+### What I learned
+
+- Always check the actual API response format before assuming what the backend returns
+- `null` vs `[]` matters for TypeScript strict mode - need to handle both gracefully
+- Field naming conventions differ (snake_case from Go, camelCase in TS) - transformers help
+
+### What was tricky to build
+
+- Mapping between backend field names (`epoch_id`) and frontend names (`epochId`)
+- Deciding whether to transform in the API layer or let callers handle it
+
+### Technical details
+
+**Backend vs Frontend field mappings:**
+```
+Backend                  Frontend
+-------------------------------------------------
+node_id                  node_id (same)
+last_seen                last_seen (same, timestamp)
+epoch_id                 epochId (camelCase)
+running                  connected (semantic rename)
+show_ms                  showMs (camelCase)
+```
+
+**Defensive patterns for null API responses:**
+```typescript
+// Presets can be null
+const data = await fetchJson<Preset[] | null>('/presets');
+return data || [];
+
+// Nodes should always be array
+return fetchJson<Node[]>('/nodes');
+```
+
 ### Code review instructions
 
 - Check `api.ts` lines 34-37 (fetchNodes), 68-71 (fetchPresets), 88-98 (fetchStatus)
 - Test by running backend and frontend together
+
+---
+
+## Step 3.5: Create Design Patterns Library
+
+After debugging the render loops and API mismatches, I extracted three reusable patterns into dedicated modules. This step creates the infrastructure; Step 4 applies it throughout the app.
+
+**Commit (code):** b62ce3c — "Add design patterns to prevent render loops and connection storms"
+
+### What I did
+
+1. Created `src/lib/useStableSelector.ts`:
+   - `useNodes()` - all nodes as stable array (memoized from Map)
+   - `useOnlineNodes()` - filtered to non-offline
+   - `useSortedNodes()` - sorted by status then name
+   - `useSortedNodeIds()` - just IDs for rendering keys
+   - `useSelectedCount()` - primitive (no memo needed)
+   - `useIsNodeSelected(id)` - boolean per node
+   - `usePresets()` - all presets with null fallback
+   - `useEditingPreset()` - find preset by editingPresetId
+   - `useSelectedNodeIds()` - selected IDs as array
+
+2. Created `src/lib/connectionManager.ts`:
+   - `SSEConnectionManager` class with lifecycle management
+   - Exponential backoff: 1s → 2s → 4s → ... → 30s max
+   - Debounces rapid errors (within 1s)
+   - Proper `connect()`/`disconnect()` API
+   - Singleton pattern via `getConnectionManager()`
+   - Registers all SSE event handlers: node, node.offline, ack, log
+
+3. Created `src/lib/apiClient.ts`:
+   - Explicit `BackendNode`, `BackendStatus`, `BackendSettings` types
+   - Transformer functions: `transformNode()`, `transformStatus()`, `transformSettings()`
+   - `ApiError` class with status code
+   - `apiClient` object with all API methods
+   - Safe defaults for missing fields
+
+4. Created design doc: `design-doc/01-design-patterns-for-preact-zustand-frontend.md`
+   - Documents the three patterns with rationale
+   - Explains the problems they solve
+   - Shows before/after code examples
+
+### Why
+
+Extracting these patterns:
+- Prevents re-introducing the same bugs
+- Makes the codebase more readable (hooks hide complexity)
+- Documents the "why" alongside the code
+- Creates a template for future Preact/Zustand projects
+
+### What worked
+
+- Hooks pattern is very Preact-idiomatic
+- Connection manager singleton works well for SSE
+- Backend types + transformers catch drift at compile time
+
+### What was tricky to build
+
+- Deciding which hooks to create (too few = still duplicating, too many = over-abstraction)
+- Getting the exponential backoff timing right
+- Ensuring transformers handle all nullable fields
+
+### What warrants a second pair of eyes
+
+1. `useIsNodeSelected(id)` uses inline closure - verify it doesn't cause re-renders
+2. Connection manager's singleton pattern - is this the right approach for testing?
+3. Transformer completeness - are we handling all edge cases from the backend?
+
+### What should be done in the future
+
+- Add unit tests for transformers (null handling, edge cases)
+- Add integration tests for connection manager (mock EventSource)
+- Consider adding a hook for connection state (`useConnectionStatus()`)
+
+### Code review instructions
+
+1. Start with `useStableSelector.ts` - verify `useMemo` dependencies are correct
+2. Check `connectionManager.ts` - verify backoff math and event handler registration
+3. Review `apiClient.ts` - verify backend types match actual API
+4. Read design doc for rationale
+
+### Technical details
+
+**Stable selector pattern:**
+```typescript
+// Select raw Map (stable reference)
+const nodesMap = useAppStore((s) => s.nodes);
+
+// Derive array outside selector, memoized
+return useMemo(
+  () => (nodesMap ? Array.from(nodesMap.values()) : []),
+  [nodesMap]
+);
+```
+
+**Exponential backoff implementation:**
+```typescript
+private scheduleReconnect(): void {
+  this.retryTimeout = window.setTimeout(() => {
+    this.connect();
+  }, this.retryDelay);
+  
+  // Increase delay for next failure
+  this.retryDelay = Math.min(
+    this.retryDelay * this.config.backoffMultiplier,  // 2x
+    this.config.maxRetryDelay  // 30s max
+  );
+}
+```
+
+**Backend type + transformer pattern:**
+```typescript
+interface BackendNode {
+  node_id: string;
+  name: string;
+  // ... exact backend fields
+}
+
+function transformNode(backend: BackendNode): Node {
+  return {
+    node_id: backend.node_id,
+    name: backend.name || backend.node_id,  // default if missing
+    // ...
+  };
+}
+```
 
 ---
 
@@ -318,12 +484,88 @@ Applying the patterns consistently across the codebase prevents the issues we de
 
 The refactoring reduced code by ~226 lines (from 325 removed to 99 added), showing that abstracting the patterns makes code more concise.
 
+### What worked
+
+- Hooks provide clean abstraction over selector complexity
+- `apiClient.` method chaining is intuitive
+- Connection manager's `disconnectSSE()` provides proper cleanup on unmount
+- Code is significantly more readable
+
+### What didn't work
+
+- Initial attempt to just change imports broke some component type checks
+- Had to ensure `usePresets()` returned `[]` not `undefined` for `.map()` calls
+
+### What I learned
+
+- Refactoring in layers works: create patterns → apply patterns → verify
+- TypeScript strict mode catches most integration issues at compile time
+- Screen components become much simpler when state derivation is externalized
+
+### What was tricky to build
+
+- Ensuring all import paths were correct after moving to `lib/`
+- Verifying that no inline selectors remained (could cause subtle bugs)
+- Making sure `apiClient.*` methods were called instead of old `import { fn } from '../api'`
+
+### What warrants a second pair of eyes
+
+1. Check that no component still uses raw `useAppStore((s) => Array.from(...))` pattern
+2. Verify `app.tsx` cleanup in useEffect return properly calls `disconnectSSE()`
+3. Confirm backwards compatibility via `api.ts` re-exports works
+
+### What should be done in the future
+
+- Remove the backwards-compat re-exports in `api.ts` once all callers use `apiClient` directly
+- Add ESLint rule to prevent raw `Array.from()` in Zustand selectors
+- Add bundle size analysis to verify Zustand + Preact stays small
+
+### Code review instructions
+
+1. `git diff b62ce3c..79e4300` to see all changes
+2. Grep for `useAppStore` in screens - should only select primitives or Maps/Sets directly
+3. Verify each screen imports from `../lib/useStableSelector` and `../lib/apiClient`
+4. Run app, open DevTools Network tab, verify API calls work
+
+### Technical details
+
+**Before (Nodes.tsx):**
+```typescript
+const nodesMap = useAppStore((s) => s.nodes);
+const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
+const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
+const sortedNodeIds = useMemo(() => [...nodes].sort(...).map((n) => n.node_id), [nodes]);
+const onlineNodes = useMemo(() => nodes.filter((n) => n.status !== 'offline'), [nodes]);
+const offlineNodes = useMemo(() => nodes.filter((n) => n.status === 'offline'), [nodes]);
+```
+
+**After (Nodes.tsx):**
+```typescript
+const nodes = useNodes();
+const sortedNodeIds = useSortedNodeIds();
+const onlineNodes = useOnlineNodes();
+const offlineCount = nodes.length - onlineNodes.length;
+```
+
+**Line count comparison:**
+| File | Before | After | Δ |
+|------|--------|-------|---|
+| Nodes.tsx | 274 | 265 | -9 |
+| Patterns.tsx | 519 | 408 | -111 |
+| Status.tsx | 270 | 254 | -16 |
+| Settings.tsx | 209 | 210 | +1 |
+| api.ts | 271 | 64 | -207 |
+| **Total** | **1543** | **1201** | **-342** |
+
+(Note: Patterns.tsx had some duplicate code that was cleaned up; Settings.tsx gained `useCallback` wrapping)
+
 ### What works now
 
 - All screens use stable selectors (no render loops)
 - SSE connection has proper exponential backoff
 - API calls go through type-safe transformers
 - Clean separation of concerns
+- Smaller, more readable screen components
 
 ---
 

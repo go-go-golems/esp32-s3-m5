@@ -34,3 +34,14 @@ Step 3: Fixed API response format to match backend (commit ac7d8db). Frontend no
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/api.ts — API response format fixes
 
+
+## 2026-01-21
+
+Step 3.5: Created design patterns library (useStableSelector, connectionManager, apiClient) — commit b62ce3c
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/apiClient.ts — Type-safe API transformers
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/connectionManager.ts — SSE exponential backoff
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/mled-server/web/src/lib/useStableSelector.ts — Stable selector hooks
+
