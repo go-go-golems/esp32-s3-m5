@@ -136,6 +136,25 @@ The goal is to build a complete, functional UI that can work with mock data imme
 3. Review screens in order: Nodes → Patterns → Status → Settings
 4. Test with: `cd mled-server/web && npm run dev`
 
+### What didn't work
+
+- First attempt at `vite.config.ts` proxy had wrong port (8080 instead of 8765)
+- Bootstrap's dark mode requires significant CSS overrides for proper dark theme
+- EventSource connection attempted before initial data load completed
+
+### What I learned
+
+- Vite's `create vite` with `preact-ts` template is minimal - need to add routing, state, CSS manually
+- Zustand's Map/Set support requires careful handling (new instances trigger re-renders)
+- Bootstrap's form controls need explicit dark theme styling
+- SSE EventSource auto-reconnects on error (important for Step 2 fix)
+
+### What I'd do differently next time
+
+- Start with a checklist of required dependencies before scaffolding
+- Create the Zustand store shape first, then implement UI around it
+- Add the CSS theme variables before implementing any components
+
 ### Technical details
 
 **File structure:**
@@ -159,6 +178,38 @@ mled-server/web/
         └── Settings.tsx   # Settings modal
 ```
 
+**Zustand store shape:**
+```typescript
+interface AppState {
+  // Node state
+  nodes: Map<string, Node>;
+  selectedNodeIds: Set<string>;
+  
+  // Presets
+  presets: Preset[];
+  editingPresetId: string | null;
+  
+  // UI state
+  currentTab: 'nodes' | 'patterns' | 'status';
+  globalBrightness: number;
+  showSettings: boolean;
+  
+  // Connection
+  status: ControllerStatus;
+  settings: Settings;
+  connected: boolean;
+  lastError: string | null;
+  activityLog: LogEntry[];
+  
+  // Actions
+  setNodes: (nodes: Node[]) => void;
+  updateNode: (node: Node) => void;
+  selectNode: (id: string) => void;
+  toggleNodeSelection: (id: string) => void;
+  // ... many more
+}
+```
+
 **API endpoints expected from backend:**
 - `GET /api/nodes` - list all nodes
 - `POST /api/nodes/discover` - trigger discovery
@@ -168,6 +219,13 @@ mled-server/web/
 - `GET /api/status` - controller status
 - `GET /api/events` - SSE stream
 - `GET /api/net/interfaces` - list network interfaces
+
+**Commands to run:**
+```bash
+cd mled-server/web
+npm install
+npm run dev  # Starts on http://localhost:3000
+```
 
 ---
 
@@ -233,6 +291,52 @@ Zustand's shallow comparison triggers re-renders when selector returns a new obj
 - Consider using `zustand/shallow` for multi-value selectors
 - Add a "reconnect" button in UI when SSE is disabled
 - Profile render performance with React DevTools (works with Preact via compat)
+
+### Technical details
+
+**The render loop mechanism:**
+```
+1. Component renders
+2. Selector runs: Array.from(nodes.values()) → new array instance
+3. Zustand: "new reference! trigger re-render"
+4. Goto 1 (infinite loop)
+```
+
+**The fix (memoize outside selector):**
+```typescript
+// Selector returns stable Map reference
+const nodesMap = useAppStore((s) => s.nodes);
+
+// useMemo only re-runs when Map changes
+const nodes = useMemo(
+  () => (nodesMap ? Array.from(nodesMap.values()) : []),
+  [nodesMap]
+);
+```
+
+**SSE debounce pattern:**
+```typescript
+let lastErrorTime = 0;
+
+eventSource.onerror = () => {
+  const now = Date.now();
+  if (now - lastErrorTime < 5000) return; // debounce
+  lastErrorTime = now;
+  // ... handle error
+};
+```
+
+**Key error encountered (Firefox):**
+```
+Warning: A script on this page is using resources.
+Script: http://localhost:3000/src/screens/Nodes.tsx
+```
+
+### What I'd do differently next time
+
+- Start with the `useMemo` pattern from the beginning for any derived arrays
+- Add ESLint rule to flag `Array.from()` inside Zustand selectors
+- Test without backend earlier to catch SSE reconnection issues
 
 ### Code review instructions
 
