@@ -1,6 +1,6 @@
 import { useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { apiClient } from '../lib/apiClient';
+import { apiClient, ApiError } from '../lib/apiClient';
 import {
   useNodes,
   useSortedNodeIds,
@@ -32,13 +32,12 @@ function getPatternLabel(config: PatternConfig | null): string {
   switch (config.type) {
     case 'rainbow':
       return '🎨 Rainbow';
-    case 'solid':
-      const color = config.params.color as string;
-      return `🎨 Solid ${color?.toUpperCase() || ''}`;
-    case 'gradient':
-      return '🎨 Gradient';
-    case 'pulse':
-      return '⚡ Pulse';
+    case 'chase':
+      return '🏃 Chase';
+    case 'breathing':
+      return '💨 Breathing';
+    case 'sparkle':
+      return '✨ Sparkle';
     case 'off':
       return '⬛ Off';
     default:
@@ -65,10 +64,11 @@ function NodeRow({ nodeId }: { nodeId: string }) {
         type="checkbox"
         class="form-check-input"
         checked={isSelected}
-        onChange={(e) => {
+        onClick={(e) => {
           e.stopPropagation();
           toggleSelection(nodeId);
         }}
+        onChange={(e) => e.stopPropagation()}
         disabled={isOffline}
       />
       <span class={`status-dot ${statusClass}`} />
@@ -146,6 +146,10 @@ export function NodesScreen() {
         addLogEntry(`Failed for ${result.failed.length} node(s)`);
       }
     } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        addLogEntry(`Apply rejected (400): ${err.message}`);
+        return;
+      }
       addLogEntry(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   }, [selectedNodeIds, globalBrightness, addLogEntry]);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { apiClient } from '../lib/apiClient';
+import { apiClient, ApiError } from '../lib/apiClient';
 import { usePresets, useEditingPreset, useSelectedNodeIds } from '../lib/useStableSelector';
 import { EmojiPicker } from '../components/EmojiPicker';
 import type { Preset, PatternType, PatternConfig } from '../types';
@@ -639,6 +639,10 @@ export function PatternsScreen() {
       });
       addLogEntry('Preview applied');
     } catch (err) {
+      if (err instanceof ApiError && err.status === 400) {
+        addLogEntry(`Preview rejected (400): ${err.message}`);
+        return;
+      }
       addLogEntry(`Preview error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
   }, [selectedNodeIdsArray, addLogEntry]);

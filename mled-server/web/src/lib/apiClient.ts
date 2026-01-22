@@ -115,9 +115,14 @@ function transformApplyResponse(backend: BackendApplyResponse): ApplyResponse {
 // ============================================================================
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  public status: number;
+  public body: unknown;
+
+  constructor(status: number, message: string, body?: unknown) {
     super(message);
     this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
   }
 }
 
@@ -130,13 +135,28 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new ApiError(res.status, `API Error: ${res.status} ${text}`);
+  const text = await res.text();
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
   }
 
-  return res.json();
+  if (!res.ok) {
+    const message =
+      (data && typeof data === 'object' && 'error' in data && typeof (data as any).error === 'string')
+        ? (data as any).error
+        : (typeof data === 'string' ? data : res.statusText);
+    throw new ApiError(res.status, message || `HTTP ${res.status}`, data);
+  }
+
+  return data as T;
 }
+
+export { ApiError };
 
 // ============================================================================
 // API Client
