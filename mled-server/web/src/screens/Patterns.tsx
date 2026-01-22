@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
 import { apiClient } from '../lib/apiClient';
 import { usePresets, useEditingPreset, useSelectedNodeIds } from '../lib/useStableSelector';
+import { EmojiPicker } from '../components/EmojiPicker';
 import type { Preset, PatternType, PatternConfig } from '../types';
 
 const PATTERN_TYPES: { value: PatternType; label: string }[] = [
@@ -269,8 +270,8 @@ function PresetEditor({
     setName((e.target as HTMLInputElement).value);
   }, []);
 
-  const handleIconChange = useCallback((e: Event) => {
-    setIcon((e.target as HTMLInputElement).value);
+  const handleIconChange = useCallback((newIcon: string) => {
+    setIcon(newIcon);
   }, []);
 
   const handleBrightnessChange = useCallback((e: Event) => {
@@ -295,13 +296,7 @@ function PresetEditor({
 
         <div class="mb-3">
           <label class="form-label">Icon</label>
-          <input
-            type="text"
-            class="form-control"
-            style={{ maxWidth: '80px' }}
-            value={icon}
-            onInput={handleIconChange}
-          />
+          <EmojiPicker value={icon} onChange={handleIconChange} />
         </div>
 
         <div class="mb-3">

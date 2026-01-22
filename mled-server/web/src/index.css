@@ -109,6 +109,23 @@ html, body {
   padding-left: 13px;
 }
 
+/* FIXED: Node name text contrast - was dark on dark */
+.node-row .fw-medium,
+.node-row .node-name {
+  color: var(--text-primary) !important;
+  font-weight: 600;
+}
+
+/* FIXED: Ensure all text in node rows is readable */
+.node-row .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+/* FIXED: Offline text should still be readable */
+.node-row .text-danger {
+  color: var(--accent-danger) !important;
+}
+
 /* Status indicators */
 .status-dot {
   width: 10px;
@@ -162,19 +179,37 @@ html, body {
   transform: translateY(0);
 }
 
-/* Form controls */
+/* Form controls - FIXED: explicit colors for better contrast */
 .form-control, .form-select {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary) !important;
   border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   border-radius: 6px;
 }
 
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+}
+
 .form-control:focus, .form-select:focus {
-  background: var(--bg-tertiary);
+  background: var(--bg-tertiary) !important;
   border-color: var(--accent-primary);
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.25);
+}
+
+/* FIXED: Select dropdown options */
+.form-select option {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* FIXED: Form labels need to be visible */
+.form-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 6px;
 }
 
 .form-range {
@@ -256,9 +291,9 @@ html, body {
   border-color: var(--accent-primary);
 }
 
-/* Tables */
+/* Tables - FIXED: explicit colors for table cells */
 .table {
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
   border-color: var(--border-color);
 }
 
@@ -272,11 +307,21 @@ html, body {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  color: var(--text-secondary);
+  color: var(--text-secondary) !important;
 }
 
 .table > tbody > tr {
   border-bottom-color: var(--border-color);
+}
+
+.table > tbody > tr > td {
+  color: var(--text-primary) !important;
+}
+
+/* FIXED: First column (node name) should be brighter */
+.table > tbody > tr > td:first-child {
+  color: var(--text-primary) !important;
+  font-weight: 600;
 }
 
 .table > tbody > tr:hover {
@@ -531,4 +576,101 @@ input[type="color"] {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
+}
+
+/* Emoji Picker */
+.emoji-picker-container {
+  position: relative;
+  display: inline-block;
+}
+
+.emoji-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emoji-picker-btn:hover {
+  border-color: var(--accent-primary);
+}
+
+.emoji-preview {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.emoji-arrow {
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.emoji-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  width: 320px;
+  max-height: 350px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.emoji-search-wrapper {
+  padding: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.emoji-search {
+  font-size: 0.875rem;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+  padding: 8px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.emoji-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 1.25rem;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.emoji-option:hover {
+  background: var(--bg-tertiary);
+  transform: scale(1.15);
+}
+
+.emoji-option.selected {
+  background: rgba(88, 166, 255, 0.2);
+  border-color: var(--accent-primary);
+}
+
+.emoji-no-results {
+  grid-column: 1 / -1;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
 }
