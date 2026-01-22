@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'preact/hooks';
+import { useState, useEffect, useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { applyPattern, createPreset, updatePreset, deletePreset as apiDeletePreset } from '../api';
+import { apiClient } from '../lib/apiClient';
+import { usePresets, useEditingPreset, useSelectedNodeIds } from '../lib/useStableSelector';
 import type { Preset, PatternType, PatternConfig } from '../types';
 
 const PATTERN_TYPES: { value: PatternType; label: string }[] = [
@@ -375,19 +376,19 @@ function PresetEditor({
 }
 
 export function PatternsScreen() {
-  const presets = useAppStore((s) => s.presets);
+  // Use stable selector hooks
+  const presets = usePresets();
+  const editingPreset = useEditingPreset();
+  const selectedNodeIdsArray = useSelectedNodeIds();
+  
+  // Direct store access for actions
   const editingPresetId = useAppStore((s) => s.editingPresetId);
   const setEditingPresetId = useAppStore((s) => s.setEditingPresetId);
   const storeAddPreset = useAppStore((s) => s.addPreset);
   const storeUpdatePreset = useAppStore((s) => s.updatePreset);
   const storeDeletePreset = useAppStore((s) => s.deletePreset);
-  const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
 
-  const editingPreset = useMemo(
-    () => presets.find((p) => p.id === editingPresetId) || null,
-    [presets, editingPresetId]
-  );
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [tempPreset, setTempPreset] = useState<Preset | null>(null);
 
@@ -416,11 +417,11 @@ export function PatternsScreen() {
   const handleSave = useCallback(async (preset: Preset) => {
     try {
       if (isCreatingNew) {
-        await createPreset(preset);
+        await apiClient.createPreset(preset);
         storeAddPreset(preset);
         addLogEntry(`Created preset: ${preset.name}`);
       } else {
-        await updatePreset(preset);
+        await apiClient.updatePreset(preset);
         storeUpdatePreset(preset);
         addLogEntry(`Updated preset: ${preset.name}`);
       }
@@ -437,7 +438,7 @@ export function PatternsScreen() {
     
     if (confirm(`Delete preset "${editingPreset.name}"?`)) {
       try {
-        await apiDeletePreset(editingPreset.id);
+        await apiClient.deletePreset(editingPreset.id);
         storeDeletePreset(editingPreset.id);
         addLogEntry(`Deleted preset: ${editingPreset.name}`);
         setEditingPresetId(null);
@@ -454,22 +455,22 @@ export function PatternsScreen() {
   }, [setEditingPresetId]);
 
   const handlePreview = useCallback(async (preset: Preset) => {
-    if (selectedNodeIds.size === 0) {
+    if (selectedNodeIdsArray.length === 0) {
       addLogEntry('No nodes selected for preview');
       return;
     }
 
     try {
       addLogEntry(`Previewing ${preset.name}...`);
-      await applyPattern({
-        node_ids: Array.from(selectedNodeIds),
+      await apiClient.applyPattern({
+        node_ids: selectedNodeIdsArray,
         config: preset.config,
       });
       addLogEntry('Preview applied');
     } catch (err) {
       addLogEntry(`Preview error: ${err instanceof Error ? err.message : 'Unknown'}`);
     }
-  }, [selectedNodeIds, addLogEntry]);
+  }, [selectedNodeIdsArray, addLogEntry]);
 
   const currentPreset = isCreatingNew ? tempPreset : editingPreset;
 

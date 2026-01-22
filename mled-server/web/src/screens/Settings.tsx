@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'preact/hooks';
+import { useState, useEffect, useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { updateSettings, fetchNetworkInterfaces } from '../api';
+import { apiClient } from '../lib/apiClient';
+import { usePresets } from '../lib/useStableSelector';
 import type { Settings, NetworkInterface } from '../types';
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const settings = useAppStore((s) => s.settings);
-  const presets = useAppStore((s) => s.presets);
+  const presets = usePresets();
   const setSettings = useAppStore((s) => s.setSettings);
   const setPresets = useAppStore((s) => s.setPresets);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
@@ -16,7 +17,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   // Load network interfaces
   useEffect(() => {
-    fetchNetworkInterfaces()
+    apiClient.fetchNetworkInterfaces()
       .then(setInterfaces)
       .catch(() => {
         // Fallback if API not available
@@ -24,14 +25,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       });
   }, []);
 
-  const handleChange = <K extends keyof Settings>(key: K, value: Settings[K]) => {
+  const handleChange = useCallback(<K extends keyof Settings>(key: K, value: Settings[K]) => {
     setLocalSettings((prev) => ({ ...prev, [key]: value }));
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const updated = await updateSettings(localSettings);
+      const updated = await apiClient.updateSettings(localSettings);
       setSettings(updated);
       addLogEntry('Settings saved');
       onClose();
@@ -40,9 +41,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     } finally {
       setSaving(false);
     }
-  };
+  }, [localSettings, setSettings, addLogEntry, onClose]);
 
-  const handleExportPresets = () => {
+  const handleExportPresets = useCallback(() => {
     const data = JSON.stringify(presets, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -54,9 +55,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     addLogEntry('Presets exported');
-  };
+  }, [presets, addLogEntry]);
 
-  const handleImportPresets = () => {
+  const handleImportPresets = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -78,7 +79,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       }
     };
     input.click();
-  };
+  }, [setPresets, addLogEntry]);
 
   return (
     <div class="modal d-block" style={{ background: 'rgba(0,0,0,0.7)' }}>

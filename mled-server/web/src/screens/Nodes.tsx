@@ -1,6 +1,14 @@
-import { useMemo, useCallback } from 'preact/hooks';
+import { useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { applyPattern } from '../api';
+import { apiClient } from '../lib/apiClient';
+import {
+  useNodes,
+  useSortedNodeIds,
+  useOnlineNodes,
+  usePresets,
+  useSelectedCount,
+  useIsNodeSelected,
+} from '../lib/useStableSelector';
 import type { Preset, PatternConfig } from '../types';
 
 function formatRssi(rssi: number): string {
@@ -40,7 +48,7 @@ function getPatternLabel(config: PatternConfig | null): string {
 
 function NodeRow({ nodeId }: { nodeId: string }) {
   const node = useAppStore((s) => s.nodes.get(nodeId));
-  const isSelected = useAppStore((s) => s.selectedNodeIds.has(nodeId));
+  const isSelected = useIsNodeSelected(nodeId);
   const toggleSelection = useAppStore((s) => s.toggleNodeSelection);
 
   if (!node) return null;
@@ -100,39 +108,22 @@ function PresetButton({ preset, onApply }: { preset: Preset; onApply: (preset: P
 }
 
 export function NodesScreen() {
-  // Get stable references from store
-  const nodesMap = useAppStore((s) => s.nodes);
+  // Use stable selector hooks
+  const nodes = useNodes();
+  const sortedNodeIds = useSortedNodeIds();
+  const onlineNodes = useOnlineNodes();
+  const presets = usePresets();
+  const selectedCount = useSelectedCount();
+  
+  // Direct store access for primitives and actions (no memo needed)
   const selectedNodeIds = useAppStore((s) => s.selectedNodeIds);
-  const presets = useAppStore((s) => s.presets);
   const globalBrightness = useAppStore((s) => s.globalBrightness);
   const setGlobalBrightness = useAppStore((s) => s.setGlobalBrightness);
   const selectAll = useAppStore((s) => s.selectAll);
   const selectNone = useAppStore((s) => s.selectNone);
   const addLogEntry = useAppStore((s) => s.addLogEntry);
 
-  // Derive node arrays with useMemo to avoid recreating on every render
-  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
-  
-  const sortedNodeIds = useMemo(() => {
-    return [...nodes]
-      .sort((a, b) => {
-        if (a.status === 'offline' && b.status !== 'offline') return 1;
-        if (a.status !== 'offline' && b.status === 'offline') return -1;
-        return (a.name || a.node_id).localeCompare(b.name || b.node_id);
-      })
-      .map((n) => n.node_id);
-  }, [nodes]);
-
-  const onlineNodes = useMemo(
-    () => nodes.filter((n) => n.status !== 'offline'),
-    [nodes]
-  );
-  const offlineNodes = useMemo(
-    () => nodes.filter((n) => n.status === 'offline'),
-    [nodes]
-  );
-
-  const selectedCount = selectedNodeIds.size;
+  const offlineCount = nodes.length - onlineNodes.length;
 
   const handleApplyPreset = useCallback(async (preset: Preset) => {
     if (selectedNodeIds.size === 0) {
@@ -143,7 +134,7 @@ export function NodesScreen() {
     const nodeIds = Array.from(selectedNodeIds);
     try {
       addLogEntry(`Applying ${preset.name} to ${nodeIds.length} node(s)...`);
-      const result = await applyPattern({
+      const result = await apiClient.applyPattern({
         node_ids: nodeIds,
         config: {
           ...preset.config,
@@ -220,7 +211,7 @@ export function NodesScreen() {
         <span>·</span>
         <span>
           <span class="status-dot offline me-1" style={{ width: '8px', height: '8px' }} />
-          {offlineNodes.length} offline
+          {offlineCount} offline
         </span>
         <span>·</span>
         <span class="text-primary">{selectedCount} selected</span>

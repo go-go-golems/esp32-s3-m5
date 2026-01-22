@@ -4,7 +4,8 @@ import './index.css';
 
 import { useAppStore } from './store';
 import type { TabId } from './store';
-import { connectSSE, loadInitialData } from './api';
+import { connectSSE, disconnectSSE } from './lib/connectionManager';
+import { loadInitialData } from './api';
 import { NodesScreen } from './screens/Nodes';
 import { PatternsScreen } from './screens/Patterns';
 import { StatusScreen } from './screens/Status';
@@ -34,7 +35,10 @@ export function App() {
       loadInitialData();
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      disconnectSSE();
+    };
   }, []);
 
   const renderScreen = () => {

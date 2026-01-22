@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from 'preact/hooks';
 import { useAppStore } from '../store';
-import { discoverNodes } from '../api';
+import { apiClient } from '../lib/apiClient';
+import { useNodes, useOnlineNodes, useSortedNodes } from '../lib/useStableSelector';
 import type { Node } from '../types';
 
 function formatRssi(rssi: number): string {
@@ -73,14 +74,10 @@ function detectProblems(nodes: Node[]): Problem[] {
 }
 
 function SystemBanner() {
-  const nodesMap = useAppStore((s) => s.nodes);
+  const nodes = useNodes();
+  const onlineNodes = useOnlineNodes();
   const status = useAppStore((s) => s.status);
 
-  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
-  const onlineNodes = useMemo(
-    () => nodes.filter((n) => n.status !== 'offline'),
-    [nodes]
-  );
   const problematicNodes = useMemo(
     () => nodes.filter((n) => n.status === 'offline' || n.status === 'weak'),
     [nodes]
@@ -124,8 +121,7 @@ function SystemBanner() {
 }
 
 function ProblemList() {
-  const nodesMap = useAppStore((s) => s.nodes);
-  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
+  const nodes = useNodes();
   const problems = useMemo(() => detectProblems(nodes), [nodes]);
 
   if (problems.length === 0) {
@@ -157,19 +153,7 @@ function ProblemList() {
 }
 
 function NodeTable() {
-  const nodesMap = useAppStore((s) => s.nodes);
-  const nodes = useMemo(() => nodesMap ? Array.from(nodesMap.values()) : [], [nodesMap]);
-
-  // Sort: online first, then weak, then offline
-  const sortedNodes = useMemo(() => {
-    return [...nodes].sort((a, b) => {
-      const statusOrder = { online: 0, weak: 1, offline: 2 };
-      const aOrder = statusOrder[a.status] ?? 2;
-      const bOrder = statusOrder[b.status] ?? 2;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return (a.name || a.node_id).localeCompare(b.name || b.node_id);
-    });
-  }, [nodes]);
+  const sortedNodes = useSortedNodes();
 
   return (
     <div class="card mb-4">
@@ -226,7 +210,7 @@ export function StatusScreen() {
   const handleRefresh = useCallback(async () => {
     try {
       addLogEntry('Refreshing nodes...');
-      const nodes = await discoverNodes(1000);
+      const nodes = await apiClient.discoverNodes(1000);
       setNodes(nodes);
       addLogEntry(`Discovered ${nodes.length} node(s)`);
     } catch (err) {
