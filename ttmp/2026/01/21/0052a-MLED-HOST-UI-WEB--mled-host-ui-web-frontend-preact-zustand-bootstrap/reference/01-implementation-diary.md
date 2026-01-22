@@ -905,6 +905,75 @@ SPARKLE (type=4):
 
 ---
 
+## Step 7: Fix Node Checkbox + Apply Chase/Sparkle/Breathing on Backend
+
+Clicking the node checkbox was toggling twice due to the row-level click handler, so selection never changed. Also, the backend `apply` handler still only supported old pattern types, which caused 400 errors for the new MLED/1 patterns (chase/breathing/sparkle). This step fixes the selection UX and makes the backend accept full protocol patterns.
+
+**Commit (code):** 3ae7d87 — "Fix node checkbox toggle + support protocol patterns in apply"
+
+### What I did
+
+1. Fixed node selection UX in `Nodes.tsx`:
+   - Checkbox now handles selection directly and stops event propagation.
+   - Row click still toggles selection for the whole row.
+
+2. Added structured 400 error handling on apply:
+   - `ApiError` now parses JSON error bodies.
+   - Apply/preview logs show `Apply rejected (400): ...` instead of generic errors.
+
+3. Updated backend `BuildWirePattern()`:
+   - Added support for **chase**, **breathing**, **sparkle** pattern types.
+   - Used real protocol fields: `fg_color`, `bg_color`, `direction`, `fade_tail`, etc.
+   - Added enum parsing for `direction`, `curve`, `color_mode`.
+   - Added bool parsing for `fade_tail`.
+   - Updated rainbow to use `speed`, `saturation`, `spread_x10`.
+
+4. Updated node pattern mapping:
+   - Node DTO now reports `chase`, `breathing`, `sparkle` types.
+
+### Why
+
+- Checkbox clicks were firing both `onChange` and row `onClick`, resulting in double-toggle and no net change.
+- The UI now emits real MLED/1 patterns; backend still rejected those types with 400.
+
+### What worked
+
+- Checkbox now behaves correctly; row click still works.
+- Apply succeeds for chase/breathing/sparkle configs.
+- Error logs are much clearer for 400s.
+
+### What didn't work
+
+- Old backend mapping still only supported `solid/pulse/gradient`, causing 400s.
+
+### What I learned
+
+- UI and backend must evolve together when protocol-level enums change.
+- Structured error bodies are easier to surface in UI logs than raw status text.
+
+### What was tricky to build
+
+- Keeping backward compatibility for old presets while adding new pattern types.
+- Mapping string enums (`forward`, `sine`, `rainbow`) to protocol byte values.
+
+### What warrants a second pair of eyes
+
+1. Verify chase/breathing/sparkle param mappings align with `protocol.h` byte offsets.
+2. Confirm any existing legacy presets still apply successfully.
+
+### What should be done in the future
+
+- Add validation for parameter ranges in UI before sending to API.
+- Add a backend unit test for `BuildWirePattern()` mappings.
+
+### Code review instructions
+
+1. `mled-server/internal/mledhost/patterns.go`: verify new pattern cases and enum parsing.
+2. `mled-server/web/src/screens/Nodes.tsx`: checkbox click propagation fix.
+3. Apply a chase preset in UI and confirm no 400 in logs.
+
+---
+
 ## Related
 
 - Parent ticket: [0052-MLED-HOST-UI](../../../0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/index.md)
