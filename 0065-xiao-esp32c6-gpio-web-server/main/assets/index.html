@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ESP32-C6 GPIO (D2/D3)</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        margin: 16px;
+        max-width: 720px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px 0;
+      }
+      button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+        cursor: pointer;
+      }
+      .pill {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(127, 127, 127, 0.35);
+      }
+      .ok {
+        color: #0a7;
+      }
+      .bad {
+        color: #d33;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ESP32-C6 GPIO</h1>
+    <p class="muted">Toggle D2/D3 via HTTP. Configure Wi‑Fi from the <span class="pill">c6&gt;</span> console.</p>
+
+    <div class="row">
+      <div style="width: 110px">D2</div>
+      <div id="d2State" class="pill">?</div>
+      <button id="d2Toggle">Toggle</button>
+      <button id="d2On">On</button>
+      <button id="d2Off">Off</button>
+    </div>
+
+    <div class="row">
+      <div style="width: 110px">D3</div>
+      <div id="d3State" class="pill">?</div>
+      <button id="d3Toggle">Toggle</button>
+      <button id="d3On">On</button>
+      <button id="d3Off">Off</button>
+    </div>
+
+    <hr />
+
+    <div class="row">
+      <div style="width: 110px">HTTP</div>
+      <div id="httpStatus" class="pill">…</div>
+      <div id="pins" class="muted"></div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      function setStatus(ok, text) {
+        const el = $("httpStatus");
+        el.textContent = text;
+        el.classList.toggle("ok", ok);
+        el.classList.toggle("bad", !ok);
+      }
+
+      async function apiGetState() {
+        const r = await fetch("/api/gpio", { cache: "no-store" });
+        if (!r.ok) throw new Error(`GET /api/gpio -> ${r.status}`);
+        return await r.json();
+      }
+
+      async function apiSet(partial) {
+        const r = await fetch("/api/gpio", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(partial),
+        });
+        if (!r.ok) throw new Error(`POST /api/gpio -> ${r.status}`);
+        return await r.json();
+      }
+
+      async function apiToggle(pin) {
+        const r = await fetch(`/api/gpio/${pin}/toggle`, { method: "POST" });
+        if (!r.ok) throw new Error(`POST toggle -> ${r.status}`);
+        return await r.json();
+      }
+
+      function render(st) {
+        $("d2State").textContent = st.d2 ? "ON" : "OFF";
+        $("d3State").textContent = st.d3 ? "ON" : "OFF";
+        $("pins").textContent = `D2=gpio${st.d2_gpio} (${st.d2_active_low ? "active-low" : "active-high"}), D3=gpio${st.d3_gpio} (${st.d3_active_low ? "active-low" : "active-high"})`;
+      }
+
+      async function refresh() {
+        try {
+          const st = await apiGetState();
+          render(st);
+          setStatus(true, "OK");
+        } catch (e) {
+          setStatus(false, String(e));
+        }
+      }
+
+      $("d2Toggle").onclick = async () => { await apiToggle("d2"); await refresh(); };
+      $("d3Toggle").onclick = async () => { await apiToggle("d3"); await refresh(); };
+      $("d2On").onclick = async () => { await apiSet({ d2: 1 }); await refresh(); };
+      $("d2Off").onclick = async () => { await apiSet({ d2: 0 }); await refresh(); };
+      $("d3On").onclick = async () => { await apiSet({ d3: 1 }); await refresh(); };
+      $("d3Off").onclick = async () => { await apiSet({ d3: 0 }); await refresh(); };
+
+      refresh();
+      setInterval(refresh, 1000);
+    </script>
+  </body>
+</html>
+

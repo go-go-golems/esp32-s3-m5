@@ -1,0 +1,27 @@
+menu "MO-065: GPIO web server"
+
+config MO065_GPIO_D2_GPIO_NUM
+    int "D2 GPIO number"
+    default 2
+    help
+        GPIO number to treat as “D2”.
+
+config MO065_GPIO_D3_GPIO_NUM
+    int "D3 GPIO number"
+    default 21
+    help
+        GPIO number to treat as “D3”.
+
+config MO065_GPIO_D2_ACTIVE_LOW
+    bool "D2 active-low output"
+    default y
+    help
+        If enabled, logical “on” drives the GPIO low.
+
+config MO065_GPIO_D3_ACTIVE_LOW
+    bool "D3 active-low output"
+    default y
+    help
+        If enabled, logical “on” drives the GPIO low.
+
+endmenu
