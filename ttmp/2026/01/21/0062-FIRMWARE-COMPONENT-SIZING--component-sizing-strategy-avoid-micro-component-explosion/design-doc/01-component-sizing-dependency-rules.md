@@ -42,8 +42,8 @@ We adopt a “few public components, many private modules” approach:
 For the 0048/JS/WebUI stack, this means the next extractions should be limited to:
 
 1) `encoder_service` (hardware + polling/coalescing + event model; no Web/JS coupling)
-2) `webui_server` (ESP HTTP server + embedded assets + WS hub; no JS)
-3) `mqjs_integrations` (bind `mqjs_service` to console + HTTP routes; keep glue centralized)
+2) `webui_server` (ESP HTTP server + embedded assets + WS hub; no JS) — ticket `0063-WEBUI-SERVER-COMPONENT`
+3) `mqjs_integrations` (bind `mqjs_service` to console + HTTP routes; keep glue centralized) — ticket `0064-MQJS-INTEGRATIONS-COMPONENT`
 
 ## Problem Statement
 
@@ -252,4 +252,6 @@ The important property is that each API remains small and stable. JSON formattin
 - Ticket `0054-MQJS-VM-COMPONENT`
 - Ticket `0055-MQJS-SERVICE-COMPONENT`
 - Ticket `0056-ENCODER-SERVICE-COMPONENT`
+- Ticket `0063-WEBUI-SERVER-COMPONENT`
+- Ticket `0064-MQJS-INTEGRATIONS-COMPONENT`
 - Ticket `0061-MQJS-SERVICE-BOOT-WDT`
