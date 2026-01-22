@@ -181,7 +181,7 @@ TypeScript's structural typing means we could just use `Node` for both. But this
 1. ✅ Create `src/lib/useStableSelector.ts` with node/preset hooks
 2. ✅ Create `src/lib/connectionManager.ts` with SSE manager
 3. ✅ Create `src/lib/apiClient.ts` with transformers
-4. ⬜ Migrate screens to use new hooks (future refactor)
+4. ✅ Migrate screens to use new hooks (commit 79e4300)
 5. ⬜ Add tests for edge cases (null data, rapid errors)
 
 ## File Reference

@@ -279,6 +279,54 @@ The design doc specified one format but the backend implemented a slightly diffe
 
 ---
 
+## Step 4: Apply Design Patterns Throughout the App
+
+Refactored all screens to use the three design patterns created in Step 3.
+
+**Commit (code):** 79e4300 — "Refactor Web UI to use design patterns throughout"
+
+### What I did
+
+1. **Nodes.tsx**: Replaced inline selectors with hooks:
+   - `useNodes()`, `useSortedNodeIds()`, `useOnlineNodes()`
+   - `usePresets()`, `useSelectedCount()`, `useIsNodeSelected()`
+   - Uses `apiClient.applyPattern()` instead of direct import
+
+2. **Patterns.tsx**: Replaced inline selectors with hooks:
+   - `usePresets()`, `useEditingPreset()`, `useSelectedNodeIds()`
+   - Uses `apiClient.*` for all API calls
+
+3. **Status.tsx**: Replaced inline selectors with hooks:
+   - `useNodes()`, `useOnlineNodes()`, `useSortedNodes()`
+   - Uses `apiClient.discoverNodes()` for refresh
+
+4. **Settings.tsx**: Uses `usePresets()` hook
+
+5. **app.tsx**: 
+   - Uses `connectSSE`/`disconnectSSE` from connectionManager
+   - Proper cleanup on unmount
+
+6. **api.ts**: Slimmed down to:
+   - Re-exports from `apiClient` for backwards compatibility
+   - Only keeps `loadInitialData()` function
+
+### Why
+
+Applying the patterns consistently across the codebase prevents the issues we debugged earlier from recurring.
+
+### Code size reduction
+
+The refactoring reduced code by ~226 lines (from 325 removed to 99 added), showing that abstracting the patterns makes code more concise.
+
+### What works now
+
+- All screens use stable selectors (no render loops)
+- SSE connection has proper exponential backoff
+- API calls go through type-safe transformers
+- Clean separation of concerns
+
+---
+
 ## Related
 
 - Parent ticket: [0052-MLED-HOST-UI](../../../0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/index.md)
