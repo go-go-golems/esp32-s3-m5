@@ -271,6 +271,33 @@ Expose two “board label” GPIOs (G3 and G4) to MicroQuickJS so that JS script
 - `d22d698` — `0066: add JS GPIO control for G3/G4`
 - `097bf16` — `0066: extend JS smoke script for GPIO`
 
+---
+
+## Step 13: Upload ticket bundle to reMarkable (2026-01-23)
+
+### What was uploaded
+
+To make review easy on the device, I bundled the key ticket documents into a single PDF (with ToC):
+
+- ticket `index.md`
+- `tasks.md`
+- `reference/02-js-postmortem.md`
+- `reference/01-diary.md`
+- all `design-doc/*.md` (deep research + JS design docs)
+
+### Commands / result
+
+- `remarquee upload bundle --dry-run ... --name "0066 Cardputer LEDChain GFX Sim (Ticket Bundle)" --remote-dir "/ai/2026/01/23/0066-cardputer-ledchain-gfx-sim/" --toc-depth 3`
+- `remarquee upload bundle ...` (same args)
+
+Verified remote dir listing includes the new file:
+
+- `/ai/2026/01/23/0066-cardputer-ledchain-gfx-sim/0066 Cardputer LEDChain GFX Sim (Ticket Bundle).pdf`
+
+### Next
+
+Resume Phase 5: refactor the simulator so the pattern engine renders in its own task (~60 Hz) and publishes a latest-frame snapshot; migrate UI + console/web/JS control paths to enqueue commands instead of locking the engine mutex directly.
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
