@@ -550,3 +550,28 @@ The main “gotcha” is the MicroQuickJS generation model: *bindings are not ad
 - keep `sim_engine` as the single source of truth,
 - keep the JS API as thin wrappers,
 - avoid console transport contention by using one REPL.
+
+---
+
+## Step 8: Design doc — MQJS timers + GPIO sequencing (2026-01-23)
+
+This step is **documentation-only**: no firmware changes, only a design/analysis write-up for the next feature set:
+
+- `setTimeout` / periodic JS callbacks
+- GPIO toggling for two pins (“G3” / “G4”)
+- higher-level sequencing layer options built on timers
+
+### What I did
+
+- Reviewed prior art in the repo:
+  - `components/mqjs_service` / `components/mqjs_vm` (single-owner VM + job execution + deadlines)
+  - `0048-cardputer-js-web/main/js_service.cpp` (bootstrap namespace, callback storage, `JS_Call` pattern)
+  - `0047-cardputer-adv-lvgl-chain-encoder-list/main/lvgl_port_m5gfx.cpp` (periodic `esp_timer` pattern)
+- Wrote a detailed design document:
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/design-doc/03-mqjs-timers-and-gpio-sequencer.md`
+
+### Key conclusions
+
+- Timers are fundamentally an **execution model** problem: JS must run on a single VM owner task, never inside `esp_timer` callbacks.
+- The cleanest implementation path is to reuse `mqjs_service` and treat timers as “enqueue jobs to the VM thread when due”.
+- Sequencing can start as pure JS (userland) once timers exist, and only later graduate to a native “sequencer” object if needed.

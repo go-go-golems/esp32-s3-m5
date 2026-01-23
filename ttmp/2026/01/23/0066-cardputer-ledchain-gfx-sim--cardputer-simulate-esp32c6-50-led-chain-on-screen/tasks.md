@@ -36,3 +36,11 @@
 - [x] Smoke test on hardware: `js eval sim.status()` and setting patterns/brightness
 - [ ] Optional: add `sim.statusJson()` (or seed `JSON.stringify(sim.status())` helper)
 - [ ] Optional: add SPIFFS-backed `load(path)` + `:autoload` for JS libraries
+
+## MQJS Timers + GPIO Sequencer
+
+- [ ] Design: setTimeout / interval callbacks + sequencing (this doc)
+- [ ] Implement: `setTimeout(fn, ms)` and `clearTimeout(id)`
+- [ ] Implement: periodic callback primitive (`setInterval` or `every(ms, fn)`)
+- [ ] Implement: GPIO G3/G4 toggle primitives (and explicit pin mapping)
+- [ ] Document: example toggle sequences (JS snippets)
