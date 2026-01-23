@@ -75,6 +75,12 @@ topics:
       description: micro-quickjs embedding wrapper for QuickJS
     - slug: rest
       description: REST-style HTTP APIs
+    - slug: i2c
+      description: Inter-Integrated Circuit (I2C) bus, drivers, bring-up, and peripherals
+    - slug: oled
+      description: OLED displays and controllers (e.g., SSD1306) and their integration
+    - slug: xiao
+      description: Seeed Studio XIAO board family (pinouts, quirks, integration)
 docTypes:
     - slug: index
       description: Ticket index document

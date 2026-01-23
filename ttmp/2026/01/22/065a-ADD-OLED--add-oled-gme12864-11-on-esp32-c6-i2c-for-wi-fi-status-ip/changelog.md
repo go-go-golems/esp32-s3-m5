@@ -1,0 +1,19 @@
+# Changelog
+
+## 2026-01-22
+
+- Initial workspace created
+
+
+## 2026-01-22
+
+Scaffolded ticket + drafted OLED integration docs (wiring, esp_lcd SSD1306 plan, font strategy) and added reproducible research scripts.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/design-doc/01-oled-integration-wiring-esp-lcd-wi-fi-status-ip.md — Main integration design doc
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/playbook/01-bring-up-checklist-i2c-oled-gme12864-11.md — Bring-up checklist
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/reference/01-diary.md — Step-by-step diary
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/scripts/idf_inventory_ssd1306.sh — ESP-IDF SSD1306 inventory script
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/scripts/lookup_gme12864_11_sources.py — Research breadcrumb script
+
