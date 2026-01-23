@@ -202,6 +202,16 @@ static void oled_task(void *arg)
 
 esp_err_t oled_status_start(void)
 {
+    ESP_LOGI(TAG,
+             "OLED config: sda=%d scl=%d addr=0x%02X speed=%dHz internal_pullups=%s scan_on_boot=%s refresh=%dms",
+             CONFIG_MO065_OLED_I2C_SDA_GPIO_NUM,
+             CONFIG_MO065_OLED_I2C_SCL_GPIO_NUM,
+             CONFIG_MO065_OLED_I2C_ADDR,
+             CONFIG_MO065_OLED_I2C_SPEED_HZ,
+             CONFIG_MO065_OLED_I2C_INTERNAL_PULLUPS ? "yes" : "no",
+             CONFIG_MO065_OLED_SCAN_ON_BOOT ? "yes" : "no",
+             CONFIG_MO065_OLED_REFRESH_MS);
+
     esp_err_t err = oled_init();
     if (err != ESP_OK) return err;
 
@@ -212,6 +222,7 @@ esp_err_t oled_status_start(void)
             ESP_LOGE(TAG, "xTaskCreate(oled) failed");
             return ESP_ERR_NO_MEM;
         }
+        ESP_LOGI(TAG, "OLED task started");
     }
     return ESP_OK;
 }
@@ -220,7 +231,7 @@ esp_err_t oled_status_start(void)
 
 esp_err_t oled_status_start(void)
 {
-    return ESP_OK;
+    return ESP_ERR_NOT_SUPPORTED;
 }
 
 #endif

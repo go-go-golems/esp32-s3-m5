@@ -31,7 +31,9 @@ void app_main(void)
     ESP_ERROR_CHECK(wifi_mgr_start());
 
     const esp_err_t oled_err = oled_status_start();
-    if (oled_err != ESP_OK) {
+    if (oled_err == ESP_ERR_NOT_SUPPORTED) {
+        ESP_LOGI(TAG, "OLED disabled (enable in menuconfig: MO-065: OLED status display)");
+    } else if (oled_err != ESP_OK) {
         ESP_LOGW(TAG, "OLED init failed: %s", esp_err_to_name(oled_err));
     }
 
