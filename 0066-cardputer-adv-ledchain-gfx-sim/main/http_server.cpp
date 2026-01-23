@@ -1,6 +1,9 @@
 #include "http_server.h"
 
 #include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "cJSON.h"
@@ -353,4 +356,3 @@ esp_err_t http_server_start(sim_engine_t *engine)
 
     return ESP_OK;
 }
-
