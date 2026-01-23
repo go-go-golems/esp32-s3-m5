@@ -265,3 +265,133 @@ Keep a detailed and frequent diary as you go along, starting with a first entry 
 ### Technical details
 - Upload command pattern (bundled PDF + ToC):
   - `remarquee upload bundle <md...> --name \"...\" --remote-dir \"/ai/2026/01/23/0066-cardputer-ledchain-gfx-sim\" --toc-depth 2`
+
+---
+
+## Step 4: MVP Implementation — Cardputer firmware + console-driven simulator (2026-01-23)
+
+I implemented the first MVP firmware as a new ESP-IDF project (`0066-cardputer-adv-ledchain-gfx-sim`). It reuses the canonical pattern engine (`components/ws281x`) to compute the per-LED RGB values, then renders a 10×5 grid of “LED cells” onto the Cardputer display using M5GFX (`M5Canvas` sprite + `pushSprite`).
+
+The simulator is controlled entirely via `esp_console` over **USB Serial/JTAG** (no network). The console provides `sim status`, `sim pattern set ...`, and per-pattern `sim <pattern> set ...` commands to update parameters.
+
+### Prompt Context
+
+**User prompt (verbatim):** "for a first MVP, we want simulator to just run patterns from the console. no need for network protocol. 
+
+Create the tasks, and then start implementing. Keep a detailed implementation diary, and chek off tasks as you go. Commit code to git at each step. "
+
+**Assistant interpretation:** Implement a Cardputer firmware that renders a virtual 50-LED chain and exposes pattern control via `esp_console` REPL, tracking progress in tasks + diary and committing in small steps.
+
+**Inferred user intent:** You want a fast, reliable MVP that proves end-to-end “pattern math → visible on screen → configurable at runtime” before adding any network mirroring.
+
+**Commit (code):** `eb39f4b` — "0066: add cardputer ledchain gfx sim skeleton"
+
+### What I did
+- Added a new project: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim`
+- Implemented:
+  - `sim_engine` (wraps `led_patterns_t` + virtual `led_ws281x_t` pixel buffer).
+  - `sim_ui` (M5GFX sprite rendering of 50 LEDs as a 10×5 grid + small text overlay).
+  - `sim_console` (REPL with `sim` commands to drive patterns and parameters).
+- Ensured console backend default is USB Serial/JTAG in `sdkconfig.defaults`.
+
+### Why
+- Reusing `components/ws281x` preserves semantics with the ESP32-C6 implementation and avoids “two pattern engines”.
+- A console-driven MVP minimizes UI work and keeps iteration tight.
+
+### What worked
+- `idf.py set-target esp32s3` + `idf.py build` succeeded for the new firmware.
+
+### What didn't work
+- N/A in this step (hardware validation is recorded in Step 5).
+
+### What I learned
+- The simplest stable shape is: compute into a virtual strip byte buffer (wire order) and render from that buffer; this keeps brightness scaling semantics identical to the WS281x sender path.
+
+### What was tricky to build
+- Keeping the pattern config parsing permissive enough for iterative use while still mapping cleanly to the existing param ranges.
+
+### What warrants a second pair of eyes
+- Console UX: argument parsing is intentionally minimal; if you want richer UX (optional args, defaults, validation messages), we should refactor command parsing once behavior stabilizes.
+
+### What should be done in the future
+- Add keyboard shortcuts (optional) once console control is solid.
+
+### Code review instructions
+- Entry points:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/app_main.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_engine.cpp`
+
+### Technical details
+- Pattern engine calls:
+  - `led_patterns_render_to_ws281x(&patterns, now_ms, &virtual_strip)`
+- Rendering:
+  - `rgb565 = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3)`
+
+---
+
+## Step 5: Hardware Smoke Test + Fix crash (M5GFX init stack) (2026-01-23)
+
+I flashed the MVP to the Cardputer on `/dev/ttyACM0` and validated the REPL responds to commands. The first on-device run crashed shortly after `display.init()` with a panic whose backtrace implicated `esp_task_wdt_reset` dereferencing a NULL watchdog object; this symptom is consistent with memory corruption, and in this case it was caused by running M5GFX init in a too-small FreeRTOS task stack.
+
+Increasing the UI task stack (from 4096 to 8192) removed the crash. After that change, the console prompt appeared and `sim help` / `sim status` executed successfully.
+
+### Prompt Context
+
+**User prompt (verbatim):** "btw I attached the cardputer to ttyACM0 so if you want to flash and at least verify you can start the simulations and all, feel free. You can use tmux to read from idf.py monitor / restart the monitoring, etc..."
+
+**Assistant interpretation:** Flash the new firmware to `/dev/ttyACM0` and perform an end-to-end smoke test, using tooling that works in a non-interactive environment.
+
+**Inferred user intent:** You want confidence that the MVP is not just “it builds” but actually runs on the real Cardputer and accepts pattern commands.
+
+**Commit (code):** N/A (fix + scripts are committed in the next step)
+
+### What I did
+- Built + flashed:
+  - `idf.py set-target esp32s3`
+  - `idf.py -p /dev/ttyACM0 flash`
+- Captured crash log and symbolized the backtrace with `xtensa-esp32s3-elf-addr2line` against the ELF.
+- Fixed the crash by increasing the UI task stack to 8192.
+- Added non-interactive verification scripts (per user instruction to keep scripts in the ticket’s `scripts/` dir):
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/serial_smoke_0066.py`
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/tmux_monitor_0066.sh`
+
+### Why
+- `idf.py monitor` needs a TTY; the smoke script allows automated “send commands + capture output” checks without an interactive terminal.
+- The stack increase is a direct mitigation for stack corruption during M5GFX init.
+
+### What worked
+- Flash over `/dev/ttyACM0` works.
+- After increasing the UI task stack, the REPL responds (example command sequence):
+  - `help`
+  - `sim help`
+  - `sim status`
+  - `sim pattern set rainbow`
+  - `sim rainbow set --speed 5 --sat 100 --spread 10 --bri 25`
+
+### What didn't work
+- `idf.py monitor` cannot run in this non-interactive context because it requires stdin to be attached to a TTY.
+
+### What I learned
+- M5GFX `display.init()` can be stack-hungry; initializing it in a 4k task can corrupt memory and produce misleading crashes elsewhere (here: task watchdog code).
+
+### What was tricky to build
+- The failure mode looked like a task watchdog bug, but was actually memory corruption from a too-small task stack.
+
+### What warrants a second pair of eyes
+- If you want long-term robustness, consider moving M5GFX init to the main task (known 8k stack) rather than a separate UI task, or make the UI task stack configurable via Kconfig.
+
+### What should be done in the future
+- Add a tiny “on-screen OK banner” / heartbeat counter so headless smoke tests have a visual confirmation to pair with the console validation.
+
+### Code review instructions
+- Crash fix:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+- Smoke scripts:
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/serial_smoke_0066.py`
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/tmux_monitor_0066.sh`
+
+### Technical details
+- Backtrace symbolization:
+  - `xtensa-esp32s3-elf-addr2line -pfiaC -e build/cardputer_adv_ledchain_gfx_sim_0066.elf <pcs...>`
