@@ -20,9 +20,9 @@
 
 ## Web Server
 
-- [ ] Add Wi-Fi console commands (`wifi ...`) in the same REPL as `sim ...`
-- [ ] Start `esp_http_server` after Wi-Fi got IP
-- [ ] Add `GET /api/status` (JSON)
-- [ ] Add `POST /api/apply` (JSON) to set pattern + params + brightness + frame_ms
-- [ ] Serve a minimal `/` HTML control page (embedded asset)
+- [x] Add Wi-Fi console commands (`wifi ...`) in the same REPL as `sim ...`
+- [x] Start `esp_http_server` after Wi-Fi got IP
+- [x] Add `GET /api/status` (JSON)
+- [x] Add `POST /api/apply` (JSON) to set pattern + params + brightness + frame_ms
+- [x] Serve a minimal `/` HTML control page (embedded asset)
 - [ ] Smoke test: connect to Wi-Fi from console and hit `/api/status`

@@ -395,3 +395,57 @@ Increasing the UI task stack (from 4096 to 8192) removed the crash. After that c
 ### Technical details
 - Backtrace symbolization:
   - `xtensa-esp32s3-elf-addr2line -pfiaC -e build/cardputer_adv_ledchain_gfx_sim_0066.elf <pcs...>`
+
+---
+
+## Step 6: Add Wi-Fi console + Web Server (2026-01-23)
+
+This step adds a minimal web control plane (HTML + JSON API) while preserving the existing console-driven simulator UX.
+
+### Prompt Context
+
+**User prompt (verbatim):** "now add the web server"
+
+**Assistant interpretation:** Integrate Wi-Fi STA management + an `esp_http_server` instance that exposes the simulator’s current state and allows applying pattern settings via JSON.
+
+**Inferred user intent:** You want quick remote control/inspection (from a browser/curl) without committing yet to the full ESP32-C6↔Cardputer mirroring protocol.
+
+### Why this shape
+- `esp_console` supports only one active REPL backend at a time; starting a second REPL is an easy foot-gun.
+- The repo already contains reusable building blocks (`wifi_mgr`, `wifi_console`, `httpd_assets_embed`) that keep this small and consistent with earlier tutorials (notably `0065-xiao-esp32c6-gpio-web-server`).
+- Using `wifi_console`’s `register_extra` hook lets us keep `sim ...` and `wifi ...` in a single REPL.
+
+### What I did
+- Added dependencies to the 0066 project:
+  - `EXTRA_COMPONENT_DIRS` now includes `components/wifi_mgr`, `components/wifi_console`, `components/httpd_assets_embed`.
+- Added a minimal embedded HTML page:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html`
+  - Uses `fetch("/api/status")` and `POST /api/apply` for a tiny interactive control loop.
+- Implemented a small HTTP server module:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
+  - Endpoints:
+    - `GET /` → embedded `index.html`
+    - `GET /api/status` → JSON snapshot of `pattern`, `frame_ms`, `led_count`
+    - `POST /api/apply` → JSON apply for `type`, `brightness_pct`, `frame_ms`, plus optional nested per-pattern objects
+- Refactored console ownership to avoid “two REPLs”:
+  - `sim_console_register_commands(sim_engine_t*)` registers only the `sim` command.
+  - `wifi_console_start(...)` owns the REPL and also registers `wifi ...`.
+- Updated `app_main.cpp` so:
+  - UI starts immediately.
+  - Wi-Fi manager starts.
+  - Web server starts only after STA gets an IP (got-IP callback).
+  - A single REPL is started via `wifi_console_start`, with `sim` commands registered via `register_extra`.
+
+### Commits
+- `729e39d` — "0066: add HTTP server module scaffold"
+- `e4313b3` — "0066: split sim console into register vs REPL"
+- `512f705` — "0066: start wifi console and HTTP server on got-IP"
+
+### What worked
+- Code is structured to keep the original MVP console UX, while enabling web control whenever Wi-Fi is connected.
+
+### What didn't work (yet)
+- Not yet validated on hardware in this step (Wi-Fi join + `curl /api/status`). That validation is a dedicated task in `tasks.md`.
+
+### Review notes / follow-ups
+- If we later add a richer UI, we can switch from embedded HTML to `httpd_assets_embed` serving bundled static assets, without changing the API.
