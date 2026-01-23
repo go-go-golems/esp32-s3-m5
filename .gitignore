@@ -14,6 +14,8 @@ ttmp/**/.meta/
 .pio
 **/sdkconfig
 **/sdkconfig.old
+ttmp/**/various/serial-smoke-logs/
+ttmp/**/various/serial-smoke-*.log
 **/storage.bin
 
 # Tutorial 0017 (AtomS3R Web UI) frontend build outputs
