@@ -54,7 +54,7 @@ static JSValue js_sim_status(JSContext *ctx, JSValue *this_val, int argc, JSValu
   led_pattern_cfg_t cfg = {};
   sim_engine_get_cfg(s_engine, &cfg);
   const uint32_t frame_ms = sim_engine_get_frame_ms(s_engine);
-  const uint16_t led_count = s_engine->strip.cfg.led_count;
+  const uint16_t led_count = sim_engine_get_led_count(s_engine);
 
   JSValue root = JS_NewObject(ctx);
   (void)JS_SetPropertyStr(ctx, root, "ok", JS_NewBool(1));

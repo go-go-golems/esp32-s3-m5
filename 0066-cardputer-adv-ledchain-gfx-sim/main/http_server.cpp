@@ -114,7 +114,7 @@ static esp_err_t status_get(httpd_req_t *req)
     if (!root) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
     (void)cJSON_AddBoolToObject(root, "ok", true);
     (void)cJSON_AddNumberToObject(root, "frame_ms", (double)frame_ms);
-    (void)cJSON_AddNumberToObject(root, "led_count", (double)s_engine->strip.cfg.led_count);
+    (void)cJSON_AddNumberToObject(root, "led_count", (double)sim_engine_get_led_count(s_engine));
 
     cJSON *pattern = cJSON_CreateObject();
     if (!pattern) {

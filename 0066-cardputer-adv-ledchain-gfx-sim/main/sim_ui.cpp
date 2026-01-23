@@ -69,7 +69,7 @@ static void ui_task_main(void *arg)
     const int cell_h = grid_h / kRows;
     const int pad = 2;
 
-    const size_t led_count = (size_t)engine->strip.cfg.led_count;
+    const size_t led_count = (size_t)sim_engine_get_led_count(engine);
     uint8_t frame[3 * 300] = {0};
     if (led_count > 300) {
         ESP_LOGE(TAG, "led_count too large for frame buffer: %u", (unsigned)led_count);
@@ -81,7 +81,8 @@ static void ui_task_main(void *arg)
         const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
         const uint32_t frame_ms = sim_engine_get_frame_ms(engine);
 
-        (void)sim_engine_render(engine, now_ms, frame, sizeof(frame));
+        (void)now_ms;
+        (void)sim_engine_copy_latest_pixels(engine, frame, sizeof(frame));
 
         led_pattern_cfg_t cfg;
         sim_engine_get_cfg(engine, &cfg);
@@ -110,7 +111,7 @@ static void ui_task_main(void *arg)
             const int y0 = kOverlayH + row * cell_h;
 
             uint8_t r = 0, g = 0, b = 0;
-            unpack_rgb(&frame[i * 3], engine->strip.cfg.order, &r, &g, &b);
+            unpack_rgb(&frame[i * 3], sim_engine_get_order(engine), &r, &g, &b);
             const uint16_t c565 = rgb565(r, g, b);
 
             canvas.fillRoundRect(x0 + pad, y0 + pad, cell_w - 2 * pad, cell_h - 2 * pad, 3, c565);
