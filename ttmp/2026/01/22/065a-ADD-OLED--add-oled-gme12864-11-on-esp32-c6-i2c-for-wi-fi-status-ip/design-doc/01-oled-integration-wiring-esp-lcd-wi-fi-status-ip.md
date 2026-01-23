@@ -355,6 +355,10 @@ Use a task:
 ## References
 
 - Firmware: `0065-xiao-esp32c6-gpio-web-server/README.md`
+- Firmware OLED implementation:
+  - `0065-xiao-esp32c6-gpio-web-server/main/oled_status.c`
+  - `0065-xiao-esp32c6-gpio-web-server/main/oled_font_5x7.h`
+  - `0065-xiao-esp32c6-gpio-web-server/main/Kconfig.projbuild`
 - Wi‑Fi status snapshot API: `components/wifi_mgr/include/wifi_mgr.h` and `components/wifi_mgr/wifi_mgr.c`
 - SSD1306 panel: `/home/manuel/esp/esp-idf-5.4.1/components/esp_lcd/src/esp_lcd_panel_ssd1306.c`
 - I2C panel IO: `/home/manuel/esp/esp-idf-5.4.1/components/esp_lcd/include/esp_lcd_io_i2c.h`

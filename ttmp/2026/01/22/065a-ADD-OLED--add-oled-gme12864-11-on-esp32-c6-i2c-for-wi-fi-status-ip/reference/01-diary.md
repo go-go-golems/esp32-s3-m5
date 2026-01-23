@@ -15,6 +15,14 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0065-xiao-esp32c6-gpio-web-server/main/Kconfig.projbuild
+      Note: OLED menuconfig options (commit 44acb37)
+    - Path: 0065-xiao-esp32c6-gpio-web-server/main/app_main.c
+      Note: OLED start hook (commit 44acb37)
+    - Path: 0065-xiao-esp32c6-gpio-web-server/main/oled_font_5x7.h
+      Note: OLED bitmap font (commit 44acb37)
+    - Path: 0065-xiao-esp32c6-gpio-web-server/main/oled_status.c
+      Note: OLED status implementation (commit 44acb37)
     - Path: ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/design-doc/01-oled-integration-wiring-esp-lcd-wi-fi-status-ip.md
       Note: Design doc drafted in Step 3
     - Path: ttmp/2026/01/22/065a-ADD-OLED--add-oled-gme12864-11-on-esp32-c6-i2c-for-wi-fi-status-ip/playbook/01-bring-up-checklist-i2c-oled-gme12864-11.md
@@ -29,6 +37,7 @@ LastUpdated: 2026-01-22T20:49:01.657656365-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -177,3 +186,58 @@ This keeps the ticket self-contained: a reviewer (or future me) can re-run the �
   - `python3 .../scripts/lookup_gme12864_11_sources.py search --limit 3`
   - `python3 .../scripts/lookup_gme12864_11_sources.py fetch --url https://goldenmorninglcd.com/...`
   - `.../scripts/idf_inventory_ssd1306.sh /home/manuel/esp/esp-idf-5.4.1`
+
+## Step 4: Implement OLED status display in firmware 0065
+
+Implemented an optional SSD1306-class I2C OLED “status HUD” in `0065-xiao-esp32c6-gpio-web-server`. The OLED runs as a low-rate polling task that redraws only when Wi‑Fi status changes, showing the state, SSID, and IPv4 address (when available).
+
+This keeps the OLED feature isolated and best-effort: if the display is not present or initialization fails, the firmware continues to boot normally (USB Serial/JTAG console + web server behavior unchanged).
+
+**Commit (code):** 44acb37 — "0065: add optional I2C OLED Wi-Fi status display"
+
+### What I did
+- Added OLED Kconfig menu (`MO-065: OLED status display (SSD1306-class, I2C)`) with defaults for XIAO ESP32C6 SDA=GPIO22 / SCL=GPIO23.
+- Implemented:
+  - `oled_status.c` (I2C bus + `esp_lcd` SSD1306 init, 1bpp framebuffer, render loop)
+  - `oled_font_5x7.h` (minimal fixed-width bitmap font, supports IP dot/colon)
+- Wired OLED start into `app_main.c` without making OLED a boot-critical dependency.
+- Updated `0065-xiao-esp32c6-gpio-web-server/README.md` with wiring + menuconfig hints.
+- Built `0065` locally with ESP-IDF 5.4.1 to confirm it compiles.
+
+### Why
+- Provide at-a-glance observability for headless deployments: “Is Wi‑Fi connected?” + “What’s the IP?”
+- Reuse ESP-IDF 5.4.1 primitives (`esp_lcd` + I2C master v2) rather than adding third-party display libraries.
+
+### What worked
+- `idf.py build` succeeds with OLED support compiled in (feature is off by default; enable in menuconfig).
+- The OLED implementation is isolated and does not interfere with the USB Serial/JTAG console.
+
+### What didn't work
+- Hardware validation is pending (needs a real OLED module connected to confirm address/controller and that the font renders as expected).
+
+### What I learned
+- A 128×64 1bpp framebuffer is only 1024 bytes; full-screen flushes are cheap and simplify rendering logic.
+
+### What was tricky to build
+- Ensuring the font table includes the minimum punctuation needed for IP addresses (`.`) and labels (`:`), while keeping it small.
+
+### What warrants a second pair of eyes
+- The I2C address defaults to `0x3C`; confirm if the specific module uses `0x3D`.
+- If the module is actually SPI (some GME12864-11 listings are), `esp_lcd` SSD1306 I2C init won’t work; confirm the physical breakout.
+
+### What should be done in the future
+- Consider adding an optional GPIO for OLED reset (`RST`) if the breakout exposes it, to improve robustness on brownouts.
+- If SSIDs are typically mixed-case and readability matters, expand the font mapping beyond uppercase.
+
+### Code review instructions
+- Start at `0065-xiao-esp32c6-gpio-web-server/main/oled_status.c` and `0065-xiao-esp32c6-gpio-web-server/main/oled_font_5x7.h`.
+- Review `0065-xiao-esp32c6-gpio-web-server/main/Kconfig.projbuild` for default pins/options.
+- Build:
+  - `source /home/manuel/esp/esp-idf-5.4.1/export.sh`
+  - `cd 0065-xiao-esp32c6-gpio-web-server && idf.py build`
+
+### Technical details
+- OLED can be enabled via `menuconfig`:
+  - `Component config` → `MO-065: OLED status display (SSD1306-class, I2C)` → enable.
+- Optional address discovery:
+  - enable “Probe I2C addresses on boot (log ACKs)” and watch logs over USB Serial/JTAG.
