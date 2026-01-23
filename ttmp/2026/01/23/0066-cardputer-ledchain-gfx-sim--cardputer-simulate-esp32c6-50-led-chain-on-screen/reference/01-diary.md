@@ -229,6 +229,48 @@ Key constraints:
 - `e50d028` — `0066: add JS timers (setTimeout + every)`
 - `1296458` — `0066: extend JS smoke script for timers`
 
+---
+
+## Step 12: Phase 3 — GPIO (G3/G4) from JS (2026-01-23)
+
+### Goal
+
+Expose two “board label” GPIOs (G3 and G4) to MicroQuickJS so that JS scripts can:
+
+- drive external toggles/pulses using `every(...)`/`setTimeout(...)`,
+- compose simple sequencers in userland JS without a bespoke C sequencer layer (for MVP).
+
+### Implementation
+
+1) Native primitives (`gpio.high(label)` / `gpio.low(label)`):
+
+- Implemented by replacing the generator stubs in:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/esp32_stdlib_runtime.c`
+- Parsing:
+  - Accepts `"G3"/"g3"` and `"G4"/"g4"`.
+  - Maps to ESP32-S3 GPIO numbers via Kconfig:
+    - `CONFIG_TUTORIAL_0066_G3_GPIO`
+    - `CONFIG_TUTORIAL_0066_G4_GPIO`
+- Initialization:
+  - Lazily configures both pins as push-pull outputs and defaults them low on first use.
+
+2) Userland convenience (`gpio.write` / `gpio.toggle`):
+
+- Defined in the existing JS bootstrap in:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
+- Uses a tiny JS-side state table `__0066.gpio.state` so `toggle(...)` doesn’t need a native read.
+
+### Validation
+
+- Built/flashed to `/dev/ttyACM0` and executed the updated smoke script:
+  - `python3 ttmp/.../scripts/serial_smoke_js_0066.py --port /dev/ttyACM0`
+- The log shows the IDF GPIO driver configured GPIO3/GPIO4 as outputs and JS calls succeeded.
+
+### Commits
+
+- `d22d698` — `0066: add JS GPIO control for G3/G4`
+- `097bf16` — `0066: extend JS smoke script for GPIO`
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.

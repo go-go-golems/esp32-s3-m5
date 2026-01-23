@@ -106,15 +106,15 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 3 — GPIO: G3/G4 toggle primitives for JS
 
-- [ ] Implement GPIO init module for the two pins (as outputs)
-  - [ ] Explicitly document mapping “G3/G4 → GPIO<num>”
+- [x] Implement GPIO init module for the two pins (as outputs)
+  - [x] Explicitly document mapping “G3/G4 → GPIO<num>”
   - [ ] Ensure does not conflict with USB Serial/JTAG console pins (per repo guidance)
 - [ ] Add JS API surface (pick minimal):
-  - [ ] `gpio.toggle("G3")`, `gpio.write("G3", 0|1)`, `gpio.read("G3")` (or equivalent)
+  - [x] `gpio.toggle("G3")`, `gpio.write("G3", 0|1)` (userland) + `gpio.high/low` (native)
 - [ ] Add example sequences (pure JS userland) using `every` / `setTimeout`
 - [ ] Add smoke script (ticket `scripts/`):
-  - [ ] `every(100, () => gpio.toggle("G3"))`, run 10 ticks, cancel
-- [ ] Commit per step
+  - [x] `gpio.write('G3',0)` and `gpio.toggle('G3')` best-effort exercise (no external validation)
+- [x] Commit per step
 
 ## Phase 4 — Sequencer layer (userland-first)
 
