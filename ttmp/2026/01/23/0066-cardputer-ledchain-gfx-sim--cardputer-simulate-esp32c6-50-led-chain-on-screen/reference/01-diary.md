@@ -166,6 +166,69 @@ The resulting log shows `js eval sim.status()` and pattern changes work with the
 
 - `45612f6` — `0066: run JS via mqjs_service`
 
+---
+
+## Step 11: Phase 2 — Timers (`setTimeout` + `every`) (2026-01-23)
+
+### Goal
+
+Provide a minimal, robust timing substrate so that JS can drive “sequenced” behavior:
+
+- `setTimeout(fn, ms)` / `clearTimeout(id)` as the primitive.
+- `every(ms, fn)` + `cancel(handle)` as the ergonomic periodic layer (implemented in JS on top of `setTimeout`).
+
+Key constraints:
+
+- Never run JS in a timer callback context (avoid ISR/task-crossing issues).
+- Keep timing “good enough” (ms resolution; jitter acceptable).
+- Avoid introducing a complicated promise/event-loop model for MVP.
+
+### Implementation
+
+1) A one-shot scheduler task that only *posts* work into `mqjs_service`:
+
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_timers.cpp`
+  - FreeRTOS task `0066_js_tmr` owns a bounded queue of schedule/cancel commands.
+  - Maintains a small fixed pool (`kMaxTimers=32`) of pending timeouts.
+  - When a timeout expires, posts a `mqjs_service` job that runs `cb()` inside the VM owner task.
+
+2) Wiring: start/stop timers alongside the JS service:
+
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
+  - Starts the scheduler after `mqjs_service_start(...)`.
+  - Runs a bootstrap script to create `globalThis.__0066.timers.cb` and define:
+    - `every(ms, fn)` (recursive `setTimeout`)
+    - `cancel(handle)` (accepts either numeric timeout id or `{cancel()}` handle)
+
+3) Implement the stdlib global functions:
+
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/esp32_stdlib_runtime.c`
+  - Replaces the generator stubs with working `setTimeout` and `clearTimeout`.
+  - Uses `globalThis.__0066.timers.cb[id]=fn` to root callbacks.
+  - When the timeout fires, the VM-owner job clears `cb[id]` to `null` (one-shot semantics).
+
+### Semantics chosen (MVP)
+
+- If a callback throws, we log the exception and still clear its one-shot handle.
+- If the service queue is full at the moment the timer fires, the job post can fail; this is logged.
+  (For MVP we accept this as “best-effort”; the API is not a hard real-time scheduler.)
+
+### Validation
+
+- Built and flashed:
+  - `cd 0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+  - `idf.py -p /dev/ttyACM0 flash`
+- Extended the ticket smoke script to validate timers:
+  - `ttmp/.../scripts/serial_smoke_js_0066.py`
+  - The script verifies:
+    - `setTimeout(function(){ __t=123 }, 100)` results in `__t == 123`
+    - `every(50, ...)` increments `__c` to 5 and cancels itself
+
+### Commits
+
+- `e50d028` — `0066: add JS timers (setTimeout + every)`
+- `1296458` — `0066: extend JS smoke script for timers`
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.

@@ -88,21 +88,21 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 2 — Timers: `setTimeout/clearTimeout` + `every(ms, fn)`
 
-- [ ] Decide callback storage strategy: JS-side registry under `globalThis.__0066` (GC rooting)
-  - [ ] Create bootstrap job that ensures `__0066.timers = { cb: {}, ... }`
-- [ ] Implement `setTimeout(fn, ms)` and `clearTimeout(id)`
-  - [ ] Validate args and bounds (`ms >= 0`, cap max timers, cap queue pressure)
-  - [ ] Define semantics: “enqueue + best-effort execution”; support cancellation
-  - [ ] On callback throw: **log and cancel that timer/periodic handle** (choice)
-- [ ] Implement `every(ms, fn)` and `cancel(handle)`
-  - [ ] Return an integer id or small handle object (pick simplest)
-  - [ ] Implement coalescing/overrun behavior (skip vs catch-up); pick simplest “skip if late”
-- [ ] Timer kernel architecture
-  - [ ] Use a single scheduler task or `esp_timer` “next deadline” to wake scheduler
-  - [ ] Never execute JS from timer callback; only post jobs into `mqjs_service`
-- [ ] Add smoke script (ticket `scripts/`):
-  - [ ] Verify `every(100, fn)` toggles an in-JS counter and can be canceled
-- [ ] Commit per step (bootstrap, setTimeout, every)
+- [x] Decide callback storage strategy: JS-side registry under `globalThis.__0066` (GC rooting)
+  - [x] Create bootstrap job that ensures `__0066.timers = { cb: {}, ... }`
+- [x] Implement `setTimeout(fn, ms)` and `clearTimeout(id)`
+  - [x] Validate args and bounds (`ms >= 0`, cap max timers, cap queue pressure)
+  - [x] Define semantics: “enqueue + best-effort execution”; support cancellation
+  - [x] On callback throw: **log and cancel that timer/periodic handle** (choice)
+- [x] Implement `every(ms, fn)` and `cancel(handle)`
+  - [x] Return an integer id or small handle object (pick simplest)
+  - [x] Implement coalescing/overrun behavior (skip vs catch-up); pick simplest “skip if late”
+- [x] Timer kernel architecture
+  - [x] Use a single scheduler task or `esp_timer` “next deadline” to wake scheduler
+  - [x] Never execute JS from timer callback; only post jobs into `mqjs_service`
+- [x] Add smoke script (ticket `scripts/`):
+  - [x] Verify `every(50, fn)` increments an in-JS counter and can be canceled
+- [x] Commit per step (bootstrap, setTimeout, every)
 
 ## Phase 3 — GPIO: G3/G4 toggle primitives for JS
 
