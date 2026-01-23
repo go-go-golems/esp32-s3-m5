@@ -78,6 +78,10 @@ def main() -> int:
         time.sleep(0.5)
         run("js eval __c")
 
+        # GPIO: best-effort exercise (no external validation here).
+        run("js eval gpio.write('G3',0); gpio.write('G4',0); 'gpio init ok'")
+        run("js eval gpio.toggle('G3'); gpio.toggle('G4'); 'gpio toggle ok'")
+
     out_path.write_bytes(b"".join(transcript))
     print(out_path)
     return 0
