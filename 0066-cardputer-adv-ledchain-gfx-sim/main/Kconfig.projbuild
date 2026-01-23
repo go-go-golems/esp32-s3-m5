@@ -26,5 +26,30 @@ config TUTORIAL_0066_PRESENT_WAIT_DMA
     help
         Conservative display safety: wait for any DMA transfer to finish after pushSprite.
 
-endmenu
+config TUTORIAL_0066_JS_MEM_BYTES
+    int "MicroQuickJS arena bytes"
+    range 16384 524288
+    default 65536
+    help
+        JS heap arena size for MicroQuickJS (mquickjs). This is a fixed-size arena allocated
+        for the VM owner task.
 
+config TUTORIAL_0066_G3_GPIO
+    int "Board label G3: ESP32-S3 GPIO number"
+    range 0 48
+    default 3
+    help
+        GPIO number to use for the board label "G3".
+
+        Evidence-based default: in tutorial 0047, the Cardputer-ADV Grove UART defaults
+        are labeled "G1" and "G2" and map to GPIO1 and GPIO2 respectively. We therefore
+        default G3->GPIO3.
+
+config TUTORIAL_0066_G4_GPIO
+    int "Board label G4: ESP32-S3 GPIO number"
+    range 0 48
+    default 4
+    help
+        GPIO number to use for the board label "G4". See G3 notes; default G4->GPIO4.
+
+endmenu
