@@ -17,3 +17,12 @@
 - [ ] Optional: receive MLED/1 over UDP multicast to mirror ESP32-C6 control plane
 - [ ] Optional: show-time sync (`execute_at_ms`) + cue semantics for true mirroring
 - [ ] Optional: gamma correction toggle to better match perceived LED brightness
+
+## Web Server
+
+- [ ] Add Wi-Fi console commands (`wifi ...`) in the same REPL as `sim ...`
+- [ ] Start `esp_http_server` after Wi-Fi got IP
+- [ ] Add `GET /api/status` (JSON)
+- [ ] Add `POST /api/apply` (JSON) to set pattern + params + brightness + frame_ms
+- [ ] Serve a minimal `/` HTML control page (embedded asset)
+- [ ] Smoke test: connect to Wi-Fi from console and hit `/api/status`
