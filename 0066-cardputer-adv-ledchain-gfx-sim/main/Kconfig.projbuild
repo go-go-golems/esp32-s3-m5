@@ -1,0 +1,30 @@
+menu "0066: Cardputer LED chain GFX sim"
+
+config TUTORIAL_0066_LED_COUNT
+    int "LED count (virtual)"
+    range 1 300
+    default 50
+    help
+        Number of LEDs to simulate and draw on-screen.
+
+config TUTORIAL_0066_FRAME_MS
+    int "Frame time (ms)"
+    range 1 1000
+    default 16
+    help
+        Delay between frames. Lower is smoother but uses more CPU.
+
+config TUTORIAL_0066_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM (disable for DMA)"
+    default n
+    help
+        PSRAM sprites typically disable DMA paths; keep disabled for best performance.
+
+config TUTORIAL_0066_PRESENT_WAIT_DMA
+    bool "Wait for DMA after present"
+    default y
+    help
+        Conservative display safety: wait for any DMA transfer to finish after pushSprite.
+
+endmenu
+
