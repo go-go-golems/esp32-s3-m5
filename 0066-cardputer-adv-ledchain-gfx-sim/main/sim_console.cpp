@@ -391,9 +391,20 @@ static int cmd_sim(int argc, char **argv)
     return 1;
 }
 
-void sim_console_start(sim_engine_t *engine)
+void sim_console_register_commands(sim_engine_t *engine)
 {
     s_engine = engine;
+
+    esp_console_cmd_t cmd = {};
+    cmd.command = "sim";
+    cmd.help = "LED-chain simulator control (try: sim help, sim status)";
+    cmd.func = &cmd_sim;
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+}
+
+void sim_console_start(sim_engine_t *engine)
+{
+    sim_console_register_commands(engine);
 
     esp_console_repl_t *repl = nullptr;
     esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
@@ -424,12 +435,6 @@ void sim_console_start(sim_engine_t *engine)
 
     esp_console_register_help_command();
 
-    esp_console_cmd_t cmd = {};
-    cmd.command = "sim";
-    cmd.help = "LED-chain simulator control (try: sim help, sim status)";
-    cmd.func = &cmd_sim;
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
-
     err = esp_console_start_repl(repl);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "esp_console_start_repl failed: %s", esp_err_to_name(err));
@@ -438,4 +443,3 @@ void sim_console_start(sim_engine_t *engine)
 
     ESP_LOGI(TAG, "esp_console started over %s (try: help, sim status)", backend);
 }
-
