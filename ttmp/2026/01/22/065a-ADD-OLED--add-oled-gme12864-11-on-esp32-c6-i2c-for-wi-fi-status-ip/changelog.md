@@ -39,3 +39,12 @@ Added clearer OLED enable/disable + config logging in 0065 (commit c0c593d) to s
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/app_main.c — Logs explicit OLED disabled message
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/oled_status.c — Logs OLED config and returns NOT_SUPPORTED when disabled
 
+
+## 2026-01-22
+
+Fix OLED build issues: tolerate missing CONFIG_MO065_OLED_SCAN_ON_BOOT and avoid SSID snprintf truncation (commit a2d947d).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/oled_status.c — Fallback config defaults + SSID truncation
+

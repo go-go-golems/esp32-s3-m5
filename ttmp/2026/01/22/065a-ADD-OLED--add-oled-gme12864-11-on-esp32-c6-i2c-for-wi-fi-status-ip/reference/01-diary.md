@@ -279,3 +279,40 @@ This reduces guesswork during wiring bring-up: the serial log now explicitly pri
 ### Code review instructions
 - Review the log paths in `0065-xiao-esp32c6-gpio-web-server/main/app_main.c`.
 - Review the config log emitted by `0065-xiao-esp32c6-gpio-web-server/main/oled_status.c`.
+
+## Step 6: Fix build failure on stale sdkconfig + SSID truncation warning
+
+While attempting to build the logging changes, hit a compile failure where `CONFIG_MO065_OLED_SCAN_ON_BOOT` was missing and another failure due to `-Werror=format-truncation` when rendering long SSIDs into a fixed-size line buffer.
+
+Both issues are “bring-up tax”: they happen when developers iterate quickly, enable OLED in menuconfig, and then pull new code/Kconfig changes without a clean reconfigure. The fixes make the firmware resilient and keep build flags strict.
+
+**Commit (code):** a2d947d — "0065: fix OLED config macro + SSID truncation"
+
+### What I did
+- Added defensive defaults for OLED Kconfig-derived macros inside `oled_status.c` so missing macros don’t break the build.
+- Truncated SSID rendering to fit the 32-byte line buffer (e.g. `SSID:%.26s...`) to satisfy `-Werror=format-truncation`.
+
+### Why
+- The firmware should compile cleanly under `-Werror` even when SSIDs are long.
+- The OLED code should not become fragile due to a single missing config macro.
+
+### What worked
+- `idf.py build` succeeds again with `-Werror=all`.
+
+### What didn't work
+- N/A (this step was a pure build fix).
+
+### What I learned
+- Using ternaries with config macros requires the macro to exist; in `#if` expressions undefined macros behave like `0`, but in C expressions they cause compile errors.
+
+### What was tricky to build
+- Keeping the OLED code both strict (warnings as errors) and robust against stale config headers.
+
+### What warrants a second pair of eyes
+- Confirm the fallback defaults match the intended XIAO ESP32C6 wiring defaults (GPIO22/23, addr 0x3C, 400kHz).
+
+### What should be done in the future
+- None; next action is hardware validation.
+
+### Code review instructions
+- Review the fallback macro defaults and SSID truncation logic in `0065-xiao-esp32c6-gpio-web-server/main/oled_status.c`.
