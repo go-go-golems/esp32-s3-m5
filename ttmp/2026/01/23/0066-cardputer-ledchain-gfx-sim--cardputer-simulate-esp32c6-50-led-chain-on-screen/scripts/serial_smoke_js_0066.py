@@ -69,6 +69,15 @@ def main() -> int:
         run('js eval sim.setChase(30,5,10,1,"#FFFFFF","#000000",0,1,100)')
         run("js eval sim.status()")
 
+        # Timers: setTimeout + every/cancel.
+        run("js eval var __t=0; setTimeout(function(){ __t = 123; }, 100); 'timeout scheduled'")
+        time.sleep(0.25)
+        run("js eval __t")
+
+        run("js eval var __c=0; var __h=null; __h=every(50,function(){ __c++; if(__c>=5) cancel(__h); }); 'every scheduled'")
+        time.sleep(0.5)
+        run("js eval __c")
+
     out_path.write_bytes(b"".join(transcript))
     print(out_path)
     return 0
@@ -76,4 +85,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
