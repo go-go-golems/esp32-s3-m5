@@ -17,6 +17,8 @@
 #include "wifi_console.h"
 #include "wifi_mgr.h"
 
+#include "mqjs/mqjs_console.h"
+
 static const char *TAG = "0066_ledsim";
 
 static sim_engine_t *s_console_engine = nullptr;
@@ -24,6 +26,7 @@ static sim_engine_t *s_console_engine = nullptr;
 static void register_console_commands(void)
 {
     sim_console_register_commands(s_console_engine);
+    mqjs_console_register_commands(s_console_engine);
 }
 
 static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
