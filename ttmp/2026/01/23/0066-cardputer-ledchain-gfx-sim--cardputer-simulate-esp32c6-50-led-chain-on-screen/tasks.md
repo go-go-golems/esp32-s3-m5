@@ -118,11 +118,11 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 4 — Sequencer layer (userland-first)
 
-- [ ] Add a “sequencer cookbook” doc in the ticket (JS snippets)
-  - [ ] pulse N times
-  - [ ] alternating G3/G4 pattern
-  - [ ] simple state machine driven by `every`
-  - [ ] cancellation patterns (prevent runaway)
+- [x] Add a “sequencer cookbook” doc in the ticket (JS snippets)
+  - [x] pulse N times
+  - [x] alternating G3/G4 pattern
+  - [x] simple state machine driven by `every`
+  - [x] cancellation patterns (prevent runaway)
 - [ ] Optional (later): native declarative sequencer object (only if userland becomes unwieldy)
 
 ## Phase 5 — Engine Task + Control Queue (refactor)

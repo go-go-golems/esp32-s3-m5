@@ -369,6 +369,28 @@ Both passed: console pattern changes, JS control (including timers + GPIO) still
 
 - `4d4c356` — `0066: move pattern rendering into engine task`
 
+---
+
+## Step 15: Phase 4 — JS “sequencer cookbook” (2026-01-23)
+
+### Goal
+
+Before adding any native “declarative sequencer” layer, capture a usable set of JS idioms (copy/paste level) for:
+
+- `setTimeout` one-shots,
+- `every` periodic loops with cancellation,
+- GPIO pulse/toggle patterns on `G3/G4`,
+- simulator “playlist” style pattern changes,
+- and combined “GPIO edge drives sim change” recipes.
+
+### Output
+
+Added:
+
+- `ttmp/.../reference/03-js-sequencer-cookbook.md`
+
+This doc is intentionally practical: it encodes the current JS surface (`every`, `cancel`, `gpio.write/toggle`, `sim.*`) into patterns that are easy to adapt.
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
