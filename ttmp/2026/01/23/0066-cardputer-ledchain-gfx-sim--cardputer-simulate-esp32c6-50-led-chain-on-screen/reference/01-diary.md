@@ -298,6 +298,77 @@ Verified remote dir listing includes the new file:
 
 Resume Phase 5: refactor the simulator so the pattern engine renders in its own task (~60 Hz) and publishes a latest-frame snapshot; migrate UI + console/web/JS control paths to enqueue commands instead of locking the engine mutex directly.
 
+---
+
+## Step 14: Phase 5 — Engine task + latest-frame snapshot (2026-01-23)
+
+### Why this change
+
+Before this step, the UI task called `sim_engine_render(...)` directly. That meant:
+
+- UI pacing and pattern rendering were effectively the same loop.
+- Any future “sequencer” callbacks, timers, web handlers, etc. that wanted to drive the engine would either:
+  - take the same mutex used during render, or
+  - risk races with rendering.
+
+The design direction for 0066 is to make the pattern engine a proper *service*:
+
+- One owner task computes frames at a fixed cadence (~60 Hz).
+- Everyone else (console/web/js) sends control messages (ack/enqueued semantics).
+- The UI reads a *latest-frame snapshot* and never calls into pattern math.
+
+### What changed (code)
+
+1) `sim_engine_t` became a “control + snapshot” object:
+
+- Engine task owns `led_patterns_t` and the internal render buffer.
+- `sim_engine_t` now stores:
+  - current `cfg` + `frame_ms`,
+  - a double-buffered `frames[2]` snapshot,
+  - a control `QueueHandle_t`,
+  - a mutex protecting snapshot metadata.
+
+2) New engine task (`0066_engine`) renders continuously:
+
+- `0066-cardputer-adv-ledchain-gfx-sim/main/sim_engine.cpp`
+  - renders patterns every ~16 ms (`kEngineTickMs=16`)
+  - publishes `frames[next]` then swaps `active_frame`
+  - drains control queue and applies config updates (`led_patterns_set_cfg`)
+
+3) UI now copies the latest snapshot:
+
+- `0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+  - replaced `sim_engine_render(...)` with `sim_engine_copy_latest_pixels(...)`
+  - uses `sim_engine_get_order(...)` and `sim_engine_get_led_count(...)`
+
+4) JS + HTTP status adjusted to read `led_count` through accessors:
+
+- `mqjs/esp32_stdlib_runtime.c` now uses `sim_engine_get_led_count(s_engine)`
+- `http_server.cpp` now reports `led_count` via `sim_engine_get_led_count(s_engine)`
+
+### Validation
+
+Build:
+
+- `cd 0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+
+Flash (note: the first attempt failed because `/dev/ttyACM0` was still held open by a python process; I killed it and retried):
+
+- `lsof /dev/ttyACM0` → showed a python PID holding the device
+- `kill <pid>` → released the port
+- `idf.py -p /dev/ttyACM0 flash` → success
+
+Smoke tests:
+
+- `python3 ttmp/.../scripts/serial_smoke_0066.py --port /dev/ttyACM0`
+- `python3 ttmp/.../scripts/serial_smoke_js_0066.py --port /dev/ttyACM0`
+
+Both passed: console pattern changes, JS control (including timers + GPIO) still work, and UI continues to animate because it reads the published snapshot.
+
+### Commit
+
+- `4d4c356` — `0066: move pattern rendering into engine task`
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.

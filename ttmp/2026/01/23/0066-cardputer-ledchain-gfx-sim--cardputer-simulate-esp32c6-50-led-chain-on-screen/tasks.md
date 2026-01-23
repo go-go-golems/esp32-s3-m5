@@ -127,23 +127,23 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 5 — Engine Task + Control Queue (refactor)
 
-- [ ] Add an `engine_task` that owns the pattern state and renders frames at **60 Hz**
-  - [ ] Maintain `frame_ms` as UI pacing; engine tick is fixed 60 Hz
-  - [ ] Publish a **latest-frame snapshot** (double-buffer) for UI + web + status
-- [ ] Add an engine control queue with message types:
-  - [ ] set pattern cfg
-  - [ ] set frame_ms (UI pacing value)
+- [x] Add an `engine_task` that owns the pattern state and renders frames at **60 Hz**
+  - [x] Maintain `frame_ms` as UI pacing; engine tick is fixed 60 Hz
+  - [x] Publish a **latest-frame snapshot** (double-buffer) for UI + web + status
+- [x] Add an engine control queue with message types:
+  - [x] set pattern cfg
+  - [x] set frame_ms (UI pacing value)
   - [ ] get status (optional)
-- [ ] Define blocking semantics: JS/console “blocking” = **ack/enqueued** (with timeout)
-- [ ] Update existing subsystems to use the queue:
-  - [ ] `sim ...` console commands enqueue set-cfg / set-frame
-  - [ ] HTTP `/api/apply` enqueues set-cfg / set-frame
-  - [ ] JS `sim.*` APIs enqueue set-cfg / set-frame (blocking + non-blocking variants)
-- [ ] Remove/limit direct mutex-based writes once queue path is authoritative
-- [ ] Smoke test (hardware):
-  - [ ] verify UI still animates
-  - [ ] verify console + web + JS still control patterns
-- [ ] Commit per step (engine task skeleton, snapshot, queue write path, migration)
+- [x] Define blocking semantics: JS/console “blocking” = **ack/enqueued** (with timeout)
+- [x] Update existing subsystems to use the queue:
+  - [x] `sim ...` console commands enqueue set-cfg / set-frame
+  - [x] HTTP `/api/apply` enqueues set-cfg / set-frame
+  - [x] JS `sim.*` APIs enqueue set-cfg / set-frame (blocking + non-blocking variants)
+- [x] Remove/limit direct mutex-based writes once queue path is authoritative
+- [x] Smoke test (hardware):
+  - [x] verify UI still animates
+  - [x] verify console + web + JS still control patterns
+- [x] Commit per step (engine task skeleton, snapshot, queue write path, migration)
 
 ## Phase 6 — Optional async engine→JS notifications (no deadlocks)
 
@@ -155,4 +155,4 @@ Design decisions captured from user (2026-01-23):
 
 - [ ] Update ticket design docs if decisions shift (pin mapping, timer semantics)
 - [ ] Keep diary entries at each phase (exact commands, failures, validations)
-- [ ] Upload updated ticket bundle to reMarkable after major milestones
+- [x] Upload updated ticket bundle to reMarkable after major milestones
