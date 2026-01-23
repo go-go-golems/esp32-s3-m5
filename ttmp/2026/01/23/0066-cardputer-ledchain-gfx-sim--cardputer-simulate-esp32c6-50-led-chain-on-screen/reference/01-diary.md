@@ -78,6 +78,44 @@ The critical success criterion is semantic equivalence: given the same pattern c
 
 ### Prompt Context
 
+---
+
+## Step 9: Resume implementation (Phase 0 groundwork) (2026-01-23)
+
+### What I understand the goal to be (restated for validation)
+
+We want to evolve `0066-cardputer-adv-ledchain-gfx-sim` into a “scriptable simulator” where:
+
+- The LED-chain **pattern engine** runs continuously (eventually in its own task at ~60 Hz).
+- A **MicroQuickJS REPL** exists on the Cardputer (USB Serial/JTAG console) and can:
+  - Change simulator patterns (already supported via `sim.*`).
+  - Schedule work in time (**timeouts** and **periodic callbacks**).
+  - Toggle two Grove-labeled pins (**G3** and **G4**) so JS can drive simple external sequences.
+- Concurrency stays safe: the JS VM has a single owner task (`mqjs_service`), timers/GPIO/engine communicate via queues/jobs, and “blocking calls” mean “ack/enqueued” rather than “wait until a frame rendered”.
+
+### Current repo state (after interrupts)
+
+I re-checked `git status` and verified only one intended modification was present (a local edit to `0066-cardputer-adv-ledchain-gfx-sim/main/Kconfig.projbuild`). Two unrelated untracked items existed (`walkthrough-mled-protocol.sh` and `ttmp/.../0067-.../`); I did not stage or commit them.
+
+### Work performed
+
+1) Added Kconfig knobs to make the upcoming work configurable and explicit:
+
+- `CONFIG_TUTORIAL_0066_JS_MEM_BYTES` (MicroQuickJS fixed arena size; default 65536).
+- `CONFIG_TUTORIAL_0066_G3_GPIO` and `CONFIG_TUTORIAL_0066_G4_GPIO` (board-label mapping).
+
+The default mapping is evidence-based: in `0047-cardputer-adv-lvgl-chain-encoder-list/main/Kconfig.projbuild`, the “G1/G2” board labels default to GPIO1/GPIO2, so we default **G3→GPIO3** and **G4→GPIO4** but keep it configurable.
+
+### Commands / results
+
+- `git add 0066-cardputer-adv-ledchain-gfx-sim/main/Kconfig.projbuild`
+- `git commit -m "0066: add Kconfig for JS mem + G3/G4 mapping"`
+  - Commit: `79c732f`
+
+### Next
+
+Phase 1: migrate JS execution off the `esp_console` handler thread and onto the existing `components/mqjs_service` VM-owner task, preserving the existing `js eval` and `js repl` UX.
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.

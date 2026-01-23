@@ -67,6 +67,7 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 0 — Prep / Pin Mapping
 
+- [x] Add Kconfig knobs for JS arena + G3/G4 mapping (`CONFIG_TUTORIAL_0066_JS_MEM_BYTES`, `CONFIG_TUTORIAL_0066_G3_GPIO`, `CONFIG_TUTORIAL_0066_G4_GPIO`)
 - [ ] Find the actual ESP32-S3 GPIO numbers corresponding to Cardputer board labels **G3** and **G4**
   - [ ] Search this repo for prior usage of “G3/G4” in Cardputer projects
   - [ ] If not found, consult M5Cardputer / Cardputer-ADV docs/schematics and record the mapping
