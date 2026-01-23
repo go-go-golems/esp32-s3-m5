@@ -16,6 +16,6 @@ Try:
 
 ```bash
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim
+idf.py set-target esp32s3
 idf.py build flash monitor
 ```
-

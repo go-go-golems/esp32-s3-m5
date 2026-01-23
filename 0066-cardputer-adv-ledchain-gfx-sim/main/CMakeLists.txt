@@ -8,5 +8,5 @@ idf_component_register(
     REQUIRES
         M5GFX
         console
+        ws281x
 )
-
