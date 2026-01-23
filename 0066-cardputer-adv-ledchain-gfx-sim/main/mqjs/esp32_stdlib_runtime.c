@@ -4,9 +4,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "driver/gpio.h"
+
 #include "esp_timer.h"
 
 #include "mquickjs.h"
+
+#include "sdkconfig.h"
 
 #include "sim_engine.h"
 
@@ -14,6 +18,7 @@
 
 static sim_engine_t *s_engine = NULL;
 static uint32_t s_next_timeout_id = 1;
+static bool s_gpio_inited = false;
 
 void mqjs_sim_set_engine(sim_engine_t *engine) {
   s_engine = engine;
@@ -434,19 +439,75 @@ static JSValue js_gc(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv)
 }
 
 // Stubs for the generator's default stdlib (we don't expose these in 0066, but the table may contain them).
+static bool gpio_parse_label(JSContext *ctx, JSValue v, gpio_num_t *out_gpio) {
+  if (!out_gpio) return false;
+  *out_gpio = GPIO_NUM_NC;
+  if (!JS_IsString(ctx, v)) {
+    (void)JS_ThrowTypeError(ctx, "gpio: expected a string label (\"G3\" or \"G4\")");
+    return false;
+  }
+
+  JSCStringBuf sbuf;
+  memset(&sbuf, 0, sizeof(sbuf));
+  size_t len = 0;
+  const char *s = JS_ToCStringLen(ctx, &len, v, &sbuf);
+  if (!s || len == 0) {
+    (void)JS_ThrowTypeError(ctx, "gpio: invalid label");
+    return false;
+  }
+
+  // Accept "G3"/"g3" and "G4"/"g4".
+  if ((len == 2 || len == 3) && (s[0] == 'G' || s[0] == 'g')) {
+    if (s[1] == '3') {
+      *out_gpio = (gpio_num_t)CONFIG_TUTORIAL_0066_G3_GPIO;
+      return true;
+    }
+    if (s[1] == '4') {
+      *out_gpio = (gpio_num_t)CONFIG_TUTORIAL_0066_G4_GPIO;
+      return true;
+    }
+  }
+
+  (void)JS_ThrowTypeError(ctx, "gpio: unsupported label (expected \"G3\" or \"G4\")");
+  return false;
+}
+
+static void gpio_init_once(void) {
+  if (s_gpio_inited) return;
+  s_gpio_inited = true;
+
+  const gpio_num_t g3 = (gpio_num_t)CONFIG_TUTORIAL_0066_G3_GPIO;
+  const gpio_num_t g4 = (gpio_num_t)CONFIG_TUTORIAL_0066_G4_GPIO;
+
+  gpio_config_t cfg = {};
+  cfg.intr_type = GPIO_INTR_DISABLE;
+  cfg.mode = GPIO_MODE_OUTPUT;
+  cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+  cfg.pull_up_en = GPIO_PULLUP_DISABLE;
+  cfg.pin_bit_mask = (1ULL << (uint32_t)g3) | (1ULL << (uint32_t)g4);
+  (void)gpio_config(&cfg);
+
+  (void)gpio_set_level(g3, 0);
+  (void)gpio_set_level(g4, 0);
+}
+
 static JSValue js_gpio_high(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
-  (void)ctx;
   (void)this_val;
-  (void)argc;
-  (void)argv;
-  return JS_ThrowTypeError(ctx, "gpio.high() not supported in 0066");
+  if (argc < 1) return JS_ThrowTypeError(ctx, "gpio.high(label) requires 1 argument");
+  gpio_num_t gpio = GPIO_NUM_NC;
+  if (!gpio_parse_label(ctx, argv[0], &gpio)) return JS_EXCEPTION;
+  gpio_init_once();
+  (void)gpio_set_level(gpio, 1);
+  return JS_UNDEFINED;
 }
 static JSValue js_gpio_low(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
-  (void)ctx;
   (void)this_val;
-  (void)argc;
-  (void)argv;
-  return JS_ThrowTypeError(ctx, "gpio.low() not supported in 0066");
+  if (argc < 1) return JS_ThrowTypeError(ctx, "gpio.low(label) requires 1 argument");
+  gpio_num_t gpio = GPIO_NUM_NC;
+  if (!gpio_parse_label(ctx, argv[0], &gpio)) return JS_EXCEPTION;
+  gpio_init_once();
+  (void)gpio_set_level(gpio, 0);
+  return JS_UNDEFINED;
 }
 static JSValue js_gpio_square(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
   (void)ctx;
