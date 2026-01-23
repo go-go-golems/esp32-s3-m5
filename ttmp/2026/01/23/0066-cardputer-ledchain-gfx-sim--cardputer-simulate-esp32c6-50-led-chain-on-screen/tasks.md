@@ -26,3 +26,13 @@
 - [x] Add `POST /api/apply` (JSON) to set pattern + params + brightness + frame_ms
 - [x] Serve a minimal `/` HTML control page (embedded asset)
 - [ ] Smoke test: connect to Wi-Fi from console and hit `/api/status`
+
+## MicroQuickJS
+
+- [x] Integrate `mquickjs` (MicroQuickJS) into 0066 firmware
+- [x] Generate a 0066-specific stdlib with a `sim` global object for pattern control
+- [x] Add `js` console command for `eval` + `repl` + `stats` + `reset`
+- [x] Expose simulator control APIs to JS (`sim.setPattern(...)`, etc.)
+- [x] Smoke test on hardware: `js eval sim.status()` and setting patterns/brightness
+- [ ] Optional: add `sim.statusJson()` (or seed `JSON.stringify(sim.status())` helper)
+- [ ] Optional: add SPIFFS-backed `load(path)` + `:autoload` for JS libraries

@@ -449,3 +449,104 @@ This step adds a minimal web control plane (HTML + JSON API) while preserving th
 
 ### Review notes / follow-ups
 - If we later add a richer UI, we can switch from embedded HTML to `httpd_assets_embed` serving bundled static assets, without changing the API.
+
+---
+
+## Step 7: Add MicroQuickJS (`mquickjs`) + `js` REPL + `sim.*` JS APIs (2026-01-23)
+
+This step adds a programmable surface on the Cardputer: a MicroQuickJS context + a small JS REPL command, and native JS APIs that directly control the simulator patterns and parameters.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, add the microquickjs + REPL that we have with the encoder demo, but this time register the different APIs for controlling the sim patterns."
+
+**Assistant interpretation:** Bring MicroQuickJS into the 0066 firmware and expose a JS-friendly API to drive `sim_engine` (pattern type/params/brightness/frame timing), in a way that coexists with the existing `esp_console` REPL (`wifi ...`, `sim ...`).
+
+### Key discovery (important constraint)
+
+MicroQuickJS in this repo is **table-driven**: the set of native-callable JS functions is described by a generated `JSSTDLibraryDef` stdlib table (and a matching atom table), not via dynamic runtime registration like upstream QuickJS. That means:
+
+- to add a new global object `sim` with methods like `sim.setPattern(...)`,
+- we must **regenerate** the stdlib header so the C-function table contains those symbols.
+
+This is the same structural constraint documented in:
+- `imports/esp32-mqjs-repl/mqjs-repl/docs/js.md`
+- `0039-cardputer-adv-js-gpio-exercizer/main/esp32_stdlib_runtime.c`
+
+### Design decision
+
+I deliberately avoided running a second “raw serial” REPL task (0039-style), because 0066 already uses `wifi_console_start()` which owns an `esp_console` REPL over USB Serial/JTAG.
+
+Two concurrent readers on `/dev/ttyACM*` is a reliable way to get heisenbugs (interleaved reads, broken line editing, missing bytes). Instead, I integrated MicroQuickJS as a **new console command**:
+
+- `js eval ...`
+- `js repl`
+- `js stats`
+- `js reset`
+
+### What I did (code)
+
+- Added a `mqjs/` module under 0066 `main/`:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_console.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_engine.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/esp32_stdlib_runtime.c`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/esp32_stdlib.h` (generated)
+- Wired `mqjs_console_register_commands(&engine)` into the existing REPL via:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/app_main.cpp`
+- Added the `mquickjs` component to the 0066 project by extending:
+  - `0066-cardputer-adv-ledchain-gfx-sim/CMakeLists.txt` (`EXTRA_COMPONENT_DIRS`)
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt` (`REQUIRES mquickjs`)
+
+### What I did (stdlib generation tooling)
+
+To avoid forking the whole mqjs-repl project, I wrote a small ticket-local generator script that:
+
+1) reads the upstream `mqjs_stdlib.c` input,
+2) injects a `sim` object definition and adds it to the global object,
+3) compiles a temporary generator using `mquickjs_build.c`,
+4) writes `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/esp32_stdlib.h`.
+
+Script:
+- `ttmp/.../scripts/gen_esp32_stdlib_0066.py`
+
+### JS API surface (implemented)
+
+The `sim` object contains:
+
+- `sim.status()`
+- `sim.setFrameMs(ms)`
+- `sim.setBrightness(pct)`
+- `sim.setPattern("off"|"rainbow"|"chase"|"breathing"|"sparkle")`
+- `sim.setRainbow(speed, sat, spread)`
+- `sim.setChase(speed, tail, gap, trains, "#RRGGBB", "#RRGGBB", dir, fade, briPct)`
+- `sim.setBreathing(speed, "#RRGGBB", min, max, curve)`
+- `sim.setSparkle(speed, "#RRGGBB", density, fade, mode, "#RRGGBB")`
+
+All setters ultimately mutate `led_pattern_cfg_t` and call `sim_engine_set_cfg(...)`, so they preserve the same semantics as the existing `sim ...` console commands.
+
+### What worked (hardware)
+
+- Built:
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim build`
+- Flashed (after killing a stray Python process that had the TTY locked):
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 flash`
+- Smoke test (USB Serial/JTAG):
+  - `js help` prints usage
+  - `js eval sim.status()` returns an object
+  - `js eval sim.setBrightness(100)` updates brightness and shows `100`
+
+Smoke script + log:
+- `ttmp/.../scripts/serial_smoke_js_0066.py`
+- `ttmp/.../various/serial-smoke-js-20260123-173504.log`
+
+### Commits
+
+- `d3f54a2` — "0066: add MicroQuickJS console + sim JS API"
+
+### What I learned
+
+The main “gotcha” is the MicroQuickJS generation model: *bindings are not ad-hoc*, they are part of the stdlib table. Once you accept that, the cleanest integration is:
+
+- keep `sim_engine` as the single source of truth,
+- keep the JS API as thin wrappers,
+- avoid console transport contention by using one REPL.
