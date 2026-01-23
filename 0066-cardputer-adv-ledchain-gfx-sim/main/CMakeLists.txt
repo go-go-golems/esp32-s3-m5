@@ -7,6 +7,7 @@ idf_component_register(
         "http_server.cpp"
         "mqjs/esp32_stdlib_runtime.c"
         "mqjs/js_service.cpp"
+        "mqjs/mqjs_timers.cpp"
         "mqjs/mqjs_console.cpp"
     INCLUDE_DIRS "." "mqjs"
     EMBED_FILES

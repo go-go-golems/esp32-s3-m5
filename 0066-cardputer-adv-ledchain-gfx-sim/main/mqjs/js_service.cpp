@@ -16,6 +16,8 @@ extern const JSSTDLibraryDef js_stdlib;
 #include "mqjs_service.h"
 #include "mqjs_vm.h"
 
+#include "mqjs_timers.h"
+
 // Provided by `mqjs/esp32_stdlib_runtime.c`.
 extern "C" void mqjs_sim_set_engine(sim_engine_t* engine);
 
@@ -28,6 +30,60 @@ static uint32_t js_eval_timeout_ms(void) {
   // Conservative default for interactive console. Callers can pass a different timeout if desired.
   return 250;
 }
+
+namespace {
+
+static void log_js_exception(JSContext* ctx, const char* what) {
+  if (!ctx) return;
+  MqjsVm* vm = MqjsVm::From(ctx);
+  const std::string err = vm ? vm->GetExceptionString(JS_DUMP_LONG) : "<exception>";
+  ESP_LOGW(TAG, "%s: %s", what ? what : "js exception", err.c_str());
+}
+
+static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
+  (void)user;
+
+  static const char* kBootstrap =
+      // NOTE: MicroQuickJS stdlib in this repo doesn't support arrow functions; keep ES5 syntax.
+      "var g = globalThis;\n"
+      "g.__0066 = g.__0066 || {};\n"
+      "var __0066 = g.__0066;\n"
+      "__0066.timers = __0066.timers || {};\n"
+      "__0066.timers.cb = __0066.timers.cb || {};\n"
+      "g.cancel = function(h) {\n"
+      "  if (typeof h === 'number') { clearTimeout(h); return; }\n"
+      "  if (h && typeof h.cancel === 'function') { h.cancel(); return; }\n"
+      "  throw new TypeError('cancel(handle): handle must be a number or {cancel()}');\n"
+      "};\n"
+      "g.every = function(ms, fn) {\n"
+      "  ms = ms|0;\n"
+      "  if (ms < 0) throw new RangeError('every: ms must be >= 0');\n"
+      "  if (typeof fn !== 'function') throw new TypeError('every: fn must be a function');\n"
+      "  var h = { id: 0, cancelled: false };\n"
+      "  h.cancel = function() {\n"
+      "    if (h.cancelled) return;\n"
+      "    h.cancelled = true;\n"
+      "    if (h.id) clearTimeout(h.id);\n"
+      "  };\n"
+      "  function tick() {\n"
+      "    if (h.cancelled) return;\n"
+      "    try { fn(); } catch (e) { h.cancel(); throw e; }\n"
+      "    if (h.cancelled) return;\n"
+      "    h.id = setTimeout(tick, ms);\n"
+      "  }\n"
+      "  h.id = setTimeout(tick, ms);\n"
+      "  return h;\n"
+      "};\n";
+
+  const int flags = JS_EVAL_REPL;
+  JSValue v = JS_Eval(ctx, kBootstrap, strlen(kBootstrap), "<boot:0066>", flags);
+  if (JS_IsException(v)) {
+    log_js_exception(ctx, "bootstrap failed");
+  }
+  return ESP_OK;
+}
+
+}  // namespace
 
 esp_err_t js_service_start(sim_engine_t* engine) {
   if (s_svc) return ESP_OK;
@@ -52,10 +108,25 @@ esp_err_t js_service_start(sim_engine_t* engine) {
     s_svc = nullptr;
     return st;
   }
+
+  st = mqjs_0066_timers_start(s_svc);
+  if (st != ESP_OK) {
+    ESP_LOGW(TAG, "mqjs timers start failed: %s", esp_err_to_name(st));
+    js_service_stop();
+    return st;
+  }
+
+  mqjs_job_t boot = {};
+  boot.fn = &job_bootstrap;
+  boot.user = nullptr;
+  boot.timeout_ms = 200;
+  (void)mqjs_service_run(s_svc, &boot);
+
   return ESP_OK;
 }
 
 void js_service_stop(void) {
+  mqjs_0066_timers_stop();
   if (!s_svc) return;
   mqjs_service_stop(s_svc);
   s_svc = nullptr;
@@ -129,4 +200,3 @@ esp_err_t js_service_dump_memory(std::string* out) {
   job.timeout_ms = 100;
   return mqjs_service_run(s_svc, &job);
 }
-

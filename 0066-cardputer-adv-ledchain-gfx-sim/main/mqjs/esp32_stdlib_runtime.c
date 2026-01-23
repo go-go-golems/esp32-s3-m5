@@ -10,7 +10,10 @@
 
 #include "sim_engine.h"
 
+#include "mqjs_timers.h"
+
 static sim_engine_t *s_engine = NULL;
+static uint32_t s_next_timeout_id = 1;
 
 void mqjs_sim_set_engine(sim_engine_t *engine) {
   s_engine = engine;
@@ -328,16 +331,79 @@ static JSValue js_load(JSContext *ctx, JSValue *this_val, int argc, JSValue *arg
 
 static JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
   (void)this_val;
-  (void)argc;
-  (void)argv;
-  return JS_ThrowTypeError(ctx, "setTimeout() not supported");
+  if (argc < 1) return JS_ThrowTypeError(ctx, "setTimeout(fn, ms) requires at least 1 argument");
+  if (!JS_IsFunction(ctx, argv[0])) return JS_ThrowTypeError(ctx, "setTimeout: fn must be a function");
+
+  int ms = 0;
+  if (argc >= 2) {
+    if (JS_ToInt32(ctx, &ms, argv[1])) return JS_EXCEPTION;
+  }
+  if (ms < 0) ms = 0;
+  if (ms > 3600000) ms = 3600000;
+
+  JSValue glob = JS_GetGlobalObject(ctx);
+  JSValue ns = JS_GetPropertyStr(ctx, glob, "__0066");
+  if (JS_IsUndefined(ns) || JS_IsNull(ns)) {
+    ns = JS_NewObject(ctx);
+    (void)JS_SetPropertyStr(ctx, glob, "__0066", ns);
+    ns = JS_GetPropertyStr(ctx, glob, "__0066");
+  }
+
+  JSValue timers = JS_GetPropertyStr(ctx, ns, "timers");
+  if (JS_IsUndefined(timers) || JS_IsNull(timers)) {
+    timers = JS_NewObject(ctx);
+    (void)JS_SetPropertyStr(ctx, ns, "timers", timers);
+    timers = JS_GetPropertyStr(ctx, ns, "timers");
+  }
+
+  JSValue cb = JS_GetPropertyStr(ctx, timers, "cb");
+  if (JS_IsUndefined(cb) || JS_IsNull(cb)) {
+    cb = JS_NewObject(ctx);
+    (void)JS_SetPropertyStr(ctx, timers, "cb", cb);
+    cb = JS_GetPropertyStr(ctx, timers, "cb");
+  }
+
+  uint32_t id = s_next_timeout_id++;
+  if (id == 0) id = s_next_timeout_id++;
+
+  (void)JS_SetPropertyUint32(ctx, cb, id, argv[0]);
+
+  const esp_err_t st = mqjs_0066_timers_schedule(id, (uint32_t)ms);
+  if (st != ESP_OK) {
+    (void)JS_SetPropertyUint32(ctx, cb, id, JS_NULL);
+    return JS_ThrowInternalError(ctx, "setTimeout: schedule failed (%s)", esp_err_to_name(st));
+  }
+
+  return JS_NewUint32(ctx, id);
 }
 
 static JSValue js_clearTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
   (void)this_val;
-  (void)argc;
-  (void)argv;
-  return JS_ThrowTypeError(ctx, "clearTimeout() not supported");
+  if (argc < 1) return JS_UNDEFINED;
+  int id = 0;
+  if (JS_ToInt32(ctx, &id, argv[0])) return JS_EXCEPTION;
+  if (id <= 0) return JS_UNDEFINED;
+
+  // Best-effort cancel; ignore errors (e.g. not scheduled).
+  (void)mqjs_0066_timers_cancel((uint32_t)id);
+
+  // Drop JS-side callback reference if it exists.
+  JSValue glob = JS_GetGlobalObject(ctx);
+  JSValue ns = JS_GetPropertyStr(ctx, glob, "__0066");
+  if (JS_IsUndefined(ns) || JS_IsNull(ns)) {
+    return JS_UNDEFINED;
+  }
+
+  JSValue timers = JS_GetPropertyStr(ctx, ns, "timers");
+  if (JS_IsUndefined(timers) || JS_IsNull(timers)) {
+    return JS_UNDEFINED;
+  }
+
+  JSValue cb = JS_GetPropertyStr(ctx, timers, "cb");
+  if (!JS_IsUndefined(cb) && !JS_IsNull(cb)) {
+    (void)JS_SetPropertyUint32(ctx, cb, (uint32_t)id, JS_NULL);
+  }
+  return JS_UNDEFINED;
 }
 
 static JSValue js_print(JSContext *ctx, JSValue *this_val, int argc, JSValue *argv) {
