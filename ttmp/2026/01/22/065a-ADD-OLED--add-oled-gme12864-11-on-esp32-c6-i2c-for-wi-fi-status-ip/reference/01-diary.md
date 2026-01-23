@@ -241,3 +241,41 @@ This keeps the OLED feature isolated and best-effort: if the display is not pres
   - `Component config` → `MO-065: OLED status display (SSD1306-class, I2C)` → enable.
 - Optional address discovery:
   - enable “Probe I2C addresses on boot (log ACKs)” and watch logs over USB Serial/JTAG.
+
+## Step 5: Improve OLED bring-up observability (logs)
+
+After the first on-hardware report (“OLED blank”), added clearer boot logs so it’s immediately obvious whether the OLED feature is enabled, and what I2C pins/address/speed it’s using.
+
+This reduces guesswork during wiring bring-up: the serial log now explicitly prints either “OLED disabled” (if menuconfig wasn’t enabled) or a full OLED config line, plus “OLED task started” on success.
+
+**Commit (code):** c0c593d — "0065: improve OLED bring-up logging"
+
+### What I did
+- Made `oled_status_start()` return `ESP_ERR_NOT_SUPPORTED` when OLED is compiled out, and log config when enabled.
+- Updated `app_main.c` to log an explicit “OLED disabled” info message when the feature isn’t enabled.
+
+### Why
+- The default is `CONFIG_MO065_OLED_ENABLE=n`, so it’s easy to flash a build that never touches the OLED.
+- Clear logs help distinguish “disabled” from “wiring/address/controller problem”.
+
+### What worked
+- `idf.py build` still succeeds and the change is behaviorally low-risk (log-only).
+
+### What didn't work
+- Hardware display still needs validation once OLED is confirmed enabled and responding on the bus.
+
+### What I learned
+- The fastest bring-up loop is: enable OLED + enable scan-on-boot + watch for `I2C ACK at 0x..`.
+
+### What was tricky to build
+- Keeping the default firmware quiet (no warnings), while still emitting enough signal during bring-up.
+
+### What warrants a second pair of eyes
+- None; this is purely observability/logging, but keep an eye out for excessive logs in normal operation.
+
+### What should be done in the future
+- If the module is SPI (labels “SCL/SDA” but no I2C address), update the ticket to support SSD1306 SPI instead of I2C.
+
+### Code review instructions
+- Review the log paths in `0065-xiao-esp32c6-gpio-web-server/main/app_main.c`.
+- Review the config log emitted by `0065-xiao-esp32c6-gpio-web-server/main/oled_status.c`.

@@ -10,3 +10,4 @@
 - [x] Upload ticket docs to reMarkable
 - [ ] Flash on hardware + confirm I2C address and readability
 - [x] Update reMarkable upload with implementation commit details
+- [ ] If OLED blank: verify OLED enabled in menuconfig, enable scan-on-boot, confirm address (0x3C/0x3D) and interface (I2C vs SPI)

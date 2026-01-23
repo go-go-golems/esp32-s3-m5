@@ -29,3 +29,13 @@ Implemented optional SSD1306-class I2C OLED status display in 0065 firmware (com
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/oled_font_5x7.h — Bitmap font used for status text
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/oled_status.c — OLED init + status render task
 
+
+## 2026-01-22
+
+Added clearer OLED enable/disable + config logging in 0065 (commit c0c593d) to speed hardware bring-up.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/app_main.c — Logs explicit OLED disabled message
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0065-xiao-esp32c6-gpio-web-server/main/oled_status.c — Logs OLED config and returns NOT_SUPPORTED when disabled
+
