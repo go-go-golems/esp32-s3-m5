@@ -25,7 +25,7 @@
 - [x] Add `GET /api/status` (JSON)
 - [x] Add `POST /api/apply` (JSON) to set pattern + params + brightness + frame_ms
 - [x] Serve a minimal `/` HTML control page (embedded asset)
-- [ ] Smoke test: connect to Wi-Fi from console and hit `/api/status`
+- [x] Smoke test: connect to Wi-Fi from console and hit `/api/status`
 
 ## MicroQuickJS
 
@@ -39,17 +39,17 @@
 
 ## MQJS Timers + GPIO Sequencer
 
-- [ ] Design: setTimeout / interval callbacks + sequencing (this doc)
-- [ ] Implement: `setTimeout(fn, ms)` and `clearTimeout(id)`
-- [ ] Implement: periodic callback primitive (`setInterval` or `every(ms, fn)`)
-- [ ] Implement: GPIO G3/G4 toggle primitives (and explicit pin mapping)
-- [ ] Document: example toggle sequences (JS snippets)
+- [x] Design: setTimeout / interval callbacks + sequencing (this doc)
+- [x] Implement: `setTimeout(fn, ms)` and `clearTimeout(id)`
+- [x] Implement: periodic callback primitive (`setInterval` or `every(ms, fn)`)
+- [x] Implement: GPIO G3/G4 toggle primitives (and explicit pin mapping)
+- [x] Document: example toggle sequences (JS snippets)
 
 ## Engine Task + RPC
 
-- [ ] Design: move pattern engine into its own task + control queue + snapshots
-- [ ] Implement: engine task owns `led_patterns_t` and publishes latest pixels snapshot
-- [ ] Implement: synchronous RPC for config updates (console/web/js) with timeouts
+- [x] Design: move pattern engine into its own task + control queue + snapshots
+- [x] Implement: engine task owns `led_patterns_t` and publishes latest pixels snapshot
+- [x] Implement: synchronous RPC for config updates (console/web/js) with timeouts
 - [ ] Implement: async notifications (optional) without engine↔JS deadlocks
 
 ---

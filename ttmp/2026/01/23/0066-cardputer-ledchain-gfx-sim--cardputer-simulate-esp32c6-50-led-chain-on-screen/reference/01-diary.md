@@ -391,6 +391,55 @@ Added:
 
 This doc is intentionally practical: it encodes the current JS surface (`every`, `cancel`, `gpio.write/toggle`, `sim.*`) into patterns that are easy to adapt.
 
+---
+
+## Step 16: Web server smoke test + `/api/apply` consistency fix (2026-01-23)
+
+### Goal
+
+Make sure the web control plane remains a reliable way to drive the simulator (even after the engine refactor):
+
+- confirm `/api/status` works end-to-end from the workstation,
+- confirm `/api/apply` visibly applies and responds consistently.
+
+### What I did
+
+1) Added a ticket-local script:
+
+- `ttmp/.../scripts/http_smoke_0066.py`
+
+It:
+
+- opens the USB Serial/JTAG console on `/dev/ttyACM0`,
+- runs `wifi status` to parse `ip=...`,
+- performs:
+  - `GET http://<ip>/api/status`
+  - `POST http://<ip>/api/apply` with a small JSON payload,
+- and stores a transcript under `ttmp/.../various/http-smoke-0066-*.log`.
+
+2) Found a subtle behavior regression after Phase 5:
+
+After moving the engine into its own task, `POST /api/apply` would enqueue changes, but the immediate response could still reflect *previous* config because:
+
+- engine commands were marked “applied” (seq ack) as soon as they were dequeued,
+- but the shared `e->cfg` snapshot used by `status_get` was only updated during the next frame publish.
+
+So we fixed the ordering:
+
+- when the engine dequeues a config command, it now immediately publishes the applied `cfg`/`frame_ms` into the shared snapshot under the same mutex used for status reads.
+
+### Validation
+
+- Flash:
+  - `cd 0066-cardputer-adv-ledchain-gfx-sim && idf.py build && idf.py -p /dev/ttyACM0 flash`
+- Run:
+  - `python3 ttmp/.../scripts/http_smoke_0066.py --port /dev/ttyACM0`
+
+The latest smoke log shows:
+
+- `/api/status` returns JSON (ok)
+- `/api/apply` response now reflects the updated `global_brightness_pct` immediately
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
