@@ -11,6 +11,28 @@ Try:
 - `help`
 - `sim help`
 - `sim status`
+- `js help`
+- `js eval sim.status()`
+- `js eval sim.setBrightness(100)`
+- `js eval sim.setPattern("rainbow")`
+- `js eval sim.setRainbow(5,100,10)`
+
+Enter the JS REPL (nested prompt):
+
+- `js repl` (type `.exit` to return)
+
+## Wi-Fi + Web
+
+If you connect Wi‑Fi from the console, an HTTP server starts after STA gets an IP.
+
+- `wifi scan`
+- `wifi join <index> <password> --save`
+- `wifi status` (prints the IP)
+
+Endpoints:
+
+- `GET /api/status`
+- `POST /api/apply`
 
 ## Build / Flash
 
