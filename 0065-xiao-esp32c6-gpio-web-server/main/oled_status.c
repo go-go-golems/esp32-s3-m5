@@ -28,6 +28,31 @@
 
 static const char *TAG = "mo065_oled";
 
+// Backward-compat / safety: if a developer enables OLED in an existing sdkconfig
+// but hasn't reconfigured after pulling new Kconfig options, these macros may be
+// missing from sdkconfig.h. Provide defaults so the build still succeeds.
+#ifndef CONFIG_MO065_OLED_I2C_SDA_GPIO_NUM
+#define CONFIG_MO065_OLED_I2C_SDA_GPIO_NUM 22
+#endif
+#ifndef CONFIG_MO065_OLED_I2C_SCL_GPIO_NUM
+#define CONFIG_MO065_OLED_I2C_SCL_GPIO_NUM 23
+#endif
+#ifndef CONFIG_MO065_OLED_I2C_ADDR
+#define CONFIG_MO065_OLED_I2C_ADDR 0x3C
+#endif
+#ifndef CONFIG_MO065_OLED_I2C_SPEED_HZ
+#define CONFIG_MO065_OLED_I2C_SPEED_HZ 400000
+#endif
+#ifndef CONFIG_MO065_OLED_I2C_INTERNAL_PULLUPS
+#define CONFIG_MO065_OLED_I2C_INTERNAL_PULLUPS 1
+#endif
+#ifndef CONFIG_MO065_OLED_SCAN_ON_BOOT
+#define CONFIG_MO065_OLED_SCAN_ON_BOOT 0
+#endif
+#ifndef CONFIG_MO065_OLED_REFRESH_MS
+#define CONFIG_MO065_OLED_REFRESH_MS 500
+#endif
+
 static i2c_master_bus_handle_t s_bus = NULL;
 static esp_lcd_panel_io_handle_t s_io = NULL;
 static esp_lcd_panel_handle_t s_panel = NULL;
@@ -101,7 +126,8 @@ static void render_status(const wifi_mgr_status_t *st)
 
     char line2[32];
     if (st->ssid[0]) {
-        snprintf(line2, sizeof(line2), "SSID:%s", st->ssid);
+        // 32-byte buffer includes NUL; "SSID:" is 5 chars => allow up to 26 SSID chars.
+        snprintf(line2, sizeof(line2), "SSID:%.26s", st->ssid);
     } else {
         snprintf(line2, sizeof(line2), "SSID:-");
     }
