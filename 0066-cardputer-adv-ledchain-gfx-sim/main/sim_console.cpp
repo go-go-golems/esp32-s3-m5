@@ -74,6 +74,7 @@ static void print_usage(void)
     printf("  sim help\n");
     printf("  sim status\n");
     printf("  sim frame set <ms>\n");
+    printf("  sim bri set <1..100>\n");
     printf("  sim pattern set <off|rainbow|chase|breathing|sparkle>\n");
     printf("\n");
     printf("pattern config:\n");
@@ -175,6 +176,19 @@ static int cmd_sim(int argc, char **argv)
             return 1;
         }
         sim_engine_set_frame_ms(s_engine, ms);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "bri") == 0 && argc >= 4 && strcmp(argv[2], "set") == 0) {
+        uint8_t pct = 0;
+        if (!parse_u8(argv[3], &pct) || pct < 1 || pct > 100) {
+            printf("invalid brightness pct (expected 1..100)\n");
+            return 1;
+        }
+        led_pattern_cfg_t cfg;
+        sim_engine_get_cfg(s_engine, &cfg);
+        cfg.global_brightness_pct = pct;
+        sim_engine_set_cfg(s_engine, &cfg);
         return 0;
     }
 
