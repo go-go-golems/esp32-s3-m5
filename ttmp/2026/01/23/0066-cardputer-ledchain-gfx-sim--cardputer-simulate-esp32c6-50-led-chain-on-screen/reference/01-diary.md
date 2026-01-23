@@ -604,3 +604,13 @@ You asked whether we can make the chain pattern engine its own task with a queue
   - `components/mqjs_service`
 - Existing “event → JS callback” pattern:
   - `0048-cardputer-js-web/main/js_service.cpp`
+
+---
+
+## Step 10: Task breakdown — timers, GPIO, engine task refactor (2026-01-23)
+
+Captured your decisions (board-label G3/G4, ms resolution, jitter OK, JS moves to `mqjs_service`, timer API is `every`, engine blocking = ack/enqueued, engine tick 60Hz, UI consumes latest-frame snapshot) and expanded them into a detailed implementation task list in:
+
+- `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/tasks.md`
+
+This is intended to be the checklist we execute phase-by-phase with small commits and frequent hardware smoke tests.

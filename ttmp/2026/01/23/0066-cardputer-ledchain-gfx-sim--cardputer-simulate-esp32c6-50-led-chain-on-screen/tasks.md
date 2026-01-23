@@ -51,3 +51,107 @@
 - [ ] Implement: engine task owns `led_patterns_t` and publishes latest pixels snapshot
 - [ ] Implement: synchronous RPC for config updates (console/web/js) with timeouts
 - [ ] Implement: async notifications (optional) without engine↔JS deadlocks
+
+---
+
+# Detailed Implementation Tasks (Timers + GPIO + Engine Task)
+
+Design decisions captured from user (2026-01-23):
+- GPIO “G3/G4” refers to **board labels**, not ESP32 GPIO numbers (mapping must be identified and documented).
+- Timing: **ms resolution is OK**, jitter is acceptable.
+- JS execution: move to **`mqjs_service` VM-owner task** (no JS execution inside `esp_console` handler).
+- Timer API: implement **`every(ms, fn)`** (not `setInterval` initially); `setTimeout` arg handling: **easiest**.
+- Engine task semantics: blocking means **ack/enqueued** (not “rendered a frame”).
+- Engine tick: **60 Hz**, UI `frame_ms` remains the pacing knob for on-screen refresh.
+- UI consumption: **latest-frame snapshot** (double-buffer), not a frame queue.
+
+## Phase 0 — Prep / Pin Mapping
+
+- [ ] Find the actual ESP32-S3 GPIO numbers corresponding to Cardputer board labels **G3** and **G4**
+  - [ ] Search this repo for prior usage of “G3/G4” in Cardputer projects
+  - [ ] If not found, consult M5Cardputer / Cardputer-ADV docs/schematics and record the mapping
+  - [ ] Decide + document electrical mode (push-pull output, active-high; note if configurable)
+  - [ ] Add a short “pin mapping” note into the ticket README/design doc
+
+## Phase 1 — Move JS execution onto `mqjs_service` (foundation)
+
+- [ ] Add a 0066-specific `js_service` wrapper that starts `mqjs_service` with `js_stdlib`
+  - [ ] Choose arena size (Kconfig `CONFIG_TUTORIAL_0066_JS_MEM_BYTES` or fixed default)
+  - [ ] Provide `js_service_eval(...)` and `js_service_post(job...)` wrappers
+- [ ] Update `js eval` to call `mqjs_service_eval` (blocking) instead of direct `JS_Eval`
+- [ ] Update `js repl` to use `mqjs_service_eval` for each line (still line-oriented; no second serial reader)
+- [ ] Ensure all existing `sim.*` JS APIs keep working under the service model
+- [ ] Smoke test script (ticket `scripts/`):
+  - [ ] Update/add `serial_smoke_js_0066.py` to validate `js eval sim.status()` works via the service
+- [ ] Commit: “0066: run JS on mqjs_service task”
+
+## Phase 2 — Timers: `setTimeout/clearTimeout` + `every(ms, fn)`
+
+- [ ] Decide callback storage strategy: JS-side registry under `globalThis.__0066` (GC rooting)
+  - [ ] Create bootstrap job that ensures `__0066.timers = { cb: {}, ... }`
+- [ ] Implement `setTimeout(fn, ms)` and `clearTimeout(id)`
+  - [ ] Validate args and bounds (`ms >= 0`, cap max timers, cap queue pressure)
+  - [ ] Define semantics: “enqueue + best-effort execution”; support cancellation
+  - [ ] On callback throw: **log and cancel that timer/periodic handle** (choice)
+- [ ] Implement `every(ms, fn)` and `cancel(handle)`
+  - [ ] Return an integer id or small handle object (pick simplest)
+  - [ ] Implement coalescing/overrun behavior (skip vs catch-up); pick simplest “skip if late”
+- [ ] Timer kernel architecture
+  - [ ] Use a single scheduler task or `esp_timer` “next deadline” to wake scheduler
+  - [ ] Never execute JS from timer callback; only post jobs into `mqjs_service`
+- [ ] Add smoke script (ticket `scripts/`):
+  - [ ] Verify `every(100, fn)` toggles an in-JS counter and can be canceled
+- [ ] Commit per step (bootstrap, setTimeout, every)
+
+## Phase 3 — GPIO: G3/G4 toggle primitives for JS
+
+- [ ] Implement GPIO init module for the two pins (as outputs)
+  - [ ] Explicitly document mapping “G3/G4 → GPIO<num>”
+  - [ ] Ensure does not conflict with USB Serial/JTAG console pins (per repo guidance)
+- [ ] Add JS API surface (pick minimal):
+  - [ ] `gpio.toggle("G3")`, `gpio.write("G3", 0|1)`, `gpio.read("G3")` (or equivalent)
+- [ ] Add example sequences (pure JS userland) using `every` / `setTimeout`
+- [ ] Add smoke script (ticket `scripts/`):
+  - [ ] `every(100, () => gpio.toggle("G3"))`, run 10 ticks, cancel
+- [ ] Commit per step
+
+## Phase 4 — Sequencer layer (userland-first)
+
+- [ ] Add a “sequencer cookbook” doc in the ticket (JS snippets)
+  - [ ] pulse N times
+  - [ ] alternating G3/G4 pattern
+  - [ ] simple state machine driven by `every`
+  - [ ] cancellation patterns (prevent runaway)
+- [ ] Optional (later): native declarative sequencer object (only if userland becomes unwieldy)
+
+## Phase 5 — Engine Task + Control Queue (refactor)
+
+- [ ] Add an `engine_task` that owns the pattern state and renders frames at **60 Hz**
+  - [ ] Maintain `frame_ms` as UI pacing; engine tick is fixed 60 Hz
+  - [ ] Publish a **latest-frame snapshot** (double-buffer) for UI + web + status
+- [ ] Add an engine control queue with message types:
+  - [ ] set pattern cfg
+  - [ ] set frame_ms (UI pacing value)
+  - [ ] get status (optional)
+- [ ] Define blocking semantics: JS/console “blocking” = **ack/enqueued** (with timeout)
+- [ ] Update existing subsystems to use the queue:
+  - [ ] `sim ...` console commands enqueue set-cfg / set-frame
+  - [ ] HTTP `/api/apply` enqueues set-cfg / set-frame
+  - [ ] JS `sim.*` APIs enqueue set-cfg / set-frame (blocking + non-blocking variants)
+- [ ] Remove/limit direct mutex-based writes once queue path is authoritative
+- [ ] Smoke test (hardware):
+  - [ ] verify UI still animates
+  - [ ] verify console + web + JS still control patterns
+- [ ] Commit per step (engine task skeleton, snapshot, queue write path, migration)
+
+## Phase 6 — Optional async engine→JS notifications (no deadlocks)
+
+- [ ] Add “event posting” from engine to JS as **mqjs_service jobs** (never blocking engine)
+  - [ ] Coalesce events to avoid flooding (at most one pending “frame event”)
+  - [ ] Provide JS registration API (`engine.on("frame", fn)` or similar)
+
+## Phase 7 — Documentation + reMarkable uploads
+
+- [ ] Update ticket design docs if decisions shift (pin mapping, timer semantics)
+- [ ] Keep diary entries at each phase (exact commands, failures, validations)
+- [ ] Upload updated ticket bundle to reMarkable after major milestones
