@@ -76,15 +76,15 @@ Design decisions captured from user (2026-01-23):
 
 ## Phase 1 — Move JS execution onto `mqjs_service` (foundation)
 
-- [ ] Add a 0066-specific `js_service` wrapper that starts `mqjs_service` with `js_stdlib`
-  - [ ] Choose arena size (Kconfig `CONFIG_TUTORIAL_0066_JS_MEM_BYTES` or fixed default)
-  - [ ] Provide `js_service_eval(...)` and `js_service_post(job...)` wrappers
-- [ ] Update `js eval` to call `mqjs_service_eval` (blocking) instead of direct `JS_Eval`
-- [ ] Update `js repl` to use `mqjs_service_eval` for each line (still line-oriented; no second serial reader)
-- [ ] Ensure all existing `sim.*` JS APIs keep working under the service model
+- [x] Add a 0066-specific `js_service` wrapper that starts `mqjs_service` with `js_stdlib`
+  - [x] Choose arena size (Kconfig `CONFIG_TUTORIAL_0066_JS_MEM_BYTES` or fixed default)
+  - [x] Provide `js_service_eval(...)` and `js_service_post(job...)` wrappers
+- [x] Update `js eval` to call `mqjs_service_eval` (blocking) instead of direct `JS_Eval`
+- [x] Update `js repl` to use `mqjs_service_eval` for each line (still line-oriented; no second serial reader)
+- [x] Ensure all existing `sim.*` JS APIs keep working under the service model
 - [ ] Smoke test script (ticket `scripts/`):
-  - [ ] Update/add `serial_smoke_js_0066.py` to validate `js eval sim.status()` works via the service
-- [ ] Commit: “0066: run JS on mqjs_service task”
+  - [x] Update/add `serial_smoke_js_0066.py` to validate `js eval sim.status()` works via the service
+- [x] Commit: “0066: run JS on mqjs_service task”
 
 ## Phase 2 — Timers: `setTimeout/clearTimeout` + `every(ms, fn)`
 

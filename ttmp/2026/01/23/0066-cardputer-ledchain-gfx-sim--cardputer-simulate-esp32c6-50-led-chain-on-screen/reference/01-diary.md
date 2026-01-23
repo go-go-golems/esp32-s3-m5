@@ -116,6 +116,56 @@ The default mapping is evidence-based: in `0047-cardputer-adv-lvgl-chain-encoder
 
 Phase 1: migrate JS execution off the `esp_console` handler thread and onto the existing `components/mqjs_service` VM-owner task, preserving the existing `js eval` and `js repl` UX.
 
+---
+
+## Step 10: Phase 1 — JS runs on `mqjs_service` (2026-01-23)
+
+### Why this change
+
+The prior `0066` JS integration (`main/mqjs/mqjs_engine.cpp`) created and owned a MicroQuickJS `JSContext` directly inside the `esp_console` command handler path.
+
+That was fine for `js eval ...`, but it becomes unsafe once we add:
+
+- timer callbacks,
+- GPIO “sequencing” callbacks,
+- future engine-task notifications,
+
+because those events should not execute JS from arbitrary tasks/ISRs. The stable pattern in this repo (see `0048-cardputer-js-web`) is to:
+
+- run **all JS** on a single VM-owner task,
+- communicate by posting bounded “jobs” (or synchronous eval requests) to that task.
+
+We therefore migrated 0066 to use the existing `components/mqjs_service` + `components/mqjs_vm`.
+
+### Implementation notes
+
+- Added `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp` / `.h`:
+  - Starts `mqjs_service` with the existing generated `js_stdlib` from `mqjs/esp32_stdlib_runtime.c`.
+  - Binds `sim_engine_t*` via `mqjs_sim_set_engine(engine)` before service use (so `sim.*` native functions keep working).
+  - Provides `js_service_eval(...)`, `js_service_dump_memory(...)`, and `js_service_reset(...)` (implemented as stop+restart).
+- Updated `mqjs_console.cpp` so `js eval` and `js repl` call into `js_service_eval(...)` instead of calling MicroQuickJS directly.
+- Updated `0066` project `CMakeLists.txt` to include `mqjs_vm` and `mqjs_service` as extra components and main `REQUIRES`.
+
+### Validation
+
+Build:
+
+- `cd 0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+
+Flash to the Cardputer attached on `/dev/ttyACM0`:
+
+- `idf.py -p /dev/ttyACM0 flash`
+
+Smoke test script (ticket-local):
+
+- `python3 ttmp/.../scripts/serial_smoke_js_0066.py --port /dev/ttyACM0`
+
+The resulting log shows `js eval sim.status()` and pattern changes work with the service model.
+
+### Commits
+
+- `45612f6` — `0066: run JS via mqjs_service`
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
