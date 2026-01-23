@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.c"
         "gpio_ctl.c"
         "http_server.c"
+        "oled_status.c"
     PRIV_REQUIRES
         httpd_assets_embed
         wifi_mgr
@@ -13,6 +14,8 @@ idf_component_register(
         esp_wifi
         esp_http_server
         driver
+        esp_driver_i2c
+        esp_lcd
         esp_driver_usb_serial_jtag
         console
         json
@@ -20,4 +23,3 @@ idf_component_register(
         "assets/index.html"
     INCLUDE_DIRS "."
 )
-

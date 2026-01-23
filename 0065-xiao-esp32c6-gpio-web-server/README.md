@@ -47,3 +47,26 @@ Then open the printed URL: `http://<sta-ip>/`.
 - D2 GPIO number (default `2`)
 - D3 GPIO number (default `3`)
 - Active-low options (default `y`)
+
+## Optional: OLED status display (I2C, SSD1306-class)
+
+If you wire a 128×64 SSD1306-class OLED (e.g. GME12864-11 I2C variant), the firmware can show:
+- Wi‑Fi state (IDLE/CONNECTING/CONNECTED)
+- SSID (if set)
+- IP address (when DHCP succeeds)
+
+### Wiring (Seeed Studio XIAO ESP32C6)
+
+- OLED `VCC` → `3V3`
+- OLED `GND` → `GND`
+- OLED `SDA` → XIAO pin4 (`GPIO22`)
+- OLED `SCL` → XIAO pin5 (`GPIO23`)
+
+### Configure (menuconfig)
+
+`Component config` → `MO-065: OLED status display (SSD1306-class, I2C)`
+
+- Enable OLED status display (default `n`)
+- I2C SDA GPIO number (default `22`)
+- I2C SCL GPIO number (default `23`)
+- OLED I2C address (default `0x3C`)

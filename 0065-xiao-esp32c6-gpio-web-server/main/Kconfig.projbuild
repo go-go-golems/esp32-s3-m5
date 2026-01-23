@@ -25,3 +25,70 @@ config MO065_GPIO_D3_ACTIVE_LOW
         If enabled, logical “on” drives the GPIO low.
 
 endmenu
+
+menu "MO-065: OLED status display (SSD1306-class, I2C)"
+
+config MO065_OLED_ENABLE
+    bool "Enable OLED status display"
+    default n
+    help
+        If enabled, the firmware will initialize an SSD1306-class 128x64 OLED over I2C
+        and render Wi-Fi status + IP address.
+
+config MO065_OLED_I2C_SDA_GPIO_NUM
+    int "I2C SDA GPIO number"
+    depends on MO065_OLED_ENABLE
+    default 22
+    help
+        SDA GPIO for the OLED I2C bus.
+        For Seeed Studio XIAO ESP32C6: SDA is GPIO22 (board pin4).
+
+config MO065_OLED_I2C_SCL_GPIO_NUM
+    int "I2C SCL GPIO number"
+    depends on MO065_OLED_ENABLE
+    default 23
+    help
+        SCL GPIO for the OLED I2C bus.
+        For Seeed Studio XIAO ESP32C6: SCL is GPIO23 (board pin5).
+
+config MO065_OLED_I2C_ADDR
+    hex "OLED I2C address (7-bit)"
+    depends on MO065_OLED_ENABLE
+    default 0x3C
+    help
+        The OLED's 7-bit I2C address. Common values are 0x3C and 0x3D.
+
+config MO065_OLED_I2C_SPEED_HZ
+    int "I2C clock speed (Hz)"
+    depends on MO065_OLED_ENABLE
+    default 400000
+    range 10000 1000000
+    help
+        I2C bus speed. If bring-up is flaky or wires are long, try 100000 first.
+
+config MO065_OLED_I2C_INTERNAL_PULLUPS
+    bool "Enable internal pull-ups on SDA/SCL"
+    depends on MO065_OLED_ENABLE
+    default y
+    help
+        Enable ESP32 internal pull-ups for the I2C pins.
+        Note: these are weak; prefer external pull-ups if possible.
+
+config MO065_OLED_SCAN_ON_BOOT
+    bool "Probe I2C addresses on boot (log ACKs)"
+    depends on MO065_OLED_ENABLE
+    default n
+    help
+        If enabled, probes all 7-bit I2C addresses (0x08..0x77) once on boot and
+        logs any that ACK. Useful for discovering the OLED address during bring-up.
+
+config MO065_OLED_REFRESH_MS
+    int "Refresh interval (ms)"
+    depends on MO065_OLED_ENABLE
+    default 500
+    range 100 5000
+    help
+        OLED update task interval. The task only redraws when Wi-Fi state/IP changes,
+        but it wakes up at this cadence to poll status.
+
+endmenu
