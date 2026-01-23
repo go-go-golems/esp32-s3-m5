@@ -95,6 +95,7 @@ def main() -> int:
             write_line(ser, cmd)
             time.sleep(0.05)
             transcript.extend(read_until(ser, b"sim> ", 1.5))
+            time.sleep(4)
 
         run("help")
         run("sim help")

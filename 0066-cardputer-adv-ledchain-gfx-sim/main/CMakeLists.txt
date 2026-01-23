@@ -4,9 +4,17 @@ idf_component_register(
         "sim_console.cpp"
         "sim_engine.cpp"
         "sim_ui.cpp"
+        "http_server.cpp"
     INCLUDE_DIRS "."
+    EMBED_FILES
+        "assets/index.html"
     REQUIRES
         M5GFX
         console
         ws281x
+        wifi_mgr
+        wifi_console
+        esp_http_server
+        httpd_assets_embed
+        json
 )

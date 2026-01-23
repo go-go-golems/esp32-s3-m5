@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>0066 LED Sim</title>
+    <style>
+      body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
+      .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      pre { background: #0b1220; color: #e6edf3; padding: 12px; border-radius: 8px; overflow: auto; }
+      input, select, button { padding: 8px; }
+      button { cursor: pointer; }
+      .muted { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h1>0066 Cardputer LED Simulator</h1>
+    <p class="muted">Use <code>/api/status</code> and <code>/api/apply</code>. This page is intentionally minimal.</p>
+
+    <div class="row">
+      <button id="refresh">Refresh status</button>
+      <select id="type">
+        <option value="off">off</option>
+        <option value="rainbow" selected>rainbow</option>
+        <option value="chase">chase</option>
+        <option value="breathing">breathing</option>
+        <option value="sparkle">sparkle</option>
+      </select>
+      <label>bri <input id="bri" type="number" min="1" max="100" value="25" style="width:72px" /></label>
+      <label>frame_ms <input id="frame_ms" type="number" min="1" max="1000" value="16" style="width:84px" /></label>
+      <button id="apply">Apply</button>
+    </div>
+
+    <h3>Status</h3>
+    <pre id="status">(click refresh)</pre>
+
+    <script>
+      async function getStatus() {
+        const res = await fetch('/api/status', { cache: 'no-store' });
+        const j = await res.json();
+        document.getElementById('status').textContent = JSON.stringify(j, null, 2);
+        if (j && j.pattern && j.pattern.global_brightness_pct) document.getElementById('bri').value = j.pattern.global_brightness_pct;
+        if (j && j.frame_ms) document.getElementById('frame_ms').value = j.frame_ms;
+        if (j && j.pattern && j.pattern.type) document.getElementById('type').value = j.pattern.type;
+      }
+
+      async function apply() {
+        const type = document.getElementById('type').value;
+        const bri = Number(document.getElementById('bri').value);
+        const frame_ms = Number(document.getElementById('frame_ms').value);
+
+        const body = { type, brightness_pct: bri, frame_ms };
+        const res = await fetch('/api/apply', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const j = await res.json().catch(() => ({ ok: false }));
+        document.getElementById('status').textContent = JSON.stringify(j, null, 2);
+      }
+
+      document.getElementById('refresh').addEventListener('click', getStatus);
+      document.getElementById('apply').addEventListener('click', apply);
+    </script>
+  </body>
+</html>
+
