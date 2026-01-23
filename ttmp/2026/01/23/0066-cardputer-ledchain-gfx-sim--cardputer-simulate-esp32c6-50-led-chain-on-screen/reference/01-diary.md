@@ -345,7 +345,7 @@ Increasing the UI task stack (from 4096 to 8192) removed the crash. After that c
 
 **Inferred user intent:** You want confidence that the MVP is not just “it builds” but actually runs on the real Cardputer and accepts pattern commands.
 
-**Commit (code):** N/A (fix + scripts are committed in the next step)
+**Commit (code):** `78efc2e` — "0066: fix M5GFX init crash (increase UI task stack)" (plus smoke scripts in `71ca90c`, `a9e6c4b`)
 
 ### What I did
 - Built + flashed:
