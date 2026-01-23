@@ -80,7 +80,7 @@ void sim_engine_deinit(sim_engine_t *e)
         xSemaphoreGive(e->mu);
     }
 
-    *e = (sim_engine_t){0};
+    *e = sim_engine_t{};
 }
 
 void sim_engine_get_cfg(sim_engine_t *e, led_pattern_cfg_t *out)
@@ -152,4 +152,3 @@ esp_err_t sim_engine_render(sim_engine_t *e, uint32_t now_ms, uint8_t *out_pixel
     xSemaphoreGive(e->mu);
     return ESP_OK;
 }
-

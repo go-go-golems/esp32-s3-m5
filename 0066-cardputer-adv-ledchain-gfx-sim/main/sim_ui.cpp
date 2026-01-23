@@ -128,6 +128,6 @@ static void ui_task_main(void *arg)
 
 void sim_ui_start(sim_engine_t *engine)
 {
-    xTaskCreate(&ui_task_main, "sim_ui", 4096, engine, 5, nullptr);
+    // M5GFX init can be stack-hungry; keep this comfortably above 4k to avoid stack corruption.
+    xTaskCreate(&ui_task_main, "sim_ui", 8192, engine, 5, nullptr);
 }
-
