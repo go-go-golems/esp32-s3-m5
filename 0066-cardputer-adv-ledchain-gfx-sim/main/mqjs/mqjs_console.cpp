@@ -9,11 +9,9 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
-#include "mqjs_engine.h"
+#include "js_service.h"
 
 static const char *TAG = "0066_mqjs_console";
-
-static MqjsEngine s_js;
 
 static void print_usage(void) {
   printf("js: MicroQuickJS REPL + sim control API\n");
@@ -61,18 +59,14 @@ static int cmd_js(int argc, char **argv) {
   }
 
   if (strcmp(argv[1], "reset") == 0) {
-    std::string error;
-    if (!s_js.Reset(&error)) {
-      printf("error: %s\n", error.c_str());
-      return 1;
-    }
+    ESP_ERROR_CHECK(js_service_reset(nullptr));
     printf("ok\n");
     return 0;
   }
 
   if (strcmp(argv[1], "stats") == 0) {
     std::string out;
-    if (!s_js.DumpMemory(&out)) {
+    if (js_service_dump_memory(&out) != ESP_OK) {
       printf("error: stats failed\n");
       return 1;
     }
@@ -88,7 +82,11 @@ static int cmd_js(int argc, char **argv) {
     const std::string code = join_args(2, argc, argv);
     std::string out;
     std::string err;
-    (void)s_js.Eval(code, &out, &err);
+    const esp_err_t st = js_service_eval(code.data(), code.size(), 0, "<repl>", &out, &err);
+    if (st != ESP_OK) {
+      printf("error: js eval failed: %s\n", esp_err_to_name(st));
+      return 1;
+    }
     if (!err.empty()) {
       printf("error: %s", err.c_str());
       return 1;
@@ -104,7 +102,7 @@ static int cmd_js(int argc, char **argv) {
 
     char line[512];
     for (;;) {
-      printf("%s", s_js.Prompt());
+      printf("js> ");
       fflush(stdout);
 
       if (!fgets(line, sizeof(line), stdin)) {
@@ -125,7 +123,11 @@ static int cmd_js(int argc, char **argv) {
 
       std::string out;
       std::string err;
-      (void)s_js.Eval(std::string(line, n), &out, &err);
+      const esp_err_t st = js_service_eval(line, n, 0, "<repl>", &out, &err);
+      if (st != ESP_OK) {
+        printf("error: js eval failed: %s\n", esp_err_to_name(st));
+        continue;
+      }
       if (!err.empty()) {
         printf("error: %s", err.c_str());
         continue;
@@ -141,9 +143,8 @@ static int cmd_js(int argc, char **argv) {
 }
 
 void mqjs_console_register_commands(sim_engine_t *engine) {
-  std::string error;
-  if (!s_js.Init(engine, &error)) {
-    ESP_LOGW(TAG, "JS engine not started: %s", error.c_str());
+  if (js_service_start(engine) != ESP_OK) {
+    ESP_LOGW(TAG, "JS service not started");
     return;
   }
 

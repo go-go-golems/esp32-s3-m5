@@ -6,7 +6,7 @@ idf_component_register(
         "sim_ui.cpp"
         "http_server.cpp"
         "mqjs/esp32_stdlib_runtime.c"
-        "mqjs/mqjs_engine.cpp"
+        "mqjs/js_service.cpp"
         "mqjs/mqjs_console.cpp"
     INCLUDE_DIRS "." "mqjs"
     EMBED_FILES
@@ -21,4 +21,6 @@ idf_component_register(
         httpd_assets_embed
         json
         mquickjs
+        mqjs_vm
+        mqjs_service
 )
