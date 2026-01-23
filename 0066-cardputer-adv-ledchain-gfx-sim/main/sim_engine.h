@@ -30,6 +30,8 @@ typedef struct {
     int active_frame;
     uint32_t frame_seq;
     uint32_t last_render_ms;
+    uint32_t apply_seq_next;
+    uint32_t apply_seq_applied;
 
     // Control queue (consumed by the engine task).
     QueueHandle_t q;

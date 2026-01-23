@@ -18,6 +18,7 @@ enum sim_cmd_type_t : uint8_t {
 
 struct sim_cmd_t {
   sim_cmd_type_t type = SIM_CMD_SET_CFG;
+  uint32_t seq = 0;
   led_pattern_cfg_t cfg = {};
   uint32_t frame_ms = 16;
 };
@@ -91,6 +92,15 @@ static void engine_task_main(void *arg) {
         frame_ms = cmd.frame_ms;
         if (frame_ms == 0) frame_ms = 1;
       }
+      if (e->mu && xSemaphoreTake(e->mu, portMAX_DELAY) == pdTRUE) {
+        // Publish applied config immediately so status endpoints reflect changes without waiting for the next frame publish.
+        e->cfg = cfg;
+        e->frame_ms = frame_ms;
+        if (cmd.seq != 0) {
+          e->apply_seq_applied = cmd.seq;
+        }
+        xSemaphoreGive(e->mu);
+      }
     }
 
     const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
@@ -137,6 +147,8 @@ esp_err_t sim_engine_init(sim_engine_t *e, uint16_t led_count, uint32_t frame_ms
   memset(e->frames[1], 0, nbytes);
   e->active_frame = 0;
   e->frame_seq = 0;
+  e->apply_seq_next = 0;
+  e->apply_seq_applied = 0;
 
   e->cfg = (led_pattern_cfg_t){
       .type = LED_PATTERN_RAINBOW,
@@ -194,10 +206,33 @@ void sim_engine_get_cfg(sim_engine_t *e, led_pattern_cfg_t *out) {
 
 void sim_engine_set_cfg(sim_engine_t *e, const led_pattern_cfg_t *cfg) {
   if (!e || !cfg || !e->q) return;
+
+  uint32_t seq = 0;
+  if (e->mu && xSemaphoreTake(e->mu, portMAX_DELAY) == pdTRUE) {
+    seq = ++e->apply_seq_next;
+    xSemaphoreGive(e->mu);
+  }
+
   sim_cmd_t cmd = {};
   cmd.type = SIM_CMD_SET_CFG;
+  cmd.seq = seq;
   cmd.cfg = *cfg;
-  (void)xQueueSend(e->q, &cmd, pdMS_TO_TICKS(50));
+  if (xQueueSend(e->q, &cmd, pdMS_TO_TICKS(50)) != pdTRUE) {
+    ESP_LOGW(TAG, "set_cfg: queue full");
+    return;
+  }
+
+  // Wait briefly for the engine to apply, so `status` responses can reflect updates immediately.
+  const int64_t deadline_us = esp_timer_get_time() + (int64_t)100 * 1000;
+  while (esp_timer_get_time() < deadline_us) {
+    uint32_t applied = 0;
+    if (e->mu && xSemaphoreTake(e->mu, pdMS_TO_TICKS(10)) == pdTRUE) {
+      applied = e->apply_seq_applied;
+      xSemaphoreGive(e->mu);
+    }
+    if (applied >= seq && seq != 0) break;
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
 }
 
 uint32_t sim_engine_get_frame_ms(sim_engine_t *e) {
@@ -211,10 +246,32 @@ uint32_t sim_engine_get_frame_ms(sim_engine_t *e) {
 void sim_engine_set_frame_ms(sim_engine_t *e, uint32_t frame_ms) {
   if (!e || !e->q) return;
   if (frame_ms == 0) frame_ms = 1;
+
+  uint32_t seq = 0;
+  if (e->mu && xSemaphoreTake(e->mu, portMAX_DELAY) == pdTRUE) {
+    seq = ++e->apply_seq_next;
+    xSemaphoreGive(e->mu);
+  }
+
   sim_cmd_t cmd = {};
   cmd.type = SIM_CMD_SET_FRAME_MS;
+  cmd.seq = seq;
   cmd.frame_ms = frame_ms;
-  (void)xQueueSend(e->q, &cmd, pdMS_TO_TICKS(50));
+  if (xQueueSend(e->q, &cmd, pdMS_TO_TICKS(50)) != pdTRUE) {
+    ESP_LOGW(TAG, "set_frame_ms: queue full");
+    return;
+  }
+
+  const int64_t deadline_us = esp_timer_get_time() + (int64_t)100 * 1000;
+  while (esp_timer_get_time() < deadline_us) {
+    uint32_t applied = 0;
+    if (e->mu && xSemaphoreTake(e->mu, pdMS_TO_TICKS(10)) == pdTRUE) {
+      applied = e->apply_seq_applied;
+      xSemaphoreGive(e->mu);
+    }
+    if (applied >= seq && seq != 0) break;
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
 }
 
 uint16_t sim_engine_get_led_count(sim_engine_t *e) {
@@ -242,4 +299,3 @@ esp_err_t sim_engine_copy_latest_pixels(sim_engine_t *e, uint8_t *out_pixels, si
   xSemaphoreGive(e->mu);
   return ESP_OK;
 }
-
