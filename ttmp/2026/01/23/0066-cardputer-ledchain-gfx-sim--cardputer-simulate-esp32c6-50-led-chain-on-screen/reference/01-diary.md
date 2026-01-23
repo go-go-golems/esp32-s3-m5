@@ -575,3 +575,32 @@ This step is **documentation-only**: no firmware changes, only a design/analysis
 - Timers are fundamentally an **execution model** problem: JS must run on a single VM owner task, never inside `esp_timer` callbacks.
 - The cleanest implementation path is to reuse `mqjs_service` and treat timers as “enqueue jobs to the VM thread when due”.
 - Sequencing can start as pure JS (userland) once timers exist, and only later graduate to a native “sequencer” object if needed.
+
+---
+
+## Step 9: Design doc — Engine task + control queue + JS sync/async (2026-01-23)
+
+You asked whether we can make the chain pattern engine its own task with a queue, while still allowing:
+
+- blocking (synchronous) JS calls, and
+- async work in MicroQuickJS (callbacks / timers / sequences).
+
+### Answer (summary)
+
+- Yes: **blocking JS calls become an RPC** to the engine task (enqueue + wait for ack with timeout).
+- Yes: async JS is supported by **posting jobs to the JS VM owner task** (reuse `mqjs_service`), never by calling JS directly from timers/engine context.
+- Avoid deadlock by rule: **engine never waits on JS**, only posts notifications.
+
+### What I did
+
+- Wrote the design doc capturing this architecture and trade-offs:
+  - `ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/design-doc/04-pattern-engine-task-rpc-and-js-async.md`
+
+### Key references used
+
+- Current 0066 rendering loop (UI task directly calls engine methods):
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+- Existing single-owner JS VM mechanism:
+  - `components/mqjs_service`
+- Existing “event → JS callback” pattern:
+  - `0048-cardputer-js-web/main/js_service.cpp`

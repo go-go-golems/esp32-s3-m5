@@ -44,3 +44,10 @@
 - [ ] Implement: periodic callback primitive (`setInterval` or `every(ms, fn)`)
 - [ ] Implement: GPIO G3/G4 toggle primitives (and explicit pin mapping)
 - [ ] Document: example toggle sequences (JS snippets)
+
+## Engine Task + RPC
+
+- [ ] Design: move pattern engine into its own task + control queue + snapshots
+- [ ] Implement: engine task owns `led_patterns_t` and publishes latest pixels snapshot
+- [ ] Implement: synchronous RPC for config updates (console/web/js) with timeouts
+- [ ] Implement: async notifications (optional) without engine↔JS deadlocks
