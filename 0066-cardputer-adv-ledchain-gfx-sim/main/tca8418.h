@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 #include "esp_err.h"
 
 // Minimal TCA8418 keypad controller helpers (register-level).
@@ -46,7 +46,8 @@
 #define TCA8418_INTSTAT_K_INT 0x01
 
 typedef struct {
-    i2c_master_dev_handle_t dev;
+    i2c_port_t port;
+    uint8_t addr7;
     uint8_t rows;
     uint8_t cols;
 } tca8418_t;
@@ -55,12 +56,7 @@ typedef struct {
 extern "C" {
 #endif
 
-esp_err_t tca8418_open(tca8418_t *dev,
-                       i2c_master_bus_handle_t bus,
-                       uint8_t addr7,
-                       uint32_t scl_speed_hz,
-                       uint8_t rows,
-                       uint8_t cols);
+esp_err_t tca8418_open(tca8418_t *dev, i2c_port_t port, uint8_t addr7, uint8_t rows, uint8_t cols);
 esp_err_t tca8418_begin(tca8418_t *dev);
 
 esp_err_t tca8418_write_reg8(const tca8418_t *dev, uint8_t reg, uint8_t val);

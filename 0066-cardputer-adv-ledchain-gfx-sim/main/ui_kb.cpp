@@ -5,7 +5,7 @@
 #include "sdkconfig.h"
 
 #include "driver/gpio.h"
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 #include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -93,7 +93,6 @@ static uint8_t mods_from_state(bool shift, bool ctrl, bool alt, bool opt)
     return mods;
 }
 
-static i2c_master_bus_handle_t s_bus = nullptr;
 static tca8418_t s_kbd = {};
 static QueueHandle_t s_evt_q = nullptr;
 static bool s_ready = false;
@@ -114,29 +113,30 @@ static esp_err_t kb_hw_init(void)
 
     // Cardputer-ADV keyboard wiring: I2C0 SDA=GPIO8 SCL=GPIO9, INT=GPIO11, addr=0x34.
     // (See 0036-cardputer-adv-led-matrix-console.)
-    static constexpr i2c_port_num_t kI2cPort = I2C_NUM_0;
+    static constexpr i2c_port_t kI2cPort = I2C_NUM_0;
     static constexpr gpio_num_t kSda = GPIO_NUM_8;
     static constexpr gpio_num_t kScl = GPIO_NUM_9;
     static constexpr gpio_num_t kInt = GPIO_NUM_11;
-    static constexpr uint32_t kHz = 400000;
     static constexpr uint8_t kAddr7 = 0x34;
     static constexpr uint8_t kRows = 7;
     static constexpr uint8_t kCols = 8;
 
-    if (!s_bus) {
-        i2c_master_bus_config_t bus_cfg = {};
-        bus_cfg.i2c_port = kI2cPort;
-        bus_cfg.sda_io_num = kSda;
-        bus_cfg.scl_io_num = kScl;
-        bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
-        bus_cfg.glitch_ignore_cnt = 7;
-        bus_cfg.intr_priority = 0;
-        bus_cfg.trans_queue_depth = 0; // synchronous mode
-        bus_cfg.flags.enable_internal_pullup = 1;
-        ESP_RETURN_ON_ERROR(i2c_new_master_bus(&bus_cfg, &s_bus), TAG, "i2c_new_master_bus failed");
+    i2c_config_t conf = {};
+    conf.mode = I2C_MODE_MASTER;
+    conf.sda_io_num = kSda;
+    conf.scl_io_num = kScl;
+    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+    conf.master.clk_speed = 400000;
+    ESP_RETURN_ON_ERROR(i2c_param_config(kI2cPort, &conf), TAG, "i2c_param_config failed");
+
+    esp_err_t err = i2c_driver_install(kI2cPort, I2C_MODE_MASTER, 0, 0, 0);
+    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(TAG, "i2c_driver_install failed: %s", esp_err_to_name(err));
+        return err;
     }
 
-    ESP_RETURN_ON_ERROR(tca8418_open(&s_kbd, s_bus, kAddr7, kHz, kRows, kCols), TAG, "tca8418_open failed");
+    ESP_RETURN_ON_ERROR(tca8418_open(&s_kbd, kI2cPort, kAddr7, kRows, kCols), TAG, "tca8418_open failed");
     ESP_RETURN_ON_ERROR(tca8418_begin(&s_kbd), TAG, "tca8418_begin failed");
 
     if (!s_evt_q) {
@@ -152,7 +152,7 @@ static esp_err_t kb_hw_init(void)
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
     ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG, "gpio_config failed");
 
-    esp_err_t err = gpio_install_isr_service((int)ESP_INTR_FLAG_IRAM);
+    err = gpio_install_isr_service((int)ESP_INTR_FLAG_IRAM);
     if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
 
     err = gpio_isr_handler_add(kInt, &kbd_int_isr, nullptr);
