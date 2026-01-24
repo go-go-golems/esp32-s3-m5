@@ -38,6 +38,11 @@ typedef struct {
 
     int params_index;
 
+    int preset_index;
+
+    int js_example_index;
+    char js_output[512];
+
     bool color_active;
     int color_channel; // 0=r 1=g 2=b
     char color_hex[7];
@@ -56,4 +61,3 @@ void ui_overlay_draw(ui_overlay_t *ui,
                      const led_pattern_cfg_t *cfg,
                      uint16_t led_count,
                      uint32_t frame_ms);
-

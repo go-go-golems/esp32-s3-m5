@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <string>
+
+#include "mqjs/js_service.h"
+
 namespace {
 
 static inline uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
@@ -112,6 +116,14 @@ static void apply_pattern(sim_engine_t *engine, led_pattern_type_t t)
     sim_engine_set_cfg(engine, &cfg);
 }
 
+struct PresetSlot {
+    bool used = false;
+    led_pattern_cfg_t cfg = {};
+    uint32_t frame_ms = 16;
+};
+
+static PresetSlot s_presets[6];
+
 static void adjust_brightness(sim_engine_t *engine, int delta)
 {
     led_pattern_cfg_t cfg = {};
@@ -164,7 +176,7 @@ static int params_count(led_pattern_type_t t)
     case LED_PATTERN_RAINBOW:
         return 3;
     case LED_PATTERN_CHASE:
-        return 7;
+        return 8;
     case LED_PATTERN_BREATHING:
         return 5;
     case LED_PATTERN_SPARKLE:
@@ -182,9 +194,15 @@ static int param_at(led_pattern_type_t t, int idx)
         return (idx >= 0 && idx < 3) ? k[idx] : -1;
     }
     case LED_PATTERN_CHASE: {
-        static const int k[7] = {P_CHASE_SPEED, P_CHASE_TAIL, P_CHASE_GAP, P_CHASE_TRAINS, P_CHASE_DIR, P_CHASE_FADE,
-                                 P_CHASE_FG};
-        return (idx >= 0 && idx < 7) ? k[idx] : -1;
+        static const int k[8] = {P_CHASE_SPEED,
+                                 P_CHASE_TAIL,
+                                 P_CHASE_GAP,
+                                 P_CHASE_TRAINS,
+                                 P_CHASE_DIR,
+                                 P_CHASE_FADE,
+                                 P_CHASE_FG,
+                                 P_CHASE_BG};
+        return (idx >= 0 && idx < 8) ? k[idx] : -1;
     }
     case LED_PATTERN_BREATHING: {
         static const int k[5] = {P_BREATH_SPEED, P_BREATH_COLOR, P_BREATH_MIN, P_BREATH_MAX, P_BREATH_CURVE};
@@ -430,6 +448,9 @@ void ui_overlay_init(ui_overlay_t *ui)
     ui->menu_index = 0;
     ui->pattern_index = 0;
     ui->params_index = 0;
+    ui->preset_index = 0;
+    ui->js_example_index = 0;
+    memset(ui->js_output, 0, sizeof(ui->js_output));
     ui->color_active = false;
     ui->color_channel = 0;
     ui->color_hex_len = 0;
@@ -457,6 +478,12 @@ static void open_mode(ui_overlay_t *ui, ui_mode_t m)
     ui->color_active = false;
     ui->color_target = -1;
     ui->color_hex_len = 0;
+    if (m == UI_MODE_PRESETS) {
+        ui->preset_index = clamp_i(ui->preset_index, 0, 5);
+    }
+    if (m == UI_MODE_JS) {
+        ui->js_example_index = clamp_i(ui->js_example_index, 0, 3);
+    }
 }
 
 static void open_color_editor(ui_overlay_t *ui, const led_rgb8_t &cur, int target_pid)
@@ -536,6 +563,87 @@ static void handle_shortcuts(ui_overlay_t *ui, sim_engine_t *engine, const ui_ke
             return;
         }
     }
+}
+
+static void presets_save(sim_engine_t *engine, int idx)
+{
+    if (!engine || idx < 0 || idx >= 6) return;
+    s_presets[idx].used = true;
+    sim_engine_get_cfg(engine, &s_presets[idx].cfg);
+    s_presets[idx].frame_ms = sim_engine_get_frame_ms(engine);
+}
+
+static void presets_load(sim_engine_t *engine, int idx)
+{
+    if (!engine || idx < 0 || idx >= 6) return;
+    if (!s_presets[idx].used) return;
+    sim_engine_set_cfg(engine, &s_presets[idx].cfg);
+    sim_engine_set_frame_ms(engine, s_presets[idx].frame_ms);
+}
+
+static void presets_clear(int idx)
+{
+    if (idx < 0 || idx >= 6) return;
+    s_presets[idx] = PresetSlot{};
+}
+
+struct JsExample {
+    const char *name;
+    const char *code;
+};
+
+static const JsExample kJsExamples[] = {
+    {"Blink G3 (250ms)",
+     "var h = every(250, function(){ gpio.toggle('G3'); emit('gpio',{pin:'G3',v:Date.now()}); });\n"
+     "emit('log',{msg:'started: cancel(h) to stop', handle:h});\n"},
+    {"Cycle patterns",
+     "var i=0; var p=['rainbow','chase','breathing','sparkle','off'];\n"
+     "var h = every(2000, function(){ sim.setPattern(p[i%p.length]); emit('pattern',{type:p[i%p.length]}); i++; });\n"
+     "emit('log',{msg:'cycling: cancel(h) to stop', handle:h});\n"},
+    {"Sparkle random color",
+     "function rnd(){ var h=Math.floor(Math.random()*255); var s=h.toString(16); return (s.length<2?'0':'')+s; }\n"
+     "var c='#'+rnd()+rnd()+rnd(); sim.setSparkle(64,c,20,10,0,'#000000'); emit('sparkle',{color:c});\n"},
+    {"Chase beat",
+     "sim.setChase(140,40,8,2,'#FF8800','#001020',0,1,25); emit('log',{msg:'chase set'});\n"},
+};
+
+static void js_set_output(ui_overlay_t *ui, const std::string &s)
+{
+    if (!ui) return;
+    memset(ui->js_output, 0, sizeof(ui->js_output));
+    const size_t n = s.size();
+    const size_t cap = sizeof(ui->js_output) - 1;
+    const size_t m = (n < cap) ? n : cap;
+    memcpy(ui->js_output, s.data(), m);
+    ui->js_output[m] = 0;
+}
+
+static void js_run_example(ui_overlay_t *ui, int idx)
+{
+    if (!ui) return;
+    if (idx < 0 || (size_t)idx >= (sizeof(kJsExamples) / sizeof(kJsExamples[0]))) return;
+    std::string out;
+    std::string err;
+    const char *code = kJsExamples[idx].code;
+    const size_t n = code ? strlen(code) : 0;
+    const esp_err_t st = js_service_eval(code, n, 0, "<ui>", &out, &err);
+    std::string combined;
+    combined.reserve(out.size() + err.size() + 64);
+    combined += "example: ";
+    combined += kJsExamples[idx].name;
+    combined += "\n";
+    combined += "status: ";
+    combined += esp_err_to_name(st);
+    combined += "\n";
+    if (!err.empty()) {
+        combined += "\nerror:\n";
+        combined += err;
+    }
+    if (!out.empty()) {
+        combined += "\noutput:\n";
+        combined += out;
+    }
+    js_set_output(ui, combined);
 }
 
 void ui_overlay_handle(ui_overlay_t *ui, sim_engine_t *engine, const ui_key_event_t *ev)
@@ -709,9 +817,29 @@ void ui_overlay_handle(ui_overlay_t *ui, sim_engine_t *engine, const ui_key_even
         return;
 
     case UI_MODE_PRESETS:
+        if (ev->kind == UI_KEY_UP) ui->preset_index = clamp_i(ui->preset_index - 1, 0, 5);
+        if (ev->kind == UI_KEY_DOWN) ui->preset_index = clamp_i(ui->preset_index + 1, 0, 5);
+        if (ev->kind == UI_KEY_ENTER) {
+            presets_load(engine, ui->preset_index);
+            close_to_live(ui);
+        }
+        if (ev->kind == UI_KEY_DEL) {
+            presets_clear(ui->preset_index);
+        }
+        if (ev->kind == UI_KEY_TEXT && (ev->mods & UI_MOD_CTRL) && text_eq_ci(ev->text, "s")) {
+            presets_save(engine, ui->preset_index);
+        }
+        return;
+
     case UI_MODE_JS:
-        // Implemented in later tasks; for now, close on Enter.
-        if (ev->kind == UI_KEY_ENTER) close_to_live(ui);
+        if (ev->kind == UI_KEY_UP) ui->js_example_index = clamp_i(ui->js_example_index - 1, 0, 3);
+        if (ev->kind == UI_KEY_DOWN) ui->js_example_index = clamp_i(ui->js_example_index + 1, 0, 3);
+        if (ev->kind == UI_KEY_ENTER) {
+            js_run_example(ui, ui->js_example_index);
+        }
+        if (ev->kind == UI_KEY_TEXT && (ev->mods & UI_MOD_CTRL) && text_eq_ci(ev->text, "r")) {
+            memset(ui->js_output, 0, sizeof(ui->js_output));
+        }
         return;
     }
 }
@@ -801,8 +929,10 @@ void ui_overlay_draw(ui_overlay_t *ui,
         hint_bar(canvas, "Esc close");
         break;
     case UI_MODE_PRESETS:
+        hint_bar(canvas, "Up/Down slot  Enter load  Ctrl+S save  Del clear  Esc back");
+        break;
     case UI_MODE_JS:
-        hint_bar(canvas, "Esc close (MVP stub)");
+        hint_bar(canvas, "Up/Down example  Enter run  Ctrl+R clear output  Esc back");
         break;
     }
 
@@ -1014,5 +1144,75 @@ void ui_overlay_draw(ui_overlay_t *ui,
         canvas->print("Back: Fn+`   Del: Fn+del");
         canvas->setTextColor(TFT_WHITE, TFT_BLACK);
     }
-}
 
+    if (ui->mode == UI_MODE_PRESETS) {
+        const int px = 10;
+        const int py = 22;
+        const int pw = w - 20;
+        const int ph = 16 + 6 * 14 + 16;
+        panel(canvas, px, py, pw, ph);
+
+        canvas->setTextColor(TFT_WHITE, rgb565(12, 20, 36));
+        canvas->setCursor(px + 8, py + 6);
+        canvas->print("PRESETS");
+
+        for (int i = 0; i < 6; i++) {
+            const int y = py + 22 + i * 14;
+            const bool sel = (i == ui->preset_index);
+            const uint16_t bg = sel ? rgb565(30, 56, 90) : rgb565(12, 20, 36);
+            canvas->fillRect(px + 6, y, pw - 12, 14, bg);
+            canvas->setTextColor(sel ? TFT_WHITE : TFT_LIGHTGREY, bg);
+            canvas->setCursor(px + 10, y + 2);
+            canvas->printf(sel ? "> %d " : "  %d ", i + 1);
+            if (s_presets[i].used) {
+                canvas->printf("%s bri=%u %ums", pattern_name(s_presets[i].cfg.type),
+                               (unsigned)s_presets[i].cfg.global_brightness_pct, (unsigned)s_presets[i].frame_ms);
+            } else {
+                canvas->print("(empty)");
+            }
+        }
+        canvas->setTextColor(TFT_WHITE, TFT_BLACK);
+    }
+
+    if (ui->mode == UI_MODE_JS) {
+        const int px = 10;
+        const int py = 22;
+        const int pw = w - 20;
+        const int ph = h - 22 - 20 - 16;
+        panel(canvas, px, py, pw, ph);
+
+        canvas->setTextColor(TFT_WHITE, rgb565(12, 20, 36));
+        canvas->setCursor(px + 8, py + 6);
+        canvas->print("JS LAB");
+
+        const int list_w = pw / 2;
+        const int list_x = px + 6;
+        const int list_y = py + 22;
+        const int out_x = px + list_w + 6;
+        const int out_y = py + 22;
+
+        // Example list.
+        for (int i = 0; i < 4; i++) {
+            const int y = list_y + i * 14;
+            const bool sel = (i == ui->js_example_index);
+            const uint16_t bg = sel ? rgb565(30, 56, 90) : rgb565(12, 20, 36);
+            canvas->fillRect(list_x, y, list_w - 8, 14, bg);
+            canvas->setTextColor(sel ? TFT_WHITE : TFT_LIGHTGREY, bg);
+            canvas->setCursor(list_x + 4, y + 2);
+            canvas->print(sel ? "> " : "  ");
+            canvas->print(kJsExamples[i].name);
+        }
+
+        // Output box.
+        canvas->setTextColor(TFT_LIGHTGREY, rgb565(12, 20, 36));
+        canvas->drawRect(out_x, out_y, pw - (out_x - px) - 10, ph - (out_y - py) - 10, TFT_DARKGREY);
+        canvas->setCursor(out_x + 4, out_y + 2);
+        if (ui->js_output[0]) {
+            canvas->print(ui->js_output);
+        } else {
+            canvas->print("(select an example and press Enter)");
+        }
+
+        canvas->setTextColor(TFT_WHITE, TFT_BLACK);
+    }
+}
