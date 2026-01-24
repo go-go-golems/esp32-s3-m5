@@ -230,3 +230,74 @@ This mirrors the repo’s proven pattern from `0030` (keyboard task + event post
 - The keyboard task emits:
   - `UI_KEY_*` events for semantic actions (from the captured Fn binding table)
   - `UI_KEY_TEXT` for raw key edges (excluding modifiers and keys used in the active chord)
+
+---
+
+## Step 4: Implement on-device overlay UI state machine (commit 9e6ae46) (2026-01-24)
+
+This step turns keyboard events into real on-device UI behavior. The LED preview remains “the floor”; overlays are drawn on top and are purely modal state. The result is a usable MVP: TAB opens a menu, P selects patterns, E edits parameters, B/F adjust brightness/frame timing, and Fn+H shows help. Color parameters open a small color editor that supports arrow adjustments, TAB to switch channel, and hex typing.
+
+The system is intentionally conservative: all changes are immediate and applied directly to the simulator engine so the preview updates instantly. This aligns with the existing simulator architecture and reduces the need for a complex “draft/apply” model in the first pass.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+
+**Assistant interpretation:** Implement the on-device screens described in the UI mock as a keyboard-driven overlay system.
+
+**Inferred user intent:** Make the simulator usable without the serial console: a “console-less” control plane on the device itself.
+
+**Commit (code):** 9e6ae46 — "0066: add keyboard-driven overlay UI (menu/pattern/params)"
+
+### What I did
+- Added an overlay UI module:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.h`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp`
+- Integrated overlays into the existing render loop:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+- Implemented these screens/modes:
+  - Live (always-on preview + top status + bottom hint strip)
+  - Menu (TAB)
+  - Pattern select (P or Menu→Pattern)
+  - Params editor (E or Menu→Params)
+  - Brightness slider (B or Menu→Brightness)
+  - Frame slider (F or Menu→Frame)
+  - Help (Fn+H or Menu→Help)
+  - Color editor (Enter on color params; TAB switches channel; hex typing supported)
+
+### Why
+- The UI mock’s core value is that the preview is always visible and control is modal + keyboard-driven.
+- Keeping the preview always-on ensures edits feel safe: you see changes immediately and can back out quickly.
+
+### What worked
+- The overlay design integrates cleanly with the existing M5Canvas rendering (single sprite).
+- Immediate apply produces fast feedback and avoids “state divergence” between UI draft and engine config.
+
+### What didn't work
+- Presets and JS Lab are currently implemented as “MVP stub” modes that just show a hint and close on Enter; they’re tracked as a later task.
+
+### What I learned
+- It’s worth representing “semantic keys” separately from raw text keys; it keeps overlay navigation consistent even if the physical chord mapping changes.
+
+### What was tricky to build
+- Managing color editing without a full text widget: hex typing had to be “single-character events” with an internal buffer.
+- Ensuring Back/Esc semantics are consistent: Back always cancels the color editor first, then closes overlays.
+
+### What warrants a second pair of eyes
+- Parameter list completeness: Chase currently exposes `fg` but not `bg` in the params list (an oversight to fix next); the design doc expects both.
+- Pattern-specific parameter ranges: the current clamps are pragmatic but may need tuning.
+
+### What should be done in the future
+- Implement Presets (RAM slots) and JS Lab (examples-only) screens.
+- Expand the web UI into multiple screens matching the imported web spec.
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp`
+
+### Technical details
+- Modifier step sizes are implemented via `step_for_mods()`:
+  - Fn → micro step
+  - Alt → medium step
+  - Ctrl → large step

@@ -25,3 +25,13 @@ Implemented 0066 keyboard scan task + UI event queue plumbing (commit 99002e2).
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp — Event queue integration stub
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — Keyboard scan and event emission
 
+
+## 2026-01-24
+
+Implemented keyboard-driven overlay UI in 0066 (menu/pattern/params/color sliders/help) (commit 9e6ae46).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_ui.cpp — Overlay integration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp — UI mode machine and rendering
+
