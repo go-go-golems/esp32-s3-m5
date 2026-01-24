@@ -7,6 +7,56 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
+#ifndef CONFIG_HTTPD_WS_SUPPORT
+
+esp_err_t httpd_ws_hub_init(httpd_ws_hub_t *hub, httpd_handle_t server)
+{
+    (void)hub;
+    (void)server;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+void httpd_ws_hub_deinit(httpd_ws_hub_t *hub)
+{
+    (void)hub;
+}
+
+void httpd_ws_hub_set_text_rx_cb(httpd_ws_hub_t *hub, httpd_ws_hub_rx_cb_t cb)
+{
+    (void)hub;
+    (void)cb;
+}
+
+void httpd_ws_hub_set_binary_rx_cb(httpd_ws_hub_t *hub, httpd_ws_hub_rx_cb_t cb)
+{
+    (void)hub;
+    (void)cb;
+}
+
+esp_err_t httpd_ws_hub_broadcast_text(httpd_ws_hub_t *hub, const char *text)
+{
+    (void)hub;
+    (void)text;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t httpd_ws_hub_broadcast_binary(httpd_ws_hub_t *hub, const uint8_t *data, size_t len)
+{
+    (void)hub;
+    (void)data;
+    (void)len;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+esp_err_t httpd_ws_hub_handle_req(httpd_ws_hub_t *hub, httpd_req_t *req)
+{
+    (void)hub;
+    (void)req;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+
+#else
+
 static SemaphoreHandle_t hub_mu(httpd_ws_hub_t *hub)
 {
     return (SemaphoreHandle_t)hub->mu;
@@ -192,3 +242,4 @@ esp_err_t httpd_ws_hub_handle_req(httpd_ws_hub_t *hub, httpd_req_t *req)
     return ESP_OK;
 }
 
+#endif  // CONFIG_HTTPD_WS_SUPPORT
