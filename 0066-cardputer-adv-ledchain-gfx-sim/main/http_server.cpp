@@ -624,17 +624,35 @@ esp_err_t http_server_start(sim_engine_t *engine)
     eval.handler = js_eval_post;
     httpd_register_uri_handler(s_server, &eval);
 
+    httpd_uri_t eval_slash = {};
+    eval_slash.uri = "/api/js/eval/";
+    eval_slash.method = HTTP_POST;
+    eval_slash.handler = js_eval_post;
+    httpd_register_uri_handler(s_server, &eval_slash);
+
     httpd_uri_t js_reset = {};
     js_reset.uri = "/api/js/reset";
     js_reset.method = HTTP_POST;
     js_reset.handler = js_reset_post;
     httpd_register_uri_handler(s_server, &js_reset);
 
+    httpd_uri_t js_reset_slash = {};
+    js_reset_slash.uri = "/api/js/reset/";
+    js_reset_slash.method = HTTP_POST;
+    js_reset_slash.handler = js_reset_post;
+    httpd_register_uri_handler(s_server, &js_reset_slash);
+
     httpd_uri_t js_mem = {};
     js_mem.uri = "/api/js/mem";
     js_mem.method = HTTP_GET;
     js_mem.handler = js_mem_get;
     httpd_register_uri_handler(s_server, &js_mem);
+
+    httpd_uri_t js_mem_slash = {};
+    js_mem_slash.uri = "/api/js/mem/";
+    js_mem_slash.method = HTTP_GET;
+    js_mem_slash.handler = js_mem_get;
+    httpd_register_uri_handler(s_server, &js_mem_slash);
 
 #if CONFIG_HTTPD_WS_SUPPORT
     httpd_uri_t ws = {};
@@ -644,6 +662,14 @@ esp_err_t http_server_start(sim_engine_t *engine)
     ws.is_websocket = true;
     ws.handle_ws_control_frames = true;
     httpd_register_uri_handler(s_server, &ws);
+
+    httpd_uri_t ws_slash = {};
+    ws_slash.uri = "/ws/";
+    ws_slash.method = HTTP_GET;
+    ws_slash.handler = ws_handler;
+    ws_slash.is_websocket = true;
+    ws_slash.handle_ws_control_frames = true;
+    httpd_register_uri_handler(s_server, &ws_slash);
 #endif
 
     return ESP_OK;

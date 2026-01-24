@@ -83,9 +83,15 @@ function getPatternType() {
   return el ? String(el.value || 'off') : 'off';
 }
 
+function setValueIfNotFocused(el, next) {
+  if (!el) return;
+  if (document.activeElement === el) return;
+  el.value = String(next);
+}
+
 function syncPatternType(type) {
-  if ($('qc_type')) $('qc_type').value = type;
-  if ($('pat_type')) $('pat_type').value = type;
+  setValueIfNotFocused($('qc_type'), type);
+  setValueIfNotFocused($('pat_type'), type);
   renderPatternEditor(type);
 }
 
@@ -94,12 +100,12 @@ function syncGlobalsFromStatus(s) {
   const type = s.pattern.type || 'off';
   const bri = s.pattern.global_brightness_pct || 25;
   const frameMs = s.frame_ms || 16;
-  if ($('qc_type')) $('qc_type').value = type;
-  if ($('pat_type')) $('pat_type').value = type;
-  if ($('qc_bri')) $('qc_bri').value = bri;
-  if ($('pat_bri')) $('pat_bri').value = bri;
-  if ($('qc_frame_ms')) $('qc_frame_ms').value = frameMs;
-  if ($('pat_frame_ms')) $('pat_frame_ms').value = frameMs;
+  setValueIfNotFocused($('qc_type'), type);
+  setValueIfNotFocused($('pat_type'), type);
+  setValueIfNotFocused($('qc_bri'), bri);
+  setValueIfNotFocused($('pat_bri'), bri);
+  setValueIfNotFocused($('qc_frame_ms'), frameMs);
+  setValueIfNotFocused($('pat_frame_ms'), frameMs);
 }
 
 function summarizeStatus(s) {
