@@ -672,3 +672,45 @@ This step made the “one component” story real by migrating multiple firmware
 - Review the migration diffs first (they should be boring):
   - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/input_keyboard.h`
   - `esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp`
+
+## Step 12: Update `cardputer_kb` docs to point to UnifiedScanner (commit dacd92d)
+
+This step updates the component documentation so the “one consistent component” path is obvious to future readers. The docs now describe `UnifiedScanner` as the primary entrypoint and explicitly call out that it supports both Cardputer GPIO-matrix scanning and Cardputer-ADV’s TCA8418.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** After implementing and migrating, update the docs so the repo doesn’t regress into split/duplicated keyboard handling.
+
+**Inferred user intent:** Institutionalize the “one component” decision through documentation as well as code.
+
+**Commit (code):** dacd92d — "cardputer_kb docs: recommend UnifiedScanner"
+
+### What I did
+- Updated:
+  - `esp32-s3-m5/components/cardputer_kb/README.md`
+  - `esp32-s3-m5/components/cardputer_kb/REFERENCE.md`
+  - `esp32-s3-m5/components/cardputer_kb/TUTORIAL.md`
+  to describe `cardputer_kb::UnifiedScanner` as the default scanner API and note TCA8418 support.
+
+### Why
+- Without doc updates, new firmware examples tend to copy older snippets (MatrixScanner-only), recreating the split-component situation over time.
+
+### What worked
+- The docs changes were small and localized; no code behavior changes.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Documentation is part of the interface: once the API is unified, the docs should stop framing the component as “matrix scan only”.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
