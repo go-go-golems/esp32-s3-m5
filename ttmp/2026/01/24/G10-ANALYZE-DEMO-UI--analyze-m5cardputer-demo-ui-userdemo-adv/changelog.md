@@ -42,3 +42,21 @@ Step 18: fix runtime I2C driver conflict (commit f0d6486)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp — Stop using driver_ng I2C
 
+
+## 2026-01-24
+
+Add tasks for 0066 navigation + keyboard debug
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/G10-ANALYZE-DEMO-UI--analyze-m5cardputer-demo-ui-userdemo-adv/tasks.md — Track remaining 0066 navigation/modifier work
+
+
+## 2026-01-24
+
+Step 19: add 0066 keyboard debug console command (commit a7ef45f)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp — kb debug command
+

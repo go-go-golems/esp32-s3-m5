@@ -14,17 +14,23 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp
-      Note: Replace 0066 custom TCA+ISR keyboard with cardputer_kb::UnifiedScanner
-    - Path: esp32-s3-m5/components/cardputer_kb/CMakeLists.txt
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp
+      Note: Add kb console command
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp
+      Note: |-
+        Replace 0066 custom TCA+ISR keyboard with cardputer_kb::UnifiedScanner
+        Expose debug snapshot + last emitted event
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.h
+      Note: Debug state struct/API
+    - Path: components/cardputer_kb/CMakeLists.txt
       Note: Ensure legacy I2C headers available (avoid driver_ng conflict)
-    - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h
+    - Path: components/cardputer_kb/include/cardputer_kb/scanner.h
       Note: UnifiedScanner public API + backend autodetect
-    - Path: esp32-s3-m5/components/cardputer_kb/tca8418.c
+    - Path: components/cardputer_kb/tca8418.c
       Note: Legacy I2C implementation of TCA8418 register access
-    - Path: esp32-s3-m5/components/cardputer_kb/tca8418.h
+    - Path: components/cardputer_kb/tca8418.h
       Note: C linkage for C driver functions
-    - Path: esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp
+    - Path: components/cardputer_kb/unified_scanner.cpp
       Note: |-
         TCA8418 backend implementation + IDF 5.4 build fixes
         Use legacy I2C to avoid runtime abort
@@ -34,6 +40,7 @@ LastUpdated: 2026-01-24T13:41:42.129082115-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -692,6 +699,68 @@ You fixed this before lol"
 - Reproduce the build:
   - `source ~/esp/esp-idf-5.4.1/export.sh`
   - `cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+
+## Step 19: Add an `esp_console` keyboard debug command for 0066 (commit a7ef45f)
+
+This step adds a purpose-built keyboard debug view so we can stop guessing about which physical key is “Fn/Alt/Opt/etc” on a given keyboard variant. The command prints (a) the *current* set of pressed picture-space key numbers and (b) the *last* `ui_key_event_t` emitted by the keyboard task, along with the derived modifier bits.
+
+This is intentionally designed as a feedback loop: you can press a key (or a chord) on hardware, run `kb` / `kb watch`, and then report the key numbers back so we can map navigation and modifier shortcuts correctly across boards.
+
+### Prompt Context
+
+**User prompt (verbatim):** "no hold on, there is a dedicated fn key. If you want, maybe add a keyboard debug mode to the esp_console which shows pressed keys and keycodes, then i can give you feedback on what is what."
+
+**Assistant interpretation:** Add a console command that prints raw keyNum values and modifier state so you can tell me exactly which key is which on your keyboard.
+
+**Inferred user intent:** Replace “theory” mapping with empirical data to fix UI navigation and modifier shortcuts reliably.
+
+**Commit (code):** a7ef45f — "0066: add kb console debug command"
+
+### What I did
+- Added a debug snapshot API in the keyboard task that exposes:
+  - scanner backend (TCA8418 vs GPIO matrix),
+  - derived modifier booleans + `mods` bitmask,
+  - current pressed `keynum` set,
+  - last emitted `ui_key_event_t` (so you can see what the UI receives).
+  Files:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.h`
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp`
+- Registered a new `kb` command in the simulator console:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp`
+  - Usage:
+    - `kb` / `kb once`
+    - `kb watch [period_ms=200] [count=50]`
+
+### Why
+- The remaining navigation issues (“hjkl” mapping, missing Alt+left/right shortcuts) are almost certainly caused by incorrect assumptions about which keyNum corresponds to Fn/Alt/Opt (especially across keyboard variants).
+
+### What worked
+- `idf.py build` for 0066 succeeds after adding the command, so you can immediately flash and use it.
+
+### What didn't work
+- N/A
+
+### What I learned
+- For input devices, having a “ground truth” debug mode pays for itself quickly: it prevents repeated guess/fix cycles.
+
+### What was tricky to build
+- Keeping the debug snapshot lock-free for the keyboard task while still safe for the console task:
+  - implemented a small critical section around copying state (`portMUX_TYPE` + `portENTER_CRITICAL`).
+
+### What warrants a second pair of eyes
+- The debug snapshot includes the “last emitted event”; confirm this doesn’t accidentally leak sensitive input in any shipping build. (For tutorials/debug builds this is fine.)
+
+### What should be done in the future
+- If we want to ship this, gate it behind a Kconfig option so production builds can disable it.
+
+### Code review instructions
+- Flash and use it:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim`
+  - `idf.py -p PORT flash monitor`
+  - In console: `kb watch 100 50`
+- Start review at:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp`
 
 ## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
 
