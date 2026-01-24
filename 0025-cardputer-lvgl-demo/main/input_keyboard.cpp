@@ -71,7 +71,10 @@ static std::string_view key_for_action(cardputer_kb::Action a) {
 } // namespace
 
 esp_err_t CardputerKeyboard::init() {
-    scanner_.init();
+    esp_err_t err = scanner_.init();
+    if (err != ESP_OK) {
+        return err;
+    }
     inited_ = true;
     return ESP_OK;
 }

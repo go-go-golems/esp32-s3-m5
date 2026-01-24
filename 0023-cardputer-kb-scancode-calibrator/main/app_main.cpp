@@ -3,6 +3,7 @@
 #include <string>
 
 #include "driver/gpio.h"
+#include "esp_err.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 
@@ -79,8 +80,8 @@ extern "C" void app_main(void) {
     screen.setFont(&fonts::Font0);
     screen.setTextSize(1);
 
-    cardputer_kb::MatrixScanner kb;
-    kb.init();
+    cardputer_kb::UnifiedScanner kb;
+    ESP_ERROR_CHECK(kb.init());
 
     button_init_gpio0();
     ButtonEdge g0;

@@ -25,6 +25,7 @@
 #include "freertos/task.h"
 
 #include "esp_event.h"
+#include "esp_err.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_random.h"
@@ -348,8 +349,8 @@ static void demo_event_handler(void *arg, esp_event_base_t event_base, int32_t e
 
 static void keyboard_task(void *arg) {
     (void)arg;
-    cardputer_kb::MatrixScanner kb;
-    kb.init();
+    cardputer_kb::UnifiedScanner kb;
+    ESP_ERROR_CHECK(kb.init());
 
     std::vector<uint8_t> prev_pressed;
     bool prev_action_valid = false;

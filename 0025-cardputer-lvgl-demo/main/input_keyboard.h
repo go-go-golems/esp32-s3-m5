@@ -24,9 +24,8 @@ public:
 private:
     bool inited_ = false;
 
-    cardputer_kb::MatrixScanner scanner_{};
+    cardputer_kb::UnifiedScanner scanner_{};
     std::vector<uint8_t> prev_pressed_keynums_{};
     bool prev_action_valid_ = false;
     cardputer_kb::Action prev_action_{};
 };
-
