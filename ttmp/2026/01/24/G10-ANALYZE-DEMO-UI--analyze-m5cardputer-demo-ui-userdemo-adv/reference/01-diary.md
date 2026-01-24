@@ -423,6 +423,46 @@ Keep a detailed analysis diary as you go. Frequently update it as you analyze th
 ### What should be done in the future
 - N/A
 
+## Step 13: Finalize ticket artifacts and task checkoffs (commit 337e72b)
+
+Closed the loop by committing the remaining ticket artifacts (index, changelog, textbook) and checking off the implementation task list inside the ticket so the work is self-contained and reviewable from the docmgr workspace alone.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** Ensure the ticket itself is complete and accurately reflects the work done.
+
+**Inferred user intent:** Make it easy to audit progress without spelunking git history.
+
+**Commit (code):** 337e72b — "G10: add ticket docs and check off tasks"
+
+### What I did
+- Added the remaining ticket docs to git:
+  - `index.md`, `changelog.md`, `README.md`, and the textbook design doc.
+- Checked off the keyboard-unification task checklist in `tasks.md`.
+
+### Why
+- Tickets that aren’t committed tend to drift and become hard to reuse; this keeps the documentation and implementation progress synchronized.
+
+### What worked
+- Ticket now stands alone: index links → textbook + diary; tasks reflect the completed implementation sequence.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
 ### Code review instructions
 - Open `esp32-s3-m5/ttmp/2026/01/24/G10-ANALYZE-DEMO-UI--analyze-m5cardputer-demo-ui-userdemo-adv/index.md` and follow links to the textbook + diary.
 
