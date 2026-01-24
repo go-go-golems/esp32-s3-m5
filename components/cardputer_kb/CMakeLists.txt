@@ -4,5 +4,5 @@ idf_component_register(
         "tca8418.c"
         "unified_scanner.cpp"
     INCLUDE_DIRS "include"
-    PRIV_REQUIRES esp_driver_gpio esp_driver_i2c esp_timer
+    PRIV_REQUIRES driver esp_driver_gpio esp_timer
 )

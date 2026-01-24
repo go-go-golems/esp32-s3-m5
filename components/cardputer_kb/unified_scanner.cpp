@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "driver/gpio.h"
-#include "driver/i2c_master.h"
+#include "driver/i2c.h"
 #include "esp_log.h"
 
 #include "cardputer_kb/layout.h"
@@ -15,7 +15,7 @@ static const char *TAG = "cardputer_kb";
 struct cardputer_kb::UnifiedScanner::TcaState {
     bool inited = false;
 
-    i2c_master_bus_handle_t bus = nullptr;
+    bool i2c_ready = false;
     tca8418_t tca{};
 
     bool pressed[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
@@ -23,33 +23,32 @@ struct cardputer_kb::UnifiedScanner::TcaState {
     ~TcaState() { deinit_bus(); }
 
     esp_err_t init_i2c_bus(const UnifiedScannerConfig &cfg) {
-        if (bus) {
+        if (i2c_ready) {
             return ESP_OK;
         }
-        i2c_master_bus_config_t bus_cfg;
-        std::memset(&bus_cfg, 0, sizeof(bus_cfg));
-        bus_cfg.i2c_port = cfg.i2c_port;
-        bus_cfg.sda_io_num = (gpio_num_t)cfg.i2c_sda_gpio;
-        bus_cfg.scl_io_num = (gpio_num_t)cfg.i2c_scl_gpio;
-        bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
-        bus_cfg.glitch_ignore_cnt = 7;
-        bus_cfg.intr_priority = 0;
-        bus_cfg.trans_queue_depth = 0;
-        bus_cfg.flags.enable_internal_pullup = 1;
 
-        return i2c_new_master_bus(&bus_cfg, &bus);
+        i2c_config_t conf = {};
+        conf.mode = I2C_MODE_MASTER;
+        conf.sda_io_num = (gpio_num_t)cfg.i2c_sda_gpio;
+        conf.scl_io_num = (gpio_num_t)cfg.i2c_scl_gpio;
+        conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
+        conf.master.clk_speed = cfg.i2c_hz;
+
+        esp_err_t err = i2c_param_config((i2c_port_t)cfg.i2c_port, &conf);
+        if (err != ESP_OK) return err;
+
+        err = i2c_driver_install((i2c_port_t)cfg.i2c_port, I2C_MODE_MASTER, 0, 0, 0);
+        if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
+
+        i2c_ready = true;
+        return ESP_OK;
     }
 
     void deinit_bus() {
-        if (tca.dev) {
-            // Best-effort remove device; ignore errors.
-            (void)i2c_master_bus_rm_device(tca.dev);
-            tca.dev = nullptr;
-        }
-        if (bus) {
-            (void)i2c_del_master_bus(bus);
-            bus = nullptr;
-        }
+        // Best-effort only. We intentionally do not uninstall the I2C driver here,
+        // since other subsystems (e.g. display/audio) may also use the same port.
+        i2c_ready = false;
         inited = false;
         std::memset(pressed, 0, sizeof(pressed));
     }
@@ -59,7 +58,7 @@ struct cardputer_kb::UnifiedScanner::TcaState {
         if (err != ESP_OK) return err;
 
         // 7x8 is the common Cardputer(-ADV) logical size.
-        err = tca8418_open(&tca, bus, cfg.tca8418_addr7, cfg.i2c_hz, 7, 8);
+        err = tca8418_open(&tca, (i2c_port_t)cfg.i2c_port, cfg.tca8418_addr7, 7, 8);
         if (err != ESP_OK) return err;
 
         // A successful register read is a strong "device exists" signal.

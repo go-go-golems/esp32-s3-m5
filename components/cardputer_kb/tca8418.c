@@ -2,38 +2,25 @@
 
 #include <string.h>
 
-static esp_err_t dev_write_reg8(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t val) {
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+static esp_err_t dev_write_reg8(const tca8418_t *dev, uint8_t reg, uint8_t val) {
     uint8_t buf[2] = {reg, val};
-    return i2c_master_transmit(dev, buf, sizeof(buf), 50);
+    return i2c_master_write_to_device(dev->port, dev->addr7, buf, sizeof(buf), pdMS_TO_TICKS(50));
 }
 
-static esp_err_t dev_read_reg8(i2c_master_dev_handle_t dev, uint8_t reg, uint8_t *out) {
+static esp_err_t dev_read_reg8(const tca8418_t *dev, uint8_t reg, uint8_t *out) {
     if (!out) return ESP_ERR_INVALID_ARG;
-    return i2c_master_transmit_receive(dev, &reg, 1, out, 1, 50);
+    return i2c_master_write_read_device(dev->port, dev->addr7, &reg, 1, out, 1, pdMS_TO_TICKS(50));
 }
 
-esp_err_t tca8418_open(tca8418_t *dev,
-                       i2c_master_bus_handle_t bus,
-                       uint8_t addr7,
-                       uint32_t scl_speed_hz,
-                       uint8_t rows,
-                       uint8_t cols) {
+esp_err_t tca8418_open(tca8418_t *dev, i2c_port_t port, uint8_t addr7, uint8_t rows, uint8_t cols) {
     if (!dev) return ESP_ERR_INVALID_ARG;
-    if (!bus) return ESP_ERR_INVALID_ARG;
     if (rows > 8 || cols > 10) return ESP_ERR_INVALID_ARG;
     memset(dev, 0, sizeof(*dev));
-    i2c_device_config_t devcfg = {
-        .dev_addr_length = I2C_ADDR_BIT_LEN_7,
-        .device_address = addr7,
-        .scl_speed_hz = scl_speed_hz,
-        .scl_wait_us = 0,
-        .flags.disable_ack_check = 0,
-    };
-    i2c_master_dev_handle_t handle = NULL;
-    esp_err_t err = i2c_master_bus_add_device(bus, &devcfg, &handle);
-    if (err != ESP_OK) return err;
-
-    dev->dev = handle;
+    dev->port = port;
+    dev->addr7 = addr7;
     dev->rows = rows;
     dev->cols = cols;
     return ESP_OK;
@@ -41,14 +28,12 @@ esp_err_t tca8418_open(tca8418_t *dev,
 
 esp_err_t tca8418_write_reg8(const tca8418_t *dev, uint8_t reg, uint8_t val) {
     if (!dev) return ESP_ERR_INVALID_ARG;
-    if (!dev->dev) return ESP_ERR_INVALID_STATE;
-    return dev_write_reg8(dev->dev, reg, val);
+    return dev_write_reg8(dev, reg, val);
 }
 
 esp_err_t tca8418_read_reg8(const tca8418_t *dev, uint8_t reg, uint8_t *out) {
     if (!dev) return ESP_ERR_INVALID_ARG;
-    if (!dev->dev) return ESP_ERR_INVALID_STATE;
-    return dev_read_reg8(dev->dev, reg, out);
+    return dev_read_reg8(dev, reg, out);
 }
 
 static uint8_t mask_low_bits(uint8_t n) {
@@ -161,4 +146,3 @@ esp_err_t tca8418_flush(const tca8418_t *dev, uint8_t *out_flushed) {
     if (out_flushed) *out_flushed = count;
     return ESP_OK;
 }
-
