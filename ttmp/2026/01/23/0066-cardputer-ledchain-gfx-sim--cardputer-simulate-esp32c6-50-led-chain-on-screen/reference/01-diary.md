@@ -440,6 +440,27 @@ The latest smoke log shows:
 - `/api/status` returns JSON (ok)
 - `/api/apply` response now reflects the updated `global_brightness_pct` immediately
 
+---
+
+## Step 17: Phase 0 mapping notes (partial) (2026-01-23)
+
+### What we know vs what we don’t
+
+We confirmed in-repo precedent that on Cardputer-ADV projects in this repo:
+
+- `G1` defaults to GPIO1 and `G2` defaults to GPIO2 (see tutorial 0047 Kconfig).
+
+We did *not* find any other “G3/G4” usage in this repo beyond ticket 0066 itself, so we cannot fully prove the mapping from local sources alone.
+
+### What we implemented (pragmatic approach)
+
+To avoid blocking the rest of the simulator work on a schematic lookup, we made the mapping explicit and user-overridable:
+
+- `CONFIG_TUTORIAL_0066_G3_GPIO` (default 3)
+- `CONFIG_TUTORIAL_0066_G4_GPIO` (default 4)
+
+and documented how to validate on hardware in the ticket README.
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
