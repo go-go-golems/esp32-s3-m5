@@ -16,3 +16,4 @@
 - [x] Add ticket scripts: HTTP/WS smoke tests
 - [x] Build+flash on /dev/ttyACM0 (monitor validation manual)
 - [ ] Validate on-device via console: wifi join + open Web IDE + run smoke script
+- [x] Upload updated ticket bundle to reMarkable (implementation update)
