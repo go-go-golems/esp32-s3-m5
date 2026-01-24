@@ -621,3 +621,54 @@ This step delivered the core of the “one keyboard component” goal: `cardpute
 - Focus review on the unification logic and the remap:
   - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
   - `esp32-s3-m5/components/cardputer_kb/tca8418.c`
+
+## Step 11: Migrate firmware consumers to the unified scanner (commit 721b665)
+
+This step made the “one component” story real by migrating multiple firmware examples in `esp32-s3-m5` away from direct `MatrixScanner` usage and onto `cardputer_kb::UnifiedScanner`. This reduces the number of places that encode “how the keyboard works” and ensures the runtime autodetect behavior is exercised by real call sites.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** After adding the unified scanner implementation, update downstream code to use it so the refactor is complete in practice.
+
+**Inferred user intent:** Avoid a “library exists but nobody uses it” outcome; keep consumers converged.
+
+**Commit (code):** 721b665 — "Use cardputer_kb::UnifiedScanner in demos"
+
+### What I did
+- Updated the keyboard wrappers in:
+  - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/input_keyboard.h`
+  - `esp32-s3-m5/0022-cardputer-m5gfx-demo-suite/main/input_keyboard.h`
+  to use `cardputer_kb::UnifiedScanner` instead of `MatrixScanner` and propagate `init()` errors.
+- Updated tasks that scan the keyboard directly:
+  - `esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp`
+  - `esp32-s3-m5/0028-cardputer-esp-event-demo/main/app_main.cpp`
+  - `esp32-s3-m5/0023-cardputer-kb-scancode-calibrator/main/app_main.cpp`
+  to instantiate `cardputer_kb::UnifiedScanner` and added `esp_err.h` where needed for `ESP_ERROR_CHECK`.
+
+### Why
+- A unified component only improves maintainability if consumers actually adopt it; otherwise, the old “split components” problem persists.
+
+### What worked
+- Because `UnifiedScanner` preserves the `ScanSnapshot` contract (pressed keys in picture-space + keynums), most call sites required only a type swap.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The existing higher-level decoding logic (bindings, modifiers, chords) composes cleanly with the unified scanner because it already operates on `pressed_keynums` rather than on electrical details.
+
+### What was tricky to build
+- Ensuring all call sites that use `ESP_ERROR_CHECK(...)` include `esp_err.h` explicitly.
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Update the `components/cardputer_kb` documentation to recommend `UnifiedScanner` as the primary entrypoint and clarify the autodetect behavior.
+
+### Code review instructions
+- Review the migration diffs first (they should be boring):
+  - `esp32-s3-m5/0025-cardputer-lvgl-demo/main/input_keyboard.h`
+  - `esp32-s3-m5/0030-cardputer-console-eventbus/main/app_main.cpp`
