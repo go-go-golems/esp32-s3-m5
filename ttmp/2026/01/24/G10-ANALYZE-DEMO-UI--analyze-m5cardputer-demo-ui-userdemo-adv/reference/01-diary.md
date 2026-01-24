@@ -522,3 +522,52 @@ Key scope decision: implement the unification in `esp32-s3-m5/components/cardput
 
 ### Code review instructions
 - Start by reading the new checklist in `esp32-s3-m5/ttmp/2026/01/24/G10-ANALYZE-DEMO-UI--analyze-m5cardputer-demo-ui-userdemo-adv/tasks.md`.
+
+## Step 9: Add a unified scanner facade (commit da0e436)
+
+Implemented the first code milestone toward a single “keyboard component”: a unified scanner facade in `components/cardputer_kb` that will eventually hide whether the keyboard hardware is GPIO-matrix (Cardputer) or TCA8418 (Cardputer-ADV). This commit intentionally ships the public API skeleton and a working GPIO-matrix backend first, so subsequent tasks can add the TCA backend and runtime auto-detection without bikeshedding the surface contract.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** Begin implementation with small, reviewable commits, starting with the unified keyboard component’s entrypoint.
+
+**Inferred user intent:** Build a shared keyboard component incrementally rather than as a risky big-bang refactor.
+
+**Commit (code):** da0e436 — "cardputer_kb: add unified scanner facade"
+
+### What I did
+- Introduced a new public facade type in `components/cardputer_kb/include/cardputer_kb/scanner.h`:
+  - `ScannerBackend`, `UnifiedScannerConfig`, and `UnifiedScanner`
+- Implemented the facade in `components/cardputer_kb/unified_scanner.cpp`:
+  - GPIO matrix backend uses the existing `MatrixScanner`
+  - `Tca8418` backend currently returns `ESP_ERR_NOT_SUPPORTED` (will be implemented next)
+- Wired the new source file into the component build in `components/cardputer_kb/CMakeLists.txt`.
+- Committed the ticket’s implementation task list + diary updates along with the code.
+
+### Why
+- Establishing the facade early prevents “API drift” while adding backends and auto-detection; it also gives downstream firmware a stable include path to converge on.
+
+### What worked
+- The unified facade compiles conceptually with zero changes to existing `MatrixScanner` users (we’ll migrate consumers in later tasks).
+
+### What didn't work
+- N/A
+
+### What I learned
+- The cleanest incremental path is: facade → TCA backend → auto-detect → migrate consumers, rather than attempting to refactor all callers up front.
+
+### What was tricky to build
+- Keeping the facade small enough that it doesn’t prematurely bake in an I2C/interrupt strategy, while still being a meaningful “single entrypoint”.
+
+### What warrants a second pair of eyes
+- The facade currently treats “Auto” as “GPIO matrix” until TCA support lands; reviewers should confirm this is acceptable for the intermediate milestone.
+
+### What should be done in the future
+- Implement `Tca8418` backend and then switch `Auto` to “probe TCA first, else matrix”.
+
+### Code review instructions
+- Review the new facade API and stub behavior:
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
