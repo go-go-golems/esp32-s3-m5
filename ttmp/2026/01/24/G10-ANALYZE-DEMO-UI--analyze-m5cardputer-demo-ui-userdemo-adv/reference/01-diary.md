@@ -423,6 +423,33 @@ Keep a detailed analysis diary as you go. Frequently update it as you analyze th
 ### What should be done in the future
 - N/A
 
+## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
+
+After adding the TCA8418 backend, I noticed `unified_scanner.cpp` used a designated initializer for `i2c_master_bus_config_t`. ESP-IDF projects commonly compile as C++17; designated initializers are C++20, so this could break builds depending on toolchain flags. Switched to explicit `memset + field assignment` to keep it portable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** Keep the implementation build-friendly and reviewable; fix correctness/portability issues as they appear.
+
+**Inferred user intent:** Avoid “looks good in docs but doesn’t compile” outcomes.
+
+**Commit (code):** f98d5fd — "cardputer_kb: avoid C++ designated init in I2C config"
+
+### What I did
+- Replaced C++ designated init for `i2c_master_bus_config_t` with `std::memset` + explicit field assignments in:
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+
+### Why
+- Improves compatibility with typical ESP-IDF C++ build flags (often C++17).
+
+### What worked
+- Change is localized and doesn’t affect behavior.
+
+### What didn't work
+- N/A
+
 ## Step 13: Finalize ticket artifacts and task checkoffs (commit 337e72b)
 
 Closed the loop by committing the remaining ticket artifacts (index, changelog, textbook) and checking off the implementation task list inside the ticket so the work is self-contained and reviewable from the docmgr workspace alone.
