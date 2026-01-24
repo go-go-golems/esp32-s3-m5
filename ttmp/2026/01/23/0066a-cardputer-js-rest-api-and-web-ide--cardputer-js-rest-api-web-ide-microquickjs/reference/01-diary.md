@@ -455,3 +455,59 @@ The implementation deliberately avoids adding a C JSON parser for the JS path: t
 ### Technical details
 - The eval endpoint uses raw request bodies and enforces `CONFIG_TUTORIAL_0066_JS_MAX_BODY`.
 - Event flushing runs inside the VM task using `JS_Eval("__0066_take_lines(...)")` and broadcasts each line via `http_server_ws_broadcast_text(...)`.
+
+---
+
+## Step 7: Flash on hardware and note monitor constraints in this environment (2026-01-24)
+
+This step validates that the firmware is at least deployable: the updated 0066 binary builds and flashes to the Cardputer over USB Serial/JTAG. That is the minimum bar before we ask a human to do interactive validation (Wi‑Fi join, open the web page, run JS).
+
+One important limitation: `idf.py monitor` requires stdin to be a real TTY, which the current execution environment does not provide. So I can flash from here, but I cannot run an interactive monitor session; final runtime validation must be done from your local terminal (or via tmux) where stdin is a TTY.
+
+### Prompt Context
+
+**User prompt (verbatim):** "try again"
+
+**Assistant interpretation:** Retry the hardware flash/validation step that previously failed due to serial instability / port disappearance.
+
+**Inferred user intent:** Get the new firmware onto the device and confirm it can be interacted with (console + web IDE) without flaky serial failures.
+
+**Commit (code):** N/A (hardware validation step; code already committed in prior steps).
+
+### What I did
+- Confirmed `/dev/ttyACM0` exists and is reachable via `/dev/serial/by-id` symlink.
+- Re-ran `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 flash` and completed a full write successfully.
+- Attempted `idf.py monitor` and recorded the environment constraint (“stdin must be a TTY”).
+- Adjusted ticket task 12 to reflect “build+flash done; monitor validation manual”, and added a final task for the interactive validation workflow.
+
+### Why
+- Flash success tells us the build artifacts are correct and the bootloader/partition/app images are coherent.
+- Separating “flash” from “interactive validation” keeps the task list honest about what can be verified automatically here.
+
+### What worked
+- Flash succeeded end-to-end on `/dev/ttyACM0` at 460800 baud.
+
+### What didn't work
+- `idf.py monitor` cannot run here:
+  - Error: `Monitor requires standard input to be attached to TTY.`
+
+### What I learned
+- The port can temporarily disappear after failed flashes; using `/dev/serial/by-id/...->ttyACM0` is a more stable way to identify the correct device when it reappears.
+
+### What was tricky to build
+- N/A (this is an environment limitation, not a firmware issue).
+
+### What warrants a second pair of eyes
+- If flashes intermittently fail again, it may indicate a cable/hub issue or USB power instability. Retest with a different cable/port if needed.
+
+### What should be done in the future
+- Run interactive validation from a real terminal:
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 monitor`
+  - `wifi scan`, `wifi join ... --save`, then open the browser UI and run the smoke script.
+
+### Code review instructions
+- N/A (no code changes).
+
+### Technical details
+- Flash command:
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 flash`

@@ -46,3 +46,13 @@ Implemented /api/js/eval + emit() buffer + flush to /ws in tutorial 0066 (commit
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp — Added eval->JSON + emit buffer + WS flush
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/httpd_ws_hub/httpd_ws_hub.c — Added CONFIG_HTTPD_WS_SUPPORT stubs
 
+
+## 2026-01-24
+
+Flashed 0066 to /dev/ttyACM0; added smoke script; noted monitor requires TTY and left final interactive validation as task 13.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/23/0066a-cardputer-js-rest-api-and-web-ide--cardputer-js-rest-api-web-ide-microquickjs/reference/01-diary.md — Recorded flash + monitor limitation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/23/0066a-cardputer-js-rest-api-and-web-ide--cardputer-js-rest-api-web-ide-microquickjs/scripts/0066a-smoke-http-ws.sh — HTTP/WS smoke test helper
+

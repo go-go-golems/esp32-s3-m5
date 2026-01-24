@@ -13,5 +13,6 @@
 - [x] Implement 0066: add WebSocket /ws and broadcast helper
 - [x] Implement 0066: JS emit() buffer + flush to WS
 - [x] Implement 0066: web IDE UI for JS eval + event stream
-- [ ] Add ticket scripts: HTTP/WS smoke tests
-- [ ] Build/flash/monitor validate on /dev/ttyACM0
+- [x] Add ticket scripts: HTTP/WS smoke tests
+- [x] Build+flash on /dev/ttyACM0 (monitor validation manual)
+- [ ] Validate on-device via console: wifi join + open Web IDE + run smoke script
