@@ -7,6 +7,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
 #include "freertos/task.h"
 
 #include "cardputer_kb/layout.h"
@@ -15,6 +17,29 @@
 namespace {
 
 static const char *TAG = "0066_kb";
+
+struct DebugState {
+    bool ready = false;
+    uint8_t backend = 0;
+    bool caps = false;
+
+    bool shift = false;
+    bool ctrl = false;
+    bool alt = false;
+    bool opt = false;
+    bool fn = false;
+
+    uint8_t mods = 0;
+    bool down[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
+
+    bool last_event_valid = false;
+    ui_key_event_t last_event = {};
+
+    uint32_t seq = 0;
+};
+
+static portMUX_TYPE s_dbg_mu = portMUX_INITIALIZER_UNLOCKED;
+static DebugState s_dbg;
 
 struct KeyValue {
     const char *first;
@@ -43,6 +68,11 @@ static void q_send_best_effort(QueueHandle_t q, const ui_key_event_t &ev)
 {
     if (!q) return;
     (void)xQueueSend(q, &ev, 0);
+
+    portENTER_CRITICAL(&s_dbg_mu);
+    s_dbg.last_event = ev;
+    s_dbg.last_event_valid = true;
+    portEXIT_CRITICAL(&s_dbg_mu);
 }
 
 static bool key_is(const KeyValue *kv, const char *s)
@@ -115,6 +145,12 @@ static void kb_task_main(void *arg)
     bool prev_down[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
 
     s_ready = true;
+    portENTER_CRITICAL(&s_dbg_mu);
+    s_dbg.ready = true;
+    s_dbg.backend = (uint8_t)backend;
+    s_dbg.last_event_valid = false;
+    s_dbg.seq = 0;
+    portEXIT_CRITICAL(&s_dbg_mu);
 
     while (true) {
         const cardputer_kb::ScanSnapshot snap = s_scanner.scan();
@@ -138,6 +174,18 @@ static void kb_task_main(void *arg)
 
         const uint8_t mods = mods_from_state(shift, ctrl, alt, fn);
 
+        portENTER_CRITICAL(&s_dbg_mu);
+        s_dbg.caps = caps;
+        s_dbg.shift = shift;
+        s_dbg.ctrl = ctrl;
+        s_dbg.alt = alt;
+        s_dbg.opt = opt;
+        s_dbg.fn = fn;
+        s_dbg.mods = mods;
+        memcpy(s_dbg.down, down, sizeof(s_dbg.down));
+        s_dbg.seq++;
+        portEXIT_CRITICAL(&s_dbg_mu);
+
         // Emit "edge" events only (press transitions).
         for (uint8_t keynum = 1; keynum <= (cardputer_kb::kRows * cardputer_kb::kCols); keynum++) {
             if (!down[keynum] || prev_down[keynum]) {
@@ -158,6 +206,55 @@ static void kb_task_main(void *arg)
             const KeyValue *kv = key_value_for_keynum(map, keynum);
             if (!kv) {
                 continue;
+            }
+
+            // Map semantic navigation chords to arrow/back events.
+            //
+            // Cardputer (captured bindings): Fn(29) + {;,(.),, ,/} => {Up,Down,Left,Right}
+            // Back: Fn(29) + ` (keynum 1)
+            //
+            // Cardputer-ADV: there is no dedicated Fn key; we treat Opt as Fn-like (fn==true above).
+            if (fn) {
+                if (keynum == 40) { // ;
+                    ui_key_event_t ev = {};
+                    ev.kind = UI_KEY_UP;
+                    ev.mods = mods;
+                    ev.keynum = keynum;
+                    q_send_best_effort(q, ev);
+                    continue;
+                }
+                if (keynum == 54) { // .
+                    ui_key_event_t ev = {};
+                    ev.kind = UI_KEY_DOWN;
+                    ev.mods = mods;
+                    ev.keynum = keynum;
+                    q_send_best_effort(q, ev);
+                    continue;
+                }
+                if (keynum == 53) { // ,
+                    ui_key_event_t ev = {};
+                    ev.kind = UI_KEY_LEFT;
+                    ev.mods = mods;
+                    ev.keynum = keynum;
+                    q_send_best_effort(q, ev);
+                    continue;
+                }
+                if (keynum == 55) { // /
+                    ui_key_event_t ev = {};
+                    ev.kind = UI_KEY_RIGHT;
+                    ev.mods = mods;
+                    ev.keynum = keynum;
+                    q_send_best_effort(q, ev);
+                    continue;
+                }
+                if (keynum == 1) { // `
+                    ui_key_event_t ev = {};
+                    ev.kind = UI_KEY_BACK;
+                    ev.mods = mods;
+                    ev.keynum = keynum;
+                    q_send_best_effort(q, ev);
+                    continue;
+                }
             }
 
             // Special key kinds.
@@ -227,3 +324,36 @@ extern "C" bool ui_kb_is_ready(void)
     return s_ready;
 }
 
+extern "C" bool ui_kb_debug_get_state(ui_kb_debug_state_t *out)
+{
+    if (!out) return false;
+
+    DebugState snap;
+    portENTER_CRITICAL(&s_dbg_mu);
+    snap = s_dbg;
+    portEXIT_CRITICAL(&s_dbg_mu);
+
+    memset(out, 0, sizeof(*out));
+    out->ready = snap.ready;
+    out->backend = snap.backend;
+    out->caps = snap.caps;
+    out->shift = snap.shift;
+    out->ctrl = snap.ctrl;
+    out->alt = snap.alt;
+    out->opt = snap.opt;
+    out->fn = snap.fn;
+    out->mods = snap.mods;
+    out->last_event_valid = snap.last_event_valid;
+    out->last_event = snap.last_event;
+    out->seq = snap.seq;
+
+    uint8_t n = 0;
+    for (uint8_t keynum = 1; keynum <= (cardputer_kb::kRows * cardputer_kb::kCols); keynum++) {
+        if (!snap.down[keynum]) continue;
+        if (n < (uint8_t)(sizeof(out->pressed_keynums) / sizeof(out->pressed_keynums[0]))) {
+            out->pressed_keynums[n++] = keynum;
+        }
+    }
+    out->pressed_count = n;
+    return true;
+}

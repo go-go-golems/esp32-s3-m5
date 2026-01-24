@@ -9,9 +9,138 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+#include "cardputer_kb/layout.h"
+#include "ui_kb.h"
+
 static const char *TAG = "sim_console";
 
 static sim_engine_t *s_engine = nullptr;
+
+static const char *key_kind_name(ui_key_kind_t k)
+{
+    switch (k) {
+    case UI_KEY_UNKNOWN: return "unknown";
+    case UI_KEY_UP: return "up";
+    case UI_KEY_DOWN: return "down";
+    case UI_KEY_LEFT: return "left";
+    case UI_KEY_RIGHT: return "right";
+    case UI_KEY_ENTER: return "enter";
+    case UI_KEY_BACK: return "back";
+    case UI_KEY_TAB: return "tab";
+    case UI_KEY_SPACE: return "space";
+    case UI_KEY_DEL: return "del";
+    case UI_KEY_TEXT: return "text";
+    }
+    return "unknown";
+}
+
+static const char *backend_name(uint8_t backend)
+{
+    // cardputer_kb::ScannerBackend (uint8_t):
+    // 0=Auto, 1=GpioMatrix, 2=Tca8418
+    switch (backend) {
+    case 1: return "GpioMatrix";
+    case 2: return "Tca8418";
+    default: return "Auto";
+    }
+}
+
+static void kb_print_once(void)
+{
+    ui_kb_debug_state_t st;
+    if (!ui_kb_debug_get_state(&st)) {
+        printf("kb: debug state unavailable\n");
+        return;
+    }
+
+    printf("kb: ready=%d backend=%s seq=%" PRIu32 "\n", st.ready ? 1 : 0, backend_name(st.backend), st.seq);
+    printf("kb: mods=0x%02x shift=%d ctrl=%d alt=%d opt=%d fn=%d caps=%d\n",
+           (unsigned)st.mods,
+           st.shift ? 1 : 0,
+           st.ctrl ? 1 : 0,
+           st.alt ? 1 : 0,
+           st.opt ? 1 : 0,
+           st.fn ? 1 : 0,
+           st.caps ? 1 : 0);
+
+    printf("kb: pressed(%u):", (unsigned)st.pressed_count);
+    for (unsigned i = 0; i < (unsigned)st.pressed_count; i++) {
+        printf(" %u", (unsigned)st.pressed_keynums[i]);
+    }
+    printf("\n");
+
+    for (unsigned i = 0; i < (unsigned)st.pressed_count; i++) {
+        const uint8_t keynum = st.pressed_keynums[i];
+        int x = -1, y = -1;
+        cardputer_kb::xy_from_keynum(keynum, &x, &y);
+        const char *legend = cardputer_kb::legend_for_xy(x, y);
+        printf("  keynum=%u xy=(%d,%d) legend=%s\n", (unsigned)keynum, x, y, legend ? legend : "");
+    }
+
+    if (st.last_event_valid) {
+        const ui_key_event_t *ev = &st.last_event;
+        printf("kb: last_event kind=%s mods=0x%02x keynum=%u text=\"%s\"\n",
+               key_kind_name(ev->kind),
+               (unsigned)ev->mods,
+               (unsigned)ev->keynum,
+               ev->kind == UI_KEY_TEXT ? ev->text : "");
+    } else {
+        printf("kb: last_event <none>\n");
+    }
+}
+
+static void kb_usage(void)
+{
+    printf("kb: keyboard debug\n");
+    printf("usage:\n");
+    printf("  kb\n");
+    printf("  kb once\n");
+    printf("  kb watch [period_ms=200] [count=50]\n");
+}
+
+static bool parse_int(const char *s, int *out)
+{
+    if (!s || !out) return false;
+    char *end = nullptr;
+    long v = strtol(s, &end, 10);
+    if (!end || *end != '\0') return false;
+    *out = (int)v;
+    return true;
+}
+
+static int cmd_kb(int argc, char **argv)
+{
+    if (argc == 1 || (argc >= 2 && strcmp(argv[1], "once") == 0)) {
+        kb_print_once();
+        return 0;
+    }
+    if (argc >= 2 && strcmp(argv[1], "watch") == 0) {
+        int period_ms = 200;
+        int count = 50;
+        if (argc >= 3 && !parse_int(argv[2], &period_ms)) {
+            printf("invalid period_ms\n");
+            return 1;
+        }
+        if (argc >= 4 && !parse_int(argv[3], &count)) {
+            printf("invalid count\n");
+            return 1;
+        }
+        if (period_ms < 10) period_ms = 10;
+        if (count < 1) count = 1;
+
+        for (int i = 0; i < count; i++) {
+            kb_print_once();
+            vTaskDelay(pdMS_TO_TICKS(period_ms));
+        }
+        return 0;
+    }
+
+    kb_usage();
+    return 1;
+}
 
 static const char *pattern_name(led_pattern_type_t t)
 {
@@ -408,6 +537,14 @@ static int cmd_sim(int argc, char **argv)
 void sim_console_register_commands(sim_engine_t *engine)
 {
     s_engine = engine;
+
+    {
+        esp_console_cmd_t cmd = {};
+        cmd.command = "kb";
+        cmd.help = "Keyboard debug (dump pressed keynums, legend, last event)";
+        cmd.func = &cmd_kb;
+        ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+    }
 
     esp_console_cmd_t cmd = {};
     cmd.command = "sim";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "freertos/FreeRTOS.h"
@@ -44,6 +45,34 @@ void ui_kb_start(QueueHandle_t q);
 
 // Best-effort status: true once hardware init succeeded in the kb task.
 bool ui_kb_is_ready(void);
+
+// Debug snapshot for console tooling.
+// Intended for ad-hoc bringup: lets you see which physical keyNum values change on press/release and
+// which modifier bits the firmware is currently deriving.
+typedef struct {
+    bool ready;
+    uint8_t backend; // cardputer_kb::ScannerBackend as uint8_t
+    bool caps;
+
+    bool shift;
+    bool ctrl;
+    bool alt;
+    bool opt;
+    bool fn;
+
+    uint8_t mods; // ui_key_mods_t bits
+
+    uint8_t pressed_keynums[56];
+    uint8_t pressed_count;
+
+    bool last_event_valid;
+    ui_key_event_t last_event;
+
+    uint32_t seq;
+} ui_kb_debug_state_t;
+
+// Returns false if out is null.
+bool ui_kb_debug_get_state(ui_kb_debug_state_t *out);
 
 #ifdef __cplusplus
 }  // extern "C"
