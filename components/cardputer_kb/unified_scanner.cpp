@@ -26,16 +26,16 @@ struct cardputer_kb::UnifiedScanner::TcaState {
         if (bus) {
             return ESP_OK;
         }
-        i2c_master_bus_config_t bus_cfg = {
-            .i2c_port = cfg.i2c_port,
-            .sda_io_num = cfg.i2c_sda_gpio,
-            .scl_io_num = cfg.i2c_scl_gpio,
-            .clk_source = I2C_CLK_SRC_DEFAULT,
-            .glitch_ignore_cnt = 7,
-            .intr_priority = 0,
-            .trans_queue_depth = 0,
-            .flags.enable_internal_pullup = 1,
-        };
+        i2c_master_bus_config_t bus_cfg;
+        std::memset(&bus_cfg, 0, sizeof(bus_cfg));
+        bus_cfg.i2c_port = cfg.i2c_port;
+        bus_cfg.sda_io_num = cfg.i2c_sda_gpio;
+        bus_cfg.scl_io_num = cfg.i2c_scl_gpio;
+        bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
+        bus_cfg.glitch_ignore_cnt = 7;
+        bus_cfg.intr_priority = 0;
+        bus_cfg.trans_queue_depth = 0;
+        bus_cfg.flags.enable_internal_pullup = 1;
 
         return i2c_new_master_bus(&bus_cfg, &bus);
     }
