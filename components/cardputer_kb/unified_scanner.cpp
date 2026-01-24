@@ -164,6 +164,10 @@ struct cardputer_kb::UnifiedScanner::TcaState {
     }
 };
 
+void cardputer_kb::UnifiedScanner::TcaDeleter::operator()(TcaState *p) const {
+    delete p;
+}
+
 cardputer_kb::UnifiedScanner::~UnifiedScanner() = default;
 
 esp_err_t cardputer_kb::UnifiedScanner::init(const UnifiedScannerConfig &cfg) {
@@ -174,7 +178,7 @@ esp_err_t cardputer_kb::UnifiedScanner::init(const UnifiedScannerConfig &cfg) {
     switch (cfg.backend) {
     case ScannerBackend::Auto:
         // Probe TCA8418 first; fall back to GPIO matrix.
-        tca_ = std::make_unique<TcaState>();
+        tca_.reset(new TcaState());
         if (tca_->init_hw(cfg) == ESP_OK) {
             backend_ = ScannerBackend::Tca8418;
             ESP_LOGI(TAG, "UnifiedScanner autodetect: using TCA8418 backend");
@@ -190,7 +194,7 @@ esp_err_t cardputer_kb::UnifiedScanner::init(const UnifiedScannerConfig &cfg) {
         backend_ = ScannerBackend::GpioMatrix;
         break;
     case ScannerBackend::Tca8418:
-        tca_ = std::make_unique<TcaState>();
+        tca_.reset(new TcaState());
         {
             esp_err_t err = tca_->init_hw(cfg);
             if (err != ESP_OK) {

@@ -68,8 +68,11 @@ class UnifiedScanner {
 
   private:
     struct TcaState;
+    struct TcaDeleter {
+        void operator()(TcaState *p) const;
+    };
     MatrixScanner matrix_{};
-    std::unique_ptr<TcaState> tca_{};
+    std::unique_ptr<TcaState, TcaDeleter> tca_{};
     ScannerBackend backend_ = ScannerBackend::Auto;
     bool inited_ = false;
 };
