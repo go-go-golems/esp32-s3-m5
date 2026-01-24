@@ -571,3 +571,53 @@ Implemented the first code milestone toward a single “keyboard component”: a
 - Review the new facade API and stub behavior:
   - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
   - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+
+## Step 10: Implement TCA8418 backend + runtime autodetect (commit 3f917aa)
+
+This step delivered the core of the “one keyboard component” goal: `cardputer_kb::UnifiedScanner` now supports both keyboard hardware acquisition models and chooses between them at runtime. The guiding principle is “one public scanner contract” (`scan() -> ScanSnapshot` in picture-space), even though the underlying hardware differs radically (snapshot GPIO scan vs edge FIFO events).
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, create tasks in the ticket, the implement task by task, check off tasks, commit to git, and keep a detailed diary."
+
+**Assistant interpretation:** Implement the missing Cardputer-ADV keyboard backend and auto-detection so downstream firmware can stop hardcoding assumptions.
+
+**Inferred user intent:** Make “Cardputer vs Cardputer-ADV keyboard hardware” a runtime implementation detail rather than an app-level fork.
+
+**Commit (code):** 3f917aa — "cardputer_kb: add TCA8418 backend + autodetect"
+
+### What I did
+- Added a minimal, register-level TCA8418 I2C helper into the component:
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.h`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.c`
+- Extended `cardputer_kb::UnifiedScanner`:
+  - Added a private `TcaState` implementation with I2C init/probe, event draining, and a “pressed keys” bitset.
+  - Implemented TCA event decode → picture-space `(x,y)` → `keyNum` updates.
+  - Implemented `ScannerBackend::Auto` as “probe TCA8418 first, else fall back to GPIO matrix”.
+- Updated `components/cardputer_kb/CMakeLists.txt` to build the new sources and depend on `esp_driver_i2c`.
+
+### Why
+- This makes the keyboard hardware choice explicit and centralized, so UI/framework code can be written once against `ScanSnapshot` without carrying device-specific forks.
+
+### What worked
+- The TCA backend produces the same picture-space `keyNum` values (1..56) as the existing GPIO scanner by applying the same remap formula used in the ADV demo code.
+
+### What didn't work
+- N/A
+
+### What I learned
+- A practical “unification seam” is the existing `ScanSnapshot` contract: if we can express both hardware models as a stable set of currently-pressed keys in picture-space, a lot of higher-level decoding and UI logic becomes reusable.
+
+### What was tricky to build
+- Avoiding pin-ownership conflicts: the unified scanner probes TCA8418 via I2C first and only configures GPIO matrix scanning if the probe fails, so it can safely reuse the same physical pins across variants.
+
+### What warrants a second pair of eyes
+- The TCA8418 event bit7 “pressed” convention varies across docs; this code follows the existing ADV firmware convention (bit7 set → pressed). A reviewer should confirm this against real hardware traces.
+
+### What should be done in the future
+- Migrate firmware consumers to use `UnifiedScanner` so the unification is real in practice, not just an available API.
+
+### Code review instructions
+- Focus review on the unification logic and the remap:
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.c`
