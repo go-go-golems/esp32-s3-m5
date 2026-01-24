@@ -12,6 +12,8 @@
 
 static const char *TAG = "cardputer_kb";
 
+cardputer_kb::UnifiedScanner::~UnifiedScanner() = default;
+
 struct cardputer_kb::UnifiedScanner::TcaState {
     bool inited = false;
 

@@ -61,6 +61,7 @@ struct UnifiedScannerConfig {
 // - TCA8418 backend + runtime auto-detect will be added next
 class UnifiedScanner {
   public:
+    ~UnifiedScanner();
     esp_err_t init(const UnifiedScannerConfig &cfg = {});
     ScanSnapshot scan();
     ScannerBackend backend() const { return backend_; }
