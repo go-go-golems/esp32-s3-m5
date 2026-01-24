@@ -9,8 +9,11 @@
 #include <string>
 
 #include "cJSON.h"
+#include "driver/gpio.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
+#include "esp_system.h"
+#include "esp_timer.h"
 
 #include "httpd_assets_embed.h"
 #include "httpd_ws_hub.h"
@@ -91,6 +94,13 @@ static esp_err_t send_json(httpd_req_t *req, const char *body)
     return httpd_resp_sendstr(req, body);
 }
 
+static esp_err_t send_text(httpd_req_t *req, const char *content_type, const char *body)
+{
+    httpd_resp_set_type(req, content_type ? content_type : "text/plain; charset=utf-8");
+    (void)httpd_resp_set_hdr(req, "cache-control", "no-store");
+    return httpd_resp_sendstr(req, body ? body : "");
+}
+
 static esp_err_t js_eval_post(httpd_req_t *req)
 {
     if (!s_engine) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "engine not set");
@@ -132,6 +142,24 @@ static esp_err_t js_eval_post(httpd_req_t *req)
     return send_json(req, json.c_str());
 }
 
+static esp_err_t js_reset_post(httpd_req_t *req)
+{
+    if (!s_engine) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "engine not set");
+    (void)req;
+
+    const esp_err_t st = js_service_reset(s_engine);
+    if (st != ESP_OK) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "reset failed");
+    return send_json(req, "{\"ok\":true}");
+}
+
+static esp_err_t js_mem_get(httpd_req_t *req)
+{
+    std::string out;
+    const esp_err_t st = js_service_dump_memory(&out);
+    if (st != ESP_OK) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "dump failed");
+    return send_text(req, "text/plain; charset=utf-8", out.c_str());
+}
+
 static bool json_read_body(httpd_req_t *req, char *buf, size_t buf_len, size_t *out_len)
 {
     if (!req || !buf || buf_len == 0) return false;
@@ -151,6 +179,19 @@ static bool json_read_body(httpd_req_t *req, char *buf, size_t buf_len, size_t *
 static void rgb_to_hex(const led_rgb8_t c, char out[8])
 {
     snprintf(out, 8, "#%02X%02X%02X", (unsigned)c.r, (unsigned)c.g, (unsigned)c.b);
+}
+
+static inline void unpack_rgb(const uint8_t *px3, led_ws281x_color_order_t order, uint8_t *r, uint8_t *g, uint8_t *b)
+{
+    if (order == LED_WS281X_ORDER_RGB) {
+        *r = px3[0];
+        *g = px3[1];
+        *b = px3[2];
+        return;
+    }
+    *g = px3[0];
+    *r = px3[1];
+    *b = px3[2];
 }
 
 static const char *pattern_type_to_str(led_pattern_type_t t)
@@ -211,11 +252,19 @@ static esp_err_t status_get(httpd_req_t *req)
     led_pattern_cfg_t cfg;
     sim_engine_get_cfg(s_engine, &cfg);
     const uint32_t frame_ms = sim_engine_get_frame_ms(s_engine);
+    const uint32_t frame_seq = sim_engine_get_frame_seq(s_engine);
+    const uint32_t last_render_ms = sim_engine_get_last_render_ms(s_engine);
+    const uint32_t uptime_ms = (uint32_t)(esp_timer_get_time() / 1000);
 
     cJSON *root = cJSON_CreateObject();
     if (!root) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
     (void)cJSON_AddBoolToObject(root, "ok", true);
+    (void)cJSON_AddNumberToObject(root, "uptime_ms", (double)uptime_ms);
+    (void)cJSON_AddNumberToObject(root, "heap_free_bytes", (double)esp_get_free_heap_size());
+    (void)cJSON_AddNumberToObject(root, "heap_min_free_bytes", (double)esp_get_minimum_free_heap_size());
     (void)cJSON_AddNumberToObject(root, "frame_ms", (double)frame_ms);
+    (void)cJSON_AddNumberToObject(root, "frame_seq", (double)frame_seq);
+    (void)cJSON_AddNumberToObject(root, "last_render_ms", (double)last_render_ms);
     (void)cJSON_AddNumberToObject(root, "led_count", (double)sim_engine_get_led_count(s_engine));
 
     cJSON *pattern = cJSON_CreateObject();
@@ -289,6 +338,81 @@ static esp_err_t status_get(httpd_req_t *req)
     cJSON_free(body);
     cJSON_Delete(root);
     return err;
+}
+
+static esp_err_t frame_get(httpd_req_t *req)
+{
+    if (!s_engine) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "engine not set");
+
+    const uint16_t led_count = sim_engine_get_led_count(s_engine);
+    const size_t need = (size_t)led_count * 3;
+    if (need == 0 || need > (3u * 300u)) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "bad led_count");
+    }
+
+    uint8_t wire[3 * 300] = {0};
+    uint8_t rgb[3 * 300] = {0};
+    if (sim_engine_copy_latest_pixels(s_engine, wire, sizeof(wire)) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "copy failed");
+    }
+
+    const led_ws281x_color_order_t order = sim_engine_get_order(s_engine);
+    for (size_t i = 0; i < (size_t)led_count; i++) {
+        uint8_t r = 0, g = 0, b = 0;
+        unpack_rgb(&wire[i * 3], order, &r, &g, &b);
+        rgb[i * 3 + 0] = r;
+        rgb[i * 3 + 1] = g;
+        rgb[i * 3 + 2] = b;
+    }
+
+    char hdr[48];
+    snprintf(hdr, sizeof(hdr), "%u", (unsigned)led_count);
+    (void)httpd_resp_set_hdr(req, "x-led-count", hdr);
+    snprintf(hdr, sizeof(hdr), "%u", (unsigned)sim_engine_get_frame_seq(s_engine));
+    (void)httpd_resp_set_hdr(req, "x-frame-seq", hdr);
+
+    httpd_resp_set_type(req, "application/octet-stream");
+    (void)httpd_resp_set_hdr(req, "cache-control", "no-store");
+    return httpd_resp_send(req, (const char *)rgb, (ssize_t)need);
+}
+
+static bool s_gpio_inited = false;
+static void gpio_http_init_once(void)
+{
+    if (s_gpio_inited) return;
+    s_gpio_inited = true;
+
+    const gpio_num_t g3 = (gpio_num_t)CONFIG_TUTORIAL_0066_G3_GPIO;
+    const gpio_num_t g4 = (gpio_num_t)CONFIG_TUTORIAL_0066_G4_GPIO;
+
+    gpio_config_t cfg = {};
+    cfg.intr_type = GPIO_INTR_DISABLE;
+    cfg.mode = GPIO_MODE_OUTPUT;
+    cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    cfg.pull_up_en = GPIO_PULLUP_DISABLE;
+    cfg.pin_bit_mask = (1ULL << (uint32_t)g3) | (1ULL << (uint32_t)g4);
+    (void)gpio_config(&cfg);
+}
+
+static esp_err_t gpio_status_get(httpd_req_t *req)
+{
+    gpio_http_init_once();
+
+    const gpio_num_t g3 = (gpio_num_t)CONFIG_TUTORIAL_0066_G3_GPIO;
+    const gpio_num_t g4 = (gpio_num_t)CONFIG_TUTORIAL_0066_G4_GPIO;
+
+    const int g3v = gpio_get_level(g3);
+    const int g4v = gpio_get_level(g4);
+
+    char body[160];
+    snprintf(body,
+             sizeof(body),
+             "{\"ok\":true,\"G3\":{\"gpio\":%u,\"level\":%d},\"G4\":{\"gpio\":%u,\"level\":%d}}",
+             (unsigned)g3,
+             g3v ? 1 : 0,
+             (unsigned)g4,
+             g4v ? 1 : 0);
+    return send_json(req, body);
 }
 
 static esp_err_t apply_post(httpd_req_t *req)
@@ -462,17 +586,41 @@ esp_err_t http_server_start(sim_engine_t *engine)
     status.handler = status_get;
     httpd_register_uri_handler(s_server, &status);
 
+    httpd_uri_t frame = {};
+    frame.uri = "/api/frame";
+    frame.method = HTTP_GET;
+    frame.handler = frame_get;
+    httpd_register_uri_handler(s_server, &frame);
+
     httpd_uri_t apply = {};
     apply.uri = "/api/apply";
     apply.method = HTTP_POST;
     apply.handler = apply_post;
     httpd_register_uri_handler(s_server, &apply);
 
+    httpd_uri_t gpio_status = {};
+    gpio_status.uri = "/api/gpio/status";
+    gpio_status.method = HTTP_GET;
+    gpio_status.handler = gpio_status_get;
+    httpd_register_uri_handler(s_server, &gpio_status);
+
     httpd_uri_t eval = {};
     eval.uri = "/api/js/eval";
     eval.method = HTTP_POST;
     eval.handler = js_eval_post;
     httpd_register_uri_handler(s_server, &eval);
+
+    httpd_uri_t js_reset = {};
+    js_reset.uri = "/api/js/reset";
+    js_reset.method = HTTP_POST;
+    js_reset.handler = js_reset_post;
+    httpd_register_uri_handler(s_server, &js_reset);
+
+    httpd_uri_t js_mem = {};
+    js_mem.uri = "/api/js/mem";
+    js_mem.method = HTTP_GET;
+    js_mem.handler = js_mem_get;
+    httpd_register_uri_handler(s_server, &js_mem);
 
 #if CONFIG_HTTPD_WS_SUPPORT
     httpd_uri_t ws = {};

@@ -3,60 +3,236 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>0066 LED Sim + JS IDE</title>
+    <title>0066 mLED-GFX-JS</title>
     <link rel="stylesheet" href="/assets/app.css" />
   </head>
   <body>
-    <h1>0066 Cardputer LED Simulator + JS IDE</h1>
-    <p class="muted">
-      Pattern control uses <span class="mono">/api/status</span> and <span class="mono">/api/apply</span>.
-      JS control uses <span class="mono">/api/js/eval</span> and <span class="mono">/ws</span>.
+    <header class="topbar">
+      <div class="brand">mLED-GFX-JS</div>
+      <div class="spacer"></div>
+      <div class="muted mono" id="host"></div>
+      <div class="muted mono" id="last_update"></div>
+      <button id="poll_now">⟳ Poll</button>
+      <label class="muted">poll_ms <input id="poll_ms" type="number" min="100" max="10000" value="500" style="width:92px" /></label>
       <span class="pill bad" id="ws_status">ws: connecting</span>
-    </p>
+    </header>
 
-    <div class="grid">
-      <div class="panel">
-        <h3 style="margin-top:0">Patterns</h3>
-        <div class="row">
-          <button id="refresh" class="primary">Refresh status</button>
-          <select id="type">
-            <option value="off">off</option>
-            <option value="rainbow" selected>rainbow</option>
-            <option value="chase">chase</option>
-            <option value="breathing">breathing</option>
-            <option value="sparkle">sparkle</option>
-          </select>
-          <label>bri <input id="bri" type="number" min="1" max="100" value="25" style="width:72px" /></label>
-          <label>frame_ms <input id="frame_ms" type="number" min="1" max="1000" value="16" style="width:84px" /></label>
-          <button id="apply">Apply</button>
+    <nav class="tabs">
+      <button class="tab active" data-screen="dashboard">Dashboard</button>
+      <button class="tab" data-screen="patterns">Patterns</button>
+      <button class="tab" data-screen="jslab">JS Lab</button>
+      <button class="tab" data-screen="gpio">GPIO</button>
+      <button class="tab" data-screen="presets">Presets</button>
+      <button class="tab" data-screen="system">System</button>
+    </nav>
+
+    <main>
+      <section class="screen" id="screen_dashboard">
+        <h2>Dashboard</h2>
+        <div class="grid2">
+          <div class="panel">
+            <h3 style="margin-top:0">Connection</h3>
+            <div class="kv">
+              <div class="k">Host</div><div class="v mono" id="dash_host">-</div>
+              <div class="k">WebSocket</div><div class="v mono" id="dash_ws">-</div>
+              <div class="k">Poll</div><div class="v mono" id="dash_poll">-</div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">Live Status</h3>
+            <pre id="dash_status">(polling...)</pre>
+          </div>
         </div>
 
-        <div style="height:10px"></div>
-        <pre id="status">(click refresh)</pre>
-      </div>
-
-      <div class="panel">
-        <h3 style="margin-top:0">JS</h3>
-        <div class="row">
-          <button id="js_run" class="primary">Run</button>
-          <button id="js_clear">Clear output</button>
-          <span class="muted">Tip: use <span class="mono">emit(topic,payload)</span> to push events to the browser</span>
+        <div class="panel" style="margin-top:12px">
+          <h3 style="margin-top:0">Quick Controls</h3>
+          <div class="row">
+            <label>pattern
+              <select id="qc_type">
+                <option value="off">off</option>
+                <option value="rainbow" selected>rainbow</option>
+                <option value="chase">chase</option>
+                <option value="breathing">breathing</option>
+                <option value="sparkle">sparkle</option>
+              </select>
+            </label>
+            <label>bri <input id="qc_bri" type="number" min="1" max="100" value="25" style="width:78px" /></label>
+            <label>frame_ms <input id="qc_frame_ms" type="number" min="1" max="1000" value="16" style="width:88px" /></label>
+            <button id="qc_apply" class="primary">Apply</button>
+            <label class="muted"><input id="qc_auto" type="checkbox" checked /> auto-apply (debounced)</label>
+            <button id="qc_reset">Reset to status</button>
+          </div>
         </div>
-        <div style="height:10px"></div>
-        <textarea id="js_code" spellcheck="false"></textarea>
-        <div style="height:10px"></div>
-        <pre id="js_result"></pre>
-      </div>
-    </div>
 
-    <div class="panel" style="margin-top:12px">
-      <div class="row" style="justify-content: space-between">
-        <h3 style="margin:0">WebSocket events</h3>
-        <button id="ws_clear">Clear</button>
-      </div>
-      <div style="height:10px"></div>
-      <pre id="ws_events"></pre>
-    </div>
+        <div class="panel" style="margin-top:12px">
+          <div class="row" style="justify-content: space-between">
+            <h3 style="margin:0">Preview (browser)</h3>
+            <div class="muted mono">FPS: <span id="dash_fps">-</span></div>
+          </div>
+          <div style="height:10px"></div>
+          <canvas id="dash_preview" width="420" height="220"></canvas>
+        </div>
+      </section>
+
+      <section class="screen hidden" id="screen_patterns">
+        <h2>Patterns</h2>
+        <div class="grid2">
+          <div class="panel">
+            <h3 style="margin-top:0">Global Controls</h3>
+            <div class="row">
+              <label>pattern
+                <select id="pat_type">
+                  <option value="off">off</option>
+                  <option value="rainbow">rainbow</option>
+                  <option value="chase">chase</option>
+                  <option value="breathing">breathing</option>
+                  <option value="sparkle">sparkle</option>
+                </select>
+              </label>
+              <label>bri <input id="pat_bri" type="number" min="1" max="100" value="25" style="width:78px" /></label>
+              <label>frame_ms <input id="pat_frame_ms" type="number" min="1" max="1000" value="16" style="width:88px" /></label>
+            </div>
+            <div style="height:10px"></div>
+            <div class="row">
+              <button id="pat_apply" class="primary">Apply</button>
+              <label class="muted"><input id="pat_auto" type="checkbox" /> auto-apply (debounced)</label>
+              <button id="pat_reset">Reset to status</button>
+            </div>
+            <div style="height:10px"></div>
+            <div class="muted">Per-pattern parameters appear on the right.</div>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">Pattern Editor</h3>
+            <div id="pat_editor">(select a pattern)</div>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <div class="row" style="justify-content: space-between">
+            <h3 style="margin:0">Preview</h3>
+            <div class="muted mono">FPS: <span id="pat_fps">-</span></div>
+          </div>
+          <div style="height:10px"></div>
+          <canvas id="pat_preview" width="420" height="220"></canvas>
+        </div>
+      </section>
+
+      <section class="screen hidden" id="screen_jslab">
+        <h2>JS Lab</h2>
+        <div class="grid2">
+          <div class="panel">
+            <h3 style="margin-top:0">Script Editor</h3>
+            <div class="row">
+              <button id="js_run" class="primary">Run</button>
+              <button id="js_run_reset">Run + Reset VM</button>
+              <button id="js_reset">Reset VM</button>
+              <button id="js_clear">Clear output</button>
+              <span class="muted">Tip: <span class="mono">emit(topic,payload)</span> streams to <span class="mono">/ws</span></span>
+            </div>
+            <div style="height:10px"></div>
+            <textarea id="js_code" spellcheck="false"></textarea>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">Output / Console</h3>
+            <pre id="js_result"></pre>
+            <div style="height:10px"></div>
+            <div class="row" style="justify-content: space-between">
+              <h3 style="margin:0">WebSocket events</h3>
+              <button id="ws_clear">Clear</button>
+            </div>
+            <div style="height:10px"></div>
+            <pre id="ws_events"></pre>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:12px">
+          <h3 style="margin-top:0">Examples</h3>
+          <div id="js_examples" class="examples"></div>
+        </div>
+      </section>
+
+      <section class="screen hidden" id="screen_gpio">
+        <h2>GPIO</h2>
+        <div class="panel">
+          <div class="row" style="justify-content: space-between">
+            <h3 style="margin:0">Pins</h3>
+            <button id="gpio_refresh">Refresh</button>
+          </div>
+          <div style="height:10px"></div>
+          <div class="grid2">
+            <div class="panel">
+              <h3 style="margin-top:0">G3</h3>
+              <div class="kv">
+                <div class="k">GPIO</div><div class="v mono" id="gpio_g3_num">-</div>
+                <div class="k">Level</div><div class="v mono" id="gpio_g3_level">-</div>
+              </div>
+              <div style="height:10px"></div>
+              <div class="row">
+                <button id="gpio_g3_toggle" class="primary">Toggle</button>
+                <button id="gpio_g3_p100">Pulse 100ms</button>
+                <button id="gpio_g3_p500">Pulse 500ms</button>
+              </div>
+            </div>
+            <div class="panel">
+              <h3 style="margin-top:0">G4</h3>
+              <div class="kv">
+                <div class="k">GPIO</div><div class="v mono" id="gpio_g4_num">-</div>
+                <div class="k">Level</div><div class="v mono" id="gpio_g4_level">-</div>
+              </div>
+              <div style="height:10px"></div>
+              <div class="row">
+                <button id="gpio_g4_toggle" class="primary">Toggle</button>
+                <button id="gpio_g4_p100">Pulse 100ms</button>
+                <button id="gpio_g4_p500">Pulse 500ms</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen hidden" id="screen_presets">
+        <h2>Presets</h2>
+        <div class="grid2">
+          <div class="panel">
+            <h3 style="margin-top:0">Saved presets (browser)</h3>
+            <div id="preset_list"></div>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">Actions</h3>
+            <div class="row">
+              <label>Name <input id="preset_name" type="text" placeholder="Warm Chase" style="width:220px" /></label>
+              <button id="preset_save" class="primary">Save current as…</button>
+            </div>
+            <div style="height:10px"></div>
+            <div class="row">
+              <button id="preset_export">Export all</button>
+              <button id="preset_import">Import JSON…</button>
+            </div>
+            <div style="height:10px"></div>
+            <textarea id="preset_blob" spellcheck="false" style="min-height:160px" placeholder="(export/import JSON here)"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen hidden" id="screen_system">
+        <h2>System</h2>
+        <div class="grid2">
+          <div class="panel">
+            <h3 style="margin-top:0">Device status</h3>
+            <pre id="sys_status">(polling...)</pre>
+          </div>
+          <div class="panel">
+            <h3 style="margin-top:0">JS memory</h3>
+            <div class="row" style="justify-content: space-between">
+              <div class="muted">From <span class="mono">/api/js/mem</span></div>
+              <button id="sys_jsmem_refresh">Refresh</button>
+            </div>
+            <div style="height:10px"></div>
+            <pre id="sys_jsmem">(click refresh)</pre>
+          </div>
+        </div>
+      </section>
+    </main>
 
     <script src="/assets/app.js"></script>
   </body>

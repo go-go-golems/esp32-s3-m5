@@ -54,6 +54,9 @@ void sim_engine_set_frame_ms(sim_engine_t *e, uint32_t frame_ms);
 uint16_t sim_engine_get_led_count(sim_engine_t *e);
 led_ws281x_color_order_t sim_engine_get_order(sim_engine_t *e);
 
+uint32_t sim_engine_get_frame_seq(sim_engine_t *e);
+uint32_t sim_engine_get_last_render_ms(sim_engine_t *e);
+
 // Copies the latest published frame (wire-order pixels). out_pixels must have at least 3*led_count bytes.
 esp_err_t sim_engine_copy_latest_pixels(sim_engine_t *e, uint8_t *out_pixels, size_t out_len);
 

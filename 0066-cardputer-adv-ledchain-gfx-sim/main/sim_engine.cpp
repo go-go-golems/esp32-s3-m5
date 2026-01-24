@@ -284,6 +284,22 @@ led_ws281x_color_order_t sim_engine_get_order(sim_engine_t *e) {
   return e->order;
 }
 
+uint32_t sim_engine_get_frame_seq(sim_engine_t *e) {
+  if (!e || !e->mu) return 0;
+  if (xSemaphoreTake(e->mu, portMAX_DELAY) != pdTRUE) return 0;
+  const uint32_t v = e->frame_seq;
+  xSemaphoreGive(e->mu);
+  return v;
+}
+
+uint32_t sim_engine_get_last_render_ms(sim_engine_t *e) {
+  if (!e || !e->mu) return 0;
+  if (xSemaphoreTake(e->mu, portMAX_DELAY) != pdTRUE) return 0;
+  const uint32_t v = e->last_render_ms;
+  xSemaphoreGive(e->mu);
+  return v;
+}
+
 esp_err_t sim_engine_copy_latest_pixels(sim_engine_t *e, uint8_t *out_pixels, size_t out_len) {
   ESP_RETURN_ON_FALSE(e && e->mu && out_pixels, ESP_ERR_INVALID_ARG, TAG, "invalid arg");
   const size_t need = (size_t)e->led_count * 3;
