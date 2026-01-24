@@ -20,7 +20,7 @@
 - [x] Commit changes and record steps in diary
 - [x] Migrate tutorial 0066 to UnifiedScanner (autodetect Cardputer vs Cardputer-ADV; remove local TCA driver)
 - [x] Overwrite reMarkable PDF bundle with updated 0066 content
-- [ ] Fix 0066: make Alt+arrow (step modifiers) work in overlays (brightness/frame/params/color)
+- [x] Fix 0066: make Alt+arrow (step modifiers) work in overlays (brightness/frame/params/color)
 - [ ] Update 0066 help text to clarify Fn chord navigation (and Opt-as-Fn on ADV)
-- [ ] Fix 0066: map Fn chords (Fn+;./, and Fn+backtick) to UI_KEY arrows/back so navigation uses arrow events
-- [ ] Add esp_console keyboard debug command (dump pressed keynums/x,y/legend + last ui_key_event) for 0066
+- [x] Fix 0066: map Fn chords (Fn+;./, and Fn+backtick) to UI_KEY arrows/back so navigation uses arrow events
+- [x] Add esp_console keyboard debug command (dump pressed keynums/x,y/legend + last ui_key_event) for 0066
