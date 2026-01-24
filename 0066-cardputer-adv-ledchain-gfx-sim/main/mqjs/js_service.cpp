@@ -1,5 +1,6 @@
 #include "js_service.h"
 
+#include <stdio.h>
 #include <string.h>
 
 extern "C" {
@@ -12,6 +13,8 @@ extern const JSSTDLibraryDef js_stdlib;
 #include "esp_log.h"
 
 #include "sdkconfig.h"
+
+#include "http_server.h"
 
 #include "mqjs_service.h"
 #include "mqjs_vm.h"
@@ -33,11 +36,64 @@ static uint32_t js_eval_timeout_ms(void) {
 
 namespace {
 
+static void json_escape_append(std::string* out, const std::string& s) {
+  for (char c : s) {
+    if (c == '\\' || c == '\"') out->push_back('\\');
+    if (c == '\n') {
+      *out += "\\n";
+    } else {
+      out->push_back(c);
+    }
+  }
+}
+
 static void log_js_exception(JSContext* ctx, const char* what) {
   if (!ctx) return;
   MqjsVm* vm = MqjsVm::From(ctx);
   const std::string err = vm ? vm->GetExceptionString(JS_DUMP_LONG) : "<exception>";
   ESP_LOGW(TAG, "%s: %s", what ? what : "js exception", err.c_str());
+}
+
+static void flush_js_events_to_ws(JSContext* ctx, const char* source) {
+  if (!ctx) return;
+
+  MqjsVm* vm = MqjsVm::From(ctx);
+  if (!vm) return;
+
+  const char* src = source ? source : "eval";
+  char expr[96];
+  snprintf(expr, sizeof(expr), "__0066_take_lines('%s')", src);
+
+  vm->SetDeadlineMs(50);
+  JSValue v = JS_Eval(ctx, expr, strlen(expr), "<flush>", JS_EVAL_REPL | JS_EVAL_RETVAL);
+  vm->ClearDeadline();
+
+  if (JS_IsException(v)) {
+    log_js_exception(ctx, "flush js events failed");
+    return;
+  }
+
+  if (!JS_IsString(ctx, v)) return;
+
+  JSCStringBuf sbuf;
+  memset(&sbuf, 0, sizeof(sbuf));
+  size_t n = 0;
+  const char* s = JS_ToCStringLen(ctx, &n, v, &sbuf);
+  if (!s || n == 0) return;
+
+  const char* p = s;
+  size_t remaining = n;
+  while (remaining > 0) {
+    const void* nl = memchr(p, '\n', remaining);
+    const size_t len = nl ? (size_t)((const char*)nl - p) : remaining;
+    if (len > 0) {
+      std::string line(p, len);
+      (void)http_server_ws_broadcast_text(line.c_str());
+    }
+    if (!nl) break;
+    p += len + 1;
+    remaining -= len + 1;
+  }
 }
 
 static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
@@ -52,6 +108,10 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "__0066.timers.cb = __0066.timers.cb || {};\n"
       "__0066.gpio = __0066.gpio || {};\n"
       "__0066.gpio.state = __0066.gpio.state || { G3: 0, G4: 0 };\n"
+      "__0066.maxEvents = __0066.maxEvents || 64;\n"
+      "__0066.events = __0066.events || [];\n"
+      "__0066.dropped = __0066.dropped || 0;\n"
+      "__0066.ws_seq = __0066.ws_seq || 0;\n"
       "g.gpio = g.gpio || {};\n"
       "gpio.write = function(label, v) {\n"
       "  var k = String(label);\n"
@@ -68,6 +128,24 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "  k = (k[0] === 'g') ? ('G' + k[1]) : k;\n"
       "  var v = (__0066.gpio.state[k] ? 0 : 1);\n"
       "  return gpio.write(k, v);\n"
+      "};\n"
+      "g.emit = function(topic, payload) {\n"
+      "  if (typeof topic !== 'string' || topic.length === 0) throw new TypeError('emit: topic must be non-empty string');\n"
+      "  if (__0066.events.length >= __0066.maxEvents) { __0066.dropped = (__0066.dropped || 0) + 1; return; }\n"
+      "  __0066.events.push({ topic: topic, payload: payload, ts_ms: Date.now() });\n"
+      "};\n"
+      "g.__0066_take_lines = function(source) {\n"
+      "  var dropped = __0066.dropped || 0;\n"
+      "  var ev = __0066.events || [];\n"
+      "  if (ev.length === 0 && dropped === 0) return '';\n"
+      "  __0066.events = [];\n"
+      "  __0066.dropped = 0;\n"
+      "  var src = String(source || 'eval');\n"
+      "  var s = JSON.stringify({ type: 'js_events', seq: (__0066.ws_seq++), ts_ms: Date.now(), source: src, events: ev });\n"
+      "  if (dropped) {\n"
+      "    s += '\\n' + JSON.stringify({ type: 'js_events_dropped', seq: (__0066.ws_seq++), ts_ms: Date.now(), source: src, dropped: dropped });\n"
+      "  }\n"
+      "  return s;\n"
       "};\n"
       "if (typeof sim === 'object' && sim) {\n"
       "  sim.statusJson = function () {\n"
@@ -107,6 +185,12 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
   if (JS_IsException(v)) {
     log_js_exception(ctx, "bootstrap failed");
   }
+  return ESP_OK;
+}
+
+static esp_err_t job_flush_ws(JSContext* ctx, void* user) {
+  const char* src = user ? static_cast<const char*>(user) : "eval";
+  flush_js_events_to_ws(ctx, src);
   return ESP_OK;
 }
 
@@ -226,4 +310,52 @@ esp_err_t js_service_dump_memory(std::string* out) {
   job.user = &a;
   job.timeout_ms = 100;
   return mqjs_service_run(s_svc, &job);
+}
+
+std::string js_service_eval_to_json(const char* code,
+                                   size_t code_len,
+                                   uint32_t timeout_ms,
+                                   const char* filename) {
+  if (!s_svc) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"js service unavailable\",\"timed_out\":false}";
+  }
+
+  if (!code || code_len == 0) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"empty body\",\"timed_out\":false}";
+  }
+
+  const uint32_t tmo = (timeout_ms == 0) ? js_eval_timeout_ms() : timeout_ms;
+  mqjs_eval_result_t r = {};
+  const esp_err_t st = mqjs_service_eval(s_svc, code, code_len, tmo, filename ? filename : "<eval>", &r);
+  if (st != ESP_OK) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"busy\",\"timed_out\":false}";
+  }
+
+  std::string json;
+  if (!r.ok) {
+    json = "{\"ok\":false,\"output\":\"";
+    json_escape_append(&json, r.output ? r.output : "");
+    json += "\",\"error\":\"";
+    json_escape_append(&json, r.error ? r.error : "error");
+    json += "\",\"timed_out\":";
+    json += r.timed_out ? "true" : "false";
+    json += "}";
+  } else {
+    json = "{\"ok\":true,\"output\":\"";
+    json_escape_append(&json, r.output ? r.output : "");
+    json += "\",\"error\":null,\"timed_out\":";
+    json += r.timed_out ? "true" : "false";
+    json += "}";
+  }
+
+  mqjs_eval_result_free(&r);
+
+  const mqjs_job_t flush = {.fn = &job_flush_ws, .user = (void*)"eval", .timeout_ms = 0};
+  (void)mqjs_service_post(s_svc, &flush);
+
+  return json;
+}
+
+extern "C" void mqjs_0066_after_js_callback(JSContext* ctx, const char* source) {
+  flush_js_events_to_ws(ctx, source ? source : "callback");
 }

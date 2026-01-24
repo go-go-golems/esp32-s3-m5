@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <string>
+
 #include "cJSON.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -14,6 +16,8 @@
 #include "httpd_ws_hub.h"
 
 #include "sdkconfig.h"
+
+#include "mqjs/js_service.h"
 
 static const char *TAG = "0066_http";
 
@@ -78,6 +82,54 @@ static esp_err_t asset_app_css_get(httpd_req_t *req)
                                   "text/css; charset=utf-8",
                                   "no-store",
                                   true);
+}
+
+static esp_err_t send_json(httpd_req_t *req, const char *body)
+{
+    httpd_resp_set_type(req, "application/json; charset=utf-8");
+    (void)httpd_resp_set_hdr(req, "cache-control", "no-store");
+    return httpd_resp_sendstr(req, body);
+}
+
+static esp_err_t js_eval_post(httpd_req_t *req)
+{
+    if (!s_engine) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "engine not set");
+
+    const int max_body = CONFIG_TUTORIAL_0066_JS_MAX_BODY;
+    if (max_body <= 0) {
+        return send_json(req, "{\"ok\":false,\"output\":\"\",\"error\":\"server misconfigured\",\"timed_out\":false}");
+    }
+    if (req->content_len <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty body");
+        return ESP_OK;
+    }
+    if (req->content_len > max_body) {
+        httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "body too large");
+        return ESP_OK;
+    }
+
+    const size_t n = (size_t)req->content_len;
+    char *buf = (char *)malloc(n + 1);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
+        return ESP_OK;
+    }
+
+    size_t off = 0;
+    while (off < n) {
+        const int got = httpd_req_recv(req, buf + off, n - off);
+        if (got <= 0) {
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "recv failed");
+            return ESP_OK;
+        }
+        off += (size_t)got;
+    }
+    buf[n] = '\0';
+
+    const std::string json = js_service_eval_to_json(buf, n, 0, "<http>");
+    free(buf);
+    return send_json(req, json.c_str());
 }
 
 static bool json_read_body(httpd_req_t *req, char *buf, size_t buf_len, size_t *out_len)
@@ -369,6 +421,8 @@ esp_err_t http_server_start(sim_engine_t *engine)
     if (s_server) return ESP_OK;
     s_engine = engine;
 
+    (void)js_service_start(engine);
+
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
 
@@ -384,55 +438,49 @@ esp_err_t http_server_start(sim_engine_t *engine)
     (void)httpd_ws_hub_init(&s_ws_hub, s_server);
 #endif
 
-    const httpd_uri_t root = {
-        .uri = "/",
-        .method = HTTP_GET,
-        .handler = root_get,
-        .user_ctx = nullptr,
-    };
+    httpd_uri_t root = {};
+    root.uri = "/";
+    root.method = HTTP_GET;
+    root.handler = root_get;
     httpd_register_uri_handler(s_server, &root);
 
-    const httpd_uri_t app_js = {
-        .uri = "/assets/app.js",
-        .method = HTTP_GET,
-        .handler = asset_app_js_get,
-        .user_ctx = nullptr,
-    };
+    httpd_uri_t app_js = {};
+    app_js.uri = "/assets/app.js";
+    app_js.method = HTTP_GET;
+    app_js.handler = asset_app_js_get;
     httpd_register_uri_handler(s_server, &app_js);
 
-    const httpd_uri_t app_css = {
-        .uri = "/assets/app.css",
-        .method = HTTP_GET,
-        .handler = asset_app_css_get,
-        .user_ctx = nullptr,
-    };
+    httpd_uri_t app_css = {};
+    app_css.uri = "/assets/app.css";
+    app_css.method = HTTP_GET;
+    app_css.handler = asset_app_css_get;
     httpd_register_uri_handler(s_server, &app_css);
 
-    const httpd_uri_t status = {
-        .uri = "/api/status",
-        .method = HTTP_GET,
-        .handler = status_get,
-        .user_ctx = nullptr,
-    };
+    httpd_uri_t status = {};
+    status.uri = "/api/status";
+    status.method = HTTP_GET;
+    status.handler = status_get;
     httpd_register_uri_handler(s_server, &status);
 
-    const httpd_uri_t apply = {
-        .uri = "/api/apply",
-        .method = HTTP_POST,
-        .handler = apply_post,
-        .user_ctx = nullptr,
-    };
+    httpd_uri_t apply = {};
+    apply.uri = "/api/apply";
+    apply.method = HTTP_POST;
+    apply.handler = apply_post;
     httpd_register_uri_handler(s_server, &apply);
 
+    httpd_uri_t eval = {};
+    eval.uri = "/api/js/eval";
+    eval.method = HTTP_POST;
+    eval.handler = js_eval_post;
+    httpd_register_uri_handler(s_server, &eval);
+
 #if CONFIG_HTTPD_WS_SUPPORT
-    const httpd_uri_t ws = {
-        .uri = "/ws",
-        .method = HTTP_GET,
-        .handler = ws_handler,
-        .user_ctx = nullptr,
-        .is_websocket = true,
-        .handle_ws_control_frames = true,
-    };
+    httpd_uri_t ws = {};
+    ws.uri = "/ws";
+    ws.method = HTTP_GET;
+    ws.handler = ws_handler;
+    ws.is_websocket = true;
+    ws.handle_ws_control_frames = true;
     httpd_register_uri_handler(s_server, &ws);
 #endif
 

@@ -34,6 +34,13 @@ config TUTORIAL_0066_JS_MEM_BYTES
         JS heap arena size for MicroQuickJS (mquickjs). This is a fixed-size arena allocated
         for the VM owner task.
 
+config TUTORIAL_0066_JS_MAX_BODY
+    int "Max /api/js/eval body bytes"
+    range 256 65536
+    default 4096
+    help
+        Maximum HTTP request body size accepted by /api/js/eval (raw JS code).
+
 config TUTORIAL_0066_G3_GPIO
     int "Board label G3: ESP32-S3 GPIO number"
     range 0 48

@@ -47,6 +47,11 @@ static TaskHandle_t s_task = nullptr;
 static QueueHandle_t s_q = nullptr;
 static TimerSlot s_timers[kMaxTimers];
 
+extern "C" void __attribute__((weak)) mqjs_0066_after_js_callback(JSContext* ctx, const char* source) {
+  (void)ctx;
+  (void)source;
+}
+
 static void log_js_exception(JSContext* ctx, const char* what) {
   if (!ctx) return;
   MqjsVm* vm = MqjsVm::From(ctx);
@@ -107,6 +112,7 @@ static esp_err_t job_fire_timeout(JSContext* ctx, void* user) {
     log_js_exception(ctx, "timeout callback threw");
   }
 
+  mqjs_0066_after_js_callback(ctx, "timer");
   return ESP_OK;
 }
 

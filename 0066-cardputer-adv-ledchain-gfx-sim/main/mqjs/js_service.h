@@ -29,3 +29,12 @@ esp_err_t js_service_eval(const char* code,
 
 // Dump VM memory stats (same output as JS_DumpMemory).
 esp_err_t js_service_dump_memory(std::string* out);
+
+// Evaluate JS and return a JSON response string:
+// {"ok":true|false,"output":"...","error":null|"...","timed_out":true|false}
+//
+// This is intended for HTTP handlers; it avoids any JSON parsing on the device.
+std::string js_service_eval_to_json(const char* code,
+                                   size_t code_len,
+                                   uint32_t timeout_ms,
+                                   const char* filename);
