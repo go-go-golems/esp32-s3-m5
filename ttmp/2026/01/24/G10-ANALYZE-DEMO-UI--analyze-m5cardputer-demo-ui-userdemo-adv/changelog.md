@@ -33,3 +33,12 @@ Step 17: overwrite reMarkable PDF bundle
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/G10-ANALYZE-DEMO-UI--analyze-m5cardputer-demo-ui-userdemo-adv/reference/01-diary.md — Record reMarkable upload bundle details
 
+
+## 2026-01-24
+
+Step 18: fix runtime I2C driver conflict (commit f0d6486)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp — Stop using driver_ng I2C
+

@@ -16,18 +16,25 @@ Owners: []
 RelatedFiles:
     - Path: esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp
       Note: Replace 0066 custom TCA+ISR keyboard with cardputer_kb::UnifiedScanner
+    - Path: esp32-s3-m5/components/cardputer_kb/CMakeLists.txt
+      Note: Ensure legacy I2C headers available (avoid driver_ng conflict)
     - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h
       Note: UnifiedScanner public API + backend autodetect
+    - Path: esp32-s3-m5/components/cardputer_kb/tca8418.c
+      Note: Legacy I2C implementation of TCA8418 register access
     - Path: esp32-s3-m5/components/cardputer_kb/tca8418.h
       Note: C linkage for C driver functions
     - Path: esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp
-      Note: TCA8418 backend implementation + IDF 5.4 build fixes
+      Note: |-
+        TCA8418 backend implementation + IDF 5.4 build fixes
+        Use legacy I2C to avoid runtime abort
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-24T13:41:42.129082115-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -621,6 +628,70 @@ we want one consistent component, not split up in 5 smaller ones.
   - `remarquee upload bundle --dry-run ... --name "G10-ANALYZE-DEMO-UI - Demo UI Textbook" --remote-dir "/ai/2026/01/24/G10-ANALYZE-DEMO-UI" --toc-depth 2`
   - `remarquee upload bundle --force ... --name "G10-ANALYZE-DEMO-UI - Demo UI Textbook" --remote-dir "/ai/2026/01/24/G10-ANALYZE-DEMO-UI" --toc-depth 2`
   - `remarquee cloud ls /ai/2026/01/24/G10-ANALYZE-DEMO-UI --long --non-interactive`
+
+## Step 18: Fix runtime I2C driver conflict (driver_ng vs legacy) (commit f0d6486)
+
+This step fixes a **runtime abort** observed immediately after flashing 0066, where ESP-IDF detected that both the legacy I2C driver and the new “driver_ng” I2C driver were being used in the same firmware. ESP-IDF explicitly forbids mixing those two APIs in one app, and it aborts at runtime when it detects a conflict.
+
+The practical resolution here is to make `cardputer_kb`’s TCA8418 backend use the **legacy** `driver/i2c.h` API so it can coexist with other components in this firmware that still use the legacy driver.
+
+### Prompt Context
+
+**User prompt (verbatim):** "E (269) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver
+
+abort() was called at PC 0x4204768f on core 0
+--- 0x4204768f: check_i2c_driver_conflict at /home/manuel/esp/esp-idf-5.4.1/components/driver/i2c/i2c.c:1723
+
+You fixed this before lol"
+
+**Assistant interpretation:** The firmware is crashing because it mixes `driver/i2c_master.h` (new driver) with `driver/i2c.h` (old driver). Update the unified keyboard component so it doesn’t trigger this conflict in 0066.
+
+**Inferred user intent:** Be able to actually run and test 0066 on hardware without getting derailed by ESP-IDF driver incompatibilities.
+
+**Commit (code):** f0d6486 — "cardputer_kb: avoid i2c driver_ng conflict (use legacy i2c)"
+
+### What I did
+- Migrated the TCA8418 backend in `cardputer_kb` off `driver/i2c_master.h` and onto the legacy `driver/i2c.h` API:
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.c`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.h`
+- Updated the component dependencies so the legacy I2C header is in include paths:
+  - `esp32-s3-m5/components/cardputer_kb/CMakeLists.txt` (add `driver`, drop `esp_driver_i2c`)
+- Rebuilt 0066 under IDF 5.4.1 to ensure compilation still succeeds:
+  - `source ~/esp/esp-idf-5.4.1/export.sh && cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+
+### Why
+- ESP-IDF forbids mixing the two I2C driver families within a single firmware image; the only robust fix is to standardize on one.
+- In this particular firmware stack, other components still rely on the legacy driver, so `cardputer_kb` must not pull in the new driver.
+
+### What worked
+- 0066 builds successfully after the switch, and the unified scanner’s TCA backend no longer requires `driver/i2c_master.h`.
+
+### What didn't work
+- The initial flashed build aborted with:
+  - `CONFLICT! driver_ng is not allowed to be used with this old driver`
+
+### What I learned
+- “Build succeeded” is not enough for I2C: **driver-family conflicts are runtime-fatal** in IDF 5.x, so the component must be compatible with the project’s chosen driver family.
+
+### What was tricky to build
+- Ensuring the component CMake dependencies include the correct legacy I2C headers (`components/driver/i2c/include`) while avoiding accidental reintroduction of driver_ng headers.
+
+### What warrants a second pair of eyes
+- Confirm that no other firmware in this repo depends on `cardputer_kb` using the new driver API. If so, we may need a compile-time switch; for now, legacy is the safest default for M5GFX-heavy builds.
+
+### What should be done in the future
+- If a future firmware is “driver_ng only”, consider adding a build-time option in `cardputer_kb` to choose the I2C implementation family (legacy vs ng) rather than baking in one.
+
+### Code review instructions
+- Review the I2C API surface change:
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.c`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.h`
+  - `esp32-s3-m5/components/cardputer_kb/CMakeLists.txt`
+- Reproduce the build:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
 
 ## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
 
