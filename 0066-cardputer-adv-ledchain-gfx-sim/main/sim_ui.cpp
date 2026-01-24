@@ -13,6 +13,8 @@
 
 #include "M5GFX.h"
 
+#include "ui_kb.h"
+
 static const char *TAG = "sim_ui";
 
 static inline uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
@@ -77,11 +79,28 @@ static void ui_task_main(void *arg)
         return;
     }
 
+    QueueHandle_t q = xQueueCreate(32, sizeof(ui_key_event_t));
+    if (!q) {
+        ESP_LOGE(TAG, "kb queue create failed");
+        vTaskDelete(NULL);
+        return;
+    }
+    ui_kb_start(q);
+
+    ui_key_event_t last_key = {};
+    uint32_t last_key_ts_ms = 0;
+
     for (;;) {
         const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
         const uint32_t frame_ms = sim_engine_get_frame_ms(engine);
 
-        (void)now_ms;
+        // Drain key events (best-effort; UI state machine will be added next).
+        ui_key_event_t ev = {};
+        while (xQueueReceive(q, &ev, 0) == pdTRUE) {
+            last_key = ev;
+            last_key_ts_ms = now_ms;
+        }
+
         (void)sim_engine_copy_latest_pixels(engine, frame, sizeof(frame));
 
         led_pattern_cfg_t cfg;
@@ -101,6 +120,18 @@ static void ui_task_main(void *arg)
                  (unsigned)cfg.global_brightness_pct,
                  (unsigned)frame_ms);
         canvas.drawString(hdr, 2, 2);
+
+        if (last_key_ts_ms != 0 && (now_ms - last_key_ts_ms) < 2000) {
+            char kb[64];
+            if (last_key.kind == UI_KEY_TEXT && last_key.text[0]) {
+                snprintf(kb, sizeof(kb), "key=%s", last_key.text);
+            } else {
+                snprintf(kb, sizeof(kb), "key=%d", (int)last_key.kind);
+            }
+            canvas.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+            canvas.drawRightString(kb, w - 2, 2);
+            canvas.setTextColor(TFT_WHITE, TFT_BLACK);
+        }
 
         for (int i = 0; i < (int)led_count; i++) {
             const int col = i % kCols;

@@ -41,6 +41,13 @@ config TUTORIAL_0066_JS_MAX_BODY
     help
         Maximum HTTP request body size accepted by /api/js/eval (raw JS code).
 
+config TUTORIAL_0066_KB_SCAN_PERIOD_MS
+    int "Keyboard scan period (ms)"
+    range 5 100
+    default 15
+    help
+        Period for scanning the Cardputer keyboard matrix. Lower values feel more responsive but use more CPU.
+
 config TUTORIAL_0066_G3_GPIO
     int "Board label G3: ESP32-S3 GPIO number"
     range 0 48

@@ -5,6 +5,7 @@ idf_component_register(
         "sim_engine.cpp"
         "sim_ui.cpp"
         "http_server.cpp"
+        "ui_kb.cpp"
         "mqjs/esp32_stdlib_runtime.c"
         "mqjs/js_service.cpp"
         "mqjs/mqjs_timers.cpp"
@@ -23,6 +24,7 @@ idf_component_register(
         esp_http_server
         httpd_assets_embed
         httpd_ws_hub
+        cardputer_kb
         json
         mquickjs
         mqjs_vm
