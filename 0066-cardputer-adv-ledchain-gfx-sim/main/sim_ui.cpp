@@ -14,6 +14,7 @@
 #include "M5GFX.h"
 
 #include "ui_kb.h"
+#include "ui_overlay.h"
 
 static const char *TAG = "sim_ui";
 
@@ -87,19 +88,13 @@ static void ui_task_main(void *arg)
     }
     ui_kb_start(q);
 
-    ui_key_event_t last_key = {};
-    uint32_t last_key_ts_ms = 0;
+    ui_overlay_t ui = {};
+    ui_overlay_init(&ui);
 
     for (;;) {
-        const uint32_t now_ms = (uint32_t)(esp_timer_get_time() / 1000);
+        // Keep a timestamp available for future UI features (repeat/idle timeouts).
+        (void)(uint32_t)(esp_timer_get_time() / 1000);
         const uint32_t frame_ms = sim_engine_get_frame_ms(engine);
-
-        // Drain key events (best-effort; UI state machine will be added next).
-        ui_key_event_t ev = {};
-        while (xQueueReceive(q, &ev, 0) == pdTRUE) {
-            last_key = ev;
-            last_key_ts_ms = now_ms;
-        }
 
         (void)sim_engine_copy_latest_pixels(engine, frame, sizeof(frame));
 
@@ -110,28 +105,6 @@ static void ui_task_main(void *arg)
         canvas.setTextSize(1, 1);
         canvas.setTextDatum(lgfx::textdatum_t::top_left);
         canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-
-        char hdr[96];
-        snprintf(hdr, sizeof(hdr), "sim: %d leds  %s  bri=%u%%  %ums", (int)led_count, (cfg.type == LED_PATTERN_RAINBOW) ? "rainbow" :
-                     (cfg.type == LED_PATTERN_CHASE) ? "chase" :
-                     (cfg.type == LED_PATTERN_BREATHING) ? "breathing" :
-                     (cfg.type == LED_PATTERN_SPARKLE) ? "sparkle" :
-                     "off",
-                 (unsigned)cfg.global_brightness_pct,
-                 (unsigned)frame_ms);
-        canvas.drawString(hdr, 2, 2);
-
-        if (last_key_ts_ms != 0 && (now_ms - last_key_ts_ms) < 2000) {
-            char kb[64];
-            if (last_key.kind == UI_KEY_TEXT && last_key.text[0]) {
-                snprintf(kb, sizeof(kb), "key=%s", last_key.text);
-            } else {
-                snprintf(kb, sizeof(kb), "key=%d", (int)last_key.kind);
-            }
-            canvas.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-            canvas.drawRightString(kb, w - 2, 2);
-            canvas.setTextColor(TFT_WHITE, TFT_BLACK);
-        }
 
         for (int i = 0; i < (int)led_count; i++) {
             const int col = i % kCols;
@@ -148,6 +121,15 @@ static void ui_task_main(void *arg)
             canvas.fillRoundRect(x0 + pad, y0 + pad, cell_w - 2 * pad, cell_h - 2 * pad, 3, c565);
             canvas.drawRoundRect(x0 + pad, y0 + pad, cell_w - 2 * pad, cell_h - 2 * pad, 3, TFT_DARKGREY);
         }
+
+        // Handle input after reading cfg (some actions apply immediately and should be reflected in overlay text).
+        ui_key_event_t ev = {};
+        while (xQueueReceive(q, &ev, 0) == pdTRUE) {
+            ui_overlay_handle(&ui, engine, &ev);
+        }
+        sim_engine_get_cfg(engine, &cfg);
+
+        ui_overlay_draw(&ui, &canvas, &cfg, (uint16_t)led_count, frame_ms);
 
         canvas.pushSprite(0, 0);
 #if CONFIG_TUTORIAL_0066_PRESENT_WAIT_DMA

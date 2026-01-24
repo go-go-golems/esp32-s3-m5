@@ -6,6 +6,7 @@ idf_component_register(
         "sim_ui.cpp"
         "http_server.cpp"
         "ui_kb.cpp"
+        "ui_overlay.cpp"
         "mqjs/esp32_stdlib_runtime.c"
         "mqjs/js_service.cpp"
         "mqjs/mqjs_timers.cpp"
