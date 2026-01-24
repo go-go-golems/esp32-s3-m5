@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <vector>
 
 #include "esp_err.h"
@@ -40,6 +41,13 @@ enum class ScannerBackend : uint8_t {
 
 struct UnifiedScannerConfig {
     ScannerBackend backend = ScannerBackend::Auto;
+    // Cardputer-ADV keyboard (TCA8418) defaults.
+    int i2c_port = 0;
+    int i2c_sda_gpio = 8;
+    int i2c_scl_gpio = 9;
+    int int_gpio = 11;
+    uint8_t tca8418_addr7 = 0x34;
+    uint32_t i2c_hz = 400000;
 };
 
 // Unified scanner facade intended to become the single entrypoint for Cardputer keyboard scanning.
@@ -58,7 +66,9 @@ class UnifiedScanner {
     ScannerBackend backend() const { return backend_; }
 
   private:
+    struct TcaState;
     MatrixScanner matrix_{};
+    std::unique_ptr<TcaState> tca_{};
     ScannerBackend backend_ = ScannerBackend::Auto;
     bool inited_ = false;
 };
