@@ -20,6 +20,7 @@ RelatedFiles:
       Note: |-
         Replace 0066 custom TCA+ISR keyboard with cardputer_kb::UnifiedScanner
         Expose debug snapshot + last emitted event
+        Fix Fn/Shift mapping based on kb output (commit c9660b5)
     - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.h
       Note: Debug state struct/API
     - Path: components/cardputer_kb/CMakeLists.txt
@@ -40,6 +41,7 @@ LastUpdated: 2026-01-24T13:41:42.129082115-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -761,6 +763,134 @@ This is intentionally designed as a feedback loop: you can press a key (or a cho
   - In console: `kb watch 100 50`
 - Start review at:
   - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp`
+
+## Step 20: Fix 0066 modifier mapping using empirical keynums (commit c9660b5)
+
+This step fixes the root cause behind “navigation only works with hjkl” and “Alt+Left doesn’t change steps”: the keyboard task was deriving modifier semantics incorrectly on the TCA8418 backend. In practice, that meant the firmware was treating the dedicated Fn key as Shift, and treating Opt as Fn, so Fn-chord navigation (`Fn+;./,`) never produced arrow events and modifier bits were wrong.
+
+We used the new `kb` console command to empirically confirm the real keynum mapping on your hardware (Fn=29, Shift=30, Opt=44, Alt=45), then updated the keyboard task so Fn-chord navigation and Alt+arrow step modifiers behave as intended.
+
+### Prompt Context
+
+**User prompt (verbatim):** "fn: 
+
+sim>  kb 
+kb: ready=1 backend=Tca8418 seq=5902
+kb: mods=0x01 shift=1 ctrl=0 alt=0 opt=0 fn=0 caps=0
+kb: pressed(1): 29
+  keynum=29 xy=(0,2) legend=fn
+
+\"
+sim>  kb 
+kb: ready=1 backend=Tca8418 seq=7051
+kb: mods=0x04 shift=0 ctrl=0 alt=1 opt=0 fn=0 caps=0
+kb: pressed(1): 45
+  keynum=45 xy=(2,3) legend=alt
+kb: last_event kind=tab mods=0x00 keynum=15 text=\"\"
+
+opt: 
+
+sim>  kb 
+kb: ready=1 backend=Tca8418 seq=8241
+kb: mods=0x08 shift=0 ctrl=0 alt=0 opt=1 fn=1 caps=0
+kb: pressed(1): 44
+  keynum=44 xy=(1,3) legend=opt
+kb: last_event kind=tab mods=0x00 keynum=15 text=\"\"
+
+arrow up: 
+
+sim>  kb
+kb: ready=1 backend=Tca8418 seq=10253
+kb: mods=0x01 shift=1 ctrl=0 alt=0 opt=0 fn=0 caps=0
+kb: pressed(2): 29 40
+  keynum=29 xy=(0,2) legend=fn
+  keynum=40 xy=(11,2) legend=;
+
+
+arrow down: 
+
+sim>  kb
+kb: ready=1 backend=Tca8418 seq=11406
+kb: mods=0x01 shift=1 ctrl=0 alt=0 opt=0 fn=0 caps=0
+kb: pressed(2): 29 54
+  keynum=29 xy=(0,2) legend=fn
+  keynum=54 xy=(11,3) legend=.
+
+
+arrow right: 
+
+sim>  kb
+kb: ready=1 backend=Tca8418 seq=12747
+kb: mods=0x01 shift=1 ctrl=0 alt=0 opt=0 fn=0 caps=0
+kb: pressed(2): 29 55
+  keynum=29 xy=(0,2) legend=fn
+  keynum=55 xy=(12,3) legend=/
+
+
+arrow left: 
+
+sim>  kb
+kb: ready=1 backend=Tca8418 seq=14039
+kb: mods=0x01 shift=1 ctrl=0 alt=0 opt=0 fn=0 caps=0
+kb: pressed(2): 29 53
+  keynum=29 xy=(0,2) legend=fn
+  keynum=53 xy=(10,3) legend=,
+
+
+alt-left: sim>  kb
+kb: ready=1 backend=Tca8418 seq=21792
+kb: mods=0x05 shift=1 ctrl=0 alt=1 opt=0 fn=0 caps=0
+kb: pressed(3): 29 45 53
+  keynum=29 xy=(0,2) legend=fn
+  keynum=45 xy=(2,3) legend=alt
+  keynum=53 xy=(10,3) legend=,"
+
+**Assistant interpretation:** Use the observed keynums to correct 0066’s modifier derivation and chord mapping so that Fn-based navigation emits arrow events and Alt modifiers work for step sizing.
+
+**Inferred user intent:** Make the UI behave like the help text: navigation via Fn+;./, and step modifiers via Alt/Ctrl/Fn.
+
+**Commit (code):** c9660b5 — "0066: treat keynum 29 as Fn (fix nav + alt shortcuts)"
+
+### What I did
+- Updated modifier derivation for the TCA8418-backed keyboard to match the empirical mapping:
+  - Fn = keynum `29`
+  - Shift = keynum `30`
+  - Opt = keynum `44` (no longer treated as Fn)
+  - Alt = keynum `45`
+- Standardized the legend mapping for TCA8418 to use the same “picture-space” `kKeyMapCardputer` (so keynum 29 is “fn”).
+- Left the Fn-chord navigation mapping in place so `Fn+; . , /` emits `UI_KEY_{UP,DOWN,LEFT,RIGHT}` with `UI_MOD_FN` set.
+
+### Why
+- Without correct modifier mapping, the UI never sees arrow events (only raw text like `,`), so overlays fall back to the `hjkl` remap.
+- Alt-based step sizing relies on `UI_MOD_ALT` being set on the arrow events; with Fn misread as Shift, that never worked.
+
+### What worked
+- After the change, the keyboard task emits proper `UI_KEY_LEFT/RIGHT/UP/DOWN` events for Fn navigation chords with correct modifier bits, enabling both menu navigation and Alt+arrow step sizing.
+
+### What didn't work
+- The previous mapping incorrectly assumed a “no dedicated Fn” variant on the TCA backend (treating Opt as Fn and Fn as Shift), which does not match your keyboard.
+
+### What I learned
+- Backend detection (TCA8418 vs GPIO matrix) is not sufficient to infer legend semantics; we need either:
+  - empirical mapping (as done here), or
+  - a more explicit runtime probe/config for “keyboard variant”.
+
+### What was tricky to build
+- Making a minimal, targeted fix without rewriting the higher-level UI overlay code. The fix is entirely in the input translation layer.
+
+### What warrants a second pair of eyes
+- Validate on-device that:
+  - `Fn+;/. ,` navigates menus as expected,
+  - `Alt+Fn+;/. ,` changes step sizes (medium),
+  - Shift no longer appears “stuck on” while holding Fn.
+
+### What should be done in the future
+- If another TCA-backed keyboard variant truly has Shift at keynum 29, add a Kconfig switch or a runtime “variant probe” rather than baking one assumption into 0066.
+
+### Code review instructions
+- Review: `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp`
+- Validate:
+  - Flash and run `kb` while holding Fn/Alt/Opt and chords to confirm mods bits.
 
 ## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
 

@@ -60,3 +60,12 @@ Step 19: add 0066 keyboard debug console command (commit a7ef45f)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/sim_console.cpp — kb debug command
 
+
+## 2026-01-24
+
+Step 20: fix 0066 Fn/Shift mapping using kb debug output (commit c9660b5)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — Correct modifier derivation so Fn-chords emit arrows
+
