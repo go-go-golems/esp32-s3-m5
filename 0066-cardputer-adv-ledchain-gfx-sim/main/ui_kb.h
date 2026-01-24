@@ -42,7 +42,9 @@ typedef struct {
 // q items must be sizeof(ui_key_event_t).
 void ui_kb_start(QueueHandle_t q);
 
+// Best-effort status: true once hardware init succeeded in the kb task.
+bool ui_kb_is_ready(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
-

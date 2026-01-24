@@ -530,10 +530,7 @@ static void handle_shortcuts(ui_overlay_t *ui, sim_engine_t *engine, const ui_ke
 {
     if (!ui || !engine || !ev) return;
 
-    if (ev->kind == UI_KEY_TAB) {
-        open_menu(ui);
-        return;
-    }
+    if (ui->mode != UI_MODE_LIVE) return;
 
     if (ev->kind == UI_KEY_TEXT && ev->text[0]) {
         const bool fn = (ev->mods & UI_MOD_FN) != 0;
@@ -650,6 +647,16 @@ void ui_overlay_handle(ui_overlay_t *ui, sim_engine_t *engine, const ui_key_even
 {
     if (!ui || !engine || !ev) return;
 
+    // Tab is a global "menu / back" toggle, except when the color editor is active (Tab cycles channels there).
+    if (!ui->color_active && ev->kind == UI_KEY_TAB) {
+        if (ui->mode == UI_MODE_LIVE) {
+            open_menu(ui);
+        } else {
+            close_to_live(ui);
+        }
+        return;
+    }
+
     // Global back closes overlays (or cancels color editor first).
     if (ev->kind == UI_KEY_BACK) {
         if (ui->color_active) {
@@ -703,6 +710,17 @@ void ui_overlay_handle(ui_overlay_t *ui, sim_engine_t *engine, const ui_key_even
         }
         return;
     }
+
+    // In overlays, accept Vim-style navigation via raw text keys (keeps UI usable without a dedicated arrow cluster).
+    // Only map when no chord modifiers are held, to avoid breaking Ctrl+S / Ctrl+R shortcuts.
+    ui_key_event_t mapped = *ev;
+    if (ui->mode != UI_MODE_LIVE && ev->kind == UI_KEY_TEXT && ev->text[0] && !(ev->mods & (UI_MOD_CTRL | UI_MOD_ALT | UI_MOD_FN))) {
+        if (text_eq_ci(ev->text, "h")) mapped.kind = UI_KEY_LEFT;
+        if (text_eq_ci(ev->text, "j")) mapped.kind = UI_KEY_DOWN;
+        if (text_eq_ci(ev->text, "k")) mapped.kind = UI_KEY_UP;
+        if (text_eq_ci(ev->text, "l")) mapped.kind = UI_KEY_RIGHT;
+    }
+    ev = &mapped;
 
     // Global shortcuts work from any non-color state.
     handle_shortcuts(ui, engine, ev);
@@ -864,11 +882,12 @@ void ui_overlay_draw(ui_overlay_t *ui,
     char left[96];
     snprintf(left,
              sizeof(left),
-             "%s  bri=%u%%  %ums  %u leds",
+             "%s  bri=%u%%  %ums  %u leds  kb:%s",
              pattern_name(cfg->type),
              (unsigned)cfg->global_brightness_pct,
              (unsigned)frame_ms,
-             (unsigned)led_count);
+             (unsigned)led_count,
+             ui_kb_is_ready() ? "ok" : "err");
     canvas->drawString(left, 2, 2);
 
     const char *mode = "";
@@ -908,31 +927,31 @@ void ui_overlay_draw(ui_overlay_t *ui,
     // Hint bar (bottom).
     switch (ui->mode) {
     case UI_MODE_LIVE:
-        hint_bar(canvas, "TAB menu   P pattern   E params   B bri   F frame   Fn+H help");
+        hint_bar(canvas, "TAB menu   P pattern   E params   B bri   F frame   Opt+H help");
         break;
     case UI_MODE_MENU:
-        hint_bar(canvas, "Up/Down select   Enter open   Esc back");
+        hint_bar(canvas, "HJKL navigate   Enter open   Tab back");
         break;
     case UI_MODE_PATTERN:
-        hint_bar(canvas, "Up/Down select   Enter apply   Esc back");
+        hint_bar(canvas, "HJKL navigate   Enter apply   Tab back");
         break;
     case UI_MODE_PARAMS:
-        hint_bar(canvas, "Up/Down field   Left/Right adjust   Enter (color/toggle)   Esc back");
+        hint_bar(canvas, "HJKL navigate   Enter (color/toggle)   Tab back");
         break;
     case UI_MODE_BRIGHTNESS:
-        hint_bar(canvas, "Left/Right adjust   Enter close   Fn=1  Alt=5  Ctrl=10");
+        hint_bar(canvas, "HJKL adjust   Enter close   Opt=1  Alt=5  Ctrl=10   Tab back");
         break;
     case UI_MODE_FRAME:
-        hint_bar(canvas, "Left/Right adjust   Enter close   Fn=1  Alt=5  Ctrl=20");
+        hint_bar(canvas, "HJKL adjust   Enter close   Opt=1  Alt=5  Ctrl=20   Tab back");
         break;
     case UI_MODE_HELP:
-        hint_bar(canvas, "Esc close");
+        hint_bar(canvas, "Tab close");
         break;
     case UI_MODE_PRESETS:
-        hint_bar(canvas, "Up/Down slot  Enter load  Ctrl+S save  Del clear  Esc back");
+        hint_bar(canvas, "HJKL slot  Enter load  Ctrl+S save  Del clear  Tab back");
         break;
     case UI_MODE_JS:
-        hint_bar(canvas, "Up/Down example  Enter run  Ctrl+R clear output  Esc back");
+        hint_bar(canvas, "HJKL example  Enter run  Ctrl+R clear output  Tab back");
         break;
     }
 
