@@ -485,6 +485,14 @@ Updated and re-ran:
 
 The log shows `sim.statusJson()` returns a full JSON payload with nested values.
 
+---
+
+## Step 19: Upload updated bundle (v2) to reMarkable (2026-01-23)
+
+After additional implementation work (engine task, web smoke script, sequencer cookbook, statusJson), I uploaded a refreshed PDF bundle:
+
+- `0066 Cardputer LEDChain GFX Sim (Ticket Bundle v2).pdf` → `/ai/2026/01/23/0066-cardputer-ledchain-gfx-sim/`
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
