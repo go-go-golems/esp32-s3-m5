@@ -61,6 +61,7 @@ def main() -> int:
         run("sim status")
         run("js help")
         run("js eval sim.status()")
+        run("js eval sim.statusJson()")
         run('js eval sim.setBrightness(100)')
         run('js eval sim.setPattern("rainbow")')
         run("js eval sim.setRainbow(5,100,10)")
