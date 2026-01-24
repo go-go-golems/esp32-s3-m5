@@ -75,3 +75,13 @@ Fix browser JS parse error in /assets/app.js (remove invalid '(void)reason' and 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js — Fix syntax error at scheduleApply()
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Serve /favicon.ico
 
+
+## 2026-01-24
+
+Fix boot abort (I2C driver conflict): M5GFX links legacy i2c driver (driver/i2c.h) which has a startup conflict check; avoid linking driver_ng by switching TCA8418 keyboard code to legacy i2c API. (commit 32e9728)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c — Switch to legacy i2c transactions
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — Use i2c_driver_install+i2c_master_write_read_device
+

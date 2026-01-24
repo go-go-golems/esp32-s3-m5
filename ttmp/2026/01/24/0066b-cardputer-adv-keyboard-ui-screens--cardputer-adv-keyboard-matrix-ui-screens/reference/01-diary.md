@@ -687,3 +687,65 @@ I also added a small handler for `/favicon.ico` to avoid repeated 404 noise in b
   - `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
 - Validate:
   - load `http://<device-ip>/` and confirm no parse errors in devtools.
+
+---
+
+## Step 11: Fix boot abort from I2C driver conflict (use legacy i2c driver) (commit 32e9728) (2026-01-24)
+
+This step fixes a hard boot failure on hardware: the firmware aborted during startup with:
+
+> `E (268) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver`
+
+In ESP-IDF 5.4, the legacy I²C driver (`driver/i2c.h`) includes a startup constructor that aborts if the “new” I²C driver (`driver/i2c_master.h`, aka driver_ng) is also linked. The M5GFX library used by this firmware includes the legacy header (`M5GFX.cpp` includes `<driver/i2c.h>`), so the legacy driver is always present; my earlier Cardputer-ADV keyboard integration pulled in driver_ng, triggering the conflict check before `app_main` runs.
+
+The practical fix is to pick *one* I²C API for the whole firmware. Since M5GFX already uses the legacy driver, I migrated the TCA8418 keyboard path to the legacy I²C API so driver_ng is not linked at all.
+
+### Prompt Context
+
+**User prompt (verbatim):** "on the device, i don't see anything on the screen :\n\nI (265) app_init: Project name:     cardputer_adv_ledchain_gfx_sim_\n...\nE (268) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver\n\nabort() was called..."
+
+**Assistant interpretation:** Firmware is crashing at boot due to an I²C driver mismatch; identify which I²C API is being used and make them consistent so the UI can start.
+
+**Inferred user intent:** Get back to a booting firmware so the screen and keyboard UI can be tested.
+
+**Commit (code):** 32e9728 — "0066: avoid I2C driver_ng conflict (use legacy i2c driver for TCA8418)"
+
+### What I did
+- Confirmed the legacy driver is linked by M5GFX:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5Cardputer-UserDemo/components/M5GFX/src/M5GFX.cpp` includes `<driver/i2c.h>`.
+  - ESP-IDF legacy I²C driver contains a `__attribute__((constructor))` conflict check in `components/driver/i2c/i2c.c`.
+- Migrated the TCA8418 keyboard helper from the new master API to the legacy API:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.h`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c`
+- Updated `0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp` to:
+  - use `i2c_param_config` + `i2c_driver_install` for I2C0
+  - use `i2c_master_write_to_device` / `i2c_master_write_read_device` through the TCA8418 helpers
+- Rebuilt and flashed to `/dev/ttyACM0`.
+
+### Why
+- Mixing `driver/i2c_master.h` and `driver/i2c.h` in the same firmware is explicitly prohibited by IDF; the boot-time abort enforces it.
+
+### What worked
+- `driver/i2c_master.h` is no longer included in `0066` main, so driver_ng should not be linked and the conflict abort should go away.
+
+### What didn't work
+- N/A (this is a direct fix for the crash shown in logs).
+
+### What I learned
+- Because the legacy conflict check runs as a constructor, you can crash *before* `app_main` even starts; this makes I²C API mismatches especially painful on embedded UI projects.
+
+### What was tricky to build
+- Keeping the TCA8418 helper “minimal” while switching APIs: the legacy I²C API needs explicit `i2c_driver_install` and uses a port+addr model rather than opaque device handles.
+
+### What warrants a second pair of eyes
+- Confirm whether we should standardize on legacy I²C for all firmwares using M5GFX, or migrate M5GFX usage to driver_ng in a separate effort (bigger change).
+
+### What should be done in the future
+- If we want to reduce boot log noise, consider suppressing the legacy driver’s “please migrate” warning only after the repo is fully on driver_ng (not now).
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c`
+- Validate on device:
+  - confirm the previous boot abort is gone and the UI renders.

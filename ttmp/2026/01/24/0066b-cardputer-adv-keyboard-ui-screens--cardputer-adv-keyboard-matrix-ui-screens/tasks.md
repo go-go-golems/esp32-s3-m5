@@ -14,3 +14,4 @@
 - [ ] Build/flash/validate on /dev/ttyACM0
 - [x] Fix 0066 keyboard: use Cardputer-ADV TCA8418 instead of matrix scanner
 - [x] Fix web UI parse error in /assets/app.js; serve /favicon.ico
+- [x] Fix boot crash: avoid I2C driver_ng conflict (use legacy i2c driver for ADV keyboard)
