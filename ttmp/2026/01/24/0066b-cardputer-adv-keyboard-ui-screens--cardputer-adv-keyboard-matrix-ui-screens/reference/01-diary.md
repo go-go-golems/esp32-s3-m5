@@ -63,7 +63,10 @@ The next step is to translate those specs into a keyboard matrix setup doc and a
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Create ticket 0066b, import two external markdown specs, author detailed keyboard-matrix and screen-design docs, then implement the UI in the firmware with tasks, frequent diary updates, and incremental commits.
 
@@ -129,7 +132,10 @@ I also related the design docs to the specific code that anchors them (the `card
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Produce detailed keyboard-matrix and per-screen design docs grounded in existing repo components, then implement.
 
@@ -187,7 +193,10 @@ This mirrors the repo’s proven pattern from `0030` (keyboard task + event post
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Start implementing the on-device keyboard UI in tutorial 0066, using the repo’s keyboard scan component.
 
@@ -248,7 +257,10 @@ The system is intentionally conservative: all changes are immediate and applied 
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Implement the on-device screens described in the UI mock as a keyboard-driven overlay system.
 
@@ -319,7 +331,10 @@ It also makes the system more coherent: the JS service is started early (in `app
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Continue implementing each UI screen from the mock specs, starting with simple but functional on-device Presets and JS Lab flows.
 
@@ -374,7 +389,10 @@ To support a real browser preview and a richer JS Lab workflow, I added a few sm
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+**User prompt (verbatim):**
+> Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ...
+>
+> Import /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary.
 
 **Assistant interpretation:** Implement the remaining “web UI screens” portion of the UI mock, using the simplest viable approach (embedded static assets + a few REST endpoints).
 
