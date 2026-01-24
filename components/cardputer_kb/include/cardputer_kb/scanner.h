@@ -4,6 +4,8 @@
 
 #include <vector>
 
+#include "esp_err.h"
+
 namespace cardputer_kb {
 
 struct KeyPos {
@@ -30,5 +32,35 @@ class MatrixScanner {
     bool use_alt_in01_ = false;
 };
 
-} // namespace cardputer_kb
+enum class ScannerBackend : uint8_t {
+    Auto = 0,
+    GpioMatrix = 1,
+    Tca8418 = 2,
+};
 
+struct UnifiedScannerConfig {
+    ScannerBackend backend = ScannerBackend::Auto;
+};
+
+// Unified scanner facade intended to become the single entrypoint for Cardputer keyboard scanning.
+//
+// Design goal:
+// - callers should not need to know if the keyboard is a GPIO-scanned matrix (Cardputer) or a TCA8418
+//   keypad controller over I2C (Cardputer-ADV).
+//
+// Implementation status:
+// - GPIO matrix backend is implemented (wraps MatrixScanner)
+// - TCA8418 backend + runtime auto-detect will be added next
+class UnifiedScanner {
+  public:
+    esp_err_t init(const UnifiedScannerConfig &cfg = {});
+    ScanSnapshot scan();
+    ScannerBackend backend() const { return backend_; }
+
+  private:
+    MatrixScanner matrix_{};
+    ScannerBackend backend_ = ScannerBackend::Auto;
+    bool inited_ = false;
+};
+
+} // namespace cardputer_kb
