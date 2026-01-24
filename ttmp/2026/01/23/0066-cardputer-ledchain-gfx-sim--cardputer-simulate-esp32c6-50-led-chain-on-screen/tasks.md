@@ -34,7 +34,7 @@
 - [x] Add `js` console command for `eval` + `repl` + `stats` + `reset`
 - [x] Expose simulator control APIs to JS (`sim.setPattern(...)`, etc.)
 - [x] Smoke test on hardware: `js eval sim.status()` and setting patterns/brightness
-- [ ] Optional: add `sim.statusJson()` (or seed `JSON.stringify(sim.status())` helper)
+- [x] Optional: add `sim.statusJson()` (or seed `JSON.stringify(sim.status())` helper)
 - [ ] Optional: add SPIFFS-backed `load(path)` + `:autoload` for JS libraries
 
 ## MQJS Timers + GPIO Sequencer

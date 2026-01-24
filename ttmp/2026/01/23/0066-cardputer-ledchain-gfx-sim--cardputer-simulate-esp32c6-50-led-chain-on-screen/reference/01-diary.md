@@ -461,6 +461,30 @@ To avoid blocking the rest of the simulator work on a schematic lookup, we made 
 
 and documented how to validate on hardware in the ticket README.
 
+---
+
+## Step 18: JS quality-of-life: `sim.statusJson()` (2026-01-23)
+
+### Problem
+
+`sim.status()` returns an object, but the console print format is compact and tends to show nested objects as `[object Object]`, which makes it hard to copy/paste state or inspect values quickly.
+
+### Change
+
+Added a JS helper (in bootstrap) so you can do:
+
+- `js eval sim.statusJson()`
+
+This returns a JSON string produced by `JSON.stringify(sim.status())`.
+
+### Validation
+
+Updated and re-ran:
+
+- `ttmp/.../scripts/serial_smoke_js_0066.py`
+
+The log shows `sim.statusJson()` returns a full JSON payload with nested values.
+
 **User prompt (verbatim):** "Create a new docmgr ticket 0066-... (you chose the name) where we are going to build a cardputer adv GFX simulation of the 50 led chain we are currently controlling from the esp32c6. We want to display the chain on the screen. 
 
 Analyze the existing codebase to find the relevant parts of the codebase where we compute the different patterns (rainbow/chase/etc...) and also existing GFX code for the cardputer that we can use to display the leds.
