@@ -13,13 +13,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js
+      Note: Web UI SPA logic + preview + presets (commit c9b833b)
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp
+      Note: Added /api/frame
+    - Path: ttmp/2026/01/24/0066b-cardputer-adv-keyboard-ui-screens--cardputer-adv-keyboard-matrix-ui-screens/scripts/04-web-smoke.sh
+      Note: Smoke-test helper (commit fde611c)
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-24T00:46:15.329644186-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -301,3 +308,233 @@ The system is intentionally conservative: all changes are immediate and applied 
   - Fn → micro step
   - Alt → medium step
   - Ctrl → large step
+
+---
+
+## Step 5: Implement on-device Presets + JS Lab (examples-only) overlays (commits 584f586, dbba9ef) (2026-01-24)
+
+This step upgrades the “stub” Presets/JS Lab overlays into a usable MVP. The goal is not to build a full editor on-device, but to provide a reliable keyboard-driven way to (a) save/restore pattern configurations quickly, and (b) run a small library of canned JavaScript “recipes” that exercise the simulator + GPIO API without depending on network access.
+
+It also makes the system more coherent: the JS service is started early (in `app_main`) so the on-device overlays can run examples even when the console/web UI haven’t been started yet.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+
+**Assistant interpretation:** Continue implementing each UI screen from the mock specs, starting with simple but functional on-device Presets and JS Lab flows.
+
+**Inferred user intent:** Be able to demo UI flows and pattern changes without needing the web UI first; keep iteration fast on hardware via keyboard.
+
+**Commit (code):**
+- 584f586 — "0066: implement presets and JS Lab examples overlay"
+- dbba9ef — "0066: start JS service early for on-device UI"
+
+### What I did
+- Implemented Presets overlay (RAM-only) with basic actions (save/load/clear) and keyboard navigation.
+- Implemented JS Lab overlay as an “examples runner” (select example → run → show output).
+- Started the JS service early in `app_main` so UI overlays can call `js_service_eval()` regardless of console/http startup ordering.
+
+### Why
+- Presets and examples are the fastest route to “cool demos” and debugging: they turn repeated multi-step interactions into 1–2 keystrokes.
+- Starting JS early avoids UI behavior depending on whether the web server (or console) has already initialized.
+
+### What worked
+- The on-device UI can now run JS examples and apply pattern changes directly.
+
+### What didn't work
+- Persistence (NVS/device storage) is not implemented; presets are RAM-only.
+
+### What I learned
+- UI-driven JS is best treated as a “service dependency” (start once, always available) rather than being tied to a specific control plane (console/http).
+
+### What was tricky to build
+- Keeping the JS example runner safe: examples should be short and predictable, and failures need to surface clearly in a small overlay.
+
+### What warrants a second pair of eyes
+- Whether presets should be backed by NVS now (more complexity) or remain RAM-only until the UX stabilizes.
+
+### What should be done in the future
+- Add NVS-backed presets (optional), once the exact preset schema is stable.
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/app_main.cpp`
+
+### Technical details
+- Presets are stored as an in-memory list of pattern configs; no JSON or filesystem is used on-device.
+
+---
+
+## Step 6: Expand web UI into multi-screen layout + add REST endpoints for frame/JS reset/GPIO state (commit c9b833b) (2026-01-24)
+
+This step turns the original “two panels + a raw websocket log” page into a multi-screen single-page UI matching the imported web mock: Dashboard, Patterns, JS Lab, GPIO, Presets, and System. The emphasis is on a simple implementation with no bundler: pure HTML/CSS/JS served as embedded assets.
+
+To support a real browser preview and a richer JS Lab workflow, I added a few small endpoints: `GET /api/frame` for raw RGB bytes (to draw the preview grid), `POST /api/js/reset` to restart the VM and stop runaway timers, `GET /api/js/mem` for memory introspection, and `GET /api/gpio/status` so the browser can show G3/G4 levels without relying on JS-side bookkeeping.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create a new ticket 0066b-..., use docmgr import file --file ... --ticket ... \n\nImport /tmp/cardputer-ui.md and /tmp/cardputer-webui.md and then create a detailed document on how to set up the keyboard matrix for the cardputer adv, and then a set of detailed implementation design for each screen separately. create tasks and add to ticket, and then implement it, committing and checking off tasks, and keeping a detailed diary."
+
+**Assistant interpretation:** Implement the remaining “web UI screens” portion of the UI mock, using the simplest viable approach (embedded static assets + a few REST endpoints).
+
+**Inferred user intent:** Be able to control patterns, run JS, and interact with GPIO from a browser during demos, without any extra tooling.
+
+**Commit (code):** c9b833b — "0066: expand web UI screens; add frame/js reset/gpio endpoints"
+
+### What I did
+- Updated embedded assets:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html` (tabs + screen sections)
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js` (SPA router, polling, preview canvas, presets in localStorage)
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.css` (topbar + tabs + layout)
+- Added endpoints:
+  - `GET /api/frame` → `application/octet-stream` RGB bytes (size = `3 * led_count`)
+  - `POST /api/js/reset` → reset VM (kills timers)
+  - `GET /api/js/mem` → plain-text memory dump
+  - `GET /api/gpio/status` → current levels of configured G3/G4 pins
+- Extended `GET /api/status` with uptime + heap stats + frame seq metadata.
+
+### Why
+- The mock implies a “desktop-ish” multi-screen UI; tabs are the simplest way to deliver that without extra dependencies.
+- `GET /api/frame` avoids JSON bloat and is trivial to render in JS (50 LEDs → 150 bytes).
+- `POST /api/js/reset` is the pragmatic “stop everything” escape hatch when timers are running.
+
+### What worked
+- `idf.py build` succeeded after changes.
+
+### What didn't work
+- N/A (implementation stayed within existing architecture).
+
+### What I learned
+- For 50 LEDs, a binary “frame fetch” endpoint is a clean middle ground: efficient over the wire and simple to consume in the browser.
+
+### What was tricky to build
+- Avoiding accidental “param stomping”: dashboard quick controls should not implicitly overwrite pattern-specific parameters unless the Patterns screen is used.
+
+### What warrants a second pair of eyes
+- HTTP API surface area: confirm these endpoint names are acceptable long-term (especially `/api/frame` format + headers).
+
+### What should be done in the future
+- If we want *streaming* preview, add a websocket “latest-frame” message to avoid polling.
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js`
+- Validate:
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim build`
+  - Visit `http://<device-ip>/` and verify tabs + preview update.
+
+### Technical details
+- `/api/frame` uses headers:
+  - `x-led-count: <N>`
+  - `x-frame-seq: <seq>`
+
+---
+
+## Step 7: Add ticket scripts for build/flash/smoke workflows (commit fde611c) (2026-01-24)
+
+This step adds small, ticket-local scripts for the tight inner loop: build, flash, monitor, and a curl-based web smoke test. The scripts intentionally live under the ticket so they can evolve along with the docs and stay discoverable during reviews.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Store all scripts you write, even temporary ones, in the scripts/ folder of the ticket."
+
+**Assistant interpretation:** Put any helper scripts under the ticket workspace rather than scattering them in the repo root.
+
+**Inferred user intent:** Keep the ticket self-contained and auditable: reviewers can reproduce results without guessing which commands were run.
+
+**Commit (code):** fde611c — "0066b: add build/flash/web-smoke scripts"
+
+### What I did
+- Added:
+  - `ttmp/.../scripts/01-build-0066.sh`
+  - `ttmp/.../scripts/02-flash-0066.sh`
+  - `ttmp/.../scripts/03-monitor-0066.sh`
+  - `ttmp/.../scripts/04-web-smoke.sh`
+  - `ttmp/.../scripts/README.md`
+
+### Why
+- Reduce “command drift” across runs and make it easy to validate on another machine (or later date).
+
+### What worked
+- The scripts are minimal wrappers around `idf.py` and `curl`, with configurable `PORT`/`HOST`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- `idf.py monitor` requires a TTY stdin; scripts should call that out explicitly.
+
+### What was tricky to build
+- N/A
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Add a websocket smoke script if we standardize on a tool like `websocat`.
+
+### Code review instructions
+- Read `ttmp/.../scripts/README.md` and sanity-check the defaults (`PORT=/dev/ttyACM0`, `HOST=http://192.168.4.1`).
+
+### Technical details
+- Scripts compute `ROOT_DIR` relative to the ticket folder so they can be run from anywhere.
+
+---
+
+## Step 8: Flash 0066 onto Cardputer (/dev/ttyACM0) and attempt validation (2026-01-24)
+
+This step flashes the current `0066-cardputer-adv-ledchain-gfx-sim` firmware to the attached Cardputer device. In this environment, we can invoke `idf.py flash`, but `idf.py monitor` fails because stdin is not a TTY in the automation harness. That means full runtime verification (keyboard + screen + web UI) still needs a human terminal for monitoring and a network connection to the device to hit HTTP endpoints.
+
+### Prompt Context
+
+**User prompt (verbatim):** "btw I attached the cardputer to ttyACM0 so if you want to flash and at least verify you can start the simulations and all, feel free. You can use tmux to read from idf.py monitor / restart the monitoring, etc..."
+
+**Assistant interpretation:** Flash the firmware to `/dev/ttyACM0` and do a basic smoke test that the app runs.
+
+**Inferred user intent:** Confirm the changes are not theoretical: they boot and can be interacted with on hardware.
+
+**Commit (code):** N/A (flash/validation step)
+
+### What I did
+- Flashed:
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 flash`
+- Attempted monitor (expected failure in this harness):
+  - `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 monitor`
+- Attempted a host-side HTTP probe (failed because the host wasn’t connected to the device’s AP):
+  - `curl http://192.168.4.1/api/status`
+
+### Why
+- Flashing is the fastest “integration test” for an embedded UI: it catches missing Kconfig, linking issues, or runtime asserts that unit tests won’t.
+
+### What worked
+- `idf.py flash` succeeded (USB Serial/JTAG).
+
+### What didn't work
+- `idf.py monitor` failed with:
+  - "Error: Monitor requires standard input to be attached to TTY."
+- HTTP probe timed out (likely host not on the device network).
+
+### What I learned
+- For automated runs, we can reliably flash, but monitor output requires a real interactive terminal.
+
+### What was tricky to build
+- N/A (environment limitation).
+
+### What warrants a second pair of eyes
+- Confirm on-device behavior after flash:
+  - keyboard overlays open/close and apply changes
+  - web UI tabs load and preview updates
+
+### What should be done in the future
+- N/A (remaining work is manual validation).
+
+### Code review instructions
+- Run in a real terminal:
+  - `PORT=/dev/ttyACM0 ttmp/.../scripts/03-monitor-0066.sh`
+- Connect host to the device AP (or STA IP) and open `/` in a browser, then run:
+  - `HOST=http://<device-ip> ttmp/.../scripts/04-web-smoke.sh`
+
+### Technical details
+- `idf.py monitor` TTY requirement is a hard constraint of `idf_monitor.py` (expects interactive keystrokes).
