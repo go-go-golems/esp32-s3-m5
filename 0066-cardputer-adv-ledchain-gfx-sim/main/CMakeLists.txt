@@ -12,6 +12,8 @@ idf_component_register(
     INCLUDE_DIRS "." "mqjs"
     EMBED_FILES
         "assets/index.html"
+        "assets/app.js"
+        "assets/app.css"
     REQUIRES
         M5GFX
         console
@@ -20,6 +22,7 @@ idf_component_register(
         wifi_console
         esp_http_server
         httpd_assets_embed
+        httpd_ws_hub
         json
         mquickjs
         mqjs_vm

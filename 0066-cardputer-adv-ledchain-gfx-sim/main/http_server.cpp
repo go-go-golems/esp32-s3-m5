@@ -11,6 +11,9 @@
 #include "esp_log.h"
 
 #include "httpd_assets_embed.h"
+#include "httpd_ws_hub.h"
+
+#include "sdkconfig.h"
 
 static const char *TAG = "0066_http";
 
@@ -19,6 +22,33 @@ static sim_engine_t *s_engine = nullptr;
 
 extern const uint8_t assets_index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t assets_index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t assets_app_js_start[] asm("_binary_app_js_start");
+extern const uint8_t assets_app_js_end[] asm("_binary_app_js_end");
+extern const uint8_t assets_app_css_start[] asm("_binary_app_css_start");
+extern const uint8_t assets_app_css_end[] asm("_binary_app_css_end");
+
+#if CONFIG_HTTPD_WS_SUPPORT
+static httpd_ws_hub_t s_ws_hub = {};
+
+esp_err_t http_server_ws_broadcast_text(const char *text)
+{
+    return httpd_ws_hub_broadcast_text(&s_ws_hub, text);
+}
+
+static esp_err_t ws_handler(httpd_req_t *req)
+{
+    if (req->method == HTTP_GET) {
+        ESP_LOGI(TAG, "ws connected: fd=%d", httpd_req_to_sockfd(req));
+    }
+    return httpd_ws_hub_handle_req(&s_ws_hub, req);
+}
+#else
+esp_err_t http_server_ws_broadcast_text(const char *text)
+{
+    (void)text;
+    return ESP_ERR_NOT_SUPPORTED;
+}
+#endif
 
 static esp_err_t root_get(httpd_req_t *req)
 {
@@ -26,6 +56,26 @@ static esp_err_t root_get(httpd_req_t *req)
                                   assets_index_html_start,
                                   assets_index_html_end,
                                   "text/html; charset=utf-8",
+                                  "no-store",
+                                  true);
+}
+
+static esp_err_t asset_app_js_get(httpd_req_t *req)
+{
+    return httpd_assets_embed_send(req,
+                                  assets_app_js_start,
+                                  assets_app_js_end,
+                                  "application/javascript; charset=utf-8",
+                                  "no-store",
+                                  true);
+}
+
+static esp_err_t asset_app_css_get(httpd_req_t *req)
+{
+    return httpd_assets_embed_send(req,
+                                  assets_app_css_start,
+                                  assets_app_css_end,
+                                  "text/css; charset=utf-8",
                                   "no-store",
                                   true);
 }
@@ -330,6 +380,10 @@ esp_err_t http_server_start(sim_engine_t *engine)
         return err;
     }
 
+#if CONFIG_HTTPD_WS_SUPPORT
+    (void)httpd_ws_hub_init(&s_ws_hub, s_server);
+#endif
+
     const httpd_uri_t root = {
         .uri = "/",
         .method = HTTP_GET,
@@ -337,6 +391,22 @@ esp_err_t http_server_start(sim_engine_t *engine)
         .user_ctx = nullptr,
     };
     httpd_register_uri_handler(s_server, &root);
+
+    const httpd_uri_t app_js = {
+        .uri = "/assets/app.js",
+        .method = HTTP_GET,
+        .handler = asset_app_js_get,
+        .user_ctx = nullptr,
+    };
+    httpd_register_uri_handler(s_server, &app_js);
+
+    const httpd_uri_t app_css = {
+        .uri = "/assets/app.css",
+        .method = HTTP_GET,
+        .handler = asset_app_css_get,
+        .user_ctx = nullptr,
+    };
+    httpd_register_uri_handler(s_server, &app_css);
 
     const httpd_uri_t status = {
         .uri = "/api/status",
@@ -353,6 +423,18 @@ esp_err_t http_server_start(sim_engine_t *engine)
         .user_ctx = nullptr,
     };
     httpd_register_uri_handler(s_server, &apply);
+
+#if CONFIG_HTTPD_WS_SUPPORT
+    const httpd_uri_t ws = {
+        .uri = "/ws",
+        .method = HTTP_GET,
+        .handler = ws_handler,
+        .user_ctx = nullptr,
+        .is_websocket = true,
+        .handle_ws_control_frames = true,
+    };
+    httpd_register_uri_handler(s_server, &ws);
+#endif
 
     return ESP_OK;
 }
