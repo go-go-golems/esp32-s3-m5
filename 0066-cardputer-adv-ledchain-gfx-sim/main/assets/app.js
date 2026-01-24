@@ -2,7 +2,7 @@ function $(id) { return document.getElementById(id); }
 function qsa(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
 function safeJsonParse(s) {
-  try { return JSON.parse(s); } catch { return null; }
+  try { return JSON.parse(s); } catch (e) { return null; }
 }
 
 const state = {
@@ -196,7 +196,7 @@ async function postApply(body) {
 
 let applyTimer = 0;
 function scheduleApply(reason) {
-  (void)reason;
+  // `reason` is for future debugging/telemetry; keep the signature stable.
   if (applyTimer) clearTimeout(applyTimer);
   applyTimer = setTimeout(() => {
     applyTimer = 0;
@@ -427,7 +427,7 @@ function connectWs() {
   let ws = null;
 
   function start() {
-    try { ws = new WebSocket(url); } catch { setWsPill(false, 'failed'); return; }
+    try { ws = new WebSocket(url); } catch (e) { setWsPill(false, 'failed'); return; }
     ws.onopen = () => setWsPill(true, 'connected');
     ws.onclose = () => { setWsPill(false, 'disconnected'); setTimeout(start, 750); };
     ws.onerror = () => setWsPill(false, 'error');

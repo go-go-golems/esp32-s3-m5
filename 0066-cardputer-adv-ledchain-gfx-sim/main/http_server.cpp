@@ -87,6 +87,14 @@ static esp_err_t asset_app_css_get(httpd_req_t *req)
                                   true);
 }
 
+static esp_err_t favicon_get(httpd_req_t *req)
+{
+    // Browsers will request /favicon.ico by default. We don't ship a real icon yet; avoid 404 noise.
+    httpd_resp_set_type(req, "image/x-icon");
+    (void)httpd_resp_set_hdr(req, "cache-control", "public, max-age=86400");
+    return httpd_resp_send(req, nullptr, 0);
+}
+
 static esp_err_t send_json(httpd_req_t *req, const char *body)
 {
     httpd_resp_set_type(req, "application/json; charset=utf-8");
@@ -579,6 +587,12 @@ esp_err_t http_server_start(sim_engine_t *engine)
     app_css.method = HTTP_GET;
     app_css.handler = asset_app_css_get;
     httpd_register_uri_handler(s_server, &app_css);
+
+    httpd_uri_t favicon = {};
+    favicon.uri = "/favicon.ico";
+    favicon.method = HTTP_GET;
+    favicon.handler = favicon_get;
+    httpd_register_uri_handler(s_server, &favicon);
 
     httpd_uri_t status = {};
     status.uri = "/api/status";
