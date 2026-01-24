@@ -332,3 +332,126 @@ I kept the web UI intentionally small (no bundler, no framework): a single `inde
 
 ### Technical details
 - Asset embedding is declared in `0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt` under `EMBED_FILES`.
+
+---
+
+## Step 5: Make `httpd_ws_hub` safe when WS support is off (commit 0d47667) (2026-01-24)
+
+This step is an internal hygiene fix that prevents a “configuration footgun”: building a firmware that depends on `httpd_ws_hub` should not fail at compile time just because WebSocket support is disabled in `esp_http_server`. Instead, the hub component should degrade cleanly to `ESP_ERR_NOT_SUPPORTED`.
+
+This matters because, in practice, developers often have stale local `sdkconfig` files. The component should not hard-fail when the compile-time `CONFIG_HTTPD_WS_SUPPORT` flag is absent; it should simply make WS features unavailable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Alright, implement it all, Create tasks in the ticket and check them off as you go, commit to git as you go, keep a frequent diary."
+
+**Assistant interpretation:** Keep the WS plumbing robust and avoid build-time traps while wiring up the Web IDE.
+
+**Inferred user intent:** You want this web+JS pattern to be easy to reuse without surprising build failures.
+
+**Commit (code):** 0d47667 — "httpd_ws_hub: stub out when WS disabled"
+
+### What I did
+- Updated `components/httpd_ws_hub/httpd_ws_hub.c` to compile into a set of stubs when `CONFIG_HTTPD_WS_SUPPORT` is not enabled:
+  - `httpd_ws_hub_init/handle_req/broadcast_*` return `ESP_ERR_NOT_SUPPORTED`.
+
+### Why
+- Prevents confusing errors like “`HTTPD_WS_TYPE_TEXT` undeclared” when WS support is off.
+- Makes the dependency graph safer: “hub present” no longer implies “WS enabled”.
+
+### What worked
+- The change is self-contained and requires no changes to callers: they already treat broadcast as best-effort.
+
+### What didn't work
+- N/A
+
+### What I learned
+- In ESP-IDF, WS types and struct members in `esp_http_server.h` are gated behind `CONFIG_HTTPD_WS_SUPPORT`, so any helper component must guard its own use of those types.
+
+### What was tricky to build
+- Ensuring the stub API surface matches the real API (same symbols) so linking remains stable.
+
+### What warrants a second pair of eyes
+- Whether to also guard definitions in `components/httpd_ws_hub/include/httpd_ws_hub.h`. (Currently the header remains unconditional; the .c provides the safety net.)
+
+### What should be done in the future
+- N/A (this is a one-time robustness fix).
+
+### Code review instructions
+- `components/httpd_ws_hub/httpd_ws_hub.c`
+
+### Technical details
+- The stubs are compiled under `#ifndef CONFIG_HTTPD_WS_SUPPORT` and return `ESP_ERR_NOT_SUPPORTED`.
+
+---
+
+## Step 6: Wire `/api/js/eval` and `emit()`→WebSocket flushing in 0066 (commit eb7cea2) (2026-01-24)
+
+This step makes the Web IDE functional: the browser can now POST raw JS to the device, receive a structured result, and see `emit(...)` events show up over the WebSocket. The key invariant remains: all JS execution happens on the single VM-owner task, and cross-task callers interact only through the service API.
+
+The implementation deliberately avoids adding a C JSON parser for the JS path: the server accepts raw JS and returns a small JSON response string built by escaping output/error, while the event stream is generated inside JS via `JSON.stringify`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Alright, implement it all, Create tasks in the ticket and check them off as you go, commit to git as you go, keep a frequent diary."
+
+**Assistant interpretation:** Implement the REST eval endpoint plus the event stream that makes a browser IDE usable.
+
+**Inferred user intent:** You want a “browser-first” JS workflow: write code, click Run, see output and live events, and then build higher-level tooling on top.
+
+**Commit (code):** eb7cea2 — "0066: add /api/js/eval and JS->WS event flushing"
+
+### What I did
+- Added an HTTP eval endpoint to 0066:
+  - `POST /api/js/eval` reads raw request body and returns JSON `{ok, output, error, timed_out}`.
+  - Implemented in `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`, using the JS service API (no JSON parsing).
+- Extended the 0066 JS service with a JSON-returning helper:
+  - `js_service_eval_to_json(...)` in `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
+  - Declared in `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.h`
+- Added JS-side event buffering:
+  - `emit(topic, payload)` appends to `__0066.events` (bounded, with drop counter).
+  - `__0066_take_lines(source)` drains the buffer into newline-delimited JSON strings.
+- Implemented flush-to-WS on the VM owner task:
+  - after eval (via a posted job),
+  - after timer callbacks (via a weak hook `mqjs_0066_after_js_callback` called by `mqjs_timers.cpp`).
+- Added `CONFIG_TUTORIAL_0066_JS_MAX_BODY` to bound eval request size.
+
+### Why
+- The browser IDE needs two channels:
+  - request/response (`/api/js/eval`) for “Run”,
+  - streaming (`/ws`) for events/logs/telemetry without polling.
+- A bounded event buffer avoids runaway heap growth if a script emits too fast.
+
+### What worked
+- `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim build` succeeds with these changes.
+- The “weak hook” pattern keeps `mqjs_timers` independent while still allowing the JS service to centralize WS flushing.
+
+### What didn't work
+- N/A (compile-time issues were resolved by guarding `httpd_ws_hub` and regenerating config from defaults).
+
+### What I learned
+- A good separation is:
+  - timers know how to schedule and call callbacks,
+  - js_service knows how to interpret “after a callback, flush events”.
+
+### What was tricky to build
+- Avoiding circular dependencies between:
+  - `mqjs_timers` (scheduler),
+  - `js_service` (VM owner + flush policy),
+  - `http_server` (WS broadcast endpoint).
+
+### What warrants a second pair of eyes
+- Timeout defaults: `js_eval_timeout_ms()` is conservative (250 ms). If we expect longer “startup scripts”, we may want a Kconfig for eval timeout separate from per-callback deadlines.
+
+### What should be done in the future
+- Add smoke-test scripts (curl `status`, `apply`, `js/eval` and optionally WS client) into the ticket’s `scripts/` folder.
+- Flash to hardware and validate the end-to-end workflow.
+
+### Code review instructions
+- `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_timers.cpp`
+
+### Technical details
+- The eval endpoint uses raw request bodies and enforces `CONFIG_TUTORIAL_0066_JS_MAX_BODY`.
+- Event flushing runs inside the VM task using `JS_Eval("__0066_take_lines(...)")` and broadcasts each line via `http_server_ws_broadcast_text(...)`.

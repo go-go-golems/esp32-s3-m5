@@ -35,3 +35,14 @@ Implement 0066 web IDE plumbing: embedded assets + /ws WebSocket endpoint (commi
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html — Web IDE shell UI
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Added /assets/* and /ws endpoint + broadcast helper
 
+
+## 2026-01-24
+
+Implemented /api/js/eval + emit() buffer + flush to /ws in tutorial 0066 (commits 0d47667, eb7cea2).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Added /api/js/eval (raw body)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp — Added eval->JSON + emit buffer + WS flush
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/httpd_ws_hub/httpd_ws_hub.c — Added CONFIG_HTTPD_WS_SUPPORT stubs
+
