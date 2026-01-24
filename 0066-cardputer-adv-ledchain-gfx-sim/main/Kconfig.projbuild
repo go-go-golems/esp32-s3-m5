@@ -42,12 +42,14 @@ config TUTORIAL_0066_JS_MAX_BODY
         Maximum HTTP request body size accepted by /api/js/eval (raw JS code).
 
 config TUTORIAL_0066_KB_SCAN_PERIOD_MS
-    int "Keyboard poll fallback period (ms)"
+    int "Keyboard scan period (ms)"
     range 5 100
     default 15
     help
-        Fallback poll period for the Cardputer-ADV keyboard (TCA8418). The primary mechanism is the
-        keyboard INT line; polling is used as a safety net if interrupts are missed.
+        Keyboard scan period for the Cardputer keyboard scanner (cardputer_kb::UnifiedScanner).
+
+        UnifiedScanner auto-detects Cardputer-ADV (TCA8418 over I2C) vs Cardputer (GPIO matrix)
+        at runtime, so this firmware can run on either board without swapping keyboard drivers.
 
 config TUTORIAL_0066_G3_GPIO
     int "Board label G3: ESP32-S3 GPIO number"

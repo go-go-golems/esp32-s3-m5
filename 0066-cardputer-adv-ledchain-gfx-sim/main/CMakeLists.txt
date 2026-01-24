@@ -7,7 +7,6 @@ idf_component_register(
         "http_server.cpp"
         "ui_kb.cpp"
         "ui_overlay.cpp"
-        "tca8418.c"
         "mqjs/esp32_stdlib_runtime.c"
         "mqjs/js_service.cpp"
         "mqjs/mqjs_timers.cpp"

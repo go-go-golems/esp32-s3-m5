@@ -4,15 +4,13 @@
 
 #include "sdkconfig.h"
 
-#include "driver/gpio.h"
-#include "driver/i2c.h"
-#include "esp_check.h"
 #include "esp_err.h"
 #include "esp_log.h"
 
 #include "freertos/task.h"
 
-#include "tca8418.h"
+#include "cardputer_kb/layout.h"
+#include "cardputer_kb/scanner.h"
 
 namespace {
 
@@ -24,49 +22,27 @@ struct KeyValue {
 };
 
 // Vendor legend matches the "picture" coordinate system (4x14).
-// Cardputer-ADV keyboard: TCA8418 event remapping yields these same (row,col) positions.
+// Derived from M5Cardputer(-ADV) vendor demos.
+constexpr KeyValue kKeyMapCardputer[4][14] = {
+    {{"`", "~"}, {"1", "!"}, {"2", "@"}, {"3", "#"}, {"4", "$"}, {"5", "%"}, {"6", "^"}, {"7", "&"}, {"8", "*"}, {"9", "("}, {"0", ")"}, {"-", "_"}, {"=", "+"}, {"del", "del"}},
+    {{"tab", "tab"}, {"q", "Q"}, {"w", "W"}, {"e", "E"}, {"r", "R"}, {"t", "T"}, {"y", "Y"}, {"u", "U"}, {"i", "I"}, {"o", "O"}, {"p", "P"}, {"[", "{"}, {"]", "}"}, {"\\", "|"}},
+    {{"fn", "fn"}, {"shift", "shift"}, {"a", "A"}, {"s", "S"}, {"d", "D"}, {"f", "F"}, {"g", "G"}, {"h", "H"}, {"j", "J"}, {"k", "K"}, {"l", "L"}, {";", ":"}, {"'", "\""}, {"enter", "enter"}},
+    {{"ctrl", "ctrl"}, {"opt", "opt"}, {"alt", "alt"}, {"z", "Z"}, {"x", "X"}, {"c", "C"}, {"v", "V"}, {"b", "B"}, {"n", "N"}, {"m", "M"}, {",", "<"}, {".", ">"}, {"/", "?"}, {"space", "space"}},
+};
+
+// Cardputer-ADV keyboard legend: differs in the "Fn/Shift/Caps" region.
 // Derived from `0036-cardputer-adv-led-matrix-console/main/matrix_console.c`.
-constexpr KeyValue kKeyMap[4][14] = {
+constexpr KeyValue kKeyMapCardputerAdv[4][14] = {
     {{"`", "~"}, {"1", "!"}, {"2", "@"}, {"3", "#"}, {"4", "$"}, {"5", "%"}, {"6", "^"}, {"7", "&"}, {"8", "*"}, {"9", "("}, {"0", ")"}, {"-", "_"}, {"=", "+"}, {"del", "del"}},
     {{"tab", "tab"}, {"q", "Q"}, {"w", "W"}, {"e", "E"}, {"r", "R"}, {"t", "T"}, {"y", "Y"}, {"u", "U"}, {"i", "I"}, {"o", "O"}, {"p", "P"}, {"[", "{"}, {"]", "}"}, {"\\", "|"}},
     {{"shift", "shift"}, {"capslock", "capslock"}, {"a", "A"}, {"s", "S"}, {"d", "D"}, {"f", "F"}, {"g", "G"}, {"h", "H"}, {"j", "J"}, {"k", "K"}, {"l", "L"}, {";", ":"}, {"'", "\""}, {"enter", "enter"}},
     {{"ctrl", "ctrl"}, {"opt", "opt"}, {"alt", "alt"}, {"z", "Z"}, {"x", "X"}, {"c", "C"}, {"v", "V"}, {"b", "B"}, {"n", "N"}, {"m", "M"}, {",", "<"}, {".", ">"}, {"/", "?"}, {"space", "space"}},
 };
 
-static void q_send_best_effort(QueueHandle_t q, const ui_key_event_t &ev) {
+static void q_send_best_effort(QueueHandle_t q, const ui_key_event_t &ev)
+{
     if (!q) return;
     (void)xQueueSend(q, &ev, 0);
-}
-
-struct KbdKey {
-    bool pressed = false;
-    uint8_t row = 0; // 0..3 in picture coords
-    uint8_t col = 0; // 0..13 in picture coords
-};
-
-static bool decode_tca_event(uint8_t event_raw, KbdKey *out)
-{
-    if (!out) return false;
-    if (event_raw == 0) return false;
-
-    // TCA8418 KEY_EVENT: bit7 is state, bits6..0 are key number (1-based).
-    out->pressed = (event_raw & 0x80) != 0;
-    uint8_t keynum = (uint8_t)(event_raw & 0x7F);
-    if (keynum == 0) return false;
-    keynum--; // 0-based
-
-    // Convert 1..80 key number into row/col for a 10-wide internal matrix, then remap to Cardputer-style layout.
-    const uint8_t row = (uint8_t)(keynum / 10);
-    const uint8_t col = (uint8_t)(keynum % 10);
-
-    // Remap to match Cardputer "picture" coordinates (4 rows x 14 columns).
-    uint8_t out_col = (uint8_t)(row * 2);
-    if (col > 3) out_col++;
-    uint8_t out_row = (uint8_t)((col + 4) % 4);
-
-    out->row = out_row;
-    out->col = out_col;
-    return (out->row < 4 && out->col < 14);
 }
 
 static bool key_is(const KeyValue *kv, const char *s)
@@ -82,177 +58,167 @@ static bool key_is_letter(const char *s)
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
 
-static uint8_t mods_from_state(bool shift, bool ctrl, bool alt, bool opt)
+static uint8_t mods_from_state(bool shift, bool ctrl, bool alt, bool fn)
 {
     uint8_t mods = 0;
     if (shift) mods |= UI_MOD_SHIFT;
     if (ctrl) mods |= UI_MOD_CTRL;
     if (alt) mods |= UI_MOD_ALT;
-    // Cardputer-ADV doesn't expose a dedicated "Fn" in the vendor map; we treat Opt as the Fn-like modifier.
-    if (opt) mods |= UI_MOD_FN;
+    if (fn) mods |= UI_MOD_FN;
     return mods;
 }
 
-static tca8418_t s_kbd = {};
-static QueueHandle_t s_evt_q = nullptr;
+static const KeyValue *key_value_for_keynum(const KeyValue map[4][14], uint8_t keynum)
+{
+    int x = -1;
+    int y = -1;
+    cardputer_kb::xy_from_keynum(keynum, &x, &y);
+    if (x < 0 || x >= 14 || y < 0 || y >= 4) {
+        return nullptr;
+    }
+    return &map[y][x];
+}
+
+static bool keynum_is_modifier_cardputer(uint8_t keynum)
+{
+    // Fn, Shift, Ctrl, Opt, Alt in Cardputer legend.
+    return keynum == 29 || keynum == 30 || keynum == 43 || keynum == 44 || keynum == 45;
+}
+
+static bool keynum_is_modifier_adv(uint8_t keynum)
+{
+    // Shift, CapsLock, Ctrl, Opt, Alt in Cardputer-ADV legend.
+    return keynum == 29 || keynum == 30 || keynum == 43 || keynum == 44 || keynum == 45;
+}
+
 static bool s_ready = false;
+static cardputer_kb::UnifiedScanner s_scanner;
 
-static void IRAM_ATTR kbd_int_isr(void *arg)
+static void kb_task_main(void *arg)
 {
-    (void)arg;
-    if (!s_evt_q) return;
-    const uint32_t one = 1;
-    BaseType_t hp = pdFALSE;
-    (void)xQueueSendFromISR(s_evt_q, &one, &hp);
-    if (hp) portYIELD_FROM_ISR();
-}
-
-static esp_err_t kb_hw_init(void)
-{
-    if (s_ready) return ESP_OK;
-
-    // Cardputer-ADV keyboard wiring: I2C0 SDA=GPIO8 SCL=GPIO9, INT=GPIO11, addr=0x34.
-    // (See 0036-cardputer-adv-led-matrix-console.)
-    static constexpr i2c_port_t kI2cPort = I2C_NUM_0;
-    static constexpr gpio_num_t kSda = GPIO_NUM_8;
-    static constexpr gpio_num_t kScl = GPIO_NUM_9;
-    static constexpr gpio_num_t kInt = GPIO_NUM_11;
-    static constexpr uint8_t kAddr7 = 0x34;
-    static constexpr uint8_t kRows = 7;
-    static constexpr uint8_t kCols = 8;
-
-    i2c_config_t conf = {};
-    conf.mode = I2C_MODE_MASTER;
-    conf.sda_io_num = kSda;
-    conf.scl_io_num = kScl;
-    conf.sda_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.scl_pullup_en = GPIO_PULLUP_ENABLE;
-    conf.master.clk_speed = 400000;
-    ESP_RETURN_ON_ERROR(i2c_param_config(kI2cPort, &conf), TAG, "i2c_param_config failed");
-
-    esp_err_t err = i2c_driver_install(kI2cPort, I2C_MODE_MASTER, 0, 0, 0);
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) {
-        ESP_LOGE(TAG, "i2c_driver_install failed: %s", esp_err_to_name(err));
-        return err;
-    }
-
-    ESP_RETURN_ON_ERROR(tca8418_open(&s_kbd, kI2cPort, kAddr7, kRows, kCols), TAG, "tca8418_open failed");
-    ESP_RETURN_ON_ERROR(tca8418_begin(&s_kbd), TAG, "tca8418_begin failed");
-
-    if (!s_evt_q) {
-        s_evt_q = xQueueCreate(8, sizeof(uint32_t));
-        if (!s_evt_q) return ESP_ERR_NO_MEM;
-    }
-
-    gpio_config_t io_conf = {};
-    io_conf.intr_type = GPIO_INTR_ANYEDGE;
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pin_bit_mask = (1ULL << (uint32_t)kInt);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-    ESP_RETURN_ON_ERROR(gpio_config(&io_conf), TAG, "gpio_config failed");
-
-    err = gpio_install_isr_service((int)ESP_INTR_FLAG_IRAM);
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
-
-    err = gpio_isr_handler_add(kInt, &kbd_int_isr, nullptr);
-    if (err != ESP_OK && err != ESP_ERR_INVALID_STATE) return err;
-
-    s_ready = true;
-    return ESP_OK;
-}
-
-static void kb_task_main(void *arg) {
     QueueHandle_t q = (QueueHandle_t)arg;
 
-    const esp_err_t init = kb_hw_init();
+    const esp_err_t init = s_scanner.init();
     if (init != ESP_OK) {
-        ESP_LOGE(TAG, "keyboard init failed: %s", esp_err_to_name(init));
+        ESP_LOGE(TAG, "UnifiedScanner init failed: %s", esp_err_to_name(init));
         vTaskDelete(nullptr);
         return;
     }
 
-    bool shift = false;
-    bool ctrl = false;
-    bool alt = false;
-    bool opt = false;
+    const cardputer_kb::ScannerBackend backend = s_scanner.backend();
+    const bool is_adv = backend == cardputer_kb::ScannerBackend::Tca8418;
+    const KeyValue (*map)[14] = is_adv ? kKeyMapCardputerAdv : kKeyMapCardputer;
+
+    ESP_LOGI(TAG, "keyboard backend: %s", is_adv ? "TCA8418 (Cardputer-ADV)" : "GPIO matrix (Cardputer)");
+
     bool caps = false;
+    bool prev_down[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
+
+    s_ready = true;
 
     while (true) {
-        uint32_t token = 0;
-        (void)xQueueReceive(s_evt_q, &token, pdMS_TO_TICKS(CONFIG_TUTORIAL_0066_KB_SCAN_PERIOD_MS));
+        const cardputer_kb::ScanSnapshot snap = s_scanner.scan();
 
-        for (;;) {
-            uint8_t count = 0;
-            const esp_err_t st = tca8418_available(&s_kbd, &count);
-            if (st != ESP_OK || count == 0) break;
-
-            for (uint8_t i = 0; i < count; i++) {
-                uint8_t evt = 0;
-                if (tca8418_get_event(&s_kbd, &evt) != ESP_OK) break;
-                if (evt == 0) break;
-
-                KbdKey k;
-                if (!decode_tca_event(evt, &k)) continue;
-                const KeyValue *kv = &kKeyMap[k.row][k.col];
-
-                // Update modifier state. (We treat opt as "Fn-like".)
-                if (key_is(kv, "shift")) shift = k.pressed;
-                if (key_is(kv, "ctrl")) ctrl = k.pressed;
-                if (key_is(kv, "alt")) alt = k.pressed;
-                if (key_is(kv, "opt")) opt = k.pressed;
-                if (key_is(kv, "capslock") && k.pressed) caps = !caps;
-
-                // Only emit actions on press.
-                if (!k.pressed) continue;
-
-                const uint8_t mods = mods_from_state(shift, ctrl, alt, opt);
-
-                // Special key kinds.
-                if (key_is(kv, "tab")) {
-                    ui_key_event_t ev = {.kind = UI_KEY_TAB, .mods = mods, .text = {0}, .keynum = 0};
-                    q_send_best_effort(q, ev);
-                    continue;
-                }
-                if (key_is(kv, "enter")) {
-                    ui_key_event_t ev = {.kind = UI_KEY_ENTER, .mods = mods, .text = {0}, .keynum = 0};
-                    q_send_best_effort(q, ev);
-                    continue;
-                }
-                if (key_is(kv, "del")) {
-                    ui_key_event_t ev = {.kind = UI_KEY_DEL, .mods = mods, .text = {0}, .keynum = 0};
-                    q_send_best_effort(q, ev);
-                    continue;
-                }
-                if (key_is(kv, "space")) {
-                    ui_key_event_t ev = {.kind = UI_KEY_SPACE, .mods = mods, .text = {0}, .keynum = 0};
-                    q_send_best_effort(q, ev);
-                    continue;
-                }
-
-                const bool use_shifted = key_is_letter(kv->first) ? (shift ^ caps) : shift;
-                const char *s = use_shifted ? kv->second : kv->first;
-                if (!s || !*s) continue;
-
-                ui_key_event_t ev = {};
-                ev.kind = UI_KEY_TEXT;
-                ev.mods = mods;
-                ev.keynum = 0;
-                strncpy(ev.text, s, sizeof(ev.text) - 1);
-                ev.text[sizeof(ev.text) - 1] = '\0';
-                q_send_best_effort(q, ev);
+        bool down[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
+        for (uint8_t keynum : snap.pressed_keynums) {
+            if (keynum >= 1 && keynum <= (cardputer_kb::kRows * cardputer_kb::kCols)) {
+                down[keynum] = true;
             }
         }
 
-        // Try to clear K_INT once we've drained events.
-        (void)tca8418_write_reg8(&s_kbd, TCA8418_REG_INT_STAT, TCA8418_INTSTAT_K_INT);
+        const bool shift = is_adv ? down[29] : down[30];
+        const bool ctrl = down[43];
+        const bool alt = is_adv ? down[45] : (down[45] || down[44]); // treat Opt as Alt on Cardputer
+        const bool opt = down[44];
+        const bool fn = is_adv ? opt : down[29]; // ADV: treat Opt as Fn-like modifier
+
+        if (is_adv && down[30] && !prev_down[30]) {
+            caps = !caps;
+        }
+
+        const uint8_t mods = mods_from_state(shift, ctrl, alt, fn);
+
+        // Emit "edge" events only (press transitions).
+        for (uint8_t keynum = 1; keynum <= (cardputer_kb::kRows * cardputer_kb::kCols); keynum++) {
+            if (!down[keynum] || prev_down[keynum]) {
+                continue;
+            }
+
+            // Never emit modifier keys as text.
+            if (is_adv) {
+                if (keynum_is_modifier_adv(keynum)) {
+                    continue;
+                }
+            } else {
+                if (keynum_is_modifier_cardputer(keynum)) {
+                    continue;
+                }
+            }
+
+            const KeyValue *kv = key_value_for_keynum(map, keynum);
+            if (!kv) {
+                continue;
+            }
+
+            // Special key kinds.
+            if (key_is(kv, "tab")) {
+                ui_key_event_t ev = {};
+                ev.kind = UI_KEY_TAB;
+                ev.mods = mods;
+                ev.keynum = keynum;
+                q_send_best_effort(q, ev);
+                continue;
+            }
+            if (key_is(kv, "enter")) {
+                ui_key_event_t ev = {};
+                ev.kind = UI_KEY_ENTER;
+                ev.mods = mods;
+                ev.keynum = keynum;
+                q_send_best_effort(q, ev);
+                continue;
+            }
+            if (key_is(kv, "del")) {
+                ui_key_event_t ev = {};
+                ev.kind = UI_KEY_DEL;
+                ev.mods = mods;
+                ev.keynum = keynum;
+                q_send_best_effort(q, ev);
+                continue;
+            }
+            if (key_is(kv, "space")) {
+                ui_key_event_t ev = {};
+                ev.kind = UI_KEY_SPACE;
+                ev.mods = mods;
+                ev.keynum = keynum;
+                q_send_best_effort(q, ev);
+                continue;
+            }
+
+            const bool use_shifted = key_is_letter(kv->first) ? (shift ^ caps) : shift;
+            const char *s = use_shifted ? kv->second : kv->first;
+            if (!s || !*s) {
+                continue;
+            }
+
+            ui_key_event_t ev = {};
+            ev.kind = UI_KEY_TEXT;
+            ev.mods = mods;
+            ev.keynum = keynum;
+            strncpy(ev.text, s, sizeof(ev.text) - 1);
+            ev.text[sizeof(ev.text) - 1] = '\0';
+            q_send_best_effort(q, ev);
+        }
+
+        memcpy(prev_down, down, sizeof(prev_down));
+        vTaskDelay(pdMS_TO_TICKS(CONFIG_TUTORIAL_0066_KB_SCAN_PERIOD_MS));
     }
 }
 
 } // namespace
 
-extern "C" void ui_kb_start(QueueHandle_t q) {
-    // Stack is conservative: i2c + event decode + C++.
+extern "C" void ui_kb_start(QueueHandle_t q)
+{
+    // Stack is conservative: C++ (UnifiedScanner + std::vector) + event decode.
     (void)xTaskCreate(&kb_task_main, "0066_kb", 4096, (void *)q, 6, nullptr);
 }
 
@@ -260,3 +226,4 @@ extern "C" bool ui_kb_is_ready(void)
 {
     return s_ready;
 }
+
