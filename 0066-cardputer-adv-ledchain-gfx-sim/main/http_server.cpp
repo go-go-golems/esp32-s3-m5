@@ -557,6 +557,9 @@ esp_err_t http_server_start(sim_engine_t *engine)
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
+    // We register many routes (assets + REST + JS + WS). The default (8) is too small and causes later
+    // registrations to fail, which looks like "random 404s" for endpoints such as /api/js/eval and /ws.
+    cfg.max_uri_handlers = 24;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
     esp_err_t err = httpd_start(&s_server, &cfg);
