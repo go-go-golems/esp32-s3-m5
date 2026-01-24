@@ -29,8 +29,8 @@ struct cardputer_kb::UnifiedScanner::TcaState {
         i2c_master_bus_config_t bus_cfg;
         std::memset(&bus_cfg, 0, sizeof(bus_cfg));
         bus_cfg.i2c_port = cfg.i2c_port;
-        bus_cfg.sda_io_num = cfg.i2c_sda_gpio;
-        bus_cfg.scl_io_num = cfg.i2c_scl_gpio;
+        bus_cfg.sda_io_num = (gpio_num_t)cfg.i2c_sda_gpio;
+        bus_cfg.scl_io_num = (gpio_num_t)cfg.i2c_scl_gpio;
         bus_cfg.clk_source = I2C_CLK_SRC_DEFAULT;
         bus_cfg.glitch_ignore_cnt = 7;
         bus_cfg.intr_priority = 0;
