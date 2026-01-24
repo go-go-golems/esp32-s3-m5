@@ -633,3 +633,57 @@ The fix switches the 0066 keyboard input to a small, interrupt-driven TCA8418 re
 ### Technical details
 - TCA8418 event decode follows the ADV demo:
   - bit7 = press/release, bits6..0 = 1-based key number; then remapped into Cardputer “picture” coordinates (4×14).
+
+---
+
+## Step 10: Fix web UI JS parse error + serve /favicon.ico (commit 954da2c) (2026-01-24)
+
+This step fixes a browser-facing regression in the web UI assets: I accidentally included a C/C++ idiom (`(void)reason;`) in `app.js`, which is invalid JavaScript and causes a hard parse failure. Once the JS fails to parse, none of the UI works (tabs, polling, preview, etc.), and the browser console shows a syntax error pointing at that line.
+
+I also added a small handler for `/favicon.ico` to avoid repeated 404 noise in browser network logs.
+
+### Prompt Context
+
+**User prompt (verbatim):** "once done, also fix this: \nGET\nhttp://192.168.0.196/assets/app.js\n[HTTP/1.1 200 OK 143ms]\n\nUncaught SyntaxError: expected expression, got ')' app.js:199:8\nGET\nhttp://192.168.0.196/favicon.ico\n[HTTP/1.1 404 Not Found 0ms]\n\nFailed to fetch moz-extension://d74fe217-96f7-479f-8751-a44e4a9688e3/inline/injected.js, Import failed 3 times. Final error: window.crypto.randomUUID is not a function inject-content-scripts.js:5:1508"
+
+**Assistant interpretation:** Fix the served web UI JavaScript so it parses in the browser, and add a favicon handler so the browser stops requesting a missing resource.
+
+**Inferred user intent:** Be able to open the web UI on the device IP and have it load reliably without console errors; keep browser logs clean while iterating.
+
+**Commit (code):** 954da2c — "0066: fix web UI JS syntax; handle /favicon.ico"
+
+### What I did
+- Fixed `app.js` parse error by removing invalid JS:
+  - replaced `(void)reason;` with a JS comment (kept signature stable).
+- Also replaced “catch without binding” patterns (`catch { ... }`) with `catch (e) { ... }` for broader JS engine compatibility.
+- Added `/favicon.ico` route in the HTTP server that returns an empty icon response (no 404).
+- Built and flashed.
+
+### Why
+- Parse errors prevent the whole UI from loading; this is a “must fix” stability issue.
+- `/favicon.ico` is an automatic browser request; answering it avoids distracting noise during debugging.
+
+### What worked
+- `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim build` succeeded and embedded updated assets.
+
+### What didn't work
+- The `moz-extension://... randomUUID` error is from a browser extension and is unrelated to the firmware; it can be ignored or tested in a clean profile.
+
+### What I learned
+- When writing embedded web assets in a C/C++ heavy repo, it’s easy to accidentally paste non-JS idioms; line-numbered browser errors are the fastest detection path.
+
+### What was tricky to build
+- N/A (small targeted fix).
+
+### What warrants a second pair of eyes
+- Confirm the target browser(s): if you’re using an older Firefox/ESR build, we may need to avoid a few more modern syntax features.
+
+### What should be done in the future
+- Consider adding a tiny CI check that runs `node --check` or similar on embedded JS assets (if node is available).
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
+- Validate:
+  - load `http://<device-ip>/` and confirm no parse errors in devtools.

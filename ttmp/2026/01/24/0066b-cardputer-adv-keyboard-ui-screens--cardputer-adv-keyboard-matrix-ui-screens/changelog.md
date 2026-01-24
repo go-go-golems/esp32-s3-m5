@@ -65,3 +65,13 @@ Fix keyboard on Cardputer-ADV: replace matrix scanner with TCA8418 (GPIO8/9 + IN
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — ADV keyboard driver using TCA8418 events (commit 97616a5)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp — Tab back + HJKL navigation + kb status display (commit 97616a5)
 
+
+## 2026-01-24
+
+Fix browser JS parse error in /assets/app.js (remove invalid '(void)reason' and avoid catch-without-binding); add /favicon.ico handler to stop 404 noise. (commit 954da2c)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js — Fix syntax error at scheduleApply()
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Serve /favicon.ico
+
