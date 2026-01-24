@@ -95,3 +95,10 @@ Web UI improvements: don't overwrite focused inputs during polling (fixes bri/fr
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js — Skip status->form sync when input focused
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Alias handlers for /api/js/* and /ws
 
+## 2026-01-24
+
+Fix “random 404” for later-registered endpoints by increasing `httpd` `max_uri_handlers` above the ESP-IDF default (8). Without this, `/api/status` worked but `/api/js/eval` and `/ws` were never registered and returned 404. Flashed and verified on-device: `/api/js/eval` returns 200 and `/ws` upgrades with `101 Switching Protocols`. (commit 55f06d2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Increase `cfg.max_uri_handlers`

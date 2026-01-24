@@ -118,6 +118,62 @@ The next step is to translate those specs into a keyboard matrix setup doc and a
 ### Code review instructions
 - Review the imported sources:
   - `ttmp/2026/01/24/0066b-cardputer-adv-keyboard-ui-screens--cardputer-adv-keyboard-matrix-ui-screens/sources/local/Cardputer UI mock.md`
+
+---
+
+## Step 2: Fix JS/WS endpoint 404s (httpd max_uri_handlers) and validate flash (2026-01-24)
+
+This step fixes a subtle HTTP server failure mode that presented like an application-level bug: `/api/status` worked reliably, but `/api/js/eval` and `/ws` returned `404 Not Found` even though the routes were “clearly registered” in code. The root cause was not routing logic, but capacity: the ESP-IDF HTTP server defaults to `max_uri_handlers=8`, and we were registering ~16 routes. Handlers registered after the first 8 failed, silently, yielding 404s for the missing endpoints. Raising the limit removed the apparent nondeterminism.
+
+After updating the server configuration, I rebuilt and flashed the firmware to `/dev/ttyACM0` and validated the fix with direct HTTP requests: `POST /api/js/eval` returns a JSON result, and `/ws` performs a WebSocket upgrade (`101 Switching Protocols`).
+
+### Prompt Context
+
+**User prompt (verbatim):** "http is up i think, but I still get \n\n XHR\nPOST\nhttp://192.168.0.196/api/js/eval\n[HTTP/1.1 404 Not Found 35ms]\n\nGET\nws://192.168.0.196/ws\nNS_ERROR_WEBSOCKET_CONNECTION_REFUSED"
+
+**Assistant interpretation:** The device is running the web UI, but the JS eval endpoint and websocket endpoint aren’t reachable; debug why and fix it.
+
+**Inferred user intent:** Make the “web UI + JS interpreter” control plane reliable enough for iterative development (browser sends JS, device runs it, UI streams updates).
+
+**Commit (code):** 55f06d2 — "0066: raise httpd max_uri_handlers"
+
+### What I did
+- Verified the device is running the expected firmware (`App version: 0767c60` initially, then `55f06d2` after the fix).
+- Confirmed `/api/status` returned 200 while `POST /api/js/eval` returned 404, demonstrating a partial route table.
+- Identified the ESP-IDF `httpd` default route capacity (`max_uri_handlers=8`) as the likely culprit given the number of handlers registered in `http_server_start`.
+- Increased `cfg.max_uri_handlers` to 24 in `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`.
+- Built + flashed, then verified:
+  - `POST /api/js/eval` returns `{"ok":true,...}` (200 OK).
+  - `/ws` returns `101 Switching Protocols` with a valid `Sec-WebSocket-Accept`.
+
+### Why
+- The bug was systemic: endpoint failures weren’t caused by JS, websockets, or URI matching; they were caused by route registration failing due to capacity limits. Fixing the capacity gives stable semantics and removes an entire class of “spooky” 404s.
+
+### What worked
+- Direct curl validation against the device IP confirmed the fix immediately.
+- Flashing via `/dev/ttyACM0` succeeded after closing the `esp_idf_monitor` process that was holding the port.
+
+### What didn't work
+- `idf.py monitor` cannot be used from this non-interactive harness (it requires a TTY). For quick checks, I used a small serial “sniff” script instead.
+
+### What I learned
+- ESP-IDF’s `httpd_register_uri_handler()` failures are easy to miss if you don’t check return codes; the visible symptom is a route returning 404 even though the code “registers” it.
+- A single, small configuration default (`max_uri_handlers`) can masquerade as multiple higher-level application bugs.
+
+### What was tricky to build
+- The failure mode is asymmetric: early routes work (making HTTP appear “up”), while later routes fail (making it look like only “some features” are broken). This encourages chasing the wrong subsystem unless you explicitly count handlers vs. capacity.
+
+### What warrants a second pair of eyes
+- Consider adding explicit error checks/logs for every `httpd_register_uri_handler()` call to prevent similar silent failures when adding future endpoints.
+
+### What should be done in the future
+- N/A (the immediate endpoint availability issue is fixed), unless we decide to refactor handler registration into a helper that asserts and logs on failure.
+
+### Code review instructions
+- Start at `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp` and look for `cfg.max_uri_handlers`.
+- Validate on-device:
+  - `curl -X POST http://<ip>/api/js/eval --data '1+1'`
+  - WebSocket upgrade check: `curl -i -H 'Connection: Upgrade' -H 'Upgrade: websocket' ... http://<ip>/ws`
   - `ttmp/2026/01/24/0066b-cardputer-adv-keyboard-ui-screens--cardputer-adv-keyboard-matrix-ui-screens/sources/local/Cardputer Web UI mock.md`
 - Review the keyboard component docs:
   - `components/cardputer_kb/README.md`
