@@ -129,7 +129,19 @@ After updating the server configuration, I rebuilt and flashed the firmware to `
 
 ### Prompt Context
 
-**User prompt (verbatim):** "http is up i think, but I still get \n\n XHR\nPOST\nhttp://192.168.0.196/api/js/eval\n[HTTP/1.1 404 Not Found 35ms]\n\nGET\nws://192.168.0.196/ws\nNS_ERROR_WEBSOCKET_CONNECTION_REFUSED"
+**User prompt (verbatim):**
+```text
+http is up i think, but I still get
+
+XHR
+POST
+http://192.168.0.196/api/js/eval
+[HTTP/1.1 404 Not Found 35ms]
+
+GET
+ws://192.168.0.196/ws
+NS_ERROR_WEBSOCKET_CONNECTION_REFUSED
+```
 
 **Assistant interpretation:** The device is running the web UI, but the JS eval endpoint and websocket endpoint aren’t reachable; debug why and fix it.
 
@@ -700,7 +712,20 @@ I also added a small handler for `/favicon.ico` to avoid repeated 404 noise in b
 
 ### Prompt Context
 
-**User prompt (verbatim):** "once done, also fix this: \nGET\nhttp://192.168.0.196/assets/app.js\n[HTTP/1.1 200 OK 143ms]\n\nUncaught SyntaxError: expected expression, got ')' app.js:199:8\nGET\nhttp://192.168.0.196/favicon.ico\n[HTTP/1.1 404 Not Found 0ms]\n\nFailed to fetch moz-extension://d74fe217-96f7-479f-8751-a44e4a9688e3/inline/injected.js, Import failed 3 times. Final error: window.crypto.randomUUID is not a function inject-content-scripts.js:5:1508"
+**User prompt (verbatim):**
+```text
+once done, also fix this:
+GET
+http://192.168.0.196/assets/app.js
+[HTTP/1.1 200 OK 143ms]
+
+Uncaught SyntaxError: expected expression, got ')' app.js:199:8
+GET
+http://192.168.0.196/favicon.ico
+[HTTP/1.1 404 Not Found 0ms]
+
+Failed to fetch moz-extension://d74fe217-96f7-479f-8751-a44e4a9688e3/inline/injected.js, Import failed 3 times. Final error: window.crypto.randomUUID is not a function inject-content-scripts.js:5:1508
+```
 
 **Assistant interpretation:** Fix the served web UI JavaScript so it parses in the browser, and add a favicon handler so the browser stops requesting a missing resource.
 
@@ -758,7 +783,16 @@ The practical fix is to pick *one* I²C API for the whole firmware. Since M5GFX 
 
 ### Prompt Context
 
-**User prompt (verbatim):** "on the device, i don't see anything on the screen :\n\nI (265) app_init: Project name:     cardputer_adv_ledchain_gfx_sim_\n...\nE (268) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver\n\nabort() was called..."
+**User prompt (verbatim):**
+```text
+on the device, i don't see anything on the screen :
+
+I (265) app_init: Project name:     cardputer_adv_ledchain_gfx_sim_
+...
+E (268) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver
+
+abort() was called...
+```
 
 **Assistant interpretation:** Firmware is crashing at boot due to an I²C driver mismatch; identify which I²C API is being used and make them consistent so the UI can start.
 
