@@ -18,6 +18,10 @@ RelatedFiles:
       Note: Web UI SPA logic + preview + presets (commit c9b833b)
     - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp
       Note: Added /api/frame
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c
+      Note: Minimal keypad controller helper (commit 97616a5)
+    - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp
+      Note: TCA8418 keyboard integration (commit 97616a5)
     - Path: ttmp/2026/01/24/0066b-cardputer-adv-keyboard-ui-screens--cardputer-adv-keyboard-matrix-ui-screens/scripts/04-web-smoke.sh
       Note: Smoke-test helper (commit fde611c)
 ExternalSources: []
@@ -26,6 +30,7 @@ LastUpdated: 2026-01-24T00:46:15.329644186-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -556,3 +561,75 @@ This step flashes the current `0066-cardputer-adv-ledchain-gfx-sim` firmware to 
 
 ### Technical details
 - `idf.py monitor` TTY requirement is a hard constraint of `idf_monitor.py` (expects interactive keystrokes).
+
+---
+
+## Step 9: Fix keyboard not working on Cardputer-ADV (TCA8418) (commit 97616a5) (2026-01-24)
+
+This step addresses a real hardware mismatch: the Cardputer-ADV keyboard is not a “GPIO-scanned matrix” like the original M5 Cardputer keyboard component in this repo. Instead, Cardputer-ADV uses a TCA8418 keypad controller over I²C with an interrupt line. The previous `0066` UI integration used `components/cardputer_kb::MatrixScanner`, which meant the firmware could compile but would never see key events on ADV hardware.
+
+The fix switches the 0066 keyboard input to a small, interrupt-driven TCA8418 reader (derived from tutorial `0036-cardputer-adv-led-matrix-console`) and adjusts overlay interaction so it remains usable without a dedicated arrow cluster: `Tab` becomes a menu/back toggle, and `HJKL` works as navigation inside overlays.
+
+### Prompt Context
+
+**User prompt (verbatim):** "the keyboard doesn't seem to work."
+
+**Assistant interpretation:** The on-device UI is not receiving keyboard events on Cardputer-ADV; investigate why and fix the hardware integration.
+
+**Inferred user intent:** Be able to use the on-device overlays (Menu/Pattern/Params/etc.) from the physical keyboard reliably on the ADV board.
+
+**Commit (code):** 97616a5 — "0066: fix keyboard for Cardputer-ADV (TCA8418)"
+
+### What I did
+- Identified the root cause by comparing with existing ADV firmwares:
+  - `0036-cardputer-adv-led-matrix-console` and `0038-cardputer-adv-serial-terminal` both use a TCA8418 keyboard over I²C (not GPIO matrix scan).
+- Implemented a minimal TCA8418 driver inside 0066 and wired it into the keyboard task:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.h`
+- Updated `0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp` to:
+  - init I²C0 on `GPIO8/9` and INT on `GPIO11`
+  - drain TCA key events and translate them into `ui_key_event_t`
+  - treat `Opt` as the “Fn-like” modifier for shortcuts (`UI_MOD_FN`)
+- Updated `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp` to:
+  - only process global shortcuts in `LIVE` mode
+  - treat `Tab` as “menu/back” toggle (Tab closes overlays when open)
+  - interpret `HJKL` as navigation inside overlays
+  - show `kb:ok/err` in the top status line (based on `ui_kb_is_ready()`).
+- Built and flashed to `/dev/ttyACM0` from this environment.
+
+### Why
+- The Cardputer-ADV keyboard controller is fundamentally different hardware; scanning GPIO rows/cols cannot work.
+- Making overlays navigable via `HJKL` avoids depending on “Fn+punctuation arrow chords”, which are specific to the older Cardputer keymap.
+
+### What worked
+- `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim build` succeeded.
+- `idf.py -C 0066-cardputer-adv-ledchain-gfx-sim -p /dev/ttyACM0 flash` succeeded.
+
+### What didn't work
+- Full runtime verification still requires a real monitor TTY and/or on-device observation (see Step 8 constraints).
+
+### What I learned
+- “Cardputer” vs “Cardputer-ADV” is not just a naming change: keyboard IO is completely different (matrix scan vs keypad controller).
+
+### What was tricky to build
+- Ensuring the UI remains navigable without a dedicated Escape key:
+  - The Tab-as-back toggle is a pragmatic UX workaround that doesn’t conflict with the color editor (where Tab cycles channels).
+
+### What warrants a second pair of eyes
+- Hardware pin assumptions for ADV:
+  - I used the existing tutorial defaults (`SDA=8`, `SCL=9`, `INT=11`, `addr=0x34`). If your ADV revision differs, we should make these Kconfig options.
+
+### What should be done in the future
+- Make ADV keyboard pins configurable via Kconfig once verified on your exact board revision.
+
+### Code review instructions
+- Start with:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp`
+- Validate on device:
+  - Confirm status bar shows `kb:ok`
+  - Press `Tab` to open/close menu; use `HJKL` + `Enter` to navigate/apply.
+
+### Technical details
+- TCA8418 event decode follows the ADV demo:
+  - bit7 = press/release, bits6..0 = 1-based key number; then remapped into Cardputer “picture” coordinates (4×14).

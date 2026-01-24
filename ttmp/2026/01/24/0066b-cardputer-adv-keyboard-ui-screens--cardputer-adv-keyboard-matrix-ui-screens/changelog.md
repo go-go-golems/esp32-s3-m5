@@ -55,3 +55,13 @@ Implement web UI multi-screen layout + add /api/frame,/api/js/reset,/api/js/mem,
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Web endpoints for frames/JS reset/gpio status
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/0066b-cardputer-adv-keyboard-ui-screens--cardputer-adv-keyboard-matrix-ui-screens/scripts/04-web-smoke.sh — Web smoke-test script
 
+
+## 2026-01-24
+
+Fix keyboard on Cardputer-ADV: replace matrix scanner with TCA8418 (GPIO8/9 + INT11) and make overlays usable via Tab back + HJKL navigation; status bar shows kb:ok/err. (commit 97616a5)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — ADV keyboard driver using TCA8418 events (commit 97616a5)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_overlay.cpp — Tab back + HJKL navigation + kb status display (commit 97616a5)
+
