@@ -10,6 +10,10 @@
 //
 // Intentionally tiny: just enough to (a) probe, (b) configure, and (c) drain key events.
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Registers
 #define TCA8418_REG_CFG 0x01
 #define TCA8418_REG_INT_STAT 0x02
@@ -66,3 +70,6 @@ esp_err_t tca8418_flush(const tca8418_t *dev, uint8_t *out_flushed);
 
 esp_err_t tca8418_enable_interrupts(const tca8418_t *dev, bool enable);
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
