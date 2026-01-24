@@ -15,3 +15,5 @@
 - [x] Fix 0066 keyboard: use Cardputer-ADV TCA8418 instead of matrix scanner
 - [x] Fix web UI parse error in /assets/app.js; serve /favicon.ico
 - [x] Fix boot crash: avoid I2C driver_ng conflict (use legacy i2c driver for ADV keyboard)
+- [x] Web UI: stop polling from clobbering in-progress edits; add trailing-slash aliases for /api/js/* and /ws
+- [ ] Reflash/verify web endpoints: /api/js/eval and /ws no longer 404

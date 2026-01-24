@@ -85,3 +85,13 @@ Fix boot abort (I2C driver conflict): M5GFX links legacy i2c driver (driver/i2c.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c — Switch to legacy i2c transactions
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp — Use i2c_driver_install+i2c_master_write_read_device
 
+
+## 2026-01-24
+
+Web UI improvements: don't overwrite focused inputs during polling (fixes bri/frame fields resetting while typing); add trailing-slash aliases for /api/js/eval,/api/js/reset,/api/js/mem and /ws to avoid 404 from URL variants. Flash currently blocked because /dev/ttyACM0 is held by a python process; close monitor and reflash. (commit 60ac447)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js — Skip status->form sync when input focused
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Alias handlers for /api/js/* and /ws
+
