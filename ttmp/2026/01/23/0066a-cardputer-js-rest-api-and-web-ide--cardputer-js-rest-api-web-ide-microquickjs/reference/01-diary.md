@@ -203,3 +203,71 @@ Upload to remarkable once done
 - Reference firmware files that shaped decisions:
   - `0048-cardputer-js-web/main/http_server.cpp`
   - `0048-cardputer-js-web/main/js_service.cpp`
+
+---
+
+## Step 3: Switch from “design” to “implementation” in tutorial 0066 (2026-01-24)
+
+This step marks the transition from architecture to working code. The design in this ticket is intentionally grounded in `0048-cardputer-js-web`, but the real user value is making the pattern reusable in a concrete firmware—here, tutorial `0066-cardputer-adv-ledchain-gfx-sim`, which already has a JS service task (`mqjs_service`) and a simulator-specific JS stdlib.
+
+The implementation strategy is incremental: add `/api/js/eval` first (one request/one response), then add `/ws` and a best-effort event stream, then finally add a small browser UI that ties them together. Each increment gets a git commit, and the docmgr task list is checked off as we go.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Alright, implement it all, Create tasks in the ticket and check them off as you go, commit to git as you go, keep a frequent diary."
+
+**Assistant interpretation:** Turn the 0066a design into actual firmware changes (REST eval + WS event stream + browser UI) by reusing the proven 0048 patterns, while keeping docmgr tasks + diary current and committing in small steps.
+
+**Inferred user intent:** You want the architecture to stop being aspirational and become “press build, open a browser, run JS on the device” real, with an audit trail (tasks + diary + commits) that makes it easy to review and iterate.
+
+**Commit (code):** N/A (starting implementation; first commit will follow once endpoints/assets land).
+
+### What I did
+- Chose tutorial `0066-cardputer-adv-ledchain-gfx-sim` as the integration target because it already has:
+  - a single-threaded VM-owner (`mqjs_service`) in `main/mqjs/js_service.cpp`,
+  - a simulator JS API (`sim.*`) and timers/GPIO helpers in `main/mqjs/esp32_stdlib_runtime.c`,
+  - an HTTP server scaffold in `main/http_server.cpp`.
+- Extended the ticket task list with implementation tasks:
+  - `/api/js/eval` (raw JS body),
+  - `/ws` WebSocket + broadcast helper,
+  - `emit()` buffering + flush-to-WS,
+  - a minimal Web IDE UI,
+  - smoke test scripts,
+  - build/flash/monitor validation on `/dev/ttyACM0`.
+
+### Why
+- 0066 is where the JS interpreter is already wired to “real” behaviors (sim patterns + GPIO + timers), so it’s the most valuable place to add the web control plane.
+- Small commits reduce the risk of “it works but we don’t know which change mattered”.
+
+### What worked
+- The repo already contains all required building blocks:
+  - `wifi_mgr` + `wifi_console` for runtime Wi‑Fi configuration,
+  - `esp_http_server` for HTTP endpoints,
+  - `httpd_assets_embed` for embedding web assets,
+  - `httpd_ws_hub` for multi-client WebSocket broadcast (used by 0048).
+
+### What didn't work
+- N/A (no build/run yet in this step).
+
+### What I learned
+- 0066 currently parses JSON in C for `/api/apply` using `cJSON`, but for the JS IDE path we can still keep “device parses nothing” by:
+  - accepting raw JS for `/api/js/eval`,
+  - returning a small JSON string built by escaping output/error (0048 pattern),
+  - letting JS itself produce JSON for event frames (`JSON.stringify`) when needed.
+
+### What was tricky to build
+- Designing the dependency direction for “flush JS events after timer callbacks”: the timer subsystem runs jobs on the JS service task, but we want to avoid circular includes between the timer module and the HTTP server.
+
+### What warrants a second pair of eyes
+- Whether to keep `/api/apply` as JSON+cJSON (status quo) or refactor it later to a lighter non-JSON protocol if flash becomes tight; this is a tradeoff between code size and client simplicity.
+
+### What should be done in the future
+- Implement the endpoints and web UI incrementally and validate on hardware.
+
+### Code review instructions
+- Start with `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp` once implementation commits land; it will show the endpoint wiring.
+- Then review `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp` for the single-VM rule and event flushing strategy.
+
+### Technical details
+- Target firmware directory:
+  - `0066-cardputer-adv-ledchain-gfx-sim/`

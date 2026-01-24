@@ -9,3 +9,9 @@
 - [x] Design browser Web IDE UX + asset serving
 - [x] Relate key source files to analysis doc
 - [x] Upload ticket bundle to reMarkable
+- [ ] Implement 0066: add /api/js/eval (raw JS body)
+- [ ] Implement 0066: add WebSocket /ws and broadcast helper
+- [ ] Implement 0066: JS emit() buffer + flush to WS
+- [ ] Implement 0066: web IDE UI for JS eval + event stream
+- [ ] Add ticket scripts: HTTP/WS smoke tests
+- [ ] Build/flash/monitor validate on /dev/ttyACM0
