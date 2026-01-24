@@ -13,13 +13,22 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp
+      Note: Replace 0066 custom TCA+ISR keyboard with cardputer_kb::UnifiedScanner
+    - Path: esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h
+      Note: UnifiedScanner public API + backend autodetect
+    - Path: esp32-s3-m5/components/cardputer_kb/tca8418.h
+      Note: C linkage for C driver functions
+    - Path: esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp
+      Note: TCA8418 backend implementation + IDF 5.4 build fixes
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-01-24T13:41:42.129082115-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -422,6 +431,135 @@ Keep a detailed analysis diary as you go. Frequently update it as you analyze th
 
 ### What should be done in the future
 - N/A
+
+## Step 15: Migrate tutorial 0066 to `cardputer_kb::UnifiedScanner` (commit fd2a01f)
+
+This step updates tutorial `0066-cardputer-adv-ledchain-gfx-sim` to use the unified keyboard scanner component rather than its own embedded TCA8418 driver and ISR plumbing. The goal is to keep the project aligned with the “one consistent component” decision and to make 0066 runnable on both Cardputer and Cardputer-ADV without swapping keyboard code.
+
+Functionally, the keyboard task now treats the scanner as a “keys currently down” sensor and synthesizes “press edge” events by diffing snapshots. The modifier and key legend differences between Cardputer and Cardputer-ADV are handled by checking which backend the scanner selected at runtime.
+
+### Prompt Context
+
+**User prompt (verbatim):** "update the firmware 0066 to use the new library."
+
+**Assistant interpretation:** Replace 0066’s custom keyboard implementation with the unified keyboard component (`cardputer_kb::UnifiedScanner`) and remove duplicate local drivers.
+
+**Inferred user intent:** Avoid maintaining two separate keyboard stacks; prove the unified component works in real firmware and can autodetect Cardputer vs Cardputer-ADV.
+
+**Commit (code):** fd2a01f — "0066: use UnifiedScanner for keyboard"
+
+### What I did
+- Rewrote the 0066 keyboard task to use `cardputer_kb::UnifiedScanner` snapshot polling + edge detection:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp`
+- Removed the 0066-local TCA8418 implementation and stopped compiling it:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.c` (deleted)
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/tca8418.h` (deleted)
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt` (removed `tca8418.c`)
+- Updated the Kconfig help text to reflect the new scanner behavior:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/Kconfig.projbuild`
+
+### Why
+- 0066 was effectively a “fork” of the keyboard stack (separate driver, ISR, event decode).
+- The unified scanner already exists in `components/cardputer_kb`; 0066 should consume it rather than re-implement it.
+
+### What worked
+- The unified scanner provides `pressed_keynums` in picture-space (`1..56`), so 0066’s existing UI event shapes could stay the same; only the input plumbing changed.
+
+### What didn't work
+- N/A (migration was straightforward once the scanner existed)
+
+### What I learned
+- Keeping Cardputer vs Cardputer-ADV compatibility in one firmware is mostly about:
+  - (1) scanning backend selection, and
+  - (2) the “Fn/Shift/Caps” semantic differences around keynums `29/30`.
+
+### What was tricky to build
+- Mapping modifier semantics across boards without breaking existing shortcuts:
+  - Cardputer has an explicit `fn` key; ADV does not (we treat `opt` as `fn`-like in 0066).
+  - ADV has `capslock`; Cardputer does not.
+
+### What warrants a second pair of eyes
+- The key legend tables used by 0066 are intentionally different for Cardputer vs Cardputer-ADV in the “Fn/Shift/Caps” region; review that the chosen mapping matches the expected physical legends.
+
+### What should be done in the future
+- If 0066 needs lower latency or less polling, wire `UnifiedScannerConfig.int_gpio` into an ISR wakeup path for the TCA8418 backend.
+
+### Code review instructions
+- Start with `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/ui_kb.cpp` and confirm:
+  - backend detection drives which legend table is used,
+  - events are emitted on press edges only,
+  - `mods` matches UI expectations (`UI_MOD_*`).
+- Confirm the local TCA driver is gone from 0066:
+  - `esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt`
+
+### Technical details
+- Key commits: `fd2a01f`
+
+## Step 16: Make `UnifiedScanner` build cleanly on ESP-IDF 5.4.1 (commits e9ce104, 4b4c6d6, 35e6f35)
+
+This step was driven by an actual ESP-IDF build of tutorial 0066 using IDF 5.4.1. The build surfaced several “real toolchain” issues (strict type conversions, incomplete-type pitfalls, and C/C++ linkage) that weren’t caught by earlier edits because we hadn’t built a C++ firmware that instantiates `UnifiedScanner` in a translation unit.
+
+The end result is that `idf.py build` for 0066 now succeeds under IDF 5.4.1, and the unified scanner remains a single component with an internal TCA backend.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Try idf.py build again. source ~/esp/esp-idf-5.4.1/export.sh before hand"
+
+**Assistant interpretation:** Build 0066 using ESP-IDF 5.4.1 and fix whatever breaks so the new unified keyboard library actually compiles and links.
+
+**Inferred user intent:** Ensure the migration isn’t theoretical; validate it against the real build system/toolchain.
+
+**Commit (code):** 35e6f35 — "cardputer_kb: fix C linkage for tca8418"
+
+### What I did
+- Ran a real build:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+- Fixed strict type errors in the new I2C master bus config (IDF 5.4.1 expects `gpio_num_t`):
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp` (commit `e9ce104`)
+- Fixed incomplete-type problems with `std::unique_ptr<TcaState>` in `UnifiedScanner` by switching to a custom deleter for the pimpl:
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp` (commit `4b4c6d6`)
+- Fixed C/C++ linkage for the TCA helper functions (linker undefined references due to name mangling):
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.h` (commit `35e6f35`)
+
+### Why
+- IDF 5.4.1 builds with aggressive warnings-as-errors and stricter C++ type checking.
+- The “unified component” must be build-stable, since it’s meant to be copy/pasted into future tutorials/firmwares.
+
+### What worked
+- After the fixes above, `idf.py build` for 0066 completes successfully and produces `build/cardputer_adv_ledchain_gfx_sim_0066.bin`.
+
+### What didn't work
+- Initial build failures (captured verbatim):
+  - `invalid conversion from 'int' to 'gpio_num_t'` (I2C bus config)
+  - `invalid application of 'sizeof' to incomplete type '...TcaState'` (unique_ptr + incomplete type)
+  - `undefined reference to tca8418_*` (C/C++ linkage mismatch)
+
+### What I learned
+- If a public header owns a `std::unique_ptr<IncompleteType>`, use a custom deleter in the header (or define the owning destructor out-of-line very carefully) to keep toolchain behavior predictable.
+- Whenever a C `.c` implementation is consumed by C++ code, the header must be explicit about `extern "C"`.
+
+### What was tricky to build
+- The incomplete-type issue is subtle because it can compile in some TUs and fail in others depending on how/where special members are instantiated.
+
+### What warrants a second pair of eyes
+- The pimpl deleter change is a low-risk pattern, but it’s worth confirming that no other headers depend on `std::unique_ptr<TcaState>` being the exact type (ABI isn’t a concern here, but API churn is).
+
+### What should be done in the future
+- Consider adding CI for at least one representative tutorial build (like 0066) so the unified keyboard component doesn’t silently regress.
+
+### Code review instructions
+- Validate the exact build locally:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+  - `cd esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim && idf.py build`
+- Review the fixes in order:
+  - `esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp`
+  - `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
+  - `esp32-s3-m5/components/cardputer_kb/tca8418.h`
+
+### Technical details
+- Key commits: `e9ce104`, `4b4c6d6`, `35e6f35`
 
 ## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
 

@@ -519,6 +519,24 @@ Concretely, unify the keyboard into one component with:
 > A UI wants one thing: a reliable stream of “key pressed/released” events plus modifier state.
 > The right abstraction boundary is therefore **an event stream**, not “row/col polling”.
 
+#### What We Implemented in This Repo: `cardputer_kb::UnifiedScanner`
+
+In this repo, that “one component” is implemented as `cardputer_kb::UnifiedScanner`:
+
+- Public entrypoint: `esp32-s3-m5/components/cardputer_kb/include/cardputer_kb/scanner.h`
+- Backends:
+  - `ScannerBackend::GpioMatrix` wraps the existing `MatrixScanner`.
+  - `ScannerBackend::Tca8418` drains the TCA8418 FIFO over I2C and maintains a pressed-key set.
+  - `ScannerBackend::Auto` probes the TCA8418 first, then falls back to GPIO scanning.
+- Stable “picture-space” output: `ScanSnapshot::pressed_keynums` uses the vendor-style key numbers `1..56` (4×14), regardless of backend.
+
+This means UI code can standardize on a single “scan snapshot” contract and build *its own* event edges/modifiers as needed.
+
+> **Fundamental: A scan snapshot is a “raw sensor reading”.**
+>
+> A snapshot is *not yet an event stream*. It’s the current “keys down” set.
+> If you want “pressed this frame” semantics, you diff snapshots.
+
 #### One Event Contract (Recommended)
 
 Define one canonical event shape and guarantee that it is delivered the same way regardless of backend:
@@ -535,31 +553,42 @@ Crucially, the “latest event” becomes a *derived view* (`peekLatest()`), not
 
 #### Programmatic Differentiation (ADV vs non-ADV): Runtime Probe
 
-Yes—if the goal is “figure out which keyboard hardware we have” at runtime, you can do it programmatically:
+Yes—if the goal is “figure out which keyboard hardware we have” at runtime, you can do it programmatically.
 
-1. Try to bring up the I2C expander backend:
-   - probe I2C address `0x34`,
-   - call `Adafruit_TCA8418::begin()`,
-   - configure `matrix(7, 8)` and enable interrupts.
-2. If that fails, fall back to matrix scanning (GPIO-based).
+In the `UnifiedScanner` implementation, this happens via `backend()` after `init()`:
+
+- `ScannerBackend::Tca8418` means “Cardputer-ADV style” (TCA8418 present on I2C, default addr `0x34`, default SDA=GPIO8/SCL=GPIO9).
+- `ScannerBackend::GpioMatrix` means “Cardputer style” (GPIO matrix scan).
 
 Pseudocode:
 
 ```cpp
-std::unique_ptr<KeyboardBackend> makeKeyboardBackend() {
-  auto tca = std::make_unique<TCA8418Backend>(/*addr=*/0x34);
-  if (tca->init()) {               // does I2C probe + begin()
-    return tca;
-  }
-  auto matrix = std::make_unique<MatrixScanBackend>(/*pins=*/...);
-  if (matrix->init()) {
-    return matrix;
-  }
-  return std::make_unique<NullKeyboardBackend>();
+cardputer_kb::UnifiedScanner kb;
+ESP_ERROR_CHECK(kb.init()); // default: Auto
+
+if (kb.backend() == cardputer_kb::ScannerBackend::Tca8418) {
+  // Cardputer-ADV keyboard: no Fn key in the vendor legend; CapsLock exists.
+} else {
+  // Cardputer keyboard: Fn exists; no CapsLock key.
 }
 ```
 
-This gives you a robust “ADV vs non-ADV” distinction in systems where both could exist, without relying on build flags or repo names.
+This directly answers “can we determine which keyboard is what programmatically?” without relying on build flags or repo names.
+
+Under the hood, the probe is a “strong signal” register read (`CFG`), because it avoids false positives compared to “device ACK only”.
+
+#### Example: Using the Unified Scanner in a UI Task
+
+Tutorial `0066-cardputer-adv-ledchain-gfx-sim` was migrated to the unified component so it can run on either board.
+
+The key pattern is: `snapshot = scan();` then “press edges” by diffing against the previous snapshot.
+
+```cpp
+auto snap = kb.scan();
+auto down = snap.pressed_keynums;           // "keys down" now
+auto pressed_edges = diff(down, prev_down); // "pressed this frame"
+prev_down = down;
+```
 
 #### Mapping to FreeRTOS Primitives (When You Implement It)
 
