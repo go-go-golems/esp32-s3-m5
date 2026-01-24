@@ -18,6 +18,7 @@
 #include "wifi_mgr.h"
 
 #include "mqjs/mqjs_console.h"
+#include "mqjs/js_service.h"
 
 static const char *TAG = "0066_ledsim";
 
@@ -48,6 +49,9 @@ extern "C" void app_main(void)
         &engine,
         (uint16_t)CONFIG_TUTORIAL_0066_LED_COUNT,
         (uint32_t)CONFIG_TUTORIAL_0066_FRAME_MS));
+
+    // Ensure the JS service is available for on-device overlays and for HTTP endpoints.
+    (void)js_service_start(&engine);
 
     sim_ui_start(&engine);
 
