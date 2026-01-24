@@ -1,13 +1,14 @@
 # `cardputer_kb` component
 
-Reusable Cardputer keyboard matrix scan + layout helpers.
+Reusable Cardputer keyboard scan + layout helpers (supports both Cardputer GPIO matrix and Cardputer-ADV TCA8418).
 
 ## What it provides
 
-- Matrix scan that returns a stable “physical key” representation:
+- A unified scanner API (`cardputer_kb::UnifiedScanner`) that returns a stable “physical key” representation:
   - `KeyPos{x,y}` (4×14 picture coordinate system)
   - vendor-style `keyNum` (`y*14 + (x+1)`)
 - Optional alt IN0/IN1 autodetect (`{13,15,...}` → `{1,2,...}`).
+- Cardputer-ADV TCA8418 support (I2C event FIFO → picture-space remap → `pressed_keynums` snapshot).
 - Static key legend table (same as vendor HAL) for UI/debug output.
 - Optional semantic binding decoder (actions → required chords), with captured examples.
 

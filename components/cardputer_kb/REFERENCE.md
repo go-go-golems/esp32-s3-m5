@@ -4,7 +4,7 @@
 
 Provide a stable, reusable “physical keyboard” layer for the M5 Cardputer:
 
-- Scan the GPIO matrix and return pressed **physical keys** as:
+- Scan the keyboard hardware and return pressed **physical keys** as:
   - `KeyPos{x,y}` in the vendor “picture” coordinate system (4×14)
   - vendor-style `keyNum` (1..56) where `keyNum = y*14 + (x+1)`
 - Offer a small semantic binding/decoder layer for mapping actions to chords (`required_keynums`).
@@ -35,6 +35,8 @@ The scanner can switch to the alt pinset if it observes activity on the alt IN0/
   - `pressed`: `std::vector<KeyPos>` (deduped, sorted)
   - `pressed_keynums`: `std::vector<uint8_t>` (1..56)
   - `use_alt_in01`: `bool` (which pinset is active)
+- `cardputer_kb::UnifiedScanner`
+  - Unified scanner facade for both Cardputer (GPIO matrix) and Cardputer-ADV (TCA8418 over I2C).
 
 ### Functions
 
@@ -42,6 +44,10 @@ The scanner can switch to the alt pinset if it observes activity on the alt IN0/
   - configures GPIO directions + pullups and sets outputs low
 - `cardputer_kb::MatrixScanner::scan() -> ScanSnapshot`
   - scans `scan_state=0..7` and collects all pressed keys
+- `cardputer_kb::UnifiedScanner::init(cfg) -> esp_err_t`
+  - `Auto`: probes TCA8418 on I2C first; falls back to GPIO matrix
+- `cardputer_kb::UnifiedScanner::scan() -> ScanSnapshot`
+  - For TCA8418: drains key events and returns a snapshot of currently-pressed keys in picture-space
 
 ### Contracts / gotchas
 
@@ -49,6 +55,7 @@ The scanner can switch to the alt pinset if it observes activity on the alt IN0/
 - `pressed_keynums` may contain multiple keys (chords), including `fn` (keyNum `29`).
 - The scan loop uses a small settle delay (`~10us`) after setting outputs.
 - Autodetect only switches on observed activity; “no key pressed” looks identical on both pinsets.
+- On Cardputer-ADV, TCA8418 uses I2C SDA=`GPIO8`, SCL=`GPIO9`, INT=`GPIO11` by convention in this repo; `UnifiedScanner` uses those defaults when probing.
 
 ## Layout / legend helpers
 

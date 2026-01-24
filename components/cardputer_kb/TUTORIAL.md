@@ -53,8 +53,8 @@ Minimal scan loop:
 ```cpp
 #include "cardputer_kb/scanner.h"
 
-cardputer_kb::MatrixScanner kb;
-kb.init();
+cardputer_kb::UnifiedScanner kb;
+ESP_ERROR_CHECK(kb.init());
 
 while (true) {
   cardputer_kb::ScanSnapshot s = kb.scan();
