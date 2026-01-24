@@ -115,12 +115,6 @@ static bool keynum_is_modifier_cardputer(uint8_t keynum)
     return keynum == 29 || keynum == 30 || keynum == 43 || keynum == 44 || keynum == 45;
 }
 
-static bool keynum_is_modifier_adv(uint8_t keynum)
-{
-    // Shift, CapsLock, Ctrl, Opt, Alt in Cardputer-ADV legend.
-    return keynum == 29 || keynum == 30 || keynum == 43 || keynum == 44 || keynum == 45;
-}
-
 static bool s_ready = false;
 static cardputer_kb::UnifiedScanner s_scanner;
 
@@ -136,10 +130,12 @@ static void kb_task_main(void *arg)
     }
 
     const cardputer_kb::ScannerBackend backend = s_scanner.backend();
-    const bool is_adv = backend == cardputer_kb::ScannerBackend::Tca8418;
-    const KeyValue (*map)[14] = is_adv ? kKeyMapCardputerAdv : kKeyMapCardputer;
+    const bool is_tca = backend == cardputer_kb::ScannerBackend::Tca8418;
+    // Even on the TCA8418-backed keyboard, we use the standard Cardputer "picture-space" legend:
+    // keynum 29 is Fn, 30 is Shift, 44 is Opt, 45 is Alt.
+    const KeyValue (*map)[14] = kKeyMapCardputer;
 
-    ESP_LOGI(TAG, "keyboard backend: %s", is_adv ? "TCA8418 (Cardputer-ADV)" : "GPIO matrix (Cardputer)");
+    ESP_LOGI(TAG, "keyboard backend: %s", is_tca ? "TCA8418" : "GPIO matrix");
 
     bool caps = false;
     bool prev_down[cardputer_kb::kRows * cardputer_kb::kCols + 1] = {false}; // index 1..56
@@ -162,13 +158,15 @@ static void kb_task_main(void *arg)
             }
         }
 
-        const bool shift = is_adv ? down[29] : down[30];
+        const bool fn = down[29];
+        const bool shift = down[30];
         const bool ctrl = down[43];
-        const bool alt = is_adv ? down[45] : (down[45] || down[44]); // treat Opt as Alt on Cardputer
         const bool opt = down[44];
-        const bool fn = is_adv ? opt : down[29]; // ADV: treat Opt as Fn-like modifier
+        const bool alt = down[45];
 
-        if (is_adv && down[30] && !prev_down[30]) {
+        // Optional capslock toggle if this keyboard variant exposes one.
+        // If the current legend at keynum 30 is "capslock", toggle caps on press edge.
+        if (key_is(&map[2][1], "capslock") && down[30] && !prev_down[30]) {
             caps = !caps;
         }
 
@@ -193,14 +191,8 @@ static void kb_task_main(void *arg)
             }
 
             // Never emit modifier keys as text.
-            if (is_adv) {
-                if (keynum_is_modifier_adv(keynum)) {
-                    continue;
-                }
-            } else {
-                if (keynum_is_modifier_cardputer(keynum)) {
-                    continue;
-                }
+            if (keynum_is_modifier_cardputer(keynum)) {
+                continue;
             }
 
             const KeyValue *kv = key_value_for_keynum(map, keynum);
@@ -212,8 +204,6 @@ static void kb_task_main(void *arg)
             //
             // Cardputer (captured bindings): Fn(29) + {;,(.),, ,/} => {Up,Down,Left,Right}
             // Back: Fn(29) + ` (keynum 1)
-            //
-            // Cardputer-ADV: there is no dedicated Fn key; we treat Opt as Fn-like (fn==true above).
             if (fn) {
                 if (keynum == 40) { // ;
                     ui_key_event_t ev = {};
