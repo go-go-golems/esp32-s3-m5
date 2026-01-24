@@ -271,3 +271,64 @@ The implementation strategy is incremental: add `/api/js/eval` first (one reques
 ### Technical details
 - Target firmware directory:
   - `0066-cardputer-adv-ledchain-gfx-sim/`
+
+---
+
+## Step 4: Add embedded Web IDE assets and WebSocket endpoint (commit b7d17ea) (2026-01-24)
+
+This step establishes the “plumbing” needed for a browser-based workflow: the firmware can now serve stable static assets from flash and accept WebSocket connections for device→browser streaming. Even before JS eval is wired up, this creates a stable place for the UI to live and a stable URL (`/ws`) for an event stream to eventually flow through.
+
+I kept the web UI intentionally small (no bundler, no framework): a single `index.html` plus `app.js`/`app.css`, embedded directly into the firmware image with `EMBED_FILES`. This keeps the firmware build deterministic and makes iteration cheap.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Alright, implement it all, Create tasks in the ticket and check them off as you go, commit to git as you go, keep a frequent diary."
+
+**Assistant interpretation:** Implement the REST+WS+Web IDE pattern inside tutorial 0066 incrementally, committing as each subsystem becomes real and testable.
+
+**Inferred user intent:** You want to open a browser, run JS on-device, and see outputs/events without depending on a serial REPL as the primary UI.
+
+**Commit (code):** b7d17ea — "0066: serve web assets and add /ws WebSocket"
+
+### What I did
+- Added embedded assets for a minimal browser UI:
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js`
+  - `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.css`
+- Updated `0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt` to embed the new asset files and depend on `httpd_ws_hub`.
+- Enabled ESP-IDF HTTP server WS support in `0066-cardputer-adv-ledchain-gfx-sim/sdkconfig.defaults` (`CONFIG_HTTPD_WS_SUPPORT=y`).
+- Extended `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`:
+  - serve `/assets/app.js` and `/assets/app.css`
+  - register `/ws` as a WebSocket endpoint using `components/httpd_ws_hub`
+  - expose `http_server_ws_broadcast_text()` as the eventual “device→browser pipe”
+
+### Why
+- Serving the UI from the device makes the workflow self-contained (no external dev server).
+- A WS endpoint is the simplest way to get “push” semantics for logs/events without long-polling.
+
+### What worked
+- The `httpd_assets_embed` + `EMBED_FILES` approach keeps asset paths stable (`/assets/app.js`) and matches the repo’s proven web-ui tutorials.
+
+### What didn't work
+- N/A (no runtime validation yet; the JS eval endpoint and event flushing are still to come).
+
+### What I learned
+- 0066 already had a minimal `/api/status` + `/api/apply` UI. Extending it into a JS IDE is mostly additive: keep pattern controls, add a JS panel, and later wire `Run` to `/api/js/eval`.
+
+### What was tricky to build
+- WebSocket support in ESP-IDF is compile-time gated (`CONFIG_HTTPD_WS_SUPPORT`), so it must be enabled explicitly in the firmware defaults to avoid “works on my sdkconfig” drift.
+
+### What warrants a second pair of eyes
+- WS handler `.handle_ws_control_frames`: currently set to `true` (copied from the 0048 pattern). If we see noisy behavior, we can flip this to `false` and rely on the server to handle control frames internally.
+
+### What should be done in the future
+- Add `/api/js/eval` and make the `Run` button functional.
+- Add a JS-side event buffer (`emit(...)`) and flush it into `/ws`.
+
+### Code review instructions
+- `0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp`
+- `0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html`
+- `0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js`
+
+### Technical details
+- Asset embedding is declared in `0066-cardputer-adv-ledchain-gfx-sim/main/CMakeLists.txt` under `EMBED_FILES`.

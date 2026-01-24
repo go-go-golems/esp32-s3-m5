@@ -24,3 +24,14 @@ Begin implementation phase: added 0066 integration tasks and diary step for REST
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/23/0066a-cardputer-js-rest-api-and-web-ide--cardputer-js-rest-api-web-ide-microquickjs/reference/01-diary.md — Recorded implementation plan and target firmware
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/23/0066a-cardputer-js-rest-api-and-web-ide--cardputer-js-rest-api-web-ide-microquickjs/tasks.md — Added implementation tasks (7-12)
 
+
+## 2026-01-23
+
+Implement 0066 web IDE plumbing: embedded assets + /ws WebSocket endpoint (commit b7d17ea).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/app.js — Browser-side eval + WS client
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/assets/index.html — Web IDE shell UI
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0066-cardputer-adv-ledchain-gfx-sim/main/http_server.cpp — Added /assets/* and /ws endpoint + broadcast helper
+
