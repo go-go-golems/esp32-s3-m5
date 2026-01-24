@@ -561,6 +561,67 @@ The end result is that `idf.py build` for 0066 now succeeds under IDF 5.4.1, and
 ### Technical details
 - Key commits: `e9ce104`, `4b4c6d6`, `35e6f35`
 
+## Step 17: Overwrite the reMarkable PDF bundle (post-0066 + build fixes)
+
+This step republishes the ticket bundle to the reMarkable, overwriting the existing PDF so it reflects the latest 0066 migration work and the ESP-IDF 5.4.1 build fixes. The goal is to keep the device copy in sync with the canonical ticket sources (tasks, textbook, diary, changelog).
+
+Because the upload is bundled, readers get one PDF with a ToC that includes the index, tasks, textbook doc, diary, and changelog, rather than multiple separate PDFs that drift over time.
+
+### Prompt Context
+
+**User prompt (verbatim):** "upload to remarkable
+we want one consistent component, not split up in 5 smaller ones.
+  - can we determine which keyboard is what programmatically? to differentiate between ADV and non-ADV?
+ 
+  Update the design, overwrite the pdf on remarkable."
+
+**Assistant interpretation:** Re-upload the ticket bundle as a single PDF and overwrite the existing reMarkable document so the updated design/diary is what’s on-device.
+
+**Inferred user intent:** Keep the reMarkable copy authoritative for review/reading, not a stale snapshot.
+
+**Commit (code):** N/A
+
+### What I did
+- Uploaded a bundled PDF (force overwrite) containing:
+  - `index.md`
+  - `tasks.md`
+  - `design-doc/01-textbook-how-the-cardputer-demo-ui-works.md`
+  - `reference/01-diary.md`
+  - `changelog.md`
+- Target folder: `/ai/2026/01/24/G10-ANALYZE-DEMO-UI`
+- Document name: `G10-ANALYZE-DEMO-UI - Demo UI Textbook`
+
+### Why
+- A single, overwritten bundle keeps the reMarkable document consistent with the ticket and avoids “which PDF is latest?” confusion.
+
+### What worked
+- `remarquee upload bundle --force ...` successfully overwrote the PDF in the ticket folder.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Bundling `tasks.md` + `changelog.md` alongside the textbook + diary makes the PDF self-contained for reading and review.
+
+### What was tricky to build
+- N/A (workflow-only)
+
+### What warrants a second pair of eyes
+- Reminder: `--force` overwrites the document and deletes annotations on-device; this is correct per request, but always worth double-checking intent.
+
+### What should be done in the future
+- If overwrites become too costly (annotation loss), switch to versioned filenames (e.g. `... v2`) and leave old copies intact.
+
+### Code review instructions
+- Verify the reMarkable folder contains the updated PDF:
+  - `remarquee cloud ls /ai/2026/01/24/G10-ANALYZE-DEMO-UI --long --non-interactive`
+
+### Technical details
+- Commands run:
+  - `remarquee upload bundle --dry-run ... --name "G10-ANALYZE-DEMO-UI - Demo UI Textbook" --remote-dir "/ai/2026/01/24/G10-ANALYZE-DEMO-UI" --toc-depth 2`
+  - `remarquee upload bundle --force ... --name "G10-ANALYZE-DEMO-UI - Demo UI Textbook" --remote-dir "/ai/2026/01/24/G10-ANALYZE-DEMO-UI" --toc-depth 2`
+  - `remarquee cloud ls /ai/2026/01/24/G10-ANALYZE-DEMO-UI --long --non-interactive`
+
 ## Step 14: Fix C++ designated initializer portability (commit f98d5fd)
 
 After adding the TCA8418 backend, I noticed `unified_scanner.cpp` used a designated initializer for `i2c_master_bus_config_t`. ESP-IDF projects commonly compile as C++17; designated initializers are C++20, so this could break builds depending on toolchain flags. Switched to explicit `memset + field assignment` to keep it portable.

@@ -19,4 +19,4 @@
 - [x] Update `components/cardputer_kb` docs (README/REFERENCE/TUTORIAL) to point to the unified component
 - [x] Commit changes and record steps in diary
 - [x] Migrate tutorial 0066 to UnifiedScanner (autodetect Cardputer vs Cardputer-ADV; remove local TCA driver)
-- [ ] Overwrite reMarkable PDF bundle with updated 0066 content
+- [x] Overwrite reMarkable PDF bundle with updated 0066 content

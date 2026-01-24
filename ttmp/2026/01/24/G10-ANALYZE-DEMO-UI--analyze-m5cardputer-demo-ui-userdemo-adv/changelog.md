@@ -24,3 +24,12 @@ Step 16: make UnifiedScanner build cleanly on ESP-IDF 5.4.1 (commits e9ce104, 4b
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/tca8418.h — extern C wrappers for C driver
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/cardputer_kb/unified_scanner.cpp — Fix gpio_num_t casts
 
+
+## 2026-01-24
+
+Step 17: overwrite reMarkable PDF bundle
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/G10-ANALYZE-DEMO-UI--analyze-m5cardputer-demo-ui-userdemo-adv/reference/01-diary.md — Record reMarkable upload bundle details
+
