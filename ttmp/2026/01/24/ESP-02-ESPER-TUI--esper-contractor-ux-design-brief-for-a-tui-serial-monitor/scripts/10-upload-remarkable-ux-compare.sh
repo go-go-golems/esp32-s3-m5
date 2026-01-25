@@ -20,6 +20,7 @@ REMOTE_DIR="${REMOTE_DIR:-/ai/${DATE}/ESP-02-ESPER-TUI}"
 NAME="${NAME:-ESP-02-ESPER-TUI — UX compare + iteration playbook}"
 
 DRY_RUN="${DRY_RUN:-1}"
+FORCE="${FORCE:-0}"
 
 if [[ ! -f "${COMPARE_DOC}" ]]; then
   echo "missing: ${COMPARE_DOC}" >&2
@@ -36,9 +37,14 @@ if [[ "${DRY_RUN}" == "1" ]]; then
     --toc-depth 2
 fi
 
+FORCE_FLAG=()
+if [[ "${FORCE}" == "1" ]]; then
+  FORCE_FLAG+=(--force)
+fi
+
 exec remarquee upload bundle \
   "${COMPARE_DOC}" "${PLAYBOOK_DOC}" \
+  "${FORCE_FLAG[@]}" \
   --name "${NAME}" \
   --remote-dir "${REMOTE_DIR}" \
   --toc-depth 2
-

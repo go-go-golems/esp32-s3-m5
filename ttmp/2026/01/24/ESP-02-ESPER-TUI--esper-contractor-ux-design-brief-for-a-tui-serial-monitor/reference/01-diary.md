@@ -895,3 +895,8 @@ Scripts added:
 ### Notes
 - The architecture section explicitly calls out the biggest refactor opportunity:
   - unify overlay handling across screens (help/search/filter/palette) to reduce duplicated routing and keep behavior consistent.
+
+### Upload (overwrite)
+- The reMarkable upload is name-colliding by design (same PDF name). `remarquee` will skip unless `--force` is used.
+- Command:
+  - `FORCE=1 DRY_RUN=0 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
