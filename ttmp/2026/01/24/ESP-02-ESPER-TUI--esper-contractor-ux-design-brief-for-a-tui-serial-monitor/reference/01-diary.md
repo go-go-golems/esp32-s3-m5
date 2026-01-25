@@ -556,7 +556,7 @@ This step adds small shell scripts under the ticket’s `scripts/` directory so 
 - Add a “serial transcript capture” script once we decide on the preferred tool (miniterm/picocom/socat) in this environment.
 
 ### Code review instructions
-- Start at `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/README.md`.
+- Start at `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/00-readme.md`.
 
 ## Step 9: Implement `esper tail` (non-TUI pipeline streamer) + ticketing
 

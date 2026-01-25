@@ -1,3 +1,23 @@
+---
+Title: 'ESP-02-ESPER-TUI scripts'
+Ticket: ESP-02-ESPER-TUI
+Status: active
+Topics:
+    - serial
+    - console
+    - tooling
+    - debugging
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Runnable scripts for reproducing hardware and CLI test steps for ESP-02-ESPER-TUI."
+LastUpdated: 2026-01-25T00:15:00-05:00
+WhatFor: "Capture exact command sequences as executable scripts for repeatability and audit."
+WhenToUse: "Use when reproducing or updating hardware/CLI smoke tests for esper."
+---
+
 # ESP-02-ESPER-TUI scripts
 
 These scripts capture the exact, repeatable command sequences used for hardware testing and TUI smoke tests.
