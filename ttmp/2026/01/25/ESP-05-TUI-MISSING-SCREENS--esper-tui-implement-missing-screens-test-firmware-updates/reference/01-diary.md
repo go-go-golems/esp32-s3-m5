@@ -277,3 +277,39 @@ Capture (real hardware; auto-trigger slow core dump):
 ### Notes / follow-ups
 
 - The progress bar currently assumes a ~64 KiB target for a “moving” UI. For real parity with the wireframe’s `current/total`, we should track an explicit total when available (or show `— / —` when not).
+
+---
+
+## Step 5: Implement Inspector detail views (Panic Detail + Core Dump Report) + capture
+
+This step implements the missing Inspector “detail screens” from UX spec §1.3:
+- Panic Detail View (Raw Backtrace + Decoded Frames)
+- Core Dump Report (status/size/path + decoded output)
+
+I implemented these as a large overlay that opens from the Inspector list when focused on the event list and pressing Enter.
+
+### What I changed (nested `esper/` repo)
+
+**Key behavior:**
+- In HOST mode, when Inspector is visible and focused (`Tab`), `Enter` opens a detail overlay for the selected event.
+- Detail overlay is scrollable (viewport) and uses Lip Gloss for layout and box styling.
+- For panic events:
+  - Store both the raw backtrace line and decoded frames in the event body so the detail view can render both sections.
+- For core dump events:
+  - Store a summary (status/size/saved path) plus the decoded output (or error output) so the detail view can render a report box.
+
+### What I ran (commands)
+
+- `cd esper && go test ./... -count=1`
+- Capture (real hardware; deterministic triggers + tmux-driven key presses):
+  - `bash ./ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/scripts/05-tmux-capture-inspector-detail-screens.sh`
+
+### Artifacts
+
+- Capture set (panic + coredump detail overlays):
+  - `ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/inspector_details_20260125-155050/`
+
+### Notes / follow-ups
+
+- Wireframe includes copy/save/jump actions (`c/C/s/r/j`) that are not wired yet.
+- Wireframe includes a “Context” box for panic details; we currently don’t parse register dump context into a structured event.

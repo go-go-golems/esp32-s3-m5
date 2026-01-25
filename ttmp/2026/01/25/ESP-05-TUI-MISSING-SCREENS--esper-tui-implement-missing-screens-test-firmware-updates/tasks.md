@@ -30,9 +30,9 @@ Enabling plumbing (must happen before “auto overlays”):
 - [x] TUI plumbing: add `closeOverlayMsg` (and/or `replaceOverlayMsg`) so screens can close auto-overlays deterministically
 
 Missing monitor/inspector screens (wireframe §1.3):
-- [ ] Screen: Panic Detail View (open from Inspector event; scrollable; copy/save affordances as per spec)
+- [x] Screen: Panic Detail View (open from Inspector event; scrollable; copy/save affordances as per spec)
 - [x] Screen: Core Dump Capture In Progress overlay (auto-show while buffering)
-- [ ] Screen: Core Dump Report view (open from event; scrollable; show decode status; raw + report)
+- [x] Screen: Core Dump Report view (open from event; scrollable; show decode status; raw + report)
 
 Missing confirmation dialogs (wireframe §2.5):
 - [ ] Screen: Reset Device confirmation overlay (safe default: Cancel)

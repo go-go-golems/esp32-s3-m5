@@ -53,8 +53,6 @@ Immediate next implementation steps (in order):
 ## Screens still missing (not yet implemented or not yet captured)
 
 Missing implementations:
-- Panic detail view (Inspector) (§1.3 “Panic Detail View”).
-- Core dump report view (§1.3 “Core Dump Report”).
 - Reset device confirmation overlay (§2.5 “Reset Device”).
 - Search highlighting and match annotations in viewport (§2.2).
 - Filter highlight rules editor (§2.3).
@@ -215,6 +213,84 @@ Desired (wireframe, verbatim):
 Discrepancies + plan:
 - We estimate percent using a 64 KiB target; wireframe shows an explicit `current/total` byte count. Plan: track buffered bytes and show both; if total is unknown, show “— / —” and keep the bar.
 - Our overlay is already centered and dims background, but background content differs (firmware prints a warning about escape sequences). Plan: ignore (firmware-side cosmetic).
+
+## Panic Detail View (Inspector, 120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/inspector_details_20260125-155050/120x40-02-panic-detail.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ Inspector ─ PANIC ─ 12:34:52 ───────────────────────────────────────────────────────────┐
+│                                                                                          │
+│  ┌─ Raw Backtrace ──────────────────────────────────────────────────────────────────┐   │
+│  │ Backtrace: 0x40082a39:0x3ffb5c70 0x400d1e7c:0x3ffb5c90 0x400d2145:0x3ffb5cb0     │   │
+│  │            0x400d2567:0x3ffb5cd0 0x40084d21:0x3ffb5cf0                            │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                          │
+│  ┌─ Decoded Frames ─────────────────────────────────────────────────────────────────┐   │
+│  │ #0  0x40082a39 in app_main at /project/main/app_main.c:42                        │   │
+│  │ #1  0x400d1e7c in wifi_init at /project/components/wifi/wifi.c:156               │   │
+│  │ #2  0x400d2145 in esp_wifi_start at /esp-idf/components/esp_wifi/src/wifi.c:890  │   │
+│  │ #3  0x400d2567 in main_task at /esp-idf/components/freertos/app_startup.c:208    │   │
+│  │ #4  0x40084d21 in vPortTaskWrapper at /esp-idf/components/freertos/port.c:131    │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                          │
+│  ┌─ Context ────────────────────────────────────────────────────────────────────────┐   │
+│  │ Error: LoadProhibited                                                            │   │
+│  │ Core: 0                                                                          │   │
+│  │ PC: 0x40082a3c   A0: 0x800d1e7f   A1: 0x3ffb5c70                                │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                          │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ c Copy raw   C Copy decoded   j Jump to log   Tab Next event   Esc Close                 │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- We currently show Raw + Decoded, but not the Context box. Plan: parse panic register dump lines into a structured event so we can render the Context section.
+- Wireframe shows copy actions; we haven't wired copy yet. Plan: use the existing clipboard dependency (already in `go.mod`) and add `c/C` key handling to copy raw/decoded sections.
+
+## Core Dump Report (Inspector, 120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/inspector_details_20260125-155050/120x40-03b-coredump-report.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ Inspector ─ COREDUMP ─ 12:30:15 ────────────────────────────────────────────────────────┐
+│                                                                                          │
+│  Status: ✓ Captured and decoded successfully                                            │
+│  Size: 65,536 bytes                                                                      │
+│  Saved to: /tmp/esper-coredump-20260125-123015.bin                                       │
+│                                                                                          │
+│  ┌─ Decoded Report (truncated) ─────────────────────────────────────────────────────┐   │
+│  │ espcoredump.py v1.2                                                              │   │
+│  │ Crash: LoadProhibited                                                            │   │
+│  │ Task: main (0x3ffb5c00)                                                          │   │
+│  │                                                                                  │   │
+│  │ Backtrace:                                                                       │   │
+│  │   #0 app_main (/project/main/app_main.c:42)                                      │   │
+│  │   #1 wifi_init (/project/components/wifi/wifi.c:156)                             │   │
+│  │   ...                                                                            │   │
+│  │                                                                                  │   │
+│  │ Thread 1 (main):                                                                 │   │
+│  │   Stack: 0x3ffb5c00 - 0x3ffb6000 (4096 bytes)                                    │   │
+│  │   Registers: PC=0x40082a3c SP=0x3ffb5c70 ...                                     │   │
+│  └──────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                          │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ c Copy report   s Save full report   r Copy raw base64   j Jump to log   Esc Close       │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- We show status/size/path and a decoded report box, but we don't provide the footer actions yet (`c/s/r/j`). Plan: implement copy/save actions next; saving should write report + raw base64 to predictable locations.
+- Our core dump decode currently fails for the fake payload (expected). Plan: either (a) keep UI working for “decode failed” case, and (b) optionally add a “real” coredump emitter path in firmware if we want success cases for screenshots.
 
 ## Search overlay (HOST, 120×40)
 

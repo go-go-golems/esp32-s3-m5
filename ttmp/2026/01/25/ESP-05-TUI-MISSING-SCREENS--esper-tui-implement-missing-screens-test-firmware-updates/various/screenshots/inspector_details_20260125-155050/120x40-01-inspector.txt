@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 ── 115200 ── EL…│
+│I (97) app_init: Application information:                                     ┌─────────────────────────────────────┐ │
+│I (97) app_init: Project name:     esp32s3-test                               │ Inspector                           │ │
+│I (98) app_init: App version:      a8d8e44-dirty                              │ focus: inspector  events:5          │ │
+│I (98) app_init: Compile time:     Jan 25 2026 15:31:50                       │                                     │ │
+│I (98) app_init: ELF file SHA256:  b767e10ee...                               │ 15:50:52 gdb     GDB stub detected  │ │
+│I (98) app_init: ESP-IDF:          v5.4.1                                     │ 15:50:52 coredump Core dump prompt  │ │
+│I (98) efuse_init: Min chip rev:     v0.0                                     │ detected                            │ │
+│I (98) efuse_init: Max chip rev:     v0.99                                    │ 15:50:52 coredump Core dump capture │ │
+│I (99) efuse_init: Chip rev:         v0.2                                     │ started                             │ │
+│I (99) heap_init: Initializing. RAM available for dynamic allocation:         │ 15:50:53 coredump Core dump report  │ │
+│I (99) heap_init: At 3FC96210 len 00053500 (333 KiB): RAM                     │ 15:50:54 panic   Backtrace decoded  │ │
+│I (99) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM                      │                                     │ │
+│I (99) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM                     │                                     │ │
+│I (100) heap_init: At 600FE11C len 00001ECC (7 KiB): RTCRAM                   │                                     │ │
+│I (101) spi_flash: detected chip: gd                                          │                                     │ │
+│I (101) spi_flash: flash io: dio                                              │                                     │ │
+│W (101) spi_flash: Detected size(8192k) larger than the size in the binary ima│                                     │ │
+│I (102) sleep_gpio: Configure to isolate all GPIO pins in sleep state         │                                     │ │
+│I (102) sleep_gpio: Enable automatic switching of GPIO sleep configuration    │                                     │ │
+│I (103) main_task: Started on CPU0                                            │                                     │ │
+│I (113) main_task: Calling app_main()                                         │                                     │ │
+│I (113) esper_test: boot: esper test firmware                                 │                                     │ │
+│                                                                              │                                     │ │
+│Type 'help' to get the list of commands.                                      │                                     │ │
+│Use UP/DOWN arrows to navigate through command history.                       │                                     │ │
+│Press TAB when typing command name to auto-complete.                          │                                     │ │
+│                                                                              │                                     │ │
+│Your terminal application does not support escape sequences.                  │                                     │ │
+│                                                                              │                                     │ │
+│Line editing and history features are disabled.                               │                                     │ │
+│                                                                              │                                     │ │
+│On Windows, try using Putty instead.                                          │                                     │ │
+│esper>  I (613) esper_test: esp_console started over USB Serial/JTAG (try: hel│                                     │ │
+│I (613) main_task: Returned from app_main()                                   │                                     │ │
+│                                                                              │ T05                                 │ │
+│                                                                              └─────────────────────────────────────┘ │
+│Mode: HOST │ Follow: OFF │ Inspect: ON │ Capture: — │ Filter: — │ Search: — │ Buf: 5K/1M │ 15:50:58                   │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 ── 115200 ── EL…│
+│I (97) app_init: Application information:                                     ┌─────────────────────────────────────┐ │
+│   ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                                                                                              │   │
+│   │  Inspector — PANIC — 15:50:54                                                                                │   │
+│   │                                                                                                              │   │
+│   │                                                                                                              │   │
+│   │  ┌───────────────────────────────────────────────────────────────────────────────────────────────────────    │   │
+│   │  │ Raw Backtrace                                                                                             │   │
+│   │  │                                                                                                           │   │
+│   │  │ Backtrace: 0x40375a81:0x3fc9b350 0x4037a7d1:0x3fc9b370 0x40380ee1:0x3fc9b390 0x420086a3:0x3fc9b400 0      │   │
+│   │  │ x42008886:0x3fc9b420 0x42008e13:0x3fc9b450 0x42009022:0x3fc9b470 0x4037b099:0x3fc9b4a0                    │   │
+│   │  └───────────────────────────────────────────────────────────────────────────────────────────────────────    │   │
+│   │                                                                                                              │   │
+│   │  ┌───────────────────────────────────────────────────────────────────────────────────────────────────────    │   │
+│   │  │ Decoded Frames                                                                                            │   │
+│   │  │                                                                                                           │   │
+│   │  │ --- Decoded backtrace (addr2line):                                                                        │   │
+│   │  │ ---   0x40375a81: panic_abort at /home/manuel/esp/esp-idf-5.4.1/components/esp_system/panic.c:454         │   │
+│   │  │ ---   0x4037a7d1: esp_system_abort at /home/manuel/esp/esp-idf-5.4.1/components/esp_system/port/esp_      │   │
+│   │  │ system_chip.c:87                                                                                          │   │
+│   │  │ ---   0x40380ee1: abort at /home/manuel/esp/esp-idf-5.4.1/components/newlib/abort.c:38                    │   │
+│   │  │ ---   0x420086a3: cmd_panic at /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m      │   │
+│   │  │ 5/esper/firmware/esp32s3-test/main/main.c:130                                                             │   │
+│   │  │ ---   0x42008886: cmd_emitall at /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3      │   │
+│   │  │ -m5/esper/firmware/esp32s3-test/main/main.c:121                                                           │   │
+│   │  │ ---   0x42008e13: esp_console_run at /home/manuel/esp/esp-idf-5.4.1/components/console/commands.c:25      │   │
+│   │  │ 7                                                                                                         │   │
+│   │  │ ---   0x42009022: esp_console_repl_task at /home/manuel/esp/esp-idf-5.4.1/components/console/esp_con      │   │
+│   │  │ sole_common.c:177                                                                                         │   │
+│   │  │ ---   0x4037b099: vPortTaskWrapper at /home/manuel/esp/esp-idf-5.4.1/components/freertos/FreeRTOS-Ke      │   │
+│   │  Esc Close   PgUp/PgDn scroll                                                                                │   │
+│   │                                                                                                              │   │
+│   │                                                                                                              │   │
+│   │                                                                                                              │   │
+│   └──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │ Backtrace: 0x40375a81:0x3fc9b350    │ │
+│                                                                              │ 0x4037a7d1:0x3fc9b370               │ │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
