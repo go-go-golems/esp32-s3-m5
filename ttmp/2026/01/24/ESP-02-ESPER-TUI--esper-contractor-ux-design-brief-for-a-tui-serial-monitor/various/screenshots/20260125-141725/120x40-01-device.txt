@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 ── 115200 ── EL…│
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│                                                                                                                      │
+│Mode: DEVICE │ Follow: ON │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 16K/1M │ 14:17:26                │
+│> [                                                                                                                  …│
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

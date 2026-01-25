@@ -1,0 +1,24 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentatio…│
+│I (12) wifi: connected ssid=lab-185                                           │
+│I (12) wifi: connected ssid=lab-186                                           │
+│I (12) wifi: connected ssid=lab-187                                           │
+│I (12) wifi: connected ssid=lab-188                                           │
+│I (12) wifi: connected ssid=lab-189                                           │
+│W (34) http: slow response 289ms                                              │
+│I (12) wifi: connected ssid=lab-190                                           │
+│I (12) wifi: connected ssid=lab-191                                           │
+│I (12) wifi: connected ssid=lab-192                                           │
+│I (12) wifi: connected ssid=lab-193                                           │
+│I (12) wifi: connected ssid=lab-194                                           │
+│I (12) wifi: connected ssid=lab-195                                           │
+│I (12) wifi: connected ssid=lab-196                                           │
+│W (34) http: slow response 296ms                                              │
+│I (12) wifi: connected ssid=lab-197                                           │
+│I (12) wifi: connected ssid=lab-198                                           │
+│I (12) wifi: connected ssid=lab-199                                           │
+│I (12) wifi: connected ssid=lab-200                                           │
+│                                                                              │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — …│
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   /…│
+└──────────────────────────────────────────────────────────────────────────────┘

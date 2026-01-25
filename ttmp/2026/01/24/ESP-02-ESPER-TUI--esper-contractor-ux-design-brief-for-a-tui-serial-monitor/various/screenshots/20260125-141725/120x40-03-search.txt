@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 ── 115200 ── EL…│
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│ ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│ │                                                                                                                 │  │
+│ │  Search                                                                                                         │  │
+│ │                                                                                                                 │  │
+│ │  / wifi                                                                                                         │  │
+│ │                                                                                                                 │  │
+│ │  Enter: jump  n/N: next/prev  Esc: close                                                                        │  │
+│ │                                                                                                                 │  │
+│ └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│--- serial error: Port has been closed                                                                                │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 35K/1M │ 14:17:27                 │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESP…│
+│I (12) wifi: connected ssid=lab-072                                                                                   │
+│I (12) wifi: connected ssid=lab-073                                                                                   │
+│I (12) wifi: connected ssid=lab-074                                                                                   │
+│I (12) wifi: connected ssid=lab-075                                                                                   │
+│I (12) wifi: connected ssid=lab-076                                                                                   │
+│I (12) wifi: connected ssid=lab-077                                                                                   │
+│W (34) http: slow response 177ms                                                                                      │
+│I (12) wifi: connected ssid=lab-078                                                                                   │
+│I (12) wifi: connected ssid=lab-079                                                                                   │
+│┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │
+││                                                                                                                   │ │
+││  Commands                                                                                                         │ │
+││                                                                                                                   │ │
+││  > Type to filter commands...                                                                                     │ │
+││                                                                                                                   │ │
+││  Search log output                                                                                  /             │ │
+││  Filter by level/regex                                                                              f             │ │
+││  Toggle Inspector                                                                                   i             │ │
+││  Disconnect                                                                                         Ctrl-D        │ │
+││  Clear viewport                                                                                     Ctrl-L        │ │
+││  Help                                                                                               ?             │ │
+││  Quit                                                                                               Ctrl-C        │ │
+││                                                                                                                   │ │
+││  ↑/↓ select  Enter run  Esc close                                                                                 │ │
+││                                                                                                                   │ │
+│└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ │
+│I (12) wifi: connected ssid=lab-094                                                                                   │
+│I (12) wifi: connected ssid=lab-095                                                                                   │
+│I (12) wifi: connected ssid=lab-096                                                                                   │
+│I (12) wifi: connected ssid=lab-097                                                                                   │
+│I (12) wifi: connected ssid=lab-098                                                                                   │
+│W (34) http: slow response 198ms                                                                                      │
+│I (12) wifi: connected ssid=lab-099                                                                                   │
+│I (12) wifi: connected ssid=lab-100                                                                                   │
+│I (12) wifi: connected ssid=lab-101                                                                                   │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 6K/1M │ 14:25:14                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
