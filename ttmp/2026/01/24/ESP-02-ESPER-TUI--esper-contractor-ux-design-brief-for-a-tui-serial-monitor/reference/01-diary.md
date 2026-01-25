@@ -871,3 +871,27 @@ Scripts added:
   - `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
 - Upload:
   - `DRY_RUN=0 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
+
+---
+
+## 2026-01-25 — Expand compare doc: discrepancy analysis, missing screens, architecture review
+
+### Summary
+- Expanded the “current vs desired” compare doc to include:
+  - discrepancy analysis + planned fixes (per screen and as an overall summary)
+  - a list of missing screens (not implemented/captured yet)
+  - a Bubble Tea model/architecture review focused on reuse and unified UI styling
+
+### What changed
+- Updated:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md`
+
+### Why
+- The prior compare doc was good for “visual diff”, but it didn’t capture the important follow-on context:
+  - what is most different from the wireframes
+  - which screens are still missing entirely
+  - how the current Bubble Tea model structure helps/hurts fast iteration
+
+### Notes
+- The architecture section explicitly calls out the biggest refactor opportunity:
+  - unify overlay handling across screens (help/search/filter/palette) to reduce duplicated routing and keep behavior consistent.

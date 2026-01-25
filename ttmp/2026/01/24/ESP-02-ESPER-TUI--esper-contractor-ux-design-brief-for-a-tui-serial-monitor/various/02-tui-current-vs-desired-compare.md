@@ -14,7 +14,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh
 Summary: "Single document to review implementation screenshots with the desired wireframe immediately underneath."
-LastUpdated: 2026-01-25T10:12:00-05:00
+LastUpdated: 2026-01-25T10:22:00-05:00
 ---
 
 # Current vs desired (quick compare)
@@ -28,6 +28,37 @@ Current capture set used here:
 
 To regenerate (deterministic):
 - `USE_VIRTUAL_PTY=1 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+
+## Discrepancies (summary) + plan
+
+This is the “fast feedback” view of what’s most different right now and what I plan to do next.
+
+Top discrepancies:
+- Search overlay: currently a centered modal; wireframe expects a bottom bar with match count and in-viewport match indicators/highlight.
+- Filter overlay: currently only E/W/I + include/exclude; wireframe expects D/V plus highlight rules editor.
+- Command palette: currently minimal commands; wireframe expects more commands + grouping separators.
+- HOST scrollback layout: wireframe expects a specific HOST footer + scroll indicators; current implementation differs.
+
+Immediate next implementation steps (in order):
+1) Refactor search into a bottom “search bar” footer mode (HOST), add live match count, add match highlight/markers in viewport.
+2) Extend filter config to include D/V and implement highlight rules (pattern → style) and application in viewport render pipeline.
+3) Expand command palette command set + visual grouping; wire the new actions to monitor/app actions.
+4) Add captures for missing wireframes (core dump capture, core dump report, reset confirmation, etc.) once screens exist.
+
+## Screens still missing (not yet implemented or not yet captured)
+
+Missing implementations:
+- Panic detail view (Inspector) (§1.3 “Panic Detail View”).
+- Core dump capture progress overlay (§1.3 “Core Dump Capture In Progress”).
+- Core dump report view (§1.3 “Core Dump Report”).
+- Reset device confirmation overlay (§2.5 “Reset Device”).
+- Search highlighting and match annotations in viewport (§2.2).
+- Filter highlight rules editor (§2.3).
+- Command palette extra commands + separators (§2.4).
+
+Missing captures (screen exists but not included in this compare doc yet):
+- Port picker (80×24 variants) (§1.1 wireframes).
+- Help overlay (§2.1).
 
 ## Monitor — Normal Mode (DEVICE, 120×40)
 
@@ -68,6 +99,47 @@ Desired (wireframe, verbatim):
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+Discrepancies + plan:
+- Title bar: wireframe shows a concise connected port; current UI may truncate long paths. Plan: keep truncation but prefer a short display name (device nickname or basename) while preserving full path elsewhere (tooltip/help).
+- Status bar: wireframe fields differ slightly. Plan: align labels/ordering and add scrollback indicator when not following.
+
+## Monitor — Scrollback Mode (HOST, 120×40)
+
+Current:
+
+![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/120x40-02-host.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG-if00 ── 115200 ── ELF: ✓ ──┐
+│                                                                                          │
+│ I (1523) wifi: wifi driver task: 3ffc1e4c, prio:23, stack:6656, core=0                   │
+│ I (1527) system_api: Base MAC address is not set                                         │
+│ I (1533) system_api: read default base MAC address from EFUSE                            │
+│ I (1540) wifi: wifi firmware version: 3.0                                                │
+│ I (1545) wifi: config NVS flash: enabled                                                 │
+│ W (1550) wifi: Warning: NVS partition low on space                                       │
+│ I (1556) wifi_init: rx ba win: 6                                                         │ █
+│ I (1560) wifi_init: tcpip mbox: 32                                                       │ █
+│ I (1565) wifi_init: udp mbox: 6                                                          │ ░
+│ I (1570) wifi_init: tcp mbox: 6                                                          │ ░
+│ I (1575) wifi_init: tcp tx win: 5744                                                     │ ░
+│ I (1580) wifi_init: tcp rx win: 5744                                                     │ ░
+│ I (1585) wifi_init: tcp mss: 1436                                                        │ ░
+│                                                                           ▲ 847 more ▼   │
+│                                                                                          │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ Mode: HOST  │ Follow: OFF [G=resume] │ Capture: — │ Filter: — │ Search: — │ Buf: 512K/1M │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ Ctrl-T: HOST COMMANDS   Type to search scrollback, Enter to send to device              │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- Footer: current footer differs from the wireframe (“Ctrl-T: HOST COMMANDS …”). Plan: switch HOST footer to match the wireframe (and incorporate search/filter/palette hints in a consistent, compact way).
+- Scroll indicators/right-side bar: not implemented. Plan: add a right-side “scrollbar” and/or “▲ N more ▼” indicator when the viewport is not at the bottom/top, using Lip Gloss for layout.
+
 ## Inspector — Right Panel (HOST, 120×40)
 
 Current:
@@ -99,6 +171,9 @@ Desired (wireframe, verbatim):
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+Discrepancies + plan:
+- Wireframe shows a richer events list (“Events (3)”, event grouping, “Press Enter to view”). Plan: restructure inspector into a reusable list model with richer rows and a detail view mode (panic/coredump/gdb) as separate sub-screens.
+
 ## Search overlay (HOST, 120×40)
 
 Current:
@@ -124,6 +199,13 @@ Desired (wireframe, verbatim):
 │ Search: [wifi_init                                       ] │ 5 matches │ n:next N:prev   │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Discrepancies + plan:
+- Wireframe uses a bottom bar (not a modal). Plan: re-render search as a bottom bar that replaces the normal DEVICE input/footer area in HOST mode.
+- Wireframe shows match count + match markers in viewport. Plan:
+  - compute match indices live while typing
+  - show `cur/total` and `n/N` hint in the bottom bar
+  - add match highlight/markers in the viewport render (without corrupting ANSI color output)
 
 ## Filter overlay (HOST, 120×40)
 
@@ -158,6 +240,10 @@ Desired (wireframe, verbatim):
 │                                                                                          │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Discrepancies + plan:
+- Missing D/V level toggles. Plan: extend filter config and level detection to include Debug/Verbose (best-effort; ESP-IDF uses `D (` / `V (` prefixes similarly).
+- Missing highlight rules editor. Plan: add a highlight rules list model (pattern + style), and apply highlight styles after filtering (render-time decoration).
 
 ## Command palette (HOST, 120×40)
 
@@ -195,3 +281,114 @@ Desired (wireframe, verbatim):
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+Discrepancies + plan:
+- Missing several commands and separator groupings. Plan:
+  - add separators in the command list rendering (visual rows)
+  - add commands (wrap toggle, reset device confirm overlay, send break, session logging, reconnect)
+  - wire each to explicit monitor/app actions (HOST-only)
+
+## Monitor — Compact (DEVICE, 80×24)
+
+Current:
+
+![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/80x24-01-device.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ── /dev/ttyUSB0 ── 115200 ──────────────────────┐
+│ I (1523) wifi: wifi driver task: 3ffc1e4c, pri...      │
+│ I (1527) system_api: Base MAC address is not set       │
+│ I (1533) system_api: read default base MAC add...      │
+│ I (1540) wifi: wifi firmware version: 3.0              │
+│ W (1550) wifi: Warning: NVS partition low on ...       │
+│ I (1556) wifi_init: rx ba win: 6                       │
+│ I (1560) wifi_init: tcpip mbox: 32                     │
+│ I (1565) wifi_init: udp mbox: 6                        │
+│ I (1570) wifi_init: tcp mbox: 6                        │
+│ I (1575) wifi_init: tcp tx win: 5744                   │
+│ I (1580) wifi_init: tcp rx win: 5744                   │
+│ I (1585) wifi_init: tcp mss: 1436                      │
+│ I (1590) wifi_init: WiFi IRAM OP enabled               │
+│ I (1595) wifi_init: WiFi RX IRAM OP enabled            │
+│ I (1600) phy_init: phy_version 4670, dec 20 20...      │
+├────────────────────────────────────────────────────────┤
+│ DEV │ Follow │ ─ │ ─ │ 12:34│ Ctrl-T:menu  ?:help      │
+├────────────────────────────────────────────────────────┤
+│ > [                                                  ] │
+└────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- Compact status row is not implemented as a dedicated layout; current UI is a scaled-down version. Plan: add an explicit “compact layout” branch when `sz.W`/`sz.H` are small, aligning the status/footer to the wireframe.
+
+## Bubble Tea model/architecture review (how screens are built + reuse opportunities)
+
+This section is for reducing UI code and keeping a unified look/feel across screens by reusing models and shared rendering patterns.
+
+### App shell (`appModel`)
+
+Current structure:
+- `esper/pkg/monitor/app_model.go`: owns `screen` routing (port picker vs monitor), global overlay (help), global key handling (Ctrl-C, `?`), and `tea.WindowSizeMsg` fan-out.
+
+Improvements:
+- Unify overlay architecture: help overlay is handled at the app level, while search/filter/palette overlays are handled inside `monitorModel`.
+  - Proposed: define a small overlay interface (Update/View/setSize/Open/Close) and let `appModel` own “the active overlay” regardless of which screen is visible.
+  - Benefit: one overlay stack, consistent close behavior (`Esc`), consistent styling, and reduced duplication of overlay routing.
+
+### Port picker (`portPickerModel`)
+
+Current structure:
+- `esper/pkg/monitor/port_picker.go`: selection list + form fields + connect actions.
+
+Improvements:
+- Reuse a “selectable list” model: the port list, command palette list, and inspector event list all implement similar selection + scrolling behaviors.
+  - Proposed: extract a shared list core (selected index, window/scroll region, renderRow callback).
+  - Benefit: consistent selection behavior, less repeated code, fewer UX inconsistencies.
+
+### Monitor (`monitorModel`)
+
+Current structure:
+- `esper/pkg/monitor/monitor_view.go`: owns log buffer, viewport, follow, host focus, host inspector, and the HOST overlays (search/filter/palette).
+
+Improvements:
+- Split responsibilities into composable submodels:
+  - `logBufferModel` (append/bound memory), `logFilterModel` (level/regex + highlight rules), `logSearchModel` (query + matches), `viewportModel` (scroll/follow).
+  - Benefit: easier to match wireframes (e.g., bottom bar search can be implemented as a mode on top of the same reusable buffer/search models).
+
+### Overlays (search/filter/palette/help)
+
+Current structure:
+- Search/filter/palette are modal boxes centered via Lip Gloss `Place`.
+- Help overlay is a separate app overlay with its own rendering.
+
+Improvements:
+- Create a shared “modal chrome” renderer:
+  - title line, body area, hint/footer area, error line area
+  - ensures consistent padding, borders, and focus highlighting across all modal overlays.
+- Support non-modal overlays (bottom bar):
+  - wireframe search is explicitly a bottom bar; implement it as a `footer mode` rather than a modal.
+
+### Styling (`styles`)
+
+Current structure:
+- `esper/pkg/monitor/styles.go`: single `styles` struct with styles like `Panel`, `OverlayBox`, `SelectedRow`, etc.
+
+Improvements:
+- Expand from “layout primitives” to “semantic styles”:
+  - `KeyHint`, `Divider`, `PrimaryButton`, `SecondaryButton`, `Muted`, `Accent`
+  - Benefit: consistent UI across port picker, monitor, overlays, and inspector details without re-styling each screen.
+
+### Concrete refactor proposals (to reduce duplication)
+
+- Create `ui/` helpers in the monitor package (or a small internal package) for:
+  - `RenderFramedScreen(title, body, status, footer)`
+  - `RenderModal(title, body, hint, error)`
+  - `RenderBottomBar(prompt, rightStatus, hint)`
+- Extract a reusable “selectable list” model used by:
+  - port list (port picker)
+  - command palette
+  - inspector event list
+- Make overlays pluggable with a tiny interface:
+  - `Open()`, `Close()`, `Update(tea.KeyMsg)`, `View(styles)`, `SetSize(size)`
+  - so `appModel` can host *all* overlays uniformly.
