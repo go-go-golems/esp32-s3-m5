@@ -53,7 +53,6 @@ Immediate next implementation steps (in order):
 ## Screens still missing (not yet implemented or not yet captured)
 
 Missing implementations:
-- Reset device confirmation overlay (§2.5 “Reset Device”).
 - Search highlighting and match annotations in viewport (§2.2).
 - Filter highlight rules editor (§2.3).
 - Command palette extra commands + separators (§2.4).
@@ -291,6 +290,35 @@ Desired (wireframe, verbatim):
 Discrepancies + plan:
 - We show status/size/path and a decoded report box, but we don't provide the footer actions yet (`c/s/r/j`). Plan: implement copy/save actions next; saving should write report + raw base64 to predictable locations.
 - Our core dump decode currently fails for the fake payload (expected). Plan: either (a) keep UI working for “decode failed” case, and (b) optionally add a “real” coredump emitter path in firmware if we want success cases for screenshots.
+
+## Reset Device confirmation (HOST, 120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/reset_confirm_20260125-155916/120x40-01-reset-confirm.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ── Connected ── 115200 ─────────────────────────────────────────────── ELF: ✓ ───┐
+│ I (1523) wifi: wifi driver task: 3ffc1e4c, prio:23, stack:6656, core=0                   │
+│ I (1527) system_api: Base MAC address is not set                                         │
+│                                                                                          │
+│                    ┌─ Confirm: Reset Device ──────────────────────────┐                  │
+│                    │                                                  │                  │
+│                    │  This will toggle RTS/DTR to reset the device.   │                  │
+│                    │  Any running program will restart.               │                  │
+│                    │                                                  │                  │
+│                    │                   <Reset>    <Cancel>            │                  │
+│                    └──────────────────────────────────────────────────┘                  │
+│                                                                                          │
+│ I (1533) system_api: read default base MAC address from EFUSE                            │
+│ I (1540) wifi: wifi firmware version: 3.0                                                │
+```
+
+Discrepancies + plan:
+- Button order differs: we currently show `[ Cancel ] [ Reset ]`; wireframe shows `<Reset> <Cancel>`. Plan: swap order and add a “Confirm:” prefix in title.
+- Our overlay message differs slightly. Plan: match the wireframe text more closely.
 
 ## Search overlay (HOST, 120×40)
 

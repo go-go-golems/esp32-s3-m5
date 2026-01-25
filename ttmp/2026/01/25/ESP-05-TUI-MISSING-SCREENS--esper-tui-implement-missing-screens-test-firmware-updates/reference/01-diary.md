@@ -313,3 +313,37 @@ I implemented these as a large overlay that opens from the Inspector list when f
 
 - Wireframe includes copy/save/jump actions (`c/C/s/r/j`) that are not wired yet.
 - Wireframe includes a “Context” box for panic details; we currently don’t parse register dump context into a structured event.
+
+---
+
+## Step 6: Implement Reset Device confirmation + host reset action + capture
+
+This step implements UX spec §2.5 “Reset Device”:
+- A confirmation overlay (safe default: Cancel)
+- A host-side reset mechanism using RTS/DTR toggling
+
+### What I changed (nested `esper/` repo)
+
+- Added a command palette entry: “Reset device”.
+- Added `resetConfirmOverlay`:
+  - Centered modal overlay with Cancel/Reset
+  - `Enter` selects; `Esc` cancels
+  - `Tab/←/→` toggles selection (Cancel stays the default)
+- Added host action:
+  - `serialSession.ResetPulse()` uses `SetDTR/SetRTS` to emit a short reset pulse (best-effort, aligns with how tooling commonly resets ESP devices).
+  - Success/failure logs a toast + a monitor event (`reset` kind).
+
+### What I ran (commands)
+
+- `cd esper && go test ./... -count=1`
+- Capture (virtual PTY so we don’t reboot hardware):
+  - `bash ./ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/scripts/06-tmux-capture-reset-confirm.sh`
+
+### Artifacts
+
+- Capture set:
+  - `ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/reset_confirm_20260125-155916/`
+
+### Notes / follow-ups
+
+- Wireframe orders buttons as `<Reset> <Cancel>`; we currently render Cancel first (safer default, but we should match the spec layout while keeping Cancel preselected).

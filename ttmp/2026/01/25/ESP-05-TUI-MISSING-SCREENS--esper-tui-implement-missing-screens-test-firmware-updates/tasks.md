@@ -35,8 +35,8 @@ Missing monitor/inspector screens (wireframe §1.3):
 - [x] Screen: Core Dump Report view (open from event; scrollable; show decode status; raw + report)
 
 Missing confirmation dialogs (wireframe §2.5):
-- [ ] Screen: Reset Device confirmation overlay (safe default: Cancel)
-- [ ] Host action: implement device reset mechanism (USB Serial/JTAG) + error handling
+- [x] Screen: Reset Device confirmation overlay (safe default: Cancel)
+- [x] Host action: implement device reset mechanism (USB Serial/JTAG) + error handling
 
 Missing port picker / device registry screens (wireframes §1.1 + §1.2):
 - [ ] Screen: Device Manager view (list entries, empty state)

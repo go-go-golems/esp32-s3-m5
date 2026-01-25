@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/25/ESP-05-TUI…│
+│I (12) demo: hello 007                                                                                                │
+│I (12) demo: hello 008                                                                                                │
+│I (12) demo: hello 009                                                                                                │
+│I (12) demo: hello 010                                                                                                │
+│I (12) demo: hello 011                                                                                                │
+│I (12) demo: hello 012                                                                                                │
+│I (12) demo: hello 013                                                                                                │
+│I (12) demo: hello 014                                                                                                │
+│I (12) demo: hello 015                                                                                                │
+│I (12) demo: hello 016                                                                                                │
+│I (12) demo: hello 017                                                                                                │
+│                   ┌──────────────────────────────────────────────────────────────────────────────┐                   │
+│                   │                                                                              │                   │
+│                   │  Reset Device                                                                │                   │
+│                   │                                                                              │                   │
+│                   │  Reset the connected device?                                                 │                   │
+│                   │                                                                              │                   │
+│                   │  This may reboot the firmware and interrupt logs.                            │                   │
+│                   │                                                                              │                   │
+│                   │                                                    [ Cancel ]   [ Reset ]    │                   │
+│                   │                                                                              │                   │
+│                   │  Enter select        Esc cancel                                              │                   │
+│                   │                                                                              │                   │
+│                   └──────────────────────────────────────────────────────────────────────────────┘                   │
+│I (12) demo: hello 031                                                                                                │
+│I (12) demo: hello 032                                                                                                │
+│I (12) demo: hello 033                                                                                                │
+│I (12) demo: hello 034                                                                                                │
+│I (12) demo: hello 035                                                                                                │
+│I (12) demo: hello 036                                                                                                │
+│I (12) demo: hello 037                                                                                                │
+│I (12) demo: hello 038                                                                                                │
+│I (12) demo: hello 039                                                                                                │
+│I (12) demo: hello 040                                                                                                │
+│                                                                                                                      │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 1K/1M │ 15:59:19                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
