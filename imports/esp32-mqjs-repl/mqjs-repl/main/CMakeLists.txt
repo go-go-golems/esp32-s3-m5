@@ -20,5 +20,5 @@ idf_component_register(
     esp_timer
     exercizer_control
     mquickjs
-    mqjs_vm
+    mqjs_service
 )

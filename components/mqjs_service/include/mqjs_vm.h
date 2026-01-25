@@ -68,4 +68,3 @@ class MqjsVm {
   std::string* capture_ = nullptr;
   RegistryNode reg_ = {};
 };
-

@@ -24,7 +24,6 @@ idf_component_register(
         spiffs
         exercizer_control
         mquickjs
-        mqjs_vm
         mqjs_service
         esp_driver_usb_serial_jtag
         console

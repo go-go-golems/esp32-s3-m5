@@ -174,4 +174,3 @@ std::string MqjsVm::DumpMemory(bool is_long)
   JS_DumpMemory(ctx_, is_long ? 1 : 0);
   return out;
 }
-

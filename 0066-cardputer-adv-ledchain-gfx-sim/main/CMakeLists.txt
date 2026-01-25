@@ -28,6 +28,5 @@ idf_component_register(
         cardputer_kb
         json
         mquickjs
-        mqjs_vm
         mqjs_service
 )
