@@ -10,7 +10,7 @@
 - [x] Implement Port Picker view (scan/rescan, list + config fields, connect flow)
 - [x] Implement Monitor view (viewport+status+input, follow/scrollback, Ctrl-T mode)
 - [x] Implement Help overlay (keymap + close behavior)
-- [ ] Integrate decoder events into UI (panic/backtrace, core dump, gdb stub)
+- [x] Integrate decoder events into UI (panic/backtrace, core dump, gdb stub)
 - [x] Run gofmt + go test for esper module
 - [ ] Hardware: detect Cardputer serial port (USB Serial/JTAG)
 - [ ] Hardware: build+flash esper esp32s3-test firmware to Cardputer

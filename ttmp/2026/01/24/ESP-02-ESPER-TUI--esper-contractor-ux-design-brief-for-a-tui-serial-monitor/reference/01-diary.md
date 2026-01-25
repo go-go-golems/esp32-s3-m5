@@ -696,3 +696,63 @@ Because this is interactive behavior, I added a ticket script that runs `esper t
   - `ttmp/.../design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md`
   - `ttmp/.../scripts/07-run-esper-tail-stdin-raw.sh`
   - `ttmp/.../scripts/08-pty-smoke-test-esper-tail-stdin-raw.py`
+
+## Step 11: Continue TUI — add host-mode Inspector panel for decoder events
+
+This step continues the Bubble Tea TUI implementation by surfacing decoder events (panic/backtrace decoding, core dump events, GDB stub detection) in a dedicated host-mode Inspector panel. The intent is to stop burying important events in the log stream alone and provide an “at a glance” place to review what happened, while keeping the UI keyboard-first and using Lip Gloss for layout.
+
+Implementation is intentionally MVP-level: we add an event list with selection + details and a short-lived “toast” hint line in the host footer. It does not yet implement the full right-panel inspector design from the UX spec, but it establishes the data model and key routing for future enhancement.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue with the TUI"
+
+**Assistant interpretation:** Resume implementing missing UX-spec features in the Bubble Tea TUI, starting with the outstanding “decoder events in UI” task.
+
+**Inferred user intent:** Progress toward a daily-driver serial monitor: special events should be discoverable/actionable, not just printed inline.
+
+**Commit (code):**
+- `esper/` repo: 7c11931 — "monitor: add host-mode inspector panel for decoder events"
+
+### What I did
+- Implemented a host-mode inspector panel in `esper/pkg/monitor/monitor_view.go`:
+  - Collect `monitorEvent` entries on:
+    - GDB stub detection (`decode.GDBStubDetector`)
+    - core dump decoder events (`decode.CoreDumpDecoder` emitted `--- Core dump ...` lines)
+    - panic/backtrace decoded output (`decode.PanicDecoder`)
+  - Add `i` toggle for inspector (HOST mode only), and `Tab` to switch focus (viewport vs inspector).
+  - Render the inspector as a right-side panel when terminal width is large (>= ~100 cols).
+  - Show a short “toast” hint in the host footer when events occur.
+- Updated help overlay to document the new keys (`i`, `Tab`) in monitor host mode.
+- Ran `go test ./...` in `esper/` to ensure builds pass.
+- Checked off ticket task [9] “Integrate decoder events into UI”.
+
+### Why
+- Decoder events are high-value signals; having them only as inline log lines makes them easy to miss during active debugging.
+- Host-mode-only bindings avoid accidentally intercepting device input.
+
+### What worked
+- The inspector panel makes GDB/core dump/backtrace events immediately discoverable without searching scrollback.
+- Keeping the event list bounded avoids unbounded memory growth.
+
+### What didn't work
+- N/A (implementation is basic but functional).
+
+### What I learned
+- Adding focus modes (viewport vs inspector) prevents arrow keys from “fighting” between scrollback navigation and event selection.
+
+### What was tricky to build
+- Keeping the viewport sizing consistent when the inspector panel is toggled (must recompute widths and maintain scroll position).
+
+### What warrants a second pair of eyes
+- Verify that the chosen keybindings (`i`, `Tab`) don’t conflict with existing host-mode conventions we want later (palette/search/filter).
+- Review whether “core dump event” logging should capture more context (e.g., full report) vs just marker lines.
+
+### What should be done in the future
+- Replace the MVP inspector with the full UX-spec inspector behavior (right panel + dedicated detail views).
+- Add search/filter overlays and wire events into those surfaces.
+
+### Code review instructions
+- In the `esper/` repo:
+  - `esper/pkg/monitor/monitor_view.go`
+  - `esper/pkg/monitor/help_overlay.go`

@@ -30,3 +30,7 @@ Started implementation: added an initial Bubble Tea full-screen TUI skeleton (Po
 ## 2026-01-25
 
 Added `esper tail` (non-TUI serial pipeline streamer) design doc and implementation in the nested `esper/` repo (supports `--timeout` and output/decoder configuration flags).
+
+## 2026-01-25
+
+TUI: added an initial host-mode Inspector panel to surface decoder events (core dump, backtrace decode, GDB stub detection) while keeping host/device key routing safe.
