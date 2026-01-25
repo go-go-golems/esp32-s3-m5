@@ -35,6 +35,7 @@ Run from the repo root:
 - Run Esper tail (bidirectional raw): `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/07-run-esper-tail-stdin-raw.sh`
 - Automated pty smoke test for stdin-raw: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/08-pty-smoke-test-esper-tail-stdin-raw.py`
 - Capture TUI screenshots in tmux: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- Upload UX compare docs to reMarkable: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
 
 ## Environment overrides
 

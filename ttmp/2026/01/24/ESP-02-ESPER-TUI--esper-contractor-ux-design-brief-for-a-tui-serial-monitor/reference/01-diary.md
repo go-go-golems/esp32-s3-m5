@@ -841,3 +841,33 @@ Latest “good” capture set (virtual PTY + deterministic log feed):
 ### What warrants another look
 - Whether we want to keep viewport `HighPerformanceRendering` disabled long-term or gate it behind a flag (it affects large throughput scenarios).
 - Search overlay UX should be revised to match the wireframe bottom-bar layout (current modal is functional but not wireframe-faithful).
+
+---
+
+## 2026-01-25 — UX iteration playbook + quick compare doc + reMarkable upload
+
+### Summary
+- Wrote a concise playbook describing the exact “implement → test → capture → compare → commit” loop we’re using to converge to the wireframes.
+- Wrote a “current vs desired” compare doc that stacks the current screenshot above the desired wireframe (verbatim), to speed up review feedback.
+- Prepared a repeatable reMarkable upload script for the compare doc.
+
+### What I changed
+
+Docs added:
+- UX iteration loop playbook:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/01-ux-iteration-loop.md`
+- Screenshot + wireframe quick compare:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md`
+
+Scripts added:
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
+  - Defaults to `DRY_RUN=1` and uploads a single bundled PDF (compare doc + playbook) when `DRY_RUN=0`.
+
+### Capture set referenced
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/`
+
+### Upload commands (recorded for traceability)
+- Dry-run:
+  - `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
+- Upload:
+  - `DRY_RUN=0 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
