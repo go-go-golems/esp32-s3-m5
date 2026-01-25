@@ -1,0 +1,77 @@
+# esper scan (glazed) examples
+# timestamp: 2026-01-24T20:45:33-05:00
+
+## 1) Table output (no probe)
++-----------------------------------------------------------------------------------+-----------+-------+--------------------------------------------------------------------------------------------------------------------+
+| preferred_path                                                                    | vidpid    | score | reasons                                                                                                            |
++-----------------------------------------------------------------------------------+-----------+-------+--------------------------------------------------------------------------------------------------------------------+
+| /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 | 303a:1001 | 100   | vid=303a (Espressif); by-id contains 'Espressif'; product looks like USB JTAG serial debug; manufacturer=Espressif |
+| /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_98:A3:16:90:1C:F8-if00 | 303a:1001 | 100   | vid=303a (Espressif); by-id contains 'Espressif'; product looks like USB JTAG serial debug; manufacturer=Espressif |
++-----------------------------------------------------------------------------------+-----------+-------+--------------------------------------------------------------------------------------------------------------------+
+
+## 2) Table output (with esptool probe)
++-----------------------------------------------------------------------------------+-----------+-------------------------------------+-----------------+
+| preferred_path                                                                    | vidpid    | chip_description                    | usb_mode        |
++-----------------------------------------------------------------------------------+-----------+-------------------------------------+-----------------+
+| /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 | 303a:1001 | ESP32-S3 (QFN56) (revision v0.2)    | USB-Serial/JTAG |
+| /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_98:A3:16:90:1C:F8-if00 | 303a:1001 | ESP32-C6FH4 (QFN32) (revision v0.2) | USB-Serial/JTAG |
++-----------------------------------------------------------------------------------+-----------+-------------------------------------+-----------------+
+
+## 3) JSON output (with esptool probe)
+[
+{
+  "by_id": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00",
+  "chip_description": "ESP32-S3 (QFN56) (revision v0.2)",
+  "chip_name": "ESP32-S3",
+  "crystal_mhz": 40,
+  "device": "/dev/ttyACM0",
+  "esptool_error": "",
+  "esptool_ok": true,
+  "features": [
+    "WiFi",
+    "BLE",
+    "Embedded Flash 8MB (GD)"
+  ],
+  "mac": "",
+  "manufacturer": "Espressif",
+  "pid": "1001",
+  "preferred_path": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00",
+  "probe_esptool": true,
+  "product": "USB JTAG/serial debug unit",
+  "reasons": "vid=303a (Espressif); by-id contains 'Espressif'; product looks like USB JTAG serial debug; manufacturer=Espressif",
+  "score": 100,
+  "secure_download_mode": false,
+  "serial": "D8:85:AC:A4:FB:7C",
+  "usb_mode": "USB-Serial/JTAG",
+  "vid": "303a",
+  "vidpid": "303a:1001"
+}
+, {
+  "by_id": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_98:A3:16:90:1C:F8-if00",
+  "chip_description": "ESP32-C6FH4 (QFN32) (revision v0.2)",
+  "chip_name": "ESP32-C6",
+  "crystal_mhz": 40,
+  "device": "/dev/ttyACM1",
+  "esptool_error": "",
+  "esptool_ok": true,
+  "features": [
+    "WiFi 6",
+    "BT 5",
+    "IEEE802.15.4"
+  ],
+  "mac": "",
+  "manufacturer": "Espressif",
+  "pid": "1001",
+  "preferred_path": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_98:A3:16:90:1C:F8-if00",
+  "probe_esptool": true,
+  "product": "USB JTAG/serial debug unit",
+  "reasons": "vid=303a (Espressif); by-id contains 'Espressif'; product looks like USB JTAG serial debug; manufacturer=Espressif",
+  "score": 100,
+  "secure_download_mode": false,
+  "serial": "98:A3:16:90:1C:F8",
+  "usb_mode": "USB-Serial/JTAG",
+  "vid": "303a",
+  "vidpid": "303a:1001"
+}
+]
+

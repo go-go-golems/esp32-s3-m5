@@ -1,0 +1,8 @@
+ifi:state: init -> auth (0xb0)I (438) gpio: GPIO[6]| InputEn: 0|wifi status
+state=CONNECTED ssid=CLUB:LINK_EXT saved=yes runtime=yes reason=205 ip=192.168.1.206
+sim>  
+GET /api/status
+{"ok":true,"frame_ms":16,"led_count":50,"pattern":{"type":"rainbow","global_brightness_pct":25,"rainbow":{"speed":5,"sat":100,"spread":10}}}
+
+POST /api/apply
+{"ok":true,"frame_ms":16,"led_count":50,"pattern":{"type":"rainbow","global_brightness_pct":25,"rainbow":{"speed":5,"sat":100,"spread":10}}}
