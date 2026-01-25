@@ -38,6 +38,7 @@ Provide a contractor-ready UX design brief for a full-screen TUI for `esper` (Go
 - **UX Specification**: [reference/02-esper-tui-full-ux-specification-with-wireframes.md](./reference/02-esper-tui-full-ux-specification-with-wireframes.md) — Full ASCII wireframes and YAML widget pseudocode
 - **Implementation Decomposition**: [design-doc/02-esper-tui-bubble-tea-model-message-decomposition.md](./design-doc/02-esper-tui-bubble-tea-model-message-decomposition.md)
 - **Tail Mode Design**: [design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md](./design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md)
+- **UI Test Firmware Playbook**: [playbooks/02-esper-ui-test-firmware-esp32s3-test.md](./playbooks/02-esper-ui-test-firmware-esp32s3-test.md)
 - **Diary**: [reference/01-diary.md](./reference/01-diary.md)
 
 ## Status
