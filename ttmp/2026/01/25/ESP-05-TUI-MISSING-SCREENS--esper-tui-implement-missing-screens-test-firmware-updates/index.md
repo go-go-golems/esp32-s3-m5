@@ -1,7 +1,7 @@
 ---
 Title: 'Esper TUI: implement missing screens + test firmware updates'
 Ticket: ESP-05-TUI-MISSING-SCREENS
-Status: active
+Status: complete
 Topics:
     - tui
     - bubbletea
@@ -16,10 +16,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-25T15:09:16-05:00
-WhatFor: "Implement the remaining screens from the ESP-02 contractor UX spec (missing monitor/inspector screens, confirmation dialogs, device manager/nickname dialogs) and update the esp32s3-test firmware so these screens can be triggered deterministically."
-WhenToUse: "Use when implementing new Bubble Tea screens/overlays and when updating the ESP32-S3 UI test firmware to reliably exercise those UI states."
+LastUpdated: 2026-01-25T16:58:37.274415914-05:00
+WhatFor: Implement the remaining screens from the ESP-02 contractor UX spec (missing monitor/inspector screens, confirmation dialogs, device manager/nickname dialogs) and update the esp32s3-test firmware so these screens can be triggered deterministically.
+WhenToUse: Use when implementing new Bubble Tea screens/overlays and when updating the ESP32-S3 UI test firmware to reliably exercise those UI states.
 ---
+
 
 # Esper TUI: implement missing screens + test firmware updates
 
