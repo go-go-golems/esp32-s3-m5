@@ -2,8 +2,8 @@
 
 ## TODO
 
-- [ ] Audit current TUI models and list shared patterns to extract (lists, overlays, modal chrome, footers)
-- [ ] Define overlay interface and unify overlay routing in a single owner (likely `appModel`)
+- [x] Audit current TUI models and list shared patterns to extract (lists, overlays, modal chrome, footers)
+- [x] Define overlay interface and unify overlay routing in a single owner (likely `appModel`)
 - [ ] Extract reusable selectable list core and migrate: port picker list
 - [ ] Migrate command palette list to reusable list core (support separators)
 - [ ] Migrate inspector events list to reusable list core

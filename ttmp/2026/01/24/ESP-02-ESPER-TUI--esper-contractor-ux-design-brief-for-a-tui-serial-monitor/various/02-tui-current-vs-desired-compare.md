@@ -14,7 +14,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh
 Summary: "Single document to review implementation screenshots with the desired wireframe immediately underneath (plus discrepancy analysis and a missing-screens checklist)."
-LastUpdated: 2026-01-25T18:52:00-05:00
+LastUpdated: 2026-01-25T14:18:41-05:00
 ---
 
 # Current vs desired (quick compare)
@@ -297,11 +297,10 @@ This section is for reducing UI code and keeping a unified look/feel across scre
 ### App shell (`appModel`)
 
 Current structure:
-- `esper/pkg/monitor/app_model.go`: owns `screen` routing (port picker vs monitor), global overlay (help), global key handling (Ctrl-C, `?`), and `tea.WindowSizeMsg` fan-out.
+- `esper/pkg/monitor/app_model.go`: owns `screen` routing (port picker vs monitor), global key handling (Ctrl-C, `?`), `tea.WindowSizeMsg` fan-out, and the single active overlay (help/search/filter/palette).
 
 Improvements:
-- Unify overlay architecture: help overlay is handled at the app level, while search/filter/palette overlays are handled inside `monitorModel`.
-  - Proposed: define a small overlay interface (Update/View/setSize/Open/Close) and let `appModel` own “the active overlay” regardless of which screen is visible.
+- Overlay unification is now implemented (commit `fcbcd29` in the nested `esper/` repo).
   - Benefit: one overlay stack, consistent close behavior (`Esc`), consistent styling, and reduced duplication of overlay routing.
 
 ### Port picker (`portPickerModel`)
@@ -317,7 +316,7 @@ Improvements:
 ### Monitor (`monitorModel`)
 
 Current structure:
-- `esper/pkg/monitor/monitor_view.go`: owns log buffer, viewport, follow, host focus, host inspector, and the HOST overlays (search/filter/palette).
+- `esper/pkg/monitor/monitor_view.go`: owns log buffer, viewport, follow, host focus, and host inspector; it now requests overlays via explicit actions/messages rather than owning overlay state.
 
 Improvements:
 - Split responsibilities into composable submodels:
@@ -328,7 +327,7 @@ Improvements:
 
 Current structure:
 - Search/filter/palette are modal boxes centered via Lip Gloss `Place`.
-- Help overlay is a separate app overlay with its own rendering.
+- All overlays are now hosted by `appModel` via a shared overlay interface (commit `fcbcd29`).
 
 Improvements:
 - Create a shared “modal chrome” renderer:

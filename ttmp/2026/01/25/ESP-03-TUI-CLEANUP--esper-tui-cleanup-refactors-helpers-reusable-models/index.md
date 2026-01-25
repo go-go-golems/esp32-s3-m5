@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-25T18:50:00-05:00
+LastUpdated: 2026-01-25T14:18:41-05:00
 WhatFor: "Refactor and reduce esper TUI UI code duplication: shared helpers, reusable models, unified overlay routing, and consistent styling."
 WhenToUse: "Use when making structural/cleanup changes to the esper Bubble Tea TUI that improve maintainability and consistency without changing UX intent."
 ---
@@ -30,6 +30,7 @@ This ticket is about structural cleanup: extracting reusable Bubble Tea models/h
 
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
+- **Diary**: [reference/01-diary.md](./reference/01-diary.md)
 
 ## Spec
 
