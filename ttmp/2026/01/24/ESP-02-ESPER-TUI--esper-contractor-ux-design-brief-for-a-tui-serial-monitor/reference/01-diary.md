@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Primary output of this ticket
 ExternalSources: []
 Summary: Investigation diary for creating the ESP-02-ESPER-TUI contractor UX design brief.
-LastUpdated: 2026-01-25T14:04:47-05:00
+LastUpdated: 2026-01-25T14:32:16-05:00
 WhatFor: Capture the research trail (commands, files, decisions) used to produce the Esper TUI UX design brief.
 WhenToUse: Use when reviewing why the brief says what it says, or when continuing UX/TUI work later.
 ---
@@ -985,3 +985,16 @@ This is the keystone for a tight UX iteration loop: we can intentionally trigger
 
 - Firmware docs:
   - `esper/firmware/esp32s3-test/README.md`
+
+
+---
+
+## 2026-01-25 — UX iteration loop: device reattach + hardware capture
+
+Device nodes for USB Serial/JTAG can disappear (e.g., replug/VM device detach). I updated the UX iteration loop playbook with a short real-device preflight (confirm `/dev/serial/by-id/...` exists, kill stale `esper_tui_cap_*` tmux sessions and orphaned `go run ./cmd/esper` processes), and validated the latest refactor state with a fresh real-hardware tmux capture set.
+
+Playbook updated:
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/01-ux-iteration-loop.md`
+
+Hardware capture set:
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_refactor_20260125-143055/`

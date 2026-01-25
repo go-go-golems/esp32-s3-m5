@@ -25,7 +25,7 @@ RelatedFiles:
     Note: Screenshot harness used to validate no UI regression during refactor
 ExternalSources: []
 Summary: Implementation diary for ESP-03 (structural cleanup/refactors).
-LastUpdated: 2026-01-25T14:25:59-05:00
+LastUpdated: 2026-01-25T14:32:16-05:00
 WhatFor: Track refactor steps and validation (tests + captures) so we can iterate safely without UI regressions.
 WhenToUse: Use when continuing the cleanup work (overlay unification, shared list core, modal chrome helpers, semantic styles).
 ---
@@ -156,6 +156,11 @@ Validation remained the same: run unit tests, then run the tmux capture harness.
   - `USE_VIRTUAL_PTY=1 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
   - Output:
     - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-142512/`
+
+- After reattaching the device, a real-hardware capture run succeeded:
+  - `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+  - Output:
+    - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_refactor_20260125-143055/`
 
 ### What didn't work
 

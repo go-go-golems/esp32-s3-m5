@@ -16,7 +16,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/01-tui-wireframe-diffs.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
 Summary: "How we iterate on the esper TUI to match the contractor wireframes, with deterministic screenshot captures for fast review."
-LastUpdated: 2026-01-25T10:10:00-05:00
+LastUpdated: 2026-01-25T14:31:18-05:00
 ---
 
 # UX iteration loop (playbook)
@@ -73,6 +73,15 @@ From repo root:
 - With real device:  
   `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
 
+Recommended pre-flight (real device):
+- Confirm the device node exists:
+  - `ls -la /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*`
+- If port is busy or prior runs were interrupted, kill stale tmux sessions and orphaned `go run` processes:
+  - `tmux ls | rg '^esper_tui_cap_' || true`
+  - `for s in $(tmux ls -F '#S' 2>/dev/null | rg '^esper_tui_cap_' || true); do tmux kill-session -t \"$s\"; done`
+  - `pgrep -fal \"go run ./cmd/esper\" || true`
+  - `pkill -f \"go run ./cmd/esper\" || true`
+
 This produces:
 - `.txt` pane captures (authoritative for exact chars)
 - `.png` renders (easy visual review / reMarkable-friendly)
@@ -103,4 +112,3 @@ Point reviewers at:
 
 - If screenshots are missing borders/title: ensure tmux capture uses `-pN` and that the UI sizing is clamped to the terminal.
 - If port is “busy”: kill orphaned `esper` processes, and ensure the tmux harness exits the program (`Ctrl-C`) before killing the session.
-

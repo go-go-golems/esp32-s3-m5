@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-25T14:25:59-05:00
+LastUpdated: 2026-01-25T14:32:16-05:00
 WhatFor: "Refactor and reduce esper TUI UI code duplication: shared helpers, reusable models, unified overlay routing, and consistent styling."
 WhenToUse: "Use when making structural/cleanup changes to the esper Bubble Tea TUI that improve maintainability and consistency without changing UX intent."
 ---
@@ -35,6 +35,11 @@ This ticket is about structural cleanup: extracting reusable Bubble Tea models/h
 ## Spec
 
 - `design/01-tui-cleanup-spec.md`
+
+## Playbooks
+
+- Refactor validation loop:
+  - `playbooks/01-refactor-validation-loop.md`
 
 ## Status
 
