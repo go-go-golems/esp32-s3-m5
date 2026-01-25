@@ -11,19 +11,31 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esper/pkg/monitor/monitor_view.go
+      Note: Palette exec wiring + keybindings/actions
+    - Path: esper/pkg/monitor/palette_overlay.go
+      Note: Palette rows/separators/filtering
+    - Path: ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md
+      Note: Canonical current-vs-desired compare doc
+    - Path: ttmp/2026/01/25/ESP-08-TUI-COMMAND-PALETTE--esper-tui-command-palette/reference/01-diary.md
+      Note: Implementation diary and validation steps
+    - Path: ttmp/2026/01/25/ESP-08-TUI-COMMAND-PALETTE--esper-tui-command-palette/scripts/01-tmux-capture-command-palette.sh
+      Note: Deterministic palette capture
 ExternalSources: []
-Summary: ""
-LastUpdated: 2026-01-25T16:47:14.854049664-05:00
-WhatFor: ""
-WhenToUse: ""
+Summary: Command palette parity with UX spec (grouped separators, full command set, action wiring) with deterministic screenshot verification.
+LastUpdated: 2026-01-25T18:46:26.744882153-05:00
+WhatFor: "Track and deliver command palette parity work for Esper TUI, plus repeatable screenshot evidence."
+WhenToUse: "Use when modifying the command palette or reviewing parity against the UX wireframe (§2.4)."
 ---
+
+
 
 # Esper TUI: command palette
 
 ## Overview
 
-<!-- Provide a brief overview of the ticket, its goals, and current status -->
+Bring the Esper TUI command palette to parity with the UX wireframe (§2.4): grouped separators, complete command list, and command execution wired to real monitor actions (with deterministic capture artifacts for review).
 
 ## Key Links
 

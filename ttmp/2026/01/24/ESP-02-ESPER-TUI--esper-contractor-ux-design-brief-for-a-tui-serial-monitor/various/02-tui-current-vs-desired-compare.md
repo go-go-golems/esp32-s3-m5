@@ -506,7 +506,7 @@ Discrepancies + plan:
 
 Current:
 
-![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/120x40-05-palette.png)
+![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-184318/120x40-05-palette.png)
 
 Desired (wireframe, verbatim):
 

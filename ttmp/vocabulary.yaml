@@ -81,6 +81,16 @@ topics:
       description: OLED displays and controllers (e.g., SSD1306) and their integration
     - slug: xiao
       description: Seeed Studio XIAO board family (pinouts, quirks, integration)
+    - slug: tui
+      description: Text user interface (terminal UI)
+    - slug: ux
+      description: User experience design/interaction
+    - slug: bubbletea
+      description: Charm Bubble Tea (Go TUI framework)
+    - slug: lipgloss
+      description: Charm Lip Gloss (terminal styling for Bubble Tea)
+    - slug: palette
+      description: Command palette UI and behavior
 docTypes:
     - slug: index
       description: Ticket index document
