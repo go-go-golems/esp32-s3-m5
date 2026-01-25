@@ -31,3 +31,4 @@
 - [ ] TUI: revise search overlay to bottom bar + match count + match highlight
 - [ ] TUI: extend filter overlay (D/V + highlight rules) per wireframe
 - [ ] TUI: expand command palette commands/grouping per wireframe
+- [ ] TUI: treat compact wireframe as out-of-scope (responsive scaling is acceptable) and remove any pending work targeting a separate compact layout

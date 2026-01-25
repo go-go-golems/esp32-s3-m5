@@ -39,6 +39,11 @@ Screenshot evidence (tmux capture, deterministic virtual PTY):
 
 ## Differences vs wireframes
 
+### Compact 80×24 wireframe
+
+Scope update:
+- We are **not** building a separate “compact layout” to match the 80×24 compact wireframe. A responsive/scaled-down main view is acceptable and preferred.
+
 ### Search overlay (wireframe §2.2)
 
 Wireframe intent:
@@ -93,4 +98,3 @@ Follow-up work:
   - `04-filter` (Filter overlay)
   - `05-palette` (Command palette)
   - `06-inspector` (Inspector panel open)
-

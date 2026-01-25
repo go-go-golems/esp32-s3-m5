@@ -13,8 +13,8 @@ Owners: []
 RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh
-Summary: "Single document to review implementation screenshots with the desired wireframe immediately underneath."
-LastUpdated: 2026-01-25T10:22:00-05:00
+Summary: "Single document to review implementation screenshots with the desired wireframe immediately underneath (plus discrepancy analysis and a missing-screens checklist)."
+LastUpdated: 2026-01-25T18:52:00-05:00
 ---
 
 # Current vs desired (quick compare)
@@ -39,6 +39,9 @@ Top discrepancies:
 - Command palette: currently minimal commands; wireframe expects more commands + grouping separators.
 - HOST scrollback layout: wireframe expects a specific HOST footer + scroll indicators; current implementation differs.
 
+Scope note:
+- The “80×24 compact view” wireframe is now considered **out of scope**; a responsive/scaled-down main view is preferred.
+
 Immediate next implementation steps (in order):
 1) Refactor search into a bottom “search bar” footer mode (HOST), add live match count, add match highlight/markers in viewport.
 2) Extend filter config to include D/V and implement highlight rules (pattern → style) and application in viewport render pipeline.
@@ -57,7 +60,7 @@ Missing implementations:
 - Command palette extra commands + separators (§2.4).
 
 Missing captures (screen exists but not included in this compare doc yet):
-- Port picker (80×24 variants) (§1.1 wireframes).
+- Port picker (§1.1 wireframes).
 - Help overlay (§2.1).
 
 ## Monitor — Normal Mode (DEVICE, 120×40)
@@ -286,41 +289,6 @@ Discrepancies + plan:
   - add separators in the command list rendering (visual rows)
   - add commands (wrap toggle, reset device confirm overlay, send break, session logging, reconnect)
   - wire each to explicit monitor/app actions (HOST-only)
-
-## Monitor — Compact (DEVICE, 80×24)
-
-Current:
-
-![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/80x24-01-device.png)
-
-Desired (wireframe, verbatim):
-
-```
-┌─ esper ── /dev/ttyUSB0 ── 115200 ──────────────────────┐
-│ I (1523) wifi: wifi driver task: 3ffc1e4c, pri...      │
-│ I (1527) system_api: Base MAC address is not set       │
-│ I (1533) system_api: read default base MAC add...      │
-│ I (1540) wifi: wifi firmware version: 3.0              │
-│ W (1550) wifi: Warning: NVS partition low on ...       │
-│ I (1556) wifi_init: rx ba win: 6                       │
-│ I (1560) wifi_init: tcpip mbox: 32                     │
-│ I (1565) wifi_init: udp mbox: 6                        │
-│ I (1570) wifi_init: tcp mbox: 6                        │
-│ I (1575) wifi_init: tcp tx win: 5744                   │
-│ I (1580) wifi_init: tcp rx win: 5744                   │
-│ I (1585) wifi_init: tcp mss: 1436                      │
-│ I (1590) wifi_init: WiFi IRAM OP enabled               │
-│ I (1595) wifi_init: WiFi RX IRAM OP enabled            │
-│ I (1600) phy_init: phy_version 4670, dec 20 20...      │
-├────────────────────────────────────────────────────────┤
-│ DEV │ Follow │ ─ │ ─ │ 12:34│ Ctrl-T:menu  ?:help      │
-├────────────────────────────────────────────────────────┤
-│ > [                                                  ] │
-└────────────────────────────────────────────────────────┘
-```
-
-Discrepancies + plan:
-- Compact status row is not implemented as a dedicated layout; current UI is a scaled-down version. Plan: add an explicit “compact layout” branch when `sz.W`/`sz.H` are small, aligning the status/footer to the wireframe.
 
 ## Bubble Tea model/architecture review (how screens are built + reuse opportunities)
 

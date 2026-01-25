@@ -900,3 +900,21 @@ Scripts added:
 - The reMarkable upload is name-colliding by design (same PDF name). `remarquee` will skip unless `--force` is used.
 - Command:
   - `FORCE=1 DRY_RUN=0 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/10-upload-remarkable-ux-compare.sh`
+
+---
+
+## 2026-01-25 — Scope update (drop compact wireframe) + split follow-up tickets
+
+### Summary
+- Recorded scope update: we will not build a dedicated “compact layout”; responsive scaling is acceptable and preferred.
+- Created follow-up tickets to separate concerns:
+  - ESP-03-TUI-CLEANUP (refactors/helpers/reuse)
+  - ESP-04-TUI-VISUALS (visual parity/missing screens)
+
+### What changed
+- Updated compare/diff notes to mark compact wireframe out-of-scope:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md`
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/01-tui-wireframe-diffs.md`
+- Created tickets:
+  - `ttmp/2026/01/25/ESP-03-TUI-CLEANUP--esper-tui-cleanup-refactors-helpers-reusable-models/`
+  - `ttmp/2026/01/25/ESP-04-TUI-VISUALS--esper-tui-visuals-match-ux-spec-wireframes/`
