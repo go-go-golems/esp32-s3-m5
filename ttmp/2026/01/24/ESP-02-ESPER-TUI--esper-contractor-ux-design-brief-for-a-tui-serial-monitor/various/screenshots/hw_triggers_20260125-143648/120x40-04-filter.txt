@@ -1,0 +1,40 @@
+││    [✓] E  Error   [✓] W  Warning   [✓] I  Info                                                                      │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  ────────────                                                                                                       │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Include (regex): [wifi                                                                                             │
+│]  │                                                                                                                  │
+││  Exclude (regex): [heartbeat                                                                                        │
+│]  │                                                                                                                  │
+││                                                                                                                     │
+││                                                                                                                     │
+││  ────────────                                                                                                       │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                    <Apply>   <Clear All>   <Cancel> │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Tab: next field  Space: toggle level  Enter: apply  Esc: cancel                                                    │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+│└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+│─────┘                                                                                                                │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 0K/1M │ 14:36:54                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector   Core …│
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

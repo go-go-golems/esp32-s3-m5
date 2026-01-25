@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D8:85:AC:A4:FB:7C-if00 ── 115200 ── EL…│
+│logdemo                                                                                                               │
+│Unrecognized command                                                                                                  │
+│esper>                                                                                                                │
+│esper>                                                                                                                │
+│partial                                                                                                               │
+│partial: this line starts without newline...done                                                                      │
+│esper>                                                                                                                │
+│esper>                                                                                                                │
+│gdbstub                                                                                                               │
+│--- GDB stub detected                                                                                                 │
+│$T05#b9                                                                                                               │
+│esper>                                                                                                                │
+│esper>                                                                                                                │
+│coredumpfake                                                                                                          │
+│--- Core dump prompt detected; sending Enter                                                                          │
+│Press Enter to print core dump to UART...                                                                             │
+│--- Core dump decode failed (exit status 1); raw below                                                                │
+│aGVsbG8gd29ybGQK                                                                                                      │
+│c29tZSBtb3JlIGRhdGEK                                                                                                  │
+│--- Core dump finished                                                                                                │
+│================= CORE DUMP END =================                                                                     │
+│esper>                                                                                                                │
+│esper>                                                                                                                │
+│esper>                                                                                                                │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│                                                                                                                      │
+│Mode: DEVICE │ Follow: ON │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 0K/1M │ 14:36:54                 │
+│> [                                                                                                                  …│
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
