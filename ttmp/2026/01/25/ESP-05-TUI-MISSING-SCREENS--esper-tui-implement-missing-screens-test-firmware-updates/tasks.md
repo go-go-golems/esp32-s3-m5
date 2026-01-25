@@ -13,7 +13,7 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 Summary: "Step-by-step task list for implementing all missing screens and the firmware/capture support needed to validate them."
-LastUpdated: 2026-01-25T15:17:26-05:00
+LastUpdated: 2026-01-25T16:32:44-05:00
 ---
 
 # Tasks
@@ -39,10 +39,10 @@ Missing confirmation dialogs (wireframe §2.5):
 - [x] Host action: implement device reset mechanism (USB Serial/JTAG) + error handling
 
 Missing port picker / device registry screens (wireframes §1.1 + §1.2):
-- [ ] Screen: Device Manager view (list entries, empty state)
-- [ ] Screen: Assign Nickname dialog (for selected connected device)
-- [ ] Screen: Edit Existing Nickname dialog
-- [ ] Wire port picker ↔ device manager navigation keys per spec
+- [x] Screen: Device Manager view (list entries, empty state)
+- [x] Screen: Assign Nickname dialog (for selected connected device)
+- [x] Screen: Edit Existing Nickname dialog
+- [x] Wire port picker ↔ device manager navigation keys per spec
 
 Test firmware updates (esp32s3-test):
 - [x] Firmware: add slow/long core dump emission mode so “capture in progress” overlay is visible for multiple seconds
@@ -51,5 +51,5 @@ Test firmware updates (esp32s3-test):
 
 Capture harness + artifacts:
 - [x] Capture harness: add “trigger suite” script in this ticket that runs tmux capture with firmware triggers
-- [ ] Capture: produce and commit tmux screenshots for every newly implemented screen at 120×40 (and optional 80×24)
-- [ ] Compare doc: update `ttmp/2026/01/24/ESP-02-.../various/02-tui-current-vs-desired-compare.md` with new “current” screenshots for the missing screens
+- [x] Capture: produce and commit tmux screenshots for every newly implemented screen at 120×40 (and optional 80×24)
+- [x] Compare doc: update `ttmp/2026/01/24/ESP-02-.../various/02-tui-current-vs-desired-compare.md` with new “current” screenshots for the missing screens

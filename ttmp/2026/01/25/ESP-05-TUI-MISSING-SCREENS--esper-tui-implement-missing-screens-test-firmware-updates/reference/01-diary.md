@@ -21,7 +21,7 @@ RelatedFiles:
     Note: UI test firmware updated to trigger missing screens deterministically
 ExternalSources: []
 Summary: Implementation diary for building all missing Esper TUI screens and the firmware support needed to validate them.
-LastUpdated: 2026-01-25T15:17:26-05:00
+LastUpdated: 2026-01-25T16:32:44-05:00
 WhatFor: Capture the step-by-step sequence (commits, commands, validation) used to implement missing screens safely.
 WhenToUse: Use when reviewing changes or continuing the missing-screen implementation work.
 ---
@@ -347,3 +347,45 @@ This step implements UX spec §2.5 “Reset Device”:
 ### Notes / follow-ups
 
 - Wireframe orders buttons as `<Reset> <Cancel>`; we currently render Cancel first (safer default, but we should match the spec layout while keeping Cancel preselected).
+
+---
+
+## Step 7: Implement Device Manager + nickname dialogs + capture
+
+This step implements UX spec §1.1 + §1.2:
+- Port Picker shows nicknames from the per-user registry (`devices.json`).
+- `n` on the selected port opens an Assign Nickname dialog (prefilled with USB serial + preferred path).
+- `d` from Port Picker opens a full-screen Device Manager view with online/offline status.
+- Device Manager supports Add/Edit/Remove via overlays (persisted to `devices.json`).
+
+### What I changed (nested `esper/` repo)
+
+- Added `screenDeviceManager` and routing in `appModel`:
+  - Port Picker: `d` opens Device Manager; `Esc`/`q` returns.
+  - Port Picker: `n` opens “Assign Nickname” overlay for the selected connected port.
+- Added a `deviceManagerModel` screen:
+  - Lists registry entries and indicates online/offline by comparing to scanned ports.
+  - Shows selected entry details (description + preferred path).
+  - Keys per spec-ish: `a` add, `e` edit, `x` remove (confirm), `r` rescan.
+- Added reusable overlays:
+  - `deviceEditOverlay` for add/edit/nickname flows (saves to registry).
+  - `confirmOverlay` for removal confirmation (safe default: cancel).
+- Port Picker now loads the registry and shows nickname column where available.
+
+### What I ran (commands)
+
+- `cd esper && go test ./... -count=1`
+- Capture (virtual-ish, but using a temporary registry path so we don’t modify user state):
+  - `bash ./ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/scripts/07-tmux-capture-device-manager-and-nickname.sh`
+
+### Artifacts
+
+- Capture set:
+  - `ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/device_mgr_20260125-162801/`
+
+### Notes / follow-ups
+
+- Wireframe formatting uses a tighter table with separators; our current implementation is functional but visually different. This is a candidate for ESP-04 visual parity work.
+- The first capture attempt wrote `XDG_CONFIG_HOME` into the screenshot output dir and Go wrote telemetry files there, contaminating the capture directory. Fix:
+  - Updated the capture script to use a temp XDG dir outside the screenshot folder and set `GOTELEMETRY=off`.
+  - Old contaminated capture directory was removed manually so we could re-capture cleanly.

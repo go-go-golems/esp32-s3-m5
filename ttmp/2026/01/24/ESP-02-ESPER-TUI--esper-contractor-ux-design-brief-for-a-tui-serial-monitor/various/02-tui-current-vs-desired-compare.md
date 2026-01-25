@@ -14,7 +14,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh
 Summary: "Single document to review implementation screenshots with the desired wireframe immediately underneath (plus discrepancy analysis and a missing-screens checklist)."
-LastUpdated: 2026-01-25T14:18:41-05:00
+LastUpdated: 2026-01-25T16:32:44-05:00
 ---
 
 # Current vs desired (quick compare)
@@ -27,9 +27,13 @@ Current capture set used here:
 - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/`
 - Core dump capture overlay (real hardware):
   - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_coredump_progress2_20260125-153240/`
+- Device registry / port picker nickname flow:
+  - `ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/device_mgr_20260125-162801/`
 
 To regenerate (deterministic):
 - `USE_VIRTUAL_PTY=1 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- Device registry captures:
+  - `bash ./ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/scripts/07-tmux-capture-device-manager-and-nickname.sh`
 
 ## Discrepancies (summary) + plan
 
@@ -58,8 +62,115 @@ Missing implementations:
 - Command palette extra commands + separators (§2.4).
 
 Missing captures (screen exists but not included in this compare doc yet):
-- Port picker (§1.1 wireframes).
 - Help overlay (§2.1).
+
+## Port Picker (with device registry, 120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/device_mgr_20260125-162801/120x40-01-port-picker.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ─────────────────────────────────────────────────────────────── v0.1 ─┐
+│                                                                              │
+│  ┌─ Select Serial Port ─────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │   → atoms3r    M5 AtomS3R              USB-JTAG   ★                 │   │
+│  │     xiao-c6    Seeed XIAO ESP32-C6     USB-JTAG   ★                 │   │
+│  │     cardputer  M5Stack Cardputer       CP2104                        │   │
+│  │     —          /dev/ttyUSB1            (unknown)   [n: assign]       │   │
+│  │                                                                      │   │
+│  │   ─────────────────────────────────────────────────────────────────  │   │
+│  │   Baud: [115200    ▼]   ELF: [/path/to/firmware.elf           ]     │   │
+│  │   Toolchain prefix: [xtensa-esp32s3-elf-                      ]     │   │
+│  │                                                                      │   │
+│  │   [ ] Probe with esptool (may reset device)                          │   │
+│  │                                                                      │   │
+│  │                  <Connect>    <Rescan>    <Devices>    <Quit>        │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ ↑↓ Navigate   Enter Connect   n Nickname   d Devices   r Rescan   ? Help    │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- The wireframe uses a compact table with a “preferred” ★ column and a per-row `[n: assign]` hint for unregistered devices. Plan: add the missing columns/row-hints and align spacing via a shared table renderer (ESP-04 visual parity).
+
+## Port Picker — Assign Nickname dialog (120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/device_mgr_20260125-162801/120x40-02-assign-nickname.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ─────────────────────────────────────────────────────────────── v0.1 ─┐
+│                                                                              │
+│  ┌─ Select Serial Port ─────────────────────────────────────────────────┐   │
+│  │                                                                      │   │
+│  │   → —          /dev/ttyUSB1            USB-JTAG   ★                 │   │
+│  │                                                                      │   │
+│  │        ┌─ Assign Nickname ────────────────────────────────────┐      │   │
+│  │        │                                                      │      │   │
+│  │        │  USB Serial: D8:85:AC:A4:FB:7C                       │      │   │
+│  │        │  Port: /dev/serial/by-id/usb-Espressif_USB_JTAG...   │      │   │
+│  │        │                                                      │      │   │
+│  │        │  Nickname:    [atoms3r                          ]    │      │   │
+│  │        │  Name:        [M5 AtomS3R                       ]    │      │   │
+│  │        │  Description: [bench device; display experiments]    │      │   │
+│  │        │                                                      │      │   │
+│  │        │              <Save>    <Cancel>                      │      │   │
+│  │        └──────────────────────────────────────────────────────┘      │   │
+│  │                                                                      │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ Tab Next field   Enter Save   Esc Cancel                                     │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- Our dialog currently supports the fields + key flow, but button ordering/styling differs. Plan: match the `<Save> <Cancel>` alignment and button styles via shared “modal chrome” helpers (ESP-04 visual parity).
+
+## Device Manager (120×40)
+
+Current:
+
+![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/device_mgr_20260125-162801/120x40-04-device-manager.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ─ Device Manager ─────────────────────────────────────────────── v0.1 ─┐
+│                                                                               │
+│  ┌─ Registered Devices ──────────────────────────────────────────────────┐   │
+│  │                                                                       │   │
+│  │  NICKNAME     NAME                    USB SERIAL           STATUS     │   │
+│  │  ─────────────────────────────────────────────────────────────────    │   │
+│  │  → atoms3r    M5 AtomS3R              D8:85:AC:A4:FB:7C    ● online   │   │
+│  │    xiao-c6    Seeed XIAO ESP32-C6     F4:12:FA:CC:21:5E    ● online   │   │
+│  │    cardputer  M5Stack Cardputer       A1:B2:C3:D4:E5:F6    ○ offline  │   │
+│  │    bench-s3   ESP32-S3 DevKit         98:CD:AC:12:34:56    ○ offline  │   │
+│  │                                                                       │   │
+│  │  ─────────────────────────────────────────────────────────────────    │   │
+│  │                                                                       │   │
+│  │  Selected: atoms3r                                                    │   │
+│  │  Description: bench device; used for display experiments              │   │
+│  │  Preferred path: /dev/serial/by-id/usb-Espressif_USB_JTAG_seria...    │   │
+│  │                                                                       │   │
+│  └───────────────────────────────────────────────────────────────────────┘   │
+│                                                                               │
+├───────────────────────────────────────────────────────────────────────────────┤
+│ ↑↓ Navigate   e Edit   x Remove   c Connect   a Add   Esc Back   ? Help      │
+└───────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- We implement list/add/edit/remove and online/offline, but the wireframe’s table separators and footer key hints are more structured. Plan: move Device Manager onto the same reusable “selectable list” + “footer key hints” rendering used elsewhere (ESP-03/ESP-04 refactor/visual parity).
 
 ## Monitor — Normal Mode (DEVICE, 120×40)
 
