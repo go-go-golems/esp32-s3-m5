@@ -463,6 +463,8 @@ One nuance: `esper/` is itself a nested Git repository. That means implementatio
 - Ran formatting and compile checks inside `esper/`:
   - `gofmt -w ./pkg/monitor/*.go`
   - `go test ./... -count=1`
+- Related the new implementation files back to the decomposition doc for easier review/navigation:
+  - Updated `design-doc/02-esper-tui-bubble-tea-model-message-decomposition.md` RelatedFiles (docs repo commit fcf7b26)
 
 ### Why
 - Getting resize/key routing right up front prevents painful refactors once we add more overlays (search/filter/inspector) and more complex input handling.
