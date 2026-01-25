@@ -1,0 +1,40 @@
+│
+│
+│
+│
+│
+│
+│
+│
+│                   ┌──────────────────────────────────────────────────────────────────────────────┐
+│                   │ Select Serial Port                                                           │
+│                   │                                                                              │
+│                   │ → —          USB JTAG/serial debug unit                       USB-JTAG   ★   │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │                                                                              │
+│                   │ Baud: [115200   ▼]   ELF: [/home/manuel/workspaces/2025-12-21/echo-base-     │
+│                   │ documentation/esp32-s3-m5/esper/firmware/esp32s3-                            │
+│                   │ test/build/esp32s3-test.elf                               ]                  │
+│                   │ Toolchain prefix: [xtensa-esp32s3-elf-wifiti                                 │
+│                   │ ]                                                                            │
+│                   │                                                                              │
+│                   │ [ ] Probe with esptool (may reset device)                                    │
+│                   │                                                                              │
+│                   │                       <Connect>    <Rescan>    <Quit>                        │
+│                   └──────────────────────────────────────────────────────────────────────────────┘
+│
+│
+│
+│
+│
+│
+│
+│
+│
+│↑↓ Navigate   Tab Next field   Enter Connect   r Rescan   ? Help   q Quit
+└───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

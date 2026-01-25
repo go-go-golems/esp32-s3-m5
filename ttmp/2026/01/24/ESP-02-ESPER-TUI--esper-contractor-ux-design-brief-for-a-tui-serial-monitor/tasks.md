@@ -23,3 +23,11 @@
 - [x] Document esper tail usage in esper/README.md
 - [x] Extend esper tail: add --stdin-raw bidirectional mode with Ctrl-] exit
 - [x] Hardware: verify esper tail --stdin-raw can type into esp_console; Ctrl-] exits
+- [x] TUI: implement search overlay (HOST) (MVP; see diffs doc)
+- [x] TUI: implement filter overlay (HOST) (MVP; see diffs doc)
+- [x] TUI: implement Ctrl-T host command menu/palette (MVP; see diffs doc)
+- [x] TUI: add tmux-based screenshot harness + capture 80x24 and 120x40 states
+- [x] TUI: compare captured screenshots against wireframes and note diffs
+- [ ] TUI: revise search overlay to bottom bar + match count + match highlight
+- [ ] TUI: extend filter overlay (D/V + highlight rules) per wireframe
+- [ ] TUI: expand command palette commands/grouping per wireframe

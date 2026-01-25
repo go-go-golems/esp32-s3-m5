@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESP…│
+│I (12) wifi: connected ssid=lab-143                                                                                   │
+│I (12) wifi: connected ssid=lab-144                                                                                   │
+│I (12) wifi: connected ssid=lab-145                                                                                   │
+│I (12) wifi: connected ssid=lab-146                                                                                   │
+│I (12) wifi: connected ssid=lab-147                                                                                   │
+│W (34) http: slow response 247ms                                                                                      │
+│I (12) wifi: connected ssid=lab-148                                                                                   │
+│I (12) wifi: connected ssid=lab-149                                                                                   │
+│I (12) wifi: connected ssid=lab-150                                                                                   │
+│I (12) wifi: connected ssid=lab-151                                                                                   │
+│I (12) wifi: connected ssid=lab-152                                                                                   │
+│I (12) wifi: connected ssid=lab-153                                                                                   │
+│I (12) wifi: connected ssid=lab-154                                                                                   │
+│W (34) http: slow response 254ms                                                                                      │
+│I (12) wifi: connected ssid=lab-155                                                                                   │
+│I (12) wifi: connected ssid=lab-156                                                                                   │
+│I (12) wifi: connected ssid=lab-157                                                                                   │
+│I (12) wifi: connected ssid=lab-158                                                                                   │
+│I (12) wifi: connected ssid=lab-159                                                                                   │
+│I (12) wifi: connected ssid=lab-160                                                                                   │
+│I (12) wifi: connected ssid=lab-161                                                                                   │
+│W (34) http: slow response 261ms                                                                                      │
+│E (56) sensor: read failed code=161                                                                                   │
+│I (12) wifi: connected ssid=lab-162                                                                                   │
+│I (12) wifi: connected ssid=lab-163                                                                                   │
+│I (12) wifi: connected ssid=lab-164                                                                                   │
+│I (12) wifi: connected ssid=lab-165                                                                                   │
+│I (12) wifi: connected ssid=lab-166                                                                                   │
+│I (12) wifi: connected ssid=lab-167                                                                                   │
+│I (12) wifi: connected ssid=lab-168                                                                                   │
+│W (34) http: slow response 268ms                                                                                      │
+│I (12) wifi: connected ssid=lab-169                                                                                   │
+│I (12) wifi: connected ssid=lab-170                                                                                   │
+│I (12) wifi: connected ssid=lab-171                                                                                   │
+│I (12) wifi: connected ssid=lab-172                                                                                   │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 9K/1M │ 10:01:36                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

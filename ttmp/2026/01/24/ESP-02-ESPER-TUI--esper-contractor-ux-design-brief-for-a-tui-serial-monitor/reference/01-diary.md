@@ -756,3 +756,88 @@ Implementation is intentionally MVP-level: we add an event list with selection +
 - In the `esper/` repo:
   - `esper/pkg/monitor/monitor_view.go`
   - `esper/pkg/monitor/help_overlay.go`
+
+---
+
+## 2026-01-25 — Host overlays (search/filter/palette) + screenshot harness + sizing fixes
+
+### Summary
+- Implemented HOST-mode overlays (search/filter/palette) in `esper/` and wired them into `monitorModel.Update` and `appModel.applyMonitorAction`.
+- Built a tmux-driven “screenshot harness” that captures 120×40 and 80×24 TUI states as both `.txt` and `.png`.
+- Fixed a major UI sizing issue caused by Lip Gloss `Width`/`Height` semantics (they set minimums; borders add extra rows/cols). Added tests to prevent regressions.
+
+### What I changed (code)
+
+#### 1) HOST overlays (search/filter/palette)
+- Implemented:
+  - `/` Search overlay (`search_overlay.go`)
+  - `f` Filter overlay (`filter_overlay.go`)
+  - `Ctrl-T` then `t` opens Command Palette (`palette_overlay.go`)
+- Routed `tea.KeyMsg` to active overlay first (HOST-only), and ensured `tea.WindowSizeMsg` updates overlay sizes via `monitorModel.setSize`.
+- Added palette actions for Help/Quit via new monitor actions handled by `appModel.applyMonitorAction`.
+
+Commands:
+- `cd esper && gofmt -w pkg/monitor/*.go`
+- `cd esper && go test ./...`
+
+Commit:
+- `esper/` repo: `f21ab29` — `monitor: add host overlays (search/filter/palette)`
+
+#### 2) tmux screenshot harness (ticket scripts)
+- Added `scripts/09-tmux-capture-esper-tui.sh`:
+  - Runs esper TUI in a controlled tmux session at 120×40 and 80×24.
+  - Sends key sequences to reach DEVICE/HOST/search/filter/palette/inspector states.
+  - Captures the pane using `tmux capture-pane -pN` into `.txt`.
+  - Renders a `.png` using ImageMagick `convert` (via `-annotate` + inline text, avoiding `@file` which was blocked by ImageMagick security policy).
+  - Supports `USE_VIRTUAL_PTY=1` to avoid hardware contention by creating a `socat` PTY pair and feeding deterministic sample logs.
+
+What failed initially:
+- `convert "label:@file.txt"` errored due to security policy blocking `@file`.
+- `tmux capture-pane` initially produced “missing top border/title” screenshots.
+- The script’s tmux kill behavior sometimes left orphaned `esper` processes holding `/dev/ttyACM0`, making subsequent runs fail with “Serial port busy”.
+
+Fixes:
+- Switched ImageMagick rendering to `convert xc:... -annotate ... "$(cat file)" ...` (no `@file`).
+- Switched tmux capture to `capture-pane -pN` to preserve trailing spaces and show full borders.
+- Added a clean exit step (`Ctrl-C`) before killing the tmux session to avoid orphaned `go run` binaries holding the serial port.
+
+#### 3) Lip Gloss sizing bugfix (critical)
+Problem:
+- Many code paths assumed `Style.Width(W).Height(H)` sets the *final* size including borders. In Lip Gloss, these set the *content area* minimum; borders add 2 rows/cols.
+- This caused full-screen views to exceed the terminal height (e.g., 40 → 42 lines), which made the UI appear “cropped” and broke screenshot captures.
+
+Evidence:
+- Added `pkg/monitor/view_test.go` and observed:
+  - Expected 40 lines but got 42.
+
+Fixes:
+- Updated sizing so that when we want an outer box to be `winW×winH`, we set the content size to `innerSize()` (subtracting border sizes).
+- Added a strict clamp in `appModel.View` by splitting the rendered inner view into exactly `H` lines and padding/truncating each line to `W`. This avoids Lip Gloss “min-height only” behavior from letting oversized views leak.
+- Adjusted boxed widgets that used `.Width(total).Height(total)` (e.g. help overlay box and port picker panel) to use content sizes (subtracting border size) so their totals match expectations.
+
+Additional improvements:
+- Truncated title/status/footer lines (no wrapping) to keep the layout stable, especially when port paths are long.
+- Disabled `viewport.HighPerformanceRendering` to ensure tmux captures reliably show viewport content.
+
+Commands:
+- `cd esper && gofmt -w pkg/monitor/*.go`
+- `cd esper && go test ./...`
+
+Commit:
+- `esper/` repo: `2786a29` — `tui: fix sizing for lipgloss borders`
+
+### Screenshot outputs
+Latest “good” capture set (virtual PTY + deterministic log feed):
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/`
+
+### Wireframe comparison notes
+- Wrote diff notes in:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/01-tui-wireframe-diffs.md`
+- Key takeaways:
+  - Search overlay is implemented as a centered modal, but the wireframe wants a bottom search bar + match count + in-viewport match markers/highlight.
+  - Filter overlay MVP includes only E/W/I + include/exclude regex; wireframe includes Debug/Verbose and highlight rules.
+  - Command palette MVP includes a minimal command set; wireframe includes a larger set and grouping separators.
+
+### What warrants another look
+- Whether we want to keep viewport `HighPerformanceRendering` disabled long-term or gate it behind a flag (it affects large throughput scenarios).
+- Search overlay UX should be revised to match the wireframe bottom-bar layout (current modal is functional but not wireframe-faithful).
