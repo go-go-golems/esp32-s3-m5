@@ -20,8 +20,18 @@ RelatedFiles:
       Note: GDB stub detection behavior to surface via notifications
     - Path: esper/pkg/decode/panic.go
       Note: Panic/backtrace decode behavior to surface via inspector/toasts
+    - Path: esper/pkg/monitor/app_model.go
+      Note: Root TUI model implementing WindowSizeMsg/KeyMsg routing and screen switching
+    - Path: esper/pkg/monitor/help_overlay.go
+      Note: Help overlay MVP implementation
     - Path: esper/pkg/monitor/monitor.go
       Note: Current minimal Bubble Tea monitor; informs existing message types and serial ingest
+    - Path: esper/pkg/monitor/monitor_view.go
+      Note: Monitor MVP implementation (viewport
+    - Path: esper/pkg/monitor/port_picker.go
+      Note: Port Picker MVP implementation (scan/rescan/config/connect)
+    - Path: esper/pkg/monitor/styles.go
+      Note: Lip Gloss style primitives for borders/layout
     - Path: ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
       Note: Designer's wireframes and interaction spec that this decomposition maps to
 ExternalSources: []
@@ -30,6 +40,7 @@ LastUpdated: 2026-01-24T21:42:15.744163304-05:00
 WhatFor: Hand to engineers implementing the Esper TUI in Bubble Tea; maps the UX spec to concrete models/messages/commands and a Lip Gloss styling approach.
 WhenToUse: Use when starting implementation or code review of the Esper TUI; serves as the architectural checklist for event routing and layout.
 ---
+
 
 
 # Esper TUI: Bubble Tea model/message decomposition
