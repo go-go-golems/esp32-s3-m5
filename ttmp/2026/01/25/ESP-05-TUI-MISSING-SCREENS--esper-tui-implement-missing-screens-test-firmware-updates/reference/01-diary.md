@@ -216,3 +216,64 @@ To implement and validate the missing screens, we need deterministic ways to gen
 - Review:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/main/main.c`
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/README.md`
+
+---
+
+## Step 4: Implement “Core Dump Capture In Progress” (auto overlay + Ctrl-C abort) + validate on hardware
+
+This step implements the missing “Core Dump Capture In Progress” screen from the UX spec. The key requirements are:
+- **Do not deadlock** the serial pipeline while the overlay is visible (already handled by Step 2 overlay plumbing).
+- **Disable input** while capture is in progress.
+- **Ctrl-C aborts capture** (during capture only), rather than quitting the app.
+- Use Lip Gloss for layout/styling (overlay placement + box), not manual border drawing.
+
+### What I changed (nested `esper/` repo)
+
+**Commits:**
+- `34dad3e` — `firmware: fix emitall build (cmd_panic prototype)`
+- `c30d42f` — `tui: core dump capture mode overlay + Ctrl-C abort`
+- `e826fa8` — `firmware: ignore sdkconfig.old`
+
+**Core dump capture UI:**
+- Added a capture-mode overlay rendered over the monitor view while `CoreDumpDecoder.InProgress()`:
+  - Centered overlay box with “CORE DUMP CAPTURE IN PROGRESS”
+  - Buffered bytes + elapsed time
+  - Best-effort progress bar (targeting ~64 KiB; good enough for UX parity while we lack an explicit total)
+  - Status line becomes `Mode: CAPTURE ... Press Ctrl-C to abort`
+  - Footer shows `(input disabled during capture)`
+- Ctrl-C behavior:
+  - Global Ctrl-C quit is suppressed during capture so monitor can handle it as “abort capture”.
+
+**Core dump decoder behavior:**
+- `CoreDumpDecoder` now writes the buffered base64 stream to a temp file for later inspection and stores a `LastResult()` summary (saved path, size, decode status).
+
+### What I ran (commands)
+
+Go tests:
+- `cd esper && go test ./... -count=1`
+
+Firmware build/flash (USB Serial/JTAG console; preferred baseline):
+- `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/02-build-firmware.sh`
+- `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/03-flash-firmware.sh`
+
+Capture (real hardware; auto-trigger slow core dump):
+- `STAMP=hw_coredump_progress2_$(date +%Y%m%d-%H%M%S) FIRMWARE_TRIGGERS='coredumpfakeslow 800' ./ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/scripts/01-capture-hw-trigger-suite.sh`
+
+### What worked
+
+- The overlay is visible for multiple seconds (thanks to `coredumpfakeslow`) and shows buffered bytes + elapsed time while the serial stream continues.
+- Ctrl-C now aborts capture instead of quitting the whole app (during capture only).
+- A new compare entry was added to the ESP-02 “current vs desired” doc using the new capture.
+
+### What didn't work
+
+- First capture attempt failed because the device had an older firmware image (the `coredumpfakeslow` command was “Unrecognized command”). Flashing the updated test firmware fixed it.
+
+### Artifacts
+
+- Capture set:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_coredump_progress2_20260125-153240/`
+
+### Notes / follow-ups
+
+- The progress bar currently assumes a ~64 KiB target for a “moving” UI. For real parity with the wireframe’s `current/total`, we should track an explicit total when available (or show `— / —` when not).

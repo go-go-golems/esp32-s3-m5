@@ -25,6 +25,8 @@ This doc is for fast review. Each section shows:
 
 Current capture set used here:
 - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/`
+- Core dump capture overlay (real hardware):
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_coredump_progress2_20260125-153240/`
 
 To regenerate (deterministic):
 - `USE_VIRTUAL_PTY=1 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
@@ -52,7 +54,6 @@ Immediate next implementation steps (in order):
 
 Missing implementations:
 - Panic detail view (Inspector) (§1.3 “Panic Detail View”).
-- Core dump capture progress overlay (§1.3 “Core Dump Capture In Progress”).
 - Core dump report view (§1.3 “Core Dump Report”).
 - Reset device confirmation overlay (§2.5 “Reset Device”).
 - Search highlighting and match annotations in viewport (§2.2).
@@ -176,6 +177,44 @@ Desired (wireframe, verbatim):
 
 Discrepancies + plan:
 - Wireframe shows a richer events list (“Events (3)”, event grouping, “Press Enter to view”). Plan: restructure inspector into a reusable list model with richer rows and a detail view mode (panic/coredump/gdb) as separate sub-screens.
+
+## Core Dump Capture In Progress (DEVICE, 120×40)
+
+Current:
+
+![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_coredump_progress2_20260125-153240/120x40-01b-device-triggered.png)
+
+Desired (wireframe, verbatim):
+
+```
+┌─ esper ── Connected ── 115200 ─────────────────────────────────────────────── ELF: ✓ ───┐
+│                                                                                          │
+│                                                                                          │
+│                                                                                          │
+│              ┌─ CORE DUMP CAPTURE IN PROGRESS ─────────────────────────┐                │
+│              │                                                         │                │
+│              │   Receiving core dump data...                           │                │
+│              │                                                         │                │
+│              │   ████████████████████░░░░░░░░░░  67%                   │                │
+│              │   43,520 / 65,536 bytes                                 │                │
+│              │                                                         │                │
+│              │   Normal output is MUTED during capture.                │                │
+│              │   Core dump will auto-decode when complete.             │                │
+│              │                                                         │                │
+│              └─────────────────────────────────────────────────────────┘                │
+│                                                                                          │
+│                                                                                          │
+│                                                                                          │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ Mode: CAPTURE │ Follow: — │ Capture: 67% │ Press Ctrl-C to abort                         │
+├──────────────────────────────────────────────────────────────────────────────────────────┤
+│ (input disabled during capture)                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+Discrepancies + plan:
+- We estimate percent using a 64 KiB target; wireframe shows an explicit `current/total` byte count. Plan: track buffered bytes and show both; if total is unknown, show “— / —” and keep the bar.
+- Our overlay is already centered and dims background, but background content differs (firmware prints a warning about escape sequences). Plan: ignore (firmware-side cosmetic).
 
 ## Search overlay (HOST, 120×40)
 
