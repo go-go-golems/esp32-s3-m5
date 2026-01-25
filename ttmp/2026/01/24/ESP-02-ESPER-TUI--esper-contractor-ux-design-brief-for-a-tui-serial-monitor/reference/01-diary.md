@@ -431,3 +431,79 @@ I also bundled the key documents (original brief, designer UX spec, and the deco
   - `git add ttmp/.../ESP-02-ESPER-TUI--... && git commit -m "ESP-02-ESPER-TUI: ..."`
   - `remarquee upload bundle --dry-run ... --remote-dir "/ai/2026/01/25/ESP-02-ESPER-TUI"`
   - `remarquee upload bundle ...`
+
+## Step 7: Implement initial Esper TUI skeleton + task bookkeeping
+
+This step started implementation work in the `esper/` repo, using the designer UX spec and the decomposition doc as the contract. The goal was an MVP that already gets the hard plumbing right: `tea.WindowSizeMsg` routing, safe key routing, Lip Gloss-based layout (no hand-drawn borders), and a two-screen flow (Port Picker → Monitor) with a help overlay.
+
+One nuance: `esper/` is itself a nested Git repository. That means implementation commits must happen inside `esper/` (not the outer documentation repo). I initially staged `esper/` from the outer repo by accident (creating a gitlink-style commit), then reverted it, and committed the actual code inside the `esper/` repo.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create tasks and implement and check off tasks and commit and update diary as you go."
+
+**Assistant interpretation:** Add concrete implementation tasks, implement the TUI incrementally with commits, check off tasks as they complete, and keep the diary up-to-date.
+
+**Inferred user intent:** Turn the UX design into working code safely and reviewably, with disciplined task tracking and commits.
+
+**Commit (code):**
+- Outer docs repo: fefd74c — "Revert \"esper: initial full-screen TUI (port picker + monitor)\"" (undo accidental gitlink)
+- `esper/` repo: b07f898 — "monitor: add full-screen TUI skeleton (port picker + monitor)"
+
+### What I did
+- Added implementation tasks to the ticket and checked off completed ones via docmgr:
+  - `docmgr task add --ticket ESP-02-ESPER-TUI --text "..."`
+  - `docmgr task check --ticket ESP-02-ESPER-TUI --id ...`
+- Implemented a first-pass full-screen TUI in `esper/pkg/monitor/`:
+  - Root `appModel` with screen state, overlay state, and explicit routing of `tea.WindowSizeMsg` and `tea.KeyMsg`
+  - Port Picker view with scan/rescan, selection, and connect parameters (baud/elf/toolchain/probe toggle)
+  - Monitor view with viewport, follow vs scrollback (HOST) behavior, and a device input line
+  - Help overlay toggled by `?`, closed by `Esc`/`q`
+  - Lip Gloss border/layout primitives used for UI chrome
+- Ran formatting and compile checks inside `esper/`:
+  - `gofmt -w ./pkg/monitor/*.go`
+  - `go test ./... -count=1`
+
+### Why
+- Getting resize/key routing right up front prevents painful refactors once we add more overlays (search/filter/inspector) and more complex input handling.
+- Using Lip Gloss for borders/layout avoids fragile string math and keeps the UI consistent across terminal sizes.
+
+### What worked
+- The app cleanly routes `tea.WindowSizeMsg` first and pushes sizes to submodels, which keeps viewport sizing stable.
+- The monitor reuses existing serial parsing/decoding modules, so core dump/panic/GDB detection behavior is preserved in the log stream.
+
+### What didn't work
+- I accidentally committed `esper/` as an embedded git repository from the outer repo (gitlink). This was corrected by reverting the outer commit and committing inside `esper/` instead.
+
+### What I learned
+- In this repo layout, `esper/` must be treated as its own repo for commits/review.
+- Bubble Tea/Lip Gloss make it straightforward to render “wireframe-like” borders without manually assembling box-drawing characters.
+
+### What was tricky to build
+- Designing key priority so overlays can safely capture input while still supporting “device typing” in the monitor.
+- Handling the “first paint” before `tea.WindowSizeMsg` arrives (avoid zero-size panics).
+
+### What warrants a second pair of eyes
+- Confirm the current keybindings (Ctrl-T toggle host/device, PgUp/PgDn scroll, `G` resume follow) match the designer spec expectations.
+- Confirm the Port Picker form editing approach is acceptable, or whether we should switch to Bubbles `textinput` per-field with a clearer focus model.
+
+### What should be done in the future
+- Implement the remaining overlays and special-event UX per spec: search, filter, inspector (right panel), confirmations, and structured notifications.
+- Decide the definitive “host command” modality (menu chord vs palette) and standardize it across screens.
+
+### Code review instructions
+- In `esper/` repo, start at `pkg/monitor/monitor.go` and follow to:
+  - `pkg/monitor/app_model.go` (routing + screen state)
+  - `pkg/monitor/port_picker.go` (Port Picker behavior)
+  - `pkg/monitor/monitor_view.go` (viewport + follow/scrollback + device input)
+  - `pkg/monitor/styles.go` (Lip Gloss styling primitives)
+- In docs repo, review task updates in `ttmp/.../tasks.md` and this diary entry.
+
+### Technical details
+- Key files added/changed in `esper/`:
+  - `esper/pkg/monitor/app_model.go`
+  - `esper/pkg/monitor/messages.go`
+  - `esper/pkg/monitor/port_picker.go`
+  - `esper/pkg/monitor/monitor_view.go`
+  - `esper/pkg/monitor/styles.go`
+  - `esper/pkg/monitor/help_overlay.go`

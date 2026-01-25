@@ -23,3 +23,6 @@ Added Device Registry/Nickname UX to specification: enhanced Port Picker with ni
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-DEVICE-REGISTRY--device-registry-nicknames-for-serial-consoles/design-doc/01-device-registry-nickname-resolution.md — Source design for device registry feature
 
+## 2026-01-24
+
+Started implementation: added an initial Bubble Tea full-screen TUI skeleton (Port Picker + Monitor + Help overlay) in the nested `esper/` repo, and updated ticket tasks accordingly.
