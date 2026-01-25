@@ -1,0 +1,24 @@
+┌──────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_uni…│
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│ ┌─────────────────────────────────────────────────────────────────────────┐  │
+│ │                                                                         │  │
+│ │  Search                                                                 │  │
+│ │                                                                         │  │
+│ │  / wifi                                                                 │  │
+│ │                                                                         │  │
+│ │  Enter: jump  n/N: next/prev  Esc: close                                │  │
+│ │                                                                         │  │
+│ └─────────────────────────────────────────────────────────────────────────┘  │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — …│
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   /…│
+└──────────────────────────────────────────────────────────────────────────────┘
