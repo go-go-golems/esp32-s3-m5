@@ -34,3 +34,12 @@ Added `esper tail` (non-TUI serial pipeline streamer) design doc and implementat
 ## 2026-01-25
 
 TUI: added an initial host-mode Inspector panel to surface decoder events (core dump, backtrace decode, GDB stub detection) while keeping host/device key routing safe.
+
+## 2026-01-25
+
+Added a UI test firmware playbook (`esp32s3-test`) describing how to flash and drive deterministic serial patterns (logs, partial lines, gdb stub packets, core dump markers, panic/backtrace) to exercise Esper UI states.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md — Flash/run/capture procedure and REPL trigger commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/README.md — Firmware capabilities and supported commands

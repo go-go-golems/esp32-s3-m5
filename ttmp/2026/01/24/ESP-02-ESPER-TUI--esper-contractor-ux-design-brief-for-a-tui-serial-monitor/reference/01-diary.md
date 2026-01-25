@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Primary output of this ticket
 ExternalSources: []
 Summary: Investigation diary for creating the ESP-02-ESPER-TUI contractor UX design brief.
-LastUpdated: 2026-01-24T20:45:27.640530039-05:00
+LastUpdated: 2026-01-25T14:04:47-05:00
 WhatFor: Capture the research trail (commands, files, decisions) used to produce the Esper TUI UX design brief.
 WhenToUse: Use when reviewing why the brief says what it says, or when continuing UX/TUI work later.
 ---
@@ -918,3 +918,70 @@ Scripts added:
 - Created tickets:
   - `ttmp/2026/01/25/ESP-03-TUI-CLEANUP--esper-tui-cleanup-refactors-helpers-reusable-models/`
   - `ttmp/2026/01/25/ESP-04-TUI-VISUALS--esper-tui-visuals-match-ux-spec-wireframes/`
+
+---
+
+## Step 6: UI test firmware playbook (esp32s3-test)
+
+Esper already ships with a purpose-built ESP32-S3 “UI test firmware” that can emit deterministic patterns (logs at levels, partial lines, gdb stub stop packets, core dump markers, panic/backtrace). I documented how to build/flash it and how to drive it via the `esp_console` REPL so we can reproducibly trigger the UI states that the wireframes (and our missing screens) depend on.
+
+This is the keystone for a tight UX iteration loop: we can intentionally trigger “panic”, “gdbstub”, and “coredumpfake” events on-demand, capture tmux screenshots, and compare against the spec—without waiting for organic device behavior.
+
+### Prompt Context
+
+**User prompt (verbatim):** "we have a ui test firmware! don't you know that? there should even be a playbook."
+
+**Assistant interpretation:** Confirm the existing test firmware and produce a concrete playbook that explains how to use it to drive Esper UI states.
+
+**Inferred user intent:** Make UX iteration fast and deterministic by having a canonical procedure to force every relevant screen/state and capture screenshots for review.
+
+**Commit (docs):** 46f29dd — "docs(ESP-02): add UI test firmware playbook"
+
+### What I did
+
+- Located the existing firmware at `esper/firmware/esp32s3-test/` and reviewed its supported REPL commands.
+- Added a playbook:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md`
+- Linked the playbook from the ticket index and checked off the task “Write UI test firmware playbook (esp32s3-test)”.
+
+### Why
+
+- We need repeatable triggers for “rich” UI events (panic/backtrace decode, core dump flows, gdb-stub detection) to refine visuals and implement missing screens with confidence.
+- The firmware’s console is USB Serial/JTAG (`esp_console`), avoiding UART pin conflicts with Cardputer peripherals.
+
+### What worked
+
+- The firmware provides a small REPL with commands that map cleanly to our UI states:
+  - `logdemo`, `partial`, `gdbstub`, `coredumpfake`, `panic`.
+
+### What didn't work
+
+- N/A (this step was documentation/bookkeeping; no code paths were changed or exercised here).
+
+### What I learned
+
+- The “UI test firmware” already covers the majority of event triggers we’ve been approximating via virtual PTY logs; real-device captures should now be straightforward for the remaining missing screens.
+
+### What was tricky to build
+
+- Keeping the workflow safe on Cardputer/ESP32-S3: we must prefer USB Serial/JTAG console so we don’t accidentally corrupt any protocol UARTs by printing console traffic.
+
+### What warrants a second pair of eyes
+
+- Whether we should add an automated “trigger-and-capture” harness for real hardware (e.g., scriptable REPL driving), or keep it manual until the UI stabilizes.
+
+### What should be done in the future
+
+- Add a “trigger suite” script that runs through `logdemo/partial/gdbstub/coredumpfake/panic` and captures screenshots for each major screen/state (aligned with the UX spec).
+
+### Code review instructions
+
+- Start at:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md`
+- Validate:
+  - Build/flash using the existing ticket scripts, then run `esper` and issue `logdemo` / `panic` from DEVICE mode to confirm triggers appear in the UI.
+
+### Technical details
+
+- Firmware docs:
+  - `esper/firmware/esp32s3-test/README.md`

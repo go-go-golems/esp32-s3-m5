@@ -18,7 +18,7 @@ RelatedFiles:
       Note: Full UX specification with ASCII wireframes and YAML widget pseudocode
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-24T20:45:14.059570924-05:00
+LastUpdated: 2026-01-25T14:04:47-05:00
 WhatFor: ""
 WhenToUse: ""
 ---

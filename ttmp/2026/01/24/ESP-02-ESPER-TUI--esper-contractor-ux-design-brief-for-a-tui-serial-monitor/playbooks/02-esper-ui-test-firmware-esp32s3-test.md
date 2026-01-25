@@ -19,7 +19,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/05-run-esper-tui.sh
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/07-run-esper-tail-stdin-raw.sh
 Summary: "How to flash and use the esper UI test firmware to force specific UI states (logs, partial lines, gdb stub detection, core dump markers, panic/backtrace)."
-LastUpdated: 2026-01-25T18:58:00-05:00
+LastUpdated: 2026-01-25T14:04:47-05:00
 ---
 
 # UI test firmware playbook (esp32s3-test)
@@ -88,4 +88,3 @@ These commands are provided by the firmware’s `esp_console` prompt (`esper> `)
 - Real hardware capture (required for panic/core dump/backtrace realism):
   - `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
   - then manually run the commands above while capturing additional screenshots as needed
-
