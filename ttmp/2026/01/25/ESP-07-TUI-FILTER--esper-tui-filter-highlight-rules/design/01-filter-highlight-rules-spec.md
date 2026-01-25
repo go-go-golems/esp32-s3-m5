@@ -16,6 +16,12 @@ RelatedFiles:
       Note: |-
         Filter overlay UI (currently minimal) to extend
         Filter overlay UI to extend
+    - Path: esper/pkg/monitor/highlight_styles.go
+      Note: Stable highlight style mapping (label → lipgloss.Style)
+    - Path: esper/pkg/monitor/highlight_apply.go
+      Note: Applying highlight rules to viewport lines (best-effort)
+    - Path: esper/pkg/monitor/filter_overlay_test.go
+      Note: Unit tests for regex validation and apply/clear/cancel semantics
     - Path: esper/pkg/monitor/monitor_view.go
       Note: |-
         Filter application + viewport rendering pipeline

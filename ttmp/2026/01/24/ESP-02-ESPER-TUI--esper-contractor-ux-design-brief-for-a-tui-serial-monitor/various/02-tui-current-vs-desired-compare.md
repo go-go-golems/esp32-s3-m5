@@ -468,7 +468,7 @@ Discrepancies + plan:
 
 Current:
 
-![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-100132/120x40-04-filter.png)
+![](ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-174526/120x40-04-filter.png)
 
 Desired (wireframe, verbatim):
 

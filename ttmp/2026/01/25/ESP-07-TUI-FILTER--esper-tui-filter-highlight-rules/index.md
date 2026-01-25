@@ -1,7 +1,7 @@
 ---
 Title: 'Esper TUI: filter + highlight rules'
 Ticket: ESP-07-TUI-FILTER
-Status: active
+Status: complete
 Topics:
     - tui
     - bubbletea
@@ -14,10 +14,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-25T16:47:12.708994479-05:00
+LastUpdated: 2026-01-25T17:49:13.641411257-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Esper TUI: filter + highlight rules
 

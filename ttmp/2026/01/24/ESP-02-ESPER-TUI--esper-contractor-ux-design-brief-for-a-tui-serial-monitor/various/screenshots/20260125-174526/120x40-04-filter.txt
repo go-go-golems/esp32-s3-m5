@@ -1,0 +1,40 @@
+││                                                                                                                     │
+││                                                                                                                     │
+││  Include (regex): [wifi                                                                                       ]     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Exclude (regex): [heartbeat                                                                                  ]     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Highlight Rules:                                                                                                   │
+││                                                                                                                     │
+││    (no rules yet)                                                                                                   │
+││                                                                                                                     │
+││                                                                                                          <Add Rule> │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                    <Apply>   <Clear All>   <Cancel> │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Tab: next field  Space: toggle/cycle  a: add rule  x: remove rule  ↑/↓: select rule  Enter: apply  Esc: cancel     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+│└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+│─────┘                                                                                                                │
+│I (12) wifi: connected ssid=lab-098                                                                                   │
+│W (34) http: slow response 198ms                                                                                      │
+│I (12) wifi: connected ssid=lab-099                                                                                   │
+│I (12) wifi: connected ssid=lab-100                                                                                   │
+│I (12) wifi: connected ssid=lab-101                                                                                   │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 9K/1M │ 17:45:30                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

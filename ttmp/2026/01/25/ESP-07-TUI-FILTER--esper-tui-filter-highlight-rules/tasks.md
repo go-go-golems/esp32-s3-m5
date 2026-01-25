@@ -21,26 +21,26 @@ LastUpdated: 2026-01-25T16:55:00-05:00
 ## TODO (check off in order)
 
 Spec + scaffolding:
-- [ ] Create/update design doc (`design/01-filter-highlight-rules-spec.md`)
-- [ ] Add/verify tmux capture script(s) in `scripts/` for filter overlay
+- [x] Create/update design doc (`design/01-filter-highlight-rules-spec.md`)
+- [x] Add/verify tmux capture script(s) in `scripts/` for filter overlay
 
 Filter parity (§2.3):
-- [ ] Extend level toggles to include Debug/Verbose (D/V) and apply to filtering behavior
-- [ ] Keep include/exclude regex fields; validate regex and show errors inline
+- [x] Extend level toggles to include Debug/Verbose (D/V) and apply to filtering behavior
+- [x] Keep include/exclude regex fields; validate regex and show errors inline
 
 Highlight rules editor:
-- [ ] Implement highlight rule list editing (pattern + style dropdown)
-- [ ] Support add/remove/reorder rules (minimal: add + remove)
-- [ ] Add “Apply / Clear All / Cancel” behavior
+- [x] Implement highlight rule list editing (pattern + style dropdown)
+- [x] Support add/remove/reorder rules (minimal: add + remove)
+- [x] Add “Apply / Clear All / Cancel” behavior
 
 Apply highlight rules to viewport:
-- [ ] Define a stable style mapping (e.g., `red background`, `yellow underline`, etc.) using Lip Gloss directives
-- [ ] Apply highlight rules to rendered lines without breaking ANSI output (best-effort)
+- [x] Define a stable style mapping (e.g., `red background`, `yellow underline`, etc.) using Lip Gloss directives
+- [x] Apply highlight rules to rendered lines without breaking ANSI output (best-effort)
 
 Robustness + tests:
-- [ ] Unit tests for regex validation and “apply/clear/cancel” semantics
-- [ ] Ensure `tea.KeyMsg` + `tea.WindowSizeMsg` routing is explicit and stable
+- [x] Unit tests for regex validation and “apply/clear/cancel” semantics
+- [x] Ensure `tea.KeyMsg` + `tea.WindowSizeMsg` routing is explicit and stable
 
 Artifacts + review:
-- [ ] Capture 120×40 screenshots and update compare doc (`ESP-02` current-vs-desired)
-- [ ] Update changelog and close ticket when complete
+- [x] Capture 120×40 screenshots and update compare doc (`ESP-02` current-vs-desired)
+- [x] Update changelog and close ticket when complete

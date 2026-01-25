@@ -246,7 +246,9 @@ run_scenario() {
   # Filter overlay (HOST): f, then Tab to include field and type "wifi".
   send_keys "${session}" f
   sleep 0.2
-  send_keys "${session}" Tab Tab Tab
+  # Filter overlay now includes D/V toggles and highlight rules focus targets, so
+  # it takes more Tab presses to reach the include field.
+  send_keys "${session}" Tab Tab Tab Tab Tab
   sleep 0.1
   send_keys "${session}" w i f i
   sleep 0.2
