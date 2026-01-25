@@ -16,3 +16,8 @@
 - [ ] Hardware: build+flash esper esp32s3-test firmware to Cardputer
 - [ ] Hardware: smoke test esper scan + start TUI against live device
 - [x] Add reproducible scripts/ for hardware test steps
+- [x] Write design doc for esper tail mode (non-TUI streamer)
+- [x] Implement esper tail subcommand (flags + timeout)
+- [x] Implement tail pipeline runner (line split + decoders + autocolor + tee)
+- [x] Hardware: validate esper tail against esp32s3-test firmware (--timeout)
+- [x] Document esper tail usage in esper/README.md

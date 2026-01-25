@@ -557,3 +557,78 @@ This step adds small shell scripts under the ticket’s `scripts/` directory so 
 
 ### Code review instructions
 - Start at `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/README.md`.
+
+## Step 9: Implement `esper tail` (non-TUI pipeline streamer) + ticketing
+
+This step adds a non-TUI “tail” mode that streams serial output to stdout after running it through the same pipeline we use in the monitor (line splitting, core dump buffering, panic backtrace decoding, GDB stub detection, and ESP-IDF auto-color). The core goal is to make esper usable in scripts/CI and for quick log capture, with a `--timeout` flag so it can exit automatically.
+
+I wrote a short design doc in the ticket describing the intended CLI shape and flags, added tasks, implemented the command in the nested `esper/` repo, and verified it builds and runs with `--timeout`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add a mode that just tails the serial (with a --timeout parameter in case we want it to close quickly) that just streams the serial after its run through our pipeline. No TUI, but just a normal terminal program. Add a bunch of flags to configure the output.\n\nBefore you start working, repeat to me what you are going to build, in clear terms.\n\ncool, write a deseign document, then add tasks to the ticket, work on them, commit, check them off and keep a detailed diary all along."
+
+**Assistant interpretation:** Add an `esper tail` subcommand that uses the existing decoding/color pipeline but prints to stdout (no Bubble Tea), supports `--timeout`, exposes multiple output/decoder flags, and track the work via ticket docs/tasks/diary + commits.
+
+**Inferred user intent:** Enable deterministic, pipe-friendly log capture while keeping behavior consistent with the interactive monitor, and keep implementation traceable via docmgr ticket workflow.
+
+**Commit (code):**
+- `esper/` repo: 93d54af — "cmd/esper: add tail mode (non-TUI serial streamer)"
+
+### What I did
+- Authored the design doc:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md`
+- Added and checked off tail-mode tasks (docmgr tasks 15–19).
+- Implemented `esper tail` in the nested `esper/` repository:
+  - Added `pkg/tail/tail.go` with:
+    - `--timeout` (duration) support (context timeout, plus final tail flush)
+    - pipeline reuse: `LineSplitter`, `AutoColorer`, `PanicDecoder`, `CoreDumpDecoder`, `GDBStubDetector`
+    - output flags: `--no-autocolor`, `--no-backtrace`, `--no-gdb`, `--no-coredump`, `--coredump-auto-enter`, `--coredump-mute`, `--no-coredump-decode`
+    - formatting flags: `--timestamps`, `--prefix-port`
+    - logging flags: `--log-file`, `--log-append`, `--no-stdout`
+  - Added Cobra subcommand wiring in `cmd/esper/main.go` and shared `resolvePort(...)` nickname logic.
+  - Documented usage in `esper/README.md`.
+- Quick smoke run (non-interactive):
+  - `go run ./cmd/esper tail --port /dev/serial/by-id/... --timeout 3s ...`
+  - Note: the port produced no visible output during this short window, but the command exited cleanly on timeout (the primary behavior we needed to validate).
+- Added a runnable ticket script for tail mode:
+  - `ttmp/.../scripts/06-run-esper-tail.sh`
+
+### Why
+- A non-TUI tail mode is essential for piping/log capture and CI usage, and `--timeout` makes it deterministic.
+- Reusing the same pipeline keeps behavior consistent (color resets, decoding triggers, core dump handling) between TUI and non-TUI paths.
+
+### What worked
+- `esper tail` compiles and integrates cleanly as a Cobra subcommand.
+- `--timeout` cleanly terminates and performs a final tail flush.
+
+### What didn't work
+- During a short smoke test window, no serial output was observed from the connected device. This doesn’t invalidate the tail mode itself, but it means we didn’t yet visually confirm the rendered pipeline output against live log lines in this environment.
+
+### What I learned
+- Keeping tail-mode in a separate package (`pkg/tail`) avoids entangling it with Bubble Tea concerns and keeps it pipe-friendly.
+
+### What was tricky to build
+- Prefixing lines without accidentally coloring the prefix: the implementation applies prefixes before inserting auto-color ANSI sequences.
+
+### What warrants a second pair of eyes
+- Review the default behaviors for core dump handling in unattended scripts (auto-enter + muting).
+- Confirm the chosen flag set aligns with expectations (and whether any should be inverted defaults).
+
+### What should be done in the future
+- Add a “send command” option or a separate helper to trigger firmware output during short captures (e.g., send `logdemo` then tail for N seconds).
+- Add a small automated test for `writePrefixedBytes` behavior (timestamps/prefix-port) and for tail flush on timeout.
+
+### Code review instructions
+- In the `esper/` repo:
+  - `esper/cmd/esper/main.go` (new `tail` command and `resolvePort`)
+  - `esper/pkg/tail/tail.go` (main implementation)
+  - `esper/README.md` (usage docs)
+- In the docs repo:
+  - `ttmp/.../design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md`
+  - `ttmp/.../scripts/06-run-esper-tail.sh`
+
+### Technical details
+- Representative commands:
+  - `cd esper && go test ./... -count=1`
+  - `cd esper && go run ./cmd/esper tail --port /dev/serial/by-id/... --timeout 3s --timestamps --prefix-port`

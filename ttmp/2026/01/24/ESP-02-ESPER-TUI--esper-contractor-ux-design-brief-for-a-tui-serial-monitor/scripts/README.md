@@ -11,6 +11,7 @@ Run from the repo root:
 - Flash firmware: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/03-flash-firmware.sh`
 - Scan ports: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/04-esper-scan.sh`
 - Run Esper TUI: `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/05-run-esper-tui.sh`
+- Run Esper tail (non-TUI): `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/06-run-esper-tail.sh`
 
 ## Environment overrides
 
@@ -22,4 +23,3 @@ Run from the repo root:
   - `ESPER_ELF=$PWD/esper/firmware/esp32s3-test/build/esp32s3-test.elf`
 - Set `TOOLCHAIN_PREFIX` to override addr2line prefix:
   - `TOOLCHAIN_PREFIX=xtensa-esp32s3-elf-`
-

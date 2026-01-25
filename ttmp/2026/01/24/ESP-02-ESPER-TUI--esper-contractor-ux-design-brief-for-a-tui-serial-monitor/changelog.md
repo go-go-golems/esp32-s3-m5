@@ -26,3 +26,7 @@ Added Device Registry/Nickname UX to specification: enhanced Port Picker with ni
 ## 2026-01-24
 
 Started implementation: added an initial Bubble Tea full-screen TUI skeleton (Port Picker + Monitor + Help overlay) in the nested `esper/` repo, and updated ticket tasks accordingly.
+
+## 2026-01-25
+
+Added `esper tail` (non-TUI serial pipeline streamer) design doc and implementation in the nested `esper/` repo (supports `--timeout` and output/decoder configuration flags).
