@@ -25,3 +25,8 @@ Regenerated ESP-02 tmux captures in USE_VIRTUAL_PTY=1 mode so search screenshot 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md — Point search section at deterministic captures
 
+
+## 2026-01-25
+
+Ticket closed
+

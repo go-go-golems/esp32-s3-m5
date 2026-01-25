@@ -1,7 +1,7 @@
 ---
 Title: 'Esper TUI: search features'
 Ticket: ESP-06-TUI-SEARCH
-Status: active
+Status: complete
 Topics:
     - tui
     - bubbletea
@@ -14,10 +14,12 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-25T16:47:10.849791825-05:00
+LastUpdated: 2026-01-25T17:28:20.424052291-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 # Esper TUI: search features
 

@@ -40,4 +40,4 @@ Robustness + tests:
 
 Artifacts + review:
 - [x] Capture 120×40 screenshots and update compare doc (`ESP-02` current-vs-desired)
-- [ ] Update changelog and close ticket when complete
+- [x] Update changelog and close ticket when complete
