@@ -16,10 +16,12 @@ RelatedFiles:
       Note: |-
         HOST scrollback rendering + key routing
         Search mode rendering + scrollback jump
-    - Path: esper/pkg/monitor/search_overlay.go
+    - Path: esper/pkg/monitor/ansi_text.go
       Note: |-
-        Current search implementation (modal-ish) to be replaced by bottom bar
-        Current search overlay implementation
+        ANSI-safe helpers used by search (strip/query match, visible width, ANSI truncation)
+    - Path: esper/pkg/monitor/search_logic.go
+      Note: |-
+        Pure search logic helpers (matches, wraparound navigation, jump offset)
     - Path: esper/pkg/monitor/styles.go
       Note: Styling via Lip Gloss
     - Path: ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
