@@ -1,7 +1,7 @@
 ---
 Title: 'Esper TUI: command palette'
 Ticket: ESP-08-TUI-COMMAND-PALETTE
-Status: active
+Status: complete
 Topics:
     - tui
     - bubbletea
@@ -24,10 +24,11 @@ RelatedFiles:
       Note: Deterministic palette capture
 ExternalSources: []
 Summary: Command palette parity with UX spec (grouped separators, full command set, action wiring) with deterministic screenshot verification.
-LastUpdated: 2026-01-25T18:46:26.744882153-05:00
-WhatFor: "Track and deliver command palette parity work for Esper TUI, plus repeatable screenshot evidence."
-WhenToUse: "Use when modifying the command palette or reviewing parity against the UX wireframe (§2.4)."
+LastUpdated: 2026-01-25T18:49:53.53592481-05:00
+WhatFor: Track and deliver command palette parity work for Esper TUI, plus repeatable screenshot evidence.
+WhenToUse: Use when modifying the command palette or reviewing parity against the UX wireframe (§2.4).
 ---
+
 
 
 

@@ -25,3 +25,8 @@ Generate deterministic tmux captures and refresh ESP-02 compare doc palette scre
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md — Updated palette image link
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/25/ESP-08-TUI-COMMAND-PALETTE--esper-tui-command-palette/scripts/01-tmux-capture-command-palette.sh — Ticket-local palette capture
 
+
+## 2026-01-25
+
+Ticket closed: command palette parity + capture artifacts complete.
+
