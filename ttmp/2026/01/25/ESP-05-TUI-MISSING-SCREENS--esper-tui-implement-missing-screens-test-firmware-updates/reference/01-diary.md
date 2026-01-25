@@ -21,7 +21,7 @@ RelatedFiles:
     Note: UI test firmware updated to trigger missing screens deterministically
 ExternalSources: []
 Summary: Implementation diary for building all missing Esper TUI screens and the firmware support needed to validate them.
-LastUpdated: 2026-01-25T15:15:25-05:00
+LastUpdated: 2026-01-25T15:17:26-05:00
 WhatFor: Capture the step-by-step sequence (commits, commands, validation) used to implement missing screens safely.
 WhenToUse: Use when reviewing changes or continuing the missing-screen implementation work.
 ---
@@ -155,3 +155,64 @@ Before implementing any “auto overlay” (like core dump capture progress), th
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/pkg/monitor/app_model_overlay_test.go`
 - Validate:
   - `cd esper && go test ./... -count=1`
+
+---
+
+## Step 3: Test firmware updates to trigger missing screens (slow core dump + emitall)
+
+To implement and validate the missing screens, we need deterministic ways to generate the underlying event streams: a slow core dump emission to keep a “capture in progress” overlay visible, and a one-shot command to emit a full suite of representative events without manual typing. I updated the `esp32s3-test` firmware to add both.
+
+### Prompt Context
+
+**User prompt (verbatim):** "WHat's next? Make a ticket for implementing all the missing screens, implementing the necessary test fw updates too....\n\nKeep a detailed diary, check off tasks one by one, commit as you go. Build all the screens."
+
+**Assistant interpretation:** Add the firmware-side support needed to exercise core-dump and inspector screens deterministically.
+
+**Inferred user intent:** Make UX iteration fast and reproducible—especially for screens that depend on rare events (core dumps, gdb packets, panics).
+
+**Commit (code):** a8d8e44 — "firmware: add slow core dump + emitall trigger"
+
+### What I did
+
+- Added new firmware commands:
+  - `coredumpfakeslow [lines]`: emits core dump markers + long payload slowly (multi-second)
+  - `emitall` (and `emitall panic`): emits logdemo+partial+gdbstub+coredumpfakeslow (and optionally panics last)
+- Updated firmware docs:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/README.md`
+- Firmware code:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/main/main.c`
+
+### Why
+
+- The core dump progress overlay and report view need a predictable “core dump in progress” period and a deterministic “core dump finished” transition.
+- A one-shot trigger (`emitall`) is ideal for tmux capture runs and quick regression checks.
+
+### What worked
+
+- Commands are exposed via `esp_console` over USB Serial/JTAG (safe for Cardputer projects) and integrate cleanly with the existing host-side `FIRMWARE_TRIGGERS=...` capture harness flow.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- A “slow path” is essential for UI screens that represent an in-progress state; instant-emission test data makes progress UIs impossible to observe or screenshot.
+
+### What was tricky to build
+
+- Keeping the firmware minimal while adding delays: the slow core dump uses FreeRTOS delay so the output pacing is stable without CPU-heavy busy-waits.
+
+### What warrants a second pair of eyes
+
+- Confirm the slow core dump output format won’t confuse the Go-side core dump decoder (it’s intentionally “base64-ish”, but should still be buffered and treated as raw on decode failure).
+
+### What should be done in the future
+
+- Add a real core dump emission path if we want the Go-side `esp_coredump` decode to succeed (optional; UI can be built against “decode failed; raw below” first).
+
+### Code review instructions
+
+- Review:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/main/main.c`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/README.md`

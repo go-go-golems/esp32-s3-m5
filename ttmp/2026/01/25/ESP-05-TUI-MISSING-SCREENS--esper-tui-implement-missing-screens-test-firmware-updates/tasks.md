@@ -13,7 +13,7 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 Summary: "Step-by-step task list for implementing all missing screens and the firmware/capture support needed to validate them."
-LastUpdated: 2026-01-25T15:15:25-05:00
+LastUpdated: 2026-01-25T15:17:26-05:00
 ---
 
 # Tasks
@@ -45,9 +45,9 @@ Missing port picker / device registry screens (wireframes §1.1 + §1.2):
 - [ ] Wire port picker ↔ device manager navigation keys per spec
 
 Test firmware updates (esp32s3-test):
-- [ ] Firmware: add slow/long core dump emission mode so “capture in progress” overlay is visible for multiple seconds
-- [ ] Firmware: add one-shot “emit all events” command for deterministic test runs (no manual typing)
-- [ ] Firmware docs: update `esper/firmware/esp32s3-test/README.md` for new commands
+- [x] Firmware: add slow/long core dump emission mode so “capture in progress” overlay is visible for multiple seconds
+- [x] Firmware: add one-shot “emit all events” command for deterministic test runs (no manual typing)
+- [x] Firmware docs: update `esper/firmware/esp32s3-test/README.md` for new commands
 
 Capture harness + artifacts:
 - [ ] Capture harness: add “trigger suite” script in this ticket that runs tmux capture with firmware triggers

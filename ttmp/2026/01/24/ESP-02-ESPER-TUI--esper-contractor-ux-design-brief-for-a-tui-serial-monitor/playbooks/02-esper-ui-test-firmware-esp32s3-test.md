@@ -76,6 +76,14 @@ These commands are provided by the firmware’s `esp_console` prompt (`esper> `)
   - exercises core dump recognizers and inspector event logging
   - note: full “core dump report” UI likely needs a real core dump flow/config, but this is a good first trigger
 
+- `coredumpfakeslow [lines]`
+  - emits CORE DUMP START/END markers but paces output over multiple seconds
+  - exercises “capture in progress” UI (overlay) and buffering/decoder paths
+
+- `emitall` / `emitall panic`
+  - emits a full deterministic suite: `logdemo`, `partial`, `gdbstub`, `coredumpfakeslow`
+  - if `panic` is included, it triggers abort last (device reboots)
+
 - `panic`
   - triggers `abort()` causing a panic/backtrace
   - exercises backtrace decode + inspector event logging
