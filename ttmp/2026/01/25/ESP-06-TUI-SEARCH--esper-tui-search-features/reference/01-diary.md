@@ -177,3 +177,55 @@ Keep a detailed diary."
 ### Technical details
 - Search UX spec reference:
   - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md`
+
+## Step 3: Screenshot verification (virtual PTY) + compare doc refresh
+
+Generated deterministic tmux captures with a synthetic log stream (virtual PTY) so the screenshots reliably show non-zero search matches, match markers, and the bottom-bar UI. This is important because real-device logs don’t necessarily contain the exact “wifi”/“wifi_init” strings needed to demonstrate markers in a static screenshot.
+
+Updated the ESP-02 compare doc’s “current search overlay” screenshot reference to point at the new capture set.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Work on the docmgr ticket ESP-06-TUI-SEARCH. Read the design doc, also playbook on using esper and all, past diary in ESP-03-TUI-CLEANUP and such, and work on the tasks and check them off as you go, verify against the real firmware, commit as you go.
+
+Keep a detailed diary."
+
+**Assistant interpretation:** Produce deterministic capture artifacts showing search match markers/highlights and keep the ESP-02 compare doc up to date.
+
+**Inferred user intent:** Make review easy by having screenshots that prove the new behavior (not just “0 matches”).
+
+### What I did
+- Ran the ESP-02 capture harness in virtual PTY mode:
+  - `USE_VIRTUAL_PTY=1 ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- Updated the compare doc search screenshot reference:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md`
+- New capture set (deterministic):
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-172658/`
+
+### Why
+- The compare doc should show a screenshot where match markers are visible (non-zero matches), otherwise it’s hard to confirm the feature visually.
+
+### What worked
+- The `120x40-03-search.txt` pane capture clearly shows `← MATCH i/n` markers and the bottom search bar with `match i/n`.
+
+### What didn't work
+- Using real-device logs for the search screenshot produced `0 matches`, because the log content is not guaranteed to include the chosen query strings.
+
+### What I learned
+- For “UI proof” screenshots, deterministic virtual PTY logs are often better than real hardware logs; hardware is still necessary to validate port detection/connectivity.
+
+### What was tricky to build
+- N/A (verification only)
+
+### What warrants a second pair of eyes
+- N/A (verification only)
+
+### What should be done in the future
+- If we want “real hardware proof” screenshots with matches, add a lightweight firmware trigger/playbook to emit a known search token into the log stream.
+
+### Code review instructions
+- Open the capture outputs:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/20260125-172658/120x40-03-search.png`
+
+### Technical details
+- The virtual PTY feeder in the ESP-02 capture harness emits repeated `wifi` strings, so the search match count is stable across runs.

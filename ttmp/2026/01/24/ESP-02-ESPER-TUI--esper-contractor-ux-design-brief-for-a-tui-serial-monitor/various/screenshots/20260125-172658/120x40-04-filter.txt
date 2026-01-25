@@ -1,0 +1,40 @@
+││    [✓] E  Error   [✓] W  Warning   [✓] I  Info                                                                      │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  ────────────                                                                                                       │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Include (regex): [wifi                                                                                             │
+│]  │                                                                                                                  │
+││  Exclude (regex): [heartbeat                                                                                        │
+│]  │                                                                                                                  │
+││                                                                                                                     │
+││                                                                                                                     │
+││  ────────────                                                                                                       │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                    <Apply>   <Clear All>   <Cancel> │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││  Tab: next field  Space: toggle level  Enter: apply  Esc: cancel                                                    │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+││                                                                                                                     │
+│└─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+│─────┘                                                                                                                │
+│W (34) http: slow response 198ms                                                                                      │
+│I (12) wifi: connected ssid=lab-099                                                                                   │
+│I (12) wifi: connected ssid=lab-100                                                                                   │
+│I (12) wifi: connected ssid=lab-101                                                                                   │
+│I (12) wifi: connected ssid=lab-102                                                                                   │
+│I (12) wifi: connected ssid=lab-103                                                                                   │
+│I (12) wifi: connected ssid=lab-104                                                                                   │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 9K/1M │ 17:27:02                  │
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   i inspector         │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

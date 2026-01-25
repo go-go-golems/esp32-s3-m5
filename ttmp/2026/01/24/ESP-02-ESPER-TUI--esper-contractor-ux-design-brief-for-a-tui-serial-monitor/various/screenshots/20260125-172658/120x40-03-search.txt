@@ -1,0 +1,40 @@
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESP…│
+│I (12) wifi: connected ssid=lab-075                                                                     ← MATCH 75/134│
+│I (12) wifi: connected ssid=lab-076                                                                     ← MATCH 76/134│
+│I (12) wifi: connected ssid=lab-077                                                                     ← MATCH 77/134│
+│W (34) http: slow response 177ms                                                                                      │
+│I (12) wifi: connected ssid=lab-078                                                                     ← MATCH 78/134│
+│I (12) wifi: connected ssid=lab-079                                                                     ← MATCH 79/134│
+│I (12) wifi: connected ssid=lab-080                                                                     ← MATCH 80/134│
+│I (12) wifi: connected ssid=lab-081                                                                     ← MATCH 81/134│
+│I (12) wifi: connected ssid=lab-082                                                                     ← MATCH 82/134│
+│I (12) wifi: connected ssid=lab-083                                                                     ← MATCH 83/134│
+│I (12) wifi: connected ssid=lab-084                                                                     ← MATCH 84/134│
+│W (34) http: slow response 184ms                                                                                      │
+│I (12) wifi: connected ssid=lab-085                                                                     ← MATCH 85/134│
+│I (12) wifi: connected ssid=lab-086                                                                     ← MATCH 86/134│
+│I (12) wifi: connected ssid=lab-087                                                                     ← MATCH 87/134│
+│I (12) wifi: connected ssid=lab-088                                                                     ← MATCH 88/134│
+│I (12) wifi: connected ssid=lab-089                                                                     ← MATCH 89/134│
+│I (12) wifi: connected ssid=lab-090                                                                     ← MATCH 90/134│
+│I (12) wifi: connected ssid=lab-091                                                                     ← MATCH 91/134│
+│W (34) http: slow response 191ms                                                                                      │
+│I (12) wifi: connected ssid=lab-092                                                                     ← MATCH 92/134│
+│E (56) sensor: read failed code=92                                                                                    │
+│I (12) wifi: connected ssid=lab-093                                                                     ← MATCH 93/134│
+│I (12) wifi: connected ssid=lab-094                                                                     ← MATCH 94/134│
+│I (12) wifi: connected ssid=lab-095                                                                     ← MATCH 95/134│
+│I (12) wifi: connected ssid=lab-096                                                                     ← MATCH 96/134│
+│I (12) wifi: connected ssid=lab-097                                                                     ← MATCH 97/134│
+│I (12) wifi: connected ssid=lab-098                                                                     ← MATCH 98/134│
+│W (34) http: slow response 198ms                                                                                      │
+│I (12) wifi: connected ssid=lab-099                                                                     ← MATCH 99/134│
+│I (12) wifi: connected ssid=lab-100                                                                    ← MATCH 100/134│
+│I (12) wifi: connected ssid=lab-101                                                                    ← MATCH 101/134│
+│I (12) wifi: connected ssid=lab-102                                                                    ← MATCH 102/134│
+│I (12) wifi: connected ssid=lab-103                                                                    ← MATCH 103/134│
+│I (12) wifi: connected ssid=lab-104                                                                    ← MATCH 104/134│
+│──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│
+│Search: [wifi                                                   ] │ match 1/134 │ n:next N:prev  Enter:jump  Esc:clos…│
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
