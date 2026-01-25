@@ -509,3 +509,51 @@ One nuance: `esper/` is itself a nested Git repository. That means implementatio
   - `esper/pkg/monitor/monitor_view.go`
   - `esper/pkg/monitor/styles.go`
   - `esper/pkg/monitor/help_overlay.go`
+
+## Step 8: Add ticket scripts for traceable hardware testing
+
+This step adds small shell scripts under the ticket’s `scripts/` directory so anyone can reproduce the exact sequences used for hardware testing and Esper smoke tests. This directly addresses traceability: we can correct/update one script and re-run it, instead of relying on diary prose or shell history.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Store scripts in scripts/ inside the ticket so we can trace your steps sand to make it easy to correct / update"
+
+**Assistant interpretation:** Capture the key command sequences as runnable scripts under the ticket workspace.
+
+**Inferred user intent:** Make the work reproducible and auditable, and reduce friction when rerunning or correcting steps.
+
+**Commit (code):** N/A (docs commit in this step records the scripts; see git log)
+
+### What I did
+- Added scripts to `ttmp/.../ESP-02-ESPER-TUI.../scripts/`:
+  - `01-detect-port.sh` (prefer `/dev/serial/by-id/...`)
+  - `02-build-firmware.sh` (ESP-IDF build for `esper/firmware/esp32s3-test`)
+  - `03-flash-firmware.sh` (flash to detected/override port)
+  - `04-esper-scan.sh` (run `esper scan`, optional `PROBE=1`)
+  - `05-run-esper-tui.sh` (run Esper TUI against live device)
+  - `README.md` (order of operations + env var overrides)
+- Added and checked off a ticket task: “Add reproducible scripts/ for hardware test steps”.
+
+### Why
+- Scripts are easier to rerun and modify than long diary entries, and capture operational details precisely.
+
+### What worked
+- Using `ESPPORT` and `ESPIDF_EXPORT` overrides keeps scripts portable across machines/setups.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Keeping scripts close to the ticket is the simplest way to preserve provenance and context.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- Confirm the port auto-detection pattern is correct for all boards you care about (Cardputer vs other ESP32-S3 devices).
+
+### What should be done in the future
+- Add a “serial transcript capture” script once we decide on the preferred tool (miniterm/picocom/socat) in this environment.
+
+### Code review instructions
+- Start at `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/README.md`.

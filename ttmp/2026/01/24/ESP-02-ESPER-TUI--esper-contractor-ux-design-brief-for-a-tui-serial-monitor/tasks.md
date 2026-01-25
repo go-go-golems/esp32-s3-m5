@@ -12,3 +12,7 @@
 - [x] Implement Help overlay (keymap + close behavior)
 - [ ] Integrate decoder events into UI (panic/backtrace, core dump, gdb stub)
 - [x] Run gofmt + go test for esper module
+- [ ] Hardware: detect Cardputer serial port (USB Serial/JTAG)
+- [ ] Hardware: build+flash esper esp32s3-test firmware to Cardputer
+- [ ] Hardware: smoke test esper scan + start TUI against live device
+- [x] Add reproducible scripts/ for hardware test steps
