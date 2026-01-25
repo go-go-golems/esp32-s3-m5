@@ -632,3 +632,67 @@ I wrote a short design doc in the ticket describing the intended CLI shape and f
 - Representative commands:
   - `cd esper && go test ./... -count=1`
   - `cd esper && go run ./cmd/esper tail --port /dev/serial/by-id/... --timeout 3s --timestamps --prefix-port`
+
+## Step 10: Add bidirectional raw stdin to `esper tail` (Ctrl-] exits)
+
+This step extends `esper tail` to support bidirectional use without a TUI: it can now read stdin as raw bytes and forward them to the device, while still streaming the device output through the existing esper pipeline to stdout. The key requirement is that `Ctrl-]` always exits, even in raw mode.
+
+Because this is interactive behavior, I added a ticket script that runs `esper tail --stdin-raw` normally, and also wrote an automated pty-based smoke test script that spawns the command under a pseudo-terminal, sends `help\\r`, verifies the device responds, and then exits via `Ctrl-]`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can i type into esper tail? or is it one directional? I actually want bidirectional, just no tui\n\n2.  Ctrl+] should exit always\n\ncool, write a deseign document, then add tasks to the ticket, work on them, commit, check them off and keep a detailed diary all along."
+
+**Assistant interpretation:** Extend `esper tail` to forward stdin to the serial port as raw keystrokes, while preserving the existing stdout pipeline behavior; guarantee `Ctrl-]` always exits; track via docs/tasks/diary and commits.
+
+**Inferred user intent:** Get a classic “serial terminal” feel (bidirectional) without the complexity of a full-screen UI, and retain an always-available escape key even in raw mode.
+
+**Commit (code):**
+- `esper/` repo: 915aaf7 — "tail: add --stdin-raw bidirectional mode (Ctrl-] exits)"
+
+### What I did
+- Updated the tail mode design doc to include `--stdin-raw` semantics and the `Ctrl-]` escape hatch.
+- Implemented `--stdin-raw` in `esper tail`:
+  - If stdin is a TTY, put it into raw mode so keystrokes are delivered as bytes.
+  - Forward bytes to the device serial port (no translation).
+  - Intercept `Ctrl-]` (0x1d) and cancel/exit immediately.
+  - Centralized serial writes in a single goroutine to avoid concurrent `Write` calls (stdin forwarding and core dump auto-enter).
+- Added ticket scripts:
+  - `scripts/07-run-esper-tail-stdin-raw.sh` (manual interactive run; `Ctrl-]` exits)
+  - `scripts/08-pty-smoke-test-esper-tail-stdin-raw.py` (automated pty smoke test)
+- Ran the automated pty smoke test against the attached device:
+  - It sent `help\\r` and received the `esp_console` help output, then exited on `Ctrl-]`.
+
+### Why
+- Raw stdin forwarding is required for interactive REPL workflows (`esp_console`) and for quickly sending commands without switching tools.
+- `Ctrl-]` must remain reliable as an escape hatch because raw mode disables terminal line discipline signals (e.g., Ctrl-C no longer necessarily exits).
+
+### What worked
+- The pty smoke test demonstrates bidirectional behavior in a repeatable, non-manual way: it types into the REPL and captures output.
+- `Ctrl-]` consistently terminates the program even when stdin is in raw mode.
+
+### What didn't work
+- N/A in this step.
+
+### What I learned
+- Using `github.com/charmbracelet/x/term` avoids introducing a new module dependency while still providing `MakeRaw/Restore`.
+
+### What was tricky to build
+- Ensuring `Ctrl-]` is intercepted before bytes are forwarded to the device, and that terminal state is restored on exit.
+- Avoiding concurrent writes to the serial port (auto-enter and stdin forwarding) by routing all writes through one channel/worker goroutine.
+
+### What warrants a second pair of eyes
+- Confirm whether raw “Enter” should remain raw (`\\r`) or be normalized to `\\r\\n` for `esp_console` convenience (this is intentionally raw today).
+
+### What should be done in the future
+- Add an optional `--stdin-line` mode (line-buffered, sends `\\r\\n` on Enter) if raw mode proves awkward for common workflows.
+
+### Code review instructions
+- In the `esper/` repo:
+  - `esper/pkg/tail/tail.go` (stdin raw mode, Ctrl-] exit, port write serialization)
+  - `esper/cmd/esper/main.go` (new `--stdin-raw` flag wiring)
+  - `esper/README.md` (documented usage)
+- In the docs repo:
+  - `ttmp/.../design-doc/03-esper-tail-mode-non-tui-serial-pipeline-streamer.md`
+  - `ttmp/.../scripts/07-run-esper-tail-stdin-raw.sh`
+  - `ttmp/.../scripts/08-pty-smoke-test-esper-tail-stdin-raw.py`

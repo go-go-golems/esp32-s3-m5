@@ -21,3 +21,5 @@
 - [x] Implement tail pipeline runner (line split + decoders + autocolor + tee)
 - [x] Hardware: validate esper tail against esp32s3-test firmware (--timeout)
 - [x] Document esper tail usage in esper/README.md
+- [x] Extend esper tail: add --stdin-raw bidirectional mode with Ctrl-] exit
+- [x] Hardware: verify esper tail --stdin-raw can type into esp_console; Ctrl-] exits

@@ -108,6 +108,7 @@ The tail mode processes data in this order (mirrors existing monitor logic):
 - `--port` (string): serial port path (or glob like `/dev/serial/by-id/*`).
 - `--baud` (int, default 115200).
 - `--timeout` (duration, default 0): exit after this duration; `0` means run until Ctrl-C.
+- `--stdin-raw` (bool): forward stdin to the device as raw bytes (bidirectional, no TUI). Exit on `Ctrl-]` always.
 
 #### Decoding/config flags
 
@@ -132,6 +133,9 @@ The tail mode processes data in this order (mirrors existing monitor logic):
 Notes:
 - Prefixing is applied *before* adding auto-color so the prefix does not get colored by inserted ANSI sequences.
 - The YAML in the UX spec is a guideline; tail mode is intentionally not a TUI widget tree.
+- Raw stdin mode:
+  - When `--stdin-raw` is enabled and stdin is a TTY, esper puts stdin into raw mode and forwards bytes directly to the device.
+  - `Ctrl-]` (0x1d) is intercepted and always exits the program (even in raw mode).
 
 ## Design Decisions
 
@@ -139,6 +143,8 @@ Notes:
 2. **Reuse existing decoder/state machines**: guarantees parity and reduces drift between TUI and non-TUI paths.
 3. **Duration-based `--timeout`**: predictable for scripts; separate from “idle timeout” semantics.
 4. **Prefix-before-autocolor**: avoids coloring timestamps/prefixes unintentionally.
+5. **Raw, byte-preserving stdin forwarding**: supports `esp_console` REPL and interactive device sessions without a full-screen UI.
+6. **Ctrl-] as unconditional escape hatch**: mirrors common serial tools and remains reliable in raw mode.
 
 ## Alternatives Considered
 
@@ -162,6 +168,7 @@ Notes:
 1. Should `--timeout` also perform a “final flush” of tail buffer before exit? (Proposed: yes.)
 2. Should the core dump prompt auto-enter default be `true` (ESP-IDF parity) or `false` (safer for unattended scripts)?
 3. Do we want a `--raw` mode that bypasses all pipeline transforms? (Not requested, but could be useful.)
+4. Should we add an alternative `--stdin-line` mode that translates Enter to `\r\n` (more REPL-friendly) in addition to `--stdin-raw`? (Not requested yet.)
 
 ## References
 
