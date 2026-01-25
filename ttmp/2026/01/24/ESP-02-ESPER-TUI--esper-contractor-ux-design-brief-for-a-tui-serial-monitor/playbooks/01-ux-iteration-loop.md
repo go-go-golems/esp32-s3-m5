@@ -16,7 +16,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/01-tui-wireframe-diffs.md
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md
 Summary: "How we iterate on the esper TUI to match the contractor wireframes, with deterministic screenshot captures for fast review."
-LastUpdated: 2026-01-25T14:31:18-05:00
+LastUpdated: 2026-01-25T14:35:27-05:00
 ---
 
 # UX iteration loop (playbook)
@@ -85,6 +85,11 @@ Recommended pre-flight (real device):
 This produces:
 - `.txt` pane captures (authoritative for exact chars)
 - `.png` renders (easy visual review / reMarkable-friendly)
+
+Optional firmware trigger step (real hardware only):
+- Set `FIRMWARE_TRIGGERS` (comma-separated REPL commands) to auto-drive the test firmware during capture, e.g.:
+  - `FIRMWARE_TRIGGERS=logdemo,partial,gdbstub,coredumpfake ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+  - Put `panic` last if you include it (device reboots).
 
 ### 5) Update the diff notes (fast feedback surface)
 

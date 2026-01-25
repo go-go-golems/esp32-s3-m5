@@ -43,3 +43,12 @@ Added a UI test firmware playbook (`esp32s3-test`) describing how to flash and d
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md — Flash/run/capture procedure and REPL trigger commands
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/esper/firmware/esp32s3-test/README.md — Firmware capabilities and supported commands
+
+## 2026-01-25
+
+Extended the tmux screenshot harness to optionally auto-trigger UI test firmware REPL commands during capture (`FIRMWARE_TRIGGERS=...`), producing a consistent “rich events” output for Inspector and missing-screen work.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh — Added optional firmware trigger step + extra capture
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md — Documented `FIRMWARE_TRIGGERS` usage

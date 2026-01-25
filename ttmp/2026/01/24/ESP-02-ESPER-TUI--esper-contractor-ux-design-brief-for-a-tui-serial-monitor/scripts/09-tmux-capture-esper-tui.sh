@@ -28,6 +28,11 @@ mkdir -p "${OUTDIR}"
 
 USE_VIRTUAL_PTY="${USE_VIRTUAL_PTY:-0}"
 ESPPORT="${ESPPORT:-}"
+FIRMWARE_TRIGGERS="${FIRMWARE_TRIGGERS:-}"
+FIRMWARE_TRIGGER_SLEEP="${FIRMWARE_TRIGGER_SLEEP:-0.7}"
+FIRMWARE_TRIGGER_SETTLE="${FIRMWARE_TRIGGER_SETTLE:-1.2}"
+FIRMWARE_TRIGGERS_ONCE="${FIRMWARE_TRIGGERS_ONCE:-1}"
+TRIGGERS_RAN=0
 
 have_convert() {
   command -v convert >/dev/null 2>&1
@@ -85,6 +90,46 @@ send_keys() {
   local session="$1"
   shift
   tmux send-keys -t "${session}:0.0" "$@"
+}
+
+trim() {
+  local s="$1"
+  # shellcheck disable=SC2001
+  s="$(echo "$s" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  printf "%s" "$s"
+}
+
+trigger_firmware() {
+  local session="$1"
+  local triggers="$2"
+
+  if [[ -z "${triggers}" ]]; then
+    return 0
+  fi
+  if [[ "${FIRMWARE_TRIGGERS_ONCE}" == "1" && "${TRIGGERS_RAN}" == "1" ]]; then
+    return 0
+  fi
+  if [[ "${USE_VIRTUAL_PTY}" == "1" ]]; then
+    echo "NOTE: FIRMWARE_TRIGGERS ignored because USE_VIRTUAL_PTY=1" >&2
+    return 0
+  fi
+
+  IFS=',' read -r -a cmds <<<"${triggers}"
+  echo "triggering firmware commands: ${triggers}"
+  for cmd in "${cmds[@]}"; do
+    cmd="$(trim "${cmd}")"
+    if [[ -z "${cmd}" ]]; then
+      continue
+    fi
+
+    # DEVICE mode is the default when we connect. Clear the input line then send command.
+    send_keys "${session}" C-u
+    sleep 0.05
+    send_keys "${session}" "${cmd}" Enter
+    sleep "${FIRMWARE_TRIGGER_SLEEP}"
+  done
+  sleep "${FIRMWARE_TRIGGER_SETTLE}"
+  TRIGGERS_RAN=1
 }
 
 start_virtual_pty() {
@@ -176,6 +221,13 @@ run_scenario() {
   wait_for_monitor "${session}"
 
   capture "${session}" "${w}" "${h}" "01-device"
+
+  # Optional: drive the esp32s3-test REPL (real hardware only) to generate events like
+  # panic/backtrace, core dump markers, and gdb stub packet detection.
+  if [[ -n "${FIRMWARE_TRIGGERS}" ]]; then
+    trigger_firmware "${session}" "${FIRMWARE_TRIGGERS}"
+    capture "${session}" "${w}" "${h}" "01b-device-triggered"
+  fi
 
   # Enter HOST mode.
   send_keys "${session}" C-t

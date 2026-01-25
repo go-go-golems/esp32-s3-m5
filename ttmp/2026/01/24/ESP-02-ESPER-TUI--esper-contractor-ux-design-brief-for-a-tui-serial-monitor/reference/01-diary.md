@@ -24,7 +24,7 @@ RelatedFiles:
       Note: Primary output of this ticket
 ExternalSources: []
 Summary: Investigation diary for creating the ESP-02-ESPER-TUI contractor UX design brief.
-LastUpdated: 2026-01-25T14:32:16-05:00
+LastUpdated: 2026-01-25T14:37:20-05:00
 WhatFor: Capture the research trail (commands, files, decisions) used to produce the Esper TUI UX design brief.
 WhenToUse: Use when reviewing why the brief says what it says, or when continuing UX/TUI work later.
 ---
@@ -998,3 +998,23 @@ Playbook updated:
 
 Hardware capture set:
 - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_refactor_20260125-143055/`
+
+---
+
+## 2026-01-25 — Capture harness: auto-trigger UI test firmware commands
+
+To make “rich event” UI states easier to validate (GDB stub detection, core dump markers, partial lines, panic/backtrace), I extended the tmux screenshot harness to optionally drive the `esp32s3-test` firmware REPL automatically right after connect. This produces an extra screenshot (`01b-device-triggered`) showing the post-trigger output and ensures the Inspector screen has real events to display without manual typing.
+
+Implementation:
+- Updated harness:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- Documented usage in playbooks:
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/01-ux-iteration-loop.md`
+  - `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/playbooks/02-esper-ui-test-firmware-esp32s3-test.md`
+
+Usage (real hardware only):
+- `FIRMWARE_TRIGGERS=logdemo,partial,gdbstub,coredumpfake ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- Put `panic` last if included (it reboots): `FIRMWARE_TRIGGERS=logdemo,gdbstub,coredumpfake,panic ...`
+
+Capture set from this feature:
+- `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/screenshots/hw_triggers_20260125-143648/`

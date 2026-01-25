@@ -19,7 +19,7 @@ RelatedFiles:
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/05-run-esper-tui.sh
   - ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/07-run-esper-tail-stdin-raw.sh
 Summary: "How to flash and use the esper UI test firmware to force specific UI states (logs, partial lines, gdb stub detection, core dump markers, panic/backtrace)."
-LastUpdated: 2026-01-25T14:04:47-05:00
+LastUpdated: 2026-01-25T14:35:27-05:00
 ---
 
 # UI test firmware playbook (esp32s3-test)
@@ -88,3 +88,11 @@ These commands are provided by the firmware’s `esp_console` prompt (`esper> `)
 - Real hardware capture (required for panic/core dump/backtrace realism):
   - `./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
   - then manually run the commands above while capturing additional screenshots as needed
+
+### Optional: auto-trigger firmware commands during capture
+
+If you want the capture harness to automatically drive the firmware REPL (real hardware only), set `FIRMWARE_TRIGGERS` (comma-separated). This will run the commands in DEVICE mode right after connect, then capture an extra `01b-device-triggered` screenshot.
+
+Example (recommended order: put `panic` last because it reboots):
+- `FIRMWARE_TRIGGERS=logdemo,partial,gdbstub,coredumpfake ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
+- `FIRMWARE_TRIGGERS=logdemo,gdbstub,coredumpfake,panic ./ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/scripts/09-tmux-capture-esper-tui.sh`
