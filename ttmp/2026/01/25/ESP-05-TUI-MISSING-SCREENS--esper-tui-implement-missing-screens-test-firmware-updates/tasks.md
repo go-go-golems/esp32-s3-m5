@@ -13,7 +13,7 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 Summary: "Step-by-step task list for implementing all missing screens and the firmware/capture support needed to validate them."
-LastUpdated: 2026-01-25T15:09:16-05:00
+LastUpdated: 2026-01-25T15:15:25-05:00
 ---
 
 # Tasks
@@ -21,13 +21,13 @@ LastUpdated: 2026-01-25T15:09:16-05:00
 ## TODO (check off in order)
 
 Ticket hygiene:
-- [ ] Write spec doc (`design/01-missing-screens-and-firmware-updates-spec.md`)
-- [ ] Start diary (`reference/01-diary.md`) and keep it updated per commit
-- [ ] Add ticket scripts for reproducible capture/firmware steps
+- [x] Write spec doc (`design/01-missing-screens-and-firmware-updates-spec.md`)
+- [x] Start diary (`reference/01-diary.md`) and keep it updated per commit
+- [x] Add ticket scripts for reproducible capture/firmware steps
 
 Enabling plumbing (must happen before “auto overlays”):
-- [ ] TUI plumbing: overlays must not block non-key msgs (serial/tick) while open
-- [ ] TUI plumbing: add `closeOverlayMsg` (and/or `replaceOverlayMsg`) so screens can close auto-overlays deterministically
+- [x] TUI plumbing: overlays must not block non-key msgs (serial/tick) while open
+- [x] TUI plumbing: add `closeOverlayMsg` (and/or `replaceOverlayMsg`) so screens can close auto-overlays deterministically
 
 Missing monitor/inspector screens (wireframe §1.3):
 - [ ] Screen: Panic Detail View (open from Inspector event; scrollable; copy/save affordances as per spec)
