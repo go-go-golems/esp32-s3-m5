@@ -359,3 +359,75 @@ I reviewed the ESP-02-DEVICE-REGISTRY design doc to understand the data model (J
   - Stored in `~/.config/esper/devices.json`
   - Keyed by `usb_serial`
   - Fields: nickname (required), name, description, preferred_path
+
+## Step 6: Intake designer UX spec, write Bubble Tea decomposition, upload to reMarkable
+
+This step took the returned “Full UX Specification with Wireframes” document and translated it into an engineering-facing Bubble Tea decomposition: which models exist, which messages must be routed (especially `tea.KeyMsg` and `tea.WindowSizeMsg`), and how styling/layout should be done with Lip Gloss rather than manual border drawing.
+
+I also bundled the key documents (original brief, designer UX spec, and the decomposition doc) and uploaded them to reMarkable for review/annotation.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, we got the design back from the designer in ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md . . Keep a detailed diary as you go. commit at appropriate steps. Remember to route keyboard msg and resize msgs and to use  lipgloss directives to do styling, not doing borders and stuff yourself. \n\n Write a design decomposition document where you lay out the different bubble tea models and which msgs and such are used, and how the styling is done in pseudocode. Incorporate the exact wireframe from the design document, verbatim, as design reference. The YAML in the doc is some general guideline, not something that you need to follow per se\n\nAdd the design doc to the ticket and then upload to remarkable."
+
+**Assistant interpretation:** Treat the designer document as the new UX contract, add it to the ticket, create an implementation decomposition doc focused on Bubble Tea models/messages/resizing/key routing and Lip Gloss styling, include wireframes verbatim, commit progress, and upload the resulting packet to reMarkable.
+
+**Inferred user intent:** Provide engineers a clear blueprint for implementation that avoids common TUI pitfalls (bad key routing, broken resize/layout, manual ASCII borders) and make the docs easy to review on reMarkable.
+
+**Commit (code):** c7141f9 — "ESP-02-ESPER-TUI: add designer UX spec + decomposition doc"
+
+### What I did
+- Confirmed the designer deliverable is present and recognized by docmgr:
+  - `reference/02-esper-tui-full-ux-specification-with-wireframes.md`
+- Created and authored the decomposition design doc:
+  - `design-doc/02-esper-tui-bubble-tea-model-message-decomposition.md`
+  - Included the **exact ASCII wireframes** (verbatim blocks) as “Design Reference”.
+  - Emphasized routing of `tea.KeyMsg` and `tea.WindowSizeMsg` at the root model, and overlay-first key capture.
+  - Documented a “Lip Gloss first” styling approach (borders/padding/layout via lipgloss styles).
+- Updated the ticket `index.md` to link the decomposition doc.
+- Related relevant source files to the decomposition doc via `docmgr doc relate`.
+- Committed the ticket workspace and new docs (so the designer spec + decomposition are versioned together).
+- Uploaded a bundled PDF (with ToC) to reMarkable:
+  - Bundle name: `ESP-02-ESPER-TUI — Esper TUI UX Packet`
+  - Remote dir: `/ai/2026/01/25/ESP-02-ESPER-TUI`
+
+### Why
+- The UX spec is a strong visual contract, but engineers need an architectural map to implement it cleanly in Bubble Tea.
+- Key routing (host vs device, overlay capture) and resize routing are common failure points in TUIs; making them explicit prevents regressions.
+- Lip Gloss should own borders/layout to avoid fragile string math and misaligned box drawing under resize.
+
+### What worked
+- Extracting the wireframes verbatim provides an unambiguous “golden reference” inside the decomposition doc.
+- `remarquee upload bundle` produced a single PDF packet suitable for review on reMarkable.
+
+### What didn't work
+- `docmgr doc relate` did not recognize the doc when I initially passed a docs-root-relative path (it expected a repo-relative `ttmp/...` path); rerunning with `--doc ttmp/...` worked.
+
+### What I learned
+- Keeping wireframes verbatim in the engineering doc helps avoid “almost matches the spec” drift when implementation starts.
+- Using a bundle upload (ToC) is a better review artifact than uploading multiple single PDFs.
+
+### What was tricky to build
+- Ensuring wireframes are copied *exactly* without whitespace changes while still integrating them into a structured decomposition doc.
+- Choosing a routing priority order that is both safe and ergonomic (overlay-first, then screen; device input only when allowed).
+
+### What warrants a second pair of eyes
+- Confirm the decomposition doc’s proposed message catalog and mode semantics align with the keymap and state machine in the designer UX spec.
+- Confirm the “Host mode” behavior (search/scrollback vs command palette) matches expected `idf.py monitor` muscle memory.
+
+### What should be done in the future
+- Add a short playbook for generating realistic serial transcripts (panic/core dump/gdb) and screenshots for QA.
+- Once implementation begins, add a checklist-driven “resize + key routing” smoke test matrix (80×24 and 120×40).
+
+### Code review instructions
+- Start at `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/design-doc/02-esper-tui-bubble-tea-model-message-decomposition.md`.
+- Cross-check the embedded wireframes against `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/reference/02-esper-tui-full-ux-specification-with-wireframes.md`.
+- Verify ticket index links in `ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/index.md`.
+
+### Technical details
+- Commands run (representative):
+  - `docmgr doc add --ticket ESP-02-ESPER-TUI --doc-type design-doc --title "Esper TUI: Bubble Tea model/message decomposition"`
+  - `docmgr doc relate --doc ttmp/.../design-doc/02-... --file-note "..."`
+  - `git add ttmp/.../ESP-02-ESPER-TUI--... && git commit -m "ESP-02-ESPER-TUI: ..."`
+  - `remarquee upload bundle --dry-run ... --remote-dir "/ai/2026/01/25/ESP-02-ESPER-TUI"`
+  - `remarquee upload bundle ...`
