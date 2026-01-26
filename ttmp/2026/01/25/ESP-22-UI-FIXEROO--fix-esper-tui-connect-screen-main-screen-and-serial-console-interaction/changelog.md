@@ -34,3 +34,8 @@ Implemented monitor_view.go split and UI fixes: extracted ui_helpers.go, monitor
 
 Step 6: Fixed serial input loop (was not continuing after Enter), simplified prompt (removed weird brackets), cleaned up port picker form (cleaner buttons, better field layout, helpful placeholders). Commit 54c8f37.
 
+
+## 2026-01-25
+
+Backfilled diary with Steps 6-7: serial input loop fix (commit 54c8f37), form selection styling fix (commit 5d552c9). Added related files to frontmatter.
+
