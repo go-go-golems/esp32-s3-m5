@@ -328,7 +328,11 @@ Discrepancies + plan:
 
 Current:
 
-![](ttmp/2026/01/25/ESP-05-TUI-MISSING-SCREENS--esper-tui-implement-missing-screens-test-firmware-updates/various/screenshots/inspector_details_20260125-155050/120x40-02-panic-detail.png)
+![](ttmp/2026/01/25/ESP-09-TUI-INSPECTOR-DETAILS--esper-tui-inspector-detail-actions-context/various/screenshots/20260125-190426/120x40-01-panic-detail.png)
+
+Current (COREDUMP):
+
+![](ttmp/2026/01/25/ESP-09-TUI-INSPECTOR-DETAILS--esper-tui-inspector-detail-actions-context/various/screenshots/20260125-190426/120x40-02-coredump-detail.png)
 
 Desired (wireframe, verbatim):
 
@@ -399,8 +403,8 @@ Desired (wireframe, verbatim):
 ```
 
 Discrepancies + plan:
-- We show status/size/path and a decoded report box, but we don't provide the footer actions yet (`c/s/r/j`). Plan: implement copy/save actions next; saving should write report + raw base64 to predictable locations.
-- Our core dump decode currently fails for the fake payload (expected). Plan: either (a) keep UI working for “decode failed” case, and (b) optionally add a “real” coredump emitter path in firmware if we want success cases for screenshots.
+- Footer actions (`c/s/r/j` + `Tab`) are implemented. Copy uses the host clipboard (best-effort, with toast on failure); save writes a timestamped report file under `$XDG_CACHE_HOME/esper/`; jump-to-log searches for an anchor substring and scrolls HOST viewport (best-effort).
+- Core dump decode can still fail for synthetic payloads (expected). Keep UI robust for “decode failed” and treat “decode OK” screenshots as a hardware/firmware validation step.
 
 ## Reset Device confirmation (HOST, 120×40)
 

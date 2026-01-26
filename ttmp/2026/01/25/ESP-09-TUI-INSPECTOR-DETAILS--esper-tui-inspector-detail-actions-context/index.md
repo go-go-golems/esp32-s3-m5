@@ -11,19 +11,31 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: esper/pkg/monitor/inspector_detail_overlay.go
+      Note: Detail overlay implementation for required actions
+    - Path: esper/pkg/monitor/monitor_view.go
+      Note: Jump/copy/save routing in monitor model
+    - Path: ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md
+      Note: Canonical compare doc
+    - Path: ttmp/2026/01/25/ESP-09-TUI-INSPECTOR-DETAILS--esper-tui-inspector-detail-actions-context/reference/01-diary.md
+      Note: Implementation diary
+    - Path: ttmp/2026/01/25/ESP-09-TUI-INSPECTOR-DETAILS--esper-tui-inspector-detail-actions-context/scripts/01-tmux-capture-inspector-detail-actions.sh
+      Note: Capture harness
 ExternalSources: []
-Summary: ""
-LastUpdated: 2026-01-25T16:47:17.136727971-05:00
-WhatFor: ""
-WhenToUse: ""
+Summary: 'Inspector detail actions + context: copy/save/jump/tab-next-event with deterministic capture artifacts.'
+LastUpdated: 2026-01-25T19:06:55.038347743-05:00
+WhatFor: "Track implementation of inspector detail view actions (copy/save/jump/tab-next) and validation artifacts."
+WhenToUse: "Use when modifying inspector detail screens or validating against UX spec §1.3."
 ---
+
+
 
 # Esper TUI: inspector detail actions + context
 
 ## Overview
 
-<!-- Provide a brief overview of the ticket, its goals, and current status -->
+Bring the inspector detail overlays (PANIC/COREDUMP) to parity with the UX spec (§1.3) by adding action keys (copy/save/jump/tab-next-event), a Context section, and deterministic capture artifacts for review.
 
 ## Key Links
 

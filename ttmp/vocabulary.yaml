@@ -91,6 +91,8 @@ topics:
       description: Charm Lip Gloss (terminal styling for Bubble Tea)
     - slug: palette
       description: Command palette UI and behavior
+    - slug: inspector
+      description: Inspector panel and event/detail views in Esper TUI
 docTypes:
     - slug: index
       description: Ticket index document
