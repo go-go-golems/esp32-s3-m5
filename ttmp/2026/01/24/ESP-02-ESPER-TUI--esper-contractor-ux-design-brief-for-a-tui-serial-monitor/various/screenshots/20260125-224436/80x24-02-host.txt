@@ -1,0 +1,23 @@
+╭───────────────────────────────────────────────────────────────────────────────────────────────────╮
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/20…│
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│                                                                                                   │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 0K/1M │ 22:44:…│
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   …│
+╰───────────────────────────────────────────────────────────────────────────────────────────────────╯

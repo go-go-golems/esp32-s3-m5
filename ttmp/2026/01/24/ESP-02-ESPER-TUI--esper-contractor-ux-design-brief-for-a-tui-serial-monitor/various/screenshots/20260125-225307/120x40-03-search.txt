@@ -1,0 +1,23 @@
+╭───────────────────────────────────────────────────────────────────────────────────────────────────╮
+│esper ── Connected: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/20…│
+│I (12) wifi: connected ssid=lab-089                                                  ← MATCH 89/132│
+│I (12) wifi: connected ssid=lab-090                                                  ← MATCH 90/132│
+│I (12) wifi: connected ssid=lab-091                                                  ← MATCH 91/132│
+│W (34) http: slow response 191ms                                                                   │
+│I (12) wifi: connected ssid=lab-092                                                  ← MATCH 92/132│
+│E (56) sensor: read failed code=92                                                                 │
+│I (12) wifi: connected ssid=lab-093                                                  ← MATCH 93/132│
+│I (12) wifi: connected ssid=lab-094                                                  ← MATCH 94/132│
+│I (12) wifi: connected ssid=lab-095                                                  ← MATCH 95/132│
+│I (12) wifi: connected ssid=lab-096                                                  ← MATCH 96/132│
+│I (12) wifi: connected ssid=lab-097                                                  ← MATCH 97/132│
+│I (12) wifi: connected ssid=lab-098                                                  ← MATCH 98/132│
+│W (34) http: slow response 198ms                                                                   │
+│I (12) wifi: connected ssid=lab-099                                                  ← MATCH 99/132│
+│I (12) wifi: connected ssid=lab-100                                                 ← MATCH 100/132│
+│I (12) wifi: connected ssid=lab-101                                                 ← MATCH 101/132│
+│I (12) wifi: connected ssid=lab-102                                                 ← MATCH 102/132│
+│I (12) wifi: connected ssid=lab-103                                                 ← MATCH 103/132│
+│───────────────────────────────────────────────────────────────────────────────────────────────────│
+│Search: [wifi                                ] │ match 1/132 │ n:next N:prev  Enter:jump  Esc:clos…│
+╰───────────────────────────────────────────────────────────────────────────────────────────────────╯

@@ -1,0 +1,30 @@
+││                                                                                                  │
+││  Exclude (regex): [heartbeat                                                               ]     │
+││                                                                                                  │
+││                                                                                                  │
+││                                                                                                  │
+││  ─────────────────────────────────────────────────────────────────────────────────────────────── │
+││                                                                                                  │
+││                                                                                                  │
+││                                                                                                  │
+││  Highlight Rules:                                                                                │
+││                                                                                                  │
+││    (no rules yet)                                                                                │
+││                                                                                                  │
+││                                                                                       <Add Rule> │
+││                                                                                                  │
+││                                                                                                  │
+││                                                                                                  │
+││                                                                 <Apply>   <Clear All>   <Cancel> │
+││                                                                                                  │
+││                                                                                                  │
+││                                                                                                  │
+││  Tab: next field  Space: toggle/cycle  a: add rule  x: remove rule  ↑/↓: select rule  Enter:     │
+│apply  Esc: cancel  │                                                                              │
+││                                                                                                  │
+││                                                                                                  │
+│└──────────────────────────────────────────────────────────────────────────────────────────────────│
+│────────────────┘                                                                                  │
+│Mode: HOST │ Follow: OFF │ Inspect: OFF │ Capture: — │ Filter: — │ Search: — │ Buf: 0K/1M │ 18:42:…│
+│Ctrl-T: DEVICE   Ctrl-T T: commands   PgUp/PgDn scroll   G: resume follow   / search   f filter   …│
+└───────────────────────────────────────────────────────────────────────────────────────────────────┘
