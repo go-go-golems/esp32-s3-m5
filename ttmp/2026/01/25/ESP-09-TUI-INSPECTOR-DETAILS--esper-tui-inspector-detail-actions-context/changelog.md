@@ -25,3 +25,8 @@ Add deterministic tmux capture harness for inspector details and update ESP-02 c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/24/ESP-02-ESPER-TUI--esper-contractor-ux-design-brief-for-a-tui-serial-monitor/various/02-tui-current-vs-desired-compare.md — Compare doc update
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/25/ESP-09-TUI-INSPECTOR-DETAILS--esper-tui-inspector-detail-actions-context/scripts/01-tmux-capture-inspector-detail-actions.sh — Capture script
 
+
+## 2026-01-25
+
+Ticket closed: inspector detail actions + deterministic captures complete.
+

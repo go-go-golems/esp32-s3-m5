@@ -1,7 +1,7 @@
 ---
 Title: 'Esper TUI: inspector detail actions + context'
 Ticket: ESP-09-TUI-INSPECTOR-DETAILS
-Status: active
+Status: complete
 Topics:
     - tui
     - bubbletea
@@ -24,10 +24,11 @@ RelatedFiles:
       Note: Capture harness
 ExternalSources: []
 Summary: 'Inspector detail actions + context: copy/save/jump/tab-next-event with deterministic capture artifacts.'
-LastUpdated: 2026-01-25T19:06:55.038347743-05:00
-WhatFor: "Track implementation of inspector detail view actions (copy/save/jump/tab-next) and validation artifacts."
-WhenToUse: "Use when modifying inspector detail screens or validating against UX spec §1.3."
+LastUpdated: 2026-01-25T19:08:41.276997795-05:00
+WhatFor: Track implementation of inspector detail view actions (copy/save/jump/tab-next) and validation artifacts.
+WhenToUse: Use when modifying inspector detail screens or validating against UX spec §1.3.
 ---
+
 
 
 
