@@ -29,3 +29,8 @@ Created style-to-component mapping (reference/01-style-to-component-mapping.md) 
 
 Implemented monitor_view.go split and UI fixes: extracted ui_helpers.go, monitor_model.go, monitor_serial.go, monitor_inspector.go, monitor_sessionlog.go. Fixed port_picker.go layout (footer visibility, form field wrapping). Enhanced styles.go with modern color palette (rounded borders, primary purple accent, log level colors).
 
+
+## 2026-01-25
+
+Step 6: Fixed serial input loop (was not continuing after Enter), simplified prompt (removed weird brackets), cleaned up port picker form (cleaner buttons, better field layout, helpful placeholders). Commit 54c8f37.
+
