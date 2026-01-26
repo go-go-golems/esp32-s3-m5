@@ -1,7 +1,7 @@
 ---
 Title: mqjs_service component textbook analysis
 Ticket: ESP-03-DOC-JS
-Status: active
+Status: complete
 Topics:
     - microquickjs
     - quickjs
@@ -23,7 +23,7 @@ WhenToUse: "Use when integrating mqjs_service, debugging JS concurrency/timeouts
 
 ## Overview
 
-This ticket contains a “textbook-style” deep dive into `components/mqjs_service`, including architecture, pseudocode, diagrams, and a critical assessment of risks/shortcomings. It also includes a detailed diary with intermediate research notes (not just a final summary).
+This ticket contains a “textbook-style” deep dive into `components/mqjs_service`, including architecture, pseudocode, diagrams, a devrel-style onboarding guide, and a critical assessment of risks/shortcomings. It also includes a detailed diary with intermediate research notes (not just a final summary).
 
 ## Key Links
 
@@ -34,7 +34,7 @@ This ticket contains a “textbook-style” deep dive into `components/mqjs_serv
 
 ## Status
 
-Current status: **active**
+Current status: **complete**
 
 ## Topics
 

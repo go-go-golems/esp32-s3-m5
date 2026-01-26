@@ -1,7 +1,7 @@
 ---
 Title: 'Textbook: mqjs_service deep dive'
 Ticket: ESP-03-DOC-JS
-Status: active
+Status: complete
 Topics:
     - microquickjs
     - quickjs
@@ -18,12 +18,14 @@ RelatedFiles:
       Note: Usage case study (bootstrap
     - Path: 0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_timers.cpp
       Note: Timer scheduler that posts JS callbacks into mqjs_service
+    - Path: components/mqjs_service/README.md
+      Note: Component-level devrel documentation for mqjs_service
     - Path: components/mqjs_service/include/mqjs_service.h
       Note: Public API contract and type definitions
-    - Path: components/mqjs_service/mqjs_service.cpp
-      Note: Service task implementation
     - Path: components/mqjs_service/include/mqjs_vm.h
       Note: VM host primitive API used by mqjs_service and consumers
+    - Path: components/mqjs_service/mqjs_service.cpp
+      Note: Service task implementation
     - Path: components/mqjs_service/mqjs_vm.cpp
       Note: Deadline interrupt + output/exception capture mechanics
 ExternalSources: []
@@ -32,6 +34,7 @@ LastUpdated: 2026-01-25T08:52:54.10061625-05:00
 WhatFor: Long-form, implementation-grounded documentation of how mqjs_service works and how to use it safely in ESP-IDF firmware.
 WhenToUse: Use when integrating MicroQuickJS into a multi-task firmware, debugging JS concurrency/timeout behavior, or extending mqjs_service or its consumers.
 ---
+
 
 
 # Textbook: mqjs_service deep dive
@@ -549,6 +552,162 @@ Use this checklist as the operational contract:
 
 ---
 
+## Developer Guide: A DevRel Walkthrough for New Contributors
+
+If you are new to this codebase (or to embedded JS in general), this section is your “first hour” guide. It is intentionally verbose and opinionated, with the goal of getting you productive quickly while helping you avoid the most common pitfalls.
+
+### 0) What you are actually building
+
+You are building an embedded JavaScript runtime that behaves like a single-threaded “island” inside a multi-threaded firmware. The island is small, and the surrounding sea (FreeRTOS tasks, Wi-Fi events, timers, UI, hardware interrupts) is noisy. `mqjs_service` is the bridge: it lets *many producers* send work to *one JS owner* without breaking that island.
+
+When you “use the component,” you are not just calling a function—you are committing to a concurrency contract. You should think about:
+- **Who owns the JS VM?** (`mqjs_service` task, always.)
+- **How work is serialized?** (a queue, processed strictly one at a time.)
+- **How long your work can run?** (best‑effort deadlines, not hard stop.)
+
+### 1) Choose your entry point: VM or Service
+
+After the merge, both the VM host primitive and the service live in the same component:
+
+- **VM-only (no service):** Use `MqjsVm` if you can keep all JS calls on one thread and want direct control of when/where JS runs.
+- **Service (recommended for firmware):** Use `mqjs_service` if multiple tasks need to trigger JS or if you need queueing and a clean single-owner VM.
+
+The default for most device firmware should be **the service**.
+
+### 2) Create a minimal service in your app
+
+In your module (or `app_main`), initialize the service once and keep a handle:
+
+```c
+static mqjs_service_t* s_svc = nullptr;
+
+void js_start(void) {
+  mqjs_service_config_t cfg = {};
+  cfg.task_name = "js_svc";
+  cfg.task_stack_words = 6144;
+  cfg.task_priority = 8;
+  cfg.task_core_id = -1;
+  cfg.queue_len = 16;
+  cfg.arena_bytes = CONFIG_MY_JS_MEM_BYTES;
+  cfg.stdlib = &js_stdlib;
+  cfg.fix_global_this = true;
+
+  if (mqjs_service_start(&cfg, &s_svc) != ESP_OK) {
+    // handle error
+  }
+}
+```
+
+**Why these fields matter:**
+- `arena_bytes` controls the JS heap size. Too small → random JS failures; too large → memory pressure elsewhere.
+- `task_stack_words` must be sufficient for JS evaluation plus your own callback stack.
+- `queue_len` determines how many pending JS requests you can buffer.
+
+### 3) Evaluate JS safely from any task
+
+If you want “type something in a console and run it,” you will use `mqjs_service_eval`:
+
+```c
+mqjs_eval_result_t r = {};
+esp_err_t st = mqjs_service_eval(s_svc, code, code_len, 250, "<eval>", &r);
+if (st == ESP_OK) {
+  if (r.ok) {
+    printf("output: %s\n", r.output ? r.output : "");
+  } else {
+    printf("error: %s\n", r.error ? r.error : "");
+  }
+}
+mqjs_eval_result_free(&r);
+```
+
+**Remember:** the `timeout_ms` is a *VM deadline*, not a guarantee that this call returns within that time.
+
+### 4) Run JS callbacks from hardware events
+
+Hardware tasks (like encoder ISR handlers, button tasks, or timers) should not call JS directly. Instead, they **enqueue jobs**:
+
+```c
+static esp_err_t job_handle_button(JSContext* ctx, void* user) {
+  // Build JS objects, call callbacks, etc.
+  return ESP_OK;
+}
+
+void on_button_event(void) {
+  mqjs_job_t job = {};
+  job.fn = &job_handle_button;
+  job.user = nullptr;
+  job.timeout_ms = 50;
+  (void)mqjs_service_post(s_svc, &job);
+}
+```
+
+This matches the patterns used in:
+- `0048-cardputer-js-web/main/js_service.cpp`
+- `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
+
+### 5) Bootstrap your JS environment
+
+Most real integrations need a “bootstrap” step that defines global helpers or sets up event queues. This should be done **inside the service thread** as a synchronous job:
+
+```c
+static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
+  (void)user;
+  const char* script =
+      "var g = globalThis;\n"
+      "g.emit = function(topic, payload) {\n"
+      "  // ...queue events...\n"
+      "};\n";
+
+  JSValue v = JS_Eval(ctx, script, strlen(script), "<boot>", JS_EVAL_REPL);
+  if (JS_IsException(v)) {
+    // handle
+  }
+  return ESP_OK;
+}
+
+void js_bootstrap(void) {
+  mqjs_job_t boot = {.fn = &job_bootstrap, .user = nullptr, .timeout_ms = 200};
+  (void)mqjs_service_run(s_svc, &boot);
+}
+```
+
+**Why do this?**
+- It keeps the VM initialization on the owner thread.
+- It keeps JavaScript state setup deterministic across boots.
+
+### 6) Use `MqjsVm` helpers *inside* jobs
+
+Inside a job, you can retrieve the `MqjsVm` from the context:
+
+```c
+MqjsVm* vm = MqjsVm::From(ctx);
+if (vm) {
+  vm->SetDeadlineMs(50);
+  // call JS or evaluate small snippets
+  vm->ClearDeadline();
+}
+```
+
+This is how the firmware logs exceptions (`GetExceptionString`) and captures output for web responses in `0048` and `0066`.
+
+### 7) Understand the “backpressure story”
+
+The queue is the only buffer. If producers outpace the JS thread:
+- `mqjs_service_eval/run` can return `ESP_ERR_TIMEOUT` if the queue is full.
+- `mqjs_service_post` returns immediately but can also fail fast if the queue is full.
+
+This is *not* a bug: it is the backpressure mechanism. If you need higher throughput, increase `queue_len` or reduce job duration.
+
+### 8) Common anti-patterns (and the fix)
+
+| Anti‑pattern | Why it breaks | Fix |
+|---|---|---|
+| Calling `mqjs_service_eval` *inside* a job | Deadlock (same queue, same thread) | Call JS directly in the job |
+| Passing stack pointers to async jobs | Use‑after‑free | Heap allocate or use static storage |
+| Long blocking calls inside a job | Starves the queue and JS | Move blocking work to another task |
+
+---
+
 ## Usage Analysis: 0048-cardputer-js-web
 
 Primary file: `0048-cardputer-js-web/main/js_service.cpp`.
@@ -782,6 +941,7 @@ Even though `mqjs_service` already exists, the following plan can guide hardenin
   - `components/mqjs_service/mqjs_service.cpp`
   - `components/mqjs_service/include/mqjs_vm.h`
   - `components/mqjs_service/mqjs_vm.cpp`
+  - `components/mqjs_service/README.md`
   - `0048-cardputer-js-web/main/js_service.cpp`
   - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/js_service.cpp`
   - `0066-cardputer-adv-ledchain-gfx-sim/main/mqjs/mqjs_timers.cpp`

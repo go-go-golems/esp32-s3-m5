@@ -1,7 +1,7 @@
 ---
 Title: Diary
 Ticket: ESP-03-DOC-JS
-Status: active
+Status: complete
 Topics:
     - microquickjs
     - quickjs
@@ -225,3 +225,55 @@ Keep a frequent detailed diary of your research, at intermediate steps (not just
   - `docmgr doc relate --doc 2026/01/25/ESP-03-DOC-JS--.../design-doc/01-textbook-mqjs-service-deep-dive.md --file-note "...:..."`
   - `docmgr doctor --ticket ESP-03-DOC-JS --stale-after 30`
   - `docmgr validate frontmatter --doc 2026/01/25/ESP-03-DOC-JS--.../index.md --suggest-fixes`
+
+## Step 4: DevRel Guide + Component README (2026-01-25)
+
+This step adds a developer-facing walkthrough that explains how to adopt `mqjs_service` in a friendly, narrative style and introduces a component-level README so the guidance is discoverable outside the ticket.
+
+The outcome is a “new developer” section embedded in the textbook doc and a `components/mqjs_service/README.md` file that summarizes usage patterns, safety notes, and file layout.
+
+### Prompt Context
+
+**User prompt (verbatim):** "quick note, write documentation for the component if not already, in a very verbose engaging style that explains both implementation and how to use for new developers using the component, think like a devrel technical writer."
+
+**Assistant interpretation:** Add a verbose, engaging devrel-style guide to the existing textbook documentation and create a standalone component README with quick-start usage.
+
+**Inferred user intent:** Ensure the component is approachable and self-documented for new contributors without forcing them to read a long internal design doc first.
+
+**Commit (code):** N/A
+
+### What I did
+- Added a “Developer Guide: A DevRel Walkthrough for New Contributors” section to the textbook doc.
+- Expanded that section with concrete usage examples, anti-patterns, and backpressure explanations.
+- Added `components/mqjs_service/README.md` with quick-start examples for both the service and VM-only modes.
+- Related the new README to the textbook doc via `docmgr doc relate`.
+
+### Why
+- The ticket doc is deep and long; a devrel-style guide improves onboarding and makes the component usable without heavy context.
+
+### What worked
+- The new guide builds directly on the existing implementation semantics, so it stays aligned with the actual API.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- A component-level README is the fastest way to make the merged `mqjs_service` + `MqjsVm` story discoverable by new developers.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- N/A (documentation-only updates).
+
+### What should be done in the future
+- N/A.
+
+### Code review instructions
+- Read the new guide section in:
+  - `ttmp/2026/01/25/ESP-03-DOC-JS--mqjs-service-component-textbook-analysis/design-doc/01-textbook-mqjs-service-deep-dive.md`
+- Review the README at:
+  - `components/mqjs_service/README.md`
+
+### Technical details
+- `docmgr doc relate --doc /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/25/ESP-03-DOC-JS--mqjs-service-component-textbook-analysis/design-doc/01-textbook-mqjs-service-deep-dive.md --file-note ".../components/mqjs_service/README.md:Component-level devrel documentation for mqjs_service"`

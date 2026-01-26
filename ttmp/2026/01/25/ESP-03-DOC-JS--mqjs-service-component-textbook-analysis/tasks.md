@@ -7,3 +7,5 @@
 - [x] Draft textbook analysis (fundamentals, API, internals, diagrams, usage analysis, critical assessment)
 - [x] Relate key code files to textbook doc
 - [x] Run `docmgr doctor` + frontmatter validation
+- [x] Add devrel guide + component README
+- [x] Close ticket (mark docs complete)
