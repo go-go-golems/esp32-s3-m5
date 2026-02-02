@@ -215,7 +215,7 @@ I ran the JS runtime smoke test script to validate that the new `zigctl js run` 
 
 **Inferred user intent:** Confirm the JS runtime works end-to-end without manual pairing unless strictly needed.
 
-**Commit (code):** N/A
+**Commit (code):** 267cd97 — "docs: add bug report analysis for JS join events"
 
 ### What I did
 - Ran `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/01-jsruntime-smoke.sh`.
