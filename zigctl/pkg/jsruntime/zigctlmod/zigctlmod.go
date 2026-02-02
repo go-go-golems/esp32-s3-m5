@@ -24,7 +24,7 @@ Zigctl module provides JS access to Zigbee2MQTT via zigctl.
 
 Usage:
   const zigctl = require('zigctl');
-  const client = zigctl.connect({ broker: 'mqtt://localhost:1884' });
+  const client = zigctl.connect({ broker: 'mqtt://localhost:1884', debug: true });
   const info = client.bridgeInfo();
 
 Functions:
@@ -37,6 +37,7 @@ Client methods:
   publish(topic, payload)
   request(topic, payload, responseTopic, timeout?)
   watch({ topics, duration }) -> stream (next(), stop())
+  debug: set true in connect() config to enable verbose logging
   close()
 `
 }
@@ -44,11 +45,11 @@ Client methods:
 func (m *Module) Loader(vm *goja.Runtime, moduleObj *goja.Object) {
 	exports := moduleObj.Get("exports").(*goja.Object)
 	_ = exports.Set("connect", func(cfg goja.Value) (*goja.Object, error) {
-		settings, err := settingsFromValue(vm, cfg)
+		settings, debug, err := settingsFromValue(vm, cfg)
 		if err != nil {
 			return nil, err
 		}
-		client, err := newClient(context.Background(), settings)
+		client, err := newClient(context.Background(), settings, debug)
 		if err != nil {
 			return nil, err
 		}

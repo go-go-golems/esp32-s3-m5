@@ -12,7 +12,7 @@ type watchOptions struct {
 	Duration string
 }
 
-func settingsFromValue(vm *goja.Runtime, value goja.Value) (zigbee.Settings, error) {
+func settingsFromValue(vm *goja.Runtime, value goja.Value) (zigbee.Settings, bool, error) {
 	defaults := zigbee.DefaultConfig()
 	settings := zigbee.Settings{
 		Broker:    defaults.Broker,
@@ -24,14 +24,15 @@ func settingsFromValue(vm *goja.Runtime, value goja.Value) (zigbee.Settings, err
 		QOS:       defaults.QOS,
 		Timeout:   defaults.Timeout,
 	}
+	debug := false
 
 	if value == nil || goja.IsUndefined(value) || goja.IsNull(value) {
-		return settings, nil
+		return settings, debug, nil
 	}
 
 	var raw map[string]any
 	if err := vm.ExportTo(value, &raw); err != nil {
-		return settings, err
+		return settings, debug, err
 	}
 
 	if v, ok := stringFromMap(raw, "broker"); ok {
@@ -60,8 +61,11 @@ func settingsFromValue(vm *goja.Runtime, value goja.Value) (zigbee.Settings, err
 	} else if v, ok := intFromMap(raw, "timeoutSeconds", "timeout_seconds"); ok {
 		settings.Timeout = fmt.Sprintf("%ds", v)
 	}
+	if v, ok := boolFromMap(raw, "debug"); ok {
+		debug = v
+	}
 
-	return settings, nil
+	return settings, debug, nil
 }
 
 func watchOptionsFromValue(vm *goja.Runtime, value goja.Value) (watchOptions, error) {

@@ -2,6 +2,7 @@ package zigctlmod
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -16,15 +17,17 @@ type WatchStream struct {
 	doneCh   chan struct{}
 	stopOnce sync.Once
 	timer    *time.Timer
+	debug    bool
 }
 
-func newWatchStream(ctx context.Context, client mqtt.Client, qos byte, topics []string, duration time.Duration) (*WatchStream, error) {
+func newWatchStream(ctx context.Context, client mqtt.Client, qos byte, topics []string, duration time.Duration, debug bool) (*WatchStream, error) {
 	stream := &WatchStream{
 		client: client,
 		qos:    qos,
 		topics: topics,
 		msgCh:  make(chan mqtt.Message, 64),
 		doneCh: make(chan struct{}),
+		debug:  debug,
 	}
 
 	handler := func(_ mqtt.Client, msg mqtt.Message) {
@@ -35,6 +38,7 @@ func newWatchStream(ctx context.Context, client mqtt.Client, qos byte, topics []
 	}
 
 	for _, topic := range topics {
+		stream.logf("zigctl-js: subscribe topic=%s", topic)
 		token := client.Subscribe(topic, qos, handler)
 		if !token.WaitTimeout(5 * time.Second) {
 			stream.Stop()
@@ -47,6 +51,7 @@ func newWatchStream(ctx context.Context, client mqtt.Client, qos byte, topics []
 	}
 
 	if duration > 0 {
+		stream.logf("zigctl-js: watch duration=%s", duration)
 		stream.timer = time.AfterFunc(duration, stream.Stop)
 	}
 
@@ -64,6 +69,7 @@ func (s *WatchStream) Stop() {
 			s.timer.Stop()
 		}
 		if len(s.topics) > 0 {
+			s.logf("zigctl-js: unsubscribe topics=%v", s.topics)
 			s.client.Unsubscribe(s.topics...)
 		}
 		close(s.doneCh)
@@ -86,4 +92,11 @@ func (s *WatchStream) Next(ctx context.Context) (map[string]any, error) {
 			"value": map[string]any{"topic": msg.Topic(), "payload": decodePayload(msg.Payload())},
 		}, nil
 	}
+}
+
+func (s *WatchStream) logf(format string, args ...any) {
+	if !s.debug {
+		return
+	}
+	log.Printf(format, args...)
 }

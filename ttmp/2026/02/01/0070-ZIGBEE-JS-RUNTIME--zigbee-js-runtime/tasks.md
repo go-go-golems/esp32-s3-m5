@@ -15,3 +15,5 @@
 - [x] Add smoke test script / runbook notes for manual validation
 - [x] Update doc references + diary entries, then commit changes
 - [x] Add wait-for-pairing toggle script (JS runtime)
+- [x] Add JS logging test script
+- [x] Add permit-join watch YAML script

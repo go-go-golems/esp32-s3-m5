@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"sync"
 	"time"
@@ -17,11 +18,15 @@ type Client struct {
 	client   mqtt.Client
 	timeout  time.Duration
 	qos      byte
+	debug    bool
 	mu       sync.Mutex
 	closed   bool
 }
 
-func newClient(ctx context.Context, settings zigbee.Settings) (*Client, error) {
+func newClient(ctx context.Context, settings zigbee.Settings, debug bool) (*Client, error) {
+	if debug {
+		log.Printf("zigctl-js: connecting broker=%s baseTopic=%s qos=%d timeout=%s", settings.Broker, settings.BaseTopic, settings.QOS, settings.Timeout)
+	}
 	client, timeout, qos, err := zigbee.Connect(ctx, settings)
 	if err != nil {
 		return nil, err
@@ -32,6 +37,7 @@ func newClient(ctx context.Context, settings zigbee.Settings) (*Client, error) {
 		client:   client,
 		timeout:  timeout,
 		qos:      qos,
+		debug:    debug,
 	}, nil
 }
 
@@ -42,6 +48,7 @@ func (c *Client) Close() error {
 		return nil
 	}
 	c.closed = true
+	c.logf("zigctl-js: disconnecting")
 	c.client.Disconnect(250)
 	return nil
 }
@@ -49,6 +56,7 @@ func (c *Client) Close() error {
 func (c *Client) BridgeInfo(ctx context.Context) (map[string]any, error) {
 	base := c.settings.BasePrefix()
 	responseTopic := zigbee.JoinTopic(base, "bridge", "info")
+	c.logf("zigctl-js: request bridge info topic=%s", responseTopic)
 	payload, err := zigbee.RequestOnce(
 		ctx,
 		c.client,
@@ -71,6 +79,7 @@ func (c *Client) BridgeInfo(ctx context.Context) (map[string]any, error) {
 func (c *Client) Devices(ctx context.Context) ([]map[string]any, error) {
 	base := c.settings.BasePrefix()
 	responseTopic := zigbee.JoinTopic(base, "bridge", "devices")
+	c.logf("zigctl-js: request devices topic=%s", responseTopic)
 	payload, err := zigbee.RequestOnce(
 		ctx,
 		c.client,
@@ -106,6 +115,7 @@ func (c *Client) PermitJoin(ctx context.Context, seconds int, device string) (ma
 	}
 
 	responseTopic := zigbee.JoinTopic(base, "bridge", "response", "permit_join")
+	c.logf("zigctl-js: permit join seconds=%d device=%s topic=%s", seconds, device, responseTopic)
 	resp, err := zigbee.RequestOnce(
 		ctx,
 		c.client,
@@ -126,7 +136,9 @@ func (c *Client) PermitJoin(ctx context.Context, seconds int, device string) (ma
 }
 
 func (c *Client) Publish(ctx context.Context, topic string, payload []byte) error {
-	return zigbee.Publish(ctx, c.client, c.ensureTopic(topic), c.qos, payload, c.timeout)
+	full := c.ensureTopic(topic)
+	c.logf("zigctl-js: publish topic=%s payload=%d bytes", full, len(payload))
+	return zigbee.Publish(ctx, c.client, full, c.qos, payload, c.timeout)
 }
 
 func (c *Client) Request(ctx context.Context, topic string, payload []byte, responseTopic string, timeoutOverride time.Duration) (map[string]any, error) {
@@ -135,6 +147,7 @@ func (c *Client) Request(ctx context.Context, topic string, payload []byte, resp
 		timeout = timeoutOverride
 	}
 	response := c.ensureTopic(responseTopic)
+	c.logf("zigctl-js: request topic=%s response=%s timeout=%s", c.ensureTopic(topic), response, timeout)
 	resp, err := zigbee.RequestOnce(
 		ctx,
 		c.client,
@@ -169,8 +182,9 @@ func (c *Client) Watch(ctx context.Context, options watchOptions) (*WatchStream,
 	for _, topic := range options.Topics {
 		topics = append(topics, ensureTopic(base, topic))
 	}
+	c.logf("zigctl-js: watch topics=%v duration=%s", topics, duration)
 
-	return newWatchStream(ctx, c.client, c.qos, topics, duration)
+	return newWatchStream(ctx, c.client, c.qos, topics, duration, c.debug)
 }
 
 func (c *Client) ensureTopic(topic string) string {
@@ -199,4 +213,11 @@ func decodePayload(payload []byte) any {
 		return string(payload)
 	}
 	return decoded
+}
+
+func (c *Client) logf(format string, args ...any) {
+	if !c.debug {
+		return
+	}
+	log.Printf(format, args...)
 }
