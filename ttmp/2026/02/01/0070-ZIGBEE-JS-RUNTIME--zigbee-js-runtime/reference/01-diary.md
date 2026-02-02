@@ -262,7 +262,7 @@ I added a JS script that waits for a device to join via bridge events, then togg
 
 **Inferred user intent:** Provide a ready-to-run automation script without triggering pairing or toggling during creation.
 
-**Commit (code):** N/A
+**Commit (code):** 92d8a83 — "docs: add JS debugging playbook and script usage"
 
 ### What I did
 - Added `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/02-wait-pair-toggle.js`.
