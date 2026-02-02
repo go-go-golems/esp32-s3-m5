@@ -62,7 +62,6 @@ func (c *NrfListCommand) RunIntoGlazeProcessor(
 			types.MRP("vid", device.VID),
 			types.MRP("pid", device.PID),
 			types.MRP("serial", device.SerialNumber),
-			types.MRP("manufacturer", device.Manufacturer),
 			types.MRP("product", device.Product),
 		)
 		if err := gp.AddRow(ctx, row); err != nil {

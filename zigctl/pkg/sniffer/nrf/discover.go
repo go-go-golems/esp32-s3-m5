@@ -30,7 +30,6 @@ func ListDevices() ([]DeviceInfo, error) {
 			PortName:     port.Name,
 			VID:          port.VID,
 			PID:          port.PID,
-			Manufacturer: port.Manufacturer,
 			Product:      port.Product,
 			SerialNumber: port.SerialNumber,
 		})

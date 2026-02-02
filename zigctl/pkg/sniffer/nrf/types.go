@@ -14,7 +14,6 @@ type DeviceInfo struct {
 	PortName     string
 	VID          string
 	PID          string
-	Manufacturer string
 	Product      string
 	SerialNumber string
 }

@@ -97,7 +97,6 @@ func (c *NrfInfoCommand) RunIntoGlazeProcessor(
 	vid := ""
 	pid := ""
 	serial := ""
-	manufacturer := ""
 	product := ""
 
 	session, err := nrf.Open(port, baud, snifferSettings.NrfAutoSleepOnExit)
@@ -129,14 +128,12 @@ func (c *NrfInfoCommand) RunIntoGlazeProcessor(
 		vid = device.VID
 		pid = device.PID
 		serial = device.SerialNumber
-		manufacturer = device.Manufacturer
 		product = device.Product
 	}
 
 	row.Set("vid", vid)
 	row.Set("pid", pid)
 	row.Set("serial", serial)
-	row.Set("manufacturer", manufacturer)
 	row.Set("product", product)
 
 	return gp.AddRow(ctx, row)
