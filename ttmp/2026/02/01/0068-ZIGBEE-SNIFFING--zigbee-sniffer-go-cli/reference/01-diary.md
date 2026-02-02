@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:05:56-05:00
+LastUpdated: 2026-02-02T12:09:25-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -763,3 +763,68 @@ Using glazed command framework (and looking at others in zigctl), create detaile
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 1`
   - `gofmt -w zigctl/pkg/zigbee/*.go zigctl/cmd/root.go`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add sniffer config defaults and layer"`
+
+## Step 12: Implement nRF sniffer protocol package (discovery, parser, session)
+
+I built the core `pkg/sniffer/nrf` package with device discovery, serial session management, and packet parsing. This establishes the low-level protocol layer that the new commands will use.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Implement the next task in the list: nRF sniffer protocol support.
+
+**Inferred user intent:** Make the CLI capable of talking to the hardware directly with a reliable parsing layer.
+
+**Commit (code):** fb0aa3d — "zigctl: add nRF sniffer protocol package"
+
+### What I did
+
+- Added `pkg/sniffer/nrf` with:
+  - USB VID/PID discovery via `go.bug.st/serial/enumerator`.
+  - Line parser for the `received:` serial format (FCS stripping included).
+  - Serial session wrapper that sends `sleep`, `shell echo off`, `channel`, and `receive`.
+  - Timestamp correction helper anchored to local time.
+- Added `go.bug.st/serial` dependency to `zigctl/go.mod` and `go.sum`.
+- Checked off Task 2 in the ticket.
+
+### Why
+
+- The higher-level CLI commands require a stable protocol layer to discover the device and parse packets.
+
+### What worked
+
+- The protocol package builds cleanly and matches the extcap line format.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Ensuring the line parser strips the FCS consistently with the extcap implementation.
+
+### What warrants a second pair of eyes
+
+- Review the serial session lifecycle (start/stop commands) for correctness against the firmware behavior.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/pkg/sniffer/nrf/session.go` and `zigctl/pkg/sniffer/nrf/parser.go`.
+- Confirm the VID/PID match the firmware in `discover.go`.
+
+### Technical details
+
+- Commands run:
+  - `go get go.bug.st/serial@v1.6.2`
+  - `gofmt -w zigctl/pkg/sniffer/nrf/*.go`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 2`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF sniffer protocol package"`
