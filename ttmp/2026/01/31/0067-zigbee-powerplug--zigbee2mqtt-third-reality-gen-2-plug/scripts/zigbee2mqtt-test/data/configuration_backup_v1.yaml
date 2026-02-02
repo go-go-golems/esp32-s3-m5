@@ -1,0 +1,15 @@
+homeassistant: false
+
+permit_join: false
+
+frontend: true
+
+mqtt:
+  server: mqtt://mosquitto:1883
+
+serial:
+  port: /dev/ttyUSB0
+  adapter: zstack
+
+advanced:
+  log_level: debug

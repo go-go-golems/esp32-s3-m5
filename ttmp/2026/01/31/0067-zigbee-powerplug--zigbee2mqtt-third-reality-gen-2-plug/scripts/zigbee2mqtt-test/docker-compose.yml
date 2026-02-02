@@ -1,0 +1,25 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: z2m-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1884:1883"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+
+  zigbee2mqtt:
+    image: ghcr.io/koenkk/zigbee2mqtt
+    container_name: z2m
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - /run/udev:/run/udev:ro
+    environment:
+      - TZ=America/New_York
+    devices:
+      - /dev/serial/by-id/usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_34042a009b45ed119cb2c58f0a86e0b4-if00-port0:/dev/ttyUSB0

@@ -1,0 +1,12 @@
+homeassistant:
+  enabled: false
+frontend:
+  enabled: true
+mqtt:
+  server: mqtt://mosquitto:1883
+serial:
+  port: /dev/ttyUSB0
+  adapter: zstack
+advanced:
+  log_level: debug
+version: 4
