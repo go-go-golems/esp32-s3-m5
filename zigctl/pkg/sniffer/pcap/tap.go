@@ -41,7 +41,10 @@ func BuildTAPPayload(channel int, rssi int, lqi int, payload []byte) ([]byte, er
 	if err := binary.Write(buf, binary.LittleEndian, uint16(1)); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buf, binary.LittleEndian, uint32(lqi)); err != nil {
+	if err := binary.Write(buf, binary.LittleEndian, uint8(lqi)); err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write([]byte{0x00, 0x00, 0x00}); err != nil {
 		return nil, err
 	}
 
