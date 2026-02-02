@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:22:52-05:00
+LastUpdated: 2026-02-02T12:23:57-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -1073,3 +1073,61 @@ I implemented the capture and live streaming commands plus the bootloader helper
   - `gofmt -w zigctl/cmd/sniff/*.go`
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 6`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF capture/live/bootloader commands"`
+
+## Step 17: Attempt go test and record workspace constraint
+
+I attempted to run Go tests for the zigctl module, but the workspace `go.work` does not include `zigctl`, so Go refused to run tests from the workspace root. I recorded the exact error so the limitation is clear.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Validate the build where possible while implementing tasks.
+
+**Inferred user intent:** Keep implementation steps tested and reproducible when feasible.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Ran `go test ./...` from `zigctl/` and `go test ./zigctl/...` from the repo root.
+- Captured the go.work error indicating `zigctl` is not listed as a workspace module.
+
+### Why
+
+- Basic compilation checks help catch integration errors early.
+
+### What worked
+
+- N/A
+
+### What didn't work
+
+- `go test` failed with: `pattern ./...: directory prefix . does not contain modules listed in go.work or their selected dependencies`.
+- `go test ./zigctl/...` failed with: `pattern ./zigctl/...: directory prefix zigctl does not contain modules listed in go.work or their selected dependencies`.
+
+### What I learned
+
+- The workspace `go.work` currently only includes `glazed` and `go-go-goja`.
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Decide whether `zigctl` should be added to `go.work` for testing convenience.
+
+### What should be done in the future
+
+- If desired, add `./zigctl` to `go.work` to enable `go test` in this repo.
+
+### Code review instructions
+
+- Review `go.work` at repo root if you want to change workspace membership.
+
+### Technical details
+
+- Commands run:
+  - `go test ./...` (from `zigctl/`)
+  - `go test ./zigctl/...` (from repo root)
