@@ -115,7 +115,7 @@ I updated the plan and tasks so the JS runtime is implemented in zigctl itself (
 
 **Inferred user intent:** Keep zigctl self-contained while reusing go-go-goja’s runtime/module system.
 
-**Commit (code):** N/A
+**Commit (code):** 870ac86 — "docs: fix plz-confirm parsing and log permit-join run"
 
 ### What I did
 - Updated the design doc implementation plan to target zigctl-local packages.
