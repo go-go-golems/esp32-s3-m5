@@ -59,3 +59,12 @@ Fix plz-confirm pipe parsing and run permit-join watcher
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh — Use python3 -c to parse plz-confirm JSON
 
+
+## 2026-02-02
+
+Add postmortem report for JS runtime permit-join validation
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/01-postmortem-js-runtime-permit-join-validation.md — Postmortem report
+

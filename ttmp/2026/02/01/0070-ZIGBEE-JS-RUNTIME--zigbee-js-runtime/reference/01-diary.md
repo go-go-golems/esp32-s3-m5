@@ -550,3 +550,53 @@ This also validated that the expanded `bridge/#` watch topic gives immediate sig
 ### Technical details
 - Command: `ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh`
 - Output included `permit_join.status: ok` and repeated `bridge/logging` publishes for device `0x282c02bfffe69870`.
+
+## Step 11: Postmortem on JS runtime validation workflow
+
+I wrote a detailed postmortem that captures the technical issues in the JS runtime and permit-join validation flow, along with root causes, fixes, and future improvements. This consolidates the troubleshooting we did so the next validation run can avoid the same pitfalls.
+
+The report includes the timeout and argument parsing issues, the plz-confirm JSON parsing bug, and the decision to expand watch topics for better idle visibility.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Create a detailed postmortem report that shows all the technical issues we ran into, why they happened, what we did to fix them, and what we should do better in the future. \n\nAlso continue keeping your diary and backfill if necessary. \nCommit all this and upload the documents to remarkable."
+
+**Assistant interpretation:** Produce a comprehensive postmortem report, update the diary with the new step, and commit the documentation changes; then upload the documents to reMarkable.
+
+**Inferred user intent:** Preserve a complete record of the troubleshooting journey and make it easily consumable off-device.
+
+**Commit (code):** N/A
+
+### What I did
+- Created the postmortem document in the ticket analysis folder.
+- Captured the issues, root causes, fixes, and prevention guidance.
+- Updated the diary to record the postmortem work.
+
+### Why
+- The user requested a detailed postmortem to improve future validation runs and ensure lessons are captured.
+
+### What worked
+- The report consolidates all the known issues and fixes in a single reference.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Having a dedicated postmortem doc helps de-risk repeated operator workflows by clarifying failure modes.
+
+### What was tricky to build
+- Underlying cause: multiple issues were spread across different scripts and runs.
+- Symptoms: failures showed up in different forms (timeouts, misparsed args, silent confirmation failures).
+- Solution: reconciled the sequence using diary entries and console output, then documented each issue with cause/fix.
+
+### What warrants a second pair of eyes
+- Verify the postmortem accurately captures all notable issues and aligns with your expectations.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/01-postmortem-js-runtime-permit-join-validation.md`.
+
+### Technical details
+- Postmortem doc path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/01-postmortem-js-runtime-permit-join-validation.md`.
