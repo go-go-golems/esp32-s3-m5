@@ -131,3 +131,49 @@ I created a reproduction + diagnostics playbook based on the earlier plan and wr
 
 ### Technical details
 - Playbook and design doc are stored under the new ticket path.
+
+## Step 3: Upload new ticket bundle to reMarkable
+
+I bundled the new ticket’s playbook, design doc, diary, and tasks into a single PDF and uploaded it to reMarkable. This makes the investigation plan and refactor proposal available offline.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Upload the new ticket bundle to reMarkable after creating the docs.
+
+**Inferred user intent:** Ensure the new ticket materials are available on the device immediately.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `remarquee upload bundle` with the playbook, design doc, diary, and tasks.
+
+### Why
+- The user asked to upload the new ticket bundle.
+
+### What worked
+- The bundle uploaded successfully to the new ticket folder.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Underlying cause: bundling multiple docs requires careful ordering and ToC depth choices.
+- Symptoms: N/A
+- Solution: used the bundle command with a ToC depth of 2 and explicit file paths.
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- N/A
+
+### Technical details
+- Upload target: `/ai/2026/02/02/0073-PERMIT-JOIN-BUGFIX/0073 Permit-Join Bugfix Bundle.pdf`.
