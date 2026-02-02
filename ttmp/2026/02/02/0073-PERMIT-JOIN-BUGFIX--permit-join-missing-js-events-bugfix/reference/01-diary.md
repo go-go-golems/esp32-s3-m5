@@ -46,7 +46,7 @@ Store the document in the ticket, keep a detailed research diary as you go, uplo
 
 **Inferred user intent:** Separate the investigation into a fresh ticket with repeatable diagnostics and a refactor plan.
 
-**Commit (code):** N/A
+**Commit (code):** 60c8df1 — "docs: create permit-join bugfix ticket and docs"
 
 ### What I did
 - Created ticket `0073-PERMIT-JOIN-BUGFIX` via docmgr.
@@ -95,7 +95,7 @@ I created a reproduction + diagnostics playbook based on the earlier plan and wr
 
 **Inferred user intent:** Capture the diagnostics steps and the refactor plan in the ticket for future work.
 
-**Commit (code):** N/A
+**Commit (code):** 60c8df1 — "docs: create permit-join bugfix ticket and docs"
 
 ### What I did
 - Wrote the debugging playbook at `playbook/01-permit-join-js-event-debugging-playbook.md`.
