@@ -28,6 +28,8 @@ RelatedFiles:
       Note: Verification report for Step 9 bridge request behavior
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/09-zigbee2mqtt-validation-report-broker-zigctl.md
       Note: OSHA-style validation report (Step 30-31)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/10-zigctl-exhaustive-validation-report.md
+      Note: Exhaustive validation report (Step 32)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/diary/update_prompt_context.py
       Note: Script to dedupe repeated prompt blocks
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/diary/update_tricky_sections.py
@@ -38,10 +40,14 @@ RelatedFiles:
       Note: Bridge validation script with timeouts (Step 29)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/25-run-zigctl-tests.sh
       Note: zigctl validation script (Step 30)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/40-run-zigctl-exhaustive.sh
+      Note: Exhaustive zigctl script (Step 32)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/bridge-validation-20260202T013834Z.log
       Note: Initial timeout log (Step 28)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/bridge-validation-20260202T014228Z.log
       Note: Successful bridge validation log (Step 29)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/zigctl-exhaustive-20260202T014757Z.log
+      Note: Exhaustive zigctl log (Step 32)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/zigctl-validation-20260202T014315Z.log
       Note: zigctl validation log (Step 30)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/zigbee2mqtt-test/docker-compose.yml
@@ -73,7 +79,15 @@ RelatedFiles:
     - Path: zigctl/cmd/mqtt/sub.go
       Note: MQTT subscribe helper (Step 27)
     - Path: zigctl/cmd/root.go
-      Note: Load defaults and register group commands (Step 24)
+      Note: |-
+        Load defaults and register group commands (Step 24)
+        Initialize Glazed help system (Step 34)
+    - Path: zigctl/doc/doc.go
+      Note: Embed help docs (Step 34)
+    - Path: zigctl/doc/topics/01-zigctl-architecture.md
+      Note: Help architecture guide (Step 34)
+    - Path: zigctl/doc/tutorials/01-getting-started-power-plug-join.md
+      Note: Help tutorial entry (Step 34)
     - Path: zigctl/go.mod
       Note: New module dependencies (Step 24)
     - Path: zigctl/go.sum
@@ -96,6 +110,8 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
+
 
 
 
@@ -2000,3 +2016,156 @@ I uploaded the OSHA-style validation report to the reMarkable Projects/2026/01/Z
 
 ### Technical details
 - Upload command: `remarquee upload md .../reference/09-zigbee2mqtt-validation-report-broker-zigctl.md --remote-dir "/Projects/2026/01/Zigbee"`.
+
+## Step 32: Exhaustive zigctl validation run + report
+
+I created a dedicated exhaustive validation script that exercises every zigctl command (bridge, mqtt, listen) against the live broker, then ran it to capture a full evidence log. I also authored a focused report documenting the run, observations, and comparison to prior mosquitto_pub/sub validation.
+
+This step ensures the CLI surface is verified end-to-end without requiring any physical device state changes.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Test all of the zigctl commands, exhaustively. Make sure they all work. If you need me to turn on the powerplug, use `plz-confirm help how-to-use` (redirect to file and read in full) to alert me."
+
+**Assistant interpretation:** Run every zigctl command and prove they work using the current broker stack, asking for device power only if required.
+
+**Inferred user intent:** Get a complete, evidence-backed validation that the CLI works before involving physical devices.
+
+**Commit (code):** N/A
+
+### What I did
+- Added `scripts/validation/40-run-zigctl-exhaustive.sh` to run every zigctl command with deterministic timeouts.
+- Ran the script and captured `scripts/validation/zigctl-exhaustive-20260202T014757Z.log`.
+- Wrote `reference/10-zigctl-exhaustive-validation-report.md` documenting the full test matrix and outcomes.
+
+### Why
+- The user requested exhaustive validation across all zigctl verbs.
+
+### What worked
+- All zigctl commands executed successfully against the local broker.
+- Streaming commands captured messages and exited cleanly via timeouts.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Using synthetic MQTT messages provides reliable coverage for listen commands without requiring physical devices.
+
+### What was tricky to build
+- Underlying cause: streaming commands do not terminate on their own.
+- Symptoms: without timeouts, tests would hang indefinitely.
+- Solution: wrapped `zigctl listen` and `zigctl mqtt sub` runs with `timeout` and treated exit code 124 as expected.
+
+### What warrants a second pair of eyes
+- Confirm the exhaustive report’s comparison to prior mosquitto_pub/sub validation matches your expectations.
+
+### What should be done in the future
+- If you want physical device validation, repeat the run with the powerplug paired and active.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/40-run-zigctl-exhaustive.sh` and `.../reference/10-zigctl-exhaustive-validation-report.md`.
+
+### Technical details
+- Broker: `mqtt://localhost:1884`.
+- Base topic: `zigbee2mqtt`.
+- Synthetic topics: `zigbee2mqtt/test_device`, `zigbee2mqtt/test/zigctl`.
+
+## Step 33: Upload exhaustive zigctl report to reMarkable
+
+I attempted to upload the exhaustive zigctl validation report to the Zigbee project folder. The first upload attempt timed out, and the retry reported the file already existed, indicating the initial upload likely completed despite the timeout.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 32)
+
+**Assistant interpretation:** Publish the new exhaustive report to reMarkable.
+
+**Inferred user intent:** Keep the latest validation evidence on the device alongside other Zigbee docs.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `remarquee upload md --dry-run` for the exhaustive report.
+- Attempted upload; first attempt timed out, second attempt returned SKIP (already exists).
+
+### Why
+- The user requested the report be uploaded to reMarkable.
+
+### What worked
+- The report appears to exist in the target folder based on the SKIP response.
+
+### What didn't work
+- The first upload attempt timed out after 10s.
+
+### What I learned
+- Uploads may complete even when the CLI times out; a follow-up check is useful before retrying with `--force`.
+
+### What was tricky to build
+- Underlying cause: network or device latency during upload.
+- Symptoms: `remarquee upload` timed out while transferring.
+- Solution: retried with a longer timeout; CLI reported the file already existed.
+
+### What warrants a second pair of eyes
+- Verify the file exists in `/Projects/2026/01/Zigbee` on the device.
+
+### What should be done in the future
+- If the file is missing, re-run upload with `--force`.
+
+### Code review instructions
+- No code changes; verify upload with `remarquee cloud ls /Projects/2026/01/Zigbee --long --non-interactive` if needed.
+
+### Technical details
+- Upload command: `remarquee upload md .../reference/10-zigctl-exhaustive-validation-report.md --remote-dir "/Projects/2026/01/Zigbee"`.
+
+## Step 34: Add zigctl help system + tutorial and architecture docs
+
+I captured the Glazed help system guidance (`glaze help help-system` and `glaze help writing-help-entries`) and used it to initialize the zigctl help system. I added a tutorial entry derived from the new power-plug onboarding playbook and an in-depth architecture/overview guide, then wired the help system into the zigctl root command.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Read the output of `glaze help help-system ` and glaze help writing-help-entries and initialize the help system and add the playbook to the help system as a Tutorial. Also add an in depth architecture/overview/guide document."
+
+**Assistant interpretation:** Capture Glazed help docs, wire a help system into zigctl, and add both a tutorial and an architecture guide as help sections.
+
+**Inferred user intent:** Make zigctl self-documenting with a queryable help system and first-run guidance.
+
+**Commit (code):** N/A
+
+### What I did
+- Saved the output of `glaze help help-system` and `glaze help writing-help-entries` to temp files and read them in full.
+- Added a `zigctl/doc` package with embedded help sections.
+- Created a tutorial help entry from the power-plug onboarding playbook.
+- Added an in-depth architecture/overview help entry.
+- Initialized the help system in `zigctl/cmd/root.go` using `help.NewHelpSystem()` and `help_cmd.SetupCobraRootCommand`.
+- Ran `go mod tidy` and `go test ./...` in `zigctl/`.
+
+### Why
+- The user requested a full help system and tutorial/architecture docs accessible via `zigctl help`.
+
+### What worked
+- The help system loads embedded docs and the CLI builds cleanly after `go mod tidy`.
+
+### What didn't work
+- `go test ./...` initially failed due to missing `go.sum` entries for help-related dependencies; fixed with `go mod tidy`.
+
+### What I learned
+- Glazed help adds additional indirect deps (e.g., sqlite, glamour) that require a tidy pass.
+
+### What was tricky to build
+- Underlying cause: help system pulls in rendering/storage libraries not previously used in zigctl.
+- Symptoms: multiple “missing go.sum entry” errors in `go test`.
+- Solution: ran `go mod tidy` to resolve the dependency graph.
+
+### What warrants a second pair of eyes
+- Confirm the help entry slugs and section types match desired CLI help listings.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `zigctl/doc/doc.go`, `zigctl/doc/tutorials/01-getting-started-power-plug-join.md`, and `zigctl/doc/topics/01-zigctl-architecture.md`.
+- Confirm help system wiring in `zigctl/cmd/root.go`.
+- Validate with `cd zigctl && go test ./...`.
+
+### Technical details
+- Help system initialization: `help.NewHelpSystem()` + `doc.AddDocToHelpSystem()` + `help_cmd.SetupCobraRootCommand()`.
