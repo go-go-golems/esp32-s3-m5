@@ -7,4 +7,4 @@
 - [x] Implement pcapng/TAP writer for 802.15.4 frames
 - [x] Add zigctl sniff nrf command group wiring
 - [x] Implement nrf list/info/channel/doctor commands
-- [ ] Implement nrf capture/live/bootloader commands
+- [x] Implement nrf capture/live/bootloader commands

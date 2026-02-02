@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:19:37-05:00
+LastUpdated: 2026-02-02T12:22:52-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -1011,3 +1011,65 @@ I implemented the first batch of `zigctl sniff nrf` commands using the Glazed fr
   - `gofmt -w zigctl/cmd/sniff/*.go`
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 5`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF list/info/channel/doctor commands"`
+
+## Step 16: Implement nRF capture/live/bootloader commands
+
+I implemented the capture and live streaming commands plus the bootloader helper, completing the nRF sniffer CLI workflow. These commands connect the serial protocol layer to the pcapng/TAP writer and allow piping to Wireshark.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Finish the nRF command set by adding capture/live/bootloader.
+
+**Inferred user intent:** Make the sniffer usable end-to-end in coding sessions.
+
+**Commit (code):** 2c59aa7 — "zigctl: add nRF capture/live/bootloader commands"
+
+### What I did
+
+- Added `zigctl sniff nrf capture` to write pcapng/TAP captures to disk.
+- Added `zigctl sniff nrf live` to stream pcapng/TAP to stdout.
+- Added `zigctl sniff nrf bootloader` to send the bootloader command.
+- Added format resolution helpers and default handling in `nrf_helpers.go`.
+- Checked off Task 6 in the ticket.
+
+### Why
+
+- Capture and live streaming are the core workflows for using the sniffer during development.
+
+### What worked
+
+- The commands reuse the shared protocol and pcap writer layers cleanly.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Ensuring live capture writes only pcapng bytes to stdout without extra logs.
+
+### What warrants a second pair of eyes
+
+- Validate the capture output in Wireshark and confirm TAP metadata is populated.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/cmd/sniff/nrf_capture.go`, `nrf_live.go`, and `nrf_bootloader.go`.
+- Review `zigctl/cmd/sniff/nrf_helpers.go` for format selection.
+
+### Technical details
+
+- Commands run:
+  - `gofmt -w zigctl/cmd/sniff/*.go`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 6`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF capture/live/bootloader commands"`
