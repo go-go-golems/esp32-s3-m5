@@ -1,3 +1,28 @@
+/*
+Permit-join watcher for Zigbee2MQTT via zigctl JS runtime.
+
+Purpose:
+- Open a permit-join window
+- Stream MQTT events while the window is open
+- Print payloads as YAML-ish blocks for quick inspection
+
+Recommended usage (key=value args to avoid positional ambiguity):
+
+  go run ./ js run \
+    ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js \
+    --arg broker=mqtt://localhost:1884 \
+    --arg baseTopic=zigbee2mqtt \
+    --arg seconds=120 \
+    --arg timeout=60s \
+    --arg watchTopic=bridge/event
+
+Watch topic options:
+- watchTopic=bridge/event   (low-noise, join/announce events)
+- watchTopic=bridge/#       (high-noise, includes bridge/info/logging/state)
+
+Positional args (fallback, not recommended):
+  [broker] [baseTopic] [seconds] [device] [timeout] [watchTopic]
+*/
 const zigctl = require('zigctl');
 
 function scalar(value) {

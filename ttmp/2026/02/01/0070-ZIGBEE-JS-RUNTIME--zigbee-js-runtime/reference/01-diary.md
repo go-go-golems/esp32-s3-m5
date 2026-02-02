@@ -796,3 +796,51 @@ I uploaded the bug-report analysis document to reMarkable so it is available for
 
 ### Technical details
 - Upload target: `/ai/2026/02/02/0070-ZIGBEE-JS-RUNTIME/02-bug-report-js-watch-missing-join-events.pdf`.
+
+## Step 16: Update permit-join watcher docs and add JS debugging playbook
+
+I updated the JS permit-join watcher with a full docstring explaining how to run it and how to choose `bridge/event` vs `bridge/#`. I also wrote a JS debugging playbook that documents command patterns, argument passing, and failure modes for JS-based Zigbee2MQTT diagnostics.
+
+### Prompt Context
+
+**User prompt (verbatim):** "-update the js script to allow choosing bridge/event vs bridge/# when debugging, and add a big upfront docstring explaining the script and how to use it (including CLI call with the flags). \n\n_ create a playbook and store in the ticket on how to use JS scripts for debugging, how to call them from the CLI, how to pass args, etc... \n\nUpload playbook to remarkable."
+
+**Assistant interpretation:** Add a docstring and watch topic selection to the JS script, create a playbook for JS debugging workflows, and upload it to reMarkable.
+
+**Inferred user intent:** Make the JS debugging flow easy to repeat and self-documenting for operators.
+
+**Commit (code):** N/A
+
+### What I did
+- Added a usage docstring to `04-permit-join-watch-yaml.js` describing CLI invocation and watch topic choices.
+- Created a playbook at `playbook/01-js-debugging-playbook.md` with step-by-step JS debugging instructions.
+
+### Why
+- The script needed self-contained usage guidance, and we needed a repeatable playbook for JS debugging.
+
+### What worked
+- The docstring now documents key=value args and watch topic selection.
+- The playbook consolidates the primary commands and failure modes.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Clear playbooks reduce operator error for time-sensitive flows like permit-join.
+
+### What was tricky to build
+- Underlying cause: prior usage relied on chat context, not embedded docs.
+- Symptoms: parameter confusion and noisy output selection.
+- Solution: embed usage guidance in the script and add a standalone playbook.
+
+### What warrants a second pair of eyes
+- Confirm the playbook matches your preferred operator workflow.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/playbook/01-js-debugging-playbook.md`.
+
+### Technical details
+- Playbook path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/playbook/01-js-debugging-playbook.md`.

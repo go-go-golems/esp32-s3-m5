@@ -77,3 +77,13 @@ Add bug-report analysis for missing join events
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/02-bug-report-js-watch-missing-join-events.md — Root cause analysis and design recommendations
 
+
+## 2026-02-02
+
+Add JS debugging playbook and script usage docstring
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/playbook/01-js-debugging-playbook.md — Playbook for JS diagnostics
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js — Usage docstring + watchTopic guidance
+
