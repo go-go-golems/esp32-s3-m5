@@ -28,9 +28,12 @@ func NewRootCommand() (*cobra.Command, error) {
 	}
 	help_cmd.SetupCobraRootCommand(helpSystem, root)
 
-	defaults, _, err := zigbee.LoadDefaultConfig()
+	defaults, found, err := zigbee.LoadDefaultConfig()
 	if err != nil {
 		return nil, err
+	}
+	if !found {
+		defaults = zigbee.DefaultConfig()
 	}
 
 	if err := bridge.Register(root, defaults); err != nil {
