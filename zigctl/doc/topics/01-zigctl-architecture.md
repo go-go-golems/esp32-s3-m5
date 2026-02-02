@@ -111,3 +111,7 @@ When adding new commands:
 - Use the Zigbee Glazed layer (`zigbee.NewZigbeeLayer`) to inherit broker flags.
 
 This keeps the CLI discoverable and consistent.
+
+## See Also
+
+- `zigctl help zigctl-sniffer-nrf-playbook` — step-by-step workflow for nRF sniffer capture sessions.

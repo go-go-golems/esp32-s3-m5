@@ -2,5 +2,9 @@
 
 ## TODO
 
-- [ ] Add tasks here
-
+- [x] Add sniffer config + Glazed layer (defaults, parsing)
+- [x] Implement nRF sniffer protocol package (discovery, parser, session)
+- [x] Implement pcapng/TAP writer for 802.15.4 frames
+- [x] Add zigctl sniff nrf command group wiring
+- [x] Implement nrf list/info/channel/doctor commands
+- [x] Implement nrf capture/live/bootloader commands

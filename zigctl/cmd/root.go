@@ -10,6 +10,7 @@ import (
 	"github.com/go-go-golems/zigctl/cmd/js"
 	"github.com/go-go-golems/zigctl/cmd/listen"
 	"github.com/go-go-golems/zigctl/cmd/mqtt"
+	"github.com/go-go-golems/zigctl/cmd/sniff"
 	"github.com/go-go-golems/zigctl/doc"
 	"github.com/go-go-golems/zigctl/pkg/zigbee"
 	"github.com/spf13/cobra"
@@ -28,9 +29,12 @@ func NewRootCommand() (*cobra.Command, error) {
 	}
 	help_cmd.SetupCobraRootCommand(helpSystem, root)
 
-	defaults, _, err := zigbee.LoadDefaultConfig()
+	defaults, found, err := zigbee.LoadDefaultConfig()
 	if err != nil {
 		return nil, err
+	}
+	if !found {
+		defaults = zigbee.DefaultConfig()
 	}
 
 	if err := bridge.Register(root, defaults); err != nil {
@@ -43,6 +47,9 @@ func NewRootCommand() (*cobra.Command, error) {
 		return nil, err
 	}
 	if err := mqtt.Register(root, defaults); err != nil {
+		return nil, err
+	}
+	if err := sniff.Register(root, defaults); err != nil {
 		return nil, err
 	}
 
