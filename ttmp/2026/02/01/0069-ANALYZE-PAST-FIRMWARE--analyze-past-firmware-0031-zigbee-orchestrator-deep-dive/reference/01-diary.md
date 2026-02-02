@@ -11,13 +11,16 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md
+      Note: Reference doc created and updated in Steps 9-10.
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-02-01T20:09:09.623983324-05:00
+LastUpdated: 2026-02-02T11:35:30-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -448,3 +451,116 @@ This step bundled all 0069 markdown docs into a single PDF with a table of conte
   - `remarquee upload bundle --name "0069-ANALYZE-PAST-FIRMWARE" --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE" --toc-depth 2 <files...>`
 - Verification:
   - `remarquee cloud ls /ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE --long --non-interactive`
+
+## Step 9: Audit H2 NCP firmware and host protocol sources
+
+This step focused on the actual firmware and host protocol implementations. I read the H2 NCP sources (bus, frame, ZB handlers) plus the 0031 host-side components to extract the exact on-wire framing, CRC rules, and command table behaviors.
+
+The key outcome is a vetted, source-derived inventory of protocol details (SLIP framing, header layout, CRC16 seed, command IDs, and handler coverage) to feed the new reference doc.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Work on docmgr ticket 0069-ANALYZE-PAST-FIRMWARE and create a new indepth exploration and reference of the actual H2 firmware and NCP protocol and how to use it from a host device. Be very detailed, look at the firmware as well. 
+
+Store the detailed exploration/reference/textbook document in the ticket, keep a frequent detailed research diary, upload to remarkable and then commit to git."
+
+**Assistant interpretation:** Produce a new, detailed H2 NCP firmware + ZNSP protocol reference in ticket 0069, grounding it in the actual firmware sources and host integration code.
+
+**Inferred user intent:** Get a dependable, code-accurate protocol handbook for the H2 NCP and how to drive it from a host device.
+
+**Commit (code):** N/A (research only)
+
+### What I did
+- Searched for NCP/H2 protocol sources with `rg` and collected the relevant files.
+- Read the NCP transport and framing code: `esp_ncp_bus.c`, `esp_ncp_frame.c`, `slip.h`, and `esp_ncp_main.c`.
+- Read the NCP command handler table and payload logic in `esp_ncp_zb.c` and `esp_ncp_zb.h`.
+- Read the host framing/dispatch path in `esp_host_frame.c`, `esp_host_bus.c`, `esp_host_main.c`, and `esp_host_zb.c`.
+- Verified host usage patterns in `0031-zigbee-orchestrator/main/gw_zb.c` and the H2 entry point in `esp_zigbee_ncp.c`.
+
+### Why
+- The user requested a highly detailed, source-grounded reference; the only reliable way to do this is to read the actual firmware and host protocol implementations.
+
+### What worked
+- The esp-zigbee NCP sources are self-contained enough to extract framing, CRC, and command behavior without guessing.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The host parser can handle multiple frames per SLIP decode, while the NCP expects a single frame per SLIP packet.
+- Several ZNSP IDs exist but are unimplemented in the NCP handler table (they return invalid-arg behavior).
+
+### What was tricky to build
+- Reconciling host-vs-NCP semantics (e.g., sequence number handling and ID matching) required tracing both sides carefully because the host only matches responses by ID, not by sequence.
+
+### What warrants a second pair of eyes
+- Validate the command table completeness and the endianness assumptions for CRC16 on non-ESP hosts.
+
+### What should be done in the future
+- Capture on-wire traffic in a real host+H2 session to confirm framing assumptions and spot any undocumented quirks.
+
+### Code review instructions
+- N/A (research-only step).
+
+### Technical details
+- Commands used (sample):
+  - `rg --files -g '*H2*' -g '*h2*' -g '*ncp*' -g '*firmware*' -g '*slip*' -g '*protocol*'`
+  - `rg "H2|h2|ncp|NCP|zb_host|znsp|slip" 0031-zigbee-orchestrator -n`
+  - `sed -n '1,220p' thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_frame.c`
+  - `sed -n '1,260p' thirdparty/esp-zigbee-sdk/components/esp-zigbee-ncp/src/esp_ncp_zb.c`
+  - `sed -n '1,260p' 0031-zigbee-orchestrator/components/zb_host/src/esp_host_frame.c`
+  - `sed -n '1,260p' 0031-zigbee-orchestrator/components/zb_host/src/esp_host_zb.c`
+
+## Step 10: Write the reference doc and upload to reMarkable
+
+This step produced the new protocol reference document and tied it back to the actual firmware sources. I documented the framing rules, command IDs, payload expectations, and host integration patterns, then related the source files that shaped the write-up.
+
+The key outcome is the finished reference doc stored in ticket 0069 and uploaded to reMarkable for offline review.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 9)
+
+**Assistant interpretation:** Write the detailed H2 NCP protocol reference in 0069, keep the diary updated, and upload the document to reMarkable.
+
+**Inferred user intent:** Have a shareable, portable protocol handbook that can be read on-device and used as a living reference.
+
+**Commit (code):** N/A (docs-only)
+
+### What I did
+- Created and wrote the new reference doc:
+  - `ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md`
+- Added related source files with `docmgr doc relate`.
+- Uploaded the doc to reMarkable using `remarquee upload md` (after a dry run).
+
+### Why
+- The user asked for a detailed, source-backed reference and requested it be uploaded for reading on reMarkable.
+
+### What worked
+- The docmgr relate step completed cleanly and the reMarkable upload succeeded.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The safest reMarkable path is a ticket-scoped folder: `/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE`.
+
+### What was tricky to build
+- Ensuring the command ID tables stayed consistent with the firmware sources while keeping the doc readable required cross-checking multiple headers and implementations.
+
+### What warrants a second pair of eyes
+- Confirm that the ZNSP command tables match your current esp-zigbee SDK version and that no new IDs were added upstream.
+
+### What should be done in the future
+- Add APS notification handlers on the host if the project needs application payloads over ZNSP.
+
+### Code review instructions
+- Start here: `ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md`
+- Validate by reading for protocol completeness (framing + CRC + command tables).
+
+### Technical details
+- Commands used:
+  - `docmgr doc add --ticket 0069-ANALYZE-PAST-FIRMWARE --doc-type reference --title "ESP32-H2 NCP Firmware and ZNSP Protocol: Host Integration Reference"`
+  - `docmgr doc relate --doc ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md --file-note "..."`
+  - `remarquee upload md --dry-run ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
+  - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
