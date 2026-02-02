@@ -10,3 +10,6 @@ serial:
 advanced:
   log_level: debug
 version: 4
+devices:
+  '0x282c02bfffe69870':
+    friendly_name: '0x282c02bfffe69870'

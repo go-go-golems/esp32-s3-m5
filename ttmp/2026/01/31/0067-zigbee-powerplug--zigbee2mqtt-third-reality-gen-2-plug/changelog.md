@@ -94,3 +94,44 @@ Step 35: Add permit-join --watch and fix help tutorial frontmatter
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/permit_join.go — Permit-join watch support
 
+
+## 2026-02-01
+
+Step 36: Add log tailing analysis and zigctl debug logging design
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/analysis/01-zigbee2mqtt-log-tailing-decode-analysis.md — Analysis doc
+
+
+## 2026-02-01
+
+Step 37: document Glazed pain points + backfill diary
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/analysis/02-glazed-pain-points-and-blockers.md — Glazed report
+
+
+## 2026-02-01
+
+Step 38: document Geppetto layer wiring playbook
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/playbook/04-geppetto-layer-wiring-in-cobra-glazed.md — Playbook
+
+
+## 2026-02-01
+
+Step 39: research go-go-goja and design JS API for zigctl
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/design-doc/03-zigctl-javascript-api-via-go-go-goja.md — Design doc
+
+
+## 2026-02-02
+
+Ticket closed
+

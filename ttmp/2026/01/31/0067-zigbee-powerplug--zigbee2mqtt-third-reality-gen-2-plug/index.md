@@ -1,7 +1,7 @@
 ---
 Title: Zigbee2MQTT Third Reality Gen 2 plug
 Ticket: 0067-zigbee-powerplug
-Status: active
+Status: complete
 Topics:
     - zigbee
 DocType: index
@@ -10,10 +10,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-01-31T11:29:50.243905455-05:00
+LastUpdated: 2026-02-02T11:17:31.985549918-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Zigbee2MQTT Third Reality Gen 2 plug
 
