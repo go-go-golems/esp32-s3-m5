@@ -17,3 +17,5 @@
 - [x] Add wait-for-pairing toggle script (JS runtime)
 - [x] Add JS logging test script
 - [x] Add permit-join watch YAML script
+- [x] Add plz-confirm gate for JS permit-join script
+- [x] Expand permit-join watch to include bridge logs via watchTopic

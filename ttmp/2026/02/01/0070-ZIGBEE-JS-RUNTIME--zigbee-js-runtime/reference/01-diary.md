@@ -81,7 +81,7 @@ I created the new ticket workspace, moved the JS API design doc into it, and exp
 - The implementation plan and task list now provide a clear execution path.
 
 ### What didn't work
-- N/A
+- `docmgr task list --ticket 0070-ZIGBEE-JS-RUNTIME --format json` failed with `Error: unknown flag: --format`.
 
 ### What I learned
 - N/A
@@ -446,3 +446,55 @@ I updated the permit-join watch script to accept key=value args so the timeout c
 
 ### Technical details
 - Log snippet included `Received MQTT message on 'zigbee2mqtt/bridge/request/permit_join'` and `MQTT publish: topic 'zigbee2mqtt/bridge/response/permit_join', payload '{"data":{"time":120},"status":"ok"}'`.
+
+## Step 9: Harden plz-confirm gating and broaden bridge watch output
+
+I tightened the operator-gated permit-join script to parse `plz-confirm` JSON output more defensively, and I expanded the JS permit-join watcher to emit bridge-level messages even when no join events occur. This preserves the explicit operator pause while making the default stream output more informative when the network is quiet.
+
+The script updates are aimed at reducing friction in operator-in-the-loop testing: you can now run the same permit-join flow and see bridge logs/state without having to add a second command or adjust the runtime.
+
+### Prompt Context
+
+**User prompt (verbatim):** "plz-confirm not plume-confirm."
+
+**Assistant interpretation:** Ensure all operator prompts use `plz-confirm` and adjust scripts accordingly.
+
+**Inferred user intent:** Avoid tooling confusion and keep the operator confirmation flow consistent and reliable.
+
+**Commit (code):** N/A
+
+### What I did
+- Updated `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh` to parse both array and object JSON outputs from `plz-confirm`.
+- Extended `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js` with a `watchTopic` argument defaulting to `bridge/#` so it prints bridge messages even without join events.
+- Marked the new tasks as completed in the ticket task list.
+
+### Why
+- `plz-confirm` output formats can vary; the script now handles arrays defensively to avoid silent false negatives.
+- `bridge/event` is quiet unless devices join; `bridge/#` provides useful operational context without a join.
+
+### What worked
+- The scripts now align with the expected `plz-confirm` naming.
+- The watch script can emit bridge logs/state/response messages in idle conditions.
+
+### What didn't work
+- N/A
+
+### What I learned
+- `plz-confirm` JSON output may be array-shaped, so it needs defensive parsing in automation scripts.
+
+### What was tricky to build
+- Underlying cause: prior automation assumed a single JSON object, which can fail if `plz-confirm` returns rows as arrays.
+- Symptoms: a truthy approval could be misread as false, preventing the JS run from executing.
+- Solution: parse both array and object shapes, then fall back to `false` if unknown.
+
+### What warrants a second pair of eyes
+- Confirm the `bridge/#` topic output is acceptable noise for the standard permit-join workflow.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js`.
+
+### Technical details
+- `watchTopic` defaults to `bridge/#` but can be overridden via `--arg watchTopic=bridge/event` for quieter output.

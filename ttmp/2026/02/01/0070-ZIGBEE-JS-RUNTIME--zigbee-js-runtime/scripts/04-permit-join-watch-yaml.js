@@ -57,6 +57,7 @@ function parseArgs(argv) {
     seconds: 120,
     device: '',
     timeout: '60s',
+    watchTopic: 'bridge/#',
   };
 
   let positional = [];
@@ -81,6 +82,10 @@ function parseArgs(argv) {
         case 'timeout':
           opts.timeout = value;
           break;
+        case 'watchTopic':
+        case 'watch-topic':
+          opts.watchTopic = value;
+          break;
         default:
           break;
       }
@@ -104,6 +109,9 @@ function parseArgs(argv) {
   if (positional.length > 4) {
     opts.timeout = positional[4];
   }
+  if (positional.length > 5) {
+    opts.watchTopic = positional[5];
+  }
 
   if (!opts.seconds || Number.isNaN(opts.seconds)) {
     opts.seconds = 120;
@@ -123,7 +131,7 @@ const client = zigctl.connect({
 });
 
 const stream = client.watch({
-  topics: ['bridge/event'],
+  topics: [opts.watchTopic],
   duration: String(opts.seconds) + 's',
 });
 
