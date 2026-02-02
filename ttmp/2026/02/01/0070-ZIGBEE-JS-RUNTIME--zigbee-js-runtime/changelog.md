@@ -68,3 +68,12 @@ Add postmortem report for JS runtime permit-join validation
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/01-postmortem-js-runtime-permit-join-validation.md — Postmortem report
 
+
+## 2026-02-02
+
+Add bug-report analysis for missing join events
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/02-bug-report-js-watch-missing-join-events.md — Root cause analysis and design recommendations
+

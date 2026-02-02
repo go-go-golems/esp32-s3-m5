@@ -653,3 +653,100 @@ This ensured the documents could be bundled into a single PDF for offline review
 
 ### Technical details
 - Upload target: `/ai/2026/02/02/0070-ZIGBEE-JS-RUNTIME/0070 JS Runtime Postmortem + Diary.pdf`.
+
+## Step 13: Investigate missing join events in JS watch
+
+I reviewed the JS watch pipeline and MQTT helper code to understand where join events could be lost. The focus was on buffering, topic selection, and the ordering between subscriptions and permit-join requests.
+
+The investigation highlighted the small watch buffer and bursty `bridge/#` traffic as a likely drop point, plus the possibility that join events are emitted on `bridge/event` and could be missed if the subscription is overwhelmed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "analyze why the JS didn't see the join event even though the bridge did, at the end. Focus especially on how mqtt stuff makes it to the JS, in detail, and if there is an event architecture, and if not (or if it exists) how to use watermill to do more cogent go routing to JS with events.\n\nResearch ind epth, leave no stone unturned, Make design suggestions and bugfix analysis, potentially with reproduction scnearios or other things to test. \n\nStore as bug-report analysis in the ticket and uplaod to remarkable. \n\nkeep a frequent diary as you investigate."
+
+**Assistant interpretation:** Analyze the JS watch pipeline and missing join events; propose fixes and a Watermill-based event architecture; document the findings in a bug-report analysis and upload it.
+
+**Inferred user intent:** Identify root causes and make the event flow more robust and observable.
+
+**Commit (code):** N/A
+
+### What I did
+- Reviewed `zigctl/pkg/jsruntime/zigctlmod/watch.go` and `zigctl/pkg/jsruntime/zigctlmod/client.go` for watch and request flow details.
+- Reviewed `zigctl/pkg/zigbee/mqtt.go` to confirm request/response subscription behavior.
+- Collected hypotheses on buffer drops, topic selection, and timing issues.
+
+### Why
+- The join event could be lost or never observed due to buffering, topic selection, or ordering in the MQTT → JS pipeline.
+
+### What worked
+- Code review revealed a fixed-size buffer with drop-on-full behavior, which is a prime suspect during bursty `bridge/#` traffic.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The JS watch stream drops messages silently when its buffer is full, and `bridge/#` can deliver very large payloads that delay consumption.
+
+### What was tricky to build
+- Underlying cause: multiple plausible failure points (topic routing, buffer drops, timing) without a single source of truth.
+- Symptoms: JS watch showed bridge info/logging but no join event.
+- Solution: laid out a multi-hypothesis analysis and a test plan to isolate the failure mode.
+
+### What warrants a second pair of eyes
+- Validate the hypothesis ranking with a live mosquitto_sub comparison run.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/pkg/jsruntime/zigctlmod/watch.go` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/pkg/jsruntime/zigctlmod/client.go`.
+
+### Technical details
+- Watch stream uses a buffered channel of 64 and drops when full.
+
+## Step 14: Write bug-report analysis and design recommendations
+
+I documented the missing join event investigation as a formal bug-report analysis, with hypotheses, a reproduction plan, and design recommendations. The report includes an event-architecture proposal using Watermill to provide structured routing, backpressure, and clearer diagnostics.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 13)
+
+**Assistant interpretation:** Produce a detailed bug-report analysis and suggest architectural improvements for event routing to JS.
+
+**Inferred user intent:** Gain a thorough, actionable plan for diagnosing and fixing join event visibility issues.
+
+**Commit (code):** N/A
+
+### What I did
+- Wrote the bug-report analysis document in the ticket’s analysis folder.
+- Included root-cause hypotheses, reproduction steps, and Watermill-based routing design.
+
+### Why
+- The user requested a detailed, comprehensive bug analysis and future design plan.
+
+### What worked
+- The report consolidates the analysis and a concrete test plan in one place.
+
+### What didn't work
+- N/A
+
+### What I learned
+- A robust event layer (routing + backpressure) would significantly improve observability and reduce lost events.
+
+### What was tricky to build
+- Underlying cause: the evidence spanned multiple runs and scripts, making it easy to miss cross-cutting issues.
+- Symptoms: join events missing despite other bridge messages flowing.
+- Solution: structured the analysis with ranked hypotheses and a targeted test matrix.
+
+### What warrants a second pair of eyes
+- Validate that the proposed Watermill architecture aligns with your preferred stack and operational constraints.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/02-bug-report-js-watch-missing-join-events.md`.
+
+### Technical details
+- Bug report path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/02-bug-report-js-watch-missing-join-events.md`.
