@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:38:00-05:00
+LastUpdated: 2026-02-02T12:39:12-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -1259,3 +1259,61 @@ Create a playbook on how to use the sniffer, add as a glazed help entry to zigct
 
 - Commands run:
   - `gofmt -w zigctl/doc/doc.go zigctl/cmd/sniff/nrf_capture.go`
+
+## Step 20: Cross-link the sniffer playbook from architecture help
+
+I added a "See Also" link in the zigctl architecture help entry pointing to the nRF sniffer playbook. This makes the sniffer workflow discoverable from the top-level architectural documentation.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+2.
+```
+
+**Assistant interpretation:** Add the requested cross-link to the sniffer playbook in the architecture help entry.
+
+**Inferred user intent:** Improve discoverability of the sniffer playbook from the main zigctl docs.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Added a "See Also" section to `zigctl/doc/topics/01-zigctl-architecture.md` that references `zigctl help zigctl-sniffer-nrf-playbook`.
+
+### Why
+
+- Cross-links help users find the sniffer workflow quickly from the primary documentation entry.
+
+### What worked
+
+- N/A
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- N/A
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/doc/topics/01-zigctl-architecture.md` and verify the new See Also link text.
+
+### Technical details
+
+- Commands run:
+  - `apply_patch` to add See Also section.
