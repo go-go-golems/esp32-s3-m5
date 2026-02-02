@@ -32,12 +32,37 @@ RelatedFiles:
       Note: Script to expand tricky sections with cause/symptom/solution
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/zigbee2mqtt-test/docker-compose.yml
       Note: Test Compose stack used for validation
+    - Path: zigctl/cmd/bridge/root.go
+      Note: Bridge group root scaffold (Step 24)
+    - Path: zigctl/cmd/listen/root.go
+      Note: Listen group root scaffold (Step 24)
+    - Path: zigctl/cmd/mqtt/root.go
+      Note: MQTT group root scaffold (Step 24)
+    - Path: zigctl/cmd/root.go
+      Note: Load defaults and register group commands (Step 24)
+    - Path: zigctl/go.mod
+      Note: New module dependencies (Step 24)
+    - Path: zigctl/go.sum
+      Note: Resolved dependency checksums (Step 24)
+    - Path: zigctl/main.go
+      Note: zigctl entrypoint (Step 24)
+    - Path: zigctl/pkg/zigbee/client.go
+      Note: MQTT connection + TLS helpers (Step 24)
+    - Path: zigctl/pkg/zigbee/config.go
+      Note: Config loader and defaults (Step 24)
+    - Path: zigctl/pkg/zigbee/layer.go
+      Note: Custom Zigbee Glazed layer (Step 24)
+    - Path: zigctl/pkg/zigbee/mqtt.go
+      Note: Publish/request helpers (Step 24)
+    - Path: zigctl/pkg/zigbee/settings.go
+      Note: Zigbee settings parsing helpers (Step 24)
 ExternalSources: []
 Summary: Diary of work completed for the Zigbee2MQTT Third Reality Gen 2 plug quickstart reference.
 LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1508,3 +1533,65 @@ Work it"
 
 ### Technical details
 - Updated sections: architecture, global flags, command help requirements, and implementation plan.
+
+## Step 24: Scaffold zigctl core config, Zigbee layer, and MQTT client
+
+I scaffolded the zigctl core infrastructure needed for later command work: a config loader, a custom Zigbee Glazed layer with the required flags, shared MQTT connection helpers (including TLS handling), and group root stubs that match the organization rules. This establishes the base contract for all upcoming commands and keeps parsing in Glazed while Cobra only handles registration.
+
+I also validated the new module compiles by running tests, then resolved missing go.sum entries by running go mod tidy before re-running go test successfully.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Organization: 
+
+- one file per verb
+- one directory per group 
+- one root.go to register the group per gorup directory."
+
+**Assistant interpretation:** Establish the required file/layout organization while scaffolding zigctl core plumbing.
+
+**Inferred user intent:** Ensure the codebase layout is consistent and ready for the next command implementations.
+
+**Commit (code):** 0965313 — "Scaffold zigctl core config and zigbee layer"
+
+### What I did
+- Added zigctl config loading and default resolution helpers.
+- Implemented a custom Zigbee Glazed layer with broker/base-topic/tls/cafile/cert/key/qos/timeout flags.
+- Added shared MQTT connection helpers (TLS config, publish, request/response helpers).
+- Updated root command to load defaults and register group roots.
+- Added group root stubs (bridge/listen/mqtt) to satisfy the one-root-per-group layout.
+- Ran `go test ./...` and resolved missing go.sum entries via `go mod tidy`.
+
+### Why
+- We need consistent config defaults, connection helpers, and a shared flag layer before implementing commands.
+- The layout rules require group roots even before verbs exist.
+
+### What worked
+- Glazed layer defaults are now centralized and available for commands.
+- MQTT helper functions are ready for bridge/listen/mqtt verbs.
+- The module builds cleanly after tidying dependencies.
+
+### What didn't work
+- `go test ./...` failed initially due to missing go.sum entries (e.g. `missing go.sum entry for module providing package github.com/araddon/dateparse` in glazed). Running `go mod tidy` fixed it.
+
+### What I learned
+- Glazed’s dependency graph needs a go mod tidy pass in new modules even when the main dependency is already added.
+
+### What was tricky to build
+- Underlying cause: Glazed pulls in several indirect dependencies that were absent from zigctl’s go.sum.
+- Symptoms: `go test ./...` failed with multiple “missing go.sum entry” errors across glazed packages.
+- Solution: Ran `go mod tidy` in `zigctl/` to populate go.sum, then re-ran tests successfully.
+
+### What warrants a second pair of eyes
+- Validate that the Zigbee layer defaults match expected broker/base-topic defaults for your environment.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Start with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/pkg/zigbee/layer.go` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/pkg/zigbee/client.go`.
+- Confirm root registration flow in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/root.go`.
+- Validate by running `cd zigctl && go test ./...`.
+
+### Technical details
+- Tests: `go test ./...` (after `go mod tidy`).
