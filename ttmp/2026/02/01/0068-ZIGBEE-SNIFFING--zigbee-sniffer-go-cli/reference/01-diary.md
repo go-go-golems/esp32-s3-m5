@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-01T20:21:26-05:00
+LastUpdated: 2026-02-02T11:36:39-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -361,3 +361,90 @@ move the sniffing functionality as a subgroup of zigctl so you can work in the s
 
 - Commands run:
   - `docmgr doc relate --doc .../01-go-zigbee-sniffer-pcap-decoder-cli.md --file-note ".../01-zigbee-cli-tool-design-zigctl.md:Reference for zigctl Glazed CLI conventions"`
+
+## Step 6: Analyze nRF sniffer firmware + protocol and author deep-dive reference
+
+I investigated the nRF 802.15.4 sniffer firmware and host extcap protocol, pulling both local source evidence and external references to ground the behavior. I then authored a textbook-style reference document with diagrams, pseudocode, and explicit source pointers so the sniffer protocol can be implemented accurately in our CLI.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+Work on docmgr 0068-ZIGBEE-SNIFFING and let's start iwth analyzing the nrf firmware and the protocol it uses for the sniffing. 
+
+Starting points: https://www.nordicsemi.com/Products/Development-tools/nRF-Sniffer-for-802154
+https://docs.nordicsemi.com/bundle/ug_sniffer_802154/page/UG/sniffer_802154/programming_firmware_802154.html
+and i cloned nRF-Sniffer-for-802.15.4
+
+Do an in depth analysis and research and write a full detailed textbook about the sniffer firmware, how it works, the zigbee fundamentals at play and especially how to interact with the sniffer, which protocol it uses, frames and data format. 
+
+Use prose paragraphs, callouts for fundamentals, pseudocode, link to locations in source, use diagrams, bullet point lists. Be very detailed as if written by peter norvig. 
+
+Store in the ticket. Keep a frequently updated research diary. Then upload to remarkable and commit to git.
+```
+
+**Assistant interpretation:** Analyze the Nordic sniffer firmware + host protocol using source code and docs, then write a detailed textbook-style reference in the ticket with diagrams, pseudocode, and source pointers.
+
+**Inferred user intent:** Build a trustworthy, implementation-ready understanding of the sniffer protocol (firmware + extcap) so the CLI can integrate with it reliably.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Cloned the Nordic nRF Connect SDK repo with sparse checkout to access the `802154_sniffer` firmware sample source under `/tmp/sdk-nrf`.
+- Read firmware files (`src/main.c`, `prj.conf`, board overlays, README) and extracted the serial protocol, radio configuration, and timestamp handling.
+- Read the local `nRF-Sniffer-for-802.15.4` host extcap Python script to map serial parsing, DLT selection, and pcap/TAP framing.
+- Collected external references (Nordic product page, Wireshark extcap docs, pcap linktype registry, Zigbee/802.15.4 primers).
+- Created a new reference doc in the ticket and wrote a long-form, textbook-style analysis with diagrams, callouts, and pseudocode.
+- Related the key source files to the new reference doc using `docmgr doc relate`.
+
+### Why
+
+- The CLI integration depends on exact protocol details (serial line format, FCS handling, timestamps, metadata TLVs).
+- A deep, readable reference reduces rework and provides a single source of truth for future implementation and debugging.
+
+### What worked
+
+- Sparse checkout gave a minimal local clone of the firmware sample without pulling the entire SDK.
+- The firmware and extcap sources aligned cleanly with the observed serial and pcap behaviors.
+- The reference doc captured protocol details in a reusable, textbook-style format.
+
+### What didn't work
+
+- The Nordic sniffer programming guide URL required login, so content could not be fetched directly in this environment.
+
+### What I learned
+
+- The firmware prints hex PSDUs with RSSI/LQI/timestamp over a UART shell, and the host strips the final 2 bytes (FCS) before writing pcap.
+- The extcap script uses TAP (DLT 283) or NOFCS (DLT 230) and injects RSSI/channel/LQI via TAP TLVs.
+
+### What was tricky to build
+
+- Reconciling firmware timestamps (relative to boot) with Wireshark's expectation of UNIX time required careful cross-referencing of the host's correction logic.
+- The TAP TLV layout is implied by the host script, not the firmware, so mapping the metadata required reading both sides.
+
+### What warrants a second pair of eyes
+
+- Confirm the FCS stripping behavior matches current upstream firmware outputs (line format changes could break parsing).
+- Validate the TAP TLV field types against the latest IEEE 802.15.4 TAP spec for correctness.
+
+### What should be done in the future
+
+- Upload the new reference doc to reMarkable and commit the doc changes to git (pending Step 7).
+
+### Code review instructions
+
+- Start at `ttmp/2026/02/01/0068-ZIGBEE-SNIFFING--zigbee-sniffer-go-cli/reference/02-nrf-sniffer-802-15-4-firmware-and-protocol-deep-dive.md`.
+- Cross-check firmware protocol claims with `/tmp/sdk-nrf/samples/peripheral/802154_sniffer/src/main.c` and the extcap script.
+
+### Technical details
+
+- Commands run:
+  - `git clone --depth 1 --filter=blob:none --sparse https://github.com/nrfconnect/sdk-nrf.git /tmp/sdk-nrf`
+  - `git -C /tmp/sdk-nrf sparse-checkout set samples/peripheral/802154_sniffer`
+  - `sed -n '1,240p' /tmp/sdk-nrf/samples/peripheral/802154_sniffer/README.rst`
+  - `sed -n '1,240p' /tmp/sdk-nrf/samples/peripheral/802154_sniffer/src/main.c`
+  - `sed -n '1,200p' /tmp/sdk-nrf/samples/peripheral/802154_sniffer/prj.conf`
+  - `sed -n '1,200p' .../nrf802154_sniffer.py`
+  - `docmgr doc add --ticket 0068-ZIGBEE-SNIFFING --doc-type reference --title "nRF Sniffer 802.15.4 Firmware and Protocol Deep Dive"`
+  - `docmgr doc relate --doc .../02-nrf-sniffer-802-15-4-firmware-and-protocol-deep-dive.md --file-note ...`
