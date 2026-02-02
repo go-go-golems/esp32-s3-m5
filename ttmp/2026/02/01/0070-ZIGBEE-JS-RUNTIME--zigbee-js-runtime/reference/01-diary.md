@@ -64,7 +64,7 @@ I created the new ticket workspace, moved the JS API design doc into it, and exp
 
 **Inferred user intent:** Establish a clean new workspace for JS runtime implementation and then proceed with disciplined, trackable delivery.
 
-**Commit (code):** N/A
+**Commit (code):** a09e8df — "docs: harden plz-confirm gate and expand permit-join watch"
 
 ### What I did
 - Created ticket `0070-ZIGBEE-JS-RUNTIME` with docmgr.
