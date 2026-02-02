@@ -31,3 +31,12 @@ Step 26: Implement zigctl listen commands (commit 2fac89a)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/listen/state.go — State listener implementation
 
+
+## 2026-02-01
+
+Step 27: Implement zigctl mqtt pub/sub helpers (commit bd1066d)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/mqtt/pub.go — MQTT publish helper
+

@@ -50,8 +50,14 @@ RelatedFiles:
         Listen group registration (Step 26)
     - Path: zigctl/cmd/listen/state.go
       Note: State streaming command (Step 26)
+    - Path: zigctl/cmd/mqtt/pub.go
+      Note: MQTT publish helper (Step 27)
     - Path: zigctl/cmd/mqtt/root.go
-      Note: MQTT group root scaffold (Step 24)
+      Note: |-
+        MQTT group root scaffold (Step 24)
+        MQTT group registration (Step 27)
+    - Path: zigctl/cmd/mqtt/sub.go
+      Note: MQTT subscribe helper (Step 27)
     - Path: zigctl/cmd/root.go
       Note: Load defaults and register group commands (Step 24)
     - Path: zigctl/go.mod
@@ -76,6 +82,7 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1723,3 +1730,55 @@ These listeners wire MQTT subscriptions to a channel-backed loop so streaming ou
 - Subscriptions:
   - `zigbee2mqtt/#` for full state stream (or `zigbee2mqtt/<device>` when filtered)
   - Custom topic for raw listener
+
+## Step 27: Implement zigctl mqtt pub/sub helpers
+
+I implemented the raw MQTT helpers under the mqtt group, providing `pub` and `sub` commands with Glazed parsing and structured output. Each command includes LongDescription examples and reuses the shared MQTT connection helpers.
+
+This completes the requested verb set for Task 10.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 25)
+
+**Assistant interpretation:** Continue the task plan by adding the mqtt pub/sub helper commands.
+
+**Inferred user intent:** Provide a low-level escape hatch for publishing and subscribing without higher-level bridge semantics.
+
+**Commit (code):** bd1066d — "Add zigctl mqtt pub/sub commands"
+
+### What I did
+- Added `mqtt pub` and `mqtt sub` Glazed commands with required examples.
+- Registered mqtt verbs under the mqtt group root via `cli.BuildCobraCommand`.
+- Ran `go test ./...` in `zigctl/`.
+
+### Why
+- Task 10 required raw publish/subscribe helpers for MQTT access.
+
+### What worked
+- MQTT pub/sub helpers now emit structured rows and use the shared Zigbee layer for connection settings.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The raw mqtt helpers share the same streaming mechanics as listen/raw, so their implementation can stay small.
+
+### What was tricky to build
+- Underlying cause: Reusing the same subscription loop for both listen/raw and mqtt/sub without duplicating too much logic.
+- Symptoms: Easy to drift into inconsistent output columns between commands.
+- Solution: Kept the mqtt/sub output aligned with listen/raw (topic, payload, received_at) while keeping its own command and LongDescription.
+
+### What warrants a second pair of eyes
+- Confirm that the mqtt helper output columns are consistent with expectations for scripting.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/mqtt/root.go`, `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/mqtt/pub.go`, and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/mqtt/sub.go`.
+- Validate by running `cd zigctl && go test ./...`.
+
+### Technical details
+- Pub publishes with QoS from the Zigbee layer.
+- Subscriptions emit `received_at`, `topic`, and `payload` per message.

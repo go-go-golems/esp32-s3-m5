@@ -12,4 +12,4 @@
 - [x] Scaffold zigctl module with root command, config loader, MQTT client, and custom Zigbee Glazed layer
 - [x] Implement bridge group with info, devices, permit-join commands (LongDescription examples)
 - [x] Implement listen group with state and raw listeners (LongDescription examples)
-- [ ] Implement mqtt group with pub/sub helpers (LongDescription examples)
+- [x] Implement mqtt group with pub/sub helpers (LongDescription examples)
