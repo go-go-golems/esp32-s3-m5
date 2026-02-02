@@ -26,10 +26,24 @@ RelatedFiles:
       Note: Postmortem of bridge request validation run
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/05-bridge-request-verification-report-step-9.md
       Note: Verification report for Step 9 bridge request behavior
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/09-zigbee2mqtt-validation-report-broker-zigctl.md
+      Note: OSHA-style validation report (Step 30-31)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/diary/update_prompt_context.py
       Note: Script to dedupe repeated prompt blocks
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/diary/update_tricky_sections.py
       Note: Script to expand tricky sections with cause/symptom/solution
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/10-start-broker-tmux.sh
+      Note: Start broker script (Step 28)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/20-run-bridge-tests.sh
+      Note: Bridge validation script with timeouts (Step 29)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/25-run-zigctl-tests.sh
+      Note: zigctl validation script (Step 30)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/bridge-validation-20260202T013834Z.log
+      Note: Initial timeout log (Step 28)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/bridge-validation-20260202T014228Z.log
+      Note: Successful bridge validation log (Step 29)
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/zigctl-validation-20260202T014315Z.log
+      Note: zigctl validation log (Step 30)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/zigbee2mqtt-test/docker-compose.yml
       Note: Test Compose stack used for validation
     - Path: zigctl/cmd/bridge/devices.go
@@ -82,6 +96,7 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1782,3 +1797,206 @@ This completes the requested verb set for Task 10.
 ### Technical details
 - Pub publishes with QoS from the Zigbee layer.
 - Subscriptions emit `received_at`, `topic`, and `payload` per message.
+
+## Step 28: Start broker and capture initial validation failure
+
+I started the broker stack using the existing tmux playbook and attempted the bridge validation script. The first run hung at the MQTT sanity check because the script waited indefinitely on mosquitto_sub without a timeout, so the command hit the global 120s timeout.
+
+This step records the failure and the resulting evidence log so the corrective change is traceable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Run the broker (according to past ticket / playbook), then test against it locally, compare with the existing mosquitto tests we did. 
+
+Create a detailed validation report, store all scripts you write in the scripts/ folder (even temporary ones), And be as detailed as a osha inspector in your report, leave nothing out. 
+
+Add the report to the ticket and upload to remarkable"
+
+**Assistant interpretation:** Bring up the tmux/Docker stack, rerun mosquitto_pub/sub tests, validate zigctl commands, compare outcomes, and produce a detailed report (plus reMarkable upload).
+
+**Inferred user intent:** Get a repeatable, evidence-backed validation record for both raw MQTT and the new zigctl CLI.
+
+**Commit (code):** N/A
+
+### What I did
+- Started tmux session `z2m-test` with Mosquitto + Zigbee2MQTT using the ticket’s playbook.
+- Ran `scripts/validation/20-run-bridge-tests.sh` (initial version).
+
+### Why
+- The user requested validation against the running broker using the existing playbook.
+
+### What worked
+- Containers started successfully and were reachable via `docker ps`.
+
+### What didn't work
+- The validation script hung at the MQTT sanity step (no timeout in mosquitto_sub). The command timed out after 120s.
+
+### What I learned
+- Unbounded mosquitto_sub calls can stall automation unless timeouts are enforced.
+
+### What was tricky to build
+- Underlying cause: a background mosquitto_sub without `-W` can wait forever if the publish misses timing.
+- Symptoms: script stopped at “mqtt sanity” and never progressed.
+- Solution: updated the script to add explicit timeouts and result handling (see Step 29).
+
+### What warrants a second pair of eyes
+- Confirm the test harness assumptions around expected responses before automating comparisons.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review the failed log at `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/bridge-validation-20260202T013834Z.log`.
+
+### Technical details
+- tmux session: `z2m-test`.
+- Containers: `z2m`, `z2m-mosquitto`.
+
+## Step 29: Re-run bridge validation with timeouts and capture variance
+
+I updated the bridge validation script to enforce timeouts and reran the mosquitto_pub/sub tests. The run completed successfully and produced a full log, with one important variance: `bridge/response/health_check` responded this time even though it did not in the earlier run.
+
+This step captures the corrected script, the successful log, and the observed behavioral delta.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 28)
+
+**Assistant interpretation:** Fix the validation harness and re-run the bridge checks to gather complete evidence.
+
+**Inferred user intent:** Ensure the report includes accurate, complete, and non-hanging test outcomes.
+
+**Commit (code):** N/A
+
+### What I did
+- Updated `scripts/validation/20-run-bridge-tests.sh` to use `mosquitto_sub -W` timeouts and explicit result handling.
+- Re-ran the script and captured `bridge-validation-20260202T014228Z.log`.
+
+### Why
+- The first attempt stalled due to missing timeouts; the script needed to be robust for repeated use.
+
+### What worked
+- All primary bridge requests responded (`permit_join`, `info`, `devices`, `definitions`).
+- MQTT sanity test succeeded.
+
+### What didn't work
+- `bridge/request/logging` still did not produce a response (consistent with prior run).
+
+### What I learned
+- `bridge/response/health_check` can respond in some runs; it’s not safe to treat it as a non-responder.
+
+### What was tricky to build
+- Underlying cause: balancing strict failure handling with expected “no response” tests.
+- Symptoms: failure conditions could terminate the script too early or incorrectly flag expected non-responses.
+- Solution: added explicit expectation handling for `none` responses in the script and logged a warning only if a response arrived unexpectedly.
+
+### What warrants a second pair of eyes
+- Confirm that the health_check response variance aligns with Zigbee2MQTT version/config and should be treated as optional.
+
+### What should be done in the future
+- Update any playbooks to note that health_check may respond.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/validation/20-run-bridge-tests.sh` and the log `bridge-validation-20260202T014228Z.log`.
+
+### Technical details
+- Health check response observed: `{"data":{"healthy":true},"status":"ok"}`.
+- Logging request still timed out (no response within 6s).
+
+## Step 30: Validate zigctl commands and draft OSHA-level report
+
+I ran the new zigctl bridge and mqtt commands against the live broker and captured a full log, then drafted the OSHA-style validation report with command inventory, evidence links, and a comparison to the earlier mosquitto_pub/sub run.
+
+This completes the requested local validation and documentation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 28)
+
+**Assistant interpretation:** Run zigctl against the live broker, compare behavior to raw MQTT tests, and document everything rigorously.
+
+**Inferred user intent:** Ensure the CLI works end-to-end and the report is audit-ready.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `scripts/validation/25-run-zigctl-tests.sh` and captured `zigctl-validation-20260202T014315Z.log`.
+- Drafted the detailed report in `reference/09-zigbee2mqtt-validation-report-broker-zigctl.md`.
+
+### Why
+- The user requested explicit zigctl verification and a full inspection-style report.
+
+### What worked
+- `zigctl bridge info/devices/permit-join` returned valid JSON rows.
+- `zigctl mqtt pub/sub` round-trip produced expected output.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The zigctl commands map cleanly to the bridge request/response topics and behave consistently with mosquitto_pub/sub tests.
+
+### What was tricky to build
+- Underlying cause: the zigctl tests are streaming or long-running and need controlled timeouts to terminate cleanly.
+- Symptoms: `zigctl mqtt sub` continues running unless externally stopped.
+- Solution: wrapped the sub call with `timeout` to gather a single message and exit deterministically.
+
+### What warrants a second pair of eyes
+- Verify report completeness and ensure the comparison section matches your expectations for health_check behavior.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `reference/09-zigbee2mqtt-validation-report-broker-zigctl.md` and the zigctl log at `scripts/validation/zigctl-validation-20260202T014315Z.log`.
+
+### Technical details
+- Zigctl broker: `mqtt://localhost:1884`
+- Base topic: `zigbee2mqtt`
+
+## Step 31: Upload validation report to reMarkable
+
+I uploaded the OSHA-style validation report to the reMarkable Projects/2026/01/Zigbee folder using the remarquee workflow (dry-run then upload). This makes the report accessible alongside the other Zigbee references.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 28)
+
+**Assistant interpretation:** Publish the new validation report to reMarkable.
+
+**Inferred user intent:** Keep the validation evidence bundled with other Zigbee documentation on the device.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `remarquee upload md --dry-run` for the report.
+- Uploaded the report PDF to `/Projects/2026/01/Zigbee`.
+
+### Why
+- The user explicitly requested the report be uploaded to reMarkable.
+
+### What worked
+- Upload succeeded and reported the target PDF name in the Zigbee project folder.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Underlying cause: none.
+- Symptoms: none.
+- Solution: N/A.
+
+### What warrants a second pair of eyes
+- Verify the report appears in `/Projects/2026/01/Zigbee` on the device.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- No code changes; verify upload with `remarquee cloud ls /Projects/2026/01/Zigbee --long --non-interactive` if needed.
+
+### Technical details
+- Upload command: `remarquee upload md .../reference/09-zigbee2mqtt-validation-report-broker-zigctl.md --remote-dir "/Projects/2026/01/Zigbee"`.

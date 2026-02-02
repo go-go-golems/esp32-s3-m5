@@ -1,0 +1,7 @@
+# Bridge validation run @ 20260202T013834Z
+## docker ps
+NAMES                   IMAGE                               STATUS
+z2m                     ghcr.io/koenkk/zigbee2mqtt          Up 3 seconds
+z2m-mosquitto           eclipse-mosquitto:2                 Up 4 seconds
+dagger-engine-v0.19.9   registry.dagger.io/engine:v0.19.9   Up 8 hours
+## mqtt sanity
