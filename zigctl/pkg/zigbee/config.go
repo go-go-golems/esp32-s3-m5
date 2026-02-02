@@ -9,14 +9,15 @@ import (
 )
 
 type Config struct {
-	Broker    string `yaml:"broker"`
-	BaseTopic string `yaml:"base_topic"`
-	TLS       bool   `yaml:"tls"`
-	CAFile    string `yaml:"cafile"`
-	CertFile  string `yaml:"cert"`
-	KeyFile   string `yaml:"key"`
-	QOS       int    `yaml:"qos"`
-	Timeout   string `yaml:"timeout"`
+	Broker    string        `yaml:"broker"`
+	BaseTopic string        `yaml:"base_topic"`
+	TLS       bool          `yaml:"tls"`
+	CAFile    string        `yaml:"cafile"`
+	CertFile  string        `yaml:"cert"`
+	KeyFile   string        `yaml:"key"`
+	QOS       int           `yaml:"qos"`
+	Timeout   string        `yaml:"timeout"`
+	Sniffer   SnifferConfig `yaml:"sniffer"`
 }
 
 func DefaultConfig() Config {
@@ -26,6 +27,7 @@ func DefaultConfig() Config {
 		TLS:       false,
 		QOS:       0,
 		Timeout:   "10s",
+		Sniffer:   DefaultSnifferConfig(),
 	}
 }
 
@@ -73,5 +75,6 @@ func (c Config) WithDefaults() Config {
 	if out.Timeout == "" {
 		out.Timeout = defaults.Timeout
 	}
+	out.Sniffer = out.Sniffer.WithDefaults(defaults.Sniffer)
 	return out
 }
