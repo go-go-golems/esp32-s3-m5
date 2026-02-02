@@ -42,8 +42,14 @@ RelatedFiles:
       Note: |-
         Bridge group root scaffold (Step 24)
         Register bridge verbs (Step 25)
+    - Path: zigctl/cmd/listen/raw.go
+      Note: Raw topic streaming command (Step 26)
     - Path: zigctl/cmd/listen/root.go
-      Note: Listen group root scaffold (Step 24)
+      Note: |-
+        Listen group root scaffold (Step 24)
+        Listen group registration (Step 26)
+    - Path: zigctl/cmd/listen/state.go
+      Note: State streaming command (Step 26)
     - Path: zigctl/cmd/mqtt/root.go
       Note: MQTT group root scaffold (Step 24)
     - Path: zigctl/cmd/root.go
@@ -70,6 +76,7 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1661,3 +1668,58 @@ I kept the command wiring strictly in Glazed and used Cobra only to register the
   - `bridge/info` (response to `bridge/request/info`)
   - `bridge/devices` (response to `bridge/request/devices`)
   - `bridge/response/permit_join` (response to `bridge/request/permit_join`)
+
+## Step 26: Implement zigctl listen commands (state/raw)
+
+I implemented the listen group with streaming commands for device state updates and raw topic subscriptions. Both commands are Glazed-based, emit rows per message, and include the required LongDescription examples.
+
+These listeners wire MQTT subscriptions to a channel-backed loop so streaming output continues until the command context is canceled.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 25)
+
+**Assistant interpretation:** Continue implementing the remaining task slices in order, focusing next on streaming listeners.
+
+**Inferred user intent:** Provide CLI streaming capabilities for monitoring Zigbee2MQTT traffic.
+
+**Commit (code):** 2fac89a — "Add zigctl listen commands"
+
+### What I did
+- Added `listen state` and `listen raw` Glazed commands with required examples.
+- Registered listen verbs under the listen group root via `cli.BuildCobraCommand`.
+- Implemented streaming loops that emit a row per MQTT message.
+- Ran `go test ./...` in `zigctl/`.
+
+### Why
+- Task 9 required streaming listeners for state updates and raw topic subscriptions.
+
+### What worked
+- Both listeners subscribe and stream rows until the context is canceled.
+- State listener derives a device name from the MQTT topic prefix.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Using a buffered channel for MQTT callbacks simplifies backpressure handling in streaming commands.
+
+### What was tricky to build
+- Underlying cause: MQTT callbacks happen on their own goroutines and need safe handoff into the Glazed processing loop.
+- Symptoms: Without a channel buffer, bursts could block the callback and stall MQTT handling.
+- Solution: Used a buffered channel with a non-blocking send to avoid deadlocking the callback goroutine.
+
+### What warrants a second pair of eyes
+- Confirm the device extraction logic (topic prefix parsing) matches your topic naming conventions.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/listen/root.go`, `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/listen/state.go`, and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/listen/raw.go`.
+- Validate by running `cd zigctl && go test ./...`.
+
+### Technical details
+- Subscriptions:
+  - `zigbee2mqtt/#` for full state stream (or `zigbee2mqtt/<device>` when filtered)
+  - Custom topic for raw listener

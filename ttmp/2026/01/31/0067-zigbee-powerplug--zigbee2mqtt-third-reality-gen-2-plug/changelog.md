@@ -22,3 +22,12 @@ Step 25: Implement zigctl bridge commands (commit 01daef4)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/root.go — Bridge command registration
 
+
+## 2026-02-01
+
+Step 26: Implement zigctl listen commands (commit 2fac89a)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/listen/state.go — State listener implementation
+
