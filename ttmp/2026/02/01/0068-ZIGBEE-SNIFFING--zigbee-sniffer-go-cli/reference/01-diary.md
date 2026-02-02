@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:09:25-05:00
+LastUpdated: 2026-02-02T12:12:12-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -828,3 +828,65 @@ I built the core `pkg/sniffer/nrf` package with device discovery, serial session
   - `gofmt -w zigctl/pkg/sniffer/nrf/*.go`
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 2`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF sniffer protocol package"`
+
+## Step 13: Implement pcapng/TAP writer for 802.15.4 frames
+
+I added a small pcapng writer wrapper and TAP header builder so captured frames can be written with RSSI/LQI/channel metadata. This completes the output plumbing needed for capture and live streaming.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Implement the pcapng/TAP output layer as the next task.
+
+**Inferred user intent:** Ensure captured frames are Wireshark-compatible with metadata intact.
+
+**Commit (code):** 7b1dc31 — "zigctl: add pcapng TAP writer"
+
+### What I did
+
+- Added `pkg/sniffer/pcap` with:
+  - `BuildTAPPayload` for IEEE 802.15.4 TAP TLVs.
+  - `Writer` wrapper around `pcapgo.NgWriter`.
+- Added `github.com/google/gopacket` dependency.
+- Checked off Task 3 in the ticket.
+
+### Why
+
+- The nRF sniffer protocol provides RSSI/LQI/channel; TAP metadata is how Wireshark consumes it.
+
+### What worked
+
+- pcapng writer and TAP helper compiled cleanly after formatting.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Matching the TAP TLV layout to Nordic’s extcap implementation (type/length ordering and payload sizes).
+
+### What warrants a second pair of eyes
+
+- Validate the TAP TLV encoding against Wireshark expectations once wired into live capture.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/pkg/sniffer/pcap/tap.go` and `zigctl/pkg/sniffer/pcap/writer.go`.
+
+### Technical details
+
+- Commands run:
+  - `go get github.com/google/gopacket@v1.1.19`
+  - `gofmt -w zigctl/pkg/sniffer/pcap/*.go`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 3`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add pcapng TAP writer"`
