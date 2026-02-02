@@ -559,7 +559,10 @@ The report includes the timeout and argument parsing issues, the plz-confirm JSO
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a detailed postmortem report that shows all the technical issues we ran into, why they happened, what we did to fix them, and what we should do better in the future. \n\nAlso continue keeping your diary and backfill if necessary. \nCommit all this and upload the documents to remarkable."
+**User prompt (verbatim):** "Create a detailed postmortem report that shows all the technical issues we ran into, why they happened, what we did to fix them, and what we should do better in the future.
+
+Also continue keeping your diary and backfill if necessary.
+Commit all this and upload the documents to remarkable."
 
 **Assistant interpretation:** Produce a comprehensive postmortem report, update the diary with the new step, and commit the documentation changes; then upload the documents to reMarkable.
 
