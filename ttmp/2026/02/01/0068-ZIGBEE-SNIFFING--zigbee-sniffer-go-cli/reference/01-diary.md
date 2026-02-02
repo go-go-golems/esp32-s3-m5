@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T11:36:39-05:00
+LastUpdated: 2026-02-02T11:38:10-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -448,3 +448,66 @@ Store in the ticket. Keep a frequently updated research diary. Then upload to re
   - `sed -n '1,200p' .../nrf802154_sniffer.py`
   - `docmgr doc add --ticket 0068-ZIGBEE-SNIFFING --doc-type reference --title "nRF Sniffer 802.15.4 Firmware and Protocol Deep Dive"`
   - `docmgr doc relate --doc .../02-nrf-sniffer-802-15-4-firmware-and-protocol-deep-dive.md --file-note ...`
+
+## Step 7: Upload deep dive to reMarkable and commit docs
+
+I uploaded the new sniffer firmware deep dive to the reMarkable folder for the ticket and then committed the reference doc and diary updates to git. This closes the loop on delivery and makes the research durable for future work.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 6)
+
+**Assistant interpretation:** Complete the delivery steps: upload the new reference doc to reMarkable and commit the documentation updates.
+
+**Inferred user intent:** Ensure the new research is both portable (reMarkable) and tracked (git).
+
+**Commit (code):** bef4e71 — "Docs: add nRF sniffer firmware deep dive"
+
+### What I did
+
+- Ran a dry-run and then uploaded the new reference doc via `remarquee upload md` to `/ai/2026/02/02/0068-ZIGBEE-SNIFFING`.
+- Verified the upload with `remarquee cloud ls`.
+- Staged and committed the new reference doc and diary update in the `esp32-s3-m5` repo.
+
+### Why
+
+- The user explicitly requested reMarkable delivery and a git commit for auditability.
+
+### What worked
+
+- `remarquee upload md` succeeded and the PDF appears in the remote listing.
+- Git commit succeeded with the new doc and diary changes.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Confirm the reMarkable PDF formatting is readable (headings, code blocks, diagrams).
+
+### What should be done in the future
+
+- If formatting issues appear, adjust Markdown structure or use a custom Pandoc template.
+
+### Code review instructions
+
+- Review `ttmp/2026/02/01/0068-ZIGBEE-SNIFFING--zigbee-sniffer-go-cli/reference/02-nrf-sniffer-802-15-4-firmware-and-protocol-deep-dive.md` and the new diary entries.
+- Verify the reMarkable upload under `/ai/2026/02/02/0068-ZIGBEE-SNIFFING`.
+
+### Technical details
+
+- Commands run:
+  - `remarquee upload md --dry-run ... --remote-dir "/ai/2026/02/02/0068-ZIGBEE-SNIFFING"`
+  - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0068-ZIGBEE-SNIFFING"`
+  - `remarquee cloud ls /ai/2026/02/02/0068-ZIGBEE-SNIFFING --long --non-interactive`
+  - `git -C .../esp32-s3-m5 add ...`
+  - `git -C .../esp32-s3-m5 commit -m "Docs: add nRF sniffer firmware deep dive"`
