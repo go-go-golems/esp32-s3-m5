@@ -32,8 +32,16 @@ RelatedFiles:
       Note: Script to expand tricky sections with cause/symptom/solution
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/scripts/zigbee2mqtt-test/docker-compose.yml
       Note: Test Compose stack used for validation
+    - Path: zigctl/cmd/bridge/devices.go
+      Note: Bridge devices command (Step 25)
+    - Path: zigctl/cmd/bridge/info.go
+      Note: Bridge info command (Step 25)
+    - Path: zigctl/cmd/bridge/permit_join.go
+      Note: Bridge permit-join command (Step 25)
     - Path: zigctl/cmd/bridge/root.go
-      Note: Bridge group root scaffold (Step 24)
+      Note: |-
+        Bridge group root scaffold (Step 24)
+        Register bridge verbs (Step 25)
     - Path: zigctl/cmd/listen/root.go
       Note: Listen group root scaffold (Step 24)
     - Path: zigctl/cmd/mqtt/root.go
@@ -62,6 +70,7 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1595,3 +1604,60 @@ I also validated the new module compiles by running tests, then resolved missing
 
 ### Technical details
 - Tests: `go test ./...` (after `go mod tidy`).
+
+## Step 25: Implement zigctl bridge commands (info/devices/permit-join)
+
+I implemented the bridge verb set using Glazed commands that publish Zigbee2MQTT bridge requests and parse responses into structured rows. The bridge group now exposes `info`, `devices`, and `permit-join`, each with LongDescription examples as required.
+
+I kept the command wiring strictly in Glazed and used Cobra only to register the commands under the bridge group root.
+
+### Prompt Context
+
+**User prompt (verbatim):** "2."
+
+**Assistant interpretation:** Proceed with the implementation plan and start delivering the next task slice.
+
+**Inferred user intent:** Move from design into actual command implementations in the specified order.
+
+**Commit (code):** 01daef4 — "Add zigctl bridge commands"
+
+### What I did
+- Added Glazed bridge commands: `info`, `devices`, and `permit-join`.
+- Wired bridge root to register Glazed commands via `cli.BuildCobraCommand`.
+- Implemented bridge request/response logic using the shared MQTT helpers.
+- Parsed device list payloads into structured rows.
+- Ran `go test ./...` in `zigctl/`.
+
+### Why
+- Task 8 required bridge operations with LongDescription examples and structured output.
+
+### What worked
+- Bridge commands now publish to request topics and consume response topics correctly.
+- Device list payloads render as structured rows with stable column names.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Zigbee2MQTT bridge requests are cleanly modeled as request/response pairs, and the same helper can serve multiple bridge verbs.
+
+### What was tricky to build
+- Underlying cause: Bridge requests use different response topics (`bridge/info` vs `bridge/response/permit_join`), so each verb needs its own response topic mapping.
+- Symptoms: It was easy to assume a uniform response topic and risk timeouts.
+- Solution: Hard-coded the correct response topic per verb and used the shared `RequestOnce` helper to avoid duplicated logic.
+
+### What warrants a second pair of eyes
+- Confirm the device list field mapping (friendly_name, ieee_address, model_id, etc.) matches the payloads in your Zigbee2MQTT version.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Start with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/root.go` and the new verb files in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/`.
+- Validate by running `cd zigctl && go test ./...`.
+
+### Technical details
+- Topics used:
+  - `bridge/info` (response to `bridge/request/info`)
+  - `bridge/devices` (response to `bridge/request/devices`)
+  - `bridge/response/permit_join` (response to `bridge/request/permit_join`)

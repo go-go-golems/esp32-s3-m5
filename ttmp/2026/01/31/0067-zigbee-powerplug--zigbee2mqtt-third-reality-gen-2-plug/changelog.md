@@ -13,3 +13,12 @@ Step 24: Scaffold zigctl config, Zigbee layer, and MQTT helpers (commit 0965313)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/pkg/zigbee/layer.go — Zigbee Glazed layer defaults and flags
 
+
+## 2026-02-01
+
+Step 25: Implement zigctl bridge commands (commit 01daef4)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/root.go — Bridge command registration
+

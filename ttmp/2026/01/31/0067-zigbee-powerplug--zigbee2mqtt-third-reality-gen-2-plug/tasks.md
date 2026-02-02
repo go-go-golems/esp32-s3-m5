@@ -10,6 +10,6 @@
 - [x] Revise implementation plan to include custom layer + LongDescription requirements
 - [x] Add code organization rules: one directory per group, one file per verb, root.go per group
 - [x] Scaffold zigctl module with root command, config loader, MQTT client, and custom Zigbee Glazed layer
-- [ ] Implement bridge group with info, devices, permit-join commands (LongDescription examples)
+- [x] Implement bridge group with info, devices, permit-join commands (LongDescription examples)
 - [ ] Implement listen group with state and raw listeners (LongDescription examples)
 - [ ] Implement mqtt group with pub/sub helpers (LongDescription examples)
