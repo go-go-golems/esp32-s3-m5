@@ -57,7 +57,34 @@ func Register(root *cobra.Command, defaults zigbee.Config) error {
 		return err
 	}
 
-	nrfCmd.AddCommand(cobraList, cobraInfo, cobraChannel, cobraDoctor)
+	captureCmd, err := NewNrfCaptureCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraCapture, err := buildCobra(captureCmd)
+	if err != nil {
+		return err
+	}
+
+	liveCmd, err := NewNrfLiveCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraLive, err := buildCobra(liveCmd)
+	if err != nil {
+		return err
+	}
+
+	bootCmd, err := NewNrfBootloaderCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraBoot, err := buildCobra(bootCmd)
+	if err != nil {
+		return err
+	}
+
+	nrfCmd.AddCommand(cobraList, cobraInfo, cobraChannel, cobraDoctor, cobraCapture, cobraLive, cobraBoot)
 	sniffCmd.AddCommand(nrfCmd)
 	root.AddCommand(sniffCmd)
 	return nil
