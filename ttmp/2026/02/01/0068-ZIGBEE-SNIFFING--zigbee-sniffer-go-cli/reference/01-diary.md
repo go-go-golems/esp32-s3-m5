@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:31:57-05:00
+LastUpdated: 2026-02-02T12:38:00-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -1198,3 +1198,64 @@ I updated the workspace to include the zigctl module, ran tests, fixed the build
 - Commands run:
   - `go test ./esp32-s3-m5/zigctl/...`
   - `go run . sniff nrf list`
+
+## Step 19: Add nRF sniffer playbook and help entry
+
+I added a playbook-style help entry for the nRF sniffer workflow and embedded it into zigctl’s help system. I also referenced the help slug in the capture command’s long description to make the playbook discoverable from CLI help.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+Create a playbook on how to use the sniffer, add as a glazed help entry to zigctl, see glazed/pkg/doc/topics/14-writing-help-entries.md and glazed/pkg/doc/topics/how-to-write-good-documentation-pages.md , add to zigctl. Reference in the command long description.
+```
+
+**Assistant interpretation:** Write a playbook-style help doc following Glazed docs guidance, add it to zigctl’s embedded help system, and link it from a command’s long description.
+
+**Inferred user intent:** Make the sniffer workflow discoverable and consistent with Glazed’s documentation standards.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Added `zigctl/doc/playbooks/01-sniffer-nrf-playbook.md` with a step-by-step sniffer workflow.
+- Updated `zigctl/doc/doc.go` to embed `playbooks/*.md`.
+- Added a reference to `zigctl help zigctl-sniffer-nrf-playbook` in the capture command long description.
+
+### Why
+
+- A playbook is the fastest way to get repeatable capture workflows into developer hands.
+
+### What worked
+
+- The help entry follows the Glazed style guide and is embedded alongside existing docs.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Ensuring the playbook stays concise while covering capture, live streaming, and troubleshooting.
+
+### What warrants a second pair of eyes
+
+- Confirm the help slug and command references match the final help system output.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/doc/playbooks/01-sniffer-nrf-playbook.md` and `zigctl/doc/doc.go`.
+- Confirm the long description update in `zigctl/cmd/sniff/nrf_capture.go`.
+
+### Technical details
+
+- Commands run:
+  - `gofmt -w zigctl/doc/doc.go zigctl/cmd/sniff/nrf_capture.go`

@@ -46,7 +46,7 @@ func NewNrfCaptureCommand(defaults zigbee.Config) (*NrfCaptureCommand, error) {
 	cmdDesc := cmds.NewCommandDescription(
 		"capture",
 		cmds.WithShort("Capture to a pcapng file"),
-		cmds.WithLong("Capture IEEE 802.15.4 frames from the nRF sniffer and write a pcapng file."),
+		cmds.WithLong("Capture IEEE 802.15.4 frames from the nRF sniffer and write a pcapng file.\n\nSee `zigctl help zigctl-sniffer-nrf-playbook` for a full step-by-step workflow."),
 		cmds.WithFlags(
 			fields.New(
 				"port",
