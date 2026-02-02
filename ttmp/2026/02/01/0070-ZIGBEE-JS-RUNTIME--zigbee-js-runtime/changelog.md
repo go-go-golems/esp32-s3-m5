@@ -31,3 +31,12 @@ Step 7: run JS logging + permit-join tests (permit-join timeout)
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/reference/01-diary.md — Record test results
 
+
+## 2026-02-02
+
+Step 8: retry permit-join with timeout arg parsing + log tail
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js — Arg parsing + timeout
+

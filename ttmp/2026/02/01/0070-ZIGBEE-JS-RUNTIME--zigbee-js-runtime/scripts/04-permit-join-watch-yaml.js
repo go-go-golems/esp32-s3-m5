@@ -49,25 +49,85 @@ function toYaml(value, indent) {
 }
 
 const args = (typeof zigctlArgs !== 'undefined' && zigctlArgs) ? zigctlArgs : [];
-const broker = args[0] || 'mqtt://localhost:1884';
-const baseTopic = args[1] || 'zigbee2mqtt';
-const seconds = args[2] ? parseInt(args[2], 10) : 120;
-const targetDevice = args[3] || '';
+
+function parseArgs(argv) {
+  const opts = {
+    broker: 'mqtt://localhost:1884',
+    baseTopic: 'zigbee2mqtt',
+    seconds: 120,
+    device: '',
+    timeout: '60s',
+  };
+
+  let positional = [];
+  for (const arg of argv) {
+    const idx = arg.indexOf('=');
+    if (idx > 0) {
+      const key = arg.slice(0, idx);
+      const value = arg.slice(idx + 1);
+      switch (key) {
+        case 'broker':
+          opts.broker = value;
+          break;
+        case 'baseTopic':
+          opts.baseTopic = value;
+          break;
+        case 'seconds':
+          opts.seconds = parseInt(value, 10);
+          break;
+        case 'device':
+          opts.device = value;
+          break;
+        case 'timeout':
+          opts.timeout = value;
+          break;
+        default:
+          break;
+      }
+    } else {
+      positional.push(arg);
+    }
+  }
+
+  if (positional.length > 0) {
+    opts.broker = positional[0] || opts.broker;
+  }
+  if (positional.length > 1) {
+    opts.baseTopic = positional[1] || opts.baseTopic;
+  }
+  if (positional.length > 2) {
+    opts.seconds = parseInt(positional[2], 10);
+  }
+  if (positional.length > 3) {
+    opts.device = positional[3];
+  }
+  if (positional.length > 4) {
+    opts.timeout = positional[4];
+  }
+
+  if (!opts.seconds || Number.isNaN(opts.seconds)) {
+    opts.seconds = 120;
+  }
+
+  return opts;
+}
+
+const opts = parseArgs(args);
 
 const client = zigctl.connect({
-  broker: broker,
-  baseTopic: baseTopic,
+  broker: opts.broker,
+  baseTopic: opts.baseTopic,
   qos: 0,
-  timeout: '10s',
+  timeout: opts.timeout,
   debug: true,
 });
 
 const stream = client.watch({
   topics: ['bridge/event'],
-  duration: String(seconds) + 's',
+  duration: String(opts.seconds) + 's',
 });
 
-const permit = client.permitJoin({ seconds: seconds, device: targetDevice });
+const permit = client.permitJoin({ seconds: opts.seconds, device: opts.device });
 console.log('---');
 console.log(toYaml({ permit_join: permit }, 0));
 

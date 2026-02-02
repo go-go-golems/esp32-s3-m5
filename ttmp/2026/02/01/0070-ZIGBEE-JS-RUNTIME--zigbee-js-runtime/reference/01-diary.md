@@ -398,3 +398,51 @@ I ran the JS logging test script successfully and then ran the permit-join + wat
 ### Technical details
 - Error: `GoError: response timeout after 10s`.
 - Debug logs show: `zigctl-js: permit join seconds=120 device= topic=zigbee2mqtt/bridge/response/permit_join`.
+
+## Step 8: Retry permit-join with 60s timeout and tail tmux logs
+
+I updated the permit-join watch script to accept key=value args so the timeout can be set without being misinterpreted as a device name. I reran the script with a 60s timeout and tailed the Zigbee2MQTT logs from tmux; the permit-join request succeeded and the response was published.
+
+### Prompt Context
+
+**User prompt (verbatim):** "increase this to 60s and tail the logs (running in tmux)"
+
+**Assistant interpretation:** Increase JS request timeout to 60 seconds and capture Zigbee2MQTT logs while running the JS permit-join flow.
+
+**Inferred user intent:** Validate permit-join behavior from JS and confirm via broker logs.
+
+**Commit (code):** N/A
+
+### What I did
+- Updated `04-permit-join-watch-yaml.js` to parse `key=value` args and accept a timeout without shifting positional args.
+- Ran the JS permit-join script with `timeout=60s` and tailed tmux logs.
+
+### Why
+- The previous run interpreted the timeout as a device name and returned an error.
+
+### What worked
+- Permit-join returned `status: ok` from JS.
+- tmux logs showed the bridge request and response on `zigbee2mqtt/bridge/response/permit_join`.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Using `key=value` args avoids ambiguity for optional JS script parameters.
+
+### What was tricky to build
+- Underlying cause: positional argument parsing caused the timeout value to be interpreted as the device name.
+- Symptoms: Zigbee2MQTT reported `Device '60s' does not exist`.
+- Solution: added a small `key=value` parser with fallback to positional args.
+
+### What warrants a second pair of eyes
+- Confirm the arg parsing behavior aligns with how you intend to call the script long-term.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review the updated argument parsing in `04-permit-join-watch-yaml.js`.
+
+### Technical details
+- Log snippet included `Received MQTT message on 'zigbee2mqtt/bridge/request/permit_join'` and `MQTT publish: topic 'zigbee2mqtt/bridge/response/permit_join', payload '{"data":{"time":120},"status":"ok"}'`.
