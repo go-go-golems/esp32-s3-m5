@@ -6,5 +6,5 @@
 - [x] Implement nRF sniffer protocol package (discovery, parser, session)
 - [x] Implement pcapng/TAP writer for 802.15.4 frames
 - [x] Add zigctl sniff nrf command group wiring
-- [ ] Implement nrf list/info/channel/doctor commands
+- [x] Implement nrf list/info/channel/doctor commands
 - [ ] Implement nrf capture/live/bootloader commands

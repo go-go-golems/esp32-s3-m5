@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:14:04-05:00
+LastUpdated: 2026-02-02T12:19:37-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -949,3 +949,65 @@ I wired the new `zigctl sniff` group into the CLI root and introduced the `sniff
   - `gofmt -w zigctl/cmd/root.go zigctl/cmd/sniff/root.go`
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 4`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add sniff command group wiring"`
+
+## Step 15: Implement nRF list/info/channel/doctor commands
+
+I implemented the first batch of `zigctl sniff nrf` commands using the Glazed framework, including list, info, channel, and doctor. These commands wire into the new sniffer config layer, use the nRF protocol package, and provide structured output for scripting.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Implement the next task in the list: the non-capture nRF commands.
+
+**Inferred user intent:** Enable immediate CLI interaction with hardware for discovery and diagnostics.
+
+**Commit (code):** c33f332 — "zigctl: add nRF list/info/channel/doctor commands"
+
+### What I did
+
+- Added Glazed commands for `zigctl sniff nrf list|info|channel|doctor`.
+- Added sniffer settings decode helpers and port resolution helpers.
+- Extended the nRF session with `ReadLine` and `QueryChannel` to support channel queries.
+- Wired the new commands into the `sniff nrf` group.
+- Checked off Task 5 in the ticket.
+
+### Why
+
+- These commands provide immediate visibility into hardware and make troubleshooting faster during development.
+
+### What worked
+
+- Commands follow zigctl’s Glazed conventions and integrate with the sniffer defaults layer.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Handling channel queries safely without interfering with capture output (ensuring capture is stopped before querying).
+
+### What warrants a second pair of eyes
+
+- Confirm the doctor command’s error handling and status reporting matches expected UX.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/cmd/sniff/nrf_list.go`, `nrf_info.go`, `nrf_channel.go`, `nrf_doctor.go`.
+- Review `zigctl/pkg/sniffer/nrf/session.go` for the new channel query support.
+
+### Technical details
+
+- Commands run:
+  - `gofmt -w zigctl/cmd/sniff/*.go`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 5`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add nRF list/info/channel/doctor commands"`
