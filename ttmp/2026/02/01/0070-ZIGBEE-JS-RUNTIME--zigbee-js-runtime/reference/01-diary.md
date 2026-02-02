@@ -603,3 +603,53 @@ Commit all this and upload the documents to remarkable."
 
 ### Technical details
 - Postmortem doc path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/analysis/01-postmortem-js-runtime-permit-join-validation.md`.
+
+## Step 12: Fix reMarkable upload error and complete bundle upload
+
+I attempted to upload the postmortem + diary as a single bundle to reMarkable and hit a pandoc error caused by a literal `\\n` sequence in the diary’s prompt text. I replaced the literal escape with real line breaks, then retried the upload successfully.
+
+This ensured the documents could be bundled into a single PDF for offline review.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 11)
+
+**Assistant interpretation:** Ensure the documents are uploaded successfully to reMarkable.
+
+**Inferred user intent:** Make the postmortem and diary available on the device without manual fixes.
+
+**Commit (code):** 04c6c37 — "docs: fix diary prompt formatting for upload"
+
+### What I did
+- Retried the reMarkable bundle upload and captured the pandoc error.
+- Removed the literal `\\n` sequences from the diary prompt and replaced them with actual line breaks.
+- Re-ran the bundle upload and confirmed success.
+
+### Why
+- Pandoc interpreted `\\n` as an undefined LaTeX command during PDF generation.
+
+### What worked
+- The bundled PDF uploaded successfully after the prompt formatting fix.
+
+### What didn't work
+- Initial `remarquee upload bundle` failed with `Undefined control sequence` from pandoc.
+
+### What I learned
+- Literal escape sequences in markdown can break pandoc/LaTeX conversion when they appear outside code blocks.
+
+### What was tricky to build
+- Underlying cause: the diary stored the user prompt with literal `\\n` escape sequences, which are invalid LaTeX control sequences.
+- Symptoms: pandoc failed at `l.1775 \\n`.
+- Solution: replaced literal escapes with real line breaks to preserve verbatim content without LaTeX errors.
+
+### What warrants a second pair of eyes
+- Confirm the prompt formatting still satisfies the “verbatim” requirement.
+
+### What should be done in the future
+- When storing prompts with multiple lines, prefer real line breaks instead of literal escape sequences.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/reference/01-diary.md`.
+
+### Technical details
+- Upload target: `/ai/2026/02/02/0070-ZIGBEE-JS-RUNTIME/0070 JS Runtime Postmortem + Diary.pdf`.
