@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T11:51:26-05:00
+LastUpdated: 2026-02-02T11:52:41-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -637,3 +637,62 @@ I uploaded the new zigctl nRF tooling design doc to the reMarkable folder and co
   - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0068-ZIGBEE-SNIFFING"`
   - `remarquee cloud ls /ai/2026/02/02/0068-ZIGBEE-SNIFFING --long --non-interactive`
   - `git -C .../esp32-s3-m5 commit -m "Docs: add zigctl nRF sniffer tooling design"`
+
+## Step 10: Note sdk-nrf clone origin
+
+I recorded where `/tmp/sdk-nrf` came from so the provenance is visible in the diary. This keeps the research trail clear and avoids confusion about the firmware source path.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+just mention it in the diary if you haven't already.
+```
+
+**Assistant interpretation:** Ensure the diary explicitly notes that `/tmp/sdk-nrf` was created by cloning the nRF Connect SDK repo.
+
+**Inferred user intent:** Keep provenance of the firmware sources in the diary so the origin is clear.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Added an explicit diary note stating that `/tmp/sdk-nrf` was created via a sparse clone of `https://github.com/nrfconnect/sdk-nrf.git`.
+
+### Why
+
+- The origin of `/tmp/sdk-nrf` is relevant to the firmware source trail used in the deep dive.
+
+### What worked
+
+- N/A
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- N/A
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review this diary step and confirm it notes the `/tmp/sdk-nrf` origin.
+
+### Technical details
+
+- Commands run:
+  - `git clone --depth 1 --filter=blob:none --sparse https://github.com/nrfconnect/sdk-nrf.git /tmp/sdk-nrf`
+  - `git -C /tmp/sdk-nrf sparse-checkout set samples/peripheral/802154_sniffer`
