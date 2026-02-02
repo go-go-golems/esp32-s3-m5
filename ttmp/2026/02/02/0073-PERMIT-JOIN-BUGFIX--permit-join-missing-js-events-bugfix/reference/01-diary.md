@@ -144,7 +144,7 @@ I bundled the new ticket’s playbook, design doc, diary, and tasks into a singl
 
 **Inferred user intent:** Ensure the new ticket materials are available on the device immediately.
 
-**Commit (code):** N/A
+**Commit (code):** dc04142 — "docs: record permit-join bundle upload"
 
 ### What I did
 - Ran `remarquee upload bundle` with the playbook, design doc, diary, and tasks.
