@@ -34,7 +34,7 @@ RelatedFiles:
       Note: Test Compose stack used for validation
 ExternalSources: []
 Summary: Diary of work completed for the Zigbee2MQTT Third Reality Gen 2 plug quickstart reference.
-LastUpdated: 2026-02-01T19:59:57-05:00
+LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
@@ -1471,7 +1471,7 @@ Work it"
 
 **Inferred user intent:** Ensure the CLI design is implementation-ready with explicit structure, configuration flags, and help expectations.
 
-**Commit (code):** N/A
+**Commit (code):** accdd9c — "Update zigctl design requirements"
 
 ### What I did
 - Updated the design doc to state that Glazed handles parsing and Cobra handles registration only.
