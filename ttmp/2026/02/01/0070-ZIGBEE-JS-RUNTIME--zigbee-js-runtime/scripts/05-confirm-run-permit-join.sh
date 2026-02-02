@@ -15,23 +15,21 @@ APPROVED=$(plz-confirm confirm \
   --message "This will run the JS permit-join watch script for ${SECONDS}s. Pair the plug during the window if desired." \
   --approve-text "Run" \
   --reject-text "Cancel" \
-  --output json | python3 - <<'PY'
-import json,sys
+  --output json | python3 -c 'import json,sys
 try:
     data=json.load(sys.stdin)
     if isinstance(data, list):
         if data and isinstance(data[0], dict):
-            print(str(data[0].get('approved')).lower())
+            print(str(data[0].get("approved")).lower())
         else:
-            print('false')
+            print("false")
     elif isinstance(data, dict):
-        print(str(data.get('approved')).lower())
+        print(str(data.get("approved")).lower())
     else:
-        print('false')
+        print("false")
 except Exception:
-    print('false')
-PY
-)
+    print("false")
+')
 
 if [ "$APPROVED" != "true" ]; then
   echo "User cancelled."

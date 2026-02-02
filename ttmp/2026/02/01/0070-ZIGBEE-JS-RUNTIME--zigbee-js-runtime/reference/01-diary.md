@@ -498,3 +498,55 @@ The script updates are aimed at reducing friction in operator-in-the-loop testin
 
 ### Technical details
 - `watchTopic` defaults to `bridge/#` but can be overridden via `--arg watchTopic=bridge/event` for quieter output.
+
+## Step 10: Fix plz-confirm pipe and run the permit-join watcher
+
+I fixed the confirmation script so it actually reads JSON from `plz-confirm`, then ran the operator-gated permit-join watcher. The run produced the expected permit-join response and a steady stream of bridge logs/state, but no join events appeared during the window.
+
+This also validated that the expanded `bridge/#` watch topic gives immediate signal even when no new devices are joining.
+
+### Prompt Context
+
+**User prompt (verbatim):** "run the script now..."
+
+**Assistant interpretation:** Execute the plz-confirm gated permit-join watcher immediately.
+
+**Inferred user intent:** Validate the JS permit-join flow and confirm live bridge output.
+
+**Commit (code):** N/A
+
+### What I did
+- Fixed `05-confirm-run-permit-join.sh` to use `python3 -c` so the piped JSON from `plz-confirm` is parsed correctly.
+- Ran `ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh`.
+- Observed permit-join response and bridge stream output from Zigbee2MQTT.
+
+### Why
+- The previous pipeline used a here-doc and never read from stdin, causing the approval parse to fail.
+
+### What worked
+- The plz-confirm approval returned `approved: true`.
+- Permit-join returned `status: ok`, and bridge logs/state/messages streamed for the full window.
+
+### What didn't work
+- No device join events were observed during the permit-join window.
+
+### What I learned
+- A here-doc overrides stdin for `python3 -`, so it can’t be used to parse piped JSON.
+
+### What was tricky to build
+- Underlying cause: `python3 - <<'PY'` consumed stdin for the code block instead of the pipeline’s JSON.
+- Symptoms: approval parse always fell back to `false`, causing the script to exit early.
+- Solution: switched to `python3 -c` and read from stdin, preserving the pipe.
+
+### What warrants a second pair of eyes
+- Verify the `bridge/#` stream output is acceptable for regular operator use, or narrow it for quieter runs.
+
+### What should be done in the future
+- If you want to validate the plug join path, trigger pairing during the permit-join window.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh`.
+
+### Technical details
+- Command: `ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/05-confirm-run-permit-join.sh`
+- Output included `permit_join.status: ok` and repeated `bridge/logging` publishes for device `0x282c02bfffe69870`.
