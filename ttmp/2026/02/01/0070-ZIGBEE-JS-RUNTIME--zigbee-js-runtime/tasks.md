@@ -13,4 +13,4 @@
 - [x] Add JS examples in zigctl/testdata (join/watch, plug control)
 - [x] Add temporary go.mod replace for local go-go-goja (not needed; module version works)
 - [x] Add smoke test script / runbook notes for manual validation
-- [ ] Update doc references + diary entries, then commit changes
+- [x] Update doc references + diary entries, then commit changes
