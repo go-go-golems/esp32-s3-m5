@@ -12,6 +12,8 @@ RelatedFiles:
       Note: Backup diary skill updated for tricky-section detail
     - Path: ../../../../../../../../../../.codex/skills/diary/SKILL.md
       Note: Updated diary guidance for tricky sections and prompt repetition
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/design-doc/01-zigbee-cli-tool-design-zigctl.md
+      Note: Design doc for zigctl CLI
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/playbook/01-zigbee-traffic-sniffing-nrf-802-15-4-sniffer-cli.md
       Note: CLI playbook for Zigbee OTA sniffing with nRF sniffer
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/playbook/02-bridge-request-response-validation-tmux-docker.md
@@ -32,10 +34,11 @@ RelatedFiles:
       Note: Test Compose stack used for validation
 ExternalSources: []
 Summary: Diary of work completed for the Zigbee2MQTT Third Reality Gen 2 plug quickstart reference.
-LastUpdated: 2026-01-31T12:49:13-05:00
+LastUpdated: 2026-02-01T19:59:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -1356,3 +1359,152 @@ I uploaded the Step 9 verification report to the project folder on reMarkable so
 
 ### Technical details
 - Upload command: `remarquee upload md .../reference/05-bridge-request-verification-report-step-9.md --remote-dir "/Projects/2026/01/Zigbee"`.
+
+## Step 21: Draft zigctl design doc using Glazed patterns
+
+I captured the `glaze help build-first-command` output into a temp file, read it fully, and used its patterns to shape a thorough design doc for a Go CLI (zigctl) that can send Zigbee2MQTT commands and listen to MQTT streams. The design doc defines command groups, flags, output modes, safety rules, and an implementation plan.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Design a go CLI tool that we can use to interact with the zigbee network (commands, but also listening to it), with verbs and flags (read the output of `glaze help build-first-command` into a temp file and then read the full file). Be thorough and cover all the functionality we will want, save the extensive design doc in the ticket. upload to remarkable, continue keeping your diary."
+
+**Assistant interpretation:** Produce a detailed design document for a Go CLI that controls and listens to Zigbee2MQTT, grounded in Glazed patterns, and store it in the ticket.
+
+**Inferred user intent:** Get a full, actionable CLI design blueprint that is consistent with Glazed conventions and ready for implementation.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `glaze help build-first-command` into `/tmp/glaze-build-first-command.txt` and read the full file.
+- Created a design doc outlining command groups, flags, output strategy, safety, and implementation plan.
+
+### Why
+- The user asked for a thorough CLI design that includes listening and command verbs, explicitly based on Glazed guidance.
+
+### What worked
+- The design doc captures both single-shot request/response commands and streaming listeners.
+
+### What didn't work
+- N/A
+
+### What I learned
+- The Glazed tutorial reinforces using settings structs + DecodeSectionInto and types.Row for structured output.
+
+### What was tricky to build
+- Underlying cause: balancing structured output (Glazed) with streaming listeners that run indefinitely.
+- Symptoms: a naive design would force streaming into row output or lose human-readable context.
+- Solution: designed dual-mode commands for one-shot actions, and streaming commands that default to line output but optionally emit glazed rows when `--output` is set.
+
+### What warrants a second pair of eyes
+- Validate the command taxonomy against Zigbee2MQTT topic conventions before implementation.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review design doc: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/design-doc/01-zigbee-cli-tool-design-zigctl.md`.
+
+### Technical details
+- Glazed help source: `/tmp/glaze-build-first-command.txt` (full read).
+
+## Step 22: Upload zigctl design doc to reMarkable
+
+I uploaded the zigctl design doc PDF to the project folder on reMarkable so it is available alongside the other Zigbee documentation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 21)
+
+**Assistant interpretation:** Upload the new design doc to the reMarkable project folder.
+
+**Inferred user intent:** Keep the design doc accessible with the rest of the ticket artifacts.
+
+**Commit (code):** N/A
+
+### What I did
+- Uploaded the design doc markdown to `/Projects/2026/01/Zigbee` via `remarquee upload md`.
+
+### Why
+- The user requested the design doc be uploaded to reMarkable.
+
+### What worked
+- Upload completed successfully.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Underlying cause: large design docs can take longer to render and upload.
+- Symptoms: uploads can appear stalled without visible progress.
+- Solution: allowed the upload to complete with an extended timeout and checked the success output.
+
+### What warrants a second pair of eyes
+- Verify the PDF appears in `/Projects/2026/01/Zigbee`.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- No code changes; verify with `remarquee cloud ls /Projects/2026/01/Zigbee --long --non-interactive` if needed.
+
+### Technical details
+- Upload command: `remarquee upload md .../design-doc/01-zigbee-cli-tool-design-zigctl.md --remote-dir "/Projects/2026/01/Zigbee"`.
+
+## Step 23: Update zigctl design doc for Glazed parsing, custom layer, and layout rules
+
+I updated the zigctl design doc to reflect that Glazed handles command parsing (Cobra is just registration), added the custom Zigbee Glazed layer flags, required LongDescription examples for every command, and incorporated the code organization rules (one directory per group, one file per verb, root.go per group). I also refreshed the implementation plan to explicitly call out these requirements.
+
+### Prompt Context
+
+**User prompt (verbatim):** "- glazed is also for command parsing, just registering is over cobra
+- make a custom zigbee glazed layer with flags: broker, base-topic, tls,cafile,cert,key, qos, timeout. 
+- every command should also have a LongDescription with examples
+
+Update the implementation plan. Then create detailed tasks in the ticket, and implement them one by one, keeping a frequent diary, checking off the task and committing to git. 
+
+Work it"
+
+**Assistant interpretation:** Update the design doc with Glazed parsing, a custom Zigbee layer, LongDescription requirements, and layout constraints; then track and complete tasks with commits.
+
+**Inferred user intent:** Ensure the CLI design is implementation-ready with explicit structure, configuration flags, and help expectations.
+
+**Commit (code):** N/A
+
+### What I did
+- Updated the design doc to state that Glazed handles parsing and Cobra handles registration only.
+- Added the custom Zigbee Glazed layer flags to the global flags section and implementation plan.
+- Added a command help requirement for LongDescription + examples.
+- Added code organization rules (one directory per group, one file per verb, root.go per group).
+- Updated the implementation plan to include these requirements.
+
+### Why
+- The user requested specific architectural and UX constraints for the CLI design.
+
+### What worked
+- The design doc now reflects the requested parsing model, custom layer, help requirements, and layout rules.
+
+### What didn't work
+- N/A
+
+### What I learned
+- Clear separation of parsing (Glazed) vs registration (Cobra) helps avoid confusion when defining schema-driven flags.
+
+### What was tricky to build
+- Underlying cause: multiple cross-cutting requirements touched both architecture and implementation plan.
+- Symptoms: easy to update only the narrative without propagating changes into the plan and command requirements.
+- Solution: applied updates in the main architecture sections and then mirrored them in the Implementation Plan and Command help requirements.
+
+### What warrants a second pair of eyes
+- Ensure the command layout rules match the eventual repo structure before implementation begins.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review design doc: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/design-doc/01-zigbee-cli-tool-design-zigctl.md`.
+
+### Technical details
+- Updated sections: architecture, global flags, command help requirements, and implementation plan.
