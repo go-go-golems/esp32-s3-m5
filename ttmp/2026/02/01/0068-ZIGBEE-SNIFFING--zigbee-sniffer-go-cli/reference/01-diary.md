@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:23:57-05:00
+LastUpdated: 2026-02-02T12:31:57-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -1131,3 +1131,70 @@ I attempted to run Go tests for the zigctl module, but the workspace `go.work` d
 - Commands run:
   - `go test ./...` (from `zigctl/`)
   - `go test ./zigctl/...` (from repo root)
+
+## Step 18: Add zigctl to go.work, fix test failures, run sniff list
+
+I updated the workspace to include the zigctl module, ran tests, fixed the build errors that surfaced, and then executed `zigctl sniff nrf list` to validate the CLI path. This completes the two requested actions and confirms the command works in the current environment.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+1. 2.
+```
+
+**Assistant interpretation:** Perform steps 1 and 2 from the previous response: add `zigctl` to `go.work` and run tests, then run `zigctl sniff nrf list`.
+
+**Inferred user intent:** Verify the new command group builds and can enumerate the connected sniffer.
+
+**Commit (code):** dca1c18 — "zigctl: fix pcapng writer and device fields"
+
+### What I did
+
+- Updated `go.work` to include `./esp32-s3-m5/zigctl` (workspace change outside the git repo).
+- Ran `go test ./esp32-s3-m5/zigctl/...` and fixed two build errors:
+  - `Manufacturer` is not present in `enumerator.PortDetails` → removed from device model and output.
+  - gopacket LinkType is `uint8` → replaced the pcap writer with a custom pcapng writer that supports linktype 283/230.
+- Re-ran tests successfully.
+- Ran `go run . sniff nrf list` in `zigctl/` and got a device listing for `/dev/ttyACM0`.
+
+### Why
+
+- These steps validate the build and confirm the CLI can see hardware in this environment.
+
+### What worked
+
+- Tests now pass for `zigctl`.
+- `zigctl sniff nrf list` produced a valid row for the connected device.
+
+### What didn't work
+
+- Initial test failed due to gopacket linktype limits and missing Manufacturer field.
+
+### What I learned
+
+- `go.bug.st/serial/enumerator.PortDetails` exposes `Product` but not `Manufacturer`.
+- gopacket’s `layers.LinkType` is `uint8` and cannot represent 283, so a custom pcapng writer is required.
+
+### What was tricky to build
+
+- Implementing a minimal pcapng writer that supports TAP linktype while keeping output compatible with Wireshark.
+
+### What warrants a second pair of eyes
+
+- Confirm the pcapng writer’s block layout against Wireshark for TAP captures.
+
+### What should be done in the future
+
+- Decide whether the `go.work` change should be made permanent (it’s outside the git repo right now).
+
+### Code review instructions
+
+- Review `zigctl/pkg/sniffer/pcap/writer.go` for pcapng block layout.
+- Review `zigctl/pkg/sniffer/nrf/discover.go` and `zigctl/cmd/sniff/nrf_list.go` for device metadata fields.
+
+### Technical details
+
+- Commands run:
+  - `go test ./esp32-s3-m5/zigctl/...`
+  - `go run . sniff nrf list`
