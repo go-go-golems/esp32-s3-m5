@@ -12,14 +12,17 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md
+      Note: Design doc created in Step 11.
     - Path: ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md
       Note: Reference doc created and updated in Steps 9-10.
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-02-02T11:35:30-05:00
+LastUpdated: 2026-02-02T11:42:11-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Diary
@@ -564,3 +567,105 @@ The key outcome is the finished reference doc stored in ticket 0069 and uploaded
   - `docmgr doc relate --doc ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md --file-note "..."`
   - `remarquee upload md --dry-run ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
   - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
+
+## Step 11: Draft zigctl ZNSP SLIP decoder design doc
+
+This step produced the requested design document for adding ZNSP SLIP decoding and UART transport support in zigctl. I focused on a clear API sketch, streaming decoder pseudocode, and an implementation plan that matches the actual H2 NCP protocol behavior.
+
+The key outcome is a standalone design doc in ticket 0069 that can drive an implementation without writing code yet.
+
+### Prompt Context
+
+**User prompt (verbatim):** "1. make a detailed design document for adding NCP ZNSP SLIP decoding in go as part of the zigctl framework, and sektching out pseudocode + API of it. No real code yet, design doc, commit, keep a diary, upload to remarkable."
+
+**Assistant interpretation:** Create a design doc (no code) for a Go-based ZNSP/SLIP decoder + UART transport inside zigctl, with API and pseudocode, then commit and upload.
+
+**Inferred user intent:** Have an actionable blueprint for zigctl to speak directly to the ESP32-H2 NCP over UART.
+
+**Commit (code):** N/A (docs-only)
+
+### What I did
+- Wrote the design doc: `ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md`.
+- Included API sketches, pseudocode, and a staged implementation plan.
+- Related the doc to zigctl entry points and the NCP protocol reference.
+
+### Why
+- The request explicitly asked for a design-only deliverable with pseudocode and API, to guide later implementation work.
+
+### What worked
+- The design doc covers framing/CRC rules, streaming SLIP decode, session-level request/response handling, and zigctl command integration.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- The zigctl codebase already has a layer/config pattern that can be reused for the new NCP transport settings.
+
+### What was tricky to build
+- Balancing protocol fidelity (from the NCP firmware reference) with a clean Go API required defining explicit boundaries between SLIP, ZNSP framing, and session concerns.
+
+### What warrants a second pair of eyes
+- Validate the proposed response-correlation strategy and whether ID-only compatibility should be the default or opt-in.
+
+### What should be done in the future
+- Implement the SLIP decoder/encoder, frame parsing, and session layer, then add CLI commands in zigctl.
+
+### Code review instructions
+- Start here: `ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md`
+- Validate for completeness: framing + CRC + API sketch + implementation plan.
+
+### Technical details
+- Commands used:
+  - `docmgr doc add --ticket 0069-ANALYZE-PAST-FIRMWARE --doc-type design-doc --title "Zigctl: ZNSP SLIP Decoder + UART Transport (Design)"`
+  - `docmgr doc relate --doc ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md --file-note "..."`
+
+## Step 12: Upload design doc to reMarkable and commit
+
+This step handled the distribution and bookkeeping for the design doc. I uploaded the document to the reMarkable folder used for ticket 0069 and prepared the documentation changes for a clean git commit.
+
+The key outcome is a shareable PDF on the tablet and a committed doc update in the repo.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Upload the design doc to reMarkable and commit the changes while keeping the diary updated.
+
+**Inferred user intent:** Ensure the design doc is both shareable on the device and tracked in git.
+
+**Commit (code):** N/A (docs-only)
+
+### What I did
+- Ran a dry-run `remarquee upload md` to verify conversion and destination.
+- Uploaded the design doc PDF to `/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE`.
+- Staged the design doc, diary, and changelog for commit.
+
+### Why
+- The user explicitly asked for a reMarkable upload and a git commit.
+
+### What worked
+- The reMarkable upload completed successfully.
+
+### What didn't work
+- N/A.
+
+### What I learned
+- Ticket-scoped upload paths keep reMarkable docs organized and easy to locate.
+
+### What was tricky to build
+- N/A.
+
+### What warrants a second pair of eyes
+- N/A.
+
+### What should be done in the future
+- If the design doc evolves, re-upload the updated version to keep the tablet copy current.
+
+### Code review instructions
+- N/A (docs-only).
+
+### Technical details
+- Commands used:
+  - `remarquee upload md --dry-run ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
+  - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0069-ANALYZE-PAST-FIRMWARE"`
+  - `git add ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../reference/01-diary.md ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--.../changelog.md`
