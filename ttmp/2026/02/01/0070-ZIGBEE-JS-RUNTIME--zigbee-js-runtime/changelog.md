@@ -87,3 +87,8 @@ Add JS debugging playbook and script usage docstring
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/playbook/01-js-debugging-playbook.md — Playbook for JS diagnostics
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/04-permit-join-watch-yaml.js — Usage docstring + watchTopic guidance
 
+
+## 2026-02-02
+
+Transitioned investigation to 0073-PERMIT-JOIN-BUGFIX
+

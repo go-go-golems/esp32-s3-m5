@@ -1,24 +1,23 @@
 ---
-Title: Zigbee JS runtime
-Ticket: 0070-ZIGBEE-JS-RUNTIME
-Status: complete
+Title: Permit-Join Missing JS Events Bugfix
+Ticket: 0073-PERMIT-JOIN-BUGFIX
+Status: active
 Topics:
     - zigbee
     - javascript
-    - goja
+    - mqtt
 DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-02-02T12:25:09.358665213-05:00
+LastUpdated: 2026-02-02T12:25:02.328330631-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
 
-
-# Zigbee JS runtime
+# Permit-Join Missing JS Events Bugfix
 
 ## Overview
 
@@ -37,7 +36,7 @@ Current status: **active**
 
 - zigbee
 - javascript
-- goja
+- mqtt
 
 ## Tasks
 
