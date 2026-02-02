@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T12:12:12-05:00
+LastUpdated: 2026-02-02T12:14:04-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -890,3 +890,62 @@ I added a small pcapng writer wrapper and TAP header builder so captured frames 
   - `gofmt -w zigctl/pkg/sniffer/pcap/*.go`
   - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 3`
   - `git -C .../esp32-s3-m5 commit -m "zigctl: add pcapng TAP writer"`
+
+## Step 14: Add sniff command group wiring
+
+I wired the new `zigctl sniff` group into the CLI root and introduced the `sniff` package root with an `nrf` subcommand container. This sets up the command hierarchy needed for the upcoming command implementations.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 11)
+
+**Assistant interpretation:** Add the command group wiring as the next task in the list.
+
+**Inferred user intent:** Ensure the CLI structure is in place before filling in subcommands.
+
+**Commit (code):** b38e12c — "zigctl: add sniff command group wiring"
+
+### What I did
+
+- Added `zigctl/cmd/sniff/root.go` with the `sniff` and `sniff nrf` command containers.
+- Registered `sniff` in `zigctl/cmd/root.go`.
+- Checked off Task 4 in the ticket.
+
+### Why
+
+- The subcommands need a stable Cobra container to attach to.
+
+### What worked
+
+- Wiring compiled cleanly after formatting.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Confirm the `sniff` command grouping matches the desired user-facing UX.
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/cmd/sniff/root.go` and the registration in `zigctl/cmd/root.go`.
+
+### Technical details
+
+- Commands run:
+  - `gofmt -w zigctl/cmd/root.go zigctl/cmd/sniff/root.go`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 4`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add sniff command group wiring"`
