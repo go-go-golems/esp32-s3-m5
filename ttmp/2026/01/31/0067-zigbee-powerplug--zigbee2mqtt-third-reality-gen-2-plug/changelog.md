@@ -85,3 +85,12 @@ Step 34: Initialize zigctl help system and add tutorial/architecture docs
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/root.go — Help system initialization
 
+
+## 2026-02-01
+
+Step 35: Add permit-join --watch and fix help tutorial frontmatter
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/permit_join.go — Permit-join watch support
+

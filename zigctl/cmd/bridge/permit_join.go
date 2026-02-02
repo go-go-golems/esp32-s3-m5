@@ -3,7 +3,9 @@ package bridge
 import (
 	"context"
 	"encoding/json"
+	"time"
 
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/go-go-golems/glazed/pkg/cli"
 	"github.com/go-go-golems/glazed/pkg/cmds"
 	"github.com/go-go-golems/glazed/pkg/cmds/fields"
@@ -24,6 +26,7 @@ var _ cmds.GlazeCommand = (*PermitJoinCommand)(nil)
 type PermitJoinSettings struct {
 	Seconds int    `glazed.parameter:"seconds"`
 	Device  string `glazed.parameter:"device"`
+	Watch   bool   `glazed.parameter:"watch"`
 }
 
 func NewPermitJoinCommand(defaults zigbee.Config) (*PermitJoinCommand, error) {
@@ -50,6 +53,7 @@ Enable permit-join for a limited time so new devices can join the network.
 
 Examples:
   zigctl bridge permit-join --seconds 60
+  zigctl bridge permit-join --seconds 60 --watch
   zigctl bridge permit-join --seconds 120 --device office_plug
   zigctl bridge permit-join --output json
 `),
@@ -65,6 +69,12 @@ Examples:
 				fields.TypeString,
 				fields.WithDefault(""),
 				fields.WithHelp("Limit permit-join to a specific device (friendly name)"),
+			),
+			fields.New(
+				"watch",
+				fields.TypeBool,
+				fields.WithDefault(false),
+				fields.WithHelp("Watch for device join events until the permit-join window closes"),
 			),
 		),
 		cmds.WithLayersList(glazedLayer, zigbeeLayer, commandSettingsLayer),
@@ -130,5 +140,83 @@ func (c *PermitJoinCommand) RunIntoGlazeProcessor(
 		types.MRP("topic", responseTopic),
 		types.MRP("payload", decoded),
 	)
-	return gp.AddRow(ctx, row)
+	if err := gp.AddRow(ctx, row); err != nil {
+		return err
+	}
+
+	if !permit.Watch || permit.Seconds <= 0 {
+		return nil
+	}
+
+	watchTopic := zigbee.JoinTopic(base, "bridge", "event")
+	msgCh := make(chan mqtt.Message, 16)
+	handler := func(_ mqtt.Client, msg mqtt.Message) {
+		select {
+		case msgCh <- msg:
+		default:
+		}
+	}
+
+	subToken := client.Subscribe(watchTopic, qos, handler)
+	if !subToken.WaitTimeout(timeout) {
+		return context.DeadlineExceeded
+	}
+	if err := subToken.Error(); err != nil {
+		return err
+	}
+	defer client.Unsubscribe(watchTopic)
+
+	deadline := time.NewTimer(time.Duration(permit.Seconds) * time.Second)
+	defer deadline.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-deadline.C:
+			return nil
+		case msg := <-msgCh:
+			payload := msg.Payload()
+			var event map[string]any
+			if err := json.Unmarshal(payload, &event); err != nil {
+				continue
+			}
+			eventType := asString(event["type"])
+			if !isJoinEvent(eventType) {
+				continue
+			}
+			row := types.NewRow(
+				types.MRP("topic", msg.Topic()),
+				types.MRP("event_type", eventType),
+				types.MRP("device", extractDeviceFromEvent(event)),
+				types.MRP("payload", event),
+			)
+			if err := gp.AddRow(ctx, row); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func extractDeviceFromEvent(event map[string]any) string {
+	data, ok := event["data"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	if name := asString(data["friendly_name"]); name != "" {
+		return name
+	}
+	if name := asString(data["ieee_address"]); name != "" {
+		return name
+	}
+	return ""
+}
+
+func isJoinEvent(eventType string) bool {
+	switch eventType {
+	case "device_joined", "device_interview", "device_announce", "device_network_address_changed":
+		return true
+	default:
+		return false
+	}
 }

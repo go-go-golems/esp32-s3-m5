@@ -18,6 +18,8 @@ RelatedFiles:
       Note: CLI playbook for Zigbee OTA sniffing with nRF sniffer
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/playbook/02-bridge-request-response-validation-tmux-docker.md
       Note: Step-by-step validation playbook
+    - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/playbook/03-zigctl-getting-started-power-plug-join.md
+      Note: Add --watch guidance (Step 35)
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/01-zigbee2mqtt-third-reality-gen-2-plug-quickstart.md
       Note: Quickstart reference created and edited to remove HA section
     - Path: ttmp/2026/01/31/0067-zigbee-powerplug--zigbee2mqtt-third-reality-gen-2-plug/reference/03-zigbee2mqtt-mqtt-command-compendium.md
@@ -57,7 +59,9 @@ RelatedFiles:
     - Path: zigctl/cmd/bridge/info.go
       Note: Bridge info command (Step 25)
     - Path: zigctl/cmd/bridge/permit_join.go
-      Note: Bridge permit-join command (Step 25)
+      Note: |-
+        Bridge permit-join command (Step 25)
+        Add --watch and join event filtering (Step 35)
     - Path: zigctl/cmd/bridge/root.go
       Note: |-
         Bridge group root scaffold (Step 24)
@@ -87,7 +91,9 @@ RelatedFiles:
     - Path: zigctl/doc/topics/01-zigctl-architecture.md
       Note: Help architecture guide (Step 34)
     - Path: zigctl/doc/tutorials/01-getting-started-power-plug-join.md
-      Note: Help tutorial entry (Step 34)
+      Note: |-
+        Help tutorial entry (Step 34)
+        Quote Short + add --watch example (Step 35)
     - Path: zigctl/go.mod
       Note: New module dependencies (Step 24)
     - Path: zigctl/go.sum
@@ -110,6 +116,7 @@ LastUpdated: 2026-02-01T20:00:57-05:00
 WhatFor: Track changes and decisions made while preparing the Zigbee2MQTT power plug quickstart doc.
 WhenToUse: Use when reviewing what changed, why it changed, and how to validate the documentation.
 ---
+
 
 
 
@@ -2169,3 +2176,56 @@ I captured the Glazed help system guidance (`glaze help help-system` and `glaze 
 
 ### Technical details
 - Help system initialization: `help.NewHelpSystem()` + `doc.AddDocToHelpSystem()` + `help_cmd.SetupCobraRootCommand()`.
+
+## Step 35: Add permit-join --watch and fix help tutorial frontmatter
+
+I added a `--watch` flag to `zigctl bridge permit-join` so it can wait for join events during the permit window, avoiding the need to run a second listener command. I also fixed the help tutorial frontmatter YAML (quoted the Short field) to resolve the Glazed help loader error, and updated the playbook + help tutorial to mention `--watch`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "- Add --watch to permit-join to wait for appearing devices until join period is over, to avoid having to run two commands."
+
+**Assistant interpretation:** Extend permit-join with an optional watcher for device join events and update docs accordingly.
+
+**Inferred user intent:** Streamline onboarding by combining permit-join and join observation in a single command.
+
+**Commit (code):** N/A
+
+### What I did
+- Added `--watch` flag to permit-join and implemented bridge event subscription until the join window ends.
+- Filtered events to join-related types before emitting rows.
+- Fixed the help tutorial YAML frontmatter by quoting the Short field.
+- Updated the onboarding playbook and help tutorial to include `--watch` usage.
+- Ran `go test ./...` in `zigctl/`.
+
+### Why
+- The user requested a single-step workflow for allowing joins and observing them.
+
+### What worked
+- The permit-join command now emits join events during the window and exits automatically.
+- The help tutorial loads cleanly after frontmatter correction.
+
+### What didn't work
+- N/A
+
+### What I learned
+- YAML frontmatter in Glazed help sections requires quotes when colons appear in field values.
+
+### What was tricky to build
+- Underlying cause: Zigbee2MQTT emits multiple bridge event types, not all of which indicate joins.
+- Symptoms: Without filtering, unrelated events would appear during watch mode.
+- Solution: Filtered to join-related event types (`device_joined`, `device_interview`, `device_announce`, `device_network_address_changed`).
+
+### What warrants a second pair of eyes
+- Confirm the join event filter list matches your Zigbee2MQTT version and expectations.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl/cmd/bridge/permit_join.go` and the updated docs in `zigctl/doc/tutorials/01-getting-started-power-plug-join.md` and `.../playbook/03-zigctl-getting-started-power-plug-join.md`.
+- Validate with `cd zigctl && go test ./...`.
+
+### Technical details
+- Watch subscription topic: `zigbee2mqtt/bridge/event`.
+- Watch duration: `--seconds` value.

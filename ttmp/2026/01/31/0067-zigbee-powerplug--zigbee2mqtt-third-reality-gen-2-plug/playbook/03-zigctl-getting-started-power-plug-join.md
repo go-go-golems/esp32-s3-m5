@@ -118,6 +118,19 @@ go run ./ bridge permit-join \
 
 > **Tip:** Zigbee joining is time-sensitive. Turn on pairing mode on the plug *right after* you enable permit-join.
 
+If you want zigctl to wait and report join events automatically, add `--watch`:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/zigctl
+
+go run ./ bridge permit-join \
+  --broker mqtt://localhost:1884 \
+  --base-topic zigbee2mqtt \
+  --seconds 60 \
+  --watch \
+  --output json
+```
+
 ---
 
 ## Step 5 — Put the power plug into pairing mode

@@ -1,7 +1,7 @@
 ---
 Title: Getting started with zigctl + joining a power plug
 Slug: zigctl-getting-started-power-plug-join
-Short: Step-by-step tutorial for first-time users: bring up the stack, run zigctl, and confirm a smart plug joins your network.
+Short: "Step-by-step tutorial for first-time users: bring up the stack, run zigctl, and confirm a smart plug joins your network."
 Topics:
   - zigbee
   - zigctl
@@ -93,6 +93,17 @@ Expected outcome:
 - JSON response with `status: ok`.
 
 > **Tip:** Pairing is time-sensitive. Put the plug into pairing mode immediately after this step.
+
+If you want zigctl to wait and report join events automatically, add `--watch`:
+
+```bash
+go run ./ bridge permit-join \
+  --broker mqtt://localhost:1884 \
+  --base-topic zigbee2mqtt \
+  --seconds 60 \
+  --watch \
+  --output json
+```
 
 ## 5) Put the plug into pairing mode
 
