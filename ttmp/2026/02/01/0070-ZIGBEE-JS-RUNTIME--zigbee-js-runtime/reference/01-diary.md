@@ -844,3 +844,49 @@ I updated the JS permit-join watcher with a full docstring explaining how to run
 
 ### Technical details
 - Playbook path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/playbook/01-js-debugging-playbook.md`.
+
+## Step 17: Upload JS debugging playbook to reMarkable
+
+I uploaded the JS debugging playbook so it is available on the device alongside the other ticket documents.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 16)
+
+**Assistant interpretation:** Upload the new playbook to reMarkable.
+
+**Inferred user intent:** Make the JS debugging instructions accessible offline.
+
+**Commit (code):** N/A
+
+### What I did
+- Ran `remarquee upload md` for the JS debugging playbook.
+
+### Why
+- The user requested the playbook be uploaded to reMarkable.
+
+### What worked
+- Upload completed successfully.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Underlying cause: ensuring the playbook stays pandoc-safe for PDF conversion.
+- Symptoms: N/A
+- Solution: kept the playbook in plain Markdown with code fences.
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- N/A
+
+### Technical details
+- Upload target: `/ai/2026/02/02/0070-ZIGBEE-JS-RUNTIME/01-js-debugging-playbook.pdf`.
