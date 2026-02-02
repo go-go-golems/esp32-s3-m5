@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T11:38:10-05:00
+LastUpdated: 2026-02-02T11:51:26-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -511,3 +511,129 @@ I uploaded the new sniffer firmware deep dive to the reMarkable folder for the t
   - `remarquee cloud ls /ai/2026/02/02/0068-ZIGBEE-SNIFFING --long --non-interactive`
   - `git -C .../esp32-s3-m5 add ...`
   - `git -C .../esp32-s3-m5 commit -m "Docs: add nRF sniffer firmware deep dive"`
+
+## Step 8: Draft zigctl nRF sniffer tooling design doc
+
+I reviewed the existing 0068 design doc and the zigctl source tree to align with established CLI patterns, then authored a new design document focused on direct nRF sniffer interaction for coding sessions. The doc lays out commands, config changes, serial protocol handling, and an implementation plan so we can start coding against real hardware immediately.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+Looking at other design docs in 0068 and looking at the zigctl source, create a design document that sketches out tooling for zigctl to interact with the nrf chip, so that we can start using it in our coding sessions. 
+
+Be really exhaustive and detailed, and write the design doc into docmgr and upload to remarkable, commit as well.
+```
+
+**Assistant interpretation:** Produce a detailed design doc for a zigctl subgroup that directly controls and captures from the nRF sniffer, aligned with existing 0068 docs and zigctl source conventions.
+
+**Inferred user intent:** Get an implementation-ready plan that makes the nRF sniffer easy to use in daily development, with clear commands, config, and integration points.
+
+**Commit (code):** N/A
+
+### What I did
+
+- Read the existing 0068 design doc and the zigctl CLI source to match command patterns.
+- Authored a new design doc: `02-zigctl-nrf-sniffer-tooling-for-coding-sessions.md` with exhaustive command design, config, protocol handling, and implementation plan.
+- Related the design doc to relevant zigctl source files and the sniffer reference doc.
+
+### Why
+
+- The project needs a concrete, zigctl-aligned plan for interacting with nRF hardware directly during development.
+
+### What worked
+
+- The new design doc maps directly onto existing zigctl structure and the Nordic serial protocol details.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Balancing a comprehensive scope while keeping the design actionable and aligned with existing zigctl conventions.
+
+### What warrants a second pair of eyes
+
+- Validate the proposed command set and config keys against zigctl’s existing CLI UX.
+
+### What should be done in the future
+
+- Upload the new design doc to reMarkable and commit the doc changes (pending Step 9).
+
+### Code review instructions
+
+- Review `ttmp/2026/02/01/0068-ZIGBEE-SNIFFING--zigbee-sniffer-go-cli/design-doc/02-zigctl-nrf-sniffer-tooling-for-coding-sessions.md`.
+- Confirm command design and config block align with zigctl conventions in `zigctl/cmd`.
+
+### Technical details
+
+- Commands run:
+  - `docmgr doc add --ticket 0068-ZIGBEE-SNIFFING --doc-type design-doc --title "zigctl nRF Sniffer Tooling for Coding Sessions"`
+  - `docmgr doc relate --doc .../02-zigctl-nrf-sniffer-tooling-for-coding-sessions.md --file-note ...`
+
+## Step 9: Upload nRF tooling design to reMarkable and commit
+
+I uploaded the new zigctl nRF tooling design doc to the reMarkable folder and committed the design document changes to git. This completes the delivery loop and keeps the design versioned alongside the rest of the ticket docs.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8)
+
+**Assistant interpretation:** Upload the new design doc to reMarkable and commit the changes.
+
+**Inferred user intent:** Ensure the design doc is both portable and tracked in git.
+
+**Commit (code):** 7090b2b — "Docs: add zigctl nRF sniffer tooling design"
+
+### What I did
+
+- Uploaded the design doc to `/ai/2026/02/02/0068-ZIGBEE-SNIFFING` via `remarquee`.
+- Verified the upload with `remarquee cloud ls`.
+- Committed the new design doc in the `esp32-s3-m5` repo.
+
+### Why
+
+- The user requested reMarkable delivery and a commit for the design doc.
+
+### What worked
+
+- The upload succeeded and the PDF appears in the remote listing.
+- The git commit succeeded.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- N/A
+
+### What warrants a second pair of eyes
+
+- Confirm the reMarkable PDF rendering (headings and code blocks).
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `ttmp/2026/02/01/0068-ZIGBEE-SNIFFING--zigbee-sniffer-go-cli/design-doc/02-zigctl-nrf-sniffer-tooling-for-coding-sessions.md`.
+- Confirm the reMarkable upload under `/ai/2026/02/02/0068-ZIGBEE-SNIFFING`.
+
+### Technical details
+
+- Commands run:
+  - `remarquee upload md --dry-run ... --remote-dir "/ai/2026/02/02/0068-ZIGBEE-SNIFFING"`
+  - `remarquee upload md ... --remote-dir "/ai/2026/02/02/0068-ZIGBEE-SNIFFING"`
+  - `remarquee cloud ls /ai/2026/02/02/0068-ZIGBEE-SNIFFING --long --non-interactive`
+  - `git -C .../esp32-s3-m5 commit -m "Docs: add zigctl nRF sniffer tooling design"`
