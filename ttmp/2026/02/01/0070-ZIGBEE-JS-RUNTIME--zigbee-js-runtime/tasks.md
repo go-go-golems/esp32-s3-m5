@@ -14,3 +14,4 @@
 - [x] Add temporary go.mod replace for local go-go-goja (not needed; module version works)
 - [x] Add smoke test script / runbook notes for manual validation
 - [x] Update doc references + diary entries, then commit changes
+- [x] Add wait-for-pairing toggle script (JS runtime)

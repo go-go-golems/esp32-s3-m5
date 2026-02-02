@@ -12,6 +12,8 @@ Owners: []
 RelatedFiles:
     - Path: ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/01-jsruntime-smoke.sh
       Note: Smoke test script
+    - Path: ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/02-wait-pair-toggle.js
+      Note: Wait for pairing then toggle plug
     - Path: zigctl/cmd/js/repl.go
       Note: zigctl js repl
     - Path: zigctl/cmd/js/run.go
@@ -32,6 +34,7 @@ LastUpdated: 2026-02-01T21:56:55-05:00
 WhatFor: Track implementation steps, decisions, and validation for the JS runtime.
 WhenToUse: Use when continuing or reviewing the JS runtime work.
 ---
+
 
 
 # Diary
@@ -237,3 +240,50 @@ I ran the JS runtime smoke test script to validate that the new `zigctl js run` 
 
 ### Technical details
 - Runbook output showed module registration logs; no join events were emitted.
+
+## Step 5: Add wait-for-pairing toggle script
+
+I added a JS script that waits for a device to join via bridge events, then toggles the plug state every five seconds. The script accepts optional args for broker, base topic, and target device name.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add a script that waits for pairing and then toggle the plug every 5 seconds. Stop before running it."
+
+**Assistant interpretation:** Create a new JS runtime script that blocks on join events and then toggles power on a cadence, without executing it.
+
+**Inferred user intent:** Provide a ready-to-run automation script without triggering pairing or toggling during creation.
+
+**Commit (code):** N/A
+
+### What I did
+- Added `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/01/0070-ZIGBEE-JS-RUNTIME--zigbee-js-runtime/scripts/02-wait-pair-toggle.js`.
+- Updated tasks list to record the new script.
+
+### Why
+- The user wanted a script that waits for pairing and then toggles the plug on a fixed cadence.
+
+### What worked
+- Script uses the zigctl JS runtime, blocks until join events arrive, then toggles state every 5 seconds.
+
+### What didn't work
+- N/A
+
+### What I learned
+- N/A
+
+### What was tricky to build
+- Underlying cause: goja has no built-in timers, so a blocking sleep is required.
+- Symptoms: no native `setTimeout` for delaying loop iterations.
+- Solution: use the go-go-goja `exec` module to call `sleep` for 5-second pauses.
+
+### What warrants a second pair of eyes
+- Confirm the use of external `sleep` via `exec` is acceptable for your environment.
+
+### What should be done in the future
+- N/A
+
+### Code review instructions
+- Review the script for device selection and timing logic.
+
+### Technical details
+- Script args: `[broker, baseTopic, targetDevice]` via `zigctlArgs`.
