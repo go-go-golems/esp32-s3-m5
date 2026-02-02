@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"go.bug.st/serial"
 )
@@ -98,6 +100,40 @@ func (s *Session) ReadPacket() (Packet, error) {
 	packet.Channel = s.Channel
 	packet.CorrectedMicros = s.corrector.Correct(packet.TimestampMicros)
 	return packet, nil
+}
+
+func (s *Session) ReadLine() (string, error) {
+	if s.reader == nil {
+		s.reader = bufio.NewReader(s.port)
+	}
+	line, err := s.reader.ReadString('\n')
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(line), nil
+}
+
+func (s *Session) QueryChannel() (int, error) {
+	if err := s.SendCommand("channel"); err != nil {
+		return 0, err
+	}
+
+	for i := 0; i < 3; i++ {
+		line, err := s.ReadLine()
+		if err != nil {
+			return 0, err
+		}
+		if strings.HasPrefix(line, "received:") || line == "" {
+			continue
+		}
+		channel, err := strconv.Atoi(line)
+		if err != nil {
+			return 0, fmt.Errorf("parse channel response: %w", err)
+		}
+		return channel, nil
+	}
+
+	return 0, fmt.Errorf("no channel response received")
 }
 
 func (s *Session) Loop(ctx context.Context, handler func(Packet) error) error {

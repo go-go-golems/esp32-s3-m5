@@ -21,6 +21,43 @@ func Register(root *cobra.Command, defaults zigbee.Config) error {
 		Long:  "Interact with the Nordic nRF 802.15.4 sniffer over USB serial.",
 	}
 
+	listCmd, err := NewNrfListCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraList, err := buildCobra(listCmd)
+	if err != nil {
+		return err
+	}
+
+	infoCmd, err := NewNrfInfoCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraInfo, err := buildCobra(infoCmd)
+	if err != nil {
+		return err
+	}
+
+	channelCmd, err := NewNrfChannelCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraChannel, err := buildCobra(channelCmd)
+	if err != nil {
+		return err
+	}
+
+	doctorCmd, err := NewNrfDoctorCommand(defaults)
+	if err != nil {
+		return err
+	}
+	cobraDoctor, err := buildCobra(doctorCmd)
+	if err != nil {
+		return err
+	}
+
+	nrfCmd.AddCommand(cobraList, cobraInfo, cobraChannel, cobraDoctor)
 	sniffCmd.AddCommand(nrfCmd)
 	root.AddCommand(sniffCmd)
 	return nil
