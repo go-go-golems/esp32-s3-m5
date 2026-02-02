@@ -20,7 +20,7 @@ RelatedFiles:
       Note: Imported research notes
 ExternalSources: []
 Summary: Implementation diary for 0068-ZIGBEE-SNIFFING.
-LastUpdated: 2026-02-02T11:52:41-05:00
+LastUpdated: 2026-02-02T12:05:56-05:00
 WhatFor: Track research and implementation steps for the Zigbee sniffer CLI.
 WhenToUse: Use to review what changed, why, and how to validate.
 ---
@@ -696,3 +696,70 @@ just mention it in the diary if you haven't already.
 - Commands run:
   - `git clone --depth 1 --filter=blob:none --sparse https://github.com/nrfconnect/sdk-nrf.git /tmp/sdk-nrf`
   - `git -C /tmp/sdk-nrf sparse-checkout set samples/peripheral/802154_sniffer`
+
+## Step 11: Add sniffer config defaults + Glazed layer, seed tasks
+
+I established the sniffer configuration defaults inside the zigctl config model and added a Glazed layer for the new sniffer flags. I also created an explicit task list in the ticket and checked off the first task to keep execution traceable as we implement commands.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+```
+Using glazed command framework (and looking at others in zigctl), create detailed implementation tasks in the ticket for zigctl sniff nrf, work on them, check off tasks one by one, commit as you go, and keep a detailed diary.
+```
+
+**Assistant interpretation:** Add docmgr tasks for nRF sniff tooling, implement them sequentially using zigctl/Glazed conventions, commit each step, and log progress in the diary.
+
+**Inferred user intent:** Maintain a disciplined, incremental implementation workflow with clear task tracking and versioned checkpoints.
+
+**Commit (code):** b5df5f8 — "zigctl: add sniffer config defaults and layer"
+
+### What I did
+
+- Added `Sniffer` config defaults and parsing to `zigctl/pkg/zigbee/config.go`.
+- Added `sniffer_config.go` and `sniffer_layer.go` with defaults and Glazed layer fields.
+- Updated `zigctl/cmd/root.go` to fall back to `DefaultConfig()` when no config file exists.
+- Created detailed tasks in `tasks.md` and checked off Task 1 via `docmgr`.
+
+### Why
+
+- We need consistent defaults and config-driven CLI flags before implementing sniffer commands.
+- The task list keeps the implementation sequence explicit and auditable.
+
+### What worked
+
+- Config defaults and layer compiled cleanly after `gofmt`.
+- Docmgr tasks and check-off updated the ticket.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- N/A
+
+### What was tricky to build
+
+- Ensuring boolean defaults are applied when no config file exists while still allowing explicit false values in config.
+
+### What warrants a second pair of eyes
+
+- Confirm the chosen sniffer defaults align with desired CLI UX (auto-sleep, default format).
+
+### What should be done in the future
+
+- N/A
+
+### Code review instructions
+
+- Review `zigctl/pkg/zigbee/sniffer_config.go` and `zigctl/pkg/zigbee/sniffer_layer.go`.
+- Confirm `zigctl/cmd/root.go` default config fallback behavior is acceptable.
+
+### Technical details
+
+- Commands run:
+  - `docmgr task add --ticket 0068-ZIGBEE-SNIFFING --text "..."`
+  - `docmgr task check --ticket 0068-ZIGBEE-SNIFFING --id 1`
+  - `gofmt -w zigctl/pkg/zigbee/*.go zigctl/cmd/root.go`
+  - `git -C .../esp32-s3-m5 commit -m "zigctl: add sniffer config defaults and layer"`
