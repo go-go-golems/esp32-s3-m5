@@ -7,6 +7,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/help"
 	help_cmd "github.com/go-go-golems/glazed/pkg/help/cmd"
 	"github.com/go-go-golems/zigctl/cmd/bridge"
+	"github.com/go-go-golems/zigctl/cmd/js"
 	"github.com/go-go-golems/zigctl/cmd/listen"
 	"github.com/go-go-golems/zigctl/cmd/mqtt"
 	"github.com/go-go-golems/zigctl/doc"
@@ -33,6 +34,9 @@ func NewRootCommand() (*cobra.Command, error) {
 	}
 
 	if err := bridge.Register(root, defaults); err != nil {
+		return nil, err
+	}
+	if err := js.Register(root); err != nil {
 		return nil, err
 	}
 	if err := listen.Register(root, defaults); err != nil {
