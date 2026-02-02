@@ -162,7 +162,7 @@ I added the zigctl-local JS runtime using go-go-goja, implemented the native zig
 
 **Inferred user intent:** Make JS scripting available from zigctl without modifying go-go-goja.
 
-**Commit (code):** N/A
+**Commit (code):** fd6d3c4 — "docs: add JS runtime postmortem"
 
 ### What I did
 - Added `zigctl/pkg/jsruntime` with a runtime wrapper that registers the zigctl module.
