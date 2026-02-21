@@ -144,3 +144,23 @@ Added runtime observability fields and a script-level animation registry API (`m
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/js_console.c — extended `js status` output
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/04-anim-registry-demo.js — runnable registry API example
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md — updated API documentation for observability and `matrix.anim`
+
+## 2026-02-21
+
+Migrated core JS animation examples (`01-plasma-ribbon`, `02-life-torus`, `03-comet-trails`) from legacy ad-hoc global handle management to the structured `matrix.anim` lifecycle API.
+
+### Included changes
+
+- Rewrote examples to register/start named animations through `matrix.anim.register/start`.
+- Added explicit cleanup closures per animation.
+- Updated `JS-API-GUIDE.md` templates and cancellation guidance to the same `matrix.anim` pattern.
+- Updated examples README to document the new structure for scripts `01`..`03`.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/01-plasma-ribbon.js
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/02-life-torus.js
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/03-comet-trails.js
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/README.md
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md

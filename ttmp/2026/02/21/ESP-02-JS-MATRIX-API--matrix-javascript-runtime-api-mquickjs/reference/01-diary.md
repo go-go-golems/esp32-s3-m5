@@ -754,3 +754,33 @@ Sample observed status (runner active):
 - `timer_cb_active: 1`
 - `animations_registered: 2`
 - `active_animation: "runner"`
+
+## Step 13: Migrate core example scripts to `matrix.anim` lifecycle API
+
+User asked to make the script surface more elegant and avoid ad-hoc animation handle ownership via `globalThis.__matrix_anim`.
+
+### What I changed
+
+Rewrote core example scripts to use registry/lifecycle primitives:
+- `examples/js/01-plasma-ribbon.js`
+- `examples/js/02-life-torus.js`
+- `examples/js/03-comet-trails.js`
+
+Each script now:
+- uses `matrix.anim.unregister(name)` to avoid stale registrations,
+- calls `matrix.anim.register(name, function(ctx){ ... })`,
+- runs frames via `ctx.every(...)` and `ctx.shouldStop()`,
+- returns cleanup closure to clear/present the matrix,
+- starts with `matrix.anim.start(name, opts)` and returns `matrix.anim.status()`.
+
+### Documentation updates
+
+Updated docs to match the new pattern:
+- replaced old "globalThis handle" template in `docs/JS-API-GUIDE.md` section 8.1,
+- updated cancellation guidance section with `matrix.anim`-first template,
+- added example-note in `examples/README.md` that `01`..`03` are registry-based.
+
+### Validation
+
+- JS syntax checks pass for all migrated examples (`node --check`).
+- search confirms no `globalThis.__matrix_anim` usage remains in `01`..`03` and updated guide sections.

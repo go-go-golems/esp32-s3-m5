@@ -12,6 +12,12 @@ For the full scripting/runtime API and an end-to-end getting started guide, see:
 - `js/03-comet-trails.js`
 - `js/04-anim-registry-demo.js`
 
+`01`..`03` are now written with the animation registry API (`matrix.anim.*`) instead of ad-hoc globals.
+Each script:
+- registers a named animation,
+- starts it immediately,
+- returns `matrix.anim.status()` as JSON text.
+
 ## Run
 
 From repository root:

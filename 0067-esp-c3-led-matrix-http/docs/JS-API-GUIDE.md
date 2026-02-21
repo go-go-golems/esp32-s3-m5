@@ -129,10 +129,25 @@ There are two distinct concepts:
 Recommended animation pattern:
 
 ```javascript
-var h = every(40, function () {
-  if (matrix.shouldStop()) { h.cancel(); return; }
-  // draw frame
-});
+(function () {
+  var name = "demo";
+  matrix.anim.unregister(name);
+  matrix.anim.register(name, function (ctx) {
+    var x = 0;
+    ctx.every(40, function () {
+      if (ctx.shouldStop()) return;
+      ctx.matrix.clear();
+      ctx.matrix.setPixel(x, 3, 1);
+      ctx.matrix.present();
+      x = (x + 1) % ctx.matrix.width();
+    });
+    return function () {
+      ctx.matrix.clear();
+      ctx.matrix.present();
+    };
+  });
+  matrix.anim.start(name, {});
+})()
 ```
 
 ## 4. REST API Reference
@@ -508,25 +523,27 @@ matrix.present();
 
 ```javascript
 (function () {
-  if (globalThis.__matrix_anim && typeof globalThis.__matrix_anim.cancel === "function") {
-    globalThis.__matrix_anim.cancel();
-  }
+  var name = "runner";
+  matrix.anim.unregister(name);
 
-  matrix.stop();
-  matrix.clear();
-  matrix.present();
-
-  var x = 0;
-  var h = every(50, function () {
-    if (matrix.shouldStop()) { h.cancel(); return; }
-    matrix.clear();
-    matrix.setPixel(x, 3, 1);
-    matrix.present();
-    x = (x + 1) % matrix.width();
+  matrix.anim.register(name, function (ctx) {
+    var x = 0;
+    var frameMs = ((ctx.opts && ctx.opts.frameMs) | 0) || 50;
+    ctx.every(frameMs, function () {
+      if (ctx.shouldStop()) return;
+      ctx.matrix.clear();
+      ctx.matrix.setPixel(x, 3, 1);
+      ctx.matrix.present();
+      x = (x + 1) % ctx.matrix.width();
+    });
+    return function () {
+      ctx.matrix.clear();
+      ctx.matrix.present();
+    };
   });
 
-  globalThis.__matrix_anim = h;
-  return "started";
+  matrix.anim.start(name, { frameMs: 50 });
+  return JSON.stringify(matrix.anim.status());
 })()
 ```
 
