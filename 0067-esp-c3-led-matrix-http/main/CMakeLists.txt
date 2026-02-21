@@ -1,0 +1,23 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "max7219.c"
+        "matrix_engine.c"
+        "matrix_console.c"
+        "http_server.c"
+    PRIV_REQUIRES
+        console
+        esp_driver_spi
+        esp_event
+        esp_http_server
+        esp_netif
+        esp_wifi
+        httpd_assets_embed
+        json
+        nvs_flash
+        wifi_console
+        wifi_mgr
+    EMBED_TXTFILES
+        "assets/index.html"
+    INCLUDE_DIRS "."
+)

@@ -1,0 +1,33 @@
+#pragma once
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "driver/spi_master.h"
+#include "esp_err.h"
+#include "hal/spi_types.h"
+
+typedef struct {
+    spi_device_handle_t spi;
+    spi_host_device_t host;
+    int pin_cs;
+    int chain_len;
+    int clock_hz;
+} max7219_t;
+
+#define MAX7219_REG_DIGIT0       0x01
+#define MAX7219_REG_DECODE_MODE  0x09
+#define MAX7219_REG_INTENSITY    0x0A
+#define MAX7219_REG_SCAN_LIMIT   0x0B
+#define MAX7219_REG_SHUTDOWN     0x0C
+#define MAX7219_REG_DISPLAY_TEST 0x0F
+
+#define MAX7219_MAX_CHAIN_LEN 16
+
+esp_err_t max7219_open(max7219_t *dev, spi_host_device_t host, int pin_sck, int pin_mosi, int pin_cs, int chain_len, int clock_hz);
+esp_err_t max7219_init(max7219_t *dev);
+esp_err_t max7219_clear(max7219_t *dev);
+esp_err_t max7219_set_intensity(max7219_t *dev, uint8_t intensity);
+esp_err_t max7219_set_test(max7219_t *dev, bool on);
+esp_err_t max7219_set_spi_clock_hz(max7219_t *dev, int clock_hz);
+esp_err_t max7219_set_row_chain(max7219_t *dev, uint8_t row, const uint8_t *bytes);

@@ -1,0 +1,38 @@
+menu "0067: ESP32-C3 LED matrix HTTP"
+
+config TUTORIAL_0067_MATRIX_PIN_MOSI
+    int "MAX7219 DIN (MOSI) GPIO"
+    range 0 21
+    default 4
+
+config TUTORIAL_0067_MATRIX_PIN_CS
+    int "MAX7219 CS GPIO"
+    range 0 21
+    default 5
+
+config TUTORIAL_0067_MATRIX_PIN_SCK
+    int "MAX7219 CLK (SCK) GPIO"
+    range 0 21
+    default 6
+
+config TUTORIAL_0067_MATRIX_CHAIN_LEN
+    int "MAX7219 chain length"
+    range 1 16
+    default 12
+
+config TUTORIAL_0067_MATRIX_SPI_HZ
+    int "MAX7219 SPI clock (Hz)"
+    range 1000 10000000
+    default 100000
+
+config TUTORIAL_0067_MATRIX_DEFAULT_FPS
+    int "Default animation FPS"
+    range 1 60
+    default 15
+
+config TUTORIAL_0067_HTTP_MAX_BODY
+    int "Max HTTP body bytes"
+    range 64 4096
+    default 512
+
+endmenu
