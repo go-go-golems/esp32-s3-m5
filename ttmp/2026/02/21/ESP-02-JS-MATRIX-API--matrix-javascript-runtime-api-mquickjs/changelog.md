@@ -164,3 +164,18 @@ Migrated core JS animation examples (`01-plasma-ribbon`, `02-life-torus`, `03-co
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/README.md
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md
+
+## 2026-02-21
+
+Normalized JS API documentation to the `matrix.anim` lifecycle style.
+
+### Included changes
+
+- Updated script lifecycle guidance in `JS-API-GUIDE.md` to recommend `matrix.anim` + `ctx.every/ctx.timeout` for long-running scripts.
+- Reframed global timer helpers as low-level/debug APIs.
+- Rewrote remaining guide snippets to use structured animation registration/start patterns.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md

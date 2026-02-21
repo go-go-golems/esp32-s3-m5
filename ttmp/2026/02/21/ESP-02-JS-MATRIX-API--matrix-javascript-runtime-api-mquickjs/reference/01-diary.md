@@ -784,3 +784,21 @@ Updated docs to match the new pattern:
 
 - JS syntax checks pass for all migrated examples (`node --check`).
 - search confirms no `globalThis.__matrix_anim` usage remains in `01`..`03` and updated guide sections.
+
+## Step 14: Normalize JS API documentation to `matrix.anim`-first style
+
+User requested docs be aligned with the new structured script style.
+
+### Changes made
+
+Updated `0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md` so production script guidance consistently uses animation lifecycle APIs instead of low-level timer ownership patterns.
+
+Specific edits:
+- Script lifecycle section now explicitly recommends `matrix.anim` + `ctx.every/ctx.timeout`.
+- Global timer helper section is labeled low-level and notes preferred `ctx.*` alternatives.
+- `matrix.anim` example removed unnecessary explicit `h.cancel()` usage in callback.
+- Multi-line heredoc example in trigger section rewritten to register/start a named animation via `matrix.anim`.
+
+### Validation
+
+- Searched docs for legacy manual animation handle pattern (`globalThis.__matrix_anim`): no remaining occurrences in markdown docs.

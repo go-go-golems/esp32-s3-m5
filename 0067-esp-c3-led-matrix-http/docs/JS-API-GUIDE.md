@@ -110,7 +110,7 @@ curl -sS -X POST "$BASE_URL/api/js/reset-hard"
 
 - `POST /api/js/eval` evaluates source text.
 - The return value is converted into `output` inside a JSON envelope.
-- Long-running behavior should be implemented with `every(...)` or `setTimeout(...)` callbacks.
+- Long-running behavior should be implemented as registered `matrix.anim` animations, using `ctx.every(...)` / `ctx.timeout(...)` inside the animation context.
 
 ### 3.3 Cancellation model
 
@@ -310,8 +310,10 @@ matrix flipv on|off
 ## 6. JavaScript API Spec
 
 The runtime injects a `matrix` object and timing helpers.
+Preferred style for reusable scripts is the `matrix.anim` lifecycle API.
+Low-level global timer helpers are still available for diagnostics and quick one-offs.
 
-## 6.1 Global helpers
+## 6.1 Global helpers (low-level)
 
 ### `setTimeout(fn, ms) -> id`
 - Schedules one-shot callback.
@@ -324,9 +326,11 @@ The runtime injects a `matrix` object and timing helpers.
 - Convenience repeated scheduler built on `setTimeout`.
 - Returns object with:
   - `handle.cancel()`
+- In normal animation code, prefer `ctx.every(...)` inside `matrix.anim.register(...)` so handles are tracked automatically.
 
 ### `cancel(handleOrId)`
 - Accepts timeout ID or object exposing `.cancel()`.
+- Mostly useful for low-level scripts; not usually needed with `matrix.anim` lifecycle tracking.
 
 ### `print(...)`
 - Console print helper.
@@ -444,8 +448,8 @@ Example:
 (function () {
   matrix.anim.register("pulse", function (ctx) {
     var on = false;
-    var h = ctx.every(120, function () {
-      if (ctx.shouldStop()) { h.cancel(); return; }
+    ctx.every(120, function () {
+      if (ctx.shouldStop()) return;
       on = !on;
       ctx.matrix.fill(on ? 1 : 0);
       ctx.matrix.present();
@@ -603,11 +607,24 @@ curl -sS -X POST "$BASE_URL/api/js/eval" --data-binary \
 ```bash
 cat <<'JS' | curl -sS -X POST "$BASE_URL/api/js/eval" --data-binary @-
 (function () {
-  matrix.stop();
-  matrix.clear();
-  for (var x = 0; x < matrix.width(); x += 2) matrix.setPixel(x, 2, 1);
-  matrix.present();
-  return "stripe";
+  var name = "stripe";
+  matrix.anim.unregister(name);
+  matrix.anim.register(name, function (ctx) {
+    var phase = 0;
+    ctx.every(120, function () {
+      if (ctx.shouldStop()) return;
+      ctx.matrix.clear();
+      for (var x = phase; x < ctx.matrix.width(); x += 2) ctx.matrix.setPixel(x, 2, 1);
+      ctx.matrix.present();
+      phase = (phase + 1) % 2;
+    });
+    return function () {
+      ctx.matrix.clear();
+      ctx.matrix.present();
+    };
+  });
+  matrix.anim.start(name, {});
+  return JSON.stringify(matrix.anim.status());
 })()
 JS
 ```
