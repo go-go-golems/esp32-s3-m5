@@ -773,3 +773,64 @@ This step is about traceability: making sure an intern or reviewer can map task 
 ```bash
 git commit -m "Add 0067 ESP32-C3 matrix firmware with Wi-Fi console and REST"
 ```
+
+## Step 11: Uploaded updated implementation bundle to reMarkable
+
+After finalizing implementation docs, I uploaded a fresh bundle that includes the new implementation addendum and latest diary/task/changelog state. This keeps the reMarkable copy synchronized with the validated firmware state, not only the earlier planning-only revision.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8)
+
+**Assistant interpretation:** Keep execution artifacts current and deliverable, including external reMarkable availability.
+
+**Inferred user intent:** Ensure documentation consumers can review up-to-date implementation evidence on the target reading device.
+
+**Commit (code):** N/A (documentation state update; upload operation)
+
+### What I did
+
+- Ran dry-run and actual upload:
+  - `remarquee upload bundle --dry-run ... --name "ESP-01-STAMP-MATRIX - 0067 Firmware Implementation Validation" --remote-dir "/ai/2026/02/21/ESP-01-STAMP-MATRIX"`
+  - `remarquee upload bundle ... --name "ESP-01-STAMP-MATRIX - 0067 Firmware Implementation Validation" --remote-dir "/ai/2026/02/21/ESP-01-STAMP-MATRIX"`
+- Verified success message:
+  - `OK: uploaded ESP-01-STAMP-MATRIX - 0067 Firmware Implementation Validation.pdf -> /ai/2026/02/21/ESP-01-STAMP-MATRIX`
+
+### Why
+
+- The user’s original workflow required ticket storage and reMarkable delivery; this upload reflects the latest implemented state.
+
+### What worked
+
+- Bundle upload succeeded after dry-run without path or rendering failures.
+
+### What didn't work
+
+- N/A in this step.
+
+### What I learned
+
+- Bundling `index + design docs + diary + tasks + changelog` gives a coherent review packet for non-terminal reading.
+
+### What was tricky to build
+
+- No technical complexity here; main risk was uploading stale docs, avoided by performing this as the final step after implementation commits.
+
+### What warrants a second pair of eyes
+
+- Confirm preferred naming/versioning convention for repeated same-day uploads to the same remote folder.
+
+### What should be done in the future
+
+- Consider adding date-time suffix in bundle name if multiple validation runs are expected per day.
+
+### Code review instructions
+
+- Check latest upload target folder:
+  - `/ai/2026/02/21/ESP-01-STAMP-MATRIX`
+
+### Technical details
+
+```bash
+remarquee upload bundle <ticket-docs...> --name "ESP-01-STAMP-MATRIX - 0067 Firmware Implementation Validation" --remote-dir "/ai/2026/02/21/ESP-01-STAMP-MATRIX"
+```
