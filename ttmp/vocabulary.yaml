@@ -93,6 +93,10 @@ topics:
       description: Command palette UI and behavior
     - slug: inspector
       description: Inspector panel and event/detail views in Esper TUI
+    - slug: led-matrix
+      description: LED matrix display firmware and controls
+    - slug: m5stack
+      description: M5Stack hardware platforms and firmware
 docTypes:
     - slug: index
       description: Ticket index document
