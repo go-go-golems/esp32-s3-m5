@@ -64,8 +64,11 @@ static esp_err_t send_status(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "chain_len", st.chain_len);
     cJSON_AddNumberToObject(root, "width", st.width);
     cJSON_AddNumberToObject(root, "spi_hz", st.spi_hz);
+    cJSON_AddNumberToObject(root, "intensity", st.intensity);
+    cJSON_AddBoolToObject(root, "test_mode", st.test_mode);
     cJSON_AddNumberToObject(root, "fps", st.fps);
     cJSON_AddNumberToObject(root, "pause_ms", st.pause_ms);
+    cJSON_AddNumberToObject(root, "repeat_count", st.repeat_count);
     cJSON_AddBoolToObject(root, "reverse_modules", st.reverse_modules);
     cJSON_AddBoolToObject(root, "flip_vertical", st.flip_vertical);
 
@@ -128,6 +131,7 @@ static esp_err_t matrix_anim_post(httpd_req_t *req)
     const cJSON *text = cJSON_GetObjectItemCaseSensitive(root, "text");
     const cJSON *fps = cJSON_GetObjectItemCaseSensitive(root, "fps");
     const cJSON *pause = cJSON_GetObjectItemCaseSensitive(root, "pause_ms");
+    const cJSON *repeat = cJSON_GetObjectItemCaseSensitive(root, "repeat_count");
 
     if (!cJSON_IsString(mode) || !mode->valuestring || !cJSON_IsString(text) || !text->valuestring) {
         cJSON_Delete(root);
@@ -136,11 +140,12 @@ static esp_err_t matrix_anim_post(httpd_req_t *req)
 
     uint32_t fps_v = cJSON_IsNumber(fps) ? (uint32_t)fps->valuedouble : 15;
     uint32_t pause_v = cJSON_IsNumber(pause) ? (uint32_t)pause->valuedouble : 250;
+    uint32_t repeat_v = cJSON_IsNumber(repeat) ? (uint32_t)repeat->valuedouble : 0;
 
     esp_err_t err = ESP_ERR_INVALID_ARG;
-    if (strcmp(mode->valuestring, "scroll") == 0) err = matrix_engine_start_scroll(text->valuestring, fps_v, pause_v, false);
-    else if (strcmp(mode->valuestring, "wave") == 0) err = matrix_engine_start_scroll(text->valuestring, fps_v, pause_v, true);
-    else if (strcmp(mode->valuestring, "drop") == 0) err = matrix_engine_start_drop(text->valuestring, fps_v, pause_v);
+    if (strcmp(mode->valuestring, "scroll") == 0) err = matrix_engine_start_scroll(text->valuestring, fps_v, pause_v, repeat_v, false);
+    else if (strcmp(mode->valuestring, "wave") == 0) err = matrix_engine_start_scroll(text->valuestring, fps_v, pause_v, repeat_v, true);
+    else if (strcmp(mode->valuestring, "drop") == 0) err = matrix_engine_start_drop(text->valuestring, fps_v, pause_v, repeat_v);
 
     cJSON_Delete(root);
     if (err != ESP_OK) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "anim failed");

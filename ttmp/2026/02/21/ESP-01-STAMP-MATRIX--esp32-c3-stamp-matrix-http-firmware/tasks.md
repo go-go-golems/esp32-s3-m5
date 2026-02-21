@@ -14,3 +14,5 @@
 - [x] Flash via /dev/serial/by-id and verify console + Wi-Fi join to CLUB:LINK + matrix commands
 - [x] Commit milestone: working 0067 firmware
 - [x] Update ticket docs (design addendum + diary with detailed step log)
+- [x] Add full printable glyph support to matrix engine (punctuation/symbols), build and verify
+- [x] Add repeat_count parameter for each animation (default 0=infinity) across engine, console, and REST APIs

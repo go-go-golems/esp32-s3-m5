@@ -19,10 +19,12 @@ typedef struct {
     int width;
     int spi_hz;
     int intensity;
+    bool test_mode;
     bool reverse_modules;
     bool flip_vertical;
     uint32_t fps;
     uint32_t pause_ms;
+    uint32_t repeat_count;
     char text[65];
 } matrix_status_t;
 
@@ -37,10 +39,11 @@ typedef struct {
 
 esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg);
 esp_err_t matrix_engine_set_text(const char *text);
-esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, bool wave);
-esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms);
+esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count, bool wave);
+esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count);
 esp_err_t matrix_engine_stop(void);
 esp_err_t matrix_engine_set_intensity(int value);
+esp_err_t matrix_engine_set_test(bool on);
 esp_err_t matrix_engine_set_spi_hz(int hz);
 esp_err_t matrix_engine_set_chain_len(int n);
 esp_err_t matrix_engine_set_orientation(bool reverse_modules, bool flip_vertical);

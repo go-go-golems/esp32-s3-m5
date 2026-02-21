@@ -27,16 +27,35 @@ static TaskHandle_t s_anim_task;
 static matrix_mode_t s_mode = MATRIX_MODE_IDLE;
 static uint32_t s_fps = 15;
 static uint32_t s_pause_ms = 250;
+static uint32_t s_repeat_count;
+static uint32_t s_cycles_done;
 static bool s_wave;
 static bool s_restart;
 static uint8_t *s_text_cols;
 static int s_text_w;
 static char s_text[65];
+static int s_intensity = 4;
+static bool s_test_mode;
 
 static const int8_t s_wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
 
-static const uint8_t s_font5x7[59][5] = {
+static const uint8_t s_font5x7[95][5] = {
     [' ' - 32] = {0x00, 0x00, 0x00, 0x00, 0x00},
+    ['!' - 32] = {0x00, 0x00, 0x5F, 0x00, 0x00},
+    ['"' - 32] = {0x00, 0x07, 0x00, 0x07, 0x00},
+    ['#' - 32] = {0x14, 0x7F, 0x14, 0x7F, 0x14},
+    ['$' - 32] = {0x24, 0x2A, 0x7F, 0x2A, 0x12},
+    ['%' - 32] = {0x23, 0x13, 0x08, 0x64, 0x62},
+    ['&' - 32] = {0x36, 0x49, 0x55, 0x22, 0x50},
+    ['\'' - 32] = {0x00, 0x05, 0x03, 0x00, 0x00},
+    ['(' - 32] = {0x00, 0x1C, 0x22, 0x41, 0x00},
+    [')' - 32] = {0x00, 0x41, 0x22, 0x1C, 0x00},
+    ['*' - 32] = {0x14, 0x08, 0x3E, 0x08, 0x14},
+    ['+' - 32] = {0x08, 0x08, 0x3E, 0x08, 0x08},
+    [',' - 32] = {0x00, 0x50, 0x30, 0x00, 0x00},
+    ['-' - 32] = {0x08, 0x08, 0x08, 0x08, 0x08},
+    ['.' - 32] = {0x00, 0x60, 0x60, 0x00, 0x00},
+    ['/' - 32] = {0x20, 0x10, 0x08, 0x04, 0x02},
     ['0' - 32] = {0x3E, 0x51, 0x49, 0x45, 0x3E},
     ['1' - 32] = {0x00, 0x42, 0x7F, 0x40, 0x00},
     ['2' - 32] = {0x42, 0x61, 0x51, 0x49, 0x46},
@@ -47,6 +66,13 @@ static const uint8_t s_font5x7[59][5] = {
     ['7' - 32] = {0x01, 0x71, 0x09, 0x05, 0x03},
     ['8' - 32] = {0x36, 0x49, 0x49, 0x49, 0x36},
     ['9' - 32] = {0x06, 0x49, 0x49, 0x29, 0x1E},
+    [':' - 32] = {0x00, 0x36, 0x36, 0x00, 0x00},
+    [';' - 32] = {0x00, 0x56, 0x36, 0x00, 0x00},
+    ['<' - 32] = {0x08, 0x14, 0x22, 0x41, 0x00},
+    ['=' - 32] = {0x14, 0x14, 0x14, 0x14, 0x14},
+    ['>' - 32] = {0x00, 0x41, 0x22, 0x14, 0x08},
+    ['?' - 32] = {0x02, 0x01, 0x51, 0x09, 0x06},
+    ['@' - 32] = {0x32, 0x49, 0x79, 0x41, 0x3E},
     ['A' - 32] = {0x7C, 0x12, 0x11, 0x12, 0x7C},
     ['B' - 32] = {0x7F, 0x49, 0x49, 0x49, 0x36},
     ['C' - 32] = {0x3E, 0x41, 0x41, 0x41, 0x22},
@@ -73,6 +99,16 @@ static const uint8_t s_font5x7[59][5] = {
     ['X' - 32] = {0x63, 0x14, 0x08, 0x14, 0x63},
     ['Y' - 32] = {0x07, 0x08, 0x70, 0x08, 0x07},
     ['Z' - 32] = {0x61, 0x51, 0x49, 0x45, 0x43},
+    ['[' - 32] = {0x00, 0x7F, 0x41, 0x41, 0x00},
+    ['\\' - 32] = {0x02, 0x04, 0x08, 0x10, 0x20},
+    [']' - 32] = {0x00, 0x41, 0x41, 0x7F, 0x00},
+    ['^' - 32] = {0x04, 0x02, 0x01, 0x02, 0x04},
+    ['_' - 32] = {0x40, 0x40, 0x40, 0x40, 0x40},
+    ['`' - 32] = {0x00, 0x01, 0x02, 0x04, 0x00},
+    ['{' - 32] = {0x00, 0x08, 0x36, 0x41, 0x00},
+    ['|' - 32] = {0x00, 0x00, 0x7F, 0x00, 0x00},
+    ['}' - 32] = {0x00, 0x41, 0x36, 0x08, 0x00},
+    ['~' - 32] = {0x08, 0x04, 0x08, 0x10, 0x08},
 };
 
 static char up(char c)
@@ -84,7 +120,7 @@ static char up(char c)
 static const uint8_t *glyph(char c)
 {
     c = up(c);
-    if (c < 32 || c > 90) c = ' ';
+    if (c < 32 || c > 126) c = ' ';
     return s_font5x7[c - 32];
 }
 
@@ -194,7 +230,6 @@ static void set_text_cols_locked(const char *text)
     memset(s_text, 0, sizeof(s_text));
     for (size_t i = 0; i < len; i++) {
         char c = up(text[i]);
-        if (!(c == ' ' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z'))) c = ' ';
         s_text[i] = c;
         const uint8_t *g = glyph(c);
         for (int col = 0; col < 5; col++) cols[x++] = g[col];
@@ -227,6 +262,21 @@ static int8_t drop_sample(int frame, int char_idx)
     if (off < -7) off = -7;
     if (off > 7) off = 7;
     return (int8_t)off;
+}
+
+static bool mark_cycle_complete_and_check_stop(matrix_mode_t expected_mode)
+{
+    bool should_stop = false;
+    lock();
+    if (s_mode == expected_mode && s_repeat_count > 0) {
+        s_cycles_done++;
+        if (s_cycles_done >= s_repeat_count) {
+            s_mode = MATRIX_MODE_IDLE;
+            should_stop = true;
+        }
+    }
+    unlock();
+    return should_stop;
 }
 
 static void anim_task(void *arg)
@@ -279,6 +329,10 @@ static void anim_task(void *arg)
             pos--;
             if (pos < -text_w) {
                 pos = width;
+                if (mark_cycle_complete_and_check_stop(MATRIX_MODE_SCROLL)) {
+                    frame = 0;
+                    continue;
+                }
                 if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
             }
         } else if (mode == MATRIX_MODE_DROP) {
@@ -300,6 +354,7 @@ static void anim_task(void *arg)
             frame++;
             if (frame > 200) {
                 frame = 0;
+                if (mark_cycle_complete_and_check_stop(MATRIX_MODE_DROP)) continue;
                 if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
             }
         }
@@ -369,7 +424,7 @@ esp_err_t matrix_engine_set_text(const char *text)
     return err;
 }
 
-esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, bool wave)
+esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count, bool wave)
 {
     lock();
     if (!s_ready) {
@@ -385,12 +440,14 @@ esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pa
     s_wave = wave;
     s_fps = fps ? fps : (uint32_t)s_default_fps;
     s_pause_ms = pause_ms;
+    s_repeat_count = repeat_count;
+    s_cycles_done = 0;
     if (s_anim_task) xTaskNotifyGive(s_anim_task);
     unlock();
     return ESP_OK;
 }
 
-esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms)
+esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count)
 {
     lock();
     if (!s_ready) {
@@ -406,6 +463,8 @@ esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t paus
     s_wave = false;
     s_fps = fps ? fps : (uint32_t)s_default_fps;
     s_pause_ms = pause_ms;
+    s_repeat_count = repeat_count;
+    s_cycles_done = 0;
     if (s_anim_task) xTaskNotifyGive(s_anim_task);
     unlock();
     return ESP_OK;
@@ -415,6 +474,8 @@ esp_err_t matrix_engine_stop(void)
 {
     lock();
     s_mode = MATRIX_MODE_IDLE;
+    s_repeat_count = 0;
+    s_cycles_done = 0;
     unlock();
     return ESP_OK;
 }
@@ -424,6 +485,16 @@ esp_err_t matrix_engine_set_intensity(int value)
     if (value < 0 || value > 15) return ESP_ERR_INVALID_ARG;
     lock();
     esp_err_t err = max7219_set_intensity(&s_dev, (uint8_t)value);
+    if (err == ESP_OK) s_intensity = value;
+    unlock();
+    return err;
+}
+
+esp_err_t matrix_engine_set_test(bool on)
+{
+    lock();
+    esp_err_t err = max7219_set_test(&s_dev, on);
+    if (err == ESP_OK) s_test_mode = on;
     unlock();
     return err;
 }
@@ -467,11 +538,13 @@ esp_err_t matrix_engine_get_status(matrix_status_t *out)
     out->chain_len = chain_len_active();
     out->width = width_active();
     out->spi_hz = s_dev.clock_hz;
-    out->intensity = 4;
+    out->intensity = s_intensity;
+    out->test_mode = s_test_mode;
     out->reverse_modules = s_reverse_modules;
     out->flip_vertical = s_flip_vertical;
     out->fps = s_fps;
     out->pause_ms = s_pause_ms;
+    out->repeat_count = s_repeat_count;
     memset(out->text, 0, sizeof(out->text));
     strlcpy(out->text, s_text, sizeof(out->text));
     unlock();

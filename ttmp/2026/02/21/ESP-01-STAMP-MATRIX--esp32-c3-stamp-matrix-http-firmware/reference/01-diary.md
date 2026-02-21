@@ -28,7 +28,7 @@ RelatedFiles:
       Note: Diary step progression tracked against task status
 ExternalSources: []
 Summary: Implementation diary for creating and documenting the ESP-01-STAMP-MATRIX plan and architecture.
-LastUpdated: 2026-02-21T16:24:00-05:00
+LastUpdated: 2026-02-21T16:34:28-05:00
 WhatFor: Preserve execution history, analysis decisions, and verification breadcrumbs for this ticket.
 WhenToUse: Use when reviewing how the architecture document was produced or resuming implementation work.
 ---
@@ -833,4 +833,112 @@ After finalizing implementation docs, I uploaded a fresh bundle that includes th
 
 ```bash
 remarquee upload bundle <ticket-docs...> --name "ESP-01-STAMP-MATRIX - 0067 Firmware Implementation Validation" --remote-dir "/ai/2026/02/21/ESP-01-STAMP-MATRIX"
+```
+
+## Step 12: Added repeat count control for all animations and validated on hardware
+
+I implemented a new `repeat_count` parameter for animation commands with default `0 = infinity`, then verified behavior on the STAMP C3 over both build/flash logs and live REST checks against the device IP.
+
+The implementation keeps infinite-loop behavior unchanged when `repeat_count` is omitted, while allowing finite animation runs that auto-return to `idle` after the configured number of cycles.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Now add a ticket to add a repeat count parameter (default = 0 = infinity) for each animation."
+
+**Assistant interpretation:** Track the request as a ticket task and implement the feature across engine, console parser, and HTTP API.
+
+**Inferred user intent:** Make animation lifecycle deterministic and scriptable, while preserving backward-compatible defaults.
+
+**Commit (code):** Pending in current working tree (to be included in next focused commit)
+
+### What I did
+
+- Added task 13 in ticket tasks and checked it after verification.
+- Updated matrix engine API/status:
+  - `matrix_engine_start_scroll(..., repeat_count, wave)`
+  - `matrix_engine_start_drop(..., repeat_count)`
+  - `matrix_status_t.repeat_count`
+- Added cycle tracking in animation loop:
+  - `s_repeat_count`, `s_cycles_done`
+  - stop transition to `MATRIX_MODE_IDLE` after requested repeats
+- Updated `matrix` console parser:
+  - optional `repeat_count` on scroll/wave/drop commands
+  - `matrix examples` help entries include repeat use cases
+  - `matrix status` prints repeat value
+- Updated REST API:
+  - `/api/matrix/anim` accepts optional `repeat_count`
+  - `/api/matrix/status` returns `repeat_count`
+- Rebuilt/flashed and validated runtime:
+  - finite repeat returns to `idle`
+  - omitted repeat remains infinite (`repeat_count: 0`)
+
+### Why
+
+- This directly satisfies the user’s explicit control requirement for per-animation repeat count.
+- It also removes the need for external watchdog scripts to stop animations manually when finite behavior is desired.
+
+### What worked
+
+- Build succeeded (`idf.py build`).
+- Flash succeeded on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_575E072431-if00`.
+- Monitor logs confirmed matrix bring-up, Wi-Fi join (`CLUB:LINK`), IP acquisition (`192.168.3.119`), and HTTP server start.
+- REST verification showed:
+  - `repeat_count=1` transitions `drop -> idle` after one cycle.
+  - omitted `repeat_count` keeps mode active (`drop`) after the same delay window.
+
+### What didn't work
+
+- `idf.py monitor` without PTY failed in this environment:
+  - `Monitor requires standard input to be attached to TTY`
+- Resolved by running monitor with PTY.
+
+### What I learned
+
+- Runtime state visibility in `/api/matrix/status` is critical when adding temporal parameters like repeats; it made validation straightforward.
+
+### What was tricky to build
+
+- Defining a “cycle boundary” per animation mode had to be explicit:
+  - scroll/wave: when text fully wraps and resets position
+  - drop: when frame counter resets after full bounce window
+
+### What warrants a second pair of eyes
+
+- Confirm whether status should keep last configured `repeat_count` after auto-stop (`mode=idle`) or clear it to `0` immediately on completion.
+
+### What should be done in the future
+
+- Add `repeat_count` option into the Go CLI command schema so CLI help/docs expose it consistently.
+
+### Code review instructions
+
+- Review core logic:
+  - `0067-esp-c3-led-matrix-http/main/matrix_engine.c`
+  - `0067-esp-c3-led-matrix-http/main/matrix_engine.h`
+- Review API/console surfaces:
+  - `0067-esp-c3-led-matrix-http/main/matrix_console.c`
+  - `0067-esp-c3-led-matrix-http/main/http_server.c`
+- Reproduce validation:
+  - `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_575E072431-if00 flash`
+  - `curl -sS -X POST http://192.168.3.119/api/matrix/anim -H 'Content-Type: application/json' -d '{"mode":"drop","text":"HI!?","fps":60,"pause_ms":0,"repeat_count":1}'`
+  - `curl -sS http://192.168.3.119/api/matrix/status`
+
+### Technical details
+
+```bash
+# finite run (auto-idle)
+curl -sS -X POST http://192.168.3.119/api/matrix/anim \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"drop","text":"HI!?","fps":60,"pause_ms":0,"repeat_count":1}'
+
+sleep 5
+curl -sS http://192.168.3.119/api/matrix/status
+
+# infinite default (repeat_count omitted => 0)
+curl -sS -X POST http://192.168.3.119/api/matrix/anim \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"drop","text":"LOOP","fps":60,"pause_ms":0}'
+
+sleep 5
+curl -sS http://192.168.3.119/api/matrix/status
 ```

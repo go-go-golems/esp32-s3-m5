@@ -72,3 +72,25 @@ Uploaded refreshed implementation bundle to reMarkable: ESP-01-STAMP-MATRIX - 00
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/changelog.md — Changelog records final reMarkable delivery
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/reference/01-diary.md — Diary updated with final upload step
 
+
+## 2026-02-21
+
+Added broad printable punctuation glyph support to matrix engine, removed animation sanitizer that dropped symbols, rebuilt firmware, and completed task 12.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.c — Expanded 5x7 font map and widened glyph acceptance to printable ASCII
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/tasks.md — Checked off task 12
+
+
+## 2026-02-21
+
+Implemented per-animation `repeat_count` (default `0 = infinity`) end-to-end across matrix engine, console parser, and REST API; rebuilt/flashed on STAMP C3 and validated stop-on-repeat and infinite-loop behavior via HTTP status transitions; completed task 13.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.h — Adds `repeat_count` to status and animation API signatures
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.c — Tracks cycles and stops animation after configured repeat count
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_console.c — Adds optional repeat arg, examples, and status/reporting updates
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/http_server.c — Parses/returns `repeat_count` in matrix REST endpoints
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/tasks.md — Checked off task 13
