@@ -19,6 +19,7 @@ static uint32_t s_next_timeout_id = 1;
 static bool s_stop_requested = false;
 static char s_last_text[65] = "HELLO";
 static uint32_t s_frame_ms = 33;
+static const uint32_t s_timeout_id_ring = 1024;
 
 void mqjs_0067_runtime_request_stop(void) {
   s_stop_requested = true;
@@ -260,8 +261,24 @@ static JSValue js_setTimeout(JSContext *ctx, JSValue *this_val, int argc, JSValu
     cb = JS_GetPropertyStr(ctx, timers, "cb");
   }
 
-  uint32_t id = s_next_timeout_id++;
-  if (id == 0) id = s_next_timeout_id++;
+  uint32_t id = 0;
+  for (uint32_t tries = 0; tries < s_timeout_id_ring; tries++) {
+    uint32_t cand = s_next_timeout_id++;
+    if (cand == 0 || cand > s_timeout_id_ring) {
+      s_next_timeout_id = 1;
+      cand = s_next_timeout_id++;
+    }
+
+    JSValue existing = JS_GetPropertyUint32(ctx, cb, cand);
+    if (JS_IsUndefined(existing) || JS_IsNull(existing)) {
+      id = cand;
+      break;
+    }
+  }
+
+  if (id == 0) {
+    return JS_ThrowInternalError(ctx, "setTimeout: no timer id slots available");
+  }
 
   (void)JS_SetPropertyUint32(ctx, cb, id, argv[0]);
 

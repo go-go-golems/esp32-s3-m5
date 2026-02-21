@@ -606,3 +606,86 @@ Packaged the diagnostics assets + JS runtime fixes into commit:
 
 Handoff expectation:
 - operator runs `diag` sequence and confirms first visually failing step (if any) for final hardware-side triage.
+
+## Step 9: Project docs API spec write-up
+
+Added a detailed project-local documentation page for JS scripting in `0067`, focused on intern onboarding and day-to-day script authoring.
+
+New file:
+- `0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md`
+
+Scope covered:
+- verbose getting started walkthrough
+- REST API endpoints for matrix and JS runtime
+- `js` and `matrix` console command surfaces
+- complete `matrix` JS object API (pixels, text, animations, timing, status)
+- timer helper semantics (`setTimeout`, `clearTimeout`, `every`, `cancel`)
+- limits (body size, timeout, text length, glyph set)
+- troubleshooting and diagnostic flow references
+
+Also linked from examples entry point:
+- `0067-esp-c3-led-matrix-http/examples/README.md` now references `../docs/JS-API-GUIDE.md`
+
+## Step 10: Upload JS API guide to reMarkable
+
+Uploaded project docs file to reMarkable cloud:
+- local: `0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md`
+- remote dir: `/ai/2026/02/21/ESP-02-JS-MATRIX-API`
+
+Verification:
+- `remarquee cloud ls /ai/2026/02/21/ESP-02-JS-MATRIX-API --non-interactive`
+- observed entries include `JS-API-GUIDE`.
+
+## Step 11: Investigate long-run JS animation stall after minutes
+
+User reported `03-comet-trails.js` stopping after a couple of minutes while manual matrix animations still worked.
+
+### Reproduction probes and findings
+
+- Confirmed stop-flag was not poisoned:
+- `matrix.stop(); matrix.shouldStop()` returned `false`.
+- `js/status` stayed healthy (`last_timed_out=false`, `last_error=""`).
+
+I then inspected the internal timer callback table from JS:
+
+```js
+Object.keys(globalThis.__0067.timers.cb).length
+```
+
+Observed unbounded growth during a running animation:
+- ~58 keys at 5s
+- ~113 keys at 10s
+- ~224 keys at 20s
+- ~280 keys at 25s
+
+Root cause:
+- each `every()` tick schedules a new `setTimeout` ID.
+- callback slots were set to `null` after fire/cancel, not deleted/reused.
+- keyspace growth in `__0067.timers.cb` was effectively unbounded over long runs.
+
+This can eventually increase VM pressure and make timer callbacks less reliable over time.
+
+### Fix applied
+
+File:
+- `0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c`
+
+Change:
+- replaced monotonic timeout ID allocation with bounded ID-ring reuse (`1..1024`).
+- allocator now scans for free (`null/undefined`) slots and reuses IDs.
+- `setTimeout` now throws if no ring slot is available.
+
+### Validation
+
+After rebuild/flash, long-run probe results:
+- `keys=327` at 30s
+- `keys=649` at 60s
+- `keys=970` at 90s
+- `keys=1024` at 120s
+- `keys=1024` at 150s
+- `keys=1024` at 180s
+
+Key result: timer callback table now plateaus at ring size instead of growing without bound.
+
+Post-run script handoff check:
+- switching from long-running `03-comet-trails.js` to `01-plasma-ribbon.js` succeeded with live non-zero lit pixels.

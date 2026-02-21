@@ -84,3 +84,43 @@ Validation results after fixes:
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/diag/00-env-status.js — diagnostic step set
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_run_js_diagnostics.sh — guided diagnostics runner
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-life-debug.log — captured timeout evidence (`InternalError: interrupted`)
+
+## 2026-02-21
+
+Added a project-local JS API documentation spec in `0067` with a detailed getting-started section, comprehensive method/option reference, and trigger examples for REST + console workflows.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md — primary API spec and scripting guide
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/README.md — cross-link to docs guide
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md — diary tracking for docs task
+
+## 2026-02-21
+
+Uploaded `0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md` to reMarkable under `/ai/2026/02/21/ESP-02-JS-MATRIX-API`.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md — uploaded API guide source
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md — diary record for upload step
+
+## 2026-02-21
+
+Investigated intermittent long-run JS animation stalls and fixed unbounded timer callback table growth.
+
+### Root cause
+
+`setTimeout` IDs were monotonic and callback entries were nulled (not reused/deleted), causing `globalThis.__0067.timers.cb` key growth over long runtimes.
+
+### Fix
+
+Implemented bounded timeout ID-ring reuse (`1..1024`) in JS runtime so callback table size plateaus.
+
+### Validation
+
+`Object.keys(__0067.timers.cb).length` now stabilizes at `1024` (instead of unbounded growth) under long-running `03-comet-trails.js`.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c — bounded timeout ID allocator and slot reuse
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md — detailed investigation notes and probe outputs
