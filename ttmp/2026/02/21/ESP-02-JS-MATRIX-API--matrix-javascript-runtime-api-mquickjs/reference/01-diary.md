@@ -597,3 +597,12 @@ BASE_URL=http://192.168.3.119 ttmp/.../scripts/0067_play_js_example.sh 0067-esp-
 idf.py -C 0067-esp-c3-led-matrix-http build
 ttmp/.../scripts/0067_flash.sh
 ```
+
+## Step 8: Checkpoint commit and handoff
+
+Packaged the diagnostics assets + JS runtime fixes into commit:
+
+- `62a04e4` — Fix JS animation stop semantics and timer callback deadlines; add matrix diagnostics
+
+Handoff expectation:
+- operator runs `diag` sequence and confirms first visually failing step (if any) for final hardware-side triage.
