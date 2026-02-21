@@ -94,3 +94,15 @@ Implemented per-animation `repeat_count` (default `0 = infinity`) end-to-end acr
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_console.c — Adds optional repeat arg, examples, and status/reporting updates
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/http_server.c — Parses/returns `repeat_count` in matrix REST endpoints
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/tasks.md — Checked off task 13
+
+
+## 2026-02-21
+
+Uploaded refreshed ticket bundle to reMarkable as `ESP-01-STAMP-MATRIX - 0067 Firmware Repeat Count Update.pdf` in `/ai/2026/02/21/ESP-01-STAMP-MATRIX`.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/index.md — Included in uploaded bundle
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/reference/01-diary.md — Included in uploaded bundle with repeat-count validation steps
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/tasks.md — Included in uploaded bundle showing all tasks complete
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/changelog.md — Includes upload history entry

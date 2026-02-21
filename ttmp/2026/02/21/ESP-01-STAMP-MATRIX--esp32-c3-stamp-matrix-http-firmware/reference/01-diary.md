@@ -28,7 +28,7 @@ RelatedFiles:
       Note: Diary step progression tracked against task status
 ExternalSources: []
 Summary: Implementation diary for creating and documenting the ESP-01-STAMP-MATRIX plan and architecture.
-LastUpdated: 2026-02-21T16:34:28-05:00
+LastUpdated: 2026-02-21T16:36:01-05:00
 WhatFor: Preserve execution history, analysis decisions, and verification breadcrumbs for this ticket.
 WhenToUse: Use when reviewing how the architecture document was produced or resuming implementation work.
 ---
@@ -941,4 +941,35 @@ curl -sS -X POST http://192.168.3.119/api/matrix/anim \
 
 sleep 5
 curl -sS http://192.168.3.119/api/matrix/status
+```
+
+## Step 13: Published updated ticket bundle to reMarkable
+
+After committing the glyph + repeat-count code changes, I generated and uploaded an updated ticket bundle so the reMarkable copy includes the latest tasks/changelog/diary state.
+
+### What I did
+
+- Ran `remarquee upload bundle` with:
+  - `index.md`
+  - design docs 01 + 02
+  - `reference/01-diary.md`
+  - `tasks.md`
+  - `changelog.md`
+- Used name:
+  - `ESP-01-STAMP-MATRIX - 0067 Firmware Repeat Count Update`
+- Target folder:
+  - `/ai/2026/02/21/ESP-01-STAMP-MATRIX`
+- Verified result:
+  - `OK: uploaded ESP-01-STAMP-MATRIX - 0067 Firmware Repeat Count Update.pdf -> /ai/2026/02/21/ESP-01-STAMP-MATRIX`
+
+### Why
+
+- Keeps external review copy synchronized with the latest implementation and task closure evidence.
+
+### Technical details
+
+```bash
+remarquee upload bundle <ticket-docs...> \
+  --name "ESP-01-STAMP-MATRIX - 0067 Firmware Repeat Count Update" \
+  --remote-dir "/ai/2026/02/21/ESP-01-STAMP-MATRIX"
 ```
