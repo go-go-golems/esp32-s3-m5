@@ -26,3 +26,6 @@
 - [x] Documentation phase: update ticket diary with step-by-step implementation + failures
 - [x] Documentation phase: relate changed source files and refresh changelog entries
 - [x] Release hygiene: create focused commits at opportune milestones
+- [x] Follow-up: add complex JS matrix animation examples in 0067 examples folder
+- [x] Follow-up: add tracked script to play JS examples over /api/js/eval
+- [x] Follow-up: validate example playback on device and document commands

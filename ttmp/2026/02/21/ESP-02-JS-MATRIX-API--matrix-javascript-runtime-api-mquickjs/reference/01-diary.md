@@ -465,3 +465,58 @@ ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scr
 - Console parser: successful (`js examples`, `js eval`, `js reset`, `js reset hard`)
 
 No blocking runtime issues remain for this implementation phase.
+
+## Step 6: Add complex JS animation examples and playback tooling
+
+User asked for richer JavaScript animations stored in the project examples folder, plus practical commands to play them. I implemented three non-trivial scripts under `0067-esp-c3-led-matrix-http/examples/js` and a tracked helper script under ticket `scripts/`.
+
+### What I added
+
+- Project examples:
+- `0067-esp-c3-led-matrix-http/examples/js/01-plasma-ribbon.js`
+- `0067-esp-c3-led-matrix-http/examples/js/02-life-torus.js`
+- `0067-esp-c3-led-matrix-http/examples/js/03-comet-trails.js`
+- `0067-esp-c3-led-matrix-http/examples/README.md`
+
+- Tracked playback helper:
+- `ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_play_js_example.sh`
+
+### Animation behavior summary
+
+- `01-plasma-ribbon.js`:
+- dual-sine ribbon interference across width with moving phase and spark accents
+- runs as periodic callback via `every(40, ...)`
+
+- `02-life-torus.js`:
+- Conway's Game of Life on toroidal 96x8 grid
+- periodic reseeding to avoid deadlock/static extinction
+- runs via `every(90, ...)`
+
+- `03-comet-trails.js`:
+- multiple moving comets with velocity jitter and decaying trail field
+- pseudo-brightness dithering from trail strength thresholds
+- runs via `every(45, ...)`
+
+All scripts cancel prior `__matrix_anim`, switch to script control, and publish a startup string result for API confirmation.
+
+### Validation details
+
+After reconnecting workstation to `CLUB:LINK`, I validated all examples over REST:
+
+```bash
+PLAY=ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_play_js_example.sh
+$PLAY 01-plasma-ribbon
+$PLAY 02-life-torus
+$PLAY 03-comet-trails
+curl -sS -X POST http://192.168.3.119/api/js/stop
+curl -sS -X POST http://192.168.3.119/api/js/reset
+```
+
+Observed results:
+- each play call returned `{"ok":true,... "started" ...}`
+- `/api/matrix/status` reported `mode:"script"`
+- `/api/js/status` remained healthy (`busy:false`, no timeout flags)
+
+### Operational note
+
+During initial testing, HTTP calls timed out because the workstation had switched SSID away from `CLUB:LINK`; device logs still showed correct target IP. Rejoining the correct network restored reachability and playback validation.

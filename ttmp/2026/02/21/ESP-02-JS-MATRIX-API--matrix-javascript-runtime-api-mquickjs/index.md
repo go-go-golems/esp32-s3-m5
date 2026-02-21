@@ -14,6 +14,14 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0067-esp-c3-led-matrix-http/examples/README.md
+      Note: How to play/stop JS examples
+    - Path: 0067-esp-c3-led-matrix-http/examples/js/01-plasma-ribbon.js
+      Note: Procedural plasma-style ribbon animation example
+    - Path: 0067-esp-c3-led-matrix-http/examples/js/02-life-torus.js
+      Note: Toroidal Game of Life animation example
+    - Path: 0067-esp-c3-led-matrix-http/examples/js/03-comet-trails.js
+      Note: Multi-comet trail field animation example
     - Path: 0067-esp-c3-led-matrix-http/main/http_server.c
       Note: REST endpoints for JS eval/reset/reset-hard/status/mem
     - Path: 0067-esp-c3-led-matrix-http/main/js_console.c
@@ -34,12 +42,19 @@ RelatedFiles:
       Note: Tracked JS HTTP smoke test
     - Path: ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_http_matrix_smoke.sh
       Note: Tracked matrix HTTP regression smoke test
+    - Path: ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_play_js_example.sh
+      Note: Tracked helper for playing example files over HTTP eval
+    - Path: ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-network-triage.log
+      Note: Network triage capture while validating example playback
+    - Path: ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-wifi-long.log
+      Note: Long Wi-Fi stability capture during example rollout
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-02-21T16:47:11.98727583-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Matrix JavaScript Runtime API (mquickjs)
