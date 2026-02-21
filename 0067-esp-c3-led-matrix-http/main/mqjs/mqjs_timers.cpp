@@ -144,7 +144,7 @@ static void post_fire(uint32_t id) {
   mqjs_job_t job = {};
   job.fn = &job_fire_timeout;
   job.user = a;
-  job.timeout_ms = 100;
+  job.timeout_ms = CONFIG_TUTORIAL_0067_JS_EVAL_TIMEOUT_MS;
 
   const esp_err_t st = mqjs_service_post(s_svc, &job);
   if (st != ESP_OK) {

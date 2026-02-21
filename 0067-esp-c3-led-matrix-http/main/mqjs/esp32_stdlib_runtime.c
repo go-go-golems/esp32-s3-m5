@@ -484,7 +484,8 @@ static JSValue js_i2c_tx(JSContext *ctx, JSValue *this_val, int argc, JSValue *a
   }
 
   if (strcmp(op, "stop") == 0) {
-    s_stop_requested = true;
+    // Local matrix stop should not latch the cooperative stop flag.
+    // Global script cancellation is driven by js_service_request_stop().
     (void)mqjs_0067_timers_cancel_all();
     return JS_NewBool(matrix_engine_stop() == ESP_OK);
   }

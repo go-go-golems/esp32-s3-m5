@@ -29,3 +29,6 @@
 - [x] Follow-up: add complex JS matrix animation examples in 0067 examples folder
 - [x] Follow-up: add tracked script to play JS examples over /api/js/eval
 - [x] Follow-up: validate example playback on device and document commands
+- [x] Follow-up: add step-by-step JS diagnostics sequence for matrix visual verification
+- [x] Follow-up: add guided runner script for per-step confirmation
+- [x] Follow-up: run diagnostics non-interactively once and hand over visual checklist

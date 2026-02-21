@@ -520,3 +520,80 @@ Observed results:
 ### Operational note
 
 During initial testing, HTTP calls timed out because the workstation had switched SSID away from `CLUB:LINK`; device logs still showed correct target IP. Rejoining the correct network restored reachability and playback validation.
+
+## Step 7: Visual diagnostics pass and root-cause fix for inert JS animations
+
+User reported that complex JS examples (`plasma-ribbon`, `life-torus`, `comet-trails`) appeared to do nothing on the matrix. I switched from assumption-based debugging to deterministic visual/runtime isolation.
+
+### What I added for operator-guided verification
+
+- Project diagnostic scripts under:
+- `0067-esp-c3-led-matrix-http/examples/js/diag/00-env-status.js` ... `10-stop-reset.js`
+- Diagnostic guide:
+- `0067-esp-c3-led-matrix-http/examples/DIAGNOSTIC-SEQUENCE.md`
+- Guided runner in ticket scripts:
+- `ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_run_js_diagnostics.sh`
+
+I executed the full sequence against `http://192.168.3.119`; all steps returned `ok:true` and expected mode transitions.
+
+### Findings
+
+1. JS timers were alive (independent probe): `ticks` increased from 0 to 13 in ~1.2s.
+2. Complex examples still showed zero lit pixels when sampled from JS framebuffer.
+3. `diag/06-walk-dot.js` also reported `lit=0`, indicating timer callbacks were starting but not rendering.
+
+This pointed to control-flow cancellation rather than transport/wifi issues.
+
+### Root cause A: `matrix.stop()` poisoned `shouldStop()`
+
+`matrix.stop()` in `esp32_stdlib_runtime.c` set the global cooperative stop flag (`s_stop_requested = true`).
+
+Many animation callbacks start with:
+
+```js
+if (matrix.shouldStop()) { handle.cancel(); return; }
+```
+
+So animations canceled on their first tick after calling `matrix.stop()` at script startup.
+
+Fix applied:
+- Updated `op: "stop"` behavior to cancel timers + stop matrix mode without latching the cooperative stop flag.
+- Kept global cancellation semantics for external stop paths (`js_service_request_stop`).
+
+### Root cause B: timer callback hard timeout too low
+
+`life-torus` still failed after Root cause A fix. Serial capture using tracked script showed:
+
+- `W (...) 0067_js_timers: timeout callback threw: InternalError: interrupted`
+
+Cause:
+- Timer callback jobs in `mqjs_timers.cpp` used hardcoded `timeout_ms = 100`.
+- Heavier frame callbacks exceeded 100ms and were interrupted, then self-cancelled by the JS `every()` wrapper.
+
+Fix applied:
+- `job.timeout_ms = CONFIG_TUTORIAL_0067_JS_EVAL_TIMEOUT_MS` (default 250ms).
+
+### Validation after both fixes
+
+After rebuild + flash to `/dev/serial/by-id/usb-1a86_USB_Single_Serial_575E072431-if00`:
+
+- `diag/06-walk-dot.js`: sampled lit pixels became non-zero (`lit=1`).
+- `01-plasma-ribbon.js`: sampled lit counts changed over time (e.g. 177, 183, 189).
+- `02-life-torus.js`: sampled lit counts changed over time (e.g. 208, 174, 75).
+- `03-comet-trails.js`: sampled lit counts changed over time (e.g. 63, 81, 89).
+
+These measurements confirm active frame updates and animation progression on device.
+
+### Trace artifacts
+
+- `ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-js-examples-throw.log`
+- `ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-life-debug.log`
+
+### Representative commands
+
+```bash
+AUTO=1 BASE_URL=http://192.168.3.119 ttmp/.../scripts/0067_run_js_diagnostics.sh
+BASE_URL=http://192.168.3.119 ttmp/.../scripts/0067_play_js_example.sh 0067-esp-c3-led-matrix-http/examples/js/01-plasma-ribbon.js
+idf.py -C 0067-esp-c3-led-matrix-http build
+ttmp/.../scripts/0067_flash.sh
+```

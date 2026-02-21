@@ -63,3 +63,24 @@ Added complex JS animation examples for matrix scripting and a reusable playback
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/03-comet-trails.js — Multi-comet trail simulation animation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/README.md — Usage documentation for playing/stopping examples
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_play_js_example.sh — Tracked helper to POST JS files to `/api/js/eval`
+
+## 2026-02-21
+
+Added a visual JS diagnostics sequence and guided runner, then debugged why user JS animations appeared inert on hardware.
+
+Root causes and fixes:
+- `matrix.stop()` in JS runtime latched the cooperative stop flag, so timer callbacks that checked `matrix.shouldStop()` aborted immediately.
+- Timer callback jobs had a hardcoded 100 ms deadline; heavier scripts like `life-torus` were interrupted (`InternalError: interrupted`) and self-cancelled.
+
+Validation results after fixes:
+- `diag/06-walk-dot.js` now shows active framebuffer updates (`lit=1` sampled live).
+- `01-plasma-ribbon.js`, `02-life-torus.js`, and `03-comet-trails.js` now all produce non-zero, changing lit-pixel counts on-device.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c — fixed `matrix.stop()` semantics to avoid poisoning `shouldStop()` for new animations
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/mqjs_timers.cpp — timer callback timeout now uses `CONFIG_TUTORIAL_0067_JS_EVAL_TIMEOUT_MS`
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/DIAGNOSTIC-SEQUENCE.md — step-by-step visual verification checklist
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/diag/00-env-status.js — diagnostic step set
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_run_js_diagnostics.sh — guided diagnostics runner
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/various/serial-capture-0067-life-debug.log — captured timeout evidence (`InternalError: interrupted`)
