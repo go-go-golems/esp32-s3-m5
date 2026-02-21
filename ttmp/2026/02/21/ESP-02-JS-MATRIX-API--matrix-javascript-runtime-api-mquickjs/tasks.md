@@ -25,4 +25,4 @@
 - [x] Validation phase: run targeted CLI/API smoke tests locally and document limits
 - [x] Documentation phase: update ticket diary with step-by-step implementation + failures
 - [x] Documentation phase: relate changed source files and refresh changelog entries
-- [ ] Release hygiene: create focused commits at opportune milestones
+- [x] Release hygiene: create focused commits at opportune milestones
