@@ -5,19 +5,26 @@ idf_component_register(
         "matrix_engine.c"
         "matrix_console.c"
         "http_server.c"
+        "mqjs/esp32_stdlib_runtime.c"
+        "mqjs/js_runtime_bridge.cpp"
+        "mqjs/mqjs_timers.cpp"
+        "js_console.c"
     PRIV_REQUIRES
         console
         esp_driver_spi
         esp_event
         esp_http_server
         esp_netif
+        esp_timer
         esp_wifi
         httpd_assets_embed
         json
+        mquickjs
+        mqjs_service
         nvs_flash
         wifi_console
         wifi_mgr
     EMBED_TXTFILES
         "assets/index.html"
-    INCLUDE_DIRS "."
+    INCLUDE_DIRS "." "mqjs"
 )

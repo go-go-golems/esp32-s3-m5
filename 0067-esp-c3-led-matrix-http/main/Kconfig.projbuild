@@ -35,4 +35,24 @@ config TUTORIAL_0067_HTTP_MAX_BODY
     range 64 4096
     default 512
 
+config TUTORIAL_0067_JS_MEM_BYTES
+    int "MicroQuickJS arena bytes"
+    range 32768 524288
+    default 131072
+
+config TUTORIAL_0067_JS_MAX_BODY
+    int "Max JS REST body bytes"
+    range 128 16384
+    default 4096
+
+config TUTORIAL_0067_JS_EVAL_TIMEOUT_MS
+    int "Default JS eval timeout (ms)"
+    range 10 5000
+    default 250
+
+config TUTORIAL_0067_JS_MAX_TIMERS
+    int "Max active JS timers"
+    range 4 128
+    default 32
+
 endmenu

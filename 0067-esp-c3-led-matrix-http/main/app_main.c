@@ -4,7 +4,9 @@
 #include "esp_system.h"
 
 #include "http_server.h"
+#include "js_console.h"
 #include "matrix_engine.h"
+#include "mqjs/js_runtime_bridge.h"
 #include "wifi_console.h"
 #include "wifi_mgr.h"
 
@@ -14,6 +16,7 @@ static void register_extra_commands(void)
 {
     extern void matrix_console_register_commands(void);
     matrix_console_register_commands();
+    js_console_register_commands();
 }
 
 static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
@@ -36,6 +39,7 @@ void app_main(void)
         .default_fps = CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FPS,
     };
     ESP_ERROR_CHECK(matrix_engine_init(&cfg));
+    ESP_ERROR_CHECK(js_service_start());
 
     wifi_mgr_set_on_got_ip_cb(on_wifi_got_ip, NULL);
     ESP_ERROR_CHECK(wifi_mgr_start());

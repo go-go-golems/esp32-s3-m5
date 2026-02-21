@@ -85,6 +85,7 @@ struct Service {
   SemaphoreHandle_t ready = nullptr;
 
   uint8_t* arena = nullptr;
+  size_t arena_bytes_actual = 0;
   MqjsVm* vm = nullptr;
   JSContext* ctx = nullptr;
 };
@@ -100,23 +101,54 @@ static void eval_fill_error(mqjs_eval_result_t* out, const char* msg) {
 static void service_ensure_ctx(Service* s) {
   if (!s || s->ctx) return;
 
-  s->arena = static_cast<uint8_t*>(malloc(s->cfg.arena_bytes));
-  if (!s->arena) return;
-  memset(s->arena, 0, s->cfg.arena_bytes);
+  const size_t want_bytes = s->cfg.arena_bytes;
+  const size_t min_bytes = 32 * 1024;
+  const size_t step_bytes = 4096;
 
-  MqjsVmConfig cfg = {};
-  cfg.arena = s->arena;
-  cfg.arena_bytes = s->cfg.arena_bytes;
-  cfg.stdlib = s->cfg.stdlib;
-  cfg.fix_global_this = s->cfg.fix_global_this;
+  size_t try_bytes = want_bytes;
+  while (try_bytes >= min_bytes) {
+    s->arena = static_cast<uint8_t*>(malloc(try_bytes));
+    if (!s->arena) {
+      if (try_bytes == min_bytes) break;
+      try_bytes = (try_bytes > step_bytes) ? (try_bytes - step_bytes) : min_bytes;
+      if (try_bytes < min_bytes) try_bytes = min_bytes;
+      continue;
+    }
 
-  s->vm = MqjsVm::Create(cfg);
-  if (!s->vm) {
+    memset(s->arena, 0, try_bytes);
+    MqjsVmConfig cfg = {};
+    cfg.arena = s->arena;
+    cfg.arena_bytes = try_bytes;
+    cfg.stdlib = s->cfg.stdlib;
+    cfg.fix_global_this = s->cfg.fix_global_this;
+
+    s->vm = MqjsVm::Create(cfg);
+    if (s->vm) {
+      s->ctx = s->vm->ctx();
+      s->arena_bytes_actual = try_bytes;
+      if (try_bytes < want_bytes) {
+        ESP_LOGW(TAG,
+                 "arena fallback: requested=%u actual=%u free8=%u largest8=%u",
+                 (unsigned)want_bytes,
+                 (unsigned)try_bytes,
+                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+      }
+      return;
+    }
+
     free(s->arena);
     s->arena = nullptr;
-    return;
+    if (try_bytes == min_bytes) break;
+    try_bytes = (try_bytes > step_bytes) ? (try_bytes - step_bytes) : min_bytes;
+    if (try_bytes < min_bytes) try_bytes = min_bytes;
   }
-  s->ctx = s->vm->ctx();
+
+  ESP_LOGE(TAG,
+           "arena/context init failed: requested=%u free8=%u largest8=%u",
+           (unsigned)want_bytes,
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+           (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
 }
 
 static void service_task(void* arg) {
@@ -164,6 +196,7 @@ static void service_task(void* arg) {
       }
 
       if (!s->ctx || !s->vm) {
+        ESP_LOGW(TAG, "eval rejected: JS context unavailable");
         eval_fill_error(p->out, "js init failed");
         p->status = ESP_FAIL;
         xSemaphoreGive(p->done);
@@ -213,6 +246,7 @@ static void service_task(void* arg) {
     if (msg.type == MSG_JOB) {
       auto* p = static_cast<JobPending*>(msg.pending);
       if (!s->ctx || !s->vm) {
+        ESP_LOGW(TAG, "job rejected: JS context unavailable");
         p->status = ESP_FAIL;
         if (p->done) {
           xSemaphoreGive(p->done);
@@ -370,6 +404,7 @@ esp_err_t mqjs_service_eval(mqjs_service_t* s_,
   msg.type = MSG_EVAL;
   msg.pending = p;
   if (xQueueSend(s->q, &msg, ms_to_ticks(100)) != pdTRUE) {
+    ESP_LOGW(TAG, "eval queue send timeout");
     free(p);
     return ESP_ERR_TIMEOUT;
   }
@@ -397,6 +432,7 @@ esp_err_t mqjs_service_run(mqjs_service_t* s_, const mqjs_job_t* job) {
   msg.type = MSG_JOB;
   msg.pending = p;
   if (xQueueSend(s->q, &msg, ms_to_ticks(100)) != pdTRUE) {
+    ESP_LOGW(TAG, "job queue send timeout");
     free(p);
     return ESP_ERR_TIMEOUT;
   }
@@ -421,6 +457,7 @@ esp_err_t mqjs_service_post(mqjs_service_t* s_, const mqjs_job_t* job) {
   msg.type = MSG_JOB;
   msg.pending = p;
   if (xQueueSend(s->q, &msg, 0) != pdTRUE) {
+    ESP_LOGW(TAG, "job post queue full");
     free(p);
     return ESP_ERR_TIMEOUT;
   }

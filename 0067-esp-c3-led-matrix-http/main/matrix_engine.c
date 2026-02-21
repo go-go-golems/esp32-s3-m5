@@ -298,7 +298,7 @@ static void anim_task(void *arg)
         memcpy(text, s_text, sizeof(text));
         unlock();
 
-        if (mode == MATRIX_MODE_IDLE || !s_ready || text_w <= 0 || !text_cols) {
+        if (mode == MATRIX_MODE_IDLE || mode == MATRIX_MODE_TEXT || mode == MATRIX_MODE_SCRIPT || !s_ready || text_w <= 0 || !text_cols) {
             frame = 0;
             ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
             continue;
@@ -549,4 +549,101 @@ esp_err_t matrix_engine_get_status(matrix_status_t *out)
     strlcpy(out->text, s_text, sizeof(out->text));
     unlock();
     return ESP_OK;
+}
+
+int matrix_engine_width(void)
+{
+    lock();
+    const int w = width_active();
+    unlock();
+    return w;
+}
+
+int matrix_engine_height(void)
+{
+    return 8;
+}
+
+esp_err_t matrix_engine_frame_clear(void)
+{
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    s_mode = MATRIX_MODE_SCRIPT;
+    fb_clear();
+    unlock();
+    return ESP_OK;
+}
+
+esp_err_t matrix_engine_frame_fill(bool on)
+{
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    s_mode = MATRIX_MODE_SCRIPT;
+    for (int y = 0; y < 8; y++) {
+        for (int m = 0; m < chain_len_active(); m++) s_fb[y][m] = on ? 0xFF : 0x00;
+    }
+    unlock();
+    return ESP_OK;
+}
+
+esp_err_t matrix_engine_frame_set_pixel(int x, int y, bool on)
+{
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    const int w = width_active();
+    if (x < 0 || y < 0 || y >= 8 || x >= w) {
+        unlock();
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    s_mode = MATRIX_MODE_SCRIPT;
+    const int m = x_to_module(x);
+    const uint8_t bit = x_to_bit(x);
+    if (on) s_fb[y][m] |= bit;
+    else s_fb[y][m] &= (uint8_t)~bit;
+    unlock();
+    return ESP_OK;
+}
+
+esp_err_t matrix_engine_frame_get_pixel(int x, int y, bool *out_on)
+{
+    if (!out_on) return ESP_ERR_INVALID_ARG;
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    const int w = width_active();
+    if (x < 0 || y < 0 || y >= 8 || x >= w) {
+        unlock();
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    const int m = x_to_module(x);
+    const uint8_t bit = x_to_bit(x);
+    *out_on = (s_fb[y][m] & bit) != 0;
+    unlock();
+    return ESP_OK;
+}
+
+esp_err_t matrix_engine_frame_present(void)
+{
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    s_mode = MATRIX_MODE_SCRIPT;
+    esp_err_t err = fb_flush_all();
+    unlock();
+    return err;
 }

@@ -10,6 +10,7 @@ typedef enum {
     MATRIX_MODE_TEXT,
     MATRIX_MODE_SCROLL,
     MATRIX_MODE_DROP,
+    MATRIX_MODE_SCRIPT,
 } matrix_mode_t;
 
 typedef struct {
@@ -48,3 +49,11 @@ esp_err_t matrix_engine_set_spi_hz(int hz);
 esp_err_t matrix_engine_set_chain_len(int n);
 esp_err_t matrix_engine_set_orientation(bool reverse_modules, bool flip_vertical);
 esp_err_t matrix_engine_get_status(matrix_status_t *out);
+
+int matrix_engine_width(void);
+int matrix_engine_height(void);
+esp_err_t matrix_engine_frame_clear(void);
+esp_err_t matrix_engine_frame_fill(bool on);
+esp_err_t matrix_engine_frame_set_pixel(int x, int y, bool on);
+esp_err_t matrix_engine_frame_get_pixel(int x, int y, bool *out_on);
+esp_err_t matrix_engine_frame_present(void);

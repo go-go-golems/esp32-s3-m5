@@ -57,6 +57,7 @@ static int cmd_matrix(int argc, char **argv)
         if (st.mode == MATRIX_MODE_TEXT) mode = "text";
         if (st.mode == MATRIX_MODE_SCROLL) mode = "scroll";
         if (st.mode == MATRIX_MODE_DROP) mode = "drop";
+        if (st.mode == MATRIX_MODE_SCRIPT) mode = "script";
         printf("ok: ready=%s mode=%s chain=%d width=%d spi_hz=%d intensity=%d test=%s fps=%u pause_ms=%u repeat=%u reverse=%s flipv=%s text=%s\n",
                st.ready ? "yes" : "no",
                mode,

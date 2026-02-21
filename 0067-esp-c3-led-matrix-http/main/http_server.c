@@ -1,6 +1,7 @@
 #include "http_server.h"
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "cJSON.h"
@@ -9,6 +10,7 @@
 
 #include "httpd_assets_embed.h"
 #include "matrix_engine.h"
+#include "mqjs/js_runtime_bridge.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "0067_http";
@@ -54,6 +56,7 @@ static esp_err_t send_status(httpd_req_t *req)
     if (st.mode == MATRIX_MODE_TEXT) mode = "text";
     if (st.mode == MATRIX_MODE_SCROLL) mode = "scroll";
     if (st.mode == MATRIX_MODE_DROP) mode = "drop";
+    if (st.mode == MATRIX_MODE_SCRIPT) mode = "script";
 
     cJSON *root = cJSON_CreateObject();
     if (!root) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
@@ -152,13 +155,133 @@ static esp_err_t matrix_anim_post(httpd_req_t *req)
     return send_status(req);
 }
 
+static esp_err_t send_text(httpd_req_t *req, const char *content_type, const char *body)
+{
+    httpd_resp_set_type(req, content_type ? content_type : "text/plain; charset=utf-8");
+    httpd_resp_set_hdr(req, "cache-control", "no-store");
+    return httpd_resp_sendstr(req, body ? body : "");
+}
+
+static esp_err_t js_eval_post(httpd_req_t *req)
+{
+    const int max_body = CONFIG_TUTORIAL_0067_JS_MAX_BODY;
+    if (max_body <= 0) {
+        return send_text(req, "application/json; charset=utf-8",
+                         "{\"ok\":false,\"output\":\"\",\"error\":\"server misconfigured\",\"timed_out\":false}");
+    }
+    if (req->content_len <= 0) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "empty body");
+        return ESP_OK;
+    }
+    if (req->content_len > max_body) {
+        httpd_resp_send_err(req, HTTPD_413_CONTENT_TOO_LARGE, "body too large");
+        return ESP_OK;
+    }
+
+    const size_t n = (size_t)req->content_len;
+    char *buf = (char *)malloc(n + 1);
+    if (!buf) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
+        return ESP_OK;
+    }
+
+    size_t off = 0;
+    while (off < n) {
+        const int got = httpd_req_recv(req, buf + off, n - off);
+        if (got <= 0) {
+            free(buf);
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "recv failed");
+            return ESP_OK;
+        }
+        off += (size_t)got;
+    }
+    buf[n] = '\0';
+
+    char *json = NULL;
+    const esp_err_t st = js_service_eval_json(buf, n, 0, "<http>", &json);
+    free(buf);
+    if (st != ESP_OK || !json) {
+        if (json) js_service_free(json);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "js eval failed");
+    }
+    esp_err_t err = send_text(req, "application/json; charset=utf-8", json);
+    js_service_free(json);
+    return err;
+}
+
+static esp_err_t js_reset_post(httpd_req_t *req)
+{
+    (void)req;
+    if (js_service_reset() != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "reset failed");
+    }
+    return send_text(req, "application/json; charset=utf-8", "{\"ok\":true}");
+}
+
+static esp_err_t js_hard_reset_post(httpd_req_t *req)
+{
+    (void)req;
+    if (js_service_hard_reset() != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "hard reset failed");
+    }
+    return send_text(req, "application/json; charset=utf-8", "{\"ok\":true}");
+}
+
+static esp_err_t js_stop_post(httpd_req_t *req)
+{
+    (void)req;
+    if (js_service_request_stop() != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "stop failed");
+    }
+    return send_text(req, "application/json; charset=utf-8", "{\"ok\":true}");
+}
+
+static esp_err_t js_mem_get(httpd_req_t *req)
+{
+    char *out = NULL;
+    const esp_err_t st = js_service_dump_memory_text(&out);
+    if (st != ESP_OK || !out) {
+        if (out) js_service_free(out);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "dump failed");
+    }
+    esp_err_t err = send_text(req, "text/plain; charset=utf-8", out);
+    js_service_free(out);
+    return err;
+}
+
+static esp_err_t js_status_get(httpd_req_t *req)
+{
+    js_service_status_t st = {0};
+    if (js_service_get_status(&st) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "status failed");
+    }
+
+    cJSON *root = cJSON_CreateObject();
+    if (!root) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "oom");
+    cJSON_AddBoolToObject(root, "ok", true);
+    cJSON_AddBoolToObject(root, "started", st.started);
+    cJSON_AddBoolToObject(root, "busy", st.busy);
+    cJSON_AddBoolToObject(root, "stop_requested", st.stop_requested);
+    cJSON_AddBoolToObject(root, "last_timed_out", st.last_timed_out);
+    cJSON_AddNumberToObject(root, "eval_count", st.eval_count);
+    cJSON_AddNumberToObject(root, "last_eval_ms", st.last_eval_ms);
+    cJSON_AddStringToObject(root, "last_error", st.last_error);
+
+    char *body = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+    if (!body) return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "encode failed");
+    esp_err_t err = send_text(req, "application/json; charset=utf-8", body);
+    cJSON_free(body);
+    return err;
+}
+
 esp_err_t http_server_start(void)
 {
     if (s_server) return ESP_OK;
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
-    cfg.max_uri_handlers = 12;
+    cfg.max_uri_handlers = 13;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
     esp_err_t err = httpd_start(&s_server, &cfg);
@@ -182,6 +305,24 @@ esp_err_t http_server_start(void)
 
     httpd_uri_t stop = {.uri = "/api/matrix/stop", .method = HTTP_POST, .handler = matrix_stop_post};
     httpd_register_uri_handler(s_server, &stop);
+
+    httpd_uri_t js_eval = {.uri = "/api/js/eval", .method = HTTP_POST, .handler = js_eval_post};
+    httpd_register_uri_handler(s_server, &js_eval);
+
+    httpd_uri_t js_reset = {.uri = "/api/js/reset", .method = HTTP_POST, .handler = js_reset_post};
+    httpd_register_uri_handler(s_server, &js_reset);
+
+    httpd_uri_t js_hard_reset = {.uri = "/api/js/reset-hard", .method = HTTP_POST, .handler = js_hard_reset_post};
+    httpd_register_uri_handler(s_server, &js_hard_reset);
+
+    httpd_uri_t js_stop = {.uri = "/api/js/stop", .method = HTTP_POST, .handler = js_stop_post};
+    httpd_register_uri_handler(s_server, &js_stop);
+
+    httpd_uri_t js_mem = {.uri = "/api/js/mem", .method = HTTP_GET, .handler = js_mem_get};
+    httpd_register_uri_handler(s_server, &js_mem);
+
+    httpd_uri_t js_status = {.uri = "/api/js/status", .method = HTTP_GET, .handler = js_status_get};
+    httpd_register_uri_handler(s_server, &js_status);
 
     return ESP_OK;
 }
