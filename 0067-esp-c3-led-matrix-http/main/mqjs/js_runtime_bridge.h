@@ -17,6 +17,14 @@ typedef struct {
     bool last_timed_out;
     uint32_t eval_count;
     uint32_t last_eval_ms;
+    uint32_t timer_cb_keys;
+    uint32_t timer_cb_active;
+    uint32_t timer_cb_keys_high_water;
+    uint32_t animations_registered;
+    char active_animation[32];
+    uint32_t heap_free_8bit;
+    uint32_t heap_largest_free_8bit;
+    uint32_t heap_min_free_8bit;
     char last_error[128];
 } js_service_status_t;
 

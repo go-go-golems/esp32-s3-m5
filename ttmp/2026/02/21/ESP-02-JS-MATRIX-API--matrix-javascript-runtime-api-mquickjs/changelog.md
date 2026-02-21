@@ -124,3 +124,23 @@ Implemented bounded timeout ID-ring reuse (`1..1024`) in JS runtime so callback 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c — bounded timeout ID allocator and slot reuse
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md — detailed investigation notes and probe outputs
+
+## 2026-02-21
+
+Added runtime observability fields and a script-level animation registry API (`matrix.anim`) with lifecycle cleanup helpers.
+
+### Included changes
+
+- `/api/js/status` now reports timer usage, animation registry state, and heap metrics.
+- `js status` console command now prints the same observability data.
+- JS bootstrap now provides `matrix.anim.register/start/stop/clear/list/status` to make animation resources easier to manage.
+- Added fallback status probe path to keep status metrics available under load.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/js_runtime_bridge.h — expanded status structure
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/js_runtime_bridge.cpp — animation registry bootstrap + status probe implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/http_server.c — `/api/js/status` response fields
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/js_console.c — extended `js status` output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/examples/js/04-anim-registry-demo.js — runnable registry API example
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md — updated API documentation for observability and `matrix.anim`

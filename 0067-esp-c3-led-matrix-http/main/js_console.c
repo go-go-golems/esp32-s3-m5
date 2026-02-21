@@ -59,13 +59,23 @@ static int cmd_js(int argc, char **argv)
             printf("js status failed\n");
             return 1;
         }
-        printf("ok: started=%s busy=%s stop_requested=%s eval_count=%u last_eval_ms=%u timed_out=%s last_error=%s\n",
+        printf("ok: started=%s busy=%s stop_requested=%s eval_count=%u last_eval_ms=%u timed_out=%s "
+               "timers(keys=%u active=%u high=%u) anim(registered=%u active=%s) "
+               "heap(free=%u largest=%u min=%u) last_error=%s\n",
                st.started ? "yes" : "no",
                st.busy ? "yes" : "no",
                st.stop_requested ? "yes" : "no",
                (unsigned)st.eval_count,
                (unsigned)st.last_eval_ms,
                st.last_timed_out ? "yes" : "no",
+               (unsigned)st.timer_cb_keys,
+               (unsigned)st.timer_cb_active,
+               (unsigned)st.timer_cb_keys_high_water,
+               (unsigned)st.animations_registered,
+               st.active_animation[0] ? st.active_animation : "-",
+               (unsigned)st.heap_free_8bit,
+               (unsigned)st.heap_largest_free_8bit,
+               (unsigned)st.heap_min_free_8bit,
                st.last_error[0] ? st.last_error : "-");
         return 0;
     }

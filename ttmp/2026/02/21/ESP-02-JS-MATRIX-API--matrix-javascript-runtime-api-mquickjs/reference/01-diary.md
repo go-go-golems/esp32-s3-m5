@@ -689,3 +689,68 @@ Key result: timer callback table now plateaus at ring size instead of growing wi
 
 Post-run script handoff check:
 - switching from long-running `03-comet-trails.js` to `01-plasma-ribbon.js` succeeded with live non-zero lit pixels.
+
+## Step 12: Add JS runtime observability and animation registry API
+
+User requested two additions:
+1. richer status observability to spot memory/resource growth quickly,
+2. a script-level animation registration API with structured cleanup semantics.
+
+### Runtime/API changes implemented
+
+Files:
+- `0067-esp-c3-led-matrix-http/main/mqjs/js_runtime_bridge.h`
+- `0067-esp-c3-led-matrix-http/main/mqjs/js_runtime_bridge.cpp`
+- `0067-esp-c3-led-matrix-http/main/http_server.c`
+- `0067-esp-c3-led-matrix-http/main/js_console.c`
+
+Added `js_service_status_t` fields:
+- `timer_cb_keys`
+- `timer_cb_active`
+- `timer_cb_keys_high_water`
+- `animations_registered`
+- `active_animation`
+- `heap_free_8bit`
+- `heap_largest_free_8bit`
+- `heap_min_free_8bit`
+
+Status endpoint (`/api/js/status`) and `js status` now include these fields.
+
+### New script API: `matrix.anim`
+
+Bootstrapped JS runtime now provides a lifecycle-managed animation registry:
+- `matrix.anim.register(name, specOrStartFn)`
+- `matrix.anim.unregister(name)`
+- `matrix.anim.start(name, opts)`
+- `matrix.anim.stop()`
+- `matrix.anim.clear()`
+- `matrix.anim.list()`
+- `matrix.anim.current()`
+- `matrix.anim.status()`
+
+Resource behavior:
+- starting a new registered animation stops the previous one,
+- tracked handles/timers are cancelled automatically,
+- cleanup callbacks run in reverse order,
+- runtime stop path calls animation stop hook before clearing timers.
+
+### Reliability fixes discovered while implementing
+
+- Bootstrapping briefly failed (`SyntaxError: catch variable already exists`) after adding larger JS bootstrap logic. I fixed this by using unique catch variable names in all catch blocks.
+- Increased bootstrap timeout from 250ms to 1000ms for startup/reset to avoid parser/init deadline issues on C3.
+- Added status probe fallback in `js_service_get_status()` using `mqjs_service_eval` when direct status job path cannot collect stats in time.
+
+### Validation highlights
+
+- `matrix` and `matrix.anim` are now present immediately after boot.
+- `examples/js/04-anim-registry-demo.js` registers and starts animations successfully.
+- `/api/js/status` shows live observability values during animation:
+  - non-zero `timer_cb_keys`,
+  - non-zero `animations_registered`,
+  - populated `active_animation`.
+
+Sample observed status (runner active):
+- `timer_cb_keys: 10`
+- `timer_cb_active: 1`
+- `animations_registered: 2`
+- `active_animation: "runner"`

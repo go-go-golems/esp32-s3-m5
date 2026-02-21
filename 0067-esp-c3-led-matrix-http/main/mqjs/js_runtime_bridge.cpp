@@ -17,6 +17,7 @@ extern const JSSTDLibraryDef js_stdlib;
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 
 #include "sdkconfig.h"
 
@@ -102,7 +103,7 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "  };\n"
       "  function tick() {\n"
       "    if (h.cancelled) return;\n"
-      "    try { fn(); } catch (e) { h.cancel(); throw e; }\n"
+      "    try { fn(); } catch (__e_tick) { h.cancel(); throw __e_tick; }\n"
       "    if (h.cancelled) return;\n"
       "    h.id = setTimeout(tick, ms);\n"
       "  }\n"
@@ -127,7 +128,7 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "  opts = opts || {};\n"
       "  return !!i2c.tx({op:'drop', text:String(text || ''), fps:(opts.fps|0), pause_ms:(opts.pauseMs|0), repeat:(opts.repeat|0)});\n"
       "};\n"
-      "m.stop = function() { return !!i2c.tx({op:'stop'}); };\n"
+      "m._stopRaw = function() { return !!i2c.tx({op:'stop'}); };\n"
       "m.setIntensity = function(v) { return !!i2c.tx({op:'intensity', value:(v|0)}); };\n"
       "m.setOrientation = function(reverse, flipv) { return !!i2c.tx({op:'orientation', reverse:(reverse ? 1 : 0), flipv:(flipv ? 1 : 0)}); };\n"
       "m.status = function() { return i2c.txrx({op:'status'}); };\n"
@@ -136,7 +137,91 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "m.nowUs = function() { return i2c.txrx({op:'nowUs'}); };\n"
       "m.sleepMs = function(ms) { return !!i2c.tx({op:'sleepMs', ms:(ms|0)}); };\n"
       "m.sleepUntilUs = function(us) { return !!i2c.tx({op:'sleepUntilUs', us:Number(us)}); };\n"
-      "m.shouldStop = function() { return !!i2c.txrx({op:'shouldStop'}); };\n";
+      "m.shouldStop = function() { return !!i2c.txrx({op:'shouldStop'}); };\n"
+      "m.anim = m.anim || {};\n"
+      "var A = m.anim;\n"
+      "A._registry = A._registry || {};\n"
+      "A._current = A._current || null;\n"
+      "A._cleanupCurrent = function() {\n"
+      "  var c = A._current;\n"
+      "  if (!c) return;\n"
+      "  A._current = null;\n"
+      "  if (c.handles) {\n"
+      "    for (var i = 0; i < c.handles.length; i++) {\n"
+      "      try { cancel(c.handles[i]); } catch (__e_cancel) {}\n"
+      "    }\n"
+      "  }\n"
+      "  if (c.cleanups) {\n"
+      "    for (var j = c.cleanups.length - 1; j >= 0; j--) {\n"
+      "      try { c.cleanups[j](); } catch (__e_cleanup) { try { print('anim cleanup error', String(__e_cleanup)); } catch (__e_print) {} }\n"
+      "    }\n"
+      "  }\n"
+      "};\n"
+      "A.stop = function() {\n"
+      "  A._cleanupCurrent();\n"
+      "  return m._stopRaw();\n"
+      "};\n"
+      "A.register = function(name, spec) {\n"
+      "  if (typeof name !== 'string' || !name) throw new TypeError('matrix.anim.register(name, spec)');\n"
+      "  if (typeof spec === 'function') spec = { start: spec };\n"
+      "  if (!spec || typeof spec.start !== 'function') throw new TypeError('spec.start must be a function');\n"
+      "  A._registry[name] = spec;\n"
+      "  return true;\n"
+      "};\n"
+      "A.unregister = function(name) {\n"
+      "  if (A._current && A._current.name === name) A.stop();\n"
+      "  delete A._registry[name];\n"
+      "  return true;\n"
+      "};\n"
+      "A.list = function() { return Object.keys(A._registry); };\n"
+      "A.current = function() { return A._current ? A._current.name : null; };\n"
+      "A.status = function() {\n"
+      "  var tracked = (A._current && A._current.handles) ? A._current.handles.length : 0;\n"
+      "  return { current: A.current(), registered: A.list().length, tracked: tracked };\n"
+      "};\n"
+      "A.start = function(name, opts) {\n"
+      "  if (typeof name !== 'string' || !name) throw new TypeError('matrix.anim.start(name, opts)');\n"
+      "  var spec = A._registry[name];\n"
+      "  if (!spec) throw new Error('unknown animation: ' + name);\n"
+      "  A.stop();\n"
+      "  var rec = { name: name, handles: [], cleanups: [], stopped: false };\n"
+      "  A._current = rec;\n"
+      "  var ctx = {\n"
+      "    matrix: m,\n"
+      "    opts: opts || {},\n"
+      "    shouldStop: function() { return !!(m.shouldStop() || rec.stopped); },\n"
+      "    every: function(ms, fn) { var h = every(ms, fn); rec.handles.push(h); return h; },\n"
+      "    timeout: function(ms, fn) { var id = setTimeout(fn, ms); rec.handles.push(id); return id; },\n"
+      "    track: function(h) { rec.handles.push(h); return h; },\n"
+      "    onCleanup: function(fn) { if (typeof fn === 'function') rec.cleanups.push(fn); },\n"
+      "    nowMs: function() { return m.nowMs(); },\n"
+      "    nowUs: function() { return m.nowUs(); }\n"
+      "  };\n"
+      "  var ret;\n"
+      "  try {\n"
+      "    ret = spec.start(ctx);\n"
+      "  } catch (__e_start) {\n"
+      "    A._current = null;\n"
+      "    throw __e_start;\n"
+      "  }\n"
+      "  if (typeof ret === 'function') rec.cleanups.push(ret);\n"
+      "  else if (ret && typeof ret.cancel === 'function') rec.handles.push(ret);\n"
+      "  return true;\n"
+      "};\n"
+      "A.clear = function() {\n"
+      "  A.stop();\n"
+      "  A._registry = {};\n"
+      "  return true;\n"
+      "};\n"
+      "A._onRuntimeStop = function() {\n"
+      "  if (A._current) A._current.stopped = true;\n"
+      "  try { A.stop(); } catch (__e_stop) {}\n"
+      "};\n"
+      "m.stop = function() {\n"
+      "  if (m.anim && typeof m.anim._onRuntimeStop === 'function') m.anim._onRuntimeStop();\n"
+      "  else m._stopRaw();\n"
+      "  return true;\n"
+      "};\n";
 
   JSValue v = JS_Eval(ctx, kBootstrap, strlen(kBootstrap), "<boot:0067>", JS_EVAL_REPL);
   if (JS_IsException(v)) {
@@ -152,6 +237,9 @@ static esp_err_t job_clear_timer_callbacks(JSContext* ctx, void* user) {
   (void)user;
   const char* code =
       "var g = globalThis;\n"
+      "if (g.matrix && g.matrix.anim && typeof g.matrix.anim._onRuntimeStop === 'function') {\n"
+      "  try { g.matrix.anim._onRuntimeStop(); } catch (__e_stop) {}\n"
+      "}\n"
       "if (g.__0067 && g.__0067.timers) { g.__0067.timers.cb = {}; }\n";
   JSValue v = JS_Eval(ctx, code, strlen(code), "<stop:0067>", JS_EVAL_REPL);
   if (JS_IsException(v)) return ESP_FAIL;
@@ -172,12 +260,98 @@ struct DumpArg {
   std::string* out = nullptr;
 };
 
+struct RuntimeStatsArg {
+  uint32_t timer_keys = 0;
+  uint32_t timer_active = 0;
+  uint32_t animations_registered = 0;
+  char active_animation[32] = {0};
+};
+
+static bool parse_runtime_stats(const char* s, RuntimeStatsArg* out) {
+  if (!s || !out) return false;
+  unsigned long keys = 0;
+  unsigned long active = 0;
+  unsigned long regs = 0;
+  char anim[32] = {0};
+  const int n = sscanf(s, "%lu\t%lu\t%lu\t%31[^\n]", &keys, &active, &regs, anim);
+  if (n < 3) return false;
+  out->timer_keys = (uint32_t)keys;
+  out->timer_active = (uint32_t)active;
+  out->animations_registered = (uint32_t)regs;
+  if (n >= 4) strlcpy(out->active_animation, anim, sizeof(out->active_animation));
+  return true;
+}
+
+static bool decode_eval_string_literal(const char* in, std::string* out) {
+  if (!in || !out) return false;
+  out->clear();
+
+  size_t n = strlen(in);
+  while (n > 0 && (in[n - 1] == '\n' || in[n - 1] == '\r')) n--;
+  if (n == 0) return false;
+
+  if (in[0] != '"' || in[n - 1] != '"') {
+    out->assign(in, n);
+    return true;
+  }
+
+  for (size_t i = 1; i + 1 < n; i++) {
+    char c = in[i];
+    if (c == '\\' && i + 1 < n) {
+      char d = in[++i];
+      if (d == 'n') out->push_back('\n');
+      else if (d == 'r') out->push_back('\r');
+      else if (d == 't') out->push_back('\t');
+      else if (d == '\\') out->push_back('\\');
+      else if (d == '"') out->push_back('"');
+      else out->push_back(d);
+    } else {
+      out->push_back(c);
+    }
+  }
+  return true;
+}
+
 static esp_err_t job_dump_memory(JSContext* ctx, void* user) {
   auto* a = static_cast<DumpArg*>(user);
   if (!a || !a->out) return ESP_ERR_INVALID_ARG;
   MqjsVm* vm = MqjsVm::From(ctx);
   if (!vm) return ESP_FAIL;
   *(a->out) = vm->DumpMemory(false);
+  return ESP_OK;
+}
+
+static esp_err_t job_collect_runtime_stats(JSContext* ctx, void* user) {
+  auto* a = static_cast<RuntimeStatsArg*>(user);
+  if (!a) return ESP_ERR_INVALID_ARG;
+
+  const char* code =
+      "(function(){\n"
+      "  var g = globalThis;\n"
+      "  var ns = g.__0067 || {};\n"
+      "  var cb = (ns.timers && ns.timers.cb) || {};\n"
+      "  var keys = Object.keys(cb);\n"
+      "  var active = 0;\n"
+      "  for (var i = 0; i < keys.length; i++) {\n"
+      "    var v = cb[keys[i]];\n"
+      "    if (v !== null && v !== undefined) active++;\n"
+      "  }\n"
+      "  var anim = (g.matrix && g.matrix.anim) || {};\n"
+      "  var regs = Object.keys(anim._registry || {}).length;\n"
+      "  var cur = (anim._current && anim._current.name) ? String(anim._current.name) : '';\n"
+      "  return String(keys.length) + '\\t' + String(active) + '\\t' + String(regs) + '\\t' + cur;\n"
+      "})();\n";
+
+  JSValue v = JS_Eval(ctx, code, strlen(code), "<status:0067>", JS_EVAL_REPL);
+  if (JS_IsException(v)) return ESP_FAIL;
+  if (!JS_IsString(ctx, v)) return ESP_FAIL;
+
+  JSCStringBuf sbuf;
+  memset(&sbuf, 0, sizeof(sbuf));
+  size_t n = 0;
+  const char* s = JS_ToCStringLen(ctx, &n, v, &sbuf);
+  if (!s || n == 0) return ESP_FAIL;
+  if (!parse_runtime_stats(s, a)) return ESP_FAIL;
   return ESP_OK;
 }
 
@@ -217,7 +391,7 @@ extern "C" esp_err_t js_service_start(void) {
 
   mqjs_job_t boot = {};
   boot.fn = &job_bootstrap;
-  boot.timeout_ms = 250;
+  boot.timeout_ms = 1000;
   st = mqjs_service_run(s_svc, &boot);
   if (st != ESP_OK) {
     ESP_LOGW(TAG, "bootstrap job failed: %s", esp_err_to_name(st));
@@ -243,6 +417,10 @@ extern "C" void js_service_stop(void) {
   s_status.started = false;
   s_status.busy = false;
   s_status.stop_requested = true;
+  s_status.timer_cb_keys = 0;
+  s_status.timer_cb_active = 0;
+  s_status.animations_registered = 0;
+  memset(s_status.active_animation, 0, sizeof(s_status.active_animation));
   unlock_mu();
 }
 
@@ -264,7 +442,7 @@ extern "C" esp_err_t js_service_reset(void) {
 
   mqjs_job_t boot = {};
   boot.fn = &job_bootstrap;
-  boot.timeout_ms = 250;
+  boot.timeout_ms = 1000;
   st = mqjs_service_run(s_svc, &boot);
   if (st != ESP_OK) {
     ESP_LOGW(TAG, "soft reset bootstrap failed: %s", esp_err_to_name(st));
@@ -400,7 +578,67 @@ extern "C" esp_err_t js_service_dump_memory_text(char** out_text) {
 
 extern "C" esp_err_t js_service_get_status(js_service_status_t* out) {
   if (!out) return ESP_ERR_INVALID_ARG;
+  RuntimeStatsArg rs = {};
+  bool have_stats = false;
+  if (s_svc) {
+    mqjs_job_t job = {};
+    job.fn = &job_collect_runtime_stats;
+    job.user = &rs;
+    job.timeout_ms = 500;
+    const esp_err_t st = mqjs_service_run(s_svc, &job);
+    if (st == ESP_OK) {
+      have_stats = true;
+    } else {
+      static const char* kProbeCode =
+          "(function(){\n"
+          "  var g = globalThis;\n"
+          "  var ns = g.__0067 || {};\n"
+          "  var cb = (ns.timers && ns.timers.cb) || {};\n"
+          "  var keys = Object.keys(cb);\n"
+          "  var active = 0;\n"
+          "  for (var i = 0; i < keys.length; i++) {\n"
+          "    var v = cb[keys[i]];\n"
+          "    if (v !== null && v !== undefined) active++;\n"
+          "  }\n"
+          "  var anim = (g.matrix && g.matrix.anim) || {};\n"
+          "  var regs = Object.keys(anim._registry || {}).length;\n"
+          "  var cur = (anim._current && anim._current.name) ? String(anim._current.name) : '';\n"
+          "  return String(keys.length) + '\\t' + String(active) + '\\t' + String(regs) + '\\t' + cur;\n"
+          "})();\n";
+
+      mqjs_eval_result_t r = {};
+      const esp_err_t est = mqjs_service_eval(s_svc,
+                                              kProbeCode,
+                                              strlen(kProbeCode),
+                                              500,
+                                              "<status-probe>",
+                                              &r);
+      if (est == ESP_OK && r.ok && r.output) {
+        std::string decoded;
+        if (decode_eval_string_literal(r.output, &decoded) && parse_runtime_stats(decoded.c_str(), &rs)) {
+          have_stats = true;
+        }
+      }
+      mqjs_eval_result_free(&r);
+    }
+
+    if (have_stats) {
+      lock_mu();
+      s_status.timer_cb_keys = rs.timer_keys;
+      s_status.timer_cb_active = rs.timer_active;
+      s_status.animations_registered = rs.animations_registered;
+      strlcpy(s_status.active_animation, rs.active_animation, sizeof(s_status.active_animation));
+      if (s_status.timer_cb_keys > s_status.timer_cb_keys_high_water) {
+        s_status.timer_cb_keys_high_water = s_status.timer_cb_keys;
+      }
+      unlock_mu();
+    }
+  }
+
   lock_mu();
+  s_status.heap_free_8bit = (uint32_t)heap_caps_get_free_size(MALLOC_CAP_8BIT);
+  s_status.heap_largest_free_8bit = (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+  s_status.heap_min_free_8bit = (uint32_t)heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT);
   *out = s_status;
   unlock_mu();
   return ESP_OK;

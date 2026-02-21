@@ -2,11 +2,15 @@
 
 These JavaScript examples run on the device via `/api/js/eval`.
 
+For the full scripting/runtime API and an end-to-end getting started guide, see:
+- `../docs/JS-API-GUIDE.md`
+
 ## Files
 
 - `js/01-plasma-ribbon.js`
 - `js/02-life-torus.js`
 - `js/03-comet-trails.js`
+- `js/04-anim-registry-demo.js`
 
 ## Run
 

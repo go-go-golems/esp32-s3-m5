@@ -265,6 +265,14 @@ static esp_err_t js_status_get(httpd_req_t *req)
     cJSON_AddBoolToObject(root, "last_timed_out", st.last_timed_out);
     cJSON_AddNumberToObject(root, "eval_count", st.eval_count);
     cJSON_AddNumberToObject(root, "last_eval_ms", st.last_eval_ms);
+    cJSON_AddNumberToObject(root, "timer_cb_keys", st.timer_cb_keys);
+    cJSON_AddNumberToObject(root, "timer_cb_active", st.timer_cb_active);
+    cJSON_AddNumberToObject(root, "timer_cb_keys_high_water", st.timer_cb_keys_high_water);
+    cJSON_AddNumberToObject(root, "animations_registered", st.animations_registered);
+    cJSON_AddStringToObject(root, "active_animation", st.active_animation);
+    cJSON_AddNumberToObject(root, "heap_free_8bit", st.heap_free_8bit);
+    cJSON_AddNumberToObject(root, "heap_largest_free_8bit", st.heap_largest_free_8bit);
+    cJSON_AddNumberToObject(root, "heap_min_free_8bit", st.heap_min_free_8bit);
     cJSON_AddStringToObject(root, "last_error", st.last_error);
 
     char *body = cJSON_PrintUnformatted(root);
