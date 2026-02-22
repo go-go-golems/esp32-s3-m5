@@ -802,3 +802,14 @@ Specific edits:
 ### Validation
 
 - Searched docs for legacy manual animation handle pattern (`globalThis.__matrix_anim`): no remaining occurrences in markdown docs.
+
+## Step 15: Upload updated JS API guide to reMarkable
+
+Uploaded updated `0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md` via `remarquee`.
+
+Notes:
+- Existing document already present in `/ai/2026/02/21/ESP-02-JS-MATRIX-API` and same-name upload was skipped (non-force mode).
+- To avoid destructive overwrite (`--force`), uploaded to a new dated folder instead.
+
+Upload result:
+- `JS-API-GUIDE.pdf` -> `/ai/2026/02/22/ESP-02-JS-MATRIX-API`
