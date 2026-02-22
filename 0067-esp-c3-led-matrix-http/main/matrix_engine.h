@@ -43,6 +43,8 @@ typedef struct {
     int chain_len;
     int spi_hz;
     int default_fps;
+    bool default_fliph;
+    bool default_flipv;
 } matrix_engine_config_t;
 
 esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg);

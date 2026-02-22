@@ -474,6 +474,8 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
     s_chain_len_cfg = cfg->chain_len;
     s_default_fps = cfg->default_fps > 0 ? cfg->default_fps : 15;
     s_fps = s_default_fps;
+    s_reverse_modules = cfg->default_fliph;
+    s_flip_vertical = cfg->default_flipv;
     s_scroll_loop = MATRIX_SCROLL_LOOP_GAP;
     s_first_animation_started = false;
     esp_err_t err = max7219_open(&s_dev, SPI2_HOST, cfg->pin_sck, cfg->pin_mosi, cfg->pin_cs, cfg->chain_len, cfg->spi_hz);
@@ -484,12 +486,14 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
         (void)fb_flush_all();
         if (!s_anim_task) xTaskCreate(anim_task, "matrix_anim", 4096, NULL, 2, &s_anim_task);
         ESP_LOGI(TAG,
-                 "matrix ready: chain=%d spi_hz=%d pins(mosi=%d sck=%d cs=%d)",
+                 "matrix ready: chain=%d spi_hz=%d pins(mosi=%d sck=%d cs=%d) orient(fliph=%s flipv=%s)",
                  cfg->chain_len,
                  s_dev.clock_hz,
                  cfg->pin_mosi,
                  cfg->pin_sck,
-                 cfg->pin_cs);
+                 cfg->pin_cs,
+                 s_reverse_modules ? "on" : "off",
+                 s_flip_vertical ? "on" : "off");
     }
     unlock();
     return err;

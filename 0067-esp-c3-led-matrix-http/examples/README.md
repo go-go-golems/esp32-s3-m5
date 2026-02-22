@@ -7,12 +7,15 @@ For the full scripting/runtime API and an end-to-end getting started guide, see:
 
 ## Files
 
-- `js/01-plasma-ribbon.js`
-- `js/02-life-torus.js`
-- `js/03-comet-trails.js`
-- `js/04-anim-registry-demo.js`
+- `js/01-plasma-ribbon.js` -- dual-sine ribbon interference with spark accents
+- `js/02-life-torus.js` -- Conway's Game of Life on toroidal grid with periodic reseeding
+- `js/03-comet-trails.js` -- bouncing comets with decaying trail field and dithered brightness
+- `js/04-anim-registry-demo.js` -- minimal example of `matrix.anim` register/start/cleanup
+- `js/05-nyan-cat.js` -- pixel-art cat with rainbow trail and "MAGIC" text flash
+- `js/06-superbowl.js` -- rapid-fire commercial: countdown, starbursts, sparkle rain, stadium wave, strobe finale
+- `js/07-zen-garden.js` -- calm ripple pond with breathing stone, drifting firefly, raked sand texture
 
-`01`..`03` are now written with the animation registry API (`matrix.anim.*`) instead of ad-hoc globals.
+All animation scripts use the `matrix.anim` registry API.
 Each script:
 - registers a named animation,
 - starts it immediately,
