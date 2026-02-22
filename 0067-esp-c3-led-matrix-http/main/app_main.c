@@ -1,5 +1,8 @@
 #include "sdkconfig.h"
 
+#include <stdio.h>
+#include <stdint.h>
+
 #include "esp_log.h"
 #include "esp_system.h"
 
@@ -21,8 +24,15 @@ static void register_extra_commands(void)
 
 static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
 {
-    (void)ip4_host_order;
     (void)ctx;
+    const uint8_t a = (uint8_t)((ip4_host_order >> 24) & 0xFFu);
+    const uint8_t b = (uint8_t)((ip4_host_order >> 16) & 0xFFu);
+    const uint8_t c = (uint8_t)((ip4_host_order >> 8) & 0xFFu);
+    const uint8_t d = (uint8_t)(ip4_host_order & 0xFFu);
+    char ip_text[40];
+    snprintf(ip_text, sizeof(ip_text), "IP %u.%u.%u.%u", a, b, c, d);
+
+    (void)matrix_engine_show_boot_ip(ip_text, 14, 300);
     (void)http_server_start();
 }
 
@@ -39,6 +49,7 @@ void app_main(void)
         .default_fps = CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FPS,
     };
     ESP_ERROR_CHECK(matrix_engine_init(&cfg));
+    (void)matrix_engine_play_boot_animation();
     ESP_ERROR_CHECK(js_service_start());
 
     wifi_mgr_set_on_got_ip_cb(on_wifi_got_ip, NULL);

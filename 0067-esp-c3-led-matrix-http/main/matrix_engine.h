@@ -39,6 +39,8 @@ typedef struct {
 } matrix_engine_config_t;
 
 esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg);
+esp_err_t matrix_engine_play_boot_animation(void);
+esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms);
 esp_err_t matrix_engine_set_text(const char *text);
 esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count, bool wave);
 esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count);

@@ -813,3 +813,29 @@ Notes:
 
 Upload result:
 - `JS-API-GUIDE.pdf` -> `/ai/2026/02/22/ESP-02-JS-MATRIX-API`
+
+## Step 16: Boot UX polish (boot animation + IP preview until first animation)
+
+Implemented requested startup behavior directly in firmware `0067`.
+
+### What changed
+
+1. Added boot animation support in matrix engine:
+- new API: `matrix_engine_play_boot_animation()`
+- effect: short sweep + pulse sequence at boot
+- invoked from `app_main()` immediately after `matrix_engine_init()`
+
+2. Added boot IP preview support:
+- new API: `matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms)`
+- called from Wi-Fi got-IP callback in `app_main.c`
+- displays `IP a.b.c.d` as a scrolling preview
+
+3. Added first-animation claim semantics in matrix engine:
+- engine tracks whether the first real user animation has started
+- first call to `matrix_engine_start_scroll`, `matrix_engine_start_drop`, or script framebuffer animation path (`matrix_engine_frame_*`) marks first animation as started
+- once first animation is claimed, subsequent boot-IP preview attempts are ignored
+
+### Build / validation
+
+- `idf.py build` in `0067-esp-c3-led-matrix-http` succeeds.
+- No hardware flash performed in this step because no USB serial device (`/dev/serial/by-id`, `/dev/ttyACM*`, `/dev/ttyUSB*`) was present in the environment.

@@ -36,6 +36,7 @@ static int s_text_w;
 static char s_text[65];
 static int s_intensity = 4;
 static bool s_test_mode;
+static bool s_first_animation_started;
 
 static const int8_t s_wave16[16] = {0, 1, 2, 1, 0, -1, -2, -1, 0, 1, 2, 1, 0, -1, -2, -1};
 
@@ -264,6 +265,40 @@ static int8_t drop_sample(int frame, int char_idx)
     return (int8_t)off;
 }
 
+static void mark_first_animation_started_locked(void)
+{
+    if (!s_first_animation_started) {
+        s_first_animation_started = true;
+        ESP_LOGI(TAG, "first animation started, releasing boot preview");
+    }
+}
+
+static esp_err_t start_scroll_locked(const char *text,
+                                     uint32_t fps,
+                                     uint32_t pause_ms,
+                                     uint32_t repeat_count,
+                                     bool wave,
+                                     bool boot_ip_preview)
+{
+    if (boot_ip_preview && s_first_animation_started) return ESP_OK;
+
+    set_text_cols_locked(text);
+    if (!s_text_cols || s_text_w <= 0) return ESP_ERR_INVALID_ARG;
+
+    if (!boot_ip_preview) {
+        mark_first_animation_started_locked();
+    }
+
+    s_mode = MATRIX_MODE_SCROLL;
+    s_wave = wave;
+    s_fps = fps ? fps : (uint32_t)s_default_fps;
+    s_pause_ms = pause_ms;
+    s_repeat_count = repeat_count;
+    s_cycles_done = 0;
+    if (s_anim_task) xTaskNotifyGive(s_anim_task);
+    return ESP_OK;
+}
+
 static bool mark_cycle_complete_and_check_stop(matrix_mode_t expected_mode)
 {
     bool should_stop = false;
@@ -379,14 +414,12 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
     s_chain_len_cfg = cfg->chain_len;
     s_default_fps = cfg->default_fps > 0 ? cfg->default_fps : 15;
     s_fps = s_default_fps;
+    s_first_animation_started = false;
     esp_err_t err = max7219_open(&s_dev, SPI2_HOST, cfg->pin_sck, cfg->pin_mosi, cfg->pin_cs, cfg->chain_len, cfg->spi_hz);
     if (err == ESP_OK) err = max7219_init(&s_dev);
     if (err == ESP_OK) {
         s_ready = true;
         fb_clear();
-        for (int y = 0; y < 8; y++) {
-            for (int m = 0; m < cfg->chain_len; m++) s_fb[y][m] = (uint8_t)(1u << ((m + y) & 7));
-        }
         (void)fb_flush_all();
         if (!s_anim_task) xTaskCreate(anim_task, "matrix_anim", 4096, NULL, 2, &s_anim_task);
         ESP_LOGI(TAG,
@@ -397,6 +430,67 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
                  cfg->pin_sck,
                  cfg->pin_cs);
     }
+    unlock();
+    return err;
+}
+
+esp_err_t matrix_engine_play_boot_animation(void)
+{
+    if (!s_ready) return ESP_ERR_INVALID_STATE;
+    const int w = width_active();
+
+    for (int x = 0; x < w; x += 3) {
+        lock();
+        if (!s_ready) {
+            unlock();
+            return ESP_ERR_INVALID_STATE;
+        }
+        fb_clear();
+        for (int y = 0; y < 8; y++) {
+            const int x0 = x + ((y & 1) ? 1 : 0);
+            if (x0 >= 0 && x0 < w) s_fb[y][x_to_module(x0)] |= x_to_bit(x0);
+            const int x1 = x0 - 1;
+            if (x1 >= 0 && x1 < w) s_fb[y][x_to_module(x1)] |= x_to_bit(x1);
+        }
+        (void)fb_flush_all();
+        unlock();
+        vTaskDelay(pdMS_TO_TICKS(14));
+    }
+
+    for (int i = 0; i < 2; i++) {
+        lock();
+        for (int y = 0; y < 8; y++) {
+            for (int m = 0; m < chain_len_active(); m++) s_fb[y][m] = 0xFF;
+        }
+        (void)fb_flush_all();
+        unlock();
+        vTaskDelay(pdMS_TO_TICKS(55));
+
+        lock();
+        fb_clear();
+        (void)fb_flush_all();
+        unlock();
+        vTaskDelay(pdMS_TO_TICKS(55));
+    }
+
+    lock();
+    s_mode = MATRIX_MODE_IDLE;
+    s_repeat_count = 0;
+    s_cycles_done = 0;
+    fb_clear();
+    esp_err_t err = fb_flush_all();
+    unlock();
+    return err;
+}
+
+esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms)
+{
+    lock();
+    if (!s_ready) {
+        unlock();
+        return ESP_ERR_INVALID_STATE;
+    }
+    esp_err_t err = start_scroll_locked(ip_text, fps, pause_ms, 0, false, true);
     unlock();
     return err;
 }
@@ -431,20 +525,9 @@ esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pa
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
-    set_text_cols_locked(text);
-    if (!s_text_cols || s_text_w <= 0) {
-        unlock();
-        return ESP_ERR_INVALID_ARG;
-    }
-    s_mode = MATRIX_MODE_SCROLL;
-    s_wave = wave;
-    s_fps = fps ? fps : (uint32_t)s_default_fps;
-    s_pause_ms = pause_ms;
-    s_repeat_count = repeat_count;
-    s_cycles_done = 0;
-    if (s_anim_task) xTaskNotifyGive(s_anim_task);
+    esp_err_t err = start_scroll_locked(text, fps, pause_ms, repeat_count, wave, false);
     unlock();
-    return ESP_OK;
+    return err;
 }
 
 esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count)
@@ -459,6 +542,7 @@ esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t paus
         unlock();
         return ESP_ERR_INVALID_ARG;
     }
+    mark_first_animation_started_locked();
     s_mode = MATRIX_MODE_DROP;
     s_wave = false;
     s_fps = fps ? fps : (uint32_t)s_default_fps;
@@ -571,6 +655,7 @@ esp_err_t matrix_engine_frame_clear(void)
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
+    mark_first_animation_started_locked();
     s_mode = MATRIX_MODE_SCRIPT;
     fb_clear();
     unlock();
@@ -584,6 +669,7 @@ esp_err_t matrix_engine_frame_fill(bool on)
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
+    mark_first_animation_started_locked();
     s_mode = MATRIX_MODE_SCRIPT;
     for (int y = 0; y < 8; y++) {
         for (int m = 0; m < chain_len_active(); m++) s_fb[y][m] = on ? 0xFF : 0x00;
@@ -605,6 +691,7 @@ esp_err_t matrix_engine_frame_set_pixel(int x, int y, bool on)
         return ESP_ERR_INVALID_ARG;
     }
 
+    mark_first_animation_started_locked();
     s_mode = MATRIX_MODE_SCRIPT;
     const int m = x_to_module(x);
     const uint8_t bit = x_to_bit(x);
@@ -642,6 +729,7 @@ esp_err_t matrix_engine_frame_present(void)
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
+    mark_first_animation_started_locked();
     s_mode = MATRIX_MODE_SCRIPT;
     esp_err_t err = fb_flush_all();
     unlock();

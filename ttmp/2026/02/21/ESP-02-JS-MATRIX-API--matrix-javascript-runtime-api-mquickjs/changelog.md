@@ -192,3 +192,17 @@ Uploaded updated JS API guide to reMarkable without forcing overwrite of existin
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/docs/JS-API-GUIDE.md
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md
+
+## 2026-02-22
+
+Added boot UX features to `0067` firmware:
+- boot animation at startup,
+- Wi-Fi IP scrolling preview displayed on IP acquisition,
+- preview remains until the first user animation starts.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/app_main.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.h
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md
