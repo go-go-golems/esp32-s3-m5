@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>0067 Matrix Control</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/theme/material-darker.min.css">
   <style>
     :root {
       --bg: #111216;
@@ -92,6 +94,15 @@
       line-height: 1.35;
       background: #10131a;
     }
+    .CodeMirror {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      min-height: 300px;
+      height: 360px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+    }
     button {
       padding: 7px 10px;
       cursor: pointer;
@@ -135,14 +146,39 @@
     .doc {
       max-height: 420px;
       overflow: auto;
-      white-space: pre-wrap;
       background: #0d1016;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px;
       font-size: 12px;
-      line-height: 1.35;
+      line-height: 1.45;
+    }
+    .doc h1, .doc h2, .doc h3 {
+      color: var(--accent);
+      margin: 14px 0 8px;
+    }
+    .doc p, .doc ul, .doc ol {
+      margin: 8px 0;
+    }
+    .doc code {
+      background: #131826;
+      border: 1px solid #2a3248;
+      border-radius: 6px;
+      padding: 1px 5px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+    }
+    .doc pre {
+      background: #0a0d14;
+      border: 1px solid #2a3248;
+      border-radius: 8px;
+      padding: 10px;
+      overflow: auto;
+    }
+    .doc pre code {
+      background: transparent;
+      border: 0;
+      padding: 0;
     }
     .small { font-size: 11px; color: var(--muted); }
     @media (max-width: 980px) {
@@ -233,17 +269,28 @@
       <h2 class="title">Embedded JS API Guide</h2>
       <div class="row">
         <button id="loadDocBtn">Reload Guide</button>
+        <button id="toggleDocModeBtn">View Raw</button>
         <a href="/docs/js-api-guide.md" target="_blank" class="small">Open raw markdown</a>
       </div>
       <div id="docBox" class="doc">Loading guide...</div>
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/lib/codemirror.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/codemirror@5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
   <script>
     const logEl = document.getElementById("log");
     const matrixStatusEl = document.getElementById("matrixStatus");
     const jsStatusEl = document.getElementById("jsStatus");
     const netStateEl = document.getElementById("netState");
+    const jsEditorEl = document.getElementById("jsEditor");
+    const docBox = document.getElementById("docBox");
+    const toggleDocModeBtn = document.getElementById("toggleDocModeBtn");
+    let jsEditor = null;
+    let docRawMd = "";
+    let docMode = "rendered";
     let orientationState = { rot180: true, fliph: false, flipv: false };
 
     const matrixPresets = [
@@ -275,6 +322,52 @@
       const text = await res.text();
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${text}`);
       return text;
+    }
+
+    function initEditor() {
+      if (window.CodeMirror) {
+        jsEditor = window.CodeMirror.fromTextArea(jsEditorEl, {
+          mode: "javascript",
+          lineNumbers: true,
+          theme: "material-darker",
+          indentUnit: 2,
+          tabSize: 2,
+          lineWrapping: false
+        });
+        jsEditor.setSize("100%", 360);
+        log("CodeMirror ready (CDN)", "ok");
+        return;
+      }
+      log("CodeMirror CDN unavailable, using plain textarea", "error");
+    }
+
+    function getEditorValue() {
+      return jsEditor ? jsEditor.getValue() : jsEditorEl.value;
+    }
+
+    function setEditorValue(value) {
+      if (jsEditor) {
+        jsEditor.setValue(value);
+      } else {
+        jsEditorEl.value = value;
+      }
+    }
+
+    function renderDoc() {
+      if (docMode === "raw") {
+        docBox.textContent = docRawMd;
+        toggleDocModeBtn.textContent = "View Rendered";
+        return;
+      }
+      if (window.marked && window.DOMPurify) {
+        const html = window.marked.parse(docRawMd, { gfm: true, breaks: false });
+        docBox.innerHTML = window.DOMPurify.sanitize(html);
+        toggleDocModeBtn.textContent = "View Raw";
+        return;
+      }
+      docBox.textContent = docRawMd;
+      toggleDocModeBtn.textContent = "View Raw";
+      log("Markdown CDN unavailable, showing raw guide text", "error");
     }
 
     async function refreshStatus() {
@@ -424,21 +517,20 @@
 
     function wireJsEditor() {
       const select = document.getElementById("jsPresetSelect");
-      const editor = document.getElementById("jsEditor");
       Object.keys(jsPresets).forEach((k) => {
         const o = document.createElement("option");
         o.value = k;
         o.textContent = k;
         select.appendChild(o);
       });
-      editor.value = jsPresets[Object.keys(jsPresets)[0]];
+      setEditorValue(jsPresets[Object.keys(jsPresets)[0]]);
       document.getElementById("loadJsPresetBtn").onclick = () => {
-        editor.value = jsPresets[select.value];
+        setEditorValue(jsPresets[select.value]);
         log(`loaded JS preset: ${select.value}`);
       };
       document.getElementById("runJsBtn").onclick = async () => {
         try {
-          const out = await req("/api/js/eval", { method: "POST", body: editor.value });
+          const out = await req("/api/js/eval", { method: "POST", body: getEditorValue() });
           log(`js eval -> ${out.slice(0, 220)}`, "ok");
           refreshStatus();
         } catch (e) {
@@ -475,20 +567,25 @@
     }
 
     async function loadDoc() {
-      const box = document.getElementById("docBox");
-      box.textContent = "Loading...";
+      docBox.textContent = "Loading...";
       try {
-        box.textContent = await req("/docs/js-api-guide.md");
+        docRawMd = await req("/docs/js-api-guide.md");
+        renderDoc();
         log("loaded embedded JS API guide", "ok");
       } catch (e) {
-        box.textContent = `Failed to load guide:\n${e.message}`;
+        docBox.textContent = `Failed to load guide:\n${e.message}`;
         log(`guide load failed: ${e.message}`, "error");
       }
     }
 
     document.getElementById("refreshBtn").onclick = refreshStatus;
     document.getElementById("loadDocBtn").onclick = loadDoc;
+    toggleDocModeBtn.onclick = () => {
+      docMode = docMode === "rendered" ? "raw" : "rendered";
+      renderDoc();
+    };
 
+    initEditor();
     wireMatrixPresets();
     wireManualControls();
     wireOrientationControls();
