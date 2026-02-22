@@ -18,6 +18,8 @@ static httpd_handle_t s_server;
 
 extern const uint8_t assets_index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t assets_index_html_end[] asm("_binary_index_html_end");
+extern const uint8_t js_api_guide_md_start[] asm("_binary_js_api_guide_md_start");
+extern const uint8_t js_api_guide_md_end[] asm("_binary_js_api_guide_md_end");
 
 static const char *loop_mode_to_str(matrix_scroll_loop_t mode)
 {
@@ -68,6 +70,15 @@ static esp_err_t root_get(httpd_req_t *req)
                                    "text/html; charset=utf-8",
                                    "no-store",
                                    true);
+}
+
+static esp_err_t js_api_guide_get(httpd_req_t *req)
+{
+    const char *ctype = "text/markdown; charset=utf-8";
+    const size_t n = (size_t)(js_api_guide_md_end - js_api_guide_md_start);
+    httpd_resp_set_type(req, ctype);
+    httpd_resp_set_hdr(req, "cache-control", "no-store");
+    return httpd_resp_send(req, (const char *)js_api_guide_md_start, (ssize_t)n);
 }
 
 static esp_err_t send_status(httpd_req_t *req)
@@ -324,7 +335,7 @@ esp_err_t http_server_start(void)
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
-    cfg.max_uri_handlers = 13;
+    cfg.max_uri_handlers = 15;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
     esp_err_t err = httpd_start(&s_server, &cfg);
@@ -336,6 +347,8 @@ esp_err_t http_server_start(void)
 
     httpd_uri_t root = {.uri = "/", .method = HTTP_GET, .handler = root_get};
     httpd_register_uri_handler(s_server, &root);
+    httpd_uri_t js_guide = {.uri = "/docs/js-api-guide.md", .method = HTTP_GET, .handler = js_api_guide_get};
+    httpd_register_uri_handler(s_server, &js_guide);
 
     httpd_uri_t st = {.uri = "/api/matrix/status", .method = HTTP_GET, .handler = matrix_status_get};
     httpd_register_uri_handler(s_server, &st);

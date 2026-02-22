@@ -1,12 +1,433 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>0067 Matrix</title>
+  <title>0067 Matrix Control</title>
+  <style>
+    :root {
+      --bg: #111216;
+      --panel: #1b1e25;
+      --panel2: #232734;
+      --text: #f3f4f8;
+      --muted: #acb3c6;
+      --ok: #55d98d;
+      --warn: #ffd166;
+      --err: #ff6b6b;
+      --accent: #72c7ff;
+      --border: #353b4f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(1200px 400px at 20% -10%, #2f3f75 0%, transparent 55%),
+        radial-gradient(900px 300px at 90% -20%, #25543e 0%, transparent 60%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+    }
+    header h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      letter-spacing: .4px;
+    }
+    header .sub { color: var(--muted); font-size: 13px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 12px;
+      padding: 12px;
+    }
+    .card {
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    }
+    .c-4 { grid-column: span 4; }
+    .c-6 { grid-column: span 6; }
+    .c-8 { grid-column: span 8; }
+    .c-12 { grid-column: span 12; }
+    .title {
+      margin: 0 0 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .9px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    label { font-size: 12px; color: var(--muted); }
+    input, select, textarea, button {
+      font: inherit;
+      color: var(--text);
+      background: #151922;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    input, select {
+      padding: 7px 9px;
+      min-height: 34px;
+    }
+    textarea {
+      width: 100%;
+      min-height: 300px;
+      padding: 10px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      background: #10131a;
+    }
+    button {
+      padding: 7px 10px;
+      cursor: pointer;
+      background: #202739;
+      transition: .12s ease;
+    }
+    button:hover { border-color: var(--accent); transform: translateY(-1px); }
+    button.good { background: #1f3a2f; border-color: #2b704f; }
+    button.warn { background: #413524; border-color: #8a6f46; }
+    button.bad { background: #412526; border-color: #8a4b4c; }
+    .status-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(130px, 1fr));
+      gap: 6px 10px;
+      font-size: 12px;
+    }
+    .status-list div { color: var(--muted); }
+    .status-list b { color: var(--text); }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .pill.ok { color: var(--ok); border-color: #3e7b5a; }
+    .pill.warn { color: var(--warn); border-color: #8c7343; }
+    .log {
+      width: 100%;
+      min-height: 110px;
+      padding: 10px;
+      background: #0d1016;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .doc {
+      max-height: 420px;
+      overflow: auto;
+      white-space: pre-wrap;
+      background: #0d1016;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .small { font-size: 11px; color: var(--muted); }
+    @media (max-width: 980px) {
+      .c-4, .c-6, .c-8, .c-12 { grid-column: span 12; }
+      textarea { min-height: 240px; }
+    }
+  </style>
 </head>
 <body>
-  <h1>0067 Matrix HTTP</h1>
-  <p>Use REST endpoints under <code>/api/matrix/*</code>.</p>
+  <header>
+    <h1>0067 Matrix Control Panel</h1>
+    <div class="sub">Preset animations, JS editor, runtime status, and embedded JS API guide.</div>
+  </header>
+
+  <main class="grid">
+    <section class="card c-4">
+      <h2 class="title">Live Status</h2>
+      <div class="row">
+        <span id="netState" class="pill warn">polling...</span>
+        <button id="refreshBtn">Refresh</button>
+      </div>
+      <div class="status-list" id="matrixStatus"></div>
+      <hr style="border-color:var(--border); border-style:solid; border-width:1px 0 0; margin:10px 0;">
+      <div class="status-list" id="jsStatus"></div>
+    </section>
+
+    <section class="card c-8">
+      <h2 class="title">Matrix Presets</h2>
+      <div class="row" id="matrixPresetButtons"></div>
+      <div class="small">All presets call <code>/api/matrix/anim</code> with mode/text/fps/pause/repeat/loop_mode.</div>
+      <hr style="border-color:var(--border); border-style:solid; border-width:1px 0 0; margin:10px 0;">
+      <div class="row">
+        <label>Mode
+          <select id="animMode">
+            <option value="scroll">scroll</option>
+            <option value="wave">wave</option>
+            <option value="drop">drop</option>
+          </select>
+        </label>
+        <label>Text <input id="animText" value="HELLO WIFI"></label>
+        <label>FPS <input id="animFps" type="number" min="1" max="60" value="18" style="width:72px"></label>
+        <label>Pause ms <input id="animPause" type="number" min="0" value="250" style="width:90px"></label>
+        <label>Repeat <input id="animRepeat" type="number" min="0" value="0" style="width:76px"></label>
+        <label>Loop
+          <select id="animLoop">
+            <option value="gap">gap</option>
+            <option value="wrap">wrap</option>
+            <option value="right_exit">right_exit</option>
+          </select>
+        </label>
+      </div>
+      <div class="row">
+        <button class="good" id="startAnimBtn">Start Animation</button>
+        <button id="setTextBtn">Set Text</button>
+        <button class="bad" id="stopMatrixBtn">Stop Matrix</button>
+      </div>
+    </section>
+
+    <section class="card c-8">
+      <h2 class="title">JS Editor</h2>
+      <div class="row">
+        <label>JS Preset
+          <select id="jsPresetSelect"></select>
+        </label>
+        <button id="loadJsPresetBtn">Load Preset</button>
+        <button class="good" id="runJsBtn">Run JS</button>
+        <button id="stopJsBtn">JS Stop</button>
+        <button class="warn" id="resetJsBtn">JS Reset</button>
+        <button class="bad" id="hardResetJsBtn">JS Hard Reset</button>
+      </div>
+      <textarea id="jsEditor" spellcheck="false"></textarea>
+      <div class="small">Editor posts raw code to <code>/api/js/eval</code>.</div>
+    </section>
+
+    <section class="card c-4">
+      <h2 class="title">Output</h2>
+      <div id="log" class="log"></div>
+    </section>
+
+    <section class="card c-12">
+      <h2 class="title">Embedded JS API Guide</h2>
+      <div class="row">
+        <button id="loadDocBtn">Reload Guide</button>
+        <a href="/docs/js-api-guide.md" target="_blank" class="small">Open raw markdown</a>
+      </div>
+      <div id="docBox" class="doc">Loading guide...</div>
+    </section>
+  </main>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const matrixStatusEl = document.getElementById("matrixStatus");
+    const jsStatusEl = document.getElementById("jsStatus");
+    const netStateEl = document.getElementById("netState");
+
+    const matrixPresets = [
+      { label: "Wave: HELLO", payload: { mode: "wave", text: "HELLO WIFI", fps: 18, pause_ms: 250, repeat_count: 0, loop_mode: "wrap" } },
+      { label: "Wave: PUNCT", payload: { mode: "wave", text: ".?[]()@{}<>!", fps: 17, pause_ms: 180, repeat_count: 0, loop_mode: "wrap" } },
+      { label: "Scroll: Gap", payload: { mode: "scroll", text: "SCROLL GAP", fps: 16, pause_ms: 300, repeat_count: 0, loop_mode: "gap" } },
+      { label: "Scroll: Right Exit", payload: { mode: "scroll", text: "RIGHT EXIT", fps: 16, pause_ms: 200, repeat_count: 0, loop_mode: "right_exit" } },
+      { label: "Drop: BOUNCE", payload: { mode: "drop", text: "BOUNCE", fps: 18, pause_ms: 240, repeat_count: 0 } },
+      { label: "IP Style", payload: { mode: "scroll", text: "IP 192.168.3.119", fps: 14, pause_ms: 320, repeat_count: 0, loop_mode: "wrap" } }
+    ];
+
+    const jsPresets = {
+      "Runner (matrix.anim)": `(function () {\n  var name = "runner-demo";\n  matrix.anim.unregister(name);\n  matrix.anim.register(name, function (ctx) {\n    var x = 0;\n    var y = 3;\n    ctx.every(40, function () {\n      if (ctx.shouldStop()) return;\n      ctx.matrix.clear();\n      ctx.matrix.setPixel(x, y, 1);\n      ctx.matrix.present();\n      x = (x + 1) % ctx.matrix.width();\n    });\n    return function () { ctx.matrix.clear(); ctx.matrix.present(); };\n  });\n  matrix.anim.start(name, {});\n  return JSON.stringify(matrix.anim.status());\n})()`,
+      "Pulse fill": `(function () {\n  var name = "pulse-demo";\n  matrix.anim.unregister(name);\n  matrix.anim.register(name, function (ctx) {\n    var on = false;\n    ctx.every(120, function () {\n      if (ctx.shouldStop()) return;\n      on = !on;\n      ctx.matrix.fill(on ? 1 : 0);\n      ctx.matrix.present();\n    });\n    return function () { ctx.matrix.clear(); ctx.matrix.present(); };\n  });\n  matrix.anim.start(name, {});\n  return JSON.stringify(matrix.anim.status());\n})()`,
+      "Comet mini": `(function () {\n  var name = "comet-mini";\n  matrix.anim.unregister(name);\n  matrix.anim.register(name, function (ctx) {\n    var w = ctx.matrix.width();\n    var h = ctx.matrix.height();\n    var x = 0;\n    var y = 0;\n    var vx = 1;\n    var vy = 1;\n    ctx.every(45, function () {\n      if (ctx.shouldStop()) return;\n      ctx.matrix.clear();\n      for (var i = 0; i < 6; i++) {\n        var tx = x - i * vx;\n        var ty = y - i * vy;\n        if (tx >= 0 && tx < w && ty >= 0 && ty < h) ctx.matrix.setPixel(tx, ty, 1);\n      }\n      ctx.matrix.present();\n      x += vx;\n      y += vy;\n      if (x <= 0 || x >= w - 1) vx = -vx;\n      if (y <= 0 || y >= h - 1) vy = -vy;\n    });\n    return function () { ctx.matrix.clear(); ctx.matrix.present(); };\n  });\n  matrix.anim.start(name, {});\n  return JSON.stringify(matrix.anim.status());\n})()`,
+      "Builtin wave trigger": `(function(){\n  matrix.stop();\n  matrix.startScroll("HELLO JS", { fps: 20, pauseMs: 250, repeat: 0, wave: true, loopMode: "wrap" });\n  return matrix.statusJson();\n})()`
+    };
+
+    function log(msg, kind = "info") {
+      const stamp = new Date().toISOString().replace("T", " ").slice(0, 19);
+      let tag = "[INFO]";
+      if (kind === "error") tag = "[ERR ]";
+      if (kind === "ok") tag = "[ OK ]";
+      logEl.textContent = `${stamp} ${tag} ${msg}\n` + logEl.textContent;
+    }
+
+    async function req(url, opts) {
+      const res = await fetch(url, opts);
+      const text = await res.text();
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${text}`);
+      return text;
+    }
+
+    async function refreshStatus() {
+      try {
+        const [mRaw, jRaw] = await Promise.all([
+          req("/api/matrix/status"),
+          req("/api/js/status")
+        ]);
+        const m = JSON.parse(mRaw);
+        const j = JSON.parse(jRaw);
+        netStateEl.textContent = "online";
+        netStateEl.className = "pill ok";
+        matrixStatusEl.innerHTML = [
+          ["mode", m.mode], ["text", m.text || "-"], ["width", String(m.width)],
+          ["fps", String(m.fps)], ["pause_ms", String(m.pause_ms)], ["repeat", String(m.repeat_count)],
+          ["loop_mode", m.loop_mode], ["rot180", String(m.rotate_180)], ["fliph", String(m.reverse_modules)],
+          ["flipv", String(m.flip_vertical)], ["intensity", String(m.intensity)]
+        ].map(([k, v]) => `<div>${k}: <b>${v}</b></div>`).join("");
+        jsStatusEl.innerHTML = [
+          ["started", String(j.started)], ["busy", String(j.busy)], ["eval_count", String(j.eval_count)],
+          ["last_eval_ms", String(j.last_eval_ms)], ["timers", `${j.timer_cb_active}/${j.timer_cb_keys}`],
+          ["active_anim", j.active_animation || "-"], ["last_error", j.last_error || "-"]
+        ].map(([k, v]) => `<div>${k}: <b>${v}</b></div>`).join("");
+      } catch (e) {
+        netStateEl.textContent = "offline";
+        netStateEl.className = "pill warn";
+        log(`status poll failed: ${e.message}`, "error");
+      }
+    }
+
+    async function sendAnim(payload) {
+      const out = await req("/api/matrix/anim", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      log(`anim -> ${payload.mode} "${payload.text}" (${payload.loop_mode || "gap"})`, "ok");
+      refreshStatus();
+      return out;
+    }
+
+    function wireMatrixPresets() {
+      const root = document.getElementById("matrixPresetButtons");
+      matrixPresets.forEach((p) => {
+        const b = document.createElement("button");
+        b.textContent = p.label;
+        b.onclick = () => sendAnim(p.payload).catch((e) => log(`preset failed: ${e.message}`, "error"));
+        root.appendChild(b);
+      });
+    }
+
+    function wireManualControls() {
+      document.getElementById("startAnimBtn").onclick = () => {
+        const payload = {
+          mode: document.getElementById("animMode").value,
+          text: document.getElementById("animText").value,
+          fps: Number(document.getElementById("animFps").value || 15),
+          pause_ms: Number(document.getElementById("animPause").value || 250),
+          repeat_count: Number(document.getElementById("animRepeat").value || 0),
+          loop_mode: document.getElementById("animLoop").value
+        };
+        sendAnim(payload).catch((e) => log(`start anim failed: ${e.message}`, "error"));
+      };
+      document.getElementById("setTextBtn").onclick = async () => {
+        try {
+          const text = document.getElementById("animText").value;
+          await req("/api/matrix/text", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ text })
+          });
+          log(`text -> "${text}"`, "ok");
+          refreshStatus();
+        } catch (e) {
+          log(`set text failed: ${e.message}`, "error");
+        }
+      };
+      document.getElementById("stopMatrixBtn").onclick = async () => {
+        try {
+          await req("/api/matrix/stop", { method: "POST" });
+          log("matrix stopped", "ok");
+          refreshStatus();
+        } catch (e) {
+          log(`matrix stop failed: ${e.message}`, "error");
+        }
+      };
+    }
+
+    function wireJsEditor() {
+      const select = document.getElementById("jsPresetSelect");
+      const editor = document.getElementById("jsEditor");
+      Object.keys(jsPresets).forEach((k) => {
+        const o = document.createElement("option");
+        o.value = k;
+        o.textContent = k;
+        select.appendChild(o);
+      });
+      editor.value = jsPresets[Object.keys(jsPresets)[0]];
+      document.getElementById("loadJsPresetBtn").onclick = () => {
+        editor.value = jsPresets[select.value];
+        log(`loaded JS preset: ${select.value}`);
+      };
+      document.getElementById("runJsBtn").onclick = async () => {
+        try {
+          const out = await req("/api/js/eval", { method: "POST", body: editor.value });
+          log(`js eval -> ${out.slice(0, 220)}`, "ok");
+          refreshStatus();
+        } catch (e) {
+          log(`js eval failed: ${e.message}`, "error");
+        }
+      };
+      document.getElementById("stopJsBtn").onclick = async () => {
+        try {
+          await req("/api/js/stop", { method: "POST" });
+          log("js stop requested", "ok");
+          refreshStatus();
+        } catch (e) {
+          log(`js stop failed: ${e.message}`, "error");
+        }
+      };
+      document.getElementById("resetJsBtn").onclick = async () => {
+        try {
+          await req("/api/js/reset", { method: "POST" });
+          log("js soft reset", "ok");
+          refreshStatus();
+        } catch (e) {
+          log(`js reset failed: ${e.message}`, "error");
+        }
+      };
+      document.getElementById("hardResetJsBtn").onclick = async () => {
+        try {
+          await req("/api/js/reset-hard", { method: "POST" });
+          log("js hard reset", "warn");
+          refreshStatus();
+        } catch (e) {
+          log(`js hard reset failed: ${e.message}`, "error");
+        }
+      };
+    }
+
+    async function loadDoc() {
+      const box = document.getElementById("docBox");
+      box.textContent = "Loading...";
+      try {
+        box.textContent = await req("/docs/js-api-guide.md");
+        log("loaded embedded JS API guide", "ok");
+      } catch (e) {
+        box.textContent = `Failed to load guide:\n${e.message}`;
+        log(`guide load failed: ${e.message}`, "error");
+      }
+    }
+
+    document.getElementById("refreshBtn").onclick = refreshStatus;
+    document.getElementById("loadDocBtn").onclick = loadDoc;
+
+    wireMatrixPresets();
+    wireManualControls();
+    wireJsEditor();
+    refreshStatus();
+    loadDoc();
+    setInterval(refreshStatus, 2000);
+  </script>
 </body>
 </html>

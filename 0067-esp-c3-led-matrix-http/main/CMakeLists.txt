@@ -26,5 +26,6 @@ idf_component_register(
         wifi_mgr
     EMBED_TXTFILES
         "assets/index.html"
+        "assets/js-api-guide.md"
     INCLUDE_DIRS "." "mqjs"
 )

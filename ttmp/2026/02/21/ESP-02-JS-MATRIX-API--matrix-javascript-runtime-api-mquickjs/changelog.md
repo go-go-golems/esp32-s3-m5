@@ -276,3 +276,25 @@ Fixed horizontal flip behavior and added explicit rotate-180 orientation flag.
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/Kconfig.projbuild
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/app_main.c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/sdkconfig.defaults
+
+## 2026-02-22
+
+Added a full embedded web control panel and onboard JS API guide endpoint.
+
+### Included changes
+
+- Replaced minimal `/` page with a richer control panel UI:
+  - matrix animation presets,
+  - manual matrix animation form,
+  - JS editor with script presets and runtime controls,
+  - live status polling.
+- Added `GET /docs/js-api-guide.md` to serve embedded JS guide markdown from firmware.
+- Added `main/assets/js-api-guide.md` to embedded assets list.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/assets/index.html
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/assets/js-api-guide.md
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/http_server.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/CMakeLists.txt
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md

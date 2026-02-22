@@ -972,3 +972,38 @@ This keeps rotate-180 as an independent toggle on top of existing flip settings.
 ### Validation
 
 - `idf.py build` succeeds after all changes.
+
+## Step 21: Build embedded web control panel with animation presets + JS editor + onboard API guide
+
+User requested a richer static HTML server experience: preset triggers, JS editor with loadable scripts, and embedded full JS documentation.
+
+### Web UI changes
+
+Replaced minimal landing page with a full control panel in `main/assets/index.html` featuring:
+- Live polling of matrix and JS runtime status.
+- Matrix animation preset buttons (`wave`, `scroll`, `drop`) using existing REST API.
+- Manual animation form with `mode/text/fps/pause/repeat/loop_mode`.
+- JS editor with preset loader and controls for:
+  - run (`/api/js/eval`)
+  - stop (`/api/js/stop`)
+  - soft reset (`/api/js/reset`)
+  - hard reset (`/api/js/reset-hard`)
+- Embedded API guide viewer panel pulling markdown from a firmware-served endpoint.
+
+### New docs endpoint
+
+Added endpoint:
+- `GET /docs/js-api-guide.md`
+
+Implementation details:
+- added `main/assets/js-api-guide.md` (copied from `docs/JS-API-GUIDE.md`)
+- embedded via `EMBED_TXTFILES` in `main/CMakeLists.txt`
+- served by new handler in `main/http_server.c`
+
+### Debugging note
+
+Build initially failed due incorrect symbol names for embedded markdown asset; fixed by using generated symbol names (`_binary_js_api_guide_md_start/_end`).
+
+### Validation
+
+- `idf.py build` succeeds with new web UI + docs endpoint.
