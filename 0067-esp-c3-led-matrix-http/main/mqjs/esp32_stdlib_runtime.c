@@ -142,6 +142,7 @@ static JSValue matrix_status_to_js(JSContext *ctx) {
   (void)JS_SetPropertyStr(ctx, root, "pause_ms", JS_NewUint32(ctx, st.pause_ms));
   (void)JS_SetPropertyStr(ctx, root, "repeat_count", JS_NewUint32(ctx, st.repeat_count));
   (void)JS_SetPropertyStr(ctx, root, "loop_mode", JS_NewString(ctx, scroll_loop_to_str(st.scroll_loop)));
+  (void)JS_SetPropertyStr(ctx, root, "rotate_180", JS_NewBool(st.rotate_180 ? 1 : 0));
   (void)JS_SetPropertyStr(ctx, root, "reverse_modules", JS_NewBool(st.reverse_modules ? 1 : 0));
   (void)JS_SetPropertyStr(ctx, root, "flip_vertical", JS_NewBool(st.flip_vertical ? 1 : 0));
   (void)JS_SetPropertyStr(ctx, root, "stop_requested", JS_NewBool(s_stop_requested ? 1 : 0));
@@ -554,6 +555,12 @@ static JSValue js_i2c_tx(JSContext *ctx, JSValue *this_val, int argc, JSValue *a
     if (!get_obj_bool(ctx, cmd, "reverse", &reverse, false)) return JS_EXCEPTION;
     if (!get_obj_bool(ctx, cmd, "flipv", &flipv, true)) return JS_EXCEPTION;
     return JS_NewBool(matrix_engine_set_orientation(reverse, flipv) == ESP_OK);
+  }
+
+  if (strcmp(op, "rotate180") == 0) {
+    bool on = false;
+    if (!get_obj_bool(ctx, cmd, "on", &on, false)) return JS_EXCEPTION;
+    return JS_NewBool(matrix_engine_set_rotate_180(on) == ESP_OK);
   }
 
   if (strcmp(op, "sleepMs") == 0) {

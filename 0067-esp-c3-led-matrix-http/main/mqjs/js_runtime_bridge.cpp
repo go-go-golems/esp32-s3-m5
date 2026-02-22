@@ -131,6 +131,7 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "m._stopRaw = function() { return !!i2c.tx({op:'stop'}); };\n"
       "m.setIntensity = function(v) { return !!i2c.tx({op:'intensity', value:(v|0)}); };\n"
       "m.setOrientation = function(reverse, flipv) { return !!i2c.tx({op:'orientation', reverse:(reverse ? 1 : 0), flipv:(flipv ? 1 : 0)}); };\n"
+      "m.setRotate180 = function(on) { return !!i2c.tx({op:'rotate180', on:(on ? 1 : 0)}); };\n"
       "m.status = function() { return i2c.txrx({op:'status'}); };\n"
       "m.statusJson = function() { return JSON.stringify(m.status()); };\n"
       "m.nowMs = function() { return i2c.txrx({op:'nowMs'}); };\n"

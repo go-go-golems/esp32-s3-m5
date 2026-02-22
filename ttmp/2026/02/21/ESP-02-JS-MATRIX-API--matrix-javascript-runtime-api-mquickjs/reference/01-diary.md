@@ -924,3 +924,51 @@ In `main/Kconfig.projbuild`:
 
 - Initial build failed due undefined bool macro when option is `n`; fixed by using `#if` wrappers in `app_main.c`.
 - `idf.py build` succeeds after fix.
+
+## Step 20: Fix `fliph` pixel mapping and add explicit `rot180` flag
+
+User observed `fliph` appeared broken/interleaved. Root cause: previous implementation only reversed module order and did not reverse bit order within each 8-pixel module, so horizontal mirror was incomplete.
+
+### Fix: true horizontal mirror
+
+Updated row flush mapping to treat horizontal flip as full X-axis mirror:
+- reverse module order
+- reverse bits inside each module byte (`reverse_bits8`)
+
+This produces a real global horizontal flip instead of chunk-level reordering artifacts.
+
+### Added rotate 180 support
+
+Implemented explicit rotate-180 flag in matrix engine:
+- state: `rotate_180`
+- effective orientation at flush time uses XOR composition:
+  - `eff_fliph = reverse_modules XOR rotate_180`
+  - `eff_flipv = flip_vertical XOR rotate_180`
+
+This keeps rotate-180 as an independent toggle on top of existing flip settings.
+
+### Interfaces updated
+
+1. Matrix engine/status:
+- added `rotate_180` to `matrix_status_t`
+- added API: `matrix_engine_set_rotate_180(bool)`
+
+2. Console:
+- new command: `matrix rot180 on|off` (alias: `matrix rotate180 on|off`)
+- `matrix status` now prints `rot180`
+
+3. JS API:
+- added `matrix.setRotate180(on)`
+- runtime op `rotate180`
+- `matrix.status()` now includes `rotate_180`
+
+4. HTTP status:
+- `/api/matrix/status` now includes `rotate_180`
+
+5. Kconfig defaults:
+- added `CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_ROTATE_180` (default `n`)
+- startup config now supports `default_rotate_180`
+
+### Validation
+
+- `idf.py build` succeeds after all changes.

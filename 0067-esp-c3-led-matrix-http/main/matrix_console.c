@@ -49,6 +49,7 @@ static void usage(void)
     printf("  matrix intensity <0..15>\n");
     printf("  matrix spi [hz]\n");
     printf("  matrix chain [n]\n");
+    printf("  matrix rot180 on|off\n");
     printf("  matrix fliph on|off\n");
     printf("  matrix reverse on|off\n");
     printf("  matrix flipv on|off\n");
@@ -61,6 +62,8 @@ static void examples(void)
     printf("  matrix scroll wave \"HELLO WIFI\" 20 250 0 wrap\n");
     printf("  matrix scroll wave \"HELLO WIFI\" 20 250 2 right_exit\n");
     printf("  matrix anim drop BOUNCE 18 400 3\n");
+    printf("  matrix rot180 on\n");
+    printf("  matrix rot180 off\n");
     printf("  matrix intensity 8\n");
     printf("  matrix fliph on\n");
     printf("  matrix fliph off\n");
@@ -86,7 +89,7 @@ static int cmd_matrix(int argc, char **argv)
         if (st.mode == MATRIX_MODE_SCROLL) mode = "scroll";
         if (st.mode == MATRIX_MODE_DROP) mode = "drop";
         if (st.mode == MATRIX_MODE_SCRIPT) mode = "script";
-        printf("ok: ready=%s mode=%s loop=%s chain=%d width=%d spi_hz=%d intensity=%d test=%s fps=%u pause_ms=%u repeat=%u reverse=%s flipv=%s text=%s\n",
+        printf("ok: ready=%s mode=%s loop=%s chain=%d width=%d spi_hz=%d intensity=%d test=%s fps=%u pause_ms=%u repeat=%u rot180=%s reverse=%s flipv=%s text=%s\n",
                st.ready ? "yes" : "no",
                mode,
                loop_mode_to_str(st.scroll_loop),
@@ -98,6 +101,7 @@ static int cmd_matrix(int argc, char **argv)
                (unsigned)st.fps,
                (unsigned)st.pause_ms,
                (unsigned)st.repeat_count,
+               st.rotate_180 ? "on" : "off",
                st.reverse_modules ? "on" : "off",
                st.flip_vertical ? "on" : "off",
                st.text[0] ? st.text : "-");
@@ -179,6 +183,11 @@ static int cmd_matrix(int argc, char **argv)
         (void)matrix_engine_get_status(&st);
         bool on = strcmp(argv[2], "on") == 0;
         return matrix_engine_set_orientation(on, st.flip_vertical) == ESP_OK ? 0 : 1;
+    }
+
+    if ((strcmp(argv[1], "rot180") == 0 || strcmp(argv[1], "rotate180") == 0) && argc >= 3) {
+        bool on = strcmp(argv[2], "on") == 0;
+        return matrix_engine_set_rotate_180(on) == ESP_OK ? 0 : 1;
     }
 
     if (strcmp(argv[1], "flipv") == 0 && argc >= 3) {

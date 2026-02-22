@@ -19,6 +19,7 @@ static SemaphoreHandle_t s_mu;
 static bool s_ready;
 static bool s_reverse_modules;
 static bool s_flip_vertical = true;
+static bool s_rotate_180;
 static int s_chain_len_cfg = 12;
 static int s_default_fps = 15;
 static uint8_t s_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
@@ -157,6 +158,14 @@ static uint8_t x_to_bit(int x)
     return (uint8_t)(1u << (x % 8));
 }
 
+static uint8_t reverse_bits8(uint8_t v)
+{
+    v = (uint8_t)(((v & 0xF0u) >> 4) | ((v & 0x0Fu) << 4));
+    v = (uint8_t)(((v & 0xCCu) >> 2) | ((v & 0x33u) << 2));
+    v = (uint8_t)(((v & 0xAAu) >> 1) | ((v & 0x55u) << 1));
+    return v;
+}
+
 static void fb_clear(void)
 {
     memset(s_fb, 0, sizeof(s_fb));
@@ -164,12 +173,16 @@ static void fb_clear(void)
 
 static esp_err_t fb_flush_row(int y)
 {
-    const int row = s_flip_vertical ? (7 - y) : y;
+    const bool eff_flipv = (s_flip_vertical != s_rotate_180);
+    const bool eff_fliph = (s_reverse_modules != s_rotate_180);
+    const int row = eff_flipv ? (7 - y) : y;
     uint8_t phy[MAX7219_MAX_CHAIN_LEN] = {0};
     const int n = chain_len_active();
     for (int m = 0; m < n; m++) {
-        const int src = s_reverse_modules ? ((n - 1) - m) : m;
-        phy[m] = s_fb[y][src];
+        const int src = eff_fliph ? ((n - 1) - m) : m;
+        uint8_t bits = s_fb[y][src];
+        if (eff_fliph) bits = reverse_bits8(bits);
+        phy[m] = bits;
     }
     return max7219_set_row_chain(&s_dev, (uint8_t)row, phy);
 }
@@ -476,6 +489,7 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
     s_fps = s_default_fps;
     s_reverse_modules = cfg->default_fliph;
     s_flip_vertical = cfg->default_flipv;
+    s_rotate_180 = cfg->default_rotate_180;
     s_scroll_loop = MATRIX_SCROLL_LOOP_GAP;
     s_first_animation_started = false;
     esp_err_t err = max7219_open(&s_dev, SPI2_HOST, cfg->pin_sck, cfg->pin_mosi, cfg->pin_cs, cfg->chain_len, cfg->spi_hz);
@@ -486,14 +500,15 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
         (void)fb_flush_all();
         if (!s_anim_task) xTaskCreate(anim_task, "matrix_anim", 4096, NULL, 2, &s_anim_task);
         ESP_LOGI(TAG,
-                 "matrix ready: chain=%d spi_hz=%d pins(mosi=%d sck=%d cs=%d) orient(fliph=%s flipv=%s)",
+                 "matrix ready: chain=%d spi_hz=%d pins(mosi=%d sck=%d cs=%d) orient(fliph=%s flipv=%s rot180=%s)",
                  cfg->chain_len,
                  s_dev.clock_hz,
                  cfg->pin_mosi,
                  cfg->pin_sck,
                  cfg->pin_cs,
                  s_reverse_modules ? "on" : "off",
-                 s_flip_vertical ? "on" : "off");
+                 s_flip_vertical ? "on" : "off",
+                 s_rotate_180 ? "on" : "off");
     }
     unlock();
     return err;
@@ -683,6 +698,15 @@ esp_err_t matrix_engine_set_orientation(bool reverse_modules, bool flip_vertical
     return err;
 }
 
+esp_err_t matrix_engine_set_rotate_180(bool on)
+{
+    lock();
+    s_rotate_180 = on;
+    esp_err_t err = fb_flush_all();
+    unlock();
+    return err;
+}
+
 esp_err_t matrix_engine_get_status(matrix_status_t *out)
 {
     if (!out) return ESP_ERR_INVALID_ARG;
@@ -697,6 +721,7 @@ esp_err_t matrix_engine_get_status(matrix_status_t *out)
     out->test_mode = s_test_mode;
     out->reverse_modules = s_reverse_modules;
     out->flip_vertical = s_flip_vertical;
+    out->rotate_180 = s_rotate_180;
     out->fps = s_fps;
     out->pause_ms = s_pause_ms;
     out->repeat_count = s_repeat_count;

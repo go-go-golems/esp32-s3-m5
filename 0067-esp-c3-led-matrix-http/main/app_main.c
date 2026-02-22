@@ -27,6 +27,12 @@ static const char *TAG = "0067_main";
 #define MATRIX_CFG_DEFAULT_FLIPV false
 #endif
 
+#if CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_ROTATE_180
+#define MATRIX_CFG_DEFAULT_ROT180 true
+#else
+#define MATRIX_CFG_DEFAULT_ROT180 false
+#endif
+
 static void register_extra_commands(void)
 {
     extern void matrix_console_register_commands(void);
@@ -61,6 +67,7 @@ void app_main(void)
         .default_fps = CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FPS,
         .default_fliph = MATRIX_CFG_DEFAULT_FLIPH,
         .default_flipv = MATRIX_CFG_DEFAULT_FLIPV,
+        .default_rotate_180 = MATRIX_CFG_DEFAULT_ROT180,
     };
     ESP_ERROR_CHECK(matrix_engine_init(&cfg));
     (void)matrix_engine_play_boot_animation();

@@ -98,6 +98,7 @@ static esp_err_t send_status(httpd_req_t *req)
     cJSON_AddNumberToObject(root, "pause_ms", st.pause_ms);
     cJSON_AddNumberToObject(root, "repeat_count", st.repeat_count);
     cJSON_AddStringToObject(root, "loop_mode", loop_mode_to_str(st.scroll_loop));
+    cJSON_AddBoolToObject(root, "rotate_180", st.rotate_180);
     cJSON_AddBoolToObject(root, "reverse_modules", st.reverse_modules);
     cJSON_AddBoolToObject(root, "flip_vertical", st.flip_vertical);
 

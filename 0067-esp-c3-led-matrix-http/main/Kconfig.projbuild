@@ -38,6 +38,10 @@ config TUTORIAL_0067_MATRIX_DEFAULT_FLIPV
     bool "Default vertical flip (flipv)"
     default y
 
+config TUTORIAL_0067_MATRIX_DEFAULT_ROTATE_180
+    bool "Default rotate 180 degrees"
+    default n
+
 config TUTORIAL_0067_HTTP_MAX_BODY
     int "Max HTTP body bytes"
     range 64 4096

@@ -30,6 +30,7 @@ typedef struct {
     bool test_mode;
     bool reverse_modules;
     bool flip_vertical;
+    bool rotate_180;
     uint32_t fps;
     uint32_t pause_ms;
     uint32_t repeat_count;
@@ -45,6 +46,7 @@ typedef struct {
     int default_fps;
     bool default_fliph;
     bool default_flipv;
+    bool default_rotate_180;
 } matrix_engine_config_t;
 
 esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg);
@@ -64,6 +66,7 @@ esp_err_t matrix_engine_set_test(bool on);
 esp_err_t matrix_engine_set_spi_hz(int hz);
 esp_err_t matrix_engine_set_chain_len(int n);
 esp_err_t matrix_engine_set_orientation(bool reverse_modules, bool flip_vertical);
+esp_err_t matrix_engine_set_rotate_180(bool on);
 esp_err_t matrix_engine_get_status(matrix_status_t *out);
 
 int matrix_engine_width(void);
