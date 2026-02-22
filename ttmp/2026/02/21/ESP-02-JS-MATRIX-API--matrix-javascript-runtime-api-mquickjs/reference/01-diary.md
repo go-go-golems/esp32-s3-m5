@@ -894,3 +894,33 @@ Updated matrix console command parser/help:
 ### Validation
 
 - `idf.py build` succeeds after command parser update.
+
+## Step 19: Make default `fliph` / `flipv` configurable via Kconfig
+
+User requested startup orientation defaults to be sdkconfig-driven.
+
+### Added Kconfig options
+
+In `main/Kconfig.projbuild`:
+- `CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FLIPH` (bool, default `n`)
+- `CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FLIPV` (bool, default `y`)
+
+### Engine/App wiring
+
+- Extended `matrix_engine_config_t` with:
+  - `default_fliph`
+  - `default_flipv`
+- `matrix_engine_init()` now applies these defaults to orientation state before initial flush.
+- boot log now prints orientation defaults.
+- `app_main.c` now maps Kconfig bools to explicit `true/false` via preprocessor guards and passes them in config.
+
+### Defaults file
+
+- `sdkconfig.defaults` now sets:
+  - `CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FLIPH=n`
+  - `CONFIG_TUTORIAL_0067_MATRIX_DEFAULT_FLIPV=y`
+
+### Validation
+
+- Initial build failed due undefined bool macro when option is `n`; fixed by using `#if` wrappers in `app_main.c`.
+- `idf.py build` succeeds after fix.
