@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head:*)",
+      "Bash(remarquee upload:*)",
+      "Bash(tmux new-session:*)",
+      "Bash(sleep 30:*)",
+      "Bash(tmux send-keys:*)",
+      "Bash(sleep 60:*)",
+      "Bash(sleep 90:*)"
+    ]
+  }
+}
