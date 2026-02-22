@@ -136,6 +136,46 @@ static esp_err_t matrix_stop_post(httpd_req_t *req)
     return send_status(req);
 }
 
+static esp_err_t matrix_orientation_post(httpd_req_t *req)
+{
+    char buf[CONFIG_TUTORIAL_0067_HTTP_MAX_BODY];
+    size_t len = 0;
+    if (!json_read_body(req, buf, sizeof(buf), &len)) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid body");
+    }
+
+    cJSON *root = cJSON_ParseWithLength(buf, len);
+    if (!root) return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "invalid json");
+
+    matrix_status_t st = {0};
+    if (matrix_engine_get_status(&st) != ESP_OK) {
+        cJSON_Delete(root);
+        return httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "status failed");
+    }
+
+    bool fliph = st.reverse_modules;
+    bool flipv = st.flip_vertical;
+    bool rot180 = st.rotate_180;
+
+    const cJSON *j_fliph = cJSON_GetObjectItemCaseSensitive(root, "fliph");
+    const cJSON *j_flipv = cJSON_GetObjectItemCaseSensitive(root, "flipv");
+    const cJSON *j_rot180 = cJSON_GetObjectItemCaseSensitive(root, "rot180");
+
+    if (j_fliph && cJSON_IsBool(j_fliph)) fliph = cJSON_IsTrue(j_fliph);
+    if (j_flipv && cJSON_IsBool(j_flipv)) flipv = cJSON_IsTrue(j_flipv);
+    if (j_rot180 && cJSON_IsBool(j_rot180)) rot180 = cJSON_IsTrue(j_rot180);
+
+    cJSON_Delete(root);
+
+    if (matrix_engine_set_orientation(fliph, flipv) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "set orientation failed");
+    }
+    if (matrix_engine_set_rotate_180(rot180) != ESP_OK) {
+        return httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "set rot180 failed");
+    }
+    return send_status(req);
+}
+
 static esp_err_t matrix_text_post(httpd_req_t *req)
 {
     char buf[CONFIG_TUTORIAL_0067_HTTP_MAX_BODY];
@@ -335,7 +375,7 @@ esp_err_t http_server_start(void)
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.uri_match_fn = httpd_uri_match_wildcard;
-    cfg.max_uri_handlers = 15;
+    cfg.max_uri_handlers = 16;
 
     ESP_LOGI(TAG, "starting http server on port %d", cfg.server_port);
     esp_err_t err = httpd_start(&s_server, &cfg);
@@ -361,6 +401,8 @@ esp_err_t http_server_start(void)
 
     httpd_uri_t stop = {.uri = "/api/matrix/stop", .method = HTTP_POST, .handler = matrix_stop_post};
     httpd_register_uri_handler(s_server, &stop);
+    httpd_uri_t orient = {.uri = "/api/matrix/orientation", .method = HTTP_POST, .handler = matrix_orientation_post};
+    httpd_register_uri_handler(s_server, &orient);
 
     httpd_uri_t js_eval = {.uri = "/api/js/eval", .method = HTTP_POST, .handler = js_eval_post};
     httpd_register_uri_handler(s_server, &js_eval);

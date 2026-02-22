@@ -199,6 +199,13 @@
         <button id="setTextBtn">Set Text</button>
         <button class="bad" id="stopMatrixBtn">Stop Matrix</button>
       </div>
+      <div class="row">
+        <button id="rot180Btn">Rot180: ?</button>
+        <button id="fliphBtn">FlipH: ?</button>
+        <button id="flipvBtn">FlipV: ?</button>
+        <button id="orientDefaultsBtn">Defaults (rot180 on)</button>
+      </div>
+      <div class="small">Orientation writes to <code>/api/matrix/orientation</code>.</div>
     </section>
 
     <section class="card c-8">
@@ -237,6 +244,7 @@
     const matrixStatusEl = document.getElementById("matrixStatus");
     const jsStatusEl = document.getElementById("jsStatus");
     const netStateEl = document.getElementById("netState");
+    let orientationState = { rot180: true, fliph: false, flipv: false };
 
     const matrixPresets = [
       { label: "Wave: HELLO", payload: { mode: "wave", text: "HELLO WIFI", fps: 18, pause_ms: 250, repeat_count: 0, loop_mode: "wrap" } },
@@ -285,6 +293,12 @@
           ["loop_mode", m.loop_mode], ["rot180", String(m.rotate_180)], ["fliph", String(m.reverse_modules)],
           ["flipv", String(m.flip_vertical)], ["intensity", String(m.intensity)]
         ].map(([k, v]) => `<div>${k}: <b>${v}</b></div>`).join("");
+        orientationState = {
+          rot180: !!m.rotate_180,
+          fliph: !!m.reverse_modules,
+          flipv: !!m.flip_vertical
+        };
+        renderOrientationButtons();
         jsStatusEl.innerHTML = [
           ["started", String(j.started)], ["busy", String(j.busy)], ["eval_count", String(j.eval_count)],
           ["last_eval_ms", String(j.last_eval_ms)], ["timers", `${j.timer_cb_active}/${j.timer_cb_keys}`],
@@ -306,6 +320,43 @@
       log(`anim -> ${payload.mode} "${payload.text}" (${payload.loop_mode || "gap"})`, "ok");
       refreshStatus();
       return out;
+    }
+
+    function renderOrientationButtons() {
+      const setBtn = (id, label, on) => {
+        const btn = document.getElementById(id);
+        btn.textContent = `${label}: ${on ? "ON" : "OFF"}`;
+        btn.className = on ? "good" : "";
+      };
+      setBtn("rot180Btn", "Rot180", orientationState.rot180);
+      setBtn("fliphBtn", "FlipH", orientationState.fliph);
+      setBtn("flipvBtn", "FlipV", orientationState.flipv);
+    }
+
+    async function setOrientation(partial) {
+      try {
+        orientationState = { ...orientationState, ...partial };
+        const out = await req("/api/matrix/orientation", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            rot180: orientationState.rot180,
+            fliph: orientationState.fliph,
+            flipv: orientationState.flipv
+          })
+        });
+        const st = JSON.parse(out);
+        orientationState = {
+          rot180: !!st.rotate_180,
+          fliph: !!st.reverse_modules,
+          flipv: !!st.flip_vertical
+        };
+        renderOrientationButtons();
+        log(`orientation -> rot180=${orientationState.rot180} fliph=${orientationState.fliph} flipv=${orientationState.flipv}`, "ok");
+        refreshStatus();
+      } catch (e) {
+        log(`orientation update failed: ${e.message}`, "error");
+      }
     }
 
     function wireMatrixPresets() {
@@ -353,6 +404,22 @@
           log(`matrix stop failed: ${e.message}`, "error");
         }
       };
+    }
+
+    function wireOrientationControls() {
+      document.getElementById("rot180Btn").onclick = () => {
+        setOrientation({ rot180: !orientationState.rot180 });
+      };
+      document.getElementById("fliphBtn").onclick = () => {
+        setOrientation({ fliph: !orientationState.fliph });
+      };
+      document.getElementById("flipvBtn").onclick = () => {
+        setOrientation({ flipv: !orientationState.flipv });
+      };
+      document.getElementById("orientDefaultsBtn").onclick = () => {
+        setOrientation({ rot180: true, fliph: false, flipv: false });
+      };
+      renderOrientationButtons();
     }
 
     function wireJsEditor() {
@@ -424,6 +491,7 @@
 
     wireMatrixPresets();
     wireManualControls();
+    wireOrientationControls();
     wireJsEditor();
     refreshStatus();
     loadDoc();
