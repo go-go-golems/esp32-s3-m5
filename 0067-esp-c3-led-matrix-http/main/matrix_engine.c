@@ -25,6 +25,7 @@ static uint8_t s_fb[8][MAX7219_MAX_CHAIN_LEN] = {0};
 
 static TaskHandle_t s_anim_task;
 static matrix_mode_t s_mode = MATRIX_MODE_IDLE;
+static matrix_scroll_loop_t s_scroll_loop = MATRIX_SCROLL_LOOP_GAP;
 static uint32_t s_fps = 15;
 static uint32_t s_pause_ms = 250;
 static uint32_t s_repeat_count;
@@ -278,9 +279,11 @@ static esp_err_t start_scroll_locked(const char *text,
                                      uint32_t pause_ms,
                                      uint32_t repeat_count,
                                      bool wave,
+                                     matrix_scroll_loop_t loop_mode,
                                      bool boot_ip_preview)
 {
     if (boot_ip_preview && s_first_animation_started) return ESP_OK;
+    if (loop_mode < MATRIX_SCROLL_LOOP_GAP || loop_mode > MATRIX_SCROLL_LOOP_RIGHT_EXIT) return ESP_ERR_INVALID_ARG;
 
     set_text_cols_locked(text);
     if (!s_text_cols || s_text_w <= 0) return ESP_ERR_INVALID_ARG;
@@ -290,6 +293,7 @@ static esp_err_t start_scroll_locked(const char *text,
     }
 
     s_mode = MATRIX_MODE_SCROLL;
+    s_scroll_loop = loop_mode;
     s_wave = wave;
     s_fps = fps ? fps : (uint32_t)s_default_fps;
     s_pause_ms = pause_ms;
@@ -324,6 +328,7 @@ static void anim_task(void *arg)
         matrix_mode_t mode = s_mode;
         uint32_t fps = s_fps;
         uint32_t pause_ms = s_pause_ms;
+        matrix_scroll_loop_t loop_mode = s_scroll_loop;
         bool wave = s_wave;
         bool restart = s_restart;
         s_restart = false;
@@ -344,13 +349,22 @@ static void anim_task(void *arg)
         const uint32_t frame_ms = 1000u / fps;
         const int width = width_active();
         static int pos = 0;
-        if (restart || pos == 0) pos = width;
 
         uint8_t cols[8 * MAX7219_MAX_CHAIN_LEN] = {0};
         if (mode == MATRIX_MODE_SCROLL) {
-            for (int x = 0; x < width; x++) {
-                int t = x - pos;
-                if (t >= 0 && t < text_w) {
+            if (restart) {
+                if (loop_mode == MATRIX_SCROLL_LOOP_WRAP) pos = 0;
+                else if (loop_mode == MATRIX_SCROLL_LOOP_RIGHT_EXIT) pos = -text_w;
+                else pos = width;
+            }
+
+            if (loop_mode == MATRIX_SCROLL_LOOP_WRAP) {
+                for (int x = 0; x < width; x++) {
+                    int t = x - pos;
+                    if (text_w > 0) {
+                        t %= text_w;
+                        if (t < 0) t += text_w;
+                    }
                     uint8_t bits = text_cols[t];
                     if (wave) {
                         int char_idx = t / 6;
@@ -360,15 +374,61 @@ static void anim_task(void *arg)
                     }
                     cols[x] = bits;
                 }
-            }
-            pos--;
-            if (pos < -text_w) {
-                pos = width;
-                if (mark_cycle_complete_and_check_stop(MATRIX_MODE_SCROLL)) {
-                    frame = 0;
-                    continue;
+                pos--;
+                if (pos <= -text_w) {
+                    pos += text_w;
+                    if (mark_cycle_complete_and_check_stop(MATRIX_MODE_SCROLL)) {
+                        frame = 0;
+                        continue;
+                    }
+                    if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
                 }
-                if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
+            } else if (loop_mode == MATRIX_SCROLL_LOOP_RIGHT_EXIT) {
+                for (int x = 0; x < width; x++) {
+                    int t = x - pos;
+                    if (t >= 0 && t < text_w) {
+                        uint8_t bits = text_cols[t];
+                        if (wave) {
+                            int char_idx = t / 6;
+                            int8_t yoff = s_wave16[(int)((frame + (uint32_t)(char_idx * 2)) & 0x0F)];
+                            if (yoff > 0) bits <<= yoff;
+                            if (yoff < 0) bits >>= -yoff;
+                        }
+                        cols[x] = bits;
+                    }
+                }
+                pos++;
+                if (pos > width) {
+                    pos = -text_w;
+                    if (mark_cycle_complete_and_check_stop(MATRIX_MODE_SCROLL)) {
+                        frame = 0;
+                        continue;
+                    }
+                    if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
+                }
+            } else {
+                for (int x = 0; x < width; x++) {
+                    int t = x - pos;
+                    if (t >= 0 && t < text_w) {
+                        uint8_t bits = text_cols[t];
+                        if (wave) {
+                            int char_idx = t / 6;
+                            int8_t yoff = s_wave16[(int)((frame + (uint32_t)(char_idx * 2)) & 0x0F)];
+                            if (yoff > 0) bits <<= yoff;
+                            if (yoff < 0) bits >>= -yoff;
+                        }
+                        cols[x] = bits;
+                    }
+                }
+                pos--;
+                if (pos < -text_w) {
+                    pos = width;
+                    if (mark_cycle_complete_and_check_stop(MATRIX_MODE_SCROLL)) {
+                        frame = 0;
+                        continue;
+                    }
+                    if (pause_ms) vTaskDelay(pdMS_TO_TICKS(pause_ms));
+                }
             }
         } else if (mode == MATRIX_MODE_DROP) {
             int len = (int)strlen(text);
@@ -414,6 +474,7 @@ esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg)
     s_chain_len_cfg = cfg->chain_len;
     s_default_fps = cfg->default_fps > 0 ? cfg->default_fps : 15;
     s_fps = s_default_fps;
+    s_scroll_loop = MATRIX_SCROLL_LOOP_GAP;
     s_first_animation_started = false;
     esp_err_t err = max7219_open(&s_dev, SPI2_HOST, cfg->pin_sck, cfg->pin_mosi, cfg->pin_cs, cfg->chain_len, cfg->spi_hz);
     if (err == ESP_OK) err = max7219_init(&s_dev);
@@ -483,14 +544,14 @@ esp_err_t matrix_engine_play_boot_animation(void)
     return err;
 }
 
-esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms)
+esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms, matrix_scroll_loop_t loop_mode)
 {
     lock();
     if (!s_ready) {
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
-    esp_err_t err = start_scroll_locked(ip_text, fps, pause_ms, 0, false, true);
+    esp_err_t err = start_scroll_locked(ip_text, fps, pause_ms, 0, false, loop_mode, true);
     unlock();
     return err;
 }
@@ -518,14 +579,19 @@ esp_err_t matrix_engine_set_text(const char *text)
     return err;
 }
 
-esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count, bool wave)
+esp_err_t matrix_engine_start_scroll(const char *text,
+                                     uint32_t fps,
+                                     uint32_t pause_ms,
+                                     uint32_t repeat_count,
+                                     bool wave,
+                                     matrix_scroll_loop_t loop_mode)
 {
     lock();
     if (!s_ready) {
         unlock();
         return ESP_ERR_INVALID_STATE;
     }
-    esp_err_t err = start_scroll_locked(text, fps, pause_ms, repeat_count, wave, false);
+    esp_err_t err = start_scroll_locked(text, fps, pause_ms, repeat_count, wave, loop_mode, false);
     unlock();
     return err;
 }
@@ -619,6 +685,7 @@ esp_err_t matrix_engine_get_status(matrix_status_t *out)
     lock();
     out->ready = s_ready;
     out->mode = s_mode;
+    out->scroll_loop = s_scroll_loop;
     out->chain_len = chain_len_active();
     out->width = width_active();
     out->spi_hz = s_dev.clock_hz;

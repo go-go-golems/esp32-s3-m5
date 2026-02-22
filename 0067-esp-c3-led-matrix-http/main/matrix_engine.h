@@ -13,9 +13,16 @@ typedef enum {
     MATRIX_MODE_SCRIPT,
 } matrix_mode_t;
 
+typedef enum {
+    MATRIX_SCROLL_LOOP_GAP = 0,
+    MATRIX_SCROLL_LOOP_WRAP,
+    MATRIX_SCROLL_LOOP_RIGHT_EXIT,
+} matrix_scroll_loop_t;
+
 typedef struct {
     bool ready;
     matrix_mode_t mode;
+    matrix_scroll_loop_t scroll_loop;
     int chain_len;
     int width;
     int spi_hz;
@@ -40,9 +47,14 @@ typedef struct {
 
 esp_err_t matrix_engine_init(const matrix_engine_config_t *cfg);
 esp_err_t matrix_engine_play_boot_animation(void);
-esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms);
+esp_err_t matrix_engine_show_boot_ip(const char *ip_text, uint32_t fps, uint32_t pause_ms, matrix_scroll_loop_t loop_mode);
 esp_err_t matrix_engine_set_text(const char *text);
-esp_err_t matrix_engine_start_scroll(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count, bool wave);
+esp_err_t matrix_engine_start_scroll(const char *text,
+                                     uint32_t fps,
+                                     uint32_t pause_ms,
+                                     uint32_t repeat_count,
+                                     bool wave,
+                                     matrix_scroll_loop_t loop_mode);
 esp_err_t matrix_engine_start_drop(const char *text, uint32_t fps, uint32_t pause_ms, uint32_t repeat_count);
 esp_err_t matrix_engine_stop(void);
 esp_err_t matrix_engine_set_intensity(int value);

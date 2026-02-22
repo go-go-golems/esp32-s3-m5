@@ -32,7 +32,7 @@ static void on_wifi_got_ip(uint32_t ip4_host_order, void *ctx)
     char ip_text[40];
     snprintf(ip_text, sizeof(ip_text), "IP %u.%u.%u.%u", a, b, c, d);
 
-    (void)matrix_engine_show_boot_ip(ip_text, 14, 300);
+    (void)matrix_engine_show_boot_ip(ip_text, 14, 300, MATRIX_SCROLL_LOOP_WRAP);
     (void)http_server_start();
 }
 

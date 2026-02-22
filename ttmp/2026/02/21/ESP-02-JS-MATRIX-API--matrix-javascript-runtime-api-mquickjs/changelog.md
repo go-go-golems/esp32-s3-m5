@@ -206,3 +206,25 @@ Added boot UX features to `0067` firmware:
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.c
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.h
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/reference/01-diary.md
+
+## 2026-02-22
+
+Added configurable scroll loop behavior for matrix wave/scroll modes and applied same loop model to boot IP preview.
+
+### Included changes
+
+- New loop modes: `gap`, `wrap`, `right_exit`.
+- REST `POST /api/matrix/anim` now accepts `loop_mode` and status now returns it.
+- Console `matrix scroll ...` supports optional loop mode argument.
+- JS bridge `matrix.startScroll(text, { ..., loopMode })` now forwards loop mode.
+- Boot IP preview now uses `wrap` loop mode by default.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.h
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_engine.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/app_main.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/http_server.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/matrix_console.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/js_runtime_bridge.cpp

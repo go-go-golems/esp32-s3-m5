@@ -122,7 +122,7 @@ static esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "m.setText = function(text) { return !!i2c.tx({op:'text', text:String(text || '')}); };\n"
       "m.startScroll = function(text, opts) {\n"
       "  opts = opts || {};\n"
-      "  return !!i2c.tx({op:'scroll', text:String(text || ''), fps:(opts.fps|0), pause_ms:(opts.pauseMs|0), repeat:(opts.repeat|0), wave:(opts.wave ? 1 : 0)});\n"
+      "  return !!i2c.tx({op:'scroll', text:String(text || ''), fps:(opts.fps|0), pause_ms:(opts.pauseMs|0), repeat:(opts.repeat|0), wave:(opts.wave ? 1 : 0), loop_mode:String(opts.loopMode || 'gap')});\n"
       "};\n"
       "m.startDrop = function(text, opts) {\n"
       "  opts = opts || {};\n"

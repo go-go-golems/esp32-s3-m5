@@ -839,3 +839,43 @@ Implemented requested startup behavior directly in firmware `0067`.
 
 - `idf.py build` in `0067-esp-c3-led-matrix-http` succeeds.
 - No hardware flash performed in this step because no USB serial device (`/dev/serial/by-id`, `/dev/ttyACM*`, `/dev/ttyUSB*`) was present in the environment.
+
+## Step 17: Add scroll loop behavior modes (`gap` / `wrap` / `right_exit`) and apply same model to boot IP preview
+
+User requested configurable loop-around behavior for wave/scroll rendering instead of only clearing at end, and asked for the same treatment on boot IP rotation.
+
+### Implemented behavior modes
+
+Added a new loop mode enum in matrix engine:
+- `MATRIX_SCROLL_LOOP_GAP` (legacy behavior)
+- `MATRIX_SCROLL_LOOP_WRAP` (direct looparound, no blank clear gap)
+- `MATRIX_SCROLL_LOOP_RIGHT_EXIT` (move right and fully exit right before restarting)
+
+Engine updates:
+- scroll renderer now branches by loop mode in `anim_task`
+- repeat-cycle accounting updated for each mode (`repeat_count` still honored)
+- status now reports current `scroll_loop`
+
+### Interfaces updated
+
+1. REST API `/api/matrix/anim`
+- accepts optional `loop_mode` string: `gap|wrap|right_exit`
+- aliases accepted: `loop|direct` => `wrap`, `exit_right` => `right_exit`
+- `/api/matrix/status` now includes `loop_mode`
+
+2. Console `matrix scroll ...`
+- optional arg added:
+  - `matrix scroll wave <TEXT> [fps] [pause_ms] [repeat_count] [loop_mode]`
+- `matrix status` now prints active loop mode
+
+3. JS runtime bridge (`matrix.startScroll`)
+- `opts.loopMode` is now passed through to the runtime bridge (`loop_mode` op field)
+- JS `matrix.status()` now includes `loop_mode`
+
+4. Boot IP preview
+- `matrix_engine_show_boot_ip(...)` now accepts loop mode
+- app currently uses `MATRIX_SCROLL_LOOP_WRAP` for IP rotation (continuous looparound)
+
+### Build
+
+- `idf.py build` for `0067-esp-c3-led-matrix-http` passed after changes.

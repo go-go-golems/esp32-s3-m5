@@ -49,6 +49,35 @@ static const char *mode_to_str(matrix_mode_t mode) {
   }
 }
 
+static const char *scroll_loop_to_str(matrix_scroll_loop_t mode) {
+  switch (mode) {
+    case MATRIX_SCROLL_LOOP_WRAP:
+      return "wrap";
+    case MATRIX_SCROLL_LOOP_RIGHT_EXIT:
+      return "right_exit";
+    case MATRIX_SCROLL_LOOP_GAP:
+    default:
+      return "gap";
+  }
+}
+
+static bool scroll_loop_from_str(const char *s, matrix_scroll_loop_t *out) {
+  if (!s || !out) return false;
+  if (strcmp(s, "gap") == 0) {
+    *out = MATRIX_SCROLL_LOOP_GAP;
+    return true;
+  }
+  if (strcmp(s, "wrap") == 0 || strcmp(s, "loop") == 0 || strcmp(s, "direct") == 0) {
+    *out = MATRIX_SCROLL_LOOP_WRAP;
+    return true;
+  }
+  if (strcmp(s, "right_exit") == 0 || strcmp(s, "exit_right") == 0) {
+    *out = MATRIX_SCROLL_LOOP_RIGHT_EXIT;
+    return true;
+  }
+  return false;
+}
+
 static int64_t now_us(void) {
   return esp_timer_get_time();
 }
@@ -112,6 +141,7 @@ static JSValue matrix_status_to_js(JSContext *ctx) {
   (void)JS_SetPropertyStr(ctx, root, "fps", JS_NewUint32(ctx, st.fps));
   (void)JS_SetPropertyStr(ctx, root, "pause_ms", JS_NewUint32(ctx, st.pause_ms));
   (void)JS_SetPropertyStr(ctx, root, "repeat_count", JS_NewUint32(ctx, st.repeat_count));
+  (void)JS_SetPropertyStr(ctx, root, "loop_mode", JS_NewString(ctx, scroll_loop_to_str(st.scroll_loop)));
   (void)JS_SetPropertyStr(ctx, root, "reverse_modules", JS_NewBool(st.reverse_modules ? 1 : 0));
   (void)JS_SetPropertyStr(ctx, root, "flip_vertical", JS_NewBool(st.flip_vertical ? 1 : 0));
   (void)JS_SetPropertyStr(ctx, root, "stop_requested", JS_NewBool(s_stop_requested ? 1 : 0));
@@ -161,8 +191,8 @@ static JSValue js_sim_setPattern(JSContext *ctx, JSValue *this_val, int argc, JS
 
   esp_err_t err = ESP_ERR_INVALID_ARG;
   if (strcmp(type, "off") == 0) err = matrix_engine_stop();
-  else if (strcmp(type, "scroll") == 0) err = matrix_engine_start_scroll(s_last_text, 15, 250, 0, false);
-  else if (strcmp(type, "wave") == 0) err = matrix_engine_start_scroll(s_last_text, 15, 250, 0, true);
+  else if (strcmp(type, "scroll") == 0) err = matrix_engine_start_scroll(s_last_text, 15, 250, 0, false, MATRIX_SCROLL_LOOP_GAP);
+  else if (strcmp(type, "wave") == 0) err = matrix_engine_start_scroll(s_last_text, 15, 250, 0, true, MATRIX_SCROLL_LOOP_GAP);
   else if (strcmp(type, "drop") == 0) err = matrix_engine_start_drop(s_last_text, 15, 250, 0);
 
   if (err != ESP_OK) return js_throw_err(ctx, "setPattern failed");
@@ -175,7 +205,7 @@ static JSValue js_sim_setRainbow(JSContext *ctx, JSValue *this_val, int argc, JS
   if (argc >= 1 && JS_ToInt32(ctx, &fps, argv[0])) return JS_EXCEPTION;
   if (argc >= 2 && JS_ToInt32(ctx, &pause_ms, argv[1])) return JS_EXCEPTION;
   if (argc >= 3 && JS_ToInt32(ctx, &repeat, argv[2])) return JS_EXCEPTION;
-  if (matrix_engine_start_scroll(s_last_text, (uint32_t)fps, (uint32_t)pause_ms, (uint32_t)repeat, true) != ESP_OK) {
+  if (matrix_engine_start_scroll(s_last_text, (uint32_t)fps, (uint32_t)pause_ms, (uint32_t)repeat, true, MATRIX_SCROLL_LOOP_GAP) != ESP_OK) {
     return js_throw_err(ctx, "setRainbow failed");
   }
   return JS_UNDEFINED;
@@ -185,7 +215,7 @@ static JSValue js_sim_setChase(JSContext *ctx, JSValue *this_val, int argc, JSVa
   (void)this_val;
   (void)argc;
   (void)argv;
-  if (matrix_engine_start_scroll(s_last_text, 15, 250, 0, false) != ESP_OK) return js_throw_err(ctx, "setChase failed");
+  if (matrix_engine_start_scroll(s_last_text, 15, 250, 0, false, MATRIX_SCROLL_LOOP_GAP) != ESP_OK) return js_throw_err(ctx, "setChase failed");
   return JS_UNDEFINED;
 }
 
@@ -201,7 +231,7 @@ static JSValue js_sim_setSparkle(JSContext *ctx, JSValue *this_val, int argc, JS
   (void)this_val;
   (void)argc;
   (void)argv;
-  if (matrix_engine_start_scroll(s_last_text, 15, 250, 0, true) != ESP_OK) return js_throw_err(ctx, "setSparkle failed");
+  if (matrix_engine_start_scroll(s_last_text, 15, 250, 0, true, MATRIX_SCROLL_LOOP_GAP) != ESP_OK) return js_throw_err(ctx, "setSparkle failed");
   return JS_UNDEFINED;
 }
 
@@ -480,13 +510,19 @@ static JSValue js_i2c_tx(JSContext *ctx, JSValue *this_val, int argc, JSValue *a
     char text[65] = {0};
     int fps = 15, pause_ms = 250, repeat = 0;
     bool wave = false;
+    char loop_mode[24] = {0};
+    matrix_scroll_loop_t loop = MATRIX_SCROLL_LOOP_GAP;
     if (!get_obj_string(ctx, cmd, "text", text, sizeof(text))) return JS_EXCEPTION;
     if (!get_obj_int(ctx, cmd, "fps", &fps, fps)) return JS_EXCEPTION;
     if (!get_obj_int(ctx, cmd, "pause_ms", &pause_ms, pause_ms)) return JS_EXCEPTION;
     if (!get_obj_int(ctx, cmd, "repeat", &repeat, repeat)) return JS_EXCEPTION;
     if (!get_obj_bool(ctx, cmd, "wave", &wave, false)) return JS_EXCEPTION;
+    if (!get_obj_string(ctx, cmd, "loop_mode", loop_mode, sizeof(loop_mode))) return JS_EXCEPTION;
+    if (loop_mode[0] != '\0' && !scroll_loop_from_str(loop_mode, &loop)) {
+      return JS_ThrowTypeError(ctx, "invalid loop_mode");
+    }
     strlcpy(s_last_text, text, sizeof(s_last_text));
-    return JS_NewBool(matrix_engine_start_scroll(text, (uint32_t)fps, (uint32_t)pause_ms, (uint32_t)repeat, wave) == ESP_OK);
+    return JS_NewBool(matrix_engine_start_scroll(text, (uint32_t)fps, (uint32_t)pause_ms, (uint32_t)repeat, wave, loop) == ESP_OK);
   }
 
   if (strcmp(op, "drop") == 0) {
