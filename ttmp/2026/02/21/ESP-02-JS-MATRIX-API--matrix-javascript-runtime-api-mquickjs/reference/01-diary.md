@@ -879,3 +879,18 @@ Engine updates:
 ### Build
 
 - `idf.py build` for `0067-esp-c3-led-matrix-http` passed after changes.
+
+## Step 18: Add `matrix fliph` console command
+
+User requested a dedicated horizontal flip command to match `flipv` naming.
+
+### Changes
+
+Updated matrix console command parser/help:
+- new command: `matrix fliph on|off`
+- `fliph` is handled as an alias to existing horizontal orientation toggle path (same behavior as `reverse`)
+- usage/examples now include `fliph`
+
+### Validation
+
+- `idf.py build` succeeds after command parser update.

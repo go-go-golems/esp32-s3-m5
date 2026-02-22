@@ -49,6 +49,7 @@ static void usage(void)
     printf("  matrix intensity <0..15>\n");
     printf("  matrix spi [hz]\n");
     printf("  matrix chain [n]\n");
+    printf("  matrix fliph on|off\n");
     printf("  matrix reverse on|off\n");
     printf("  matrix flipv on|off\n");
 }
@@ -61,6 +62,8 @@ static void examples(void)
     printf("  matrix scroll wave \"HELLO WIFI\" 20 250 2 right_exit\n");
     printf("  matrix anim drop BOUNCE 18 400 3\n");
     printf("  matrix intensity 8\n");
+    printf("  matrix fliph on\n");
+    printf("  matrix fliph off\n");
     printf("  matrix test on\n");
     printf("  matrix test off\n");
 }
@@ -171,7 +174,7 @@ static int cmd_matrix(int argc, char **argv)
         return matrix_engine_set_chain_len((int)strtol(argv[2], NULL, 0)) == ESP_OK ? 0 : 1;
     }
 
-    if (strcmp(argv[1], "reverse") == 0 && argc >= 3) {
+    if ((strcmp(argv[1], "fliph") == 0 || strcmp(argv[1], "reverse") == 0) && argc >= 3) {
         matrix_status_t st = {0};
         (void)matrix_engine_get_status(&st);
         bool on = strcmp(argv[2], "on") == 0;
