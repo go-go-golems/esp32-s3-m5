@@ -7,12 +7,10 @@ idf_component_register(
         "http_server.cpp"
         "lvgl_port_m5gfx.cpp"
         "chain_encoder_uart.cpp"
-        "screenshot_qoi.cpp"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         esp_timer
         esp_driver_uart
-        esp_driver_usb_serial_jtag
         esp_http_server
         esp_event
         esp_netif
@@ -24,6 +22,7 @@ idf_component_register(
         wifi_console
         httpd_assets_embed
         console
+        screenshot_qoi
     REQUIRES
         M5GFX
         M5Unified
