@@ -42,7 +42,7 @@ Open the device root page (`/`) after Wi-Fi connect to edit/upload preset JSON.
 ## Screenshot Capture (Host)
 
 ```bash
-python3 tools/capture_screenshot_qoi_from_console.py \
+python3 ../components/screenshot_qoi/tools/capture_screenshot_qoi_from_console.py \
   /dev/serial/by-id/<device> \
   /tmp/0071-ui.qoi \
   --bmp-out /tmp/0071-ui.bmp
