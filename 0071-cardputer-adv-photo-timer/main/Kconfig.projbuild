@@ -1,0 +1,56 @@
+menu "0071 Cardputer-ADV Photo Timer"
+
+config PHOTO_TIMER_ENCODER_UART_NUM
+    int "Chain Encoder UART port number"
+    range 0 2
+    default 1
+
+config PHOTO_TIMER_ENCODER_BAUD
+    int "Chain Encoder baud rate"
+    range 1200 3000000
+    default 115200
+
+config PHOTO_TIMER_ENCODER_TX_GPIO
+    int "Chain Encoder TX GPIO"
+    range 0 48
+    default 2
+
+config PHOTO_TIMER_ENCODER_RX_GPIO
+    int "Chain Encoder RX GPIO"
+    range 0 48
+    default 1
+
+config PHOTO_TIMER_ENCODER_INDEX_ID
+    int "Chain Encoder index_id"
+    range 1 255
+    default 1
+
+config PHOTO_TIMER_ENCODER_POLL_MS
+    int "Chain Encoder polling interval (ms)"
+    range 5 500
+    default 20
+
+config PHOTO_TIMER_ENCODER_DELTA_CLAMP
+    int "Clamp absolute delta per LVGL read (0 disables)"
+    range 0 100
+    default 10
+
+config PHOTO_TIMER_STATUS_REFRESH_MS
+    int "Status label refresh interval (ms)"
+    range 50 2000
+    default 200
+
+config PHOTO_TIMER_HTTP_MAX_BODY
+    int "Max HTTP request body bytes"
+    range 1024 262144
+    default 65536
+
+config PHOTO_TIMER_SPIFFS_FORMAT_IF_MOUNT_FAILED
+    bool "Format SPIFFS if mount failed"
+    default y
+
+config PHOTO_TIMER_WIFI_ENABLE
+    bool "Enable Wi-Fi manager + HTTP UI"
+    default y
+
+endmenu

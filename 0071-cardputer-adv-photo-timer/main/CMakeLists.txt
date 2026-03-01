@@ -1,0 +1,31 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "app_state.cpp"
+        "timer_engine.cpp"
+        "preset_store.cpp"
+        "http_server.cpp"
+        "lvgl_port_m5gfx.cpp"
+        "chain_encoder_uart.cpp"
+    INCLUDE_DIRS "."
+    PRIV_REQUIRES
+        esp_timer
+        esp_driver_uart
+        esp_http_server
+        esp_event
+        esp_netif
+        esp_wifi
+        nvs_flash
+        spiffs
+        cjson
+        wifi_mgr
+        wifi_console
+        httpd_assets_embed
+        console
+    REQUIRES
+        M5GFX
+        M5Unified
+        lvgl
+    EMBED_TXTFILES
+        "assets/index.html"
+)
