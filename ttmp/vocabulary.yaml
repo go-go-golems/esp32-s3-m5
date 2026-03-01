@@ -97,6 +97,18 @@ topics:
       description: LED matrix display firmware and controls
     - slug: m5stack
       description: M5Stack hardware platforms and firmware
+    - slug: cardputer-adv
+      description: Cardputer Advanced hardware and firmware
+    - slug: esp32-s3
+      description: ESP32-S3 family topic
+    - slug: firmware
+      description: Embedded firmware implementation
+    - slug: photo-development
+      description: Film photo development workflows
+    - slug: timer
+      description: Timer features and workflows
+    - slug: screenshot
+      description: Screenshot capture and image export workflows
 docTypes:
     - slug: index
       description: Ticket index document
