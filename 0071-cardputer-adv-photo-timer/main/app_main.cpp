@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <algorithm>
 #include <string>
@@ -9,8 +10,10 @@
 #include "sdkconfig.h"
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 #include "freertos/task.h"
 
+#include "esp_console.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -22,8 +25,11 @@
 #include "http_server.h"
 #include "lvgl_port_m5gfx.h"
 #include "preset_store.h"
+#include "screenshot_qoi.h"
 
 #if CONFIG_PHOTO_TIMER_WIFI_ENABLE
+#include "esp_netif_ip_addr.h"
+#include "lwip/inet.h"
 #include "wifi_console.h"
 #include "wifi_mgr.h"
 #endif
@@ -39,12 +45,33 @@ static lv_obj_t* s_list = nullptr;
 static lv_obj_t* s_header = nullptr;
 static lv_obj_t* s_footer = nullptr;
 static uint32_t s_seen_revision = 0;
+static std::string s_seen_settings_ip_line;
+
+enum class UiView {
+  kTimer,
+  kSettings,
+};
+
+static UiView s_view = UiView::kTimer;
+
+enum class UiCommandType {
+  kScreenshot,
+};
+
+struct UiCommand {
+  UiCommandType type = UiCommandType::kScreenshot;
+  TaskHandle_t reply_task = nullptr;
+};
+
+static QueueHandle_t s_ui_command_q = nullptr;
 
 enum class UiActionType {
   kToggle,
   kNext,
   kReset,
   kSelectPreset,
+  kOpenSettings,
+  kBackToTimer,
 };
 
 struct UiActionBinding {
@@ -58,6 +85,9 @@ static std::vector<UiActionBinding> s_bindings;
 static lv_style_t s_btn_base;
 static lv_style_t s_btn_focused;
 static bool s_styles_inited = false;
+
+void attach_btn_callbacks();
+void switch_view(UiView view);
 
 const char* state_to_str(TimerRunState state) {
   switch (state) {
@@ -107,6 +137,30 @@ void add_binding(lv_obj_t* btn, UiActionType type, const std::string& preset_id 
   s_bindings.push_back(std::move(b));
 }
 
+std::string settings_ip_line() {
+#if CONFIG_PHOTO_TIMER_WIFI_ENABLE
+  wifi_mgr_status_t st = {};
+  if (wifi_mgr_get_status(&st) != ESP_OK) {
+    return "Wi-Fi IP: unavailable";
+  }
+  if (st.state != WIFI_MGR_STATE_CONNECTED || st.ip4 == 0) {
+    return "Wi-Fi IP: disconnected";
+  }
+  ip4_addr_t ip = {.addr = htonl(st.ip4)};
+  char line[64];
+  snprintf(line, sizeof(line), "Wi-Fi IP: " IPSTR, IP2STR(&ip));
+  return std::string(line);
+#else
+  return "Wi-Fi disabled";
+#endif
+}
+
+void update_label_for_width(lv_obj_t* obj) {
+  if (!obj) return;
+  lv_label_set_long_mode(obj, LV_LABEL_LONG_CLIP);
+  lv_obj_set_width(obj, lv_pct(100));
+}
+
 void rebuild_preset_list() {
   if (!s_list || !s_group) return;
 
@@ -120,20 +174,34 @@ void rebuild_preset_list() {
   auto add_button = [&](const char* label, UiActionType type, const std::string& preset_id) {
     lv_obj_t* btn = lv_list_add_btn(s_list, nullptr, label);
     lv_obj_add_flag(btn, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
+    lv_obj_set_width(btn, lv_pct(100));
+    lv_obj_t* label_obj = lv_obj_get_child(btn, 0);
+    if (label_obj) {
+      update_label_for_width(label_obj);
+    }
     apply_styles(btn);
     lv_group_add_obj(s_group, btn);
     add_binding(btn, type, preset_id);
     if (!first_focus) first_focus = btn;
   };
 
-  add_button("Start/Pause", UiActionType::kToggle, "");
-  add_button("Next Step", UiActionType::kNext, "");
-  add_button("Reset", UiActionType::kReset, "");
+  if (s_view == UiView::kSettings) {
+    const std::string ip_line = settings_ip_line();
+    s_seen_settings_ip_line = ip_line;
+    lv_obj_t* line = lv_list_add_text(s_list, ip_line.c_str());
+    update_label_for_width(line);
+    add_button("Back", UiActionType::kBackToTimer, "");
+  } else {
+    add_button("Start/Pause", UiActionType::kToggle, "");
+    add_button("Next Step", UiActionType::kNext, "");
+    add_button("Reset", UiActionType::kReset, "");
+    add_button("Settings", UiActionType::kOpenSettings, "");
 
-  for (const auto& preset : cfg.presets) {
-    std::string label = (preset.id == cfg.active_preset_id) ? "* " : "  ";
-    label += preset.name;
-    add_button(label.c_str(), UiActionType::kSelectPreset, preset.id);
+    for (const auto& preset : cfg.presets) {
+      std::string label = (preset.id == cfg.active_preset_id) ? "* " : "  ";
+      label += preset.name;
+      add_button(label.c_str(), UiActionType::kSelectPreset, preset.id);
+    }
   }
 
   if (first_focus) {
@@ -157,7 +225,20 @@ void on_action(UiActionType type, const char* preset_id) {
         (void)app_state_timer_action("select", preset_id);
       }
       break;
+    case UiActionType::kOpenSettings:
+      switch_view(UiView::kSettings);
+      break;
+    case UiActionType::kBackToTimer:
+      switch_view(UiView::kTimer);
+      break;
   }
+}
+
+void switch_view(UiView view) {
+  if (s_view == view) return;
+  s_view = view;
+  rebuild_preset_list();
+  attach_btn_callbacks();
 }
 
 void list_btn_cb(lv_event_t* e) {
@@ -180,24 +261,32 @@ void refresh_status() {
   const TimerSnapshot snap = app_state_snapshot();
 
   char header[256];
-  snprintf(header,
-           sizeof(header),
-           "Preset: %s  State: %s  Step: %d/%d",
-           snap.preset_name.empty() ? "(none)" : snap.preset_name.c_str(),
-           state_to_str(snap.state),
-           (snap.step_index >= 0) ? (snap.step_index + 1) : 0,
-           std::max(0, snap.step_count));
+  if (s_view == UiView::kSettings) {
+    snprintf(header, sizeof(header), "Settings");
+  } else {
+    snprintf(header,
+             sizeof(header),
+             "Preset: %s  State: %s  Step: %d/%d",
+             snap.preset_name.empty() ? "(none)" : snap.preset_name.c_str(),
+             state_to_str(snap.state),
+             (snap.step_index >= 0) ? (snap.step_index + 1) : 0,
+             std::max(0, snap.step_count));
+  }
 
   char footer[256];
   const uint32_t remain = snap.step_remaining_sec;
   const uint32_t mm = remain / 60U;
   const uint32_t ss = remain % 60U;
-  snprintf(footer,
-           sizeof(footer),
-           "%s  remaining %02" PRIu32 ":%02" PRIu32,
-           snap.step_name.empty() ? "(no step)" : snap.step_name.c_str(),
-           mm,
-           ss);
+  if (s_view == UiView::kSettings) {
+    snprintf(footer, sizeof(footer), "Use encoder to return");
+  } else {
+    snprintf(footer,
+             sizeof(footer),
+             "%s  remaining %02" PRIu32 ":%02" PRIu32,
+             snap.step_name.empty() ? "(no step)" : snap.step_name.c_str(),
+             mm,
+             ss);
+  }
 
   if (s_header) {
     lv_label_set_text(s_header, header);
@@ -211,6 +300,15 @@ void refresh_status() {
     s_seen_revision = revision;
     rebuild_preset_list();
     attach_btn_callbacks();
+  }
+
+  if (s_view == UiView::kSettings) {
+    const std::string ip_line = settings_ip_line();
+    if (ip_line != s_seen_settings_ip_line) {
+      s_seen_settings_ip_line = ip_line;
+      rebuild_preset_list();
+      attach_btn_callbacks();
+    }
   }
 }
 
@@ -262,10 +360,13 @@ void create_ui() {
   lv_obj_t* scr = lv_scr_act();
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
   lv_obj_set_style_text_color(scr, lv_palette_main(LV_PALETTE_GREEN), 0);
+  lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
 
   s_header = lv_label_create(scr);
   lv_label_set_text(s_header, "Photo Timer 0071");
   lv_obj_set_style_text_font(s_header, &lv_font_montserrat_14, 0);
+  update_label_for_width(s_header);
   lv_obj_align(s_header, LV_ALIGN_TOP_LEFT, 4, 2);
 
   s_list = lv_list_create(scr);
@@ -273,6 +374,10 @@ void create_ui() {
   lv_obj_align(s_list, LV_ALIGN_TOP_MID, 0, 18);
   lv_obj_set_style_bg_opa(s_list, LV_OPA_TRANSP, 0);
   lv_obj_set_style_border_width(s_list, 0, 0);
+  lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
+  lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_AUTO);
+  lv_obj_set_style_pad_right(s_list, 2, LV_PART_MAIN);
+  lv_obj_set_style_pad_right(s_list, 2, LV_PART_SCROLLBAR);
 
   s_group = lv_group_create();
   lv_group_set_wrap(s_group, true);
@@ -283,6 +388,7 @@ void create_ui() {
   s_footer = lv_label_create(scr);
   lv_obj_set_style_text_font(s_footer, &lv_font_montserrat_14, 0);
   lv_label_set_text(s_footer, "loading...");
+  update_label_for_width(s_footer);
   lv_obj_align(s_footer, LV_ALIGN_BOTTOM_LEFT, 4, -2);
 
   s_seen_revision = app_state_config_revision();
@@ -301,6 +407,95 @@ void on_wifi_got_ip(uint32_t ip4_host_order, void* ctx) {
   (void)photo_http_server_start();
 }
 #endif
+
+int cmd_screenshot(int argc, char** argv) {
+  (void)argc;
+  (void)argv;
+  if (!s_ui_command_q) {
+    printf("ERR: screenshot queue unavailable\n");
+    return 1;
+  }
+
+  UiCommand cmd = {};
+  cmd.type = UiCommandType::kScreenshot;
+  cmd.reply_task = xTaskGetCurrentTaskHandle();
+  if (xQueueSend(s_ui_command_q, &cmd, pdMS_TO_TICKS(200)) != pdTRUE) {
+    printf("ERR: screenshot busy (queue full)\n");
+    return 1;
+  }
+
+  uint32_t result = 0;
+  if (xTaskNotifyWait(0, UINT32_MAX, &result, pdMS_TO_TICKS(20000)) != pdTRUE) {
+    printf("ERR: screenshot timeout\n");
+    return 1;
+  }
+  if (result == 0) {
+    printf("ERR: screenshot failed\n");
+    return 1;
+  }
+
+  printf("OK: screenshot %u bytes\n", (unsigned)result);
+  return 0;
+}
+
+int cmd_ui(int argc, char** argv) {
+  if (argc < 2 || !argv[1]) {
+    printf("usage: ui <timer|settings>\n");
+    return 1;
+  }
+  if (strcmp(argv[1], "timer") == 0) {
+    switch_view(UiView::kTimer);
+    printf("OK: ui timer\n");
+    return 0;
+  }
+  if (strcmp(argv[1], "settings") == 0) {
+    switch_view(UiView::kSettings);
+    printf("OK: ui settings\n");
+    return 0;
+  }
+  printf("ERR: unknown ui view '%s'\n", argv[1]);
+  return 1;
+}
+
+void register_console_commands() {
+  static bool s_registered = false;
+  if (s_registered) return;
+  s_registered = true;
+
+  esp_console_cmd_t cmd = {};
+  cmd.command = "screenshot";
+  cmd.help = "Capture current UI and stream QOI over USB-Serial/JTAG";
+  cmd.hint = nullptr;
+  cmd.func = &cmd_screenshot;
+  ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+
+  cmd = {};
+  cmd.command = "ui";
+  cmd.help = "Switch UI view (ui timer|settings)";
+  cmd.hint = nullptr;
+  cmd.func = &cmd_ui;
+  ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+}
+
+void drain_ui_commands(m5gfx::M5GFX& display) {
+  if (!s_ui_command_q) return;
+
+  UiCommand cmd = {};
+  while (xQueueReceive(s_ui_command_q, &cmd, 0) == pdTRUE) {
+    uint32_t notify_value = 0;
+    switch (cmd.type) {
+      case UiCommandType::kScreenshot: {
+        lv_timer_handler();
+        size_t qoi_len = 0;
+        const bool ok = screenshot_qoi_to_usb_serial_jtag_ex(display, &qoi_len);
+        notify_value = ok ? (uint32_t)qoi_len : 0U;
+      } break;
+    }
+    if (cmd.reply_task) {
+      (void)xTaskNotify(cmd.reply_task, notify_value, eSetValueWithOverwrite);
+    }
+  }
+}
 
 }  // namespace
 
@@ -359,6 +554,11 @@ extern "C" void app_main(void) {
 
   s_enc_indev = lvgl_port_chain_encoder_init();
   create_ui();
+  s_ui_command_q = xQueueCreate(4, sizeof(UiCommand));
+  if (!s_ui_command_q) {
+    ESP_LOGE(TAG, "failed to create UI command queue");
+    return;
+  }
 
 #if CONFIG_PHOTO_TIMER_WIFI_ENABLE
   wifi_mgr_set_on_got_ip_cb(on_wifi_got_ip, nullptr);
@@ -366,13 +566,14 @@ extern "C" void app_main(void) {
 
   wifi_console_config_t wifi_console_cfg = {};
   wifi_console_cfg.prompt = "timer> ";
-  wifi_console_cfg.register_extra = nullptr;
+  wifi_console_cfg.register_extra = register_console_commands;
   wifi_console_start(&wifi_console_cfg);
 
   ESP_LOGI(TAG, "Wi-Fi console started; connect then browse / to open the preset UI");
 #endif
 
   while (true) {
+    drain_ui_commands(display);
     app_state_tick();
     lv_timer_handler();
     vTaskDelay(1);
