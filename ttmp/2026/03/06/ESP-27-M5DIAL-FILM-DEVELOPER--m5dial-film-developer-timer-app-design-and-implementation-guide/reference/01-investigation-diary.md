@@ -503,3 +503,118 @@ snapshot(): expose the current field, option count, current selection, and resol
 ```
 
 That gives the next UI step a stable API without requiring LVGL code to know how recipes are filtered internally.
+
+## Step 5: Replace the inherited timer screen with a film-selector UI
+
+Once the selector model existed, the next logical step was to stop showing the inherited countdown timer UI. The app already had enough data and state to present a real film-selection flow, so keeping the old screen would only make later integration messier. The goal of this step was not yet to build the full process timer. It was to make the device show a selector-first interface and route the existing encoder, button, and swipe events into that selector flow.
+
+This step introduced a new `FilmSelectorScreen` and `FilmSelectorController` rather than overloading the old timer classes. That preserves a cleaner path for the later review/countdown stages and avoids welding film-domain behavior into the generic timer leftovers from `0072`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Move to the next ticket task without stopping at the selector-model backend, and keep committing/dairying each milestone.
+
+**Inferred user intent:** Replace the placeholder UI with the first real film-selection experience on device.
+
+**Commit (code):** dd86850 — "Add M5Dial film selector UI"
+
+### What I did
+- Added:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_screen.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_screen.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_controller.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_controller.cpp`
+- Updated:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/CMakeLists.txt`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+- Replaced the inherited `TimerScreen`/`TimerController` path in the UI task with:
+  - `FilmSelectorScreen`
+  - `FilmSelectorController`
+  - `RecipeSelectorModel`
+- Kept the existing architecture boundaries intact:
+  - board polling still happens in the IO task
+  - events still cross the FreeRTOS queue
+  - LVGL still lives only in the UI task
+- Built and flashed the app to `/dev/ttyACM0`.
+
+### Why
+- The inherited timer screen was the last major placeholder that made the app feel like a clone instead of a film tool.
+- A dedicated selector UI/controller pair is cleaner than mutating the timer classes into a second job they were never designed for.
+- This step proves the event path from hardware input to domain selector state to LVGL rendering without mixing in countdown logic yet.
+
+### What worked
+- The new selector screen compiled cleanly after adjusting to the set of LVGL fonts actually enabled in this project.
+- Flash and boot succeeded on the dial.
+- The boot log now shows the app entering the new selector UI path:
+
+```text
+I (...) m5dial_film_0073: selector ready: film=Arista Premium 100 developer=D-76 dilution=1+1 temp=20.0C push=pull-1.7 time=465s
+I (...) m5dial_film_0073: film developer selector started
+```
+
+- The event wiring is now aligned with the film-selection flow:
+  - encoder changes the current selector field value
+  - short press advances/accepts
+  - long press goes back
+  - swipe changes visual theme
+
+### What didn't work
+- The first build failed because the new screen used `lv_font_montserrat_16` and `lv_font_montserrat_24`, which are not enabled in the current LVGL font configuration. Switching to already-enabled sizes fixed that immediately.
+- I can confirm build, flash, and boot from the terminal, but I cannot independently confirm the visual quality of the on-screen layout without the user looking at the dial. That remains a separate validation step in the task list.
+
+### What I learned
+- A screen/controller pair specific to selection is the right seam. It let the old timer path drop out of the UI loop cleanly.
+- The current ticket should treat "booted and flashed" and "human-validated on-screen behavior" as separate milestones. They are not the same thing.
+- The remaining big feature work is now clearly the countdown/review side, not basic app identity.
+
+### What was tricky to build
+- The main trap was avoiding overreach. It would have been easy to start inventing the countdown/review state machine in the same patch. That would have mixed two milestones. The disciplined path was:
+  - add a selector screen
+  - add a selector controller
+  - wire it into the existing task architecture
+  - flash and confirm boot
+  - leave countdown behavior for the next focused step
+- The other small trap was LVGL font availability. The portable-looking API names do not mean every font size is compiled into this build.
+
+### What warrants a second pair of eyes
+- The review-stage layout is currently only the selector screen’s "review field", not yet a dedicated ready screen. That is acceptable for now but should be revisited when the countdown flow exists.
+- The user-facing text for odd push/pull values such as `pull-1.7` is still too raw.
+
+### What should be done in the future
+- Verify the selector layout and interaction quality on the physical dial with human feedback.
+- Split the current review field into an actual process-ready screen if that reads better on hardware.
+- Build the film countdown model/controller next so the confirmed recipe can transition into a running process timer.
+
+### Code review instructions
+- Start with the new UI classes:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_screen.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_controller.cpp`
+- Then inspect the integration point:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+- Confirm that the old timer-model path is no longer driving the UI loop, even though the old files still exist in the repo for later cleanup.
+
+### Technical details
+
+The selector screen currently renders:
+
+```text
+title / theme
+active field name
+current selected value
+supporting detail line
+summary line
+interaction hint
+```
+
+The controller mapping is:
+
+```text
+encoder delta -> RecipeSelectorModel::adjust(...)
+short press -> RecipeSelectorModel::confirm()
+long press -> RecipeSelectorModel::back()
+swipe -> FilmSelectorScreen::cycle_theme(...)
+```
+
+That is enough to prove the selector-first product shape before any film countdown state has been introduced.

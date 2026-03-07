@@ -56,3 +56,13 @@ Step 4: added selector-oriented catalog query helpers, introduced `RecipeSelecto
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.cpp — Added filtered lookup helpers for film, developer, dilution, temperature, and push/pull queries
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.cpp — New selector state machine for staged recipe selection
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp — Boot-time selector initialization and validation logging
+
+## 2026-03-06
+
+Step 5: replaced the inherited timer UI loop with a dedicated film-selector screen/controller pair, flashed the new selector build to `/dev/ttyACM0`, and confirmed the app boots into the selector path (commit dd86850)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_screen.cpp — New selector-focused round-display UI
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_controller.cpp — Event mapping from encoder/button/swipe input into selector actions
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp — UI task now runs the film selector instead of the inherited countdown screen
