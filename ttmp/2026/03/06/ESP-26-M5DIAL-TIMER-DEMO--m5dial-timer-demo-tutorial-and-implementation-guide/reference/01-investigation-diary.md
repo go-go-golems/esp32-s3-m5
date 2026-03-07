@@ -21,7 +21,11 @@ RelatedFiles:
     - Path: 0071-cardputer-adv-photo-timer/main/timer_engine.cpp
       Note: Timer model reference used during research
     - Path: 0072-m5dial-timer-demo/CMakeLists.txt
-      Note: Root project wiring for the new M5Dial timer tutorial (commit b39be1f)
+      Note: |-
+        Root project wiring for the new M5Dial timer tutorial (commit b39be1f)
+        Project-level LovyanGFX legacy-I2C define restored for Step 5
+    - Path: 0072-m5dial-timer-demo/README.md
+      Note: User-facing control docs updated for touch-swipe theme cycling in Step 5
     - Path: 0072-m5dial-timer-demo/main/CMakeLists.txt
       Note: Build wiring updated to compile reused encoder and button support sources in Step 4
     - Path: 0072-m5dial-timer-demo/main/app_main.cpp
@@ -35,14 +39,21 @@ RelatedFiles:
       Note: |-
         Initial M5Dial board bring-up and normalized hardware access (commit b39be1f)
         Display wrapper stabilization and PCNT-backed encoder migration recorded in Step 4
+        FT3267 initialization
     - Path: 0072-m5dial-timer-demo/main/m5dial_board.h
-      Note: Board state updated for hardware-backed encoder ownership in Step 4
+      Note: |-
+        Board state updated for hardware-backed encoder ownership in Step 4
+        Touch and swipe board APIs extended in Step 5
     - Path: 0072-m5dial-timer-demo/main/timer_controller.cpp
-      Note: Encoder and button control mapping for the timer demo (commit f91abc2)
+      Note: |-
+        Encoder and button control mapping for the timer demo (commit f91abc2)
+        Swipe gestures mapped into theme cycling in Step 5
     - Path: 0072-m5dial-timer-demo/main/timer_model.cpp
       Note: Non-blocking countdown model implemented for the tutorial (commit f91abc2)
     - Path: 0072-m5dial-timer-demo/main/ui_timer_screen.cpp
-      Note: Round-screen timer UI implementation and styling (commit f91abc2)
+      Note: |-
+        Round-screen timer UI implementation and styling (commit f91abc2)
+        Multiple theme palettes and swipe-visible styling added in Step 5
     - Path: ttmp/2026/03/06/ESP-26-M5DIAL-TIMER-DEMO--m5dial-timer-demo-tutorial-and-implementation-guide/design-doc/01-m5dial-timer-demo-analysis-design-and-implementation-guide.md
       Note: Primary deliverable recorded in the diary
 ExternalSources: []
@@ -51,6 +62,7 @@ LastUpdated: 2026-03-06T19:14:43.05478957-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -663,4 +675,140 @@ cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m
 idf.py build
 idf.py -p /dev/ttyACM0 -b 115200 flash
 timeout 12s idf.py -p /dev/ttyACM0 monitor
+```
+
+## Step 5: Add touch-swipe theme switching and restore the legacy I2C balance
+
+Once the timer screen and encoder path were stable, touch could be added back in a narrower way than the original display-wrapper attempt. Instead of reattaching touch to `LovyanGFX`, this step added a board-owned FT3267 reader, turned raw touch movement into discrete swipe events, and used those events to cycle the timer screen through a small set of distinct visual themes.
+
+The first boot with touch enabled failed immediately, but the failure was useful: it proved the earlier `driver_ng` versus legacy I2C fix in `M5Dial-UserDemo` had not been copied into `0072`. Adding the same global `LGFX_FORCE_LEGACY_I2C_DRIVER` define restored the expected balance, and the follow-up flash booted cleanly with `touch controller ready` in the log.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, now add touch swipes as well, to change the background color style or something."
+
+**Assistant interpretation:** Reintroduce touch in a controlled way and give it a clear visible behavior that improves the demo without complicating the core timer interaction model.
+
+**Inferred user intent:** Make the M5Dial demo feel more like a touch-capable product demo rather than a purely encoder-driven utility, while keeping the interaction simple and visually rewarding.
+
+**Commit (code):** 1a9e0069a7e8b99722b94f570c13fe364f0fe729 — "Add touch swipe themes to M5Dial demo"
+
+### What I did
+- Added a legacy-I2C FT3267 reader directly inside `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp` using the known M5Dial touch pins (`11`/`12`) and the FT3267 register sequence from `M5Dial-UserDemo`.
+- Extended `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h` with `SwipeDirection`, persistent touch state, and a `take_swipe()` API.
+- Implemented simple swipe detection in the board poll loop by tracking touch-down, touch-release, displacement, and dominant axis.
+- Updated `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp` so left/up swipes advance the theme and right/down swipes reverse it.
+- Expanded `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp` with four named color palettes and theme-aware background/text styling.
+- Updated `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/README.md` to document the new touch-swipe controls.
+- Reproduced a boot-time failure after the first touch integration attempt:
+
+```text
+E (318) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver
+abort() was called at PC 0x4203ce13 on core 0
+```
+
+- Fixed that by adding `-DLGFX_FORCE_LEGACY_I2C_DRIVER` to `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/CMakeLists.txt`, matching the repaired `M5Dial-UserDemo` project.
+- Rebuilt, reflashed, and re-monitored the device until the boot log showed:
+  - `m5dial_board: touch controller ready`
+  - `m5dial_board: board init complete`
+  - `m5dial_timer_0072: timer demo started`
+
+### Why
+- Swipe-to-theme-change is a low-risk touch interaction that is easy to explain, easy to notice visually, and does not compete with the encoder’s primary timer role.
+- Keeping touch as a board-owned input source avoids repeating the earlier display-wrapper coupling mistake.
+- The `LGFX_FORCE_LEGACY_I2C_DRIVER` define is required because this tutorial mixes ESP-IDF’s legacy `driver/i2c.h` path with the vendored `LovyanGFX` component.
+
+### What worked
+- The FT3267 came up on the expected M5Dial pins and reported a clean initialization on hardware.
+- Swipe events fit naturally into the existing controller pattern; no LVGL indev plumbing was needed.
+- Theme changes are obvious on the round display because they affect the root background, orb background, supporting text colors, and hint text.
+- The follow-up boot after restoring the LovyanGFX legacy-I2C define was clean.
+- Flash, build, and monitor all succeeded after the fix.
+
+### What didn't work
+- The first touch-enabled flash immediately reintroduced the old/new I2C driver conflict:
+
+```text
+E (318) i2c: CONFLICT! driver_ng is not allowed to be used with this old driver
+abort() was called at PC 0x4203ce13 on core 0
+```
+
+- The first non-interactive monitor attempt also hit the usual tooling limitation:
+
+```text
+Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.
+```
+
+### What I learned
+- The repaired `M5Dial-UserDemo` behavior depends not only on source changes inside `LovyanGFX`, but also on a project-level compile definition. Reusing the component without reusing that define is enough to regress at boot.
+- Touch does not need to be fully LVGL-native to be useful in a small tutorial; board-level gestures are sufficient for a polished v1 interaction.
+- Theme changes are a good first touch feature on a circular display because they reward a gesture immediately without creating layout complexity.
+
+### What was tricky to build
+- The tricky part was that the first failure looked like a new touch bug, but the backtrace pointed somewhere older and lower-level: `do_global_ctors` and the I2C conflict checker. That meant the crash was happening before the tutorial board code had a chance to run, which narrowed the root cause to component initialization and compile-time configuration. The fix sequence was:
+  - add touch using the legacy I2C driver
+  - flash and observe the immediate `driver_ng` conflict
+  - compare the project-level build flags against the repaired `M5Dial-UserDemo`
+  - restore `LGFX_FORCE_LEGACY_I2C_DRIVER`
+  - rebuild, reflash, and verify the clean boot log
+- Swipe detection itself also needed restraint. The goal was not a full gesture engine, just a robust enough horizontal/vertical classifier for a round timer UI. That is why the implementation uses a threshold plus axis dominance instead of trying to interpret every drag.
+
+### What warrants a second pair of eyes
+- The swipe thresholds (`36 px` threshold, `14 px` axis lead) are reasonable starting values, but they should still be judged on real fingers, not just code review.
+- Raw touch orientation has only been validated indirectly through gesture handling, not through a dedicated coordinate test page.
+- The project still intentionally mixes a deprecated legacy PCNT path and a deprecated legacy I2C path because that is the shortest stable route on IDF `5.4.1`; a longer-term cleanup pass should revisit both.
+
+### What should be done in the future
+- Confirm with human testing that swipe direction matches user expectation on the physical device.
+- Decide whether to keep touch gesture handling local to the board/controller layer or eventually expose an LVGL pointer indev too.
+- Add a tiny touch diagnostic screen if deeper coordinate debugging becomes necessary later.
+- Consider moving from the legacy FT3267 + `driver/i2c.h` path to the newer IDF I2C API only when the graphics stack is migrated with it.
+
+### Code review instructions
+- Start with the board input layer and touch/I2C changes:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h`
+- Then inspect the build fix that keeps LovyanGFX on the legacy I2C path:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/CMakeLists.txt`
+- Then review the gesture-to-UI wiring:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp`
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+idf.py -p /dev/ttyACM0 monitor
+```
+
+### Technical details
+
+Swipe mapping used in this step:
+
+```text
+left swipe  -> next theme
+up swipe    -> next theme
+right swipe -> previous theme
+down swipe  -> previous theme
+```
+
+Key boot-log lines after the fix:
+
+```text
+W (...) i2c: This driver is an old driver, please migrate your application code to adapt `driver/i2c_master.h`
+I (...) m5dial_board: touch controller ready
+I (...) m5dial_board: board init complete
+I (...) m5dial_timer_0072: timer demo started
+```
+
+Commands used during this step:
+
+```bash
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+idf.py -p /dev/ttyACM0 monitor
 ```

@@ -66,3 +66,15 @@ Step 4: stabilized the M5Dial panel path by aligning the board wrapper with the 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — Display wrapper corrections and hardware-backed encoder migration
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h — Board state updated to own the PCNT-backed encoder
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/CMakeLists.txt — Reused encoder/button support sources compiled into the new tutorial
+
+
+## 2026-03-06
+
+Step 5: added FT3267 touch-swipe handling, mapped gestures to theme cycling on the round timer UI, and restored the project-level LovyanGFX legacy-I2C define after the first touch build reintroduced the old/new driver conflict (commit 1a9e006)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/CMakeLists.txt — Restores the LovyanGFX legacy-I2C build define required for clean boot on IDF 5.4
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — FT3267 initialization, raw touch reads, and swipe detection
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp — Maps swipe events into theme changes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp — Adds multiple visible color themes for touch-swipe cycling

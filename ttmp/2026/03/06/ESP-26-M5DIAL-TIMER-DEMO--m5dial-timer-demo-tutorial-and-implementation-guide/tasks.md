@@ -16,7 +16,8 @@
 - [x] Implement `main/m5dial_board.h` and `main/m5dial_board.cpp` to own board bring-up and normalized hardware access
 - [x] Implement power-hold initialization first in the board layer so the device remains on during boot
 - [x] Implement display initialization for the 240x240 round panel and verify backlight control works
-- [ ] Implement touch-controller initialization for the FT3267 and verify raw touch coordinates are readable
+- [x] Implement touch-controller initialization for the FT3267 and verify raw touch coordinates are readable
+  Note: the v1 firmware now uses raw touch reads to detect swipe gestures and cycle theme colors; a dedicated raw-coordinate diagnostic view still does not exist.
 - [x] Implement encoder setup and center-button input handling with a normalized `take_delta()` and `take_press()` API
 - [x] Decide whether sound is included in v1; if yes, implement a minimal buzzer API and completion/start/pause beep patterns
 - [x] Implement `main/lvgl_port_m5dial.h` and `main/lvgl_port_m5dial.cpp` based on the `0025-cardputer-lvgl-demo` display flush and tick pattern
@@ -32,7 +33,7 @@
 - [x] Keep LVGL ownership in one task only and ensure no background task mutates LVGL objects directly
 - [x] Build the project with `idf.py build` using `esp32-s3-m5/.envrc`
 - [ ] Flash the project to real M5Dial hardware and verify boot, display, encoder, press, touch, and reset behavior
-  Note: boot, display, encoder, and button/reset behavior are now verified on `/dev/ttyACM0`; touch remains intentionally deferred in v1.
+  Note: boot, display, encoder, button/reset, and touch-controller bring-up are now verified on `/dev/ttyACM0`; final human confirmation of swipe feel/direction is still pending.
 - [x] Verify there are no runtime regressions such as I2C driver conflicts or LEDC timer clock conflicts
 - [x] Measure binary size and confirm the tutorial still fits the configured app partition with reasonable headroom
 - [ ] Capture one or more screenshots or photos of the running timer UI for the tutorial README and ticket
