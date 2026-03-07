@@ -1076,3 +1076,112 @@ idf.py build
 idf.py -p /dev/ttyACM0 -b 115200 flash
 # first attempt blocked by stale esp_idf_monitor, second attempt succeeded
 ```
+
+## Step 8: Revert the tearing mitigation after judging the tradeoff too expensive
+
+The tearing mitigation was technically sound, but the user decided the tradeoff was not worth keeping in this demo. That is a valid product decision: the patch used more RAM and made the countdown presentation less continuous, and for a small hardware tutorial those costs can matter more than a cleaner panel.
+
+This step intentionally rolled the firmware back to the pre-tearing-fix behavior while preserving the newer input/event-bus architecture. The rollback was done as a real `git revert`, then rebuilt and reflashed so the device and repository stayed aligned.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's revert it then."
+
+**Assistant interpretation:** Remove only the tearing-mitigation code change and leave the rest of the stabilized timer demo intact.
+
+**Inferred user intent:** Prefer the simpler, lower-overhead rendering path over the more buffered and quantized version.
+
+**Commit (code):** 12a7fb990f360334de29c879386f98b85af3455a — "Revert \"Reduce M5Dial timer UI tearing\""
+
+### What I did
+- Reverted commit `a1c6dc3` with:
+
+```bash
+git -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5 revert --no-edit a1c6dc3
+```
+
+- Restored the earlier LVGL configuration in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp`:
+  - `buffer_lines = 40`
+  - `double_buffer = false`
+- Removed the cached view-state and redraw-quantization logic from:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp`
+- Rebuilt successfully.
+- Reflashed `/dev/ttyACM0` successfully so the hardware now matches the reverted source state.
+
+### Why
+- The user explicitly chose to give up the extra buffering and redraw suppression.
+- Keeping the rollback as a discrete revert commit preserves the experiment in history and makes it easy to reintroduce later if needed.
+- Reflashing immediately prevents the common mismatch where git says one thing and the device is still running another image.
+
+### What worked
+- The revert was clean and conflict-free.
+- The project still builds under IDF `5.4.1`.
+- The reverted image flashed successfully to `/dev/ttyACM0`.
+- The input/event-bus improvements remain in place because they were introduced in an earlier independent commit.
+
+### What didn't work
+- Nothing failed in the code rollback itself. This was a straightforward revert because the tearing patch had stayed isolated to three files.
+
+### What I learned
+- The tearing mitigation was cleanly scoped, which made reversal cheap. That is exactly why small focused commits are worth the discipline.
+- It is useful to separate “quality experiment” commits from “functional stabilization” commits. The user was able to reject one without endangering the rest of the demo.
+
+### What was tricky to build
+- There was not much technical difficulty here; the important choice was procedural. Instead of hand-editing the three files back, the right move was to preserve history with `git revert`. That keeps the original experiment reviewable and avoids accidentally dropping unrelated changes. The sequence was:
+  - verify the worktree was clean aside from unrelated untracked files
+  - revert only commit `a1c6dc3`
+  - rebuild to confirm the revert did not regress compilation
+  - flash the reverted image so the board state matched git state
+
+### What warrants a second pair of eyes
+- Human confirmation on-device is still the real validation here, because the whole point of the revert was a subjective UX preference.
+- If the user later changes their mind, reintroducing the tearing fix should probably be done with more granular knobs rather than one all-or-nothing patch.
+
+### What should be done in the future
+- If visible tearing remains annoying, try a narrower experiment next time:
+  - keep single buffering
+  - change only the arc update rate
+  - or change only the label update cadence
+- Capture a short video comparison if rendering tradeoffs need to be discussed again later.
+
+### Code review instructions
+- Confirm the revert touched only the intended files:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp`
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+```
+
+### Technical details
+
+Rollback summary:
+
+```text
+kept:
+  - queue-backed input event bus
+  - ISR-assisted button wakeups
+  - touch swipe themes
+
+removed:
+  - LVGL double buffering
+  - larger 120-line draw stripes
+  - cached screen view state
+  - redraw quantization for label and arc updates
+```
+
+Commands used during this step:
+
+```bash
+git -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5 revert --no-edit a1c6dc3
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+```

@@ -100,3 +100,14 @@ Step 6: split hardware polling from LVGL with a queue-backed input event bus and
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/input_events.h — Introduces the normalized event payload used across the refactor
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — Posts queue events and uses ISR wakeups for the center button
 
+
+## 2026-03-06
+
+Step 8: reverted the LVGL tearing mitigation after the user rejected the RAM and update-style tradeoff; rebuilt and reflashed the simpler rendering path (commit 12a7fb9)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp — Restores the original single-buffer LVGL configuration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp — Restores unconditional timer-screen updates from before Step 7
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h — Removes cached redraw state introduced by the tearing experiment
+
