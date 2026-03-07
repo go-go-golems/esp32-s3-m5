@@ -6,13 +6,12 @@
 #include "esp_timer.h"
 
 #include "film_catalog.h"
+#include "film_selector_controller.h"
+#include "film_selector_screen.h"
 #include "input_events.h"
 #include "lvgl_port_m5dial.h"
 #include "m5dial_board.h"
 #include "recipe_selector_model.h"
-#include "timer_controller.h"
-#include "timer_model.h"
-#include "ui_timer_screen.h"
 
 namespace {
 
@@ -57,31 +56,28 @@ void ui_task(void *arg) {
     return;
   }
 
-  tutorial_0072::TimerScreen screen;
+  tutorial_0073::FilmSelectorScreen screen;
   if (!screen.init()) {
-    ESP_LOGE(TAG, "timer screen init failed");
+    ESP_LOGE(TAG, "selector screen init failed");
     vTaskDelete(nullptr);
     return;
   }
 
-  tutorial_0072::TimerModel model;
-  tutorial_0072::TimerController controller;
-  screen.apply(model.snapshot());
-  ESP_LOGI(TAG, "film developer timer scaffold started");
+  tutorial_0073::FilmSelectorController controller;
+  screen.apply(ctx->selector.snapshot());
+  ESP_LOGI(TAG, "film developer selector started");
 
   while (true) {
     tutorial_0072::InputEvent event;
     const TickType_t wait_ticks = pdMS_TO_TICKS(kUiTickMs);
     if (xQueueReceive(ctx->input_queue, &event, wait_ticks == 0 ? 1 : wait_ticks) == pdTRUE) {
-      controller.handle_event(event, model, screen);
+      controller.handle_event(event, ctx->selector, screen);
       while (xQueueReceive(ctx->input_queue, &event, 0) == pdTRUE) {
-        controller.handle_event(event, model, screen);
+        controller.handle_event(event, ctx->selector, screen);
       }
     }
 
-    const uint64_t now_us = static_cast<uint64_t>(esp_timer_get_time());
-    model.tick(now_us);
-    screen.apply(model.snapshot());
+    screen.apply(ctx->selector.snapshot());
     lv_timer_handler();
   }
 }
