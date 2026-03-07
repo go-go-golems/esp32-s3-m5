@@ -126,7 +126,6 @@ bool FilmSelectorScreen::init() {
   lv_obj_set_style_text_font(hint_label_, &lv_font_montserrat_18, 0);
   lv_obj_align(hint_label_, LV_ALIGN_BOTTOM_MID, 0, -12);
 
-  lv_scr_load(root_);
   return true;
 }
 
@@ -137,6 +136,9 @@ void FilmSelectorScreen::cycle_theme(int delta) {
 void FilmSelectorScreen::apply(const SelectorSnapshot &snapshot) {
   if (!root_) {
     return;
+  }
+  if (lv_scr_act() != root_) {
+    lv_scr_load(root_);
   }
 
   const ThemePalette &theme = theme_palette(theme_index_);

@@ -6,8 +6,11 @@
 #include "esp_timer.h"
 
 #include "film_catalog.h"
+#include "film_process_screen.h"
 #include "film_selector_controller.h"
 #include "film_selector_screen.h"
+#include "film_timer_controller.h"
+#include "film_timer_model.h"
 #include "input_events.h"
 #include "lvgl_port_m5dial.h"
 #include "m5dial_board.h"
@@ -24,10 +27,16 @@ constexpr uint32_t kUiTickMs = 10;
 constexpr uint32_t kIoPollMs = 8;
 constexpr size_t kInputQueueLength = 32;
 
+enum class UiMode {
+  kSelecting = 0,
+  kProcess,
+};
+
 struct AppContext {
   tutorial_0072::M5DialBoard board;
   tutorial_0073::FilmCatalog catalog;
   tutorial_0073::RecipeSelectorModel selector;
+  tutorial_0073::FilmTimerModel timer;
   QueueHandle_t input_queue = nullptr;
 };
 
@@ -63,21 +72,59 @@ void ui_task(void *arg) {
     return;
   }
 
-  tutorial_0073::FilmSelectorController controller;
-  screen.apply(ctx->selector.snapshot());
+  tutorial_0073::FilmProcessScreen process_screen;
+  if (!process_screen.init()) {
+    ESP_LOGE(TAG, "process screen init failed");
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  tutorial_0073::FilmSelectorController selector_controller;
+  tutorial_0073::FilmTimerController timer_controller;
+  UiMode mode = UiMode::kSelecting;
   ESP_LOGI(TAG, "film developer selector started");
 
   while (true) {
     tutorial_0072::InputEvent event;
     const TickType_t wait_ticks = pdMS_TO_TICKS(kUiTickMs);
     if (xQueueReceive(ctx->input_queue, &event, wait_ticks == 0 ? 1 : wait_ticks) == pdTRUE) {
-      controller.handle_event(event, ctx->selector, screen);
+      if (mode == UiMode::kSelecting) {
+        if (selector_controller.handle_event(event, ctx->selector, screen) ==
+            tutorial_0073::FilmSelectorCommand::kStartProcess) {
+          const tutorial_0073::SelectorSnapshot snapshot = ctx->selector.snapshot();
+          ctx->timer.load_recipe(snapshot.selection, snapshot.resolved_recipe);
+          mode = UiMode::kProcess;
+        }
+      } else {
+        if (timer_controller.handle_event(event, ctx->timer, process_screen) ==
+            tutorial_0073::FilmTimerCommand::kReturnToSelection) {
+          mode = UiMode::kSelecting;
+        }
+      }
+
       while (xQueueReceive(ctx->input_queue, &event, 0) == pdTRUE) {
-        controller.handle_event(event, ctx->selector, screen);
+        if (mode == UiMode::kSelecting) {
+          if (selector_controller.handle_event(event, ctx->selector, screen) ==
+              tutorial_0073::FilmSelectorCommand::kStartProcess) {
+            const tutorial_0073::SelectorSnapshot snapshot = ctx->selector.snapshot();
+            ctx->timer.load_recipe(snapshot.selection, snapshot.resolved_recipe);
+            mode = UiMode::kProcess;
+          }
+        } else {
+          if (timer_controller.handle_event(event, ctx->timer, process_screen) ==
+              tutorial_0073::FilmTimerCommand::kReturnToSelection) {
+            mode = UiMode::kSelecting;
+          }
+        }
       }
     }
 
-    screen.apply(ctx->selector.snapshot());
+    ctx->timer.tick(static_cast<uint64_t>(esp_timer_get_time()));
+    if (mode == UiMode::kSelecting) {
+      screen.apply(ctx->selector.snapshot());
+    } else {
+      process_screen.apply(ctx->timer.snapshot());
+    }
     lv_timer_handler();
   }
 }
