@@ -30,6 +30,7 @@ constexpr int kPinTouchInt = 14;
 constexpr int kTouchAddress = 0x38;
 
 constexpr int64_t kButtonDebounceMs = 30;
+constexpr int64_t kButtonLongPressMs = 700;
 
 int64_t now_ms() {
   return esp_timer_get_time() / 1000LL;
@@ -153,6 +154,7 @@ void M5DialBoard::init_encoder_button_gpio() {
   button_raw_state_ = gpio_get_level(kPinButton);
   button_stable_state_ = button_raw_state_;
   button_last_change_ms_ = now_ms();
+  button_pressed_ms_ = button_last_change_ms_;
 }
 
 void M5DialBoard::poll() {
@@ -188,11 +190,20 @@ void M5DialBoard::poll() {
   }
 
   if ((now_ms() - button_last_change_ms_) >= kButtonDebounceMs && button_stable_state_ != button_raw_state_) {
+    const int64_t stable_change_ms = now_ms();
     const bool previous = button_stable_state_;
     button_stable_state_ = button_raw_state_;
     if (previous && !button_stable_state_) {
+      button_pressed_ms_ = stable_change_ms;
+      button_long_press_reported_ = false;
+    } else if (!previous && button_stable_state_ && !button_long_press_reported_) {
       button_press_pending_ = true;
     }
+  }
+
+  if (!button_stable_state_ && !button_long_press_reported_ && (now_ms() - button_pressed_ms_) >= kButtonLongPressMs) {
+    button_long_press_pending_ = true;
+    button_long_press_reported_ = true;
   }
 }
 
@@ -205,6 +216,12 @@ int M5DialBoard::take_encoder_steps() {
 bool M5DialBoard::take_button_press() {
   const bool pressed = button_press_pending_;
   button_press_pending_ = false;
+  return pressed;
+}
+
+bool M5DialBoard::take_button_long_press() {
+  const bool pressed = button_long_press_pending_;
+  button_long_press_pending_ = false;
   return pressed;
 }
 

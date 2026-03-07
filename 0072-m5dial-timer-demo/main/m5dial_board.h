@@ -32,6 +32,7 @@ class M5DialBoard {
   LGFX_M5Dial &display() { return display_; }
   int take_encoder_steps();
   bool take_button_press();
+  bool take_button_long_press();
   TouchState read_touch();
 
  private:
@@ -47,7 +48,10 @@ class M5DialBoard {
   bool button_raw_state_ = true;
   bool button_stable_state_ = true;
   int64_t button_last_change_ms_ = 0;
+  int64_t button_pressed_ms_ = 0;
   bool button_press_pending_ = false;
+  bool button_long_press_pending_ = false;
+  bool button_long_press_reported_ = false;
 };
 
 }  // namespace tutorial_0072

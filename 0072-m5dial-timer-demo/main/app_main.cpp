@@ -1,106 +1,66 @@
-#include <inttypes.h>
-#include <stdio.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 
+#include "lvgl_port_m5dial.h"
 #include "m5dial_board.h"
+#include "timer_controller.h"
+#include "timer_model.h"
+#include "ui_timer_screen.h"
 
 namespace {
 
 static const char *TAG = "m5dial_timer_0072";
+constexpr uint32_t kAppTaskStackSize = 12288;
+constexpr UBaseType_t kAppTaskPriority = 5;
+constexpr uint32_t kLoopDelayMs = 20;
 
-constexpr uint32_t kBgColor = 0x101416;
-constexpr uint32_t kTextColor = 0xF6F1E8;
-constexpr uint32_t kAccentColor = 0xE0B04A;
-constexpr uint32_t kMutedColor = 0x7A8688;
-
-void draw_smoke_screen(tutorial_0072::M5DialBoard &board,
-                       int encoder_total,
-                       int button_count,
-                       const tutorial_0072::TouchState &touch) {
-  auto &display = board.display();
-
-  display.fillScreen(kBgColor);
-  display.setTextDatum(lgfx::textdatum_t::middle_center);
-  display.setTextColor(kAccentColor, kBgColor);
-  display.setTextSize(1);
-  display.drawString("M5DIAL TIMER", 120, 34);
-
-  display.setTextColor(kTextColor, kBgColor);
-  display.setTextSize(2);
-  display.drawString("0072", 120, 74);
-
-  display.setTextColor(kMutedColor, kBgColor);
-  display.setTextSize(1);
-  display.drawString("Stage 1: Board smoke test", 120, 102);
-
-  display.drawCircle(120, 120, 96, 0x303638);
-  display.drawCircle(120, 120, 82, 0x23292B);
-
-  char line[64];
-  display.setTextColor(kTextColor, kBgColor);
-  snprintf(line, sizeof(line), "Encoder total: %d", encoder_total);
-  display.drawString(line, 120, 140);
-  snprintf(line, sizeof(line), "Button presses: %d", button_count);
-  display.drawString(line, 120, 162);
-
-  if (touch.pressed) {
-    snprintf(line, sizeof(line), "Touch: %d, %d", touch.x, touch.y);
-  } else {
-    snprintf(line, sizeof(line), "Touch: none");
+void timer_demo_task(void * /*arg*/) {
+  tutorial_0072::M5DialBoard board;
+  if (!board.init()) {
+    ESP_LOGE(TAG, "board init failed");
+    vTaskDelete(nullptr);
+    return;
   }
-  display.drawString(line, 120, 184);
 
-  display.setTextColor(kMutedColor, kBgColor);
-  display.drawString("Rotate / press / touch to test inputs", 120, 214);
+  tutorial_0072::LvglPortM5DialConfig lvgl_cfg{};
+  lvgl_cfg.buffer_lines = 40;
+  lvgl_cfg.tick_ms = 2;
+  lvgl_cfg.double_buffer = false;
+  lvgl_cfg.swap_bytes = false;
+  if (!tutorial_0072::lvgl_port_m5dial_init(board.display(), lvgl_cfg)) {
+    ESP_LOGE(TAG, "LVGL port init failed");
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  tutorial_0072::TimerScreen screen;
+  if (!screen.init()) {
+    ESP_LOGE(TAG, "timer screen init failed");
+    vTaskDelete(nullptr);
+    return;
+  }
+
+  tutorial_0072::TimerModel model;
+  tutorial_0072::TimerController controller;
+
+  while (true) {
+    board.poll();
+    const uint64_t now_us = static_cast<uint64_t>(esp_timer_get_time());
+    controller.update(board, model, now_us);
+    model.tick(now_us);
+    screen.apply(model.snapshot());
+    lv_timer_handler();
+
+    const TickType_t delay_ticks = pdMS_TO_TICKS(kLoopDelayMs);
+    vTaskDelay(delay_ticks == 0 ? 1 : delay_ticks);
+  }
 }
 
 }  // namespace
 
 extern "C" void app_main(void) {
-  tutorial_0072::M5DialBoard board;
-  if (!board.init()) {
-    ESP_LOGE(TAG, "board init failed");
-    return;
-  }
-
-  int encoder_total = 0;
-  int button_count = 0;
-  tutorial_0072::TouchState touch = {};
-
-  draw_smoke_screen(board, encoder_total, button_count, touch);
-
-  while (true) {
-    board.poll();
-
-    bool dirty = false;
-
-    const int delta = board.take_encoder_steps();
-    if (delta != 0) {
-      encoder_total += delta;
-      ESP_LOGI(TAG, "encoder delta=%d total=%d", delta, encoder_total);
-      dirty = true;
-    }
-
-    if (board.take_button_press()) {
-      button_count++;
-      ESP_LOGI(TAG, "button press count=%d", button_count);
-      dirty = true;
-    }
-
-    const auto latest_touch = board.read_touch();
-    if (latest_touch.pressed != touch.pressed || latest_touch.x != touch.x || latest_touch.y != touch.y) {
-      touch = latest_touch;
-      dirty = true;
-    }
-
-    if (dirty) {
-      draw_smoke_screen(board, encoder_total, button_count, touch);
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(5));
-  }
+  xTaskCreatePinnedToCore(timer_demo_task, "m5dial_timer", kAppTaskStackSize, nullptr, kAppTaskPriority, nullptr, 1);
 }
