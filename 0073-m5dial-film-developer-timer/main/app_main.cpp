@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "film_catalog.h"
 #include "input_events.h"
 #include "lvgl_port_m5dial.h"
 #include "m5dial_board.h"
@@ -25,6 +26,7 @@ constexpr size_t kInputQueueLength = 32;
 
 struct AppContext {
   tutorial_0072::M5DialBoard board;
+  tutorial_0073::FilmCatalog catalog;
   QueueHandle_t input_queue = nullptr;
 };
 
@@ -97,6 +99,18 @@ extern "C" void app_main(void) {
     ESP_LOGE(TAG, "board init failed");
     return;
   }
+
+  if (!app.catalog.init()) {
+    ESP_LOGE(TAG, "film catalog init failed");
+    return;
+  }
+
+  const tutorial_0073::FilmCatalogStats &catalog_stats = app.catalog.stats();
+  ESP_LOGI(TAG,
+           "film catalog ready: recipes=%u films=%u developers=%u",
+           static_cast<unsigned>(catalog_stats.recipe_count),
+           static_cast<unsigned>(catalog_stats.film_count),
+           static_cast<unsigned>(catalog_stats.developer_count));
 
   xTaskCreatePinnedToCore(ui_task, "m5dial_ui", kUiTaskStackSize, &app, kUiTaskPriority, nullptr, 1);
   xTaskCreatePinnedToCore(io_task, "m5dial_io", kIoTaskStackSize, &app, kIoTaskPriority, nullptr, 0);

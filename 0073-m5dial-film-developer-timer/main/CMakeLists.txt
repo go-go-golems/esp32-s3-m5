@@ -1,6 +1,8 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "film_catalog.cpp"
+        "generated_film_catalog.cpp"
         "lvgl_port_m5dial.cpp"
         "m5dial_board.cpp"
         "timer_controller.cpp"
