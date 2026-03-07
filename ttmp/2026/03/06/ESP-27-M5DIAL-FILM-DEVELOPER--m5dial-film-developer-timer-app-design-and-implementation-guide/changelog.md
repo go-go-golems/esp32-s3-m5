@@ -47,3 +47,12 @@ Step 3: added a generated starter film catalog, wired a runtime FilmCatalog into
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp — Generated curated recipe dataset
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py — Generator script for the runtime dataset
 
+## 2026-03-06
+
+Step 4: added selector-oriented catalog query helpers, introduced `RecipeSelectorModel`, and verified on `/dev/ttyACM0` that the new selector layer resolves a concrete starter recipe at boot (commit 453cada)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.cpp — Added filtered lookup helpers for film, developer, dilution, temperature, and push/pull queries
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.cpp — New selector state machine for staged recipe selection
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp — Boot-time selector initialization and validation logging

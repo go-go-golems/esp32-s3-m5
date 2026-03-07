@@ -24,18 +24,25 @@
 - [ ] Filter the starter catalog to:
   - [x] common B/W developers
   - [x] explicit color-negative / C-41-like rows that are actually present and usable
-- [ ] Implement `main/recipe_selector_model.h` and `main/recipe_selector_model.cpp`
+- [x] Implement `main/recipe_selector_model.h` and `main/recipe_selector_model.cpp`
+- [x] Flash the app to `/dev/ttyACM0` and verify the selector layer resolves a concrete starter recipe at boot
 - [ ] Implement `main/film_timer_model.h` and `main/film_timer_model.cpp`
 - [ ] Implement `main/film_timer_controller.h` and `main/film_timer_controller.cpp`
 - [ ] Create a selector UI screen tuned for encoder-driven browsing on the round display
+- [ ] Replace the inherited generic timer text with film-selection labels and option values
+- [ ] Wire encoder turns into selector field value changes through the existing event queue
+- [ ] Wire short press into selector field advance / confirm through the existing event queue
+- [ ] Wire long press into selector back / cancel behavior through the existing event queue
 - [ ] Create a recipe review / ready screen
+- [ ] Show the resolved recipe time, film, developer, dilution, temperature, and push/pull on the review screen
 - [ ] Create a running timer screen that shows recipe metadata plus countdown
+- [ ] Decide what completion behavior happens when the countdown reaches zero
 - [ ] Auto-hide or auto-lock single-choice fields such as developer or dilution when appropriate
 - [ ] Decide whether v1 should expose film format (`35mm`, `120`, `sheet`) or default to the best available time
 - [ ] Update `README.md` with build, flash, and control instructions for the new app
 - [x] Build the new app with `idf.py build`
   Note: the app still boots the inherited timer UI, but the curated film catalog now initializes successfully at runtime with `1548` recipes across `19` films and `9` developers.
-- [ ] Flash to `/dev/ttyACM0` and validate selector behavior on real hardware
+- [ ] Flash to `/dev/ttyACM0` and validate on-screen selector behavior on real hardware
 - [ ] Confirm a few chosen development times against raw source rows manually
 - [ ] Capture photos or screenshots for the eventual ticket update and README
 - [ ] Upload the implementation follow-up to this ticket once code exists

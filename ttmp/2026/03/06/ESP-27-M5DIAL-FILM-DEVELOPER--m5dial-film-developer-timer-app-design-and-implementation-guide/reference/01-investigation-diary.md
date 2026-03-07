@@ -25,6 +25,10 @@ RelatedFiles:
         Diary evidence for runtime catalog initialization and boot log validation
     - Path: 0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp
       Note: Diary evidence for the generated starter recipe dataset
+    - Path: 0073-m5dial-film-developer-timer/main/film_catalog.cpp
+      Note: Diary evidence for catalog query helpers used by the selector layer
+    - Path: 0073-m5dial-film-developer-timer/main/recipe_selector_model.cpp
+      Note: Diary evidence for the first selector state machine implementation
     - Path: film_dev_times.json
       Note: Evidence for source-data size and schema constraints
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/analyze_film_dev_times.py
@@ -391,3 +395,111 @@ idf.py build
 idf.py -p /dev/ttyACM0 -b 115200 flash
 timeout 8s idf.py -p /dev/ttyACM0 monitor
 ```
+
+## Step 4: Add selector queries and the first recipe-selector state machine
+
+With the generated starter catalog in place, the next missing piece was the first real domain-level interaction layer: code that can turn the flat recipe table into a sequence of user-selectable fields. The runtime catalog already knew how many rows existed. It did not yet know how to answer product questions such as "which developers exist for this film?" or "what temperatures exist for this film/developer/dilution combination?".
+
+This step added those query helpers to `FilmCatalog`, then introduced a dedicated `RecipeSelectorModel` that walks the user through a deterministic chain of selector fields: film, developer, dilution, temperature, push/pull, and finally a review state. The important point is that this was built as a pure state machine first, before any new on-screen UI was written. That keeps the selection logic testable and keeps the eventual LVGL work thinner.
+
+### Prompt Context
+
+**User prompt (verbatim):** "create tasks in the ticket, then do them one by one, committing at appropriate intervals, keeping a detailed diary.."
+
+**Assistant interpretation:** Treat the guide as an implementation backlog, advance the next logical task, validate it on hardware, and record each milestone cleanly before moving to the next one.
+
+**Inferred user intent:** Make steady, reviewable progress instead of bundling several architectural changes into one large, hard-to-audit commit.
+
+**Commit (code):** 453cada — "Add film recipe selector model"
+
+### What I did
+- Expanded `FilmCatalog` so it can answer selector-oriented queries:
+  - `films()`
+  - `developers_for(...)`
+  - `dilutions_for(...)`
+  - `temperatures_for(...)`
+  - `push_pull_for(...)`
+  - `resolve(...)`
+- Added:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.cpp`
+- Registered the new selector module in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/CMakeLists.txt`
+- Wired the selector model into boot initialization in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+- Built and flashed the app:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash monitor
+```
+
+### Why
+- The UI should not directly scan the raw generated recipe array every time the user turns the encoder.
+- A dedicated selector state machine is the clean seam between domain data and LVGL rendering.
+- Building the selector logic before the selector UI keeps future UI work focused on presentation and event wiring rather than catalog search details.
+
+### What worked
+- The generated catalog was already sorted in a way that made one-pass unique extraction practical for v1.
+- The selector model initialized successfully on hardware and resolved an actual starter recipe at boot.
+- The boot log confirmed end-to-end wiring from generated data through catalog queries to a resolved selection:
+
+```text
+I (...) m5dial_film_0073: film catalog ready: recipes=1548 films=19 developers=9
+I (...) m5dial_film_0073: selector ready: film=Arista Premium 100 developer=D-76 dilution=1+1 temp=20.0C push=pull-1.7 time=465s
+```
+
+### What didn't work
+- There was no code-level failure in this step.
+- The one awkward detail in the first boot log was the generated push/pull label `pull-1.7`, which is valid source data but a reminder that later UI polish should normalize odd fractional labels more gracefully if they look confusing on screen.
+
+### What I learned
+- The dataset is structured enough that a thin query API plus linear scans is acceptable for the starter catalog size.
+- The right next step is UI replacement, not more catalog abstraction. We now have enough domain logic to drive a real selector screen.
+- Separating `RecipeSelectorModel` from the controller/UI code was the right call. It already made the boot validation straightforward.
+
+### What was tricky to build
+- The subtle part was deciding how much intelligence belongs in the catalog versus the selector model. The stable split that emerged was:
+  - `FilmCatalog`: answer filtered lookup questions and resolve a concrete recipe
+  - `RecipeSelectorModel`: manage current field, current indices, wrap-around behavior, and downstream option rebuilding
+- Another small but important detail was avoiding unnecessary copies of raw string data. Using `std::string_view` backed by the generated static table keeps the selector cheap.
+
+### What warrants a second pair of eyes
+- The current query helpers rely on the generated catalog ordering to make `append_unique(...)` behave sensibly. That assumption is fine because the generator currently sorts the output, but it should stay documented if the generator ever changes.
+- The choice to use linear scans is pragmatic for `1548` rows. If the starter catalog grows substantially, the next iteration may want precomputed indexes.
+
+### What should be done in the future
+- Replace the inherited timer UI with a selector-focused screen that renders the current field and current option clearly on the round display.
+- Feed encoder and button events into `RecipeSelectorModel` through the existing queue-based controller boundary.
+- Add a review screen that uses `resolved_recipe()` to present the chosen process before the countdown starts.
+
+### Code review instructions
+- Review the new domain-query seam first:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.cpp`
+- Then review the selector state machine:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/recipe_selector_model.cpp`
+- Finally verify the boot wiring:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+
+### Technical details
+
+The selector state machine currently exposes these stages:
+
+```text
+Film -> Developer -> Dilution -> Temperature -> Push/Pull -> Review
+```
+
+The runtime behavior is:
+
+```text
+adjust(delta): mutate the active field index with wrap-around
+confirm(): advance to the next meaningful field, skipping fields that only have one option
+back(): retreat to the previous meaningful field
+snapshot(): expose the current field, option count, current selection, and resolved recipe
+```
+
+That gives the next UI step a stable API without requiring LVGL code to know how recipes are filtered internally.
