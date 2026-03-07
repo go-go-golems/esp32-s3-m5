@@ -45,6 +45,8 @@ void timer_demo_task(void * /*arg*/) {
 
   tutorial_0072::TimerModel model;
   tutorial_0072::TimerController controller;
+  screen.apply(model.snapshot());
+  ESP_LOGI(TAG, "timer demo started");
 
   while (true) {
     board.poll();

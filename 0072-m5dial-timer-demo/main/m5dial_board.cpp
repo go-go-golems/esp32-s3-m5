@@ -1,7 +1,6 @@
 #include "m5dial_board.h"
 
 #include <driver/gpio.h>
-#include <driver/i2c.h>
 #include <esp_log.h>
 #include <esp_timer.h>
 
@@ -23,11 +22,6 @@ constexpr int kPinLcdDc = 4;
 constexpr int kPinLcdCs = 7;
 constexpr int kPinLcdRst = 8;
 constexpr int kPinLcdBl = 9;
-
-constexpr int kPinTouchSda = 11;
-constexpr int kPinTouchScl = 12;
-constexpr int kPinTouchInt = 14;
-constexpr int kTouchAddress = 0x38;
 
 constexpr int64_t kButtonDebounceMs = 30;
 constexpr int64_t kButtonLongPressMs = 700;
@@ -74,7 +68,7 @@ LGFX_M5Dial::LGFX_M5Dial() {
     cfg.invert = true;
     cfg.rgb_order = false;
     cfg.dlen_16bit = false;
-    cfg.bus_shared = false;
+    cfg.bus_shared = true;
     panel_.config(cfg);
   }
 
@@ -86,25 +80,6 @@ LGFX_M5Dial::LGFX_M5Dial() {
     cfg.pwm_channel = 7;
     light_.config(cfg);
     panel_.setLight(&light_);
-  }
-
-  {
-    auto cfg = touch_.config();
-    cfg.x_min = 0;
-    cfg.x_max = 239;
-    cfg.y_min = 0;
-    cfg.y_max = 239;
-    cfg.pin_int = kPinTouchInt;
-    cfg.pin_rst = kPinLcdRst;
-    cfg.offset_rotation = 0;
-    cfg.bus_shared = false;
-    cfg.i2c_port = I2C_NUM_0;
-    cfg.i2c_addr = kTouchAddress;
-    cfg.pin_sda = kPinTouchSda;
-    cfg.pin_scl = kPinTouchScl;
-    cfg.freq = 400000;
-    touch_.config(cfg);
-    panel_.setTouch(&touch_);
   }
 
   setPanel(&panel_);
@@ -124,8 +99,10 @@ bool M5DialBoard::init() {
   display_.setBrightness(255);
   display_.fillScreen(TFT_BLACK);
 
-  encoder_prev_state_ =
-      (uint8_t)((gpio_get_level(kPinEncoderA) ? 0x2 : 0) | (gpio_get_level(kPinEncoderB) ? 0x1 : 0));
+  encoder_.attachHalfQuad(static_cast<int>(kPinEncoderA), static_cast<int>(kPinEncoderB));
+  encoder_.setFilter(1023);
+  encoder_.clearCount();
+  encoder_last_count_ = encoder_.readCount();
 
   ESP_LOGI(TAG, "board init complete");
   return true;
@@ -144,7 +121,7 @@ void M5DialBoard::init_power_hold() {
 
 void M5DialBoard::init_encoder_button_gpio() {
   gpio_config_t input_cfg = {};
-  input_cfg.pin_bit_mask = (1ULL << kPinButton) | (1ULL << kPinEncoderA) | (1ULL << kPinEncoderB);
+  input_cfg.pin_bit_mask = (1ULL << kPinButton);
   input_cfg.mode = GPIO_MODE_INPUT;
   input_cfg.pull_up_en = GPIO_PULLUP_ENABLE;
   input_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
@@ -158,29 +135,11 @@ void M5DialBoard::init_encoder_button_gpio() {
 }
 
 void M5DialBoard::poll() {
-  static constexpr int8_t kTransitionTable[16] = {
-      0, -1, 1, 0,
-      1, 0, 0, -1,
-      -1, 0, 0, 1,
-      0, 1, -1, 0,
-  };
-
-  const uint8_t encoder_state =
-      (uint8_t)((gpio_get_level(kPinEncoderA) ? 0x2 : 0) | (gpio_get_level(kPinEncoderB) ? 0x1 : 0));
-  const uint8_t transition = (uint8_t)((encoder_prev_state_ << 2) | encoder_state);
-  encoder_prev_state_ = encoder_state;
-
-  const int8_t transition_delta = kTransitionTable[transition];
-  if (transition_delta != 0) {
-    encoder_substep_accum_ += transition_delta;
-    while (encoder_substep_accum_ >= 2) {
-      encoder_steps_pending_++;
-      encoder_substep_accum_ -= 2;
-    }
-    while (encoder_substep_accum_ <= -2) {
-      encoder_steps_pending_--;
-      encoder_substep_accum_ += 2;
-    }
+  const int encoder_now = encoder_.readCount();
+  const int encoder_delta = encoder_now - encoder_last_count_;
+  if (encoder_delta != 0) {
+    encoder_steps_pending_ += encoder_delta;
+    encoder_last_count_ = encoder_now;
   }
 
   const bool button_raw_now = gpio_get_level(kPinButton);
@@ -226,15 +185,7 @@ bool M5DialBoard::take_button_long_press() {
 }
 
 TouchState M5DialBoard::read_touch() {
-  TouchState state = {};
-  uint16_t x = 0;
-  uint16_t y = 0;
-  if (display_.getTouch(&x, &y)) {
-    state.pressed = true;
-    state.x = static_cast<int16_t>(x);
-    state.y = static_cast<int16_t>(y);
-  }
-  return state;
+  return {};
 }
 
 }  // namespace tutorial_0072

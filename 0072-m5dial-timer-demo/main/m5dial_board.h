@@ -4,6 +4,7 @@
 
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
+#include <ESP32Encoder.h>
 
 namespace tutorial_0072 {
 
@@ -21,7 +22,6 @@ class LGFX_M5Dial : public lgfx::LGFX_Device {
   lgfx::Panel_GC9A01 panel_;
   lgfx::Bus_SPI bus_;
   lgfx::Light_PWM light_;
-  lgfx::Touch_FT5x06 touch_;
 };
 
 class M5DialBoard {
@@ -40,9 +40,9 @@ class M5DialBoard {
   void init_encoder_button_gpio();
 
   LGFX_M5Dial display_{};
+  ESP32Encoder encoder_{};
+  int encoder_last_count_ = 0;
 
-  uint8_t encoder_prev_state_ = 0;
-  int encoder_substep_accum_ = 0;
   int encoder_steps_pending_ = 0;
 
   bool button_raw_state_ = true;
