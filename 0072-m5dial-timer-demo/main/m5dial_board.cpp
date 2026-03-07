@@ -34,11 +34,15 @@ constexpr uint8_t kTouchRegPoint1 = 0x03;
 
 constexpr int64_t kButtonDebounceMs = 30;
 constexpr int64_t kButtonLongPressMs = 700;
-constexpr int kSwipeThresholdPx = 36;
-constexpr int kSwipeAxisLeadPx = 14;
+constexpr int kSwipeThresholdPx = 24;
+constexpr int kSwipeAxisLeadPx = 10;
 
 int64_t now_ms() {
   return esp_timer_get_time() / 1000LL;
+}
+
+uint64_t now_us() {
+  return static_cast<uint64_t>(esp_timer_get_time());
 }
 
 esp_err_t touch_write_reg(uint8_t reg, uint8_t value) {
@@ -48,6 +52,13 @@ esp_err_t touch_write_reg(uint8_t reg, uint8_t value) {
 
 esp_err_t touch_read_reg(uint8_t reg, uint8_t *data, size_t size) {
   return i2c_master_write_read_device(kTouchI2cPort, kTouchI2cAddress, &reg, 1, data, size, pdMS_TO_TICKS(200));
+}
+
+void post_event(QueueHandle_t event_queue, const InputEvent &event) {
+  if (!event_queue) {
+    return;
+  }
+  xQueueSend(event_queue, &event, 0);
 }
 
 }  // namespace
@@ -147,8 +158,15 @@ void M5DialBoard::init_encoder_button_gpio() {
   input_cfg.mode = GPIO_MODE_INPUT;
   input_cfg.pull_up_en = GPIO_PULLUP_ENABLE;
   input_cfg.pull_down_en = GPIO_PULLDOWN_DISABLE;
-  input_cfg.intr_type = GPIO_INTR_DISABLE;
+  input_cfg.intr_type = GPIO_INTR_ANYEDGE;
   gpio_config(&input_cfg);
+
+  static bool isr_service_installed = false;
+  if (!isr_service_installed) {
+    gpio_install_isr_service(0);
+    isr_service_installed = true;
+  }
+  gpio_isr_handler_add(kPinButton, &M5DialBoard::button_isr_handler, this);
 
   button_raw_state_ = gpio_get_level(kPinButton);
   button_stable_state_ = button_raw_state_;
@@ -156,12 +174,16 @@ void M5DialBoard::init_encoder_button_gpio() {
   button_pressed_ms_ = button_last_change_ms_;
 }
 
-void M5DialBoard::poll() {
+void M5DialBoard::set_button_irq_task(TaskHandle_t task_handle) {
+  button_irq_task_ = task_handle;
+}
+
+void M5DialBoard::poll(QueueHandle_t event_queue) {
   const int encoder_now = encoder_.readCount();
   const int encoder_delta = encoder_now - encoder_last_count_;
   if (encoder_delta != 0) {
-    encoder_steps_pending_ += encoder_delta;
     encoder_last_count_ = encoder_now;
+    post_event(event_queue, InputEvent{InputEventType::kEncoderDelta, encoder_delta, SwipeDirection::kNone, now_us()});
   }
 
   const bool button_raw_now = gpio_get_level(kPinButton);
@@ -178,44 +200,20 @@ void M5DialBoard::poll() {
       button_pressed_ms_ = stable_change_ms;
       button_long_press_reported_ = false;
     } else if (!previous && button_stable_state_ && !button_long_press_reported_) {
-      button_press_pending_ = true;
+      post_event(event_queue, InputEvent{InputEventType::kButtonShortPress, 0, SwipeDirection::kNone, now_us()});
     }
   }
 
   if (!button_stable_state_ && !button_long_press_reported_ && (now_ms() - button_pressed_ms_) >= kButtonLongPressMs) {
-    button_long_press_pending_ = true;
+    post_event(event_queue, InputEvent{InputEventType::kButtonLongPress, 0, SwipeDirection::kNone, now_us()});
     button_long_press_reported_ = true;
   }
 
-  poll_touch();
-}
-
-int M5DialBoard::take_encoder_steps() {
-  const int steps = encoder_steps_pending_;
-  encoder_steps_pending_ = 0;
-  return steps;
-}
-
-bool M5DialBoard::take_button_press() {
-  const bool pressed = button_press_pending_;
-  button_press_pending_ = false;
-  return pressed;
-}
-
-bool M5DialBoard::take_button_long_press() {
-  const bool pressed = button_long_press_pending_;
-  button_long_press_pending_ = false;
-  return pressed;
+  poll_touch(event_queue);
 }
 
 TouchState M5DialBoard::read_touch() {
   return touch_state_;
-}
-
-SwipeDirection M5DialBoard::take_swipe() {
-  const SwipeDirection swipe = swipe_pending_;
-  swipe_pending_ = SwipeDirection::kNone;
-  return swipe;
 }
 
 bool M5DialBoard::init_touch_controller() {
@@ -266,7 +264,7 @@ bool M5DialBoard::init_touch_controller() {
   return true;
 }
 
-void M5DialBoard::poll_touch() {
+void M5DialBoard::poll_touch(QueueHandle_t event_queue) {
   if (!touch_ready_) {
     touch_state_ = {};
     return;
@@ -280,8 +278,29 @@ void M5DialBoard::poll_touch() {
       touch_start_ = sample;
       touch_last_ = sample;
       touch_was_pressed_ = true;
+      touch_swipe_reported_ = false;
     } else {
       touch_last_ = sample;
+    }
+
+    if (!touch_swipe_reported_) {
+      const int dx = static_cast<int>(touch_last_.x) - static_cast<int>(touch_start_.x);
+      const int dy = static_cast<int>(touch_last_.y) - static_cast<int>(touch_start_.y);
+      const int abs_dx = dx < 0 ? -dx : dx;
+      const int abs_dy = dy < 0 ? -dy : dy;
+
+      SwipeDirection swipe = SwipeDirection::kNone;
+      if (abs_dx >= kSwipeThresholdPx && abs_dx >= abs_dy + kSwipeAxisLeadPx) {
+        swipe = dx > 0 ? SwipeDirection::kRight : SwipeDirection::kLeft;
+      } else if (abs_dy >= kSwipeThresholdPx && abs_dy >= abs_dx + kSwipeAxisLeadPx) {
+        swipe = dy > 0 ? SwipeDirection::kDown : SwipeDirection::kUp;
+      }
+
+      if (swipe != SwipeDirection::kNone) {
+        post_event(event_queue, InputEvent{InputEventType::kSwipe, 0, swipe, now_us()});
+        touch_swipe_reported_ = true;
+        ESP_LOGI(TAG, "touch swipe %d", static_cast<int>(swipe));
+      }
     }
     return;
   }
@@ -291,22 +310,7 @@ void M5DialBoard::poll_touch() {
   }
 
   touch_was_pressed_ = false;
-  const int dx = static_cast<int>(touch_last_.x) - static_cast<int>(touch_start_.x);
-  const int dy = static_cast<int>(touch_last_.y) - static_cast<int>(touch_start_.y);
-  const int abs_dx = dx < 0 ? -dx : dx;
-  const int abs_dy = dy < 0 ? -dy : dy;
-
-  SwipeDirection swipe = SwipeDirection::kNone;
-  if (abs_dx >= kSwipeThresholdPx && abs_dx >= abs_dy + kSwipeAxisLeadPx) {
-    swipe = dx > 0 ? SwipeDirection::kRight : SwipeDirection::kLeft;
-  } else if (abs_dy >= kSwipeThresholdPx && abs_dy >= abs_dx + kSwipeAxisLeadPx) {
-    swipe = dy > 0 ? SwipeDirection::kDown : SwipeDirection::kUp;
-  }
-
-  if (swipe != SwipeDirection::kNone) {
-    swipe_pending_ = swipe;
-    ESP_LOGI(TAG, "touch swipe %d", static_cast<int>(swipe));
-  }
+  touch_swipe_reported_ = false;
 }
 
 TouchState M5DialBoard::sample_touch() {
@@ -331,6 +335,19 @@ TouchState M5DialBoard::sample_touch() {
   out.x = static_cast<int16_t>(((xy[0] & 0x0F) << 8) | xy[1]);
   out.y = static_cast<int16_t>(((xy[2] & 0x0F) << 8) | xy[3]);
   return out;
+}
+
+void IRAM_ATTR M5DialBoard::button_isr_handler(void *arg) {
+  auto *self = static_cast<M5DialBoard *>(arg);
+  if (!self || !self->button_irq_task_) {
+    return;
+  }
+
+  BaseType_t higher_priority_woken = pdFALSE;
+  vTaskNotifyGiveFromISR(self->button_irq_task_, &higher_priority_woken);
+  if (higher_priority_woken == pdTRUE) {
+    portYIELD_FROM_ISR();
+  }
 }
 
 }  // namespace tutorial_0072
