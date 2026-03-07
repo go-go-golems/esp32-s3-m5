@@ -26,24 +26,26 @@
   - [x] explicit color-negative / C-41-like rows that are actually present and usable
 - [x] Implement `main/recipe_selector_model.h` and `main/recipe_selector_model.cpp`
 - [x] Flash the app to `/dev/ttyACM0` and verify the selector layer resolves a concrete starter recipe at boot
-- [ ] Implement `main/film_timer_model.h` and `main/film_timer_model.cpp`
-- [ ] Implement `main/film_timer_controller.h` and `main/film_timer_controller.cpp`
+- [x] Implement `main/film_timer_model.h` and `main/film_timer_model.cpp`
+- [x] Implement `main/film_timer_controller.h` and `main/film_timer_controller.cpp`
 - [x] Create a selector UI screen tuned for encoder-driven browsing on the round display
 - [x] Replace the inherited generic timer text with film-selection labels and option values
 - [x] Wire encoder turns into selector field value changes through the existing event queue
 - [x] Wire short press into selector field advance / confirm through the existing event queue
 - [x] Wire long press into selector back / cancel behavior through the existing event queue
-- [ ] Create a recipe review / ready screen
-- [ ] Show the resolved recipe time, film, developer, dilution, temperature, and push/pull on the review screen
-- [ ] Create a running timer screen that shows recipe metadata plus countdown
-- [ ] Decide what completion behavior happens when the countdown reaches zero
-- [ ] Auto-hide or auto-lock single-choice fields such as developer or dilution when appropriate
-- [ ] Decide whether v1 should expose film format (`35mm`, `120`, `sheet`) or default to the best available time
+- [x] Create a recipe review / ready screen
+- [x] Show the resolved recipe time, film, developer, dilution, temperature, and push/pull on the review screen
+- [x] Create a running timer screen that shows recipe metadata plus countdown
+- [x] Decide what completion behavior happens when the countdown reaches zero
+- [x] Auto-hide or auto-lock single-choice fields such as developer or dilution when appropriate
+- [x] Decide whether v1 should expose film format (`35mm`, `120`, `sheet`) or default to the best available time
+  Note: v1 defaults to the best available time in priority order `35mm -> 120 -> sheet` and does not expose film format as a separate selector.
 - [ ] Smooth out awkward raw push/pull labels such as fractional pull values before the final v1 polish pass
-- [ ] Update `README.md` with build, flash, and control instructions for the new app
+- [x] Update `README.md` with build, flash, and control instructions for the new app
 - [x] Build the new app with `idf.py build`
   Note: the app still boots the inherited timer UI, but the curated film catalog now initializes successfully at runtime with `1548` recipes across `19` films and `9` developers.
 - [ ] Flash to `/dev/ttyACM0` and validate on-screen selector behavior on real hardware
-- [ ] Confirm a few chosen development times against raw source rows manually
+- [x] Confirm a few chosen development times against raw source rows manually
+  Note: validated with `scripts/validate_catalog_samples.py`, including the default Arista Premium 100 / D-76 / 1+1 / 20.0 C / pull-1.7 row resolving to a `465s` median from raw source times `[510, 420, 510, 420]`.
 - [ ] Capture photos or screenshots for the eventual ticket update and README
 - [ ] Upload the implementation follow-up to this ticket once code exists

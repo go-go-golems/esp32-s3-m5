@@ -37,6 +37,8 @@ RelatedFiles:
       Note: Diary evidence for the catalog generator
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/scope_subset_report.py
       Note: Diary-backed script for the narrowed v1 catalog scope
+    - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/validate_catalog_samples.py
+      Note: Diary evidence for raw-source spot checks against the curated runtime catalog
 ExternalSources: []
 Summary: Chronological diary of the research and design work for the proposed M5Dial film developer timer app.
 LastUpdated: 2026-03-06T21:02:48.647041728-05:00
@@ -618,3 +620,134 @@ swipe -> FilmSelectorScreen::cycle_theme(...)
 ```
 
 That is enough to prove the selector-first product shape before any film countdown state has been introduced.
+
+## Step 6: Add the actual film process timer flow and close out the v1 app shape
+
+After the selector UI landed, the last missing product layer was obvious: the app could choose a recipe, but it still could not become that recipe. This step added the process-timer side of the application so a confirmed selection transitions into a ready/running/done countdown flow with film-specific metadata on screen instead of stopping at selection.
+
+The implementation deliberately kept the selector state machine and the process timer separate. The selector still owns catalog browsing. A new timer model owns the chosen recipe and countdown state. `app_main.cpp` now provides the thin top-level mode switch between those two subsystems.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue until the full app is built, i'm gonna go swimming in the meantime."
+
+**Assistant interpretation:** Finish the remaining implementation work autonomously, including the countdown side, validation, and diary updates.
+
+**Inferred user intent:** Treat `0073` as a product implementation task now, not a partial experiment.
+
+**Commit (code):** f2000a2 — "Add film process timer flow"
+
+### What I did
+- Added the process-timer domain model:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_model.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_model.cpp`
+- Added the process controller:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_controller.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_controller.cpp`
+- Added the process screen:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_process_screen.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_process_screen.cpp`
+- Extended the selector controller so a short press on the review stage enters process mode instead of doing nothing.
+- Reworked:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+  so the UI task now switches between:
+  - selector mode
+  - process mode
+- Removed the old generic timer sources from the active component source list in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/CMakeLists.txt`
+- Updated the app README to match the actual control flow.
+- Added a raw-source validation helper:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/validate_catalog_samples.py`
+- Built and flashed the full app to `/dev/ttyACM0`.
+
+### Why
+- The app was not “full” until a chosen recipe could drive a countdown.
+- Keeping a dedicated timer model separate from the selector model keeps the system easier to reason about:
+  - selector logic stays data-driven
+  - timer logic stays time-driven
+  - `app_main.cpp` only coordinates the mode switch
+- The README had drifted behind reality and still described the inherited timer demo; that needed to be corrected before this step could reasonably be called complete.
+
+### What worked
+- The process-timer model compiled and integrated cleanly on the first build.
+- Flash to `/dev/ttyACM0` succeeded.
+- Boot remained healthy after the new mode-switch logic:
+
+```text
+I (...) m5dial_film_0073: film catalog ready: recipes=1548 films=19 developers=9
+I (...) m5dial_film_0073: selector ready: film=Arista Premium 100 developer=D-76 dilution=1+1 temp=20.0C push=pull-1.7 time=465s
+I (...) m5dial_film_0073: film developer selector started
+```
+
+- The new process flow now has a clear behavior model:
+  - short press on selector review enters process mode
+  - short press in process mode starts, pauses, resumes, or reruns
+  - long press while running or paused resets the current recipe to ready
+  - long press while ready or done returns to selector mode
+
+- The source-data spot-check script validated that the default boot recipe is not an accidental artifact. It comes from four raw source rows with times `[510, 420, 510, 420]`, which correctly collapse to a `465s` median in the curated runtime catalog.
+
+### What didn't work
+- There was no code-level integration failure in the process-timer step itself.
+- There is still one known product-polish issue: some raw push/pull labels from the source dataset remain awkward on screen, such as fractional `pull-*` variants.
+- I can prove build, flash, boot, and the raw-data normalization path from the terminal, but I still cannot independently confirm the exact on-screen aesthetics without the human looking at the dial.
+
+### What I learned
+- The clean split is now stable:
+  - `FilmCatalog` answers lookup questions
+  - `RecipeSelectorModel` drives staged selection
+  - `FilmTimerModel` owns the chosen recipe countdown
+  - `app_main.cpp` coordinates which screen/controller pair is currently active
+- That split is good enough for an intern to extend without needing to restructure the app first.
+- The data-validation script was worth adding. It turns a potentially hand-wavy “trust the generator” step into something reviewable.
+
+### What was tricky to build
+- The only meaningful architecture decision here was resisting the temptation to let the selector model also own countdown state. That would have produced a confused object with two jobs. The better sequence was:
+  - leave selector state in `RecipeSelectorModel`
+  - build a new timer model for the chosen recipe
+  - switch modes at the UI-task level
+- The other subtle point was screen ownership. Both selector and process screens now defer `lv_scr_load(...)` until `apply(...)` so the active mode, not initialization order, decides what is visible.
+
+### What warrants a second pair of eyes
+- The exact “hold to reset” versus “hold to return to selector” semantics in process mode are pragmatic but still product choices.
+- A later cleanup pass should remove the now-unused legacy `timer_*` and `ui_timer_screen*` files from the directory, not just from the active build list.
+- The raw push/pull labels should be reviewed by someone who cares about photo-lab wording quality.
+
+### What should be done in the future
+- Normalize or remap awkward fractional push/pull labels into friendlier UI copy.
+- Capture a photo of the selector screen and the process screen for the ticket/README.
+- Decide whether sound or stage chains belong in v2.
+
+### Code review instructions
+- Start with the top-level flow switch:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+- Then review the new timer-domain files:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_model.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_controller.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_process_screen.cpp`
+- Finally inspect the data-validation helper:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/validate_catalog_samples.py`
+
+### Technical details
+
+The v1 mode structure is now:
+
+```text
+Selecting -> Process Ready -> Running -> Paused -> Complete
+      ^             |
+      |-------------|
+```
+
+With current input behavior:
+
+```text
+selector review + short press -> load recipe into FilmTimerModel and enter process mode
+process ready + short press -> start timer
+process running + short press -> pause
+process paused + short press -> resume
+process complete + short press -> rerun same recipe
+process running/paused + long press -> reset to ready
+process ready/complete + long press -> return to selector
+```
+
+That is enough to call the app functional as a single-stage film developer timer.

@@ -66,3 +66,15 @@ Step 5: replaced the inherited timer UI loop with a dedicated film-selector scre
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_screen.cpp — New selector-focused round-display UI
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_selector_controller.cpp — Event mapping from encoder/button/swipe input into selector actions
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp — UI task now runs the film selector instead of the inherited countdown screen
+
+## 2026-03-06
+
+Step 6: added the real film process timer flow, rewired the UI task to switch between selector and process modes, updated the README to match the live controls, and added a raw-source validation helper for sample catalog rows (commit f2000a2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_model.cpp — Countdown state for the selected film recipe
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_timer_controller.cpp — Process-mode event handling
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_process_screen.cpp — Film metadata plus countdown UI
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/README.md — Updated to describe the actual current app behavior and controls
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/validate_catalog_samples.py — Raw-source validation helper for sample catalog entries
