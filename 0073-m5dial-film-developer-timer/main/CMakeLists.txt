@@ -5,6 +5,7 @@ idf_component_register(
         "generated_film_catalog.cpp"
         "lvgl_port_m5dial.cpp"
         "m5dial_board.cpp"
+        "recipe_selector_model.cpp"
         "timer_controller.cpp"
         "timer_model.cpp"
         "ui_timer_screen.cpp"

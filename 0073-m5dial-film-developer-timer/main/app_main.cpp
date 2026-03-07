@@ -9,6 +9,7 @@
 #include "input_events.h"
 #include "lvgl_port_m5dial.h"
 #include "m5dial_board.h"
+#include "recipe_selector_model.h"
 #include "timer_controller.h"
 #include "timer_model.h"
 #include "ui_timer_screen.h"
@@ -27,6 +28,7 @@ constexpr size_t kInputQueueLength = 32;
 struct AppContext {
   tutorial_0072::M5DialBoard board;
   tutorial_0073::FilmCatalog catalog;
+  tutorial_0073::RecipeSelectorModel selector;
   QueueHandle_t input_queue = nullptr;
 };
 
@@ -111,6 +113,24 @@ extern "C" void app_main(void) {
            static_cast<unsigned>(catalog_stats.recipe_count),
            static_cast<unsigned>(catalog_stats.film_count),
            static_cast<unsigned>(catalog_stats.developer_count));
+
+  if (!app.selector.init(app.catalog)) {
+    ESP_LOGE(TAG, "selector init failed");
+    return;
+  }
+
+  const tutorial_0073::SelectorSnapshot selector_snapshot = app.selector.snapshot();
+  if (selector_snapshot.resolved_recipe) {
+    ESP_LOGI(TAG,
+             "selector ready: film=%s developer=%s dilution=%s temp=%d.%dC push=%s time=%us",
+             selector_snapshot.selection.film.data(),
+             selector_snapshot.selection.developer.data(),
+             selector_snapshot.selection.dilution.data(),
+             selector_snapshot.selection.temperature_tenths_c / 10,
+             selector_snapshot.selection.temperature_tenths_c % 10,
+             selector_snapshot.selection.push_pull_type.data(),
+             static_cast<unsigned>(selector_snapshot.resolved_recipe->time_seconds));
+  }
 
   xTaskCreatePinnedToCore(ui_task, "m5dial_ui", kUiTaskStackSize, &app, kUiTaskPriority, nullptr, 1);
   xTaskCreatePinnedToCore(io_task, "m5dial_io", kIoTaskStackSize, &app, kIoTaskPriority, nullptr, 0);
