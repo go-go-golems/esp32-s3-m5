@@ -43,9 +43,9 @@ void ui_task(void *arg) {
   auto *ctx = static_cast<AppContext *>(arg);
 
   tutorial_0072::LvglPortM5DialConfig lvgl_cfg{};
-  lvgl_cfg.buffer_lines = 40;
+  lvgl_cfg.buffer_lines = 120;
   lvgl_cfg.tick_ms = 2;
-  lvgl_cfg.double_buffer = false;
+  lvgl_cfg.double_buffer = true;
   lvgl_cfg.swap_bytes = false;
   if (!tutorial_0072::lvgl_port_m5dial_init(ctx->board.display(), lvgl_cfg)) {
     ESP_LOGE(TAG, "LVGL port init failed");

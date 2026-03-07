@@ -6,6 +6,9 @@ namespace tutorial_0072 {
 
 namespace {
 
+constexpr uint32_t kLabelUpdateQuantumMs = 1000;
+constexpr uint32_t kArcUpdateQuantumMs = 100;
+
 struct ThemePalette {
   const char *name;
   uint32_t root_bg;
@@ -71,6 +74,13 @@ void format_mmss(uint32_t total_ms, char *out, size_t out_size) {
   const uint32_t minutes = total_sec / 60U;
   const uint32_t seconds = total_sec % 60U;
   snprintf(out, out_size, "%02" PRIu32 ":%02" PRIu32, minutes, seconds);
+}
+
+uint32_t quantize_remaining_ms(uint32_t value_ms, uint32_t quantum_ms) {
+  if (value_ms == 0 || quantum_ms == 0) {
+    return value_ms;
+  }
+  return ((value_ms + quantum_ms - 1U) / quantum_ms) * quantum_ms;
 }
 
 }  // namespace
@@ -160,49 +170,83 @@ void TimerScreen::apply(const TimerSnapshot &snapshot) {
 
   const ThemePalette &theme = theme_palette(theme_index_);
   const lv_color_t accent = accent_color(snapshot.state);
-  lv_obj_set_style_bg_color(root_, color_from_hex(theme.root_bg), 0);
-  lv_obj_set_style_bg_color(orb_, color_from_hex(theme.orb_bg), 0);
-  lv_obj_set_style_border_color(orb_, accent, 0);
-  lv_obj_set_style_arc_color(arc_, color_from_hex(theme.arc_bg), LV_PART_MAIN);
-  lv_obj_set_style_arc_color(arc_, accent, LV_PART_INDICATOR);
-  lv_obj_set_style_text_color(title_label_, color_from_hex(theme.text_primary), 0);
-  lv_obj_set_style_text_color(status_label_, accent, 0);
-  lv_obj_set_style_text_color(time_label_, color_from_hex(theme.text_primary), 0);
-  lv_obj_set_style_text_color(duration_label_, color_from_hex(theme.text_muted), 0);
-  lv_obj_set_style_text_color(step_label_, color_from_hex(theme.text_warm), 0);
-  lv_obj_set_style_text_color(hint_label_, color_from_hex(theme.text_hint), 0);
+  const uint32_t remaining_label_ms = quantize_remaining_ms(snapshot.remaining_ms, kLabelUpdateQuantumMs);
+  const uint32_t remaining_arc_ms = quantize_remaining_ms(snapshot.remaining_ms, kArcUpdateQuantumMs);
+  const bool theme_changed = !cached_.valid || cached_.theme_index != theme_index_;
+  const bool state_changed = !cached_.valid || cached_.state != snapshot.state;
+  const bool duration_changed = !cached_.valid || cached_.duration_ms != snapshot.duration_ms;
+  const bool remaining_label_changed = !cached_.valid || cached_.remaining_label_ms != remaining_label_ms;
+  const bool remaining_arc_changed = !cached_.valid || cached_.remaining_arc_ms != remaining_arc_ms;
+  const bool step_changed = !cached_.valid || cached_.adjustment_step_sec != snapshot.adjustment_step_sec;
 
-  lv_arc_set_range(arc_, 0, snapshot.duration_ms == 0 ? 1 : snapshot.duration_ms);
-  lv_arc_set_value(arc_, static_cast<int32_t>(snapshot.remaining_ms));
+  if (theme_changed) {
+    lv_obj_set_style_bg_color(root_, color_from_hex(theme.root_bg), 0);
+    lv_obj_set_style_bg_color(orb_, color_from_hex(theme.orb_bg), 0);
+    lv_obj_set_style_arc_color(arc_, color_from_hex(theme.arc_bg), LV_PART_MAIN);
+    lv_obj_set_style_text_color(title_label_, color_from_hex(theme.text_primary), 0);
+    lv_obj_set_style_text_color(time_label_, color_from_hex(theme.text_primary), 0);
+    lv_obj_set_style_text_color(duration_label_, color_from_hex(theme.text_muted), 0);
+    lv_obj_set_style_text_color(step_label_, color_from_hex(theme.text_warm), 0);
+    lv_obj_set_style_text_color(hint_label_, color_from_hex(theme.text_hint), 0);
+  }
 
-  lv_label_set_text(status_label_, state_text(snapshot.state));
+  if (theme_changed || state_changed) {
+    lv_obj_set_style_border_color(orb_, accent, 0);
+    lv_obj_set_style_arc_color(arc_, accent, LV_PART_INDICATOR);
+    lv_obj_set_style_text_color(status_label_, accent, 0);
+    lv_label_set_text(status_label_, state_text(snapshot.state));
+  }
+
+  if (duration_changed) {
+    lv_arc_set_range(arc_, 0, snapshot.duration_ms == 0 ? 1 : snapshot.duration_ms);
+  }
+
+  if (duration_changed || remaining_arc_changed) {
+    lv_arc_set_value(arc_, static_cast<int32_t>(remaining_arc_ms));
+  }
 
   char buffer[24];
-  format_mmss(snapshot.remaining_ms, buffer, sizeof(buffer));
-  lv_label_set_text(time_label_, buffer);
-
-  format_mmss(snapshot.duration_ms, buffer, sizeof(buffer));
-  char duration_line[32];
-  snprintf(duration_line, sizeof(duration_line), "Set %s", buffer);
-  lv_label_set_text(duration_label_, duration_line);
-
-  char step_line[40];
-  snprintf(step_line,
-           sizeof(step_line),
-           "%s style  |  turn %lus",
-           theme.name,
-           static_cast<unsigned long>(snapshot.adjustment_step_sec));
-  lv_label_set_text(step_label_, step_line);
-
-  const char *hint = "Swipe color. Press start. Hold reset.";
-  if (snapshot.state == TimerState::kRunning) {
-    hint = "Swipe style. Press pause. Hold reset.";
-  } else if (snapshot.state == TimerState::kPaused) {
-    hint = "Swipe style. Turn retime. Press resume.";
-  } else if (snapshot.state == TimerState::kComplete) {
-    hint = "Swipe style. Press run again. Hold reset.";
+  if (remaining_label_changed) {
+    format_mmss(remaining_label_ms, buffer, sizeof(buffer));
+    lv_label_set_text(time_label_, buffer);
   }
-  lv_label_set_text(hint_label_, hint);
+
+  if (duration_changed) {
+    format_mmss(snapshot.duration_ms, buffer, sizeof(buffer));
+    char duration_line[32];
+    snprintf(duration_line, sizeof(duration_line), "Set %s", buffer);
+    lv_label_set_text(duration_label_, duration_line);
+  }
+
+  if (theme_changed || step_changed) {
+    char step_line[40];
+    snprintf(step_line,
+             sizeof(step_line),
+             "%s style  |  turn %lus",
+             theme.name,
+             static_cast<unsigned long>(snapshot.adjustment_step_sec));
+    lv_label_set_text(step_label_, step_line);
+  }
+
+  if (theme_changed || state_changed) {
+    const char *hint = "Swipe color. Press start. Hold reset.";
+    if (snapshot.state == TimerState::kRunning) {
+      hint = "Swipe style. Press pause. Hold reset.";
+    } else if (snapshot.state == TimerState::kPaused) {
+      hint = "Swipe style. Turn retime. Press resume.";
+    } else if (snapshot.state == TimerState::kComplete) {
+      hint = "Swipe style. Press run again. Hold reset.";
+    }
+    lv_label_set_text(hint_label_, hint);
+  }
+
+  cached_.valid = true;
+  cached_.theme_index = theme_index_;
+  cached_.state = snapshot.state;
+  cached_.duration_ms = snapshot.duration_ms;
+  cached_.remaining_label_ms = remaining_label_ms;
+  cached_.remaining_arc_ms = remaining_arc_ms;
+  cached_.adjustment_step_sec = snapshot.adjustment_step_sec;
 }
 
 }  // namespace tutorial_0072
