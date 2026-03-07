@@ -15,15 +15,15 @@
 - [x] Create `esp32-s3-m5/0073-m5dial-film-developer-timer/` by copying `0072-m5dial-timer-demo/`
 - [x] Rename the copied scaffold enough that it has its own project name, README, and visible log identity
 - [x] Verify the copied scaffold still builds under IDF 5.4.1 before film-specific changes begin
-- [ ] Keep the current M5Dial board layer, LVGL port, and input-event queue architecture intact in the new app
-- [ ] Add an app-local preprocessing script to build a compact curated catalog from `film_dev_times.json`
-- [ ] Decide whether the runtime catalog should be generated JSON or generated C/C++ data
-- [ ] Implement `main/film_catalog.h` and `main/film_catalog.cpp`
-- [ ] Normalize temperatures so both `{celsius, fahrenheit}` and `{raw}` inputs become one runtime `temp_c`
-- [ ] Normalize push/pull labels into user-facing display strings while preserving the source value
+- [x] Keep the current M5Dial board layer, LVGL port, and input-event queue architecture intact in the new app
+- [x] Add an app-local preprocessing script to build a compact curated catalog from `film_dev_times.json`
+- [x] Decide whether the runtime catalog should be generated JSON or generated C/C++ data
+- [x] Implement `main/film_catalog.h` and `main/film_catalog.cpp`
+- [x] Normalize temperatures so both `{celsius, fahrenheit}` and `{raw}` inputs become one runtime `temp_c`
+- [x] Normalize push/pull labels into user-facing display strings while preserving the source value
 - [ ] Filter the starter catalog to:
-  - [ ] common B/W developers
-  - [ ] explicit color-negative / C-41-like rows that are actually present and usable
+  - [x] common B/W developers
+  - [x] explicit color-negative / C-41-like rows that are actually present and usable
 - [ ] Implement `main/recipe_selector_model.h` and `main/recipe_selector_model.cpp`
 - [ ] Implement `main/film_timer_model.h` and `main/film_timer_model.cpp`
 - [ ] Implement `main/film_timer_controller.h` and `main/film_timer_controller.cpp`
@@ -33,7 +33,8 @@
 - [ ] Auto-hide or auto-lock single-choice fields such as developer or dilution when appropriate
 - [ ] Decide whether v1 should expose film format (`35mm`, `120`, `sheet`) or default to the best available time
 - [ ] Update `README.md` with build, flash, and control instructions for the new app
-- [ ] Build the new app with `idf.py build`
+- [x] Build the new app with `idf.py build`
+  Note: the app still boots the inherited timer UI, but the curated film catalog now initializes successfully at runtime with `1548` recipes across `19` films and `9` developers.
 - [ ] Flash to `/dev/ttyACM0` and validate selector behavior on real hardware
 - [ ] Confirm a few chosen development times against raw source rows manually
 - [ ] Capture photos or screenshots for the eventual ticket update and README

@@ -25,10 +25,18 @@ RelatedFiles:
       Note: Scaffolded app now exists and uses its own project name
     - Path: 0073-m5dial-film-developer-timer/README.md
       Note: Scaffolded app README for the future film developer timer
+    - Path: 0073-m5dial-film-developer-timer/main/film_catalog.cpp
+      Note: Runtime catalog initialization path added in the first implementation step
+    - Path: 0073-m5dial-film-developer-timer/main/film_catalog.h
+      Note: Runtime catalog contract added in the first implementation step
+    - Path: 0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp
+      Note: Generated curated runtime recipe catalog for v1
     - Path: film_dev_times.json
       Note: Raw film-development source data that must be curated before runtime use
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/analyze_film_dev_times.py
       Note: Ticket-local script summarizing the source dataset
+    - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py
+      Note: Generator script that produces the runtime C++ catalog
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/scope_subset_report.py
       Note: Ticket-local script evaluating the starter-scope subset
 ExternalSources: []
@@ -37,6 +45,7 @@ LastUpdated: 2026-03-06T21:02:48.638166201-05:00
 WhatFor: Use this document to understand the current M5Dial timer architecture, the constraints of film_dev_times.json, and the proposed design for a film developer timer app.
 WhenToUse: Use when implementing, reviewing, or onboarding onto the proposed 0073 M5Dial film developer timer application.
 ---
+
 
 
 

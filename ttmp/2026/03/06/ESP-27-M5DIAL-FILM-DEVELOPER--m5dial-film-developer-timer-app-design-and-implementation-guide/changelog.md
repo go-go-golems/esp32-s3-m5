@@ -36,3 +36,14 @@ Created `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/README.md — Scaffold README updated for the film-developer app
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp — Visible log identity updated for the copied scaffold
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/sdkconfig.defaults — Scaffold defaults retitled for 0073
+
+## 2026-03-06
+
+Step 3: added a generated starter film catalog, wired a runtime FilmCatalog into 0073, and verified catalog initialization on /dev/ttyACM0 (commit eee5fd6)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.h — New runtime catalog contract
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp — Generated curated recipe dataset
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py — Generator script for the runtime dataset
+

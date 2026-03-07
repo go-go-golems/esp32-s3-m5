@@ -20,11 +20,17 @@ RelatedFiles:
     - Path: 0073-m5dial-film-developer-timer/CMakeLists.txt
       Note: Evidence that the scaffold app was created and renamed
     - Path: 0073-m5dial-film-developer-timer/main/app_main.cpp
-      Note: Evidence that the scaffold app received a distinct visible identity
+      Note: |-
+        Evidence that the scaffold app received a distinct visible identity
+        Diary evidence for runtime catalog initialization and boot log validation
+    - Path: 0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp
+      Note: Diary evidence for the generated starter recipe dataset
     - Path: film_dev_times.json
       Note: Evidence for source-data size and schema constraints
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/analyze_film_dev_times.py
       Note: Diary-backed analysis script for dataset facts
+    - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py
+      Note: Diary evidence for the catalog generator
     - Path: ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/scope_subset_report.py
       Note: Diary-backed script for the narrowed v1 catalog scope
 ExternalSources: []
@@ -33,6 +39,7 @@ LastUpdated: 2026-03-06T21:02:48.647041728-05:00
 WhatFor: Use this diary to understand what was investigated, what evidence was gathered, and why the design recommendations landed where they did.
 WhenToUse: Use when continuing the ticket, reviewing the rationale, or implementing the proposed 0073 application.
 ---
+
 
 
 
@@ -262,4 +269,125 @@ Generated .../build/m5dial_film_developer_timer_0073.bin
 m5dial_film_developer_timer_0073.bin binary size 0x9e490 bytes
 Smallest app partition is 0x400000 bytes
 0x361b70 bytes (85%) free
+```
+
+## Step 3: Add the starter catalog generator and prove it initializes on the dial
+
+With the scaffold committed, the next highest-value task was the data foundation. The app cannot become a film developer timer until it has a runtime catalog that the UI can browse cheaply. That made the first real implementation step a catalog-pipeline step, not a UI step. The right move was to build a generator, decide the runtime format, emit a first starter catalog, and confirm the device can load it before changing any screens.
+
+This step intentionally kept the existing `0072` UI and hardware plumbing intact. The goal was narrower and more important: prove that `0073` can carry a curated film dataset at runtime without boot regressions, and establish the data contracts that the later selector UI will consume.
+
+### Prompt Context
+
+**User prompt (verbatim):** "create tasks in the ticket, then do them one by one, committing at appropriate intervals, keeping a detailed diary.."
+
+**Assistant interpretation:** Turn the plan into sequential implementation work, checkpoint each step with focused commits, and keep the ticket diary current as the code evolves.
+
+**Inferred user intent:** Make steady, reviewable progress on the new film-developer app rather than jumping straight into a large UI rewrite.
+
+**Commit (code):** eee5fd63a12e9d679be0283a888af3a980d64cb3 — "Add starter film catalog pipeline"
+
+### What I did
+- Added a generator script in the ticket scripts folder:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py`
+- Chose generated C++ as the runtime catalog format instead of runtime JSON parsing.
+- Implemented a starter-scope filter in the generator:
+  - a curated film whitelist of `19` films
+  - common B/W developers only
+  - the explicit `C-41` row that actually exists in the source file
+- Normalized:
+  - temperature to tenths of Celsius
+  - push/pull display labels
+  - runtime time selection to seconds using best-available film format time
+- Aggregated duplicate source rows by selector key and used the median time where multiple rows survived for the same recipe combination.
+- Generated:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp`
+- Added the runtime catalog module:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.h`
+- Wired the module into:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/CMakeLists.txt`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+- Built the app.
+- Flashed `/dev/ttyACM0`.
+- Captured a boot log proving runtime initialization:
+
+```text
+I (...) m5dial_film_0073: film catalog ready: recipes=1548 films=19 developers=9
+I (...) m5dial_film_0073: film developer timer scaffold started
+```
+
+### Why
+- The UI cannot be designed responsibly until the runtime option space is real.
+- Generated C++ avoids runtime JSON parsing on the dial and gives deterministic startup behavior.
+- A small curated starter catalog is consistent with the user’s scope correction: not all films, but common B/W plus limited explicit color/C-41 support.
+
+### What worked
+- The generator script produced a compact runtime catalog with `1548` normalized recipe rows.
+- The app built cleanly after adding the catalog module.
+- Flash succeeded to `/dev/ttyACM0`.
+- The boot log confirmed the catalog initializes on-device without disturbing the inherited board/UI startup path.
+- The existing M5Dial board, LVGL port, and event-bus architecture remained intact.
+
+### What didn't work
+- A quick follow-up file read right after generation initially reported “No such file or directory” for the generated C++ file, even though the generator had succeeded. That turned out to be a path-checking hiccup in the follow-up command sequence, not an actual generation failure.
+- A simple post-flash serial-read trick missed the early boot log window, so I switched to a short TTY-backed `idf.py monitor` session to capture the startup lines reliably.
+
+### What I learned
+- The scoped whitelist was still large enough to be useful but small enough to reason about: `19` films and `9` developers is a good first selector target.
+- Aggregating by recipe key and taking the median time is a practical v1 compromise for user-contributed source data with duplicates.
+- The runtime C++ catalog approach fits this firmware much better than pretending the raw JSON is an on-device database.
+
+### What was tricky to build
+- The tricky part was data scope, not syntax. The earlier “common developer” filter still left too many films, so I had to tighten it further with an explicit film whitelist that matched the user’s request for a smaller starter set. The sequence was:
+  - sample the surviving films under the broad common-developer filter
+  - identify a recognizable starter film list
+  - confirm the explicit `C-41` coverage was extremely small
+  - accept that limitation in v1 rather than silently broadening the data semantics
+  - generate a deterministic C++ artifact from that narrower set
+- The other tricky point was making the step meaningful without touching the UI yet. The runtime log line solved that by giving a hardware-verified sign of progress before the selector screen exists.
+
+### What warrants a second pair of eyes
+- The starter film whitelist is intentionally opinionated. Someone with stronger film-process preferences may want a different first set.
+- The median-time aggregation rule is sensible but still a product choice, not an absolute truth.
+- The generated catalog file is large enough that future growth should be watched carefully.
+
+### What should be done in the future
+- Build the selector model on top of the new catalog contract.
+- Decide how the UI should expose developer/dilution fields when only one option exists.
+- Revisit the starter whitelist only after the selector UX exists and can be judged on real hardware.
+
+### Code review instructions
+- Start with the generator:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py`
+- Then inspect the runtime catalog contract:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/film_catalog.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp`
+- Then confirm the app integration is intentionally shallow for this step:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/app_main.cpp`
+
+### Technical details
+
+Generator result for this step:
+
+```text
+generated 1548 recipe rows
+starter films: 19
+developers: 9
+```
+
+Build and device validation commands:
+
+```bash
+python /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/06/ESP-27-M5DIAL-FILM-DEVELOPER--m5dial-film-developer-timer-app-design-and-implementation-guide/scripts/generate_film_catalog_cpp.py \
+  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/film_dev_times.json \
+  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer/main/generated_film_catalog.cpp
+
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0073-m5dial-film-developer-timer
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+timeout 8s idf.py -p /dev/ttyACM0 monitor
 ```
