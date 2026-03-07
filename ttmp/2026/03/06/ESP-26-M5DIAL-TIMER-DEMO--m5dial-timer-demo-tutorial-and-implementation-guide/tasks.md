@@ -31,9 +31,12 @@
 - [x] Decide the encoder adjustment step size, for example `5s` per detent at short durations and a larger step at long durations
 - [x] Implement `app_main.cpp` to wire board init, LVGL init, timer model, timer screen, and the main event loop together
 - [x] Keep LVGL ownership in one task only and ensure no background task mutates LVGL objects directly
+- [x] Refactor hardware input handling around a queue-backed I/O-to-UI event bus instead of multiple shared pending flags
+- [x] Add ISR-assisted button wakeups while keeping debounce and long-press classification in task context
+- [x] Reduce visible UI tearing by enabling LVGL double buffering and avoiding unnecessary screen invalidation
 - [x] Build the project with `idf.py build` using `esp32-s3-m5/.envrc`
-- [ ] Flash the project to real M5Dial hardware and verify boot, display, encoder, press, touch, and reset behavior
-  Note: boot, display, encoder, button/reset, and touch-controller bring-up are now verified on `/dev/ttyACM0`; final human confirmation of swipe feel/direction is still pending.
+- [x] Flash the project to real M5Dial hardware and verify boot, display, encoder, press, touch, and reset behavior
+  Note: boot, display, encoder, button/reset, and touch-swipe behavior are now verified on `/dev/ttyACM0`; visible tearing was reduced in a follow-up rendering pass, but the final quality bar is still a human judgment call on-device.
 - [x] Verify there are no runtime regressions such as I2C driver conflicts or LEDC timer clock conflicts
 - [x] Measure binary size and confirm the tutorial still fits the configured app partition with reasonable headroom
 - [ ] Capture one or more screenshots or photos of the running timer UI for the tutorial README and ticket

@@ -14,47 +14,53 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: ../../../../../../../M5Dial-UserDemo/main/hal/hal.cpp
+    - Path: M5Dial-UserDemo/main/hal/hal.cpp
       Note: M5Dial board init evidence gathered during research
-    - Path: 0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
+    - Path: esp32-s3-m5/0025-cardputer-lvgl-demo/main/lvgl_port_m5gfx.cpp
       Note: LVGL port reference used during research
-    - Path: 0071-cardputer-adv-photo-timer/main/timer_engine.cpp
+    - Path: esp32-s3-m5/0071-cardputer-adv-photo-timer/main/timer_engine.cpp
       Note: Timer model reference used during research
-    - Path: 0072-m5dial-timer-demo/CMakeLists.txt
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/CMakeLists.txt
       Note: |-
         Root project wiring for the new M5Dial timer tutorial (commit b39be1f)
         Project-level LovyanGFX legacy-I2C define restored for Step 5
-    - Path: 0072-m5dial-timer-demo/README.md
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/README.md
       Note: User-facing control docs updated for touch-swipe theme cycling in Step 5
-    - Path: 0072-m5dial-timer-demo/main/CMakeLists.txt
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/CMakeLists.txt
       Note: Build wiring updated to compile reused encoder and button support sources in Step 4
-    - Path: 0072-m5dial-timer-demo/main/app_main.cpp
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp
       Note: |-
         Stage-1 hardware smoke test screen and polling loop (commit b39be1f)
         Single-task LVGL loop and runtime watchdog fixes (commit f91abc2)
         Restored timer UI after raw graphics-test diagnosis in Step 4
-    - Path: 0072-m5dial-timer-demo/main/lvgl_port_m5dial.cpp
+        Two-task I/O-to-UI split and LVGL buffer tuning from Steps 6 and 7
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/input_events.h
+      Note: Queue-backed input event schema introduced in Step 6
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/lvgl_port_m5dial.cpp
       Note: LVGL display flush port added for the M5Dial timer demo (commit f91abc2)
-    - Path: 0072-m5dial-timer-demo/main/m5dial_board.cpp
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp
       Note: |-
         Initial M5Dial board bring-up and normalized hardware access (commit b39be1f)
         Display wrapper stabilization and PCNT-backed encoder migration recorded in Step 4
         FT3267 initialization
-    - Path: 0072-m5dial-timer-demo/main/m5dial_board.h
+        Hybrid ISR/task button path and event production
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h
       Note: |-
         Board state updated for hardware-backed encoder ownership in Step 4
         Touch and swipe board APIs extended in Step 5
-    - Path: 0072-m5dial-timer-demo/main/timer_controller.cpp
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp
       Note: |-
         Encoder and button control mapping for the timer demo (commit f91abc2)
         Swipe gestures mapped into theme cycling in Step 5
-    - Path: 0072-m5dial-timer-demo/main/timer_model.cpp
+        Consumes normalized input events from the queue
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/timer_model.cpp
       Note: Non-blocking countdown model implemented for the tutorial (commit f91abc2)
-    - Path: 0072-m5dial-timer-demo/main/ui_timer_screen.cpp
+    - Path: esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp
       Note: |-
         Round-screen timer UI implementation and styling (commit f91abc2)
         Multiple theme palettes and swipe-visible styling added in Step 5
-    - Path: ttmp/2026/03/06/ESP-26-M5DIAL-TIMER-DEMO--m5dial-timer-demo-tutorial-and-implementation-guide/design-doc/01-m5dial-timer-demo-analysis-design-and-implementation-guide.md
+        View-state caching and redraw quantization to reduce visible tearing
+    - Path: esp32-s3-m5/ttmp/2026/03/06/ESP-26-M5DIAL-TIMER-DEMO--m5dial-timer-demo-tutorial-and-implementation-guide/design-doc/01-m5dial-timer-demo-analysis-design-and-implementation-guide.md
       Note: Primary deliverable recorded in the diary
 ExternalSources: []
 Summary: ""
@@ -62,6 +68,7 @@ LastUpdated: 2026-03-06T19:14:43.05478957-05:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -811,4 +818,261 @@ cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m
 idf.py build
 idf.py -p /dev/ttyACM0 -b 115200 flash
 idf.py -p /dev/ttyACM0 monitor
+```
+
+## Step 6: Split I/O from UI with a queue-backed event bus and ISR-assisted button wakeups
+
+Once the display and touch paths were functional, the next hardware problem was interaction quality. The encoder theme-swiping demo was alive, but the center button still felt unreliable and the input path was too tightly coupled to the UI loop. That made the whole firmware feel softer and more erratic than it needed to be, even though the individual peripherals were technically working.
+
+This step turned the app into a clearer two-task system: one task owns hardware polling and event production, the other owns LVGL and event consumption. The result is simpler timing behavior, fewer chances to miss short button transitions, and a safer ownership boundary around LVGL.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i don't get anything, also the button press is not reliable, can we use a proper event bus between the io and the display tasks?"
+
+**Assistant interpretation:** Replace the ad-hoc shared-state polling path with an explicit event queue between hardware I/O and the display/UI task, and improve button handling in the same pass.
+
+**Inferred user intent:** Make the dial feel dependable on hardware by decoupling fast, noisy inputs from the LVGL update cadence and by giving button edges a more robust capture path.
+
+**Commit (code):** 2a4ddba608b214d6276e2bbb4bc570179f918092 — "Refactor M5Dial input handling around IO event queue"
+
+### What I did
+- Added `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/input_events.h` with a normalized `InputEvent` payload and explicit event types for encoder delta, short press, long press, and swipe.
+- Reworked `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp` into:
+  - an I/O task pinned to core `0`
+  - a UI/LVGL task pinned to core `1`
+  - a FreeRTOS queue connecting them
+- Changed `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp` so the board layer posts immutable `InputEvent` values instead of exposing multiple `take_*()` latches.
+- Added a GPIO ISR for the center button that does only one thing: wake the I/O task with `vTaskNotifyGiveFromISR`. Debounce, long-press timing, and event creation remain in task context.
+- Tightened swipe handling so a valid swipe can fire while the finger is still down, instead of waiting only for touch release.
+- Updated `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp` to consume the new queue events directly.
+- Rebuilt, reflashed, and rechecked the boot path on `/dev/ttyACM0`.
+
+### Why
+- LVGL should stay single-owner. A queue makes that ownership explicit and avoids subtle future breakage if more hardware behaviors get added.
+- Hardware inputs and UI rendering do not want the same cadence. The queue lets the I/O side run cheaply and frequently, while the UI side drains batched events at its own rate.
+- A hybrid button approach is the right trade-off on ESP32: ISR for wakeup/edge capture, task context for debounce and long-press semantics.
+
+### What worked
+- Button presses became materially more reliable on the physical device.
+- Swipes and encoder steps fit naturally into the same queue model; the controller code became easier to reason about.
+- LVGL ownership stayed isolated to the UI task.
+- The device still built, flashed, and booted cleanly after the refactor.
+
+### What didn't work
+- The previous latch-based input path was technically functional but not good enough on hardware. Short interactions could feel delayed or get lost in the UI loop cadence.
+- This step did not solve visual tearing by itself; it only stabilized input delivery.
+
+### What I learned
+- The firmware already had the right conceptual split, but not the right boundary. Once every hardware action became a queue event, the code read more like a real embedded UI and less like a demo loop.
+- The button did not need fully ISR-driven behavior. It only needed ISR-driven wakeups so the I/O task could sample and debounce promptly.
+- Swipes are more responsive when they fire on a decisive in-progress drag rather than only after release.
+
+### What was tricky to build
+- The tricky part was resisting the temptation to do too much in the ISR. The user explicitly asked whether the button logic could be ISR-driven, but putting debounce and long-press timing inside the interrupt would have made the design worse, not better. The clean sequence was:
+  - switch the button GPIO to `GPIO_INTR_ANYEDGE`
+  - install an ISR that only notifies the I/O task
+  - keep raw-state sampling, debounce, short-press detection, and long-press detection in `poll()`
+  - let the I/O task post a stable `InputEvent` to the queue
+- The second tricky part was preserving the LVGL single-owner rule while still making touch and button input feel immediate. The two-task split solved that without introducing shared mutable UI state.
+
+### What warrants a second pair of eyes
+- Queue depth is currently `32`, which is reasonable for this small demo but still worth revisiting if more event sources are added later.
+- The button debounce and long-press timings (`30 ms` and `700 ms`) are hardware-tuned constants, not formally justified values.
+- The project still uses legacy IDF PCNT and I2C APIs because they are the shortest stable path for this board on IDF `5.4.1`.
+
+### What should be done in the future
+- Consider migrating the reused `ESP32Encoder` dependency to modern `driver/pulse_cnt.h` if the tutorial becomes a longer-lived reference.
+- If touch grows beyond theme swipes, move from a gesture-only board path to a more explicit input-abstraction layer with richer event payloads.
+- Add an event-drop counter if queue overflow ever becomes a concern during later feature growth.
+
+### Code review instructions
+- Start with the event schema and task wiring:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/input_events.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp`
+- Then review the hybrid ISR/task button path and event posting:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h`
+- Then confirm the controller remains a pure consumer of normalized events:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp`
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+```
+
+### Technical details
+
+Event flow introduced in this step:
+
+```text
+encoder / button / touch
+          |
+          v
+      io_task poll()
+          |
+          v
+   FreeRTOS input queue
+          |
+          v
+        ui_task
+          |
+          v
+TimerController -> TimerModel -> TimerScreen -> LVGL
+```
+
+Button handling shape introduced in this step:
+
+```text
+GPIO edge ISR
+  -> notify io_task
+io_task wakes
+  -> sample GPIO
+  -> debounce
+  -> detect short/long press
+  -> post InputEvent
+ui_task drains queue
+  -> handle event
+```
+
+Commands used during this step:
+
+```bash
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+```
+
+## Step 7: Reduce visible tearing by shrinking redraw churn and enabling LVGL double buffering
+
+Once the interaction path was stable enough to use comfortably, the remaining hardware quality issue was visual. The UI was working, but the countdown screen was being restyled and relabeled too aggressively, and the LVGL port was still running in the cheapest single-buffer partial-update mode. On a round SPI panel that combination is a reliable way to make redraw seams visible.
+
+This step focused on perception rather than correctness. The goal was not to invent true VSync on hardware that does not expose it here, but to cut the amount of panel work enough that the UI feels materially cleaner during normal use.
+
+### Prompt Context
+
+**User prompt (verbatim):** "working! buttons and swipes. can we avoid tearing on the UI?"
+
+**Assistant interpretation:** Reduce visible redraw artifacts on the M5Dial timer screen by changing the LVGL buffering strategy and by avoiding unnecessary invalidation in the screen code.
+
+**Inferred user intent:** Make the demo look polished on real hardware now that the core interactions are working.
+
+**Commit (code):** a1c6dc32ce10b9341a52c6c33686dd9b30032246 — "Reduce M5Dial timer UI tearing"
+
+### What I did
+- Enabled LVGL double buffering in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp`.
+- Increased the LVGL stripe buffer from `40` lines to `120` lines so the panel sees fewer flush segments per update.
+- Added a cached view-state struct in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h`.
+- Reworked `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp` so it only updates:
+  - theme-dependent styles when the theme changes
+  - state-dependent accent/hint text when the state changes
+  - the duration/step lines when the configured duration changes
+  - the large time label at `1 s` granularity
+  - the progress arc at `100 ms` granularity
+- Rebuilt successfully, then reflashed `/dev/ttyACM0`.
+- The first flash retry failed because the serial port was busy:
+
+```text
+A fatal error occurred: Could not open /dev/ttyACM0, the port is busy or doesn't exist.
+([Errno 11] Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable)
+```
+
+- Identified the owner with `lsof /dev/ttyACM0`, found a stale `esp_idf_monitor` process, stopped it, and reflashed successfully.
+
+### Why
+- Double buffering and larger draw stripes reduce the number of visible partial panel transfers.
+- The more important fix is behavioral: if the screen code reissues style and label updates every UI tick, LVGL has no chance to be quiet, and the panel stays busy even when nothing meaningful changed.
+- A timer UI does not need `10 ms` label updates. Quantizing the visible state is a user-experience improvement, not a compromise.
+
+### What worked
+- The firmware still built cleanly after the redraw optimization.
+- Flash completed successfully after the stale monitor was removed.
+- The M5Dial now has a rendering path that is materially less wasteful: most screen elements only change when a human could actually perceive a change.
+- Binary size remained comfortable: `0x9e5e0` into a `0x400000` app partition.
+
+### What didn't work
+- The first flash attempt for this step failed because `/dev/ttyACM0` was locked by another process:
+
+```text
+A fatal error occurred: Could not open /dev/ttyACM0, the port is busy or doesn't exist.
+([Errno 11] Could not exclusively lock port /dev/ttyACM0: [Errno 11] Resource temporarily unavailable)
+```
+
+- A non-TTY `idf.py monitor` attempt still hit the usual wrapper limitation:
+
+```text
+Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.
+```
+
+- The fallback serial-read attempt with system Python also failed because `pyserial` is not installed there:
+
+```text
+ModuleNotFoundError: No module named 'serial'
+```
+
+### What I learned
+- On this demo, unnecessary invalidation was the easier and more actionable source of tearing than the transport buffer alone.
+- The right question was not "how do we draw faster?" but "why are we redrawing this at all?"
+- Quantizing visible progress is a good fit for a countdown timer: it reduces work without making the UI feel unresponsive.
+
+### What was tricky to build
+- The tricky part was separating "true tearing elimination" from "practical visible improvement." Without a synchronized tear-effect signal path, the realistic goal on this hardware/software stack is to reduce flush frequency and repaint scope enough that artifacts stop being distracting. The implementation sequence was:
+  - inspect the LVGL config and confirm the app was still using `double_buffer = false`
+  - inspect the screen code and confirm it was restyling and relabeling almost everything every apply cycle
+  - enable double buffering and enlarge the draw stripes
+  - cache the last visible state so the screen only mutates LVGL objects when something human-visible changed
+  - quantize label and arc updates to sensible timer-specific intervals
+  - rebuild, reflash, and prepare for user-side visual confirmation
+- The other sharp edge was port ownership. Because a stale monitor had the serial device open, the first flash failure looked like an infrastructure hiccup rather than a code issue. That had to be cleared before hardware validation could continue.
+
+### What warrants a second pair of eyes
+- The chosen quantization values (`1 s` for the large label, `100 ms` for the arc) are practical defaults, but they are still taste decisions.
+- If artifacts remain obvious, the next step may need to move deeper into the LVGL port rather than the screen code, for example experimenting with full-screen buffers or a different flush strategy.
+- This step improves visible behavior, but it does not prove the hardware path is truly synchronized to the panel refresh cycle.
+
+### What should be done in the future
+- Confirm on-device whether the new redraw behavior is "good enough" or whether the arc should update more slowly or more quickly.
+- If tearing is still objectionable, evaluate full-screen double buffering and memory cost explicitly instead of guessing.
+- Capture a photo or short video once the visual quality is judged acceptable.
+
+### Code review instructions
+- Start with the LVGL configuration change:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp`
+- Then inspect the view-state caching and update quantization:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp`
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+source ../.envrc
+idf.py build
+idf.py -p /dev/ttyACM0 -b 115200 flash
+```
+
+### Technical details
+
+Redraw policy after this step:
+
+```text
+theme change      -> restyle palette-dependent objects
+state change      -> update accent color, status, hint
+duration change   -> update arc range, duration label, step label
+countdown label   -> update at 1 second granularity
+progress arc      -> update at 100 millisecond granularity
+```
+
+Validation commands and outcomes:
+
+```bash
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo
+idf.py build
+# succeeded; binary size 0x9e5e0
+idf.py -p /dev/ttyACM0 -b 115200 flash
+# first attempt blocked by stale esp_idf_monitor, second attempt succeeded
 ```

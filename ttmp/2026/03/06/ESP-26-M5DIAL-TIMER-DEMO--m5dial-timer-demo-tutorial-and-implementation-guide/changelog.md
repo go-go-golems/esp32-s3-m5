@@ -78,3 +78,25 @@ Step 5: added FT3267 touch-swipe handling, mapped gestures to theme cycling on t
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — FT3267 initialization, raw touch reads, and swipe detection
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/timer_controller.cpp — Maps swipe events into theme changes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp — Adds multiple visible color themes for touch-swipe cycling
+
+## 2026-03-06
+
+Step 7: reduced visible timer-screen tearing by enabling LVGL double buffering and cutting unnecessary redraw work (commit a1c6dc3)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp — Enables double buffering and larger draw stripes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp — Quantizes label and arc updates to reduce panel churn
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.h — Stores cached visible state for redraw suppression
+
+
+## 2026-03-06
+
+Step 6: split hardware polling from LVGL with a queue-backed input event bus and ISR-assisted button wakeups (commit 2a4ddba)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp — Creates the dedicated I/O and UI tasks
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/input_events.h — Introduces the normalized event payload used across the refactor
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — Posts queue events and uses ISR wakeups for the center button
+
