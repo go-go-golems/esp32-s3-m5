@@ -46,3 +46,23 @@ Step 2: scaffolded 0072-m5dial-timer-demo, added initial M5Dial board wrapper, a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp — Smoke-test firmware used for the first hardware bring-up pass
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — Board layer introduced for the new tutorial
 
+
+## 2026-03-06
+
+Step 3: implemented the first usable LVGL M5Dial timer demo, fixed the watchdog-starvation loop shape, and hardware-validated clean boot on /dev/ttyACM0 (commit f91abc2)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/app_main.cpp — Application loop moved to a dedicated task and wired to the timer UI
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/ui_timer_screen.cpp — New round-screen timer presentation and state-driven styling
+
+
+## 2026-03-06
+
+Step 4: stabilized the M5Dial panel path by aligning the board wrapper with the known-good display config, then replaced the software encoder decoder with a PCNT-backed path that feels materially better on hardware (commit d04e6e0)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.cpp — Display wrapper corrections and hardware-backed encoder migration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/m5dial_board.h — Board state updated to own the PCNT-backed encoder
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0072-m5dial-timer-demo/main/CMakeLists.txt — Reused encoder/button support sources compiled into the new tutorial
