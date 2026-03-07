@@ -9,8 +9,10 @@ class TimerScreen {
  public:
   bool init();
   void apply(const TimerSnapshot &snapshot);
+  void cycle_theme(int delta);
 
  private:
+  int theme_index_ = 0;
   lv_obj_t *root_ = nullptr;
   lv_obj_t *orb_ = nullptr;
   lv_obj_t *arc_ = nullptr;

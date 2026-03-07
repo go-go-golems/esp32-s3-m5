@@ -35,7 +35,7 @@ The current firmware boots into a round LVGL timer screen:
 - short press starts, pauses, and resumes the timer
 - long press resets the timer to the selected duration
 - the timer ring and status text change color by state
-- the board layer still exposes touch, but touch is not part of v1 interaction yet
+- touch swipes cycle between multiple background color styles
 
 ## Controls
 
@@ -43,6 +43,8 @@ The current firmware boots into a round LVGL timer screen:
 - Turn counter-clockwise: decrease duration
 - Short press: start or pause
 - Long press: reset
+- Swipe left or up: next color style
+- Swipe right or down: previous color style
 
 ## Notes
 

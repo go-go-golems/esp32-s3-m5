@@ -14,6 +14,14 @@ struct TouchState {
   int16_t y = -1;
 };
 
+enum class SwipeDirection {
+  kNone = 0,
+  kLeft,
+  kRight,
+  kUp,
+  kDown,
+};
+
 class LGFX_M5Dial : public lgfx::LGFX_Device {
  public:
   LGFX_M5Dial();
@@ -34,10 +42,14 @@ class M5DialBoard {
   bool take_button_press();
   bool take_button_long_press();
   TouchState read_touch();
+  SwipeDirection take_swipe();
 
  private:
   void init_power_hold();
   void init_encoder_button_gpio();
+  bool init_touch_controller();
+  void poll_touch();
+  TouchState sample_touch();
 
   LGFX_M5Dial display_{};
   ESP32Encoder encoder_{};
@@ -52,6 +64,13 @@ class M5DialBoard {
   bool button_press_pending_ = false;
   bool button_long_press_pending_ = false;
   bool button_long_press_reported_ = false;
+
+  bool touch_ready_ = false;
+  bool touch_was_pressed_ = false;
+  TouchState touch_state_{};
+  TouchState touch_start_{};
+  TouchState touch_last_{};
+  SwipeDirection swipe_pending_ = SwipeDirection::kNone;
 };
 
 }  // namespace tutorial_0072

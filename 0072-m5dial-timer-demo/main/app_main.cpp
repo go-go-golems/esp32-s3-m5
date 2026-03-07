@@ -51,7 +51,7 @@ void timer_demo_task(void * /*arg*/) {
   while (true) {
     board.poll();
     const uint64_t now_us = static_cast<uint64_t>(esp_timer_get_time());
-    controller.update(board, model, now_us);
+    controller.update(board, model, screen, now_us);
     model.tick(now_us);
     screen.apply(model.snapshot());
     lv_timer_handler();
