@@ -2,3 +2,4 @@
 /firmware/sdkconfig
 /firmware/sdkconfig.old
 /web/node_modules/
+/web/dist/
