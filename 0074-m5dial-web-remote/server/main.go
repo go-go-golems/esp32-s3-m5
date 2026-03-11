@@ -40,9 +40,11 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/status", func(w http.ResponseWriter, r *http.Request) {
+		logger.Printf("api status requested remote=%s ua=%q", r.RemoteAddr, r.UserAgent())
 		writeJSON(w, http.StatusOK, hub.Snapshot())
 	})
 	mux.HandleFunc("/ws/device", func(w http.ResponseWriter, r *http.Request) {
+		logger.Printf("device ws upgrade requested remote=%s ua=%q origin=%q", r.RemoteAddr, r.UserAgent(), r.Header.Get("Origin"))
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			logger.Printf("upgrade device ws: %v", err)
@@ -52,13 +54,14 @@ func main() {
 		hub.HandleDeviceConn(conn, r.RemoteAddr)
 	})
 	mux.HandleFunc("/ws/browser", func(w http.ResponseWriter, r *http.Request) {
+		logger.Printf("browser ws upgrade requested remote=%s ua=%q origin=%q", r.RemoteAddr, r.UserAgent(), r.Header.Get("Origin"))
 		conn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
 			logger.Printf("upgrade browser ws: %v", err)
 			return
 		}
 		defer conn.Close()
-		hub.HandleBrowserConn(conn)
+		hub.HandleBrowserConn(conn, r.RemoteAddr)
 	})
 	mux.Handle("/", spaHandler(staticSub))
 
@@ -74,7 +77,7 @@ func withLog(logger *log.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		logger.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start).Round(time.Millisecond))
+		logger.Printf("%s %s remote=%s ua=%q dur=%s", r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent(), time.Since(start).Round(time.Millisecond))
 	})
 }
 

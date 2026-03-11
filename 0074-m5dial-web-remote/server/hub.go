@@ -12,13 +12,14 @@ import (
 )
 
 const maxHistory = 200
+const maxPayloadLogLen = 240
 
 type Hub struct {
 	log *log.Logger
 
 	mu            sync.RWMutex
 	nextHistoryID int64
-	browsers      map[*websocket.Conn]struct{}
+	browsers      map[*websocket.Conn]string
 	devices       map[string]*DeviceState
 	history       []HistoryEntry
 }
@@ -72,7 +73,7 @@ type ButtonMessage struct {
 func NewHub(logger *log.Logger) *Hub {
 	return &Hub{
 		log:      logger,
-		browsers: map[*websocket.Conn]struct{}{},
+		browsers: map[*websocket.Conn]string{},
 		devices:  map[string]*DeviceState{},
 	}
 }
@@ -83,33 +84,43 @@ func (h *Hub) Snapshot() ServerSnapshot {
 	return h.snapshotLocked("server_snapshot")
 }
 
-func (h *Hub) HandleBrowserConn(conn *websocket.Conn) {
+func (h *Hub) HandleBrowserConn(conn *websocket.Conn, remoteAddr string) {
 	h.mu.Lock()
-	h.browsers[conn] = struct{}{}
+	h.browsers[conn] = remoteAddr
 	initial := h.snapshotLocked("server_snapshot")
+	browserCount := len(h.browsers)
 	h.mu.Unlock()
+	h.log.Printf("browser connected remote=%s browsers=%d devices=%d history=%d", remoteAddr, browserCount, len(initial.Devices), len(initial.History))
 
 	if err := conn.WriteJSON(initial); err != nil {
+		h.log.Printf("browser initial snapshot write failed remote=%s err=%v", remoteAddr, err)
 		h.removeBrowser(conn)
 		return
 	}
+	h.log.Printf("browser initial snapshot sent remote=%s devices=%d history=%d", remoteAddr, len(initial.Devices), len(initial.History))
 
 	for {
-		if _, _, err := conn.ReadMessage(); err != nil {
+		msgType, payload, err := conn.ReadMessage()
+		if err != nil {
+			h.log.Printf("browser read closed remote=%s err=%v", remoteAddr, err)
 			h.removeBrowser(conn)
 			return
 		}
+		h.log.Printf("browser unexpected message remote=%s type=%d payload=%q", remoteAddr, msgType, abbreviatePayload(payload))
 	}
 }
 
 func (h *Hub) HandleDeviceConn(conn *websocket.Conn, remoteAddr string) {
 	deviceID := ""
+	h.log.Printf("device connected remote=%s", remoteAddr)
 	for {
-		_, payload, err := conn.ReadMessage()
+		msgType, payload, err := conn.ReadMessage()
 		if err != nil {
+			h.log.Printf("device read closed remote=%s device_id=%s err=%v", remoteAddr, deviceID, err)
 			h.disconnectDevice(deviceID)
 			return
 		}
+		h.log.Printf("device frame remote=%s type=%d payload=%q", remoteAddr, msgType, abbreviatePayload(payload))
 
 		var base BaseMessage
 		if err := json.Unmarshal(payload, &base); err != nil {
@@ -123,15 +134,26 @@ func (h *Hub) HandleDeviceConn(conn *websocket.Conn, remoteAddr string) {
 		if deviceID == "" {
 			deviceID = fmt.Sprintf("anon-%d", time.Now().UnixNano())
 		}
+		h.log.Printf("device identified remote=%s device_id=%s msg_type=%s seq=%d", remoteAddr, deviceID, base.Type, base.Seq)
 
 		h.recordDeviceMessage(deviceID, remoteAddr, payload, base)
 	}
 }
 
+func abbreviatePayload(payload []byte) string {
+	if len(payload) <= maxPayloadLogLen {
+		return string(payload)
+	}
+	return string(payload[:maxPayloadLogLen]) + "..."
+}
+
 func (h *Hub) removeBrowser(conn *websocket.Conn) {
 	h.mu.Lock()
+	remoteAddr := h.browsers[conn]
 	delete(h.browsers, conn)
+	remaining := len(h.browsers)
 	h.mu.Unlock()
+	h.log.Printf("browser disconnected remote=%s browsers=%d", remoteAddr, remaining)
 }
 
 func (h *Hub) disconnectDevice(deviceID string) {
@@ -146,6 +168,7 @@ func (h *Hub) disconnectDevice(deviceID string) {
 	}
 	status := h.snapshotLocked("server_status")
 	h.mu.Unlock()
+	h.log.Printf("device disconnected device_id=%s connected_devices=%d", deviceID, len(status.Devices))
 	h.broadcast(status)
 }
 
@@ -199,7 +222,22 @@ func (h *Hub) recordDeviceMessage(deviceID string, remoteAddr string, payload []
 		"device_id": deviceID,
 		"payload":   json.RawMessage(payload),
 	}
+	browserCount := len(h.browsers)
+	lastSeq := device.LastSeq
+	lastType := device.LastType
+	position := device.Position
+	lastDelta := device.LastDelta
+	rxCount := device.RxCount
 	h.mu.Unlock()
+	h.log.Printf("device state updated device_id=%s seq=%d type=%s pos=%d delta=%d rx_count=%d browsers=%d",
+		deviceID,
+		lastSeq,
+		lastType,
+		position,
+		lastDelta,
+		rxCount,
+		browserCount,
+	)
 
 	h.broadcast(event)
 	h.broadcast(status)
@@ -231,11 +269,29 @@ func (h *Hub) broadcast(message any) {
 	}
 	h.mu.RUnlock()
 
+	msgType := "unknown"
+	switch msg := message.(type) {
+	case map[string]any:
+		if t, ok := msg["type"].(string); ok {
+			msgType = t
+		}
+	case ServerSnapshot:
+		msgType = msg.Type
+	}
+	h.log.Printf("broadcast start type=%s browsers=%d", msgType, len(conns))
+
 	for _, conn := range conns {
 		if err := conn.WriteJSON(message); err != nil {
 			h.mu.Lock()
+			remoteAddr := h.browsers[conn]
 			delete(h.browsers, conn)
 			h.mu.Unlock()
+			h.log.Printf("broadcast failed type=%s remote=%s err=%v", msgType, remoteAddr, err)
+			continue
 		}
+		h.mu.RLock()
+		remoteAddr := h.browsers[conn]
+		h.mu.RUnlock()
+		h.log.Printf("broadcast ok type=%s remote=%s", msgType, remoteAddr)
 	}
 }
