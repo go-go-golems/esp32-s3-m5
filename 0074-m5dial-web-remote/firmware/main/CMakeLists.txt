@@ -1,0 +1,30 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "m5dial_board.cpp"
+        "remote_client.cpp"
+        "remote_config.cpp"
+        "remote_console.cpp"
+        "vendor/Button/Button.cpp"
+        "vendor/ESP32Encoder.cpp"
+        "vendor/InterruptEncoder.cpp"
+    REQUIRES
+        LovyanGFX
+        esp_websocket_client
+        nvs_flash
+        wifi_console
+        wifi_mgr
+    PRIV_REQUIRES
+        console
+        driver
+        esp_event
+        esp_netif
+        esp_system
+        esp_timer
+        esp_wifi
+        lwip
+    INCLUDE_DIRS
+        "."
+        "vendor"
+        "vendor/Button"
+)

@@ -1,0 +1,38 @@
+#pragma once
+
+#include <stdint.h>
+
+#include "esp_err.h"
+
+#include "remote_config.h"
+
+enum class RemoteClientState : uint8_t {
+  kIdle = 0,
+  kWaitingForWifi,
+  kConnecting,
+  kConnected,
+  kError,
+};
+
+struct RemoteClientStatus {
+  RemoteClientState state = RemoteClientState::kIdle;
+  bool desired_connected = false;
+  char url[kRemoteUrlMaxLen] = {0};
+  char device_id[kRemoteDeviceIdMaxLen] = {0};
+  char last_error[96] = {0};
+  char last_message[96] = {0};
+  int last_http_status = 0;
+  int last_socket_errno = 0;
+  uint32_t tx_count = 0;
+  uint32_t rx_count = 0;
+  uint64_t last_tx_ms = 0;
+  uint64_t last_rx_ms = 0;
+};
+
+esp_err_t remote_client_init();
+void remote_client_set_config(const RemoteConfig& cfg);
+esp_err_t remote_client_connect();
+esp_err_t remote_client_disconnect();
+void remote_client_get_status(RemoteClientStatus* out);
+esp_err_t remote_client_send_encoder(uint32_t seq, int32_t pos, int32_t delta, uint64_t ts_ms);
+esp_err_t remote_client_send_button(uint32_t seq, const char* kind, int32_t pos, uint64_t ts_ms);
