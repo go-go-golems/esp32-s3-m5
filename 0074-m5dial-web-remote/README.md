@@ -6,6 +6,10 @@ This project has three parts:
 - `server/`: Go HTTP/WebSocket server. Devices connect on `/ws/device`, browsers on `/ws/browser`, and `/api/status` exposes the current snapshot.
 - `web/`: React/Vite dashboard. Production assets are copied into `server/static/` so the Go server serves the built UI.
 
+Operational runbook:
+
+- `PLAYBOOK.md`: tmux-based workflow for server, Vite, firmware build/flash, monitor, and restart flows.
+
 ## Firmware
 
 Build:
