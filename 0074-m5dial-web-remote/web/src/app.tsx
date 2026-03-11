@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useStore } from './store'
 
 const items = Array.from({ length: 120 }, (_, index) => ({
@@ -21,6 +21,11 @@ export function App() {
   const selectedDeviceId = useStore((state) => state.selectedDeviceId)
   const selectDevice = useStore((state) => state.selectDevice)
   const clearFrames = useStore((state) => state.clearFrames)
+  const sendUiCommand = useStore((state) => state.sendUiCommand)
+  const lastCommandFeedback = useStore((state) => state.lastCommandFeedback)
+
+  const [messageText, setMessageText] = useState('Hello from React')
+  const [positionValue, setPositionValue] = useState('12')
 
   useEffect(() => {
     connectWs()
@@ -54,6 +59,22 @@ export function App() {
     }
   }, [wsFrames.length])
 
+  const controlsDisabled = !selectedDevice || !wsConnected
+
+  function handleMessageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    sendUiCommand(selectedDevice?.device_id ?? '', 'show_message', { text: messageText })
+  }
+
+  function handlePositionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const parsed = Number.parseInt(positionValue, 10)
+    if (Number.isNaN(parsed)) {
+      return
+    }
+    sendUiCommand(selectedDevice?.device_id ?? '', 'set_position', { value: parsed })
+  }
+
   return (
     <main className="shell">
       <section className="hero panel reveal">
@@ -62,7 +83,8 @@ export function App() {
           <h1>Physical knob in the loop, browser widget in control.</h1>
           <p className="lede">
             The browser listens to the Go server on <code>/ws/browser</code>, the dial pushes encoder and button events
-            to <code>/ws/device</code>, and the list below scrolls from the live device position.
+            to <code>/ws/device</code>, and the browser can now send <code>ui_command</code> frames back to the dial
+            through the same server.
           </p>
         </div>
         <div className="statusRail">
@@ -125,6 +147,10 @@ export function App() {
                 <div><dt>Last delta</dt><dd>{selectedDevice.last_delta}</dd></div>
                 <div><dt>Last button</dt><dd>{selectedDevice.last_button ?? '-'}</dd></div>
                 <div><dt>Last type</dt><dd>{selectedDevice.last_type || '-'}</dd></div>
+                <div><dt>Last command</dt><dd>{selectedDevice.last_command ?? '-'}</dd></div>
+                <div><dt>Command status</dt><dd>{selectedDevice.last_command_status ?? '-'}</dd></div>
+                <div><dt>Device text</dt><dd>{selectedDevice.last_text ?? '-'}</dd></div>
+                <div><dt>Last request</dt><dd>{selectedDevice.last_request_id ?? '-'}</dd></div>
                 <div><dt>Last sequence</dt><dd>{selectedDevice.last_seq}</dd></div>
                 <div><dt>RX count</dt><dd>{selectedDevice.rx_count}</dd></div>
                 <div><dt>Last seen</dt><dd>{formatTime(selectedDevice.last_seen)}</dd></div>
@@ -133,6 +159,67 @@ export function App() {
           </section>
 
           <section className="panel reveal delay2">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">Dial Commands</p>
+                <h2>Send browser commands back to the ESP32</h2>
+              </div>
+            </div>
+
+            <div className="commandGrid">
+              <form className="commandCard" onSubmit={handleMessageSubmit}>
+                <label className="fieldLabel" htmlFor="messageText">
+                  Show message on dial
+                </label>
+                <input
+                  id="messageText"
+                  className="textInput"
+                  value={messageText}
+                  onChange={(event) => setMessageText(event.target.value)}
+                  placeholder="Dial message"
+                  maxLength={60}
+                />
+                <button className="actionButton" disabled={controlsDisabled}>
+                  Send message
+                </button>
+              </form>
+
+              <form className="commandCard" onSubmit={handlePositionSubmit}>
+                <label className="fieldLabel" htmlFor="positionValue">
+                  Force knob position
+                </label>
+                <input
+                  id="positionValue"
+                  className="textInput"
+                  type="number"
+                  inputMode="numeric"
+                  value={positionValue}
+                  onChange={(event) => setPositionValue(event.target.value)}
+                  placeholder="0"
+                />
+                <button className="actionButton" disabled={controlsDisabled}>
+                  Set position
+                </button>
+              </form>
+            </div>
+
+            <div className={`commandFeedback ${lastCommandFeedback?.status.startsWith('ack') ? 'ok' : lastCommandFeedback?.status === 'rejected' ? 'bad' : 'neutral'}`}>
+              {lastCommandFeedback ? (
+                <>
+                  <strong>
+                    {lastCommandFeedback.status} #{lastCommandFeedback.requestId}
+                  </strong>
+                  <span>
+                    {lastCommandFeedback.command} on {lastCommandFeedback.deviceId || 'no-device'}: {lastCommandFeedback.detail}
+                  </span>
+                </>
+              ) : (
+                <span>Commands will show immediate queue/reject status and later device acknowledgements here.</span>
+              )}
+            </div>
+          </section>
+
+          <section className="panel reveal delay3">
             <div className="panelHead">
               <div>
                 <p className="eyebrow">Server History</p>

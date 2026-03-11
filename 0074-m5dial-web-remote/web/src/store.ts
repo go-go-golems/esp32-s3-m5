@@ -9,6 +9,10 @@ export type DeviceState = {
   last_seq: number
   position: number
   last_delta: number
+  last_text?: string
+  last_command?: string
+  last_command_status?: string
+  last_request_id?: number
   last_seen: string
   rx_count: number
 }
@@ -28,11 +32,48 @@ type ServerSnapshot = {
   history: HistoryEntry[]
 }
 
+type UiCommandResultFrame = {
+  type: 'ui_command_result'
+  generated_at: string
+  device_id: string
+  command: string
+  request_id: number
+  status: string
+  reason?: string
+}
+
+type DeviceEventFrame = {
+  type: 'device_event'
+  device_id: string
+  payload?: {
+    type?: string
+    request_id?: number
+    command?: string
+    status?: string
+    text?: string
+    pos?: number
+  }
+}
+
 type WsFrame = {
   id: number
   rxMs: number
   raw: string
   parseError: string | null
+}
+
+export type CommandFeedback = {
+  requestId: number
+  deviceId: string
+  command: string
+  status: string
+  detail: string
+  atMs: number
+}
+
+type CommandPayload = {
+  text?: string
+  value?: number
 }
 
 type Store = {
@@ -41,15 +82,18 @@ type Store = {
   devices: DeviceState[]
   history: HistoryEntry[]
   selectedDeviceId: string
+  lastCommandFeedback: CommandFeedback | null
   connectWs: () => void
   selectDevice: (id: string) => void
   clearFrames: () => void
+  sendUiCommand: (deviceId: string, command: string, payload?: CommandPayload) => void
 }
 
 let socket: WebSocket | null = null
 let reconnectTimer: number | null = null
 let reconnectBackoffMs = 300
 let nextFrameID = 1
+let nextRequestID = 1
 const maxFrames = 200
 
 function ensureSelectedDevice(devices: DeviceState[], selectedDeviceId: string) {
@@ -59,12 +103,32 @@ function ensureSelectedDevice(devices: DeviceState[], selectedDeviceId: string) 
   return devices[0]?.device_id ?? ''
 }
 
+function setCommandFeedback(
+  requestId: number,
+  deviceId: string,
+  command: string,
+  status: string,
+  detail: string,
+): Pick<Store, 'lastCommandFeedback'> {
+  return {
+    lastCommandFeedback: {
+      requestId,
+      deviceId,
+      command,
+      status,
+      detail,
+      atMs: Date.now(),
+    },
+  }
+}
+
 export const useStore = create<Store>((set, get) => ({
   wsConnected: false,
   wsFrames: [],
   devices: [],
   history: [],
   selectedDeviceId: '',
+  lastCommandFeedback: null,
   connectWs: () => {
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
       return
@@ -135,10 +199,69 @@ export const useStore = create<Store>((set, get) => ({
           }
         }
 
+        if (msg.type === 'ui_command_result') {
+          const result = parsed as UiCommandResultFrame
+          return {
+            wsFrames,
+            ...setCommandFeedback(
+              result.request_id,
+              result.device_id,
+              result.command,
+              result.status,
+              result.reason ?? 'server accepted command for delivery',
+            ),
+          }
+        }
+
+        if (msg.type === 'device_event') {
+          const deviceEvent = parsed as DeviceEventFrame
+          if (deviceEvent.payload?.type === 'ui_command_ack') {
+            return {
+              wsFrames,
+              ...setCommandFeedback(
+                deviceEvent.payload.request_id ?? 0,
+                deviceEvent.device_id,
+                deviceEvent.payload.command ?? 'unknown',
+                `ack:${deviceEvent.payload.status ?? 'unknown'}`,
+                deviceEvent.payload.text ?? `position ${deviceEvent.payload.pos ?? 0}`,
+              ),
+            }
+          }
+        }
+
         return { wsFrames }
       })
     }
   },
   selectDevice: (id) => set({ selectedDeviceId: id }),
   clearFrames: () => set({ wsFrames: [] }),
+  sendUiCommand: (deviceId, command, payload = {}) => {
+    const requestId = nextRequestID++
+
+    if (!deviceId) {
+      set(setCommandFeedback(requestId, '', command, 'rejected', 'select a device first'))
+      return
+    }
+
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      set(setCommandFeedback(requestId, deviceId, command, 'rejected', 'browser websocket is not connected'))
+      return
+    }
+
+    const frame = {
+      type: 'ui_command',
+      device_id: deviceId,
+      command,
+      request_id: requestId,
+      ...(payload.text !== undefined ? { text: payload.text } : {}),
+      ...(payload.value !== undefined ? { value: payload.value } : {}),
+    }
+
+    try {
+      socket.send(JSON.stringify(frame))
+      set(setCommandFeedback(requestId, deviceId, command, 'sent', 'sent to server websocket'))
+    } catch (error) {
+      set(setCommandFeedback(requestId, deviceId, command, 'rejected', String(error)))
+    }
+  },
 }))
