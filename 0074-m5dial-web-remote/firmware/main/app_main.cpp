@@ -1,6 +1,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -38,6 +39,27 @@ struct AppContext {
   uint32_t sequence = 0;
   char last_event[48] = "boot";
   uint64_t last_event_ms = 0;
+};
+
+struct ScreenState {
+  std::string title;
+  std::string position_line;
+  std::string wifi_line;
+  std::string ip_line;
+  std::string remote_line;
+  std::string id_line;
+  std::string url_line;
+  std::string event_line;
+  std::string traffic_line;
+  std::string error_line;
+  std::string footer_line;
+
+  bool operator==(const ScreenState& other) const {
+    return title == other.title && position_line == other.position_line && wifi_line == other.wifi_line &&
+           ip_line == other.ip_line && remote_line == other.remote_line && id_line == other.id_line &&
+           url_line == other.url_line && event_line == other.event_line && traffic_line == other.traffic_line &&
+           error_line == other.error_line && footer_line == other.footer_line;
+  }
 };
 
 uint64_t now_ms() {
@@ -93,9 +115,7 @@ void shorten(const char* src, char* dst, size_t dst_len) {
   std::memcpy(dst + keep, "...", 4);
 }
 
-void draw_status_screen(AppContext* ctx) {
-  tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
-
+ScreenState make_screen_state(AppContext* ctx) {
   wifi_mgr_status_t wifi = {};
   (void)wifi_mgr_get_status(&wifi);
 
@@ -115,32 +135,66 @@ void draw_status_screen(AppContext* ctx) {
   shorten(ctx->last_event, event_line, sizeof(event_line));
   shorten(remote.last_error, err_line, sizeof(err_line));
 
+  ScreenState state = {};
+  state.title = "M5Dial Web Remote";
+  {
+    char line[64];
+    std::snprintf(line, sizeof(line), "Pos:%" PRId32 " d:%" PRId32 " seq:%" PRIu32, ctx->position, ctx->last_delta, ctx->sequence);
+    state.position_line = line;
+  }
+  {
+    const char* wifi_state = wifi.state == WIFI_MGR_STATE_CONNECTED   ? "CONNECTED"
+                             : wifi.state == WIFI_MGR_STATE_CONNECTING ? "CONNECTING"
+                                                                       : "IDLE";
+    state.wifi_line = std::string("WiFi:") + wifi_state;
+  }
+  state.ip_line = ip_line;
+  {
+    const char* remote_state = remote.state == RemoteClientState::kConnected   ? "CONNECTED"
+                               : remote.state == RemoteClientState::kConnecting ? "CONNECTING"
+                               : remote.state == RemoteClientState::kWaitingForWifi ? "WAIT_WIFI"
+                               : remote.state == RemoteClientState::kError          ? "ERROR"
+                                                                                     : "IDLE";
+    state.remote_line = std::string("Remote:") + remote_state;
+  }
+  state.id_line = std::string("ID:") + (remote.device_id[0] ? remote.device_id : "-");
+  state.url_line = std::string("URL:") + url_line;
+  state.event_line = std::string("Last:") + event_line;
+  {
+    char line[40];
+    std::snprintf(line, sizeof(line), "TX:%" PRIu32 " RX:%" PRIu32, remote.tx_count, remote.rx_count);
+    state.traffic_line = line;
+  }
+  state.error_line = std::string("Err:") + (err_line[0] ? err_line : "-");
+  state.footer_line = "ACM0: help / wifi / remote";
+  return state;
+}
+
+void draw_status_screen(AppContext* ctx, const ScreenState& state) {
+  tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
+  lgfx::LGFX_Sprite sprite(&display);
+  sprite.setColorDepth(16);
+  sprite.createSprite(display.width(), display.height());
+  sprite.fillScreen(TFT_BLACK);
+  sprite.setTextColor(TFT_GREEN, TFT_BLACK);
+  sprite.setFont(&fonts::Font0);
+  sprite.setCursor(6, 6);
+  sprite.println(state.title.c_str());
+  sprite.println(state.position_line.c_str());
+  sprite.println(state.wifi_line.c_str());
+  sprite.println(state.ip_line.c_str());
+  sprite.println(state.remote_line.c_str());
+  sprite.println(state.id_line.c_str());
+  sprite.println(state.url_line.c_str());
+  sprite.println(state.event_line.c_str());
+  sprite.println(state.traffic_line.c_str());
+  sprite.println(state.error_line.c_str());
+  sprite.println(state.footer_line.c_str());
+
   display.startWrite();
-  display.fillScreen(TFT_BLACK);
-  display.setTextColor(TFT_GREEN, TFT_BLACK);
-  display.setFont(&fonts::Font0);
-  display.setCursor(6, 6);
-  display.printf("M5Dial Web Remote\n");
-  display.printf("Pos:%" PRId32 "  d:%" PRId32 "  seq:%" PRIu32 "\n", ctx->position, ctx->last_delta, ctx->sequence);
-  display.printf("WiFi:%s\n",
-                 wifi.state == WIFI_MGR_STATE_CONNECTED ? "CONNECTED"
-                 : wifi.state == WIFI_MGR_STATE_CONNECTING ? "CONNECTING"
-                                                           : "IDLE");
-  display.printf("%s\n", ip_line);
-  display.printf("Remote:%s\n",
-                 remote.state == RemoteClientState::kConnected   ? "CONNECTED"
-                 : remote.state == RemoteClientState::kConnecting ? "CONNECTING"
-                 : remote.state == RemoteClientState::kWaitingForWifi ? "WAIT_WIFI"
-                                                                       : remote.state == RemoteClientState::kError
-                                                                             ? "ERROR"
-                                                                             : "IDLE");
-  display.printf("ID:%s\n", remote.device_id[0] ? remote.device_id : "-");
-  display.printf("URL:%s\n", url_line);
-  display.printf("Last:%s\n", event_line);
-  display.printf("TX:%" PRIu32 " RX:%" PRIu32 "\n", remote.tx_count, remote.rx_count);
-  display.printf("Err:%s\n", err_line[0] ? err_line : "-");
-  display.printf("ACM0: help / wifi scan / remote status\n");
+  sprite.pushSprite(0, 0);
   display.endWrite();
+  sprite.deleteSprite();
 }
 
 void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event) {
@@ -176,9 +230,9 @@ void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event)
 
 void app_task(void* arg) {
   auto* ctx = static_cast<AppContext*>(arg);
-  draw_status_screen(ctx);
+  ScreenState last_state = {};
+  bool have_last_state = false;
 
-  uint64_t last_draw_ms = 0;
   while (true) {
     tutorial_0072::InputEvent event;
     const bool got_event = xQueueReceive(ctx->input_queue, &event, pdMS_TO_TICKS(100)) == pdTRUE;
@@ -189,10 +243,11 @@ void app_task(void* arg) {
       }
     }
 
-    const uint64_t ms = now_ms();
-    if (got_event || ms - last_draw_ms >= 250) {
-      draw_status_screen(ctx);
-      last_draw_ms = ms;
+    const ScreenState next_state = make_screen_state(ctx);
+    if (!have_last_state || !(next_state == last_state)) {
+      draw_status_screen(ctx, next_state);
+      last_state = next_state;
+      have_last_state = true;
     }
   }
 }
