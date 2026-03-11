@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>M5Dial Web Remote</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4efe5;
+        --panel: #fff8ec;
+        --ink: #1f1e1c;
+        --accent: #1c7c54;
+        --line: #d7c6a3;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", sans-serif;
+        background: radial-gradient(circle at top, #fff8ec, #f4efe5 62%);
+        color: var(--ink);
+      }
+      main {
+        max-width: 760px;
+        margin: 40px auto;
+        padding: 24px;
+      }
+      section {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 12px 30px rgba(80, 54, 18, 0.08);
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 2rem;
+      }
+      code {
+        background: rgba(28, 124, 84, 0.08);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      strong {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>M5Dial Web Remote</h1>
+        <p>The Go server is running. The React app has not been built into this static bundle yet.</p>
+        <p>
+          Device websocket: <code>/ws/device</code><br />
+          Browser websocket: <code>/ws/browser</code><br />
+          Status API: <code>/api/status</code>
+        </p>
+        <p><strong>Next step:</strong> replace this placeholder with the React build output.</p>
+      </section>
+    </main>
+  </body>
+</html>
