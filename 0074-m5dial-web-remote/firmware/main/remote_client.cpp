@@ -12,6 +12,7 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_websocket_client.h"
+#include "cJSON.h"
 
 #include "wifi_mgr.h"
 
@@ -27,6 +28,7 @@ RemoteConfig s_cfg = {};
 TaskHandle_t s_task = nullptr;
 esp_websocket_client_handle_t s_client = nullptr;
 bool s_hello_pending = false;
+QueueHandle_t s_command_q = nullptr;
 
 uint64_t now_ms() {
   return static_cast<uint64_t>(esp_timer_get_time() / 1000LL);
@@ -61,6 +63,69 @@ void stop_client() {
   s_client = nullptr;
 }
 
+void enqueue_ui_command(const char* data_ptr, int data_len) {
+  if (!s_command_q || !data_ptr || data_len <= 0) {
+    return;
+  }
+
+  char json[256];
+  const int copy_len = std::min<int>(data_len, sizeof(json) - 1);
+  std::memcpy(json, data_ptr, static_cast<size_t>(copy_len));
+  json[copy_len] = '\0';
+
+  cJSON* root = cJSON_Parse(json);
+  if (!root) {
+    ESP_LOGW(TAG, "failed to parse inbound ws json");
+    return;
+  }
+
+  const cJSON* type = cJSON_GetObjectItemCaseSensitive(root, "type");
+  if (!cJSON_IsString(type) || std::strcmp(type->valuestring, "ui_command") != 0) {
+    cJSON_Delete(root);
+    return;
+  }
+
+  RemoteUiCommand cmd = {};
+  const cJSON* request_id = cJSON_GetObjectItemCaseSensitive(root, "request_id");
+  if (cJSON_IsNumber(request_id) && request_id->valuedouble >= 0) {
+    cmd.request_id = static_cast<uint32_t>(request_id->valuedouble);
+  }
+
+  const cJSON* command = cJSON_GetObjectItemCaseSensitive(root, "command");
+  if (cJSON_IsString(command)) {
+    std::snprintf(cmd.command, sizeof(cmd.command), "%s", command->valuestring);
+    if (std::strcmp(command->valuestring, "show_message") == 0) {
+      cmd.type = RemoteUiCommandType::kShowMessage;
+    } else if (std::strcmp(command->valuestring, "set_position") == 0) {
+      cmd.type = RemoteUiCommandType::kSetPosition;
+    }
+  }
+
+  const cJSON* text = cJSON_GetObjectItemCaseSensitive(root, "text");
+  if (cJSON_IsString(text)) {
+    std::snprintf(cmd.text, sizeof(cmd.text), "%s", text->valuestring);
+  }
+
+  const cJSON* value = cJSON_GetObjectItemCaseSensitive(root, "value");
+  if (cJSON_IsNumber(value)) {
+    cmd.value = value->valueint;
+  }
+
+  cJSON_Delete(root);
+
+  if (cmd.type == RemoteUiCommandType::kUnknown) {
+    ESP_LOGW(TAG, "ignoring unknown ui command");
+    return;
+  }
+
+  if (xQueueSend(s_command_q, &cmd, 0) != pdTRUE) {
+    ESP_LOGW(TAG, "ui command queue full, dropping command=%s", cmd.command);
+    return;
+  }
+
+  ESP_LOGI(TAG, "queued ui command command=%s text=%s value=%" PRId32, cmd.command, cmd.text, cmd.value);
+}
+
 void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
   (void)handler_args;
   (void)base;
@@ -90,6 +155,7 @@ void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t 
         const int count = std::min<int>(data->data_len, sizeof(s_status.last_message) - 1);
         std::memcpy(s_status.last_message, data->data_ptr, static_cast<size_t>(count));
         s_status.last_message[count] = '\0';
+        enqueue_ui_command(static_cast<const char*>(data->data_ptr), data->data_len);
       }
       break;
     }
@@ -284,6 +350,12 @@ void remote_client_set_config(const RemoteConfig& cfg) {
   stop_client();
 }
 
+void remote_client_set_command_queue(QueueHandle_t queue) {
+  lock();
+  s_command_q = queue;
+  unlock();
+}
+
 esp_err_t remote_client_connect() {
   lock();
   if (!has_url_unsafe()) {
@@ -350,4 +422,41 @@ esp_err_t remote_client_send_button(uint32_t seq, const char* kind, int32_t pos,
                 kind ? kind : "unknown",
                 pos);
   return send_json(json);
+}
+
+esp_err_t remote_client_send_ui_ack(uint32_t seq,
+                                    uint32_t request_id,
+                                    const char* command,
+                                    const char* status,
+                                    int32_t pos,
+                                    const char* text,
+                                    uint64_t ts_ms) {
+  lock();
+  RemoteConfig cfg = s_cfg;
+  unlock();
+
+  cJSON* root = cJSON_CreateObject();
+  if (!root) {
+    return ESP_ERR_NO_MEM;
+  }
+
+  cJSON_AddStringToObject(root, "type", "ui_command_ack");
+  cJSON_AddStringToObject(root, "device_id", cfg.device_id);
+  cJSON_AddNumberToObject(root, "seq", seq);
+  cJSON_AddNumberToObject(root, "request_id", request_id);
+  cJSON_AddNumberToObject(root, "ts_ms", static_cast<double>(ts_ms));
+  cJSON_AddStringToObject(root, "command", command ? command : "unknown");
+  cJSON_AddStringToObject(root, "status", status ? status : "unknown");
+  cJSON_AddNumberToObject(root, "pos", pos);
+  cJSON_AddStringToObject(root, "text", text ? text : "");
+
+  char* json = cJSON_PrintUnformatted(root);
+  cJSON_Delete(root);
+  if (!json) {
+    return ESP_ERR_NO_MEM;
+  }
+
+  const esp_err_t err = send_json(json);
+  cJSON_free(json);
+  return err;
 }

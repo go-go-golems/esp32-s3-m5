@@ -11,6 +11,7 @@ idf_component_register(
     REQUIRES
         LovyanGFX
         esp_websocket_client
+        json
         nvs_flash
         wifi_console
         wifi_mgr

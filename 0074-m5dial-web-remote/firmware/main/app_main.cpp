@@ -30,14 +30,17 @@ constexpr UBaseType_t kIoTaskPriority = 6;
 constexpr UBaseType_t kAppTaskPriority = 5;
 constexpr uint32_t kIoPollMs = 8;
 constexpr size_t kInputQueueLength = 32;
+constexpr size_t kUiCommandQueueLength = 8;
 
 struct AppContext {
   tutorial_0072::M5DialBoard board;
   QueueHandle_t input_queue = nullptr;
+  QueueHandle_t ui_command_queue = nullptr;
   int32_t position = 0;
   int32_t last_delta = 0;
   uint32_t sequence = 0;
   char last_event[48] = "boot";
+  char last_ui_message[64] = "-";
   uint64_t last_event_ms = 0;
 };
 
@@ -165,7 +168,7 @@ ScreenState make_screen_state(AppContext* ctx) {
     std::snprintf(line, sizeof(line), "TX:%" PRIu32 " RX:%" PRIu32, remote.tx_count, remote.rx_count);
     state.traffic_line = line;
   }
-  state.error_line = std::string("Err:") + (err_line[0] ? err_line : "-");
+  state.error_line = std::string("Msg:") + ctx->last_ui_message;
   state.footer_line = "ACM0: help / wifi / remote";
   return state;
 }
@@ -228,6 +231,35 @@ void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event)
   }
 }
 
+void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
+  const uint64_t ts_ms = now_ms();
+  ctx->sequence++;
+
+  switch (cmd.type) {
+    case RemoteUiCommandType::kShowMessage:
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "%s", cmd.text[0] ? cmd.text : "-");
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui msg");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
+      break;
+    case RemoteUiCommandType::kSetPosition:
+      ctx->position = cmd.value;
+      ctx->last_delta = 0;
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "pos=%" PRId32, cmd.value);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui pos");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
+      break;
+    case RemoteUiCommandType::kUnknown:
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "unknown");
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui ?");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "ignored", ctx->position, ctx->last_ui_message, ts_ms);
+      break;
+  }
+  ctx->last_event_ms = ts_ms;
+}
+
 void app_task(void* arg) {
   auto* ctx = static_cast<AppContext*>(arg);
   ScreenState last_state = {};
@@ -241,6 +273,11 @@ void app_task(void* arg) {
       while (xQueueReceive(ctx->input_queue, &event, 0) == pdTRUE) {
         handle_input_event(ctx, event);
       }
+    }
+
+    RemoteUiCommand cmd;
+    while (xQueueReceive(ctx->ui_command_queue, &cmd, 0) == pdTRUE) {
+      handle_ui_command(ctx, cmd);
     }
 
     const ScreenState next_state = make_screen_state(ctx);
@@ -267,6 +304,11 @@ extern "C" void app_main(void) {
     ESP_LOGE(TAG, "input queue creation failed");
     return;
   }
+  app.ui_command_queue = xQueueCreate(kUiCommandQueueLength, sizeof(RemoteUiCommand));
+  if (!app.ui_command_queue) {
+    ESP_LOGE(TAG, "ui command queue creation failed");
+    return;
+  }
 
   if (!app.board.init()) {
     ESP_LOGE(TAG, "board init failed");
@@ -280,6 +322,7 @@ extern "C" void app_main(void) {
   ensure_device_id(&cfg);
 
   ESP_ERROR_CHECK(remote_client_init());
+  remote_client_set_command_queue(app.ui_command_queue);
   remote_client_set_config(cfg);
   if (cfg.url[0] != '\0') {
     ESP_ERROR_CHECK(remote_client_connect());
