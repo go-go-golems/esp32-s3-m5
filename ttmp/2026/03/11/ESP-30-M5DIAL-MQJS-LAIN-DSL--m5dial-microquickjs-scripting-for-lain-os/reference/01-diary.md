@@ -230,3 +230,121 @@ I updated the task list and design guide to match that boundary. The ticket stil
   - browser editor surface
   - visual output/log presentation
   - frontend interaction design
+
+## Step 3: Implement the backend scripting path in firmware and the Go broker
+
+This step moved the ticket from design into working backend code. The 0074 firmware now builds with `mquickjs` plus `mqjs_service`, the websocket client accepts `script_eval` frames, the Go hub forwards them to a selected device, and device-originated `script_result`, `script_console`, and `script_event` messages are broadcast back to browsers.
+
+One implementation detail changed from the original plan: instead of installing direct native C bindings into this MicroQuickJS fork, I implemented the `lain.*` DSL as bootstrap JavaScript inside the VM and flush its queued commands, logs, and events back into C++ after each eval. That fit the actual runtime APIs available in this repository better and still preserved the core ownership constraint that only the app task mutates visible device state.
+
+### Prompt Context
+
+**User prompt (verbatim):** "work on the tasks as backend developers."
+
+**Assistant interpretation:** Start implementing the ESP-30 backend task list in the 0074 firmware and Go server, prioritizing runtime, protocol, and broker work rather than browser UX.
+
+**Inferred user intent:** Turn the research ticket into real backend code while keeping the implementation disciplined around device runtime ownership and protocol clarity.
+
+### What I did
+
+- Added `mquickjs` / `mqjs_service` / imported stdlib wiring to `0074-m5dial-web-remote/firmware`.
+- Added firmware Kconfig knobs for script body size, VM memory budget, timeout, and request queue length.
+- Replaced `RemoteUiCommand` with a transport-agnostic `AppCommand` type in `app_commands.h` and `app_commands.cpp`.
+- Updated `app_main.cpp` so the app task drains an app-command queue shared by websocket input and JS runtime output.
+- Extended `remote_config.*` to persist `remote_script_enabled`.
+- Extended `remote_console.cpp` with `remote scripts status|on|off`.
+- Extended `remote_client.*` to:
+  - parse inbound `script_eval` websocket frames
+  - queue script requests into the JS service
+  - emit `script_result`, `script_console`, and `script_event` frames
+- Implemented `js_service.cpp` as a dedicated worker around `mqjs_service`.
+- Bootstrapped a `lain` DSL and `console` object in JS, then flushed queued commands/logs/events out of the VM after each eval.
+- Updated `server/hub.go` to:
+  - accept browser `script_eval` messages
+  - forward them to the selected device
+  - return immediate `script_eval_result` queue/reject responses
+  - broadcast direct `script_result`, `script_console`, and `script_event` frames from devices
+  - track last script status in device state
+- Validated with:
+  - `cd 0074-m5dial-web-remote/server && go test ./...`
+  - `cd 0074-m5dial-web-remote/firmware && . $HOME/esp/esp-idf-5.4.1/export.sh && idf.py build`
+
+### Why
+
+- The backend contract needed to exist before any frontend authoring surface could be meaningful.
+- The app-command refactor was the right first move because it keeps transport concerns out of the display-state owner task.
+- Using a JS-side `lain` queue and a C++ flush step was the most pragmatic way to get a working DSL on this MicroQuickJS fork without inventing brittle, undocumented C callback glue.
+
+### What worked
+
+- The Go hub changes compiled immediately and `go test ./...` stayed green.
+- The firmware build succeeded after the QuickJS component wiring and queue refactor were corrected.
+- The JS runtime design still preserved the original architectural constraint: JS can request actions, but the app task remains the sole owner of visible device state.
+- Default-disabled remote script execution is now enforced by persisted config plus the console command path.
+
+### What didn't work
+
+- The first firmware attempt assumed a `JS_NewCFunction`-style API that this MicroQuickJS fork does not expose. The compiler failure was:
+  - `error: 'JS_NewCFunction' was not declared in this scope`
+- The initial copied stdlib wrapper also failed because:
+  - the include path was one directory too shallow
+  - the imported stdlib runtime required `spiffs` and `exercizer_control` to be in the build graph
+- The command-bus refactor also surfaced existing fixed-size display buffer assumptions as `-Werror=format-truncation` failures in `app_main.cpp`.
+
+### What I learned
+
+- The MicroQuickJS fork in this repository is friendlier to bootstrap-JS patterns than to ad hoc native function registration.
+- A JS DSL implemented as queued JSON-like intent objects is enough to satisfy the backend contract while keeping the transport inspectable and testable.
+- The imported stdlib runtime is not a drop-in isolated file; it drags real component dependencies into the firmware build.
+
+### What was tricky to build
+
+- The sharp edge was reconciling the planned “native bindings” design with the actual APIs exported by this MicroQuickJS fork. The original assumption was that I could register C functions directly onto `globalThis`, but the available API surface is shaped around generated stdlib function tables instead. The solution was to move the `lain` surface into bootstrap JS and then flush queued commands back into C++ in a bounded, explicit step after eval.
+- Another tricky part was making the command refactor incremental. The websocket transport still needed to keep working for existing `ui_command` traffic while the internal representation changed underneath it.
+
+### What warrants a second pair of eyes
+
+- The imported stdlib surface is broader than the minimal scripting surface actually needed for 0074.
+- The current guardrails cover queue length, VM memory budget, disabled-by-default remote execution, and eval timeout, but not a separate watchdog or deeper resource accounting.
+- The server currently broadcasts both wrapped `device_event` frames and direct `script_*` frames; that is intentional, but it should be confirmed against whatever browser client consumes this next.
+
+### What should be done in the future
+
+- Add explicit watchdog and more granular runtime accounting around script execution.
+- Run the new scripting path against real hardware on `/dev/ttyACM0`.
+- Decide whether station mutations remain RAM-only or should ever persist.
+- If lower-level control becomes necessary, revisit whether a true native binding table is worth building for this MicroQuickJS fork.
+
+### Code review instructions
+
+- Start with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/app_commands.h`, `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/app_commands.cpp`, and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/app_main.cpp`.
+- Then review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/js_service.cpp` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/remote_client.cpp`.
+- Finish with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/hub.go`.
+- Validate with:
+  - `cd 0074-m5dial-web-remote/server && go test ./...`
+  - `cd 0074-m5dial-web-remote/firmware && . $HOME/esp/esp-idf-5.4.1/export.sh && idf.py build`
+
+### Technical details
+
+- Firmware-side protocol additions:
+  - inbound browser `script_eval`
+  - outbound device `script_result`
+  - outbound device `script_console`
+  - outbound device `script_event`
+- New persisted config field:
+  - `RemoteConfig.remote_script_enabled`
+- New console operations:
+  - `remote scripts status`
+  - `remote scripts on`
+  - `remote scripts off`
+- JS DSL primitives implemented in bootstrap JS:
+  - `lain.message(text)`
+  - `lain.position(value)`
+  - `lain.mode(mode)`
+  - `lain.band(name)`
+  - `lain.station(pos, type, name)`
+  - `lain.reveal(text)`
+  - `lain.emit(name, detail)`
+  - `console.log(...)`
+  - `console.warn(...)`
+  - `console.error(...)`

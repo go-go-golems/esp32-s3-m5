@@ -9,6 +9,10 @@
 - Primary design doc and implementation diary written.
 - Delivery package prepared for reMarkable upload.
 - Task scope narrowed to backend, protocol, and JS runtime ownership; browser editor and visual UX work moved out of system implementation scope.
+- Backend implementation landed in 0074:
+  - firmware now builds with `mquickjs`, `mqjs_service`, and an app-command bus shared by websocket and JS runtime output
+  - Go hub now routes `script_eval` and broadcasts `script_result` / `script_console` / `script_event`
+  - remote console now supports enabling and disabling remote script execution
 
 ## 2026-03-11
 
