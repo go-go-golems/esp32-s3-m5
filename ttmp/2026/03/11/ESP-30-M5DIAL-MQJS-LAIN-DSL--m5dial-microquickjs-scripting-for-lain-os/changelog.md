@@ -2,6 +2,17 @@
 
 ## 2026-03-11
 
+- Ported the `0067` timer scheduler pattern into `0074-m5dial-web-remote`, exposing working `setTimeout`, `clearTimeout`, `every`, and `cancel` support for the Lain OS MicroQuickJS runtime.
+- Added a project-local JavaScript API guide and timer-based sample scripts under `0074-m5dial-web-remote/`.
+- Added a Go server `script-eval` CLI verb that auto-selects the only connected device from `/api/status` and posts `/api/script-eval`.
+- Clarified the runtime syntax constraints after hardware validation:
+  - use `function () { ... }`
+  - use `var`
+  - avoid arrow functions, `let`, and `const`
+- Improved firmware remote-script status reporting so `remote status` distinguishes lifetime submissions from current pending queue depth.
+
+## 2026-03-11
+
 - Added `reference/02-script-memory-lifecycle.md` to document the real remote `script_eval` memory path, ownership handoff, and the two stack-overflow bugs discovered during hardware validation.
 
 ## 2026-03-11

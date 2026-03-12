@@ -258,6 +258,191 @@ I wrote a dedicated memory-lifecycle reference so future work on scripting trans
 ### Technical details
 
 - Task categories retained:
+
+## Step 4: Port the timer runtime into 0074 and write the project-local JS API guide
+
+The design work became real implementation work once the user explicitly asked for timer-based scripting in `0074`. I reused the `0067-esp-c3-led-matrix-http` timer architecture as the precedent, but adapted it to 0074's Lain command-batch model instead of copying the matrix-specific runtime assumptions. That produced a dedicated timer scheduler task, native `setTimeout` and `clearTimeout` support in the embedded stdlib, and JS bootstrap helpers that let scripts use timer-driven Lain commands safely.
+
+This step also established the developer-facing contract. I wrote the project-local `JS-API.md` guide and added runnable timer example scripts in the `scripts/` folder so a new engineer can learn from working samples instead of reverse-engineering the firmware bindings from C++ and C sources.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yes, port it over. Also, then write a JS API reference / guide with examples and all, so I can give it to a new developer. Store in the project folder."
+
+**Assistant interpretation:** Implement real JS timer support in the 0074 firmware using the older 0067 design as precedent, and write a thorough developer guide plus example scripts directly in the project tree.
+
+**Inferred user intent:** Make the scripting runtime practically usable for timer-driven behavior and give new developers one clear place to learn the supported API and coding style.
+
+**Commit (code):** `0651fb4` — "feat: add timer-driven lain scripting workflow"
+
+### What I did
+- Inspected the 0067 timer implementation in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/mqjs_timers.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0067-esp-c3-led-matrix-http/main/mqjs/esp32_stdlib_runtime.c`
+- Confirmed that 0074 still used imported timer stubs that returned `"setTimeout() not supported"`.
+- Replaced the thin stdlib wrapper in 0074 with a local runtime file and added:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/mqjs_timers.cpp`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/mqjs_timers.h`
+- Added `CONFIG_TUTORIAL_0074_JS_MAX_TIMERS` in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/Kconfig.projbuild`
+- Wired the JS bootstrap to expose:
+  - `setTimeout`
+  - `clearTimeout`
+  - `every`
+  - `cancel`
+  - `lain.after`
+  - `lain.every`
+  - `lain.cancel`
+- Added `js_service_flush_batches_from_context(...)` so timer callbacks can flush queued `lain.*` commands back into the app-command queue.
+- Wrote:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/JS-API.md`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/scripts/timer-radio-sweep.js`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/scripts/timer-reveal-demo.js`
+- Linked the guide from:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/README.md`
+
+### Why
+- `0074` needed real asynchronous callbacks to make the Lain DSL useful for ongoing behaviors rather than one-shot state changes.
+- The existing `0067` design already solved the hard part: timer scheduling outside the VM with callback execution posted back into the MQJS service.
+- The runtime contract was still too implicit for a new developer. A project-local guide and examples reduce onboarding cost substantially.
+
+### What worked
+- The timer scheduler compiled cleanly after adapting exception logging to `MqjsVm::GetExceptionString(...)`.
+- `idf.py build` passed after the timer runtime and bootstrap changes.
+- The final supported surface now includes timer primitives and the Lain DSL in one documented place.
+
+### What didn't work
+- The first timer port attempt called `JS_GetExceptionString(...)` directly in `mqjs_timers.cpp`, but that symbol does not exist in this MQJS build.
+- The exact build failure was:
+  - `error: 'JS_GetExceptionString' was not declared in this scope; did you mean 'JS_GetException'?`
+- I fixed that by using:
+  - `MqjsVm::From(ctx)->GetExceptionString(JS_DUMP_LONG)`
+- The first API guide draft still showed arrow-function examples even though the firmware runtime rejected them during hardware testing.
+
+### What I learned
+- The correct portability unit from 0067 was the scheduler and callback-posting pattern, not the matrix runtime helpers around it.
+- Timer callbacks in 0074 must flush command batches back into firmware-owned queues, otherwise the Lain commands execute in JS but do not affect the visible app state.
+- The embedded JS runtime in practice is conservative and closer to “old-style JS” than modern browser JS.
+
+### What was tricky to build
+- The tricky part was not scheduling timers; it was preserving the ownership boundary. The VM should not mutate the app context directly. The solution was to let callbacks keep generating `__lain.cmds` batches and then explicitly flush those batches through the same app-command path used by remote browser commands.
+- Another sharp edge was the stdlib wiring. `0074` originally included the imported runtime file directly, so adding real timers required replacing that wrapper with a local runtime implementation rather than just tweaking the bootstrap JavaScript.
+
+### What warrants a second pair of eyes
+- Whether timer callbacks should flush command batches immediately on every callback or whether that should be rate-limited in a future guardrail pass.
+- Whether `CONFIG_TUTORIAL_0074_JS_MAX_TIMERS` defaulting to `32` is the right balance for this device's memory envelope.
+- Whether the guide is clear enough about the runtime syntax limitations and queue-flooding risks.
+
+### What should be done in the future
+- Add timer-specific guardrails such as callback rate limits or queue-pressure backoff if complex animations become common.
+- Consider a small built-in helper library for common Lain patterns once the runtime surface settles.
+
+### Code review instructions
+- Start with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/mqjs_timers.cpp`.
+- Then review the native timer bindings in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/esp32_stdlib_runtime.c`.
+- Then review the bootstrap additions in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/js_service.cpp`.
+- Validate with:
+  - `cd 0074-m5dial-web-remote/firmware && . $HOME/esp/esp-idf-5.4.1/export.sh && idf.py build`
+
+### Technical details
+- Timer ids are stored in `__lain.timers.cb` in the VM.
+- The native scheduler runs as a FreeRTOS task and posts callbacks back into `mqjs_service`.
+- `every(...)` is implemented in bootstrap JS as a self-rescheduling wrapper around `setTimeout(...)`.
+
+## Step 5: Add a server-side script-eval verb and tighten the documented runtime constraints from hardware behavior
+
+Once remote scripting worked end to end, the remaining friction shifted from transport to ergonomics and operator clarity. The user no longer wanted to hand-construct `curl` payloads or remember the active `device_id`, so I added a Go server subcommand that talks to the already-running HTTP server, auto-selects the only connected device, and forwards scripts through the existing `/api/script-eval` API.
+
+Hardware testing also exposed a second class of problem: some syntax that feels ordinary in modern JS was not accepted by this runtime. The practical result was that the guide and sample scripts needed to become more conservative than a browser developer would normally expect. I updated the documentation and shipped examples to use `var` and `function () { ... }` consistently, and explicitly warned against arrow functions, `let`, and `const`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "make a go verb for our server so i don't need to figure out the device name and stuff."
+
+**Assistant interpretation:** Add an operator-friendly server CLI that finds the only connected device automatically and sends script-eval requests without manual JSON assembly.
+
+**Inferred user intent:** Reduce operational friction during live scripting/debugging and make the workflow robust enough to use repeatedly from the terminal.
+
+**Commit (code):** `0651fb4` — "feat: add timer-driven lain scripting workflow"
+
+### What I did
+- Added `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/cli.go`.
+- Updated `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/main.go` to dispatch:
+  - `go run . script-eval --file ...`
+- Implemented CLI behavior to:
+  - query `/api/status`
+  - auto-select the sole connected device
+  - require `--device` only when multiple devices are connected
+  - accept `--file`, `--code`, or stdin
+- Ran:
+  - `gofmt -w 0074-m5dial-web-remote/server/cli.go 0074-m5dial-web-remote/server/main.go`
+  - `cd 0074-m5dial-web-remote/server && go build ./...`
+- Updated the runtime guide and examples after hardware findings showed that:
+  - arrow functions were rejected
+  - `let` and `const` were rejected
+- Adjusted the project examples in:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/scripts/timer-radio-sweep.js`
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/scripts/timer-reveal-demo.js`
+- Improved `remote status` reporting so it prints:
+  - `submitted`
+  - `pending`
+  - `completed`
+  - `dropped`
+  instead of the misleading old `queued` label.
+
+### Why
+- The transport path was already stable; the remaining pain was day-to-day usability.
+- The old `queued` status label was semantically wrong in practice because it reported lifetime accepted requests, not current queue depth.
+- The JS guide has to reflect the runtime that actually exists on the hardware, not a broader language that developers might assume.
+
+### What worked
+- The new `script-eval` server verb compiled cleanly and uses the existing server API rather than inventing a second control path.
+- Hardware validation showed a remote script returning:
+  - `status:"ok"`
+  - `output:"123\n"`
+  which confirmed the browser/server/device pipeline executed successfully.
+- The updated docs and examples now match the syntax that the device actually accepts.
+
+### What didn't work
+- Before the syntax documentation was tightened, timer example scripts failed remotely with errors of the form:
+  - `SyntaxError: unexpected character in expression`
+- The confusion around runtime status came from `remote status` printing:
+  - `queued=2 completed=2`
+  even though nothing was stuck; `queued` was just cumulative.
+
+### What I learned
+- The safest operational design for the server verb was to reuse `/api/status` and `/api/script-eval`, not to add a private direct-to-hub command path.
+- The runtime contract needs to be documented as “embedded conservative JS,” not “browser-like JS.”
+- Debugging transport issues is much easier when the server preserves full raw payloads in history and the operator knows to query `/api/status`.
+
+### What was tricky to build
+- The subtle design choice in the CLI was where to put the intelligence. A direct hub-integrated verb would have been shorter, but it would also create a second code path with different semantics. Reusing the live HTTP API keeps the server's observable behavior consistent and easier to debug.
+- The tricky part in the docs was correcting modern-looking examples after the fact without leaving inconsistent syntax in one guide and different syntax in another. The fix was a grep-based cleanup pass over the guide and the shipped scripts.
+
+### What warrants a second pair of eyes
+- Whether the server CLI should eventually support a “follow results” mode that waits for `script_result` instead of only printing the initial queued response.
+- Whether the firmware should reject unsupported syntax more explicitly at the console layer or just rely on raw JS parser errors.
+- Whether the status counters should be expanded further to include separate “rejected remotely” and “eval failed” counts.
+
+### What should be done in the future
+- Consider adding a `server script-log` or `server last-result` helper for faster operator inspection.
+- Add a short syntax-compatibility self-test to the runtime guide once the parser limitations are better characterized.
+
+### Code review instructions
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/cli.go` first.
+- Then review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/firmware/main/remote_console.cpp` for the status output change.
+- Then skim `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/JS-API.md` and the `scripts/` examples to confirm the syntax guidance is consistent.
+- Validate with:
+  - `cd 0074-m5dial-web-remote/server && go build ./...`
+  - `cd 0074-m5dial-web-remote/firmware && . $HOME/esp/esp-idf-5.4.1/export.sh && idf.py build`
+
+### Technical details
+- `script-eval` CLI device resolution logic:
+  - if `--device` is set, use it
+  - else query `/api/status`
+  - if exactly one connected device exists, use it
+  - else fail with the list of connected device ids
+- Full raw device payloads remain available from `/api/status` history even though live terminal logs abbreviate them for readability.
   - firmware `mquickjs` integration
   - app-command bus refactor
   - websocket message additions

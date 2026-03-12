@@ -18,8 +18,11 @@
 - [x] Extend the Go hub to route `script_eval` frames to the selected device
 - [x] Extend the Go hub to broadcast `script_result`, `script_console`, and `script_event` frames back to browsers
 - [x] Add a firmware console command to enable/disable remote script execution
+- [x] Port timer support into the 0074 MicroQuickJS runtime
+- [x] Write a project-local JavaScript API guide and example scripts for new developers
+- [x] Add a server-side `script-eval` CLI verb that auto-selects the sole connected device
 - [ ] Add watchdog, timeout, and memory-budget guardrails to the JS service
-- [ ] Validate the end-to-end flow on hardware with `/dev/ttyACM0`
+- [x] Validate the end-to-end flow on hardware with `/dev/ttyACM0`
 
 ## Explicitly out of scope for system implementation
 
