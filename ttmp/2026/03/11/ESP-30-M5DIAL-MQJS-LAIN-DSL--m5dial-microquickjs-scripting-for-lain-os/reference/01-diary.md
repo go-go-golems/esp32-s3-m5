@@ -158,3 +158,75 @@ Create a detailed analysis / design / implementation guide that is very detailed
   - `job_bootstrap()`
   - `js_service_eval_to_json()`
   - `mqjs_service_post()` and `mqjs_service_run()`
+
+## Step 2: Narrow the ticket tasks to backend, protocol, and JS runtime ownership
+
+After the initial design pass, the task list still mixed system-level implementation with browser editor work. The user clarified the ownership boundary: this ticket should cover the firmware service, protocol contract, and Go/backend responsibilities, while the browser authoring experience belongs to UX/frontend.
+
+I updated the task list and design guide to match that boundary. The ticket still documents the browser-side protocol needs, because the backend contract has to serve some client, but it no longer treats editor or presentation work as part of the system implementation plan.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, make tasks for the backend / protocol / js part of it, you are a system developer. Leave the UI and design stuff and all that for the UX designers."
+
+**Assistant interpretation:** Narrow the existing ESP-30 implementation plan so its actionable work items focus only on firmware runtime, websocket protocol, and server/backend changes.
+
+**Inferred user intent:** Keep the system ticket disciplined so implementation ownership is clear and UX concerns do not get folded into backend planning.
+
+### What I did
+
+- Edited `tasks.md` to keep only backend/protocol/JS runtime implementation phases.
+- Added an explicit out-of-scope section for browser editor and visual UX ownership.
+- Updated the main design guide so the scope section and browser-related phases describe protocol hooks rather than UI implementation.
+- Prepared the ticket for validation with `docmgr doctor`.
+
+### Why
+
+- Mixed ownership in the task list creates drift during implementation.
+- The backend contract should be stable regardless of whether UX chooses a console, full editor, presets, or some other browser interaction pattern.
+
+### What worked
+
+- The ticket structure was already modular, so the scope could be narrowed without rewriting the architecture sections from scratch.
+- The existing design already emphasized app-task ownership and transport boundaries, which aligns well with a system-only implementation plan.
+
+### What didn't work
+
+- The first design draft still carried over browser-editor tasks from the broader concept, which no longer matched the clarified ownership boundary.
+
+### What I learned
+
+- The right level of browser detail for this ticket is protocol-facing state and event contracts, not component or interaction design.
+- It is useful to separate “browser transport hooks” from “browser UX surface” explicitly in the documentation, because they sound similar but belong to different owners.
+
+### What was tricky to build
+
+- The subtle part was keeping enough browser detail for the system contract to be implementable while removing anything that would read like a UI spec. The fix was to rewrite those sections around typed state, message shapes, and store-level hooks instead of visible controls.
+
+### What warrants a second pair of eyes
+
+- Whether the remaining browser references in the design doc are scoped tightly enough to protocol/runtime concerns.
+- Whether the open questions now reflect only system-developer decisions and not product/UI decisions.
+
+### What should be done in the future
+
+- If UX wants a parallel design ticket, split browser authoring/editor work into that separate planning track.
+
+### Code review instructions
+
+- Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/11/ESP-30-M5DIAL-MQJS-LAIN-DSL--m5dial-microquickjs-scripting-for-lain-os/tasks.md` first.
+- Then review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/11/ESP-30-M5DIAL-MQJS-LAIN-DSL--m5dial-microquickjs-scripting-for-lain-os/design-doc/01-analysis-design-and-implementation-guide.md` to confirm the scope wording matches the task list.
+- Validate with `docmgr doctor --ticket ESP-30-M5DIAL-MQJS-LAIN-DSL --stale-after 30`.
+
+### Technical details
+
+- Task categories retained:
+  - firmware `mquickjs` integration
+  - app-command bus refactor
+  - websocket message additions
+  - Go hub routing and broadcast changes
+  - device guardrails and hardware validation
+- Task categories explicitly removed from system ownership:
+  - browser editor surface
+  - visual output/log presentation
+  - frontend interaction design

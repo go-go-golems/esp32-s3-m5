@@ -46,6 +46,8 @@ WhenToUse: Use when implementing or reviewing the planned QuickJS service, nativ
 
 What it does **not** have yet is an on-device scripting runtime. The closest existing precedent in this repository is `0048-cardputer-js-web`, which already embeds `mquickjs` plus `mqjs_service` and evaluates JavaScript in a dedicated service task.
 
+For this ticket, the system-developer ownership boundary stops at the device runtime and the transport contract. Browser editor UX, visual presentation, and interaction design can change later without changing the backend, so those concerns are intentionally left to UX/frontend ownership rather than being treated as implementation requirements here.
+
 The proposed direction is:
 
 - add a MicroQuickJS service to the 0074 firmware,
@@ -83,12 +85,14 @@ The user request is more ambitious than “add one more command.” The goal is 
 - on-device MicroQuickJS service in 0074 firmware,
 - JavaScript bindings for Lain OS primitives,
 - websocket transport for browser-to-device script execution,
-- browser UX for entering/running scripts and seeing results,
+- browser/backend protocol for carrying script source, results, and runtime events,
 - result and event frames flowing back to the browser,
 - implementation guidance detailed enough for a new intern.
 
 ### Out of scope for v1
 
+- browser editor interaction design,
+- browser visual treatment for logs, status, and authoring flows,
 - secure multi-user script authorization,
 - persistent script storage in flash,
 - package management,
@@ -239,7 +243,7 @@ The current 0074 stack is close, but not ready, for scripting.
 2. No reusable application-command bus independent of websocket command names.
 3. No native bindings that map JS calls to Lain OS actions.
 4. No websocket message type for script source or script results.
-5. No browser editor/console for authoring scripts.
+5. No browser-facing script transport contract is wired through to a runtime yet.
 6. No guardrails specific to remote code execution.
 
 ### Critical design constraint
@@ -266,7 +270,7 @@ So the correct design is:
 ### High-level architecture
 
 ```text
-Browser script editor
+Browser script client
     |
     | script_eval { request_id, code, device_id }
     v
@@ -607,20 +611,11 @@ Recommended server behavior:
 
 This preserves the existing broker model and avoids inventing a second path.
 
-### Phase 6: add browser authoring UX
+### Phase 6: expose browser protocol hooks for downstream UI work
 
-The current React app has no editor surface. Add a small script console first, not a full IDE.
+The current React app has no script surface. That is acceptable for this system ticket. The system-owned requirement is narrower: define the transport and store-level contract cleanly enough that UX/frontend can build an editor or any other authoring surface on top of it without changing the backend again.
 
-Recommended first browser feature set:
-
-- text area or code editor,
-- run button,
-- clear output button,
-- result panel,
-- console/event log panel,
-- device selector reuse from current app.
-
-Possible minimal store additions:
+Recommended minimal browser/runtime state shape:
 
 ```ts
 type ScriptRun = {
@@ -632,9 +627,7 @@ type ScriptRun = {
 }
 ```
 
-Future enhancement:
-
-- upgrade to CodeMirror after the transport is stable.
+Frontend ownership can decide later whether this becomes a small console, a richer editor, presets, or some other interaction model.
 
 ## Recommended file-by-file implementation plan
 
@@ -686,7 +679,7 @@ Modify:
 
 1. add script send function to the store
 2. add result/event handling
-3. add an editor/output panel to the UI
+3. expose enough typed state for a separate UX-owned editor/output surface
 
 ## API reference for the intern
 
