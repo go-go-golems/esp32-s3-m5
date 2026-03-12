@@ -1,4 +1,5 @@
 #include <cinttypes>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -32,6 +33,65 @@ constexpr uint32_t kIoPollMs = 8;
 constexpr size_t kInputQueueLength = 32;
 constexpr size_t kUiCommandQueueLength = 8;
 
+// ─── Mode system ────────────────────────────────────────────
+
+enum class AppMode : uint8_t {
+  kDebug = 0,
+  kRadio = 1,
+};
+
+// ─── Radio state ────────────────────────────────────────────
+
+enum class StationType : uint8_t {
+  kEmpty = 0,
+  kClear = 1,
+  kStatic = 2,
+  kHidden = 3,
+  kDistorted = 4,
+};
+
+constexpr int kNumStations = 120;
+constexpr float kArcStartDeg = 135.0f;
+constexpr float kArcSpanDeg = 270.0f;
+
+// Lain palette in RGB565
+constexpr uint16_t kRadioBg = TFT_BLACK;
+constexpr uint16_t kRadioText = 0xC720;     // soft green ~#c8e6c0
+constexpr uint16_t kRadioAccent = 0x07E0;    // bright green #00ff00
+constexpr uint16_t kRadioDim = 0x0320;       // very dim green
+constexpr uint16_t kRadioWarn = 0xFFE0;      // yellow
+constexpr uint16_t kRadioDanger = 0xF800;    // red
+constexpr uint16_t kRadioOrange = 0xFBE0;    // orange
+constexpr uint16_t kRadioWhite = TFT_WHITE;
+
+struct RadioState {
+  StationType stations[kNumStations] = {};
+  char station_names[kNumStations][16] = {};
+  int32_t freq_pos = 0;
+  uint8_t band = 2;  // 0=AM, 1=FM, 2=WIRED
+  bool locked = false;
+  char reveal_text[64] = {};
+  uint64_t reveal_until_ms = 0;
+  bool dirty = true;
+};
+
+// Precomputed sin/cos for station dot positions
+static float s_station_cos[kNumStations];
+static float s_station_sin[kNumStations];
+static bool s_station_trig_ready = false;
+
+void init_station_trig() {
+  if (s_station_trig_ready) return;
+  for (int i = 0; i < kNumStations; i++) {
+    float angle = (kArcStartDeg + i * kArcSpanDeg / (kNumStations - 1)) * static_cast<float>(M_PI) / 180.0f;
+    s_station_cos[i] = cosf(angle);
+    s_station_sin[i] = sinf(angle);
+  }
+  s_station_trig_ready = true;
+}
+
+// ─── App context ────────────────────────────────────────────
+
 struct AppContext {
   tutorial_0072::M5DialBoard board;
   QueueHandle_t input_queue = nullptr;
@@ -42,7 +102,11 @@ struct AppContext {
   char last_event[48] = "boot";
   char last_ui_message[64] = "-";
   uint64_t last_event_ms = 0;
+  AppMode mode = AppMode::kDebug;
+  RadioState radio = {};
 };
+
+// ─── Debug mode screen (unchanged) ─────────────────────────
 
 struct ScreenState {
   std::string title;
@@ -200,8 +264,173 @@ void draw_status_screen(AppContext* ctx, const ScreenState& state) {
   sprite.deleteSprite();
 }
 
+// ─── Radio mode drawing ────────────────────────────────────
+
+void draw_radio_screen(AppContext* ctx) {
+  init_station_trig();
+
+  tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
+  lgfx::LGFX_Sprite sprite(&display);
+  sprite.setColorDepth(16);
+  sprite.createSprite(240, 240);
+  sprite.fillScreen(kRadioBg);
+
+  const int cx = 120;
+  const int cy = 120;
+  const int32_t fp = ctx->radio.freq_pos;
+
+  // 1. Background frequency arc (dim green, 270 degrees)
+  sprite.fillArc(cx, cy, 118, 112, kArcStartDeg, kArcStartDeg + kArcSpanDeg, kRadioDim);
+
+  // 2. Tuned sweep (bright green from start to current position)
+  if (fp > 0) {
+    float pos_end = kArcStartDeg + fp * kArcSpanDeg / (kNumStations - 1);
+    sprite.fillArc(cx, cy, 118, 112, kArcStartDeg, pos_end, kRadioAccent);
+  }
+
+  // 3. Position indicator (white dot on the arc)
+  {
+    int hx = cx + static_cast<int>(115.0f * s_station_cos[fp]);
+    int hy = cy + static_cast<int>(115.0f * s_station_sin[fp]);
+    sprite.fillCircle(hx, hy, 5, kRadioWhite);
+  }
+
+  // 4. Station dots (inner ring at r=95)
+  for (int i = 0; i < kNumStations; i++) {
+    int dx = cx + static_cast<int>(95.0f * s_station_cos[i]);
+    int dy = cy + static_cast<int>(95.0f * s_station_sin[i]);
+
+    uint16_t color;
+    int radius;
+
+    if (i == fp) {
+      color = kRadioWhite;
+      radius = 4;
+    } else {
+      radius = 2;
+      switch (ctx->radio.stations[i]) {
+        case StationType::kClear:     color = kRadioAccent; break;
+        case StationType::kStatic:    color = kRadioWarn; break;
+        case StationType::kHidden:    color = kRadioDanger; break;
+        case StationType::kDistorted: color = kRadioOrange; break;
+        default:                      color = 0x0120; radius = 1; break;
+      }
+    }
+    sprite.fillCircle(dx, dy, radius, color);
+  }
+
+  // 5. Band label (top center)
+  {
+    static const char* band_names[] = {"AM", "FM", "WIRED"};
+    const char* bname = band_names[ctx->radio.band % 3];
+    sprite.setFont(&fonts::Font0);
+    sprite.setTextSize(1);
+    sprite.setTextColor(kRadioText, kRadioBg);
+    int tw = static_cast<int>(std::strlen(bname)) * 6;
+    sprite.setCursor(cx - tw / 2, 30);
+    sprite.print(bname);
+  }
+
+  // 6. Frequency display (center, larger)
+  {
+    char freq_str[20];
+    // Map 0-119 to a frequency range for display flavor
+    int mhz = 88 + fp * 30 / 119;
+    int frac = (fp * 300 / 119) % 10;
+    std::snprintf(freq_str, sizeof(freq_str), "%d.%d MHz", mhz, frac);
+    sprite.setTextSize(2);
+    sprite.setTextColor(kRadioAccent, kRadioBg);
+    int tw = static_cast<int>(std::strlen(freq_str)) * 12;
+    sprite.setCursor(cx - tw / 2, cy - 24);
+    sprite.print(freq_str);
+  }
+
+  // 7. Station label or reveal text (center)
+  {
+    sprite.setTextSize(1);
+    bool showing_reveal = ctx->radio.reveal_until_ms > 0 && now_ms() < ctx->radio.reveal_until_ms;
+
+    if (showing_reveal) {
+      sprite.setTextColor(kRadioDanger, kRadioBg);
+      int tw = static_cast<int>(std::strlen(ctx->radio.reveal_text)) * 6;
+      sprite.setCursor(cx - tw / 2, cy + 2);
+      sprite.print(ctx->radio.reveal_text);
+    } else {
+      const char* label = ctx->radio.station_names[fp][0] ? ctx->radio.station_names[fp] : "---";
+      StationType st = ctx->radio.stations[fp];
+      uint16_t label_color = kRadioText;
+      if (st == StationType::kStatic) label_color = kRadioWarn;
+      else if (st == StationType::kHidden) label_color = kRadioDanger;
+      else if (st == StationType::kDistorted) label_color = kRadioOrange;
+
+      sprite.setTextColor(label_color, kRadioBg);
+      int tw = static_cast<int>(std::strlen(label)) * 6;
+      sprite.setCursor(cx - tw / 2, cy + 2);
+      sprite.print(label);
+    }
+  }
+
+  // 8. Lock indicator
+  if (ctx->radio.locked) {
+    sprite.setTextSize(1);
+    sprite.setTextColor(kRadioAccent, kRadioBg);
+    sprite.setCursor(cx - 18, cy + 18);
+    sprite.print("LOCKED");
+  }
+
+  // 9. Bottom hint
+  {
+    sprite.setTextSize(1);
+    sprite.setTextColor(kRadioDim, kRadioBg);
+    const char* hint = ctx->radio.locked ? "press to unlock" : "twist to tune";
+    int tw = static_cast<int>(std::strlen(hint)) * 6;
+    sprite.setCursor(cx - tw / 2, 210);
+    sprite.print(hint);
+  }
+
+  display.startWrite();
+  sprite.pushSprite(0, 0);
+  display.endWrite();
+  sprite.deleteSprite();
+}
+
+// ─── Radio helpers ──────────────────────────────────────────
+
+const char* swipe_direction_str(tutorial_0072::SwipeDirection dir) {
+  switch (dir) {
+    case tutorial_0072::SwipeDirection::kLeft:  return "left";
+    case tutorial_0072::SwipeDirection::kRight: return "right";
+    case tutorial_0072::SwipeDirection::kUp:    return "up";
+    case tutorial_0072::SwipeDirection::kDown:  return "down";
+    default: return "unknown";
+  }
+}
+
+void parse_set_station(AppContext* ctx, const RemoteUiCommand& cmd) {
+  // cmd.value = position (0-119), cmd.text = "type:name" e.g. "1:phantom_relay"
+  int pos = cmd.value;
+  if (pos < 0 || pos >= kNumStations) return;
+
+  const char* text = cmd.text;
+  int type_val = 0;
+  const char* colon = std::strchr(text, ':');
+  if (colon) {
+    type_val = text[0] - '0';
+    const char* name = colon + 1;
+    std::snprintf(ctx->radio.station_names[pos], sizeof(ctx->radio.station_names[pos]), "%s", name);
+  }
+
+  if (type_val >= 0 && type_val <= 4) {
+    ctx->radio.stations[pos] = static_cast<StationType>(type_val);
+  }
+  ctx->radio.dirty = true;
+}
+
+// ─── Input handling ─────────────────────────────────────────
+
 void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event) {
   const uint64_t ts_ms = now_ms();
+  const bool radio = ctx->mode == AppMode::kRadio;
 
   switch (event.type) {
     case tutorial_0072::InputEventType::kEncoderDelta:
@@ -210,26 +439,63 @@ void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event)
       ctx->sequence++;
       std::snprintf(ctx->last_event, sizeof(ctx->last_event), "enc %+ld", static_cast<long>(event.value));
       ctx->last_event_ms = ts_ms;
-      (void)remote_client_send_encoder(ctx->sequence, ctx->position, event.value, ts_ms);
+
+      if (radio) {
+        if (!ctx->radio.locked) {
+          int32_t p = ctx->radio.freq_pos + event.value;
+          ctx->radio.freq_pos = ((p % kNumStations) + kNumStations) % kNumStations;
+          ctx->radio.dirty = true;
+        }
+        (void)remote_client_send_encoder(ctx->sequence, ctx->radio.freq_pos, event.value, ts_ms);
+      } else {
+        (void)remote_client_send_encoder(ctx->sequence, ctx->position, event.value, ts_ms);
+      }
       break;
+
     case tutorial_0072::InputEventType::kButtonShortPress:
       ctx->sequence++;
       std::snprintf(ctx->last_event, sizeof(ctx->last_event), "button short");
       ctx->last_event_ms = ts_ms;
-      (void)remote_client_send_button(ctx->sequence, "short", ctx->position, ts_ms);
+
+      if (radio) {
+        ctx->radio.locked = !ctx->radio.locked;
+        ctx->radio.dirty = true;
+        (void)remote_client_send_button(ctx->sequence, "short", ctx->radio.freq_pos, ts_ms);
+      } else {
+        (void)remote_client_send_button(ctx->sequence, "short", ctx->position, ts_ms);
+      }
       break;
+
     case tutorial_0072::InputEventType::kButtonLongPress:
       ctx->sequence++;
       std::snprintf(ctx->last_event, sizeof(ctx->last_event), "button long");
       ctx->last_event_ms = ts_ms;
-      (void)remote_client_send_button(ctx->sequence, "long", ctx->position, ts_ms);
+      (void)remote_client_send_button(ctx->sequence, "long",
+                                      radio ? ctx->radio.freq_pos : ctx->position, ts_ms);
       break;
-    case tutorial_0072::InputEventType::kSwipe:
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "swipe");
+
+    case tutorial_0072::InputEventType::kSwipe: {
+      const char* dir = swipe_direction_str(event.swipe);
+      ctx->sequence++;
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "swipe %s", dir);
       ctx->last_event_ms = ts_ms;
+      (void)remote_client_send_swipe(ctx->sequence, dir, ts_ms);
+
+      if (radio) {
+        if (event.swipe == tutorial_0072::SwipeDirection::kLeft) {
+          ctx->radio.band = (ctx->radio.band + 2) % 3;
+          ctx->radio.dirty = true;
+        } else if (event.swipe == tutorial_0072::SwipeDirection::kRight) {
+          ctx->radio.band = (ctx->radio.band + 1) % 3;
+          ctx->radio.dirty = true;
+        }
+      }
       break;
+    }
   }
 }
+
+// ─── UI command handling ────────────────────────────────────
 
 void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
   const uint64_t ts_ms = now_ms();
@@ -242,14 +508,73 @@ void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
       (void)remote_client_send_ui_ack(
           ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
       break;
+
     case RemoteUiCommandType::kSetPosition:
       ctx->position = cmd.value;
       ctx->last_delta = 0;
+      if (ctx->mode == AppMode::kRadio) {
+        ctx->radio.freq_pos = ((cmd.value % kNumStations) + kNumStations) % kNumStations;
+        ctx->radio.dirty = true;
+      }
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "pos=%" PRId32, cmd.value);
       std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui pos");
       (void)remote_client_send_ui_ack(
           ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
       break;
+
+    case RemoteUiCommandType::kSetMode: {
+      uint8_t new_mode = static_cast<uint8_t>(cmd.value);
+      if (new_mode <= 1) {
+        ctx->mode = static_cast<AppMode>(new_mode);
+        if (ctx->mode == AppMode::kRadio) {
+          ctx->radio.freq_pos = 0;
+          ctx->radio.locked = false;
+          ctx->radio.dirty = true;
+        }
+      }
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "mode=%d", new_mode);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui mode");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied",
+          ctx->mode == AppMode::kRadio ? ctx->radio.freq_pos : ctx->position,
+          ctx->last_ui_message, ts_ms);
+      break;
+    }
+
+    case RemoteUiCommandType::kSetStation:
+      parse_set_station(ctx, cmd);
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "station %" PRId32, cmd.value);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui station");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied",
+          ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
+      break;
+
+    case RemoteUiCommandType::kSetBand: {
+      if (std::strcmp(cmd.text, "AM") == 0) ctx->radio.band = 0;
+      else if (std::strcmp(cmd.text, "FM") == 0) ctx->radio.band = 1;
+      else ctx->radio.band = 2;
+      ctx->radio.dirty = true;
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "band=%.*s",
+                    static_cast<int>(sizeof(ctx->last_ui_message) - sizeof("band=")), cmd.text);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui band");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied",
+          ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
+      break;
+    }
+
+    case RemoteUiCommandType::kShowReveal:
+      std::snprintf(ctx->radio.reveal_text, sizeof(ctx->radio.reveal_text), "%s", cmd.text);
+      ctx->radio.reveal_until_ms = ts_ms + 3000;
+      ctx->radio.dirty = true;
+      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "reveal");
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui reveal");
+      (void)remote_client_send_ui_ack(
+          ctx->sequence, cmd.request_id, cmd.command, "applied",
+          ctx->radio.freq_pos, cmd.text, ts_ms);
+      break;
+
     case RemoteUiCommandType::kUnknown:
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "unknown");
       std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui ?");
@@ -260,10 +585,12 @@ void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
   ctx->last_event_ms = ts_ms;
 }
 
+// ─── Main app loop ──────────────────────────────────────────
+
 void app_task(void* arg) {
   auto* ctx = static_cast<AppContext*>(arg);
-  ScreenState last_state = {};
-  bool have_last_state = false;
+  ScreenState last_debug_state = {};
+  bool have_last_debug_state = false;
 
   while (true) {
     tutorial_0072::InputEvent event;
@@ -280,11 +607,26 @@ void app_task(void* arg) {
       handle_ui_command(ctx, cmd);
     }
 
-    const ScreenState next_state = make_screen_state(ctx);
-    if (!have_last_state || !(next_state == last_state)) {
-      draw_status_screen(ctx, next_state);
-      last_state = next_state;
-      have_last_state = true;
+    // Check if reveal text has expired
+    if (ctx->mode == AppMode::kRadio && ctx->radio.reveal_until_ms > 0 && now_ms() >= ctx->radio.reveal_until_ms) {
+      ctx->radio.reveal_until_ms = 0;
+      ctx->radio.dirty = true;
+    }
+
+    // Draw based on current mode
+    if (ctx->mode == AppMode::kRadio) {
+      if (ctx->radio.dirty || got_event) {
+        draw_radio_screen(ctx);
+        ctx->radio.dirty = false;
+      }
+      have_last_debug_state = false;  // force debug redraw on mode switch back
+    } else {
+      const ScreenState next_state = make_screen_state(ctx);
+      if (!have_last_debug_state || !(next_state == last_debug_state)) {
+        draw_status_screen(ctx, next_state);
+        last_debug_state = next_state;
+        have_last_debug_state = true;
+      }
     }
   }
 }

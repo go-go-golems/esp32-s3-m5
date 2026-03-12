@@ -98,6 +98,14 @@ void enqueue_ui_command(const char* data_ptr, int data_len) {
       cmd.type = RemoteUiCommandType::kShowMessage;
     } else if (std::strcmp(command->valuestring, "set_position") == 0) {
       cmd.type = RemoteUiCommandType::kSetPosition;
+    } else if (std::strcmp(command->valuestring, "set_mode") == 0) {
+      cmd.type = RemoteUiCommandType::kSetMode;
+    } else if (std::strcmp(command->valuestring, "set_station") == 0) {
+      cmd.type = RemoteUiCommandType::kSetStation;
+    } else if (std::strcmp(command->valuestring, "set_band") == 0) {
+      cmd.type = RemoteUiCommandType::kSetBand;
+    } else if (std::strcmp(command->valuestring, "show_reveal") == 0) {
+      cmd.type = RemoteUiCommandType::kShowReveal;
     }
   }
 
@@ -421,6 +429,23 @@ esp_err_t remote_client_send_button(uint32_t seq, const char* kind, int32_t pos,
                 ts_ms,
                 kind ? kind : "unknown",
                 pos);
+  return send_json(json);
+}
+
+esp_err_t remote_client_send_swipe(uint32_t seq, const char* direction, uint64_t ts_ms) {
+  lock();
+  RemoteConfig cfg = s_cfg;
+  unlock();
+
+  char json[256];
+  std::snprintf(json,
+                sizeof(json),
+                "{\"type\":\"swipe\",\"device_id\":\"%s\",\"seq\":%" PRIu32 ",\"ts_ms\":%" PRIu64
+                ",\"direction\":\"%s\"}",
+                cfg.device_id,
+                seq,
+                ts_ms,
+                direction ? direction : "unknown");
   return send_json(json);
 }
 

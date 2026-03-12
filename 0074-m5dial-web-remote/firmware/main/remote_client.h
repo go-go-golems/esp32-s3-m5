@@ -36,6 +36,10 @@ enum class RemoteUiCommandType : uint8_t {
   kUnknown = 0,
   kShowMessage,
   kSetPosition,
+  kSetMode,
+  kSetStation,
+  kSetBand,
+  kShowReveal,
 };
 
 struct RemoteUiCommand {
@@ -54,6 +58,7 @@ esp_err_t remote_client_disconnect();
 void remote_client_get_status(RemoteClientStatus* out);
 esp_err_t remote_client_send_encoder(uint32_t seq, int32_t pos, int32_t delta, uint64_t ts_ms);
 esp_err_t remote_client_send_button(uint32_t seq, const char* kind, int32_t pos, uint64_t ts_ms);
+esp_err_t remote_client_send_swipe(uint32_t seq, const char* direction, uint64_t ts_ms);
 esp_err_t remote_client_send_ui_ack(uint32_t seq,
                                     uint32_t request_id,
                                     const char* command,

@@ -47,6 +47,7 @@ type DeviceState struct {
 	LastSeq           uint32    `json:"last_seq"`
 	Position          int32     `json:"position"`
 	LastDelta         int32     `json:"last_delta"`
+	LastSwipe         string    `json:"last_swipe,omitempty"`
 	LastText          string    `json:"last_text,omitempty"`
 	LastCommand       string    `json:"last_command,omitempty"`
 	LastCommandStatus string    `json:"last_command_status,omitempty"`
@@ -96,6 +97,11 @@ type UiCommandMessage struct {
 	RequestID uint32 `json:"request_id"`
 	Text      string `json:"text,omitempty"`
 	Value     int32  `json:"value,omitempty"`
+}
+
+type SwipeMessage struct {
+	BaseMessage
+	Direction string `json:"direction"`
 }
 
 type UiCommandAckMessage struct {
@@ -453,6 +459,11 @@ func (h *Hub) recordDeviceMessage(deviceID string, remoteAddr string, payload []
 		if err := json.Unmarshal(payload, &msg); err == nil {
 			device.LastButton = msg.Kind
 			device.Position = msg.Position
+		}
+	case "swipe":
+		var msg SwipeMessage
+		if err := json.Unmarshal(payload, &msg); err == nil {
+			device.LastSwipe = msg.Direction
 		}
 	case "ui_command_ack":
 		var msg UiCommandAckMessage
