@@ -27,6 +27,14 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "script-eval" {
+		if err := runScriptEvalCLI(os.Args[2:]); err != nil {
+			fmt.Fprintf(os.Stderr, "script-eval: %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	listenAddr := flag.String("listen", ":8080", "HTTP listen address")
 	flag.Parse()
 

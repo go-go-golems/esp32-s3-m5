@@ -7,6 +7,7 @@ idf_component_register(
         "js_console.cpp"
         "js_service.cpp"
         "m5dial_board.cpp"
+        "mqjs_timers.cpp"
         "remote_client.cpp"
         "remote_config.cpp"
         "remote_console.cpp"

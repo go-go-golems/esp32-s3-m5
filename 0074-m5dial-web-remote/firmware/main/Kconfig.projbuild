@@ -17,4 +17,9 @@ config TUTORIAL_0074_JS_QUEUE_LEN
     range 1 16
     default 4
 
+config TUTORIAL_0074_JS_MAX_TIMERS
+    int "Maximum active JavaScript timers"
+    range 4 64
+    default 32
+
 endmenu

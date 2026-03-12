@@ -21,6 +21,7 @@ extern const JSSTDLibraryDef js_stdlib;
 
 #include "app_commands.h"
 #include "mqjs_service.h"
+#include "mqjs_timers.h"
 #include "remote_client.h"
 
 namespace {
@@ -79,6 +80,8 @@ esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "var g = globalThis;\n"
       "g.__lain = g.__lain || {};\n"
       "var __lain = g.__lain;\n"
+      "__lain.timers = __lain.timers || {};\n"
+      "__lain.timers.cb = __lain.timers.cb || {};\n"
       "__lain.cmds = [];\n"
       "__lain.logs = [];\n"
       "__lain.events = [];\n"
@@ -113,6 +116,30 @@ esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "  warn: function() { __lain.pushLog('warn', arguments); },\n"
       "  error: function() { __lain.pushLog('error', arguments); }\n"
       "};\n"
+      "g.cancel = function(handle) {\n"
+      "  if (typeof handle === 'number') { clearTimeout(handle); return; }\n"
+      "  if (handle && typeof handle.cancel === 'function') { handle.cancel(); return; }\n"
+      "  throw new TypeError('cancel(handle): handle must be a number or { cancel() }');\n"
+      "};\n"
+      "g.every = function(ms, fn) {\n"
+      "  ms = ms | 0;\n"
+      "  if (ms < 0) throw new RangeError('every: ms must be >= 0');\n"
+      "  if (typeof fn !== 'function') throw new TypeError('every: fn must be a function');\n"
+      "  var handle = { id: 0, cancelled: false };\n"
+      "  handle.cancel = function() {\n"
+      "    if (handle.cancelled) return;\n"
+      "    handle.cancelled = true;\n"
+      "    if (handle.id) clearTimeout(handle.id);\n"
+      "  };\n"
+      "  function tick() {\n"
+      "    if (handle.cancelled) return;\n"
+      "    try { fn(); } catch (__lain_tick_error) { handle.cancel(); throw __lain_tick_error; }\n"
+      "    if (handle.cancelled) return;\n"
+      "    handle.id = setTimeout(tick, ms);\n"
+      "  }\n"
+      "  handle.id = setTimeout(tick, ms);\n"
+      "  return handle;\n"
+      "};\n"
       "g.lain = {\n"
       "  message: function(text) { return __lain.pushCmd('show_message', null, text); },\n"
       "  position: function(value) { return __lain.pushCmd('set_position', value, null); },\n"
@@ -120,7 +147,11 @@ esp_err_t job_bootstrap(JSContext* ctx, void* user) {
       "  band: function(name) { return __lain.pushCmd('set_band', null, name); },\n"
       "  station: function(pos, type, name) { return __lain.pushCmd('set_station', pos, __lain.typeToInt(type) + ':' + String(name)); },\n"
       "  reveal: function(text) { return __lain.pushCmd('show_reveal', null, text); },\n"
-      "  emit: function(name, detail) { __lain.events.push({ name: String(name), detail: detail == null ? '' : String(detail) }); }\n"
+      "  emit: function(name, detail) { __lain.events.push({ name: String(name), detail: detail == null ? '' : String(detail) }); },\n"
+      "  after: function(ms, fn) { return setTimeout(fn, ms | 0); },\n"
+      "  every: function(ms, fn) { return every(ms, fn); },\n"
+      "  cancel: function(handle) { return cancel(handle); },\n"
+      "  nowMs: function() { return Date.now(); }\n"
       "};\n"
       "g.__lain_take_batches = function() {\n"
       "  var payload = JSON.stringify({ cmds: __lain.cmds, logs: __lain.logs, events: __lain.events });\n"
@@ -259,6 +290,12 @@ esp_err_t ensure_service_started_locked() {
     return err;
   }
 
+  err = mqjs_0074_timers_start(s_state.svc);
+  if (err != ESP_OK) {
+    set_last_error_locked("timers start failed");
+    return err;
+  }
+
   s_state.status.started = true;
   set_last_error_locked("");
   return ESP_OK;
@@ -327,6 +364,20 @@ void js_worker_task(void* arg) {
 }
 
 }  // namespace
+
+esp_err_t js_service_flush_batches_from_context(JSContext* ctx, uint32_t request_id) {
+  if (!ctx) {
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  BatchFlushResult batches = {};
+  const esp_err_t err = job_take_batches(ctx, &batches);
+  if (err == ESP_OK && batches.json) {
+    process_batches(request_id, batches.json);
+    free(batches.json);
+  }
+  return err;
+}
 
 esp_err_t js_service_start(QueueHandle_t app_command_queue) {
   if (!app_command_queue) {
@@ -479,5 +530,8 @@ void js_service_get_status(JsServiceStatus* out) {
   }
   lock();
   *out = s_state.status;
+  if (s_state.request_queue) {
+    out->pending_requests = static_cast<uint32_t>(uxQueueMessagesWaiting(s_state.request_queue));
+  }
   unlock();
 }

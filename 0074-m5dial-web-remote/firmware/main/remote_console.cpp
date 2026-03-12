@@ -66,10 +66,11 @@ int cmd_remote(int argc, char** argv) {
     std::printf("last_message=%s\n", status.last_message[0] ? status.last_message : "-");
     JsServiceStatus js = {};
     js_service_get_status(&js);
-    std::printf("js_started=%s remote_enabled=%s queued=%" PRIu32 " completed=%" PRIu32 " dropped=%" PRIu32 "\n",
+    std::printf("js_started=%s remote_enabled=%s submitted=%" PRIu32 " pending=%" PRIu32 " completed=%" PRIu32 " dropped=%" PRIu32 "\n",
                 js.started ? "yes" : "no",
                 js.remote_enabled ? "yes" : "no",
                 js.queued_requests,
+                js.pending_requests,
                 js.completed_requests,
                 js.dropped_requests);
     return 0;

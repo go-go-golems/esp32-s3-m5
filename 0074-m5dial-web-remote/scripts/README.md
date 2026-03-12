@@ -40,3 +40,26 @@ The current firmware app-command queue is short. Do not send the full station ta
 - Unsafe right now: one giant script that enqueues the entire browser station catalog at once
 
 If you need the full catalog, split it across multiple requests.
+
+## Timer examples
+
+Saved timer-based examples:
+
+- `scripts/timer-radio-sweep.js`
+- `scripts/timer-reveal-demo.js`
+
+Those rely on the project timer support:
+
+- `setTimeout(fn, ms)`
+- `clearTimeout(id)`
+- `every(ms, fn)`
+- `cancel(handleOrId)`
+
+Write callbacks with classic function syntax, not arrow syntax:
+
+- Use: `function () { ... }`
+- Avoid: `() => { ... }`
+- Use: `var`
+- Avoid: `let` and `const`
+
+Prefer `print(...)` for local serial debugging and `console.log(...)` for remote script logs.

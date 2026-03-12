@@ -9,6 +9,7 @@ This project has three parts:
 Operational runbook:
 
 - `PLAYBOOK.md`: tmux-based workflow for server, Vite, firmware build/flash, monitor, and restart flows.
+- `JS-API.md`: JavaScript runtime guide for the Lain OS primitives, timers, and script entry points.
 
 ## Firmware
 
@@ -43,6 +44,15 @@ Run:
 cd 0074-m5dial-web-remote/server
 go run . -listen 127.0.0.1:8080
 ```
+
+Send JS to the currently connected device without manually looking up `device_id`:
+
+```bash
+cd 0074-m5dial-web-remote/server
+go run . script-eval --server http://127.0.0.1:18080 --file ../scripts/timer-radio-sweep.js
+```
+
+If exactly one device is connected, the command auto-selects it. If multiple devices are connected, pass `--device <device_id>`.
 
 ## Web
 
