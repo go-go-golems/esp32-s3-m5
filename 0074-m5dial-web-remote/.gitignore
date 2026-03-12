@@ -6,3 +6,4 @@
 /web/*.tsbuildinfo
 /web/vite.config.js
 /web/vite.config.d.ts
+/server/m5dial-web-remote-server
