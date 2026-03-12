@@ -212,6 +212,43 @@ I updated the task list and design guide to match that boundary. The ticket stil
 
 - If UX wants a parallel design ticket, split browser authoring/editor work into that separate planning track.
 
+## Step 3: Document the real script memory lifecycle from websocket receive through QuickJS
+
+Once remote `script_eval` was exercised against real hardware, the implementation exposed two distinct stack-overflow bugs. The first happened in the websocket callback task, and the second happened in `lain_js_worker`. The common root cause was simple: the request shape embeds a 4096-byte `code` array, so treating `ScriptEvalRequest` as a by-value queue item or stack-local variable is unsafe on small task stacks.
+
+I wrote a dedicated memory-lifecycle reference so future work on scripting transport is grounded in concrete ownership and allocation boundaries rather than rough intuition. That note explains where the script body lives at each stage, what is transient, what is durable, what belongs to QuickJS itself, and why console `js eval` could work while remote websocket `script_eval` crashed.
+
+### What I did
+
+- Confirmed that `CONFIG_TUTORIAL_0074_JS_MAX_BODY=4096` in the firmware config.
+- Mapped the remote path through:
+  - `firmware/main/remote_client.cpp`
+  - `firmware/main/js_service.cpp`
+  - `firmware/main/js_service.h`
+- Documented the end-to-end memory and ownership flow in:
+  - `reference/02-script-memory-lifecycle.md`
+- Recorded the two stack-overflow failure modes:
+  - websocket callback stack pressure from stack-local `ScriptEvalRequest`
+  - worker stack pressure from queueing request structs by value
+
+### Why
+
+- This was no longer a speculative design concern; it became a concrete hardware-backed implementation constraint.
+- The system ticket needed one place that explains the memory model clearly, because otherwise future fixes will regress into “just increase stack size” instead of addressing ownership.
+
+### What worked
+
+- The crash reports gave enough evidence to distinguish transport-task stack pressure from worker-task stack pressure.
+- The note cleanly separates:
+  - websocket frame memory,
+  - heap-allocated durable request memory,
+  - QuickJS runtime arena memory.
+
+### What I learned
+
+- Console `js eval` and remote `script_eval` share the same runtime but not the same memory path.
+- A request struct that embeds the body is safe only if it is heap-owned and passed around by pointer.
+
 ### Code review instructions
 
 - Review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/11/ESP-30-M5DIAL-MQJS-LAIN-DSL--m5dial-microquickjs-scripting-for-lain-os/tasks.md` first.

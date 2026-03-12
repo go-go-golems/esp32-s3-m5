@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 
 extern "C" {
 #include "mquickjs.h"
@@ -215,6 +216,17 @@ void process_batches(uint32_t request_id, const char* json) {
   cJSON_Delete(root);
 }
 
+esp_err_t flush_batches_for_request(uint32_t request_id) {
+  BatchFlushResult batches = {};
+  const mqjs_job_t flush = {.fn = &job_take_batches, .user = &batches, .timeout_ms = 100};
+  const esp_err_t flush_err = mqjs_service_run(s_state.svc, &flush);
+  if (flush_err == ESP_OK && batches.json) {
+    process_batches(request_id, batches.json);
+    free(batches.json);
+  }
+  return flush_err;
+}
+
 esp_err_t ensure_service_started_locked() {
   if (s_state.svc) {
     return ESP_OK;
@@ -256,52 +268,48 @@ void js_worker_task(void* arg) {
   (void)arg;
 
   while (true) {
-    ScriptEvalRequest request = {};
-    if (xQueueReceive(s_state.request_queue, &request, portMAX_DELAY) != pdTRUE) {
+    ScriptEvalRequest* request = nullptr;
+    if (xQueueReceive(s_state.request_queue, &request, portMAX_DELAY) != pdTRUE || !request) {
       continue;
     }
 
     lock();
     const bool remote_enabled = s_state.status.remote_enabled;
-    s_state.status.last_request_id = request.request_id;
+    s_state.status.last_request_id = request->request_id;
     unlock();
 
     if (!remote_enabled) {
       (void)remote_client_send_script_result(
-          request.request_id, "rejected", false, false, "", "remote script execution is disabled", now_ms());
+          request->request_id, "rejected", false, false, "", "remote script execution is disabled", now_ms());
+      free(request);
       continue;
     }
 
     mqjs_eval_result_t result = {};
     const uint32_t timeout_ms =
-        request.timeout_ms == 0 ? static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS) : request.timeout_ms;
+        request->timeout_ms == 0 ? static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS) : request->timeout_ms;
 
     const esp_err_t eval_err = mqjs_service_eval(s_state.svc,
-                                                 request.code,
-                                                 std::strlen(request.code),
+                                                 request->code,
+                                                 std::strlen(request->code),
                                                  timeout_ms,
-                                                 request.filename[0] ? request.filename : "<remote>",
+                                                 request->filename[0] ? request->filename : "<remote>",
                                                  &result);
 
-    BatchFlushResult batches = {};
-    const mqjs_job_t flush = {.fn = &job_take_batches, .user = &batches, .timeout_ms = 100};
-    const esp_err_t flush_err = mqjs_service_run(s_state.svc, &flush);
-    if (flush_err == ESP_OK && batches.json) {
-      process_batches(request.request_id, batches.json);
-      free(batches.json);
-    }
+    (void)flush_batches_for_request(request->request_id);
 
     if (eval_err != ESP_OK) {
       (void)remote_client_send_script_result(
-          request.request_id, "rejected", false, false, "", esp_err_to_name(eval_err), now_ms());
+          request->request_id, "rejected", false, false, "", esp_err_to_name(eval_err), now_ms());
       lock();
       s_state.status.dropped_requests++;
       set_last_error_locked(esp_err_to_name(eval_err));
       unlock();
+      free(request);
       continue;
     }
 
-    (void)remote_client_send_script_result(request.request_id,
+    (void)remote_client_send_script_result(request->request_id,
                                            result_status(result.ok, result.timed_out),
                                            result.ok,
                                            result.timed_out,
@@ -309,6 +317,7 @@ void js_worker_task(void* arg) {
                                            result.error ? result.error : "",
                                            now_ms());
     mqjs_eval_result_free(&result);
+    free(request);
 
     lock();
     s_state.status.completed_requests++;
@@ -334,7 +343,7 @@ esp_err_t js_service_start(QueueHandle_t app_command_queue) {
   s_state.app_command_queue = app_command_queue;
 
   if (!s_state.request_queue) {
-    s_state.request_queue = xQueueCreate(CONFIG_TUTORIAL_0074_JS_QUEUE_LEN, sizeof(ScriptEvalRequest));
+    s_state.request_queue = xQueueCreate(CONFIG_TUTORIAL_0074_JS_QUEUE_LEN, sizeof(ScriptEvalRequest*));
     if (!s_state.request_queue) {
       unlock();
       return ESP_ERR_NO_MEM;
@@ -348,7 +357,7 @@ esp_err_t js_service_start(QueueHandle_t app_command_queue) {
   }
 
   if (!s_state.worker) {
-    if (xTaskCreatePinnedToCore(js_worker_task, "lain_js_worker", 6144, nullptr, 5, &s_state.worker, 0) != pdPASS) {
+    if (xTaskCreatePinnedToCore(js_worker_task, "lain_js_worker", 8192, nullptr, 5, &s_state.worker, 0) != pdPASS) {
       unlock();
       return ESP_ERR_NO_MEM;
     }
@@ -359,7 +368,7 @@ esp_err_t js_service_start(QueueHandle_t app_command_queue) {
   return ESP_OK;
 }
 
-esp_err_t js_service_submit(const ScriptEvalRequest* request) {
+esp_err_t js_service_submit(ScriptEvalRequest* request) {
   if (!request) {
     return ESP_ERR_INVALID_ARG;
   }
@@ -373,7 +382,7 @@ esp_err_t js_service_submit(const ScriptEvalRequest* request) {
     unlock();
     return ESP_ERR_INVALID_STATE;
   }
-  if (xQueueSend(s_state.request_queue, request, 0) != pdTRUE) {
+  if (xQueueSend(s_state.request_queue, &request, 0) != pdTRUE) {
     s_state.status.dropped_requests++;
     set_last_error_locked("script queue full");
     unlock();
@@ -382,6 +391,63 @@ esp_err_t js_service_submit(const ScriptEvalRequest* request) {
   s_state.status.queued_requests++;
   unlock();
   return ESP_OK;
+}
+
+std::string js_service_eval_to_json(const char* code, size_t code_len, uint32_t timeout_ms, const char* filename) {
+  if (!code || code_len == 0) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"empty body\",\"timed_out\":false}";
+  }
+  if (!s_state.mu) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"js service unavailable\",\"timed_out\":false}";
+  }
+
+  lock();
+  const bool ready = s_state.svc != nullptr;
+  unlock();
+  if (!ready) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"js service unavailable\",\"timed_out\":false}";
+  }
+
+  mqjs_eval_result_t result = {};
+  const uint32_t effective_timeout =
+      timeout_ms == 0 ? static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS) : timeout_ms;
+  const esp_err_t err = mqjs_service_eval(
+      s_state.svc, code, code_len, effective_timeout, filename ? filename : "<console>", &result);
+  if (err != ESP_OK) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"busy\",\"timed_out\":false}";
+  }
+
+  (void)flush_batches_for_request(0);
+
+  std::string json;
+  if (!result.ok) {
+    json = "{\"ok\":false,\"output\":";
+  } else {
+    json = "{\"ok\":true,\"output\":";
+  }
+
+  cJSON* root = cJSON_CreateObject();
+  if (!root) {
+    mqjs_eval_result_free(&result);
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"no memory\",\"timed_out\":false}";
+  }
+  cJSON_AddBoolToObject(root, "ok", result.ok);
+  cJSON_AddStringToObject(root, "output", result.output ? result.output : "");
+  if (result.ok) {
+    cJSON_AddNullToObject(root, "error");
+  } else {
+    cJSON_AddStringToObject(root, "error", result.error ? result.error : "error");
+  }
+  cJSON_AddBoolToObject(root, "timed_out", result.timed_out);
+  char* printed = cJSON_PrintUnformatted(root);
+  cJSON_Delete(root);
+  mqjs_eval_result_free(&result);
+  if (!printed) {
+    return "{\"ok\":false,\"output\":\"\",\"error\":\"no memory\",\"timed_out\":false}";
+  }
+  json.assign(printed);
+  cJSON_free(printed);
+  return json;
 }
 
 void js_service_set_remote_enabled(bool enabled) {

@@ -2,7 +2,9 @@ idf_component_register(
     SRCS
         "app_commands.cpp"
         "app_main.cpp"
+        "display_console.cpp"
         "esp32_stdlib_runtime.c"
+        "js_console.cpp"
         "js_service.cpp"
         "m5dial_board.cpp"
         "remote_client.cpp"

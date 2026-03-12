@@ -43,6 +43,42 @@ func main() {
 		logger.Printf("api status requested remote=%s ua=%q", r.RemoteAddr, r.UserAgent())
 		writeJSON(w, http.StatusOK, hub.Snapshot())
 	})
+	mux.HandleFunc("/api/script-eval", func(w http.ResponseWriter, r *http.Request) {
+		logger.Printf("api script-eval requested remote=%s ua=%q", r.RemoteAddr, r.UserAgent())
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		defer r.Body.Close()
+
+		var msg ScriptEvalMessage
+		dec := json.NewDecoder(r.Body)
+		dec.DisallowUnknownFields()
+		if err := dec.Decode(&msg); err != nil {
+			logger.Printf("api script-eval decode failed remote=%s err=%v", r.RemoteAddr, err)
+			writeJSON(w, http.StatusBadRequest, ScriptEvalResultMessage{
+				Type:        "script_eval_result",
+				GeneratedAt: time.Now(),
+				Status:      "rejected",
+				Reason:      "invalid json payload",
+			})
+			return
+		}
+
+		result := hub.queueScriptEval("http:"+r.RemoteAddr, msg)
+		status := http.StatusAccepted
+		if result.Status != "queued" {
+			switch result.Reason {
+			case "device_id and code are required", "invalid script_eval payload":
+				status = http.StatusBadRequest
+			default:
+				status = http.StatusConflict
+			}
+		}
+		writeJSON(w, status, result)
+	})
 	mux.HandleFunc("/ws/device", func(w http.ResponseWriter, r *http.Request) {
 		logger.Printf("device ws upgrade requested remote=%s ua=%q origin=%q", r.RemoteAddr, r.UserAgent(), r.Header.Get("Origin"))
 		conn, err := upgrader.Upgrade(w, r, nil)

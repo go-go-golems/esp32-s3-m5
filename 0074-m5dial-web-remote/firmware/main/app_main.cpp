@@ -16,6 +16,9 @@
 
 #include "input_events.h"
 #include "app_commands.h"
+#include "app_debug.h"
+#include "display_console.h"
+#include "js_console.h"
 #include "js_service.h"
 #include "m5dial_board.h"
 #include "remote_client.h"
@@ -107,6 +110,8 @@ struct AppContext {
   AppMode mode = AppMode::kDebug;
   RadioState radio = {};
 };
+
+static AppContext* s_app_ctx = nullptr;
 
 // ─── Debug mode screen (unchanged) ─────────────────────────
 
@@ -241,29 +246,24 @@ ScreenState make_screen_state(AppContext* ctx) {
 
 void draw_status_screen(AppContext* ctx, const ScreenState& state) {
   tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
-  lgfx::LGFX_Sprite sprite(&display);
-  sprite.setColorDepth(16);
-  sprite.createSprite(display.width(), display.height());
-  sprite.fillScreen(TFT_BLACK);
-  sprite.setTextColor(TFT_GREEN, TFT_BLACK);
-  sprite.setFont(&fonts::Font0);
-  sprite.setCursor(6, 6);
-  sprite.println(state.title.c_str());
-  sprite.println(state.position_line.c_str());
-  sprite.println(state.wifi_line.c_str());
-  sprite.println(state.ip_line.c_str());
-  sprite.println(state.remote_line.c_str());
-  sprite.println(state.id_line.c_str());
-  sprite.println(state.url_line.c_str());
-  sprite.println(state.event_line.c_str());
-  sprite.println(state.traffic_line.c_str());
-  sprite.println(state.error_line.c_str());
-  sprite.println(state.footer_line.c_str());
-
   display.startWrite();
-  sprite.pushSprite(0, 0);
+  display.fillScreen(TFT_BLACK);
+  display.setTextColor(TFT_GREEN, TFT_BLACK);
+  display.setFont(&fonts::Font0);
+  display.setTextSize(1);
+  display.setCursor(6, 6);
+  display.println(state.title.c_str());
+  display.println(state.position_line.c_str());
+  display.println(state.wifi_line.c_str());
+  display.println(state.ip_line.c_str());
+  display.println(state.remote_line.c_str());
+  display.println(state.id_line.c_str());
+  display.println(state.url_line.c_str());
+  display.println(state.event_line.c_str());
+  display.println(state.traffic_line.c_str());
+  display.println(state.error_line.c_str());
+  display.println(state.footer_line.c_str());
   display.endWrite();
-  sprite.deleteSprite();
 }
 
 // ─── Radio mode drawing ────────────────────────────────────
@@ -272,29 +272,27 @@ void draw_radio_screen(AppContext* ctx) {
   init_station_trig();
 
   tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
-  lgfx::LGFX_Sprite sprite(&display);
-  sprite.setColorDepth(16);
-  sprite.createSprite(240, 240);
-  sprite.fillScreen(kRadioBg);
+  display.startWrite();
+  display.fillScreen(kRadioBg);
 
   const int cx = 120;
   const int cy = 120;
   const int32_t fp = ctx->radio.freq_pos;
 
   // 1. Background frequency arc (dim green, 270 degrees)
-  sprite.fillArc(cx, cy, 118, 112, kArcStartDeg, kArcStartDeg + kArcSpanDeg, kRadioDim);
+  display.fillArc(cx, cy, 118, 112, kArcStartDeg, kArcStartDeg + kArcSpanDeg, kRadioDim);
 
   // 2. Tuned sweep (bright green from start to current position)
   if (fp > 0) {
     float pos_end = kArcStartDeg + fp * kArcSpanDeg / (kNumStations - 1);
-    sprite.fillArc(cx, cy, 118, 112, kArcStartDeg, pos_end, kRadioAccent);
+    display.fillArc(cx, cy, 118, 112, kArcStartDeg, pos_end, kRadioAccent);
   }
 
   // 3. Position indicator (white dot on the arc)
   {
     int hx = cx + static_cast<int>(115.0f * s_station_cos[fp]);
     int hy = cy + static_cast<int>(115.0f * s_station_sin[fp]);
-    sprite.fillCircle(hx, hy, 5, kRadioWhite);
+    display.fillCircle(hx, hy, 5, kRadioWhite);
   }
 
   // 4. Station dots (inner ring at r=95)
@@ -318,19 +316,19 @@ void draw_radio_screen(AppContext* ctx) {
         default:                      color = 0x0120; radius = 1; break;
       }
     }
-    sprite.fillCircle(dx, dy, radius, color);
+    display.fillCircle(dx, dy, radius, color);
   }
 
   // 5. Band label (top center)
   {
     static const char* band_names[] = {"AM", "FM", "WIRED"};
     const char* bname = band_names[ctx->radio.band % 3];
-    sprite.setFont(&fonts::Font0);
-    sprite.setTextSize(1);
-    sprite.setTextColor(kRadioText, kRadioBg);
+    display.setFont(&fonts::Font0);
+    display.setTextSize(1);
+    display.setTextColor(kRadioText, kRadioBg);
     int tw = static_cast<int>(std::strlen(bname)) * 6;
-    sprite.setCursor(cx - tw / 2, 30);
-    sprite.print(bname);
+    display.setCursor(cx - tw / 2, 30);
+    display.print(bname);
   }
 
   // 6. Frequency display (center, larger)
@@ -340,23 +338,23 @@ void draw_radio_screen(AppContext* ctx) {
     int mhz = 88 + fp * 30 / 119;
     int frac = (fp * 300 / 119) % 10;
     std::snprintf(freq_str, sizeof(freq_str), "%d.%d MHz", mhz, frac);
-    sprite.setTextSize(2);
-    sprite.setTextColor(kRadioAccent, kRadioBg);
+    display.setTextSize(2);
+    display.setTextColor(kRadioAccent, kRadioBg);
     int tw = static_cast<int>(std::strlen(freq_str)) * 12;
-    sprite.setCursor(cx - tw / 2, cy - 24);
-    sprite.print(freq_str);
+    display.setCursor(cx - tw / 2, cy - 24);
+    display.print(freq_str);
   }
 
   // 7. Station label or reveal text (center)
   {
-    sprite.setTextSize(1);
+    display.setTextSize(1);
     bool showing_reveal = ctx->radio.reveal_until_ms > 0 && now_ms() < ctx->radio.reveal_until_ms;
 
     if (showing_reveal) {
-      sprite.setTextColor(kRadioDanger, kRadioBg);
+      display.setTextColor(kRadioDanger, kRadioBg);
       int tw = static_cast<int>(std::strlen(ctx->radio.reveal_text)) * 6;
-      sprite.setCursor(cx - tw / 2, cy + 2);
-      sprite.print(ctx->radio.reveal_text);
+      display.setCursor(cx - tw / 2, cy + 2);
+      display.print(ctx->radio.reveal_text);
     } else {
       const char* label = ctx->radio.station_names[fp][0] ? ctx->radio.station_names[fp] : "---";
       StationType st = ctx->radio.stations[fp];
@@ -365,35 +363,32 @@ void draw_radio_screen(AppContext* ctx) {
       else if (st == StationType::kHidden) label_color = kRadioDanger;
       else if (st == StationType::kDistorted) label_color = kRadioOrange;
 
-      sprite.setTextColor(label_color, kRadioBg);
+      display.setTextColor(label_color, kRadioBg);
       int tw = static_cast<int>(std::strlen(label)) * 6;
-      sprite.setCursor(cx - tw / 2, cy + 2);
-      sprite.print(label);
+      display.setCursor(cx - tw / 2, cy + 2);
+      display.print(label);
     }
   }
 
   // 8. Lock indicator
   if (ctx->radio.locked) {
-    sprite.setTextSize(1);
-    sprite.setTextColor(kRadioAccent, kRadioBg);
-    sprite.setCursor(cx - 18, cy + 18);
-    sprite.print("LOCKED");
+    display.setTextSize(1);
+    display.setTextColor(kRadioAccent, kRadioBg);
+    display.setCursor(cx - 18, cy + 18);
+    display.print("LOCKED");
   }
 
   // 9. Bottom hint
   {
-    sprite.setTextSize(1);
-    sprite.setTextColor(kRadioDim, kRadioBg);
+    display.setTextSize(1);
+    display.setTextColor(kRadioDim, kRadioBg);
     const char* hint = ctx->radio.locked ? "press to unlock" : "twist to tune";
     int tw = static_cast<int>(std::strlen(hint)) * 6;
-    sprite.setCursor(cx - tw / 2, 210);
-    sprite.print(hint);
+    display.setCursor(cx - tw / 2, 210);
+    display.print(hint);
   }
 
-  display.startWrite();
-  sprite.pushSprite(0, 0);
   display.endWrite();
-  sprite.deleteSprite();
 }
 
 // ─── Radio helpers ──────────────────────────────────────────
@@ -645,13 +640,110 @@ void app_task(void* arg) {
 }
 
 void register_console_commands() {
+  display_console_register_commands();
+  js_console_register_commands();
   remote_console_register();
 }
 
 }  // namespace
 
+bool app_debug_get_status(AppDebugStatus* out) {
+  if (!out || !s_app_ctx) {
+    return false;
+  }
+
+  *out = {};
+  out->ready = true;
+  out->radio_mode = s_app_ctx->mode == AppMode::kRadio;
+  out->touch_ready = s_app_ctx->board.touch_ready();
+  out->position = s_app_ctx->position;
+  out->radio_position = s_app_ctx->radio.freq_pos;
+  std::snprintf(out->last_event, sizeof(out->last_event), "%s", s_app_ctx->last_event);
+  std::snprintf(out->last_message, sizeof(out->last_message), "%s", s_app_ctx->last_ui_message);
+  return true;
+}
+
+bool app_debug_set_mode(bool radio_mode) {
+  if (!s_app_ctx) {
+    return false;
+  }
+
+  s_app_ctx->mode = radio_mode ? AppMode::kRadio : AppMode::kDebug;
+  if (radio_mode) {
+    s_app_ctx->radio.dirty = true;
+  }
+  std::snprintf(s_app_ctx->last_event, sizeof(s_app_ctx->last_event), "display mode");
+  std::snprintf(s_app_ctx->last_ui_message, sizeof(s_app_ctx->last_ui_message), "%s", radio_mode ? "radio" : "debug");
+  return app_debug_redraw();
+}
+
+bool app_debug_redraw() {
+  if (!s_app_ctx) {
+    return false;
+  }
+
+  if (s_app_ctx->mode == AppMode::kRadio) {
+    s_app_ctx->radio.dirty = true;
+    draw_radio_screen(s_app_ctx);
+    s_app_ctx->radio.dirty = false;
+  } else {
+    const ScreenState next_state = make_screen_state(s_app_ctx);
+    draw_status_screen(s_app_ctx, next_state);
+  }
+  return true;
+}
+
+bool app_debug_fill(uint16_t color) {
+  if (!s_app_ctx) {
+    return false;
+  }
+
+  auto& display = s_app_ctx->board.display();
+  display.startWrite();
+  display.fillScreen(color);
+  display.endWrite();
+  std::snprintf(s_app_ctx->last_event, sizeof(s_app_ctx->last_event), "display fill");
+  std::snprintf(s_app_ctx->last_ui_message, sizeof(s_app_ctx->last_ui_message), "color=%u", static_cast<unsigned>(color));
+  return true;
+}
+
+bool app_debug_text(const char* text) {
+  if (!s_app_ctx || !text) {
+    return false;
+  }
+
+  auto& display = s_app_ctx->board.display();
+  display.startWrite();
+  display.fillScreen(TFT_BLACK);
+  display.setTextColor(TFT_GREEN, TFT_BLACK);
+  display.setFont(&fonts::Font0);
+  display.setTextSize(2);
+  display.setCursor(8, 20);
+  display.printf("DISPLAY TEST\n\n%s", text);
+  display.endWrite();
+  std::snprintf(s_app_ctx->last_event, sizeof(s_app_ctx->last_event), "display text");
+  std::snprintf(s_app_ctx->last_ui_message,
+                sizeof(s_app_ctx->last_ui_message),
+                "%.*s",
+                static_cast<int>(sizeof(s_app_ctx->last_ui_message) - 1),
+                text);
+  return true;
+}
+
+bool app_debug_set_brightness(uint8_t brightness) {
+  if (!s_app_ctx) {
+    return false;
+  }
+
+  s_app_ctx->board.display().setBrightness(brightness);
+  std::snprintf(s_app_ctx->last_event, sizeof(s_app_ctx->last_event), "display brightness");
+  std::snprintf(s_app_ctx->last_ui_message, sizeof(s_app_ctx->last_ui_message), "brightness=%u", brightness);
+  return true;
+}
+
 extern "C" void app_main(void) {
   static AppContext app;
+  s_app_ctx = &app;
 
   ESP_LOGI(TAG, "booting M5Dial web remote");
   app.input_queue = xQueueCreate(kInputQueueLength, sizeof(tutorial_0072::InputEvent));

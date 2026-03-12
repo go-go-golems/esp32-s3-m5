@@ -111,23 +111,31 @@ void handle_script_eval_message(const cJSON* root) {
     return;
   }
 
-  ScriptEvalRequest request = {};
-  request.request_id = req_id;
-  request.timeout_ms = cJSON_IsNumber(timeout_ms) && timeout_ms->valuedouble > 0
-                           ? static_cast<uint32_t>(timeout_ms->valuedouble)
-                           : static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS);
-  std::snprintf(request.filename, sizeof(request.filename), "%s",
-                cJSON_IsString(filename) ? filename->valuestring : "<remote>");
-  std::snprintf(request.code, sizeof(request.code), "%s", code->valuestring);
+  auto* request = static_cast<ScriptEvalRequest*>(calloc(1, sizeof(ScriptEvalRequest)));
+  if (!request) {
+    (void)remote_client_send_script_result(req_id, "rejected", false, false, "", "no memory", now_ms());
+    ESP_LOGW(TAG, "failed to allocate script request request_id=%" PRIu32, req_id);
+    return;
+  }
 
-  const esp_err_t err = js_service_submit(&request);
+  const uint32_t effective_timeout = cJSON_IsNumber(timeout_ms) && timeout_ms->valuedouble > 0
+                                         ? static_cast<uint32_t>(timeout_ms->valuedouble)
+                                         : static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS);
+  request->request_id = req_id;
+  request->timeout_ms = effective_timeout;
+  std::snprintf(request->filename, sizeof(request->filename), "%s",
+                cJSON_IsString(filename) ? filename->valuestring : "<remote>");
+  std::snprintf(request->code, sizeof(request->code), "%s", code->valuestring);
+
+  const esp_err_t err = js_service_submit(request);
   if (err != ESP_OK) {
+    free(request);
     (void)remote_client_send_script_result(req_id, "rejected", false, false, "", esp_err_to_name(err), now_ms());
     ESP_LOGW(TAG, "failed to queue script request request_id=%" PRIu32 " err=%s", req_id, esp_err_to_name(err));
     return;
   }
 
-  ESP_LOGI(TAG, "queued script request request_id=%" PRIu32 " timeout_ms=%" PRIu32, req_id, request.timeout_ms);
+  ESP_LOGI(TAG, "queued script request request_id=%" PRIu32 " timeout_ms=%" PRIu32, req_id, effective_timeout);
 }
 
 void handle_inbound_frame(const char* data_ptr, int data_len) {
@@ -245,6 +253,8 @@ void start_client_if_needed() {
   ws_cfg.network_timeout_ms = 3000;
   ws_cfg.reconnect_timeout_ms = 2000;
   ws_cfg.disable_auto_reconnect = false;
+  ws_cfg.task_stack = 8192;
+  ws_cfg.task_name = "m5dial_ws";
 
   ESP_LOGI(TAG, "connecting to %s as %s", cfg.url, cfg.device_id[0] ? cfg.device_id : "unset");
   s_client = esp_websocket_client_init(&ws_cfg);

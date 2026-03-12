@@ -339,7 +339,7 @@ func (h *Hub) handleBrowserUiCommand(browser *BrowserSocket, payload []byte) {
 		return
 	}
 
-	if err := h.routePayloadToDevice(browser, payload, msg.DeviceID, msg.RequestID, msg.Command, "ui_command"); err != nil {
+	if err := h.routePayloadToDevice(browser.remoteAddr, payload, msg.DeviceID, msg.RequestID, msg.Command, "ui_command"); err != nil {
 		h.log.Printf("browser command route failed remote=%s device_id=%s command=%s request_id=%d err=%v",
 			browser.remoteAddr,
 			msg.DeviceID,
@@ -382,43 +382,47 @@ func (h *Hub) handleBrowserScriptEval(browser *BrowserSocket, payload []byte) {
 		return
 	}
 
-	if msg.DeviceID == "" || msg.Code == "" {
-		h.log.Printf("rejecting script eval remote=%s missing device_id or code", browser.remoteAddr)
-		h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
-			Type:        "script_eval_result",
-			GeneratedAt: time.Now(),
-			DeviceID:    msg.DeviceID,
-			RequestID:   msg.RequestID,
-			Status:      "rejected",
-			Reason:      "device_id and code are required",
-		})
-		return
-	}
+	h.sendScriptEvalResult(browser, h.queueScriptEval(browser.remoteAddr, msg))
+}
 
-	if err := h.routePayloadToDevice(browser, payload, msg.DeviceID, msg.RequestID, "script_eval", "script_eval"); err != nil {
-		h.log.Printf("script eval route failed remote=%s device_id=%s request_id=%d err=%v",
-			browser.remoteAddr, msg.DeviceID, msg.RequestID, err)
-		h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
-			Type:        "script_eval_result",
-			GeneratedAt: time.Now(),
-			DeviceID:    msg.DeviceID,
-			RequestID:   msg.RequestID,
-			Status:      "rejected",
-			Reason:      err.Error(),
-		})
-		return
-	}
-
-	h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
+func (h *Hub) queueScriptEval(source string, msg ScriptEvalMessage) ScriptEvalResultMessage {
+	result := ScriptEvalResultMessage{
 		Type:        "script_eval_result",
 		GeneratedAt: time.Now(),
 		DeviceID:    msg.DeviceID,
 		RequestID:   msg.RequestID,
-		Status:      "queued",
-	})
+	}
+
+	if msg.DeviceID == "" || msg.Code == "" {
+		h.log.Printf("rejecting script eval source=%s missing device_id or code", source)
+		result.Status = "rejected"
+		result.Reason = "device_id and code are required"
+		return result
+	}
+
+	msg.Type = "script_eval"
+	payload, err := json.Marshal(msg)
+	if err != nil {
+		h.log.Printf("script eval marshal failed source=%s device_id=%s request_id=%d err=%v",
+			source, msg.DeviceID, msg.RequestID, err)
+		result.Status = "rejected"
+		result.Reason = "invalid script_eval payload"
+		return result
+	}
+
+	if err := h.routePayloadToDevice(source, payload, msg.DeviceID, msg.RequestID, "script_eval", "script_eval"); err != nil {
+		h.log.Printf("script eval route failed source=%s device_id=%s request_id=%d err=%v",
+			source, msg.DeviceID, msg.RequestID, err)
+		result.Status = "rejected"
+		result.Reason = err.Error()
+		return result
+	}
+
+	result.Status = "queued"
+	return result
 }
 
-func (h *Hub) routePayloadToDevice(browser *BrowserSocket, payload []byte, deviceID string, requestID uint32, action string, msgType string) error {
+func (h *Hub) routePayloadToDevice(source string, payload []byte, deviceID string, requestID uint32, action string, msgType string) error {
 	h.mu.RLock()
 	deviceSocket := h.deviceSockets[deviceID]
 	h.mu.RUnlock()
@@ -432,8 +436,8 @@ func (h *Hub) routePayloadToDevice(browser *BrowserSocket, payload []byte, devic
 		return fmt.Errorf("device write failed: %w", err)
 	}
 
-	h.log.Printf("browser payload forwarded remote=%s type=%s device_id=%s action=%s request_id=%d payload=%q",
-		browser.remoteAddr,
+	h.log.Printf("payload forwarded source=%s type=%s device_id=%s action=%s request_id=%d payload=%q",
+		source,
 		msgType,
 		deviceID,
 		action,

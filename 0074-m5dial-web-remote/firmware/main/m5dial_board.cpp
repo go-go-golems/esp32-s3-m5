@@ -10,6 +10,7 @@ namespace tutorial_0072 {
 namespace {
 
 static const char *TAG = "m5dial_board";
+constexpr bool kEnableTouch = false;
 
 constexpr gpio_num_t kPinPowerHold = GPIO_NUM_46;
 constexpr gpio_num_t kPinButton = GPIO_NUM_42;
@@ -130,7 +131,12 @@ bool M5DialBoard::init() {
   display_.setBrightness(255);
   display_.fillScreen(TFT_BLACK);
 
-  touch_ready_ = init_touch_controller();
+  if (kEnableTouch) {
+    touch_ready_ = init_touch_controller();
+  } else {
+    touch_ready_ = false;
+    ESP_LOGW(TAG, "touch controller disabled pending i2c stability fix");
+  }
 
   encoder_.attachHalfQuad(static_cast<int>(kPinEncoderA), static_cast<int>(kPinEncoderB));
   encoder_.setFilter(1023);

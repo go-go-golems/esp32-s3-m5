@@ -2,6 +2,10 @@
 
 ## 2026-03-11
 
+- Added `reference/02-script-memory-lifecycle.md` to document the real remote `script_eval` memory path, ownership handoff, and the two stack-overflow bugs discovered during hardware validation.
+
+## 2026-03-11
+
 - Ticket workspace created for adding MicroQuickJS scripting to the 0074 Lain OS stack.
 - Current-state analysis completed for:
   - `0074-m5dial-web-remote` runtime boundaries
