@@ -15,13 +15,18 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
-ExternalSources: []
+RelatedFiles:
+    - Path: ttmp/2026/03/11/ESP-29-M5DIAL-BROWSER-COMMANDS--m5dial-browser-to-device-command-path/design/02-three-experiences-design.md
+      Note: Design spec for three dial experiences - Narrative Radio
+ExternalSources:
+    - local:lain-os.tsx
 Summary: Browser-originated `ui_command` frames now route through the Go server to the M5Dial firmware, with request-correlated acknowledgements and a React command UI.
-LastUpdated: 2026-03-11T19:34:02.752286437-04:00
+LastUpdated: 2026-03-11T19:50:47.327178235-04:00
 WhatFor: Capture the implementation and validation details for the browser-to-device command path added to the M5Dial web remote stack.
 WhenToUse: Use when reviewing or extending browser-driven device commands, websocket routing, or firmware acknowledgements for project `0074-m5dial-web-remote`.
 ---
+
+
 
 # M5Dial browser-to-device command path
 

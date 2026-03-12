@@ -7,47 +7,48 @@
 - [x] Inspect existing M5Dial firmware and relevant browser/UI precedents in this repo
 - [x] Write the detailed design and implementation guide for a new intern
 - [x] Keep a chronological diary of the research and writing process
-- [ ] Create `0074-m5dial-web-remote/` with three subprojects:
+- [x] Create `0074-m5dial-web-remote/` with three subprojects:
   - `firmware/` for the ESP32/M5Dial client
   - `server/` for the Go host process
   - `web/` for the React app that the Go server serves
-- [ ] Vendor firmware-only dependencies into `0074-m5dial-web-remote/firmware/` so the dial build does not depend on sibling project source paths
-- [ ] Port the M5Dial board/input layer into the new firmware and confirm USB Serial/JTAG console defaults are enabled
-- [ ] Add firmware runtime state storage for:
+- [x] Vendor firmware-only dependencies into `0074-m5dial-web-remote/firmware/` so the dial build does not depend on sibling project source paths
+- [x] Port the M5Dial board/input layer into the new firmware and confirm USB Serial/JTAG console defaults are enabled
+- [x] Add firmware runtime state storage for:
   - Wi-Fi credentials via `wifi_mgr`
   - outbound server URL
   - device ID / friendly name
-- [ ] Add `esp_console` commands for:
+- [x] Add `esp_console` commands for:
   - `wifi status|scan|join|set|connect|disconnect|clear`
   - `remote status|set-url|set-id|connect|disconnect|clear`
-- [ ] Implement firmware outbound WebSocket client behavior:
+- [x] Implement firmware outbound WebSocket client behavior:
   - connect only after STA is up
   - send hello/heartbeat/encoder/button telemetry
   - track reconnect state and surface last error on the local screen
-- [ ] Implement the firmware local screen with at least:
+- [x] Implement the firmware local screen with at least:
   - Wi-Fi state and IP
   - remote server URL / device ID
   - WebSocket connection state
   - last encoder/button event and sequence number
-- [ ] Define and document the wire protocol between:
+- [x] Define and document the wire protocol between:
   - M5Dial firmware -> Go server
   - Go server -> browser clients
-- [ ] Implement the Go server with:
+- [x] Implement the Go server with:
   - `/ws/device` for dial connections
   - `/ws/browser` for browser subscriptions
   - `/api/status` for debugging / status inspection
   - static-file serving for the built React app
-- [ ] Track connected devices in the Go server and broadcast normalized device state plus debug history to browsers
-- [ ] Implement the React app with:
+- [x] Track connected devices in the Go server and broadcast normalized device state plus debug history to browsers
+- [x] Implement the React app with:
   - live browser connection status
   - live selected device / device status
   - a real scroll list driven by knob position
   - a debug log showing raw WebSocket frames / messages
   - a compact diagnostics panel for Wi-Fi and remote state
-- [ ] Embed the built React bundle into the Go server binary or package it in a repeatable local run path
-- [ ] Build and test each layer separately:
+- [x] Embed the built React bundle into the Go server binary or package it in a repeatable local run path
+- [x] Build and test each layer separately:
   - firmware compile
   - Go server compile/tests
   - React production build
 - [ ] Flash the firmware over `/dev/ttyACM0`, note any ACM0 disappearance/reset issues, and validate the full dial -> server -> browser flow on hardware
+  - Attempted once; build succeeded but `/dev/ttyACM0` disappeared before esptool could open it, and the device no longer appeared in `lsusb`
 - [ ] Update the ticket diary, changelog, and implementation guide with concrete implementation notes and commits
