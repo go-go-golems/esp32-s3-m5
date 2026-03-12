@@ -1,0 +1,20 @@
+menu "0074 M5Dial Lain JS Runtime"
+
+config TUTORIAL_0074_JS_MAX_BODY
+    int "Max inbound script body bytes"
+    default 4096
+
+config TUTORIAL_0074_JS_MEM_BYTES
+    int "MicroQuickJS memory pool bytes"
+    default 65536
+
+config TUTORIAL_0074_JS_TIMEOUT_MS
+    int "Script eval timeout in milliseconds"
+    default 1500
+
+config TUTORIAL_0074_JS_QUEUE_LEN
+    int "Queued remote script requests"
+    range 1 16
+    default 4
+
+endmenu

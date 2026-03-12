@@ -1,6 +1,9 @@
 idf_component_register(
     SRCS
+        "app_commands.cpp"
         "app_main.cpp"
+        "esp32_stdlib_runtime.c"
+        "js_service.cpp"
         "m5dial_board.cpp"
         "remote_client.cpp"
         "remote_config.cpp"
@@ -12,7 +15,11 @@ idf_component_register(
         LovyanGFX
         esp_websocket_client
         json
+        exercizer_control
+        mquickjs
+        mqjs_service
         nvs_flash
+        spiffs
         wifi_console
         wifi_mgr
     PRIV_REQUIRES

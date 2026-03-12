@@ -9,6 +9,7 @@ namespace {
 constexpr const char* kNamespace = "remote";
 constexpr const char* kKeyUrl = "url";
 constexpr const char* kKeyDeviceId = "device_id";
+constexpr const char* kKeyScriptEnabled = "script_enabled";
 
 esp_err_t open_nvs(nvs_handle_t* out) {
   if (!out) {
@@ -43,6 +44,10 @@ esp_err_t remote_config_load(RemoteConfig* out) {
 
   load_string(nvs, kKeyUrl, out->url, sizeof(out->url));
   load_string(nvs, kKeyDeviceId, out->device_id, sizeof(out->device_id));
+  uint8_t script_enabled = 0;
+  if (nvs_get_u8(nvs, kKeyScriptEnabled, &script_enabled) == ESP_OK) {
+    out->remote_script_enabled = script_enabled != 0;
+  }
   nvs_close(nvs);
   return ESP_OK;
 }
@@ -57,6 +62,9 @@ esp_err_t remote_config_save(const RemoteConfig& cfg) {
   err = nvs_set_str(nvs, kKeyUrl, cfg.url);
   if (err == ESP_OK) {
     err = nvs_set_str(nvs, kKeyDeviceId, cfg.device_id);
+  }
+  if (err == ESP_OK) {
+    err = nvs_set_u8(nvs, kKeyScriptEnabled, cfg.remote_script_enabled ? 1 : 0);
   }
   if (err == ESP_OK) {
     err = nvs_commit(nvs);
@@ -74,6 +82,7 @@ esp_err_t remote_config_clear() {
 
   (void)nvs_erase_key(nvs, kKeyUrl);
   (void)nvs_erase_key(nvs, kKeyDeviceId);
+  (void)nvs_erase_key(nvs, kKeyScriptEnabled);
   err = nvs_commit(nvs);
   nvs_close(nvs);
   return err;

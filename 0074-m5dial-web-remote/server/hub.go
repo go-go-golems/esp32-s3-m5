@@ -52,6 +52,9 @@ type DeviceState struct {
 	LastCommand       string    `json:"last_command,omitempty"`
 	LastCommandStatus string    `json:"last_command_status,omitempty"`
 	LastRequestID     uint32    `json:"last_request_id,omitempty"`
+	LastScriptStatus  string    `json:"last_script_status,omitempty"`
+	LastScriptError   string    `json:"last_script_error,omitempty"`
+	LastScriptRequest uint32    `json:"last_script_request_id,omitempty"`
 	LastSeen          time.Time `json:"last_seen"`
 	RxCount           uint32    `json:"rx_count"`
 }
@@ -99,6 +102,21 @@ type UiCommandMessage struct {
 	Value     int32  `json:"value,omitempty"`
 }
 
+type BrowserMessage struct {
+	Type      string `json:"type"`
+	DeviceID  string `json:"device_id"`
+	RequestID uint32 `json:"request_id,omitempty"`
+}
+
+type ScriptEvalMessage struct {
+	Type      string `json:"type"`
+	DeviceID  string `json:"device_id"`
+	RequestID uint32 `json:"request_id"`
+	Code      string `json:"code"`
+	Filename  string `json:"filename,omitempty"`
+	TimeoutMs uint32 `json:"timeout_ms,omitempty"`
+}
+
 type SwipeMessage struct {
 	BaseMessage
 	Direction string `json:"direction"`
@@ -120,6 +138,24 @@ type UiCommandResultMessage struct {
 	RequestID   uint32    `json:"request_id"`
 	Status      string    `json:"status"`
 	Reason      string    `json:"reason,omitempty"`
+}
+
+type ScriptEvalResultMessage struct {
+	Type        string    `json:"type"`
+	GeneratedAt time.Time `json:"generated_at"`
+	DeviceID    string    `json:"device_id"`
+	RequestID   uint32    `json:"request_id"`
+	Status      string    `json:"status"`
+	Reason      string    `json:"reason,omitempty"`
+}
+
+type ScriptResultMessage struct {
+	BaseMessage
+	Status   string `json:"status"`
+	Ok       bool   `json:"ok"`
+	TimedOut bool   `json:"timed_out"`
+	Output   string `json:"output,omitempty"`
+	Error    string `json:"error,omitempty"`
 }
 
 func NewHub(logger *log.Logger) *Hub {
@@ -246,8 +282,8 @@ func (h *Hub) handleBrowserMessage(browser *BrowserSocket, msgType int, payload 
 		return
 	}
 
-	var msg UiCommandMessage
-	if err := json.Unmarshal(payload, &msg); err != nil {
+	var envelope BrowserMessage
+	if err := json.Unmarshal(payload, &envelope); err != nil {
 		h.log.Printf("invalid browser json remote=%s err=%v", browser.remoteAddr, err)
 		h.sendCommandResult(browser, UiCommandResultMessage{
 			Type:        "ui_command_result",
@@ -258,16 +294,33 @@ func (h *Hub) handleBrowserMessage(browser *BrowserSocket, msgType int, payload 
 		return
 	}
 
-	if msg.Type != "ui_command" {
-		h.log.Printf("unexpected browser message remote=%s type=%q", browser.remoteAddr, msg.Type)
+	switch envelope.Type {
+	case "ui_command":
+		h.handleBrowserUiCommand(browser, payload)
+	case "script_eval":
+		h.handleBrowserScriptEval(browser, payload)
+	default:
+		h.log.Printf("unexpected browser message remote=%s type=%q", browser.remoteAddr, envelope.Type)
 		h.sendCommandResult(browser, UiCommandResultMessage{
 			Type:        "ui_command_result",
 			GeneratedAt: time.Now(),
-			DeviceID:    msg.DeviceID,
-			Command:     msg.Command,
-			RequestID:   msg.RequestID,
+			DeviceID:    envelope.DeviceID,
+			RequestID:   envelope.RequestID,
 			Status:      "rejected",
-			Reason:      "only ui_command messages are accepted from browsers",
+			Reason:      "unsupported browser message type",
+		})
+	}
+}
+
+func (h *Hub) handleBrowserUiCommand(browser *BrowserSocket, payload []byte) {
+	var msg UiCommandMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		h.log.Printf("invalid ui command remote=%s err=%v", browser.remoteAddr, err)
+		h.sendCommandResult(browser, UiCommandResultMessage{
+			Type:        "ui_command_result",
+			GeneratedAt: time.Now(),
+			Status:      "rejected",
+			Reason:      "invalid ui_command payload",
 		})
 		return
 	}
@@ -286,7 +339,7 @@ func (h *Hub) handleBrowserMessage(browser *BrowserSocket, msgType int, payload 
 		return
 	}
 
-	if err := h.routeCommandToDevice(browser, payload, msg); err != nil {
+	if err := h.routePayloadToDevice(browser, payload, msg.DeviceID, msg.RequestID, msg.Command, "ui_command"); err != nil {
 		h.log.Printf("browser command route failed remote=%s device_id=%s command=%s request_id=%d err=%v",
 			browser.remoteAddr,
 			msg.DeviceID,
@@ -316,25 +369,75 @@ func (h *Hub) handleBrowserMessage(browser *BrowserSocket, msgType int, payload 
 	})
 }
 
-func (h *Hub) routeCommandToDevice(browser *BrowserSocket, payload []byte, msg UiCommandMessage) error {
+func (h *Hub) handleBrowserScriptEval(browser *BrowserSocket, payload []byte) {
+	var msg ScriptEvalMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		h.log.Printf("invalid script eval remote=%s err=%v", browser.remoteAddr, err)
+		h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
+			Type:        "script_eval_result",
+			GeneratedAt: time.Now(),
+			Status:      "rejected",
+			Reason:      "invalid script_eval payload",
+		})
+		return
+	}
+
+	if msg.DeviceID == "" || msg.Code == "" {
+		h.log.Printf("rejecting script eval remote=%s missing device_id or code", browser.remoteAddr)
+		h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
+			Type:        "script_eval_result",
+			GeneratedAt: time.Now(),
+			DeviceID:    msg.DeviceID,
+			RequestID:   msg.RequestID,
+			Status:      "rejected",
+			Reason:      "device_id and code are required",
+		})
+		return
+	}
+
+	if err := h.routePayloadToDevice(browser, payload, msg.DeviceID, msg.RequestID, "script_eval", "script_eval"); err != nil {
+		h.log.Printf("script eval route failed remote=%s device_id=%s request_id=%d err=%v",
+			browser.remoteAddr, msg.DeviceID, msg.RequestID, err)
+		h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
+			Type:        "script_eval_result",
+			GeneratedAt: time.Now(),
+			DeviceID:    msg.DeviceID,
+			RequestID:   msg.RequestID,
+			Status:      "rejected",
+			Reason:      err.Error(),
+		})
+		return
+	}
+
+	h.sendScriptEvalResult(browser, ScriptEvalResultMessage{
+		Type:        "script_eval_result",
+		GeneratedAt: time.Now(),
+		DeviceID:    msg.DeviceID,
+		RequestID:   msg.RequestID,
+		Status:      "queued",
+	})
+}
+
+func (h *Hub) routePayloadToDevice(browser *BrowserSocket, payload []byte, deviceID string, requestID uint32, action string, msgType string) error {
 	h.mu.RLock()
-	deviceSocket := h.deviceSockets[msg.DeviceID]
+	deviceSocket := h.deviceSockets[deviceID]
 	h.mu.RUnlock()
 
 	if deviceSocket == nil {
-		return fmt.Errorf("device %s is not connected", msg.DeviceID)
+		return fmt.Errorf("device %s is not connected", deviceID)
 	}
 
 	if err := deviceSocket.writeText(payload); err != nil {
-		h.unregisterDeviceSocket(msg.DeviceID, deviceSocket.conn)
+		h.unregisterDeviceSocket(deviceID, deviceSocket.conn)
 		return fmt.Errorf("device write failed: %w", err)
 	}
 
-	h.log.Printf("browser command forwarded remote=%s device_id=%s command=%s request_id=%d payload=%q",
+	h.log.Printf("browser payload forwarded remote=%s type=%s device_id=%s action=%s request_id=%d payload=%q",
 		browser.remoteAddr,
-		msg.DeviceID,
-		msg.Command,
-		msg.RequestID,
+		msgType,
+		deviceID,
+		action,
+		requestID,
 		abbreviatePayload(payload),
 	)
 	return nil
@@ -351,6 +454,22 @@ func (h *Hub) sendCommandResult(browser *BrowserSocket, result UiCommandResultMe
 		browser.remoteAddr,
 		result.DeviceID,
 		result.Command,
+		result.RequestID,
+		result.Status,
+		result.Reason,
+	)
+}
+
+func (h *Hub) sendScriptEvalResult(browser *BrowserSocket, result ScriptEvalResultMessage) {
+	if err := browser.writeJSON(result); err != nil {
+		h.log.Printf("script eval result write failed remote=%s request_id=%d err=%v", browser.remoteAddr, result.RequestID, err)
+		h.removeBrowser(browser.conn)
+		return
+	}
+
+	h.log.Printf("script eval result remote=%s device_id=%s request_id=%d status=%s reason=%q",
+		browser.remoteAddr,
+		result.DeviceID,
 		result.RequestID,
 		result.Status,
 		result.Reason,
@@ -474,6 +593,14 @@ func (h *Hub) recordDeviceMessage(deviceID string, remoteAddr string, payload []
 			device.LastCommandStatus = msg.Status
 			device.LastRequestID = msg.RequestID
 		}
+	case "script_result":
+		var msg ScriptResultMessage
+		if err := json.Unmarshal(payload, &msg); err == nil {
+			device.LastScriptStatus = msg.Status
+			device.LastScriptError = msg.Error
+			device.LastScriptRequest = msg.RequestID
+			device.LastRequestID = msg.RequestID
+		}
 	}
 
 	h.nextHistoryID++
@@ -504,9 +631,11 @@ func (h *Hub) recordDeviceMessage(deviceID string, remoteAddr string, payload []
 	lastCommand := device.LastCommand
 	lastCommandStatus := device.LastCommandStatus
 	lastRequestID := device.LastRequestID
+	lastScriptStatus := device.LastScriptStatus
+	lastScriptRequest := device.LastScriptRequest
 	h.mu.Unlock()
 
-	h.log.Printf("device state updated device_id=%s seq=%d type=%s pos=%d delta=%d rx_count=%d last_command=%s command_status=%s request_id=%d browsers=%d",
+	h.log.Printf("device state updated device_id=%s seq=%d type=%s pos=%d delta=%d rx_count=%d last_command=%s command_status=%s request_id=%d last_script_status=%s last_script_request=%d browsers=%d",
 		deviceID,
 		lastSeq,
 		lastType,
@@ -516,9 +645,17 @@ func (h *Hub) recordDeviceMessage(deviceID string, remoteAddr string, payload []
 		lastCommand,
 		lastCommandStatus,
 		lastRequestID,
+		lastScriptStatus,
+		lastScriptRequest,
 		browserCount,
 	)
 
+	if base.Type == "script_result" || base.Type == "script_console" || base.Type == "script_event" {
+		var direct map[string]any
+		if err := json.Unmarshal(payload, &direct); err == nil {
+			h.broadcast(direct)
+		}
+	}
 	h.broadcast(event)
 	h.broadcast(status)
 }

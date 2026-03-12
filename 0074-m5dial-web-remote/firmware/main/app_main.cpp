@@ -15,6 +15,8 @@
 #include "lwip/inet.h"
 
 #include "input_events.h"
+#include "app_commands.h"
+#include "js_service.h"
 #include "m5dial_board.h"
 #include "remote_client.h"
 #include "remote_config.h"
@@ -31,7 +33,7 @@ constexpr UBaseType_t kIoTaskPriority = 6;
 constexpr UBaseType_t kAppTaskPriority = 5;
 constexpr uint32_t kIoPollMs = 8;
 constexpr size_t kInputQueueLength = 32;
-constexpr size_t kUiCommandQueueLength = 8;
+constexpr size_t kAppCommandQueueLength = 16;
 
 // ─── Mode system ────────────────────────────────────────────
 
@@ -95,7 +97,7 @@ void init_station_trig() {
 struct AppContext {
   tutorial_0072::M5DialBoard board;
   QueueHandle_t input_queue = nullptr;
-  QueueHandle_t ui_command_queue = nullptr;
+  QueueHandle_t app_command_queue = nullptr;
   int32_t position = 0;
   int32_t last_delta = 0;
   uint32_t sequence = 0;
@@ -406,7 +408,7 @@ const char* swipe_direction_str(tutorial_0072::SwipeDirection dir) {
   }
 }
 
-void parse_set_station(AppContext* ctx, const RemoteUiCommand& cmd) {
+void parse_set_station(AppContext* ctx, const AppCommand& cmd) {
   // cmd.value = position (0-119), cmd.text = "type:name" e.g. "1:phantom_relay"
   int pos = cmd.value;
   if (pos < 0 || pos >= kNumStations) return;
@@ -497,19 +499,35 @@ void handle_input_event(AppContext* ctx, const tutorial_0072::InputEvent& event)
 
 // ─── UI command handling ────────────────────────────────────
 
-void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
+void maybe_send_command_ack(AppContext* ctx,
+                            const AppCommand& cmd,
+                            uint32_t sequence,
+                            const char* status,
+                            int32_t pos,
+                            const char* text,
+                            uint64_t ts_ms) {
+  if (cmd.source != AppCommandSource::kUi) {
+    return;
+  }
+  (void)remote_client_send_ui_ack(sequence, cmd.request_id, cmd.command, status, pos, text, ts_ms);
+}
+
+void handle_app_command(AppContext* ctx, const AppCommand& cmd) {
   const uint64_t ts_ms = now_ms();
   ctx->sequence++;
 
   switch (cmd.type) {
-    case RemoteUiCommandType::kShowMessage:
-      std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "%s", cmd.text[0] ? cmd.text : "-");
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui msg");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
+    case AppCommandType::kShowMessage:
+      std::snprintf(ctx->last_ui_message,
+                    sizeof(ctx->last_ui_message),
+                    "%.*s",
+                    static_cast<int>(sizeof(ctx->last_ui_message) - 1),
+                    cmd.text[0] ? cmd.text : "-");
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s msg", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied", ctx->position, ctx->last_ui_message, ts_ms);
       break;
 
-    case RemoteUiCommandType::kSetPosition:
+    case AppCommandType::kSetPosition:
       ctx->position = cmd.value;
       ctx->last_delta = 0;
       if (ctx->mode == AppMode::kRadio) {
@@ -517,12 +535,11 @@ void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
         ctx->radio.dirty = true;
       }
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "pos=%" PRId32, cmd.value);
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui pos");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied", ctx->position, ctx->last_ui_message, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s pos", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied", ctx->position, ctx->last_ui_message, ts_ms);
       break;
 
-    case RemoteUiCommandType::kSetMode: {
+    case AppCommandType::kSetMode: {
       uint8_t new_mode = static_cast<uint8_t>(cmd.value);
       if (new_mode <= 1) {
         ctx->mode = static_cast<AppMode>(new_mode);
@@ -533,53 +550,49 @@ void handle_ui_command(AppContext* ctx, const RemoteUiCommand& cmd) {
         }
       }
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "mode=%d", new_mode);
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui mode");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied",
-          ctx->mode == AppMode::kRadio ? ctx->radio.freq_pos : ctx->position,
-          ctx->last_ui_message, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s mode", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied",
+                             ctx->mode == AppMode::kRadio ? ctx->radio.freq_pos : ctx->position,
+                             ctx->last_ui_message, ts_ms);
       break;
     }
 
-    case RemoteUiCommandType::kSetStation:
+    case AppCommandType::kSetStation:
       parse_set_station(ctx, cmd);
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "station %" PRId32, cmd.value);
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui station");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied",
-          ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s station", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied", ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
       break;
 
-    case RemoteUiCommandType::kSetBand: {
+    case AppCommandType::kSetBand: {
       if (std::strcmp(cmd.text, "AM") == 0) ctx->radio.band = 0;
       else if (std::strcmp(cmd.text, "FM") == 0) ctx->radio.band = 1;
       else ctx->radio.band = 2;
       ctx->radio.dirty = true;
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "band=%.*s",
                     static_cast<int>(sizeof(ctx->last_ui_message) - sizeof("band=")), cmd.text);
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui band");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied",
-          ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s band", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied", ctx->radio.freq_pos, ctx->last_ui_message, ts_ms);
       break;
     }
 
-    case RemoteUiCommandType::kShowReveal:
-      std::snprintf(ctx->radio.reveal_text, sizeof(ctx->radio.reveal_text), "%s", cmd.text);
+    case AppCommandType::kShowReveal:
+      std::snprintf(ctx->radio.reveal_text,
+                    sizeof(ctx->radio.reveal_text),
+                    "%.*s",
+                    static_cast<int>(sizeof(ctx->radio.reveal_text) - 1),
+                    cmd.text);
       ctx->radio.reveal_until_ms = ts_ms + 3000;
       ctx->radio.dirty = true;
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "reveal");
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui reveal");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "applied",
-          ctx->radio.freq_pos, cmd.text, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s reveal", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "applied", ctx->radio.freq_pos, cmd.text, ts_ms);
       break;
 
-    case RemoteUiCommandType::kUnknown:
+    case AppCommandType::kUnknown:
       std::snprintf(ctx->last_ui_message, sizeof(ctx->last_ui_message), "unknown");
-      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "ui ?");
-      (void)remote_client_send_ui_ack(
-          ctx->sequence, cmd.request_id, cmd.command, "ignored", ctx->position, ctx->last_ui_message, ts_ms);
+      std::snprintf(ctx->last_event, sizeof(ctx->last_event), "%s ?", app_command_source_name(cmd.source));
+      maybe_send_command_ack(ctx, cmd, ctx->sequence, "ignored", ctx->position, ctx->last_ui_message, ts_ms);
       break;
   }
   ctx->last_event_ms = ts_ms;
@@ -602,9 +615,9 @@ void app_task(void* arg) {
       }
     }
 
-    RemoteUiCommand cmd;
-    while (xQueueReceive(ctx->ui_command_queue, &cmd, 0) == pdTRUE) {
-      handle_ui_command(ctx, cmd);
+    AppCommand cmd;
+    while (xQueueReceive(ctx->app_command_queue, &cmd, 0) == pdTRUE) {
+      handle_app_command(ctx, cmd);
     }
 
     // Check if reveal text has expired
@@ -646,9 +659,9 @@ extern "C" void app_main(void) {
     ESP_LOGE(TAG, "input queue creation failed");
     return;
   }
-  app.ui_command_queue = xQueueCreate(kUiCommandQueueLength, sizeof(RemoteUiCommand));
-  if (!app.ui_command_queue) {
-    ESP_LOGE(TAG, "ui command queue creation failed");
+  app.app_command_queue = xQueueCreate(kAppCommandQueueLength, sizeof(AppCommand));
+  if (!app.app_command_queue) {
+    ESP_LOGE(TAG, "app command queue creation failed");
     return;
   }
 
@@ -663,8 +676,11 @@ extern "C" void app_main(void) {
   ESP_ERROR_CHECK(remote_config_load(&cfg));
   ensure_device_id(&cfg);
 
+  ESP_ERROR_CHECK(js_service_start(app.app_command_queue));
+  js_service_set_remote_enabled(cfg.remote_script_enabled);
+
   ESP_ERROR_CHECK(remote_client_init());
-  remote_client_set_command_queue(app.ui_command_queue);
+  remote_client_set_app_command_queue(app.app_command_queue);
   remote_client_set_config(cfg);
   if (cfg.url[0] != '\0') {
     ESP_ERROR_CHECK(remote_client_connect());

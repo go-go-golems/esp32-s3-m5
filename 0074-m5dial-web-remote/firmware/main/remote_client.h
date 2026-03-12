@@ -7,6 +7,7 @@
 
 #include "esp_err.h"
 
+#include "app_commands.h"
 #include "remote_config.h"
 
 enum class RemoteClientState : uint8_t {
@@ -32,27 +33,9 @@ struct RemoteClientStatus {
   uint64_t last_rx_ms = 0;
 };
 
-enum class RemoteUiCommandType : uint8_t {
-  kUnknown = 0,
-  kShowMessage,
-  kSetPosition,
-  kSetMode,
-  kSetStation,
-  kSetBand,
-  kShowReveal,
-};
-
-struct RemoteUiCommand {
-  RemoteUiCommandType type = RemoteUiCommandType::kUnknown;
-  uint32_t request_id = 0;
-  char command[24] = {0};
-  char text[64] = {0};
-  int32_t value = 0;
-};
-
 esp_err_t remote_client_init();
 void remote_client_set_config(const RemoteConfig& cfg);
-void remote_client_set_command_queue(QueueHandle_t queue);
+void remote_client_set_app_command_queue(QueueHandle_t queue);
 esp_err_t remote_client_connect();
 esp_err_t remote_client_disconnect();
 void remote_client_get_status(RemoteClientStatus* out);
@@ -66,3 +49,18 @@ esp_err_t remote_client_send_ui_ack(uint32_t seq,
                                     int32_t pos,
                                     const char* text,
                                     uint64_t ts_ms);
+esp_err_t remote_client_send_script_result(uint32_t request_id,
+                                           const char* status,
+                                           bool ok,
+                                           bool timed_out,
+                                           const char* output,
+                                           const char* error,
+                                           uint64_t ts_ms);
+esp_err_t remote_client_send_script_console(uint32_t request_id,
+                                            const char* level,
+                                            const char* message,
+                                            uint64_t ts_ms);
+esp_err_t remote_client_send_script_event(uint32_t request_id,
+                                          const char* event_name,
+                                          const char* detail,
+                                          uint64_t ts_ms);

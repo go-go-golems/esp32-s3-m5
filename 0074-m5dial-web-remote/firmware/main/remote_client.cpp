@@ -4,6 +4,7 @@
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <memory>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
@@ -14,6 +15,7 @@
 #include "esp_websocket_client.h"
 #include "cJSON.h"
 
+#include "js_service.h"
 #include "wifi_mgr.h"
 
 namespace {
@@ -28,11 +30,13 @@ RemoteConfig s_cfg = {};
 TaskHandle_t s_task = nullptr;
 esp_websocket_client_handle_t s_client = nullptr;
 bool s_hello_pending = false;
-QueueHandle_t s_command_q = nullptr;
+QueueHandle_t s_app_command_q = nullptr;
 
 uint64_t now_ms() {
   return static_cast<uint64_t>(esp_timer_get_time() / 1000LL);
 }
+
+esp_err_t send_json(const char* json);
 
 void lock() {
   xSemaphoreTake(s_mu, portMAX_DELAY);
@@ -63,75 +67,108 @@ void stop_client() {
   s_client = nullptr;
 }
 
-void enqueue_ui_command(const char* data_ptr, int data_len) {
-  if (!s_command_q || !data_ptr || data_len <= 0) {
+constexpr size_t kInboundFrameMaxBytes = CONFIG_TUTORIAL_0074_JS_MAX_BODY + 512;
+
+esp_err_t send_cjson_object(cJSON* root) {
+  if (!root) {
+    return ESP_ERR_INVALID_ARG;
+  }
+  char* json = cJSON_PrintUnformatted(root);
+  if (!json) {
+    return ESP_ERR_NO_MEM;
+  }
+  const esp_err_t err = send_json(json);
+  cJSON_free(json);
+  return err;
+}
+
+void enqueue_app_command(const AppCommand& cmd) {
+  if (!s_app_command_q) {
+    return;
+  }
+  if (xQueueSend(s_app_command_q, &cmd, 0) != pdTRUE) {
+    ESP_LOGW(TAG, "app command queue full, dropping source=%s command=%s",
+             app_command_source_name(cmd.source), cmd.command);
     return;
   }
 
-  char json[256];
-  const int copy_len = std::min<int>(data_len, sizeof(json) - 1);
-  std::memcpy(json, data_ptr, static_cast<size_t>(copy_len));
-  json[copy_len] = '\0';
+  ESP_LOGI(TAG, "queued app command source=%s command=%s text=%s value=%" PRId32,
+           app_command_source_name(cmd.source), cmd.command, cmd.text, cmd.value);
+}
 
-  cJSON* root = cJSON_Parse(json);
+void handle_script_eval_message(const cJSON* root) {
+  const cJSON* request_id = cJSON_GetObjectItemCaseSensitive(root, "request_id");
+  const cJSON* code = cJSON_GetObjectItemCaseSensitive(root, "code");
+  const cJSON* timeout_ms = cJSON_GetObjectItemCaseSensitive(root, "timeout_ms");
+  const cJSON* filename = cJSON_GetObjectItemCaseSensitive(root, "filename");
+
+  uint32_t req_id = 0;
+  if (cJSON_IsNumber(request_id) && request_id->valuedouble >= 0) {
+    req_id = static_cast<uint32_t>(request_id->valuedouble);
+  }
+  if (!cJSON_IsString(code) || code->valuestring[0] == '\0') {
+    (void)remote_client_send_script_result(req_id, "rejected", false, false, "", "script code is required", now_ms());
+    return;
+  }
+
+  ScriptEvalRequest request = {};
+  request.request_id = req_id;
+  request.timeout_ms = cJSON_IsNumber(timeout_ms) && timeout_ms->valuedouble > 0
+                           ? static_cast<uint32_t>(timeout_ms->valuedouble)
+                           : static_cast<uint32_t>(CONFIG_TUTORIAL_0074_JS_TIMEOUT_MS);
+  std::snprintf(request.filename, sizeof(request.filename), "%s",
+                cJSON_IsString(filename) ? filename->valuestring : "<remote>");
+  std::snprintf(request.code, sizeof(request.code), "%s", code->valuestring);
+
+  const esp_err_t err = js_service_submit(&request);
+  if (err != ESP_OK) {
+    (void)remote_client_send_script_result(req_id, "rejected", false, false, "", esp_err_to_name(err), now_ms());
+    ESP_LOGW(TAG, "failed to queue script request request_id=%" PRIu32 " err=%s", req_id, esp_err_to_name(err));
+    return;
+  }
+
+  ESP_LOGI(TAG, "queued script request request_id=%" PRIu32 " timeout_ms=%" PRIu32, req_id, request.timeout_ms);
+}
+
+void handle_inbound_frame(const char* data_ptr, int data_len) {
+  if ((!s_app_command_q && !js_service_remote_enabled()) || !data_ptr || data_len <= 0) {
+    return;
+  }
+  if (static_cast<size_t>(data_len) > kInboundFrameMaxBytes) {
+    ESP_LOGW(TAG, "dropping inbound frame larger than limit bytes=%d", data_len);
+    return;
+  }
+
+  std::unique_ptr<char[]> json(new char[static_cast<size_t>(data_len) + 1]);
+  if (!json) {
+    ESP_LOGW(TAG, "failed to allocate inbound frame buffer");
+    return;
+  }
+  std::memcpy(json.get(), data_ptr, static_cast<size_t>(data_len));
+  json[data_len] = '\0';
+
+  cJSON* root = cJSON_Parse(json.get());
   if (!root) {
     ESP_LOGW(TAG, "failed to parse inbound ws json");
     return;
   }
 
+  AppCommand command = {};
+  if (app_command_parse_ui_message(root, &command)) {
+    cJSON_Delete(root);
+    enqueue_app_command(command);
+    return;
+  }
+
   const cJSON* type = cJSON_GetObjectItemCaseSensitive(root, "type");
-  if (!cJSON_IsString(type) || std::strcmp(type->valuestring, "ui_command") != 0) {
+  if (!cJSON_IsString(type)) {
     cJSON_Delete(root);
     return;
   }
-
-  RemoteUiCommand cmd = {};
-  const cJSON* request_id = cJSON_GetObjectItemCaseSensitive(root, "request_id");
-  if (cJSON_IsNumber(request_id) && request_id->valuedouble >= 0) {
-    cmd.request_id = static_cast<uint32_t>(request_id->valuedouble);
+  if (std::strcmp(type->valuestring, "script_eval") == 0) {
+    handle_script_eval_message(root);
   }
-
-  const cJSON* command = cJSON_GetObjectItemCaseSensitive(root, "command");
-  if (cJSON_IsString(command)) {
-    std::snprintf(cmd.command, sizeof(cmd.command), "%s", command->valuestring);
-    if (std::strcmp(command->valuestring, "show_message") == 0) {
-      cmd.type = RemoteUiCommandType::kShowMessage;
-    } else if (std::strcmp(command->valuestring, "set_position") == 0) {
-      cmd.type = RemoteUiCommandType::kSetPosition;
-    } else if (std::strcmp(command->valuestring, "set_mode") == 0) {
-      cmd.type = RemoteUiCommandType::kSetMode;
-    } else if (std::strcmp(command->valuestring, "set_station") == 0) {
-      cmd.type = RemoteUiCommandType::kSetStation;
-    } else if (std::strcmp(command->valuestring, "set_band") == 0) {
-      cmd.type = RemoteUiCommandType::kSetBand;
-    } else if (std::strcmp(command->valuestring, "show_reveal") == 0) {
-      cmd.type = RemoteUiCommandType::kShowReveal;
-    }
-  }
-
-  const cJSON* text = cJSON_GetObjectItemCaseSensitive(root, "text");
-  if (cJSON_IsString(text)) {
-    std::snprintf(cmd.text, sizeof(cmd.text), "%s", text->valuestring);
-  }
-
-  const cJSON* value = cJSON_GetObjectItemCaseSensitive(root, "value");
-  if (cJSON_IsNumber(value)) {
-    cmd.value = value->valueint;
-  }
-
   cJSON_Delete(root);
-
-  if (cmd.type == RemoteUiCommandType::kUnknown) {
-    ESP_LOGW(TAG, "ignoring unknown ui command");
-    return;
-  }
-
-  if (xQueueSend(s_command_q, &cmd, 0) != pdTRUE) {
-    ESP_LOGW(TAG, "ui command queue full, dropping command=%s", cmd.command);
-    return;
-  }
-
-  ESP_LOGI(TAG, "queued ui command command=%s text=%s value=%" PRId32, cmd.command, cmd.text, cmd.value);
 }
 
 void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
@@ -163,7 +200,7 @@ void websocket_event_handler(void* handler_args, esp_event_base_t base, int32_t 
         const int count = std::min<int>(data->data_len, sizeof(s_status.last_message) - 1);
         std::memcpy(s_status.last_message, data->data_ptr, static_cast<size_t>(count));
         s_status.last_message[count] = '\0';
-        enqueue_ui_command(static_cast<const char*>(data->data_ptr), data->data_len);
+        handle_inbound_frame(static_cast<const char*>(data->data_ptr), data->data_len);
       }
       break;
     }
@@ -358,9 +395,9 @@ void remote_client_set_config(const RemoteConfig& cfg) {
   stop_client();
 }
 
-void remote_client_set_command_queue(QueueHandle_t queue) {
+void remote_client_set_app_command_queue(QueueHandle_t queue) {
   lock();
-  s_command_q = queue;
+  s_app_command_q = queue;
   unlock();
 }
 
@@ -483,5 +520,80 @@ esp_err_t remote_client_send_ui_ack(uint32_t seq,
 
   const esp_err_t err = send_json(json);
   cJSON_free(json);
+  return err;
+}
+
+esp_err_t remote_client_send_script_result(uint32_t request_id,
+                                           const char* status,
+                                           bool ok,
+                                           bool timed_out,
+                                           const char* output,
+                                           const char* error,
+                                           uint64_t ts_ms) {
+  lock();
+  RemoteConfig cfg = s_cfg;
+  unlock();
+
+  cJSON* root = cJSON_CreateObject();
+  if (!root) {
+    return ESP_ERR_NO_MEM;
+  }
+  cJSON_AddStringToObject(root, "type", "script_result");
+  cJSON_AddStringToObject(root, "device_id", cfg.device_id);
+  cJSON_AddNumberToObject(root, "request_id", request_id);
+  cJSON_AddNumberToObject(root, "ts_ms", static_cast<double>(ts_ms));
+  cJSON_AddStringToObject(root, "status", status ? status : "unknown");
+  cJSON_AddBoolToObject(root, "ok", ok);
+  cJSON_AddBoolToObject(root, "timed_out", timed_out);
+  cJSON_AddStringToObject(root, "output", output ? output : "");
+  cJSON_AddStringToObject(root, "error", error ? error : "");
+  const esp_err_t err = send_cjson_object(root);
+  cJSON_Delete(root);
+  return err;
+}
+
+esp_err_t remote_client_send_script_console(uint32_t request_id,
+                                            const char* level,
+                                            const char* message,
+                                            uint64_t ts_ms) {
+  lock();
+  RemoteConfig cfg = s_cfg;
+  unlock();
+
+  cJSON* root = cJSON_CreateObject();
+  if (!root) {
+    return ESP_ERR_NO_MEM;
+  }
+  cJSON_AddStringToObject(root, "type", "script_console");
+  cJSON_AddStringToObject(root, "device_id", cfg.device_id);
+  cJSON_AddNumberToObject(root, "request_id", request_id);
+  cJSON_AddNumberToObject(root, "ts_ms", static_cast<double>(ts_ms));
+  cJSON_AddStringToObject(root, "level", level ? level : "info");
+  cJSON_AddStringToObject(root, "message", message ? message : "");
+  const esp_err_t err = send_cjson_object(root);
+  cJSON_Delete(root);
+  return err;
+}
+
+esp_err_t remote_client_send_script_event(uint32_t request_id,
+                                          const char* event_name,
+                                          const char* detail,
+                                          uint64_t ts_ms) {
+  lock();
+  RemoteConfig cfg = s_cfg;
+  unlock();
+
+  cJSON* root = cJSON_CreateObject();
+  if (!root) {
+    return ESP_ERR_NO_MEM;
+  }
+  cJSON_AddStringToObject(root, "type", "script_event");
+  cJSON_AddStringToObject(root, "device_id", cfg.device_id);
+  cJSON_AddNumberToObject(root, "request_id", request_id);
+  cJSON_AddNumberToObject(root, "ts_ms", static_cast<double>(ts_ms));
+  cJSON_AddStringToObject(root, "name", event_name ? event_name : "event");
+  cJSON_AddStringToObject(root, "detail", detail ? detail : "");
+  const esp_err_t err = send_cjson_object(root);
+  cJSON_Delete(root);
   return err;
 }
