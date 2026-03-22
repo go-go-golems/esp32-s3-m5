@@ -30,7 +30,7 @@ RelatedFiles:
         Guest behavior mirrored by replay control tests
 ExternalSources: []
 Summary: Detailed debugging diary for the PaperS3 replay-isolation control-path experiment.
-LastUpdated: 2026-03-22T14:26:00-04:00
+LastUpdated: 2026-03-22T14:42:00-04:00
 WhatFor: Record each replay-isolation implementation and hardware-debugging step in enough detail to reconstruct the reasoning later.
 WhenToUse: Read this before continuing the ticket or reviewing why a specific control-path experiment was attempted.
 ---
@@ -469,3 +469,104 @@ The next investigation should stop adding application-level demos and instead in
 - task/critical-section state before and after the call
 - whether cache-sensitive platform code runs on the return path
 - whether the current local WAMR component patches differ materially from the official Espressif integration path in ways that matter on ESP32-S3
+
+## Step 7: Instrument execution-state snapshots around the WAMR call
+
+Step 6 established that plain WAMR execution is enough to poison later replay, but that still did not tell us whether the runtime was returning with an obviously bad interrupt or task state. The next move was to instrument the success path itself.
+
+### What I changed
+
+I added execution-state snapshots to [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) at three points:
+
+- `before-call`
+- `after-call`
+- `before-preflush` or `before-postcleanup-flush`
+
+The snapshot prints:
+
+- current core id
+- current task handle
+- cycle count
+- raw Xtensa `PS` register
+- decoded `PS.INTLEVEL`
+- `xPortInIsrContext()`
+- FreeRTOS scheduler-running flag for the current core
+- FreeRTOS interrupt nesting
+- FreeRTOS critical nesting
+- FreeRTOS saved old interrupt state
+- stack high-water mark for the current task
+
+This is intentionally diagnostic and temporary. The purpose is to determine whether the WAMR return path is visibly leaving the current task with elevated interrupt level, ISR context, or critical nesting.
+
+### Build mistake and fix
+
+My first build failed. I declared the FreeRTOS port globals inside the C++ anonymous namespace, which caused the linker to look for mangled C++ symbol names that do not exist.
+
+The linker failure looked like:
+
+- `undefined reference to ... port_xSchedulerRunning`
+- `undefined reference to ... port_interruptNesting`
+- `undefined reference to ... port_uxCriticalNesting`
+- `undefined reference to ... port_uxOldInterruptState`
+
+This was a straightforward integration mistake, not a runtime finding. I fixed it by moving those declarations into an `extern "C"` block outside the C++ namespace.
+
+### What I ran
+
+After rebuilding and flashing the instrumented firmware, I ran:
+
+- `wasm run-preflush return-42`
+
+I chose `return-42` because it is the smallest success case and does not pull in host imports that could distract from the runtime-state question.
+
+### What happened
+
+The success output included the new probes:
+
+- `exec_probe.stage=before-call`
+- `exec_probe.ps.intlevel=0`
+- `exec_probe.in_isr=no`
+- `exec_probe.interrupt_nesting=0`
+- `exec_probe.critical_nesting=0`
+
+After the Wasm call returned:
+
+- `exec_probe.stage=after-call`
+- `exec_probe.ps.intlevel=0`
+- `exec_probe.in_isr=no`
+- `exec_probe.interrupt_nesting=0`
+- `exec_probe.critical_nesting=0`
+
+Immediately before the preflush:
+
+- `exec_probe.stage=before-preflush`
+- `exec_probe.ps.intlevel=0`
+- `exec_probe.in_isr=no`
+- `exec_probe.interrupt_nesting=0`
+- `exec_probe.critical_nesting=0`
+
+The command itself still succeeded:
+
+- `module=return-42`
+- `execution=success`
+- `return_value=42`
+
+### What I learned
+
+This result removes one tempting explanation:
+
+- there is no obvious leak of ISR context
+- there is no obvious nonzero Xtensa interrupt level on return
+- there is no obvious nonzero FreeRTOS critical nesting on return
+
+That does not clear WAMR. It only tells us the corruption is subtler than "interrupts stayed disabled" or "the task never exited a critical section."
+
+The remaining suspicious areas are now things like:
+
+- cache or memory-mapping state not reflected in the simple task/interrupt counters
+- interpreter/native-call bridge behavior specific to Xtensa
+- local WAMR platform integration differences that do not show up in these basic task-state snapshots
+
+### Why this step still matters
+
+Negative results are important in debugging when they eliminate popular but weak theories. This step does exactly that. If the counters had come back with `intlevel > 0` or nonzero critical nesting, the next step would be obvious. Because they did not, the investigation has to move lower into WAMR and ESP32-S3 platform behavior.

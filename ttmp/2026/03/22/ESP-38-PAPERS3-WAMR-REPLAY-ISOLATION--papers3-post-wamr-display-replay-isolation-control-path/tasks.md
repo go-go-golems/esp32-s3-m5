@@ -42,6 +42,7 @@
 ## Next Candidates
 
 - [ ] Task 5: Inspect whether WAMR execution leaves cache/interrupt state altered on the current task
-- [ ] Task 5.1: Compare task or critical-section state before and after `wasm_runtime_call_wasm[_a]`
+- [x] Task 5.1: Compare task or critical-section state before and after `wasm_runtime_call_wasm[_a]`
 - [ ] Task 5.2: Inspect WAMR interpreter/native-call paths for ESP32-S3-specific cache-sensitive behavior
 - [ ] Task 5.3: Decide whether to keep the local WAMR component or trial the official Espressif component package layout
+- [ ] Task 5.4: Commit execution-state instrumentation findings

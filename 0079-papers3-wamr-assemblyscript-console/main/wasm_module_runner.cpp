@@ -9,7 +9,17 @@
 #include <cstdio>
 #include <cstring>
 
+#include "esp_cpu.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "wasm_export.h"
+
+extern "C" {
+extern volatile unsigned port_xSchedulerRunning[portNUM_PROCESSORS];
+extern unsigned port_interruptNesting[portNUM_PROCESSORS];
+extern BaseType_t port_uxCriticalNesting[portNUM_PROCESSORS];
+extern BaseType_t port_uxOldInterruptState[portNUM_PROCESSORS];
+}
 
 namespace papers3_wasm {
 
@@ -36,6 +46,39 @@ const char *FlushTimingName(WasmFlushTiming flush_timing)
     }
 
     return "unknown";
+}
+
+void PrintExecutionContextSnapshot(const char *stage)
+{
+    const BaseType_t core_id = xPortGetCoreID();
+    uint32_t ps = 0;
+    __asm__ volatile("rsr %0, ps" : "=a"(ps));
+
+    std::printf(
+        "exec_probe.stage=%s\n"
+        "exec_probe.core=%" PRId32 "\n"
+        "exec_probe.task=%p\n"
+        "exec_probe.cycles=%" PRIu32 "\n"
+        "exec_probe.ps=0x%08" PRIx32 "\n"
+        "exec_probe.ps.intlevel=%" PRIu32 "\n"
+        "exec_probe.in_isr=%s\n"
+        "exec_probe.scheduler=%u\n"
+        "exec_probe.interrupt_nesting=%u\n"
+        "exec_probe.critical_nesting=%" PRId32 "\n"
+        "exec_probe.old_interrupt_state=%" PRId32 "\n"
+        "exec_probe.stack_hwm=%" PRIu32 "\n",
+        stage != nullptr ? stage : "unknown",
+        static_cast<int32_t>(core_id),
+        xTaskGetCurrentTaskHandle(),
+        static_cast<uint32_t>(esp_cpu_get_cycle_count()),
+        ps,
+        ps & XCHAL_PS_INTLEVEL_MASK,
+        xPortInIsrContext() ? "yes" : "no",
+        port_xSchedulerRunning[core_id],
+        port_interruptNesting[core_id],
+        static_cast<int32_t>(port_uxCriticalNesting[core_id]),
+        static_cast<int32_t>(port_uxOldInterruptState[core_id]),
+        static_cast<uint32_t>(uxTaskGetStackHighWaterMark(nullptr)));
 }
 
 void SetResultError(WasmExecutionResult *result, const char *stage, const char *message)
@@ -120,6 +163,7 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     }
     result.exec_env_created = true;
 
+    PrintExecutionContextSnapshot("before-call");
     if (result_count == 0) {
         if (!wasm_runtime_call_wasm(exec_env, function, 0, nullptr)) {
             SetResultError(&result, "execute", wasm_runtime_get_exception(module_inst));
@@ -136,11 +180,13 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
         }
         result.return_value = call_results[0].of.i32;
     }
+    PrintExecutionContextSnapshot("after-call");
 
     result.executed = true;
     flush_host_frame = true;
 
     if (flush_host_frame && flush_timing == WasmFlushTiming::BeforeCleanup) {
+        PrintExecutionContextSnapshot("before-preflush");
         if (!FlushWasmHostFrame(result.error_message, sizeof(result.error_message))) {
             SetResultError(&result, "render", result.error_message);
             goto cleanup;
@@ -162,6 +208,7 @@ cleanup:
     }
 
     if (flush_host_frame) {
+        PrintExecutionContextSnapshot("before-postcleanup-flush");
         if (!FlushWasmHostFrame(result.error_message, sizeof(result.error_message))) {
             SetResultError(&result, "render", result.error_message);
         }
