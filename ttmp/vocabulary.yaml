@@ -117,6 +117,8 @@ topics:
       description: AssemblyScript language, compiler, and runtime integration
     - slug: papers3
       description: M5Stack PaperS3 board and firmware patterns
+    - slug: wamr
+      description: WebAssembly Micro Runtime embedding and integration work
 docTypes:
     - slug: index
       description: Ticket index document
