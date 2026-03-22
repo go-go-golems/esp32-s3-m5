@@ -15,3 +15,4 @@
   - declared `M5Unified` as a `REQUIRES` dependency in `main/CMakeLists.txt`
   - normalized `std::clamp` inputs in `ChangePage()` to `int32_t`
 - Verified the training/storage milestone with `idf.py build` against ESP-IDF `5.3.4`
+- Recorded Task 2 commit `b04bd3e` for the persistent training milestone

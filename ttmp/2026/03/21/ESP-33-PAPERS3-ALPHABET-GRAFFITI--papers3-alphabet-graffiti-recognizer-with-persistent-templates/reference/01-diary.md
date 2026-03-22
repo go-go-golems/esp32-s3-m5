@@ -123,6 +123,8 @@ Work task by task, commit as you go, keep a detailed diary"
 
 **Inferred user intent:** Make the app genuinely operable for collecting a personal single-stroke alphabet before tackling live text entry.
 
+**Commit (code):** `b04bd3e` — `feat(papers3): add alphabet training storage workflow`
+
 ### What I did
 
 - replaced the copied `0076` runtime with a new `alphabet_graffiti::AlphabetApp`
