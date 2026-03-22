@@ -13,7 +13,7 @@ idf_component_register(
         "."
     REQUIRES
         M5Unified
-        bytecodealliance__wasm-micro-runtime
+        espressif__wasm-micro-runtime
         console
     EMBED_FILES
         "wasm-assets/return-42.wasm"

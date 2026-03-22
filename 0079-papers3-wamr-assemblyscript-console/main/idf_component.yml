@@ -2,6 +2,5 @@
 dependencies:
   idf:
     version: ">=5.3.4,<5.4.0"
-  bytecodealliance/wasm-micro-runtime:
-    git: https://github.com/bytecodealliance/wasm-micro-runtime.git
-    version: main
+  espressif/wasm-micro-runtime:
+    version: "2.4.0~1"

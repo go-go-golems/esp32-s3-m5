@@ -1,29 +1,28 @@
 dependencies:
-  bytecodealliance/wasm-micro-runtime:
-    component_hash: 5bcdb9470cb08aecb466b3bfda559cbd2847b7dd3f67e1dc95006a388defad51
+  espressif/wasm-micro-runtime:
+    component_hash: 04f25aad2896b5e906397a061d35cce560609bebd3913a4be7e365ecbf2dd9d6
     dependencies:
     - name: idf
-      version: '>=4.4'
+      require: private
+      version: '>=5.1'
     source:
-      git: https://github.com/bytecodealliance/wasm-micro-runtime.git
-      path: .
-      type: git
+      registry_url: https://components.espressif.com/
+      type: service
     targets:
     - esp32
-    - esp32s2
     - esp32s3
     - esp32c3
     - esp32c6
     - esp32p4
     - esp32c5
-    version: fcec30e93387cadcaa0a7eff3d3a6ec84e91f9fd
+    version: 2.4.0~1
   idf:
     source:
       type: idf
     version: 5.3.4
 direct_dependencies:
-- bytecodealliance/wasm-micro-runtime
+- espressif/wasm-micro-runtime
 - idf
-manifest_hash: 8cfe69edc58f63555d4607c9f70a7e537dcccb72d4e6f352f6c4f7d734b9dd15
+manifest_hash: 2591829496280a8cf06855912bae37c6bb522dd359886f69d3f22e21792bf642
 target: esp32s3
 version: 2.0.0
