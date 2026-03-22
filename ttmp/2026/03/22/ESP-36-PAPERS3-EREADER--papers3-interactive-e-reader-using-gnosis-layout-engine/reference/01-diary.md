@@ -19,6 +19,9 @@ RelatedFiles:
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:Updated DrawTextBlock to use ext_text, configurable text size, 256-char line buffer"
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_app.cpp:Main application: reading/library screens, touch zones, page buffer"
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_console.cpp:Console REPL commands"
+    - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:SPIFFS mount, books.idx parsing, ReadChunk"
+    - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:Word-wrap pagination, page offset table, FormatText"
+    - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/spiffs_data/sample.txt:Sample book text baked into SPIFFS"
 ExternalSources: []
 Summary: "Step-by-step implementation diary for the PaperS3 interactive e-reader firmware."
 LastUpdated: 2026-03-22T11:16:21.114949361-04:00
@@ -129,4 +132,99 @@ int text_size = node->props[1] > 0 ? node->props[1] : 1;
 int x_pct = (tx - body.rect.x) * 100 / body.rect.w;
 if (x_pct < 25) PreviousPage();
 else if (x_pct >= 75) NextPage();
+```
+
+## Step 2: BookStore, Paginator, SPIFFS, and Library/Reading Wiring
+
+This step replaced the hardcoded sample text with a real pipeline: SPIFFS-backed book storage, a word-wrap paginator with a page offset table, and a sample book baked into the SPIFFS image at build time. The library screen now lists books from the index, touch selection opens a book, and page turns read real pages from the filesystem.
+
+The paginator is the most algorithmically interesting piece. It uses a two-pass word-wrap approach: first, `PaginateOnePage` scans forward through raw text to find where a page ends (respecting word boundaries and paragraph breaks). Then `FormatText` re-wraps that raw text into a buffer with `\n` characters at the wrap points, ready for the `DrawTextBlock` renderer. The page offset table (`page_offsets_[]`) is built incrementally as the user reads forward.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Continue implementing tasks from the plan -- BookStore, Paginator, SPIFFS data, library-to-reader wiring.
+
+**Inferred user intent:** Get a functional e-reader that loads text from flash and paginates it.
+
+**Commit (code):** eaf00a3 — "feat(ereader): add SPIFFS book storage, word-wrap paginator, and sample book"
+
+### What I did
+
+- Created `book_store.h/cpp`: SPIFFS mount at `/spiffs` with `storage` partition, `books.idx` parsing (version header + pipe-delimited fields), `ReadChunk()` for random-access file reads, `FileSize()`, `SaveIndex()`
+- Created `paginator.h/cpp`: `PaginateOnePage()` word-wrap algorithm, `FormatText()` newline insertion, `GetPageText()` combining both, `EnsurePage()` for incremental page offset computation
+- Created `spiffs_data/` with `books.idx`, `bookmarks.dat`, and `sample.txt` (~2.8 KB of text)
+- Added `spiffs_create_partition_image(storage ../spiffs_data FLASH_IN_PROJECT)` to CMakeLists.txt
+- Rewrote `ereader_app.cpp`: `MountStorage()` on boot, `OpenBook()` initializes paginator and computes total pages, `LoadCurrentPage()` reads from SPIFFS via paginator, `BuildLibraryScreen()` populates LIST from index, library touch selection computes row index from touch Y
+- `ComputeTotalPages()` paginates entire file on first open, caches result in `books.idx`
+
+### Why
+
+The hardcoded text proved the rendering pipeline. Now the data path is real: file -> paginator -> page buffer -> ext_text -> DrawTextBlock -> EPD. Every subsequent feature (bookmarks, font size, additional books) is a variation on this pipeline.
+
+### What worked
+
+- SPIFFS `spiffs_create_partition_image` bakes the book into the firmware image -- no manual upload needed
+- The paginator's incremental page offset table means opening a book is instant (first page computed immediately) while total page count is computed once and cached
+- `ReadChunk` with seek+read is efficient for random page access
+- The `FormatText` / `PaginateOnePage` separation keeps concerns clean
+
+### What didn't work
+
+- `snprintf` with `"%d%%"` into a `char[8]` buffer triggered `-Werror=format-truncation` because the compiler considers `%d` might produce 11 characters. Fixed by increasing buffer to 16.
+- Building with IDF 5.3.4 requires a clean subshell with `unset IDF_PYTHON_ENV_PATH` because the current terminal has 5.4.1's python env active. Used `bash -l -c 'unset IDF_PYTHON_ENV_PATH; export IDF_PATH=...; source ...; idf.py build'`.
+
+### What I learned
+
+- SPIFFS `format_if_mount_failed=true` is essential -- on first flash there's no filesystem yet
+- The paginator must handle single `\n` (treat as space) differently from double `\n\n` (paragraph break) for prose text
+- Pre-computing total pages by paginating the entire file is acceptable for ~3 KB files but would be slow for larger books; caching in the index is critical
+
+### What was tricky to build
+
+The word-wrap algorithm's edge cases: words longer than a line (force-break), paragraph breaks consuming two lines (blank line between paragraphs), trailing spaces, and EOF detection during incremental pagination. The key invariant is that `PaginateOnePage` must always make forward progress (return > 0) or the `EnsurePage` loop will hang. The `if (page_len <= 0) break` guard handles this.
+
+### What warrants a second pair of eyes
+
+- The paginator's word-wrap algorithm has not been tested with edge cases: very long words, files with only newlines, empty files, Unicode (which the 5x7 font doesn't support anyway)
+- `ComputeTotalPages` loops up to `kMaxPageOffsets` (2048) times, each reading 8 KB from SPIFFS. For a 500 KB book that's ~60 iterations, which should be fast enough, but worth verifying
+
+### What should be done in the future
+
+- Task 9: BookmarkStore for persistent reading positions
+- Task 10: Console commands for book management
+- Task 11: Font size switching, periodic full refresh, edge case testing
+
+### Code review instructions
+
+- Start at `paginator.cpp:PaginateOnePage()` (line 22) -- this is the core algorithm
+- Then `paginator.cpp:FormatText()` (line 99) for the output formatting
+- Then `book_store.cpp:LoadIndex()` for the index parser
+- Then `ereader_app.cpp:OpenBook()` and `LoadCurrentPage()` for the data flow
+- To validate: build with `bash -l -c 'unset IDF_PYTHON_ENV_PATH; export IDF_PATH=~/esp/esp-idf-5.3.4; source $IDF_PATH/export.sh; cd 0080-papers3-ereader; idf.py build'`
+
+### Technical details
+
+**Paginator data flow:**
+```
+BookStore.ReadChunk(file, offset, 8KB) -> raw_buffer
+    -> PaginateOnePage(raw_buffer) -> page_end_offset
+    -> FormatText(raw_buffer[0..page_end]) -> formatted with \n
+    -> page_buffer_ (4KB) -> text_node_->ext_text
+    -> DrawTextBlock renders line by line
+```
+
+**Page offset table:**
+```
+page_offsets_[0] = 0          (start of file)
+page_offsets_[1] = 847        (end of page 1 in bytes)
+page_offsets_[2] = 1692       (end of page 2)
+...
+```
+
+**Library touch row calculation:**
+```cpp
+int row = (ty - list_node->rect.y) / row_h;
+int book_idx = row / 2;  // 2 list rows per book entry
 ```
