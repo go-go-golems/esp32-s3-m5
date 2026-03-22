@@ -275,3 +275,23 @@ Why:
 Review note:
 
 - the committed project is intended to be rebuilt from `sdkconfig.defaults`, not to carry local build outputs
+
+## 2026-03-21 21:20 EDT - Git commit recorded
+
+Command run:
+
+```bash
+git commit -m "feat(papers3): add draw and protractor trainer demos"
+```
+
+What worked:
+
+- the draw demo, the Protractor trainer, and both ticket bundles were committed successfully together
+
+Commit created:
+
+- `c1e527c` - `feat(papers3): add draw and protractor trainer demos`
+
+Why this matters:
+
+- the PaperS3 work is now safely in git rather than only in the local worktree

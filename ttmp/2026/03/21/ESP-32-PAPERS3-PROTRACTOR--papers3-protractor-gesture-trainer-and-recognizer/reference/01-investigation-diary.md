@@ -492,3 +492,67 @@ Generated files intentionally excluded from git:
 - `0076-papers3-protractor-trainer/build/`
 - `0076-papers3-protractor-trainer/sdkconfig`
 - `0076-papers3-protractor-trainer/.envrc`
+
+## Step 7: Record the final git commit
+
+### Prompt Context
+
+Assistant interpretation:
+
+- finish the user-requested “commit it all” workflow and make the diary reflect the real commit outcome
+
+Inferred user intent:
+
+- leave no ambiguity about whether the work was actually committed
+
+### What I did
+
+- committed the staged PaperS3 source and documentation set with:
+
+```bash
+git commit -m "feat(papers3): add draw and protractor trainer demos"
+```
+
+### Why
+
+The work was no longer only a local implementation artifact. The user explicitly asked for it to be committed.
+
+### What worked
+
+- the commit succeeded on the first try
+- the commit included:
+  - `0075-papers3-touch-draw-demo`
+  - `0076-papers3-protractor-trainer`
+  - the `ESP-31` ticket bundle
+  - the `ESP-32` ticket bundle
+
+### What didn't work
+
+- nothing failed in this step
+
+### What I learned
+
+- staging only the relevant PaperS3 paths before the commit kept unrelated dirty files out of scope
+
+### What was tricky to build
+
+- the only tricky part was respecting the user’s broad “commit it all” request without including unrelated preexisting workspace noise
+
+### What warrants a second pair of eyes
+
+- only whether a future cleanup should split the large PaperS3 commit into finer historical steps; functionally the content is correct
+
+### What should be done in the future
+
+- after hardware testing, add a follow-up commit with any real-device adjustments
+
+### Code review instructions
+
+- inspect commit `c1e527c`
+- verify it contains only the intended PaperS3 changes
+
+### Technical details
+
+Commit created:
+
+- `c1e527c` - `feat(papers3): add draw and protractor trainer demos`
