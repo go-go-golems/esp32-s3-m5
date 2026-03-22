@@ -7,6 +7,10 @@ namespace papers3_wasm {
 
 namespace {
 
+extern const uint8_t return_42_wasm_start[] asm("_binary_return_42_wasm_start");
+extern const uint8_t return_42_wasm_end[] asm("_binary_return_42_wasm_end");
+extern const uint8_t log_only_wasm_start[] asm("_binary_log_only_wasm_start");
+extern const uint8_t log_only_wasm_end[] asm("_binary_log_only_wasm_end");
 extern const uint8_t hello_frame_wasm_start[] asm("_binary_hello_frame_wasm_start");
 extern const uint8_t hello_frame_wasm_end[] asm("_binary_hello_frame_wasm_end");
 extern const uint8_t nested_boxes_wasm_start[] asm("_binary_nested_boxes_wasm_start");
@@ -19,6 +23,22 @@ extern const uint8_t radar_sweep_wasm_start[] asm("_binary_radar_sweep_wasm_star
 extern const uint8_t radar_sweep_wasm_end[] asm("_binary_radar_sweep_wasm_end");
 
 const WasmModuleDescriptor kModules[] = {
+    {
+        .name = "return-42",
+        .summary = "minimal wasm probe with no host imports",
+        .entrypoint = "run",
+        .source_path = "wasm-src/return-42/assembly/index.ts",
+        .start = return_42_wasm_start,
+        .end = return_42_wasm_end,
+    },
+    {
+        .name = "log-only",
+        .summary = "minimal wasm probe with logging import only",
+        .entrypoint = "run",
+        .source_path = "wasm-src/log-only/assembly/index.ts",
+        .start = log_only_wasm_start,
+        .end = log_only_wasm_end,
+    },
     {
         .name = "hello-frame",
         .summary = "first display hello-world frame demo",

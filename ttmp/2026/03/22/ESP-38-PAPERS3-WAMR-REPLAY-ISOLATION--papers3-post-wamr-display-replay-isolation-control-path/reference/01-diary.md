@@ -30,7 +30,7 @@ RelatedFiles:
         Guest behavior mirrored by replay control tests
 ExternalSources: []
 Summary: Detailed debugging diary for the PaperS3 replay-isolation control-path experiment.
-LastUpdated: 2026-03-22T14:04:00-04:00
+LastUpdated: 2026-03-22T14:26:00-04:00
 WhatFor: Record each replay-isolation implementation and hardware-debugging step in enough detail to reconstruct the reasoning later.
 WhenToUse: Read this before continuing the ticket or reviewing why a specific control-path experiment was attempted.
 ---
@@ -338,3 +338,134 @@ The next discriminating probe should be smaller on the Wasm side, not the PaperS
 
 - any WAMR execution poisons the later display path
 - or only certain native-import activity does
+
+## Step 6: Add minimal Wasm probes and verify whether plain WAMR execution alone is enough
+
+Step 5 showed that WAMR cleanup was not necessary for the panic. That still left an important question open: do the display-related native imports matter, or does a plain WAMR execution already make the later PaperS3 replay unsafe?
+
+### What I changed
+
+I added two tiny probe modules:
+
+- [wasm-src/return-42/assembly/index.ts](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src/return-42/assembly/index.ts)
+  - no host imports
+  - just returns `42`
+- [wasm-src/log-only/assembly/index.ts](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src/log-only/assembly/index.ts)
+  - imports only `logI32`
+  - logs `(9, 42)` and returns `42`
+
+To make them usable end-to-end, I also updated:
+
+- [tools/build-wasm-demos.mjs](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs)
+  - added both probes to the build list
+- [main/CMakeLists.txt](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt)
+  - embedded both new `.wasm` assets
+- [main/wasm_module_registry.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_registry.cpp)
+  - registered both probes in the module list
+
+Then I regenerated the embedded Wasm assets with:
+
+- `npm run build`
+
+and rebuilt the firmware with:
+
+- `unset IDF_PYTHON_ENV_PATH IDF_PATH; source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console build`
+
+Both commands passed.
+
+### What I ran on hardware
+
+After reflashing the updated firmware, I first checked that the modules were visible:
+
+- `wasm list`
+
+The console showed:
+
+- `return-42`
+- `log-only`
+- the existing five display demos
+
+Then I ran the key probe sequence one command at a time:
+
+- `wasm run-preflush return-42`
+- `wasm replay hello-frame`
+
+After the reboot caused by that second command, I also ran:
+
+- `wasm run-preflush log-only`
+
+### What happened
+
+The no-import module succeeded:
+
+- `module=return-42`
+- `flush_timing=before-cleanup`
+- `execution=success`
+- `return_value=42`
+
+Immediately afterward, the host-only control replay crashed:
+
+- `paper>  wasm replay hello-frame`
+- `Guru Meditation Error: ... panic'ed (Cache disabled but cached memory region accessed)`
+- stack again reached:
+  - `papers3_wasm::FlushWasmHostFrame(...)`
+  - `papers3_wasm::RunWasmReplayControlExample(...)`
+  - `papers3_wasm::PaperCanvasScreenClear(...)`
+
+That is the crucial part of the result. `wasm replay hello-frame` does not go through WAMR at all, so if it crashes immediately after `return-42`, then the `return-42` execution itself already poisoned the later control replay.
+
+The minimal-import module also succeeded on its own:
+
+- `paper>  wasm run-preflush log-only`
+- `guest_log tag=9 value=42`
+- `module=log-only`
+- `flush_timing=before-cleanup`
+- `execution=success`
+- `return_value=42`
+
+### Why this result is stronger than the earlier ones
+
+Earlier results already showed:
+
+- teardown is not required
+- display-native imports are not required for the panic location
+
+This step goes further:
+
+- a Wasm module with no host imports at all can run successfully
+- and after that, a pure host-side control replay can still crash
+
+That means the minimal condition for destabilizing the display replay path is now:
+
+- successful WAMR execution on the current console task
+
+not:
+
+- WAMR teardown
+- display host imports
+- queued display replay during the Wasm run itself
+
+### Updated hypothesis
+
+The leading hypotheses are now narrower and more runtime-internal:
+
+- WAMR execution is altering cache-sensitive or task-local state that survives the call
+- or the interpreter/native bridge is leaving the current task or CPU in a state that PaperS3 drawing cannot tolerate afterward
+
+The evidence now argues against explanations centered on:
+
+- the literal `hello-frame` queue contents
+- the cleanup path alone
+- display-related host callbacks being the sole trigger
+
+### Debugging lesson
+
+This step is a good example of why "smaller inputs" matter. The `return-42` module is boring on purpose. Because it does almost nothing, it removes almost every attractive but misleading story except one: WAMR execution itself is implicated.
+
+### New next step
+
+The next investigation should stop adding application-level demos and instead inspect runtime state around `wasm_runtime_call_wasm[_a]`:
+
+- task/critical-section state before and after the call
+- whether cache-sensitive platform code runs on the return path
+- whether the current local WAMR component patches differ materially from the official Espressif integration path in ways that matter on ESP32-S3

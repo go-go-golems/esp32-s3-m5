@@ -29,11 +29,19 @@
 - [x] Task 3.2: Preserve the current post-cleanup execution mode for side-by-side comparison
 - [x] Task 3.3: Rebuild and flash the diagnostic firmware
 - [x] Task 3.4: Run the pre-cleanup mode and record whether the display replay still panics
-- [ ] Task 3.5: Commit flush-timing findings
+- [x] Task 3.5: Commit flush-timing findings
 
 - [ ] Task 4: Reconcile the result with the WAMR integration strategy
-- [ ] Task 4.1: Compare control-path and WAMR-backed queue lifecycles using the new timing data
-- [ ] Task 4.2: Identify whether the unstable boundary is the WAMR call itself or WAMR teardown
+- [x] Task 4.1: Compare control-path and WAMR-backed queue lifecycles using the new timing data
+- [x] Task 4.2: Identify whether the unstable boundary is the WAMR call itself or WAMR teardown
 - [ ] Task 4.3: Update the ticket summary, changelog, and diary
 - [ ] Task 4.4: Upload the updated bundle to reMarkable again
-- [ ] Task 4.5: Add a minimal no-display Wasm probe if the boundary remains ambiguous
+- [x] Task 4.5: Add a minimal no-display Wasm probe if the boundary remains ambiguous
+- [ ] Task 4.6: Commit the minimal-probe findings
+
+## Next Candidates
+
+- [ ] Task 5: Inspect whether WAMR execution leaves cache/interrupt state altered on the current task
+- [ ] Task 5.1: Compare task or critical-section state before and after `wasm_runtime_call_wasm[_a]`
+- [ ] Task 5.2: Inspect WAMR interpreter/native-call paths for ESP32-S3-specific cache-sensitive behavior
+- [ ] Task 5.3: Decide whether to keep the local WAMR component or trial the official Espressif component package layout

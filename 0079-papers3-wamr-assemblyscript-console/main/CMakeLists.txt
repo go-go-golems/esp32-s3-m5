@@ -16,6 +16,8 @@ idf_component_register(
         bytecodealliance__wasm-micro-runtime
         console
     EMBED_FILES
+        "wasm-assets/return-42.wasm"
+        "wasm-assets/log-only.wasm"
         "wasm-assets/hello-frame.wasm"
         "wasm-assets/nested-boxes.wasm"
         "wasm-assets/bars.wasm"

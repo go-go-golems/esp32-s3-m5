@@ -2,6 +2,16 @@
   "target": "release",
   "demos": [
     {
+      "name": "return-42",
+      "wasm": "return-42.wasm",
+      "wat": "return-42.wat"
+    },
+    {
+      "name": "log-only",
+      "wasm": "log-only.wasm",
+      "wat": "log-only.wat"
+    },
+    {
       "name": "hello-frame",
       "wasm": "hello-frame.wasm",
       "wat": "hello-frame.wat"

@@ -14,6 +14,8 @@ const embeddedAssetRoot = join(projectRoot, "main", "wasm-assets");
 const target = getFlagValue("--target") ?? "release";
 
 const demos = [
+  "return-42",
+  "log-only",
   "hello-frame",
   "nested-boxes",
   "bars",

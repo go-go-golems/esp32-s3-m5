@@ -2,6 +2,14 @@
   "sourceTarget": "release",
   "demos": [
     {
+      "name": "return-42",
+      "wasm": "return-42.wasm"
+    },
+    {
+      "name": "log-only",
+      "wasm": "log-only.wasm"
+    },
+    {
       "name": "hello-frame",
       "wasm": "hello-frame.wasm"
     },
