@@ -22,6 +22,14 @@ RelatedFiles:
       Note: Ticket overview updated during this documentation pass
     - Path: ttmp/2026/03/22/ESP-36-PAPERS3-WAMR-ASSEMBLYSCRIPT--papers3-wamr-assemblyscript-console-demo-with-precompiled-scripts/tasks.md
       Note: Task plan for implementation and delivery
+    - Path: 0079-papers3-wamr-assemblyscript-console/sdkconfig.defaults
+      Note: New firmware baseline including USB Serial/JTAG console and interpreter-first WAMR defaults
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/app_main.cpp
+      Note: PaperS3 boot path for the new console demo
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/console_repl.cpp
+      Note: esp_console bring-up over USB Serial/JTAG
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp
+      Note: Initial wasm command namespace and placeholder runtime commands
     - Path: 0077-papers3-alphabet-graffiti/sdkconfig.defaults
       Note: PaperS3 baseline used to anchor ESP-IDF 5.3.4 and console defaults
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
@@ -33,8 +41,8 @@ ExternalSources:
     - https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/doc/export_native_api.md
     - https://github.com/AssemblyScript/website/blob/main/src/compiler.md
     - https://github.com/AssemblyScript/website/blob/main/src/runtime.md
-Summary: Chronological diary for the ticket creation and architecture investigation that produced the PaperS3 WAMR AssemblyScript design guide.
-LastUpdated: 2026-03-22T10:22:38.277717198-04:00
+Summary: Chronological diary for the ticket creation, scaffold work, and runtime integration work behind the PaperS3 WAMR AssemblyScript design guide and firmware.
+LastUpdated: 2026-03-22T11:19:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -243,6 +251,136 @@ Updated files:
 
 - `ttmp/2026/03/22/ESP-36-PAPERS3-WAMR-ASSEMBLYSCRIPT--papers3-wamr-assemblyscript-console-demo-with-precompiled-scripts/tasks.md`
 - `ttmp/2026/03/22/ESP-36-PAPERS3-WAMR-ASSEMBLYSCRIPT--papers3-wamr-assemblyscript-console-demo-with-precompiled-scripts/reference/01-diary.md`
+
+## Step 3: Scaffold `0079` and prove the first console-oriented firmware baseline builds
+
+This step turned the ticket from a plan into a real firmware project. I created `0079-papers3-wamr-assemblyscript-console`, copied the expected PaperS3 project shape, pinned it to the local `ESP-IDF 5.3.4` toolchain assumptions, and brought up a small `esp_console` REPL over USB Serial/JTAG with a placeholder `wasm` command family.
+
+The scope here was intentionally narrow. I did not try to build the full runtime service yet. The goal was to make sure the repo could host a new PaperS3 target, resolve WAMR through the component manager, boot a display-backed app, and compile cleanly enough that Task 3 can focus on runtime behavior instead of project plumbing.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Start executing the detailed task list by creating the new firmware, wiring the console skeleton, and committing at a sensible checkpoint once the baseline builds.
+
+**Inferred user intent:** Establish a trustworthy first milestone that proves the architecture is viable on this repo and board family before deeper WAMR-specific logic is added.
+
+**Commit (code):** `pending` - this step is about to become the first implementation commit
+
+### What I did
+
+- created `0079-papers3-wamr-assemblyscript-console/`
+- added top-level project files:
+  - `CMakeLists.txt`
+  - `README.md`
+  - `sdkconfig.defaults`
+  - `partitions.csv`
+  - `dependencies.lock` after the first successful component-manager resolution
+- reused the donor PaperS3 component stack with `EXTRA_COMPONENT_DIRS "../../M5PaperS3-UserDemo/components"`
+- added `main/idf_component.yml` so the project can pull upstream `bytecodealliance/wasm-micro-runtime`
+- set the baseline to interpreter-first WAMR with USB Serial/JTAG console defaults in `sdkconfig.defaults`
+- added `main/app_main.cpp` to initialize the PaperS3 display and start the console
+- added `main/console_repl.h` and `main/console_repl.cpp` to start `esp_console`
+- added `main/wasm_command.h` and `main/wasm_command.cpp` with `examples`, `list`, `info`, `run`, and `status`
+- built the project with `idf.py` after correcting the shell environment so it actually used `ESP-IDF 5.3.4`
+
+### Why
+
+- the design guide assumes a new numbered firmware project rather than bolting WAMR onto an unrelated existing app
+- USB Serial/JTAG was required by the repo instructions and is the safest default for an interactive PaperS3 console
+- before writing a runtime service, I needed proof that the project could resolve WAMR, compile against the donor M5 components, and link successfully on `esp32s3`
+
+### What worked
+
+- the donor PaperS3 component reuse model worked immediately once `EXTRA_COMPONENT_DIRS` pointed at `M5PaperS3-UserDemo/components`
+- upstream WAMR resolved cleanly through `idf_component.yml` and generated a reproducible `dependencies.lock`
+- the console skeleton built cleanly enough to establish a good checkpoint for the next task
+- the successful build confirms that the repo can support a `0079` PaperS3 WAMR app without vendoring the runtime manually
+
+### What didn't work
+
+- the first build attempt inherited the wrong ESP-IDF shell state
+- command:
+
+```bash
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null && idf.py -C 0079-papers3-wamr-assemblyscript-console set-target esp32s3 build
+```
+
+- issue:
+  - the shell still had `IDF_PYTHON_ENV_PATH` and `IDF_PATH` from another ESP-IDF installation, so this was not a trustworthy `5.3.4` build context
+- corrected command:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console set-target esp32s3 build
+```
+
+- there are still compile warnings to address later:
+  - upstream WAMR emits several warnings during its own build
+  - `main/wasm_command.cpp` currently uses a partial `esp_console_cmd_t` initializer that triggers missing-field warnings
+
+### What I learned
+
+- WAMR’s ESP-IDF integration is clean enough that `idf_component.yml` is the right first approach here
+- `ESP-IDF 5.3.4` environment drift is easy to miss when multiple IDF shells are used on the same machine, so the diary should record the `unset IDF_PYTHON_ENV_PATH IDF_PATH` guard explicitly
+- the right first command namespace is a thin `wasm` family, not separate one-off console commands for every guest action
+
+### What was tricky to build
+
+- the real risk in this step was not code complexity but environment ambiguity
+- the build can appear to work while still using the wrong shell-exported IDF state, which would make later debugging noisy and misleading
+- I treated that as a setup bug and normalized the build command before considering the milestone complete
+
+### What warrants a second pair of eyes
+
+- whether `main/idf_component.yml` should stay on the upstream `main` branch or be pinned to a specific commit once the runtime service stabilizes
+- whether the initial partition table should reserve space for future embedded wasm assets beyond the current single 4 MB factory app layout
+- whether we want to eliminate the `esp_console_cmd_t` initializer warnings now or wait until the command implementation gets refactored around a real runtime service
+
+### What should be done in the future
+
+- commit this scaffold and console checkpoint
+- implement `wasm_runtime_service.*`
+- replace placeholder `wasm status`, `wasm info`, and `wasm run` behavior with runtime-backed output
+
+### Code review instructions
+
+- start with `0079-papers3-wamr-assemblyscript-console/sdkconfig.defaults`
+- then read `0079-papers3-wamr-assemblyscript-console/main/console_repl.cpp` and `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
+- check `0079-papers3-wamr-assemblyscript-console/main/idf_component.yml` to confirm how WAMR is being pulled in
+- validate with:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console set-target esp32s3 build
+```
+
+### Technical details
+
+New project files:
+
+- `0079-papers3-wamr-assemblyscript-console/CMakeLists.txt`
+- `0079-papers3-wamr-assemblyscript-console/README.md`
+- `0079-papers3-wamr-assemblyscript-console/sdkconfig.defaults`
+- `0079-papers3-wamr-assemblyscript-console/partitions.csv`
+- `0079-papers3-wamr-assemblyscript-console/dependencies.lock`
+- `0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt`
+- `0079-papers3-wamr-assemblyscript-console/main/idf_component.yml`
+- `0079-papers3-wamr-assemblyscript-console/main/app_main.cpp`
+- `0079-papers3-wamr-assemblyscript-console/main/console_repl.h`
+- `0079-papers3-wamr-assemblyscript-console/main/console_repl.cpp`
+- `0079-papers3-wamr-assemblyscript-console/main/wasm_command.h`
+- `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
+
+Build result:
+
+- target: `esp32s3`
+- app: `papers3_wamr_assemblyscript_console.bin`
+- binary size: `0x70a40`
+- reported free space in the 4 MB app partition: about `89%`
 
 ## Related
 

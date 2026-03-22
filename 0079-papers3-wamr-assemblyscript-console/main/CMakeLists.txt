@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "console_repl.cpp"
+        "wasm_command.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        M5Unified
+        console
+)

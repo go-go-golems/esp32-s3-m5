@@ -12,18 +12,18 @@
 
 ## Planned Firmware Work
 
-- [ ] Task 1: Create new firmware project `0079-papers3-wamr-assemblyscript-console`
-- [ ] Task 1.1: Add `CMakeLists.txt`, `README.md`, `sdkconfig.defaults`, `partitions.csv`, and `main/CMakeLists.txt`
-- [ ] Task 1.2: Reuse the donor PaperS3 component stack via `EXTRA_COMPONENT_DIRS`
-- [ ] Task 1.3: Keep the target pinned to ESP-IDF `5.3.4`
-- [ ] Task 1.4: Keep the interactive console on USB Serial/JTAG
+- [x] Task 1: Create new firmware project `0079-papers3-wamr-assemblyscript-console`
+- [x] Task 1.1: Add `CMakeLists.txt`, `README.md`, `sdkconfig.defaults`, `partitions.csv`, and `main/CMakeLists.txt`
+- [x] Task 1.2: Reuse the donor PaperS3 component stack via `EXTRA_COMPONENT_DIRS`
+- [x] Task 1.3: Keep the target pinned to ESP-IDF `5.3.4`
+- [x] Task 1.4: Keep the interactive console on USB Serial/JTAG
 - [ ] Task 1.5: Commit scaffold + ticket bookkeeping
 
-- [ ] Task 2: Bring up the console skeleton
-- [ ] Task 2.1: Add `app_main.cpp` and a minimal app class or startup module
-- [ ] Task 2.2: Add `console_repl.*` to bootstrap `esp_console`
-- [ ] Task 2.3: Add `wasm_command.*` with `examples`, `list`, and placeholder `run`
-- [ ] Task 2.4: Verify a clean `idf.py build`
+- [x] Task 2: Bring up the console skeleton
+- [x] Task 2.1: Add `app_main.cpp` and a minimal app class or startup module
+- [x] Task 2.2: Add `console_repl.*` to bootstrap `esp_console`
+- [x] Task 2.3: Add `wasm_command.*` with `examples`, `list`, and placeholder `run`
+- [x] Task 2.4: Verify a clean `idf.py build`
 - [ ] Task 2.5: Commit console bootstrap + diary update
 
 - [ ] Task 3: Integrate WAMR

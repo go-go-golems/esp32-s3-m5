@@ -1,0 +1,29 @@
+dependencies:
+  bytecodealliance/wasm-micro-runtime:
+    component_hash: 5bcdb9470cb08aecb466b3bfda559cbd2847b7dd3f67e1dc95006a388defad51
+    dependencies:
+    - name: idf
+      version: '>=4.4'
+    source:
+      git: https://github.com/bytecodealliance/wasm-micro-runtime.git
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s2
+    - esp32s3
+    - esp32c3
+    - esp32c6
+    - esp32p4
+    - esp32c5
+    version: fcec30e93387cadcaa0a7eff3d3a6ec84e91f9fd
+  idf:
+    source:
+      type: idf
+    version: 5.3.4
+direct_dependencies:
+- bytecodealliance/wasm-micro-runtime
+- idf
+manifest_hash: 8cfe69edc58f63555d4607c9f70a7e537dcccb72d4e6f352f6c4f7d734b9dd15
+target: esp32s3
+version: 2.0.0
