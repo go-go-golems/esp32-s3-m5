@@ -10,13 +10,13 @@ Current milestone:
 
 - PaperS3 scaffold
 - USB Serial/JTAG console baseline
-- `wasm` command namespace placeholder
+- WAMR runtime service
+- `wasm` runtime status output
 
 Planned next milestones:
 
-- WAMR runtime service
-- embedded wasm demo registry
 - host-side AssemblyScript build pipeline
+- embedded wasm demo registry
 - first end-to-end runnable demo
 
 ## Build
@@ -41,3 +41,13 @@ idf.py -p /dev/ttyACM0 flash monitor
 - The project intentionally uses USB Serial/JTAG for the interactive console.
 - WAMR is planned as an ESP-IDF component-manager dependency from upstream.
 - AssemblyScript source code will live under `wasm-src/`.
+
+## Build AssemblyScript Demos
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src
+npm install
+npm run build
+```
+
+Release artifacts are written to `../wasm-build/release/`.
