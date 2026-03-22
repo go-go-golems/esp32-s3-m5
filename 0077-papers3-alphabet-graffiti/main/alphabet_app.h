@@ -141,7 +141,7 @@ private:
     bool storage_ready_ = false;
     std::string storage_status_;
     std::string write_buffer_;
-    std::string write_status_ = "Switch to WRITE and draw to start writing.";
+    std::string write_status_ = "> Select protocol.";
     int matched_index_ = -1;
     bool canvas_reset_pending_ = false;
     bool full_render_pending_ = false;
