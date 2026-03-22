@@ -1,0 +1,22 @@
+# Copyright (C) 2019 Intel Corporation.  All rights reserved.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+set (PLATFORM_SHARED_DIR ${CMAKE_CURRENT_LIST_DIR})
+
+add_definitions(-DBH_PLATFORM_ESP_IDF)
+
+include_directories(${PLATFORM_SHARED_DIR})
+include_directories(${PLATFORM_SHARED_DIR}/../include)
+
+file (GLOB_RECURSE source_all ${PLATFORM_SHARED_DIR}/*.c)
+
+include (${CMAKE_CURRENT_LIST_DIR}/../common/libc-util/platform_common_libc_util.cmake)
+set (source_all ${source_all} ${PLATFORM_COMMON_LIBC_UTIL_SOURCE})
+
+set (PLATFORM_SHARED_SOURCE ${source_all} ${PLATFORM_COMMON_MATH_SOURCE})
+
+# PaperS3 currently runs WAMR in interpreter mode only. The dual-bus mirror
+# path pushes linear-memory mappings through PSRAM-backed addresses and is
+# tripping cache-disabled panics during instantiate on ESP32-S3. Keep it off
+# for this project's current execution path.
+add_definitions(-DWASM_MEM_DUAL_BUS_MIRROR=0)

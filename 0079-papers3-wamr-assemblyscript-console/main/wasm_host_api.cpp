@@ -19,14 +19,40 @@ namespace {
 
 constexpr const char *kTag = "0079_host_api";
 constexpr const char *kHostModuleName = "host";
+constexpr std::size_t kMaxQueuedCommands = 256;
 
 struct WasmHostApiStatus {
     bool init_attempted;
     bool ready;
     char last_error[128];
+    std::size_t queued_commands;
+    std::size_t last_flushed_commands;
+    bool command_queue_overflowed;
+};
+
+enum class HostCommandType : uint8_t {
+    LogI32,
+    DelayMs,
+    ScreenClear,
+    DrawRect,
+    FillRect,
+    Present,
+};
+
+struct HostCommand {
+    HostCommandType type;
+    int32_t tag;
+    int32_t value;
+    int32_t x;
+    int32_t y;
+    int32_t w;
+    int32_t h;
+    uint32_t color;
+    int32_t mode;
 };
 
 WasmHostApiStatus g_host_api_status = {};
+HostCommand g_host_commands[kMaxQueuedCommands] = {};
 
 void SetLastError(const char *message)
 {
@@ -38,42 +64,45 @@ void SetLastError(const char *message)
     std::snprintf(g_host_api_status.last_error, sizeof(g_host_api_status.last_error), "%s", message);
 }
 
+bool QueueHostCommand(const HostCommand &command)
+{
+    if (g_host_api_status.queued_commands >= kMaxQueuedCommands) {
+        g_host_api_status.command_queue_overflowed = true;
+        return false;
+    }
+
+    g_host_commands[g_host_api_status.queued_commands++] = command;
+    return true;
+}
+
 void HostLogI32(wasm_exec_env_t, int32_t tag, int32_t value)
 {
-    ESP_LOGI(kTag, "guest_log tag=%" PRId32 " value=%" PRId32, tag, value);
+    QueueHostCommand({ HostCommandType::LogI32, tag, value, 0, 0, 0, 0, 0, 0 });
 }
 
 void HostDelayMs(wasm_exec_env_t, int32_t ms)
 {
-    if (ms <= 0) {
-        return;
-    }
-
-    if (ms > 10000) {
-        ms = 10000;
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(ms));
+    QueueHostCommand({ HostCommandType::DelayMs, 0, ms, 0, 0, 0, 0, 0, 0 });
 }
 
 void HostScreenClear(wasm_exec_env_t, int32_t color)
 {
-    PaperCanvasScreenClear(static_cast<uint32_t>(color));
+    QueueHostCommand({ HostCommandType::ScreenClear, 0, 0, 0, 0, 0, 0, static_cast<uint32_t>(color), 0 });
 }
 
 void HostDrawRect(wasm_exec_env_t, int32_t x, int32_t y, int32_t w, int32_t h, int32_t color)
 {
-    PaperCanvasDrawRect(x, y, w, h, static_cast<uint32_t>(color));
+    QueueHostCommand({ HostCommandType::DrawRect, 0, 0, x, y, w, h, static_cast<uint32_t>(color), 0 });
 }
 
 void HostFillRect(wasm_exec_env_t, int32_t x, int32_t y, int32_t w, int32_t h, int32_t color)
 {
-    PaperCanvasFillRect(x, y, w, h, static_cast<uint32_t>(color));
+    QueueHostCommand({ HostCommandType::FillRect, 0, 0, x, y, w, h, static_cast<uint32_t>(color), 0 });
 }
 
 void HostPresent(wasm_exec_env_t, int32_t mode)
 {
-    PaperCanvasPresent(mode);
+    QueueHostCommand({ HostCommandType::Present, 0, 0, 0, 0, 0, 0, 0, mode });
 }
 
 static NativeSymbol kHostSymbols[] = {
@@ -123,6 +152,56 @@ bool IsWasmHostApiReady()
     return g_host_api_status.ready;
 }
 
+void ResetWasmHostFrame()
+{
+    g_host_api_status.queued_commands = 0;
+    g_host_api_status.command_queue_overflowed = false;
+}
+
+bool FlushWasmHostFrame(char *error_message, std::size_t error_message_size)
+{
+    if (error_message != nullptr && error_message_size > 0) {
+        error_message[0] = '\0';
+    }
+
+    if (g_host_api_status.command_queue_overflowed) {
+        if (error_message != nullptr && error_message_size > 0) {
+            std::snprintf(error_message, error_message_size, "host command queue overflow");
+        }
+        return false;
+    }
+
+    for (std::size_t i = 0; i < g_host_api_status.queued_commands; ++i) {
+        const HostCommand &command = g_host_commands[i];
+        switch (command.type) {
+            case HostCommandType::LogI32:
+                ESP_LOGI(kTag, "guest_log tag=%" PRId32 " value=%" PRId32, command.tag, command.value);
+                break;
+            case HostCommandType::DelayMs:
+                if (command.value > 0) {
+                    const int32_t clamped_ms = command.value > 10000 ? 10000 : command.value;
+                    vTaskDelay(pdMS_TO_TICKS(clamped_ms));
+                }
+                break;
+            case HostCommandType::ScreenClear:
+                PaperCanvasScreenClear(command.color);
+                break;
+            case HostCommandType::DrawRect:
+                PaperCanvasDrawRect(command.x, command.y, command.w, command.h, command.color);
+                break;
+            case HostCommandType::FillRect:
+                PaperCanvasFillRect(command.x, command.y, command.w, command.h, command.color);
+                break;
+            case HostCommandType::Present:
+                PaperCanvasPresent(command.mode);
+                break;
+        }
+    }
+
+    g_host_api_status.last_flushed_commands = g_host_api_status.queued_commands;
+    return true;
+}
+
 void PrintWasmHostApiStatus()
 {
     std::printf("host_api=%s\n", g_host_api_status.ready ? "ready" : "not-ready");
@@ -131,6 +210,11 @@ void PrintWasmHostApiStatus()
     std::printf("host_api.symbols=%u\n", static_cast<unsigned>(sizeof(kHostSymbols) / sizeof(kHostSymbols[0])));
     std::printf("host_api.canvas.width=%" PRId32 "\n", PaperCanvasWidth());
     std::printf("host_api.canvas.height=%" PRId32 "\n", PaperCanvasHeight());
+    std::printf("host_api.command_queue.capacity=%u\n", static_cast<unsigned>(kMaxQueuedCommands));
+    std::printf("host_api.command_queue.queued=%u\n", static_cast<unsigned>(g_host_api_status.queued_commands));
+    std::printf("host_api.command_queue.last_flush=%u\n",
+                static_cast<unsigned>(g_host_api_status.last_flushed_commands));
+    std::printf("host_api.command_queue.overflow=%s\n", g_host_api_status.command_queue_overflowed ? "yes" : "no");
     if (g_host_api_status.last_error[0] != '\0') {
         std::printf("host_api.last_error=%s\n", g_host_api_status.last_error);
     }

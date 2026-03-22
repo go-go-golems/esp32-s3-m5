@@ -27,9 +27,21 @@ uint32_t NormalizeColor(uint32_t color)
     return color & 0x00FFFFFFu;
 }
 
-epd_mode_t MapPresentMode(int32_t mode)
+int32_t NormalizePresentMode(int32_t mode)
 {
     switch (mode) {
+        case 0:
+        case 1:
+        case 2:
+            return mode;
+        default:
+            return 1;
+    }
+}
+
+epd_mode_t MapPresentMode(int32_t mode)
+{
+    switch (NormalizePresentMode(mode)) {
         case 0:
             return epd_mode_t::epd_text;
         case 2:
@@ -147,12 +159,12 @@ void PaperCanvasFillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t co
 
 void PaperCanvasPresent(int32_t mode)
 {
-    g_default_present_mode = mode;
+    g_default_present_mode = NormalizePresentMode(mode);
     if (!g_frame_active) {
         return;
     }
 
-    M5.Display.setEpdMode(MapPresentMode(mode));
+    M5.Display.setEpdMode(MapPresentMode(g_default_present_mode));
     M5.Display.endWrite();
     M5.Display.waitDisplay();
     g_frame_active = false;

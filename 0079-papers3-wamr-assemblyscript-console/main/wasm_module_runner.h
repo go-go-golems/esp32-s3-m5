@@ -21,5 +21,6 @@ struct WasmExecutionResult {
 WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name);
 
 void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExecutionResult &result);
+void PrintLastWasmExecutionStatus();
 
 }  // namespace papers3_wasm

@@ -15,8 +15,10 @@ namespace {
 
 constexpr const char *kTag = "0079_wamr";
 constexpr RunningMode kRequestedRunningMode = Mode_Interp;
+constexpr std::size_t kRuntimePoolSizeBytes = 512 * 1024;
 
 WasmRuntimeStatus g_runtime_status = {};
+void *g_runtime_pool_buffer = nullptr;
 
 void SetLastError(const char *message)
 {
@@ -64,12 +66,28 @@ bool InitWasmRuntime()
 #else
     g_runtime_status.build_has_aot = false;
 #endif
-    g_runtime_status.allocator_type = Alloc_With_System_Allocator;
+    g_runtime_status.allocator_type = Alloc_With_Pool;
     g_runtime_status.requested_running_mode = kRequestedRunningMode;
+
+    if (g_runtime_pool_buffer == nullptr) {
+        g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (g_runtime_pool_buffer == nullptr) {
+            g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
+        }
+    }
+
+    if (g_runtime_pool_buffer == nullptr) {
+        SetLastError("failed to allocate WAMR pool buffer");
+        RefreshHeapSnapshot();
+        ESP_LOGE(kTag, "%s", g_runtime_status.last_error);
+        return false;
+    }
 
     RuntimeInitArgs init_args = {};
     init_args.mem_alloc_type = g_runtime_status.allocator_type;
     init_args.running_mode = g_runtime_status.requested_running_mode;
+    init_args.mem_alloc_option.pool.heap_buf = g_runtime_pool_buffer;
+    init_args.mem_alloc_option.pool.heap_size = kRuntimePoolSizeBytes;
 
     ESP_LOGI(kTag, "Initializing WAMR runtime (allocator=%s, mode=%s)",
              AllocatorTypeName(g_runtime_status.allocator_type),

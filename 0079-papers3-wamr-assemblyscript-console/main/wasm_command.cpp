@@ -93,6 +93,7 @@ int CmdWasm(int argc, char **argv)
     if (std::strcmp(argv[1], "status") == 0) {
         PrintWasmRuntimeStatus();
         PrintWasmHostApiStatus();
+        PrintLastWasmExecutionStatus();
         return 0;
     }
 

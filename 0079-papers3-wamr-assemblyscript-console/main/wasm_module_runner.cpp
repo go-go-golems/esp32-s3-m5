@@ -18,6 +18,14 @@ namespace {
 constexpr uint32_t kGuestStackBytes = 16 * 1024;
 constexpr uint32_t kGuestHeapBytes = 32 * 1024;
 
+struct WasmLastExecutionStatus {
+    bool available;
+    char module_name[48];
+    WasmExecutionResult result;
+};
+
+WasmLastExecutionStatus g_last_execution_status = {};
+
 void SetResultError(WasmExecutionResult *result, const char *stage, const char *message)
 {
     if (stage == nullptr) {
@@ -35,26 +43,18 @@ void SetResultError(WasmExecutionResult *result, const char *stage, const char *
     }
 }
 
-}  // namespace
+void RememberLastExecutionResult(const WasmModuleDescriptor &module, const WasmExecutionResult &result)
+{
+    g_last_execution_status = {};
+    g_last_execution_status.available = true;
+    std::snprintf(g_last_execution_status.module_name, sizeof(g_last_execution_status.module_name), "%s",
+                  module.name);
+    g_last_execution_status.result = result;
+}
 
-WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name)
+WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescriptor &module, const char *export_name)
 {
     WasmExecutionResult result = {};
-
-    if (!GetWasmRuntimeStatus().initialized) {
-        SetResultError(&result, "runtime", "runtime not initialized");
-        return result;
-    }
-
-    if (!IsWasmHostApiReady()) {
-        SetResultError(&result, "host-api", "host API not registered");
-        return result;
-    }
-
-    if (export_name == nullptr || export_name[0] == '\0') {
-        SetResultError(&result, "lookup", "empty export name");
-        return result;
-    }
 
     wasm_module_t wasm_module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
@@ -63,18 +63,22 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
     char error_buf[128] = {};
     uint32_t param_count = 0;
     uint32_t result_count = 0;
+    bool flush_host_frame = false;
 
+    ResetWasmHostFrame();
     PaperCanvasResetFrame();
 
-    wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start), static_cast<uint32_t>(GetWasmModuleBinarySize(module)),
-                                    error_buf, sizeof(error_buf));
+    wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start),
+                                    static_cast<uint32_t>(GetWasmModuleBinarySize(module)), error_buf,
+                                    sizeof(error_buf));
     if (wasm_module == nullptr) {
         SetResultError(&result, "load", error_buf);
         goto cleanup;
     }
     result.loaded = true;
 
-    module_inst = wasm_runtime_instantiate(wasm_module, kGuestStackBytes, kGuestHeapBytes, error_buf, sizeof(error_buf));
+    module_inst =
+        wasm_runtime_instantiate(wasm_module, kGuestStackBytes, kGuestHeapBytes, error_buf, sizeof(error_buf));
     if (module_inst == nullptr) {
         SetResultError(&result, "instantiate", error_buf);
         goto cleanup;
@@ -120,11 +124,9 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
     }
 
     result.executed = true;
-    result.success = true;
+    flush_host_frame = true;
 
 cleanup:
-    PaperCanvasResetFrame();
-
     if (exec_env != nullptr) {
         wasm_runtime_destroy_exec_env(exec_env);
     }
@@ -135,6 +137,46 @@ cleanup:
         wasm_runtime_unload(wasm_module);
     }
 
+    if (flush_host_frame) {
+        if (!FlushWasmHostFrame(result.error_message, sizeof(result.error_message))) {
+            SetResultError(&result, "render", result.error_message);
+        }
+        else {
+            result.success = true;
+        }
+    }
+
+    ResetWasmHostFrame();
+    PaperCanvasResetFrame();
+    return result;
+}
+
+}  // namespace
+
+WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name)
+{
+    WasmExecutionResult result = {};
+
+    if (!GetWasmRuntimeStatus().initialized) {
+        SetResultError(&result, "runtime", "runtime not initialized");
+        RememberLastExecutionResult(module, result);
+        return result;
+    }
+
+    if (!IsWasmHostApiReady()) {
+        SetResultError(&result, "host-api", "host API not registered");
+        RememberLastExecutionResult(module, result);
+        return result;
+    }
+
+    if (export_name == nullptr || export_name[0] == '\0') {
+        SetResultError(&result, "lookup", "empty export name");
+        RememberLastExecutionResult(module, result);
+        return result;
+    }
+
+    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name);
+    RememberLastExecutionResult(module, result);
     return result;
 }
 
@@ -155,6 +197,26 @@ void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExec
     if (result.error_message[0] != '\0') {
         std::printf("error_message=%s\n", result.error_message);
     }
+}
+
+void PrintLastWasmExecutionStatus()
+{
+    if (!g_last_execution_status.available) {
+        std::printf("last_run=none\n");
+        return;
+    }
+
+    std::printf("last_run=available\n");
+    std::printf("last_run.module=%s\n", g_last_execution_status.module_name);
+    std::printf("last_run.success=%s\n", g_last_execution_status.result.success ? "yes" : "no");
+    std::printf("last_run.error_stage=%s\n",
+                g_last_execution_status.result.error_stage[0] != '\0'
+                    ? g_last_execution_status.result.error_stage
+                    : "none");
+    std::printf("last_run.error_message=%s\n",
+                g_last_execution_status.result.error_message[0] != '\0'
+                    ? g_last_execution_status.result.error_message
+                    : "none");
 }
 
 }  // namespace papers3_wasm
