@@ -12,18 +12,27 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: 0079-papers3-wamr-assemblyscript-console/main/idf_component.yml
-      Note: Dependency manifest being migrated from upstream WAMR to Espressif's package
-    - Path: 0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt
-      Note: Main component alias wiring that must be updated during the migration
     - Path: 0079-papers3-wamr-assemblyscript-console/dependencies.lock
       Note: Resolved dependency record used to confirm the migration result
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt
+      Note: Main component alias wiring that must be updated during the migration
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/idf_component.yml
+      Note: Dependency manifest being migrated from upstream WAMR to Espressif's package
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp
+      Note: Contains PaperS3 screen clear and frame lifecycle code hit by the decoded backtraces
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp
+      Note: Contains queued host-command flush logic that leads into the crashing PaperS3 display path
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp
+      Note: Contains the preflush execution path and exec probes used in the new hardware tests
+    - Path: ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py
+      Note: New same-boot probe helper used to expose post-WAMR contamination on PaperS3
 ExternalSources: []
 Summary: Step-by-step diary for the WAMR dependency migration in `0079`.
 LastUpdated: 2026-03-22T19:52:00-04:00
 WhatFor: Record the migration sequence, build results, and any resolver or alias issues encountered while switching to Espressif's WAMR package.
 WhenToUse: Read this before continuing the migration or reviewing how the dependency swap was validated.
 ---
+
 
 # Diary
 
@@ -545,3 +554,144 @@ I wrote a dedicated research handoff document for an in-house web researcher at:
 ### Technical details
 
 - The brief intentionally treats the current `hello-frame` panic as the active live bug and the earlier instantiation/pthread failures as resolved migration regressions.
+
+## Step 11: Prove the remaining PaperS3 failure is same-boot WAMR contamination
+
+Once the PaperS3 board was reattached, I stopped relying on one-command-per-boot probes and reran the baseline from scratch. That mattered because the older failure theory had quietly mixed two different cases together: "does replay work on a clean boot?" and "does replay still work after a successful Wasm execution in the same boot?" Those are not the same question.
+
+This step produced the most useful narrowing result since the AtomS3R cross-check. A clean-boot `wasm replay hello-frame` now succeeds on PaperS3, but a later replay in the same boot can still be broken by an earlier Wasm run that never touched the PaperS3 drawing API. That moves the live theory away from "the replay queue is wrong" and toward "successful WAMR execution leaves behind state that makes later PaperS3 display work unsafe on this board."
+
+### Prompt Context
+
+**User prompt (verbatim):** "you figure it out, it''s arttached, run your test"
+
+**Assistant interpretation:** Resume the real-hardware PaperS3 debugging loop immediately, choose the right on-device probes without more back-and-forth, and use the attached board to narrow the remaining failure.
+
+**Inferred user intent:** Get a decisive new hardware result instead of more speculation, and keep the investigation trail detailed enough to learn from later.
+
+**Commit (code):** 42205d7 — "debug(ticket): add same-boot serial probe helper"
+
+### What I did
+
+- Reconfirmed that the attached USB Serial/JTAG device was the reattached PaperS3 and that the active firmware still contained the two recovered Espressif WAMR platform fixes:
+  - `WASM_MEM_DUAL_BUS_MIRROR=0`
+  - `os_self_thread()` using `xTaskGetCurrentTaskHandle()`
+- Reused the existing ticket-local flash/probe wrapper:
+  - [flash_and_probe_wasm.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/flash_and_probe_wasm.sh)
+- Reused the existing single-command serial helper:
+  - [serial_send_and_capture.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_send_and_capture.py)
+- Ran clean-boot single-command probes and captured the actual current state:
+  - `wasm status`
+  - `wasm run-preflush return-42`
+  - `wasm run-preflush log-only`
+  - `wasm replay hello-frame`
+  - `wasm run-preflush hello-frame`
+- Decoded the new `hello-frame` crash against the active ELF and confirmed it still lands in:
+  - [Panel_EPD.cpp:371](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp#L371)
+  - [papers3_canvas.cpp:135](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp#L135)
+  - [wasm_host_api.cpp:222](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp#L222)
+  - [wasm_module_runner.cpp:190](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp#L190)
+- Noticed a test-harness blind spot: the single-command serial helper resets the board every run, so it cannot answer whether a successful Wasm execution contaminates later commands in the same boot.
+- Added a new multi-command helper under the ticket:
+  - [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py)
+- Used the new helper to run two same-boot sequence probes:
+  - `wasm run-preflush return-42` then `wasm replay hello-frame`
+  - `wasm run-preflush log-only` then `wasm replay hello-frame`
+
+### Why
+
+- Clean-boot success and same-boot contamination are different hypotheses and require different tools.
+- The single-command helper was good for baseline checks but structurally incapable of proving whether WAMR execution was poisoning later display work.
+- If a trivial Wasm module that does not draw can still break a later PaperS3 replay in the same boot, the remaining bug is not “the guest queue is malformed.”
+
+### What worked
+
+- `wasm status` on clean boot reported:
+  - `runtime=ready`
+  - `version=2.4.0`
+  - `host_api=ready`
+  - `host_api.canvas.width=960`
+  - `host_api.canvas.height=540`
+- `wasm run-preflush return-42` succeeded on PaperS3 in the current migrated build.
+- `wasm run-preflush log-only` succeeded on PaperS3 in the current migrated build.
+- `wasm replay hello-frame` also succeeded on a clean boot.
+- The new [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py) helper worked as intended and let me prove a same-boot interaction rather than rebooting the board between commands.
+- The decisive same-boot result is:
+  - `wasm run-preflush return-42` succeeds
+  - a later `wasm replay hello-frame` in the same boot crashes with `Cache disabled but cached memory region accessed`
+- A second same-boot sequence with `log-only` instead of `return-42` also fails before the later replay can complete, which means the contamination does not require PaperS3 drawing imports.
+
+### What didn't work
+
+- My first attempt at rerunning probes reused the same serial port from two concurrent host processes and produced a tooling-side error:
+  - `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
+- `wasm run-preflush hello-frame` still fails on a clean boot after the `before-preflush` probe point, with:
+  - `Guru Meditation Error: Core / panic'ed (Cache disabled but cached memory region accessed).`
+  - `Write back error occurred while dcache tries to write back to flash`
+- In the clean-boot `hello-frame` case, the decoded crash path still lands in the PaperS3 display clear path:
+  - [Panel_EPD.cpp:371](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp#L371)
+  - [wasm_module_runner.cpp:190](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp#L190)
+- In the `log-only` then replay sequence, the backtrace that was visible after the later command was shorter and less directly helpful:
+  - `0x4200c686: find_command_by_name`
+  - `0x4200ca37: esp_console_run`
+  - because the panic note explicitly warns that the printed backtrace may not indicate the original cache-invalid access site
+
+### What I learned
+
+- The current PaperS3 state is subtler than the older summary “hello-frame crashes”:
+  - clean boot replay works
+  - direct `hello-frame` after Wasm still crashes
+  - successful non-drawing Wasm can poison a later replay in the same boot
+- That means the remaining PaperS3 bug is no longer well described as a bad replay queue or a Wasm guest drawing bug.
+- The better current model is:
+  - successful WAMR execution on PaperS3 changes some runtime/cache/task/display interaction state
+  - later display work on this board becomes unsafe
+  - AtomS3R remains the counterexample showing that this is not generic ESP32-S3 + WAMR behavior
+
+### What was tricky to build
+
+- The hardest part was a false sense of confidence from reboot-based probes. Rebooting between commands can make a poisoned same-boot system look healthy because the next test starts from a fresh runtime and fresh board state. The symptom was “replay succeeds” in one test and “hello-frame still crashes” in another, without an obvious bridge between them.
+- The solution was to stop treating the serial helper as fixed infrastructure and instead extend the tooling. The new helper keeps one USB Serial/JTAG session open across multiple commands, waits for the `paper>` prompt after each step, answers the ANSI cursor query, and only then advances to the next command. That made the same-boot contamination visible.
+- Another tricky edge was serial ownership. Running two pyserial capture helpers against the same USB Serial/JTAG device at once produced a misleading transport-level failure before the firmware could tell us anything. From this point on, these probes need to stay strictly sequential.
+
+### What warrants a second pair of eyes
+
+- Whether the next experiment should move WAMR execution onto a dedicated worker thread or `pthread` so PaperS3 replay never runs after WAMR on the `esp_console` task.
+- Whether PaperS3 EPD driver state should be explicitly reinitialized after each Wasm run before any later display operation.
+- Whether there is an ESP-IDF cache-management or memory-barrier expectation in the PaperS3 display path that AtomS3R never exercises.
+
+### What should be done in the future
+
+- Keep `ESP-39` open for the next slice, because the active bug is now explicitly about post-migration WAMR execution side effects on later PaperS3 behavior.
+- Try the worker-thread or `pthread` execution model next, then rerun the same same-boot sequence probes.
+- If that does not move the boundary, instrument or isolate the PaperS3 display path immediately before `PaperCanvasScreenClear()`.
+
+### Code review instructions
+
+- Review the new same-boot helper first:
+  - [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py)
+- Then review the runtime/display boundary where the clean-boot `hello-frame` failure still lands:
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+  - [papers3_canvas.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp)
+  - [Panel_EPD.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp)
+- Validate with these exact sequence probes:
+  - `scripts/serial_probe_sequence.py --port /dev/ttyACM0 --command 'wasm run-preflush return-42' --command 'wasm replay hello-frame'`
+  - `scripts/serial_probe_sequence.py --port /dev/ttyACM0 --command 'wasm run-preflush log-only' --command 'wasm replay hello-frame'`
+  - `scripts/serial_send_and_capture.py --port /dev/ttyACM0 --command 'wasm replay hello-frame'`
+  - `scripts/serial_send_and_capture.py --port /dev/ttyACM0 --command 'wasm run-preflush hello-frame'`
+
+### Technical details
+
+- Clean-boot results from this step:
+  - `wasm replay hello-frame` -> success
+  - `wasm run-preflush return-42` -> success, `return_value=42`
+  - `wasm run-preflush log-only` -> success, `guest_log tag=9 value=42`
+  - `wasm run-preflush hello-frame` -> panic in the PaperS3 display clear path
+- Same-boot sequence results from this step:
+  - `return-42` then replay -> replay crashes in the same `Panel_EPD` clear path
+  - `log-only` then replay -> later replay attempt also fails with the same cache-disabled panic class
+- Representative commands:
+  - `/.../serial_send_and_capture.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush hello-frame'`
+  - `/.../serial_probe_sequence.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush return-42' --command 'wasm replay hello-frame'`
+  - `/.../serial_probe_sequence.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush log-only' --command 'wasm replay hello-frame'`

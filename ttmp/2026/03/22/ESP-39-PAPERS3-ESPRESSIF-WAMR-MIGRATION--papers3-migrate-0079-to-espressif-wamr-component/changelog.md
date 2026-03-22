@@ -13,3 +13,7 @@
 - After the restored platform patches, the remaining hardware failure boundary is back where the older ticket family had it: `wasm run-preflush hello-frame` crashes in the PaperS3 preflush/display path (`FlushWasmHostFrame` -> `PaperCanvasScreenClear` -> `M5GFX Panel_EPD`)
 - Committed the recovered migration baseline as `e58a835` (`debug(papers3): recover espressif wamr baseline`)
 - Added a detailed web-research brief for an external investigator, focused on Espressif WAMR platform assumptions, ESP32-S3 dual-bus mirroring, `os_self_thread()` expectations, and the remaining PaperS3 preflush/display crash
+- Added a second ticket-local probe helper at `scripts/serial_probe_sequence.py` so multiple console commands can run against one boot session without reopening USB Serial/JTAG
+- Clean-boot probes now show a more nuanced boundary: `wasm replay hello-frame` succeeds after reset, but `wasm run-preflush hello-frame` still crashes in `Panel_EPD::writeFillRectPreclipped`
+- Same-boot sequence probes established the decisive new result: both `wasm run-preflush return-42` and `wasm run-preflush log-only` can succeed first and still poison a later `wasm replay hello-frame` in the same boot, which means the remaining PaperS3 failure is no longer limited to guest-issued drawing imports
+- Committed the same-boot probe helper as `42205d7` (`debug(ticket): add same-boot serial probe helper`)

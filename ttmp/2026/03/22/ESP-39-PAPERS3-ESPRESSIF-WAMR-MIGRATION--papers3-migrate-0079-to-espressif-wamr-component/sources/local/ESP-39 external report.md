@@ -1,3 +1,25 @@
+---
+Title: Imported external report - ESP-39 Espressif WAMR on PaperS3
+Ticket: ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION
+Status: active
+Topics:
+    - debugging
+    - esp-idf
+    - firmware
+    - papers3
+    - research
+    - wasm
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: Imported external research report about Espressif WAMR migration risks, PaperS3 display-layer hypotheses, and recommended next debugging actions.
+LastUpdated: 2026-03-22T20:00:00-04:00
+WhatFor: Preserves the external web-research findings used to guide follow-on PaperS3 debugging.
+WhenToUse: Read when comparing local hardware findings against external WAMR, ESP-IDF, and M5GFX evidence.
+---
+
 # External Research Report: Espressif WAMR on PaperS3
 **Ticket:** ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION  
 **Prepared:** 2026-03-22  

@@ -29,7 +29,10 @@
 - [x] Task 4.1: Confirm trivial guest execution with `return-42`
 - [x] Task 4.2: Confirm simple host-import execution with `log-only`
 - [x] Task 4.3: Confirm that `hello-frame` still fails only in the PaperS3 preflush path
-- [ ] Task 4.4: Decide whether the next slice belongs in `ESP-39` or should be handed back to the replay-isolation/debugging ticket family
+- [x] Task 4.4: Decide whether the next slice belongs in `ESP-39` or should be handed back to the replay-isolation/debugging ticket family
+- [x] Task 4.5: Add a same-boot multi-command serial probe helper under ticket-local scripts
+- [x] Task 4.6: Determine whether a successful non-drawing Wasm execution poisons later PaperS3 replay in the same boot
+- [x] Task 4.7: Compare same-boot replay behavior after `return-42` and `log-only`
 
 ## Planned
 
