@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.cpp"
         "console_repl.cpp"
         "wasm_command.cpp"
+        "wasm_module_registry.cpp"
         "wasm_runtime_service.cpp"
     INCLUDE_DIRS
         "."
@@ -10,4 +11,10 @@ idf_component_register(
         M5Unified
         bytecodealliance__wasm-micro-runtime
         console
+    EMBED_FILES
+        "wasm-assets/hello-frame.wasm"
+        "wasm-assets/nested-boxes.wasm"
+        "wasm-assets/bars.wasm"
+        "wasm-assets/checkerboard.wasm"
+        "wasm-assets/radar-sweep.wasm"
 )

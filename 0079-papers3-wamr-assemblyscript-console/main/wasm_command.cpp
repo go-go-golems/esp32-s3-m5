@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "wasm_module_registry.h"
 #include "wasm_runtime_service.h"
 
 #include "esp_console.h"
@@ -11,29 +12,6 @@
 namespace papers3_wasm {
 
 namespace {
-
-struct ExampleDescriptor {
-    const char *name;
-    const char *summary;
-};
-
-constexpr ExampleDescriptor kExamples[] = {
-    {"hello-frame", "first display hello-world frame demo"},
-    {"nested-boxes", "nested rectangle composition demo"},
-    {"bars", "animated bar columns demo"},
-    {"checkerboard", "alternating fill pattern demo"},
-    {"radar-sweep", "sweep and arc drawing demo"},
-};
-
-const ExampleDescriptor *FindExample(const char *name)
-{
-    for (const ExampleDescriptor &example : kExamples) {
-        if (std::strcmp(example.name, name) == 0) {
-            return &example;
-        }
-    }
-    return nullptr;
-}
 
 void PrintUsage()
 {
@@ -67,9 +45,7 @@ int CmdWasm(int argc, char **argv)
     }
 
     if (std::strcmp(argv[1], "list") == 0) {
-        for (const ExampleDescriptor &example : kExamples) {
-            std::printf("%s\n", example.name);
-        }
+        PrintWasmModuleList();
         return 0;
     }
 
@@ -78,17 +54,15 @@ int CmdWasm(int argc, char **argv)
             PrintUsage();
             return 1;
         }
-        const ExampleDescriptor *example = FindExample(argv[2]);
-        if (example == nullptr) {
+        const WasmModuleDescriptor *module = FindWasmModule(argv[2]);
+        if (module == nullptr) {
             std::printf("unknown example: %s\n", argv[2]);
             return 1;
         }
 
         const WasmRuntimeStatus &runtime = GetWasmRuntimeStatus();
-        std::printf("name=%s\n", example->name);
-        std::printf("summary=%s\n", example->summary);
+        PrintWasmModuleInfo(*module);
         std::printf("runtime=%s\n", runtime.initialized ? "ready" : "not-ready");
-        std::printf("module_status=not-embedded-yet\n");
         return 0;
     }
 
@@ -97,8 +71,8 @@ int CmdWasm(int argc, char **argv)
             PrintUsage();
             return 1;
         }
-        const ExampleDescriptor *example = FindExample(argv[2]);
-        if (example == nullptr) {
+        const WasmModuleDescriptor *module = FindWasmModule(argv[2]);
+        if (module == nullptr) {
             std::printf("unknown example: %s\n", argv[2]);
             return 1;
         }
@@ -109,8 +83,8 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
-        std::printf("placeholder: runtime ready but module embedding not added yet for module=%s\n",
-                    example->name);
+        std::printf("placeholder: runtime ready and module is embedded, but execution is not wired yet for module=%s\n",
+                    module->name);
         return 0;
     }
 

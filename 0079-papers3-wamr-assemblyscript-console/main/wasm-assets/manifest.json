@@ -1,0 +1,25 @@
+{
+  "sourceTarget": "release",
+  "demos": [
+    {
+      "name": "hello-frame",
+      "wasm": "hello-frame.wasm"
+    },
+    {
+      "name": "nested-boxes",
+      "wasm": "nested-boxes.wasm"
+    },
+    {
+      "name": "bars",
+      "wasm": "bars.wasm"
+    },
+    {
+      "name": "checkerboard",
+      "wasm": "checkerboard.wasm"
+    },
+    {
+      "name": "radar-sweep",
+      "wasm": "radar-sweep.wasm"
+    }
+  ]
+}
