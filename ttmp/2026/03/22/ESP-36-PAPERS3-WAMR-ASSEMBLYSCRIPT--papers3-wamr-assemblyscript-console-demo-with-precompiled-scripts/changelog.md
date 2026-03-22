@@ -13,3 +13,5 @@
 - Fixed the first runtime-service build breakage around `esp_system.h`, disabled `CONFIG_WAMR_ENABLE_AOT`, and strict `PRIu32` formatting
 - Added the host-side `wasm-src/` AssemblyScript workspace, shared `host` import declarations, and five first-pass demo programs
 - Added `tools/build-wasm-demos.mjs`, pinned `assemblyscript@0.28.10`, and generated tracked `release` and `debug` `.wasm`/`.wat` demo artifacts under `wasm-build/`
+- Added `main/wasm-assets/`, embedded the `release` `.wasm` files into the firmware, and introduced `wasm_module_registry.*` for runtime-facing module metadata
+- Fixed the first embedded-registry linker failure by switching from guessed path-based symbol names to the actual basename-derived ESP-IDF embed symbols

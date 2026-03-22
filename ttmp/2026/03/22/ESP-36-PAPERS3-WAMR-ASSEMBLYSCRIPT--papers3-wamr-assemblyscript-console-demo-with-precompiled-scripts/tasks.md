@@ -38,13 +38,13 @@
 - [x] Task 4.2: Create `wasm-src/asconfig.json`
 - [x] Task 4.3: Create shared host import declarations
 - [x] Task 4.4: Add a script that builds all demo modules to `.wasm` and `.wat`
-- [ ] Task 4.5: Commit AssemblyScript pipeline + diary update
+- [x] Task 4.5: Commit AssemblyScript pipeline + diary update
 
 - [ ] Task 5: Add embedded demo registry
-- [ ] Task 5.1: Create generated or embedded wasm asset inputs
-- [ ] Task 5.2: Add `wasm_module_registry.*`
-- [ ] Task 5.3: Implement `wasm list` and `wasm info`
-- [ ] Task 5.4: Verify embedded assets are available in firmware builds
+- [x] Task 5.1: Create generated or embedded wasm asset inputs
+- [x] Task 5.2: Add `wasm_module_registry.*`
+- [x] Task 5.3: Implement `wasm list` and `wasm info`
+- [x] Task 5.4: Verify embedded assets are available in firmware builds
 - [ ] Task 5.5: Commit registry + diary update
 
 - [ ] Task 6: Add the first working host API and first runnable demo

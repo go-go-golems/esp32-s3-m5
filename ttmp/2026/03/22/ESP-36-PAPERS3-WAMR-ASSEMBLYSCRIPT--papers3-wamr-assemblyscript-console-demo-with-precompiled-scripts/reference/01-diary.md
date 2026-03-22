@@ -36,6 +36,8 @@ RelatedFiles:
       Note: Host-side AssemblyScript workspace and pinned compiler version
     - Path: 0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs
       Note: Multi-demo AssemblyScript build entrypoint
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_module_registry.cpp
+      Note: Embedded module inventory and metadata lookup
     - Path: 0077-papers3-alphabet-graffiti/sdkconfig.defaults
       Note: PaperS3 baseline used to anchor ESP-IDF 5.3.4 and console defaults
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
@@ -48,7 +50,7 @@ ExternalSources:
     - https://github.com/AssemblyScript/website/blob/main/src/compiler.md
     - https://github.com/AssemblyScript/website/blob/main/src/runtime.md
 Summary: Chronological diary for the ticket creation, scaffold work, and runtime integration work behind the PaperS3 WAMR AssemblyScript design guide and firmware.
-LastUpdated: 2026-03-22T12:05:00-04:00
+LastUpdated: 2026-03-22T12:23:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -656,6 +658,153 @@ Generated demo names:
 - `bars`
 - `checkerboard`
 - `radar-sweep`
+
+## Step 6: Embed the release modules into firmware and replace the hard-coded demo list with a registry
+
+This step connected the host-side artifacts back into the firmware. After the AssemblyScript pipeline milestone, the repo had `release` `.wasm` files, but the firmware still knew about demos only through hard-coded names in `wasm_command.cpp`. I added a real embedded module registry so the firmware now has authoritative module bytes, metadata, and list/info output backed by compiled assets rather than placeholder strings.
+
+The interesting part of this step was not the registry struct itself. It was the embed/link detail. ESP-IDF generated the binary-embed assembly stubs successfully on the first try, but my first extern symbol names assumed path-based symbol prefixes. The actual generated symbols were basename-based, and the linker failure made that obvious once I inspected the generated `.wasm.S` files.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue into the embedded-registry milestone, wire the built modules into the firmware image, and commit it as the next reviewable checkpoint.
+
+**Inferred user intent:** Move from "we can compile demo Wasm on the host" to "the firmware has a concrete curated set of embedded modules it can enumerate and later execute."
+
+**Commit (code):** `41a04d8` - `feat(papers3): embed wasm demo registry`
+
+### What I did
+
+- added `0079-papers3-wamr-assemblyscript-console/main/wasm-assets/`
+- synced the `release` `.wasm` outputs into `main/wasm-assets/` and wrote an embedded-assets manifest
+- updated `0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs` so future `npm run build` runs automatically refresh the embedded `release` assets
+- updated `0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt` to embed the five release `.wasm` files through `EMBED_FILES`
+- added `0079-papers3-wamr-assemblyscript-console/main/wasm_module_registry.h`
+- added `0079-papers3-wamr-assemblyscript-console/main/wasm_module_registry.cpp`
+- updated `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp` so:
+  - `wasm list` prints the actual embedded module inventory
+  - `wasm info <name>` prints embedded metadata and binary size
+  - `wasm run <name>` now reports that the module is embedded and runtime-ready, with execution still pending
+- added `0079-papers3-wamr-assemblyscript-console/wasm-src/.gitignore` for `node_modules/`
+- rebuilt both the host artifacts and the firmware:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src
+npm run build
+```
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+### Why
+
+- Task 5 needed the firmware to own real module assets, not just know the names of future demos
+- centralizing the embedded module metadata in one registry removes duplication and gives later runtime-execution code a single lookup path
+- syncing `release` outputs into `main/wasm-assets/` keeps the embed path simple and predictable for ESP-IDF
+
+### What worked
+
+- `npm run build` now refreshes both `wasm-build/release/` and `main/wasm-assets/`
+- ESP-IDF `EMBED_FILES` generated assembly stubs for all five `.wasm` assets
+- the final firmware build succeeded with the embedded registry, producing a binary size of `0x7a7a0` and about `88%` free space remaining in the 4 MB app partition
+- `wasm list` and `wasm info` no longer depend on duplicated hard-coded arrays inside the command layer
+
+### What didn't work
+
+- the first firmware build after adding `EMBED_FILES` and `wasm_module_registry.cpp` failed at link time
+- command:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+- exact issue:
+  - I initially declared extern symbols like `_binary_wasm_assets_hello_frame_wasm_start`
+  - ESP-IDF actually emitted basename-derived symbols like `_binary_hello_frame_wasm_start`
+- representative linker errors:
+
+```text
+undefined reference to `_binary_wasm_assets_hello_frame_wasm_start'
+undefined reference to `_binary_wasm_assets_nested_boxes_wasm_start'
+undefined reference to `_binary_wasm_assets_radar_sweep_wasm_start'
+```
+
+- how I fixed it:
+  - inspected `build/hello-frame.wasm.S` and `build/nested-boxes.wasm.S`
+  - confirmed the generated symbol names were basename-only
+  - updated `wasm_module_registry.cpp` to use `_binary_hello_frame_wasm_start`, `_binary_nested_boxes_wasm_start`, and the corresponding `_end` symbols
+  - reran the firmware build successfully
+
+### What I learned
+
+- for these embedded `.wasm` assets, ESP-IDF symbol names are derived from the basename rather than the `main/wasm-assets/` directory path
+- a registry abstraction is already paying off before execution exists, because it lets the command layer and future runner logic talk about one consistent module inventory
+- auto-syncing the embedded assets from the host build script is worth it; otherwise the firmware could silently drift behind the host-side `release` artifacts
+
+### What was tricky to build
+
+- the difficult part was the boundary between the host artifact pipeline and ESP-IDF’s binary embedding behavior
+- there are three representations of the same module now:
+  - AssemblyScript source in `wasm-src/`
+  - generated `release` artifacts in `wasm-build/release/`
+  - firmware-embedded copies in `main/wasm-assets/`
+- that can become error-prone unless one path is clearly authoritative and the sync rule is explicit
+- I handled that by making `wasm-build/release/` the generated source of truth and having the build script refresh `main/wasm-assets/` automatically
+
+### What warrants a second pair of eyes
+
+- whether keeping both `wasm-build/release/` and `main/wasm-assets/` tracked is the right long-term duplication level, or whether one of them should become generated-only later
+- whether the registry metadata should grow a formal manifest parser instead of staying hard-coded in C++ when the demo set expands
+- whether the command output should already expose more metadata such as hash or build target, or keep the registry intentionally small for now
+
+### What should be done in the future
+
+- commit the ticket bookkeeping for this registry milestone
+- implement the host-native drawing API and native symbol registration
+- make `wasm run <name>` load, instantiate, and call the embedded module entry point
+
+### Code review instructions
+
+- start with `0079-papers3-wamr-assemblyscript-console/main/wasm_module_registry.cpp`
+- then inspect `0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt` and `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
+- review the auto-sync logic in `0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs`
+- validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src
+npm run build
+```
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+### Technical details
+
+Embedded module names:
+
+- `hello-frame`
+- `nested-boxes`
+- `bars`
+- `checkerboard`
+- `radar-sweep`
+
+Registry-backed metadata now includes:
+
+- demo name
+- summary
+- source file path
+- entrypoint name
+- embedded binary size
 
 ## Related
 
