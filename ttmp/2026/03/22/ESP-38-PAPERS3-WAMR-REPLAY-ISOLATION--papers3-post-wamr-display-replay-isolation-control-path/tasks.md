@@ -8,11 +8,11 @@
 
 ## In Progress
 
-- [ ] Task 1: Add a WAMR-free replay control path for `hello-frame`
-- [ ] Task 1.1: Expose reusable host-command queue helpers from the existing host API
-- [ ] Task 1.2: Add a replay-control helper that mirrors the `hello-frame` guest sequence exactly
-- [ ] Task 1.3: Add console wiring for `wasm replay hello-frame`
-- [ ] Task 1.4: Verify `idf.py build`
+- [x] Task 1: Add a WAMR-free replay control path for `hello-frame`
+- [x] Task 1.1: Expose reusable host-command queue helpers from the existing host API
+- [x] Task 1.2: Add a replay-control helper that mirrors the `hello-frame` guest sequence exactly
+- [x] Task 1.3: Add console wiring for `wasm replay hello-frame`
+- [x] Task 1.4: Verify `idf.py build`
 - [ ] Task 1.5: Commit replay-control implementation
 
 - [ ] Task 2: Validate the control path on hardware

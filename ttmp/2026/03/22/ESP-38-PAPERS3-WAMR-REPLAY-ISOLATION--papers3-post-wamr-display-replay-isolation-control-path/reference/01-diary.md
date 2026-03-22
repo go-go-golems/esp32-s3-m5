@@ -102,3 +102,58 @@ Before writing code, I documented the exact shape of the experiment. That matter
 - Add a host-side replay helper for `hello-frame`.
 - Add a console command to trigger the control path.
 - Flash hardware and compare the control path with the Wasm-backed path.
+
+## Step 3: Implement the WAMR-free `hello-frame` replay control path
+
+This step intentionally stopped before any hardware work. The goal was to get the control path into firmware in a buildable form so the next hardware session can compare `wasm replay hello-frame` and `wasm run hello-frame` directly.
+
+### What I changed
+
+- Expanded [wasm_host_api.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.h) so host queue operations are reusable from non-Wasm code.
+- Refactored [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp) to expose public queue helpers:
+  - `QueueWasmHostLogI32(...)`
+  - `QueueWasmHostDelayMs(...)`
+  - `QueueWasmHostScreenClear(...)`
+  - `QueueWasmHostDrawRect(...)`
+  - `QueueWasmHostFillRect(...)`
+  - `QueueWasmHostPresent(...)`
+  - `GetWasmHostQueuedCommandCount()`
+- Added [wasm_replay_control.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.h) and [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp).
+- Implemented a literal `hello-frame` control sequence that mirrors the guest AssemblyScript program in [wasm-src/hello-frame/assembly/index.ts](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src/hello-frame/assembly/index.ts).
+- Updated [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp) to add:
+  - `wasm replay <name>`
+- Updated [main/CMakeLists.txt](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt) to compile the new replay helper.
+
+### Why this structure
+
+- The queue helpers needed to be callable from both:
+  - WAMR native-import callbacks
+  - host-side control code
+- The replay helper needed to stay literal and narrow.
+  A generic scene abstraction would only create room for accidental divergence from the guest behavior.
+
+### Build validation
+
+I validated the implementation with:
+
+- `source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null && idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console build`
+
+The build passed cleanly.
+
+### What I learned
+
+- The replay-isolation command can be added without disturbing the current WAMR-backed command structure.
+- The control-path code is small enough that future hardware logs should be easier to interpret than the existing Wasm-backed path.
+
+### What remains for the next step
+
+- No hardware was touched in this step because the user explicitly disconnected the eink device.
+- The next step is purely comparative hardware validation:
+  - `wasm replay hello-frame`
+  - `wasm run hello-frame`
+
+### Review instructions
+
+- Read [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp) first.
+- Compare its queue sequence against [wasm-src/hello-frame/assembly/index.ts](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src/hello-frame/assembly/index.ts).
+- Then inspect [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp) to confirm the control path and Wasm path are sharing the same queue implementation.
