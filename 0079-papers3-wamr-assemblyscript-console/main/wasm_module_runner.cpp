@@ -26,6 +26,18 @@ struct WasmLastExecutionStatus {
 
 WasmLastExecutionStatus g_last_execution_status = {};
 
+const char *FlushTimingName(WasmFlushTiming flush_timing)
+{
+    switch (flush_timing) {
+        case WasmFlushTiming::BeforeCleanup:
+            return "before-cleanup";
+        case WasmFlushTiming::AfterCleanup:
+            return "after-cleanup";
+    }
+
+    return "unknown";
+}
+
 void SetResultError(WasmExecutionResult *result, const char *stage, const char *message)
 {
     if (stage == nullptr) {
@@ -52,9 +64,11 @@ void RememberLastExecutionResult(const WasmModuleDescriptor &module, const WasmE
     g_last_execution_status.result = result;
 }
 
-WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescriptor &module, const char *export_name)
+WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescriptor &module, const char *export_name,
+                                                         WasmFlushTiming flush_timing)
 {
     WasmExecutionResult result = {};
+    result.flush_timing = flush_timing;
 
     wasm_module_t wasm_module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
@@ -126,6 +140,16 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     result.executed = true;
     flush_host_frame = true;
 
+    if (flush_host_frame && flush_timing == WasmFlushTiming::BeforeCleanup) {
+        if (!FlushWasmHostFrame(result.error_message, sizeof(result.error_message))) {
+            SetResultError(&result, "render", result.error_message);
+            goto cleanup;
+        }
+
+        flush_host_frame = false;
+        result.success = true;
+    }
+
 cleanup:
     if (exec_env != nullptr) {
         wasm_runtime_destroy_exec_env(exec_env);
@@ -153,9 +177,11 @@ cleanup:
 
 }  // namespace
 
-WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name)
+WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
+                                          WasmFlushTiming flush_timing)
 {
     WasmExecutionResult result = {};
+    result.flush_timing = flush_timing;
 
     if (!GetWasmRuntimeStatus().initialized) {
         SetResultError(&result, "runtime", "runtime not initialized");
@@ -175,7 +201,7 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
         return result;
     }
 
-    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name);
+    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing);
     RememberLastExecutionResult(module, result);
     return result;
 }
@@ -184,6 +210,7 @@ void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExec
 {
     std::printf("module=%s\n", module.name);
     std::printf("entrypoint=%s\n", module.entrypoint);
+    std::printf("flush_timing=%s\n", FlushTimingName(result.flush_timing));
     std::printf("execution=%s\n", result.success ? "success" : "failure");
     std::printf("loaded=%s\n", result.loaded ? "yes" : "no");
     std::printf("instantiated=%s\n", result.instantiated ? "yes" : "no");

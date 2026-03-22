@@ -30,7 +30,7 @@ RelatedFiles:
         Guest behavior mirrored by replay control tests
 ExternalSources: []
 Summary: Detailed debugging diary for the PaperS3 replay-isolation control-path experiment.
-LastUpdated: 2026-03-22T12:15:00-04:00
+LastUpdated: 2026-03-22T14:04:00-04:00
 WhatFor: Record each replay-isolation implementation and hardware-debugging step in enough detail to reconstruct the reasoning later.
 WhenToUse: Read this before continuing the ticket or reviewing why a specific control-path experiment was attempted.
 ---
@@ -157,3 +157,184 @@ The build passed cleanly.
 - Read [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp) first.
 - Compare its queue sequence against [wasm-src/hello-frame/assembly/index.ts](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src/hello-frame/assembly/index.ts).
 - Then inspect [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp) to confirm the control path and Wasm path are sharing the same queue implementation.
+
+## Step 4: Flash the replay-control firmware and run the control-path baseline
+
+This was the first hardware step in the ticket and the most important comparison point so far. The point of the control path was not to "show something on screen." The point was to determine whether the display queue and replay logic could execute on real PaperS3 hardware when WAMR was absent from the path.
+
+### What I ran
+
+- Cleared any stale serial users:
+  - `lsof -t /dev/ttyACM0 | xargs -r kill`
+- Started a fresh tmux shell+monitor session so the shell would survive monitor exit:
+  - `tmux new-session -d -s papers3-0079-replay 'unset IDF_PYTHON_ENV_PATH IDF_PATH; source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console -p /dev/ttyACM0 flash monitor; exec zsh -li'`
+- Waited for the `paper>` prompt.
+- Ran:
+  - `wasm replay hello-frame`
+  - `wasm run hello-frame`
+
+### What happened
+
+The firmware flashed and booted normally. The console came up over USB Serial/JTAG and WAMR initialized cleanly:
+
+- `Initializing WAMR runtime (allocator=pool, mode=interp)`
+- `WAMR ready (version=2.4.3, interp=yes, aot=no, fast-jit=no, llvm-jit=no)`
+- `Registered 6 host symbols for module 'host'`
+
+The control-path command succeeded:
+
+- `wasm replay hello-frame`
+- `guest_log tag=1 value=79`
+- `control_example=hello-frame`
+- `queued_commands=9`
+- `control_execution=success`
+
+The WAMR-backed command still panicked:
+
+- `wasm run hello-frame`
+- panic class:
+  - `Guru Meditation Error: ... panic'ed (Cache disabled but cached memory region accessed)`
+  - `Write back error occurred while dcache tries to write back to flash`
+- relevant stack region:
+  - `lgfx::v1::Panel_EPD::writeFillRectPreclipped(...)`
+  - `papers3_wasm::PaperCanvasScreenClear(...)`
+  - `papers3_wasm::FlushWasmHostFrame(...)`
+  - `papers3_wasm::RunEmbeddedWasmModuleOnCurrentThread(...)`
+
+### Why this result matters
+
+This is the strongest isolation result so far in the overall investigation:
+
+- The same queue/replay machinery works on hardware when WAMR is absent.
+- The crash only appears on the path that enters WAMR and then later flushes the queued display commands.
+- That means the display replay sequence itself is not sufficient to explain the panic.
+
+This result eliminates the previous ambiguous interpretation that "maybe the PaperS3 display code is just fragile." It may still be sensitive, but it is demonstrably capable of handling the `hello-frame` queue when WAMR is not in the lifecycle.
+
+### Updated hypothesis
+
+The unstable boundary is now much narrower. The two paths are:
+
+- control path:
+  - reset frame
+  - queue commands
+  - flush commands
+- WAMR path:
+  - reset frame
+  - load module
+  - instantiate
+  - create exec env
+  - call Wasm
+  - destroy exec env
+  - deinstantiate module
+  - unload module
+  - flush commands
+
+Since only the second path panics, one of these is true:
+
+- the Wasm call itself leaves the system in a bad state even after it returns
+- or the WAMR cleanup sequence leaves the system in a bad state before replay begins
+
+That is why the next task changed from "reduce the control replay further" to "compare pre-cleanup and post-cleanup replay timing on the WAMR path."
+
+### Mistake avoided
+
+Without this hardware baseline, it would have been easy to keep patching the PaperS3 drawing layer or adding smaller control examples. That would have generated work, but it would not have answered the core question. Running the direct control-path baseline first avoided that debugging drift.
+
+### Next step
+
+Add a diagnostic execution mode that flushes the queued frame before WAMR teardown, while preserving the current behavior as the post-cleanup comparison path.
+
+## Step 5: Add `run-preflush` and test whether teardown is actually the trigger
+
+Step 4 narrowed the problem, but it still left one ambiguity: perhaps the Wasm call itself was fine and only WAMR cleanup poisoned the system. The correct next move was not another broad patch. It was a timing experiment.
+
+### What I changed
+
+I added a second WAMR execution mode in the firmware:
+
+- `wasm run <name>`
+  - existing behavior
+  - flush queued host commands after WAMR cleanup
+- `wasm run-preflush <name>`
+  - new diagnostic behavior
+  - flush queued host commands before WAMR cleanup
+
+Implementation changes:
+
+- Updated [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h) with:
+  - `enum class WasmFlushTiming`
+  - a `flush_timing` field in `WasmExecutionResult`
+  - an execution API that accepts the flush timing
+- Updated [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) so:
+  - the existing path still flushes after cleanup
+  - the new diagnostic path flushes before destroying the exec env and unloading the module
+  - result output prints the chosen flush timing
+- Updated [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp) with:
+  - `wasm run-preflush <name>`
+  - updated usage/examples output
+
+### Why this experiment matters
+
+This is the shortest path to distinguishing between two concrete hypotheses:
+
+- hypothesis A:
+  - WAMR cleanup breaks cache or mapping state
+- hypothesis B:
+  - the WAMR call path itself, or the native-import path taken during execution, already leaves the system unstable before cleanup starts
+
+If `run-preflush` succeeded while `run` failed, cleanup would be the prime suspect.
+If both failed, cleanup would no longer be the leading explanation.
+
+### Build validation
+
+I rebuilt the firmware before touching hardware:
+
+- `unset IDF_PYTHON_ENV_PATH IDF_PATH; source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null; idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console build`
+
+The build passed.
+
+### What I ran on hardware
+
+- Killed any stale monitor users and started a fresh tmux flash+monitor session.
+- Flashed the updated firmware.
+- Waited for the `paper>` prompt.
+- Ran:
+  - `wasm run-preflush hello-frame`
+
+### What happened
+
+The new diagnostic mode still panicked on hardware with the same class of failure:
+
+- `Guru Meditation Error: ... panic'ed (Cache disabled but cached memory region accessed)`
+- `Write back error occurred while dcache tries to write back to flash`
+
+The key stack still passed through the first queued display primitive:
+
+- `lgfx::v1::Panel_EPD::writeFillRectPreclipped(...)`
+- `papers3_wasm::PaperCanvasScreenClear(...)`
+- `papers3_wasm::FlushWasmHostFrame(...)`
+- `papers3_wasm::RunEmbeddedWasmModuleOnCurrentThread(..., WasmFlushTiming)`
+
+What changed was the meaning of that stack. In Step 4, the same stack still allowed cleanup to be blamed. In this step, the stack occurred before cleanup, so cleanup can no longer explain the failure.
+
+### What I learned
+
+This result materially changes the debugging model:
+
+- The panic is not caused by WAMR teardown.
+- Entering and returning from the WAMR execution path is already enough to make the subsequent PaperS3 replay unsafe.
+- The unstable boundary is now either:
+  - the Wasm interpreter execution path itself
+  - or one of the native imports invoked from Wasm during execution
+
+### Mistake corrected
+
+Before this experiment, it was tempting to over-focus on `wasm_runtime_destroy_exec_env()`, `wasm_runtime_deinstantiate()`, or `wasm_runtime_unload()`. That would have been understandable given the old backtrace location, but this test showed that cleanup was the wrong center of gravity.
+
+### New next step
+
+The next discriminating probe should be smaller on the Wasm side, not the PaperS3 side. A minimal module that exercises WAMR with fewer or no display-related host imports would tell us whether:
+
+- any WAMR execution poisons the later display path
+- or only certain native-import activity does

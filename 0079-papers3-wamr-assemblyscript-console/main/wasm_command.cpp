@@ -23,6 +23,7 @@ void PrintUsage()
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
+    std::printf("  wasm run-preflush <name>\n");
     std::printf("  wasm run <name>\n");
     std::printf("  wasm status\n");
 }
@@ -33,6 +34,7 @@ void PrintExamples()
     std::printf("  wasm list\n");
     std::printf("  wasm info hello-frame\n");
     std::printf("  wasm replay hello-frame\n");
+    std::printf("  wasm run-preflush hello-frame\n");
     std::printf("  wasm run hello-frame\n");
     std::printf("  wasm status\n");
 }
@@ -71,7 +73,7 @@ int CmdWasm(int argc, char **argv)
         return 0;
     }
 
-    if (std::strcmp(argv[1], "run") == 0) {
+    if (std::strcmp(argv[1], "run") == 0 || std::strcmp(argv[1], "run-preflush") == 0) {
         if (argc < 3) {
             PrintUsage();
             return 1;
@@ -88,7 +90,10 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
-        const WasmExecutionResult result = RunEmbeddedWasmModule(*module, module->entrypoint);
+        const WasmFlushTiming flush_timing = std::strcmp(argv[1], "run-preflush") == 0
+                                                 ? WasmFlushTiming::BeforeCleanup
+                                                 : WasmFlushTiming::AfterCleanup;
+        const WasmExecutionResult result = RunEmbeddedWasmModule(*module, module->entrypoint, flush_timing);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }

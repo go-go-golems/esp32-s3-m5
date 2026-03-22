@@ -6,6 +6,11 @@
 
 namespace papers3_wasm {
 
+enum class WasmFlushTiming : uint8_t {
+    BeforeCleanup,
+    AfterCleanup,
+};
+
 struct WasmExecutionResult {
     bool success;
     bool loaded;
@@ -14,11 +19,13 @@ struct WasmExecutionResult {
     bool exec_env_created;
     bool executed;
     int32_t return_value;
+    WasmFlushTiming flush_timing;
     char error_stage[32];
     char error_message[160];
 };
 
-WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name);
+WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
+                                         WasmFlushTiming flush_timing = WasmFlushTiming::AfterCleanup);
 
 void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExecutionResult &result);
 void PrintLastWasmExecutionStatus();
