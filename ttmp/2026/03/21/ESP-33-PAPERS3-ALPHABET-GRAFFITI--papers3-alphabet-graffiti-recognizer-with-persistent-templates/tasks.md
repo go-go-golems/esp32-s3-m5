@@ -11,8 +11,9 @@
 - [x] Implement training UI for `A-Z` and `0-9`
 - [x] Validate the build and update the ticket docs/diary for the training milestone
 - [x] Implement writing mode with recognized output buffer
+- [x] Produce the detailed intern-facing analysis / design / implementation guide
+- [x] Upload the finished ticket bundle to reMarkable
 
 ## Remaining
 
-- [ ] Produce the detailed intern-facing analysis / design / implementation guide
-- [ ] Upload the finished ticket bundle to reMarkable
+- [ ] Flash and test the app on physical PaperS3 hardware

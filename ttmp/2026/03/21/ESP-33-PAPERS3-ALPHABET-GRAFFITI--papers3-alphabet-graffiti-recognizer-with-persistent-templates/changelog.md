@@ -23,3 +23,7 @@
 - Reused the same Protractor recognition path for both training and live text entry instead of forking the gesture pipeline
 - Verified the full two-mode app again with `idf.py build` against ESP-IDF `5.3.4`
 - Recorded Task 3 commit `625dba3` for the live graffiti writing milestone
+- Added a long-form intern-facing design / analysis / implementation guide to `design-doc/`
+- Added `storage` to the workspace ticket vocabulary so the documentation validates cleanly
+- Verified the ticket with `docmgr doctor --ticket ESP-33-PAPERS3-ALPHABET-GRAFFITI --stale-after 30`
+- Uploaded the bundled ticket docs to reMarkable at `/ai/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI`

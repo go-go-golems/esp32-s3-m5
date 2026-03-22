@@ -314,3 +314,87 @@ papers3_alphabet_graffiti.bin binary size 0x74f70 bytes
 Smallest app partition is 0x400000 bytes
 0x38b090 bytes (89%) free
 ```
+
+## Step 4: Write the intern guide, validate the ticket, and upload to reMarkable
+
+This step turns the implementation into a durable handoff package. The firmware already worked, but the user also wanted a process trail and documentation strong enough for a new intern. That means the job is not complete until the code, guide, ticket metadata, and delivery path all line up.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's create a third app where this time we have two modes, one where I input templates for the entire aphabet (ABCDEF...0123456789) and then one where I can just write graffiti style. Make nice simple UIs. store the templates on disk. I can switch to writing whenver, even if not all letters are registered.
+
+Work task by task, commit as you go, keep a detailed diary"
+
+**Assistant interpretation:** After the firmware milestones are committed, finish the full handoff workflow: create the long-form guide, validate the ticket, and publish the bundle to reMarkable.
+
+**Inferred user intent:** Make the result reviewable, teachable, and easy to annotate away from the terminal.
+
+### What I did
+
+- created `design-doc/01-papers3-alphabet-graffiti-analysis-design-and-implementation-guide.md`
+- documented the donor stack, runtime architecture, storage schema, mode behavior, rendering model, and debugging guidance
+- added the missing `storage` topic to the workspace vocabulary so the ticket validates cleanly
+- ran `docmgr doctor` and verified the ticket passed
+- uploaded the ticket bundle to reMarkable
+- verified the uploaded folder contents with `remarquee cloud ls`
+
+### Why
+
+- a new intern should not need to reverse-engineer the app from `alphabet_app.cpp`
+- the ticket should validate cleanly before it is treated as finished delivery
+- reMarkable upload is part of the requested documentation workflow
+
+### What worked
+
+- the guide fit naturally into a single design-doc because the app remains compact enough to explain end-to-end
+- the `storage` vocabulary warning was resolved cleanly by adding the topic rather than weakening the document metadata
+- `remarquee upload bundle` succeeded without needing a retry or overwrite flag
+
+### What didn't work
+
+- my first attempt to add the `storage` vocabulary entry omitted the required `--description` flag
+
+### What I learned
+
+- docmgr ticket hygiene matters even for small app tickets because the validation report is often the last thing touched before delivery
+- the bundle upload workflow is stable enough to use as the final delivery step once the local ticket passes validation
+
+### What warrants a second pair of eyes
+
+- the intern guide is broad and detailed, but it still assumes the reader can navigate C++ and ESP-IDF basics
+- the one remaining functional gap is physical hardware validation
+
+### What should be done in the future
+
+- flash the app to a real PaperS3 and test touch ergonomics, recognition confidence, and e-paper behavior
+- revise the guide after physical testing if the threshold or UI affordances need adjustment
+
+### Technical details
+
+Commands used:
+
+```bash
+docmgr doc add --ticket ESP-33-PAPERS3-ALPHABET-GRAFFITI --doc-type design-doc --title "PaperS3 alphabet graffiti analysis design and implementation guide"
+docmgr vocab add --category topics --slug storage --description "Persistent or on-device storage systems"
+docmgr doctor --ticket ESP-33-PAPERS3-ALPHABET-GRAFFITI --stale-after 30
+remarquee upload bundle ttmp/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI--papers3-alphabet-graffiti-recognizer-with-persistent-templates --name "ESP-33 PaperS3 Alphabet Graffiti" --remote-dir "/ai/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI" --toc-depth 2 --non-interactive
+remarquee cloud ls /ai/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI --long --non-interactive
+```
+
+Observed command issue and fix:
+
+```text
+Parameter description is required
+```
+
+Resolution:
+
+- rerun `docmgr vocab add` with `--description`
+
+Validation and delivery results:
+
+```text
+docmgr doctor -> All checks passed
+remarquee upload bundle -> OK: uploaded ESP-33 PaperS3 Alphabet Graffiti.pdf
+remarquee cloud ls -> [f] ESP-33 PaperS3 Alphabet Graffiti
+```

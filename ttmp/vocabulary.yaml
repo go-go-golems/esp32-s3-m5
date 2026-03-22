@@ -109,6 +109,8 @@ topics:
       description: Timer features and workflows
     - slug: screenshot
       description: Screenshot capture and image export workflows
+    - slug: storage
+      description: Persistent or on-device storage systems
 docTypes:
     - slug: index
       description: Ticket index document

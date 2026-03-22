@@ -48,6 +48,7 @@ Task 1 established the new `0077` project, created the ticket/diary, and landed 
 ## Key Links
 
 - Project: `0077-papers3-alphabet-graffiti`
+- Guide: `design-doc/01-papers3-alphabet-graffiti-analysis-design-and-implementation-guide.md`
 - Diary: `reference/01-diary.md`
 - Tasks: `tasks.md`
 - Changelog: `changelog.md`
