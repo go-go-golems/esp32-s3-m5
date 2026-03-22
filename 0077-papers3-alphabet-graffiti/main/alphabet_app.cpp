@@ -13,16 +13,19 @@ using protractor_demo::PointF;
 using protractor_demo::Resample;
 using protractor_demo::Vectorize;
 
-constexpr int32_t kScreenMargin = 18;
-constexpr int32_t kHeaderHeight = 64;
-constexpr int32_t kCanvasCardWidth = 410;
-constexpr int32_t kCanvasCardHeight = 420;
+constexpr int32_t kScreenMargin = 16;
+constexpr int32_t kHeaderHeight = 52;
 constexpr int32_t kCanvasInset = 14;
 constexpr int32_t kCardRadius = 14;
 constexpr int32_t kButtonRadius = 10;
 constexpr int32_t kChipRadius = 10;
 constexpr int32_t kBrushRadius = 4;
 constexpr int32_t kBrushStepPx = 2;
+constexpr int32_t kBottomBarHeight = 52;
+constexpr int32_t kButtonGap = 8;
+constexpr int32_t kSlotCellWidth = 76;
+constexpr int32_t kSlotCellHeight = 52;
+constexpr int32_t kCellGap = 8;
 constexpr std::uint32_t kLoopDelayMs = 12;
 
 constexpr std::uint32_t kColorPaper = 0xFFFFFF;
@@ -41,7 +44,7 @@ void DrawRoundCard(M5GFX& display, const Rect& rect, std::uint32_t fill)
     display.drawRoundRect(rect.x, rect.y, rect.w, rect.h, kCardRadius, kColorInk);
 }
 
-void DrawButton(M5GFX& display, const Rect& rect, const char* label, bool enabled, bool primary, bool selected = false)
+void DrawButton(M5GFX& display, const Rect& rect, const char* label, bool enabled, bool primary, bool selected = false, int font = 2)
 {
     const std::uint32_t fill = !enabled ? kColorDisabled : (primary ? kColorAccentFill : kColorCardDark);
     display.fillRoundRect(rect.x, rect.y, rect.w, rect.h, kButtonRadius, fill);
@@ -52,9 +55,10 @@ void DrawButton(M5GFX& display, const Rect& rect, const char* label, bool enable
 
     display.setTextDatum(middle_center);
     display.setTextColor(kColorInk, fill);
-    display.setTextFont(2);
+    display.setTextFont(font);
     display.drawString(label, rect.x + rect.w / 2, rect.y + rect.h / 2);
     display.setTextDatum(top_left);
+    display.setTextFont(2);
 }
 
 }  // namespace
@@ -90,47 +94,80 @@ void AlphabetApp::InitBoard()
 void AlphabetApp::BuildLayout()
 {
     screen_ = {0, 0, M5.Display.width(), M5.Display.height()};
-    header_ = {kScreenMargin, 14, screen_.w - (kScreenMargin * 2), kHeaderHeight};
-    train_mode_button_ = {header_.x + header_.w - 198, header_.y + 12, 92, 28};
-    write_mode_button_ = {header_.x + header_.w - 98, header_.y + 12, 86, 28};
 
-    canvas_card_ = {kScreenMargin, 92, kCanvasCardWidth, kCanvasCardHeight};
-    canvas_ = {
-        canvas_card_.x + kCanvasInset,
-        canvas_card_.y + 40,
-        canvas_card_.w - (kCanvasInset * 2),
-        canvas_card_.h - 54,
-    };
+    // Header bar
+    header_ = {0, 0, screen_.w, kHeaderHeight};
+    train_mode_button_ = {screen_.w - 300, 4, 140, 44};
+    write_mode_button_ = {screen_.w - 152, 4, 140, 44};
 
-    const int32_t right_x = canvas_card_.x + canvas_card_.w + 18;
-    const int32_t right_w = screen_.w - right_x - kScreenMargin;
-    palette_card_ = {right_x, 92, right_w, 172};
-    controls_card_ = {right_x, 272, right_w, 84};
-    metrics_card_ = {right_x, 364, right_w, 74};
-    results_card_ = {right_x, 446, right_w, 66};
+    const int32_t content_y = kHeaderHeight + 4;
+    const int32_t bottom_bar_y = screen_.h - kBottomBarHeight - 4;
+    const int32_t content_h = bottom_bar_y - content_y - 4;
 
-    const int32_t slot_w = (palette_card_.w - 44) / 4;
-    const int32_t slot_h = 28;
-    for (std::size_t i = 0; i < slot_rects_.size(); ++i) {
-        const int32_t row = static_cast<int32_t>(i / 4);
-        const int32_t col = static_cast<int32_t>(i % 4);
-        slot_rects_[i] = {
-            palette_card_.x + 12 + (col * (slot_w + 6)),
-            palette_card_.y + 44 + (row * (slot_h + 8)),
-            slot_w,
-            slot_h,
+    if (mode_ == Mode::train) {
+        // Train: canvas left, glyph sidebar right, bottom action bar
+        constexpr int32_t sidebar_w = 340;
+        const int32_t canvas_card_w = screen_.w - kScreenMargin * 3 - sidebar_w;
+
+        canvas_card_ = {kScreenMargin, content_y, canvas_card_w, content_h};
+        canvas_ = {
+            canvas_card_.x + kCanvasInset,
+            canvas_card_.y + 36,
+            canvas_card_.w - kCanvasInset * 2,
+            canvas_card_.h - 50,
         };
+
+        palette_card_ = {kScreenMargin * 2 + canvas_card_w, content_y, sidebar_w, content_h};
+
+        // Glyph grid: 4 columns x 3 rows with larger cells
+        const int32_t grid_x = palette_card_.x + 12;
+        const int32_t grid_y = palette_card_.y + 32;
+        for (std::size_t i = 0; i < slot_rects_.size(); ++i) {
+            const int32_t row = static_cast<int32_t>(i / 4);
+            const int32_t col = static_cast<int32_t>(i % 4);
+            slot_rects_[i] = {
+                grid_x + col * (kSlotCellWidth + kCellGap),
+                grid_y + row * (kSlotCellHeight + kCellGap),
+                kSlotCellWidth,
+                kSlotCellHeight,
+            };
+        }
+
+        const int32_t nav_y = grid_y + 3 * (kSlotCellHeight + kCellGap) + 8;
+        page_prev_button_ = {palette_card_.x + 12, nav_y, 80, 48};
+        page_next_button_ = {palette_card_.x + palette_card_.w - 92, nav_y, 80, 48};
+
+        // Bottom bar: 4 large buttons spanning full width
+        const int32_t btn_w = (screen_.w - kScreenMargin * 2 - kButtonGap * 3) / 4;
+        save_button_ = {kScreenMargin, bottom_bar_y, btn_w, kBottomBarHeight};
+        clear_button_ = {kScreenMargin + btn_w + kButtonGap, bottom_bar_y, btn_w, kBottomBarHeight};
+        delete_button_ = {kScreenMargin + (btn_w + kButtonGap) * 2, bottom_bar_y, btn_w, kBottomBarHeight};
+        reload_button_ = {kScreenMargin + (btn_w + kButtonGap) * 3, bottom_bar_y, btn_w, kBottomBarHeight};
+
+        text_buffer_bar_ = {0, 0, 0, 0};
+    } else {
+        // Write: text buffer top, full-width canvas, bottom action bar
+        text_buffer_bar_ = {kScreenMargin, content_y, screen_.w - kScreenMargin * 2, 72};
+
+        const int32_t canvas_y = content_y + 72 + kButtonGap;
+        const int32_t canvas_h = bottom_bar_y - canvas_y - 4;
+        canvas_card_ = {kScreenMargin, canvas_y, screen_.w - kScreenMargin * 2, canvas_h};
+        canvas_ = {
+            canvas_card_.x + kCanvasInset,
+            canvas_card_.y + 36,
+            canvas_card_.w - kCanvasInset * 2,
+            canvas_card_.h - 50,
+        };
+
+        // Bottom bar: 3 large buttons spanning full width
+        const int32_t btn_w = (screen_.w - kScreenMargin * 2 - kButtonGap * 2) / 3;
+        save_button_ = {kScreenMargin, bottom_bar_y, btn_w, kBottomBarHeight};
+        clear_button_ = {kScreenMargin + btn_w + kButtonGap, bottom_bar_y, btn_w, kBottomBarHeight};
+        delete_button_ = {kScreenMargin + (btn_w + kButtonGap) * 2, bottom_bar_y, btn_w, kBottomBarHeight};
+        reload_button_ = {0, 0, 0, 0};
+
+        palette_card_ = {0, 0, 0, 0};
     }
-
-    page_prev_button_ = {palette_card_.x + 12, palette_card_.y + palette_card_.h - 36, 56, 24};
-    page_next_button_ = {palette_card_.x + palette_card_.w - 68, palette_card_.y + palette_card_.h - 36, 56, 24};
-
-    const int32_t button_w = (controls_card_.w - 34) / 2;
-    const int32_t button_h = 26;
-    save_button_ = {controls_card_.x + 12, controls_card_.y + 34, button_w, button_h};
-    clear_button_ = {controls_card_.x + 22 + button_w, controls_card_.y + 34, button_w, button_h};
-    delete_button_ = {controls_card_.x + 12, controls_card_.y + 34 + button_h + 8, button_w, button_h};
-    reload_button_ = {controls_card_.x + 22 + button_w, controls_card_.y + 34 + button_h + 8, button_w, button_h};
 }
 
 void AlphabetApp::LoadTemplatesFromDisk()
@@ -230,38 +267,6 @@ std::string AlphabetApp::StorageSummary() const
     return buffer;
 }
 
-std::string AlphabetApp::FormatPoint(PointF point) const
-{
-    char buffer[32];
-    std::snprintf(buffer, sizeof(buffer), "(%.0f, %.0f)", point.x, point.y);
-    return buffer;
-}
-
-std::string AlphabetApp::ModeSubtitle() const
-{
-    return mode_ == Mode::train ? "Record templates for A-Z and 0-9, one glyph at a time."
-                                : "Write with the trained glyphs. Confident matches append automatically.";
-}
-
-std::string AlphabetApp::WriteBufferPreview() const
-{
-    std::string preview = write_buffer_.empty() ? "[empty]" : write_buffer_;
-    constexpr std::size_t kMaxVisibleChars = 54;
-    constexpr std::size_t kLineWidth = 18;
-
-    if (preview.size() > kMaxVisibleChars) {
-        preview = preview.substr(preview.size() - kMaxVisibleChars);
-    }
-
-    std::string wrapped;
-    for (std::size_t i = 0; i < preview.size(); ++i) {
-        wrapped.push_back(preview[i]);
-        if ((i + 1) % kLineWidth == 0 && i + 1 < preview.size()) {
-            wrapped.push_back('\n');
-        }
-    }
-    return wrapped;
-}
 
 PointF AlphabetApp::ClampToCanvas(PointF point) const
 {
@@ -570,15 +575,17 @@ void AlphabetApp::HandleTouch()
         case ActionButton::mode_train:
             if (train_mode_button_.Contains(static_cast<int32_t>(last_touch_.x), static_cast<int32_t>(last_touch_.y))) {
                 mode_ = Mode::train;
-                write_status_ = "Training mode active.";
+                write_status_ = "Training mode.";
+                BuildLayout();
                 QueueFullRender();
             }
             break;
         case ActionButton::mode_write:
             if (write_mode_button_.Contains(static_cast<int32_t>(last_touch_.x), static_cast<int32_t>(last_touch_.y))) {
                 mode_ = Mode::write;
-                write_status_ = HasRecordedGlyphs() ? "Write mode active. Draw a trained glyph to append it."
-                                                    : "Write mode active, but no glyphs are trained yet.";
+                write_status_ = HasRecordedGlyphs() ? "Draw to write."
+                                                    : "No glyphs trained yet.";
+                BuildLayout();
                 QueueFullRender();
             }
             break;
@@ -644,10 +651,12 @@ void AlphabetApp::RenderFullUi()
 
     DrawHeader();
     DrawCanvasCard();
-    DrawPaletteCard();
-    DrawControlsCard();
-    DrawMetricsCard();
-    DrawResultsCard();
+    if (mode_ == Mode::train) {
+        DrawPaletteCard();
+    } else {
+        DrawTextBufferBar();
+    }
+    DrawBottomBar();
 
     M5.Display.endWrite();
 }
@@ -727,16 +736,15 @@ void AlphabetApp::DrawLiveStrokeSegment(const PointF& from, const PointF& to)
 
 void AlphabetApp::DrawHeader()
 {
-    DrawRoundCard(M5.Display, header_, kColorCard);
+    M5.Display.fillRect(header_.x, header_.y, header_.w, header_.h, kColorCard);
+    M5.Display.drawFastHLine(0, header_.h - 1, header_.w, kColorCardDark);
+
     M5.Display.setTextFont(4);
     M5.Display.setTextColor(kColorInk, kColorCard);
-    M5.Display.drawString("PaperS3 Alphabet Graffiti", header_.x + 16, header_.y + 8);
-    M5.Display.setTextFont(2);
-    M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(ModeSubtitle().c_str(), header_.x + 18, header_.y + 40);
+    M5.Display.drawString("Alphabet Graffiti", 16, 14);
 
-    DrawButton(M5.Display, train_mode_button_, "TRAIN", true, mode_ == Mode::train, mode_ == Mode::train);
-    DrawButton(M5.Display, write_mode_button_, "WRITE", true, mode_ == Mode::write, mode_ == Mode::write);
+    DrawButton(M5.Display, train_mode_button_, "TRAIN", true, mode_ == Mode::train, mode_ == Mode::train, 4);
+    DrawButton(M5.Display, write_mode_button_, "WRITE", true, mode_ == Mode::write, mode_ == Mode::write, 4);
 }
 
 void AlphabetApp::DrawCanvasCard()
@@ -744,11 +752,8 @@ void AlphabetApp::DrawCanvasCard()
     DrawRoundCard(M5.Display, canvas_card_, kColorCard);
     M5.Display.setTextFont(2);
     M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(mode_ == Mode::train ? "Stroke canvas" : "Graffiti canvas", canvas_card_.x + 14,
-                          canvas_card_.y + 12);
-    M5.Display.drawString(mode_ == Mode::train ? "Draw the selected glyph and save it to flash."
-                                               : "Each release classifies the stroke and appends strong matches.",
-                          canvas_card_.x + 116, canvas_card_.y + 12);
+    M5.Display.drawString(mode_ == Mode::train ? "Draw glyph" : "Draw here",
+                          canvas_card_.x + 14, canvas_card_.y + 12);
 
     M5.Display.fillRoundRect(canvas_.x, canvas_.y, canvas_.w, canvas_.h, kCardRadius - 4, kColorPaper);
     M5.Display.drawRoundRect(canvas_.x, canvas_.y, canvas_.w, canvas_.h, kCardRadius - 4, kColorInk);
@@ -762,32 +767,7 @@ void AlphabetApp::DrawPaletteCard()
     DrawRoundCard(M5.Display, palette_card_, kColorCard);
     M5.Display.setTextFont(2);
     M5.Display.setTextColor(kColorMuted, kColorCard);
-
-    if (mode_ == Mode::write) {
-        M5.Display.drawString("Writing buffer", palette_card_.x + 12, palette_card_.y + 10);
-        const std::string preview = WriteBufferPreview();
-        std::size_t start = 0;
-        int32_t line_y = palette_card_.y + 44;
-        while (start <= preview.size()) {
-            const std::size_t end = preview.find('\n', start);
-            const std::string line = preview.substr(start, end == std::string::npos ? std::string::npos : end - start);
-            M5.Display.setTextColor(line == "[empty]" ? kColorLightInk : kColorInk, kColorCard);
-            M5.Display.drawString(line.c_str(), palette_card_.x + 14, line_y);
-            if (end == std::string::npos) {
-                break;
-            }
-            start = end + 1;
-            line_y += 22;
-        }
-
-        char footer[96];
-        std::snprintf(footer, sizeof(footer), "Auto append >= %.2f | %zu saved", kWriteAcceptanceThreshold, RecordedCount());
-        M5.Display.setTextColor(kColorMuted, kColorCard);
-        M5.Display.drawString(footer, palette_card_.x + 12, palette_card_.y + palette_card_.h - 18);
-        return;
-    }
-
-    M5.Display.drawString("Glyph picker", palette_card_.x + 12, palette_card_.y + 10);
+    M5.Display.drawString("Select glyph", palette_card_.x + 12, palette_card_.y + 10);
 
     const std::size_t start = PageStart();
     const std::size_t end = std::min(start + kPageSize, kGlyphCount);
@@ -798,12 +778,15 @@ void AlphabetApp::DrawPaletteCard()
         const bool selected = valid && glyph_index == selected_index_;
         const bool recorded = valid && templates_[glyph_index].recorded;
         const bool matched = valid && static_cast<int>(glyph_index) == matched_index_;
-        const std::uint32_t fill = !valid ? kColorDisabled : (selected ? kColorAccentFill : (recorded ? kColorCardDark : kColorPaper));
+        const std::uint32_t fill = !valid ? kColorDisabled
+            : (selected ? kColorAccentFill : (recorded ? kColorCardDark : kColorPaper));
 
         M5.Display.fillRoundRect(rect.x, rect.y, rect.w, rect.h, kChipRadius, fill);
-        M5.Display.drawRoundRect(rect.x, rect.y, rect.w, rect.h, kChipRadius, matched ? kColorAccent : kColorInk);
+        M5.Display.drawRoundRect(rect.x, rect.y, rect.w, rect.h, kChipRadius,
+                                 matched ? kColorAccent : kColorInk);
         if (selected) {
-            M5.Display.drawRoundRect(rect.x + 1, rect.y + 1, rect.w - 2, rect.h - 2, kChipRadius - 1, kColorInk);
+            M5.Display.drawRoundRect(rect.x + 1, rect.y + 1, rect.w - 2, rect.h - 2,
+                                     kChipRadius - 1, kColorInk);
         }
 
         if (valid) {
@@ -811,102 +794,66 @@ void AlphabetApp::DrawPaletteCard()
             std::snprintf(label, sizeof(label), "%c%s", templates_[glyph_index].label, recorded ? "*" : "");
             M5.Display.setTextDatum(middle_center);
             M5.Display.setTextColor(kColorInk, fill);
+            M5.Display.setTextFont(4);
             M5.Display.drawString(label, rect.x + rect.w / 2, rect.y + rect.h / 2);
             M5.Display.setTextDatum(top_left);
+            M5.Display.setTextFont(2);
         }
     }
 
     DrawButton(M5.Display, page_prev_button_, "< PREV", current_page_ > 0, false);
     DrawButton(M5.Display, page_next_button_, "NEXT >", current_page_ + 1 < PageCount(), false);
 
-    M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(StorageSummary().c_str(), palette_card_.x + 78, palette_card_.y + palette_card_.h - 32);
-    char page_buffer[32];
-    std::snprintf(page_buffer, sizeof(page_buffer), "page %zu", current_page_ + 1);
-    M5.Display.drawString(page_buffer, palette_card_.x + 78, palette_card_.y + palette_card_.h - 16);
-}
-
-void AlphabetApp::DrawControlsCard()
-{
-    DrawRoundCard(M5.Display, controls_card_, kColorCard);
+    // Status area below page nav
+    const int32_t status_y = page_next_button_.y + page_next_button_.h + 16;
     M5.Display.setTextFont(2);
     M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(mode_ == Mode::train ? "Template actions" : "Writing actions", controls_card_.x + 12,
-                          controls_card_.y + 10);
-
-    if (mode_ == Mode::train) {
-        DrawButton(M5.Display, save_button_, "SAVE GLYPH", SaveEnabled(), true);
-        DrawButton(M5.Display, clear_button_, "CLEAR STROKE", true, false);
-        DrawButton(M5.Display, delete_button_, "DELETE GLYPH", DeleteEnabled(), false);
-        DrawButton(M5.Display, reload_button_, "RELOAD DISK", storage_ready_, false);
-        return;
-    }
-
-    DrawButton(M5.Display, save_button_, "SPACE", true, false);
-    DrawButton(M5.Display, clear_button_, "BACKSPACE", true, false);
-    DrawButton(M5.Display, delete_button_, "CLEAR TEXT", true, true);
-    DrawButton(M5.Display, reload_button_, "CLEAR STROKE", true, false);
-}
-
-void AlphabetApp::DrawMetricsCard()
-{
-    DrawRoundCard(M5.Display, metrics_card_, kColorCard);
-    M5.Display.setTextFont(2);
-    M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString("Status", metrics_card_.x + 12, metrics_card_.y + 10);
-
-    const int32_t left = metrics_card_.x + 12;
-    const int32_t top = metrics_card_.y + 30;
-    const int32_t row_h = 14;
-    auto draw_row = [&](int32_t row, const char* label, const std::string& value) {
-        M5.Display.setTextColor(kColorMuted, kColorCard);
-        M5.Display.drawString(label, left, top + row * row_h);
-        M5.Display.setTextColor(kColorInk, kColorCard);
-        M5.Display.drawString(value.c_str(), left + 78, top + row * row_h);
-    };
-
-    if (mode_ == Mode::train) {
-        const std::string centroid = current_gesture_.valid ? FormatPoint(current_gesture_.centroid) : std::string("--");
-        const std::string raw_points = std::to_string(raw_points_.size());
-        draw_row(0, "Selected", GlyphSummary());
-        draw_row(1, "Raw points", raw_points);
-        draw_row(2, "Centroid", centroid);
-        return;
-    }
-
-    draw_row(0, "Saved", std::to_string(RecordedCount()));
-    draw_row(1, "Text len", std::to_string(write_buffer_.size()));
-    draw_row(2, "Mode", std::string("WRITE"));
-}
-
-void AlphabetApp::DrawResultsCard()
-{
-    DrawRoundCard(M5.Display, results_card_, kColorCard);
-    M5.Display.setTextFont(2);
-    M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(mode_ == Mode::train ? "Disk + match state" : "Writer status", results_card_.x + 12,
-                          results_card_.y + 10);
+    M5.Display.drawString(StorageSummary().c_str(), palette_card_.x + 14, status_y);
 
     M5.Display.setTextColor(kColorInk, kColorCard);
-    M5.Display.drawString((mode_ == Mode::train ? storage_status_ : write_status_).c_str(), results_card_.x + 12,
-                          results_card_.y + 28);
-    if (mode_ == Mode::train) {
-        const char* message = HasRecordedGlyphs() ? "Draw and release to preview the closest template."
-                                                  : "No glyphs saved yet. Pick one and tap SAVE GLYPH.";
-        M5.Display.setTextColor(kColorMuted, kColorCard);
-        M5.Display.drawString(recognition_scores_.empty() ? message : "", results_card_.x + 12, results_card_.y + 46);
-        if (!recognition_scores_.empty()) {
-            char buffer[96];
-            std::snprintf(buffer, sizeof(buffer), "Top match: %c (%.3f)",
-                          templates_[recognition_scores_.front().glyph_index].label,
-                          recognition_scores_.front().cosine_score);
-            M5.Display.drawString(buffer, results_card_.x + 12, results_card_.y + 46);
-        }
-        return;
+    M5.Display.drawString(("Selected: " + GlyphSummary()).c_str(), palette_card_.x + 14, status_y + 20);
+
+    if (!recognition_scores_.empty()) {
+        char buffer[64];
+        std::snprintf(buffer, sizeof(buffer), "Match: %c (%.2f)",
+                      templates_[recognition_scores_.front().glyph_index].label,
+                      recognition_scores_.front().cosine_score);
+        M5.Display.drawString(buffer, palette_card_.x + 14, status_y + 40);
     }
 
     M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString("Draw the next glyph or use the edit buttons.", results_card_.x + 12, results_card_.y + 46);
+    M5.Display.drawString(storage_status_.c_str(), palette_card_.x + 14, status_y + 64);
+}
+
+void AlphabetApp::DrawBottomBar()
+{
+    if (mode_ == Mode::train) {
+        DrawButton(M5.Display, save_button_, "SAVE", SaveEnabled(), true, false, 4);
+        DrawButton(M5.Display, clear_button_, "CLEAR", true, false, false, 4);
+        DrawButton(M5.Display, delete_button_, "DELETE", DeleteEnabled(), false, false, 4);
+        DrawButton(M5.Display, reload_button_, "RELOAD", storage_ready_, false, false, 4);
+    } else {
+        DrawButton(M5.Display, save_button_, "SPACE", true, false, false, 4);
+        DrawButton(M5.Display, clear_button_, "BACK", true, false, false, 4);
+        DrawButton(M5.Display, delete_button_, "CLEAR ALL", true, true, false, 4);
+    }
+}
+
+void AlphabetApp::DrawTextBufferBar()
+{
+    DrawRoundCard(M5.Display, text_buffer_bar_, kColorCard);
+
+    // Show written text in large font
+    M5.Display.setTextFont(4);
+    const std::string visible = write_buffer_.empty() ? std::string("[empty]")
+        : (write_buffer_.size() > 40 ? write_buffer_.substr(write_buffer_.size() - 40) : write_buffer_);
+    M5.Display.setTextColor(write_buffer_.empty() ? kColorLightInk : kColorInk, kColorCard);
+    M5.Display.drawString(visible.c_str(), text_buffer_bar_.x + 14, text_buffer_bar_.y + 10);
+
+    // Status line below text
+    M5.Display.setTextFont(2);
+    M5.Display.setTextColor(kColorMuted, kColorCard);
+    M5.Display.drawString(write_status_.c_str(), text_buffer_bar_.x + 14, text_buffer_bar_.y + 46);
 }
 
 void AlphabetApp::DrawGestureOverlay()
@@ -915,8 +862,8 @@ void AlphabetApp::DrawGestureOverlay()
         M5.Display.setTextFont(2);
         M5.Display.setTextColor(kColorLightInk, kColorPaper);
         M5.Display.setTextDatum(middle_center);
-        M5.Display.drawString(mode_ == Mode::train ? "Draw the selected glyph here"
-                                                   : "Draw here to append trained graffiti glyphs",
+        M5.Display.drawString(mode_ == Mode::train ? "Draw the selected glyph"
+                                                   : "Draw a trained glyph",
                               canvas_.x + canvas_.w / 2, canvas_.y + canvas_.h / 2);
         M5.Display.setTextDatum(top_left);
         return;

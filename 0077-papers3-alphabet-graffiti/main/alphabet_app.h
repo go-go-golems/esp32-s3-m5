@@ -97,9 +97,8 @@ private:
     void DrawHeader();
     void DrawCanvasCard();
     void DrawPaletteCard();
-    void DrawControlsCard();
-    void DrawMetricsCard();
-    void DrawResultsCard();
+    void DrawBottomBar();
+    void DrawTextBufferBar();
     void DrawGestureOverlay();
 
     bool HasActiveStroke() const;
@@ -114,9 +113,6 @@ private:
     std::size_t RecordedCount() const;
     std::string GlyphSummary() const;
     std::string StorageSummary() const;
-    std::string FormatPoint(protractor_demo::PointF point) const;
-    std::string ModeSubtitle() const;
-    std::string WriteBufferPreview() const;
     protractor_demo::PointF ClampToCanvas(protractor_demo::PointF point) const;
     std::vector<RecognitionScore> RecognizeCurrentStroke() const;
     bool ReadyForDeferredWriteRender(std::uint32_t now) const;
@@ -128,9 +124,7 @@ private:
     Rect canvas_card_{};
     Rect canvas_{};
     Rect palette_card_{};
-    Rect controls_card_{};
-    Rect metrics_card_{};
-    Rect results_card_{};
+    Rect text_buffer_bar_{};
     Rect page_prev_button_{};
     Rect page_next_button_{};
     Rect save_button_{};
