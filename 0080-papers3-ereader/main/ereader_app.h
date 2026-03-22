@@ -1,7 +1,9 @@
 #pragma once
 
+#include "book_store.h"
 #include "dirty_tracker.h"
 #include "gnosis_types.h"
+#include "paginator.h"
 
 #include <M5Unified.hpp>
 #include <cstdint>
@@ -37,6 +39,7 @@ public:
 
 private:
     void InitBoard();
+    void MountStorage();
     void BuildLibraryScreen();
     void BuildReadingScreen();
     void FullRefresh();
@@ -46,12 +49,16 @@ private:
     void NextPage();
     void PreviousPage();
     void LoadCurrentPage();
+    void ComputeTotalPages();
     void UpdateStatusLabels();
     void SwitchScreen(AppScreen target);
 
     NodePool pool_;
     Screen screen_{};
     AppScreen current_screen_ = AppScreen::READING;
+
+    BookStore book_store_;
+    Paginator paginator_;
 
     bool touch_down_ = false;
     std::uint32_t partial_refresh_count_ = 0;
@@ -60,6 +67,7 @@ private:
     char page_buffer_[kPageBufSize]{};
 
     // Reading state
+    int current_book_ = -1;
     int current_page_ = 0;
     int total_pages_ = 1;
 

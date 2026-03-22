@@ -3,6 +3,8 @@ idf_component_register(
         "app_main.cpp"
         "ereader_app.cpp"
         "ereader_console.cpp"
+        "book_store.cpp"
+        "paginator.cpp"
         "layout_engine.cpp"
         "widget_renderer.cpp"
         "dirty_tracker.cpp"
@@ -13,4 +15,8 @@ idf_component_register(
         M5Unified
         console
         esp_driver_usb_serial_jtag
+    PRIV_REQUIRES
+        spiffs
 )
+
+spiffs_create_partition_image(storage ../spiffs_data FLASH_IN_PROJECT)
