@@ -1,0 +1,29 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "atoms3r_canvas.cpp"
+        "backlight.cpp"
+        "console_repl.cpp"
+        "display_hal.cpp"
+        "wasm_command.cpp"
+        "wasm_host_api.cpp"
+        "wasm_module_registry.cpp"
+        "wasm_module_runner.cpp"
+        "wasm_replay_control.cpp"
+        "wasm_runtime_service.cpp"
+    INCLUDE_DIRS
+        "."
+    PRIV_REQUIRES
+        esp_driver_gpio
+        esp_driver_i2c
+        esp_driver_spi
+        esp_timer
+    REQUIRES
+        M5GFX
+        console
+        espressif__wasm-micro-runtime
+    EMBED_FILES
+        "wasm-assets/return-42.wasm"
+        "wasm-assets/log-only.wasm"
+        "wasm-assets/hello-frame.wasm"
+)
