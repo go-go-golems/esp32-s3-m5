@@ -12,3 +12,4 @@
 - Added a repeatable ticket-local probe wrapper at `scripts/flash_and_probe_wasm.sh` so hardware validation no longer depends on tmux pane state or manual monitor cleanup
 - After the restored platform patches, the remaining hardware failure boundary is back where the older ticket family had it: `wasm run-preflush hello-frame` crashes in the PaperS3 preflush/display path (`FlushWasmHostFrame` -> `PaperCanvasScreenClear` -> `M5GFX Panel_EPD`)
 - Committed the recovered migration baseline as `e58a835` (`debug(papers3): recover espressif wamr baseline`)
+- Added a detailed web-research brief for an external investigator, focused on Espressif WAMR platform assumptions, ESP32-S3 dual-bus mirroring, `os_self_thread()` expectations, and the remaining PaperS3 preflush/display crash

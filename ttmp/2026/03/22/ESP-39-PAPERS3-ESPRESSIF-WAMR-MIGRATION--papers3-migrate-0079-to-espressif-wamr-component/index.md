@@ -45,6 +45,7 @@ The purpose is not cosmetic package cleanup. It is a controlled A/B experiment m
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
 - **Implementation Guide**: See `design/01-espressif-wamr-migration-guide.md`
+- **Web Research Brief**: See `design/02-web-research-brief-for-espressif-wamr-on-papers3.md`
 - **Diary**: See `reference/01-diary.md`
 
 ## Status

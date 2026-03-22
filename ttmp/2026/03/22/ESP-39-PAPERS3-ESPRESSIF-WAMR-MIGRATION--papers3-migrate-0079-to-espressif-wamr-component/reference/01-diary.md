@@ -464,3 +464,84 @@ This step was productive because it converted a vague migration failure into a c
   - `return-42`: success, `return_value=42`
   - `log-only`: success, `guest_log tag=9 value=42`, `return_value=42`
   - `hello-frame`: panic during [FlushWasmHostFrame](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp#L222) -> [PaperCanvasScreenClear](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp#L135)
+
+## Step 10: Prepare a web-research handoff brief
+
+Once the migration baseline was recovered, the next bottleneck stopped being raw firmware bring-up and became uncertainty. At that point, a good external research report could save time, but only if the researcher gets a precise brief rather than a vague “look into WAMR on ESP32-S3.”
+
+I wrote a dedicated research handoff document for an in-house web researcher at:
+
+- [02-web-research-brief-for-espressif-wamr-on-papers3.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/design/02-web-research-brief-for-espressif-wamr-on-papers3.md)
+
+### Prompt Context
+
+**User prompt (verbatim):** "make a detailed research guide for our in house web research expert. that way they can hopefully make a detailed report and we can maybe figure things out"
+
+**Assistant interpretation:** Create a structured, detailed brief inside the ticket that tells a web-focused researcher exactly what to investigate, what evidence we already have locally, and what a useful report should contain.
+
+**Inferred user intent:** Reduce future debugging time by giving a research specialist enough context to find upstream evidence, known issues, or design guidance without repeating the firmware team’s local work.
+
+### What I did
+
+- Added a new design doc focused on external research handoff.
+- Framed the current state as a narrowed problem, not a generic “WAMR is broken” story.
+- Documented:
+  - the system architecture
+  - the exact local findings already established
+  - the recovered migration deltas
+  - the current remaining failure boundary
+  - five concrete research threads
+  - source-priority rules
+  - suggested search queries
+  - a recommended report structure
+- Linked the new brief from [index.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/index.md).
+
+### Why
+
+- A researcher can only help if they know what is already proven locally.
+- Without a precise brief, they are likely to spend time rediscovering the already-resolved instantiation and pthread regressions.
+- The real value of web research here is ranking next experiments and identifying upstream expectations or known issues.
+
+### What worked
+
+- The brief now gives a researcher enough context to investigate:
+  - `WASM_MEM_DUAL_BUS_MIRROR`
+  - `os_self_thread()` expectations under ESP-IDF
+  - cache-disabled panics in display/preflush paths
+  - public WAMR + ESP-IDF integration patterns
+  - upstream issue history
+
+### What didn't work
+
+- N/A. This was documentation work, not a runtime experiment.
+
+### What I learned
+
+- The more the runtime behavior gets narrowed locally, the more valuable a tightly scoped research brief becomes.
+- A good handoff document should not just ask questions. It should explicitly state what is already known, what phase the system now fails in, and what sources count as strong evidence.
+
+### What was tricky to build
+
+- The tricky part was keeping the brief useful to a web researcher without turning it into a firmware-only internal memo. The solution was to split it into:
+  - system context
+  - established local findings
+  - targeted research threads
+  - required report structure
+
+### What warrants a second pair of eyes
+
+- Whether the research brief is scoped correctly for the specific person or team who will use it.
+- Whether we should later add a shorter executive-summary version for non-technical stakeholders.
+
+### What should be done in the future
+
+- Once the external report exists, link it back into `ESP-39` and compare each conclusion against the local findings in Step 9.
+
+### Code review instructions
+
+- Read the new brief at [02-web-research-brief-for-espressif-wamr-on-papers3.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/design/02-web-research-brief-for-espressif-wamr-on-papers3.md).
+- Verify that it points to the correct local files and current failure boundary.
+
+### Technical details
+
+- The brief intentionally treats the current `hello-frame` panic as the active live bug and the earlier instantiation/pthread failures as resolved migration regressions.
