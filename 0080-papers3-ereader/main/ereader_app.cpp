@@ -45,6 +45,8 @@ void EReaderApp::MountStorage()
     }
 
     paginator_.Init(kCharsPerLine, kLinesPerPage);
+
+    bookmark_store_.Load();
 }
 
 void EReaderApp::BuildReadingScreen()
@@ -240,6 +242,10 @@ void EReaderApp::NextPage()
     if (current_page_ + 1 >= total_pages_) return;
     ++current_page_;
     LoadCurrentPage();
+    if (current_book_ >= 0) {
+        bookmark_store_.UpdatePosition(
+            book_store_.GetBook(current_book_).filename, 0, current_page_);
+    }
 }
 
 void EReaderApp::PreviousPage()
@@ -247,6 +253,10 @@ void EReaderApp::PreviousPage()
     if (current_page_ <= 0) return;
     --current_page_;
     LoadCurrentPage();
+    if (current_book_ >= 0) {
+        bookmark_store_.UpdatePosition(
+            book_store_.GetBook(current_book_).filename, 0, current_page_);
+    }
 }
 
 void EReaderApp::FullRefresh()
@@ -410,9 +420,17 @@ void EReaderApp::OpenBook(int index)
     current_page_ = 0;
     paginator_.Reset();
     ComputeTotalPages();
+
+    // Restore bookmark if available
+    const Bookmark* bm = bookmark_store_.GetBookmark(book_store_.GetBook(index).filename);
+    if (bm && bm->page_number > 0 && bm->page_number < total_pages_) {
+        current_page_ = bm->page_number;
+        std::printf("restored bookmark at page %d\n", current_page_ + 1);
+    }
+
     SwitchScreen(AppScreen::READING);
-    std::printf("opened [%d] %s (%d pages)\n", index,
-                book_store_.GetBook(index).title, total_pages_);
+    std::printf("opened [%d] %s (page %d/%d)\n", index,
+                book_store_.GetBook(index).title, current_page_ + 1, total_pages_);
 }
 
 void EReaderApp::GotoPage(int page)

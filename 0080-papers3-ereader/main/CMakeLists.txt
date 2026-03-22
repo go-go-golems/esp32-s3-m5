@@ -5,6 +5,7 @@ idf_component_register(
         "ereader_console.cpp"
         "book_store.cpp"
         "paginator.cpp"
+        "bookmark_store.cpp"
         "layout_engine.cpp"
         "widget_renderer.cpp"
         "dirty_tracker.cpp"

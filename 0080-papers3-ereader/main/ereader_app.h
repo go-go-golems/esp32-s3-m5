@@ -1,6 +1,7 @@
 #pragma once
 
 #include "book_store.h"
+#include "bookmark_store.h"
 #include "dirty_tracker.h"
 #include "gnosis_types.h"
 #include "paginator.h"
@@ -58,6 +59,7 @@ private:
     AppScreen current_screen_ = AppScreen::READING;
 
     BookStore book_store_;
+    BookmarkStore bookmark_store_;
     Paginator paginator_;
 
     bool touch_down_ = false;
