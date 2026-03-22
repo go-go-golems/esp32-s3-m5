@@ -43,6 +43,8 @@ Work task by task, commit as you go, keep a detailed diary"
 
 **Inferred user intent:** Build a more complete handwriting prototype that moves beyond ad hoc templates into an alphabet-scale persistent recognizer while keeping the development process reviewable and well documented.
 
+**Commit (code):** `99512ac` — `feat(papers3): scaffold alphabet graffiti app`
+
 ### What I did
 
 - created ticket `ESP-33-PAPERS3-ALPHABET-GRAFFITI`
