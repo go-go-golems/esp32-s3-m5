@@ -26,11 +26,13 @@ ExternalSources:
     - https://components.espressif.com/components/espressif/wasm-micro-runtime/versions/2.4.0~1
     - https://components.espressif.com/components/espressif/wasm-micro-runtime/versions/2.4.0/dependencies?language=en
     - https://components.espressif.com/components/espressif/wasm-micro-runtime/versions/2.4.0/examples/esp-idf
+    - local:ESP-39 external report.md
 Summary: Migrate `0079` from the upstream Bytecode Alliance WAMR git dependency to Espressif's official Component Registry package and verify that the firmware still builds.
-LastUpdated: 2026-03-22T19:52:00-04:00
+LastUpdated: 2026-03-22T16:14:19.112410541-04:00
 WhatFor: Plan, document, and execute a bounded dependency migration from the upstream WAMR component to Espressif's official component package.
 WhenToUse: Read this before changing the WAMR dependency in `0079`, validating the migration, or comparing behavior between the upstream and Espressif component packages.
 ---
+
 
 # PaperS3 migrate 0079 to Espressif WAMR component
 
