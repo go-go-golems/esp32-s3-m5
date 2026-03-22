@@ -12,6 +12,7 @@ Current milestone:
 - USB Serial/JTAG console baseline
 - WAMR runtime service
 - `wasm` runtime status output
+- long-form project report and field guide
 
 Planned next milestones:
 
@@ -51,3 +52,9 @@ npm run build
 ```
 
 Release artifacts are written to `../wasm-build/release/`.
+
+## Project Report
+
+For the full architecture, chronology, debugging story, and lessons learned, read:
+
+- [docs/project-report-and-field-guide.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/docs/project-report-and-field-guide.md)

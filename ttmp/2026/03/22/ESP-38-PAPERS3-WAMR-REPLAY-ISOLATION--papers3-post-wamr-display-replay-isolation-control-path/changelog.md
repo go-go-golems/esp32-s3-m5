@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- Added a long-form project report and field guide, mirrored in the `0079` project and the ticket, to preserve the architecture, chronology, debugging story, and lessons learned in a blog-post style format
 - Added a detailed postmortem and intern-facing report describing the full PaperS3 Wasm stack, the replay-isolation experiments, the falsified hypotheses, and the recommended next decision boundary for the project
 - Initial replay-isolation workspace created
 - Added the implementation plan, task list, and detailed diary for the WAMR-free PaperS3 replay baseline
