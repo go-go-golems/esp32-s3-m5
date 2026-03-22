@@ -90,9 +90,11 @@ private:
 
     void RenderFullUi();
     void QueueFullRender();
+    void QueueWriteTextBarRender();
     void ProcessPendingDisplayWork();
     void ClearCanvasForLiveStroke();
     void DrawLiveStrokeSegment(const protractor_demo::PointF& from, const protractor_demo::PointF& to);
+    void RenderWriteTextBufferBar();
 
     void DrawHeader();
     void DrawCanvasCard();
@@ -145,6 +147,7 @@ private:
     int matched_index_ = -1;
     bool canvas_reset_pending_ = false;
     bool full_render_pending_ = false;
+    bool write_text_bar_pending_ = false;
     std::uint32_t last_touch_activity_ms_ = 0;
     std::uint32_t full_render_requested_ms_ = 0;
 

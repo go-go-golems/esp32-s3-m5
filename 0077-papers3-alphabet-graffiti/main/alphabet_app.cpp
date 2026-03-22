@@ -408,6 +408,9 @@ void AlphabetApp::ClearStroke()
     drawing_ = false;
     canvas_reset_pending_ = true;
     pending_segments_.clear();
+    if (mode_ == Mode::write) {
+        return;
+    }
     QueueFullRender();
 }
 
@@ -448,7 +451,7 @@ void AlphabetApp::AddSpace()
 {
     write_buffer_.push_back(' ');
     write_status_ = "> Space.";
-    QueueFullRender();
+    QueueWriteTextBarRender();
 }
 
 void AlphabetApp::BackspaceText()
@@ -459,14 +462,14 @@ void AlphabetApp::BackspaceText()
     } else {
         write_status_ = "> Buffer empty.";
     }
-    QueueFullRender();
+    QueueWriteTextBarRender();
 }
 
 void AlphabetApp::ClearText()
 {
     write_buffer_.clear();
     write_status_ = "> Buffer cleared.";
-    QueueFullRender();
+    QueueWriteTextBarRender();
 }
 
 void AlphabetApp::BeginStroke(const PointF& point)
@@ -504,6 +507,10 @@ void AlphabetApp::FinishStroke()
     AnalyzeStroke();
     if (mode_ == Mode::write) {
         TryAppendRecognizedGlyph();
+        QueueWriteTextBarRender();
+        canvas_reset_pending_ = true;
+        pending_segments_.clear();
+        return;
     }
     QueueFullRender();
 }
@@ -683,6 +690,14 @@ void AlphabetApp::QueueFullRender()
     full_render_requested_ms_ = M5.millis();
 }
 
+void AlphabetApp::QueueWriteTextBarRender()
+{
+    if (mode_ != Mode::write) {
+        return;
+    }
+    write_text_bar_pending_ = true;
+}
+
 void AlphabetApp::ProcessPendingDisplayWork()
 {
     if (M5.Display.displayBusy()) {
@@ -701,6 +716,12 @@ void AlphabetApp::ProcessPendingDisplayWork()
             DrawLiveStrokeSegment(pending_segments_[i].from, pending_segments_[i].to);
         }
         pending_segments_.erase(pending_segments_.begin(), pending_segments_.begin() + flush_count);
+        return;
+    }
+
+    if (write_text_bar_pending_) {
+        RenderWriteTextBufferBar();
+        write_text_bar_pending_ = false;
         return;
     }
 
@@ -887,6 +908,19 @@ void AlphabetApp::DrawTextBufferBar()
     M5.Display.setTextFont(2);
     M5.Display.setTextColor(kColorDim, kColorBg);
     M5.Display.drawString(write_status_.c_str(), text_buffer_bar_.x + 14, text_buffer_bar_.y + 54);
+}
+
+void AlphabetApp::RenderWriteTextBufferBar()
+{
+    if (mode_ != Mode::write || text_buffer_bar_.w <= 0 || text_buffer_bar_.h <= 0) {
+        return;
+    }
+
+    M5.Display.setEpdMode(epd_mode_t::epd_text);
+    M5.Display.startWrite();
+    M5.Display.fillRect(text_buffer_bar_.x, text_buffer_bar_.y, text_buffer_bar_.w, text_buffer_bar_.h, kColorBg);
+    DrawTextBufferBar();
+    M5.Display.endWrite();
 }
 
 void AlphabetApp::DrawGestureOverlay()
