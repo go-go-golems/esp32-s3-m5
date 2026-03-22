@@ -2,6 +2,7 @@
 
 ## 2026-03-22
 
+- Added a detailed postmortem and intern-facing report describing the full PaperS3 Wasm stack, the replay-isolation experiments, the falsified hypotheses, and the recommended next decision boundary for the project
 - Initial replay-isolation workspace created
 - Added the implementation plan, task list, and detailed diary for the WAMR-free PaperS3 replay baseline
 - Task 1: added a host-side `hello-frame` replay control path, reusable host-command queue helpers, and `wasm replay <name>` console wiring in `0079`; verified with `idf.py build`

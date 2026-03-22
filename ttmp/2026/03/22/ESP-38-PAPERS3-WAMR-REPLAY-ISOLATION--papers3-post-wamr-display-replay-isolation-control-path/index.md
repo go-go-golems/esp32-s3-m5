@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Guest program whose behavior will be mirrored by the control path
 ExternalSources: []
 Summary: Follow-up investigation to isolate whether the PaperS3 replay crash is caused by WAMR state or by the queued display replay path itself.
-LastUpdated: 2026-03-22T12:03:37.527363574-04:00
+LastUpdated: 2026-03-22T19:12:00-04:00
 WhatFor: Plan and track the control-path experiment that replays the hello-frame drawing sequence without invoking WAMR.
 WhenToUse: Read this before changing the replay-isolation experiment, validating hardware results, or deciding whether WAMR integration is still the main suspect.
 ---
@@ -43,13 +43,16 @@ The narrow goal is to answer one question decisively:
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
 - **Implementation Plan**: See `design/01-replay-isolation-implementation-plan.md`
+- **Postmortem Report**: See `design/02-wamr-replay-isolation-postmortem-report.md`
 - **Diary**: See `reference/01-diary.md`
 
 ## Status
 
 Current status: **active**
 
-Immediate next milestone: add a control-path console command in `0079` that queues and flushes the `hello-frame` drawing sequence without loading or executing a Wasm module.
+Current outcome: the ticket now contains both the control-path implementation record and a detailed postmortem explaining why the investigation concluded that plain WAMR execution is sufficient to destabilize later PaperS3 replay.
+
+Immediate next milestone: decide whether to spend one bounded experiment on the official Espressif WAMR component or to pause runtime work and restructure the demo around a safer execution model.
 
 ## Topics
 
