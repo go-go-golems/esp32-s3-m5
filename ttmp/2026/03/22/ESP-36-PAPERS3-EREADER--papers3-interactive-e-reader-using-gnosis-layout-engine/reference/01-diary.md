@@ -228,3 +228,61 @@ page_offsets_[2] = 1692       (end of page 2)
 int row = (ty - list_node->rect.y) / row_h;
 int book_idx = row / 2;  // 2 list rows per book entry
 ```
+
+## Step 3: Bookmark Persistence
+
+Added `BookmarkStore` for persisting reading positions across power cycles. Bookmarks are stored in `/spiffs/bookmarks.dat` with the same version-header + pipe-delimited format used by the book index. The store auto-flushes to SPIFFS every 10 page turns to balance wear leveling against data loss risk.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Continue through remaining tasks: BookmarkStore, verify all tasks complete.
+
+**Inferred user intent:** Complete the e-reader feature set to a usable demo state.
+
+**Commit (code):** 8fc50b7 — "feat(ereader): add bookmark persistence with auto-save every 10 page turns"
+
+### What I did
+
+- Created `bookmark_store.h/cpp`: `Load()` / `Save()` / `GetBookmark()` / `UpdatePosition()` with auto-flush
+- Wired into `EReaderApp`: load bookmarks in `MountStorage()`, restore position in `OpenBook()`, update on every `NextPage()` / `PreviousPage()`
+- All 11 tasks now checked off
+
+### Why
+
+Without bookmarks, the user loses their reading position on every power cycle. The auto-flush interval of 10 prevents SPIFFS wear from single-page-turn writes while keeping data loss to at most 10 pages.
+
+### What worked
+
+- The `UpdatePosition` pattern of counting dirty writes and flushing at a threshold is simple and effective
+- Bookmark restore in `OpenBook` is a single `GetBookmark` + bounds check
+
+### What didn't work
+
+N/A -- clean implementation.
+
+### What I learned
+
+- SPIFFS writes are expensive (~100ms) so batching is important for interactive feel
+- The `strtok` parsing pattern from BookStore maps directly to BookmarkStore
+
+### What was tricky to build
+
+Nothing notably tricky. The pattern was established by BookStore and GlyphStore.
+
+### What warrants a second pair of eyes
+
+- The bookmark's `byte_offset` field is currently always 0 -- we only store page number. The offset would be needed for byte-precise position tracking but since we have the page offset table, the page number is sufficient.
+
+### What should be done in the future
+
+- Font size switching (console command to change `kCharsPerLine` / `kLinesPerPage` and re-paginate)
+- Loading additional books via console or build-time SPIFFS
+- Edge case testing with empty files, large files, Unicode text
+
+### Code review instructions
+
+- `bookmark_store.cpp` -- straightforward file I/O, review the `UpdatePosition` flush logic
+- `ereader_app.cpp:OpenBook()` -- bookmark restore
+- `ereader_app.cpp:NextPage()/PreviousPage()` -- bookmark update calls

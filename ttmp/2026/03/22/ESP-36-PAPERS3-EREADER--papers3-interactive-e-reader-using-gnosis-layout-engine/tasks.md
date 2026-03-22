@@ -11,7 +11,7 @@
 - [x] Phase 3: Implement Paginator - word-wrap algorithm, page offset table, FormatPageBuffer with newline insertion
 - [x] Phase 3: Wire pagination into reading screen - NextPage/PreviousPage update page buffer and mark dirty, verify partial EPD refresh
 - [x] Phase 4: Implement touch navigation - reading screen touch zones (left 25% prev, right 25% next), status bar updates (page number, progress bar)
-- [ ] Phase 5: Build library screen - LIST widget with book entries, touch selection to open book, screen switching between library and reading
-- [ ] Phase 6: Implement BookmarkStore - load/save bookmarks.dat, auto-save every 10 page turns, restore position on OpenBook
-- [ ] Phase 7: Register esp_console commands - ereader list/open/page/info/fontsize/rebuild-index, coexist with gnosis commands
+- [x] Phase 5: Build library screen - LIST widget with book entries, touch selection to open book, screen switching between library and reading
+- [x] Phase 6: Implement BookmarkStore - load/save bookmarks.dat, auto-save every 10 page turns, restore position on OpenBook
+- [x] Phase 7: Register esp_console commands - ereader list/open/page/info/fontsize/rebuild-index, coexist with gnosis commands
 - [ ] Phase 7: Polish - font size switching (size 1 vs 2), periodic full EPD refresh, edge case testing (empty book, single page, long lines)

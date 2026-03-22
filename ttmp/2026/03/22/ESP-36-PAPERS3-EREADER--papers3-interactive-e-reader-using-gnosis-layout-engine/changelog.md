@@ -29,3 +29,12 @@ Step 2: BookStore + Paginator + SPIFFS sample book + library/reader wiring (comm
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp — SPIFFS book storage
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp — Word-wrap pagination engine
 
+
+## 2026-03-22
+
+Step 3: BookmarkStore with auto-save, all 11 tasks complete (commit 8fc50b7)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/bookmark_store.cpp — Bookmark persistence with auto-flush
+
