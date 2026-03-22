@@ -329,6 +329,8 @@ Work task by task, commit as you go, keep a detailed diary"
 
 **Inferred user intent:** Make the result reviewable, teachable, and easy to annotate away from the terminal.
 
+**Commit (docs/delivery):** `3d7b4b7` — `docs(ticket): finalize alphabet graffiti guide and delivery`
+
 ### What I did
 
 - created `design-doc/01-papers3-alphabet-graffiti-analysis-design-and-implementation-guide.md`

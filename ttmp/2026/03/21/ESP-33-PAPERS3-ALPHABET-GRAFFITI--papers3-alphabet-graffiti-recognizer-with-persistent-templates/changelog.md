@@ -27,3 +27,4 @@
 - Added `storage` to the workspace ticket vocabulary so the documentation validates cleanly
 - Verified the ticket with `docmgr doctor --ticket ESP-33-PAPERS3-ALPHABET-GRAFFITI --stale-after 30`
 - Uploaded the bundled ticket docs to reMarkable at `/ai/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI`
+- Recorded final delivery/docs commit `3d7b4b7`
