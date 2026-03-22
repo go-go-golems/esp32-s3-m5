@@ -53,7 +53,11 @@ I created a dedicated ticket, wrote a new design guide aimed at a new intern, an
 
 ### Prompt Context
 
-**User prompt (verbatim):** "Create a second ticket about implemening the execution primitives required for your program, create a detailed analysis / design / implementation guide that is very detailed for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file\n  references.\n  It should be very clear and detailed. Store in the ticket and the nupload to remarkable.\n\nThen add detailed list of tasks and work on them one by one, commititng as you go and keeping a etaile diary"
+**User prompt (verbatim):**
+
+> Create a second ticket about implemening the execution primitives required for your program, create a detailed analysis / design / implementation guide that is very detailed for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and detailed. Store in the ticket and the nupload to remarkable.
+>
+> Then add detailed list of tasks and work on them one by one, commititng as you go and keeping a etaile diary
 
 **Assistant interpretation:** Create a new docmgr ticket dedicated to the `0079` execution layer, write an intern-facing design guide, upload it to reMarkable, define detailed tasks, and then implement those tasks with incremental commits and diary updates.
 
