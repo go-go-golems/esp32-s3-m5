@@ -413,6 +413,8 @@ This step is a usability refinement requested after the main app was already com
 
 **Inferred user intent:** Optimize for writing feel, not debugging visibility.
 
+**Commit (code):** `c799ba8` — `feat(papers3): queue graffiti input while display catches up`
+
 ### What I did
 
 - added a queued stroke-segment buffer inside `AlphabetApp`
