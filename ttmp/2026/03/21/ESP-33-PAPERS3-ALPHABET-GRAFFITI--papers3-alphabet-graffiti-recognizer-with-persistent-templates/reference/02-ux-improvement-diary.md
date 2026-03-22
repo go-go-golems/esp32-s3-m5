@@ -216,3 +216,109 @@ kSlotCellWidth: 76, kSlotCellHeight: 52 (new, was ~var x 28)
 kButtonGap: 8, kCellGap: 8 (new)
 // Removed: kCanvasCardWidth (410), kCanvasCardHeight (420) — now dynamic
 ```
+
+---
+
+## Step 3: Apply Serial Experiments Lain visual theme
+
+Restyled the entire UI from a clean-but-generic look to a Navi/Copland OS aesthetic inspired by Serial Experiments Lain. The e-ink display's black/white/gray limitation actually suits the Lain aesthetic perfectly — high contrast, angular, technical.
+
+### Prompt Context
+
+**User prompt (verbatim):** "now make it look all serial experiments lain like, make sure things are committed before you move on."
+
+**Assistant interpretation:** Apply a Serial Experiments Lain / Navi computer interface visual theme to the existing touch-friendly layout. Commit the layout work first.
+
+**Inferred user intent:** Give the app a distinctive, atmospheric visual identity instead of a generic embedded UI look.
+
+**Commit (code):** b2ac5db — "feat(papers3): apply Serial Experiments Lain visual theme"
+
+### What I did
+
+- **Color palette**: Replaced 9 soft gray/off-white colors with 5 high-contrast Lain colors (`kColorBg`, `kColorFg`, `kColorDim`, `kColorGhost`, `kColorRecorded`)
+- **DrawRoundCard → DrawPanel**: New helper draws sharp-cornered panels with a black title strip at the top (white text on black bar), replacing the old rounded-corner cards
+- **DrawButton**: Rewrote for inverted active style — active buttons are solid black with white text, inactive are outlined. Sharp corners throughout.
+- **DrawCornerMarks**: New helper draws L-shaped targeting brackets at the four corners of the canvas — Navi crosshair aesthetic
+- **DrawHeader**: Full black bar with "NAVI://graffiti" title, "LAYER:07" indicator, mode buttons that glow white when active on the dark bar
+- **Panel titles**: Technical Lain labels — "INPUT_STREAM", "GLYPH_DB", "OUTPUT_BUFFER", "HANDWRITING_INPUT"
+- **Button labels**: Terminal-style `>` prefix — ">SAVE", ">CLEAR", ">DELETE", ">RELOAD", ">SPACE", ">BACK"
+- **Status messages**: Terse protocol-style — "> TRAIN protocol active.", "> APPEND: A [0.93]", "> Buffer cleared."
+- **Glyph chips**: Selected = fully inverted (black), recorded = dark gray with white text, empty = outlined
+- **Empty canvas placeholder**: "> input glyph here" / "> draw to append"
+
+### Visual identity mapping (Lain → e-ink)
+
+| Lain/Navi element | E-ink implementation |
+|-------------------|---------------------|
+| Dark terminal backgrounds | Black header bar, black panel title strips |
+| Green/amber phosphor text | White text on black (e-ink equivalent of glow) |
+| Angular Copland OS windows | Sharp-cornered panels with double borders |
+| Navi targeting crosshairs | L-shaped corner marks on canvas |
+| Protocol/layer numbering | "LAYER:07" indicator, "PROTOCOL:TRAIN" messages |
+| System command prompts | `>` prefix on all button labels and status text |
+| CRT scanline aesthetic | Horizontal title strips creating visual rhythm |
+
+### Why
+
+The Lain aesthetic is a perfect match for e-ink:
+1. E-ink renders pure black and pure white crisply — the high-contrast palette looks sharp
+2. The angular, technical look avoids the "rounded corners = friendly" cliche that feels wrong on embedded hardware
+3. The dark title strips create strong visual hierarchy without needing color
+4. The "NAVI://graffiti" framing gives the app personality and atmosphere
+
+### What worked
+
+- The inverted black header bar immediately establishes the Lain mood
+- Corner targeting marks on the canvas are a subtle but effective Navi reference
+- Build compiles cleanly — the color refactoring was clean (all old color names eliminated)
+- The `>` prefix on buttons gives a command-line feel without being unreadable
+
+### What didn't work
+
+- IDF 5.3.4 python env was missing; had to use `IDF_PYTHON_ENV_PATH=$HOME/.espressif/python_env/idf5.3_py3.13_env` explicitly
+
+### What I learned
+
+- E-ink's limitation (no color) is actually a feature for the Lain aesthetic — it naturally produces the monochrome terminal look
+- Inverted regions (white text on black fill) are the e-ink equivalent of "glowing" UI elements
+- Sharp corners render better on e-ink than rounded ones — fewer antialiased gray pixels
+
+### What was tricky to build
+
+The header mode buttons sit on a black background, so the generic DrawButton (which makes active buttons black) would be invisible. Had to write a custom inline lambda `draw_mode_btn` that inverts the logic: active buttons are WHITE (bright) on the dark header, inactive ones blend in with just a dim border. This is the opposite of buttons on the white content area.
+
+The `replace_all` for old color names missed multi-line wrapped references where `kColorInk` was on a continuation line. Had to manually find and fix 2 remaining instances in `DrawLiveStrokeSegment`.
+
+### What warrants a second pair of eyes
+
+- **Glyph chip readability**: `kColorRecorded = 0x404040` (dark gray) with white text — verify this has enough contrast on actual e-ink hardware. E-ink gray levels can be muddy.
+- **Corner marks on partial refresh**: The corner marks are redrawn in `ClearCanvasForLiveStroke()` during fast partial refresh. Verify they don't ghost or smear.
+
+### What should be done in the future
+
+- Add a small Navi logo or Lain silhouette as a decorative element
+- Consider a "boot sequence" animation on startup (text cascade)
+- Add thin horizontal scanline rules between status text lines
+- Try `kColorRecorded = 0x303030` if 0x404040 is too light on real hardware
+
+### Code review instructions
+
+- Check color constants — all old names (`kColorPaper`, `kColorInk`, etc.) should be gone
+- Look at `DrawHeader()` — the mode button drawing has custom logic for dark-background buttons
+- Check `DrawCornerMarks()` — new helper for canvas targeting aesthetic
+- Verify `DrawPanel()` title strip height (24px) doesn't clip text
+- Run: `idf.py build` — should complete with 0 errors
+
+### Technical details
+
+Color palette change:
+```cpp
+// Before (soft grays)
+kColorPaper = 0xFFFFFF, kColorCard = 0xF3F3F1, kColorCardDark = 0xE1E1DE
+kColorInk = 0x000000, kColorMuted = 0x5A5A5A, kColorLightInk = 0x888888
+kColorAccent = 0x202020, kColorAccentFill = 0xD7D7D2, kColorDisabled = 0xCDCDC8
+
+// After (high contrast Lain)
+kColorBg = 0xFFFFFF, kColorFg = 0x000000, kColorDim = 0x666666
+kColorGhost = 0xAAAAAA, kColorRecorded = 0x404040
+```
