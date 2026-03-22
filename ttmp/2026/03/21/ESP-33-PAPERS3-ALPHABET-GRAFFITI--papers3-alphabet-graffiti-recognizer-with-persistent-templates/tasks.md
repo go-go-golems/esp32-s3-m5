@@ -10,9 +10,9 @@
 - [x] Implement persistent glyph template storage on disk
 - [x] Implement training UI for `A-Z` and `0-9`
 - [x] Validate the build and update the ticket docs/diary for the training milestone
+- [x] Implement writing mode with recognized output buffer
 
 ## Remaining
 
-- [ ] Implement writing mode with recognized output buffer
 - [ ] Produce the detailed intern-facing analysis / design / implementation guide
 - [ ] Upload the finished ticket bundle to reMarkable

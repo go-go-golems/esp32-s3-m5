@@ -43,7 +43,7 @@ This ticket tracks the third PaperS3 handwriting app in the sequence. The goal i
 - `TRAIN` mode for building persistent templates for `A-Z` and `0-9`
 - `WRITE` mode for graffiti-style single-stroke writing even before the full alphabet has been trained
 
-Task 1 established the new `0077` project, created the ticket/diary, and landed a buildable placeholder UI. Task 2 replaced that placeholder with a working training interface backed by SPIFFS-persisted templates, while keeping `WRITE` mode visible as the next feature boundary.
+Task 1 established the new `0077` project, created the ticket/diary, and landed a buildable placeholder UI. Task 2 replaced that placeholder with a working training interface backed by SPIFFS-persisted templates. Task 3 completed the live `WRITE` mode, so the app now supports both template collection and graffiti-style text entry in a single firmware image.
 
 ## Key Links
 

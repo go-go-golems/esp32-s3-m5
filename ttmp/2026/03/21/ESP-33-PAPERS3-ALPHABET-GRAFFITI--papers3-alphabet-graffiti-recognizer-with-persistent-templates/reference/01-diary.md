@@ -222,3 +222,93 @@ papers3_alphabet_graffiti.bin binary size 0x744a0 bytes
 Smallest app partition is 0x400000 bytes
 0x38bb60 bytes (89%) free
 ```
+
+## Step 3: Finish the live writing mode and connect it to the trained templates
+
+This step completes the second half of the product. The app already knew how to classify a stroke against the saved templates; this task turns that recognition into a writing workflow with its own UI, output buffer, and editing controls.
+
+The important implementation choice here was to not create a second recognizer. `WRITE` mode uses the exact same resample/vectorize/match path as `TRAIN` mode, and only changes what happens after recognition: instead of saving a template, it appends the best matching glyph when the score clears a confidence threshold.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's create a third app where this time we have two modes, one where I input templates for the entire aphabet (ABCDEF...0123456789) and then one where I can just write graffiti style. Make nice simple UIs. store the templates on disk. I can switch to writing whenver, even if not all letters are registered.
+
+Work task by task, commit as you go, keep a detailed diary"
+
+**Assistant interpretation:** After the training/storage milestone, the next task is the actual writing-mode workflow: draw a stroke, recognize it against the saved glyphs, and maintain editable output text.
+
+**Inferred user intent:** The app should now be usable as a real two-mode handwriting prototype instead of only a template collection utility.
+
+### What I did
+
+- added a write buffer state to `AlphabetApp`
+- changed the top-right card into a writing buffer when `WRITE` mode is active
+- added automatic append after stroke release when the top match exceeds the configured confidence threshold
+- added mode-specific write controls:
+  - `SPACE`
+  - `BACKSPACE`
+  - `CLEAR TEXT`
+  - `CLEAR STROKE`
+- added write-mode status messaging and compact recognition summaries
+- rebuilt the firmware to verify the full two-mode app
+
+### Why
+
+- without a text buffer and append logic, `WRITE` mode would just be a relabeled preview screen
+- reusing the same classifier avoids inconsistent behavior between training and writing
+- explicit edit controls are necessary because single-stroke recognition is inherently approximate
+
+### What worked
+
+- branching the right-side panel by mode kept the layout simple without reworking the whole screen
+- auto-append makes the write workflow feel materially different from the training workflow
+- the same saved templates can now be used immediately in writing mode, even if the full alphabet is not yet trained
+
+### What didn't work
+
+- no new build failures in this step
+
+### What I learned
+
+- the app architecture was already in a good place after Task 2; adding write mode mostly required post-recognition state handling, not another structural rewrite
+- the simplest useful writing UX on e-paper is automatic append plus explicit correction buttons
+
+### What was tricky to build
+
+- making `WRITE` mode feel distinct enough from `TRAIN` mode while still sharing the same underlying gesture pipeline
+- fitting status, candidate feedback, and editable text into the same right-side column without making the UI feel crowded
+
+### What warrants a second pair of eyes
+
+- whether the current confidence threshold (`0.82`) is the right default on physical hardware
+- whether `SPACE` should stay manual or eventually be inferred from timing/gap heuristics
+- whether the writing buffer needs stronger wrapping or pagination for longer text
+
+### What should be done in the future
+
+- test recognition confidence and ergonomics on real PaperS3 hardware
+- consider multiple templates per glyph for improved user-specific accuracy
+- decide whether to add punctuation in addition to `A-Z` and `0-9`
+
+### Code review instructions
+
+- inspect the mode-specific logic in `0077-papers3-alphabet-graffiti/main/alphabet_app.cpp`
+- look at `TryAppendRecognizedGlyph()`, `DrawPaletteCard()`, `DrawControlsCard()`, and `DrawResultsCard()`
+- confirm that training-mode behavior still remains intact while write-mode branches are active
+
+### Technical details
+
+Commands used:
+
+```bash
+source /home/manuel/esp/esp-idf-5.3.4/export.sh && idf.py build
+```
+
+Validation result:
+
+```text
+Generated .../build/papers3_alphabet_graffiti.bin
+papers3_alphabet_graffiti.bin binary size 0x74f70 bytes
+Smallest app partition is 0x400000 bytes
+0x38b090 bytes (89%) free
+```

@@ -16,3 +16,9 @@
   - normalized `std::clamp` inputs in `ChangePage()` to `int32_t`
 - Verified the training/storage milestone with `idf.py build` against ESP-IDF `5.3.4`
 - Recorded Task 2 commit `b04bd3e` for the persistent training milestone
+- Implemented live `WRITE` mode with:
+  - a writing buffer card
+  - auto-append on strong recognition matches
+  - `SPACE`, `BACKSPACE`, `CLEAR TEXT`, and `CLEAR STROKE` actions
+- Reused the same Protractor recognition path for both training and live text entry instead of forking the gesture pipeline
+- Verified the full two-mode app again with `idf.py build` against ESP-IDF `5.3.4`

@@ -32,6 +32,7 @@ private:
     static constexpr std::size_t kGlyphCount = GlyphStore::kGlyphCount;
     static constexpr std::size_t kPageSize = 12;
     static constexpr std::size_t kResampleCount = 16;
+    static constexpr float kWriteAcceptanceThreshold = 0.82f;
 
     struct RecognitionScore {
         std::size_t glyph_index = 0;
@@ -54,6 +55,9 @@ private:
         clear_stroke,
         delete_glyph,
         reload_store,
+        write_space,
+        write_backspace,
+        write_clear_text,
     };
 
     void InitBoard();
@@ -71,6 +75,10 @@ private:
     void DeleteSelectedGlyph();
     void ReloadGlyphs();
     void ClearStroke();
+    void TryAppendRecognizedGlyph();
+    void AddSpace();
+    void BackspaceText();
+    void ClearText();
 
     void RenderFullUi();
     void ClearCanvasForLiveStroke();
@@ -98,6 +106,8 @@ private:
     std::string StorageSummary() const;
     std::string FormatPoint(protractor_demo::PointF point) const;
     std::string ModeSubtitle() const;
+    std::string WriteBufferPreview() const;
+    std::string RecognitionSummary() const;
     protractor_demo::PointF ClampToCanvas(protractor_demo::PointF point) const;
     std::vector<RecognitionScore> RecognizeCurrentStroke() const;
 
@@ -126,6 +136,8 @@ private:
     std::size_t current_page_ = 0;
     bool storage_ready_ = false;
     std::string storage_status_;
+    std::string write_buffer_;
+    std::string write_status_ = "Switch to WRITE and draw to start writing.";
     int matched_index_ = -1;
 
     bool touch_down_ = false;
