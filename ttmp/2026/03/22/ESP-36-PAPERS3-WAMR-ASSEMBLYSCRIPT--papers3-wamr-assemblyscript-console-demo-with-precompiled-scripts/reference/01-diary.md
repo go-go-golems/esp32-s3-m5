@@ -32,6 +32,10 @@ RelatedFiles:
       Note: Initial wasm command namespace and placeholder runtime commands
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp
       Note: Runtime initialization and status-reporting service for WAMR
+    - Path: 0079-papers3-wamr-assemblyscript-console/wasm-src/package.json
+      Note: Host-side AssemblyScript workspace and pinned compiler version
+    - Path: 0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs
+      Note: Multi-demo AssemblyScript build entrypoint
     - Path: 0077-papers3-alphabet-graffiti/sdkconfig.defaults
       Note: PaperS3 baseline used to anchor ESP-IDF 5.3.4 and console defaults
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
@@ -44,7 +48,7 @@ ExternalSources:
     - https://github.com/AssemblyScript/website/blob/main/src/compiler.md
     - https://github.com/AssemblyScript/website/blob/main/src/runtime.md
 Summary: Chronological diary for the ticket creation, scaffold work, and runtime integration work behind the PaperS3 WAMR AssemblyScript design guide and firmware.
-LastUpdated: 2026-03-22T11:49:00-04:00
+LastUpdated: 2026-03-22T12:05:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -521,6 +525,137 @@ Files changed in this step:
 - `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
 - `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.h`
 - `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp`
+
+## Step 5: Add the host-side AssemblyScript workspace and compile the first demo pack
+
+This step built the other half of the system: the host-side source tree that actually produces WebAssembly modules. Up to this point the firmware could host WAMR, but there was still no repeatable way to create a batch of demo `.wasm` files for the future registry and runner. I added a small `wasm-src/` workspace, a shared import surface for the planned host ABI, five first-pass demo programs, and a node build script that emits both `.wasm` and `.wat`.
+
+I treated this as an artifact-producing milestone rather than just a skeleton. The repo now contains compiled release and debug outputs under `wasm-build/`, which means the next registry task can work from concrete files instead of from hand-wavy "we will generate these later" assumptions.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue into the AssemblyScript build-pipeline task, make it repeatable for an intern, and commit it as the next checkpoint.
+
+**Inferred user intent:** Create the actual source-and-build path for a bunch of AssemblyScript demos so the firmware work can move from runtime bring-up to real guest modules.
+
+**Commit (code):** `68efe8c` - `feat(papers3): add assemblyscript demo pipeline`
+
+### What I did
+
+- added `0079-papers3-wamr-assemblyscript-console/wasm-src/package.json`
+- pinned `assemblyscript` to `0.28.10`
+- generated `0079-papers3-wamr-assemblyscript-console/wasm-src/package-lock.json`
+- added `0079-papers3-wamr-assemblyscript-console/wasm-src/asconfig.json` with `release` and `debug` targets using the `stub` runtime
+- added `0079-papers3-wamr-assemblyscript-console/wasm-src/shared/host.ts` with the planned milestone-1 host imports:
+  - `logI32`
+  - `delayMs`
+  - `screenClear`
+  - `drawRect`
+  - `fillRect`
+  - `present`
+- added five first-pass demos:
+  - `hello-frame`
+  - `nested-boxes`
+  - `bars`
+  - `checkerboard`
+  - `radar-sweep`
+- added `0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs`
+- updated `0079-papers3-wamr-assemblyscript-console/README.md` with the host-side build instructions
+- ran:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src
+npm install
+npm run build
+npm run build:debug
+```
+
+- committed the generated outputs under:
+  - `0079-papers3-wamr-assemblyscript-console/wasm-build/release/`
+  - `0079-papers3-wamr-assemblyscript-console/wasm-build/debug/`
+
+### Why
+
+- the firmware tasks after this depend on real guest artifacts, not just source sketches
+- a shared `host.ts` contract lets the AssemblyScript side evolve in parallel with the firmware host API
+- tracked `.wat` outputs are valuable for human inspection during bring-up and for intern onboarding
+
+### What worked
+
+- `npm install` was straightforward and generated a small lockfile
+- `npm run build` compiled all five demos to `release` `.wasm` and `.wat`
+- `npm run build:debug` compiled all five demos to `debug` `.wasm` and `.wat`
+- keeping the outputs under `wasm-build/` avoided the repo’s `**/build/` ignore rules and produced a clean handoff point for the next embedding task
+
+### What didn't work
+
+- nothing failed in this step
+- the only non-obvious design choice was output location: the design guide originally sketched `build/generated-wasm`, but this repo ignores `**/build/`, so I used `wasm-build/` instead
+
+### What I learned
+
+- the right shape for these demos is to import the future host ABI now, even before the firmware side implements the actual drawing functions
+- AssemblyScript plus the `stub` runtime is a good fit for this milestone because the demos only need numeric imports and exported `run()` entry points
+- a tracked `manifest.json` per target directory will make the future registry generation step simpler
+
+### What was tricky to build
+
+- the main subtlety was avoiding a pipeline that accidentally fights the repo conventions
+- if the outputs landed under the normal ESP-IDF `build/` tree, they would disappear from git and from the ticket narrative
+- I kept the build explicit:
+  - source under `wasm-src/`
+  - compiler driver under `tools/`
+  - generated guest artifacts under `wasm-build/`
+
+### What warrants a second pair of eyes
+
+- whether both `release` and `debug` artifacts should remain tracked long-term, or whether only `release` should feed the firmware while `debug` stays locally regenerable
+- whether the demo naming and manifest format should be frozen now so later registry code does not have to adapt twice
+- whether `delayMs` belongs in the first host ABI or should be dropped until there is a demonstrated need for guest-controlled pacing
+
+### What should be done in the future
+
+- commit the ticket bookkeeping for this milestone
+- build the embedded module registry around the `wasm-build/release` artifacts
+- start resolving the host import functions on the firmware side so `run()` can move from compile-only to executable
+
+### Code review instructions
+
+- start with `0079-papers3-wamr-assemblyscript-console/wasm-src/package.json`
+- then inspect `0079-papers3-wamr-assemblyscript-console/wasm-src/shared/host.ts`
+- review `0079-papers3-wamr-assemblyscript-console/tools/build-wasm-demos.mjs`
+- spot-check one source demo and one generated `.wat` file
+- validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/wasm-src
+npm install
+npm run build
+npm run build:debug
+```
+
+### Technical details
+
+Compiler/tooling inputs:
+
+- `node v22.22.1`
+- `npm 10.9.4`
+- `assemblyscript 0.28.10`
+
+Generated targets:
+
+- `release`
+- `debug`
+
+Generated demo names:
+
+- `hello-frame`
+- `nested-boxes`
+- `bars`
+- `checkerboard`
+- `radar-sweep`
 
 ## Related
 

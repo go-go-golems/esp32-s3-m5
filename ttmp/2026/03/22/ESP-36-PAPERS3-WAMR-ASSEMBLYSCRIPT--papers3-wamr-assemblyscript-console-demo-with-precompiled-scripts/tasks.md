@@ -34,10 +34,10 @@
 - [x] Task 3.5: Commit WAMR integration + diary update
 
 - [ ] Task 4: Add host-side AssemblyScript build assets
-- [ ] Task 4.1: Create `wasm-src/package.json`
-- [ ] Task 4.2: Create `wasm-src/asconfig.json`
-- [ ] Task 4.3: Create shared host import declarations
-- [ ] Task 4.4: Add a script that builds all demo modules to `.wasm` and `.wat`
+- [x] Task 4.1: Create `wasm-src/package.json`
+- [x] Task 4.2: Create `wasm-src/asconfig.json`
+- [x] Task 4.3: Create shared host import declarations
+- [x] Task 4.4: Add a script that builds all demo modules to `.wasm` and `.wat`
 - [ ] Task 4.5: Commit AssemblyScript pipeline + diary update
 
 - [ ] Task 5: Add embedded demo registry

@@ -11,3 +11,5 @@
 - Verified a clean local `idf.py build` after forcing the shell back onto the `ESP-IDF 5.3.4` environment
 - Added `wasm_runtime_service.*`, initialized WAMR during app startup, and replaced placeholder runtime status output with real version/mode/heap reporting
 - Fixed the first runtime-service build breakage around `esp_system.h`, disabled `CONFIG_WAMR_ENABLE_AOT`, and strict `PRIu32` formatting
+- Added the host-side `wasm-src/` AssemblyScript workspace, shared `host` import declarations, and five first-pass demo programs
+- Added `tools/build-wasm-demos.mjs`, pinned `assemblyscript@0.28.10`, and generated tracked `release` and `debug` `.wasm`/`.wat` demo artifacts under `wasm-build/`
