@@ -1,16 +1,144 @@
 #pragma once
 
+#include "glyph_store.h"
+#include "protractor_math.h"
+
 #include <M5Unified.hpp>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 namespace alphabet_graffiti {
+
+struct Rect {
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t w = 0;
+    int32_t h = 0;
+
+    bool Contains(int32_t px, int32_t py) const
+    {
+        return px >= x && px < (x + w) && py >= y && py < (y + h);
+    }
+};
 
 class AlphabetApp {
 public:
     void Run();
 
 private:
+    static constexpr std::size_t kGlyphCount = GlyphStore::kGlyphCount;
+    static constexpr std::size_t kPageSize = 12;
+    static constexpr std::size_t kResampleCount = 16;
+
+    struct RecognitionScore {
+        std::size_t glyph_index = 0;
+        float distance = 0.0f;
+        float cosine_score = 0.0f;
+    };
+
+    enum class Mode {
+        train,
+        write,
+    };
+
+    enum class ActionButton {
+        none,
+        mode_train,
+        mode_write,
+        page_prev,
+        page_next,
+        save_glyph,
+        clear_stroke,
+        delete_glyph,
+        reload_store,
+    };
+
     void InitBoard();
-    void DrawSkeletonUi();
+    void BuildLayout();
+    void LoadTemplatesFromDisk();
+    void HandleTouch();
+    void BeginStroke(const protractor_demo::PointF& point);
+    void ExtendStroke(const protractor_demo::PointF& point);
+    void FinishStroke();
+    void AnalyzeStroke();
+
+    void SelectGlyph(std::size_t glyph_index);
+    void ChangePage(int delta);
+    void SaveSelectedGlyph();
+    void DeleteSelectedGlyph();
+    void ReloadGlyphs();
+    void ClearStroke();
+
+    void RenderFullUi();
+    void ClearCanvasForLiveStroke();
+    void DrawLiveStrokeSegment(const protractor_demo::PointF& from, const protractor_demo::PointF& to);
+
+    void DrawHeader();
+    void DrawCanvasCard();
+    void DrawPaletteCard();
+    void DrawControlsCard();
+    void DrawMetricsCard();
+    void DrawResultsCard();
+    void DrawGestureOverlay();
+
+    bool HasActiveStroke() const;
+    bool SaveEnabled() const;
+    bool DeleteEnabled() const;
+    bool HasRecordedGlyphs() const;
+    std::size_t PageCount() const;
+    std::size_t PageStart() const;
+    std::size_t CurrentPageRecordedCount() const;
+    int SlotIndexAtPoint(int32_t x, int32_t y) const;
+    char SelectedGlyph() const;
+    std::size_t RecordedCount() const;
+    std::string GlyphSummary() const;
+    std::string StorageSummary() const;
+    std::string FormatPoint(protractor_demo::PointF point) const;
+    std::string ModeSubtitle() const;
+    protractor_demo::PointF ClampToCanvas(protractor_demo::PointF point) const;
+    std::vector<RecognitionScore> RecognizeCurrentStroke() const;
+
+    Rect screen_{};
+    Rect header_{};
+    Rect train_mode_button_{};
+    Rect write_mode_button_{};
+    Rect canvas_card_{};
+    Rect canvas_{};
+    Rect palette_card_{};
+    Rect controls_card_{};
+    Rect metrics_card_{};
+    Rect results_card_{};
+    Rect page_prev_button_{};
+    Rect page_next_button_{};
+    Rect save_button_{};
+    Rect clear_button_{};
+    Rect delete_button_{};
+    Rect reload_button_{};
+    std::array<Rect, kPageSize> slot_rects_{};
+
+    GlyphStore store_{};
+    std::array<GlyphTemplate, kGlyphCount> templates_{};
+    Mode mode_ = Mode::train;
+    std::size_t selected_index_ = 0;
+    std::size_t current_page_ = 0;
+    bool storage_ready_ = false;
+    std::string storage_status_;
+    int matched_index_ = -1;
+
+    bool touch_down_ = false;
+    bool drawing_ = false;
+    int pressed_slot_ = -1;
+    ActionButton pressed_action_ = ActionButton::none;
+    protractor_demo::PointF last_touch_{};
+    protractor_demo::PointF last_draw_point_{};
+
+    std::vector<protractor_demo::PointF> raw_points_;
+    std::vector<protractor_demo::PointF> resampled_points_;
+    protractor_demo::VectorizedGesture current_gesture_;
+    std::vector<RecognitionScore> recognition_scores_;
 };
 
 }  // namespace alphabet_graffiti

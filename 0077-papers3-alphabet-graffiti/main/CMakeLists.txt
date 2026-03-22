@@ -2,7 +2,12 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "alphabet_app.cpp"
+        "glyph_store.cpp"
         "protractor_math.cpp"
     INCLUDE_DIRS
         "."
+    REQUIRES
+        M5Unified
+    PRIV_REQUIRES
+        spiffs
 )

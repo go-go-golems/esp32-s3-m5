@@ -17,7 +17,13 @@ RelatedFiles:
     - Path: 0077-papers3-alphabet-graffiti/CMakeLists.txt
       Note: Project wiring for the new third PaperS3 app
     - Path: 0077-papers3-alphabet-graffiti/main/alphabet_app.cpp
-      Note: Task 1 placeholder UI and mode framing
+      Note: Main runtime for the alphabet trainer and future graffiti writer
+    - Path: 0077-papers3-alphabet-graffiti/main/alphabet_app.h
+      Note: Application state, layout, and mode definitions
+    - Path: 0077-papers3-alphabet-graffiti/main/glyph_store.cpp
+      Note: SPIFFS-backed persistent template storage
+    - Path: 0077-papers3-alphabet-graffiti/partitions.csv
+      Note: Custom partition table including the SPIFFS storage partition
     - Path: 0077-papers3-alphabet-graffiti/main/protractor_math.cpp
       Note: Gesture math foundation copied from the prior app for reuse
 ExternalSources: []
@@ -37,7 +43,7 @@ This ticket tracks the third PaperS3 handwriting app in the sequence. The goal i
 - `TRAIN` mode for building persistent templates for `A-Z` and `0-9`
 - `WRITE` mode for graffiti-style single-stroke writing even before the full alphabet has been trained
 
-The first task establishes the new `0077` project, creates the ticket/diary, and lands a buildable placeholder UI so the rest of the work can proceed in focused commits.
+Task 1 established the new `0077` project, created the ticket/diary, and landed a buildable placeholder UI. Task 2 replaced that placeholder with a working training interface backed by SPIFFS-persisted templates, while keeping `WRITE` mode visible as the next feature boundary.
 
 ## Key Links
 
