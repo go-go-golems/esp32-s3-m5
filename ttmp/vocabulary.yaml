@@ -111,6 +111,12 @@ topics:
       description: Screenshot capture and image export workflows
     - slug: storage
       description: Persistent or on-device storage systems
+    - slug: wasm
+      description: WebAssembly runtimes, modules, and embedding
+    - slug: assemblyscript
+      description: AssemblyScript language, compiler, and runtime integration
+    - slug: papers3
+      description: M5Stack PaperS3 board and firmware patterns
 docTypes:
     - slug: index
       description: Ticket index document
