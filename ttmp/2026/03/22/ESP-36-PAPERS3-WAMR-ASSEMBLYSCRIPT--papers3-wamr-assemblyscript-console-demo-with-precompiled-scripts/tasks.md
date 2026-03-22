@@ -17,21 +17,21 @@
 - [x] Task 1.2: Reuse the donor PaperS3 component stack via `EXTRA_COMPONENT_DIRS`
 - [x] Task 1.3: Keep the target pinned to ESP-IDF `5.3.4`
 - [x] Task 1.4: Keep the interactive console on USB Serial/JTAG
-- [ ] Task 1.5: Commit scaffold + ticket bookkeeping
+- [x] Task 1.5: Commit scaffold + ticket bookkeeping
 
 - [x] Task 2: Bring up the console skeleton
 - [x] Task 2.1: Add `app_main.cpp` and a minimal app class or startup module
 - [x] Task 2.2: Add `console_repl.*` to bootstrap `esp_console`
 - [x] Task 2.3: Add `wasm_command.*` with `examples`, `list`, and placeholder `run`
 - [x] Task 2.4: Verify a clean `idf.py build`
-- [ ] Task 2.5: Commit console bootstrap + diary update
+- [x] Task 2.5: Commit console bootstrap + diary update
 
 - [ ] Task 3: Integrate WAMR
-- [ ] Task 3.1: Add an `idf_component.yml` dependency for upstream WAMR
-- [ ] Task 3.2: Configure WAMR for interpreter-first bring-up
-- [ ] Task 3.3: Add `wasm_runtime_service.*`
-- [ ] Task 3.4: Initialize the runtime and report status/errors
-- [ ] Task 3.5: Commit WAMR integration + diary update
+- [x] Task 3.1: Add an `idf_component.yml` dependency for upstream WAMR
+- [x] Task 3.2: Configure WAMR for interpreter-first bring-up
+- [x] Task 3.3: Add `wasm_runtime_service.*`
+- [x] Task 3.4: Initialize the runtime and report status/errors
+- [x] Task 3.5: Commit WAMR integration + diary update
 
 - [ ] Task 4: Add host-side AssemblyScript build assets
 - [ ] Task 4.1: Create `wasm-src/package.json`

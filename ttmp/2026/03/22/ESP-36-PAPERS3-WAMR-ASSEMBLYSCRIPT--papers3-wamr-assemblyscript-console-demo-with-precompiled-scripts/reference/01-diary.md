@@ -30,6 +30,8 @@ RelatedFiles:
       Note: esp_console bring-up over USB Serial/JTAG
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp
       Note: Initial wasm command namespace and placeholder runtime commands
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp
+      Note: Runtime initialization and status-reporting service for WAMR
     - Path: 0077-papers3-alphabet-graffiti/sdkconfig.defaults
       Note: PaperS3 baseline used to anchor ESP-IDF 5.3.4 and console defaults
     - Path: 0030-cardputer-console-eventbus/main/app_main.cpp
@@ -42,7 +44,7 @@ ExternalSources:
     - https://github.com/AssemblyScript/website/blob/main/src/compiler.md
     - https://github.com/AssemblyScript/website/blob/main/src/runtime.md
 Summary: Chronological diary for the ticket creation, scaffold work, and runtime integration work behind the PaperS3 WAMR AssemblyScript design guide and firmware.
-LastUpdated: 2026-03-22T11:19:00-04:00
+LastUpdated: 2026-03-22T11:49:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -266,7 +268,7 @@ The scope here was intentionally narrow. I did not try to build the full runtime
 
 **Inferred user intent:** Establish a trustworthy first milestone that proves the architecture is viable on this repo and board family before deeper WAMR-specific logic is added.
 
-**Commit (code):** `pending` - this step is about to become the first implementation commit
+**Commit (code):** `638bc95` - `feat(papers3): add 0079 wasm console scaffold`
 
 ### What I did
 
@@ -381,6 +383,144 @@ Build result:
 - app: `papers3_wamr_assemblyscript_console.bin`
 - binary size: `0x70a40`
 - reported free space in the 4 MB app partition: about `89%`
+
+## Step 4: Add a real WAMR runtime service and make `wasm status` tell the truth
+
+After the scaffold commit, the next missing piece was runtime state. The first version of `wasm status` only reported a placeholder string, which was enough to prove the console layout but not enough to prove that WAMR was actually initialized inside the PaperS3 firmware. I added a small runtime service layer so startup now initializes WAMR once, keeps a structured status snapshot, and exposes that snapshot through the console.
+
+This was still deliberately below the full "run a module" threshold. I did not add loading or instantiation of real guest binaries in this step. The purpose was to create a solid runtime seam for later milestones: one place that owns WAMR init, one status structure the command layer can query, and one diary entry that records the first actual integration errors instead of only planning notes.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue the next task in order by integrating WAMR as a real runtime dependency, then record the work and commit it as its own checkpoint.
+
+**Inferred user intent:** Turn the firmware from a console-shaped scaffold into something that measurably hosts a WebAssembly runtime, without yet taking on the full guest-module execution path.
+
+**Commit (code):** `35bffdb` - `feat(papers3): add wamr runtime service`
+
+### What I did
+
+- added `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.h`
+- added `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp`
+- updated `0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt` to compile the new service and depend on `bytecodealliance__wasm-micro-runtime`
+- updated `0079-papers3-wamr-assemblyscript-console/main/app_main.cpp` to initialize WAMR before starting the console REPL
+- updated `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp` so:
+  - `wasm status` prints actual runtime state
+  - `wasm info <name>` reports whether the runtime is ready
+  - `wasm run <name>` now fails honestly if the runtime is not ready, and otherwise states that module embedding is the remaining blocker
+- replaced the partial `esp_console_cmd_t` initializer with explicit field assignment to remove the earlier missing-field warning from our own code
+- rebuilt the firmware successfully with:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+### Why
+
+- Task 3 needed a real runtime boundary rather than leaving all WAMR logic smeared through `app_main.cpp` and the console command handler
+- the console command family needs runtime-owned state to report version, allocator choice, and mode support coherently
+- getting this seam in place now makes Task 5 and Task 6 much easier, because module loading can attach to the existing service instead of reinventing startup state
+
+### What worked
+
+- `wasm_runtime_full_init()` worked cleanly with `Alloc_With_System_Allocator` and interpreter mode on the local build
+- WAMR version discovery and running-mode support queries worked once the runtime was initialized
+- the new status output gives a concrete checkpoint: startup now creates a runtime and the console can inspect it
+- the second build completed successfully after the integration fixes, with the app binary at `0x79f70` and about `88%` free space remaining in the 4 MB partition
+
+### What didn't work
+
+- the first build after adding `wasm_runtime_service.cpp` failed
+- command:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+- exact failure themes:
+  - `esp_get_free_heap_size` and `esp_get_minimum_free_heap_size` were not declared because I had included `esp_heap_caps.h` instead of `esp_system.h`
+  - `CONFIG_WAMR_ENABLE_AOT` was not declared because the symbol is absent in this disabled configuration rather than defined to `0`
+  - several `%u` format strings failed under `-Werror=format` because `uint32_t` is `unsigned long` on this toolchain
+- representative errors:
+
+```text
+error: 'esp_get_free_heap_size' was not declared in this scope
+error: 'CONFIG_WAMR_ENABLE_AOT' was not declared in this scope
+error: format '%u' expects argument of type 'unsigned int', but argument 2 has type 'long unsigned int' [-Werror=format=]
+```
+
+- fixes applied:
+  - included `esp_system.h`
+  - guarded the AOT config read with `#if defined(CONFIG_WAMR_ENABLE_AOT)`
+  - switched version and heap formatting to `PRIu32`
+  - stopped pretending that "AOT support" was a running mode query and instead tied it to the build configuration for this milestone
+
+### What I learned
+
+- the WAMR integration itself was straightforward; the sharp edges came from ESP-IDF build strictness and config-symbol behavior
+- on this toolchain, using `PRIu32` consistently is the safer choice than assuming `%u` matches `uint32_t`
+- for early milestones, WAMR runtime readiness is a separate concern from module availability, and the command UX should say that plainly
+
+### What was tricky to build
+
+- the subtle trap was that the runtime service looked conceptually small, but it crossed three boundaries at once:
+  - ESP-IDF startup state
+  - WAMR C APIs from C++
+  - strict embedded build flags
+- that combination makes small assumptions expensive; a missing header or wrong format string becomes a full build stop because the project treats warnings seriously
+- the fix was to treat the service like production firmware code immediately instead of assuming it could stay "temporary" until later tasks
+
+### What warrants a second pair of eyes
+
+- whether `Alloc_With_System_Allocator` is the right long-term choice or whether we should move to a dedicated pool once real module loading starts
+- whether runtime initialization should stay eager in `app_main()` or become lazy the first time the user runs a `wasm` command
+- whether the current example metadata should stay inside `wasm_command.cpp` until Task 5, or move earlier into a dedicated registry abstraction
+
+### What should be done in the future
+
+- commit this runtime-service checkpoint
+- add the host-side AssemblyScript build pipeline
+- add a real module registry so `wasm info` and `wasm run` can point at embedded artifacts instead of placeholder names
+
+### Code review instructions
+
+- start with `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp`
+- then inspect `0079-papers3-wamr-assemblyscript-console/main/app_main.cpp` and `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
+- confirm that `main/CMakeLists.txt` now depends on `bytecodealliance__wasm-micro-runtime`
+- validate with:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+### Technical details
+
+Runtime status now reports:
+
+- init attempt state
+- WAMR version
+- requested running mode
+- configured interpreter/AOT build flags
+- supported interpreter / fast-JIT / LLVM-JIT modes
+- ESP heap snapshot
+- WAMR allocator mode
+- runtime allocator heap metrics when available
+
+Files changed in this step:
+
+- `0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt`
+- `0079-papers3-wamr-assemblyscript-console/main/app_main.cpp`
+- `0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp`
+- `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.h`
+- `0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp`
 
 ## Related
 
