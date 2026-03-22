@@ -15,22 +15,21 @@
 - [x] Task 1.4: Replace the placeholder `wasm run <name>` path with the new runner
 - [x] Task 1.5: Verify `idf.py build`
 - [x] Task 1.6: Commit execution scaffolding + diary update
-
-## Planned
-
-- [ ] Task 2: Harden the host ABI and execution reporting
-- [ ] Task 2.1: Add structured execution-result reporting for load, instantiate, execute, and exception failures
-- [ ] Task 2.2: Surface runner diagnostics in `wasm info` or `wasm status`
-- [ ] Task 2.3: Clamp drawing arguments and present modes defensively in the host API
-- [ ] Task 2.4: Verify a clean rebuild after host-ABI hardening
-- [ ] Task 2.5: Commit execution diagnostics + diary update
+- [x] Task 2: Harden the host ABI and execution reporting
+- [x] Task 2.1: Add structured execution-result reporting for load, instantiate, execute, and exception failures
+- [x] Task 2.2: Surface runner diagnostics in `wasm info` or `wasm status`
+- [x] Task 2.3: Clamp drawing arguments and present modes defensively in the host API
+- [x] Task 2.4: Verify a clean rebuild after host-ABI hardening
+- [x] Task 2.5: Commit execution diagnostics + diary update
 
 - [ ] Task 3: Validate the first runnable demo path on hardware
-- [ ] Task 3.1: Flash the updated firmware to PaperS3
-- [ ] Task 3.2: Run `wasm status`, `wasm list`, `wasm info hello-frame`, and `wasm run hello-frame`
+- [x] Task 3.1: Flash the updated firmware to PaperS3
+- [x] Task 3.2: Run `wasm status`, `wasm list`, `wasm info hello-frame`, and `wasm run hello-frame`
 - [ ] Task 3.3: Confirm the display updates and the run returns success without WAMR exception output
 - [ ] Task 3.4: Record memory headroom and repeated-run behavior
 - [ ] Task 3.5: Commit hardware-validation docs + diary update
+
+## Planned
 
 - [ ] Task 4: Expand the execution surface for the remaining demos
 - [ ] Task 4.1: Smoke test `nested-boxes`, `bars`, `checkerboard`, and `radar-sweep`

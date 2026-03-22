@@ -211,3 +211,259 @@ The important design choice in this step was to keep everything narrow and expli
   - `return_value`
   - `error_stage`
   - `error_message`
+
+## Step 3: Hardware Debugging Cycle for the First Real `wasm run`
+
+This debugging cycle started as soon as the first execution-primitives slice was flashed to the PaperS3 and `wasm run hello-frame` was exercised on real hardware. The console-oriented bring-up commands worked immediately: `wasm status`, `wasm list`, and `wasm info hello-frame` all returned sensible values. The failure only appeared once the firmware attempted real module execution and the guest imported a drawing primitive.
+
+The most important lesson from this cycle is that "the runtime initialized" and "the module can execute host work safely on-device" are very different milestones. Multiple distinct bugs showed up one after another, and each one only became visible after the previous one was removed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Then add detailed list of tasks and work on them one by one, commititng as you go and keeping a etaile diary"
+
+**Assistant interpretation:** Continue the task sequence on hardware, document every debugging step, and keep enough detail that someone else can reconstruct the causal chain later.
+
+**Inferred user intent:** Treat failed hardware validation as part of the deliverable rather than as invisible scratch work.
+
+### Cycle 3.1: First hardware flash confirmed bring-up and exposed an instantiate-time cache panic
+
+The first successful flash/monitor pass showed that the console and runtime came up correctly on-device. The PaperS3 booted, `esp_console` started over USB Serial/JTAG, and `wasm status` reported a ready interpreter runtime. That proved the basic project wiring was sound.
+
+The first real failure happened on `wasm run hello-frame`. At that point WAMR crashed during instantiate/load with a cache-disabled panic in its ESP-IDF memory-mapping path. The visible failure path involved `os_mmap` in the vendored WAMR ESP-IDF platform layer.
+
+#### What I did
+
+- Flashed the firmware through `idf.py -p /dev/ttyACM0 flash monitor` inside tmux.
+- Verified:
+  - `wasm status`
+  - `wasm list`
+  - `wasm info hello-frame`
+- Ran:
+  - `wasm run hello-frame`
+
+#### What happened
+
+- Boot and console bring-up succeeded.
+- Metadata commands succeeded.
+- Module execution crashed before a usable render result.
+
+#### Hypothesis
+
+- WAMR was allocating or mapping memory in a way that was unsafe for the PaperS3 ESP32-S3 memory/cache arrangement during instantiate.
+
+#### Code changes made during this cycle
+
+- Changed the runtime allocator in [wasm_runtime_service.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp) from system allocator mode to pooled runtime mode backed by a dedicated buffer.
+- Patched vendored WAMR ESP-IDF platform files so the interpreter-only PaperS3 path would not rely on the dual-bus PSRAM mirror path:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+  - [shared_platform.cmake](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/shared_platform.cmake)
+
+#### Result
+
+- The instantiate-time cache panic was removed.
+- A second bug became visible immediately after: WAMR asserted inside `pthread_self()` because `esp_console` is not running on a pthread-created task.
+
+### Cycle 3.2: Fixing the `pthread_self()` assertion with a worker thread created a new display-context crash
+
+Once the memory-mapping crash was gone, the next failure was a hard assertion:
+
+- `assert failed: pthread_self pthread.c:564 (false && "Failed to find current thread ID!")`
+
+The call path showed WAMR trying to set native thread identity during `wasm_runtime_call_wasm_a(...)`. My first response was pragmatic: move guest execution into a pthread-owned worker thread so WAMR would be running in the environment it appeared to expect.
+
+That fixed the `pthread_self()` assertion, but it introduced a new, clearer bug: once the guest invoked `host_screen_clear`, the display call itself crashed with a cache-disabled panic inside M5GFX:
+
+- `Panel_EPD::writeFillRectPreclipped(...)`
+- via `PaperCanvasScreenClear(...)`
+- via `HostScreenClear(...)`
+
+This showed that moving the whole Wasm execution path into a pthread worker was not a safe solution for the PaperS3 display driver context.
+
+#### What I did
+
+- Updated [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) so `RunEmbeddedWasmModule(...)` created a pthread worker and joined it.
+- Rebuilt and reflashed.
+- Re-ran `wasm run hello-frame`.
+
+#### What happened
+
+- The earlier `pthread_self()` assertion disappeared.
+- A new panic appeared during the first render primitive:
+  - `HostScreenClear(...)`
+  - `PaperCanvasScreenClear(...)`
+  - `M5.Display.fillScreen(...)`
+  - `Panel_EPD::writeFillRectPreclipped(...)`
+
+#### Hypothesis
+
+- WAMR itself was no longer the direct problem at that point.
+- The real failure was that M5 PaperS3 display IO was happening from the wrong execution context when invoked from the pthread worker.
+
+#### What I learned
+
+- "Make WAMR happy" and "make hardware IO happy" are separate constraints.
+- A worker thread can solve the runtime-thread-identity problem while still violating hardware/display expectations.
+
+### Cycle 3.3: Moving back to the console task fixed the thread assertion, but direct display imports still panic inside the WAMR-native call path
+
+After the worker-thread experiment failed, I reverted it. Instead of pushing the full Wasm execution into a pthread, I patched vendored WAMR so `os_self_thread()` uses the current FreeRTOS task handle on PaperS3:
+
+- [espidf_thread.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_thread.c)
+
+That change successfully removed the `pthread_self()` assertion while keeping `wasm run` on the `esp_console` task. However, the next `hello-frame` run still crashed at the same render primitive. The backtrace now clearly showed the path from Wasm interpreter to native host import to display IO:
+
+- `wasm_runtime_call_wasm_a(...)`
+- `wasm_runtime_invoke_native(...)`
+- `HostScreenClear(...)`
+- `PaperCanvasScreenClear(...)`
+- `LGFXBase::fillScreen(...)`
+- `Panel_EPD::writeFillRectPreclipped(...)`
+
+That result matters because it changes the design direction. The bug is no longer "WAMR cannot run on the console task." The bug is "calling PaperS3 display operations directly from inside a WAMR native import still trips a cache-disabled panic."
+
+#### What I did
+
+- Reverted the pthread-worker execution path in [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp).
+- Patched [espidf_thread.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_thread.c) so `os_self_thread()` returns the current FreeRTOS task handle for this console-driven execution path.
+- Rebuilt and reflashed.
+- Re-ran `wasm run hello-frame`.
+
+#### What happened
+
+- The `pthread_self()` assertion was gone.
+- The render-time cache panic remained.
+
+#### Updated hypothesis
+
+- The host ABI should not drive `M5.Display` directly from within the WAMR native-import call stack.
+- A safer first milestone is to make host imports record drawing commands into a small render queue and then replay those commands after the Wasm call returns to the runner.
+
+### Cycle 3.4: Current debugging step in progress
+
+The current code change in progress is a host-render queue in [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp). The guest-facing imports stay the same, but they no longer touch `M5.Display` directly. Instead they append `clear`, `drawRect`, `fillRect`, and `present` commands into a bounded in-memory queue. The runner will flush that queue only after the Wasm invocation returns.
+
+This is the most promising current direction because it preserves the AssemblyScript ABI while moving real hardware IO out of the interpreter/native-import stack.
+
+#### Current expected validation for the next cycle
+
+- Rebuild firmware.
+- Flash to PaperS3.
+- Run:
+  - `wasm status`
+  - `wasm run hello-frame`
+- If `hello-frame` succeeds:
+  - check `last_run` status
+  - repeat the run
+  - test `checkerboard` and `bars`
+- If it still fails:
+  - capture the new backtrace
+  - record whether the failure now happens during replay rather than during native import
+
+### Commands used during the debugging cycle
+
+- `source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null && idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console build`
+- `tmux new-session -d -s papers3-0079-exec 'zsh -lic "... idf.py -C ... -p /dev/ttyACM0 flash monitor; exec zsh -li"'`
+- `tmux capture-pane -pt papers3-0079-exec:0 -S -220`
+- `tmux send-keys -t papers3-0079-exec:0 'wasm status' Enter`
+- `tmux send-keys -t papers3-0079-exec:0 'wasm list' Enter`
+- `tmux send-keys -t papers3-0079-exec:0 'wasm info hello-frame' Enter`
+- `tmux send-keys -t papers3-0079-exec:0 'wasm run hello-frame' Enter`
+- `lsof -t /dev/ttyACM0 | xargs -r kill`
+
+### Review guidance for this debugging cycle
+
+- Start with the most recent backtrace and confirm where the crash now happens.
+- Compare the three failure phases in order:
+  - instantiate-time WAMR memory mapping panic
+  - `pthread_self()` assertion
+  - render-time panic in `HostScreenClear(...)`
+- Check whether each code change removed exactly one problem or accidentally masked two.
+- Verify that the next patch keeps the guest ABI stable while changing only the host-side execution strategy.
+
+### Cycle 3.5: Queueing display commands proved the crash is not specific to one import callback
+
+The next debugging step was to stop touching the display directly from host import callbacks. I changed the host API so `host_screen_clear`, `host_draw_rect`, `host_fill_rect`, and `host_present` no longer called `PaperCanvas...` immediately. Instead, they appended bounded commands into a host-side queue, and the runner flushed that queue after the Wasm call.
+
+That changed the failure again in a useful way. The first queued-render build no longer crashed in `HostScreenClear(...)`. Instead it crashed in `HostLogI32(...)` because logging was still calling `ESP_LOGI(...)` from inside a native import callback. That was a strong signal that the real rule was broader than "don’t touch the display in a native import." The safer rule was "don’t do any complex host side effect from inside a native import on this PaperS3 path."
+
+#### What I did
+
+- Added a bounded host-command queue in [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp).
+- Updated the runner in [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) so it reset the queue before execution and flushed it after the Wasm call.
+- Rebuilt, reflashed, and re-ran `wasm run hello-frame`.
+
+#### What happened
+
+- The render callback itself stopped being the first crash site.
+- The new failure site became:
+  - `HostLogI32(...)`
+  - `esp_log_write(...)`
+  - `vprintf(...)`
+
+#### Updated hypothesis
+
+- The remaining unsafe behavior is not limited to PaperS3 display IO.
+- The current environment appears hostile to any nontrivial host-side effect performed directly inside the WAMR native-import callback path.
+
+### Cycle 3.6: Queueing `log` and `delay` moved the failure to queued replay, but replay still panics
+
+After the logging backtrace, I widened the queue so it covered every host side effect currently used by the demo path:
+
+- `host_log_i32`
+- `host_delay_ms`
+- `host_screen_clear`
+- `host_draw_rect`
+- `host_fill_rect`
+- `host_present`
+
+This achieved another important reduction. The next backtrace no longer showed the crash occurring inside a native import callback at all. It happened during `FlushWasmHostFrame(...)`, after the Wasm call had returned. That proved the queueing strategy successfully moved side effects out of the WAMR native-import path.
+
+I then tested one more refinement: move the queue replay to after full WAMR teardown, so the queued commands would execute only after `exec_env`, `module_inst`, and `wasm_module` were destroyed. That still did not eliminate the panic. The crash remains in `PaperCanvasScreenClear(...)` during queued replay.
+
+#### What I did
+
+- Expanded the host queue in [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp) to include log and delay commands.
+- Moved the queued replay in [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) so it occurs after WAMR object teardown.
+- Rebuilt and reflashed after each change.
+- Re-ran `wasm run hello-frame` on hardware after each iteration.
+
+#### What happened
+
+- The crash moved from:
+  - direct native import
+to:
+  - queued replay after Wasm returned
+and finally to:
+  - queued replay after WAMR teardown
+- The current visible failure path is:
+  - `FlushWasmHostFrame(...)`
+  - `PaperCanvasScreenClear(...)`
+  - `LGFXBase::fillScreen(...)`
+  - `Panel_EPD::writeFillRectPreclipped(...)`
+
+#### What I learned
+
+- The queueing work was still useful even though it did not solve the final crash.
+- It removed two whole classes of uncertainty:
+  - the panic is no longer caused by direct logging inside a host import
+  - the panic is no longer caused by direct display access inside a host import
+- The remaining blocker is now specifically associated with replaying the queued PaperS3 display operations after a WAMR run.
+
+#### Current blocker statement
+
+The `hello-frame` demo still panics on real hardware after Wasm execution completes. The current best understanding is:
+
+- WAMR can initialize.
+- Embedded modules can load and execute far enough to emit queued host commands.
+- Host side effects can be deferred until after execution and even after WAMR teardown.
+- The PaperS3 display path still trips a cache-disabled panic when the queued frame is replayed after the Wasm run.
+
+#### Best next experiments
+
+- Add a non-Wasm control path in firmware that replays the same queued command sequence without invoking WAMR, to separate "display driver issue" from "WAMR left the system in a bad state."
+- Try a minimal replay primitive first:
+  - skip `fillScreen`
+  - replay only one rectangle or one `present`
+- Check whether any explicit cache or memory-barrier restoration is required after interpreter execution on this ESP32-S3 path.
+- Consider whether the M5 PaperS3 display driver requires running from a different task context than the console REPL task, independent of WAMR.
