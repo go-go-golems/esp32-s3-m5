@@ -239,6 +239,8 @@ Work task by task, commit as you go, keep a detailed diary"
 
 **Inferred user intent:** The app should now be usable as a real two-mode handwriting prototype instead of only a template collection utility.
 
+**Commit (code):** `625dba3` — `feat(papers3): add alphabet graffiti write mode`
+
 ### What I did
 
 - added a write buffer state to `AlphabetApp`

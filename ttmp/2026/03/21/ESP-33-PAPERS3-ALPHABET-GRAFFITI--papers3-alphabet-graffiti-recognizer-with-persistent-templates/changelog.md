@@ -22,3 +22,4 @@
   - `SPACE`, `BACKSPACE`, `CLEAR TEXT`, and `CLEAR STROKE` actions
 - Reused the same Protractor recognition path for both training and live text entry instead of forking the gesture pipeline
 - Verified the full two-mode app again with `idf.py build` against ESP-IDF `5.3.4`
+- Recorded Task 3 commit `625dba3` for the live graffiti writing milestone
