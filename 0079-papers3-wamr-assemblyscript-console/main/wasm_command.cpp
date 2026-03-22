@@ -6,6 +6,7 @@
 #include "wasm_host_api.h"
 #include "wasm_module_registry.h"
 #include "wasm_module_runner.h"
+#include "wasm_replay_control.h"
 #include "wasm_runtime_service.h"
 
 #include "esp_console.h"
@@ -21,6 +22,7 @@ void PrintUsage()
     std::printf("  wasm examples\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
+    std::printf("  wasm replay <name>\n");
     std::printf("  wasm run <name>\n");
     std::printf("  wasm status\n");
 }
@@ -30,6 +32,7 @@ void PrintExamples()
     std::printf("wasm examples:\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info hello-frame\n");
+    std::printf("  wasm replay hello-frame\n");
     std::printf("  wasm run hello-frame\n");
     std::printf("  wasm status\n");
 }
@@ -87,6 +90,17 @@ int CmdWasm(int argc, char **argv)
 
         const WasmExecutionResult result = RunEmbeddedWasmModule(*module, module->entrypoint);
         PrintWasmExecutionResult(*module, result);
+        return result.success ? 0 : 1;
+    }
+
+    if (std::strcmp(argv[1], "replay") == 0) {
+        if (argc < 3) {
+            PrintUsage();
+            return 1;
+        }
+
+        const WasmReplayControlResult result = RunWasmReplayControlExample(argv[2]);
+        PrintWasmReplayControlResult(result);
         return result.success ? 0 : 1;
     }
 

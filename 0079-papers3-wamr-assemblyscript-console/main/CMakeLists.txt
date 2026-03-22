@@ -7,6 +7,7 @@ idf_component_register(
         "wasm_host_api.cpp"
         "wasm_module_registry.cpp"
         "wasm_module_runner.cpp"
+        "wasm_replay_control.cpp"
         "wasm_runtime_service.cpp"
     INCLUDE_DIRS
         "."

@@ -77,32 +77,32 @@ bool QueueHostCommand(const HostCommand &command)
 
 void HostLogI32(wasm_exec_env_t, int32_t tag, int32_t value)
 {
-    QueueHostCommand({ HostCommandType::LogI32, tag, value, 0, 0, 0, 0, 0, 0 });
+    QueueWasmHostLogI32(tag, value);
 }
 
 void HostDelayMs(wasm_exec_env_t, int32_t ms)
 {
-    QueueHostCommand({ HostCommandType::DelayMs, 0, ms, 0, 0, 0, 0, 0, 0 });
+    QueueWasmHostDelayMs(ms);
 }
 
 void HostScreenClear(wasm_exec_env_t, int32_t color)
 {
-    QueueHostCommand({ HostCommandType::ScreenClear, 0, 0, 0, 0, 0, 0, static_cast<uint32_t>(color), 0 });
+    QueueWasmHostScreenClear(static_cast<uint32_t>(color));
 }
 
 void HostDrawRect(wasm_exec_env_t, int32_t x, int32_t y, int32_t w, int32_t h, int32_t color)
 {
-    QueueHostCommand({ HostCommandType::DrawRect, 0, 0, x, y, w, h, static_cast<uint32_t>(color), 0 });
+    QueueWasmHostDrawRect(x, y, w, h, static_cast<uint32_t>(color));
 }
 
 void HostFillRect(wasm_exec_env_t, int32_t x, int32_t y, int32_t w, int32_t h, int32_t color)
 {
-    QueueHostCommand({ HostCommandType::FillRect, 0, 0, x, y, w, h, static_cast<uint32_t>(color), 0 });
+    QueueWasmHostFillRect(x, y, w, h, static_cast<uint32_t>(color));
 }
 
 void HostPresent(wasm_exec_env_t, int32_t mode)
 {
-    QueueHostCommand({ HostCommandType::Present, 0, 0, 0, 0, 0, 0, 0, mode });
+    QueueWasmHostPresent(mode);
 }
 
 static NativeSymbol kHostSymbols[] = {
@@ -156,6 +156,41 @@ void ResetWasmHostFrame()
 {
     g_host_api_status.queued_commands = 0;
     g_host_api_status.command_queue_overflowed = false;
+}
+
+bool QueueWasmHostLogI32(int32_t tag, int32_t value)
+{
+    return QueueHostCommand({ HostCommandType::LogI32, tag, value, 0, 0, 0, 0, 0, 0 });
+}
+
+bool QueueWasmHostDelayMs(int32_t ms)
+{
+    return QueueHostCommand({ HostCommandType::DelayMs, 0, ms, 0, 0, 0, 0, 0, 0 });
+}
+
+bool QueueWasmHostScreenClear(uint32_t color)
+{
+    return QueueHostCommand({ HostCommandType::ScreenClear, 0, 0, 0, 0, 0, 0, color, 0 });
+}
+
+bool QueueWasmHostDrawRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
+{
+    return QueueHostCommand({ HostCommandType::DrawRect, 0, 0, x, y, w, h, color, 0 });
+}
+
+bool QueueWasmHostFillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
+{
+    return QueueHostCommand({ HostCommandType::FillRect, 0, 0, x, y, w, h, color, 0 });
+}
+
+bool QueueWasmHostPresent(int32_t mode)
+{
+    return QueueHostCommand({ HostCommandType::Present, 0, 0, 0, 0, 0, 0, 0, mode });
+}
+
+std::size_t GetWasmHostQueuedCommandCount()
+{
+    return g_host_api_status.queued_commands;
 }
 
 bool FlushWasmHostFrame(char *error_message, std::size_t error_message_size)
