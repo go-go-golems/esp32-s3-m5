@@ -69,6 +69,7 @@ void AlphabetApp::Run()
     while (true) {
         M5.update();
         HandleTouch();
+        ProcessPendingDisplayWork();
         M5.delay(kLoopDelayMs);
     }
 }
@@ -262,26 +263,6 @@ std::string AlphabetApp::WriteBufferPreview() const
     return wrapped;
 }
 
-std::string AlphabetApp::RecognitionSummary() const
-{
-    if (recognition_scores_.empty()) {
-        return HasRecordedGlyphs() ? "Draw and release to see the closest matches."
-                                  : "No saved glyphs yet. Switch to TRAIN and save one first.";
-    }
-
-    std::string summary;
-    for (std::size_t i = 0; i < recognition_scores_.size() && i < 3; ++i) {
-        const auto& score = recognition_scores_[i];
-        char buffer[24];
-        std::snprintf(buffer, sizeof(buffer), "%c %.2f", templates_[score.glyph_index].label, score.cosine_score);
-        if (!summary.empty()) {
-            summary += "  ";
-        }
-        summary += buffer;
-    }
-    return summary;
-}
-
 PointF AlphabetApp::ClampToCanvas(PointF point) const
 {
     point.x = std::clamp(point.x, static_cast<float>(canvas_.x + kBrushRadius),
@@ -313,6 +294,21 @@ std::vector<AlphabetApp::RecognitionScore> AlphabetApp::RecognizeCurrentStroke()
     return scores;
 }
 
+bool AlphabetApp::ReadyForDeferredWriteRender(std::uint32_t now) const
+{
+    if (mode_ != Mode::write) {
+        return true;
+    }
+
+    if (touch_down_ || drawing_) {
+        return false;
+    }
+
+    const bool idle_long_enough = now - last_touch_activity_ms_ >= kWriteUiIdleRefreshMs;
+    const bool stale_enough = now - full_render_requested_ms_ >= kWriteUiMaxRefreshLatencyMs;
+    return idle_long_enough || stale_enough;
+}
+
 void AlphabetApp::SelectGlyph(std::size_t glyph_index)
 {
     if (glyph_index >= kGlyphCount) {
@@ -321,7 +317,7 @@ void AlphabetApp::SelectGlyph(std::size_t glyph_index)
 
     selected_index_ = glyph_index;
     current_page_ = selected_index_ / kPageSize;
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::ChangePage(int delta)
@@ -336,7 +332,7 @@ void AlphabetApp::ChangePage(int delta)
     if (selected_index_ < start || selected_index_ >= end) {
         selected_index_ = start;
     }
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::SaveSelectedGlyph()
@@ -353,7 +349,7 @@ void AlphabetApp::SaveSelectedGlyph()
     storage_status_ = store_.LastStatus();
     recognition_scores_ = RecognizeCurrentStroke();
     matched_index_ = recognition_scores_.empty() ? -1 : static_cast<int>(recognition_scores_.front().glyph_index);
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::DeleteSelectedGlyph()
@@ -368,7 +364,7 @@ void AlphabetApp::DeleteSelectedGlyph()
     storage_status_ = store_.LastStatus();
     recognition_scores_ = RecognizeCurrentStroke();
     matched_index_ = recognition_scores_.empty() ? -1 : static_cast<int>(recognition_scores_.front().glyph_index);
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::ReloadGlyphs()
@@ -378,7 +374,7 @@ void AlphabetApp::ReloadGlyphs()
     recognition_scores_ = RecognizeCurrentStroke();
     matched_index_ = recognition_scores_.empty() ? -1 : static_cast<int>(recognition_scores_.front().glyph_index);
     write_status_ = "Reloaded glyph templates from disk.";
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::ClearStroke()
@@ -389,7 +385,9 @@ void AlphabetApp::ClearStroke()
     recognition_scores_.clear();
     matched_index_ = -1;
     drawing_ = false;
-    RenderFullUi();
+    canvas_reset_pending_ = true;
+    pending_segments_.clear();
+    QueueFullRender();
 }
 
 void AlphabetApp::TryAppendRecognizedGlyph()
@@ -429,7 +427,7 @@ void AlphabetApp::AddSpace()
 {
     write_buffer_.push_back(' ');
     write_status_ = "Inserted a space.";
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::BackspaceText()
@@ -440,14 +438,14 @@ void AlphabetApp::BackspaceText()
     } else {
         write_status_ = "Nothing to delete.";
     }
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::ClearText()
 {
     write_buffer_.clear();
     write_status_ = "Cleared the writing buffer.";
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::BeginStroke(const PointF& point)
@@ -458,13 +456,13 @@ void AlphabetApp::BeginStroke(const PointF& point)
     recognition_scores_.clear();
     matched_index_ = -1;
     drawing_ = true;
-
-    ClearCanvasForLiveStroke();
+    canvas_reset_pending_ = true;
+    pending_segments_.clear();
 
     const PointF clamped = ClampToCanvas(point);
     raw_points_.push_back(clamped);
     last_draw_point_ = clamped;
-    DrawLiveStrokeSegment(clamped, clamped);
+    pending_segments_.push_back({clamped, clamped});
 }
 
 void AlphabetApp::ExtendStroke(const PointF& point)
@@ -475,7 +473,7 @@ void AlphabetApp::ExtendStroke(const PointF& point)
 
     const PointF clamped = ClampToCanvas(point);
     raw_points_.push_back(clamped);
-    DrawLiveStrokeSegment(last_draw_point_, clamped);
+    pending_segments_.push_back({last_draw_point_, clamped});
     last_draw_point_ = clamped;
 }
 
@@ -486,7 +484,7 @@ void AlphabetApp::FinishStroke()
     if (mode_ == Mode::write) {
         TryAppendRecognizedGlyph();
     }
-    RenderFullUi();
+    QueueFullRender();
 }
 
 void AlphabetApp::AnalyzeStroke()
@@ -500,11 +498,13 @@ void AlphabetApp::AnalyzeStroke()
 void AlphabetApp::HandleTouch()
 {
     const bool has_touch = M5.Touch.getCount() > 0;
+    const std::uint32_t now = M5.millis();
 
     if (has_touch) {
         const auto& detail = M5.Touch.getDetail();
         PointF point{static_cast<float>(detail.x), static_cast<float>(detail.y)};
         last_touch_ = point;
+        last_touch_activity_ms_ = now;
 
         if (!touch_down_) {
             touch_down_ = true;
@@ -571,7 +571,7 @@ void AlphabetApp::HandleTouch()
             if (train_mode_button_.Contains(static_cast<int32_t>(last_touch_.x), static_cast<int32_t>(last_touch_.y))) {
                 mode_ = Mode::train;
                 write_status_ = "Training mode active.";
-                RenderFullUi();
+                QueueFullRender();
             }
             break;
         case ActionButton::mode_write:
@@ -579,7 +579,7 @@ void AlphabetApp::HandleTouch()
                 mode_ = Mode::write;
                 write_status_ = HasRecordedGlyphs() ? "Write mode active. Draw a trained glyph to append it."
                                                     : "Write mode active, but no glyphs are trained yet.";
-                RenderFullUi();
+                QueueFullRender();
             }
             break;
         case ActionButton::page_prev:
@@ -638,7 +638,6 @@ void AlphabetApp::HandleTouch()
 
 void AlphabetApp::RenderFullUi()
 {
-    M5.Display.waitDisplay();
     M5.Display.setEpdMode(epd_mode_t::epd_text);
     M5.Display.startWrite();
     M5.Display.fillScreen(kColorPaper);
@@ -651,12 +650,43 @@ void AlphabetApp::RenderFullUi()
     DrawResultsCard();
 
     M5.Display.endWrite();
-    M5.Display.waitDisplay();
+}
+
+void AlphabetApp::QueueFullRender()
+{
+    full_render_pending_ = true;
+    full_render_requested_ms_ = M5.millis();
+}
+
+void AlphabetApp::ProcessPendingDisplayWork()
+{
+    if (M5.Display.displayBusy()) {
+        return;
+    }
+
+    if (canvas_reset_pending_) {
+        ClearCanvasForLiveStroke();
+        canvas_reset_pending_ = false;
+        return;
+    }
+
+    if (!pending_segments_.empty()) {
+        const std::size_t flush_count = std::min(kMaxQueuedSegmentsPerFlush, pending_segments_.size());
+        for (std::size_t i = 0; i < flush_count; ++i) {
+            DrawLiveStrokeSegment(pending_segments_[i].from, pending_segments_[i].to);
+        }
+        pending_segments_.erase(pending_segments_.begin(), pending_segments_.begin() + flush_count);
+        return;
+    }
+
+    if (full_render_pending_ && ReadyForDeferredWriteRender(M5.millis())) {
+        RenderFullUi();
+        full_render_pending_ = false;
+    }
 }
 
 void AlphabetApp::ClearCanvasForLiveStroke()
 {
-    M5.Display.waitDisplay();
     M5.Display.setEpdMode(epd_mode_t::epd_fast);
     M5.Display.startWrite();
     M5.Display.fillRect(canvas_.x + 2, canvas_.y + 2, canvas_.w - 4, canvas_.h - 4, kColorPaper);
@@ -844,16 +874,9 @@ void AlphabetApp::DrawMetricsCard()
         return;
     }
 
-    char score_buffer[24];
-    if (recognition_scores_.empty()) {
-        std::snprintf(score_buffer, sizeof(score_buffer), "--");
-    } else {
-        std::snprintf(score_buffer, sizeof(score_buffer), "%.2f", recognition_scores_.front().cosine_score);
-    }
-
     draw_row(0, "Saved", std::to_string(RecordedCount()));
     draw_row(1, "Text len", std::to_string(write_buffer_.size()));
-    draw_row(2, "Top score", score_buffer);
+    draw_row(2, "Mode", std::string("WRITE"));
 }
 
 void AlphabetApp::DrawResultsCard()
@@ -861,14 +884,29 @@ void AlphabetApp::DrawResultsCard()
     DrawRoundCard(M5.Display, results_card_, kColorCard);
     M5.Display.setTextFont(2);
     M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(mode_ == Mode::train ? "Disk + match state" : "Recognition", results_card_.x + 12,
+    M5.Display.drawString(mode_ == Mode::train ? "Disk + match state" : "Writer status", results_card_.x + 12,
                           results_card_.y + 10);
 
     M5.Display.setTextColor(kColorInk, kColorCard);
     M5.Display.drawString((mode_ == Mode::train ? storage_status_ : write_status_).c_str(), results_card_.x + 12,
                           results_card_.y + 28);
+    if (mode_ == Mode::train) {
+        const char* message = HasRecordedGlyphs() ? "Draw and release to preview the closest template."
+                                                  : "No glyphs saved yet. Pick one and tap SAVE GLYPH.";
+        M5.Display.setTextColor(kColorMuted, kColorCard);
+        M5.Display.drawString(recognition_scores_.empty() ? message : "", results_card_.x + 12, results_card_.y + 46);
+        if (!recognition_scores_.empty()) {
+            char buffer[96];
+            std::snprintf(buffer, sizeof(buffer), "Top match: %c (%.3f)",
+                          templates_[recognition_scores_.front().glyph_index].label,
+                          recognition_scores_.front().cosine_score);
+            M5.Display.drawString(buffer, results_card_.x + 12, results_card_.y + 46);
+        }
+        return;
+    }
+
     M5.Display.setTextColor(kColorMuted, kColorCard);
-    M5.Display.drawString(RecognitionSummary().c_str(), results_card_.x + 12, results_card_.y + 46);
+    M5.Display.drawString("Draw the next glyph or use the edit buttons.", results_card_.x + 12, results_card_.y + 46);
 }
 
 void AlphabetApp::DrawGestureOverlay()

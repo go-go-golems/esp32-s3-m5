@@ -400,3 +400,75 @@ docmgr doctor -> All checks passed
 remarquee upload bundle -> OK: uploaded ESP-33 PaperS3 Alphabet Graffiti.pdf
 remarquee cloud ls -> [f] ESP-33 PaperS3 Alphabet Graffiti
 ```
+
+## Step 5: Decouple write-mode input from slow refresh and simplify the writing UI
+
+This step is a usability refinement requested after the main app was already complete. The core issue was that `WRITE` mode still behaved too synchronously: it drew each stroke segment immediately and also scheduled full-screen updates in ways that could make fast writing feel tied to e-paper refresh speed. The UI also still showed low-level recognition detail that is useful for debugging but not necessary when the goal is simply to write text.
+
+### Prompt Context
+
+**User prompt (verbatim):** "queue input movements so i can write fast even if refresh is slow. in write mode, no need to show the parsed / low level info"
+
+**Assistant interpretation:** Make stroke capture less dependent on immediate display work, and simplify the write-mode UI so it stops surfacing recognizer internals.
+
+**Inferred user intent:** Optimize for writing feel, not debugging visibility.
+
+### What I did
+
+- added a queued stroke-segment buffer inside `AlphabetApp`
+- changed stroke capture so touch handling appends points and pending segments instead of drawing immediately
+- added `ProcessPendingDisplayWork()` to flush:
+  - pending canvas clears
+  - pending stroke segments
+  - deferred full-screen UI redraws
+- used `M5.Display.displayBusy()` to avoid starting new display work while the panel is still busy
+- deferred full `WRITE` mode redraws until the user is idle or a max-latency timeout is reached
+- simplified `WRITE` mode cards so they now focus on:
+  - writing buffer
+  - text length
+  - saved glyph count
+  - writer status
+- removed top-score/candidate-style low-level recognition readouts from the write-mode side panels
+
+### Why
+
+- touch input should remain responsive even if e-paper updates lag behind
+- immediate full redraw after every stroke is unnecessary in `WRITE` mode
+- low-level recognition details are useful during algorithm development, but they are noise during actual writing
+
+### What worked
+
+- the queued display-work model compiled cleanly and fits the existing single-threaded loop
+- prioritizing queued stroke segments ahead of deferred UI redraws preserves the visual ink path while reducing blocking behavior
+- the simplified write-mode cards leave the writing workflow much clearer
+
+### What didn't work
+
+- no failures in this step
+
+### What I learned
+
+- the main requirement was not a brand-new input system, but a better ordering of existing work: capture first, flush display second, redraw the whole UI last
+- `displayBusy()` is the right donor-level hook for this type of pacing on PaperS3
+
+### What warrants a second pair of eyes
+
+- the current idle/defer timings (`180 ms` idle, `600 ms` max latency) are sensible defaults, but should be tuned on real hardware
+- if very long strokes are drawn quickly, it may still be worth profiling whether the queued segment flush batch size should increase
+
+### Technical details
+
+Commands used:
+
+```bash
+source /home/manuel/esp/esp-idf-5.3.4/export.sh && idf.py build
+```
+
+Validation result:
+
+```text
+Generated .../build/papers3_alphabet_graffiti.bin
+papers3_alphabet_graffiti.bin binary size 0x75360 bytes
+Smallest app partition is 0x400000 bytes
+0x38aca0 bytes (89%) free
+```

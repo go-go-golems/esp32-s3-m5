@@ -33,11 +33,19 @@ private:
     static constexpr std::size_t kPageSize = 12;
     static constexpr std::size_t kResampleCount = 16;
     static constexpr float kWriteAcceptanceThreshold = 0.82f;
+    static constexpr std::size_t kMaxQueuedSegmentsPerFlush = 8;
+    static constexpr std::uint32_t kWriteUiIdleRefreshMs = 180;
+    static constexpr std::uint32_t kWriteUiMaxRefreshLatencyMs = 600;
 
     struct RecognitionScore {
         std::size_t glyph_index = 0;
         float distance = 0.0f;
         float cosine_score = 0.0f;
+    };
+
+    struct PendingSegment {
+        protractor_demo::PointF from;
+        protractor_demo::PointF to;
     };
 
     enum class Mode {
@@ -81,6 +89,8 @@ private:
     void ClearText();
 
     void RenderFullUi();
+    void QueueFullRender();
+    void ProcessPendingDisplayWork();
     void ClearCanvasForLiveStroke();
     void DrawLiveStrokeSegment(const protractor_demo::PointF& from, const protractor_demo::PointF& to);
 
@@ -107,9 +117,9 @@ private:
     std::string FormatPoint(protractor_demo::PointF point) const;
     std::string ModeSubtitle() const;
     std::string WriteBufferPreview() const;
-    std::string RecognitionSummary() const;
     protractor_demo::PointF ClampToCanvas(protractor_demo::PointF point) const;
     std::vector<RecognitionScore> RecognizeCurrentStroke() const;
+    bool ReadyForDeferredWriteRender(std::uint32_t now) const;
 
     Rect screen_{};
     Rect header_{};
@@ -139,6 +149,10 @@ private:
     std::string write_buffer_;
     std::string write_status_ = "Switch to WRITE and draw to start writing.";
     int matched_index_ = -1;
+    bool canvas_reset_pending_ = false;
+    bool full_render_pending_ = false;
+    std::uint32_t last_touch_activity_ms_ = 0;
+    std::uint32_t full_render_requested_ms_ = 0;
 
     bool touch_down_ = false;
     bool drawing_ = false;
@@ -151,6 +165,7 @@ private:
     std::vector<protractor_demo::PointF> resampled_points_;
     protractor_demo::VectorizedGesture current_gesture_;
     std::vector<RecognitionScore> recognition_scores_;
+    std::vector<PendingSegment> pending_segments_;
 };
 
 }  // namespace alphabet_graffiti

@@ -28,3 +28,6 @@
 - Verified the ticket with `docmgr doctor --ticket ESP-33-PAPERS3-ALPHABET-GRAFFITI --stale-after 30`
 - Uploaded the bundled ticket docs to reMarkable at `/ai/2026/03/21/ESP-33-PAPERS3-ALPHABET-GRAFFITI`
 - Recorded final delivery/docs commit `3d7b4b7`
+- Refined `WRITE` mode to queue stroke segments and defer full UI redraws until the user goes idle, so touch input is less coupled to e-paper refresh latency
+- Simplified the `WRITE` mode side panels to remove low-level recognition readouts and keep the UI focused on text entry state
+- Verified the refined app again with `idf.py build` against ESP-IDF `5.3.4`
