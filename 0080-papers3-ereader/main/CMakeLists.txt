@@ -1,0 +1,16 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "ereader_app.cpp"
+        "ereader_console.cpp"
+        "layout_engine.cpp"
+        "widget_renderer.cpp"
+        "dirty_tracker.cpp"
+        "bitmap_font.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        M5Unified
+        console
+        esp_driver_usb_serial_jtag
+)
