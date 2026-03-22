@@ -1,0 +1,386 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --accent: #534AB7; --accent-light: #EEEDFE; --accent-mid: #AFA9EC; --teal: #1D9E75; --teal-light: #E1F5EE; --teal-dark: #085041; --coral: #D85A30; --coral-light: #FAECE7; --coral-dark: #712B13; --blue: #378ADD; --blue-light: #E6F1FB; --blue-dark: #0C447C; }
+body { font-family: var(--font-sans, system-ui); color: var(--color-text-primary); }
+.app { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 1rem 0; }
+@media (max-width: 640px) { .app { grid-template-columns: 1fr; } }
+.canvas-wrap { position: relative; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg, 12px); overflow: hidden; aspect-ratio: 1; background: var(--color-background-primary); cursor: crosshair; }
+canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.panel { display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg, 12px); padding: 12px 16px; }
+.card h3 { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.pill { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 999px; font-weight: 500; }
+.pill-purple { background: var(--accent-light); color: var(--accent); }
+.pill-teal { background: var(--teal-light); color: var(--teal-dark); }
+.pill-coral { background: var(--coral-light); color: var(--coral-dark); }
+.controls { display: flex; gap: 8px; flex-wrap: wrap; }
+.controls button { font-size: 13px; padding: 6px 14px; border-radius: var(--border-radius-md, 8px); border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-primary); cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.controls button:hover { background: var(--color-background-secondary); }
+.controls button:active { transform: scale(0.98); }
+.controls button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.controls button.primary:hover { opacity: 0.9; }
+.name-input { font-size: 14px; padding: 6px 12px; border-radius: var(--border-radius-md, 8px); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-primary); color: var(--color-text-primary); font-family: inherit; width: 80px; }
+.template-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+.tpl-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--color-background-secondary); color: var(--color-text-secondary); border: 0.5px solid var(--color-border-tertiary); cursor: pointer; transition: all 0.15s; }
+.tpl-chip:hover { border-color: var(--color-border-secondary); }
+.tpl-chip.matched { background: var(--teal-light); color: var(--teal-dark); border-color: var(--teal); font-weight: 500; }
+.vector-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.vector-bar .label { font-size: 12px; color: var(--color-text-secondary); min-width: 50px; text-align: right; }
+.vector-bar .bar-track { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.vector-bar .bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; }
+.stat-label { font-size: 13px; color: var(--color-text-secondary); }
+.stat-value { font-size: 14px; font-weight: 500; font-family: var(--font-mono, monospace); }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.empty-state { font-size: 13px; color: var(--color-text-tertiary); text-align: center; padding: 12px; }
+.scores-list { max-height: 160px; overflow-y: auto; }
+.score-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.score-row .name { font-size: 13px; min-width: 40px; font-weight: 500; }
+.score-row .track { flex: 1; height: 5px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.score-row .fill { height: 100%; border-radius: 3px; }
+.score-row .val { font-size: 12px; font-family: var(--font-mono, monospace); color: var(--color-text-secondary); min-width: 44px; text-align: right; }
+</style>
+
+<div class="app">
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="canvas-wrap">
+      <canvas id="cv"></canvas>
+    </div>
+    <div class="controls">
+      <input class="name-input" id="nameIn" value="A" placeholder="Label" maxlength="8" />
+      <button class="primary" id="btnRecord" disabled>Record template</button>
+      <button id="btnClear">Clear stroke</button>
+      <button id="btnReset">Reset all</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#534AB7"></div>Raw stroke</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>Resampled (16)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Indicative angle</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Centroid</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="card">
+      <h3>Angle &amp; preprocessing</h3>
+      <div class="stat-row"><span class="stat-label">Points drawn</span><span class="stat-value" id="sRaw">0</span></div>
+      <div class="stat-row"><span class="stat-label">Resampled to</span><span class="stat-value" id="sRes">16</span></div>
+      <div class="stat-row"><span class="stat-label">Centroid</span><span class="stat-value" id="sCent">—</span></div>
+      <div class="stat-row"><span class="stat-label">Indicative angle</span><span class="stat-value" id="sAngle">—</span></div>
+      <div class="stat-row"><span class="stat-label">Rotation delta</span><span class="stat-value" id="sDelta">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Unit vector (first 8 dims)</h3>
+      <div id="vecBars"></div>
+      <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px;">Showing x₁y₁…x₄y₄ of 32-dim vector</div>
+    </div>
+
+    <div class="card">
+      <h3>Templates <span class="pill pill-purple" id="tplCount">0</span></h3>
+      <div class="template-list" id="tplList">
+        <div class="empty-state">Draw a gesture and click record</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Recognition scores</h3>
+      <div class="scores-list" id="scoreList">
+        <div class="empty-state">Record templates, then draw to recognize</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H, dpr;
+let rawPts = [];
+let drawing = false;
+let templates = [];
+let matchedIdx = -1;
+
+function resize() {
+  const r = cv.parentElement.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  redraw();
+}
+window.addEventListener('resize', resize);
+
+function pathLength(pts) {
+  let t = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i][0] - pts[i-1][0], dy = pts[i][1] - pts[i-1][1];
+    t += Math.hypot(dx, dy);
+  }
+  return t;
+}
+
+function centroid(pts) {
+  let sx = 0, sy = 0;
+  for (const [x, y] of pts) { sx += x; sy += y; }
+  const n = pts.length || 1;
+  return [sx / n, sy / n];
+}
+
+function resample(pts, n = 16) {
+  if (!pts.length) return [];
+  if (pts.length === 1) return Array(n).fill(pts[0]);
+  const interval = pathLength(pts) / (n - 1);
+  let D = 0, arr = [pts[0]], work = pts.slice();
+  let i = 1;
+  while (i < work.length) {
+    const [x0, y0] = work[i-1], [x1, y1] = work[i];
+    const d = Math.hypot(x1-x0, y1-y0);
+    if (d === 0) { i++; continue; }
+    if (D + d >= interval) {
+      const t = (interval - D) / d;
+      const q = [x0 + t*(x1-x0), y0 + t*(y1-y0)];
+      arr.push(q);
+      work.splice(i, 0, q);
+      D = 0; i++;
+    } else { D += d; i++; }
+  }
+  while (arr.length < n) arr.push(work[work.length-1]);
+  return arr.slice(0, n);
+}
+
+function vectorize(pts, orientSens = false) {
+  const c = centroid(pts);
+  const centered = pts.map(([x, y]) => [x - c[0], y - c[1]]);
+  const angle = Math.atan2(centered[0][1], centered[0][0]);
+  let delta;
+  if (orientSens) {
+    const base = (Math.PI/4) * Math.floor((angle + Math.PI/8) / (Math.PI/4));
+    delta = base - angle;
+  } else {
+    delta = -angle;
+  }
+  const cosD = Math.cos(delta), sinD = Math.sin(delta);
+  let vec = [], mag2 = 0;
+  for (const [x, y] of centered) {
+    const nx = x*cosD - y*sinD, ny = y*cosD + x*sinD;
+    vec.push(nx, ny);
+    mag2 += nx*nx + ny*ny;
+  }
+  const mag = Math.sqrt(mag2) || 1;
+  return { vector: vec.map(v => v / mag), angle, delta, centroid: c };
+}
+
+function optCosDistance(v1, v2) {
+  let a = 0, b = 0;
+  for (let i = 0; i < v1.length; i += 2) {
+    a += v1[i]*v2[i] + v1[i+1]*v2[i+1];
+    b += v1[i]*v2[i+1] - v1[i+1]*v2[i];
+  }
+  const ang = Math.atan2(b, a);
+  const val = Math.max(-1, Math.min(1, a*Math.cos(ang) + b*Math.sin(ang)));
+  return Math.acos(val);
+}
+
+function recognize(pts) {
+  if (!templates.length || pts.length < 2) return [];
+  const resPts = resample(pts, 16);
+  const { vector: cand } = vectorize(resPts);
+  return templates.map((t, i) => {
+    const d = optCosDistance(t.vector, cand);
+    const score = d === 0 ? Infinity : 1 / d;
+    return { name: t.name, score, dist: d, idx: i };
+  }).sort((a, b) => b.score - a.score);
+}
+
+function ev(e) {
+  const r = cv.getBoundingClientRect();
+  const touches = e.touches;
+  if (touches) return [touches[0].clientX - r.left, touches[0].clientY - r.top];
+  return [e.clientX - r.left, e.clientY - r.top];
+}
+
+cv.addEventListener('pointerdown', e => {
+  e.preventDefault(); cv.setPointerCapture(e.pointerId);
+  drawing = true; rawPts = [ev(e)]; matchedIdx = -1; redraw(); updateUI();
+});
+cv.addEventListener('pointermove', e => {
+  if (!drawing) return; e.preventDefault();
+  rawPts.push(ev(e)); redraw(); updateUI();
+});
+cv.addEventListener('pointerup', e => {
+  drawing = false;
+  if (rawPts.length > 1) {
+    document.getElementById('btnRecord').disabled = false;
+    const scores = recognize(rawPts);
+    showScores(scores);
+  }
+  redraw();
+});
+
+function redraw() {
+  ctx.clearRect(0, 0, W, H);
+
+  if (rawPts.length < 2) {
+    if (!rawPts.length) {
+      ctx.fillStyle = 'var(--color-text-tertiary)';
+      ctx.font = '14px var(--font-sans, system-ui)';
+      ctx.textAlign = 'center';
+      ctx.fillText('Draw a gesture here', W/2, H/2);
+    }
+    return;
+  }
+
+  ctx.strokeStyle = '#534AB7'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.globalAlpha = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(rawPts[0][0], rawPts[0][1]);
+  for (let i = 1; i < rawPts.length; i++) ctx.lineTo(rawPts[i][0], rawPts[i][1]);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const resPts = resample(rawPts, 16);
+  if (resPts.length < 2) return;
+
+  ctx.strokeStyle = '#D85A30'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(resPts[0][0], resPts[0][1]);
+  for (let i = 1; i < resPts.length; i++) ctx.lineTo(resPts[i][0], resPts[i][1]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  for (let i = 0; i < resPts.length; i++) {
+    ctx.fillStyle = i === 0 ? '#D85A30' : '#D85A30';
+    ctx.beginPath();
+    ctx.arc(resPts[i][0], resPts[i][1], i === 0 ? 5 : 3, 0, Math.PI * 2);
+    ctx.fill();
+    if (i === 0) {
+      ctx.strokeStyle = '#D85A30'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(resPts[0][0], resPts[0][1], 8, 0, Math.PI*2); ctx.stroke();
+    }
+  }
+
+  const c = centroid(resPts);
+  ctx.fillStyle = '#1D9E75';
+  ctx.beginPath(); ctx.arc(c[0], c[1], 5, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#1D9E75'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(c[0], c[1], 10, 0, Math.PI*2); ctx.stroke();
+
+  const { angle } = vectorize(resPts);
+  const lineLen = 40;
+  ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(c[0], c[1]);
+  ctx.lineTo(c[0] + lineLen * Math.cos(angle), c[1] + lineLen * Math.sin(angle));
+  ctx.stroke();
+
+  ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(c[0], c[1]);
+  ctx.lineTo(c[0] + lineLen, c[1]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = '#378ADD'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const aStart = 0, aEnd = angle;
+  const arcR = 20;
+  ctx.arc(c[0], c[1], arcR, Math.min(aStart, aEnd), Math.max(aStart, aEnd));
+  ctx.stroke();
+
+  ctx.fillStyle = '#378ADD'; ctx.font = '12px var(--font-mono, monospace)';
+  ctx.textAlign = 'left';
+  const labelAngle = angle / 2;
+  ctx.fillText((angle * 180 / Math.PI).toFixed(1) + '°', c[0] + arcR * Math.cos(labelAngle) + 4, c[1] + arcR * Math.sin(labelAngle));
+}
+
+function updateUI() {
+  const resPts = resample(rawPts, 16);
+  document.getElementById('sRaw').textContent = rawPts.length;
+  document.getElementById('sRes').textContent = resPts.length;
+
+  if (resPts.length < 2) {
+    document.getElementById('sCent').textContent = '—';
+    document.getElementById('sAngle').textContent = '—';
+    document.getElementById('sDelta').textContent = '—';
+    document.getElementById('vecBars').innerHTML = '';
+    return;
+  }
+
+  const { vector, angle, delta, centroid: c } = vectorize(resPts);
+  document.getElementById('sCent').textContent = `(${Math.round(c[0])}, ${Math.round(c[1])})`;
+  document.getElementById('sAngle').textContent = (angle * 180 / Math.PI).toFixed(1) + '°';
+  document.getElementById('sDelta').textContent = (delta * 180 / Math.PI).toFixed(1) + '°';
+
+  let barsHtml = '';
+  const labels = ['x₁','y₁','x₂','y₂','x₃','y₃','x₄','y₄'];
+  for (let i = 0; i < 8 && i < vector.length; i++) {
+    const v = vector[i];
+    const pct = Math.abs(v) * 100;
+    const color = v >= 0 ? '#534AB7' : '#D85A30';
+    barsHtml += `<div class="vector-bar"><span class="label">${labels[i]}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(pct, 100)}%;background:${color}"></div></div><span style="font-size:11px;font-family:var(--font-mono,monospace);color:var(--color-text-secondary);min-width:44px;text-align:right">${v.toFixed(3)}</span></div>`;
+  }
+  document.getElementById('vecBars').innerHTML = barsHtml;
+}
+
+function showScores(scores) {
+  const el = document.getElementById('scoreList');
+  if (!scores.length) { el.innerHTML = '<div class="empty-state">No templates yet</div>'; return; }
+  const maxScore = scores[0].score;
+  matchedIdx = scores[0].idx;
+  el.innerHTML = scores.map((s, i) => {
+    const pct = maxScore > 0 && isFinite(maxScore) ? Math.min((s.score / maxScore) * 100, 100) : 0;
+    const color = i === 0 ? '#1D9E75' : '#B4B2A9';
+    const cosSim = Math.cos(s.dist);
+    return `<div class="score-row"><span class="name">${s.name}</span><div class="track"><div class="fill" style="width:${pct.toFixed(0)}%;background:${color}"></div></div><span class="val">${cosSim.toFixed(3)}</span></div>`;
+  }).join('');
+  renderTemplates();
+}
+
+function renderTemplates() {
+  const el = document.getElementById('tplList');
+  document.getElementById('tplCount').textContent = templates.length;
+  if (!templates.length) { el.innerHTML = '<div class="empty-state">Draw a gesture and click record</div>'; return; }
+  el.innerHTML = templates.map((t, i) =>
+    `<span class="tpl-chip${i === matchedIdx ? ' matched' : ''}" onclick="removeTpl(${i})" title="Click to remove">${t.name}</span>`
+  ).join('');
+}
+
+function removeTpl(i) {
+  templates.splice(i, 1);
+  matchedIdx = -1;
+  renderTemplates();
+  if (rawPts.length > 1) showScores(recognize(rawPts));
+}
+
+document.getElementById('btnRecord').addEventListener('click', () => {
+  if (rawPts.length < 2) return;
+  const name = document.getElementById('nameIn').value.trim() || '?';
+  const resPts = resample(rawPts, 16);
+  const { vector } = vectorize(resPts);
+  templates.push({ name, vector });
+  renderTemplates();
+  if (rawPts.length > 1) showScores(recognize(rawPts));
+});
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  rawPts = []; matchedIdx = -1;
+  document.getElementById('btnRecord').disabled = true;
+  document.getElementById('scoreList').innerHTML = templates.length ? '<div class="empty-state">Draw to recognize</div>' : '<div class="empty-state">Record templates, then draw to recognize</div>';
+  redraw(); updateUI();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  rawPts = []; templates = []; matchedIdx = -1;
+  document.getElementById('btnRecord').disabled = true;
+  document.getElementById('scoreList').innerHTML = '<div class="empty-state">Record templates, then draw to recognize</div>';
+  redraw(); updateUI(); renderTemplates();
+});
+
+setTimeout(resize, 0);
+</script>
