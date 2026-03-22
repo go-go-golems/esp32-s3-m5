@@ -11,3 +11,4 @@
 - Restoring the old project-specific platform behavior in Espressif's `shared_platform.cmake` and `espidf_thread.c` recovered the runtime baseline: `wasm run-preflush return-42` and `wasm run-preflush log-only` now succeed on hardware
 - Added a repeatable ticket-local probe wrapper at `scripts/flash_and_probe_wasm.sh` so hardware validation no longer depends on tmux pane state or manual monitor cleanup
 - After the restored platform patches, the remaining hardware failure boundary is back where the older ticket family had it: `wasm run-preflush hello-frame` crashes in the PaperS3 preflush/display path (`FlushWasmHostFrame` -> `PaperCanvasScreenClear` -> `M5GFX Panel_EPD`)
+- Committed the recovered migration baseline as `e58a835` (`debug(papers3): recover espressif wamr baseline`)
