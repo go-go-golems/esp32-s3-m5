@@ -1,4 +1,5 @@
 #include "console_repl.h"
+#include "wasm_runtime_service.h"
 
 #include <M5Unified.hpp>
 
@@ -23,5 +24,6 @@ void InitBoard()
 extern "C" void app_main(void)
 {
     InitBoard();
+    papers3_wasm::InitWasmRuntime();
     papers3_wasm::StartConsoleRepl();
 }

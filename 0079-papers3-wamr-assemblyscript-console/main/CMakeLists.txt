@@ -3,9 +3,11 @@ idf_component_register(
         "app_main.cpp"
         "console_repl.cpp"
         "wasm_command.cpp"
+        "wasm_runtime_service.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
         M5Unified
+        bytecodealliance__wasm-micro-runtime
         console
 )

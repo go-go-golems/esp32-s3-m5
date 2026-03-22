@@ -3,12 +3,37 @@
 #include <cstdio>
 #include <cstring>
 
+#include "wasm_runtime_service.h"
+
 #include "esp_console.h"
 #include "esp_err.h"
 
 namespace papers3_wasm {
 
 namespace {
+
+struct ExampleDescriptor {
+    const char *name;
+    const char *summary;
+};
+
+constexpr ExampleDescriptor kExamples[] = {
+    {"hello-frame", "first display hello-world frame demo"},
+    {"nested-boxes", "nested rectangle composition demo"},
+    {"bars", "animated bar columns demo"},
+    {"checkerboard", "alternating fill pattern demo"},
+    {"radar-sweep", "sweep and arc drawing demo"},
+};
+
+const ExampleDescriptor *FindExample(const char *name)
+{
+    for (const ExampleDescriptor &example : kExamples) {
+        if (std::strcmp(example.name, name) == 0) {
+            return &example;
+        }
+    }
+    return nullptr;
+}
 
 void PrintUsage()
 {
@@ -42,34 +67,55 @@ int CmdWasm(int argc, char **argv)
     }
 
     if (std::strcmp(argv[1], "list") == 0) {
-        std::printf("hello-frame\n");
-        std::printf("nested-boxes\n");
-        std::printf("bars\n");
-        std::printf("checkerboard\n");
-        std::printf("radar-sweep\n");
+        for (const ExampleDescriptor &example : kExamples) {
+            std::printf("%s\n", example.name);
+        }
         return 0;
     }
 
     if (std::strcmp(argv[1], "info") == 0) {
         if (argc < 3) {
+            PrintUsage();
             return 1;
         }
-        std::printf("name=%s\n", argv[2]);
-        std::printf("status=placeholder\n");
-        std::printf("runtime=not-integrated-yet\n");
+        const ExampleDescriptor *example = FindExample(argv[2]);
+        if (example == nullptr) {
+            std::printf("unknown example: %s\n", argv[2]);
+            return 1;
+        }
+
+        const WasmRuntimeStatus &runtime = GetWasmRuntimeStatus();
+        std::printf("name=%s\n", example->name);
+        std::printf("summary=%s\n", example->summary);
+        std::printf("runtime=%s\n", runtime.initialized ? "ready" : "not-ready");
+        std::printf("module_status=not-embedded-yet\n");
         return 0;
     }
 
     if (std::strcmp(argv[1], "run") == 0) {
         if (argc < 3) {
+            PrintUsage();
             return 1;
         }
-        std::printf("placeholder: runtime integration not added yet for module=%s\n", argv[2]);
+        const ExampleDescriptor *example = FindExample(argv[2]);
+        if (example == nullptr) {
+            std::printf("unknown example: %s\n", argv[2]);
+            return 1;
+        }
+
+        const WasmRuntimeStatus &runtime = GetWasmRuntimeStatus();
+        if (!runtime.initialized) {
+            std::printf("runtime is not ready; run `wasm status` for details\n");
+            return 1;
+        }
+
+        std::printf("placeholder: runtime ready but module embedding not added yet for module=%s\n",
+                    example->name);
         return 0;
     }
 
     if (std::strcmp(argv[1], "status") == 0) {
-        std::printf("ok: console=ready runtime=placeholder registry=static-list\n");
+        PrintWasmRuntimeStatus();
         return 0;
     }
 
@@ -81,11 +127,14 @@ int CmdWasm(int argc, char **argv)
 
 void RegisterWasmCommands()
 {
-    const esp_console_cmd_t cmd = {
-        .command = "wasm",
-        .help = "PaperS3 WebAssembly runtime commands (run `wasm examples`)",
-        .func = CmdWasm,
-    };
+    esp_console_cmd_t cmd = {};
+    cmd.command = "wasm";
+    cmd.help = "PaperS3 WebAssembly runtime commands (run `wasm examples`)";
+    cmd.hint = nullptr;
+    cmd.func = CmdWasm;
+    cmd.argtable = nullptr;
+    cmd.func_w_context = nullptr;
+    cmd.context = nullptr;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
 
