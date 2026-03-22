@@ -2,8 +2,11 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "console_repl.cpp"
+        "papers3_canvas.cpp"
         "wasm_command.cpp"
+        "wasm_host_api.cpp"
         "wasm_module_registry.cpp"
+        "wasm_module_runner.cpp"
         "wasm_runtime_service.cpp"
     INCLUDE_DIRS
         "."

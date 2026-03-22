@@ -1,4 +1,6 @@
 #include "console_repl.h"
+#include "papers3_canvas.h"
+#include "wasm_host_api.h"
 #include "wasm_runtime_service.h"
 
 #include <M5Unified.hpp>
@@ -24,6 +26,10 @@ void InitBoard()
 extern "C" void app_main(void)
 {
     InitBoard();
-    papers3_wasm::InitWasmRuntime();
+    papers3_wasm::InitializePaperCanvas();
+    const bool runtime_ready = papers3_wasm::InitWasmRuntime();
+    if (runtime_ready) {
+        papers3_wasm::InitWasmHostApi();
+    }
     papers3_wasm::StartConsoleRepl();
 }

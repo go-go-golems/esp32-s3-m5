@@ -3,7 +3,9 @@
 #include <cstdio>
 #include <cstring>
 
+#include "wasm_host_api.h"
 #include "wasm_module_registry.h"
+#include "wasm_module_runner.h"
 #include "wasm_runtime_service.h"
 
 #include "esp_console.h"
@@ -83,13 +85,14 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
-        std::printf("placeholder: runtime ready and module is embedded, but execution is not wired yet for module=%s\n",
-                    module->name);
-        return 0;
+        const WasmExecutionResult result = RunEmbeddedWasmModule(*module, module->entrypoint);
+        PrintWasmExecutionResult(*module, result);
+        return result.success ? 0 : 1;
     }
 
     if (std::strcmp(argv[1], "status") == 0) {
         PrintWasmRuntimeStatus();
+        PrintWasmHostApiStatus();
         return 0;
     }
 
