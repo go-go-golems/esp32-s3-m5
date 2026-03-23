@@ -28,6 +28,7 @@ void PrintUsage()
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
+    std::printf("  wasm instantiate-only <name>\n");
     std::printf("  wasm run-preflush-worker <name>\n");
     std::printf("  wasm run-preflush <name>\n");
     std::printf("  wasm run-worker <name>\n");
@@ -42,6 +43,7 @@ void PrintExamples()
     std::printf("  wasm info hello-frame\n");
     std::printf("  wasm replay hello-frame\n");
     std::printf("  wasm replay psram-scratch\n");
+    std::printf("  wasm instantiate-only return-42\n");
     std::printf("  wasm run-preflush-worker hello-frame\n");
     std::printf("  wasm run-preflush hello-frame\n");
     std::printf("  wasm run-worker hello-frame\n");
@@ -111,6 +113,30 @@ int CmdWasm(int argc, char **argv)
                 : WasmExecutionContext::Inline;
         const WasmExecutionResult result =
             RunEmbeddedWasmModule(*module, module->entrypoint, flush_timing, execution_context);
+        PrintWasmExecutionResult(*module, result);
+        return result.success ? 0 : 1;
+    }
+
+    if (std::strcmp(argv[1], "instantiate-only") == 0) {
+        if (argc < 3) {
+            PrintUsage();
+            return 1;
+        }
+        const WasmModuleDescriptor *module = FindWasmModule(argv[2]);
+        if (module == nullptr) {
+            std::printf("unknown example: %s\n", argv[2]);
+            return 1;
+        }
+
+        const WasmRuntimeStatus &runtime = GetWasmRuntimeStatus();
+        if (!runtime.initialized) {
+            std::printf("runtime is not ready; run `wasm status` for details\n");
+            return 1;
+        }
+
+        const WasmExecutionResult result =
+            RunEmbeddedWasmModule(*module, module->entrypoint, WasmFlushTiming::AfterCleanup,
+                                  WasmExecutionContext::Inline, WasmInvocationMode::InstantiateOnly);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }

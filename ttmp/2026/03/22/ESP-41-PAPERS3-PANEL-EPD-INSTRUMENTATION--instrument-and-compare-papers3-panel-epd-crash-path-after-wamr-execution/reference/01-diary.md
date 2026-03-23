@@ -739,3 +739,127 @@ That is the key result of the current slice. The first concrete divergence is **
   - `0x4200b20f` -> `CmdWasm(...)` at `wasm_command.cpp:128`
 - The crashing source line is:
   - `std::memset(buffer, 0, kScratchBufferBytes);`
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Keep reducing the WAMR-side search space. After the headless PSRAM result, the next high-value split is lifecycle: does the contamination require actual guest execution, or is instantiate/cleanup already enough?
+
+**Inferred user intent:** Do another concrete experiment, not just more reading, and preserve the result in the diary with enough detail to reconstruct why the theory changed.
+
+### What I did
+
+- Added a new invocation mode to the runner in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+- The new mode is:
+  - `WasmInvocationMode::InstantiateOnly`
+- In that mode, the runner still:
+  - loads the embedded module
+  - instantiates it
+  - looks up the target export
+  - creates the exec env
+  - tears everything back down
+- But it does **not**:
+  - call `wasm_runtime_call_wasm(...)`
+  - call `wasm_runtime_call_wasm_a(...)`
+  - flush any host frame
+- Added a matching console command in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+  - command: `wasm instantiate-only <name>`
+- Rebuilt and reflashed the headless PaperS3 build.
+- Ran this same-boot sequence:
+  - `wasm instantiate-only return-42`
+  - `wasm replay psram-scratch`
+- Decoded the new crash against the headless ELF.
+
+### Why
+
+- The earlier headless `return-42 -> psram-scratch` crash still left one important ambiguity:
+  - maybe the contamination happens only after actual guest bytecode execution
+- `instantiate-only` is the smallest useful next split because it preserves the runtime bring-up/teardown path while removing guest execution and host-import execution entirely.
+
+### What worked
+
+- `wasm instantiate-only return-42` succeeded cleanly in the headless build.
+- The result printed the new mode explicitly:
+  - `invocation_mode=instantiate-only`
+  - `execution=success`
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=yes`
+  - `exec_env=yes`
+  - `executed=no`
+- That proves the lifecycle probe is actually exercising the intended boundary.
+
+### What didn't work
+
+- The next command in the same boot:
+  - `wasm replay psram-scratch`
+  still crashed with:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- So `call_wasm` is **not** required for the contamination.
+
+### What I learned
+
+- This is a major shift in the theory.
+- The active bug is now best described as:
+  - WAMR instantiate/teardown on PaperS3 is already sufficient to poison later PSRAM writes in the same boot
+- That means the next likely investigation areas are even narrower:
+  - WAMR linear-memory allocation / instantiate path
+  - exec-env creation / destruction
+  - module deinstantiate / unload cleanup
+- It is now much harder to blame:
+  - guest bytecode behavior
+  - host imports
+  - display code
+  - or even guest execution itself
+
+### What was tricky to build
+
+- The main trap here was making an "instantiate-only" mode that still exercised a meaningful portion of the runtime lifecycle instead of becoming a fake success path.
+- Stopping only after `exec_env` creation is a better cut than stopping after module load, because it keeps more of the real runtime setup/cleanup in play while still excluding actual execution.
+
+### What warrants a second pair of eyes
+
+- The WAMR instantiate/deinstantiate path in:
+  - [wasm_memory.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_memory.c)
+  - [wasm_runtime_common.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_runtime_common.c)
+  - [wasm_exec_env.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_exec_env.c)
+- Any PaperS3 board initialization that changes PSRAM/cache invariants before we ever enter `wasm replay psram-scratch`
+
+### What should be done in the future
+
+- Inspect the instantiate and cleanup path in WAMR now that guest execution has been removed from the causal chain.
+- Compare the same instantiate-only probe on AtomS3R if needed, just to confirm that this narrow lifecycle step remains PaperS3-specific.
+- If we need one more code experiment locally, add an even earlier probe that stops after `wasm_runtime_instantiate(...)` but before `wasm_runtime_create_exec_env(...)`.
+
+### Code review instructions
+
+- Review the new invocation-mode plumbing in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+- Review the user-facing command surface in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Confirm that `instantiate-only` does not call the guest and does not flush host work.
+
+### Technical details
+
+- Headless same-boot command sequence:
+  - `wasm instantiate-only return-42`
+  - `wasm replay psram-scratch`
+- Successful instantiate-only output:
+  - `invocation_mode=instantiate-only`
+  - `execution=success`
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=yes`
+  - `exec_env=yes`
+  - `executed=no`
+- Same-boot crash result:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- Decoded crash addresses:
+  - `0x4200c0b5` -> `RunPsramScratchProbe(...)` at `wasm_replay_control.cpp:88`
+  - `0x4200c253` -> `RunWasmReplayControlExample(...)` at `wasm_replay_control.cpp:150`
+  - `0x4200b29c` -> `CmdWasm(...)` at `wasm_command.cpp:154`

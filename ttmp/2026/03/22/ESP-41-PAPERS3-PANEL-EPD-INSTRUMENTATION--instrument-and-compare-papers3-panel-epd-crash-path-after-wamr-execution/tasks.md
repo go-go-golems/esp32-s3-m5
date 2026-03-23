@@ -10,6 +10,8 @@
 - [ ] Task 3.5: Inspect the active WAMR ESP-IDF memory/cache path for operations that can leave PaperS3 PSRAM writes in a bad state after a successful Wasm call
 - [x] Task 3.6: Compare the new headless PaperS3 same-boot PSRAM result against the earlier headful PaperS3 repro and decide whether display initialization is required for the contamination
 - [x] Task 3.7: Decode the headless same-boot PSRAM crash against the exact headless ELF and map it back to the new control path
+- [x] Task 3.8: Add an `instantiate-only` Wasm lifecycle probe so we can split instantiate/teardown contamination from actual guest execution contamination
+- [x] Task 3.9: Use the headless `instantiate-only` probe with `psram-scratch` to decide whether `call_wasm` is required for the repro
 
 ## Planned
 

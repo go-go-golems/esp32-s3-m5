@@ -16,6 +16,11 @@ enum class WasmExecutionContext : uint8_t {
     WorkerThread,
 };
 
+enum class WasmInvocationMode : uint8_t {
+    Execute,
+    InstantiateOnly,
+};
+
 struct WasmExecutionResult {
     bool success;
     bool loaded;
@@ -26,13 +31,15 @@ struct WasmExecutionResult {
     int32_t return_value;
     WasmFlushTiming flush_timing;
     WasmExecutionContext execution_context;
+    WasmInvocationMode invocation_mode;
     char error_stage[32];
     char error_message[160];
 };
 
 WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
                                          WasmFlushTiming flush_timing = WasmFlushTiming::AfterCleanup,
-                                         WasmExecutionContext execution_context = WasmExecutionContext::Inline);
+                                         WasmExecutionContext execution_context = WasmExecutionContext::Inline,
+                                         WasmInvocationMode invocation_mode = WasmInvocationMode::Execute);
 
 void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExecutionResult &result);
 void PrintLastWasmExecutionStatus();

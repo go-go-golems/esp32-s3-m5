@@ -27,3 +27,6 @@
 - Fixed a command-surface bug in `wasm_command.cpp` so the headless-compatible `psram-scratch` control can run even when the display host API is disabled
 - Confirmed in the true headless PaperS3 build that same-boot `wasm run-preflush return-42` followed by `wasm replay psram-scratch` still crashes
 - Decoded the headless crash against the headless ELF and pinned it to `RunPsramScratchProbe(...)` at the initial `memset(...)`, proving that display initialization is not required for the contamination and that the current live boundary is broader post-WAMR PSRAM access on PaperS3
+- Added an `instantiate-only` Wasm lifecycle mode so the runtime can stop after load/instantiate/lookup/exec-env creation and cleanup without ever calling guest code
+- Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-only return-42` followed by `wasm replay psram-scratch` still crashes
+- That means actual guest execution is not required for the repro; instantiate/teardown alone is already enough to poison later PSRAM writes on PaperS3
