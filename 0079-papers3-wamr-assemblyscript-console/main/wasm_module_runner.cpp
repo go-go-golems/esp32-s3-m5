@@ -6,6 +6,7 @@
 
 #include <cinttypes>
 #include <cstddef>
+#include <pthread.h>
 #include <cstdio>
 #include <cstring>
 
@@ -27,10 +28,18 @@ namespace {
 
 constexpr uint32_t kGuestStackBytes = 16 * 1024;
 constexpr uint32_t kGuestHeapBytes = 32 * 1024;
+constexpr size_t kWorkerThreadStackBytes = 24 * 1024;
 
 struct WasmLastExecutionStatus {
     bool available;
     char module_name[48];
+    WasmExecutionResult result;
+};
+
+struct WasmWorkerRunContext {
+    const WasmModuleDescriptor *module;
+    const char *export_name;
+    WasmFlushTiming flush_timing;
     WasmExecutionResult result;
 };
 
@@ -43,6 +52,18 @@ const char *FlushTimingName(WasmFlushTiming flush_timing)
             return "before-cleanup";
         case WasmFlushTiming::AfterCleanup:
             return "after-cleanup";
+    }
+
+    return "unknown";
+}
+
+const char *ExecutionContextName(WasmExecutionContext execution_context)
+{
+    switch (execution_context) {
+        case WasmExecutionContext::Inline:
+            return "inline";
+        case WasmExecutionContext::WorkerThread:
+            return "worker-thread";
     }
 
     return "unknown";
@@ -222,13 +243,76 @@ cleanup:
     return result;
 }
 
+void *RunEmbeddedWasmModuleWorkerEntry(void *arg)
+{
+    auto *context = static_cast<WasmWorkerRunContext *>(arg);
+    if (context == nullptr || context->module == nullptr || context->export_name == nullptr) {
+        return nullptr;
+    }
+
+    context->result = {};
+    context->result.flush_timing = context->flush_timing;
+    context->result.execution_context = WasmExecutionContext::WorkerThread;
+
+    if (!wasm_runtime_init_thread_env()) {
+        SetResultError(&context->result, "thread-env", "wasm_runtime_init_thread_env failed");
+        return nullptr;
+    }
+
+    context->result =
+        RunEmbeddedWasmModuleOnCurrentThread(*context->module, context->export_name, context->flush_timing);
+    context->result.execution_context = WasmExecutionContext::WorkerThread;
+    wasm_runtime_destroy_thread_env();
+    return nullptr;
+}
+
+WasmExecutionResult RunEmbeddedWasmModuleOnWorkerThread(const WasmModuleDescriptor &module, const char *export_name,
+                                                        WasmFlushTiming flush_timing)
+{
+    WasmWorkerRunContext worker = {};
+    worker.module = &module;
+    worker.export_name = export_name;
+    worker.flush_timing = flush_timing;
+    worker.result.flush_timing = flush_timing;
+    worker.result.execution_context = WasmExecutionContext::WorkerThread;
+
+    pthread_attr_t attr;
+    if (pthread_attr_init(&attr) != 0) {
+        SetResultError(&worker.result, "thread-attr", "pthread_attr_init failed");
+        return worker.result;
+    }
+
+    const int stack_error = pthread_attr_setstacksize(&attr, kWorkerThreadStackBytes);
+    if (stack_error != 0) {
+        pthread_attr_destroy(&attr);
+        SetResultError(&worker.result, "thread-attr", std::strerror(stack_error));
+        return worker.result;
+    }
+
+    pthread_t thread = {};
+    const int create_error = pthread_create(&thread, &attr, RunEmbeddedWasmModuleWorkerEntry, &worker);
+    pthread_attr_destroy(&attr);
+    if (create_error != 0) {
+        SetResultError(&worker.result, "thread-create", std::strerror(create_error));
+        return worker.result;
+    }
+
+    const int join_error = pthread_join(thread, nullptr);
+    if (join_error != 0) {
+        SetResultError(&worker.result, "thread-join", std::strerror(join_error));
+    }
+
+    return worker.result;
+}
+
 }  // namespace
 
 WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
-                                          WasmFlushTiming flush_timing)
+                                          WasmFlushTiming flush_timing, WasmExecutionContext execution_context)
 {
     WasmExecutionResult result = {};
     result.flush_timing = flush_timing;
+    result.execution_context = execution_context;
 
     if (!GetWasmRuntimeStatus().initialized) {
         SetResultError(&result, "runtime", "runtime not initialized");
@@ -248,7 +332,14 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
         return result;
     }
 
-    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing);
+    if (execution_context == WasmExecutionContext::WorkerThread) {
+        result = RunEmbeddedWasmModuleOnWorkerThread(module, export_name, flush_timing);
+    }
+    else {
+        result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing);
+        result.execution_context = WasmExecutionContext::Inline;
+    }
+
     RememberLastExecutionResult(module, result);
     return result;
 }
@@ -258,6 +349,7 @@ void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExec
     std::printf("module=%s\n", module.name);
     std::printf("entrypoint=%s\n", module.entrypoint);
     std::printf("flush_timing=%s\n", FlushTimingName(result.flush_timing));
+    std::printf("execution_context=%s\n", ExecutionContextName(result.execution_context));
     std::printf("execution=%s\n", result.success ? "success" : "failure");
     std::printf("loaded=%s\n", result.loaded ? "yes" : "no");
     std::printf("instantiated=%s\n", result.instantiated ? "yes" : "no");

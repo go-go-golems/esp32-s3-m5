@@ -15,6 +15,7 @@ idf_component_register(
         M5Unified
         espressif__wasm-micro-runtime
         console
+        pthread
     EMBED_FILES
         "wasm-assets/return-42.wasm"
         "wasm-assets/log-only.wasm"

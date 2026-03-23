@@ -46,6 +46,23 @@ bool QueueHelloFrameSequence()
            && QueueWasmHostLogI32(1, 79);
 }
 
+bool QueueClearOnlySequence()
+{
+    return QueueWasmHostScreenClear(kWhite) && QueueWasmHostPresent(1) && QueueWasmHostLogI32(2, 1);
+}
+
+bool QueueFrameWithoutClearSequence()
+{
+    return QueueWasmHostDrawRect(16, 16, kDisplayWidth - 32, kDisplayHeight - 32, kBlack)
+           && QueueWasmHostDrawRect(28, 28, kDisplayWidth - 56, kDisplayHeight - 56, kMidGray)
+           && QueueWasmHostFillRect(56, 72, 260, 92, kBlack)
+           && QueueWasmHostFillRect(70, 86, 232, 64, kWhite)
+           && QueueWasmHostFillRect(kDisplayWidth - 320, kDisplayHeight - 164, 248, 76, kMidGray)
+           && QueueWasmHostDrawRect(kDisplayWidth - 320, kDisplayHeight - 164, 248, 76, kBlack)
+           && QueueWasmHostPresent(1)
+           && QueueWasmHostLogI32(2, 2);
+}
+
 }  // namespace
 
 WasmReplayControlResult RunWasmReplayControlExample(const char *name)
@@ -64,6 +81,12 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
     bool queued = false;
     if (std::strcmp(name, "hello-frame") == 0) {
         queued = QueueHelloFrameSequence();
+    }
+    else if (std::strcmp(name, "clear-only") == 0) {
+        queued = QueueClearOnlySequence();
+    }
+    else if (std::strcmp(name, "frame-no-clear") == 0) {
+        queued = QueueFrameWithoutClearSequence();
     }
     else {
         SetReplayError(&result, "lookup", "unknown replay example");
