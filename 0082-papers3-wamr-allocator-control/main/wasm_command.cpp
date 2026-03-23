@@ -23,6 +23,8 @@ void PrintUsage()
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
+    std::printf("  wasm load-only <name>\n");
+    std::printf("  wasm load-only-keepalive <name>\n");
     std::printf("  wasm instantiate-bare <name>\n");
     std::printf("  wasm instantiate-bare-keepalive <name>\n");
     std::printf("  wasm instantiate-no-execenv <name>\n");
@@ -42,6 +44,8 @@ void PrintExamples()
     std::printf("  wasm replay psram-persistent-touch\n");
     std::printf("  wasm replay psram-persistent-touch-sync\n");
     std::printf("  wasm replay psram-persistent-free\n");
+    std::printf("  wasm load-only return-42\n");
+    std::printf("  wasm load-only-keepalive return-42\n");
     std::printf("  wasm instantiate-bare return-42\n");
     std::printf("  wasm instantiate-bare-keepalive return-42\n");
     std::printf("  wasm instantiate-no-execenv return-42\n");
@@ -109,7 +113,8 @@ int CmdWasm(int argc, char **argv)
         return result.success ? 0 : 1;
     }
 
-    if (std::strcmp(argv[1], "instantiate-bare") == 0 || std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
+    if (std::strcmp(argv[1], "load-only") == 0 || std::strcmp(argv[1], "load-only-keepalive") == 0
+        || std::strcmp(argv[1], "instantiate-bare") == 0 || std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
         || std::strcmp(argv[1], "instantiate-no-execenv") == 0
         || std::strcmp(argv[1], "instantiate-only") == 0) {
         if (argc < 3) {
@@ -129,13 +134,17 @@ int CmdWasm(int argc, char **argv)
         }
 
         const WasmInvocationMode invocation_mode =
-            std::strcmp(argv[1], "instantiate-bare") == 0
-                ? WasmInvocationMode::InstantiateBare
-                : (std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
-                       ? WasmInvocationMode::InstantiateBareKeepAlive
-                       : (std::strcmp(argv[1], "instantiate-no-execenv") == 0
-                              ? WasmInvocationMode::InstantiateNoExecEnv
-                              : WasmInvocationMode::InstantiateOnly));
+            std::strcmp(argv[1], "load-only") == 0
+                ? WasmInvocationMode::LoadOnly
+                : (std::strcmp(argv[1], "load-only-keepalive") == 0
+                       ? WasmInvocationMode::LoadOnlyKeepAlive
+                       : (std::strcmp(argv[1], "instantiate-bare") == 0
+                              ? WasmInvocationMode::InstantiateBare
+                              : (std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
+                                     ? WasmInvocationMode::InstantiateBareKeepAlive
+                                     : (std::strcmp(argv[1], "instantiate-no-execenv") == 0
+                                            ? WasmInvocationMode::InstantiateNoExecEnv
+                                            : WasmInvocationMode::InstantiateOnly))));
         const WasmExecutionResult result =
             RunEmbeddedWasmModule(*module, module->entrypoint, WasmFlushTiming::AfterCleanup,
                                   WasmExecutionContext::Inline, invocation_mode);

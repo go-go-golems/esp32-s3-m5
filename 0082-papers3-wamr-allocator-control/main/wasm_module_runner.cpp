@@ -91,6 +91,10 @@ const char *InvocationModeName(WasmInvocationMode invocation_mode)
     switch (invocation_mode) {
         case WasmInvocationMode::Execute:
             return "execute";
+        case WasmInvocationMode::LoadOnly:
+            return "load-only";
+        case WasmInvocationMode::LoadOnlyKeepAlive:
+            return "load-only-keepalive";
         case WasmInvocationMode::InstantiateBare:
             return "instantiate-bare";
         case WasmInvocationMode::InstantiateBareKeepAlive:
@@ -227,6 +231,18 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     }
     result.loaded = true;
     PrintRuntimeMemoryState("after-load");
+
+    if (invocation_mode == WasmInvocationMode::LoadOnly) {
+        result.success = true;
+        goto cleanup;
+    }
+    if (invocation_mode == WasmInvocationMode::LoadOnlyKeepAlive) {
+        ReleaseLeakedWasmState();
+        g_leaked_wasm_module = wasm_module;
+        wasm_module = nullptr;
+        result.success = true;
+        goto cleanup;
+    }
 
     module_inst =
         wasm_runtime_instantiate(wasm_module, kGuestStackBytes, kGuestHeapBytes, error_buf, sizeof(error_buf));
