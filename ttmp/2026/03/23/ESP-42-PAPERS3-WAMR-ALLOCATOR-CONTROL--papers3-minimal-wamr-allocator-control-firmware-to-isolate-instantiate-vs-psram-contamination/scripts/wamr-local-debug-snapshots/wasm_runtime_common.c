@@ -42,7 +42,6 @@
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
 #include "esp_memory_utils.h"
-#include "esp_private/cache_utils.h"
 #endif
 
 /**
@@ -123,7 +122,7 @@ static void
 print_wamr_runtime_load_probe(const char *stage, const void *buf, uint32 size,
                               const void *module_common)
 {
-    bool internal_heap_ok, spiram_heap_ok, flash_cache_enabled;
+    bool internal_heap_ok, spiram_heap_ok;
     size_t internal_free, spiram_free;
 
     if (g_wamr_runtime_load_probe_budget == 0) {
@@ -131,7 +130,6 @@ print_wamr_runtime_load_probe(const char *stage, const void *buf, uint32 size,
     }
     g_wamr_runtime_load_probe_budget--;
 
-    flash_cache_enabled = spi_flash_cache_enabled();
     internal_heap_ok =
         heap_caps_check_integrity(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT, false);
     spiram_heap_ok =
@@ -140,7 +138,6 @@ print_wamr_runtime_load_probe(const char *stage, const void *buf, uint32 size,
     spiram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 
     printf("wamr_rt_load.stage=%s\n"
-           "wamr_rt_load.flash_cache_enabled=%s\n"
            "wamr_rt_load.internal_heap_ok=%s\n"
            "wamr_rt_load.spiram_heap_ok=%s\n"
            "wamr_rt_load.internal_free=%u\n"
@@ -151,7 +148,6 @@ print_wamr_runtime_load_probe(const char *stage, const void *buf, uint32 size,
            "wamr_rt_load.module=%p\n"
            "wamr_rt_load.module_external=%s\n",
            stage != NULL ? stage : "unknown",
-           flash_cache_enabled ? "yes" : "no",
            internal_heap_ok ? "yes" : "no",
            spiram_heap_ok ? "yes" : "no",
            (unsigned)internal_free, (unsigned)spiram_free, buf,

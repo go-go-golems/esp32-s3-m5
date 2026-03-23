@@ -42,6 +42,7 @@ struct WasmWorkerRunContext {
     const char *export_name;
     WasmFlushTiming flush_timing;
     WasmInvocationMode invocation_mode;
+    WasmBinarySource binary_source;
     WasmExecutionResult result;
 };
 
@@ -204,16 +205,22 @@ void RememberLastExecutionResult(const WasmModuleDescriptor &module, const WasmE
 
 WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescriptor &module, const char *export_name,
                                                          WasmFlushTiming flush_timing,
-                                                         WasmInvocationMode invocation_mode)
+                                                         WasmInvocationMode invocation_mode,
+                                                         WasmBinarySource binary_source)
 {
     WasmExecutionResult result = {};
     result.flush_timing = flush_timing;
     result.invocation_mode = invocation_mode;
+    result.binary_source = binary_source;
 
     wasm_module_t wasm_module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
     wasm_exec_env_t exec_env = nullptr;
     wasm_function_inst_t function = nullptr;
+    uint8_t *owned_binary = nullptr;
+    uint8_t *load_binary = const_cast<uint8_t *>(module.start);
+    const uint32_t load_binary_size =
+        static_cast<uint32_t>(GetWasmModuleBinarySize(module));
     char error_buf[128] = {};
     uint32_t param_count = 0;
     uint32_t result_count = 0;
@@ -222,9 +229,25 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     ResetWasmHostFrame();
     PrintRuntimeMemoryState("before-load");
 
-    wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start),
-                                    static_cast<uint32_t>(GetWasmModuleBinarySize(module)), error_buf,
-                                    sizeof(error_buf));
+    if (binary_source == WasmBinarySource::CopiedToInternalRam) {
+        owned_binary = static_cast<uint8_t *>(
+            heap_caps_malloc(load_binary_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    }
+    else if (binary_source == WasmBinarySource::CopiedToSpiram) {
+        owned_binary = static_cast<uint8_t *>(
+            heap_caps_malloc(load_binary_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    }
+
+    if (owned_binary != nullptr) {
+        std::memcpy(owned_binary, module.start, load_binary_size);
+        load_binary = owned_binary;
+    }
+    else if (binary_source != WasmBinarySource::Embedded) {
+        SetResultError(&result, "binary-copy", "failed to allocate copied wasm buffer");
+        goto cleanup;
+    }
+
+    wasm_module = wasm_runtime_load(load_binary, load_binary_size, error_buf, sizeof(error_buf));
     if (wasm_module == nullptr) {
         SetResultError(&result, "load", error_buf);
         goto cleanup;
@@ -341,6 +364,9 @@ cleanup:
     if (wasm_module != nullptr) {
         wasm_runtime_unload(wasm_module);
     }
+    if (owned_binary != nullptr) {
+        heap_caps_free(owned_binary);
+    }
 
     if (flush_host_frame) {
         PrintExecutionContextSnapshot("before-postcleanup-flush");
@@ -367,6 +393,7 @@ void *RunEmbeddedWasmModuleWorkerEntry(void *arg)
     context->result.flush_timing = context->flush_timing;
     context->result.execution_context = WasmExecutionContext::WorkerThread;
     context->result.invocation_mode = context->invocation_mode;
+    context->result.binary_source = context->binary_source;
 
     if (!wasm_runtime_init_thread_env()) {
         SetResultError(&context->result, "thread-env", "wasm_runtime_init_thread_env failed");
@@ -375,7 +402,7 @@ void *RunEmbeddedWasmModuleWorkerEntry(void *arg)
 
     context->result =
         RunEmbeddedWasmModuleOnCurrentThread(*context->module, context->export_name, context->flush_timing,
-                                            context->invocation_mode);
+                                            context->invocation_mode, context->binary_source);
     context->result.execution_context = WasmExecutionContext::WorkerThread;
     wasm_runtime_destroy_thread_env();
     return nullptr;
@@ -383,16 +410,19 @@ void *RunEmbeddedWasmModuleWorkerEntry(void *arg)
 
 WasmExecutionResult RunEmbeddedWasmModuleOnWorkerThread(const WasmModuleDescriptor &module, const char *export_name,
                                                         WasmFlushTiming flush_timing,
-                                                        WasmInvocationMode invocation_mode)
+                                                        WasmInvocationMode invocation_mode,
+                                                        WasmBinarySource binary_source)
 {
     WasmWorkerRunContext worker = {};
     worker.module = &module;
     worker.export_name = export_name;
     worker.flush_timing = flush_timing;
     worker.invocation_mode = invocation_mode;
+    worker.binary_source = binary_source;
     worker.result.flush_timing = flush_timing;
     worker.result.execution_context = WasmExecutionContext::WorkerThread;
     worker.result.invocation_mode = invocation_mode;
+    worker.result.binary_source = binary_source;
 
     pthread_attr_t attr;
     if (pthread_attr_init(&attr) != 0) {
@@ -425,14 +455,30 @@ WasmExecutionResult RunEmbeddedWasmModuleOnWorkerThread(const WasmModuleDescript
 
 }  // namespace
 
+const char *BinarySourceName(WasmBinarySource binary_source)
+{
+    switch (binary_source) {
+        case WasmBinarySource::Embedded:
+            return "embedded";
+        case WasmBinarySource::CopiedToInternalRam:
+            return "copied-internal";
+        case WasmBinarySource::CopiedToSpiram:
+            return "copied-spiram";
+    }
+
+    return "unknown";
+}
+
 WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
                                           WasmFlushTiming flush_timing, WasmExecutionContext execution_context,
-                                          WasmInvocationMode invocation_mode)
+                                          WasmInvocationMode invocation_mode,
+                                          WasmBinarySource binary_source)
 {
     WasmExecutionResult result = {};
     result.flush_timing = flush_timing;
     result.execution_context = execution_context;
     result.invocation_mode = invocation_mode;
+    result.binary_source = binary_source;
 
     if (!GetWasmRuntimeStatus().initialized) {
         SetResultError(&result, "runtime", "runtime not initialized");
@@ -457,10 +503,12 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
     }
 
     if (execution_context == WasmExecutionContext::WorkerThread) {
-        result = RunEmbeddedWasmModuleOnWorkerThread(module, export_name, flush_timing, invocation_mode);
+        result = RunEmbeddedWasmModuleOnWorkerThread(module, export_name, flush_timing, invocation_mode,
+                                                     binary_source);
     }
     else {
-        result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing, invocation_mode);
+        result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing, invocation_mode,
+                                                      binary_source);
         result.execution_context = WasmExecutionContext::Inline;
     }
 
@@ -474,6 +522,7 @@ void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExec
     std::printf("entrypoint=%s\n", module.entrypoint);
     std::printf("flush_timing=%s\n", FlushTimingName(result.flush_timing));
     std::printf("execution_context=%s\n", ExecutionContextName(result.execution_context));
+    std::printf("binary_source=%s\n", BinarySourceName(result.binary_source));
     std::printf("invocation_mode=%s\n", InvocationModeName(result.invocation_mode));
     std::printf("execution=%s\n", result.success ? "success" : "failure");
     std::printf("loaded=%s\n", result.loaded ? "yes" : "no");
