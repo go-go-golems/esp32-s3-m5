@@ -30,6 +30,7 @@ This ticket explains the root cause of the embedded-Wasm load crash that origina
 ## Key Links
 
 - [Postmortem Report](./design/02-wamr-flash-mapped-embedded-load-postmortem-report.md)
+- [Project Description](./design/03-papers3-wamr-debugging-project-description.md)
 - [Investigation Plan](./design/01-flash-load-root-cause-plan.md)
 - [Diary](./reference/01-diary.md)
 - **Related Files**: See frontmatter RelatedFiles field

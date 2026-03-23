@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T22:05:00-04:00
+LastUpdated: 2026-03-23T22:20:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -323,3 +323,14 @@ I wrote it for a future engineer or intern who was not present for the debugging
 - the production and upstream-quality fixes
 
 That matters because this ticket is now mature enough that future work should start from the conclusion, not from the early confusion. A good postmortem prevents the team from having to replay the whole narrowing process just to trust the answer.
+
+## 2026-03-23 22:18 EDT
+
+Copied the standalone Obsidian project note back into the code repo and the ticket workspace.
+
+This is intentionally a second copy of the same broad story. The vault note is useful, but it should not be the only place where the project-level narrative lives. The ticket postmortem is narrower and root-cause-focused, while the project-description document is broader and better for someone who wants the whole debugging campaign as a technical story.
+
+The new copies are:
+
+- `0082-papers3-wamr-allocator-control/docs/papers3-wamr-debugging-project-description.md`
+- `design/03-papers3-wamr-debugging-project-description.md`

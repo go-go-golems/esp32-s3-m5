@@ -20,6 +20,7 @@
 - Added a long-form intern-facing postmortem/report that explains the whole system, the narrowing strategy, the exact failing loader branch, the proof ladder, and the recommended production/upstream follow-up
 - Added a detailed upstream/public research section to the postmortem so the ticket now documents what we did and did not find in current WAMR releases, source, and open pull requests
 - Recorded that no public upstream issue was found for the exact same embedded read-only buffer mutation bug, but adjacent loader-ownership work remains active upstream
+- Copied the standalone Obsidian project description back into both the repo and the ticket so the broader debugging story is preserved outside the vault too
 
 ## 2026-03-23
 
