@@ -104,3 +104,22 @@
   - “the surviving bug is just a cache-line-alignment mistake in the debug probe buffer”
 - Preserved the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in:
   - `scripts/espressif_wamr_espidf_memmap_local_debug_patch.diff`
+- Read and mapped the active WAMR instantiate/deinstantiate chain before adding more logs:
+  - `wasm_runtime_instantiate_internal(...)`
+  - `wasm_instantiate(...)`
+  - `memory_instantiate(...)`
+  - `wasm_allocate_linear_memory(...)`
+  - `wasm_deinstantiate(...)`
+  - `wasm_deallocate_linear_memory(...)`
+- Added new structured WAMR trace logs in the ignored component sources around:
+  - runtime instantiate/deinstantiate entry and exit
+  - module-instance allocation and sub-instantiation success/failure
+  - linear-memory mmap/munmap entry and exit
+- Preserved the current local versions of those ignored WAMR files as tracked snapshots in:
+  - `scripts/wamr-local-debug-snapshots/`
+- Compared the PaperS3 and AtomS3R board docs plus local `sdkconfig` slices and found that the more interesting hardware difference is not ESP-IDF versioning or obvious cache-mode config drift:
+  - both projects are on `ESP-IDF 5.3.4`
+  - both use octal `8 MB` PSRAM
+  - AtomS3R uses an `ESP32-S3-PICO-1-N8R8` SiP
+  - PaperS3 uses `ESP32-S3R8` with separate external flash
+- That makes “PaperS3 flash-side external-memory topology” a stronger board-level differentiator than the older generic “PaperS3 PSRAM vs AtomS3R PSRAM” story

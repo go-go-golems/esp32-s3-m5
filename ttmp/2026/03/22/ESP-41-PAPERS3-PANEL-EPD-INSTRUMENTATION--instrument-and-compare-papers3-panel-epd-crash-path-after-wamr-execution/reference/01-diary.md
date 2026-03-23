@@ -1671,3 +1671,143 @@ Those two probes were worth doing because they close several tempting explanatio
   - `aligned_persistent_psram_probe.pre_sync_err=ESP_OK`
 - Crash decode for that path:
   - `0x4200d3ca` -> `TouchAlignedPersistentPsramProbeWithCacheSync(...)` at [wasm_replay_control.cpp:298](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L298)
+
+## Step 8: Read the WAMR instantiate path properly, add ownership-transition logs, and stop before the next hardware cycle
+
+At this point the remaining bug had become narrow enough that spraying more app-side logs would have been lazy. The smallest known repro boundary was already `wasm_runtime_instantiate(...)` plus later PSRAM access on PaperS3. Before adding any more instrumentation, I stopped and read the active instantiate/deinstantiate chain in the local WAMR sources so the next logs would sit at real ownership transitions instead of just wrapping public entrypoints.
+
+The main code-reading pass went through the exact functions that matter for allocation and teardown:
+
+- [wasm_runtime_common.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_runtime_common.c)
+  - `wasm_runtime_instantiate_internal(...)`
+  - `wasm_runtime_deinstantiate_internal(...)`
+- [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c)
+  - `wasm_instantiate(...)`
+  - `memory_instantiate(...)`
+  - `memories_instantiate(...)`
+  - `memories_deinstantiate(...)`
+  - `wasm_deinstantiate(...)`
+- [wasm_memory.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_memory.c)
+  - `wasm_allocate_linear_memory(...)`
+  - `wasm_deallocate_linear_memory(...)`
+
+That review changed the plan in a useful way. The important transitions are not “public API called” and “public API returned.” The real transitions are:
+
+- module-instance block allocated
+- memories array instantiated
+- linear memory mmapped
+- memory heap handle created
+- module-instance teardown begins
+- linear memory munmapped
+- module-instance block freed
+
+So I added bounded logs at exactly those points. The new trace additions are in the ignored local component sources:
+
+- [wasm_runtime_common.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_runtime_common.c)
+  - `wamr_rt.stage=instantiate-enter`
+  - `wamr_rt.stage=instantiate-exit`
+  - `wamr_rt.stage=deinstantiate-enter`
+  - `wamr_rt.stage=deinstantiate-exit`
+- [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c)
+  - `wamr_inst.stage=enter`
+  - `wamr_inst.stage=alloc-module-inst-ok`
+  - `wamr_inst.stage=alloc-module-inst-failed`
+  - `wamr_inst.stage=subinstantiate-ok`
+  - `wamr_inst.stage=subinstantiate-failed`
+  - `wamr_inst.stage=success`
+  - `wamr_inst.stage=fail`
+  - `wamr_deinst.stage=enter`
+  - `wamr_deinst.stage=free-module-inst`
+- [wasm_memory.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_memory.c)
+  - `wamr_linear.stage=mmap-enter`
+  - `wamr_linear.stage=mmap-exit`
+  - `wamr_linear.stage=mmap-failed`
+  - `wamr_linear.stage=munmap-enter`
+  - `wamr_linear.stage=munmap-exit`
+
+I also preserved the current local versions of those ignored WAMR files as tracked ticket artifacts in:
+
+- [README.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/README.md)
+- [wasm_runtime_common.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/wasm_runtime_common.c)
+- [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/wasm_runtime.c)
+- [wasm_memory.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/wasm_memory.c)
+
+That is intentionally redundant with the older memmap patch artifact. The older file captures the `espidf_memmap.c` edits specifically. These new snapshots capture the wider local WAMR debug state that still would not show up in normal git status because `managed_components/` is ignored here.
+
+In parallel with the code reading, I finally wrote down the board-level comparison that had been floating around as a hypothesis. The useful comparison is not “AtomS3R must be on newer ESP-IDF” or “maybe AtomS3R just has better PSRAM.” Both projects in this workspace are built against `ESP-IDF 5.3.4`, and the relevant cache/PSRAM `sdkconfig` slices are broadly aligned. The more interesting hardware difference is:
+
+- AtomS3R: `ESP32-S3-PICO-1-N8R8` SiP, with flash and PSRAM packaged together
+- PaperS3: `ESP32-S3R8` plus separate external flash on the board
+
+That matters because the panic text we keep seeing on PaperS3 explicitly mentions dcache writeback trouble while writing back to flash. So the current board-level suspicion is not “PaperS3 has PSRAM and AtomS3R does not.” It is closer to “PaperS3’s flash-side external-memory topology may make it vulnerable to whatever state WAMR instantiate is disturbing.”
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, so let's stasrt by adding logging. stop before flashing and running, i need to attach the device"
+
+**Assistant interpretation:** Study the active WAMR instantiate path carefully enough to add targeted logs, preserve the ignored component edits in tracked artifacts, update the ticket record, and stop before any new build/flash/probe cycle.
+
+**Inferred user intent:** Prepare the next debugging run responsibly, with better runtime instrumentation and strong provenance, rather than immediately touching hardware.
+
+### What I did
+
+- Read the active instantiate/deinstantiate and linear-memory code paths in the local WAMR sources listed above.
+- Added structured bounded logs in:
+  - [wasm_runtime_common.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_runtime_common.c)
+  - [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c)
+  - [wasm_memory.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/common/wasm_memory.c)
+- Created tracked snapshots of those ignored files in:
+  - [scripts/wamr-local-debug-snapshots](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots)
+- Compared the relevant PaperS3 and AtomS3R hardware docs plus local `sdkconfig` slices and recorded the stronger board-level differentiator:
+  - same `ESP-IDF 5.3.4`
+  - similar cache and octal-PSRAM configuration
+  - different flash packaging/topology
+- Updated:
+  - [tasks.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/tasks.md)
+  - [changelog.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/changelog.md)
+  - this diary
+
+### Why
+
+- We were already past the point where more app-side logs were the right next move.
+- The smallest known repro boundary now lives inside WAMR instantiate plus later PaperS3 PSRAM access.
+- Adding logs without understanding the instantiate path would have been low-signal and hard to interpret.
+- Because the local WAMR sources live under ignored `managed_components/`, preserving snapshots before the next hardware run is part of the debugging work, not optional cleanup.
+
+### What worked
+
+- The code-reading pass clarified where ownership and teardown actually change.
+- The new logs are bounded and focused on the transitions most likely to matter.
+- The ticket now has tracked copies of the local ignored WAMR files, not just one memmap patch artifact.
+- The board comparison rules out one weak explanation:
+  - AtomS3R is not secretly a `5.4` firmware while PaperS3 is on `5.3`
+
+### What didn't work
+
+- I did not build, flash, or run this new trace slice yet. That was deliberate because the explicit instruction for this step was to stop before hardware activity.
+- The main repo still cannot track the live `managed_components` edits directly. The snapshots solve provenance, but they do not solve the underlying “ignored vendor tree” ergonomics.
+
+### What I learned
+
+- The right logging boundary is narrower than I first phrased it. The interesting transitions are memory and module ownership transitions, not just top-level API entry/exit.
+- The surviving board-level difference worth taking seriously is PaperS3’s external flash topology, not an imagined ESP-IDF version mismatch.
+- For this project, provenance is part of debugging quality. If an ignored component changes and that state is not copied into the ticket, future analysis becomes much weaker.
+
+### What was tricky to build
+
+- The awkward part was not C syntax. It was making sure the ignored component edits stayed reviewable and recoverable.
+- The interrupted turns also meant I had to re-check workspace state before continuing, instead of assuming every previous partial tool action had completed cleanly.
+
+### What warrants a second pair of eyes
+
+- Whether the new `wamr_inst` / `wamr_linear` trace points are enough, or whether the next slice should instrument even deeper inside the ESP-IDF memory-mapping helpers again.
+- Whether the board-level “off-package flash topology” theory should be tested next with a minimal PaperS3 probe, or with a tighter AtomS3R/PaperS3 differential run using the new logs.
+
+### What should be done in the future
+
+- Rebuild `0079` with the new WAMR traces.
+- Flash and run the smallest PaperS3 repro again once the device is attached:
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch`
+- Capture the new `wamr_rt`, `wamr_inst`, and `wamr_linear` logs and compare them against the existing memmap-state trace.
+- If the new logs still only show “everything looks normal,” the next slice should probably move to a minimal PaperS3 probe app or deeper ESP-IDF-level instrumentation.

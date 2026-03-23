@@ -30,6 +30,9 @@
 - [x] Task 3.24: Decide whether a successful `esp_cache_msync(...)` call changes the failure mode, fixes the write, or leaves the same direct CPU-write crash in place
 - [x] Task 3.25: Add a cache-line-aligned persistent PSRAM control buffer and test whether `32 B` alignment plus `DIR_M2C` sync changes the PaperS3 post-instantiate failure
 - [x] Task 3.26: Decide whether the surviving crash still reproduces on a cache-line-aligned PSRAM buffer after a successful pre-touch `DIR_M2C` sync
+- [x] Task 3.27: Read and map the active WAMR instantiate/deinstantiate call graph before adding more low-level logs
+- [x] Task 3.28: Add structured runtime, instantiate, and linear-memory trace logs at the smallest ownership-transition points
+- [x] Task 3.29: Preserve the ignored WAMR source edits as tracked snapshots in the ticket workspace before the next hardware run
 
 ## Planned
 
@@ -55,4 +58,5 @@
 - [ ] Task 4.1: Record what instrumentation proved and what it falsified
 - [ ] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
 - [x] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
-- [ ] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace
+- [x] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace
+- [x] Task 4.5: Compare PaperS3 and AtomS3R board docs and local sdkconfig slices to identify any board-level external-memory topology differences worth prioritizing
