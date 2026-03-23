@@ -16,10 +16,12 @@ namespace {
 
 constexpr const char *kTag = "0079_wamr";
 constexpr RunningMode kRequestedRunningMode = Mode_Interp;
-constexpr std::size_t kRuntimePoolSizeBytes = 512 * 1024;
+constexpr std::size_t kRuntimePoolSizeSpiramBytes = 512 * 1024;
+constexpr std::size_t kRuntimePoolSizeInternalBytes = 128 * 1024;
 
 WasmRuntimeStatus g_runtime_status = {};
 void *g_runtime_pool_buffer = nullptr;
+std::size_t g_runtime_pool_size_bytes = 0;
 
 void SetLastError(const char *message)
 {
@@ -36,7 +38,7 @@ void RefreshHeapSnapshot()
     g_runtime_status.esp_free_heap_bytes = esp_get_free_heap_size();
     g_runtime_status.esp_min_free_heap_bytes = esp_get_minimum_free_heap_size();
     g_runtime_status.runtime_pool_buffer = g_runtime_pool_buffer;
-    g_runtime_status.runtime_pool_size_bytes = g_runtime_status.runtime_pool_enabled ? kRuntimePoolSizeBytes : 0;
+    g_runtime_status.runtime_pool_size_bytes = g_runtime_status.runtime_pool_enabled ? g_runtime_pool_size_bytes : 0;
     g_runtime_status.runtime_pool_buffer_external =
         g_runtime_pool_buffer != nullptr && esp_ptr_external_ram(g_runtime_pool_buffer);
 
@@ -76,14 +78,17 @@ bool InitWasmRuntime()
     g_runtime_status.allocator_type = Alloc_With_System_Allocator;
     g_runtime_status.runtime_pool_enabled = false;
     g_runtime_status.runtime_pool_prefer_external = false;
+    g_runtime_pool_size_bytes = 0;
 #elif CONFIG_PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL
     g_runtime_status.allocator_type = Alloc_With_Pool;
     g_runtime_status.runtime_pool_enabled = true;
     g_runtime_status.runtime_pool_prefer_external = false;
+    g_runtime_pool_size_bytes = kRuntimePoolSizeInternalBytes;
 #else
     g_runtime_status.allocator_type = Alloc_With_Pool;
     g_runtime_status.runtime_pool_enabled = true;
     g_runtime_status.runtime_pool_prefer_external = true;
+    g_runtime_pool_size_bytes = kRuntimePoolSizeSpiramBytes;
 #endif
 
     RuntimeInitArgs init_args = {};
@@ -93,14 +98,15 @@ bool InitWasmRuntime()
     if (g_runtime_status.runtime_pool_enabled) {
         if (g_runtime_pool_buffer == nullptr) {
             if (g_runtime_status.runtime_pool_prefer_external) {
-                g_runtime_pool_buffer =
-                    heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+                g_runtime_pool_buffer = heap_caps_malloc(g_runtime_pool_size_bytes,
+                                                         MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
                 if (g_runtime_pool_buffer == nullptr) {
-                    g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
+                    g_runtime_pool_buffer = heap_caps_malloc(g_runtime_pool_size_bytes, MALLOC_CAP_8BIT);
                 }
             }
             else {
-                g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
+                g_runtime_pool_buffer = heap_caps_malloc(g_runtime_pool_size_bytes,
+                                                         MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
             }
         }
 
@@ -112,7 +118,7 @@ bool InitWasmRuntime()
         }
 
         init_args.mem_alloc_option.pool.heap_buf = g_runtime_pool_buffer;
-        init_args.mem_alloc_option.pool.heap_size = kRuntimePoolSizeBytes;
+        init_args.mem_alloc_option.pool.heap_size = g_runtime_pool_size_bytes;
     }
 
     ESP_LOGI(kTag, "Initializing WAMR runtime (allocator=%s, backing=%s, mode=%s)",
