@@ -28,6 +28,10 @@ constexpr uint32_t kWhite = 0xFFFFFF;
 constexpr uint32_t kMidGray = 0x8C8C8C;
 constexpr std::size_t kScratchRowStride = (kDisplayWidth + 1) >> 1;
 constexpr std::size_t kScratchBufferBytes = (kDisplayWidth * kDisplayHeight) / 2;
+constexpr std::size_t kInternalScratchBytes = 32 * 1024;
+
+uint8_t *g_persistent_psram_probe = nullptr;
+std::size_t g_persistent_psram_probe_bytes = 0;
 
 void SetReplayError(WasmReplayControlResult *result, const char *stage, const char *message)
 {
@@ -111,6 +115,94 @@ bool RunPsramScratchProbe(WasmReplayControlResult *result)
     return true;
 }
 
+bool RunInternalScratchProbe(WasmReplayControlResult *result)
+{
+    auto *buffer = static_cast<uint8_t *>(
+        heap_caps_aligned_alloc(16, kInternalScratchBytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    if (buffer == nullptr) {
+        SetReplayError(result, "internal-alloc", "heap_caps_aligned_alloc failed");
+        return false;
+    }
+
+    std::memset(buffer, 0, kInternalScratchBytes);
+    for (std::size_t i = 0; i < kInternalScratchBytes; ++i) {
+        buffer[i] = static_cast<uint8_t>((i * 17u) ^ 0x5Au);
+    }
+
+    uint32_t checksum = 0;
+    for (std::size_t i = 0; i < kInternalScratchBytes; i += 1024) {
+        checksum = (checksum * 131u) ^ buffer[i];
+    }
+    checksum = (checksum * 131u) ^ buffer[kInternalScratchBytes - 1];
+
+    std::printf("internal_probe.buffer=%p\n", static_cast<void *>(buffer));
+    std::printf("internal_probe.external=%s\n", esp_ptr_external_ram(buffer) ? "yes" : "no");
+    std::printf("internal_probe.bytes=%u\n", static_cast<unsigned>(kInternalScratchBytes));
+    std::printf("internal_probe.checksum=0x%08" PRIx32 "\n", checksum);
+
+    heap_caps_free(buffer);
+    return true;
+}
+
+bool InitPersistentPsramProbe(WasmReplayControlResult *result)
+{
+    if (g_persistent_psram_probe != nullptr) {
+        heap_caps_free(g_persistent_psram_probe);
+        g_persistent_psram_probe = nullptr;
+        g_persistent_psram_probe_bytes = 0;
+    }
+
+    g_persistent_psram_probe = static_cast<uint8_t *>(
+        heap_caps_aligned_alloc(16, kScratchBufferBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (g_persistent_psram_probe == nullptr) {
+        SetReplayError(result, "persistent-alloc", "heap_caps_aligned_alloc failed");
+        return false;
+    }
+
+    g_persistent_psram_probe_bytes = kScratchBufferBytes;
+    std::memset(g_persistent_psram_probe, 0x11, g_persistent_psram_probe_bytes);
+
+    std::printf("persistent_psram_probe.buffer=%p\n", static_cast<void *>(g_persistent_psram_probe));
+    std::printf("persistent_psram_probe.external=%s\n",
+                esp_ptr_external_ram(g_persistent_psram_probe) ? "yes" : "no");
+    std::printf("persistent_psram_probe.bytes=%u\n", static_cast<unsigned>(g_persistent_psram_probe_bytes));
+    return true;
+}
+
+bool TouchPersistentPsramProbe(WasmReplayControlResult *result)
+{
+    if (g_persistent_psram_probe == nullptr || g_persistent_psram_probe_bytes != kScratchBufferBytes) {
+        SetReplayError(result, "persistent-touch", "persistent PSRAM probe is not initialized");
+        return false;
+    }
+
+    for (std::size_t i = 0; i < g_persistent_psram_probe_bytes; ++i) {
+        g_persistent_psram_probe[i] ^= static_cast<uint8_t>((i * 13u) + 0x3Cu);
+    }
+
+    uint32_t checksum = 0;
+    for (std::size_t i = 0; i < g_persistent_psram_probe_bytes; i += 1024) {
+        checksum = (checksum * 131u) ^ g_persistent_psram_probe[i];
+    }
+    checksum = (checksum * 131u) ^ g_persistent_psram_probe[g_persistent_psram_probe_bytes - 1];
+
+    std::printf("persistent_psram_probe.touch_buffer=%p\n", static_cast<void *>(g_persistent_psram_probe));
+    std::printf("persistent_psram_probe.touch_external=%s\n",
+                esp_ptr_external_ram(g_persistent_psram_probe) ? "yes" : "no");
+    std::printf("persistent_psram_probe.touch_checksum=0x%08" PRIx32 "\n", checksum);
+    return true;
+}
+
+bool FreePersistentPsramProbe()
+{
+    if (g_persistent_psram_probe != nullptr) {
+        heap_caps_free(g_persistent_psram_probe);
+        g_persistent_psram_probe = nullptr;
+        g_persistent_psram_probe_bytes = 0;
+    }
+    return true;
+}
+
 }  // namespace
 
 WasmReplayControlResult RunWasmReplayControlExample(const char *name)
@@ -123,7 +215,11 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
         return result;
     }
 
-    const bool is_display_control = std::strcmp(name, "psram-scratch") != 0;
+    const bool is_display_control = std::strcmp(name, "psram-scratch") != 0
+                                    && std::strcmp(name, "internal-scratch") != 0
+                                    && std::strcmp(name, "psram-persistent-init") != 0
+                                    && std::strcmp(name, "psram-persistent-touch") != 0
+                                    && std::strcmp(name, "psram-persistent-free") != 0;
     if (is_display_control && !IsWasmDisplayHostApiEnabled()) {
         SetReplayError(&result, "display", "display host API disabled");
         return result;
@@ -150,6 +246,44 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
         if (!RunPsramScratchProbe(&result)) {
             return result;
         }
+        result.success = true;
+        SetReplayError(&result, nullptr, nullptr);
+        PaperCanvasResetFrame();
+        return result;
+    }
+    else if (std::strcmp(name, "internal-scratch") == 0) {
+        result.queued_commands = 0;
+        if (!RunInternalScratchProbe(&result)) {
+            return result;
+        }
+        result.success = true;
+        SetReplayError(&result, nullptr, nullptr);
+        PaperCanvasResetFrame();
+        return result;
+    }
+    else if (std::strcmp(name, "psram-persistent-init") == 0) {
+        result.queued_commands = 0;
+        if (!InitPersistentPsramProbe(&result)) {
+            return result;
+        }
+        result.success = true;
+        SetReplayError(&result, nullptr, nullptr);
+        PaperCanvasResetFrame();
+        return result;
+    }
+    else if (std::strcmp(name, "psram-persistent-touch") == 0) {
+        result.queued_commands = 0;
+        if (!TouchPersistentPsramProbe(&result)) {
+            return result;
+        }
+        result.success = true;
+        SetReplayError(&result, nullptr, nullptr);
+        PaperCanvasResetFrame();
+        return result;
+    }
+    else if (std::strcmp(name, "psram-persistent-free") == 0) {
+        result.queued_commands = 0;
+        FreePersistentPsramProbe();
         result.success = true;
         SetReplayError(&result, nullptr, nullptr);
         PaperCanvasResetFrame();

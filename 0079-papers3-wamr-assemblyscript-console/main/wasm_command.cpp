@@ -18,7 +18,14 @@ namespace {
 
 bool ReplayExampleRequiresDisplay(const char *name)
 {
-    return name == nullptr || std::strcmp(name, "psram-scratch") != 0;
+    if (name == nullptr) {
+        return true;
+    }
+
+    return std::strcmp(name, "psram-scratch") != 0 && std::strcmp(name, "internal-scratch") != 0
+           && std::strcmp(name, "psram-persistent-init") != 0
+           && std::strcmp(name, "psram-persistent-touch") != 0
+           && std::strcmp(name, "psram-persistent-free") != 0;
 }
 
 void PrintUsage()
@@ -29,6 +36,7 @@ void PrintUsage()
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
     std::printf("  wasm instantiate-bare <name>\n");
+    std::printf("  wasm instantiate-bare-keepalive <name>\n");
     std::printf("  wasm instantiate-no-execenv <name>\n");
     std::printf("  wasm instantiate-only <name>\n");
     std::printf("  wasm run-preflush-worker <name>\n");
@@ -45,7 +53,12 @@ void PrintExamples()
     std::printf("  wasm info hello-frame\n");
     std::printf("  wasm replay hello-frame\n");
     std::printf("  wasm replay psram-scratch\n");
+    std::printf("  wasm replay internal-scratch\n");
+    std::printf("  wasm replay psram-persistent-init\n");
+    std::printf("  wasm replay psram-persistent-touch\n");
+    std::printf("  wasm replay psram-persistent-free\n");
     std::printf("  wasm instantiate-bare return-42\n");
+    std::printf("  wasm instantiate-bare-keepalive return-42\n");
     std::printf("  wasm instantiate-no-execenv return-42\n");
     std::printf("  wasm instantiate-only return-42\n");
     std::printf("  wasm run-preflush-worker hello-frame\n");
@@ -121,7 +134,8 @@ int CmdWasm(int argc, char **argv)
         return result.success ? 0 : 1;
     }
 
-    if (std::strcmp(argv[1], "instantiate-bare") == 0 || std::strcmp(argv[1], "instantiate-no-execenv") == 0
+    if (std::strcmp(argv[1], "instantiate-bare") == 0 || std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
+        || std::strcmp(argv[1], "instantiate-no-execenv") == 0
         || std::strcmp(argv[1], "instantiate-only") == 0) {
         if (argc < 3) {
             PrintUsage();
@@ -139,14 +153,17 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
+        const WasmInvocationMode invocation_mode =
+            std::strcmp(argv[1], "instantiate-bare") == 0
+                ? WasmInvocationMode::InstantiateBare
+                : (std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
+                       ? WasmInvocationMode::InstantiateBareKeepAlive
+                       : (std::strcmp(argv[1], "instantiate-no-execenv") == 0
+                              ? WasmInvocationMode::InstantiateNoExecEnv
+                              : WasmInvocationMode::InstantiateOnly));
         const WasmExecutionResult result =
             RunEmbeddedWasmModule(*module, module->entrypoint, WasmFlushTiming::AfterCleanup,
-                                  WasmExecutionContext::Inline,
-                                  std::strcmp(argv[1], "instantiate-bare") == 0
-                                      ? WasmInvocationMode::InstantiateBare
-                                      : (std::strcmp(argv[1], "instantiate-no-execenv") == 0
-                                             ? WasmInvocationMode::InstantiateNoExecEnv
-                                             : WasmInvocationMode::InstantiateOnly));
+                                  WasmExecutionContext::Inline, invocation_mode);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }

@@ -45,6 +45,20 @@ struct WasmWorkerRunContext {
 };
 
 WasmLastExecutionStatus g_last_execution_status = {};
+wasm_module_t g_leaked_wasm_module = nullptr;
+wasm_module_inst_t g_leaked_module_inst = nullptr;
+
+void ReleaseLeakedWasmState()
+{
+    if (g_leaked_module_inst != nullptr) {
+        wasm_runtime_deinstantiate(g_leaked_module_inst);
+        g_leaked_module_inst = nullptr;
+    }
+    if (g_leaked_wasm_module != nullptr) {
+        wasm_runtime_unload(g_leaked_wasm_module);
+        g_leaked_wasm_module = nullptr;
+    }
+}
 
 const char *FlushTimingName(WasmFlushTiming flush_timing)
 {
@@ -77,6 +91,8 @@ const char *InvocationModeName(WasmInvocationMode invocation_mode)
             return "execute";
         case WasmInvocationMode::InstantiateBare:
             return "instantiate-bare";
+        case WasmInvocationMode::InstantiateBareKeepAlive:
+            return "instantiate-bare-keepalive";
         case WasmInvocationMode::InstantiateNoExecEnv:
             return "instantiate-no-execenv";
         case WasmInvocationMode::InstantiateOnly:
@@ -183,6 +199,15 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     result.instantiated = true;
 
     if (invocation_mode == WasmInvocationMode::InstantiateBare) {
+        result.success = true;
+        goto cleanup;
+    }
+    if (invocation_mode == WasmInvocationMode::InstantiateBareKeepAlive) {
+        ReleaseLeakedWasmState();
+        g_leaked_module_inst = module_inst;
+        g_leaked_wasm_module = wasm_module;
+        module_inst = nullptr;
+        wasm_module = nullptr;
         result.success = true;
         goto cleanup;
     }
@@ -371,6 +396,10 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
         SetResultError(&result, "lookup", "empty export name");
         RememberLastExecutionResult(module, result);
         return result;
+    }
+
+    if (invocation_mode != WasmInvocationMode::InstantiateBareKeepAlive) {
+        ReleaseLeakedWasmState();
     }
 
     if (execution_context == WasmExecutionContext::WorkerThread) {
