@@ -35,4 +35,4 @@ idf.py -p /dev/ttyACM0 flash monitor
 - Display initialization and display host imports are deliberately removed.
 - The main control matrix is `psram-persistent-init` / `psram-persistent-touch-sync`
   before and after `instantiate-bare-keepalive return-42`.
-- Allocator A/B is supported through `sdkconfig.defaults` and `sdkconfig.system_allocator`.
+- Allocator A/B is supported through `sdkconfig.defaults`, `sdkconfig.system_allocator`, and `sdkconfig.internal_pool`.
