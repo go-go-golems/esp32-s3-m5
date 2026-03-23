@@ -37,6 +37,14 @@
 - [x] Task 4.9: Test whether worker-thread Wasm execution prevents same-boot replay poisoning on PaperS3
 - [x] Task 4.10: Add reduced replay controls that isolate clear-only from frame-no-clear PaperS3 drawing
 - [x] Task 4.11: Test clear-only and frame-no-clear after successful worker-thread Wasm execution
+- [x] Task 5: Add a true headless PaperS3 WAMR baseline that skips app-owned `M5GFX` / `PaperCanvas` entry points
+- [x] Task 5.1: Add a project Kconfig flag that controls whether the PaperS3 display stack is enabled for the WAMR demo firmware
+- [x] Task 5.2: Gate `app_main.cpp` so the headless variant does not call board splash / `M5.Display` initialization
+- [x] Task 5.3: Gate `wasm_host_api.cpp` so the headless variant registers only non-display host imports and does not initialize `PaperCanvas`
+- [x] Task 5.4: Gate `wasm_command.cpp` / replay helpers so the headless variant cannot accidentally re-enter the display path through control commands
+- [x] Task 5.5: Add a reusable headless build overlay or script so the variant can be rebuilt without ad hoc command history
+- [x] Task 5.6: Build both the normal and headless variants and record exactly what the headless mode still links versus what it no longer executes
+- [x] Task 5.7: Commit the headless-baseline slice and record the result in the diary
 
 ## Planned
 

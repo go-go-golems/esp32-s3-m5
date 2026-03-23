@@ -18,26 +18,43 @@ RelatedFiles:
       Note: |-
         Main component alias wiring that must be updated during the migration
         Adds the pthread dependency required for the worker-thread execution experiment
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/Kconfig.projbuild
+      Note: |-
+        Adds the project-level switch that compiles the PaperS3 display stack out of the headless baseline
+        Project Kconfig flag for the headless PaperS3 control build
     - Path: 0079-papers3-wamr-assemblyscript-console/main/idf_component.yml
       Note: Dependency manifest being migrated from upstream WAMR to Espressif's package
     - Path: 0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp
       Note: Contains PaperS3 screen clear and frame lifecycle code hit by the decoded backtraces
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp
-      Note: Adds the worker-thread console commands used for the A/B hardware experiment
+      Note: Adds the worker-thread console commands and now hides replay commands in the headless baseline
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp
-      Note: Contains queued host-command flush logic that leads into the crashing PaperS3 display path
+      Note: Contains queued host-command flush logic and the new display-host gating used by the headless baseline
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp
       Note: Contains the preflush execution path and exec probes used in the new hardware tests
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp
-      Note: Adds clear-only and frame-no-clear controls that narrowed the PaperS3 crash beyond screenClear
+      Note: Adds clear-only and frame-no-clear controls and now rejects replay in the headless baseline
+    - Path: 0079-papers3-wamr-assemblyscript-console/sdkconfig.headless
+      Note: |-
+        Headless overlay that disables the PaperS3 display stack for the dedicated baseline build
+        Headless overlay that disables app-owned display entry points
+    - Path: ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/build_headless_wamr.sh
+      Note: |-
+        Reusable headless build helper that forces a dedicated headless sdkconfig instead of inheriting the project one
+        Reusable dedicated headless build helper
+    - Path: ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/flash_and_probe_headless_wamr.sh
+      Note: |-
+        Reusable headless flash/probe helper for the attached PaperS3
+        Reusable dedicated headless flash and probe helper
     - Path: ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py
       Note: New same-boot probe helper used to expose post-WAMR contamination on PaperS3
 ExternalSources: []
 Summary: Step-by-step diary for the WAMR dependency migration in `0079`.
-LastUpdated: 2026-03-22T21:59:00-04:00
+LastUpdated: 2026-03-22T22:34:11-04:00
 WhatFor: Record the migration sequence, build results, and any resolver or alias issues encountered while switching to Espressif's WAMR package.
 WhenToUse: Read this before continuing the migration or reviewing how the dependency swap was validated.
 ---
+
 
 
 
@@ -868,3 +885,177 @@ The result was negative in the useful sense. Running Wasm on a worker thread did
   - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay hello-frame'`
   - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay clear-only'`
   - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay frame-no-clear'`
+
+## Step 12: Build and validate a true headless PaperS3 baseline
+
+The next debugging gap was obvious: we had proved that non-drawing Wasm modules could still poison later PaperS3 replay, but we had never built a PaperS3 firmware variant that completely skipped our own display-stack entry points. I treated this as a control experiment rather than a feature change. The point was to create the smallest honest baseline that still used the same board, same console, and same WAMR runtime, while removing app-owned `M5.Display`, `PaperCanvas`, and replay entry points.
+
+This step ended up being more educational than it looked on paper because the first "headless" success was false. The code changes were directionally right, but the build/flash harness still inherited the project `sdkconfig`, which meant the first flashed image came up with `host_api.display=enabled` and six host symbols. Fixing that, and then fixing the disabled-build compile break, produced the real result: a smaller headless image that booted on PaperS3, registered only two host symbols, ran `return-42`, and rejected `wasm replay hello-frame` before it could enter `Panel_EPD`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, add tasks and then do it, keeping a detailed diary, committing as you go."
+
+**Assistant interpretation:** Add a formal task slice for the headless PaperS3 experiment, implement it instead of just describing it, validate it, and preserve the debugging path in the ticket diary.
+
+**Inferred user intent:** Create a reusable control build that removes the display path from the PaperS3 WAMR experiment so later debugging can compare "WAMR on PaperS3" against "WAMR plus PaperS3 display stack" without guesswork.
+
+**Commit (code):** 84197d8 — "debug(papers3): add headless wamr baseline"
+
+### What I did
+
+- Added the new Task 5 slice to [tasks.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/tasks.md) before touching code.
+- Added [main/Kconfig.projbuild](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/Kconfig.projbuild) with `CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK`.
+- Added [sdkconfig.headless](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/sdkconfig.headless) to disable that option for the control build.
+- Gated [app_main.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/app_main.cpp) so the headless build skips:
+  - `M5.begin(...)`
+  - `M5.Display.setRotation(...)`
+  - splash drawing
+  - `InitializePaperCanvas()`
+- Gated [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp) so the headless build:
+  - registers only `host_log_i32` and `host_delay_ms`
+  - reports `host_api.display=disabled`
+  - reports canvas width/height as `disabled`
+  - refuses queued display commands during flush
+- Added [wasm_host_api.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.h) support for `IsWasmDisplayHostApiEnabled()`.
+- Gated [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp) so the headless build hides replay usage/examples and rejects `wasm replay ...` with a clear message.
+- Gated [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp) so the control path cannot accidentally re-enter display work when disabled.
+- Added reusable ticket-local helpers:
+  - [build_headless_wamr.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/build_headless_wamr.sh)
+  - [flash_and_probe_headless_wamr.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/flash_and_probe_headless_wamr.sh)
+- Built the normal firmware and the corrected headless firmware.
+- Flashed the corrected headless firmware to the attached PaperS3.
+- Ran and captured:
+  - `wasm status`
+  - `wasm run-preflush return-42`
+  - `wasm replay hello-frame`
+
+### Why
+
+- This was the cleanest available control experiment on the same board.
+- It separates three layers that had been conflated:
+  - generic WAMR runtime state on PaperS3
+  - app-owned display initialization and replay entry points
+  - the deeper M5GFX `Panel_EPD` execution path
+- Without this control build, later statements like "WAMR alone poisons PaperS3" would still be weaker than they should be because we were always touching some part of the display stack.
+
+### What worked
+
+- The normal build still succeeded after the new display gating code.
+- The corrected headless build succeeded with a smaller binary:
+  - normal build: `0x8d770`
+  - headless build: `0x81b30`
+- The corrected headless firmware booted on the attached PaperS3 without the earlier `M5GFX: [Autodetect] board_M5PaperS3` log spam.
+- Runtime status on the corrected headless firmware showed:
+  - `host_api.display=disabled`
+  - `host_api.symbols=2`
+  - `host_api.canvas.width=disabled`
+  - `host_api.canvas.height=disabled`
+- `wasm run-preflush return-42` still succeeded on headless PaperS3.
+- `wasm replay hello-frame` was blocked in the intended place:
+  - `display host API is disabled in this build`
+- The corrected headless build therefore gives us a real PaperS3 control image that keeps WAMR and the USB Serial/JTAG console while removing app-owned display activity.
+
+### What didn't work
+
+- The first headless build did not actually become headless on-device.
+  - I built with:
+    - `idf.py -C ... -B build-headless -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.headless" reconfigure build`
+  - but the flashed firmware still showed:
+    - `host_api.display=enabled`
+    - `Registered 6 host symbols for module 'host'`
+  - root cause:
+    - `SDKCONFIG_DEFAULTS` only seeded defaults
+    - the build was still inheriting the project [sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/sdkconfig), where `CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK=y`
+- The first clean rebuild with a dedicated headless sdkconfig exposed a compile bug:
+  - exact error:
+    - `'CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK' was not declared in this scope`
+  - location:
+    - [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+  - root cause:
+    - in ESP-IDF, a disabled bool config is often omitted entirely rather than defined to `0`
+    - I had used the symbol as a normal C++ identifier instead of behind preprocessor-controlled constants
+- I also made a harness mistake while probing the corrected headless firmware:
+  - I launched three `serial_send_and_capture.py` processes in parallel against `/dev/ttyACM0`
+  - two failed with:
+    - `serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)`
+  - only one completed
+  - that evidence is not trustworthy as a multi-command run and should be treated as operator error, not firmware behavior
+- The reusable multi-command probe wrapper [flash_and_probe_headless_wamr.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/flash_and_probe_headless_wamr.sh) also timed out once with:
+  - `serial_probe_sequence: prompt not observed before timeout`
+  - even though the boot log showed the prompt later in the capture
+  - I worked around that by using the lower-level single-command helper sequentially against the already-flashed image
+
+### What I learned
+
+- `SDKCONFIG_DEFAULTS` is not enough for a reproducible alternate ESP-IDF build when the project already has a populated top-level `sdkconfig`.
+- A true alternate configuration needs its own `SDKCONFIG` file, not just alternate defaults.
+- A disabled ESP-IDF bool Kconfig option is not safe to reference as a normal C++ symbol; it must be handled in `#if` or wrapped in a preprocessor-derived constant.
+- The headless control image is genuinely useful:
+  - it proves WAMR can still initialize and run simple modules on PaperS3
+  - it proves our own app-owned display path can be removed cleanly
+  - it gives a narrower baseline for any future “WAMR alone vs display stack” claim
+- Even in headless mode, the firmware still links `M5GFX` and `M5Unified` through the overall component graph. The win here is runtime isolation, not dependency elimination.
+
+### What was tricky to build
+
+- The hardest part was not the compile-time gating itself. It was making the build variant honest. The first flashed image looked like success from the shell side because the build completed, but the on-device status immediately showed that the flag had not really taken effect. That kind of false baseline is dangerous because it gives a clean-looking artifact with the wrong semantics.
+- The second tricky part was the disabled-config compile behavior. Once the alternate sdkconfig actually took effect, the build failed because the code had quietly assumed the config macro would still exist in the `n` case. Fixing that required turning the setting into a preprocessor-derived `constexpr` and wrapping the display-only host functions with `#if CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK`.
+- The third tricky part was probe hygiene. The serial console on `/dev/ttyACM0` is a single shared resource. Starting three readers at once produced exactly the kind of misleading noise that a future reviewer would waste time on if I did not record it here explicitly.
+
+### What warrants a second pair of eyes
+
+- Whether we should go one step further and remove `M5Unified` / `M5GFX` from the component graph in a future probe project instead of only skipping runtime entry points in `0079`.
+- Whether the prompt-timing problem in [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py) should be fixed before relying on it for more headless multi-command runs.
+- Whether the next PaperS3 debugging slice should use this headless control image as the baseline reference in every diary entry and postmortem comparison.
+
+### What should be done in the future
+
+- Keep the headless build and flash helpers under `ESP-39/scripts/` and reuse them instead of ad hoc shell history.
+- Treat the corrected headless PaperS3 firmware as the board-local control image for future comparisons.
+- Use the headless status fields (`host_api.display`, `host_api.symbols`, `host_api.canvas.*`) as a quick sanity check before trusting any future headless result.
+- If we need a dependency-pruned control, create a separate minimal PaperS3 probe project rather than bloating `0079` with more conditional build logic.
+
+### Code review instructions
+
+- Start with the new feature switch:
+  - [Kconfig.projbuild](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/Kconfig.projbuild)
+  - [sdkconfig.headless](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/sdkconfig.headless)
+- Then inspect the runtime gating:
+  - [app_main.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/app_main.cpp)
+  - [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Then review the reusable harness:
+  - [build_headless_wamr.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/build_headless_wamr.sh)
+  - [flash_and_probe_headless_wamr.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/flash_and_probe_headless_wamr.sh)
+- Validate with:
+  - `.../build_headless_wamr.sh`
+  - `.../flash_and_probe_headless_wamr.sh /dev/ttyACM0`
+  - `python .../serial_send_and_capture.py --command 'wasm status'`
+  - `python .../serial_send_and_capture.py --command 'wasm run-preflush return-42'`
+  - `python .../serial_send_and_capture.py --command 'wasm replay hello-frame'`
+
+### Technical details
+
+- Initial broken headless evidence:
+  - on-device `host_api.display=enabled`
+  - `Registered 6 host symbols for module 'host'`
+  - root cause: build still inherited the project `sdkconfig`
+- Corrected headless configuration evidence:
+  - [build-headless/sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/build-headless/sdkconfig) contains:
+    - `# CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK is not set`
+- Corrected headless runtime evidence:
+  - `host_api.display=disabled`
+  - `host_api.symbols=2`
+  - `host_api.canvas.width=disabled`
+  - `host_api.canvas.height=disabled`
+- Corrected headless command results:
+  - `wasm run-preflush return-42` -> success
+  - `wasm replay hello-frame` -> `display host API is disabled in this build`
+- Commands used during this step:
+  - `idf.py -C ... -B build-headless -D SDKCONFIG=.../build-headless/sdkconfig -D SDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.headless" reconfigure build`
+  - `.../flash_and_probe_headless_wamr.sh /dev/ttyACM0`
+  - `python .../serial_send_and_capture.py --port /dev/ttyACM0 --command 'wasm status'`
+  - `python .../serial_send_and_capture.py --port /dev/ttyACM0 --command 'wasm run-preflush return-42'`
+  - `python .../serial_send_and_capture.py --port /dev/ttyACM0 --command 'wasm replay hello-frame'`
