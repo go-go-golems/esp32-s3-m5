@@ -23,11 +23,15 @@ void PrintUsage()
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
+    std::printf("  wasm run-copy-internal <name>\n");
+    std::printf("  wasm run-copy-spiram <name>\n");
     std::printf("  wasm load-only <name>\n");
     std::printf("  wasm load-only-copy-internal <name>\n");
     std::printf("  wasm load-only-copy-spiram <name>\n");
     std::printf("  wasm load-only-keepalive <name>\n");
     std::printf("  wasm instantiate-bare <name>\n");
+    std::printf("  wasm instantiate-bare-copy-internal <name>\n");
+    std::printf("  wasm instantiate-bare-copy-spiram <name>\n");
     std::printf("  wasm instantiate-bare-keepalive <name>\n");
     std::printf("  wasm instantiate-no-execenv <name>\n");
     std::printf("  wasm instantiate-only <name>\n");
@@ -46,11 +50,15 @@ void PrintExamples()
     std::printf("  wasm replay psram-persistent-touch\n");
     std::printf("  wasm replay psram-persistent-touch-sync\n");
     std::printf("  wasm replay psram-persistent-free\n");
+    std::printf("  wasm run-copy-internal return-42\n");
+    std::printf("  wasm run-copy-spiram return-42\n");
     std::printf("  wasm load-only return-42\n");
     std::printf("  wasm load-only-copy-internal return-42\n");
     std::printf("  wasm load-only-copy-spiram return-42\n");
     std::printf("  wasm load-only-keepalive return-42\n");
     std::printf("  wasm instantiate-bare return-42\n");
+    std::printf("  wasm instantiate-bare-copy-internal return-42\n");
+    std::printf("  wasm instantiate-bare-copy-spiram return-42\n");
     std::printf("  wasm instantiate-bare-keepalive return-42\n");
     std::printf("  wasm instantiate-no-execenv return-42\n");
     std::printf("  wasm instantiate-only return-42\n");
@@ -93,7 +101,8 @@ int CmdWasm(int argc, char **argv)
         return 0;
     }
 
-    if (std::strcmp(argv[1], "run") == 0) {
+    if (std::strcmp(argv[1], "run") == 0 || std::strcmp(argv[1], "run-copy-internal") == 0
+        || std::strcmp(argv[1], "run-copy-spiram") == 0) {
         if (argc < 3) {
             PrintUsage();
             return 1;
@@ -110,9 +119,14 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
+        const WasmBinarySource binary_source =
+            std::strcmp(argv[1], "run-copy-internal") == 0
+                ? WasmBinarySource::CopiedToInternalRam
+                : (std::strcmp(argv[1], "run-copy-spiram") == 0 ? WasmBinarySource::CopiedToSpiram
+                                                                  : WasmBinarySource::Embedded);
         const WasmExecutionResult result =
             RunEmbeddedWasmModule(*module, module->entrypoint, WasmFlushTiming::AfterCleanup,
-                                  WasmExecutionContext::Inline);
+                                  WasmExecutionContext::Inline, WasmInvocationMode::Execute, binary_source);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }
@@ -120,6 +134,8 @@ int CmdWasm(int argc, char **argv)
     if (std::strcmp(argv[1], "load-only") == 0 || std::strcmp(argv[1], "load-only-copy-internal") == 0
         || std::strcmp(argv[1], "load-only-copy-spiram") == 0
         || std::strcmp(argv[1], "load-only-keepalive") == 0 || std::strcmp(argv[1], "instantiate-bare") == 0
+        || std::strcmp(argv[1], "instantiate-bare-copy-internal") == 0
+        || std::strcmp(argv[1], "instantiate-bare-copy-spiram") == 0
         || std::strcmp(argv[1], "instantiate-bare-keepalive") == 0 || std::strcmp(argv[1], "instantiate-no-execenv") == 0
         || std::strcmp(argv[1], "instantiate-only") == 0) {
         if (argc < 3) {
@@ -140,16 +156,21 @@ int CmdWasm(int argc, char **argv)
 
         const bool load_only_copy_internal = std::strcmp(argv[1], "load-only-copy-internal") == 0;
         const bool load_only_copy_spiram = std::strcmp(argv[1], "load-only-copy-spiram") == 0;
+        const bool instantiate_bare_copy_internal = std::strcmp(argv[1], "instantiate-bare-copy-internal") == 0;
+        const bool instantiate_bare_copy_spiram = std::strcmp(argv[1], "instantiate-bare-copy-spiram") == 0;
         const WasmBinarySource binary_source =
-            load_only_copy_internal
+            (load_only_copy_internal || instantiate_bare_copy_internal)
                 ? WasmBinarySource::CopiedToInternalRam
-                : (load_only_copy_spiram ? WasmBinarySource::CopiedToSpiram : WasmBinarySource::Embedded);
+                : ((load_only_copy_spiram || instantiate_bare_copy_spiram)
+                       ? WasmBinarySource::CopiedToSpiram
+                       : WasmBinarySource::Embedded);
         const WasmInvocationMode invocation_mode =
             (std::strcmp(argv[1], "load-only") == 0 || load_only_copy_internal || load_only_copy_spiram)
                 ? WasmInvocationMode::LoadOnly
                 : (std::strcmp(argv[1], "load-only-keepalive") == 0
                        ? WasmInvocationMode::LoadOnlyKeepAlive
-                       : (std::strcmp(argv[1], "instantiate-bare") == 0
+                       : ((std::strcmp(argv[1], "instantiate-bare") == 0 || instantiate_bare_copy_internal
+                           || instantiate_bare_copy_spiram)
                               ? WasmInvocationMode::InstantiateBare
                               : (std::strcmp(argv[1], "instantiate-bare-keepalive") == 0
                                      ? WasmInvocationMode::InstantiateBareKeepAlive
