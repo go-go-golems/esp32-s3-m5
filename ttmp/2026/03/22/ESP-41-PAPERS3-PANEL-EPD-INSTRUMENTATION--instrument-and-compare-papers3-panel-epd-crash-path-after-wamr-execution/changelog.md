@@ -179,3 +179,11 @@
   - the committed snapshot copies under `scripts/wamr-local-debug-snapshots/` still match the live ignored vendor files
   - so the current WAMR-side instrumentation remains reproducible even though `managed_components/` is ignored by the main repo
 - Added `scripts/check_wamr_snapshot_sync.sh` so the tracked WAMR snapshot copies can be revalidated against the live ignored vendor files with one command instead of an ad hoc diff session
+- Added a dedicated allocator guide in:
+  - `design/02-wamr-allocator-and-spiram-analysis-for-papers3.md`
+- The guide documents the exact split between:
+  - the SPIRAM-backed `Alloc_With_Pool` runtime allocator used by `0079`
+  - the separate `os_mmap()` linear-memory path
+  - the project-local `WASM_MEM_DUAL_BUS_MIRROR=0` override
+- It also records the main debugging conclusion from this slice in intern-friendly form:
+  - the current PaperS3 bug is not best explained as a naive "WAMR and the system heap are both fighting over the same SPIRAM objects" conflict

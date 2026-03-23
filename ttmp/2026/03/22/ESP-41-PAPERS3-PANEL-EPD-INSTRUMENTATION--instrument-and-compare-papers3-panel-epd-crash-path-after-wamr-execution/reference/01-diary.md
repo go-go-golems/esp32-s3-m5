@@ -425,6 +425,14 @@ python ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-
   - pool free after load: `523608`
   - pool free after instantiate: `522968`
   - linear memory: `0x3fcb9aa0`, `32768` bytes, internal RAM
+
+## Step 10: Write the dedicated WAMR allocator and SPIRAM guide so later debugging does not regress into the wrong model
+
+This step was documentation-heavy, but it closes a real debugging risk. The live conversation had reached a point where "WAMR allocates in SPIRAM, so maybe it conflicts with the heap manager" sounded plausible enough to steer later work in the wrong direction. That is exactly the kind of idea that needs a durable write-up, not just a quick terminal answer.
+
+I created a dedicated design document, [02-wamr-allocator-and-spiram-analysis-for-papers3.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/design/02-wamr-allocator-and-spiram-analysis-for-papers3.md), and wrote it as an intern-facing guide instead of a narrow debugging note. The guide explains the three WAMR allocator modes, the current `Alloc_With_Pool` configuration in `0079`, the default EMS allocator inside the pool, the separate `os_mmap()` path used for linear memory, and the project-local `WASM_MEM_DUAL_BUS_MIRROR=0` override. It also explicitly answers the question that triggered the guide: the current evidence does not point to a naive "WAMR and ESP-IDF are both managing the same SPIRAM objects" conflict.
+
+I also related the key code files directly to that design doc with `docmgr doc relate`, updated the ticket index so the guide is easy to discover, and kept the wording aligned with the latest traced hardware results. That matters because the allocator story has changed over time; this doc needed to reflect the current state, not the earlier rougher hypothesis.
   - `fillrect xs=0 ys=0 xe=959 ye=539 w=540 h=960 ... last=460589 len=259200`
 - Successful fresh-boot `frame-no-clear` replay log:
   - `display req=(0,0 0x0) upd=(16,16 928x508) range=(16,16)-(943,523) mode=3 ...`
@@ -623,7 +631,7 @@ The result is useful because it is a negative result, not just more noise. Right
 
 ### Prompt Context
 
-**User prompt (verbatim):** "go at it. keep git commits and specific branches for all the stuff thirdparty that you modify as you investigate, so that we cna properly track them down and identify them later on.\n\nContinue keeping a detailed diary."
+**User prompt (verbatim):** "go at it. keep git commits and specific branches for all the stuff thirdparty that you modify as you investigate, so that we cna properly track them down and identify them later on. Continue keeping a detailed diary."
 
 **Assistant interpretation:** Continue the active debugging slice, preserve traceability for third-party changes, and keep the ticket diary detailed enough to reconstruct the investigation.
 

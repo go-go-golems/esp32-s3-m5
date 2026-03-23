@@ -13,13 +13,16 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/design/02-wamr-allocator-and-spiram-analysis-for-papers3.md
+      Note: Detailed allocator and SPIRAM design guide for the current PaperS3 WAMR integration
 ExternalSources: []
 Summary: Driver-focused ticket for instrumenting the PaperS3 M5GFX EPD backend and comparing it to newer upstream changes after the WAMR-side search space was narrowed.
 LastUpdated: 2026-03-22T22:42:45.948604035-04:00
 WhatFor: Keep the remaining PaperS3-specific display-path debugging separate from the broader WAMR migration history.
 WhenToUse: Read this when continuing the PaperS3 EPD investigation or reviewing why Panel_EPD became the primary suspect.
 ---
+
 
 # Instrument and compare PaperS3 Panel_EPD crash path after WAMR execution
 
@@ -33,6 +36,7 @@ The immediate plan is to instrument the direct framebuffer write path and the di
 
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
+- **Allocator Guide**: See [design/02-wamr-allocator-and-spiram-analysis-for-papers3.md](./design/02-wamr-allocator-and-spiram-analysis-for-papers3.md)
 
 ## Status
 
