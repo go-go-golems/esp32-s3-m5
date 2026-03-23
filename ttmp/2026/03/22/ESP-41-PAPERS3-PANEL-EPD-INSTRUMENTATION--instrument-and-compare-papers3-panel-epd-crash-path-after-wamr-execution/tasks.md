@@ -23,6 +23,8 @@
 - [x] Task 3.18: Use the keepalive probe with `psram-scratch` to decide whether instantiate alone is sufficient
 - [x] Task 3.19: Add RAM-locality control probes so we can split allocator metadata corruption from broader PSRAM/cache poisoning
 - [x] Task 3.20: Compare post-instantiate writes into internal RAM, newly allocated PSRAM, and preallocated PSRAM buffers on the same boot
+- [x] Task 3.21: Add direct cache-enabled and heap-integrity probes around instantiate and replay control paths
+- [x] Task 3.22: Decide whether those state probes expose a simple stuck-cache or heap-corruption state before the PSRAM crash
 
 ## Planned
 
@@ -47,3 +49,4 @@
 - [ ] Task 4: Decide whether the evidence now points to a broader PaperS3 PSRAM/cache issue, a WAMR/platform cleanup problem, or a remaining EPD-specific layer on top
 - [ ] Task 4.1: Record what instrumentation proved and what it falsified
 - [ ] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
+- [ ] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate

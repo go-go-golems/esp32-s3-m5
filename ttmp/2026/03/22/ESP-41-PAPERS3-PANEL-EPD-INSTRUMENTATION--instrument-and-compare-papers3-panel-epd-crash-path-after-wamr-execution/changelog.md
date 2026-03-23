@@ -67,3 +67,18 @@
   - internal RAM writes continue to work
   - WAMR instantiate allocates its own guest linear memory in internal RAM
   - but afterward, both newly allocated and preallocated PSRAM write paths are poisoned on PaperS3
+- Added direct app-side state probes around the instantiate boundary and replay controls:
+  - `spi_flash_cache_enabled()`
+  - `heap_caps_check_integrity()` for internal RAM and SPIRAM
+  - free-space snapshots for internal RAM and SPIRAM
+- Confirmed on PaperS3 that those probes stay nominal right up to the failing preallocated PSRAM write:
+  - `flash_cache_enabled=yes`
+  - `internal_heap_ok=yes`
+  - `spiram_heap_ok=yes`
+- That means the remaining bug is not exposed as a simple “cache still disabled” state or obvious heap corruption before the crash
+- Compared the relevant PaperS3 and AtomS3R `sdkconfig` slices and found no meaningful PSRAM/cache-mode mismatch:
+  - both use octal PSRAM
+  - both use `40 MHz` PSRAM
+  - both use `32 KiB` data cache with `32 B` cache lines
+  - both disable XIP/fetch/rodata-from-PSRAM
+  - the only notable difference in that comparison is flash size (`16 MB` vs `8 MB`)

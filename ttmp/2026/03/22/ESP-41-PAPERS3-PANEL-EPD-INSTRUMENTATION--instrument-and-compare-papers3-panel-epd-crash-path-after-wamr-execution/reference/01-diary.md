@@ -457,6 +457,115 @@ That combination is the strongest evidence so far for a PaperS3-specific PSRAM/c
   - [wasm_replay_control.cpp:276](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L276)
   - [wasm_command.cpp:181](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp#L181)
 
+## Step 6: Probe cache-enabled and heap-integrity state directly, then compare the PaperS3 and AtomS3R sdkconfig slices
+
+Once the preallocated-PSRAM probe still crashed, the natural next suspicion was “maybe the external cache is still effectively off, or maybe the SPIRAM heap is already corrupt but we only see it when we touch a user buffer.” Rather than keep inferring that from panics, I added direct state probes around the instantiate boundary and around the replay controls.
+
+The result is useful because it is a negative result, not just more noise. Right before the failing `psram-persistent-touch` write, the firmware still reports `flash_cache_enabled=yes`, `internal_heap_ok=yes`, and `spiram_heap_ok=yes`. That does not prove everything about the cache subsystem is healthy, but it does rule out two simpler stories: “WAMR left flash/extmem cache globally disabled” and “the SPIRAM heap is already obviously corrupt before the first user write.”
+
+### Prompt Context
+
+**User prompt (verbatim):** "go at it. keep git commits and specific branches for all the stuff thirdparty that you modify as you investigate, so that we cna properly track them down and identify them later on.\n\nContinue keeping a detailed diary."
+
+**Assistant interpretation:** Continue the active debugging slice, preserve traceability for third-party changes, and keep the ticket diary detailed enough to reconstruct the investigation.
+
+**Inferred user intent:** Narrow the remaining PaperS3-specific failure without losing the provenance of code changes or the reasoning trail.
+
+### What I did
+
+- Added direct state probes in:
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Those probes log:
+  - `spi_flash_cache_enabled()`
+  - `heap_caps_check_integrity(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT, false)`
+  - `heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, false)`
+  - internal and SPIRAM free-space snapshots
+- Rebuilt and flashed the attached PaperS3.
+- Reran the same-boot persistent PSRAM sequence:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch`
+- Compared the relevant `sdkconfig` slices for:
+  - [0079 sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/sdkconfig)
+  - [0081 sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0081-atoms3r-wamr-probe-console/sdkconfig)
+
+### Why
+
+- If `spi_flash_cache_enabled()` flipped to `no` after instantiate, that would be a much cleaner explanation than the current indirect crash signal.
+- If `heap_caps_check_integrity()` failed for SPIRAM before the explicit write, the remaining bug would look more like allocator corruption than cache-path poisoning.
+- Comparing `sdkconfig` against the working AtomS3R control is the cheapest way to rule out a boring project-config mismatch before digging deeper into board bring-up or cache internals.
+
+### What worked
+
+- The new state probes compiled and ran cleanly on PaperS3.
+- The failing sequence now shows a clear pre-crash state:
+  - `replay_mem.flash_cache_enabled=yes`
+  - `replay_mem.internal_heap_ok=yes`
+  - `replay_mem.spiram_heap_ok=yes`
+- The instantiate boundary also stays nominal:
+  - `runtime_mem.flash_cache_enabled=yes`
+  - `runtime_mem.internal_heap_ok=yes`
+  - `runtime_mem.spiram_heap_ok=yes`
+- The `sdkconfig` comparison showed no meaningful PSRAM/cache-mode mismatch between the failing PaperS3 project and the working AtomS3R control project.
+
+### What didn't work
+
+- The new probes did **not** reveal a simple stuck-disable state or obvious heap corruption before the crash.
+- `psram-persistent-touch` still crashes immediately after those probes report a healthy-looking state.
+
+### What I learned
+
+- The remaining bug is subtler than “external cache is off” as reported by `spi_flash_cache_enabled()`.
+- The remaining bug is also subtler than “SPIRAM heap metadata is already obviously broken” as reported by `heap_caps_check_integrity()`.
+- The PaperS3 vs AtomS3R difference is not explained by the obvious PSRAM/cache `sdkconfig` knobs:
+  - both use octal PSRAM
+  - both run PSRAM at `40 MHz`
+  - both keep `32 KiB` data cache and `32 B` data-cache lines
+  - both disable XIP/fetch/rodata from PSRAM
+
+### What was tricky to build
+
+- These probes are useful only if they run before the crash and do not themselves create the crash. That meant keeping them bounded and lightweight even though they touch system state and heap APIs in a debugging-sensitive firmware.
+- The WAMR component under `managed_components/` is not a separately branched nested repo in this workspace. So unlike the nested `M5GFX` repo, those third-party edits have to stay traceable through focused commits in the main repo rather than through a dedicated vendor branch. I wrote that down explicitly here because it affects how future reviewers should interpret the provenance of WAMR-side patches.
+
+### What warrants a second pair of eyes
+
+- Whether the next best discriminator is a lower-level cache/msync probe on the PSRAM buffer, or a build that removes app-owned PaperS3/M5 bring-up entirely.
+- Whether the one remaining config difference that did show up in the quick comparison, flash size (`16 MB` on PaperS3 vs `8 MB` on AtomS3R), is worth any dedicated follow-up at all.
+
+### What should be done in the future
+
+- Build a PaperS3 control image that skips app-owned M5 display bring-up entirely and rerun the same WAMR + PSRAM probes there.
+- If the crash survives that control build, continue with lower-level PSRAM/cache probes such as `esp_cache_msync(...)` or a dedicated minimal PaperS3 WAMR probe project.
+
+### Code review instructions
+
+- Start with:
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Then review the project-control comparison targets:
+  - [0079 sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/sdkconfig)
+  - [0081 sdkconfig](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0081-atoms3r-wamr-probe-console/sdkconfig)
+- To reproduce the key sequence:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch`
+
+### Technical details
+
+- Key pre-crash state on the failing PaperS3 run:
+  - `replay_mem.flash_cache_enabled=yes`
+  - `replay_mem.internal_heap_ok=yes`
+  - `replay_mem.spiram_heap_ok=yes`
+- Key post-instantiate state:
+  - `runtime_mem.flash_cache_enabled=yes`
+  - `runtime_mem.internal_heap_ok=yes`
+  - `runtime_mem.spiram_heap_ok=yes`
+- `sdkconfig` control result:
+  - no meaningful PSRAM/cache-mode mismatch between `0079` and `0081`
+  - notable difference only in flash size (`16 MB` vs `8 MB`)
+
 Two of those reruns changed the shape of the problem in a helpful way. First, a fresh-boot `wasm replay frame-no-clear` succeeded. That means the current crash is not “any non-clear draw reaches `Panel_EPD` and dies.” Second, a same-boot sequence of `wasm run-preflush return-42` followed by `wasm replay clear-only` still crashed immediately after the successful Wasm call. That kept the contamination hypothesis alive while also falsifying the broader idea that the PaperS3 replay path is simply always broken after boot.
 
 That combination matters because it gives us a cleaner experimental split:
