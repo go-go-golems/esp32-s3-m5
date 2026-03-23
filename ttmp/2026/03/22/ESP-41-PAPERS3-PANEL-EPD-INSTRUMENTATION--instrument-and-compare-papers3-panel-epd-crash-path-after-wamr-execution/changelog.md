@@ -30,3 +30,6 @@
 - Added an `instantiate-only` Wasm lifecycle mode so the runtime can stop after load/instantiate/lookup/exec-env creation and cleanup without ever calling guest code
 - Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-only return-42` followed by `wasm replay psram-scratch` still crashes
 - That means actual guest execution is not required for the repro; instantiate/teardown alone is already enough to poison later PSRAM writes on PaperS3
+- Added an `instantiate-no-execenv` lifecycle mode so the runtime can stop after module instantiation and export lookup, before `wasm_runtime_create_exec_env(...)`
+- Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-no-execenv return-42` followed by `wasm replay psram-scratch` still crashes
+- That means `wasm_runtime_create_exec_env(...)` is not required either; the contamination boundary is now at or before module instantiate/lookup/cleanup

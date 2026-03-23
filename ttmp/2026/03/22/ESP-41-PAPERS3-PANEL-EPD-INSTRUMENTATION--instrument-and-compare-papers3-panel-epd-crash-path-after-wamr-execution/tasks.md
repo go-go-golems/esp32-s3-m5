@@ -12,6 +12,9 @@
 - [x] Task 3.7: Decode the headless same-boot PSRAM crash against the exact headless ELF and map it back to the new control path
 - [x] Task 3.8: Add an `instantiate-only` Wasm lifecycle probe so we can split instantiate/teardown contamination from actual guest execution contamination
 - [x] Task 3.9: Use the headless `instantiate-only` probe with `psram-scratch` to decide whether `call_wasm` is required for the repro
+- [x] Task 3.10: Add a pre-exec-env lifecycle probe so we can split module instantiation contamination from exec-env creation contamination
+- [x] Task 3.11: Use the headless pre-exec-env probe with `psram-scratch` to decide whether `wasm_runtime_create_exec_env(...)` is required for the repro
+- [ ] Task 3.12: Decide whether one more local lifecycle split before export lookup is worth the cost, or whether the next best move is direct inspection of WAMR instantiate/deinstantiate internals
 
 ## Planned
 

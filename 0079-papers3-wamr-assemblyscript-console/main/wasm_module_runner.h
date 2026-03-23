@@ -18,6 +18,7 @@ enum class WasmExecutionContext : uint8_t {
 
 enum class WasmInvocationMode : uint8_t {
     Execute,
+    InstantiateNoExecEnv,
     InstantiateOnly,
 };
 

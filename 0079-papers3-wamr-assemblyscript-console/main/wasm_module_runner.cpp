@@ -75,6 +75,8 @@ const char *InvocationModeName(WasmInvocationMode invocation_mode)
     switch (invocation_mode) {
         case WasmInvocationMode::Execute:
             return "execute";
+        case WasmInvocationMode::InstantiateNoExecEnv:
+            return "instantiate-no-execenv";
         case WasmInvocationMode::InstantiateOnly:
             return "instantiate-only";
     }
@@ -189,6 +191,11 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     result_count = wasm_func_get_result_count(function, module_inst);
     if (param_count != 0 || result_count > 1) {
         SetResultError(&result, "signature", "only zero-argument exports with at most one result are supported");
+        goto cleanup;
+    }
+
+    if (invocation_mode == WasmInvocationMode::InstantiateNoExecEnv) {
+        result.success = true;
         goto cleanup;
     }
 
