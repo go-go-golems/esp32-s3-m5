@@ -7,7 +7,15 @@
       "Bash(sleep 30:*)",
       "Bash(tmux send-keys:*)",
       "Bash(sleep 60:*)",
-      "Bash(sleep 90:*)"
+      "Bash(sleep 90:*)",
+      "Bash(cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/web && npm run build 2>&1)",
+      "Bash(mkdir -p /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/static && cp -R /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/web/dist/. /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/static/ && echo \"Copied\")",
+      "Bash(cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server && go build . 2>&1)",
+      "Read(//home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/$HOME/esp/esp-idf-5.4.1/.espressif/**)",
+      "Read(//home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server/$HOME/.espressif/**)",
+      "Bash($HOME/.espressif/python_env/idf5.4_py3.13_env/bin/pip install:*)",
+      "Bash(/home/manuel/.espressif/python_env/idf5.4_py3.13_env/bin/python -m pip install pyyaml 2>&1 | tail -5)",
+      "Bash(cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0074-m5dial-web-remote/server && go run . script-eval --help 2>&1)"
     ]
   }
 }

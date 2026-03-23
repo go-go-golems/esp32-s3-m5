@@ -63,6 +63,7 @@ private:
     BookmarkStore bookmark_store_;
     Paginator paginator_;
 
+    bool display_ready_ = false;
     bool touch_down_ = false;
     std::uint32_t partial_refresh_count_ = 0;
 

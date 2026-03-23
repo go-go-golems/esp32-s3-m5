@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <esp_heap_caps.h>
 #include <esp_timer.h>
 
 namespace ereader {
@@ -24,6 +25,20 @@ void EReaderApp::InitBoard()
     auto cfg = M5.config();
     cfg.clear_display = true;
     M5.begin(cfg);
+    display_ready_ = M5.getDisplayCount() > 0;
+
+    std::printf("ereader: board=%d display_count=%u display_ready=%s free_internal=%u free_spiram=%u\n",
+                static_cast<int>(M5.getBoard()),
+                static_cast<unsigned>(M5.getDisplayCount()),
+                display_ready_ ? "yes" : "no",
+                static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)),
+                static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)));
+
+    if (!display_ready_) {
+        std::printf("ereader: display init failed; UI refresh is disabled so the console can stay alive\n");
+        return;
+    }
+
     M5.Display.setRotation(1);
     M5.Display.setTextDatum(top_left);
     M5.Display.setTextFont(2);
@@ -261,6 +276,8 @@ void EReaderApp::PreviousPage()
 
 void EReaderApp::FullRefresh()
 {
+    if (!display_ready_) return;
+
     M5.Display.waitDisplay();
     M5.Display.setEpdMode(epd_mode_t::epd_quality);
     M5.Display.startWrite();
@@ -287,6 +304,8 @@ void EReaderApp::FullRefresh()
 
 void EReaderApp::HandleTouch()
 {
+    if (!display_ready_) return;
+
     const bool has_touch = M5.Touch.getCount() > 0;
 
     if (has_touch && !touch_down_) {
@@ -360,6 +379,8 @@ void EReaderApp::SwitchScreen(AppScreen target)
 
 void EReaderApp::ProcessDirtyRefresh()
 {
+    if (!display_ready_) return;
+
     gnosis::DirtyCollector dc;
     dc.Collect(screen_.bar);
     dc.Collect(screen_.body);
