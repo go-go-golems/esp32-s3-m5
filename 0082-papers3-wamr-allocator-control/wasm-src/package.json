@@ -1,0 +1,13 @@
+{
+  "name": "papers3-wamr-assemblyscript-demos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../tools/build-wasm-demos.mjs --target release",
+    "build:debug": "node ../tools/build-wasm-demos.mjs --target debug",
+    "build:all": "node ../tools/build-wasm-demos.mjs --target release && node ../tools/build-wasm-demos.mjs --target debug"
+  },
+  "devDependencies": {
+    "assemblyscript": "0.28.10"
+  }
+}

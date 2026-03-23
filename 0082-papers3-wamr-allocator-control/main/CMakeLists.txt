@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "console_repl.cpp"
+        "wasm_command.cpp"
+        "wasm_host_api.cpp"
+        "wasm_module_registry.cpp"
+        "wasm_module_runner.cpp"
+        "wasm_replay_control.cpp"
+        "wasm_runtime_service.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        espressif__wasm-micro-runtime
+        console
+        pthread
+        esp_mm
+        spi_flash
+    EMBED_FILES
+        "wasm-assets/return-42.wasm"
+        "wasm-assets/log-only.wasm"
+)

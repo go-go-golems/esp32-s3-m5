@@ -8,6 +8,8 @@ build-headless/
 .envrc
 .vscode
 managed_components
+**/wasm-src/node_modules/
+**/wasm-build/
 
 # docmgr / ticket workspaces
 ttmp/**/.meta/

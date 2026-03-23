@@ -1,0 +1,16 @@
+{
+  "targets": {
+    "release": {
+      "runtime": "stub",
+      "optimizeLevel": 3,
+      "shrinkLevel": 2,
+      "converge": true,
+      "noAssert": true
+    },
+    "debug": {
+      "runtime": "stub",
+      "debug": true,
+      "sourceMap": false
+    }
+  }
+}
