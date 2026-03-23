@@ -467,11 +467,14 @@ void EReaderApp::ForceRefresh()
     std::printf("full refresh done\n");
 }
 
-void EReaderApp::Run()
+void EReaderApp::Init()
 {
     InitBoard();
     MountStorage();
+}
 
+void EReaderApp::RunLoop()
+{
     // Open first book if available
     if (book_store_.BookCount() > 0) {
         OpenBook(0);

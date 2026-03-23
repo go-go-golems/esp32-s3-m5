@@ -27,7 +27,8 @@ enum class AppScreen {
 
 class EReaderApp {
 public:
-    void Run();
+    void Init();      // Call from main task (core 0): M5.begin + mount storage
+    void RunLoop();   // Call from UI task (core 1): build screen + main loop
 
     // Console access
     void ListBooks();
