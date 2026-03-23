@@ -25,6 +25,9 @@ bool ReplayExampleRequiresDisplay(const char *name)
     return std::strcmp(name, "psram-scratch") != 0 && std::strcmp(name, "internal-scratch") != 0
            && std::strcmp(name, "psram-persistent-init") != 0
            && std::strcmp(name, "psram-persistent-touch") != 0
+           && std::strcmp(name, "psram-persistent-touch-sync") != 0
+           && std::strcmp(name, "psram-cacheline-persistent-init") != 0
+           && std::strcmp(name, "psram-cacheline-persistent-touch-sync") != 0
            && std::strcmp(name, "psram-persistent-free") != 0;
 }
 
@@ -56,6 +59,9 @@ void PrintExamples()
     std::printf("  wasm replay internal-scratch\n");
     std::printf("  wasm replay psram-persistent-init\n");
     std::printf("  wasm replay psram-persistent-touch\n");
+    std::printf("  wasm replay psram-persistent-touch-sync\n");
+    std::printf("  wasm replay psram-cacheline-persistent-init\n");
+    std::printf("  wasm replay psram-cacheline-persistent-touch-sync\n");
     std::printf("  wasm replay psram-persistent-free\n");
     std::printf("  wasm instantiate-bare return-42\n");
     std::printf("  wasm instantiate-bare-keepalive return-42\n");

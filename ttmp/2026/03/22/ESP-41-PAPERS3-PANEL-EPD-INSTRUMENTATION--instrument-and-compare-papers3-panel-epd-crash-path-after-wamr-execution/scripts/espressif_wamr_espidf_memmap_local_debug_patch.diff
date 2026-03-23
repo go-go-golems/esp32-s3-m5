@@ -1,0 +1,77 @@
+--- a/core/shared/platform/esp-idf/espidf_memmap.c
++++ b/core/shared/platform/esp-idf/espidf_memmap.c
+@@
+-#include "platform_api_vmcore.h"
+-#include "platform_api_extension.h"
+-#include "esp_memory_utils.h"
++#include "platform_api_vmcore.h"
++#include "platform_api_extension.h"
++#include "esp_heap_caps.h"
++#include "esp_memory_utils.h"
+@@
+ static uint32 s_wamr_memmap_log_budget = 24;
+ 
+ static void
+ log_memmap_event(const char *stage, void *buf, size_t size, uint32 mem_caps)
+@@
+               stage, buf, (unsigned)size,
+               (buf != NULL && esp_ptr_external_ram(buf)) ? "yes" : "no",
+               (unsigned)mem_caps);
+ }
++
++static uint32 s_wamr_memmap_state_budget = 24;
++
++static void
++log_memmap_state(const char *stage)
++{
++    if (!s_wamr_memmap_state_budget) {
++        return;
++    }
++
++    s_wamr_memmap_state_budget--;
++    os_printf("wamr_memmap_state.stage=%s\n"
++              "wamr_memmap_state.internal_heap_ok=%s\n"
++              "wamr_memmap_state.spiram_heap_ok=%s\n",
++              stage,
++              heap_caps_check_integrity(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT,
++                                        false)
++                  ? "yes"
++                  : "no",
++              heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT,
++                                        false)
++                  ? "yes"
++                  : "no");
++}
+@@
+ void *
+ os_mmap(void *hint, size_t size, int prot, int flags, os_file_handle file)
+ {
++    (void)hint;
++    (void)flags;
++    (void)file;
++
++#if WASM_MEM_DUAL_BUS_MIRROR == 0
++    log_memmap_state("mmap-enter");
++#endif
+     if (prot & MMAP_PROT_EXEC) {
+@@
+         memset(buf_fixed, 0, size);
+ #if WASM_MEM_DUAL_BUS_MIRROR == 0
+         log_memmap_event("mmap-exec", buf_fixed, size, mem_caps);
++        log_memmap_state("mmap-exec-after-memset");
+ #endif
+         return buf_fixed;
+@@
+         memset(buf_fixed, 0, size);
+ #if WASM_MEM_DUAL_BUS_MIRROR == 0
+         log_memmap_event("mmap-data", buf_fixed, size, mem_caps);
++        log_memmap_state("mmap-data-after-memset");
+ #endif
+         return buf_fixed;
+@@
+ #if WASM_MEM_DUAL_BUS_MIRROR == 0
+     log_memmap_event("munmap", ptr, size, 0);
++    log_memmap_state("munmap-before-free");
+ #endif
+     return os_free(ptr);
+ }
