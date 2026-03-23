@@ -17,4 +17,8 @@ Build a stripped PaperS3 control firmware that keeps only the pieces needed to a
 - [x] Task 4.1: Confirm PSRAM persistent-touch works with no module load or instantiate.
 - [x] Task 4.2: Confirm runtime initialization alone does not poison PSRAM.
 - [x] Task 4.3: Confirm bare instantiate still poisons later PSRAM touch, or record if the reduced app changes that boundary.
-- [ ] Task 5: Compare `0082` results against `0079` and decide whether the next step should be deeper WAMR instrumentation or a smaller non-WAMR control app.
+- [x] Task 5: Compare `0082` results against `0079` and decide whether the next step should be deeper WAMR instrumentation or a smaller non-WAMR control app.
+- [x] Task 5.1: Add an allocator-backing A/B mode to `0082` so the same harness can run with the current SPIRAM-backed WAMR pool and a system-allocator variant.
+- [x] Task 5.2: Build and flash the system-allocator variant using a separate build directory and explicit `sdkconfig` override.
+- [x] Task 5.3: Run the same single-boot persistent-PSRAM repro sequence on the system-allocator variant and compare the boundary against the default SPIRAM-pool build.
+- [x] Task 5.4: Record whether the PSRAM poisoning depends on WAMR's SPIRAM-backed pool, or survives when WAMR stops using that pool.

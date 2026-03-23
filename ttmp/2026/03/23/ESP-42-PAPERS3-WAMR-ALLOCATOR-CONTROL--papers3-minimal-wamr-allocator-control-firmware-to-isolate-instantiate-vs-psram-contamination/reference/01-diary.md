@@ -138,6 +138,98 @@ The decoded backtrace now lands entirely inside `0082`’s reduced PSRAM probe p
 
 That matters because it proves the old boundary survives even after removing all app-owned display behavior from the firmware.
 
+### 2026-03-23 12:11 EDT
+
+Started the next control slice by turning `0082` into an allocator A/B harness instead of cloning yet another probe app. Added a dedicated Kconfig choice for WAMR allocator backing:
+
+- `pool-spiram`
+- `pool-internal`
+- `system-allocator`
+
+The point of this change is narrow and important. If the PaperS3 PSRAM fault disappears when WAMR stops using the SPIRAM-backed pool, then the pool itself becomes the main suspect. If the fault survives under the system allocator, then the problem is lower than "WAMR suballocates from an external RAM pool."
+
+### 2026-03-23 12:15 EDT
+
+While wiring the allocator choice into `wasm_runtime_service.cpp`, I also made the runtime status output more explicit:
+
+- `allocator`
+- `allocator_backing`
+- `wamr.pool_buffer`
+- `wamr.pool_size`
+
+This was not cosmetic. The earlier investigation already showed how easy it is to make a false assumption about which allocator mode is actually running. The status output now tells us directly whether the build is:
+
+- using a pool at all
+- preferring SPIRAM for that pool
+- or running with no WAMR pool buffer
+
+### 2026-03-23 12:18 EDT
+
+The first draft of the new system-allocator flash script had a build hygiene bug. It used `-B build-system-allocator` from the repo root, which created an untracked top-level build directory instead of keeping the alternate build under `0082`. I fixed that in two places before relying on the script:
+
+- updated the script to use `${PROJECT_DIR}/build-system-allocator`
+- expanded `.gitignore` to ignore generic `build-*` directories
+
+This is exactly the sort of provenance issue worth recording. The allocator experiment itself was fine, but the build-output placement was sloppy on the first pass.
+
+### 2026-03-23 12:24 EDT
+
+The first full run of `flash_and_probe_allocator_system.sh` produced a misleading failure. The build and flash completed successfully, and the boot log clearly showed:
+
+- `allocator=system-allocator`
+- `backing=system`
+- `host_api: Registered 2 host symbols`
+
+But the wrapper script still exited with `serial_probe_sequence: prompt not observed before timeout`. I did not treat that as a product finding because the captured boot output already proved the image was alive and reached the console banner. This was a probe-window issue, not a firmware regression.
+
+### 2026-03-23 12:28 EDT
+
+To avoid another full rebuild just to fix a prompt timeout, I reran only the serial helper against the already-flashed system-allocator image with a longer `--prompt-timeout 12`. That direct run succeeded and gave the actual allocator A/B answer.
+
+The single-boot command sequence was:
+
+- `wasm status`
+- `wasm replay psram-persistent-init`
+- `wasm instantiate-bare-keepalive return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+The status output confirmed the intended configuration:
+
+- `allocator=system-allocator`
+- `allocator_backing=system`
+- `wamr.pool_buffer=0x0`
+- `wamr.pool_size=0`
+- `wamr.heap=unavailable-for-system-allocator`
+
+That matters because it proves the run was not silently falling back to the old SPIRAM pool mode.
+
+### 2026-03-23 12:31 EDT
+
+The system-allocator result is decisive: the PaperS3 PSRAM crash still reproduces.
+
+Fresh in the same boot:
+
+- `wasm replay psram-persistent-init` succeeded
+
+Then:
+
+- `wasm instantiate-bare-keepalive return-42` succeeded
+
+And finally:
+
+- `wasm replay psram-persistent-touch-sync` still crashed with `Cache disabled but cached memory region accessed`
+
+The logged state before the crash was especially useful:
+
+- `replay_mem.flash_cache_enabled=yes`
+- `replay_mem.internal_heap_ok=yes`
+- `replay_mem.spiram_heap_ok=yes`
+- `persistent_psram_probe.sync_err=ESP_OK`
+- `wamr_memmap.ptr=0x3fca9b08`
+- `wamr_memmap.external=no`
+
+So the allocator A/B test rules out one more plausible explanation: the PaperS3 fault does **not** depend on WAMR owning a SPIRAM-backed runtime pool. The contamination boundary survives even when WAMR runs with the system allocator and no pool buffer at all.
+
 ## Related
 
 - `../design/01-minimal-papers3-allocator-control-implementation-plan.md`
