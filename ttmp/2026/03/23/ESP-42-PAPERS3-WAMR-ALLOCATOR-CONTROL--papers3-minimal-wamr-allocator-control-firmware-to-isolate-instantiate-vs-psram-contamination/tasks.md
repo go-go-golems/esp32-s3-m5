@@ -32,8 +32,12 @@ Build a stripped PaperS3 control firmware that keeps only the pieces needed to a
 - [x] Task 6.1: Add `wasm load-only <name>` and `wasm load-only-keepalive <name>` lifecycle probes with explicit result reporting.
 - [x] Task 6.2: Build the updated harness and run the same single-boot PSRAM control sequence around the new load-only commands.
 - [x] Task 6.3: Record whether `wasm_runtime_load(...)` alone is sufficient to poison later PSRAM writes on PaperS3.
-- [ ] Task 7: Instrument the WAMR load path itself now that `wasm_runtime_load(...)` is the smallest known toxic boundary.
-- [ ] Task 7.1: Add ticket-local snapshots/check scripts for the ignored WAMR loader files that will be modified.
-- [ ] Task 7.2: Add narrow loader-stage telemetry around `wasm_runtime_load(...)`, `wasm_loader_load(...)`, and `load(...)`.
-- [ ] Task 7.3: Rebuild and rerun the same internal-pool single-boot PSRAM sequence around `load-only` and `load-only-keepalive`.
-- [ ] Task 7.4: Record which loader stage is the last clearly healthy point before later PSRAM writes fail.
+- [x] Task 7: Instrument the WAMR load path itself now that `wasm_runtime_load(...)` is the smallest known toxic boundary.
+- [x] Task 7.1: Add ticket-local snapshots/check scripts for the ignored WAMR loader files that will be modified.
+- [x] Task 7.2: Add narrow loader-stage telemetry around `wasm_runtime_load(...)`, `wasm_loader_load(...)`, and `load(...)`.
+- [x] Task 7.3: Rebuild and rerun the same internal-pool single-boot PSRAM sequence around `load-only` and `load-only-keepalive`.
+- [x] Task 7.4: Record which loader stage is the last clearly healthy point before later PSRAM writes fail.
+- [x] Task 8: Probe whether the source buffer location for `wasm_runtime_load(...)` matters on PaperS3.
+- [x] Task 8.1: Add `load-only` variants that first copy the Wasm binary into internal RAM or PSRAM before calling `wasm_runtime_load(...)`.
+- [x] Task 8.2: Rebuild and run the same single-boot PSRAM repro around the copied-buffer `load-only` commands.
+- [x] Task 8.3: Record whether loading from flash-mapped embedded bytes, copied internal RAM, and copied PSRAM produce different contamination behavior.

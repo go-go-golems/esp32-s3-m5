@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T10:56:06.846153759-04:00
+LastUpdated: 2026-03-23T12:14:57-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -257,6 +257,89 @@ That first direct internal-pool run produced a very important negative result. T
 - `wamr.pool_buffer=0x3c060a88`
 - `wamr.pool_buffer_external=yes`
 - `wamr.pool_size=524288`
+
+### 2026-03-23 12:03 EDT
+
+Started the load-path instrumentation slice by snapshotting the ignored vendor files before touching them. Because `managed_components/` is ignored, I added tracked copies and a sync checker under `ESP-42/scripts/wamr-local-debug-snapshots` first. That keeps the exact debug context reviewable later instead of hiding it in a dirty build tree.
+
+### 2026-03-23 12:06 EDT
+
+Added narrow loader-stage probes in the local Espressif WAMR sources around:
+
+- `wasm_runtime_load(...)`
+- `wasm_loader_load(...)`
+- the inner `load(...)` path
+
+The probes log heap integrity, free sizes, module pointer locality, and source-buffer locality at a few strategic stages. This was deliberate. At this point the wrong debugging move would have been "add logs everywhere"; the right move was to mark the last clearly healthy stage before the later PSRAM fault.
+
+### 2026-03-23 12:08 EDT
+
+Ran the embedded-buffer control on the internal-pool build. The important result was that the loader path looks healthy all the way through success:
+
+- `wamr_rt_load.stage=enter`
+- `wamr_loader.stage=loader-create-module-ok`
+- `wamr_loader.stage=load-enter`
+- `wamr_loader.stage=load-before-create-sections`
+- `wamr_loader.stage=load-after-load-from-sections`
+- `wamr_loader.stage=load-exit-ok`
+- `wamr_loader.stage=loader-exit-ok`
+- `wamr_rt_load.stage=exit-ok`
+
+Heap integrity stayed good, and the later persistent PSRAM touch still crashed. So the new answer for Task 7 is: the last clearly healthy point is after loader success, not before it.
+
+### 2026-03-23 12:10 EDT
+
+Started the source-buffer-location experiment by extending `0082` with explicit binary-source selection:
+
+- embedded bytes
+- copied internal RAM
+- copied SPIRAM
+
+I threaded that state through `wasm_module_runner` and added new CLI commands for `load-only-copy-internal` and `load-only-copy-spiram`. The first build broke for a narrow reason: I had accidentally left two visible `BinarySourceName(...)` declarations in scope. I fixed that before running anything on hardware.
+
+### 2026-03-23 12:11 EDT
+
+Hit one operational trap worth preserving: I built the new image, but my first copied-buffer probe still printed the old usage text without the new commands. That immediately told me the latest image had not actually been flashed yet. I treated that run as invalid, reflashed explicitly, and then confirmed the new command surface with `wasm examples` before trusting any A/B result.
+
+This is exactly the kind of error the diary is for. Without recording it, a later reader could easily misread the "copied-internal succeeded" result as if it had come from the same image as the earlier usage failure.
+
+### 2026-03-23 12:12 EDT
+
+The source-buffer-location experiment produced the clearest result of this ticket so far.
+
+Fresh-boot sequence:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-copy-internal return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: success. The same later persistent PSRAM touch that crashes after embedded `load-only` now completes cleanly. The loader probes show `buf=0x3fc9c1a8`, `buf_external=no`, and `binary_source=copied-internal`.
+
+### 2026-03-23 12:13 EDT
+
+Ran the same fresh-boot sequence with a SPIRAM copy instead:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-copy-spiram return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: also success. The loader probes show `buf=0x3c0a00f4`, `buf_external=yes`, and `binary_source=copied-spiram`, yet the later persistent PSRAM touch still succeeds. That immediately rules out the simplistic theory that "any RAM-backed source buffer works only if it is internal."
+
+### 2026-03-23 12:14 EDT
+
+Reran the embedded-buffer baseline on the same flashed image to make sure the comparison stayed fair:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: crash reproduced again. So the live boundary is now much sharper:
+
+- embedded flash-mapped Wasm buffer -> later persistent PSRAM write crashes
+- copied internal-RAM Wasm buffer -> later persistent PSRAM write succeeds
+- copied SPIRAM Wasm buffer -> later persistent PSRAM write succeeds
+
+That strongly suggests the remaining PaperS3 bug is not "WAMR load from arbitrary memory poisons PSRAM." It is much closer to "WAMR load from the embedded flash-mapped module bytes poisons later PSRAM writes on PaperS3."
 
 So the build configuration was correct, but the implementation was not actually forcing the WAMR pool into internal RAM. The relevant code path in `wasm_runtime_service.cpp` still used `heap_caps_malloc(..., MALLOC_CAP_8BIT)` for the internal variant, which is allowed to return external RAM on PaperS3 once PSRAM is part of the heap. That run still crashed on the final persistent PSRAM write, but I explicitly did **not** treat it as the final answer to the internal-pool question because the WAMR pool was still external in practice.
 

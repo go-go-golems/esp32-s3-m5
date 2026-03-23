@@ -20,3 +20,9 @@
 - Added explicit `wasm load-only` and `wasm load-only-keepalive` lifecycle probes to `0082`
 - Built, flashed, and probed the updated internal-pool harness on attached PaperS3 with the same single-boot persistent-PSRAM sequence around `load-only` and `load-only-keepalive`
 - Verified that `wasm_runtime_load(...)` alone is already sufficient to poison later PSRAM writes on PaperS3, and that immediate unload/cleanup is not required for the fault
+- Added tracked WAMR loader snapshots plus loader-stage telemetry around `wasm_runtime_load(...)` and `wasm_loader_load(...)`
+- Verified on attached PaperS3 that the embedded-buffer `load-only` path still reaches `load-exit-ok` and then poisons a later persistent PSRAM touch
+- Added copied-buffer `load-only` variants that feed `wasm_runtime_load(...)` from an internal-RAM copy or a SPIRAM copy of the same Wasm bytes
+- Verified on attached PaperS3 that `load-only-copy-internal return-42` no longer poisons later persistent PSRAM touch
+- Verified on attached PaperS3 that `load-only-copy-spiram return-42` also no longer poisons later persistent PSRAM touch
+- Narrowed the live trigger to the embedded flash-mapped Wasm source buffer path rather than generic `wasm_runtime_load(...)` parsing from arbitrary RAM
