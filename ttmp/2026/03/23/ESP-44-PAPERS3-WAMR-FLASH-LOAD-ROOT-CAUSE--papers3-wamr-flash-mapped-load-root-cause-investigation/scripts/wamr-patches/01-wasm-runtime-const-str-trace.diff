@@ -1,0 +1,26 @@
+--- /tmp/esp44-wamr/wasm_runtime.c.orig	2026-03-23 14:41:48.172276491 -0400
++++ 0082-papers3-wamr-allocator-control/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c	2026-03-23 14:42:01.715131860 -0400
+@@ -57,6 +57,7 @@
+ 
+ static uint32 s_wamr_instantiate_trace_budget = 16;
+ static uint32 s_wamr_deinstantiate_trace_budget = 16;
++static uint32 s_wamr_const_str_trace_budget = 32;
+ 
+ WASMModule *
+ wasm_load(uint8 *buf, uint32 size,
+@@ -5215,6 +5216,15 @@
+            the previous byte of leb encoded size to adjust the string:
+            move string 1 byte backward and then append '\0' */
+         char *c_str = (char *)str - 1;
++        if (s_wamr_const_str_trace_budget > 0) {
++            s_wamr_const_str_trace_budget--;
++            os_printf("wamr_const_str.stage=mutate-in-place\n"
++                      "wamr_const_str.src=%p\n"
++                      "wamr_const_str.dst=%p\n"
++                      "wamr_const_str.len=%" PRIu32 "\n"
++                      "wamr_const_str.prev_byte=0x%02x\n",
++                      str, c_str, len, (unsigned)c_str[0] & 0xff);
++        }
+         bh_memmove_s(c_str, len + 1, c_str + 1, len);
+         c_str[len] = '\0';
+         return c_str;

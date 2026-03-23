@@ -9,6 +9,11 @@
 - Verified that `load-only-embedded-direct` still reproduces the old post-load PSRAM crash on PaperS3
 - Verified that `load-only-embedded-direct-freeable` keeps the same embedded source pointer but no longer poisons later PSRAM touch
 - Strengthened the explanation from “embedded flash-mapped load is bad” to “loader reuse/mutation of the original source buffer is the leading root-cause candidate”
+- Added `empty-module.wasm` as a stringless embedded control and verified that direct embedded load alone is not sufficient to trigger the bug
+- Instrumented `wasm_const_str_list_insert(...)` in the local WAMR component and preserved the ignored diff under `scripts/wamr-patches/01-wasm-runtime-const-str-trace.diff`
+- Verified on PaperS3 that the failing `load-only-embedded-direct return-42` path hits two in-place const-string rewrites before the later PSRAM crash
+- Verified that the successful `load-only-embedded-direct-freeable return-42` path avoids those in-place rewrite logs
+- Tied the two rewrite lengths directly to the `return-42.wasm` export strings `run` and `memory`
 
 ## 2026-03-23
 

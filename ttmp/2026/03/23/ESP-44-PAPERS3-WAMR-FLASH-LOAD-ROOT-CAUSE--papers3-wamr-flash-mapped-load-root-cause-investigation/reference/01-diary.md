@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T15:05:00-04:00
+LastUpdated: 2026-03-23T17:35:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -117,3 +117,113 @@ than:
 - “any direct read from embedded flash-mapped Wasm bytes is toxic”
 
 It is still possible that other low-level details participate, but the source-buffer reuse path is now the leading explanation by a wide margin.
+
+## 2026-03-23 16:52 EDT
+
+Added an even stricter control instead of jumping straight to a conclusion.
+
+I embedded a new `empty-module.wasm` asset in `0082`. It is only the 8-byte Wasm header:
+
+- `00 61 73 6d 01 00 00 00`
+
+The purpose is to keep the direct embedded flash-mapped load path intact while removing exports, names, and any other strings that might trigger `wasm_const_str_list_insert(...)`.
+
+This matters because the earlier proof only showed that the `binary_freeable` path avoids the bug. It did not yet prove that the bug specifically needs a string-mutation opportunity.
+
+## 2026-03-23 17:04 EDT
+
+Ran the new negative control on a freshly flashed PaperS3:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct empty-module`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: success.
+
+Important evidence:
+
+- `binary_source=embedded-direct`
+- `load_method=runtime-load`
+- no `wamr_const_str.stage=mutate-in-place` log entries
+- later PSRAM touch still succeeded
+
+This is a major tightening of the hypothesis. Direct embedded loading by itself is not sufficient to poison later PSRAM access on PaperS3.
+
+## 2026-03-23 17:11 EDT
+
+Instrumented `wasm_const_str_list_insert(...)` directly in the ignored WAMR component and preserved the diff under this ticket in:
+
+- `scripts/wamr-patches/01-wasm-runtime-const-str-trace.diff`
+
+The new bounded trace logs:
+
+- source pointer
+- destination pointer (`str - 1`)
+- string length
+- previous byte value used as the rewritten destination
+
+That gives a direct runtime witness for whether the in-place rewrite path is actually being taken on the device.
+
+## 2026-03-23 17:19 EDT
+
+Ran the known-bad direct-embedded path again on a fresh PaperS3 boot:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: reproduced the old PSRAM failure again.
+
+New evidence from the WAMR trace:
+
+- `wamr_const_str.stage=mutate-in-place`
+- first string: `src=0x3c04f45c`, `dst=0x3c04f45b`, `len=3`, `prev_byte=0x03`
+- second string: `src=0x3c04f462`, `dst=0x3c04f461`, `len=6`, `prev_byte=0x06`
+
+So the failing path is not only “behaviorally different.” It is concretely taking the exact in-place source-buffer rewrite branch that we suspected.
+
+## 2026-03-23 17:24 EDT
+
+Ran the positive comparison on a fresh PaperS3 boot:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct-freeable return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: success.
+
+Important evidence:
+
+- still `binary_source=embedded-direct`
+- now `load_method=runtime-load-ex-binary-freeable`
+- no `wamr_const_str.stage=mutate-in-place` entries appeared
+- later PSRAM touch succeeded
+
+This is the cleanest A/B in the whole investigation:
+
+- same board
+- same firmware family
+- same embedded flash-mapped source pointer
+- same module
+- different loader ownership contract
+- only the in-place rewrite path disappears, and the bug disappears with it
+
+## 2026-03-23 17:31 EDT
+
+Decoded the `return-42.wasm` bytes directly to tie the runtime trace back to actual section strings instead of leaving it at “length 3 and length 6”.
+
+The binary contains:
+
+- export name `run` with length `3`
+- export name `memory` with length `6`
+
+Relevant bytes:
+
+- `07 10 02 03 72 75 6e 00 00 06 6d 65 6d 6f 72 79 02 00`
+
+That matches the two runtime rewrite lengths exactly:
+
+- `len=3` -> `run`
+- `len=6` -> `memory`
+
+At this point the explanation is no longer just “strong circumstantial evidence.” The failing path is specifically rewriting the embedded flash-mapped export strings in place, and the non-rewriting paths are the ones that stay healthy.

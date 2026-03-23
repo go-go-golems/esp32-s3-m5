@@ -17,6 +17,7 @@ idf_component_register(
         esp_mm
         spi_flash
     EMBED_FILES
+        "wasm-assets/empty-module.wasm"
         "wasm-assets/return-42.wasm"
         "wasm-assets/log-only.wasm"
 )

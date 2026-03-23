@@ -7,12 +7,22 @@ namespace papers3_wasm {
 
 namespace {
 
+extern const uint8_t empty_module_wasm_start[] asm("_binary_empty_module_wasm_start");
+extern const uint8_t empty_module_wasm_end[] asm("_binary_empty_module_wasm_end");
 extern const uint8_t return_42_wasm_start[] asm("_binary_return_42_wasm_start");
 extern const uint8_t return_42_wasm_end[] asm("_binary_return_42_wasm_end");
 extern const uint8_t log_only_wasm_start[] asm("_binary_log_only_wasm_start");
 extern const uint8_t log_only_wasm_end[] asm("_binary_log_only_wasm_end");
 
 const WasmModuleDescriptor kModules[] = {
+    {
+        .name = "empty-module",
+        .summary = "minimal wasm header-only control with no imports, exports, or names",
+        .entrypoint = "unused",
+        .source_path = "wasm-assets/empty-module.wasm",
+        .start = empty_module_wasm_start,
+        .end = empty_module_wasm_end,
+    },
     {
         .name = "return-42",
         .summary = "minimal wasm probe with no host imports",
