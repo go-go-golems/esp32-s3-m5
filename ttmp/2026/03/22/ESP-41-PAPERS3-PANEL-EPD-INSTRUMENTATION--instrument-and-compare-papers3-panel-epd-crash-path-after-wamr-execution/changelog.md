@@ -146,3 +146,36 @@
 - The strongest current conclusion is now narrower:
   - WAMR instantiate on PaperS3 can complete cleanly and map its own linear memory in internal RAM
   - yet that same successful instantiate path is still sufficient to poison a later CPU write into an already-allocated PSRAM buffer
+- Added runtime-pool telemetry to the app-side status and runner probes:
+  - `wasm status` now prints the WAMR pool buffer pointer, external-RAM classification, and pool size
+  - `runtime_mem.*` now prints WAMR pool total/free/highmark snapshots alongside the existing internal/PSRAM integrity checks
+- Rebuilt and reflashed `0079`, then reran a stricter PaperS3 control that avoids module load and instantiate entirely:
+  - `wasm replay psram-persistent-init`
+  - `wasm replay psram-persistent-touch-sync`
+- Confirmed that this no-module-load/no-instantiate control still succeeds on the attached PaperS3 in the same firmware:
+  - the persistent PSRAM buffer can be allocated, written, and `esp_cache_msync(...)`-synced successfully
+  - `control_execution=success`
+- That sharpens an important boundary:
+  - the current control is not “no WAMR runtime at all,” because `0079` still initializes WAMR at app startup
+  - but it is “no module load/instantiate,” and that path is safe for the persistent PSRAM touch
+- Re-ran the instantiate repro with the new pool telemetry:
+  - `wasm status`
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch-sync`
+- Confirmed from `wasm status` that the active WAMR allocator is a `512 KiB` external-RAM pool:
+  - `wamr.pool_buffer=0x3c1bd244`
+  - `wamr.pool_buffer_external=yes`
+  - `wamr.pool_size=524288`
+- Confirmed from the traced instantiate run that many non-linear-memory runtime objects are pool-backed rather than directly visible as IDF heap allocations:
+  - before load: `wamr_pool_free=524024`
+  - after load: `wamr_pool_free=523608`
+  - after instantiate: `wamr_pool_free=522968`
+  - while linear memory still lands in internal RAM at `0x3fcb9aa0`
+- The strongest allocator conclusion is now:
+  - WAMR pool telemetry is the least invasive first-line view for most runtime-owned objects in this project
+  - heap tracing and task-level heap tracking are still useful for outer allocations like the pool buffer itself and internal-RAM linear memory, but they will not directly explain most pool-owned module structures
+- Refreshed the reasoning around the tracked WAMR source snapshots:
+  - the committed snapshot copies under `scripts/wamr-local-debug-snapshots/` still match the live ignored vendor files
+  - so the current WAMR-side instrumentation remains reproducible even though `managed_components/` is ignored by the main repo
+- Added `scripts/check_wamr_snapshot_sync.sh` so the tracked WAMR snapshot copies can be revalidated against the live ignored vendor files with one command instead of an ad hoc diff session

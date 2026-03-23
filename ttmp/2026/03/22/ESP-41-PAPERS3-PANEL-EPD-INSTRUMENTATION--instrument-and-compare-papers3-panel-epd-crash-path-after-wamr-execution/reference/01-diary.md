@@ -278,6 +278,153 @@ The avoidable process error was mine: I briefly launched two flash/probe jobs in
 - First fresh-boot init log:
   - `init panel=960x540 memory=960x540 buf=0x3c17ddc0 ext=1 step=0x3c080ba0 ext_step=1 ...`
 - Repeated startup out-of-range logs before console:
+
+## Step 9: Add runtime-pool telemetry, rerun the strict no-module-load control, and correct the allocator model
+
+This step tightened two important pieces of the story.
+
+The first was experimental. I rebuilt `0079` with new app-side telemetry around the WAMR pool allocator and then reran two PaperS3 sequences on real hardware: a strict control that avoids module load and instantiate entirely, and the known `instantiate-bare-keepalive` repro. The control still succeeded, while the instantiate path still poisoned a later persistent PSRAM write. That preserves the current failure boundary and keeps the repro tied to module instantiation rather than to the shared replay helper itself.
+
+The second was conceptual. I had been discussing “WAMR allocations” mostly in terms of ESP-IDF heap behavior, but the project is not using the system allocator for most runtime objects. [wasm_runtime_service.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp) initializes WAMR with `Alloc_With_Pool`, and the `512 KiB` pool buffer is itself allocated once from `MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT` at app startup. That means many of the module-owned structures we care about never show up as fresh ESP-IDF heap allocations during instantiate; they are carved from the already-allocated WAMR pool.
+
+### Prompt Context
+
+**User prompt (verbatim):** "let's try that as scenario as well and write it up in the tasks. Do you know which allocations the current WAMR path has been doing? is there some freertos utils to monitor that and also maybe see if there is some memory corruption when allocating?"
+
+**Assistant interpretation:** Add the no-module-load/no-instantiate PaperS3 control to the active ticket, then gather the smallest useful allocator telemetry that can explain what WAMR is actually allocating during instantiate.
+
+**Inferred user intent:** Replace hand-wavy “maybe it allocates something weird” discussion with explicit evidence, and preserve the reasoning so a later reader can understand why some telemetry tools are more relevant than others.
+
+### What I did
+
+- Extended [wasm_runtime_service.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.h) and [wasm_runtime_service.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp) so `wasm status` now prints:
+  - `wamr.pool_buffer`
+  - `wamr.pool_buffer_external`
+  - `wamr.pool_size`
+- Extended [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp) so `runtime_mem.*` snapshots now also print:
+  - `runtime_mem.wamr_pool_info`
+  - `runtime_mem.wamr_pool_total`
+  - `runtime_mem.wamr_pool_free`
+  - `runtime_mem.wamr_pool_highmark`
+- Rebuilt and flashed the attached PaperS3 with `ESP-IDF 5.3.4`.
+- Ran the strict control sequence with no module load/instantiate:
+  - `wasm replay psram-persistent-init`
+  - `wasm replay psram-persistent-touch-sync`
+- Ran the instantiate repro sequence with the new telemetry:
+  - `wasm status`
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch-sync`
+- Re-checked the tracked WAMR source snapshots under [wamr-local-debug-snapshots](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/01-readme.md) against the live ignored vendor files and confirmed they still match.
+- Added and ran [check_wamr_snapshot_sync.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/check_wamr_snapshot_sync.sh) so that snapshot-validation step is repeatable instead of living only in shell history.
+
+### Why
+
+- The strict control matters because it corrects a sloppy shorthand. `0079` still initializes the WAMR runtime at app startup, so this is not literally “no WAMR at all.” What it *does* prove is that runtime initialization by itself is not enough to trigger the persistent-PSRAM crash. The dangerous boundary is later, at module load/instantiate.
+- The pool telemetry matters because the runtime is using `Alloc_With_Pool`, so generic heap statistics alone were never going to explain most module-owned allocations cleanly.
+- Rechecking the tracked WAMR snapshots matters because the vendor source lives under `managed_components/`, which is ignored by the main repo. If the snapshots drifted from the live files, the debugging history would become hard to reproduce later.
+
+### What worked
+
+- The telemetry build compiled cleanly after fixing the `printf` width issue in [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp).
+- The strict no-module-load/no-instantiate control still succeeded on real PaperS3 hardware:
+  - `persistent_psram_probe.touch_checksum=0x47effc1c`
+  - `control_execution=success`
+- `wasm status` exposed the runtime pool clearly:
+  - `wamr.pool_buffer=0x3c1bd244`
+  - `wamr.pool_buffer_external=yes`
+  - `wamr.pool_size=524288`
+  - `wamr.heap_total=524096`
+  - `wamr.heap_free=524024`
+  - `wamr.heap_highmark=72`
+- The instantiate repro still behaved the same way, but the pool deltas made the allocator picture much clearer:
+  - before load: `runtime_mem.wamr_pool_free=524024`
+  - after load: `runtime_mem.wamr_pool_free=523608`
+  - after instantiate: `runtime_mem.wamr_pool_free=522968`
+  - at the same time, linear memory still mapped into internal RAM at `0x3fcb9aa0`
+- The tracked WAMR source snapshots still matched the live ignored vendor files exactly, so the current WAMR-side instrumentation remains reproducible from tracked artifacts.
+
+### What didn't work
+
+- The instantiate repro still crashed in the same place:
+  - [TouchPersistentPsramProbe(...)](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L261)
+  - called from [TouchPersistentPsramProbeWithCacheSync(...)](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L360)
+- So the new telemetry improved the model, but it did not move the crash boundary.
+
+### What I learned
+
+- The current “strict control” proves something precise:
+  - PaperS3 can still allocate and touch the persistent PSRAM buffer when the runtime is initialized but no Wasm module is loaded or instantiated
+  - therefore the contamination boundary still sits at or after module instantiate, not at runtime startup
+- The project’s WAMR allocator model is now much clearer:
+  - the large runtime pool buffer lives in external RAM
+  - module-owned metadata is likely coming from that pool
+  - linear memory is still a separate internal-RAM allocation path
+- That means plain ESP-IDF heap tracing is not the first tool I should reach for when the question is “what did instantiate allocate inside WAMR?” The pool metrics are a better first-line signal for most runtime-owned objects in this project.
+
+### What was tricky to build
+
+- The main conceptual trap was conflating “WAMR touched the heap” with “ESP-IDF heap telemetry should show every important WAMR allocation.” That is only true when the runtime uses the system allocator. In this project it does not, so the instrumentation had to follow the runtime’s actual allocator boundary rather than the intuitive one.
+
+### What warrants a second pair of eyes
+
+- Whether a truly WAMR-disabled PaperS3 probe firmware is still worth building now that the no-module-load/no-instantiate control already succeeds.
+- Whether the next best instrument is:
+  - heap tracing for the outer pool-buffer and linear-memory allocations
+  - or a smaller PaperS3 control firmware that reduces the surrounding app state further
+
+### What should be done in the future
+
+- Decide whether the next probe should be a truly WAMR-disabled PaperS3 control firmware or a smaller “console + instantiate + PSRAM touch” firmware.
+- If the goal is allocator provenance rather than control-path isolation, add heap tracing or hooks only for the outer allocations that still bypass the WAMR pool.
+
+### Code review instructions
+
+- Review the runtime-pool telemetry in:
+  - [wasm_runtime_service.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.h)
+  - [wasm_runtime_service.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_runtime_service.cpp)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+- Review the updated task framing in:
+  - [tasks.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/tasks.md)
+- Review the tracked WAMR snapshot artifacts in:
+  - [01-readme.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/wamr-local-debug-snapshots/01-readme.md)
+
+### Technical details
+
+- Build command:
+
+```bash
+unset IDF_PYTHON_ENV_PATH IDF_PATH
+source /home/manuel/esp/esp-idf-5.3.4/export.sh >/dev/null
+idf.py -C 0079-papers3-wamr-assemblyscript-console build
+```
+
+- Strict control probe:
+
+```bash
+python ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py \
+  --port /dev/ttyACM0 \
+  --command 'wasm replay psram-persistent-init' \
+  --command 'wasm replay psram-persistent-touch-sync'
+```
+
+- Instantiate repro with pool telemetry:
+
+```bash
+python ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py \
+  --port /dev/ttyACM0 \
+  --command 'wasm status' \
+  --command 'wasm replay psram-persistent-init' \
+  --command 'wasm instantiate-bare-keepalive return-42' \
+  --command 'wasm replay psram-persistent-touch-sync'
+```
+
+- Most useful allocator facts from the run:
+  - runtime pool buffer: `0x3c1bd244`, external RAM, `524288` bytes
+  - pool free before load: `524024`
+  - pool free after load: `523608`
+  - pool free after instantiate: `522968`
+  - linear memory: `0x3fcb9aa0`, `32768` bytes, internal RAM
   - `fillrect xs=0 ys=0 xe=959 ye=539 w=540 h=960 ... last=460589 len=259200`
 - Successful fresh-boot `frame-no-clear` replay log:
   - `display req=(0,0 0x0) upd=(16,16 928x508) range=(16,16)-(943,523) mode=3 ...`

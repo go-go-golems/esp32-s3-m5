@@ -35,10 +35,11 @@
 - [x] Task 3.29: Preserve the ignored WAMR source edits as tracked snapshots in the ticket workspace before the next hardware run
 - [x] Task 3.30: Rebuild and rerun the PaperS3 `instantiate-bare-keepalive` plus persistent-PSRAM probe with the new WAMR trace logs
 - [x] Task 3.31: Decode the new traced crash against the exact ELF and decide whether the instantiate path itself still looks nominal before the PSRAM fault
-- [ ] Task 3.32: Add a stricter no-WAMR PaperS3 PSRAM control scenario that exercises the same PSRAM-touch path without loading or instantiating WAMR at all
-- [ ] Task 3.33: Decide whether that stricter no-WAMR control still succeeds across fresh-boot and same-boot conditions, so the current contamination boundary stays uniquely tied to WAMR instantiate
-- [ ] Task 3.34: Add explicit allocation telemetry for the WAMR instantiate path so we can classify which runtime allocations land in internal RAM versus PSRAM, beyond linear memory alone
-- [ ] Task 3.35: Evaluate whether `CONFIG_HEAP_TASK_TRACKING`, heap tracing, or heap hooks are the least invasive way to capture per-task/per-capability allocation behavior during instantiate on PaperS3
+- [x] Task 3.32: Add a stricter no-module-load/no-instantiate PaperS3 PSRAM control scenario that exercises the same PSRAM-touch path without loading or instantiating a Wasm module
+- [x] Task 3.33: Decide whether that stricter no-module-load/no-instantiate control still succeeds across fresh-boot and same-boot conditions, so the current contamination boundary stays uniquely tied to WAMR instantiate
+- [x] Task 3.34: Add explicit allocation telemetry for the WAMR instantiate path so we can classify which runtime allocations land in internal RAM versus PSRAM, beyond linear memory alone
+- [x] Task 3.35: Evaluate whether `CONFIG_HEAP_TASK_TRACKING`, heap tracing, or heap hooks are the least invasive way to capture per-task/per-capability allocation behavior during instantiate on PaperS3
+- [ ] Task 3.36: Decide whether we still need a truly WAMR-disabled PaperS3 probe firmware, now that the current control already proves “runtime initialized but no module instantiate” is safe for the persistent PSRAM touch
 
 ## Planned
 
@@ -66,4 +67,4 @@
 - [x] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
 - [x] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace
 - [x] Task 4.5: Compare PaperS3 and AtomS3R board docs and local sdkconfig slices to identify any board-level external-memory topology differences worth prioritizing
-- [ ] Task 4.6: Record the current partial allocation picture from the traced instantiate run and separate “known allocations” from “still inferred allocations”
+- [x] Task 4.6: Record the current partial allocation picture from the traced instantiate run and separate “known allocations” from “still inferred allocations”
