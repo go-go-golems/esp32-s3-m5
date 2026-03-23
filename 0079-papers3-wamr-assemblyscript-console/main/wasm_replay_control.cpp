@@ -5,6 +5,7 @@
 
 #include <esp_heap_caps.h>
 #include <esp_memory_utils.h>
+#include <esp_private/cache_utils.h>
 
 #include <cinttypes>
 #include <cstdint>
@@ -32,6 +33,7 @@ constexpr std::size_t kInternalScratchBytes = 32 * 1024;
 
 uint8_t *g_persistent_psram_probe = nullptr;
 std::size_t g_persistent_psram_probe_bytes = 0;
+uint32_t g_replay_memory_probe_budget = 24;
 
 void SetReplayError(WasmReplayControlResult *result, const char *stage, const char *message)
 {
@@ -48,6 +50,31 @@ void SetReplayError(WasmReplayControlResult *result, const char *stage, const ch
     else {
         std::snprintf(result->error_message, sizeof(result->error_message), "%s", message);
     }
+}
+
+void PrintReplayMemoryState(const char *stage)
+{
+    if (g_replay_memory_probe_budget == 0) {
+        return;
+    }
+
+    g_replay_memory_probe_budget--;
+    const bool flash_cache_enabled = spi_flash_cache_enabled();
+    const bool internal_heap_ok = heap_caps_check_integrity(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT, false);
+    const bool spiram_heap_ok = heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, false);
+    const size_t internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    const size_t spiram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+    std::printf(
+        "replay_mem.stage=%s\n"
+        "replay_mem.flash_cache_enabled=%s\n"
+        "replay_mem.internal_heap_ok=%s\n"
+        "replay_mem.spiram_heap_ok=%s\n"
+        "replay_mem.internal_free=%u\n"
+        "replay_mem.spiram_free=%u\n",
+        stage != nullptr ? stage : "unknown", flash_cache_enabled ? "yes" : "no",
+        internal_heap_ok ? "yes" : "no", spiram_heap_ok ? "yes" : "no",
+        static_cast<unsigned>(internal_free), static_cast<unsigned>(spiram_free));
 }
 
 bool QueueHelloFrameSequence()
@@ -82,6 +109,7 @@ bool QueueFrameWithoutClearSequence()
 
 bool RunPsramScratchProbe(WasmReplayControlResult *result)
 {
+    PrintReplayMemoryState("psram-scratch-before-alloc");
     auto *buffer = static_cast<uint8_t *>(
         heap_caps_aligned_alloc(16, kScratchBufferBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
     if (buffer == nullptr) {
@@ -110,6 +138,7 @@ bool RunPsramScratchProbe(WasmReplayControlResult *result)
     std::printf("psram_probe.external=%s\n", esp_ptr_external_ram(buffer) ? "yes" : "no");
     std::printf("psram_probe.bytes=%u\n", static_cast<unsigned>(kScratchBufferBytes));
     std::printf("psram_probe.checksum=0x%08" PRIx32 "\n", checksum);
+    PrintReplayMemoryState("psram-scratch-before-free");
 
     heap_caps_free(buffer);
     return true;
@@ -117,6 +146,7 @@ bool RunPsramScratchProbe(WasmReplayControlResult *result)
 
 bool RunInternalScratchProbe(WasmReplayControlResult *result)
 {
+    PrintReplayMemoryState("internal-scratch-before-alloc");
     auto *buffer = static_cast<uint8_t *>(
         heap_caps_aligned_alloc(16, kInternalScratchBytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
     if (buffer == nullptr) {
@@ -139,6 +169,7 @@ bool RunInternalScratchProbe(WasmReplayControlResult *result)
     std::printf("internal_probe.external=%s\n", esp_ptr_external_ram(buffer) ? "yes" : "no");
     std::printf("internal_probe.bytes=%u\n", static_cast<unsigned>(kInternalScratchBytes));
     std::printf("internal_probe.checksum=0x%08" PRIx32 "\n", checksum);
+    PrintReplayMemoryState("internal-scratch-before-free");
 
     heap_caps_free(buffer);
     return true;
@@ -146,6 +177,7 @@ bool RunInternalScratchProbe(WasmReplayControlResult *result)
 
 bool InitPersistentPsramProbe(WasmReplayControlResult *result)
 {
+    PrintReplayMemoryState("persistent-init-before-alloc");
     if (g_persistent_psram_probe != nullptr) {
         heap_caps_free(g_persistent_psram_probe);
         g_persistent_psram_probe = nullptr;
@@ -166,11 +198,13 @@ bool InitPersistentPsramProbe(WasmReplayControlResult *result)
     std::printf("persistent_psram_probe.external=%s\n",
                 esp_ptr_external_ram(g_persistent_psram_probe) ? "yes" : "no");
     std::printf("persistent_psram_probe.bytes=%u\n", static_cast<unsigned>(g_persistent_psram_probe_bytes));
+    PrintReplayMemoryState("persistent-init-after-alloc");
     return true;
 }
 
 bool TouchPersistentPsramProbe(WasmReplayControlResult *result)
 {
+    PrintReplayMemoryState("persistent-touch-before-write");
     if (g_persistent_psram_probe == nullptr || g_persistent_psram_probe_bytes != kScratchBufferBytes) {
         SetReplayError(result, "persistent-touch", "persistent PSRAM probe is not initialized");
         return false;
@@ -190,6 +224,7 @@ bool TouchPersistentPsramProbe(WasmReplayControlResult *result)
     std::printf("persistent_psram_probe.touch_external=%s\n",
                 esp_ptr_external_ram(g_persistent_psram_probe) ? "yes" : "no");
     std::printf("persistent_psram_probe.touch_checksum=0x%08" PRIx32 "\n", checksum);
+    PrintReplayMemoryState("persistent-touch-after-write");
     return true;
 }
 

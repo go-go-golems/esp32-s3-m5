@@ -11,6 +11,8 @@
 #include <cstring>
 
 #include "esp_cpu.h"
+#include "esp_heap_caps.h"
+#include "esp_private/cache_utils.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "wasm_export.h"
@@ -47,6 +49,7 @@ struct WasmWorkerRunContext {
 WasmLastExecutionStatus g_last_execution_status = {};
 wasm_module_t g_leaked_wasm_module = nullptr;
 wasm_module_inst_t g_leaked_module_inst = nullptr;
+uint32_t g_runtime_memory_probe_budget = 24;
 
 void ReleaseLeakedWasmState()
 {
@@ -135,6 +138,31 @@ void PrintExecutionContextSnapshot(const char *stage)
         static_cast<uint32_t>(uxTaskGetStackHighWaterMark(nullptr)));
 }
 
+void PrintRuntimeMemoryState(const char *stage)
+{
+    if (g_runtime_memory_probe_budget == 0) {
+        return;
+    }
+
+    g_runtime_memory_probe_budget--;
+    const bool flash_cache_enabled = spi_flash_cache_enabled();
+    const bool internal_heap_ok = heap_caps_check_integrity(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT, false);
+    const bool spiram_heap_ok = heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, false);
+    const size_t internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    const size_t spiram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+    std::printf(
+        "runtime_mem.stage=%s\n"
+        "runtime_mem.flash_cache_enabled=%s\n"
+        "runtime_mem.internal_heap_ok=%s\n"
+        "runtime_mem.spiram_heap_ok=%s\n"
+        "runtime_mem.internal_free=%u\n"
+        "runtime_mem.spiram_free=%u\n",
+        stage != nullptr ? stage : "unknown", flash_cache_enabled ? "yes" : "no",
+        internal_heap_ok ? "yes" : "no", spiram_heap_ok ? "yes" : "no",
+        static_cast<unsigned>(internal_free), static_cast<unsigned>(spiram_free));
+}
+
 void SetResultError(WasmExecutionResult *result, const char *stage, const char *message)
 {
     if (stage == nullptr) {
@@ -180,6 +208,7 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
 
     ResetWasmHostFrame();
     PaperCanvasResetFrame();
+    PrintRuntimeMemoryState("before-load");
 
     wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start),
                                     static_cast<uint32_t>(GetWasmModuleBinarySize(module)), error_buf,
@@ -189,6 +218,7 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
         goto cleanup;
     }
     result.loaded = true;
+    PrintRuntimeMemoryState("after-load");
 
     module_inst =
         wasm_runtime_instantiate(wasm_module, kGuestStackBytes, kGuestHeapBytes, error_buf, sizeof(error_buf));
@@ -197,6 +227,7 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
         goto cleanup;
     }
     result.instantiated = true;
+    PrintRuntimeMemoryState("after-instantiate");
 
     if (invocation_mode == WasmInvocationMode::InstantiateBare) {
         result.success = true;
