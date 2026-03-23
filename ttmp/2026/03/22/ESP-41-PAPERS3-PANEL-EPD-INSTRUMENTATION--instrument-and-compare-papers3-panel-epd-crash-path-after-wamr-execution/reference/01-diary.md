@@ -13,13 +13,24 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp
+      Note: Exposed the new replay probe commands in the console
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp
+      Note: Added explicit cache-sync and cache-line-aligned PSRAM replay probes
+    - Path: ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/espressif_wamr_espidf_memmap_local_debug_patch.diff
+      Note: Tracked patch artifact for the ignored WAMR memmap instrumentation
+    - Path: ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/probe_wamr_psram_cache.sh
+      Note: Ticket-local flash-and-probe wrapper for the PSRAM contamination sequence
+    - Path: ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py
+      Note: Ticket-local single-boot serial probe helper
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-03-22T22:42:55.213541061-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Diary
 
@@ -1515,3 +1526,148 @@ That is the key result of the current slice. The first concrete divergence is **
 - Crash afterward:
   - same-boot `wasm replay psram-scratch`
   - still dies in `RunPsramScratchProbe(...)` at the initial `memset(...)`
+
+## Step 7: Test explicit cache sync and cache-line alignment on the poisoned PSRAM buffer, then preserve the ignored WAMR patch separately
+
+Once the PaperS3 failure had been narrowed to “WAMR instantiate poisons later PSRAM writes,” the next obvious question was whether we could repair or at least reclassify that poisoned state with the ESP-IDF cache API itself. I added one probe that explicitly calls `esp_cache_msync(...)` on the already-poisoned persistent PSRAM buffer, and a second probe that removes the remaining alignment variable by allocating a separate `32 B`-aligned persistent PSRAM buffer before the same instantiate sequence.
+
+Those two probes were worth doing because they close several tempting explanations quickly. The first one proved that a successful `esp_cache_msync(...)` call does **not** repair the PaperS3 failure. The second one proved that even a cache-line-aligned PSRAM buffer, plus a successful `DIR_M2C` pre-touch sync, still dies on the first CPU write after `wasm instantiate-bare-keepalive return-42`. That makes the surviving bug look even less like a simple alignment mistake or an omitted explicit cache-sync call.
+
+### Prompt Context
+
+**User prompt (verbatim):** "comparing to the atoms3r sdkconfig could also be instructive, potentially"
+
+**Assistant interpretation:** Use the AtomS3R control where it helps, but continue the PaperS3-specific investigation and check whether configuration differences or lower-level cache-state probes separate the two boards.
+
+**Inferred user intent:** Keep narrowing the PaperS3-only failure with the smallest discriminating experiments available, instead of staying at the level of broad board-to-board guesses.
+
+### What I did
+
+- Added explicit cache-sync replay controls in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- New control commands:
+  - `wasm replay psram-persistent-touch-sync`
+  - `wasm replay psram-cacheline-persistent-init`
+  - `wasm replay psram-cacheline-persistent-touch-sync`
+- Added ticket-local reusable scripts in:
+  - [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py)
+  - [probe_wamr_psram_cache.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/probe_wamr_psram_cache.sh)
+- Updated [flash_and_probe_panel_epd.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/flash_and_probe_panel_epd.sh) to use the local `ESP-41` probe helper instead of the older `ESP-39` script path.
+- Added extra WAMR-side memmap-state logging in the ignored component file:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+- Preserved that ignored WAMR-side instrumentation as a tracked patch artifact in:
+  - [espressif_wamr_espidf_memmap_local_debug_patch.diff](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/espressif_wamr_espidf_memmap_local_debug_patch.diff)
+- Rebuilt and flashed the attached PaperS3 repeatedly while keeping `/dev/ttyACM0` single-owned during each probe cycle.
+- Ran the first same-boot sequence:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch-sync`
+- Then ran the aligned-buffer same-boot sequence:
+  - `wasm replay psram-cacheline-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-cacheline-persistent-touch-sync`
+- Decoded the new crash PCs against the exact ELF with:
+  - `xtensa-esp32s3-elf-addr2line -pfiaC -e ...`
+
+### Why
+
+- If `esp_cache_msync(...)` failed or crashed on the poisoned PSRAM buffer, that would directly implicate the low-level cache path rather than only the later CPU write loop.
+- If `esp_cache_msync(...)` succeeded and then the later write also succeeded, that would point to a missing explicit cache maintenance step.
+- If the aligned buffer survived while the old `16`-aligned buffer died, then alignment could still explain the failure.
+- Preserving the WAMR-side memmap patch as a tracked artifact matters because `managed_components/` is ignored in this repo, so those local edits do **not** show up in normal git status or commits.
+
+### What worked
+
+- The new control commands compiled and ran on PaperS3.
+- On the original persistent PSRAM buffer, after `wasm instantiate-bare-keepalive return-42`, the firmware reported:
+  - `persistent_psram_probe.cache_alignment_err=ESP_OK`
+  - `persistent_psram_probe.cache_alignment=32`
+  - `persistent_psram_probe.sync_flags=0x7`
+  - `persistent_psram_probe.sync_err=ESP_OK`
+- So `esp_cache_msync(...)` itself does **not** immediately fail on the poisoned buffer.
+- On the aligned persistent PSRAM buffer, after the same instantiate step, the firmware reported:
+  - `aligned_persistent_psram_probe.alignment=32`
+  - `aligned_persistent_psram_probe.pre_sync_err=ESP_OK`
+- The extra WAMR memmap-state logs also worked and confirmed heap-integrity probes remained nominal inside the WAMR-side `os_mmap(...)` path.
+- The new aligned-buffer crash decoded cleanly:
+  - `0x4200d3ca` -> `TouchAlignedPersistentPsramProbeWithCacheSync(...)` at [wasm_replay_control.cpp:298](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L298)
+
+### What didn't work
+
+- `psram-persistent-touch-sync` still crashed on the very next CPU write even though `esp_cache_msync(...)` returned `ESP_OK`.
+- `psram-cacheline-persistent-touch-sync` also still crashed on the first direct CPU write, even though:
+  - the buffer was allocated with `32 B` alignment
+  - the pre-touch `DIR_M2C` sync returned `ESP_OK`
+- My first attempt to reflash after adding the aligned-buffer control was flawed: I wrapped the flash in an over-broad `pkill` pattern, then later noticed the device still reported the old app hash and did not recognize `psram-cacheline-persistent-init`.
+  - Exact symptom:
+    - `control_example=psram-cacheline-persistent-init`
+    - `control_execution=failure`
+    - `error_stage=lookup`
+    - `error_message=unknown replay example`
+  - That was a stale-firmware mistake on my side, not a real runtime result.
+
+### What I learned
+
+- A successful explicit cache-sync call is **not** sufficient to repair the poisoned PaperS3 PSRAM state after WAMR instantiate.
+- A cache-line-aligned PSRAM buffer is **also not** sufficient to repair the failure.
+- The surviving crash still occurs at the first direct CPU write into PSRAM after the instantiate boundary.
+- The WAMR-side `managed_components` edits are not tracked by normal git because:
+  - `.gitignore` contains `managed_components`
+  - `git check-ignore -v .../espidf_memmap.c` points at that ignore rule
+- That means future debugging in that area must either:
+  - store patch artifacts in the ticket, or
+  - move the component into a tracked local override if we need a longer-lived vendor branch
+
+### What was tricky to build
+
+- The most annoying operational trap in this step was firmware provenance, not C++ itself. I had one false result because the board still ran the previous binary and the missing replay command looked, at first glance, like a code-path problem.
+- The ignored `managed_components` tree is also a sharp edge. It is easy to believe a WAMR-side edit is “in git” because the local file changed and the build used it, while the main repo remains completely unaware of that change. That is why I added the tracked patch artifact in the ticket scripts directory before moving on.
+
+### What warrants a second pair of eyes
+
+- Whether the surviving PaperS3-only failure is now best modeled as:
+  - lower-level external-memory cache/MMU/tag-state corruption, or
+  - a board-specific PSRAM controller/driver state problem that survives successful high-level heap/cache checks
+- Whether the next best experiment is:
+  - a minimal PaperS3 PSRAM writer outside the current app stack, or
+  - moving this exact instantiate + PSRAM-write probe back to AtomS3R as a control with the new aligned-buffer path
+
+### What should be done in the future
+
+- Decide whether to build a minimal PaperS3 PSRAM probe app that excludes almost all of `0079`, so the surviving issue can be tested without the current console/demo stack.
+- If we stay inside `0079`, add one more lower-level probe that inspects whether the failure can be triggered by simple PSRAM reads after instantiate, not just writes.
+- If a longer WAMR-side investigation continues, move away from ad-hoc edits inside ignored `managed_components` and either vendor the component in a tracked path or keep generating tracked patch artifacts for each WAMR-side change.
+
+### Code review instructions
+
+- Start with the new replay controls in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Then review the tracked reproduction helpers:
+  - [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py)
+  - [probe_wamr_psram_cache.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/probe_wamr_psram_cache.sh)
+- Finally, inspect the tracked patch artifact for the ignored WAMR file:
+  - [espressif_wamr_espidf_memmap_local_debug_patch.diff](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/espressif_wamr_espidf_memmap_local_debug_patch.diff)
+
+### Technical details
+
+- Same-boot explicit-cache-sync sequence:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch-sync`
+- Key result before crash:
+  - `persistent_psram_probe.cache_alignment=32`
+  - `persistent_psram_probe.sync_flags=0x7`
+  - `persistent_psram_probe.sync_err=ESP_OK`
+- Crash decode for that path:
+  - `0x4200d04e` -> `TouchPersistentPsramProbe(...)` at [wasm_replay_control.cpp:216](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L216)
+- Same-boot aligned-buffer sequence:
+  - `wasm replay psram-cacheline-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-cacheline-persistent-touch-sync`
+- Key aligned-buffer result before crash:
+  - `aligned_persistent_psram_probe.alignment=32`
+  - `aligned_persistent_psram_probe.pre_sync_err=ESP_OK`
+- Crash decode for that path:
+  - `0x4200d3ca` -> `TouchAlignedPersistentPsramProbeWithCacheSync(...)` at [wasm_replay_control.cpp:298](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L298)

@@ -82,3 +82,25 @@
   - both use `32 KiB` data cache with `32 B` cache lines
   - both disable XIP/fetch/rodata-from-PSRAM
   - the only notable difference in that comparison is flash size (`16 MB` vs `8 MB`)
+- Added explicit persistent-PSRAM cache-sync replay controls and ticket-local serial probe helpers:
+  - `psram-persistent-touch-sync`
+  - `serial_probe_sequence.py`
+  - `probe_wamr_psram_cache.sh`
+- Confirmed on PaperS3 that `esp_cache_msync(...)` can succeed on the poisoned persistent PSRAM buffer after `wasm instantiate-bare-keepalive return-42`:
+  - `cache_alignment=32`
+  - `sync_flags=0x7`
+  - `sync_err=ESP_OK`
+- Confirmed that the very next CPU write into that same persistent PSRAM buffer still crashes in `TouchPersistentPsramProbe(...)`
+- Added a cache-line-aligned persistent PSRAM control buffer and a `DIR_M2C` pre-touch sync path:
+  - `psram-cacheline-persistent-init`
+  - `psram-cacheline-persistent-touch-sync`
+- Confirmed on PaperS3 that a `32 B`-aligned PSRAM buffer also survives allocation and a successful `DIR_M2C` sync:
+  - `alignment=32`
+  - `pre_sync_err=ESP_OK`
+- Confirmed that even this cache-line-aligned PSRAM buffer still crashes on the first direct CPU write after `wasm instantiate-bare-keepalive return-42`
+- Decoded the new aligned-buffer crash back to `TouchAlignedPersistentPsramProbeWithCacheSync(...)` in `wasm_replay_control.cpp`
+- That rules out two more simpler stories:
+  - “explicit cache sync repairs the poisoned PaperS3 PSRAM state”
+  - “the surviving bug is just a cache-line-alignment mistake in the debug probe buffer”
+- Preserved the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in:
+  - `scripts/espressif_wamr_espidf_memmap_local_debug_patch.diff`

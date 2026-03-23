@@ -8,6 +8,7 @@
 - [x] Task 1.3: Add reusable ticket-local probe notes and keep the diary current
 - [x] Task 3.4: Reframe the active hypothesis after the PSRAM scratch probe and decide whether the next slice belongs in `Panel_EPD`, WAMR platform code, or a broader PaperS3 memory/cache boundary
 - [ ] Task 3.5: Inspect the active WAMR ESP-IDF memory/cache path for operations that can leave PaperS3 PSRAM writes in a bad state after a successful Wasm call
+- [x] Task 3.5: Inspect the active WAMR ESP-IDF memory/cache path for operations that can leave PaperS3 PSRAM writes in a bad state after a successful Wasm call
 - [x] Task 3.6: Compare the new headless PaperS3 same-boot PSRAM result against the earlier headful PaperS3 repro and decide whether display initialization is required for the contamination
 - [x] Task 3.7: Decode the headless same-boot PSRAM crash against the exact headless ELF and map it back to the new control path
 - [x] Task 3.8: Add an `instantiate-only` Wasm lifecycle probe so we can split instantiate/teardown contamination from actual guest execution contamination
@@ -25,6 +26,10 @@
 - [x] Task 3.20: Compare post-instantiate writes into internal RAM, newly allocated PSRAM, and preallocated PSRAM buffers on the same boot
 - [x] Task 3.21: Add direct cache-enabled and heap-integrity probes around instantiate and replay control paths
 - [x] Task 3.22: Decide whether those state probes expose a simple stuck-cache or heap-corruption state before the PSRAM crash
+- [x] Task 3.23: Add an explicit `esp_cache_msync(...)` replay control around the poisoned persistent PSRAM buffer and check whether cache sync repairs the crash boundary
+- [x] Task 3.24: Decide whether a successful `esp_cache_msync(...)` call changes the failure mode, fixes the write, or leaves the same direct CPU-write crash in place
+- [x] Task 3.25: Add a cache-line-aligned persistent PSRAM control buffer and test whether `32 B` alignment plus `DIR_M2C` sync changes the PaperS3 post-instantiate failure
+- [x] Task 3.26: Decide whether the surviving crash still reproduces on a cache-line-aligned PSRAM buffer after a successful pre-touch `DIR_M2C` sync
 
 ## Planned
 
@@ -49,4 +54,5 @@
 - [ ] Task 4: Decide whether the evidence now points to a broader PaperS3 PSRAM/cache issue, a WAMR/platform cleanup problem, or a remaining EPD-specific layer on top
 - [ ] Task 4.1: Record what instrumentation proved and what it falsified
 - [ ] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
-- [ ] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
+- [x] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
+- [ ] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace
