@@ -12,5 +12,5 @@ static void ereader_task(void* /*arg*/)
 extern "C" void app_main(void)
 {
     ereader::ConsoleInit();
-    xTaskCreatePinnedToCore(ereader_task, "ereader_ui", 8192, nullptr, 5, nullptr, 1);
+    xTaskCreatePinnedToCore(ereader_task, "ereader_ui", 16384, nullptr, 5, nullptr, 1);
 }

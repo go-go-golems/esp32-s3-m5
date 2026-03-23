@@ -101,7 +101,7 @@ void Paginator::EnsurePage(BookStore& store, const char* filename, int page_numb
 {
     if (page_number < pages_computed_) return;
 
-    char read_buf[kReadAheadSize];
+    static char read_buf[kReadAheadSize];  // static to avoid 8KB stack alloc
 
     while (pages_computed_ <= page_number && pages_computed_ < kMaxPageOffsets) {
         int32_t offset = page_offsets_[pages_computed_ - 1];
@@ -211,7 +211,7 @@ int Paginator::GetPageText(BookStore& store, const char* filename, int page_numb
     }
 
     int32_t length = std::min(end - start, static_cast<int32_t>(buf_size - 1));
-    char raw[kReadAheadSize];
+    static char raw[kReadAheadSize];  // static to avoid 8KB stack alloc
     int bytes_read = store.ReadChunk(filename, start, length, raw);
     if (bytes_read <= 0) {
         buf[0] = '\0';
