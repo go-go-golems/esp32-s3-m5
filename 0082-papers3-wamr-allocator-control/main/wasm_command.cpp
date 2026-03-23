@@ -26,6 +26,8 @@ void PrintUsage()
     std::printf("  wasm run-copy-internal <name>\n");
     std::printf("  wasm run-copy-spiram <name>\n");
     std::printf("  wasm load-only <name>\n");
+    std::printf("  wasm load-only-embedded-direct <name>\n");
+    std::printf("  wasm load-only-embedded-direct-freeable <name>\n");
     std::printf("  wasm load-only-copy-internal <name>\n");
     std::printf("  wasm load-only-copy-spiram <name>\n");
     std::printf("  wasm load-only-keepalive <name>\n");
@@ -53,6 +55,8 @@ void PrintExamples()
     std::printf("  wasm run-copy-internal return-42\n");
     std::printf("  wasm run-copy-spiram return-42\n");
     std::printf("  wasm load-only return-42\n");
+    std::printf("  wasm load-only-embedded-direct return-42\n");
+    std::printf("  wasm load-only-embedded-direct-freeable return-42\n");
     std::printf("  wasm load-only-copy-internal return-42\n");
     std::printf("  wasm load-only-copy-spiram return-42\n");
     std::printf("  wasm load-only-keepalive return-42\n");
@@ -131,7 +135,9 @@ int CmdWasm(int argc, char **argv)
         return result.success ? 0 : 1;
     }
 
-    if (std::strcmp(argv[1], "load-only") == 0 || std::strcmp(argv[1], "load-only-copy-internal") == 0
+    if (std::strcmp(argv[1], "load-only") == 0 || std::strcmp(argv[1], "load-only-embedded-direct") == 0
+        || std::strcmp(argv[1], "load-only-embedded-direct-freeable") == 0
+        || std::strcmp(argv[1], "load-only-copy-internal") == 0
         || std::strcmp(argv[1], "load-only-copy-spiram") == 0
         || std::strcmp(argv[1], "load-only-keepalive") == 0 || std::strcmp(argv[1], "instantiate-bare") == 0
         || std::strcmp(argv[1], "instantiate-bare-copy-internal") == 0
@@ -154,18 +160,23 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
+        const bool load_only_embedded_direct = std::strcmp(argv[1], "load-only-embedded-direct") == 0;
+        const bool load_only_embedded_direct_freeable =
+            std::strcmp(argv[1], "load-only-embedded-direct-freeable") == 0;
         const bool load_only_copy_internal = std::strcmp(argv[1], "load-only-copy-internal") == 0;
         const bool load_only_copy_spiram = std::strcmp(argv[1], "load-only-copy-spiram") == 0;
         const bool instantiate_bare_copy_internal = std::strcmp(argv[1], "instantiate-bare-copy-internal") == 0;
         const bool instantiate_bare_copy_spiram = std::strcmp(argv[1], "instantiate-bare-copy-spiram") == 0;
-        const WasmBinarySource binary_source =
-            (load_only_copy_internal || instantiate_bare_copy_internal)
+        const WasmBinarySource binary_source = (load_only_embedded_direct || load_only_embedded_direct_freeable)
+                                                   ? WasmBinarySource::EmbeddedDirect
+                                                   : ((load_only_copy_internal || instantiate_bare_copy_internal)
                 ? WasmBinarySource::CopiedToInternalRam
                 : ((load_only_copy_spiram || instantiate_bare_copy_spiram)
                        ? WasmBinarySource::CopiedToSpiram
-                       : WasmBinarySource::Embedded);
+                       : WasmBinarySource::Embedded));
         const WasmInvocationMode invocation_mode =
-            (std::strcmp(argv[1], "load-only") == 0 || load_only_copy_internal || load_only_copy_spiram)
+            (std::strcmp(argv[1], "load-only") == 0 || load_only_embedded_direct
+             || load_only_embedded_direct_freeable || load_only_copy_internal || load_only_copy_spiram)
                 ? WasmInvocationMode::LoadOnly
                 : (std::strcmp(argv[1], "load-only-keepalive") == 0
                        ? WasmInvocationMode::LoadOnlyKeepAlive
@@ -177,9 +188,12 @@ int CmdWasm(int argc, char **argv)
                                      : (std::strcmp(argv[1], "instantiate-no-execenv") == 0
                                             ? WasmInvocationMode::InstantiateNoExecEnv
                                             : WasmInvocationMode::InstantiateOnly))));
+        const WasmLoadMethod load_method = load_only_embedded_direct_freeable
+                                               ? WasmLoadMethod::RuntimeLoadExBinaryFreeable
+                                               : WasmLoadMethod::RuntimeLoad;
         const WasmExecutionResult result =
             RunEmbeddedWasmModule(*module, module->entrypoint, WasmFlushTiming::AfterCleanup,
-                                  WasmExecutionContext::Inline, invocation_mode, binary_source);
+                                  WasmExecutionContext::Inline, invocation_mode, binary_source, load_method);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }

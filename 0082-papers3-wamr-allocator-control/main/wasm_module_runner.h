@@ -18,8 +18,14 @@ enum class WasmExecutionContext : uint8_t {
 
 enum class WasmBinarySource : uint8_t {
     Embedded,
+    EmbeddedDirect,
     CopiedToInternalRam,
     CopiedToSpiram,
+};
+
+enum class WasmLoadMethod : uint8_t {
+    RuntimeLoad,
+    RuntimeLoadExBinaryFreeable,
 };
 
 enum class WasmInvocationMode : uint8_t {
@@ -41,6 +47,7 @@ struct WasmExecutionResult {
     bool executed;
     int32_t return_value;
     WasmBinarySource binary_source;
+    WasmLoadMethod load_method;
     WasmFlushTiming flush_timing;
     WasmExecutionContext execution_context;
     WasmInvocationMode invocation_mode;
@@ -52,9 +59,11 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
                                          WasmFlushTiming flush_timing = WasmFlushTiming::AfterCleanup,
                                          WasmExecutionContext execution_context = WasmExecutionContext::Inline,
                                          WasmInvocationMode invocation_mode = WasmInvocationMode::Execute,
-                                         WasmBinarySource binary_source = WasmBinarySource::Embedded);
+                                         WasmBinarySource binary_source = WasmBinarySource::Embedded,
+                                         WasmLoadMethod load_method = WasmLoadMethod::RuntimeLoad);
 
 const char *BinarySourceName(WasmBinarySource binary_source);
+const char *LoadMethodName(WasmLoadMethod load_method);
 void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExecutionResult &result);
 void PrintLastWasmExecutionStatus();
 
