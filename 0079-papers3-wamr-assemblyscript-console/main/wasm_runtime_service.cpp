@@ -6,6 +6,7 @@
 
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_memory_utils.h"
 #include "esp_system.h"
 #include "sdkconfig.h"
 
@@ -34,6 +35,10 @@ void RefreshHeapSnapshot()
 {
     g_runtime_status.esp_free_heap_bytes = esp_get_free_heap_size();
     g_runtime_status.esp_min_free_heap_bytes = esp_get_minimum_free_heap_size();
+    g_runtime_status.runtime_pool_buffer = g_runtime_pool_buffer;
+    g_runtime_status.runtime_pool_size_bytes = kRuntimePoolSizeBytes;
+    g_runtime_status.runtime_pool_buffer_external =
+        g_runtime_pool_buffer != nullptr && esp_ptr_external_ram(g_runtime_pool_buffer);
 
     mem_alloc_info_t mem_info = {};
     g_runtime_status.mem_alloc_info_available = wasm_runtime_get_mem_alloc_info(&mem_info);
@@ -141,6 +146,9 @@ void PrintWasmRuntimeStatus()
                 status.version_patch);
     std::printf("requested_mode=%s\n", RunningModeName(status.requested_running_mode));
     std::printf("allocator=%s\n", AllocatorTypeName(status.allocator_type));
+    std::printf("wamr.pool_buffer=%p\n", status.runtime_pool_buffer);
+    std::printf("wamr.pool_buffer_external=%s\n", status.runtime_pool_buffer_external ? "yes" : "no");
+    std::printf("wamr.pool_size=%zu\n", status.runtime_pool_size_bytes);
     std::printf("build.interpreter=%s\n", status.build_has_interpreter ? "enabled" : "disabled");
     std::printf("build.aot=%s\n", status.build_has_aot ? "enabled" : "disabled");
     std::printf("supported.interpreter=%s\n", status.interpreter_supported ? "yes" : "no");

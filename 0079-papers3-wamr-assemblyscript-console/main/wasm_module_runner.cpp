@@ -150,6 +150,8 @@ void PrintRuntimeMemoryState(const char *stage)
     const bool spiram_heap_ok = heap_caps_check_integrity(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT, false);
     const size_t internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     const size_t spiram_free = heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    mem_alloc_info_t wamr_mem_info = {};
+    const bool wamr_mem_info_available = wasm_runtime_get_mem_alloc_info(&wamr_mem_info);
 
     std::printf(
         "runtime_mem.stage=%s\n"
@@ -157,10 +159,18 @@ void PrintRuntimeMemoryState(const char *stage)
         "runtime_mem.internal_heap_ok=%s\n"
         "runtime_mem.spiram_heap_ok=%s\n"
         "runtime_mem.internal_free=%u\n"
-        "runtime_mem.spiram_free=%u\n",
+        "runtime_mem.spiram_free=%u\n"
+        "runtime_mem.wamr_pool_info=%s\n"
+        "runtime_mem.wamr_pool_total=%lu\n"
+        "runtime_mem.wamr_pool_free=%lu\n"
+        "runtime_mem.wamr_pool_highmark=%lu\n",
         stage != nullptr ? stage : "unknown", flash_cache_enabled ? "yes" : "no",
         internal_heap_ok ? "yes" : "no", spiram_heap_ok ? "yes" : "no",
-        static_cast<unsigned>(internal_free), static_cast<unsigned>(spiram_free));
+        static_cast<unsigned>(internal_free), static_cast<unsigned>(spiram_free),
+        wamr_mem_info_available ? "yes" : "no",
+        static_cast<unsigned long>(wamr_mem_info_available ? wamr_mem_info.total_size : 0),
+        static_cast<unsigned long>(wamr_mem_info_available ? wamr_mem_info.total_free_size : 0),
+        static_cast<unsigned long>(wamr_mem_info_available ? wamr_mem_info.highmark_size : 0));
 }
 
 void SetResultError(WasmExecutionResult *result, const char *stage, const char *message)

@@ -25,6 +25,9 @@ struct WasmRuntimeStatus {
     uint32_t runtime_heap_total_bytes;
     uint32_t runtime_heap_free_bytes;
     uint32_t runtime_heap_highmark_bytes;
+    std::size_t runtime_pool_size_bytes;
+    void *runtime_pool_buffer;
+    bool runtime_pool_buffer_external;
     std::size_t esp_free_heap_bytes;
     std::size_t esp_min_free_heap_bytes;
     char last_error[128];
