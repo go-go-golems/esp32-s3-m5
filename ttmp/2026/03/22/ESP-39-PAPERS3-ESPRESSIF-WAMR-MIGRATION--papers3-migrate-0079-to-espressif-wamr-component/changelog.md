@@ -17,3 +17,7 @@
 - Clean-boot probes now show a more nuanced boundary: `wasm replay hello-frame` succeeds after reset, but `wasm run-preflush hello-frame` still crashes in `Panel_EPD::writeFillRectPreclipped`
 - Same-boot sequence probes established the decisive new result: both `wasm run-preflush return-42` and `wasm run-preflush log-only` can succeed first and still poison a later `wasm replay hello-frame` in the same boot, which means the remaining PaperS3 failure is no longer limited to guest-issued drawing imports
 - Committed the same-boot probe helper as `42205d7` (`debug(ticket): add same-boot serial probe helper`)
+- Added an A/B worker-thread execution path plus reduced replay controls in `0079` so the same firmware can compare inline-vs-worker WAMR execution and `clear-only` vs `frame-no-clear` PaperS3 replays
+- The worker-thread experiment falsified the current leading fix idea: `wasm run-preflush-worker return-42` still poisons a later `wasm replay hello-frame`, and `wasm run-preflush-worker hello-frame` still crashes in `Panel_EPD::writeFillRectPreclipped`
+- The reduced replay controls further narrowed the PaperS3 side: after a successful worker-thread `return-42`, both `wasm replay clear-only` and `wasm replay frame-no-clear` crash, so the post-WAMR failure is broader than `screenClear` alone and still lands inside `Panel_EPD`
+- Committed the worker/reduced-replay probe slice as `e91eaaf` (`debug(papers3): add worker and reduced replay probes`)

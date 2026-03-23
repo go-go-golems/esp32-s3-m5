@@ -15,15 +15,21 @@ RelatedFiles:
     - Path: 0079-papers3-wamr-assemblyscript-console/dependencies.lock
       Note: Resolved dependency record used to confirm the migration result
     - Path: 0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt
-      Note: Main component alias wiring that must be updated during the migration
+      Note: |-
+        Main component alias wiring that must be updated during the migration
+        Adds the pthread dependency required for the worker-thread execution experiment
     - Path: 0079-papers3-wamr-assemblyscript-console/main/idf_component.yml
       Note: Dependency manifest being migrated from upstream WAMR to Espressif's package
     - Path: 0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp
       Note: Contains PaperS3 screen clear and frame lifecycle code hit by the decoded backtraces
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp
+      Note: Adds the worker-thread console commands used for the A/B hardware experiment
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp
       Note: Contains queued host-command flush logic that leads into the crashing PaperS3 display path
     - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp
       Note: Contains the preflush execution path and exec probes used in the new hardware tests
+    - Path: 0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp
+      Note: Adds clear-only and frame-no-clear controls that narrowed the PaperS3 crash beyond screenClear
     - Path: ttmp/2026/03/22/ESP-39-PAPERS3-ESPRESSIF-WAMR-MIGRATION--papers3-migrate-0079-to-espressif-wamr-component/scripts/serial_probe_sequence.py
       Note: New same-boot probe helper used to expose post-WAMR contamination on PaperS3
 ExternalSources: []
@@ -32,6 +38,7 @@ LastUpdated: 2026-03-22T19:52:00-04:00
 WhatFor: Record the migration sequence, build results, and any resolver or alias issues encountered while switching to Espressif's WAMR package.
 WhenToUse: Read this before continuing the migration or reviewing how the dependency swap was validated.
 ---
+
 
 
 # Diary
@@ -695,3 +702,134 @@ This step produced the most useful narrowing result since the AtomS3R cross-chec
   - `/.../serial_send_and_capture.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush hello-frame'`
   - `/.../serial_probe_sequence.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush return-42' --command 'wasm replay hello-frame'`
   - `/.../serial_probe_sequence.py --port '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' --command 'wasm run-preflush log-only' --command 'wasm replay hello-frame'`
+
+## Step 12: Falsify the worker-thread fix and show the post-WAMR PaperS3 crash is broader than `screenClear`
+
+The next fix idea to test was straightforward: if the console task context is the problem, move WAMR execution onto a dedicated worker `pthread` and leave the replay path alone. That is a good experiment because it changes one major variable while preserving the same guest programs, the same host queue, and the same PaperS3 display code.
+
+The result was negative in the useful sense. Running Wasm on a worker thread did not stop the later PaperS3 crash, and the reduced replay controls showed that the post-WAMR failure is not limited to `screenClear()`. After a successful worker-thread `return-42`, both a `clear-only` replay and a `frame-no-clear` replay still crash inside `Panel_EPD::writeFillRectPreclipped`. That sharply reduces the value of spending more time on the “wrong task context” theory.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead,"
+
+**Assistant interpretation:** Continue immediately with the next concrete debugging experiment instead of stopping at the previous report.
+
+**Inferred user intent:** Keep pushing the PaperS3 runtime/display investigation forward until a hypothesis is falsified or a new one becomes clearly stronger.
+
+**Commit (code):** e91eaaf — "debug(papers3): add worker and reduced replay probes"
+
+### What I did
+
+- Added a worker-thread execution mode to the Wasm runner in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+- Implemented the worker path as a dedicated host-created `pthread` with:
+  - explicit `pthread_attr_setstacksize(...)`
+  - `wasm_runtime_init_thread_env()`
+  - `wasm_runtime_destroy_thread_env()`
+- Added new console commands in [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp):
+  - `wasm run-worker <name>`
+  - `wasm run-preflush-worker <name>`
+- Added `pthread` to [main/CMakeLists.txt](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/CMakeLists.txt) so the new worker path links cleanly under ESP-IDF.
+- Extended the replay-control harness in [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp) with:
+  - `clear-only`
+  - `frame-no-clear`
+- Rebuilt and flashed the updated firmware to the attached PaperS3.
+- Ran these hardware probes:
+  - clean boot `wasm run-preflush-worker return-42`
+  - same boot `wasm run-preflush-worker return-42` then `wasm replay hello-frame`
+  - clean boot `wasm run-preflush-worker hello-frame`
+  - same boot `wasm run-preflush-worker return-42` then `wasm replay clear-only`
+  - same boot `wasm run-preflush-worker return-42` then `wasm replay frame-no-clear`
+- Decoded the resulting backtraces against the new ELF.
+
+### Why
+
+- The worker-thread idea was the most defensible next experiment after Step 11 because it directly tested the upstream-style threading recommendation from the external report.
+- The reduced replay controls were necessary because “it crashes in replay” was still too broad. I needed to know whether the failure after WAMR was only tied to full-screen clear operations or whether it affected other PaperS3 draw primitives too.
+
+### What worked
+
+- The new worker-thread path built and flashed cleanly.
+- `wasm run-preflush-worker return-42` succeeded on hardware and clearly ran on a different task handle than the console task:
+  - the `exec_probe.task` value changed to the worker-thread task
+  - `execution_context=worker-thread` printed in the command result
+- The new reduced replay examples were accepted by the firmware and executed far enough to trigger useful decoded backtraces.
+- Address decoding on the new firmware stayed precise enough to separate the two reduced replay cases:
+  - `clear-only` crashes via [PaperCanvasScreenClear](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp#L135)
+  - `frame-no-clear` crashes via [PaperCanvasDrawRect](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp#L146)
+
+### What didn't work
+
+- The worker-thread experiment did **not** fix the main issue:
+  - `wasm run-preflush-worker return-42` succeeded
+  - a later `wasm replay hello-frame` in the same boot still crashed with `Cache disabled but cached memory region accessed`
+- A clean-boot `wasm run-preflush-worker hello-frame` still crashed during the PaperS3 preflush path.
+- The reduced replay controls ruled out a narrow `screenClear`-only theory:
+  - `wasm replay clear-only` crashes after worker-thread `return-42`
+  - `wasm replay frame-no-clear` also crashes after worker-thread `return-42`
+- The decoded reduced-replay crash sites are:
+  - `clear-only`
+    - [Panel_EPD.cpp:370](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp#L370)
+    - [wasm_replay_control.cpp:103](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L103)
+  - `frame-no-clear`
+    - [Panel_EPD.cpp:370](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp#L370)
+    - [papers3_canvas.cpp:146](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp#L146)
+    - [wasm_replay_control.cpp:103](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L103)
+
+### What I learned
+
+- The problem is not well explained by “WAMR ran on the wrong task.” Even when guest execution moves to a dedicated `pthread`, the later PaperS3 drawing path still becomes unsafe.
+- The problem is also not well explained by “only full-screen clear is bad after WAMR.” A reduced replay that avoids `screenClear()` and starts with `drawRect()` still crashes in the same `Panel_EPD` machinery.
+- The new better model is:
+  - successful WAMR execution poisons some PaperS3 display-layer assumption
+  - the poisoned state affects more than one draw primitive
+  - the common downstream choke point is still `Panel_EPD::writeFillRectPreclipped(...)`
+
+### What was tricky to build
+
+- The worker-thread experiment had to be structured as an A/B path rather than a replacement. If I had replaced the inline path entirely, a failure would have been harder to interpret because I would lose the known baseline. Keeping both inline and worker commands in the same firmware made the comparison clean.
+- The reduced replay controls were also important because the original `hello-frame` replay combined several PaperS3 operations. Without splitting them up, it would still be tempting to overfit to `fillScreen()` or to the full scene sequence. The separate `clear-only` and `frame-no-clear` probes made it obvious that multiple PaperS3 drawing operations fail after WAMR.
+
+### What warrants a second pair of eyes
+
+- Whether the next debugging slice should shift fully into the vendored M5GFX `Panel_EPD.cpp` implementation rather than continue around the edges from the WAMR side.
+- Whether PaperS3 display buffer placement or cache-invalidation assumptions need explicit instrumentation around `startWrite()`, `fillScreen()`, `drawRect()`, and `endWrite()`.
+- Whether a direct comparison against the latest upstream M5GFX PaperS3 fixes should now outrank any additional WAMR-side experiment.
+
+### What should be done in the future
+
+- Treat the worker-thread hypothesis as tested and currently falsified for this bug.
+- Focus the next slice on the PaperS3 display driver and buffer handling, especially `Panel_EPD.cpp`.
+- Compare the local vendored M5GFX PaperS3 EPD path against any newer upstream fixes or issue reports before inventing more runtime-side mitigations.
+
+### Code review instructions
+
+- Start with the new worker-thread execution path:
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Then review the reduced replay controls:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Validate with:
+  - `wasm run-preflush-worker return-42`
+  - `wasm run-preflush-worker return-42` then `wasm replay hello-frame`
+  - `wasm run-preflush-worker return-42` then `wasm replay clear-only`
+  - `wasm run-preflush-worker return-42` then `wasm replay frame-no-clear`
+
+### Technical details
+
+- Worker-thread direct result:
+  - `wasm run-preflush-worker return-42` -> success
+  - `execution_context=worker-thread`
+  - `exec_probe.task` differs from the console task handle
+- Worker-thread falsification result:
+  - `wasm run-preflush-worker return-42` then `wasm replay hello-frame` -> still crashes
+- Reduced replay results after successful worker-thread `return-42`:
+  - `clear-only` -> crash in `Panel_EPD::writeFillRectPreclipped` via `PaperCanvasScreenClear`
+  - `frame-no-clear` -> crash in `Panel_EPD::writeFillRectPreclipped` via `PaperCanvasDrawRect`
+- Representative commands:
+  - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay hello-frame'`
+  - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay clear-only'`
+  - `/.../serial_probe_sequence.py --command 'wasm run-preflush-worker return-42' --command 'wasm replay frame-no-clear'`

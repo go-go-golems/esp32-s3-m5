@@ -33,6 +33,10 @@
 - [x] Task 4.5: Add a same-boot multi-command serial probe helper under ticket-local scripts
 - [x] Task 4.6: Determine whether a successful non-drawing Wasm execution poisons later PaperS3 replay in the same boot
 - [x] Task 4.7: Compare same-boot replay behavior after `return-42` and `log-only`
+- [x] Task 4.8: Add a worker-thread Wasm execution path for A/B comparison against the inline console-task path
+- [x] Task 4.9: Test whether worker-thread Wasm execution prevents same-boot replay poisoning on PaperS3
+- [x] Task 4.10: Add reduced replay controls that isolate clear-only from frame-no-clear PaperS3 drawing
+- [x] Task 4.11: Test clear-only and frame-no-clear after successful worker-thread Wasm execution
 
 ## Planned
 
