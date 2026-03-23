@@ -17,4 +17,13 @@ config PAPERS3_WAMR_ALLOCATOR_SYSTEM
 
 endchoice
 
+config PAPERS3_WAMR_COPY_EMBEDDED_TO_INTERNAL_BEFORE_LOAD
+    bool "Copy embedded Wasm into internal RAM before load"
+    default n
+    help
+        When enabled, the default embedded-module path copies the embedded Wasm
+        bytes into internal RAM before calling wasm_runtime_load(). This exists
+        as a mitigation experiment for the PaperS3 flash-mapped embedded-buffer
+        contamination issue.
+
 endmenu

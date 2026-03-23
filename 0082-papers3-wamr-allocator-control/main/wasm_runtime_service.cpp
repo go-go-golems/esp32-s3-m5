@@ -175,6 +175,12 @@ void PrintWasmRuntimeStatus()
     std::printf("requested_mode=%s\n", RunningModeName(status.requested_running_mode));
     std::printf("allocator=%s\n", AllocatorTypeName(status.allocator_type));
     std::printf("allocator_backing=%s\n", AllocatorBackingName(status));
+    std::printf("embedded_load_copy_internal=%s\n",
+#if CONFIG_PAPERS3_WAMR_COPY_EMBEDDED_TO_INTERNAL_BEFORE_LOAD
+                "yes");
+#else
+                "no");
+#endif
     std::printf("wamr.pool_buffer=%p\n", status.runtime_pool_buffer);
     std::printf("wamr.pool_buffer_external=%s\n", status.runtime_pool_buffer_external ? "yes" : "no");
     std::printf("wamr.pool_size=%zu\n", status.runtime_pool_size_bytes);
