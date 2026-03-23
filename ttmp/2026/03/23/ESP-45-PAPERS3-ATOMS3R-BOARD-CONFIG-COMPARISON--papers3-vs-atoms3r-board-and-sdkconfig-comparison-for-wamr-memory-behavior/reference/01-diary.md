@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T18:44:00-04:00
+LastUpdated: 2026-03-23T19:38:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -135,3 +135,71 @@ For this repo, if a board is already showing “attach resets into ROM download 
 - only after that trust the resulting boot/probe evidence
 
 I also added this as a repo-level instruction in `AGENTS.md` so future sessions do not relearn it by trial and error.
+
+## 2026-03-23 19:12 EDT
+
+Resumed the Atom cross-check using the older known-good workflow from `ESP-40` instead of trying to fight `idf.py monitor`.
+
+The important operational correction was:
+
+- flash with `--before usb_reset --after no_reset`
+- then force the app boot with `--after watchdog_reset`
+- only then run a single-owner probe session against the already-running app
+
+That got the Atom back into a stable `boot:0x18 (SPI_FAST_FLASH_BOOT)` app boot and restored trust in the comparison environment. I used `wasm status` first as a sanity check before the actual root-cause probes.
+
+## 2026-03-23 19:20 EDT
+
+Ran the first decisive same-boot Atom sequence:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+This changed the interpretation of the whole board-comparison ticket.
+
+AtomS3R did **not** survive the direct embedded `return-42` path. It logged the same bounded WAMR in-place string mutation events as PaperS3:
+
+- `len=3` for `run`
+- `len=6` for `memory`
+
+and then crashed on the later PSRAM touch with the same `Cache disabled but cached memory region accessed` family of failure.
+
+That means the previous working theory in this ticket, “maybe PaperS3 is uniquely sensitive and AtomS3R survives the same bad write,” is no longer tenable. The bad WAMR rewrite path is toxic on AtomS3R too.
+
+The board difference story is therefore much weaker than it looked a few hours ago. The most important difference now is not “PaperS3 external flash versus Atom SiP flash.” The important commonality is “both boards are executing the same in-place rewrite against the same kind of embedded flash-mapped input buffer.”
+
+## 2026-03-23 19:27 EDT
+
+Ran the matching Atom freeable control:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct-freeable return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+This one succeeded cleanly.
+
+The control matters because it preserves the same direct embedded source pointer while changing the WAMR loader mode to the `binary_freeable` path. In practice, that means:
+
+- no `wamr_const_str.stage=mutate-in-place` logs
+- no later PSRAM crash
+- later persistent PSRAM touch succeeds
+
+So AtomS3R now matches PaperS3 on the point that actually matters:
+
+- direct embedded `return-42` with source-buffer mutation: bad
+- direct embedded `binary_freeable` path without source-buffer mutation: good
+
+The broad conclusion is now cross-board rather than board-specific.
+
+## 2026-03-23 19:38 EDT
+
+This comparison ticket is still useful, but its value has changed.
+
+What it now says is:
+
+- the original “maybe this is only PaperS3 board topology” explanation was a useful hypothesis, but it is no longer supported by the direct experiment
+- the root cause is better modeled as a runtime/loader misuse of embedded flash-mapped Wasm input buffers on both boards
+- any remaining board differences are secondary details about how the resulting failure manifests, not the primary cause of the bug
+
+That is a good debugging outcome even though it invalidated one of our intermediate stories. The point of this ticket was to test the board theory honestly, and the result is that the board theory does **not** explain the core bug.
