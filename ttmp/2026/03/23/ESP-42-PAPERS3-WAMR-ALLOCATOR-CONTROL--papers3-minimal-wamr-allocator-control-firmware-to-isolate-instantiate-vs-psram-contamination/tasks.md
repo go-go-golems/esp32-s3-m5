@@ -32,3 +32,8 @@ Build a stripped PaperS3 control firmware that keeps only the pieces needed to a
 - [x] Task 6.1: Add `wasm load-only <name>` and `wasm load-only-keepalive <name>` lifecycle probes with explicit result reporting.
 - [x] Task 6.2: Build the updated harness and run the same single-boot PSRAM control sequence around the new load-only commands.
 - [x] Task 6.3: Record whether `wasm_runtime_load(...)` alone is sufficient to poison later PSRAM writes on PaperS3.
+- [ ] Task 7: Instrument the WAMR load path itself now that `wasm_runtime_load(...)` is the smallest known toxic boundary.
+- [ ] Task 7.1: Add ticket-local snapshots/check scripts for the ignored WAMR loader files that will be modified.
+- [ ] Task 7.2: Add narrow loader-stage telemetry around `wasm_runtime_load(...)`, `wasm_loader_load(...)`, and `load(...)`.
+- [ ] Task 7.3: Rebuild and rerun the same internal-pool single-boot PSRAM sequence around `load-only` and `load-only-keepalive`.
+- [ ] Task 7.4: Record which loader stage is the last clearly healthy point before later PSRAM writes fail.
