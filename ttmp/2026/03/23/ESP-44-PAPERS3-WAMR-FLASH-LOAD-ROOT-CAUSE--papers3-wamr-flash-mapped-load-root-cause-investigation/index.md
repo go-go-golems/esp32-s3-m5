@@ -12,9 +12,11 @@ DocType: index
 Intent: long-term
 Owners: []
 RelatedFiles: []
-ExternalSources: []
+ExternalSources:
+    - https://github.com/bytecodealliance/wasm-micro-runtime/releases
+    - https://github.com/bytecodealliance/wasm-micro-runtime/pull/4591
 Summary: ""
-LastUpdated: 2026-03-23T20:08:00-04:00
+LastUpdated: 2026-03-23T22:05:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -23,7 +25,7 @@ WhenToUse: ""
 
 ## Overview
 
-This ticket explains the root cause of the embedded-Wasm load crash that originally looked like a broad PaperS3 PSRAM/display/WAMR problem. The current state is stronger than “workaround found”: the investigation now isolates WAMR's in-place const-string reuse on flash-mapped embedded Wasm buffers as the critical mechanism, with a long-form postmortem and saved proof patches.
+This ticket explains the root cause of the embedded-Wasm load crash that originally looked like a broad PaperS3 PSRAM/display/WAMR problem. The current state is stronger than “workaround found”: the investigation now isolates WAMR's in-place const-string reuse on flash-mapped embedded Wasm buffers as the critical mechanism, with a long-form postmortem, saved proof patches, and an added public/upstream research appendix documenting what current WAMR sources and open pull requests do and do not say about the same bug family.
 
 ## Key Links
 

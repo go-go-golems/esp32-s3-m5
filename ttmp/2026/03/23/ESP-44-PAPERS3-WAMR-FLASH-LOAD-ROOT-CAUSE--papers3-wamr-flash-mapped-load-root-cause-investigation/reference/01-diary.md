@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T20:10:00-04:00
+LastUpdated: 2026-03-23T22:05:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -258,6 +258,18 @@ Ran the proof on AtomS3R because that board was already attached and the bug had
 Sequence:
 
 - flash updated `0081`
+
+## 2026-03-23 21:46 EDT
+
+Documented the online/public follow-up research in the postmortem instead of leaving it in chat-only form.
+
+The important outcome is not “upstream already knows this bug.” We did **not** find a public report that matches our exact final mechanism in the same terms. What we did find is narrower but still important:
+
+- recent upstream release history continues to touch loader/binary ownership semantics
+- current upstream code still appears to preserve the same broad interpreter-loader contract shape
+- open PR `#4591` is in the same ownership-flag family and shows that `is_binary_freeable` handling is still an active source of bugs
+
+That is enough to justify a future upstream issue. It is not enough to claim the bug is already fixed elsewhere.
 - `wasm replay psram-persistent-init`
 - `wasm load-only-embedded-direct return-42`
 - `wasm replay psram-persistent-touch-sync`

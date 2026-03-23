@@ -22,9 +22,13 @@ RelatedFiles:
       Note: Contains reuse_const_strings and the interpreter loader branch that determines whether the source buffer is reused in place
     - Path: 0082-papers3-wamr-allocator-control/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c
       Note: Contains wasm_const_str_list_insert and the in-place mutation that rewrites flash-mapped export strings
-ExternalSources: []
+ExternalSources:
+    - https://github.com/bytecodealliance/wasm-micro-runtime/releases
+    - https://github.com/bytecodealliance/wasm-micro-runtime/pull/4591
+    - https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/interpreter/wasm_loader.c
+    - https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/interpreter/wasm_runtime.c
 Summary: Detailed postmortem explaining how the apparent PaperS3 PSRAM/display/WAMR failure narrowed into a WAMR loader bug caused by in-place const-string mutation of flash-mapped embedded Wasm buffers.
-LastUpdated: 2026-03-23T20:12:00-04:00
+LastUpdated: 2026-03-23T22:05:00-04:00
 WhatFor: Explain the exact root cause, the investigation strategy, the proof ladder, and the safest production and upstream fixes for the embedded-Wasm load crash.
 WhenToUse: Read when maintaining the embedded Wasm loader path, evaluating whether to keep the RAM-copy mitigation, or preparing an upstream WAMR fix/report.
 ---
@@ -489,6 +493,119 @@ Board differences may still affect:
 - how often the bug manifests
 
 But they are not the primary explanation anymore.
+
+## Public and upstream research context
+
+After the local proof ladder was complete, we looked for public evidence that this bug family was already known upstream.
+
+The short answer is:
+
+- we did not find a public issue that exactly matches our final root cause in the same terms
+- we did find strong adjacent evidence that upstream WAMR is still actively dealing with source-binary ownership and mutability semantics
+- current upstream sources still suggest that the same general interpreter-loader decision pattern exists
+
+That matters because it changes how confident we should be in our next step. We are no longer at the stage of “maybe we misunderstood WAMR.” We are now at the stage of “we likely found a precise loader contract bug that deserves an upstream report.”
+
+### What we searched for
+
+The online research focused on three questions:
+
+- are there public reports of WAMR mutating read-only or flash-mapped Wasm buffers?
+- do newer upstream versions already fix the const-string reuse path we proved locally?
+- are there recent upstream discussions showing that `wasm_binary_freeable` and loader ownership semantics are still fragile?
+
+We deliberately searched beyond Espressif packaging, because the local root cause was already below the ESP-IDF integration layer. At this stage, the important code belongs to WAMR upstream itself.
+
+### What we found
+
+We did not find a public upstream issue that says, in plain terms:
+
+- “the interpreter loader mutates an embedded read-only Wasm buffer in place”
+- “this later causes PSRAM/cache failures on ESP32-S3”
+
+That exact report does not appear to exist publicly, at least not in the sources we reviewed.
+
+What we *did* find is a set of nearby upstream signals.
+
+First, the upstream releases page shows continuing work in this area of loader/binary handling. Relevant examples include:
+
+- release notes mentioning “Allow not copying the wasm binary in wasm-c-api and not referring to the binary in wasm/aot loader (#3389)”
+- release notes mentioning “Optimize memory initialization handling in AOT loader (#3983)”
+
+These are not exact matches for our bug, but they are in the same design neighborhood: when the runtime should retain, mutate, clone, or free the caller’s original binary buffer.
+
+Second, there is an open upstream pull request:
+
+- `Set is_binary_freeable in load_from_sections` (`#4591`)
+
+The author reports a crash after upgrading to `2.4.1` and specifically argues that the loader is using the wrong `is_binary_freeable` value while loading because the module field is set too late. That is not the same stack as our interpreter embedded-buffer bug, but it is highly relevant because it demonstrates that upstream is still actively dealing with the exact same ownership flag family.
+
+Third, current upstream source still exposes the same core conceptual hazard:
+
+- the interpreter loader still has source-buffer ownership/reuse decisions that depend on whether the binary is considered reusable/freeable
+- the runtime still has a specialized path that converts Wasm strings into C strings by shifting bytes and null-terminating in place when the loader believes the original buffer can be reused
+
+In other words, we did not find evidence that upstream has already redesigned this area in a way that would obviously make our local bug impossible.
+
+### Why this research matters
+
+The online research did not “solve the bug.” The local hardware proof already did that.
+
+What the research changed was our confidence about three things:
+
+1. this is probably upstream-worthy
+
+   The local bug is not a strange one-off caused by our app code. It sits in a core loader ownership contract that upstream is already changing in adjacent places.
+
+2. we should not assume newer upstream magically fixed it
+
+   We did not find a merged change that clearly says “interpreter loader no longer mutates original read-only buffers” or “embedded read-only buffers are now modeled separately from freeable binaries.”
+
+3. `wasm_binary_freeable` is probably the wrong semantic lever for this problem
+
+   Our local proof and the upstream `#4591` discussion both point in the same direction: ownership and writability are related but not identical concepts. A flash-mapped embedded buffer can be:
+
+   - not freeable by WAMR
+   - not writable by WAMR
+
+   Those are different facts. The current loader logic compresses too much meaning into the wrong flag.
+
+### Interpretation for a new engineer
+
+If you are a new intern reading this ticket later, do not overread the online research.
+
+The public evidence does **not** mean:
+
+- upstream has already confirmed our exact bug
+- upstream already has a merged fix
+- our local reproduction can be replaced by a release-note citation
+
+The public evidence **does** mean:
+
+- our bug fits a real upstream risk area
+- ownership semantics around Wasm source buffers are still evolving
+- filing a precise upstream issue with our reproduction is justified
+
+### Best current upstream-facing explanation
+
+The cleanest upstream explanation is:
+
+- the interpreter loader currently has a path that assumes a load buffer is safe to reuse and mutate in place
+- embedded firmware assets linked into flash-mapped `.rodata` violate that assumption
+- the current API/flag model does not clearly separate:
+  - “WAMR may free this buffer”
+  - “WAMR may mutate this buffer”
+
+That is the central contract bug.
+
+### External source references
+
+Primary public sources reviewed:
+
+- WAMR releases page: <https://github.com/bytecodealliance/wasm-micro-runtime/releases>
+- WAMR pull request `#4591`: <https://github.com/bytecodealliance/wasm-micro-runtime/pull/4591>
+- Current upstream interpreter loader: <https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/interpreter/wasm_loader.c>
+- Current upstream interpreter runtime: <https://github.com/bytecodealliance/wasm-micro-runtime/blob/main/core/iwasm/interpreter/wasm_runtime.c>
 
 ## Timeline of incorrect or incomplete theories
 
