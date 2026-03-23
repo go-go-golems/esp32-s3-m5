@@ -33,3 +33,6 @@
 - Added an `instantiate-no-execenv` lifecycle mode so the runtime can stop after module instantiation and export lookup, before `wasm_runtime_create_exec_env(...)`
 - Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-no-execenv return-42` followed by `wasm replay psram-scratch` still crashes
 - That means `wasm_runtime_create_exec_env(...)` is not required either; the contamination boundary is now at or before module instantiate/lookup/cleanup
+- Added an `instantiate-bare` lifecycle mode so the runtime can stop immediately after `wasm_runtime_instantiate(...)`, before export lookup
+- Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-bare return-42` followed by `wasm replay psram-scratch` still crashes
+- That means export lookup is not required either; the required boundary is now effectively `wasm_runtime_instantiate(...)` plus deinstantiate/unload cleanup

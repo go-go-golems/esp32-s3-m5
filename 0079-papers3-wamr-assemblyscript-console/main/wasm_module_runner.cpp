@@ -75,6 +75,8 @@ const char *InvocationModeName(WasmInvocationMode invocation_mode)
     switch (invocation_mode) {
         case WasmInvocationMode::Execute:
             return "execute";
+        case WasmInvocationMode::InstantiateBare:
+            return "instantiate-bare";
         case WasmInvocationMode::InstantiateNoExecEnv:
             return "instantiate-no-execenv";
         case WasmInvocationMode::InstantiateOnly:
@@ -179,6 +181,11 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
         goto cleanup;
     }
     result.instantiated = true;
+
+    if (invocation_mode == WasmInvocationMode::InstantiateBare) {
+        result.success = true;
+        goto cleanup;
+    }
 
     function = wasm_runtime_lookup_function(module_inst, export_name);
     if (function == nullptr) {

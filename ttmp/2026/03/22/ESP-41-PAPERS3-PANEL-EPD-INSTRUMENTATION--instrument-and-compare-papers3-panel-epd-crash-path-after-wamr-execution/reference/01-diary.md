@@ -979,3 +979,126 @@ That is the key result of the current slice. The first concrete divergence is **
   - `0x4200c111` -> `RunPsramScratchProbe(...)` at `wasm_replay_control.cpp:88`
   - `0x4200c2af` -> `RunWasmReplayControlExample(...)` at `wasm_replay_control.cpp:150`
   - `0x4200b2e4` -> `CmdWasm(...)` at `wasm_command.cpp:159`
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Take the last cheap runner-side split before crossing into WAMR internals. After `instantiate-no-execenv` still reproduced the bug, test whether export lookup itself is required.
+
+**Inferred user intent:** Keep pushing until the runner-level search space is basically exhausted, while preserving enough detail in the diary to show why we stopped adding probe modes after this.
+
+### What I did
+
+- Added a final runner-side invocation mode in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - `WasmInvocationMode::InstantiateBare`
+- In this mode, the runner:
+  - loads the module
+  - calls `wasm_runtime_instantiate(...)`
+  - then immediately tears down
+- It does **not**:
+  - look up the export
+  - validate the signature
+  - create an exec env
+  - execute guest code
+  - flush host work
+- Added the matching console command in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+  - command: `wasm instantiate-bare <name>`
+- Rebuilt and reflashed the headless PaperS3 build.
+- Ran this same-boot sequence:
+  - `wasm instantiate-bare return-42`
+  - `wasm replay psram-scratch`
+- Decoded the new crash against the headless ELF.
+
+### Why
+
+- `instantiate-no-execenv` had already ruled out guest execution and exec-env creation.
+- The only obviously cheaper runner-side boundary left was export lookup/signature validation.
+- If `instantiate-bare` still reproduced the bug, we could stop adding local probe modes with confidence and move into WAMR internals directly.
+
+### What worked
+
+- `wasm instantiate-bare return-42` succeeded and clearly showed the intended boundary:
+  - `invocation_mode=instantiate-bare`
+  - `execution=success`
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=no`
+  - `exec_env=no`
+  - `executed=no`
+- That confirms the probe stopped exactly where intended.
+
+### What didn't work
+
+- The next command in the same boot:
+  - `wasm replay psram-scratch`
+  still crashed with:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+
+### What I learned
+
+- Export lookup is not required for the contamination either.
+- The required boundary is now effectively:
+  - `wasm_runtime_instantiate(...)`
+  - followed by the matching cleanup path
+- That makes the next move much clearer:
+  - stop adding runner-side modes
+  - inspect or instrument WAMR instantiate/deinstantiate internals directly
+
+### What was tricky to build
+
+- The only subtle point here was keeping the mode meaningful while still making it the cheapest remaining runner-side split.
+- Stopping immediately after instantiate gives the tightest local boundary we can get without patching WAMR itself.
+
+### What warrants a second pair of eyes
+
+- Whether the next instrumented target should be:
+  - `memory_instantiate(...)` / `wasm_allocate_linear_memory(...)`
+  - `memories_deinstantiate(...)` / `wasm_deallocate_linear_memory(...)`
+  - or both together
+- Whether there is any plausible value left in adding a `load-only` mode, or whether that would now be mostly noise
+
+### What should be done in the future
+
+- Add direct WAMR-side instrumentation around:
+  - `wasm_runtime_instantiate(...)`
+  - `memory_instantiate(...)`
+  - `memories_deinstantiate(...)`
+  - `wasm_deallocate_linear_memory(...)`
+- Focus first on allocation/free and any cache-relevant behavior around linear memory, because that is the remaining shared path across all successful runner-side poison modes.
+
+### Code review instructions
+
+- Review the final runner-side mode additions in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Confirm that `instantiate-bare` reports:
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=no`
+  - `exec_env=no`
+  - `executed=no`
+
+### Technical details
+
+- Headless same-boot command sequence:
+  - `wasm instantiate-bare return-42`
+  - `wasm replay psram-scratch`
+- Successful instantiate-bare output:
+  - `invocation_mode=instantiate-bare`
+  - `execution=success`
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=no`
+  - `exec_env=no`
+  - `executed=no`
+- Same-boot crash result:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- Decoded crash addresses:
+  - `0x4200c15d` -> `RunPsramScratchProbe(...)` at `wasm_replay_control.cpp:88`
+  - `0x4200c2fb` -> `RunWasmReplayControlExample(...)` at `wasm_replay_control.cpp:150`
+  - `0x4200b314` -> `CmdWasm(...)` at `wasm_command.cpp:164`

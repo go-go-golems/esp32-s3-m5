@@ -14,7 +14,10 @@
 - [x] Task 3.9: Use the headless `instantiate-only` probe with `psram-scratch` to decide whether `call_wasm` is required for the repro
 - [x] Task 3.10: Add a pre-exec-env lifecycle probe so we can split module instantiation contamination from exec-env creation contamination
 - [x] Task 3.11: Use the headless pre-exec-env probe with `psram-scratch` to decide whether `wasm_runtime_create_exec_env(...)` is required for the repro
-- [ ] Task 3.12: Decide whether one more local lifecycle split before export lookup is worth the cost, or whether the next best move is direct inspection of WAMR instantiate/deinstantiate internals
+- [x] Task 3.12: Decide whether one more local lifecycle split before export lookup is worth the cost, or whether the next best move is direct inspection of WAMR instantiate/deinstantiate internals
+- [x] Task 3.13: Add a post-instantiate/pre-lookup probe so we can split module instantiate/deinstantiate contamination from export lookup/signature logic
+- [x] Task 3.14: Use the headless post-instantiate/pre-lookup probe with `psram-scratch` to decide whether export lookup is required for the repro
+- [ ] Task 3.15: Move from runner-side splits into direct WAMR instantiate/deinstantiate instrumentation now that the required boundary is effectively `wasm_runtime_instantiate(...)` plus cleanup
 
 ## Planned
 
