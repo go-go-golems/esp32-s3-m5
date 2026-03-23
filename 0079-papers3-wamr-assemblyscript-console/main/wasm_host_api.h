@@ -9,6 +9,8 @@ bool InitWasmHostApi();
 
 bool IsWasmHostApiReady();
 
+bool IsWasmDisplayHostApiEnabled();
+
 void ResetWasmHostFrame();
 
 bool QueueWasmHostLogI32(int32_t tag, int32_t value);

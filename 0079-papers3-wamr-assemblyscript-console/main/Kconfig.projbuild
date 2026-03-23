@@ -1,0 +1,15 @@
+menu "PaperS3 WAMR AssemblyScript Console"
+
+config PAPERS3_WASM_ENABLE_DISPLAY_STACK
+    bool "Enable PaperS3 display stack for WAMR demo"
+    default y
+    help
+        When enabled, the firmware initializes the PaperS3 display path, registers
+        WAMR drawing imports, and enables `wasm replay ...` control examples.
+
+        When disabled, the firmware becomes a headless PaperS3 WAMR baseline:
+        no board splash via `M5.Display`, no `PaperCanvas` initialization, and no
+        display-oriented WAMR host imports. This is intended for isolating whether
+        WAMR execution alone can destabilize the later PaperS3 display path.
+
+endmenu

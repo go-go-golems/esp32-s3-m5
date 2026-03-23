@@ -1,0 +1,2 @@
+# Headless WAMR baseline for PaperS3 debugging
+CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK=n

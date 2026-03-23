@@ -22,7 +22,9 @@ void PrintUsage()
     std::printf("  wasm examples\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
-    std::printf("  wasm replay <name>\n");
+    if (IsWasmDisplayHostApiEnabled()) {
+        std::printf("  wasm replay <name>\n");
+    }
     std::printf("  wasm run-preflush-worker <name>\n");
     std::printf("  wasm run-preflush <name>\n");
     std::printf("  wasm run-worker <name>\n");
@@ -35,7 +37,9 @@ void PrintExamples()
     std::printf("wasm examples:\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info hello-frame\n");
-    std::printf("  wasm replay hello-frame\n");
+    if (IsWasmDisplayHostApiEnabled()) {
+        std::printf("  wasm replay hello-frame\n");
+    }
     std::printf("  wasm run-preflush-worker hello-frame\n");
     std::printf("  wasm run-preflush hello-frame\n");
     std::printf("  wasm run-worker hello-frame\n");
@@ -110,6 +114,10 @@ int CmdWasm(int argc, char **argv)
     }
 
     if (std::strcmp(argv[1], "replay") == 0) {
+        if (!IsWasmDisplayHostApiEnabled()) {
+            std::printf("display host API is disabled in this build\n");
+            return 1;
+        }
         if (argc < 3) {
             PrintUsage();
             return 1;

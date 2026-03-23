@@ -70,6 +70,11 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
     WasmReplayControlResult result = {};
     std::snprintf(result.control_example, sizeof(result.control_example), "%s", name != nullptr ? name : "");
 
+    if (!IsWasmDisplayHostApiEnabled()) {
+        SetReplayError(&result, "display", "display host API disabled");
+        return result;
+    }
+
     if (name == nullptr || name[0] == '\0') {
         SetReplayError(&result, "lookup", "empty control example");
         return result;

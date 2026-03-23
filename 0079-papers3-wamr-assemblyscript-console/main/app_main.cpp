@@ -3,12 +3,15 @@
 #include "wasm_host_api.h"
 #include "wasm_runtime_service.h"
 
+#include "sdkconfig.h"
+
 #include <M5Unified.hpp>
 
 namespace {
 
 void InitBoard()
 {
+#if CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK
     auto cfg = M5.config();
     cfg.clear_display = true;
     M5.begin(cfg);
@@ -19,6 +22,7 @@ void InitBoard()
     M5.Display.fillScreen(0xFFFFFF);
     M5.Display.drawString("PaperS3 WAMR AssemblyScript Console", 16, 16);
     M5.Display.drawString("Use USB Serial/JTAG and run: help / wasm examples", 16, 40);
+#endif
 }
 
 }  // namespace
@@ -26,7 +30,9 @@ void InitBoard()
 extern "C" void app_main(void)
 {
     InitBoard();
+#if CONFIG_PAPERS3_WASM_ENABLE_DISPLAY_STACK
     papers3_wasm::InitializePaperCanvas();
+#endif
     const bool runtime_ready = papers3_wasm::InitWasmRuntime();
     if (runtime_ready) {
         papers3_wasm::InitWasmHostApi();
