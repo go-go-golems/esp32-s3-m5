@@ -23,6 +23,8 @@ void PrintUsage()
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
     std::printf("  wasm replay <name>\n");
+    std::printf("  wasm load-only-embedded-direct <name>\n");
+    std::printf("  wasm load-only-embedded-direct-freeable <name>\n");
     std::printf("  wasm run-preflush <name>\n");
     std::printf("  wasm run <name>\n");
     std::printf("  wasm status\n");
@@ -32,10 +34,14 @@ void PrintExamples()
 {
     std::printf("wasm examples:\n");
     std::printf("  wasm list\n");
-    std::printf("  wasm info hello-frame\n");
-    std::printf("  wasm replay hello-frame\n");
-    std::printf("  wasm run-preflush hello-frame\n");
-    std::printf("  wasm run hello-frame\n");
+    std::printf("  wasm info return-42\n");
+    std::printf("  wasm replay psram-persistent-init\n");
+    std::printf("  wasm replay psram-persistent-touch-sync\n");
+    std::printf("  wasm load-only-embedded-direct empty-module\n");
+    std::printf("  wasm load-only-embedded-direct return-42\n");
+    std::printf("  wasm load-only-embedded-direct-freeable return-42\n");
+    std::printf("  wasm run-preflush return-42\n");
+    std::printf("  wasm run return-42\n");
     std::printf("  wasm status\n");
 }
 
@@ -73,7 +79,9 @@ int CmdWasm(int argc, char **argv)
         return 0;
     }
 
-    if (std::strcmp(argv[1], "run") == 0 || std::strcmp(argv[1], "run-preflush") == 0) {
+    if (std::strcmp(argv[1], "run") == 0 || std::strcmp(argv[1], "run-preflush") == 0
+        || std::strcmp(argv[1], "load-only-embedded-direct") == 0
+        || std::strcmp(argv[1], "load-only-embedded-direct-freeable") == 0) {
         if (argc < 3) {
             PrintUsage();
             return 1;
@@ -90,10 +98,20 @@ int CmdWasm(int argc, char **argv)
             return 1;
         }
 
+        const bool is_load_only = std::strcmp(argv[1], "load-only-embedded-direct") == 0
+                                  || std::strcmp(argv[1], "load-only-embedded-direct-freeable") == 0;
         const WasmFlushTiming flush_timing = std::strcmp(argv[1], "run-preflush") == 0
                                                  ? WasmFlushTiming::BeforeCleanup
                                                  : WasmFlushTiming::AfterCleanup;
-        const WasmExecutionResult result = RunEmbeddedWasmModule(*module, module->entrypoint, flush_timing);
+        const WasmInvocationMode invocation_mode =
+            is_load_only ? WasmInvocationMode::LoadOnly : WasmInvocationMode::Execute;
+        const WasmLoadMethod load_method =
+            std::strcmp(argv[1], "load-only-embedded-direct-freeable") == 0
+                ? WasmLoadMethod::RuntimeLoadExBinaryFreeable
+                : WasmLoadMethod::RuntimeLoad;
+        const char *export_name = is_load_only ? module->entrypoint : module->entrypoint;
+        const WasmExecutionResult result =
+            RunEmbeddedWasmModule(*module, export_name, flush_timing, invocation_mode, load_method);
         PrintWasmExecutionResult(*module, result);
         return result.success ? 0 : 1;
     }

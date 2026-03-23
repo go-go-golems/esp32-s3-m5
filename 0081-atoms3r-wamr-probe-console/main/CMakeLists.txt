@@ -21,8 +21,10 @@ idf_component_register(
     REQUIRES
         M5GFX
         console
+        esp_mm
         espressif__wasm-micro-runtime
     EMBED_FILES
+        "wasm-assets/empty-module.wasm"
         "wasm-assets/return-42.wasm"
         "wasm-assets/log-only.wasm"
         "wasm-assets/hello-frame.wasm"

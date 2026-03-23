@@ -48,6 +48,18 @@ const char *FlushTimingName(WasmFlushTiming flush_timing)
     return "unknown";
 }
 
+const char *InvocationModeName(WasmInvocationMode invocation_mode)
+{
+    switch (invocation_mode) {
+        case WasmInvocationMode::Execute:
+            return "execute";
+        case WasmInvocationMode::LoadOnly:
+            return "load-only";
+    }
+
+    return "unknown";
+}
+
 void PrintExecutionContextSnapshot(const char *stage)
 {
     const BaseType_t core_id = xPortGetCoreID();
@@ -108,10 +120,14 @@ void RememberLastExecutionResult(const WasmModuleDescriptor &module, const WasmE
 }
 
 WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescriptor &module, const char *export_name,
-                                                         WasmFlushTiming flush_timing)
+                                                         WasmFlushTiming flush_timing,
+                                                         WasmInvocationMode invocation_mode,
+                                                         WasmLoadMethod load_method)
 {
     WasmExecutionResult result = {};
     result.flush_timing = flush_timing;
+    result.invocation_mode = invocation_mode;
+    result.load_method = load_method;
 
     wasm_module_t wasm_module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
@@ -125,14 +141,29 @@ WasmExecutionResult RunEmbeddedWasmModuleOnCurrentThread(const WasmModuleDescrip
     ResetWasmHostFrame();
     PaperCanvasResetFrame();
 
-    wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start),
-                                    static_cast<uint32_t>(GetWasmModuleBinarySize(module)), error_buf,
-                                    sizeof(error_buf));
+    if (load_method == WasmLoadMethod::RuntimeLoadExBinaryFreeable) {
+        LoadArgs args = {};
+        args.name = const_cast<char *>("");
+        args.wasm_binary_freeable = true;
+        wasm_module = wasm_runtime_load_ex(const_cast<uint8_t *>(module.start),
+                                           static_cast<uint32_t>(GetWasmModuleBinarySize(module)), &args, error_buf,
+                                           sizeof(error_buf));
+    }
+    else {
+        wasm_module = wasm_runtime_load(const_cast<uint8_t *>(module.start),
+                                        static_cast<uint32_t>(GetWasmModuleBinarySize(module)), error_buf,
+                                        sizeof(error_buf));
+    }
     if (wasm_module == nullptr) {
         SetResultError(&result, "load", error_buf);
         goto cleanup;
     }
     result.loaded = true;
+
+    if (invocation_mode == WasmInvocationMode::LoadOnly) {
+        result.success = true;
+        goto cleanup;
+    }
 
     module_inst =
         wasm_runtime_instantiate(wasm_module, kGuestStackBytes, kGuestHeapBytes, error_buf, sizeof(error_buf));
@@ -224,11 +255,26 @@ cleanup:
 
 }  // namespace
 
+const char *LoadMethodName(WasmLoadMethod load_method)
+{
+    switch (load_method) {
+        case WasmLoadMethod::RuntimeLoad:
+            return "runtime-load";
+        case WasmLoadMethod::RuntimeLoadExBinaryFreeable:
+            return "runtime-load-ex-binary-freeable";
+    }
+
+    return "unknown";
+}
+
 WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, const char *export_name,
-                                          WasmFlushTiming flush_timing)
+                                          WasmFlushTiming flush_timing, WasmInvocationMode invocation_mode,
+                                          WasmLoadMethod load_method)
 {
     WasmExecutionResult result = {};
     result.flush_timing = flush_timing;
+    result.invocation_mode = invocation_mode;
+    result.load_method = load_method;
 
     if (!GetWasmRuntimeStatus().initialized) {
         SetResultError(&result, "runtime", "runtime not initialized");
@@ -248,7 +294,7 @@ WasmExecutionResult RunEmbeddedWasmModule(const WasmModuleDescriptor &module, co
         return result;
     }
 
-    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing);
+    result = RunEmbeddedWasmModuleOnCurrentThread(module, export_name, flush_timing, invocation_mode, load_method);
     RememberLastExecutionResult(module, result);
     return result;
 }
@@ -258,6 +304,8 @@ void PrintWasmExecutionResult(const WasmModuleDescriptor &module, const WasmExec
     std::printf("module=%s\n", module.name);
     std::printf("entrypoint=%s\n", module.entrypoint);
     std::printf("flush_timing=%s\n", FlushTimingName(result.flush_timing));
+    std::printf("load_method=%s\n", LoadMethodName(result.load_method));
+    std::printf("invocation_mode=%s\n", InvocationModeName(result.invocation_mode));
     std::printf("execution=%s\n", result.success ? "success" : "failure");
     std::printf("loaded=%s\n", result.loaded ? "yes" : "no");
     std::printf("instantiated=%s\n", result.instantiated ? "yes" : "no");

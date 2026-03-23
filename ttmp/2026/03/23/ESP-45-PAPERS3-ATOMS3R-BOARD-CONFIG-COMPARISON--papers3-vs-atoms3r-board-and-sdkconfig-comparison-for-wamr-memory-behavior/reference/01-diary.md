@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T15:05:00-04:00
+LastUpdated: 2026-03-23T18:05:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -68,3 +68,58 @@ The most relevant hardware distinction is:
 - AtomS3R-M12: `ESP32-S3-PICO-1-N8R8` with `8MB Flash` and `8MB PSRAM` integrated in the SiP
 
 That does not prove causality on its own, but it gives the loader-root-cause theory a more concrete board backdrop. If WAMR is mutating a flash-mapped source buffer in place, the PaperS3 external-flash arrangement is a more plausible place for ugly side effects than a RAM copy or a different S3 packaging.
+
+## 2026-03-23 18:05 EDT
+
+Starting the board cross-check phase after `ESP-44` got the loader-root-cause theory to a much stronger state.
+
+The Atom question is now very specific:
+
+- does AtomS3R take the same `wasm_const_str_list_insert(...)` in-place rewrite path for direct embedded `return-42`?
+- if yes, does the board survive it anyway?
+
+That is a better comparison than a generic board/spec diff because it lets the same WAMR behavior be tested against two hardware environments.
+
+To keep the comparison honest, I am porting only the minimum proof surface from `0082` into `0081`:
+
+- `empty-module.wasm` as a stringless direct-embedded control
+- `wasm load-only-embedded-direct <name>`
+- `wasm load-only-embedded-direct-freeable <name>`
+- minimal persistent-PSRAM init/touch-sync controls
+- the same bounded WAMR const-string rewrite trace, preserved under this ticket’s `scripts/wamr-patches/`
+
+That keeps the Atom experiment focused on the same question PaperS3 already answered instead of growing another broad debug harness.
+
+## 2026-03-23 18:17 EDT
+
+Ported the minimum proof surface into `0081`:
+
+- embedded `empty-module.wasm`
+- `wasm load-only-embedded-direct <name>`
+- `wasm load-only-embedded-direct-freeable <name>`
+- minimal `psram-persistent-init` / `psram-persistent-touch-sync` controls
+- the same bounded `wasm_const_str_list_insert(...)` trace in the local ignored WAMR component, preserved under:
+  - `scripts/wamr-patches/01-wasm-runtime-const-str-trace.diff`
+
+This intentionally avoids porting the whole allocator-control harness from `0082`. The goal is a board comparison, not another project fork.
+
+## 2026-03-23 18:23 EDT
+
+Hit two small compile issues while shrinking the port:
+
+- first build failed because the new PSRAM probe used `esp_cache.h`, so `main/CMakeLists.txt` needed `esp_mm` in `REQUIRES`
+- second build failed because the reduced probe file was missing `esp_memory_utils.h` and `esp_private/esp_cache_private.h`
+
+Both were straightforward and useful. They confirm the Atom probe is now using the same cache/alignment helpers as the PaperS3 control firmware instead of a subtly different path.
+
+## 2026-03-23 18:30 EDT
+
+The firmware now builds and flashes cleanly on AtomS3R, but the board exposes a new console-attach problem:
+
+- `idf.py monitor` resets the board into `boot:0x31 (DOWNLOAD(USB/UART0))`
+- stock `pyserial.Serial(...)` does the same
+- even a careful open with `dtr=False` / `rts=False` still lands in ROM download mode
+
+So the current blocker is not WAMR behavior yet. It is AtomS3R console attach over USB Serial/JTAG. I also confirmed this is not just a probe-script issue, because `idf_monitor` reproduces the same reset-to-download behavior.
+
+At this point the Atom cross-check firmware is ready, but I need a clean way to get the Atom application running while the serial session remains attached. The most likely next step is to hold a monitor open and have the device manually reset once, or otherwise adjust the board-specific attach/reset behavior before trusting any comparison result.
