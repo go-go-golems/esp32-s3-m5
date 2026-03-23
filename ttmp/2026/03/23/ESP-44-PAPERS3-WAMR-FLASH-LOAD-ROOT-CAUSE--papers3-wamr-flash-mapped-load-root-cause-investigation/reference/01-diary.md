@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T19:46:00-04:00
+LastUpdated: 2026-03-23T20:10:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -291,3 +291,23 @@ At this point the explanation is precise enough to state plainly:
 - embedded Wasm assets in our ESP-IDF builds are flash-mapped and not safe for that in-place string rewrite strategy
 - taking that rewrite path corrupts later PSRAM/cache behavior on the device
 - disabling that rewrite path, or using a mode that avoids it, removes the failure
+
+## 2026-03-23 20:10 EDT
+
+Closed the loop on the investigation by writing a proper postmortem/report instead of leaving the conclusion spread across tasks, changelog bullets, and diary entries.
+
+The new document is:
+
+- `design/02-wamr-flash-mapped-embedded-load-postmortem-report.md`
+
+I wrote it for a future engineer or intern who was not present for the debugging cycle. It explains:
+
+- the firmware and runtime pieces involved
+- why the symptom originally looked like a much larger PaperS3 + PSRAM + display problem
+- how the reduction ladder worked
+- the exact `reuse_const_strings` / `wasm_const_str_list_insert(...)` mechanism
+- what we proved versus what we only inferred
+- why the later PSRAM crash is a downstream symptom rather than the original mistake
+- the production and upstream-quality fixes
+
+That matters because this ticket is now mature enough that future work should start from the conclusion, not from the early confusion. A good postmortem prevents the team from having to replay the whole narrowing process just to trust the answer.

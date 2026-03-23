@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T14:17:34.872927932-04:00
+LastUpdated: 2026-03-23T20:08:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -23,10 +23,13 @@ WhenToUse: ""
 
 ## Overview
 
-<!-- Provide a brief overview of the ticket, its goals, and current status -->
+This ticket explains the root cause of the embedded-Wasm load crash that originally looked like a broad PaperS3 PSRAM/display/WAMR problem. The current state is stronger than “workaround found”: the investigation now isolates WAMR's in-place const-string reuse on flash-mapped embedded Wasm buffers as the critical mechanism, with a long-form postmortem and saved proof patches.
 
 ## Key Links
 
+- [Postmortem Report](./design/02-wamr-flash-mapped-embedded-load-postmortem-report.md)
+- [Investigation Plan](./design/01-flash-load-root-cause-plan.md)
+- [Diary](./reference/01-diary.md)
 - **Related Files**: See frontmatter RelatedFiles field
 - **External Sources**: See frontmatter ExternalSources field
 

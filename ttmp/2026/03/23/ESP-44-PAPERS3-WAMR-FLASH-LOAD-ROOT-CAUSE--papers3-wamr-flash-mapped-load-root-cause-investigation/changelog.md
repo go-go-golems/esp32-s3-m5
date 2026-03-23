@@ -17,6 +17,7 @@
 - Added a narrower loader proof patch that forces `reuse_const_strings = false` while keeping the plain direct embedded `runtime-load` path
 - Verified on AtomS3R that the patched plain direct embedded `runtime-load return-42` path no longer crashes on later PSRAM touch
 - Strengthened the explanation from “source-buffer mutation is the leading candidate” to “source-buffer const-string mutation is the critical mechanism”
+- Added a long-form intern-facing postmortem/report that explains the whole system, the narrowing strategy, the exact failing loader branch, the proof ladder, and the recommended production/upstream follow-up
 
 ## 2026-03-23
 
