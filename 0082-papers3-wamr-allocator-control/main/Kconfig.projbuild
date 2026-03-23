@@ -1,0 +1,20 @@
+menu "PaperS3 WAMR Allocator Control"
+
+choice PAPERS3_WAMR_ALLOCATOR_BACKING
+    prompt "WAMR allocator backing"
+    default PAPERS3_WAMR_ALLOCATOR_POOL_SPIRAM
+    help
+        Select how the allocator-control firmware backs WAMR runtime allocations.
+
+config PAPERS3_WAMR_ALLOCATOR_POOL_SPIRAM
+    bool "Pool allocator backed by external SPIRAM"
+
+config PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL
+    bool "Pool allocator backed by internal RAM"
+
+config PAPERS3_WAMR_ALLOCATOR_SYSTEM
+    bool "System allocator"
+
+endchoice
+
+endmenu

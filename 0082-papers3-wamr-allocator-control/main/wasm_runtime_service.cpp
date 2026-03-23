@@ -36,7 +36,7 @@ void RefreshHeapSnapshot()
     g_runtime_status.esp_free_heap_bytes = esp_get_free_heap_size();
     g_runtime_status.esp_min_free_heap_bytes = esp_get_minimum_free_heap_size();
     g_runtime_status.runtime_pool_buffer = g_runtime_pool_buffer;
-    g_runtime_status.runtime_pool_size_bytes = kRuntimePoolSizeBytes;
+    g_runtime_status.runtime_pool_size_bytes = g_runtime_status.runtime_pool_enabled ? kRuntimePoolSizeBytes : 0;
     g_runtime_status.runtime_pool_buffer_external =
         g_runtime_pool_buffer != nullptr && esp_ptr_external_ram(g_runtime_pool_buffer);
 
@@ -71,31 +71,53 @@ bool InitWasmRuntime()
 #else
     g_runtime_status.build_has_aot = false;
 #endif
-    g_runtime_status.allocator_type = Alloc_With_Pool;
     g_runtime_status.requested_running_mode = kRequestedRunningMode;
-
-    if (g_runtime_pool_buffer == nullptr) {
-        g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (g_runtime_pool_buffer == nullptr) {
-            g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
-        }
-    }
-
-    if (g_runtime_pool_buffer == nullptr) {
-        SetLastError("failed to allocate WAMR pool buffer");
-        RefreshHeapSnapshot();
-        ESP_LOGE(kTag, "%s", g_runtime_status.last_error);
-        return false;
-    }
+#if CONFIG_PAPERS3_WAMR_ALLOCATOR_SYSTEM
+    g_runtime_status.allocator_type = Alloc_With_System_Allocator;
+    g_runtime_status.runtime_pool_enabled = false;
+    g_runtime_status.runtime_pool_prefer_external = false;
+#elif CONFIG_PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL
+    g_runtime_status.allocator_type = Alloc_With_Pool;
+    g_runtime_status.runtime_pool_enabled = true;
+    g_runtime_status.runtime_pool_prefer_external = false;
+#else
+    g_runtime_status.allocator_type = Alloc_With_Pool;
+    g_runtime_status.runtime_pool_enabled = true;
+    g_runtime_status.runtime_pool_prefer_external = true;
+#endif
 
     RuntimeInitArgs init_args = {};
     init_args.mem_alloc_type = g_runtime_status.allocator_type;
     init_args.running_mode = g_runtime_status.requested_running_mode;
-    init_args.mem_alloc_option.pool.heap_buf = g_runtime_pool_buffer;
-    init_args.mem_alloc_option.pool.heap_size = kRuntimePoolSizeBytes;
 
-    ESP_LOGI(kTag, "Initializing WAMR runtime (allocator=%s, mode=%s)",
+    if (g_runtime_status.runtime_pool_enabled) {
+        if (g_runtime_pool_buffer == nullptr) {
+            if (g_runtime_status.runtime_pool_prefer_external) {
+                g_runtime_pool_buffer =
+                    heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+                if (g_runtime_pool_buffer == nullptr) {
+                    g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
+                }
+            }
+            else {
+                g_runtime_pool_buffer = heap_caps_malloc(kRuntimePoolSizeBytes, MALLOC_CAP_8BIT);
+            }
+        }
+
+        if (g_runtime_pool_buffer == nullptr) {
+            SetLastError("failed to allocate WAMR pool buffer");
+            RefreshHeapSnapshot();
+            ESP_LOGE(kTag, "%s", g_runtime_status.last_error);
+            return false;
+        }
+
+        init_args.mem_alloc_option.pool.heap_buf = g_runtime_pool_buffer;
+        init_args.mem_alloc_option.pool.heap_size = kRuntimePoolSizeBytes;
+    }
+
+    ESP_LOGI(kTag, "Initializing WAMR runtime (allocator=%s, backing=%s, mode=%s)",
              AllocatorTypeName(g_runtime_status.allocator_type),
+             AllocatorBackingName(g_runtime_status),
              RunningModeName(g_runtime_status.requested_running_mode));
 
     if (!wasm_runtime_full_init(&init_args)) {
@@ -146,6 +168,7 @@ void PrintWasmRuntimeStatus()
                 status.version_patch);
     std::printf("requested_mode=%s\n", RunningModeName(status.requested_running_mode));
     std::printf("allocator=%s\n", AllocatorTypeName(status.allocator_type));
+    std::printf("allocator_backing=%s\n", AllocatorBackingName(status));
     std::printf("wamr.pool_buffer=%p\n", status.runtime_pool_buffer);
     std::printf("wamr.pool_buffer_external=%s\n", status.runtime_pool_buffer_external ? "yes" : "no");
     std::printf("wamr.pool_size=%zu\n", status.runtime_pool_size_bytes);
@@ -200,6 +223,17 @@ const char *AllocatorTypeName(mem_alloc_type_t type)
     }
 
     return "unknown";
+}
+
+const char *AllocatorBackingName(const WasmRuntimeStatus &status)
+{
+    if (!status.runtime_pool_enabled) {
+        return "system";
+    }
+    if (status.runtime_pool_prefer_external) {
+        return "pool-spiram";
+    }
+    return "pool-internal";
 }
 
 }  // namespace papers3_wasm

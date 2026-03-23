@@ -1,8 +1,10 @@
 # ESP-IDF build outputs
 build/
 build-headless/
+build-*/
 **/build/
 **/build-headless/
+**/build-*/
 **/build_*/
 **/build.esp32.bak/
 .envrc

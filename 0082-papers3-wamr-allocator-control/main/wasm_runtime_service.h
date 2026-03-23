@@ -19,6 +19,8 @@ struct WasmRuntimeStatus {
     bool mem_alloc_info_available;
     mem_alloc_type_t allocator_type;
     RunningMode requested_running_mode;
+    bool runtime_pool_enabled;
+    bool runtime_pool_prefer_external;
     uint32_t version_major;
     uint32_t version_minor;
     uint32_t version_patch;
@@ -42,5 +44,7 @@ void PrintWasmRuntimeStatus();
 const char *RunningModeName(RunningMode mode);
 
 const char *AllocatorTypeName(mem_alloc_type_t type);
+
+const char *AllocatorBackingName(const WasmRuntimeStatus &status);
 
 }  // namespace papers3_wasm
