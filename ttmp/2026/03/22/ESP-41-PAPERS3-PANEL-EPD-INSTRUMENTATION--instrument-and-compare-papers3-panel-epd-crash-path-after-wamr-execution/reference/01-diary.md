@@ -278,6 +278,185 @@ The avoidable process error was mine: I briefly launched two flash/probe jobs in
 
 The next slice cleaned up the uncertainty from the earlier truncated multi-command run. I reran the smallest probes one at a time using the new ticket-local script and the single-owner serial rule.
 
+## Step 4: Prove that WAMR cleanup is not the primary trigger by keeping the instantiated module alive
+
+At this point the most important unresolved branch was cleanup. The outer probes had already shown that `wasm_runtime_instantiate(...)` plus the normal cleanup path was enough to poison later PSRAM writes, but that still left one major ambiguity: was the bad state created during instantiate, or during deinstantiate/unload cleanup?
+
+To answer that, I added an explicit keepalive lifecycle mode in the app-side runner. The new command, `wasm instantiate-bare-keepalive <name>`, stops immediately after successful `wasm_runtime_instantiate(...)`, reports success, and intentionally keeps the `wasm_module_t` and `wasm_module_inst_t` alive in process-global state instead of deinstantiating and unloading them. Any later non-keepalive Wasm run first releases that leaked state so the firmware does not accumulate abandoned modules forever.
+
+The first implementation attempt introduced a small but real mistake: I expanded the existing `instantiate-*` command selection in [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp) with a nested ternary, and the expression became error-prone enough that I had to stop and simplify it into a named `invocation_mode` local. That fix matters because this slice is partly about experimental hygiene. When the firmware is already debugging-sensitive, even small command-surface mistakes need to be written down instead of mentally erased.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's go. we can also put back the atoms3r later on"
+
+**Assistant interpretation:** Continue the active PaperS3 investigation now, keep the diary and commits current, and use the already-attached PaperS3 rather than broadening back out to AtomS3R yet.
+
+**Inferred user intent:** Push the next discriminating experiment immediately and preserve the reasoning trail so the result is useful later.
+
+### What I did
+
+- Added `WasmInvocationMode::InstantiateBareKeepAlive` in:
+  - [wasm_module_runner.h](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.h)
+- Added leaked-state handling in:
+  - [wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+  with:
+  - `g_leaked_wasm_module`
+  - `g_leaked_module_inst`
+  - `ReleaseLeakedWasmState()`
+- Added the new command surface in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Rebuilt and flashed the attached PaperS3.
+- Ran the same-boot sequence:
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-scratch`
+
+### Why
+
+- This is the cleanest way to isolate instantiate from cleanup without patching WAMR internals further.
+- If the crash disappeared in keepalive mode, cleanup would become the prime suspect.
+- If the crash survived, instantiate itself would become the active boundary.
+
+### What worked
+
+- The firmware built and flashed cleanly after the command-surface fix.
+- The keepalive mode correctly reported:
+  - `loaded=yes`
+  - `instantiated=yes`
+  - `export_found=no`
+  - `exec_env=no`
+  - `executed=no`
+  - `invocation_mode=instantiate-bare-keepalive`
+- The WAMR memory logs remained visible, still showing an internal-RAM linear-memory block.
+
+### What didn't work
+
+- The keepalive run did **not** prevent the later PSRAM crash.
+- Same-boot `wasm instantiate-bare-keepalive return-42` followed by `wasm replay psram-scratch` still panicked with `Cache disabled but cached memory region accessed`.
+
+### What I learned
+
+- Cleanup is not the primary trigger.
+- The active boundary is now even tighter: successful module instantiation alone is already sufficient to poison later PSRAM writes on PaperS3.
+- This justifies spending the next slice on memory-locality controls rather than more runner-level lifecycle splitting.
+
+### What was tricky to build
+
+- The only meaningful value in this experiment came from keeping it genuinely minimal. If I had changed cleanup semantics and the replay controls at the same time, the result would have been harder to trust.
+
+### What warrants a second pair of eyes
+
+- Whether the leaked module state should be explicitly exposed in status output later, if this mode stays around as a durable debugging tool.
+- Whether WAMR init/instantiate code has any hidden board-specific assumptions that are visible on PaperS3 but not AtomS3R.
+
+### What should be done in the future
+
+- Compare post-instantiate writes into internal RAM and PSRAM directly.
+- Specifically test a PSRAM buffer allocated **before** WAMR instantiation, so allocator corruption and broader PSRAM/cache poisoning can be separated.
+
+### Technical details
+
+- Key same-boot sequence:
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-scratch`
+- Key conclusion:
+  - instantiate alone is sufficient for the repro
+
+## Step 5: Use RAM-locality controls to show that internal RAM survives while both new and preallocated PSRAM writes fail
+
+Once cleanup was falsified, the best next question was whether the surviving bug was really allocator metadata corruption or something broader and more physical about PSRAM/cache state on PaperS3. The easiest way to separate those is not another WAMR lifecycle split. It is a set of controlled post-instantiate write probes with different memory locality.
+
+I added four replay controls in [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp):
+
+- `internal-scratch`
+- `psram-persistent-init`
+- `psram-persistent-touch`
+- `psram-persistent-free`
+
+The design is deliberate:
+
+- `internal-scratch` allocates a bounded internal-RAM buffer, writes a deterministic byte pattern, and prints a checksum.
+- `psram-persistent-init` allocates a PSRAM buffer and keeps it alive across commands.
+- `psram-persistent-touch` writes into that same already-allocated PSRAM buffer later in the same boot.
+
+The first attempt at `internal-scratch` taught an immediate lesson. I initially reused the full display-sized `259200`-byte scratch size, but that was unrealistic for the internal heap and just failed allocation. That was not a useful control, so I cut the internal probe down to `32 KiB`. That made it a real discriminating test instead of a predictable allocator failure.
+
+### What I did
+
+- Extended non-display replay commands in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Updated command help and headless command gating in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Rebuilt and flashed the attached PaperS3.
+- Ran:
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay internal-scratch`
+- Then ran a fresh same-boot persistent-PSRAM sequence:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch`
+- Decoded the persistent-touch crash against the exact ELF.
+
+### Why
+
+- If internal RAM writes also failed after instantiate, the bug would look like a much broader memory/cpu-state failure.
+- If only newly allocated PSRAM failed, heap metadata corruption would stay near the top.
+- If a PSRAM buffer allocated **before** instantiate also failed, then “bad allocator metadata for later allocations” would no longer explain the behavior well.
+
+### What worked
+
+- After resizing it to `32 KiB`, `internal-scratch` became a valid control and succeeded after instantiate:
+  - `internal_probe.external=no`
+  - `internal_probe.bytes=32768`
+  - stable checksum
+  - `control_execution=success`
+- `psram-persistent-init` succeeded and confirmed the persistent buffer was external RAM.
+- The persistent-touch crash decoded cleanly to:
+  - [wasm_replay_control.cpp:179](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L179)
+  inside `TouchPersistentPsramProbe(...)`
+
+### What didn't work
+
+- `psram-persistent-touch` still crashed after instantiate-bare-keepalive, even though that PSRAM buffer had been allocated before WAMR instantiation.
+- So the surviving bug is not well explained by allocator metadata for *new* PSRAM allocations alone.
+
+### What I learned
+
+- Internal RAM remains writable after WAMR instantiation on PaperS3.
+- WAMR’s own logged linear-memory block is still in internal RAM, not PSRAM.
+- Newly allocated PSRAM writes fail after instantiate.
+- Preallocated PSRAM writes also fail after instantiate.
+
+That combination is the strongest evidence so far for a PaperS3-specific PSRAM/cache poisoning problem rather than a simple heap-allocation bug.
+
+### What was tricky to build
+
+- The first internal control was bogus because it over-assumed the size of a reasonable internal allocation on this board. That failure was worth keeping in the diary because it shows the difference between “a probe failed because the bug is real” and “a probe failed because the probe itself was poorly sized.”
+
+### What warrants a second pair of eyes
+
+- Whether the next move should be WAMR-side cache/state instrumentation or a lower-level ESP-IDF/PSRAM state probe around instantiate.
+- Whether PaperS3 board init is putting the PSRAM/cache subsystem into a mode that AtomS3R does not use, even before any WAMR call.
+
+### What should be done in the future
+
+- Inspect the active WAMR instantiate path for operations that could perturb PSRAM/cache state without directly allocating guest memory in PSRAM.
+- Consider a minimal board-level PSRAM/cache control project if the next round inside WAMR does not expose the state transition.
+
+### Technical details
+
+- Successful internal control after instantiate:
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay internal-scratch`
+- Failing persistent PSRAM control after instantiate:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch`
+- Crash decode:
+  - [wasm_replay_control.cpp:179](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L179)
+  - [wasm_replay_control.cpp:276](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L276)
+  - [wasm_command.cpp:181](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp#L181)
+
 Two of those reruns changed the shape of the problem in a helpful way. First, a fresh-boot `wasm replay frame-no-clear` succeeded. That means the current crash is not “any non-clear draw reaches `Panel_EPD` and dies.” Second, a same-boot sequence of `wasm run-preflush return-42` followed by `wasm replay clear-only` still crashed immediately after the successful Wasm call. That kept the contamination hypothesis alive while also falsifying the broader idea that the PaperS3 replay path is simply always broken after boot.
 
 That combination matters because it gives us a cleaner experimental split:
@@ -1102,3 +1281,128 @@ That is the key result of the current slice. The first concrete divergence is **
   - `0x4200c15d` -> `RunPsramScratchProbe(...)` at `wasm_replay_control.cpp:88`
   - `0x4200c2fb` -> `RunWasmReplayControlExample(...)` at `wasm_replay_control.cpp:150`
   - `0x4200b314` -> `CmdWasm(...)` at `wasm_command.cpp:164`
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, let's go. we can also put back the atoms3r later on"
+
+**Assistant interpretation:** Continue into direct WAMR instrumentation on PaperS3 now, and treat the AtomS3R as a later control board if the new internal logs warrant a cross-check.
+
+**Inferred user intent:** Keep momentum on the PaperS3 root cause first, while preserving the option of bringing back AtomS3R only if the new findings need a comparative sanity check.
+
+### What I did
+
+- Added direct WAMR-side memory logs in:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+  - [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c)
+- Instrumented:
+  - `os_mmap(...)`
+  - `os_munmap(...)`
+  - `memory_instantiate(...)`
+  - `memories_deinstantiate(...)`
+- Rebuilt and reflashed the headless PaperS3 build.
+- Reran the same-boot sequence:
+  - `wasm instantiate-bare return-42`
+  - `wasm replay psram-scratch`
+
+### Why
+
+- The runner-side probes had already narrowed the required boundary to essentially `wasm_runtime_instantiate(...)` plus cleanup.
+- The most important remaining uncertainty was where the relevant WAMR memory lived:
+  - if it was in PSRAM, the contamination could still be a very direct PSRAM misuse
+  - if it was in internal RAM, then the surviving theory would have to become broader
+
+### What worked
+
+- The new logs printed exactly the allocation lifecycle we needed.
+- On PaperS3 headless `instantiate-bare`, WAMR reported:
+  - `wamr_memmap.stage=mmap-data`
+  - `wamr_memmap.ptr=0x3fcad470`
+  - `wamr_memmap.size=32768`
+  - `wamr_memmap.external=no`
+  - `wamr_memmap.mem_caps=0x804`
+- Then it reported:
+  - `wamr_mem.stage=instantiate-memory`
+  - `memory_data=0x3fcad470`
+  - `memory_data_size=32768`
+  - `heap_offset=0`
+  - `heap_size=32768`
+- And on cleanup:
+  - `wamr_mem.stage=destroy-heap`
+  - `wamr_mem.stage=deallocate-linear-memory`
+  - `wamr_memmap.stage=munmap`
+  - `external=no`
+
+### What didn't work
+
+- Even after seeing that the WAMR linear-memory block was internal, not PSRAM, the same-boot `psram-scratch` probe still crashed immediately afterward.
+- So the new logs did not identify the root cause directly, but they ruled out one important class of explanations.
+
+### What I learned
+
+- This is a strong negative result in a useful sense.
+- The remaining bug is **not** well explained by:
+  - WAMR simply allocating guest linear memory in PSRAM and leaving it in a bad state
+- Instead, the stronger current theory is:
+  - WAMR instantiate/deinstantiate on PaperS3 is corrupting broader allocator or cache-related state
+  - and the later PSRAM write is where that corruption becomes visible
+- In other words, the crash site is PSRAM, but the cause may now be allocator metadata or cache-coherency state touched by internal-RAM WAMR allocations and frees.
+
+### What was tricky to build
+
+- The important part was keeping the logging bounded, because startup and repeated probes can easily drown the signal on a board like this.
+- I kept the logs focused on:
+  - pointer
+  - external/internal classification
+  - size
+  - lifecycle stage
+  which is enough for this round without turning the runtime into a log flood.
+
+### What warrants a second pair of eyes
+
+- Whether `mem_allocator_destroy(...)` or the surrounding free path could be corrupting shared heap metadata in a way that later PSRAM allocations/writes expose.
+- Whether the PaperS3 board configuration changes the allocator/cache environment enough that an internal allocation/free bug shows up later only on PSRAM accesses.
+
+### What should be done in the future
+
+- Inspect the allocator path behind:
+  - `runtime_malloc(...)`
+  - `mem_allocator_create_with_struct_and_pool(...)`
+  - `mem_allocator_destroy(...)`
+  - `wasm_runtime_free(...)`
+- Compare the same WAMR-side logs on AtomS3R later if we need to verify that this exact internal-allocation lifecycle is harmless there.
+- If we need another code experiment on PaperS3 first, add a temporary mode that instantiates and intentionally skips deinstantiate/unload so we can split instantiate-time poisoning from cleanup-time poisoning.
+
+### Code review instructions
+
+- Review the new WAMR-side logs in:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+  - [wasm_runtime.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/iwasm/interpreter/wasm_runtime.c)
+- Focus on whether the logged allocation/free sequence matches what the current PaperS3 build should be doing.
+
+### Technical details
+
+- WAMR allocation log:
+  - `wamr_memmap.stage=mmap-data`
+  - `wamr_memmap.ptr=0x3fcad470`
+  - `wamr_memmap.size=32768`
+  - `wamr_memmap.external=no`
+  - `wamr_memmap.mem_caps=0x804`
+- WAMR instantiate log:
+  - `wamr_mem.stage=instantiate-memory`
+  - `wamr_mem.index=0`
+  - `wamr_mem.memory_data=0x3fcad470`
+  - `wamr_mem.memory_data_size=32768`
+  - `wamr_mem.num_bytes_per_page=32768`
+  - `wamr_mem.init_pages=1`
+  - `wamr_mem.max_pages=1`
+  - `wamr_mem.heap_offset=0`
+  - `wamr_mem.heap_size=32768`
+- WAMR cleanup logs:
+  - `wamr_mem.stage=destroy-heap`
+  - `wamr_mem.stage=deallocate-linear-memory`
+  - `wamr_memmap.stage=munmap`
+  - `wamr_memmap.external=no`
+- Crash afterward:
+  - same-boot `wasm replay psram-scratch`
+  - still dies in `RunPsramScratchProbe(...)` at the initial `memset(...)`

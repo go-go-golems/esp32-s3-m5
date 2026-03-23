@@ -36,3 +36,34 @@
 - Added an `instantiate-bare` lifecycle mode so the runtime can stop immediately after `wasm_runtime_instantiate(...)`, before export lookup
 - Confirmed on the headless PaperS3 build that same-boot `wasm instantiate-bare return-42` followed by `wasm replay psram-scratch` still crashes
 - That means export lookup is not required either; the required boundary is now effectively `wasm_runtime_instantiate(...)` plus deinstantiate/unload cleanup
+- Added direct WAMR-side memory instrumentation in `espidf_memmap.c` and `wasm_runtime.c` around linear-memory allocate/free and memory instantiate/deinstantiate
+- Confirmed on the headless PaperS3 build that the `instantiate-bare` path allocates WAMR linear memory in internal RAM, not external RAM:
+  - `wamr_memmap.stage=mmap-data`
+  - `ptr=0x3fcad470`
+  - `external=no`
+  - `size=32768`
+- Confirmed that WAMR then destroys the heap handle and deallocates that internal linear-memory block before the later `psram-scratch` crash
+- That means the remaining bug is not explained by WAMR directly allocating guest linear memory in PSRAM; the stronger current theory is broader allocator/cache state corruption that only becomes visible when PaperS3 later writes to PSRAM
+
+## 2026-03-23
+
+- Added an `instantiate-bare-keepalive` lifecycle mode so the runtime can instantiate a module and intentionally skip deinstantiate/unload cleanup
+- Confirmed on PaperS3 that same-boot `wasm instantiate-bare-keepalive return-42` followed by `wasm replay psram-scratch` still crashes
+- That means cleanup is not the primary trigger; module instantiation alone is already sufficient to poison later PSRAM writes on PaperS3
+- Added RAM-locality control probes in `wasm_replay_control.cpp`:
+  - `internal-scratch`
+  - `psram-persistent-init`
+  - `psram-persistent-touch`
+  - `psram-persistent-free`
+- Corrected the first `internal-scratch` attempt after discovering that a full-screen-sized internal allocation was unrealistic on PaperS3; reduced the internal probe to `32 KiB` so it could act as a real control instead of just failing allocation
+- Confirmed that same-boot `wasm instantiate-bare-keepalive return-42` followed by `wasm replay internal-scratch` succeeds:
+  - buffer is internal RAM
+  - write loop completes
+  - checksum is stable
+- Confirmed that same-boot `wasm replay psram-persistent-init`, then `wasm instantiate-bare-keepalive return-42`, then `wasm replay psram-persistent-touch` still crashes
+- Decoded that persistent-buffer crash against the exact ELF and confirmed it dies directly inside `TouchPersistentPsramProbe(...)` in `wasm_replay_control.cpp`
+- That means the remaining bug is no longer well explained by heap-allocation metadata corruption alone, because a PSRAM buffer allocated before WAMR instantiation is still unreadable/writable afterward
+- The strongest current model is now:
+  - internal RAM writes continue to work
+  - WAMR instantiate allocates its own guest linear memory in internal RAM
+  - but afterward, both newly allocated and preallocated PSRAM write paths are poisoned on PaperS3

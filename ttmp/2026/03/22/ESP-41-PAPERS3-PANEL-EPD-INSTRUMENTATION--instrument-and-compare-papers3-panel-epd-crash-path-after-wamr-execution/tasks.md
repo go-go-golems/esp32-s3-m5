@@ -17,7 +17,12 @@
 - [x] Task 3.12: Decide whether one more local lifecycle split before export lookup is worth the cost, or whether the next best move is direct inspection of WAMR instantiate/deinstantiate internals
 - [x] Task 3.13: Add a post-instantiate/pre-lookup probe so we can split module instantiate/deinstantiate contamination from export lookup/signature logic
 - [x] Task 3.14: Use the headless post-instantiate/pre-lookup probe with `psram-scratch` to decide whether export lookup is required for the repro
-- [ ] Task 3.15: Move from runner-side splits into direct WAMR instantiate/deinstantiate instrumentation now that the required boundary is effectively `wasm_runtime_instantiate(...)` plus cleanup
+- [x] Task 3.15: Move from runner-side splits into direct WAMR instantiate/deinstantiate instrumentation now that the required boundary is effectively `wasm_runtime_instantiate(...)` plus cleanup
+- [x] Task 3.16: Record what the direct WAMR memory instrumentation proved about allocation locality and cleanup ordering on PaperS3
+- [x] Task 3.17: Add an `instantiate-bare-keepalive` probe so we can decide whether cleanup is required for the contamination
+- [x] Task 3.18: Use the keepalive probe with `psram-scratch` to decide whether instantiate alone is sufficient
+- [x] Task 3.19: Add RAM-locality control probes so we can split allocator metadata corruption from broader PSRAM/cache poisoning
+- [x] Task 3.20: Compare post-instantiate writes into internal RAM, newly allocated PSRAM, and preallocated PSRAM buffers on the same boot
 
 ## Planned
 
