@@ -63,7 +63,7 @@
 
 - [ ] Task 4: Decide whether the evidence now points to a broader PaperS3 PSRAM/cache issue, a WAMR/platform cleanup problem, or a remaining EPD-specific layer on top
 - [x] Task 4.1: Record what instrumentation proved and what it falsified
-- [ ] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
+- [x] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
 - [x] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
 - [x] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace
 - [x] Task 4.5: Compare PaperS3 and AtomS3R board docs and local sdkconfig slices to identify any board-level external-memory topology differences worth prioritizing
