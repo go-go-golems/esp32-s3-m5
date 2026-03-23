@@ -61,6 +61,26 @@ struct HostCommand {
 
 WasmHostApiStatus g_host_api_status = {};
 HostCommand g_host_commands[kMaxQueuedCommands] = {};
+uint32_t g_flush_log_budget = 64;
+
+const char *HostCommandTypeName(HostCommandType type)
+{
+    switch (type) {
+        case HostCommandType::LogI32:
+            return "log-i32";
+        case HostCommandType::DelayMs:
+            return "delay-ms";
+        case HostCommandType::ScreenClear:
+            return "screen-clear";
+        case HostCommandType::DrawRect:
+            return "draw-rect";
+        case HostCommandType::FillRect:
+            return "fill-rect";
+        case HostCommandType::Present:
+            return "present";
+    }
+    return "unknown";
+}
 
 void SetLastError(const char *message)
 {
@@ -256,6 +276,24 @@ bool FlushWasmHostFrame(char *error_message, std::size_t error_message_size)
 
     for (std::size_t i = 0; i < g_host_api_status.queued_commands; ++i) {
         const HostCommand &command = g_host_commands[i];
+        if (g_flush_log_budget > 0) {
+            --g_flush_log_budget;
+            ESP_LOGI(kTag,
+                     "flush-command index=%u/%u type=%s tag=%" PRId32 " value=%" PRId32
+                     " x=%" PRId32 " y=%" PRId32 " w=%" PRId32 " h=%" PRId32
+                     " color=0x%06" PRIx32 " mode=%" PRId32,
+                     static_cast<unsigned>(i + 1),
+                     static_cast<unsigned>(g_host_api_status.queued_commands),
+                     HostCommandTypeName(command.type),
+                     command.tag,
+                     command.value,
+                     command.x,
+                     command.y,
+                     command.w,
+                     command.h,
+                     command.color & 0x00FFFFFFu,
+                     command.mode);
+        }
         switch (command.type) {
             case HostCommandType::LogI32:
                 ESP_LOGI(kTag, "guest_log tag=%" PRId32 " value=%" PRId32, command.tag, command.value);

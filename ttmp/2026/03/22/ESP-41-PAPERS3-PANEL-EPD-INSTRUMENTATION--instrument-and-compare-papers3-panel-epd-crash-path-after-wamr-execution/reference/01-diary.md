@@ -273,3 +273,244 @@ The avoidable process error was mine: I briefly launched two flash/probe jobs in
 - Standing process lesson:
   - one `/dev/tty*` device
   - one flash/probe/monitor owner at a time
+
+## Step 3: Reconfirm the actual contamination behavior with cleaner probes and pivot from “does it crash?” to “where exactly does it crash?”
+
+The next slice cleaned up the uncertainty from the earlier truncated multi-command run. I reran the smallest probes one at a time using the new ticket-local script and the single-owner serial rule.
+
+Two of those reruns changed the shape of the problem in a helpful way. First, a fresh-boot `wasm replay frame-no-clear` succeeded. That means the current crash is not “any non-clear draw reaches `Panel_EPD` and dies.” Second, a same-boot sequence of `wasm run-preflush return-42` followed by `wasm replay clear-only` still crashed immediately after the successful Wasm call. That kept the contamination hypothesis alive while also falsifying the broader idea that the PaperS3 replay path is simply always broken after boot.
+
+That combination matters because it gives us a cleaner experimental split:
+
+- fresh boot, no prior Wasm:
+  - `clear-only` succeeds
+  - `frame-no-clear` succeeds
+- same boot, after successful non-drawing Wasm:
+  - `clear-only` crashes
+
+So the next useful action is no longer another high-level architecture argument. It is to decode the current crash against the exact `0079` ELF and identify whether the first post-WAMR failure is in the direct framebuffer write path, the cache writeback path, or a mode/queue transition inside the EPD backend.
+
+### Prompt Context
+
+**User prompt (verbatim):** "where are we at in our investigation ?"
+
+**Assistant interpretation:** Summarize the current state accurately after the new probes and use that summary to choose the next concrete debugging step.
+
+**Inferred user intent:** Understand what is already proven, what is still open, and what the next non-hand-wavy action should be.
+
+### What I did
+
+- Reran fresh-boot `wasm replay frame-no-clear` using the instrumented firmware and the ticket-local probe script.
+- Reran the same-boot contamination sequence:
+  - `wasm run-preflush return-42`
+  - `wasm replay clear-only`
+- Verified again that:
+  - `return-42` succeeds
+  - `frame-no-clear` succeeds on a fresh boot
+  - `clear-only` succeeds on a fresh boot
+  - `clear-only` crashes after successful non-drawing Wasm execution in the same boot
+- Updated the task list so the next active work is:
+  - decode the crash addresses against the current ELF
+  - add one tighter first-entry post-WAMR replay probe
+  - compare the fresh-boot-success and contaminated-crash paths
+
+### Why
+
+- The fresh-boot vs same-boot distinction is now the most informative variable in the investigation.
+- It is no longer enough to say “the crash is in Panel_EPD somewhere.” We need exact symbol-to-line mapping for the current build so the next patch is attached to real code addresses.
+
+### What worked
+
+- The sequential reruns produced clean, interpretable evidence instead of the ambiguous earlier truncated run.
+- `frame-no-clear` succeeding was especially valuable because it removed one overly broad theory from the table.
+- The same-boot contamination sequence still reproduces, so the main bug remains live and testable.
+
+### What didn't work
+
+- The contamination crash output still does not include the extra `lgfx_epd_dbg` line I want immediately before the failing operation, so the current trace still needs source-level address decoding.
+
+### What I learned
+
+- The bug is more conditional than it first looked.
+- The PaperS3 replay path is capable of working on a fresh boot even with the suspicious startup splash behavior still present.
+- A successful non-drawing Wasm call is enough to push the later `clear-only` replay into the bad state.
+
+### What was tricky to build
+
+- The hard part here was resisting the temptation to over-generalize from one success or one crash. The new evidence only became trustworthy after the probes were reduced to clean fresh-boot and same-boot cases.
+
+### What warrants a second pair of eyes
+
+- Whether the post-WAMR crash is more likely to be in `Panel_EPD::display(...)` cache handling than in `writeFillRectPreclipped(...)`, given that fresh-boot replay commands can succeed.
+- Whether the startup splash’s out-of-range geometry is a red herring, a separate bug, or an important clue about mode/rotation state.
+
+### What should be done in the future
+
+- Decode the contamination crash addresses against the exact `papers3_wamr_assemblyscript_console.elf`.
+- Add one narrower probe at the first `Panel_EPD` entry after `return-42`.
+- Compare those logs with the corresponding fresh-boot-success path.
+
+### Code review instructions
+
+- Review the updated active tasks in:
+  - [tasks.md](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/tasks.md)
+- Review the current driver instrumentation in:
+  - [Panel_EPD.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp)
+
+### Technical details
+
+- Fresh-boot `frame-no-clear` success:
+  - `control_example=frame-no-clear`
+  - `queued_commands=8`
+  - `control_execution=success`
+- Same-boot contamination repro:
+  - `wasm run-preflush return-42`
+  - `return_value=42`
+  - followed by `wasm replay clear-only`
+  - then `Cache disabled but cached memory region accessed`
+
+## Step 4: Decode the exact crash, then prove that the success path and crash path reach `Panel_EPD` with the same logged inputs
+
+This step is the first one that materially changes the level of confidence in the remaining theory.
+
+First, I decoded the current contamination crash against the exact built ELF instead of continuing to reason from raw PC values. That reconfirmed the same high-level path:
+
+- `Panel_EPD::writeFillRectPreclipped(...)`
+- `LGFXBase::fillScreen(...)`
+- `PaperCanvasScreenClear(...)`
+- `FlushWasmHostFrame(...)`
+- `RunWasmReplayControlExample(...)`
+
+Second, I added tighter app-side instrumentation in the `0079` project:
+
+- `papers3_canvas.cpp`
+  - logs frame lifecycle around `BeginFrameIfNeeded`, `PaperCanvasResetFrame`, `PaperCanvasPresent`
+  - logs `M5.Display.getEpdMode()`
+- `wasm_host_api.cpp`
+  - logs each flushed host command with its index and parameters
+
+That already showed an important detail: the post-WAMR crash happens after the replay control path has successfully:
+
+- reset the app-side frame state
+- started a new frame
+- switched `epd_mode` from `1` to `3`
+- begun the `screen-clear` operation
+
+But startup still consumed most of the driver log budget before the replay phase, so I added a tiny debug hook in the nested `M5GFX` repo:
+
+- `debugResetPanelEpdLogBudgets(fillrect_budget, display_budget)`
+
+Then I called that hook at the start of `RunWasmReplayControlExample(...)` so every replay run gets a fresh driver log budget.
+
+That finally gave the clean comparison we needed:
+
+- fresh boot `wasm replay clear-only`:
+  - succeeds
+  - logs `fillrect xs=0 ys=0 xe=959 ye=539 w=960 h=540 raw=255 mode=3 ... last=259199 len=259200 busy=0`
+- same boot `wasm run-preflush return-42` then `wasm replay clear-only`:
+  - crashes
+  - logs the *same* `fillrect` parameters immediately before the panic:
+    - `xs=0 ys=0 xe=959 ye=539`
+    - `w=960 h=540`
+    - `mode=3`
+    - `buf=0x3c17ddc0`
+    - `last=259199 len=259200`
+    - `busy=0`
+
+That is the key result of the current slice. The first concrete divergence is **not** in the logged app-side frame lifecycle, and it is **not** in obviously wrong `Panel_EPD` rectangle math for the crashing replay call. The corruption must exist below the fields we are currently observing, or in a lower-level cache/PSRAM/driver interaction that leaves these high-level parameters unchanged.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Keep pushing the active `ESP-41` debugging slice forward instead of stopping at the last intermediate result.
+
+**Inferred user intent:** Do the next real debugging work, preserve it in the ticket, and reduce the ambiguity around the PaperS3 contamination bug.
+
+### What I did
+
+- Decoded the current contamination crash with `xtensa-esp32s3-elf-addr2line` against:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/build/papers3_wamr_assemblyscript_console.elf`
+- Added app-side instrumentation in:
+  - [papers3_canvas.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp)
+  - [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+- Added a driver-side replay-budget reset hook in:
+  - [Panel_EPD.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp)
+- Called that hook from:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Reran:
+  - same-boot contamination repro:
+    - `wasm run-preflush return-42`
+    - `wasm replay clear-only`
+  - matching fresh-boot control:
+    - `wasm replay clear-only`
+
+### Why
+
+- Address decoding was needed to keep the next code changes tied to exact lines rather than to a remembered stack pattern.
+- The app-side logs were needed because the current hypothesis had become too vague: “somewhere below WAMR execution, PaperS3 is poisoned.” We needed to know whether the app-side frame lifecycle already diverged before the crash.
+- The driver-side replay-budget reset was needed because startup noise was still masking the first driver call that actually mattered.
+
+### What worked
+
+- The crash was mapped cleanly back to `Panel_EPD::writeFillRectPreclipped(...)`.
+- The app-side replay logs showed that the crashing path has a normal-looking command sequence:
+  - `screen-clear`
+  - `begin-frame-enter`
+  - `begin-frame-started`
+- The replay-budget reset finally exposed the first post-WAMR crashing `fillrect` call.
+- The fresh-boot success path and post-WAMR crash path now have a real side-by-side comparison at the driver entry point.
+
+### What didn't work
+
+- Increasing the raw `Panel_EPD` budgets alone was not enough. Startup display activity still consumed too much of the budget before replay began.
+- The currently logged fields still do not show the root cause. They only prove that the obvious geometry/state candidates are *not* where the first divergence appears.
+
+### What I learned
+
+- The crash path is more subtle than “bad rectangle” or “wrong mode.”
+- The post-WAMR crashing replay and the fresh-boot successful replay both reach `Panel_EPD` with the same visible parameters.
+- That makes the remaining likely suspects lower-level than the current probes:
+  - cache state
+  - PSRAM/cache coherency
+  - hidden driver/task state
+  - memory corruption that does not change the top-level call parameters
+
+### What was tricky to build
+
+- The main challenge was getting the instrumentation budget to line up with the lifecycle of the board. On PaperS3, startup itself exercises the display path heavily, so a normal “log the first N calls” approach can completely miss the phase we actually care about unless it can be reset.
+
+### What warrants a second pair of eyes
+
+- Whether the next slice should move downward into cache/PSRAM-oriented instrumentation rather than adding more app-side logs.
+- Whether the startup splash out-of-range issue and the post-WAMR crash are two separate bugs or a shared sign that `Panel_EPD` state assumptions are fragile.
+
+### What should be done in the future
+
+- Decode the latest post-WAMR crash addresses against the newest ELF after the reset-hook patch, just to keep the line references exact for this build.
+- Add one lower-level probe around the actual byte-write loop or around cache maintenance, not just around replay command dispatch.
+- Consider checking whether the PSRAM framebuffer contents or cache-writeback behavior differ before and after a successful `return-42` run.
+
+### Code review instructions
+
+- Review the app-side probe additions in:
+  - [papers3_canvas.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp)
+  - [wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Review the driver-side budget reset hook in:
+  - [Panel_EPD.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp)
+
+### Technical details
+
+- Exact crash mapping for the contamination repro:
+  - `Panel_EPD::writeFillRectPreclipped(...)` at line 431 on the earlier decoded build
+  - via `PaperCanvasScreenClear(...)` at line 135 in `papers3_canvas.cpp`
+- Fresh-boot success `fillrect` log:
+  - `fillrect xs=0 ys=0 xe=959 ye=539 w=960 h=540 raw=255 mode=3 ... last=259199 len=259200 busy=0`
+- Post-WAMR crash `fillrect` log:
+  - `fillrect xs=0 ys=0 xe=959 ye=539 w=960 h=540 raw=255 mode=3 ... last=259199 len=259200 busy=0`
+- App-side replay state before both cases:
+  - `canvas_init=1`
+  - `frame_active` transitions `0 -> 1`
+  - `present_mode=1`
+  - `epd_mode` transitions `1 -> 3`

@@ -6,6 +6,12 @@
 #include <cstdio>
 #include <cstring>
 
+namespace lgfx {
+inline namespace v1 {
+void debugResetPanelEpdLogBudgets(uint32_t fillrect_budget, uint32_t display_budget);
+}
+}  // namespace lgfx
+
 namespace papers3_wasm {
 
 namespace {
@@ -82,6 +88,7 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
 
     ResetWasmHostFrame();
     PaperCanvasResetFrame();
+    lgfx::v1::debugResetPanelEpdLogBudgets(8, 8);
 
     bool queued = false;
     if (std::strcmp(name, "hello-frame") == 0) {
