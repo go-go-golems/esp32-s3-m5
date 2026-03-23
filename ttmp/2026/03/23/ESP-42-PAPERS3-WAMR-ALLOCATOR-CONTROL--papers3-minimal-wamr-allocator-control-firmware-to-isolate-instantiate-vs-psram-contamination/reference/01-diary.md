@@ -230,6 +230,92 @@ The logged state before the crash was especially useful:
 
 So the allocator A/B test rules out one more plausible explanation: the PaperS3 fault does **not** depend on WAMR owning a SPIRAM-backed runtime pool. The contamination boundary survives even when WAMR runs with the system allocator and no pool buffer at all.
 
+### 2026-03-23 11:36 EDT
+
+Started the next allocator comparison by adding the `sdkconfig.internal_pool` profile and a dedicated `flash_and_probe_allocator_internal.sh` wrapper. I also fixed both variant scripts to pass `-DSDKCONFIG=${BUILD_DIR}/sdkconfig.variant` instead of relying on `SDKCONFIG_DEFAULTS` alone. That change came directly from the earlier allocator confusion: a variant experiment is not trustworthy in this repo unless the build uses its own generated `sdkconfig.variant` file rather than inheriting from the shared project `sdkconfig`.
+
+### 2026-03-23 11:38 EDT
+
+The first internal-pool configure pass was finally valid at the Kconfig layer. I verified the generated files under `build-internal-pool/config/` before trusting anything else:
+
+- `sdkconfig.json` showed `PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL=true`
+- `sdkconfig.cmake` showed `CONFIG_PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL "y"`
+- `sdkconfig.h` contained `#define CONFIG_PAPERS3_WAMR_ALLOCATOR_POOL_INTERNAL 1`
+
+That matters because it separates "the variant selection is working" from "the implementation actually does what the variant name implies."
+
+### 2026-03-23 11:40 EDT
+
+The first internal-pool flash/probe attempt still hit the known serial-helper prompt issue. The wrapper flashed successfully and the boot log already showed `allocator=pool, backing=pool-internal`, but `serial_probe_sequence.py` timed out waiting for the prompt even though the prompt was visibly present in the captured stream. I did not count that as a firmware result. Instead, I reused the already-flashed image and ran the raw serial helper directly against the live prompt, the same workaround that had already proved reliable for the system-allocator pass.
+
+### 2026-03-23 11:42 EDT
+
+That first direct internal-pool run produced a very important negative result. The runtime status said:
+
+- `allocator=pool`
+- `allocator_backing=pool-internal`
+- `wamr.pool_buffer=0x3c060a88`
+- `wamr.pool_buffer_external=yes`
+- `wamr.pool_size=524288`
+
+So the build configuration was correct, but the implementation was not actually forcing the WAMR pool into internal RAM. The relevant code path in `wasm_runtime_service.cpp` still used `heap_caps_malloc(..., MALLOC_CAP_8BIT)` for the internal variant, which is allowed to return external RAM on PaperS3 once PSRAM is part of the heap. That run still crashed on the final persistent PSRAM write, but I explicitly did **not** treat it as the final answer to the internal-pool question because the WAMR pool was still external in practice.
+
+This was a good debugging lesson by itself: a variant name in logs is not enough. The runtime has to expose the actual buffer address and whether it is external or internal, or the experiment can still be mislabeled.
+
+### 2026-03-23 11:44 EDT
+
+To make the internal-pool variant real, I changed `wasm_runtime_service.cpp` so that:
+
+- the default SPIRAM-pool variant keeps its `512 KiB` pool
+- the internal-pool variant uses a smaller `128 KiB` pool that can fit in internal RAM
+- the internal-pool allocator request now uses `MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT`
+
+I committed that separately as `debug(papers3): enforce internal wamr pool variant` before rerunning the hardware test, so the code-change provenance stays separate from the eventual runtime conclusion.
+
+### 2026-03-23 11:47 EDT
+
+Reflashed the corrected internal-pool image. The wrapper still missed the prompt during boot-time probing, so I again reused the flashed image and ran the command sequence directly against the live prompt instead of mixing another rebuild into the evidence. This repetition is worth recording because it is now a recurring operational quirk of the USB Serial/JTAG setup for these stripped control harnesses: the probe wrapper is good for build+flash provenance, but the direct live-prompt helper is more reliable for the actual command transcript.
+
+### 2026-03-23 11:49 EDT
+
+The corrected internal-pool run is finally the trustworthy one. `wasm status` reported:
+
+- `allocator=pool`
+- `allocator_backing=pool-internal`
+- `wamr.pool_buffer=0x3fca8350`
+- `wamr.pool_buffer_external=no`
+- `wamr.pool_size=131072`
+
+That means the internal-pool variant is now genuinely using an internal-RAM WAMR pool instead of silently falling back to PSRAM.
+
+The rest of the run was the important product result:
+
+- `wasm replay psram-persistent-init` succeeded
+- `wasm instantiate-bare-keepalive return-42` succeeded
+- `wasm replay psram-persistent-touch-sync` still crashed with `Cache disabled but cached memory region accessed`
+
+The state immediately before the crash was still clean by every high-level probe we have:
+
+- `replay_mem.flash_cache_enabled=yes`
+- `replay_mem.internal_heap_ok=yes`
+- `replay_mem.spiram_heap_ok=yes`
+- `persistent_psram_probe.sync_err=ESP_OK`
+
+And WAMR's own internal-pool metrics still looked healthy after instantiate:
+
+- `wamr.pool_buffer_external=no`
+- `runtime_mem.wamr_pool_total=130880`
+- `runtime_mem.wamr_pool_free=129752`
+- `runtime_mem.wamr_pool_highmark=1488`
+
+So the corrected internal-pool run rules out one more explanation: the PaperS3 PSRAM fault does **not** depend on WAMR using an explicit external-RAM pool. The failure survives under:
+
+- default SPIRAM-backed WAMR pool
+- system allocator with no WAMR pool buffer
+- true internal-RAM WAMR pool
+
+At this point, the remaining suspect is no longer "which allocator backing WAMR uses." The open boundary is deeper in the instantiate path or in a PaperS3-specific external-memory interaction that survives all three allocator layouts.
+
 ## Related
 
 - `../design/01-minimal-papers3-allocator-control-implementation-plan.md`
