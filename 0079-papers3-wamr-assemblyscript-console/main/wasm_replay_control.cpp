@@ -3,6 +3,11 @@
 #include "papers3_canvas.h"
 #include "wasm_host_api.h"
 
+#include <esp_heap_caps.h>
+#include <esp_memory_utils.h>
+
+#include <cinttypes>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -21,6 +26,8 @@ constexpr int32_t kDisplayHeight = 540;
 constexpr uint32_t kBlack = 0x000000;
 constexpr uint32_t kWhite = 0xFFFFFF;
 constexpr uint32_t kMidGray = 0x8C8C8C;
+constexpr std::size_t kScratchRowStride = (kDisplayWidth + 1) >> 1;
+constexpr std::size_t kScratchBufferBytes = (kDisplayWidth * kDisplayHeight) / 2;
 
 void SetReplayError(WasmReplayControlResult *result, const char *stage, const char *message)
 {
@@ -69,6 +76,41 @@ bool QueueFrameWithoutClearSequence()
            && QueueWasmHostLogI32(2, 2);
 }
 
+bool RunPsramScratchProbe(WasmReplayControlResult *result)
+{
+    auto *buffer = static_cast<uint8_t *>(
+        heap_caps_aligned_alloc(16, kScratchBufferBytes, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (buffer == nullptr) {
+        SetReplayError(result, "psram-alloc", "heap_caps_aligned_alloc failed");
+        return false;
+    }
+
+    std::memset(buffer, 0, kScratchBufferBytes);
+    for (int32_t y = 0; y < kDisplayHeight; ++y) {
+        auto *row = &buffer[static_cast<std::size_t>(y) * kScratchRowStride];
+        for (int32_t x = 0; x < kDisplayWidth; ++x) {
+            const std::size_t idx = static_cast<std::size_t>(x) >> 1;
+            const uint_fast8_t shift = (x & 1) ? 0 : 4;
+            const uint_fast8_t value = 0x0F << shift;
+            row[idx] = (row[idx] & (0xF0 >> shift)) | value;
+        }
+    }
+
+    uint32_t checksum = 0;
+    for (std::size_t i = 0; i < kScratchBufferBytes; i += 1024) {
+        checksum = (checksum * 131u) ^ buffer[i];
+    }
+    checksum = (checksum * 131u) ^ buffer[kScratchBufferBytes - 1];
+
+    std::printf("psram_probe.buffer=%p\n", static_cast<void *>(buffer));
+    std::printf("psram_probe.external=%s\n", esp_ptr_external_ram(buffer) ? "yes" : "no");
+    std::printf("psram_probe.bytes=%u\n", static_cast<unsigned>(kScratchBufferBytes));
+    std::printf("psram_probe.checksum=0x%08" PRIx32 "\n", checksum);
+
+    heap_caps_free(buffer);
+    return true;
+}
+
 }  // namespace
 
 WasmReplayControlResult RunWasmReplayControlExample(const char *name)
@@ -76,19 +118,22 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
     WasmReplayControlResult result = {};
     std::snprintf(result.control_example, sizeof(result.control_example), "%s", name != nullptr ? name : "");
 
-    if (!IsWasmDisplayHostApiEnabled()) {
-        SetReplayError(&result, "display", "display host API disabled");
-        return result;
-    }
-
     if (name == nullptr || name[0] == '\0') {
         SetReplayError(&result, "lookup", "empty control example");
         return result;
     }
 
+    const bool is_display_control = std::strcmp(name, "psram-scratch") != 0;
+    if (is_display_control && !IsWasmDisplayHostApiEnabled()) {
+        SetReplayError(&result, "display", "display host API disabled");
+        return result;
+    }
+
     ResetWasmHostFrame();
     PaperCanvasResetFrame();
-    lgfx::v1::debugResetPanelEpdLogBudgets(8, 8);
+    if (is_display_control) {
+        lgfx::v1::debugResetPanelEpdLogBudgets(8, 8);
+    }
 
     bool queued = false;
     if (std::strcmp(name, "hello-frame") == 0) {
@@ -99,6 +144,16 @@ WasmReplayControlResult RunWasmReplayControlExample(const char *name)
     }
     else if (std::strcmp(name, "frame-no-clear") == 0) {
         queued = QueueFrameWithoutClearSequence();
+    }
+    else if (std::strcmp(name, "psram-scratch") == 0) {
+        result.queued_commands = 0;
+        if (!RunPsramScratchProbe(&result)) {
+            return result;
+        }
+        result.success = true;
+        SetReplayError(&result, nullptr, nullptr);
+        PaperCanvasResetFrame();
+        return result;
     }
     else {
         SetReplayError(&result, "lookup", "unknown replay example");

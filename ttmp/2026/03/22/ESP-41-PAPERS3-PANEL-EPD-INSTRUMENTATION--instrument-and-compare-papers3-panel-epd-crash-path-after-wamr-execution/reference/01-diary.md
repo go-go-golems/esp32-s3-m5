@@ -514,3 +514,228 @@ That is the key result of the current slice. The first concrete divergence is **
   - `frame_active` transitions `0 -> 1`
   - `present_mode=1`
   - `epd_mode` transitions `1 -> 3`
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Keep pushing the active `ESP-41` slice forward, but stop spending cycles only inside `Panel_EPD` if a sharper control experiment can split the problem faster.
+
+**Inferred user intent:** Move the investigation from "the crash happens in `Panel_EPD`" to "what class of state is actually poisoned after a successful Wasm run on PaperS3?"
+
+### What I did
+
+- Added a non-display control path in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- The new control example is:
+  - `psram-scratch`
+- That control:
+  - allocates a PSRAM-backed scratch buffer with `heap_caps_aligned_alloc(...)`
+  - verifies that the pointer lives in external RAM with `esp_ptr_external_ram(...)`
+  - performs a nested nibble-write loop that mirrors the byte-write shape used by the EPD clear path
+  - prints a simple checksum so we can tell whether a fresh-boot run completed normally
+- Rebuilt:
+  - `idf.py -C /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console build`
+- Probed the attached PaperS3 in two modes:
+  - same boot:
+    - `wasm run-preflush return-42`
+    - `wasm replay psram-scratch`
+  - fresh boot:
+    - `wasm replay psram-scratch`
+
+### Why
+
+- Up to this point, the strongest visible choke point was still `Panel_EPD::writeFillRectPreclipped(...)`, but that did not prove the bug was specific to `M5GFX` or to the e-ink backend.
+- A PSRAM-only control path is a better split:
+  - if it succeeds after `return-42`, the contamination remains display-specific
+  - if it crashes after `return-42`, then the active problem is broader than `Panel_EPD`
+
+### What worked
+
+- The fresh-boot control succeeded cleanly:
+  - `control_example=psram-scratch`
+  - `queued_commands=0`
+  - `control_execution=success`
+  - `psram_probe.buffer=0x3c23d430`
+  - `psram_probe.external=yes`
+  - `psram_probe.bytes=259200`
+  - `psram_probe.checksum=0x2fed4bd5`
+- That proves the control path itself is valid and that plain PSRAM scratch writes are not inherently broken on PaperS3.
+
+### What didn't work
+
+- The same-boot sequence:
+  - `wasm run-preflush return-42`
+  - `wasm replay psram-scratch`
+  crashed with the same class of panic:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- The panic occurred before the control path could print a checksum, which means the scratch-write loop is enough to reproduce the surviving contamination even without entering `Panel_EPD` or touching `M5GFX`.
+
+### What I learned
+
+- This is the most important narrowing result of the current ticket so far.
+- The surviving PaperS3 bug is broader than the e-ink backend.
+- `Panel_EPD` is still a visible crash choke point for one family of repros, but it is no longer the best top-level explanation.
+- The leading theory should now shift to:
+  - post-WAMR PSRAM/cache poisoning on PaperS3
+  - or a broader PaperS3 memory/cache state corruption that makes later PSRAM writes unsafe
+
+### What was tricky to build
+
+- The control needed to be similar enough to the EPD clear path to be meaningful, but not so similar that it quietly dragged `M5GFX` back into the picture.
+- The easiest mistake here would have been a "PSRAM control" that still called the display stack indirectly. The implemented path stays inside `wasm_replay_control.cpp`, heap allocation, and raw buffer writes.
+
+### What warrants a second pair of eyes
+
+- The WAMR ESP-IDF memory/cache path in:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+- The runtime/platform config in:
+  - [shared_platform.cmake](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/shared_platform.cmake)
+- Any PaperS3-specific board configuration that changes how PSRAM/cache access behaves differently from the AtomS3R control board
+
+### What should be done in the future
+
+- Decode the new `psram-scratch` same-boot crash against the exact current ELF so the next slice stays anchored to current addresses.
+- Inspect the WAMR ESP-IDF platform code for cache or memory operations that run after a successful Wasm call and could leave later external-RAM accesses in a bad state.
+- Only after that decide whether more `Panel_EPD` instrumentation is still the highest-value next move.
+
+### Code review instructions
+
+- Review the new control path in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Read it against the previous `clear-only` and `frame-no-clear` helpers so the distinction stays clear:
+  - the new probe allocates PSRAM and writes it directly
+  - it does not queue display commands
+  - it does not depend on `M5GFX`
+
+### Technical details
+
+- Fresh-boot success command:
+  - `wasm replay psram-scratch`
+- Fresh-boot success output:
+  - `psram_probe.buffer=0x3c23d430`
+  - `psram_probe.external=yes`
+  - `psram_probe.bytes=259200`
+  - `psram_probe.checksum=0x2fed4bd5`
+  - `control_example=psram-scratch`
+  - `queued_commands=0`
+  - `control_execution=success`
+- Same-boot contamination command sequence:
+  - `wasm run-preflush return-42`
+  - `wasm replay psram-scratch`
+- Same-boot contamination result:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+  - panic before checksum output from the scratch probe
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Keep pushing the PaperS3 split further and test whether display initialization is actually required for the post-WAMR PSRAM contamination.
+
+**Inferred user intent:** Do the next controlled experiment, preserve the result in the ticket, and keep reducing the live theory instead of staying attached to the older `Panel_EPD` hypothesis.
+
+### What I did
+
+- Inspected the active WAMR ESP-IDF platform files:
+  - [espidf_memmap.c](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_memmap.c)
+  - [shared_platform.cmake](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/shared_platform.cmake)
+- Rechecked the PaperS3 and AtomS3R PSRAM configs and noted that AtomS3R succeeds with its own simpler display path and non-PSRAM canvas config, while PaperS3 still starts with the full PSRAM/display environment.
+- Used the existing headless PaperS3 build path from `ESP-39` to run a stricter control:
+  - headless build uses `sdkconfig.defaults;sdkconfig.headless`
+  - `host_api.display=disabled`
+  - only 2 host symbols are registered
+- The first headless probe exposed a small local bug:
+  - `wasm replay psram-scratch` was still rejected by `wasm_command.cpp` with `display host API is disabled in this build`
+  - even though `RunWasmReplayControlExample(...)` already allowed `psram-scratch` without display support
+- Fixed that command gate in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Rebuilt and reflashed the headless PaperS3 variant.
+- Reran the same-boot sequence on the headless build:
+  - `wasm run-preflush return-42`
+  - `wasm replay psram-scratch`
+- Decoded the resulting headless crash against:
+  - `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/build-headless/papers3_wamr_assemblyscript_console.elf`
+
+### Why
+
+- The earlier `psram-scratch` result already proved the bug is broader than `Panel_EPD`, but the headful PaperS3 build still performs board/display initialization during boot.
+- The headless build is the right next split:
+  - if the crash disappears there, display initialization is part of the contamination precondition
+  - if the crash remains there, the active problem is broader than both `Panel_EPD` and display initialization
+
+### What worked
+
+- The headless build booted correctly and clearly showed the reduced host surface:
+  - `0079_host_api: Registered 2 host symbols for module 'host'`
+- `wasm run-preflush return-42` still succeeded in the headless build.
+- After the command-gate fix, `wasm replay psram-scratch` really ran in the headless build rather than being rejected early.
+- The headless same-boot crash decoded cleanly to:
+  - [wasm_replay_control.cpp:88](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L88)
+  - inside `RunPsramScratchProbe(...)`
+  - at the initial `std::memset(buffer, 0, kScratchBufferBytes);`
+
+### What didn't work
+
+- The headless build did **not** eliminate the contamination.
+- Same-boot on headless PaperS3:
+  - `wasm run-preflush return-42`
+  - `wasm replay psram-scratch`
+  still crashes with:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- So display initialization is **not** required for the live repro.
+
+### What I learned
+
+- This is another major narrowing step.
+- The active bug is no longer well described as:
+  - `Panel_EPD` specific
+  - `M5GFX` specific
+  - display initialization specific
+- The current best description is:
+  - successful WAMR execution on PaperS3 poisons later PSRAM access in the same boot
+  - and the earliest proven crashing operation in the new control path is a plain `memset(...)` over a PSRAM buffer
+- That means the next slice should spend more time in:
+  - WAMR/platform memory handling
+  - PaperS3 board-level PSRAM/cache assumptions
+  than in higher-level display code
+
+### What was tricky to build
+
+- The headless control path was nearly correct already, but the CLI gate in `wasm_command.cpp` still assumed that all `wasm replay ...` examples required the display API.
+- That would have produced a false negative if left unfixed, because the headless build would have looked "safe" only because the control was blocked before execution.
+
+### What warrants a second pair of eyes
+
+- Whether anything in the PaperS3 board setup outside our host API path can leave PSRAM/cache behavior meaningfully different from AtomS3R even before any explicit display replay.
+- Whether the WAMR runtime cleanup path needs additional platform-specific normalization after a successful Wasm call on PaperS3.
+
+### What should be done in the future
+
+- Inspect the WAMR/platform path with the new headless result in mind and look specifically for PaperS3-relevant external-memory side effects.
+- Compare PaperS3 and AtomS3R runtime/board setup for any board-level PSRAM/cache differences that survive when the display host API is compiled out.
+- Only return to `Panel_EPD`-focused work if a later experiment shows a second EPD-specific problem layered on top of the broader PSRAM contamination.
+
+### Code review instructions
+
+- Review the headless replay-gate fix in:
+  - [wasm_command.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_command.cpp)
+- Review the headless-compatible control path in:
+  - [wasm_replay_control.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp)
+- Cross-check the decoded headless panic against the exact ELF used in the probe, not the normal build ELF.
+
+### Technical details
+
+- Headless build boot evidence:
+  - `0079_host_api: Registered 2 host symbols for module 'host'`
+- Headless same-boot command sequence:
+  - `wasm run-preflush return-42`
+  - `wasm replay psram-scratch`
+- Headless same-boot result:
+  - `Guru Meditation Error: Cache disabled but cached memory region accessed`
+- Decoded headless crash addresses:
+  - `0x4200bfd1` -> `RunPsramScratchProbe(...)` at `wasm_replay_control.cpp:88`
+  - `0x4200c16f` -> `RunWasmReplayControlExample(...)` at `wasm_replay_control.cpp:150`
+  - `0x4200b20f` -> `CmdWasm(...)` at `wasm_command.cpp:128`
+- The crashing source line is:
+  - `std::memset(buffer, 0, kScratchBufferBytes);`

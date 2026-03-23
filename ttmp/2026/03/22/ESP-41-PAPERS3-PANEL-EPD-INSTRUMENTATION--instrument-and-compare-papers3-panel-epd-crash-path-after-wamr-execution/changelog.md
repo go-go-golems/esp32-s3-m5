@@ -20,3 +20,10 @@
   - `last=259199 len=259200`
   - `busy=0`
 - That means the first concrete divergence is not in the currently logged app-side frame lifecycle or in obviously bad framebuffer bounds; it is below that level, likely in lower-level cache/PSRAM/driver state not yet exposed by the current probes
+- Added a non-display `psram-scratch` control probe in `wasm_replay_control.cpp` that allocates a PSRAM buffer and performs the same nibble-write pattern as the EPD clear path without touching `M5GFX`
+- Confirmed that fresh-boot `wasm replay psram-scratch` succeeds and reports a stable checksum from an external-RAM buffer
+- Confirmed that same-boot `wasm run-preflush return-42` followed by `wasm replay psram-scratch` crashes with the same `Cache disabled but cached memory region accessed` class of panic
+- That result narrows the active bug further: the surviving contamination is broader than `Panel_EPD` and now looks like post-WAMR PSRAM/cache poisoning on PaperS3
+- Fixed a command-surface bug in `wasm_command.cpp` so the headless-compatible `psram-scratch` control can run even when the display host API is disabled
+- Confirmed in the true headless PaperS3 build that same-boot `wasm run-preflush return-42` followed by `wasm replay psram-scratch` still crashes
+- Decoded the headless crash against the headless ELF and pinned it to `RunPsramScratchProbe(...)` at the initial `memset(...)`, proving that display initialization is not required for the contamination and that the current live boundary is broader post-WAMR PSRAM access on PaperS3

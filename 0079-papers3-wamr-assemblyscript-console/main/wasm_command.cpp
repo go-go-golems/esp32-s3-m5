@@ -16,15 +16,18 @@ namespace papers3_wasm {
 
 namespace {
 
+bool ReplayExampleRequiresDisplay(const char *name)
+{
+    return name == nullptr || std::strcmp(name, "psram-scratch") != 0;
+}
+
 void PrintUsage()
 {
     std::printf("wasm commands:\n");
     std::printf("  wasm examples\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info <name>\n");
-    if (IsWasmDisplayHostApiEnabled()) {
-        std::printf("  wasm replay <name>\n");
-    }
+    std::printf("  wasm replay <name>\n");
     std::printf("  wasm run-preflush-worker <name>\n");
     std::printf("  wasm run-preflush <name>\n");
     std::printf("  wasm run-worker <name>\n");
@@ -37,9 +40,8 @@ void PrintExamples()
     std::printf("wasm examples:\n");
     std::printf("  wasm list\n");
     std::printf("  wasm info hello-frame\n");
-    if (IsWasmDisplayHostApiEnabled()) {
-        std::printf("  wasm replay hello-frame\n");
-    }
+    std::printf("  wasm replay hello-frame\n");
+    std::printf("  wasm replay psram-scratch\n");
     std::printf("  wasm run-preflush-worker hello-frame\n");
     std::printf("  wasm run-preflush hello-frame\n");
     std::printf("  wasm run-worker hello-frame\n");
@@ -114,12 +116,12 @@ int CmdWasm(int argc, char **argv)
     }
 
     if (std::strcmp(argv[1], "replay") == 0) {
-        if (!IsWasmDisplayHostApiEnabled()) {
-            std::printf("display host API is disabled in this build\n");
-            return 1;
-        }
         if (argc < 3) {
             PrintUsage();
+            return 1;
+        }
+        if (!IsWasmDisplayHostApiEnabled() && ReplayExampleRequiresDisplay(argv[2])) {
+            std::printf("display host API is disabled in this build\n");
             return 1;
         }
 
