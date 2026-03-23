@@ -11,6 +11,7 @@
 - Preserved the ignored Atom-side WAMR const-string trace patch under `scripts/wamr-patches/01-wasm-runtime-const-str-trace.diff`
 - Recorded two small build fixes needed to align the Atom PSRAM probe with the PaperS3 control helpers (`esp_mm`, `esp_memory_utils.h`, `esp_cache_private.h`)
 - Confirmed a new board-specific blocker: normal USB Serial/JTAG console attach on AtomS3R currently resets the board into ROM download mode, so the cross-check is prepared but not yet completed
+- Added a repo-level `AGENTS.md` note to explicitly ask for a user reset when a board’s known attach behavior requires manual recovery from ROM download mode
 
 ## 2026-03-23
 

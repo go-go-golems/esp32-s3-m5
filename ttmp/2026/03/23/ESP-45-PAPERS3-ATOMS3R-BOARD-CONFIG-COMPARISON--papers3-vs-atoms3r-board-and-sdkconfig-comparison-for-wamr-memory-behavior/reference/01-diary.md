@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T18:05:00-04:00
+LastUpdated: 2026-03-23T18:44:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -123,3 +123,15 @@ The firmware now builds and flashes cleanly on AtomS3R, but the board exposes a 
 So the current blocker is not WAMR behavior yet. It is AtomS3R console attach over USB Serial/JTAG. I also confirmed this is not just a probe-script issue, because `idf_monitor` reproduces the same reset-to-download behavior.
 
 At this point the Atom cross-check firmware is ready, but I need a clean way to get the Atom application running while the serial session remains attached. The most likely next step is to hold a monitor open and have the device manually reset once, or otherwise adjust the board-specific attach/reset behavior before trusting any comparison result.
+
+## 2026-03-23 18:44 EDT
+
+Recorded a process lesson from the Atom attach failure.
+
+For this repo, if a board is already showing “attach resets into ROM download mode” behavior, I should not keep retrying quietly. The correct collaboration pattern is:
+
+- start the monitor or probe session in the right one-owner configuration
+- then explicitly ask the user for the manual reset step
+- only after that trust the resulting boot/probe evidence
+
+I also added this as a repo-level instruction in `AGENTS.md` so future sessions do not relearn it by trial and error.

@@ -27,3 +27,11 @@ This matters on the ESP32-S3 USB Serial/JTAG path because parallel access create
 - missing or interleaved console output
 - false prompt-detection failures
 - confusing “crash” evidence that is actually port contention
+
+## Manual reset coordination
+
+If a board is known to require a human reset or boot-button step during attach, ask the user explicitly before the live probe step instead of repeatedly retrying serial opens.
+
+- Do not keep probing silently if the current evidence suggests the device needs a manual reset to leave ROM download mode or to boot the flashed app.
+- Keep the serial/monitor session open first when that is part of the recovery procedure, then ask the user to press reset.
+- Record the board-specific attach/reset behavior in the active ticket diary so future sessions do not rediscover it the hard way.
