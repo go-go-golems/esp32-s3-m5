@@ -1811,3 +1811,113 @@ That matters because the panic text we keep seeing on PaperS3 explicitly mention
   - `wasm replay psram-persistent-touch`
 - Capture the new `wamr_rt`, `wamr_inst`, and `wamr_linear` logs and compare them against the existing memmap-state trace.
 - If the new logs still only show “everything looks normal,” the next slice should probably move to a minimal PaperS3 probe app or deeper ESP-IDF-level instrumentation.
+
+## Step 9: Run the traced PaperS3 repro and confirm that instantiate still looks healthy before the PSRAM fault
+
+Once the PaperS3 was attached again and host device access was available, I used the existing ticket-local script to do one controlled cycle instead of improvising command-by-command. The script path was:
+
+- [probe_wamr_psram_cache.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/probe_wamr_psram_cache.sh)
+
+and it flashed `0079` and then ran, in one boot session:
+
+- `wasm replay psram-persistent-init`
+- `wasm instantiate-bare-keepalive return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+That exact sequence was important. The first command allocates and initializes the persistent PSRAM buffer before WAMR instantiate. The second command instantiates a trivial module while intentionally skipping deinstantiate/unload cleanup. The third command performs the explicit cache-sync path and then tries the first direct CPU write into the already-existing PSRAM buffer.
+
+The new result is useful because the added WAMR trace points were finally live in the same capture as the crash. They showed:
+
+- `wamr_rt.stage=instantiate-enter`
+- `wamr_inst.stage=enter`
+- `wamr_inst.stage=alloc-module-inst-ok`
+- `wamr_linear.stage=mmap-enter`
+- `wamr_memmap.stage=mmap-data`
+- `wamr_memmap.ptr=0x3fcb9a98`
+- `wamr_memmap.external=no`
+- `wamr_linear.stage=mmap-exit`
+- `wamr_mem.stage=instantiate-memory`
+- `wamr_inst.stage=subinstantiate-ok`
+- `wamr_inst.stage=success`
+- `wamr_rt.stage=instantiate-exit`
+
+So the instantiate path itself does not visibly fail or even wobble. It allocates the module instance, allocates linear memory, and that linear memory is still in internal RAM rather than PSRAM. The module remains alive because this run used the keepalive mode, and there were no deinstantiate logs before the later crash.
+
+That last point matters. We already suspected cleanup was not required from earlier keepalive probes, but this run makes it more concrete. The traced crash happened without any `wamr_deinst.*` or `wamr_rt.stage=deinstantiate-*` output beforehand, so the surviving hazard boundary is still “successful instantiate” rather than “later cleanup.”
+
+Immediately before the failing PSRAM write, the replay-side state still looked ordinary:
+
+- `replay_mem.flash_cache_enabled=yes`
+- `replay_mem.internal_heap_ok=yes`
+- `replay_mem.spiram_heap_ok=yes`
+- `persistent_psram_probe.cache_alignment=32`
+- `persistent_psram_probe.sync_err=ESP_OK`
+
+Then the board still panicked on the first direct CPU write into the persistent PSRAM buffer. I decoded the crash backtrace against the exact freshly built ELF with:
+
+```bash
+xtensa-esp32s3-elf-addr2line -pfiaC \
+  -e 0079-papers3-wamr-assemblyscript-console/build/papers3_wamr_assemblyscript_console.elf \
+  0x4200d183 0x4200d396 0x4200d6e3 0x4200bde0 0x4200dffb 0x4200e1f6 0x4037d2f1
+```
+
+and got:
+
+- `TouchPersistentPsramProbe(...)` at [wasm_replay_control.cpp:261](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L261)
+- `TouchPersistentPsramProbeWithCacheSync(...)` at [wasm_replay_control.cpp:360](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_replay_control.cpp#L360)
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue" followed later by "I attached the papers3 btw, if you want to test." and then "you have full access now"
+
+**Assistant interpretation:** Finish the prepared WAMR trace slice, then use the attached PaperS3 to run the smallest meaningful repro under the new instrumentation.
+
+**Inferred user intent:** Move from preparation to one concrete hardware validation run, while keeping the investigation reproducible and documented.
+
+### What I did
+
+- Rebuilt `0079` against the modified local WAMR sources.
+- Flashed the attached PaperS3 with:
+  - [probe_wamr_psram_cache.sh](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/probe_wamr_psram_cache.sh)
+- Captured the single-boot trace output from:
+  - [serial_probe_sequence.py](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/22/ESP-41-PAPERS3-PANEL-EPD-INSTRUMENTATION--instrument-and-compare-papers3-panel-epd-crash-path-after-wamr-execution/scripts/serial_probe_sequence.py)
+- Decoded the crash against the freshly built ELF with `xtensa-esp32s3-elf-addr2line`.
+
+### Why
+
+- This was the first run where the new WAMR trace points and the known PSRAM failure lived in the same log capture.
+- The keepalive mode is the sharpest way to answer whether instantiate alone still looks clean before the crash.
+
+### What worked
+
+- The rebuild succeeded cleanly.
+- Flashing the PaperS3 succeeded.
+- The scripted single-boot sequence ran and captured the new WAMR trace logs.
+- The logs showed a fully successful instantiate path and reconfirmed internal-RAM linear memory allocation.
+- The crash decoded cleanly back to the persistent PSRAM touch path.
+
+### What didn't work
+
+- The new WAMR traces did not reveal an obvious bad state inside instantiate.
+- The explicit cache-sync path still did not save the later PSRAM write.
+
+### What I learned
+
+- Successful WAMR instantiate on PaperS3 can look completely normal in the currently visible runtime trace and still be enough to poison later PSRAM writes.
+- The surviving repro is not waiting for unload/cleanup.
+- The stronger current model is not “WAMR allocates bad PSRAM.” It is “successful instantiate perturbs some PaperS3-specific external-memory or flash-side state that the current runtime logs do not expose.”
+
+### What was tricky to build
+
+- The biggest practical difference in this run was environmental, not code. Earlier, the sandbox could not see `/dev/ttyACM0`; once full host access was restored, the same script worked normally.
+- The keepalive run was especially valuable because it prevents us from over-attributing the bug to teardown paths we did not even execute.
+
+### What warrants a second pair of eyes
+
+- Whether the next slice should move below WAMR into ESP-IDF external-memory state or a minimal PaperS3 probe app.
+- Whether PaperS3’s separate external flash topology is interacting with something in a way the AtomS3R SiP does not.
+
+### What should be done in the future
+
+- Either build a minimal PaperS3 probe that excludes almost all of `0079`, or add one more layer of lower-level instrumentation below the current WAMR trace points.
+- If we stay in `0079`, preserve the new trace-bearing build logs or serial capture as an artifact as well, not just the source snapshots.

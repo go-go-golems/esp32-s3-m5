@@ -33,6 +33,8 @@
 - [x] Task 3.27: Read and map the active WAMR instantiate/deinstantiate call graph before adding more low-level logs
 - [x] Task 3.28: Add structured runtime, instantiate, and linear-memory trace logs at the smallest ownership-transition points
 - [x] Task 3.29: Preserve the ignored WAMR source edits as tracked snapshots in the ticket workspace before the next hardware run
+- [x] Task 3.30: Rebuild and rerun the PaperS3 `instantiate-bare-keepalive` plus persistent-PSRAM probe with the new WAMR trace logs
+- [x] Task 3.31: Decode the new traced crash against the exact ELF and decide whether the instantiate path itself still looks nominal before the PSRAM fault
 
 ## Planned
 
@@ -55,7 +57,7 @@
 - [ ] Task 3.3: If justified, apply the smallest upstream-aligned patch and rerun the same probes
 
 - [ ] Task 4: Decide whether the evidence now points to a broader PaperS3 PSRAM/cache issue, a WAMR/platform cleanup problem, or a remaining EPD-specific layer on top
-- [ ] Task 4.1: Record what instrumentation proved and what it falsified
+- [x] Task 4.1: Record what instrumentation proved and what it falsified
 - [ ] Task 4.2: Commit the code slice and then the ticket diary/task/changelog slice
 - [x] Task 4.3: Add a PaperS3 control build that skips app-owned M5 display bring-up entirely, so the remaining board-specific state can be separated from WAMR instantiate
 - [x] Task 4.4: Preserve the ignored `managed_components` WAMR instrumentation as a tracked patch artifact in the ticket workspace

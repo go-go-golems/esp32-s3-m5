@@ -123,3 +123,26 @@
   - AtomS3R uses an `ESP32-S3-PICO-1-N8R8` SiP
   - PaperS3 uses `ESP32-S3R8` with separate external flash
 - That makes “PaperS3 flash-side external-memory topology” a stronger board-level differentiator than the older generic “PaperS3 PSRAM vs AtomS3R PSRAM” story
+- Rebuilt `0079`, flashed the attached PaperS3, and reran the single-boot sequence with the new WAMR trace logs:
+  - `wasm replay psram-persistent-init`
+  - `wasm instantiate-bare-keepalive return-42`
+  - `wasm replay psram-persistent-touch-sync`
+- Confirmed from the new `wamr_rt` / `wamr_inst` / `wamr_linear` logs that the keepalive instantiate path itself still looks nominal:
+  - runtime instantiate entered and exited successfully
+  - module-instance allocation succeeded
+  - linear memory mmap succeeded into internal RAM (`0x3fcb9a98`, `external=no`)
+  - sub-instantiation succeeded
+  - instantiate returned success with the module still alive
+- Confirmed again that no deinstantiate/cleanup path is required for this repro:
+  - `instantiate-bare-keepalive` produced no deinstantiate trace before the later crash
+- Confirmed that the later persistent PSRAM write still crashes even after:
+  - `flash_cache_enabled=yes`
+  - `internal_heap_ok=yes`
+  - `spiram_heap_ok=yes`
+  - `esp_cache_msync(...)` returning `ESP_OK`
+- Decoded the traced crash against the exact ELF and reconfirmed it still dies at:
+  - `TouchPersistentPsramProbe(...)` in `wasm_replay_control.cpp:261`
+  - called from `TouchPersistentPsramProbeWithCacheSync(...)` in `wasm_replay_control.cpp:360`
+- The strongest current conclusion is now narrower:
+  - WAMR instantiate on PaperS3 can complete cleanly and map its own linear memory in internal RAM
+  - yet that same successful instantiate path is still sufficient to poison a later CPU write into an already-allocated PSRAM buffer
