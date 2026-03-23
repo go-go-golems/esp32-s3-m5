@@ -21,3 +21,4 @@
 - The worker-thread experiment falsified the current leading fix idea: `wasm run-preflush-worker return-42` still poisons a later `wasm replay hello-frame`, and `wasm run-preflush-worker hello-frame` still crashes in `Panel_EPD::writeFillRectPreclipped`
 - The reduced replay controls further narrowed the PaperS3 side: after a successful worker-thread `return-42`, both `wasm replay clear-only` and `wasm replay frame-no-clear` crash, so the post-WAMR failure is broader than `screenClear` alone and still lands inside `Panel_EPD`
 - Committed the worker/reduced-replay probe slice as `e91eaaf` (`debug(papers3): add worker and reduced replay probes`)
+- Added a detailed intern-facing analysis of `M5GFX` `Panel_EPD`, its buffer/update/task model, and why it is the current leading interference point between PaperS3 display work and the surviving WAMR contamination bug

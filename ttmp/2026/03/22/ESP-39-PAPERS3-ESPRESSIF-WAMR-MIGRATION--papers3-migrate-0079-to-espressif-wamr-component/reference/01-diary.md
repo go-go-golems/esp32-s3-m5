@@ -34,7 +34,7 @@ RelatedFiles:
       Note: New same-boot probe helper used to expose post-WAMR contamination on PaperS3
 ExternalSources: []
 Summary: Step-by-step diary for the WAMR dependency migration in `0079`.
-LastUpdated: 2026-03-22T19:52:00-04:00
+LastUpdated: 2026-03-22T21:59:00-04:00
 WhatFor: Record the migration sequence, build results, and any resolver or alias issues encountered while switching to Espressif's WAMR package.
 WhenToUse: Read this before continuing the migration or reviewing how the dependency swap was validated.
 ---
@@ -217,6 +217,41 @@ The critical part of the stack trace is that it is no longer centered on replay 
 - `wasm_runtime_instantiate_internal`
 - `wasm_runtime_instantiate`
 - [wasm_module_runner.cpp:138](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp#L138)
+
+## Step 8: Write a focused `Panel_EPD` analysis guide
+
+After narrowing the live failure to the PaperS3 display path, I wrote a dedicated design/analysis guide for `Panel_EPD`.
+
+Why I did this:
+
+- the decoded crash line alone is too shallow a story
+- `Panel_EPD` is not just one drawing function, it is a buffered and asynchronous display subsystem
+- future debugging will be wasteful if the next person does not understand `_buf`, dirty-rect tracking, `display(...)`, cache writeback, and `task_update(...)`
+
+What the new guide covers:
+
+- the call path from `wasm_command.cpp` to `wasm_module_runner.cpp` to `wasm_host_api.cpp` to `papers3_canvas.cpp` to `M5.Display` to `Panel_EPD`
+- the immediate draw path into `_buf`
+- the deferred update path through `display(...)` and the background update task
+- the strongest current interference mechanisms
+- a strict separation of proven facts from hypotheses
+- recommended next experiments for the PaperS3-specific debugging phase
+
+Files studied while writing it:
+
+- [main/papers3_canvas.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp)
+- [main/wasm_host_api.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp)
+- [main/wasm_module_runner.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp)
+- [Panel_EPD.hpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.hpp)
+- [Panel_EPD.cpp](/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp)
+
+Additional upstream context included:
+
+- the local `M5GFX` checkout is at `0.2.15`
+- there is a newer PaperS3 refresh commit `fd824ee...` in upstream `M5GFX`
+- an older PSRAM/cache-related PaperS3 fix `c899961...` is already present in our local version
+
+The point of this step was not to change code. It was to compress the system model and the investigation model into one document so the next debugging slice can start from understanding instead of guesswork.
 
 ### Why this is important
 
