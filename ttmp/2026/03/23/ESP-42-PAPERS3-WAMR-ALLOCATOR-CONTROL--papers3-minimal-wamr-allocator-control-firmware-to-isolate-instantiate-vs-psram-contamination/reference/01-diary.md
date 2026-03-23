@@ -316,6 +316,70 @@ So the corrected internal-pool run rules out one more explanation: the PaperS3 P
 
 At this point, the remaining suspect is no longer "which allocator backing WAMR uses." The open boundary is deeper in the instantiate path or in a PaperS3-specific external-memory interaction that survives all three allocator layouts.
 
+### 2026-03-23 11:52 EDT
+
+With allocator backing now largely ruled out, I added two narrower lifecycle probes to `0082`:
+
+- `wasm load-only <name>`
+- `wasm load-only-keepalive <name>`
+
+The purpose was to split `wasm_runtime_load(...)` from `wasm_runtime_instantiate(...)`. Up to this point we already knew runtime init alone was safe and instantiate was toxic, but we did **not** yet know whether the fault actually began at module load/parse and only appeared later, or whether instantiate itself was the first dangerous step.
+
+### 2026-03-23 11:55 EDT
+
+Rebuilt and reflashed the corrected internal-pool harness with the new load-only commands. The wrapper still hit the same boot-time prompt-detection issue, so I again used the direct-against-live-prompt helper after flash. I am recording that repetition explicitly because this workflow is now stable enough to be considered the normal operating procedure for these stripped USB Serial/JTAG probes:
+
+1. use the wrapper for build+flash provenance
+2. use the direct serial helper for the actual single-boot command transcript
+
+### 2026-03-23 11:57 EDT
+
+Ran the first new same-boot load-only sequence:
+
+- `wasm status`
+- `wasm replay psram-persistent-init`
+- `wasm load-only return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+This result is important: the crash still reproduced.
+
+`wasm load-only return-42` reported:
+
+- `invocation_mode=load-only`
+- `execution=success`
+- `loaded=yes`
+- `instantiated=no`
+- `exec_env=no`
+- `executed=no`
+
+So the later persistent PSRAM write now crashes even though WAMR never instantiated the module, never created an exec env, and never called guest code. That moves the fault boundary earlier than every previous result in this ticket.
+
+### 2026-03-23 12:00 EDT
+
+I then ran the paired cleanup control:
+
+- `wasm status`
+- `wasm replay psram-persistent-init`
+- `wasm load-only-keepalive return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+This also crashed.
+
+That point matters because it removes another plausible explanation. If `load-only` had crashed but `load-only-keepalive` had not, then the immediate unload/cleanup path would have become the main suspect. Instead, both variants reproduce the fault:
+
+- `load-only` poisons PSRAM
+- `load-only-keepalive` also poisons PSRAM
+
+So the remaining interpretation is much narrower: on PaperS3, `wasm_runtime_load(...)` itself is already sufficient to poison later PSRAM writes, even when:
+
+- WAMR is using a true internal-RAM pool
+- the module is never instantiated
+- no exec env is created
+- no guest code runs
+- and immediate unload is skipped
+
+That is the strongest reduction we have achieved so far in this whole investigation.
+
 ## Related
 
 - `../design/01-minimal-papers3-allocator-control-implementation-plan.md`

@@ -17,3 +17,6 @@
 - Tightened the internal-pool implementation so it uses a smaller `128 KiB` pool allocated with `MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT`
 - Built, flashed, and probed the corrected internal-pool variant on attached PaperS3
 - Verified that the same PaperS3 PSRAM crash still reproduces after `instantiate-bare-keepalive return-42` even when WAMR is running with `allocator=pool`, `allocator_backing=pool-internal`, `wamr.pool_buffer_external=no`, and `wamr.pool_size=131072`
+- Added explicit `wasm load-only` and `wasm load-only-keepalive` lifecycle probes to `0082`
+- Built, flashed, and probed the updated internal-pool harness on attached PaperS3 with the same single-boot persistent-PSRAM sequence around `load-only` and `load-only-keepalive`
+- Verified that `wasm_runtime_load(...)` alone is already sufficient to poison later PSRAM writes on PaperS3, and that immediate unload/cleanup is not required for the fault

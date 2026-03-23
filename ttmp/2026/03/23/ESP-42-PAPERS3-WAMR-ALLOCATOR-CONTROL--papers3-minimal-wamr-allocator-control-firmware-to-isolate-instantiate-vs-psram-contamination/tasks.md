@@ -28,3 +28,7 @@ Build a stripped PaperS3 control firmware that keeps only the pieces needed to a
 - [x] Task 5.6b: If the internal build still lands in external RAM, tighten the allocator implementation so it requests true internal memory with a pool size that actually fits.
 - [x] Task 5.7: Run the same single-boot persistent-PSRAM repro sequence on the internal-pool variant and compare it against both the default SPIRAM-pool build and the system-allocator build.
 - [x] Task 5.8: Record whether the PaperS3 fault survives when WAMR is prevented from using any explicit external pool at all.
+- [x] Task 6: Split `load` from `instantiate` in `0082` so the next probe can tell whether the PaperS3 PSRAM fault begins during module load/parse or only at instantiate.
+- [x] Task 6.1: Add `wasm load-only <name>` and `wasm load-only-keepalive <name>` lifecycle probes with explicit result reporting.
+- [x] Task 6.2: Build the updated harness and run the same single-boot PSRAM control sequence around the new load-only commands.
+- [x] Task 6.3: Record whether `wasm_runtime_load(...)` alone is sufficient to poison later PSRAM writes on PaperS3.
