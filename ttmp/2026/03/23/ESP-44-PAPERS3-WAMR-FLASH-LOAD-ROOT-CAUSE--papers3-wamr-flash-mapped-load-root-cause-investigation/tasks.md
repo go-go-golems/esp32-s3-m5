@@ -17,5 +17,6 @@ Determine whether the surviving PaperS3 embedded-load bug is specifically caused
 - [x] Task 3.1: Add a stringless embedded control and direct runtime tracing so the failing path can be distinguished from direct embedded loads that never hit const-string mutation.
 - [x] Task 3.2: Prove on PaperS3 that `load-only-embedded-direct return-42` hits the in-place const-string rewrite path while `empty-module` does not.
 - [x] Task 3.3: Tie the traced rewrite lengths back to concrete bytes in the Wasm binary (`run` and `memory`) so the explanation is code-level, not only behavioral.
-- [ ] Task 3.4: Decide whether `0082` should keep the simpler copy-before-load mitigation or switch to a narrower direct-embedded `load_ex` fix.
+- [x] Task 3.4: Patch the loader to keep direct embedded loading but forcibly disable `reuse_const_strings`, then verify that the later PSRAM crash disappears without needing `binary_freeable`.
+- [ ] Task 3.5: Decide whether `0082` should keep the simpler copy-before-load mitigation or switch to a narrower direct-embedded `load_ex` fix.
 - [ ] Task 4: Keep the diary current and preserve any helper scripts in this ticket’s `scripts/` directory.

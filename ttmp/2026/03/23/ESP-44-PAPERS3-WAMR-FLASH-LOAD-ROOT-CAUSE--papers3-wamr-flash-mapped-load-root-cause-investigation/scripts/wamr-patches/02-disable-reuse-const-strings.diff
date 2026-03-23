@@ -1,0 +1,8 @@
+--- a/core/iwasm/interpreter/wasm_loader.c
++++ b/core/iwasm/interpreter/wasm_loader.c
+@@
+-    bool reuse_const_strings = is_load_from_file_buf && !wasm_binary_freeable;
++    /* Debug proof: keep the direct embedded source buffer path, but disable
++       in-place const-string reuse so we can test whether that mutation is the
++       thing poisoning later PSRAM writes. */
++    bool reuse_const_strings = false;

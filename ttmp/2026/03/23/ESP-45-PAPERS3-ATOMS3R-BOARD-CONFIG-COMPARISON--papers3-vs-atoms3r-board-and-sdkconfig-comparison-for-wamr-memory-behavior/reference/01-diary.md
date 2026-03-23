@@ -15,7 +15,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T19:38:00-04:00
+LastUpdated: 2026-03-23T19:49:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -203,3 +203,28 @@ What it now says is:
 - any remaining board differences are secondary details about how the resulting failure manifests, not the primary cause of the bug
 
 That is a good debugging outcome even though it invalidated one of our intermediate stories. The point of this ticket was to test the board theory honestly, and the result is that the board theory does **not** explain the core bug.
+
+## 2026-03-23 19:49 EDT
+
+Used AtomS3R for one more comparison step after `ESP-44` isolated the loader mechanism more precisely.
+
+I patched the local WAMR loader in `0081` so direct embedded `runtime-load` still used the original embedded source buffer, but forcibly disabled:
+
+- `reuse_const_strings`
+
+Then I reflashed the Atom and reran the previously bad sequence:
+
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: success.
+
+That is important for the board-comparison ticket because it closes the most plausible remaining escape hatch for the old board-specific theory. The same Atom board that previously crashed on direct embedded `return-42` stopped crashing as soon as the in-place const-string reuse was removed, without needing a copied buffer and without needing `binary_freeable`.
+
+So the board ticket can now say something stronger than “the board theory looks weak.” It can say:
+
+- the board theory failed its best direct control
+- the runtime/loader theory passed its strongest control
+
+Any remaining board differences are now secondary details about manifestation or tolerance, not the primary explanation of the bug.

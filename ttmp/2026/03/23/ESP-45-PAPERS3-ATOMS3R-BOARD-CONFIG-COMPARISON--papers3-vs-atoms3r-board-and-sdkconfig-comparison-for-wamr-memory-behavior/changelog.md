@@ -16,6 +16,7 @@
 - Confirmed that AtomS3R reproduces the same bad direct embedded `return-42` path as PaperS3: the bounded WAMR const-string trace shows the same in-place `run` and `memory` rewrites, and later PSRAM touch still crashes
 - Confirmed the matching Atom `binary_freeable` control succeeds: no in-place rewrite trace and no later PSRAM crash
 - Narrowed the board-comparison conclusion: the core bug is not PaperS3-specific board topology, but a cross-board WAMR loader misuse of embedded flash-mapped Wasm input buffers
+- Confirmed the comparison even more directly by patching Atom’s local WAMR loader to disable `reuse_const_strings` while keeping plain direct embedded `runtime-load`; the previously bad `return-42` path then stopped crashing
 
 ## 2026-03-23
 

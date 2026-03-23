@@ -14,7 +14,7 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-03-23T17:35:00-04:00
+LastUpdated: 2026-03-23T19:46:00-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
@@ -227,3 +227,67 @@ That matches the two runtime rewrite lengths exactly:
 - `len=6` -> `memory`
 
 At this point the explanation is no longer just “strong circumstantial evidence.” The failing path is specifically rewriting the embedded flash-mapped export strings in place, and the non-rewriting paths are the ones that stay healthy.
+
+## 2026-03-23 19:33 EDT
+
+Took the next proof step instead of stopping at the `binary_freeable` A/B.
+
+I re-read the interpreter loader path and focused on the exact switch in `wasm_loader.c`:
+
+- `reuse_const_strings = is_load_from_file_buf && !wasm_binary_freeable`
+
+That means the existing successful `binary_freeable` control was doing two things at once:
+
+- preventing the in-place const-string rewrite
+- changing some other loader ownership behavior at the same time
+
+To isolate the mechanism more cleanly, I patched the local ignored WAMR loader to keep the ordinary `runtime-load` path but force:
+
+- `reuse_const_strings = false`
+
+I preserved that patch under:
+
+- `scripts/wamr-patches/02-disable-reuse-const-strings.diff`
+
+The design of this proof matters. It leaves the direct embedded source-pointer path intact and does **not** rely on `binary_freeable`.
+
+## 2026-03-23 19:46 EDT
+
+Ran the proof on AtomS3R because that board was already attached and the bug had just been reproduced there.
+
+Sequence:
+
+- flash updated `0081`
+- `wasm replay psram-persistent-init`
+- `wasm load-only-embedded-direct return-42`
+- `wasm replay psram-persistent-touch-sync`
+
+Result: success.
+
+Important evidence:
+
+- still `load_method=runtime-load`
+- still direct embedded load
+- no in-place const-string mutation logs
+- later PSRAM touch succeeded
+
+This is the strongest root-cause proof so far.
+
+Before this patch:
+
+- direct embedded `runtime-load` for `return-42` mutated `run` and `memory` in place
+- later PSRAM touch crashed
+
+After this patch:
+
+- the same direct embedded `runtime-load` path no longer reused/mutated const strings
+- later PSRAM touch stayed healthy
+
+That means the bug is not merely correlated with direct embedded loading. The critical mechanism is the in-place const-string reuse/mutation path itself.
+
+At this point the explanation is precise enough to state plainly:
+
+- WAMR’s interpreter loader treats the source buffer as writable when `is_load_from_file_buf` is true and `wasm_binary_freeable` is false
+- embedded Wasm assets in our ESP-IDF builds are flash-mapped and not safe for that in-place string rewrite strategy
+- taking that rewrite path corrupts later PSRAM/cache behavior on the device
+- disabling that rewrite path, or using a mode that avoids it, removes the failure
