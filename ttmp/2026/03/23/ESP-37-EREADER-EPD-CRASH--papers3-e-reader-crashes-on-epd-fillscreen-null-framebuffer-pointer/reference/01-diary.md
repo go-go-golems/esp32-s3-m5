@@ -16,11 +16,12 @@ RelatedFiles:
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/app_main.cpp:Entry point - tried both core 0 init and core 1 init"
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_app.cpp:FullRefresh at line 267 triggers the crash via fillScreen"
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp:EPD panel driver - _buf allocated at 249, null deref at 436"
+    - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/M5GFX.cpp:PaperS3 board autodetect now sets default rotation before M5Unified clear_display"
     - "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0078-papers3-gnosis-layout/main/app_main.cpp:Working reference - gnosis 0078 does M5.begin on core 1 and works fine"
 ExternalSources: []
-Summary: "Investigation diary for the null EPD framebuffer crash in the 0080 e-reader firmware. Panel_EPD._buf is 0x0 when FullRefresh calls fillScreen."
+Summary: "Investigation diary for the PaperS3 e-reader EPD boot crash. The real failure was a 43,520-byte LUT allocation forced into DMA-capable internal RAM, followed by a separate PaperS3 default-rotation bug during M5Unified clear_display."
 LastUpdated: 2026-03-23
-WhatFor: "Handoff document for embedded engineer to diagnose and fix the Panel_EPD framebuffer allocation issue."
+WhatFor: "Handoff document for embedded engineer to understand the real EPD init failure, the PaperS3 boot-time rotation issue, and the validated hardware fix."
 WhenToUse: "When investigating or fixing the EPD crash in the e-reader firmware."
 ---
 
@@ -187,3 +188,134 @@ Crashes on every boot at the first `FullRefresh()`.
 | `app_main.cpp` | 19 | `Init()` called on core 0 |
 | `app_main.cpp` | 22 | `RunLoop()` launched on core 1 |
 | `0078/gnosis_app.cpp` | 22-30 | Working reference: same M5.begin + FullRefresh pattern |
+
+## Step 4: Live console probe proved the framebuffer theory was wrong
+
+The live USB Serial/JTAG probe changed the diagnosis materially. The crash signature still showed `buf=0x0` during `fillScreen`, but once the panel driver was instrumented at allocation time it became clear that `_buf` was not the primary failing allocation. `_buf` and `_step_framebuf` were both successfully allocated in PSRAM, and the two DMA line buffers were also present.
+
+The actual failure was the PaperS3 EPD driver's `_lut_2pixel` allocation, which requested 43,520 bytes from DMA-capable internal RAM. On this board, after the rest of early boot finished, the largest DMA-capable free block was only 31,744 bytes, so `Panel_EPD::init_intenal()` failed as a whole. `M5.begin()` then continued running anyway, which left the app alive with no registered display and later produced the observed null-buffer crash when app code touched `M5.Display`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Continue working on ESP-37-EREADER-EPD-CRASH which a colleague has left for you, since you are an expert at embedded work. The PaperS3 is attached over the console. Feel free to look at the scripts in 0082 (i think) or so where a lot of serial based crash debugging took place"
+
+**Assistant interpretation:** Continue the existing PaperS3 crash investigation on real hardware, use the attached console, and reuse prior serial-debugging patterns where useful.
+
+**Inferred user intent:** Find the real cause of the EPD boot crash and get the e-reader firmware into a usable state on the attached board.
+
+**Commit (code):** not committed in this session
+
+### What I did
+- Added allocation-failure logging to `Panel_EPD::init_intenal()` with exact pointer values, requested sizes, free heap sizes, and largest-block metrics.
+- Added `display_ready_` gating in the e-reader app so the console stays alive even if display init fails.
+- Flashed the firmware and attached a single non-reset serial probe to `/dev/ttyACM0`.
+- Captured the key failure line:
+
+```text
+E (973) lgfx_epd_dbg: init alloc failed panel=960x540 memory=960x540 lut=0x0(43520) step=0x3c070ba0(1036800) buf=0x3c16ddc0(259200) dma0=0x3fce1c74(248) dma1=0x3fce1d70(248) free_dma=116523 free_internal=124311 free_spiram=7089628 largest_dma=31744 largest_spiram=7077888
+```
+
+### Why
+- The original hypothesis focused too much on `_buf == nullptr` at the crash site instead of on why panel init failed earlier.
+- The only defensible way to sort that out was to instrument the allocator and capture real hardware numbers on the attached board.
+
+### What worked
+- The added init logging immediately showed that the failing allocation was `_lut_2pixel`, not `_buf`.
+- The app-side `display_ready_` guard prevented repeated crashes and kept the console available for follow-up validation.
+
+### What didn't work
+- The earlier theory that `_buf` was lazily allocated, freed later, or corrupted by SPIFFS activity did not hold up once the init path was instrumented.
+- The earlier core-affinity fix (`M5.begin()` on core 0) did not address the real problem.
+
+### What I learned
+- `M5.begin(cfg)` does not fail loudly enough for this case; display init can fail and the application can still proceed unless it explicitly checks whether a display was registered.
+- The PaperS3 EPD driver was over-constraining `_lut_2pixel` into DMA-capable memory even though the LUT is CPU-read lookup data, not a DMA payload.
+
+### What was tricky to build
+- The board is on USB Serial/JTAG, so probe discipline mattered. I had to keep `/dev/ttyACM0` single-owner and avoid overlapping `idf.py`, monitor, and custom serial readers.
+- The failure signature was misleading because the later crash dereferenced `_buf`, but the real bug happened much earlier during an all-or-nothing init path.
+
+### What warrants a second pair of eyes
+- `M5Unified` continuing after display init failure is still a footgun and may deserve a broader library-level contract review.
+- The EPD driver still has temporary debug logging budgets enabled in this workspace; they were helpful here, but they are not polished production logging.
+
+### What should be done in the future
+- Consider tightening the app or library contract so display-dependent firmware cannot silently continue after a failed display init.
+
+### Code review instructions
+- Start in `/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp`, specifically `Panel_EPD::init_intenal()`.
+- Then review `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_app.cpp` for the app-side `display_ready_` guard and the boot diagnostics.
+- Validate by building/flashing `0080-papers3-ereader` and capturing boot logs over `/dev/ttyACM0`.
+
+### Technical details
+- `_lut_2pixel` size: 43,520 bytes.
+- Largest observed DMA-capable free block at failure time: 31,744 bytes.
+- `_step_framebuf` PSRAM allocation succeeded at 1,036,800 bytes.
+- `_buf` PSRAM allocation succeeded at 259,200 bytes.
+
+## Step 5: Two targeted fixes made the reader usable again
+
+After the allocator evidence was clear, the fix split naturally into two parts. First, `_lut_2pixel` was moved off the constrained DMA heap and onto generic 8-bit-capable memory so it can live in PSRAM when internal RAM is too fragmented. That removed the null-framebuffer crash and allowed the e-reader to boot normally.
+
+Once that was fixed, a second boot-time issue surfaced: `M5Unified` performs `clear_display` during `M5.begin()`, before app code calls `M5.Display.setRotation(1)`. On PaperS3 the default panel rotation plus `offset_rotation = 3` produced a logical `540x960` clear against a physical `960x540` framebuffer layout. Setting the PaperS3 panel's default rotation to `1` inside board autodetect fixed those early out-of-range clears for both `0080` and the similar `0078` app pattern.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 4)
+
+**Assistant interpretation:** Finish the real fix on hardware, not just the diagnosis, and leave the board in a usable state.
+
+**Inferred user intent:** Make the PaperS3 e-reader boot and render reliably on the attached hardware.
+
+**Commit (code):** not committed in this session
+
+### What I did
+- Changed `_lut_2pixel` allocation in `Panel_EPD::init_intenal()` from `MALLOC_CAP_DMA` to `MALLOC_CAP_8BIT`.
+- Kept the e-reader's `display_ready_` logging and guards so failed init remains debuggable.
+- Added `p->setRotation(1);` in the PaperS3 board autodetect path in `M5GFX.cpp` so `M5Unified` boot-time clears use the correct landscape orientation.
+- Rebuilt, flashed, and validated on the attached PaperS3 over `/dev/ttyACM0`.
+
+### Why
+- The allocator fix addressed the hard init failure.
+- The PaperS3 default-rotation fix addressed the residual boot-time out-of-range clears that happened before application code could set the intended rotation.
+
+### What worked
+- The board now boots with `display_count=1 display_ready=yes`.
+- The early `fillrect` calls are now `960x540` from the start.
+- The out-of-range warnings disappeared.
+- The app reaches the console prompt and opens the first book without crashing.
+
+### What didn't work
+- An intermediate attempt to keep `_lut_2pixel` in internal 8-bit RAM was still too restrictive for this board state; allowing generic 8-bit memory was the effective fix.
+
+### What I learned
+- There were two independent problems layered together: a hard init failure from the LUT allocation and a softer bring-up bug in the PaperS3 default orientation.
+- The similar `0078` app structure was useful evidence that the library bring-up path, not just the e-reader app, needed attention.
+
+### What was tricky to build
+- Fixing the allocator issue exposed a second bug immediately. It would have been easy to stop after the crash disappeared and miss the incorrect early `540x960` clears.
+- Validation had to stay disciplined around a single serial owner so the captured boot logs remained trustworthy.
+
+### What warrants a second pair of eyes
+- The PaperS3 default rotation choice now matches the working host-side board definition and the app expectations in `0078`/`0080`, but any firmware that intentionally relied on the old default would need review.
+
+### What should be done in the future
+- Trim or convert the temporary EPD debug logs once ESP-37 is formally closed.
+- Consider moving the `display_ready_` pattern into a reusable helper if more PaperS3 apps are expected.
+
+### Code review instructions
+- Start with `/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp` for the `_lut_2pixel` allocation change.
+- Then inspect `/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/components/M5GFX/src/M5GFX.cpp` for the PaperS3 default rotation fix.
+- Finally inspect `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_app.cpp` and `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/ereader_app.h` for the app-side diagnostics and guard.
+- Validate by flashing `0080-papers3-ereader` and confirming the boot log contains only `960x540` early fills plus `display_ready=yes`.
+
+### Technical details
+- Validated image: `f92aa00` built on `2026-03-23 16:56:29`.
+- Representative successful boot lines:
+
+```text
+I (993) lgfx_epd_dbg: init panel=960x540 memory=960x540 buf=0x3c1787e0 ext=1 step=0x3c07b5c0 ext_step=1 dma0=0x3fce1c74 dma1=0x3fce1d70
+I (1063) lgfx_epd_dbg: fillrect xs=0 ys=0 xe=959 ye=539 w=960 h=540 raw=0 mode=1 buf=0x3c1787e0 ext=1 stride=480 first=0 last=259199 len=259200 busy=0
+ereader: board=19 display_count=1 display_ready=yes free_internal=119131 free_spiram=7046104
+opened [0] The Deliverator (page 1/3)
+```

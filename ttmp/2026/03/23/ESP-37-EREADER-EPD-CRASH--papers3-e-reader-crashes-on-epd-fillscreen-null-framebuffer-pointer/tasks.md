@@ -1,12 +1,15 @@
 # Tasks
 
-## TODO
+## Done
 
-- [ ] Add tasks here
+- [x] Instrument `Panel_EPD::init_intenal()` and capture real allocation-failure telemetry on hardware
+- [x] Verify whether `_buf` itself was the failing allocation
+- [x] Keep the console alive when display init fails by gating UI refresh on `display_ready_`
+- [x] Move `_lut_2pixel` off the DMA-only heap so PaperS3 display init can complete
+- [x] Trace the boot-time `540x960` clear path and confirm it happens before app code sets rotation
+- [x] Fix the PaperS3 board autodetect path to default to rotation `1` before `M5Unified` runs `clear_display`
+- [x] Rebuild, flash, and validate on the attached PaperS3 over `/dev/ttyACM0`
 
-- [ ] Trace Panel_EPD::init() and post_init() to understand when _buf is actually allocated and whether clear_display triggers it
-- [ ] Build minimal reproducer: M5.begin + delay(2000) + fillScreen on core 0 only, no SPIFFS, no tasks. Does it crash?
-- [ ] Check if setRotation(1) frees/reallocates _buf in Panel_EPD
-- [ ] Try calling M5.Display.startWrite() + endWrite() immediately after M5.begin() as a warmup before SPIFFS init
-- [ ] Compare M5GFX debug log output between working 0078 and crashing 0080 boot sequences
-- [ ] Print heap_caps_get_free_size(MALLOC_CAP_SPIRAM) before the crash to rule out PSRAM exhaustion
+## Follow-up
+
+- [ ] Trim or downgrade temporary EPD debug logs once ESP-37 is formally closed
