@@ -1,0 +1,36 @@
+menu "0083: Cardputer-ADV animation UI"
+
+config TUTORIAL_0083_FRAME_MS
+    int "Frame time (ms)"
+    range 1 1000
+    default 16
+    help
+        Delay between UI frames. Lower is smoother but uses more CPU.
+
+config TUTORIAL_0083_CANVAS_USE_PSRAM
+    bool "Allocate M5Canvas sprite in PSRAM"
+    default n
+    help
+        PSRAM sprites typically disable DMA paths; keep disabled for best performance.
+
+config TUTORIAL_0083_PRESENT_WAIT_DMA
+    bool "Wait for DMA after present"
+    default y
+    help
+        Conservative display safety: wait for any DMA transfer to finish after pushSprite.
+
+config TUTORIAL_0083_LINE_COUNT
+    int "Virtual line count"
+    range 8 128
+    default 40
+    help
+        Number of logical line markers shown in the minimap and viewport.
+
+config TUTORIAL_0083_AUTOPLAY_PERIOD_MS
+    int "Autoplay step period (ms)"
+    range 10 1000
+    default 60
+    help
+        Period for the automatic demo-scroll mode.
+
+endmenu

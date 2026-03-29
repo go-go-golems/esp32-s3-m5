@@ -1,0 +1,13 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "ui_kb.cpp"
+        "ui_model.cpp"
+        "ui_render.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        M5Unified
+        cardputer_kb
+        esp_timer
+)
