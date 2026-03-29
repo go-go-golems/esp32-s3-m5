@@ -1,0 +1,527 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+  :root {
+    --mac-white: #ffffff;
+    --mac-black: #000000;
+    --mac-gray: #aaaaaa;
+    --mac-dark: #555555;
+    --mac-stripe: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      #000 1px,
+      #000 2px
+    );
+    --mac-checker: repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 4px 4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--mac-checker);
+    font-family: 'VT323', 'Chicago', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .mac-window {
+    background: var(--mac-white);
+    border: 2px solid var(--mac-black);
+    box-shadow: 4px 4px 0 #000;
+    min-width: 340px;
+    max-width: 440px;
+    width: 100%;
+  }
+
+  .mac-titlebar {
+    background: var(--mac-white);
+    border-bottom: 2px solid #000;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    gap: 4px;
+    cursor: default;
+    user-select: none;
+  }
+
+  .mac-close-box {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #000;
+    flex-shrink: 0;
+    cursor: pointer;
+    background: #fff;
+    position: relative;
+  }
+
+  .mac-close-box:hover::before,
+  .mac-close-box:hover::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 8px; height: 1.5px;
+    background: #000;
+    transform-origin: center;
+  }
+  .mac-close-box:hover::before { transform: translate(-50%,-50%) rotate(45deg); }
+  .mac-close-box:hover::after  { transform: translate(-50%,-50%) rotate(-45deg); }
+
+  .mac-title-text {
+    flex: 1;
+    text-align: center;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    color: #000;
+    line-height: 1;
+  }
+
+  .mac-zoom-box {
+    width: 13px;
+    height: 13px;
+    border: 1.5px solid #000;
+    flex-shrink: 0;
+    cursor: pointer;
+    background: #fff;
+  }
+
+  .mac-content {
+    padding: 20px 24px 24px;
+    background: #fff;
+  }
+
+  .mac-label {
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    color: #000;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mac-label::before {
+    content: '';
+    display: inline-block;
+    width: 8px; height: 8px;
+    background: #000;
+    flex-shrink: 0;
+  }
+
+  .minimap-container {
+    background: #fff;
+    border: 2px solid #000;
+    padding: 16px 14px 12px;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .minimap-inner {
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    position: relative;
+    height: 40px;
+    cursor: crosshair;
+  }
+
+  .line-bar {
+    width: 5px;
+    background: #000;
+    flex-shrink: 0;
+    transition: height 0.12s steps(4), background 0.05s;
+    image-rendering: pixelated;
+    cursor: pointer;
+  }
+
+  .line-bar.active {
+    background: #000;
+  }
+
+  .line-bar.inactive {
+    background: #aaa;
+  }
+
+  .indicator {
+    position: absolute;
+    bottom: -2px;
+    width: 3px;
+    background: #000;
+    top: -2px;
+    pointer-events: none;
+    transition: left 0.08s steps(3);
+  }
+
+  .indicator::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -3px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid #000;
+  }
+
+  .mac-scrollbar {
+    border: 2px solid #000;
+    height: 20px;
+    background: #fff;
+    position: relative;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+
+  .mac-scrollbar-track {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 3px,
+      #000 3px,
+      #000 4px
+    );
+    opacity: 0.12;
+  }
+
+  .mac-scrollbar-thumb {
+    position: absolute;
+    top: 1px;
+    height: calc(100% - 2px);
+    width: 48px;
+    background: #fff;
+    border: 1.5px solid #000;
+    cursor: grab;
+    transition: left 0.08s steps(3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .mac-scrollbar-thumb::before,
+  .mac-scrollbar-thumb::after {
+    content: '';
+    width: 1.5px;
+    height: 8px;
+    background: #000;
+  }
+  .mac-scrollbar-thumb span {
+    width: 1.5px;
+    height: 8px;
+    background: #000;
+    display: block;
+  }
+
+  .mac-scrollbar-left, .mac-scrollbar-right {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 20px;
+    border: 2px solid #000;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    z-index: 2;
+  }
+  .mac-scrollbar-left { left: -22px; }
+  .mac-scrollbar-right { right: -22px; }
+  .mac-scrollbar-left:active, .mac-scrollbar-right:active { background: #000; color: #fff; }
+
+  .scrollbar-wrap {
+    position: relative;
+    margin: 0 24px 16px;
+  }
+
+  .mac-status {
+    border-top: 1px solid #000;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .mac-status-text {
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    color: #555;
+    letter-spacing: 0.5px;
+  }
+
+  .mac-badge {
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    border: 1.5px solid #000;
+    padding: 1px 6px;
+    background: #000;
+    color: #fff;
+  }
+
+  .mac-divider {
+    height: 1px;
+    background: #000;
+    margin: 12px 0;
+  }
+
+  .mac-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    color: #000;
+    margin-bottom: 4px;
+  }
+  .mac-info-row span:last-child { color: #555; }
+
+  .pixel-shadow {
+    box-shadow: 2px 2px 0 #000;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .cursor-blink {
+    animation: blink 1s step-end infinite;
+    display: inline-block;
+    width: 8px; height: 15px;
+    background: #000;
+    vertical-align: middle;
+    margin-left: 2px;
+  }
+</style>
+
+<div style="background: var(--mac-checker, repeating-conic-gradient(#000 0% 25%, #fff 0% 50%) 0 0 / 4px 4px); padding: 2rem; display: flex; justify-content: center;">
+  <div class="mac-window">
+
+    <div class="mac-titlebar">
+      <div class="mac-close-box" title="Close"></div>
+      <div class="mac-title-text">◆ Line Minimap DA ◆</div>
+      <div class="mac-zoom-box"></div>
+    </div>
+
+    <div class="mac-content">
+
+      <div class="mac-label">POSITION INDICATOR</div>
+
+      <div class="minimap-container pixel-shadow">
+        <div class="minimap-inner" id="minimap">
+        </div>
+        <div class="indicator" id="indicator" style="left: 0px;"></div>
+      </div>
+
+      <div class="mac-divider"></div>
+
+      <div class="mac-label">SCROLL POSITION</div>
+
+      <div class="scrollbar-wrap">
+        <div class="mac-scrollbar-left" id="btn-left">◀</div>
+        <div class="mac-scrollbar pixel-shadow" id="scrollbar-track">
+          <div class="mac-scrollbar-track"></div>
+          <div class="mac-scrollbar-thumb" id="scrollbar-thumb">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+        <div class="mac-scrollbar-right" id="btn-right">▶</div>
+      </div>
+
+      <div class="mac-divider"></div>
+
+      <div class="mac-info-row">
+        <span>LINES:</span><span id="stat-lines">40</span>
+      </div>
+      <div class="mac-info-row">
+        <span>POSITION:</span><span id="stat-pos">0%</span>
+      </div>
+      <div class="mac-info-row">
+        <span>ACTIVE:</span><span id="stat-active">—</span>
+      </div>
+
+      <div class="mac-status">
+        <div class="mac-status-text">SYSTEM 6.0.8 <span class="cursor-blink"></span></div>
+        <div class="mac-badge">DA v1.0</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const LINE_COUNT = 40;
+const LINE_WIDTH = 5;
+const LINE_GAP = 3;
+const LINE_HEIGHT = 20;
+const LINE_HEIGHT_ACTIVE = 34;
+const LINE_STEP = LINE_WIDTH + LINE_GAP;
+const DISTANCE_LIMIT = 56;
+
+function isActive(i, count) {
+  if (i === 0 || i === count - 1) return true;
+  const step = count / (Math.floor(count / 8) + 1);
+  return Math.abs(i % step) < 0.5 || Math.abs((i % step) - step) < 0.5;
+}
+
+const minimap = document.getElementById('minimap');
+const indicator = document.getElementById('indicator');
+const scrollThumb = document.getElementById('scrollbar-thumb');
+const statPos = document.getElementById('stat-pos');
+const statActive = document.getElementById('stat-active');
+
+const bars = [];
+let scrollPos = 0;
+let mouseXGlobal = -999;
+let hoveredIndex = -1;
+
+for (let i = 0; i < LINE_COUNT; i++) {
+  const bar = document.createElement('div');
+  bar.className = 'line-bar ' + (isActive(i, LINE_COUNT) ? 'active' : 'inactive');
+  bar.style.height = (isActive(i, LINE_COUNT) ? LINE_HEIGHT_ACTIVE : LINE_HEIGHT) + 'px';
+  bar.style.marginRight = i < LINE_COUNT - 1 ? LINE_GAP + 'px' : '0';
+  minimap.appendChild(bar);
+  bars.push({ el: bar, active: isActive(i, LINE_COUNT), baseH: isActive(i, LINE_COUNT) ? LINE_HEIGHT_ACTIVE : LINE_HEIGHT });
+}
+
+const totalWidth = LINE_COUNT * LINE_STEP - LINE_GAP;
+
+function updateBars() {
+  bars.forEach((b, i) => {
+    const centerX = i * LINE_STEP + LINE_WIDTH / 2;
+    let targetH = b.baseH;
+
+    // Scroll proximity effect
+    const scrollDist = Math.abs(scrollPos - centerX);
+    if (scrollDist < DISTANCE_LIMIT) {
+      const norm = 1 - scrollDist / DISTANCE_LIMIT;
+      const boost = norm * norm * 18;
+      targetH = b.baseH + boost;
+    }
+
+    // Mouse proximity effect
+    if (mouseXGlobal > 0) {
+      const rect = minimap.getBoundingClientRect();
+      const relX = mouseXGlobal - rect.left;
+      const mouseDist = Math.abs(relX - (i * LINE_STEP + LINE_WIDTH / 2));
+      if (mouseDist < DISTANCE_LIMIT) {
+        const norm = 1 - mouseDist / DISTANCE_LIMIT;
+        const boost = norm * norm * 22;
+        targetH = Math.max(targetH, b.baseH + boost);
+      }
+    }
+
+    targetH = Math.min(targetH, 48);
+    const currentH = parseFloat(b.el.style.height) || b.baseH;
+    const newH = currentH + (targetH - currentH) * 0.3;
+    b.el.style.height = Math.round(newH) + 'px';
+
+    // Pixelated invert near scroll head
+    const closeTick = Math.abs(scrollPos - (i * LINE_STEP + LINE_WIDTH / 2)) < LINE_STEP * 1.2;
+    if (closeTick) {
+      b.el.style.background = '#000';
+      b.el.style.outline = '1px solid #000';
+    } else {
+      b.el.style.background = b.active ? '#000' : '#bbb';
+      b.el.style.outline = 'none';
+    }
+  });
+}
+
+function updateIndicator() {
+  const maxLeft = totalWidth - 3;
+  const pct = scrollPos / (totalWidth);
+  const left = Math.round(pct * maxLeft);
+  indicator.style.left = left + 'px';
+
+  // Scrollbar thumb
+  const trackEl = document.getElementById('scrollbar-track');
+  const trackW = trackEl ? trackEl.offsetWidth : 240;
+  const thumbW = 48;
+  const maxThumbLeft = trackW - thumbW;
+  const thumbLeft = Math.round(pct * maxThumbLeft);
+  scrollThumb.style.left = thumbLeft + 'px';
+
+  statPos.textContent = Math.round(pct * 100) + '%';
+}
+
+let scrollTarget = 0;
+let animFrame;
+
+function animate() {
+  scrollPos += (scrollTarget - scrollPos) * 0.18;
+  if (Math.abs(scrollPos - scrollTarget) < 0.1) scrollPos = scrollTarget;
+  updateBars();
+  updateIndicator();
+  animFrame = requestAnimationFrame(animate);
+}
+animate();
+
+minimap.addEventListener('mousemove', e => {
+  mouseXGlobal = e.clientX;
+  const rect = minimap.getBoundingClientRect();
+  const relX = e.clientX - rect.left;
+  hoveredIndex = Math.round(relX / LINE_STEP);
+  statActive.textContent = `LINE ${Math.max(1, Math.min(LINE_COUNT, hoveredIndex + 1))}`;
+});
+
+minimap.addEventListener('mouseleave', () => {
+  mouseXGlobal = -999;
+  hoveredIndex = -1;
+  statActive.textContent = '—';
+});
+
+minimap.addEventListener('click', e => {
+  const rect = minimap.getBoundingClientRect();
+  const relX = e.clientX - rect.left;
+  const pct = Math.max(0, Math.min(1, relX / totalWidth));
+  scrollTarget = pct * totalWidth;
+});
+
+let dragging = false;
+let dragStartX = 0;
+let dragStartScroll = 0;
+
+scrollThumb.addEventListener('mousedown', e => {
+  dragging = true;
+  dragStartX = e.clientX;
+  dragStartScroll = scrollTarget;
+  e.preventDefault();
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const trackEl = document.getElementById('scrollbar-track');
+  const trackW = trackEl ? trackEl.offsetWidth : 240;
+  const thumbW = 48;
+  const delta = e.clientX - dragStartX;
+  const pct = delta / (trackW - thumbW);
+  scrollTarget = Math.max(0, Math.min(totalWidth, dragStartScroll + pct * totalWidth));
+});
+
+document.addEventListener('mouseup', () => { dragging = false; });
+
+document.getElementById('btn-left').addEventListener('click', () => {
+  scrollTarget = Math.max(0, scrollTarget - LINE_STEP * 4);
+});
+document.getElementById('btn-right').addEventListener('click', () => {
+  scrollTarget = Math.min(totalWidth, scrollTarget + LINE_STEP * 4);
+});
+
+// Auto-demo scroll
+let autoDir = 1;
+let autoTimer = setInterval(() => {
+  scrollTarget += autoDir * LINE_STEP * 0.7;
+  if (scrollTarget >= totalWidth) { scrollTarget = totalWidth; autoDir = -1; }
+  if (scrollTarget <= 0) { scrollTarget = 0; autoDir = 1; }
+}, 60);
+
+minimap.addEventListener('mouseenter', () => clearInterval(autoTimer));
+</script>
