@@ -33,7 +33,7 @@
 
 ### 5. Device workflow
 
-- [ ] Build and flash the firmware with tmux-based `idf.py flash monitor`
+- [x] Build and flash the firmware with tmux-based `idf.py flash monitor`
 - [ ] Validate keyboard control on-device
 - [ ] Validate animated scroll motion on-device
 - [ ] Fix any hardware or rendering regressions found during device testing

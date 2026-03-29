@@ -22,7 +22,7 @@ RelatedFiles:
       Note: Imported donor artifact reviewed during the analysis
 ExternalSources: []
 Summary: Chronological diary for creating the ESP-47 ticket, importing the donor prototype, analyzing the existing firmwares, and writing the intern-facing implementation guide.
-LastUpdated: 2026-03-29T17:05:00-04:00
+LastUpdated: 2026-03-29T17:35:00-04:00
 WhatFor: Use this diary to review the exact investigation path, commands, and rationale used to produce the design deliverable.
 WhenToUse: Read this when continuing the ticket later, reviewing the evidence chain, or checking how the design conclusions were formed.
 ---
@@ -316,3 +316,134 @@ alright, add a detailed list of tasks, and then work on them one by one, committ
   - `cd 0083-cardputer-adv-animation-ui && ./build.sh build`
   - `git add 0083-cardputer-adv-animation-ui`
   - `git commit -m "Add initial Cardputer ADV animation UI firmware scaffold"`
+
+## Step 3: Get tmux flash/monitor working, flash the board, and add runtime event logging
+
+This step moved from a purely local build to actual hardware execution. The goal was to use tmux for the `idf.py flash monitor` workflow, keep serial ownership clean on the USB Serial/JTAG device, and confirm that the new firmware can boot on a real Cardputer ADV board without crashing. Once the app was running, I added a small amount of semantic key-event logging so that hardware interaction can be validated from the serial log instead of depending only on what the screen appears to do.
+
+The first attempt exposed an environment problem rather than a firmware bug. The board and binary were fine, but the tmux launch path was not reliably reaching a shell environment that could run `idf.py monitor`. That meant the implementation task temporarily shifted from "flash the app" to "make the repo's tmux workflow deterministic and compatible with this shell environment." The user suggested sourcing `.envrc`, and that turned out to be the right direction because the repo-level `.envrc` is exactly the ESP-IDF export path this workspace expects.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+```text
+source the .envrc I think
+```
+
+**Assistant interpretation:** Use the repository `.envrc` during the tmux flash/monitor workflow instead of trying to synthesize the ESP-IDF environment another way.
+
+**Inferred user intent:** Stabilize the tmux launch environment with the same shell setup the workspace normally expects so hardware validation can continue.
+
+**Commit (code):** `f922af4` (`Log Cardputer ADV animation UI key events`)
+
+### What I did
+
+- Confirmed a Cardputer ADV USB Serial/JTAG device was present at:
+  - `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00`
+  - `/dev/ttyACM0`
+- Confirmed the serial device was not held by a competing process before starting a new live session:
+  - `lsof /dev/ttyACM0`
+  - `pgrep -af "idf.py|idf_monitor|esptool|ttyACM0"`
+- Tried the project helper:
+  - `./build.sh tmux-flash-monitor`
+- Hit a tmux attach limitation from the tool terminal:
+  - `open terminal failed: terminal does not support clear`
+- Switched to a detached tmux session and captured pane output directly instead of attaching.
+- Diagnosed a false start where the pane dropped back to an interactive shell instead of staying on the `idf.py` command.
+- Diagnosed a second failure where `idf.py monitor` could not import `esp_idf_monitor`.
+- Verified outside tmux that the module was actually installed and importable once the ESP-IDF environment was sourced correctly:
+  - `source "$HOME/esp/esp-idf-5.4.1/export.sh" >/dev/null && "$HOME/.espressif/python_env/idf5.4_py3.13_env/bin/python" -c 'import esp_idf_monitor; print(esp_idf_monitor.__file__)'`
+- Inspected the repository `.envrc` and confirmed it simply sources the ESP-IDF export:
+  - `source ~/esp/esp-idf-5.4.1/export.sh`
+- Relaunched tmux using the repo `.envrc` in the pane command:
+  - `tmux new-session -d -s 0083-adv-anim-ui -c "$PWD" "zsh -lc 'source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc >/dev/null; exec idf.py -p \"$port\" flash monitor'"`
+- Captured pane output directly with:
+  - `tmux capture-pane -pt 0083-adv-anim-ui:0.0 -S -250`
+- Confirmed successful flash and monitor startup.
+- Confirmed runtime hardware facts from the serial log:
+  - `M5GFX: [Autodetect] board_M5CardputerADV`
+  - `cardputer_kb: UnifiedScanner autodetect: using TCA8418 backend`
+  - `0083_kb: keyboard backend: TCA8418`
+- Added semantic key-event logging in:
+  - `0083-cardputer-adv-animation-ui/main/app_main.cpp`
+- Rebuilt with:
+  - `cd 0083-cardputer-adv-animation-ui && ./build.sh build`
+- Reflashed through the same tmux pattern and kept monitor running for live input validation.
+- Committed the logging improvement:
+  - `git commit -m "Log Cardputer ADV animation UI key events"`
+
+### Why
+
+- The user explicitly asked for tmux-based flashing and monitoring, so a plain local `idf.py flash` would not have satisfied the workflow requirement.
+- The serial single-owner rule in `AGENTS.md` makes detached tmux with pane capture a good fit because it keeps one authoritative holder on the port.
+- Once the app booted successfully, the next bottleneck was visibility into actual hardware input. Logging semantic events from the queue directly in `app_main.cpp` makes future validation easier and lower-risk.
+
+### What worked
+
+- The board flashed cleanly over USB Serial/JTAG.
+- The firmware booted without a crash after reset.
+- The ADV board was autodetected correctly by `M5GFX`.
+- The keyboard scanner autodetected the `TCA8418` backend as expected for Cardputer ADV.
+- Sourcing the repo `.envrc` from inside the tmux pane produced a stable `idf.py flash monitor` path.
+
+### What didn't work
+
+- Directly attaching the helper-created tmux session from this tool environment failed with:
+  - `open terminal failed: terminal does not support clear`
+- Early tmux launch variants were brittle enough that the pane either dropped back to a shell or reported:
+  - `No module named 'esp_idf_monitor'`
+- The root cause was not a missing package in the environment. It was the tmux launch path not matching the shell setup the repo expects.
+
+### What I learned
+
+- In this workspace, the simplest reliable tmux launch is to source the repo `.envrc` inside the pane command instead of trying to recreate the ESP-IDF environment by hand.
+- Detached tmux plus `capture-pane` is a good pattern for hardware work when the terminal transport cannot safely attach to a full tmux UI.
+- The new firmware already has enough runtime logging to prove board type and keyboard backend on real hardware before any interaction testing.
+
+### What was tricky to build
+
+- The subtle part was that the first failure looked like a Python environment problem, but the installed module was actually present.
+- The real issue was launch consistency across shells and tmux invocation styles.
+- That distinction mattered because reinstalling tools would have been wasted work and would not have addressed the actual cause.
+
+### What warrants a second pair of eyes
+
+- Physical keypress validation is still needed to confirm that the intended controls map correctly on the actual keyboard.
+- The screen-side visual validation for smooth scroll motion still needs a human to look at the device while pressing keys.
+
+### What should be done in the future
+
+- Press the expected keys on the device while the tmux monitor is live:
+  - `Fn+,`
+  - `Fn+/`
+  - `Enter`
+  - `Tab`
+- Confirm that the serial log shows the matching semantic events and that the UI motion feels correct on-screen.
+- If the motion feels too small or too abrupt on hardware, tune the per-modifier step sizes and easing constants.
+
+### Code review instructions
+
+- Review the runtime logging change in:
+  - `0083-cardputer-adv-animation-ui/main/app_main.cpp`
+- Review the tmux workflow source in:
+  - `0083-cardputer-adv-animation-ui/build.sh`
+- Review the captured hardware evidence in the ticket changelog and this diary entry.
+
+### Technical details
+
+- tmux and serial orientation commands used during this step:
+  - `tmux ls`
+  - `lsof /dev/ttyACM0`
+  - `pgrep -af "idf.py|idf_monitor|esptool|ttyACM0"`
+  - `ls -1 /dev/serial/by-id`
+  - `sed -n '1,240p' .envrc`
+- Live session commands used during this step:
+  - `tmux kill-session -t 0083-adv-anim-ui`
+  - `tmux new-session -d -s 0083-adv-anim-ui -c "$PWD" "zsh -lc 'source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc >/dev/null; exec idf.py -p \"$port\" flash monitor'"`
+  - `tmux split-window -h -t 0083-adv-anim-ui -c "$PWD" "zsh -lc 'source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc >/dev/null; exec zsh'"`
+  - `tmux capture-pane -pt 0083-adv-anim-ui:0.0 -S -250`
+- Build and commit commands used during this step:
+  - `cd 0083-cardputer-adv-animation-ui && ./build.sh build`
+  - `git add 0083-cardputer-adv-animation-ui/main/app_main.cpp`
+  - `git commit -m "Log Cardputer ADV animation UI key events"`

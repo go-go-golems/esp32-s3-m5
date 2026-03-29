@@ -39,3 +39,14 @@ Scaffolded and built the first implementation of `0083-cardputer-adv-animation-u
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0083-cardputer-adv-animation-ui/main/ui_model.cpp — Animated scroll state and motion rules
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0083-cardputer-adv-animation-ui/main/ui_render.cpp — Minimap, scrollbar, and viewport rendering
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0083-cardputer-adv-animation-ui/build.sh — tmux flash/monitor helper
+
+
+## 2026-03-29
+
+Flashed `0083-cardputer-adv-animation-ui` to the Cardputer ADV through a tmux-managed `idf.py flash monitor` session sourced from the repo `.envrc`, confirmed boot on USB Serial/JTAG, confirmed ADV display autodetect and TCA8418 keyboard autodetect, and added semantic event logging in commit `f922af4`.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0083-cardputer-adv-animation-ui/main/app_main.cpp — Semantic event logging in the main loop
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0083-cardputer-adv-animation-ui/build.sh — tmux flash/monitor workflow source
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/03/29/ESP-47-CARDPUTER-ADV-ANIMATION-UI--cardputer-adv-modern-dynamic-animation-ui-with-keyboard-controlled-scroll-motion/reference/01-investigation-diary.md — Detailed record of the tmux and `.envrc` debugging
