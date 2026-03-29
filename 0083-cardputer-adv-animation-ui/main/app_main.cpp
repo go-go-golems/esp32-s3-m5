@@ -20,6 +20,50 @@
 
 static const char *TAG = "0083_anim_ui";
 
+static const char *key_kind_name(ui_key_kind_t kind)
+{
+    switch (kind) {
+    case UI_KEY_UP:
+        return "UP";
+    case UI_KEY_DOWN:
+        return "DOWN";
+    case UI_KEY_LEFT:
+        return "LEFT";
+    case UI_KEY_RIGHT:
+        return "RIGHT";
+    case UI_KEY_ENTER:
+        return "ENTER";
+    case UI_KEY_BACK:
+        return "BACK";
+    case UI_KEY_TAB:
+        return "TAB";
+    case UI_KEY_SPACE:
+        return "SPACE";
+    case UI_KEY_DEL:
+        return "DEL";
+    case UI_KEY_TEXT:
+        return "TEXT";
+    default:
+        return "UNKNOWN";
+    }
+}
+
+static void log_key_event(const ui_key_event_t *ev, const UiState *ui)
+{
+    if (!ev || !ui) return;
+
+    ESP_LOGI(TAG,
+             "event kind=%s keynum=%u mods=0x%02x text=%s target=%.1f pos=%.1f selected=%d autoplay=%d",
+             key_kind_name(ev->kind),
+             (unsigned)ev->keynum,
+             (unsigned)ev->mods,
+             ev->text[0] ? ev->text : "-",
+             (double)ui->scroll.target_px,
+             (double)ui->scroll.pos_px,
+             ui->selected_index,
+             ui->autoplay ? 1 : 0);
+}
+
 extern "C" void app_main(void)
 {
     ESP_LOGI(TAG,
@@ -66,6 +110,7 @@ extern "C" void app_main(void)
         ui_key_event_t ev{};
         while (xQueueReceive(q, &ev, 0) == pdTRUE) {
             ui_model_handle_event(&ui, &ev);
+            log_key_event(&ev, &ui);
         }
 
         const int64_t now_us = esp_timer_get_time();
