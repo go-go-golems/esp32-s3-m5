@@ -127,6 +127,12 @@ topics:
       description: MIPI DSI display buses, panels, and bring-up
     - slug: lvgl
       description: LVGL graphics library integration and widget work
+    - slug: atom-lite
+      description: M5Stack ATOM Lite hardware based on ESP32-PICO-D4
+    - slug: provisioning
+      description: WiFi/BLE provisioning workflows and firmware
+    - slug: thermal-printer
+      description: Thermal printer firmware, protocols, and hardware integration
 docTypes:
     - slug: index
       description: Ticket index document

@@ -1,0 +1,30 @@
+# M5Stack ATOM Lite / ESP32-PICO-D4 / 4 MB flash
+# Use with: idf.py set-target esp32
+
+# Flash / partitioning
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+
+# BLE provisioning transport. ESP-IDF's wifi_prov_mgr example uses NimBLE for BLE-only.
+CONFIG_BT_ENABLED=y
+CONFIG_BTDM_CTRL_MODE_BLE_ONLY=y
+CONFIG_BTDM_CTRL_MODE_BR_EDR_ONLY=n
+CONFIG_BTDM_CTRL_MODE_BTDM=n
+CONFIG_BT_NIMBLE_ENABLED=y
+
+# WiFi provisioning security 1 depends on protocomm security v1.
+CONFIG_ESP_PROTOCOMM_SUPPORT_SECURITY_VERSION_1=y
+
+# ESP32-PICO-D4 memory pressure: move FreeRTOS helpers out of IRAM where possible.
+CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
+
+# Logging and monitor ergonomics.
+CONFIG_LOG_DEFAULT_LEVEL_INFO=y
+CONFIG_LOG_COLORS=y
+
+# UART console is correct for ATOM Lite: USB-C is an FTDI UART bridge on /dev/ttyUSB0.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_UART_NUM=0
+CONFIG_ESP_CONSOLE_UART_BAUDRATE=115200
