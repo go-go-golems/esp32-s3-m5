@@ -1,0 +1,1 @@
+Page has moved [here](https://docs.espressif.com/projects/esp-idf/en/latest/api-guides/wifi-driver/index.html).

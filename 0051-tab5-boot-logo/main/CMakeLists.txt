@@ -1,0 +1,25 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "display_app.c"
+        "wifi_app.c"
+        "wifi_console.c"
+        "echo_state.c"
+        "http_server.c"
+        "assets/logo_m5.c"
+    INCLUDE_DIRS "."
+    PRIV_REQUIRES
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_wifi
+        esp_wifi_remote
+        esp_http_server
+        console
+        driver
+        esp_driver_usb_serial_jtag
+        m5stack_tab5
+    EMBED_TXTFILES
+        "assets/index.html"
+        "assets/app.js"
+)

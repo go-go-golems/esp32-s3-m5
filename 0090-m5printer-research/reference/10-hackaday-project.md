@@ -1,0 +1,1 @@
+Print pictures from Flash on a portable USB thermal printer. The printer and the M5Stack are running from their own batteries. For source code and details see [https://github.com/gdsports/print-pics](https://github.com/gdsports/print-pics)

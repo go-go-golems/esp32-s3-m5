@@ -119,6 +119,14 @@ topics:
       description: M5Stack PaperS3 board and firmware patterns
     - slug: wamr
       description: WebAssembly Micro Runtime embedding and integration work
+    - slug: boot
+      description: Firmware boot behavior and startup sequencing
+    - slug: tab5
+      description: M5Stack Tab5 hardware and firmware work
+    - slug: mipidsi
+      description: MIPI DSI display buses, panels, and bring-up
+    - slug: lvgl
+      description: LVGL graphics library integration and widget work
 docTypes:
     - slug: index
       description: Ticket index document
