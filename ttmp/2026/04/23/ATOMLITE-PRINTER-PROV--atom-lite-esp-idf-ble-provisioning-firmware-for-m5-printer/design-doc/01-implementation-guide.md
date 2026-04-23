@@ -81,7 +81,7 @@ From the project directory:
 
 ```bash
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
-. /home/manuel/esp/esp-idf-5.3.4/export.sh
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
 idf.py set-target esp32
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor
@@ -127,7 +127,7 @@ ATOM Lite does not provide ESP32-S3-style native USB Serial/JTAG. The correct mo
 
 ### Use NimBLE BLE provisioning
 
-The ESP-IDF 5.3.4 provisioning example uses NimBLE for BLE-only provisioning on ESP32, reducing memory pressure compared with full BTDM/Bluedroid mode.
+The ESP-IDF 5.4.1 provisioning example uses NimBLE for BLE-only provisioning on ESP32, reducing memory pressure compared with full BTDM/Bluedroid mode.
 
 ### Let `wifi_prov_mgr` own WiFi credential storage
 
@@ -160,7 +160,7 @@ Completed initial implementation:
 3. Add BLE provisioning app flow.
 4. Add printer UART helper.
 5. Add button factory reset.
-6. Build with ESP-IDF 5.3.4 for target `esp32`.
+6. Build with ESP-IDF 5.4.1 for target `esp32`.
 7. Document flash/monitor commands.
 
 Next validation work:

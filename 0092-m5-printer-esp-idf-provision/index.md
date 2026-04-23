@@ -47,7 +47,7 @@ source/atomlite-printer-prov
 
 ```bash
 cd source/atomlite-printer-prov
-. /home/manuel/esp/esp-idf-5.3.4/export.sh
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
 idf.py set-target esp32
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor

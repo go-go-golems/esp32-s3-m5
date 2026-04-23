@@ -44,7 +44,7 @@ The firmware source is intentionally stored in the 0092 project folder:
 - BLE WiFi provisioning implemented with `wifi_provisioning` manager and BLE transport.
 - Printer UART implemented on UART2: TX GPIO23, RX GPIO33, 9600 8N1.
 - GPIO39 five-second factory reset implemented by erasing NVS and rebooting.
-- Build validated with ESP-IDF 5.3.4.
+- Build validated with ESP-IDF 5.4.1.
 - Hardware flash/provisioning validation remains open.
 
 ## Key Links
@@ -58,7 +58,7 @@ The firmware source is intentionally stored in the 0092 project folder:
 
 ```bash
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
-. /home/manuel/esp/esp-idf-5.3.4/export.sh
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
 idf.py set-target esp32
 idf.py build
 idf.py -p /dev/ttyUSB0 flash monitor

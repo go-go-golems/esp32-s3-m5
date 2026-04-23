@@ -137,7 +137,7 @@ I implemented a standalone ESP-IDF project under the requested 0092 folder. The 
 
 ```bash
 cd esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
-. /home/manuel/esp/esp-idf-5.3.4/export.sh >/tmp/atomlite-idf-export.log
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc >/tmp/atomlite-idf-export.log
 idf.py set-target esp32
 idf.py build
 ```
@@ -148,7 +148,7 @@ The firmware needs to replace the current Arduino/M5 printer firmware with an ES
 
 ### What worked
 
-The build completed successfully with ESP-IDF 5.3.4:
+The build completed successfully with ESP-IDF 5.4.1:
 
 ```text
 atomlite-printer-prov.bin binary size 0x109840 bytes. Smallest app partition is 0x180000 bytes. 0x767c0 bytes (31%) free.
@@ -199,7 +199,7 @@ Validate with:
 
 ```bash
 cd esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
-. /home/manuel/esp/esp-idf-5.3.4/export.sh
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
 idf.py set-target esp32
 idf.py build
 ```
@@ -221,3 +221,104 @@ Provision with Espressif's 'ESP BLE Provisioning' app:
   Security  : Security 1
   PoP       : 12345678
 ```
+
+## Step 3: Switch validation docs and build flow to repo `.envrc` / ESP-IDF 5.4.1
+
+The repository already has an `esp32-s3-m5/.envrc` that sources ESP-IDF 5.4.1. I updated the ticket and source-adjacent documentation to use that `.envrc` instead of directly sourcing ESP-IDF 5.3.4, then rebuilt the firmware after a full clean with the 5.4.1 environment.
+
+### Prompt Context
+
+**User prompt (verbatim):** "use the .envrc in /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5 which:
+
+source ~/esp/esp-idf-5.4.1/export.sh"
+
+**Assistant interpretation:** Update the project to rely on the repository-local `.envrc` and validate against ESP-IDF 5.4.1 rather than the previously used 5.3.4 install.
+
+**Inferred user intent:** Keep build instructions consistent with the repository's standard ESP-IDF environment and avoid split-version confusion.
+
+**Commit (docs):** 4c17231c34d3dd09af5504c7f99785fca6227d2c — "Use repo ESP-IDF 5.4.1 env for ATOM Lite provisioning"
+
+### What I did
+
+- Read `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc` and confirmed it contains:
+
+```bash
+source ~/esp/esp-idf-5.4.1/export.sh
+```
+
+- Replaced explicit `esp-idf-5.3.4/export.sh` commands in:
+  - `0092-m5-printer-esp-idf-provision/index.md`
+  - `0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov/README.md`
+  - docmgr ticket `index.md`
+  - docmgr implementation guide
+  - this diary
+- Ran a clean rebuild using the repo `.envrc`:
+
+```bash
+cd esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc >/tmp/atomlite-idf541-export.log
+idf.py fullclean
+idf.py set-target esp32
+idf.py build
+```
+
+### Why
+
+The repo-level `.envrc` is the canonical environment setup for work under `esp32-s3-m5`. Using it keeps manual commands, docs, and future agent work aligned on ESP-IDF 5.4.1.
+
+### What worked
+
+The ESP-IDF 5.4.1 rebuild succeeded:
+
+```text
+atomlite-printer-prov.bin binary size 0x1093f0 bytes. Smallest app partition is 0x180000 bytes. 0x76c10 bytes (31%) free.
+Project build complete.
+```
+
+### What didn't work
+
+No build failure occurred. ESP-IDF emitted one Kconfig warning during link generation:
+
+```text
+warning: config BTDM_CTRL_CONTROLLER_DEBUG_MODE_1 (defined at /home/manuel/esp/esp-idf-5.4.1/components/bt/controller/esp32/Kconfig.in:537) has a "visible if" option, which is not supported for configs
+```
+
+The warning came from ESP-IDF's Bluetooth Kconfig and did not stop the build.
+
+### What I learned
+
+The firmware remains compatible with ESP-IDF 5.4.1 using the same source and `sdkconfig.defaults`. The binary is slightly smaller under 5.4.1 than the earlier 5.3.4 build recorded in Step 2.
+
+### What was tricky to build
+
+The build directory had previously been generated under ESP-IDF 5.3.4, so I ran `idf.py fullclean` before rebuilding with 5.4.1. This avoids stale CMake cache paths pointing at the old ESP-IDF installation.
+
+### What warrants a second pair of eyes
+
+Check whether the Bluetooth Kconfig warning is acceptable for this repository's CI/noise standards. It appears benign, but it may be worth tracking if future builds run with warnings-as-errors wrappers.
+
+### What should be done in the future
+
+Use the repo `.envrc` for all 0092 commands, including hardware flash/monitor validation.
+
+### Code review instructions
+
+Review the command snippets in:
+
+```text
+0092-m5-printer-esp-idf-provision/index.md
+0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov/README.md
+ttmp/2026/04/23/ATOMLITE-PRINTER-PROV--atom-lite-esp-idf-ble-provisioning-firmware-for-m5-printer/design-doc/01-implementation-guide.md
+```
+
+Validate with:
+
+```bash
+cd esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
+idf.py build
+```
+
+### Technical details
+
+The `.envrc` is intentionally sourced from the repo root path rather than relying on shell-specific direnv activation, making the command copy/paste safe in plain bash sessions.

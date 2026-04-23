@@ -14,7 +14,7 @@ Native ESP-IDF firmware for the M5Stack ATOM Thermal Printer Kit controller.
 ## Build
 
 ```bash
-. /home/manuel/esp/esp-idf-5.3.4/export.sh
+source /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/.envrc
 idf.py set-target esp32
 idf.py build
 ```
