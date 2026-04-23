@@ -120,7 +120,7 @@ I implemented a standalone ESP-IDF project under the requested 0092 folder. The 
 
 **Inferred user intent:** The user wants a working native ESP-IDF firmware that can be flashed and monitored on the ATOM Lite via `/dev/ttyUSB0`.
 
-**Commit (code):** pending — code has been built locally and is ready for the first focused commit.
+**Commit (code):** 2b74d824e25c9ab59ecaf8cab7bfcdb6a14589e7 — "Add ATOM Lite printer ESP-IDF provisioning firmware"
 
 ### What I did
 

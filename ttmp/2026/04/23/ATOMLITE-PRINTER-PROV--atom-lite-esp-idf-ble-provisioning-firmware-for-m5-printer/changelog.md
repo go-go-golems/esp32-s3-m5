@@ -15,3 +15,13 @@ Created ATOM Lite ESP-IDF BLE provisioning firmware under 0092, documented build
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov/main/main.c — Provisioning and WiFi event flow
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/04/23/ATOMLITE-PRINTER-PROV--atom-lite-esp-idf-ble-provisioning-firmware-for-m5-printer/design-doc/01-implementation-guide.md — Implementation and validation guide
 
+
+## 2026-04-23
+
+Recorded implementation commit 2b74d824e25c9ab59ecaf8cab7bfcdb6a14589e7 for the ATOM Lite ESP-IDF provisioning firmware.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0092-m5-printer-esp-idf-provision/source/atomlite-printer-prov/main/main.c — Committed implementation entry point
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/04/23/ATOMLITE-PRINTER-PROV--atom-lite-esp-idf-ble-provisioning-firmware-for-m5-printer/reference/01-diary.md — Diary now references implementation commit
+
