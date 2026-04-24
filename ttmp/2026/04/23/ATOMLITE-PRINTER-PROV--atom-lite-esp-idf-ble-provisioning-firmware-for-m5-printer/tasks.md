@@ -12,3 +12,6 @@
 - [x] Build firmware with idf.py set-target esp32 and idf.py build
 - [x] Document flash and monitor procedure for /dev/ttyUSB0
 - [ ] Flash and validate on physical ATOM Lite printer hardware via /dev/ttyUSB0
+- [x] Debug ATOM Lite flash failure: esptool reaches ESP32-PICO-D4 stub then loses serial data at 460800 while verifying flash
+- [ ] Fix post-provisioning task watchdog trigger in app_main event wait loop
+- [x] Write production PoP/iPhone provisioning analysis guide and Obsidian project report

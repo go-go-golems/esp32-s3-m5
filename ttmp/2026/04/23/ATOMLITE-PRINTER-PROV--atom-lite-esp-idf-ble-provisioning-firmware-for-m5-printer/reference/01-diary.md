@@ -322,3 +322,115 @@ idf.py build
 ### Technical details
 
 The `.envrc` is intentionally sourced from the repo root path rather than relying on shell-specific direnv activation, making the command copy/paste safe in plain bash sessions.
+
+## Step 4: Document production provisioning and write the Obsidian project report
+
+After the firmware was flashed and provisioned, the next question moved from bring-up to product design: how should Proof-of-Possession work in the real world, and how should an iPhone app make provisioning feel smooth? I wrote a dedicated ticket analysis guide for that product/security layer and created a durable textbook-style Obsidian project report for future reference.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Write all of this up in the ticket as a detailed analysis guide.
+
+Then write a detailed textbook style (see textbook writing skill, similar to /home/manuel/code/wesen/obsidian-vault/Projects/2026/04/22/ARTICLE - ATOMS3R BLE Provisioning - Project Report.md) about the esp idf provisioning for the ATOM-LITE) project report in the obsidian vault ."
+
+**Assistant interpretation:** Preserve the production PoP, QR-code, iPhone-app, and ESP-IDF provisioning lessons in both the docmgr ticket and a durable Obsidian article modeled after the existing ATOMS3R provisioning report.
+
+**Inferred user intent:** The user wants this work to become reusable project knowledge, not just transient chat guidance.
+
+**Commit (docs):** pending — ticket docs and vault article have been written and are ready for review/commit.
+
+### What I did
+
+- Read the textbook authoring skill and Obsidian vault writing skill.
+- Read the existing vault exemplar:
+
+```text
+/home/manuel/code/wesen/obsidian-vault/Projects/2026/04/22/ARTICLE - ATOMS3R BLE Provisioning - Project Report.md
+```
+
+- Added docmgr analysis document:
+
+```text
+ttmp/2026/04/23/ATOMLITE-PRINTER-PROV--atom-lite-esp-idf-ble-provisioning-firmware-for-m5-printer/analysis/01-production-pop-and-iphone-provisioning-analysis.md
+```
+
+- Wrote Obsidian article:
+
+```text
+/home/manuel/code/wesen/obsidian-vault/Projects/2026/04/23/ARTICLE - ATOM Lite ESP-IDF Provisioning - Project Report.md
+```
+
+- Captured an additional validation finding from the tmux monitor: after provisioning, the firmware is repeatedly triggering the task watchdog with a backtrace through `xEventGroupWaitBits` in `app_main`.
+
+### Why
+
+The working development PoP (`12345678`) proves the protocol path, but production setup needs a different design: per-device secrets, QR handoff, iPhone app integration, manufacturing records, and recovery/error UX. Those decisions belong in durable analysis docs because they affect firmware, manufacturing, mobile app, and support workflows.
+
+### What worked
+
+- The ticket now has a dedicated production provisioning analysis guide.
+- The Obsidian vault now has a textbook-style project report for the ATOM Lite ESP-IDF provisioning project.
+- The analysis separates development validation from production readiness.
+
+### What didn't work
+
+The monitor revealed a post-provisioning watchdog issue:
+
+```text
+E task_wdt: Task watchdog got triggered.
+E task_wdt:  - IDLE0 (CPU 0)
+E task_wdt: CPU 0: main
+Backtrace ... xEventGroupWaitBits ... app_main ... main.c:239
+```
+
+This issue was not fixed in this documentation step. It was recorded as a follow-up firmware task.
+
+### What I learned
+
+The provisioning architecture is validated enough to design the product flow around it, but firmware stability still needs a pass. A successful BLE provisioning event is not the same as a clean long-running firmware lifecycle.
+
+### What was tricky to build
+
+The tricky part was writing the production PoP guidance at the right level. It needed to be concrete enough to drive implementation — NVS keys, QR payloads, iOS SDK flow — but not overclaim details that have not been implemented yet. The report therefore distinguishes current facts, recommended design, and open work.
+
+### What warrants a second pair of eyes
+
+- The recommended PoP storage strategy should be reviewed before implementation: regular NVS is easy, but a manufacturing partition is cleaner for a repeatable product.
+- The iPhone SDK API names should be checked against the exact Espressif iOS SDK version when implementation starts.
+- The watchdog finding should be investigated before treating the firmware as stable.
+
+### What should be done in the future
+
+- Fix the watchdog issue in firmware.
+- Implement per-device PoP storage.
+- Stop logging PoP in production builds.
+- Prototype an iPhone QR-driven provisioning flow using Espressif's iOS SDK.
+- Add printer-native setup output, ideally a QR receipt.
+
+### Code review instructions
+
+Review the ticket analysis first:
+
+```text
+analysis/01-production-pop-and-iphone-provisioning-analysis.md
+```
+
+Then review the vault article for durability and teaching quality:
+
+```text
+/home/manuel/code/wesen/obsidian-vault/Projects/2026/04/23/ARTICLE - ATOM Lite ESP-IDF Provisioning - Project Report.md
+```
+
+### Technical details
+
+The recommended production QR payload shape is:
+
+```json
+{"ver":"v1","name":"M5PRN_538700","pop":"K7P93QX2","transport":"ble"}
+```
+
+The key production invariant is:
+
+```text
+firmware PoP == printed/setup-card QR PoP == backend/manufacturing record PoP
+```
