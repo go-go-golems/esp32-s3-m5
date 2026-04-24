@@ -337,7 +337,9 @@ Then write a detailed textbook style (see textbook writing skill, similar to /ho
 
 **Inferred user intent:** The user wants this work to become reusable project knowledge, not just transient chat guidance.
 
-**Commit (docs):** pending — ticket docs and vault article have been written and are ready for review/commit.
+**Commit (ticket docs):** 93a62fc5b68e4bdb131ad31ae4d11d95843014cb — "Document ATOM Lite production provisioning flow"
+
+**Commit (Obsidian vault):** 02272b3420ce67e6b730ad7939e5b21a9d74d330 — "Add ATOM Lite ESP-IDF provisioning report"
 
 ### What I did
 
