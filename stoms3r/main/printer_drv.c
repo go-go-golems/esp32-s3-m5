@@ -13,6 +13,8 @@
 #include "esp_log.h"
 
 static const char *TAG = "printer_drv";
+static bool s_pins_swapped = false;
+static int s_baud = PRINTER_BAUD;
 
 /* ---- internal helpers ------------------------------------------------- */
 
@@ -246,4 +248,47 @@ esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len)
 {
     if (!data || len == 0) return ESP_ERR_INVALID_ARG;
     return send_bytes(data, len);
+}
+
+esp_err_t printer_drv_swap_pins(bool swap)
+{
+    int tx = swap ? PRINTER_RX_GPIO : PRINTER_TX_GPIO;
+    int rx = swap ? PRINTER_TX_GPIO : PRINTER_RX_GPIO;
+
+    ESP_LOGI(TAG, "Swapping TX/RX pins: TX=GPIO%d RX=GPIO%d CTS=GPIO%d (%s) baud=%d",
+             tx, rx, PRINTER_CTS_GPIO, swap ? "SWAPPED" : "NORMAL", s_baud);
+
+    esp_err_t err = uart_set_pin(PRINTER_UART_NUM, tx, rx,
+                                  UART_PIN_NO_CHANGE, PRINTER_CTS_GPIO);
+    if (err == ESP_OK) {
+        s_pins_swapped = swap;
+    }
+    return err;
+}
+
+bool printer_drv_is_swapped(void)
+{
+    return s_pins_swapped;
+}
+
+esp_err_t printer_drv_set_baud(int baud)
+{
+    if (baud <= 0) return ESP_ERR_INVALID_ARG;
+
+    ESP_LOGI(TAG, "Changing baud rate: %d -> %d", s_baud, baud);
+    esp_err_t err = uart_set_baudrate(PRINTER_UART_NUM, baud);
+    if (err == ESP_OK) {
+        s_baud = baud;
+        /* Also tell the printer to switch baud via ESC/POS:
+         * ESC [ nH nL   — set serial comm speed
+         * Not all printers support this; we set our side regardless. */
+    } else {
+        ESP_LOGE(TAG, "Failed to set baud %d: %s", baud, esp_err_to_name(err));
+    }
+    return err;
+}
+
+int printer_drv_get_baud(void)
+{
+    return s_baud;
 }

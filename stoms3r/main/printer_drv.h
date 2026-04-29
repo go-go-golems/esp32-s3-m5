@@ -108,6 +108,29 @@ esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out);
 int printer_drv_drain_rx(void);
 
 /**
+ * Swap TX and RX pins (in case the cable is straight-through instead of
+ * crossed).  Call `printer_swap on` to swap, `printer_swap off` to restore.
+ * Takes effect immediately on the live UART — no re-init needed.
+ */
+esp_err_t printer_drv_swap_pins(bool swap);
+
+/**
+ * Returns true if pins are currently swapped.
+ */
+bool printer_drv_is_swapped(void);
+
+/**
+ * Change the UART baud rate at runtime. Default is 9600.
+ * Common alternatives: 19200, 38400, 57600, 115200.
+ */
+esp_err_t printer_drv_set_baud(int baud);
+
+/**
+ * Returns the current baud rate.
+ */
+int printer_drv_get_baud(void);
+
+/**
  * Send raw bytes directly (for probing / testing).
  */
 esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len);

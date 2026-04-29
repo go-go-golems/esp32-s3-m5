@@ -306,8 +306,10 @@ static int do_printer_bitmap_test(int argc, char **argv)
 static int do_printer_probe(int argc, char **argv)
 {
     printf("=== Printer probe ===\n");
-    printf("UART config: port=UART%d TX=GPIO%d RX=GPIO%d CTS=GPIO%d baud=%d\n",
-           PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO, PRINTER_BAUD);
+    printf("UART config: port=UART%d TX=GPIO%d RX=GPIO%d CTS=GPIO%d baud=%d%s\n",
+           PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO,
+           printer_drv_get_baud(),
+           printer_drv_is_swapped() ? " (SWAPPED)" : "");
 
     /* 1. Drain any stale RX bytes */
     printf("\nDraining RX buffer...\n");
@@ -354,6 +356,7 @@ static int do_printer_probe(int argc, char **argv)
         printf("  5. Are GPIO%d/GPIO%d/GPIO%d the correct pins for your K118 cable?\n",
                PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO);
         printf("     (K118 designed for ATOM Lite: TX=GPIO23 RX=GPIO33 CTS=GPIO19)\n");
+        printf("  6. Try 'printer_swap on' to flip TX<->RX and re-probe\n");
     }
 
     return any_response ? 0 : 1;
@@ -415,6 +418,74 @@ static int do_printer_raw(int argc, char **argv)
     vTaskDelay(pdMS_TO_TICKS(200));
     int got = printer_drv_drain_rx();
     if (got > 0) printf("(printer sent %d bytes back)\n", got);
+    return 0;
+}
+
+/* ========================================================================
+ * printer_swap <on|off> — toggle TX<->RX crossover
+ * ======================================================================== */
+
+static struct {
+    struct arg_str *state;
+    struct arg_end *end;
+} swap_args;
+
+static int do_printer_swap(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&swap_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, swap_args.end, argv[0]);
+        return 1;
+    }
+    const char *val = swap_args.state->sval[0];
+    bool swap;
+    if (strcmp(val, "on") == 0) {
+        swap = true;
+    } else if (strcmp(val, "off") == 0) {
+        swap = false;
+    } else {
+        printf("Usage: printer_swap <on|off>\n");
+        return 1;
+    }
+    esp_err_t err = printer_drv_swap_pins(swap);
+    if (err != ESP_OK) {
+        printf("Error: %s\n", esp_err_to_name(err));
+        return 1;
+    }
+    printf("Pins %s: TX=GPIO%d RX=GPIO%d\n",
+           swap ? "SWAPPED" : "NORMAL",
+           swap ? PRINTER_RX_GPIO : PRINTER_TX_GPIO,
+           swap ? PRINTER_TX_GPIO : PRINTER_RX_GPIO);
+    return 0;
+}
+
+/* ========================================================================
+ * printer_baud <rate> — change UART baud rate
+ * ======================================================================== */
+
+static struct {
+    struct arg_int *rate;
+    struct arg_end *end;
+} baud_args;
+
+static int do_printer_baud(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&baud_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, baud_args.end, argv[0]);
+        return 1;
+    }
+    int rate = baud_args.rate->ival[0];
+    if (rate <= 0) {
+        printf("Invalid baud rate: %d\n", rate);
+        return 1;
+    }
+    esp_err_t err = printer_drv_set_baud(rate);
+    if (err != ESP_OK) {
+        printf("Error: %s\n", esp_err_to_name(err));
+        return 1;
+    }
+    printf("Baud rate set to %d\n", rate);
     return 0;
 }
 
@@ -489,4 +560,16 @@ void printer_cmd_register(void)
     raw_args.end = arg_end(1);
     reg("printer_raw", "Send raw hex bytes to the printer",
         do_printer_raw, &raw_args);
+
+    /* ---- printer_swap <on|off> ---- */
+    swap_args.state = arg_str1(NULL, NULL, "<on|off>", "Swap TX<->RX pins");
+    swap_args.end   = arg_end(1);
+    reg("printer_swap", "Swap TX/RX pins (try if printer_probe gets no response)",
+        do_printer_swap, &swap_args);
+
+    /* ---- printer_baud <rate> ---- */
+    baud_args.rate = arg_int1(NULL, NULL, "<rate>", "Baud rate (default 9600)");
+    baud_args.end  = arg_end(1);
+    reg("printer_baud", "Change UART baud rate",
+        do_printer_baud, &baud_args);
 }
