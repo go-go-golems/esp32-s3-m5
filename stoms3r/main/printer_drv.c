@@ -18,15 +18,29 @@ static const char *TAG = "printer_drv";
 
 static esp_err_t send_bytes(const uint8_t *data, size_t len)
 {
+    /* Log what we're sending */
+    if (len <= 32) {
+        char hex[128];
+        for (size_t i = 0; i < len; i++) {
+            sprintf(hex + i * 3, "%02X ", data[i]);
+        }
+        ESP_LOGI(TAG, "TX %u bytes: %s", (unsigned)len, hex);
+    } else {
+        ESP_LOGI(TAG, "TX %u bytes (head: %02X %02X %02X %02X ...)",
+                 (unsigned)len, data[0], data[1], data[2], data[3]);
+    }
+
     const int written = uart_write_bytes(PRINTER_UART_NUM, data, len);
     if (written < 0 || (size_t)written != len) {
         ESP_LOGE(TAG, "UART write failed: wrote %d of %u bytes",
                  written, (unsigned)len);
         return ESP_FAIL;
     }
-    /* Wait for the UART TX FIFO to drain so back-to-back commands don't
-     * overflow the printer's tiny input buffer. */
-    uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(200));
+    /* Wait for the UART TX FIFO to drain */
+    esp_err_t wait_err = uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(500));
+    if (wait_err != ESP_OK) {
+        ESP_LOGW(TAG, "uart_wait_tx_done: %s", esp_err_to_name(wait_err));
+    }
     return ESP_OK;
 }
 
@@ -182,4 +196,54 @@ esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
     ESP_RETURN_ON_ERROR(send_bytes(header, sizeof(header)),
                         TAG, "bitmap header");
     return send_bytes(pixels, (size_t)bytes_per_row * height);
+}
+
+/* ---- probe / diagnostic functions ------------------------------------- */
+
+int printer_drv_drain_rx(void)
+{
+    uint8_t buf[64];
+    int total = 0;
+    while (true) {
+        int n = uart_read_bytes(PRINTER_UART_NUM, buf, sizeof(buf), pdMS_TO_TICKS(100));
+        if (n <= 0) break;
+        total += n;
+        /* Log received bytes */
+        char hex[256];
+        for (int i = 0; i < n && i < 64; i++) {
+            sprintf(hex + i * 3, "%02X ", buf[i]);
+        }
+        ESP_LOGI(TAG, "RX %d bytes: %s", n, hex);
+    }
+    return total;
+}
+
+esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out)
+{
+    if (n < 1 || n > 4 || !out) return ESP_ERR_INVALID_ARG;
+
+    /* Drain any stale data first */
+    printer_drv_drain_rx();
+
+    /* DLE EOT n — Real-time status transmission */
+    uint8_t cmd[] = { 0x10, 0x04, n };
+    esp_err_t err = send_bytes(cmd, sizeof(cmd));
+    if (err != ESP_OK) return err;
+
+    /* Wait briefly for response */
+    uint8_t resp = 0;
+    int got = uart_read_bytes(PRINTER_UART_NUM, &resp, 1, pdMS_TO_TICKS(500));
+    if (got == 1) {
+        ESP_LOGI(TAG, "Status query n=%d response: 0x%02X", n, resp);
+        *out = resp;
+        return ESP_OK;
+    }
+    ESP_LOGW(TAG, "Status query n=%d: no response (got %d bytes)", n, got);
+    return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len)
+{
+    if (!data || len == 0) return ESP_ERR_INVALID_ARG;
+    return send_bytes(data, len);
 }

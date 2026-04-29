@@ -85,3 +85,21 @@ esp_err_t printer_drv_print_qr(printer_qr_ec_level_t ec_level,
  */
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels);
+
+/**
+ * Query printer real-time status using DLE EOT n.
+ * `n`: 1=printer status, 2=offline status, 3=error status, 4=paper sensor.
+ * Writes the response byte into `*out`. Returns ESP_OK if a byte was received.
+ */
+esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out);
+
+/**
+ * Read any pending bytes from the printer RX buffer and log them.
+ * Returns the number of bytes read.
+ */
+int printer_drv_drain_rx(void);
+
+/**
+ * Send raw bytes directly (for probing / testing).
+ */
+esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len);

@@ -18,12 +18,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include "argtable3/argtable3.h"
+#include "driver/uart.h"
 #include "esp_console.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "printer_drv.h"
 
-static const char *TAG = "printer_cmd";
+/* TAG used for future logging in this module */
+#define TAG "printer_cmd"
 
 /* ========================================================================
  * printer_init
@@ -296,6 +300,124 @@ static int do_printer_bitmap_test(int argc, char **argv)
 }
 
 /* ========================================================================
+ * printer_probe — query printer status and dump RX buffer
+ * ======================================================================== */
+
+static int do_printer_probe(int argc, char **argv)
+{
+    printf("=== Printer probe ===\n");
+    printf("UART config: port=UART%d TX=GPIO%d RX=GPIO%d baud=%d\n",
+           PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_BAUD);
+
+    /* 1. Drain any stale RX bytes */
+    printf("\nDraining RX buffer...\n");
+    int drained = printer_drv_drain_rx();
+    printf("Drained %d stale bytes\n", drained);
+
+    /* 2. Query real-time status: DLE EOT n for n=1..4 */
+    printf("\nQuerying printer status (4 DLE EOT queries)...\n");
+    bool any_response = false;
+    for (uint8_t n = 1; n <= 4; n++) {
+        uint8_t resp = 0;
+        esp_err_t err = printer_drv_query_status(n, &resp);
+        if (err == ESP_OK) {
+            any_response = true;
+            const char *name[] = { "", "printer", "offline", "error", "paper" };
+            printf("  Status n=%d (%s): 0x%02X\n", n, name[n], resp);
+        } else {
+            printf("  Status n=%d: NO RESPONSE\n", n);
+        }
+    }
+
+    /* 3. Send ESC @ (init) and check for response */
+    printf("\nSending ESC @ (init)...\n");
+    esp_err_t reset_err = printer_drv_reset();
+    printf("  send result: %s\n", esp_err_to_name(reset_err));
+
+    /* 4. Wait and drain again */
+    vTaskDelay(pdMS_TO_TICKS(200));
+    int after = printer_drv_drain_rx();
+    if (after > 0) {
+        printf("  Got %d bytes after init (printer is alive!)\n", after);
+        any_response = true;
+    }
+
+    printf("\n=== Result: %s ===\n",
+           any_response ? "PRINTER RESPONDED" : "NO RESPONSE (check wiring/power)");
+
+    if (!any_response) {
+        printf("\nTroubleshooting:\n");
+        printf("  1. Is 12V power supply connected to the printer carrier board?\n");
+        printf("  2. Is the HY2.0-4P cable plugged in?\n");
+        printf("  3. Check TX<->RX crossover: ESP TX(GPIO%d) -> printer RX\n", PRINTER_TX_GPIO);
+        printf("  4. GND must be shared between AtomS3R and printer board\n");
+        printf("  5. Are GPIO%d/GPIO%d the correct pins for your K118 cable?\n", PRINTER_TX_GPIO, PRINTER_RX_GPIO);
+        printf("     (The K118 was designed for ATOM Lite: TX=GPIO23 RX=GPIO33)\n");
+    }
+
+    return any_response ? 0 : 1;
+}
+
+/* ========================================================================
+ * printer_raw <hex> — send raw hex bytes
+ * ======================================================================== */
+
+static struct {
+    struct arg_str *hex;
+    struct arg_end *end;
+} raw_args;
+
+static int do_printer_raw(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&raw_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, raw_args.end, argv[0]);
+        return 1;
+    }
+
+    /* Parse hex string like "1B40" or "1B 40" */
+    const char *hex = raw_args.hex->sval[0];
+    size_t hex_len = strlen(hex);
+    uint8_t buf[256];
+    size_t buf_len = 0;
+
+    /* Remove spaces */
+    char clean[256];
+    size_t ci = 0;
+    for (size_t i = 0; i < hex_len && ci < sizeof(clean) - 1; i++) {
+        if (hex[i] != ' ') clean[ci++] = hex[i];
+    }
+    clean[ci] = '\0';
+
+    if (ci % 2 != 0) {
+        printf("Hex string must have even length (got %zu)\n", ci);
+        return 1;
+    }
+
+    for (size_t i = 0; i < ci; i += 2) {
+        unsigned int val;
+        if (sscanf(clean + i, "%2x", &val) != 1) {
+            printf("Invalid hex at position %zu\n", i);
+            return 1;
+        }
+        buf[buf_len++] = (uint8_t)val;
+    }
+
+    printf("Sending %zu raw bytes\n", buf_len);
+    esp_err_t err = printer_drv_send_raw(buf, buf_len);
+    if (err != ESP_OK) {
+        printf("Error: %s\n", esp_err_to_name(err));
+        return 1;
+    }
+
+    /* Wait and check for response */
+    vTaskDelay(pdMS_TO_TICKS(200));
+    int got = printer_drv_drain_rx();
+    if (got > 0) printf("(printer sent %d bytes back)\n", got);
+    return 0;
+}
+
+/* ========================================================================
  * Registration
  * ======================================================================== */
 
@@ -356,4 +478,14 @@ void printer_cmd_register(void)
     /* ---- printer_bitmap_test (no args) ---- */
     reg("printer_bitmap_test", "Print a test bitmap pattern (alternating lines)",
         do_printer_bitmap_test, NULL);
+
+    /* ---- printer_probe (no args) ---- */
+    reg("printer_probe", "Query printer status and diagnose connection",
+        do_printer_probe, NULL);
+
+    /* ---- printer_raw <hex> ---- */
+    raw_args.hex = arg_str1(NULL, NULL, "<hex>", "Hex bytes to send, e.g. 1B40 or \"1B 40\"");
+    raw_args.end = arg_end(1);
+    reg("printer_raw", "Send raw hex bytes to the printer",
+        do_printer_raw, &raw_args);
 }
