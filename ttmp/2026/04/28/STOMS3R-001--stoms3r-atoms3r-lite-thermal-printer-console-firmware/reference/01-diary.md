@@ -309,3 +309,33 @@ The regular stripe spacing after the banding change is strong evidence that the 
 - Test `border`, `diagonal`, and `graylevels` first.
 - If printing hangs immediately, CTS polarity or wiring may be inverted/wrong, and we should add a runtime `printer_flow on|off` command.
 - If it prints but still stripes, the remaining cause is likely power/thermal behavior rather than byte loss; verify 12V/2.5A+ supply.
+
+---
+
+## Step 6: K118 baud-rate command
+
+### Prompt Context
+
+**User prompt (verbatim):** "add a set_baudrate command."
+
+**Assistant interpretation:** The existing `printer_baud` command only changed the ESP32 UART baud rate. The user wanted a command that sends the K118 printer-side baud-rate command and then switches the ESP32 side to match.
+
+**Commit (code):** d966764 — "stoms3r: add K118 set_baudrate console command"
+
+### What I did
+
+- Added `printer_drv_set_printer_baudrate(int baud)`.
+- Implemented the K118 documented command format: `1B 23 23 53 42 44 52 <baud little-endian uint32>`.
+- Added console command `set_baudrate <rate>`.
+- Kept `printer_baud <rate>` as an ESP32-UART-only recovery command.
+- Limited both commands to common rates: 9600, 19200, 38400, 57600, and 115200.
+- Updated the README with the corrected K118 header pins and new commands.
+- Verified `idf.py build` succeeds.
+
+### Why
+
+Changing the ESP32 UART speed alone does not change the printer. The printer must receive its own baud-rate command at the current working speed. Only after that command has fully left the UART should the ESP32 switch its local UART peripheral to the new rate.
+
+### Recovery note
+
+If `set_baudrate` leaves the printer and ESP32 out of sync, use `printer_baud <rate>` to change only the ESP32 side, or power-cycle the printer to return it to the default 9600 baud.
