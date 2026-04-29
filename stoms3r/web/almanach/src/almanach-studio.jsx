@@ -1360,6 +1360,110 @@ export default function AlmanachStudio() {
   useEffect(() => { localStorage.setItem("almanach_bodyScale", JSON.stringify(bodyScale)); }, [bodyScale]);
   useEffect(() => { localStorage.setItem("almanach_feedLines", JSON.stringify(feedLines)); }, [feedLines]);
 
+  // --- Headless API for programmatic control (Go render service) ---
+  const stateRef = useRef({ blocks, setBlocks, setThemeKey, setPaperWidth, setBodyScale, setFeedLines, setSelectedId, flashToast });
+  stateRef.current = { blocks, setBlocks, setThemeKey, setPaperWidth, setBodyScale, setFeedLines, setSelectedId, flashToast };
+
+  useEffect(() => {
+    window.almanachReady = true;
+
+    window.almanachLoadLayout = (jsonString) => {
+      try {
+        const parsed = typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
+        const result = parseLayoutJson(JSON.stringify(parsed));
+        const s = stateRef.current;
+        s.setBlocks(result.blocks);
+        s.setThemeKey(result.themeKey);
+        s.setPaperWidth(result.paperWidth);
+        s.setBodyScale(result.bodyScale);
+        s.setFeedLines(result.feedLines);
+        s.setSelectedId(result.blocks[0]?.id || null);
+      } catch (e) {
+        console.error("almanachLoadLayout error:", e);
+      }
+    };
+
+    window.almanachExportBitmap = async () => {
+      // Wait for fonts + one render frame
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const paperNode = document.querySelector(".paper-shell");
+      if (!paperNode) throw new Error("No .paper-shell element found");
+
+      const rect = paperNode.getBoundingClientRect();
+      const W = Math.ceil(Math.max(rect.width, paperNode.scrollWidth));
+      const H = Math.ceil(Math.max(rect.height, paperNode.scrollHeight) + 8);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+
+      // Deep clone and strip chrome
+      const clone = paperNode.cloneNode(true);
+      clone.setAttribute("data-export", "true");
+      clone.querySelectorAll(".block-controls").forEach((el) => el.remove());
+      clone.querySelectorAll("svg").forEach((svg) => {
+        const path = svg.querySelector("path");
+        const t = stateRef.current;
+        const paperColor = THEMES[t.themeKey || 'classic']?.paper || '#ffffff';
+        if (path && path.getAttribute("fill") === paperColor) { svg.remove(); return; }
+        if (!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      });
+
+      const fontCss = await getInlineFontCss();
+      const appStyleSheets = Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
+      const exportOverrides = `
+        [data-export] { filter: none !important; margin: 0 !important; }
+        [data-export] .block-controls { display: none !important; }
+        [data-export] .block-wrap::before { display: none !important; }
+        [data-export] .block-wrap { padding: 4px 0 !important; cursor: default !important; }
+        [data-export] * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      `;
+      const xhtml = new XMLSerializer().serializeToString(clone);
+      const svgString =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+        `<defs><style type="text/css"><![CDATA[${fontCss}\n${appStyleSheets}\n${exportOverrides}]]></style></defs>` +
+        `<foreignObject x="0" y="0" width="${W}" height="${H}">${xhtml}</foreignObject>` +
+        `</svg>`;
+
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("SVG rasterization failed"));
+        img.src = svgUrl;
+      });
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(svgUrl);
+
+      // Binarize to 1-bit
+      const imgData = ctx.getImageData(0, 0, W, H);
+      const pixels = imgData.data;
+      const Wpadded = Math.ceil(W / 8) * 8;
+      const bytesPerRow = Wpadded / 8;
+      const bitmap = new Uint8Array(bytesPerRow * H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const gray = 0.299 * pixels[(y * W + x) * 4] + 0.587 * pixels[(y * W + x) * 4 + 1] + 0.114 * pixels[(y * W + x) * 4 + 2];
+          if (gray < 128) {
+            bitmap[y * bytesPerRow + Math.floor(x / 8)] |= (0x80 >> (x % 8));
+          }
+        }
+      }
+
+      return { width: Wpadded, height: H, data: bitmap.buffer };
+    };
+
+    console.log("Almanach Studio headless API ready (window.almanachReady = true)");
+  }, []);
+
   const fsRaw = (base) => Math.round(base * bodyScale * 10) / 10;
   const theme = { ...THEMES[themeKey], bodyScale, fs: fsRaw };
   // Convenience alias used in block renderers
