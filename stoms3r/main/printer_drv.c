@@ -2,7 +2,7 @@
  * printer_drv.c — Thermal printer UART driver for M5Stack K118.
  *
  * Sends ESC/POS commands over UART1 (9600 8N1) to the thermal printer
- * mechanism.  TX=GPIO5, RX=GPIO6 on the AtomS3R Lite.
+ * mechanism.  K118 header pins map to GPIO8/GPIO7/GPIO6 on AtomS3R Lite.
  */
 
 #include "printer_drv.h"
@@ -11,10 +11,23 @@
 #include "driver/uart.h"
 #include "esp_check.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "printer_drv";
 static bool s_pins_swapped = false;
 static int s_baud = PRINTER_BAUD;
+
+/* Conservative bitmap pacing.
+ *
+ * At 384 dots wide, each raster row is 48 bytes.  Five rows are therefore
+ * 240 bytes, which fits inside the common 256-byte input-buffer heuristic used
+ * by small serial thermal printer libraries when no flow-control signal is
+ * trusted.  Pausing between complete GS v 0 commands is legal; pausing inside
+ * one command's pixel payload is not.
+ */
+#define PRINTER_BITMAP_DEFAULT_BAND_ROWS 5
+#define PRINTER_BITMAP_DEFAULT_BAND_DELAY_MS 50
 
 /* ---- internal helpers ------------------------------------------------- */
 
@@ -204,12 +217,44 @@ esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height)
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels)
 {
-    if (!pixels) return ESP_ERR_INVALID_ARG;
+    return printer_drv_print_bitmap_banded(width, height, pixels,
+                                           PRINTER_BITMAP_DEFAULT_BAND_ROWS,
+                                           PRINTER_BITMAP_DEFAULT_BAND_DELAY_MS);
+}
 
-    uint16_t bytes_per_row = width / 8;
-    ESP_RETURN_ON_ERROR(printer_drv_print_bitmap_header(width, height),
-                        TAG, "bitmap header");
-    return send_bytes(pixels, (size_t)bytes_per_row * height);
+esp_err_t printer_drv_print_bitmap_banded(uint16_t width, uint16_t height,
+                                           const uint8_t *pixels,
+                                           uint16_t band_rows,
+                                           uint16_t delay_ms)
+{
+    if (!pixels || width == 0 || height == 0 || (width % 8) != 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (band_rows == 0) band_rows = PRINTER_BITMAP_DEFAULT_BAND_ROWS;
+
+    const uint16_t bytes_per_row = width / 8;
+    const uint8_t *p = pixels;
+
+    for (uint16_t row = 0; row < height; row += band_rows) {
+        uint16_t rows_this_band = height - row;
+        if (rows_this_band > band_rows) rows_this_band = band_rows;
+
+        ESP_LOGI(TAG, "bitmap band: row=%u rows=%u bytes=%u",
+                 row, rows_this_band, (unsigned)(bytes_per_row * rows_this_band));
+
+        ESP_RETURN_ON_ERROR(printer_drv_print_bitmap_header(width, rows_this_band),
+                            TAG, "bitmap band header");
+        ESP_RETURN_ON_ERROR(send_bytes(p, (size_t)bytes_per_row * rows_this_band),
+                            TAG, "bitmap band data");
+
+        p += (size_t)bytes_per_row * rows_this_band;
+
+        if (delay_ms > 0 && row + rows_this_band < height) {
+            vTaskDelay(pdMS_TO_TICKS(delay_ms));
+        }
+    }
+
+    return ESP_OK;
 }
 
 /* ---- probe / diagnostic functions ------------------------------------- */

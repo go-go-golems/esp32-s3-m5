@@ -40,7 +40,7 @@ typedef enum {
 } printer_qr_ec_level_t;
 
 /**
- * Initialize the printer UART (9600 8N1 on GPIO5/GPIO6) and send ESC @.
+ * Initialize the printer UART (9600 8N1 on the K118 header pins) and send ESC @.
  */
 esp_err_t printer_drv_init(void);
 
@@ -96,10 +96,24 @@ esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height);
 /**
  * Print a 1-bit monochrome raster bitmap (MSB first).
  * `width` must be a multiple of 8. `pixels` points to (width/8)*height bytes.
- * Sends header + all pixel data in one call.
+ * Uses conservative banding by default so dense images do not overrun the
+ * printer during thermal/power pauses.
  */
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels);
+
+/**
+ * Print a bitmap as multiple complete GS v 0 raster bands.
+ *
+ * Pauses between *complete* raster commands are legal; pauses inside one
+ * raster command's pixel data can create stripe artifacts or buffer overrun.
+ * Use small bands (for 384px width, 5 rows ~= 240 data bytes) when the
+ * printer visibly pauses on dense output.
+ */
+esp_err_t printer_drv_print_bitmap_banded(uint16_t width, uint16_t height,
+                                           const uint8_t *pixels,
+                                           uint16_t band_rows,
+                                           uint16_t delay_ms);
 
 /**
  * Query printer real-time status using DLE EOT n.

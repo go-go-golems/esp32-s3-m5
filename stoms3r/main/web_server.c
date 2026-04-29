@@ -167,11 +167,11 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    /* Read the entire body into memory first, then send to UART in one
-     * continuous stream. If we interleave httpd_req_recv() calls with
-     * uart_write_bytes(), the TCP reads create gaps in the UART stream
-     * which the printer interprets as line breaks → stripe artifacts.
-     * The UART TX ring buffer (1024 bytes) smooths the output. */
+    /* Read the entire body into memory first.  Network receive gaps must not
+     * occur inside a raster command's pixel payload.  After the body is local,
+     * the printer driver sends it as small complete GS v 0 raster bands.  This
+     * gives the printer legal pause points when dense images trigger thermal or
+     * power throttling. */
     size_t body_len = 0;
     char *body = read_body(req, &body_len);
     if (!body || body_len != expected) {
@@ -180,22 +180,13 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    /* Send the GS v 0 header */
-    esp_err_t err = printer_drv_print_bitmap_header(width, height);
-    if (err != ESP_OK) {
-        free(body);
-        send_json_error(req, "printer header failed");
-        return ESP_FAIL;
-    }
-
-    /* Send all pixel data at once — uart_write_bytes queues into the
-     * TX ring buffer and the UART ISR drains it at 9600 baud.
-     * No gaps, no stripes. */
-    err = printer_drv_send_raw((const uint8_t *)body, body_len);
+    esp_err_t err = printer_drv_print_bitmap_banded(width, height,
+                                                    (const uint8_t *)body,
+                                                    5, 50);
     free(body);
 
     if (err != ESP_OK) {
-        send_json_error(req, "uart write failed");
+        send_json_error(req, "bitmap print failed");
         return ESP_FAIL;
     }
 
