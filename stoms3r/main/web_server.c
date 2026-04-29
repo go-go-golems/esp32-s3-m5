@@ -314,6 +314,9 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    /* Feed 3 lines so the printed page can be torn off cleanly */
+    printer_drv_feed(3);
+
     send_json_ok(req);
     return ESP_OK;
 }
