@@ -16,7 +16,7 @@ const THEMES = {
   classic: {
     name: "Classic",
     icon: "✦",
-    paper: "#f7f1e1",
+    paper: "#ffffff",
     ink: "#1f1a14",
     muted: "#7a6d55",
     accent: "#3a2f20",
@@ -33,7 +33,7 @@ const THEMES = {
   minimal: {
     name: "Minimal",
     icon: "—",
-    paper: "#faf6ec",
+    paper: "#ffffff",
     ink: "#1a1815",
     muted: "#8a8175",
     accent: "#2a2620",
@@ -50,7 +50,7 @@ const THEMES = {
   botanical: {
     name: "Botanical",
     icon: "❦",
-    paper: "#f6f1e3",
+    paper: "#ffffff",
     ink: "#22281c",
     muted: "#6e7560",
     accent: "#3d4a31",
@@ -68,7 +68,7 @@ const THEMES = {
   notebook: {
     name: "Notebook",
     icon: "✎",
-    paper: "#f6f3ea",
+    paper: "#ffffff",
     ink: "#1f2a3a",
     muted: "#8090a8",
     accent: "#2c4470",
@@ -86,7 +86,7 @@ const THEMES = {
   ledger: {
     name: "Vintage Ledger",
     icon: "▣",
-    paper: "#f5efde",
+    paper: "#ffffff",
     ink: "#1d1810",
     muted: "#7a6d55",
     accent: "#2a2218",
@@ -104,7 +104,7 @@ const THEMES = {
   space: {
     name: "Space Age",
     icon: "✦",
-    paper: "#0e0d12",
+    paper: "#ffffff",
     ink: "#f4eedc",
     muted: "#9a9080",
     accent: "#e8d9ad",

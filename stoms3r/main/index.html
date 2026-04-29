@@ -44,8 +44,16 @@ button:disabled { background: #555; cursor: not-allowed; }
   <h2>Print Image</h2>
   <div class="drop-zone" id="drop-zone">
     Drop image here or click to browse<br>
-    <small>Will be resized to 384px wide, dithered to B/W</small>
+    <small>Will be resized to 384px wide, converted to B/W</small>
     <input type="file" id="file-input" accept="image/*" style="display:none">
+  </div>
+  <div style="margin:0.5rem 0; display:flex; align-items:center; gap:0.8rem;">
+    <label style="font-size:0.85rem; color:#aaa;">Dithering:</label>
+    <select id="dither-mode" style="background:#1a1a2e; color:#eee; border:1px solid #0f3460; border-radius:4px; padding:0.3rem 0.5rem; font-size:0.9rem;">
+      <option value="floyd-steinberg" selected>Floyd-Steinberg</option>
+      <option value="none">None (threshold 128)</option>
+      <option value="auto">Auto (skip if already B/W)</option>
+    </select>
   </div>
   <div id="preview-container">
     <canvas id="preview" style="display:none"></canvas>
@@ -159,19 +167,39 @@ function ditherAndPreview(img) {
     gray[i] = 0.299 * pixels[i*4] + 0.587 * pixels[i*4+1] + 0.114 * pixels[i*4+2];
   }
 
-  // Floyd-Steinberg dithering
+  // Check if image is already pure black & white
+  const ditherMode = document.getElementById('dither-mode').value;
+  let isAlreadyBW = false;
+  if (ditherMode === 'auto') {
+    isAlreadyBW = true;
+    for (let i = 0; i < W * H; i++) {
+      if (gray[i] > 5 && gray[i] < 250) { isAlreadyBW = false; break; }
+    }
+  }
+
   const bw = new Uint8Array(W * H);
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const idx = y * W + x;
-      const old = gray[idx];
-      const val = old > 128 ? 255 : 0;
-      bw[idx] = val > 128 ? 0 : 1; // 1 = black dot
-      const err = old - val;
-      if (x + 1 < W)           gray[idx + 1]         += err * 7/16;
-      if (y + 1 < H && x > 0)  gray[(y+1)*W + x - 1] += err * 3/16;
-      if (y + 1 < H)           gray[(y+1)*W + x]     += err * 5/16;
-      if (y + 1 < H && x+1<W)  gray[(y+1)*W + x + 1] += err * 1/16;
+  let ditherUsed = 'Floyd-Steinberg';
+
+  if (ditherMode === 'none' || (ditherMode === 'auto' && isAlreadyBW)) {
+    // Simple threshold — no error diffusion
+    for (let i = 0; i < W * H; i++) {
+      bw[i] = gray[i] <= 128 ? 1 : 0;
+    }
+    ditherUsed = (ditherMode === 'none') ? 'threshold' : 'auto(B/W, threshold)';
+  } else {
+    // Floyd-Steinberg dithering
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const idx = y * W + x;
+        const old = gray[idx];
+        const val = old > 128 ? 255 : 0;
+        bw[idx] = val > 128 ? 0 : 1; // 1 = black dot
+        const err = old - val;
+        if (x + 1 < W)           gray[idx + 1]         += err * 7/16;
+        if (y + 1 < H && x > 0)  gray[(y+1)*W + x - 1] += err * 3/16;
+        if (y + 1 < H)           gray[(y+1)*W + x]     += err * 5/16;
+        if (y + 1 < H && x+1<W)  gray[(y+1)*W + x + 1] += err * 1/16;
+      }
     }
   }
 
@@ -200,7 +228,7 @@ function ditherAndPreview(img) {
   ctx.putImageData(preview, 0, 0);
 
   document.getElementById('btn-bitmap').disabled = false;
-  dropZone.innerHTML = 'Image loaded (' + W + '×' + H + '). Drop another to replace.';
+  dropZone.innerHTML = 'Image loaded (' + W + '×' + H + ', dither: ' + ditherUsed + '). Drop another to replace.';
   dropZone.appendChild(fileInput);
 }
 
