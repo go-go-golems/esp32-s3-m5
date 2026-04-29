@@ -293,6 +293,10 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+    /* Clear any stale printer state (ESC @ = initialize) so leftover
+     * bytes from a previous partial command don't corrupt this print. */
+    printer_drv_reset();
+
     /* Read the entire body into memory first.  Network receive gaps must not
      * occur inside a raster command's pixel payload.  The printer driver then
      * sends one complete GS v 0 raster command while UART CTS flow control lets
