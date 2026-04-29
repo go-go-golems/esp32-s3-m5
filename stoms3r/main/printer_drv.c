@@ -73,8 +73,15 @@ esp_err_t printer_drv_init(void)
                      UART_PIN_NO_CHANGE, PRINTER_CTS_GPIO),
         TAG, "uart_set_pin");
 
-    ESP_LOGI(TAG, "Printer UART%d ready: TX=%d RX=%d baud=%d",
-             PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_BAUD);
+    ESP_LOGI(TAG, "Printer UART%d ready: TX=%d RX=%d CTS=%d baud=%d",
+             PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO, PRINTER_BAUD);
+
+    /* Default: swap TX/RX so ESP TX connects to printer RX.
+     * The K118 cable is straight-through (pin-for-pin), so the
+     * ATOM TX pin on the header goes to the printer's TX line.
+     * We need to cross over: tell the UART to use the RX GPIO
+     * as TX and the TX GPIO as RX. */
+    printer_drv_swap_pins(true);
 
     return printer_drv_reset();
 }
