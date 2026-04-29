@@ -1181,7 +1181,7 @@ function triggerDownload(blob, filename) {
   }, 200);
 }
 
-async function exportPaperToPng(paperNode, fileName, scale = 2) {
+async function exportPaperToPng(paperNode, fileName, scale = 2, themeObj) {
   if (!paperNode) throw new Error("No paper element");
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
 
@@ -1206,7 +1206,7 @@ async function exportPaperToPng(paperNode, fileName, scale = 2) {
       // Keep SVGs inside the paper body (weather icon, mood faces, etc.)
       // but remove the zigzag edge SVGs (they're direct children of paper-shell)
       const path = svg.querySelector("path");
-      if (path && path.getAttribute("fill") === theme.paper) {
+      if (path && path.getAttribute("fill") === (themeObj ? themeObj.paper : "#ffffff")) {
         svg.remove();
         return;
       }
@@ -1262,13 +1262,14 @@ async function exportPaperToPng(paperNode, fileName, scale = 2) {
   triggerDownload(pngBlob, fileName);
 }
 
-function buildLayoutJson({ themeKey, paperWidth, bodyScale, blocks }) {
+function buildLayoutJson({ themeKey, paperWidth, bodyScale, feedLines, blocks }) {
   return {
     almanach_studio_version: 1,
     exported_at: new Date().toISOString(),
     theme: themeKey,
     paperWidth,
     bodyScale,
+    feedLines,
     blocks: blocks.map((b) => ({ id: b.id, type: b.type, data: b.data })),
   };
 }
@@ -1312,7 +1313,14 @@ function parseLayoutJson(text) {
       ? parsed.bodyScale
       : 1.6;
 
-  return { blocks, themeKey, paperWidth, bodyScale };
+  const feedLines =
+    typeof parsed.feedLines === "number" &&
+    parsed.feedLines >= 0 &&
+    parsed.feedLines <= 20
+      ? parsed.feedLines
+      : 3;
+
+  return { blocks, themeKey, paperWidth, bodyScale, feedLines };
 }
 
 // =================================================================
@@ -1322,9 +1330,18 @@ function parseLayoutJson(text) {
 export default function AlmanachStudio() {
   const [blocks, setBlocks] = useState(STARTER_BLOCKS);
   const [selectedId, setSelectedId] = useState(STARTER_BLOCKS[0].id);
-  const [themeKey, setThemeKey] = useState("classic");
-  const [paperWidth, setPaperWidth] = useState(384);
-  const [bodyScale, setBodyScale] = useState(1.6);
+  const [paperWidth, setPaperWidth] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem("almanach_paperWidth")); return (typeof v === "number" && v >= 280 && v <= 600) ? v : 384; } catch { return 384; }
+  });
+  const [bodyScale, setBodyScale] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem("almanach_bodyScale")); return (typeof v === "number" && v >= 1 && v <= 2) ? v : 1.6; } catch { return 1.6; }
+  });
+  const [feedLines, setFeedLines] = useState(() => {
+    try { const v = JSON.parse(localStorage.getItem("almanach_feedLines")); return (typeof v === "number" && v >= 0 && v <= 20) ? v : 3; } catch { return 3; }
+  });
+  const [themeKey, setThemeKey] = useState(() => {
+    try { const v = localStorage.getItem("almanach_themeKey"); return (v && THEMES[v]) ? v : "classic"; } catch { return "classic"; }
+  });
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
   const [exporting, setExporting] = useState(false);
@@ -1336,6 +1353,12 @@ export default function AlmanachStudio() {
     setToast({ kind, text });
     setTimeout(() => setToast(null), 2600);
   }, []);
+
+  // Persist settings to localStorage
+  useEffect(() => { localStorage.setItem("almanach_themeKey", themeKey); }, [themeKey]);
+  useEffect(() => { localStorage.setItem("almanach_paperWidth", JSON.stringify(paperWidth)); }, [paperWidth]);
+  useEffect(() => { localStorage.setItem("almanach_bodyScale", JSON.stringify(bodyScale)); }, [bodyScale]);
+  useEffect(() => { localStorage.setItem("almanach_feedLines", JSON.stringify(feedLines)); }, [feedLines]);
 
   const fsRaw = (base) => Math.round(base * bodyScale * 10) / 10;
   const theme = { ...THEMES[themeKey], bodyScale, fs: fsRaw };
@@ -1395,7 +1418,8 @@ export default function AlmanachStudio() {
       const paperNode = paperRef.current;
       const rect = paperNode.getBoundingClientRect();
       const W = Math.ceil(rect.width);
-      const H = Math.ceil(rect.height);
+      // Use scrollHeight to capture full content including bottom padding
+      const H = Math.ceil(Math.max(rect.height, paperNode.scrollHeight) + 8);
 
       const canvas = document.createElement("canvas");
       canvas.width = W;
@@ -1478,6 +1502,7 @@ export default function AlmanachStudio() {
           "Content-Type": "application/octet-stream",
           "X-Width": String(Wpadded),
           "X-Height": String(H),
+          "X-Feed": String(feedLines),
         },
         body: bitmap,
       });
@@ -1494,7 +1519,7 @@ export default function AlmanachStudio() {
       setSelectedId(prevSelection);
       setExporting(false);
     }
-  }, [selectedId, theme.paper, flashToast]);
+  }, [selectedId, theme, feedLines, flashToast]);
 
   const handleExportPng = useCallback(async () => {
     if (!paperRef.current) return;
@@ -1509,7 +1534,8 @@ export default function AlmanachStudio() {
       await exportPaperToPng(
         paperRef.current,
         `almanach-${themeKey}-${dateStamp}.png`,
-        2
+        2,
+        theme
       );
       flashToast("ok", "PNG saved");
     } catch (e) {
@@ -1525,7 +1551,7 @@ export default function AlmanachStudio() {
     try {
       const dateStamp = new Date().toISOString().slice(0, 10);
       exportLayoutJson(
-        { themeKey, paperWidth, bodyScale, blocks },
+        { themeKey, paperWidth, bodyScale, feedLines, blocks },
         `almanach-${dateStamp}.json`
       );
       flashToast("ok", "Layout saved");
@@ -1533,7 +1559,7 @@ export default function AlmanachStudio() {
       console.error(e);
       flashToast("err", "Save failed");
     }
-  }, [themeKey, paperWidth, bodyScale, blocks, flashToast]);
+  }, [themeKey, paperWidth, bodyScale, feedLines, blocks, flashToast]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -1551,6 +1577,7 @@ export default function AlmanachStudio() {
         setThemeKey(parsed.themeKey);
         setPaperWidth(parsed.paperWidth);
         setBodyScale(parsed.bodyScale);
+        setFeedLines(parsed.feedLines);
         setSelectedId(parsed.blocks[0]?.id || null);
         flashToast("ok", `Loaded ${parsed.blocks.length} blocks`);
       } catch (err) {
@@ -2257,6 +2284,27 @@ export default function AlmanachStudio() {
                 <span>1×</span>
                 <span style={{ color: "var(--ui-accent-2)", fontVariantNumeric: "tabular-nums" }}>{bodyScale.toFixed(1)}×</span>
                 <span>2×</span>
+              </div>
+            </div>
+
+            <div className="rail-section">
+              <div className="rail-title">
+                <span className="rail-title-dot" style={{ background: "var(--ui-accent)" }} />
+                Feed After Print
+              </div>
+              <input
+                className="width-slider"
+                type="range"
+                min="0"
+                max="20"
+                step="1"
+                value={feedLines}
+                onChange={(e) => setFeedLines(+e.target.value)}
+              />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--ui-muted)", marginTop: 4 }}>
+                <span>0</span>
+                <span style={{ color: "var(--ui-accent-2)", fontVariantNumeric: "tabular-nums" }}>{feedLines} lines</span>
+                <span>20</span>
               </div>
             </div>
 

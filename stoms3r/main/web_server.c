@@ -314,8 +314,16 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    /* Feed 3 lines so the printed page can be torn off cleanly */
-    printer_drv_feed(3);
+    /* Feed N lines after printing (default 3) so the page can be torn off cleanly */
+    {
+        char feed_hdr[8] = {0};
+        uint8_t feed = 3;
+        if (httpd_req_get_hdr_value_str(req, "X-Feed", feed_hdr, sizeof(feed_hdr)) == ESP_OK) {
+            int f = atoi(feed_hdr);
+            if (f >= 0 && f <= 20) feed = (uint8_t)f;
+        }
+        if (feed > 0) printer_drv_feed(feed);
+    }
 
     send_json_ok(req);
     return ESP_OK;
