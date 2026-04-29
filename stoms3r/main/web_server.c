@@ -10,6 +10,7 @@
 #include "web_server.h"
 
 #include <string.h>
+#include "driver/uart.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 
@@ -105,17 +106,21 @@ static esp_err_t api_print_text_post(httpd_req_t *req)
     }
 
     /* Find "text":"..." in JSON */
-    char *text_start = strstr(body, "\"text\"");
-    if (!text_start) {
+    char *key = strstr(body, "\"text\"");
+    if (!key) {
         free(body);
         send_json_error(req, "missing \"text\" field");
         return ESP_FAIL;
     }
-    text_start = strchr(text_start + 5, '"');
-    if (!text_start) { free(body); send_json_error(req, "bad JSON"); return ESP_FAIL; }
-    text_start++;
+    /* key points to "text":"value"} — skip past key to the colon */
+    char *colon = strchr(key + 6, ':');
+    if (!colon) { free(body); send_json_error(req, "bad JSON: no colon"); return ESP_FAIL; }
+    /* Find opening quote of the value */
+    char *text_start = strchr(colon, '"');
+    if (!text_start) { free(body); send_json_error(req, "bad JSON: no value"); return ESP_FAIL; }
+    text_start++; /* skip the opening quote */
     char *text_end = strchr(text_start, '"');
-    if (!text_end) { free(body); send_json_error(req, "bad JSON"); return ESP_FAIL; }
+    if (!text_end) { free(body); send_json_error(req, "bad JSON: no closing quote"); return ESP_FAIL; }
 
     /* Null-terminate the text */
     *text_end = '\0';
@@ -169,9 +174,9 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    /* Stream the body in chunks directly to UART */
+    /* Stream the body in chunks directly to UART (no inter-chunk waits) */
     size_t remaining = expected;
-    uint8_t chunk[512];
+    uint8_t chunk[128]; /* 128 bytes = ~133ms at 9600 baud — fits in TX buffer */
     while (remaining > 0) {
         size_t want = remaining > sizeof(chunk) ? sizeof(chunk) : remaining;
         int got = httpd_req_recv(req, (char *)chunk, want);
@@ -179,13 +184,16 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
             send_json_error(req, "body read interrupted");
             return ESP_FAIL;
         }
-        err = printer_drv_send_raw(chunk, (size_t)got);
+        err = printer_drv_write_no_wait(chunk, (size_t)got);
         if (err != ESP_OK) {
             send_json_error(req, "uart write failed");
             return ESP_FAIL;
         }
         remaining -= (size_t)got;
     }
+
+    /* Now wait for everything to drain */
+    uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(5000));
 
     send_json_ok(req);
     return ESP_OK;

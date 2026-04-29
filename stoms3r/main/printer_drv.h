@@ -139,5 +139,12 @@ int printer_drv_get_baud(void);
 
 /**
  * Send raw bytes directly (for probing / testing).
+ * Waits for TX complete.
  */
 esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len);
+
+/**
+ * Write bytes to UART without waiting for TX complete.
+ * Use for bitmap streaming where you want back-to-back chunks.
+ */
+esp_err_t printer_drv_write_no_wait(const uint8_t *data, size_t len);

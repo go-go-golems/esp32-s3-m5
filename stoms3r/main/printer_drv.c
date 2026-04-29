@@ -262,6 +262,18 @@ esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len)
     return send_bytes(data, len);
 }
 
+esp_err_t printer_drv_write_no_wait(const uint8_t *data, size_t len)
+{
+    if (!data || len == 0) return ESP_ERR_INVALID_ARG;
+    int written = uart_write_bytes(PRINTER_UART_NUM, data, len);
+    if (written < 0 || (size_t)written != len) {
+        ESP_LOGE(TAG, "UART write_no_wait failed: %d of %u",
+                 written, (unsigned)len);
+        return ESP_FAIL;
+    }
+    return ESP_OK;
+}
+
 esp_err_t printer_drv_swap_pins(bool swap)
 {
     int tx = swap ? PRINTER_RX_GPIO : PRINTER_TX_GPIO;

@@ -53,6 +53,22 @@ button:disabled { background: #555; cursor: not-allowed; }
   <button onclick="printBitmap()" id="btn-bitmap" disabled>Print Image</button>
 </section>
 
+<section>
+  <h2>Test Patterns</h2>
+  <p><small>Generate test bitmaps to verify printer alignment, dithering, and density.</small></p>
+  <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+    <button onclick="printPattern('fullblack')">Full Black</button>
+    <button onclick="printPattern('fullwhite')">Full White</button>
+    <button onclick="printPattern('hbars')">H Bars</button>
+    <button onclick="printPattern('vbars')">V Bars</button>
+    <button onclick="printPattern('gradient')">Gradient</button>
+    <button onclick="printPattern('checker')">Checker</button>
+    <button onclick="printPattern('graylevels')">Gray Levels</button>
+    <button onclick="printPattern('border')">Border</button>
+    <button onclick="printPattern('diagonal')">Diagonal</button>
+  </div>
+</section>
+
 <script>
 const PRINTER_WIDTH = 384; // dots
 let currentBitmap = null;
@@ -186,6 +202,100 @@ function ditherAndPreview(img) {
   document.getElementById('btn-bitmap').disabled = false;
   dropZone.innerHTML = 'Image loaded (' + W + '×' + H + '). Drop another to replace.';
   dropZone.appendChild(fileInput);
+}
+
+// ---- Test Patterns ----
+function generatePattern(type) {
+  const W = 384, H = 200;
+  const bytesPerRow = W / 8;
+  const data = new Uint8Array(bytesPerRow * H);
+  // Also build a preview canvas
+  const canvas = document.getElementById('preview');
+  canvas.width = W; canvas.height = H;
+  canvas.style.display = 'inline-block';
+  canvas.style.width = Math.min(W, 384) + 'px';
+  const ctx = canvas.getContext('2d');
+  const img = ctx.createImageData(W, H);
+
+  function setPixel(x, y, black) {
+    if (x < 0 || x >= W || y < 0 || y >= H) return;
+    if (black) data[y * bytesPerRow + Math.floor(x / 8)] |= (0x80 >> (x % 8));
+    const c = black ? 0 : 255;
+    const i = (y * W + x) * 4;
+    img.data[i] = c; img.data[i+1] = c; img.data[i+2] = c; img.data[i+3] = 255;
+  }
+
+  switch(type) {
+    case 'fullblack':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) setPixel(x, y, true);
+      break;
+    case 'fullwhite':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) setPixel(x, y, false);
+      break;
+    case 'hbars':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) setPixel(x, y, y % 4 < 2);
+      break;
+    case 'vbars':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) setPixel(x, y, x % 8 < 4);
+      break;
+    case 'gradient': {
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          const val = (x / W) * 255;
+          // Simple threshold dither
+          setPixel(x, y, val < 128);
+        }
+      }
+      break;
+    }
+    case 'checker':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) setPixel(x, y, (x+y) % 2 === 0);
+      break;
+    case 'graylevels': {
+      // 8 blocks of increasing density (0/8, 1/8, 2/8 ... 7/8, 8/8)
+      const bw = W / 9;
+      for (let y = 0; y < H; y++) {
+        for (let b = 0; b < 9; b++) {
+          const density = b / 8; // 0=white, 1=black
+          for (let dx = 0; dx < bw; dx++) {
+            const x = b * bw + dx;
+            // Ordered dither (Bayer 2x2)
+            const threshold = [[2,3],[4,1]][y%2][dx%2] / 5;
+            setPixel(x, y, density > threshold);
+          }
+        }
+      }
+      break;
+    }
+    case 'border':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+        setPixel(x, y, x < 4 || x >= W-4 || y < 4 || y >= H-4);
+      break;
+    case 'diagonal':
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+        setPixel(x, y, ((x + y) % 16) < 8);
+      break;
+  }
+
+  ctx.putImageData(img, 0, 0);
+  return { data, width: W, height: H, bytesPerRow };
+}
+
+async function printPattern(type) {
+  const bitmap = generatePattern(type);
+  try {
+    const r = await fetch('/api/print/bitmap', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-Width': String(bitmap.width),
+        'X-Height': String(bitmap.height)
+      },
+      body: bitmap.data
+    });
+    const d = await r.json();
+    if (!d.ok) alert('Error: ' + d.error);
+  } catch(e) { alert('Error: ' + e); }
 }
 
 // ---- Print Bitmap ----
