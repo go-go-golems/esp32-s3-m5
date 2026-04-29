@@ -149,6 +149,10 @@ esp_err_t printer_drv_set_baud(int baud);
  * Send the K118 Set Baud Rate command to the printer, wait for it to leave
  * the current UART baud, then switch the ESP32 UART to the same rate.
  *
+ * M5Stack documents 9600 and 115200 examples. Higher common UART rates are
+ * exposed experimentally by encoding the requested baud as the same little-
+ * endian uint32 payload.
+ *
  * Command format from M5Stack docs:
  *   1B 23 23 53 42 44 52 <baud little-endian uint32>
  */

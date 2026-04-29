@@ -30,6 +30,8 @@ printer kit through an interactive `esp_console` REPL over USB Serial/JTAG.
 - `printer_swap <on|off>` — Toggle software TX/RX crossover
 - `printer_baud <rate>` — Change ESP32 UART baud only (recovery)
 - `set_baudrate <rate>` — Send K118 baud-rate command, then switch ESP32 UART
+  - Supported in firmware: 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600
+  - K118 docs explicitly show 9600 and 115200; higher rates are experimental
 
 ### WiFi
 - `wifi_scan` — Scan for access points

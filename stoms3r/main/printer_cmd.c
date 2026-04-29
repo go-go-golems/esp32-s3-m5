@@ -470,6 +470,11 @@ static struct {
     struct arg_end *end;
 } baud_args;
 
+static const char *supported_baud_list(void)
+{
+    return "9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600";
+}
+
 static bool is_supported_baud(int rate)
 {
     switch (rate) {
@@ -478,10 +483,18 @@ static bool is_supported_baud(int rate)
         case 38400:
         case 57600:
         case 115200:
+        case 230400:
+        case 460800:
+        case 921600:
             return true;
         default:
             return false;
     }
+}
+
+static bool is_experimental_baud(int rate)
+{
+    return rate > 115200;
 }
 
 static int do_printer_baud(int argc, char **argv)
@@ -494,8 +507,11 @@ static int do_printer_baud(int argc, char **argv)
     int rate = baud_args.rate->ival[0];
     if (!is_supported_baud(rate)) {
         printf("Unsupported baud rate: %d\n", rate);
-        printf("Supported: 9600, 19200, 38400, 57600, 115200\n");
+        printf("Supported: %s\n", supported_baud_list());
         return 1;
+    }
+    if (is_experimental_baud(rate)) {
+        printf("Warning: rates above 115200 are experimental on K118.\n");
     }
     esp_err_t err = printer_drv_set_baud(rate);
     if (err != ESP_OK) {
@@ -525,11 +541,14 @@ static int do_set_baudrate(int argc, char **argv)
     int rate = set_baudrate_args.rate->ival[0];
     if (!is_supported_baud(rate)) {
         printf("Unsupported baud rate: %d\n", rate);
-        printf("Supported: 9600, 19200, 38400, 57600, 115200\n");
+        printf("Supported: %s\n", supported_baud_list());
         return 1;
     }
 
     printf("Sending K118 Set Baud Rate command for %d baud...\n", rate);
+    if (is_experimental_baud(rate)) {
+        printf("Warning: rates above 115200 are experimental on K118; be ready to power-cycle.\n");
+    }
     printf("If communication is lost, use printer_baud <rate> to resync the ESP32 side,\n");
     printf("or power-cycle the printer to return it to its default 9600 baud.\n");
 
@@ -621,13 +640,13 @@ void printer_cmd_register(void)
         do_printer_swap, &swap_args);
 
     /* ---- printer_baud <rate> ---- */
-    baud_args.rate = arg_int1(NULL, NULL, "<rate>", "ESP32 UART baud only: 9600/19200/38400/57600/115200");
+    baud_args.rate = arg_int1(NULL, NULL, "<rate>", "ESP32 UART baud only: 9600..921600");
     baud_args.end  = arg_end(1);
     reg("printer_baud", "Change ESP32 UART baud only (recovery)",
         do_printer_baud, &baud_args);
 
     /* ---- set_baudrate <rate> ---- */
-    set_baudrate_args.rate = arg_int1(NULL, NULL, "<rate>", "Printer+ESP32 baud: 9600/19200/38400/57600/115200");
+    set_baudrate_args.rate = arg_int1(NULL, NULL, "<rate>", "Printer+ESP32 baud: 9600..921600 (above 115200 experimental)");
     set_baudrate_args.end  = arg_end(1);
     reg("set_baudrate", "Tell K118 to change baud, then switch ESP32 UART",
         do_set_baudrate, &set_baudrate_args);
