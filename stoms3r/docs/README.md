@@ -16,6 +16,10 @@ This folder contains firmware-local engineering notes for the AtomS3R Lite + K11
   - Inventory of every printer command used by the original M5Stack Arduino `ATOM-PRINTER` firmware/library.
   - Shows that the original firmware uses only a small subset of the K118 spec and does not use density/speed/graphics-mode/temperature/status tuning commands.
 
+- [`PROJ-SToMS3R-AtomS3R-Lite-Thermal-Printer-Firmware.md`](PROJ-SToMS3R-AtomS3R-Lite-Thermal-Printer-Firmware.md)
+  - Copy of the Obsidian project report for the SToMS3R firmware.
+  - Kept here so the firmware tree contains the project narrative, architecture, command surface, and related research links.
+
 ## Upstream/source references
 
 The original research material lives outside this firmware folder:
