@@ -32,6 +32,12 @@ printer kit through an interactive `esp_console` REPL over USB Serial/JTAG.
 - `set_baudrate <rate>` — Send K118 baud-rate command, then switch ESP32 UART
   - Supported in firmware: 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600
   - K118 docs explicitly show 9600 and 115200; higher rates are experimental
+- `printer_status` — Read 4-byte printer status (buffer full, cover, paper, overheat)
+- `printer_temp` — Read printer temperature
+- `printer_get_baud` — Read printer-side baud rate
+- `printer_density <0-39>` — Set darkness/current draw
+- `printer_speed <speed>` — Set mechanism speed (25..220 table values)
+- `printer_graphics_mode <30|31|32>` — Set graphics mode (BLE/adaptive/constant)
 
 ### WiFi
 - `wifi_scan` — Scan for access points

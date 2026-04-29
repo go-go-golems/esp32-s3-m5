@@ -7,6 +7,8 @@
 
 #include "printer_drv.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "driver/uart.h"
 #include "esp_check.h"
@@ -287,6 +289,25 @@ int printer_drv_drain_rx(void)
     return total;
 }
 
+static esp_err_t read_response_text(char *out, size_t out_len, uint32_t timeout_ms)
+{
+    if (!out || out_len == 0) return ESP_ERR_INVALID_ARG;
+    out[0] = '\0';
+
+    size_t off = 0;
+    TickType_t deadline = xTaskGetTickCount() + pdMS_TO_TICKS(timeout_ms);
+    while (xTaskGetTickCount() < deadline && off + 1 < out_len) {
+        uint8_t ch = 0;
+        int n = uart_read_bytes(PRINTER_UART_NUM, &ch, 1, pdMS_TO_TICKS(50));
+        if (n == 1) {
+            if (ch == '\n' || ch == '\r') break;
+            out[off++] = (char)ch;
+        }
+    }
+    out[off] = '\0';
+    return off > 0 ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
 esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out)
 {
     if (n < 1 || n > 4 || !out) return ESP_ERR_INVALID_ARG;
@@ -309,6 +330,93 @@ esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out)
     }
     ESP_LOGW(TAG, "Status query n=%d: no response (got %d bytes)", n, got);
     return ESP_ERR_TIMEOUT;
+}
+
+esp_err_t printer_drv_query_status4(printer_status_t *out)
+{
+    if (!out) return ESP_ERR_INVALID_ARG;
+    memset(out, 0, sizeof(*out));
+    printer_drv_drain_rx();
+
+    uint8_t cmd[] = { 0x1D, 0x61, 0x00 }; /* GS a n */
+    ESP_RETURN_ON_ERROR(send_bytes(cmd, sizeof(cmd)), TAG, "status4 command");
+
+    int got = uart_read_bytes(PRINTER_UART_NUM, out->raw, sizeof(out->raw), pdMS_TO_TICKS(700));
+    if (got != 4) {
+        ESP_LOGW(TAG, "GS a status: got %d bytes", got);
+        return ESP_ERR_TIMEOUT;
+    }
+
+    uint8_t b1 = out->raw[0], b2 = out->raw[1], b3 = out->raw[2];
+    out->buffer_full = (b1 & 0x08) != 0;
+    out->cover_open = (b1 & 0x20) != 0;
+    out->feed_key_active = (b1 & 0x40) != 0;
+    out->cutter_error = (b2 & 0x08) != 0;
+    out->auto_recoverable_error = (b2 & 0x20) != 0;
+    out->overheated = (b2 & 0x40) != 0;
+    out->paper_near_end = (b3 & 0x03) != 0;
+    out->paper_out = (b3 & 0x0C) != 0;
+    return ESP_OK;
+}
+
+esp_err_t printer_drv_query_temperature(int *out_celsius, char *out_raw, size_t out_raw_len)
+{
+    if (!out_celsius || !out_raw || out_raw_len == 0) return ESP_ERR_INVALID_ARG;
+    *out_celsius = -1;
+    printer_drv_drain_rx();
+    uint8_t cmd[] = { 0x1D, 0x67, 0x36 }; /* GS g 6 */
+    ESP_RETURN_ON_ERROR(send_bytes(cmd, sizeof(cmd)), TAG, "temperature command");
+    ESP_RETURN_ON_ERROR(read_response_text(out_raw, out_raw_len, 800), TAG, "temperature response");
+
+    char *p = out_raw;
+    while (*p && (*p < '0' || *p > '9')) p++;
+    if (*p) *out_celsius = atoi(p);
+    return ESP_OK;
+}
+
+esp_err_t printer_drv_query_printer_baud(int *out_baud, char *out_raw, size_t out_raw_len)
+{
+    if (!out_baud || !out_raw || out_raw_len == 0) return ESP_ERR_INVALID_ARG;
+    *out_baud = -1;
+    printer_drv_drain_rx();
+    uint8_t cmd[] = { 0x1D, 0x67, 0x37 }; /* GS g 7 */
+    ESP_RETURN_ON_ERROR(send_bytes(cmd, sizeof(cmd)), TAG, "baud query command");
+    ESP_RETURN_ON_ERROR(read_response_text(out_raw, out_raw_len, 800), TAG, "baud query response");
+
+    char *p = out_raw;
+    while (*p && (*p < '0' || *p > '9')) p++;
+    if (*p) *out_baud = atoi(p);
+    return ESP_OK;
+}
+
+esp_err_t printer_drv_set_density(uint8_t density)
+{
+    if (density > 39) return ESP_ERR_INVALID_ARG;
+    uint8_t cmd[] = { 0x1B, 0x23, 0x23, 0x53, 0x54, 0x44, 0x50, density }; /* ESC ## STDP n */
+    return send_bytes(cmd, sizeof(cmd));
+}
+
+static bool speed_supported(uint8_t speed)
+{
+    static const uint8_t speeds[] = { 25, 30, 37, 50, 56, 62, 70, 80, 90, 100, 120, 150, 180, 200, 220 };
+    for (size_t i = 0; i < sizeof(speeds); i++) {
+        if (speeds[i] == speed) return true;
+    }
+    return false;
+}
+
+esp_err_t printer_drv_set_speed(uint8_t speed)
+{
+    if (!speed_supported(speed)) return ESP_ERR_INVALID_ARG;
+    uint8_t cmd[] = { 0x1B, 0x23, 0x23, 0x53, 0x54, 0x53, 0x50, speed }; /* ESC ## STSP n */
+    return send_bytes(cmd, sizeof(cmd));
+}
+
+esp_err_t printer_drv_set_graphics_mode(uint8_t mode)
+{
+    if (mode != 30 && mode != 31 && mode != 32) return ESP_ERR_INVALID_ARG;
+    uint8_t cmd[] = { 0x1B, 0x23, 0x23, 0x53, 0x50, 0x53, 0x4D, mode }; /* ESC ## SPSM n */
+    return send_bytes(cmd, sizeof(cmd));
 }
 
 esp_err_t printer_drv_send_raw(const uint8_t *data, size_t len)

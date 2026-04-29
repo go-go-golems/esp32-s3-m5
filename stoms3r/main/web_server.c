@@ -5,10 +5,13 @@
  *   POST /api/print/text    — { "text": "..." }
  *   POST /api/print/bitmap  — raw 1-bit bitmap body (width x height in headers)
  *   GET  /api/status        — JSON: wifi, printer state
+ *   GET  /api/printer/status, /temp, /baud
+ *   POST /api/printer/density, /speed, /graphics-mode
  */
 
 #include "web_server.h"
 
+#include <stdlib.h>
 #include <string.h>
 #include "driver/uart.h"
 #include "esp_http_server.h"
@@ -46,7 +49,22 @@ static char *read_body(httpd_req_t *req, size_t *out_len)
     return buf;
 }
 
-/* ---- Helper: send JSON ----------------------------------------------- */
+/* ---- Helper: send JSON / parse tiny JSON ------------------------------ */
+
+static bool json_get_int(const char *body, const char *key_name, int *out)
+{
+    if (!body || !key_name || !out) return false;
+    char key[48];
+    snprintf(key, sizeof(key), "\"%s\"", key_name);
+    char *p = strstr(body, key);
+    if (!p) return false;
+    p = strchr(p + strlen(key), ':');
+    if (!p) return false;
+    p++;
+    while (*p == ' ' || *p == '\t') p++;
+    *out = atoi(p);
+    return true;
+}
 
 static void send_json_ok(httpd_req_t *req)
 {
@@ -137,6 +155,108 @@ static esp_err_t api_print_text_post(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* ---- Printer diagnostics / settings API ------------------------------- */
+
+static esp_err_t api_printer_status_get(httpd_req_t *req)
+{
+    printer_status_t st;
+    esp_err_t err = printer_drv_query_status4(&st);
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+
+    char buf[512];
+    snprintf(buf, sizeof(buf),
+             "{\"ok\":true,\"raw\":[%u,%u,%u,%u],"
+             "\"buffer_full\":%s,\"cover_open\":%s,\"feed_key_active\":%s,"
+             "\"cutter_error\":%s,\"auto_recoverable_error\":%s,"
+             "\"overheated\":%s,\"paper_near_end\":%s,\"paper_out\":%s}",
+             st.raw[0], st.raw[1], st.raw[2], st.raw[3],
+             st.buffer_full ? "true" : "false",
+             st.cover_open ? "true" : "false",
+             st.feed_key_active ? "true" : "false",
+             st.cutter_error ? "true" : "false",
+             st.auto_recoverable_error ? "true" : "false",
+             st.overheated ? "true" : "false",
+             st.paper_near_end ? "true" : "false",
+             st.paper_out ? "true" : "false");
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, buf);
+}
+
+static esp_err_t api_printer_temp_get(httpd_req_t *req)
+{
+    char raw[64];
+    int temp = -1;
+    esp_err_t err = printer_drv_query_temperature(&temp, raw, sizeof(raw));
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+    char buf[160];
+    snprintf(buf, sizeof(buf), "{\"ok\":true,\"temperature_c\":%d,\"raw\":\"%s\"}", temp, raw);
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, buf);
+}
+
+static esp_err_t api_printer_baud_get(httpd_req_t *req)
+{
+    char raw[80];
+    int printer_baud = -1;
+    esp_err_t err = printer_drv_query_printer_baud(&printer_baud, raw, sizeof(raw));
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+    char buf[192];
+    snprintf(buf, sizeof(buf), "{\"ok\":true,\"esp32_baud\":%d,\"printer_baud\":%d,\"raw\":\"%s\"}",
+             printer_drv_get_baud(), printer_baud, raw);
+    httpd_resp_set_type(req, "application/json");
+    return httpd_resp_sendstr(req, buf);
+}
+
+static esp_err_t api_printer_density_post(httpd_req_t *req)
+{
+    size_t body_len = 0; char *body = read_body(req, &body_len); (void)body_len;
+    int density = -1;
+    if (!body || !json_get_int(body, "density", &density) || density < 0 || density > 39) {
+        free(body); send_json_error(req, "expected {\"density\":0..39}"); return ESP_FAIL;
+    }
+    esp_err_t err = printer_drv_set_density((uint8_t)density);
+    free(body);
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+    char buf[64]; snprintf(buf, sizeof(buf), "{\"ok\":true,\"density\":%d}", density);
+    httpd_resp_set_type(req, "application/json"); return httpd_resp_sendstr(req, buf);
+}
+
+static bool web_speed_supported(int speed)
+{
+    static const int speeds[] = { 25, 30, 37, 50, 56, 62, 70, 80, 90, 100, 120, 150, 180, 200, 220 };
+    for (size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++) if (speeds[i] == speed) return true;
+    return false;
+}
+
+static esp_err_t api_printer_speed_post(httpd_req_t *req)
+{
+    size_t body_len = 0; char *body = read_body(req, &body_len); (void)body_len;
+    int speed = -1;
+    if (!body || !json_get_int(body, "speed", &speed) || !web_speed_supported(speed)) {
+        free(body); send_json_error(req, "expected valid {\"speed\":n}"); return ESP_FAIL;
+    }
+    esp_err_t err = printer_drv_set_speed((uint8_t)speed);
+    free(body);
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+    char buf[64]; snprintf(buf, sizeof(buf), "{\"ok\":true,\"speed\":%d}", speed);
+    httpd_resp_set_type(req, "application/json"); return httpd_resp_sendstr(req, buf);
+}
+
+static esp_err_t api_printer_graphics_mode_post(httpd_req_t *req)
+{
+    size_t body_len = 0; char *body = read_body(req, &body_len); (void)body_len;
+    int mode = -1;
+    if (!body || !json_get_int(body, "mode", &mode) || (mode != 30 && mode != 31 && mode != 32)) {
+        free(body); send_json_error(req, "expected {\"mode\":30|31|32}"); return ESP_FAIL;
+    }
+    esp_err_t err = printer_drv_set_graphics_mode((uint8_t)mode);
+    free(body);
+    if (err != ESP_OK) { send_json_error(req, esp_err_to_name(err)); return ESP_FAIL; }
+    const char *desc = mode == 30 ? "BLE" : (mode == 31 ? "adaptive" : "constant");
+    char buf[96]; snprintf(buf, sizeof(buf), "{\"ok\":true,\"mode\":%d,\"description\":\"%s\"}", mode, desc);
+    httpd_resp_set_type(req, "application/json"); return httpd_resp_sendstr(req, buf);
+}
+
 /* ---- POST /api/print/bitmap ------------------------------------------ */
 
 static esp_err_t api_print_bitmap_post(httpd_req_t *req)
@@ -206,6 +326,24 @@ static const httpd_uri_t uri_print_text = {
 static const httpd_uri_t uri_print_bitmap = {
     .uri = "/api/print/bitmap", .method = HTTP_POST, .handler = api_print_bitmap_post,
 };
+static const httpd_uri_t uri_printer_status = {
+    .uri = "/api/printer/status", .method = HTTP_GET, .handler = api_printer_status_get,
+};
+static const httpd_uri_t uri_printer_temp = {
+    .uri = "/api/printer/temp", .method = HTTP_GET, .handler = api_printer_temp_get,
+};
+static const httpd_uri_t uri_printer_baud = {
+    .uri = "/api/printer/baud", .method = HTTP_GET, .handler = api_printer_baud_get,
+};
+static const httpd_uri_t uri_printer_density = {
+    .uri = "/api/printer/density", .method = HTTP_POST, .handler = api_printer_density_post,
+};
+static const httpd_uri_t uri_printer_speed = {
+    .uri = "/api/printer/speed", .method = HTTP_POST, .handler = api_printer_speed_post,
+};
+static const httpd_uri_t uri_printer_graphics_mode = {
+    .uri = "/api/printer/graphics-mode", .method = HTTP_POST, .handler = api_printer_graphics_mode_post,
+};
 
 esp_err_t web_server_start(void)
 {
@@ -213,7 +351,7 @@ esp_err_t web_server_start(void)
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 8;
+    config.max_uri_handlers = 16;
 
     esp_err_t err = httpd_start(&s_server, &config);
     if (err != ESP_OK) {
@@ -225,6 +363,12 @@ esp_err_t web_server_start(void)
     httpd_register_uri_handler(s_server, &uri_status);
     httpd_register_uri_handler(s_server, &uri_print_text);
     httpd_register_uri_handler(s_server, &uri_print_bitmap);
+    httpd_register_uri_handler(s_server, &uri_printer_status);
+    httpd_register_uri_handler(s_server, &uri_printer_temp);
+    httpd_register_uri_handler(s_server, &uri_printer_baud);
+    httpd_register_uri_handler(s_server, &uri_printer_density);
+    httpd_register_uri_handler(s_server, &uri_printer_speed);
+    httpd_register_uri_handler(s_server, &uri_printer_graphics_mode);
 
     ESP_LOGI(TAG, "HTTP server started on port 80");
     return ESP_OK;

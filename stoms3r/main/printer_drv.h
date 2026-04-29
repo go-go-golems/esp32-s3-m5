@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include "esp_err.h"
 
@@ -38,6 +39,18 @@ typedef enum {
     PRINTER_QR_EC_Q = 0x4A,  /* Quartile (~25%) */
     PRINTER_QR_EC_H = 0x4B,  /* High   (~30%) */
 } printer_qr_ec_level_t;
+
+typedef struct {
+    uint8_t raw[4];
+    bool buffer_full;
+    bool cover_open;
+    bool feed_key_active;
+    bool cutter_error;
+    bool auto_recoverable_error;
+    bool overheated;
+    bool paper_near_end;
+    bool paper_out;
+} printer_status_t;
 
 /**
  * Initialize the printer UART (9600 8N1 on the K118 header pins) and send ESC @.
@@ -119,6 +132,32 @@ esp_err_t printer_drv_print_bitmap_banded(uint16_t width, uint16_t height,
  * Writes the response byte into `*out`. Returns ESP_OK if a byte was received.
  */
 esp_err_t printer_drv_query_status(uint8_t n, uint8_t *out);
+
+/**
+ * Query the 4-byte K118 status packet using GS a n.
+ */
+esp_err_t printer_drv_query_status4(printer_status_t *out);
+
+/**
+ * Query printer temperature via GS g 6. Returns parsed Celsius value when
+ * possible and copies raw response text into out_raw.
+ */
+esp_err_t printer_drv_query_temperature(int *out_celsius, char *out_raw, size_t out_raw_len);
+
+/**
+ * Query printer-side baud rate via GS g 7. Returns parsed baud when possible
+ * and copies raw response text into out_raw.
+ */
+esp_err_t printer_drv_query_printer_baud(int *out_baud, char *out_raw, size_t out_raw_len);
+
+/** Set K118 print density, 0..39 (39 darkest). */
+esp_err_t printer_drv_set_density(uint8_t density);
+
+/** Set K118 mechanism speed. Value must be one of the manual's speed table. */
+esp_err_t printer_drv_set_speed(uint8_t speed);
+
+/** Set K118 graphics print mode: 30=BLE, 31=adaptive, 32=constant. */
+esp_err_t printer_drv_set_graphics_mode(uint8_t mode);
 
 /**
  * Read any pending bytes from the printer RX buffer and log them.

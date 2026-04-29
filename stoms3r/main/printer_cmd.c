@@ -13,6 +13,12 @@
  *   printer_bitmap_test  — Print test pattern (alternating lines)
  *   printer_baud <rate>  — Change ESP32 UART baud only (recovery)
  *   set_baudrate <rate>  — Tell printer to change baud, then switch ESP32 UART
+ *   printer_status       — Read 4-byte printer status
+ *   printer_temp         — Read print-head temperature
+ *   printer_get_baud     — Read printer-side baud rate
+ *   printer_density <n>  — Set density 0..39
+ *   printer_speed <n>    — Set mechanism speed
+ *   printer_graphics_mode <n> — Set graphics mode 30/31/32
  */
 
 #include "printer_cmd.h"
@@ -562,6 +568,96 @@ static int do_set_baudrate(int argc, char **argv)
 }
 
 /* ========================================================================
+ * printer_status / printer_temp / printer_get_baud / tuning commands
+ * ======================================================================== */
+
+static int do_printer_status(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    printer_status_t st;
+    esp_err_t err = printer_drv_query_status4(&st);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("raw: %02X %02X %02X %02X\n", st.raw[0], st.raw[1], st.raw[2], st.raw[3]);
+    printf("buffer_full=%s cover_open=%s feed_key=%s cutter_error=%s auto_error=%s overheated=%s paper_near_end=%s paper_out=%s\n",
+           st.buffer_full ? "yes" : "no",
+           st.cover_open ? "yes" : "no",
+           st.feed_key_active ? "yes" : "no",
+           st.cutter_error ? "yes" : "no",
+           st.auto_recoverable_error ? "yes" : "no",
+           st.overheated ? "yes" : "no",
+           st.paper_near_end ? "yes" : "no",
+           st.paper_out ? "yes" : "no");
+    return 0;
+}
+
+static int do_printer_temp(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    char raw[64];
+    int temp = -1;
+    esp_err_t err = printer_drv_query_temperature(&temp, raw, sizeof(raw));
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("temperature_c=%d raw=%s\n", temp, raw);
+    return 0;
+}
+
+static int do_printer_get_baud(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    char raw[80];
+    int printer_baud = -1;
+    esp_err_t err = printer_drv_query_printer_baud(&printer_baud, raw, sizeof(raw));
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("esp32_baud=%d printer_baud=%d raw=%s\n", printer_drv_get_baud(), printer_baud, raw);
+    return 0;
+}
+
+static struct { struct arg_int *value; struct arg_end *end; } density_args;
+static int do_printer_density(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&density_args);
+    if (nerrors != 0) { arg_print_errors(stderr, density_args.end, argv[0]); return 1; }
+    int v = density_args.value->ival[0];
+    if (v < 0 || v > 39) { printf("Density must be 0..39\n"); return 1; }
+    esp_err_t err = printer_drv_set_density((uint8_t)v);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("Density set to %d\n", v);
+    return 0;
+}
+
+static struct { struct arg_int *value; struct arg_end *end; } speed_args;
+static bool is_supported_speed(int v)
+{
+    static const int speeds[] = { 25, 30, 37, 50, 56, 62, 70, 80, 90, 100, 120, 150, 180, 200, 220 };
+    for (size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++) if (speeds[i] == v) return true;
+    return false;
+}
+static int do_printer_speed(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&speed_args);
+    if (nerrors != 0) { arg_print_errors(stderr, speed_args.end, argv[0]); return 1; }
+    int v = speed_args.value->ival[0];
+    if (!is_supported_speed(v)) { printf("Speed must be one of: 25,30,37,50,56,62,70,80,90,100,120,150,180,200,220\n"); return 1; }
+    esp_err_t err = printer_drv_set_speed((uint8_t)v);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("Speed set to %d mm/s\n", v);
+    return 0;
+}
+
+static struct { struct arg_int *value; struct arg_end *end; } graphics_mode_args;
+static int do_printer_graphics_mode(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&graphics_mode_args);
+    if (nerrors != 0) { arg_print_errors(stderr, graphics_mode_args.end, argv[0]); return 1; }
+    int v = graphics_mode_args.value->ival[0];
+    if (v != 30 && v != 31 && v != 32) { printf("Graphics mode must be 30=BLE, 31=adaptive, or 32=constant\n"); return 1; }
+    esp_err_t err = printer_drv_set_graphics_mode((uint8_t)v);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("Graphics mode set to %d (%s)\n", v, v == 30 ? "BLE" : (v == 31 ? "adaptive" : "constant"));
+    return 0;
+}
+
+/* ========================================================================
  * Registration
  * ======================================================================== */
 
@@ -650,4 +746,26 @@ void printer_cmd_register(void)
     set_baudrate_args.end  = arg_end(1);
     reg("set_baudrate", "Tell K118 to change baud, then switch ESP32 UART",
         do_set_baudrate, &set_baudrate_args);
+
+    reg("printer_status", "Read 4-byte printer status (GS a n)",
+        do_printer_status, NULL);
+    reg("printer_temp", "Read printer temperature (GS g 6)",
+        do_printer_temp, NULL);
+    reg("printer_get_baud", "Read printer-side baud rate (GS g 7)",
+        do_printer_get_baud, NULL);
+
+    density_args.value = arg_int1(NULL, NULL, "<0-39>", "Print density, 39 darkest");
+    density_args.end = arg_end(1);
+    reg("printer_density", "Set print density (ESC ## STDP)",
+        do_printer_density, &density_args);
+
+    speed_args.value = arg_int1(NULL, NULL, "<speed>", "25/30/37/50/56/62/70/80/90/100/120/150/180/200/220");
+    speed_args.end = arg_end(1);
+    reg("printer_speed", "Set print speed (ESC ## STSP)",
+        do_printer_speed, &speed_args);
+
+    graphics_mode_args.value = arg_int1(NULL, NULL, "<30|31|32>", "30=BLE, 31=adaptive, 32=constant");
+    graphics_mode_args.end = arg_end(1);
+    reg("printer_graphics_mode", "Set graphics print mode (ESC ## SPSM)",
+        do_printer_graphics_mode, &graphics_mode_args);
 }
