@@ -325,6 +325,8 @@ static esp_err_t almanach_root_get(httpd_req_t *req)
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=3600");
     size_t len = (size_t)(almanach_index_html_end - almanach_index_html_start);
+    /* EMBED_TXTFILES appends a NUL — strip it */
+    if (len > 0 && almanach_index_html_start[len - 1] == '\0') len--;
     return httpd_resp_send(req, (const char *)almanach_index_html_start, len);
 }
 
@@ -333,6 +335,8 @@ static esp_err_t almanach_bundle_js_get(httpd_req_t *req)
     httpd_resp_set_type(req, "application/javascript; charset=utf-8");
     httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=86400");
     size_t len = (size_t)(almanach_bundle_js_end - almanach_bundle_js_start);
+    /* EMBED_TXTFILES appends a NUL — strip it */
+    if (len > 0 && almanach_bundle_js_start[len - 1] == '\0') len--;
     return httpd_resp_send(req, (const char *)almanach_bundle_js_start, len);
 }
 
