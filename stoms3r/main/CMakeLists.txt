@@ -1,0 +1,19 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "printer_drv.c"
+        "printer_cmd.c"
+        "wifi_mgr.c"
+        "wifi_cmd.c"
+        "nvs_store.c"
+    PRIV_REQUIRES
+        console
+        esp_driver_gpio
+        driver
+        nvs_flash
+        esp_wifi
+        esp_netif
+        esp_event
+    INCLUDE_DIRS
+        "."
+)
