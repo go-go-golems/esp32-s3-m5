@@ -4,10 +4,18 @@
 #include <stdint.h>
 #include "esp_err.h"
 
-/* Printer UART configuration for AtomS3R Lite + K118 */
+/* Printer UART configuration for AtomS3R Lite + K118
+ *
+ * The K118 was designed for the ATOM Lite (TX=GPIO23, RX=GPIO33, CTS=GPIO19).
+ * On the AtomS3R Lite, those same header positions map to:
+ *   TX  = GPIO8  (ESP32 sends TO printer)
+ *   RX  = GPIO7  (ESP32 reads FROM printer)
+ *   CTS = GPIO6  (clear-to-send, optional)
+ */
 #define PRINTER_UART_NUM   UART_NUM_1
-#define PRINTER_TX_GPIO    5
-#define PRINTER_RX_GPIO    6
+#define PRINTER_TX_GPIO    8
+#define PRINTER_RX_GPIO    7
+#define PRINTER_CTS_GPIO   6
 #define PRINTER_BAUD       9600
 
 /* Barcode types (ESC/POS) */

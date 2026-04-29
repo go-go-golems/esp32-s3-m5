@@ -306,8 +306,8 @@ static int do_printer_bitmap_test(int argc, char **argv)
 static int do_printer_probe(int argc, char **argv)
 {
     printf("=== Printer probe ===\n");
-    printf("UART config: port=UART%d TX=GPIO%d RX=GPIO%d baud=%d\n",
-           PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_BAUD);
+    printf("UART config: port=UART%d TX=GPIO%d RX=GPIO%d CTS=GPIO%d baud=%d\n",
+           PRINTER_UART_NUM, PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO, PRINTER_BAUD);
 
     /* 1. Drain any stale RX bytes */
     printf("\nDraining RX buffer...\n");
@@ -351,8 +351,9 @@ static int do_printer_probe(int argc, char **argv)
         printf("  2. Is the HY2.0-4P cable plugged in?\n");
         printf("  3. Check TX<->RX crossover: ESP TX(GPIO%d) -> printer RX\n", PRINTER_TX_GPIO);
         printf("  4. GND must be shared between AtomS3R and printer board\n");
-        printf("  5. Are GPIO%d/GPIO%d the correct pins for your K118 cable?\n", PRINTER_TX_GPIO, PRINTER_RX_GPIO);
-        printf("     (The K118 was designed for ATOM Lite: TX=GPIO23 RX=GPIO33)\n");
+        printf("  5. Are GPIO%d/GPIO%d/GPIO%d the correct pins for your K118 cable?\n",
+               PRINTER_TX_GPIO, PRINTER_RX_GPIO, PRINTER_CTS_GPIO);
+        printf("     (K118 designed for ATOM Lite: TX=GPIO23 RX=GPIO33 CTS=GPIO19)\n");
     }
 
     return any_response ? 0 : 1;

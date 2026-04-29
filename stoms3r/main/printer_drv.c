@@ -68,7 +68,7 @@ esp_err_t printer_drv_init(void)
     ESP_RETURN_ON_ERROR(
         uart_set_pin(PRINTER_UART_NUM,
                      PRINTER_TX_GPIO, PRINTER_RX_GPIO,
-                     UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE),
+                     UART_PIN_NO_CHANGE, PRINTER_CTS_GPIO),
         TAG, "uart_set_pin");
 
     ESP_LOGI(TAG, "Printer UART%d ready: TX=%d RX=%d baud=%d",
