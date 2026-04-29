@@ -10,7 +10,7 @@ printer kit through an interactive `esp_console` REPL over USB Serial/JTAG.
 |-----------|---------|
 | Controller | M5Stack AtomS3R Lite (ESP32-S3, 8MB Flash, 8MB PSRAM) |
 | Printer | M5Stack K118 Thermal Printer Kit (58mm, 203dpi) |
-| Connection | UART1 9600 8N1, TX=GPIO5, RX=GPIO6 |
+| Connection | UART1 9600 8N1, K118 header pins TX=GPIO8, RX=GPIO7, CTS=GPIO6 (software TX/RX swap defaults on) |
 | Console | USB Serial/JTAG (`/dev/ttyACM0`) |
 | Power | USB-C for logic, 12V/2.5A for printer mechanism |
 
@@ -26,6 +26,10 @@ printer kit through an interactive `esp_console` REPL over USB Serial/JTAG.
 - `printer_barcode <type> <data>` — Print barcode (CODE128, EAN13, ...)
 - `printer_qr <text>` — Print QR code
 - `printer_bitmap_test` — Print test pattern
+- `printer_probe` — Query status and diagnose wiring
+- `printer_swap <on|off>` — Toggle software TX/RX crossover
+- `printer_baud <rate>` — Change ESP32 UART baud only (recovery)
+- `set_baudrate <rate>` — Send K118 baud-rate command, then switch ESP32 UART
 
 ### WiFi
 - `wifi_scan` — Scan for access points

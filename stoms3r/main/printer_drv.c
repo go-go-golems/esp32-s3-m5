@@ -354,17 +354,44 @@ esp_err_t printer_drv_set_baud(int baud)
 {
     if (baud <= 0) return ESP_ERR_INVALID_ARG;
 
-    ESP_LOGI(TAG, "Changing baud rate: %d -> %d", s_baud, baud);
+    ESP_LOGI(TAG, "Changing ESP32 UART baud rate: %d -> %d", s_baud, baud);
     esp_err_t err = uart_set_baudrate(PRINTER_UART_NUM, baud);
     if (err == ESP_OK) {
         s_baud = baud;
-        /* Also tell the printer to switch baud via ESC/POS:
-         * ESC [ nH nL   — set serial comm speed
-         * Not all printers support this; we set our side regardless. */
     } else {
-        ESP_LOGE(TAG, "Failed to set baud %d: %s", baud, esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to set ESP32 UART baud %d: %s", baud, esp_err_to_name(err));
     }
     return err;
+}
+
+esp_err_t printer_drv_set_printer_baudrate(int baud)
+{
+    if (baud <= 0) return ESP_ERR_INVALID_ARG;
+
+    /* K118 command from M5Stack docs:
+     *   1B 23 23 53 42 44 52 X
+     * where X is the target baud rate as a 32-bit little-endian integer.
+     * Examples:
+     *   9600   = 80 25 00 00
+     *   115200 = 00 C2 01 00
+     */
+    uint32_t rate = (uint32_t)baud;
+    uint8_t cmd[] = {
+        0x1B, 0x23, 0x23, 0x53, 0x42, 0x44, 0x52,
+        (uint8_t)(rate & 0xFF),
+        (uint8_t)((rate >> 8) & 0xFF),
+        (uint8_t)((rate >> 16) & 0xFF),
+        (uint8_t)((rate >> 24) & 0xFF),
+    };
+
+    ESP_LOGI(TAG, "Setting printer baud rate via command: %d -> %d", s_baud, baud);
+    ESP_RETURN_ON_ERROR(send_bytes(cmd, sizeof(cmd)), TAG, "set printer baud command");
+
+    /* Give the printer firmware a short moment to apply the new serial speed
+     * after the command has fully left our UART. */
+    vTaskDelay(pdMS_TO_TICKS(150));
+
+    return printer_drv_set_baud(baud);
 }
 
 int printer_drv_get_baud(void)

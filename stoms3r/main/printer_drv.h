@@ -139,13 +139,23 @@ esp_err_t printer_drv_swap_pins(bool swap);
 bool printer_drv_is_swapped(void);
 
 /**
- * Change the UART baud rate at runtime. Default is 9600.
- * Common alternatives: 19200, 38400, 57600, 115200.
+ * Change only the ESP32 UART baud rate at runtime. Default is 9600.
+ * Use this as a recovery/diagnostic command when the host and printer are
+ * already out of sync.
  */
 esp_err_t printer_drv_set_baud(int baud);
 
 /**
- * Returns the current baud rate.
+ * Send the K118 Set Baud Rate command to the printer, wait for it to leave
+ * the current UART baud, then switch the ESP32 UART to the same rate.
+ *
+ * Command format from M5Stack docs:
+ *   1B 23 23 53 42 44 52 <baud little-endian uint32>
+ */
+esp_err_t printer_drv_set_printer_baudrate(int baud);
+
+/**
+ * Returns the current ESP32 UART baud rate.
  */
 int printer_drv_get_baud(void);
 

@@ -11,6 +11,8 @@
  *   printer_barcode <type> <data> — Print barcode
  *   printer_qr <text>    — Print QR code
  *   printer_bitmap_test  — Print test pattern (alternating lines)
+ *   printer_baud <rate>  — Change ESP32 UART baud only (recovery)
+ *   set_baudrate <rate>  — Tell printer to change baud, then switch ESP32 UART
  */
 
 #include "printer_cmd.h"
@@ -460,13 +462,27 @@ static int do_printer_swap(int argc, char **argv)
 }
 
 /* ========================================================================
- * printer_baud <rate> — change UART baud rate
+ * printer_baud <rate> — change ESP32 UART baud rate only (recovery)
  * ======================================================================== */
 
 static struct {
     struct arg_int *rate;
     struct arg_end *end;
 } baud_args;
+
+static bool is_supported_baud(int rate)
+{
+    switch (rate) {
+        case 9600:
+        case 19200:
+        case 38400:
+        case 57600:
+        case 115200:
+            return true;
+        default:
+            return false;
+    }
+}
 
 static int do_printer_baud(int argc, char **argv)
 {
@@ -476,8 +492,9 @@ static int do_printer_baud(int argc, char **argv)
         return 1;
     }
     int rate = baud_args.rate->ival[0];
-    if (rate <= 0) {
-        printf("Invalid baud rate: %d\n", rate);
+    if (!is_supported_baud(rate)) {
+        printf("Unsupported baud rate: %d\n", rate);
+        printf("Supported: 9600, 19200, 38400, 57600, 115200\n");
         return 1;
     }
     esp_err_t err = printer_drv_set_baud(rate);
@@ -485,7 +502,43 @@ static int do_printer_baud(int argc, char **argv)
         printf("Error: %s\n", esp_err_to_name(err));
         return 1;
     }
-    printf("Baud rate set to %d\n", rate);
+    printf("ESP32 UART baud rate set to %d (printer was NOT commanded)\n", rate);
+    return 0;
+}
+
+/* ========================================================================
+ * set_baudrate <rate> — command printer baud, then switch ESP32 UART
+ * ======================================================================== */
+
+static struct {
+    struct arg_int *rate;
+    struct arg_end *end;
+} set_baudrate_args;
+
+static int do_set_baudrate(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&set_baudrate_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, set_baudrate_args.end, argv[0]);
+        return 1;
+    }
+    int rate = set_baudrate_args.rate->ival[0];
+    if (!is_supported_baud(rate)) {
+        printf("Unsupported baud rate: %d\n", rate);
+        printf("Supported: 9600, 19200, 38400, 57600, 115200\n");
+        return 1;
+    }
+
+    printf("Sending K118 Set Baud Rate command for %d baud...\n", rate);
+    printf("If communication is lost, use printer_baud <rate> to resync the ESP32 side,\n");
+    printf("or power-cycle the printer to return it to its default 9600 baud.\n");
+
+    esp_err_t err = printer_drv_set_printer_baudrate(rate);
+    if (err != ESP_OK) {
+        printf("Error: %s\n", esp_err_to_name(err));
+        return 1;
+    }
+    printf("Printer and ESP32 UART baud rate set to %d\n", rate);
     return 0;
 }
 
@@ -568,8 +621,14 @@ void printer_cmd_register(void)
         do_printer_swap, &swap_args);
 
     /* ---- printer_baud <rate> ---- */
-    baud_args.rate = arg_int1(NULL, NULL, "<rate>", "Baud rate (default 9600)");
+    baud_args.rate = arg_int1(NULL, NULL, "<rate>", "ESP32 UART baud only: 9600/19200/38400/57600/115200");
     baud_args.end  = arg_end(1);
-    reg("printer_baud", "Change UART baud rate",
+    reg("printer_baud", "Change ESP32 UART baud only (recovery)",
         do_printer_baud, &baud_args);
+
+    /* ---- set_baudrate <rate> ---- */
+    set_baudrate_args.rate = arg_int1(NULL, NULL, "<rate>", "Printer+ESP32 baud: 9600/19200/38400/57600/115200");
+    set_baudrate_args.end  = arg_end(1);
+    reg("set_baudrate", "Tell K118 to change baud, then switch ESP32 UART",
+        do_set_baudrate, &set_baudrate_args);
 }
