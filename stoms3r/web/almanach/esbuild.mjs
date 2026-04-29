@@ -33,7 +33,7 @@ const html = `<!DOCTYPE html>
 </head>
 <body>
   <div id="root"></div>
-  <script src="almanach-bundle.js"></script>
+  <script src="/almanach/bundle.js"></script>
 </body>
 </html>`;
 
