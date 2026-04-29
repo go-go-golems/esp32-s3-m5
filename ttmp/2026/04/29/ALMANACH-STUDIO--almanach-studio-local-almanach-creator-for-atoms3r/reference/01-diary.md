@@ -295,3 +295,49 @@ The symbol naming was the main trap. I first guessed that ESP-IDF would deduplic
 - Upload to reMarkable for offline reading
 - Add the "Print" button integration and update the report accordingly
 - When the data API endpoints are added, document the live-data flow
+
+---
+
+## Step 5: Direct Print Button
+
+### Prompt Context
+
+**User prompt (verbatim):** "add direct print"
+
+**Inferred user intent:** Replace the `window.print()` browser print with a button that renders the paper, binarizes it, and POSTs the raw 1-bit bitmap directly to the firmware's `/api/print/bitmap` endpoint.
+
+### What I did
+
+Replaced the `handlePrint` callback (which just called `window.print()`) with a function that:
+
+1. Renders the paper to an off-screen canvas via SVG `foreignObject` (same technique as PNG export, but at 1× scale not 2×)
+2. Fills white background, strips zigzag edges and block controls
+3. Reads all pixels, converts to grayscale, thresholds at 128 → 1-bit B/W
+4. Packs into MSB-first bitmap with width padded to next multiple of 8
+5. POSTs to `/api/print/bitmap` with `X-Width` and `X-Height` headers
+6. Shows spinner during render+send, success/error toast on completion
+
+The Print button now shares the `exporting` state with the PNG button, so they can't run concurrently.
+
+### What worked
+
+- The existing PNG export code provided the SVG `foreignObject` rasterization pattern — just needed to change scale from 2× to 1× and skip the PNG encoding
+- The `index.html` bitmap packing code was a direct reference for the MSB-first format
+- Reusing `getInlineFontCss()` ensures fonts render correctly in the off-screen clone
+
+### What was tricky
+
+- Width must be divisible by 8 for the K118 printer. The paper width is 384 which divides evenly, but the padding logic handles any width correctly.
+- The `handlePrint` dependency array needed `theme.paper` added for the zigzag-stripping logic.
+
+### What warrants a second pair of eyes
+
+- The 1× scale (384px canvas) means the print resolution is exactly 384 dots wide = full printer width. This is correct for the K118 but would need adjustment for different printers.
+- No error recovery if the POST starts but the printer buffer overflows mid-print. The firmware handles flow control via UART CTS, so this should be safe.
+
+### Technical details
+
+- **Commit**: 99e0016
+- **Bitmap format**: 1-bit packed, MSB first, `bytesPerRow = ceil(W/8) * 8 / 8`
+- **API**: `POST /api/print/bitmap`, headers `X-Width`, `X-Height`, body = raw bitmap
+- **Threshold**: grayscale < 128 → black (1), else white (0)

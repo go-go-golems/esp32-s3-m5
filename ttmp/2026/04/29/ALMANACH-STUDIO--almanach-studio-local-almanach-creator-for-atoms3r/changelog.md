@@ -24,3 +24,13 @@ Step 2: Implemented Almanach Studio hosting in stoms3r/ (correct firmware). esbu
 
 Step 3: Monochrome themes (all #000/#fff, no gray), dithering selector (F-S/None/Auto), font scale slider (1.0-2.0×, default 1.3×), default width 384px. Commits 2494359, 101ffed, baee459.
 
+
+## 2026-04-29
+
+Step 4: Wrote textbook-style technical report (26 KB) covering full system architecture. Stored in Obsidian vault + copied to ticket. Has Mermaid diagrams, code snippets, tables, failure modes, working rules.
+
+
+## 2026-04-29
+
+Step 5: Added direct print button — renders paper, binarizes to 1-bit B/W, POSTs raw bitmap to /api/print/bitmap. No PNG intermediate. Commit 99e0016.
+
