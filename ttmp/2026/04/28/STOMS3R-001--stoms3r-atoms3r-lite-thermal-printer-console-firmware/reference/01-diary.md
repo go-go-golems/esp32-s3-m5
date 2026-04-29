@@ -276,3 +276,36 @@ The safer pattern is to create legal pause points. A pause between two complete 
 - Confirm the default band size: 5 rows × 48 bytes/row = 240 data bytes.
 - Confirm `web_server.c` still buffers the full request body before calling the printer driver.
 - Build with: `cd stoms3r && idf.py build`.
+
+---
+
+## Step 5: CTS flow control after band seams
+
+### Prompt Context
+
+**User prompt (verbatim):** "use cts. theyre twice as freqyent now, regular"
+
+**Assistant interpretation:** The banded raster experiment introduced a new regular artifact: stripes became twice as frequent and evenly spaced. That confirms the bands themselves were visible seams, not the right final strategy. The next experiment should use the printer's CTS/busy signal and return to one complete raster command.
+
+**Commit (code):** dac86e8 — "stoms3r: use printer CTS for bitmap flow control"
+
+### What I did
+
+- Enabled UART TX flow control with `.flow_ctrl = UART_HW_FLOWCTRL_CTS`.
+- Kept `uart_set_pin(..., rts=UART_PIN_NO_CHANGE, cts=GPIO6)` so GPIO6 is used as the printer busy/CTS input.
+- Restored the default bitmap print path to a single complete GS v 0 raster command (`header + full pixel payload`).
+- Left the banded bitmap helper in the code only as a diagnostic fallback, not as the default path.
+- Updated `web_server.c` to call `printer_drv_print_bitmap()` again instead of the 5-row banded helper.
+- Changed `uart_wait_tx_done()` to use a length-based timeout. At 9600 baud, bitmap payloads take many seconds even without CTS pauses.
+- Verified `idf.py build` succeeds.
+
+### Why
+
+The regular stripe spacing after the banding change is strong evidence that the band boundaries were becoming visible. That means the correct fix is not artificial application-layer delays between raster commands. The printer already exposes a hardware busy signal. If CTS works, the UART peripheral can stop transmitting exactly when the printer says it is not ready, then resume without dropping bytes and without inserting fake raster seams.
+
+### What should be tested next
+
+- Flash commit `dac86e8`.
+- Test `border`, `diagonal`, and `graylevels` first.
+- If printing hangs immediately, CTS polarity or wiring may be inverted/wrong, and we should add a runtime `printer_flow on|off` command.
+- If it prints but still stripes, the remaining cause is likely power/thermal behavior rather than byte loss; verify 12V/2.5A+ supply.
