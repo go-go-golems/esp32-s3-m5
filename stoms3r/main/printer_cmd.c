@@ -19,6 +19,10 @@
  *   printer_density <n>  — Set density 0..39
  *   printer_speed <n>    — Set mechanism speed
  *   printer_graphics_mode <n> — Set graphics mode 30/31/32
+ *   printer_settings_save <baud> <density> <speed> <mode> — Save startup settings to NVS
+ *   printer_settings_show  — Show saved startup settings
+ *   printer_settings_apply — Apply saved startup settings now
+ *   printer_settings_clear — Clear saved startup settings
  */
 
 #include "printer_cmd.h"
@@ -27,11 +31,14 @@
 #include <string.h>
 #include "argtable3/argtable3.h"
 #include "driver/uart.h"
+#include "esp_check.h"
 #include "esp_console.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "nvs_flash.h"
 
+#include "nvs_store.h"
 #include "printer_drv.h"
 
 /* TAG used for future logging in this module */
@@ -658,6 +665,122 @@ static int do_printer_graphics_mode(int argc, char **argv)
 }
 
 /* ========================================================================
+ * Saved printer startup settings
+ * ======================================================================== */
+
+static struct {
+    struct arg_int *baud;
+    struct arg_int *density;
+    struct arg_int *speed;
+    struct arg_int *mode;
+    struct arg_end *end;
+} printer_settings_save_args;
+
+static bool validate_printer_settings(const printer_settings_t *settings)
+{
+    return settings != NULL &&
+           is_supported_baud(settings->baud) &&
+           settings->density >= 0 && settings->density <= 39 &&
+           is_supported_speed(settings->speed) &&
+           (settings->graphics_mode == 30 || settings->graphics_mode == 31 || settings->graphics_mode == 32);
+}
+
+static void print_printer_settings(const char *prefix, const printer_settings_t *settings)
+{
+    printf("%s baud=%ld density=%ld speed=%ld graphics_mode=%ld (%s)\n",
+           prefix,
+           (long)settings->baud,
+           (long)settings->density,
+           (long)settings->speed,
+           (long)settings->graphics_mode,
+           settings->graphics_mode == 30 ? "BLE" : (settings->graphics_mode == 31 ? "adaptive" : "constant"));
+}
+
+static esp_err_t apply_printer_settings(const printer_settings_t *settings)
+{
+    if (!validate_printer_settings(settings)) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    /* Startup/saved baud is applied to the ESP32 UART side directly. This is the
+     * right behavior when the K118 has already persisted its own baud setting.
+     * If the printer has been power-cycled back to 9600, recover with
+     * printer_baud 9600 or clear the saved settings. */
+    ESP_RETURN_ON_ERROR(printer_drv_set_baud(settings->baud), TAG, "set saved UART baud");
+    ESP_RETURN_ON_ERROR(printer_drv_set_density((uint8_t)settings->density), TAG, "set saved density");
+    ESP_RETURN_ON_ERROR(printer_drv_set_speed((uint8_t)settings->speed), TAG, "set saved speed");
+    ESP_RETURN_ON_ERROR(printer_drv_set_graphics_mode((uint8_t)settings->graphics_mode), TAG, "set saved graphics mode");
+    return ESP_OK;
+}
+
+static int do_printer_settings_save(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **)&printer_settings_save_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, printer_settings_save_args.end, argv[0]);
+        return 1;
+    }
+
+    printer_settings_t settings = {
+        .baud = printer_settings_save_args.baud->ival[0],
+        .density = printer_settings_save_args.density->ival[0],
+        .speed = printer_settings_save_args.speed->ival[0],
+        .graphics_mode = printer_settings_save_args.mode->ival[0],
+    };
+
+    if (!validate_printer_settings(&settings)) {
+        printf("Invalid settings. Baud must be one of %s; density 0..39; speed one of 25,30,37,50,56,62,70,80,90,100,120,150,180,200,220; mode 30/31/32.\n",
+               supported_baud_list());
+        return 1;
+    }
+
+    esp_err_t err = nvs_store_save_printer_settings(&settings);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    print_printer_settings("Saved printer startup settings:", &settings);
+    printf("These settings are applied on boot. Saved baud sets the ESP32 UART side directly; use set_baudrate once first so the K118 is also at that baud.\n");
+    return 0;
+}
+
+static int do_printer_settings_show(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    printer_settings_t settings;
+    esp_err_t err = nvs_store_load_printer_settings(&settings);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        printf("No saved printer startup settings.\n");
+        return 0;
+    }
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    print_printer_settings("Saved printer startup settings:", &settings);
+    return 0;
+}
+
+static int do_printer_settings_apply(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    printer_settings_t settings;
+    esp_err_t err = nvs_store_load_printer_settings(&settings);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        printf("No saved printer startup settings.\n");
+        return 1;
+    }
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    err = apply_printer_settings(&settings);
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    print_printer_settings("Applied printer startup settings:", &settings);
+    return 0;
+}
+
+static int do_printer_settings_clear(int argc, char **argv)
+{
+    (void)argc; (void)argv;
+    esp_err_t err = nvs_store_erase_printer_settings();
+    if (err != ESP_OK) { printf("Error: %s\n", esp_err_to_name(err)); return 1; }
+    printf("Saved printer startup settings cleared. Defaults will be used on next boot.\n");
+    return 0;
+}
+
+/* ========================================================================
  * Registration
  * ======================================================================== */
 
@@ -768,4 +891,18 @@ void printer_cmd_register(void)
     graphics_mode_args.end = arg_end(1);
     reg("printer_graphics_mode", "Set graphics print mode (ESC ## SPSM)",
         do_printer_graphics_mode, &graphics_mode_args);
+
+    printer_settings_save_args.baud = arg_int1(NULL, NULL, "<baud>", "Startup baud: 9600..921600");
+    printer_settings_save_args.density = arg_int1(NULL, NULL, "<0-39>", "Startup print density");
+    printer_settings_save_args.speed = arg_int1(NULL, NULL, "<speed>", "Startup speed: 25/30/37/50/56/62/70/80/90/100/120/150/180/200/220");
+    printer_settings_save_args.mode = arg_int1(NULL, NULL, "<30|31|32>", "Startup graphics mode: 30=BLE, 31=adaptive, 32=constant");
+    printer_settings_save_args.end = arg_end(4);
+    reg("printer_settings_save", "Save printer startup settings to NVS",
+        do_printer_settings_save, &printer_settings_save_args);
+    reg("printer_settings_show", "Show saved printer startup settings",
+        do_printer_settings_show, NULL);
+    reg("printer_settings_apply", "Apply saved printer startup settings now",
+        do_printer_settings_apply, NULL);
+    reg("printer_settings_clear", "Clear saved printer startup settings",
+        do_printer_settings_clear, NULL);
 }

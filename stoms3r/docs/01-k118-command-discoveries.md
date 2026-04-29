@@ -493,8 +493,21 @@ Implemented now:
 | density | `printer_density`, `/api/printer/density` |
 | speed | `printer_speed`, `/api/printer/speed` |
 | graphics mode | `printer_graphics_mode`, `/api/printer/graphics-mode` |
+| saved startup settings | `printer_settings_save`, `printer_settings_show`, `printer_settings_apply`, `printer_settings_clear` |
 | raw debug | `printer_raw` |
 | wiring debug | `printer_swap` |
+
+Saved startup settings now live in NVS namespace `printer`. The currently useful profile is:
+
+```text
+set_baudrate 460800
+printer_density 30
+printer_speed 80
+printer_graphics_mode 31
+printer_settings_save 460800 30 80 31
+```
+
+On boot, the firmware applies the saved ESP32 UART baud first, then sends density, speed, and graphics-mode commands at that baud. This assumes the K118 printer-side baud has already been changed/persisted by `set_baudrate`. If the printer comes back at 9600, recover with `printer_baud 9600` or clear saved settings.
 
 Missing but interesting:
 

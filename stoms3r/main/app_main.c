@@ -12,6 +12,7 @@
 #include "esp_wifi.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_check.h"
 #include "nvs_flash.h"
 
 #include "nvs_store.h"
@@ -22,6 +23,70 @@
 #include "wifi_mgr.h"
 
 static const char *TAG = "stoms3r";
+
+static bool app_supported_baud(int rate)
+{
+    switch (rate) {
+        case 9600:
+        case 19200:
+        case 38400:
+        case 57600:
+        case 115200:
+        case 230400:
+        case 460800:
+        case 921600:
+            return true;
+        default:
+            return false;
+    }
+}
+
+static bool app_supported_speed(int speed)
+{
+    static const int speeds[] = { 25, 30, 37, 50, 56, 62, 70, 80, 90, 100, 120, 150, 180, 200, 220 };
+    for (size_t i = 0; i < sizeof(speeds) / sizeof(speeds[0]); i++) {
+        if (speeds[i] == speed) return true;
+    }
+    return false;
+}
+
+static esp_err_t apply_saved_printer_settings(void)
+{
+    printer_settings_t settings;
+    esp_err_t err = nvs_store_load_printer_settings(&settings);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGI(TAG, "No saved printer settings");
+        return ESP_OK;
+    }
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "Could not load printer settings: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    if (!app_supported_baud(settings.baud) || settings.density < 0 || settings.density > 39 ||
+        !app_supported_speed(settings.speed) ||
+        (settings.graphics_mode != 30 && settings.graphics_mode != 31 && settings.graphics_mode != 32)) {
+        ESP_LOGW(TAG, "Ignoring invalid saved printer settings: baud=%ld density=%ld speed=%ld graphics_mode=%ld",
+                 (long)settings.baud, (long)settings.density,
+                 (long)settings.speed, (long)settings.graphics_mode);
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    ESP_LOGI(TAG, "Applying saved printer settings: baud=%ld density=%ld speed=%ld graphics_mode=%ld",
+             (long)settings.baud, (long)settings.density,
+             (long)settings.speed, (long)settings.graphics_mode);
+
+    /* At boot we set the ESP32 UART side directly. This assumes the printer-side
+     * baud setting was persisted by the K118 after a prior set_baudrate command.
+     * If the printer was power-cycled back to 9600, recover from the console with
+     * printer_baud 9600 or clear the saved settings. */
+    ESP_RETURN_ON_ERROR(printer_drv_set_baud(settings.baud), TAG, "set saved UART baud");
+    ESP_RETURN_ON_ERROR(printer_drv_set_density((uint8_t)settings.density), TAG, "set saved density");
+    ESP_RETURN_ON_ERROR(printer_drv_set_speed((uint8_t)settings.speed), TAG, "set saved speed");
+    ESP_RETURN_ON_ERROR(printer_drv_set_graphics_mode((uint8_t)settings.graphics_mode), TAG, "set saved graphics mode");
+
+    return ESP_OK;
+}
 
 /* Background task: wait for WiFi, then start web server */
 static void web_server_task(void *arg)
@@ -60,6 +125,7 @@ void app_main(void)
 
     /* 4. Printer UART */
     ESP_ERROR_CHECK(printer_drv_init());
+    apply_saved_printer_settings();
 
     /* 5. Auto-connect if credentials are saved */
     char ssid[64] = {0};

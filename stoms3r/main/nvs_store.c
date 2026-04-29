@@ -94,3 +94,76 @@ esp_err_t nvs_store_erase_wifi(void)
     ESP_LOGI(TAG, "WiFi credentials erased");
     return ESP_OK;
 }
+
+esp_err_t nvs_store_save_printer_settings(const printer_settings_t *settings)
+{
+    if (settings == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("printer", NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "nvs_open printer failed: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    err = nvs_set_i32(handle, "baud", settings->baud);
+    if (err == ESP_OK) err = nvs_set_i32(handle, "density", settings->density);
+    if (err == ESP_OK) err = nvs_set_i32(handle, "speed", settings->speed);
+    if (err == ESP_OK) err = nvs_set_i32(handle, "gmode", settings->graphics_mode);
+    if (err == ESP_OK) err = nvs_commit(handle);
+
+    nvs_close(handle);
+
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "Printer settings saved: baud=%ld density=%ld speed=%ld graphics_mode=%ld",
+                 (long)settings->baud, (long)settings->density,
+                 (long)settings->speed, (long)settings->graphics_mode);
+    }
+    return err;
+}
+
+esp_err_t nvs_store_load_printer_settings(printer_settings_t *settings)
+{
+    if (settings == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("printer", NVS_READONLY, &handle);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = nvs_get_i32(handle, "baud", &settings->baud);
+    if (err == ESP_OK) err = nvs_get_i32(handle, "density", &settings->density);
+    if (err == ESP_OK) err = nvs_get_i32(handle, "speed", &settings->speed);
+    if (err == ESP_OK) err = nvs_get_i32(handle, "gmode", &settings->graphics_mode);
+
+    nvs_close(handle);
+    return err;
+}
+
+esp_err_t nvs_store_erase_printer_settings(void)
+{
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("printer", NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        if (err == ESP_ERR_NVS_NOT_FOUND) {
+            ESP_LOGI(TAG, "No printer settings to erase");
+            return ESP_OK;
+        }
+        return err;
+    }
+
+    nvs_erase_key(handle, "baud");
+    nvs_erase_key(handle, "density");
+    nvs_erase_key(handle, "speed");
+    nvs_erase_key(handle, "gmode");
+    nvs_commit(handle);
+    nvs_close(handle);
+
+    ESP_LOGI(TAG, "Printer settings erased");
+    return ESP_OK;
+}

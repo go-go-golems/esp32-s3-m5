@@ -38,6 +38,22 @@ printer kit through an interactive `esp_console` REPL over USB Serial/JTAG.
 - `printer_density <0-39>` — Set darkness/current draw
 - `printer_speed <speed>` — Set mechanism speed (25..220 table values)
 - `printer_graphics_mode <30|31|32>` — Set graphics mode (BLE/adaptive/constant)
+- `printer_settings_save <baud> <density> <speed> <mode>` — Save startup printer settings to NVS
+- `printer_settings_show` — Show saved startup printer settings
+- `printer_settings_apply` — Apply saved startup printer settings now
+- `printer_settings_clear` — Clear saved startup printer settings
+
+Recommended currently verified startup profile:
+
+```text
+set_baudrate 460800
+printer_density 30
+printer_speed 80
+printer_graphics_mode 31
+printer_settings_save 460800 30 80 31
+```
+
+On boot, saved baud sets the ESP32 UART side directly and assumes the K118 printer-side baud has already been set/persisted by `set_baudrate`. If the printer is power-cycled back to 9600 or communication is lost, use `printer_baud 9600` for recovery or `printer_settings_clear` to return to defaults.
 
 ### WiFi
 - `wifi_scan` — Scan for access points
