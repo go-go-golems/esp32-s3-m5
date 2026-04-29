@@ -18,6 +18,8 @@ idf_component_register(
         esp_http_server
     EMBED_TXTFILES
         "index.html"
+        "assets/almanach/almanach.html"
+        "assets/almanach/almanach-bundle.js"
     INCLUDE_DIRS
         "."
 )

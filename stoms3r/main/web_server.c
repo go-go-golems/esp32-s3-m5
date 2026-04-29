@@ -28,6 +28,12 @@ static httpd_handle_t s_server = NULL;
 extern const uint8_t index_html_start[] asm("_binary_index_html_start");
 extern const uint8_t index_html_end[]   asm("_binary_index_html_end");
 
+/* Almanach Studio embedded assets (precompiled React SPA). */
+extern const uint8_t almanach_index_html_start[] asm("_binary_almanach_html_start");
+extern const uint8_t almanach_index_html_end[]   asm("_binary_almanach_html_end");
+extern const uint8_t almanach_bundle_js_start[] asm("_binary_almanach_bundle_js_start");
+extern const uint8_t almanach_bundle_js_end[]   asm("_binary_almanach_bundle_js_end");
+
 /* ---- Helper: read full body ------------------------------------------ */
 
 static char *read_body(httpd_req_t *req, size_t *out_len)
@@ -312,6 +318,24 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* ---- GET /almanach — serve Almanach Studio SPA ---------------------- */
+
+static esp_err_t almanach_root_get(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=3600");
+    size_t len = (size_t)(almanach_index_html_end - almanach_index_html_start);
+    return httpd_resp_send(req, (const char *)almanach_index_html_start, len);
+}
+
+static esp_err_t almanach_bundle_js_get(httpd_req_t *req)
+{
+    httpd_resp_set_type(req, "application/javascript; charset=utf-8");
+    httpd_resp_set_hdr(req, "Cache-Control", "public, max-age=86400");
+    size_t len = (size_t)(almanach_bundle_js_end - almanach_bundle_js_start);
+    return httpd_resp_send(req, (const char *)almanach_bundle_js_start, len);
+}
+
 /* ---- Server start/stop ----------------------------------------------- */
 
 static const httpd_uri_t uri_root = {
@@ -345,13 +369,20 @@ static const httpd_uri_t uri_printer_graphics_mode = {
     .uri = "/api/printer/graphics-mode", .method = HTTP_POST, .handler = api_printer_graphics_mode_post,
 };
 
+static const httpd_uri_t uri_almanach_root = {
+    .uri = "/almanach", .method = HTTP_GET, .handler = almanach_root_get,
+};
+static const httpd_uri_t uri_almanach_bundle = {
+    .uri = "/almanach/bundle.js", .method = HTTP_GET, .handler = almanach_bundle_js_get,
+};
+
 esp_err_t web_server_start(void)
 {
     if (s_server) return ESP_OK;
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 8192;
-    config.max_uri_handlers = 16;
+    config.max_uri_handlers = 20;
 
     esp_err_t err = httpd_start(&s_server, &config);
     if (err != ESP_OK) {
@@ -369,6 +400,9 @@ esp_err_t web_server_start(void)
     httpd_register_uri_handler(s_server, &uri_printer_density);
     httpd_register_uri_handler(s_server, &uri_printer_speed);
     httpd_register_uri_handler(s_server, &uri_printer_graphics_mode);
+
+    httpd_register_uri_handler(s_server, &uri_almanach_root);
+    httpd_register_uri_handler(s_server, &uri_almanach_bundle);
 
     ESP_LOGI(TAG, "HTTP server started on port 80");
     return ESP_OK;
