@@ -133,6 +133,8 @@ topics:
       description: WiFi/BLE provisioning workflows and firmware
     - slug: thermal-printer
       description: Thermal printer firmware, protocols, and hardware integration
+    - slug: escpos
+      description: ESC/POS thermal printer protocol and command set
 docTypes:
     - slug: index
       description: Ticket index document
