@@ -339,3 +339,39 @@ Changing the ESP32 UART speed alone does not change the printer. The printer mus
 ### Recovery note
 
 If `set_baudrate` leaves the printer and ESP32 out of sync, use `printer_baud <rate>` to change only the ESP32 side, or power-cycle the printer to return it to the default 9600 baud.
+
+---
+
+## Step 7: Experimental high baud-rate steps
+
+### Prompt Context
+
+**User prompt (verbatim):** "can we go faster 2-3 steps"
+
+**Assistant interpretation:** Extend the new `set_baudrate` command beyond the documented/common 115200 target so bitmap transfer speed can be tested at higher UART rates.
+
+**Commit (code):** e6fb23a — "stoms3r: allow experimental high printer baud rates"
+
+### What I did
+
+- Added 230400, 460800, and 921600 to the accepted baud-rate list.
+- Kept 9600, 19200, 38400, 57600, and 115200.
+- Added console warnings for rates above 115200 because the K118 docs explicitly show only 9600 and 115200 examples.
+- Updated README and driver comments to mark higher rates as experimental.
+- Verified `idf.py build` succeeds.
+
+### Why
+
+The K118 Set Baud Rate command encodes the requested baud as a 32-bit little-endian integer. That makes higher standard UART rates plausible even though only two examples are documented. Testing them incrementally is the safest path.
+
+### Recommended test ladder
+
+1. `set_baudrate 115200`
+2. `printer_probe`
+3. `set_baudrate 230400`
+4. `printer_probe`
+5. `set_baudrate 460800`
+6. `printer_probe`
+7. Try `921600` only if 460800 is stable.
+
+If communication is lost, use `printer_baud <rate>` to resync the ESP32 side or power-cycle the printer to return it to 9600.
