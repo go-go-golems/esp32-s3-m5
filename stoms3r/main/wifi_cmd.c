@@ -20,7 +20,7 @@
 #include "nvs_store.h"
 #include "wifi_mgr.h"
 
-static const char *TAG = "wifi_cmd";
+static const char *TAG __attribute__((unused)) = "wifi_cmd";
 
 /* ========================================================================
  * wifi_scan

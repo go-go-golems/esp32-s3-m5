@@ -88,8 +88,15 @@ esp_err_t printer_drv_print_qr(printer_qr_ec_level_t ec_level,
                                  const char *data);
 
 /**
+ * Send *only* the GS v 0 header for a bitmap (no pixel data).
+ * Used for streaming: call this first, then send raw pixel bytes.
+ */
+esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height);
+
+/**
  * Print a 1-bit monochrome raster bitmap (MSB first).
  * `width` must be a multiple of 8. `pixels` points to (width/8)*height bytes.
+ * Sends header + all pixel data in one call.
  */
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels);

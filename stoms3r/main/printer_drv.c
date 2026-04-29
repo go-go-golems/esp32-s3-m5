@@ -187,22 +187,27 @@ esp_err_t printer_drv_print_qr(printer_qr_ec_level_t ec_level,
     return send_bytes(print_cmd, sizeof(print_cmd));
 }
 
+esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height)
+{
+    uint16_t bytes_per_row = width / 8;
+
+    uint8_t header[] = {
+        0x1D, 0x76, 0x30, 0x00,
+        (uint8_t)(bytes_per_row & 0xFF),
+        (uint8_t)(bytes_per_row >> 8),
+        (uint8_t)(height & 0xFF),
+        (uint8_t)(height >> 8)
+    };
+    return send_bytes(header, sizeof(header));
+}
+
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels)
 {
     if (!pixels) return ESP_ERR_INVALID_ARG;
 
     uint16_t bytes_per_row = width / 8;
-
-    /* GS v 0 m xL xH yL yH d1..dk */
-    uint8_t header[] = {
-        0x1D, 0x76, 0x30, 0x00,   /* mode=0 (normal) */
-        (uint8_t)(bytes_per_row & 0xFF),
-        (uint8_t)(bytes_per_row >> 8),
-        (uint8_t)(height & 0xFF),
-        (uint8_t)(height >> 8)
-    };
-    ESP_RETURN_ON_ERROR(send_bytes(header, sizeof(header)),
+    ESP_RETURN_ON_ERROR(printer_drv_print_bitmap_header(width, height),
                         TAG, "bitmap header");
     return send_bytes(pixels, (size_t)bytes_per_row * height);
 }

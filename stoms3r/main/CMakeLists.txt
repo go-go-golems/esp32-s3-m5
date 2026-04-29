@@ -6,6 +6,7 @@ idf_component_register(
         "wifi_mgr.c"
         "wifi_cmd.c"
         "nvs_store.c"
+        "web_server.c"
     PRIV_REQUIRES
         console
         esp_driver_gpio
@@ -14,6 +15,9 @@ idf_component_register(
         esp_wifi
         esp_netif
         esp_event
+        esp_http_server
+    EMBED_TXTFILES
+        "index.html"
     INCLUDE_DIRS
         "."
 )
