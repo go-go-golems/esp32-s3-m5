@@ -1384,9 +1384,117 @@ export default function AlmanachStudio() {
     });
   }, []);
 
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
+  const handlePrint = useCallback(async () => {
+    if (!paperRef.current) return;
+    setExporting(true);
+    const prevSelection = selectedId;
+    setSelectedId(null);
+    await new Promise((r) => requestAnimationFrame(r));
+    try {
+      // Render paper to off-screen canvas at 1:1 pixel scale
+      const paperNode = paperRef.current;
+      const rect = paperNode.getBoundingClientRect();
+      const W = Math.ceil(rect.width);
+      const H = Math.ceil(rect.height);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+
+      // White background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+
+      // Use SVG foreignObject to capture the DOM
+      const clone = paperNode.cloneNode(true);
+      clone.querySelectorAll(".block-controls").forEach((el) => el.remove());
+      // Remove zigzag edge SVGs (same as PNG export)
+      clone.querySelectorAll("svg").forEach((svg) => {
+        const path = svg.querySelector("path");
+        if (path && path.getAttribute("fill") === theme.paper) {
+          svg.remove();
+          return;
+        }
+        if (!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      });
+      clone.setAttribute("data-export", "true");
+
+      const appStyleSheets = Array.from(document.querySelectorAll("style"))
+        .map((s) => s.textContent).join("\n");
+      const exportOverrides = `
+        [data-export] { filter: none !important; margin: 0 !important; }
+        [data-export] .block-controls { display: none !important; }
+        [data-export] .block-wrap::before { display: none !important; }
+        [data-export] .block-wrap { padding: 4px 0 !important; cursor: default !important; }
+        [data-export] * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      `;
+      const fontCss = await getInlineFontCss();
+      const xhtml = new XMLSerializer().serializeToString(clone);
+      const svgString =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
+        `<defs><style type="text/css"><![CDATA[${fontCss}\n${appStyleSheets}\n${exportOverrides}]]></style></defs>` +
+        `<foreignObject x="0" y="0" width="${W}" height="${H}">${xhtml}</foreignObject>` +
+        `</svg>`;
+
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("SVG rasterization failed"));
+        img.src = svgUrl;
+      });
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(svgUrl);
+
+      // Read pixels and binarize
+      const imgData = ctx.getImageData(0, 0, W, H);
+      const pixels = imgData.data;
+      const bw = new Uint8Array(W * H); // 1 = black
+      for (let i = 0; i < W * H; i++) {
+        const gray = 0.299 * pixels[i * 4] + 0.587 * pixels[i * 4 + 1] + 0.114 * pixels[i * 4 + 2];
+        bw[i] = gray < 128 ? 1 : 0;
+      }
+
+      // Pack into 1-bit bitmap (MSB first)
+      // Width must be divisible by 8 for the printer — pad if needed
+      const Wpadded = Math.ceil(W / 8) * 8;
+      const bytesPerRow = Wpadded / 8;
+      const bitmap = new Uint8Array(bytesPerRow * H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          if (bw[y * W + x]) {
+            bitmap[y * bytesPerRow + Math.floor(x / 8)] |= (0x80 >> (x % 8));
+          }
+        }
+      }
+
+      // POST to the printer API
+      const r = await fetch("/api/print/bitmap", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Width": String(Wpadded),
+          "X-Height": String(H),
+        },
+        body: bitmap,
+      });
+      const d = await r.json();
+      if (!d.ok) {
+        flashToast("err", d.error || "Print failed");
+      } else {
+        flashToast("ok", "Sent to printer");
+      }
+    } catch (e) {
+      console.error(e);
+      flashToast("err", e.message || "Print failed");
+    } finally {
+      setSelectedId(prevSelection);
+      setExporting(false);
+    }
+  }, [selectedId, theme.paper, flashToast]);
 
   const handleExportPng = useCallback(async () => {
     if (!paperRef.current) return;
@@ -2023,8 +2131,13 @@ export default function AlmanachStudio() {
             )}
             {exporting ? "Rendering…" : "PNG"}
           </button>
-          <button className="btn primary" onClick={handlePrint}>
-            <Printer size={13} /> Print
+          <button className="btn primary" onClick={handlePrint} disabled={exporting} title="Send directly to thermal printer">
+            {exporting ? (
+              <span className="spinner" />
+            ) : (
+              <Printer size={13} />
+            )}
+            {exporting ? "Printing…" : "Print"}
           </button>
         </div>
       </div>
