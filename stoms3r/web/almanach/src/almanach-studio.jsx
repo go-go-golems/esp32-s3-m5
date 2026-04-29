@@ -17,10 +17,10 @@ const THEMES = {
     name: "Classic",
     icon: "✦",
     paper: "#ffffff",
-    ink: "#1f1a14",
-    muted: "#7a6d55",
-    accent: "#3a2f20",
-    rule: "#2a2218",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', 'Georgia', serif",
     fontBody: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     titleSize: 36,
@@ -28,16 +28,16 @@ const THEMES = {
     titleSpacing: "0.1em",
     titleCase: "uppercase",
     ornateFrame: true,
-    grain: 0.06,
+    grain: 0,
   },
   minimal: {
     name: "Minimal",
     icon: "—",
     paper: "#ffffff",
-    ink: "#1a1815",
-    muted: "#8a8175",
-    accent: "#2a2620",
-    rule: "#2a2620",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     fontBody: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     titleSize: 34,
@@ -45,16 +45,16 @@ const THEMES = {
     titleSpacing: "0.18em",
     titleCase: "uppercase",
     ornateFrame: false,
-    grain: 0.04,
+    grain: 0,
   },
   botanical: {
     name: "Botanical",
     icon: "❦",
     paper: "#ffffff",
-    ink: "#22281c",
-    muted: "#6e7560",
-    accent: "#3d4a31",
-    rule: "#3d4a31",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', 'Georgia', serif",
     fontBody: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     titleSize: 32,
@@ -63,16 +63,16 @@ const THEMES = {
     titleCase: "none",
     ornateFrame: false,
     botanical: true,
-    grain: 0.05,
+    grain: 0,
   },
   notebook: {
     name: "Notebook",
     icon: "✎",
     paper: "#ffffff",
-    ink: "#1f2a3a",
-    muted: "#8090a8",
-    accent: "#2c4470",
-    rule: "#9fb4d4",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'Caveat', 'Comic Sans MS', 'Chalkboard SE', cursive",
     fontBody: "'Kalam', 'Comic Sans MS', 'Chalkboard SE', cursive",
     titleSize: 38,
@@ -81,16 +81,16 @@ const THEMES = {
     titleCase: "none",
     ornateFrame: false,
     lined: true,
-    grain: 0.03,
+    grain: 0,
   },
   ledger: {
     name: "Vintage Ledger",
     icon: "▣",
     paper: "#ffffff",
-    ink: "#1d1810",
-    muted: "#7a6d55",
-    accent: "#2a2218",
-    rule: "#2a2218",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', 'Georgia', serif",
     fontBody: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     titleSize: 30,
@@ -99,16 +99,16 @@ const THEMES = {
     titleCase: "uppercase",
     ornateFrame: false,
     boxed: true,
-    grain: 0.05,
+    grain: 0,
   },
   space: {
     name: "Space Age",
     icon: "✦",
     paper: "#ffffff",
-    ink: "#f4eedc",
-    muted: "#9a9080",
-    accent: "#e8d9ad",
-    rule: "#3a3429",
+    ink: "#000000",
+    muted: "#000000",
+    accent: "#000000",
+    rule: "#000000",
     fontDisplay: "'Cormorant Garamond', 'Palatino Linotype', 'Book Antiqua', 'Georgia', serif",
     fontBody: "'EB Garamond', 'Georgia', 'Cambria', 'Times New Roman', serif",
     titleSize: 32,
@@ -117,7 +117,7 @@ const THEMES = {
     titleCase: "uppercase",
     ornateFrame: false,
     space: true,
-    grain: 0.08,
+    grain: 0,
   },
 };
 
@@ -247,7 +247,7 @@ const STARTER_BLOCKS = [
 
 const Ornament = ({ theme, kind = "rule" }) => {
   if (kind === "rule") {
-    return <div style={{ borderTop: `1px solid ${theme.rule}`, opacity: 0.6, margin: "10px 0" }} />;
+    return <div style={{ borderTop: `1px solid ${theme.rule}`, margin: "10px 0" }} />;
   }
   if (kind === "dots") {
     return (
@@ -259,7 +259,7 @@ const Ornament = ({ theme, kind = "rule" }) => {
   if (kind === "wave") {
     return (
       <svg width="100%" height="10" viewBox="0 0 200 10" preserveAspectRatio="none" style={{ margin: "8px 0" }}>
-        <path d="M0,5 Q12.5,0 25,5 T50,5 T75,5 T100,5 T125,5 T150,5 T175,5 T200,5" fill="none" stroke={theme.rule} strokeWidth="1" opacity="0.6" />
+        <path d="M0,5 Q12.5,0 25,5 T50,5 T75,5 T100,5 T125,5 T150,5 T175,5 T200,5" fill="none" stroke={theme.rule} strokeWidth="1" />
       </svg>
     );
   }
@@ -267,9 +267,9 @@ const Ornament = ({ theme, kind = "rule" }) => {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, margin: "10px 0", color: theme.accent, fontSize: 14 }}>
         <span style={{ transform: "rotate(-15deg)" }}>❦</span>
-        <div style={{ flex: 1, borderTop: `1px solid ${theme.rule}`, opacity: 0.5 }} />
+        <div style={{ flex: 1, borderTop: `1px solid ${theme.rule}` }} />
         <span>✦</span>
-        <div style={{ flex: 1, borderTop: `1px solid ${theme.rule}`, opacity: 0.5 }} />
+        <div style={{ flex: 1, borderTop: `1px solid ${theme.rule}` }} />
         <span style={{ transform: "rotate(15deg)" }}>❦</span>
       </div>
     );
@@ -343,7 +343,7 @@ const DateBlock = ({ data, theme }) => (
     padding: "4px 0",
     borderTop: `1px solid ${theme.rule}`,
     borderBottom: `1px solid ${theme.rule}`,
-    opacity: 0.95,
+    opacity: 1,
     letterSpacing: "0.05em",
   }}>
     {data.date} <span style={{ margin: "0 8px", color: theme.muted }}>|</span> {data.day}
@@ -358,7 +358,7 @@ const PlanBlock = ({ data, theme }) => (
         <div key={i} style={{
           display: "flex", alignItems: "baseline", gap: 8,
           padding: "2px 0",
-          opacity: it.done ? 0.7 : 1,
+          opacity: 1,
         }}>
           <span style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -1041,9 +1041,9 @@ const ThermalPaper = React.forwardRef(({ blocks, theme, selectedId, onSelect, on
           padding: theme.ornateFrame ? "20px 22px" : (theme.lined ? "16px 24px" : "20px 22px"),
           position: "relative",
           backgroundImage: theme.lined
-            ? `repeating-linear-gradient(to bottom, transparent 0, transparent 21px, ${theme.rule}30 21px, ${theme.rule}30 22px)`
-            : (theme.space ? `radial-gradient(circle at 20% 10%, ${theme.muted}15 0px, transparent 1px), radial-gradient(circle at 70% 30%, ${theme.muted}15 0px, transparent 1px), radial-gradient(circle at 40% 70%, ${theme.muted}10 0px, transparent 1px)` : "none"),
-          backgroundSize: theme.space ? "8px 8px, 12px 12px, 16px 16px" : "auto",
+            ? `repeating-linear-gradient(to bottom, transparent 0, transparent 21px, ${theme.rule} 21px, ${theme.rule} 22px)`
+            : "none",
+          backgroundSize: "auto",
         }}
       >
         {/* paper grain */}
@@ -1052,7 +1052,7 @@ const ThermalPaper = React.forwardRef(({ blocks, theme, selectedId, onSelect, on
           style={{
             position: "absolute", inset: 0, pointerEvents: "none",
             opacity: theme.grain,
-            mixBlendMode: theme.space ? "screen" : "multiply",
+            mixBlendMode: "multiply",
             backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")`,
           }}
         />
@@ -1073,16 +1073,16 @@ const ThermalPaper = React.forwardRef(({ blocks, theme, selectedId, onSelect, on
         {/* botanical corner decorations */}
         {theme.botanical && (
           <>
-            <div aria-hidden style={{ position: "absolute", top: 6, left: 8, color: theme.accent, fontSize: 18, opacity: 0.7 }}>❦</div>
-            <div aria-hidden style={{ position: "absolute", top: 6, right: 8, color: theme.accent, fontSize: 18, opacity: 0.7, transform: "scaleX(-1)" }}>❦</div>
-            <div aria-hidden style={{ position: "absolute", bottom: 14, left: 8, color: theme.accent, fontSize: 18, opacity: 0.7, transform: "scaleY(-1)" }}>❦</div>
-            <div aria-hidden style={{ position: "absolute", bottom: 14, right: 8, color: theme.accent, fontSize: 18, opacity: 0.7, transform: "scale(-1, -1)" }}>❦</div>
+            <div aria-hidden style={{ position: "absolute", top: 6, left: 8, color: theme.accent, fontSize: 18 }}>❦</div>
+            <div aria-hidden style={{ position: "absolute", top: 6, right: 8, color: theme.accent, fontSize: 18, transform: "scaleX(-1)" }}>❦</div>
+            <div aria-hidden style={{ position: "absolute", bottom: 14, left: 8, color: theme.accent, fontSize: 18, transform: "scaleY(-1)" }}>❦</div>
+            <div aria-hidden style={{ position: "absolute", bottom: 14, right: 8, color: theme.accent, fontSize: 18, transform: "scale(-1, -1)" }}>❦</div>
           </>
         )}
 
         {/* space age stars */}
         {theme.space && (
-          <div aria-hidden style={{ position: "absolute", top: 4, left: 0, right: 0, textAlign: "center", color: theme.accent, fontSize: 8, letterSpacing: "1em", opacity: 0.6 }}>
+          <div aria-hidden style={{ position: "absolute", top: 4, left: 0, right: 0, textAlign: "center", color: theme.accent, fontSize: 8, letterSpacing: "1em" }}>
             ✦ · · ✦ · · ✦
           </div>
         )}
@@ -1289,7 +1289,7 @@ function parseLayoutJson(text) {
     parsed.paperWidth >= 280 &&
     parsed.paperWidth <= 600
       ? parsed.paperWidth
-      : 380;
+      : 384;
 
   return { blocks, themeKey, paperWidth };
 }
@@ -1302,7 +1302,7 @@ export default function AlmanachStudio() {
   const [blocks, setBlocks] = useState(STARTER_BLOCKS);
   const [selectedId, setSelectedId] = useState(STARTER_BLOCKS[0].id);
   const [themeKey, setThemeKey] = useState("classic");
-  const [paperWidth, setPaperWidth] = useState(380);
+  const [paperWidth, setPaperWidth] = useState(384);
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
   const [exporting, setExporting] = useState(false);
