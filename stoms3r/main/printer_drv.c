@@ -18,13 +18,13 @@ static const char *TAG = "printer_drv";
 static bool s_pins_swapped = false;
 static int s_baud = PRINTER_BAUD;
 
-/* Conservative bitmap pacing.
+/* Bitmap pacing.
  *
- * At 384 dots wide, each raster row is 48 bytes.  Five rows are therefore
- * 240 bytes, which fits inside the common 256-byte input-buffer heuristic used
- * by small serial thermal printer libraries when no flow-control signal is
- * trusted.  Pausing between complete GS v 0 commands is legal; pausing inside
- * one command's pixel payload is not.
+ * The K118 exposes a CTS/busy line on the ATOM header.  With CTS enabled, the
+ * UART peripheral pauses TX whenever the printer deasserts readiness, so we can
+ * send one complete GS v 0 raster command without inserting artificial band
+ * seams.  The banded helper remains available for diagnostics, but is not the
+ * default path because visible seams can appear at every band boundary.
  */
 #define PRINTER_BITMAP_DEFAULT_BAND_ROWS 5
 #define PRINTER_BITMAP_DEFAULT_BAND_DELAY_MS 50
@@ -51,8 +51,13 @@ static esp_err_t send_bytes(const uint8_t *data, size_t len)
                  written, (unsigned)len);
         return ESP_FAIL;
     }
-    /* Wait for the UART TX FIFO to drain */
-    esp_err_t wait_err = uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(5000));
+    /* Wait for the UART TX FIFO to drain.  Bitmap payloads are slow at
+     * 9600 baud (roughly 1 ms/byte before CTS pauses), so use a length-based
+     * timeout rather than the short command timeout. */
+    uint32_t timeout_ms = (uint32_t)(((uint64_t)len * 12000ULL) / (uint32_t)s_baud) + 10000U;
+    if (timeout_ms < 5000U) timeout_ms = 5000U;
+    if (timeout_ms > 120000U) timeout_ms = 120000U;
+    esp_err_t wait_err = uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(timeout_ms));
     if (wait_err != ESP_OK) {
         ESP_LOGW(TAG, "uart_wait_tx_done: %s", esp_err_to_name(wait_err));
     }
@@ -68,7 +73,7 @@ esp_err_t printer_drv_init(void)
         .data_bits  = UART_DATA_8_BITS,
         .parity     = UART_PARITY_DISABLE,
         .stop_bits  = UART_STOP_BITS_1,
-        .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
+        .flow_ctrl  = UART_HW_FLOWCTRL_CTS,
         .source_clk = UART_SCLK_DEFAULT,
     };
 
@@ -217,9 +222,14 @@ esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height)
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels)
 {
-    return printer_drv_print_bitmap_banded(width, height, pixels,
-                                           PRINTER_BITMAP_DEFAULT_BAND_ROWS,
-                                           PRINTER_BITMAP_DEFAULT_BAND_DELAY_MS);
+    if (!pixels || width == 0 || height == 0 || (width % 8) != 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    uint16_t bytes_per_row = width / 8;
+    ESP_RETURN_ON_ERROR(printer_drv_print_bitmap_header(width, height),
+                        TAG, "bitmap header");
+    return send_bytes(pixels, (size_t)bytes_per_row * height);
 }
 
 esp_err_t printer_drv_print_bitmap_banded(uint16_t width, uint16_t height,

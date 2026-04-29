@@ -96,19 +96,17 @@ esp_err_t printer_drv_print_bitmap_header(uint16_t width, uint16_t height);
 /**
  * Print a 1-bit monochrome raster bitmap (MSB first).
  * `width` must be a multiple of 8. `pixels` points to (width/8)*height bytes.
- * Uses conservative banding by default so dense images do not overrun the
- * printer during thermal/power pauses.
+ * Sends one complete raster command. UART CTS flow control is enabled so the
+ * printer can pause TX without losing bytes when it is busy.
  */
 esp_err_t printer_drv_print_bitmap(uint16_t width, uint16_t height,
                                     const uint8_t *pixels);
 
 /**
- * Print a bitmap as multiple complete GS v 0 raster bands.
+ * Diagnostic fallback: print a bitmap as multiple complete GS v 0 raster bands.
  *
- * Pauses between *complete* raster commands are legal; pauses inside one
- * raster command's pixel data can create stripe artifacts or buffer overrun.
- * Use small bands (for 384px width, 5 rows ~= 240 data bytes) when the
- * printer visibly pauses on dense output.
+ * This is useful only when CTS is unavailable. It may create visible regular
+ * seams at band boundaries, so the normal bitmap path does not use it.
  */
 esp_err_t printer_drv_print_bitmap_banded(uint16_t width, uint16_t height,
                                            const uint8_t *pixels,

@@ -168,10 +168,9 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
     }
 
     /* Read the entire body into memory first.  Network receive gaps must not
-     * occur inside a raster command's pixel payload.  After the body is local,
-     * the printer driver sends it as small complete GS v 0 raster bands.  This
-     * gives the printer legal pause points when dense images trigger thermal or
-     * power throttling. */
+     * occur inside a raster command's pixel payload.  The printer driver then
+     * sends one complete GS v 0 raster command while UART CTS flow control lets
+     * the printer pause TX when its input buffer or thermal engine is busy. */
     size_t body_len = 0;
     char *body = read_body(req, &body_len);
     if (!body || body_len != expected) {
@@ -180,9 +179,8 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    esp_err_t err = printer_drv_print_bitmap_banded(width, height,
-                                                    (const uint8_t *)body,
-                                                    5, 50);
+    esp_err_t err = printer_drv_print_bitmap(width, height,
+                                             (const uint8_t *)body);
     free(body);
 
     if (err != ESP_OK) {
