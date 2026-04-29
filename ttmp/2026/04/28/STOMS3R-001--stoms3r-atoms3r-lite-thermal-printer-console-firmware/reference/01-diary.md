@@ -375,3 +375,54 @@ The K118 Set Baud Rate command encodes the requested baud as a 32-bit little-end
 7. Try `921600` only if 460800 is stable.
 
 If communication is lost, use `printer_baud <rate>` to resync the ESP32 side or power-cycle the printer to return it to 9600.
+
+---
+
+## Step 8: Printer diagnostics and tuning APIs
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Implement the previously proposed high-value K118 commands in both `esp_console` and the web API: status, temperature, printer baud query, density, speed, and graphics mode.
+
+**Commit (code):** 029722a — "stoms3r: add printer diagnostics and tuning APIs"
+
+### What I did
+
+- Added driver support for:
+  - `GS a n` 4-byte status query
+  - `GS g 6` printer temperature query
+  - `GS g 7` printer-side baud query
+  - `ESC ## STDP n` print density setting
+  - `ESC ## STSP n` print speed setting
+  - `ESC ## SPSM n` graphics print mode setting
+- Added console commands:
+  - `printer_status`
+  - `printer_temp`
+  - `printer_get_baud`
+  - `printer_density <0-39>`
+  - `printer_speed <25|30|37|50|56|62|70|80|90|100|120|150|180|200|220>`
+  - `printer_graphics_mode <30|31|32>`
+- Added web API endpoints:
+  - `GET /api/printer/status`
+  - `GET /api/printer/temp`
+  - `GET /api/printer/baud`
+  - `POST /api/printer/density`
+  - `POST /api/printer/speed`
+  - `POST /api/printer/graphics-mode`
+- Increased HTTP server URI handler capacity from 8 to 16.
+- Updated README command list.
+- Verified `idf.py build` succeeds.
+
+### Why
+
+The bitmap stripe/pause issue needs real observability. The translated K118 command manual gives us direct commands for buffer-full status, overheat status, temperature, printer-side baud verification, density, speed, and graphics mode. These are the knobs and gauges we need before continuing with more speculative transport fixes.
+
+### What should be tested next
+
+- `printer_status` before and during bitmap prints, watching `buffer_full` and `overheated`.
+- `printer_temp` before and after dense test patterns.
+- `printer_get_baud` after `set_baudrate 115200` / `230400`.
+- Try lower density values, e.g. `printer_density 12`, `20`, `28`, with `graylevels`.
+- Try `printer_graphics_mode 31` (adaptive) versus `32` (constant) for bitmap stripe behavior.
