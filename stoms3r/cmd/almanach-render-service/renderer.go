@@ -132,8 +132,21 @@ func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*Rend
 	}, nil
 }
 
-// newChromeAllocator creates a shared Chrome process allocator.
-func newChromeAllocator(chromePath string) (context.Context, context.CancelFunc) {
+// newChromeAllocator creates a Chrome allocator. Two modes:
+//
+//   - If CHROME_WS_URL is set (e.g. "ws://chrome:9222"), connects to a remote
+//     headless-shell container. This is the Docker/production mode.
+//   - Otherwise, launches a local Chrome process. This is the dev mode.
+func newChromeAllocator(cfg Config) (context.Context, context.CancelFunc) {
+	if cfg.ChromeWSURL != "" {
+		// Remote mode: connect to headless-shell container
+		log.Printf("Chrome mode: remote (%s)", cfg.ChromeWSURL)
+		allocCtx, cancel := chromedp.NewRemoteAllocator(context.Background(), cfg.ChromeWSURL)
+		return allocCtx, cancel
+	}
+
+	// Local mode: launch Chrome ourselves
+	log.Printf("Chrome mode: local (launching Chrome)")
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
 		chromedp.Flag("disable-gpu", true),
@@ -149,8 +162,8 @@ func newChromeAllocator(chromePath string) (context.Context, context.CancelFunc)
 		chromedp.WindowSize(384, 2000),
 	)
 
-	if chromePath != "" {
-		opts = append(opts, chromedp.ExecPath(chromePath))
+	if cfg.ChromePath != "" {
+		opts = append(opts, chromedp.ExecPath(cfg.ChromePath))
 	}
 
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)

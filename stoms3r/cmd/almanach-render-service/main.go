@@ -22,7 +22,7 @@ func main() {
 	log.Printf("  Chrome:      %s", cfg.ChromePath)
 
 	// Create a global Chrome allocator (one Chrome process shared across requests).
-	allocatorCtx, allocatorCancel := newChromeAllocator(cfg.ChromePath)
+	allocatorCtx, allocatorCancel := newChromeAllocator(cfg)
 	defer allocatorCancel()
 
 	// Create the server with all dependencies.

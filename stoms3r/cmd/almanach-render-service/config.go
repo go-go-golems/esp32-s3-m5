@@ -11,6 +11,7 @@ type Config struct {
 	WebDir      string // Directory serving almanach SPA static files
 	PrinterIP   string // ESP32 stoms3r device IP address
 	ChromePath  string // Path to Chrome/Chromium binary (empty = auto-detect)
+	ChromeWSURL string // WebSocket URL for remote Chrome (e.g. "ws://chrome:9222")
 	PaperWidth  int    // Default paper width in pixels (default 384)
 	BodyScale   float64
 	FeedLines   int    // Default feed lines after printing (default 3)
@@ -24,6 +25,7 @@ func loadConfig() Config {
 		WebDir:       envStr("ALMANACH_WEB_DIR", "./web/almanach/dist"),
 		PrinterIP:    envStr("ALMANACH_PRINTER_IP", ""),
 		ChromePath:   envStr("ALMANACH_CHROME_PATH", ""),
+		ChromeWSURL:  envStr("CHROME_WS_URL", ""),
 		PaperWidth:   envInt("ALMANACH_PAPER_WIDTH", 384),
 		BodyScale:    envFloat("ALMANACH_FONT_SCALE", 1.6),
 		FeedLines:    envInt("ALMANACH_DEFAULT_FEED", 3),
