@@ -167,33 +167,37 @@ static esp_err_t api_print_bitmap_post(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    /* Send the GS v 0 header first */
+    /* Read the entire body into memory first, then send to UART in one
+     * continuous stream. If we interleave httpd_req_recv() calls with
+     * uart_write_bytes(), the TCP reads create gaps in the UART stream
+     * which the printer interprets as line breaks → stripe artifacts.
+     * The UART TX ring buffer (1024 bytes) smooths the output. */
+    size_t body_len = 0;
+    char *body = read_body(req, &body_len);
+    if (!body || body_len != expected) {
+        free(body);
+        send_json_error(req, "failed to read full bitmap body");
+        return ESP_FAIL;
+    }
+
+    /* Send the GS v 0 header */
     esp_err_t err = printer_drv_print_bitmap_header(width, height);
     if (err != ESP_OK) {
+        free(body);
         send_json_error(req, "printer header failed");
         return ESP_FAIL;
     }
 
-    /* Stream the body in chunks directly to UART (no inter-chunk waits) */
-    size_t remaining = expected;
-    uint8_t chunk[128]; /* 128 bytes = ~133ms at 9600 baud — fits in TX buffer */
-    while (remaining > 0) {
-        size_t want = remaining > sizeof(chunk) ? sizeof(chunk) : remaining;
-        int got = httpd_req_recv(req, (char *)chunk, want);
-        if (got <= 0) {
-            send_json_error(req, "body read interrupted");
-            return ESP_FAIL;
-        }
-        err = printer_drv_write_no_wait(chunk, (size_t)got);
-        if (err != ESP_OK) {
-            send_json_error(req, "uart write failed");
-            return ESP_FAIL;
-        }
-        remaining -= (size_t)got;
-    }
+    /* Send all pixel data at once — uart_write_bytes queues into the
+     * TX ring buffer and the UART ISR drains it at 9600 baud.
+     * No gaps, no stripes. */
+    err = printer_drv_send_raw((const uint8_t *)body, body_len);
+    free(body);
 
-    /* Now wait for everything to drain */
-    uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(5000));
+    if (err != ESP_OK) {
+        send_json_error(req, "uart write failed");
+        return ESP_FAIL;
+    }
 
     send_json_ok(req);
     return ESP_OK;

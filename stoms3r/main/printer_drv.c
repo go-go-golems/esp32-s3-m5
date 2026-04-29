@@ -39,7 +39,7 @@ static esp_err_t send_bytes(const uint8_t *data, size_t len)
         return ESP_FAIL;
     }
     /* Wait for the UART TX FIFO to drain */
-    esp_err_t wait_err = uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(500));
+    esp_err_t wait_err = uart_wait_tx_done(PRINTER_UART_NUM, pdMS_TO_TICKS(5000));
     if (wait_err != ESP_OK) {
         ESP_LOGW(TAG, "uart_wait_tx_done: %s", esp_err_to_name(wait_err));
     }
@@ -60,7 +60,7 @@ esp_err_t printer_drv_init(void)
     };
 
     ESP_RETURN_ON_ERROR(
-        uart_driver_install(PRINTER_UART_NUM, 1024, 1024, 0, NULL, 0),
+        uart_driver_install(PRINTER_UART_NUM, 1024, 2048, 0, NULL, 0),
         TAG, "uart_driver_install");
 
     ESP_RETURN_ON_ERROR(
