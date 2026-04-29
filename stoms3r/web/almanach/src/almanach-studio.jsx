@@ -1195,11 +1195,22 @@ async function exportPaperToPng(paperNode, fileName, scale = 2) {
   const w = Math.ceil(rect.width);
   const h = Math.ceil(rect.height);
 
-  // Deep clone the paper, strip interactive chrome, ensure SVG namespaces
+  // Deep clone the paper, strip interactive chrome and zigzag edges, ensure SVG namespaces
   const clone = paperNode.cloneNode(true);
   clone.setAttribute("data-export", "true");
   clone.querySelectorAll(".block-controls").forEach((el) => el.remove());
+  // Remove zigzag edge SVGs — they create transparent gaps that show as black when printed
   clone.querySelectorAll("svg").forEach((svg) => {
+    const parent = svg.parentElement;
+    if (parent && parent.style && parent.style.display !== "none") {
+      // Keep SVGs inside the paper body (weather icon, mood faces, etc.)
+      // but remove the zigzag edge SVGs (they're direct children of paper-shell)
+      const path = svg.querySelector("path");
+      if (path && path.getAttribute("fill") === theme.paper) {
+        svg.remove();
+        return;
+      }
+    }
     if (!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   });
 
@@ -1235,7 +1246,9 @@ async function exportPaperToPng(paperNode, fileName, scale = 2) {
   canvas.width = w * scale;
   canvas.height = h * scale;
   const ctx = canvas.getContext("2d");
-  // Render with theme paper color as background to avoid transparent zigzag edges
+  // Fill with white background first — no transparency for thermal printing
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, w * scale, h * scale);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   ctx.scale(scale, scale);
@@ -1297,7 +1310,7 @@ function parseLayoutJson(text) {
     parsed.bodyScale >= 1 &&
     parsed.bodyScale <= 2
       ? parsed.bodyScale
-      : 1.3;
+      : 1.6;
 
   return { blocks, themeKey, paperWidth, bodyScale };
 }
@@ -1311,7 +1324,7 @@ export default function AlmanachStudio() {
   const [selectedId, setSelectedId] = useState(STARTER_BLOCKS[0].id);
   const [themeKey, setThemeKey] = useState("classic");
   const [paperWidth, setPaperWidth] = useState(384);
-  const [bodyScale, setBodyScale] = useState(1.3);
+  const [bodyScale, setBodyScale] = useState(1.6);
   const [showLeft, setShowLeft] = useState(true);
   const [showRight, setShowRight] = useState(true);
   const [exporting, setExporting] = useState(false);
