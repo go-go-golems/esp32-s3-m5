@@ -33,14 +33,12 @@ func (s *Server) render(ctx context.Context, layoutOverride io.Reader) (*RenderR
 	var layoutJSON string
 
 	if layoutOverride != nil {
-		// Read the layout JSON from the request body
 		data, err := io.ReadAll(layoutOverride)
 		if err != nil {
 			return nil, fmt.Errorf("read layout: %w", err)
 		}
 		layoutJSON = string(data)
 	} else {
-		// Build layout from data fetchers
 		layout, err := buildDefaultLayout(s.cfg)
 		if err != nil {
 			return nil, fmt.Errorf("build layout: %w", err)
@@ -58,27 +56,48 @@ func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*Rend
 
 	log.Printf("[render] Starting Chrome render for %d bytes of layout JSON", len(layoutJSON))
 
-	// Create a new Chrome tab for this render (shared Chrome process).
 	tabCtx, tabCancel := chromedp.NewContext(s.allocatorCtx)
 	defer tabCancel()
 
-	// Timeout for this specific render.
 	renderCtx, renderCancel := context.WithTimeout(tabCtx, 30*time.Second)
 	defer renderCancel()
 
 	log.Printf("[render] Chrome tab created, running actions...")
 
-	// First: navigate and load the layout, take a screenshot of .paper-shell
 	var screenshotBuf []byte
 
-	// Use a synchronous load + sleep + screenshot approach
+	// CSS to hide all editor UI and leave only the paper content visible.
+	// Class names must match the JSX exactly: .topbar, .rail, .block-controls, etc.
+	hideChromeJS := `(function() {
+		var s = document.createElement('style');
+		s.id = '__render-capture';
+		s.textContent =
+			'.topbar { display: none !important; }' +
+			'.rail { display: none !important; }' +
+			'.block-controls { display: none !important; }' +
+			'.block-wrap { outline: none !important; }' +
+			'.block-wrap::before { display: none !important; }' +
+			'.paper-shell { filter: none !important; margin: 0 auto !important; box-shadow: none !important; }' +
+			'.almanach-app { background: #ffffff !important; }';
+		document.head.appendChild(s);
+		document.querySelectorAll('.block-wrap').forEach(function(el) {
+			el.classList.remove('selected');
+		});
+	})();`
+
 	err := chromedp.Run(renderCtx,
 		chromedp.Navigate(fmt.Sprintf("http://localhost:%d/almanach", s.cfg.Port)),
 		chromedp.WaitVisible("body", chromedp.ByQuery),
 		chromedp.Sleep(500*time.Millisecond),
 		chromedp.Evaluate(fmt.Sprintf(`window.almanachLoadLayout(%s)`, layoutJSON), nil),
 		chromedp.Sleep(1*time.Second),
+		// Hide editor chrome
+		chromedp.Evaluate(hideChromeJS, nil),
+		chromedp.Sleep(200*time.Millisecond),
+		// Screenshot just the paper element
 		chromedp.Screenshot(".paper-shell", &screenshotBuf, chromedp.ByQuery, chromedp.NodeVisible),
+		// Clean up
+		chromedp.Evaluate(`document.getElementById('__render-capture')?.remove()`, nil),
 	)
 
 	if err != nil {
@@ -88,7 +107,6 @@ func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*Rend
 
 	log.Printf("[render] Screenshot captured: %d bytes PNG", len(screenshotBuf))
 
-	// Convert PNG screenshot to 1-bit bitmap
 	bitmap, err := PngToBitmap(screenshotBuf, 128)
 	if err != nil {
 		return nil, fmt.Errorf("bitmap convert: %w", err)
@@ -113,13 +131,11 @@ func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*Rend
 //   - Otherwise, launches a local Chrome process. This is the dev mode.
 func newChromeAllocator(cfg Config) (context.Context, context.CancelFunc) {
 	if cfg.ChromeWSURL != "" {
-		// Remote mode: connect to headless-shell container
 		log.Printf("Chrome mode: remote (%s)", cfg.ChromeWSURL)
 		allocCtx, cancel := chromedp.NewRemoteAllocator(context.Background(), cfg.ChromeWSURL)
 		return allocCtx, cancel
 	}
 
-	// Local mode: launch Chrome ourselves
 	log.Printf("Chrome mode: local (launching Chrome)")
 	opts := []chromedp.ExecAllocatorOption{
 		chromedp.NoFirstRun,
@@ -130,7 +146,8 @@ func newChromeAllocator(cfg Config) (context.Context, context.CancelFunc) {
 		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("hide-scrollbars", true),
 		chromedp.Flag("force-device-scale-factor", "1.0"),
-		chromedp.WindowSize(384, 2000),
+		// Wide viewport so .paper-shell screenshot crops to just the element
+		chromedp.WindowSize(1200, 2000),
 	}
 
 	if cfg.ChromePath != "" {
