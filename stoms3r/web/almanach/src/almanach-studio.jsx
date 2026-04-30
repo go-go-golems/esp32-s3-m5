@@ -1415,8 +1415,8 @@ export default function AlmanachStudio() {
         if (!svg.getAttribute("xmlns")) svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
       });
 
-      const fontCss = await getInlineFontCss();
-      const appStyleSheets = Array.from(document.querySelectorAll("style")).map((s) => s.textContent).join("\n");
+      // For headless: only use export overrides, skip font/app CSS to avoid
+      // cross-origin canvas taint from external font URLs in stylesheets.
       const exportOverrides = `
         [data-export] { filter: none !important; margin: 0 !important; }
         [data-export] .block-controls { display: none !important; }
@@ -1427,7 +1427,7 @@ export default function AlmanachStudio() {
       const xhtml = new XMLSerializer().serializeToString(clone);
       const svgString =
         `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">` +
-        `<defs><style type="text/css"><![CDATA[${fontCss}\n${appStyleSheets}\n${exportOverrides}]]></style></defs>` +
+        `<defs><style type="text/css"><![CDATA[${exportOverrides}]]></style></defs>` +
         `<foreignObject x="0" y="0" width="${W}" height="${H}">${xhtml}</foreignObject>` +
         `</svg>`;
 

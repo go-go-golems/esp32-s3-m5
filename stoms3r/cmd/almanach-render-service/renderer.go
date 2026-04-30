@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -57,6 +56,8 @@ func (s *Server) render(ctx context.Context, layoutOverride io.Reader) (*RenderR
 func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*RenderResult, error) {
 	start := time.Now()
 
+	log.Printf("[render] Starting Chrome render for %d bytes of layout JSON", len(layoutJSON))
+
 	// Create a new Chrome tab for this render (shared Chrome process).
 	tabCtx, tabCancel := chromedp.NewContext(s.allocatorCtx)
 	defer tabCancel()
@@ -65,67 +66,40 @@ func (s *Server) renderWithChrome(ctx context.Context, layoutJSON string) (*Rend
 	renderCtx, renderCancel := context.WithTimeout(tabCtx, 30*time.Second)
 	defer renderCancel()
 
-	var bitmapResult struct {
-		Width  int    `json:"width"`
-		Height int    `json:"height"`
-		Data   string `json:"data"` // base64-encoded bitmap bytes
-	}
+	log.Printf("[render] Chrome tab created, running actions...")
 
+	// First: navigate and load the layout, take a screenshot of .paper-shell
+	var screenshotBuf []byte
+
+	// Use a synchronous load + sleep + screenshot approach
 	err := chromedp.Run(renderCtx,
-		// 1. Navigate to the SPA served by this Go server
 		chromedp.Navigate(fmt.Sprintf("http://localhost:%d/almanach", s.cfg.Port)),
-
-		// 2. Wait for the SPA to signal readiness
-		chromedp.WaitReady("window.almanachReady", chromedp.ByJSPath),
-
-		// 3. Inject the layout data
+		chromedp.WaitVisible("body", chromedp.ByQuery),
+		chromedp.Sleep(500*time.Millisecond),
 		chromedp.Evaluate(fmt.Sprintf(`window.almanachLoadLayout(%s)`, layoutJSON), nil),
-
-		// 4. Wait for React to finish rendering + fonts to load
-		chromedp.Sleep(800*time.Millisecond),
-
-		// 5. Export the bitmap from the SPA
-		chromedp.Evaluate(`
-			new Promise(resolve => {
-				window.almanachExportBitmap().then(r => {
-					const bytes = new Uint8Array(r.data);
-					let binary = '';
-					for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-					resolve({ width: r.width, height: r.height, data: btoa(binary) });
-				}).catch(e => resolve({ error: e.message }));
-			})
-		`, &bitmapResult),
+		chromedp.Sleep(1*time.Second),
+		chromedp.Screenshot(".paper-shell", &screenshotBuf, chromedp.ByQuery, chromedp.NodeVisible),
 	)
 
 	if err != nil {
+		log.Printf("[render] Chrome error: %v", err)
 		return nil, fmt.Errorf("chrome render: %w", err)
 	}
 
-	if bitmapResult.Data == "" {
-		return nil, fmt.Errorf("chrome render: empty bitmap data")
-	}
+	log.Printf("[render] Screenshot captured: %d bytes PNG", len(screenshotBuf))
 
-	// Decode the base64 bitmap
-	bitmapBytes, err := base64.StdEncoding.DecodeString(bitmapResult.Data)
+	// Convert PNG screenshot to 1-bit bitmap
+	bitmap, err := PngToBitmap(screenshotBuf, 128)
 	if err != nil {
-		return nil, fmt.Errorf("decode bitmap: %w", err)
-	}
-
-	bytesPerRow := bitmapResult.Width / 8
-	if bytesPerRow == 0 {
-		return nil, fmt.Errorf("invalid bitmap width: %d", bitmapResult.Width)
+		return nil, fmt.Errorf("bitmap convert: %w", err)
 	}
 
 	elapsed := time.Since(start)
-	log.Printf("Rendered %dx%d bitmap (%d bytes) in %v", bitmapResult.Width, bitmapResult.Height, len(bitmapBytes), elapsed)
+	log.Printf("Rendered %dx%d bitmap (%d bytes) in %v", bitmap.Width, bitmap.Height, len(bitmap.Data), elapsed)
 
 	return &RenderResult{
-		Bitmap: &Bitmap{
-			Width:       bitmapResult.Width,
-			Height:      bitmapResult.Height,
-			BytesPerRow: bytesPerRow,
-			Data:        bitmapBytes,
-		},
+		Bitmap:     bitmap,
+		PNG:        screenshotBuf,
 		Theme:      extractThemeFromLayout(layoutJSON),
 		RenderedAt: time.Now().UTC().Format(time.RFC3339),
 		LayoutJSON: layoutJSON,
@@ -147,20 +121,17 @@ func newChromeAllocator(cfg Config) (context.Context, context.CancelFunc) {
 
 	// Local mode: launch Chrome ourselves
 	log.Printf("Chrome mode: local (launching Chrome)")
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true),
+	opts := []chromedp.ExecAllocatorOption{
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Headless,
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
 		chromedp.Flag("hide-scrollbars", true),
-		chromedp.Flag("disable-extensions", true),
-		chromedp.Flag("disable-background-networking", true),
-		chromedp.Flag("disable-default-apps", true),
-		chromedp.Flag("disable-sync", true),
-		chromedp.Flag("mute-audio", true),
-		chromedp.Flag("force-device-scale-factor", 1.0),
+		chromedp.Flag("force-device-scale-factor", "1.0"),
 		chromedp.WindowSize(384, 2000),
-	)
+	}
 
 	if cfg.ChromePath != "" {
 		opts = append(opts, chromedp.ExecPath(cfg.ChromePath))
