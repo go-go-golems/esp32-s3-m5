@@ -33,3 +33,12 @@ Added PicoCalc UF2 Loader nerd-card layout based on Obsidian article and validat
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/layouts/09-picocalc-uf2-nerd-card.yaml — New nerd-card example layout
 
+
+## 2026-05-08
+
+Wrote and committed Obsidian deep-dive technical report for the day's Almanach image-block work (vault commit 2f883ee).
+
+### Related Files
+
+- /home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md — Vault project report
+

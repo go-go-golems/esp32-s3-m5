@@ -12,6 +12,8 @@ Owners: []
 RelatedFiles:
     - Path: ../../../../../../../../../../code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md
       Note: Source article summarized by the nerd-card layout
+    - Path: ../../../../../../../../../../code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md
+      Note: Obsidian technical deep dive report for the day (vault commit 2f883ee)
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/07-analog-photography.yaml
       Note: Example layout created during this session and future candidate for embedded image block validation
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/08-image-block.yaml
@@ -28,6 +30,7 @@ LastUpdated: 2026-05-08T09:12:54.691246585-04:00
 WhatFor: Use this to resume or review the Almanach image-block/upload work without reconstructing the session from terminal history.
 WhenToUse: Read before changing Almanach Studio blocks, render/export behavior, examples, or devctl wiring.
 ---
+
 
 
 
@@ -477,3 +480,57 @@ The final layout uses the new `image` block with an embedded SVG boot-flow diagr
 ### Technical details
 - Layout output path: `/tmp/almanach-picocalc-uf2.png`
 - Source article path: `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md`
+
+## Step 7: Write Obsidian Technical Deep Dive Report
+
+The user asked for a detailed project report in the Obsidian vault, written as a technical blog post in a textbook style and without analogies. I created a new article note under the vault's dated project folder and committed it in the vault repository.
+
+The report explains the full day of work: devctl recovery, the initial analog layout, the discovery that images were unsupported, the image block implementation, upload-data-URL design, image-load synchronization across browser and headless render paths, validation layouts, SVG diagram embedding, docmgr tracking, commits, failure modes, and future work.
+
+### Prompt Context
+
+**User prompt (verbatim):** "WRite a detailed project report in the obsidian vault as a deep dive technical blog post using a textbok writing style (no analogies , see skill) about all we did today"
+
+**Assistant interpretation:** Write a durable Obsidian article summarizing the day's Almanach work in explanatory technical prose, using the vault conventions and textbook-authoring style while avoiding analogy-based explanations.
+
+**Inferred user intent:** Preserve a complete, readable project report that can be revisited later without reading the chat transcript or docmgr diary.
+
+**Commit (vault):** 2f883eeee00108de8c7d70622135be372c5f9dbb — "Article: Almanach Studio image block deep dive"
+
+### What I did
+- Read the Obsidian vault writing skill and textbook authoring skill.
+- Read the docmgr diary to reconstruct the session accurately.
+- Read the relevant source snippets in `almanach-studio.jsx` and `renderer.go` for concrete code excerpts.
+- Created `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md`.
+- Wrote frontmatter, summary callout, implementation explanation, code excerpts, command examples, validation details, failure modes, and next-step recommendations.
+- Committed the new vault note in the Obsidian vault repository.
+
+### Why
+- The docmgr diary is a chronological implementation record. The Obsidian article is a durable technical explanation for a future reader who wants to understand the design and implementation without replaying the session.
+
+### What worked
+- The article was created in the vault's dated `Projects/2026/05/08/` folder following the `ARTICLE - ...` naming convention.
+- The vault commit was focused on a single new file despite unrelated existing vault changes.
+
+### What didn't work
+- The Obsidian vault already had many unrelated modified/untracked files. I staged only the new article file to avoid committing unrelated vault state.
+
+### What I learned
+- The day has two parallel records now: the docmgr diary for chronological implementation evidence and the Obsidian article for stable explanatory documentation.
+
+### What was tricky to build
+- The report needed to combine multiple kinds of work without becoming a changelog: service recovery, frontend implementation, render internals, examples, validation, and documentation workflow. The article structure separates these into technical sections so each part teaches one system boundary.
+
+### What warrants a second pair of eyes
+- Review the article for terminology and ensure the future-work section matches current project priorities.
+
+### What should be done in the future
+- If image downscaling or dithering is implemented, append a follow-up section or create a second article rather than overwriting this report.
+
+### Code review instructions
+- Read the Obsidian note at `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md`.
+- Compare its code references against `web/almanach/src/almanach-studio.jsx` and `renderer.go`.
+
+### Technical details
+- Vault commit: `2f883eeee00108de8c7d70622135be372c5f9dbb`
+- Note path: `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md`
