@@ -13,6 +13,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: stoms3r/cmd/almanach-render-service/README.md
+      Note: CLI workflow documentation and YAML examples (commit df08cca)
     - Path: stoms3r/cmd/almanach-render-service/cmd_inspect.go
       Note: Glazed inspect verb for DOM metrics (commit 81fe310)
     - Path: stoms3r/cmd/almanach-render-service/cmd_print.go
@@ -33,6 +35,8 @@ RelatedFiles:
       Note: Schema drift tests for frontend-compatible block data (commit c3708df)
     - Path: stoms3r/cmd/almanach-render-service/main.go
       Note: Glazed/Cobra root entry point (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/plugins/almanach-render.py
+      Note: devctl render/print wrappers updated to use CLI verbs (commit df08cca)
     - Path: stoms3r/cmd/almanach-render-service/render_oneshot.go
       Note: Ephemeral one-shot render server and layout object normalization (commit 81fe310)
     - Path: stoms3r/cmd/almanach-render-service/renderer.go
@@ -41,10 +45,11 @@ RelatedFiles:
         Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T07:30:00-04:00
+LastUpdated: 2026-05-08T07:45:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
 
 
 
@@ -454,3 +459,100 @@ This step also added the ephemeral `127.0.0.1:0` static server that makes one-sh
 - Existing HTTP mode still defaults to `.paper-shell` through the server render path.
 - `print --dry-run` does not require a printer URL or printer IP.
 - The ephemeral server binds only to loopback and an OS-assigned port.
+
+## Step 5: Phase 5 README, devctl integration, and smoke tests
+
+The final implementation patch documented the new CLI workflows and updated the devctl plugin to use the CLI verbs directly for render/print. The supervised devctl service now starts the binary explicitly as `almanach-render-service serve`, while the custom `devctl render` command can render through the one-shot CLI without requiring `devctl up`.
+
+This closes the phased task list for the ticket. Physical print was not repeated in this step; validation covered render, inspect, bitmap generation, dry-run print, server health, devctl plugin discovery, devctl plan, and devctl render through the updated CLI path.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Finish the ticket by updating user-facing documentation, devctl wrappers, and validation notes after implementing the CLI commands.
+
+**Inferred user intent:** The user wants the new CLI to be discoverable and integrated into existing devctl workflows, not only implemented in code.
+
+**Commit (code/docs):** df08cca — "docs: document almanach CLI workflows"
+
+### What I did
+
+- Rewrote `README.md` to document:
+  - one-shot CLI preview,
+  - one-shot CLI print,
+  - `serve` mode,
+  - Docker mode,
+  - CLI command table,
+  - YAML layout examples,
+  - debug artifacts,
+  - inspect/cutoff workflow,
+  - existing HTTP API.
+- Updated `plugins/almanach-render.py`:
+  - launch plan now runs `[binary, "serve"]` explicitly,
+  - `devctl render` calls `almanach-render-service render --out ... --web-dir ...`,
+  - `devctl render` accepts an optional layout path and output path,
+  - `devctl print` calls `almanach-render-service print --web-dir ... --printer-ip ...`.
+- Ran validation commands:
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-cli .`
+  - `python3 -m py_compile plugins/almanach-render.py`
+  - `devctl plugins list`
+  - `devctl plan` and verified the service command includes `serve`
+  - `devctl render /tmp/almanach-devctl-cli.png /tmp/almanach-cli-layout.yaml`
+  - `file /tmp/almanach-devctl-cli.png`
+
+### Why
+
+- README examples are the fastest way for future users/interns to discover the new CLI behavior.
+- devctl should use the new CLI path for render/print so operators do not need a server just to render a local preview.
+- Explicit `serve` in devctl plan makes service mode clear now that the binary has multiple verbs.
+
+### What worked
+
+- `go test ./...` passed.
+- `python3 -m py_compile plugins/almanach-render.py` passed.
+- `devctl plugins list` successfully loaded the plugin after edits.
+- `devctl plan` showed the supervised service command as:
+  - `almanach-render-service serve`
+- `devctl render /tmp/almanach-devctl-cli.png /tmp/almanach-cli-layout.yaml` succeeded and produced:
+  - `/tmp/almanach-devctl-cli.png: PNG image data, 384 x 194, 8-bit/color RGB, non-interlaced`
+
+### What didn't work
+
+- N/A for this phase. Physical `devctl print` was intentionally not run to avoid an unsolicited printer job.
+
+### What I learned
+
+- The devctl plugin can reuse the one-shot CLI path without needing devctl to supervise the server first.
+- Keeping `serve` explicit in launch plans makes the mixed CLI/server binary easier to understand.
+
+### What was tricky to build
+
+- The tricky part was making `devctl render` support both old-style output-only usage and layout-file usage without adding a full argument parser to the plugin. The plugin now treats the first `.json`, `.yaml`, or `.yml` argument as the layout path; otherwise the first argument is the output path.
+
+### What warrants a second pair of eyes
+
+- Review the devctl argument convention and decide whether it should be formalized in plugin help text.
+- Review whether `devctl print` should grow a dry-run option or layout/output argument parsing similar to `devctl render`.
+
+### What should be done in the future
+
+- Optionally run a physical printer smoke test with `almanach-render-service print --layout ... --printer-ip 192.168.0.126` once the user wants paper output.
+- Consider adding shell completion/help examples for the exact devctl custom command arguments.
+
+### Code review instructions
+
+- Review `README.md` from top to bottom as a user-facing workflow guide.
+- Review `plugins/almanach-render.py` command paths for `launch.plan`, `render`, and `print`.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `cd stoms3r/cmd/almanach-render-service && python3 -m py_compile plugins/almanach-render.py`
+  - `cd stoms3r/cmd/almanach-render-service && devctl plan`
+  - `cd stoms3r/cmd/almanach-render-service && devctl render /tmp/almanach-devctl-cli.png /path/to/layout.yaml`
+
+### Technical details
+
+- The repo-local binary `stoms3r/cmd/almanach-render-service/almanach-render-service` was rebuilt during validation but remains untracked and should not be committed.
+- `devctl render` now works as a one-shot CLI wrapper and does not depend on `/api/render`.
+- `devctl health` still checks the supervised HTTP service, as expected.

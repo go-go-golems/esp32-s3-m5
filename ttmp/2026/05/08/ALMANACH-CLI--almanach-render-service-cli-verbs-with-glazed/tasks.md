@@ -11,7 +11,7 @@
 - [x] Refactor renderer to accept base URL, render options, selector, viewport, threshold, and capture CSS
 - [x] Add ephemeral localhost static server for one-shot CLI rendering
 - [x] Align default Go layout generation with frontend Almanach Studio schema
-- [ ] Update devctl plugin and README to use the new CLI verbs
+- [x] Update devctl plugin and README to use the new CLI verbs
 - [x] Phase 0.1: Add detailed phased task breakdown and update diary before code work
 - [x] Phase 1.1: Align layout.go data structs with frontend DEFAULTS/RENDERERS schema (title.text, word.part, history.items, did.items)
 - [x] Phase 1.2: Update fetchers to populate the aligned schema and keep default layout block types frontend-valid
@@ -29,6 +29,6 @@
 - [x] Phase 4.2: Extend render command with bitmap format, threshold flag, debug-dir artifacts, and validation errors
 - [x] Phase 4.3: Implement inspect command that emits selector metrics through Glazed output formats
 - [x] Phase 4.4: Implement print command with printer-ip/printer-url/feed-lines/dry-run and render debug options
-- [ ] Phase 5.1: Update README with server and CLI workflows plus YAML layout examples
-- [ ] Phase 5.2: Update devctl plugin to call CLI verbs for render/print while keeping up/down service management
-- [ ] Phase 5.3: Run smoke tests: go test, render YAML to PNG, inspect metrics, bitmap output, dry-run print, and optional physical print
+- [x] Phase 5.1: Update README with server and CLI workflows plus YAML layout examples
+- [x] Phase 5.2: Update devctl plugin to call CLI verbs for render/print while keeping up/down service management
+- [x] Phase 5.3: Run smoke tests: go test, render YAML to PNG, inspect metrics, bitmap output, dry-run print, and optional physical print

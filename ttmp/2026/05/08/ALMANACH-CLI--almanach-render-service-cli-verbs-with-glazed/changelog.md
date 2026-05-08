@@ -62,3 +62,13 @@ Phases 3-4: Added Glazed/Cobra root, backwards-compatible serve mode, one-shot e
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_root.go — Root command
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/render_oneshot.go — Ephemeral render server
 
+
+## 2026-05-08
+
+Phase 5: Documented CLI workflows, updated devctl render/print to call CLI verbs, verified devctl plan/render and command smoke tests (commit df08cca).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/README.md — CLI documentation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/plugins/almanach-render.py — devctl integration
+
