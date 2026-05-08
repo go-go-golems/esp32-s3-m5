@@ -24,3 +24,12 @@ Implemented image blocks with URL/upload editor support, render-time image waiti
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Headless render image-load wait before screenshot
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/web/almanach/src/almanach-studio.jsx — Image block schema
 
+
+## 2026-05-08
+
+Added PicoCalc UF2 Loader nerd-card layout based on Obsidian article and validated PNG render (commit 8fbf2f0).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/layouts/09-picocalc-uf2-nerd-card.yaml — New nerd-card example layout
+

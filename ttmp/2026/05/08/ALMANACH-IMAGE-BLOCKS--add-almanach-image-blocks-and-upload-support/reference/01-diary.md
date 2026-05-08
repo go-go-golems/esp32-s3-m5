@@ -10,10 +10,14 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../../../../code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md
+      Note: Source article summarized by the nerd-card layout
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/07-analog-photography.yaml
       Note: Example layout created during this session and future candidate for embedded image block validation
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/08-image-block.yaml
       Note: Committed image-block validation layout (commit b33b930)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/09-picocalc-uf2-nerd-card.yaml
+      Note: PicoCalc UF2 Loader nerd-card layout (commit 8fbf2f0)
     - Path: stoms3r/cmd/almanach-render-service/renderer.go
       Note: Headless Chrome render path that must wait for images before screenshot capture
     - Path: stoms3r/cmd/almanach-render-service/web/almanach/src/almanach-studio.jsx
@@ -24,6 +28,7 @@ LastUpdated: 2026-05-08T09:12:54.691246585-04:00
 WhatFor: Use this to resume or review the Almanach image-block/upload work without reconstructing the session from terminal history.
 WhenToUse: Read before changing Almanach Studio blocks, render/export behavior, examples, or devctl wiring.
 ---
+
 
 
 
@@ -391,3 +396,84 @@ The rendered artifact was inspected directly with the `read` tool as requested. 
 - The committed validation example embeds a small grayscale JPEG via `src: >- data:image/jpeg;base64,...`.
 - `ImageBlock` supports `src`, `alt`, `caption`, `height`, `fit`, `border`, and `grayscale`.
 - `ImageEditor` supports direct URL/data URL editing and file upload via `FileReader.readAsDataURL`.
+
+## Step 6: Create PicoCalc UF2 Loader Nerd Card Layout
+
+The user asked for a nerdy Almanach layout based on an Obsidian article about the PicoCalc UF2 Loader two-stage bootloader architecture. I read the article, extracted the key mental model, and turned it into a printable field card.
+
+The final layout uses the new `image` block with an embedded SVG boot-flow diagram, plus structured text blocks for the vector-table metadata trick, power-on decision tree, stock-bootloader failure mode, magic addresses, and the SD-card installation spell.
+
+### Prompt Context
+
+**User prompt (verbatim):** "make a nerd layout about /home/manuel/code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md"
+
+**Assistant interpretation:** Read the specified article and produce a themed Almanach layout summarizing it in a compact technical/nerdy style.
+
+**Inferred user intent:** Create a printable/visual cheat sheet for the PicoCalc UF2 Loader architecture while exercising the newly added image block support.
+
+**Commit (code):** 8fbf2f06240f14e34c3f9389b650d890dd38bf5f — "Almanach: add PicoCalc UF2 nerd card layout"
+
+### What I did
+- Read the Obsidian article at `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md`.
+- Created `examples/layouts/09-picocalc-uf2-nerd-card.yaml`.
+- Embedded a small SVG data URL in an `image` block to show the stage3/key-scan/BOOT2040/app flow.
+- Added blocks covering:
+  - the `Vector Hole` concept at `XIP_BASE + 0x110`,
+  - the power-on key decision tree,
+  - why stock `/firmware/*.bin` failed,
+  - key RP2040 addresses,
+  - the “do not flash BOOT2040.UF2” rule,
+  - the SD card spell for `/BOOT2040.UF2` and `/pico1-apps/...uf2`.
+- Rendered the layout to `/tmp/almanach-picocalc-uf2.png`.
+- Inspected the output with the `read` tool.
+- Fixed crossed-out plan items by setting `done: false` for the decision-tree rows.
+- Regenerated the embedded SVG data URL to avoid clipped text in the diagram.
+- Committed the validated layout.
+
+### Why
+- The article is a perfect match for an Almanach “nerd card”: it has a few core invariants, address constants, and operational commands that benefit from compact print-friendly presentation.
+- Embedding the diagram as SVG exercises the image block without adding external asset dependencies.
+
+### What worked
+- The final render succeeded:
+  - `artifact: /tmp/almanach-picocalc-uf2.png`
+  - `width: 384`
+  - `height: 1968`
+  - `bytes: 151228`
+- The `read` tool showed the diagram and text blocks clearly.
+- The image block handled an embedded SVG data URL correctly through the headless renderer.
+
+### What didn't work
+- The first YAML render failed because an unquoted string containing a colon was parsed as YAML mapping syntax:
+  - `yaml: line 74: mapping values are not allowed in this context`
+- The first rendered plan block used `done: true`, which made every row appear checked and struck-through. That was visually wrong for a decision tree.
+- A regex replacement for the embedded SVG data URL briefly introduced a control character before the `alt:` key, causing:
+  - `yaml: control characters are not allowed`
+  This was repaired by replacing the bad byte with the proper YAML key text.
+
+### What I learned
+- YAML layouts need extra care around technical prose because colons appear frequently in explanations like `KEY: action` or `No key: ...`.
+- `plan` blocks are visually task-oriented; `done: true` means strikethrough, so explanatory sequences should normally use `done: false`.
+- Embedded SVG data URLs are a compact way to add diagrams without committing binary assets.
+
+### What was tricky to build
+- The article is dense, so the main design challenge was choosing a narrow set of high-signal concepts that fit thermal-paper width: boot-flow, vector-hole metadata, stock loader failure mode, magic addresses, and installation rules.
+- The SVG diagram had to be readable after scaling to a 384px paper body; long explanatory labels clipped, so the diagram text was shortened and moved below the boxes.
+
+### What warrants a second pair of eyes
+- The technical summary should be reviewed against the original article if this layout becomes a canonical printable handout.
+- The SVG data URL makes the YAML less hand-editable; this is acceptable for an example but could motivate separate asset support later.
+
+### What should be done in the future
+- Consider adding a `code` or `diagram` block type if many layouts need technical diagrams/snippets.
+- Consider a non-strikethrough “steps” block distinct from `plan` for explanatory flows.
+
+### Code review instructions
+- Review `examples/layouts/09-picocalc-uf2-nerd-card.yaml` alongside the source Obsidian article.
+- Validate with:
+  - `./almanach-render-service render --layout ./examples/layouts/09-picocalc-uf2-nerd-card.yaml --out /tmp/almanach-picocalc-uf2.png --output yaml`
+  - inspect `/tmp/almanach-picocalc-uf2.png` using the `read` tool.
+
+### Technical details
+- Layout output path: `/tmp/almanach-picocalc-uf2.png`
+- Source article path: `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/05/ARTICLE - PicoCalc UF2 Loader - Two-Stage Bootloader Deep Dive.md`
