@@ -135,6 +135,12 @@ topics:
       description: Thermal printer firmware, protocols, and hardware integration
     - slug: escpos
       description: ESC/POS thermal printer protocol and command set
+    - slug: almanach
+      description: Almanach Render Service and Studio layout/rendering workflow
+    - slug: frontend
+      description: Frontend UI implementation and browser interaction
+    - slug: rendering
+      description: Image/page rendering, screenshot capture, and output conversion
 docTypes:
     - slug: index
       description: Ticket index document
