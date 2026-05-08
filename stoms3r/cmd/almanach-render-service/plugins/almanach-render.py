@@ -198,7 +198,7 @@ for line in sys.stdin:
                 {
                     "name": "render",
                     "cwd": repo_root,
-                    "command": [binary],
+                    "command": [binary, "serve"],
                     "env": env,
                     "health": {
                         "type": "http",
@@ -221,6 +221,9 @@ for line in sys.stdin:
             argv = inp.get("argv", [])
             port = os.environ.get("ALMANACH_PORT", str(DEFAULT_PORT))
             base_url = f"http://127.0.0.1:{port}"
+            binary = os.path.join(repo_root, "almanach-render-service")
+            web_dir = os.path.join(repo_root, "web", "almanach", "dist")
+            printer_ip = os.environ.get("ALMANACH_PRINTER_IP", DEFAULT_PRINTER_IP)
 
             if name == "health":
                 r = run(["curl", "-s", f"{base_url}/health"])
@@ -236,14 +239,21 @@ for line in sys.stdin:
                 })
 
             elif name == "render":
-                out_path = argv[0] if argv else "/tmp/almanach-render.png"
-                r = run([
-                    "curl", "-s", "-X", "POST",
-                    "--max-time", "60",
-                    "-H", "Accept: image/png",
-                    f"{base_url}/api/render",
-                    "-o", out_path,
-                ])
+                out_path = "/tmp/almanach-render.png"
+                layout_path = ""
+                if argv:
+                    if argv[0].endswith((".json", ".yaml", ".yml")):
+                        layout_path = argv[0]
+                        if len(argv) > 1:
+                            out_path = argv[1]
+                    else:
+                        out_path = argv[0]
+                        if len(argv) > 1:
+                            layout_path = argv[1]
+                cmd = [binary, "render", "--out", out_path, "--web-dir", web_dir]
+                if layout_path:
+                    cmd.extend(["--layout", layout_path])
+                r = run(cmd)
                 log(f"render: saved to {out_path} (exit {r.returncode})")
                 emit({
                     "type": "response",
@@ -253,11 +263,13 @@ for line in sys.stdin:
                 })
 
             elif name == "print":
-                r = run([
-                    "curl", "-s", "-X", "POST",
-                    "--max-time", "60",
-                    f"{base_url}/api/render-and-print",
-                ])
+                layout_path = argv[0] if argv else ""
+                cmd = [binary, "print", "--web-dir", web_dir]
+                if printer_ip:
+                    cmd.extend(["--printer-ip", printer_ip])
+                if layout_path:
+                    cmd.extend(["--layout", layout_path])
+                r = run(cmd)
                 log(f"print: {r.stdout.strip()}")
                 emit({
                     "type": "response",
