@@ -109,3 +109,12 @@ Phase 8: Added embedded Glazed help entries for layout authoring: getting starte
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/tutorial-daily-briefing.md — Daily briefing tutorial
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/tutorial-knowledge-strip.md — Knowledge strip tutorial
 
+
+## 2026-05-08
+
+Added standalone repository reorganization and packaging design for moving firmware, service, web, examples, docs, scripts, Docker, packaging, and CI into a product-ready repository.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-CLI--almanach-render-service-cli-verbs-with-glazed/design-doc/02-repository-reorganization-and-packaging-design.md — Repository packaging design document
+
