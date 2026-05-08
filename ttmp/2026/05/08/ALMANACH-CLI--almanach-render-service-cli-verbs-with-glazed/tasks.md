@@ -10,13 +10,13 @@
 - [ ] Add inspect CLI verb for DOM metrics, selector validation, and cutoff debugging
 - [ ] Refactor renderer to accept base URL, render options, selector, viewport, threshold, and capture CSS
 - [ ] Add ephemeral localhost static server for one-shot CLI rendering
-- [ ] Align default Go layout generation with frontend Almanach Studio schema
+- [x] Align default Go layout generation with frontend Almanach Studio schema
 - [ ] Update devctl plugin and README to use the new CLI verbs
 - [x] Phase 0.1: Add detailed phased task breakdown and update diary before code work
-- [ ] Phase 1.1: Align layout.go data structs with frontend DEFAULTS/RENDERERS schema (title.text, word.part, history.items, did.items)
-- [ ] Phase 1.2: Update fetchers to populate the aligned schema and keep default layout block types frontend-valid
-- [ ] Phase 1.3: Fix empty HTTP request bodies so /api/render builds default live layout instead of passing an empty layout string
-- [ ] Phase 1.4: Add layout schema/default tests for YAML/JSON-compatible structures and frontend-valid block types
+- [x] Phase 1.1: Align layout.go data structs with frontend DEFAULTS/RENDERERS schema (title.text, word.part, history.items, did.items)
+- [x] Phase 1.2: Update fetchers to populate the aligned schema and keep default layout block types frontend-valid
+- [x] Phase 1.3: Fix empty HTTP request bodies so /api/render builds default live layout instead of passing an empty layout string
+- [x] Phase 1.4: Add layout schema/default tests for YAML/JSON-compatible structures and frontend-valid block types
 - [ ] Phase 2.1: Introduce RenderOptions, RenderMetrics, and selector/threshold/viewport defaults
 - [ ] Phase 2.2: Refactor Chrome render flow to accept BaseURL and selector instead of hardcoded localhost/.paper-shell
 - [ ] Phase 2.3: Apply clipping-safe capture CSS and wait for almanachReady, fonts, and animation frames

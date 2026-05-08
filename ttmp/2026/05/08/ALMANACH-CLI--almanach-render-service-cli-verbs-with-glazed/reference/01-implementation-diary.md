@@ -12,13 +12,24 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: stoms3r/cmd/almanach-render-service/fetch_history.go
+      Note: Frontend-shaped history fallback/live data (commit c3708df)
+    - Path: stoms3r/cmd/almanach-render-service/fetch_news.go
+      Note: Frontend-shaped news fallback data (commit c3708df)
+    - Path: stoms3r/cmd/almanach-render-service/layout.go
+      Note: Frontend-aligned layout schema and default block construction (commit c3708df)
+    - Path: stoms3r/cmd/almanach-render-service/layout_test.go
+      Note: Schema drift tests for frontend-compatible block data (commit c3708df)
+    - Path: stoms3r/cmd/almanach-render-service/renderer.go
+      Note: Empty-body default layout fix before renderer refactor (commit c3708df)
 ExternalSources: []
-Summary: "Chronological notes for the ALMANACH-CLI documentation and future implementation work."
-LastUpdated: 2026-05-08T06:25:00-04:00
-WhatFor: "Use this diary to resume the CLI-verb implementation without rediscovering the analysis context."
-WhenToUse: "Read before implementing or reviewing ALMANACH-CLI changes."
+Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
+LastUpdated: 2026-05-08T06:45:00-04:00
+WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
+WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
 
 # Implementation Diary
 
@@ -120,3 +131,90 @@ This step did not change product code. It changed the ticket plan so that future
 ### Technical details
 
 - The detailed tasks start at Phase 0.1 and continue through Phase 5.3.
+
+## Step 2: Phase 1 schema alignment and empty body fix
+
+The first product-code patch aligned the Go default layout schema with the React frontend schema. This removes a major source of confusing render behavior: Go-generated blocks now use the same keys and block type names that `almanach-studio.jsx` expects when it runs `parseLayoutJson()`.
+
+This step also fixed the HTTP empty-body path. A `POST /api/render` request normally has a non-nil `r.Body`, even when no bytes were sent; the old code interpreted that as an explicit empty layout string. The renderer now treats nil or whitespace-only bodies as "build the default live layout".
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Start executing the phased ticket tasks, beginning with low-risk schema and default-render correctness fixes.
+
+**Inferred user intent:** The user wants implementation progress in focused commits with enough diary context to review and resume.
+
+**Commit (code):** c3708df — "fix: align almanach layout schema with frontend"
+
+### What I did
+
+- Updated `layout.go` so Go data structs match frontend renderer data keys:
+  - `TitleData.Text` serializes as `text`.
+  - `WordData.Part` serializes as `part`.
+  - `HistoryData.Items` serializes as the list expected by `HistoryBlock`.
+  - `DidData` uses block type `did` and `items: []string`.
+  - News, quote, weather, notes, habits, mood, reading, and reflection structs now mirror frontend naming more closely.
+- Updated fetchers:
+  - `fetch_news.go` now sets `Label` and `Time` instead of unused `Summary`.
+  - `fetch_quote.go` now sets `Label`.
+  - `fetch_word.go` now sets `Label` and `Part`.
+  - `fetch_history.go` now returns `HistoryData{Label, Items}`.
+- Fixed `renderer.go` body handling with `bytes.TrimSpace` so empty request bodies build default layout.
+- Added `layout_test.go` to verify key frontend schema expectations and local fallback fetcher shapes.
+- Ran:
+  - `gofmt -w layout.go fetch_news.go fetch_quote.go fetch_word.go fetch_history.go renderer.go layout_test.go`
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-phase1 .`
+
+### Why
+
+- The React SPA is the visual source of truth, so Go-generated layout JSON must match its import/export schema.
+- CLI default rendering will reuse `buildDefaultLayout`; fixing schema first prevents the future CLI from inheriting broken data.
+- The empty-body fix makes existing HTTP behavior more predictable before renderer and CLI refactors.
+
+### What worked
+
+- `go test ./...` passed quickly:
+  - `ok github.com/mmanuel/stoms3r/cmd/almanach-render-service 0.007s`
+- The package built successfully to `/tmp/almanach-render-service-phase1`.
+- The schema test caught the exact fields that were known to be mismatched: title text, word part, history items, and did items.
+
+### What didn't work
+
+- N/A. This phase did not require network rendering or Chrome, so validation remained fast and local.
+
+### What I learned
+
+- The existing Go structs had drifted from the frontend enough that server-generated default layouts could silently render with missing title/word/history/did content.
+- Keeping tests at the JSON-key level is a lightweight way to guard against future schema drift without launching Chrome.
+
+### What was tricky to build
+
+- The tricky part was deciding how far to align structs. I aligned all visible block data structs toward the frontend `DEFAULTS` shape, not only the fields used by the current default layout, because CLI users will eventually pass arbitrary block types.
+- I avoided testing `buildDefaultLayout()` directly because it currently calls network-capable fetchers (`fetchWeather`, `fetchHistory`). The new tests focus on local schema guarantees and fallback fetcher shapes instead.
+
+### What warrants a second pair of eyes
+
+- Review whether the broader struct alignment for habits, reading, reflection, and mood matches the frontend exactly enough for future custom CLI layouts.
+- Review whether `dividerBlock()` changing from `{}` to `{style:"line"}` has any unwanted visual effect. It should match frontend defaults.
+
+### What should be done in the future
+
+- Add a non-network default-layout builder or injectable fetcher layer if we want full `buildDefaultLayout()` tests.
+- Add exported-layout fixtures from the SPA once CLI YAML/JSON ingestion exists.
+
+### Code review instructions
+
+- Start with `layout.go` and compare struct tags to `web/almanach/src/almanach-studio.jsx` `DEFAULTS` and `RENDERERS`.
+- Review `renderer.go` `layoutJSONFromReader()` for nil/empty-body behavior.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `cd stoms3r/cmd/almanach-render-service && go build -o /tmp/almanach-render-service-phase1 .`
+
+### Technical details
+
+- Empty bodies are now detected with `len(bytes.TrimSpace(data)) > 0`.
+- Non-empty custom layout bodies are still passed through unchanged for backward compatibility.
+- JSON marshalling errors from default layout construction are no longer ignored.

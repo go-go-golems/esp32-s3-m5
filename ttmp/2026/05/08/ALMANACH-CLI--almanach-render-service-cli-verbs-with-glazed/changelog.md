@@ -29,3 +29,14 @@ Phase 0.1: Added detailed phased implementation tasks and recorded the first dia
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-CLI--almanach-render-service-cli-verbs-with-glazed/reference/01-implementation-diary.md — Diary step for phased planning
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-CLI--almanach-render-service-cli-verbs-with-glazed/tasks.md — Phased ALMANACH-CLI implementation tasks
 
+
+## 2026-05-08
+
+Phase 1: Aligned Go layout/fetcher schema with the React frontend, fixed empty HTTP body default rendering, and added schema tests (commit c3708df).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/layout.go — Schema alignment
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/layout_test.go — Schema tests
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Empty-body behavior
+
