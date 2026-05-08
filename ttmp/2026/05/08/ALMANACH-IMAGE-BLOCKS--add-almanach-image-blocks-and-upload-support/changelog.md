@@ -13,3 +13,14 @@ Created retroactive diary for devctl recovery, analog photography render, initia
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/reference/01-diary.md — Retroactive implementation diary
 
+
+## 2026-05-08
+
+Implemented image blocks with URL/upload editor support, render-time image waiting, and validation examples (commit b33b9301297ad35e06387447ca21f29627367006).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/layouts/08-image-block.yaml — Embedded data-URL image validation layout
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Headless render image-load wait before screenshot
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/web/almanach/src/almanach-studio.jsx — Image block schema
+

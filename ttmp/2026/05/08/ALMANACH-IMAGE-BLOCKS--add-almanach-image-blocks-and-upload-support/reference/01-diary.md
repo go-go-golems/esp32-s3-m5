@@ -12,6 +12,8 @@ Owners: []
 RelatedFiles:
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/07-analog-photography.yaml
       Note: Example layout created during this session and future candidate for embedded image block validation
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/08-image-block.yaml
+      Note: Committed image-block validation layout (commit b33b930)
     - Path: stoms3r/cmd/almanach-render-service/renderer.go
       Note: Headless Chrome render path that must wait for images before screenshot capture
     - Path: stoms3r/cmd/almanach-render-service/web/almanach/src/almanach-studio.jsx
@@ -22,6 +24,7 @@ LastUpdated: 2026-05-08T09:12:54.691246585-04:00
 WhatFor: Use this to resume or review the Almanach image-block/upload work without reconstructing the session from terminal history.
 WhenToUse: Read before changing Almanach Studio blocks, render/export behavior, examples, or devctl wiring.
 ---
+
 
 
 # Diary
@@ -303,3 +306,88 @@ This is the point where future implementation should switch to diary-first/diary
 ### Technical details
 - Ticket path: `ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/`
 - Diary path: `ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/reference/01-diary.md`
+
+## Step 5: Validate and Commit Image Blocks
+
+I finished the first complete image-block slice by adding image-load synchronization to both the browser-side export paths and the Go/chromedp screenshot path. I then created a compact validation layout with an embedded data-URL photograph and rendered it to PNG.
+
+The rendered artifact was inspected directly with the `read` tool as requested. The image block appears correctly inside the thermal-paper page, with caption, note, and validation text below it. This slice was committed as a focused code/example commit.
+
+### Prompt Context
+
+**User prompt (verbatim):** "then continue with the main work"
+
+**Assistant interpretation:** Resume implementing image blocks/upload support after creating the docmgr ticket and diary.
+
+**Inferred user intent:** Finish the feature rather than stopping at documentation setup.
+
+**User prompt (verbatim):** "just look at the image with read tool"
+
+**Assistant interpretation:** Inspect the rendered PNG directly through the file/image reader instead of relying on browser display.
+
+**Inferred user intent:** Quickly verify the generated visual artifact in the agent environment.
+
+**Commit (code):** b33b9301297ad35e06387447ca21f29627367006 — "Almanach: add image blocks with upload support"
+
+### What I did
+- Added `waitForImages(root)` in `web/almanach/src/almanach-studio.jsx`.
+- Called image waiting before browser PNG export, browser print bitmap export, and the headless `window.almanachExportBitmap` path.
+- Updated `renderer.go` so `waitForFontsAndFramesJS()` waits for all DOM `img` elements to either load/error or time out before screenshotting.
+- Built the frontend with `cd web/almanach && npm run build`.
+- Ran Go tests with `go test ./...`.
+- Created `examples/layouts/08-image-block.yaml` with a compact embedded grayscale JPEG data URL.
+- Rendered the validation layout:
+  - `./almanach-render-service render --layout ./examples/layouts/08-image-block.yaml --out /tmp/almanach-image-block.png --output yaml`
+- Inspected `/tmp/almanach-image-block.png` with the `read` tool.
+- Committed the code/example slice as `b33b9301297ad35e06387447ca21f29627367006`.
+
+### Why
+- Image uploads are stored as data URLs, so render paths must wait for images before cloning or screenshotting the paper DOM.
+- The repo example should validate image blocks without requiring network access, so it embeds a small downscaled JPEG instead of a full remote URL.
+
+### What worked
+- `npm run build` succeeded and produced `dist/almanach-bundle.js` and `dist/index.html`.
+- `go test ./...` passed.
+- The render succeeded with:
+  - `width: 384`
+  - `height: 940`
+  - `bytes: 96841`
+  - `artifact: /tmp/almanach-image-block.png`
+- The `read` tool showed the image block correctly rendered, including the large-format camera photo and caption.
+
+### What didn't work
+- The first version of `08-image-block.yaml` embedded the full 44KB JPEG as base64, creating a 66KB / 641-line YAML file. I replaced it with a 320x190 grayscale JPEG compressed to about 6.7KB, reducing the layout to about 11KB.
+- The initial YAML also failed because unquoted text containing colons was parsed as invalid YAML:
+  - `yaml: line 619: mapping values are not allowed in this context`
+  Quoting the affected text fields fixed the parse error.
+
+### What I learned
+- Data-URL image blocks work in the existing chromedp screenshot pipeline once the page waits for image load completion.
+- Keeping embedded example assets small matters: they are useful for offline validation but can become noisy quickly.
+
+### What was tricky to build
+- There are three separate export/capture paths that need image waiting: browser PNG export, browser print/bitmap export, and Go/chromedp render. If only one is updated, image blocks may appear reliable in one workflow but flaky in another.
+- Image load failure should not hang rendering indefinitely, so both browser and Go wait helpers resolve on error and include a timeout in the Go/chromedp path.
+
+### What warrants a second pair of eyes
+- The browser-side `waitForImages` helper resolves immediately for any `img.complete`, including failed images; this is acceptable for avoiding hangs but reviewers may want explicit failed-image diagnostics in the UI.
+- The image block currently uses CSS grayscale/contrast before final thresholding; true thermal-friendly dithering is still not implemented.
+
+### What should be done in the future
+- Add optional client-side downscale/compression before storing uploaded images as data URLs.
+- Consider real dithering in the bitmap conversion pipeline for better photographic thermal prints.
+- Optionally add automated tests around layout parsing/normalization with `type: image`.
+
+### Code review instructions
+- Start with `web/almanach/src/almanach-studio.jsx`: `DEFAULTS.image`, `BLOCK_TYPES`, `ImageBlock`, `ImageEditor`, `waitForImages`, `RENDERERS`, and `EDITORS`.
+- Then review `renderer.go:waitForFontsAndFramesJS`.
+- Validate with:
+  - `go test ./...`
+  - `cd web/almanach && npm run build`
+  - `./almanach-render-service render --layout ./examples/layouts/08-image-block.yaml --out /tmp/almanach-image-block.png --output yaml`
+  - inspect `/tmp/almanach-image-block.png` with the `read` tool or an image viewer.
+
+### Technical details
+- The committed validation example embeds a small grayscale JPEG via `src: >- data:image/jpeg;base64,...`.
+- `ImageBlock` supports `src`, `alt`, `caption`, `height`, `fit`, `border`, and `grayscale`.
+- `ImageEditor` supports direct URL/data URL editing and file upload via `FileReader.readAsDataURL`.
