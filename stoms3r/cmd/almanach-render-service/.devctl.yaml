@@ -1,0 +1,22 @@
+# Almanach Render Service — devctl configuration
+#
+# Usage:
+#   devctl plan              # show the launch plan
+#   devctl up                # build + start the render server
+#   devctl status            # check if it's running
+#   devctl logs --service render --follow   # tail logs
+#   devctl render            # render an almanac page to PNG
+#   devctl print             # render + send to thermal printer
+#   devctl health            # check service health
+#   devctl down              # stop everything
+
+plugins:
+  - id: almanach-render
+    path: python3
+    args:
+      - ./plugins/almanach-render.py
+    priority: 10
+    env:
+      ALMANACH_PORT: "8199"
+      ALMANACH_PRINTER_IP: "192.168.0.126"
+      # ALMANACH_CHROME_PATH: "/usr/bin/chromium-browser"  # auto-detected if unset
