@@ -7,14 +7,17 @@ import (
 )
 
 // Layout represents the full almanac page layout sent to the SPA.
+//
+// Keep this schema aligned with web/almanach/src/almanach-studio.jsx:
+// DEFAULTS, BLOCK_TYPES, RENDERERS, buildLayoutJson(), and parseLayoutJson().
 type Layout struct {
-	Version   int      `json:"almanach_studio_version"`
-	ExportedAt string   `json:"exported_at"`
-	Theme     string   `json:"theme"`
+	Version    int     `json:"almanach_studio_version"`
+	ExportedAt string  `json:"exported_at"`
+	Theme      string  `json:"theme"`
 	PaperWidth int     `json:"paperWidth"`
 	BodyScale  float64 `json:"bodyScale"`
 	FeedLines  int     `json:"feedLines"`
-	Blocks    []Block  `json:"blocks"`
+	Blocks     []Block `json:"blocks"`
 }
 
 // Block represents a single almanac block (title, weather, news, etc.).
@@ -24,10 +27,11 @@ type Block struct {
 	Data json.RawMessage `json:"data"`
 }
 
-// Data types for each block type.
+// Data types for each block type. These intentionally mirror the React
+// renderer's block data shape, not an independent Go-domain schema.
 
 type TitleData struct {
-	Title    string `json:"title"`
+	Text     string `json:"text"`
 	Subtitle string `json:"subtitle"`
 }
 
@@ -41,18 +45,21 @@ type WeatherData struct {
 	High      string `json:"high"`
 	Low       string `json:"low"`
 	Condition string `json:"condition"`
-	Humidity  string `json:"humidity"`
-	Wind      string `json:"wind"`
+	Sunrise   string `json:"sunrise,omitempty"`
+	Sunset    string `json:"sunset,omitempty"`
+	Humidity  string `json:"humidity,omitempty"`
+	Wind      string `json:"wind,omitempty"`
 }
 
 type NewsData struct {
+	Label string     `json:"label"`
 	Items []NewsItem `json:"items"`
 }
 
 type NewsItem struct {
 	Headline string `json:"headline"`
 	Source   string `json:"source"`
-	Summary  string `json:"summary"`
+	Time     string `json:"time,omitempty"`
 }
 
 type PlanData struct {
@@ -67,63 +74,83 @@ type PlanItem struct {
 }
 
 type QuoteData struct {
+	Label  string `json:"label"`
 	Text   string `json:"text"`
 	Author string `json:"author"`
 	Source string `json:"source,omitempty"`
 }
 
 type WordData struct {
-	Word          string `json:"word"`
-	Definition    string `json:"definition"`
-	PartOfSpeech  string `json:"partOfSpeech"`
-	Example       string `json:"example,omitempty"`
+	Label      string `json:"label"`
+	Word       string `json:"word"`
+	Phonetic   string `json:"phonetic,omitempty"`
+	Part       string `json:"part"`
+	Definition string `json:"definition"`
+	Example    string `json:"example,omitempty"`
 }
 
 type HistoryData struct {
+	Label string        `json:"label"`
+	Items []HistoryItem `json:"items"`
+}
+
+type HistoryItem struct {
 	Year  string `json:"year"`
 	Event string `json:"event"`
 }
 
 type HabitsData struct {
-	Items []HabitItem `json:"items"`
+	Label      string      `json:"label"`
+	Range      string      `json:"range,omitempty"`
+	Columns    []string    `json:"columns,omitempty"`
+	Items      []HabitItem `json:"items"`
+	Reflection string      `json:"reflection,omitempty"`
 }
 
 type HabitItem struct {
 	Name string `json:"name"`
-	Done bool   `json:"done"`
+	Done bool   `json:"done,omitempty"`
+	Days []int  `json:"days,omitempty"`
 }
 
-type DidYouKnowData struct {
-	Text string `json:"text"`
+type DidData struct {
+	Label string   `json:"label"`
+	Items []string `json:"items"`
 }
 
 type NoteData struct {
-	Title   string `json:"title"`
-	Content string `json:"content"`
+	Label  string `json:"label"`
+	Text   string `json:"text"`
+	Author string `json:"author,omitempty"`
 }
 
 type MoodData struct {
-	Mood    int    `json:"mood"`
-	Energy  int    `json:"energy"`
-	Note    string `json:"note,omitempty"`
+	Label  string `json:"label"`
+	Mood   int    `json:"mood"`
+	Energy int    `json:"energy"`
+	Sleep  string `json:"sleep,omitempty"`
+	Notes  string `json:"notes,omitempty"`
 }
 
 type ReadingData struct {
-	Title   string      `json:"title"`
-	Author  string      `json:"author"`
-	Pages   string      `json:"pages"`
-	Current ReadingProgress `json:"current"`
+	Label   string            `json:"label"`
+	Current ReadingCurrent    `json:"current"`
+	Next    []string          `json:"next,omitempty"`
+	Extra   map[string]string `json:"extra,omitempty"`
 }
 
-type ReadingProgress struct {
-	Page     int `json:"page"`
-	Total    int `json:"total"`
-	Progress int `json:"progress"`
+type ReadingCurrent struct {
+	Title    string `json:"title"`
+	Author   string `json:"author"`
+	Progress int    `json:"progress"`
 }
 
 type ReflectionData struct {
-	Prompt   string `json:"prompt"`
-	Response string `json:"response"`
+	Label   string `json:"label"`
+	Well    string `json:"well"`
+	Better  string `json:"better"`
+	Learned string `json:"learned"`
+	Quote   string `json:"quote,omitempty"`
 }
 
 // blockID counter for generating unique block IDs.
@@ -140,16 +167,15 @@ func newBlock(typ string, data any) Block {
 	return Block{ID: nextBlockID(), Type: typ, Data: raw}
 }
 
-// dividerBlock creates a divider block (no data).
+// dividerBlock creates a divider block.
 func dividerBlock() Block {
-	return Block{ID: nextBlockID(), Type: "divider", Data: json.RawMessage("{}")}
+	return newBlock("divider", map[string]string{"style": "line"})
 }
 
 // buildDefaultLayout constructs a layout using live data from fetchers.
 func buildDefaultLayout(cfg Config) (*Layout, error) {
 	now := time.Now()
 
-	// Fetch data concurrently (TODO: Phase 4 — wire real fetchers)
 	dateData := fetchDate(now)
 	weatherData := fetchWeather(cfg)
 	newsData := fetchNews()
@@ -160,7 +186,7 @@ func buildDefaultLayout(cfg Config) (*Layout, error) {
 	var blocks []Block
 	blocks = append(blocks,
 		newBlock("title", TitleData{
-			Title:    "Daily Almanac",
+			Text:     "Daily Almanac",
 			Subtitle: formatDate(now),
 		}),
 		newBlock("date", dateData),
@@ -183,13 +209,16 @@ func buildDefaultLayout(cfg Config) (*Layout, error) {
 		blocks = append(blocks, newBlock("word", wordData))
 	}
 
-	if historyData != nil {
+	if historyData != nil && len(historyData.Items) > 0 {
 		blocks = append(blocks, newBlock("history", historyData))
 	}
 
 	blocks = append(blocks,
-		newBlock("did_you_know", DidYouKnowData{
-			Text: "Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs that was still edible.",
+		newBlock("did", DidData{
+			Label: "Did You Know?",
+			Items: []string{
+				"Honey never spoils. Archaeologists have found 3000-year-old honey in Egyptian tombs that was still edible.",
+			},
 		}),
 	)
 

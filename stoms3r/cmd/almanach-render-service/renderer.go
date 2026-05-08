@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,24 +31,34 @@ type Bitmap struct {
 
 // renderLayoutJSON builds a layout from fetchers and renders it via Chrome headless.
 func (s *Server) render(ctx context.Context, layoutOverride io.Reader) (*RenderResult, error) {
-	var layoutJSON string
-
-	if layoutOverride != nil {
-		data, err := io.ReadAll(layoutOverride)
-		if err != nil {
-			return nil, fmt.Errorf("read layout: %w", err)
-		}
-		layoutJSON = string(data)
-	} else {
-		layout, err := buildDefaultLayout(s.cfg)
-		if err != nil {
-			return nil, fmt.Errorf("build layout: %w", err)
-		}
-		b, _ := json.Marshal(layout)
-		layoutJSON = string(b)
+	layoutJSON, err := s.layoutJSONFromReader(layoutOverride)
+	if err != nil {
+		return nil, err
 	}
 
 	return s.renderWithChrome(ctx, layoutJSON)
+}
+
+func (s *Server) layoutJSONFromReader(layoutOverride io.Reader) (string, error) {
+	if layoutOverride != nil {
+		data, err := io.ReadAll(layoutOverride)
+		if err != nil {
+			return "", fmt.Errorf("read layout: %w", err)
+		}
+		if len(bytes.TrimSpace(data)) > 0 {
+			return string(data), nil
+		}
+	}
+
+	layout, err := buildDefaultLayout(s.cfg)
+	if err != nil {
+		return "", fmt.Errorf("build layout: %w", err)
+	}
+	b, err := json.Marshal(layout)
+	if err != nil {
+		return "", fmt.Errorf("marshal layout: %w", err)
+	}
+	return string(b), nil
 }
 
 // renderWithChrome drives Chrome headless to render the layout.

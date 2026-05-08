@@ -58,17 +58,23 @@ func fetchHistory(t time.Time) *HistoryData {
 
 	pick := evts[rand.Intn(len(evts))]
 	return &HistoryData{
-		Year:  fmt.Sprintf("%d", pick.Year),
-		Event: pick.Text,
+		Label: "Today in History",
+		Items: []HistoryItem{{
+			Year:  fmt.Sprintf("%d", pick.Year),
+			Event: pick.Text,
+		}},
 	}
 }
 
-var fallbackHistories = []HistoryData{
+var fallbackHistories = []HistoryItem{
 	{Year: "1969", Event: "Apollo 11 lands on the Moon. Neil Armstrong becomes the first human to walk on the lunar surface."},
 	{Year: "1453", Event: "Constantinople falls to the Ottoman Empire, marking the end of the Byzantine Empire."},
 	{Year: "1989", Event: "The Berlin Wall falls, marking the beginning of the end of the Cold War."},
 }
 
 func fallbackHistory(t time.Time) *HistoryData {
-	return &fallbackHistories[rand.Intn(len(fallbackHistories))]
+	return &HistoryData{
+		Label: "Today in History",
+		Items: []HistoryItem{fallbackHistories[rand.Intn(len(fallbackHistories))]},
+	}
 }
