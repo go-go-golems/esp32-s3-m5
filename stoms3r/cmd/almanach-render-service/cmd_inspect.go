@@ -18,15 +18,15 @@ type InspectCommand struct {
 }
 
 type InspectSettings struct {
-	Layout         map[string]interface{} `glazed:"layout"`
-	Selector       string                 `glazed:"selector"`
-	ViewportWidth  int                    `glazed:"viewport-width"`
-	ViewportHeight int                    `glazed:"viewport-height"`
-	WaitMS         int                    `glazed:"wait-ms"`
-	DebugDir       string                 `glazed:"debug-dir"`
-	WebDir         string                 `glazed:"web-dir"`
-	ChromePath     string                 `glazed:"chrome-path"`
-	ChromeWSURL    string                 `glazed:"chrome-ws-url"`
+	Layout         string `glazed:"layout"`
+	Selector       string `glazed:"selector"`
+	ViewportWidth  int    `glazed:"viewport-width"`
+	ViewportHeight int    `glazed:"viewport-height"`
+	WaitMS         int    `glazed:"wait-ms"`
+	DebugDir       string `glazed:"debug-dir"`
+	WebDir         string `glazed:"web-dir"`
+	ChromePath     string `glazed:"chrome-path"`
+	ChromeWSURL    string `glazed:"chrome-ws-url"`
 }
 
 func newInspectCommand() (*InspectCommand, error) {
@@ -42,14 +42,15 @@ func newInspectCommand() (*InspectCommand, error) {
 	desc := cmds.NewCommandDescription(
 		"inspect",
 		cmds.WithShort("Inspect Almanach render DOM metrics for cutoff debugging"),
-		cmds.WithLong(`Render a layout in Chrome headless and emit DOM metrics for key paper/clipping selectors.
+		cmds.WithLong(`Render a JSON/YAML layout or ZIP layout bundle in Chrome headless and emit DOM metrics for key paper/clipping selectors.
 
 Examples:
   almanach-render-service inspect --layout daily.yaml --output yaml
+  almanach-render-service inspect --layout layout-bundle.zip --output yaml
   almanach-render-service inspect --layout daily.yaml --debug-dir /tmp/almanach-debug
 `),
 		cmds.WithFlags(
-			fields.New("layout", fields.TypeObjectFromFile, fields.WithHelp("Layout object file to inspect. Accepts JSON or YAML.")),
+			fields.New("layout", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Layout file or ZIP bundle to inspect. Accepts JSON, YAML, or .zip.")),
 			fields.New("selector", fields.TypeString, fields.WithDefault(".paper-body"), fields.WithHelp("Primary CSS selector to screenshot/validate")),
 			fields.New("viewport-width", fields.TypeInteger, fields.WithDefault(800), fields.WithHelp("Chrome viewport width")),
 			fields.New("viewport-height", fields.TypeInteger, fields.WithDefault(3000), fields.WithHelp("Chrome viewport height")),
@@ -71,7 +72,7 @@ func (c *InspectCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 	}
 
 	cfg := loadConfig()
-	layoutJSON, fileRenderOptions, err := layoutJSONFromObjectOrDefault(s.Layout, cfg)
+	layoutSource, err := layoutJSONFromPathOrDefault(s.Layout, cfg)
 	if err != nil {
 		return err
 	}
@@ -84,11 +85,11 @@ func (c *InspectCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values
 		WaitMS:         s.WaitMS,
 		DebugDir:       s.DebugDir,
 	}
-	opts := renderOptionsFromSettings(renderSettings, fileRenderOptions)
+	opts := renderOptionsFromSettings(renderSettings, layoutSource.RenderOptions)
 	opts.CollectMetrics = true
 
 	result, err := renderOneShot(ctx, oneShotRenderRequest{
-		LayoutJSON:  layoutJSON,
+		LayoutJSON:  layoutSource.LayoutJSON,
 		WebDir:      s.WebDir,
 		ChromePath:  s.ChromePath,
 		ChromeWSURL: s.ChromeWSURL,

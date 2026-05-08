@@ -21,18 +21,18 @@ type RenderCommand struct {
 }
 
 type RenderSettings struct {
-	Layout         map[string]interface{} `glazed:"layout"`
-	Out            string                 `glazed:"out"`
-	Format         string                 `glazed:"format"`
-	Selector       string                 `glazed:"selector"`
-	Threshold      int                    `glazed:"threshold"`
-	ViewportWidth  int                    `glazed:"viewport-width"`
-	ViewportHeight int                    `glazed:"viewport-height"`
-	WaitMS         int                    `glazed:"wait-ms"`
-	DebugDir       string                 `glazed:"debug-dir"`
-	WebDir         string                 `glazed:"web-dir"`
-	ChromePath     string                 `glazed:"chrome-path"`
-	ChromeWSURL    string                 `glazed:"chrome-ws-url"`
+	Layout         string `glazed:"layout"`
+	Out            string `glazed:"out"`
+	Format         string `glazed:"format"`
+	Selector       string `glazed:"selector"`
+	Threshold      int    `glazed:"threshold"`
+	ViewportWidth  int    `glazed:"viewport-width"`
+	ViewportHeight int    `glazed:"viewport-height"`
+	WaitMS         int    `glazed:"wait-ms"`
+	DebugDir       string `glazed:"debug-dir"`
+	WebDir         string `glazed:"web-dir"`
+	ChromePath     string `glazed:"chrome-path"`
+	ChromeWSURL    string `glazed:"chrome-ws-url"`
 }
 
 func newRenderCommand() (*RenderCommand, error) {
@@ -49,10 +49,11 @@ func newRenderCommand() (*RenderCommand, error) {
 	desc := cmds.NewCommandDescription(
 		"render",
 		cmds.WithShort("Render an Almanach layout once to PNG or bitmap"),
-		cmds.WithLong(`Render a JSON or YAML Almanach Studio layout using Chrome headless.
+		cmds.WithLong(`Render a JSON/YAML Almanach Studio layout or ZIP layout bundle using Chrome headless.
 
 Examples:
   almanach-render-service render --layout daily.yaml --out daily.png
+  almanach-render-service render --layout layout-bundle.zip --out daily.png
   almanach-render-service render --layout daily.yaml --format bitmap --out daily.bin
   almanach-render-service render --layout daily.yaml --selector .paper-shell --debug-dir /tmp/almanach-debug
 `),
@@ -64,7 +65,7 @@ Examples:
 
 func renderFields(cfg Config) []*fields.Definition {
 	return []*fields.Definition{
-		fields.New("layout", fields.TypeObjectFromFile, fields.WithHelp("Layout object file to render. Accepts JSON or YAML.")),
+		fields.New("layout", fields.TypeString, fields.WithDefault(""), fields.WithHelp("Layout file or ZIP bundle to render. Accepts JSON, YAML, or .zip.")),
 		fields.New("out", fields.TypeString, fields.WithHelp("Output artifact path"), fields.WithRequired(true)),
 		fields.New("format", fields.TypeChoice, fields.WithDefault("png"), fields.WithChoices("png", "bitmap"), fields.WithHelp("Output format")),
 		fields.New("selector", fields.TypeString, fields.WithDefault(".paper-body"), fields.WithHelp("CSS selector to screenshot")),
@@ -86,14 +87,14 @@ func (c *RenderCommand) RunIntoGlazeProcessor(ctx context.Context, vals *values.
 	}
 
 	cfg := loadConfig()
-	layoutJSON, fileRenderOptions, err := layoutJSONFromObjectOrDefault(s.Layout, cfg)
+	layoutSource, err := layoutJSONFromPathOrDefault(s.Layout, cfg)
 	if err != nil {
 		return err
 	}
 
-	opts := renderOptionsFromSettings(s, fileRenderOptions)
+	opts := renderOptionsFromSettings(s, layoutSource.RenderOptions)
 	result, err := renderOneShot(ctx, oneShotRenderRequest{
-		LayoutJSON:  layoutJSON,
+		LayoutJSON:  layoutSource.LayoutJSON,
 		WebDir:      s.WebDir,
 		ChromePath:  s.ChromePath,
 		ChromeWSURL: s.ChromeWSURL,
