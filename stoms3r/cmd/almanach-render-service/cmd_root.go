@@ -7,6 +7,7 @@ import (
 	"github.com/go-go-golems/glazed/pkg/cmds/schema"
 	"github.com/go-go-golems/glazed/pkg/help"
 	help_cmd "github.com/go-go-golems/glazed/pkg/help/cmd"
+	almanachdoc "github.com/mmanuel/stoms3r/cmd/almanach-render-service/doc"
 	"github.com/spf13/cobra"
 )
 
@@ -28,6 +29,9 @@ func newRootCommand(version string) (*cobra.Command, error) {
 	}
 
 	helpSystem := help.NewHelpSystem()
+	if err := almanachdoc.AddDocToHelpSystem(helpSystem); err != nil {
+		return nil, err
+	}
 	help_cmd.SetupCobraRootCommand(helpSystem, rootCmd)
 
 	rootCmd.AddCommand(newServeCommand())
