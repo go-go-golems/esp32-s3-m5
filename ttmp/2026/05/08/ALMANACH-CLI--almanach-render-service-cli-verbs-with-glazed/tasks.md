@@ -35,3 +35,4 @@
 - [x] Phase 6.1: Add YAML layout example corpus and rendered preview PNGs
 - [x] Phase 6.2: Validate rendered example PNG dimensions, DOM inspect metrics, and visual contact sheet
 - [x] Phase 7.1: Replace unreliable post-bitmap ESC feed with baked trailing blank raster rows
+- [x] Phase 8.1: Add embedded Glazed help entries for layout getting started, user guide, DSL reference, and tutorials

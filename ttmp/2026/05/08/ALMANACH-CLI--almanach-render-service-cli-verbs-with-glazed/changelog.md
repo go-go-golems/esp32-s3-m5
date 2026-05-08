@@ -94,3 +94,18 @@ Phase 7: Replaced unreliable post-bitmap ESC feed with baked trailing blank rast
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/printer.go — Bakes trailing blank rows into bitmap and sends X-Feed 0
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/printer_test.go — Unit tests for baked feed rows
 
+
+## 2026-05-08
+
+Phase 8: Added embedded Glazed help entries for layout authoring: getting started, user guide, DSL reference, and two tutorials; verified help pages load (commit 1117575).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_root.go — Loads embedded docs into Glazed help system
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/doc.go — Embedded help loader
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/layout-dsl-reference.md — Full DSL reference
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/layouts-getting-started.md — Getting-started layout tutorial
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/layouts-user-guide.md — Layout authoring user guide
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/tutorial-daily-briefing.md — Daily briefing tutorial
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/doc/tutorial-knowledge-strip.md — Knowledge strip tutorial
+

@@ -59,7 +59,7 @@ RelatedFiles:
         Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T08:55:00-04:00
+LastUpdated: 2026-05-08T09:20:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
@@ -756,3 +756,100 @@ This means the paper advance is now part of the printed image payload rather tha
 - A white pixel is encoded as bit `0`, so appended blank rows are zero-filled bytes.
 - Feed is clamped to `20` to preserve the prior API limit.
 - The firmware receives `X-Feed: 0` from the host print path after padding, so it should not try to add ESC feed on top.
+
+## Step 8: Embedded Glazed help for the layout DSL
+
+The user asked for built-in help entries that teach other people how to write high-quality Almanach layouts. I followed the Glazed help authoring guidance, checked the local `glaze help writing-help-entries` and `glaze help how-to-write-good-documentation-pages` references, and added embedded Markdown help pages to the binary.
+
+The result is a help set with three core documents plus two tutorials. The pages are discoverable through `almanach-render-service help`, and individual pages can be opened by slug.
+
+### Prompt Context
+
+**User prompt (verbatim):** "add glazed help writing entries to the binary (see skill) on how to write layouts / the layout dsl so that other people can easily generate great looking layouts. Make it like a getting-started / user-guide / full reference set of 3 documents, maybe with one or two fun tutorials."
+
+**Assistant interpretation:** Add embedded Glazed help documentation to the CLI, focused on the Almanach layout YAML/JSON DSL and practical layout design guidance.
+
+**Inferred user intent:** The user wants the binary itself to teach future users and generators how to produce attractive, printable layouts without needing external docs.
+
+**Commit (code/docs):** 1117575 — "docs: add embedded Almanach layout help"
+
+### What I did
+
+- Read the Glazed help authoring skill.
+- Ran:
+  - `glaze help writing-help-entries`
+  - `glaze help how-to-write-good-documentation-pages`
+- Added `doc/doc.go` with embedded Markdown docs and `AddDocToHelpSystem()`.
+- Wired `cmd_root.go` to load the embedded docs into `help.NewHelpSystem()` before calling `help_cmd.SetupCobraRootCommand()`.
+- Added five help entries:
+  - `layouts-getting-started` — step-by-step first layout tutorial.
+  - `layouts-user-guide` — design guidance for readable thermal layouts.
+  - `layout-dsl-reference` — full field/block reference.
+  - `tutorial-daily-briefing` — fun tiny morning newspaper tutorial.
+  - `tutorial-knowledge-strip` — fun word/history/facts strip tutorial.
+- Ran:
+  - `gofmt -w cmd_root.go doc/doc.go`
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-help .`
+  - `/tmp/almanach-render-service-help help`
+  - `/tmp/almanach-render-service-help help --all`
+  - `/tmp/almanach-render-service-help help layout-dsl-reference`
+  - `/tmp/almanach-render-service-help help tutorial-daily-briefing`
+
+### Why
+
+- Layout generation is now a core capability of the CLI, so the binary should explain the layout DSL directly.
+- Embedded Glazed help makes the docs available in the same environment where users render and print.
+- The docs provide both human authoring guidance and machine-generation constraints such as block schemas and length budgets.
+
+### What worked
+
+- The docs loaded successfully and appeared under General topics and Tutorials.
+- `help --all` listed all five slugs.
+- `help layout-dsl-reference` rendered the reference page.
+- `help tutorial-daily-briefing` rendered the tutorial page.
+- `go test ./...` passed for both the main package and the new `doc` package.
+
+### What didn't work
+
+- N/A. The initial integration worked after adding the embedded doc package import.
+
+### What I learned
+
+- Glazed top-level help only showed some pages by default, but `help --all` showed all five entries. The pages are still addressable by slug.
+- Section typing matters: the getting-started page is a `Tutorial`, the user guide and DSL reference are `GeneralTopic`, and the fun walkthroughs are `Tutorial`.
+
+### What was tricky to build
+
+- The tricky part was writing docs that are complete enough for generators without becoming too terse. I structured each page with motivation, runnable examples, troubleshooting, and cross-references, following the Glazed style guide.
+- Another subtle point was avoiding top-level Markdown headings in the document body because Glazed renders the `Title` from frontmatter.
+
+### What warrants a second pair of eyes
+
+- Review whether `layouts-getting-started` should be `IsTopLevel: true` or whether the reference should be more prominent.
+- Review the DSL reference against future frontend block changes; it should stay in sync with `almanach-studio.jsx`.
+- Review whether more example layouts should be linked from help text once the example corpus grows.
+
+### What should be done in the future
+
+- Add a `help examples` page if generated layout examples become a larger library.
+- Consider embedding the actual example YAML files or linking their repo paths from help pages.
+- Add tests or a smoke script that verifies all expected help slugs are loadable.
+
+### Code review instructions
+
+- Start with `doc/doc.go` to see the embed integration.
+- Review `cmd_root.go` to confirm docs are loaded into the Glazed help system.
+- Review each Markdown file in `doc/` for frontmatter fields and slug uniqueness.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `go build -o /tmp/almanach-render-service-help .`
+  - `/tmp/almanach-render-service-help help --all`
+  - `/tmp/almanach-render-service-help help layouts-getting-started`
+  - `/tmp/almanach-render-service-help help layout-dsl-reference`
+
+### Technical details
+
+- Embedded docs use `//go:embed *.md` in package `doc`.
+- Root command imports the doc package as `almanachdoc` and calls `almanachdoc.AddDocToHelpSystem(helpSystem)`.
+- Added slugs: `layouts-getting-started`, `layouts-user-guide`, `layout-dsl-reference`, `tutorial-daily-briefing`, `tutorial-knowledge-strip`.
