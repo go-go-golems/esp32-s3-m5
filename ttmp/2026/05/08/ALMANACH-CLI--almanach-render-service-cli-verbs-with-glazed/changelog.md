@@ -40,3 +40,12 @@ Phase 1: Aligned Go layout/fetcher schema with the React frontend, fixed empty H
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/layout_test.go — Schema tests
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Empty-body behavior
 
+
+## 2026-05-08
+
+Phase 2: Refactored Chrome rendering around RenderOptions, clipping-safe capture CSS, metrics collection, debug artifacts, and safer layout injection while preserving HTTP behavior (commit 4ec7ee6).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Renderer refactor
+

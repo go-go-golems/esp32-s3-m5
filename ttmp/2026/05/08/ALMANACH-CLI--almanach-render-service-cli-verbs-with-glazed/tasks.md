@@ -8,7 +8,7 @@
 - [ ] Add render CLI verb with TypeObjectFromFile layout input, YAML/JSON support, PNG/bitmap outputs, and debug artifacts
 - [ ] Add print CLI verb that renders once and posts bitmap to ESP32 printer with configurable feed lines
 - [ ] Add inspect CLI verb for DOM metrics, selector validation, and cutoff debugging
-- [ ] Refactor renderer to accept base URL, render options, selector, viewport, threshold, and capture CSS
+- [x] Refactor renderer to accept base URL, render options, selector, viewport, threshold, and capture CSS
 - [ ] Add ephemeral localhost static server for one-shot CLI rendering
 - [x] Align default Go layout generation with frontend Almanach Studio schema
 - [ ] Update devctl plugin and README to use the new CLI verbs
@@ -17,11 +17,11 @@
 - [x] Phase 1.2: Update fetchers to populate the aligned schema and keep default layout block types frontend-valid
 - [x] Phase 1.3: Fix empty HTTP request bodies so /api/render builds default live layout instead of passing an empty layout string
 - [x] Phase 1.4: Add layout schema/default tests for YAML/JSON-compatible structures and frontend-valid block types
-- [ ] Phase 2.1: Introduce RenderOptions, RenderMetrics, and selector/threshold/viewport defaults
-- [ ] Phase 2.2: Refactor Chrome render flow to accept BaseURL and selector instead of hardcoded localhost/.paper-shell
-- [ ] Phase 2.3: Apply clipping-safe capture CSS and wait for almanachReady, fonts, and animation frames
-- [ ] Phase 2.4: Collect DOM metrics for paper-shell, paper-body, canvas, workspace, and app; write debug artifacts when requested
-- [ ] Phase 2.5: Preserve HTTP /api/render and /api/render-and-print behavior on top of the refactored renderer
+- [x] Phase 2.1: Introduce RenderOptions, RenderMetrics, and selector/threshold/viewport defaults
+- [x] Phase 2.2: Refactor Chrome render flow to accept BaseURL and selector instead of hardcoded localhost/.paper-shell
+- [x] Phase 2.3: Apply clipping-safe capture CSS and wait for almanachReady, fonts, and animation frames
+- [x] Phase 2.4: Collect DOM metrics for paper-shell, paper-body, canvas, workspace, and app; write debug artifacts when requested
+- [x] Phase 2.5: Preserve HTTP /api/render and /api/render-and-print behavior on top of the refactored renderer
 - [ ] Phase 3.1: Add one-shot ephemeral 127.0.0.1:0 static server helper for CLI render/inspect/print
 - [ ] Phase 3.2: Add Glazed dependencies and root command wiring with logging/help and backwards-compatible serve default
 - [ ] Phase 3.3: Implement serve command flags mapped to Config while preserving Docker/devctl server behavior

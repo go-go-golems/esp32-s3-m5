@@ -22,13 +22,16 @@ RelatedFiles:
     - Path: stoms3r/cmd/almanach-render-service/layout_test.go
       Note: Schema drift tests for frontend-compatible block data (commit c3708df)
     - Path: stoms3r/cmd/almanach-render-service/renderer.go
-      Note: Empty-body default layout fix before renderer refactor (commit c3708df)
+      Note: |-
+        Empty-body default layout fix before renderer refactor (commit c3708df)
+        Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T06:45:00-04:00
+LastUpdated: 2026-05-08T07:05:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
 
 
 # Implementation Diary
@@ -218,3 +221,93 @@ This step also fixed the HTTP empty-body path. A `POST /api/render` request norm
 - Empty bodies are now detected with `len(bytes.TrimSpace(data)) > 0`.
 - Non-empty custom layout bodies are still passed through unchanged for backward compatibility.
 - JSON marshalling errors from default layout construction are no longer ignored.
+
+## Step 3: Phase 2 renderer refactor, capture CSS, metrics, and debug artifacts
+
+The second product-code patch turned the Chrome renderer from a hardcoded server helper into a parameterized render function. This is the core enabling step for future CLI verbs: render callers can now supply a base URL, selector, threshold, viewport, wait time, metrics collection, and debug directory.
+
+This step kept HTTP behavior compatible by preserving the HTTP default selector `.paper-shell` and local server base URL, while adding the capture controls that CLI mode will later override. The patch also made the screenshot path much safer for cutoff debugging by applying a full render-mode stylesheet that removes `100vh`, scroll containers, app background effects, rails, controls, and drop shadows before screenshotting.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue through the phased implementation by refactoring renderer internals before adding CLI command parsing.
+
+**Inferred user intent:** The user wants the future CLI to expose reliable selector/debug controls instead of wrapping brittle hardcoded screenshot behavior.
+
+**Commit (code):** 4ec7ee6 — "refactor: parameterize Chrome almanach renderer"
+
+### What I did
+
+- Added `RenderOptions` with base URL, selector, threshold, viewport, wait, debug directory, and metrics controls.
+- Added `RenderMetrics` and `ElementMetrics` for DOM measurements.
+- Added render defaults that preserve HTTP behavior: `.paper-shell`, threshold `128`, viewport `1200x2000`, and metrics collection enabled.
+- Refactored `Server.renderWithChrome()` to delegate to a standalone `renderWithChrome(ctx, allocatorCtx, layoutJSON, opts)` helper.
+- Replaced the partial chrome-hiding style with a clipping-safe capture stylesheet.
+- Added `chromedp.EmulateViewport()` and a `newChromeAllocatorWithViewport()` helper.
+- Changed layout injection to `window.almanachLoadLayout(JSON.parse(<marshaled string>))` to avoid unsafe raw JavaScript interpolation.
+- Added waits for `window.almanachReady`, `document.fonts.ready`, and two animation frames.
+- Added metrics collection for `.paper-shell`, `.paper-body`, `.canvas`, `.workspace`, and `.almanach-app`.
+- Added debug artifact writing for `screenshot.png`, `bitmap.bin`, `layout.json`, and `metrics.json` when `DebugDir` is set.
+- Ran:
+  - `gofmt -w renderer.go`
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-phase2 .`
+  - A live HTTP PNG render smoke test on port `8299` with a minimal custom layout.
+
+### Why
+
+- Glazed CLI verbs should not duplicate Chrome automation. They need reusable renderer internals with explicit options.
+- The cutoff issue is likely caused by clipping ancestors and/or selector choice; metrics plus full capture CSS make those failures visible and fixable.
+- Refactoring renderer internals before introducing CLI code reduces risk and keeps review focused.
+
+### What worked
+
+- `go test ./...` passed.
+- `go build -o /tmp/almanach-render-service-phase2 .` succeeded.
+- Live smoke test produced a clean PNG:
+  - `/tmp/almanach-phase2.png: PNG image data, 384 x 248, 8-bit/color RGB, non-interlaced`
+
+### What didn't work
+
+- N/A. The live render smoke test passed on the first run.
+
+### What I learned
+
+- `chromedp.Poll` is available in the installed chromedp version and is a better fit for `window.almanachReady` than fixed sleeps.
+- `chromedp.EmulateViewport` can set the tab viewport even though the allocator still has a window size.
+
+### What was tricky to build
+
+- The main tricky part was preserving HTTP behavior while making CLI behavior configurable. I kept `.paper-shell` as the default render selector for existing HTTP paths, even though future print-oriented CLI commands should default to `.paper-body`.
+- Another subtle point was layout injection. Passing raw JSON directly into JavaScript works only as long as the JSON is also safe JavaScript source. Marshaling the layout string and calling `JSON.parse()` is safer.
+
+### What warrants a second pair of eyes
+
+- Review the capture stylesheet for unintended changes to visual output. It deliberately removes app clipping and background effects.
+- Review whether HTTP should continue defaulting to `.paper-shell` or switch to `.paper-body` once CLI support exists.
+- Review debug artifact error behavior: debug write failures currently fail the render request.
+
+### What should be done in the future
+
+- Use `RenderOptions{Selector: ".paper-body"}` in the CLI render/print defaults.
+- Add CLI-facing control of debug directory and metrics output.
+- Consider exposing selector/threshold through HTTP query parameters later if useful.
+
+### Code review instructions
+
+- Start with `renderer.go` and inspect `RenderOptions`, `renderWithChrome`, `captureCSS`, and `collectMetricsJS`.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `cd stoms3r/cmd/almanach-render-service && go build -o /tmp/almanach-render-service-phase2 .`
+- Optional live check:
+  - start the binary with `ALMANACH_PORT=8299`
+  - POST a minimal custom layout to `/api/render` with `Accept: image/png`
+  - confirm the PNG dimensions are paper width by content height.
+
+### Technical details
+
+- Metrics are collected after capture CSS is injected, so they represent the actual screenshot layout, not the editor layout.
+- Debug artifacts are written only when `RenderOptions.DebugDir` is non-empty.
+- `Threshold == 0` currently means "use default 128"; if future commands need threshold 0 literally, this defaulting rule must change.
