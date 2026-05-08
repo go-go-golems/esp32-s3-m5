@@ -4,12 +4,12 @@
 
 - [x] Add tasks here
 
-- [ ] Refactor main.go into Glazed root with serve command preserving current behavior
-- [ ] Add render CLI verb with TypeObjectFromFile layout input, YAML/JSON support, PNG/bitmap outputs, and debug artifacts
-- [ ] Add print CLI verb that renders once and posts bitmap to ESP32 printer with configurable feed lines
-- [ ] Add inspect CLI verb for DOM metrics, selector validation, and cutoff debugging
+- [x] Refactor main.go into Glazed root with serve command preserving current behavior
+- [x] Add render CLI verb with TypeObjectFromFile layout input, YAML/JSON support, PNG/bitmap outputs, and debug artifacts
+- [x] Add print CLI verb that renders once and posts bitmap to ESP32 printer with configurable feed lines
+- [x] Add inspect CLI verb for DOM metrics, selector validation, and cutoff debugging
 - [x] Refactor renderer to accept base URL, render options, selector, viewport, threshold, and capture CSS
-- [ ] Add ephemeral localhost static server for one-shot CLI rendering
+- [x] Add ephemeral localhost static server for one-shot CLI rendering
 - [x] Align default Go layout generation with frontend Almanach Studio schema
 - [ ] Update devctl plugin and README to use the new CLI verbs
 - [x] Phase 0.1: Add detailed phased task breakdown and update diary before code work
@@ -22,13 +22,13 @@
 - [x] Phase 2.3: Apply clipping-safe capture CSS and wait for almanachReady, fonts, and animation frames
 - [x] Phase 2.4: Collect DOM metrics for paper-shell, paper-body, canvas, workspace, and app; write debug artifacts when requested
 - [x] Phase 2.5: Preserve HTTP /api/render and /api/render-and-print behavior on top of the refactored renderer
-- [ ] Phase 3.1: Add one-shot ephemeral 127.0.0.1:0 static server helper for CLI render/inspect/print
-- [ ] Phase 3.2: Add Glazed dependencies and root command wiring with logging/help and backwards-compatible serve default
-- [ ] Phase 3.3: Implement serve command flags mapped to Config while preserving Docker/devctl server behavior
-- [ ] Phase 4.1: Implement render command with TypeObjectFromFile layout input, raw/wrapped layout support, PNG output, and metadata rows
-- [ ] Phase 4.2: Extend render command with bitmap format, threshold flag, debug-dir artifacts, and validation errors
-- [ ] Phase 4.3: Implement inspect command that emits selector metrics through Glazed output formats
-- [ ] Phase 4.4: Implement print command with printer-ip/printer-url/feed-lines/dry-run and render debug options
+- [x] Phase 3.1: Add one-shot ephemeral 127.0.0.1:0 static server helper for CLI render/inspect/print
+- [x] Phase 3.2: Add Glazed dependencies and root command wiring with logging/help and backwards-compatible serve default
+- [x] Phase 3.3: Implement serve command flags mapped to Config while preserving Docker/devctl server behavior
+- [x] Phase 4.1: Implement render command with TypeObjectFromFile layout input, raw/wrapped layout support, PNG output, and metadata rows
+- [x] Phase 4.2: Extend render command with bitmap format, threshold flag, debug-dir artifacts, and validation errors
+- [x] Phase 4.3: Implement inspect command that emits selector metrics through Glazed output formats
+- [x] Phase 4.4: Implement print command with printer-ip/printer-url/feed-lines/dry-run and render debug options
 - [ ] Phase 5.1: Update README with server and CLI workflows plus YAML layout examples
 - [ ] Phase 5.2: Update devctl plugin to call CLI verbs for render/print while keeping up/down service management
 - [ ] Phase 5.3: Run smoke tests: go test, render YAML to PNG, inspect metrics, bitmap output, dry-run print, and optional physical print

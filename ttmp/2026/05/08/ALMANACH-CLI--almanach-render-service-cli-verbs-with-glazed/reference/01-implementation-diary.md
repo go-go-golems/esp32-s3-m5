@@ -13,6 +13,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: stoms3r/cmd/almanach-render-service/cmd_inspect.go
+      Note: Glazed inspect verb for DOM metrics (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/cmd_print.go
+      Note: Glazed print verb and dry-run support (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/cmd_render.go
+      Note: Glazed render verb with TypeObjectFromFile layout input (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/cmd_root.go
+      Note: Root command
+    - Path: stoms3r/cmd/almanach-render-service/cmd_serve.go
+      Note: Serve command and preserved HTTP server mode (commit 81fe310)
     - Path: stoms3r/cmd/almanach-render-service/fetch_history.go
       Note: Frontend-shaped history fallback/live data (commit c3708df)
     - Path: stoms3r/cmd/almanach-render-service/fetch_news.go
@@ -21,16 +31,21 @@ RelatedFiles:
       Note: Frontend-aligned layout schema and default block construction (commit c3708df)
     - Path: stoms3r/cmd/almanach-render-service/layout_test.go
       Note: Schema drift tests for frontend-compatible block data (commit c3708df)
+    - Path: stoms3r/cmd/almanach-render-service/main.go
+      Note: Glazed/Cobra root entry point (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/render_oneshot.go
+      Note: Ephemeral one-shot render server and layout object normalization (commit 81fe310)
     - Path: stoms3r/cmd/almanach-render-service/renderer.go
       Note: |-
         Empty-body default layout fix before renderer refactor (commit c3708df)
         Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T07:05:00-04:00
+LastUpdated: 2026-05-08T07:30:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
 
 
 
@@ -311,3 +326,131 @@ This step kept HTTP behavior compatible by preserving the HTTP default selector 
 - Metrics are collected after capture CSS is injected, so they represent the actual screenshot layout, not the editor layout.
 - Debug artifacts are written only when `RenderOptions.DebugDir` is non-empty.
 - `Threshold == 0` currently means "use default 128"; if future commands need threshold 0 literally, this defaulting rule must change.
+
+## Step 4: Phase 3 and 4 Glazed root, serve, render, inspect, and print verbs
+
+The third product-code patch added the actual CLI surface. The binary now has a Glazed/Cobra root, preserves the long-running server as `serve` and no-argument default behavior, and adds one-shot `render`, `inspect`, and `print` verbs. Layout files are loaded with Glazed `TypeObjectFromFile`, so YAML and JSON both work.
+
+This step also added the ephemeral `127.0.0.1:0` static server that makes one-shot rendering possible without asking the user to start the HTTP API. The temporary server exists only for Chrome to load `/almanach` and `/almanach/bundle.js`; it is started, used for one render, and shut down inside the command.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue through the ticket by adding the CLI verbs specified in the design guide, using Glazed and committing the result separately from previous renderer internals.
+
+**Inferred user intent:** The user wants practical local commands for previewing, inspecting, and printing Almanach layouts without manually using curl or maintaining a long-running server.
+
+**Commit (code):** 81fe310 — "feat: add Glazed CLI verbs for almanach rendering"
+
+### What I did
+
+- Replaced `main.go` server-only startup with a Cobra/Glazed root command.
+- Added `cmd_root.go` with Glazed logging/help setup and command registration.
+- Added `cmd_serve.go` and moved existing HTTP server startup into `runServe(ctx, cfg)`.
+- Preserved backwards compatibility: running `almanach-render-service` with no subcommand still starts server mode.
+- Added `render_oneshot.go`:
+  - starts an ephemeral `127.0.0.1:0` HTTP server,
+  - serves the SPA via `registerStaticRoutes`,
+  - creates a Chrome allocator,
+  - calls the refactored renderer with caller-supplied options,
+  - shuts everything down after the render.
+- Added `cmd_render.go`:
+  - `--layout` uses `fields.TypeObjectFromFile`,
+  - accepts raw layout objects and wrapped `{layout, render}` objects,
+  - writes PNG or bitmap artifacts to `--out`,
+  - emits Glazed metadata rows.
+- Added `cmd_inspect.go`:
+  - renders once,
+  - emits DOM metrics rows for key selectors,
+  - supports `--debug-dir`.
+- Added `cmd_print.go`:
+  - renders once,
+  - converts to bitmap,
+  - posts to `--printer-url` or `http://<printer-ip>/api/print/bitmap`,
+  - supports `--dry-run`.
+- Added Glazed and Cobra dependencies to `go.mod`/`go.sum`.
+- Ran validation commands:
+  - `go mod tidy`
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-cli .`
+  - `/tmp/almanach-render-service-cli --help`
+  - `/tmp/almanach-render-service-cli render --layout /tmp/almanach-cli-layout.yaml --out /tmp/almanach-cli.png --output yaml`
+  - `/tmp/almanach-render-service-cli inspect --layout /tmp/almanach-cli-layout.yaml --output yaml`
+  - `/tmp/almanach-render-service-cli render --layout /tmp/almanach-cli-layout.yaml --format bitmap --out /tmp/almanach-cli.bin --output yaml`
+  - `/tmp/almanach-render-service-cli print --layout /tmp/almanach-cli-layout.yaml --dry-run --output yaml`
+  - `/tmp/almanach-render-service-cli serve --port 8301 --web-dir ./web/almanach/dist` plus `/health` curl.
+
+### Why
+
+- One-shot CLI verbs remove the manual HTTP/curl loop for local iteration.
+- Glazed gives structured output formats and object-from-file YAML/JSON parsing.
+- The ephemeral server keeps the browser-based React renderer as the source of truth without requiring persistent server mode.
+
+### What worked
+
+- YAML layout input worked through `TypeObjectFromFile`.
+- `render` produced a PNG:
+  - width `384`, height `194`, selector `.paper-body`.
+- `inspect` emitted rows showing overflow was `visible` for `.paper-shell`, `.paper-body`, `.canvas`, `.workspace`, and `.almanach-app`.
+- `render --format bitmap` produced `/tmp/almanach-cli.bin` with `9312` bytes.
+- `print --dry-run` rendered successfully without printer configuration.
+- `serve --port 8301` returned health JSON:
+  - `{"ok":true,"printer":"","version":"dev"}`
+- `--debug-dir` produced:
+  - `screenshot.png`
+  - `bitmap.bin`
+  - `layout.json`
+  - `metrics.json`
+
+### What didn't work
+
+- First `go test ./...` after adding Glazed failed because `go get` had not populated all transitive `go.sum` entries. Exact error pattern:
+  - `missing go.sum entry for module providing package github.com/araddon/dateparse ...`
+  - similar missing entries for `github.com/pkg/errors`, `github.com/rs/zerolog/log`, `gopkg.in/yaml.v2`, `gopkg.in/yaml.v3`, and others.
+- Fix: ran `go mod tidy`, then `go test ./...` progressed.
+- Next compile failure was an unused import:
+  - `./cmd_inspect.go:5:2: "time" imported and not used`
+- Fix: removed the unused import and reran `gofmt`/`go test`.
+
+### What I learned
+
+- Glazed `TypeObjectFromFile` works as intended for YAML layout input in this project.
+- The Glazed root help renders, but the generated Usage line currently looks a bit odd: `almanach-render-service [flags] almanach-render-service [command]`. This is cosmetic but should be reviewed later.
+- The render-mode CSS successfully turns formerly clipping containers into `overflow: visible` elements as confirmed by `inspect`.
+
+### What was tricky to build
+
+- The main tricky part was preserving server behavior while adding a root command. I kept no-subcommand behavior as server mode and added explicit `serve` for clarity.
+- Another tricky point was keeping binary artifacts out of Glazed stdout. `render` writes PNG/bitmap bytes to `--out` and emits only metadata rows.
+- The wrapped layout form is accepted, but command-line defaults currently take precedence over render options in the file in a simple way. A future refinement could detect whether a flag was explicitly changed.
+
+### What warrants a second pair of eyes
+
+- Review the dependency footprint added by Glazed; it is substantial because Glazed includes help/output format dependencies.
+- Review `render_oneshot.go` server lifecycle and early-exit handling.
+- Review `layoutJSONFromObjectOrDefault()` validation for YAML edge cases.
+- Review the root help Usage line and decide whether to adjust Cobra/Glazed root setup.
+
+### What should be done in the future
+
+- Add tests for `layoutJSONFromObjectOrDefault()` raw and wrapped layout forms.
+- Update README and devctl plugin to use the new CLI verbs.
+- Consider reducing Glazed help dependencies if binary size becomes a concern, but do not prematurely optimize.
+
+### Code review instructions
+
+- Start with `cmd_root.go` to understand command registration.
+- Then review `cmd_serve.go`, `render_oneshot.go`, and `cmd_render.go`.
+- Review `cmd_inspect.go` and `cmd_print.go` after the shared render path is clear.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `cd stoms3r/cmd/almanach-render-service && go build -o /tmp/almanach-render-service-cli .`
+  - render/inspect/bitmap/dry-run commands listed above.
+
+### Technical details
+
+- `render` and `print` default to `.paper-body` for print-oriented output.
+- Existing HTTP mode still defaults to `.paper-shell` through the server render path.
+- `print --dry-run` does not require a printer URL or printer IP.
+- The ephemeral server binds only to loopback and an OS-assigned port.

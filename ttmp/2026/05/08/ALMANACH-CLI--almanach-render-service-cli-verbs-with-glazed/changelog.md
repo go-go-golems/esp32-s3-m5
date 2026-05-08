@@ -49,3 +49,16 @@ Phase 2: Refactored Chrome rendering around RenderOptions, clipping-safe capture
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/renderer.go — Renderer refactor
 
+
+## 2026-05-08
+
+Phases 3-4: Added Glazed/Cobra root, backwards-compatible serve mode, one-shot ephemeral renderer, and render/inspect/print CLI verbs using TypeObjectFromFile for YAML/JSON layouts (commit 81fe310).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_inspect.go — Inspect command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_print.go — Print command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_render.go — Render command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_root.go — Root command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/render_oneshot.go — Ephemeral render server
+
