@@ -4,7 +4,8 @@ import {
   Type, Calendar, ListTodo, Newspaper, CloudSun, Quote as QuoteIcon,
   BookOpen, Clock, Sparkles, Brain, Smile, Minus, X,
   GripVertical, Pencil, Copy, Eye, FileText, Star, Layers,
-  Sun, Moon, Leaf, Mountain, Rocket, BookMarked, Coffee
+  Sun, Moon, Leaf, Mountain, Rocket, BookMarked, Coffee,
+  Image as ImageIcon, Upload
 } from "lucide-react";
 
 /* ================================================================
@@ -194,6 +195,16 @@ const DEFAULTS = {
     learned: "Consistency beats motivation.",
     quote: "Well done is better than well said. — Benjamin Franklin",
   },
+  image: {
+    label: "Image Plate",
+    src: "",
+    alt: "Uploaded photograph",
+    caption: "",
+    height: 160,
+    fit: "cover", // cover | contain
+    border: true,
+    grayscale: true,
+  },
   divider: { style: "line" }, // line | dots | wave | leaves
 };
 
@@ -206,6 +217,7 @@ const BLOCK_TYPES = [
   { type: "news", label: "Top News", icon: Newspaper, group: "daily" },
   { type: "weather", label: "Weather", icon: CloudSun, group: "daily" },
   { type: "note", label: "Daily Note", icon: FileText, group: "daily" },
+  { type: "image", label: "Image Plate", icon: ImageIcon, group: "daily" },
   { type: "habits", label: "Habit Tracker", icon: Layers, group: "tracker" },
   { type: "mood", label: "Mood & Energy", icon: Smile, group: "tracker" },
   { type: "reading", label: "Reading List", icon: BookOpen, group: "tracker" },
@@ -565,6 +577,66 @@ const DidBlock = ({ data, theme }) => (
   </div>
 );
 
+const ImageBlock = ({ data, theme }) => {
+  const height = Math.max(48, Math.min(420, Number(data.height) || 160));
+  const hasImage = typeof data.src === "string" && data.src.trim().length > 0;
+
+  return (
+    <div>
+      {data.label && <SectionLabel label={data.label} theme={theme} icon="▧" />}
+      <div style={{
+        border: data.border ? `1px solid ${theme.rule}` : "none",
+        padding: data.border ? 4 : 0,
+        background: theme.paper,
+      }}>
+        {hasImage ? (
+          <img
+            src={data.src}
+            alt={data.alt || data.caption || "Almanach image"}
+            crossOrigin={data.src.startsWith("data:") ? undefined : "anonymous"}
+            style={{
+              display: "block",
+              width: "100%",
+              height,
+              objectFit: data.fit === "contain" ? "contain" : "cover",
+              background: theme.paper,
+              filter: data.grayscale === false ? "none" : "grayscale(100%) contrast(1.25)",
+            }}
+          />
+        ) : (
+          <div style={{
+            height,
+            border: `1px dashed ${theme.rule}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontFamily: theme.fontBody,
+            fontSize: theme.fs(11),
+            color: theme.muted,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}>
+            Add an image URL or upload a file
+          </div>
+        )}
+      </div>
+      {data.caption && (
+        <div style={{
+          fontFamily: theme.fontBody,
+          fontSize: theme.fs(10.5),
+          color: theme.muted,
+          textAlign: "center",
+          fontStyle: "italic",
+          marginTop: 5,
+          lineHeight: 1.3,
+        }}>
+          {data.caption}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MoodFace = ({ active, theme }) => (
   <svg width="14" height="14" viewBox="0 0 16 16" stroke={theme.ink} strokeWidth="1.1" fill={active ? theme.ink : "transparent"}>
     <circle cx="8" cy="8" r="6.5" fill={active ? theme.ink : theme.paper} />
@@ -677,6 +749,7 @@ const RENDERERS = {
   news: NewsBlock,
   weather: WeatherBlock,
   note: NoteBlock,
+  image: ImageBlock,
   habits: HabitsBlock,
   quote: QuoteBlock,
   word: WordBlock,
@@ -834,6 +907,70 @@ const NoteEditor = ({ data, set }) => (
     <Field label="Author"><TextInput value={data.author} onChange={(e) => set({ ...data, author: e.target.value })} /></Field>
   </>
 );
+
+const ImageEditor = ({ data, set }) => {
+  const fileInputRef = useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      set({
+        ...data,
+        src: String(reader.result || ""),
+        alt: data.alt || file.name,
+        caption: data.caption || file.name.replace(/\.[^.]+$/, ""),
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <>
+      <Field label="Section Label"><TextInput value={data.label || ""} onChange={(e) => set({ ...data, label: e.target.value })} /></Field>
+      <Field label="Image URL or data URL"><TextArea value={data.src || ""} onChange={(e) => set({ ...data, src: e.target.value })} placeholder="https://… or data:image/jpeg;base64,…" /></Field>
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
+      <button
+        type="button"
+        className="btn"
+        onClick={() => fileInputRef.current?.click()}
+        style={{ width: "100%", justifyContent: "center", marginBottom: 12 }}
+      >
+        <Upload size={13} /> Upload Image
+      </button>
+      {data.src && (
+        <div style={{ marginBottom: 12, padding: 8, border: "1px solid var(--ui-border)", background: "rgba(0,0,0,0.18)" }}>
+          <img src={data.src} alt={data.alt || "Preview"} style={{ width: "100%", maxHeight: 120, objectFit: "cover", filter: data.grayscale === false ? "none" : "grayscale(100%) contrast(1.2)" }} />
+        </div>
+      )}
+      <Field label="Caption"><TextInput value={data.caption || ""} onChange={(e) => set({ ...data, caption: e.target.value })} /></Field>
+      <Field label="Alt Text"><TextInput value={data.alt || ""} onChange={(e) => set({ ...data, alt: e.target.value })} /></Field>
+      <Field label={`Height (${data.height || 160}px)`}>
+        <input type="range" min="48" max="420" step="4" value={data.height || 160} onChange={(e) => set({ ...data, height: +e.target.value })} style={{ width: "100%" }} />
+      </Field>
+      <Field label="Fit">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {["cover", "contain"].map((fit) => (
+            <button key={fit} onClick={() => set({ ...data, fit })} className={data.fit === fit ? "seg active" : "seg"}>{fit}</button>
+          ))}
+        </div>
+      </Field>
+      <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--ui-muted)", marginBottom: 8 }}>
+        <input type="checkbox" checked={data.border !== false} onChange={(e) => set({ ...data, border: e.target.checked })} />
+        Draw border around image
+      </label>
+      <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 11.5, color: "var(--ui-muted)", marginBottom: 8 }}>
+        <input type="checkbox" checked={data.grayscale !== false} onChange={(e) => set({ ...data, grayscale: e.target.checked })} />
+        Thermal grayscale preview
+      </label>
+      <div style={{ fontSize: 10.5, color: "var(--ui-muted)", lineHeight: 1.4, marginTop: 8 }}>
+        Uploaded images are embedded as data URLs in saved layouts, so CLI/headless renders work without fetching external files.
+      </div>
+    </>
+  );
+};
 
 const HabitsEditor = ({ data, set }) => (
   <>
@@ -998,6 +1135,7 @@ const EDITORS = {
   news: NewsEditor,
   weather: WeatherEditor,
   note: NoteEditor,
+  image: ImageEditor,
   habits: HabitsEditor,
   quote: QuoteEditor,
   word: WordEditor,
@@ -1168,6 +1306,18 @@ async function getInlineFontCss() {
   }
 }
 
+async function waitForImages(root = document) {
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(images.map((img) => {
+    if (img.complete) return Promise.resolve();
+    return new Promise((resolve) => {
+      img.addEventListener("load", resolve, { once: true });
+      img.addEventListener("error", resolve, { once: true });
+      setTimeout(resolve, 10000);
+    });
+  }));
+}
+
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1184,6 +1334,7 @@ function triggerDownload(blob, filename) {
 async function exportPaperToPng(paperNode, fileName, scale = 2, themeObj) {
   if (!paperNode) throw new Error("No paper element");
   if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  await waitForImages(paperNode);
 
   const fontCss = await getInlineFontCss();
 
@@ -1384,8 +1535,9 @@ export default function AlmanachStudio() {
     };
 
     window.almanachExportBitmap = async () => {
-      // Wait for fonts + one render frame
+      // Wait for fonts, images, and one render frame
       if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      await waitForImages(document);
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
       const paperNode = document.querySelector(".paper-shell");
@@ -1518,6 +1670,7 @@ export default function AlmanachStudio() {
     setSelectedId(null);
     await new Promise((r) => requestAnimationFrame(r));
     try {
+      await waitForImages(paperRef.current);
       // Render paper to off-screen canvas at 1:1 pixel scale
       const paperNode = paperRef.current;
       const rect = paperNode.getBoundingClientRect();

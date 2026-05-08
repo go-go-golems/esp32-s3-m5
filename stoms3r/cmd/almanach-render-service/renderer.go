@@ -302,6 +302,15 @@ html, body, #root {
 func waitForFontsAndFramesJS() string {
 	return `(async function() {
 	if (document.fonts && document.fonts.ready) await document.fonts.ready;
+	const images = Array.from(document.querySelectorAll('img'));
+	await Promise.all(images.map(function(img) {
+		if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+		return new Promise(function(resolve) {
+			img.addEventListener('load', resolve, { once: true });
+			img.addEventListener('error', resolve, { once: true });
+			setTimeout(resolve, 10000);
+		});
+	}));
 	await new Promise(function(resolve) { requestAnimationFrame(function() { requestAnimationFrame(resolve); }); });
 })();`
 }
