@@ -34,3 +34,4 @@
 - [x] Phase 5.3: Run smoke tests: go test, render YAML to PNG, inspect metrics, bitmap output, dry-run print, and optional physical print
 - [x] Phase 6.1: Add YAML layout example corpus and rendered preview PNGs
 - [x] Phase 6.2: Validate rendered example PNG dimensions, DOM inspect metrics, and visual contact sheet
+- [x] Phase 7.1: Replace unreliable post-bitmap ESC feed with baked trailing blank raster rows

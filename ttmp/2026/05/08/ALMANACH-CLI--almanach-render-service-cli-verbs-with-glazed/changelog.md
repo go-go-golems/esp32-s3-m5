@@ -83,3 +83,14 @@ Phase 6: Added six YAML layout examples, rendered PNG previews, inspect metadata
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/rendered/README.md — Rendered preview validation summary
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/rendered/contact-sheet.png — Rendered visual overview
 
+
+## 2026-05-08
+
+Phase 7: Replaced unreliable post-bitmap ESC feed with baked trailing blank raster rows in the host print path; user confirmed physical feed worked (commit 6debc0e).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/cmd_print.go — Reports padded printer bitmap dimensions
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/printer.go — Bakes trailing blank rows into bitmap and sends X-Feed 0
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/printer_test.go — Unit tests for baked feed rows
+

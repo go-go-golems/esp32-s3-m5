@@ -59,7 +59,7 @@ RelatedFiles:
         Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T08:35:00-04:00
+LastUpdated: 2026-05-08T08:55:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
@@ -673,3 +673,86 @@ I rendered all examples through the new one-shot CLI, saved the PNG previews and
 - `01` through `05` use print-oriented `.paper-body` capture.
 - `06-paper-shell-preview.yaml` uses wrapped render options to request `.paper-shell` capture.
 - Browser-rendered PNG text remains antialiased; printer output is still converted to 1-bit bitmap during bitmap/print paths.
+
+## Step 7: Replace unreliable ESC feed with baked blank raster rows
+
+After several physical print tests, the user observed that the feed-lines setting did not appear to do anything. The host was sending `X-Feed`, and the firmware contained code that translated it to `printer_drv_feed()`, but the mechanism did not visibly advance paper after bitmap prints. To make feed behavior reliable from the render-service side, I changed the print path to append white raster rows to the bitmap itself.
+
+This means the paper advance is now part of the printed image payload rather than a separate `ESC d n` command sent after the bitmap. The user confirmed the new behavior worked on the real printer.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i don't think feed lines does anything?"
+
+**Assistant interpretation:** Investigate why post-print feed lines are not visible and adjust the print path so feed has a reliable physical effect.
+
+**Inferred user intent:** The user needs enough blank paper after the image for tear-off, and the existing `X-Feed` / ESC-feed approach is not achieving that.
+
+**Commit (code):** 6debc0e — "fix: bake printer feed into bitmap output"
+
+### What I did
+
+- Verified the host code sends `X-Feed` in `printer.go`.
+- Verified firmware code reads `X-Feed` and calls `printer_drv_feed(feed)` in `stoms3r/main/web_server.c`.
+- Verified `printer_drv_feed()` sends `ESC d n` in `stoms3r/main/printer_drv.c`.
+- Added `bitmapWithTrailingBlankRows()` in `printer.go`.
+- Changed `sendBitmapToPrinter()` to send the padded bitmap dimensions and set `X-Feed: 0`.
+- Changed CLI `print` metadata to report the actual printer bitmap dimensions after padding.
+- Added `printer_test.go` coverage for row padding, clamping feed to 20 lines, and no-feed behavior.
+- Ran:
+  - `gofmt -w cmd_print.go printer.go printer_test.go`
+  - `go test ./...`
+  - `go build -o /tmp/almanach-render-service-feedfix .`
+- Printed `01-minimal.yaml` with `--feed-lines 3`; the user confirmed it worked.
+
+### Why
+
+- ESC feed after a raster bitmap was not visibly reliable on this printer/firmware path.
+- Blank raster rows are guaranteed to travel through the same already-working bitmap print command.
+- This keeps the user-facing `--feed-lines` option meaningful without requiring immediate firmware changes.
+
+### What worked
+
+- The physical printer accepted the baked-feed bitmap and returned `ok: true`.
+- The user confirmed: "nice, this worked".
+- Unit tests passed.
+
+### What didn't work
+
+- The earlier feed-only approach did not visibly work even though `X-Feed` was sent and firmware code existed to consume it.
+- One prior feed-lines attempt timed out waiting for printer response; this may have been printer busy state, but it reinforced that post-bitmap feed was not the most robust path.
+
+### What I learned
+
+- For this K118 thermal printer flow, treating extra feed as trailing blank image rows is more predictable than relying on a separate post-image feed command.
+- Reporting the padded dimensions in CLI output is useful because the printer receives a taller bitmap than the rendered content screenshot.
+
+### What was tricky to build
+
+- The tricky part is semantic: `feedLines` no longer maps to ESC/POS text-feed lines in host print mode. It maps to `feedLines * 24` blank raster rows. I used `24` pixels per line as a pragmatic visual feed unit.
+- To avoid double-feeding, CLI print now pre-pads the bitmap and calls `sendBitmapToPrinter(..., 0)`.
+
+### What warrants a second pair of eyes
+
+- Review whether `24` pixels per line is the right default unit for this printer.
+- Review whether we should rename host-side documentation from feed lines to trailing blank lines/blank rows for clarity.
+- Review whether direct HTTP callers that still send `X-Feed` to firmware should also move to padded bitmaps eventually.
+
+### What should be done in the future
+
+- Consider moving baked trailing blank rows into all bitmap-print producers, including the browser SPA direct print path, if the same no-feed symptom appears there.
+- Optionally add a firmware endpoint for explicit dot-row feed if K118 supports a better primitive.
+
+### Code review instructions
+
+- Start with `printer.go` and review `bitmapWithTrailingBlankRows()` and `sendBitmapToPrinter()`.
+- Then review `cmd_print.go` to confirm CLI metadata reports padded dimensions and avoids double-feed.
+- Validate with:
+  - `cd stoms3r/cmd/almanach-render-service && go test ./...`
+  - `almanach-render-service print --layout examples/layouts/01-minimal.yaml --printer-ip 192.168.0.126 --feed-lines 3`
+
+### Technical details
+
+- A white pixel is encoded as bit `0`, so appended blank rows are zero-filled bytes.
+- Feed is clamped to `20` to preserve the prior API limit.
+- The firmware receives `X-Feed: 0` from the host print path after padding, so it should not try to add ESC feed on top.
