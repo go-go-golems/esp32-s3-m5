@@ -1,0 +1,386 @@
+{
+  "source": "/home/manuel/Downloads/animal.png",
+  "width": 1024,
+  "height": 1536,
+  "threshold_percent": "88%",
+  "banners": [
+    {
+      "name": "animal-banner-c01-r01.png",
+      "column": 1,
+      "row": 1,
+      "source_bounds": {
+        "x": 36,
+        "y": 47,
+        "width": 486,
+        "height": 76
+      },
+      "component_area": 8991,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r01.png"
+    },
+    {
+      "name": "animal-banner-c01-r02.png",
+      "column": 1,
+      "row": 2,
+      "source_bounds": {
+        "x": 32,
+        "y": 129,
+        "width": 483,
+        "height": 111
+      },
+      "component_area": 8969,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r02.png"
+    },
+    {
+      "name": "animal-banner-c01-r03.png",
+      "column": 1,
+      "row": 3,
+      "source_bounds": {
+        "x": 31,
+        "y": 260,
+        "width": 483,
+        "height": 89
+      },
+      "component_area": 11297,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r03.png"
+    },
+    {
+      "name": "animal-banner-c01-r04.png",
+      "column": 1,
+      "row": 4,
+      "source_bounds": {
+        "x": 31,
+        "y": 377,
+        "width": 481,
+        "height": 80
+      },
+      "component_area": 9554,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r04.png"
+    },
+    {
+      "name": "animal-banner-c01-r05.png",
+      "column": 1,
+      "row": 5,
+      "source_bounds": {
+        "x": 30,
+        "y": 463,
+        "width": 482,
+        "height": 108
+      },
+      "component_area": 8701,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r05.png"
+    },
+    {
+      "name": "animal-banner-c01-r06.png",
+      "column": 1,
+      "row": 6,
+      "source_bounds": {
+        "x": 30,
+        "y": 592,
+        "width": 481,
+        "height": 79
+      },
+      "component_area": 8715,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r06.png"
+    },
+    {
+      "name": "animal-banner-c01-r07.png",
+      "column": 1,
+      "row": 7,
+      "source_bounds": {
+        "x": 30,
+        "y": 693,
+        "width": 480,
+        "height": 71
+      },
+      "component_area": 8338,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r07.png"
+    },
+    {
+      "name": "animal-banner-c01-r08.png",
+      "column": 1,
+      "row": 8,
+      "source_bounds": {
+        "x": 30,
+        "y": 791,
+        "width": 479,
+        "height": 65
+      },
+      "component_area": 6702,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r08.png"
+    },
+    {
+      "name": "animal-banner-c01-r09.png",
+      "column": 1,
+      "row": 9,
+      "source_bounds": {
+        "x": 30,
+        "y": 864,
+        "width": 478,
+        "height": 79
+      },
+      "component_area": 8353,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r09.png"
+    },
+    {
+      "name": "animal-banner-c01-r10.png",
+      "column": 1,
+      "row": 10,
+      "source_bounds": {
+        "x": 29,
+        "y": 959,
+        "width": 480,
+        "height": 76
+      },
+      "component_area": 9032,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r10.png"
+    },
+    {
+      "name": "animal-banner-c01-r11.png",
+      "column": 1,
+      "row": 11,
+      "source_bounds": {
+        "x": 29,
+        "y": 1036,
+        "width": 478,
+        "height": 94
+      },
+      "component_area": 7349,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r11.png"
+    },
+    {
+      "name": "animal-banner-c01-r12.png",
+      "column": 1,
+      "row": 12,
+      "source_bounds": {
+        "x": 29,
+        "y": 1132,
+        "width": 477,
+        "height": 89
+      },
+      "component_area": 6879,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r12.png"
+    },
+    {
+      "name": "animal-banner-c01-r13.png",
+      "column": 1,
+      "row": 13,
+      "source_bounds": {
+        "x": 28,
+        "y": 1236,
+        "width": 478,
+        "height": 77
+      },
+      "component_area": 7516,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r13.png"
+    },
+    {
+      "name": "animal-banner-c01-r14.png",
+      "column": 1,
+      "row": 14,
+      "source_bounds": {
+        "x": 28,
+        "y": 1304,
+        "width": 477,
+        "height": 100
+      },
+      "component_area": 6347,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r14.png"
+    },
+    {
+      "name": "animal-banner-c01-r15.png",
+      "column": 1,
+      "row": 15,
+      "source_bounds": {
+        "x": 27,
+        "y": 1411,
+        "width": 479,
+        "height": 93
+      },
+      "component_area": 7563,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c01-r15.png"
+    },
+    {
+      "name": "animal-banner-c02-r01.png",
+      "column": 2,
+      "row": 1,
+      "source_bounds": {
+        "x": 516,
+        "y": 23,
+        "width": 486,
+        "height": 106
+      },
+      "component_area": 9223,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r01.png"
+    },
+    {
+      "name": "animal-banner-c02-r02.png",
+      "column": 2,
+      "row": 2,
+      "source_bounds": {
+        "x": 510,
+        "y": 164,
+        "width": 496,
+        "height": 78
+      },
+      "component_area": 9273,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r02.png"
+    },
+    {
+      "name": "animal-banner-c02-r03.png",
+      "column": 2,
+      "row": 3,
+      "source_bounds": {
+        "x": 511,
+        "y": 256,
+        "width": 493,
+        "height": 95
+      },
+      "component_area": 10663,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r03.png"
+    },
+    {
+      "name": "animal-banner-c02-r04.png",
+      "column": 2,
+      "row": 4,
+      "source_bounds": {
+        "x": 511,
+        "y": 372,
+        "width": 493,
+        "height": 93
+      },
+      "component_area": 8337,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r04.png"
+    },
+    {
+      "name": "animal-banner-c02-r05.png",
+      "column": 2,
+      "row": 5,
+      "source_bounds": {
+        "x": 510,
+        "y": 478,
+        "width": 494,
+        "height": 94
+      },
+      "component_area": 8157,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r05.png"
+    },
+    {
+      "name": "animal-banner-c02-r06.png",
+      "column": 2,
+      "row": 6,
+      "source_bounds": {
+        "x": 510,
+        "y": 690,
+        "width": 495,
+        "height": 78
+      },
+      "component_area": 8158,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r06.png"
+    },
+    {
+      "name": "animal-banner-c02-r07.png",
+      "column": 2,
+      "row": 7,
+      "source_bounds": {
+        "x": 510,
+        "y": 802,
+        "width": 493,
+        "height": 57
+      },
+      "component_area": 6038,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r07.png"
+    },
+    {
+      "name": "animal-banner-c02-r08.png",
+      "column": 2,
+      "row": 8,
+      "source_bounds": {
+        "x": 509,
+        "y": 871,
+        "width": 494,
+        "height": 73
+      },
+      "component_area": 8697,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r08.png"
+    },
+    {
+      "name": "animal-banner-c02-r09.png",
+      "column": 2,
+      "row": 9,
+      "source_bounds": {
+        "x": 508,
+        "y": 957,
+        "width": 495,
+        "height": 82
+      },
+      "component_area": 8646,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r09.png"
+    },
+    {
+      "name": "animal-banner-c02-r10.png",
+      "column": 2,
+      "row": 10,
+      "source_bounds": {
+        "x": 508,
+        "y": 1040,
+        "width": 494,
+        "height": 93
+      },
+      "component_area": 8926,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r10.png"
+    },
+    {
+      "name": "animal-banner-c02-r11.png",
+      "column": 2,
+      "row": 11,
+      "source_bounds": {
+        "x": 506,
+        "y": 1130,
+        "width": 496,
+        "height": 96
+      },
+      "component_area": 7932,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r11.png"
+    },
+    {
+      "name": "animal-banner-c02-r12.png",
+      "column": 2,
+      "row": 12,
+      "source_bounds": {
+        "x": 507,
+        "y": 1218,
+        "width": 493,
+        "height": 100
+      },
+      "component_area": 8714,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r12.png"
+    },
+    {
+      "name": "animal-banner-c02-r13.png",
+      "column": 2,
+      "row": 13,
+      "source_bounds": {
+        "x": 507,
+        "y": 1319,
+        "width": 493,
+        "height": 89
+      },
+      "component_area": 7847,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r13.png"
+    },
+    {
+      "name": "animal-banner-c02-r14.png",
+      "column": 2,
+      "row": 14,
+      "source_bounds": {
+        "x": 506,
+        "y": 1420,
+        "width": 488,
+        "height": 78
+      },
+      "component_area": 5004,
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-IMAGE-BLOCKS--add-almanach-image-blocks-and-upload-support/various/animal-banners/animal-banner-c02-r14.png"
+    }
+  ],
+  "count": 29
+}
