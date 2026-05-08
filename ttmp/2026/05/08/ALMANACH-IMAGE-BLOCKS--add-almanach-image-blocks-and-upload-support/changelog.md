@@ -42,3 +42,13 @@ Wrote and committed Obsidian deep-dive technical report for the day's Almanach i
 
 - /home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md — Vault project report
 
+
+## 2026-05-08
+
+Converted the SQLite/sql.js animals concept from a large base64 YAML draft into a ZIP-backed Almanach example using relative animal banner assets.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/bundles/10-sqlite-browser-animals/images/fox.png — Extracted ornamental animal banner used by bundle
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/bundles/10-sqlite-browser-animals/layout.yaml — SQLite animals layout now references images by relative path
+

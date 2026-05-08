@@ -14,6 +14,10 @@ RelatedFiles:
       Note: Source article summarized by the nerd-card layout
     - Path: ../../../../../../../../../../code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md
       Note: Obsidian technical deep dive report for the day (vault commit 2f883ee)
+    - Path: stoms3r/cmd/almanach-render-service/examples/bundles/10-sqlite-browser-animals.zip
+      Note: Rendered ZIP bundle example for SQLite animals layout
+    - Path: stoms3r/cmd/almanach-render-service/examples/bundles/10-sqlite-browser-animals/layout.yaml
+      Note: ZIP-backed SQLite animals Almanach example layout
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/07-analog-photography.yaml
       Note: Example layout created during this session and future candidate for embedded image block validation
     - Path: stoms3r/cmd/almanach-render-service/examples/layouts/08-image-block.yaml
@@ -26,10 +30,11 @@ RelatedFiles:
       Note: Primary frontend file for Almanach block schema
 ExternalSources: []
 Summary: Chronological implementation diary for Almanach image blocks, upload support, render validation, and devctl recovery.
-LastUpdated: 2026-05-08T09:12:54.691246585-04:00
+LastUpdated: 2026-05-08T11:35:00-04:00
 WhatFor: Use this to resume or review the Almanach image-block/upload work without reconstructing the session from terminal history.
 WhenToUse: Read before changing Almanach Studio blocks, render/export behavior, examples, or devctl wiring.
 ---
+
 
 
 
@@ -534,3 +539,53 @@ The report explains the full day of work: devctl recovery, the initial analog la
 ### Technical details
 - Vault commit: `2f883eeee00108de8c7d70622135be372c5f9dbb`
 - Note path: `/home/manuel/code/wesen/obsidian-vault/Projects/2026/05/08/ARTICLE - Almanach Studio - Image Blocks and Self-Contained Render Layouts.md`
+
+## Step 8: Convert SQLite Animals Layout to a ZIP-Backed Example
+
+After ZIP bundle support was implemented under `ALMANACH-ZIP-BUNDLES`, I returned to the in-progress SQLite/sql.js animals layout and converted the concept away from a single large base64 YAML file. The new example stores a readable `layout.yaml` plus separate animal banner images in a source directory, and also checks in a ready-to-render ZIP bundle.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Continue with the next planned task: rebuild the SQLite animals Almanach as a ZIP-backed example now that the CLI supports ZIP bundles.
+
+**Inferred user intent:** Avoid committing the large base64 YAML draft and demonstrate the new ZIP feature with the animal/banner assets.
+
+**Commit (code/docs):** pending at the time this diary entry was written.
+
+### What I did
+- Created `stoms3r/cmd/almanach-render-service/examples/bundles/10-sqlite-browser-animals/` as the readable bundle source directory.
+- Copied five extracted animal banners into `images/`: fox, owl, snake, hedgehog, and fish.
+- Wrote `layout.yaml` using relative image paths such as `images/fox.png` instead of embedded data URLs.
+- Created `examples/bundles/10-sqlite-browser-animals.zip` with deterministic member timestamps for a CLI-ready example.
+- Removed the uncommitted `examples/layouts/10-sqlite-browser-animals.yaml` base64 draft from the working tree.
+- Added `examples/bundles/README.md` and updated `examples/layouts/README.md` to point readers at ZIP bundle examples.
+- Rendered the checked-in ZIP bundle to `/tmp/almanach-sqlite-animals-zip-example.png` and inspected the PNG.
+
+### Why
+- ZIP bundles keep layouts reviewable and let designers work with ordinary image files.
+- This validates the new `--layout bundle.zip` path with a realistic Almanach composition rather than only unit tests.
+
+### What worked
+- The ZIP bundle rendered successfully:
+  - `384x2237`
+  - `208752` PNG bytes
+  - output path `/tmp/almanach-sqlite-animals-zip-example.png`
+- The visual result matches the earlier base64 render while keeping the YAML under 5 KB instead of about 77 KB.
+
+### What didn't work
+- The first attempt to generate the bundle failed because the Python heredoc delimiter conflicted with an embedded README heredoc example. I reran the generator with a distinct outer delimiter.
+
+### What I learned
+- The bundle source directory is useful even when a ZIP is checked in, because the YAML and assets remain easy to review and regenerate.
+- The ZIP loader preserves the exact design goal: image blocks remain browser-compatible data URLs by render time, but humans edit relative paths.
+
+### What warrants a second pair of eyes
+- The selected animal banners and technical text should be reviewed as a handout, especially if this becomes a canonical sql.js performance example.
+
+### Code review instructions
+- Review `examples/bundles/10-sqlite-browser-animals/layout.yaml` for layout content and relative image paths.
+- Render with:
+  - `./almanach-render-service render --layout ./examples/bundles/10-sqlite-browser-animals.zip --out /tmp/almanach-sqlite-animals-zip.png --output yaml`
+- Inspect `/tmp/almanach-sqlite-animals-zip.png` and confirm the relative image assets render as ornamental separators.
