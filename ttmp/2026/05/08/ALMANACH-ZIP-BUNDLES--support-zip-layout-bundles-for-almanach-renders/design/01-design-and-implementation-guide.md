@@ -16,6 +16,10 @@ RelatedFiles:
       Note: Print command layout flag contract
     - Path: stoms3r/cmd/almanach-render-service/cmd_render.go
       Note: Render command layout flag contract
+    - Path: stoms3r/cmd/almanach-render-service/layout_bundle.go
+      Note: Implemented bundle design (commit 0f2244e)
+    - Path: stoms3r/cmd/almanach-render-service/layout_bundle_test.go
+      Note: Tests for implemented bundle design (commit 0f2244e)
     - Path: stoms3r/cmd/almanach-render-service/render_oneshot.go
       Note: Existing layout JSON normalization helper
 ExternalSources: []
@@ -24,6 +28,7 @@ LastUpdated: 2026-05-08T09:55:00-04:00
 WhatFor: Use this before changing Almanach CLI layout loading or asset resolution.
 WhenToUse: When implementing, reviewing, or extending ZIP bundle support for render/inspect/print commands.
 ---
+
 
 
 # Design and Implementation Guide
