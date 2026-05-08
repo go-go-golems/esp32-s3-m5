@@ -25,6 +25,20 @@ RelatedFiles:
       Note: Root command
     - Path: stoms3r/cmd/almanach-render-service/cmd_serve.go
       Note: Serve command and preserved HTTP server mode (commit 81fe310)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/01-minimal.yaml
+      Note: Minimal YAML layout example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/02-daily-briefing.yaml
+      Note: Daily briefing layout example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/03-knowledge-strip.yaml
+      Note: Knowledge block layout example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/04-tracker-journal.yaml
+      Note: Tracker/journal layout example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/05-wrapped-render-request.yaml
+      Note: Wrapped layout/render request example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/layouts/06-paper-shell-preview.yaml
+      Note: Paper-shell selector example (commit 26dfedc)
+    - Path: stoms3r/cmd/almanach-render-service/examples/rendered/contact-sheet.png
+      Note: Visual contact sheet for rendered examples (commit 26dfedc)
     - Path: stoms3r/cmd/almanach-render-service/fetch_history.go
       Note: Frontend-shaped history fallback/live data (commit c3708df)
     - Path: stoms3r/cmd/almanach-render-service/fetch_news.go
@@ -45,10 +59,11 @@ RelatedFiles:
         Parameterized renderer options
 ExternalSources: []
 Summary: Chronological notes for the ALMANACH-CLI documentation and future implementation work.
-LastUpdated: 2026-05-08T07:45:00-04:00
+LastUpdated: 2026-05-08T08:35:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
 
 
 
@@ -556,3 +571,105 @@ This closes the phased task list for the ticket. Physical print was not repeated
 - The repo-local binary `stoms3r/cmd/almanach-render-service/almanach-render-service` was rebuilt during validation but remains untracked and should not be committed.
 - `devctl render` now works as a one-shot CLI wrapper and does not depend on `/api/render`.
 - `devctl health` still checks the supervised HTTP service, as expected.
+
+## Step 6: Phase 6 example layout corpus and rendered PNG review
+
+After the CLI was implemented, the user asked for a reusable set of `layout.yaml` inputs and wanted each rendered and visually checked. I added six YAML examples that cover the most important block families and both supported request shapes: raw Almanach layouts and wrapped `{ layout, render }` requests.
+
+I rendered all examples through the new one-shot CLI, saved the PNG previews and inspect output next to the inputs, generated a contact sheet, and reviewed the contact sheet plus DOM metrics. The examples render at 384px width with visible overflow metrics and no editor UI.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you create a set of layout.yaml input examples? and then render them and look at the png and make sure they are rendered correctly?"
+
+**Assistant interpretation:** Add practical YAML example inputs for the new CLI, render each one to PNG, inspect the resulting images and metrics, and report whether they look correct.
+
+**Inferred user intent:** The user wants confidence that custom YAML input works across several real layouts and that the renderer is not clipping or capturing the wrong UI.
+
+**Commit (code/docs):** 26dfedc — "test: add almanach layout examples"
+
+### What I did
+
+- Created `examples/layouts/` with:
+  - `01-minimal.yaml`
+  - `02-daily-briefing.yaml`
+  - `03-knowledge-strip.yaml`
+  - `04-tracker-journal.yaml`
+  - `05-wrapped-render-request.yaml`
+  - `06-paper-shell-preview.yaml`
+  - `README.md`
+- Rendered every layout with:
+  - `almanach-render-service render --layout ... --out examples/rendered/<name>.png --output yaml`
+- Ran `inspect` for every layout and saved:
+  - `examples/rendered/<name>.inspect.yaml`
+- Saved render metadata:
+  - `examples/rendered/<name>.render.yaml`
+- Created `examples/rendered/contact-sheet.png` with ImageMagick `montage`.
+- Added `examples/rendered/README.md` with sizes, selectors, and validation notes.
+- Used `identify` and parsed inspect YAML to verify width/height and overflow behavior.
+
+### Why
+
+- The CLI needed realistic examples beyond a minimal smoke-test layout.
+- The examples double as regression fixtures for YAML loading, block schema alignment, selector behavior, and cutoff debugging.
+- Rendered PNGs make it easier for humans to see whether future renderer changes drift visually.
+
+### What worked
+
+- All six examples rendered successfully.
+- Rendered PNG dimensions:
+  - `01-minimal.png`: `384x343`
+  - `02-daily-briefing.png`: `384x829`
+  - `03-knowledge-strip.png`: `384x955`
+  - `04-tracker-journal.png`: `384x1044`
+  - `05-wrapped-render-request.png`: `384x607`
+  - `06-paper-shell-preview.png`: `384x465`
+- All inspect outputs reported `overflow: visible` for:
+  - `.paper-shell`
+  - `.paper-body`
+  - `.canvas`
+  - `.workspace`
+  - `.almanach-app`
+- All paper widths were `384px`.
+- The contact sheet looked correct: content was black-on-white, editor UI was absent, common block families rendered, and no obvious top/bottom clipping was visible.
+
+### What didn't work
+
+- The optional vision-analysis tool was unavailable because `ZAI_API_KEY` was not set. I reviewed the generated contact sheet directly through the image reader and used ImageMagick/inspect metrics for validation instead.
+- Python PIL was not installed, so I used ImageMagick `identify` instead of a PIL-based pixel bounding-box script.
+
+### What I learned
+
+- The wrapped `{ layout, render }` form works for selector selection: `06-paper-shell-preview.yaml` rendered with `.paper-shell`, including the expected zigzag edge area.
+- The tracker/journal layout is the tallest example at `1044px` and still reports visible overflow and no clipping.
+- The contact sheet is a useful quick visual regression artifact.
+
+### What was tricky to build
+
+- The main tricky part was balancing examples that are rich enough to exercise block families but short enough to remain readable on 384px thermal paper. I reduced body scale for denser examples such as tracker/journal and knowledge strip.
+- Another subtle point was quoting YAML values such as times and dates so YAML does not coerce them unexpectedly.
+
+### What warrants a second pair of eyes
+
+- Review whether committing rendered PNGs is desirable long-term. They are useful for visual regression, but generated artifacts can grow if many examples are added.
+- Review the `04-tracker-journal` density on actual paper; it is readable in PNG but is the busiest example.
+
+### What should be done in the future
+
+- Add an automated `make render-examples` target if these previews should be regenerated routinely.
+- Consider adding thresholded bitmap-preview PNGs to approximate physical printer output more closely.
+
+### Code review instructions
+
+- Start with `examples/layouts/README.md`, then inspect each YAML file.
+- Compare the corresponding PNG under `examples/rendered/`.
+- Open `examples/rendered/contact-sheet.png` for a quick all-layout visual check.
+- Re-render from `stoms3r/cmd/almanach-render-service` with:
+  - `go build -o /tmp/almanach-render-service-examples .`
+  - `for layout in examples/layouts/[0-9][0-9]-*.yaml; do name=$(basename "$layout" .yaml); /tmp/almanach-render-service-examples render --layout "$layout" --out "examples/rendered/${name}.png" --output yaml; done`
+
+### Technical details
+
+- `01` through `05` use print-oriented `.paper-body` capture.
+- `06-paper-shell-preview.yaml` uses wrapped render options to request `.paper-shell` capture.
+- Browser-rendered PNG text remains antialiased; printer output is still converted to 1-bit bitmap during bitmap/print paths.

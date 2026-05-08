@@ -32,3 +32,5 @@
 - [x] Phase 5.1: Update README with server and CLI workflows plus YAML layout examples
 - [x] Phase 5.2: Update devctl plugin to call CLI verbs for render/print while keeping up/down service management
 - [x] Phase 5.3: Run smoke tests: go test, render YAML to PNG, inspect metrics, bitmap output, dry-run print, and optional physical print
+- [x] Phase 6.1: Add YAML layout example corpus and rendered preview PNGs
+- [x] Phase 6.2: Validate rendered example PNG dimensions, DOM inspect metrics, and visual contact sheet

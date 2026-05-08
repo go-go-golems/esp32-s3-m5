@@ -72,3 +72,14 @@ Phase 5: Documented CLI workflows, updated devctl render/print to call CLI verbs
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/README.md — CLI documentation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/plugins/almanach-render.py — devctl integration
 
+
+## 2026-05-08
+
+Phase 6: Added six YAML layout examples, rendered PNG previews, inspect metadata, and a contact sheet; validated dimensions and visible overflow metrics (commit 26dfedc).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/layouts/README.md — Example layout guide
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/rendered/README.md — Rendered preview validation summary
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/stoms3r/cmd/almanach-render-service/examples/rendered/contact-sheet.png — Rendered visual overview
+
