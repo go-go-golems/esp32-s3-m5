@@ -15,5 +15,7 @@ Examples:
 
 - `10-sqlite-browser-animals/` — readable bundle source directory with `layout.yaml` and `images/*.png`.
 - `10-sqlite-browser-animals.zip` — checked-in bundle artifact accepted by the CLI.
+- `11-upcoming-horror-cats/` — upcoming horror movie release radar using cat banner assets.
+- `11-upcoming-horror-cats.zip` — checked-in bundle artifact accepted by the CLI.
 
 To rebuild a ZIP from its source directory, see the bundle-local README.
