@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tab5 UI Screen Viewer</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #1a1a2e; color: #eee; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 2rem;
+  }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #e94560; }
+  .info { color: #aaa; font-size: 0.85rem; margin-bottom: 1.5rem; }
+  #dropzone {
+    width: 100%; max-width: 640px; height: 320px;
+    border: 2px dashed #444; border-radius: 12px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  }
+  #dropzone:hover, #dropzone.dragover {
+    border-color: #e94560; background: rgba(233,69,96,0.08);
+  }
+  #dropzone .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+  #dropzone .label { font-size: 1rem; color: #ccc; }
+  #dropzone .sub { font-size: 0.8rem; color: #888; margin-top: 0.3rem; }
+  #progress {
+    width: 100%; max-width: 640px; margin-top: 1rem;
+  }
+  #progress-bar {
+    height: 6px; border-radius: 3px; background: #333;
+    overflow: hidden; display: none;
+  }
+  #progress-bar-inner {
+    height: 100%; background: #e94560; width: 0%; transition: width 0.1s;
+  }
+  #status {
+    margin-top: 0.5rem; font-size: 0.85rem; color: #aaa;
+    min-height: 1.2rem;
+  }
+  .btn-row {
+    margin-top: 1.5rem; display: flex; gap: 1rem;
+  }
+  button {
+    padding: 0.6rem 1.5rem; border: none; border-radius: 6px;
+    font-size: 0.9rem; cursor: pointer; font-weight: 500;
+  }
+  #btn-clear {
+    background: #333; color: #ccc;
+  }
+  #btn-clear:hover { background: #444; }
+  #screen-info {
+    margin-top: 1rem; font-size: 0.75rem; color: #666;
+  }
+  canvas { display: none; }
+</style>
+</head>
+<body>
+
+<h1>🖼️ Tab5 UI Screen Viewer</h1>
+<p class="info" id="screen-label">Target: 1280×720 landscape (RGB565)</p>
+
+<div id="dropzone">
+  <div class="icon">📁</div>
+  <div class="label">Drop image here or click to browse</div>
+  <div class="sub">PNG, JPG, BMP — auto-converted to 1280×720 RGB565</div>
+</div>
+<input type="file" id="file-input" accept="image/*" hidden>
+
+<div id="progress">
+  <div id="progress-bar"><div id="progress-bar-inner"></div></div>
+  <div id="status"></div>
+</div>
+
+<div class="btn-row">
+  <button id="btn-clear">⬛ Clear Screen</button>
+</div>
+
+<div id="screen-info"></div>
+
+<canvas id="canvas"></canvas>
+
+<script src="/app.js"></script>
+</body>
+</html>
