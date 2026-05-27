@@ -118,3 +118,36 @@ Added standalone repository reorganization and packaging design for moving firmw
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/08/ALMANACH-CLI--almanach-render-service-cli-verbs-with-glazed/design-doc/02-repository-reorganization-and-packaging-design.md — Repository packaging design document
 
+
+## 2026-05-08
+
+Step 9: extracted Almanach render service into sibling almanach repository with cmd/internal Go layout, Glazed root/verbs, and Dagger/pnpm web asset bundling.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/cmd/almanach-render-service/main.go — Standalone binary entrypoint
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/cmd/build-web/main.go — Dagger-first web build
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/internal/web/embed.go — go:embed web bundle path
+
+
+## 2026-05-08
+
+Step 10: moved AtomS3R ESP-IDF firmware into almanach/firmware/atoms3r, made build helper portable, and validated an ESP-IDF 5.4.2 esp32s3 build.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/README.md — Documents firmware directory
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/firmware/atoms3r/build.sh — Portable firmware build helper
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/firmware/atoms3r/main/CMakeLists.txt — Firmware source/embed manifest
+
+
+## 2026-05-10
+
+Step 11: set up standalone almanach devctl plugin with build/up/health/render helpers, firmware helper commands, .envrc defaults, and validated devctl up/render/down.
+
+### Related Files
+
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/.devctl.yaml — devctl config
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/.envrc — local environment setup
+- /home/manuel/workspaces/2026-05-08/extract-almanach/almanach/plugins/almanach-render.py — devctl protocol implementation
+

@@ -13,6 +13,30 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: ../../../../../../../almanach/.devctl.yaml
+      Note: devctl plugin wiring and defaults
+    - Path: ../../../../../../../almanach/.envrc
+      Note: Local shell and ESP-IDF environment defaults
+    - Path: ../../../../../../../almanach/.gitignore
+      Note: Ignores devctl state and build artifacts
+    - Path: ../../../../../../../almanach/README.md
+      Note: Top-level documentation for firmware location and build commands
+    - Path: ../../../../../../../almanach/cmd/almanach-render-service/main.go
+      Note: Standalone render-service binary entrypoint
+    - Path: ../../../../../../../almanach/cmd/build-web/main.go
+      Note: Dagger-first pnpm web build and embed copy
+    - Path: ../../../../../../../almanach/firmware/atoms3r/build.sh
+      Note: Portable ESP-IDF 5.4.x build helper for moved firmware
+    - Path: ../../../../../../../almanach/firmware/atoms3r/main/CMakeLists.txt
+      Note: Firmware component and embedded asset manifest
+    - Path: ../../../../../../../almanach/firmware/atoms3r/sdkconfig.defaults
+      Note: AtomS3R ESP32-S3 firmware defaults
+    - Path: ../../../../../../../almanach/internal/app/cmd_root.go
+      Note: Glazed root command after migration
+    - Path: ../../../../../../../almanach/internal/web/embed.go
+      Note: Embedded web asset filesystem
+    - Path: ../../../../../../../almanach/plugins/almanach-render.py
+      Note: Standalone repo devctl plugin with build
     - Path: stoms3r/cmd/almanach-render-service/README.md
       Note: CLI workflow documentation and YAML examples (commit df08cca)
     - Path: stoms3r/cmd/almanach-render-service/cmd_inspect.go
@@ -63,6 +87,9 @@ LastUpdated: 2026-05-08T09:20:00-04:00
 WhatFor: Use this diary to resume the CLI-verb implementation without rediscovering the analysis context.
 WhenToUse: Read before implementing or reviewing ALMANACH-CLI changes.
 ---
+
+
+
 
 
 
@@ -853,3 +880,311 @@ The result is a help set with three core documents plus two tutorials. The pages
 - Embedded docs use `//go:embed *.md` in package `doc`.
 - Root command imports the doc package as `almanachdoc` and calls `almanachdoc.AddDocToHelpSystem(helpSystem)`.
 - Added slugs: `layouts-getting-started`, `layouts-user-guide`, `layout-dsl-reference`, `tutorial-daily-briefing`, `tutorial-knowledge-strip`.
+
+## Step 9: Extract render service into the standalone `almanach` repository
+
+This step moved the render-service slice out of the firmware workspace and into the sibling `almanach` repository. The first pass keeps the existing behavior intact while giving the project a conventional Go binary/package layout and a reproducible web-asset bundling path.
+
+The service now builds from `almanach/cmd/almanach-render-service`, stores the migrated application code under `almanach/internal/app`, and uses `cmd/build-web` plus `internal/web` to build and bundle Almanach Studio assets into the Go binary with `-tags embed`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, move the render service over to ./almanach/, use the glazed command framework and package structure for the go structure (see skill, but we don't need structured output foir the verbs). Use the go dagger pattern to generate the webpage and bundle it. 
+
+Keep a diary in that ticket as you work"
+
+**Assistant interpretation:** Move the existing `stoms3r/cmd/almanach-render-service` implementation into the sibling `almanach` repo, keep Glazed-powered verbs, reshape it into a normal Go command/internal package layout, add Dagger/pnpm web asset generation, and record the work here.
+
+**Inferred user intent:** Turn the working render service into the beginning of a standalone Almanach product repository without losing the render/inspect/print/serve behavior.
+
+**Commit (code):** N/A — changes are currently uncommitted.
+
+### What I did
+
+- Copied the render service from `esp32-s3-m5/stoms3r/cmd/almanach-render-service` into `almanach/`.
+- Replaced the placeholder `cmd/XXX` entrypoint with `cmd/almanach-render-service/main.go`.
+- Moved the application implementation into `internal/app` and changed imports/module paths to `github.com/go-go-golems/almanach`.
+- Kept the existing Glazed root command, Glazed help system, logging section, and `render`, `inspect`, and `print` Glazed verbs.
+- Moved Almanach Studio from `web/almanach` to top-level `web/` in the standalone repository.
+- Added `cmd/build-web`, following the Dagger-first pnpm build pattern, and made the local fallback run `pnpm install --prefer-offline` before `pnpm run build`.
+- Added `internal/web` with `go:generate`, `go:embed` support, and an on-disk fallback for non-embed builds.
+- Changed static serving to use disk assets when `ALMANACH_WEB_DIR` points at an existing directory and otherwise fall back to bundled assets.
+- Updated root `README.md`, `Makefile`, `AGENT.md`, and GoReleaser metadata away from the template placeholders.
+
+### Why
+
+- The migration design called for moving the render service into the new standalone repository before deeper package splitting or firmware migration.
+- A `cmd/` plus `internal/` layout makes the binary entrypoint obvious and keeps implementation details private to the module.
+- Bundling the web output through `cmd/build-web` and `internal/web/embed/public` lets release binaries serve Almanach Studio without relying on a separate checked-out firmware tree.
+
+### What worked
+
+- `go mod tidy` resolved the migrated dependencies under the new module path.
+- `go test ./...` passes in the `almanach` repository.
+- `BUILD_WEB_LOCAL=1 go run ./cmd/build-web` successfully generated `web/dist` and copied `index.html` plus `almanach-bundle.js` into `internal/web/embed/public`.
+- `go build -tags embed ./cmd/almanach-render-service` produced a working binary.
+- Smoke rendering worked with bundled assets:
+  - `./almanach-render-service render --layout examples/layouts/01-minimal.yaml --out /tmp/almanach-smoke3.png --output yaml`
+  - Output reported `width: 384`, `height: 343`, and `bytes: 22322`.
+
+### What didn't work
+
+- First local web build failed because `node_modules` did not exist and the copied template local path only ran `pnpm run build`:
+  - Command: `BUILD_WEB_LOCAL=1 go run ./cmd/build-web`
+  - Error: `Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from .../almanach/web/esbuild.mjs`
+  - Fix: make `runLocal` call `pnpm --prefix web install --prefer-offline` before `pnpm --prefix web run build`.
+- The first smoke render used a stale binary and still warned about `./web/almanach/dist`; rebuilding after changing the default to `./web/dist` removed the warning.
+
+### What I learned
+
+- The old service was already Glazed-based, so the extraction did not require rewriting the verbs; the important work was making the package boundary and module path clean.
+- The web build script from the Dagger pattern assumes dependencies have already been installed for local builds; this repository benefits from making the fallback self-contained.
+- Serving bundled assets as a fallback is useful even during development because the CLI render path can work from the repository root without a live dev server.
+
+### What was tricky to build
+
+- The service previously relied on one `package main` directory, so moving it into a new module required preserving private helper access. I chose a conservative first pass: keep the implementation together in `internal/app` and expose only the root command entrypoint to `cmd/almanach-render-service`.
+- The static-file path changed from `web/almanach/dist` to `web/dist`. The visible symptom was a warning during render; the fix was to update `LoadConfig()` and docs/readmes to the new standalone path.
+- The Dagger pattern embeds `internal/web/embed/public`, while this app serves `/almanach` and `/almanach/bundle.js` specifically. The static-serving code therefore reads named files from `internal/web.PublicFS` rather than mounting a generic SPA handler at `/`.
+
+### What warrants a second pair of eyes
+
+- Review whether `internal/app` should later be split further into `internal/cli`, `internal/server`, `internal/render`, `internal/layout`, `internal/bitmap`, and `internal/printer` after the migration stabilizes.
+- Review whether generated `internal/web/embed/public/almanach-bundle.js` should be committed or only generated in CI/release builds.
+- Review the Dockerfile and docker-compose files; they were copied over and may still assume the old single-directory service layout.
+- Review GoReleaser cross-compilation with Chrome/runtime assumptions before publishing releases.
+
+### What should be done in the future
+
+- Update Docker/devctl packaging to use the new `cmd/almanach-render-service` and top-level `web/` paths.
+- Add CI steps that run `go generate ./internal/web`, `go test ./...`, and `go build -tags embed ./cmd/almanach-render-service`.
+- Decide whether to remove or merge the copied `README.render-service.md` and `Makefile.render-service` after the new root docs are mature.
+- Consider a second package split once this extraction commit is stable.
+
+### Code review instructions
+
+- Start at `almanach/cmd/almanach-render-service/main.go` to see the binary entrypoint and version handoff.
+- Review `almanach/internal/app/cmd_root.go` for Glazed root/help/logging setup.
+- Review `almanach/internal/app/static.go`, `almanach/internal/web/*.go`, and `almanach/cmd/build-web/main.go` for the web build/embed path.
+- Review `almanach/internal/app/config.go` for the new default `./web/dist` path and environment overrides.
+- Validate with:
+  - `cd almanach && BUILD_WEB_LOCAL=1 go run ./cmd/build-web`
+  - `cd almanach && go test ./...`
+  - `cd almanach && go build -tags embed ./cmd/almanach-render-service`
+  - `cd almanach && ./almanach-render-service render --layout examples/layouts/01-minimal.yaml --out /tmp/almanach-smoke.png --output yaml`
+
+### Technical details
+
+- New module path: `github.com/go-go-golems/almanach`.
+- Binary path: `cmd/almanach-render-service`.
+- Migrated app package: `internal/app`.
+- Embedded web package: `internal/web`.
+- Web source path: `web/`.
+- Build output path: `web/dist/` copied to `internal/web/embed/public/`.
+
+## Step 10: Move AtomS3R ESP-IDF firmware into `almanach/firmware/atoms3r`
+
+This step brought the embedded firmware half of the product into the standalone `almanach` repository. The moved tree is intentionally firmware-only: it excludes the old colocated Go render service and old top-level web source, while preserving the ESP-IDF project files, embedded firmware web assets, firmware docs, partition table, and printer/WiFi/web-server source.
+
+I also made the firmware build helper portable enough for the new repository. The old helper sourced a workspace-specific `.envrc`; the new helper looks for ESP-IDF on `PATH`, `$IDF_PATH`, or local `~/esp/esp-idf-5.4.x` installs and builds with `IDF_TARGET=esp32s3`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "now move the esp-idf firmware over, in a ./almanach/firmware/atoms3r/ subdirectory."
+
+**Assistant interpretation:** Copy the AtomS3R ESP-IDF firmware project out of `esp32-s3-m5/stoms3r` into the new standalone repository under `firmware/atoms3r`.
+
+**Inferred user intent:** Continue the repository extraction by bringing the device firmware into the same product repo as the render service.
+
+**Commit (code):** N/A — changes are currently uncommitted.
+
+### What I did
+
+- Created `almanach/firmware/atoms3r/`.
+- Copied the firmware project from `esp32-s3-m5/stoms3r/` while excluding old `cmd/`, old `web/`, generated `build/`, and `.git` contents.
+- Preserved ESP-IDF files: `CMakeLists.txt`, `sdkconfig.defaults`, `partitions.csv`, `main/`, `main/assets/almanach/`, `docs/`, and `README.md`.
+- Rewrote `firmware/atoms3r/build.sh` so it no longer depends on `/home/manuel/workspaces/2025-12-21/.../.envrc`.
+- Made `build.sh` prefer ESP-IDF 5.4.x and pass `-D IDF_TARGET=esp32s3` for build/flash actions.
+- Added `sdkconfig` to `firmware/atoms3r/.gitignore` and removed the generated local `sdkconfig` after validation.
+- Updated the top-level `almanach/README.md` to document `firmware/atoms3r/` and basic firmware build/flash commands.
+
+### Why
+
+- The standalone repository needs the actual ESP32-S3 printer endpoint beside the render service so the project boundary is visible and product-shaped.
+- Excluding the old render-service and web-source directories avoids duplicating code already migrated to top-level `cmd/`, `internal/`, and `web/`.
+- The old build helper was workspace-local; it would fail for users cloning or working from the new `almanach` repository.
+
+### What worked
+
+- The firmware tree copied cleanly into `almanach/firmware/atoms3r`.
+- After updating `build.sh` to prefer ESP-IDF 5.4.2 and force `esp32s3`, the firmware built successfully:
+  - Command: `cd almanach/firmware/atoms3r && ./build.sh /dev/ttyACM0 build`
+  - Result: `Successfully created esp32s3 image.`
+  - Output binary: `build/stoms3r.bin`
+  - Size result: `stoms3r.bin binary size 0x113d30 bytes. Smallest app partition is 0x400000 bytes. 0x2ec2d0 bytes (73%) free.`
+
+### What didn't work
+
+- The first build attempt sourced `~/esp/esp-idf/export.sh`, which pointed at ESP-IDF 5.1 and defaulted to target `esp32`:
+  - Command: `cd almanach/firmware/atoms3r && ./build.sh /dev/ttyACM0 build`
+  - Error: `Failed to resolve component 'esp_driver_gpio'.`
+  - CMake also reported: `IDF_TARGET not set, using default target: esp32`.
+- Fix:
+  - Prefer `~/esp/esp-idf-5.4.2/export.sh` / `~/esp/esp-idf-5.4.1/export.sh` before generic `~/esp/esp-idf/export.sh`.
+  - Pass `idf.py -D "IDF_TARGET=${TARGET}" build` with default `TARGET=esp32s3`.
+  - Remove the failed `build/` and generated `sdkconfig`, then rebuild.
+
+### What I learned
+
+- The firmware really does require ESP-IDF 5.4.x because it uses newer split driver components such as `esp_driver_gpio`.
+- The source tree did not carry `sdkconfig`; `sdkconfig.defaults` is the intended committed configuration baseline.
+- The firmware's embedded Almanach assets are currently independent checked-in files under `main/assets/almanach`, not automatically generated from top-level `web/` yet.
+
+### What was tricky to build
+
+- The subtle issue was not the copy itself; it was reproducing the build environment from a new repository root. The old helper hid environment assumptions in an absolute `.envrc`, so the first build selected the wrong ESP-IDF and target.
+- ESP-IDF target selection matters here: without an explicit `esp32s3`, CMake chose `esp32`, which is incorrect for AtomS3R Lite and compounded the component-resolution failure.
+- Build validation generated a local `sdkconfig`, but the source project uses `sdkconfig.defaults`. I ignored `sdkconfig` and removed the generated file to keep the repository clean.
+
+### What warrants a second pair of eyes
+
+- Review whether `project(stoms3r)` and output binary name `stoms3r.bin` should remain for now or be renamed to `almanach-atoms3r` later.
+- Review whether firmware docs should keep the SToMS3R name or be reframed as Almanach AtomS3R firmware docs.
+- Review whether `main/assets/almanach` should be generated from top-level `web/` by a script/Makefile target instead of checked in manually.
+
+### What should be done in the future
+
+- Add a root-level `make firmware-build` target that delegates to `firmware/atoms3r/build.sh`.
+- Add a script that copies or builds Almanach Studio assets into `firmware/atoms3r/main/assets/almanach/`.
+- Decide whether to rename the ESP-IDF project from `stoms3r` to an Almanach-specific firmware name.
+- Consider a CI smoke build for firmware if ESP-IDF setup time is acceptable.
+
+### Code review instructions
+
+- Start with `almanach/firmware/atoms3r/build.sh` for the environment and target-selection changes.
+- Review `almanach/firmware/atoms3r/main/CMakeLists.txt` to confirm embedded files are still present.
+- Review `almanach/firmware/atoms3r/sdkconfig.defaults` for hardware assumptions.
+- Validate with:
+  - `cd almanach/firmware/atoms3r && ./build.sh /dev/ttyACM0 build`
+
+### Technical details
+
+- Firmware destination: `almanach/firmware/atoms3r/`.
+- ESP-IDF target default: `esp32s3`.
+- Preferred local ESP-IDF: `~/esp/esp-idf-5.4.2`, then `~/esp/esp-idf-5.4.1`.
+- Generated build artifacts remain ignored by `firmware/atoms3r/.gitignore`.
+
+## Step 11: Set up devctl for the standalone Almanach repository
+
+This step replaced the copied, path-stale devctl plugin with a standalone-repository plugin that knows the new `almanach` layout. The plugin now builds web assets, builds an embedded render-service binary under `var/devctl`, starts the render service under devctl supervision, exposes render/inspect/print helper commands, and includes firmware-related helpers.
+
+I also added a repo `.envrc` so local shells and devctl sessions have consistent defaults for the render port, printer IP, build mode, and ESP-IDF 5.4.x firmware environment.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Do we have devcgtl setup for the new almanach server repo? can you set that up?"
+
+**Assistant interpretation:** Check the copied devctl setup in `almanach`, update it for the new repository paths, and validate the devctl workflow.
+
+**Inferred user intent:** Make `devctl up`, logs, health checks, and helper commands work from the new standalone repo instead of the old `stoms3r/cmd/almanach-render-service` layout.
+
+**User prompt (verbatim):** "build and stuff is pretty cool too though, making sur .envrc and stuff is setup. as well."
+
+**Assistant interpretation:** Include build commands and local environment setup as first-class devctl/dev-shell workflow, not only service launch.
+
+**Inferred user intent:** Make the repo pleasant to enter, build, run, and validate with predictable environment defaults.
+
+**Commit (code):** N/A — changes are currently uncommitted.
+
+### What I did
+
+- Rewrote `almanach/plugins/almanach-render.py` for the new standalone repo layout.
+- Updated `almanach/.devctl.yaml` to use plugin id `almanach` and document the current workflow.
+- Added dynamic devctl commands:
+  - `devctl build`
+  - `devctl build-web`
+  - `devctl sync-firmware-web`
+  - `devctl firmware-build`
+  - `devctl health`
+  - `devctl render`
+  - `devctl inspect`
+  - `devctl print`
+- Implemented `build.run` so `devctl up` builds the web bundle and `var/devctl/almanach-render-service` before launch.
+- Made `launch.plan` prefer `var/devctl/almanach-render-service` when present, with a `go run` fallback for readable `devctl plan` output before first build.
+- Added `almanach/.envrc` with defaults for `ALMANACH_PORT`, `ALMANACH_PRINTER_IP`, `ALMANACH_BUILD_WEB_LOCAL`, and quiet ESP-IDF 5.4.x setup.
+- Updated `almanach/.gitignore` to ignore `var/` and generated `.devctl/` state/logs.
+- Updated `almanach/README.md` with devctl usage and helper commands.
+
+### Why
+
+- The copied devctl plugin still assumed the old single-directory render-service layout, old `web/almanach/dist` path, and root-local binary path.
+- The extracted repo now has a real build step: top-level web assets must be generated and copied to the Go embed directory before building the embedded service binary.
+- `.envrc` makes ad-hoc local shell usage and firmware work less dependent on remembered one-off exports.
+
+### What worked
+
+- `devctl plugins list` discovers the rewritten plugin and commands.
+- `devctl plan` returns the render service with the correct repo root, port, web dist path, and health check.
+- `devctl build` successfully ran:
+  - `go run ./cmd/build-web`
+  - `go build -tags embed -o var/devctl/almanach-render-service ./cmd/almanach-render-service`
+- `devctl up --force` built the assets/binary and started service `render`.
+- `devctl status --tail-lines 10` showed the service alive.
+- `devctl health` returned the service health JSON.
+- `devctl render examples/layouts/01-minimal.yaml /tmp/almanach-devctl-render.png` produced a 22,322-byte PNG.
+- `devctl down` stopped the service cleanly.
+- `devctl sync-firmware-web` copied `web/dist/index.html` and `web/dist/almanach-bundle.js` into `firmware/atoms3r/main/assets/almanach/`.
+
+### What didn't work
+
+- First `devctl build` attempt timed out after one second:
+  - Error: `Command '['go', 'run', './cmd/build-web']' timed out after 1 seconds`
+  - Cause: plugin code interpreted `ctx.deadline_ms` as an absolute epoch-millisecond deadline, while this devctl invocation passed a smaller duration-style value.
+  - Fix: update `deadline_timeout()` to support both epoch-ms and duration-ms interpretations.
+
+### What I learned
+
+- The installed devctl help topics are named `user-guide`, `scripting-guide`, and `plugin-authoring` rather than `devctl-user-guide`, `devctl-scripting-guide`, and `devctl-plugin-authoring`.
+- Dynamic command deadlines should be defensive because protocol/version differences can change whether a deadline is represented as absolute time or duration.
+- `devctl up` is a good fit for this repo because it can perform the web+Go build before handing service supervision to devctl.
+
+### What was tricky to build
+
+- The plugin needs to be useful both before and after a build. Before `var/devctl/almanach-render-service` exists, `devctl plan` should still be readable and executable, so `launch.plan` falls back to `go run ./cmd/almanach-render-service serve`. After `devctl build` or `devctl up`, it uses the built binary.
+- The `build-web` command produces two outputs: `web/dist` for runtime disk serving and `internal/web/embed/public` for `-tags embed`. The plugin treats both as part of the render-service build.
+- Firmware helper commands belong in devctl, but firmware is not a supervised service. I exposed `firmware-build` and `sync-firmware-web` as dynamic commands rather than launch services.
+
+### What warrants a second pair of eyes
+
+- Review whether `ALMANACH_PRINTER_IP=192.168.0.126` should be committed as the default in `.devctl.yaml`/`.envrc` or replaced with an empty value plus `.envrc.local` guidance.
+- Review whether `devctl up` should always rebuild web+Go or whether a faster `prepare.run`/profile split is needed later.
+- Review whether `sync-firmware-web` should also be part of a larger `firmware-build-with-web` helper.
+
+### What should be done in the future
+
+- Add `.envrc.local` or documented local overrides for user-specific printer IPs.
+- Add root Makefile targets that mirror the devctl helpers for non-devctl users.
+- Consider adding a `devctl firmware-build-with-web` helper that runs build-web, sync-firmware-web, then firmware-build.
+
+### Code review instructions
+
+- Start with `almanach/plugins/almanach-render.py` for protocol frames, build behavior, launch plan, and dynamic commands.
+- Review `almanach/.devctl.yaml` for committed defaults and usage comments.
+- Review `almanach/.envrc` for shell/ESP-IDF setup behavior.
+- Validate with:
+  - `cd almanach && devctl plugins list`
+  - `cd almanach && devctl plan`
+  - `cd almanach && devctl build`
+  - `cd almanach && devctl up --force`
+  - `cd almanach && devctl status --tail-lines 10`
+  - `cd almanach && devctl health`
+  - `cd almanach && devctl render examples/layouts/01-minimal.yaml /tmp/almanach-devctl-render.png`
+  - `cd almanach && devctl down`
+
+### Technical details
+
+- devctl plugin id: `almanach`.
+- Render service artifact: `var/devctl/almanach-render-service`.
+- Web dist artifact: `web/dist`.
+- Go embed copy destination: `internal/web/embed/public`.
+- Firmware web sync destination: `firmware/atoms3r/main/assets/almanach`.
