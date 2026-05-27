@@ -18,22 +18,22 @@
 ## Phase 3: Download and ping benchmarks
 
 - [x] Implement GET /api/bench/download and POST /api/bench/ping
-- [ ] Test with curl
+- [x] Test with curl
 
 ## Phase 4: Run benchmarks with default config
 
-- [ ] Run full benchmark suite over STA (same matrix as Tab5)
-- [ ] Store results in SQLite
-- [ ] Compare against Tab5 STA data
+- [x] Run full benchmark suite over STA (same matrix as Tab5)
+- [x] Store results in SQLite
+- [x] Compare against Tab5 STA data
 
 ## Phase 5: Run benchmarks with optimized config
 
-- [ ] Rebuild with iperf-optimized sdkconfig
-- [ ] Run full benchmark suite over STA
-- [ ] Compare default vs optimized on same hardware
+- [x] Rebuild with iperf-optimized sdkconfig
+- [x] Run full benchmark suite over STA
+- [x] Compare default vs optimized on same hardware
 
 ## Phase 6: Analysis and documentation
 
-- [ ] Run analysis queries against SQLite
-- [ ] Write comparison report (CoreS3 SE vs Tab5, default vs optimized)
-- [ ] Upload to reMarkable
+- [x] Run analysis queries against SQLite
+- [x] Write comparison report (CoreS3 SE vs Tab5, default vs optimized)
+- [x] Upload to reMarkable

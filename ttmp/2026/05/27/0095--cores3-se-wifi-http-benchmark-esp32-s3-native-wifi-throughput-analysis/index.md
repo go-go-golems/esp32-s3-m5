@@ -1,7 +1,7 @@
 ---
 Title: CoreS3 SE WiFi/HTTP Benchmark - ESP32-S3 Native WiFi Throughput Analysis
 Ticket: "0095"
-Status: active
+Status: complete
 Topics:
     - esp32
     - wifi
@@ -20,10 +20,11 @@ RelatedFiles:
       Note: Python benchmark runner - will be reused for CoreS3 SE
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-05-27T17:39:40.558689845-04:00
+LastUpdated: 2026-05-27T18:28:45.8854102-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
