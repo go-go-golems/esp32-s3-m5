@@ -452,6 +452,8 @@ esp_err_t wifi_app_start(void) {
     s_autoconnect = s_has_runtime_creds;
     unlock_state();
 
+    ESP_ERROR_CHECK(configure_apsta_mode());
+
     if (s_has_runtime_creds) {
         ESP_ERROR_CHECK(apply_sta_config());
         ESP_LOGI(TAG, "STA configured for ssid=%s", s_runtime_ssid);
@@ -459,7 +461,6 @@ esp_err_t wifi_app_start(void) {
         ESP_LOGW(TAG, "No saved Wi-Fi credentials yet; use esp_console to configure STA access");
     }
 
-    ESP_ERROR_CHECK(configure_apsta_mode());
     ESP_ERROR_CHECK(esp_wifi_start());
 
     lock_state();
