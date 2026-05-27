@@ -35,6 +35,9 @@ static lv_image_dsc_t s_screen_dsc;
 /* The fullscreen image object on the active screen. */
 static lv_obj_t *s_screen_img = NULL;
 
+/* True once at least one upload has been received. */
+static bool s_has_image = false;
+
 /* ---- Public API ---- */
 
 uint8_t *display_app_get_buffer(void)
@@ -62,9 +65,24 @@ size_t display_app_get_buf_size(void)
     return SCREEN_BUF_SIZE;
 }
 
+bool display_app_has_image(void)
+{
+    return s_has_image;
+}
+
+void display_app_clear(void)
+{
+    if (s_screen_buf) {
+        memset(s_screen_buf, 0, SCREEN_BUF_SIZE);
+    }
+    s_has_image = false;
+    display_app_invalidate();
+}
+
 void display_app_invalidate(void)
 {
     if (s_screen_img) {
+        s_has_image = true;
         bsp_display_lock(0);
         lv_obj_invalidate(s_screen_img);
         bsp_display_unlock();

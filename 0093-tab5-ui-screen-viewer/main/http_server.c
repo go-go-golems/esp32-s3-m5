@@ -53,14 +53,18 @@ static void send_json_error(httpd_req_t *req, int code, const char *msg) {
 static esp_err_t root_get(httpd_req_t *req) {
     httpd_resp_set_type(req, "text/html; charset=utf-8");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-    const size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
+    /* EMBED_TXTFILES appends a NUL terminator; strip it for HTTP. */
+    size_t len = (size_t)(assets_index_html_end - assets_index_html_start);
+    if (len > 0 && assets_index_html_start[len - 1] == '\0') len--;
     return httpd_resp_send(req, (const char *)assets_index_html_start, (ssize_t)len);
 }
 
 static esp_err_t app_js_get(httpd_req_t *req) {
     httpd_resp_set_type(req, "application/javascript");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-    const size_t len = (size_t)(assets_app_js_end - assets_app_js_start);
+    /* EMBED_TXTFILES appends a NUL terminator; strip it for HTTP. */
+    size_t len = (size_t)(assets_app_js_end - assets_app_js_start);
+    if (len > 0 && assets_app_js_start[len - 1] == '\0') len--;
     return httpd_resp_send(req, (const char *)assets_app_js_start, (ssize_t)len);
 }
 
@@ -81,7 +85,7 @@ static esp_err_t screen_get(httpd_req_t *req) {
     const int n = snprintf(json, sizeof(json),
         "{\"ok\":true,\"width\":%d,\"height\":%d,\"format\":\"rgb565\",\"buf_size\":%zu,\"has_image\":%s}",
         w, h, buf_size,
-        s_server ? "true" : "false");
+        display_app_has_image() ? "true" : "false");
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
@@ -153,12 +157,7 @@ static esp_err_t upload_post(httpd_req_t *req) {
 }
 
 static esp_err_t clear_post(httpd_req_t *req) {
-    uint8_t *buf = display_app_get_buffer();
-    if (buf) {
-        memset(buf, 0, display_app_get_buf_size());
-        display_app_invalidate();
-    }
-
+    display_app_clear();
     ESP_LOGI(TAG, "screen cleared");
 
     httpd_resp_set_type(req, "application/json");

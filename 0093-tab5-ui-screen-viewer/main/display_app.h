@@ -32,4 +32,10 @@ size_t display_app_get_buf_size(void);
 /** Mark the image as dirty so LVGL re-renders it on next refresh. */
 void display_app_invalidate(void);
 
+/** Clear the screen to black and reset the has_image flag. */
+void display_app_clear(void);
+
+/** Return true if at least one image has been uploaded since boot/clear. */
+bool display_app_has_image(void);
+
 #endif // DISPLAY_APP_H
