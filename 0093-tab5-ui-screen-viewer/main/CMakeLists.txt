@@ -16,6 +16,7 @@ idf_component_register(
         console
         driver
         esp_driver_usb_serial_jtag
+        esp_rom
         m5stack_tab5
         esp_lcd
     EMBED_TXTFILES

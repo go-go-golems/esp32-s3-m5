@@ -6,7 +6,7 @@
  *   GET  /app.js      — Frontend JavaScript
  *   GET  /api/health  — Health check
  *   GET  /api/screen  — Screen metadata (resolution, format, state)
- *   POST /api/upload  — Upload raw RGB565 pixel data (1280×720×2 bytes)
+ *   POST /api/upload  — Upload raw or gzip-compressed RGB565 pixel data
  *   POST /api/clear   — Fill screen with black
  */
 
@@ -18,6 +18,7 @@
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "miniz.h"
 
 #include "display_app.h"
 
@@ -95,15 +96,28 @@ static esp_err_t screen_get(httpd_req_t *req) {
     return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
+/* Check whether the request body is zlib-compressed (Content-Encoding: deflate).
+ * Browser CompressionStream('deflate') produces zlib format (RFC 1950),
+ * which mz_uncompress() handles directly. */
+static bool is_deflate_request(httpd_req_t *req) {
+    char hdr[32] = {0};
+    if (httpd_req_get_hdr_value_str(req, "Content-Encoding", hdr, sizeof(hdr)) == ESP_OK) {
+        return (strcmp(hdr, "deflate") == 0);
+    }
+    return false;
+}
+
 static esp_err_t upload_post(httpd_req_t *req) {
     const int content_len = req->content_len;
     const size_t expected = display_app_get_buf_size();
+    const bool deflated = is_deflate_request(req);
 
     if (content_len < 0) {
         send_json_error(req, 400, "missing body");
         return ESP_OK;
     }
-    if (content_len > (int)expected) {
+    const size_t max_recv = deflated ? expected * 2 : expected;
+    if ((size_t)content_len > max_recv) {
         send_json_error(req, 413, "payload too large");
         return ESP_OK;
     }
@@ -114,46 +128,64 @@ static esp_err_t upload_post(httpd_req_t *req) {
         return ESP_OK;
     }
 
-    /* Receive into a temporary SPIRAM buffer, then copy to avoid
-     * partial-overwrite artifacts during slow HTTP receive. */
-    uint8_t *recv_buf = heap_caps_malloc(expected, MALLOC_CAP_SPIRAM);
+    uint8_t *recv_buf = heap_caps_malloc(max_recv, MALLOC_CAP_SPIRAM);
     if (!recv_buf) {
-        /* Fallback: receive directly into the screen buffer. */
-        recv_buf = buf;
+        send_json_error(req, 500, "no recv memory");
+        return ESP_OK;
     }
 
     int received = 0;
     while (received < content_len) {
         const int n = httpd_req_recv(req, (char *)recv_buf + received, content_len - received);
         if (n <= 0) {
-            if (recv_buf != buf) {
-                free(recv_buf);
-            }
+            free(recv_buf);
             send_json_error(req, 500, "recv failed");
             return ESP_OK;
         }
         received += n;
     }
 
-    /* If we used a temporary buffer, copy to the screen buffer. */
-    if (recv_buf != buf) {
+    if (deflated) {
+        /* Decompress zlib format (RFC 1950) to the screen buffer.
+         * Browser CompressionStream('deflate') produces this format.
+         * tinfl_decompress_mem_to_mem is in ROM — zero flash cost.
+         * TINFL_FLAG_PARSE_ZLIB_HEADER tells it to parse the 2-byte zlib
+         * header and 4-byte Adler-32 trailer. */
+        size_t dec_len = tinfl_decompress_mem_to_mem(
+            buf, expected,
+            recv_buf, received,
+            TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+        free(recv_buf);
+
+        if (dec_len == TINFL_DECOMPRESS_MEM_TO_MEM_FAILED || dec_len > expected) {
+            ESP_LOGE(TAG, "decompress failed");
+            memset(buf, 0, expected);
+            send_json_error(req, 500, "decompress failed");
+            return ESP_OK;
+        }
+        if (dec_len < expected) {
+            memset(buf + dec_len, 0, expected - dec_len);
+        }
+
+        display_app_invalidate();
+        ESP_LOGI(TAG, "deflate upload: %d -> %zu/%zu bytes",
+                 content_len, dec_len, expected);
+    } else {
+        /* Raw RGB565: copy to screen buffer. */
         memcpy(buf, recv_buf, (size_t)received);
         free(recv_buf);
+
+        if ((size_t)received < expected) {
+            memset(buf + received, 0, expected - (size_t)received);
+        }
+
+        display_app_invalidate();
+        ESP_LOGI(TAG, "image uploaded: %d/%zu bytes", received, expected);
     }
-
-    /* If the upload was smaller than the screen, zero-fill the rest. */
-    if ((size_t)received < expected) {
-        memset(buf + received, 0, expected - (size_t)received);
-    }
-
-    /* Tell LVGL to redraw. */
-    display_app_invalidate();
-
-    ESP_LOGI(TAG, "image uploaded: %d/%zu bytes", received, expected);
 
     httpd_resp_set_type(req, "application/json");
     httpd_resp_set_hdr(req, "Cache-Control", "no-store");
-    return httpd_resp_sendstr(req, "{\"ok\":true,\"bytes_received\":0}");
+    return httpd_resp_sendstr(req, "{\"ok\":true}");
 }
 
 static esp_err_t clear_post(httpd_req_t *req) {
@@ -173,7 +205,10 @@ esp_err_t http_server_start(void) {
     }
 
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
-    cfg.stack_size = 8192;
+    /* The HTTP handler needs a large stack because tinfl_decompress_mem_to_mem
+     * places a ~43 KB decompressor struct + LZ dictionary on the stack.
+     * With 32 MB PSRAM this is not a constraint; 48 KB stack is safe. */
+    cfg.stack_size = 48 * 1024;
     cfg.max_uri_handlers = 8;
     /* recv_wait_timeout is 5s by default — too short for 1.8 MB uploads.
      * Set to 30s to allow large image transfers over WiFi. */

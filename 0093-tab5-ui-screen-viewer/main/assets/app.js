@@ -90,17 +90,54 @@
     });
   }
 
-  /* ---- Upload RGB565 data ---- */
+  /* ---- Upload RGB565 data (gzip compressed) ---- */
 
   async function uploadRgb565(data) {
     showProgress(10);
-    setStatus('Uploading 1.76 MB...');
+    setStatus('Compressing...');
+
+    /* Compress the RGB565 data using the browser's built-in CompressionStream.
+     * We use 'deflate' (zlib format, RFC 1950) because the ESP32 ROM miniz
+     * library provides mz_uncompress() for zlib format directly — no manual
+     * header parsing needed.  For restricted-palette UIs this gives 10-200x
+     * compression, turning a 1.8 MB upload into 10-200 KB. */
+    let compressed;
+    try {
+      const cs = new CompressionStream('deflate');
+      const writer = cs.writable.getWriter();
+      const reader = cs.readable.getReader();
+      writer.write(data);
+      writer.close();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const totalLen = chunks.reduce((s, c) => s + c.byteLength, 0);
+      compressed = new Uint8Array(totalLen);
+      let offset = 0;
+      for (const c of chunks) {
+        compressed.set(c, offset);
+        offset += c.byteLength;
+      }
+    } catch (_) {
+      /* CompressionStream not available (rare); fall back to raw. */
+      compressed = new Uint8Array(data.buffer);
+    }
+
+    const isGz = (compressed !== new Uint8Array(data.buffer));
+    showProgress(30);
+    setStatus(`Uploading ${(compressed.byteLength / 1024).toFixed(0)} KB` +
+              (isGz ? ` (gzip, ${((1 - compressed.byteLength / data.byteLength) * 100).toFixed(0)}% smaller)` : ''));
 
     try {
+      const headers = { 'Content-Type': 'application/octet-stream' };
+      if (isGz) headers['Content-Encoding'] = 'deflate';
       const r = await fetch('/api/upload', {
         method: 'POST',
-        body: data.buffer,
-        headers: { 'Content-Type': 'application/octet-stream' },
+        body: compressed,
+        headers,
       });
       showProgress(100);
       const d = await r.json();
@@ -137,10 +174,10 @@
       return;
     }
     setStatus('Processing: ' + file.name + '...');
-    showProgress(5);
+    showProgress(2);
     try {
       const rgb565 = await processImage(file);
-      showProgress(8);
+      showProgress(5);
       setStatus(`Converted: ${TARGET_W}x${TARGET_H} RGB565 (${(rgb565.byteLength / 1024).toFixed(0)} KB)`);
       await uploadRgb565(rgb565);
     } catch (e) {
