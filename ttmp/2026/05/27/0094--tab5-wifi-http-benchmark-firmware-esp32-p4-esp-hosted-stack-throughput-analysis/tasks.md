@@ -2,39 +2,42 @@
 
 ## Phase 1: Fork and scaffold
 
-- [ ] Copy 0093-tab5-ui-screen-viewer → 0094-tab5-wifi-bench
-- [ ] Update CMakeLists.txt project name
-- [ ] Remove display_app.c/h and LVGL image code from app_main.c
-- [ ] Add bench_server.c/h with benchmark handler stubs
-- [ ] Build, flash, verify HTTP server starts
+- [x] Copy 0093-tab5-ui-screen-viewer → 0094-tab5-wifi-bench
+- [x] Update CMakeLists.txt project name
+- [x] Remove display_app.c/h and LVGL image code from app_main.c
+- [x] Add bench_server.c/h with benchmark handler stubs
+- [x] Build, flash, verify HTTP server starts
 
 ## Phase 2: Upload benchmark
 
-- [ ] Implement POST /api/bench/upload with T0-T6 timestamps
-- [ ] Capture per-recv-segment data (bytes, timestamp)
-- [ ] Capture system counters (heap, PSRAM, RSSI)
-- [ ] Return timing JSON
-- [ ] Test with curl for various sizes (1KB, 10KB, 100KB, 500KB, 1MB, 1.8MB)
-- [ ] Test with raw and deflate payloads
+- [x] Implement POST /api/bench/upload with T0-T6 timestamps
+- [x] Capture per-recv-segment data (bytes, timestamp)
+- [x] Capture system counters (heap, PSRAM, RSSI)
+- [x] Return timing JSON
+- [x] Test with curl for various sizes (1KB, 10KB, 100KB, 500KB, 1MB, 1.8MB)
+- [x] Test with raw and deflate payloads
+- [x] Fix deflate decompression buffer sizing (use ?size= query param)
 
 ## Phase 3: Download and ping benchmarks
 
-- [ ] Implement GET /api/bench/download (generate payload, time the send)
-- [ ] Implement POST /api/bench/ping (echo, round-trip time)
-- [ ] Test with curl
+- [x] Implement GET /api/bench/download (generate payload, time the send)
+- [x] Implement POST /api/bench/ping (echo, round-trip time)
+- [x] Test with curl
 
 ## Phase 4: Browser automation
 
-- [ ] Write index.html with benchmark controls
-- [ ] Write app.js with automated benchmark matrix
-- [ ] Display results as table, offer JSON download
-- [ ] Support both STA and SoftAP base URLs
+- [x] Write index.html with benchmark controls
+- [x] Write app.js with automated benchmark matrix
+- [x] Display results as table, offer JSON download
+- [x] Support both STA and SoftAP base URLs
 
 ## Phase 5: Analysis and documentation
 
-- [ ] Run benchmarks over STA and SoftAP
-- [ ] Run benchmarks with raw and deflate payloads
-- [ ] Run benchmarks at multiple payload sizes
+- [x] Write Python benchmark runner with SQLite storage (01-run-benchmarks.py)
+- [x] Write Python analysis queries (02-analyze-results.py)
+- [x] Run benchmarks over STA (full suite, 3 repeats)
+- [ ] Run benchmarks over SoftAP
+- [ ] Run raw-vs-deflate and softap-vs-sta analysis
 - [ ] Analyze TCP segment timing to identify stalls
 - [ ] Write findings document
 - [ ] Upload to reMarkable
