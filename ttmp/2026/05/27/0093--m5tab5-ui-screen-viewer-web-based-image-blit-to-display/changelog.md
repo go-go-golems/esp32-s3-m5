@@ -61,3 +61,13 @@ Step 7: Added zlib-compressed upload pipeline. Browser CompressionStream('deflat
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/assets/app.js — CompressionStream deflate
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/http_server.c — deflate decompression + 48KB stack
 
+
+## 2026-05-27
+
+Ticket complete: screen viewer firmware working with compressed uploads. RGB565 byte order confirmed visually. All endpoints functional. Two articles published to Obsidian vault.
+
+
+## 2026-05-27
+
+Ticket closed
+

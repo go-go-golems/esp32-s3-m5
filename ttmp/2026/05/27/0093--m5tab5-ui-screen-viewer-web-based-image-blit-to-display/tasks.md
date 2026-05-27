@@ -32,7 +32,7 @@
 - [x] Fix: NUL terminator in EMBED_TXTFILES (strip in HTTP handler)
 - [x] Fix: has_image field in /api/screen (use display_app_has_image instead of s_server)
 - [x] Fix: HTTP recv_wait_timeout (5s → 30s for large uploads)
-- [ ] Update README with build/flash/usage instructions
-- [ ] Verify RGB565 byte order on actual display (visual color check)
-- [ ] Test with real PNG/JPG drag-drop from a non-Playwright browser
-- [ ] Test with non-solid-color image (gradient/photo)
+- [x] Update README with build/flash/usage instructions
+- [x] Verify RGB565 byte order on actual display (visual color check)
+- [x] Test with real PNG/JPG drag-drop from a non-Playwright browser
+- [x] Test with non-solid-color image (gradient/photo)

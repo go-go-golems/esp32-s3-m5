@@ -1,27 +1,38 @@
 ---
-Title: M5Tab5 UI Screen Viewer - Web-based image blit to display
-Ticket: "0093"
-Status: complete
+Title: Tab5 WiFi/HTTP Benchmark Firmware - ESP32-P4 + ESP-Hosted Stack Throughput Analysis
+Ticket: "0094"
+Status: active
 Topics:
-    - tab5
-    - display
-    - webserver
+    - esp32
     - wifi
-    - lvgl
-    - esp-idf
+    - benchmark
+    - esp-hosted
+    - http
+    - performance
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0093-tab5-ui-screen-viewer/main/CMakeLists.txt
+      Note: Fork base CMake - component dependencies
+    - Path: 0093-tab5-ui-screen-viewer/main/http_server.c
+      Note: Fork base - HTTP server with upload handler and timing patterns
+    - Path: 0093-tab5-ui-screen-viewer/main/wifi_app.c
+      Note: Fork base - WiFi APSTA with NVS persistence
+    - Path: 0093-tab5-ui-screen-viewer/sdkconfig.defaults
+      Note: ESP-Hosted SDIO config
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-05-27T16:24:34.503682346-04:00
+LastUpdated: 2026-05-27T16:24:37.430985314-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
 
 
-# M5Tab5 UI Screen Viewer - Web-based image blit to display
+
+
+
+# Tab5 WiFi/HTTP Benchmark Firmware - ESP32-P4 + ESP-Hosted Stack Throughput Analysis
 
 ## Overview
 
@@ -38,12 +49,12 @@ Current status: **active**
 
 ## Topics
 
-- tab5
-- display
-- webserver
+- esp32
 - wifi
-- lvgl
-- esp-idf
+- benchmark
+- esp-hosted
+- http
+- performance
 
 ## Tasks
 

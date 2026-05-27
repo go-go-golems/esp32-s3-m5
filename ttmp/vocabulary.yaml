@@ -141,6 +141,12 @@ topics:
       description: Frontend UI implementation and browser interaction
     - slug: rendering
       description: Image/page rendering, screenshot capture, and output conversion
+    - slug: benchmark
+      description: Performance benchmarking and throughput measurement
+    - slug: esp-hosted
+      description: ESP-Hosted WiFi driver framework (host/slave over SDIO/SPI)
+    - slug: performance
+      description: System performance analysis and optimization
 docTypes:
     - slug: index
       description: Ticket index document
