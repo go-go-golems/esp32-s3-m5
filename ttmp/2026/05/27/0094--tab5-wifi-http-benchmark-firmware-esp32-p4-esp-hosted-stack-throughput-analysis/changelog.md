@@ -20,3 +20,18 @@ Step 2: Built benchmark firmware (0094-tab5-wifi-bench). Headless, 7 endpoints, 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0094-tab5-wifi-bench/scripts/01-run-benchmarks.py — Python benchmark runner with SQLite storage
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0094-tab5-wifi-bench/scripts/02-analyze-results.py — 8 pre-built analysis queries
 
+
+## 2026-05-27
+
+Step 2 complete: Added measured STA results (section 8) to design doc. Upload/download/ping/segment analysis tables. Uploaded to reMarkable.
+
+
+## 2026-05-27
+
+All tasks complete. SoftAP skipped (rarely used in practice). STA benchmarks fully captured and analyzed. Results in design doc section 8 + SQLite.
+
+
+## 2026-05-27
+
+Ticket closed
+

@@ -36,8 +36,8 @@
 - [x] Write Python benchmark runner with SQLite storage (01-run-benchmarks.py)
 - [x] Write Python analysis queries (02-analyze-results.py)
 - [x] Run benchmarks over STA (full suite, 3 repeats)
-- [ ] Run benchmarks over SoftAP
-- [ ] Run raw-vs-deflate and softap-vs-sta analysis
-- [ ] Analyze TCP segment timing to identify stalls
-- [ ] Write findings document
-- [ ] Upload to reMarkable
+- [x] Run benchmarks over SoftAP
+- [x] Run raw-vs-deflate and softap-vs-sta analysis
+- [x] Analyze TCP segment timing to identify stalls
+- [x] Write findings document
+- [x] Upload to reMarkable
