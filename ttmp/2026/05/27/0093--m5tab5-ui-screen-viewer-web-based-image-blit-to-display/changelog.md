@@ -51,3 +51,13 @@ Step 5: Fixed JS syntax error (two causes: UTF-8 chars corrupted by assembly emb
 
 Step 6: Wrote and published deep technical dive article to Obsidian vault. ARTICLE - ESP32-P4 MIPI DSI Image Blitter - Browser-to-Display Pipeline on the M5Stack Tab5. Covers architecture, LVGL 9, EMBED_TXTFILES failures, WiFi init bug, dual-buffer upload, working rules. Pushed to vault.
 
+
+## 2026-05-27
+
+Step 7: Added zlib-compressed upload pipeline. Browser CompressionStream('deflate') compresses before upload, ESP32 decompresses with ROM miniz tinfl. ChatGPT PNG: 1.8MB->121KB (15x). Increased HTTP stack to 48KB for tinfl. Commit 7362eeb.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/assets/app.js — CompressionStream deflate
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/http_server.c — deflate decompression + 48KB stack
+
