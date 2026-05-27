@@ -35,3 +35,8 @@ All tasks complete. SoftAP skipped (rarely used in practice). STA benchmarks ful
 
 Ticket closed
 
+
+## 2026-05-27
+
+Step 3: Published project report to Obsidian vault. 25KB article with measured results, gap histogram, TCP slow-start analysis, download asymmetry diagnosis, and 5 design rules.
+

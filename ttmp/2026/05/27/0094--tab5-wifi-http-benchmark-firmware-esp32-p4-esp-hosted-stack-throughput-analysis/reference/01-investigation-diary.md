@@ -157,3 +157,52 @@ Segment analysis for 1.8MB raw upload:
 - 5-7 stalls > 50ms per run
 - 45-58 gaps > 10ms per run
 - Max gap: 109-363ms (likely WiFi retransmissions or SDIO backpressure)
+
+## Step 3: Project report published to Obsidian vault
+
+Wrote a full project report in textbook style, published to the Obsidian vault and committed/pushed.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1, continuing with "what are the results, and what do they indicate?")
+
+**Assistant interpretation:** Write a comprehensive project report analyzing the benchmark results and what they indicate about the ESP-Hosted WiFi stack, using textbook writing style.
+
+**Inferred user intent:** Get a durable engineering article that explains the benchmark findings and their implications for system design, not just a data dump.
+
+### What I did
+
+- Wrote 25 KB article: `ARTICLE - WiFi Throughput Benchmark on ESP32-P4 with ESP-Hosted - Measured Results and Bottleneck Analysis.md`
+- Sections: system under test, methodology, upload throughput (raw + deflate), segment timing analysis with gap histogram, download throughput with asymmetry diagnosis, ping RTT with TCP slow-start analysis, compression as throughput multiplier, design rules, open questions, caveats
+- Committed and pushed to Obsidian vault git repo
+- Updated diary
+
+### What worked
+
+- Gap histogram analysis clearly shows the bimodal distribution (fast segments vs stalls)
+- The TCP slow-start calculation (7 doublings at 106ms RTT = 742ms) explains the initial ramp-up cost
+- The download asymmetry analysis (TX contention, ACK feedback loop, httpd_resp_send blocking) gives concrete mechanisms rather than hand-waving
+
+### What didn't work
+
+- N/A
+
+### What was tricky to build
+
+- Avoiding speculation: the gap histogram shows 10-50ms gaps but the root cause (WiFi retransmission vs SDIO flow control) cannot be determined from application-level measurements alone. The article clearly marks this as an open question rather than claiming certainty.
+
+### What warrants a second pair of eyes
+
+- The RTT breakdown estimate (40-80ms in ESP-Hosted processing) is derived by subtraction, not direct measurement. This is clearly labeled as an estimate.
+
+### What should be done in the future
+
+- Run SoftAP benchmarks if direct-connection use cases become important
+- Instrument ESP-Hosted driver internals (RX queue depth) to resolve the gap root cause
+- Profile the RTT breakdown with driver-level timestamps
+
+### Code review instructions
+
+- Read the article in the Obsidian vault
+- Verify the gap histogram data matches the SQLite query output
+- Verify the TCP slow-start calculation (7 doublings from 14.4 KB to 1.8 MB)
