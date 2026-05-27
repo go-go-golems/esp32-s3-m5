@@ -1,4 +1,4 @@
-/* Tab5 UI Screen Viewer — browser-side image conversion and upload */
+/* Tab5 UI Screen Viewer - browser-side image conversion and upload */
 
 (function () {
   'use strict';
@@ -35,13 +35,13 @@
       const r = await fetch('/api/screen');
       const d = await r.json();
       if (d.ok) {
-        screenInfo.textContent = `Screen: ${d.width}×${d.height} ${d.format} (${(d.buf_size / 1024 / 1024).toFixed(2)} MB)`;
+        screenInfo.textContent = `Screen: ${d.width}x${d.height} ${d.format} (${(d.buf_size / 1024 / 1024).toFixed(2)} MB)`;
       }
     } catch (_) { /* ignore */ }
   }
   fetchScreenInfo();
 
-  /* ---- RGBA → RGB565 conversion ---- */
+  /* ---- RGBA -> RGB565 conversion ---- */
 
   function rgbaToRgb565(rgbaData, w, h) {
     const numPixels = w * h;
@@ -105,12 +105,12 @@
       showProgress(100);
       const d = await r.json();
       if (d.ok) {
-        setStatus('✅ Image uploaded — check Tab5 display');
+        setStatus('[OK] Image uploaded - check Tab5 display');
       } else {
-        setStatus('❌ Upload failed: ' + (d.error || 'unknown'));
+        setStatus('[ERR] Upload failed: ' + (d.error || 'unknown'));
       }
     } catch (e) {
-      setStatus('❌ Network error: ' + e.message);
+      setStatus('[ERR] Network error: ' + e.message);
     }
     setTimeout(hideProgress, 2000);
   }
@@ -122,10 +122,10 @@
       const r = await fetch('/api/clear', { method: 'POST' });
       const d = await r.json();
       if (d.ok) {
-        setStatus('⬛ Screen cleared');
+        setStatus('[CLR] Screen cleared');
       }
     } catch (_) {
-      setStatus('❌ Clear failed');
+      setStatus('[ERR] Clear failed');
     }
   }
 
@@ -133,7 +133,7 @@
 
   async function handleFile(file) {
     if (!file || !file.type.startsWith('image/')) {
-      setStatus('⚠️ Please select an image file');
+      setStatus('[WARN] Please select an image file');
       return;
     }
     setStatus('Processing: ' + file.name + '...');
@@ -141,10 +141,10 @@
     try {
       const rgb565 = await processImage(file);
       showProgress(8);
-      setStatus(`Converted: ${TARGET_W}×${TARGET_H} RGB565 (${(rgb565.byteLength / 1024).toFixed(0)} KB)`);
+      setStatus(`Converted: ${TARGET_W}x${TARGET_H} RGB565 (${(rgb565.byteLength / 1024).toFixed(0)} KB)`);
       await uploadRgb565(rgb565);
     } catch (e) {
-      setStatus('❌ ' + e.message);
+      setStatus('[ERR] ' + e.message);
       hideProgress();
     }
   }
