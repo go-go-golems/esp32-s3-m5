@@ -1,0 +1,31 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "console_commands.cpp"
+        "framebuffer.cpp"
+        "m5dial_board.cpp"
+        "palette.cpp"
+        "renderer.cpp"
+        "scene.cpp"
+        "scene_terrain.cpp"
+        "scene_stubs.cpp"
+        "terrain_poster.cpp"
+        "trig_lut.cpp"
+        "vendor/Button/Button.cpp"
+        "vendor/ESP32Encoder.cpp"
+        "vendor/InterruptEncoder.cpp"
+    REQUIRES
+        LovyanGFX
+    PRIV_REQUIRES
+        console
+        driver
+        esp_driver_usb_serial_jtag
+        esp_event
+        esp_timer
+        esp_system
+        nvs_flash
+    INCLUDE_DIRS
+        "."
+        "vendor"
+        "vendor/Button"
+)
