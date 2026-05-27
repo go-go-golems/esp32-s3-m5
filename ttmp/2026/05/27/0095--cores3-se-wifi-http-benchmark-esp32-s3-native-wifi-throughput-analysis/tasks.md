@@ -2,22 +2,22 @@
 
 ## Phase 1: Create the firmware project
 
-- [ ] Create 0095-cores3se-wifi-bench ESP-IDF project (idf.py create-project)
-- [ ] Add sdkconfig.defaults for CoreS3 SE
-- [ ] Copy bench_server.c/h from 0094, adapt for ESP32-S3
-- [ ] Write wifi_app.c for native WiFi APSTA
-- [ ] Write wifi_console.c for USB Serial/JTAG console
-- [ ] Copy browser assets (index.html, app.js)
-- [ ] Build, flash, verify HTTP server starts
+- [x] Create 0095-cores3se-wifi-bench ESP-IDF project (idf.py create-project)
+- [x] Add sdkconfig.defaults for CoreS3 SE
+- [x] Copy bench_server.c/h from 0094, adapt for ESP32-S3
+- [x] Write wifi_app.c for native WiFi APSTA
+- [x] Write wifi_console.c for USB Serial/JTAG console
+- [x] Copy browser assets (index.html, app.js)
+- [x] Build, flash, verify HTTP server starts
 
 ## Phase 2: Upload benchmark
 
-- [ ] Implement POST /api/bench/upload with per-segment timing
-- [ ] Test with curl at various sizes
+- [x] Implement POST /api/bench/upload with per-segment timing
+- [x] Test with curl at various sizes
 
 ## Phase 3: Download and ping benchmarks
 
-- [ ] Implement GET /api/bench/download and POST /api/bench/ping
+- [x] Implement GET /api/bench/download and POST /api/bench/ping
 - [ ] Test with curl
 
 ## Phase 4: Run benchmarks with default config
