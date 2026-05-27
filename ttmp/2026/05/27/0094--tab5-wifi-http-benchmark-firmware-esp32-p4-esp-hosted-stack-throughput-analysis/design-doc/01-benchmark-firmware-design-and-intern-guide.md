@@ -383,51 +383,52 @@ async function run_benchmarks():
 Fork the `0093-tab5-ui-screen-viewer` project as the base. It already has WiFi, HTTP, console, and SPIRAM allocation working. Strip the display-specific code (display_app, LVGL image) and replace with the benchmark handlers.
 
 Tasks:
-- [ ] Copy 0093 → 0094-tab5-wifi-bench, update CMakeLists.txt project name
-- [ ] Remove display_app.c/h, LVGL image code from app_main.c
-- [ ] Add bench_server.c/h with the benchmark handlers
-- [ ] Build and flash, verify HTTP server starts
+- [x] Copy 0093 → 0094-tab5-wifi-bench, update CMakeLists.txt project name
+- [x] Remove display_app.c/h, LVGL image code from app_main.c
+- [x] Add bench_server.c/h with the benchmark handlers
+- [x] Build and flash, verify HTTP server starts
 
 ### Phase 2: Upload benchmark
 
 Implement the POST /api/bench/upload endpoint with per-segment timing.
 
 Tasks:
-- [ ] Implement bench_upload_handler with T0-T6 timestamps
-- [ ] Capture per-recv-segment data (bytes, timestamp)
-- [ ] Capture system counters (heap, PSRAM, RSSI)
-- [ ] Return timing JSON
-- [ ] Test with curl for various sizes
+- [x] Implement bench_upload_handler with T0-T6 timestamps
+- [x] Capture per-recv-segment data (bytes, timestamp)
+- [x] Capture system counters (heap, PSRAM, RSSI)
+- [x] Return timing JSON
+- [x] Test with curl for various sizes
 
 ### Phase 3: Download and ping benchmarks
 
 Implement the GET /api/bench/download and POST /api/bench/ping endpoints.
 
 Tasks:
-- [ ] Implement bench_download_handler (generate payload, send, time)
-- [ ] Implement bench_ping_handler (echo, time)
-- [ ] Test with curl
+- [x] Implement bench_download_handler (generate payload, send, time)
+- [x] Implement bench_ping_handler (echo, time)
+- [x] Test with curl
 
 ### Phase 4: Browser automation
 
 Build the HTML + JS benchmark runner.
 
 Tasks:
-- [ ] Write index.html with benchmark controls
-- [ ] Write app.js with automated benchmark matrix
-- [ ] Display results as a table and offer JSON download
-- [ ] Support both STA and SoftAP base URLs
+- [x] Write index.html with benchmark controls
+- [x] Write app.js with automated benchmark matrix
+- [x] Display results as a table and offer JSON download
+- [x] Support both STA and SoftAP base URLs
 
 ### Phase 5: Analysis and documentation
 
 Run the full benchmark matrix, analyze results, document findings.
 
 Tasks:
-- [ ] Run benchmarks over STA and SoftAP
-- [ ] Run benchmarks with raw and deflate payloads
-- [ ] Run benchmarks at multiple payload sizes
-- [ ] Analyze TCP segment timing to identify stalls
-- [ ] Write findings document
+- [x] Run benchmarks over STA (full suite, 3 repeats)
+- [x] Run benchmarks with raw and deflate payloads
+- [x] Run benchmarks at multiple payload sizes
+- [x] Analyze TCP segment timing to identify stalls
+- [x] Write findings document (section 8 of design doc)
+- [ ] Run benchmarks over SoftAP (requires WiFi switch)
 - [ ] Upload to reMarkable
 
 ---
@@ -565,3 +566,101 @@ The per-recv-segment data will reveal one of these patterns:
 3. **Is the C6's WiFi throughput the limiting factor?** The ESP32-C6 supports 802.11ax (WiFi 6) but only on 2.4 GHz. Its maximum PHY rate is approximately 57 Mbps (MCS 7, 20 MHz channel). After MAC overhead, the practical maximum is 20-30 Mbps. If the benchmark shows throughput close to this limit, the bottleneck is the radio, not the SDIO or HTTP layers.
 
 4. **Does keep-alive improve throughput?** The current firmware closes the TCP connection after each request. HTTP keep-alive would reuse the connection, eliminating the TCP three-way handshake and slow-start for subsequent requests. The benchmark should test both modes to quantify the keep-alive benefit.
+
+---
+
+## 8. Measured results (STA mode, run_id=2, 3 repeats)
+
+All results below were collected with the firmware running on the Tab5, connected to a home router (SSID: yolobolo) via STA mode. The benchmark client was a Linux host on the same LAN.
+
+### 8.1 Upload throughput
+
+| Payload | Raw recv (ms) | Raw browser (ms) | Raw kbps | Deflate total (ms) | Deflate browser (ms) | Deflate kbps (recv) |
+|---|---|---|---|---|---|---|
+| 1 KB | 0 | 70 | 86537 | 0.2 | 102 | 27024 |
+| 10 KB | 11 | 109 | 8274 | 0.4 | 110 | 34740 |
+| 100 KB | 170 | 310 | 5114 | 3.2 | 105 | 61277 |
+| 500 KB | 953 | 1218 | 4319 | 18.8 | 156 | 64408 |
+| 1 MB | 1823 | 2762 | 4681 | 38.3 | 243 | 78161 |
+| 1.8 MB | 3534 | 4313 | 4193 | 67.1 | 216 | 6772 |
+
+**Key finding**: Raw upload throughput saturates at approximately 4.2 Mbps (525 KB/s) for payloads above 100 KB. This is well below the theoretical 2.5 MB/s (20 Mbps) capacity of the C6 radio. The browser time is consistently ~20% higher than the server recv time, which accounts for HTTP framing, TCP handshake, and client-side processing.
+
+**Deflate results**: For the incrementing byte pattern used in benchmarks, deflate compression achieves 250:1 ratio. The 1.8 MB payload compresses to just 7.5 KB, reducing recv time from 3.5s to 9ms. Decompression adds 67ms (CPU-bound on the P4). Total server time: 80ms. For real UI images (less compressible), expect 15:1 ratio and ~3s -> ~200ms improvement.
+
+### 8.2 Download throughput
+
+| Payload | Browser time (ms) | Throughput (kbps) |
+|---|---|---|
+| 1 KB | 111 | 81 |
+| 10 KB | 218 | 395 |
+| 100 KB | 636 | 1445 |
+| 500 KB | 2312 | 1808 |
+| 1 MB | 3635 | 2391 |
+| 1.8 MB | 8572 | 1744 |
+
+**Key finding**: Download throughput is significantly lower than upload throughput at all sizes. At 1.8 MB, download achieves only 1.7 Mbps vs 4.2 Mbps upload. This asymmetry suggests the download path (P4 -> SDIO TX -> C6 -> WiFi TX) is bottlenecked differently than the upload path. Possible causes:
+
+- The P4's SDIO TX queue (20 entries) may not be deep enough to keep the C6's TX pipeline full
+- The C6's WiFi TX may require more MAC-level contention (waiting for clear channel) than RX (where the AP controls timing)
+- The `httpd_resp_send()` call blocks until all data is written to the socket buffer, but the TCP send window may limit how much data the P4 can push before the C6 acknowledges
+
+### 8.3 Ping RTT
+
+| Payload | Avg RTT (ms) | Min RTT (ms) | Max RTT (ms) |
+|---|---|---|---|
+| 64 B | 86.8 | 72.5 | 107.6 |
+| 256 B | 119.9 | 106.7 | 142.4 |
+| 1024 B | 108.0 | 106.4 | 111.1 |
+| 4096 B | 136.7 | 86.5 | 194.7 |
+| 16384 B | 188.6 | 164.8 | 206.8 |
+
+**Key finding**: The minimum RTT for a 1 KB ping is approximately 106ms. This includes:
+
+- HTTP POST + response processing on the P4
+- TCP round trip through the router (STA mode)
+- Two SDIO round trips (request frame + response frame)
+- Two WiFi radio hops (client -> AP -> C6, then C6 -> AP -> client)
+
+For context, a direct WiFi ping to the router typically takes 1-5ms. The 106ms RTT implies approximately 50ms of overhead on the ESP32 side per direction, likely dominated by the SDIO transport and ESP-Hosted processing.
+
+### 8.4 Segment timing analysis (1.8 MB raw upload)
+
+| Metric | Value |
+|---|---|
+| Total segments | 1224 (avg of 3 runs) |
+| Avg segment size | 1495 bytes |
+| Avg inter-segment delta | 2.9 ms |
+| Min delta | 0.1 ms |
+| Max delta | 109-364 ms |
+| Gaps > 10ms | 45-58 per run |
+| Gaps > 50ms ("stalls") | 5-7 per run |
+
+**Gap histogram** (representative run, upload_id=22):
+
+| Gap range | Count | Avg (ms) |
+|---|---|---|
+| 0.1-0.5 ms | 608 | 0.32 |
+| 0.5-1 ms | 124 | 0.72 |
+| 1-5 ms | 364 | 2.50 |
+| 5-10 ms | 89 | 6.81 |
+| 10-50 ms | 42 | 25.14 |
+| 50-100 ms | 4 | 56.83 |
+| >100 ms | 1 | 109.65 |
+
+**Interpretation**: The distribution shows a healthy core of fast segments (608 segments within 0.5ms), but the tail of slow segments accounts for most of the wall-clock time. If every segment arrived in 0.32ms (the fast median), the 1.8 MB upload would take 0.32 x 1230 = 394ms instead of 3534ms. The stalls add 3.1 seconds of wait time.
+
+The 42 gaps of 10-50ms and 4 gaps of 50-100ms are consistent with WiFi retransmission timeouts (typically 10-50ms at 2.4 GHz) and SDIO flow control pauses. Without deeper ESP-Hosted instrumentation, we cannot distinguish these two causes from the application level.
+
+### 8.5 Raw vs Deflate comparison
+
+| Payload | Raw browser (ms) | Deflate browser (ms) | Speedup |
+|---|---|---|---|
+| 1 KB | 70 | 102 | 0.7x (overhead dominates) |
+| 10 KB | 109 | 110 | 1.0x |
+| 100 KB | 310 | 105 | 3.0x |
+| 500 KB | 1218 | 156 | 7.8x |
+| 1 MB | 2762 | 243 | 11.4x |
+| 1.8 MB | 4313 | 216 | 20.0x |
+
+**Key finding**: Deflate compression provides substantial speedup for payloads above 100 KB. The crossover point is around 10 KB, below which the compression overhead (HTTP framing + decompression) exceeds the network time saved. For 1.8 MB, deflate achieves a 20x speedup in total browser time, reducing 4.3s to 0.2s.

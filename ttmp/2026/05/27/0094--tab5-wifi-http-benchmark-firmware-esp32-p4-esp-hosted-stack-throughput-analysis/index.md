@@ -21,12 +21,15 @@ RelatedFiles:
       Note: Fork base - WiFi APSTA with NVS persistence
     - Path: 0093-tab5-ui-screen-viewer/sdkconfig.defaults
       Note: ESP-Hosted SDIO config
+    - Path: 0094-tab5-wifi-bench/main/bench_server.c
+      Note: Benchmark HTTP server with 7 endpoints and per-segment timing
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-05-27T16:24:37.430985314-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
