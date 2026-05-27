@@ -147,6 +147,8 @@ topics:
       description: ESP-Hosted WiFi driver framework (host/slave over SDIO/SPI)
     - slug: performance
       description: System performance analysis and optimization
+    - slug: cores3
+      description: M5Stack CoreS3 SE (ESP32-S3 native WiFi)
 docTypes:
     - slug: index
       description: Ticket index document
