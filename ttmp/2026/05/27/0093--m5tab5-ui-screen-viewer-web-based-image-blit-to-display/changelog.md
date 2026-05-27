@@ -46,3 +46,8 @@ Step 5: Fixed JS syntax error (two causes: UTF-8 chars corrupted by assembly emb
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/display_app.c — added display_app_clear() and has_image tracking
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0093-tab5-ui-screen-viewer/main/http_server.c — NUL stripping in asset handlers
 
+
+## 2026-05-27
+
+Step 6: Wrote and published deep technical dive article to Obsidian vault. ARTICLE - ESP32-P4 MIPI DSI Image Blitter - Browser-to-Display Pipeline on the M5Stack Tab5. Covers architecture, LVGL 9, EMBED_TXTFILES failures, WiFi init bug, dual-buffer upload, working rules. Pushed to vault.
+

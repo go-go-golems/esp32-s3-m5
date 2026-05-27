@@ -360,3 +360,23 @@ The IDF build system generates `.S` assembly files for `EMBED_TXTFILES` using `.
 **Commits:**
 - 875ff11: "fix(tab5): replace UTF-8 chars with ASCII in embedded web assets"
 - 9c9a484: "fix(tab5): strip NUL terminator from EMBED_TXTFILES, fix has_image, add display_app_clear"
+
+## Step 6: Write and publish deep technical dive article
+
+Wrote a detailed project report as an Obsidian vault article following the textbook-authoring skill style: foundational prose, no analogies, concrete code and data, working rules. Published to the vault and pushed.
+
+### What I did
+
+- Wrote `ARTICLE - ESP32-P4 MIPI DSI Image Blitter - Browser-to-Display Pipeline on the M5Stack Tab5.md` in the Obsidian vault at `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/05/27/`
+- Covered: architecture, SPIRAM buffer, LVGL 9 image descriptor, dual-buffer upload, thread safety, EMBED_TXTFILES failure modes, WiFi init order bug, browser RGBA->RGB565, API surface, pseudocode pipeline, working rules, anti-patterns
+- Followed the textbook-authoring skill: foundational first, prose paragraphs, no analogies, concrete code snippets, tables where they add clarity
+- Committed and pushed the vault
+
+### What was tricky to build
+
+- Balancing depth with scannability in a long-form article. The textbook style calls for prose paragraphs that develop ideas, but some sections (API surface, hardware specs) are better served by tables. Used the skill's guidance on "breaks in rhythm" to justify the table placement.
+
+### What should be done in the future
+
+- Add the RGB565 byte order verification result once confirmed visually
+- Update the article when PNG fallback is implemented
