@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoreS3 WiFi Benchmark</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#111;color:#eee;padding:16px}
+h1{font-size:1.2em;margin-bottom:12px;color:#0af}
+h2{font-size:1em;margin:16px 0 8px;color:#0df}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button{background:#222;color:#eee;border:1px solid #555;padding:6px 14px;font-family:monospace;cursor:pointer}
+button:hover{background:#333;border-color:#0af}
+button:disabled{opacity:.4;cursor:default}
+select,input{background:#222;color:#eee;border:1px solid #555;padding:4px 8px;font-family:monospace}
+#status{margin:8px 0;padding:8px;background:#1a1a2e;border:1px solid #333;min-height:20px;font-size:.85em}
+table{border-collapse:collapse;width:100%;font-size:.8em;margin:8px 0}
+th,td{border:1px solid #333;padding:4px 8px;text-align:right}
+th{background:#222;color:#0df;text-align:left}
+td.str{text-align:left}
+#chart{width:100%;height:200px;margin:8px 0}
+#segments{max-height:300px;overflow-y:auto}
+</style>
+</head>
+<body>
+<h1>CoreS3 WiFi/HTTP Benchmark</h1>
+
+<div class="controls">
+  <label>Base URL: <select id="baseUrl">
+    <option value="http://192.168.4.1">SoftAP (192.168.4.1)</option>
+    <option value="http://192.168.0.26">STA (192.168.0.26)</option>
+  </select></label>
+  <label>Size: <select id="sizeSelect">
+    <option value="1024">1 KB</option>
+    <option value="10240">10 KB</option>
+    <option value="102400">100 KB</option>
+    <option value="512000">500 KB</option>
+    <option value="1048576">1 MB</option>
+    <option value="1843200" selected>1.8 MB</option>
+  </select></label>
+  <label>Compress: <select id="compressSelect">
+    <option value="raw">raw</option>
+    <option value="deflate">deflate (zlib)</option>
+  </select></label>
+  <button id="btnUpload" onclick="runUpload()">Upload Bench</button>
+  <button id="btnDownload" onclick="runDownload()">Download Bench</button>
+  <button id="btnPing" onclick="runPing()">Ping</button>
+  <button id="btnAuto" onclick="runAutoSuite()">Auto Suite</button>
+  <button onclick="exportResults()">Export JSON</button>
+</div>
+
+<div id="status">Ready</div>
+
+<h2>Results</h2>
+<table id="resultsTable">
+  <thead>
+    <tr>
+      <th>#</th><th>Mode</th><th>Direction</th><th>Size</th><th>Compress</th>
+      <th>Browser ms</th><th>Recv us</th><th>Decomp us</th><th>Total us</th>
+      <th>Recv kbps</th><th>Segments</th><th>RSSI</th>
+    </tr>
+  </thead>
+  <tbody id="resultsBody"></tbody>
+</table>
+
+<h2>Segment Timeline</h2>
+<canvas id="chart"></canvas>
+
+<div id="segments"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
