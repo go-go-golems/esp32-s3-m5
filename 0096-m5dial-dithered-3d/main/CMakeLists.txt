@@ -6,6 +6,7 @@ idf_component_register(
         "m5dial_board.cpp"
         "palette.cpp"
         "renderer.cpp"
+        "renderer3d.cpp"
         "scene.cpp"
         "scene_terrain.cpp"
         "scene_stubs.cpp"

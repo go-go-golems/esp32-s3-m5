@@ -17,6 +17,7 @@
 #include "palette.h"
 #include "scene.h"
 #include "renderer.h"
+#include "renderer3d.h"
 #include "terrain_poster.h"
 #include "console_commands.h"
 
@@ -166,9 +167,13 @@ static void app_task(void* arg) {
             scene->update(scene, time);
         }
 
-        (void)scene;
         uint64_t frame_start_us = esp_timer_get_time();
-        poster_render_scene(ctx->fb, scene_current_id(), p);
+        if (p->backend == RENDER_BACKEND_PLANET3D) {
+            renderer3d_render_planet(ctx->fb, p);
+        } else {
+            (void)scene;
+            poster_render_scene(ctx->fb, scene_current_id(), p);
+        }
 
         // Push framebuffer to display
         tutorial_0072::LGFX_M5Dial& display = ctx->board.display();
@@ -185,7 +190,15 @@ static void app_task(void* arg) {
         display.endWrite();
 
         uint64_t frame_end_us = esp_timer_get_time();
-        renderer_stats_record(0, 0, FB_WIDTH * FB_HEIGHT, frame_end_us - frame_start_us);
+        if (p->backend == RENDER_BACKEND_PLANET3D) {
+            const renderer3d_stats_t* r3d = renderer3d_stats();
+            renderer_stats_record(r3d->triangles_submitted,
+                                  r3d->triangles_drawn,
+                                  r3d->planet_pixels + r3d->ring_pixels + r3d->moon_pixels,
+                                  frame_end_us - frame_start_us);
+        } else {
+            renderer_stats_record(0, 0, FB_WIDTH * FB_HEIGHT, frame_end_us - frame_start_us);
+        }
 
         // FPS tracking
         uint64_t now_us = frame_end_us;
@@ -229,9 +242,13 @@ extern "C" void app_main(void) {
     s_app.fb = fb_buffer();
     console_commands_set_framebuffer(s_app.fb);
 
-    // Init renderer
+    // Init renderers
     if (!renderer_init()) {
         ESP_LOGE(TAG, "renderer init failed");
+        return;
+    }
+    if (!renderer3d_init()) {
+        ESP_LOGE(TAG, "renderer3d init failed");
         return;
     }
 

@@ -2,6 +2,7 @@
 #include "scene.h"
 #include "palette.h"
 #include "renderer.h"
+#include "renderer3d.h"
 #include "framebuffer.h"
 
 #include <esp_console.h>
@@ -367,6 +368,26 @@ static int cmd_dumpfb(int argc, char** argv) {
     return 0;
 }
 
+// ─── r3dstats command ───────────────────────────────────────
+
+static int cmd_r3dstats(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+    const renderer3d_stats_t* s = renderer3d_stats();
+    printf("R3D: %ux%u scale=%u z=%u-bit render=%llu us (%.1f FPS render-only)\n",
+           s->logical_w, s->logical_h, s->pixel_scale, s->z_bits,
+           (unsigned long long)s->render_time_us,
+           s->render_time_us > 0 ? 1000000.0f / (float)s->render_time_us : 0.0f);
+    printf("Buffers: z=%" PRIu32 " bytes color=%" PRIu32 " bytes fb=%d bytes\n",
+           s->zbuffer_bytes, s->colorbuffer_bytes, FB_TOTAL_BYTES);
+    printf("Mesh: %u vertices, %u triangles\n", s->sphere_vertices, s->sphere_triangles);
+    printf("Triangles: %" PRIu32 " submitted, %" PRIu32 " drawn\n",
+           s->triangles_submitted, s->triangles_drawn);
+    printf("Pixels: planet=%" PRIu32 " ring=%" PRIu32 " moon=%" PRIu32 "\n",
+           s->planet_pixels, s->ring_pixels, s->moon_pixels);
+    return 0;
+}
+
 // ─── fps command ────────────────────────────────────────────
 
 static int cmd_fps(int argc, char** argv) {
@@ -572,6 +593,15 @@ void console_commands_register(void) {
         .argtable = NULL,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&dumpfb_cmd));
+
+    const esp_console_cmd_t r3dstats_cmd = {
+        .command = "r3dstats",
+        .help = "Show proper 3D planet renderer memory and raster stats",
+        .hint = NULL,
+        .func = &cmd_r3dstats,
+        .argtable = NULL,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&r3dstats_cmd));
 
     const esp_console_cmd_t fps_cmd = {
         .command = "fps",
