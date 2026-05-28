@@ -170,6 +170,8 @@ static void app_task(void* arg) {
         uint64_t frame_start_us = esp_timer_get_time();
         if (p->backend == RENDER_BACKEND_PLANET3D) {
             renderer3d_render_planet(ctx->fb, p);
+        } else if (p->backend == RENDER_BACKEND_TERRAIN3D) {
+            renderer3d_render_terrain(ctx->fb, p);
         } else {
             (void)scene;
             poster_render_scene(ctx->fb, scene_current_id(), p);
@@ -194,7 +196,7 @@ static void app_task(void* arg) {
             const renderer3d_stats_t* r3d = renderer3d_stats();
             renderer_stats_record(r3d->triangles_submitted,
                                   r3d->triangles_drawn,
-                                  r3d->planet_pixels + r3d->ring_pixels + r3d->moon_pixels,
+                                  r3d->planet_pixels + r3d->terrain_pixels + r3d->ring_pixels + r3d->sun_pixels + r3d->moon_pixels,
                                   frame_end_us - frame_start_us);
         } else {
             renderer_stats_record(0, 0, FB_WIDTH * FB_HEIGHT, frame_end_us - frame_start_us);

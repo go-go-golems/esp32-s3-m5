@@ -12,16 +12,19 @@
 #define R3D_Z_BITS 16
 
 typedef struct {
+    const char* scene_name;
     uint16_t logical_w;
     uint16_t logical_h;
     uint8_t pixel_scale;
     uint8_t z_bits;
-    uint16_t sphere_vertices;
-    uint16_t sphere_triangles;
+    uint16_t mesh_vertices;
+    uint16_t mesh_triangles;
     uint32_t triangles_submitted;
     uint32_t triangles_drawn;
     uint32_t planet_pixels;
+    uint32_t terrain_pixels;
     uint32_t ring_pixels;
+    uint32_t sun_pixels;
     uint32_t moon_pixels;
     uint32_t zbuffer_bytes;
     uint32_t colorbuffer_bytes;
@@ -30,4 +33,5 @@ typedef struct {
 
 bool renderer3d_init(void);
 uint64_t renderer3d_render_planet(uint8_t* fb, const render_params_t* params);
+uint64_t renderer3d_render_terrain(uint8_t* fb, const render_params_t* params);
 const renderer3d_stats_t* renderer3d_stats(void);

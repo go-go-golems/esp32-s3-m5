@@ -204,6 +204,7 @@ static const char* backend_name(render_backend_t backend) {
     switch (backend) {
         case RENDER_BACKEND_POSTER: return "poster";
         case RENDER_BACKEND_PLANET3D: return "planet3d";
+        case RENDER_BACKEND_TERRAIN3D: return "terrain3d";
         default: return "unknown";
     }
 }
@@ -222,8 +223,10 @@ static int cmd_backend(int argc, char** argv) {
             p->backend = RENDER_BACKEND_POSTER;
         } else if (strcasecmp(name, "planet3d") == 0) {
             p->backend = RENDER_BACKEND_PLANET3D;
+        } else if (strcasecmp(name, "terrain3d") == 0) {
+            p->backend = RENDER_BACKEND_TERRAIN3D;
         } else {
-            printf("Usage: backend [poster|planet3d]\n");
+            printf("Usage: backend [poster|planet3d|terrain3d]\n");
             return 1;
         }
         render_params_touch();
@@ -374,17 +377,18 @@ static int cmd_r3dstats(int argc, char** argv) {
     (void)argc;
     (void)argv;
     const renderer3d_stats_t* s = renderer3d_stats();
-    printf("R3D: %ux%u scale=%u z=%u-bit render=%llu us (%.1f FPS render-only)\n",
+    printf("R3D %s: %ux%u scale=%u z=%u-bit render=%llu us (%.1f FPS render-only)\n",
+           s->scene_name ? s->scene_name : "none",
            s->logical_w, s->logical_h, s->pixel_scale, s->z_bits,
            (unsigned long long)s->render_time_us,
            s->render_time_us > 0 ? 1000000.0f / (float)s->render_time_us : 0.0f);
     printf("Buffers: z=%" PRIu32 " bytes color=%" PRIu32 " bytes fb=%d bytes\n",
            s->zbuffer_bytes, s->colorbuffer_bytes, FB_TOTAL_BYTES);
-    printf("Mesh: %u vertices, %u triangles\n", s->sphere_vertices, s->sphere_triangles);
+    printf("Mesh: %u vertices, %u triangles\n", s->mesh_vertices, s->mesh_triangles);
     printf("Triangles: %" PRIu32 " submitted, %" PRIu32 " drawn\n",
            s->triangles_submitted, s->triangles_drawn);
-    printf("Pixels: planet=%" PRIu32 " ring=%" PRIu32 " moon=%" PRIu32 "\n",
-           s->planet_pixels, s->ring_pixels, s->moon_pixels);
+    printf("Pixels: planet=%" PRIu32 " terrain=%" PRIu32 " ring=%" PRIu32 " sun=%" PRIu32 " moon=%" PRIu32 "\n",
+           s->planet_pixels, s->terrain_pixels, s->ring_pixels, s->sun_pixels, s->moon_pixels);
     return 0;
 }
 
@@ -532,7 +536,7 @@ void console_commands_register(void) {
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&pixel_cmd));
 
-    backend_args.name = arg_str0(NULL, NULL, "<poster|planet3d>", "Render backend");
+    backend_args.name = arg_str0(NULL, NULL, "<poster|planet3d|terrain3d>", "Render backend");
     backend_args.end = arg_end(1);
     const esp_console_cmd_t backend_cmd = {
         .command = "backend",

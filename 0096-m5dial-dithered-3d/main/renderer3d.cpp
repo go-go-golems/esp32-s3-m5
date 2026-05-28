@@ -14,8 +14,13 @@ static const char* TAG = "renderer3d";
 
 constexpr int kLatSteps = 18;
 constexpr int kLonSteps = 28;
-constexpr int kMaxVertices = (kLatSteps + 1) * kLonSteps;
-constexpr int kMaxTriangles = (kLatSteps * kLonSteps * 2);
+constexpr int kTerrainGrid = 32;
+constexpr int kPlanetVertices = (kLatSteps + 1) * kLonSteps;
+constexpr int kPlanetTriangles = (kLatSteps * kLonSteps * 2);
+constexpr int kTerrainVertices = kTerrainGrid * kTerrainGrid;
+constexpr int kTerrainTriangles = 2 * (kTerrainGrid - 1) * (kTerrainGrid - 1);
+constexpr int kMaxVertices = kTerrainVertices > kPlanetVertices ? kTerrainVertices : kPlanetVertices;
+constexpr int kMaxTriangles = kTerrainTriangles > kPlanetTriangles ? kTerrainTriangles : kPlanetTriangles;
 constexpr float kPlanetRadius = 2.6f;
 constexpr float kNear = 3.0f;
 constexpr float kFar = 16.0f;
@@ -65,8 +70,15 @@ static Tri s_tris[kMaxTriangles];
 static Projected s_projected[kMaxVertices];
 static uint16_t s_zbuf[R3D_W * R3D_H];
 static uint8_t s_colorbuf[R3D_W * R3D_H];
+enum class MeshKind {
+    None,
+    Planet,
+    Terrain,
+};
+
 static uint16_t s_vertex_count = 0;
 static uint16_t s_tri_count = 0;
+static MeshKind s_mesh_kind = MeshKind::None;
 static bool s_ready = false;
 static renderer3d_stats_t s_stats = {};
 
@@ -132,16 +144,61 @@ static void build_sphere(void) {
             if (iy != kLatSteps - 1) s_tris[s_tri_count++] = Tri{b, c, d};
         }
     }
+    s_mesh_kind = MeshKind::Planet;
 }
 
-static Basis camera_basis(float angle) {
+static float terrain_noise2d(float x, float y) {
+    return sinf(x * 0.45f + 1.2f) * cosf(y * 0.31f + 0.4f) * 0.55f
+         + sinf(x * 1.1f + 0.5f) * cosf(y * 0.78f + 1.3f) * 0.30f
+         + sinf(x * 2.3f + 2.1f) * cosf(y * 1.7f + 0.2f) * 0.15f;
+}
+
+static void build_terrain(void) {
+    s_vertex_count = 0;
+    s_tri_count = 0;
+
+    // Use the same fitted terrain extent as the earlier firmware smoke test.
+    // The JSX plane is 40x40, but at 80x80 logical resolution and this camera
+    // distance that mostly clips to thin edge fragments on the round display.
+    constexpr float extent = 14.0f;
+    constexpr float step = extent / static_cast<float>(kTerrainGrid - 1);
+    for (int gy = 0; gy < kTerrainGrid; ++gy) {
+        for (int gx = 0; gx < kTerrainGrid; ++gx) {
+            const float x = -extent * 0.5f + gx * step;
+            const float z = -extent * 0.5f + gy * step;
+            float h = terrain_noise2d(x * 0.4f, z * 0.4f) * 4.5f;
+            const float dist_c = sqrtf(x * x + z * z);
+            h += (1.0f - fminf(1.0f, dist_c / 8.0f)) * -1.0f;
+
+            const float t = clamp_f((h + 2.0f) / 6.0f, 0.0f, 1.0f);
+            const float r = 0.04f + t * 0.12f;
+            const float g = 0.06f + t * 0.16f;
+            const float b = 0.38f + t * 0.54f;
+            s_vertices[s_vertex_count++] = Vertex{x, h, z, r, g, b};
+        }
+    }
+
+    for (int gy = 0; gy < kTerrainGrid - 1; ++gy) {
+        for (int gx = 0; gx < kTerrainGrid - 1; ++gx) {
+            const uint16_t tl = gy * kTerrainGrid + gx;
+            const uint16_t tr = tl + 1;
+            const uint16_t bl = tl + kTerrainGrid;
+            const uint16_t br = bl + 1;
+            s_tris[s_tri_count++] = Tri{tl, bl, tr};
+            s_tris[s_tri_count++] = Tri{tr, bl, br};
+        }
+    }
+    s_mesh_kind = MeshKind::Terrain;
+}
+
+static Basis camera_basis(float angle, float distance = 9.0f, float height = 0.5f, float target_y = 0.0f) {
     Basis b = {};
-    b.eye[0] = sinf(angle) * 9.0f;
-    b.eye[1] = 0.5f;
-    b.eye[2] = cosf(angle) * 9.0f;
+    b.eye[0] = sinf(angle) * distance;
+    b.eye[1] = target_y + height;
+    b.eye[2] = cosf(angle) * distance;
 
     float fx = -b.eye[0];
-    float fy = -b.eye[1];
+    float fy = target_y - b.eye[1];
     float fz = -b.eye[2];
     float fl = sqrtf(fx * fx + fy * fy + fz * fz);
     if (fl < 0.001f) fl = 1.0f;
@@ -211,7 +268,7 @@ static inline float edge(const Projected& a, const Projected& b, float px, float
     return (b.x - a.x) * (py - a.y) - (b.y - a.y) * (px - a.x);
 }
 
-static void rasterize_sphere(const render_params_t* params) {
+static void rasterize_mesh(const render_params_t* params, uint32_t* pixel_counter, bool cull_backfaces) {
     const float contrast = params ? clamp_f(params->contrast, 0.4f, 3.0f) : 1.4f;
     for (uint16_t ti = 0; ti < s_tri_count; ++ti) {
         if ((ti & 0x1F) == 0) taskYIELD();
@@ -223,7 +280,8 @@ static void rasterize_sphere(const render_params_t* params) {
         if (!a.visible || !b.visible || !c.visible) continue;
 
         const float area = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-        if (area >= -0.01f || fabsf(area) < 0.01f) continue;
+        if (fabsf(area) < 0.01f) continue;
+        if (cull_backfaces && area >= -0.01f) continue;
         const float inv_area = 1.0f / area;
         const int minx = clamp_i(static_cast<int>(floorf(fminf(a.x, fminf(b.x, c.x)))), 0, R3D_W - 1);
         const int maxx = clamp_i(static_cast<int>(ceilf(fmaxf(a.x, fmaxf(b.x, c.x)))), 0, R3D_W - 1);
@@ -238,7 +296,14 @@ static void rasterize_sphere(const render_params_t* params) {
                 float w0 = edge(b, c, px, py) * inv_area;
                 float w1 = edge(c, a, px, py) * inv_area;
                 float w2 = edge(a, b, px, py) * inv_area;
-                if (w0 < 0.0f || w1 < 0.0f || w2 < 0.0f) continue;
+                if (area < 0.0f) {
+                    if (w0 < 0.0f || w1 < 0.0f || w2 < 0.0f) continue;
+                } else {
+                    if (w0 > 0.0f || w1 > 0.0f || w2 > 0.0f) continue;
+                    w0 = -w0;
+                    w1 = -w1;
+                    w2 = -w2;
+                }
 
                 const float z = w0 * a.z + w1 * b.z + w2 * c.z;
                 const float zn = clamp_f((z - kNear) / (kFar - kNear), 0.0f, 1.0f);
@@ -251,7 +316,7 @@ static void rasterize_sphere(const render_params_t* params) {
                 const float gg = w0 * a.g + w1 * b.g + w2 * c.g;
                 const float bb = w0 * a.b + w1 * b.b + w2 * c.b;
                 s_colorbuf[idx] = quantize(rr, gg, bb, x, y, contrast);
-                s_stats.planet_pixels++;
+                if (pixel_counter) (*pixel_counter)++;
                 drew_triangle = true;
             }
         }
@@ -320,6 +385,35 @@ static uint32_t draw_reference_moon(float camera_angle, float time_angle) {
     return drawn;
 }
 
+static uint32_t draw_terrain_sun(const Basis& basis, float time_angle) {
+    Vertex sun = {0.0f, 4.5f + sinf(time_angle * 0.3f) * 0.4f, -8.0f, 1.0f, 0.12f, 0.18f};
+    const Projected p = project_vertex(sun, basis, 0.0f);
+    if (!p.visible) return 0;
+
+    uint32_t drawn = 0;
+    const float halo_r = 5.2f;
+    const float core_r = 3.6f;
+    const int y0 = clamp_i(static_cast<int>(p.y - halo_r - 1.0f), 0, R3D_H - 1);
+    const int y1 = clamp_i(static_cast<int>(p.y + halo_r + 2.0f), 0, R3D_H - 1);
+    const int x0 = clamp_i(static_cast<int>(p.x - halo_r - 1.0f), 0, R3D_W - 1);
+    const int x1 = clamp_i(static_cast<int>(p.x + halo_r + 2.0f), 0, R3D_W - 1);
+    for (int y = y0; y <= y1; ++y) {
+        for (int x = x0; x <= x1; ++x) {
+            const float dx = x + 0.5f - p.x;
+            const float dy = y + 0.5f - p.y;
+            const float d2 = dx * dx + dy * dy;
+            if (d2 <= core_r * core_r) {
+                s_colorbuf[y * R3D_W + x] = COLOR_WARM;
+                drawn++;
+            } else if (d2 <= halo_r * halo_r && 7 > kBayer4[y & 3][x & 3]) {
+                s_colorbuf[y * R3D_W + x] = COLOR_WARM;
+                drawn++;
+            }
+        }
+    }
+    return drawn;
+}
+
 static inline bool inside_mask(int x, int y, const render_params_t* params) {
     const float aperture = params ? clamp_f(params->aperture, 0.40f, 1.0f) : 0.97f;
     const int r = clamp_i(static_cast<int>(116.0f * aperture), 46, 116);
@@ -349,27 +443,33 @@ static void expand_to_framebuffer(uint8_t* fb, const render_params_t* params) {
 
 static const uint8_t GLYPH_A[7] = {0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11};
 static const uint8_t GLYPH_E[7] = {0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F};
+static const uint8_t GLYPH_I[7] = {0x0E, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0E};
 static const uint8_t GLYPH_L[7] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1F};
 static const uint8_t GLYPH_N[7] = {0x11, 0x19, 0x15, 0x13, 0x11, 0x11, 0x11};
 static const uint8_t GLYPH_P[7] = {0x1E, 0x11, 0x11, 0x1E, 0x10, 0x10, 0x10};
+static const uint8_t GLYPH_R[7] = {0x1E, 0x11, 0x11, 0x1E, 0x14, 0x12, 0x11};
 static const uint8_t GLYPH_T[7] = {0x1F, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04};
 
 static const uint8_t* glyph_for(char c) {
     switch (c) {
         case 'A': return GLYPH_A;
         case 'E': return GLYPH_E;
+        case 'I': return GLYPH_I;
         case 'L': return GLYPH_L;
         case 'N': return GLYPH_N;
         case 'P': return GLYPH_P;
+        case 'R': return GLYPH_R;
         case 'T': return GLYPH_T;
         default: return nullptr;
     }
 }
 
-static void draw_title(uint8_t* fb, const render_params_t* params) {
-    const char* text = "PLANET";
+static void draw_title(uint8_t* fb, const render_params_t* params, const char* text) {
     constexpr int scale = 2;
-    int x = 84;
+    int chars = 0;
+    for (const char* p = text; *p; ++p) ++chars;
+    const int text_width = chars > 0 ? chars * 6 * scale - scale : 0;
+    int x = (FB_WIDTH - text_width) / 2;
     constexpr int y = 26;
     for (const char* ch = text; *ch; ++ch) {
         const uint8_t* glyph = glyph_for(*ch);
@@ -400,30 +500,39 @@ static void draw_title(uint8_t* fb, const render_params_t* params) {
 bool renderer3d_init(void) {
     build_sphere();
     s_ready = true;
-    ESP_LOGI(TAG, "proper 3D planet renderer initialized: %u vertices, %u triangles, z=%u bytes, color=%u bytes",
-             s_vertex_count,
-             s_tri_count,
+    ESP_LOGI(TAG, "proper 3D renderer initialized: planet=%u vertices/%u triangles, terrain=%u vertices/%u triangles, z=%u bytes, color=%u bytes",
+             (unsigned)kPlanetVertices,
+             (unsigned)s_tri_count,
+             (unsigned)kTerrainVertices,
+             (unsigned)kTerrainTriangles,
              (unsigned)sizeof(s_zbuf),
              (unsigned)sizeof(s_colorbuf));
     return true;
 }
 
-uint64_t renderer3d_render_planet(uint8_t* fb, const render_params_t* params) {
-    if (!s_ready) renderer3d_init();
-
+static uint64_t begin_render(const char* scene_name) {
     const uint64_t start_us = esp_timer_get_time();
     memset(s_colorbuf, COLOR_BLACK, sizeof(s_colorbuf));
     for (int i = 0; i < R3D_W * R3D_H; ++i) s_zbuf[i] = kZMax;
 
     s_stats = {};
+    s_stats.scene_name = scene_name;
     s_stats.logical_w = R3D_W;
     s_stats.logical_h = R3D_H;
     s_stats.pixel_scale = R3D_PIXEL_SCALE;
     s_stats.z_bits = R3D_Z_BITS;
-    s_stats.sphere_vertices = s_vertex_count;
-    s_stats.sphere_triangles = s_tri_count;
+    s_stats.mesh_vertices = s_vertex_count;
+    s_stats.mesh_triangles = s_tri_count;
     s_stats.zbuffer_bytes = sizeof(s_zbuf);
     s_stats.colorbuffer_bytes = sizeof(s_colorbuf);
+    return start_us;
+}
+
+uint64_t renderer3d_render_planet(uint8_t* fb, const render_params_t* params) {
+    if (!s_ready) renderer3d_init();
+    if (s_mesh_kind != MeshKind::Planet) build_sphere();
+
+    const uint64_t start_us = begin_render("planet");
 
     const float camera_angle = params ? params->camera_angle : 0.0f;
     const float planet_angle = camera_angle * 0.35f;
@@ -435,13 +544,37 @@ uint64_t renderer3d_render_planet(uint8_t* fb, const render_params_t* params) {
     }
 
     const uint32_t ring_back = draw_reference_ring(false, ring_angle);
-    rasterize_sphere(params);
+    rasterize_mesh(params, &s_stats.planet_pixels, true);
     const uint32_t ring_front = draw_reference_ring(true, ring_angle);
     s_stats.ring_pixels = ring_back + ring_front;
     s_stats.moon_pixels = draw_reference_moon(camera_angle, planet_angle);
 
     expand_to_framebuffer(fb, params);
-    draw_title(fb, params);
+    draw_title(fb, params, "PLANET");
+
+    const uint64_t end_us = esp_timer_get_time();
+    s_stats.render_time_us = end_us - start_us;
+    return s_stats.render_time_us;
+}
+
+uint64_t renderer3d_render_terrain(uint8_t* fb, const render_params_t* params) {
+    if (!s_ready) renderer3d_init();
+    if (s_mesh_kind != MeshKind::Terrain) build_terrain();
+
+    const uint64_t start_us = begin_render("terrain");
+
+    const float camera_angle = params ? params->camera_angle : 0.0f;
+    const Basis basis = camera_basis(camera_angle, 11.0f, 3.2f, 1.5f);
+
+    for (uint16_t i = 0; i < s_vertex_count; ++i) {
+        s_projected[i] = project_vertex(s_vertices[i], basis, 0.0f);
+    }
+
+    rasterize_mesh(params, &s_stats.terrain_pixels, false);
+    s_stats.sun_pixels = draw_terrain_sun(basis, camera_angle);
+
+    expand_to_framebuffer(fb, params);
+    draw_title(fb, params, "TERRAIN");
 
     const uint64_t end_us = esp_timer_get_time();
     s_stats.render_time_us = end_us - start_us;

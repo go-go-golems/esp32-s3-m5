@@ -68,6 +68,7 @@ void scene_cycle_next(void);
 typedef enum {
     RENDER_BACKEND_POSTER = 0,
     RENDER_BACKEND_PLANET3D = 1,
+    RENDER_BACKEND_TERRAIN3D = 2,
 } render_backend_t;
 
 // Render parameters (externally modifiable)
