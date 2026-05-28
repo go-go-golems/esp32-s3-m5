@@ -22,6 +22,10 @@ RelatedFiles:
       Note: Renderer3D public contract and stats
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png
       Note: First hardware framebuffer capture for visual review
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png
+      Note: Updated hardware capture after spherical geometry/color correction
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z16-spherical.png
+      Note: Host preview after spherical geometry/color correction
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md
       Note: |-
         Primary design and implementation guide produced in this ticket
@@ -36,6 +40,7 @@ LastUpdated: 2026-05-28T00:00:00Z
 WhatFor: Record research steps, host experiments, design decisions, failures, and validation evidence for the 0097 renderer design.
 WhenToUse: Resume or review the proper 3D planet renderer implementation plan.
 ---
+
 
 
 
@@ -719,4 +724,115 @@ full frame including display transfer = 33,920 us
 
 ```text
 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png
+```
+
+## Step 8: Correct the Planet Silhouette to Read as a Sphere
+
+The first firmware capture was recognizable, but the planet body looked pinched and lumpy. The important correction is that Z-buffer precision was not the cause. Z precision decides which surface wins at a pixel; it does not make the projected geometry smoother or more spherical.
+
+I corrected the geometry and color model so the mesh remains a true sphere and the visible dithered pixels fill the disk more evenly. Noise now affects surface color only, not vertex radius, and every point on the planet gets a small base red/blue density so the equator and limb do not quantize away to black.
+
+### Prompt Context
+
+**User prompt (verbatim):** "one would the planet not be a sphere? it looks oddly misshapen, even at high resolution of z"
+
+**Assistant interpretation:** Explain why the planet appeared misshapen and fix the renderer so the planet reads as a sphere rather than a noisy/lumpy body.
+
+**Inferred user intent:** The PLANET scene should look like a round planet; increasing Z precision should not be treated as the solution to a silhouette/color problem.
+
+### What I did
+
+- Updated firmware `renderer3d.cpp`:
+  - removed radial noise displacement from sphere vertices
+  - kept vertex positions on `kPlanetRadius`
+  - retained noise only as color/speckle texture
+  - added base color density across the full sphere so the equator/limb remain visible after Bayer quantization
+- Updated the host prototype with the same geometry/color changes.
+- Generated a host preview:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z16-spherical.png
+```
+
+- Built and flashed the firmware again:
+
+```text
+cd 0096-m5dial-dithered-3d
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+idf.py build
+idf.py -p /dev/ttyACM0 flash
+```
+
+- Captured the updated hardware framebuffer:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png
+```
+
+- Rechecked renderer stats after a render completed:
+
+```text
+R3D: 80x80 scale=3 z=16-bit render=23147 us (43.2 FPS render-only)
+Buffers: z=12800 bytes color=6400 bytes fb=14400 bytes
+Mesh: 532 vertices, 952 triangles
+Triangles: 952 submitted, 573 drawn
+Pixels: planet=2095 ring=367 moon=0
+
+Frame time: 36018 us (27.8 FPS)
+Mode: triangle
+Triangles: 952 submitted, 573 drawn
+Pixels written: 2462
+```
+
+### Why
+
+The misshapen look came from two non-Z sources. First, the prototype used procedural noise as radial displacement, which made the actual mesh lumpy. Second, the latitude-only color model left low-density areas near the equator and limb; after thresholded 4-color dithering those areas disappeared, making the visible body look pinched.
+
+### What worked
+
+- The updated host and device captures both show a much more spherical planet body.
+- The firmware still builds and flashes successfully.
+- Runtime remains acceptable: about 23 ms render-only and 36 ms including display transfer in the measured run.
+
+### What didn't work
+
+- Querying `r3dstats` immediately after changing backend/angle once showed `render=0 us` while pixel counters were already populated. This was a race with the render task; querying again after a short delay produced the valid render time above.
+
+### What I learned
+
+High Z precision is not a cure for silhouette or shading artifacts. In this renderer, geometry, logical resolution, mesh density, and quantization thresholds determine whether the object reads as round. Z precision only determines depth ordering once pixels are being rasterized.
+
+### What was tricky to build
+
+The body was geometrically and visually wrong in different ways. Removing radius displacement fixed the mesh, but it was not sufficient by itself because the quantizer could still erase weakly colored body pixels. The final fix needed both spherical geometry and a color-density floor.
+
+### What warrants a second pair of eyes
+
+- Review whether the new base density is too solid compared with the JSX dithered aesthetic.
+- Review whether the equatorial blue/neutral band is desirable or whether the color ramp should be tuned further.
+
+### What should be done in the future
+
+- Capture angle sweeps to confirm the silhouette stays round during rotation.
+- Tune the color ramp after comparing on the physical LCD, not only the dumpfb PNG.
+
+### Code review instructions
+
+- Review `build_sphere()` in `0096-m5dial-dithered-3d/main/renderer3d.cpp`.
+- Compare `device-planet3d-first.png` with `device-planet3d-spherical.png`.
+- Validate with `backend planet3d`, `angle 0`, `dumpfb`, and `r3dstats` after waiting for a redraw.
+
+### Technical details
+
+The corrected geometry line is conceptually:
+
+```text
+position = unit_sphere_position * radius
+color = latitude_gradient + procedural_texture + base_density
+```
+
+not:
+
+```text
+position = unit_sphere_position * (radius + procedural_noise)
 ```

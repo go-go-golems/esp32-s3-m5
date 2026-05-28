@@ -99,19 +99,25 @@ static void build_sphere(void) {
 
             const float n = noise2(xx * 2.0f + zz * 0.7f, yy * 2.0f) * 0.16f
                           + noise2(zz * 1.2f, yy * 1.5f) * 0.07f;
-            const float scale = kPlanetRadius * (1.0f + n * 0.5f);
+            // Keep the planet silhouette spherical. The noise value should only
+            // affect color/speckle; using it as radial displacement made the
+            // planet look lumpy, and higher Z precision cannot fix geometry.
+            const float scale = kPlanetRadius;
             const float px = xx * scale;
             const float py = yy * scale;
             const float pz = zz * scale;
 
-            const float lat = py / kPlanetRadius;
-            const float heat = fmaxf(0.0f, lat);
-            const float cold = fmaxf(0.0f, -lat);
+            const float lat01 = clamp_f((py / kPlanetRadius) * 0.5f + 0.5f, 0.0f, 1.0f);
             const float speckle = sinf(px * 5.0f) * cosf(pz * 5.0f) * 0.5f + 0.5f;
-            const float rr = heat * (0.6f + speckle * 0.5f) + fmaxf(0.0f, n) * 0.5f;
-            const float bb = cold * (0.6f + speckle * 0.5f) + fmaxf(0.0f, -n) * 0.3f;
+            const float texture = (speckle - 0.5f) * 0.12f + n * 0.10f;
+            // Give every point on the sphere a visible base density. The first
+            // version used pure latitude heat/cold terms, so the equator and
+            // limb quantized to black and the visible body looked pinched even
+            // though the mesh was spherical.
+            const float rr = 0.18f + lat01 * 0.74f + texture;
+            const float bb = 0.18f + (1.0f - lat01) * 0.74f - texture * 0.35f;
 
-            s_vertices[s_vertex_count++] = Vertex{px, py, pz, fminf(1.0f, rr), 0.0f, fminf(1.0f, bb)};
+            s_vertices[s_vertex_count++] = Vertex{px, py, pz, clamp_f(rr, 0.0f, 1.0f), 0.0f, clamp_f(bb, 0.0f, 1.0f)};
         }
     }
 

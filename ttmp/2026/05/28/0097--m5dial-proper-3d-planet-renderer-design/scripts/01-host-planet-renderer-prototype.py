@@ -100,17 +100,22 @@ def build_uv_sphere(radius: float, lat_steps: int, lon_steps: int) -> tuple[list
             z = math.sin(phi) * ring_r
 
             n = noise2(x * 2.0 + z * 0.7, y * 2.0) * 0.16 + noise2(z * 1.2, y * 1.5) * 0.07
-            s = radius * (1.0 + n * 0.5)
+            # Keep the silhouette spherical. The original prototype used the
+            # noise term as radial displacement, which made the body look lumpy;
+            # Z precision only affects occlusion, not this geometry error.
+            s = radius
             px, py, pz = x * s, y * s, z * s
 
-            lat = py / radius
-            heat = max(0.0, lat)
-            cold = max(0.0, -lat)
+            lat01 = max(0.0, min(1.0, (py / radius) * 0.5 + 0.5))
             speckle = math.sin(px * 5.0) * math.cos(pz * 5.0) * 0.5 + 0.5
-            rr = heat * (0.6 + speckle * 0.5) + max(0.0, n) * 0.5
+            texture = (speckle - 0.5) * 0.12 + n * 0.10
+            # Give the whole sphere a visible base density. Otherwise the
+            # equator/limb quantizes to black and the visible body looks pinched
+            # even when the underlying geometry is a sphere.
+            rr = 0.18 + lat01 * 0.74 + texture
             gg = 0.0
-            bb = cold * (0.6 + speckle * 0.5) + max(0.0, -n) * 0.3
-            verts.append(Vertex(px, py, pz, min(1.0, rr), gg, min(1.0, bb)))
+            bb = 0.18 + (1.0 - lat01) * 0.74 - texture * 0.35
+            verts.append(Vertex(px, py, pz, max(0.0, min(1.0, rr)), gg, max(0.0, min(1.0, bb))))
 
     tris: list[tuple[int, int, int]] = []
     for iy in range(lat_steps):
