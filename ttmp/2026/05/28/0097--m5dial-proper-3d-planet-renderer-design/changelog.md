@@ -58,3 +58,13 @@ Corrected planet geometry and color model so the PLANET body reads as a spherica
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png — Updated hardware capture with rounder planet body
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py — Host prototype updated to keep silhouette spherical
 
+
+## 2026-05-28
+
+Added firmware spherical planet analysis report explaining why the first planet capture looked misshapen, why Z precision was not the cause, and how geometry/color-density corrections fixed the silhouette.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png — Corrected spherical hardware capture
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/04-firmware-spherical-planet-analysis.md — New analysis report with before/after hardware captures
+
