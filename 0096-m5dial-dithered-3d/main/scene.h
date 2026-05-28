@@ -65,6 +65,11 @@ void scene_set(SceneId id);
 SceneId scene_current_id(void);
 void scene_cycle_next(void);
 
+typedef enum {
+    RENDER_BACKEND_POSTER = 0,
+    RENDER_BACKEND_PLANET3D = 1,
+} render_backend_t;
+
 // Render parameters (externally modifiable)
 typedef struct {
     float camera_angle;       // orbit angle in radians
@@ -72,6 +77,7 @@ typedef struct {
     float contrast;           // 0.6–2.5
     float aperture;           // 0.4–1.0 (circular mask radius)
     int pixel_size;           // 1–6 poster pixel block size
+    render_backend_t backend; // poster scenes or experimental proper 3D path
     float encoder_step;       // radians per encoder delta
     uint32_t revision;        // incremented by console/state changes
     bool paused;

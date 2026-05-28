@@ -5,10 +5,12 @@
 #include "framebuffer.h"
 
 #include <esp_console.h>
+#include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <argtable3/argtable3.h>
 #include <cinttypes>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 static const char* TAG = "console_cmd";
@@ -187,6 +189,103 @@ static int cmd_pixel(int argc, char** argv) {
     } else {
         printf("Pixel size: %d\n", p->pixel_size);
     }
+    return 0;
+}
+
+// ─── backend command ────────────────────────────────────────
+
+static struct {
+    struct arg_str* name;
+    struct arg_end* end;
+} backend_args;
+
+static const char* backend_name(render_backend_t backend) {
+    switch (backend) {
+        case RENDER_BACKEND_POSTER: return "poster";
+        case RENDER_BACKEND_PLANET3D: return "planet3d";
+        default: return "unknown";
+    }
+}
+
+static int cmd_backend(int argc, char** argv) {
+    int nerrors = arg_parse(argc, argv, (void**)&backend_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, backend_args.end, argv[0]);
+        return 1;
+    }
+
+    render_params_t* p = render_params_get();
+    if (backend_args.name->count > 0) {
+        const char* name = backend_args.name->sval[0];
+        if (strcasecmp(name, "poster") == 0) {
+            p->backend = RENDER_BACKEND_POSTER;
+        } else if (strcasecmp(name, "planet3d") == 0) {
+            p->backend = RENDER_BACKEND_PLANET3D;
+        } else {
+            printf("Usage: backend [poster|planet3d]\n");
+            return 1;
+        }
+        render_params_touch();
+    }
+    printf("Backend: %s\n", backend_name(p->backend));
+    return 0;
+}
+
+// ─── heap command ───────────────────────────────────────────
+
+static int cmd_heap(int argc, char** argv) {
+    (void)argc;
+    (void)argv;
+    const uint32_t internal_caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+    printf("Heap INTERNAL|8BIT free=%u largest=%u minimum=%u\n",
+           (unsigned)heap_caps_get_free_size(internal_caps),
+           (unsigned)heap_caps_get_largest_free_block(internal_caps),
+           (unsigned)heap_caps_get_minimum_free_size(internal_caps));
+    printf("Heap DMA free=%u largest=%u\n",
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_DMA),
+           (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_DMA));
+    printf("Heap DEFAULT free=%u largest=%u\n",
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
+           (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_DEFAULT));
+    return 0;
+}
+
+// ─── allocprobe command ─────────────────────────────────────
+
+static struct {
+    struct arg_int* bytes;
+    struct arg_end* end;
+} allocprobe_args;
+
+static int cmd_allocprobe(int argc, char** argv) {
+    int nerrors = arg_parse(argc, argv, (void**)&allocprobe_args);
+    if (nerrors != 0 || allocprobe_args.bytes->count == 0) {
+        arg_print_errors(stderr, allocprobe_args.end, argv[0]);
+        printf("Usage: allocprobe <bytes>\n");
+        return 1;
+    }
+
+    const int bytes = allocprobe_args.bytes->ival[0];
+    if (bytes <= 0) {
+        printf("bytes must be positive\n");
+        return 1;
+    }
+
+    const uint32_t caps = MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+    void* ptr = heap_caps_malloc((size_t)bytes, caps);
+    if (!ptr) {
+        printf("allocprobe FAIL bytes=%d largest=%u free=%u\n",
+               bytes,
+               (unsigned)heap_caps_get_largest_free_block(caps),
+               (unsigned)heap_caps_get_free_size(caps));
+        return 1;
+    }
+    memset(ptr, 0xA5, (size_t)bytes);
+    heap_caps_free(ptr);
+    printf("allocprobe OK bytes=%d largest_after=%u free_after=%u\n",
+           bytes,
+           (unsigned)heap_caps_get_largest_free_block(caps),
+           (unsigned)heap_caps_get_free_size(caps));
     return 0;
 }
 
@@ -411,6 +510,37 @@ void console_commands_register(void) {
         .argtable = &pixel_args,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&pixel_cmd));
+
+    backend_args.name = arg_str0(NULL, NULL, "<poster|planet3d>", "Render backend");
+    backend_args.end = arg_end(1);
+    const esp_console_cmd_t backend_cmd = {
+        .command = "backend",
+        .help = "Select poster renderer or experimental proper 3D planet renderer",
+        .hint = NULL,
+        .func = &cmd_backend,
+        .argtable = &backend_args,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&backend_cmd));
+
+    const esp_console_cmd_t heap_cmd = {
+        .command = "heap",
+        .help = "Show internal heap and largest free block for renderer sizing",
+        .hint = NULL,
+        .func = &cmd_heap,
+        .argtable = NULL,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&heap_cmd));
+
+    allocprobe_args.bytes = arg_int1(NULL, NULL, "<bytes>", "Internal 8-bit allocation size to test");
+    allocprobe_args.end = arg_end(1);
+    const esp_console_cmd_t allocprobe_cmd = {
+        .command = "allocprobe",
+        .help = "Try allocating and freeing an internal 8-bit block",
+        .hint = NULL,
+        .func = &cmd_allocprobe,
+        .argtable = &allocprobe_args,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&allocprobe_cmd));
 
     sensitivity_args.clicks = arg_dbl0(NULL, NULL, "<clicks>", "Encoder clicks per full visual revolution (2–96)");
     sensitivity_args.end = arg_end(1);

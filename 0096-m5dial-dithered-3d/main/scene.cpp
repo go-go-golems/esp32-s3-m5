@@ -11,6 +11,7 @@ static render_params_t s_params = {
     .contrast = 1.4f,
     .aperture = 0.97f,
     .pixel_size = 1,
+    .backend = RENDER_BACKEND_POSTER,
     .encoder_step = 0.5235988f,  // 2π / 12 clicks per physical rotation
     .revision = 0,
     .paused = false,
