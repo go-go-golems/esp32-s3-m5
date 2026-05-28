@@ -24,8 +24,14 @@ RelatedFiles:
       Note: First hardware framebuffer capture for visual review
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png
       Note: Updated hardware capture after spherical geometry/color correction
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-first.png
+      Note: First experimental terrain3d hardware capture
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z16-spherical.png
       Note: Host preview after spherical geometry/color correction
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-montage.png
+      Note: Visual terrain parameter sweep for camera/extent analysis
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-stats.csv
+      Note: Terrain sweep metrics
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md
       Note: |-
         Primary design and implementation guide produced in this ticket
@@ -34,12 +40,15 @@ RelatedFiles:
       Note: |-
         Host-side executable prototype for the proposed coarse 3D planet renderer
         Host-side experiment recorded in diary
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py
+      Note: Host-side terrain algorithm tests and sweep harness
 ExternalSources: []
 Summary: Chronological investigation diary for ticket 0097, focused on designing a proper coarse-framebuffer 3D planet renderer for the M5Dial.
 LastUpdated: 2026-05-28T00:00:00Z
 WhatFor: Record research steps, host experiments, design decisions, failures, and validation evidence for the 0097 renderer design.
 WhenToUse: Resume or review the proper 3D planet renderer implementation plan.
 ---
+
 
 
 
@@ -836,3 +845,194 @@ not:
 ```text
 position = unit_sphere_position * (radius + procedural_noise)
 ```
+
+## Step 9: Experimental Terrain Backend and Host-Side Terrain Algorithm Tests
+
+After the planet milestone, I started moving the same coarse renderer architecture toward the original JSX `TERRAIN` scene. The first firmware terrain pass is intentionally experimental: it reuses the 80×80 logical target, 16-bit Z-buffer, 2-bit framebuffer, and direct Bayer quantization, then adds a generated height-field mesh and the JSX-style red sun.
+
+The first hardware terrain capture was too sparse to judge artistically. Instead of tuning by reflashing repeatedly, I added a host-side terrain test and sweep harness so terrain extent, camera distance, camera height, target height, angle, winding/culling, and projected bounds can be analyzed from fast local PNGs and CSV metrics.
+
+### Prompt Context
+
+**User prompt (verbatim):** "equator warm cool split was good with the black in the middle. Anyway, let's move to implementing the terrain."
+
+**Assistant interpretation:** Preserve the feedback that the earlier planet color split with black equator was aesthetically preferable, then proceed with terrain implementation rather than more planet tuning.
+
+**Inferred user intent:** Shift effort from planet polish to implementing and analyzing the TERRAIN scene.
+
+**User prompt (verbatim):** "write host-side tests with the terrain algorithm so it's easier to analyze the algorithm"
+
+**Assistant interpretation:** Build a host-side terrain renderer/test harness matching the firmware algorithm so camera/mesh/color issues can be analyzed without a flash/capture loop.
+
+**Inferred user intent:** Make terrain debugging evidence-driven and fast, especially because the first hardware output is sparse and hard to reason about on-device alone.
+
+**Commit (code):** e8ccd824f7ea0db197a71378cfdd23e3a405dc5c — "feat(0096): add experimental terrain3d backend"
+
+### What I did
+
+- Added a third render backend:
+
+```text
+backend terrain3d
+```
+
+- Extended `renderer3d.h/cpp` so the module can render either:
+  - `planet3d`
+  - `terrain3d`
+- Added an experimental terrain mesh generator:
+  - 32×32 grid
+  - 1,024 vertices
+  - 1,922 triangles
+  - JSX-derived terrain noise
+  - fitted 14-unit extent after the 40-unit JSX plane produced mostly clipped/edge fragments at this camera scale
+  - blue height-field color ramp
+  - red sun billboard/halo
+- Built and flashed the terrain backend:
+
+```text
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+idf.py -C 0096-m5dial-dithered-3d -p /dev/ttyACM0 flash
+```
+
+- Captured the first terrain hardware framebuffer:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-first.png
+```
+
+- Added host-side terrain algorithm harness:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py
+```
+
+- The host script supports:
+  - `test` — unit/sanity tests for noise, mesh counts, projection behavior, and fitted extent behavior
+  - `render` — one PNG + metrics for a single terrain configuration
+  - `sweep` — diagnostic terrain parameter sweep with PNGs, CSV metrics, and montage
+- Ran the tests:
+
+```text
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py test
+```
+
+Final result:
+
+```text
+Ran 4 tests in 0.066s
+
+OK
+```
+
+- Generated terrain analysis artifacts:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/
+```
+
+Key generated files:
+
+```text
+terrain-sweep-montage.png
+terrain-sweep-stats.csv
+extent-10.png
+extent-14.png
+extent-20.png
+extent-40.png
+angle-0.png
+angle-0.4.png
+angle-0.8.png
+angle-1.2.png
+```
+
+### Why
+
+The terrain scene is more sensitive to camera and clipping than the planet scene. The planet is compact and centered; terrain is a large surface that can easily project outside the circular viewport or collapse into thin edge fragments. A host harness lets us inspect those failure modes from metrics and images before changing firmware constants.
+
+### What worked
+
+- The firmware terrain backend builds and flashes.
+- The hardware capture confirms the command path works: `backend terrain3d`, red `TERRAIN` title, red sun, and blue terrain fragments appear.
+- The host harness reproduces the same sparse character of the current firmware view, which means it is useful for analysis rather than a disconnected toy.
+- The host sweep immediately showed that angle, target height, and camera height strongly affect how much terrain is visible.
+- The highest-fragment sweep candidates were:
+
+```text
+angle-1.2      terrain_pixels=511  triangles_drawn=265
+ target-y--1   terrain_pixels=470  triangles_drawn=240
+ angle-0.8     terrain_pixels=375  triangles_drawn=246
+ height-1.4    terrain_pixels=338  triangles_drawn=177
+```
+
+### What didn't work
+
+- The first hardware terrain capture is too sparse for a satisfying scene. It shows the title/sun and a few blue edge/valley fragments, not yet a rich terrain poster.
+- My first host test assumption was wrong. I expected the fitted 14-unit extent to produce more fragments than the 40-unit JSX extent. The actual measured pixel count was:
+
+```text
+extent=14 terrain_pixels=163
+extent=40 terrain_pixels=177
+```
+
+The better distinction was projected bounds and triangle coverage, not raw pixel count. I updated the test to check that the large JSX extent projects far outside the first camera and draws fewer triangles.
+- I also hit a command sequencing error while combining build and flash in one shell:
+
+```text
+/bin/bash: line 37: cd: 0096-m5dial-dithered-3d: No such file or directory
+```
+
+I reran flash using `idf.py -C 0096-m5dial-dithered-3d ...`, which avoids depending on the current shell directory.
+
+### What I learned
+
+For terrain, raw fragment count is not enough. A bad configuration can draw a similar number of pixels while those pixels are isolated edge fragments. The host harness therefore records projected bounds, drawn triangles, visible vertices, terrain pixels, sun pixels, and camera parameters.
+
+The montage suggests that `angle-0.8`, `angle-1.2`, lower target height, or lower camera height may be better starting points than the exact JSX camera for a 240×240 circular display.
+
+### What was tricky to build
+
+The renderer had been planet-shaped in its assumptions. Generalizing it required separating mesh generation from rasterization and adding scene-specific counters while preserving planet behavior. Terrain also forced two-sided rasterization because the grid winding/camera relationship is easier to get wrong during early tuning; backface culling can be reintroduced after the view is stable.
+
+The other tricky part was that the JSX plane is 40×40, but the firmware camera/display combination makes that scale hard to inspect directly. The host sweep gives a safer way to decide whether to fit the terrain, move the camera, or keep JSX scale and change projection.
+
+### What warrants a second pair of eyes
+
+- Review whether the terrain should preserve JSX's 40×40 world extent or use a firmware-fitted extent.
+- Review the coordinate orientation: the host harness includes a `--rotate-x-degrees` option because the JSX plane uses `geo.rotateX(-Math.PI / 2)`.
+- Review whether two-sided rasterization is acceptable for the first terrain milestone or whether winding should be corrected and culling restored.
+
+### What should be done in the future
+
+- Use `terrain-host-analysis/terrain-sweep-montage.png` and `terrain-sweep-stats.csv` to choose the next firmware camera constants.
+- Try the best host candidates on-device: likely `angle 0.8`, `angle 1.2`, lower `target_y`, or lower camera height.
+- Add host labels to montages if the current unlabeled montage becomes confusing.
+- Consider a terrain-specific camera command after the right view is identified.
+
+### Code review instructions
+
+- Review `0096-m5dial-dithered-3d/main/renderer3d.cpp` for:
+  - `build_terrain()`
+  - generalized `rasterize_mesh()`
+  - `renderer3d_render_terrain()`
+  - `draw_terrain_sun()`
+- Review `scripts/03-host-terrain-renderer-tests.py` for parity with firmware terrain math.
+- Validate host tests with:
+
+```text
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py test
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py sweep --out-dir ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis
+```
+
+### Technical details
+
+Current terrain backend stats from one live probe before the latest fitted-extent tweak were:
+
+```text
+R3D terrain: 80x80 scale=3 z=16-bit render=17296 us (57.8 FPS render-only)
+Buffers: z=12800 bytes color=6400 bytes fb=14400 bytes
+Mesh: 1024 vertices, 1922 triangles
+Triangles: 1922 submitted, 28 drawn
+Pixels: planet=0 terrain=162 ring=0 sun=60 moon=0
+```
+
+The low drawn-triangle count is the main reason host-side analysis is now necessary.

@@ -68,3 +68,15 @@ Added firmware spherical planet analysis report explaining why the first planet 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-spherical.png — Corrected spherical hardware capture
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/04-firmware-spherical-planet-analysis.md — New analysis report with before/after hardware captures
 
+
+## 2026-05-28
+
+Added experimental firmware terrain3d backend plus host-side terrain algorithm tests/sweep harness; generated terrain hardware capture and host sweep artifacts for analyzing camera/extent/color behavior (firmware commit e8ccd82).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0096-m5dial-dithered-3d/main/renderer3d.cpp — Experimental terrain3d backend and shared mesh raster path
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-first.png — First terrain3d hardware capture
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-montage.png — Terrain camera/extent sweep montage
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py — Host-side terrain tests and sweep renderer
+
