@@ -36,3 +36,14 @@ Generated host-side buffer comparison screenshots, revised prototype to include 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/03-jsx-matched-buffer-configuration-report.md — Revised report with JSX-matched screenshots
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/02-compare-buffer-configs.py — Batch renderer for buffer configuration screenshots
 
+
+## 2026-05-28
+
+Implemented and flashed first M5Dial proper 3D planet firmware backend: heap diagnostics, backend switching, 80x80 uint16-Z renderer, split ring/moon composition, and dumpfb capture (code commit 66ec490).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0096-m5dial-dithered-3d/main/console_commands.cpp — backend
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0096-m5dial-dithered-3d/main/renderer3d.cpp — Proper 3D planet renderer implementation (commit 66ec490)
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png — First on-device dumpfb capture of the planet3d backend
+

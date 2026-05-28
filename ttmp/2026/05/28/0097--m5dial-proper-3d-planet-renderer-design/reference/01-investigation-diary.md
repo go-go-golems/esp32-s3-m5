@@ -12,6 +12,16 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0096-m5dial-dithered-3d/main/app_main.cpp
+      Note: Backend dispatch between poster and planet3d renderers
+    - Path: 0096-m5dial-dithered-3d/main/console_commands.cpp
+      Note: Interactive backend
+    - Path: 0096-m5dial-dithered-3d/main/renderer3d.cpp
+      Note: Implemented first firmware 80x80 16-bit-Z planet renderer (commit 66ec490)
+    - Path: 0096-m5dial-dithered-3d/main/renderer3d.h
+      Note: Renderer3D public contract and stats
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png
+      Note: First hardware framebuffer capture for visual review
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md
       Note: |-
         Primary design and implementation guide produced in this ticket
@@ -26,6 +36,7 @@ LastUpdated: 2026-05-28T00:00:00Z
 WhatFor: Record research steps, host experiments, design decisions, failures, and validation evidence for the 0097 renderer design.
 WhenToUse: Resume or review the proper 3D planet renderer implementation plan.
 ---
+
 
 
 # Investigation Diary
@@ -510,3 +521,202 @@ The important distinction is between a renderer architecture prototype and a vis
 - Review `scripts/01-host-planet-renderer-prototype.py` for the split ring functions `draw_reference_ring()` and `draw_reference_moon()`.
 - Review `scripts/02-compare-buffer-configs.py` for the comparison matrix.
 - Review `design-doc/03-jsx-matched-buffer-configuration-report.md` for updated recommendations.
+
+## Step 7: First On-Device Proper 3D Planet Firmware Backend
+
+This step moved ticket 0097 from host-side design into the M5Dial firmware. I kept the stable poster renderer as the default backend, then added an opt-in `planet3d` backend so the new coarse Z-buffer path can be tested from `esp_console` without losing the known-good scenes.
+
+The first hardware capture is now available and recognizable: a 240×240 dumpfb screenshot of a ringed red/blue dithered planet with solid `PLANET` text. The implementation uses the conservative `80×80` logical target from the report, a 16-bit Z-buffer, a 2-bit output framebuffer, and a split analytic ring matching the JSX-oriented host prototype.
+
+### Prompt Context
+
+**User prompt (verbatim):** "start firmware, commit at appropriate intervals"
+
+**Assistant interpretation:** Begin implementing the proper 3D planet renderer in firmware and make focused commits at stable milestones.
+
+**Inferred user intent:** Turn the 0097 design/report findings into working M5Dial code while preserving reviewable history.
+
+**User prompt (verbatim):** "m5dial is connected, tmux idf.py monitor has been closed though"
+
+**Assistant interpretation:** The board is ready on USB Serial/JTAG and the serial port should be free for flashing/probing.
+
+**Inferred user intent:** Proceed with live device validation, but avoid serial contention.
+
+**Commit (code):** 6b3fa95179a955aec3a161924f127173de8a5850 — "feat(0096): add renderer backend and heap diagnostics"
+
+**Commit (code):** 66ec490f8d70b02d4c672d29100c299fcff03353 — "feat(0096): render proper 3d planet backend"
+
+### What I did
+
+- Committed the previously generated 0097 host comparison reports, screenshots, and printed almanach artifacts first:
+  - `87de29f1444766ef5ad0a870dc16d5ea003b9a99` — `docs(0097): add planet renderer comparison artifacts`
+- Added firmware console controls and diagnostics:
+  - `backend [poster|planet3d]`
+  - `heap`
+  - `allocprobe <bytes>`
+  - `r3dstats`
+- Added `render_backend_t` and `render_params_t.backend`, defaulting to `RENDER_BACKEND_POSTER` so existing poster behavior remains the boot default.
+- Added `renderer3d.h/cpp` with:
+  - `R3D_W = 80`
+  - `R3D_H = 80`
+  - `R3D_PIXEL_SCALE = 3`
+  - `R3D_Z_BITS = 16`
+  - static `uint16_t` Z-buffer: 12,800 bytes
+  - static logical color buffer: 6,400 bytes
+  - generated `lat18/lon28` UV sphere: 532 vertices, 952 triangles
+  - ordered 4×4 Bayer quantization into the existing four color indices
+  - split back/front analytic ring pass
+  - small moon billboard pass
+  - solid, non-dithered `PLANET` title overlay
+- Wired `app_main.cpp` to dispatch either `poster_render_scene()` or `renderer3d_render_planet()` based on the selected backend.
+- Built with:
+
+```text
+cd 0096-m5dial-dithered-3d
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+idf.py build
+```
+
+- Checked serial ownership before flashing:
+
+```text
+fuser -v /dev/ttyACM0
+```
+
+- Flashed the connected M5Dial with:
+
+```text
+idf.py -p /dev/ttyACM0 flash
+```
+
+- Captured first device framebuffer output with:
+
+```text
+python3 ttmp/2026/05/27/0096--m5dial-dithered-3d-scene-viewer/scripts/03-capture-dumpfb.py \
+  --port /dev/ttyACM0 \
+  --setup "backend planet3d" \
+  --setup "debug off" \
+  --setup "angle 0" \
+  --out ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png \
+  --transcript ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.txt \
+  --prompt-timeout 15 --command-timeout 10 --dump-timeout 20
+```
+
+- Queried device stats after selecting the backend:
+
+```text
+R3D: 80x80 scale=3 z=16-bit render=21032 us (47.5 FPS render-only)
+Buffers: z=12800 bytes color=6400 bytes fb=14400 bytes
+Mesh: 532 vertices, 952 triangles
+Triangles: 952 submitted, 533 drawn
+Pixels: planet=2080 ring=369 moon=0
+
+Frame time: 33920 us (29.5 FPS)
+Mode: triangle
+Triangles: 952 submitted, 533 drawn
+Pixels written: 2449
+
+Heap INTERNAL|8BIT free=283248 largest=212992 minimum=275296
+Heap DMA free=275488 largest=212992
+Heap DEFAULT free=283248 largest=212992
+```
+
+### Why
+
+The 0097 report recommended starting firmware at `80×80` with 16-bit Z because it is visually recognizable and small enough for the no-PSRAM M5Dial. The new backend implements exactly that first target while preserving the poster renderer as a fallback.
+
+The heap and allocation probes are intentionally part of the first firmware step. They make SRAM decisions measurable on the live board instead of relying on ESP32-S3 spec-sheet memory numbers.
+
+### What worked
+
+- The firmware builds successfully on ESP-IDF 5.4.2.
+- Flashing over `/dev/ttyACM0` succeeded after confirming no serial holder.
+- `backend planet3d` switches into the new renderer at runtime.
+- `dumpfb` capture reconstructed a valid PNG on the host.
+- The first device screenshot visually matches the host target closely enough for a first firmware milestone: solid title, red upper hemisphere, blue lower hemisphere, and split ring.
+- The render-only time is about 21 ms and the full frame time including display transfer is about 34 ms, leaving significant headroom at the 80×80 target.
+- Internal heap remains healthy after boot and backend rendering: largest internal 8-bit block was 212,992 bytes in the measured session.
+
+### What didn't work
+
+- Opening a new pyserial session resets the board, so a later `r3dstats` command initially reported zeroed stats because the device had returned to the default `poster` backend after reset. I reran `backend planet3d` and `angle 0` in the same serial session before querying `r3dstats`, `fps`, and `heap`.
+- The moon pass is implemented, but at the captured angle it reported `moon=0`; the first screenshot validates the sphere and ring, not the moon visibility envelope.
+- The build still emits existing warnings for ESP-IDF console struct missing-field initializers and the legacy PCNT driver. These warnings predate the renderer work and did not block the build.
+
+### What I learned
+
+The conservative memory plan is viable on hardware. The new static renderer buffers add about 19.2 KB for logical color + Z, plus projection and mesh storage, while the board still reports more than 280 KB free internal 8-bit heap and a largest block above 200 KB.
+
+The host report's `80×80` recommendation was correct for first firmware. The on-device capture is blocky, but it is recognizable, fast, and stable enough to become the baseline for future quality work.
+
+### What was tricky to build
+
+The main integration issue was preserving a safe fallback while adding a second renderer. The solution was to add a backend field to `render_params_t`, default it to `poster`, and make `backend planet3d` opt in to the new path. This keeps boot behavior stable and makes serial testing reversible.
+
+The other tricky part was serial-session behavior. The capture helper and ad-hoc stats probe both open USB Serial/JTAG; opening the port can reset the board. That means stats must be collected after reapplying setup commands in the same serial session, otherwise the observed backend may not be the backend that produced the previous screenshot.
+
+### What warrants a second pair of eyes
+
+- Review `renderer3d.cpp` rasterization math and backface-culling sign against the host prototype.
+- Review whether the split analytic ring should remain the first firmware ring implementation or be replaced with a true 3D strip once sphere behavior is stable.
+- Review whether the static renderer buffers should stay in BSS or move behind explicit heap allocation once `120×120` experiments begin.
+- Verify moon placement at several angles; the angle-0 capture did not draw it.
+
+### What should be done in the future
+
+- Capture a small angle sweep with `backend planet3d` to verify rotation, ring stability, and moon visibility.
+- Compare `device-planet3d-first.png` against `artifacts/buffer-config-comparison-v2/resolution-L80-Z16-lat18-lon28.png` side by side.
+- Try a `120×120` branch only after the 80×80 path is reviewed and stable.
+- Consider adding a runtime `r3dres` or compile-time profile for 80×80 versus 120×120 experiments.
+
+### Code review instructions
+
+- Start with `0096-m5dial-dithered-3d/main/renderer3d.h` for the public constants and stats contract.
+- Then review `0096-m5dial-dithered-3d/main/renderer3d.cpp` in this order:
+  1. static buffer declarations,
+  2. `build_sphere()`,
+  3. `project_vertex()`,
+  4. `rasterize_sphere()`,
+  5. `draw_reference_ring()`,
+  6. `expand_to_framebuffer()`.
+- Review `0096-m5dial-dithered-3d/main/app_main.cpp` for backend dispatch and renderer stats recording.
+- Review `0096-m5dial-dithered-3d/main/console_commands.cpp` for operator controls.
+- Validate with:
+
+```text
+cd 0096-m5dial-dithered-3d
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+idf.py build
+idf.py -p /dev/ttyACM0 flash
+```
+
+- Then capture:
+
+```text
+python3 ttmp/2026/05/27/0096--m5dial-dithered-3d-scene-viewer/scripts/03-capture-dumpfb.py \
+  --port /dev/ttyACM0 \
+  --setup "backend planet3d" \
+  --setup "angle 0" \
+  --out ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png
+```
+
+### Technical details
+
+- Firmware binary after adding `renderer3d`: `0x5a8e0` bytes; app partition still has about 88% free.
+- First renderer3d runtime stats:
+
+```text
+80x80 logical pixels = 6,400 pixels
+16-bit Z-buffer = 12,800 bytes
+2-bit physical framebuffer = 14,400 bytes
+logical color buffer = 6,400 bytes
+sphere mesh = 532 vertices, 952 triangles
+render-only time = 21,032 us
+full frame including display transfer = 33,920 us
+```
+
+- First hardware capture:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-planet3d-first.png
+```

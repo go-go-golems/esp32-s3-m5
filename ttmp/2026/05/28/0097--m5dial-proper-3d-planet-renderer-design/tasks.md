@@ -9,8 +9,8 @@
 - [x] Record detailed investigation diary
 - [x] Run docmgr doctor and fix validation issues
 - [x] Upload design bundle to reMarkable
-- [ ] Future implementation: add firmware heap/allocprobe commands
-- [ ] Future implementation: add renderer3d module skeleton
-- [ ] Future implementation: render 80×80 16-bit-Z planet sphere
-- [ ] Future implementation: capture device output with dumpfb
-- [ ] Future implementation: add ring and moon after sphere path works
+- [x] Future implementation: add firmware heap/allocprobe commands
+- [x] Future implementation: add renderer3d module skeleton
+- [x] Future implementation: render 80×80 16-bit-Z planet sphere
+- [x] Future implementation: capture device output with dumpfb
+- [x] Future implementation: add ring and moon after sphere path works
