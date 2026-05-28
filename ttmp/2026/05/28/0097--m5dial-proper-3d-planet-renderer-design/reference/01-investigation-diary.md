@@ -1,0 +1,407 @@
+---
+Title: Investigation Diary
+Ticket: "0097"
+Status: active
+Topics:
+    - esp32
+    - m5dial
+    - 3d-rendering
+    - dithering
+    - software-rendering
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles:
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md
+      Note: |-
+        Primary design and implementation guide produced in this ticket
+        Primary design deliverable
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py
+      Note: |-
+        Host-side executable prototype for the proposed coarse 3D planet renderer
+        Host-side experiment recorded in diary
+ExternalSources: []
+Summary: Chronological investigation diary for ticket 0097, focused on designing a proper coarse-framebuffer 3D planet renderer for the M5Dial.
+LastUpdated: 2026-05-28T00:00:00Z
+WhatFor: Record research steps, host experiments, design decisions, failures, and validation evidence for the 0097 renderer design.
+WhenToUse: Resume or review the proper 3D planet renderer implementation plan.
+---
+
+
+# Investigation Diary
+
+## Goal
+
+Design the next-stage renderer for the M5Dial dithered scene viewer: a proper software 3D backend that starts with the `PLANET` scene from the original `m5dial.jsx`, uses the hardware constraints learned in ticket 0096, and remains compatible with the existing 2-bit framebuffer, palette, console, and screenshot tooling.
+
+## Step 1: Ticket Setup and Scope Selection
+
+The user asked to create a new ticket and write a detailed analysis/design/implementation guide for returning to the original JSX and implementing a proper 3D renderer. The user explicitly allowed host-side experiments because they provide faster feedback and easier visual inspection.
+
+### Prompt Context
+
+**User prompt (verbatim):** "alright, let's do that then. Create a new ticket, and create a detailed analysis and implementation guide. Feel free to run host side experiments because it's easier to get feedback and inspect the results, as well. Create a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable."
+
+**Assistant interpretation:** Create ticket 0097, investigate the original JSX and existing firmware, run a host prototype, write a detailed intern-oriented implementation guide, validate ticket docs, and upload the documentation bundle to reMarkable.
+
+**Inferred user intent:** Move from the 0096 poster-renderer milestone to a real mesh-transform/raster/Z-buffer renderer, starting with one scene and preserving documentation quality.
+
+### What I did
+
+- Created ticket `0097` with title `M5Dial Proper 3D Planet Renderer Design`.
+- Created the primary design document:
+  - `ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md`
+- Created this investigation diary:
+  - `ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/reference/01-investigation-diary.md`
+- Loaded the ticket-research, textbook-authoring, and reMarkable upload skill instructions.
+- Selected `PLANET` as the first proper 3D target instead of `TERRAIN`.
+
+### Why
+
+Planet is the right first target because it is bounded, centered, and recognizable with low polygon counts. Terrain is visually important, but it requires a grid mesh, a more demanding camera composition, and many triangles. A planet sphere tests transform, projection, triangle rasterization, Z-buffering, color interpolation, and Bayer quantization without the additional burden of a terrain heightfield.
+
+### What worked
+
+- `docmgr ticket create-ticket` created the ticket workspace under the current date path:
+  - `ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design`
+- `docmgr doc add` created the design and diary documents.
+- The previous 0096 work provided strong reusable foundations: 2-bit framebuffer, `dumpfb`, host PNG reconstruction, console controls, and a working display path.
+
+### What didn't work
+
+- No failure in ticket creation.
+
+### What I learned
+
+- The proper 3D renderer should be treated as a new backend, not a replacement for the poster renderer. Keeping the poster renderer intact preserves the working device demo while the new renderer matures.
+
+### What was tricky to build
+
+The key scope decision was avoiding a direct Three.js port. The correct embedded target is not the browser scene graph; it is the final visual pipeline: coarse pixels, Bayer ordered dithering, four palette indices, circular mask, and solid UI overlay.
+
+### What warrants a second pair of eyes
+
+- Confirm that `PLANET` remains the preferred first scene for the proper 3D backend.
+- Confirm that the first milestone should exclude ring and moon until the sphere path is correct.
+
+### What should be done in the future
+
+- Implement the 3D backend in the firmware after reviewing the design document.
+- Add measurement commands (`heap`, `allocprobe`) before allocating renderer buffers.
+
+### Code review instructions
+
+- Review ticket setup artifacts first: `index.md`, `tasks.md`, `changelog.md`, the design doc, and this diary.
+
+## Step 2: Evidence Gathering from JSX and Existing Firmware
+
+I gathered line-anchored evidence from the original JSX and the current firmware. The goal was to make the design document concrete rather than speculative.
+
+### What I did
+
+- Inspected the original dither shader in:
+  - `ttmp/2026/05/27/0096--m5dial-dithered-3d-scene-viewer/scripts/m5dial.jsx` lines 41–112.
+- Inspected the original planet scene in:
+  - `m5dial.jsx` lines 298–365.
+- Inspected the existing 2-bit framebuffer contract in:
+  - `0096-m5dial-dithered-3d/main/framebuffer.h` lines 6–19 and 30–42.
+- Inspected the current app render loop and LCD transfer path in:
+  - `0096-m5dial-dithered-3d/main/app_main.cpp` lines 130–188.
+- Inspected the poster renderer's dither, pixel-size, aperture, and solid text helpers in:
+  - `0096-m5dial-dithered-3d/main/terrain_poster.cpp` lines 1–100.
+- Inspected the `dumpfb` and `fps` command implementation in:
+  - `0096-m5dial-dithered-3d/main/console_commands.cpp` lines 246–281.
+- Inspected the old experimental triangle renderer in:
+  - `0096-m5dial-dithered-3d/main/renderer.cpp` lines 1–80 and 220–310.
+
+### Why
+
+The design must be tied to files the intern can open. The existing firmware already solves many hard problems. The new renderer should reuse those solutions and replace only the middle of the pipeline: the scene renderer.
+
+### What worked
+
+The evidence strongly supports the design:
+
+- The original GLSL shader already uses pixel blocks before Bayer dithering.
+- The current firmware already has a 2-bit indexed framebuffer and scanline RGB565 expansion.
+- The current `dumpfb` command gives a validation loop for any new renderer output.
+- The old `renderer.cpp` provides useful projection/rasterization reference code but should not be reused directly because of the scanline-Z limitation.
+
+### What didn't work
+
+The old triangle renderer is not a final architecture. It has a scanline Z-buffer reset inside triangle drawing, which cannot provide correct inter-triangle occlusion for a planet and ring.
+
+### What I learned
+
+The new renderer should use a full logical Z-buffer. Because the logical target is only 80×80 initially, full-frame Z-buffering is cheaper and simpler than scanline-Z tricks.
+
+### What was tricky to build
+
+The nuance is that the 4-color framebuffer solves color storage but not visibility. We still need a Z-buffer for proper 3D. The Z-buffer can be small if the 3D renderer is coarse.
+
+### What warrants a second pair of eyes
+
+- Check whether the final firmware should use a UV sphere for easier latitude coloring or an icosphere for better triangle uniformity.
+
+### What should be done in the future
+
+- Add direct links/relations from the design doc to the evidence files using `docmgr doc relate`.
+
+### Code review instructions
+
+- In review, verify every major design claim against the file references above.
+
+## Step 3: Host-Side Planet Renderer Prototype
+
+I wrote a host-side executable prototype to validate the proposed renderer shape before firmware implementation.
+
+### What I did
+
+Created:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py
+```
+
+The script implements:
+
+- low-resolution logical render targets (`80×80`, `120×120`, etc.);
+- UV sphere generation with red/blue latitude coloring;
+- cheap deterministic pseudo-noise for surface variation;
+- camera projection into logical coordinates;
+- triangle rasterization with a full logical Z-buffer;
+- direct Bayer 4×4 four-color quantization;
+- scale-up to 240×240 PNG;
+- solid `PLANET` title overlay.
+
+Ran:
+
+```bash
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py \
+  --logical 80 --zbits 16 \
+  --out ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z16.png
+
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py \
+  --logical 80 --zbits 8 \
+  --out ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z8.png
+
+python3 ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/01-host-planet-renderer-prototype.py \
+  --logical 120 --zbits 16 \
+  --out ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-120-z16.png
+```
+
+Observed for 80×80 / 16-bit:
+
+```text
+logical_pixels: 6400
+zbuffer_bytes: 12800
+physical_framebuffer_bytes_2bpp: 14400
+sphere_vertices: 532
+sphere_triangles: 952
+ring_vertices: 192
+ring_triangles: 192
+planet_pixels: 2066
+ring_pixels: 0
+pixel_scale: 3
+```
+
+### Why
+
+Host-side rendering is faster to inspect than firmware iteration. It validates the memory model and the data flow before C++ implementation.
+
+### What worked
+
+- The script generated valid 240×240 PNGs.
+- The 80×80/3× scaled output clearly demonstrates the intended coarse-pixel architecture.
+- The Z-buffer memory numbers are small and match the design: 12.8 KB for 80×80 16-bit and 6.4 KB for 80×80 8-bit.
+- The prototype confirms that direct four-color quantization is viable without an RGB framebuffer.
+
+### What didn't work
+
+- The first ring experiment did not produce visible ring fragments (`ring_pixels: 0`). This is acceptable evidence for the design: ring should not be part of the first firmware milestone.
+
+### What I learned
+
+The sphere path is enough for the first milestone. Ring geometry adds a separate set of problems: thin triangles, two-sided rendering, low-resolution aliasing, and occlusion composition. Those should be handled after the planet body is correct.
+
+### What was tricky to build
+
+Getting the prototype's inside-triangle test and backface culling to behave consistently required care because screen-space `y` is inverted by projection. This is another reason to keep the first firmware milestone narrow.
+
+### What warrants a second pair of eyes
+
+- The prototype uses a UV sphere, not an icosphere. Review whether UV poles are acceptable at the target resolution.
+- The ring path should be revisited separately.
+
+### What should be done in the future
+
+- Add a second prototype pass for a split front/back ring after firmware sphere rendering works.
+- Optionally generate C arrays from the Python mesh once the mesh density is chosen.
+
+### Code review instructions
+
+- Review `01-host-planet-renderer-prototype.py` as executable pseudocode, not as production code.
+- Compare its output and stats with the design document's proposed memory tables.
+
+## Step 4: Design Document Authoring
+
+I wrote the primary design document for an intern-level implementation.
+
+### What I did
+
+Updated:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md
+```
+
+The document includes:
+
+- executive summary;
+- problem statement and scope;
+- file-backed evidence from JSX and current firmware;
+- hardware and memory model;
+- memory budget tables;
+- 16-bit vs 8-bit Z-buffer guidance;
+- proposed architecture and data flow diagram;
+- renderer API sketch;
+- mesh strategy;
+- projection math;
+- rasterization pseudocode;
+- quantization pseudocode;
+- ring and moon plan;
+- host experiment results;
+- phased implementation plan;
+- testing strategy;
+- risks, alternatives, open questions, and file references.
+
+### Why
+
+The next person implementing the firmware should not have to rediscover the memory constraints, rendering pipeline, or scope decisions. The document is meant to be sufficient for a new intern to start implementation safely.
+
+### What worked
+
+The existing 0096 system gave the design a solid foundation. The guide can point to actual code for framebuffer layout, display transfer, console screenshot export, and poster renderer behavior.
+
+### What didn't work
+
+No writing failure, but the design intentionally leaves ring/moon details as later phases because the host experiment showed ring work needs separate attention.
+
+### What I learned
+
+The proper 3D backend should be introduced as an optional backend, not as a destructive rewrite. That gives the team a working UI and screenshot loop throughout implementation.
+
+### What was tricky to build
+
+The hardest part of the guide was separating three layers that are easy to conflate:
+
+1. Physical LCD framebuffer: 240×240, 2-bit packed.
+2. Logical 3D render target: initially 80×80.
+3. UI overlay: solid 240×240 text/status after the 3D pass.
+
+The design is clear only if these layers stay separate.
+
+### What warrants a second pair of eyes
+
+- Confirm whether runtime backend switching (`backend poster|planet3d`) should be added before or after the first sphere render.
+- Confirm whether generated mesh data should be built at boot or stored as `const` tables.
+
+### What should be done in the future
+
+- Run `docmgr doctor` and address vocabulary/frontmatter issues.
+- Upload the design bundle to reMarkable.
+
+### Code review instructions
+
+- Read the design doc top to bottom before implementing.
+- Pay special attention to the phased plan; it intentionally delays ring and moon.
+
+## Step 5: Validation and reMarkable Upload
+
+After writing the design guide and diary, I validated the ticket with `docmgr doctor`, fixed vocabulary warnings, and uploaded the bundle to reMarkable.
+
+### What I did
+
+- Ran:
+
+```bash
+docmgr doctor --ticket 0097 --stale-after 30
+```
+
+- The first doctor run reported unknown topic vocabulary entries for:
+  - `3d-rendering`
+  - `dithering`
+  - `m5dial`
+  - `software-rendering`
+- Added those topics to the docmgr vocabulary:
+
+```bash
+docmgr vocab add --category topics --slug 3d-rendering --description "Software 3D rendering, projection, rasterization, and depth buffering"
+docmgr vocab add --category topics --slug dithering --description "Ordered dithering and palette quantization"
+docmgr vocab add --category topics --slug m5dial --description "M5Stack M5Dial device projects"
+docmgr vocab add --category topics --slug software-rendering --description "CPU-based rendering pipelines without GPU acceleration"
+```
+
+- Re-ran doctor. It passed:
+
+```text
+## Doctor Report (1 findings)
+
+### 0097
+
+- ✅ All checks passed
+```
+
+- Uploaded the design bundle to reMarkable:
+
+```bash
+remarquee upload bundle \
+  ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md \
+  ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/reference/01-investigation-diary.md \
+  --name "0097 M5Dial Proper 3D Planet Renderer Design" \
+  --remote-dir "/ai/2026/05/28/0097" \
+  --toc-depth 2 \
+  --non-interactive
+```
+
+- Upload succeeded:
+
+```text
+OK: uploaded 0097 M5Dial Proper 3D Planet Renderer Design.pdf -> /ai/2026/05/28/0097
+```
+
+### Why
+
+The user explicitly asked to store the guide in the ticket and upload it to reMarkable. The doctor pass ensures the ticket metadata is valid before delivery.
+
+### What worked
+
+- Vocabulary additions resolved the only doctor warning.
+- The reMarkable bundle upload succeeded in one command.
+
+### What didn't work
+
+- No upload failure occurred.
+
+### What I learned
+
+The 0097 topic set needed vocabulary entries because this ticket introduces a more specific rendering-design vocabulary than the older benchmark/display tickets.
+
+### What was tricky to build
+
+No technical issue in this step. The main detail was following the current reMarkable upload workflow and not running unnecessary account/status checks.
+
+### What warrants a second pair of eyes
+
+- Review the design PDF on reMarkable for readability and diagram rendering.
+- Confirm whether the implementation should begin immediately in the existing 0096 firmware directory or be forked into a fresh 0097 firmware copy.
+
+### What should be done in the future
+
+- Start firmware implementation with measurement commands: `heap` and `allocprobe`.
+- Then add the `renderer3d` skeleton and first 80×80 16-bit-Z sphere render.
+
+### Code review instructions
+
+- Validate that `docmgr doctor --ticket 0097 --stale-after 30` still passes after any future edits.
+- Confirm the reMarkable remote path before replacing or uploading updated versions.

@@ -149,6 +149,14 @@ topics:
       description: System performance analysis and optimization
     - slug: cores3
       description: M5Stack CoreS3 SE (ESP32-S3 native WiFi)
+    - slug: 3d-rendering
+      description: Software 3D rendering, projection, rasterization, and depth buffering
+    - slug: dithering
+      description: Ordered dithering and palette quantization
+    - slug: m5dial
+      description: M5Stack M5Dial device projects
+    - slug: software-rendering
+      description: CPU-based rendering pipelines without GPU acceleration
 docTypes:
     - slug: index
       description: Ticket index document
