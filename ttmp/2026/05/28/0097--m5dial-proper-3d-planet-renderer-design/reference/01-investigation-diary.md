@@ -405,3 +405,108 @@ No technical issue in this step. The main detail was following the current reMar
 
 - Validate that `docmgr doctor --ticket 0097 --stale-after 30` still passes after any future edits.
 - Confirm the reMarkable remote path before replacing or uploading updated versions.
+
+## Step 6: Buffer Configuration Comparison and JSX-Matching Revision
+
+After the first host comparison, the user pointed out that the generated planet did not really look like the original JSX version. That was correct. The first prototype validated the coarse Z-buffer and four-color raster path, but it omitted the most recognizable part of the JSX planet scene: the ring crossing the planet body.
+
+### Prompt Context
+
+**User prompt (verbatim):** "compare different buffer configurations on the host side, since we have a lot of memory, save screenshots in the ticket, and write a md report with thoe screenshots and writeup, and open with md-view view ... when done"
+
+**Assistant interpretation:** Generate a host-side matrix of logical framebuffer/Z-buffer/mesh-density screenshots, save the artifacts into ticket 0097, write a Markdown report with screenshots and analysis, and open it with `md-view view`.
+
+**Inferred user intent:** Choose the firmware buffer configuration from rendered evidence rather than theoretical memory tables alone.
+
+**User prompt (verbatim):** "this doesn't look like the jsx version really, make it match more closely"
+
+**Assistant interpretation:** Revise the host prototype so the comparison resembles the original JSX planet scene composition more closely, especially the ringed planet shape.
+
+**Inferred user intent:** Do not optimize for a generic red/blue sphere; the comparison should target the actual JSX visual direction.
+
+### What I did
+
+- Added batch comparison script:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/02-compare-buffer-configs.py
+```
+
+- Generated the first comparison set under:
+
+```text
+artifacts/buffer-config-comparison/
+```
+
+- Created montages for:
+  - resolution at 16-bit Z
+  - 8-bit versus 16-bit Z
+  - mesh density at 80×80
+- Inspected the generated montages with `read`.
+- Wrote the first comparison report:
+
+```text
+design-doc/02-buffer-configuration-comparison-report.md
+```
+
+- Revised `01-host-planet-renderer-prototype.py` after visual review because the first output did not match the JSX planet closely enough.
+- Added a split JSX-style ring composition to the host prototype:
+  1. draw back half of ring
+  2. rasterize planet body
+  3. draw front half of ring
+  4. draw solid title UI
+- Regenerated the comparison set under:
+
+```text
+artifacts/buffer-config-comparison-v2/
+```
+
+- Inspected the updated montage with `read`; it now shows a ringed planet composition much closer to the JSX scene.
+- Wrote the revised report:
+
+```text
+design-doc/03-jsx-matched-buffer-configuration-report.md
+```
+
+### Why
+
+The purpose of the host comparison is not only to compare memory costs. It must compare configurations using a visual target that resembles the scene we actually want to implement. The original planet scene is a ringed planet. Without the ring, the output looked like separated red/blue hemispheres and produced misleading visual conclusions.
+
+### What worked
+
+- The batch comparison script generated 17 screenshots plus a CSV of metrics.
+- The v2 ringed screenshots are much closer to the JSX target.
+- The comparison clarified two different targets:
+  - `80×80` is the best first firmware target.
+  - `120×120` is the closer JSX visual match because JSX defaults to `pixelSize = 2`.
+- 8-bit and 16-bit Z still look equivalent for the sphere body, but the report correctly warns that this does not prove 8-bit is safe for a future true 3D ring.
+
+### What didn't work
+
+- The first report's screenshots were not visually close enough to the JSX planet scene.
+- The earlier ring mesh path still did not produce useful visible fragments. The v2 host prototype uses a split ellipse composition instead of a true 3D ring mesh to match the visual target.
+
+### What I learned
+
+The ring is not optional for evaluating the planet scene. It changes the visual read of the whole composition and affects which resolution feels acceptable. At 80×80, the ringed planet is recognizable and firmware-friendly. At 120×120, the result is closer to the original JSX default.
+
+### What was tricky to build
+
+The important distinction is between a renderer architecture prototype and a visual target prototype. The sphere-only renderer was architecturally useful but visually incomplete. The split-ring update is less geometrically pure than a true 3D torus strip, but it provides a better target for the first firmware ring milestone.
+
+### What warrants a second pair of eyes
+
+- Decide whether the firmware should implement the ring first as a split composition, as recommended by the v2 report, or continue trying for a true 3D ring strip immediately.
+- Review whether `80×80` is acceptable as the first on-device visual milestone, or whether the closer `120×120` target is worth attempting earlier.
+
+### What should be done in the future
+
+- Open the revised report with `md-view view` for visual review.
+- Upload the revised comparison report to reMarkable if desired after user review.
+- Use `resolution-L80-Z16-lat18-lon28.png` as the first firmware screenshot target and `resolution-L120-Z16-lat18-lon28.png` as the quality target.
+
+### Code review instructions
+
+- Review `scripts/01-host-planet-renderer-prototype.py` for the split ring functions `draw_reference_ring()` and `draw_reference_moon()`.
+- Review `scripts/02-compare-buffer-configs.py` for the comparison matrix.
+- Review `design-doc/03-jsx-matched-buffer-configuration-report.md` for updated recommendations.

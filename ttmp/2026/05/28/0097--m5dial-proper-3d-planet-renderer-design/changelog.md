@@ -25,3 +25,14 @@ Validated ticket with docmgr doctor, added rendering topic vocabulary entries, a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/01-proper-3d-planet-renderer-analysis-and-implementation-guide.md — Uploaded in reMarkable bundle
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/reference/01-investigation-diary.md — Updated with validation and upload evidence
 
+
+## 2026-05-28
+
+Generated host-side buffer comparison screenshots, revised prototype to include JSX-style split ring composition, and wrote v2 JSX-matched comparison report.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/buffer-config-comparison-v2/resolution-z16-montage.png — Updated ringed planet resolution montage
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/design-doc/03-jsx-matched-buffer-configuration-report.md — Revised report with JSX-matched screenshots
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/02-compare-buffer-configs.py — Batch renderer for buffer configuration screenshots
+

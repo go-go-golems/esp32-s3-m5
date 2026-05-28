@@ -282,6 +282,65 @@ def draw_text(rgb: bytearray, width: int, x: int, y: int, text: str, scale: int,
         cursor += 6 * scale
 
 
+def draw_reference_ring(colorbuf: list[int], lw: int, front: bool, angle: float = 0.0) -> int:
+    """Draw the JSX-style planet ring as an ordered-dithered split ellipse.
+
+    The real firmware should eventually make this a 3D strip mesh, but the split
+    ellipse captures the visible JSX composition: back half first, planet body,
+    then front half over the planet. This also gives us a visual target for the
+    later 3D ring implementation.
+    """
+    cx = lw * 0.5
+    cy = lw * 0.52
+    rx = lw * 0.39
+    ry = lw * 0.085
+    thickness = max(1.2, lw * 0.010)
+    ca = math.cos(angle)
+    sa = math.sin(angle)
+    drawn = 0
+    for y in range(lw):
+        for x in range(lw):
+            # Split by vertical position in ring-local coordinates. Back half is
+            # the upper arc, front half is the lower arc.
+            dx = x + 0.5 - cx
+            dy = y + 0.5 - cy
+            xr = dx * ca + dy * sa
+            yr = -dx * sa + dy * ca
+            is_front = yr >= 0
+            if is_front != front:
+                continue
+            rr = math.sqrt((xr * xr) / (rx * rx) + (yr * yr) / (ry * ry))
+            dist = abs(rr - 1.0) * min(rx, ry)
+            if dist > thickness:
+                continue
+            density = 15 if dist < thickness * 0.55 else 10
+            if density > BAYER4[y & 3][x & 3]:
+                colorbuf[y * lw + x] = COLOR_COOL if not front else COLOR_HIGH
+                drawn += 1
+    return drawn
+
+
+def draw_reference_moon(colorbuf: list[int], lw: int, camera_angle: float, time_angle: float) -> int:
+    # Approximate the JSX moon orbit and draw a small high-color billboard.
+    moon = Vertex(math.cos(time_angle * 0.6) * 5.2,
+                  math.sin(time_angle * 0.4) * 0.6,
+                  math.sin(time_angle * 0.6) * 5.2,
+                  1.0, 1.0, 1.0)
+    p = project(moon, camera_basis(camera_angle), lw, lw, 0.0)
+    if p is None:
+        return 0
+    radius = max(1.0, lw * 0.035 / max(0.5, p.z / 9.0))
+    drawn = 0
+    for y in range(max(0, int(p.y - radius - 1)), min(lw, int(p.y + radius + 2))):
+        for x in range(max(0, int(p.x - radius - 1)), min(lw, int(p.x + radius + 2))):
+            dx = x + 0.5 - p.x
+            dy = y + 0.5 - p.y
+            if dx * dx + dy * dy <= radius * radius and 14 > BAYER4[y & 3][x & 3]:
+                colorbuf[y * lw + x] = COLOR_HIGH
+                drawn += 1
+    return drawn
+
+
 def render(args) -> tuple[bytes, dict[str, int]]:
     lw = args.logical
     scale = 240 // lw
@@ -291,15 +350,18 @@ def render(args) -> tuple[bytes, dict[str, int]]:
     zbuf = [zmax] * (lw * lw)
 
     sphere_verts, sphere_tris = build_uv_sphere(2.6, args.lat, args.lon)
-    ring_verts, ring_tris = build_ring(3.55, 3.82, 96)
     basis = camera_basis(args.camera_angle)
     planet_proj = [project(v, basis, lw, lw, args.planet_angle) for v in sphere_verts]
-    ring_proj = [project(v, basis, lw, lw, args.ring_angle) for v in ring_verts]
 
-    # Back ring, planet, front ring is left for firmware polish. For prototype,
-    # z-buffered ring+planet verifies the memory/rasterization path.
-    ring_pixels = rasterize(ring_tris, ring_proj, colorbuf, zbuf, lw, lw, args.zbits, args.contrast, cull_backfaces=False)
+    # Match the JSX composition more closely: ring back half, dithered planet,
+    # ring front half, then moon billboard.  The ring is a split ellipse here so
+    # the host reference shows the desired composition even before the firmware
+    # 3D ring strip is implemented.
+    ring_back_pixels = draw_reference_ring(colorbuf, lw, front=False, angle=args.ring_angle)
     planet_pixels = rasterize(sphere_tris, planet_proj, colorbuf, zbuf, lw, lw, args.zbits, args.contrast, cull_backfaces=True)
+    ring_front_pixels = draw_reference_ring(colorbuf, lw, front=True, angle=args.ring_angle)
+    moon_pixels = draw_reference_moon(colorbuf, lw, args.camera_angle, args.planet_angle)
+    ring_pixels = ring_back_pixels + ring_front_pixels
 
     rgb = bytearray(240 * 240 * 3)
     mask_radius = 116
@@ -324,10 +386,11 @@ def render(args) -> tuple[bytes, dict[str, int]]:
         "physical_framebuffer_bytes_2bpp": 240 * 240 // 4,
         "sphere_vertices": len(sphere_verts),
         "sphere_triangles": len(sphere_tris),
-        "ring_vertices": len(ring_verts),
-        "ring_triangles": len(ring_tris),
+        "ring_vertices": 0,
+        "ring_triangles": 0,
         "planet_pixels": planet_pixels,
         "ring_pixels": ring_pixels,
+        "moon_pixels": moon_pixels,
         "pixel_scale": scale,
     }
     return bytes(rgb), stats
