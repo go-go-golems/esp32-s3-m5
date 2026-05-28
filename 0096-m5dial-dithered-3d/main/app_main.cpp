@@ -192,7 +192,7 @@ static void app_task(void* arg) {
         display.endWrite();
 
         uint64_t frame_end_us = esp_timer_get_time();
-        if (p->backend == RENDER_BACKEND_PLANET3D) {
+        if (p->backend == RENDER_BACKEND_PLANET3D || p->backend == RENDER_BACKEND_TERRAIN3D) {
             const renderer3d_stats_t* r3d = renderer3d_stats();
             renderer_stats_record(r3d->triangles_submitted,
                                   r3d->triangles_drawn,

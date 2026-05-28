@@ -80,3 +80,15 @@ Added experimental firmware terrain3d backend plus host-side terrain algorithm t
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-montage.png — Terrain camera/extent sweep montage
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py — Host-side terrain tests and sweep renderer
 
+
+## 2026-05-28
+
+Preserved terrain combo sweep as script 04, tuned terrain firmware camera from host analysis, rebuilt/flashed, captured improved terrain output, and fixed fps stats for terrain3d.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0096-m5dial-dithered-3d/main/app_main.cpp — Fixed fps stats accounting for terrain3d backend
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0096-m5dial-dithered-3d/main/renderer3d.cpp — Tuned terrain camera constants from combo sweep
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-tuned.png — Improved terrain3d hardware capture
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/04-terrain-combo-sweep.py — Saved focused terrain camera sweep script for future reference
+

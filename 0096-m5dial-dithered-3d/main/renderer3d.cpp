@@ -563,8 +563,11 @@ uint64_t renderer3d_render_terrain(uint8_t* fb, const render_params_t* params) {
 
     const uint64_t start_us = begin_render("terrain");
 
-    const float camera_angle = params ? params->camera_angle : 0.0f;
-    const Basis basis = camera_basis(camera_angle, 11.0f, 3.2f, 1.5f);
+    const float camera_angle = (params ? params->camera_angle : 0.0f) + 0.4f;
+    // Host terrain combo sweep selected this as the best first on-device
+    // framing that still keeps the red sun visible: lower camera, neutral
+    // target height, and a small yaw offset from the default front view.
+    const Basis basis = camera_basis(camera_angle, 11.0f, 1.4f, 0.0f);
 
     for (uint16_t i = 0; i < s_vertex_count; ++i) {
         s_projected[i] = project_vertex(s_vertices[i], basis, 0.0f);

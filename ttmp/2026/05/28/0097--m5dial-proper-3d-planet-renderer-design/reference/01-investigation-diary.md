@@ -26,8 +26,12 @@ RelatedFiles:
       Note: Updated hardware capture after spherical geometry/color correction
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-first.png
       Note: First experimental terrain3d hardware capture
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-tuned.png
+      Note: Tuned terrain hardware capture
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/planet-80-z16-spherical.png
       Note: Host preview after spherical geometry/color correction
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis-v2/combo-montage.png
+      Note: Focused terrain camera combo montage
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-montage.png
       Note: Visual terrain parameter sweep for camera/extent analysis
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis/terrain-sweep-stats.csv
@@ -42,12 +46,15 @@ RelatedFiles:
         Host-side experiment recorded in diary
     - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/03-host-terrain-renderer-tests.py
       Note: Host-side terrain algorithm tests and sweep harness
+    - Path: ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/04-terrain-combo-sweep.py
+      Note: Focused terrain camera combo sweep saved after ad-hoc exploration
 ExternalSources: []
 Summary: Chronological investigation diary for ticket 0097, focused on designing a proper coarse-framebuffer 3D planet renderer for the M5Dial.
 LastUpdated: 2026-05-28T00:00:00Z
 WhatFor: Record research steps, host experiments, design decisions, failures, and validation evidence for the 0097 renderer design.
 WhenToUse: Resume or review the proper 3D planet renderer implementation plan.
 ---
+
 
 
 
@@ -1036,3 +1043,127 @@ Pixels: planet=0 terrain=162 ring=0 sun=60 moon=0
 ```
 
 The low drawn-triangle count is the main reason host-side analysis is now necessary.
+
+## Step 10: Preserve Terrain Combo Sweep and Apply the First Tuned Camera
+
+This step made the terrain tuning loop reproducible. The first host terrain sweep was broad enough to identify the failure class, but the better camera candidates came from a focused combination sweep over yaw, camera height, and target height. I saved that ad-hoc sweep as a permanent ticket script so future sessions can regenerate the same artifacts instead of relying on terminal history.
+
+The firmware now uses the first tuned terrain camera: a small yaw offset, lower camera height, and neutral target height. The resulting hardware capture is still not final art, but it is no longer a few isolated edge fragments. It reads as a blue ridgeline under the red sun, which is a usable baseline for the next terrain pass.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Continue from the terrain analysis summary by applying the host-derived terrain camera tuning to firmware and validating it on-device.
+
+**Inferred user intent:** Use the host sweep results to improve the actual M5Dial terrain output, not just document possibilities.
+
+**User prompt (verbatim):** "save all the scripts in the scripts/ folder of the ticket for future reference. compare the algorithms to the jsx if necessary. write a frequent diary"
+
+**Assistant interpretation:** Preserve the terrain combo sweep as a ticket script, keep algorithm comparisons grounded against the JSX source, and update the diary more frequently so the investigation remains continuation-friendly.
+
+**Inferred user intent:** Avoid losing exploratory scripts and reasoning; make the terrain tuning loop reproducible and well documented.
+
+### What I did
+
+- Saved the focused ad-hoc terrain camera sweep as:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/scripts/04-terrain-combo-sweep.py
+```
+
+- Regenerated the combination sweep artifacts under:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/terrain-host-analysis-v2/
+```
+
+- Compared the generated candidates visually. The strongest balanced candidates were:
+  - `a0-h1.4-ty0`
+  - `a0.4-h1.4-ty0`
+  - `a0.4-h2.2-ty0`
+  - `a0.8-h2.2-ty0`
+- Chose `a0.4-h1.4-ty0` as the first firmware tuning because it keeps the red sun visible while adding a fuller ridge shape.
+- Updated `renderer3d_render_terrain()` to use:
+
+```text
+camera_angle = user_angle + 0.4
+camera_distance = 11.0
+camera_height = 1.4
+target_y = 0.0
+```
+
+- Fixed aggregate `fps` stats recording so `terrain3d` reports `Mode: triangle` instead of falling through to poster accounting.
+- Built, flashed, and captured the tuned terrain output:
+
+```text
+ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/device-terrain3d-tuned.png
+```
+
+- Queried device stats after the tuned capture:
+
+```text
+R3D terrain: 80x80 scale=3 z=16-bit render=21868 us (45.7 FPS render-only)
+Buffers: z=12800 bytes color=6400 bytes fb=14400 bytes
+Mesh: 1024 vertices, 1922 triangles
+Triangles: 1922 submitted, 326 drawn
+Pixels: planet=0 terrain=675 ring=0 sun=58 moon=0
+
+Frame time: 34821 us (28.7 FPS)
+Mode: triangle
+Triangles: 1922 submitted, 326 drawn
+Pixels written: 733
+```
+
+### Why
+
+The host sweep showed that the firmware's sparse terrain output was mostly a viewing problem. A renderer can have a valid mesh, valid Z-buffer, and valid rasterizer while still showing almost nothing if the camera sees only a narrow clipped strip of terrain. The fastest way forward was to move one good camera candidate into firmware and verify the result on the device.
+
+### What worked
+
+- The focused combo sweep reproduced the terrain view family and gave concrete candidate images.
+- `a0.4-h1.4-ty0` translated to firmware cleanly.
+- The tuned hardware capture is visibly fuller than the first terrain capture.
+- Runtime is still acceptable at roughly 22 ms render-only and 35 ms full-frame.
+- `fps` now correctly reports terrain as triangle mode.
+
+### What didn't work
+
+- The red title and red sun overlap visually in the tuned capture. The terrain scene needs the same kind of UI safe-area thinking that the poster renderer already has.
+- The best high-fragment host candidates often put the sun partly offscreen or remove it entirely, so fragment count alone is not the objective.
+- The terrain is still not a rich final composition. It is a better baseline, not the end state.
+
+### What I learned
+
+The useful terrain objective is a constrained visual optimization: enough terrain pixels, enough silhouette variation, sun visible, title not obscured, and circular display framing preserved. A single metric such as `terrain_pixels` cannot select the final camera.
+
+### What was tricky to build
+
+The difficult part was resisting the temptation to tune firmware constants from a single screenshot. The combo sweep made it clear that nearby camera choices can change the scene from sparse fragments to a full ridge, but the visually best option is not necessarily the one with the most fragments.
+
+### What warrants a second pair of eyes
+
+- Review the selected terrain camera candidate against the original JSX view: it is intentionally firmware-fitted, not a literal camera port.
+- Review whether sun/title overlap should be fixed by moving the sun, moving the title, masking the sun from the title safe area, or adding a scene-specific UI layout.
+
+### What should be done in the future
+
+- Add terrain camera presets or console-tunable terrain camera fields so the next tuning pass does not require reflashing.
+- Add labels to host montages or write a small HTML/Markdown contact sheet for easier review.
+- Decide whether terrain should remain a true mesh renderer or switch to a poster/height-slice hybrid for stronger composition.
+
+### Code review instructions
+
+- Review `scripts/04-terrain-combo-sweep.py` first; it captures the tuning logic that produced the firmware constants.
+- Review `renderer3d_render_terrain()` for the new camera constants.
+- Compare `device-terrain3d-first.png` and `device-terrain3d-tuned.png`.
+
+### Technical details
+
+The selected camera is not the highest-fragment candidate. It is a balance between visible terrain mass and visible red sun:
+
+```text
+a0.4-h1.4-ty0 terrain_pixels=633 triangles_drawn=311 sun_pixels=62
+```
+
+The firmware measurement after tuning is close enough to the host expectation while preserving runtime headroom.
