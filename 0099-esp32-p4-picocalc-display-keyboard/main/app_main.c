@@ -673,16 +673,17 @@ static int cmd_lcd(int argc, char **argv)
                pattern_name(pattern), esp_err_to_name(err), elapsed_ms, s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
         return err == ESP_OK ? 0 : 1;
     }
-    if (strcmp(argv[1], "rectbench") == 0) {
-        int w = argc >= 3 ? atoi(argv[2]) : 16;
-        int h = argc >= 4 ? atoi(argv[3]) : 16;
-        int loops = argc >= 5 ? atoi(argv[4]) : 500;
+    if (strcmp(argv[1], "rectbench") == 0 || strcmp(argv[1], "cellbench") == 0) {
+        const bool is_cellbench = strcmp(argv[1], "cellbench") == 0;
+        int w = argc >= 3 ? atoi(argv[2]) : (is_cellbench ? 8 : 16);
+        int h = argc >= 4 ? atoi(argv[3]) : (is_cellbench ? 16 : 16);
+        int loops = argc >= 5 ? atoi(argv[4]) : (is_cellbench ? 1000 : 500);
         if (w <= 0) w = 1;
         if (h <= 0) h = 1;
         if (w > LCD_WIDTH) w = LCD_WIDTH;
         if (h > LCD_HEIGHT) h = LCD_HEIGHT;
         if (loops <= 0) loops = 1;
-        if (loops > 5000) loops = 5000;
+        if (loops > 10000) loops = 10000;
         const uint16_t colors[] = {0xf800, 0x07e0, 0x001f, 0xffff, 0x0000, 0xffe0, 0x07ff, 0xf81f};
         const int max_x = LCD_WIDTH - w;
         const int max_y = LCD_HEIGHT - h;
@@ -692,7 +693,7 @@ static int cmd_lcd(int argc, char **argv)
             const uint16_t y = max_y > 0 ? (uint16_t)((i * 5) % (max_y + 1)) : 0;
             esp_err_t err = lcd_fill_rect(x, y, (uint16_t)w, (uint16_t)h, colors[i % (sizeof(colors) / sizeof(colors[0]))]);
             if (err != ESP_OK) {
-                printf("lcd rectbench err=%s at loop=%d\n", esp_err_to_name(err), i);
+                printf("lcd %s err=%s at loop=%d\n", argv[1], esp_err_to_name(err), i);
                 return 1;
             }
         }
@@ -700,8 +701,68 @@ static int cmd_lcd(int argc, char **argv)
         const int64_t bytes = (int64_t)w * h * 2 * loops;
         const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
         const int64_t rects_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
-        printf("lcd rectbench w=%d h=%d loops=%d elapsed_ms=%" PRId64 " rects_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
-               w, h, loops, elapsed_ms, rects_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        printf("lcd %s w=%d h=%d loops=%d elapsed_ms=%" PRId64 " rects_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               argv[1], w, h, loops, elapsed_ms, rects_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        return 0;
+    }
+    if (strcmp(argv[1], "rowbench") == 0) {
+        int h = argc >= 3 ? atoi(argv[2]) : 16;
+        int loops = argc >= 4 ? atoi(argv[3]) : 200;
+        if (h <= 0) h = 1;
+        if (h > LCD_HEIGHT) h = LCD_HEIGHT;
+        if (loops <= 0) loops = 1;
+        if (loops > 5000) loops = 5000;
+        const uint16_t colors[] = {0x0000, 0xffff, 0x001f, 0xffe0, 0x07e0, 0xf81f};
+        const int max_y = LCD_HEIGHT - h;
+        int64_t start = esp_timer_get_time();
+        for (int i = 0; i < loops; i++) {
+            const uint16_t y = max_y > 0 ? (uint16_t)((i * h) % (max_y + 1)) : 0;
+            esp_err_t err = lcd_fill_rect(0, y, LCD_WIDTH, (uint16_t)h, colors[i % (sizeof(colors) / sizeof(colors[0]))]);
+            if (err != ESP_OK) {
+                printf("lcd rowbench err=%s at loop=%d\n", esp_err_to_name(err), i);
+                return 1;
+            }
+        }
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        const int64_t bytes = (int64_t)LCD_WIDTH * h * 2 * loops;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        const int64_t rows_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
+        printf("lcd rowbench h=%d loops=%d elapsed_ms=%" PRId64 " rows_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               h, loops, elapsed_ms, rows_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        return 0;
+    }
+    if (strcmp(argv[1], "scrollbench") == 0) {
+        int row_h = argc >= 3 ? atoi(argv[2]) : 16;
+        int loops = argc >= 4 ? atoi(argv[3]) : 20;
+        if (row_h <= 0) row_h = 1;
+        if (row_h > LCD_HEIGHT) row_h = LCD_HEIGHT;
+        if (loops <= 0) loops = 1;
+        if (loops > 500) loops = 500;
+        const int rows = (LCD_HEIGHT + row_h - 1) / row_h;
+        const uint16_t colors[] = {0x0000, 0x2104, 0x4208, 0x6318, 0x8410, 0xa514, 0xc618, 0xffff};
+        int64_t start = esp_timer_get_time();
+        for (int loop = 0; loop < loops; loop++) {
+            for (int row = 0; row < rows; row++) {
+                const uint16_t y = (uint16_t)(row * row_h);
+                uint16_t h = (uint16_t)row_h;
+                if (y + h > LCD_HEIGHT) {
+                    h = LCD_HEIGHT - y;
+                }
+                const uint16_t color = colors[(row + loop) % (sizeof(colors) / sizeof(colors[0]))];
+                esp_err_t err = lcd_fill_rect(0, y, LCD_WIDTH, h, color);
+                if (err != ESP_OK) {
+                    printf("lcd scrollbench err=%s at loop=%d row=%d\n", esp_err_to_name(err), loop, row);
+                    return 1;
+                }
+            }
+        }
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        const int64_t bytes = (int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * loops;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        const int64_t scrolls_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
+        const int64_t row_updates_s = elapsed_ms > 0 ? ((int64_t)loops * rows * 1000) / elapsed_ms : 0;
+        printf("lcd scrollbench row_h=%d rows=%d loops=%d elapsed_ms=%" PRId64 " scrolls_s=%" PRId64 " row_updates_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               row_h, rows, loops, elapsed_ms, scrolls_s, row_updates_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
         return 0;
     }
     if (strcmp(argv[1], "bars") == 0) {
@@ -721,7 +782,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
@@ -773,7 +834,7 @@ static void start_console(void)
 
     const esp_console_cmd_t lcd_cmd_def = {
         .command = "lcd",
-        .help = "PicoCalc LCD diagnostics: init, speed, bench, rectbench, pattern, fill, bars",
+        .help = "PicoCalc LCD diagnostics: init, speed, bench, rect/cell/row/scrollbench, pattern, fill, bars",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd_def));
