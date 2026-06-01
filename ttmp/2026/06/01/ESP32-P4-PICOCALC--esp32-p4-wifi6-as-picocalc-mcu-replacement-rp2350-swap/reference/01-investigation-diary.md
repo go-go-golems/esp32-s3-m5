@@ -1402,3 +1402,135 @@ dma_chunk=32768
 full_screen_fill≈21ms
 lcd_bars≈26ms
 ```
+
+## Step 10: High-Frequency LCD Patterns and Dirty-Rectangle Benchmarks
+
+This step added the next layer of display validation on top of the accepted 80 MHz, 32 KiB DMA fill baseline. Solid fills and color bars are useful throughput tests, but they do not strongly exercise high-frequency pixel transitions. The new pattern commands generate checkerboard, one-pixel stripe, and diagonal patterns so the operator can look for shimmer, unstable columns, random pixels, or color/bit-order artifacts.
+
+The same firmware update also added `lcd rectbench [w h loops]` for dirty-rectangle timing. This begins measuring workloads closer to terminal or UI updates, where the bottleneck is often rectangle command overhead rather than raw full-screen bandwidth.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Continue with the previously proposed next steps: implement checker/stripe/diagonal pattern tests and dirty-rectangle benchmarks, then run them on the board.
+
+**Inferred user intent:** The user accepted the next phase of LCD optimization and validation after confirming the 80 MHz color bars looked good.
+
+**Commit (code):** 9f7e979cf598f9f970242722f61b2c3a37b1e459 — "0099: add LCD pattern and rect benchmarks"
+
+### What I did
+
+- Added `lcd pattern checker|stripes|diagonal|all` to `0099`.
+- Added a general pattern rectangle path that fills the reusable DMA buffer with generated RGB565 pixels and writes them in row-major order.
+- Added `lcd rectbench [w h loops]` to measure repeated dirty-rectangle updates.
+- Updated the README command list.
+- Built with ESP-IDF v5.4.2.
+- Flashed through the existing `0099_p4_dk_monitor` tmux session using `Ctrl-T A`.
+- Ran:
+
+```text
+lcd init
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+lcd rectbench 16 16 500
+lcd rectbench 80 24 200
+lcd pattern stripes
+status
+```
+
+### Why
+
+The previous 80 MHz color-bar confirmation established that the panel could display large solid regions correctly. It did not prove that the same-position GPIO-matrix wiring is clean under high-frequency pixel changes. Alternating stripes and checkerboards are better stress patterns for visual signal-integrity checks.
+
+Dirty-rectangle benchmarks are also necessary because real PicoCalc UI work will usually update small areas: character cells, cursors, status bars, and scroll regions. Small rectangles spend proportionally more time on `CASET`, `RASET`, `RAMWR`, GPIO DC changes, and transaction setup.
+
+### What worked
+
+- The firmware built successfully.
+- The firmware flashed successfully.
+- Pattern commands completed at actual 80 MHz:
+
+```text
+lcd pattern name=checker err=ESP_OK elapsed_ms=34 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd pattern name=stripes err=ESP_OK elapsed_ms=32 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd pattern name=diagonal err=ESP_OK elapsed_ms=33 requested=80000000 actual_khz=80000 dma_chunk=32768
+```
+
+- Dirty-rectangle benchmarks completed:
+
+```text
+lcd rectbench w=16 h=16 loops=500 elapsed_ms=427 rects_s=1170 payload_kib_s=585 requested=80000000 actual_khz=80000
+lcd rectbench w=80 h=24 loops=200 elapsed_ms=237 rects_s=843 payload_kib_s=3164 requested=80000000 actual_khz=80000
+```
+
+- The display was left on `lcd pattern stripes`, a one-pixel black/white vertical stripe pattern, for operator visual feedback.
+
+### What didn't work
+
+- No runtime failures occurred in this step.
+- Visual correctness is still pending for the new high-frequency stripe pattern. Serial logs prove the SPI transactions completed, not that the display is visually clean.
+
+### What I learned
+
+- Generated full-screen patterns cost more CPU time than solid fills because the firmware computes per-pixel colors before each DMA transaction. Pattern time is 32-34 ms versus about 21 ms for solid fills.
+- Small dirty rectangles are dominated by command/setup overhead. A 16×16 rectangle benchmark achieved about 1170 rects/s, but only about 585 KiB/s payload throughput because each update sends little pixel data.
+- Larger dirty rectangles improve payload efficiency. An 80×24 rectangle reached about 843 rects/s and 3164 KiB/s payload throughput.
+
+### What was tricky to build
+
+The pattern path had to preserve row-major geometry across DMA chunk boundaries. A 32 KiB chunk can split in the middle of a row, so the code tracks a pixel offset and reconstructs `x` and `y` for each generated pixel. This keeps checkerboards, one-pixel stripes, and diagonals continuous across transaction boundaries.
+
+The dirty-rectangle benchmark had to avoid measuring a full-screen clear as part of the benchmark. It intentionally draws moving rectangles over the existing screen so the reported time reflects repeated dirty updates rather than full-frame repaint cost.
+
+### What warrants a second pair of eyes
+
+- The current one-pixel vertical stripe pattern should be inspected closely for shimmer, unstable columns, missing lines, or random pixels.
+- The dirty-rectangle benchmark parameters should be reviewed against actual PicoCalc UI dimensions once font/cell sizes are chosen.
+- The pattern generation path is CPU-bound enough that a future arbitrary blit path should separate render cost from SPI transfer cost.
+
+### What should be done in the future
+
+- Ask the user to confirm whether the stripe pattern is visually stable and correct.
+- Add terminal-cell, row, and scroll-specific benchmark commands.
+- Add a general RGB565 blit path with double-buffering or line-buffering.
+- Consider queued DMA only after deciding which workload shape matters most: full-screen, rectangles, or terminal rows.
+
+### Code review instructions
+
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `lcd_pattern_t`, `pattern_pixel()`, and `lcd_pattern_rect()`;
+  - `lcd pattern` command parsing;
+  - `lcd rectbench` command and benchmark math.
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard
+source ~/esp/esp-idf-5.4.2/export.sh
+idf.py build
+```
+
+Then in the monitor:
+
+```text
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+lcd rectbench 16 16 500
+lcd rectbench 80 24 200
+```
+
+### Technical details
+
+New command summary:
+
+```text
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+lcd pattern all
+lcd rectbench [w h loops]
+```
+
+Current visual-feedback request: the LCD is left on `lcd pattern stripes` at actual 80 MHz. Please inspect it for stable black/white one-pixel vertical stripes with no flicker, shimmer, random pixels, or unstable columns.

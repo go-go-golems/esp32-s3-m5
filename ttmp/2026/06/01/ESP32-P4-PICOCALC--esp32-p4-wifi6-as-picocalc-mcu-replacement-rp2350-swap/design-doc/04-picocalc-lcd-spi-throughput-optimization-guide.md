@@ -48,6 +48,11 @@ Observed benchmark at actual 80 MHz:
 | After 32 KiB DMA chunk optimization | `lcd bench 50` | 21 ms/fill |
 | Before DMA chunk optimization | `lcd bars` | ~33 ms |
 | After 32 KiB DMA chunk optimization | `lcd bars` | 26 ms |
+| Pattern tests added | `lcd pattern checker` | 34 ms |
+| Pattern tests added | `lcd pattern stripes` | 32 ms |
+| Pattern tests added | `lcd pattern diagonal` | 33 ms |
+| Dirty-rectangle benchmark added | `lcd rectbench 16 16 500` | 1170 rects/s |
+| Dirty-rectangle benchmark added | `lcd rectbench 80 24 200` | 843 rects/s |
 
 The next improvements should focus on queued DMA transfers, dirty rectangles, and higher-level frame composition rather than higher SPI clocks.
 
@@ -177,6 +182,11 @@ lcd speed
 lcd bench 5
 lcd bench 50
 lcd bars
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+lcd rectbench 16 16 500
+lcd rectbench 80 24 200
 status
 ```
 
@@ -187,6 +197,11 @@ lcd speed requested=80000000 actual_khz=80000
 lcd bench loops=5 elapsed_ms=107 per_fill_ms=21 throughput_kib_s=9345 requested=80000000 actual_khz=80000 dma_chunk=32768
 lcd bench loops=50 elapsed_ms=1071 per_fill_ms=21 throughput_kib_s=9337 requested=80000000 actual_khz=80000 dma_chunk=32768
 lcd bars ok elapsed_ms=26
+lcd pattern name=checker err=ESP_OK elapsed_ms=34 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd pattern name=stripes err=ESP_OK elapsed_ms=32 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd pattern name=diagonal err=ESP_OK elapsed_ms=33 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd rectbench w=16 h=16 loops=500 elapsed_ms=427 rects_s=1170 payload_kib_s=585 requested=80000000 actual_khz=80000
+lcd rectbench w=80 h=24 loops=200 elapsed_ms=237 rects_s=843 payload_kib_s=3164 requested=80000000 actual_khz=80000
 status ... lcd_actual_khz=80000 lcd_dma_chunk=32768 lcd_dma_buf=32768
 ```
 
@@ -237,8 +252,9 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 
 - [ ] Ask the operator to visually inspect the current `lcd bars` output at actual 80 MHz.
 - [ ] Run a longer visual stability pass: `lcd bench 100`, then `lcd bars`.
-- [ ] Add a patterned test command that alternates checkerboard, diagonal lines, and text-like stripe patterns. Solid fills are good throughput tests but weak signal-integrity tests.
-- [ ] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
+- [x] Add a patterned test command that alternates checkerboard, diagonal lines, and text-like stripe patterns. Solid fills are good throughput tests but weak signal-integrity tests.
+- [x] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
+- [ ] Add terminal-cell, row, and scroll-specific benchmark commands.
 - [ ] Add a line-buffer/blit path for arbitrary RGB565 pixels, not only solid-color fills.
 - [ ] Evaluate queued transactions using `spi_device_queue_trans()` / `spi_device_get_trans_result()` for large pixel streams.
 - [ ] Decide whether to migrate the low-level panel path to `esp_lcd_panel_io_spi`, or keep the manual command/data path for control and simplicity.
@@ -271,12 +287,13 @@ Acceptance criteria:
 
 Solid fills can hide bit-order and signal-integrity problems. A better display test should include high-frequency pixel transitions.
 
-Candidate command:
+Implemented command:
 
 ```text
 lcd pattern checker
 lcd pattern stripes
 lcd pattern diagonal
+lcd pattern all
 ```
 
 Implementation sketch:
@@ -300,12 +317,18 @@ PicoCalc workloads will usually update small regions, not full frames. A termina
 4. a status bar;
 5. a full clear.
 
-Candidate commands:
+Implemented command:
 
 ```text
-lcd rectbench 8 16 1000
+lcd rectbench [w h loops]
+```
+
+Future terminal-specific benchmark commands:
+
+```text
 lcd rowbench 16 100
 lcd scrollbench 20
+lcd cellbench 8 16 1000
 ```
 
 These benchmarks should report updates per second and bytes per second.

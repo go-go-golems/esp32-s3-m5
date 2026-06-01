@@ -101,3 +101,13 @@ Confirmed visually that the optimized 80 MHz LCD color-bar output is good on the
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Recorded operator visual confirmation of the optimized LCD baseline
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/tasks.md — Marked 80 MHz LCD visual-inspection task complete
 
+
+## 2026-06-01
+
+Added high-frequency LCD pattern tests and dirty-rectangle benchmarks to 0099; validated checker/stripe/diagonal patterns and rectbench commands at actual 80 MHz (code commit 9f7e979cf598f9f970242722f61b2c3a37b1e459).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — Pattern generation and dirty-rectangle benchmark commands
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated benchmark table and task list with pattern/rectbench results
+
