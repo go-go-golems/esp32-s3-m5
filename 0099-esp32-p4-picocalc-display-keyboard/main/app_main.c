@@ -373,6 +373,99 @@ static uint16_t color_from_name(const char *name, bool *ok)
     return 0;
 }
 
+typedef enum {
+    LCD_PATTERN_CHECKER,
+    LCD_PATTERN_STRIPES,
+    LCD_PATTERN_DIAGONAL,
+} lcd_pattern_t;
+
+static bool pattern_from_name(const char *name, lcd_pattern_t *pattern)
+{
+    if (!name || !pattern) {
+        return false;
+    }
+    if (strcmp(name, "checker") == 0) {
+        *pattern = LCD_PATTERN_CHECKER;
+        return true;
+    }
+    if (strcmp(name, "stripes") == 0) {
+        *pattern = LCD_PATTERN_STRIPES;
+        return true;
+    }
+    if (strcmp(name, "diagonal") == 0) {
+        *pattern = LCD_PATTERN_DIAGONAL;
+        return true;
+    }
+    return false;
+}
+
+static const char *pattern_name(lcd_pattern_t pattern)
+{
+    switch (pattern) {
+    case LCD_PATTERN_CHECKER:
+        return "checker";
+    case LCD_PATTERN_STRIPES:
+        return "stripes";
+    case LCD_PATTERN_DIAGONAL:
+        return "diagonal";
+    default:
+        return "unknown";
+    }
+}
+
+static uint16_t pattern_pixel(lcd_pattern_t pattern, uint16_t x, uint16_t y)
+{
+    switch (pattern) {
+    case LCD_PATTERN_CHECKER:
+        return (((x / 8) ^ (y / 8)) & 1) ? 0xffff : 0x0000;
+    case LCD_PATTERN_STRIPES:
+        return (x & 1) ? 0xffff : 0x0000;
+    case LCD_PATTERN_DIAGONAL:
+        return (((x + y) / 4) & 1) ? 0xffe0 : 0x001f;
+    default:
+        return 0xf81f;
+    }
+}
+
+static esp_err_t lcd_pattern_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, lcd_pattern_t pattern)
+{
+    if (!s_lcd_initialized) {
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
+    }
+    if (x >= LCD_WIDTH || y >= LCD_HEIGHT) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (x + w > LCD_WIDTH) {
+        w = LCD_WIDTH - x;
+    }
+    if (y + h > LCD_HEIGHT) {
+        h = LCD_HEIGHT - y;
+    }
+
+    ESP_RETURN_ON_ERROR(lcd_set_window(x, y, x + w - 1, y + h - 1), TAG, "window");
+    ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc pattern dma buffer");
+
+    const size_t total_pixels = (size_t)w * (size_t)h;
+    const size_t max_chunk_pixels = s_lcd_dma_buf_len / 2;
+    size_t pixel_offset = 0;
+    gpio_set_level(LCD_PIN_DC, 1);
+    while (pixel_offset < total_pixels) {
+        const size_t remaining = total_pixels - pixel_offset;
+        const size_t chunk_pixels = remaining > max_chunk_pixels ? max_chunk_pixels : remaining;
+        for (size_t i = 0; i < chunk_pixels; i++) {
+            const size_t index = pixel_offset + i;
+            const uint16_t px = x + (uint16_t)(index % w);
+            const uint16_t py = y + (uint16_t)(index / w);
+            const uint16_t color = pattern_pixel(pattern, px, py);
+            s_lcd_dma_buf[i * 2] = (uint8_t)(color >> 8);
+            s_lcd_dma_buf[i * 2 + 1] = (uint8_t)(color & 0xff);
+        }
+        ESP_RETURN_ON_ERROR(lcd_tx(s_lcd_dma_buf, chunk_pixels * 2), TAG, "pattern pixels");
+        pixel_offset += chunk_pixels;
+    }
+    return ESP_OK;
+}
+
 static void print_keyboard_event(const picocalc_key_event_t *event)
 {
     const bool printable = event->key >= 32 && event->key < 127;
@@ -548,6 +641,69 @@ static int cmd_lcd(int argc, char **argv)
                loops, elapsed_ms, elapsed_ms / loops, kib_s, s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
         return 0;
     }
+    if (strcmp(argv[1], "pattern") == 0) {
+        if (argc < 3) {
+            printf("usage: lcd pattern checker|stripes|diagonal|all\n");
+            return 1;
+        }
+        const lcd_pattern_t patterns[] = {LCD_PATTERN_CHECKER, LCD_PATTERN_STRIPES, LCD_PATTERN_DIAGONAL};
+        if (strcmp(argv[2], "all") == 0) {
+            for (size_t i = 0; i < sizeof(patterns) / sizeof(patterns[0]); i++) {
+                int64_t start = esp_timer_get_time();
+                esp_err_t err = lcd_pattern_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, patterns[i]);
+                int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+                printf("lcd pattern name=%s err=%s elapsed_ms=%" PRId64 " requested=%d actual_khz=%d dma_chunk=%d\n",
+                       pattern_name(patterns[i]), esp_err_to_name(err), elapsed_ms, s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+                if (err != ESP_OK) {
+                    return 1;
+                }
+                vTaskDelay(pdMS_TO_TICKS(500));
+            }
+            return 0;
+        }
+        lcd_pattern_t pattern = LCD_PATTERN_CHECKER;
+        if (!pattern_from_name(argv[2], &pattern)) {
+            printf("usage: lcd pattern checker|stripes|diagonal|all\n");
+            return 1;
+        }
+        int64_t start = esp_timer_get_time();
+        esp_err_t err = lcd_pattern_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, pattern);
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        printf("lcd pattern name=%s err=%s elapsed_ms=%" PRId64 " requested=%d actual_khz=%d dma_chunk=%d\n",
+               pattern_name(pattern), esp_err_to_name(err), elapsed_ms, s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (strcmp(argv[1], "rectbench") == 0) {
+        int w = argc >= 3 ? atoi(argv[2]) : 16;
+        int h = argc >= 4 ? atoi(argv[3]) : 16;
+        int loops = argc >= 5 ? atoi(argv[4]) : 500;
+        if (w <= 0) w = 1;
+        if (h <= 0) h = 1;
+        if (w > LCD_WIDTH) w = LCD_WIDTH;
+        if (h > LCD_HEIGHT) h = LCD_HEIGHT;
+        if (loops <= 0) loops = 1;
+        if (loops > 5000) loops = 5000;
+        const uint16_t colors[] = {0xf800, 0x07e0, 0x001f, 0xffff, 0x0000, 0xffe0, 0x07ff, 0xf81f};
+        const int max_x = LCD_WIDTH - w;
+        const int max_y = LCD_HEIGHT - h;
+        int64_t start = esp_timer_get_time();
+        for (int i = 0; i < loops; i++) {
+            const uint16_t x = max_x > 0 ? (uint16_t)((i * 7) % (max_x + 1)) : 0;
+            const uint16_t y = max_y > 0 ? (uint16_t)((i * 5) % (max_y + 1)) : 0;
+            esp_err_t err = lcd_fill_rect(x, y, (uint16_t)w, (uint16_t)h, colors[i % (sizeof(colors) / sizeof(colors[0]))]);
+            if (err != ESP_OK) {
+                printf("lcd rectbench err=%s at loop=%d\n", esp_err_to_name(err), i);
+                return 1;
+            }
+        }
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        const int64_t bytes = (int64_t)w * h * 2 * loops;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        const int64_t rects_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
+        printf("lcd rectbench w=%d h=%d loops=%d elapsed_ms=%" PRId64 " rects_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               w, h, loops, elapsed_ms, rects_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        return 0;
+    }
     if (strcmp(argv[1], "bars") == 0) {
         const uint16_t colors[] = {0xf800, 0xffe0, 0x07e0, 0x07ff, 0x001f, 0xf81f, 0xffff, 0x0000};
         const uint16_t bar_w = LCD_WIDTH / (sizeof(colors) / sizeof(colors[0]));
@@ -565,7 +721,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
@@ -617,7 +773,7 @@ static void start_console(void)
 
     const esp_console_cmd_t lcd_cmd_def = {
         .command = "lcd",
-        .help = "PicoCalc LCD diagnostics: init, speed <hz|MHz>, bench [loops], fill <color>, bars",
+        .help = "PicoCalc LCD diagnostics: init, speed, bench, rectbench, pattern, fill, bars",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd_def));

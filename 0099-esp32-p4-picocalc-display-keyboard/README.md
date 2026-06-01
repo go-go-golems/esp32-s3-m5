@@ -50,6 +50,12 @@ lcd speed 40M
 lcd speed 75M
 lcd speed 80M
 lcd bench 10
+lcd rectbench 16 16 500
+lcd rectbench 80 24 200
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+lcd pattern all
 lcd fill red|green|blue|white|black
 lcd bars
 status
@@ -58,3 +64,5 @@ status
 The older RP2350 PicoCalc firmware defaulted to 75 MHz after testing. This ESP32-P4 firmware explicitly selects the high-speed GPSPI `SPI_CLK_SRC_SPLL` source, defaults to 80 MHz, and reports the ESP-IDF actual SPI frequency with `lcd speed` / `status`. Without SPLL, ESP32-P4's default SPI source is XTAL (40 MHz), which makes ESP-IDF reject SCLK requests above 20 MHz.
 
 The first display-throughput optimization uses a reusable 32 KiB internal DMA-capable fill buffer and sets the SPI bus maximum transfer size to 32 KiB. This reduces a full-screen 320×320 RGB565 fill from roughly 400 small 512-byte pixel transactions to roughly seven large DMA transactions. On the same-position GPIO-matrix LCD wiring at actual 80 MHz, measured full-screen fill improved from about 32 ms to about 21 ms; `lcd bars` improved from about 33 ms to about 26 ms.
+
+Use `lcd pattern checker|stripes|diagonal` for stronger visual/signal-integrity checks than solid color bars. Use `lcd rectbench [w h loops]` to measure dirty-rectangle update overhead for terminal-like workloads.
