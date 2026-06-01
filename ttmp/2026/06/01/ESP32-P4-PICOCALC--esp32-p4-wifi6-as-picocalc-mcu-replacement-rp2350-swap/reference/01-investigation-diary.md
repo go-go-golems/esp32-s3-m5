@@ -1325,3 +1325,80 @@ lcd bars ok elapsed_ms=26
 ```
 
 Visual feedback request to the user: the display is currently left on `lcd bars` at actual 80 MHz. Please confirm whether the eight color bars are visible, stable, correctly colored, and free of flicker, random pixels, or partial-update artifacts.
+
+## Step 9: Operator Visual Confirmation of 80 MHz LCD Bars
+
+The optimized 80 MHz LCD path is now validated beyond serial logs. After the 32 KiB DMA-buffer optimization and benchmark run, the display was left on the `lcd bars` pattern at actual 80 MHz. The operator inspected the physical PicoCalc LCD and confirmed that the output looked good.
+
+This closes the first throughput baseline: the same-position adapter wiring can run the current LCD smoke-test path at actual 80 MHz with a measured full-screen solid-fill time of about 21 ms and visually acceptable color-bar output.
+
+### Prompt Context
+
+**User prompt (verbatim):** "yes, it's good."
+
+**Assistant interpretation:** The user visually inspected the PicoCalc LCD bars after the optimized 80 MHz run and confirmed that the display output is acceptable.
+
+**Inferred user intent:** Record that the current high-speed display baseline is visually good and proceed to the next optimization/test phase.
+
+**Commit (code):** N/A — this step records operator validation only.
+
+### What I did
+
+- Marked the task `LCD throughput: operator visual inspection of 80 MHz color bars` complete in `tasks.md`.
+- Recorded the user's visual confirmation in the diary.
+
+### Why
+
+SPI logs and benchmark timings prove that transactions completed, but they do not prove that the panel displayed the result correctly. Visual confirmation is required before building more complex display tests on top of the 80 MHz/32 KiB DMA baseline.
+
+### What worked
+
+- The physical display output was confirmed good by the operator.
+- The current baseline remains:
+
+```text
+lcd bench loops=50 elapsed_ms=1071 per_fill_ms=21 throughput_kib_s=9337 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd bars ok elapsed_ms=26
+```
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The same-position GPIO-matrix LCD wiring is stable enough for the current 80 MHz color-bar smoke test.
+- The 32 KiB DMA-buffer optimization can be treated as the accepted baseline for the next display experiments.
+
+### What was tricky to build
+
+The tricky part in this step was not implementation; it was validation discipline. The firmware's `lcd bars ok` result only says that SPI transactions completed. The meaningful validation was the human inspection that confirmed the glass looked correct.
+
+### What warrants a second pair of eyes
+
+- Future high-frequency patterns may still reveal signal-integrity problems that solid bars do not expose.
+- Dirty-rectangle and arbitrary-pixel tests should be visually checked as they are added.
+
+### What should be done in the future
+
+- Add checkerboard, stripe, and diagonal pattern tests.
+- Add dirty-rectangle and terminal-cell benchmarks.
+- Add a general RGB565 blit path for arbitrary pixel data.
+
+### Code review instructions
+
+- Review `tasks.md` to confirm the visual-inspection task is marked complete.
+- Continue from `design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md`, especially the Phase B and Phase C task descriptions.
+
+### Technical details
+
+Accepted baseline:
+
+```text
+clock_source=SPI_CLK_SRC_SPLL
+requested_hz=80000000
+actual_khz=80000
+dma_chunk=32768
+full_screen_fill≈21ms
+lcd_bars≈26ms
+```

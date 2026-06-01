@@ -11,7 +11,7 @@
 - [x] LCD throughput: select SPLL and validate actual 80 MHz SPI clock
 - [x] LCD throughput: replace tiny fill chunks with 32 KiB DMA-capable transfer buffer
 - [x] LCD throughput: benchmark optimized full-screen fill and color bars
-- [ ] LCD throughput: operator visual inspection of 80 MHz color bars
+- [x] LCD throughput: operator visual inspection of 80 MHz color bars
 - [ ] LCD throughput: add checker/stripe/diagonal pattern tests
 - [ ] LCD throughput: add dirty-rectangle and terminal-cell benchmarks
 - [ ] LCD throughput: evaluate queued DMA transfers after visual baseline is confirmed

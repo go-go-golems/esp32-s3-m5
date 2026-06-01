@@ -91,3 +91,13 @@ Optimized 0099 LCD throughput by selecting SPLL-backed 80 MHz SPI, using a 32 Ki
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — 32 KiB DMA LCD fill optimization and benchmark output
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Analysis guide and task list for LCD throughput work
 
+
+## 2026-06-01
+
+Confirmed visually that the optimized 80 MHz LCD color-bar output is good on the physical PicoCalc display.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Recorded operator visual confirmation of the optimized LCD baseline
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/tasks.md — Marked 80 MHz LCD visual-inspection task complete
+
