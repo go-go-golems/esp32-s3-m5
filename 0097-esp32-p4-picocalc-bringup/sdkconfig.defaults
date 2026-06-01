@@ -1,0 +1,21 @@
+# ESP32-P4-WIFI6 PicoCalc bring-up configuration
+# Target: ESP32-P4NRW32 (32MB PSRAM, 32MB Flash)
+
+# Chip config
+CONFIG_IDF_TARGET="esp32p4"
+
+# Console: UART via CH343P (GPIO37 TX, GPIO38 RX)
+# USB Serial/JTAG may have issues on ESP32-P4 v1.x silicon
+# CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is not set
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+
+# Enable experimental features (needed for 200MHz PSRAM)
+CONFIG_IDF_EXPERIMENTAL_FEATURES=y
+
+# PSRAM — 32MB stacked, HEX (16-line) mode
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_HEX=y
+CONFIG_SPIRAM_SPEED_200M=y
+
+# Flash — 32MB
+CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
