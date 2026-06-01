@@ -707,3 +707,282 @@ ESP_ERROR_CHECK(start_wifi_sta());
 ```
 
 Loading credentials before `start_wifi_sta()` ensures the first `esp_wifi_set_config(WIFI_IF_STA, ...)` receives either the saved credentials or the compiled fallback.
+
+## Step 6: PicoCalc keyboard implementation guide and ESP-IDF diagnostic driver
+
+Added the first PicoCalc keyboard implementation package for the ESP32-P4-WIFI6 firmware. This step turns the keyboard research into an actionable ticket guide and a buildable ESP-IDF driver that can read the STM32 southbridge over I2C and expose raw keyboard diagnostics through the existing CH343 UART console.
+
+The implementation intentionally stays diagnostic-first. It does not try to integrate keyboard input into a UI yet; instead, it provides `kbd status`, `kbd poll`, and `kbd raw on/off` so the physical adapter wiring and the STM32 FIFO protocol can be validated before the LCD and application input stack are connected.
+
+### Prompt Context
+
+**User prompt (verbatim):** "write a detailed implementation guide and store in the ticket. then implement"
+
+**Assistant interpretation:** Write a detailed guide for reading the PicoCalc keyboard through the STM32 I2C southbridge, store it in the existing docmgr ticket, then implement that plan in the active ESP32-P4 firmware.
+
+**Inferred user intent:** The user wants to move from research into concrete keyboard bring-up: documented wiring/protocol decisions plus firmware that can be flashed and exercised from the serial console once the PicoCalc keyboard bus is physically connected.
+
+**Commit (code):** pending — buildable implementation created but not committed in this step yet.
+
+### What I did
+
+- Added ticket guide `design-doc/02-picocalc-keyboard-implementation-guide.md` with hardware mapping, protocol details, ESP-IDF driver plan, console command behavior, validation steps, and failure-mode debugging notes.
+- Added `0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h`.
+- Added `0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.c`.
+- Updated `0098-esp32-p4-wifi6-webserver/main/CMakeLists.txt` to compile the keyboard module and require `esp_driver_i2c`.
+- Updated `0098-esp32-p4-wifi6-webserver/main/app_main.c` to initialize the keyboard driver and register a `kbd` console command.
+- Updated `0098-esp32-p4-wifi6-webserver/README.md` with the new `kbd` commands.
+- Built the firmware with ESP-IDF v5.4.2:
+
+```bash
+cd 0098-esp32-p4-wifi6-webserver && . $HOME/esp/esp-idf-5.4.2/export.sh >/tmp/esp-idf-export-0098.log 2>&1 && idf.py build
+```
+
+### Why
+
+The keyboard is the first PicoCalc peripheral that can be validated without needing display rendering or a full application UI. A raw diagnostic path lets us prove that the ESP32-P4 adapter pins, I2C speed, STM32 address, status register, and FIFO register are correct before depending on the keyboard for interactive firmware control.
+
+Keeping the guide in the ticket makes the protocol reproducible for future implementation phases and records the reasons behind slow 10 kHz I2C, GPIO7/GPIO8 selection, and raw-event-first console behavior.
+
+### What worked
+
+- The implementation built successfully under ESP-IDF v5.4.2.
+- The new ESP-IDF I2C master API accepted the ESP32-P4 I2C0/GPIO7/GPIO8/10 kHz configuration.
+- The existing `esp_console` structure in `0098` was easy to extend with a second top-level command.
+- The driver keeps raw protocol observability: status byte, FIFO count, caps/num bits, event state, key code, printable ASCII, and known special-key names.
+
+### What didn't work
+
+- No live keyboard validation was performed in this step because the PicoCalc keyboard bus is not yet physically connected to the ESP32-P4 board in the current session.
+- The build log still reports a dirty app version because local source and ticket files are intentionally modified before the next commit.
+
+Exact build result:
+
+```text
+Project build complete. To flash, run:
+ idf.py flash
+```
+
+### What I learned
+
+- The new ESP-IDF `driver/i2c_master.h` API is a good fit for this peripheral because it lets the bus and the `0x1F` device be configured separately.
+- The Pico firmware's write-delay-read sequence can be represented directly with `i2c_master_transmit()`, `vTaskDelay(pdMS_TO_TICKS(2))`, and `i2c_master_receive()`.
+- Adding keyboard diagnostics to `0098` is more useful than creating a standalone firmware right now because it preserves the already-working Wi-Fi, HTTP, NVS, and UART console bring-up environment.
+
+### What was tricky to build
+
+The main design choice was whether to initialize the keyboard lazily from the console command or eagerly during boot. The implementation initializes during boot but does not treat keyboard failure as fatal. If no PicoCalc keyboard is connected, the app still starts Wi-Fi, HTTP, and the UART console; later `kbd status` calls can retry the driver path and report I2C errors.
+
+Another subtle point is raw-mode ownership. `kbd raw on` starts a lightweight background task that polls every 20 ms and prints only when events arrive. `kbd raw off` flips a shared flag and lets the task exit itself, which avoids deleting a task while it may be inside an I2C transaction or printing to the console.
+
+### What warrants a second pair of eyes
+
+- The current driver enables internal pull-ups even though the PicoCalc mainboard has external 4.7 kΩ pull-ups. This should be harmless for bring-up, but it is worth confirming electrical expectations once the real adapter is wired.
+- The driver uses I2C0 on GPIO7/GPIO8, which may also host the Waveshare board's onboard ES8311/BNO085 I2C devices. The current app does not initialize those devices, but future codec/IMU work needs bus-speed planning.
+- The raw task prints directly from a FreeRTOS task while the REPL also uses the UART. This is acceptable for diagnostics, but a production input stack should queue events instead of printing asynchronously.
+- `picocalc_keyboard_read_register()` delays 2 ms for every register, not just FIFO reads. This is conservative and simpler for bring-up, but can be optimized later if needed.
+
+### What should be done in the future
+
+- Flash the updated `0098` firmware after checking `lsof "$PORT"`.
+- Wire PicoCalc keyboard SDA/SCL/GND/power to the adapter and run `kbd status`, `kbd poll 10`, and `kbd raw on`.
+- Record observed raw key events, especially modifiers, arrows, F-keys, Home/End/Delete, Caps Lock, and repeat behavior.
+- Add a real event queue and host-side key mapper once raw protocol validation passes.
+- Decide whether the keyboard should remain on GPIO7/GPIO8 or move to a dedicated I2C bus if onboard codec/IMU access becomes important.
+
+### Code review instructions
+
+- Start with `0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.c`:
+  - `picocalc_keyboard_init()` for bus/device configuration.
+  - `picocalc_keyboard_read_register()` for the write-delay-read sequence.
+  - `picocalc_keyboard_poll_event()` for status/FIFO behavior.
+- Then review `0098-esp32-p4-wifi6-webserver/main/app_main.c`:
+  - `print_keyboard_status()`.
+  - `cmd_kbd()`.
+  - `keyboard_raw_task()`.
+  - `app_main()` boot order.
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver
+source ~/esp/esp-idf-5.4.2/export.sh
+idf.py build
+```
+
+After hardware wiring and serial ownership check:
+
+```bash
+PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00
+lsof "$PORT" || true
+idf.py -p "$PORT" flash
+```
+
+Then run over the CH343 UART console:
+
+```text
+kbd status
+kbd poll 10
+kbd raw on
+kbd raw off
+```
+
+### Technical details
+
+The driver constants are:
+
+```c
+#define PICOCALC_KBD_I2C_SDA_GPIO      7
+#define PICOCALC_KBD_I2C_SCL_GPIO      8
+#define PICOCALC_KBD_I2C_SPEED_HZ      10000
+#define PICOCALC_KBD_I2C_ADDR          0x1F
+#define PICOCALC_KBD_REG_STATUS        0x04
+#define PICOCALC_KBD_REG_FIFO          0x09
+#define PICOCALC_KBD_COUNT_MASK        0x1F
+```
+
+The register-read sequence intentionally mirrors the existing Pico SDK keyboard driver:
+
+```c
+i2c_master_transmit(s_dev, &reg, 1, 50);
+vTaskDelay(pdMS_TO_TICKS(2));
+i2c_master_receive(s_dev, dst, len, 50);
+```
+
+The console command surface is:
+
+```text
+kbd status
+kbd poll [limit]
+kbd raw on
+kbd raw off
+```
+
+## Step 7: Corrected physical adapter pin mapping and keyboard ACK validation
+
+Corrected a major assumption in the PicoCalc keyboard bring-up: the first keyboard driver used a function-optimized ESP32-P4 mapping, but the real adapter discussion and supplied pinout images showed that the board is being treated as a same-position 40-pin physical replacement. In that physical mapping, Pico GP6/GP7 do not land on the Waveshare board's labeled GPIO7/GPIO8 I2C pins; they land on GPIO50/GPIO49.
+
+After updating the firmware to use GPIO50 as SDA and GPIO49 as SCL, `kbd status` successfully read the PicoCalc southbridge status register. This proves the STM32 keyboard controller is present at address `0x1F` on the corrected physical adapter pins. No keypress events were captured yet, but the I2C ACK/status path is now working.
+
+### Prompt Context
+
+**User prompt (verbatim):** "update your diary, commit, and then nice, let's do a new separate firmware with just the display and keybaord, to avoid having to ocmpile in all the wifi stuff."
+
+**Assistant interpretation:** Record the corrected pin-mapping and keyboard validation work, commit it, then start a new lean ESP-IDF firmware that excludes ESP-Hosted/Wi-Fi and focuses only on PicoCalc display plus keyboard.
+
+**Inferred user intent:** The user wants the working keyboard discovery preserved in the ticket/history and wants faster iteration for PicoCalc peripheral bring-up without the compile/runtime overhead of the networking experiment.
+
+**Commit (code):** pending — this diary entry is being written before the focused commit.
+
+### What I did
+
+- Read the supplied Raspberry Pi Pico 2 and Waveshare ESP32-P4-WIFI6 pinout images.
+- Reinterpreted the mapping as a same-position physical adapter instead of a function-optimized cross-routed adapter.
+- Added `design-doc/03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md` with the corrected full physical map.
+- Corrected `design-doc/02-picocalc-keyboard-implementation-guide.md` from the obsolete GPIO7/GPIO8 keyboard assumption to GPIO50/GPIO49 for the physical adapter.
+- Updated `0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h` to use:
+
+```c
+#define PICOCALC_KBD_I2C_SDA_GPIO      50
+#define PICOCALC_KBD_I2C_SCL_GPIO      49
+```
+
+- Built the firmware with ESP-IDF v5.4.2.
+- Started `idf.py monitor` inside tmux session `0098_p4_monitor`.
+- Used the monitor menu shortcut `Ctrl-T A` to app-flash without leaving monitor.
+- Ran `kbd status` after reboot.
+
+### Why
+
+The earlier GPIO7/GPIO8 keyboard test NACKed because it was probing the Waveshare board's native I2C header labels, not the physical positions where Pico GP6/GP7 land in the adapter. The user's example — Pico GP6 physical pin 9 mapping to Waveshare position 9/GPIO50 — clarified the correct abstraction: route by physical socket position first, then assign firmware GPIO constants from that physical map.
+
+### What worked
+
+- `idf.py monitor` in tmux worked for interactive monitor control.
+- `Ctrl-T A` from the monitor successfully ran `idf.py app-flash` and returned to monitor after reset.
+- The corrected boot log showed:
+
+```text
+I (...) picocalc_kbd: initialized PicoCalc keyboard I2C: sda=50 scl=49 speed=10000 addr=0x1f
+```
+
+- `kbd status` succeeded:
+
+```text
+kbd status ok=1 raw=0x00 fifo=0 caps=0 num=0 initialized=1 errors=0
+```
+
+- `kbd poll 10` ran cleanly with no queued key events:
+
+```text
+kbd poll done events=0 limit=10
+```
+
+### What didn't work
+
+- The first physical-mapping flash used `sda=49 scl=50`, which still NACKed. That was a line-role swap: PicoCalc sources identify GP6 as SDA and GP7 as SCL, so the correct same-position mapping is SDA GPIO50 and SCL GPIO49.
+- The Wi-Fi part of `0098` repeatedly disconnected with reason `201` during this session. This did not block keyboard validation, but it is another reason to create a separate non-Wi-Fi display+keyboard firmware for peripheral bring-up.
+- No actual keypress event was captured yet; only the status-register ACK/empty-FIFO path is validated.
+
+### What I learned
+
+- There are two distinct adapter designs:
+  - A function-optimized cross-routed adapter can place keyboard on GPIO7/GPIO8 and LCD on SPI2 IO_MUX GPIO28–31.
+  - A same-position physical Pico replacement maps keyboard to GPIO50/GPIO49 and LCD to GPIO3/GPIO2/GPIO7/GPIO24/GPIO25.
+- The current physical adapter work must use the same-position table, not the function-optimized table.
+- The keyboard ACK is a strong validation point: the STM32 southbridge is reachable at `0x1F` once the physical mapping and SDA/SCL roles are correct.
+
+### What was tricky to build
+
+The subtle issue was that the labels `GPIO7/GPIO8` appeared correct if thinking in terms of the Waveshare board's native I2C silkscreen, but they were physically wrong for a Pico socket replacement. A socket adapter is constrained by the Pico physical pin order. Once the user pointed out that Pico physical pin 9 maps to Waveshare physical position 9/GPIO50, the rest of the mapping had to be recalculated by position.
+
+Another tricky point was the SDA/SCL role. The first corrected physical flash still had the roles swapped. The successful configuration is Pico GP6/SDA to ESP GPIO50 and Pico GP7/SCL to ESP GPIO49.
+
+### What warrants a second pair of eyes
+
+- Confirm the physical orientation assumption before schematic capture: both pinout images were interpreted with USB at the top and no mirror/underside inversion.
+- Review the full physical map for power pins. Signal validation is improving, but VSYS/VBUS/3V3/EN/RUN still need electrical verification before a final PCB.
+- Review the LCD mapping under the same-position adapter because it uses ESP32-P4 GPIO2/GPIO3/GPIO7/GPIO24/GPIO25, not the earlier clean SPI2 IO_MUX group.
+
+### What should be done in the future
+
+- Capture real keypress events with `kbd raw on` or `kbd poll` while pressing keys.
+- Create a lean `0099` firmware with only display, keyboard, UART console, and PSRAM; omit ESP-Hosted/Wi-Fi to speed builds and reduce log noise.
+- Add a minimal display color-bar/smoke-test path using the physical adapter LCD pins.
+- Decide whether the final hardware should remain same-position or become a cross-routed interposer optimized for ESP32-P4 peripheral placement.
+
+### Code review instructions
+
+- Review `0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h` for the corrected GPIO constants.
+- Review `design-doc/03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md` for the full physical mapping.
+- Review `design-doc/02-picocalc-keyboard-implementation-guide.md` for consistency with the corrected GPIO50/GPIO49 keyboard path.
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver
+source ~/esp/esp-idf-5.4.2/export.sh
+idf.py build
+idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 monitor
+# in monitor: Ctrl-T A
+```
+
+Then run:
+
+```text
+kbd status
+kbd poll 10
+```
+
+### Technical details
+
+Correct same-position keyboard mapping:
+
+```text
+Pico physical pin 9  / GP6 / SDA -> Waveshare physical position 9  / GPIO50
+Pico physical pin 10 / GP7 / SCL -> Waveshare physical position 10 / GPIO49
+```
+
+Validated output:
+
+```text
+kbd status ok=1 raw=0x00 fifo=0 caps=0 num=0 initialized=1 errors=0
+```

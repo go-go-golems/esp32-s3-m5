@@ -41,6 +41,8 @@
 
 #include "lwip/inet.h"
 
+#include "picocalc_keyboard.h"
+
 static const char *TAG = "p4_web";
 
 #define DEFAULT_WIFI_SSID      "yolobolo"
@@ -60,6 +62,8 @@ static uint32_t s_sta_ip4_host = 0;
 static char s_ssid[33] = DEFAULT_WIFI_SSID;
 static char s_password[65] = DEFAULT_WIFI_PASSWORD;
 static bool s_credentials_saved = false;
+static TaskHandle_t s_kbd_raw_task = NULL;
+static volatile bool s_kbd_raw_enabled = false;
 
 static esp_err_t init_nvs(void)
 {
@@ -381,6 +385,76 @@ static void print_wifi_status(void)
            wifi_state_string(), s_ssid, s_credentials_saved ? "yes" : "no", IP2STR(&ip), s_retry_count, s_last_disconnect_reason);
 }
 
+static void print_keyboard_event(const picocalc_key_event_t *event)
+{
+    const bool printable = event->key >= 32 && event->key < 127;
+    const char *name = picocalc_keyboard_key_name(event->key);
+
+    if (printable) {
+        printf("kbd event state=%u state_name=%s key=0x%02x ascii='%c' name=%s\n",
+               event->state,
+               picocalc_keyboard_state_name(event->state),
+               event->key,
+               (char)event->key,
+               name);
+    } else {
+        printf("kbd event state=%u state_name=%s key=0x%02x ascii=. name=%s\n",
+               event->state,
+               picocalc_keyboard_state_name(event->state),
+               event->key,
+               name);
+    }
+}
+
+static void keyboard_raw_task(void *arg)
+{
+    (void)arg;
+
+    while (s_kbd_raw_enabled) {
+        picocalc_key_event_t event = {0};
+        esp_err_t err = picocalc_keyboard_poll_event(&event);
+        if (err == ESP_OK && event.valid) {
+            print_keyboard_event(&event);
+            continue;
+        }
+        if (err != ESP_ERR_NOT_FOUND && err != ESP_OK) {
+            printf("kbd raw err=%s\n", esp_err_to_name(err));
+            vTaskDelay(pdMS_TO_TICKS(250));
+            continue;
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
+    }
+
+    s_kbd_raw_task = NULL;
+    vTaskDelete(NULL);
+}
+
+static void print_keyboard_status(void)
+{
+    picocalc_keyboard_diag_t diag = {0};
+    picocalc_keyboard_get_diag(&diag);
+
+    uint8_t status = 0;
+    esp_err_t err = picocalc_keyboard_read_status(&status);
+    picocalc_keyboard_get_diag(&diag);
+    if (err != ESP_OK) {
+        printf("kbd status ok=0 err=%s initialized=%d errors=%" PRIu32 " last=0x%02x\n",
+               esp_err_to_name(err),
+               diag.initialized ? 1 : 0,
+               diag.error_count,
+               diag.last_status);
+        return;
+    }
+
+    printf("kbd status ok=1 raw=0x%02x fifo=%u caps=%u num=%u initialized=%d errors=%" PRIu32 "\n",
+           status,
+           picocalc_keyboard_fifo_count(status),
+           (status & PICOCALC_KBD_CAPS_LOCK_MASK) ? 1 : 0,
+           (status & PICOCALC_KBD_NUM_LOCK_MASK) ? 1 : 0,
+           diag.initialized ? 1 : 0,
+           diag.error_count);
+}
+
 static int cmd_wifi(int argc, char **argv)
 {
     if (argc < 2 || strcmp(argv[1], "status") == 0) {
@@ -493,6 +567,84 @@ static int cmd_wifi(int argc, char **argv)
     return 1;
 }
 
+static int cmd_kbd(int argc, char **argv)
+{
+    if (argc < 2 || strcmp(argv[1], "status") == 0) {
+        print_keyboard_status();
+        return 0;
+    }
+
+    if (strcmp(argv[1], "poll") == 0) {
+        int limit = 10;
+        if (argc >= 3) {
+            limit = atoi(argv[2]);
+            if (limit <= 0) {
+                limit = 1;
+            }
+            if (limit > 200) {
+                limit = 200;
+            }
+        }
+
+        int events = 0;
+        for (int i = 0; i < limit; i++) {
+            picocalc_key_event_t event = {0};
+            esp_err_t err = picocalc_keyboard_poll_event(&event);
+            if (err == ESP_ERR_NOT_FOUND) {
+                break;
+            }
+            if (err != ESP_OK) {
+                printf("kbd poll err=%s after=%d\n", esp_err_to_name(err), events);
+                return 1;
+            }
+            if (event.valid) {
+                print_keyboard_event(&event);
+                events++;
+            }
+        }
+        printf("kbd poll done events=%d limit=%d\n", events, limit);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "raw") == 0) {
+        if (argc < 3) {
+            printf("usage: kbd raw on|off\n");
+            return 1;
+        }
+
+        if (strcmp(argv[2], "on") == 0) {
+            if (s_kbd_raw_task) {
+                printf("kbd raw already on\n");
+                return 0;
+            }
+            s_kbd_raw_enabled = true;
+            BaseType_t ok = xTaskCreate(keyboard_raw_task, "kbd_raw", 4096, NULL, 5, &s_kbd_raw_task);
+            if (ok != pdPASS) {
+                s_kbd_raw_enabled = false;
+                s_kbd_raw_task = NULL;
+                printf("kbd raw: failed to create task\n");
+                return 1;
+            }
+            printf("kbd raw on\n");
+            return 0;
+        }
+
+        if (strcmp(argv[2], "off") == 0) {
+            if (!s_kbd_raw_task) {
+                s_kbd_raw_enabled = false;
+                printf("kbd raw already off\n");
+                return 0;
+            }
+            s_kbd_raw_enabled = false;
+            printf("kbd raw off requested\n");
+            return 0;
+        }
+    }
+
+    printf("usage: kbd status | kbd poll [limit] | kbd raw on|off\n");
+    return 1;
+}
+
 static void start_console(void)
 {
     esp_console_repl_t *repl = NULL;
@@ -508,6 +660,13 @@ static void start_console(void)
         .func = cmd_wifi,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&wifi_cmd));
+
+    const esp_console_cmd_t kbd_cmd = {
+        .command = "kbd",
+        .help = "PicoCalc keyboard diagnostics: status, poll [limit], raw on|off",
+        .func = cmd_kbd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&kbd_cmd));
 
 #if CONFIG_ESP_CONSOLE_UART_DEFAULT || CONFIG_ESP_CONSOLE_UART_CUSTOM
     esp_console_dev_uart_config_t hw_cfg = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
@@ -528,6 +687,10 @@ void app_main(void)
 
     ESP_ERROR_CHECK(init_nvs());
     (void)load_credentials_from_nvs();
+    esp_err_t kbd_err = picocalc_keyboard_init();
+    if (kbd_err != ESP_OK) {
+        ESP_LOGW(TAG, "PicoCalc keyboard init failed: %s; console diagnostics can retry", esp_err_to_name(kbd_err));
+    }
     ESP_ERROR_CHECK(start_wifi_sta());
     ESP_ERROR_CHECK(start_http_server());
     start_console();

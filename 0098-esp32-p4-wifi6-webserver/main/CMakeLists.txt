@@ -1,5 +1,7 @@
 idf_component_register(
-    SRCS "app_main.c"
+    SRCS
+        "app_main.c"
+        "picocalc_keyboard.c"
     INCLUDE_DIRS "."
     PRIV_REQUIRES
         nvs_flash
@@ -14,5 +16,6 @@ idf_component_register(
         heap
         console
         driver
+        esp_driver_i2c
         esp_driver_uart
 )

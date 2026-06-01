@@ -48,3 +48,25 @@ Committed the 0097 ESP32-P4 PicoCalc bring-up firmware source now that Phase 1 s
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0097-esp32-p4-picocalc-bringup/main/0097-esp32-p4-picocalc-bringup.c — Phase 1 bring-up firmware source
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Backfilled Step 3 code commit reference
 
+
+## 2026-06-01
+
+Added PicoCalc keyboard implementation guide and buildable ESP-IDF I2C diagnostic driver with kbd console commands
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver/main/app_main.c — kbd console integration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.c — Keyboard I2C driver
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/02-picocalc-keyboard-implementation-guide.md — Detailed keyboard guide
+
+
+## 2026-06-01
+
+Corrected PicoCalc keyboard physical adapter mapping to SDA GPIO50/SCL GPIO49 and validated kbd status ACK at address 0x1F
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h — Corrected keyboard SDA/SCL GPIO constants
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md — Full corrected physical adapter map
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Validation diary entry
+

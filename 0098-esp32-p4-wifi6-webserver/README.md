@@ -75,6 +75,10 @@ wifi set <ssid> [password] save
 wifi save
 wifi clear
 wifi reconnect
+kbd status
+kbd poll 10
+kbd raw on
+kbd raw off
 ```
 
 Credential behavior:
@@ -85,6 +89,14 @@ Credential behavior:
 - `wifi set <ssid> [password] save` changes runtime credentials and persists them.
 - `wifi save` persists the current runtime credentials.
 - `wifi clear` removes saved credentials from NVS; the current runtime connection remains active until changed, disconnected, or rebooted.
+
+Keyboard diagnostics:
+
+- The PicoCalc keyboard southbridge is expected at I2C address `0x1f`.
+- `kbd status` reads register `0x04` and prints the raw FIFO/caps/num status.
+- `kbd poll [limit]` drains up to `limit` pending `{state,key}` events.
+- `kbd raw on` starts a background raw-event printer; `kbd raw off` stops it.
+- The current adapter plan uses ESP32-P4 GPIO7 as SDA and GPIO8 as SCL at 10 kHz.
 
 ## Board-specific ESP-Hosted wiring
 
