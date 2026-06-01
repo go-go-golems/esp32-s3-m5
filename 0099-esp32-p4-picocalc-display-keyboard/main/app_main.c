@@ -47,7 +47,14 @@ static const char *TAG = "p4_picocalc";
 #define LCD_PIN_RST            25
 #define LCD_WIDTH              320
 #define LCD_HEIGHT             320
-#define LCD_SPI_HZ             (20 * 1000 * 1000)
+// The older RP2350 PicoCalc firmware defaulted to 75 MHz on RP2350 hardware.
+// ESP32-P4's SPI_CLK_SRC_DEFAULT is XTAL (40 MHz), which makes ESP-IDF reject
+// SCLK requests above 20 MHz because the GPSPI driver requires SCLK <= source/2.
+// Use the high-speed SPLL source explicitly so 40/75/80 MHz can be tested.
+#define LCD_DEFAULT_SPI_HZ        (80 * 1000 * 1000)
+#define LCD_SPI_CLK_SRC           SPI_CLK_SRC_SPLL
+#define LCD_SPI_MAX_TRANSFER_SZ   (32 * 1024)
+#define LCD_FILL_DMA_CHUNK_BYTES  LCD_SPI_MAX_TRANSFER_SZ
 
 #define LCD_CMD_SWRESET        0x01
 #define LCD_CMD_SLPOUT         0x11
@@ -61,6 +68,9 @@ static const char *TAG = "p4_picocalc";
 
 static spi_device_handle_t s_lcd = NULL;
 static bool s_lcd_initialized = false;
+static int s_lcd_spi_hz = LCD_DEFAULT_SPI_HZ;
+static uint8_t *s_lcd_dma_buf = NULL;
+static size_t s_lcd_dma_buf_len = 0;
 static TaskHandle_t s_kbd_raw_task = NULL;
 static volatile bool s_kbd_raw_enabled = false;
 
@@ -72,7 +82,7 @@ static esp_err_t lcd_tx(const void *data, size_t len)
 
     const uint8_t *p = (const uint8_t *)data;
     while (len > 0) {
-        const size_t chunk = len > 4092 ? 4092 : len;
+        const size_t chunk = len > LCD_SPI_MAX_TRANSFER_SZ ? LCD_SPI_MAX_TRANSFER_SZ : len;
         spi_transaction_t t = {
             .length = chunk * 8,
             .tx_buffer = p,
@@ -84,6 +94,27 @@ static esp_err_t lcd_tx(const void *data, size_t len)
         p += chunk;
         len -= chunk;
     }
+    return ESP_OK;
+}
+
+static esp_err_t lcd_ensure_dma_buffer(size_t min_len)
+{
+    if (s_lcd_dma_buf && s_lcd_dma_buf_len >= min_len) {
+        return ESP_OK;
+    }
+
+    if (s_lcd_dma_buf) {
+        heap_caps_free(s_lcd_dma_buf);
+        s_lcd_dma_buf = NULL;
+        s_lcd_dma_buf_len = 0;
+    }
+
+    s_lcd_dma_buf = (uint8_t *)heap_caps_malloc(min_len, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (!s_lcd_dma_buf) {
+        return ESP_ERR_NO_MEM;
+    }
+    s_lcd_dma_buf_len = min_len;
+    ESP_LOGI(TAG, "LCD DMA buffer allocated: %u bytes", (unsigned)s_lcd_dma_buf_len);
     return ESP_OK;
 }
 
@@ -121,12 +152,59 @@ static void lcd_reset(void)
     vTaskDelay(pdMS_TO_TICKS(150));
 }
 
-static esp_err_t lcd_init_bus(void)
+static esp_err_t lcd_add_device(void)
 {
     if (s_lcd) {
         return ESP_OK;
     }
 
+    spi_device_interface_config_t devcfg = {
+        .clock_source = LCD_SPI_CLK_SRC,
+        .clock_speed_hz = s_lcd_spi_hz,
+        .mode = 0,
+        .spics_io_num = LCD_PIN_CS,
+        .queue_size = 4,
+    };
+
+    esp_err_t err = spi_bus_add_device(LCD_HOST, &devcfg, &s_lcd);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    int actual_khz = 0;
+    err = spi_device_get_actual_freq(s_lcd, &actual_khz);
+    if (err == ESP_OK) {
+        ESP_LOGI(TAG, "LCD SPI device ready: clk_src=%d requested=%d Hz actual=%d kHz", LCD_SPI_CLK_SRC, s_lcd_spi_hz, actual_khz);
+    } else {
+        ESP_LOGW(TAG, "LCD SPI device ready but actual freq unavailable: %s", esp_err_to_name(err));
+    }
+    return ESP_OK;
+}
+
+static esp_err_t lcd_set_speed_hz(int hz)
+{
+    if (hz <= 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    if (s_lcd) {
+        ESP_RETURN_ON_ERROR(spi_bus_remove_device(s_lcd), TAG, "remove lcd device");
+        s_lcd = NULL;
+    }
+
+    const int old_hz = s_lcd_spi_hz;
+    s_lcd_spi_hz = hz;
+    esp_err_t err = lcd_add_device();
+    if (err != ESP_OK) {
+        s_lcd_spi_hz = old_hz;
+        (void)lcd_add_device();
+        return err;
+    }
+    return ESP_OK;
+}
+
+static esp_err_t lcd_init_bus_gpio_and_host(void)
+{
     gpio_config_t out = {
         .pin_bit_mask = (1ULL << LCD_PIN_DC) | (1ULL << LCD_PIN_RST),
         .mode = GPIO_MODE_OUTPUT,
@@ -144,7 +222,7 @@ static esp_err_t lcd_init_bus(void)
         .sclk_io_num = LCD_PIN_SCK,
         .quadwp_io_num = -1,
         .quadhd_io_num = -1,
-        .max_transfer_sz = 4096,
+        .max_transfer_sz = LCD_SPI_MAX_TRANSFER_SZ,
     };
 
     esp_err_t err = spi_bus_initialize(LCD_HOST, &buscfg, SPI_DMA_CH_AUTO);
@@ -152,20 +230,16 @@ static esp_err_t lcd_init_bus(void)
         return err;
     }
 
-    spi_device_interface_config_t devcfg = {
-        .clock_speed_hz = LCD_SPI_HZ,
-        .mode = 0,
-        .spics_io_num = LCD_PIN_CS,
-        .queue_size = 1,
-    };
+    return ESP_OK;
+}
 
-    err = spi_bus_add_device(LCD_HOST, &devcfg, &s_lcd);
-    if (err != ESP_OK) {
-        return err;
-    }
+static esp_err_t lcd_init_bus(void)
+{
+    ESP_RETURN_ON_ERROR(lcd_init_bus_gpio_and_host(), TAG, "lcd bus gpio/host");
+    ESP_RETURN_ON_ERROR(lcd_add_device(), TAG, "add lcd device");
 
-    ESP_LOGI(TAG, "LCD SPI ready: sck=%d mosi=%d cs=%d dc=%d rst=%d hz=%d",
-             LCD_PIN_SCK, LCD_PIN_MOSI, LCD_PIN_CS, LCD_PIN_DC, LCD_PIN_RST, LCD_SPI_HZ);
+    ESP_LOGI(TAG, "LCD SPI ready: sck=%d mosi=%d cs=%d dc=%d rst=%d requested_hz=%d max_transfer=%d",
+             LCD_PIN_SCK, LCD_PIN_MOSI, LCD_PIN_CS, LCD_PIN_DC, LCD_PIN_RST, s_lcd_spi_hz, LCD_SPI_MAX_TRANSFER_SZ);
     return ESP_OK;
 }
 
@@ -224,20 +298,64 @@ static esp_err_t lcd_fill_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, u
 
     ESP_RETURN_ON_ERROR(lcd_set_window(x, y, x + w - 1, y + h - 1), TAG, "window");
 
-    uint8_t buf[512];
-    for (size_t i = 0; i < sizeof(buf); i += 2) {
-        buf[i] = (uint8_t)(color >> 8);
-        buf[i + 1] = (uint8_t)(color & 0xff);
+    ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc fill dma buffer");
+    for (size_t i = 0; i < s_lcd_dma_buf_len; i += 2) {
+        s_lcd_dma_buf[i] = (uint8_t)(color >> 8);
+        s_lcd_dma_buf[i + 1] = (uint8_t)(color & 0xff);
     }
 
-    uint32_t pixels = (uint32_t)w * (uint32_t)h;
+    size_t bytes = (size_t)w * (size_t)h * 2;
     gpio_set_level(LCD_PIN_DC, 1);
-    while (pixels > 0) {
-        const uint32_t chunk_pixels = pixels > (sizeof(buf) / 2) ? (sizeof(buf) / 2) : pixels;
-        ESP_RETURN_ON_ERROR(lcd_tx(buf, chunk_pixels * 2), TAG, "pixels");
-        pixels -= chunk_pixels;
+    while (bytes > 0) {
+        const size_t chunk = bytes > s_lcd_dma_buf_len ? s_lcd_dma_buf_len : bytes;
+        ESP_RETURN_ON_ERROR(lcd_tx(s_lcd_dma_buf, chunk), TAG, "pixels");
+        bytes -= chunk;
     }
     return ESP_OK;
+}
+
+static int lcd_actual_khz(void)
+{
+    int actual_khz = 0;
+    if (s_lcd && spi_device_get_actual_freq(s_lcd, &actual_khz) == ESP_OK) {
+        return actual_khz;
+    }
+    return 0;
+}
+
+static bool parse_speed_hz(const char *text, int *hz)
+{
+    if (!text || !hz) {
+        return false;
+    }
+
+    char *end = NULL;
+    long value = strtol(text, &end, 10);
+    if (value <= 0) {
+        return false;
+    }
+
+    if (end && (*end == 'm' || *end == 'M')) {
+        end++;
+        if (*end == 'h' || *end == 'H') end++;
+        if (*end == 'z' || *end == 'Z') end++;
+        if (*end != '\0') return false;
+        value *= 1000000L;
+    } else if (end && (*end == 'k' || *end == 'K')) {
+        end++;
+        if (*end == 'h' || *end == 'H') end++;
+        if (*end == 'z' || *end == 'Z') end++;
+        if (*end != '\0') return false;
+        value *= 1000L;
+    } else if (end && *end != '\0') {
+        return false;
+    }
+
+    if (value > 200000000L) {
+        return false;
+    }
+    *hz = (int)value;
+    return true;
 }
 
 static uint16_t color_from_name(const char *name, bool *ok)
@@ -383,8 +501,52 @@ static int cmd_lcd(int argc, char **argv)
         int64_t start = esp_timer_get_time();
         esp_err_t err = lcd_fill_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, color);
         int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
-        printf("lcd fill color=0x%04x err=%s elapsed_ms=%" PRId64 "\n", color, esp_err_to_name(err), elapsed_ms);
+        const int64_t bytes = (int64_t)LCD_WIDTH * LCD_HEIGHT * 2;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        printf("lcd fill color=0x%04x err=%s elapsed_ms=%" PRId64 " throughput_kib_s=%" PRId64 " dma_chunk=%d\n",
+               color, esp_err_to_name(err), elapsed_ms, kib_s, LCD_FILL_DMA_CHUNK_BYTES);
         return err == ESP_OK ? 0 : 1;
+    }
+    if (strcmp(argv[1], "speed") == 0 || strcmp(argv[1], "baud") == 0) {
+        if (argc < 3) {
+            printf("lcd speed requested=%d actual_khz=%d\n", s_lcd_spi_hz, lcd_actual_khz());
+            printf("usage: lcd speed <hz|MHz>; examples: lcd speed 40M, lcd speed 80000000\n");
+            return 0;
+        }
+        int hz = 0;
+        if (!parse_speed_hz(argv[2], &hz)) {
+            printf("usage: lcd speed <hz|MHz>; examples: lcd speed 40M, lcd speed 80000000\n");
+            return 1;
+        }
+        if (hz > 80000000) {
+            printf("lcd speed warning: ESP-IDF GPSPI master usually caps normal SCLK at 80 MHz. Trying %d Hz anyway\n", hz);
+        }
+        esp_err_t err = lcd_init_bus_gpio_and_host();
+        if (err == ESP_OK) {
+            err = lcd_set_speed_hz(hz);
+        }
+        printf("lcd speed requested=%d err=%s actual_khz=%d\n", hz, esp_err_to_name(err), lcd_actual_khz());
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (strcmp(argv[1], "bench") == 0) {
+        int loops = argc >= 3 ? atoi(argv[2]) : 5;
+        if (loops <= 0) loops = 1;
+        if (loops > 100) loops = 100;
+        const uint16_t colors[] = {0xf800, 0x07e0, 0x001f, 0xffff, 0x0000};
+        int64_t start = esp_timer_get_time();
+        for (int i = 0; i < loops; i++) {
+            esp_err_t err = lcd_fill_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, colors[i % (sizeof(colors) / sizeof(colors[0]))]);
+            if (err != ESP_OK) {
+                printf("lcd bench err=%s at loop=%d\n", esp_err_to_name(err), i);
+                return 1;
+            }
+        }
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        const int64_t bytes = (int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * loops;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        printf("lcd bench loops=%d elapsed_ms=%" PRId64 " per_fill_ms=%" PRId64 " throughput_kib_s=%" PRId64 " requested=%d actual_khz=%d dma_chunk=%d\n",
+               loops, elapsed_ms, elapsed_ms / loops, kib_s, s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+        return 0;
     }
     if (strcmp(argv[1], "bars") == 0) {
         const uint16_t colors[] = {0xf800, 0xffe0, 0x07e0, 0x07ff, 0x001f, 0xf81f, 0xffff, 0x0000};
@@ -403,7 +565,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
@@ -415,14 +577,18 @@ static int cmd_status(int argc, char **argv)
     esp_chip_info(&chip);
     uint32_t flash_size = 0;
     (void)esp_flash_get_size(NULL, &flash_size);
-    printf("status project=0099 target=%s rev=%d cores=%d flash=%" PRIu32 " internal_free=%u psram_free=%u lcd=%s\n",
+    printf("status project=0099 target=%s rev=%d cores=%d flash=%" PRIu32 " internal_free=%u psram_free=%u lcd=%s lcd_requested_hz=%d lcd_actual_khz=%d lcd_dma_chunk=%d lcd_dma_buf=%u\n",
            CONFIG_IDF_TARGET,
            chip.revision,
            chip.cores,
            flash_size,
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-           s_lcd_initialized ? "initialized" : "not_initialized");
+           s_lcd_initialized ? "initialized" : "not_initialized",
+           s_lcd_spi_hz,
+           lcd_actual_khz(),
+           LCD_FILL_DMA_CHUNK_BYTES,
+           (unsigned)s_lcd_dma_buf_len);
     return 0;
 }
 
@@ -451,7 +617,7 @@ static void start_console(void)
 
     const esp_console_cmd_t lcd_cmd_def = {
         .command = "lcd",
-        .help = "PicoCalc LCD diagnostics: init, fill <color>, bars",
+        .help = "PicoCalc LCD diagnostics: init, speed <hz|MHz>, bench [loops], fill <color>, bars",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd_def));
@@ -475,8 +641,9 @@ void app_main(void)
              PICOCALC_KBD_I2C_SCL_GPIO,
              PICOCALC_KBD_I2C_ADDR,
              PICOCALC_KBD_I2C_SPEED_HZ);
-    ESP_LOGI(TAG, "lcd: sck=%d mosi=%d cs=%d dc=%d rst=%d hz=%d",
-             LCD_PIN_SCK, LCD_PIN_MOSI, LCD_PIN_CS, LCD_PIN_DC, LCD_PIN_RST, LCD_SPI_HZ);
+    ESP_LOGI(TAG, "lcd: sck=%d mosi=%d cs=%d dc=%d rst=%d clk_src=%d default_hz=%d max_transfer=%d dma_chunk=%d",
+             LCD_PIN_SCK, LCD_PIN_MOSI, LCD_PIN_CS, LCD_PIN_DC, LCD_PIN_RST, LCD_SPI_CLK_SRC, s_lcd_spi_hz,
+             LCD_SPI_MAX_TRANSFER_SZ, LCD_FILL_DMA_CHUNK_BYTES);
 
     esp_err_t kbd_err = picocalc_keyboard_init();
     if (kbd_err != ESP_OK) {
