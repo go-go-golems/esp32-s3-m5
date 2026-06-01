@@ -111,3 +111,13 @@ Added high-frequency LCD pattern tests and dirty-rectangle benchmarks to 0099; v
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — Pattern generation and dirty-rectangle benchmark commands
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated benchmark table and task list with pattern/rectbench results
 
+
+## 2026-06-01
+
+Added LCD terminal workload benchmarks to 0099 and measured cell, row, and scroll-style redraw performance at actual 80 MHz (code commit 1414dfd6cd1e676bfa37eb7cf0921e57fb8b676d).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — cellbench
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated terminal workload benchmark results and task status
+

@@ -1534,3 +1534,122 @@ lcd rectbench [w h loops]
 ```
 
 Current visual-feedback request: the LCD is left on `lcd pattern stripes` at actual 80 MHz. Please inspect it for stable black/white one-pixel vertical stripes with no flicker, shimmer, random pixels, or unstable columns.
+
+## Step 11: Terminal-Style LCD Workload Benchmarks
+
+This step extended the LCD benchmark suite from generic dirty rectangles into terminal-shaped workloads. The firmware now measures small character-cell updates, full-width row repaints, and scroll-style redraws made from a sequence of row-height rectangle fills.
+
+These results are important because a PicoCalc text UI will not behave like a full-screen graphics demo. Cursor blink, typed characters, status updates, line redraws, and scroll operations all have different command/payload ratios. The new commands make those costs visible before building a full text renderer.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue the display optimization task list by adding the terminal-cell, row, and scroll benchmarks proposed in the previous phase.
+
+**Inferred user intent:** Keep moving through the LCD optimization plan and gather benchmark evidence for realistic PicoCalc terminal workloads.
+
+**Commit (code):** 1414dfd6cd1e676bfa37eb7cf0921e57fb8b676d — "0099: add LCD terminal workload benchmarks"
+
+### What I did
+
+- Added `lcd cellbench [w h loops]` as a terminal-cell-oriented alias of the moving dirty-rectangle benchmark.
+- Added `lcd rowbench [h loops]` to repeatedly repaint full-width rows.
+- Added `lcd scrollbench [row_h loops]` to simulate a terminal scroll redraw by repainting all rows in row-height chunks for each scroll loop.
+- Updated the README command list.
+- Built the firmware with ESP-IDF v5.4.2.
+- Flashed through the existing `0099_p4_dk_monitor` tmux session.
+- Ran:
+
+```text
+lcd init
+lcd cellbench 8 16 1000
+lcd rowbench 16 200
+lcd scrollbench 16 20
+lcd scrollbench 8 20
+lcd pattern checker
+status
+```
+
+### Why
+
+The previous `rectbench` command measured generic moving rectangles. Terminal work needs more specific shapes:
+
+- character cells, such as 8×16 pixels;
+- rows, such as 320×16 pixels;
+- scroll redraws, which repaint many rows and expose command overhead across repeated `CASET`/`RASET`/`RAMWR` sequences.
+
+These measurements help decide whether a future text renderer should optimize for single-cell writes, row batching, full-screen redraws, or hardware scroll/window features.
+
+### What worked
+
+- The firmware built and flashed successfully.
+- The terminal workload commands completed at actual 80 MHz:
+
+```text
+lcd cellbench w=8 h=16 loops=1000 elapsed_ms=829 rects_s=1206 payload_kib_s=301 requested=80000000 actual_khz=80000
+lcd rowbench h=16 loops=200 elapsed_ms=366 rows_s=546 payload_kib_s=5464 requested=80000000 actual_khz=80000
+lcd scrollbench row_h=16 rows=20 loops=20 elapsed_ms=732 scrolls_s=27 row_updates_s=546 payload_kib_s=5464 requested=80000000 actual_khz=80000
+lcd scrollbench row_h=8 rows=40 loops=20 elapsed_ms=1054 scrolls_s=18 row_updates_s=759 payload_kib_s=3795 requested=80000000 actual_khz=80000
+```
+
+- The display was left on `lcd pattern checker` for another visual inspection opportunity.
+
+### What didn't work
+
+- No build or runtime failures occurred after the terminal benchmark implementation.
+- Earlier monitor scrollback still contains mistyped `lcd rectbenc` commands from manual experimentation; those are unrelated to the new implementation and returned the expected usage error.
+
+### What I learned
+
+- Single 8×16 cell updates reach about 1206 updates/s, but payload throughput is low because command/setup overhead dominates tiny rectangles.
+- Full-width 16-pixel row repaint reaches about 546 rows/s and about 5464 KiB/s payload throughput.
+- A 20-row, 16-pixel terminal scroll-style redraw reaches about 27 full scroll redraws/s.
+- An 8-pixel row height increases row update rate to 759 row updates/s but lowers full scroll redraw rate to 18 scrolls/s because each scroll requires 40 row commands instead of 20.
+
+### What was tricky to build
+
+The key design detail was separating row update rate from scroll redraw rate. A scroll-style redraw is not one SPI transaction; it is many row rectangle updates. Reporting only payload throughput would hide command overhead, so `scrollbench` reports `scrolls_s`, `row_updates_s`, and `payload_kib_s` separately.
+
+Another tricky point is interpreting cellbench results. A character-cell benchmark intentionally sends tiny payloads, so its KiB/s number looks poor even when update rate is useful. For text UI work, updates per second may be a more useful metric than raw payload throughput.
+
+### What warrants a second pair of eyes
+
+- Whether 8×16 is the right default terminal cell size for the future PicoCalc text renderer.
+- Whether row-based redraw is good enough, or whether hardware vertical scrolling should be investigated for terminal scroll operations.
+- Whether the checker pattern currently on screen is visually stable at actual 80 MHz.
+
+### What should be done in the future
+
+- Ask the user to visually confirm the checker pattern.
+- Add a general RGB565 blit path so benchmarks can separate pixel generation from SPI transport.
+- Start designing a minimal text renderer using row batching rather than per-cell writes for normal line redraws.
+- Investigate ST7365P/ILI9488 vertical scroll commands if terminal scrolling becomes the performance bottleneck.
+
+### Code review instructions
+
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `cellbench`/`rectbench` shared command path;
+  - `rowbench` command;
+  - `scrollbench` command and metrics.
+- Validate with:
+
+```text
+lcd cellbench 8 16 1000
+lcd rowbench 16 200
+lcd scrollbench 16 20
+lcd scrollbench 8 20
+```
+
+### Technical details
+
+Accepted terminal workload baseline at actual 80 MHz:
+
+```text
+cell 8x16: 1206 updates/s
+row 320x16: 546 updates/s
+scroll redraw 20 rows of 16 px: 27 scrolls/s
+scroll redraw 40 rows of 8 px: 18 scrolls/s
+```
+
+The current visual feedback request is the checker pattern left on the display. Please confirm whether it is stable and crisp, with no shimmer, random pixels, or unstable squares.

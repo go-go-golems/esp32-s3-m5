@@ -14,7 +14,7 @@
 - [x] LCD throughput: operator visual inspection of 80 MHz color bars
 - [x] LCD throughput: add checker/stripe/diagonal pattern tests
 - [x] LCD throughput: add dirty-rectangle benchmark command
-- [ ] LCD throughput: add terminal-cell, row, and scroll benchmarks
+- [x] LCD throughput: add terminal-cell, row, and scroll benchmarks
 - [ ] LCD throughput: evaluate queued DMA transfers after visual baseline is confirmed
 - [ ] Verify ESP32-P4 chip revision on Waveshare board (needs ≥ v3.1 for current ESP-IDF)
 - [ ] Test I²C bus sharing: 10 kHz keyboard southbridge + ES8311 codec on same bus
