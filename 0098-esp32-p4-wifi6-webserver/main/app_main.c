@@ -36,6 +36,7 @@
 #include "esp_psram.h"
 #include "esp_timer.h"
 #include "esp_wifi.h"
+#include "nvs.h"
 #include "nvs_flash.h"
 
 #include "lwip/inet.h"
@@ -45,6 +46,9 @@ static const char *TAG = "p4_web";
 #define DEFAULT_WIFI_SSID      "yolobolo"
 #define DEFAULT_WIFI_PASSWORD  "bring3248camera"
 #define WIFI_MAX_RETRY         20
+#define WIFI_NVS_NAMESPACE     "wifi"
+#define WIFI_NVS_KEY_SSID      "ssid"
+#define WIFI_NVS_KEY_PASSWORD  "password"
 
 static httpd_handle_t s_httpd = NULL;
 static esp_netif_t *s_sta_netif = NULL;
@@ -55,6 +59,7 @@ static bool s_sta_got_ip = false;
 static uint32_t s_sta_ip4_host = 0;
 static char s_ssid[33] = DEFAULT_WIFI_SSID;
 static char s_password[65] = DEFAULT_WIFI_PASSWORD;
+static bool s_credentials_saved = false;
 
 static esp_err_t init_nvs(void)
 {
@@ -65,6 +70,84 @@ static esp_err_t init_nvs(void)
         err = nvs_flash_init();
     }
     return err;
+}
+
+static esp_err_t save_credentials_to_nvs(void)
+{
+    nvs_handle_t nvs = 0;
+    esp_err_t err = nvs_open(WIFI_NVS_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    err = nvs_set_str(nvs, WIFI_NVS_KEY_SSID, s_ssid);
+    if (err == ESP_OK) {
+        err = nvs_set_str(nvs, WIFI_NVS_KEY_PASSWORD, s_password);
+    }
+    if (err == ESP_OK) {
+        err = nvs_commit(nvs);
+    }
+    nvs_close(nvs);
+
+    if (err == ESP_OK) {
+        s_credentials_saved = true;
+        ESP_LOGI(TAG, "saved Wi-Fi credentials for ssid='%s'", s_ssid);
+    }
+    return err;
+}
+
+static esp_err_t clear_credentials_from_nvs(void)
+{
+    nvs_handle_t nvs = 0;
+    esp_err_t err = nvs_open(WIFI_NVS_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err != ESP_OK) {
+        return err;
+    }
+
+    (void)nvs_erase_key(nvs, WIFI_NVS_KEY_SSID);
+    (void)nvs_erase_key(nvs, WIFI_NVS_KEY_PASSWORD);
+    err = nvs_commit(nvs);
+    nvs_close(nvs);
+
+    if (err == ESP_OK) {
+        s_credentials_saved = false;
+        ESP_LOGI(TAG, "cleared saved Wi-Fi credentials; runtime ssid remains '%s'", s_ssid);
+    }
+    return err;
+}
+
+static esp_err_t load_credentials_from_nvs(void)
+{
+    nvs_handle_t nvs = 0;
+    esp_err_t err = nvs_open(WIFI_NVS_NAMESPACE, NVS_READONLY, &nvs);
+    if (err != ESP_OK) {
+        ESP_LOGI(TAG, "using built-in Wi-Fi defaults (no NVS namespace yet)");
+        return err;
+    }
+
+    char ssid[sizeof(s_ssid)] = {0};
+    size_t ssid_len = sizeof(ssid);
+    err = nvs_get_str(nvs, WIFI_NVS_KEY_SSID, ssid, &ssid_len);
+    if (err != ESP_OK || ssid[0] == '\0') {
+        nvs_close(nvs);
+        ESP_LOGI(TAG, "using built-in Wi-Fi defaults (no saved ssid)");
+        return err == ESP_OK ? ESP_ERR_NOT_FOUND : err;
+    }
+
+    char password[sizeof(s_password)] = {0};
+    size_t password_len = sizeof(password);
+    esp_err_t pass_err = nvs_get_str(nvs, WIFI_NVS_KEY_PASSWORD, password, &password_len);
+    nvs_close(nvs);
+
+    if (pass_err != ESP_OK) {
+        password[0] = '\0';
+    }
+
+    strlcpy(s_ssid, ssid, sizeof(s_ssid));
+    strlcpy(s_password, password, sizeof(s_password));
+    s_credentials_saved = true;
+    ESP_LOGI(TAG, "loaded saved Wi-Fi credentials for ssid='%s'", s_ssid);
+    return ESP_OK;
 }
 
 static const char *wifi_state_string(void)
@@ -240,7 +323,7 @@ static esp_err_t status_get(httpd_req_t *req)
                            "\"chip\":{\"target\":\"%s\",\"revision\":%d,\"cores\":%d},"
                            "\"flash\":{\"bytes\":%" PRIu32 "},"
                            "\"heap\":{\"internal_free\":%u,\"psram_total\":%u,\"psram_free\":%u},"
-                           "\"wifi\":{\"mode\":\"sta\",\"state\":\"%s\",\"ssid\":\"%s\",\"ip\":\"" IPSTR "\",\"retries\":%d,\"last_disconnect_reason\":%d}"
+                           "\"wifi\":{\"mode\":\"sta\",\"state\":\"%s\",\"ssid\":\"%s\",\"saved\":%s,\"ip\":\"" IPSTR "\",\"retries\":%d,\"last_disconnect_reason\":%d}"
                            "}",
                            uptime_ms,
                            CONFIG_IDF_TARGET,
@@ -252,6 +335,7 @@ static esp_err_t status_get(httpd_req_t *req)
                            (unsigned)psram_free,
                            wifi_state_string(),
                            s_ssid,
+                           s_credentials_saved ? "true" : "false",
                            IP2STR(&ip),
                            s_retry_count,
                            s_last_disconnect_reason);
@@ -293,8 +377,8 @@ static esp_err_t start_http_server(void)
 static void print_wifi_status(void)
 {
     ip4_addr_t ip = {.addr = htonl(s_sta_ip4_host)};
-    printf("wifi state=%s ssid=%s ip=" IPSTR " retries=%d last_reason=%d\n",
-           wifi_state_string(), s_ssid, IP2STR(&ip), s_retry_count, s_last_disconnect_reason);
+    printf("wifi state=%s ssid=%s saved=%s ip=" IPSTR " retries=%d last_reason=%d\n",
+           wifi_state_string(), s_ssid, s_credentials_saved ? "yes" : "no", IP2STR(&ip), s_retry_count, s_last_disconnect_reason);
 }
 
 static int cmd_wifi(int argc, char **argv)
@@ -325,17 +409,59 @@ static int cmd_wifi(int argc, char **argv)
 
     if (strcmp(argv[1], "set") == 0) {
         if (argc < 3) {
-            printf("usage: wifi set <ssid> [password]\n");
+            printf("usage: wifi set <ssid> [password] [save]\n");
             return 1;
         }
+
+        bool save = false;
+        const char *password = NULL;
+        for (int i = 3; i < argc; i++) {
+            if (strcmp(argv[i], "save") == 0 || strcmp(argv[i], "--save") == 0) {
+                save = true;
+                continue;
+            }
+            if (!password) {
+                password = argv[i];
+            }
+        }
+
         strlcpy(s_ssid, argv[2], sizeof(s_ssid));
-        if (argc >= 4) {
-            strlcpy(s_password, argv[3], sizeof(s_password));
+        if (password) {
+            strlcpy(s_password, password, sizeof(s_password));
         } else {
             s_password[0] = '\0';
         }
         apply_sta_config();
-        printf("runtime credentials set: ssid=%s pass=%s\n", s_ssid, s_password[0] ? "<non-empty>" : "<empty>");
+
+        if (save) {
+            esp_err_t err = save_credentials_to_nvs();
+            if (err != ESP_OK) {
+                printf("wifi set/save: %s\n", esp_err_to_name(err));
+                return 1;
+            }
+        } else {
+            printf("runtime credentials set: ssid=%s pass=%s (not saved)\n", s_ssid, s_password[0] ? "<non-empty>" : "<empty>");
+        }
+        return 0;
+    }
+
+    if (strcmp(argv[1], "save") == 0) {
+        esp_err_t err = save_credentials_to_nvs();
+        if (err != ESP_OK) {
+            printf("wifi save: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("saved credentials for ssid=%s\n", s_ssid);
+        return 0;
+    }
+
+    if (strcmp(argv[1], "clear") == 0) {
+        esp_err_t err = clear_credentials_from_nvs();
+        if (err != ESP_OK) {
+            printf("wifi clear: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        printf("cleared saved credentials; runtime ssid=%s remains active until changed or rebooted\n", s_ssid);
         return 0;
     }
 
@@ -363,7 +489,7 @@ static int cmd_wifi(int argc, char **argv)
         return 0;
     }
 
-    printf("usage: wifi status | wifi reconnect | wifi set <ssid> [password] | wifi scan\n");
+    printf("usage: wifi status | wifi reconnect | wifi set <ssid> [password] [save] | wifi save | wifi clear | wifi scan\n");
     return 1;
 }
 
@@ -378,7 +504,7 @@ static void start_console(void)
 
     const esp_console_cmd_t wifi_cmd = {
         .command = "wifi",
-        .help = "Wi-Fi controls: status, reconnect, set <ssid> [password], scan",
+        .help = "Wi-Fi controls: status, reconnect, set <ssid> [password] [save], save, clear, scan",
         .func = cmd_wifi,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&wifi_cmd));
@@ -401,6 +527,7 @@ void app_main(void)
     ESP_LOGI(TAG, "wifi: ESP32-C6 over ESP-Hosted SDIO; default ssid=%s", DEFAULT_WIFI_SSID);
 
     ESP_ERROR_CHECK(init_nvs());
+    (void)load_credentials_from_nvs();
     ESP_ERROR_CHECK(start_wifi_sta());
     ESP_ERROR_CHECK(start_http_server());
     start_console();

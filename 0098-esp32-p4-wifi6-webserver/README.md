@@ -71,10 +71,20 @@ wifi status
 wifi scan
 wifi reconnect
 wifi set <ssid> [password]
+wifi set <ssid> [password] save
+wifi save
+wifi clear
 wifi reconnect
 ```
 
-`wifi set` only changes runtime credentials in this first experiment. It does not persist them to NVS yet.
+Credential behavior:
+
+- On boot, the app first tries to load `ssid` and `password` from NVS namespace `wifi`.
+- If no saved credentials exist, it falls back to the compiled defaults: `yolobolo` / `bring3248camera`.
+- `wifi set <ssid> [password]` changes runtime credentials only.
+- `wifi set <ssid> [password] save` changes runtime credentials and persists them.
+- `wifi save` persists the current runtime credentials.
+- `wifi clear` removes saved credentials from NVS; the current runtime connection remains active until changed, disconnected, or rebooted.
 
 ## Board-specific ESP-Hosted wiring
 
