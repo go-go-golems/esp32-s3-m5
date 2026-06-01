@@ -38,3 +38,13 @@ Added NVS-backed Wi-Fi credential persistence to 0098 webserver; verified wifi s
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver/main/app_main.c — NVS credential load/save/clear implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Recorded Step 5 credential persistence validation
 
+
+## 2026-06-01
+
+Committed the 0097 ESP32-P4 PicoCalc bring-up firmware source now that Phase 1 serial/PSRAM validation is recorded (commit 432aadd).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0097-esp32-p4-picocalc-bringup/main/0097-esp32-p4-picocalc-bringup.c — Phase 1 bring-up firmware source
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Backfilled Step 3 code commit reference
+

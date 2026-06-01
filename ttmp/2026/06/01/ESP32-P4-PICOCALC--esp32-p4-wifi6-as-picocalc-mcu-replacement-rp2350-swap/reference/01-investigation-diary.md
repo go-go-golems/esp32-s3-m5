@@ -195,6 +195,8 @@ A controlled single-owner capture confirmed that the ROM, second-stage bootloade
 
 **Inferred user intent:** The user wants a reliable handoff and a trustworthy serial/debugging baseline before continuing firmware bring-up.
 
+**Commit (code):** 432aadd — "0097: add ESP32-P4 PicoCalc bringup firmware"
+
 ### What I did
 
 - Inspected `sdkconfig` and `sdkconfig.defaults` for console settings.
