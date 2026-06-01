@@ -81,3 +81,13 @@ Added lean 0099 display+keyboard firmware; validated keyboard status and LCD ini
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/picocalc_keyboard.h — Keyboard GPIO constants copied from validated mapping
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — 0099 validation diary
 
+
+## 2026-06-01
+
+Optimized 0099 LCD throughput by selecting SPLL-backed 80 MHz SPI, using a 32 KiB internal DMA fill buffer, documenting the optimization guide, and benchmarking full-screen fills at 21 ms/frame (code commit 7bb4d1ac2554e894263b7fbce0c325777c389a08).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — 32 KiB DMA LCD fill optimization and benchmark output
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Analysis guide and task list for LCD throughput work
+

@@ -1,0 +1,369 @@
+---
+Title: PicoCalc LCD SPI throughput optimization guide
+Ticket: ESP32-P4-PICOCALC
+Status: active
+Topics:
+    - esp32-p4
+    - picocalc
+    - hardware
+    - firmware-port
+DocType: design-doc
+Intent: long-term
+Owners: []
+RelatedFiles:
+    - Path: ../../../../../../../../../../esp/esp-idf-5.4.2/components/esp_driver_spi/src/gpspi/spi_master.c
+      Note: ESP-IDF GPSPI speed ceiling and transaction-size checks used as evidence
+    - Path: ../../../../../../../../../../esp/esp-idf-5.4.2/components/hal/esp32p4/include/hal/spi_ll.h
+      Note: ESP32-P4 DMA transaction bit-length ceiling used to choose 32 KiB chunks
+    - Path: 0099-esp32-p4-picocalc-display-keyboard/README.md
+      Note: |-
+        Operator-facing command list and current benchmark summary
+        Operator-facing notes for LCD speed and throughput benchmark behavior
+    - Path: 0099-esp32-p4-picocalc-display-keyboard/main/app_main.c
+      Note: |-
+        Lean ESP32-P4 PicoCalc LCD/keyboard firmware; contains SPI clock, DMA buffer, benchmark, and console-command implementation
+        LCD SPI clock source
+ExternalSources: []
+Summary: Analysis and task plan for maximizing PicoCalc LCD throughput on the same-position Waveshare ESP32-P4 adapter
+LastUpdated: 2026-06-01T19:50:00-04:00
+WhatFor: Explain why the LCD clock is capped at 80 MHz, where display time is still being spent, and which optimizations to implement next
+WhenToUse: Use when continuing display performance work, comparing benchmark runs, or deciding whether the physical adapter needs a new LCD routing
+---
+
+
+# PicoCalc LCD SPI throughput optimization guide
+
+## Executive summary
+
+The ESP32-P4 GPSPI master path in ESP-IDF v5.4.2 has a normal SCLK ceiling of 80 MHz. The earlier 20 MHz ceiling was not a hardware limit of the LCD wiring; it came from ESP32-P4's default SPI clock source, `SPI_CLK_SRC_DEFAULT`, which resolves to the 40 MHz XTAL source. Selecting `SPI_CLK_SRC_SPLL` allows ESP-IDF to accept and generate actual 80 MHz SCLK.
+
+The first throughput optimization should not try to exceed 80 MHz. Instead, it should reduce per-transfer overhead. The lean `0099` firmware originally pushed a 320×320 RGB565 fill through 512-byte chunks. A full frame is 204,800 bytes, so that path required roughly 400 pixel transactions per fill. The first optimization changed the fill path to a reusable 32 KiB internal DMA-capable buffer and raised the SPI bus maximum transfer size to 32 KiB. That reduces a full-frame fill to roughly seven pixel transactions.
+
+Observed benchmark at actual 80 MHz:
+
+| Firmware state | Command | Result |
+|---|---|---:|
+| Before DMA chunk optimization | `lcd bench 5` | ~32 ms/fill |
+| After 32 KiB DMA chunk optimization | `lcd bench 5` | 21 ms/fill |
+| After 32 KiB DMA chunk optimization | `lcd bench 50` | 21 ms/fill |
+| Before DMA chunk optimization | `lcd bars` | ~33 ms |
+| After 32 KiB DMA chunk optimization | `lcd bars` | 26 ms |
+
+The next improvements should focus on queued DMA transfers, dirty rectangles, and higher-level frame composition rather than higher SPI clocks.
+
+## Problem statement and scope
+
+The current target is the ClockworkPi PicoCalc LCD connected through the same-position RPico-to-Waveshare ESP32-P4-WIFI6 adapter. The current physical LCD mapping is:
+
+```text
+Pico GP10 / LCD SCK  -> ESP32-P4 GPIO3
+Pico GP11 / LCD MOSI -> ESP32-P4 GPIO2
+Pico GP13 / LCD CS   -> ESP32-P4 GPIO7
+Pico GP14 / LCD DC   -> ESP32-P4 GPIO24
+Pico GP15 / LCD RST  -> ESP32-P4 GPIO25
+```
+
+The goal is to make the display path fast enough for an interactive PicoCalc firmware while preserving the same-position adapter as the current hardware truth. The scope of this guide is the 4-wire SPI RGB565 command/data path in `0099-esp32-p4-picocalc-display-keyboard`, not Wi-Fi, ESP-Hosted, SD card, or full application rendering.
+
+## Current-state evidence
+
+### Firmware clock and transfer configuration
+
+The active firmware defines the display clock and transfer policy in `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+
+- LCD pins and dimensions are defined near lines 41-49.
+- `LCD_DEFAULT_SPI_HZ` is 80 MHz near line 54.
+- `LCD_SPI_CLK_SRC` is `SPI_CLK_SRC_SPLL` near line 55.
+- `LCD_SPI_MAX_TRANSFER_SZ` and `LCD_FILL_DMA_CHUNK_BYTES` are 32 KiB near lines 56-57.
+- The SPI device uses `.clock_source = LCD_SPI_CLK_SRC`, `.clock_speed_hz = s_lcd_spi_hz`, and `.queue_size = 4` near lines 161-167.
+- The fill path allocates an internal DMA-capable buffer with `heap_caps_malloc(..., MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL)` near lines 100-118.
+- `lcd_fill_rect()` fills that DMA buffer in big-endian RGB565 byte order and transmits chunks up to the DMA buffer length near lines 284-314.
+- `lcd bench` prints elapsed time, per-fill time, throughput, requested clock, actual clock, and DMA chunk size near lines 531-548.
+
+### ESP-IDF clock ceiling
+
+ESP-IDF v5.4.2 caps ESP32-P4 GPSPI master SCLK in `components/esp_driver_spi/src/gpspi/spi_master.c`:
+
+```c
+SPI_CHECK((dev_config->clock_speed_hz > 0) &&
+          (dev_config->clock_speed_hz <= MIN(clock_source_hz / 2, (80 * 1000000))),
+          "invalid sclk speed", ESP_ERR_INVALID_ARG);
+```
+
+This is line 432 in the local ESP-IDF checkout. It establishes two independent constraints:
+
+1. requested SCLK must be at most half the selected clock source; and
+2. requested SCLK must be at most 80 MHz.
+
+ESP32-P4's supported SPI clock sources in `components/soc/esp32p4/include/soc/clk_tree_defs.h` are XTAL, RC_FAST, and SPLL. `SPI_CLK_SRC_DEFAULT` resolves to XTAL in this ESP-IDF version, so default mode uses 40 MHz as the source and rejects requests above 20 MHz. `SPI_CLK_SRC_SPLL` gives the SPI driver enough source frequency to generate 80 MHz while still respecting the driver's hard 80 MHz ceiling.
+
+### ESP-IDF DMA transaction size ceiling
+
+ESP32-P4's SPI low-level header sets:
+
+```c
+#define SPI_LL_DMA_MAX_BIT_LEN (1 << 18)
+```
+
+That is 262,144 bits, or 32,768 bytes. The SPI master checks transaction length against this ceiling for DMA-enabled buses. Therefore 32 KiB is a natural maximum chunk size for a single TX-only DMA transaction on this path.
+
+## Throughput model
+
+A full 320×320 RGB565 frame contains:
+
+```text
+320 * 320 * 2 = 204,800 bytes
+```
+
+At actual 80 MHz SPI, the raw wire rate is:
+
+```text
+80,000,000 bits/s / 8 = 10,000,000 bytes/s
+204,800 bytes / 10,000,000 bytes/s = 20.48 ms
+```
+
+The optimized benchmark reports roughly 21 ms per full-screen fill. That is close to the raw SPI payload floor. The remaining time is mostly unavoidable protocol overhead plus a small amount of CPU work:
+
+1. `CASET`, `RASET`, and `RAMWR` commands for each rectangle;
+2. DC GPIO transitions between command and data phases;
+3. SPI transaction setup and completion overhead;
+4. DMA descriptor setup;
+5. filling the software color buffer.
+
+The earlier 32 ms benchmark was not limited by the 80 MHz SCLK. It was limited by transaction count. At 512-byte chunks, a full frame needed about 400 pixel transactions. At 32 KiB chunks, the same frame needs about seven pixel transactions.
+
+## Implemented optimization: 32 KiB DMA fill chunks
+
+The first optimization is deliberately conservative:
+
+1. Keep SPI at the verified actual 80 MHz clock.
+2. Keep the existing panel initialization sequence.
+3. Keep the existing command/data protocol.
+4. Keep polling transactions for now.
+5. Replace tiny stack fill chunks with a reusable internal DMA buffer.
+6. Raise `spi_bus_config_t.max_transfer_sz` to the ESP32-P4 DMA transaction ceiling.
+
+Pseudocode:
+
+```c
+ensure_lcd_initialized();
+set_window(x, y, x + w - 1, y + h - 1);
+ensure_dma_buffer(32768);
+fill_dma_buffer_with_rgb565_color(color);
+bytes_remaining = w * h * 2;
+while (bytes_remaining > 0) {
+    chunk = min(bytes_remaining, dma_buffer_len);
+    polling_transmit(dma_buffer, chunk);
+    bytes_remaining -= chunk;
+}
+```
+
+This is suitable for full-screen solid fills and color-bar smoke tests. It is also useful as a baseline primitive for terminal clear, UI background fill, and dirty-rectangle clearing.
+
+## Benchmark protocol
+
+Use the CH343 UART monitor session for interactive tests. Confirm the port is single-owner before flashing or starting a monitor.
+
+```bash
+PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00
+lsof "$PORT" /dev/ttyACM1 2>/dev/null || true
+```
+
+In the firmware console:
+
+```text
+lcd init
+lcd speed
+lcd bench 5
+lcd bench 50
+lcd bars
+status
+```
+
+Current optimized result:
+
+```text
+lcd speed requested=80000000 actual_khz=80000
+lcd bench loops=5 elapsed_ms=107 per_fill_ms=21 throughput_kib_s=9345 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd bench loops=50 elapsed_ms=1071 per_fill_ms=21 throughput_kib_s=9337 requested=80000000 actual_khz=80000 dma_chunk=32768
+lcd bars ok elapsed_ms=26
+status ... lcd_actual_khz=80000 lcd_dma_chunk=32768 lcd_dma_buf=32768
+```
+
+## Visual feedback checklist
+
+The firmware can prove that bytes were transmitted, but it cannot prove that the glass displayed them correctly. Every speed/throughput change needs a human visual pass.
+
+After a benchmark run, leave the display on:
+
+```text
+lcd bars
+```
+
+Check for:
+
+1. eight vertical bars in the expected color order: red, yellow, green, cyan, blue, magenta, white, black;
+2. no random pixels;
+3. no flicker;
+4. no vertical tearing or unstable columns;
+5. no swapped red/blue channels;
+6. no partial-screen update artifacts;
+7. no regression after repeated `lcd bench 50` runs.
+
+If 80 MHz artifacts appear, retest at the quantized 60 MHz setting:
+
+```text
+lcd speed 75M
+lcd bars
+lcd bench 20
+```
+
+On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. If 60 MHz is clean and 80 MHz is not, the physical adapter is signal-integrity-limited rather than driver-limited.
+
+## Optimization task list
+
+### Completed in this phase
+
+- [x] Explain the ESP-IDF 80 MHz GPSPI ceiling and the earlier default-XTAL 20 MHz failure mode.
+- [x] Select `SPI_CLK_SRC_SPLL` explicitly.
+- [x] Default the LCD to requested/actual 80 MHz.
+- [x] Report actual SPI frequency via `spi_device_get_actual_freq()`.
+- [x] Increase bus maximum transfer size to 32 KiB.
+- [x] Replace 512-byte stack fill chunks with a reusable 32 KiB internal DMA-capable buffer.
+- [x] Add benchmark throughput reporting (`throughput_kib_s`, `dma_chunk`).
+- [x] Build, flash, and benchmark the optimized firmware.
+
+### Next tasks
+
+- [ ] Ask the operator to visually inspect the current `lcd bars` output at actual 80 MHz.
+- [ ] Run a longer visual stability pass: `lcd bench 100`, then `lcd bars`.
+- [ ] Add a patterned test command that alternates checkerboard, diagonal lines, and text-like stripe patterns. Solid fills are good throughput tests but weak signal-integrity tests.
+- [ ] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
+- [ ] Add a line-buffer/blit path for arbitrary RGB565 pixels, not only solid-color fills.
+- [ ] Evaluate queued transactions using `spi_device_queue_trans()` / `spi_device_get_trans_result()` for large pixel streams.
+- [ ] Decide whether to migrate the low-level panel path to `esp_lcd_panel_io_spi`, or keep the manual command/data path for control and simplicity.
+- [ ] If artifacts appear at 80 MHz, characterize stable speeds on the same-position GPIO-matrix wiring: 80 MHz, actual 60 MHz, 40 MHz, and 20 MHz.
+- [ ] If same-position wiring cannot hold 80 MHz cleanly, evaluate a future cross-routed adapter using ESP32-P4 SPI2 IO-MUX pins for SCK/MOSI/CS.
+
+## Proposed next implementation phases
+
+### Phase A: stabilize and validate the 32 KiB DMA baseline
+
+This is the current phase. It should end only after operator visual feedback confirms that 80 MHz bars and repeated full-screen fills are clean.
+
+Validation commands:
+
+```text
+lcd speed 80M
+lcd bench 50
+lcd bars
+status
+```
+
+Acceptance criteria:
+
+1. `lcd_actual_khz=80000`.
+2. `lcd bench 50` remains around 21 ms/fill.
+3. `lcd bars` remains visually correct.
+4. No watchdog, heap, or SPI errors appear in the monitor.
+
+### Phase B: add pattern tests
+
+Solid fills can hide bit-order and signal-integrity problems. A better display test should include high-frequency pixel transitions.
+
+Candidate command:
+
+```text
+lcd pattern checker
+lcd pattern stripes
+lcd pattern diagonal
+```
+
+Implementation sketch:
+
+```c
+for each row block:
+    fill_dma_buffer_with_pattern(x, y, w, h);
+    set_window(...);
+    transmit_dma_buffer(...);
+```
+
+This requires a general pixel-buffer write path instead of the current solid-color fill path.
+
+### Phase C: add dirty rectangle and terminal-cell benchmarks
+
+PicoCalc workloads will usually update small regions, not full frames. A terminal-like firmware needs to know how fast it can update:
+
+1. one character cell;
+2. one text row;
+3. a scrolling region;
+4. a status bar;
+5. a full clear.
+
+Candidate commands:
+
+```text
+lcd rectbench 8 16 1000
+lcd rowbench 16 100
+lcd scrollbench 20
+```
+
+These benchmarks should report updates per second and bytes per second.
+
+### Phase D: evaluate queued DMA
+
+The current optimized path still uses `spi_device_polling_transmit()`. That is simple and already near the wire-rate limit for full-screen fills. Queuing may help when preparing the next buffer while the current buffer is in flight, but it requires either multiple DMA buffers or strict buffer reuse discipline.
+
+For solid-color fills, reusing the same immutable DMA buffer across queued transactions is safe. For arbitrary pixel data, queuing needs at least double buffering:
+
+```c
+prepare(buffer_a);
+queue(buffer_a);
+prepare(buffer_b);
+queue(buffer_b);
+wait(buffer_a);
+prepare(buffer_a);
+queue(buffer_a);
+```
+
+Risk: queueing can make visual bugs harder to diagnose. It should be introduced only after the simple 32 KiB polling baseline is visually confirmed.
+
+### Phase E: application-level optimization
+
+Once the transport is close to the 80 MHz wire limit, the biggest gains come from sending fewer pixels:
+
+1. maintain dirty rectangles;
+2. coalesce adjacent dirty rectangles;
+3. avoid full-screen redraws for cursor blink and keypress echo;
+4. pre-render glyph rows into RGB565 line buffers;
+5. use PSRAM for frame/state storage but internal DMA memory for active transmit buffers.
+
+## Design decisions
+
+### Keep 80 MHz as the normal maximum
+
+The driver-enforced 80 MHz ceiling means normal ESP-IDF `spi_master` cannot go faster by configuration. A faster clock would require unsupported driver changes, different peripheral use, or a different display bus. That is not appropriate while the current 80 MHz path is not yet visually validated.
+
+### Use internal DMA memory for active SPI transmit buffers
+
+The firmware has 32 MB PSRAM, but internal DMA-capable memory is the safe default for GPSPI transmit buffers. PSRAM is appropriate for larger frame/state storage; internal DMA buffers are appropriate for active SPI transfers.
+
+### Optimize transaction size before queueing
+
+Large polling DMA transfers are easier to reason about than queued transactions and already reduce full-frame fill time to the theoretical 80 MHz payload floor. Queueing should be a second-stage optimization, not the first-stage baseline.
+
+## Risks and open questions
+
+1. **Visual correctness is not yet confirmed in this phase.** The monitor says `lcd bars ok`, but only the operator can confirm the glass is clean.
+2. **GPIO-matrix signal integrity may still be the practical limiter.** ESP-IDF accepts 80 MHz, but same-position SCK/MOSI wiring through GPIO3/GPIO2 might or might not be visually robust.
+3. **Solid-fill benchmarks are optimistic.** Real UI rendering will include many smaller rectangles and more command overhead.
+4. **Queued DMA may not improve full-screen fills much.** The current result is already close to the raw payload limit.
+5. **Future adapter routing remains a hardware tradeoff.** Function-optimized SPI2 IO-MUX routing could improve signal margin, but it breaks the simplicity of a same-position adapter.
+
+## References
+
+- Firmware: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`
+- Operator README: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/README.md`
+- ESP-IDF GPSPI master speed check: `/home/manuel/esp/esp-idf-5.4.2/components/esp_driver_spi/src/gpspi/spi_master.c`
+- ESP32-P4 SPI low-level DMA limit: `/home/manuel/esp/esp-idf-5.4.2/components/hal/esp32p4/include/hal/spi_ll.h`
+- Full pin map: `ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md`
