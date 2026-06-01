@@ -986,3 +986,162 @@ Validated output:
 ```text
 kbd status ok=1 raw=0x00 fifo=0 caps=0 num=0 initialized=1 errors=0
 ```
+
+## Step 8: Lean display+keyboard firmware without Wi-Fi
+
+Created a new standalone firmware, `0099-esp32-p4-picocalc-display-keyboard`, to bring up PicoCalc peripherals without ESP-Hosted, Wi-Fi, HTTP, or NVS credential machinery. This firmware keeps the proven CH343 UART console, uses the corrected same-position physical adapter keyboard pins, and adds a minimal SPI LCD smoke-test path on the physical LCD pins.
+
+The firmware built and flashed successfully. On the live board, the keyboard status command ACKed the PicoCalc STM32 controller, and the LCD command path initialized the panel and wrote color bars without SPI/API errors. Visual confirmation of the displayed bars still needs human observation, but the firmware-side transaction path is working.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 7)
+
+**Assistant interpretation:** After committing the corrected keyboard mapping work, create a separate lean firmware focused on PicoCalc display and keyboard only.
+
+**Inferred user intent:** The user wants faster compile/flash/test cycles and less runtime log noise while validating PicoCalc hardware peripherals.
+
+**Commit (code):** pending — this diary entry is being written before the `0099` commit.
+
+### What I did
+
+- Created `0099-esp32-p4-picocalc-display-keyboard/`.
+- Copied the validated `picocalc_keyboard.c/.h` driver from `0098`.
+- Added a new `app_main.c` with:
+  - CH343 UART `esp_console` REPL.
+  - `kbd status`, `kbd poll [limit]`, `kbd raw on/off`.
+  - `lcd init`, `lcd fill <color>`, `lcd bars`.
+  - `status` command.
+- Used the same-position physical adapter pins:
+  - Keyboard SDA GPIO50, SCL GPIO49.
+  - LCD SCK GPIO3, MOSI GPIO2, CS GPIO7, DC GPIO24, RST GPIO25.
+- Added `README.md`, `CMakeLists.txt`, `main/CMakeLists.txt`, and `sdkconfig.defaults`.
+- Built with ESP-IDF v5.4.2.
+- Killed the old `0098_p4_monitor` tmux session to preserve single serial ownership.
+- Flashed `0099` to `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- Started tmux monitor session `0099_p4_dk_monitor`.
+- Ran console validation commands.
+
+### Why
+
+`0098` is useful for Wi-Fi and ESP-Hosted testing, but it is too heavy for fast PicoCalc peripheral iteration. Its build pulls in the networking stack, and its runtime logs interleave Wi-Fi disconnect/retry messages with keyboard diagnostics. A smaller display+keyboard firmware keeps the bring-up loop focused.
+
+### What worked
+
+- `0099` built successfully.
+- The app binary is much smaller than the Wi-Fi firmware:
+
+```text
+0099 binary size: 0x5bde0
+0098 binary size: 0xb4a40
+```
+
+- Flash succeeded.
+- Boot log showed the expected pin mapping:
+
+```text
+keyboard: SDA GPIO50 SCL GPIO49 addr=0x1f hz=10000
+lcd: sck=3 mosi=2 cs=7 dc=24 rst=25 hz=20000000
+```
+
+- Keyboard status succeeded:
+
+```text
+kbd status ok=1 raw=0x00 fifo=0 caps=0 num=0 initialized=1 errors=0
+```
+
+- LCD init succeeded:
+
+```text
+lcd init: ESP_OK
+```
+
+- LCD color bars command succeeded:
+
+```text
+lcd bars ok elapsed_ms=95
+```
+
+### What didn't work
+
+- Visual confirmation of the LCD output was not captured in this step. The command path reports success, but a human still needs to confirm whether color bars are visible on the PicoCalc display.
+- The minimal LCD init sequence is intentionally basic (`SWRESET`, `SLPOUT`, RGB565, `MADCTL=0x48`, inversion on, display on). If the panel remains blank, the next fix is likely the fuller ST7365P/ILI9488 vendor init sequence from the existing Pico SDK driver/reference docs.
+- ESP-IDF still logs the known flash warning:
+
+```text
+Detected flash size > 16 MB, but access beyond 16 MB is not supported for this flash model yet.
+```
+
+### What I learned
+
+- The lean firmware dramatically reduces runtime noise. There are no ESP-Hosted SDIO logs and no Wi-Fi retry messages.
+- GPIO2/GPIO3/GPIO7/GPIO24/GPIO25 can be configured by the app for the LCD path under the same-position physical mapping.
+- The current LCD SPI transaction implementation is good enough to send a full 320×320 RGB565 color-bar frame in about 95 ms at 20 MHz, assuming the panel accepts the init sequence.
+
+### What was tricky to build
+
+The main tricky point was that the same-position adapter LCD mapping is not the earlier ideal SPI2 IO_MUX mapping. The physical mapping places LCD SCK/MOSI/CS/DC/RST on GPIO3/GPIO2/GPIO7/GPIO24/GPIO25. GPIO2/GPIO3 and GPIO24/GPIO25 have JTAG/USB-Serial-JTAG caveats, but the project uses the CH343 UART console, so the firmware can still claim them for LCD testing.
+
+Another subtle point is that SPI transaction success does not prove the LCD controller interpreted the commands. The driver can report `ESP_OK` even if the panel wiring, reset, controller variant, or init sequence is wrong. That is why the next validation step is visual confirmation, followed by fuller init-sequence work if needed.
+
+### What warrants a second pair of eyes
+
+- Confirm visually whether `lcd bars` actually appears on the PicoCalc LCD.
+- Review whether GPIO24/GPIO25 use has any boot/JTAG side effects on ESP32-P4 beyond disabling USB Serial/JTAG functionality.
+- Review whether the minimal LCD init sequence is sufficient for the actual PicoCalc ST7365P panel, or whether the full unlock/vendor profile should be ported immediately.
+
+### What should be done in the future
+
+- Press PicoCalc keys with `kbd raw on` enabled and record raw events.
+- If the display is blank, port the full Pico SDK/TFT_eSPI-derived init sequence into `0099`.
+- Add a simple on-screen keyboard event renderer once both LCD and keyboard are visually confirmed.
+- Consider making `0099` the default PicoCalc peripheral bring-up project and leaving `0098` for networking-only experiments.
+
+### Code review instructions
+
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - LCD pin constants and SPI setup.
+  - Minimal panel init sequence.
+  - `lcd_fill_rect()` and `lcd bars` path.
+  - Console command registration.
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/picocalc_keyboard.h` for GPIO50/GPIO49.
+- Validate with:
+
+```bash
+cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard
+source ~/esp/esp-idf-5.4.2/export.sh
+idf.py build
+PORT=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00
+lsof "$PORT" || true
+idf.py -p "$PORT" flash monitor
+```
+
+Then run:
+
+```text
+kbd status
+lcd init
+lcd bars
+```
+
+### Technical details
+
+Current LCD constants:
+
+```c
+#define LCD_PIN_SCK   3
+#define LCD_PIN_MOSI  2
+#define LCD_PIN_CS    7
+#define LCD_PIN_DC    24
+#define LCD_PIN_RST   25
+#define LCD_SPI_HZ    (20 * 1000 * 1000)
+```
+
+Current keyboard constants:
+
+```c
+#define PICOCALC_KBD_I2C_SDA_GPIO 50
+#define PICOCALC_KBD_I2C_SCL_GPIO 49
+#define PICOCALC_KBD_I2C_SPEED_HZ 10000
+#define PICOCALC_KBD_I2C_ADDR     0x1F
+```

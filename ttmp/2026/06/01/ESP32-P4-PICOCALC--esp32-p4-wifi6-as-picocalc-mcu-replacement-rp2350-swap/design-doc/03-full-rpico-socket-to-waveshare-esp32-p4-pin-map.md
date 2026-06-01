@@ -12,8 +12,12 @@ DocType: design-doc
 Intent: implementation-guide
 Owners: []
 RelatedFiles:
-    - Path: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h
+    - Path: 0098-esp32-p4-wifi6-webserver/main/picocalc_keyboard.h
       Note: Keyboard GPIO constants must be changed if using the same-position physical adapter mapping
+    - Path: 0099-esp32-p4-picocalc-display-keyboard/README.md
+      Note: Operator guide for lean display+keyboard firmware
+    - Path: 0099-esp32-p4-picocalc-display-keyboard/main/app_main.c
+      Note: Uses same-position physical adapter LCD and keyboard pin mapping
 ExternalSources:
     - /tmp/pi-clipboard-820e03d4-338d-4e96-b13d-7ebe5904db0a.png
     - /tmp/pi-clipboard-06a9a70c-47c2-4dc7-9745-4ecd33ef9204.png
@@ -24,6 +28,7 @@ LastUpdated: 2026-06-01T19:05:00-04:00
 WhatFor: Verify actual adapter PCB/header wiring by physical pin position, not by peripheral function
 WhenToUse: Before schematic capture, cable harness wiring, or ESP-IDF GPIO constant changes
 ---
+
 
 # Full Physical RPico Socket to Waveshare ESP32-P4-WIFI6 Pin Map
 
