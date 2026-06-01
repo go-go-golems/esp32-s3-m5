@@ -1,0 +1,18 @@
+idf_component_register(
+    SRCS "app_main.c"
+    INCLUDE_DIRS "."
+    PRIV_REQUIRES
+        nvs_flash
+        esp_event
+        esp_netif
+        esp_wifi
+        esp_wifi_remote
+        esp_http_server
+        esp_timer
+        esp_psram
+        spi_flash
+        heap
+        console
+        driver
+        esp_driver_uart
+)
