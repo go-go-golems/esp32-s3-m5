@@ -157,6 +157,16 @@ topics:
       description: M5Stack M5Dial device projects
     - slug: software-rendering
       description: CPU-based rendering pipelines without GPU acceleration
+    - slug: waveshare
+      description: Waveshare electronics boards and peripherals
+    - slug: esp32-p4
+      description: Espressif ESP32-P4 dual-core RISC-V MCU
+    - slug: firmware-port
+      description: Porting firmware between platforms/MCUs
+    - slug: hardware
+      description: Hardware design, PCBs, and electronics
+    - slug: picocalc
+      description: ClockworkPi PicoCalc handheld device
 docTypes:
     - slug: index
       description: Ticket index document
