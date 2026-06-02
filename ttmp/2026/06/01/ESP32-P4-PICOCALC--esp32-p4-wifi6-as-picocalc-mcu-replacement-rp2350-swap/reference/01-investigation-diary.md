@@ -1653,3 +1653,104 @@ scroll redraw 40 rows of 8 px: 18 scrolls/s
 ```
 
 The current visual feedback request is the checker pattern left on the display. Please confirm whether it is stable and crisp, with no shimmer, random pixels, or unstable squares.
+
+## Step 12: Row-Batched Pseudo-Text LCD Benchmark
+
+This step recorded the user's confirmation that the previous pattern and terminal benchmark output worked, then added the next practical LCD workload: row-batched pseudo-text rendering. The new path generates glyph-like RGB565 pixels into the existing 32 KiB DMA buffer and sends one complete text row at a time.
+
+This is closer to a real PicoCalc terminal renderer than solid fills or colored rows. It includes CPU-side glyph/pixel generation, command overhead per row, and SPI payload transfer. The result is a useful baseline for deciding whether a future text UI should render row batches, individual cells, or use hardware scroll support.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead, this all works."
+
+**Assistant interpretation:** The user confirmed the current display tests look good and asked to proceed with the next planned LCD workload work.
+
+**Inferred user intent:** Accept the 80 MHz pattern/terminal benchmark baseline and continue toward a text-rendering path suitable for an interactive PicoCalc UI.
+
+**Commit (code):** 749f254162cc774f23eac26dca8272ae8a4fe744 — "0099: add LCD pseudo text benchmark"
+
+### What I did
+
+- Recorded visual confirmation of the previous checker/pattern/terminal benchmark output in `tasks.md`.
+- Added pseudo-glyph generation helpers to `0099`.
+- Added a row-batched text-row rendering path that writes generated RGB565 pixels into the reusable 32 KiB DMA buffer.
+- Added `lcd textbench [cell_w cell_h loops]`.
+- Added `lcd text [cell_w cell_h]` to draw one pseudo-text screen and leave it visible.
+- Updated the README command list.
+- Built, flashed, and benchmarked the firmware.
+
+### Why
+
+Solid fills and row fills estimate transport performance, but a text UI also needs CPU-side glyph expansion. A row-batched pseudo-text benchmark approximates the future renderer shape without committing to a real font yet. It answers whether row-sized glyph generation plus SPI transfer is plausible for an interactive terminal.
+
+### What worked
+
+- Firmware build succeeded.
+- Flash through tmux monitor succeeded.
+- LCD initialized at actual 80 MHz.
+- Pseudo-text benchmarks completed:
+
+```text
+lcd textbench cell_w=8 cell_h=16 cols=40 rows=20 loops=20 elapsed_ms=935 screens_s=21 cells_s=17112 payload_kib_s=4278 requested=80000000 actual_khz=80000
+lcd textbench cell_w=8 cell_h=8 cols=40 rows=40 loops=20 elapsed_ms=980 screens_s=20 cells_s=32653 payload_kib_s=4081 requested=80000000 actual_khz=80000
+lcd text cell_w=8 cell_h=16 cols=40 rows=20 loops=1 elapsed_ms=46 screens_s=21 cells_s=17391 payload_kib_s=4347 requested=80000000 actual_khz=80000
+```
+
+### What didn't work
+
+- No build or runtime failure occurred in this step.
+- The pseudo-glyphs are not a real font; they are deliberately synthetic and only model glyph-like pixel density and row batching.
+
+### What I learned
+
+- A 40×20 pseudo-text screen at 8×16 cells renders at about 21 screens/s.
+- A 40×40 pseudo-text screen at 8×8 cells also renders at about 20 screens/s because it still covers the whole 320×320 display and doubles the row-command count.
+- Row-batched text rendering is plausible for interactive UI work, but a production renderer should avoid full-screen redraws for every keypress.
+- Dirty row batching plus selective cell updates will likely be the right next architecture.
+
+### What was tricky to build
+
+The pseudo-text row buffer must fit within the 32 KiB DMA chunk. A 320×16 RGB565 row is 10,240 bytes, which fits comfortably. The code therefore generates one row at a time instead of a full 204,800-byte frame. That matches a terminal renderer's natural update unit and avoids allocating a full internal framebuffer.
+
+The benchmark also separates text-like rendering from real font design. The pseudo-glyph function is intentionally not a compatibility layer or font implementation; it is a workload model so performance decisions can be made before choosing the real glyph source.
+
+### What warrants a second pair of eyes
+
+- Whether 8×16 should remain the default PicoCalc text cell size.
+- Whether the pseudo-text screen currently left visible is crisp and stable.
+- Whether a production renderer should use per-row dirty tracking, per-cell dirty tracking, or hardware scroll commands.
+
+### What should be done in the future
+
+- Replace pseudo-glyph generation with a real bitmap font path.
+- Add dirty row/cell tracking around the text renderer.
+- Investigate ST7365P/ILI9488 vertical scroll commands for terminal scrolling.
+- Consider queued DMA after the real renderer identifies whether row transfer time or CPU glyph generation dominates.
+
+### Code review instructions
+
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `pseudo_glyph_pixel()`;
+  - `lcd_text_row()`;
+  - `lcd_text_screen()`;
+  - `lcd textbench` / `lcd text` command handling.
+- Validate with:
+
+```text
+lcd textbench 8 16 20
+lcd textbench 8 8 20
+lcd text 8 16
+```
+
+### Technical details
+
+Current pseudo-text baseline at actual 80 MHz:
+
+```text
+40x20 cells, 8x16: 21 screens/s, 17112 cells/s
+40x40 cells, 8x8: 20 screens/s, 32653 cells/s
+single 40x20 draw: 46 ms
+```
+
+The display is currently left on `lcd text 8 16`. Please confirm whether the pseudo-text-like pattern is stable and crisp.

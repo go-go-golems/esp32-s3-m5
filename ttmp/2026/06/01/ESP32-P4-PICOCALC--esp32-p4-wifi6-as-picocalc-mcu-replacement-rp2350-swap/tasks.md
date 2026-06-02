@@ -15,6 +15,8 @@
 - [x] LCD throughput: add checker/stripe/diagonal pattern tests
 - [x] LCD throughput: add dirty-rectangle benchmark command
 - [x] LCD throughput: add terminal-cell, row, and scroll benchmarks
+- [x] LCD throughput: visual confirmation of checker/pattern/terminal benchmark output
+- [x] LCD throughput: add text-render/glyph-like benchmark path
 - [ ] LCD throughput: evaluate queued DMA transfers after visual baseline is confirmed
 - [ ] Verify ESP32-P4 chip revision on Waveshare board (needs ≥ v3.1 for current ESP-IDF)
 - [ ] Test I²C bus sharing: 10 kHz keyboard southbridge + ES8311 codec on same bus

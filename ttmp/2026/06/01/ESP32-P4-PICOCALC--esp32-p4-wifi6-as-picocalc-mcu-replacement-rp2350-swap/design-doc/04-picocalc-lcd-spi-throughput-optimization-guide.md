@@ -57,6 +57,9 @@ Observed benchmark at actual 80 MHz:
 | Terminal-row benchmark added | `lcd rowbench 16 200` | 546 rows/s |
 | Scroll-style redraw benchmark added | `lcd scrollbench 16 20` | 27 scrolls/s, 546 row updates/s |
 | Scroll-style redraw benchmark added | `lcd scrollbench 8 20` | 18 scrolls/s, 759 row updates/s |
+| Row-batched pseudo-text benchmark added | `lcd textbench 8 16 20` | 21 screens/s, 17,112 cells/s |
+| Row-batched pseudo-text benchmark added | `lcd textbench 8 8 20` | 20 screens/s, 32,653 cells/s |
+| Row-batched pseudo-text draw added | `lcd text 8 16` | 46 ms/screen |
 
 The next improvements should focus on queued DMA transfers, dirty rectangles, and higher-level frame composition rather than higher SPI clocks.
 
@@ -195,6 +198,9 @@ lcd cellbench 8 16 1000
 lcd rowbench 16 200
 lcd scrollbench 16 20
 lcd scrollbench 8 20
+lcd textbench 8 16 20
+lcd textbench 8 8 20
+lcd text 8 16
 status
 ```
 
@@ -214,6 +220,9 @@ lcd cellbench w=8 h=16 loops=1000 elapsed_ms=829 rects_s=1206 payload_kib_s=301 
 lcd rowbench h=16 loops=200 elapsed_ms=366 rows_s=546 payload_kib_s=5464 requested=80000000 actual_khz=80000
 lcd scrollbench row_h=16 rows=20 loops=20 elapsed_ms=732 scrolls_s=27 row_updates_s=546 payload_kib_s=5464 requested=80000000 actual_khz=80000
 lcd scrollbench row_h=8 rows=40 loops=20 elapsed_ms=1054 scrolls_s=18 row_updates_s=759 payload_kib_s=3795 requested=80000000 actual_khz=80000
+lcd textbench cell_w=8 cell_h=16 cols=40 rows=20 loops=20 elapsed_ms=935 screens_s=21 cells_s=17112 payload_kib_s=4278 requested=80000000 actual_khz=80000
+lcd textbench cell_w=8 cell_h=8 cols=40 rows=40 loops=20 elapsed_ms=980 screens_s=20 cells_s=32653 payload_kib_s=4081 requested=80000000 actual_khz=80000
+lcd text cell_w=8 cell_h=16 cols=40 rows=20 loops=1 elapsed_ms=46 screens_s=21 cells_s=17391 payload_kib_s=4347 requested=80000000 actual_khz=80000
 status ... lcd_actual_khz=80000 lcd_dma_chunk=32768 lcd_dma_buf=32768
 ```
 
@@ -267,7 +276,8 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add a patterned test command that alternates checkerboard, diagonal lines, and text-like stripe patterns. Solid fills are good throughput tests but weak signal-integrity tests.
 - [x] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
 - [x] Add terminal-cell, row, and scroll-specific benchmark commands.
-- [ ] Add a line-buffer/blit path for arbitrary RGB565 pixels, not only solid-color fills.
+- [x] Add a row-batched pseudo-text benchmark path for glyph-like RGB565 pixels.
+- [ ] Add a production line-buffer/blit path for real font glyphs and arbitrary RGB565 pixels.
 - [ ] Evaluate queued transactions using `spi_device_queue_trans()` / `spi_device_get_trans_result()` for large pixel streams.
 - [ ] Decide whether to migrate the low-level panel path to `esp_lcd_panel_io_spi`, or keep the manual command/data path for control and simplicity.
 - [ ] If artifacts appear at 80 MHz, characterize stable speeds on the same-position GPIO-matrix wiring: 80 MHz, actual 60 MHz, 40 MHz, and 20 MHz.

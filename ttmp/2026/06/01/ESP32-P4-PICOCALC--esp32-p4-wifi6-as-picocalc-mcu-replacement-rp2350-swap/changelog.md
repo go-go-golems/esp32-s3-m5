@@ -121,3 +121,13 @@ Added LCD terminal workload benchmarks to 0099 and measured cell, row, and scrol
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — cellbench
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated terminal workload benchmark results and task status
 
+
+## 2026-06-01
+
+Added row-batched pseudo-text LCD benchmark to 0099, reaching about 21 full 40x20 pseudo-text screens/s at actual 80 MHz (code commit 749f254162cc774f23eac26dca8272ae8a4fe744).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — pseudo-glyph row batching and textbench command implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated pseudo-text benchmark results and task status
+
