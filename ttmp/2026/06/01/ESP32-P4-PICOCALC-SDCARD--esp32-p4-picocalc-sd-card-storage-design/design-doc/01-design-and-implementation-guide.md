@@ -88,15 +88,15 @@ The ESP32-P4 SDMMC host requires an external IO voltage supply via the `VDDPST_5
 
 The original PicoCalc RP2040/RP2350 firmware uses SPI0 for SD card access:
 
-| Signal | RP2040 GPIO | Pico Physical Pin |
-|---|---|---|
-| MISO | GP16 | Pin 21 |
-| CS | GP17 | Pin 22 |
-| SCK | GP18 | Pin 24 |
-| MOSI | GP19 | Pin 25 |
-| CD (Card Detect) | GP22 | Pin 29 |
+| Signal | RP2040 GPIO | Pico Physical Pin | ESP32-P4 GPIO (same-position) |
+|---|---|---|---|
+| MISO | GP16 | Pin 21 | GPIO48 |
+| CS | GP17 | Pin 22 | GPIO47 |
+| SCK | GP18 | Pin 24 | GPIO46 |
+| MOSI | GP19 | Pin 25 | GPIO33 |
+| CD (Card Detect) | GP22 | Pin 29 | GPIO26 |
 
-With the same-position adapter, each RP2040 physical pin position maps to an ESP32-P4 GPIO. The exact mapping for pins 21, 22, 24, 25, and 29 must be discovered from the Waveshare ESP32-P4-WIFI6 pinout diagram or tested physically.
+With the same-position adapter, each RP2040 physical pin position maps to a specific ESP32-P4 GPIO. The full pin map is documented in `ESP32-P4-PICOCALC` ticket design doc `03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md`. The PicoCalc SD card pins map as follows:
 
 The PicoCalc SD card uses SPI mode, not SDMMC mode. In ESP-IDF, this requires the SDSPI host driver instead of the SDMMC host driver.
 
@@ -222,7 +222,8 @@ Discover the same-position adapter GPIO mapping for the PicoCalc SD card pins, t
 
 Steps:
 
-1. Identify ESP32-P4 GPIO numbers for physical pin positions 21, 22, 24, 25, and 29 on the Waveshare header.
+1. Define pin constants using the validated same-position adapter mapping:
+   - SD_MISO = GPIO48, SD_CS = GPIO47, SD_SCK = GPIO46, SD_MOSI = GPIO33, SD_CD = GPIO26
 2. Define pin constants.
 3. Initialize SPI3 bus with the discovered pins.
 4. Configure SDSPI host using `sdspi_host_init()` and `sdspi_host_init_device()`.
@@ -237,7 +238,7 @@ Acceptance criteria:
 - Card detect pin reflects insertion status.
 - No conflicts with LCD SPI2, keyboard I2C, or SDMMC.
 
-Key risk: pin discovery may require physical probing if the Waveshare pinout diagram does not provide position-to-GPIO mapping.
+Key risk: the same-position adapter mapping (GPIO48/47/46/33/26) must be verified with a continuity test on the actual adapter before relying on it in production. The mapping is derived from the pin map document and has not yet been probed physically for the SD card pins specifically (only LCD and keyboard pins have been validated in firmware).
 
 ### Phase 3: SD benchmark
 
@@ -383,11 +384,11 @@ Research sources stored in `sources/`:
 
 ## Open questions
 
-1. What are the ESP32-P4 GPIO numbers for the PicoCalc SD card SPI pins (same-position adapter mapping for physical pins 21, 22, 24, 25, 29)?
+1. Has the same-position adapter SD card mapping (GPIO48/47/46/33/26) been verified with a continuity test on the physical adapter?
 2. Does the `0098` webserver firmware already have working SDMMC initialization code that can be reused?
 3. Can SDMMC Slot 1 and ESP-Hosted SDIO Slot 0 coexist if Wi-Fi is later added to `0099`?
 4. What is the actual throughput of the Waveshare SDMMC slot in 4-bit high-speed mode?
-5. Is the PicoCalc card detect line connected on the same-position adapter?
+5. Is the PicoCalc card detect line (GPIO26) connected on the same-position adapter and does it reflect card insertion correctly?
 
 ## References
 

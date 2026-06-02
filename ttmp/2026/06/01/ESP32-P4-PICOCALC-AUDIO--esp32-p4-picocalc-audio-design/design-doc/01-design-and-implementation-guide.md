@@ -98,8 +98,8 @@ The original PicoCalc has dual speakers driven by PWM:
 
 | Signal | RP2040 GPIO | Pico Physical Pin |
 |---|---|---|
-| Speaker Left | GP26 | Pin 31 |
-| Speaker Right | GP27 | Pin 30 |
+| Speaker Left | GP26 | Pin 31 | GPIO23 |
+| Speaker Right | GP27 | Pin 30 | GPIO22 |
 
 The PicoCalc V2.0 schematic shows:
 
@@ -107,7 +107,7 @@ The PicoCalc V2.0 schematic shows:
 - PWM source at approximately 1.6 kHz low-pass filtered.
 - Output power: 0.5W per channel at 8Ω.
 
-With the same-position adapter, physical pins 30 and 31 map to ESP32-P4 GPIOs that need discovery. The ESP32-P4 LEDC (LED PWM Controller) peripheral can generate PWM signals suitable for audio output.
+With the same-position adapter, physical pins 30 and 31 map to ESP32-P4 GPIO23 (audio L) and GPIO22 (audio R) respectively. The full pin map is documented in the `ESP32-P4-PICOCALC` ticket design doc `03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md`. The ESP32-P4 LEDC (LED PWM Controller) peripheral can generate PWM signals on these GPIOs suitable for audio output.
 
 ### ESP32-P4 I2S peripheral
 
@@ -317,14 +317,17 @@ Discover the PicoCalc PWM speaker GPIOs and implement LEDC PWM audio.
 
 Steps:
 
-1. Discover ESP32-P4 GPIOs for PicoCalc speaker pins (same-position adapter).
+1. Define pin constants: AUDIO_PWM_L = GPIO23, AUDIO_PWM_R = GPIO22.
 2. Configure LEDC channels for PWM output at audio-appropriate frequencies.
 3. Implement delta-sigma or PWM audio generation.
 4. Add `audio init pwm` command.
 
-Pseudocode for PWM audio output:
+Pseudocode for PWM audio output on GPIO23 (left) and GPIO22 (right):
 
 ```c
+#define AUDIO_PWM_L_GPIO 23
+#define AUDIO_PWM_R_GPIO 22
+
 void pwm_audio_write(const int16_t *samples, size_t count) {
     for (size_t i = 0; i < count; i++) {
         // Convert 16-bit PCM to duty cycle (0-100%)
@@ -406,9 +409,9 @@ Mitigation: use large enough DMA buffers (e.g., 8 × 1 KiB). The I2S and SPI2 pe
 
 Mitigation: check that GPIO53 is not used for any other purpose in the `0099` firmware. On the DEV-KIT variant, GPIO53 appears at header pin 27 and is noted as the speaker PA enable pin.
 
-### Risk: PicoCalc PWM speaker GPIOs unknown
+### Risk: PicoCalc PWM speaker GPIOs not yet validated in firmware
 
-Mitigation: defer PWM audio implementation until the same-position adapter mapping is discovered for pins 30 and 31.
+Mitigation: the same-position adapter mapping (GPIO23/GPIO22) is derived from the validated pin map document. Verify with a continuity test or LED blink on these GPIOs before implementing full PWM audio.
 
 ### Risk: ES8311 initialization sequence is complex
 
@@ -505,7 +508,7 @@ Research sources stored in `sources/`:
 
 ## Open questions
 
-1. What are the ESP32-P4 GPIO numbers for the PicoCalc PWM speaker pins (same-position adapter mapping for physical pins 30 and 31)?
+1. Have the PicoCalc PWM speaker GPIOs (GPIO23/GPIO22) been verified with a continuity test on the physical adapter?
 2. Does the ES8311 I2C bus (GPIO7/8) conflict with any existing peripheral in `0099`?
 3. What is the maximum sample rate achievable without I2S underruns while LCD SPI2 is active?
 4. Is the MEMS microphone path needed for the PicoCalc use case?

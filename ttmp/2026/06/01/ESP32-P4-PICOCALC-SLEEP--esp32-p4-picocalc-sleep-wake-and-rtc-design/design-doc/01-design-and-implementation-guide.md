@@ -569,12 +569,12 @@ Research sources stored in `sources/`:
 
 ## Open questions
 
-1. Does the STM32 southbridge have a hardware interrupt output pin connected to the ESP32-P4 through the same-position adapter?
+1. Does the STM32 southbridge have a hardware interrupt output pin connected to the ESP32-P4 through the same-position adapter? GPIO22/GPIO23 (PicoCalc audio pins) could serve as wake sources if wired to an STM32 interrupt output, but this needs hardware verification.
 2. What is the current consumption of the ESP32-P4 in light sleep vs deep sleep on the Waveshare board?
 3. Is an RTC battery installed in the Waveshare board's RTC battery header?
 4. What is the wake latency from deep sleep on the Waveshare ESP32-P4-WIFI6 board?
 5. Can PSRAM be retained during deep sleep for framebuffer preservation?
-6. What is the STM32 register `0x03` (interrupt status) format, and can it be used to detect pending keyboard events after wake?
+6. What is the STM32 register `0x03` (interrupt status) format, and can it be used to detect pending keyboard events after wake? Could the interrupt output be routed to GPIO22 or GPIO23 via the adapter?
 
 ## References
 

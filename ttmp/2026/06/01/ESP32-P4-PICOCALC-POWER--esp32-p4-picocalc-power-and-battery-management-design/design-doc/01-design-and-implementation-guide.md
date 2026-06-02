@@ -62,7 +62,7 @@ Out of scope for the first implementation:
 
 ### PicoCalc power architecture
 
-The PicoCalc uses an 18650 Li-ion battery cell for portable power. The battery management system differs between hardware revisions:
+The PicoCalc uses an 18650 Li-ion battery cell for portable power. The full same-position adapter pin map is documented in the `ESP32-P4-PICOCALC` ticket design doc `03-full-rpico-socket-to-waveshare-esp32-p4-pin-map.md`. The battery management system differs between hardware revisions:
 
 **PicoCalc V1/V2 (RP2040):** Uses a TP4056 linear charger and a 3.3V LDO regulator. Battery status is minimal — the firmware reads battery voltage through an ADC or through the STM32 southbridge.
 
