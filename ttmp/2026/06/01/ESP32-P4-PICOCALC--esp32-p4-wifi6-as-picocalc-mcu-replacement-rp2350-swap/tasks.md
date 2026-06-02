@@ -18,9 +18,10 @@
 - [x] LCD throughput: visual confirmation of checker/pattern/terminal benchmark output
 - [x] LCD throughput: add text-render/glyph-like benchmark path
 - [x] LCD performance: add repeatable perf suite with render-vs-transfer timing
-- [ ] LCD optimization: implement queued SPI transfer path using `spi_device_queue_trans()` / `spi_device_get_trans_result()`
-- [ ] LCD optimization: add double-buffered row renderer so CPU can render buffer B while SPI transfers buffer A
-- [ ] LCD optimization: add `lcd perf queued` comparison against current polling-transfer `lcd perf full`
+- [x] LCD optimization: implement queued SPI transfer path using `spi_device_queue_trans()` / `spi_device_get_trans_result()`
+- [x] LCD optimization: add double-buffered row renderer so CPU can render buffer B while SPI transfers buffer A
+- [x] LCD optimization: add `lcd perf queued` comparison against current polling-transfer `lcd perf full`
+- [ ] LCD optimization: operator visual confirmation of queued pseudo-text output
 - [ ] LCD optimization: measure queued transfer impact for solid fills, generated patterns, row updates, and pseudo-text rows separately
 - [ ] LCD optimization: keep current polling path as a baseline until queued path is measured and visually confirmed
 - [ ] LCD optimization: replace pseudo-glyph generator with a real bitmap font renderer

@@ -19,16 +19,19 @@ RelatedFiles:
       Note: |-
         Operator-facing command list and current benchmark summary
         Operator-facing notes for LCD speed and throughput benchmark behavior
+        Operator documentation for lcd textqueued and lcd perf queued (commit e91b3e5)
     - Path: 0099-esp32-p4-picocalc-display-keyboard/main/app_main.c
       Note: |-
         Lean ESP32-P4 PicoCalc LCD/keyboard firmware; contains SPI clock, DMA buffer, benchmark, and console-command implementation
         LCD SPI clock source
+        Queued LCD row-payload transfer and double-buffered pseudo-text benchmark (commit e91b3e5)
 ExternalSources: []
 Summary: Analysis and task plan for maximizing PicoCalc LCD throughput on the same-position Waveshare ESP32-P4 adapter
 LastUpdated: 2026-06-01T19:50:00-04:00
 WhatFor: Explain why the LCD clock is capped at 80 MHz, where display time is still being spent, and which optimizations to implement next
 WhenToUse: Use when continuing display performance work, comparing benchmark runs, or deciding whether the physical adapter needs a new LCD routing
 ---
+
 
 
 # PicoCalc LCD SPI throughput optimization guide
@@ -65,8 +68,10 @@ Observed benchmark at actual 80 MHz:
 | Repeatable perf suite added | `lcd perf full` text8x16 | 20 screens/s; render 477 ms, transfer 476 ms over 20 screens |
 | Repeatable perf suite added | `lcd perf full` cell8x16 | 1207 updates/s |
 | Repeatable perf suite added | `lcd perf full` row320x16 | 546 updates/s |
+| Queued row transfer added | `lcd perf queued` text8x16-poll | 950 ms / 20 screens; render 461 ms, transfer 476 ms |
+| Queued row transfer added | `lcd perf queued` text8x16-queued | 568 ms / 20 screens; render 463 ms, window 59 ms, wait 21 ms; 35 screens/s |
 
-The next improvements should focus on queued DMA transfers, dirty rectangles, and higher-level frame composition rather than higher SPI clocks.
+The queued pseudo-text row path shows that overlapping row rendering with one in-flight row-payload DMA transaction can improve full pseudo-text redraw throughput substantially. The next improvements should verify the queued output visually, extend queued measurements to non-text workloads, and then focus on dirty rectangles and higher-level frame composition rather than higher SPI clocks.
 
 ## Problem statement and scope
 
@@ -289,13 +294,14 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add terminal-cell, row, and scroll-specific benchmark commands.
 - [x] Add a row-batched pseudo-text benchmark path for glyph-like RGB565 pixels.
 - [x] Add a repeatable `lcd perf` / `lcd perf full` suite with comparable metrics and text render-vs-transfer split timing.
+- [x] Add queued row-payload SPI transfers with `spi_device_queue_trans()` and `spi_device_get_trans_result()`.
+- [x] Add double-buffered pseudo-text row rendering so the CPU can render buffer B while SPI transfers buffer A.
+- [x] Add `lcd perf queued` to compare polling and queued text redraws in the same firmware build.
 
 ### Next task backlog — transfer-side optimization
 
-- [ ] Implement a queued SPI transfer path using `spi_device_queue_trans()` and `spi_device_get_trans_result()`.
+- [ ] Ask the operator to visually confirm `lcd perf queued` / `lcd textqueued 8 16 20` output.
 - [ ] Keep the current polling-transfer path as the baseline until queued transfer is measured and visually confirmed.
-- [ ] Add double-buffered row rendering: render into buffer B while SPI transfers buffer A.
-- [ ] Add `lcd perf queued` or equivalent comparison command against current `lcd perf full`.
 - [ ] Measure queued transfer impact separately for solid fills, generated patterns, row updates, pseudo-text rows, and mixed dirty regions.
 - [ ] Decide whether queued DMA improves real workloads enough to justify the extra buffer-lifetime complexity.
 
@@ -400,21 +406,32 @@ These benchmarks should report updates per second and bytes per second.
 
 ### Phase D: evaluate queued DMA
 
-The current optimized path still uses `spi_device_polling_transmit()`. That is simple and already near the wire-rate limit for full-screen fills. Queuing may help when preparing the next buffer while the current buffer is in flight, but it requires either multiple DMA buffers or strict buffer reuse discipline.
+The first queued experiment has been implemented for pseudo-text rows. It keeps LCD command/window setup on the existing polling path, then queues only the row pixel payload while DC is high. The next row is rendered into the other internal DMA-capable row buffer while the current row payload is in flight. Before the firmware changes the LCD window or toggles DC for the next row, it waits for the queued payload to complete with `spi_device_get_trans_result()`.
+
+This preserves the important DC invariant: no GPIO DC transition may occur while an in-flight queued transaction still depends on DC being high for pixel data. It also avoids reusing a DMA buffer until the corresponding queued transaction has completed.
+
+Measured result at actual 80 MHz:
+
+```text
+lcd perf case=text8x16-poll loops=20 elapsed_ms=950 render_ms=461 transfer_ms=476 screens_s=21 cells_s=16841 payload_kib_s=4210
+lcd perf case=text8x16-queued loops=20 elapsed_ms=568 render_ms=463 window_ms=59 wait_ms=21 screens_s=35 cells_s=28152 payload_kib_s=7038
+```
+
+The result is promising because the queued path has nearly the same render time but much lower wall-clock time. The remaining measured wait time is small because most pixel transfer time overlaps with rendering the next row. This still needs operator visual confirmation because queued transfers can make display corruption harder to diagnose than the polling baseline.
 
 For solid-color fills, reusing the same immutable DMA buffer across queued transactions is safe. For arbitrary pixel data, queuing needs at least double buffering:
 
 ```c
 prepare(buffer_a);
+set_window_for_a();
 queue(buffer_a);
 prepare(buffer_b);
-queue(buffer_b);
 wait(buffer_a);
-prepare(buffer_a);
-queue(buffer_a);
+set_window_for_b();
+queue(buffer_b);
 ```
 
-Risk: queueing can make visual bugs harder to diagnose. It should be introduced only after the simple 32 KiB polling baseline is visually confirmed.
+Risk: queueing can make visual bugs harder to diagnose. Keep the simple 32 KiB polling path as a baseline until the queued output is visually confirmed and more workloads are measured.
 
 ### Phase E: application-level optimization
 

@@ -2056,3 +2056,119 @@ The current baseline to beat is:
 ```text
 lcd perf case=text8x16 loops=20 elapsed_ms=955 render_ms=477 transfer_ms=476 screens_s=20 cells_s=16744 payload_kib_s=4186
 ```
+
+## Step 16: Queued SPI Row Transfer Benchmark Implemented
+
+Implemented the first queued LCD transfer experiment in the lean `0099` display+keyboard firmware. The change keeps the existing polling command/window setup as the baseline but queues row pixel payloads with `spi_device_queue_trans()` so the firmware can render the next pseudo-text row while the current row is transferring.
+
+The benchmark result is promising: `lcd perf queued` improved the 8×16 pseudo-text screen workload from roughly 950 ms for 20 screens on the polling path to 568 ms for 20 screens on the queued/double-buffered row path. This result still needs operator visual confirmation because queued payloads can hide DC/window ordering mistakes that do not necessarily show up as SPI API errors.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue from the previous ticket backlog work by starting the next highest-priority LCD optimization task.
+
+**Inferred user intent:** The user wants the remaining LCD optimization backlog to move from planning into implementation, benchmark evidence, and ticket documentation.
+
+**Commit (code):** e91b3e5 — "0099: add queued LCD text benchmark"
+
+### What I did
+
+- Added two internal DMA-capable row buffers for queued/double-buffered text-row rendering in `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`.
+- Added `lcd_render_text_row_to_buffer()` to share pseudo-text row generation between polling and queued paths.
+- Added `lcd_text_screen_queued_timed()` using `spi_device_queue_trans()` and `spi_device_get_trans_result()`.
+- Kept LCD command/window setup on the polling path and queued only row pixel payloads while DC is high.
+- Added `lcd textqueued [cell_w cell_h loops]` for direct queued pseudo-text benchmarking.
+- Added `lcd perf queued` to compare `text8x16-poll` and `text8x16-queued` in one firmware run.
+- Updated `0099-esp32-p4-picocalc-display-keyboard/README.md` with the new commands.
+- Built the firmware with ESP-IDF v5.4.2:
+  - `cd 0099-esp32-p4-picocalc-display-keyboard && . $HOME/esp/esp-idf-5.4.2/export.sh >/tmp/esp-idf-export-0099.log 2>&1 && idf.py build`
+- Checked serial ownership before flashing:
+  - `lsof /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`
+  - `lsof /dev/ttyACM1`
+- Found the existing `0099_p4_dk_monitor` tmux monitor owning the port and used its `Ctrl-T A` app-flash shortcut instead of starting a competing serial session.
+- Ran `lcd perf queued` from the monitor.
+- Updated `tasks.md` and the LCD throughput optimization guide with the queued-row result and remaining visual-confirmation follow-up.
+
+### Why
+
+The previous `lcd perf full` baseline showed the pseudo-text workload split almost evenly between rendering and transfer time. That made it a good candidate for overlap: if the next row can render while the current row transfers, wall-clock full-screen text redraw time should improve without raising SPI clock speed above the validated 80 MHz ceiling.
+
+### What worked
+
+- The build passed cleanly.
+- App-flash via the existing tmux monitor worked and avoided serial port contention.
+- The queued benchmark ran without SPI errors, watchdog warnings, or heap failures.
+- The queued path allocated two 10,240-byte internal DMA row buffers for 320×16 RGB565 rows.
+- Benchmark output:
+
+```text
+lcd perf case=text8x16-poll loops=20 elapsed_ms=950 render_ms=461 transfer_ms=476 screens_s=21 cells_s=16841 payload_kib_s=4210
+lcd perf case=text8x16-queued loops=20 elapsed_ms=568 render_ms=463 window_ms=59 wait_ms=21 screens_s=35 cells_s=28152 payload_kib_s=7038
+```
+
+- The queued path improved pseudo-text throughput from about 21 screens/s to 35 screens/s in this run.
+
+### What didn't work
+
+- No functional failure occurred during build, flash, or `lcd perf queued`.
+- There was one expected monitor reconnect period during app-flash; the monitor recovered after hard reset.
+- Visual correctness is not yet confirmed by the operator for the queued output.
+
+### What I learned
+
+- Queuing only the pixel payload is a safer first step than queuing command/data/window transactions together because the LCD DC line is controlled by GPIO outside the SPI transaction descriptor.
+- The key invariant is: do not change DC or send the next window command until the queued pixel payload that depends on DC-high has completed.
+- With one row payload in flight, most transfer time can overlap with rendering the next row; the benchmark's remaining queued wait time was only 21 ms across 20 full screens.
+
+### What was tricky to build
+
+The tricky part was preserving LCD command/data ordering while using the asynchronous SPI queue. The SPI driver queues bytes, but the DC pin is not encoded per transaction in the current manual driver path. If the firmware queued a pixel payload and then immediately changed DC low for the next command, the in-flight payload could be interpreted incorrectly by the panel.
+
+The solution was to queue only the row pixel payload, render the next row while the payload is in flight, and then call `spi_device_get_trans_result()` before changing the LCD window for the next row. This gives overlap without violating the DC-high requirement for pixel data.
+
+### What warrants a second pair of eyes
+
+- Review `lcd_text_screen_queued_timed()` for transaction lifetime correctness: the queued `spi_transaction_t` objects and DMA buffers must remain valid until `spi_device_get_trans_result()` returns.
+- Review the DC/window ordering invariant: no command/window update should occur before the previous queued pixel payload completes.
+- Confirm the benchmark accounting is clear: queued `window_ms` and `wait_ms` are not directly equivalent to polling `transfer_ms` because most payload transfer time overlaps with render time.
+
+### What should be done in the future
+
+- Ask the operator to confirm the queued pseudo-text output is visually correct.
+- Extend queued measurements to solid fills, generated patterns, row updates, and mixed dirty-region workloads.
+- Keep the polling path as the correctness baseline until the queued path has visual confirmation and broader workload coverage.
+- Consider a dedicated display task after the queued transfer contract is stable.
+
+### Code review instructions
+
+- Start with `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `lcd_ensure_row_buffers()`
+  - `lcd_render_text_row_to_buffer()`
+  - `lcd_text_screen_queued_timed()`
+  - `lcd textqueued` command branch
+  - `lcd perf queued` branch
+- Then read `0099-esp32-p4-picocalc-display-keyboard/README.md` for operator-facing command docs.
+- Validate with:
+  - `cd 0099-esp32-p4-picocalc-display-keyboard && . $HOME/esp/esp-idf-5.4.2/export.sh >/tmp/esp-idf-export-0099.log 2>&1 && idf.py build`
+  - flash via the existing tmux monitor if it owns the port;
+  - `lcd perf queued`;
+  - operator visual inspection of the final text screen.
+
+### Technical details
+
+The current queued algorithm intentionally allows only one row payload to be in flight:
+
+```text
+render row N into buffer A
+set LCD window for row N using polling commands
+set DC high
+queue buffer A pixel payload
+render row N+1 into buffer B while row N transfers
+wait for row N queued transaction to complete
+set LCD window for row N+1
+queue buffer B
+```
+
+This does not maximize SPI queue depth, but it preserves the GPIO-controlled DC contract and still overlaps the dominant render/transfer split observed in the pseudo-text benchmark.
