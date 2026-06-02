@@ -71,6 +71,8 @@ static bool s_lcd_initialized = false;
 static int s_lcd_spi_hz = LCD_DEFAULT_SPI_HZ;
 static uint8_t *s_lcd_dma_buf = NULL;
 static size_t s_lcd_dma_buf_len = 0;
+static uint8_t *s_lcd_row_buf[2] = {NULL, NULL};
+static size_t s_lcd_row_buf_len = 0;
 static TaskHandle_t s_kbd_raw_task = NULL;
 static volatile bool s_kbd_raw_enabled = false;
 
@@ -115,6 +117,37 @@ static esp_err_t lcd_ensure_dma_buffer(size_t min_len)
     }
     s_lcd_dma_buf_len = min_len;
     ESP_LOGI(TAG, "LCD DMA buffer allocated: %u bytes", (unsigned)s_lcd_dma_buf_len);
+    return ESP_OK;
+}
+
+static esp_err_t lcd_ensure_row_buffers(size_t min_len)
+{
+    if (s_lcd_row_buf[0] && s_lcd_row_buf[1] && s_lcd_row_buf_len >= min_len) {
+        return ESP_OK;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        if (s_lcd_row_buf[i]) {
+            heap_caps_free(s_lcd_row_buf[i]);
+            s_lcd_row_buf[i] = NULL;
+        }
+    }
+    s_lcd_row_buf_len = 0;
+
+    for (int i = 0; i < 2; i++) {
+        s_lcd_row_buf[i] = (uint8_t *)heap_caps_malloc(min_len, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        if (!s_lcd_row_buf[i]) {
+            for (int j = 0; j <= i; j++) {
+                if (s_lcd_row_buf[j]) {
+                    heap_caps_free(s_lcd_row_buf[j]);
+                    s_lcd_row_buf[j] = NULL;
+                }
+            }
+            return ESP_ERR_NO_MEM;
+        }
+    }
+    s_lcd_row_buf_len = min_len;
+    ESP_LOGI(TAG, "LCD queued row buffers allocated: 2 x %u bytes", (unsigned)s_lcd_row_buf_len);
     return ESP_OK;
 }
 
@@ -480,6 +513,48 @@ static bool pseudo_glyph_pixel(uint8_t ch, uint16_t gx, uint16_t gy, uint16_t ce
     return stroke || vertical || horizontal;
 }
 
+static void lcd_render_text_row_to_buffer(uint8_t *buf, uint16_t width, uint16_t row_h,
+                                          uint16_t cell_w, uint16_t cell_h, uint32_t phase)
+{
+    for (uint16_t py = 0; py < row_h; py++) {
+        for (uint16_t px = 0; px < width; px++) {
+            const uint16_t col = px / cell_w;
+            const uint16_t gx = px % cell_w;
+            const uint8_t ch = (uint8_t)(33 + ((col + phase) % 94));
+            const bool on = pseudo_glyph_pixel(ch, gx, py, cell_w, cell_h);
+            const uint16_t color = on ? 0xffff : 0x0000;
+            const size_t i = ((size_t)py * width + px) * 2;
+            buf[i] = (uint8_t)(color >> 8);
+            buf[i + 1] = (uint8_t)(color & 0xff);
+        }
+    }
+}
+
+static esp_err_t lcd_text_geometry(uint16_t cell_w, uint16_t cell_h, uint16_t rows,
+                                   uint16_t *cols_out, uint16_t *rows_out, uint16_t *width_out)
+{
+    if (cell_w == 0 || cell_h == 0 || rows == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint16_t cols = LCD_WIDTH / cell_w;
+    if (cols == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint16_t width = cols * cell_w;
+    if (width > LCD_WIDTH) {
+        width = LCD_WIDTH;
+        cols = width / cell_w;
+    }
+    const uint16_t max_rows = (LCD_HEIGHT + cell_h - 1) / cell_h;
+    if (rows > max_rows) {
+        rows = max_rows;
+    }
+    if (cols_out) *cols_out = cols;
+    if (rows_out) *rows_out = rows;
+    if (width_out) *width_out = width;
+    return ESP_OK;
+}
+
 static esp_err_t lcd_text_row_timed(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint16_t cols, uint32_t phase,
                                     int64_t *render_us, int64_t *transfer_us)
 {
@@ -505,18 +580,7 @@ static esp_err_t lcd_text_row_timed(uint16_t y, uint16_t cell_w, uint16_t cell_h
 
     ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc text dma buffer");
     int64_t start = esp_timer_get_time();
-    for (uint16_t py = 0; py < row_h; py++) {
-        for (uint16_t px = 0; px < width; px++) {
-            const uint16_t col = px / cell_w;
-            const uint16_t gx = px % cell_w;
-            const uint8_t ch = (uint8_t)(33 + ((col + phase) % 94));
-            const bool on = pseudo_glyph_pixel(ch, gx, py, cell_w, cell_h);
-            const uint16_t color = on ? 0xffff : 0x0000;
-            const size_t i = ((size_t)py * width + px) * 2;
-            s_lcd_dma_buf[i] = (uint8_t)(color >> 8);
-            s_lcd_dma_buf[i + 1] = (uint8_t)(color & 0xff);
-        }
-    }
+    lcd_render_text_row_to_buffer(s_lcd_dma_buf, width, row_h, cell_w, cell_h, phase);
     if (render_us) {
         *render_us += esp_timer_get_time() - start;
     }
@@ -534,17 +598,10 @@ static esp_err_t lcd_text_row_timed(uint16_t y, uint16_t cell_w, uint16_t cell_h
 static esp_err_t lcd_text_screen_timed(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase,
                                        int64_t *render_us, int64_t *transfer_us)
 {
-    if (cell_w == 0 || cell_h == 0 || rows == 0) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    uint16_t cols = LCD_WIDTH / cell_w;
-    if (cols == 0) {
-        return ESP_ERR_INVALID_ARG;
-    }
-    const uint16_t max_rows = (LCD_HEIGHT + cell_h - 1) / cell_h;
-    if (rows > max_rows) {
-        rows = max_rows;
-    }
+    uint16_t cols = 0;
+    uint16_t width = 0;
+    ESP_RETURN_ON_ERROR(lcd_text_geometry(cell_w, cell_h, rows, &cols, &rows, &width), TAG, "text geometry");
+    (void)width;
     for (uint16_t row = 0; row < rows; row++) {
         const uint16_t y = row * cell_h;
         ESP_RETURN_ON_ERROR(lcd_text_row_timed(y, cell_w, cell_h, cols, phase + row, render_us, transfer_us), TAG, "text row");
@@ -555,6 +612,76 @@ static esp_err_t lcd_text_screen_timed(uint16_t cell_w, uint16_t cell_h, uint16_
 static esp_err_t lcd_text_screen(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase)
 {
     return lcd_text_screen_timed(cell_w, cell_h, rows, phase, NULL, NULL);
+}
+
+static esp_err_t lcd_text_screen_queued_timed(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase,
+                                             int64_t *render_us, int64_t *window_us, int64_t *wait_us)
+{
+    if (!s_lcd_initialized) {
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
+    }
+
+    uint16_t cols = 0;
+    uint16_t width = 0;
+    ESP_RETURN_ON_ERROR(lcd_text_geometry(cell_w, cell_h, rows, &cols, &rows, &width), TAG, "queued text geometry");
+    const size_t row_bytes_max = (size_t)width * cell_h * 2;
+    if (row_bytes_max > LCD_FILL_DMA_CHUNK_BYTES) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    ESP_RETURN_ON_ERROR(lcd_ensure_row_buffers(row_bytes_max), TAG, "queued row buffers");
+
+    spi_transaction_t trans[2] = {0};
+    bool have_rendered = false;
+    int current = 0;
+
+    for (uint16_t row = 0; row < rows; row++) {
+        uint16_t row_h = cell_h;
+        const uint16_t y = row * cell_h;
+        if (y + row_h > LCD_HEIGHT) {
+            row_h = LCD_HEIGHT - y;
+        }
+        const size_t row_bytes = (size_t)width * row_h * 2;
+
+        if (!have_rendered) {
+            int64_t start = esp_timer_get_time();
+            lcd_render_text_row_to_buffer(s_lcd_row_buf[current], width, row_h, cell_w, cell_h, phase + row);
+            if (render_us) *render_us += esp_timer_get_time() - start;
+            have_rendered = true;
+        }
+
+        int64_t start = esp_timer_get_time();
+        ESP_RETURN_ON_ERROR(lcd_set_window(0, y, width - 1, y + row_h - 1), TAG, "queued text row window");
+        gpio_set_level(LCD_PIN_DC, 1);
+        if (window_us) *window_us += esp_timer_get_time() - start;
+
+        memset(&trans[current], 0, sizeof(trans[current]));
+        trans[current].length = row_bytes * 8;
+        trans[current].tx_buffer = s_lcd_row_buf[current];
+        ESP_RETURN_ON_ERROR(spi_device_queue_trans(s_lcd, &trans[current], portMAX_DELAY), TAG, "queue text row");
+
+        const bool has_next = row + 1 < rows;
+        const int next = 1 - current;
+        if (has_next) {
+            uint16_t next_h = cell_h;
+            const uint16_t next_y = (row + 1) * cell_h;
+            if (next_y + next_h > LCD_HEIGHT) {
+                next_h = LCD_HEIGHT - next_y;
+            }
+            start = esp_timer_get_time();
+            lcd_render_text_row_to_buffer(s_lcd_row_buf[next], width, next_h, cell_w, cell_h, phase + row + 1);
+            if (render_us) *render_us += esp_timer_get_time() - start;
+        }
+
+        spi_transaction_t *done = NULL;
+        start = esp_timer_get_time();
+        ESP_RETURN_ON_ERROR(spi_device_get_trans_result(s_lcd, &done, portMAX_DELAY), TAG, "wait text row");
+        if (wait_us) *wait_us += esp_timer_get_time() - start;
+        if (done != &trans[current]) {
+            return ESP_ERR_INVALID_STATE;
+        }
+        current = next;
+    }
+    return ESP_OK;
 }
 
 static void lcd_perf_yield_if_needed(int iteration)
@@ -863,7 +990,8 @@ static int cmd_lcd(int argc, char **argv)
                row_h, rows, loops, elapsed_ms, scrolls_s, row_updates_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
         return 0;
     }
-    if (strcmp(argv[1], "textbench") == 0 || strcmp(argv[1], "text") == 0) {
+    if (strcmp(argv[1], "textbench") == 0 || strcmp(argv[1], "text") == 0 || strcmp(argv[1], "textqueued") == 0) {
+        const bool queued_text = strcmp(argv[1], "textqueued") == 0;
         int cell_w = argc >= 3 ? atoi(argv[2]) : 8;
         int cell_h = argc >= 4 ? atoi(argv[3]) : 16;
         int loops = argc >= 5 ? atoi(argv[4]) : (strcmp(argv[1], "text") == 0 ? 1 : 20);
@@ -877,9 +1005,13 @@ static int cmd_lcd(int argc, char **argv)
         const uint16_t rows = (LCD_HEIGHT + (uint16_t)cell_h - 1) / (uint16_t)cell_h;
         int64_t render_us = 0;
         int64_t transfer_us = 0;
+        int64_t window_us = 0;
+        int64_t wait_us = 0;
         int64_t start = esp_timer_get_time();
         for (int loop = 0; loop < loops; loop++) {
-            esp_err_t err = lcd_text_screen_timed((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop, &render_us, &transfer_us);
+            esp_err_t err = queued_text
+                ? lcd_text_screen_queued_timed((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop, &render_us, &window_us, &wait_us)
+                : lcd_text_screen_timed((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop, &render_us, &transfer_us);
             if (err != ESP_OK) {
                 printf("lcd %s err=%s at loop=%d\n", argv[1], esp_err_to_name(err), loop);
                 return 1;
@@ -891,14 +1023,55 @@ static int cmd_lcd(int argc, char **argv)
         const int64_t cells_s = elapsed_ms > 0 ? (cells * 1000) / elapsed_ms : 0;
         const int64_t screens_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
         const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
-        printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
-               argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, render_us / 1000, transfer_us / 1000, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        if (queued_text) {
+            printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " window_ms=%" PRId64 " wait_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+                   argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, render_us / 1000, window_us / 1000, wait_us / 1000, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        } else {
+            printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+                   argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, render_us / 1000, transfer_us / 1000, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        }
         return 0;
     }
     if (strcmp(argv[1], "perf") == 0) {
         const bool full = argc >= 3 && strcmp(argv[2], "full") == 0;
+        const bool queued = argc >= 3 && strcmp(argv[2], "queued") == 0;
         ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "perf init");
-        printf("lcd perf begin mode=%s requested=%d actual_khz=%d dma_chunk=%d\n", full ? "full" : "quick", s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+        printf("lcd perf begin mode=%s requested=%d actual_khz=%d dma_chunk=%d\n", queued ? "queued" : (full ? "full" : "quick"), s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+
+        if (queued) {
+            const int text_loops = 20;
+            int64_t render_us = 0;
+            int64_t transfer_us = 0;
+            int64_t start = esp_timer_get_time();
+            for (int i = 0; i < text_loops; i++) {
+                ESP_RETURN_ON_ERROR(lcd_text_screen_timed(8, 16, 20, (uint32_t)i, &render_us, &transfer_us), TAG, "perf queued polling text");
+                lcd_perf_yield_if_needed(i);
+            }
+            int64_t elapsed_us = esp_timer_get_time() - start;
+            printf("lcd perf case=text8x16-poll loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+                   text_loops, elapsed_us / 1000, render_us / 1000, transfer_us / 1000,
+                   ((int64_t)text_loops * 1000000) / elapsed_us,
+                   ((int64_t)40 * 20 * text_loops * 1000000) / elapsed_us,
+                   (((int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * text_loops * 1000000) / 1024) / elapsed_us);
+
+            render_us = 0;
+            int64_t window_us = 0;
+            int64_t wait_us = 0;
+            start = esp_timer_get_time();
+            for (int i = 0; i < text_loops; i++) {
+                ESP_RETURN_ON_ERROR(lcd_text_screen_queued_timed(8, 16, 20, (uint32_t)i, &render_us, &window_us, &wait_us), TAG, "perf queued text");
+                lcd_perf_yield_if_needed(i);
+            }
+            elapsed_us = esp_timer_get_time() - start;
+            printf("lcd perf case=text8x16-queued loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " window_ms=%" PRId64 " wait_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+                   text_loops, elapsed_us / 1000, render_us / 1000, window_us / 1000, wait_us / 1000,
+                   ((int64_t)text_loops * 1000000) / elapsed_us,
+                   ((int64_t)40 * 20 * text_loops * 1000000) / elapsed_us,
+                   (((int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * text_loops * 1000000) / 1024) / elapsed_us);
+            ESP_RETURN_ON_ERROR(lcd_text_screen(8, 16, 20, 0), TAG, "perf queued final text");
+            printf("lcd perf end mode=queued\n");
+            return 0;
+        }
 
         const int fill_loops = full ? 20 : 10;
         int64_t start = esp_timer_get_time();
@@ -984,7 +1157,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd perf [quick|full] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd perf [quick|full|queued] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd textqueued [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
