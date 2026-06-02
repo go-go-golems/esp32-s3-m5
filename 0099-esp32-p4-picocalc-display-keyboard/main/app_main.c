@@ -76,6 +76,8 @@ static size_t s_lcd_row_buf_len = 0;
 static TaskHandle_t s_kbd_raw_task = NULL;
 static volatile bool s_kbd_raw_enabled = false;
 
+static void lcd_perf_yield_if_needed(int iteration);
+
 static esp_err_t lcd_tx(const void *data, size_t len)
 {
     if (!s_lcd || !data || len == 0) {
@@ -477,6 +479,146 @@ static void lcd_render_moving_rect_to_buffer(uint8_t *buf, uint16_t w, uint16_t 
     }
 }
 
+static void lcd_render_background_rect_to_buffer(uint8_t *buf, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t frame)
+{
+    for (uint16_t py = 0; py < h; py++) {
+        for (uint16_t px = 0; px < w; px++) {
+            const uint16_t sx = x + px;
+            const uint16_t sy = y + py;
+            uint16_t color = (((sx / 16) ^ (sy / 16)) & 1) ? 0x2104 : 0x0000;
+            if (((sx + frame) % 53) == 0 || ((sy + frame) % 47) == 0) {
+                color = 0x4208;
+            }
+            const size_t i = ((size_t)py * w + px) * 2;
+            buf[i] = (uint8_t)(color >> 8);
+            buf[i + 1] = (uint8_t)(color & 0xff);
+        }
+    }
+}
+
+static void lcd_moving_rect_position(uint16_t w, uint16_t h, int frame, uint16_t *x, uint16_t *y)
+{
+    const int max_x = LCD_WIDTH - w;
+    const int max_y = LCD_HEIGHT - h;
+    *x = max_x > 0 ? (uint16_t)((frame * 7) % (max_x + 1)) : 0;
+    *y = max_y > 0 ? (uint16_t)((frame * 5) % (max_y + 1)) : 0;
+}
+
+typedef enum {
+    LCD_DIRTY_OP_BG,
+    LCD_DIRTY_OP_MOVING,
+} lcd_dirty_op_type_t;
+
+typedef struct {
+    uint16_t x;
+    uint16_t y;
+    uint16_t w;
+    uint16_t h;
+    uint32_t frame;
+    lcd_dirty_op_type_t type;
+} lcd_dirty_op_t;
+
+static void lcd_render_dirty_op_to_buffer(uint8_t *buf, const lcd_dirty_op_t *op)
+{
+    if (op->type == LCD_DIRTY_OP_BG) {
+        lcd_render_background_rect_to_buffer(buf, op->x, op->y, op->w, op->h, op->frame);
+    } else {
+        lcd_render_moving_rect_to_buffer(buf, op->w, op->h, op->frame);
+    }
+}
+
+static esp_err_t lcd_blit_dirty_op_poll_timed(const lcd_dirty_op_t *op, int64_t *render_us, int64_t *transfer_us)
+{
+    if (!op || op->x >= LCD_WIDTH || op->y >= LCD_HEIGHT || op->w == 0 || op->h == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (op->x + op->w > LCD_WIDTH || op->y + op->h > LCD_HEIGHT) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const size_t bytes = (size_t)op->w * op->h * 2;
+    if (bytes > LCD_FILL_DMA_CHUNK_BYTES) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc dirty op dma buffer");
+
+    int64_t start = esp_timer_get_time();
+    lcd_render_dirty_op_to_buffer(s_lcd_dma_buf, op);
+    if (render_us) *render_us += esp_timer_get_time() - start;
+
+    start = esp_timer_get_time();
+    ESP_RETURN_ON_ERROR(lcd_set_window(op->x, op->y, op->x + op->w - 1, op->y + op->h - 1), TAG, "dirty op window");
+    gpio_set_level(LCD_PIN_DC, 1);
+    ESP_RETURN_ON_ERROR(lcd_tx(s_lcd_dma_buf, bytes), TAG, "dirty op pixels");
+    if (transfer_us) *transfer_us += esp_timer_get_time() - start;
+    return ESP_OK;
+}
+
+static esp_err_t lcd_blit_dirty_ops_queued_timed(const lcd_dirty_op_t *ops, int op_count,
+                                                 int64_t *render_us, int64_t *window_us, int64_t *wait_us)
+{
+    if (!s_lcd_initialized) {
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
+    }
+    if (!ops || op_count <= 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    size_t max_bytes = 0;
+    for (int i = 0; i < op_count; i++) {
+        if (ops[i].x >= LCD_WIDTH || ops[i].y >= LCD_HEIGHT || ops[i].w == 0 || ops[i].h == 0 ||
+            ops[i].x + ops[i].w > LCD_WIDTH || ops[i].y + ops[i].h > LCD_HEIGHT) {
+            return ESP_ERR_INVALID_ARG;
+        }
+        const size_t bytes = (size_t)ops[i].w * ops[i].h * 2;
+        if (bytes > LCD_FILL_DMA_CHUNK_BYTES) {
+            return ESP_ERR_INVALID_SIZE;
+        }
+        if (bytes > max_bytes) max_bytes = bytes;
+    }
+    ESP_RETURN_ON_ERROR(lcd_ensure_row_buffers(max_bytes), TAG, "queued dirty op buffers");
+
+    spi_transaction_t trans[2] = {0};
+    int current = 0;
+    bool have_rendered = false;
+
+    for (int i = 0; i < op_count; i++) {
+        if (!have_rendered) {
+            int64_t start = esp_timer_get_time();
+            lcd_render_dirty_op_to_buffer(s_lcd_row_buf[current], &ops[i]);
+            if (render_us) *render_us += esp_timer_get_time() - start;
+            have_rendered = true;
+        }
+
+        const size_t bytes = (size_t)ops[i].w * ops[i].h * 2;
+        int64_t start = esp_timer_get_time();
+        ESP_RETURN_ON_ERROR(lcd_set_window(ops[i].x, ops[i].y, ops[i].x + ops[i].w - 1, ops[i].y + ops[i].h - 1), TAG, "queued dirty op window");
+        gpio_set_level(LCD_PIN_DC, 1);
+        if (window_us) *window_us += esp_timer_get_time() - start;
+
+        memset(&trans[current], 0, sizeof(trans[current]));
+        trans[current].length = bytes * 8;
+        trans[current].tx_buffer = s_lcd_row_buf[current];
+        ESP_RETURN_ON_ERROR(spi_device_queue_trans(s_lcd, &trans[current], portMAX_DELAY), TAG, "queue dirty op");
+
+        const int next = 1 - current;
+        if (i + 1 < op_count) {
+            start = esp_timer_get_time();
+            lcd_render_dirty_op_to_buffer(s_lcd_row_buf[next], &ops[i + 1]);
+            if (render_us) *render_us += esp_timer_get_time() - start;
+        }
+
+        spi_transaction_t *done = NULL;
+        start = esp_timer_get_time();
+        ESP_RETURN_ON_ERROR(spi_device_get_trans_result(s_lcd, &done, portMAX_DELAY), TAG, "wait dirty op");
+        if (wait_us) *wait_us += esp_timer_get_time() - start;
+        if (done != &trans[current]) {
+            return ESP_ERR_INVALID_STATE;
+        }
+        current = next;
+    }
+    return ESP_OK;
+}
+
 static esp_err_t lcd_blit_rect_poll_timed(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint32_t frame,
                                           int64_t *render_us, int64_t *transfer_us)
 {
@@ -524,9 +666,6 @@ static esp_err_t lcd_moving_rect_queued_timed(uint16_t w, uint16_t h, int frames
     spi_transaction_t trans[2] = {0};
     int current = 0;
     bool have_rendered = false;
-    const int max_x = LCD_WIDTH - w;
-    const int max_y = LCD_HEIGHT - h;
-
     for (int frame = 0; frame < frames; frame++) {
         if (!have_rendered) {
             int64_t start = esp_timer_get_time();
@@ -535,8 +674,9 @@ static esp_err_t lcd_moving_rect_queued_timed(uint16_t w, uint16_t h, int frames
             have_rendered = true;
         }
 
-        const uint16_t x = max_x > 0 ? (uint16_t)((frame * 7) % (max_x + 1)) : 0;
-        const uint16_t y = max_y > 0 ? (uint16_t)((frame * 5) % (max_y + 1)) : 0;
+        uint16_t x = 0;
+        uint16_t y = 0;
+        lcd_moving_rect_position(w, h, frame, &x, &y);
         int64_t start = esp_timer_get_time();
         ESP_RETURN_ON_ERROR(lcd_set_window(x, y, x + w - 1, y + h - 1), TAG, "queued moving rect window");
         gpio_set_level(LCD_PIN_DC, 1);
@@ -562,6 +702,52 @@ static esp_err_t lcd_moving_rect_queued_timed(uint16_t w, uint16_t h, int frames
             return ESP_ERR_INVALID_STATE;
         }
         current = next;
+    }
+    return ESP_OK;
+}
+
+static int lcd_make_restore_ops(lcd_dirty_op_t *ops, int max_ops, uint16_t w, uint16_t h, int frames)
+{
+    int count = 0;
+    for (int frame = 0; frame < frames; frame++) {
+        if (frame > 0) {
+            if (count >= max_ops) return -1;
+            uint16_t px = 0, py = 0;
+            lcd_moving_rect_position(w, h, frame - 1, &px, &py);
+            ops[count++] = (lcd_dirty_op_t){.x = px, .y = py, .w = w, .h = h, .frame = (uint32_t)frame, .type = LCD_DIRTY_OP_BG};
+        }
+        if (count >= max_ops) return -1;
+        uint16_t x = 0, y = 0;
+        lcd_moving_rect_position(w, h, frame, &x, &y);
+        ops[count++] = (lcd_dirty_op_t){.x = x, .y = y, .w = w, .h = h, .frame = (uint32_t)frame, .type = LCD_DIRTY_OP_MOVING};
+    }
+    return count;
+}
+
+static int lcd_make_mixed_ops(lcd_dirty_op_t *ops, int max_ops, uint16_t w, uint16_t h, int frames, int rects_per_frame)
+{
+    int count = 0;
+    for (int frame = 0; frame < frames; frame++) {
+        for (int r = 0; r < rects_per_frame; r++) {
+            if (count >= max_ops) return -1;
+            const int max_x = LCD_WIDTH - w;
+            const int max_y = LCD_HEIGHT - h;
+            const uint16_t x = max_x > 0 ? (uint16_t)(((frame * 11) + (r * 37)) % (max_x + 1)) : 0;
+            const uint16_t y = max_y > 0 ? (uint16_t)(((frame * 13) + (r * 29)) % (max_y + 1)) : 0;
+            ops[count++] = (lcd_dirty_op_t){.x = x, .y = y, .w = w, .h = h, .frame = (uint32_t)(frame + r * 17), .type = LCD_DIRTY_OP_MOVING};
+        }
+    }
+    return count;
+}
+
+static esp_err_t lcd_dirty_ops_poll_timed(const lcd_dirty_op_t *ops, int op_count, int64_t *render_us, int64_t *transfer_us)
+{
+    if (!s_lcd_initialized) {
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
+    }
+    for (int i = 0; i < op_count; i++) {
+        ESP_RETURN_ON_ERROR(lcd_blit_dirty_op_poll_timed(&ops[i], render_us, transfer_us), TAG, "dirty poll op");
+        lcd_perf_yield_if_needed(i);
     }
     return ESP_OK;
 }
@@ -1100,6 +1286,89 @@ static int cmd_lcd(int argc, char **argv)
         }
         return 0;
     }
+    if (strcmp(argv[1], "restorebench") == 0 || strcmp(argv[1], "mixedbench") == 0) {
+        const bool is_mixed = strcmp(argv[1], "mixedbench") == 0;
+        const char *mode = argc >= 3 ? argv[2] : "both";
+        int arg_base = 3;
+        if (strcmp(mode, "poll") != 0 && strcmp(mode, "queued") != 0 && strcmp(mode, "both") != 0) {
+            mode = "both";
+            arg_base = 2;
+        }
+        int w = argc > arg_base ? atoi(argv[arg_base]) : (is_mixed ? 24 : 64);
+        int h = argc > arg_base + 1 ? atoi(argv[arg_base + 1]) : (is_mixed ? 16 : 64);
+        int frames = argc > arg_base + 2 ? atoi(argv[arg_base + 2]) : 200;
+        int rects_per_frame = is_mixed && argc > arg_base + 3 ? atoi(argv[arg_base + 3]) : 6;
+        if (w <= 0) w = 1;
+        if (h <= 0) h = 1;
+        if (w > LCD_WIDTH) w = LCD_WIDTH;
+        if (h > LCD_HEIGHT) h = LCD_HEIGHT;
+        while ((size_t)w * (size_t)h * 2 > LCD_FILL_DMA_CHUNK_BYTES && h > 1) {
+            h--;
+        }
+        if (frames <= 0) frames = 1;
+        if (frames > 1000) frames = 1000;
+        if (rects_per_frame <= 0) rects_per_frame = 1;
+        if (rects_per_frame > 32) rects_per_frame = 32;
+        const int max_ops = is_mixed ? frames * rects_per_frame : (frames * 2);
+        lcd_dirty_op_t *ops = (lcd_dirty_op_t *)calloc((size_t)max_ops, sizeof(lcd_dirty_op_t));
+        if (!ops) {
+            printf("lcd %s alloc err\n", argv[1]);
+            return 1;
+        }
+        const int op_count = is_mixed
+            ? lcd_make_mixed_ops(ops, max_ops, (uint16_t)w, (uint16_t)h, frames, rects_per_frame)
+            : lcd_make_restore_ops(ops, max_ops, (uint16_t)w, (uint16_t)h, frames);
+        if (op_count <= 0) {
+            free(ops);
+            printf("lcd %s op generation err\n", argv[1]);
+            return 1;
+        }
+        const int64_t bytes_per_op = (int64_t)w * h * 2;
+        const int64_t bytes = bytes_per_op * op_count;
+
+        if (strcmp(mode, "poll") == 0 || strcmp(mode, "both") == 0) {
+            int64_t render_us = 0;
+            int64_t transfer_us = 0;
+            const int64_t start = esp_timer_get_time();
+            esp_err_t err = lcd_dirty_ops_poll_timed(ops, op_count, &render_us, &transfer_us);
+            const int64_t elapsed_us = esp_timer_get_time() - start;
+            if (err != ESP_OK) {
+                free(ops);
+                printf("lcd %s poll err=%s\n", argv[1], esp_err_to_name(err));
+                return 1;
+            }
+            printf("lcd %s mode=poll w=%d h=%d frames=%d ops=%d rects_per_frame=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " frames_s=%" PRId64 " ops_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+                   argv[1], w, h, frames, op_count, is_mixed ? rects_per_frame : 2, elapsed_us / 1000,
+                   render_us / 1000, transfer_us / 1000,
+                   ((int64_t)frames * 1000000) / elapsed_us,
+                   ((int64_t)op_count * 1000000) / elapsed_us,
+                   ((bytes * 1000000) / 1024) / elapsed_us,
+                   s_lcd_spi_hz, lcd_actual_khz());
+        }
+
+        if (strcmp(mode, "queued") == 0 || strcmp(mode, "both") == 0) {
+            int64_t render_us = 0;
+            int64_t window_us = 0;
+            int64_t wait_us = 0;
+            const int64_t start = esp_timer_get_time();
+            esp_err_t err = lcd_blit_dirty_ops_queued_timed(ops, op_count, &render_us, &window_us, &wait_us);
+            const int64_t elapsed_us = esp_timer_get_time() - start;
+            if (err != ESP_OK) {
+                free(ops);
+                printf("lcd %s queued err=%s\n", argv[1], esp_err_to_name(err));
+                return 1;
+            }
+            printf("lcd %s mode=queued w=%d h=%d frames=%d ops=%d rects_per_frame=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " window_ms=%" PRId64 " wait_ms=%" PRId64 " frames_s=%" PRId64 " ops_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+                   argv[1], w, h, frames, op_count, is_mixed ? rects_per_frame : 2, elapsed_us / 1000,
+                   render_us / 1000, window_us / 1000, wait_us / 1000,
+                   ((int64_t)frames * 1000000) / elapsed_us,
+                   ((int64_t)op_count * 1000000) / elapsed_us,
+                   ((bytes * 1000000) / 1024) / elapsed_us,
+                   s_lcd_spi_hz, lcd_actual_khz());
+        }
+        free(ops);
+        return 0;
+    }
     if (strcmp(argv[1], "rowbench") == 0) {
         int h = argc >= 3 ? atoi(argv[2]) : 16;
         int loops = argc >= 4 ? atoi(argv[3]) : 200;
@@ -1327,7 +1596,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd perf [quick|full|queued] | lcd rectbench [w h loops] | lcd movebench [poll|queued|both] [w h frames] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd textqueued [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd perf [quick|full|queued] | lcd rectbench [w h loops] | lcd movebench [poll|queued|both] [w h frames] | lcd restorebench [poll|queued|both] [w h frames] | lcd mixedbench [poll|queued|both] [w h frames rects_per_frame] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd textqueued [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
