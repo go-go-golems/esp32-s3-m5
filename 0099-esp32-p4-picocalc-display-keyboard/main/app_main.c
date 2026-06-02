@@ -466,6 +466,81 @@ static esp_err_t lcd_pattern_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h
     return ESP_OK;
 }
 
+static bool pseudo_glyph_pixel(uint8_t ch, uint16_t gx, uint16_t gy, uint16_t cell_w, uint16_t cell_h)
+{
+    if (gx == 0 || gy == 0 || gx == cell_w - 1 || gy == cell_h - 1) {
+        return (ch & 0x20) != 0;
+    }
+    uint32_t v = (uint32_t)ch * 1103515245u + (uint32_t)gx * 12345u + (uint32_t)gy * 2654435761u;
+    v ^= v >> 11;
+    v ^= v >> 17;
+    const bool stroke = ((v >> ((gx + gy) & 7)) & 1) != 0;
+    const bool vertical = ((ch >> (gx & 7)) & 1) && (gy > 2) && (gy + 3 < cell_h);
+    const bool horizontal = ((ch >> (gy & 7)) & 1) && (gx > 2) && (gx + 3 < cell_w);
+    return stroke || vertical || horizontal;
+}
+
+static esp_err_t lcd_text_row(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint16_t cols, uint32_t phase)
+{
+    if (!s_lcd_initialized) {
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
+    }
+    if (cell_w == 0 || cell_h == 0 || cols == 0 || y >= LCD_HEIGHT) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint16_t row_h = cell_h;
+    if (y + row_h > LCD_HEIGHT) {
+        row_h = LCD_HEIGHT - y;
+    }
+    uint16_t width = cols * cell_w;
+    if (width > LCD_WIDTH) {
+        width = LCD_WIDTH;
+        cols = width / cell_w;
+    }
+    const size_t row_bytes = (size_t)width * row_h * 2;
+    if (row_bytes > LCD_FILL_DMA_CHUNK_BYTES) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc text dma buffer");
+    for (uint16_t py = 0; py < row_h; py++) {
+        for (uint16_t px = 0; px < width; px++) {
+            const uint16_t col = px / cell_w;
+            const uint16_t gx = px % cell_w;
+            const uint8_t ch = (uint8_t)(33 + ((col + phase) % 94));
+            const bool on = pseudo_glyph_pixel(ch, gx, py, cell_w, cell_h);
+            const uint16_t color = on ? 0xffff : 0x0000;
+            const size_t i = ((size_t)py * width + px) * 2;
+            s_lcd_dma_buf[i] = (uint8_t)(color >> 8);
+            s_lcd_dma_buf[i + 1] = (uint8_t)(color & 0xff);
+        }
+    }
+
+    ESP_RETURN_ON_ERROR(lcd_set_window(0, y, width - 1, y + row_h - 1), TAG, "text row window");
+    gpio_set_level(LCD_PIN_DC, 1);
+    return lcd_tx(s_lcd_dma_buf, row_bytes);
+}
+
+static esp_err_t lcd_text_screen(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase)
+{
+    if (cell_w == 0 || cell_h == 0 || rows == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    uint16_t cols = LCD_WIDTH / cell_w;
+    if (cols == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const uint16_t max_rows = (LCD_HEIGHT + cell_h - 1) / cell_h;
+    if (rows > max_rows) {
+        rows = max_rows;
+    }
+    for (uint16_t row = 0; row < rows; row++) {
+        const uint16_t y = row * cell_h;
+        ESP_RETURN_ON_ERROR(lcd_text_row(y, cell_w, cell_h, cols, phase + row), TAG, "text row");
+    }
+    return ESP_OK;
+}
+
 static void print_keyboard_event(const picocalc_key_event_t *event)
 {
     const bool printable = event->key >= 32 && event->key < 127;
@@ -765,6 +840,36 @@ static int cmd_lcd(int argc, char **argv)
                row_h, rows, loops, elapsed_ms, scrolls_s, row_updates_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
         return 0;
     }
+    if (strcmp(argv[1], "textbench") == 0 || strcmp(argv[1], "text") == 0) {
+        int cell_w = argc >= 3 ? atoi(argv[2]) : 8;
+        int cell_h = argc >= 4 ? atoi(argv[3]) : 16;
+        int loops = argc >= 5 ? atoi(argv[4]) : (strcmp(argv[1], "text") == 0 ? 1 : 20);
+        if (cell_w <= 0) cell_w = 1;
+        if (cell_h <= 0) cell_h = 1;
+        if (cell_w > LCD_WIDTH) cell_w = LCD_WIDTH;
+        if (cell_h > LCD_HEIGHT) cell_h = LCD_HEIGHT;
+        if (loops <= 0) loops = 1;
+        if (loops > 500) loops = 500;
+        const uint16_t cols = LCD_WIDTH / (uint16_t)cell_w;
+        const uint16_t rows = (LCD_HEIGHT + (uint16_t)cell_h - 1) / (uint16_t)cell_h;
+        int64_t start = esp_timer_get_time();
+        for (int loop = 0; loop < loops; loop++) {
+            esp_err_t err = lcd_text_screen((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop);
+            if (err != ESP_OK) {
+                printf("lcd %s err=%s at loop=%d\n", argv[1], esp_err_to_name(err), loop);
+                return 1;
+            }
+        }
+        int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        const int64_t cells = (int64_t)cols * rows * loops;
+        const int64_t bytes = (int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * loops;
+        const int64_t cells_s = elapsed_ms > 0 ? (cells * 1000) / elapsed_ms : 0;
+        const int64_t screens_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
+        const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
+        printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        return 0;
+    }
     if (strcmp(argv[1], "bars") == 0) {
         const uint16_t colors[] = {0xf800, 0xffe0, 0x07e0, 0x07ff, 0x001f, 0xf81f, 0xffff, 0x0000};
         const uint16_t bar_w = LCD_WIDTH / (sizeof(colors) / sizeof(colors[0]));
@@ -782,7 +887,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
@@ -834,7 +939,7 @@ static void start_console(void)
 
     const esp_console_cmd_t lcd_cmd_def = {
         .command = "lcd",
-        .help = "PicoCalc LCD diagnostics: init, speed, bench, rect/cell/row/scrollbench, pattern, fill, bars",
+        .help = "PicoCalc LCD diagnostics: init, speed, bench, rect/cell/row/scroll/textbench, pattern, fill, bars",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd_def));
