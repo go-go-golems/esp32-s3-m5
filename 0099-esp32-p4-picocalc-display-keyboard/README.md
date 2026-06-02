@@ -50,6 +50,8 @@ lcd speed 40M
 lcd speed 75M
 lcd speed 80M
 lcd bench 10
+lcd perf
+lcd perf full
 lcd rectbench 16 16 500
 lcd rectbench 80 24 200
 lcd cellbench 8 16 1000
@@ -70,4 +72,4 @@ The older RP2350 PicoCalc firmware defaulted to 75 MHz after testing. This ESP32
 
 The first display-throughput optimization uses a reusable 32 KiB internal DMA-capable fill buffer and sets the SPI bus maximum transfer size to 32 KiB. This reduces a full-screen 320×320 RGB565 fill from roughly 400 small 512-byte pixel transactions to roughly seven large DMA transactions. On the same-position GPIO-matrix LCD wiring at actual 80 MHz, measured full-screen fill improved from about 32 ms to about 21 ms; `lcd bars` improved from about 33 ms to about 26 ms.
 
-Use `lcd pattern checker|stripes|diagonal` for stronger visual/signal-integrity checks than solid color bars. Use `lcd rectbench [w h loops]`, `lcd cellbench [w h loops]`, `lcd rowbench [h loops]`, and `lcd scrollbench [row_h loops]` to measure dirty-rectangle, terminal-cell, row repaint, and full terminal-scroll-style redraw overhead. Use `lcd textbench [cell_w cell_h loops]` and `lcd text [cell_w cell_h]` for row-batched pseudo-text rendering benchmarks.
+Use `lcd pattern checker|stripes|diagonal` for stronger visual/signal-integrity checks than solid color bars. Use `lcd rectbench [w h loops]`, `lcd cellbench [w h loops]`, `lcd rowbench [h loops]`, and `lcd scrollbench [row_h loops]` to measure dirty-rectangle, terminal-cell, row repaint, and full terminal-scroll-style redraw overhead. Use `lcd textbench [cell_w cell_h loops]` and `lcd text [cell_w cell_h]` for row-batched pseudo-text rendering benchmarks. Use `lcd perf` or `lcd perf full` for a repeatable performance suite with comparable metric lines and text render-vs-transfer split timing.

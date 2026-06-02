@@ -480,7 +480,8 @@ static bool pseudo_glyph_pixel(uint8_t ch, uint16_t gx, uint16_t gy, uint16_t ce
     return stroke || vertical || horizontal;
 }
 
-static esp_err_t lcd_text_row(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint16_t cols, uint32_t phase)
+static esp_err_t lcd_text_row_timed(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint16_t cols, uint32_t phase,
+                                    int64_t *render_us, int64_t *transfer_us)
 {
     if (!s_lcd_initialized) {
         ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "lcd init");
@@ -503,6 +504,7 @@ static esp_err_t lcd_text_row(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint
     }
 
     ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc text dma buffer");
+    int64_t start = esp_timer_get_time();
     for (uint16_t py = 0; py < row_h; py++) {
         for (uint16_t px = 0; px < width; px++) {
             const uint16_t col = px / cell_w;
@@ -515,13 +517,22 @@ static esp_err_t lcd_text_row(uint16_t y, uint16_t cell_w, uint16_t cell_h, uint
             s_lcd_dma_buf[i + 1] = (uint8_t)(color & 0xff);
         }
     }
+    if (render_us) {
+        *render_us += esp_timer_get_time() - start;
+    }
 
+    start = esp_timer_get_time();
     ESP_RETURN_ON_ERROR(lcd_set_window(0, y, width - 1, y + row_h - 1), TAG, "text row window");
     gpio_set_level(LCD_PIN_DC, 1);
-    return lcd_tx(s_lcd_dma_buf, row_bytes);
+    esp_err_t err = lcd_tx(s_lcd_dma_buf, row_bytes);
+    if (transfer_us) {
+        *transfer_us += esp_timer_get_time() - start;
+    }
+    return err;
 }
 
-static esp_err_t lcd_text_screen(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase)
+static esp_err_t lcd_text_screen_timed(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase,
+                                       int64_t *render_us, int64_t *transfer_us)
 {
     if (cell_w == 0 || cell_h == 0 || rows == 0) {
         return ESP_ERR_INVALID_ARG;
@@ -536,9 +547,21 @@ static esp_err_t lcd_text_screen(uint16_t cell_w, uint16_t cell_h, uint16_t rows
     }
     for (uint16_t row = 0; row < rows; row++) {
         const uint16_t y = row * cell_h;
-        ESP_RETURN_ON_ERROR(lcd_text_row(y, cell_w, cell_h, cols, phase + row), TAG, "text row");
+        ESP_RETURN_ON_ERROR(lcd_text_row_timed(y, cell_w, cell_h, cols, phase + row, render_us, transfer_us), TAG, "text row");
     }
     return ESP_OK;
+}
+
+static esp_err_t lcd_text_screen(uint16_t cell_w, uint16_t cell_h, uint16_t rows, uint32_t phase)
+{
+    return lcd_text_screen_timed(cell_w, cell_h, rows, phase, NULL, NULL);
+}
+
+static void lcd_perf_yield_if_needed(int iteration)
+{
+    if ((iteration & 0x7f) == 0) {
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
 }
 
 static void print_keyboard_event(const picocalc_key_event_t *event)
@@ -852,9 +875,11 @@ static int cmd_lcd(int argc, char **argv)
         if (loops > 500) loops = 500;
         const uint16_t cols = LCD_WIDTH / (uint16_t)cell_w;
         const uint16_t rows = (LCD_HEIGHT + (uint16_t)cell_h - 1) / (uint16_t)cell_h;
+        int64_t render_us = 0;
+        int64_t transfer_us = 0;
         int64_t start = esp_timer_get_time();
         for (int loop = 0; loop < loops; loop++) {
-            esp_err_t err = lcd_text_screen((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop);
+            esp_err_t err = lcd_text_screen_timed((uint16_t)cell_w, (uint16_t)cell_h, rows, (uint32_t)loop, &render_us, &transfer_us);
             if (err != ESP_OK) {
                 printf("lcd %s err=%s at loop=%d\n", argv[1], esp_err_to_name(err), loop);
                 return 1;
@@ -866,8 +891,80 @@ static int cmd_lcd(int argc, char **argv)
         const int64_t cells_s = elapsed_ms > 0 ? (cells * 1000) / elapsed_ms : 0;
         const int64_t screens_s = elapsed_ms > 0 ? ((int64_t)loops * 1000) / elapsed_ms : 0;
         const int64_t kib_s = elapsed_ms > 0 ? ((bytes * 1000) / 1024) / elapsed_ms : 0;
-        printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
-               argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        printf("lcd %s cell_w=%d cell_h=%d cols=%u rows=%u loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 " requested=%d actual_khz=%d\n",
+               argv[1], cell_w, cell_h, cols, rows, loops, elapsed_ms, render_us / 1000, transfer_us / 1000, screens_s, cells_s, kib_s, s_lcd_spi_hz, lcd_actual_khz());
+        return 0;
+    }
+    if (strcmp(argv[1], "perf") == 0) {
+        const bool full = argc >= 3 && strcmp(argv[2], "full") == 0;
+        ESP_RETURN_ON_ERROR(lcd_init_panel(), TAG, "perf init");
+        printf("lcd perf begin mode=%s requested=%d actual_khz=%d dma_chunk=%d\n", full ? "full" : "quick", s_lcd_spi_hz, lcd_actual_khz(), LCD_FILL_DMA_CHUNK_BYTES);
+
+        const int fill_loops = full ? 20 : 10;
+        int64_t start = esp_timer_get_time();
+        for (int i = 0; i < fill_loops; i++) {
+            const uint16_t colors[] = {0xf800, 0x07e0, 0x001f, 0xffff, 0x0000};
+            ESP_RETURN_ON_ERROR(lcd_fill_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, colors[i % 5]), TAG, "perf fill");
+            lcd_perf_yield_if_needed(i);
+        }
+        int64_t elapsed_us = esp_timer_get_time() - start;
+        printf("lcd perf case=fill loops=%d elapsed_ms=%" PRId64 " per_ms=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+               fill_loops, elapsed_us / 1000, (elapsed_us / 1000) / fill_loops,
+               (((int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * fill_loops * 1000000) / 1024) / elapsed_us);
+
+        const int pattern_loops = full ? 10 : 5;
+        start = esp_timer_get_time();
+        for (int i = 0; i < pattern_loops; i++) {
+            ESP_RETURN_ON_ERROR(lcd_pattern_rect(0, 0, LCD_WIDTH, LCD_HEIGHT, (i & 1) ? LCD_PATTERN_CHECKER : LCD_PATTERN_STRIPES), TAG, "perf pattern");
+            lcd_perf_yield_if_needed(i);
+        }
+        elapsed_us = esp_timer_get_time() - start;
+        printf("lcd perf case=pattern loops=%d elapsed_ms=%" PRId64 " per_ms=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+               pattern_loops, elapsed_us / 1000, (elapsed_us / 1000) / pattern_loops,
+               (((int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * pattern_loops * 1000000) / 1024) / elapsed_us);
+
+        const int text_loops = full ? 20 : 10;
+        int64_t render_us = 0;
+        int64_t transfer_us = 0;
+        start = esp_timer_get_time();
+        for (int i = 0; i < text_loops; i++) {
+            ESP_RETURN_ON_ERROR(lcd_text_screen_timed(8, 16, 20, (uint32_t)i, &render_us, &transfer_us), TAG, "perf text");
+            lcd_perf_yield_if_needed(i);
+        }
+        elapsed_us = esp_timer_get_time() - start;
+        printf("lcd perf case=text8x16 loops=%d elapsed_ms=%" PRId64 " render_ms=%" PRId64 " transfer_ms=%" PRId64 " screens_s=%" PRId64 " cells_s=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+               text_loops, elapsed_us / 1000, render_us / 1000, transfer_us / 1000,
+               ((int64_t)text_loops * 1000000) / elapsed_us,
+               ((int64_t)40 * 20 * text_loops * 1000000) / elapsed_us,
+               (((int64_t)LCD_WIDTH * LCD_HEIGHT * 2 * text_loops * 1000000) / 1024) / elapsed_us);
+
+        const int cell_loops = full ? 2000 : 1000;
+        start = esp_timer_get_time();
+        for (int i = 0; i < cell_loops; i++) {
+            const uint16_t x = (uint16_t)((i * 7) % (LCD_WIDTH - 8 + 1));
+            const uint16_t y = (uint16_t)((i * 5) % (LCD_HEIGHT - 16 + 1));
+            ESP_RETURN_ON_ERROR(lcd_fill_rect(x, y, 8, 16, (i & 1) ? 0xffff : 0x0000), TAG, "perf cell");
+            lcd_perf_yield_if_needed(i);
+        }
+        elapsed_us = esp_timer_get_time() - start;
+        printf("lcd perf case=cell8x16 loops=%d elapsed_ms=%" PRId64 " updates_s=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+               cell_loops, elapsed_us / 1000, ((int64_t)cell_loops * 1000000) / elapsed_us,
+               (((int64_t)8 * 16 * 2 * cell_loops * 1000000) / 1024) / elapsed_us);
+
+        const int row_loops = full ? 400 : 200;
+        start = esp_timer_get_time();
+        for (int i = 0; i < row_loops; i++) {
+            const uint16_t y = (uint16_t)((i * 16) % (LCD_HEIGHT - 16 + 1));
+            ESP_RETURN_ON_ERROR(lcd_fill_rect(0, y, LCD_WIDTH, 16, (i & 1) ? 0xffff : 0x0000), TAG, "perf row");
+            lcd_perf_yield_if_needed(i);
+        }
+        elapsed_us = esp_timer_get_time() - start;
+        printf("lcd perf case=row320x16 loops=%d elapsed_ms=%" PRId64 " updates_s=%" PRId64 " payload_kib_s=%" PRId64 "\n",
+               row_loops, elapsed_us / 1000, ((int64_t)row_loops * 1000000) / elapsed_us,
+               (((int64_t)LCD_WIDTH * 16 * 2 * row_loops * 1000000) / 1024) / elapsed_us);
+
+        ESP_RETURN_ON_ERROR(lcd_text_screen(8, 16, 20, 0), TAG, "perf final text");
+        printf("lcd perf end mode=%s\n", full ? "full" : "quick");
         return 0;
     }
     if (strcmp(argv[1], "bars") == 0) {
@@ -887,7 +984,7 @@ static int cmd_lcd(int argc, char **argv)
         printf("lcd bars ok elapsed_ms=%" PRId64 "\n", elapsed_ms);
         return 0;
     }
-    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
+    printf("usage: lcd init | lcd speed <hz|MHz> | lcd bench [loops] | lcd perf [quick|full] | lcd rectbench [w h loops] | lcd cellbench [w h loops] | lcd rowbench [h loops] | lcd scrollbench [row_h loops] | lcd textbench [cell_w cell_h loops] | lcd text [cell_w cell_h] | lcd pattern checker|stripes|diagonal|all | lcd fill <color> | lcd bars\n");
     return 1;
 }
 
@@ -939,7 +1036,7 @@ static void start_console(void)
 
     const esp_console_cmd_t lcd_cmd_def = {
         .command = "lcd",
-        .help = "PicoCalc LCD diagnostics: init, speed, bench, rect/cell/row/scroll/textbench, pattern, fill, bars",
+        .help = "PicoCalc LCD diagnostics: init, speed, perf, bench, rect/cell/row/scroll/textbench, pattern, fill, bars",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd_def));
