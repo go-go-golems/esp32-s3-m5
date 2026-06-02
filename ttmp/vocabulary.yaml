@@ -167,6 +167,8 @@ topics:
       description: Hardware design, PCBs, and electronics
     - slug: picocalc
       description: ClockworkPi PicoCalc handheld device
+    - slug: source
+      description: Downloaded or scraped reference source material
 docTypes:
     - slug: index
       description: Ticket index document
@@ -178,6 +180,8 @@ docTypes:
       description: Operational procedures and QA/Smoke steps
     - slug: skill
       description: Skill documentation (what it's for and when to use it)
+    - slug: source
+      description: Downloaded reference material stored for offline access
 intent:
     - slug: long-term
       description: Long-term reference documentation
