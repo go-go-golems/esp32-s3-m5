@@ -15,3 +15,13 @@ Created intern-facing ESP32-P4 PicoCalc display server design and implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/reference/01-investigation-diary.md — Ticket diary entry
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/tasks.md — Implementation phase task list
 
+
+## 2026-06-01
+
+Validated ticket and uploaded display server design bundle to reMarkable at /ai/2026/06/01/ESP32-P4-DISPLAY-SERVER.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/design-doc/01-display-server-design-and-implementation-guide.md — Primary uploaded design guide
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/reference/01-investigation-diary.md — Upload evidence and verification
+

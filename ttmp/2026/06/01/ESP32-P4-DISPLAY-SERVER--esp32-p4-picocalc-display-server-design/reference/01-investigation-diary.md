@@ -147,3 +147,95 @@ wait for buffer A transaction completion
 program next LCD window
 queue buffer B pixel payload
 ```
+
+## Step 2: Ticket Bundle Uploaded to reMarkable
+
+Uploaded the completed display server ticket bundle to reMarkable after validating the ticket with `docmgr doctor`. The bundle includes the ticket index, primary design guide, investigation diary, tasks, and changelog as one PDF with a table of contents.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Complete the requested delivery by validating and uploading the ticket materials to reMarkable.
+
+**Inferred user intent:** The user wants the display server design to be available for offline reading/review on reMarkable, not only stored in the repository.
+
+**Commit (code):** N/A — documentation/delivery bookkeeping only.
+
+### What I did
+
+- Ran ticket validation:
+  - `docmgr doctor --ticket ESP32-P4-DISPLAY-SERVER --stale-after 30`
+- Confirmed all checks passed.
+- Committed the ticket docs:
+  - `0250914 ESP32-P4-DISPLAY-SERVER: add design guide`
+- Checked reMarkable CLI/account status:
+  - `remarquee status`
+  - `remarquee cloud account --non-interactive`
+- Ran a dry-run upload for the ticket bundle.
+- Uploaded the real bundle:
+  - `ESP32-P4 PicoCalc Display Server Design.pdf`
+  - remote directory: `/ai/2026/06/01/ESP32-P4-DISPLAY-SERVER`
+- Verified remote listing:
+  - `remarquee cloud ls /ai/2026/06/01/ESP32-P4-DISPLAY-SERVER --long --non-interactive`
+
+### Why
+
+The user explicitly requested reMarkable upload after storing the design in the ticket. The dry run verifies the bundle inputs and output path before the real upload.
+
+### What worked
+
+- `docmgr doctor` passed cleanly for the new ticket.
+- `remarquee status` reported `remarquee: ok`.
+- Account verification returned `user=wesen@ruinwesen.com sync_version=1.5`.
+- Dry-run upload listed all intended files.
+- Real upload succeeded.
+- Remote listing showed:
+
+```text
+[f]	ESP32-P4 PicoCalc Display Server Design
+```
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The ticket is self-contained enough to bundle as one PDF: index, design guide, diary, tasks, and changelog all render as a coherent review package.
+
+### What was tricky to build
+
+The main operational constraint was preserving the dry-run-before-upload sequence and verifying the remote directory afterward. This prevents silent delivery mistakes such as uploading only the design doc and omitting the diary/tasks context.
+
+### What warrants a second pair of eyes
+
+- Verify that the rendered PDF's Mermaid diagrams and code blocks are readable on the reMarkable.
+- Review whether the design guide should be split into a shorter implementation checklist and a longer reference after the first implementation phase begins.
+
+### What should be done in the future
+
+- If the display server is implemented, update the ticket with a new implementation diary step and upload a revised bundle.
+
+### Code review instructions
+
+- Review the uploaded bundle on reMarkable at:
+  - `/ai/2026/06/01/ESP32-P4-DISPLAY-SERVER/ESP32-P4 PicoCalc Display Server Design`
+- Cross-check the local source docs in:
+  - `ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/`
+
+### Technical details
+
+Upload command used:
+
+```bash
+remarquee upload bundle \
+  ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/index.md \
+  ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/design-doc/01-display-server-design-and-implementation-guide.md \
+  ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/reference/01-investigation-diary.md \
+  ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/tasks.md \
+  ttmp/2026/06/01/ESP32-P4-DISPLAY-SERVER--esp32-p4-picocalc-display-server-design/changelog.md \
+  --name "ESP32-P4 PicoCalc Display Server Design" \
+  --remote-dir "/ai/2026/06/01/ESP32-P4-DISPLAY-SERVER" \
+  --toc-depth 2
+```
