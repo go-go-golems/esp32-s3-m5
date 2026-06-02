@@ -1754,3 +1754,134 @@ single 40x20 draw: 46 ms
 ```
 
 The display is currently left on `lcd text 8 16`. Please confirm whether the pseudo-text-like pattern is stable and crisp.
+
+## Step 13: Repeatable LCD Performance Measurement Suite
+
+This step moved from one-off benchmark commands to a repeatable performance suite. The new `lcd perf` and `lcd perf full` commands print comparable metric lines for full-screen fills, generated patterns, row-batched pseudo-text, small cell updates, and full-width row updates. The pseudo-text path now also reports render time versus transfer time.
+
+The first full-suite implementation used too many tight polling SPI transactions from the console task and triggered task-watchdog warnings even though the commands completed. I reduced the `full` loop counts to keep it a stable measurement suite rather than a stress test, and the final `lcd perf full` run completed without watchdog warnings.
+
+### Prompt Context
+
+**User prompt (verbatim):** "let's move on to performance measurement."
+
+**Assistant interpretation:** Stop adding new visual workload shapes for the moment and add structured, repeatable performance measurement with clearer breakdowns.
+
+**Inferred user intent:** Establish reliable metrics that can be rerun after future renderer, DMA, or scrolling changes to quantify whether performance improves or regresses.
+
+**Commit (code):** 5c4887abecdaeddd7d2b60d32915decd3ef8a42c — "0099: add LCD performance suite"
+
+### What I did
+
+- Added render-vs-transfer timing to the pseudo-text row renderer.
+- Added `lcd perf` for a quick repeatable LCD performance suite.
+- Added `lcd perf full` for a longer, but watchdog-safe, repeatable LCD performance suite.
+- Added cooperative yields in the perf suite so long runs do not starve the idle task.
+- Updated README command documentation.
+- Built, flashed, and ran both quick and full perf suites.
+- Updated the optimization guide and task list with the new performance measurement results.
+
+### Why
+
+The previous benchmark commands were useful but scattered. A repeatable suite gives one command that can be run before and after future changes. The render-vs-transfer split is especially important for text: it shows whether optimization should target CPU glyph generation, SPI transaction structure, or both.
+
+### What worked
+
+Quick perf suite:
+
+```text
+lcd perf case=fill loops=10 elapsed_ms=225 per_ms=22 payload_kib_s=8886
+lcd perf case=pattern loops=5 elapsed_ms=163 per_ms=32 payload_kib_s=6099
+lcd perf case=text8x16 loops=10 elapsed_ms=467 render_ms=228 transfer_ms=238 screens_s=21 cells_s=17113 payload_kib_s=4278
+lcd perf case=cell8x16 loops=1000 elapsed_ms=826 updates_s=1209 payload_kib_s=302
+lcd perf case=row320x16 loops=200 elapsed_ms=365 updates_s=547 payload_kib_s=5470
+```
+
+Final warning-free full perf suite:
+
+```text
+lcd perf case=fill loops=20 elapsed_ms=439 per_ms=21 payload_kib_s=9105
+lcd perf case=pattern loops=10 elapsed_ms=330 per_ms=33 payload_kib_s=6052
+lcd perf case=text8x16 loops=20 elapsed_ms=955 render_ms=477 transfer_ms=476 screens_s=20 cells_s=16744 payload_kib_s=4186
+lcd perf case=cell8x16 loops=2000 elapsed_ms=1656 updates_s=1207 payload_kib_s=301
+lcd perf case=row320x16 loops=400 elapsed_ms=731 updates_s=546 payload_kib_s=5465
+```
+
+The text split is balanced: for 20 pseudo-text screens, render time was 477 ms and transfer time was 476 ms.
+
+### What didn't work
+
+The first `lcd perf full` attempt used larger loop counts:
+
+```text
+fill=50, pattern=20, text=50, cell=5000, row=1000
+```
+
+It completed, but triggered task-watchdog warnings because the console task kept CPU0 busy with long polling SPI loops:
+
+```text
+E (...) task_wdt: Task watchdog got triggered.
+E (...) task_wdt:  - IDLE0 (CPU 0)
+E (...) task_wdt: CPU 0: console_repl
+```
+
+I reduced the full-suite loop counts to:
+
+```text
+fill=20, pattern=10, text=20, cell=2000, row=400
+```
+
+and retained cooperative yields. The final `lcd perf full` run completed without watchdog warnings.
+
+### What I learned
+
+- Full-screen solid fill remains close to the 80 MHz SPI payload limit at about 21 ms/fill.
+- Generated pattern frames are slower than solid fills because CPU pixel generation adds cost.
+- Pseudo-text rendering is split almost exactly 50/50 between CPU rendering and SPI/window transfer in the current synthetic path.
+- Tiny 8×16 cell updates are command-overhead dominated: they achieve high updates/s but low payload KiB/s.
+- Full-width row updates are much more payload-efficient and should be the default unit for future text renderer batching.
+
+### What was tricky to build
+
+The tricky part was making a benchmark suite that is both repeatable and operationally safe. Large loop counts produce stable averages, but a console command that performs many polling SPI transactions can starve the idle task and trigger the task watchdog. The solution was to keep `lcd perf full` long enough to smooth measurement noise but short enough to avoid becoming a stress test.
+
+The render-vs-transfer split also required careful placement of timers. The render timer covers RGB565 pseudo-glyph generation into the DMA buffer. The transfer timer covers window setup plus SPI transfer, because row-based text output cannot transfer without the panel address-window commands.
+
+### What warrants a second pair of eyes
+
+- Whether `lcd perf full` should remain a console command or eventually run from a dedicated task pinned away from CPU0.
+- Whether text render-vs-transfer should split window-command time from pixel-transfer time in a future lower-level profiler.
+- Whether the balanced 50/50 pseudo-text split still holds after replacing pseudo-glyphs with a real font.
+
+### What should be done in the future
+
+- Add a production bitmap font renderer and rerun `lcd perf full`.
+- Add dirty row/cell tracking and compare against full pseudo-text redraw.
+- Investigate panel vertical-scroll commands if scroll-style redraw remains too slow.
+- Consider queued DMA only after the production text renderer identifies whether render or transfer dominates.
+
+### Code review instructions
+
+- Review `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `lcd_text_row_timed()`;
+  - `lcd_text_screen_timed()`;
+  - `lcd_perf_yield_if_needed()`;
+  - `lcd perf` command branch.
+- Validate with:
+
+```text
+lcd perf
+lcd perf full
+```
+
+### Technical details
+
+Accepted full-suite baseline at actual 80 MHz:
+
+```text
+fill:      21 ms/frame, 9105 KiB/s
+pattern:   33 ms/frame, 6052 KiB/s
+text8x16:  20 screens/s, render_ms=477, transfer_ms=476 over 20 screens
+cell8x16:  1207 updates/s
+row320x16: 546 updates/s
+```

@@ -131,3 +131,13 @@ Added row-batched pseudo-text LCD benchmark to 0099, reaching about 21 full 40x2
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — pseudo-glyph row batching and textbench command implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated pseudo-text benchmark results and task status
 
+
+## 2026-06-01
+
+Added repeatable LCD performance suite to 0099 with text render-vs-transfer timing and warning-free full-suite metrics at actual 80 MHz (code commit 5c4887abecdaeddd7d2b60d32915decd3ef8a42c).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — lcd perf suite and pseudo-text render/transfer timing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated performance suite metrics and task status
+

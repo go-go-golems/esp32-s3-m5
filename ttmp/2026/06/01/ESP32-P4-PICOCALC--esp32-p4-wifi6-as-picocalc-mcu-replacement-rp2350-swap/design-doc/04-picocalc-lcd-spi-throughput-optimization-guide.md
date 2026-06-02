@@ -60,6 +60,11 @@ Observed benchmark at actual 80 MHz:
 | Row-batched pseudo-text benchmark added | `lcd textbench 8 16 20` | 21 screens/s, 17,112 cells/s |
 | Row-batched pseudo-text benchmark added | `lcd textbench 8 8 20` | 20 screens/s, 32,653 cells/s |
 | Row-batched pseudo-text draw added | `lcd text 8 16` | 46 ms/screen |
+| Repeatable perf suite added | `lcd perf full` fill | 21 ms/fill, 9105 KiB/s |
+| Repeatable perf suite added | `lcd perf full` pattern | 33 ms/frame, 6052 KiB/s |
+| Repeatable perf suite added | `lcd perf full` text8x16 | 20 screens/s; render 477 ms, transfer 476 ms over 20 screens |
+| Repeatable perf suite added | `lcd perf full` cell8x16 | 1207 updates/s |
+| Repeatable perf suite added | `lcd perf full` row320x16 | 546 updates/s |
 
 The next improvements should focus on queued DMA transfers, dirty rectangles, and higher-level frame composition rather than higher SPI clocks.
 
@@ -201,6 +206,8 @@ lcd scrollbench 8 20
 lcd textbench 8 16 20
 lcd textbench 8 8 20
 lcd text 8 16
+lcd perf
+lcd perf full
 status
 ```
 
@@ -223,6 +230,11 @@ lcd scrollbench row_h=8 rows=40 loops=20 elapsed_ms=1054 scrolls_s=18 row_update
 lcd textbench cell_w=8 cell_h=16 cols=40 rows=20 loops=20 elapsed_ms=935 screens_s=21 cells_s=17112 payload_kib_s=4278 requested=80000000 actual_khz=80000
 lcd textbench cell_w=8 cell_h=8 cols=40 rows=40 loops=20 elapsed_ms=980 screens_s=20 cells_s=32653 payload_kib_s=4081 requested=80000000 actual_khz=80000
 lcd text cell_w=8 cell_h=16 cols=40 rows=20 loops=1 elapsed_ms=46 screens_s=21 cells_s=17391 payload_kib_s=4347 requested=80000000 actual_khz=80000
+lcd perf case=fill loops=20 elapsed_ms=439 per_ms=21 payload_kib_s=9105
+lcd perf case=pattern loops=10 elapsed_ms=330 per_ms=33 payload_kib_s=6052
+lcd perf case=text8x16 loops=20 elapsed_ms=955 render_ms=477 transfer_ms=476 screens_s=20 cells_s=16744 payload_kib_s=4186
+lcd perf case=cell8x16 loops=2000 elapsed_ms=1656 updates_s=1207 payload_kib_s=301
+lcd perf case=row320x16 loops=400 elapsed_ms=731 updates_s=546 payload_kib_s=5465
 status ... lcd_actual_khz=80000 lcd_dma_chunk=32768 lcd_dma_buf=32768
 ```
 
@@ -277,6 +289,7 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
 - [x] Add terminal-cell, row, and scroll-specific benchmark commands.
 - [x] Add a row-batched pseudo-text benchmark path for glyph-like RGB565 pixels.
+- [x] Add a repeatable `lcd perf` / `lcd perf full` suite with comparable metrics and text render-vs-transfer split timing.
 - [ ] Add a production line-buffer/blit path for real font glyphs and arbitrary RGB565 pixels.
 - [ ] Evaluate queued transactions using `spi_device_queue_trans()` / `spi_device_get_trans_result()` for large pixel streams.
 - [ ] Decide whether to migrate the low-level panel path to `esp_lcd_panel_io_spi`, or keep the manual command/data path for control and simplicity.
