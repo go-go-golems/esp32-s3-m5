@@ -18,7 +18,21 @@
 - [x] LCD throughput: visual confirmation of checker/pattern/terminal benchmark output
 - [x] LCD throughput: add text-render/glyph-like benchmark path
 - [x] LCD performance: add repeatable perf suite with render-vs-transfer timing
-- [ ] LCD throughput: evaluate queued DMA transfers after visual baseline is confirmed
+- [ ] LCD optimization: implement queued SPI transfer path using `spi_device_queue_trans()` / `spi_device_get_trans_result()`
+- [ ] LCD optimization: add double-buffered row renderer so CPU can render buffer B while SPI transfers buffer A
+- [ ] LCD optimization: add `lcd perf queued` comparison against current polling-transfer `lcd perf full`
+- [ ] LCD optimization: measure queued transfer impact for solid fills, generated patterns, row updates, and pseudo-text rows separately
+- [ ] LCD optimization: keep current polling path as a baseline until queued path is measured and visually confirmed
+- [ ] LCD optimization: replace pseudo-glyph generator with a real bitmap font renderer
+- [ ] LCD optimization: add dirty-cell and dirty-row tracking for terminal-like text updates
+- [ ] LCD optimization: add renderer benchmarks for full screen, dirty row, dirty cell, cursor blink, and mixed edit workloads
+- [ ] LCD optimization: investigate ST7365P/ILI9488 vertical scroll commands and benchmark hardware-scroll terminal behavior
+- [ ] LCD optimization: compare manual `spi_master` LCD path against ESP-IDF `esp_lcd_panel_io_spi`
+- [ ] LCD optimization: move display updates and perf loops from console command context into a dedicated display task
+- [ ] LCD optimization: define display command queue API for app/UI code to submit fills, blits, text rows, and scroll operations
+- [ ] LCD optimization: evaluate PSRAM framebuffer or partial framebuffer for composition, while keeping active DMA buffers in internal DMA memory
+- [ ] LCD optimization: add long-running display stress test task with explicit watchdog/progress handling, separate from `esp_console`
+- [ ] LCD optimization: evaluate final adapter routing tradeoff: same-position GPIO-matrix LCD pins vs cross-routed SPI2 IO-MUX pins GPIO28-GPIO29-GPIO30-GPIO31
 - [ ] Verify ESP32-P4 chip revision on Waveshare board (needs ≥ v3.1 for current ESP-IDF)
 - [ ] Test I²C bus sharing: 10 kHz keyboard southbridge + ES8311 codec on same bus
 - [ ] Check physical fit of Waveshare board inside PicoCalc case

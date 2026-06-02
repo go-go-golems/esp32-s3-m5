@@ -1885,3 +1885,174 @@ text8x16:  20 screens/s, render_ms=477, transfer_ms=476 over 20 screens
 cell8x16:  1207 updates/s
 row320x16: 546 updates/s
 ```
+
+## Step 14: Obsidian Deep-Dive Report Updated with LCD Performance Phase
+
+This step updated the Obsidian project report after the LCD performance experimentation phase. The report previously ended with the SPI speed issue still under investigation. It now records the corrected SPLL clock-source fix, the accepted actual-80 MHz LCD baseline, the 32 KiB DMA transfer optimization, visual validation, pattern tests, dirty-rectangle benchmarks, terminal-style benchmarks, pseudo-text rendering, and the repeatable `lcd perf` suite.
+
+The update is intentionally written as an appended third deep dive rather than replacing earlier narrative. The earlier section remains historically useful because it captures the state before the clock-source fix; the new section explains how that uncertainty was resolved and what the current performance conclusions are.
+
+### Prompt Context
+
+**User prompt (verbatim):** "update the project report now with all the performance experimentation and all the work we did since last update."
+
+**Assistant interpretation:** Update the existing Obsidian deep technical dive article with the new LCD optimization and performance-measurement work completed since the previous article update.
+
+**Inferred user intent:** Preserve the latest project state in the durable project report, so future readers can understand the display performance findings without reading the entire ticket diary or terminal transcript.
+
+**Commit (code):** N/A — report/documentation update only.
+
+### What I did
+
+- Updated the Obsidian article summary with the current LCD performance status.
+- Appended a new section titled `Third deep dive: LCD performance work after the first visual proof` to:
+
+```text
+/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/06/01/ARTICLE - ESP32-P4-WIFI6 as PicoCalc MCU - Deep Technical Dive.md
+```
+
+- Covered:
+  - `SPI_CLK_SRC_SPLL` resolving the earlier 20 MHz ceiling;
+  - the ESP-IDF 80 MHz GPSPI ceiling;
+  - 32 KiB internal DMA transfer optimization;
+  - accepted same-position LCD baseline at actual 80 MHz;
+  - visual stress patterns;
+  - dirty-rectangle and terminal-shaped workloads;
+  - pseudo-text rendering;
+  - `lcd perf` / `lcd perf full` structured measurements;
+  - watchdog behavior during long measurement loops;
+  - current `0099` command surface;
+  - updated near-term renderer direction.
+- Committed the Obsidian vault article update:
+
+```text
+cd3b3fd ARTICLE: update ESP32-P4 PicoCalc performance report
+```
+
+### Why
+
+The project state changed materially. The LCD path is no longer blocked on accepted SPI speed. It is visually validated at actual 80 MHz and has a repeatable benchmark suite. The project report needed to reflect that shift from bring-up uncertainty to renderer/performance engineering.
+
+### What worked
+
+- The article update was committed cleanly in the Obsidian vault.
+- Only the article file was committed; the unrelated `.obsidian/workspace.json` change was left unstaged.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The article's earlier “speed under investigation” section is still valuable if followed by the new correction. It shows the investigation path and avoids hiding the reason the clock-source fix mattered.
+- The performance phase is now substantial enough to deserve its own long-form section rather than a small changelog paragraph.
+
+### What was tricky to build
+
+The main writing challenge was preserving history without leaving stale conclusions uncorrected. The appended section explicitly states that the previous section ended before the SPLL fix and then explains the corrected understanding. This keeps the report honest and continuation-friendly.
+
+### What warrants a second pair of eyes
+
+- Whether the article should eventually be split into two notes: one hardware bring-up article and one LCD/display-performance article.
+- Whether the report should include diagrams for the LCD data path and text-rendering pipeline once the real bitmap font renderer exists.
+
+### What should be done in the future
+
+- Update the report again after the real bitmap font renderer and dirty tracking are implemented.
+- Consider adding a compact benchmark table near the top of the article once the display stack stabilizes.
+
+### Code review instructions
+
+- Review the appended `Third deep dive` section in the Obsidian article.
+- Confirm the benchmark numbers match `design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md`.
+- Verify that the article's top summary now includes the 80 MHz LCD/performance status.
+
+### Technical details
+
+Obsidian vault commit:
+
+```text
+cd3b3fd ARTICLE: update ESP32-P4 PicoCalc performance report
+```
+
+## Step 15: LCD Optimization Backlog Reorganized into Trackable Tasks
+
+This step turned the remaining LCD optimization ideas into an explicit backlog so they do not get lost behind the already-completed text and performance measurement work. The key correction is that the project has measured many realistic workloads, but has not yet implemented deeper transfer-side optimizations such as queued DMA, double buffering, or a dedicated display task.
+
+The ticket now separates transfer-side optimization, renderer-side optimization, panel feature exploration, runtime architecture, stress testing, and hardware routing decisions. This should make it clear that pseudo-text benchmarking was a measurement phase, not the end of the optimization plan.
+
+### Prompt Context
+
+**User prompt (verbatim):** "make a detailed list of tasks to tackle all of these, in the ticket, so that we don't lose track this time."
+
+**Assistant interpretation:** Add a detailed task backlog to the ticket for all remaining LCD optimization avenues discussed: queued transfers, double buffering, real font rendering, dirty tracking, vertical scroll, esp_lcd comparison, display task architecture, framebuffer strategy, stress testing, and routing decisions.
+
+**Inferred user intent:** Prevent the project from over-focusing on text benchmarks and losing track of lower-level transfer and architecture optimizations that still need to be evaluated.
+
+**Commit (code):** N/A — ticket/task documentation update only.
+
+### What I did
+
+- Expanded `tasks.md` with a detailed LCD optimization backlog.
+- Updated `design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md` to mirror the backlog in phase/order form.
+- Preserved the completed measurement baseline separately from the remaining optimization work.
+- Grouped future work into:
+  - transfer-side optimization;
+  - renderer-side optimization;
+  - panel features and driver architecture;
+  - runtime architecture and stress testing;
+  - hardware routing decisions.
+- Also included the previously pending Obsidian report-update diary/changelog bookkeeping in the same ticket-doc commit set.
+
+### Why
+
+The project had accumulated many useful benchmarks, but the remaining optimization plan was still spread across conversation, diary entries, and report prose. A ticket task list is the right place to keep the actionable backlog. The task split also clarifies that queued DMA and double buffering remain unimplemented and should be tackled next if the goal is performance improvement rather than more measurement.
+
+### What worked
+
+- The task list now explicitly tracks queued SPI, double-buffered row rendering, `lcd perf queued`, real bitmap font rendering, dirty row/cell tracking, hardware vertical scroll, `esp_lcd` comparison, display task architecture, framebuffer/partial-framebuffer composition, stress testing, and final adapter routing tradeoffs.
+- The optimization guide now has a corresponding phase-ordered backlog, so the design doc and task file point in the same direction.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The current measurements are enough to justify the next optimization target: queued/double-buffered row transfer. The pseudo-text benchmark shows render and transfer are roughly balanced, so overlap is a plausible win.
+- The task list should distinguish measurement milestones from actual optimization milestones. Many previous tasks were measurement tasks, not final renderer architecture tasks.
+
+### What was tricky to build
+
+The tricky part was organizing the backlog without turning it into one flat list of unrelated ideas. Queueing, double buffering, real fonts, dirty tracking, vertical scroll, `esp_lcd`, and hardware routing live at different layers. Grouping them by layer makes it easier to choose the next work item and to avoid confusing a low-level transport experiment with a UI renderer decision.
+
+### What warrants a second pair of eyes
+
+- Whether queued/double-buffered row transfer should be the immediate next implementation task.
+- Whether vertical scroll should be investigated before or after the real font renderer.
+- Whether the final adapter should preserve same-position LCD wiring now that 80 MHz works, or still cross-route to SPI2 IO-MUX pins for signal margin.
+
+### What should be done in the future
+
+- Start with queued + double-buffered row transfer and compare it using a new `lcd perf queued` path.
+- Keep the polling path until queued transfer proves faster and visually stable.
+- After queued transfer, implement a real bitmap font renderer and dirty row/cell tracking.
+
+### Code review instructions
+
+- Review `tasks.md` for the new LCD optimization backlog.
+- Review `design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md`, especially the updated `Optimization task list` section.
+
+### Technical details
+
+The highest-priority remaining task is now:
+
+```text
+queued SPI transfer + double-buffered row rendering + lcd perf queued comparison
+```
+
+The current baseline to beat is:
+
+```text
+lcd perf case=text8x16 loops=20 elapsed_ms=955 render_ms=477 transfer_ms=476 screens_s=20 cells_s=16744 payload_kib_s=4186
+```

@@ -281,20 +281,50 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add benchmark throughput reporting (`throughput_kib_s`, `dma_chunk`).
 - [x] Build, flash, and benchmark the optimized firmware.
 
-### Next tasks
+### Completed measurement baseline
 
-- [ ] Ask the operator to visually inspect the current `lcd bars` output at actual 80 MHz.
-- [ ] Run a longer visual stability pass: `lcd bench 100`, then `lcd bars`.
+- [x] Ask the operator to visually inspect the current `lcd bars` output at actual 80 MHz.
 - [x] Add a patterned test command that alternates checkerboard, diagonal lines, and text-like stripe patterns. Solid fills are good throughput tests but weak signal-integrity tests.
 - [x] Add a dirty-rectangle benchmark command (`lcd rectbench`) for small UI updates such as cursor, character cells, and status bars.
 - [x] Add terminal-cell, row, and scroll-specific benchmark commands.
 - [x] Add a row-batched pseudo-text benchmark path for glyph-like RGB565 pixels.
 - [x] Add a repeatable `lcd perf` / `lcd perf full` suite with comparable metrics and text render-vs-transfer split timing.
+
+### Next task backlog — transfer-side optimization
+
+- [ ] Implement a queued SPI transfer path using `spi_device_queue_trans()` and `spi_device_get_trans_result()`.
+- [ ] Keep the current polling-transfer path as the baseline until queued transfer is measured and visually confirmed.
+- [ ] Add double-buffered row rendering: render into buffer B while SPI transfers buffer A.
+- [ ] Add `lcd perf queued` or equivalent comparison command against current `lcd perf full`.
+- [ ] Measure queued transfer impact separately for solid fills, generated patterns, row updates, pseudo-text rows, and mixed dirty regions.
+- [ ] Decide whether queued DMA improves real workloads enough to justify the extra buffer-lifetime complexity.
+
+### Next task backlog — renderer-side optimization
+
+- [ ] Replace the pseudo-glyph generator with a real bitmap font renderer.
 - [ ] Add a production line-buffer/blit path for real font glyphs and arbitrary RGB565 pixels.
-- [ ] Evaluate queued transactions using `spi_device_queue_trans()` / `spi_device_get_trans_result()` for large pixel streams.
+- [ ] Add dirty-cell and dirty-row tracking for terminal-like text updates.
+- [ ] Add renderer benchmarks for full-screen redraw, dirty row, dirty cell, cursor blink, and mixed edit workloads.
+- [ ] Rerun `lcd perf full` after real font rendering and dirty tracking to compare against the pseudo-text baseline.
+
+### Next task backlog — panel features and driver architecture
+
+- [ ] Investigate ST7365P/ILI9488 vertical scroll commands.
+- [ ] Add a hardware-scroll terminal benchmark if the panel scroll commands work.
+- [ ] Compare the manual `spi_master` LCD path against ESP-IDF `esp_lcd_panel_io_spi`.
 - [ ] Decide whether to migrate the low-level panel path to `esp_lcd_panel_io_spi`, or keep the manual command/data path for control and simplicity.
+
+### Next task backlog — runtime architecture and stress testing
+
+- [ ] Move display updates and perf loops from console command context into a dedicated display task.
+- [ ] Define a display command queue API for app/UI code to submit fills, blits, text rows, and scroll operations.
+- [ ] Add a long-running display stress test task with explicit watchdog/progress handling, separate from `esp_console`.
+- [ ] Evaluate a PSRAM framebuffer or partial framebuffer for composition, while keeping active DMA buffers in internal DMA-capable memory.
+
+### Next task backlog — hardware routing decisions
+
 - [ ] If artifacts appear at 80 MHz, characterize stable speeds on the same-position GPIO-matrix wiring: 80 MHz, actual 60 MHz, 40 MHz, and 20 MHz.
-- [ ] If same-position wiring cannot hold 80 MHz cleanly, evaluate a future cross-routed adapter using ESP32-P4 SPI2 IO-MUX pins for SCK/MOSI/CS.
+- [ ] Evaluate final adapter routing tradeoff: same-position GPIO-matrix LCD pins versus cross-routed SPI2 IO-MUX pins GPIO28/GPIO29/GPIO30/GPIO31.
 
 ## Proposed next implementation phases
 

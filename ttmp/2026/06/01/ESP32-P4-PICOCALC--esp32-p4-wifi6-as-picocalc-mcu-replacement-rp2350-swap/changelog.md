@@ -141,3 +141,23 @@ Added repeatable LCD performance suite to 0099 with text render-vs-transfer timi
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — lcd perf suite and pseudo-text render/transfer timing
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Updated performance suite metrics and task status
 
+
+## 2026-06-01
+
+Updated the Obsidian deep-dive project report with the LCD performance experimentation and structured benchmark phase (vault commit cd3b3fd).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/06/01/ARTICLE - ESP32-P4-WIFI6 as PicoCalc MCU - Deep Technical Dive.md — Updated durable project report with LCD SPLL
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/reference/01-investigation-diary.md — Recorded project-report update and vault commit
+
+
+## 2026-06-01
+
+Expanded the LCD optimization backlog into explicit transfer, renderer, panel, runtime, stress-test, and hardware-routing tasks so queued DMA and related follow-ups stay tracked.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Phase-ordered backlog mirroring ticket tasks
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/tasks.md — Detailed LCD optimization backlog
+
