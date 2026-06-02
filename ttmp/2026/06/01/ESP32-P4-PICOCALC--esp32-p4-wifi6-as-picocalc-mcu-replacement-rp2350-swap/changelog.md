@@ -173,3 +173,15 @@ Implemented queued LCD pseudo-text row benchmark: polling text8x16 was 950 ms/20
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Queued benchmark result and follow-up backlog
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/tasks.md — Queued optimization task status and visual-confirmation follow-up
 
+
+## 2026-06-01
+
+Added moving-rectangle LCD benchmark with polling and queued/double-buffered modes; queued mode improved 64x64 from 662 to 992 frames/s, 80x40 from 823 to 1208 frames/s, 128x64 from 351 to 545 frames/s, and 128x128 from 180 to 286 frames/s at actual 80 MHz (code commit 43c06dc).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/README.md — movebench operator command documentation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0099-esp32-p4-picocalc-display-keyboard/main/app_main.c — Moving rectangle polling and queued/double-buffered benchmark implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/design-doc/04-picocalc-lcd-spi-throughput-optimization-guide.md — Moving rectangle benchmark results
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/01/ESP32-P4-PICOCALC--esp32-p4-wifi6-as-picocalc-mcu-replacement-rp2350-swap/tasks.md — Queued moving-rectangle measurement task status
+

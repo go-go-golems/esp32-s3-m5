@@ -2172,3 +2172,112 @@ queue buffer B
 ```
 
 This does not maximize SPI queue depth, but it preserves the GPIO-controlled DC contract and still overlaps the dominant render/transfer split observed in the pseudo-text benchmark.
+
+## Step 17: Moving Rectangle Double-Buffered Benchmark Added
+
+Added a second queued-transfer experiment for generated moving rectangles. Unlike the pseudo-text row benchmark, this workload exercises arbitrary dirty-rectangle payloads at several sizes and compares polling versus queued/double-buffered payload transfer in the same command.
+
+The results show the same pattern as the queued text benchmark: rendering time is unchanged, but total wall-clock time improves because the next rectangle can be generated while the current rectangle payload is in flight. This gives a more UI-like data point for moving sprites, selection boxes, cursor blocks, and dirty widget regions.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you do these tests with say, moving rectangles / double buffering ?"
+
+**Assistant interpretation:** Add and run tests that use moving rectangles and double-buffered queued transfers, not only pseudo-text rows.
+
+**Inferred user intent:** The user wants to know whether queued/double-buffered LCD transfer helps more general animated/dirty-rectangle workloads that resemble UI motion.
+
+**Commit (code):** 43c06dc — "0099: add moving rectangle LCD benchmark"
+
+### What I did
+
+- Added `lcd_render_moving_rect_to_buffer()` to generate a patterned RGB565 rectangle payload in software.
+- Added `lcd_blit_rect_poll_timed()` to measure synchronous render + window + pixel transfer for one moving rectangle frame.
+- Added `lcd_moving_rect_queued_timed()` to use two internal DMA-capable buffers and queue one rectangle payload while rendering the next.
+- Added console command `lcd movebench [poll|queued|both] [w h frames]`.
+- Updated `0099-esp32-p4-picocalc-display-keyboard/README.md` with moving-rectangle examples.
+- Built with ESP-IDF v5.4.2 and flashed through the existing `0099_p4_dk_monitor` tmux monitor using `Ctrl-T A`.
+- Ran moving-rectangle benchmarks at actual 80 MHz for 64×64, 80×40, 128×64, and 128×128 payloads.
+- Updated `tasks.md` and the LCD throughput optimization guide with the new results and remaining follow-ups.
+
+### Why
+
+Pseudo-text rows are useful, but they are a specialized workload. Moving rectangles better represent dirty UI elements, sprites, selection highlights, cursor blocks, and animated widgets. Testing them helps decide whether queued/double-buffered SPI transfer is broadly useful or only helpful for text redraws.
+
+### What worked
+
+- The build passed cleanly.
+- The firmware flashed successfully via the existing monitor session.
+- `lcd movebench` ran without SPI errors, watchdog warnings, or heap failures.
+- Re-running after panel initialization produced fair polling-vs-queued comparisons:
+
+```text
+lcd movebench mode=poll w=64 h=64 frames=500 elapsed_ms=754 render_ms=259 transfer_ms=493 frames_s=662 payload_kib_s=5302 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=64 h=64 frames=500 elapsed_ms=503 render_ms=259 window_ms=73 wait_ms=154 frames_s=992 payload_kib_s=7940 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=80 h=40 frames=500 elapsed_ms=607 render_ms=202 transfer_ms=403 frames_s=823 payload_kib_s=5144 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=80 h=40 frames=500 elapsed_ms=413 render_ms=202 window_ms=73 wait_ms=121 frames_s=1208 payload_kib_s=7554 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=128 h=64 frames=300 elapsed_ms=854 render_ms=311 transfer_ms=542 frames_s=351 payload_kib_s=5616 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=128 h=64 frames=300 elapsed_ms=550 render_ms=311 window_ms=44 wait_ms=183 frames_s=545 payload_kib_s=8724 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=128 h=128 frames=200 elapsed_ms=1106 render_ms=415 transfer_ms=690 frames_s=180 payload_kib_s=5784 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=128 h=128 frames=200 elapsed_ms=697 render_ms=415 window_ms=29 wait_ms=243 frames_s=286 payload_kib_s=9181 requested=80000000 actual_khz=80000
+```
+
+### What didn't work
+
+- The first `lcd movebench both 64 64 200` run included panel initialization in the polling elapsed time, so its polling wall-clock number was not a fair comparison. I reran the benchmark after initialization and used the later results as the baseline.
+- Visual correctness is still not operator-confirmed for the moving-rectangle queued output.
+
+### What I learned
+
+- Queued/double-buffered transfer helps arbitrary generated dirty rectangles, not just text rows.
+- The benefit is workload-dependent: queued mode cannot reduce CPU rendering time, but it can hide much of the pixel transfer wait behind the next buffer render.
+- Larger rectangles improve payload throughput because each transaction carries more pixel data relative to command/window overhead.
+
+### What was tricky to build
+
+The tricky part was reusing the queued row-buffer infrastructure for arbitrary rectangles while preserving the same DC/window invariant. The command/window setup still has to complete before each queued payload, and the next command/window setup must not start until the current queued payload is done.
+
+The implementation therefore uses one in-flight rectangle at a time. It renders the next rectangle into the inactive buffer while the active buffer transfers, then waits before programming the next rectangle window. This is not maximum queue depth, but it is a safe double-buffered baseline for GPIO-controlled DC.
+
+### What warrants a second pair of eyes
+
+- Check whether the benchmark should eventually erase the previous rectangle too. The current workload measures drawing moving patterned rectangles only; it intentionally does not model a full animation compositor with background restore.
+- Review whether `lcd movebench` should be added to `lcd perf queued` or kept separate to avoid making the perf suite too long.
+- Review the DMA-size clamping behavior: the command reduces `h` if `w*h*2` would exceed the 32 KiB SPI DMA transaction ceiling.
+
+### What should be done in the future
+
+- Ask the operator to confirm `lcd movebench queued ...` output looks visually correct.
+- Add a background-restore moving-rectangle benchmark that erases/restores the previous dirty region before drawing the next one.
+- Add mixed dirty-region benchmarks with multiple small rectangles per frame.
+- Decide whether the display task should expose dirty-rectangle blits as the core queued primitive.
+
+### Code review instructions
+
+- Start with `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `lcd_render_moving_rect_to_buffer()`
+  - `lcd_blit_rect_poll_timed()`
+  - `lcd_moving_rect_queued_timed()`
+  - `lcd movebench` command branch
+- Validate with:
+  - `cd 0099-esp32-p4-picocalc-display-keyboard && . $HOME/esp/esp-idf-5.4.2/export.sh >/tmp/esp-idf-export-0099.log 2>&1 && idf.py build`
+  - `lcd movebench both 64 64 500`
+  - `lcd movebench both 80 40 500`
+  - `lcd movebench both 128 64 300`
+  - `lcd movebench both 128 128 200`
+
+### Technical details
+
+The moving rectangle path uses the same safe queued-transfer pattern as the text path:
+
+```text
+render rectangle frame N into buffer A
+set LCD window for frame N
+queue buffer A pixel payload
+render rectangle frame N+1 into buffer B
+wait for frame N payload to complete
+set LCD window for frame N+1
+queue buffer B pixel payload
+```
+
+This deliberately does not queue a command transaction behind a pixel transaction because DC is a separate GPIO in the manual LCD driver.

@@ -20,17 +20,20 @@ RelatedFiles:
         Operator-facing command list and current benchmark summary
         Operator-facing notes for LCD speed and throughput benchmark behavior
         Operator documentation for lcd textqueued and lcd perf queued (commit e91b3e5)
+        Operator documentation for lcd textqueued
     - Path: 0099-esp32-p4-picocalc-display-keyboard/main/app_main.c
       Note: |-
         Lean ESP32-P4 PicoCalc LCD/keyboard firmware; contains SPI clock, DMA buffer, benchmark, and console-command implementation
         LCD SPI clock source
         Queued LCD row-payload transfer and double-buffered pseudo-text benchmark (commit e91b3e5)
+        Queued text and moving-rectangle LCD benchmark implementation (commits e91b3e5
 ExternalSources: []
 Summary: Analysis and task plan for maximizing PicoCalc LCD throughput on the same-position Waveshare ESP32-P4 adapter
 LastUpdated: 2026-06-01T19:50:00-04:00
 WhatFor: Explain why the LCD clock is capped at 80 MHz, where display time is still being spent, and which optimizations to implement next
 WhenToUse: Use when continuing display performance work, comparing benchmark runs, or deciding whether the physical adapter needs a new LCD routing
 ---
+
 
 
 
@@ -70,8 +73,16 @@ Observed benchmark at actual 80 MHz:
 | Repeatable perf suite added | `lcd perf full` row320x16 | 546 updates/s |
 | Queued row transfer added | `lcd perf queued` text8x16-poll | 950 ms / 20 screens; render 461 ms, transfer 476 ms |
 | Queued row transfer added | `lcd perf queued` text8x16-queued | 568 ms / 20 screens; render 463 ms, window 59 ms, wait 21 ms; 35 screens/s |
+| Moving rectangle benchmark added | `lcd movebench both 64 64 500` poll | 754 ms; 662 frames/s; render 259 ms, transfer 493 ms |
+| Moving rectangle benchmark added | `lcd movebench both 64 64 500` queued | 503 ms; 992 frames/s; render 259 ms, window 73 ms, wait 154 ms |
+| Moving rectangle benchmark added | `lcd movebench both 80 40 500` poll | 607 ms; 823 frames/s; render 202 ms, transfer 403 ms |
+| Moving rectangle benchmark added | `lcd movebench both 80 40 500` queued | 413 ms; 1208 frames/s; render 202 ms, window 73 ms, wait 121 ms |
+| Moving rectangle benchmark added | `lcd movebench both 128 64 300` poll | 854 ms; 351 frames/s; render 311 ms, transfer 542 ms |
+| Moving rectangle benchmark added | `lcd movebench both 128 64 300` queued | 550 ms; 545 frames/s; render 311 ms, window 44 ms, wait 183 ms |
+| Moving rectangle benchmark added | `lcd movebench both 128 128 200` poll | 1106 ms; 180 frames/s; render 415 ms, transfer 690 ms |
+| Moving rectangle benchmark added | `lcd movebench both 128 128 200` queued | 697 ms; 286 frames/s; render 415 ms, window 29 ms, wait 243 ms |
 
-The queued pseudo-text row path shows that overlapping row rendering with one in-flight row-payload DMA transaction can improve full pseudo-text redraw throughput substantially. The next improvements should verify the queued output visually, extend queued measurements to non-text workloads, and then focus on dirty rectangles and higher-level frame composition rather than higher SPI clocks.
+The queued pseudo-text row path and moving-rectangle path show that overlapping pixel generation with one in-flight DMA transaction can improve workloads where render and transfer both matter. The next improvements should verify the queued output visually, extend queued measurements to solid fills/pattern rows/mixed dirty regions, and then focus on dirty rectangles and higher-level frame composition rather than higher SPI clocks.
 
 ## Problem statement and scope
 
@@ -297,12 +308,13 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add queued row-payload SPI transfers with `spi_device_queue_trans()` and `spi_device_get_trans_result()`.
 - [x] Add double-buffered pseudo-text row rendering so the CPU can render buffer B while SPI transfers buffer A.
 - [x] Add `lcd perf queued` to compare polling and queued text redraws in the same firmware build.
+- [x] Add `lcd movebench [poll|queued|both] [w h frames]` for generated moving-rectangle workloads with polling and queued/double-buffered payload modes.
 
 ### Next task backlog — transfer-side optimization
 
-- [ ] Ask the operator to visually confirm `lcd perf queued` / `lcd textqueued 8 16 20` output.
+- [ ] Ask the operator to visually confirm `lcd perf queued` / `lcd textqueued 8 16 20` / `lcd movebench queued ...` output.
 - [ ] Keep the current polling-transfer path as the baseline until queued transfer is measured and visually confirmed.
-- [ ] Measure queued transfer impact separately for solid fills, generated patterns, row updates, pseudo-text rows, and mixed dirty regions.
+- [ ] Measure queued transfer impact separately for solid fills, generated patterns, row updates, and mixed dirty regions.
 - [ ] Decide whether queued DMA improves real workloads enough to justify the extra buffer-lifetime complexity.
 
 ### Next task backlog — renderer-side optimization
@@ -418,6 +430,21 @@ lcd perf case=text8x16-queued loops=20 elapsed_ms=568 render_ms=463 window_ms=59
 ```
 
 The result is promising because the queued path has nearly the same render time but much lower wall-clock time. The remaining measured wait time is small because most pixel transfer time overlaps with rendering the next row. This still needs operator visual confirmation because queued transfers can make display corruption harder to diagnose than the polling baseline.
+
+A second queued experiment covers generated moving rectangles. It uses two internal DMA-capable buffers for arbitrary RGB565 rectangle payloads and compares polling versus queued modes in one command:
+
+```text
+lcd movebench mode=poll w=64 h=64 frames=500 elapsed_ms=754 render_ms=259 transfer_ms=493 frames_s=662 payload_kib_s=5302 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=64 h=64 frames=500 elapsed_ms=503 render_ms=259 window_ms=73 wait_ms=154 frames_s=992 payload_kib_s=7940 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=80 h=40 frames=500 elapsed_ms=607 render_ms=202 transfer_ms=403 frames_s=823 payload_kib_s=5144 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=80 h=40 frames=500 elapsed_ms=413 render_ms=202 window_ms=73 wait_ms=121 frames_s=1208 payload_kib_s=7554 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=128 h=64 frames=300 elapsed_ms=854 render_ms=311 transfer_ms=542 frames_s=351 payload_kib_s=5616 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=128 h=64 frames=300 elapsed_ms=550 render_ms=311 window_ms=44 wait_ms=183 frames_s=545 payload_kib_s=8724 requested=80000000 actual_khz=80000
+lcd movebench mode=poll w=128 h=128 frames=200 elapsed_ms=1106 render_ms=415 transfer_ms=690 frames_s=180 payload_kib_s=5784 requested=80000000 actual_khz=80000
+lcd movebench mode=queued w=128 h=128 frames=200 elapsed_ms=697 render_ms=415 window_ms=29 wait_ms=243 frames_s=286 payload_kib_s=9181 requested=80000000 actual_khz=80000
+```
+
+The queued moving-rectangle results are consistent with the text benchmark: they do not reduce render time, but they reduce total wall-clock time by overlapping render work with pixel transfer. Larger rectangles show higher payload throughput, up to about 9 MiB/s for 128×128 rectangles, close to the measured full-screen fill throughput.
 
 For solid-color fills, reusing the same immutable DMA buffer across queued transactions is safe. For arbitrary pixel data, queuing needs at least double buffering:
 
