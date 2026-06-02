@@ -23,7 +23,9 @@
 - [x] LCD optimization: add `lcd perf queued` comparison against current polling-transfer `lcd perf full`
 - [ ] LCD optimization: operator visual confirmation of queued pseudo-text output
 - [x] LCD optimization: measure queued transfer impact for generated moving-rectangle workloads
-- [ ] LCD optimization: measure queued transfer impact for solid fills, generated patterns, row updates, and mixed dirty regions separately
+- [x] LCD optimization: measure queued transfer impact for background-restore moving-rectangle workloads
+- [x] LCD optimization: measure queued transfer impact for mixed dirty-region workloads
+- [ ] LCD optimization: measure queued transfer impact for solid fills, generated patterns, and row updates separately
 - [ ] LCD optimization: keep current polling path as a baseline until queued path is measured and visually confirmed
 - [ ] LCD optimization: replace pseudo-glyph generator with a real bitmap font renderer
 - [ ] LCD optimization: add dirty-cell and dirty-row tracking for terminal-like text updates

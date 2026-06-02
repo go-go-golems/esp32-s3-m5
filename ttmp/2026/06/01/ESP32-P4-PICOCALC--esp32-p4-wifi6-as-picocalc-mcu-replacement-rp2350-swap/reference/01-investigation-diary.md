@@ -2281,3 +2281,111 @@ queue buffer B pixel payload
 ```
 
 This deliberately does not queue a command transaction behind a pixel transaction because DC is a separate GPIO in the manual LCD driver.
+
+## Step 18: Background-Restore and Mixed Dirty-Region Benchmarks Added
+
+Extended the queued LCD benchmark suite beyond simple moving rectangles. The new restore benchmark redraws the previous rectangle's background before drawing the next rectangle, and the mixed benchmark draws several independent dirty rectangles per frame.
+
+These workloads are closer to real UI behavior than a single moving blit. They show that queued/double-buffered payload transfer still helps, but the gain shrinks when many small rectangles make command/window overhead the dominant cost.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Continue with the previously suggested next tests: background-restore moving rectangles and mixed dirty-region benchmarks.
+
+**Inferred user intent:** The user wants the display benchmark suite to cover more realistic dirty-region animation workloads before moving on to production renderer architecture.
+
+**Commit (code):** 665a3fe — "0099: add dirty region LCD benchmarks"
+
+### What I did
+
+- Added background rendering for restoring previous dirty regions.
+- Added generic dirty-op structures for background and moving-rectangle payloads.
+- Added shared polling and queued dirty-op blit helpers.
+- Added `lcd restorebench [poll|queued|both] [w h frames]`.
+- Added `lcd mixedbench [poll|queued|both] [w h frames rects_per_frame]`.
+- Updated the README command list.
+- Built successfully after fixing a forward declaration for `lcd_perf_yield_if_needed()`.
+- Flashed via the existing `0099_p4_dk_monitor` tmux monitor.
+- Ran restore and mixed dirty-region benchmarks at actual 80 MHz.
+
+### Why
+
+A single moving rectangle measures generated blit throughput, but real UI animation usually has to restore or repaint the old region and often updates multiple dirty regions in one frame. These tests estimate whether the queued path still helps once the workload includes more command/window setup and more small transactions.
+
+### What worked
+
+- Build passed after adding the missing forward declaration.
+- Flashing via the monitor worked without serial contention.
+- Benchmarks ran without SPI errors or watchdog warnings.
+- Results after LCD initialization:
+
+```text
+lcd restorebench mode=poll w=64 h=64 frames=300 ops=599 rects_per_frame=2 elapsed_ms=922 render_ms=329 transfer_ms=592 frames_s=325 ops_s=649 payload_kib_s=5195 requested=80000000 actual_khz=80000
+lcd restorebench mode=queued w=64 h=64 frames=300 ops=599 rects_per_frame=2 elapsed_ms=604 render_ms=329 window_ms=89 wait_ms=167 frames_s=496 ops_s=991 payload_kib_s=7930 requested=80000000 actual_khz=80000
+lcd restorebench mode=poll w=80 h=40 frames=300 ops=599 rects_per_frame=2 elapsed_ms=742 render_ms=256 transfer_ms=484 frames_s=404 ops_s=806 payload_kib_s=5042 requested=80000000 actual_khz=80000
+lcd restorebench mode=queued w=80 h=40 frames=300 ops=599 rects_per_frame=2 elapsed_ms=496 render_ms=257 window_ms=89 wait_ms=131 frames_s=604 ops_s=1206 payload_kib_s=7540 requested=80000000 actual_khz=80000
+lcd mixedbench mode=poll w=24 h=16 frames=200 ops=1200 rects_per_frame=6 elapsed_ms=353 render_ms=59 transfer_ms=291 frames_s=566 ops_s=3396 payload_kib_s=2547 requested=80000000 actual_khz=80000
+lcd mixedbench mode=queued w=24 h=16 frames=200 ops=1200 rects_per_frame=6 elapsed_ms=315 render_ms=59 window_ms=178 wait_ms=42 frames_s=633 ops_s=3802 payload_kib_s=2852 requested=80000000 actual_khz=80000
+lcd mixedbench mode=poll w=40 h=24 frames=200 ops=800 rects_per_frame=4 elapsed_ms=386 render_ms=97 transfer_ms=286 frames_s=517 ops_s=2071 payload_kib_s=3884 requested=80000000 actual_khz=80000
+lcd mixedbench mode=queued w=40 h=24 frames=200 ops=800 rects_per_frame=4 elapsed_ms=303 render_ms=97 window_ms=119 wait_ms=62 frames_s=659 ops_s=2638 payload_kib_s=4947 requested=80000000 actual_khz=80000
+```
+
+### What didn't work
+
+- The first build failed because `lcd_dirty_ops_poll_timed()` called `lcd_perf_yield_if_needed()` before its definition:
+
+```text
+error: implicit declaration of function 'lcd_perf_yield_if_needed' [-Wimplicit-function-declaration]
+error: static declaration of 'lcd_perf_yield_if_needed' follows non-static declaration
+```
+
+- Fixed by adding a forward declaration near the top of `app_main.c`.
+- Visual correctness is still not operator-confirmed for restore/mixed queued output.
+
+### What I learned
+
+- Queued transfer is most valuable when each operation has enough pixel payload to overlap meaningfully with rendering.
+- For very small mixed dirty rectangles, command/window overhead dominates and queued transfer provides a smaller gain.
+- The display architecture should batch/coalesce adjacent dirty rectangles when possible, because many tiny independent window changes reduce payload efficiency.
+
+### What was tricky to build
+
+The tricky part was avoiding duplicated queued-transfer logic while still preserving transaction and DMA-buffer lifetime. I introduced a `lcd_dirty_op_t` abstraction so the same safe one-in-flight queued pattern can transmit background restores, moving rectangles, and mixed dirty rectangles.
+
+The resulting queued helper still waits before each next window command, so it does not fully exploit SPI queue depth. That is intentional: the LCD DC pin is GPIO-controlled outside the SPI transaction, so command/data phase changes must not race with queued pixel payloads.
+
+### What warrants a second pair of eyes
+
+- Review whether `lcd_dirty_op_t` is the right stepping stone toward a future display command queue API.
+- Review benchmark fairness: restore benchmarks count frames and operations separately because the first frame has no previous-region restore.
+- Review whether small mixed rectangles should be coalesced before transfer in a future benchmark.
+
+### What should be done in the future
+
+- Ask the operator to visually confirm `restorebench` and `mixedbench` queued output.
+- Add dirty-rectangle coalescing benchmarks.
+- Add queued row-update and generated-pattern tests if still needed.
+- Consider moving all benchmark update loops into a display task once the primitive set is stable.
+
+### Code review instructions
+
+- Start with `0099-esp32-p4-picocalc-display-keyboard/main/app_main.c`:
+  - `lcd_dirty_op_t`
+  - `lcd_render_dirty_op_to_buffer()`
+  - `lcd_blit_dirty_op_poll_timed()`
+  - `lcd_blit_dirty_ops_queued_timed()`
+  - `lcd_make_restore_ops()`
+  - `lcd_make_mixed_ops()`
+  - `restorebench` and `mixedbench` command branches
+- Validate with:
+  - `idf.py build`
+  - `lcd restorebench both 64 64 300`
+  - `lcd restorebench both 80 40 300`
+  - `lcd mixedbench both 24 16 200 6`
+  - `lcd mixedbench both 40 24 200 4`
+
+### Technical details
+
+The restore workload emits up to two dirty operations per frame: restore previous rectangle background, then draw the current rectangle. The mixed workload emits `rects_per_frame` moving rectangle dirty operations per frame. Both use internal DMA-capable buffers for active queued payloads.

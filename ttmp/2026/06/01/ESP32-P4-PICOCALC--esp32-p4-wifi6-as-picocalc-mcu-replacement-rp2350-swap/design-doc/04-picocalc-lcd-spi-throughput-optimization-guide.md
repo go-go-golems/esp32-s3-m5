@@ -21,18 +21,21 @@ RelatedFiles:
         Operator-facing notes for LCD speed and throughput benchmark behavior
         Operator documentation for lcd textqueued and lcd perf queued (commit e91b3e5)
         Operator documentation for lcd textqueued
+        Operator documentation for queued LCD benchmark commands
     - Path: 0099-esp32-p4-picocalc-display-keyboard/main/app_main.c
       Note: |-
         Lean ESP32-P4 PicoCalc LCD/keyboard firmware; contains SPI clock, DMA buffer, benchmark, and console-command implementation
         LCD SPI clock source
         Queued LCD row-payload transfer and double-buffered pseudo-text benchmark (commit e91b3e5)
         Queued text and moving-rectangle LCD benchmark implementation (commits e91b3e5
+        Queued text
 ExternalSources: []
 Summary: Analysis and task plan for maximizing PicoCalc LCD throughput on the same-position Waveshare ESP32-P4 adapter
 LastUpdated: 2026-06-01T19:50:00-04:00
 WhatFor: Explain why the LCD clock is capped at 80 MHz, where display time is still being spent, and which optimizations to implement next
 WhenToUse: Use when continuing display performance work, comparing benchmark runs, or deciding whether the physical adapter needs a new LCD routing
 ---
+
 
 
 
@@ -81,8 +84,16 @@ Observed benchmark at actual 80 MHz:
 | Moving rectangle benchmark added | `lcd movebench both 128 64 300` queued | 550 ms; 545 frames/s; render 311 ms, window 44 ms, wait 183 ms |
 | Moving rectangle benchmark added | `lcd movebench both 128 128 200` poll | 1106 ms; 180 frames/s; render 415 ms, transfer 690 ms |
 | Moving rectangle benchmark added | `lcd movebench both 128 128 200` queued | 697 ms; 286 frames/s; render 415 ms, window 29 ms, wait 243 ms |
+| Background-restore benchmark added | `lcd restorebench both 64 64 300` poll | 922 ms; 325 frames/s; 649 ops/s; render 329 ms, transfer 592 ms |
+| Background-restore benchmark added | `lcd restorebench both 64 64 300` queued | 604 ms; 496 frames/s; 991 ops/s; render 329 ms, window 89 ms, wait 167 ms |
+| Background-restore benchmark added | `lcd restorebench both 80 40 300` poll | 742 ms; 404 frames/s; 806 ops/s; render 256 ms, transfer 484 ms |
+| Background-restore benchmark added | `lcd restorebench both 80 40 300` queued | 496 ms; 604 frames/s; 1206 ops/s; render 257 ms, window 89 ms, wait 131 ms |
+| Mixed dirty-region benchmark added | `lcd mixedbench both 24 16 200 6` poll | 353 ms; 566 frames/s; 3396 ops/s; render 59 ms, transfer 291 ms |
+| Mixed dirty-region benchmark added | `lcd mixedbench both 24 16 200 6` queued | 315 ms; 633 frames/s; 3802 ops/s; render 59 ms, window 178 ms, wait 42 ms |
+| Mixed dirty-region benchmark added | `lcd mixedbench both 40 24 200 4` poll | 386 ms; 517 frames/s; 2071 ops/s; render 97 ms, transfer 286 ms |
+| Mixed dirty-region benchmark added | `lcd mixedbench both 40 24 200 4` queued | 303 ms; 659 frames/s; 2638 ops/s; render 97 ms, window 119 ms, wait 62 ms |
 
-The queued pseudo-text row path and moving-rectangle path show that overlapping pixel generation with one in-flight DMA transaction can improve workloads where render and transfer both matter. The next improvements should verify the queued output visually, extend queued measurements to solid fills/pattern rows/mixed dirty regions, and then focus on dirty rectangles and higher-level frame composition rather than higher SPI clocks.
+The queued pseudo-text row path, moving-rectangle path, background-restore path, and mixed-dirty-region path show that overlapping pixel generation with one in-flight DMA transaction can improve workloads where render and transfer both matter. The next improvements should verify the queued output visually, extend queued measurements to solid fills/pattern rows/row updates, and then focus on dirty rectangles and higher-level frame composition rather than higher SPI clocks.
 
 ## Problem statement and scope
 
@@ -309,12 +320,14 @@ On this ESP-IDF/GPSPI path, requesting 75 MHz produced an actual 60 MHz clock. I
 - [x] Add double-buffered pseudo-text row rendering so the CPU can render buffer B while SPI transfers buffer A.
 - [x] Add `lcd perf queued` to compare polling and queued text redraws in the same firmware build.
 - [x] Add `lcd movebench [poll|queued|both] [w h frames]` for generated moving-rectangle workloads with polling and queued/double-buffered payload modes.
+- [x] Add `lcd restorebench [poll|queued|both] [w h frames]` for moving rectangles with previous-region background restore.
+- [x] Add `lcd mixedbench [poll|queued|both] [w h frames rects_per_frame]` for multiple generated dirty rectangles per frame.
 
 ### Next task backlog — transfer-side optimization
 
-- [ ] Ask the operator to visually confirm `lcd perf queued` / `lcd textqueued 8 16 20` / `lcd movebench queued ...` output.
+- [ ] Ask the operator to visually confirm `lcd perf queued` / `lcd textqueued 8 16 20` / `lcd movebench queued ...` / `lcd restorebench queued ...` / `lcd mixedbench queued ...` output.
 - [ ] Keep the current polling-transfer path as the baseline until queued transfer is measured and visually confirmed.
-- [ ] Measure queued transfer impact separately for solid fills, generated patterns, row updates, and mixed dirty regions.
+- [ ] Measure queued transfer impact separately for solid fills, generated patterns, and row updates.
 - [ ] Decide whether queued DMA improves real workloads enough to justify the extra buffer-lifetime complexity.
 
 ### Next task backlog — renderer-side optimization
@@ -445,6 +458,21 @@ lcd movebench mode=queued w=128 h=128 frames=200 elapsed_ms=697 render_ms=415 wi
 ```
 
 The queued moving-rectangle results are consistent with the text benchmark: they do not reduce render time, but they reduce total wall-clock time by overlapping render work with pixel transfer. Larger rectangles show higher payload throughput, up to about 9 MiB/s for 128×128 rectangles, close to the measured full-screen fill throughput.
+
+Two further dirty-region workloads were added:
+
+```text
+lcd restorebench mode=poll w=64 h=64 frames=300 ops=599 rects_per_frame=2 elapsed_ms=922 render_ms=329 transfer_ms=592 frames_s=325 ops_s=649 payload_kib_s=5195 requested=80000000 actual_khz=80000
+lcd restorebench mode=queued w=64 h=64 frames=300 ops=599 rects_per_frame=2 elapsed_ms=604 render_ms=329 window_ms=89 wait_ms=167 frames_s=496 ops_s=991 payload_kib_s=7930 requested=80000000 actual_khz=80000
+lcd restorebench mode=poll w=80 h=40 frames=300 ops=599 rects_per_frame=2 elapsed_ms=742 render_ms=256 transfer_ms=484 frames_s=404 ops_s=806 payload_kib_s=5042 requested=80000000 actual_khz=80000
+lcd restorebench mode=queued w=80 h=40 frames=300 ops=599 rects_per_frame=2 elapsed_ms=496 render_ms=257 window_ms=89 wait_ms=131 frames_s=604 ops_s=1206 payload_kib_s=7540 requested=80000000 actual_khz=80000
+lcd mixedbench mode=poll w=24 h=16 frames=200 ops=1200 rects_per_frame=6 elapsed_ms=353 render_ms=59 transfer_ms=291 frames_s=566 ops_s=3396 payload_kib_s=2547 requested=80000000 actual_khz=80000
+lcd mixedbench mode=queued w=24 h=16 frames=200 ops=1200 rects_per_frame=6 elapsed_ms=315 render_ms=59 window_ms=178 wait_ms=42 frames_s=633 ops_s=3802 payload_kib_s=2852 requested=80000000 actual_khz=80000
+lcd mixedbench mode=poll w=40 h=24 frames=200 ops=800 rects_per_frame=4 elapsed_ms=386 render_ms=97 transfer_ms=286 frames_s=517 ops_s=2071 payload_kib_s=3884 requested=80000000 actual_khz=80000
+lcd mixedbench mode=queued w=40 h=24 frames=200 ops=800 rects_per_frame=4 elapsed_ms=303 render_ms=97 window_ms=119 wait_ms=62 frames_s=659 ops_s=2638 payload_kib_s=4947 requested=80000000 actual_khz=80000
+```
+
+`restorebench` models a more realistic animation step because each frame restores the previous rectangle's background before drawing the new rectangle. `mixedbench` models many small independent dirty widgets or text fragments. Queued transfer helps both, but the small-rectangle mixed workload shows a smaller gain because command/window overhead becomes the dominant cost.
 
 For solid-color fills, reusing the same immutable DMA buffer across queued transactions is safe. For arbitrary pixel data, queuing needs at least double buffering:
 
