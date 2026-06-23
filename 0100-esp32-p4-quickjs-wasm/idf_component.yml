@@ -1,0 +1,7 @@
+## IDF Component Manager manifest for 0100.
+## WAMR dependency matches 0079 (espressif/wasm-micro-runtime 2.4.0~1).
+dependencies:
+  idf:
+    version: ">=5.4.2,<5.5.0"
+  espressif/wasm-micro-runtime:
+    version: "2.4.0~1"

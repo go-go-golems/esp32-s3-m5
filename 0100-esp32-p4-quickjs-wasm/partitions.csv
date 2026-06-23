@@ -1,0 +1,6 @@
+# Partition table for 0100 (ESP32-P4, 32 MB flash).
+# Large factory app to fit WAMR + embedded quickjs.wasm blob.
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+phy_init, data, phy,     0xf000,   0x1000,
+factory,  app,  factory, 0x10000,  0x400000,
