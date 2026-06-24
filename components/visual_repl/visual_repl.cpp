@@ -151,16 +151,19 @@ void draw_cell(uint16_t *row_pixels, int col, char ch, Palette p, bool cursor)
             row_pixels[y * PICOCALC_LCD_WIDTH + x0 + x] = cursor ? p.fg : p.bg;
         }
     }
-    const int scale = 2;
-    const int glyph_x = x0 + 1;
-    const int glyph_y = 1;
+    constexpr int x_scale = 1;
+    constexpr int y_scale = 2;
+    constexpr int glyph_w = 5 * x_scale;
+    constexpr int glyph_h = 7 * y_scale;
+    const int glyph_x = x0 + (VISUAL_REPL_CELL_W - glyph_w) / 2;
+    const int glyph_y = (VISUAL_REPL_CELL_H - glyph_h) / 2;
     for (int gy = 0; gy < 7; ++gy) {
         for (int gx = 0; gx < 5; ++gx) {
             if ((glyph[gy] & (1 << (4 - gx))) == 0) continue;
-            for (int sy = 0; sy < scale; ++sy) {
-                for (int sx = 0; sx < scale; ++sx) {
-                    const int px = glyph_x + gx * scale + sx;
-                    const int py = glyph_y + gy * scale + sy;
+            for (int sy = 0; sy < y_scale; ++sy) {
+                for (int sx = 0; sx < x_scale; ++sx) {
+                    const int px = glyph_x + gx * x_scale + sx;
+                    const int py = glyph_y + gy * y_scale + sy;
                     if (px >= x0 && px < x0 + VISUAL_REPL_CELL_W && py >= 0 && py < VISUAL_REPL_CELL_H) {
                         row_pixels[py * PICOCALC_LCD_WIDTH + px] = cursor ? p.bg : p.fg;
                     }
@@ -220,6 +223,21 @@ esp_err_t visual_repl_set_input(const char *text, size_t cursor)
     return ESP_OK;
 }
 
+esp_err_t visual_repl_render_input(void)
+{
+    if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    char prompt_line[VISUAL_REPL_COLS + 1];
+    prompt_line[0] = '>';
+    prompt_line[1] = ' ';
+    const size_t input_room = VISUAL_REPL_COLS - 2;
+    const size_t input_len = std::min(std::strlen(s_input), input_room);
+    std::memcpy(prompt_line + 2, s_input, input_len);
+    prompt_line[2 + input_len] = 0;
+    const size_t cursor_col = std::min<size_t>(s_cursor + 2, VISUAL_REPL_COLS - 1);
+    return render_text_row(VISUAL_REPL_ROWS - 1, VISUAL_REPL_STYLE_INPUT,
+                           prompt_line, cursor_col, true);
+}
+
 esp_err_t visual_repl_render(void)
 {
     if (!s_initialized) return ESP_ERR_INVALID_STATE;
@@ -238,16 +256,7 @@ esp_err_t visual_repl_render(void)
         ESP_RETURN_ON_ERROR(render_text_row(screen_row, row.style, row.text, 0, false), kTag, "history row");
     }
 
-    char prompt_line[VISUAL_REPL_COLS + 1];
-    prompt_line[0] = '>';
-    prompt_line[1] = ' ';
-    const size_t input_room = VISUAL_REPL_COLS - 2;
-    const size_t input_len = std::min(std::strlen(s_input), input_room);
-    std::memcpy(prompt_line + 2, s_input, input_len);
-    prompt_line[2 + input_len] = 0;
-    const size_t cursor_col = std::min<size_t>(s_cursor + 2, VISUAL_REPL_COLS - 1);
-    ESP_RETURN_ON_ERROR(render_text_row(VISUAL_REPL_ROWS - 1, VISUAL_REPL_STYLE_INPUT,
-                                        prompt_line, cursor_col, true), kTag, "input row");
+    ESP_RETURN_ON_ERROR(visual_repl_render_input(), kTag, "input row");
     s_last_render_ms = static_cast<uint32_t>((esp_timer_get_time() - start) / 1000);
     ++s_render_count;
     return ESP_OK;

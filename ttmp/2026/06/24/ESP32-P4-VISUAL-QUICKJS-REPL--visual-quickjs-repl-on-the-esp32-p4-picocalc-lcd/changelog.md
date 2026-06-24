@@ -49,3 +49,15 @@ Added first visual_repl renderer component: 40x20 fixed-cell terminal model, sem
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Renderer implementation and measured full-screen redraw path
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 4 records renderer implementation
 
+
+## 2026-06-24
+
+Fixed visual font clipping with a host-side SVG renderer preview and firmware x/y scaling split; added Phase 4 keyboard editor code with input-row repaint, line submission without eval, and rate-limited keyboard I2C backoff. Hardware input smoke remains blocked by current keyboard I2C ESP_ERR_INVALID_STATE until a PicoCalc keyboard/southbridge reset or power-cycle is tested.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Keyboard editor implementation and I2C polling backoff
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/tools/render_preview.py — Host-side renderer experiment showing 2x horizontal glyph overflow
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Firmware font geometry fix and input-row renderer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 5 records font diagnosis
+

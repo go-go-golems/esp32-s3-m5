@@ -38,18 +38,18 @@ This task list is implementation-grade. Work top to bottom. Commit after each ch
 - [x] **T3.3 — Implement row renderer.** Convert text + style into RGB565 row buffers.
 - [x] **T3.4 — Implement static screen demo.** Draw banner, prompt row, output row, error row, and status row.
 - [x] **T3.5 — Measure row/full redraw.** Log row repaint and full viewport redraw time.
-- [ ] **T3.6 — Hardware visual check.** Confirm colors and text are readable on LCD. Serial smoke verified the render path and timing; a human/camera readability check is still needed.
+- [ ] **T3.6 — Hardware visual check.** Confirm colors and text are readable on LCD. Font clipping was fixed with host-side preview + firmware patch; human readability confirmation is still needed.
 - [x] **T3.7 — Diary/changelog/commit.** Record renderer decisions and measurements.
 
 ## Phase 4 — Keyboard input and line editing
 
-- [ ] **T4.1 — Add keyboard polling task.** Poll `picocalc_keyboard_poll_event()` and publish semantic key events.
-- [ ] **T4.2 — Implement key translation.** Map printable ASCII, Enter, Backspace, arrows, PageUp/PageDown, Home/End, Escape.
-- [ ] **T4.3 — Implement input buffer.** Support insert, backspace, cursor left/right, home/end.
-- [ ] **T4.4 — Render current input row and cursor.** Update dirty row(s) on key events.
-- [ ] **T4.5 — Append input records without eval.** Pressing Enter should move the input line into scrollback before QuickJS integration.
-- [ ] **T4.6 — Hardware input smoke.** Type text, backspace, move cursor, submit line.
-- [ ] **T4.7 — Diary/changelog/commit.** Record keyboard mapping gaps and validation.
+- [x] **T4.1 — Add keyboard polling task.** Poll `picocalc_keyboard_poll_event()` and publish semantic key events.
+- [x] **T4.2 — Implement key translation.** Map printable ASCII, Enter, Backspace, arrows, PageUp/PageDown, Home/End, Escape.
+- [x] **T4.3 — Implement input buffer.** Support insert, backspace, cursor left/right, home/end.
+- [x] **T4.4 — Render current input row and cursor.** Update dirty row(s) on key events.
+- [x] **T4.5 — Append input records without eval.** Pressing Enter should move the input line into scrollback before QuickJS integration.
+- [ ] **T4.6 — Hardware input smoke.** Type text, backspace, move cursor, submit line. Current probe is blocked by keyboard I2C `ESP_ERR_INVALID_STATE` after repeated flashes; likely needs a PicoCalc southbridge power-cycle/reset check.
+- [x] **T4.7 — Diary/changelog/commit.** Record keyboard mapping gaps and validation.
 
 ## Phase 5 — Connect visual input to QuickJS eval
 

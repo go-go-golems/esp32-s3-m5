@@ -1,5 +1,6 @@
 // 0102 — ESP32-P4 visual QuickJS REPL skeleton.
 // Console = UART0 (CH343 USB-UART bridge; the P4 has no USB Serial/JTAG).
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -9,6 +10,8 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "picocalc_keyboard.h"
 #include "picocalc_lcd.h"
@@ -21,8 +24,13 @@ constexpr size_t kQuickJsMemoryLimit = 2 * 1024 * 1024;
 constexpr size_t kQuickJsStackLimit = 64 * 1024;
 constexpr uint32_t kEvalTimeoutMs = 1000;
 constexpr size_t kMaxEvalSource = 2048;
+constexpr TickType_t kKeyboardPollDelay = pdMS_TO_TICKS(20);
 
 qjs_service_t *g_qjs = nullptr;
+TaskHandle_t g_keyboard_task = nullptr;
+char g_input[VISUAL_REPL_INPUT_MAX + 1] = {};
+size_t g_input_len = 0;
+size_t g_input_cursor = 0;
 
 uint16_t color_from_name(const char *name, bool *ok)
 {
@@ -37,6 +45,156 @@ uint16_t color_from_name(const char *name, bool *ok)
     if (std::strcmp(name, "magenta") == 0) return PICOCALC_LCD_RGB565_MAGENTA;
     *ok = false;
     return 0;
+}
+
+void sync_visual_input()
+{
+    (void)visual_repl_set_input(g_input, g_input_cursor);
+    (void)visual_repl_render_input();
+}
+
+void reset_input_line()
+{
+    g_input[0] = 0;
+    g_input_len = 0;
+    g_input_cursor = 0;
+    sync_visual_input();
+}
+
+void insert_input_char(char ch)
+{
+    if (g_input_len >= VISUAL_REPL_INPUT_MAX) {
+        return;
+    }
+    std::memmove(g_input + g_input_cursor + 1,
+                 g_input + g_input_cursor,
+                 g_input_len - g_input_cursor + 1);
+    g_input[g_input_cursor] = ch;
+    ++g_input_cursor;
+    ++g_input_len;
+    sync_visual_input();
+}
+
+void backspace_input_char()
+{
+    if (g_input_cursor == 0) {
+        return;
+    }
+    std::memmove(g_input + g_input_cursor - 1,
+                 g_input + g_input_cursor,
+                 g_input_len - g_input_cursor + 1);
+    --g_input_cursor;
+    --g_input_len;
+    sync_visual_input();
+}
+
+void delete_input_char()
+{
+    if (g_input_cursor >= g_input_len) {
+        return;
+    }
+    std::memmove(g_input + g_input_cursor,
+                 g_input + g_input_cursor + 1,
+                 g_input_len - g_input_cursor);
+    --g_input_len;
+    sync_visual_input();
+}
+
+void submit_input_line()
+{
+    char submitted[VISUAL_REPL_INPUT_MAX + 3] = {};
+    std::snprintf(submitted, sizeof(submitted), "> %s", g_input);
+    (void)visual_repl_append_line(VISUAL_REPL_STYLE_PROMPT, submitted);
+    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "ENTER captured; QuickJS eval is Phase 5");
+    g_input[0] = 0;
+    g_input_len = 0;
+    g_input_cursor = 0;
+    (void)visual_repl_set_input(g_input, g_input_cursor);
+    (void)visual_repl_render();
+}
+
+bool handle_editor_key(uint8_t key)
+{
+    switch (key) {
+        case 0x08: // Backspace
+            backspace_input_char();
+            return true;
+        case 0x0a: // Enter
+        case 0x0d:
+            submit_input_line();
+            return true;
+        case 0xb1: // Escape
+            reset_input_line();
+            return true;
+        case 0xb4: // Left
+            if (g_input_cursor > 0) {
+                --g_input_cursor;
+                sync_visual_input();
+            }
+            return true;
+        case 0xb7: // Right
+            if (g_input_cursor < g_input_len) {
+                ++g_input_cursor;
+                sync_visual_input();
+            }
+            return true;
+        case 0xd2: // Home
+            g_input_cursor = 0;
+            sync_visual_input();
+            return true;
+        case 0xd4: // Delete
+            delete_input_char();
+            return true;
+        case 0xd5: // End
+            g_input_cursor = g_input_len;
+            sync_visual_input();
+            return true;
+        default:
+            break;
+    }
+
+    if (key >= 0x20 && key <= 0x7e) {
+        insert_input_char(static_cast<char>(key));
+        return true;
+    }
+    return false;
+}
+
+void keyboard_task(void *)
+{
+    ESP_LOGI(kTag, "visual keyboard editor task started");
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    uint32_t consecutive_errors = 0;
+    while (true) {
+        picocalc_key_event_t ev = {};
+        esp_err_t err = picocalc_keyboard_poll_event(&ev);
+        if (err == ESP_ERR_NOT_FOUND) {
+            consecutive_errors = 0;
+            vTaskDelay(kKeyboardPollDelay);
+            continue;
+        }
+        if (err != ESP_OK) {
+            ++consecutive_errors;
+            if (consecutive_errors == 1 || consecutive_errors % 10 == 0) {
+                ESP_LOGW(kTag, "keyboard poll failed: %s consecutive_errors=%u",
+                         esp_err_to_name(err), (unsigned)consecutive_errors);
+            }
+            const TickType_t delay = consecutive_errors < 5 ? pdMS_TO_TICKS(250) : pdMS_TO_TICKS(1000);
+            vTaskDelay(delay);
+            continue;
+        }
+        consecutive_errors = 0;
+        if (!ev.valid) {
+            continue;
+        }
+        if (ev.state == PICOCALC_KBD_STATE_PRESSED || ev.state == PICOCALC_KBD_STATE_REPEATED) {
+            const bool handled = handle_editor_key(ev.key);
+            ESP_LOGI(kTag, "kbd editor key=0x%02x(%s) state=%s handled=%d input_len=%u cursor=%u",
+                     ev.key, picocalc_keyboard_key_name(ev.key),
+                     picocalc_keyboard_state_name(ev.state), handled,
+                     (unsigned)g_input_len, (unsigned)g_input_cursor);
+        }
+    }
 }
 
 qjs_service_t *start_quickjs_service()
@@ -275,12 +433,21 @@ extern "C" void app_main(void)
     esp_err_t lcd_err = picocalc_lcd_init();
     ESP_LOGI(kTag, "lcd init: %s actual_khz=%d", esp_err_to_name(lcd_err), picocalc_lcd_actual_khz());
     if (lcd_err == ESP_OK) {
-        esp_err_t visual_err = visual_repl_demo_screen();
-        ESP_LOGI(kTag, "visual demo render: %s", esp_err_to_name(visual_err));
+        ESP_ERROR_CHECK(visual_repl_init());
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_SYSTEM, "ESP32-P4 VISUAL QUICKJS REPL");
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "TYPE ON PICOCALC KEYBOARD; ENTER STORES LINE");
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "QUICKJS EVAL ARRIVES IN PHASE 5");
+        esp_err_t visual_err = visual_repl_render();
+        ESP_LOGI(kTag, "visual initial render: %s", esp_err_to_name(visual_err));
     }
 
+    esp_log_level_set("i2c.master", ESP_LOG_NONE);
     esp_err_t kbd_err = picocalc_keyboard_init();
     ESP_LOGI(kTag, "keyboard init: %s", esp_err_to_name(kbd_err));
+    if (kbd_err == ESP_OK) {
+        BaseType_t task_ok = xTaskCreate(keyboard_task, "kbd0102", 4096, nullptr, 5, &g_keyboard_task);
+        ESP_LOGI(kTag, "keyboard editor task create: %s", task_ok == pdPASS ? "ok" : "failed");
+    }
 
     g_qjs = start_quickjs_service();
     ESP_LOGI(kTag, "quickjs service: %s", g_qjs ? "ready" : "unavailable");

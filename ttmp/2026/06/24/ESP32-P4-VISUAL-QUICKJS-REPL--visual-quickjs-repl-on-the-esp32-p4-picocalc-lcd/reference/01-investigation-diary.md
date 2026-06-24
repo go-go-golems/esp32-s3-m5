@@ -471,3 +471,129 @@ error: '%s' directive output may be truncated writing up to 160 bytes into a reg
 - Free space in 4 MB app partition: `0x3262c0` bytes (79%).
 - Completed tasks: T3.1, T3.2, T3.3, T3.4, T3.5, T3.7.
 - Remaining Phase 3 task: T3.6 hardware visual readability check.
+
+## Step 5: Fix clipped glyph geometry and add the first keyboard editor loop
+
+Continued Phase 4 and corrected a visual renderer defect reported from the real LCD. The original bitmap renderer scaled each 5×7 glyph by 2× horizontally and vertically, which made glyphs 10 pixels wide inside an 8-pixel cell. That made right edges disappear on the PicoCalc screen. I added a host-side SVG preview tool to compare the bad and corrected geometry, then changed the firmware renderer to use 1× horizontal and 2× vertical scaling centered inside each 8×16 cell.
+
+I also implemented the first keyboard editor loop for the visual REPL: a background keyboard task, printable insertion, Backspace/Delete, Left/Right/Home/End, Escape-to-clear, Enter-to-append-without-eval, and input-row-only repainting. The firmware builds and flashes, but the current hardware keyboard smoke is blocked by repeated keyboard I2C `ESP_ERR_INVALID_STATE` after flashing; the earlier skeleton validated the same keyboard component, so the next step is a PicoCalc keyboard/southbridge power-cycle or reset check rather than more blind firmware retries.
+
+### Prompt Context
+
+**User prompt (verbatim):** "the font renderering is a bit broken, it looks like letters are cut off from the right. Feel free to do host-site experiments for the renderer to be able to iterate faster"
+
+**Assistant interpretation:** Diagnose the LCD font clipping using faster host-side iteration, then patch the firmware renderer instead of repeatedly flashing for each visual experiment.
+
+**Inferred user intent:** Improve the visual readability of the LCD REPL and keep development efficient by separating renderer geometry experiments from device flashing.
+
+**Commit (code):** pending — "0102: add keyboard editor and fix visual font geometry"
+
+### What I did
+
+- Added host-side renderer experiment:
+  - `components/visual_repl/tools/render_preview.py`
+  - generated `components/visual_repl/tools/render_preview.svg`
+- Used the host preview to compare:
+  - old geometry: 5×7 glyphs scaled 2×2, producing 10-pixel-wide glyphs in 8-pixel cells;
+  - new geometry: 5×7 glyphs scaled 1×2, producing 5-pixel-wide glyphs centered in 8-pixel cells.
+- Patched `components/visual_repl/visual_repl.cpp`:
+  - replaced a single `scale = 2` with separate `x_scale = 1` and `y_scale = 2`;
+  - centered the glyph inside the 8×16 cell.
+- Extended `components/visual_repl`:
+  - added `visual_repl_render_input()` so keypresses can repaint only the prompt row.
+- Implemented Phase 4 editor code in `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`:
+  - background `keyboard_task`;
+  - input buffer and cursor;
+  - printable insertion;
+  - Backspace/Delete;
+  - Left/Right/Home/End;
+  - Escape clears input;
+  - Enter appends `> ...` to scrollback and adds a status row indicating QuickJS eval is Phase 5.
+- Added keyboard polling backoff and suppressed noisy `i2c.master` driver logs, while keeping rate-limited application warnings.
+- Built and flashed the firmware several times on `/dev/ttyACM0` using single-owner tmux/serial handling.
+
+### Why
+
+- A 10-pixel-wide glyph cannot fit in an 8-pixel-wide cell. This was a deterministic renderer geometry bug, not an LCD timing issue.
+- Input-row-only rendering is necessary for keyboard editing. Full 40×20 redraws for every keypress are unnecessary and would make cursor movement feel sluggish.
+- The keyboard task needs backoff because a non-acknowledging keyboard controller can otherwise flood the UART and obscure useful logs.
+
+### What worked
+
+- Host-side renderer preview generated successfully without requiring Pillow or other dependencies. It emits SVG directly.
+- The corrected firmware builds:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xda660 bytes. Smallest app partition is 0x400000 bytes. 0x3259a0 bytes (79%) free.
+```
+
+- Flash succeeded on `/dev/ttyACM0`.
+- Boot still reaches all major services:
+
+```text
+I (2163) visual_repl: visual REPL model initialized: 40x20 cells (8x16 pixels)
+I (2193) 0102: visual initial render: ESP_OK
+I (2293) picocalc_kbd: initialized PicoCalc keyboard I2C: sda=50 scl=49 speed=10000 addr=0x1f
+I (2293) 0102: keyboard init: ESP_OK
+I (2293) 0102: visual keyboard editor task started
+I (2293) 0102: keyboard editor task create: ok
+I (2313) qjs_service: runtime init status=ESP_OK elapsed=6 ms
+```
+
+- UART is now readable even when keyboard polling fails, because the low-level I2C driver spam is suppressed and the app logs only rate-limited warnings.
+
+### What didn't work
+
+- The keyboard smoke is currently blocked. The background task and the explicit `kbd 1` UART command both see keyboard I2C failures after the latest flashes:
+
+```text
+W (3293) 0102: keyboard poll failed: ESP_ERR_INVALID_STATE consecutive_errors=1
+0102>  kbd 1
+kbd: err=ESP_ERR_INVALID_STATE
+Command returned non-zero error code: 0x1 (ERROR)
+```
+
+- The same keyboard component worked earlier in the 0102 skeleton smoke (`kbd 3` returned valid events), so this is not yet enough evidence to redesign the keyboard component. The most likely next check is to power-cycle or reset the PicoCalc keyboard/southbridge side, because ESP32 flashing only resets the ESP32-P4 and may not reset the keyboard controller.
+
+### What I learned
+
+- The original visual clipping was caused by exact renderer math: `5 glyph columns × 2 horizontal scale = 10 pixels`, while the terminal cell is only 8 pixels wide.
+- The fixed 40-column layout and the current 5×7 font require anisotropic scaling: narrow horizontally, tall vertically.
+- Firmware-side keyboard code is now structurally in place, but hardware validation needs a clean keyboard-controller state.
+
+### What was tricky to build
+
+- The screen geometry has competing constraints: 40 columns require 8-pixel cells on a 320-pixel-wide LCD, but common 5×7 fonts do not support 2× horizontal scaling in that cell size. Keeping 40 columns means accepting a narrower glyph or switching to a different 4-pixel-wide font design later.
+- The keyboard failure mode is noisy because the ESP-IDF I2C master logs before returning the error. Suppressing the driver tag is acceptable for this interactive bring-up firmware because the app still tracks error counts and reports status.
+
+### What warrants a second pair of eyes
+
+- Confirm on the actual LCD that the corrected 1×2 glyphs are no longer clipped and remain readable.
+- Review whether 40 columns is worth the narrower font. If readability is too poor, consider a 32-column mode with 10-pixel cells or a custom 4×7 font scaled 2× horizontally.
+- Review whether suppressing `i2c.master` logs should be permanent or converted into a debug flag after keyboard bring-up stabilizes.
+
+### What should be done in the future
+
+- Ask the operator to power-cycle/reset the PicoCalc device or keyboard controller and retry the Phase 4 input smoke.
+- If keyboard I2C failures persist after a full power-cycle, add a lower-level I2C recovery path or inspect whether another task/command is racing the I2C master.
+- Add a screenshot/photo-based visual confirmation step for T3.6 if subjective readability remains uncertain.
+
+### Code review instructions
+
+- Review `components/visual_repl/tools/render_preview.py` first to understand the renderer geometry experiment.
+- Review `components/visual_repl/visual_repl.cpp`, especially `draw_cell()` and `visual_repl_render_input()`.
+- Review `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`, especially `keyboard_task()`, `handle_editor_key()`, `submit_input_line()`, and the `i2c.master` log-level suppression.
+- Validate build with:
+  - `cd 0102-esp32-p4-visual-quickjs-repl && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`
+- Validate hardware after keyboard controller reset/power-cycle with:
+  - `idf.py -p /dev/ttyACM0 flash`
+  - `idf.py -p /dev/ttyACM0 monitor`
+  - type `abc`, Left, `X`, Enter on the physical PicoCalc keyboard.
+
+### Technical details
+
+- Host preview output: `components/visual_repl/tools/render_preview.svg`.
+- Font fix: `x_scale=1`, `y_scale=2`, centered in `VISUAL_REPL_CELL_W=8`, `VISUAL_REPL_CELL_H=16`.
+- Latest build size: `0xda660` bytes, 79% free in the 4 MB app partition.
+- Completed tasks: T4.1, T4.2, T4.3, T4.4, T4.5, T4.7.
+- Still open: T3.6 visual readability confirmation and T4.6 hardware input smoke.
