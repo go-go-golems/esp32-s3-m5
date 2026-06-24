@@ -612,7 +612,7 @@ The underlying problem was not that the primary strings lacked NUL terminators. 
 
 **Inferred user intent:** Make the LCD text renderer deterministic and safe before continuing with keyboard and QuickJS REPL behavior.
 
-**Commit (code):** pending — "visual_repl: stop rendering past string terminators"
+**Commit (code):** b463456 — "visual_repl: stop rendering past string terminators"
 
 ### What I did
 
