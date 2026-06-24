@@ -70,3 +70,13 @@ Completed T4.1-T4.6 and T5.4: added interactive UART console commands (js status
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/js_command.cpp — Console command implementation and benchmark scripts
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 6 records console validation and device-only fixes
 
+
+## 2026-06-23
+
+Completed remaining Phase 5 validation: verified js reset clears globals, repeated allocation plus gc stress completes, allocation benchmark completes, and design doc now compares native 0101 measurements against 0100 QuickJS-WASM baseline.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/design/01-native-quickjs-on-esp32-p4-analysis-design-and-implementation-guide.md — Updated native-vs-WAMR benchmark comparison
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 7 records reset
+

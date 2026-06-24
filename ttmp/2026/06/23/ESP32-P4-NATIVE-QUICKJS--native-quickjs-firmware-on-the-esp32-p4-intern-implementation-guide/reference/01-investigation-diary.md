@@ -596,3 +596,111 @@ error: InternalError: interrupted
 ```
 
 - Completed tasks: T4.1, T4.2, T4.3, T4.4, T4.5, T4.6, T5.4.
+
+## Step 7: Complete Phase 5 validation extras: reset-global, stress, allocation, and comparison updates
+
+Ran the remaining Phase 5 validation commands against the interactive 0101 console firmware. This focused on state reset behavior, memory/stress behavior, and allocation performance beyond the core smoke, exception, timeout, and loop benchmarks already validated in Step 6.
+
+The native firmware stayed stable through reset, repeated object allocation with explicit `gc()`, and a 2000-object allocation benchmark. I updated the design guide's comparison table with the additional allocation/stress measurements and marked the remaining Phase 5 validation tasks complete.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Finish the validation checklist before moving to final documentation/doctor/upload work.
+
+**Inferred user intent:** Leave the ticket in a state where the intern-facing claims are backed by concrete device evidence, not just build success.
+
+### What I did
+
+- Started `idf.py monitor` in tmux on `/dev/ttyACM0`.
+- Ran reset-global validation:
+  - `js eval "globalThis.persist=42; print(persist)"`
+  - `js reset`
+  - `js eval "print(typeof persist)"`
+- Ran a repeated allocation + GC stress eval.
+- Ran a 2000-object allocation benchmark.
+- Captured status before/after the stress and allocation commands.
+- Updated `tasks.md` for T5.5, T5.6, T5.7, T5.8, T6.1, and T6.2.
+- Updated the design guide benchmark/comparison table with allocation and stress rows.
+
+### Why
+
+- Reset must clear user globals if `js reset` is going to be a reliable recovery tool.
+- Allocation and repeated-eval stress help catch basic leaks, runaway memory use, and runtime corruption before final handoff.
+- The design guide should reflect measured implementation outcomes now that the firmware exists.
+
+### What worked
+
+- Reset cleared the global:
+  - before reset: `42`
+  - after reset: `undefined`
+- Repeated allocation/GC stress completed:
+  - `stress-ok`
+  - elapsed about `280 ms`
+- Allocation benchmark completed:
+  - `alloc2000=33,len=2000`
+  - eval elapsed about `37 ms`
+- Status remained ready after the stress and allocation commands.
+
+### What didn't work
+
+- Long command lines wrapped visually in the captured tmux pane, which made the log display duplicate the prompt/input text. The actual command execution still completed and produced valid result lines.
+
+### What I learned
+
+- `js reset` is currently a practical recovery boundary: it rebuilds the context and clears user-defined globals.
+- For this small allocation stress, QuickJS memory usage returned close to baseline after `gc()`, and ESP heap values changed only modestly.
+- Allocation benchmarks should eventually become first-class `js bench alloc` variants instead of ad-hoc pasted eval strings.
+
+### What was tricky to build
+
+- The ad-hoc stress scripts are long enough that tmux capture line wrapping makes transcripts harder to read. For repeatable validation, future scripts should be shorter or exposed through structured console subcommands.
+
+### What warrants a second pair of eyes
+
+- The status fields from `JS_ComputeMemoryUsage` should be checked for type/format accuracy. `memory_used_size` behaves usefully, while `malloc_size` currently displays a very small value (`360`/`368`) that may not mean what readers expect.
+- Stress coverage is still small; it is enough for milestone validation but not a leak test suite.
+
+### What should be done in the future
+
+- Add `js bench alloc` and `js bench stress` subcommands if allocation measurements become part of regular bring-up.
+- Add an automated host/serial probe script for repeatable console validation.
+
+### Code review instructions
+
+- Review the design guide benchmark table for whether the measured native-vs-WAMR comparison is presented with enough caveats.
+- Review `tasks.md` to ensure the completed Phase 5 tasks match the evidence captured here.
+
+### Technical details
+
+```text
+0101>  js eval "globalThis.persist=42; print(persist)"
+[console-eval] ok=1 timed_out=0 elapsed=2ms
+42
+0101>  js reset
+reset: ESP_OK
+0101>  js eval "print(typeof persist)"
+[console-eval] ok=1 timed_out=0 elapsed=0ms
+undefined
+0101>  js status
+ready=1 busy=0 evals=2 resets=1 last_eval_ms=0
+quickjs: used=49780 malloc=360 atoms=519
+esp_heap: internal=398059 8bit=33947839 psram=33549780
+0101>  js eval "for(let n=0;n<20;n++){let a=[]; for(let i=0;i<1000;i++) a.push({i,s:String(i)});} gc(); print('stress-ok')"
+[console-eval] ok=1 timed_out=0 elapsed=280ms
+stress-ok
+0101>  js status
+ready=1 busy=0 evals=3 resets=1 last_eval_ms=280
+quickjs: used=49836 malloc=360 atoms=519
+esp_heap: internal=397919 8bit=33947699 psram=33549780
+0101>  js eval "(()=>{let t=millis(); let a=[]; for(let i=0;i<2000;i++) a.push({i, s:'x'.repeat(32)}); print('alloc2000='+String(millis()-t)+',len='+String(a.length));})()"
+[console-eval] ok=1 timed_out=0 elapsed=37ms
+alloc2000=33,len=2000
+0101>  js status
+ready=1 busy=0 evals=4 resets=1 last_eval_ms=37
+quickjs: used=49892 malloc=360 atoms=519
+esp_heap: internal=397731 8bit=33947511 psram=33549780
+```
+
+- Completed tasks: T5.5, T5.6, T5.7, T5.8, T6.1, T6.2.

@@ -102,16 +102,16 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 - [x] **T5.2 — Smoke eval.** Confirm `js eval "print(1+2)"` prints `3`.
 - [x] **T5.3 — Exception eval.** Confirm `throw new Error('boom')` reports `Error: boom`.
 - [x] **T5.4 — Timeout eval.** Confirm `while(true){}` stops by deadline.
-- [ ] **T5.5 — Reset eval.** Define a global, reset, confirm global disappears.
-- [ ] **T5.6 — Memory high-water.** Run repeated eval loop and record heap/QuickJS memory before/after.
-- [ ] **T5.7 — Benchmark.** Measure startup, tiny eval, 10k loop, 100k loop, recursion, allocation.
-- [ ] **T5.8 — Compare against 0100.** Update design doc with native vs Wasm numbers.
+- [x] **T5.5 — Reset eval.** Define a global, reset, confirm global disappears.
+- [x] **T5.6 — Memory high-water.** Run repeated eval loop and record heap/QuickJS memory before/after.
+- [x] **T5.7 — Benchmark.** Measure startup, tiny eval, 10k loop, 100k loop, recursion, allocation.
+- [x] **T5.8 — Compare against 0100.** Update design doc with native vs Wasm numbers.
 
 ## Phase 6 — Documentation, upload, and handoff
 
-- [ ] **T6.1 — Keep diary after each implementation checkpoint.**
-- [ ] **T6.2 — Update design doc with implementation outcomes and deviations.**
-- [ ] **T6.3 — Update changelog after each committed phase.**
+- [x] **T6.1 — Keep diary after each implementation checkpoint.**
+- [x] **T6.2 — Update design doc with implementation outcomes and deviations.**
+- [x] **T6.3 — Update changelog after each committed phase.**
 - [ ] **T6.4 — Run `docmgr doctor --ticket ESP32-P4-NATIVE-QUICKJS --stale-after 30`.**
 - [ ] **T6.5 — Upload ticket bundle to reMarkable.**
 - [ ] **T6.6 — Final handoff summary.** Include ticket path, commits, validation status, reMarkable path, and open risks.

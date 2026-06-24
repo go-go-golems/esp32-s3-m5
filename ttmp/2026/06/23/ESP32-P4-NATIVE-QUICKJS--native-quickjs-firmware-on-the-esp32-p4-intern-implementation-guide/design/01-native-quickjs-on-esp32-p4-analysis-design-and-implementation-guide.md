@@ -732,6 +732,8 @@ Use the same measurements as the Wasm firmware:
 | 100k sum loop | ~3.71 s JS-side / ~3.81 s roundtrip | ~133 ms JS-side / ~133 ms eval | Native full QuickJS is much faster for this loop. |
 | recursive `fib(20)` | WAMR operand stack overflow | `fib20=6765`, ~31 ms JS-side / ~32 ms eval | Requires 32 KiB qjs owner-task stack; 12 KiB crashed with stack protection fault. |
 | infinite loop timeout | not stabilized in 0100 | interrupts at ~1000 ms with `InternalError: interrupted`, `timed_out=1` | Console default timeout is 1000 ms to avoid task watchdog warnings. |
+| allocation smoke | not measured in first 0100 set | `alloc2000=33,len=2000`, ~37 ms eval | Creates 2000 objects with 32-byte strings. |
+| repeated allocation + GC stress | not measured in first 0100 set | 20 rounds x 1000 objects completed in ~280 ms | Status stayed ready after `gc()`. |
 
 ### Phase 5: optional PicoCalc and service integration
 
