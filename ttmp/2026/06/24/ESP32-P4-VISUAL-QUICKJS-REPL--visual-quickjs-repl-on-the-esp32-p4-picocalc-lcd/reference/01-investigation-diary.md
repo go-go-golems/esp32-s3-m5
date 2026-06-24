@@ -696,7 +696,7 @@ The new commands let the operator see known RGB565 values at known screen positi
 
 **Inferred user intent:** Avoid guessing about LCD color order by rendering controlled test rectangles and collecting visual evidence from the device.
 
-**Commit (code):** pending — "0102: add LCD color swatch diagnostics"
+**Commit (code):** 920d613 — "0102: add LCD color swatch diagnostics"
 
 ### What I did
 
