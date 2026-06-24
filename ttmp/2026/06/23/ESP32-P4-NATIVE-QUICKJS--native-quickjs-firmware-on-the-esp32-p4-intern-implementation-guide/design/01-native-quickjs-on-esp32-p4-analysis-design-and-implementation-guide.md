@@ -23,18 +23,27 @@ RelatedFiles:
       Note: Minimal full QuickJS source list and no quickjs-libc decision
     - Path: 0100-esp32-p4-quickjs-wasm/wasm-src/wasm_main.c
       Note: Minimal full QuickJS bindings and qjs_eval wrapper from Wasm experiment
+    - Path: 0101-esp32-p4-native-quickjs/main/app_main.cpp
+      Note: Minimal native QuickJS smoke firmware that builds for ESP32-P4
     - Path: components/mqjs_service/include/mqjs_service.h
       Note: Existing MicroQuickJS service public API to mirror for native full QuickJS
     - Path: components/mqjs_service/mqjs_service.cpp
       Note: Existing owner-task queue eval/job service implementation
     - Path: components/mqjs_service/mqjs_vm.cpp
       Note: Existing deadline interrupt output-capture VM wrapper pattern
+    - Path: components/quickjs_native/CMakeLists.txt
+      Note: Native QuickJS ESP-IDF component build integration
+    - Path: components/quickjs_native/quickjs/quickjs.c
+      Note: Vendored full QuickJS engine with ESP_PLATFORM timezone fallback patch
+    - Path: components/quickjs_native/quickjs_espidf_compat.h
+      Note: ESP-IDF compatibility shim for malloc_usable_size declaration
 ExternalSources: []
 Summary: Design and implementation guide for a native ESP32-P4 QuickJS firmware that compiles QuickJS directly into ESP-IDF instead of running QuickJS through Wasm/WAMR.
 LastUpdated: 2026-06-23T23:23:19.655329384-04:00
 WhatFor: Use when implementing or reviewing the native/raw QuickJS ESP32-P4 firmware follow-up to project 0100.
 WhenToUse: Use before creating 0101-esp32-p4-native-quickjs, when porting the existing mqjs_service model to full upstream QuickJS, or when comparing native QuickJS against the QuickJS-WASM baseline.
 ---
+
 
 
 # Native QuickJS on the ESP32-P4 — Analysis, Design, and Implementation Guide
@@ -222,8 +231,12 @@ components/
     quickjs/libunicode.c
     quickjs/quickjs-atom.h
     quickjs/quickjs-opcode.h
-    quickjs/libregexp.h                  # if required by current upstream version
-    quickjs/libunicode.h                 # if required by current upstream version
+    quickjs/libregexp.h
+    quickjs/libregexp-opcode.h
+    quickjs/libunicode.h
+    quickjs/libunicode-table.h
+    quickjs/list.h
+    quickjs/unicode_gen_def.h
 
   qjs_service/
     CMakeLists.txt

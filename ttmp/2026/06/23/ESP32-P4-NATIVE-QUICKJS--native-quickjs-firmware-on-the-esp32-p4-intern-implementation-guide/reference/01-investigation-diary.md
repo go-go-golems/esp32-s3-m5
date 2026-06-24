@@ -172,3 +172,94 @@ This gives the intern a clear work queue and gives us a commit boundary before t
 ### Technical details
 
 - Task file: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/tasks.md`.
+
+## Step 3: Vendor native QuickJS, add 0101 smoke firmware, and get an ESP32-P4 build
+
+Implemented the first buildable native QuickJS checkpoint. Added a new `components/quickjs_native` component with the upstream QuickJS core engine sources, created `0101-esp32-p4-native-quickjs`, and wrote a minimal boot-time smoke app that creates a native `JSRuntime`/`JSContext`, installs `print` and `millis`, evaluates `print(1+2)`, runs a small 10k loop bench, and frees the runtime.
+
+This step proves the most important feasibility question: full upstream QuickJS can compile directly into ESP-IDF for `esp32p4` without WAMR. The firmware has not been flashed yet in this step, but `idf.py build` now passes.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Start executing the detailed task list one checkpoint at a time, committing after a buildable source milestone.
+
+**Inferred user intent:** Move from design to real firmware while preserving clear review and continuation points.
+
+### What I did
+
+- Created `components/quickjs_native/`.
+- Copied the minimal full QuickJS core source set from `0100-esp32-p4-quickjs-wasm/wasm-src/quickjs/`:
+  - `quickjs.c`, `quickjs.h`, `quickjs-atom.h`, `quickjs-opcode.h`
+  - `cutils.c`, `cutils.h`
+  - `dtoa.c`, `dtoa.h`
+  - `libregexp.c`, `libregexp.h`, `libregexp-opcode.h`
+  - `libunicode.c`, `libunicode.h`, `libunicode-table.h`, `unicode_gen_def.h`
+  - `list.h`, `VERSION`, `LICENSE`
+- Added `components/quickjs_native/CMakeLists.txt` with the minimal source list, `CONFIG_VERSION`, local warning options, and a forced ESP-IDF compatibility include.
+- Added `components/quickjs_native/quickjs_espidf_compat.h` to declare `malloc_usable_size()`.
+- Added `components/quickjs_native/README.md` documenting source, included files, excluded `quickjs-libc.c`, and ESP-IDF compatibility notes.
+- Added a minimal `0101-esp32-p4-native-quickjs/` project with P4 UART0/PSRAM defaults, a 4 MB app partition, `README.md`, and `main/app_main.cpp`.
+- Ran `source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py set-target esp32p4 && idf.py build`.
+
+### Why
+
+- Before building `qjs_service`, we needed to prove that full QuickJS can compile and link natively in ESP-IDF for ESP32-P4.
+- A tiny boot-time smoke firmware gives a fast compile/flash target for source-portability issues.
+
+### What worked
+
+- `idf.py build` now passes for `0101-esp32-p4-native-quickjs`.
+- Output binary size is `0xb4f00`; with the custom 4 MB app partition, `0x34b100` bytes (82%) remain free.
+- Native full QuickJS is much smaller than the 0100 WAMR+embedded-wasm app (`0100` was about `0x1bec50`).
+
+### What didn't work
+
+- First build failed because the initial source copy missed generated/support headers:
+
+```text
+fatal error: libregexp-opcode.h: No such file or directory
+fatal error: list.h: No such file or directory
+fatal error: libunicode-table.h: No such file or directory
+```
+
+- Second build failed on ESP-IDF portability/warnings:
+
+```text
+implicit declaration of function 'malloc_usable_size'
+error: 'struct tm' has no member named 'tm_gmtoff'
+error: passing argument ... from incompatible pointer type [-Wincompatible-pointer-types]
+```
+
+### What I learned
+
+- The minimal source list in the design guide was incomplete for native vendoring: generated headers such as `libregexp-opcode.h`, `libunicode-table.h`, and support header `list.h` must be included.
+- ESP-IDF/newlib does not expose `tm_gmtoff`, so native QuickJS needs a local portability patch for timezone offset calculation.
+- ESP-IDF's `-Werror=all` turns upstream QuickJS pointer-type warnings into build failures on this target. Keeping `-Wno-error=incompatible-pointer-types` local to `quickjs_native` is an acceptable third-party-source boundary.
+
+### What was tricky to build
+
+- I avoided broad source edits. The only QuickJS source patch was changing the timezone fallback condition to use the portable `gmtime`/`localtime`/`mktime` path when `ESP_PLATFORM` is defined. The `malloc_usable_size` fix is a forced include shim, not an edit inside QuickJS.
+
+### What warrants a second pair of eyes
+
+- The `quickjs.c` timezone patch should be reviewed as a local vendor patch and possibly carried as a small patch file rather than an inline modified source in future update tooling.
+- The incompatible-pointer warnings are still emitted; they are only no longer fatal. Decide later whether to patch them cleanly or keep warning suppression local to the third-party component.
+
+### What should be done in the future
+
+- Flash `0101` to the ESP32-P4 and verify the boot-time native eval output.
+- If hardware smoke passes, commit the measurement in the diary and compare native `sum10k` against the 0100 Wasm baseline.
+
+### Code review instructions
+
+- Review `components/quickjs_native/CMakeLists.txt`, `components/quickjs_native/quickjs_espidf_compat.h`, and the single `quickjs.c` timezone conditional patch.
+- Review `0101-esp32-p4-native-quickjs/main/app_main.cpp` for correct QuickJS value/context/runtime cleanup.
+- Validate with `cd 0101-esp32-p4-native-quickjs && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+
+### Technical details
+
+- Build command: `idf.py build` under ESP-IDF 5.4.2.
+- Build result: `Project build complete`; binary size `0xb4f00`; app partition size `0x400000`.
+- Completed tasks: T1.1, T1.2, T1.3, T1.4, T2.1, T2.2, T2.3, T2.4.

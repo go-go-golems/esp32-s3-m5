@@ -14,41 +14,41 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 
 ## Phase 1 — Vendor and compile native QuickJS
 
-- [ ] **T1.1 — Create `components/quickjs_native`.**
+- [x] **T1.1 — Create `components/quickjs_native`.**
   - Copy the minimal full QuickJS source set from the known 0100 upstream checkout.
   - Include at least: `quickjs.c`, `quickjs.h`, `cutils.c`, `cutils.h`, `dtoa.c`, `dtoa.h`, `libregexp.c`, `libregexp.h`, `libunicode.c`, `libunicode.h`, `quickjs-atom.h`, `quickjs-opcode.h`, `VERSION`, and license/copyright material if present.
   - Do not copy build artifacts or the whole ignored upstream tree.
 
-- [ ] **T1.2 — Add `components/quickjs_native/CMakeLists.txt`.**
+- [x] **T1.2 — Add `components/quickjs_native/CMakeLists.txt`.**
   - Register the minimal source set.
   - Define `CONFIG_VERSION` from the vendored `VERSION` or a fixed string.
   - Suppress third-party warning noise only on this component.
   - Keep `quickjs-libc.c` excluded for milestone 1.
 
-- [ ] **T1.3 — Add `components/quickjs_native/README.md`.**
+- [x] **T1.3 — Add `components/quickjs_native/README.md`.**
   - Record upstream QuickJS version, local source path used for vendoring, license note, update procedure, and the source files intentionally excluded.
 
-- [ ] **T1.4 — Build-test the component through a minimal firmware.**
+- [x] **T1.4 — Build-test the component through a minimal firmware.**
   - Component-only build is not enough in ESP-IDF; create `0101` skeleton first if needed.
   - Resolve compile/link errors without changing upstream QuickJS source unless absolutely necessary.
 
 ## Phase 2 — Create native ESP32-P4 firmware skeleton (`0101`)
 
-- [ ] **T2.1 — Create `0101-esp32-p4-native-quickjs/`.**
+- [x] **T2.1 — Create `0101-esp32-p4-native-quickjs/`.**
   - Add top-level `CMakeLists.txt`, `README.md`, `sdkconfig.defaults`, optional `partitions.csv`, and `main/`.
   - Base target/console/PSRAM defaults on 0099/0100 P4 firmware.
 
-- [ ] **T2.2 — Add minimal `main/CMakeLists.txt`.**
+- [x] **T2.2 — Add minimal `main/CMakeLists.txt`.**
   - Depend on `console`, `quickjs_native`, and ESP-IDF components needed for smoke logging.
 
-- [ ] **T2.3 — Add minimal native QuickJS smoke `app_main.cpp`.**
+- [x] **T2.3 — Add minimal native QuickJS smoke `app_main.cpp`.**
   - Create `JSRuntime` and `JSContext`.
   - Set `JS_SetMemoryLimit` and `JS_SetMaxStackSize`.
   - Register a C `print` function.
   - Evaluate `print(1+2)` at boot.
   - Free `JSValue`, `JSContext`, and `JSRuntime` correctly.
 
-- [ ] **T2.4 — Build `0101` for `esp32p4`.**
+- [x] **T2.4 — Build `0101` for `esp32p4`.**
   - Use ESP-IDF 5.4.2.
   - Commit once the firmware builds.
 
