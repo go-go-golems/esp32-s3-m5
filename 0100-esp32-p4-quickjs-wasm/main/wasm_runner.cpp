@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "wasm_export.h"
 
@@ -19,14 +20,29 @@ constexpr uint32_t kGuestHeap  = 512 * 1024;
 wasm_module_t      g_mod  = nullptr;
 wasm_module_inst_t g_inst = nullptr;
 wasm_exec_env_t    g_env  = nullptr;
+
+/* WAMR's loader writes into the module buffer (e.g. the reference-types /
+   fast-interp load path). The embedded quickjs.wasm lives in read-only
+   flash, so it must be copied into a writable buffer (PSRAM) before load.
+   On the host this was a malloc'd buffer and worked; on-device it crashed
+   with a Store access fault in b_memmove_s writing to the flash blob. */
+uint8_t *g_wasm_copy = nullptr;
 }  // namespace
 
 bool wasm_runner_init(void)
 {
     char err[256] = {0};
 
-    g_mod = wasm_runtime_load((uint8_t *)quickjs_wasm_data(), quickjs_wasm_size(),
-                              err, sizeof(err));
+    if (g_wasm_copy == nullptr) {
+        size_t sz = quickjs_wasm_size();
+        g_wasm_copy = (uint8_t *)heap_caps_malloc(sz, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (!g_wasm_copy) g_wasm_copy = (uint8_t *)heap_caps_malloc(sz, MALLOC_CAP_8BIT);
+        if (!g_wasm_copy) { ESP_LOGE(kTag, "failed to allocate writable wasm copy (%zu)", sz); return false; }
+        memcpy(g_wasm_copy, quickjs_wasm_data(), sz);
+        ESP_LOGI(kTag, "copied quickjs.wasm (%zu bytes) to writable buffer %p", sz, g_wasm_copy);
+    }
+
+    g_mod = wasm_runtime_load(g_wasm_copy, quickjs_wasm_size(), err, sizeof(err));
     if (!g_mod) {
         ESP_LOGE(kTag, "wasm_runtime_load failed: %s", err);
         return false;
