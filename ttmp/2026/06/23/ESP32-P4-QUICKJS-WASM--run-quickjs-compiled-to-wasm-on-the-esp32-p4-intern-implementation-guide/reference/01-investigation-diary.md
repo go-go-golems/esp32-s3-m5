@@ -922,3 +922,80 @@ Command returned non-zero error code: 0x1 (ERROR)
 - Monitor session used: `qjs0100`; killed after validation.
 - Device: ESP32-P4 rev v1.3 on `/dev/ttyACM0` / CH343 bridge.
 
+## Step 15: Measure first-pass QuickJS-WASM speed on the ESP32-P4
+
+Measured the current interpreted-Wasm QuickJS firmware on the real ESP32-P4 after the Crash B fix. These are first-pass smoke timings, not a full benchmark suite, but they answer the practical question: startup is usable, simple eval is interactive, arithmetic loops are slow because QuickJS is itself running through WAMR's interpreter.
+
+The important split is between JS-engine time and host-visible command time. The JS snippets use the firmware's `millis()` global, so their printed `sum10k`/`sum100k` values measure time from inside JavaScript after the source has already entered QuickJS. The Python serial probe measured command roundtrip from host write to prompt return, which includes ESP console handling, qjs_eval parsing/execution, WAMR boundary work, and UART output.
+
+### Prompt Context
+
+**User prompt (verbatim):** "how fast is it?"
+
+**Assistant interpretation:** Quantify current on-device performance after the successful Crash B fix.
+
+**Inferred user intent:** Decide whether the interpreted QuickJS-WASM-on-WAMR stack is merely functional or practical enough for interactive experiments.
+
+### What I did
+
+- Reattached to `/dev/ttyACM0` as the only serial owner.
+- Ran in-engine `millis()` microbenchmarks through `js eval`.
+- Killed the tmux monitor and ran a one-off Python `pyserial` probe to reset the board, wait for `QuickJS ready`, then time command roundtrips.
+- Closed serial afterward; no monitor was left holding the port.
+
+### What worked
+
+- Startup remained stable. `qjs_init` again completed at `I (4681)` after the wasm copy at `I (2001)`, so the observed initialization time is roughly 2.68 seconds.
+- Simple eval roundtrip is interactive: `js eval "print(1+2)"` returned in about 50 ms host-visible wall time.
+- Loop timings were consistent between JS-side `millis()` and host roundtrip timing:
+
+```text
+empty10k=240 ms
+sum10k=365 ms, s=49995000
+sum100k=3710 ms, s=4999950000
+```
+
+Host-visible command roundtrips:
+
+```text
+print(1+2): 50.2 ms
+sum10k:     440.8 ms (JS-side time 364 ms)
+sum100k:    3814.9 ms (JS-side time 3709 ms)
+```
+
+### What didn't work
+
+- Recursive `fib(20)` failed with `eval exception: Exception: wasm operand stack overflow`. This is not a performance result; it is a stack-depth/operand-stack limit result that should be investigated separately before using recursion-heavy examples.
+
+### What I learned
+
+- The current interpreter-on-interpreter stack is good enough for console-driven configuration logic and small scripts, but not for tight compute loops. A 100k integer-addition loop takes roughly 3.7 seconds in JS-side time.
+- The overhead outside JS execution is modest for non-trivial code: the 100k loop spent about 3.71 s in JS and about 3.81 s host-visible wall time.
+- For trivial code, fixed overhead dominates: `print(1+2)` is about 50 ms roundtrip.
+
+### What was tricky to build
+
+- The in-engine `millis()` timer does not include all of `qjs_eval` parsing and host boundary overhead if the timer starts inside the evaluated program. That is why I collected both JS-side timing and host-visible roundtrip timing.
+- Opening the serial port directly can reset the board; the Python probe intentionally treated that as a clean-run measurement and waited for the prompt before timing commands.
+
+### What warrants a second pair of eyes
+
+- The recursion failure (`wasm operand stack overflow`) may be tunable via WAMR stack configuration or may be a consequence of the very small current guest stack / operand stack setup.
+- A proper `js bench` command should measure eval latency inside firmware without UART and host tooling noise.
+
+### What should be done in the future
+
+- Add a first-class `js bench` command that reports startup, qjs_eval, loop, allocation, and repeated-eval metrics.
+- Measure the same snippets after AOT (`wamrc --target=riscv32`) if/when AOT is enabled.
+- Add repeated-eval memory high-water tests to see whether heap use stabilizes.
+
+### Code review instructions
+
+- No code changed in this step. Review the diary results against the console output if needed.
+- Future benchmark implementation should live in `js_command.cpp` / `wasm_runner.cpp` or a dedicated `bench_command.cpp`.
+
+### Technical details
+
+- Device: ESP32-P4 rev v1.3, 360 MHz core, 32 MB PSRAM at 200 MHz, WAMR pool 16 MB in PSRAM.
+- Firmware commit measured: `994212a-dirty` in the boot banner; functional code is commit `994212a` plus committed docs at `ff98834`.
+
