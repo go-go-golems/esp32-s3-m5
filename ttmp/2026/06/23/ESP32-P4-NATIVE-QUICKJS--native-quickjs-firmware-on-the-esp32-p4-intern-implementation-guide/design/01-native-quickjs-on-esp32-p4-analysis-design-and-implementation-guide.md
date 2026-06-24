@@ -24,11 +24,18 @@ RelatedFiles:
     - Path: 0100-esp32-p4-quickjs-wasm/wasm-src/wasm_main.c
       Note: Minimal full QuickJS bindings and qjs_eval wrapper from Wasm experiment
     - Path: 0101-esp32-p4-native-quickjs/README.md
-      Note: Build
+      Note: |-
+        Build
+        Validated console commands
     - Path: 0101-esp32-p4-native-quickjs/main/app_main.cpp
       Note: |-
         Minimal native QuickJS smoke firmware that builds for ESP32-P4
         Service-backed boot smoke and validation harness
+        Console REPL startup and qjs_service configuration
+    - Path: 0101-esp32-p4-native-quickjs/main/js_command.cpp
+      Note: Interactive native QuickJS console command implementation
+    - Path: 0101-esp32-p4-native-quickjs/main/js_command.h
+      Note: Console command registration API
     - Path: components/mqjs_service/include/mqjs_service.h
       Note: Existing MicroQuickJS service public API to mirror for native full QuickJS
     - Path: components/mqjs_service/mqjs_service.cpp
@@ -51,6 +58,7 @@ LastUpdated: 2026-06-23T23:23:19.655329384-04:00
 WhatFor: Use when implementing or reviewing the native/raw QuickJS ESP32-P4 firmware follow-up to project 0100.
 WhenToUse: Use before creating 0101-esp32-p4-native-quickjs, when porting the existing mqjs_service model to full upstream QuickJS, or when comparing native QuickJS against the QuickJS-WASM baseline.
 ---
+
 
 
 
@@ -716,13 +724,14 @@ Validation commands:
 
 Use the same measurements as the Wasm firmware:
 
-| Benchmark | 0100 QuickJS-WASM baseline | Native target expectation |
-|---|---:|---:|
-| startup / context init | ~2.7 s | should be lower; measure |
-| `print(1+2)` roundtrip | ~50 ms | should be lower or similar; console overhead may dominate |
-| 10k sum loop | ~365 ms JS-side | should be significantly lower |
-| 100k sum loop | ~3.7 s JS-side | should be significantly lower |
-| recursive `fib(20)` | WAMR operand stack overflow | should run or hit native stack timeout/limit depending configuration |
+| Benchmark | 0100 QuickJS-WASM baseline | Native measured on 0101 console | Notes |
+|---|---:|---:|---|
+| startup / context init | ~2.7 s | ~6 ms | `qjs_service` runtime init on owner task. |
+| `print(1+2)` roundtrip | ~50 ms | ~2 ms reported eval time | Console transport still adds human-visible latency. |
+| 10k sum loop | ~365 ms JS-side / ~441 ms roundtrip | ~11 ms JS-side / ~13 ms eval | Native full QuickJS is much faster for this loop. |
+| 100k sum loop | ~3.71 s JS-side / ~3.81 s roundtrip | ~133 ms JS-side / ~133 ms eval | Native full QuickJS is much faster for this loop. |
+| recursive `fib(20)` | WAMR operand stack overflow | `fib20=6765`, ~31 ms JS-side / ~32 ms eval | Requires 32 KiB qjs owner-task stack; 12 KiB crashed with stack protection fault. |
+| infinite loop timeout | not stabilized in 0100 | interrupts at ~1000 ms with `InternalError: interrupted`, `timed_out=1` | Console default timeout is 1000 ms to avoid task watchdog warnings. |
 
 ### Phase 5: optional PicoCalc and service integration
 

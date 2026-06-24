@@ -6,15 +6,30 @@ This firmware compiles upstream QuickJS directly into ESP-IDF for the ESP32-P4. 
 
 ## Current status
 
-Service smoke scaffold: start `components/qjs_service`, which owns one native `JSRuntime`/`JSContext` on a FreeRTOS owner task, install `print`, `millis`, and `gc`, evaluate small scripts, report status, and reset the runtime.
+Interactive console firmware: start `components/qjs_service`, which owns one native `JSRuntime`/`JSContext` on a FreeRTOS owner task, install `print`, `millis`, and `gc`, and expose UART0 console commands.
+
+Available commands:
+
+```text
+js status
+js eval <source>
+js reset
+js gc
+js bench
+```
 
 Verified on the ESP32-P4 hardware:
 
 - native service runtime init: about 6 ms
-- `print(1+2)` captured output: `3`
-- 10k integer loop: about 14 ms JavaScript-side
-- exception formatting: `Error: boom`
-- service reset: `ESP_OK`
+- `js eval "print(1+2)"`: captured output `3`
+- `js eval "throw new Error('boom')"`: reports `Error: boom`
+- `js reset`: `ESP_OK`
+- `js gc`: completes successfully
+- `js bench`:
+  - 10k integer loop: about 13 ms roundtrip / 11 ms JS-side
+  - 100k integer loop: about 133 ms roundtrip / 133 ms JS-side
+  - `fib(20)`: about 32 ms roundtrip / 31 ms JS-side
+- `js eval "while(true){}"`: interrupted after about 1000 ms with `InternalError: interrupted` and `timed_out=1`
 
 ## Build
 
@@ -36,14 +51,31 @@ idf.py -p /dev/ttyACM0 monitor
 
 In non-interactive agent sessions, run `idf.py monitor` inside tmux, capture the pane, and kill the tmux session afterward so the serial port is released.
 
-Expected service smoke output includes:
+Expected startup output includes:
 
 ```text
 I (...) qjs_service: runtime init status=ESP_OK elapsed=6 ms
-I (...) 0101_qjs: eval boot-smoke result: ok=1 timed_out=0 elapsed=2ms
-3
-I (...) 0101_qjs: eval sum10k result: ok=1 timed_out=0 elapsed=14ms
-sum10k=14,s=49995000
-E (...) 0101_qjs: eval exception exception: Error: boom
-I (...) 0101_qjs: reset: ESP_OK
+I (...) 0101: QuickJS ready. Try: js eval "print(1+2)" or js bench
+0101>
 ```
+
+Example command output:
+
+```text
+0101> js eval "print(1+2)"
+[console-eval] ok=1 timed_out=0 elapsed=2ms
+3
+
+0101> js bench
+[bench-10k] ok=1 timed_out=0 elapsed=13ms
+sum10k=11,s=49995000
+[bench-100k] ok=1 timed_out=0 elapsed=133ms
+sum100k=133,s=4999950000
+[bench-fib20] ok=1 timed_out=0 elapsed=32ms
+fib20=6765,ms=31
+```
+
+## Notes
+
+- The service owner task uses a 32 KiB stack. A smaller 12 KiB stack crashed during `fib(20)` with a FreeRTOS stack protection fault in recursive QuickJS execution.
+- Console eval timeout is 1000 ms so `while(true){}` interrupts before the task watchdog fires.

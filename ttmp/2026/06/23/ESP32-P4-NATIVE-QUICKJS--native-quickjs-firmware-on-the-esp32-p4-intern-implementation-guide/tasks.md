@@ -89,19 +89,19 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 
 ## Phase 4 — Replace `0101` smoke with console-driven service
 
-- [ ] **T4.1 — Add `js status`.**
-- [ ] **T4.2 — Add `js eval <source>`.**
-- [ ] **T4.3 — Add `js reset`.**
-- [ ] **T4.4 — Add `js gc`.**
-- [ ] **T4.5 — Add `js bench`.**
-- [ ] **T4.6 — Update `0101/README.md` with build/flash/monitor commands and expected output.**
+- [x] **T4.1 — Add `js status`.**
+- [x] **T4.2 — Add `js eval <source>`.**
+- [x] **T4.3 — Add `js reset`.**
+- [x] **T4.4 — Add `js gc`.**
+- [x] **T4.5 — Add `js bench`.**
+- [x] **T4.6 — Update `0101/README.md` with build/flash/monitor commands and expected output.**
 
 ## Phase 5 — Hardware validation and benchmark comparison
 
 - [x] **T5.1 — Flash service firmware to ESP32-P4.**
 - [x] **T5.2 — Smoke eval.** Confirm `js eval "print(1+2)"` prints `3`.
 - [x] **T5.3 — Exception eval.** Confirm `throw new Error('boom')` reports `Error: boom`.
-- [ ] **T5.4 — Timeout eval.** Confirm `while(true){}` stops by deadline.
+- [x] **T5.4 — Timeout eval.** Confirm `while(true){}` stops by deadline.
 - [ ] **T5.5 — Reset eval.** Define a global, reset, confirm global disappears.
 - [ ] **T5.6 — Memory high-water.** Run repeated eval loop and record heap/QuickJS memory before/after.
 - [ ] **T5.7 — Benchmark.** Measure startup, tiny eval, 10k loop, 100k loop, recursion, allocation.

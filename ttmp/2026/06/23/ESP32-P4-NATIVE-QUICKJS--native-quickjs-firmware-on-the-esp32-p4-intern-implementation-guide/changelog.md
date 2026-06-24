@@ -59,3 +59,14 @@ Completed T3.1-T3.6 and service hardware smoke: added components/qjs_service own
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/qjs_service/qjs_service.cpp — Owner-task service implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 5 records service build and hardware validation
 
+
+## 2026-06-23
+
+Completed T4.1-T4.6 and T5.4: added interactive UART console commands (js status/eval/reset/gc/bench), fixed benchmark lexical redeclaration, raised qjs owner stack to 32 KiB for fib20, reduced eval timeout to 1000 ms, and verified timeout interruption on hardware.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/app_main.cpp — REPL startup and qjs service stack sizing
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/js_command.cpp — Console command implementation and benchmark scripts
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 6 records console validation and device-only fixes
+

@@ -461,3 +461,138 @@ I (1645) 0101_qjs: status after-reset: ready=1 busy=0 evals=3 resets=1 last=0ms 
 ```
 
 - Completed tasks: T3.1, T3.2, T3.3, T3.4, T3.5, T3.6, T5.1, T5.2, T5.3.
+
+## Step 6: Add interactive `js` console commands and validate timeout/bench behavior
+
+Converted 0101 from a boot-only service smoke into an interactive UART0 console firmware. The firmware now starts `qjs_service`, registers ESP console commands, and leaves a persistent `0101>` prompt for `js status`, `js eval`, `js reset`, `js gc`, and `js bench`.
+
+This step also found and fixed two device-only correctness issues. The first `js bench` implementation reused top-level `let` names across evals and failed with redeclaration errors. After wrapping benchmarks in IIFEs, recursive `fib(20)` exposed that the 12 KiB QuickJS owner-task stack was too small, so the owner stack was raised to 32 KiB. The console eval timeout was also reduced to 1000 ms so infinite loops interrupt before the task watchdog complains.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue through the task list by replacing smoke-only validation with the requested interactive console UX.
+
+**Inferred user intent:** Make the native QuickJS firmware usable from the serial console and validate the intern-facing workflow on real hardware.
+
+### What I did
+
+- Added `0101-esp32-p4-native-quickjs/main/js_command.h`.
+- Added `0101-esp32-p4-native-quickjs/main/js_command.cpp`.
+- Rewrote `0101-esp32-p4-native-quickjs/main/app_main.cpp` to start `qjs_service`, register console commands, and start the UART REPL.
+- Updated `0101-esp32-p4-native-quickjs/main/CMakeLists.txt` to build `js_command.cpp` and require `console`.
+- Updated `0101-esp32-p4-native-quickjs/README.md` with command list, build/flash/monitor instructions, expected output, and validation notes.
+- Updated the design guide benchmark table with measured native 0101 values.
+- Built with `idf.py build`, flashed with `idf.py -p /dev/ttyACM0 flash`, and validated commands through `idf.py monitor` in tmux.
+
+### Why
+
+- The implementation guide's service architecture is only useful to interns once it has a concrete operator interface.
+- Console commands provide the fastest validation loop for eval, reset, exception handling, timeout handling, and performance checks.
+
+### What worked
+
+- `idf.py build` passes; final console binary size is `0xc84f0`, leaving about 80% of the 4 MB app partition free.
+- `js status` reports service and heap state.
+- `js eval "print(1+2)"` prints `3`.
+- `js eval "throw new Error('boom')"` reports `Error: boom`.
+- `js reset` returns `ESP_OK`.
+- `js gc` completes successfully.
+- `js bench` now runs 10k loop, 100k loop, and `fib(20)`.
+- `js eval "while(true){}"` interrupts at about 1000 ms with `timed_out=1` and `InternalError: interrupted`.
+
+### What didn't work
+
+- First `js bench` attempt failed because benchmark snippets used top-level lexical declarations:
+
+```text
+[bench-100k] ok=0 timed_out=0 elapsed=0ms
+error: SyntaxError: redeclaration of 't'
+[bench-fib20] ok=0 timed_out=0 elapsed=0ms
+error: SyntaxError: redeclaration of 't'
+```
+
+- Fix: wrap each benchmark snippet in an IIFE.
+- After that fix, `fib(20)` crashed with a FreeRTOS stack protection fault when the qjs owner task stack was 12 KiB:
+
+```text
+Guru Meditation Error: Core  0 panic'ed (Stack protection fault).
+Detected in task "qjs0101" at 0x40020e30
+JS_CallInternal ... quickjs.c:17749
+Stack bounds: 0x4ff21044 - 0x4ff24040
+```
+
+- Fix: raise `cfg.task_stack_words` in `app_main.cpp` from `12288` to `32768`.
+- A 5000 ms console eval timeout allowed task watchdog warnings during `while(true){}` before QuickJS returned:
+
+```text
+E (...) task_wdt: Task watchdog got triggered.
+CPU 0: qjs0101
+```
+
+- Fix: reduce console default eval timeout to `1000` ms.
+
+### What I learned
+
+- QuickJS's recursive execution uses enough native C stack that the owner task stack must be sized for intended workloads, independently of `JS_SetMaxStackSize`.
+- Top-level lexical declarations persist across evals in the same context; benchmarks and console examples should use IIFEs or `var` if repeated execution is expected.
+- QuickJS's interrupt handler works for infinite loops on ESP32-P4, but the timeout must be shorter than the FreeRTOS task watchdog threshold unless the service is enhanced to feed/yield safely.
+
+### What was tricky to build
+
+- The console command parser joins remaining argv tokens to support both quoted and unquoted source forms. This mirrors the 0100 command UX while keeping source length bounded to 2048 bytes.
+- `js bench` must avoid polluting the global lexical environment. Wrapping each benchmark in `(()=>{ ... })()` fixed repeated invocation without resetting the context.
+- Timeout validation had to distinguish a successful QuickJS interrupt from a system-level task watchdog warning. Reducing the timeout to 1000 ms produced clean `timed_out=1` behavior.
+
+### What warrants a second pair of eyes
+
+- Review whether `js eval` should return shell error status for JavaScript exceptions. It currently returns non-zero, which makes failures visible but prints ESP console's `Command returned non-zero error code` line.
+- Review whether 32 KiB is the right default owner-task stack or whether the service config should document stack sizing by workload more explicitly.
+- Review if console timeout should become an argument, for example `js eval --timeout 5000 <source>`.
+
+### What should be done in the future
+
+- Add repeated-eval stress and memory high-water tests.
+- Add reset-specific validation that defines a global, resets, and confirms the global disappears.
+- Add allocation benchmark coverage if T5.7 is to be marked fully complete.
+
+### Code review instructions
+
+- Review `0101-esp32-p4-native-quickjs/main/js_command.cpp` for command parsing, result printing, benchmark snippets, and timeout behavior.
+- Review `0101-esp32-p4-native-quickjs/main/app_main.cpp` for service stack size and REPL startup.
+- Validate with `idf.py build`, `idf.py -p /dev/ttyACM0 flash`, then tmux monitor commands: `js status`, `js eval "print(1+2)"`, `js reset`, `js gc`, `js bench`, and `js eval "while(true){}"`.
+
+### Technical details
+
+- Final command validation output:
+
+```text
+0101>  js status
+ready=1 busy=0 evals=0 resets=0 last_eval_ms=0
+limits: memory=2097152 stack=65536
+quickjs: used=49760 malloc=360 atoms=518
+esp_heap: internal=398191 8bit=33947971 psram=33549780
+0101>  js eval "print(1+2)"
+[console-eval] ok=1 timed_out=0 elapsed=2ms
+3
+0101>  js eval "throw new Error('boom')"
+[console-eval] ok=0 timed_out=0 elapsed=0ms
+error: Error: boom
+0101>  js reset
+reset: ESP_OK
+0101>  js gc
+[gc] ok=1 timed_out=0 elapsed=1ms
+0101>  js bench
+[bench-10k] ok=1 timed_out=0 elapsed=13ms
+sum10k=11,s=49995000
+[bench-100k] ok=1 timed_out=0 elapsed=133ms
+sum100k=133,s=4999950000
+[bench-fib20] ok=1 timed_out=0 elapsed=32ms
+fib20=6765,ms=31
+0101>  js eval "while(true){}"
+[console-eval] ok=0 timed_out=1 elapsed=1000ms
+error: InternalError: interrupted
+```
+
+- Completed tasks: T4.1, T4.2, T4.3, T4.4, T4.5, T4.6, T5.4.
