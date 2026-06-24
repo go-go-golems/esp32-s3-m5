@@ -167,6 +167,10 @@ topics:
       description: Hardware design, PCBs, and electronics
     - slug: picocalc
       description: ClockworkPi PicoCalc handheld device
+    - slug: lcd
+      description: LCD display rendering
+    - slug: repl
+      description: Read-eval-print-loop interfaces
     - slug: source
       description: Downloaded or scraped reference source material
     - slug: esp32p4
