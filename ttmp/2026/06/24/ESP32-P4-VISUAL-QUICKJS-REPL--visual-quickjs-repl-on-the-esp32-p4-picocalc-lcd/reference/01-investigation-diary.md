@@ -867,3 +867,82 @@ screen demo: ESP_OK elapsed_ms=31 render_ms=30 grid=40x20
 
 - Color swatch result: intended colors appeared intended; gray background appeared gray.
 - Monitor capture: `/tmp/0102-black-palette-demo.log`.
+
+## Step 9: Switch to a minimal Swiss terminal palette
+
+Adjusted the visual REPL palette to match the requested minimalist Swiss typography direction. The LCD color path was already validated with swatches, so this is a theme-level change: black background everywhere, strong contrast, and a very small foreground set of white, yellow, orange, and red.
+
+This keeps the terminal visually quiet and avoids tinted row backgrounds. The goal is for layout, spacing, and terse semantic accents to carry the interface rather than saturated blocks or decorative color fields.
+
+### Prompt Context
+
+**User prompt (verbatim):** "use black red orange yellow white , with black background. minimalist swiss typography style, if you want"
+
+**Assistant interpretation:** Replace the broader colored terminal palette with a restrained black-background palette using only red/orange/yellow/white foreground accents.
+
+**Inferred user intent:** Make the LCD REPL more minimal, legible, and typographically disciplined after confirming the hardware color path is correct.
+
+**Commit (code):** pending — "visual_repl: switch to minimal Swiss palette"
+
+### What I did
+
+- Updated `palette_for()` in `components/visual_repl/visual_repl.cpp`.
+- Set every row background to black.
+- Reduced foreground colors to:
+  - white for system/input/output;
+  - yellow for prompt;
+  - orange for status;
+  - red for errors.
+- Built the firmware, flashed it, and ran `screen demo`.
+
+### Why
+
+- The previous palette was already black-background-only, but still used cyan and green accents.
+- The requested palette is tighter and better aligned with a minimal terminal UI.
+
+### What worked
+
+- Build passed:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdacb0 bytes. Smallest app partition is 0x400000 bytes. 0x325350 bytes (79%) free.
+```
+
+- Flash succeeded.
+- `screen demo` rendered successfully:
+
+```text
+screen demo: ESP_OK elapsed_ms=31 render_ms=30 grid=40x20
+```
+
+### What didn't work
+
+- Final subjective approval of the palette is still pending from the operator.
+
+### What I learned
+
+- With the fixed narrow font, the palette should stay sparse. Extra hue variation reads as noise faster than it helps.
+
+### What was tricky to build
+
+- The palette change itself was simple; the main constraint is semantic mapping. Prompt/status/error need to remain distinguishable with only three accent colors.
+
+### What warrants a second pair of eyes
+
+- Confirm whether prompt yellow and status orange are sufficiently distinct on the physical LCD.
+- Confirm whether system rows in white blend too much with output rows, or whether that is acceptable for a minimal style.
+
+### What should be done in the future
+
+- If needed, add a theme enum later (`mono`, `swiss`, `debug-color`) rather than hard-coding one aesthetic forever.
+- Return to keyboard input smoke once the visual theme is accepted.
+
+### Code review instructions
+
+- Review `palette_for()` in `components/visual_repl/visual_repl.cpp`.
+- Validate with `screen demo` on hardware.
+
+### Technical details
+
+- Palette: black background, white/yellow/orange/red foregrounds.
+- Monitor capture: `/tmp/0102-swiss-palette-demo.log`.

@@ -91,3 +91,13 @@ Simplified visual_repl palette after swatch validation: all terminal row styles 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Black-background terminal palette
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 8 records swatch conclusion and palette adjustment
 
+
+## 2026-06-24
+
+Switched visual_repl to a minimal Swiss terminal palette: black background for all rows, white/yellow/orange/red foreground accents only.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Minimal Swiss terminal palette
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 9 records requested palette change and hardware demo
+

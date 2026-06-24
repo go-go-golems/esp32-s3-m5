@@ -40,17 +40,23 @@ constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 
 Palette palette_for(visual_repl_style_t style)
 {
-    // The PicoCalc LCD color swatch diagnostics verified that RGB565 colors are
-    // mapped correctly. Keep every terminal row on black for predictable console
-    // contrast; encode semantics in foreground color only.
+    // Minimal Swiss-terminal palette: black canvas, strong foreground contrast,
+    // and a small accent set only (red/orange/yellow/white). The LCD swatch
+    // diagnostics verified that these RGB565 values map correctly on hardware.
+    constexpr uint16_t kBlack = PICOCALC_LCD_RGB565_BLACK;
+    constexpr uint16_t kWhite = PICOCALC_LCD_RGB565_WHITE;
+    constexpr uint16_t kRed = PICOCALC_LCD_RGB565_RED;
+    constexpr uint16_t kYellow = PICOCALC_LCD_RGB565_YELLOW;
+    constexpr uint16_t kOrange = rgb565(255, 128, 0);
+
     switch (style) {
-        case VISUAL_REPL_STYLE_PROMPT: return {rgb565(120, 220, 255), PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_INPUT:  return {PICOCALC_LCD_RGB565_WHITE, PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_OUTPUT: return {rgb565(210, 210, 210), PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_ERROR:  return {rgb565(255, 95, 95), PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_STATUS: return {rgb565(255, 210, 90), PICOCALC_LCD_RGB565_BLACK};
+        case VISUAL_REPL_STYLE_PROMPT: return {kYellow, kBlack};
+        case VISUAL_REPL_STYLE_INPUT:  return {kWhite, kBlack};
+        case VISUAL_REPL_STYLE_OUTPUT: return {kWhite, kBlack};
+        case VISUAL_REPL_STYLE_ERROR:  return {kRed, kBlack};
+        case VISUAL_REPL_STYLE_STATUS: return {kOrange, kBlack};
         case VISUAL_REPL_STYLE_SYSTEM:
-        default:                       return {rgb565(140, 180, 150), PICOCALC_LCD_RGB565_BLACK};
+        default:                       return {kWhite, kBlack};
     }
 }
 
