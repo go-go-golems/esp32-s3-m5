@@ -374,3 +374,155 @@ reMarkable; bookkeeping keeps the ticket self-consistent for future sessions.
 
 - Firmware path: `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0100-esp32-p4-quickjs-wasm`.
 - reMarkable remote dir: `/ai/2026/06/23/ESP32-P4-QUICKJS-WASM`.
+
+## Step 6: Phase 0 — host-side QuickJS→WASM build + WAMR smoke test (in progress)
+
+User asked to implement Phase 0 of the design: build `quickjs.wasm` on the host, verify imports/exports, and smoke-test it with a WAMR host before any device work. The user also said we will run this on the same device as the PicoCalc firmware (`0099`), so the firmware target/console/PSRAM config already matches `0099`'s `sdkconfig.defaults`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, implement phase 0. we will be runnning thi son the same device as the picocalc firmware" — then later: "let me know when you are ready to test on the device and i'll connect it. keep a diary as you work, and commit at appropriate intervals." and "remembber to keep a frequent diary as you work to keep track of all you do, so that we can write a great report once we are done"
+
+**Assistant interpretation:** Build quickjs.wasm with wasi-sdk on the host PC, verify it, run it under a WAMR host test (the exact code path the firmware will use), and only then tell the user to connect the device. Keep the diary current and commit in logical chunks.
+
+**Inferred user intent:** Prove the JS-in-WASM-in-WAMR stack works end to end on the host before flashing, so the device session is short and high-signal.
+
+### What I did
+
+- **Environment probe:** no `wasi-sdk`, no `wasm-ld`/`lld`, no `wabt`, no wasm runtime on the machine; no passwordless sudo (so everything must be userspace). System clang 18 has the `wasm32` target but lacks the WASI sysroot. `cmake`/`ninja`/`gcc` present. **WAMR is vendored locally** in `0079/managed_components/bytecodealliance__wasm-micro-runtime` (with a `product-mini/platforms/linux` host build) — so I can build a faithful `libvmlib` host test from it.
+- **Installed wasi-sdk-33** (userspace, `~/tools/wasi-sdk-33.0-x86_64-linux`): clang 22.1.0 (`wasm32-unknown-wasip1`), `wasm-ld`, `wasi-sysroot`. 185 MB tarball.
+- **Vendored QuickJS** (`git clone --depth 1 bellard/quickjs` → version `2026-06-04`) into `0100/wasm-src/quickjs`.
+- **Built `quickjs.wasm`** as a reactor (exports `qjs_init`/`qjs_eval`; imports `env.host_print/host_millis/host_gpio_write` + `wasi_snapshot_preview1.*`).
+- **Wrote a dependency-free Python wasm section parser** (`wasm_inspect.py`) to replace `wabt`/`wasm-objdump` (no sudo to install wabt). Verified imports/exports exactly match the design.
+- **Built a WAMR host test** (`wasm-src/host-test/{CMakeLists.txt,host_test.c}`) that builds `libvmlib` (interp + WASI + ref-types) from the vendored WAMR and links a host program that registers the `env` natives, loads `quickjs.wasm`, and calls `qjs_init` + `qjs_eval`.
+- **Iterated on build errors** (all captured verbatim below).
+
+### Build errors hit and fixed (verbatim chain)
+
+1. `malloc_usable_size` undeclared (quickjs.c) → wasi-libc's `dlmalloc` *defines* it but doesn't *declare* it in a header QuickJS includes. Fix: `wasm_shim.h` (force-included via `-include`) that forward-declares `size_t malloc_usable_size(void *);` — the definition comes from libc.a.
+2. `CONFIG_VERSION` undefined (quickjs.c fprintf) → Fix: `-DCONFIG_VERSION="$(cat quickjs/VERSION)"` (= `2026-06-04`), matching the upstream Makefile.
+3. setjmp/longjmp `#error` in wasi-libc `setjmp.h` (dtoa.c includes it but **never uses it** — verified no `setjmp(`/`longjmp(`/`jmp_buf` call sites) → first tried `-D__wasm_exception_handling__` (silences the `#error`) but later switched to a **stub `wasm_overrides/setjmp.h`** via `-I` to avoid pulling the EH proposal at all.
+4. **duplicate symbol `malloc_usable_size`** → my first shim *defined* it; dlmalloc already does. Fix: drop the definition, keep only the declaration.
+5. **WAMR load failure:** `"The module uses reference types feature which is disabled in the runtime"` (clang 22 emits reference-types table ops) → Fix: `set(WAMR_BUILD_REF_TYPES 1)` in the host-test CMake (and on device: `CONFIG_WAMR_ENABLE_REF_TYPES=y`). After this, `qjs_init` ran successfully.
+6. **WAMR `module_dup_data` failure:** `"app heap is corrupted ... please add -Wl,--export=malloc -Wl,--export=free"` → Fix: export `malloc`/`free` so WAMR can allocate in the guest heap.
+7. `host_print` contract mismatch (wasm declared `(s,len)`, host signature `($)` was 1-param) → Fix: made `host_print(const char *s)` single-param (WAMR `$` gives a NUL-terminated copy), updated both call sites.
+
+### Where it stands (the current blocker)
+
+- `qjs_init` succeeds (prints `[qjs_init done]`), so the module loads, instantiates, and QuickJS creates its runtime/context + registers `print`.
+- `qjs_eval` runs to completion (WAMR `call_wasm` returns true — **no trap**) but returns `-1`: `JS_Eval` throws a **message-less exception** for *every* input, including `1+2`.
+- **Native sanity check (gcc, same `qjs_init`/`qjs_eval`/`js_print` sources) works perfectly:** `print(1+2)`→`3`, `for(let i=0;i<3;i++) print(i)`→`012`. So the QuickJS API usage is correct; the failure is **wasm-specific**.
+- Verified the source string arrives intact in wasm memory (`[qjs_eval enter src=print(1+2)]`), memory is plentiful (8 MB initial linear memory, dlmalloc from `__heap_base`=166048), and WAMR verbose log shows **no error/trap/grow failure** — `Memory instantiate success`.
+- A message-less throw rules out QuickJS's `JS_ThrowOutOfMemory` ("out of memory") and `JS_ThrowStackOverflow` ("stack overflow") — both carry messages.
+- Key representation difference found: `quickjs.h` does `#ifndef JS_PTR64 #define JS_NAN_BOXING`. So **wasm32 (32-bit pointers) uses NaN-boxing (`uint64_t` JSValue) while native 64-bit uses a struct JSValue** — a real divergence to investigate.
+
+### What worked
+
+- The whole host toolchain installs and builds userspace; the wasm imports/exports match the design exactly; the WAMR host test (built from the vendored runtime) loads/instantiates/`qjs_init` correctly.
+- The native build of the identical wrapper proves the QuickJS embedding is correct.
+
+### What didn't work
+
+- `JS_Eval` throws message-less in the wasm build only. `-O3 -flto` → `-O2` did not help; bumping initial memory 1 MB → 8 MB did not help; the stub-setjmp swap did not help.
+
+### What I learned
+
+- clang 22 (wasi-sdk-33) emits reference-types by default → WAMR must enable `WAMR_BUILD_REF_TYPES` (and the device `CONFIG_WAMR_ENABLE_REF_TYPES=y`); my original design had it `=n` — **needs updating**.
+- WAMR requires wasi-sdk modules to `--export=malloc --export=free` for guest-heap allocation (module_dup_data).
+- The `__wasm_exception_handling__` define is a risky hack (it lies to wasi-libc that EH is compiled in); the stub `setjmp.h` is the principled fix.
+- Native-vs-wasm isolation (build the same wrapper with gcc) was the highest-signal debug step — it pinned the issue to the wasm build, not the embedding logic.
+
+### What was tricky to build
+
+- Driving `JS_Eval` to a message-less exception with zero WAMR-side error is unusual: the classic culprits (trap, OOM, stack overflow) are all ruled out by the absence of a trap and the presence of messages on those paths. The remaining suspects are wasm-specific: NaN-boxed JSValue handling under WAMR's interp, or a clang-22-vs-WAMR-2.4.0 feature gap (the vendored WAMR is ~early 2024; clang 22 is 2025/2026).
+
+### What warrants a second pair of eyes
+
+- Whether WAMR 2.4.0 (espressif component `2.4.0~1`) correctly runs this clang-22 wasm; if a newer WAMR host works, the device component may need bumping too.
+- The NaN-boxing `JSValue` (uint64) round-trip through WAMR's fast interpreter.
+
+### What should be done in the future
+
+- Capture the actual exception value/tag (need a small int-to-string helper in `wasm_main.c`) to identify the message-less throw precisely.
+- Try `-O0`/`-O1` to rule out an optimizer miscompile; try a newer WAMR host.
+- Once the host smoke test prints `3`, copy `quickjs.wasm` into `main/`, wire Phase 1 firmware, build for `esp32p4`, then ask the user to connect the device.
+
+### Code review instructions
+
+- `cd 0100-esp32-p4-quickjs-wasm/wasm-src && ./build-quickjs-wasm.sh && python3 wasm_inspect.py ../wasm-build/quickjs.wasm`
+- `cd 0100-esp32-p4-quickjs-wasm/wasm-src/host-test && cmake -B build && cmake --build build && ./build/host_test ../../wasm-build/quickjs.wasm "print(1+2)"`
+- Native comparison: `gcc -O2 -DCONFIG_VERSION=\"native-test\" -I quickjs quickjs/{quickjs,cutils,dtoa,libregexp,libunicode}.c wasm_main.c native_test.c -lm -lpthread -o /tmp/qjs_native && /tmp/qjs_native "print(1+2)"`
+
+### Technical details
+
+- wasi-sdk: `/home/manuel/tools/wasi-sdk-33.0-x86_64-linux` (clang 22.1.0, target `wasm32-wasip1`).
+- WAMR source (vendored): `0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime`.
+- quickjs.wasm: `0100-esp32-p4-quickjs-wasm/wasm-build/quickjs.wasm` (~1.4 MB, -O2).
+- WAMR config needed: `WAMR_BUILD_INTERP=1`, `WAMR_BUILD_FAST_INTERP=1`, `WAMR_BUILD_LIBC_BUILTIN=1`, `WAMR_BUILD_LIBC_WASI=1`, `WAMR_BUILD_REF_TYPES=1`, `WAMR_BUILD_AOT=0`.
+
+## Step 7: Phase 0 success — root cause was QuickJS's C-stack-overflow check
+
+Found the blocker and fixed it. Phase 0 host smoke test now passes end to end.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 6) — plus "Once you are confident you reached a good stopping point after this first success, stop and write a detailed project report for the obsidian vault ..."
+
+**Assistant interpretation:** Reach a clean Phase 0 stopping point (wasm builds + host smoke test prints `3`), record the root cause, commit, then write the Obsidian deep-dive report.
+
+### What I did
+
+- Added a `host_print_int` helper and an exception dumper to `wasm_main.c` to read the actual exception (type/name/message) instead of the unhelpful "message-less" view.
+- Result: `JS_Eval` threw `SyntaxError: stack overflow` for every input, including `1+2`.
+- Cross-referenced `quickjs.c`: the parser calls `js_parse_error(s, "stack overflow")` (lines 22837, 23484) when `js_check_stack_overflow(rt)` returns true. That check reads the real C stack pointer via `__builtin_frame_address(0)` and compares it to `rt->stack_limit = rt->stack_top - rt->stack_size`.
+- Root cause: under WAMR's interpreter the host C stack pointer does not track wasm/js call recursion. `rt->stack_top` is captured once at `JS_NewRuntime`; the default limit then false-trips during the first parse, and the false trip also made `JS_ToCString` fail (its `toString` re-entered the check), which is why the exception first appeared message-less.
+- Fix: `JS_SetMaxStackSize(rt, 0)` in `qjs_init` → `update_stack_limit` sets `rt->stack_limit = 0` ("no limit"), so `sp < 0` is always false. Wasm stack bounds are enforced by WAMR instead.
+- Cleaned up `wasm_main.c` (removed diagnostics; `JS_ToCString` now works, so the exception handler prints the message directly) and set the host-test log level back to `WARNING`.
+- Copied `quickjs.wasm` (1.2 MB, -O2) into `main/` for the future firmware embed.
+
+### What worked
+
+Clean smoke test output:
+```
+print(1+2)            -> 3               (returned 0)
+print(6*7)            -> 42              (returned 0)
+for(let i=0;i<3;i++) print(i)   -> 0/1/2  (returned 0)
+let s="hi"; print(s+" wasm")  -> hi wasm (returned 0)
+throw new Error('boom')        -> Error: boom  (returned -1, exception printed)
+```
+The JS-in-WASM-in-WAMR stack works on the host: user JS is parsed and executed by a QuickJS engine that itself runs as a wasm module under WAMR, and `print`/`millis`/`gpio_write` cross both host boundaries correctly.
+
+### What didn't work
+
+- (Resolved.) The native-vs-wasm isolation in Step 6 was the turning point: it pinned the failure to the wasm build and ruled out the QuickJS embedding logic.
+
+### What I learned
+
+- A message-less QuickJS exception often means a second, hidden exception (here: `toString` re-entering the same false stack-overflow check). Reading the Error's `.name`/`.message` properties directly (string property lookups, no `toString`) bypasses that and reveals the real error.
+- `JS_SetMaxStackSize(rt, 0)` is the correct setting whenever QuickJS is run under a wasm interpreter rather than as native code: the C-stack recursion limit it models does not exist in that execution model.
+- clang 22 (wasi-sdk-33) emits reference types by default; WAMR builds need `WAMR_BUILD_REF_TYPES=1` (and the ESP-IDF component needs `CONFIG_WAMR_ENABLE_REF_TYPES=y`).
+
+### What was tricky to build
+
+- The exception first presented as "no message", which is the least informative failure mode. The chain `false stack-overflow -> JS_Eval throws SyntaxError -> JS_ToCString re-trips -> returns NULL` is non-obvious; only dumping `.name`/`.message` exposed it.
+
+### What warrants a second pair of eyes
+
+- Whether disabling QuickJS's stack check (stack_size=0) leaves the device vulnerable to unbounded JS recursion. On WAMR this surfaces as a wasm stack trap (call_wasm returns false) rather than a clean JS exception — acceptable for bounded scripts, worth a `js reset`/watchdog on the device.
+- Memory sizing for the device (2 MB WAMR pool in PSRAM, 256 KB QuickJS JS heap) is still an estimate; validate with profiling once on hardware.
+
+### What should be done in the future
+
+- Phase 1: wire the WAMR host API into `0100/main/` (port from `0079`), embed `quickjs.wasm` via `EMBED_FILES`, implement `js eval`/`js status`, build for `esp32p4`, then ask the user to connect the device.
+- Update the design doc's `sdkconfig.defaults` to set `CONFIG_WAMR_ENABLE_REF_TYPES=y` (it was `=n`).
+- Record measured device numbers (eval latency, heap high-water, binary size) back into the design doc's Validation section.
+
+### Code review instructions
+
+- `cd 0100-esp32-p4-quickjs-wasm/wasm-src && ./build-quickjs-wasm.sh && python3 wasm_inspect.py ../wasm-build/quickjs.wasm`
+- `cd 0100-esp32-p4-quickjs-wasm/wasm-src/host-test && cmake -B build && cmake --build build -j && ./build/host_test ../../wasm-build/quickjs.wasm "print(1+2)"`
+
+### Technical details
+
+- Fix commit: one line, `JS_SetMaxStackSize(rt, 0);` in `qjs_init`.
+- quickjs.wasm: 1.2 MB (-O2, wasm32-wasip1, reactor, exports qjs_init/qjs_eval/malloc/free).
