@@ -282,8 +282,24 @@ esp_err_t picocalc_lcd_blit_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,
     }
 
     ESP_RETURN_ON_ERROR(lcd_set_window(x, y, x + w - 1, y + h - 1), TAG, "window");
+    ESP_RETURN_ON_ERROR(lcd_ensure_dma_buffer(LCD_FILL_DMA_CHUNK_BYTES), TAG, "alloc blit dma buffer");
+
+    size_t remaining = (size_t)w * (size_t)h;
+    const uint16_t *src = pixels;
     gpio_set_level(LCD_PIN_DC, 1);
-    return lcd_tx(pixels, (size_t)w * (size_t)h * 2);
+    while (remaining > 0) {
+        const size_t max_pixels = s_lcd_dma_buf_len / 2;
+        const size_t chunk_pixels = remaining > max_pixels ? max_pixels : remaining;
+        for (size_t i = 0; i < chunk_pixels; ++i) {
+            const uint16_t rgb565 = src[i];
+            s_lcd_dma_buf[2 * i] = (uint8_t)(rgb565 >> 8);
+            s_lcd_dma_buf[2 * i + 1] = (uint8_t)(rgb565 & 0xff);
+        }
+        ESP_RETURN_ON_ERROR(lcd_tx(s_lcd_dma_buf, chunk_pixels * 2), TAG, "pixels");
+        src += chunk_pixels;
+        remaining -= chunk_pixels;
+    }
+    return ESP_OK;
 }
 
 esp_err_t picocalc_lcd_blit_row(uint16_t y, uint16_t h, const uint16_t *pixels, size_t pixel_count)

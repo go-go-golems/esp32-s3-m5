@@ -101,3 +101,13 @@ Switched visual_repl to a minimal Swiss terminal palette: black background for a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Minimal Swiss terminal palette
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 9 records requested palette change and hardware demo
 
+
+## 2026-06-24
+
+Fixed LCD blit RGB565 byte order: picocalc_lcd_blit_rect now packs host-order RGB565 pixels as high-byte/low-byte before SPI transmit, matching fill_rect and correcting visual_repl text colors.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_lcd/picocalc_lcd.c — RGB565 byte packing for blit_rect/blit_row
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 10 records fill-vs-blit color mismatch diagnosis and fix
+

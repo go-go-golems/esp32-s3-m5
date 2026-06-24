@@ -946,3 +946,91 @@ screen demo: ESP_OK elapsed_ms=31 render_ms=30 grid=40x20
 
 - Palette: black background, white/yellow/orange/red foregrounds.
 - Monitor capture: `/tmp/0102-swiss-palette-demo.log`.
+
+## Step 10: Fix RGB565 byte order for blitted text rows
+
+Investigated why the operator still saw the older blue/purple-looking demo after the Swiss palette was flashed. The important clue was that `lcd swatches` looked correct while the visual REPL text did not. That meant the LCD panel configuration and `fill_rect()` path were correct, but the text renderer's blit path used a different byte path.
+
+The root cause was in `picocalc_lcd_blit_rect()`: it transmitted the `uint16_t *pixels` buffer directly. On ESP32-P4, that memory is little-endian, so a value like RGB565 red `0xf800` is stored as bytes `00 f8`, while the LCD expects pixel bytes in panel order `f8 00`. `picocalc_lcd_fill_rect()` already packed the bytes correctly; `blit_rect()` now does the same conversion into the LCD DMA buffer before transmitting.
+
+### Prompt Context
+
+**User prompt (verbatim):** "did you flash it? i still see the demo from before with blue and purple, no keyboard input."
+
+**Assistant interpretation:** The user still sees wrong text colors after the palette flash, so verify the flashed firmware and investigate why swatches are correct but rendered text is not.
+
+**Inferred user intent:** Make the on-screen REPL match the requested Swiss palette and avoid false confidence from UART logs alone.
+
+**Commit (code):** pending — "picocalc_lcd: pack RGB565 bytes for blits"
+
+### What I did
+
+- Rebuilt and flashed the committed Swiss-palette firmware again to remove ambiguity.
+- Ran `lcd fill black` and `screen demo` from UART.
+- Inspected `components/picocalc_lcd/picocalc_lcd.c`.
+- Found divergent pixel-byte handling:
+  - `picocalc_lcd_fill_rect()` wrote `rgb565 >> 8` then `rgb565 & 0xff`;
+  - `picocalc_lcd_blit_rect()` sent the host-endian `uint16_t *pixels` buffer directly.
+- Patched `picocalc_lcd_blit_rect()` to reuse the LCD DMA buffer and pack each RGB565 pixel as high byte then low byte.
+- Rebuilt, flashed, cleared the LCD black, and ran `screen demo`.
+
+### Why
+
+- The visual REPL renderer uses `picocalc_lcd_blit_row()`, which delegates to `picocalc_lcd_blit_rect()`.
+- If blits and fills disagree about byte order, rectangle diagnostics can pass while text colors are still wrong.
+
+### What worked
+
+- Build passed after the fix:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdada0 bytes. Smallest app partition is 0x400000 bytes. 0x325260 bytes (79%) free.
+```
+
+- Flash succeeded.
+- Boot reached LCD, visual model, keyboard init, and QuickJS service.
+- `screen demo` rendered through the fixed blit path:
+
+```text
+screen demo: ESP_OK elapsed_ms=34 render_ms=33 grid=40x20
+```
+
+### What didn't work
+
+- The monitor still shows the keyboard poll warning:
+
+```text
+keyboard poll failed: ESP_ERR_INVALID_STATE consecutive_errors=1
+```
+
+- That is separate from the color issue and remains a Phase 4 hardware input smoke blocker.
+
+### What I learned
+
+- Validating `fill_rect()` is not enough to validate arbitrary RGB565 blits. Both paths must share the same pixel byte-order contract.
+- The LCD component API should define that callers pass host-order RGB565 values; the component is responsible for panel-order byte packing.
+
+### What was tricky to build
+
+- The misleading part was that swatches looked correct. That ruled out global panel color order but not the renderer-specific blit path.
+- The fix must avoid large stack buffers, so it reuses the component's internal DMA buffer and converts pixels in chunks.
+
+### What warrants a second pair of eyes
+
+- Review `picocalc_lcd_blit_rect()` to confirm chunking and pixel-count handling are correct for arbitrary rectangles.
+- Review whether the README/header should explicitly document host-order RGB565 inputs.
+
+### What should be done in the future
+
+- Add a diagnostic that renders swatches via both `fill_rect()` and `blit_rect()` side by side so this class of mismatch is caught immediately.
+- Resume keyboard controller recovery/input smoke after the color path is accepted.
+
+### Code review instructions
+
+- Review `components/picocalc_lcd/picocalc_lcd.c`, especially `picocalc_lcd_fill_rect()` and `picocalc_lcd_blit_rect()`.
+- Validate by flashing 0102 and running `screen demo`; text colors should match the Swiss palette: white/yellow/orange/red on black.
+
+### Technical details
+
+- Monitor capture: `/tmp/0102-blit-byte-order-demo.log`.
+- Latest render timing after byte-packing blits: about 33 ms for full 40×20 viewport.
