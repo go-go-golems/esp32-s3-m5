@@ -639,3 +639,54 @@ Captured the `idf.py` gotchas from Steps 9 (and earlier) so future coding agents
 ### Technical details
 
 - Playbook: `docs/01-playbook-esp-idf-build-and-dev-environment.md`. AGENTS.md: top section + clarified console heading.
+
+## Step 11: First device session — two crashes found (flash store-fault fixed; pthread_self assert open)
+
+Flashed firmware 0100 to the PicoCalc ESP32-P4 (CH343 bridge `/dev/ttyACM0`, auto-reset works, chip confirmed ESP32-P4). WAMR init + native registration succeed on hardware, but two embedding crashes surfaced that the host did not. Wrote a full post-mortem (`design/02-phase1-device-bringup-post-mortem.md`) for the intern.
+
+### Prompt Context
+
+**User prompt (verbatim):** "it's connected, can you see it?" → (flashed + monitored via tmux) → "Ok, it's getting late. Write a full post-mortem / report on where you are at now, all you did when porting to the esp32, etc... Use a textbook writing style, address the fundamentals and necessary knowledge so that our new intern can continue the debugging tomorrow. Once that is done, write a detailed project report for the obsidian vault ... Commit and push the obsidian vault when done."
+
+**Assistant interpretation:** Run the device session with idf.py/tmux, capture the result, then write a textbook post-mortem (ticket) and an Obsidian deep-dive report, and push the vault.
+
+### What I did
+
+- Used `idf.py -p /dev/ttyACM0 flash` + a tmux monitor (`tmux send-keys`/`capture-pane`) as the single serial owner. Confirmed 32 MB hex PSRAM @ 200 MHz, CPU 360 MHz, app boots.
+- **Crash A (diagnosed + fixed + verified):** `Store access fault` (MCAUSE 0x7) in WAMR `b_memmove_s` (`bh_common.c:116`) writing to `0x400809b9`, which is inside the flash-mapped `quickjs.wasm` segment (segment 0 `0x40070020`–`0x401b066c`). WAMR's loader writes to the module buffer; `EMBED_FILES` puts it in read-only flash. Fix in `wasm_runner.cpp`: copy the blob to PSRAM (`heap_caps_malloc MALLOC_CAP_SPIRAM`) before `wasm_runtime_load`. After the fix, load succeeds (log: `copied quickjs.wasm (1231348 bytes) to writable buffer 0x49000aa8`).
+- **Crash B (diagnosed, open):** `assert failed: pthread_self` at `wasm_exec_env_set_thread_info` ← `os_self_thread` ← `wasm_runtime_call_wasm` (our `qjs_init` call from `app_main`). WAMR thread tracking calls `pthread_self`, which asserts because `app_main`'s `main_task` is a FreeRTOS task, not a pthread. Not yet fixed.
+- Wrote `design/02-phase1-device-bringup-post-mortem.md` (fundamentals, both crashes with addresses/backtraces, fix directions, resume commands).
+
+### What worked
+
+- `idf.py flash` + tmux monitor is a clean single-owner way to drive the console and capture output; the CH343 auto-reset works (no manual reset needed).
+- Crash A's PSRAM-copy fix is verified on hardware (load completes). This is the same fix that distinguishes the host (malloc'd buffer) from the device (flash).
+
+### What didn't work
+
+- JavaScript is not yet evaluated on the device: Crash B fires at the `qjs_init` `call_wasm` boundary, before the engine runs. (My earlier read that `qjs_init` was "slow" was wrong — the panic fires immediately at `call_wasm` entry; the device was in a boot loop.)
+
+### What I learned
+
+- `EMBED_FILES` symbols point into read-only flash; WAMR's loader writes to the buffer it is given → the module must be copied to writable memory before `wasm_runtime_load`. This is a general WAMR-on-ESP-IDF rule, not QuickJS-specific.
+- WAMR's `wasm_exec_env_set_thread_info` uses `pthread_self` on ESP-IDF; `wasm_runtime_call_wasm` must be called from a pthread, not a bare FreeRTOS task. `0079` avoids this somehow — reading its runner is the fastest path to the fix.
+
+### What warrants a second pair of eyes
+
+- Crash B fix direction (pthread vs lazy-init-from-console-task vs a WAMR config). Confirm whether `0079`'s calling task is a pthread.
+- Whether disabling `CONFIG_WAMR_ENABLE_LIB_PTHREAD` or another WAMR Kconfig removes the `os_self_thread`→`pthread_self` path.
+
+### What should be done in the future
+
+- Resolve Crash B (see post-mortem §5). Then `js eval "print(1+2)"` → expect `3`.
+- Record the device's measured `qjs_init` and `js eval` latency.
+
+### Code review instructions
+
+- `design/02-phase1-device-bringup-post-mortem.md` for the full analysis.
+- `0100/main/wasm_runner.cpp` (Crash A fix + Crash B call site).
+
+### Technical details
+
+- Device: `/dev/ttyACM0` = `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`; chip ESP32-P4 rev v1.3; ESP-IDF v5.4.2.
+- Crash A MCAUSE=0x7 (store access fault), MTVAL=0x400809b9. Crash B: `assert failed: pthread_self` in `wasm_exec_env_set_thread_info`.
