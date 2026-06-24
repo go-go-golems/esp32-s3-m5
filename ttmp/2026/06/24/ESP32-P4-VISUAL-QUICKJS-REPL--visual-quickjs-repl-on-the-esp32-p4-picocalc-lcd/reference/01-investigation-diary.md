@@ -882,7 +882,7 @@ This keeps the terminal visually quiet and avoids tinted row backgrounds. The go
 
 **Inferred user intent:** Make the LCD REPL more minimal, legible, and typographically disciplined after confirming the hardware color path is correct.
 
-**Commit (code):** pending — "visual_repl: switch to minimal Swiss palette"
+**Commit (code):** a34a744 — "visual_repl: switch to minimal Swiss palette"
 
 ### What I did
 
