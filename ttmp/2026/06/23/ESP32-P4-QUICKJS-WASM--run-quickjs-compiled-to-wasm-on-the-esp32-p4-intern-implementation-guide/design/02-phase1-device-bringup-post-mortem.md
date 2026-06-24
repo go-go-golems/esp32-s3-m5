@@ -1,31 +1,40 @@
 ---
-title: Phase 1 Device Bring-Up Post-Mortem (ESP32-P4)
-doc_type: design
-ticket: ESP32-P4-QUICKJS-WASM
-topics:
-  - esp32p4
-  - quickjs
-  - wasm
-  - wamr
-  - firmware
-  - debugging
-status: active
+Title: ""
+Ticket: ""
+Status: ""
+Topics: []
+DocType: ""
+Intent: ""
+Owners: []
+RelatedFiles:
+    - Path: 0100-esp32-p4-quickjs-wasm/main/js_command.cpp
+      Note: Console command queues eval through wasm_runner_eval
+    - Path: 0100-esp32-p4-quickjs-wasm/main/wasm_runner.cpp
+      Note: Crash A PSRAM-copy fix and Crash B owner-pthread/eval-queue fix
+    - Path: 0100-esp32-p4-quickjs-wasm/main/wasm_runner.h
+      Note: Public runner API now documents owner-pthread semantics
+ExternalSources: []
+Summary: ""
+LastUpdated: 0001-01-01T00:00:00Z
+WhatFor: ""
+WhenToUse: ""
 ---
+
 
 # Phase 1 Device Bring-Up Post-Mortem — QuickJS-WASM on the ESP32-P4
 
 **Audience:** the intern continuing this work. This document assumes you have read the design guide (`design/01-...md`) and the Phase-0 host results. It records exactly where the device port stands at the end of the first device session, the two crashes found, and the precise next steps.
 
-**Status:** Phase 0 (host) passes. Phase 1 firmware builds, flashes, boots, and WAMR initialises on the ESP32-P4. Two crashes were found during device bring-up. The first (a store fault writing to flash) is fixed and verified. The second (a `pthread_self` assertion in WAMR's thread setup) is diagnosed but not yet fixed. JavaScript has not yet been evaluated on the device.
+**Status (updated after Step 14):** Phase 0 (host) passes. Phase 1 firmware builds, flashes, boots, WAMR initialises on the ESP32-P4, `qjs_init` completes on-device, and `js eval "print(1+2)"` prints `3`. Both bring-up crashes are fixed in committed firmware: Crash A by copying `quickjs.wasm` to PSRAM before `wasm_runtime_load`, and Crash B by routing WAMR calls through a long-lived pthread owner thread.
 
 ## 1. Executive summary
 
 The JS-in-WASM-in-WAMR stack runs correctly on the host. Porting it to the ESP32-P4 exposed two embedding problems that the host did not, because the host environment hides them. Both are now understood.
 
 1. **Crash A — WAMR writes to the module buffer.** `wasm_runtime_load` was handed a pointer to the embedded `quickjs.wasm`, which lives in read-only flash. WAMR's loader writes into that buffer and faulted with a store-access exception. Fix: copy the blob into writable PSRAM before loading. Verified — the load then succeeds.
-2. **Crash B — WAMR's thread tracking calls `pthread_self`.** `wasm_runtime_call_wasm` sets thread info on the exec environment, which calls `pthread_self`. The call is made from `app_main`, whose task is a FreeRTOS task, not a POSIX thread, so `pthread_self` asserts. Fix: run the WAMR calls from a pthread. Not yet applied.
+2. **Crash B — WAMR's thread tracking calls `pthread_self`.** `wasm_runtime_call_wasm` sets thread info on the exec environment, which calls `pthread_self`. The original call was made from `app_main`, whose task is a FreeRTOS task, not a POSIX thread, so `pthread_self` asserted. Fix: run all WAMR calls through a long-lived pthread owner thread and have console commands queue eval requests to that thread. Verified — `qjs_init` and `js eval` now run on hardware.
 
-Neither crash is in QuickJS. JavaScript evaluation has not yet been reached because Crash B fires at the `qjs_init` call, before the engine runs.
+Neither crash was in QuickJS. The current firmware reaches JavaScript evaluation on-device.
 
 ## 2. Fundamentals the intern needs
 
@@ -100,7 +109,7 @@ g_mod = wasm_runtime_load(g_wasm_copy, quickjs_wasm_size(), err, sizeof(err));
 
 After this change the log shows `copied quickjs.wasm (1231348 bytes) to writable buffer 0x49000aa8` and the load completes. Crash A is closed.
 
-## 5. Crash B — `pthread_self` assertion in `wasm_exec_env_set_thread_info` (open)
+## 5. Crash B — `pthread_self` assertion in `wasm_exec_env_set_thread_info` (fixed in Step 14)
 
 With the load fixed, the firmware proceeds to `qjs_init` (a `wasm_runtime_call_wasm` with zero arguments) and immediately asserts:
 
@@ -127,22 +136,43 @@ This did not happen on the host because Linux threads are pthreads. It did not h
 2. **Lazy-init from the console task.** Do not call `wasm_runner_init` from `app_main`. Instead, initialise on the first `js eval`, which runs in the `esp_console` task. Verify whether that task is a pthread; if it is not, fall back to direction 1.
 3. **Compare with `0079`.** Read `0079/main/wasm_module_runner.cpp` and `wasm_command.cpp` to see exactly which task invokes `wasm_runtime_call_wasm` and what `0079`'s `sdkconfig` WAMR options are. `0079` works on the S3, so its pattern is a proven reference; the goal is to find what makes its calling task a pthread (or what WAMR option skips `os_self_thread`).
 
-The third direction is the highest-value first step, because it replaces guessing with a known-working reference.
+The implemented fix follows direction 1 with one important refinement: the pthread is long-lived and owns the QuickJS/WAMR session. `wasm_runner_init()` starts the worker and waits for `qjs_init`; `wasm_runner_eval()` queues requests to the same worker. This keeps `wasm_runtime_call_wasm` on a pthread and serialises access to the QuickJS context.
+
+Verified monitor output after the fix:
+
+```
+I (2001) 0100_run: copied quickjs.wasm (1231348 bytes) to writable buffer 0x49000aa8
+I (4681) 0100_run: QuickJS ready (qjs_init ok on worker pthread)
+I (4681) 0100: QuickJS ready. Try: js eval "print(1+2)"
+0100>  js eval "print(1+2)"
+3
+0100>  js status
+runtime=ready
+pool=0x48000aa4 external=yes size=16777216
+wamr.heap_total=16777024 heap_free=14547872 highmark=2229152
+0100>  js eval "let s=0; for (let i=0;i<5;i++) s+=i; print(s)"
+10
+0100>  js eval "throw new Error(\"boom\")"
+Error: boom
+Command returned non-zero error code: 0x1 (ERROR)
+```
+
+Measured from log timestamps, the `qjs_init` step took roughly 2.7 seconds from `copied quickjs.wasm` at `I (2001)` to `QuickJS ready` at `I (4681)`.
 
 ## 6. Current state and what remains
 
 - Phase 0 host smoke test: passes (`print(1+2)`→`3`, loops, exceptions).
 - Phase 1 firmware: builds for `esp32p4`, flashes, boots, WAMR inits, natives register, wasm loads (after the Crash A fix).
 - Crash A: fixed and verified on hardware.
-- Crash B: diagnosed, fix not yet applied. This is the single blocker to running JavaScript on the device.
-- Not yet reached: `qjs_init` completion, `js eval` on the device, `js status`, performance measurement.
+- Crash B: fixed by the pthread owner-thread runner.
+- Reached: `qjs_init` completion, `js eval` on the device, `js status`, and basic loop/exception smoke probes.
 
 ## 7. Next steps (prioritized)
 
-1. Resolve Crash B (Section 5). Start by reading `0079`'s runner and `sdkconfig`; then either run WAMR calls from a pthread or lazy-init from the console task.
-2. Once `qjs_init` completes, run `js eval "print(1+2)"` on the device and confirm `3`. Then `js status` (check `wamr.heap_*` high-water).
-3. Characterise `qjs_init` latency (interpreted QuickJS context setup on a 360 MHz core) and `js eval` latency. If context setup is too slow for a boot-time init, defer it to the first `js eval` (lazy).
-4. Re-enable the deferred Phase 1/2 items: `js repl`, `js reset`, real `gpio_write`/`millis` wiring (the `host_gpio_write` native currently calls `gpio_set_level` without `gpio_config`), `js bench`.
+1. Add more device smoke tests around strings, arrays, repeated evals, and memory high-water after many evals.
+2. Characterise `qjs_init` latency and `js eval` latency more rigorously. The first verified `qjs_init` run took roughly 2.7 seconds.
+3. Re-enable the deferred Phase 1/2 items: `js repl`, `js reset`, real `gpio_write`/`millis` wiring (the `host_gpio_write` native currently calls `gpio_set_level` without `gpio_config`), `js bench`.
+4. Decide whether to keep only the app-level owner-thread fix or also create a deliberate WAMR ESP-IDF platform shim patch like 0079's `os_self_thread() -> xTaskGetCurrentTaskHandle()`.
 
 ## 8. How to resume tomorrow
 
@@ -168,5 +198,5 @@ Serial ownership: keep one monitor per port; kill the tmux session before flashi
 
 - Firmware: `0100-esp32-p4-quickjs-wasm/main/{wasm_runner.cpp,wasm_host_api.cpp,wasm_runtime_service.cpp,js_command.cpp,app_main.cpp,quickjs_embed.h}`.
 - Crash A fix: `wasm_runner.cpp` `wasm_runner_init` (the PSRAM copy before `wasm_runtime_load`).
-- Crash B site: `wasm_runner.cpp` `wasm_runner_init`, the `wasm_runtime_call_wasm(env, finit, 0, nullptr)` `qjs_init` call.
-- Diary: `reference/01-investigation-diary.md` Steps 9–11.
+- Crash B fix: `wasm_runner.cpp` owner pthread + eval queue. `app_main.cpp` and `js_command.cpp` no longer call WAMR directly.
+- Diary: `reference/01-investigation-diary.md` Steps 9–14.

@@ -25,3 +25,14 @@ Wrote intern design/implementation guide (55 KB), harvested 14 sources, scaffold
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0100-esp32-p4-quickjs-wasm/main/app_main.cpp — Firmware scaffold entrypoint (buildable console stub)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0100-esp32-p4-quickjs-wasm/wasm-src/wasm_main.c — QuickJS reactor wrapper (qjs_init/qjs_eval) for the host wasm build
 
+
+## 2026-06-23
+
+Resolved Crash B by routing QuickJS/WAMR calls through a long-lived pthread owner; ESP32-P4 device smoke now passes (qjs_init ok, print(1+2)->3, loop->10, exception path reports Error: boom).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0100-esp32-p4-quickjs-wasm/main/wasm_runner.cpp — Owner pthread and eval queue fix for WAMR pthread_self assertion
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-QUICKJS-WASM--run-quickjs-compiled-to-wasm-on-the-esp32-p4-intern-implementation-guide/design/02-phase1-device-bringup-post-mortem.md — Updated post-mortem status after Crash B fix and device smoke pass
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-QUICKJS-WASM--run-quickjs-compiled-to-wasm-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Steps 12-14 record investigation
+

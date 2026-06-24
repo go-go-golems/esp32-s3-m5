@@ -827,3 +827,98 @@ This is a deliberate single-owner design: it fixes the `pthread_self` assertion 
 - Build command: `cd 0100-esp32-p4-quickjs-wasm && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`.
 - Build output: `Project build complete`; binary size `0x1bec50`; factory partition size `0x400000`.
 
+## Step 14: Flash the pthread-worker firmware and verify JavaScript runs on the ESP32-P4
+
+Flashed commit `994212a` to the ESP32-P4 and verified that the old Crash B is gone. The firmware now boots, completes `qjs_init` on the pthread worker, starts the UART console, and evaluates JavaScript on the device.
+
+This is the first successful end-to-end device run for 0100: QuickJS compiled to WebAssembly, executed by WAMR, embedded in ESP-IDF firmware, evaluating JS from the ESP console on the ESP32-P4.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 12)
+
+**Assistant interpretation:** Validate the committed runner-thread fix on the real board and preserve the exact results before further changes.
+
+**Inferred user intent:** Confirm the crash is truly fixed on hardware, not only in theory or in the host build.
+
+### What I did
+
+- Killed any stale `qjs0100` tmux monitor and checked that `/dev/ttyACM0` had no holder before flashing.
+- Ran `idf.py -p /dev/ttyACM0 flash`; flash succeeded with ESP-IDF 5.4.2/esptool.
+- Started one tmux monitor (`qjs0100`) and captured boot logs.
+- Sent:
+  - `js eval "print(1+2)"`
+  - `js status`
+  - `js eval "let s=0; for (let i=0;i<5;i++) s+=i; print(s)"`
+  - `js eval "throw new Error(\"boom\")"`
+- Killed the tmux monitor after capture to free `/dev/ttyACM0`.
+- Updated `design/02-phase1-device-bringup-post-mortem.md` so it no longer says Crash B is open.
+
+### Why
+
+- The build result alone could not prove the crash was fixed; the previous failure only appeared on hardware in WAMR's ESP-IDF thread path.
+- The smoke probes validate the same behaviours proven in Phase 0 on the host: simple arithmetic/print, loops, status output, and exception reporting.
+
+### What worked
+
+- Old Crash B is gone. `qjs_init` now completes on-device:
+
+```text
+I (2001) 0100_run: copied quickjs.wasm (1231348 bytes) to writable buffer 0x49000aa8
+I (4681) 0100_run: QuickJS ready (qjs_init ok on worker pthread)
+I (4681) 0100: QuickJS ready. Try: js eval "print(1+2)"
+```
+
+- Device eval works:
+
+```text
+0100>  js eval "print(1+2)"
+3
+0100>  js status
+runtime=ready
+pool=0x48000aa4 external=yes size=16777216
+wamr.heap_total=16777024 heap_free=14547872 highmark=2229152
+0100>  js eval "let s=0; for (let i=0;i<5;i++) s+=i; print(s)"
+10
+0100>  js eval "throw new Error(\"boom\")"
+Error: boom
+Command returned non-zero error code: 0x1 (ERROR)
+```
+
+- `qjs_init` latency for this run is roughly 2.7 seconds from `I (2001)` (wasm copied) to `I (4681)` (QuickJS ready).
+
+### What didn't work
+
+- Nothing failed in this validation pass. The remaining work is feature hardening and deeper stress/performance testing, not crash recovery.
+
+### What I learned
+
+- The long-lived pthread owner design is sufficient to bypass the ESP-IDF `pthread_self` assertion without modifying generated WAMR component code.
+- Interpreted QuickJS startup on this ESP32-P4 is usable for an initial console tool (~2.7 seconds for the observed run), much better than the earlier incorrect fear that `qjs_init` was indefinitely slow.
+
+### What was tricky to build
+
+- The original failure looked like QuickJS startup slowness during one monitoring pass, but the true failure was immediate boot-looping at the WAMR call boundary. Capturing a clean post-fix boot with timestamps made the distinction clear.
+
+### What warrants a second pair of eyes
+
+- Stress-test repeated eval calls for memory growth. `js status` after the initial smoke shows `wamr.heap_free=14547872` and `highmark=2229152`, but this is only a first snapshot.
+- Check whether `CONFIG_WAMR_ENABLE_SHARED_MEMORY=n` in defaults should still result in WAMR printing `Shared memory enabled`; this is not blocking, but it is surprising.
+
+### What should be done in the future
+
+- Add `js bench` and repeated-eval memory stress tests.
+- Add `js reset` so the QuickJS context can be rebuilt without reflashing/rebooting.
+- Configure GPIO before exposing `host_gpio_write` as a real JS API.
+
+### Code review instructions
+
+- Review commit `994212a` first (`wasm_runner.cpp` owner pthread + queue).
+- Reproduce with `idf.py -p /dev/ttyACM0 flash`, tmux monitor, and `js eval "print(1+2)"`.
+
+### Technical details
+
+- Flash command: `cd 0100-esp32-p4-quickjs-wasm && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py -p /dev/ttyACM0 flash`.
+- Monitor session used: `qjs0100`; killed after validation.
+- Device: ESP32-P4 rev v1.3 on `/dev/ttyACM0` / CH343 bridge.
+

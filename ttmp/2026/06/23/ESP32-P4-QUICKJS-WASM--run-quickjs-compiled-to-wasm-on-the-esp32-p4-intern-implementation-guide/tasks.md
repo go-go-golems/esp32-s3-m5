@@ -18,7 +18,7 @@
 - [x] Commit Phase 0 build infra + diary
 - [x] Write Obsidian deep-dive report (ARTICLE note, textbook style) + push go-go-parc vault
 
-## Phase 1 — Minimal firmware 0100 (build done; awaiting device)
+## Phase 1 — Minimal firmware 0100 (device smoke passes)
 
 - [x] Fix sdkconfig.defaults: CONFIG_WAMR_ENABLE_REF_TYPES=y (clang 22 emits ref types)
 - [x] Port wasm_runtime_service + wasm_host_api from 0079/host_test (PSRAM pool, env natives)
@@ -26,7 +26,7 @@
 - [x] Write js_command (js eval / js status) on esp_console (UART0)
 - [x] main/CMakeLists.txt: EMBED_FILES quickjs.wasm + REQUIRES espressif__wasm-micro-runtime
 - [x] idf.py set-target esp32p4 && idf.py build (app 1.8 MB, custom 4 MB partition)
-- [ ] Tell user to connect the device; flash + `js eval "print(1+2)"`
+- [x] Flash device + `js eval "print(1+2)"` passes on ESP32-P4 (prints `3`)
 
 ## Phase 2 — REPL + peripherals
 
