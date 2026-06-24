@@ -199,3 +199,139 @@ OK: uploaded ESP32-P4-VISUAL-QUICKJS-REPL - Visual QuickJS REPL Guide.pdf -> /ai
 ```
 
 - Completed tasks: T0.6, T0.7.
+
+## Step 3: Extract PicoCalc components, create the 0102 skeleton, and verify hardware smoke
+
+Implemented the first source checkpoint for the visual REPL ticket. I extracted reusable PicoCalc LCD and keyboard components from the 0099 diagnostic firmware, created the new `0102-esp32-p4-visual-quickjs-repl` firmware skeleton, wired it to the existing native QuickJS components, built it for ESP32-P4, flashed it, and validated LCD, keyboard, and QuickJS from the UART debug console.
+
+This is not the visual REPL yet. It is the hardware/runtime skeleton that proves the extracted component boundaries are buildable and that 0102 can initialize all three required subsystems on the real board: LCD, keyboard, and native QuickJS.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Begin implementing the task list after the initial design upload by extracting reusable hardware components and creating the first buildable 0102 firmware.
+
+**Inferred user intent:** Move from design to working firmware in small validated checkpoints, while keeping 0099 and 0101 as stable prior-art targets.
+
+**Commit (code):** e014eb3 — "0102: extract PicoCalc components and add visual REPL skeleton"
+
+### What I did
+
+- Created `components/picocalc_keyboard`:
+  - copied the proven 0099 `picocalc_keyboard.c` implementation;
+  - moved the public header into `include/picocalc_keyboard.h`;
+  - added `CMakeLists.txt` and `README.md`.
+- Created `components/picocalc_lcd`:
+  - added `include/picocalc_lcd.h`;
+  - extracted LCD SPI/panel/fill/blit primitives into `picocalc_lcd.c`;
+  - preserved the 0099 pin mapping, `SPI_CLK_SRC_SPLL`, 80 MHz default SCLK, 32 KiB maximum transfer size, RGB565 mode, reset sequence, and minimal panel commands;
+  - added `CMakeLists.txt` and `README.md`.
+- Created `0102-esp32-p4-visual-quickjs-repl`:
+  - added top-level `CMakeLists.txt` with `EXTRA_COMPONENT_DIRS` for `quickjs_native`, `qjs_service`, `picocalc_lcd`, and `picocalc_keyboard`;
+  - added `sdkconfig.defaults` with ESP32-P4 UART0 console, 32 MB flash, 200 MHz hex PSRAM, and custom 4 MB app partition;
+  - added `partitions.csv`, `README.md`, `main/CMakeLists.txt`, and `main/app_main.cpp`.
+- Added a temporary UART debug console with commands:
+  - `status`
+  - `lcd init`
+  - `lcd fill <color>`
+  - `kbd [limit]`
+  - `js eval <source>` / `js status` / `js reset`
+- Built with ESP-IDF 5.4.2.
+- Flashed to `/dev/ttyACM0` with `idf.py -p /dev/ttyACM0 flash`.
+- Captured monitor output in tmux and killed the monitor session afterward.
+
+### Why
+
+- The visual REPL needs reusable LCD and keyboard components. Keeping those primitives inside 0099's diagnostic `app_main.c` would make 0102 hard to maintain.
+- A skeleton that initializes LCD, keyboard, and QuickJS gives a stable base before adding the visual renderer and UI model.
+
+### What worked
+
+- `idf.py build` passes for `0102-esp32-p4-visual-quickjs-repl`.
+- The custom 4 MB app partition is active: final binary size is `0xd8900`, leaving `0x327700` bytes (79%) free.
+- Flash succeeded on `/dev/ttyACM0`.
+- LCD initialized at actual 80 MHz and filled the screen:
+
+```text
+I (1581) picocalc_lcd: LCD SPI device ready: clk_src=11 requested=80000000 Hz actual=80000 kHz
+I (2161) picocalc_lcd: LCD panel initialized (320x320 RGB565)
+0102>  lcd fill blue
+lcd fill color=0x001f err=ESP_OK elapsed_ms=21 actual_khz=80000
+```
+
+- Keyboard initialized and produced events:
+
+```text
+I (2281) picocalc_kbd: initialized PicoCalc keyboard I2C: sda=50 scl=49 speed=10000 addr=0x1f
+0102>  kbd 3
+kbd: state=1(pressed) key=0xb4(left) valid=1
+kbd: state=1(pressed) key=0x31() valid=1
+kbd: state=3(released) key=0x31() valid=1
+```
+
+- QuickJS service initialized and evaluated JavaScript:
+
+```text
+I (2291) qjs_service: runtime init status=ESP_OK elapsed=6 ms
+0102>  js eval "print(1+2)"
+[eval] ok=1 timed_out=0 elapsed=2ms
+3
+0102>  js eval "throw new Error('boom')"
+[eval] ok=0 timed_out=0 elapsed=0ms
+error: Error: boom
+```
+
+### What didn't work
+
+- First `idf.py build` used the default 1 MB app partition because `sdkconfig.defaults` did not yet enable the custom partition table. The binary still fit, but only with 15% of the default partition free:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xd8900 bytes. Smallest app partition is 0x100000 bytes. 0x27700 bytes (15%) free.
+```
+
+- Fix: add these defaults and delete the generated `sdkconfig` before rebuilding:
+
+```text
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+```
+
+- Rebuild then used the intended 4 MB partition.
+
+### What I learned
+
+- The LCD component extraction preserved the 0099 performance baseline: full-screen blue fill still measured about 21 ms at actual 80 MHz.
+- The keyboard module is reusable with minimal changes; its public API already had the right component boundary.
+- The 0102 skeleton can combine LCD, keyboard, and native QuickJS without immediate component conflicts.
+
+### What was tricky to build
+
+- The LCD extraction needed to keep hardware constants exactly aligned with 0099. The SPLL clock source, max transfer size, and panel init sequence are not incidental; they are part of the validated display path.
+- The build initially gave a misleadingly acceptable result with the default partition. The binary fit, but the visual REPL will need room for renderer/font/UI code, so the custom 4 MB partition had to be enabled immediately.
+
+### What warrants a second pair of eyes
+
+- Review `components/picocalc_lcd/picocalc_lcd.c` against the 0099 source to ensure no required panel initialization step was dropped.
+- Review the `picocalc_lcd_blit_rect()` API contract: it currently requires the rectangle to fit on screen rather than clipping caller-provided pixels.
+- Review whether the temporary UART debug console should stay through all bring-up phases or be compiled behind a config flag later.
+
+### What should be done in the future
+
+- Start Phase 3: add the text renderer and static colored visual screen.
+- Replace the temporary UART-only debug behavior with the LCD model/rendering path once visual rows are available.
+
+### Code review instructions
+
+- Start with `components/picocalc_lcd/include/picocalc_lcd.h` and `components/picocalc_lcd/picocalc_lcd.c`.
+- Then review `components/picocalc_keyboard` to confirm it remains a faithful extraction from 0099.
+- Review `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp` for startup order and temporary debug commands.
+- Validate with `cd 0102-esp32-p4-visual-quickjs-repl && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`, then flash/monitor on `/dev/ttyACM0`.
+
+### Technical details
+
+- Build command: `idf.py build` after sourcing ESP-IDF 5.4.2.
+- Flash command: `idf.py -p /dev/ttyACM0 flash`.
+- Monitor command: `idf.py -p /dev/ttyACM0 monitor` inside tmux session `qjs0102`.
+- Completed tasks: T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2.3, T2.4, T2.5, T2.6.

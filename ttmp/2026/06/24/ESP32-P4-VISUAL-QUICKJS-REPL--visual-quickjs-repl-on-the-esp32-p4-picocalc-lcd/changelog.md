@@ -25,3 +25,15 @@ Initial ticket validation and reMarkable upload complete: docmgr doctor passed a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 2 records doctor and upload evidence
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/tasks.md — T0.6 and T0.7 marked complete
 
+
+## 2026-06-24
+
+Completed Phase 1 and Phase 2 skeleton: extracted reusable PicoCalc LCD/keyboard components, created 0102 firmware skeleton, built with 4 MB app partition, flashed to ESP32-P4, and verified LCD fill, keyboard event polling, and QuickJS eval over debug console.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — 0102 skeleton and debug command validation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_keyboard/picocalc_keyboard.c — Keyboard component extraction and hardware-verified event polling
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_lcd/picocalc_lcd.c — LCD component extraction and hardware-verified fill path
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 3 records build
+

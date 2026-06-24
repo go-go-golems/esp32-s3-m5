@@ -15,21 +15,21 @@ This task list is implementation-grade. Work top to bottom. Commit after each ch
 
 ## Phase 1 — Extract reusable PicoCalc hardware components
 
-- [ ] **T1.1 — Create `components/picocalc_keyboard`.** Move/copy the proven 0099 keyboard module into a reusable component.
-- [ ] **T1.2 — Create `components/picocalc_lcd`.** Extract the minimal LCD panel/SPI/rect/row primitives from 0099.
-- [ ] **T1.3 — Preserve hardware constants.** Keep the tested PicoCalc GPIO mapping, 80 MHz SPLL SPI source, 32 KiB max transfer size, RGB565, and panel init sequence.
-- [ ] **T1.4 — Add component READMEs.** Document source path, pin mapping, public API, and known performance constraints.
-- [ ] **T1.5 — Build-test extraction.** Build through a minimal firmware or 0102 skeleton.
-- [ ] **T1.6 — Diary/changelog/commit.** Record extraction decisions, failures, and validation.
+- [x] **T1.1 — Create `components/picocalc_keyboard`.** Move/copy the proven 0099 keyboard module into a reusable component.
+- [x] **T1.2 — Create `components/picocalc_lcd`.** Extract the minimal LCD panel/SPI/rect/row primitives from 0099.
+- [x] **T1.3 — Preserve hardware constants.** Keep the tested PicoCalc GPIO mapping, 80 MHz SPLL SPI source, 32 KiB max transfer size, RGB565, and panel init sequence.
+- [x] **T1.4 — Add component READMEs.** Document source path, pin mapping, public API, and known performance constraints.
+- [x] **T1.5 — Build-test extraction.** Build through a minimal firmware or 0102 skeleton.
+- [x] **T1.6 — Diary/changelog/commit.** Record extraction decisions, failures, and validation.
 
 ## Phase 2 — Create `0102-esp32-p4-visual-quickjs-repl` skeleton
 
-- [ ] **T2.1 — Create firmware directory.** Add top-level `CMakeLists.txt`, `README.md`, `sdkconfig.defaults`, optional `partitions.csv`, and `main/`.
-- [ ] **T2.2 — Wire components.** Add `EXTRA_COMPONENT_DIRS` for `quickjs_native`, `qjs_service`, `picocalc_lcd`, `picocalc_keyboard`, and later `visual_repl`.
-- [ ] **T2.3 — Add app startup.** Initialize LCD, keyboard, QuickJS service, and optional UART debug console.
-- [ ] **T2.4 — Build for `esp32p4`.** Use ESP-IDF 5.4.2 and confirm binary size.
-- [ ] **T2.5 — Hardware smoke.** Flash and verify boot logs for LCD/keyboard/QuickJS ready.
-- [ ] **T2.6 — Diary/changelog/commit.** Record skeleton validation.
+- [x] **T2.1 — Create firmware directory.** Add top-level `CMakeLists.txt`, `README.md`, `sdkconfig.defaults`, optional `partitions.csv`, and `main/`.
+- [x] **T2.2 — Wire components.** Add `EXTRA_COMPONENT_DIRS` for `quickjs_native`, `qjs_service`, `picocalc_lcd`, `picocalc_keyboard`, and later `visual_repl`.
+- [x] **T2.3 — Add app startup.** Initialize LCD, keyboard, QuickJS service, and optional UART debug console.
+- [x] **T2.4 — Build for `esp32p4`.** Use ESP-IDF 5.4.2 and confirm binary size.
+- [x] **T2.5 — Hardware smoke.** Flash and verify boot logs for LCD/keyboard/QuickJS ready.
+- [x] **T2.6 — Diary/changelog/commit.** Record skeleton validation.
 
 ## Phase 3 — Implement text renderer and static visual screen
 
