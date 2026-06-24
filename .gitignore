@@ -11,7 +11,10 @@ build-*/
 .vscode
 managed_components
 **/wasm-src/node_modules/
+**/wasm-src/quickjs/
 **/wasm-build/
+**/wasm-src/native_test
+**/wasm-src/host-test/build/
 
 # docmgr / ticket workspaces
 ttmp/**/.meta/
