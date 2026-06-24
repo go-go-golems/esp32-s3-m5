@@ -47,6 +47,60 @@ uint16_t color_from_name(const char *name, bool *ok)
     return 0;
 }
 
+void print_color_names()
+{
+    std::printf("colors: black white red green blue yellow cyan magenta\n");
+}
+
+int parse_int_arg(const char *s, int min_value, int max_value, bool *ok)
+{
+    if (!s) {
+        *ok = false;
+        return 0;
+    }
+    char *end = nullptr;
+    long value = std::strtol(s, &end, 0);
+    if (!end || *end != 0 || value < min_value || value > max_value) {
+        *ok = false;
+        return 0;
+    }
+    *ok = true;
+    return static_cast<int>(value);
+}
+
+esp_err_t draw_color_swatches()
+{
+    struct Swatch {
+        const char *name;
+        uint16_t color;
+        uint16_t x;
+        uint16_t y;
+    };
+    constexpr uint16_t kCellW = 140;
+    constexpr uint16_t kCellH = 60;
+    const Swatch swatches[] = {
+        {"black", PICOCALC_LCD_RGB565_BLACK, 10, 10},
+        {"white", PICOCALC_LCD_RGB565_WHITE, 170, 10},
+        {"red", PICOCALC_LCD_RGB565_RED, 10, 86},
+        {"green", PICOCALC_LCD_RGB565_GREEN, 170, 86},
+        {"blue", PICOCALC_LCD_RGB565_BLUE, 10, 162},
+        {"yellow", PICOCALC_LCD_RGB565_YELLOW, 170, 162},
+        {"cyan", PICOCALC_LCD_RGB565_CYAN, 10, 238},
+        {"magenta", PICOCALC_LCD_RGB565_MAGENTA, 170, 238},
+    };
+    ESP_ERROR_CHECK_WITHOUT_ABORT(picocalc_lcd_fill(0x8410)); // neutral RGB565 gray background
+    for (const auto &s : swatches) {
+        esp_err_t err = picocalc_lcd_fill_rect(s.x, s.y, kCellW, kCellH, s.color);
+        if (err != ESP_OK) {
+            return err;
+        }
+        std::printf("swatch %-7s rgb565=0x%04x rect=(%u,%u,%u,%u)\n",
+                    s.name, s.color, s.x, s.y, kCellW, kCellH);
+    }
+    std::printf("layout: left column x=10, right column x=170; rows y=10 black/white, y=86 red/green, y=162 blue/yellow, y=238 cyan/magenta\n");
+    return ESP_OK;
+}
+
 void sync_visual_input()
 {
     (void)visual_repl_set_input(g_input, g_input_cursor);
@@ -278,7 +332,8 @@ int cmd_lcd(int argc, char **argv)
         bool ok = false;
         uint16_t color = color_from_name(argc >= 3 ? argv[2] : "black", &ok);
         if (!ok) {
-            std::printf("usage: lcd fill black|white|red|green|blue|yellow|cyan|magenta\n");
+            std::printf("usage: lcd fill <color>\n");
+            print_color_names();
             return 1;
         }
         const int64_t start = esp_timer_get_time();
@@ -288,7 +343,45 @@ int cmd_lcd(int argc, char **argv)
                     color, esp_err_to_name(err), (long long)elapsed_ms, picocalc_lcd_actual_khz());
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: lcd init | lcd fill <color>\n");
+    if (std::strcmp(argv[1], "rect") == 0) {
+        if (argc < 7) {
+            std::printf("usage: lcd rect <x> <y> <w> <h> <color>\n");
+            print_color_names();
+            return 1;
+        }
+        bool x_ok = false;
+        bool y_ok = false;
+        bool w_ok = false;
+        bool h_ok = false;
+        bool color_ok = false;
+        int x = parse_int_arg(argv[2], 0, PICOCALC_LCD_WIDTH - 1, &x_ok);
+        int y = parse_int_arg(argv[3], 0, PICOCALC_LCD_HEIGHT - 1, &y_ok);
+        int w = parse_int_arg(argv[4], 1, PICOCALC_LCD_WIDTH, &w_ok);
+        int h = parse_int_arg(argv[5], 1, PICOCALC_LCD_HEIGHT, &h_ok);
+        uint16_t color = color_from_name(argv[6], &color_ok);
+        if (!x_ok || !y_ok || !w_ok || !h_ok || !color_ok ||
+            x + w > PICOCALC_LCD_WIDTH || y + h > PICOCALC_LCD_HEIGHT) {
+            std::printf("usage: lcd rect <x> <y> <w> <h> <color>, rectangle must fit inside 320x320\n");
+            print_color_names();
+            return 1;
+        }
+        const int64_t start = esp_timer_get_time();
+        esp_err_t err = picocalc_lcd_fill_rect(static_cast<uint16_t>(x), static_cast<uint16_t>(y),
+                                               static_cast<uint16_t>(w), static_cast<uint16_t>(h), color);
+        const int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        std::printf("lcd rect x=%d y=%d w=%d h=%d color=%s/0x%04x err=%s elapsed_ms=%lld\n",
+                    x, y, w, h, argv[6], color, esp_err_to_name(err), (long long)elapsed_ms);
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "swatches") == 0 || std::strcmp(argv[1], "swatch") == 0) {
+        const int64_t start = esp_timer_get_time();
+        esp_err_t err = draw_color_swatches();
+        const int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        std::printf("lcd swatches: %s elapsed_ms=%lld\n", esp_err_to_name(err), (long long)elapsed_ms);
+        return err == ESP_OK ? 0 : 1;
+    }
+    std::printf("usage: lcd init | lcd fill <color> | lcd rect <x> <y> <w> <h> <color> | lcd swatches\n");
+    print_color_names();
     return 1;
 }
 
@@ -394,7 +487,7 @@ void start_debug_console()
 
     const esp_console_cmd_t lcd_cmd = {
         .command = "lcd",
-        .help = "LCD skeleton diagnostics: init | fill <color>",
+        .help = "LCD diagnostics: init | fill <color> | rect <x> <y> <w> <h> <color> | swatches",
         .func = cmd_lcd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd));

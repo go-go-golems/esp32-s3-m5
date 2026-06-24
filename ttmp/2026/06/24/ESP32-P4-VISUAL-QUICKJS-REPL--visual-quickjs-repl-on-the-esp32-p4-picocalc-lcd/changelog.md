@@ -71,3 +71,13 @@ Fixed visual_repl rendering past NUL terminators: row rendering now turns all ce
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Terminator-aware row rendering and deterministic zero-filled row buffers
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 6 records the uninitialized/stale-byte display bug and fix
 
+
+## 2026-06-24
+
+Added 0102 LCD color diagnostics: lcd rect and lcd swatches commands for operator-reported RGB565 color-order/inversion investigation; swatch chart flashed and rendered successfully.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — LCD rect/swatch UART diagnostics
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 7 records color diagnostic implementation and swatch layout
+

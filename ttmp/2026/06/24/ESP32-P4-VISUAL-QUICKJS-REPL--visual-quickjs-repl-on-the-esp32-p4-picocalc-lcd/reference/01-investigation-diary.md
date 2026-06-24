@@ -681,3 +681,107 @@ visual: initialized=1 grid=40x20 cell=8x16 history=3 renders=1 last_render_ms=30
 - Latest build: `0xda6b0` bytes.
 - App partition free: `0x325950` bytes (79%).
 - Monitor capture: `/tmp/0102-zero-fill-renderer.log`.
+
+## Step 7: Add LCD rectangle and swatch diagnostics for color-order bring-up
+
+Added UART diagnostics for isolating the display color mismatch reported on the physical LCD. The visual REPL palette was intended to use cyan/yellow/white/light-gray text mostly on black or very dark backgrounds, but the observed screen looked like blue text on a reddish background. That points at panel color-order, byte-order, or inversion behavior rather than the semantic palette alone.
+
+The new commands let the operator see known RGB565 values at known screen positions. This creates a simple manual truth table: for each intended color block, report the observed color. From that table we can decide whether to change RGB/BGR settings, byte-swap RGB565 pixels, remove inversion, or adjust the palette.
+
+### Prompt Context
+
+**User prompt (verbatim):** "you can also add commands to fill a rect with the different colors and ask me question, so that we can confirm the color disparities?"
+
+**Assistant interpretation:** Add interactive LCD color diagnostics so the user can report observed colors and we can identify the exact color mapping discrepancy.
+
+**Inferred user intent:** Avoid guessing about LCD color order by rendering controlled test rectangles and collecting visual evidence from the device.
+
+**Commit (code):** pending — "0102: add LCD color swatch diagnostics"
+
+### What I did
+
+- Extended the 0102 UART `lcd` command:
+  - `lcd rect <x> <y> <w> <h> <color>`
+  - `lcd swatches`
+- Added accepted color names:
+  - `black`, `white`, `red`, `green`, `blue`, `yellow`, `cyan`, `magenta`
+- Implemented a 2×4 swatch layout on a neutral gray background:
+  - top-left: black
+  - top-right: white
+  - second-left: red
+  - second-right: green
+  - third-left: blue
+  - third-right: yellow
+  - bottom-left: cyan
+  - bottom-right: magenta
+- Rebuilt, fixed a C++ parser issue, flashed, and ran `lcd swatches`.
+
+### Why
+
+- A controlled swatch chart is the fastest way to distinguish color-order problems from palette choices.
+- Rectangle fill commands are useful for follow-up one-off checks, for example filling only one side of the screen with red/green/blue.
+
+### What worked
+
+- The final build passed:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdacc0 bytes. Smallest app partition is 0x400000 bytes. 0x325340 bytes (79%) free.
+```
+
+- Flash succeeded.
+- `lcd swatches` ran and printed the intended layout:
+
+```text
+swatch black   rgb565=0x0000 rect=(10,10,140,60)
+swatch white   rgb565=0xffff rect=(170,10,140,60)
+swatch red     rgb565=0xf800 rect=(10,86,140,60)
+swatch green   rgb565=0x07e0 rect=(170,86,140,60)
+swatch blue    rgb565=0x001f rect=(10,162,140,60)
+swatch yellow  rgb565=0xffe0 rect=(170,162,140,60)
+swatch cyan    rgb565=0x07ff rect=(10,238,140,60)
+swatch magenta rgb565=0xf81f rect=(170,238,140,60)
+layout: left column x=10, right column x=170; rows y=10 black/white, y=86 red/green, y=162 blue/yellow, y=238 cyan/magenta
+lcd swatches: ESP_OK elapsed_ms=67
+```
+
+### What didn't work
+
+- First build failed because the new C++ command parser used `goto rect_usage`, which jumped over initialized local variables:
+
+```text
+error: jump to label 'rect_usage'
+note: crosses initialization of 'uint16_t color'
+```
+
+- Fix: replace the `goto` path with separate parse-validity booleans and one validation block.
+
+### What I learned
+
+- The swatch pass takes about 67 ms for one gray full-screen fill plus eight rectangles.
+- The color mismatch investigation now has an explicit operator-facing layout instead of relying on subjective descriptions of the themed REPL screen.
+
+### What was tricky to build
+
+- The UART parser is C++ and ESP-IDF builds with warnings/errors enabled. A C-style `goto` error path was not appropriate because it crossed initialized locals. The fix also made the parser easier to read.
+
+### What warrants a second pair of eyes
+
+- Review the swatch coordinates and ensure the intended mapping is unambiguous enough for manual reporting.
+- Review whether later diagnostics should include byte-swapped variants next to normal RGB565 values.
+
+### What should be done in the future
+
+- Collect the user's observed colors for each swatch position.
+- Based on the mapping, test one focused correction: BGR bit, RGB565 byte swap, inversion, or palette adjustment.
+
+### Code review instructions
+
+- Review `cmd_lcd()` in `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`.
+- Validate with `idf.py build`, flash, and run `lcd swatches` from the UART console.
+
+### Technical details
+
+- Monitor capture: `/tmp/0102-color-swatches.log`.
+- Swatch command: `lcd swatches`.
+- Rectangle command example: `lcd rect 0 0 160 160 red`.
