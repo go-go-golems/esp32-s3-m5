@@ -23,14 +23,22 @@ RelatedFiles:
       Note: Minimal full QuickJS source list and no quickjs-libc decision
     - Path: 0100-esp32-p4-quickjs-wasm/wasm-src/wasm_main.c
       Note: Minimal full QuickJS bindings and qjs_eval wrapper from Wasm experiment
+    - Path: 0101-esp32-p4-native-quickjs/README.md
+      Note: Build
     - Path: 0101-esp32-p4-native-quickjs/main/app_main.cpp
-      Note: Minimal native QuickJS smoke firmware that builds for ESP32-P4
+      Note: |-
+        Minimal native QuickJS smoke firmware that builds for ESP32-P4
+        Service-backed boot smoke and validation harness
     - Path: components/mqjs_service/include/mqjs_service.h
       Note: Existing MicroQuickJS service public API to mirror for native full QuickJS
     - Path: components/mqjs_service/mqjs_service.cpp
       Note: Existing owner-task queue eval/job service implementation
     - Path: components/mqjs_service/mqjs_vm.cpp
       Note: Existing deadline interrupt output-capture VM wrapper pattern
+    - Path: components/qjs_service/include/qjs_service.h
+      Note: Public native QuickJS service API
+    - Path: components/qjs_service/qjs_service.cpp
+      Note: Owner-task native QuickJS service implementation
     - Path: components/quickjs_native/CMakeLists.txt
       Note: Native QuickJS ESP-IDF component build integration
     - Path: components/quickjs_native/quickjs/quickjs.c
@@ -43,6 +51,7 @@ LastUpdated: 2026-06-23T23:23:19.655329384-04:00
 WhatFor: Use when implementing or reviewing the native/raw QuickJS ESP32-P4 firmware follow-up to project 0100.
 WhenToUse: Use before creating 0101-esp32-p4-native-quickjs, when porting the existing mqjs_service model to full upstream QuickJS, or when comparing native QuickJS against the QuickJS-WASM baseline.
 ---
+
 
 
 

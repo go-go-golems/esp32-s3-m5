@@ -58,32 +58,32 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 
 ## Phase 3 — Implement reusable full QuickJS service (`components/qjs_service`)
 
-- [ ] **T3.1 — Create `components/qjs_service/include/qjs_service.h`.**
+- [x] **T3.1 — Create `components/qjs_service/include/qjs_service.h`.**
   - Mirror `mqjs_service` concepts but use full QuickJS terms.
   - Define config, eval result, status, job callback, start/stop/eval/run/post/reset/status/free APIs.
 
-- [ ] **T3.2 — Implement service task and queue.**
+- [x] **T3.2 — Implement service task and queue.**
   - Single owner task owns `JSRuntime*` and `JSContext*`.
   - Other tasks submit eval/job/reset/status messages.
   - Use internal-capability queues/semaphores where appropriate.
 
-- [ ] **T3.3 — Implement runtime lifecycle.**
+- [x] **T3.3 — Implement runtime lifecycle.**
   - `JS_NewRuntime`, `JS_SetMemoryLimit`, `JS_SetMaxStackSize`, `JS_SetInterruptHandler`, `JS_SetCanBlock`, `JS_NewContext`.
   - Install `print`, `millis`, `gc`, and optional `heap` globals.
   - Clean up `JSContext` and `JSRuntime` on reset/stop.
 
-- [ ] **T3.4 — Implement eval result formatting.**
+- [x] **T3.4 — Implement eval result formatting.**
   - Capture output from `print`.
   - Convert returned values to strings when useful.
   - Convert exceptions via `JS_GetException` + `JS_ToCString`.
   - Always free `JSValue` and C strings.
 
-- [ ] **T3.5 — Implement deadlines.**
+- [x] **T3.5 — Implement deadlines.**
   - Store absolute `deadline_us` per eval/job.
   - Interrupt handler returns true after deadline.
   - Report timeout distinctly from JS exception.
 
-- [ ] **T3.6 — Implement reset/status.**
+- [x] **T3.6 — Implement reset/status.**
   - `js reset` should rebuild runtime/context.
   - Status should report eval count, last eval ms, memory limit, ESP heap state, and QuickJS memory usage if available.
 
@@ -98,9 +98,9 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 
 ## Phase 5 — Hardware validation and benchmark comparison
 
-- [ ] **T5.1 — Flash service firmware to ESP32-P4.**
-- [ ] **T5.2 — Smoke eval.** Confirm `js eval "print(1+2)"` prints `3`.
-- [ ] **T5.3 — Exception eval.** Confirm `throw new Error('boom')` reports `Error: boom`.
+- [x] **T5.1 — Flash service firmware to ESP32-P4.**
+- [x] **T5.2 — Smoke eval.** Confirm `js eval "print(1+2)"` prints `3`.
+- [x] **T5.3 — Exception eval.** Confirm `throw new Error('boom')` reports `Error: boom`.
 - [ ] **T5.4 — Timeout eval.** Confirm `while(true){}` stops by deadline.
 - [ ] **T5.5 — Reset eval.** Define a global, reset, confirm global disappears.
 - [ ] **T5.6 — Memory high-water.** Run repeated eval loop and record heap/QuickJS memory before/after.

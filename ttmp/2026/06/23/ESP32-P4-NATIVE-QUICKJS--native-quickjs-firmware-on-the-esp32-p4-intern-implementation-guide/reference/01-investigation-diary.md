@@ -356,3 +356,108 @@ sum10k=11,s=49995000
 I (1580) 0101_qjs: heap after: internal=594071 8bit=34145819 psram=33551748
 I (1580) main_task: Returned from app_main()
 ```
+
+## Step 5: Add reusable `qjs_service` and verify service-backed native QuickJS on hardware
+
+Replaced the one-shot boot runtime with a reusable full-QuickJS service component. The new service owns one `JSRuntime*` and `JSContext*` on a FreeRTOS owner task, accepts eval/job/reset/status messages through an internal queue, captures `print()` output, formats exceptions, exposes status counters, and supports a deadline interrupt handler.
+
+After building the service-backed 0101 firmware, I flashed it to the ESP32-P4 and verified that the owner-task model works on device. The firmware initializes the service, evaluates a smoke expression, runs a small loop benchmark, formats a thrown exception, and resets the runtime successfully.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing the implementation checklist by turning the minimal native runtime into the reusable service layer requested by the design.
+
+**Inferred user intent:** Produce a maintainable firmware architecture that interns can extend with console commands and board bindings instead of leaving QuickJS embedded directly in `app_main`.
+
+### What I did
+
+- Added `components/qjs_service/include/qjs_service.h`.
+- Added `components/qjs_service/qjs_service.cpp`.
+- Added `components/qjs_service/CMakeLists.txt`.
+- Added `components/qjs_service` to `0101-esp32-p4-native-quickjs/CMakeLists.txt` `EXTRA_COMPONENT_DIRS`.
+- Rewrote `0101-esp32-p4-native-quickjs/main/app_main.cpp` to start `qjs_service`, call `qjs_service_eval`, call `qjs_service_get_status`, call `qjs_service_reset`, and stop the service.
+- Updated `0101-esp32-p4-native-quickjs/README.md` with service-smoke build/flash/monitor expectations.
+- Ran `idf.py build` successfully.
+- Flashed with `idf.py -p /dev/ttyACM0 flash`.
+- Captured `idf.py -p /dev/ttyACM0 monitor` output inside tmux and killed the tmux session afterward.
+
+### Why
+
+- Full QuickJS mutable state should be serialized behind one owner task before adding console commands. This mirrors the working 0100 WAMR owner-thread lesson but uses normal FreeRTOS task ownership instead of pthread/WAMR execution requirements.
+- A reusable service component keeps future display, keyboard, GPIO, timer, and console code from directly manipulating `JSRuntime*` and `JSContext*`.
+
+### What worked
+
+- `idf.py build` passes for the service-backed firmware.
+- Service firmware binary size is `0xb84d0`; the 4 MB app partition still has 82% free.
+- Hardware flash succeeded on `/dev/ttyACM0`.
+- Runtime init through the service task completed in `6 ms`.
+- `print(1+2)` produced captured output `3` with `ok=1` and `timed_out=0`.
+- `sum10k` completed in `14 ms` and printed `sum10k=14,s=49995000`.
+- `throw new Error('boom')` returned `ok=0` and formatted `Error: boom`.
+- `qjs_service_reset` returned `ESP_OK` and status showed `resets=1`.
+
+### What didn't work
+
+- First service build failed because the 0101 project-level `EXTRA_COMPONENT_DIRS` only exposed `components/quickjs_native`:
+
+```text
+Failed to resolve component 'qjs_service' required by component 'main': unknown name.
+```
+
+- Fix: add `"${CMAKE_CURRENT_LIST_DIR}/../components/qjs_service"` to `0101-esp32-p4-native-quickjs/CMakeLists.txt`.
+
+### What I learned
+
+- The owner-task service model works cleanly with native QuickJS; unlike WAMR, it does not need a pthread-specific runtime call context.
+- `JS_ComputeMemoryUsage` is cheap enough for status snapshots in the smoke path.
+- Native service startup remains around `6 ms`, so the service abstraction does not materially change startup compared with the one-shot smoke.
+
+### What was tricky to build
+
+- Capturing `print()` output required using `JS_SetContextOpaque(ctx, service)` and a service-local `std::string* capture` pointer. The print callback appends to the capture buffer during `qjs_service_eval`; if no capture is active, it falls back to stdout.
+- Stop/reset ownership is important. Runtime destruction happens on the owner task for reset/stop so `JSContext` and `JSRuntime` are not freed concurrently with an eval.
+- Deadline support is implemented with `JS_SetInterruptHandler`, but the infinite-loop timeout behavior has not yet been hardware-validated. That remains a Phase 5 validation item.
+
+### What warrants a second pair of eyes
+
+- Review the service stop path: it sends a stop message, the owner task destroys QuickJS state and deletes itself, then the caller deletes the queue and service object.
+- Review result ownership: `qjs_eval_result_t.output` and `.error` are heap-allocated and must always be freed with `qjs_eval_result_free`.
+- Review `qjs_service_post`: asynchronous jobs are heap-owned and cannot safely reference stack-owned user data unless the caller guarantees lifetime.
+
+### What should be done in the future
+
+- Add console commands (`js status`, `js eval`, `js reset`, `js gc`, `js bench`) on top of the service.
+- Hardware-test timeout behavior with `while(true){}`.
+- Add repeated-eval stress and memory high-water measurements.
+
+### Code review instructions
+
+- Start with `components/qjs_service/include/qjs_service.h` to understand the public API contract.
+- Then review `components/qjs_service/qjs_service.cpp`, especially message handling, runtime creation/destruction, eval result formatting, print capture, and interrupt deadlines.
+- Finally review `0101-esp32-p4-native-quickjs/main/app_main.cpp` for the temporary service smoke harness.
+- Validate with `cd 0101-esp32-p4-native-quickjs && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build` and then `idf.py -p /dev/ttyACM0 flash` plus tmux monitor capture.
+
+### Technical details
+
+- Build result: `0101-esp32-p4-native-quickjs.bin binary size 0xb84d0 bytes. Smallest app partition is 0x400000 bytes. 0x347b30 bytes (82%) free.`
+- Verified service output:
+
+```text
+I (1555) qjs_service: task start name=qjs0101 prio=8 core=0
+I (1565) qjs_service: runtime init status=ESP_OK elapsed=6 ms
+I (1565) 0101_qjs: status after-start: ready=1 busy=0 evals=0 resets=0 last=0ms qjs_used=49760 qjs_malloc=360 atoms=518 heap8=33980391 psram=33551748
+I (1575) 0101_qjs: eval boot-smoke: print(1+2)
+I (1585) 0101_qjs: eval boot-smoke result: ok=1 timed_out=0 elapsed=2ms
+3
+I (1615) 0101_qjs: eval sum10k result: ok=1 timed_out=0 elapsed=14ms
+sum10k=14,s=49995000
+I (1615) 0101_qjs: eval exception result: ok=0 timed_out=0 elapsed=0ms
+E (1625) 0101_qjs: eval exception exception: Error: boom
+I (1645) 0101_qjs: reset: ESP_OK
+I (1645) 0101_qjs: status after-reset: ready=1 busy=0 evals=3 resets=1 last=0ms qjs_used=49760 qjs_malloc=360 atoms=518 heap8=33980391 psram=33551748
+```
+
+- Completed tasks: T3.1, T3.2, T3.3, T3.4, T3.5, T3.6, T5.1, T5.2, T5.3.

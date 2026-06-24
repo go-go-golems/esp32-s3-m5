@@ -4,7 +4,7 @@ idf_component_register(
     INCLUDE_DIRS
         "."
     REQUIRES
-        quickjs_native
+        qjs_service
     PRIV_REQUIRES
         esp_psram
         esp_timer

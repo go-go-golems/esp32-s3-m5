@@ -47,3 +47,15 @@ Completed T2.5: flashed 0101 to ESP32-P4 and verified native QuickJS boot smoke;
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/app_main.cpp — Boot-time native QuickJS smoke verified on hardware
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 4 records flash and monitor output
 
+
+## 2026-06-23
+
+Completed T3.1-T3.6 and service hardware smoke: added components/qjs_service owner-task API/implementation, switched 0101 to service-backed eval/status/reset smoke, built (0xb84d0), flashed, and verified print, benchmark, exception, and reset output on ESP32-P4.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/app_main.cpp — Service smoke harness
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/qjs_service/include/qjs_service.h — Public service API
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/qjs_service/qjs_service.cpp — Owner-task service implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 5 records service build and hardware validation
+
