@@ -486,7 +486,7 @@ I also implemented the first keyboard editor loop for the visual REPL: a backgro
 
 **Inferred user intent:** Improve the visual readability of the LCD REPL and keep development efficient by separating renderer geometry experiments from device flashing.
 
-**Commit (code):** pending — "0102: add keyboard editor and fix visual font geometry"
+**Commit (code):** fcc46d5 — "0102: add keyboard editor and fix visual font geometry"
 
 ### What I did
 
