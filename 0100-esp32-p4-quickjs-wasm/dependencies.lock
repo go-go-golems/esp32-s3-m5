@@ -1,0 +1,28 @@
+dependencies:
+  espressif/wasm-micro-runtime:
+    component_hash: 04f25aad2896b5e906397a061d35cce560609bebd3913a4be7e365ecbf2dd9d6
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.1'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32
+    - esp32s3
+    - esp32c3
+    - esp32c6
+    - esp32p4
+    - esp32c5
+    version: 2.4.0~1
+  idf:
+    source:
+      type: idf
+    version: 5.4.2
+direct_dependencies:
+- espressif/wasm-micro-runtime
+- idf
+manifest_hash: 2f4256de342a30a33a3b4323184629aa36a7a65fb35b47427afaf23d5d722ebe
+target: esp32p4
+version: 2.0.0

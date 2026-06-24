@@ -555,3 +555,60 @@ Closed out Phase 0: checked off the Phase 0 tasks in `tasks.md`, committed the b
 
 - Vault note path: `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/06/23/ARTICLE - QuickJS Wasm on WAMR - Running a JS Engine Inside a Wasm Sandbox.md`.
 - Firmware commit history: `4626781` (Phase 0 build) → `7b59511` (diary 6-7) → (this step's tasks/diary commit).
+
+## Step 9: Phase 1 — wire WAMR host API into firmware 0100; builds for esp32p4
+
+Implemented the firmware host side and got it to compile and link for the ESP32-P4. The app is not yet flashed (that needs the user to connect the device).
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 8) — continue Phase 1 with frequent diary.
+
+### What I did
+
+- Fixed `sdkconfig.defaults`: set `CONFIG_WAMR_ENABLE_REF_TYPES=y` (was `=n`; Phase 0 proved clang 22 emits reference types), and enabled the custom partition table (`CONFIG_PARTITION_TABLE_CUSTOM=y` + `CUSTOM_FILENAME` + `FILENAME` = `partitions.csv`) because the app is ~1.8 MB and overflows the default 1 MB factory partition.
+- Wrote the firmware host sources in `0100/main/`, modelled on the proven Phase-0 `host_test.c` and `0099`'s console setup: `quickjs_embed.h` (EMBED blob symbols), `wasm_runtime_service.{h,cpp}` (WAMR init with a 16 MB PSRAM pool), `wasm_host_api.{h,cpp}` (the `env` natives `host_print`/`host_millis`/`host_gpio_write` with signatures `($)`/`()i`/`(ii)`), `wasm_runner.{h,cpp}` (load embedded `quickjs.wasm`, instantiate once, `qjs_init`, `qjs_eval` via `module_dup_data`), `js_command.{h,cpp}` (`js eval <source>` joins args; `js status`), and `app_main.cpp` (UART0 console + init + register).
+- Updated `main/CMakeLists.txt` to `EMBED_FILES quickjs.wasm` and `REQUIRES espressif__wasm-micro-runtime console pthread` (+ `PRIV_REQUIRES esp_driver_gpio esp_timer esp_psram heap`).
+- Moved the component manifest from the project root to `main/idf_component.yml` (the component manager reads the main component's manifest there; the root copy was ignored).
+- Built with `source ~/esp/esp-idf-5.4.2/export.sh && idf.py set-target esp32p4 && idf.py build`.
+
+### Build errors hit and fixed
+
+1. `Failed to resolve component 'espressif__wasm-micro-runtime': unknown name` → the manifest was at the project root; ESP-IDF's component manager reads `main/idf_component.yml`. Moved it there; `idf.py reconfigure` then fetched `espressif__wasm-micro-runtime`.
+2. `'printf' was not declared` in `wasm_runner.cpp` → added `#include <cstdio>`.
+3. `esp_console_cmd_t` missing-field-initializers warnings → zero-initialised the struct (`esp_console_cmd_t cmd = {};` then assign fields).
+4. `app partition is too small ... size 0x1be410 (1.77 MB) ... factory size 0x100000 (1 MB)` → the custom `partitions.csv` (4 MB factory) was not applied. Root cause: `sdkconfig.defaults` changes are ignored once `sdkconfig` exists; `idf.py fullclean` does **not** delete `sdkconfig`. Fix: `rm -f sdkconfig` (regenerate from defaults) + set `CONFIG_PARTITION_TABLE_CUSTOM=y`/`CUSTOM_FILENAME`/`FILENAME` (matching `0098`'s pattern). After that, `CONFIG_PARTITION_TABLE_CUSTOM=y` and the build passed.
+
+### What worked
+
+- `idf.py build` → `Project build complete. To flash`. App binary: 1.8 MB (`build/0100-esp32-p4-quickjs-wasm.bin`), fits the 4 MB factory partition. `quickjs.wasm` (1.2 MB) is embedded via `EMBED_FILES` and resolved to `_binary_quickjs_wasm_start`/`_end` symbols.
+
+### What didn't work
+
+- (Resolved, see above.) The `sdkconfig.defaults`-not-applied trap cost two rebuild cycles; this is the single most important idf.py gotcha to document for future agents.
+
+### What I learned
+
+- ESP-IDF component dependencies for the main component go in `main/idf_component.yml`, not a project-root `idf_component.yml`.
+- `sdkconfig.defaults` only seeds options absent from the generated `sdkconfig`; to force a defaults change (e.g. partition table), delete `sdkconfig` (or `rm sdkconfig` then build). `idf.py fullclean` removes `build/` and `managed_components/` but keeps `sdkconfig`.
+- The embedded QuickJS+WAMR app is ~1.8 MB, so every QuickJS-WAMR firmware needs a custom partition table with a ≥2 MB factory.
+
+### What warrants a second pair of eyes
+
+- Runtime behaviour on hardware is unverified: the 16 MB PSRAM pool, 32 KB guest stack, and 512 KB guest heap are estimates from the host test. `qjs_init` and `js eval` must be confirmed on the P4.
+- `host_gpio_write` calls `gpio_set_level` without configuring the pin; Phase 2 must add `gpio_config` before JS can touch GPIOs.
+
+### What should be done in the future
+
+- Flash to the PicoCalc P4 board (user connects device), run `js eval "print(1+2)"`, expect `3`; run `js status`.
+- Then Phase 2 (REPL, `js reset`, real GPIO/millis wiring, `js bench`).
+
+### Code review instructions
+
+- `cd 0100-esp32-p4-quickjs-wasm && source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`
+- Inspect `main/wasm_runner.cpp` (eval flow) and `main/wasm_host_api.cpp` (signatures) against the Phase-0 `host_test.c`.
+
+### Technical details
+
+- Build: `~/esp/esp-idf-5.4.2` (5.4.2); target `esp32p4`; console UART0 (CH343 bridge); PSRAM hex 200 MHz; WAMR pool 16 MB in PSRAM.
+- App binary: 1.8 MB; partition: custom `partitions.csv` (factory 4 MB).

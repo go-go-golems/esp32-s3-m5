@@ -1,43 +1,44 @@
-// 0100 — ESP32-P4 QuickJS-WASM scaffold app_main.
-// Buildable now: console + banner + a `js status` stub.
-// The intern replaces this with the full WAMR wiring per design §7.
+// 0100 — ESP32-P4 QuickJS-WASM firmware entry point.
+// Console = UART0 (CH343 USB-UART bridge; the P4 has no USB Serial/JTAG).
+// Initializes WAMR (pool in PSRAM), registers the "env" host API, loads the
+// embedded quickjs.wasm, runs qjs_init, and exposes `js eval` / `js status`.
 #include <cstdio>
+
 #include "esp_console.h"
 #include "esp_log.h"
-#include "argtable3/argtable3.h"
+#include "esp_system.h"
 
-static const char *kTag = "0100_qjs";
+#include "js_command.h"
+#include "wasm_host_api.h"
+#include "wasm_runner.h"
+#include "wasm_runtime_service.h"
 
-static int cmd_js(int argc, char **argv)
-{
-    if (argc < 2) {
-        printf("usage: js <eval|repl|reset|status>\n");
-        return 0;
-    }
-    if (strcmp(argv[1], "status") == 0) {
-        printf("runtime=stub-not-wired-yet\n");
-        printf("hint: port wasm_runtime_service + wasm_host_api from 0079, see design §7\n");
-        return 0;
-    }
-    printf("js %s: not implemented yet (scaffold). See design doc §5.8.\n", argv[1]);
-    return 1;
-}
+static const char *kTag = "0100";
 
 extern "C" void app_main(void)
 {
-    ESP_LOGI(kTag, "0100 ESP32-P4 QuickJS-WASM scaffold (ticket ESP32-P4-QUICKJS-WASM)");
-    ESP_LOGI(kTag, "Read the design doc: design/01-quickjs-wasm-esp32p4-...-guide.md");
+    ESP_LOGI(kTag, "0100 ESP32-P4 QuickJS-WASM (ticket ESP32-P4-QUICKJS-WASM)");
 
     esp_console_repl_t *repl = nullptr;
-    esp_console_repl_config_t cfg = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
-    cfg.prompt = "0100>";
-    esp_console_new_repl_uart(&cfg, &repl);
+    esp_console_repl_config_t repl_cfg = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_cfg.prompt = "0100> ";
+    repl_cfg.task_stack_size = 8192;
+    esp_console_register_help_command();
 
-    esp_console_cmd_t js_cmd = {};
-    js_cmd.command = "js";
-    js_cmd.help = "js eval|repl|reset|status (QuickJS-WASM)";
-    js_cmd.func = cmd_js;
-    esp_console_cmd_register(&js_cmd);
+    // Initialize the WAMR runtime + env host API + QuickJS session (qjs_init).
+    if (!init_wasm_runtime()) {
+        ESP_LOGE(kTag, "WAMR runtime init failed; js eval will be unavailable");
+    } else if (!init_wasm_host_api()) {
+        ESP_LOGE(kTag, "WAMR host API init failed; js eval will be unavailable");
+    } else if (!wasm_runner_init()) {
+        ESP_LOGE(kTag, "QuickJS session init failed; js eval will be unavailable");
+    } else {
+        ESP_LOGI(kTag, "QuickJS ready. Try: js eval \"print(1+2)\"");
+    }
 
-    esp_console_start_repl(repl);
+    register_js_commands();
+
+    esp_console_dev_uart_config_t hw_cfg = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_cfg, &repl_cfg, &repl));
+    ESP_ERROR_CHECK(esp_console_start_repl(repl));
 }
