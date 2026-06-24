@@ -800,7 +800,7 @@ The remaining issue was therefore the visual REPL palette itself: the first pale
 
 **Inferred user intent:** Keep the display readable and console-like, avoiding confusing colored backgrounds when the underlying panel color path is correct.
 
-**Commit (code):** pending — "visual_repl: use black backgrounds for terminal palette"
+**Commit (code):** 7370110 — "visual_repl: use black backgrounds for terminal palette"
 
 ### What I did
 
