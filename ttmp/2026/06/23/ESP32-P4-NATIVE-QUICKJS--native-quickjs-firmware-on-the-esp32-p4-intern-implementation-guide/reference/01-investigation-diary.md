@@ -263,3 +263,96 @@ error: passing argument ... from incompatible pointer type [-Wincompatible-point
 - Build command: `idf.py build` under ESP-IDF 5.4.2.
 - Build result: `Project build complete`; binary size `0xb4f00`; app partition size `0x400000`.
 - Completed tasks: T1.1, T1.2, T1.3, T1.4, T2.1, T2.2, T2.3, T2.4.
+
+## Step 4: Flash 0101 and verify native QuickJS on the ESP32-P4
+
+Flashed the new 0101 firmware to the same ESP32-P4 hardware used for the 0100 WAMR bring-up. The boot-time smoke passed: native QuickJS created a runtime/context, installed the first globals, evaluated `print(1+2)`, and ran the 10k loop benchmark without crashing.
+
+This is the first on-device proof that the native/raw QuickJS path works on ESP32-P4 and removes the WAMR startup/runtime overhead from the first milestone.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue executing the task list after the buildable checkpoint by validating the smoke firmware on real hardware.
+
+**Inferred user intent:** Replace paper design claims with device evidence and keep a precise validation trail for interns and future agents.
+
+### What I did
+
+- Ensured stale tmux monitor sessions were killed before using `/dev/ttyACM0`.
+- Checked there were no port holders before flash with `lsof /dev/ttyACM0`.
+- Ran `idf.py -p /dev/ttyACM0 flash` from `0101-esp32-p4-native-quickjs`.
+- Started `idf.py -p /dev/ttyACM0 monitor` inside tmux session `qjs0101`, captured the boot output, and killed the tmux session afterward to free the serial port.
+- Checked off T2.5 in `tasks.md`.
+
+### Why
+
+- A successful compile is not enough for this firmware path. Native QuickJS needed to prove it can initialize and execute JavaScript under the real ESP32-P4 memory/PSRAM/runtime conditions.
+- The serial single-owner discipline avoids the false failures seen during earlier ESP32-S3/ESP32-P4 monitor work.
+
+### What worked
+
+- Flash succeeded with `idf.py` using `/dev/ttyACM0`.
+- The board booted ESP-IDF v5.4.2 on chip revision v1.3.
+- PSRAM was detected and tested successfully: 32 MB at 200 MHz.
+- Native QuickJS initialized in `6 ms`.
+- `print(1+2)` printed `3` and returned `native eval ok`.
+- The 10k loop smoke printed `sum10k=11,s=49995000`, where `11` is the measured JavaScript-side elapsed milliseconds for the loop in the current print formatting.
+- Heap snapshots were stable:
+  - before: `internal=594247 8bit=34145995 psram=33551748`
+  - after: `internal=594071 8bit=34145819 psram=33551748`
+
+### What didn't work
+
+- Running `idf.py monitor` directly through the non-interactive harness failed because IDF monitor requires a TTY:
+
+```text
+Error: Monitor requires standard input to be attached to TTY. Try using a different terminal.
+idf_monitor failed with exit code 1
+```
+
+- The workaround was to run the monitor inside tmux, capture the pane, and kill the tmux session afterward.
+
+### What I learned
+
+- The native engine startup is dramatically faster than the 0100 QuickJS-Wasm path's `qjs_init` time (~6 ms native versus ~2.7 s WAMR/QuickJS-Wasm startup in the earlier measurement).
+- The first native smoke app does not need a pthread owner yet because all work runs synchronously in `app_main`; the owner-task design becomes necessary when adding console/runtime reuse in T3/T4.
+
+### What was tricky to build
+
+- The monitor capture needed an interactive terminal. Using tmux preserved the user's requested `idf.py monitor` workflow while still allowing scripted capture. The session was explicitly killed after capture so `/dev/ttyACM0` did not remain held.
+
+### What warrants a second pair of eyes
+
+- The smoke `print` function currently concatenates arguments without separators, which makes benchmark output compact but ambiguous. Before productizing the console service, decide whether firmware `print` should match QuickJS CLI spacing behavior more closely.
+- The app version showed `55eb024-dirty` because the broader repository had unrelated dirty state; do not interpret that as a firmware source change after the commit unless the focused diff says so.
+
+### What should be done in the future
+
+- Build the reusable `qjs_service` owner-task layer and move this one-shot runtime into that service.
+- Add a stable `js bench` command later so native and WAMR timings are measured with the same scripts and formatting.
+
+### Code review instructions
+
+- Start from `0101-esp32-p4-native-quickjs/main/app_main.cpp` and verify cleanup paths for `JS_FreeValue`, `JS_FreeContext`, and `JS_FreeRuntime`.
+- Reproduce with `cd 0101-esp32-p4-native-quickjs && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py -p /dev/ttyACM0 flash`, then monitor in tmux.
+
+### Technical details
+
+- Flash command: `idf.py -p /dev/ttyACM0 flash`.
+- Monitor command used inside tmux: `idf.py -p /dev/ttyACM0 monitor`.
+- Verified output:
+
+```text
+I (1530) 0101_qjs: 0101 ESP32-P4 native QuickJS smoke (ticket ESP32-P4-NATIVE-QUICKJS)
+I (1540) 0101_qjs: heap before: internal=594247 8bit=34145995 psram=33551748
+I (1560) 0101_qjs: native QuickJS ready in 6 ms
+I (1560) 0101_qjs: native eval: print(1+2)
+3
+I (1560) 0101_qjs: native eval ok
+I (1560) 0101_qjs: native bench: sum10k
+sum10k=11,s=49995000
+I (1580) 0101_qjs: heap after: internal=594071 8bit=34145819 psram=33551748
+I (1580) main_task: Returned from app_main()
+```

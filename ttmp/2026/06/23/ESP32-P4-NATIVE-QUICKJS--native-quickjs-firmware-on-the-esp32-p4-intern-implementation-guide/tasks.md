@@ -52,7 +52,7 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
   - Use ESP-IDF 5.4.2.
   - Commit once the firmware builds.
 
-- [ ] **T2.5 — Flash first smoke to hardware.**
+- [x] **T2.5 — Flash first smoke to hardware.**
   - Use `/dev/ttyACM0` single-owner rules.
   - Confirm boot log shows native QuickJS eval result `3`.
 

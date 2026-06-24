@@ -37,3 +37,13 @@ Completed T1.1-T1.4 and T2.1-T2.4: vendored native QuickJS, added 0101 ESP32-P4 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/quickjs_native/quickjs_espidf_compat.h — ESP-IDF compatibility shim
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 3 records build failures and fixes
 
+
+## 2026-06-23
+
+Completed T2.5: flashed 0101 to ESP32-P4 and verified native QuickJS boot smoke; qjs ready in 6 ms, print(1+2) printed 3, sum10k completed.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0101-esp32-p4-native-quickjs/main/app_main.cpp — Boot-time native QuickJS smoke verified on hardware
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 4 records flash and monitor output
+
