@@ -233,6 +233,10 @@ void keyboard_task(void *)
                 ESP_LOGW(kTag, "keyboard poll failed: %s consecutive_errors=%u",
                          esp_err_to_name(err), (unsigned)consecutive_errors);
             }
+            if (consecutive_errors == 5 || consecutive_errors % 30 == 0) {
+                esp_err_t rec = picocalc_keyboard_recover();
+                ESP_LOGW(kTag, "keyboard recovery after poll errors: %s", esp_err_to_name(rec));
+            }
             const TickType_t delay = consecutive_errors < 5 ? pdMS_TO_TICKS(250) : pdMS_TO_TICKS(1000);
             vTaskDelay(delay);
             continue;
@@ -304,8 +308,9 @@ int cmd_status(int argc, char **argv)
     std::printf("0102 status: lcd_requested=%d actual_khz=%d max_transfer=%u\n",
                 picocalc_lcd_requested_hz(), picocalc_lcd_actual_khz(),
                 (unsigned)picocalc_lcd_max_transfer_bytes());
-    std::printf("keyboard: initialized=%d last_status=0x%02x errors=%u\n",
-                kdiag.initialized, kdiag.last_status, (unsigned)kdiag.error_count);
+    std::printf("keyboard: initialized=%d last_status=0x%02x errors=%u recoveries=%u last_error=%s\n",
+                kdiag.initialized, kdiag.last_status, (unsigned)kdiag.error_count,
+                (unsigned)kdiag.recover_count, esp_err_to_name(kdiag.last_error));
     std::printf("quickjs: status_err=%s ready=%d evals=%u resets=%u last_eval_ms=%u used=%u atoms=%u\n",
                 esp_err_to_name(qerr), qst.ready, (unsigned)qst.eval_count,
                 (unsigned)qst.reset_count, (unsigned)qst.last_eval_ms,
@@ -404,6 +409,52 @@ int cmd_screen(int argc, char **argv)
 
 int cmd_kbd(int argc, char **argv)
 {
+    if (argc >= 2 && std::strcmp(argv[1], "recover") == 0) {
+        esp_err_t err = picocalc_keyboard_recover();
+        picocalc_keyboard_diag_t diag = {};
+        picocalc_keyboard_get_diag(&diag);
+        std::printf("kbd recover: %s initialized=%d errors=%u recoveries=%u last_error=%s\n",
+                    esp_err_to_name(err), diag.initialized,
+                    (unsigned)diag.error_count, (unsigned)diag.recover_count,
+                    esp_err_to_name(diag.last_error));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (argc >= 2 && std::strcmp(argv[1], "status") == 0) {
+        picocalc_keyboard_diag_t diag = {};
+        picocalc_keyboard_get_diag(&diag);
+        std::printf("kbd status: initialized=%d last_status=0x%02x errors=%u recoveries=%u last_error=%s\n",
+                    diag.initialized, diag.last_status, (unsigned)diag.error_count,
+                    (unsigned)diag.recover_count, esp_err_to_name(diag.last_error));
+        return 0;
+    }
+    if (argc >= 2 && std::strcmp(argv[1], "probe") == 0) {
+        uint8_t addr = PICOCALC_KBD_I2C_ADDR;
+        if (argc >= 3) {
+            bool ok = false;
+            int parsed = parse_int_arg(argv[2], 0x03, 0x77, &ok);
+            if (!ok) {
+                std::printf("usage: kbd probe [addr], addr may be decimal or 0xNN\n");
+                return 1;
+            }
+            addr = static_cast<uint8_t>(parsed);
+        }
+        esp_err_t err = picocalc_keyboard_probe_address(addr, 100);
+        std::printf("kbd probe addr=0x%02x: %s\n", addr, esp_err_to_name(err));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (argc >= 2 && std::strcmp(argv[1], "scan") == 0) {
+        int found = 0;
+        std::printf("kbd scan:");
+        for (uint8_t addr = 0x03; addr <= 0x77; ++addr) {
+            esp_err_t err = picocalc_keyboard_probe_address(addr, 20);
+            if (err == ESP_OK) {
+                std::printf(" 0x%02x", addr);
+                ++found;
+            }
+        }
+        std::printf(" (%d found)\n", found);
+        return found > 0 ? 0 : 1;
+    }
     int limit = 10;
     if (argc >= 2) {
         limit = std::atoi(argv[1]);
@@ -501,7 +552,7 @@ void start_debug_console()
 
     const esp_console_cmd_t kbd_cmd = {
         .command = "kbd",
-        .help = "Poll PicoCalc keyboard events: kbd [limit]",
+        .help = "PicoCalc keyboard: kbd [limit] | status | recover | probe [addr] | scan",
         .func = cmd_kbd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&kbd_cmd));

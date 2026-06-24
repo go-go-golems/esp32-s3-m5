@@ -1034,3 +1034,133 @@ keyboard poll failed: ESP_ERR_INVALID_STATE consecutive_errors=1
 
 - Monitor capture: `/tmp/0102-blit-byte-order-demo.log`.
 - Latest render timing after byte-packing blits: about 33 ms for full 40×20 viewport.
+
+## Step 11: Add keyboard bus recovery and prove the keyboard controller is not ACKing
+
+After the display colors were accepted, I returned to Phase 4 keyboard input. The firmware already had an editor task, but the keyboard path kept returning `ESP_ERR_INVALID_STATE`. I added recovery at the reusable keyboard component boundary: serialized I2C access with a mutex, explicit I2C bus/device teardown and reinitialization, recovery counters, last-error diagnostics, and UART commands to recover, probe, and scan the keyboard I2C bus.
+
+The result is clear: software recovery recreates the ESP-IDF I2C bus/device successfully, but the keyboard controller still does not ACK. `kbd probe` for address `0x1f` returns `ESP_ERR_NOT_FOUND`, and `kbd scan` finds zero devices on the bus. That means the next useful action is a physical PicoCalc/keyboard-controller power-cycle or reset, not more ESP32-only flashing.
+
+### Prompt Context
+
+**User prompt (verbatim):** "colors  are good now. 
+
+Continue."
+
+**Assistant interpretation:** With display color rendering accepted, resume the blocked keyboard input work and continue the implementation/validation loop.
+
+**Inferred user intent:** Move past display bring-up and recover enough keyboard functionality to validate the on-device input editor.
+
+**Commit (code):** pending — "picocalc_keyboard: add recovery and bus scan diagnostics"
+
+### What I did
+
+- Updated `components/picocalc_keyboard`:
+  - added a FreeRTOS mutex to serialize I2C access;
+  - added `picocalc_keyboard_recover()`;
+  - added `picocalc_keyboard_probe_address()`;
+  - extended diagnostics with `recover_count` and `last_error`.
+- Updated 0102 UART commands:
+  - `kbd status`
+  - `kbd recover`
+  - `kbd probe [addr]`
+  - `kbd scan`
+- Updated the keyboard editor task:
+  - automatically calls `picocalc_keyboard_recover()` after repeated poll errors;
+  - keeps rate-limited logging.
+- Built, flashed, and ran:
+  - `kbd status`
+  - `kbd probe`
+  - `kbd scan`
+
+### Why
+
+- The earlier recovery logic only backed off at the app level. It did not prove whether the keyboard controller was absent, wedged, or just stuck behind a stale ESP-IDF I2C object.
+- A bus scan gives a sharper hardware/software boundary: if no address ACKs, the ESP32-side software stack cannot read keyboard events until the external device responds again.
+
+### What worked
+
+- Build passed:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdb650 bytes. Smallest app partition is 0x400000 bytes. 0x3249b0 bytes (79%) free.
+```
+
+- Flash succeeded.
+- Software recovery executed and recreated the I2C bus/device:
+
+```text
+W (4304) picocalc_kbd: recovering PicoCalc keyboard I2C bus/device (attempt=1)
+I (4504) picocalc_kbd: initialized PicoCalc keyboard I2C: sda=50 scl=49 speed=10000 addr=0x1f recoveries=1
+W (4504) 0102: keyboard recovery after poll errors: ESP_OK
+```
+
+- Manual recovery also returned `ESP_OK` in the prior probe round.
+- After a full PicoCalc power-cycle, the keyboard controller came back on the bus:
+
+```text
+0102>  kbd status
+kbd status: initialized=1 last_status=0x00 errors=0 recoveries=0 last_error=ESP_OK
+0102>  kbd probe
+kbd probe addr=0x1f: ESP_OK
+0102>  kbd scan
+kbd scan: 0x1f (1 found)
+0102>  kbd 3
+kbd: no event
+```
+
+### What didn't work
+
+- Before the full PicoCalc power-cycle, the keyboard controller did not ACK at its expected address:
+
+```text
+0102>  kbd probe
+kbd probe addr=0x1f: ESP_ERR_NOT_FOUND
+Command returned non-zero error code: 0x1 (ERROR)
+```
+
+- Before the power-cycle, the bus scan found no devices:
+
+```text
+0102>  kbd scan
+kbd scan: (0 found)
+Command returned non-zero error code: 0x1 (ERROR)
+```
+
+- The physical input smoke is still pending: the post-power-cycle `kbd 3` result was `no event`, which is healthy idle behavior but does not yet prove keypress editing on the LCD.
+
+### What I learned
+
+- The pre-power-cycle failure was not just a stale ESP-IDF I2C device handle. The I2C bus/device could be recreated, but no slave responded.
+- A full PicoCalc power-cycle restored ACKs from `0x1f`, confirming that the keyboard/southbridge side can remain wedged across ESP32-only flashes/resets.
+
+### What was tricky to build
+
+- The diagnostic needed to avoid racing the background keyboard task and UART commands against the same I2C master. Adding a component-level mutex is the right boundary because `picocalc_keyboard` owns the I2C device.
+- `ESP_ERR_INVALID_STATE` alone was too vague. Adding `i2c_master_probe()` and a scan command made the evidence actionable: no ACKs on the bus.
+
+### What warrants a second pair of eyes
+
+- Review `picocalc_keyboard_recover()` to ensure teardown ordering is safe (`i2c_master_bus_rm_device()` before `i2c_del_master_bus()`).
+- Review whether the background task should pause while manual `kbd scan` runs, or whether component-level locking is sufficient.
+- Check the PicoCalc wiring/power state if a full power-cycle does not bring back address `0x1f`.
+
+### What should be done in the future
+
+- Resume T4.6 with physical typing: `abc`, Left, `X`, Enter.
+- Keep `kbd probe` and `kbd scan` in the firmware during bring-up because they are useful for distinguishing firmware bugs from a wedged keyboard controller.
+- If `0x1f` disappears again after repeated ESP32 flashes, ask for a full PicoCalc power-cycle before deeper firmware debugging.
+
+### Code review instructions
+
+- Review `components/picocalc_keyboard/include/picocalc_keyboard.h` for the new recovery/probe API.
+- Review `components/picocalc_keyboard/picocalc_keyboard.c` for locking, recovery, probe, and diagnostics.
+- Review `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp` for `kbd recover`, `kbd probe`, `kbd scan`, and automatic recovery from the keyboard task.
+- Validate with `idf.py build`, flash, then run `kbd probe` and `kbd scan` before/after a full power-cycle.
+
+### Technical details
+
+- Expected keyboard address: `0x1f`.
+- Scan result before power-cycle: zero I2C devices found.
+- Scan result after power-cycle: `0x1f` found.
+- Monitor captures: `/tmp/0102-kbd-scan-probe.log`, `/tmp/0102-kbd-after-powercycle.log`.

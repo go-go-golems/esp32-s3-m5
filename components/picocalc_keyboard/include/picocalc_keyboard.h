@@ -38,9 +38,13 @@ typedef struct {
     bool initialized;
     uint8_t last_status;
     uint32_t error_count;
+    uint32_t recover_count;
+    esp_err_t last_error;
 } picocalc_keyboard_diag_t;
 
 esp_err_t picocalc_keyboard_init(void);
+esp_err_t picocalc_keyboard_recover(void);
+esp_err_t picocalc_keyboard_probe_address(uint8_t addr, int timeout_ms);
 esp_err_t picocalc_keyboard_read_register(uint8_t reg, uint8_t *dst, size_t len);
 esp_err_t picocalc_keyboard_read_status(uint8_t *status);
 uint8_t picocalc_keyboard_fifo_count(uint8_t status);

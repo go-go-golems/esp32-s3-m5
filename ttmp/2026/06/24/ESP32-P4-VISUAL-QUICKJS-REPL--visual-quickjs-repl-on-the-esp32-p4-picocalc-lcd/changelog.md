@@ -111,3 +111,15 @@ Fixed LCD blit RGB565 byte order: picocalc_lcd_blit_rect now packs host-order RG
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_lcd/picocalc_lcd.c — RGB565 byte packing for blit_rect/blit_row
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 10 records fill-vs-blit color mismatch diagnosis and fix
 
+
+## 2026-06-24
+
+Added PicoCalc keyboard recovery/probe/scan diagnostics with serialized I2C access. Software recovery can recreate the ESP-IDF bus/device; pre-power-cycle scan found no devices, and post-power-cycle scan found keyboard address 0x1f, confirming the keyboard controller can wedge across ESP32-only resets.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — UART kbd status/recover/probe/scan and automatic recovery
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_keyboard/include/picocalc_keyboard.h — Recovery/probe diagnostics API
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_keyboard/picocalc_keyboard.c — Mutex-protected I2C access
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 11 records keyboard bus recovery
+
