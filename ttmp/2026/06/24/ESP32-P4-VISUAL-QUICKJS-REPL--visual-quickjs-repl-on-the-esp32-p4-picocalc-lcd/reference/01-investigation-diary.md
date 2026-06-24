@@ -961,7 +961,7 @@ The root cause was in `picocalc_lcd_blit_rect()`: it transmitted the `uint16_t *
 
 **Inferred user intent:** Make the on-screen REPL match the requested Swiss palette and avoid false confidence from UART logs alone.
 
-**Commit (code):** pending — "picocalc_lcd: pack RGB565 bytes for blits"
+**Commit (code):** 0f413b6 — "picocalc_lcd: pack RGB565 bytes for blits"
 
 ### What I did
 
