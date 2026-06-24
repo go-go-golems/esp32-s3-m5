@@ -350,7 +350,7 @@ This still is not the interactive REPL. It is the renderer checkpoint that prove
 
 **Inferred user intent:** Make forward progress toward the on-device LCD REPL with small buildable and flashable checkpoints, while recording failures and measurements.
 
-**Commit (code):** 4e0e4f0 — "0102: add visual REPL terminal renderer"
+**Commit (code):** ae74cb2 — "0102: add visual REPL terminal renderer"
 
 ### What I did
 
