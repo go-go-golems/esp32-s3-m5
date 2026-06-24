@@ -112,9 +112,9 @@ This task list is intentionally implementation-grade. Work it top to bottom. Com
 - [x] **T6.1 — Keep diary after each implementation checkpoint.**
 - [x] **T6.2 — Update design doc with implementation outcomes and deviations.**
 - [x] **T6.3 — Update changelog after each committed phase.**
-- [ ] **T6.4 — Run `docmgr doctor --ticket ESP32-P4-NATIVE-QUICKJS --stale-after 30`.**
-- [ ] **T6.5 — Upload ticket bundle to reMarkable.**
-- [ ] **T6.6 — Final handoff summary.** Include ticket path, commits, validation status, reMarkable path, and open risks.
+- [x] **T6.4 — Run `docmgr doctor --ticket ESP32-P4-NATIVE-QUICKJS --stale-after 30`.**
+- [x] **T6.5 — Upload ticket bundle to reMarkable.**
+- [x] **T6.6 — Final handoff summary.** Include ticket path, commits, validation status, reMarkable path, and open risks.
 
 ## Optional Phase 7 — Product features
 

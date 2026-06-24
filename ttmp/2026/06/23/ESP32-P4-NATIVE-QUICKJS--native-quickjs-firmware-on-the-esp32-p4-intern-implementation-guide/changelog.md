@@ -80,3 +80,23 @@ Completed remaining Phase 5 validation: verified js reset clears globals, repeat
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/design/01-native-quickjs-on-esp32-p4-analysis-design-and-implementation-guide.md — Updated native-vs-WAMR benchmark comparison
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 7 records reset
 
+
+## 2026-06-24
+
+Finalized ticket: docmgr doctor passed, bundle dry-run passed, and uploaded native QuickJS guide bundle to reMarkable at /ai/2026/06/23/ESP32-P4-NATIVE-QUICKJS.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Step 8 records doctor and reMarkable upload
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/tasks.md — Phase 6 final handoff tasks marked complete
+
+
+## 2026-06-24
+
+Refreshed the reMarkable bundle with --force after final diary/tasks/changelog edits so the tablet copy includes the final handoff notes.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/changelog.md — Final upload refresh recorded
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/23/ESP32-P4-NATIVE-QUICKJS--native-quickjs-firmware-on-the-esp32-p4-intern-implementation-guide/reference/01-investigation-diary.md — Final handoff diary included in refreshed bundle
+

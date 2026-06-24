@@ -704,3 +704,79 @@ esp_heap: internal=397731 8bit=33947511 psram=33549780
 ```
 
 - Completed tasks: T5.5, T5.6, T5.7, T5.8, T6.1, T6.2.
+
+## Step 8: Validate ticket docs and upload the native QuickJS bundle to reMarkable
+
+Closed out the implementation ticket by running docmgr validation and uploading the complete native QuickJS documentation bundle to reMarkable. This step records the final handoff state: firmware builds, device validation passed, ticket docs are consistent, and the report bundle is available on the tablet.
+
+The bundle includes the ticket index, the native QuickJS design/implementation guide, this investigation diary, the task checklist, and the changelog.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Finish the ticket workflow after implementation and validation by checking documentation health, uploading the deliverable, and recording the final state.
+
+**Inferred user intent:** Leave a complete, reviewable, and portable deliverable for future work and intern onboarding.
+
+### What I did
+
+- Ran `docmgr doctor --ticket ESP32-P4-NATIVE-QUICKJS --stale-after 30`.
+- Ran `remarquee upload bundle --dry-run ... --non-interactive` for the ticket bundle.
+- Ran `remarquee upload bundle ... --non-interactive` for the actual upload.
+- Marked T6.4, T6.5, and T6.6 complete in `tasks.md`.
+
+### Why
+
+- `docmgr doctor` catches stale or malformed ticket metadata before handoff.
+- The reMarkable bundle gives a single PDF with a table of contents for reading and review away from the repository.
+
+### What worked
+
+- `docmgr doctor` passed with all checks green.
+- Dry-run listed all intended documents.
+- Upload succeeded to `/ai/2026/06/23/ESP32-P4-NATIVE-QUICKJS`.
+
+### What didn't work
+
+- N/A
+
+### What I learned
+
+- The final native ticket now has both implementation evidence and a portable PDF bundle, unlike the initial design-only state.
+
+### What was tricky to build
+
+- The upload was intentionally performed after doctor passed. This avoids publishing a stale or structurally invalid ticket bundle.
+
+### What warrants a second pair of eyes
+
+- Review the final design guide benchmark table and diary Steps 5–7 for any overclaims. The benchmarks are device observations from one ESP32-P4 board, not exhaustive performance characterization.
+- Review open risks around QuickJS memory accounting, owner-task stack sizing, and future async/timer integration.
+
+### What should be done in the future
+
+- Add automated serial validation scripts for the console workflow.
+- Add product features from Optional Phase 7 only after deciding which board peripherals the JS environment should expose.
+
+### Code review instructions
+
+- Start with `components/qjs_service/include/qjs_service.h` and `components/qjs_service/qjs_service.cpp`.
+- Then review `0101-esp32-p4-native-quickjs/main/js_command.cpp` and `0101-esp32-p4-native-quickjs/main/app_main.cpp`.
+- Validate docs with `docmgr doctor --ticket ESP32-P4-NATIVE-QUICKJS --stale-after 30`.
+
+### Technical details
+
+```text
+## Doctor Report (1 findings)
+
+### ESP32-P4-NATIVE-QUICKJS
+
+- ✅ All checks passed
+```
+
+```text
+OK: uploaded ESP32-P4-NATIVE-QUICKJS - Native QuickJS Firmware Guide.pdf -> /ai/2026/06/23/ESP32-P4-NATIVE-QUICKJS
+```
+
+- Completed tasks: T6.4, T6.5, T6.6.
