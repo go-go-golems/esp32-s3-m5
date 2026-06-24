@@ -1051,7 +1051,7 @@ Continue."
 
 **Inferred user intent:** Move past display bring-up and recover enough keyboard functionality to validate the on-device input editor.
 
-**Commit (code):** pending — "picocalc_keyboard: add recovery and bus scan diagnostics"
+**Commit (code):** 5ab3610 — "picocalc_keyboard: add recovery and bus scan diagnostics"
 
 ### What I did
 
