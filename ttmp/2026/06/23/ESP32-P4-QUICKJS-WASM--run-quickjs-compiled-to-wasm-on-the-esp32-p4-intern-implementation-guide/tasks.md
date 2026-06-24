@@ -1,38 +1,41 @@
 # Tasks
 
-## Done (this research/design pass)
+## Done
 
 - [x] Create ticket ESP32-P4-QUICKJS-WASM + add `esp32p4` vocab topic
-- [x] Harvest 14 primary research sources into `sources/` (WAMR API header/docs, QuickJS, wasi-sdk, ESP32-P4 memory)
+- [x] Harvest 14 primary research sources into `sources/`
 - [x] Analyze sources + local prior art (0079/0082 WAMR, 0099 P4)
 - [x] Write intern design/implementation guide `design/01-...md`
-- [x] Scaffold firmware `0100-esp32-p4-quickjs-wasm` (buildable stub + wasm-src build)
+- [x] Scaffold firmware `0100-esp32-p4-quickjs-wasm`
 - [x] Upload bundle to reMarkable
+- [x] **Phase 0: install wasi-sdk-33** (~/tools, clang 22, wasm32-wasip1)
+- [x] **Phase 0: vendor bellard/quickjs** (v2026-06-04) into wasm-src/
+- [x] **Phase 0: build quickjs.wasm** (1.2 MB reactor, exports qjs_init/qjs_eval/malloc/free)
+- [x] **Phase 0: verify imports/exports** (env.host_* + wasi_snapshot_preview1) with wasm_inspect.py
+- [x] **Phase 0: host smoke test passes** — print(1+2)->3, loops, throw->Error: boom (WAMR host_test built from vendored runtime)
+- [x] **Phase 0: root-caused the eval blocker** — QuickJS C-stack-overflow check false-trips under WAMR interp; fixed with JS_SetMaxStackSize(rt, 0)
+- [x] Copy quickjs.wasm into main/ for embedding
+- [x] Commit Phase 0 build infra + diary
+- [x] Write Obsidian deep-dive report (ARTICLE note, textbook style) + push go-go-parc vault
 
-## Phase 0 — Host-side wasm build (intern, on PC)
+## Phase 1 — Minimal firmware 0100 (in progress)
 
-- [ ] Install wasi-sdk; verify `$WASI_SDK_PATH/bin/clang` targets wasm32-wasi
-- [ ] Vendor bellard/quickjs into `0100/.../wasm-src/quickjs`
-- [ ] Build `quickjs.wasm` with `build-quickjs-wasm.sh`
-- [ ] Verify with `wasm-objdump -x` (imports env.* + wasi_*, exports qjs_init/qjs_eval)
-- [ ] Host smoke test with `iwasm`: register host_print, call qjs_eval("print(1+2)") → expect 3
-
-## Phase 1 — Minimal firmware 0100
-
-- [ ] Copy `quickjs.wasm` into `main/`, uncomment WAMR REQUIRES + EMBED_FILES in `main/CMakeLists.txt`
-- [ ] Port `wasm_runtime_service.cpp` + `wasm_host_api.cpp` from 0079 (design §7.2–7.3)
-- [ ] Write `wasm_runner.cpp` (instantiate once, qjs_init, qjs_eval via module_dup_data)
-- [ ] Write `js_command.cpp` (`js eval`, `js status`)
-- [ ] `idf.py build` + flash + `js eval "print('hello from wasm quickjs')"`
+- [ ] Fix sdkconfig.defaults: CONFIG_WAMR_ENABLE_REF_TYPES=y (clang 22 emits ref types)
+- [ ] Port wasm_runtime_service + wasm_host_api from 0079/host_test (PSRAM pool, env natives)
+- [ ] Write wasm_runner (load embedded quickjs.wasm, instantiate, qjs_init, qjs_eval via module_dup_data)
+- [ ] Write js_command (js eval / js status) on esp_console (UART0)
+- [ ] main/CMakeLists.txt: EMBED_FILES quickjs.wasm + REQUIRES espressif__wasm-micro-runtime
+- [ ] idf.py set-target esp32p4 && idf.py build (fix errors)
+- [ ] Tell user to connect the device; flash + `js eval "print(1+2)"`
 
 ## Phase 2 — REPL + peripherals
 
 - [ ] `js repl` (line-buffered persistent context) + `js reset`
-- [ ] Add `host_gpio_write` + `host_millis` + JS globals `gpio_write`/`millis`
+- [ ] Add host_gpio_write + host_millis + JS globals gpio_write/millis
 - [ ] `js bench` command (eval latency measurement)
 
 ## Phase 3 — Polish / optimization
 
 - [ ] AOT compile with `wamrc --target=riscv32` (decision DR-2)
 - [ ] JS program manifest (`js run -f name`) over EMBED_FILES
-- [ ] Enable `CONFIG_WAMR_ENABLE_MEMORY_PROFILING=y`; surface in `js status`
+- [ ] Enable CONFIG_WAMR_ENABLE_MEMORY_PROFILING=y; surface in js status

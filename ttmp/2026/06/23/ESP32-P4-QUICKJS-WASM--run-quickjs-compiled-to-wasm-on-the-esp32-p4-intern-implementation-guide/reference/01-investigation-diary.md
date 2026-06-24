@@ -526,3 +526,32 @@ The JS-in-WASM-in-WAMR stack works on the host: user JS is parsed and executed b
 
 - Fix commit: one line, `JS_SetMaxStackSize(rt, 0);` in `qjs_init`.
 - quickjs.wasm: 1.2 MB (-O2, wasm32-wasip1, reactor, exports qjs_init/qjs_eval/malloc/free).
+
+## Step 8: Phase 0 wrap-up — tasks checked, Obsidian report published, Phase 1 starting
+
+Closed out Phase 0: checked off the Phase 0 tasks in `tasks.md`, committed the build infra and diary, and wrote + pushed the Obsidian deep-dive report. Now moving to Phase 1 (wire the WAMR host API into firmware `0100`, embed `quickjs.wasm`, build for `esp32p4`).
+
+### Prompt Context
+
+**User prompt (verbatim):** "check off necessary tasks once you are done, and then continue with the next phase. don't forget to write a frequent detailed diary as you work"
+
+**Assistant interpretation:** Mark Phase 0 complete in the ticket task list, finish the pending vault commit/push, then begin Phase 1 firmware wiring with frequent diary updates.
+
+### What I did
+
+- Committed and pushed the Obsidian report to the go-go-parc vault: `ARTICLE - QuickJS Wasm on WAMR - Running a JS Engine Inside a Wasm Sandbox.md` at `Projects/2026/06/23/` (commit `20eb64c`, pushed to `origin/main`). Staged only the note file, not incidental workspace changes.
+- Updated `tasks.md`: Phase 0 items moved to Done; Phase 1 items are the active checklist.
+- This diary entry.
+
+### What worked
+
+- Vault push succeeded: `b701288..20eb64c main -> main`.
+
+### What should be done in the future
+
+- Fix the design doc + scaffold `sdkconfig.defaults`: set `CONFIG_WAMR_ENABLE_REF_TYPES=y` (the design had `=n`; Phase 0 proved clang 22 emits reference types).
+
+### Technical details
+
+- Vault note path: `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/06/23/ARTICLE - QuickJS Wasm on WAMR - Running a JS Engine Inside a Wasm Sandbox.md`.
+- Firmware commit history: `4626781` (Phase 0 build) → `7b59511` (diary 6-7) → (this step's tasks/diary commit).
