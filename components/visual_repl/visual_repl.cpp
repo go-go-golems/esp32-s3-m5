@@ -54,6 +54,7 @@ Palette palette_for(visual_repl_style_t style)
 void copy_truncated(char *dst, size_t dst_len, const char *src)
 {
     if (!dst || dst_len == 0) return;
+    std::memset(dst, 0, dst_len);
     if (!src) src = "";
     size_t n = std::min(std::strlen(src), dst_len - 1);
     std::memcpy(dst, src, n);
@@ -63,7 +64,7 @@ void copy_truncated(char *dst, size_t dst_len, const char *src)
 void clear_row(Row &row)
 {
     row.style = VISUAL_REPL_STYLE_SYSTEM;
-    row.text[0] = 0;
+    std::memset(row.text, 0, sizeof(row.text));
 }
 
 const uint8_t *glyph5x7(char c)
@@ -176,8 +177,17 @@ void draw_cell(uint16_t *row_pixels, int col, char ch, Palette p, bool cursor)
 esp_err_t render_text_row(int screen_row, visual_repl_style_t style, const char *text, size_t cursor_col, bool show_cursor)
 {
     Palette p = palette_for(style);
+    bool end_of_text = text == nullptr;
     for (int col = 0; col < VISUAL_REPL_COLS; ++col) {
-        char ch = (text && text[col]) ? text[col] : ' ';
+        char ch = ' ';
+        if (!end_of_text) {
+            const char candidate = text[col];
+            if (candidate == '\0') {
+                end_of_text = true;
+            } else {
+                ch = candidate;
+            }
+        }
         const bool cursor = show_cursor && static_cast<size_t>(col) == cursor_col;
         draw_cell(s_row_pixels, col, ch, p, cursor);
     }
@@ -227,6 +237,7 @@ esp_err_t visual_repl_render_input(void)
 {
     if (!s_initialized) return ESP_ERR_INVALID_STATE;
     char prompt_line[VISUAL_REPL_COLS + 1];
+    std::memset(prompt_line, 0, sizeof(prompt_line));
     prompt_line[0] = '>';
     prompt_line[1] = ' ';
     const size_t input_room = VISUAL_REPL_COLS - 2;

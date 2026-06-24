@@ -597,3 +597,87 @@ Command returned non-zero error code: 0x1 (ERROR)
 - Latest build size: `0xda660` bytes, 79% free in the 4 MB app partition.
 - Completed tasks: T4.1, T4.2, T4.3, T4.4, T4.5, T4.7.
 - Still open: T3.6 visual readability confirmation and T4.6 hardware input smoke.
+
+## Step 6: Stop rendering bytes after NUL terminators
+
+Fixed a second renderer correctness bug reported from the physical LCD. The screen showed strange startup characters in the input row, including fragments like `%-S %S? %12S HELP:`, which correctly suggested that the renderer was displaying bytes that were not part of the intended string.
+
+The underlying problem was not that the primary strings lacked NUL terminators. The bug was that `render_text_row()` kept indexing later positions after it encountered the first `\0`. For stack prompt buffers and previously reused row buffers, bytes after the terminator can be stale or uninitialized. The fix makes NUL terminate the visible row: once a `\0` is seen, all remaining cells render as spaces. I also zero-fill row/prompt buffers when copying or clearing so the representation is deterministic even outside the renderer.
+
+### Prompt Context
+
+**User prompt (verbatim):** "do you initialize the strings to be displayed to 0 or so? I get some weird characters in the input p=line at the beginning, nd a lot of \"%-S %S? %12S HELP:\" which leads me to believe we are showing uninitialized memory on screen?"
+
+**Assistant interpretation:** Investigate whether the visual renderer is showing uninitialized or stale bytes past the intended string content.
+
+**Inferred user intent:** Make the LCD text renderer deterministic and safe before continuing with keyboard and QuickJS REPL behavior.
+
+**Commit (code):** pending — "visual_repl: stop rendering past string terminators"
+
+### What I did
+
+- Patched `components/visual_repl/visual_repl.cpp`:
+  - `render_text_row()` now treats `\0` as end-of-visible-text and renders spaces for the rest of the physical row;
+  - `copy_truncated()` zero-fills the destination buffer before copying;
+  - `clear_row()` zero-fills the entire stored row text;
+  - `visual_repl_render_input()` zero-fills the stack prompt row before writing `> ` and the clipped input text.
+- Rebuilt 0102 with ESP-IDF 5.4.2.
+- Flashed the fixed firmware to `/dev/ttyACM0`.
+- Captured boot/status output.
+
+### Why
+
+- A NUL-terminated C string is only safe if consumers stop reading when they reach the terminator. The renderer previously read each fixed cell index directly, so bytes after the terminator could become visible pixels.
+- The REPL display must be deterministic because otherwise stale memory looks like user text, system output, or corruption.
+
+### What worked
+
+- Build passed:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xda6b0 bytes. Smallest app partition is 0x400000 bytes. 0x325950 bytes (79%) free.
+```
+
+- Flash succeeded.
+- Boot still reaches LCD, keyboard, visual model, and QuickJS service.
+- Status after the flash showed no keyboard errors in that boot window:
+
+```text
+keyboard: initialized=1 last_status=0x00 errors=0
+visual: initialized=1 grid=40x20 cell=8x16 history=3 renders=1 last_render_ms=30
+```
+
+### What didn't work
+
+- Visual confirmation is still pending. The serial log verifies the fixed firmware is running, but the actual LCD must be checked by the operator to confirm the garbage characters are gone.
+
+### What I learned
+
+- The strange `%S` fragments were consistent with reading bytes after a prompt string terminator, not with an LCD bus issue.
+- The row renderer needs to treat fixed-width terminal cells and C string termination as separate concerns: fixed output width does not mean fixed input string length.
+
+### What was tricky to build
+
+- The original expression looked safe at a glance: `(text && text[col]) ? text[col] : ' '`. The subtle bug is that this still indexes `text[col]` for every column, including columns after the first terminator. It only substitutes a space when that exact byte is zero.
+- The correct invariant is stateful: after the first terminator, never inspect later bytes for that row.
+
+### What warrants a second pair of eyes
+
+- Review `render_text_row()` and ensure every render path now passes through this terminator-aware logic.
+- Confirm the LCD input row no longer shows stale characters at boot.
+
+### What should be done in the future
+
+- Consider adding a tiny host-side renderer test that feeds short strings into fixed-width rows and asserts trailing cells become spaces.
+- Continue Phase 4 keyboard smoke once the display is confirmed clean.
+
+### Code review instructions
+
+- Review `components/visual_repl/visual_repl.cpp`, specifically `render_text_row()`, `copy_truncated()`, `clear_row()`, and `visual_repl_render_input()`.
+- Validate with `idf.py build`, then flash and check that short prompt/status strings do not leak stale characters to the LCD.
+
+### Technical details
+
+- Latest build: `0xda6b0` bytes.
+- App partition free: `0x325950` bytes (79%).
+- Monitor capture: `/tmp/0102-zero-fill-renderer.log`.

@@ -61,3 +61,13 @@ Fixed visual font clipping with a host-side SVG renderer preview and firmware x/
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Firmware font geometry fix and input-row renderer
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 5 records font diagnosis
 
+
+## 2026-06-24
+
+Fixed visual_repl rendering past NUL terminators: row rendering now turns all cells after the first string terminator into spaces, and row/prompt buffers are zero-filled to prevent stale bytes from appearing on the LCD input line.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/visual_repl/visual_repl.cpp — Terminator-aware row rendering and deterministic zero-filled row buffers
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/24/ESP32-P4-VISUAL-QUICKJS-REPL--visual-quickjs-repl-on-the-esp32-p4-picocalc-lcd/reference/01-investigation-diary.md — Step 6 records the uninitialized/stale-byte display bug and fix
+
