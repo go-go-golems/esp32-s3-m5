@@ -13,6 +13,7 @@
 #include "picocalc_keyboard.h"
 #include "picocalc_lcd.h"
 #include "qjs_service.h"
+#include "visual_repl.h"
 
 namespace {
 constexpr const char *kTag = "0102";
@@ -85,6 +86,8 @@ int cmd_status(int argc, char **argv)
 
     qjs_service_status_t qst = {};
     esp_err_t qerr = g_qjs ? qjs_service_get_status(g_qjs, &qst, 1000) : ESP_ERR_INVALID_STATE;
+    visual_repl_status_t vst = {};
+    visual_repl_get_status(&vst);
 
     std::printf("0102 status: lcd_requested=%d actual_khz=%d max_transfer=%u\n",
                 picocalc_lcd_requested_hz(), picocalc_lcd_actual_khz(),
@@ -95,6 +98,10 @@ int cmd_status(int argc, char **argv)
                 esp_err_to_name(qerr), qst.ready, (unsigned)qst.eval_count,
                 (unsigned)qst.reset_count, (unsigned)qst.last_eval_ms,
                 (unsigned)qst.memory_used_size, (unsigned)qst.atom_count);
+    std::printf("visual: initialized=%d grid=%ux%u cell=%ux%u history=%u renders=%u last_render_ms=%u\n",
+                vst.initialized, (unsigned)vst.cols, (unsigned)vst.rows,
+                (unsigned)vst.cell_w, (unsigned)vst.cell_h, (unsigned)vst.history_count,
+                (unsigned)vst.render_count, (unsigned)vst.last_render_ms);
     std::printf("heap: internal=%u 8bit=%u psram=%u\n",
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
@@ -124,6 +131,23 @@ int cmd_lcd(int argc, char **argv)
         return err == ESP_OK ? 0 : 1;
     }
     std::printf("usage: lcd init | lcd fill <color>\n");
+    return 1;
+}
+
+int cmd_screen(int argc, char **argv)
+{
+    if (argc < 2 || std::strcmp(argv[1], "demo") == 0) {
+        const int64_t start = esp_timer_get_time();
+        esp_err_t err = visual_repl_demo_screen();
+        const int64_t elapsed_ms = (esp_timer_get_time() - start) / 1000;
+        visual_repl_status_t vst = {};
+        visual_repl_get_status(&vst);
+        std::printf("screen demo: %s elapsed_ms=%lld render_ms=%u grid=%ux%u\n",
+                    esp_err_to_name(err), (long long)elapsed_ms, (unsigned)vst.last_render_ms,
+                    (unsigned)vst.cols, (unsigned)vst.rows);
+        return err == ESP_OK ? 0 : 1;
+    }
+    std::printf("usage: screen demo\n");
     return 1;
 }
 
@@ -217,6 +241,13 @@ void start_debug_console()
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&lcd_cmd));
 
+    const esp_console_cmd_t screen_cmd = {
+        .command = "screen",
+        .help = "Visual REPL screen diagnostics: demo",
+        .func = cmd_screen,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&screen_cmd));
+
     const esp_console_cmd_t kbd_cmd = {
         .command = "kbd",
         .help = "Poll PicoCalc keyboard events: kbd [limit]",
@@ -244,7 +275,8 @@ extern "C" void app_main(void)
     esp_err_t lcd_err = picocalc_lcd_init();
     ESP_LOGI(kTag, "lcd init: %s actual_khz=%d", esp_err_to_name(lcd_err), picocalc_lcd_actual_khz());
     if (lcd_err == ESP_OK) {
-        (void)picocalc_lcd_fill(PICOCALC_LCD_RGB565_BLACK);
+        esp_err_t visual_err = visual_repl_demo_screen();
+        ESP_LOGI(kTag, "visual demo render: %s", esp_err_to_name(visual_err));
     }
 
     esp_err_t kbd_err = picocalc_keyboard_init();

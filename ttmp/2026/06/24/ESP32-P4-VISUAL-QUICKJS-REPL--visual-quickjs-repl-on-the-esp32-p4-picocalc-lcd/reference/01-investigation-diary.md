@@ -335,3 +335,139 @@ CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
 - Flash command: `idf.py -p /dev/ttyACM0 flash`.
 - Monitor command: `idf.py -p /dev/ttyACM0 monitor` inside tmux session `qjs0102`.
 - Completed tasks: T1.1, T1.2, T1.3, T1.4, T1.5, T1.6, T2.1, T2.2, T2.3, T2.4, T2.5, T2.6.
+
+## Step 4: Add the first visual terminal renderer and static demo screen
+
+Added the first `visual_repl` component and wired it into 0102. This checkpoint turns the LCD from a fill-only diagnostic into a fixed-cell visual terminal surface: 40 columns by 20 rows, 8×16 pixels per cell, semantic row styles, a simple built-in bitmap font, a prompt row, and a static demo screen that exercises system, status, prompt, output, error, and input styles.
+
+This still is not the interactive REPL. It is the renderer checkpoint that proves the firmware can construct terminal rows, convert them into RGB565 row buffers, and repaint the complete 320×320 viewport through the reusable LCD component.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** Continue implementing the visual REPL phases after the 0102 skeleton by adding the first visible terminal model and renderer.
+
+**Inferred user intent:** Make forward progress toward the on-device LCD REPL with small buildable and flashable checkpoints, while recording failures and measurements.
+
+**Commit (code):** 4e0e4f0 — "0102: add visual REPL terminal renderer"
+
+### What I did
+
+- Added `components/visual_repl`:
+  - `include/visual_repl.h`
+  - `visual_repl.cpp`
+  - `CMakeLists.txt`
+  - `README.md`
+- Implemented constants for the first terminal geometry:
+  - 320×320 LCD target;
+  - 8×16 pixel cells;
+  - 40 columns × 20 rows;
+  - 19 scrollback/output rows plus one input row.
+- Implemented semantic row styles:
+  - `system`
+  - `prompt`
+  - `input`
+  - `output`
+  - `error`
+  - `status`
+- Added a compact 5×7 bitmap glyph set scaled into 8×16 cells.
+- Implemented row rendering into a static RGB565 row buffer sized for one 320×16 row.
+- Added `visual_repl_demo_screen()` with representative system, status, prompt, output, error, and input rows.
+- Wired `visual_repl` into `0102-esp32-p4-visual-quickjs-repl` via `EXTRA_COMPONENT_DIRS` and `main/CMakeLists.txt`.
+- Added startup demo rendering after LCD initialization.
+- Added UART debug command `screen demo`.
+- Extended `status` output with visual renderer status.
+- Built, flashed, and monitored 0102 on `/dev/ttyACM0`.
+
+### Why
+
+- The visual REPL needs a model/renderer boundary before keyboard editing and QuickJS output can be shown on screen.
+- A row renderer is enough for the first terminal checkpoint and maps cleanly to the existing `picocalc_lcd_blit_row()` primitive.
+- Using semantic styles now prevents output from becoming unstructured strings that are hard to recolor later.
+
+### What worked
+
+- The 0102 build passes with the new component.
+- Binary size remains comfortable with the 4 MB app partition:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xd9d40 bytes. Smallest app partition is 0x400000 bytes. 0x3262c0 bytes (79%) free.
+```
+
+- Flash succeeded on `/dev/ttyACM0`.
+- Boot-time visual demo initialized and rendered:
+
+```text
+I (2162) visual_repl: visual REPL model initialized: 40x20 cells (8x16 pixels)
+I (2192) 0102: visual demo render: ESP_OK
+```
+
+- UART `status` shows the visual model and render measurement:
+
+```text
+visual: initialized=1 grid=40x20 cell=8x16 history=7 renders=1 last_render_ms=31
+```
+
+- UART `screen demo` repaints the full viewport successfully:
+
+```text
+0102>  screen demo
+I (5592) visual_repl: visual REPL model initialized: 40x20 cells (8x16 pixels)
+screen demo: ESP_OK elapsed_ms=32 render_ms=31 grid=40x20
+```
+
+### What didn't work
+
+- First renderer build failed because `snprintf(prompt_line, sizeof(prompt_line), "> %s", s_input)` could truncate a 160-byte input buffer into the 41-byte screen row. ESP-IDF treats this warning as an error:
+
+```text
+error: '%s' directive output may be truncated writing up to 160 bytes into a region of size 39 [-Werror=format-truncation=]
+  242 |     std::snprintf(prompt_line, sizeof(prompt_line), "> %s", s_input);
+```
+
+- Fix: replace the formatted write with explicit bounded copying into the 40-column prompt row.
+
+### What I learned
+
+- Full 40×20 repaint via 20 row blits currently takes about 31 ms on the validated 80 MHz SPI LCD path.
+- The component can keep a full one-row RGB565 buffer in static internal memory without pushing large framebuffers through the heap.
+- The first font and row-style model are adequate for bring-up, but mixed spans will be needed once prompts, user input, and output share physical rows.
+
+### What was tricky to build
+
+- The prompt row has two length domains: the logical input buffer is longer than one screen row, but the renderer must emit exactly one 40-column physical row. The compiler caught the unsafe truncation path, and the fix was to make clipping explicit.
+- The current style model is intentionally one style per physical row. This keeps the first renderer simple, but it means a future span model is needed for richer prompt/input styling.
+
+### What warrants a second pair of eyes
+
+- Review `components/visual_repl/visual_repl.cpp` for off-by-one errors in the scrollback ring and visible-row selection.
+- Review whether the 5×7 scaled font is readable enough on the PicoCalc LCD. The serial log proves rendering completed, but not subjective readability.
+- Review the use of a static row buffer in internal RAM. It is small enough for this checkpoint, but future dirty-region buffering should avoid hidden growth.
+
+### What should be done in the future
+
+- Perform a human/camera visual readability check and mark T3.6 only after confirming the LCD text and colors are legible.
+- Start Phase 4: keyboard polling task, key translation, input buffer editing, and dirty input-row rendering.
+- Evolve row styles into spans before adding syntax highlighting or mixed prompt/input/output rendering.
+
+### Code review instructions
+
+- Start with `components/visual_repl/include/visual_repl.h` for geometry, styles, and public API.
+- Then review `components/visual_repl/visual_repl.cpp`, especially `visual_repl_render()`, `render_text_row()`, and prompt-row clipping.
+- Review `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp` for the `screen demo` command and startup demo call.
+- Validate with:
+  - `cd 0102-esp32-p4-visual-quickjs-repl && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`
+  - `idf.py -p /dev/ttyACM0 flash`
+  - `idf.py -p /dev/ttyACM0 monitor`
+  - `status`
+  - `screen demo`
+
+### Technical details
+
+- Full viewport redraw: ~31 ms.
+- `screen demo` command elapsed time: ~32 ms.
+- App binary after renderer: `0xd9d40` bytes.
+- Free space in 4 MB app partition: `0x3262c0` bytes (79%).
+- Completed tasks: T3.1, T3.2, T3.3, T3.4, T3.5, T3.7.
+- Remaining Phase 3 task: T3.6 hardware visual readability check.

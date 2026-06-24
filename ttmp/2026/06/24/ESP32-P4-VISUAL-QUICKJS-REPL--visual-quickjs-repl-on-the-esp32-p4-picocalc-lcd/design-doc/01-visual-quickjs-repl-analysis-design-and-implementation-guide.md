@@ -27,7 +27,9 @@ RelatedFiles:
     - Path: 0101-esp32-p4-native-quickjs/main/js_command.cpp
       Note: Validated native QuickJS console eval/status/reset/gc/bench behavior
     - Path: 0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp
-      Note: 0102 skeleton startup and temporary UART debug commands
+      Note: |-
+        0102 skeleton startup and temporary UART debug commands
+        0102 startup and screen demo command integration
     - Path: 0102-esp32-p4-visual-quickjs-repl/sdkconfig.defaults
       Note: ESP32-P4 UART0/PSRAM/custom-partition defaults for 0102
     - Path: components/picocalc_keyboard/include/picocalc_keyboard.h
@@ -44,12 +46,17 @@ RelatedFiles:
       Note: Native QuickJS runtime lifecycle
     - Path: components/quickjs_native/README.md
       Note: Vendored QuickJS source set and ESP-IDF compatibility notes
+    - Path: components/visual_repl/include/visual_repl.h
+      Note: Visual REPL renderer geometry/style/model API
+    - Path: components/visual_repl/visual_repl.cpp
+      Note: Fixed-cell RGB565 terminal renderer and demo screen
 ExternalSources: []
 Summary: Design and implementation guide for a visual QuickJS REPL on the ESP32-P4 PicoCalc LCD with keyboard input, scrollback, colored output, and the native QuickJS service.
 LastUpdated: 2026-06-24T04:15:00-04:00
 WhatFor: Use when implementing or reviewing the visual LCD-backed QuickJS REPL firmware follow-up to projects 0099 and 0101.
 WhenToUse: Use before creating 0102-esp32-p4-visual-quickjs-repl, extracting PicoCalc LCD/keyboard components, or integrating the native QuickJS service with an on-device visual terminal.
 ---
+
 
 
 

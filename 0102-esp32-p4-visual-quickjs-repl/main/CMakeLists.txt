@@ -6,6 +6,7 @@ idf_component_register(
         qjs_service
         picocalc_lcd
         picocalc_keyboard
+        visual_repl
     PRIV_REQUIRES
         esp_psram
         esp_timer

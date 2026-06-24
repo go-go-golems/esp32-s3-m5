@@ -33,13 +33,13 @@ This task list is implementation-grade. Work top to bottom. Commit after each ch
 
 ## Phase 3 — Implement text renderer and static visual screen
 
-- [ ] **T3.1 — Add `components/visual_repl` or app-local visual REPL module.** Define model, renderer, palette, and event interfaces.
-- [ ] **T3.2 — Add bitmap font.** Use a small readable monospace font suitable for 8×16 cells.
-- [ ] **T3.3 — Implement row renderer.** Convert text + style into RGB565 row buffers.
-- [ ] **T3.4 — Implement static screen demo.** Draw banner, prompt row, output row, error row, and status row.
-- [ ] **T3.5 — Measure row/full redraw.** Log row repaint and full viewport redraw time.
-- [ ] **T3.6 — Hardware visual check.** Confirm colors and text are readable on LCD.
-- [ ] **T3.7 — Diary/changelog/commit.** Record renderer decisions and measurements.
+- [x] **T3.1 — Add `components/visual_repl` or app-local visual REPL module.** Define model, renderer, palette, and event interfaces.
+- [x] **T3.2 — Add bitmap font.** Use a small readable monospace font suitable for 8×16 cells.
+- [x] **T3.3 — Implement row renderer.** Convert text + style into RGB565 row buffers.
+- [x] **T3.4 — Implement static screen demo.** Draw banner, prompt row, output row, error row, and status row.
+- [x] **T3.5 — Measure row/full redraw.** Log row repaint and full viewport redraw time.
+- [ ] **T3.6 — Hardware visual check.** Confirm colors and text are readable on LCD. Serial smoke verified the render path and timing; a human/camera readability check is still needed.
+- [x] **T3.7 — Diary/changelog/commit.** Record renderer decisions and measurements.
 
 ## Phase 4 — Keyboard input and line editing
 
