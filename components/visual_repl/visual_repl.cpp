@@ -40,12 +40,15 @@ constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
 
 Palette palette_for(visual_repl_style_t style)
 {
+    // The PicoCalc LCD color swatch diagnostics verified that RGB565 colors are
+    // mapped correctly. Keep every terminal row on black for predictable console
+    // contrast; encode semantics in foreground color only.
     switch (style) {
         case VISUAL_REPL_STYLE_PROMPT: return {rgb565(120, 220, 255), PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_INPUT:  return {PICOCALC_LCD_RGB565_WHITE, rgb565(10, 16, 24)};
+        case VISUAL_REPL_STYLE_INPUT:  return {PICOCALC_LCD_RGB565_WHITE, PICOCALC_LCD_RGB565_BLACK};
         case VISUAL_REPL_STYLE_OUTPUT: return {rgb565(210, 210, 210), PICOCALC_LCD_RGB565_BLACK};
         case VISUAL_REPL_STYLE_ERROR:  return {rgb565(255, 95, 95), PICOCALC_LCD_RGB565_BLACK};
-        case VISUAL_REPL_STYLE_STATUS: return {rgb565(255, 210, 90), rgb565(20, 20, 20)};
+        case VISUAL_REPL_STYLE_STATUS: return {rgb565(255, 210, 90), PICOCALC_LCD_RGB565_BLACK};
         case VISUAL_REPL_STYLE_SYSTEM:
         default:                       return {rgb565(140, 180, 150), PICOCALC_LCD_RGB565_BLACK};
     }

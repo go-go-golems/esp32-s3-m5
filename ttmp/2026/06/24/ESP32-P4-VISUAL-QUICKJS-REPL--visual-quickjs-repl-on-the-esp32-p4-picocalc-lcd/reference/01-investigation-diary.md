@@ -785,3 +785,85 @@ note: crosses initialization of 'uint16_t color'
 - Monitor capture: `/tmp/0102-color-swatches.log`.
 - Swatch command: `lcd swatches`.
 - Rectangle command example: `lcd rect 0 0 160 160 red`.
+
+## Step 8: Simplify the visual REPL palette after swatch validation
+
+Used the operator-reported swatch result to narrow the color issue. All eight RGB565 swatches appeared as intended, and the neutral background appeared gray. That rules out a global LCD RGB/BGR swap, RGB565 byte swap, or panel inversion problem for the current fill path.
+
+The remaining issue was therefore the visual REPL palette itself: the first palette used subtly tinted dark backgrounds for input/status rows. On the PicoCalc LCD those tints read as an unwanted colored background. I changed the terminal palette to use black backgrounds for every row style and to express semantics only through foreground color, matching the white-on-black console look the operator reported as good.
+
+### Prompt Context
+
+**User prompt (verbatim):** "they all look intended, and the background is grayish"
+
+**Assistant interpretation:** The LCD color swatches validate the color pipeline, so the visual REPL's tinted row backgrounds should be simplified rather than changing the panel driver.
+
+**Inferred user intent:** Keep the display readable and console-like, avoiding confusing colored backgrounds when the underlying panel color path is correct.
+
+**Commit (code):** pending — "visual_repl: use black backgrounds for terminal palette"
+
+### What I did
+
+- Updated `components/visual_repl/visual_repl.cpp` palette mapping.
+- Kept foreground colors semantic:
+  - prompt: cyan
+  - input: white
+  - output: light gray
+  - error: red
+  - status: yellow
+  - system: muted green
+- Changed every row background to `PICOCALC_LCD_RGB565_BLACK`.
+- Built, flashed, and ran `screen demo`.
+
+### Why
+
+- The color swatch diagnostic proved the LCD driver color order is correct.
+- A black terminal background is predictable, high-contrast, and aligns with the operator's working console preference.
+
+### What worked
+
+- Build passed:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdacb0 bytes. Smallest app partition is 0x400000 bytes. 0x325350 bytes (79%) free.
+```
+
+- Flash succeeded.
+- `screen demo` rendered successfully:
+
+```text
+screen demo: ESP_OK elapsed_ms=31 render_ms=30 grid=40x20
+```
+
+### What didn't work
+
+- Final subjective palette confirmation is still pending from the operator.
+
+### What I learned
+
+- The PicoCalc LCD fill path is not globally color-swapped. Palette tuning should happen at the renderer/theme layer, not the panel driver layer.
+- Subtle dark color backgrounds can read poorly on the physical LCD even if they are technically correct RGB values.
+
+### What was tricky to build
+
+- The original symptom sounded like a driver-level inversion/color-order problem, but the swatches showed the driver path was correct. The fix required trusting the diagnostic and changing the palette rather than overcorrecting the panel configuration.
+
+### What warrants a second pair of eyes
+
+- Confirm that black backgrounds for all row styles are acceptable for the final visual REPL UX.
+- Review whether foreground colors remain distinct enough with the narrow font.
+
+### What should be done in the future
+
+- If semantic foreground colors are still distracting, add a monochrome theme option.
+- Once palette is accepted, return to keyboard input smoke and QuickJS eval integration.
+
+### Code review instructions
+
+- Review `palette_for()` in `components/visual_repl/visual_repl.cpp`.
+- Validate by flashing and running `screen demo`.
+
+### Technical details
+
+- Color swatch result: intended colors appeared intended; gray background appeared gray.
+- Monitor capture: `/tmp/0102-black-palette-demo.log`.
