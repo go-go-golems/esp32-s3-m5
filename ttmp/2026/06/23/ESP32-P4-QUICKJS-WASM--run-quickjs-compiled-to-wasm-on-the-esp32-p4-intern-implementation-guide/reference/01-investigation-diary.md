@@ -690,3 +690,73 @@ Flashed firmware 0100 to the PicoCalc ESP32-P4 (CH343 bridge `/dev/ttyACM0`, aut
 
 - Device: `/dev/ttyACM0` = `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`; chip ESP32-P4 rev v1.3; ESP-IDF v5.4.2.
 - Crash A MCAUSE=0x7 (store access fault), MTVAL=0x400809b9. Crash B: `assert failed: pthread_self` in `wasm_exec_env_set_thread_info`.
+
+## Step 12: Take over Crash B and compare 0100 against the working 0079 WAMR pattern
+
+Started the second device-debugging session by preserving the current failure model instead of immediately editing code. The goal of this step was to identify the exact difference between 0100 and the known-working 0079 WAMR project, then choose a fix that can be committed in 0100 without relying on generated `managed_components` edits.
+
+The useful finding is that 0079 contains two relevant protections: it executes wasm work inside a pthread worker and its managed WAMR copy has a local ESP-IDF `os_self_thread()` patch that returns `xTaskGetCurrentTaskHandle()` instead of `pthread_self()`. 0100 is building the registry `espressif__wasm-micro-runtime` component with `WASM_ENABLE_THREAD_MGR=1` and the unpatched ESP-IDF thread shim, so the next implementation should route all `wasm_runtime_call_wasm` calls through a real pthread owned by the QuickJS session.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Your little brother has been fighting with this crash, let's step in and figure out if we can find this bug and figure out how to make it work."
+
+**User follow-up (verbatim):** "make sure to commit at appropriate intervals, and to keep a diary as you work."
+
+**Assistant interpretation:** Resume the ticket, diagnose Crash B rather than just reporting it, make a real fix, document each meaningful step in the diary, and commit focused changes as checkpoints.
+
+**Inferred user intent:** Get the ESP32-P4 firmware past the WAMR `pthread_self` assertion and toward an actual `js eval` result on hardware while preserving a continuation trail for future work.
+
+### What I did
+
+- Read the tail of `reference/01-investigation-diary.md` to re-enter the ticket context.
+- Grepped 0079 and 0100 for `wasm_runtime_call_wasm`, `pthread`, `wasm_runtime_init_thread_env`, and console/task creation.
+- Read 0079's `RunEmbeddedWasmModuleOnWorkerThread()` flow, which creates a pthread, calls `wasm_runtime_init_thread_env()` inside the worker, performs the wasm call there, then destroys the thread env.
+- Read 0100's current `app_main.cpp`, `wasm_runner.cpp`, `wasm_runner.h`, and `js_command.cpp`. 0100 currently calls `wasm_runner_init()` from `app_main` and `wasm_runner_eval()` from the console command; both routes can hit `wasm_runtime_call_wasm` from non-pthread FreeRTOS tasks.
+- Inspected the active 0100 build and confirmed it compiles `managed_components/espressif__wasm-micro-runtime` with `WASM_ENABLE_THREAD_MGR=1`, `WASM_ENABLE_LIB_PTHREAD=1`, and `WASM_ENABLE_SHARED_MEMORY=1`.
+- Read the 0079 WAMR `core/shared/platform/esp-idf/espidf_thread.c` and found a local patch: `os_self_thread()` returns `xTaskGetCurrentTaskHandle()` with an explicit comment explaining the same `pthread_self()` assert.
+
+### Why
+
+- The first post-mortem hypothesized that WAMR calls need a pthread, but 0079 offered concrete evidence. Comparing with 0079 avoids a speculative fix.
+- Editing 0100's generated `managed_components` would be brittle because the component manager can regenerate it. A 0100-owned runner-thread design is commit-safe and keeps QuickJS's runtime context single-thread-owned.
+
+### What worked
+
+- The 0079 comparison immediately explained why the prior assumption was incomplete: 0079 is not merely “console task works”; it has a pthread-worker pattern and a WAMR platform shim patch.
+- The 0100 build logs contain repeated backtraces proving Crash B occurs at `managed_components/espressif__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_thread.c:40`, matching the source-level finding.
+
+### What didn't work
+
+- A one-line Kconfig change is not yet justified. The active compile command shows thread manager support is enabled; disabling only wasm lib-pthread may not remove the native thread-tracking path.
+
+### What I learned
+
+- The most durable app-level fix is a long-lived QuickJS/WAMR owner pthread. It should load, instantiate, run `qjs_init`, and service `qjs_eval` requests on the same thread. Console commands should submit work to that thread and wait for the result.
+- The generated WAMR component has a possible platform-level fix (`os_self_thread` → FreeRTOS task handle), but that belongs either upstream, in a managed-component patch workflow, or in a deliberately vendored component, not as an untracked local edit.
+
+### What was tricky to build
+
+- The key distinction is not only “pthread vs no pthread”; it is also ownership of a QuickJS context. QuickJS is not meant to be called concurrently, so a per-call pthread without serialization could introduce a different bug. A long-lived owner thread plus queue is the safer structure.
+
+### What warrants a second pair of eyes
+
+- Whether to eventually vendor or patch the WAMR ESP-IDF platform shim like 0079 does, versus keeping the application-level owner-thread design only.
+- Whether WAMR's `WASM_ENABLE_SHARED_MEMORY=1` is unintentionally enabled by Kconfig despite `CONFIG_WAMR_ENABLE_SHARED_MEMORY=n` in defaults; this is not the immediate crash, but it is visible in the compile command.
+
+### What should be done in the future
+
+- Implement the long-lived owner pthread in `wasm_runner.cpp` and keep all `wasm_runtime_call_wasm` calls on that thread.
+- Build, flash, and run `js eval "print(1+2)"` on `/dev/ttyACM0` with one tmux monitor owner.
+
+### Code review instructions
+
+- Start with the diff from 0100's `main/wasm_runner.cpp`; verify that `wasm_runtime_call_wasm` is no longer reachable directly from `app_main` or `js_command.cpp`.
+- Compare against 0079's `RunEmbeddedWasmModuleOnWorkerThread()` and `RunEmbeddedWasmModuleWorkerEntry()`.
+
+### Technical details
+
+- 0079 worker reference: `0079-papers3-wamr-assemblyscript-console/main/wasm_module_runner.cpp` lines around `RunEmbeddedWasmModuleWorkerEntry()` and `RunEmbeddedWasmModuleOnWorkerThread()`.
+- 0079 WAMR shim reference: `0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_thread.c`, where `os_self_thread()` returns `xTaskGetCurrentTaskHandle()`.
+- 0100 active component: `0100-esp32-p4-quickjs-wasm/managed_components/espressif__wasm-micro-runtime`, compile command contains `-DWASM_ENABLE_THREAD_MGR=1`.
+
