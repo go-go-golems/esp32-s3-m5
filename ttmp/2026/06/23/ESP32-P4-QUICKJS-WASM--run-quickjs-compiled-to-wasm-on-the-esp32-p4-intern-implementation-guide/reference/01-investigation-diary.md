@@ -612,3 +612,30 @@ Implemented the firmware host side and got it to compile and link for the ESP32-
 
 - Build: `~/esp/esp-idf-5.4.2` (5.4.2); target `esp32p4`; console UART0 (CH343 bridge); PSRAM hex 200 MHz; WAMR pool 16 MB in PSRAM.
 - App binary: 1.8 MB; partition: custom `partitions.csv` (factory 4 MB).
+
+## Step 10: Document the idf.py build/dev-env rules for future agents
+
+Captured the `idf.py` gotchas from Steps 9 (and earlier) so future coding agents do not rediscover them, as the user requested.
+
+### Prompt Context
+
+**User prompt (verbatim):** "as you've been fighting with idf.py a little bit i think it would be wise to add some concise instructions on building / rebuilding / setting up the dev environment properly in the AGENTS.md file so that future coding agents get the right instructions. Feel free to point to existing doc files in docs/ or maybe create one of your own (see the textbook writing guidelines for more explanatory text and the glazed help entry guidelines on writing as well)."
+
+**Assistant interpretation:** Add concise build/rebuild/dev-env rules to `AGENTS.md`, backed by a detailed playbook in `docs/`, written in textbook prose with operational (glazed-style) sections.
+
+### What I did
+
+- Wrote `docs/01-playbook-esp-idf-build-and-dev-environment.md` (docmgr `DocType: playbook` frontmatter, matching the existing `docs/` playbooks). Covers: the multiple installed IDF versions and which projects use which, sourcing the toolchain, `set-target`, the `main/idf_component.yml` rule, how `sdkconfig.defaults` is applied (the `rm sdkconfig` trap; `fullclean` keeps `sdkconfig`), custom partition tables, target-specific console (S3 USB Serial/JTAG vs P4 UART0), build/flash/monitor, serial port patterns, what is/isn't committed, a troubleshooting table of the exact failures hit, and a See Also.
+- Added a concise `## Build and dev environment (concise rules)` section at the top of `AGENTS.md` that points to the playbook and states the 7 critical rules. Clarified the existing console section as ESP32-S3-only with an explicit ESP32-P4 exception (UART0/CH343), since the original text implied USB Serial/JTAG universally.
+
+### What worked
+
+- The playbook and AGENTS.md cross-reference each other; the troubleshooting table records the verbatim errors from this ticket (component-not-resolving, defaults-not-applied, partition-too-small, printf/`<cstdio>`, `esp_console_cmd_t` initializers, WAMR reference-types, malloc/free export).
+
+### What should be done in the future
+
+- Keep the playbook's IDF-version table current as new projects/versions are added.
+
+### Technical details
+
+- Playbook: `docs/01-playbook-esp-idf-build-and-dev-environment.md`. AGENTS.md: top section + clarified console heading.
