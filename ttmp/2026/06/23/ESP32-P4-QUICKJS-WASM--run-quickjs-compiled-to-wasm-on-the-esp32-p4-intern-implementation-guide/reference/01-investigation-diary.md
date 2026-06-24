@@ -760,3 +760,70 @@ The useful finding is that 0079 contains two relevant protections: it executes w
 - 0079 WAMR shim reference: `0079-papers3-wamr-assemblyscript-console/managed_components/bytecodealliance__wasm-micro-runtime/core/shared/platform/esp-idf/espidf_thread.c`, where `os_self_thread()` returns `xTaskGetCurrentTaskHandle()`.
 - 0100 active component: `0100-esp32-p4-quickjs-wasm/managed_components/espressif__wasm-micro-runtime`, compile command contains `-DWASM_ENABLE_THREAD_MGR=1`.
 
+## Step 13: Implement a long-lived QuickJS/WAMR owner pthread and build it
+
+Implemented the app-level fix selected in Step 12. Instead of calling WAMR from `app_main` and from the console command task, 0100 now starts one pthread that owns the QuickJS/WAMR session for the firmware lifetime. That thread initialises WAMR's thread environment, loads the copied wasm blob, instantiates the module, runs `qjs_init`, and then services eval requests from a FreeRTOS queue.
+
+This is a deliberate single-owner design: it fixes the `pthread_self` assertion path while also avoiding concurrent access to the QuickJS runtime. The console command remains synchronous from the user's perspective, but it no longer calls `wasm_runtime_call_wasm` directly.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 12)
+
+**Assistant interpretation:** Apply the investigated fix, validate it at least through an ESP-IDF build, and commit an implementation checkpoint before moving to hardware.
+
+**Inferred user intent:** Move from crash diagnosis to a concrete firmware change while keeping the ticket diary and git history reviewable.
+
+### What I did
+
+- Rewrote `0100-esp32-p4-quickjs-wasm/main/wasm_runner.cpp` around a long-lived pthread owner.
+- Added a `WorkerThreadEntry()` that calls `wasm_runtime_init_thread_env()`, performs the old load/instantiate/`qjs_init` sequence, signals `app_main` through a binary semaphore, then waits for eval requests.
+- Added a FreeRTOS queue of `EvalRequest *` values. `wasm_runner_eval()` allocates a one-shot completion semaphore on the caller side, queues the request, waits, then returns the result.
+- Kept the existing PSRAM wasm-copy fix from Step 11.
+- Updated `wasm_runner.h` comments to state the new ownership model.
+- Built with `source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+
+### Why
+
+- WAMR's `wasm_runtime_call_wasm` path needs a valid pthread identity under the current ESP-IDF WAMR component build.
+- QuickJS should not be called concurrently from arbitrary tasks. A single owner thread makes the rule explicit.
+
+### What worked
+
+- `idf.py build` passes after the runner-thread rewrite.
+- App size remains within the custom 4 MB factory partition: `0x1bec50` bytes, with `0x2413b0` bytes free.
+
+### What didn't work
+
+- No hardware validation yet in this step. The next step is flash/monitor/probe on `/dev/ttyACM0`.
+
+### What I learned
+
+- The cleanest fix is not to make every caller a pthread; it is to remove all direct WAMR calls from those callers. The runner now acts as a serialized RPC boundary into the QuickJS/WAMR session.
+
+### What was tricky to build
+
+- The request queue passes pointers to stack-owned `EvalRequest` structures. This is safe only because `wasm_runner_eval()` blocks until the worker signals completion; future async eval would need heap-owned requests or a request pool.
+- The worker thread is detached and intentionally long-lived. Cleanup is not implemented because the firmware owns one QuickJS session for process lifetime.
+
+### What warrants a second pair of eyes
+
+- The worker stack is currently `64 * 1024` bytes. Confirm on hardware that it is enough for WAMR call boundaries plus host native callbacks; the wasm guest stack is separate (`32 * 1024`).
+- `pthread_detach()` return value is not currently checked; if ESP-IDF exposes an error here, it should be logged.
+
+### What should be done in the future
+
+- Flash and check whether the `pthread_self` assertion is gone.
+- If `qjs_init` succeeds, run `js eval "print(1+2)"` and confirm `3`.
+- If the firmware boots but `qjs_init` is slow, measure the latency before changing architecture.
+
+### Code review instructions
+
+- Review `wasm_runner.cpp` top-down: globals, `InitSessionOnWorkerThread()`, `EvalOnWorkerThread()`, `WorkerThreadEntry()`, `wasm_runner_init()`, and `wasm_runner_eval()`.
+- Verify that `app_main.cpp` and `js_command.cpp` still call only `wasm_runner_init()` / `wasm_runner_eval()` and never call WAMR directly.
+
+### Technical details
+
+- Build command: `cd 0100-esp32-p4-quickjs-wasm && source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+- Build output: `Project build complete`; binary size `0x1bec50`; factory partition size `0x400000`.
+

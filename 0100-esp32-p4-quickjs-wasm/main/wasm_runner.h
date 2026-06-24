@@ -1,6 +1,6 @@
-/* wasm_runner.h — load embedded quickjs.wasm, instantiate once, eval JS. */
+/* wasm_runner.h — own embedded quickjs.wasm on a WAMR pthread and eval JS. */
 #pragma once
 #include <stddef.h>
 
-bool wasm_runner_init(void);              // load + instantiate + qjs_init (call once at boot)
-int  wasm_runner_eval(const char *src, size_t len);  // returns 0 on success, <0 on error
+bool wasm_runner_init(void);              // starts the owner pthread; load + instantiate + qjs_init there
+int  wasm_runner_eval(const char *src, size_t len);  // queues eval on owner pthread; returns 0 on success, <0 on error
