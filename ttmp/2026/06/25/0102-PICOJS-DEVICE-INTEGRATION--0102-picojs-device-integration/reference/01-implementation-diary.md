@@ -144,3 +144,122 @@ Ignored QuickJS checkout detected before merge:
 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs
 .gitignore:14:**/wasm-src/quickjs/
 ```
+
+## Step 2: Merge the host groundwork and split implementation into child tickets
+
+I moved the ignored local QuickJS checkout out of the future submodule path, merged `feature/0102-js-scripts` back into the main firmware worktree, initialized the QuickJS submodule, rebuilt `qjs`, and reran the host-side validation scripts. I then split the remaining firmware work into child tickets so each phase can have its own design guide, diary, validation loop, and focused commit series.
+
+This step establishes the baseline for device work. The main branch now contains the portable JS runtime, examples, bundle tools, interactive host, and desktop native QuickJS host prototype. The next implementation work should start with the `0102-PICOJS-CONSOLE-FEEDBACK` child ticket, because console observability is the prerequisite for autonomous device-side validation.
+
+### Prompt Context
+
+**User prompt (verbatim):** "alright, do it, and for each ticket write a design + implementation guide as usual (and upload to remarkable), then stsart working on tasks one by one, committing at appropriate intervals, and keeping a detailed diary."
+
+**Assistant interpretation:** Create the child ticket set with design/implementation guides, publish the documentation to reMarkable, and then begin implementation phase-by-phase with commits and diary updates.
+
+**Inferred user intent:** Manage the complex firmware integration as independently reviewable, well-documented vertical slices while preserving a single umbrella plan.
+
+**Commit (code):** 2f180f5 — "Merge branch 'feature/0102-js-scripts'"
+
+### What I did
+
+- Moved the ignored local checkout:
+
+```bash
+mv 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs /tmp/quickjs-local-backup-1782424055
+```
+
+- Merged the feature branch:
+
+```bash
+git merge --no-ff feature/0102-js-scripts
+```
+
+- Initialized and built the new QuickJS submodule:
+
+```bash
+git submodule update --init 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs
+make -C 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs qjs
+```
+
+- Ran host-side validation:
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-smoke.sh
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-api-tests.sh
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-bundle-smoke.sh
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-smoke.sh
+```
+
+- Created child tickets:
+  - `0102-PICOJS-CONSOLE-FEEDBACK`
+  - `0102-PICOJS-RUNTIME-COMPONENT`
+  - `0102-PICOJS-MINIMAL-DSL`
+  - `0102-PICOJS-LAYOUT-WIDGETS`
+  - `0102-PICOJS-INPUT-APP-MODE`
+  - `0102-PICOJS-FRAME-TIMERS`
+  - `0102-PICOJS-LCD-RENDERER`
+- Added a design/implementation guide and diary to each child ticket.
+- Added the child ticket map to the umbrella design guide.
+
+### Why
+
+- The ignored local QuickJS checkout had to be moved so Git could materialize the new submodule path cleanly.
+- The feature branch groundwork needed to be present in the main firmware worktree before device-side implementation could begin.
+- Child tickets prevent the native DSL port, renderer work, input routing, and console probing from becoming one unreviewable change set.
+
+### What worked
+
+- The merge completed with no source conflicts.
+- QuickJS submodule initialization and `qjs` build completed successfully.
+- Host validation passed:
+  - `run-smoke.sh`: `SMOKE PASS 0`
+  - `run-api-tests.sh`: core/screen/OS/UI tests passed
+  - `run-bundle-smoke.sh`: `PASS bundle hello-api`, `PASS bundle calc`
+  - `run-native-smoke.sh`: native hello/dashboard/layout passed
+
+### What didn't work
+
+- The main worktree still contains unrelated dirty/untracked files outside this work. This is expected from the shared workspace but remains a staging hazard.
+- `docmgr ticket list --ticket <id>` returns success even when it prints `No tickets found`, so the ticket-creation script had to test output text rather than relying on the exit status.
+
+### What I learned
+
+- The host-side work is now validated from the main worktree, not only from the feature worktree.
+- The child ticket split maps naturally to validation boundaries: console feedback, runtime skeleton, minimal DSL, layout/widgets, input/app mode, timers, and LCD rendering.
+
+### What was tricky to build
+
+- The merge itself was mechanically simple, but it required removing an ignored directory that Git would otherwise not replace with a submodule checkout. This is a common trap because ignored files are invisible in normal status output but still block paths during checkout/merge operations.
+- The shared worktree remains dirty with unrelated artifacts, so all commits in this effort must continue to stage explicit paths.
+
+### What warrants a second pair of eyes
+
+- Whether the child ticket set is too granular or missing a separate QuickJS lifetime/error-hardening ticket. For now, lifetime hardening is part of the minimal DSL and frame/timer work, but it may deserve its own ticket if it grows.
+- Whether `0102-PICOJS-LCD-RENDERER` should extend `visual_repl` or bypass it through direct `picocalc_lcd` row blits.
+
+### What should be done in the future
+
+- Upload the child ticket guides to reMarkable.
+- Commit the child ticket documentation.
+- Start `0102-PICOJS-CONSOLE-FEEDBACK` by implementing `js smoke` and `screen dump`.
+
+### Code review instructions
+
+- Review the merge commit first to confirm it contains only host-side JS/native-host groundwork.
+- Then review the child ticket guides for scope boundaries.
+- Re-run host validation from the main worktree before starting firmware code changes.
+
+### Technical details
+
+Merge commit:
+
+```text
+2f180f5 Merge branch 'feature/0102-js-scripts'
+```
+
+QuickJS local backup path:
+
+```text
+/tmp/quickjs-local-backup-1782424055
+```

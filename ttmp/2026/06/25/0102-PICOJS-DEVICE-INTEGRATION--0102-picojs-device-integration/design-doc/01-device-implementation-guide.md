@@ -41,6 +41,22 @@ The device-side implementation should proceed in small commits. First merge the 
 
 The guiding architecture is: JavaScript scripts describe applications; firmware-owned C/C++ code owns QuickJS lifetime, native API bindings, timers, input dispatch, screen state, rendering, and memory limits. Desktop JS remains the API reference and test oracle. Device firmware should not depend on QuickJS `std/os`, Node, browser APIs, or file-system imports.
 
+## Child Ticket Map
+
+This umbrella ticket coordinates the full device-side integration. Implementation work is split into focused child tickets so each phase has its own design guide, diary, validation gate, and commit series.
+
+| Phase | Child ticket | Scope |
+|---|---|---|
+| 1 | `0102-PICOJS-CONSOLE-FEEDBACK` | UART-observable `js smoke`, `screen dump`, and serial probe loop. |
+| 2 | `0102-PICOJS-RUNTIME-COMPONENT` | `components/picojs_runtime` skeleton, status, dump, and console wiring. |
+| 3 | `0102-PICOJS-MINIMAL-DSL` | Minimal native QuickJS builder API: app, panel, text, mount, frame, dump. |
+| 4 | `0102-PICOJS-LAYOUT-WIDGETS` | Layout rows/cols, gauges, status bar, and dashboard-style rendering. |
+| 5 | `0102-PICOJS-INPUT-APP-MODE` | Console key injection, semantic key tokens, and physical keyboard app mode. |
+| 6 | `0102-PICOJS-FRAME-TIMERS` | Deterministic frame stepping, timers, loops, compute callbacks, and errors. |
+| 7 | `0102-PICOJS-LCD-RENDERER` | Frame-oriented PicoJS LCD rendering with console dump parity. |
+
+The umbrella diary records milestones across child tickets. Detailed implementation attempts, command output, failures, and code review notes belong in the active child ticket diary.
+
 ## Current State
 
 ### Main firmware worktree
