@@ -10,6 +10,8 @@
 #include "qjs_service.h"
 #include "storage_namespace.h"
 #include "system_namespace.h"
+#include "wifi_app.h"
+#include "wifi_command.h"
 
 namespace {
 constexpr const char *kTag = "0103";
@@ -62,6 +64,12 @@ extern "C" void app_main(void)
     }
     log_memory_baseline("after_storage");
 
+    esp_err_t wifi_err = wifi_app_start();
+    if (wifi_err != ESP_OK) {
+        ESP_LOGW(kTag, "wifi_app_start failed: %s", esp_err_to_name(wifi_err));
+    }
+    log_memory_baseline("after_wifi");
+
     qjs_service_t *svc = start_quickjs_service();
     log_memory_baseline("after_qjs");
     if (svc) {
@@ -84,6 +92,7 @@ extern "C" void app_main(void)
     repl_cfg.task_stack_size = 8192;
     esp_console_register_help_command();
     register_storage_commands();
+    register_wifi_commands();
     register_js_commands(svc);
 
     esp_console_dev_usb_serial_jtag_config_t hw_cfg = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();

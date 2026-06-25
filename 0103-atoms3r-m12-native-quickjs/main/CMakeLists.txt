@@ -4,12 +4,18 @@ idf_component_register(
         "js_command.cpp"
         "storage_namespace.cpp"
         "system_namespace.cpp"
+        "wifi_app.c"
+        "wifi_command.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
         qjs_service
         console
+        esp_event
+        esp_netif
+        esp_wifi
         fatfs
+        nvs_flash
         spi_flash
         wear_levelling
     PRIV_REQUIRES
