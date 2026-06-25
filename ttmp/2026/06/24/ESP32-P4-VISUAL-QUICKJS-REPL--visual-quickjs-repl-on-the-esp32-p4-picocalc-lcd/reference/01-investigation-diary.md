@@ -1179,7 +1179,7 @@ The flashed Phase 5 firmware was accepted on-device: the user reported that it w
 
 **Inferred user intent:** Finish the first functional visual QuickJS REPL checkpoint cleanly, then move from Phase 5 validation into the next implementation phase with accurate ticket bookkeeping.
 
-**Commit (code):** 498ab07d6595047d93cb90b5f59cfaa89c0f4089 — "0102: connect visual REPL input to QuickJS eval"
+**Commit (code):** 61722ecb5eeed10a6fe72ed3da3aa353be035c66 — "0102: connect visual REPL input to QuickJS eval"
 
 ### What I did
 
