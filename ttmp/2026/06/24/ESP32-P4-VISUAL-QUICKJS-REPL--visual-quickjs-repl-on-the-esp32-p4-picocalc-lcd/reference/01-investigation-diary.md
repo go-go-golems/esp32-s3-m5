@@ -1164,3 +1164,117 @@ Command returned non-zero error code: 0x1 (ERROR)
 - Scan result before power-cycle: zero I2C devices found.
 - Scan result after power-cycle: `0x1f` found.
 - Monitor captures: `/tmp/0102-kbd-scan-probe.log`, `/tmp/0102-kbd-after-powercycle.log`.
+
+## Step 12: Connect the visual input line to QuickJS eval and clear the LCD on boot
+
+Phase 5 moved the visual REPL from an input-capture demo into a JavaScript REPL path. Pressing Enter now copies the current PicoCalc input line, appends it as a prompt record, sends the source to `qjs_service_eval()` with the `<lcd-repl>` filename and 1000 ms timeout, and renders captured output, errors, timeout metadata, `/status`, `/reset`, and `/help` responses back into the visual scrollback.
+
+The flashed Phase 5 firmware was accepted on-device: the user reported that it works, with one visible boot polish issue. The LCD should be cleared explicitly at boot so stale pixels from the previous firmware/session are not visible before the first visual REPL render. I added a black `picocalc_lcd_fill()` immediately after LCD init succeeds and before initializing/rendering the visual model.
+
+### Prompt Context
+
+**User prompt (verbatim):** "on boot, we want to clear the screen. Otherwise it works. what's next?"
+
+**Assistant interpretation:** The user confirmed the Phase 5 QuickJS-on-LCD path is functioning after flash, and requested that startup clear stale LCD contents before rendering the REPL.
+
+**Inferred user intent:** Finish the first functional visual QuickJS REPL checkpoint cleanly, then move from Phase 5 validation into the next implementation phase with accurate ticket bookkeeping.
+
+**Commit (code):** 498ab07d6595047d93cb90b5f59cfaa89c0f4089 — "0102: connect visual REPL input to QuickJS eval"
+
+### What I did
+
+- Implemented the visual eval bridge in `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`:
+  - `submit_input_line()` copies the current input before clearing the editor state.
+  - Submitted lines append a prompt record to the visual history.
+  - Ordinary JavaScript goes through `qjs_service_eval(g_qjs, source, strlen(source), 1000, "<lcd-repl>", &result)`.
+  - Captured `print()` output is split into 40-column visual output rows.
+  - Exceptions, service errors, and timeout metadata are rendered as error/status rows.
+  - `/help`, `/status`, and `/reset` are handled as visual commands.
+- Built the Phase 5 firmware successfully before flashing:
+
+```text
+0102-esp32-p4-visual-quickjs-repl.bin binary size 0xdbaa0 bytes. Smallest app partition is 0x400000 bytes. 0x324560 bytes (79%) free.
+```
+
+- Stopped the existing `qjs0102` monitor to preserve single-owner access to `/dev/ttyACM0`.
+- Flashed the current 0102 image successfully to `/dev/ttyACM0`; esptool verified bootloader, partition table, and app hashes.
+- Updated the boot path to clear the LCD black before the first visual REPL render:
+
+```cpp
+if (lcd_err == ESP_OK) {
+    ESP_ERROR_CHECK(picocalc_lcd_fill(PICOCALC_LCD_RGB565_BLACK));
+    ESP_ERROR_CHECK(visual_repl_init());
+    ...
+}
+```
+
+- Updated `tasks.md` to mark T4.6 and T5.1 through T5.6 complete based on the physical keyboard and Phase 5 eval confirmation.
+
+### Why
+
+- The visual REPL should use the already-validated `qjs_service` boundary instead of calling QuickJS directly from keyboard or rendering code.
+- The first on-device eval milestone should remain simple: synchronous eval, bounded by the existing 1000 ms timeout, with output and errors converted into styled visual rows.
+- Clearing the LCD on boot avoids stale-pixel confusion and makes the device state deterministic from the first rendered frame.
+
+### What worked
+
+- The firmware built cleanly after the Phase 5 bridge was added.
+- Flashing succeeded on `/dev/ttyACM0` after releasing the old monitor process.
+- The user confirmed that the flashed firmware works apart from the startup clear-screen issue.
+- The existing component boundaries held: the app bridge did not need direct access to `JSContext*`, SPI internals, or I2C internals.
+
+### What didn't work
+
+- The first Phase 5 flashed image did not explicitly clear the LCD before rendering the boot screen, so stale display contents could remain visible during startup.
+- The current visual output path still shows captured `print()` output and errors; bare expression completion values may not become visible unless they are printed. That is acceptable for the current milestone but should be revisited if the REPL should behave more like a desktop JavaScript console.
+
+### What I learned
+
+- The synchronous eval bridge is enough for the first visual milestone because the service timeout bounds long-running code.
+- Startup visual determinism matters on the PicoCalc LCD because previous screen contents can survive across ESP32 resets long enough to confuse validation.
+- The line editor, renderer, and QuickJS service APIs are now sufficiently aligned to support the next scrollback phase.
+
+### What was tricky to build
+
+- The bridge has to copy the input before clearing the model. If the app cleared `g_input` first, the prompt record and eval source would be empty or corrupted.
+- Output splitting must respect the 40-column display instead of assuming the LCD can display arbitrary terminal-width lines.
+- The boot clear has to happen after `picocalc_lcd_init()` succeeds and before the first `visual_repl_render()`, otherwise the renderer may draw over stale pixels without clearing all rows/regions consistently.
+
+### What warrants a second pair of eyes
+
+- Review whether `append_visual_text()` should preserve empty lines from output exactly or collapse them.
+- Review whether the visual REPL should display non-`undefined` eval completion values in addition to captured `print()` output.
+- Review whether synchronous eval blocks keyboard polling too noticeably during the 1000 ms timeout window.
+
+### What should be done in the future
+
+- Flash the boot-clear build and confirm the screen clears black before the REPL banner appears.
+- Start Phase 6: logical record wrapping, viewport offset, PageUp/PageDown, and auto-scroll policy.
+- Consider adding command history after scrollback navigation is stable.
+
+### Code review instructions
+
+- Start in `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`:
+  - `submit_input_line()`
+  - `evaluate_visual_input()`
+  - `append_visual_text()`
+  - the LCD init block in `app_main()`
+- Validate with:
+
+```bash
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+cd 0102-esp32-p4-visual-quickjs-repl
+idf.py build
+idf.py -p /dev/ttyACM0 flash monitor
+```
+
+- On the PicoCalc keyboard, test `/help`, `/status`, `print(1+2)`, `throw new Error("boom")`, and `/reset`.
+- Visually confirm boot begins from a black-cleared screen.
+
+### Technical details
+
+- Firmware target: `0102-esp32-p4-visual-quickjs-repl`.
+- QuickJS service timeout: `1000 ms`.
+- Visual filename label: `<lcd-repl>`.
+- Display geometry: 40 columns × 20 rows, 8×16 pixel cells.
+- Flash port: `/dev/ttyACM0`.

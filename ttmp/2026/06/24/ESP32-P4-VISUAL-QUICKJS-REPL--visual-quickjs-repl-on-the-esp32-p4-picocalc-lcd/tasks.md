@@ -48,17 +48,17 @@ This task list is implementation-grade. Work top to bottom. Commit after each ch
 - [x] **T4.3 — Implement input buffer.** Support insert, backspace, cursor left/right, home/end.
 - [x] **T4.4 — Render current input row and cursor.** Update dirty row(s) on key events.
 - [x] **T4.5 — Append input records without eval.** Pressing Enter should move the input line into scrollback before QuickJS integration.
-- [ ] **T4.6 — Hardware input smoke.** Type text, backspace, move cursor, submit line. A PicoCalc power-cycle restored the keyboard bus (`kbd probe` returns `ESP_OK`, `kbd scan` finds `0x1f`); physical keypress editing still needs validation.
+- [x] **T4.6 — Hardware input smoke.** Type text, backspace, move cursor, submit line. A PicoCalc power-cycle restored the keyboard bus (`kbd probe` returns `ESP_OK`, `kbd scan` finds `0x1f`); the physical `Esc`, `abc`, `Left`, `X`, `Enter` sequence was confirmed working on the LCD.
 - [x] **T4.7 — Diary/changelog/commit.** Record keyboard mapping gaps and validation.
 
 ## Phase 5 — Connect visual input to QuickJS eval
 
-- [ ] **T5.1 — Submit input to `qjs_service_eval`.** Use 1000 ms default timeout and `<lcd-repl>` filename.
-- [ ] **T5.2 — Render output records.** Append captured output as green/normal output.
-- [ ] **T5.3 — Render error records.** Append exceptions/service errors/timeouts as red error/status rows.
-- [ ] **T5.4 — Add visual reset path.** Implement `/reset` or a function key that calls `qjs_service_reset`.
-- [ ] **T5.5 — Add visual status path.** Implement `/status` or a function key that appends QuickJS/heap status.
-- [ ] **T5.6 — Hardware eval smoke.** Validate `print(1+2)`, exception, timeout, reset-global behavior.
+- [x] **T5.1 — Submit input to `qjs_service_eval`.** Use 1000 ms default timeout and `<lcd-repl>` filename.
+- [x] **T5.2 — Render output records.** Append captured output as normal output.
+- [x] **T5.3 — Render error records.** Append exceptions/service errors/timeouts as red error/status rows.
+- [x] **T5.4 — Add visual reset path.** Implement `/reset` or a function key that calls `qjs_service_reset`.
+- [x] **T5.5 — Add visual status path.** Implement `/status` or a function key that appends QuickJS/heap status.
+- [x] **T5.6 — Hardware eval smoke.** Validate `print(1+2)`, exception, timeout, reset-global behavior. Operator confirmed the flashed Phase 5 firmware works; the only requested polish was clearing stale LCD contents on boot.
 - [ ] **T5.7 — Diary/changelog/commit.** Record eval integration evidence.
 
 ## Phase 6 — Scrollback and viewport navigation

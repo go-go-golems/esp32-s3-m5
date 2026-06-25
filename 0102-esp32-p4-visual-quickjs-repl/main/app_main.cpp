@@ -115,6 +115,104 @@ void reset_input_line()
     sync_visual_input();
 }
 
+void clear_input_model_without_render()
+{
+    g_input[0] = 0;
+    g_input_len = 0;
+    g_input_cursor = 0;
+    (void)visual_repl_set_input(g_input, g_input_cursor);
+}
+
+void append_visual_text(visual_repl_style_t style, const char *text)
+{
+    if (!text || text[0] == 0) {
+        return;
+    }
+
+    char line[VISUAL_REPL_COLS + 1] = {};
+    size_t line_len = 0;
+    bool emitted = false;
+    for (const char *p = text; *p; ++p) {
+        const char ch = *p;
+        if (ch == '\r') {
+            continue;
+        }
+        if (ch == '\n') {
+            line[line_len] = 0;
+            (void)visual_repl_append_line(style, line);
+            line_len = 0;
+            emitted = true;
+            continue;
+        }
+        line[line_len++] = (ch >= 0x20 && ch <= 0x7e) ? ch : '?';
+        if (line_len == VISUAL_REPL_COLS) {
+            line[line_len] = 0;
+            (void)visual_repl_append_line(style, line);
+            line_len = 0;
+            emitted = true;
+        }
+    }
+    if (line_len > 0 || !emitted) {
+        line[line_len] = 0;
+        (void)visual_repl_append_line(style, line);
+    }
+}
+
+void append_visual_status()
+{
+    qjs_service_status_t qst = {};
+    esp_err_t qerr = g_qjs ? qjs_service_get_status(g_qjs, &qst, 1000) : ESP_ERR_INVALID_STATE;
+    char line[VISUAL_REPL_COLS + 1] = {};
+    std::snprintf(line, sizeof(line), "QJS %s READY=%d EVALS=%u", esp_err_to_name(qerr), qst.ready, (unsigned)qst.eval_count);
+    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+    std::snprintf(line, sizeof(line), "HEAP INT=%u PSRAM=%u", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
+    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+}
+
+void evaluate_visual_input(const char *source)
+{
+    if (!source || source[0] == 0) {
+        return;
+    }
+    if (!g_qjs) {
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "QUICKJS SERVICE UNAVAILABLE");
+        return;
+    }
+
+    if (std::strcmp(source, "/reset") == 0) {
+        esp_err_t err = qjs_service_reset(g_qjs, 2000);
+        char line[VISUAL_REPL_COLS + 1] = {};
+        std::snprintf(line, sizeof(line), "RESET: %s", esp_err_to_name(err));
+        (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+        return;
+    }
+    if (std::strcmp(source, "/status") == 0) {
+        append_visual_status();
+        return;
+    }
+    if (std::strcmp(source, "/help") == 0) {
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "COMMANDS: /help /status /reset");
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "JS: PRINT(1+2), THROW NEW ERROR()...");
+        return;
+    }
+
+    qjs_eval_result_t r = {};
+    esp_err_t err = qjs_service_eval(g_qjs, source, std::strlen(source), kEvalTimeoutMs, "<lcd-repl>", &r);
+    if (err != ESP_OK) {
+        char line[VISUAL_REPL_COLS + 1] = {};
+        std::snprintf(line, sizeof(line), "SERVICE ERROR: %s", esp_err_to_name(err));
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+        return;
+    }
+
+    char meta[VISUAL_REPL_COLS + 1] = {};
+    std::snprintf(meta, sizeof(meta), "OK=%d TIMEOUT=%d %uMS", r.ok, r.timed_out, (unsigned)r.elapsed_ms);
+    (void)visual_repl_append_line(r.ok && !r.timed_out ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, meta);
+    append_visual_text(VISUAL_REPL_STYLE_OUTPUT, r.output);
+    append_visual_text(VISUAL_REPL_STYLE_ERROR, r.error);
+    qjs_eval_result_free(&r);
+}
+
 void insert_input_char(char ch)
 {
     if (g_input_len >= VISUAL_REPL_INPUT_MAX) {
@@ -156,14 +254,14 @@ void delete_input_char()
 
 void submit_input_line()
 {
+    char source[VISUAL_REPL_INPUT_MAX + 1] = {};
+    std::memcpy(source, g_input, sizeof(source));
+
     char submitted[VISUAL_REPL_INPUT_MAX + 3] = {};
-    std::snprintf(submitted, sizeof(submitted), "> %s", g_input);
+    std::snprintf(submitted, sizeof(submitted), "> %s", source);
     (void)visual_repl_append_line(VISUAL_REPL_STYLE_PROMPT, submitted);
-    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "ENTER captured; QuickJS eval is Phase 5");
-    g_input[0] = 0;
-    g_input_len = 0;
-    g_input_cursor = 0;
-    (void)visual_repl_set_input(g_input, g_input_cursor);
+    clear_input_model_without_render();
+    evaluate_visual_input(source);
     (void)visual_repl_render();
 }
 
@@ -577,10 +675,11 @@ extern "C" void app_main(void)
     esp_err_t lcd_err = picocalc_lcd_init();
     ESP_LOGI(kTag, "lcd init: %s actual_khz=%d", esp_err_to_name(lcd_err), picocalc_lcd_actual_khz());
     if (lcd_err == ESP_OK) {
+        ESP_ERROR_CHECK(picocalc_lcd_fill(PICOCALC_LCD_RGB565_BLACK));
         ESP_ERROR_CHECK(visual_repl_init());
         (void)visual_repl_append_line(VISUAL_REPL_STYLE_SYSTEM, "ESP32-P4 VISUAL QUICKJS REPL");
-        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "TYPE ON PICOCALC KEYBOARD; ENTER STORES LINE");
-        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "QUICKJS EVAL ARRIVES IN PHASE 5");
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "TYPE JAVASCRIPT; ENTER EVALUATES");
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "COMMANDS: /HELP /STATUS /RESET");
         esp_err_t visual_err = visual_repl_render();
         ESP_LOGI(kTag, "visual initial render: %s", esp_err_to_name(visual_err));
     }
