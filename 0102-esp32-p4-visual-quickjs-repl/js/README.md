@@ -88,9 +88,16 @@ Run the broader portable API self-tests and example gallery with:
 ```bash
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-api-tests.sh
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-examples.sh
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-bundle-smoke.sh
 ```
 
-The examples preload `js/lib/*.js` and print fixed-cell snapshots that fit the PicoCalc-style 40-column display.
+The examples preload `js/lib/*.js` and print fixed-cell snapshots that fit the PicoCalc-style 40-column display. To create a single paste/embed candidate for the device REPL, run:
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/bundle-example.sh hello-api > /tmp/hello-api.bundle.js
+qjs -I 0102-esp32-p4-visual-quickjs-repl/js/host-shim.js /tmp/hello-api.bundle.js
+```
+
 
 ## Device integration model
 
