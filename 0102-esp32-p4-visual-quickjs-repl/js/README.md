@@ -99,6 +99,15 @@ For an interactive desktop emulator loop, run:
 
 Inside the prompt, use commands such as `open snake`, `key down`, `frame 130`, `run 10 100`, `show`, and `quit`. The interactive host itself uses `qjs --std` for stdin; app/runtime code remains portable.
 
+For a native C++ host emulator that embeds QuickJS and implements the first picoOS API surface on the C++ side, run:
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-host.sh hello-native
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-host.sh dashboard-native
+```
+
+The native host is split so `js/tools/native-host/src/pico_native_api.*` can later be adapted into firmware code, while `src/main.cpp` remains host-only terminal/raw-keyboard glue.
+
 The examples preload `js/lib/*.js` and print fixed-cell snapshots that fit the PicoCalc-style 40-column display. To create a single paste/embed candidate for the device REPL, run:
 
 ```bash
