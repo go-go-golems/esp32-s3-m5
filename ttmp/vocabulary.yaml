@@ -175,6 +175,8 @@ topics:
       description: Downloaded or scraped reference source material
     - slug: esp32p4
       description: ESP32-P4 microcontroller (RISC-V dual-core, HP/LP cores, MIPI-PIx, PSRAM)
+    - slug: psram
+      description: External pseudo-static RAM used by ESP32-class firmware for larger heaps, buffers, and runtime allocations
 docTypes:
     - slug: index
       description: Ticket index document

@@ -1,0 +1,14 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "js_command.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        qjs_service
+        console
+    PRIV_REQUIRES
+        esp_psram
+        esp_timer
+        heap
+)
