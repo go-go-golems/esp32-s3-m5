@@ -17,6 +17,7 @@
 #include "esp_log.h"
 #include "storage_namespace.h"
 #include "system_namespace.h"
+#include "wifi_namespace.h"
 
 namespace {
 constexpr const char *kTag = "0103_js";
@@ -133,6 +134,11 @@ int cmd_reset()
         esp_err_t storage_err = install_storage_namespace(g_svc);
         if (storage_err != ESP_OK) {
             std::printf("reset: ESP_OK, storage namespace: %s\n", esp_err_to_name(storage_err));
+            return 1;
+        }
+        esp_err_t wifi_err = install_wifi_namespace(g_svc);
+        if (wifi_err != ESP_OK) {
+            std::printf("reset: ESP_OK, wifi namespace: %s\n", esp_err_to_name(wifi_err));
             return 1;
         }
     }

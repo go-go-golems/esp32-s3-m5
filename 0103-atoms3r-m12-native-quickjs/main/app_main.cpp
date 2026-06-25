@@ -12,6 +12,7 @@
 #include "system_namespace.h"
 #include "wifi_app.h"
 #include "wifi_command.h"
+#include "wifi_namespace.h"
 
 namespace {
 constexpr const char *kTag = "0103";
@@ -81,7 +82,11 @@ extern "C" void app_main(void)
         if (storage_ns_err != ESP_OK) {
             ESP_LOGW(kTag, "install_storage_namespace failed: %s", esp_err_to_name(storage_ns_err));
         }
-        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"system.board\" | js eval \"storage.status()\" | js bench");
+        esp_err_t wifi_ns_err = install_wifi_namespace(svc);
+        if (wifi_ns_err != ESP_OK) {
+            ESP_LOGW(kTag, "install_wifi_namespace failed: %s", esp_err_to_name(wifi_ns_err));
+        }
+        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"system.board\" | js eval \"wifi.status().state\" | js bench");
     } else {
         ESP_LOGE(kTag, "QuickJS service unavailable; console will still start");
     }

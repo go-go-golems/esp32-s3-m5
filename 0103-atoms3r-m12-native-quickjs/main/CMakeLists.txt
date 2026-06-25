@@ -6,6 +6,7 @@ idf_component_register(
         "system_namespace.cpp"
         "wifi_app.c"
         "wifi_command.cpp"
+        "wifi_namespace.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
