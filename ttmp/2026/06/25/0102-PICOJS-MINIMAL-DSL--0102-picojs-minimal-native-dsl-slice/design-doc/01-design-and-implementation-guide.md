@@ -15,16 +15,23 @@ Owners: []
 RelatedFiles:
     - Path: 0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp
       Note: Firmware app orchestration and console command integration point
+    - Path: components/picojs_runtime/include/picojs_runtime.h
+      Note: Public install/reset API and runtime status for minimal native DSL
+    - Path: components/picojs_runtime/picojs_runtime.cpp
+      Note: Minimal native QuickJS builder binding implementation
     - Path: components/qjs_service/include/qjs_service.h
       Note: QuickJS service API and JSContext job boundary
     - Path: components/visual_repl/include/visual_repl.h
       Note: Fixed-cell visual model and dump/render target
+    - Path: ttmp/2026/06/25/0102-PICOJS-MINIMAL-DSL--0102-picojs-minimal-native-dsl-slice/scripts/01-minimal-dsl-probe.py
+      Note: By-id UART probe for the minimal DSL slice
 ExternalSources: []
 Summary: 'First firmware-native QuickJS builder API: app, panel, text, mount, frame, dump.'
 LastUpdated: 2026-06-25T15:30:00-07:00
 WhatFor: Plan and implementation guide for prove that a JavaScript DSL app can be described through native QuickJS bindings and dumped over UART.
 WhenToUse: Use before implementing or reviewing this phase of the PicoJS device integration.
 ---
+
 
 
 # Design and Implementation Guide

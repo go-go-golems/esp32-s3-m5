@@ -9,6 +9,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include "quickjs.h"
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define PICOJS_RUNTIME_DEFAULT_COLS 40
 #define PICOJS_RUNTIME_DEFAULT_ROWS 20
@@ -25,6 +33,7 @@ typedef struct {
     bool initialized;
     uint16_t cols;
     uint16_t rows;
+    bool js_installed;
     uint32_t frame_count;
     uint32_t app_count;
     uint32_t mounted_app_count;
@@ -34,6 +43,8 @@ typedef struct {
 
 esp_err_t picojs_runtime_create(const picojs_runtime_config_t *cfg, picojs_runtime_t **out);
 void picojs_runtime_destroy(picojs_runtime_t *rt);
+esp_err_t picojs_runtime_install(JSContext *ctx, picojs_runtime_t *rt);
+esp_err_t picojs_runtime_reset(picojs_runtime_t *rt);
 esp_err_t picojs_runtime_get_status(picojs_runtime_t *rt, picojs_runtime_status_t *out);
 esp_err_t picojs_runtime_frame(picojs_runtime_t *rt, uint32_t dt_ms);
 esp_err_t picojs_runtime_key(picojs_runtime_t *rt, const char *token);
