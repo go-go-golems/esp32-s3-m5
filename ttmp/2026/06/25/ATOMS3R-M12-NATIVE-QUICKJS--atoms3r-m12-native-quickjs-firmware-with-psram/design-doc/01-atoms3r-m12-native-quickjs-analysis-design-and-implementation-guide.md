@@ -14,10 +14,16 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0095-m5dial-wifi-bench/main/wifi_app.h
+      Note: Native ESP32-S3 WiFi service API shape used for future 0103 wifi namespace design
+    - Path: 0095-m5dial-wifi-bench/main/wifi_console.c
+      Note: Console WiFi status/scan/config patterns adapted into request/status JavaScript namespace constraints
     - Path: 0101-esp32-p4-native-quickjs/main/app_main.cpp
       Note: Proven native QuickJS console startup pattern adapted to AtomS3R M12
     - Path: 0103-atoms3r-m12-native-quickjs/CMakeLists.txt
       Note: New AtomS3R QuickJS firmware component reuse boundary
+    - Path: 0103-atoms3r-m12-native-quickjs/README.md
+      Note: Short firmware-facing summary of future storage and WiFi namespace plan
     - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
       Note: |-
         New AtomS3R M12 QuickJS service startup and PSRAM baseline logging
@@ -28,6 +34,8 @@ RelatedFiles:
       Note: Read-only system namespace installer added in commit 690972c
     - Path: 0103-atoms3r-m12-native-quickjs/main/system_namespace.h
       Note: System namespace installer public hook added in commit 690972c
+    - Path: 0103-atoms3r-m12-native-quickjs/partitions.csv
+      Note: Existing 3 MiB FatFs storage partition used by future virtual-rooted storage namespace
     - Path: 0103-atoms3r-m12-native-quickjs/sdkconfig.defaults
       Note: |-
         ESP32-S3 USB Serial/JTAG, 8MB flash, and PSRAM configuration
@@ -48,6 +56,7 @@ LastUpdated: 2026-06-25T22:30:00-07:00
 WhatFor: Use when implementing, flashing, validating, or extending the AtomS3R M12 native QuickJS firmware.
 WhenToUse: Read before working on `0103-atoms3r-m12-native-quickjs`, changing QuickJS memory limits, or adding WiFi/storage/display JavaScript APIs.
 ---
+
 
 
 
@@ -446,37 +455,129 @@ The object is non-extensible and its properties are non-writable. Hardware smoke
 
 ### Phase B: storage namespace
 
-Add storage only after the QuickJS memory profile is characterized. Use size-limited operations and virtual roots:
+Storage should use the existing `storage` partition from `0103-atoms3r-m12-native-quickjs/partitions.csv`:
 
-```js
-storage.list("/scripts")
-storage.readText("/scripts/demo.js")
-storage.writeText("/data/log.txt", "hello\n")
-storage.stat("/scripts/demo.js")
+```text
+storage, data, fat, , 3M,
 ```
 
-Rules:
+The first implementation should mount this partition at `/storage` with the ESP-IDF FatFs wear-levelled read/write flash API, not SPIFFS. The relevant ESP-IDF component dependency is `fatfs`, with `wear_levelling` as the wear-levelled mount dependency; earlier repository notes show that `esp_vfs_fat` is a header/API name, not the component name. This target is not using a prebuilt read-only FAT image, so `esp_vfs_fat_spiflash_mount_rw_wl()` is the right default. Use `format_if_mount_failed=true` only for an explicit first-boot developer mode or a console command; otherwise a mount error should not silently wipe scripts.
 
-- Enforce file size limits before allocating JavaScript strings.
-- Do not expose arbitrary paths.
-- Do not keep long-lived file handles in JavaScript until a handle lifetime model is designed.
+The JavaScript namespace should be virtual-rooted. JavaScript paths must never map directly to arbitrary absolute POSIX paths.
+
+```js
+storage.status()
+storage.list("/scripts", { maxEntries: 64 })
+storage.stat("/scripts/demo.js")
+storage.readText("/scripts/demo.js", { maxBytes: 16384 })
+storage.writeText("/data/log.txt", "hello\n", { maxBytes: 16384 })
+storage.remove("/data/log.txt")
+```
+
+Initial virtual roots:
+
+| JavaScript root | Native path | Intended use |
+|---|---|---|
+| `/scripts` | `/storage/scripts` | User-authored JavaScript files and examples. |
+| `/data` | `/storage/data` | Small app data, logs, and JSON state. |
+| `/tmp` | `/storage/tmp` | Replaceable scratch files; may be cleared by firmware. |
+
+Initial limits:
+
+| Limit | Starting value | Reason |
+|---|---:|---|
+| Read text maximum | 16 KiB per call | Keeps returned QuickJS strings small under the 1 MiB cap. |
+| Write text maximum | 16 KiB per call | Avoids large temporary C and JS buffers. |
+| Directory list maximum | 64 entries | Prevents unbounded arrays and string allocations. |
+| Path length | 127 bytes after virtual-root normalization | Fits fixed buffers and avoids heap churn. |
+| Open handles | none exposed to JS | Avoids lifetime bugs across reset and GC. |
+
+Implementation rules:
+
+- Normalize paths before opening files: reject empty segments, `..`, repeated separators that escape roots, drive-like prefixes, and absolute native paths.
+- Create root directories at mount time with `mkdir()`, because FatFs supports directories; do not inherit SPIFFS assumptions from older examples where `mkdir()` was unsupported.
+- Copy file contents into bounded temporary buffers before creating JavaScript strings. Check file size with `stat()`/`fseek()` before allocation.
+- Keep write operations bounded and return structured errors. Flash erase/write can be slow, so a later async worker is preferable for larger writes.
+- Reinstall `storage` after `js reset` exactly like `system` once the namespace exists.
+- Keep autoload separate from generic storage. A future `js run /scripts/demo.js` command can read and eval a file explicitly before any boot-time autoload policy is added.
+
+Recommended staged implementation:
+
+1. Mount `/storage` and add console diagnostics: `storage status`, `storage list`, `storage read`, `storage write`.
+2. Add JavaScript `storage.status()`, `storage.list()`, `storage.stat()`, and `storage.readText()` only.
+3. Add `storage.writeText()` and `storage.remove()` after a flash-write smoke test and reset-cycle test.
+4. Add `js run <virtual-path>` once read limits and eval timeout behavior are proven.
 
 ### Phase C: WiFi namespace
 
-WiFi must not block the QuickJS owner task indefinitely. A first API should be request/status oriented:
+Use the native ESP32-S3 WiFi-service shape from `0095-m5dial-wifi-bench` as the starting point, not the ESP32-P4/Tab5 `esp_wifi_remote` path. The existing `0095` service already has the right firmware-owned state model:
+
+```c
+typedef enum {
+    WIFI_APP_STATE_UNINIT = 0,
+    WIFI_APP_STATE_IDLE,
+    WIFI_APP_STATE_CONNECTING,
+    WIFI_APP_STATE_CONNECTED,
+} wifi_app_state_t;
+
+esp_err_t wifi_app_start(void);
+esp_err_t wifi_app_get_status(wifi_app_status_t *out);
+esp_err_t wifi_app_set_credentials(const char *ssid, const char *password, bool save_to_nvs);
+esp_err_t wifi_app_connect(void);
+esp_err_t wifi_app_disconnect(void);
+esp_err_t wifi_app_scan(wifi_scan_entry_t *out, size_t max_out, size_t *out_n);
+```
+
+The JavaScript namespace should expose status snapshots and request-oriented operations. It should not expose raw ESP-IDF handles, event callbacks, or passwords.
 
 ```js
 wifi.status()
-wifi.connect({ ssid: "...", password: "..." })
+wifi.configure({ ssid: "...", password: "...", save: false })
+wifi.connect()
 wifi.disconnect()
+wifi.clearCredentials()
+wifi.scanStart({ maxResults: 20 })
+wifi.scanStatus()
+wifi.scanResults({ maxResults: 20 })
 ```
 
-Rules:
+Return shapes:
 
-- Keep WiFi state firmware-owned.
-- Do not expose passwords through status.
-- Return structured operational failures.
-- Do not call QuickJS directly from WiFi event callbacks; enqueue events or let scripts poll state.
+```js
+wifi.status()
+// {
+//   state: "uninit" | "idle" | "connecting" | "connected",
+//   ssid: "..." | "",
+//   hasSavedCredentials: true,
+//   hasRuntimeCredentials: true,
+//   staIp: "192.168.1.23" | "",
+//   apIp: "192.168.4.1" | "",
+//   lastDisconnectReason: 0
+// }
+
+wifi.connect()
+// { ok: true, requested: "connect", state: "connecting" }
+
+wifi.scanResults({ maxResults: 20 })
+// [{ ssid: "network", rssi: -53, channel: 6, auth: "WPA2" }]
+```
+
+Implementation rules:
+
+- Keep WiFi state firmware-owned. QuickJS asks for snapshots and enqueues requests.
+- Do not block the QuickJS owner task on WiFi operations. `0095` currently uses a blocking `esp_wifi_scan_start(..., true)` helper for console use; the JavaScript binding should instead use a WiFi worker/task or async request state for scans.
+- Do not call QuickJS from ESP-IDF WiFi/IP event callbacks. Event callbacks should update firmware state under a mutex or enqueue records into a firmware-owned ring buffer.
+- Do not include passwords in `wifi.status()`, scan results, logs, exceptions, or `JSON.stringify()`-reachable objects.
+- Treat `wifi.configure()` as setting runtime credentials; saving to NVS must be explicit through `save: true` or a separate `wifi.saveCredentials()` method.
+- Measure memory after `wifi_app_start()` before deciding whether to raise the QuickJS cap above 1 MiB.
+
+Recommended staged implementation:
+
+1. Port a minimal `wifi_app` service from `0095-m5dial-wifi-bench`, replacing product names and AP defaults.
+2. Add console diagnostics first: `wifi status`, `wifi configure`, `wifi connect`, `wifi disconnect`, `wifi scan`.
+3. Measure `js status` before WiFi start, after WiFi start, while connecting, and after disconnect.
+4. Install JavaScript `wifi.status()`, `wifi.connect()`, and `wifi.disconnect()` only.
+5. Add async scan methods after worker/task state is in place.
 
 ### Phase D: display namespace
 

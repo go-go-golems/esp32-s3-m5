@@ -688,3 +688,117 @@ js eval "system.board"
 - Final validation log: `/tmp/0103-atoms3r-m12-native-quickjs-system-namespace-final.log`.
 - Binary size after adding the namespace: `0xb5270` bytes.
 - App partition free space: `0x34ad90` bytes, 82%.
+
+## Step 5: Design bounded storage and WiFi JavaScript namespaces
+
+This step is documentation and architecture design only. After validating the `system` namespace, the next open task was to design the first mutable or operational namespaces without adding risky blocking bindings directly to QuickJS.
+
+The resulting design keeps the firmware API explicit. `storage` is a virtual-rooted, size-limited interface over the existing 3 MiB FatFs `storage` partition. `wifi` is a native ESP32-S3 request/status interface modeled after the repository's `0095-m5dial-wifi-bench` service, but with JavaScript-specific constraints: no passwords in status, no raw ESP-IDF handles, no QuickJS calls from event callbacks, and no blocking scans on the QuickJS owner task.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Continue with the next unchecked AtomS3R M12 QuickJS task after the system namespace milestone.
+
+**Inferred user intent:** Keep advancing the ticket in small, documented, commit-sized steps while preserving the validated runtime baseline.
+
+**Commit (code):** N/A — documentation/design-only step.
+
+### What I did
+
+- Inspected the existing native ESP32-S3 WiFi service and console patterns:
+  - `0095-m5dial-wifi-bench/main/wifi_app.h`
+  - `0095-m5dial-wifi-bench/main/wifi_console.c`
+- Confirmed the current `0103` storage partition layout:
+  - `0103-atoms3r-m12-native-quickjs/partitions.csv`
+- Rechecked `0103` sdkconfig posture:
+  - USB Serial/JTAG console
+  - ESP32-S3 target
+  - 8 MB flash
+  - 8 MB Octal PSRAM at 80 MHz
+- Searched repository notes for FatFs/flash-storage pitfalls, especially the distinction between `esp_vfs_fat` as an API/header and `fatfs`/`wear_levelling` as ESP-IDF components.
+- Replaced the placeholder storage and WiFi extension sections in the design guide with concrete staged contracts.
+- Updated the firmware README with a short pointer to the namespace plan.
+- Marked T3.3 complete in the ticket task list.
+
+### Why
+
+- The next firmware work should not jump directly from a read-only metadata object to blocking WiFi or unbounded filesystem calls.
+- The QuickJS owner task must remain responsive; the interrupt handler cannot safely preempt arbitrary blocking native C code.
+- Storage can allocate large JavaScript strings if file reads are not capped. This matters because the AtomS3R default QuickJS heap cap is intentionally 1 MiB.
+- WiFi introduces internal RAM pressure, event callbacks, NVS credentials, and potentially long-running scans/connects.
+
+### What worked
+
+- The repository already has a useful native ESP32-S3 WiFi service API in `0095-m5dial-wifi-bench/main/wifi_app.h`:
+
+```c
+esp_err_t wifi_app_start(void);
+esp_err_t wifi_app_get_status(wifi_app_status_t *out);
+esp_err_t wifi_app_set_credentials(const char *ssid, const char *password, bool save_to_nvs);
+esp_err_t wifi_app_connect(void);
+esp_err_t wifi_app_disconnect(void);
+esp_err_t wifi_app_scan(wifi_scan_entry_t *out, size_t max_out, size_t *out_n);
+```
+
+- The `0103` partition table already reserves a writable storage area:
+
+```text
+storage,  data, fat,     ,         3M,
+```
+
+- The design guide now defines concrete storage limits:
+  - 16 KiB maximum text read per call.
+  - 16 KiB maximum text write per call.
+  - 64 directory entries per listing.
+  - 127-byte normalized virtual path limit.
+  - No JavaScript-visible open handles.
+
+- The design guide now defines staged WiFi APIs:
+  - `wifi.status()` first.
+  - request-style `wifi.configure()`, `wifi.connect()`, `wifi.disconnect()`.
+  - async scan start/status/results instead of owner-task blocking scans.
+
+### What didn't work
+
+- N/A. This was a design-only pass and did not attempt a firmware build or hardware flash.
+
+### What I learned
+
+- `0095-m5dial-wifi-bench` is the right local reference for AtomS3R WiFi because it uses native `esp_wifi` on an ESP32-S3-class target. The ESP32-P4/Tab5 WiFi6 path is not the right starting point for `0103`.
+- Existing repository notes reinforce that FatFs component wiring should use `fatfs` and, for writable flash partitions, `wear_levelling`; `esp_vfs_fat` is not a component name.
+- Storage and WiFi both need a firmware-owned state boundary before JavaScript bindings are added.
+
+### What was tricky to build
+
+- The design had to separate console helper patterns from JavaScript binding patterns. A blocking console command can be acceptable for an operator, but a blocking JavaScript native function running on the QuickJS owner task can stall the runtime and defeat eval timeouts.
+- `wifi_app_scan()` in the existing example is useful but currently blocking for console use. The JavaScript design therefore keeps scan as an asynchronous request/status/results sequence.
+- Storage seems simple, but unbounded reads would create large C buffers and QuickJS strings. The design therefore sets small limits before implementation begins.
+
+### What warrants a second pair of eyes
+
+- Review the proposed 16 KiB storage read/write limit against expected script sizes. It is conservative and safe for the 1 MiB cap, but may need an explicit `js run` streaming/eval path later.
+- Review whether `storage.writeText()` should be delayed until after read-only storage and `js run` are validated.
+- Review whether WiFi scan should be implemented as an explicit worker task or integrated into a broader firmware operation queue.
+
+### What should be done in the future
+
+- Implement storage mount and console diagnostics before JavaScript storage bindings.
+- Measure `js status` before and after mounting FatFs.
+- Port a minimal native ESP32-S3 WiFi service from `0095`, then measure memory before adding JavaScript `wifi` bindings.
+- Keep the QuickJS cap at 1 MiB until WiFi/TLS/storage measurements justify changing it.
+
+### Code review instructions
+
+- Review the `Extension strategy` section in the design guide.
+- Confirm that the storage API is virtual-rooted and size-limited.
+- Confirm that the WiFi API is request/status oriented and avoids passwords in returned objects.
+- Confirm that T3.4 remains open because this step designs storage but does not implement script storage.
+
+### Technical details
+
+- Design guide updated: `ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/design-doc/01-atoms3r-m12-native-quickjs-analysis-design-and-implementation-guide.md`.
+- README updated: `0103-atoms3r-m12-native-quickjs/README.md`.
+- Native WiFi reference: `0095-m5dial-wifi-bench/main/wifi_app.h` and `0095-m5dial-wifi-bench/main/wifi_console.c`.
+- Storage partition reference: `0103-atoms3r-m12-native-quickjs/partitions.csv`.

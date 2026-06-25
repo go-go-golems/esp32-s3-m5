@@ -61,3 +61,14 @@ Added and validated read-only QuickJS system namespace for 0103 (commit 690972c)
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp — Read-only JavaScript system metadata installer
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 4 namespace implementation and validation diary
 
+
+## 2026-06-25
+
+Designed future 0103 storage and WiFi JavaScript namespaces: bounded virtual-rooted FatFs storage, native ESP32-S3 request/status WiFi API, no password exposure, and no blocking scans/connects on the QuickJS owner task
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/README.md — Firmware README points to future namespace plan
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/design-doc/01-atoms3r-m12-native-quickjs-analysis-design-and-implementation-guide.md — Detailed storage and WiFi namespace contracts
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 5 design diary
+

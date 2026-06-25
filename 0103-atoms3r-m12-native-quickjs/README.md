@@ -117,3 +117,12 @@ The ESP32-P4 native service showed an idle QuickJS memory usage of about 50 KiB.
   - `esp_heap: internal=... 8bit=... psram=...`
 
 The first memory stress pass completed a 20k-number array and cleanly reported `InternalError: out of memory` for an oversized allocation. Keep the 1 MiB cap until WiFi/TLS/storage are integrated and measured. Add explicit device APIs one namespace at a time.
+
+## Future namespace plan
+
+The ticket design guide defines the next namespace contracts:
+
+- `storage`: virtual-rooted access to the 3 MiB FatFs `storage` partition, starting with bounded `status/list/stat/readText` calls before writes or autoload.
+- `wifi`: native ESP32-S3 WiFi status/request API, starting with firmware-owned state and polling; do not block the QuickJS owner task on scans/connects and never expose passwords.
+
+Do not add desktop QuickJS `std`/`os` compatibility as a shortcut. Keep firmware APIs explicit and reset-safe.
