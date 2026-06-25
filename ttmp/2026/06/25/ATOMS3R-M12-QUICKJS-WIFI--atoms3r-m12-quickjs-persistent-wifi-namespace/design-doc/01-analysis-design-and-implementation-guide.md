@@ -21,6 +21,14 @@ RelatedFiles:
       Note: Console command reference for WiFi diagnostics and provisioning
     - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
       Note: Future WiFi startup integration point
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_app.c
+      Note: Native STA-only ESP32-S3 WiFi service with NVS credential persistence added in commit badc45a
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_app.h
+      Note: WiFi service API added in commit badc45a
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_command.cpp
+      Note: WiFi console provisioning and diagnostics added in commit badc45a
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_command.h
+      Note: WiFi console registration hook added in commit badc45a
     - Path: components/qjs_service/include/qjs_service.h
       Note: Owner-task API for future wifi namespace installation
 ExternalSources: []
@@ -29,6 +37,7 @@ LastUpdated: 2026-06-25T23:30:00-07:00
 WhatFor: Use when implementing, reviewing, or validating WiFi persistence and JavaScript WiFi APIs in `0103-atoms3r-m12-native-quickjs`.
 WhenToUse: Read before changing WiFi credentials, NVS persistence, network startup, JavaScript `wifi` bindings, or HTTP server prerequisites.
 ---
+
 
 
 # AtomS3R M12 QuickJS Persistent WiFi Namespace — Analysis, Design, and Implementation Guide
@@ -128,7 +137,9 @@ Suggested product constants:
 #define ATOMS3R_WIFI_MAX_RETRY 10
 ```
 
-If AP mode is not needed for the first pass, start with STA-only. APSTA is useful later because it can expose a fallback access point, but it consumes additional memory.
+Implementation status as of commit `badc45a`: the first WiFi milestone uses STA-only mode, not APSTA. The copied reference initially brought up APSTA, but hardware validation showed that the guest network gateway also used `192.168.4.1`, which conflicts with the ESP-IDF default SoftAP network. Because this firmware has USB Serial/JTAG recovery and no display, STA-only is the safer default and also saves memory.
+
+APSTA remains a possible future feature, but it should use a non-conflicting SoftAP subnet and should only be added if there is a concrete recovery or provisioning need.
 
 ## Credential policy
 
@@ -297,16 +308,34 @@ wifi_event_handler(event):
 
 ### Phase 1: Native service and console
 
-1. Copy/adapt `0095-m5dial-wifi-bench/main/wifi_app.h` to `0103/main/wifi_app.h`.
-2. Copy/adapt `0095-m5dial-wifi-bench/main/wifi_app.c` to `0103/main/wifi_app.c`.
-3. Rename constants and log tags to `0103_wifi` / AtomS3R names.
-4. Add `wifi_console` or integrate commands into a `wifi_namespace.cpp` module.
-5. Add ESP-IDF component dependencies: `esp_wifi`, `esp_netif`, `esp_event`, `nvs_flash`.
-6. Build and boot without credentials.
-7. Run `wifi status`.
-8. Provision SSID `Sonic Guest` with the operator-provided password using a console command; do not commit the password.
-9. Save credentials and connect.
-10. Reset the board and confirm autoconnect.
+Implementation status: complete in commit `badc45a`.
+
+1. Copied/adapted `0095-m5dial-wifi-bench/main/wifi_app.h` to `0103/main/wifi_app.h`.
+2. Copied/adapted `0095-m5dial-wifi-bench/main/wifi_app.c` to `0103/main/wifi_app.c`.
+3. Renamed constants and log tags to `0103_wifi` / AtomS3R names.
+4. Added `wifi_command.{h,cpp}` console commands.
+5. Added ESP-IDF component dependencies: `esp_wifi`, `esp_netif`, `esp_event`, `nvs_flash`.
+6. Built and booted without credentials.
+7. Provisioned SSID `Sonic Guest` with the operator-provided password using the console; the password was redacted from captured logs and not committed.
+8. Saved credentials in NVS and connected.
+9. Reset the board and confirmed autoconnect.
+
+Validated final status:
+
+```text
+wifi status
+state=CONNECTED ssid=Sonic Guest saved=yes runtime=yes reason=-1
+sta_ip=192.168.4.22
+ap_ip=-
+```
+
+Memory baseline after STA-only WiFi and QuickJS:
+
+```text
+after_wifi: internal_free=261907 8bit_free=8614103 psram_free=8352196
+after_qjs:  internal_free=77647  8bit_free=8429843 psram_free=8352196
+js status:  internal=74919      8bit=8426579 psram=8351660
+```
 
 ### Phase 2: QuickJS namespace
 

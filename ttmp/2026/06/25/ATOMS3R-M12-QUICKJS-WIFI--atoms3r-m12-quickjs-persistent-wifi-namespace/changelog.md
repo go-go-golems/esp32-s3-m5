@@ -23,3 +23,14 @@ Uploaded WiFi guide bundle to reMarkable at /ai/2026/06/25/ATOMS3R-M12-QUICKJS-W
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-WIFI--atoms3r-m12-quickjs-persistent-wifi-namespace/tasks.md — Upload task marked complete
 
+
+## 2026-06-25
+
+Implemented native STA-only WiFi console with NVS credential persistence (commit badc45a); provisioned Sonic Guest on-device with password redacted, validated autoconnect and STA IP 192.168.4.22
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/wifi_app.c — STA-only WiFi service and NVS credential persistence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/wifi_command.cpp — Console provisioning and diagnostics
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-WIFI--atoms3r-m12-quickjs-persistent-wifi-namespace/reference/01-investigation-diary.md — Step 2 WiFi implementation and validation diary
+

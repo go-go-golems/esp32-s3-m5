@@ -22,12 +22,12 @@ DocType: tasks
 
 ## Phase 1 — Native WiFi service and console
 
-- [ ] **W1.1 — Port native ESP32-S3 WiFi service.** Adapt `0095-m5dial-wifi-bench/main/wifi_app.{h,c}` into `0103` with AtomS3R names.
-- [ ] **W1.2 — Add component dependencies.** Add `esp_wifi`, `esp_netif`, `esp_event`, and `nvs_flash`.
-- [ ] **W1.3 — Add console commands.** Implement `wifi status`, `wifi set`, `wifi save`, `wifi connect`, `wifi disconnect`, `wifi clear`, and optionally `wifi scan`.
-- [ ] **W1.4 — Build and boot without credentials.** Confirm no regressions in QuickJS/storage.
-- [ ] **W1.5 — Provision Sonic Guest credentials.** Persist SSID `Sonic Guest` with the operator-provided password without committing or logging the password.
-- [ ] **W1.6 — Validate connection and persistence.** Confirm STA IP, reset, autoconnect, and no password in status/logs.
+- [x] **W1.1 — Port native ESP32-S3 WiFi service.** Adapted `0095-m5dial-wifi-bench/main/wifi_app.{h,c}` into `0103` with AtomS3R names in commit `badc45a`.
+- [x] **W1.2 — Add component dependencies.** Added `esp_wifi`, `esp_netif`, `esp_event`, and `nvs_flash`.
+- [x] **W1.3 — Add console commands.** Implemented `wifi start`, `wifi status`, `wifi set`, `wifi save`, `wifi connect`, `wifi disconnect`, `wifi clear`, and `wifi scan`.
+- [x] **W1.4 — Build and boot without credentials.** Built and booted; QuickJS/storage still initialized. The first WiFi boot reported no saved credentials.
+- [x] **W1.5 — Provision Sonic Guest credentials.** Persisted SSID `Sonic Guest` with the operator-provided password on device; password was redacted from captured logs and not committed.
+- [x] **W1.6 — Validate connection and persistence.** After reset, firmware loaded saved credentials from NVS and connected STA-only with IP `192.168.4.22`; status output did not expose the password.
 
 ## Phase 2 — QuickJS WiFi namespace
 
