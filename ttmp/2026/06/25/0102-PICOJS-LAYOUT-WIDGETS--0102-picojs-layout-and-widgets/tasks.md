@@ -4,7 +4,7 @@
 
 - [ ] Add tasks here
 
-- [ ] Implement App.layout and Layout row/col
-- [ ] Bind panels to layout regions
-- [ ] Implement gauge and status bar rendering
-- [ ] Validate dashboard console dump
+- [x] Implement App.layout and Layout row/col
+- [x] Bind panels to layout regions
+- [x] Implement gauge and status bar rendering
+- [x] Validate dashboard console dump

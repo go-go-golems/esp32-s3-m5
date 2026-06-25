@@ -34,6 +34,18 @@ app.statusbar('native picojs minimal');
 app.mount();
 'picojs hello loaded';
 )JS";
+constexpr const char *kPicoJsDashboardSource = R"JS(
+var app = OS.app('dashboard');
+app.layout(function (l) { l.row(1, 'bar').row('*', 'body'); });
+app.panel('bar').text('PicoJS Dashboard').at(0, 0).bold().fg('cyan');
+var body = app.panel('body').frame('single').title(' system ');
+body.text('ESP32-P4 native DSL').at('center', 1).bold().fg('cyan');
+body.gauge().at(2, 3).label('batt').value('battery').width(20).showPct();
+body.gauge().at(2, 5).label('heap').value(62).width(20).showPct();
+app.statusbar('dashboard native picojs');
+app.mount();
+'picojs dashboard loaded';
+)JS";
 
 qjs_service_t *g_qjs = nullptr;
 picojs_runtime_t *g_picojs = nullptr;
@@ -665,19 +677,22 @@ int cmd_picojs(int argc, char **argv)
         return err == ESP_OK ? 0 : 1;
     }
     if (std::strcmp(argv[1], "load") == 0) {
-        if (argc < 3 || std::strcmp(argv[2], "hello") != 0) {
-            std::printf("usage: picojs load hello\n");
+        if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0)) {
+            std::printf("usage: picojs load hello|dashboard\n");
             return 1;
         }
+        const bool dashboard = std::strcmp(argv[2], "dashboard") == 0;
+        const char *source = dashboard ? kPicoJsDashboardSource : kPicoJsHelloSource;
+        const char *filename = dashboard ? "<picojs-dashboard>" : "<picojs-hello>";
         esp_err_t install_err = install_picojs_runtime();
         if (install_err != ESP_OK) {
             std::printf("picojs install before load: %s\n", esp_err_to_name(install_err));
             return 1;
         }
         qjs_eval_result_t r = {};
-        esp_err_t err = qjs_service_eval(g_qjs, kPicoJsHelloSource, std::strlen(kPicoJsHelloSource), kEvalTimeoutMs, "<picojs-hello>", &r);
-        std::printf("picojs load hello: %s ok=%d timeout=%d elapsed=%ums\n",
-                    esp_err_to_name(err), r.ok, r.timed_out, (unsigned)r.elapsed_ms);
+        esp_err_t err = qjs_service_eval(g_qjs, source, std::strlen(source), kEvalTimeoutMs, filename, &r);
+        std::printf("picojs load %s: %s ok=%d timeout=%d elapsed=%ums\n",
+                    argv[2], esp_err_to_name(err), r.ok, r.timed_out, (unsigned)r.elapsed_ms);
         if (r.output && r.output[0]) std::printf("%s", r.output);
         if (r.error && r.error[0]) std::printf("error: %s\n", r.error);
         const bool ok = err == ESP_OK && r.ok && !r.timed_out;
@@ -719,7 +734,7 @@ int cmd_picojs(int argc, char **argv)
         std::printf("picojs key: %s token=%s\n", esp_err_to_name(err), argv[2]);
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picojs status | install | load hello | dump | frame [dt_ms] | key <token>\n");
+    std::printf("usage: picojs status | install | load hello|dashboard | dump | frame [dt_ms] | key <token>\n");
     return 1;
 }
 
@@ -816,7 +831,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picojs_cmd = {
         .command = "picojs",
-        .help = "PicoJS runtime: status | install | load hello | dump | frame [dt_ms] | key <token>",
+        .help = "PicoJS runtime: status | install | load hello|dashboard | dump | frame [dt_ms] | key <token>",
         .func = cmd_picojs,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picojs_cmd));

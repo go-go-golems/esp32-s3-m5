@@ -15,16 +15,21 @@ Owners: []
 RelatedFiles:
     - Path: 0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp
       Note: Firmware app orchestration and console command integration point
+    - Path: components/picojs_runtime/picojs_runtime.cpp
+      Note: Native layout and gauge implementation for dashboard slice
     - Path: components/qjs_service/include/qjs_service.h
       Note: QuickJS service API and JSContext job boundary
     - Path: components/visual_repl/include/visual_repl.h
       Note: Fixed-cell visual model and dump/render target
+    - Path: ttmp/2026/06/25/0102-PICOJS-LAYOUT-WIDGETS--0102-picojs-layout-and-widgets/scripts/01-layout-widgets-probe.py
+      Note: By-id UART probe for layout/widgets
 ExternalSources: []
 Summary: Rows/cols layout, gauges, status bar, and dashboard-style rendering.
 LastUpdated: 2026-06-25T15:30:00-07:00
 WhatFor: Plan and implementation guide for expand the native DSL from a single panel into useful dashboard layouts.
 WhenToUse: Use before implementing or reviewing this phase of the PicoJS device integration.
 ---
+
 
 
 # Design and Implementation Guide
