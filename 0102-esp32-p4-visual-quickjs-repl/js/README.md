@@ -91,6 +91,14 @@ Run the broader portable API self-tests and example gallery with:
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-bundle-smoke.sh
 ```
 
+For an interactive desktop emulator loop, run:
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-interactive.sh hello-api
+```
+
+Inside the prompt, use commands such as `open snake`, `key down`, `frame 130`, `run 10 100`, `show`, and `quit`. The interactive host itself uses `qjs --std` for stdin; app/runtime code remains portable.
+
 The examples preload `js/lib/*.js` and print fixed-cell snapshots that fit the PicoCalc-style 40-column display. To create a single paste/embed candidate for the device REPL, run:
 
 ```bash
