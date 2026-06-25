@@ -52,3 +52,13 @@ Completed child ticket 0102-PICOJS-MINIMAL-DSL: native OS/App/Panel/Text binding
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Minimal native DSL implementation now lives in picojs_runtime
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-MINIMAL-DSL--0102-picojs-minimal-native-dsl-slice/reference/01-implementation-diary.md — Validation evidence for completed child ticket
 
+
+## 2026-06-25
+
+Completed child ticket 0102-PICOJS-LAYOUT-WIDGETS: native layout row/col builder, panel region binding, gauges, dashboard validation, and reMarkable upload
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Layout and gauge DSL milestone implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-LAYOUT-WIDGETS--0102-picojs-layout-and-widgets/reference/01-implementation-diary.md — Validation evidence for completed child ticket
+
