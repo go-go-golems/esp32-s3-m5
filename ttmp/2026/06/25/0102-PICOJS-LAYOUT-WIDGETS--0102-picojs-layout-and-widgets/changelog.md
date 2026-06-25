@@ -15,3 +15,12 @@ Implemented native App.layout row/col builder, panel region binding, gauge widge
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Layout
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-LAYOUT-WIDGETS--0102-picojs-layout-and-widgets/scripts/01-layout-widgets-probe.py — Repeatable UART validation for layout/widgets
 
+
+## 2026-06-25
+
+Uploaded layout/widgets guide and diary to reMarkable at /ai/2026/06/25/0102-PICOJS-LAYOUT-WIDGETS
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-LAYOUT-WIDGETS--0102-picojs-layout-and-widgets/reference/01-implementation-diary.md — Updated diary included in upload
+
