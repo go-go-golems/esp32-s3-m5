@@ -42,3 +42,13 @@ Completed child ticket 0102-PICOJS-CONSOLE-FEEDBACK: js smoke, screen dump, by-i
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Console feedback commands implemented
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-CONSOLE-FEEDBACK--0102-picojs-console-feedback-loop/reference/01-implementation-diary.md — Validation evidence for completed child ticket
 
+
+## 2026-06-25
+
+Completed child ticket 0102-PICOJS-MINIMAL-DSL: native OS/App/Panel/Text bindings, hello load/frame/dump flow, reset reinstall handling, and reMarkable upload
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Minimal native DSL implementation now lives in picojs_runtime
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-MINIMAL-DSL--0102-picojs-minimal-native-dsl-slice/reference/01-implementation-diary.md — Validation evidence for completed child ticket
+
