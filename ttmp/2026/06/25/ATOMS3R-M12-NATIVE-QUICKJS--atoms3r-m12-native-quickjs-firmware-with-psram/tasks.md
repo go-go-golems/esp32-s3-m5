@@ -14,17 +14,17 @@ This task list is implementation-grade. Work top to bottom. Keep the ESP32-P4 an
 
 ## Phase 1 — Hardware flash and console smoke
 
-- [ ] **T1.1 — Start a tmux monitor session.** Use the AtomS3R by-id path and keep `/dev/ttyACM0`/ESP32-P4 untouched.
-- [ ] **T1.2 — Flash with `idf.py -p <AtomS3R-by-id> flash monitor`.** Use tmux so logs can be captured without flooding the chat.
-- [ ] **T1.3 — Confirm boot identity.** Verify logs show `0103`, ESP32-S3, USB Serial/JTAG, PSRAM initialized, and QuickJS service ready.
-- [ ] **T1.4 — Run console smoke.** Test `js status`, `js eval "print(1+2)"`, exception, completion value, `js reset`, and `js bench`.
-- [ ] **T1.5 — Capture logs.** Save tmux pane output to `/tmp/0103-atoms3r-m12-native-quickjs-smoke.log`.
-- [ ] **T1.6 — Update diary/changelog/tasks and commit hardware validation.**
+- [x] **T1.1 — Start a tmux monitor session.** Used a fresh tmux server socket with the AtomS3R by-id path and kept `/dev/ttyACM0`/ESP32-P4 untouched.
+- [x] **T1.2 — Flash with `idf.py -p <AtomS3R-by-id> flash monitor`.** Flashed successfully through `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00`.
+- [x] **T1.3 — Confirm boot identity.** Logs show `ESP32-S3-PICO-1`, embedded flash 8MB, embedded PSRAM 8MB, `0103`, PSRAM initialized, and QuickJS service ready.
+- [x] **T1.4 — Run console smoke.** `js status`, `print(1+2)`, exception, completion value, `js reset`, and `js bench` all passed.
+- [x] **T1.5 — Capture logs.** Saved monitor output to `/tmp/0103-atoms3r-m12-native-quickjs-smoke.log`.
+- [x] **T1.6 — Update diary/changelog/tasks and commit hardware validation.**
 
 ## Phase 2 — Memory characterization on AtomS3R M12
 
-- [ ] **T2.1 — Record boot heap and PSRAM size.** Capture `before_qjs` and `after_qjs` logs.
-- [ ] **T2.2 — Record `js status` before/after eval.** Capture QuickJS memory use, atom count, internal heap, 8-bit heap, and PSRAM free.
+- [x] **T2.1 — Record boot heap and PSRAM size.** Captured `before_qjs` and `after_qjs` logs: PSRAM initialized, size 8,388,608 bytes.
+- [x] **T2.2 — Record `js status` before/after eval.** Captured baseline `js status`: QuickJS used 49,760 bytes, atom count 518, internal free 184,715 bytes, 8-bit free 8,570,439 bytes, PSRAM free 8,385,724 bytes.
 - [ ] **T2.3 — Stress the 1 MiB QuickJS cap.** Run bounded array/string/object scripts and confirm clean failures or recoverability.
 - [ ] **T2.4 — Decide whether 2 MiB is safe.** Only raise the cap if WiFi/storage headroom remains credible.
 
