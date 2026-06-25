@@ -30,6 +30,10 @@ RelatedFiles:
         QuickJS service startup and PSRAM baseline logging
     - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
       Note: AtomS3R QuickJS console commands
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp
+      Note: Bounded virtual-rooted FatFs console and QuickJS storage namespace added in commit 521d5a2
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.h
+      Note: Storage namespace startup/install/console API added in commit 521d5a2
     - Path: 0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp
       Note: Read-only system namespace installer added in commit 690972c
     - Path: 0103-atoms3r-m12-native-quickjs/main/system_namespace.h
@@ -56,6 +60,7 @@ LastUpdated: 2026-06-25T22:30:00-07:00
 WhatFor: Use when implementing, flashing, validating, or extending the AtomS3R M12 native QuickJS firmware.
 WhenToUse: Read before working on `0103-atoms3r-m12-native-quickjs`, changing QuickJS memory limits, or adding WiFi/storage/display JavaScript APIs.
 ---
+
 
 
 
@@ -507,6 +512,16 @@ Recommended staged implementation:
 2. Add JavaScript `storage.status()`, `storage.list()`, `storage.stat()`, and `storage.readText()` only.
 3. Add `storage.writeText()` and `storage.remove()` after a flash-write smoke test and reset-cycle test.
 4. Add `js run <virtual-path>` once read limits and eval timeout behavior are proven.
+
+Implementation status as of commit `521d5a2`: steps 1 through 3 are implemented for the bounded storage surface. `0103` now mounts the `storage` partition at startup without formatting, exposes an explicit `storage mount format` console command for blank development partitions, installs a reset-safe QuickJS `storage` namespace, and supports bounded `status`, `list`, `stat`, `readText`, and `writeText`. Hardware smoke validated console write/read, JavaScript write/read/list/stat, virtual-root rejection, namespace restoration after `js reset`, and persistence across board reset. `js run <virtual-path>` remains intentionally unimplemented.
+
+Observed storage details from the AtomS3R smoke:
+
+- Blank partition startup failed safely with `f_mount failed (13)` and did not format silently.
+- `storage mount format` formatted and mounted the partition explicitly.
+- After formatting, board reset mounted `/storage` automatically without formatting.
+- FatFs returned uppercase 8.3-style names for short lowercase filenames in `storage.list('/scripts')` (`DEMO.JS`, `JSDEMO.JS`), while path lookup for lowercase input still worked.
+- The storage-enabled binary was `0xbe410` bytes, leaving 81% of the 4 MiB app partition free.
 
 ### Phase C: WiFi namespace
 

@@ -72,3 +72,15 @@ Designed future 0103 storage and WiFi JavaScript namespaces: bounded virtual-roo
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/design-doc/01-atoms3r-m12-native-quickjs-analysis-design-and-implementation-guide.md — Detailed storage and WiFi namespace contracts
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 5 design diary
 
+
+## 2026-06-25
+
+Implemented bounded FatFs script storage for 0103 (commit 521d5a2): explicit mount/format console command, virtual-rooted QuickJS storage namespace, reset-safe reinstall, hardware smoke, and board-reset persistence
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/app_main.cpp — Startup non-format mount and namespace install
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/js_command.cpp — Reinstalls storage namespace after js reset
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp — Storage implementation and QuickJS bindings
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 6 storage implementation diary
+

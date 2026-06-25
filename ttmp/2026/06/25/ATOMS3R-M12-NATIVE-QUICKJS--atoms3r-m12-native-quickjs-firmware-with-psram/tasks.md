@@ -33,7 +33,7 @@ This task list is implementation-grade. Work top to bottom. Keep the ESP32-P4 an
 - [x] **T3.1 — Split binding installers if needed.** Added a 0103-local `system_namespace` installer that mutates QuickJS through `qjs_service_run()` instead of crowding `qjs_service.cpp`.
 - [x] **T3.2 — Add a read-only `system` namespace.** Exposes firmware, board, target, ticket, PSRAM, flash, and QuickJS limit metadata; smoke confirmed non-extensible/read-only behavior and reset persistence.
 - [x] **T3.3 — Design WiFi and storage namespaces.** Added concrete staged contracts: virtual-rooted bounded FatFs `storage`, native ESP32-S3 request/status `wifi`, no password exposure, and no blocking WiFi scans/connects on the QuickJS owner task.
-- [ ] **T3.4 — Add script storage only after runtime memory is characterized.** Use size-limited reads and virtual roots.
+- [x] **T3.4 — Add script storage only after runtime memory is characterized.** Added bounded virtual-rooted FatFs storage with console commands and QuickJS `storage.status/list/stat/readText/writeText`; hardware smoke passed after explicit dev-format and survived board reset.
 
 ## Phase 4 — Optional AtomS3R display integration
 

@@ -802,3 +802,219 @@ storage,  data, fat,     ,         3M,
 - README updated: `0103-atoms3r-m12-native-quickjs/README.md`.
 - Native WiFi reference: `0095-m5dial-wifi-bench/main/wifi_app.h` and `0095-m5dial-wifi-bench/main/wifi_console.c`.
 - Storage partition reference: `0103-atoms3r-m12-native-quickjs/partitions.csv`.
+
+## Step 6: Implement bounded FatFs script storage
+
+This step turns the storage namespace design into firmware. The implementation adds a 0103-local FatFs storage layer with virtual-root path checks, explicit mount/format console control, bounded read/write operations, and a reset-safe QuickJS `storage` namespace.
+
+The storage path remains conservative. Startup attempts to mount `/storage` without formatting, so a blank or corrupt partition does not get silently erased. For this development board, the first boot reported an unformatted partition; I then ran `storage mount format` explicitly, validated console and JavaScript storage operations, and reset the board to prove that the formatted partition mounts normally afterward.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 5)
+
+**Assistant interpretation:** Continue from the storage/WiFi namespace design into the next concrete AtomS3R implementation task.
+
+**Inferred user intent:** Add script storage only after the memory cap and runtime reset behavior were validated, while preserving bounded and explicit firmware API behavior.
+
+**Commit (code):** 521d5a209b49c165e863155570bf96ff75d2a4df — "0103: add bounded QuickJS storage namespace"
+
+### What I did
+
+- Added `0103-atoms3r-m12-native-quickjs/main/storage_namespace.h`.
+- Added `0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp`.
+- Updated `main/CMakeLists.txt` with:
+  - `storage_namespace.cpp`
+  - `fatfs`
+  - `wear_levelling`
+- Updated `app_main.cpp` to:
+  - mount storage without formatting at startup,
+  - log `after_storage` heap/PSRAM baselines,
+  - install the QuickJS `storage` namespace,
+  - register the `storage` console command.
+- Updated `js_command.cpp` so `js reset` reinstalls both `system` and `storage`.
+- Updated `README.md` with storage console commands, JavaScript examples, limits, and the explicit `storage mount format` first-boot rule.
+- Built, flashed, and smoke-tested on the AtomS3R by-id USB Serial/JTAG path.
+
+### Why
+
+- The ticket had already characterized the 1 MiB QuickJS cap, so script storage could be added with bounded string allocation.
+- A virtual-root storage API is safer than exposing arbitrary POSIX paths or desktop QuickJS `std`/`os`.
+- Startup should not silently format flash. The operator must explicitly opt into formatting a blank development partition.
+
+### What worked
+
+- Final build passed:
+
+```text
+0103-atoms3r-m12-native-quickjs.bin binary size 0xbe410 bytes. Smallest app partition is 0x400000 bytes. 0x341bf0 bytes (81%) free.
+```
+
+- First boot on the blank partition failed safely without formatting:
+
+```text
+W (...) vfs_fat_spiflash: f_mount failed (13)
+W (...) 0103_storage: mount /storage partition=storage failed: ESP_FAIL
+W (...) 0103: storage mount skipped/failed: ESP_FAIL (run `storage mount format` for a blank dev partition)
+```
+
+- Explicit developer format worked:
+
+```text
+storage mount format
+W (...) vfs_fat_spiflash: f_mount failed (13)
+I (...) vfs_fat_spiflash: Formatting FATFS partition, allocation unit size=4096
+I (...) vfs_fat_spiflash: Mounting again
+I (...) 0103_storage: mounted /storage partition=storage
+mount: ESP_OK (format allowed)
+```
+
+- Console write/read worked:
+
+```text
+storage write /scripts/demo.js print123
+write: ESP_OK
+storage read /scripts/demo.js
+print123
+```
+
+- JavaScript storage status worked:
+
+```text
+js eval "storage.status().mounted"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=2ms
+true
+```
+
+- JavaScript write/read worked:
+
+```text
+js eval "storage.writeText('/scripts/jsdemo.js','print(456)').bytes"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=288ms
+10
+
+js eval "storage.readText('/scripts/jsdemo.js')"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=6ms
+print(456)
+```
+
+- JavaScript list/stat worked:
+
+```text
+js eval "JSON.stringify(storage.list('/scripts'))"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=6ms
+[{"name":"DEMO.JS","type":"file","size":8},{"name":"JSDEMO.JS","type":"file","size":10}]
+
+js eval "JSON.stringify(storage.stat('/scripts/jsdemo.js'))"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=5ms
+{"type":"file","size":10}
+```
+
+- Namespace reinstall after `js reset` worked:
+
+```text
+js reset
+reset: ESP_OK
+js eval "storage.readText('/scripts/jsdemo.js')"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=6ms
+print(456)
+```
+
+- Virtual-root rejection worked:
+
+```text
+js eval "(()=>{try{storage.readText('/bad/x')}catch(e){print(e)}})()"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=4ms
+InternalError: storage.readText: ESP_ERR_NOT_ALLOWED
+```
+
+- Board reset after formatting mounted storage automatically without formatting and preserved the file:
+
+```text
+I (...) 0103_storage: mounted /storage partition=storage
+storage status
+mounted=1 mount=/storage partition=storage last_mount=ESP_OK max_read=16384 max_write=16384
+js eval "storage.readText('/scripts/jsdemo.js')"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=5ms
+print(456)
+```
+
+### What didn't work
+
+- The first storage build failed because the compiler treated a possible `snprintf()` truncation in the directory-list child path as an error:
+
+```text
+storage_namespace.cpp:397:44: error: '%s' directive output may be truncated writing up to 255 bytes into a region of size between 0 and 159 [-Werror=format-truncation=]
+  397 |         snprintf(child, sizeof(child), "%s/%s", path, ent->d_name);
+```
+
+- I fixed it by checking the `snprintf()` return value before calling `stat()` on the child path.
+- My first JavaScript storage commands used `\x27` escaping and therefore reached QuickJS malformed. Re-sending literal single-quoted JavaScript paths fixed the test.
+
+### What I learned
+
+- The reserved `storage` partition was blank, so the first non-format mount correctly failed with FatFs `FR_NO_FILESYSTEM` (`f_mount failed (13)`).
+- Explicit formatting through `storage mount format` creates a persistent filesystem that subsequent boots mount normally.
+- FatFs surfaced short filenames as uppercase (`DEMO.JS`, `JSDEMO.JS`) in directory listings, even though lowercase path lookup worked. This should be documented for script-browser UI work.
+- Mounting the wear-levelled FatFs partition consumes visible heap/PSRAM headroom; memory baselines should continue to be captured before adding WiFi.
+
+### What was tricky to build
+
+- The main safety boundary is path normalization. The implementation accepts only `/scripts`, `/data`, and `/tmp` virtual roots and rejects `..`, `.`, repeated separators, backslashes, colons, and native absolute paths.
+- Reset semantics mattered again. Because `js reset` recreates the QuickJS runtime, `storage` must be reinstalled just like `system`.
+- FatFs formatting needed to be explicit. Auto-format would make first boot convenient but could erase scripts after a mount error, so startup only logs the failure and tells the operator to run `storage mount format`.
+
+### What warrants a second pair of eyes
+
+- Review `storage_namespace.cpp` path validation for any escaping edge cases.
+- Review whether write operations should remain synchronous on the QuickJS owner task. They are bounded to 16 KiB, but flash writes can still take hundreds of milliseconds.
+- Review QuickJS value ownership in the namespace installer and JS return-object construction.
+- Review whether uppercase FatFs directory entries should be normalized in JavaScript results or left as filesystem-reported names.
+
+### What should be done in the future
+
+- Add `js run <virtual-path>` after deciding how source filenames, eval timeouts, and errors should be reported.
+- Consider read-only `storage.readText()` first for scripts larger than console command limits, then evaluate from the returned string explicitly.
+- Measure heap after repeated write/read/reset cycles.
+- Do not add WiFi until the storage-enabled memory baseline is accepted.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp`.
+- Review constants: `kMaxReadBytes`, `kMaxWriteBytes`, `kMaxListEntries`, and `kMaxPathBytes`.
+- Review `validate_virtual_path()` and `native_path_for()` before reviewing the JS bindings.
+- Review startup and reset call sites in `app_main.cpp` and `js_command.cpp`.
+- Validate with:
+
+```bash
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+cd 0103-atoms3r-m12-native-quickjs
+idf.py --no-hints build
+PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00
+idf.py --no-hints -p "$PORT" flash monitor
+```
+
+- Then run:
+
+```text
+storage status
+storage mount format        # only on a blank development partition
+storage write /scripts/demo.js print123
+storage read /scripts/demo.js
+js eval "storage.writeText('/scripts/jsdemo.js','print(456)').bytes"
+js eval "storage.readText('/scripts/jsdemo.js')"
+js eval "JSON.stringify(storage.list('/scripts'))"
+js reset
+js eval "storage.readText('/scripts/jsdemo.js')"
+```
+
+### Technical details
+
+- Storage smoke log: `/tmp/0103-atoms3r-m12-native-quickjs-storage-smoke.log`.
+- Storage partition: `storage, data, fat, 3M`.
+- Mount path: `/storage`.
+- Virtual roots: `/scripts`, `/data`, `/tmp`.
+- Read/write limit: 16 KiB per call.
+- List limit: 64 entries.
+- Final binary size: `0xbe410` bytes.
+- Final app partition free: `0x341bf0` bytes, 81%.
