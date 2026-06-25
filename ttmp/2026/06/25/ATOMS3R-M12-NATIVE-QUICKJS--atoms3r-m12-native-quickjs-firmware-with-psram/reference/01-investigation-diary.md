@@ -51,7 +51,7 @@ Create  a detailed analysis / design / implementation guide that is for a new in
 
 **Inferred user intent:** Validate that the smaller ESP32-S3R8-class AtomS3R M12 can run the native QuickJS service with PSRAM headroom, then use that as a foundation for later WiFi/storage/device API work.
 
-**Commit (code):** TBD — "0103: add AtomS3R M12 native QuickJS scaffold"
+**Commit (code):** 3bfd6cc8670cb9ae756e706dbc065467c56e4d04 — "0103: add AtomS3R M12 native QuickJS scaffold"
 
 ### What I did
 

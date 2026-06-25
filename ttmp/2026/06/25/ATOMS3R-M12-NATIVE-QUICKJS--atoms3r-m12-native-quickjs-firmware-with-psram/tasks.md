@@ -10,7 +10,7 @@ This task list is implementation-grade. Work top to bottom. Keep the ESP32-P4 an
 - [x] **T0.4 — Create investigation diary.** Record serial identification, design, firmware scaffold, and first build result.
 - [x] **T0.5 — Create `0103-atoms3r-m12-native-quickjs`.** Add firmware skeleton that reuses `components/quickjs_native` and `components/qjs_service`.
 - [x] **T0.6 — Build the scaffold.** Build for `esp32s3`; binary currently builds at `0xb4d00`, with 82% free in the 4 MiB app partition.
-- [ ] **T0.7 — Relate files, update changelog, run doctor, upload bundle to reMarkable, and commit.**
+- [x] **T0.7 — Relate files, update changelog, run doctor, upload bundle to reMarkable, and commit.**
 
 ## Phase 1 — Hardware flash and console smoke
 
