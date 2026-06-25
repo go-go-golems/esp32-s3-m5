@@ -15,4 +15,4 @@ else
   fi
 fi
 
-"$QJS" "$JS_DIR/host-shim.js" "$JS_DIR/examples/smoke.js"
+"$QJS" -I "$JS_DIR/host-shim.js" "$JS_DIR/examples/smoke.js"

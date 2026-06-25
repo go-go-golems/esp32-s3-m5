@@ -69,16 +69,17 @@ From the repository root of this worktree:
 
 ```bash
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5-js
-qjs 0102-esp32-p4-visual-quickjs-repl/js/host-shim.js \
+qjs -I 0102-esp32-p4-visual-quickjs-repl/js/host-shim.js \
     0102-esp32-p4-visual-quickjs-repl/js/examples/smoke.js
 ```
 
-If `qjs` is not installed globally, build/use the vendored upstream QuickJS CLI:
+If `qjs` is not installed globally, initialize/build/use the vendored upstream QuickJS CLI:
 
 ```bash
+git submodule update --init 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs
 cd /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5-js/0100-esp32-p4-quickjs-wasm/wasm-src/quickjs
 make qjs
-./qjs ../../../../0102-esp32-p4-visual-quickjs-repl/js/host-shim.js \
+./qjs -I ../../../../0102-esp32-p4-visual-quickjs-repl/js/host-shim.js \
       ../../../../0102-esp32-p4-visual-quickjs-repl/js/examples/smoke.js
 ```
 

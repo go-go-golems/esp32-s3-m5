@@ -1,0 +1,3 @@
+[submodule "0100-esp32-p4-quickjs-wasm/wasm-src/quickjs"]
+	path = 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs
+	url = https://github.com/bellard/quickjs.git
