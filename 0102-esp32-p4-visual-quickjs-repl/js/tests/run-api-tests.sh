@@ -10,14 +10,19 @@ else
   QJS="$ROOT/0100-esp32-p4-quickjs-wasm/wasm-src/quickjs/qjs"
   if [[ ! -x "$QJS" ]]; then
     echo "qjs not found. Either install qjs or build vendored QuickJS:" >&2
-    echo "  git submodule update --init $ROOT/0100-esp32-p4-quickjs-wasm/wasm-src/quickjs" >&2
+    echo "  git submodule update --init 0100-esp32-p4-quickjs-wasm/wasm-src/quickjs" >&2
     echo "  make -C $ROOT/0100-esp32-p4-quickjs-wasm/wasm-src/quickjs qjs" >&2
     exit 1
   fi
 fi
 
-"$QJS" \
-  -I "$JS_DIR/host-shim.js" \
-  -I "$JS_DIR/lib/00-core.js" \
-  -I "$JS_DIR/lib/10-screen.js" \
-  "$JS_DIR/tests/screen-snapshot.js"
+for test_file in \
+  "$JS_DIR/tests/screen-snapshot.js" \
+  "$JS_DIR/tests/os-sim-test.js"; do
+  "$QJS" \
+    -I "$JS_DIR/host-shim.js" \
+    -I "$JS_DIR/lib/00-core.js" \
+    -I "$JS_DIR/lib/10-screen.js" \
+    -I "$JS_DIR/lib/20-os-sim.js" \
+    "$test_file"
+done
