@@ -15,6 +15,7 @@
 #include "esp_console.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "system_namespace.h"
 
 namespace {
 constexpr const char *kTag = "0103_js";
@@ -122,6 +123,13 @@ int cmd_reset()
         return 1;
     }
     esp_err_t err = qjs_service_reset(g_svc, kResetTimeoutMs);
+    if (err == ESP_OK) {
+        esp_err_t sys_err = install_system_namespace(g_svc);
+        if (sys_err != ESP_OK) {
+            std::printf("reset: ESP_OK, system namespace: %s\n", esp_err_to_name(sys_err));
+            return 1;
+        }
+    }
     std::printf("reset: %s\n", esp_err_to_name(err));
     return err == ESP_OK ? 0 : 1;
 }

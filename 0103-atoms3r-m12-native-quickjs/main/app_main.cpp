@@ -8,6 +8,7 @@
 
 #include "js_command.h"
 #include "qjs_service.h"
+#include "system_namespace.h"
 
 namespace {
 constexpr const char *kTag = "0103";
@@ -57,7 +58,11 @@ extern "C" void app_main(void)
     qjs_service_t *svc = start_quickjs_service();
     log_memory_baseline("after_qjs");
     if (svc) {
-        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"print(1+2)\" | js bench");
+        esp_err_t sys_err = install_system_namespace(svc);
+        if (sys_err != ESP_OK) {
+            ESP_LOGW(kTag, "install_system_namespace failed: %s", esp_err_to_name(sys_err));
+        }
+        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"system.board\" | js bench");
     } else {
         ESP_LOGE(kTag, "QuickJS service unavailable; console will still start");
     }
