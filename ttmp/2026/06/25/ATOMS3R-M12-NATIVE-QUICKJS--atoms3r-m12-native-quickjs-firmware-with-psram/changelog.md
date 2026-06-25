@@ -38,3 +38,14 @@ Validated 0103 on AtomS3R M12 hardware: by-id flash succeeded, ESP32-S3-PICO-1 w
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 2 hardware validation diary
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/tasks.md — Phase 1 and initial Phase 2 task updates
 
+
+## 2026-06-25
+
+Completed AtomS3R QuickJS memory characterization: 20k numeric array succeeded, oversized allocation failed cleanly as InternalError: out of memory, reset restored baseline, and the 1 MiB cap remains the default
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/design-doc/01-atoms3r-m12-native-quickjs-analysis-design-and-implementation-guide.md — Updated with hardware and memory-characterization results
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 3 records memory stress evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/tasks.md — Phase 2 completion and cap decision
+

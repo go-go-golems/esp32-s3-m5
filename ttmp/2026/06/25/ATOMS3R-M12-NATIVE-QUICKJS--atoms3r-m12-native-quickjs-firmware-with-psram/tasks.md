@@ -25,8 +25,8 @@ This task list is implementation-grade. Work top to bottom. Keep the ESP32-P4 an
 
 - [x] **T2.1 — Record boot heap and PSRAM size.** Captured `before_qjs` and `after_qjs` logs: PSRAM initialized, size 8,388,608 bytes.
 - [x] **T2.2 — Record `js status` before/after eval.** Captured baseline `js status`: QuickJS used 49,760 bytes, atom count 518, internal free 184,715 bytes, 8-bit free 8,570,439 bytes, PSRAM free 8,385,724 bytes.
-- [ ] **T2.3 — Stress the 1 MiB QuickJS cap.** Run bounded array/string/object scripts and confirm clean failures or recoverability.
-- [ ] **T2.4 — Decide whether 2 MiB is safe.** Only raise the cap if WiFi/storage headroom remains credible.
+- [x] **T2.3 — Stress the 1 MiB QuickJS cap.** A 20k-number array completed successfully; an oversized string-array allocation failed cleanly as `InternalError: out of memory`; runtime remained usable and reset restored the baseline.
+- [x] **T2.4 — Decide whether 2 MiB is safe.** Keep the default at 1 MiB for now. Do not raise to 2 MiB until WiFi/TLS/storage memory pressure is measured.
 
 ## Phase 3 — Extension readiness
 

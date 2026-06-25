@@ -361,3 +361,147 @@ tmux -L qjs0103 new-session -d -s qjs0103 "bash -lc 'source /home/manuel/esp/esp
 - QuickJS runtime init: `9 ms`.
 - QuickJS memory limit: `1,048,576 bytes`.
 - QuickJS status baseline: `used=49,760`, `atoms=518`.
+
+## Step 3: Characterize the 1 MiB QuickJS memory cap
+
+The second hardware pass kept the same flashed firmware and attached a fresh tmux monitor to run controlled memory-pressure scripts. This pass tested whether the initial 1 MiB QuickJS heap cap fails safely and whether the runtime remains usable after an allocation failure.
+
+The result supports keeping the default cap at 1 MiB for the next milestone. A bounded 20,000-element numeric array completed successfully. A deliberately oversized allocation failed as a JavaScript-visible `InternalError: out of memory`, not as a firmware crash, watchdog reset, or serial disconnect. A later `js status` and `js reset` confirmed the service remained responsive.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same tmux/hardware-validation guidance as Step 2)
+
+**Assistant interpretation:** Continue the AtomS3R hardware validation through tmux, capture bounded stress evidence, and update the ticket before moving to feature work.
+
+**Inferred user intent:** Validate runtime limits and stability before adding higher-level JavaScript APIs or storage/WiFi features.
+
+**Commit (code):** 3bfd6cc8670cb9ae756e706dbc065467c56e4d04 — "0103: add AtomS3R M12 native QuickJS scaffold"
+
+### What I did
+
+- Attached a new monitor session through `tmux -L qjs0103`.
+- Captured the run to:
+
+```text
+/tmp/0103-atoms3r-m12-native-quickjs-memory-stress.log
+```
+
+- Ran a clean reset and baseline status.
+- Ran a bounded numeric-array stress script:
+
+```text
+js eval "(()=>{let a=[]; for(let i=0;i<20000;i++) a.push(i); print(\"array20k\",a.length);})()"
+```
+
+- Ran an oversized string-array stress script that was expected to hit the 1 MiB cap:
+
+```text
+js eval "try{let a=[]; for(let i=0;i<200000;i++) a.push(\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"); print(\"made\",a.length)}catch(e){print(\"caught\",e)}"
+```
+
+- Ran `js status`, `js reset`, and a final `js status` after the allocation failure.
+- Released the serial port after the run.
+
+### Why
+
+- Phase 1 showed the runtime boots and evaluates simple programs. Phase 2 needed evidence that the memory cap is a safe operational boundary.
+- The firmware should reject excessive JavaScript allocations without destabilizing the ESP32-S3 process.
+- The cap decision affects future WiFi, TLS, storage, and JavaScript API work.
+
+### What worked
+
+- Baseline after reset:
+
+```text
+ready=1 busy=0 evals=0 resets=1 last_eval_ms=0
+limits: memory=1048576 stack=65536
+quickjs: used=49760 malloc=360 atoms=518
+esp_heap: internal=184695 8bit=8570419 psram=8385724
+```
+
+- Bounded numeric array succeeded:
+
+```text
+[atoms3r-eval] ok=1 timed_out=0 elapsed=94ms
+array20k 20000
+```
+
+- Status after the bounded script returned close to baseline:
+
+```text
+ready=1 busy=0 evals=1 resets=1 last_eval_ms=94
+limits: memory=1048576 stack=65536
+quickjs: used=49816 malloc=360 atoms=518
+esp_heap: internal=184579 8bit=8570303 psram=8385724
+```
+
+- Oversized allocation failed cleanly inside QuickJS:
+
+```text
+[atoms3r-eval] ok=1 timed_out=0 elapsed=457ms
+caught InternalError: out of memory
+```
+
+- Status after the out-of-memory condition showed the service remained ready:
+
+```text
+ready=1 busy=0 evals=2 resets=1 last_eval_ms=457
+limits: memory=1048576 stack=65536
+quickjs: used=49872 malloc=360 atoms=518
+esp_heap: internal=184407 8bit=8570131 psram=8385724
+```
+
+- Reset restored the QuickJS baseline:
+
+```text
+reset: ESP_OK
+ready=1 busy=0 evals=2 resets=2 last_eval_ms=457
+limits: memory=1048576 stack=65536
+quickjs: used=49760 malloc=360 atoms=518
+esp_heap: internal=184379 8bit=8570103 psram=8385724
+```
+
+### What didn't work
+
+- Attaching `idf.py monitor` reset the board through USB/JTAG control-line behavior. This was acceptable for the stress run but should be remembered when trying to preserve an in-memory JavaScript session across monitor attaches.
+- Long console commands wrap visually in `esp_console`/monitor output. The command still executed correctly, but logs include wrapped/duplicated prompt fragments.
+
+### What I learned
+
+- The 1 MiB QuickJS cap is a usable first default on AtomS3R M12.
+- Out-of-memory behavior is recoverable at the JavaScript/service level when the script catches the exception.
+- The firmware does not need a cap increase before the first API namespace work.
+
+### What was tricky to build
+
+- The main trickiness was separating JavaScript memory pressure from ESP-IDF heap pressure. `js status` is the useful command because it reports both QuickJS allocator statistics and ESP heap baselines.
+- The out-of-memory script had to catch the exception so the console command could return `ok=1` while still proving the cap was reached.
+- Monitor attach reset behavior means each stress run should explicitly start from `js reset` and capture a fresh baseline.
+
+### What warrants a second pair of eyes
+
+- Review whether the `ok=1` result for a caught `InternalError: out of memory` is the desired console semantics. It is correct JavaScript semantics because the script catches the exception, but operators may want a dedicated stress command later.
+- Review whether we should add a built-in `js stress` command for repeatable measurements instead of relying on long one-line eval strings.
+- Review the small internal heap drift after eval/reset cycles to decide whether longer soak tests are needed.
+
+### What should be done in the future
+
+- Add repeated eval/reset soak testing if the firmware begins to run long-lived scripts.
+- Keep `QJS_SERVICE_DEFAULT_MEMORY_LIMIT_BYTES` at 1 MiB until WiFi/TLS/storage are integrated and measured.
+- Consider a Kconfig knob for the cap once multiple firmware roles need different JavaScript budgets.
+
+### Code review instructions
+
+- Review `/tmp/0103-atoms3r-m12-native-quickjs-memory-stress.log` for the exact command sequence and outputs.
+- Compare baseline, post-array, post-OOM, and post-reset `js status` blocks.
+- Confirm the task checklist marks Phase 2 as complete only because the cap decision is conservative: keep 1 MiB, do not raise to 2 MiB yet.
+
+### Technical details
+
+- Monitor log: `/tmp/0103-atoms3r-m12-native-quickjs-memory-stress.log`.
+- Cap under test: `1,048,576 bytes`.
+- Stack cap: `65,536 bytes`.
+- Successful stress: 20,000 numeric array entries, `94 ms`.
+- Clean failure stress: 200,000 string pushes, `InternalError: out of memory`, `457 ms`.
+- Decision: keep 1 MiB default until WiFi/TLS/storage memory pressure is measured.

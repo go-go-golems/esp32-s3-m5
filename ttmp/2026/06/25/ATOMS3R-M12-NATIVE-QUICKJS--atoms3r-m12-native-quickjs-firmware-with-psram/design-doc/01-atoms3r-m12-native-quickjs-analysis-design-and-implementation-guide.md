@@ -70,7 +70,9 @@ The ESP32-P4 is the CH343 bridge and must not be used for this firmware:
 /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 -> /dev/ttyACM0
 ```
 
-The initial scaffold already builds for `esp32s3`. The current binary is `0xb4d00` bytes, leaving 82% free in the 4 MiB app partition. The next step is to flash and validate in a tmux `idf.py monitor` session using the AtomS3R by-id path.
+The scaffold builds for `esp32s3`; the validated binary is `0xb4d00` bytes, leaving 82% free in the 4 MiB app partition. Hardware validation succeeded on the AtomS3R by-id USB Serial/JTAG path. The boot logs identified `ESP32-S3-PICO-1`, embedded 8 MB flash, embedded 8 MB PSRAM, and PSRAM initialized at 80 MHz. QuickJS initialized in 9 ms, simple eval/exception/reset/bench smoke passed, and the 1 MiB QuickJS cap failed cleanly as `InternalError: out of memory` under deliberate allocation pressure.
+
+Current memory evidence supports keeping the default QuickJS cap at 1 MiB for the next milestone. Do not raise the cap to 2 MiB until WiFi/TLS/storage memory pressure is measured on the same board.
 
 ## Problem statement
 
