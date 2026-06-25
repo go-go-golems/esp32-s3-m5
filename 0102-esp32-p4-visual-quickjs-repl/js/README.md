@@ -104,6 +104,7 @@ For a native C++ host emulator that embeds QuickJS and implements the first pico
 ```bash
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-host.sh hello-native
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-host.sh dashboard-native
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-host.sh layout-native
 0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-smoke.sh
 ```
 

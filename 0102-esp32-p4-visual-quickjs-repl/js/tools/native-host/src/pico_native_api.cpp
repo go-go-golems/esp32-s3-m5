@@ -85,6 +85,7 @@ struct Screen {
 
 struct Runtime;
 struct App;
+struct Layout;
 struct Panel;
 struct Widget;
 
@@ -158,6 +159,7 @@ struct Panel {
 struct App {
   Runtime *rt = nullptr;
   std::string name;
+  std::map<std::string, Rect> regions;
   std::map<std::string, std::unique_ptr<Panel>> panels;
   std::vector<std::unique_ptr<Panel>> panel_order;
   std::vector<Timer> timers;
@@ -165,6 +167,13 @@ struct App {
   StoredValue statusbar;
   bool mounted = false;
   bool exited = false;
+};
+
+struct Layout {
+  struct Segment { std::string size; std::string id; };
+  App *app = nullptr;
+  std::string axis;
+  std::vector<Segment> segments;
 };
 
 struct Runtime {
@@ -180,6 +189,7 @@ struct Runtime {
 JSClassID g_app_class;
 JSClassID g_panel_class;
 JSClassID g_widget_class;
+JSClassID g_layout_class;
 Runtime *g_current_runtime = nullptr;
 
 std::string js_to_string(JSContext *ctx, JSValueConst v) {
@@ -306,6 +316,7 @@ JSValue js_os_launch(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
 }
 
 JSValue make_app_object(JSContext *ctx, App *app);
+JSValue make_layout_object(JSContext *ctx, Layout *layout);
 JSValue make_panel_object(JSContext *ctx, Panel *panel);
 JSValue make_widget_object(JSContext *ctx, Widget *widget);
 
@@ -321,6 +332,17 @@ JSValue js_os_app(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv) {
 
 JSValue js_app_state(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv) { return argc ? JS_DupValue(ctx, argv[0]) : JS_NewObject(ctx); }
 JSValue js_app_mount(JSContext *ctx, JSValueConst this_val, int, JSValueConst *) { auto *a = static_cast<App *>(JS_GetOpaque(this_val, g_app_class)); if (a) a->mounted = true; return JS_DupValue(ctx, this_val); }
+JSValue js_app_layout(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+  auto *a = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
+  if (!a || argc < 1 || !JS_IsFunction(ctx, argv[0])) return JS_DupValue(ctx, this_val);
+  Layout layout;
+  layout.app = a;
+  JSValue layout_obj = make_layout_object(ctx, &layout);
+  JSValue ret = JS_Call(ctx, argv[0], JS_UNDEFINED, 1, &layout_obj);
+  JS_FreeValue(ctx, ret);
+  JS_FreeValue(ctx, layout_obj);
+  return JS_DupValue(ctx, this_val);
+}
 JSValue js_app_exit(JSContext *ctx, JSValueConst this_val, int, JSValueConst *) { auto *a = static_cast<App *>(JS_GetOpaque(this_val, g_app_class)); if (a) a->exited = true; return JS_DupValue(ctx, this_val); }
 JSValue js_app_statusbar(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) { auto *a = static_cast<App *>(JS_GetOpaque(this_val, g_app_class)); if (a && argc) a->statusbar = StoredValue(ctx, argv[0]); return JS_DupValue(ctx, this_val); }
 JSValue js_app_on(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
@@ -342,11 +364,41 @@ JSValue js_app_panel(JSContext *ctx, JSValueConst this_val, int argc, JSValueCon
   std::string id = argc ? js_to_string(ctx, argv[0]) : "main";
   auto p = std::make_unique<Panel>();
   p->app = a;
-  p->rect = {0, 0, a->rt->screen.cols, a->rt->screen.rows - 1};
-  (void)id;
+  auto region = a->regions.find(id);
+  p->rect = region == a->regions.end() ? Rect{0, 0, a->rt->screen.cols, a->rt->screen.rows - 1} : region->second;
   Panel *ptr = p.get();
   a->panel_order.push_back(std::move(p));
   return make_panel_object(ctx, ptr);
+}
+
+
+void layout_recompute(Layout *l) {
+  if (!l || !l->app) return;
+  int total = l->axis == "cols" ? l->app->rt->screen.cols : l->app->rt->screen.rows - 1;
+  int fixed = 0, stars = 0;
+  for (const auto &s : l->segments) {
+    if (s.size == "*") ++stars;
+    else fixed += std::atoi(s.size.c_str());
+  }
+  int star_size = stars ? std::max(1, (total - fixed) / stars) : 0;
+  int pos = 0;
+  for (size_t i = 0; i < l->segments.size(); ++i) {
+    const auto &seg = l->segments[i];
+    int sz = seg.size == "*" ? star_size : std::atoi(seg.size.c_str());
+    if (i + 1 == l->segments.size()) sz = total - pos;
+    l->app->regions[seg.id] = l->axis == "cols" ? Rect{pos, 0, sz, total} : Rect{0, pos, l->app->rt->screen.cols, sz};
+    pos += sz;
+  }
+}
+
+JSValue js_layout_add(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic) {
+  auto *l = static_cast<Layout *>(JS_GetOpaque(this_val, g_layout_class));
+  if (!l || argc < 2) return JS_DupValue(ctx, this_val);
+  std::string axis = magic == 1 ? "cols" : "rows";
+  if (l->axis.empty()) l->axis = axis;
+  l->segments.push_back({js_to_string(ctx, argv[0]), js_to_string(ctx, argv[1])});
+  layout_recompute(l);
+  return JS_DupValue(ctx, this_val);
 }
 
 JSValue js_panel_frame(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) { auto *p = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class)); if (p) p->frame = argc ? js_to_string(ctx, argv[0]) : "single"; return JS_DupValue(ctx, this_val); }
@@ -366,14 +418,15 @@ JSValue js_widget_show_pct(JSContext *ctx, JSValueConst this_val, int, JSValueCo
 JSValue js_widget_style(JSContext *ctx, JSValueConst this_val, int, JSValueConst *) { return JS_DupValue(ctx, this_val); }
 
 void add_funcs(JSContext *ctx, JSValue obj, const JSCFunctionListEntry *funcs, int count) { JS_SetPropertyFunctionList(ctx, obj, funcs, count); }
-JSValue make_app_object(JSContext *ctx, App *app) { JSValue o = JS_NewObjectClass(ctx, g_app_class); JS_SetOpaque(o, app); static const JSCFunctionListEntry funcs[] = { JS_CFUNC_DEF("state", 1, js_app_state), JS_CFUNC_DEF("panel", 1, js_app_panel), JS_CFUNC_DEF("statusbar", 1, js_app_statusbar), JS_CFUNC_DEF("on", 3, js_app_on), JS_CFUNC_DEF("key", 2, js_app_key), JS_CFUNC_DEF("mount", 0, js_app_mount), JS_CFUNC_DEF("exit", 0, js_app_exit) }; add_funcs(ctx, o, funcs, (int)(sizeof(funcs)/sizeof(funcs[0]))); return o; }
+JSValue make_app_object(JSContext *ctx, App *app) { JSValue o = JS_NewObjectClass(ctx, g_app_class); JS_SetOpaque(o, app); static const JSCFunctionListEntry funcs[] = { JS_CFUNC_DEF("state", 1, js_app_state), JS_CFUNC_DEF("layout", 1, js_app_layout), JS_CFUNC_DEF("panel", 1, js_app_panel), JS_CFUNC_DEF("statusbar", 1, js_app_statusbar), JS_CFUNC_DEF("on", 3, js_app_on), JS_CFUNC_DEF("key", 2, js_app_key), JS_CFUNC_DEF("mount", 0, js_app_mount), JS_CFUNC_DEF("exit", 0, js_app_exit) }; add_funcs(ctx, o, funcs, (int)(sizeof(funcs)/sizeof(funcs[0]))); return o; }
+JSValue make_layout_object(JSContext *ctx, Layout *layout) { JSValue o = JS_NewObjectClass(ctx, g_layout_class); JS_SetOpaque(o, layout); static const JSCFunctionListEntry funcs[] = { JS_CFUNC_MAGIC_DEF("row", 2, js_layout_add, 0), JS_CFUNC_MAGIC_DEF("col", 2, js_layout_add, 1) }; add_funcs(ctx, o, funcs, (int)(sizeof(funcs)/sizeof(funcs[0]))); return o; }
 JSValue make_panel_object(JSContext *ctx, Panel *panel) { JSValue o = JS_NewObjectClass(ctx, g_panel_class); JS_SetOpaque(o, panel); static const JSCFunctionListEntry funcs[] = { JS_CFUNC_DEF("frame", 1, js_panel_frame), JS_CFUNC_DEF("title", 1, js_panel_title), JS_CFUNC_DEF("titleRight", 1, js_panel_title_right), JS_CFUNC_DEF("text", 1, js_panel_text), JS_CFUNC_DEF("gauge", 0, js_panel_gauge) }; add_funcs(ctx, o, funcs, (int)(sizeof(funcs)/sizeof(funcs[0]))); return o; }
 JSValue make_widget_object(JSContext *ctx, Widget *widget) { JSValue o = JS_NewObjectClass(ctx, g_widget_class); JS_SetOpaque(o, widget); static const JSCFunctionListEntry funcs[] = { JS_CFUNC_DEF("at", 2, js_widget_at), JS_CFUNC_DEF("fg", 1, js_widget_fg), JS_CFUNC_DEF("bold", 0, js_widget_bold), JS_CFUNC_DEF("label", 1, js_widget_label), JS_CFUNC_DEF("value", 1, js_widget_value), JS_CFUNC_DEF("width", 1, js_widget_width), JS_CFUNC_DEF("showPct", 0, js_widget_show_pct), JS_CFUNC_DEF("style", 1, js_widget_style) }; add_funcs(ctx, o, funcs, (int)(sizeof(funcs)/sizeof(funcs[0]))); return o; }
 
 void register_classes(JSRuntime *rt) {
-  JS_NewClassID(&g_app_class); JS_NewClassID(&g_panel_class); JS_NewClassID(&g_widget_class);
-  JSClassDef app_def = {"PicoApp"}; JSClassDef panel_def = {"PicoPanel"}; JSClassDef widget_def = {"PicoWidget"};
-  JS_NewClass(rt, g_app_class, &app_def); JS_NewClass(rt, g_panel_class, &panel_def); JS_NewClass(rt, g_widget_class, &widget_def);
+  JS_NewClassID(&g_app_class); JS_NewClassID(&g_panel_class); JS_NewClassID(&g_widget_class); JS_NewClassID(&g_layout_class);
+  JSClassDef app_def = {"PicoApp"}; JSClassDef panel_def = {"PicoPanel"}; JSClassDef widget_def = {"PicoWidget"}; JSClassDef layout_def = {"PicoLayout"};
+  JS_NewClass(rt, g_app_class, &app_def); JS_NewClass(rt, g_panel_class, &panel_def); JS_NewClass(rt, g_widget_class, &widget_def); JS_NewClass(rt, g_layout_class, &layout_def);
 }
 
 bool eval_file(JSContext *ctx, const std::string &path, std::string *error) {
@@ -439,7 +492,7 @@ void runtime_run_frame(Runtime *rt, int dt_ms) {
   if (!rt || !rt->app || rt->app->exited) return;
   for (auto &t : rt->app->timers) {
     t.acc += dt_ms;
-    if (t.acc >= t.ms) { t.acc = 0; JS_Call(rt->ctx, t.fn.value, JS_UNDEFINED, 0, nullptr); }
+    if (t.acc >= t.ms) { t.acc = 0; JSValue ret = JS_Call(rt->ctx, t.fn.value, JS_UNDEFINED, 0, nullptr); JS_FreeValue(rt->ctx, ret); }
   }
   render_app(rt);
 }
@@ -450,7 +503,8 @@ void runtime_send_key(Runtime *rt, const std::string &token) {
   JSValue arg = JS_NewString(rt->ctx, token.c_str());
   JSValue app_obj = make_app_object(rt->ctx, rt->app.get());
   JSValueConst argv[2] = {app_obj, arg};
-  JS_Call(rt->ctx, it->second.value, JS_UNDEFINED, 2, argv);
+  JSValue ret = JS_Call(rt->ctx, it->second.value, JS_UNDEFINED, 2, argv);
+  JS_FreeValue(rt->ctx, ret);
   JS_FreeValue(rt->ctx, app_obj); JS_FreeValue(rt->ctx, arg);
 }
 std::string runtime_render_text(Runtime *rt) { if (!rt) return {}; render_app(rt); return rt->screen.render(); }
