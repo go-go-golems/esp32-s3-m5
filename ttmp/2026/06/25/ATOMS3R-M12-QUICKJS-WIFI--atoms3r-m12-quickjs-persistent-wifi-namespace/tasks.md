@@ -31,10 +31,10 @@ DocType: tasks
 
 ## Phase 2 — QuickJS WiFi namespace
 
-- [ ] **W2.1 — Add `wifi_namespace.{h,cpp}`.** Install reset-safe JavaScript `wifi` object through `qjs_service_run()`.
-- [ ] **W2.2 — Implement `wifi.status()`.** Return state, SSID, credential flags, IPs, and disconnect reason without password.
-- [ ] **W2.3 — Implement request functions.** Add `wifi.connect()`, `wifi.disconnect()`, `wifi.clearCredentials()`, and optionally `wifi.configure()`.
-- [ ] **W2.4 — Validate from JavaScript.** Confirm namespace survives `js reset` and reports connection state.
+- [x] **W2.1 — Add `wifi_namespace.{h,cpp}`.** Installed reset-safe JavaScript `wifi` object through `qjs_service_run()` in commit `8ebff61`.
+- [x] **W2.2 — Implement `wifi.status()`.** Returns state, SSID, credential flags, IPs, and disconnect reason without password.
+- [x] **W2.3 — Implement request functions.** Added `wifi.connect()`, `wifi.disconnect()`, and `wifi.clearCredentials()`; deliberately did not expose password-setting from JavaScript yet.
+- [x] **W2.4 — Validate from JavaScript.** Hardware smoke confirmed status, disconnect, reconnect, connected IP, and namespace restoration after `js reset`.
 
 ## Phase 3 — HTTP prerequisite measurements
 

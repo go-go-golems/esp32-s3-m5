@@ -34,3 +34,15 @@ Implemented native STA-only WiFi console with NVS credential persistence (commit
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/wifi_command.cpp — Console provisioning and diagnostics
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-WIFI--atoms3r-m12-quickjs-persistent-wifi-namespace/reference/01-investigation-diary.md — Step 2 WiFi implementation and validation diary
 
+
+## 2026-06-25
+
+Added reset-safe QuickJS wifi namespace (commit 8ebff61): status/connect/disconnect/clearCredentials, no password exposure, hardware smoke validated reconnect and js reset persistence
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/app_main.cpp — Installs wifi namespace after QuickJS startup
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/js_command.cpp — Reinstalls wifi namespace after js reset
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/wifi_namespace.cpp — QuickJS wifi namespace implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-WIFI--atoms3r-m12-quickjs-persistent-wifi-namespace/reference/01-investigation-diary.md — Step 3 WiFi namespace diary
+

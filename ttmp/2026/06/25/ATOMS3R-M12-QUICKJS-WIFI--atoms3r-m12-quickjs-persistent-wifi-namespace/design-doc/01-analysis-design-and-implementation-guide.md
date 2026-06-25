@@ -29,6 +29,10 @@ RelatedFiles:
       Note: WiFi console provisioning and diagnostics added in commit badc45a
     - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_command.h
       Note: WiFi console registration hook added in commit badc45a
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_namespace.cpp
+      Note: Reset-safe QuickJS wifi status/request namespace added in commit 8ebff61
+    - Path: 0103-atoms3r-m12-native-quickjs/main/wifi_namespace.h
+      Note: WiFi namespace installer hook added in commit 8ebff61
     - Path: components/qjs_service/include/qjs_service.h
       Note: Owner-task API for future wifi namespace installation
 ExternalSources: []
@@ -37,6 +41,7 @@ LastUpdated: 2026-06-25T23:30:00-07:00
 WhatFor: Use when implementing, reviewing, or validating WiFi persistence and JavaScript WiFi APIs in `0103-atoms3r-m12-native-quickjs`.
 WhenToUse: Read before changing WiFi credentials, NVS persistence, network startup, JavaScript `wifi` bindings, or HTTP server prerequisites.
 ---
+
 
 
 
@@ -339,12 +344,35 @@ js status:  internal=74919      8bit=8426579 psram=8351660
 
 ### Phase 2: QuickJS namespace
 
-1. Add `wifi_namespace.h/cpp`.
-2. Install `wifi` after QuickJS startup and after `js reset`.
-3. Implement `wifi.status()` first.
-4. Implement `wifi.connect()` and `wifi.disconnect()` as request functions.
-5. Implement `wifi.configure()` only if there is a clear need to set credentials from JavaScript.
-6. Defer JavaScript scan until worker behavior is safe.
+Implementation status: complete for status/connect/disconnect/clear in commit `8ebff61`.
+
+1. Added `wifi_namespace.h/cpp`.
+2. Installed `wifi` after QuickJS startup and after `js reset`.
+3. Implemented `wifi.status()`.
+4. Implemented `wifi.connect()` and `wifi.disconnect()` as request functions.
+5. Implemented `wifi.clearCredentials()` for recovery, but did not smoke-test it because it would erase the validated credentials.
+6. Deliberately did not expose `wifi.configure()` yet; credential provisioning remains console-only to avoid storing passwords in JavaScript files.
+7. Deferred JavaScript scan until worker behavior is safe.
+
+Validated JavaScript behavior:
+
+```text
+js eval "JSON.stringify(wifi.status())"
+{"state":"connecting","ssid":"Sonic Guest","hasSavedCredentials":true,"hasRuntimeCredentials":true,"staIp":"","apIp":"","lastDisconnectReason":-1}
+
+js eval "JSON.stringify(wifi.disconnect())"
+{"ok":true,"requested":"disconnect","state":"idle"}
+
+js eval "JSON.stringify(wifi.connect())"
+{"ok":true,"requested":"connect","state":"connecting"}
+
+js eval "JSON.stringify(wifi.status())"
+{"state":"connected","ssid":"Sonic Guest","hasSavedCredentials":true,"hasRuntimeCredentials":true,"staIp":"192.168.4.22","apIp":"","lastDisconnectReason":8}
+
+js reset
+js eval "wifi.status().ssid"
+Sonic Guest
+```
 
 ### Phase 3: HTTP prerequisite validation
 

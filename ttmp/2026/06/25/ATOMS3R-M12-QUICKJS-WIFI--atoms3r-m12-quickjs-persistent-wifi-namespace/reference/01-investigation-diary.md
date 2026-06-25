@@ -261,3 +261,140 @@ js status
 - Raw smoke log exists only in `/tmp` and should not be committed because provisioning commands may contain credentials.
 - Final STA IP: `192.168.4.22`.
 - Final mode: STA-only.
+
+## Step 3: Add the reset-safe QuickJS `wifi` namespace
+
+This step exposes the validated native WiFi service to QuickJS. The namespace is deliberately small: `wifi.status()`, `wifi.connect()`, `wifi.disconnect()`, and `wifi.clearCredentials()`. It does not expose password-setting from JavaScript yet, because provisioning through the console avoids putting passwords into scripts stored on flash.
+
+The namespace follows the same owner-task rule as `system` and `storage`. It is installed with `qjs_service_run()` after QuickJS startup and reinstalled after `js reset`.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue the WiFi implementation by exposing safe request/status functions to JavaScript.
+
+**Inferred user intent:** Make WiFi usable from scripts while preserving credential safety and QuickJS runtime ownership.
+
+**Commit (code):** 8ebff61e7b04ab6a85e77a2fe74d4d5b80db1787 — "0103: add QuickJS WiFi namespace"
+
+### What I did
+
+- Added `0103-atoms3r-m12-native-quickjs/main/wifi_namespace.h`.
+- Added `0103-atoms3r-m12-native-quickjs/main/wifi_namespace.cpp`.
+- Updated `main/CMakeLists.txt` to compile `wifi_namespace.cpp`.
+- Updated `app_main.cpp` to install `wifi` after QuickJS startup.
+- Updated `js_command.cpp` to reinstall `wifi` after `js reset`.
+- Built and flashed the firmware.
+- Validated JavaScript status, disconnect, reconnect, connected IP, and reset persistence.
+
+### Why
+
+- HTTP scripts need to inspect network state.
+- JavaScript should request WiFi actions but not receive passwords or ESP-IDF handles.
+- Reset-safe namespace installation keeps `js reset` useful without losing firmware APIs.
+
+### What worked
+
+- Build passed:
+
+```text
+0103-atoms3r-m12-native-quickjs.bin binary size 0x1422e0 bytes. Smallest app partition is 0x400000 bytes. 0x2bdd20 bytes (69%) free.
+```
+
+- Initial JavaScript status during connection:
+
+```text
+js eval "JSON.stringify(wifi.status())"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=3ms
+{"state":"connecting","ssid":"Sonic Guest","hasSavedCredentials":true,"hasRuntimeCredentials":true,"staIp":"","apIp":"","lastDisconnectReason":-1}
+```
+
+- JavaScript disconnect:
+
+```text
+js eval "JSON.stringify(wifi.disconnect())"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=10ms
+{"ok":true,"requested":"disconnect","state":"idle"}
+```
+
+- JavaScript reconnect:
+
+```text
+js eval "JSON.stringify(wifi.connect())"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=8ms
+{"ok":true,"requested":"connect","state":"connecting"}
+```
+
+- Final JavaScript connected status:
+
+```text
+js eval "JSON.stringify(wifi.status())"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=3ms
+{"state":"connected","ssid":"Sonic Guest","hasSavedCredentials":true,"hasRuntimeCredentials":true,"staIp":"192.168.4.22","apIp":"","lastDisconnectReason":8}
+```
+
+- Reset persistence:
+
+```text
+js reset
+reset: ESP_OK
+js eval "wifi.status().ssid"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=2ms
+Sonic Guest
+```
+
+### What didn't work
+
+- The first build failed because `wifi_namespace.cpp` used `IPSTR` and `IP2STR` without including `esp_netif_ip_addr.h`:
+
+```text
+error: 'IPSTR' was not declared in this scope
+error: 'IP2STR' was not declared in this scope
+```
+
+- Adding `#include "esp_netif_ip_addr.h"` fixed the build.
+
+### What I learned
+
+- The WiFi namespace can safely expose state snapshots and request functions without giving JavaScript access to credentials.
+- `wifi.disconnect()` updates `lastDisconnectReason` to `8` on this path, which then remains visible after reconnect. That is useful diagnostic state but should be explained to users.
+- The namespace install pattern is now repeated across `system`, `storage`, and `wifi`, suggesting a future shared binding-registration helper may be worthwhile.
+
+### What was tricky to build
+
+- The key design decision was to omit `wifi.configure()` for now. It would be easy to implement, but it would encourage putting passwords into JavaScript snippets under `/scripts`. Console provisioning is safer for this milestone.
+- `wifi.clearCredentials()` exists for recovery, but I did not smoke-test it because it would erase the validated on-device credentials.
+
+### What warrants a second pair of eyes
+
+- Review whether `wifi.clearCredentials()` should be exposed to JavaScript or kept console-only.
+- Review whether `lastDisconnectReason` should reset after a successful reconnect.
+- Review the repeated namespace-install boilerplate across firmware APIs.
+
+### What should be done in the future
+
+- Add HTTP `/healthz` and static serving now that WiFi can be inspected from JavaScript.
+- Consider an async scan worker before exposing `wifi.scan()` to JavaScript.
+- Keep credential provisioning console-only unless there is a strong reason to script it.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/wifi_namespace.cpp`.
+- Confirm `wifi.status()` does not include passwords.
+- Confirm `wifi` is installed in `app_main.cpp` and reinstalled in `js_command.cpp`.
+- Validate with:
+
+```text
+js eval "JSON.stringify(wifi.status())"
+js eval "JSON.stringify(wifi.disconnect())"
+js eval "JSON.stringify(wifi.connect())"
+js reset
+js eval "wifi.status().ssid"
+```
+
+### Technical details
+
+- Code commit: `8ebff61`.
+- Redacted smoke log: `/tmp/0103-atoms3r-m12-native-quickjs-wifi-ns-smoke.redacted.log`.
+- Final STA IP during smoke: `192.168.4.22`.
