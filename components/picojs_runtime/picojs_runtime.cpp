@@ -26,6 +26,43 @@ struct ScreenCell {
     char ch = ' ';
 };
 
+struct StoredValue {
+    JSContext *ctx = nullptr;
+    JSValue value = JS_UNDEFINED;
+
+    StoredValue() = default;
+    StoredValue(JSContext *c, JSValueConst v) : ctx(c), value(JS_DupValue(c, v)) {}
+    StoredValue(const StoredValue &) = delete;
+    StoredValue &operator=(const StoredValue &) = delete;
+    StoredValue(StoredValue &&other) noexcept : ctx(other.ctx), value(other.value) {
+        other.ctx = nullptr;
+        other.value = JS_UNDEFINED;
+    }
+    StoredValue &operator=(StoredValue &&other) noexcept {
+        if (this != &other) {
+            reset();
+            ctx = other.ctx;
+            value = other.value;
+            other.ctx = nullptr;
+            other.value = JS_UNDEFINED;
+        }
+        return *this;
+    }
+    ~StoredValue() { reset(); }
+
+    void reset() {
+        if (ctx && !JS_IsUndefined(value)) JS_FreeValue(ctx, value);
+        ctx = nullptr;
+        value = JS_UNDEFINED;
+    }
+    void set(JSContext *c, JSValueConst v) {
+        reset();
+        ctx = c;
+        value = JS_DupValue(c, v);
+    }
+    bool has() const { return ctx && !JS_IsUndefined(value); }
+};
+
 struct TextWidget;
 struct GaugeWidget;
 struct Panel;
@@ -47,7 +84,7 @@ struct LayoutSegment {
 
 struct TextWidget {
     Panel *panel = nullptr;
-    std::string value;
+    StoredValue value;
     int x = 0;
     int y = 0;
     std::string x_align;
@@ -61,8 +98,9 @@ struct GaugeWidget {
     int y = 0;
     int width = 16;
     std::string label;
+    StoredValue value;
     std::string source;
-    int value = 0;
+    int literal_value = 0;
     bool show_pct = false;
 };
 
@@ -70,19 +108,40 @@ struct Panel {
     App *app = nullptr;
     std::string id;
     std::string frame;
-    std::string title;
+    StoredValue title;
     std::vector<std::unique_ptr<TextWidget>> texts;
     std::vector<std::unique_ptr<GaugeWidget>> gauges;
+};
+
+struct TimerCallback {
+    uint32_t interval_ms = 0;
+    uint32_t acc_ms = 0;
+    StoredValue fn;
+};
+
+struct LoopCallback {
+    uint32_t step_ms = 0;
+    uint32_t acc_ms = 0;
+    StoredValue fn;
+};
+
+struct KeyCallback {
+    std::string token;
+    StoredValue fn;
 };
 
 struct App {
     struct picojs_runtime *rt = nullptr;
     std::string name;
     bool mounted = false;
-    std::string statusbar;
+    StoredValue statusbar;
     char layout_axis = 0;
     std::vector<LayoutSegment> layout_segments;
     std::vector<std::unique_ptr<Panel>> panels;
+    std::vector<TimerCallback> timers;
+    std::vector<LoopCallback> loops;
+    std::vector<StoredValue> computes;
+    std::vector<KeyCallback> keys;
 };
 
 struct LayoutBuilder {
@@ -101,6 +160,7 @@ struct picojs_runtime {
     uint32_t last_frame_ms = 0;
     uint32_t last_error_count = 0;
     bool js_installed = false;
+    bool app_mode = false;
     ScreenCell cells[kMaxCells];
     char last_key[16] = {};
     std::unique_ptr<App> app;
@@ -122,9 +182,7 @@ void put_char(picojs_runtime *rt, int x, int y, char ch)
 void put_text(picojs_runtime *rt, int x, int y, const char *text)
 {
     if (!rt || !text || y < 0 || y >= rt->rows) return;
-    for (int col = x; col < rt->cols && *text; ++col, ++text) {
-        put_char(rt, col, y, *text);
-    }
+    for (int col = x; col < rt->cols && *text; ++col, ++text) put_char(rt, col, y, *text);
 }
 
 void draw_box(picojs_runtime *rt, int x, int y, int w, int h)
@@ -144,6 +202,60 @@ void draw_box(picojs_runtime *rt, int x, int y, int w, int h)
     put_char(rt, x + w - 1, y + h - 1, '+');
 }
 
+std::string js_to_string(JSContext *ctx, JSValueConst v)
+{
+    const char *s = JS_ToCString(ctx, v);
+    if (!s) return {};
+    std::string out(s);
+    JS_FreeCString(ctx, s);
+    return out;
+}
+
+std::string stored_to_string(JSContext *ctx, picojs_runtime *rt, const StoredValue &stored)
+{
+    if (!stored.has()) return {};
+    JSValue v = JS_UNDEFINED;
+    bool owned = false;
+    if (ctx && JS_IsFunction(ctx, stored.value)) {
+        v = JS_Call(ctx, stored.value, JS_UNDEFINED, 0, nullptr);
+        owned = true;
+        if (JS_IsException(v)) {
+            if (rt) ++rt->last_error_count;
+            JS_FreeValue(ctx, v);
+            return "<error>";
+        }
+    } else {
+        v = stored.value;
+    }
+    const char *s = JS_ToCString(stored.ctx, v);
+    std::string out = s ? s : "";
+    if (s) JS_FreeCString(stored.ctx, s);
+    if (owned) JS_FreeValue(ctx, v);
+    return out;
+}
+
+int stored_to_int(JSContext *ctx, picojs_runtime *rt, const StoredValue &stored, int fallback)
+{
+    if (!stored.has()) return fallback;
+    JSValue v = JS_UNDEFINED;
+    bool owned = false;
+    if (ctx && JS_IsFunction(ctx, stored.value)) {
+        v = JS_Call(ctx, stored.value, JS_UNDEFINED, 0, nullptr);
+        owned = true;
+        if (JS_IsException(v)) {
+            if (rt) ++rt->last_error_count;
+            JS_FreeValue(ctx, v);
+            return fallback;
+        }
+    } else {
+        v = stored.value;
+    }
+    int32_t out = fallback;
+    JS_ToInt32(stored.ctx, &out, v);
+    if (owned) JS_FreeValue(ctx, v);
+    return (int)out;
+}
+
 void render_banner(picojs_runtime *rt)
 {
     if (!rt) return;
@@ -156,19 +268,6 @@ void render_banner(picojs_runtime *rt)
         std::snprintf(line, sizeof(line), "last_key=%s", rt->last_key);
         put_text(rt, 0, 2, line);
     }
-}
-
-Rect panel_rect(const App *app, const Panel *panel)
-{
-    const picojs_runtime *rt = app ? app->rt : nullptr;
-    Rect fallback;
-    fallback.w = rt ? rt->cols : PICOJS_RUNTIME_DEFAULT_COLS;
-    fallback.h = rt ? std::max<int>(1, rt->rows - 1) : PICOJS_RUNTIME_DEFAULT_ROWS - 1;
-    if (!app || !panel) return fallback;
-    for (const auto &segment : app->layout_segments) {
-        if (segment.id == panel->id) return segment.rect;
-    }
-    return fallback;
 }
 
 void recompute_layout(App *app)
@@ -187,45 +286,50 @@ void recompute_layout(App *app)
         auto &segment = app->layout_segments[i];
         int sz = segment.star ? star_size : std::max(0, segment.size);
         if (i == app->layout_segments.size() - 1) sz = std::max(0, total - pos);
-        if (app->layout_axis == 'c') {
-            segment.rect = {pos, 0, sz, std::max<int>(1, app->rt->rows - 1)};
-        } else {
-            segment.rect = {0, pos, app->rt->cols, sz};
-        }
+        if (app->layout_axis == 'c') segment.rect = {pos, 0, sz, std::max<int>(1, app->rt->rows - 1)};
+        else segment.rect = {0, pos, app->rt->cols, sz};
         pos += sz;
     }
 }
 
-int gauge_value(const picojs_runtime *rt, const GaugeWidget *gauge)
+Rect panel_rect(const App *app, const Panel *panel)
+{
+    const picojs_runtime *rt = app ? app->rt : nullptr;
+    Rect fallback{0, 0, rt ? rt->cols : PICOJS_RUNTIME_DEFAULT_COLS, rt ? std::max<int>(1, rt->rows - 1) : PICOJS_RUNTIME_DEFAULT_ROWS - 1};
+    if (!app || !panel) return fallback;
+    for (const auto &segment : app->layout_segments) {
+        if (segment.id == panel->id) return segment.rect;
+    }
+    return fallback;
+}
+
+int gauge_value(JSContext *ctx, picojs_runtime *rt, const GaugeWidget *gauge)
 {
     if (!gauge) return 0;
     if (gauge->source == "battery") return 72 + (int)((rt ? rt->frame_count : 0) % 7);
-    return gauge->value;
+    return stored_to_int(ctx, rt, gauge->value, gauge->literal_value);
 }
 
-void draw_gauge(picojs_runtime *rt, const GaugeWidget *gauge, int inner_x, int inner_y, int inner_w, int inner_h)
+void draw_gauge(JSContext *ctx, picojs_runtime *rt, const GaugeWidget *gauge, int inner_x, int inner_y, int inner_w, int inner_h)
 {
     if (!rt || !gauge) return;
     const int y = inner_y + gauge->y;
     if (y < inner_y || y >= inner_y + inner_h) return;
     const int x = inner_x + gauge->x;
     const int bar_w = std::max(4, std::min(gauge->width, inner_w - gauge->x - 8));
-    const int value = std::max(0, std::min(100, gauge_value(rt, gauge)));
+    const int value = std::max(0, std::min(100, gauge_value(ctx, rt, gauge)));
     char line[96] = {};
     const int filled = (bar_w * value) / 100;
     char bar[48] = {};
     const int capped_w = std::min<int>(bar_w, sizeof(bar) - 1);
     for (int i = 0; i < capped_w; ++i) bar[i] = i < filled ? '#' : '-';
     bar[capped_w] = 0;
-    if (gauge->show_pct) {
-        std::snprintf(line, sizeof(line), "%s[%s] %d%%", gauge->label.c_str(), bar, value);
-    } else {
-        std::snprintf(line, sizeof(line), "%s[%s]", gauge->label.c_str(), bar);
-    }
+    if (gauge->show_pct) std::snprintf(line, sizeof(line), "%s[%s] %d%%", gauge->label.c_str(), bar, value);
+    else std::snprintf(line, sizeof(line), "%s[%s]", gauge->label.c_str(), bar);
     put_text(rt, x, y, line);
 }
 
-void render_app(picojs_runtime *rt)
+void render_app(JSContext *ctx, picojs_runtime *rt)
 {
     if (!rt || !rt->app || !rt->app->mounted) {
         render_banner(rt);
@@ -247,38 +351,26 @@ void render_app(picojs_runtime *rt)
             inner_y = rect.y + 1;
             inner_w = std::max(0, rect.w - 2);
             inner_h = std::max(0, rect.h - 2);
-            if (!panel->title.empty()) {
-                put_text(rt, rect.x + 2, rect.y, panel->title.c_str());
-            }
+            const std::string title = stored_to_string(ctx, rt, panel->title);
+            if (!title.empty()) put_text(rt, rect.x + 2, rect.y, title.c_str());
         }
         for (const auto &text_ptr : panel->texts) {
             const TextWidget *text = text_ptr.get();
             const int y = inner_y + text->y;
             if (y < inner_y || y >= inner_y + inner_h) continue;
+            const std::string value = stored_to_string(ctx, rt, text->value);
             if (text->x_align == "center") {
-                const int len = (int)std::min<size_t>(text->value.size(), inner_w);
+                const int len = (int)std::min<size_t>(value.size(), inner_w);
                 const int x = inner_x + std::max(0, (inner_w - len) / 2);
-                put_text(rt, x, y, text->value.c_str());
+                put_text(rt, x, y, value.c_str());
             } else {
-                put_text(rt, inner_x + text->x, y, text->value.c_str());
+                put_text(rt, inner_x + text->x, y, value.c_str());
             }
         }
-        for (const auto &gauge_ptr : panel->gauges) {
-            draw_gauge(rt, gauge_ptr.get(), inner_x, inner_y, inner_w, inner_h);
-        }
+        for (const auto &gauge_ptr : panel->gauges) draw_gauge(ctx, rt, gauge_ptr.get(), inner_x, inner_y, inner_w, inner_h);
     }
-    if (!rt->app->statusbar.empty()) {
-        put_text(rt, 0, rt->rows - 1, rt->app->statusbar.c_str());
-    }
-}
-
-std::string js_to_string(JSContext *ctx, JSValueConst v)
-{
-    const char *s = JS_ToCString(ctx, v);
-    if (!s) return {};
-    std::string out(s);
-    JS_FreeCString(ctx, s);
-    return out;
+    const std::string status = stored_to_string(ctx, rt, rt->app->statusbar);
+    if (!status.empty()) put_text(rt, 0, rt->rows - 1, status.c_str());
 }
 
 bool set_func(JSContext *ctx, JSValue obj, const char *name, JSCFunction *fn, int length)
@@ -354,13 +446,10 @@ JSValue js_app_layout(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     if (!app || argc < 1 || !JS_IsFunction(ctx, argv[0])) return JS_DupValue(ctx, this_val);
     app->layout_axis = 0;
     app->layout_segments.clear();
-    LayoutBuilder layout;
-    layout.app = app;
+    LayoutBuilder layout{app};
     JSValue layout_obj = make_layout_object(ctx, &layout);
     JSValue ret = JS_Call(ctx, argv[0], JS_UNDEFINED, 1, &layout_obj);
-    if (JS_IsException(ret)) {
-        ++app->rt->last_error_count;
-    }
+    if (JS_IsException(ret)) ++app->rt->last_error_count;
     JS_FreeValue(ctx, ret);
     JS_FreeValue(ctx, layout_obj);
     recompute_layout(app);
@@ -370,7 +459,7 @@ JSValue js_app_layout(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
 JSValue js_app_statusbar(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
-    if (app && argc > 0) app->statusbar = js_to_string(ctx, argv[0]);
+    if (app && argc > 0) app->statusbar.set(ctx, argv[0]);
     return JS_DupValue(ctx, this_val);
 }
 
@@ -380,8 +469,54 @@ JSValue js_app_mount(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
     if (app && app->rt) {
         app->mounted = true;
         app->rt->mounted_app_count = 1;
-        render_app(app->rt);
+        render_app(ctx, app->rt);
     }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_app_on(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
+    if (!app || argc < 3 || !JS_IsFunction(ctx, argv[2])) return JS_DupValue(ctx, this_val);
+    std::string kind = js_to_string(ctx, argv[0]);
+    if (kind != "tick") return JS_DupValue(ctx, this_val);
+    int32_t interval = 0;
+    JS_ToInt32(ctx, &interval, argv[1]);
+    TimerCallback timer;
+    timer.interval_ms = std::max<int32_t>(1, interval);
+    timer.fn.set(ctx, argv[2]);
+    app->timers.push_back(std::move(timer));
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_app_loop(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
+    if (!app || argc < 2 || !JS_IsFunction(ctx, argv[1])) return JS_DupValue(ctx, this_val);
+    int32_t fps = 0;
+    JS_ToInt32(ctx, &fps, argv[0]);
+    LoopCallback loop;
+    loop.step_ms = fps > 0 ? std::max<uint32_t>(1, 1000 / (uint32_t)fps) : 1000;
+    loop.fn.set(ctx, argv[1]);
+    app->loops.push_back(std::move(loop));
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_app_compute(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
+    if (app && argc > 0 && JS_IsFunction(ctx, argv[0])) app->computes.emplace_back(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_app_key(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
+    if (!app || argc < 2 || !JS_IsFunction(ctx, argv[1])) return JS_DupValue(ctx, this_val);
+    KeyCallback key;
+    key.token = js_to_string(ctx, argv[0]);
+    key.fn.set(ctx, argv[1]);
+    app->keys.push_back(std::move(key));
     return JS_DupValue(ctx, this_val);
 }
 
@@ -395,7 +530,7 @@ JSValue js_panel_frame(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 JSValue js_panel_title(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *panel = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class));
-    if (panel && argc > 0) panel->title = js_to_string(ctx, argv[0]);
+    if (panel && argc > 0) panel->title.set(ctx, argv[0]);
     return JS_DupValue(ctx, this_val);
 }
 
@@ -405,7 +540,7 @@ JSValue js_panel_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     if (!panel) return JS_ThrowTypeError(ctx, "bad panel object");
     auto text = std::make_unique<TextWidget>();
     text->panel = panel;
-    text->value = argc > 0 ? js_to_string(ctx, argv[0]) : "";
+    if (argc > 0) text->value.set(ctx, argv[0]);
     TextWidget *ptr = text.get();
     panel->texts.push_back(std::move(text));
     return make_text_object(ctx, ptr);
@@ -426,9 +561,8 @@ JSValue js_text_at(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
 {
     auto *text = static_cast<TextWidget *>(JS_GetOpaque(this_val, g_text_class));
     if (text && argc > 0) {
-        if (JS_IsString(argv[0])) {
-            text->x_align = js_to_string(ctx, argv[0]);
-        } else {
+        if (JS_IsString(argv[0])) text->x_align = js_to_string(ctx, argv[0]);
+        else {
             int32_t x = 0;
             JS_ToInt32(ctx, &x, argv[0]);
             text->x = (int)x;
@@ -487,13 +621,12 @@ JSValue js_gauge_value(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
 {
     auto *gauge = static_cast<GaugeWidget *>(JS_GetOpaque(this_val, g_gauge_class));
     if (gauge && argc > 0) {
-        if (JS_IsString(argv[0])) {
-            gauge->source = js_to_string(ctx, argv[0]);
-        } else {
-            int32_t value = 0;
-            JS_ToInt32(ctx, &value, argv[0]);
-            gauge->value = (int)value;
+        if (JS_IsString(argv[0])) gauge->source = js_to_string(ctx, argv[0]);
+        else {
             gauge->source.clear();
+            gauge->value.set(ctx, argv[0]);
+            int32_t literal = 0;
+            if (JS_ToInt32(ctx, &literal, argv[0]) == 0) gauge->literal_value = (int)literal;
         }
     }
     return JS_DupValue(ctx, this_val);
@@ -517,6 +650,36 @@ JSValue js_gauge_show_pct(JSContext *ctx, JSValueConst this_val, int, JSValueCon
     return JS_DupValue(ctx, this_val);
 }
 
+void call_noarg(JSContext *ctx, picojs_runtime *rt, StoredValue &fn)
+{
+    if (!ctx || !fn.has() || !JS_IsFunction(ctx, fn.value)) return;
+    JSValue ret = JS_Call(ctx, fn.value, JS_UNDEFINED, 0, nullptr);
+    if (JS_IsException(ret) && rt) ++rt->last_error_count;
+    JS_FreeValue(ctx, ret);
+}
+
+void run_callbacks(JSContext *ctx, picojs_runtime *rt, uint32_t dt_ms)
+{
+    if (!ctx || !rt || !rt->app) return;
+    App *app = rt->app.get();
+    for (auto &timer : app->timers) {
+        timer.acc_ms += dt_ms;
+        if (timer.acc_ms >= timer.interval_ms) {
+            timer.acc_ms %= timer.interval_ms;
+            call_noarg(ctx, rt, timer.fn);
+        }
+    }
+    for (auto &loop : app->loops) {
+        loop.acc_ms += dt_ms;
+        uint32_t guard = 0;
+        while (loop.acc_ms >= loop.step_ms && guard++ < 16) {
+            loop.acc_ms -= loop.step_ms;
+            call_noarg(ctx, rt, loop.fn);
+        }
+    }
+    for (auto &compute : app->computes) call_noarg(ctx, rt, compute);
+}
+
 JSValue make_app_object(JSContext *ctx, App *app)
 {
     JSValue obj = JS_NewObjectClass(ctx, g_app_class);
@@ -525,6 +688,10 @@ JSValue make_app_object(JSContext *ctx, App *app)
     set_func(ctx, obj, "panel", js_app_panel, 1);
     set_func(ctx, obj, "statusbar", js_app_statusbar, 1);
     set_func(ctx, obj, "mount", js_app_mount, 0);
+    set_func(ctx, obj, "on", js_app_on, 3);
+    set_func(ctx, obj, "loop", js_app_loop, 2);
+    set_func(ctx, obj, "compute", js_app_compute, 1);
+    set_func(ctx, obj, "key", js_app_key, 2);
     return obj;
 }
 
@@ -585,18 +752,12 @@ void ensure_class_ids()
 esp_err_t register_classes(JSRuntime *js_rt)
 {
     ensure_class_ids();
-    JSClassDef os_def = {};
-    os_def.class_name = "PicoJSOS";
-    JSClassDef app_def = {};
-    app_def.class_name = "PicoJSApp";
-    JSClassDef panel_def = {};
-    panel_def.class_name = "PicoJSPanel";
-    JSClassDef text_def = {};
-    text_def.class_name = "PicoJSText";
-    JSClassDef gauge_def = {};
-    gauge_def.class_name = "PicoJSGauge";
-    JSClassDef layout_def = {};
-    layout_def.class_name = "PicoJSLayout";
+    JSClassDef os_def = {}; os_def.class_name = "PicoJSOS";
+    JSClassDef app_def = {}; app_def.class_name = "PicoJSApp";
+    JSClassDef panel_def = {}; panel_def.class_name = "PicoJSPanel";
+    JSClassDef text_def = {}; text_def.class_name = "PicoJSText";
+    JSClassDef gauge_def = {}; gauge_def.class_name = "PicoJSGauge";
+    JSClassDef layout_def = {}; layout_def.class_name = "PicoJSLayout";
     if (!JS_IsRegisteredClass(js_rt, g_os_class) && JS_NewClass(js_rt, g_os_class, &os_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_app_class) && JS_NewClass(js_rt, g_app_class, &app_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_panel_class) && JS_NewClass(js_rt, g_panel_class, &panel_def) < 0) return ESP_FAIL;
@@ -611,44 +772,31 @@ esp_err_t picojs_runtime_create(const picojs_runtime_config_t *cfg, picojs_runti
 {
     if (!out) return ESP_ERR_INVALID_ARG;
     *out = nullptr;
-
     auto rt = std::make_unique<picojs_runtime>();
     if (cfg) {
         rt->cols = cfg->cols ? cfg->cols : PICOJS_RUNTIME_DEFAULT_COLS;
         rt->rows = cfg->rows ? cfg->rows : PICOJS_RUNTIME_DEFAULT_ROWS;
         rt->frame_interval_ms = cfg->frame_interval_ms ? cfg->frame_interval_ms : kDefaultFrameIntervalMs;
     }
-    if (rt->cols == 0 || rt->rows == 0 || static_cast<size_t>(rt->cols) * rt->rows > kMaxCells) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
+    if (rt->cols == 0 || rt->rows == 0 || static_cast<size_t>(rt->cols) * rt->rows > kMaxCells) return ESP_ERR_INVALID_ARG;
     rt->initialized = true;
     render_banner(rt.get());
-    ESP_LOGI(kTag, "runtime initialized: %ux%u cells frame_interval=%ums",
-             rt->cols, rt->rows, (unsigned)rt->frame_interval_ms);
+    ESP_LOGI(kTag, "runtime initialized: %ux%u cells frame_interval=%ums", rt->cols, rt->rows, (unsigned)rt->frame_interval_ms);
     *out = rt.release();
     return ESP_OK;
 }
 
-void picojs_runtime_destroy(picojs_runtime_t *rt)
-{
-    delete rt;
-}
+void picojs_runtime_destroy(picojs_runtime_t *rt) { delete rt; }
 
 esp_err_t picojs_runtime_install(JSContext *ctx, picojs_runtime_t *rt)
 {
     if (!ctx || !rt || !rt->initialized) return ESP_ERR_INVALID_ARG;
-    JSRuntime *js_rt = JS_GetRuntime(ctx);
-    esp_err_t class_err = register_classes(js_rt);
+    esp_err_t class_err = register_classes(JS_GetRuntime(ctx));
     if (class_err != ESP_OK) return class_err;
-
     JSValue global = JS_GetGlobalObject(ctx);
     if (JS_IsException(global)) return ESP_FAIL;
     JSValue os = JS_NewObjectClass(ctx, g_os_class);
-    if (JS_IsException(os)) {
-        JS_FreeValue(ctx, global);
-        return ESP_FAIL;
-    }
+    if (JS_IsException(os)) { JS_FreeValue(ctx, global); return ESP_FAIL; }
     JS_SetOpaque(os, rt);
     set_func(ctx, os, "app", js_os_app, 1);
     if (JS_SetPropertyStr(ctx, global, "OS", os) < 0) {
@@ -672,6 +820,7 @@ esp_err_t picojs_runtime_reset(picojs_runtime_t *rt)
     rt->last_frame_ms = 0;
     rt->last_error_count = 0;
     rt->last_key[0] = 0;
+    rt->app_mode = false;
     rt->js_installed = false;
     render_banner(rt);
     return ESP_OK;
@@ -683,6 +832,7 @@ esp_err_t picojs_runtime_get_status(picojs_runtime_t *rt, picojs_runtime_status_
     *out = {};
     out->initialized = rt->initialized;
     out->js_installed = rt->js_installed;
+    out->app_mode = rt->app_mode;
     out->cols = rt->cols;
     out->rows = rt->rows;
     out->frame_count = rt->frame_count;
@@ -693,12 +843,39 @@ esp_err_t picojs_runtime_get_status(picojs_runtime_t *rt, picojs_runtime_status_
     return ESP_OK;
 }
 
+esp_err_t picojs_runtime_frame_js(JSContext *ctx, picojs_runtime_t *rt, uint32_t dt_ms)
+{
+    if (!ctx || !rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
+    rt->last_frame_ms = dt_ms;
+    ++rt->frame_count;
+    run_callbacks(ctx, rt, dt_ms);
+    render_app(ctx, rt);
+    return ESP_OK;
+}
+
 esp_err_t picojs_runtime_frame(picojs_runtime_t *rt, uint32_t dt_ms)
 {
     if (!rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
     rt->last_frame_ms = dt_ms;
     ++rt->frame_count;
-    render_app(rt);
+    render_app(nullptr, rt);
+    return ESP_OK;
+}
+
+esp_err_t picojs_runtime_key_js(JSContext *ctx, picojs_runtime_t *rt, const char *token)
+{
+    if (!ctx || !rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
+    if (!token || token[0] == 0) return ESP_ERR_INVALID_ARG;
+    std::snprintf(rt->last_key, sizeof(rt->last_key), "%s", token);
+    if (rt->app) {
+        for (auto &key : rt->app->keys) {
+            if (key.token == token) {
+                call_noarg(ctx, rt, key.fn);
+                break;
+            }
+        }
+    }
+    render_app(ctx, rt);
     return ESP_OK;
 }
 
@@ -707,19 +884,29 @@ esp_err_t picojs_runtime_key(picojs_runtime_t *rt, const char *token)
     if (!rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
     if (!token || token[0] == 0) return ESP_ERR_INVALID_ARG;
     std::snprintf(rt->last_key, sizeof(rt->last_key), "%s", token);
-    render_app(rt);
+    render_app(nullptr, rt);
     return ESP_OK;
+}
+
+esp_err_t picojs_runtime_set_app_mode(picojs_runtime_t *rt, bool enabled)
+{
+    if (!rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
+    rt->app_mode = enabled;
+    return ESP_OK;
+}
+
+bool picojs_runtime_app_mode(picojs_runtime_t *rt)
+{
+    return rt && rt->initialized && rt->app_mode;
 }
 
 esp_err_t picojs_runtime_dump_text(picojs_runtime_t *rt, char *dst, size_t dst_len)
 {
     if (!rt || !rt->initialized) return ESP_ERR_INVALID_STATE;
     if (!dst || dst_len == 0) return ESP_ERR_INVALID_ARG;
-
-    const size_t row_dump_len = 5 + rt->cols + 1; // "[NN] " + cells + "\n"
+    const size_t row_dump_len = 5 + rt->cols + 1;
     const size_t required = static_cast<size_t>(rt->rows) * row_dump_len + 1;
     if (dst_len < required) return ESP_ERR_INVALID_SIZE;
-
     char *out = dst;
     size_t remaining = dst_len;
     for (uint16_t row = 0; row < rt->rows; ++row) {

@@ -24,6 +24,8 @@ static Row s_history[VISUAL_REPL_HISTORY_ROWS];
 static uint32_t s_history_count = 0;
 static char s_input[VISUAL_REPL_INPUT_MAX + 1];
 static size_t s_cursor = 0;
+static bool s_has_frame = false;
+static char s_frame_rows[VISUAL_REPL_ROWS][VISUAL_REPL_COLS + 1];
 static uint16_t s_row_pixels[PICOCALC_LCD_WIDTH * VISUAL_REPL_CELL_H];
 static uint32_t s_render_count = 0;
 static uint32_t s_last_render_ms = 0;
@@ -221,11 +223,17 @@ void visual_repl_clear(void)
     s_history_count = 0;
     s_input[0] = 0;
     s_cursor = 0;
+    s_has_frame = false;
+    for (auto &row : s_frame_rows) {
+        std::memset(row, ' ', VISUAL_REPL_COLS);
+        row[VISUAL_REPL_COLS] = 0;
+    }
 }
 
 esp_err_t visual_repl_append_line(visual_repl_style_t style, const char *text)
 {
     if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    s_has_frame = false;
     const uint32_t slot = s_history_count % VISUAL_REPL_HISTORY_ROWS;
     s_history[slot].style = style;
     copy_truncated(s_history[slot].text, sizeof(s_history[slot].text), text);
@@ -236,6 +244,7 @@ esp_err_t visual_repl_append_line(visual_repl_style_t style, const char *text)
 esp_err_t visual_repl_set_input(const char *text, size_t cursor)
 {
     if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    s_has_frame = false;
     copy_truncated(s_input, sizeof(s_input), text);
     const size_t len = std::strlen(s_input);
     s_cursor = std::min(cursor, len);
@@ -258,9 +267,46 @@ esp_err_t visual_repl_render_input(void)
                            prompt_line, cursor_col, true);
 }
 
+esp_err_t visual_repl_render_dump_frame(const char *dump_text)
+{
+    if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    if (!dump_text) return ESP_ERR_INVALID_ARG;
+
+    const int64_t start = esp_timer_get_time();
+    const char *p = dump_text;
+    for (int row = 0; row < VISUAL_REPL_ROWS; ++row) {
+        char line[VISUAL_REPL_COLS + 1];
+        std::memset(line, ' ', VISUAL_REPL_COLS);
+        line[VISUAL_REPL_COLS] = 0;
+
+        if (*p) {
+            const char *payload = p;
+            if (p[0] == '[' && std::isdigit(static_cast<unsigned char>(p[1])) &&
+                std::isdigit(static_cast<unsigned char>(p[2])) && p[3] == ']' && p[4] == ' ') {
+                payload = p + 5;
+            }
+            size_t n = 0;
+            while (payload[n] && payload[n] != '\n' && n < VISUAL_REPL_COLS) {
+                line[n] = payload[n];
+                ++n;
+            }
+            const char *next = std::strchr(p, '\n');
+            p = next ? next + 1 : p + std::strlen(p);
+        }
+
+        std::memcpy(s_frame_rows[row], line, VISUAL_REPL_COLS + 1);
+        ESP_RETURN_ON_ERROR(render_text_row(row, VISUAL_REPL_STYLE_OUTPUT, line, 0, false), kTag, "frame row");
+    }
+    s_has_frame = true;
+    ++s_render_count;
+    s_last_render_ms = static_cast<uint32_t>((esp_timer_get_time() - start) / 1000);
+    return ESP_OK;
+}
+
 esp_err_t visual_repl_render(void)
 {
     if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    s_has_frame = false;
     const int64_t start = esp_timer_get_time();
     const uint32_t visible_history_rows = VISUAL_REPL_ROWS - 1;
     const uint32_t available = std::min<uint32_t>(s_history_count, visible_history_rows);
@@ -302,7 +348,9 @@ esp_err_t visual_repl_dump_text(char *dst, size_t dst_len)
         std::memset(cells, ' ', VISUAL_REPL_COLS);
         cells[VISUAL_REPL_COLS] = 0;
 
-        if (screen_row < visible_history_rows) {
+        if (s_has_frame) {
+            std::memcpy(cells, s_frame_rows[screen_row], VISUAL_REPL_COLS);
+        } else if (screen_row < visible_history_rows) {
             if (screen_row >= visible_history_rows - available) {
                 const uint32_t seq = first_sequence + (screen_row - (visible_history_rows - available));
                 const Row &row = s_history[seq % VISUAL_REPL_HISTORY_ROWS];

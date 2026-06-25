@@ -22,10 +22,13 @@ static const char *TAG = "picocalc_lcd";
 #define LCD_PIN_DC             24
 #define LCD_PIN_RST            25
 
-// The older RP2350 PicoCalc firmware defaulted to 75 MHz after testing. On the
-// ESP32-P4, SPI_CLK_SRC_DEFAULT is XTAL (40 MHz), which rejects high SCLK values.
-// 0099 validated the SPLL source and defaulted to 80 MHz.
-#define LCD_DEFAULT_SPI_HZ        (80 * 1000 * 1000)
+// Keep the PicoCalc LCD bus conservative by default. 80 MHz worked during 0099
+// bring-up on one setup, but the removable PicoCalc display path can show
+// ghosted/duplicated pixels at that rate. 40 MHz trades some refresh speed for
+// signal margin and makes visual REPL corruption much easier to rule out before
+// higher-level renderer work. Keep SPLL as the ESP32-P4 clock source; the
+// default source path rejects this SPI-device configuration on the current IDF.
+#define LCD_DEFAULT_SPI_HZ        (40 * 1000 * 1000)
 #define LCD_SPI_CLK_SRC           SPI_CLK_SRC_SPLL
 #define LCD_SPI_MAX_TRANSFER_SZ   (32 * 1024)
 #define LCD_FILL_DMA_CHUNK_BYTES  LCD_SPI_MAX_TRANSFER_SZ

@@ -46,6 +46,26 @@ app.statusbar('dashboard native picojs');
 app.mount();
 'picojs dashboard loaded';
 )JS";
+constexpr const char *kPicoJsInteractiveSource = R"JS(
+var app = OS.app('interactive');
+var ticks = 0;
+var key = 'none';
+app.layout(function (l) { l.row(1, 'bar').row('*', 'body'); });
+app.panel('bar').text(function () { return 'Interactive ticks=' + ticks; }).at(0, 0).bold();
+var body = app.panel('body').frame('single').title(' input ');
+body.text(function () { return 'last key: ' + key; }).at('center', 2).bold();
+body.text(function () { return 'ticks: ' + ticks; }).at('center', 4);
+body.gauge().at(4, 6).label('tick').value(function () { return (ticks * 20) % 100; }).width(18).showPct();
+app.on('tick', 1000, function () { ticks++; });
+app.loop(2, function () { /* loop smoke */ });
+app.compute(function () { /* compute smoke */ });
+app.key('left', function () { key = 'left'; print('KEY left'); });
+app.key('right', function () { key = 'right'; print('KEY right'); });
+app.key('a', function () { key = 'a'; print('KEY a'); });
+app.statusbar(function () { return 'mode app ticks=' + ticks; });
+app.mount();
+'picojs interactive loaded';
+)JS";
 
 qjs_service_t *g_qjs = nullptr;
 picojs_runtime_t *g_picojs = nullptr;
@@ -287,6 +307,102 @@ void submit_input_line()
     (void)visual_repl_render();
 }
 
+struct PicoFrameJob {
+    picojs_runtime_t *rt = nullptr;
+    uint32_t dt_ms = 0;
+};
+
+struct PicoKeyJob {
+    picojs_runtime_t *rt = nullptr;
+    char token[16] = {};
+};
+
+esp_err_t picojs_frame_job(JSContext *ctx, void *user)
+{
+    auto *job = static_cast<PicoFrameJob *>(user);
+    return job ? picojs_runtime_frame_js(ctx, job->rt, job->dt_ms) : ESP_ERR_INVALID_ARG;
+}
+
+esp_err_t picojs_key_job(JSContext *ctx, void *user)
+{
+    auto *job = static_cast<PicoKeyJob *>(user);
+    return job ? picojs_runtime_key_js(ctx, job->rt, job->token) : ESP_ERR_INVALID_ARG;
+}
+
+esp_err_t picojs_reset_job(JSContext *, void *user)
+{
+    return picojs_runtime_reset(static_cast<picojs_runtime_t *>(user));
+}
+
+esp_err_t run_picojs_frame(uint32_t dt_ms)
+{
+    if (!g_qjs || !g_picojs) return ESP_ERR_INVALID_STATE;
+    PicoFrameJob frame = {g_picojs, dt_ms};
+    qjs_job_t job = {};
+    job.fn = picojs_frame_job;
+    job.user = &frame;
+    job.timeout_ms = kEvalTimeoutMs;
+    return qjs_service_run(g_qjs, &job);
+}
+
+esp_err_t send_picojs_key_token(const char *token)
+{
+    if (!g_qjs || !g_picojs || !token || token[0] == 0) return ESP_ERR_INVALID_STATE;
+    PicoKeyJob key = {};
+    key.rt = g_picojs;
+    std::snprintf(key.token, sizeof(key.token), "%s", token);
+    qjs_job_t job = {};
+    job.fn = picojs_key_job;
+    job.user = &key;
+    job.timeout_ms = kEvalTimeoutMs;
+    return qjs_service_run(g_qjs, &job);
+}
+
+esp_err_t clear_picojs_on_js_task()
+{
+    if (!g_qjs || !g_picojs) return ESP_ERR_INVALID_STATE;
+    qjs_job_t job = {};
+    job.fn = picojs_reset_job;
+    job.user = g_picojs;
+    job.timeout_ms = kEvalTimeoutMs;
+    return qjs_service_run(g_qjs, &job);
+}
+
+esp_err_t render_picojs_to_lcd()
+{
+    if (!g_picojs) return ESP_ERR_INVALID_STATE;
+    char dump[(5 + PICOJS_RUNTIME_DEFAULT_COLS + 1) * PICOJS_RUNTIME_DEFAULT_ROWS + 1] = {};
+    esp_err_t dump_err = picojs_runtime_dump_text(g_picojs, dump, sizeof(dump));
+    if (dump_err != ESP_OK) return dump_err;
+    return visual_repl_render_dump_frame(dump);
+}
+
+bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
+{
+    if (!dst || dst_len == 0) return false;
+    const char *token = nullptr;
+    switch (key) {
+        case 0xb4: token = "left"; break;
+        case 0xb5: token = "up"; break;
+        case 0xb6: token = "down"; break;
+        case 0xb7: token = "right"; break;
+        case 0x0a:
+        case 0x0d: token = "enter"; break;
+        case 0xd2: token = "home"; break;
+        case 0xd4: token = "delete"; break;
+        case 0xd5: token = "end"; break;
+        default: break;
+    }
+    if (!token && key >= 0x20 && key <= 0x7e) {
+        dst[0] = static_cast<char>(key);
+        dst[1] = 0;
+        return true;
+    }
+    if (!token) return false;
+    std::snprintf(dst, dst_len, "%s", token);
+    return true;
+}
+
 bool handle_editor_key(uint8_t key)
 {
     switch (key) {
@@ -366,11 +482,35 @@ void keyboard_task(void *)
             continue;
         }
         if (ev.state == PICOCALC_KBD_STATE_PRESSED || ev.state == PICOCALC_KBD_STATE_REPEATED) {
-            const bool handled = handle_editor_key(ev.key);
-            ESP_LOGI(kTag, "kbd editor key=0x%02x(%s) state=%s handled=%d input_len=%u cursor=%u",
-                     ev.key, picocalc_keyboard_key_name(ev.key),
-                     picocalc_keyboard_state_name(ev.state), handled,
-                     (unsigned)g_input_len, (unsigned)g_input_cursor);
+            bool handled = false;
+            if (picojs_runtime_app_mode(g_picojs)) {
+                if (ev.key == 0xb1) { // Escape returns to REPL edit mode.
+                    (void)picojs_runtime_set_app_mode(g_picojs, false);
+                    handled = true;
+                } else {
+                    char token[16] = {};
+                    handled = key_to_picojs_token(ev.key, token, sizeof(token));
+                    if (handled) {
+                        esp_err_t key_err = send_picojs_key_token(token);
+                        if (key_err == ESP_OK) {
+                            esp_err_t render_err = render_picojs_to_lcd();
+                            if (render_err != ESP_OK) ESP_LOGW(kTag, "picojs render after key failed: %s", esp_err_to_name(render_err));
+                        } else {
+                            ESP_LOGW(kTag, "picojs key token=%s failed: %s", token, esp_err_to_name(key_err));
+                        }
+                    }
+                }
+                ESP_LOGI(kTag, "kbd app key=0x%02x(%s) state=%s handled=%d app_mode=%d",
+                         ev.key, picocalc_keyboard_key_name(ev.key),
+                         picocalc_keyboard_state_name(ev.state), handled,
+                         picojs_runtime_app_mode(g_picojs));
+            } else {
+                handled = handle_editor_key(ev.key);
+                ESP_LOGI(kTag, "kbd editor key=0x%02x(%s) state=%s handled=%d input_len=%u cursor=%u",
+                         ev.key, picocalc_keyboard_key_name(ev.key),
+                         picocalc_keyboard_state_name(ev.state), handled,
+                         (unsigned)g_input_len, (unsigned)g_input_cursor);
+            }
         }
     }
 }
@@ -665,8 +805,8 @@ int cmd_picojs(int argc, char **argv)
             std::printf("picojs status: %s\n", esp_err_to_name(err));
             return 1;
         }
-        std::printf("picojs: initialized=%d js_installed=%d cols=%u rows=%u apps=%u mounted=%u frames=%u last_frame_ms=%u errors=%u\n",
-                    st.initialized, st.js_installed, st.cols, st.rows, (unsigned)st.app_count,
+        std::printf("picojs: initialized=%d js_installed=%d app_mode=%d cols=%u rows=%u apps=%u mounted=%u frames=%u last_frame_ms=%u errors=%u\n",
+                    st.initialized, st.js_installed, st.app_mode, st.cols, st.rows, (unsigned)st.app_count,
                     (unsigned)st.mounted_app_count, (unsigned)st.frame_count,
                     (unsigned)st.last_frame_ms, (unsigned)st.last_error_count);
         return 0;
@@ -677,13 +817,19 @@ int cmd_picojs(int argc, char **argv)
         return err == ESP_OK ? 0 : 1;
     }
     if (std::strcmp(argv[1], "load") == 0) {
-        if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0)) {
-            std::printf("usage: picojs load hello|dashboard\n");
+        if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0 && std::strcmp(argv[2], "interactive") != 0)) {
+            std::printf("usage: picojs load hello|dashboard|interactive\n");
             return 1;
         }
-        const bool dashboard = std::strcmp(argv[2], "dashboard") == 0;
-        const char *source = dashboard ? kPicoJsDashboardSource : kPicoJsHelloSource;
-        const char *filename = dashboard ? "<picojs-dashboard>" : "<picojs-hello>";
+        const char *source = kPicoJsHelloSource;
+        const char *filename = "<picojs-hello>";
+        if (std::strcmp(argv[2], "dashboard") == 0) {
+            source = kPicoJsDashboardSource;
+            filename = "<picojs-dashboard>";
+        } else if (std::strcmp(argv[2], "interactive") == 0) {
+            source = kPicoJsInteractiveSource;
+            filename = "<picojs-interactive>";
+        }
         esp_err_t install_err = install_picojs_runtime();
         if (install_err != ESP_OK) {
             std::printf("picojs install before load: %s\n", esp_err_to_name(install_err));
@@ -697,6 +843,10 @@ int cmd_picojs(int argc, char **argv)
         if (r.error && r.error[0]) std::printf("error: %s\n", r.error);
         const bool ok = err == ESP_OK && r.ok && !r.timed_out;
         qjs_eval_result_free(&r);
+        if (ok) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picojs render after load: %s\n", esp_err_to_name(render_err));
+        }
         return ok ? 0 : 1;
     }
     if (std::strcmp(argv[1], "dump") == 0) {
@@ -721,8 +871,37 @@ int cmd_picojs(int argc, char **argv)
             }
             dt = static_cast<uint32_t>(parsed);
         }
-        esp_err_t err = picojs_runtime_frame(g_picojs, dt);
+        esp_err_t err = run_picojs_frame(dt);
         std::printf("picojs frame: %s dt_ms=%u\n", esp_err_to_name(err), (unsigned)dt);
+        if (err == ESP_OK) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picojs render after frame: %s\n", esp_err_to_name(render_err));
+        }
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "run") == 0) {
+        if (argc < 4) {
+            std::printf("usage: picojs run <count> <dt_ms>\n");
+            return 1;
+        }
+        bool count_ok = false;
+        bool dt_ok = false;
+        int count = parse_int_arg(argv[2], 1, 100, &count_ok);
+        int dt = parse_int_arg(argv[3], 0, 60000, &dt_ok);
+        if (!count_ok || !dt_ok) {
+            std::printf("usage: picojs run <count:1..100> <dt_ms>\n");
+            return 1;
+        }
+        esp_err_t err = ESP_OK;
+        for (int i = 0; i < count; ++i) {
+            err = run_picojs_frame((uint32_t)dt);
+            if (err != ESP_OK) break;
+        }
+        std::printf("picojs run: %s count=%d dt_ms=%d\n", esp_err_to_name(err), count, dt);
+        if (err == ESP_OK) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picojs render after run: %s\n", esp_err_to_name(render_err));
+        }
         return err == ESP_OK ? 0 : 1;
     }
     if (std::strcmp(argv[1], "key") == 0) {
@@ -730,11 +909,31 @@ int cmd_picojs(int argc, char **argv)
             std::printf("usage: picojs key <token>\n");
             return 1;
         }
-        esp_err_t err = picojs_runtime_key(g_picojs, argv[2]);
+        esp_err_t err = send_picojs_key_token(argv[2]);
         std::printf("picojs key: %s token=%s\n", esp_err_to_name(err), argv[2]);
+        if (err == ESP_OK) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picojs render after key: %s\n", esp_err_to_name(render_err));
+        }
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picojs status | install | load hello|dashboard | dump | frame [dt_ms] | key <token>\n");
+    if (std::strcmp(argv[1], "render") == 0) {
+        esp_err_t err = render_picojs_to_lcd();
+        std::printf("picojs render: %s\n", esp_err_to_name(err));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "mode") == 0) {
+        if (argc < 3 || (std::strcmp(argv[2], "app") != 0 && std::strcmp(argv[2], "repl") != 0)) {
+            std::printf("usage: picojs mode app|repl\n");
+            return 1;
+        }
+        const bool enabled = std::strcmp(argv[2], "app") == 0;
+        esp_err_t err = picojs_runtime_set_app_mode(g_picojs, enabled);
+        if (err == ESP_OK && !enabled) (void)visual_repl_render();
+        std::printf("picojs mode: %s app_mode=%d\n", esp_err_to_name(err), enabled);
+        return err == ESP_OK ? 0 : 1;
+    }
+    std::printf("usage: picojs status | install | load hello|dashboard|interactive | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl\n");
     return 1;
 }
 
@@ -755,7 +954,7 @@ int cmd_js(int argc, char **argv)
         return cmd_js_smoke();
     }
     if (std::strcmp(argv[1], "reset") == 0) {
-        esp_err_t clear_err = g_picojs ? picojs_runtime_reset(g_picojs) : ESP_OK;
+        esp_err_t clear_err = g_picojs ? clear_picojs_on_js_task() : ESP_OK;
         esp_err_t err = clear_err == ESP_OK ? qjs_service_reset(g_qjs, 2000) : clear_err;
         esp_err_t install_err = err == ESP_OK ? install_picojs_runtime() : err;
         std::printf("js reset: %s picojs_clear=%s picojs_reinstall=%s\n",
@@ -831,7 +1030,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picojs_cmd = {
         .command = "picojs",
-        .help = "PicoJS runtime: status | install | load hello|dashboard | dump | frame [dt_ms] | key <token>",
+        .help = "PicoJS runtime: status | install | load hello|dashboard|interactive | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl",
         .func = cmd_picojs,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picojs_cmd));
