@@ -49,3 +49,15 @@ Completed AtomS3R QuickJS memory characterization: 20k numeric array succeeded, 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 3 records memory stress evidence
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/tasks.md — Phase 2 completion and cap decision
 
+
+## 2026-06-25
+
+Added and validated read-only QuickJS system namespace for 0103 (commit 690972c): metadata is non-extensible/read-only and is restored after js reset
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/app_main.cpp — Installs system namespace after QuickJS startup
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/js_command.cpp — Reinstalls system namespace after js reset
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp — Read-only JavaScript system metadata installer
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-NATIVE-QUICKJS--atoms3r-m12-native-quickjs-firmware-with-psram/reference/01-investigation-diary.md — Step 4 namespace implementation and validation diary
+

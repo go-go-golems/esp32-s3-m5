@@ -30,8 +30,8 @@ This task list is implementation-grade. Work top to bottom. Keep the ESP32-P4 an
 
 ## Phase 3 — Extension readiness
 
-- [ ] **T3.1 — Split binding installers if needed.** Prepare `qjs_service` for namespace-based APIs without crowding `qjs_service.cpp`.
-- [ ] **T3.2 — Add a read-only `system` namespace.** Expose version/heap/status first.
+- [x] **T3.1 — Split binding installers if needed.** Added a 0103-local `system_namespace` installer that mutates QuickJS through `qjs_service_run()` instead of crowding `qjs_service.cpp`.
+- [x] **T3.2 — Add a read-only `system` namespace.** Exposes firmware, board, target, ticket, PSRAM, flash, and QuickJS limit metadata; smoke confirmed non-extensible/read-only behavior and reset persistence.
 - [ ] **T3.3 — Design WiFi and storage namespaces.** Keep operations bounded or asynchronous; avoid blocking the QuickJS owner task.
 - [ ] **T3.4 — Add script storage only after runtime memory is characterized.** Use size-limited reads and virtual roots.
 

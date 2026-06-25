@@ -505,3 +505,186 @@ esp_heap: internal=184379 8bit=8570103 psram=8385724
 - Successful stress: 20,000 numeric array entries, `94 ms`.
 - Clean failure stress: 200,000 string pushes, `InternalError: out of memory`, `457 ms`.
 - Decision: keep 1 MiB default until WiFi/TLS/storage memory pressure is measured.
+
+## Step 4: Add and validate the read-only `system` namespace
+
+The first JavaScript-facing AtomS3R API is intentionally small: a read-only `system` metadata object. It exposes firmware identity, board identity, target, ticket, PSRAM size, flash size, and the QuickJS memory/stack caps. The namespace is implemented outside `qjs_service.cpp` so board-specific bindings do not crowd the reusable runtime service.
+
+The namespace is installed through `qjs_service_run()`, which keeps all `JSContext*` mutation on the QuickJS owner task. It is installed once after service startup and again after `js reset`, because reset recreates the QuickJS runtime and context.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the AtomS3R M12 native QuickJS ticket work; see Steps 2 and 3 for the tmux/hardware-validation guidance)
+
+**Assistant interpretation:** Continue the phased AtomS3R firmware work by adding the first safe JavaScript API namespace after hardware and memory validation.
+
+**Inferred user intent:** Move from raw eval smoke toward a reusable embedded JavaScript platform while preserving runtime ownership, bounded behavior, and clear documentation.
+
+**Commit (code):** 690972ce701a493f23b35c843c1c84772edff12c — "0103: add read-only QuickJS system namespace"
+
+### What I did
+
+- Added `0103-atoms3r-m12-native-quickjs/main/system_namespace.h`.
+- Added `0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp`.
+- Updated `0103-atoms3r-m12-native-quickjs/main/CMakeLists.txt` to compile the namespace installer and depend on `spi_flash`.
+- Updated `0103-atoms3r-m12-native-quickjs/main/app_main.cpp` to install the namespace after `qjs_service_start()`.
+- Updated `0103-atoms3r-m12-native-quickjs/main/js_command.cpp` to reinstall the namespace after `js reset`.
+- Updated `0103-atoms3r-m12-native-quickjs/README.md` with the `system` contract and validated memory posture.
+- Updated the design guide and task checklist.
+- Built the firmware with:
+
+```bash
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+cd 0103-atoms3r-m12-native-quickjs
+idf.py --no-hints build
+```
+
+- Flashed and monitored through the AtomS3R by-id path in a fresh `tmux -L qjs0103` session.
+- Captured initial validation output to:
+
+```text
+/tmp/0103-atoms3r-m12-native-quickjs-system-namespace.log
+```
+
+- Fixed a QuickJS value ownership edge in the final `system` global definition path after checking `JS_DefinePropertyValueStr()` ownership semantics.
+- Rebuilt and reflashed the final build, then captured final validation output to:
+
+```text
+/tmp/0103-atoms3r-m12-native-quickjs-system-namespace-final.log
+```
+
+### Why
+
+- The first namespace should be read-only and bounded because it exercises the native binding path without introducing blocking I/O or mutable shared state.
+- Installing through `qjs_service_run()` preserves the existing owner-task invariant for QuickJS.
+- Reinstalling after reset keeps `js reset` useful: it clears script globals while restoring firmware-provided APIs.
+
+### What worked
+
+- Build passed:
+
+```text
+0103-atoms3r-m12-native-quickjs.bin binary size 0xb5270 bytes. Smallest app partition is 0x400000 bytes. 0x34ad90 bytes (82%) free.
+```
+
+- Flash and boot passed on the AtomS3R by-id path.
+- `system.board` returned the expected board name:
+
+```text
+js eval "system.board"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=1ms
+AtomS3R M12
+```
+
+- `JSON.stringify(system)` returned the expected metadata:
+
+```text
+{"firmware":"0103-atoms3r-m12-native-quickjs","board":"AtomS3R M12","target":"esp32s3","ticket":"ATOMS3R-M12-NATIVE-QUICKJS","psramInitialized":true,"psramBytes":8388608,"flashBytes":8388608,"quickjsMemoryLimitBytes":1048576,"quickjsStackLimitBytes":65536}
+```
+
+- The object is non-extensible:
+
+```text
+js eval "Object.isExtensible(system)"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=2ms
+false
+```
+
+- Strict writes fail as read-only property errors:
+
+```text
+js eval "(()=>{'use strict'; system.board='Other'})()"
+[atoms3r-eval] ok=0 timed_out=0 elapsed=3ms
+error: TypeError: 'board' is read-only
+```
+
+- The original value remains unchanged after the failed write:
+
+```text
+js eval "system.board"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=1ms
+AtomS3R M12
+```
+
+- The namespace survives `js reset` because reset reinstalls it:
+
+```text
+js reset
+reset: ESP_OK
+js eval "system.board"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=1ms
+AtomS3R M12
+js eval "system.psramBytes"
+[atoms3r-eval] ok=1 timed_out=0 elapsed=1ms
+8388608
+```
+
+### What didn't work
+
+- My first strict-write test was malformed by host-side shell escaping and reached QuickJS as `\x27use strict\x27`, which produced `SyntaxError: invalid number literal`. Re-sending the literal single-quoted JavaScript fixed the validation.
+- `clang-format` is not installed in this shell, so the attempted formatting command failed with:
+
+```text
+/bin/bash: line 35: clang-format: command not found
+```
+
+The subsequent ESP-IDF build still passed.
+
+### What I learned
+
+- A 0103-local installer keeps board metadata out of the reusable `qjs_service` component while still enforcing the owner-task rule.
+- Reinstall-after-reset is required for firmware APIs that live inside the QuickJS global object.
+- A read-only object with `JS_DefinePropertyValueStr(..., JS_PROP_ENUMERABLE)` properties plus `JS_PreventExtensions()` gives the expected JavaScript behavior: enumerable metadata, no new properties, and strict write failures.
+
+### What was tricky to build
+
+- The main design choice was where to put board-specific bindings. Putting `system` into `qjs_service.cpp` would have made the reusable component know about AtomS3R. The better boundary is a board-local installer invoked through `qjs_service_run()`.
+- Reset semantics were another sharp edge. `qjs_service_reset()` destroys and recreates the runtime, so startup-only installation would disappear after reset. The console reset path now reinstalls `system` immediately after a successful reset.
+- Quote escaping in tmux-driven eval commands remains easy to get wrong; validation logs should distinguish malformed host commands from firmware behavior.
+
+### What warrants a second pair of eyes
+
+- Review `system_namespace.cpp` for QuickJS value ownership around `JS_DefinePropertyValueStr()` and `JS_FreeValue()`; one failure-path double-free risk was found and fixed before the final build/flash.
+- Review whether the namespace should expose static metadata only, as implemented, or whether future heap/status access should be functions to avoid stale values.
+- Review whether reset-reinstall should eventually be a reusable `qjs_service` post-reset hook if more firmware targets need namespace restoration.
+
+### What should be done in the future
+
+- Design WiFi and storage namespaces before implementing them.
+- Keep blocking operations out of the QuickJS owner task.
+- Consider adding a common binding installer pattern if multiple firmware targets start to define their own namespace sets.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp`.
+- Check ownership and failure paths in the helper functions that define properties.
+- Check the two call sites: startup in `app_main.cpp` and reset in `js_command.cpp`.
+- Validate with:
+
+```bash
+source /home/manuel/esp/esp-idf-5.4.2/export.sh
+cd 0103-atoms3r-m12-native-quickjs
+idf.py --no-hints build
+PORT=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00
+idf.py --no-hints -p "$PORT" flash monitor
+```
+
+- Then run:
+
+```text
+js eval "system.board"
+js eval "JSON.stringify(system)"
+js eval "Object.isExtensible(system)"
+js eval "(()=>{'use strict'; system.board='Other'})()"
+js reset
+js eval "system.board"
+```
+
+### Technical details
+
+- Namespace installer file: `0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp`.
+- Header: `0103-atoms3r-m12-native-quickjs/main/system_namespace.h`.
+- Initial validation log: `/tmp/0103-atoms3r-m12-native-quickjs-system-namespace.log`.
+- Final validation log: `/tmp/0103-atoms3r-m12-native-quickjs-system-namespace-final.log`.
+- Binary size after adding the namespace: `0xb5270` bytes.
+- App partition free space: `0x34ad90` bytes, 82%.

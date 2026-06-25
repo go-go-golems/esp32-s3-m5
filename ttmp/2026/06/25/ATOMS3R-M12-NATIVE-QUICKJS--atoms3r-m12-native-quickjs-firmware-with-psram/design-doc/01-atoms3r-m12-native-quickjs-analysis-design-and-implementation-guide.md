@@ -24,6 +24,10 @@ RelatedFiles:
         QuickJS service startup and PSRAM baseline logging
     - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
       Note: AtomS3R QuickJS console commands
+    - Path: 0103-atoms3r-m12-native-quickjs/main/system_namespace.cpp
+      Note: Read-only system namespace installer added in commit 690972c
+    - Path: 0103-atoms3r-m12-native-quickjs/main/system_namespace.h
+      Note: System namespace installer public hook added in commit 690972c
     - Path: 0103-atoms3r-m12-native-quickjs/sdkconfig.defaults
       Note: |-
         ESP32-S3 USB Serial/JTAG, 8MB flash, and PSRAM configuration
@@ -44,6 +48,7 @@ LastUpdated: 2026-06-25T22:30:00-07:00
 WhatFor: Use when implementing, flashing, validating, or extending the AtomS3R M12 native QuickJS firmware.
 WhenToUse: Read before working on `0103-atoms3r-m12-native-quickjs`, changing QuickJS memory limits, or adding WiFi/storage/display JavaScript APIs.
 ---
+
 
 
 # AtomS3R M12 Native QuickJS with PSRAM — Analysis, Design, and Implementation Guide
@@ -423,15 +428,21 @@ After the AtomS3R M12 console smoke passes, extensions should be added one names
 
 ### Phase A: system namespace
 
-Start with read-only status APIs:
+The implemented first namespace is a read-only `system` metadata object. It is installed by a 0103-local native job through `qjs_service_run()` at boot and again after `js reset`, so the namespace is recreated whenever QuickJS recreates its runtime.
 
 ```js
-system.status()
-system.heap()
-system.version()
+system.firmware                  // "0103-atoms3r-m12-native-quickjs"
+system.board                     // "AtomS3R M12"
+system.target                    // "esp32s3"
+system.ticket                    // "ATOMS3R-M12-NATIVE-QUICKJS"
+system.psramInitialized          // true on the validated board
+system.psramBytes                // 8388608 on the validated board
+system.flashBytes                // 8388608 on the validated board
+system.quickjsMemoryLimitBytes   // 1048576
+system.quickjsStackLimitBytes    // 65536
 ```
 
-These can be implemented synchronously because they are bounded and do not depend on network/storage state.
+The object is non-extensible and its properties are non-writable. Hardware smoke confirmed `Object.isExtensible(system)` returns `false`, strict writes fail with `TypeError: 'board' is read-only`, and `system.board` remains available after `js reset`.
 
 ### Phase B: storage namespace
 
