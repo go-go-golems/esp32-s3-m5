@@ -7,6 +7,7 @@ idf_component_register(
         picocalc_lcd
         picocalc_keyboard
         visual_repl
+        picojs_runtime
     PRIV_REQUIRES
         esp_psram
         esp_timer

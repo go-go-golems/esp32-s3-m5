@@ -15,6 +15,7 @@
 
 #include "picocalc_keyboard.h"
 #include "picocalc_lcd.h"
+#include "picojs_runtime.h"
 #include "qjs_service.h"
 #include "visual_repl.h"
 
@@ -27,6 +28,7 @@ constexpr size_t kMaxEvalSource = 2048;
 constexpr TickType_t kKeyboardPollDelay = pdMS_TO_TICKS(20);
 
 qjs_service_t *g_qjs = nullptr;
+picojs_runtime_t *g_picojs = nullptr;
 TaskHandle_t g_keyboard_task = nullptr;
 char g_input[VISUAL_REPL_INPUT_MAX + 1] = {};
 size_t g_input_len = 0;
@@ -615,6 +617,64 @@ int cmd_js_smoke()
     return ok ? 0 : 1;
 }
 
+int cmd_picojs(int argc, char **argv)
+{
+    if (!g_picojs) {
+        std::printf("picojs unavailable\n");
+        return 1;
+    }
+    if (argc < 2 || std::strcmp(argv[1], "status") == 0) {
+        picojs_runtime_status_t st = {};
+        esp_err_t err = picojs_runtime_get_status(g_picojs, &st);
+        if (err != ESP_OK) {
+            std::printf("picojs status: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        std::printf("picojs: initialized=%d cols=%u rows=%u apps=%u mounted=%u frames=%u last_frame_ms=%u errors=%u\n",
+                    st.initialized, st.cols, st.rows, (unsigned)st.app_count,
+                    (unsigned)st.mounted_app_count, (unsigned)st.frame_count,
+                    (unsigned)st.last_frame_ms, (unsigned)st.last_error_count);
+        return 0;
+    }
+    if (std::strcmp(argv[1], "dump") == 0) {
+        char dump[(5 + PICOJS_RUNTIME_DEFAULT_COLS + 1) * PICOJS_RUNTIME_DEFAULT_ROWS + 1] = {};
+        esp_err_t err = picojs_runtime_dump_text(g_picojs, dump, sizeof(dump));
+        if (err != ESP_OK) {
+            std::printf("picojs dump: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        std::printf("picojs dump: %s\n", esp_err_to_name(err));
+        std::printf("%s", dump);
+        return 0;
+    }
+    if (std::strcmp(argv[1], "frame") == 0) {
+        uint32_t dt = 100;
+        if (argc >= 3) {
+            bool ok = false;
+            int parsed = parse_int_arg(argv[2], 0, 60000, &ok);
+            if (!ok) {
+                std::printf("usage: picojs frame [dt_ms]\n");
+                return 1;
+            }
+            dt = static_cast<uint32_t>(parsed);
+        }
+        esp_err_t err = picojs_runtime_frame(g_picojs, dt);
+        std::printf("picojs frame: %s dt_ms=%u\n", esp_err_to_name(err), (unsigned)dt);
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "key") == 0) {
+        if (argc < 3) {
+            std::printf("usage: picojs key <token>\n");
+            return 1;
+        }
+        esp_err_t err = picojs_runtime_key(g_picojs, argv[2]);
+        std::printf("picojs key: %s token=%s\n", esp_err_to_name(err), argv[2]);
+        return err == ESP_OK ? 0 : 1;
+    }
+    std::printf("usage: picojs status | dump | frame [dt_ms] | key <token>\n");
+    return 1;
+}
+
 int cmd_js(int argc, char **argv)
 {
     if (!g_qjs) {
@@ -703,6 +763,13 @@ void start_debug_console()
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&js_cmd));
 
+    const esp_console_cmd_t picojs_cmd = {
+        .command = "picojs",
+        .help = "PicoJS runtime: status | dump | frame [dt_ms] | key <token>",
+        .func = cmd_picojs,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&picojs_cmd));
+
     esp_console_dev_uart_config_t hw_cfg = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_cfg, &repl_cfg, &repl));
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
@@ -735,6 +802,13 @@ extern "C" void app_main(void)
 
     g_qjs = start_quickjs_service();
     ESP_LOGI(kTag, "quickjs service: %s", g_qjs ? "ready" : "unavailable");
+
+    picojs_runtime_config_t picojs_cfg = {};
+    picojs_cfg.cols = VISUAL_REPL_COLS;
+    picojs_cfg.rows = VISUAL_REPL_ROWS;
+    picojs_cfg.frame_interval_ms = 100;
+    esp_err_t picojs_err = picojs_runtime_create(&picojs_cfg, &g_picojs);
+    ESP_LOGI(kTag, "picojs runtime init: %s", esp_err_to_name(picojs_err));
 
     start_debug_console();
 }

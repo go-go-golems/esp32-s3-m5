@@ -15,6 +15,12 @@ Owners: []
 RelatedFiles:
     - Path: 0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp
       Note: Firmware app orchestration and console command integration point
+    - Path: components/picojs_runtime/CMakeLists.txt
+      Note: ESP-IDF component registration
+    - Path: components/picojs_runtime/include/picojs_runtime.h
+      Note: Public C API for runtime create/status/frame/key/dump
+    - Path: components/picojs_runtime/picojs_runtime.cpp
+      Note: Runtime skeleton implementation and fixed-cell dump
     - Path: components/qjs_service/include/qjs_service.h
       Note: QuickJS service API and JSContext job boundary
     - Path: components/visual_repl/include/visual_repl.h
@@ -25,6 +31,7 @@ LastUpdated: 2026-06-25T15:30:00-07:00
 WhatFor: Plan and implementation guide for create a maintainable component before porting large native QuickJS bindings.
 WhenToUse: Use before implementing or reviewing this phase of the PicoJS device integration.
 ---
+
 
 
 # Design and Implementation Guide
