@@ -18,11 +18,13 @@ fi
 
 for test_file in \
   "$JS_DIR/tests/screen-snapshot.js" \
-  "$JS_DIR/tests/os-sim-test.js"; do
+  "$JS_DIR/tests/os-sim-test.js" \
+  "$JS_DIR/tests/ui-runtime-test.js"; do
   "$QJS" \
     -I "$JS_DIR/host-shim.js" \
     -I "$JS_DIR/lib/00-core.js" \
     -I "$JS_DIR/lib/10-screen.js" \
     -I "$JS_DIR/lib/20-os-sim.js" \
+    -I "$JS_DIR/lib/30-ui-runtime.js" \
     "$test_file"
 done
