@@ -4,8 +4,8 @@
 
 - [ ] Add tasks here
 
-- [ ] Implement tick timers
-- [ ] Implement fixed-rate loop callbacks
-- [ ] Implement compute callbacks
-- [ ] Add deterministic picojs run command
-- [ ] Validate callback error handling
+- [x] Implement tick timers
+- [x] Implement fixed-rate loop callbacks
+- [x] Implement compute callbacks
+- [x] Add deterministic picojs run command
+- [x] Validate callback error handling

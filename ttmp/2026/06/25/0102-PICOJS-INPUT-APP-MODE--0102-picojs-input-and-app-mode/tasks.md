@@ -4,7 +4,7 @@
 
 - [ ] Add tasks here
 
-- [ ] Add picojs key console injection
-- [ ] Define semantic token mapping
-- [ ] Route physical keyboard events to app mode
-- [ ] Validate app-mode escape and REPL recovery
+- [x] Add picojs key console injection
+- [x] Define semantic token mapping
+- [x] Route physical keyboard events to app mode
+- [x] Validate app-mode escape and REPL recovery
