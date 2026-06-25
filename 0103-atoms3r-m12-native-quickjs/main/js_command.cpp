@@ -15,6 +15,7 @@
 #include "esp_console.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "storage_namespace.h"
 #include "system_namespace.h"
 
 namespace {
@@ -127,6 +128,11 @@ int cmd_reset()
         esp_err_t sys_err = install_system_namespace(g_svc);
         if (sys_err != ESP_OK) {
             std::printf("reset: ESP_OK, system namespace: %s\n", esp_err_to_name(sys_err));
+            return 1;
+        }
+        esp_err_t storage_err = install_storage_namespace(g_svc);
+        if (storage_err != ESP_OK) {
+            std::printf("reset: ESP_OK, storage namespace: %s\n", esp_err_to_name(storage_err));
             return 1;
         }
     }

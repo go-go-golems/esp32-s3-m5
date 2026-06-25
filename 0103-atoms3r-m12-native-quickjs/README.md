@@ -70,9 +70,16 @@ js eval <source>
 js reset
 js gc
 js bench
+storage status
+storage mount [format]
+storage list /scripts
+storage read /scripts/demo.js
+storage write /scripts/demo.js "print('hi')"
 ```
 
-The firmware also installs a read-only `system` namespace after boot and after `js reset`:
+The firmware installs `system` and `storage` namespaces after boot and after `js reset`.
+
+`system` is a read-only metadata namespace:
 
 ```text
 js eval "system.board"
@@ -118,11 +125,31 @@ The ESP32-P4 native service showed an idle QuickJS memory usage of about 50 KiB.
 
 The first memory stress pass completed a 20k-number array and cleanly reported `InternalError: out of memory` for an oversized allocation. Keep the 1 MiB cap until WiFi/TLS/storage are integrated and measured. Add explicit device APIs one namespace at a time.
 
+## Storage namespace
+
+`storage` is virtual-rooted and bounded. It exposes the 3 MiB FatFs `storage` partition through `/scripts`, `/data`, and `/tmp`; it does not expose native absolute paths.
+
+```text
+js eval "storage.status().mounted"
+js eval "storage.writeText('/scripts/demo.js', 'print(123)')"
+js eval "storage.readText('/scripts/demo.js')"
+js eval "JSON.stringify(storage.list('/scripts'))"
+js eval "JSON.stringify(storage.stat('/scripts/demo.js'))"
+```
+
+Limits:
+
+- `readText`: 16 KiB per call.
+- `writeText`: 16 KiB per call.
+- `list`: 64 entries.
+- paths must stay under `/scripts`, `/data`, or `/tmp`.
+
+Startup mounts the partition without formatting. On a blank development device, use `storage mount format` explicitly once.
+
 ## Future namespace plan
 
-The ticket design guide defines the next namespace contracts:
+The ticket design guide defines the remaining namespace contract:
 
-- `storage`: virtual-rooted access to the 3 MiB FatFs `storage` partition, starting with bounded `status/list/stat/readText` calls before writes or autoload.
 - `wifi`: native ESP32-S3 WiFi status/request API, starting with firmware-owned state and polling; do not block the QuickJS owner task on scans/connects and never expose passwords.
 
 Do not add desktop QuickJS `std`/`os` compatibility as a shortcut. Keep firmware APIs explicit and reset-safe.

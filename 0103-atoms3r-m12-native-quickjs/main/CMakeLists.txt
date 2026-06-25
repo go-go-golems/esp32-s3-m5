@@ -2,13 +2,16 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "js_command.cpp"
+        "storage_namespace.cpp"
         "system_namespace.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
         qjs_service
         console
+        fatfs
         spi_flash
+        wear_levelling
     PRIV_REQUIRES
         esp_psram
         esp_timer
