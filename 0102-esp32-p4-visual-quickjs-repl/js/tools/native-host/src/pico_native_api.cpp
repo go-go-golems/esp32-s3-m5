@@ -93,8 +93,33 @@ struct Rect { int x = 0, y = 0, w = 0, h = 0; };
 struct StoredValue {
   JSContext *ctx = nullptr;
   JSValue value = JS_UNDEFINED;
+
   StoredValue() = default;
   StoredValue(JSContext *c, JSValueConst v) : ctx(c), value(JS_DupValue(c, v)) {}
+  StoredValue(const StoredValue &) = delete;
+  StoredValue &operator=(const StoredValue &) = delete;
+  StoredValue(StoredValue &&other) noexcept : ctx(other.ctx), value(other.value) {
+    other.ctx = nullptr;
+    other.value = JS_UNDEFINED;
+  }
+  StoredValue &operator=(StoredValue &&other) noexcept {
+    if (this != &other) {
+      reset();
+      ctx = other.ctx;
+      value = other.value;
+      other.ctx = nullptr;
+      other.value = JS_UNDEFINED;
+    }
+    return *this;
+  }
+  ~StoredValue() { reset(); }
+
+  void reset() {
+    if (ctx && !JS_IsUndefined(value)) JS_FreeValue(ctx, value);
+    ctx = nullptr;
+    value = JS_UNDEFINED;
+  }
+  bool empty() const { return !ctx || JS_IsUndefined(value); }
 };
 
 struct Widget {
@@ -109,7 +134,17 @@ struct Widget {
   bool show_pct = false;
 };
 
-struct Timer { int ms = 0; int acc = 0; StoredValue fn; };
+struct Timer {
+  int ms = 0;
+  int acc = 0;
+  StoredValue fn;
+  Timer() = default;
+  Timer(int ms_, int acc_, StoredValue fn_) : ms(ms_), acc(acc_), fn(std::move(fn_)) {}
+  Timer(Timer &&) noexcept = default;
+  Timer &operator=(Timer &&) noexcept = default;
+  Timer(const Timer &) = delete;
+  Timer &operator=(const Timer &) = delete;
+};
 
 struct Panel {
   App *app = nullptr;
@@ -292,7 +327,7 @@ JSValue js_app_on(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst 
   auto *a = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
   if (a && argc >= 3 && js_to_string(ctx, argv[0]) == "tick") {
     int32_t ms = 0; JS_ToInt32(ctx, &ms, argv[1]);
-    a->timers.push_back({ms, 0, StoredValue(ctx, argv[2])});
+    a->timers.emplace_back(ms, 0, StoredValue(ctx, argv[2]));
   }
   return JS_DupValue(ctx, this_val);
 }
@@ -384,9 +419,18 @@ Runtime *runtime_create(int cols, int rows) {
 
 void runtime_destroy(Runtime *rt) {
   if (!rt) return;
-  // First checkpoint intentionally leaks the QuickJS runtime at process exit.
-  // Stored JS callbacks are owned by native App/Widget structs; freeing them
-  // correctly needs explicit finalizers before this code moves into firmware.
+  if (g_current_runtime == rt) g_current_runtime = nullptr;
+  // Destroy native objects first so StoredValue fields release duplicated
+  // JSValue handles while the QuickJS context is still alive.
+  rt->app.reset();
+  if (rt->ctx) {
+    JS_FreeContext(rt->ctx);
+    rt->ctx = nullptr;
+  }
+  if (rt->jsrt) {
+    JS_FreeRuntime(rt->jsrt);
+    rt->jsrt = nullptr;
+  }
   delete rt;
 }
 JSContext *runtime_context(Runtime *rt) { return rt ? rt->ctx : nullptr; }

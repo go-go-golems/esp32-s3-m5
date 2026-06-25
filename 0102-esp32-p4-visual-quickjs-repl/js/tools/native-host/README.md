@@ -36,6 +36,18 @@ Keys:
 - Portable/firmware-oriented: `src/pico_native_api.hpp`, `src/pico_native_api.cpp`.
 - Host-only: `src/main.cpp`, termios/raw keyboard, ANSI rendering, file loading.
 
-This first checkpoint implements a small API surface: `print`, `millis`, `gc`, `OS.app`,
+This checkpoint implements a small API surface: `print`, `millis`, `gc`, `OS.app`,
 `OS.clock`, `OS.launch`, `App.state/panel/on/key/statusbar/mount/exit`, `Panel.frame/title/titleRight/text/gauge`,
 and `Text/Gauge` fluent methods.
+
+Native structs store duplicated QuickJS values for callbacks and reactive literals via
+RAII (`StoredValue`). `runtime_destroy()` tears down native app/widget/timer state before
+freeing the QuickJS context/runtime, so scripted host runs can exit cleanly. JS wrapper
+objects are non-owning views over native objects; the native runtime owns the actual app,
+panels, and widgets.
+
+## Smoke test
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-native-smoke.sh
+```
