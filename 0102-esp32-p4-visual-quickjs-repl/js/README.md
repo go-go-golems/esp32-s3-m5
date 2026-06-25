@@ -83,6 +83,15 @@ make qjs
       ../../../../0102-esp32-p4-visual-quickjs-repl/js/examples/smoke.js
 ```
 
+Run the broader portable API self-tests and example gallery with:
+
+```bash
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-api-tests.sh
+0102-esp32-p4-visual-quickjs-repl/js/tests/run-examples.sh
+```
+
+The examples preload `js/lib/*.js` and print fixed-cell snapshots that fit the PicoCalc-style 40-column display.
+
 ## Device integration model
 
 The firmware evaluates submitted text through `qjs_service_eval()` using native QuickJS. Scripts that pass the desktop contract can later be integrated by one of these routes:
