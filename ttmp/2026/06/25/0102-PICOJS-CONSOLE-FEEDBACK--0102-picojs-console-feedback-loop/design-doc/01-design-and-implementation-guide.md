@@ -19,12 +19,17 @@ RelatedFiles:
       Note: QuickJS service API and JSContext job boundary
     - Path: components/visual_repl/include/visual_repl.h
       Note: Fixed-cell visual model and dump/render target
+    - Path: components/visual_repl/visual_repl.cpp
+      Note: Implements visual_repl_dump_text for console-observable screen state
+    - Path: ttmp/2026/06/25/0102-PICOJS-CONSOLE-FEEDBACK--0102-picojs-console-feedback-loop/scripts/01-console-probe.py
+      Note: By-id UART probe script for this phase
 ExternalSources: []
 Summary: Console-first validation for JS, visual REPL state, and serial probing.
 LastUpdated: 2026-06-25T15:30:00-07:00
 WhatFor: Plan and implementation guide for make device behavior observable over UART before the native DSL port begins.
 WhenToUse: Use before implementing or reviewing this phase of the PicoJS device integration.
 ---
+
 
 
 # Design and Implementation Guide

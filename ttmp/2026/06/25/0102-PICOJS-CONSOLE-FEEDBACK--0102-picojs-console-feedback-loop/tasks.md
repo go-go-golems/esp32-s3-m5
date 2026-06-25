@@ -4,8 +4,8 @@
 
 - [ ] Add tasks here
 
-- [ ] Implement js smoke console command
-- [ ] Implement screen dump console command
-- [ ] Add UART console probe script
-- [ ] Build and validate console feedback loop
-- [ ] Upload/record validation evidence
+- [x] Implement js smoke console command
+- [x] Implement screen dump console command
+- [x] Add UART console probe script
+- [x] Build and validate console feedback loop
+- [x] Upload/record validation evidence

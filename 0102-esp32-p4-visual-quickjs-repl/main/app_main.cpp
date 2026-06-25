@@ -501,7 +501,18 @@ int cmd_screen(int argc, char **argv)
                     (unsigned)vst.cols, (unsigned)vst.rows);
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: screen demo\n");
+    if (std::strcmp(argv[1], "dump") == 0) {
+        char dump[(5 + VISUAL_REPL_COLS + 1) * VISUAL_REPL_ROWS + 1] = {};
+        esp_err_t err = visual_repl_dump_text(dump, sizeof(dump));
+        if (err != ESP_OK) {
+            std::printf("screen dump: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        std::printf("screen dump: %s rows=%u cols=%u\n", esp_err_to_name(err), VISUAL_REPL_ROWS, VISUAL_REPL_COLS);
+        std::printf("%s", dump);
+        return 0;
+    }
+    std::printf("usage: screen demo | dump\n");
     return 1;
 }
 
@@ -577,6 +588,33 @@ int cmd_kbd(int argc, char **argv)
     return 0;
 }
 
+bool js_smoke_eval(const char *name, const char *source, bool expect_ok, const char *output_substr, const char *error_substr)
+{
+    qjs_eval_result_t r = {};
+    esp_err_t err = qjs_service_eval(g_qjs, source, std::strlen(source), kEvalTimeoutMs, "<0102-smoke>", &r);
+    const bool output_ok = !output_substr || (r.output && std::strstr(r.output, output_substr));
+    const bool error_ok = !error_substr || (r.error && std::strstr(r.error, error_substr));
+    const bool pass = err == ESP_OK && r.ok == expect_ok && !r.timed_out && output_ok && error_ok;
+    std::printf("js smoke %-10s: %s err=%s ok=%d timeout=%d elapsed=%ums\n",
+                name, pass ? "PASS" : "FAIL", esp_err_to_name(err), r.ok, r.timed_out, (unsigned)r.elapsed_ms);
+    if (!pass) {
+        if (r.output && r.output[0]) std::printf("  output: %s", r.output);
+        if (r.error && r.error[0]) std::printf("  error: %s\n", r.error);
+    }
+    qjs_eval_result_free(&r);
+    return pass;
+}
+
+int cmd_js_smoke()
+{
+    bool ok = true;
+    ok = js_smoke_eval("print", "print('picojs-smoke-print'); 1 + 2", true, "picojs-smoke-print", nullptr) && ok;
+    ok = js_smoke_eval("globals", "gc(); print(millis() >= 0); 'picojs-smoke-done'", true, "picojs-smoke-done", nullptr) && ok;
+    ok = js_smoke_eval("throw", "throw new Error('picojs-smoke-boom')", false, nullptr, "picojs-smoke-boom") && ok;
+    std::printf("js smoke: %s\n", ok ? "PASS" : "FAIL");
+    return ok ? 0 : 1;
+}
+
 int cmd_js(int argc, char **argv)
 {
     if (!g_qjs) {
@@ -584,11 +622,14 @@ int cmd_js(int argc, char **argv)
         return 1;
     }
     if (argc < 2) {
-        std::printf("usage: js eval <source> | js status | js reset\n");
+        std::printf("usage: js eval <source> | js smoke | js status | js reset\n");
         return 0;
     }
     if (std::strcmp(argv[1], "status") == 0) {
         return cmd_status(argc, argv);
+    }
+    if (std::strcmp(argv[1], "smoke") == 0) {
+        return cmd_js_smoke();
     }
     if (std::strcmp(argv[1], "reset") == 0) {
         esp_err_t err = qjs_service_reset(g_qjs, 2000);
@@ -615,7 +656,7 @@ int cmd_js(int argc, char **argv)
         qjs_eval_result_free(&r);
         return ok ? 0 : 1;
     }
-    std::printf("usage: js eval <source> | js status | js reset\n");
+    std::printf("usage: js eval <source> | js smoke | js status | js reset\n");
     return 1;
 }
 
@@ -643,7 +684,7 @@ void start_debug_console()
 
     const esp_console_cmd_t screen_cmd = {
         .command = "screen",
-        .help = "Visual REPL screen diagnostics: demo",
+        .help = "Visual REPL screen diagnostics: demo | dump",
         .func = cmd_screen,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&screen_cmd));
@@ -657,7 +698,7 @@ void start_debug_console()
 
     const esp_console_cmd_t js_cmd = {
         .command = "js",
-        .help = "QuickJS debug: eval <source> | status | reset",
+        .help = "QuickJS debug: eval <source> | smoke | status | reset",
         .func = cmd_js,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&js_cmd));

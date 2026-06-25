@@ -43,6 +43,7 @@ esp_err_t visual_repl_append_line(visual_repl_style_t style, const char *text);
 esp_err_t visual_repl_set_input(const char *text, size_t cursor);
 esp_err_t visual_repl_render(void);
 esp_err_t visual_repl_render_input(void);
+esp_err_t visual_repl_dump_text(char *dst, size_t dst_len);
 void visual_repl_get_status(visual_repl_status_t *out);
 esp_err_t visual_repl_demo_screen(void);
 

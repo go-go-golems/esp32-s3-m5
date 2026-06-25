@@ -282,6 +282,49 @@ esp_err_t visual_repl_render(void)
     return ESP_OK;
 }
 
+esp_err_t visual_repl_dump_text(char *dst, size_t dst_len)
+{
+    if (!s_initialized) return ESP_ERR_INVALID_STATE;
+    if (!dst || dst_len == 0) return ESP_ERR_INVALID_ARG;
+
+    constexpr size_t kRowDumpLen = 5 + VISUAL_REPL_COLS + 1; // "[NN] " + cells + "\n"
+    constexpr size_t kRequired = VISUAL_REPL_ROWS * kRowDumpLen + 1;
+    if (dst_len < kRequired) return ESP_ERR_INVALID_SIZE;
+
+    const uint32_t visible_history_rows = VISUAL_REPL_ROWS - 1;
+    const uint32_t available = std::min<uint32_t>(s_history_count, visible_history_rows);
+    const uint32_t first_sequence = s_history_count > visible_history_rows ? s_history_count - visible_history_rows : 0;
+
+    char *out = dst;
+    size_t remaining = dst_len;
+    for (uint32_t screen_row = 0; screen_row < VISUAL_REPL_ROWS; ++screen_row) {
+        char cells[VISUAL_REPL_COLS + 1] = {};
+        std::memset(cells, ' ', VISUAL_REPL_COLS);
+        cells[VISUAL_REPL_COLS] = 0;
+
+        if (screen_row < visible_history_rows) {
+            if (screen_row >= visible_history_rows - available) {
+                const uint32_t seq = first_sequence + (screen_row - (visible_history_rows - available));
+                const Row &row = s_history[seq % VISUAL_REPL_HISTORY_ROWS];
+                const size_t n = std::min<size_t>(std::strlen(row.text), VISUAL_REPL_COLS);
+                std::memcpy(cells, row.text, n);
+            }
+        } else {
+            cells[0] = '>';
+            cells[1] = ' ';
+            const size_t input_room = VISUAL_REPL_COLS - 2;
+            const size_t input_len = std::min(std::strlen(s_input), input_room);
+            std::memcpy(cells + 2, s_input, input_len);
+        }
+
+        const int written = std::snprintf(out, remaining, "[%02u] %s\n", (unsigned)screen_row, cells);
+        if (written < 0 || static_cast<size_t>(written) >= remaining) return ESP_ERR_INVALID_SIZE;
+        out += written;
+        remaining -= written;
+    }
+    return ESP_OK;
+}
+
 void visual_repl_get_status(visual_repl_status_t *out)
 {
     if (!out) return;
