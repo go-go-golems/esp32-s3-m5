@@ -23,12 +23,15 @@ RelatedFiles:
       Note: Runtime owner
     - Path: components/visual_repl/include/visual_repl.h
       Note: Existing 40x20 visual model API and target for console dump/render integration
+    - Path: ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/sources/picoos-devkit.jsx
+      Note: Imported original picoOS devkit JSX reference for DSL/app parity analysis
 ExternalSources: []
 Summary: Plan for merging the PicoJS DSL groundwork into the main 0102 firmware and implementing a console-driven device validation loop.
 LastUpdated: 2026-06-25T14:39:55.591028613-07:00
 WhatFor: Use this when continuing the 0102 device-side PicoJS DSL integration after the desktop JS/native-host groundwork.
 WhenToUse: Before changing firmware code, before flashing the PicoCalc, and when deciding whether a DSL feature belongs in JS runtime code, native QuickJS bindings, the visual renderer, or the keyboard/input adapter.
 ---
+
 
 
 # Device Implementation Guide
