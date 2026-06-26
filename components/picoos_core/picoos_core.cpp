@@ -24,6 +24,7 @@ void copy_cstr(char *dst, size_t dst_len, const char *src)
 }
 
 PicoOsAppRecord *find_app(struct picoos_supervisor *os, const char *id);
+esp_err_t install_picojs_job(JSContext *ctx, void *user);
 }  // namespace
 
 struct picoos_supervisor {
@@ -50,6 +51,36 @@ PicoOsAppRecord *find_app(picoos_supervisor *os, const char *id)
         if (std::strcmp(os->apps[i].info.id, id) == 0) return &os->apps[i];
     }
     return nullptr;
+}
+
+void mark_foreground(picoos_supervisor *os, PicoOsAppRecord *active)
+{
+    if (!os || !active) return;
+    for (size_t i = 0; i < os->app_count; ++i) {
+        PicoOsAppRecord &record = os->apps[i];
+        if (&record == active) {
+            record.info.state = PICOOS_APP_FOREGROUND;
+        } else if (record.info.state == PICOOS_APP_FOREGROUND || record.info.state == PICOOS_APP_RUNNING) {
+            record.info.state = PICOOS_APP_BACKGROUND;
+        }
+    }
+    copy_cstr(os->active_app_id, sizeof(os->active_app_id), active->info.id);
+}
+
+esp_err_t install_picojs_job(JSContext *ctx, void *user)
+{
+    auto *os = static_cast<picoos_supervisor *>(user);
+    if (!ctx || !os || !os->runtime) return ESP_ERR_INVALID_ARG;
+    return picojs_runtime_install(ctx, os->runtime);
+}
+
+esp_err_t ensure_picojs_installed(picoos_supervisor *os)
+{
+    qjs_job_t job = {};
+    job.fn = install_picojs_job;
+    job.user = os;
+    job.timeout_ms = 1000;
+    return qjs_service_run(os->qjs, &job);
 }
 
 }  // namespace
@@ -126,6 +157,59 @@ esp_err_t picoos_register_app(picoos_supervisor_t *os, const picoos_app_descript
     record.filename = desc->filename ? desc->filename : desc->id;
     ESP_LOGI(kTag, "registered app id=%s title=%s system=%d fps=%u", record.info.id, record.info.title,
              record.info.system, (unsigned)record.info.preferred_fps);
+    return ESP_OK;
+}
+
+esp_err_t picoos_launch(picoos_supervisor_t *os, const char *app_id)
+{
+    if (!os || !os->initialized || !app_id || app_id[0] == 0) return ESP_ERR_INVALID_ARG;
+    PicoOsAppRecord *record = find_app(os, app_id);
+    if (!record) return ESP_ERR_NOT_FOUND;
+
+    if (!record->source) {
+        mark_foreground(os, record);
+        os->surface = PICOOS_SURFACE_REPL;
+        ESP_LOGI(kTag, "show native app id=%s surface=%s", record->info.id, picoos_surface_name(os->surface));
+        return ESP_OK;
+    }
+
+    record->info.state = PICOOS_APP_STARTING;
+    esp_err_t install_err = ensure_picojs_installed(os);
+    if (install_err != ESP_OK) {
+        record->info.state = PICOOS_APP_CRASHED;
+        ++record->info.error_count;
+        ++os->error_count;
+        return install_err;
+    }
+
+    qjs_eval_result_t result = {};
+    esp_err_t err = qjs_service_eval(os->qjs, record->source, std::strlen(record->source), 1000, record->filename, &result);
+    const bool ok = err == ESP_OK && result.ok && !result.timed_out;
+    if (ok) {
+        mark_foreground(os, record);
+        os->surface = PICOOS_SURFACE_APP;
+        ESP_LOGI(kTag, "launched app id=%s elapsed=%ums", record->info.id, (unsigned)result.elapsed_ms);
+    } else {
+        record->info.state = PICOOS_APP_CRASHED;
+        ++record->info.error_count;
+        ++os->error_count;
+        ESP_LOGW(kTag, "launch failed id=%s err=%s ok=%d timeout=%d error=%s", record->info.id,
+                 esp_err_to_name(err), result.ok, result.timed_out, result.error ? result.error : "");
+    }
+    qjs_eval_result_free(&result);
+    return ok ? ESP_OK : (err == ESP_OK ? ESP_FAIL : err);
+}
+
+esp_err_t picoos_show_repl(picoos_supervisor_t *os)
+{
+    if (!os || !os->initialized) return ESP_ERR_INVALID_ARG;
+    PicoOsAppRecord *record = find_app(os, "repl");
+    if (record) {
+        mark_foreground(os, record);
+    } else {
+        os->active_app_id[0] = 0;
+    }
+    os->surface = PICOOS_SURFACE_REPL;
     return ESP_OK;
 }
 

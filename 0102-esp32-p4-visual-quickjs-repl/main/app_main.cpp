@@ -888,6 +888,39 @@ int cmd_picoos(int argc, char **argv)
                     (unsigned)st.frame_count, (unsigned)st.error_count);
         return 0;
     }
+    if (std::strcmp(argv[1], "launch") == 0) {
+        if (argc < 3) {
+            std::printf("usage: picoos launch <id>\n");
+            return 1;
+        }
+        esp_err_t err = picoos_launch(g_picoos_os, argv[2]);
+        std::printf("picoos launch %s: %s\n", argv[2], esp_err_to_name(err));
+        if (err == ESP_OK && std::strcmp(argv[2], "repl") != 0) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picoos render after launch: %s\n", esp_err_to_name(render_err));
+            if (render_err != ESP_OK) return 1;
+        }
+        if (err == ESP_OK && std::strcmp(argv[2], "repl") == 0) {
+            (void)visual_repl_render();
+        }
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "launcher") == 0) {
+        esp_err_t err = picoos_launch(g_picoos_os, "home");
+        std::printf("picoos launcher: %s\n", esp_err_to_name(err));
+        if (err == ESP_OK) {
+            esp_err_t render_err = render_picojs_to_lcd();
+            std::printf("picoos render after launcher: %s\n", esp_err_to_name(render_err));
+            if (render_err != ESP_OK) return 1;
+        }
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "repl") == 0) {
+        esp_err_t err = picoos_show_repl(g_picoos_os);
+        if (err == ESP_OK) (void)visual_repl_render();
+        std::printf("picoos repl: %s\n", esp_err_to_name(err));
+        return err == ESP_OK ? 0 : 1;
+    }
     if (std::strcmp(argv[1], "apps") == 0) {
         picoos_app_info_t apps[PICOOS_MAX_APPS] = {};
         size_t count = 0;
@@ -903,7 +936,7 @@ int cmd_picoos(int argc, char **argv)
         }
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picoos status | apps\n");
+    std::printf("usage: picoos status | apps | launch <id> | launcher | repl\n");
     return 1;
 }
 
@@ -1156,7 +1189,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picoos_cmd = {
         .command = "picoos",
-        .help = "PicoOS supervisor: status | apps",
+        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl",
         .func = cmd_picoos,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picoos_cmd));
