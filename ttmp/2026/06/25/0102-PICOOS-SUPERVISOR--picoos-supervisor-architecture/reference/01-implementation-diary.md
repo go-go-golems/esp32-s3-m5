@@ -46,12 +46,19 @@ RelatedFiles:
       Note: Passing semantic input router probe
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/05-repl-slash-commands-probe.py
       Note: Passing slash-command hardware probe
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/06-repl-launch-crash-repro.py
+      Note: Reusable slash-launch crash reproduction script
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/07-serial-crash-logger.py
+      Note: Reusable serial crash logger
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh
+      Note: Tmux wrapper for serial crash logging
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -865,4 +872,95 @@ screen eval /kbd recover
 KBD RECOVER: ESP_OK
 
 REPL_SLASH_COMMANDS_PROBE PASS [True, True, True, True, True, True, True, True, True, True]
+```
+
+
+## Step 8: Preserve ad-hoc crash/repro scripts in the ticket scripts directory
+
+This step cleaned up the investigation workflow after the `/launch` crash report. The temporary scripts that were created under `/tmp` for crash reproduction and serial logging have been promoted into the ticket's `scripts/` directory so future sessions can reuse them and so the investigation trail is visible in git.
+
+The logging work also surfaced a tmux-specific environment issue: an older default tmux server did not see `/dev/serial/by-id`, while a fresh `tmux -L repro` server did. The reusable tmux launcher records that workaround.
+
+### Prompt Context
+
+**User prompt (verbatim):** "store all the scripts you write in the scripts/ folder of the ticket (retroactively too) so that you can reuse them when appropriate and so that we can trace all the work you did"
+
+**Assistant interpretation:** Move the one-off `/tmp` scripts into the active docmgr ticket workspace and keep them executable/traceable.
+
+**Inferred user intent:** Avoid losing debugging tools and make the implementation/debugging history auditable.
+
+**Commit (code):** pending — documentation/script-only step.
+
+### What I did
+
+- Added `scripts/06-repl-launch-crash-repro.py` from the earlier `/tmp/picoos_repl_launch_repro.py` one-off repro script.
+- Added `scripts/07-serial-crash-logger.py` from the earlier `/tmp/picoos_physical_crash_logger.py` one-off serial logger.
+- Added `scripts/08-start-serial-crash-logger-tmux.sh` as a reusable tmux wrapper for the logger.
+- Marked all three scripts executable.
+- Started the tmux logger through the reusable wrapper.
+
+### Why
+
+- The ticket already contained formal probes, but the ad-hoc crash/debug scripts were still in `/tmp`.
+- Reproduction tools are part of the work product for hardware debugging; they should be versioned next to probes and diary entries.
+
+### What worked
+
+- The tmux wrapper started a logger and wrote to:
+  - `/tmp/picoos_physical_crash.log`
+- The wrapper prints the attach command:
+  - `tmux -L repro attach -t picocalc-0102-physlog`
+- The logger saw the serial console prompt.
+
+### What didn't work
+
+- Starting the earlier repro script in the default tmux server failed with:
+  - `FileNotFoundError: ... /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`
+- A diagnostic `tmux new-session` under the default tmux server also reported:
+  - `ls: cannot access '/dev/serial/by-id': No such file or directory`
+- Starting a fresh tmux server with `tmux -L repro` did see `/dev/serial/by-id` correctly. The wrapper therefore uses `tmux -L repro` by default.
+
+### What I learned
+
+- For this environment, do not assume an old tmux server has the same `/dev` view as the current shell.
+- Repro and logger scripts should live under the ticket immediately, even if they begin as quick one-off scripts.
+
+### What was tricky to build
+
+- The serial port is single-owner, so logger/repro scripts can conflict with each other. The tmux wrapper kills its named logger session before starting a new one, but it still prints `lsof` output first to show any existing holder.
+- The crash report appears tied to the physical REPL/keyboard path rather than the UART `screen eval` path: the UART repro did not reproduce a panic. This made a persistent logger more useful than a one-shot command-only repro.
+
+### What warrants a second pair of eyes
+
+- Review whether the tmux `-L repro` workaround should become standard in all hardware logging scripts.
+- Review whether the serial logger should also timestamp each received line; currently it preserves raw firmware output with only a session-start timestamp.
+
+### What should be done in the future
+
+- If the user can reproduce the physical `/launch` crash while `07-serial-crash-logger.py` is running, inspect `/tmp/picoos_physical_crash.log` and add the panic/backtrace to this diary.
+- If the crash is gone after increasing the keyboard task stack, update this diary with that validation.
+
+### Code review instructions
+
+- Inspect the scripts under:
+  - `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/06-repl-launch-crash-repro.py`
+  - `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/07-serial-crash-logger.py`
+  - `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh`
+- To start logging:
+  - `scripts/08-start-serial-crash-logger-tmux.sh`
+- To attach:
+  - `tmux -L repro attach -t picocalc-0102-physlog`
+
+### Technical details
+
+Reusable commands:
+
+```bash
+ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/06-repl-launch-crash-repro.py
+
+ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh
+
+tmux -L repro attach -t picocalc-0102-physlog
+
+tail -f /tmp/picoos_physical_crash.log
 ```

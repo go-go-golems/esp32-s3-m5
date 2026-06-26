@@ -79,3 +79,14 @@ Added visual REPL slash commands for PicoOS app control and mapped Break/Shift+E
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Slash commands and key mapping
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/05-repl-slash-commands-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Promoted ad-hoc /tmp launch-repro and serial crash-logger scripts into the ticket scripts directory, including a tmux wrapper using a fresh tmux server
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/06-repl-launch-crash-repro.py — Crash repro
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/07-serial-crash-logger.py — Serial logger
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh — Tmux logger wrapper
+
