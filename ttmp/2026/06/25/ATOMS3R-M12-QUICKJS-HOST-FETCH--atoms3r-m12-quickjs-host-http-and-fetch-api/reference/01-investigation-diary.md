@@ -20,12 +20,15 @@ RelatedFiles:
       Note: Desktop QuickJS host runner
     - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh
       Note: Host smoke test for http.get dispatch and fetch (commit 3737dfd)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/CMakeLists.txt
+      Note: Adds esp_http_client dependency for firmware fetch (commit faf621d)
     - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
       Note: Boot-time HTTP namespace installation after system/storage/wifi (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp
       Note: |-
         ESP-IDF wrapper that installs and clears the shared QuickJS HTTP core via qjs_service_run (commit acae5fb)
         Owner-task dynamic GET dispatch bridge from HTTP server to shared QuickJS route table (commit a0009cf)
+        Bounded firmware fetch adapter using esp_http_client (commit faf621d)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.h
       Note: Public firmware install/clear API for the QuickJS HTTP namespace (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
@@ -46,10 +49,11 @@ RelatedFiles:
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T20:15:00-07:00
+LastUpdated: 2026-06-25T20:40:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -490,3 +494,102 @@ The important safety property is unchanged: the HTTP server task does not call Q
 - Dynamic handler timeout: `1000 ms`.
 - Dynamic route miss: `ESP_ERR_NOT_FOUND`, interpreted as fallback to static serving.
 - Firmware request DTO is currently path-focused; query/header/body parsing remains future work.
+
+## Step 5: Add the bounded firmware fetch adapter
+
+This step connects the shared `fetch()` API to ESP-IDF's HTTP client. The firmware implementation is intentionally bounded and HTTP-only: it supports the same small JavaScript contract as the host core, uses configured body and response caps, applies the caller's timeout, and reads the response into a bounded native string before the shared core constructs the JavaScript Response object.
+
+This is still a build-validated milestone rather than a device-validated one. The AtomS3R is disconnected, so the adapter has not yet been flashed and tested against a live STA connection.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue past dynamic route dispatch and implement the requested `fetch()` API on firmware, while preserving the host-tested JavaScript shape.
+
+**Inferred user intent:** Make `fetch()` more than a host-only design by wiring it into ESP-IDF, but keep limitations explicit until hardware validation is possible.
+
+**Commit (code):** `faf621d` — "0103: add bounded firmware fetch adapter"
+
+### What I did
+
+- Added `esp_http_client` to `0103-atoms3r-m12-native-quickjs/main/CMakeLists.txt`.
+- Implemented `op_fetch(...)` in `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp`.
+- Wired `HostOps::fetch` to `op_fetch` instead of leaving it null.
+- Used `esp_http_client_init`, `esp_http_client_set_method`, `esp_http_client_set_header`, `esp_http_client_open`, `esp_http_client_write`, `esp_http_client_fetch_headers`, `esp_http_client_read`, `esp_http_client_close`, and `esp_http_client_cleanup`.
+- Preserved the shared-core fetch limits:
+  - `http://` only.
+  - `GET` and `POST` from the shared parser.
+  - bounded request body from the shared parser.
+  - bounded response body through `req->max_response_bytes`.
+  - timeout from `req->timeout_ms`.
+- Built firmware locally.
+- Reran the desktop host smoke test.
+- Committed the firmware fetch adapter as `faf621d`.
+- Marked HF4.1 through HF4.3 complete; left HF4.4 open until device validation.
+
+### Why
+
+- The user explicitly requested `fetch()` as part of the host/fetch work.
+- The shared core already defined the JavaScript API and host behavior. Firmware needed an adapter so the same API can run on device.
+- A bounded blocking adapter is the simplest firmware implementation that preserves the JavaScript contract. A later worker-backed adapter can replace it if owner-task blocking becomes a problem.
+
+### What worked
+
+- ESP-IDF build passed:
+  - Command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Binary size: `0x16b9c0`.
+  - App partition free: `0x294640` bytes, 64% free.
+- Host smoke still passed:
+  - `fetch status=200 ok=true`
+  - `fetch body=ok`
+  - `PASS native-http host smoke`
+- The adapter compiles without adding platform conditionals to `http_namespace_core.cpp`.
+
+### What didn't work
+
+- No hardware fetch smoke was possible because the AtomS3R is disconnected.
+- Response headers are minimal in the firmware adapter. The first implementation returns status, final URL, and body; richer response headers can be added later via an ESP-IDF event handler or additional client APIs.
+- The firmware adapter blocks the QuickJS owner task while the HTTP request runs. Timeout caps make this bounded, but it is still not the final architecture for long requests.
+
+### What I learned
+
+- Pulling in `esp_http_client` increased the firmware binary from the dynamic-dispatch build (`0x152ce0`) to `0x16b9c0`. The partition still has 64% free, but the cost is visible and should be considered before enabling HTTPS/TLS behavior.
+- The shared `FetchRequest`/`FetchResult` boundary is sufficient for both host POSIX sockets and ESP-IDF's HTTP client.
+- Keeping `fetch()` HTTP-only avoids immediate TLS memory and certificate-policy questions.
+
+### What was tricky to build
+
+- ESP-IDF's HTTP client API splits the request into open/write/fetch-headers/read/close phases. The adapter must clean up correctly on each error path to avoid leaked client handles.
+- Response size must be enforced both from `Content-Length` when present and while reading chunks, because chunked or unknown-length responses can exceed the cap after headers are processed.
+- `ESP_ERR_HTTP_EAGAIN` can appear while fetching headers or reading. The current read loop tolerates EAGAIN during reads by continuing, but this should be reviewed against timeout behavior on real WiFi.
+
+### What warrants a second pair of eyes
+
+- Review whether bounded blocking fetch is acceptable for the first firmware milestone or whether it should move to a worker-backed Promise settlement path before hardware validation.
+- Review the error mapping from ESP-IDF HTTP client failures into JavaScript rejected Promises.
+- Review whether response headers should be captured in the first device-tested fetch milestone.
+- Review behavior for EAGAIN loops to ensure timeout settings prevent an owner-task stall.
+
+### What should be done in the future
+
+- Validate `fetch('http://<device-ip>/healthz')` or an equivalent local-network endpoint on hardware.
+- Decide whether to add a worker task for fetch before scripts depend on it heavily.
+- Add response header capture if scripts need `content-type` or custom headers.
+- Keep HTTPS/TLS as a separate measured step.
+
+### Code review instructions
+
+- Start with `http_namespace.cpp::op_fetch()`.
+- Verify every error path closes and cleans up the ESP-IDF HTTP client handle.
+- Verify response caps are enforced before appending chunks.
+- Validate locally with:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`
+
+### Technical details
+
+- Firmware fetch chunk buffer: `512` bytes.
+- Firmware fetch supports `http://` only in this milestone.
+- Firmware fetch methods are constrained by the shared parser to `GET` and `POST`.
+- Firmware fetch adapter is build-validated but not hardware-validated.

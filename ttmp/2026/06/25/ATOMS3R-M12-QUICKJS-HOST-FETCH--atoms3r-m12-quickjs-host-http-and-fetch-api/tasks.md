@@ -45,9 +45,9 @@ DocType: tasks
 
 ## Phase 4 — `fetch()` API
 
-- [ ] **HF4.1 — Define bounded `fetch()` contract.** Decide supported URL schemes, methods, headers, body caps, timeout caps, and response fields.
-- [ ] **HF4.2 — Implement host adapter.** Implement host-side HTTP fetch for local/off-device tests.
-- [ ] **HF4.3 — Implement firmware adapter.** Use ESP-IDF HTTP client or a worker task to avoid unsafe QuickJS access from network callbacks.
+- [x] **HF4.1 — Define bounded `fetch()` contract.** Decide supported URL schemes, methods, headers, body caps, timeout caps, and response fields.
+- [x] **HF4.2 — Implement host adapter.** Implement host-side HTTP fetch for local/off-device tests.
+- [x] **HF4.3 — Implement firmware adapter.** Use ESP-IDF HTTP client or a worker task to avoid unsafe QuickJS access from network callbacks.
 - [ ] **HF4.4 — Validate fetch smoke.** Test `await fetch('http://.../healthz')` or the accepted embedded equivalent.
 
 ## Phase 5 — Script workflow

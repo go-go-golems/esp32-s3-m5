@@ -62,3 +62,15 @@ Implemented Phase 3 firmware dynamic GET route dispatch: esp_http_server wildcar
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Phase 3 diary entry
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF3.1-HF3.3 complete
 
+
+## 2026-06-25
+
+Implemented Phase 4 bounded firmware fetch adapter using esp_http_client; host fetch smoke still passes and firmware build passes without device (commit faf621d)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/CMakeLists.txt — esp_http_client dependency
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp — Firmware fetch adapter
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Phase 4 diary entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF4.1-HF4.3 complete
+
