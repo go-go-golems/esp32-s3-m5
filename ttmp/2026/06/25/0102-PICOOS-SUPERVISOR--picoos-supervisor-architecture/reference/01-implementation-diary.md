@@ -964,3 +964,86 @@ tmux -L repro attach -t picocalc-0102-physlog
 
 tail -f /tmp/picoos_physical_crash.log
 ```
+
+
+## Step 9: Increase keyboard task stack after physical `/launch` crash report
+
+This step records the immediate mitigation for the user-reported physical `/launch` crash. The UART `screen eval /launch home|hello|snake` reproduction did not crash, which suggests the failure path may be specific to the physical keyboard task calling the now-larger visual REPL command parser on its own stack.
+
+As a defensive fix, I increased the keyboard task stack from 4096 words to 12288 words and flashed the firmware. The change is committed, but it still needs physical validation from the device keyboard path while the serial crash logger is running.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you read the logs of why it crashed? that's why you should run in a tmux or so"
+
+**Assistant interpretation:** Capture serial logs around the crash instead of guessing, and keep the logging process alive independently.
+
+**Inferred user intent:** Diagnose the actual panic/backtrace for physical `/launch` crashes and avoid losing logs when the device resets.
+
+**Commit (code):** e1c943ef539c394cef74af58b9a19f637665a6d4 — "0102: enlarge visual REPL keyboard task stack"
+
+### What I did
+
+- Tried to reproduce the crash over UART with `screen eval /launch home`, `screen eval /launch hello`, and `screen eval /launch snake`.
+- The UART reproduction did not crash.
+- Increased the physical keyboard task stack in `app_main.cpp`:
+  - from `4096` words
+  - to `12288` words
+- Built and flashed the firmware.
+- Started a persistent serial crash logger in tmux through the new script wrapper.
+
+### Why
+
+- The slash-command parser grew substantially and is called from the keyboard task when the user types into the LCD REPL.
+- The UART `screen eval` path runs through the console task, not the physical keyboard task, so a crash only seen when typing physically is plausibly stack-related.
+
+### What worked
+
+- Build and flash passed after the stack change.
+- UART launch repro did not crash.
+- The persistent logger is running and can capture a future physical repro.
+
+### What didn't work
+
+- I did not capture the user's original panic/backtrace because logging was not running at the time of the physical crash.
+- The default tmux server could not see `/dev/serial/by-id`; this was fixed by starting a fresh tmux server with `tmux -L repro`.
+
+### What I learned
+
+- There are two different paths into visual REPL commands:
+  - UART `screen eval`, running on the console task.
+  - Physical typing, running from the keyboard task.
+- A repro that passes through UART does not fully validate keyboard-task stack safety.
+
+### What was tricky to build
+
+- The serial logger itself owns the UART port, so it can conflict with command probes. For physical reproduction, that is fine because the user interacts through the keyboard while the logger only reads serial output.
+
+### What warrants a second pair of eyes
+
+- Review whether `12288` words is the right stack size or whether the visual REPL command parser should avoid large stack allocations instead.
+- Review the remaining local stack buffers in `evaluate_visual_input()`; future commands should keep buffers small or move larger work off the keyboard task.
+
+### What should be done in the future
+
+- Ask the user to retry physical `/launch home`, `/launch hello`, and `/launch snake` while the logger is active.
+- If it still crashes, inspect `/tmp/picoos_physical_crash.log` and decode the backtrace.
+
+### Code review instructions
+
+- Inspect `app_main.cpp` around `xTaskCreate(keyboard_task, "kbd0102", 12288, ...)`.
+- Validate physically by typing `/launch snake` into the LCD REPL while the logger is active.
+
+### Technical details
+
+Logger attach command:
+
+```bash
+tmux -L repro attach -t picocalc-0102-physlog
+```
+
+Log file:
+
+```text
+/tmp/picoos_physical_crash.log
+```

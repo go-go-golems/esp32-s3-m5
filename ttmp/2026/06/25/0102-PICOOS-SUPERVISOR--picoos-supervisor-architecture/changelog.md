@@ -90,3 +90,12 @@ Promoted ad-hoc /tmp launch-repro and serial crash-logger scripts into the ticke
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/07-serial-crash-logger.py — Serial logger
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh — Tmux logger wrapper
 
+
+## 2026-06-25
+
+Increased keyboard task stack from 4096 to 12288 words after physical /launch crash report; UART screen-eval repro did not crash, physical validation still pending (commit e1c943e)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Keyboard task stack increase
+
