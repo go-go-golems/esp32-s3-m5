@@ -1470,7 +1470,7 @@ extern "C" void app_main(void)
     esp_err_t kbd_err = picocalc_keyboard_init();
     ESP_LOGI(kTag, "keyboard init: %s", esp_err_to_name(kbd_err));
     if (kbd_err == ESP_OK) {
-        BaseType_t task_ok = xTaskCreate(keyboard_task, "kbd0102", 4096, nullptr, 5, &g_keyboard_task);
+        BaseType_t task_ok = xTaskCreate(keyboard_task, "kbd0102", 12288, nullptr, 5, &g_keyboard_task);
         ESP_LOGI(kTag, "keyboard editor task create: %s", task_ok == pdPASS ? "ok" : "failed");
     }
 
