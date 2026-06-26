@@ -19,6 +19,7 @@ RelatedFiles:
         picoos launch/launcher/repl console commands (commit c687e03)
         picoos start/stop/frame console integration (commit b5378d1)
         Physical keyboard routing through PicoOS (commit e409fda)
+        Visual REPL slash commands and Break-to-REPL key mapping
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
@@ -43,12 +44,15 @@ RelatedFiles:
       Note: Passing live frame pump hardware probe
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/04-supervisor-input-router-probe.py
       Note: Passing semantic input router probe
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/05-repl-slash-commands-probe.py
+      Note: Passing slash-command hardware probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -742,4 +746,123 @@ picoos: initialized=1 running=0 surface=app active=home cols=40 rows=20 default_
 picoos key: ESP_OK token=escape
 picoos: initialized=1 running=0 surface=repl active=repl cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
 PICOOS_INPUT_ROUTER_PROBE PASS [True, True, True, True, True, True, True, True, True]
+```
+
+
+## Step 7: Add visual REPL slash commands and Break-to-REPL mapping
+
+This step made the on-device visual REPL more useful as a PicoOS control surface. The LCD REPL now accepts slash commands that mirror the most important `esp_console` PicoOS actions, so a user can launch apps, return home, start/stop the frame pump, recover the keyboard, and return to the REPL without needing the UART console.
+
+It also maps the PicoCalc Break key (`Shift+Esc`, key code `0xd0`) to the same semantic `escape` token as Escape, so it can be used as a global return-to-REPL escape hatch from PicoOS app surfaces.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you add /commands to the REPL to launch the apps? maybe mirror the things on esp_console? 
+
+And add shift + esc (brk) to go back to the REPL?"
+
+**Assistant interpretation:** Add LCD visual REPL slash commands for PicoOS app control and map the PicoCalc Break/Shift+Esc key to the supervisor escape path.
+
+**Inferred user intent:** Make the device usable without a serial console by letting the built-in REPL launch/control apps and by providing a reliable physical key chord to escape back to the REPL.
+
+**Commit (code):** pending — implemented and hardware validated; commit follows this diary update.
+
+### What I did
+
+- Changed `evaluate_visual_input()` to return whether the visual REPL should render after evaluating a line. App-launching commands can now render the app display without being immediately overwritten by the REPL redraw.
+- Added visual REPL slash commands:
+  - `/help`
+  - `/status`
+  - `/apps`
+  - `/reset`
+  - `/launch <id>` and `/app <id>`
+  - `/home` and `/launcher`
+  - `/repl`
+  - `/start [fps]`
+  - `/stop`
+  - `/frame [dt_ms]`
+  - `/key <token>`
+  - `/kbd` and `/kbd recover`
+- Added `/picoos ...` aliasing so commands like `/picoos status` can mirror the UART console naming.
+- Added `screen eval <source>` as a UART diagnostic path to exercise LCD REPL slash commands without physical typing.
+- Mapped PicoCalc key code `0xd0` (`break`, i.e. Shift+Esc) to the semantic `escape` token in `key_to_picojs_token()`.
+- Updated editor/app-mode handling so `0xd0` also behaves like Escape in legacy branches.
+- Added hardware probe:
+  - `scripts/05-repl-slash-commands-probe.py`
+
+### Why
+
+- A daily-use device should not require UART for routine app launching.
+- The visual REPL is already a trusted system surface; slash commands make it a practical command shell.
+- Break/Shift+Esc is a better explicit escape hatch than relying only on Escape behavior, especially if apps consume ordinary keys.
+
+### What worked
+
+- ESP-IDF build passed with IDF 5.4.2.
+- Flash passed on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- `screen eval /help` rendered the slash-command help text on the visual REPL.
+- `screen eval /apps` rendered the PicoOS app registry.
+- `screen eval /launch snake` launched Snake and left the app display visible (`render_repl=0`).
+- `screen eval /repl` returned the supervisor to `surface=repl active=repl`.
+- `screen eval /kbd recover` ran keyboard recovery and rendered `KBD RECOVER: ESP_OK`.
+- The slash-command probe passed:
+  - `REPL_SLASH_COMMANDS_PROBE PASS [True, True, True, True, True, True, True, True, True, True]`
+
+### What didn't work
+
+- The first build failed on a `snprintf` truncation warning treated as an error for the visual `/status` line:
+  - `error: '%d' directive output may be truncated ... [-Werror=format-truncation=]`
+- I fixed this by shortening the visual status line to:
+  - `OS <surface> APP=<id> R=<0|1>`
+- I also had to add forward declarations for helpers that are defined later in `app_main.cpp` because the slash-command parser now calls them from `evaluate_visual_input()`.
+
+### What I learned
+
+- Visual REPL commands that switch to an app need a different render contract than ordinary JavaScript eval. A boolean `render_repl` return is enough for now.
+- `screen eval` is a useful bridge for automated tests of physical-screen behavior because it exercises the same visual REPL command parser over UART.
+- The keyboard driver already names `0xd0` as `break`, so mapping it to `escape` is straightforward.
+
+### What was tricky to build
+
+- `/launch snake` must render the app and then suppress the normal REPL render in `submit_input_line()`. Without that, the app would launch internally but the LCD would immediately redraw the REPL surface.
+- The slash-command parser supports both short forms (`/launch snake`) and `/picoos ...` aliases by shifting the token array when the first token is `picoos`.
+- The REPL command output must fit 40 columns. Long status strings can trigger compile-time truncation warnings and also look bad on the device.
+
+### What warrants a second pair of eyes
+
+- Review which slash commands should remain long-term. `/kbd recover` is pragmatic but exposes hardware recovery in the user shell.
+- Review whether `/reset` should reset only QuickJS/PicoJS or the full PicoOS supervisor state. It currently resets QuickJS and reinstalls PicoJS.
+- Review the Break/Shift+Esc physical behavior on hardware with a human keypress; automated validation confirms mapping/code path but not the physical chord timing.
+
+### What should be done in the future
+
+- Add a stronger keyboard reset/reinit command if `kbd recover` still does not avoid power cycling.
+- Consider adding tab-completion/history for slash commands once storage/persistence exists.
+- Consider adding `/ps` after real multi-app state exists.
+
+### Code review instructions
+
+- Start in `app_main.cpp` at `evaluate_visual_input()` for the slash-command parser.
+- Then review `submit_input_line()` for the `render_repl` behavior.
+- Review `key_to_picojs_token()` and `handle_editor_key()` for the `0xd0` Break mapping.
+- Validate with:
+  - `idf.py build`
+  - `scripts/05-repl-slash-commands-probe.py`
+
+### Technical details
+
+Successful probe output included:
+
+```text
+screen eval /help
+screen eval: ESP_OK render_repl=1
+
+screen eval /launch snake
+picoos_core: launched app id=snake elapsed=8ms
+screen eval: ESP_OK render_repl=0
+
+screen eval /kbd recover
+KBD RECOVER: ESP_OK
+
+REPL_SLASH_COMMANDS_PROBE PASS [True, True, True, True, True, True, True, True, True, True]
 ```

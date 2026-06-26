@@ -3,6 +3,7 @@
 ## TODO
 
 - [ ] Add state-preserving multi-app support in `picojs_runtime`.
+- [ ] Implement stronger PicoCalc keyboard reset/reinit if `kbd recover` is still insufficient.
 
 ## DONE
 
@@ -22,3 +23,6 @@
 - [x] Add supervisor frame-pump hardware probe script.
 - [x] Route physical keyboard through the PicoOS supervisor.
 - [x] Add supervisor semantic key probe script.
+- [x] Add visual REPL slash commands for PicoOS app control.
+- [x] Map PicoCalc Break / Shift+Esc to the PicoOS escape-to-REPL path.
+- [x] Add visual REPL slash-command probe script.

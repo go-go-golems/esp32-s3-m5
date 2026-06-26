@@ -69,3 +69,13 @@ Phase 4 implemented: PicoOS semantic input routing with global home/escape handl
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picoos_core/picoos_core.cpp — Key routing implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/04-supervisor-input-router-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Added visual REPL slash commands for PicoOS app control and mapped Break/Shift+Esc to escape-to-REPL; slash-command hardware probe passed
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Slash commands and key mapping
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/05-repl-slash-commands-probe.py — Validation probe
+
