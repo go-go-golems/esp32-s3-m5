@@ -32,28 +32,28 @@ WhenToUse: Use while implementing or reviewing ATOMS3R-M12-QUICKJS-ASYNC-ROUTES.
 
 ## AR1 — Host-core Promise route support
 
-- [ ] **AR1.1 — Add Promise detection helper.** Detect Promise/thenable route return values in the shared core.
-- [ ] **AR1.2 — Add settlement capture.** Attach fulfillment/rejection callbacks that capture resolved response values on the owner context.
-- [ ] **AR1.3 — Drain pending jobs inside dispatch.** Drain until route Promise settles, times out, rejects, or exceeds job cap.
-- [ ] **AR1.4 — Preserve synchronous behavior.** Existing `{json}` and `{text}` handlers must remain unchanged.
-- [ ] **AR1.5 — Add host smoke coverage.** Validate Promise-resolving and Promise-rejecting handlers in `host/native-http`.
+- [x] **AR1.1 — Add Promise detection helper.** Detect Promise/thenable route return values in the shared core.
+- [x] **AR1.2 — Add settlement capture.** Attach fulfillment/rejection callbacks that capture resolved response values on the owner context.
+- [x] **AR1.3 — Drain pending jobs inside dispatch.** Drain until route Promise settles, times out, rejects, or exceeds job cap.
+- [x] **AR1.4 — Preserve synchronous behavior.** Existing `{json}` and `{text}` handlers must remain unchanged.
+- [x] **AR1.5 — Add host smoke coverage.** Validate Promise-resolving and Promise-rejecting handlers in `host/native-http`.
 
 ## AR2 — Firmware integration
 
-- [ ] **AR2.1 — Pass dispatch timeout/options.** Ensure firmware route dispatch passes bounded settlement settings.
-- [ ] **AR2.2 — Map async errors to HTTP responses.** Route miss must still fall back to static; rejection/timeout must return error responses.
-- [ ] **AR2.3 — Build firmware.** Run `idf.py -C 0103-atoms3r-m12-native-quickjs build`.
-- [ ] **AR2.4 — Validate reset safety.** Confirm `js reset` clears routes and no pending Promise state survives.
+- [x] **AR2.1 — Pass dispatch timeout/options.** Ensure firmware route dispatch passes bounded settlement settings.
+- [x] **AR2.2 — Map async errors to HTTP responses.** Route miss must still fall back to static; rejection/timeout must return error responses.
+- [x] **AR2.3 — Build firmware.** Run `idf.py -C 0103-atoms3r-m12-native-quickjs build`.
+- [x] **AR2.4 — Validate reset safety.** Confirm `js reset` clears routes and no pending Promise state survives.
 
 ## AR3 — Hardware validation
 
-- [ ] **AR3.1 — Validate Promise.resolve route.** Register and curl `/async-ok`.
-- [ ] **AR3.2 — Validate async function route.** Register and curl a route using `async function` and `await`.
-- [ ] **AR3.3 — Validate rejection route.** Confirm rejected Promise maps to deterministic HTTP error.
-- [ ] **AR3.4 — Validate timeout/job-cap route.** Confirm long Promise chains or never-settling handlers fail safely.
+- [x] **AR3.1 — Validate Promise.resolve route.** Register and curl `/async-ok`.
+- [x] **AR3.2 — Validate async function route.** Register and curl a route using `async function` and `await`.
+- [x] **AR3.3 — Validate rejection route.** Confirm rejected Promise maps to deterministic HTTP error.
+- [x] **AR3.4 — Validate timeout/job-cap route.** Confirm long Promise chains or never-settling handlers fail safely.
 
 ## AR4 — Documentation and examples
 
-- [ ] **AR4.1 — Add async route examples.** Add checked-in `/scripts` examples.
-- [ ] **AR4.2 — Update firmware README.** Document async route support and limitations.
-- [ ] **AR4.3 — Record diary and close ticket.** Update changelog/diary and close when validated.
+- [x] **AR4.1 — Add async route examples.** Add checked-in `/scripts` examples.
+- [x] **AR4.2 — Update firmware README.** Document async route support and limitations.
+- [x] **AR4.3 — Record diary and close ticket.** Update changelog/diary and close when validated.

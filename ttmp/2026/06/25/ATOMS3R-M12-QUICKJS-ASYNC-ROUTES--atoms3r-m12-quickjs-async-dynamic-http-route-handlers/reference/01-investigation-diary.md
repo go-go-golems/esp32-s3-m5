@@ -14,20 +14,33 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: components/qjs_service/qjs_service.cpp
-      Note: Existing eval-only Promise drain; async route dispatch must decide where to drain jobs.
+    - Path: 0103-atoms3r-m12-native-quickjs/README.md
+      Note: Documents Promise-returning route support and error mapping (commit 0a620dd)
+    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/async-routes.js
+      Note: Device async route example for js run workflow (commit 0a620dd)
+    - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/examples/async-routes.js
+      Note: Host async route example (commit 0a620dd)
+    - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh
+      Note: Host smoke coverage for Promise
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp
       Note: Current firmware dynamic route bridge through qjs_service_run.
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
-      Note: Current synchronous handler result conversion.
+      Note: |-
+        Current synchronous handler result conversion.
+        Promise-aware dynamic route dispatch
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.cpp
-      Note: Dynamic-first/static-fallback HTTP wildcard dispatch.
+      Note: |-
+        Dynamic-first/static-fallback HTTP wildcard dispatch.
+        504 Gateway Timeout status line for never-settling route Promises (commit 0a620dd)
+    - Path: components/qjs_service/qjs_service.cpp
+      Note: Existing eval-only Promise drain; async route dispatch must decide where to drain jobs.
 ExternalSources: []
 Summary: Chronological diary for the async dynamic route handler design ticket.
-LastUpdated: 2026-06-25T20:55:00-07:00
+LastUpdated: 2026-06-25T22:35:00-07:00
 WhatFor: Use to resume design or implementation of Promise-aware dynamic route handlers.
 WhenToUse: Read before changing `http.get()` dispatch, Promise draining, or route response conversion.
 ---
+
 
 # Diary
 
@@ -120,3 +133,121 @@ The design intentionally separates async route dispatch from worker-backed fetch
 - Current dynamic dispatch timeout: `1000 ms`.
 - Existing pending Promise job cap in eval path: `64` jobs.
 - Existing response shapes remain `{json: ...}`, `{text: ...}`, primitives, and `undefined`/`null`.
+
+## Step 2: Implement and hardware-validate Promise-returning routes
+
+This step implements the route Promise design in the shared HTTP core. Dynamic route handlers may now return either an immediate response object or a real QuickJS Promise that settles to a supported response object. The dispatch path drains bounded pending Promise jobs while still running on the QuickJS owner task.
+
+The key behavior change is that a matched route failure is no longer treated as a route miss. A Promise rejection returns a 500 response, and a Promise that cannot settle during the bounded drain returns a 504 response. Static fallback is still reserved for true route misses.
+
+### Prompt Context
+
+**User prompt (verbatim):** "route Promise"
+
+**Assistant interpretation:** Implement the async dynamic route handler follow-on first, focusing on Promise-returning `http.get()` handlers.
+
+**Inferred user intent:** Move from design to code for Promise-aware route dispatch before worker-backed fetch.
+
+**Commit (code):** `0a620dd` — "0103: support Promise-returning HTTP routes"
+
+### What I did
+
+- Updated `0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp`:
+  - added Promise detection with `JS_PromiseState`,
+  - added bounded route Promise draining with `JS_ExecutePendingJob`,
+  - added route error response helpers,
+  - preserved synchronous handler conversion,
+  - converted Promise fulfillment through existing response conversion,
+  - mapped Promise rejection to 500,
+  - mapped never-settling or excessive pending jobs to 504.
+- Updated `0103-atoms3r-m12-native-quickjs/main/http_server.cpp` with `504 Gateway Timeout` status-line mapping.
+- Added host example `0103-atoms3r-m12-native-quickjs/host/native-http/examples/async-routes.js`.
+- Extended `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh` to cover:
+  - `Promise.resolve(...)` route,
+  - `async function` route,
+  - rejected Promise route.
+- Added device example `0103-atoms3r-m12-native-quickjs/examples/scripts/async-routes.js`.
+- Updated firmware example docs and README to document Promise-returning routes.
+- Ran host smoke.
+- Built firmware.
+- Flashed AtomS3R over the by-id USB Serial/JTAG path.
+- Hardware-validated Promise-resolving, async-function, rejected, and never-settling routes.
+- Validated runtime usability and reset behavior after timeout route dispatch.
+
+### Why
+
+- The previous dynamic route implementation only converted immediate handler results. It did not understand that `async function` returns a Promise.
+- The existing `fetch()` Promise job drain fixed console eval, but route dispatch uses `qjs_service_run()` and therefore needed its own bounded drain point.
+- The route miss versus route failure distinction matters because static fallback should not hide JavaScript errors.
+
+### What worked
+
+- Host smoke passed:
+  - `/api/promise` returned `200` with `{"ok":true,"kind":"promise","path":"/api/promise"}`.
+  - `/api/async` returned `200` with `{"ok":true,"kind":"async-value","path":"/api/async"}`.
+  - `/api/reject` returned `500` with `route promise rejected: Error: route boom`.
+  - Existing fetch smoke still passed.
+- Firmware build passed:
+  - Command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`.
+  - Binary size: `0x16c190`.
+  - App partition free: `0x293e70` bytes, 64% free.
+- Hardware validation passed at `192.168.4.22`:
+  - `/async-promise` returned `HTTP/1.1 200 OK` and body `{"ok":true,"kind":"promise","path":"/async-promise"}`.
+  - `/async-await` returned `HTTP/1.1 200 OK` and body `{"ok":true,"kind":"async-value","path":"/async-await"}`.
+  - `/async-reject` returned `HTTP/1.1 500 Internal Server Error` and body `route promise rejected: Error: route boom`.
+  - `/async-never` returned `HTTP/1.1 504 Gateway Timeout` and body `route promise error: route promise did not settle`.
+- After `/async-never`, `js eval "1+2"` still returned `3`.
+- After `js reset`, `typeof http + " " + http.status().running` returned `object true`.
+- After reset, `/async-promise` returned `404 Not Found` and `/healthz` returned `200 OK` on retry.
+
+### What didn't work
+
+- The first post-reset `/healthz` curl timed out during a WiFi beacon timeout/reconnect window. The immediate retry succeeded with `HTTP/1.1 200 OK` and body `ok`. The route reset behavior was still validated because `/async-promise` returned `404` after reset.
+- This implementation supports real QuickJS Promise objects. It does not attempt generic JavaScript thenable assimilation for arbitrary objects with a `then` method.
+
+### What I learned
+
+- Promise-aware route dispatch can be added without changing the public `http.get(path, handler)` API.
+- The shared core is the right place for Promise detection because Promise state and response conversion are JavaScript semantics, not HTTP server semantics.
+- A route that returns a never-settling Promise can fail quickly and safely when `JS_ExecutePendingJob` reports no pending jobs and the Promise is still pending.
+
+### What was tricky to build
+
+- The route dispatch path previously returned `false` both for route miss and handler failure. That is wrong for async errors. The implementation now returns a concrete 500/504 response for matched-route failures while preserving `false` for actual route miss.
+- The Promise drain must run inside `Runtime::dispatch_get()` while already on the owner task. Running it in the HTTP server task would violate the QuickJS ownership rule.
+- Rejected Promises need their rejection reason converted to text without throwing a second exception. The implementation uses `JS_PromiseResult()` and string conversion to produce the error body.
+
+### What warrants a second pair of eyes
+
+- Review whether only real Promises are sufficient, or whether route dispatch should call `Promise.resolve(result)` to assimilate thenables.
+- Review whether `504 Gateway Timeout` is the right status for a pending Promise with no pending jobs versus `500`.
+- Review whether route dispatch should expose a configurable pending-job cap instead of the current `64` jobs.
+- Review whether conversion errors should remain 500 text responses or become structured JSON errors.
+
+### What should be done in the future
+
+- Add worker-backed fetch before encouraging routes to perform slow upstream network calls.
+- Consider async route examples that call `fetch()` after worker-backed fetch exists.
+- Consider a per-route timeout option if scripts need longer bounded setup.
+
+### Code review instructions
+
+- Start with `http_namespace_core.cpp::Runtime::dispatch_get()`.
+- Review the helper functions near the top of `http_namespace_core.cpp`:
+  - `is_promise`,
+  - `drain_route_promise`,
+  - `make_error_response`,
+  - `convert_or_error_response`.
+- Review `http_server.cpp::status_line_for()` for the added 504 mapping.
+- Review host coverage in `host/native-http/tests/run-smoke.sh`.
+- Validate with:
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - hardware curls for `/async-promise`, `/async-await`, `/async-reject`, and `/async-never`.
+
+### Technical details
+
+- Route Promise drain cap: `64` pending jobs.
+- Firmware validation IP: `192.168.4.22`.
+- Final build size for this milestone: `0x16c190`.
+- Status mapping added: `504 Gateway Timeout`.
