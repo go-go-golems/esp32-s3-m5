@@ -38,3 +38,15 @@ Implemented Phase 1 shared QuickJS HTTP core and desktop native host; host smoke
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Phase 1 diary entry
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF1.1-HF1.4 complete
 
+
+## 2026-06-25
+
+Implemented Phase 2 firmware wrapper for the shared QuickJS HTTP core: boot install, pre-reset clear, post-reset reinstall, and native HTTP status bridge; build passed without device (commit acae5fb)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp — Firmware HTTP namespace wrapper
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/js_command.cpp — Reset-safe HTTP namespace handling
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Phase 2 diary entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF2.1-HF2.3 complete
+

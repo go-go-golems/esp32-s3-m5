@@ -31,9 +31,9 @@ DocType: tasks
 
 ## Phase 2 — Firmware `http` namespace
 
-- [ ] **HF2.1 — Add ESP-IDF wrapper.** Install global `http` through `qjs_service_run()` and bridge to `http_server_*` functions.
-- [ ] **HF2.2 — Reinstall/clear on reset.** Ensure `js reset` clears dynamic route references and reinstalls a fresh namespace.
-- [ ] **HF2.3 — Expose lifecycle/static API.** Implement `http.status()`, `http.start()`, `http.stop()`, `http.static()`, and `http.clearStatic()`.
+- [x] **HF2.1 — Add ESP-IDF wrapper.** Install global `http` through `qjs_service_run()` and bridge to `http_server_*` functions.
+- [x] **HF2.2 — Reinstall/clear on reset.** Ensure `js reset` clears dynamic route references and reinstalls a fresh namespace.
+- [x] **HF2.3 — Expose lifecycle/static API.** Implement `http.status()`, `http.start()`, `http.stop()`, `http.static()`, and `http.clearStatic()`.
 - [ ] **HF2.4 — Validate host and firmware parity.** Confirm scripts that pass on host run on device when reconnected.
 
 ## Phase 3 — Dynamic routes

@@ -20,20 +20,31 @@ RelatedFiles:
       Note: Desktop QuickJS host runner
     - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh
       Note: Host smoke test for http.get dispatch and fetch (commit 3737dfd)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
+      Note: Boot-time HTTP namespace installation after system/storage/wifi (commit acae5fb)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp
+      Note: ESP-IDF wrapper that installs and clears the shared QuickJS HTTP core via qjs_service_run (commit acae5fb)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.h
+      Note: Public firmware install/clear API for the QuickJS HTTP namespace (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
       Note: Shared JavaScript http/fetch binding core
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.h
       Note: |-
         Uncommitted Phase 1 implementation seed created before this ticket request
         Portable QuickJS HTTP/fetch core interface and HostOps callback boundary (commit 3737dfd)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.cpp
+      Note: Native HTTP status getter used by http.status() firmware adapter (commit acae5fb)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
+      Note: Pre-reset HTTP state clearing and post-reset namespace reinstall wiring (commit acae5fb)
     - Path: ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/design-doc/01-analysis-design-and-implementation-guide.md
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T19:15:00-07:00
+LastUpdated: 2026-06-25T19:45:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -266,3 +277,103 @@ The milestone proves the key portability boundary. JavaScript API behavior for `
 - The smoke script starts a temporary Python `HTTPServer` on `127.0.0.1:18080` for the fetch test.
 - The shared core currently supports `http://` fetch URLs only, `GET` and `POST`, 16 headers, 4096-byte request bodies, 16 KiB response bodies, and up to 5000 ms timeout.
 - The host runner drains Promise jobs with `JS_ExecutePendingJob()`.
+
+## Step 3: Install the shared HTTP core in firmware
+
+This step wires the shared HTTP core into the ESP-IDF firmware without requiring the disconnected AtomS3R. The firmware now has an `http_namespace` wrapper that installs the global `http` object and `fetch()` entry point through `qjs_service_run()`, bridges lifecycle/static calls to the existing host-owned `http_server`, and clears stored JavaScript route callbacks before `js reset` destroys the QuickJS context.
+
+The milestone is build-validated only. It proves the firmware integration compiles and links with the shared core, but it does not claim device runtime validation because the AtomS3R is currently disconnected.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue implementation after the host core checkpoint by wiring the shared core into firmware and keeping the diary/commits focused.
+
+**Inferred user intent:** Advance toward a real firmware `http` namespace while preserving host-first validation and explicit hardware caveats.
+
+**Commit (code):** `acae5fb` — "0103: install QuickJS HTTP namespace in firmware"
+
+### What I did
+
+- Added `0103-atoms3r-m12-native-quickjs/main/http_namespace.h`.
+- Added `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp`.
+- Added `http_namespace.cpp` and `http_namespace_core.cpp` to `0103-atoms3r-m12-native-quickjs/main/CMakeLists.txt`.
+- Added `http_server_get_status(bool *running, uint16_t *port)` to `http_server.{h,cpp}` so `http.status()` can reflect native server state.
+- Installed the HTTP namespace at boot from `app_main.cpp` after `system`, `storage`, and `wifi`.
+- Updated the boot log hint to include `js eval "http.status().running"`.
+- Updated `js_command.cpp` reset handling:
+  - call `clear_http_namespace_state(g_svc)` before `qjs_service_reset()`.
+  - reinstall `http` after `system`, `storage`, and `wifi` when reset succeeds.
+- Left firmware `fetch()` adapter intentionally unimplemented in this phase; the global `fetch()` exists through the shared core, but firmware calls will fail until a bounded ESP-IDF HTTP client or worker-backed adapter is added.
+- Built firmware locally:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+- Reran the host smoke test after firmware wrapper changes.
+- Marked HF2.1 through HF2.3 complete; left HF2.4 open until hardware returns.
+
+### Why
+
+- The shared core must be installed by firmware through the owner task to preserve QuickJS access rules.
+- Stored `http.get()` handlers are duplicated `JSValue`s. They must be cleared before reset destroys the runtime.
+- The firmware wrapper should bridge to existing host-owned HTTP functions rather than duplicating server lifecycle/static mount behavior.
+
+### What worked
+
+- ESP-IDF build passed without a connected device:
+  - Command: `source /home/manuel/esp/esp-idf-5.4.2/export.sh && idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Binary size: `0x152110`.
+  - App partition free: `0x2adef0` bytes, 67% free.
+- The host smoke still passed after the firmware wrapper was added:
+  - `DISPATCH status=200 content-type=application/json; charset=utf-8`
+  - `fetch status=200 ok=true`
+  - `PASS native-http host smoke`
+- The reset path now has an explicit pre-reset cleanup hook for HTTP route state.
+
+### What didn't work
+
+- Hardware validation could not be run because the AtomS3R is disconnected.
+- Firmware `fetch()` is not implemented yet. The wrapper deliberately leaves `HostOps::fetch` null, so fetch remains a designed API and host-validated shape, not a firmware-validated network client.
+
+### What I learned
+
+- The shared core can compile under both the desktop host and ESP-IDF without platform conditionals in the core itself.
+- The firmware wrapper can stay small if it only translates `HostOps` callbacks to existing native services.
+- A native status getter in `http_server` is useful because server state may be changed from the console as well as from JavaScript.
+
+### What was tricky to build
+
+- Reset cleanup order matters. The wrapper deletes the `qjs_http::Runtime` from a `qjs_service_run()` job before `qjs_service_reset()` destroys the context. This frees stored route handler `JSValue`s against the correct live context.
+- Firmware and host have different status authorities. The shared core mirrors state after JavaScript calls, but firmware also has console commands. Adding `http_server_get_status()` lets `http.status()` report the native server state instead of only the core mirror.
+- Firmware `fetch()` cannot safely be treated as complete just because the host `fetch()` works. The firmware adapter needs a separate bounded ESP-IDF implementation and may need worker-backed Promise settlement.
+
+### What warrants a second pair of eyes
+
+- Review `clear_http_namespace_state()` and reset ordering for correctness if `qjs_service_reset()` fails after the clear step.
+- Review whether global `fetch()` should be installed in firmware before a firmware fetch adapter exists, or whether it should be omitted/replaced with a clearer stub until HF4.
+- Review whether `http_server_get_status()` should also expose static mount state from the native server, or whether the core mirror is sufficient for `http.status()`.
+
+### What should be done in the future
+
+- Add dynamic route dispatch from `http_server.cpp` into the shared core through `qjs_service_run()`.
+- Add a firmware validation pass when the AtomS3R is reconnected:
+  - `js eval "http.status().running"`
+  - `js eval "http.static('/static','/data')"`
+  - `js reset`
+  - repeat `http.status()` after reset.
+- Implement the firmware `fetch()` adapter after route dispatch is stable.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp`.
+- Confirm the wrapper uses `qjs_service_run()` for install and clear jobs.
+- Review `0103-atoms3r-m12-native-quickjs/main/js_command.cpp` for pre-reset clear and post-reset reinstall order.
+- Review `0103-atoms3r-m12-native-quickjs/main/app_main.cpp` for boot install order.
+- Validate locally with:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`
+
+### Technical details
+
+- Firmware build binary after wrapper: `0x152110`.
+- Firmware validation is pending device reconnection.
+- Firmware fetch adapter is intentionally deferred; host fetch remains validated by the desktop smoke test.
