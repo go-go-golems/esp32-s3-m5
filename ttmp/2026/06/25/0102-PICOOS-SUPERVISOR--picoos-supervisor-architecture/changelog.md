@@ -119,3 +119,12 @@ Added picoos ps and visual /ps process/status views; PICOOS_PS_PROBE passed (com
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — PicoOS process views
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Added quiet keyboard recovery window after BIOS 1.4-compatible probe; GPIO bus-clear experiment was removed after causing ESP_ERR_INVALID_STATE, and physical power cycle is now needed before further keyboard validation (commit 659c978).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picocalc_keyboard/picocalc_keyboard.c — Keyboard recovery behavior
+

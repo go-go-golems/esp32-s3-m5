@@ -22,6 +22,8 @@ RelatedFiles:
         Visual REPL slash commands and Break-to-REPL key mapping
         Global Home/Shift+Tab keyboard shortcut implementation (commit fe454b6)
         PicoOS ps and visual /ps command implementation (commit 52c65ef)
+    - Path: components/picocalc_keyboard/picocalc_keyboard.c
+      Note: Quiet 3.1s keyboard recovery window and s_recovering guard (commit 659c978)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
@@ -64,6 +66,7 @@ LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1178,3 +1181,63 @@ The new `picoos ps` and `/ps` commands are intentionally observational. They do 
 - Build command: `source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
 - Flash command: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
 - Probe command: `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py`.
+
+## Step 12: Add a quiet keyboard recovery window after BIOS investigation
+
+This step investigated the PicoCalc keyboard firmware version and attempted to improve recovery without using the dangerous reset register. The device reports `reg01=[0x00 0x00]` and `reg0e=[0x0e 0x01]`, which matches the previously documented BIOS 1.4-compatible power-off feature even though the version register itself is not populated.
+
+I first tried an ESP-side GPIO I2C bus-clear strategy, but testing showed that it made the healthy keyboard path start returning `ESP_ERR_INVALID_STATE`. I removed that approach from the committed code. The committed recovery is intentionally more conservative: tear down the ESP-IDF I2C master, stop host I2C access for 3.1 seconds so the keyboard STM32 firmware can run its own idle I2C-slave reset, then recreate the ESP-IDF I2C master.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead."
+
+**Assistant interpretation:** Proceed with the cautious keyboard recovery work discussed after finding the BIOS 1.4-compatible keyboard firmware behavior.
+
+**Inferred user intent:** Improve keyboard recovery without relying on power cycling and without touching the dangerous `0x08` reset register automatically.
+
+**Commit (code):** 659c97898c8781fd7e815a2043c6f40d5c45ecf8 — "0102: add quiet keyboard recovery window"
+
+### What I did
+- Confirmed the keyboard firmware reports `reg0e=[0x0e 0x01]`, i.e. BIOS 1.4-compatible behavior.
+- Tried a GPIO bus-clear implementation locally, then removed it after it caused `ESP_ERR_INVALID_STATE` on a previously responsive keyboard path.
+- Committed a safer `picocalc_keyboard_recover()` change that holds off host I2C for 3.1 seconds before reinitializing the ESP-IDF I2C bus.
+- Built and flashed the firmware.
+
+### Why
+- The PicoCalc STM32 keyboard firmware source includes an internal `ResetI2CBus()` path when it sees no I2C receive/request activity for roughly 2.5 seconds.
+- Waiting quietly is safer than probing or writing register `0x08`, which previous uLisp work showed can reset/crash the keyboard MCU and require a power cycle.
+
+### What worked
+- Firmware build and flash passed.
+- The committed code is small and avoids the dangerous reset register.
+
+### What didn't work
+- The experimental GPIO bus-clear approach wedged the keyboard I2C path and was not committed.
+- After the failed experiment, `kbd recover` still returned `ESP_OK` for ESP-side reinitialization, but `kbd version` continued to fail with `ESP_ERR_INVALID_STATE`.
+- The current board likely needs a physical PicoCalc power cycle to recover the STM32 keyboard/I2C state before further keyboard validation.
+
+### What I learned
+- The keyboard firmware is BIOS 1.4-compatible by feature probing, but its version register is ambiguous.
+- ESP-side bus-clear on these mapped PicoCalc I2C pins is not safe enough to ship without a lower-level GPIO/pinmux review.
+- A manual power cycle is still required for the current wedged keyboard state.
+
+### What was tricky to build
+- The keyboard task continuously polls I2C. A recovery path that depends on the STM32 seeing idle time must prevent reinitialization/polling during the quiet window, so `s_recovering` blocks `picocalc_keyboard_init()` during the 3.1-second delay.
+
+### What warrants a second pair of eyes
+- Review whether `picocalc_keyboard_init()` should return a distinct temporary recovery status instead of `ESP_ERR_INVALID_STATE` while the quiet window is active.
+- Review whether ESP-IDF exposes a safer native I2C bus recovery API for ESP32-P4 before reattempting GPIO clock pulses.
+
+### What should be done in the future
+- Ask for a physical PicoCalc power cycle, then re-run `kbd version` and `kbd recover` validation from a known-good keyboard state.
+- Do not automate register `0x08` reset; if added, expose it only as an explicit dangerous operator command.
+
+### Code review instructions
+- Review `components/picocalc_keyboard/picocalc_keyboard.c` around `picocalc_keyboard_recover()` and `s_recovering`.
+- Validate after a physical power cycle with `kbd version`, `kbd status`, and `kbd recover`.
+
+### Technical details
+- Build command: `source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+- Flash command: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
+- Current post-experiment failure: `kbd version: ver_err=ESP_ERR_INVALID_STATE ... detected=0x00 unknown`.
