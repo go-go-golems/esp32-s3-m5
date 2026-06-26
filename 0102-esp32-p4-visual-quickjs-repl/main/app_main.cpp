@@ -117,6 +117,10 @@ char g_input[VISUAL_REPL_INPUT_MAX + 1] = {};
 size_t g_input_len = 0;
 size_t g_input_cursor = 0;
 
+esp_err_t render_picojs_to_lcd();
+esp_err_t clear_picojs_on_js_task();
+esp_err_t install_picojs_runtime();
+
 uint16_t color_from_name(const char *name, bool *ok)
 {
     *ok = true;
@@ -254,31 +258,182 @@ void append_visual_status()
     (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
 }
 
-void evaluate_visual_input(const char *source)
+bool evaluate_visual_input(const char *source)
 {
     if (!source || source[0] == 0) {
-        return;
+        return true;
     }
     if (!g_qjs) {
         (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "QUICKJS SERVICE UNAVAILABLE");
-        return;
+        return true;
     }
 
-    if (std::strcmp(source, "/reset") == 0) {
-        esp_err_t err = qjs_service_reset(g_qjs, 2000);
+    if (source[0] == '/') {
+        char cmdline[VISUAL_REPL_INPUT_MAX + 1] = {};
+        std::snprintf(cmdline, sizeof(cmdline), "%s", source + 1);
+        char *argv[8] = {};
+        int argc = 0;
+        for (char *tok = std::strtok(cmdline, " "); tok && argc < 8; tok = std::strtok(nullptr, " ")) {
+            argv[argc++] = tok;
+        }
+        if (argc == 0) return true;
+        if (std::strcmp(argv[0], "picoos") == 0 && argc > 1) {
+            for (int i = 1; i < argc; ++i) argv[i - 1] = argv[i];
+            --argc;
+        }
+
+        if (std::strcmp(argv[0], "reset") == 0) {
+            esp_err_t clear_err = g_picojs ? clear_picojs_on_js_task() : ESP_OK;
+            esp_err_t err = clear_err == ESP_OK ? qjs_service_reset(g_qjs, 2000) : clear_err;
+            esp_err_t install_err = err == ESP_OK && g_picojs ? install_picojs_runtime() : err;
+            char line[VISUAL_REPL_COLS + 1] = {};
+            std::snprintf(line, sizeof(line), "RESET: %s PICOJS=%s", esp_err_to_name(err), esp_err_to_name(install_err));
+            (void)visual_repl_append_line(err == ESP_OK && install_err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+            return true;
+        }
+        if (std::strcmp(argv[0], "status") == 0) {
+            append_visual_status();
+            if (g_picoos_os) {
+                picoos_status_t st = {};
+                esp_err_t err = picoos_get_status(g_picoos_os, &st);
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "OS %s APP=%.12s R=%d", picoos_surface_name(st.surface), st.active_app_id[0] ? st.active_app_id : "-", st.running);
+                (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+            }
+            return true;
+        }
+        if (std::strcmp(argv[0], "apps") == 0) {
+            if (!g_picoos_os) {
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "PICOOS UNAVAILABLE");
+                return true;
+            }
+            picoos_app_info_t apps[PICOOS_MAX_APPS] = {};
+            size_t count = 0;
+            esp_err_t err = picoos_list_apps(g_picoos_os, apps, PICOOS_MAX_APPS, &count);
+            char line[VISUAL_REPL_COLS + 1] = {};
+            std::snprintf(line, sizeof(line), "APPS: %s COUNT=%u", esp_err_to_name(err), (unsigned)count);
+            (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+            const size_t shown = std::min<size_t>(count, 5);
+            for (size_t i = 0; i < shown; ++i) {
+                std::snprintf(line, sizeof(line), "%s %-9s %s", apps[i].system ? "*" : " ", apps[i].id, picoos_app_state_name(apps[i].state));
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+            }
+            return true;
+        }
+        if (std::strcmp(argv[0], "help") == 0) {
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/help /status /apps /reset /kbd");
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/launch ID /home /repl /start [fps]");
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/stop /frame [ms] /key TOKEN");
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "JS: print(1+2), throw Error()...");
+            return true;
+        }
+        if (std::strcmp(argv[0], "launch") == 0 || std::strcmp(argv[0], "app") == 0) {
+            if (!g_picoos_os || argc < 2) {
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "USAGE: /launch <id>");
+                return true;
+            }
+            esp_err_t err = picoos_launch(g_picoos_os, argv[1]);
+            if (err != ESP_OK) {
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "LAUNCH %s: %s", argv[1], esp_err_to_name(err));
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+                return true;
+            }
+            if (std::strcmp(argv[1], "repl") == 0) return true;
+            return render_picojs_to_lcd() != ESP_OK;
+        }
+        if (std::strcmp(argv[0], "home") == 0 || std::strcmp(argv[0], "launcher") == 0) {
+            if (!g_picoos_os) return true;
+            esp_err_t err = picoos_launch(g_picoos_os, "home");
+            if (err != ESP_OK) {
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "HOME: %s", esp_err_to_name(err));
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+                return true;
+            }
+            return render_picojs_to_lcd() != ESP_OK;
+        }
+        if (std::strcmp(argv[0], "repl") == 0) {
+            if (g_picoos_os) (void)picoos_show_repl(g_picoos_os);
+            return true;
+        }
+        if (std::strcmp(argv[0], "start") == 0) {
+            if (!g_picoos_os) return true;
+            uint32_t fps = 0;
+            if (argc >= 2) {
+                bool ok = false;
+                int parsed = parse_int_arg(argv[1], 1, 60, &ok);
+                if (!ok) {
+                    (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "USAGE: /start [fps]");
+                    return true;
+                }
+                fps = static_cast<uint32_t>(parsed);
+            }
+            esp_err_t err = picoos_start(g_picoos_os, fps);
+            char line[VISUAL_REPL_COLS + 1] = {};
+            std::snprintf(line, sizeof(line), "START: %s", esp_err_to_name(err));
+            (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+            return true;
+        }
+        if (std::strcmp(argv[0], "stop") == 0) {
+            esp_err_t err = g_picoos_os ? picoos_stop(g_picoos_os) : ESP_ERR_INVALID_STATE;
+            char line[VISUAL_REPL_COLS + 1] = {};
+            std::snprintf(line, sizeof(line), "STOP: %s", esp_err_to_name(err));
+            (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+            return true;
+        }
+        if (std::strcmp(argv[0], "frame") == 0) {
+            if (!g_picoos_os) return true;
+            uint32_t dt = 100;
+            if (argc >= 2) {
+                bool ok = false;
+                int parsed = parse_int_arg(argv[1], 0, 60000, &ok);
+                if (!ok) return true;
+                dt = static_cast<uint32_t>(parsed);
+            }
+            esp_err_t err = picoos_frame(g_picoos_os, dt);
+            if (err != ESP_OK) {
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "FRAME: %s", esp_err_to_name(err));
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+                return true;
+            }
+            return false;
+        }
+        if (std::strcmp(argv[0], "key") == 0) {
+            if (!g_picoos_os || argc < 2) {
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "USAGE: /key <token>");
+                return true;
+            }
+            esp_err_t err = picoos_key(g_picoos_os, argv[1]);
+            if (err != ESP_OK) {
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "KEY: %s", esp_err_to_name(err));
+                (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+                return true;
+            }
+            return false;
+        }
+        if (std::strcmp(argv[0], "kbd") == 0) {
+            if (argc >= 2 && std::strcmp(argv[1], "recover") == 0) {
+                esp_err_t err = picocalc_keyboard_recover();
+                char line[VISUAL_REPL_COLS + 1] = {};
+                std::snprintf(line, sizeof(line), "KBD RECOVER: %s", esp_err_to_name(err));
+                (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+                return true;
+            }
+            picocalc_keyboard_diag_t diag = {};
+            picocalc_keyboard_get_diag(&diag);
+            char line[VISUAL_REPL_COLS + 1] = {};
+            std::snprintf(line, sizeof(line), "KBD init=%d err=%u rec=%u", diag.initialized, (unsigned)diag.error_count, (unsigned)diag.recover_count);
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+            return true;
+        }
+
         char line[VISUAL_REPL_COLS + 1] = {};
-        std::snprintf(line, sizeof(line), "RESET: %s", esp_err_to_name(err));
-        (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
-        return;
-    }
-    if (std::strcmp(source, "/status") == 0) {
-        append_visual_status();
-        return;
-    }
-    if (std::strcmp(source, "/help") == 0) {
-        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "COMMANDS: /help /status /reset");
-        (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "JS: PRINT(1+2), THROW NEW ERROR()...");
-        return;
+        std::snprintf(line, sizeof(line), "UNKNOWN COMMAND: /%s", argv[0]);
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
+        return true;
     }
 
     qjs_eval_result_t r = {};
@@ -287,7 +442,7 @@ void evaluate_visual_input(const char *source)
         char line[VISUAL_REPL_COLS + 1] = {};
         std::snprintf(line, sizeof(line), "SERVICE ERROR: %s", esp_err_to_name(err));
         (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, line);
-        return;
+        return true;
     }
 
     char meta[VISUAL_REPL_COLS + 1] = {};
@@ -296,6 +451,7 @@ void evaluate_visual_input(const char *source)
     append_visual_text(VISUAL_REPL_STYLE_OUTPUT, r.output);
     append_visual_text(VISUAL_REPL_STYLE_ERROR, r.error);
     qjs_eval_result_free(&r);
+    return true;
 }
 
 void insert_input_char(char ch)
@@ -346,8 +502,8 @@ void submit_input_line()
     std::snprintf(submitted, sizeof(submitted), "> %s", source);
     (void)visual_repl_append_line(VISUAL_REPL_STYLE_PROMPT, submitted);
     clear_input_model_without_render();
-    evaluate_visual_input(source);
-    (void)visual_repl_render();
+    const bool render_repl = evaluate_visual_input(source);
+    if (render_repl) (void)visual_repl_render();
 }
 
 struct PicoFrameJob {
@@ -442,6 +598,7 @@ bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
         case 0x0a:
         case 0x0d: token = "enter"; break;
         case 0xb1: token = "escape"; break;
+        case 0xd0: token = "escape"; break;
         case 0xd2: token = "home"; break;
         case 0xd4: token = "delete"; break;
         case 0xd5: token = "end"; break;
@@ -468,6 +625,7 @@ bool handle_editor_key(uint8_t key)
             submit_input_line();
             return true;
         case 0xb1: // Escape
+        case 0xd0: // Break (Shift+Esc on PicoCalc)
             reset_input_line();
             return true;
         case 0xb4: // Left
@@ -551,7 +709,7 @@ void keyboard_task(void *)
                          picocalc_keyboard_state_name(ev.state), handled,
                          picoos_surface_name(ost.surface), ost.active_app_id[0] ? ost.active_app_id : "-");
             } else if (picojs_runtime_app_mode(g_picojs)) {
-                if (ev.key == 0xb1) { // Escape returns to REPL edit mode.
+                if (ev.key == 0xb1 || ev.key == 0xd0) { // Escape/Break returns to REPL edit mode.
                     (void)picojs_runtime_set_app_mode(g_picojs, false);
                     handled = true;
                 } else {
@@ -781,6 +939,21 @@ int cmd_screen(int argc, char **argv)
                     (unsigned)vst.cols, (unsigned)vst.rows);
         return err == ESP_OK ? 0 : 1;
     }
+    if (std::strcmp(argv[1], "eval") == 0 || std::strcmp(argv[1], "cmd") == 0) {
+        if (argc < 3) {
+            std::printf("usage: screen eval <visual-repl-source>\n");
+            return 1;
+        }
+        char source[VISUAL_REPL_INPUT_MAX + 1] = {};
+        if (!join_source(argc, argv, 2, source, sizeof(source))) return 1;
+        char submitted[VISUAL_REPL_INPUT_MAX + 3] = {};
+        std::snprintf(submitted, sizeof(submitted), "> %s", source);
+        (void)visual_repl_append_line(VISUAL_REPL_STYLE_PROMPT, submitted);
+        const bool render_repl = evaluate_visual_input(source);
+        if (render_repl) (void)visual_repl_render();
+        std::printf("screen eval: ESP_OK render_repl=%d\n", render_repl);
+        return 0;
+    }
     if (std::strcmp(argv[1], "dump") == 0) {
         char dump[(5 + VISUAL_REPL_COLS + 1) * VISUAL_REPL_ROWS + 1] = {};
         esp_err_t err = visual_repl_dump_text(dump, sizeof(dump));
@@ -792,7 +965,7 @@ int cmd_screen(int argc, char **argv)
         std::printf("%s", dump);
         return 0;
     }
-    std::printf("usage: screen demo | dump\n");
+    std::printf("usage: screen demo | dump | eval <visual-repl-source>\n");
     return 1;
 }
 
@@ -1238,7 +1411,7 @@ void start_debug_console()
 
     const esp_console_cmd_t screen_cmd = {
         .command = "screen",
-        .help = "Visual REPL screen diagnostics: demo | dump",
+        .help = "Visual REPL screen diagnostics: demo | dump | eval <source>",
         .func = cmd_screen,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&screen_cmd));
