@@ -23,7 +23,9 @@ RelatedFiles:
     - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
       Note: Boot-time HTTP namespace installation after system/storage/wifi (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp
-      Note: ESP-IDF wrapper that installs and clears the shared QuickJS HTTP core via qjs_service_run (commit acae5fb)
+      Note: |-
+        ESP-IDF wrapper that installs and clears the shared QuickJS HTTP core via qjs_service_run (commit acae5fb)
+        Owner-task dynamic GET dispatch bridge from HTTP server to shared QuickJS route table (commit a0009cf)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.h
       Note: Public firmware install/clear API for the QuickJS HTTP namespace (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
@@ -33,17 +35,22 @@ RelatedFiles:
         Uncommitted Phase 1 implementation seed created before this ticket request
         Portable QuickJS HTTP/fetch core interface and HostOps callback boundary (commit 3737dfd)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.cpp
-      Note: Native HTTP status getter used by http.status() firmware adapter (commit acae5fb)
+      Note: |-
+        Native HTTP status getter used by http.status() firmware adapter (commit acae5fb)
+        Dynamic GET registration and dynamic-first fallback-to-static wildcard dispatch (commit a0009cf)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.h
+      Note: Dynamic response/callback contracts between HTTP server and QuickJS namespace wrapper (commit a0009cf)
     - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
       Note: Pre-reset HTTP state clearing and post-reset namespace reinstall wiring (commit acae5fb)
     - Path: ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/design-doc/01-analysis-design-and-implementation-guide.md
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T19:45:00-07:00
+LastUpdated: 2026-06-25T20:15:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -377,3 +384,109 @@ The milestone is build-validated only. It proves the firmware integration compil
 - Firmware build binary after wrapper: `0x152110`.
 - Firmware validation is pending device reconnection.
 - Firmware fetch adapter is intentionally deferred; host fetch remains validated by the desktop smoke test.
+
+## Step 4: Dispatch firmware HTTP GET routes through QuickJS
+
+This step connects the firmware HTTP server task to the shared QuickJS route table. The wildcard HTTP handler now gives registered dynamic GET handlers the first chance to answer a request, and only falls back to static storage serving when the shared core reports that no dynamic route exists.
+
+The important safety property is unchanged: the HTTP server task does not call QuickJS directly. It packages the path into a native dispatch job, calls `qjs_service_run()`, and the owner task invokes the stored JavaScript handler through the shared core.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue the host/fetch implementation after firmware namespace installation by wiring dynamic HTTP GET dispatch through the owner-task bridge.
+
+**Inferred user intent:** Make `http.get()` useful in firmware, not just in the desktop host, while keeping device validation separate until the AtomS3R is reconnected.
+
+**Commit (code):** `a0009cf` — "0103: dispatch HTTP GET routes through QuickJS"
+
+### What I did
+
+- Extended `0103-atoms3r-m12-native-quickjs/main/http_server.h` with:
+  - `http_dynamic_response_t`
+  - `http_dynamic_get_handler_t`
+  - `http_server_set_dynamic_get_handler(...)`
+  - `http_dynamic_response_free(...)`
+- Extended `0103-atoms3r-m12-native-quickjs/main/http_server.cpp` with:
+  - dynamic GET handler registration state,
+  - URI path extraction without query/hash,
+  - dynamic response sending,
+  - status-line mapping for common HTTP response codes,
+  - fallback from dynamic dispatch to static storage serving.
+- Extended `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp` with:
+  - a `DispatchGetJob` structure,
+  - an owner-task `dispatch_get_job(...)`,
+  - a firmware `dynamic_get_handler(...)` registered with the HTTP server,
+  - conversion from shared-core `qjs_http::HttpResponse` to `http_dynamic_response_t`.
+- Built firmware locally without a connected device.
+- Reran the desktop host smoke test.
+- Committed the focused dynamic-dispatch code as `a0009cf`.
+- Marked HF3.1 through HF3.3 complete; left HF3.4 open because device validation is still pending.
+
+### Why
+
+- `http.get()` route registration is only useful on firmware if `esp_http_server` can route matching requests into the QuickJS owner task.
+- Dynamic routes must be checked before static fallback so paths such as `/api/hello` can be handled by JavaScript while `/static/...` continues to use FatFs streaming.
+- The conversion boundary keeps HTTP response sending in `http_server.cpp` and JavaScript response construction in `http_namespace_core.cpp`.
+
+### What worked
+
+- ESP-IDF build passed:
+  - Command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Binary size: `0x152ce0`.
+  - App partition free: `0x2ad320` bytes, 67% free.
+- Host smoke still passed:
+  - `DISPATCH status=200 content-type=application/json; charset=utf-8`
+  - `fetch status=200 ok=true`
+  - `PASS native-http host smoke`
+- The dynamic firmware path keeps QuickJS access inside `qjs_service_run()`.
+
+### What didn't work
+
+- Device validation could not be run because the AtomS3R remains disconnected.
+- The current firmware dynamic request DTO includes method/path/query/header placeholders from the shared core, but it does not yet parse real query strings, request headers, or request bodies from `httpd_req_t`.
+
+### What I learned
+
+- The dynamic/static routing order is simple if the dynamic handler reports `ESP_ERR_NOT_FOUND` for missing routes. That result becomes a normal fallback condition rather than an HTTP error.
+- The shared core's native response representation is a useful boundary: firmware can allocate a small response body and send it with `httpd_resp_send()` without exposing `httpd_req_t` to JavaScript.
+- The HTTP server now needs careful resource cleanup because dynamic responses allocate a body buffer owned by the server response path.
+
+### What was tricky to build
+
+- The HTTP server callback must bridge from one task into the QuickJS owner task and back into the HTTP response path. The implementation keeps the `DispatchGetJob` stack-allocated in the HTTP task, runs the owner-task job synchronously via `qjs_service_run()`, then copies the resulting body into a response buffer before returning to the server handler.
+- Returning `ESP_ERR_NOT_FOUND` from the dynamic handler means "no dynamic route matched," not necessarily "send a 404 now." The wildcard handler interprets that as fallback to static storage; static storage can still produce a final 404 if no file exists either.
+- Status handling is intentionally small. `esp_http_server` does not provide every HTTP status enum, so the server maps common numeric statuses to explicit status strings.
+
+### What warrants a second pair of eyes
+
+- Review response body allocation and cleanup around `http_dynamic_response_free()`.
+- Review whether dynamic routes should run before static routes forever, or whether explicit route priority should be added later.
+- Review the 1000 ms dynamic handler timeout against expected JavaScript route work.
+- Review how query strings, headers, and request bodies should be added without exceeding memory caps.
+
+### What should be done in the future
+
+- Validate on hardware when the AtomS3R is reconnected:
+  - register `/api/hello` through `js eval`,
+  - start the HTTP server,
+  - `curl http://<device-ip>/api/hello`,
+  - confirm static fallback still works.
+- Add bounded query/header/body extraction for request DTOs.
+- Add firmware `fetch()` adapter after dynamic route smoke is validated.
+
+### Code review instructions
+
+- Start with `http_server.cpp::static_handler()` and `try_dynamic_get()` to understand dynamic/static ordering.
+- Review `http_namespace.cpp::dynamic_get_handler()` and `dispatch_get_job()` to confirm QuickJS is reached only through `qjs_service_run()`.
+- Review `http_namespace_core.cpp::Runtime::dispatch_get()` for the actual JavaScript handler invocation and response conversion.
+- Validate locally with:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`
+
+### Technical details
+
+- Dynamic handler timeout: `1000 ms`.
+- Dynamic route miss: `ESP_ERR_NOT_FOUND`, interpreted as fallback to static serving.
+- Firmware request DTO is currently path-focused; query/header/body parsing remains future work.

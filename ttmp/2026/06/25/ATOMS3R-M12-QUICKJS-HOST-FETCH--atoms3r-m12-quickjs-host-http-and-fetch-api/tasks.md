@@ -38,9 +38,9 @@ DocType: tasks
 
 ## Phase 3 — Dynamic routes
 
-- [ ] **HF3.1 — Add `http.get(path, handler)`.** Store duplicated QuickJS callbacks in the shared core.
-- [ ] **HF3.2 — Add request and response DTOs.** Support bounded path/query/header/body fields and text/json response helpers.
-- [ ] **HF3.3 — Dispatch through owner task.** Ensure firmware HTTP server tasks call into QuickJS only via `qjs_service_run()`.
+- [x] **HF3.1 — Add `http.get(path, handler)`.** Store duplicated QuickJS callbacks in the shared core.
+- [x] **HF3.2 — Add request and response DTOs.** Support bounded path/query/header/body fields and text/json response helpers.
+- [x] **HF3.3 — Dispatch through owner task.** Ensure firmware HTTP server tasks call into QuickJS only via `qjs_service_run()`.
 - [ ] **HF3.4 — Validate dynamic route smoke.** Test `http.get('/api/hello', () => ({ok:true}))` on host first, then on device.
 
 ## Phase 4 — `fetch()` API
