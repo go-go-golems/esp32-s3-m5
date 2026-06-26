@@ -189,6 +189,7 @@ const char *status_line_for(int status)
         case 405: return "405 Method Not Allowed";
         case 413: return "413 Content Too Large";
         case 500: return "500 Internal Server Error";
+        case 504: return "504 Gateway Timeout";
         default: return (status >= 200 && status <= 299) ? "200 OK" : "500 Internal Server Error";
     }
 }

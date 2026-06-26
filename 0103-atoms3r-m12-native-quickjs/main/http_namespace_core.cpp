@@ -18,6 +18,7 @@ constexpr size_t kMaxFetchBodyBytes = 4096;
 constexpr size_t kMaxFetchResponseBytes = 16 * 1024;
 constexpr uint32_t kDefaultFetchTimeoutMs = 1000;
 constexpr uint32_t kMaxFetchTimeoutMs = 5000;
+constexpr int kMaxRoutePromiseJobs = 64;
 
 Runtime *g_active_runtime = nullptr;
 
@@ -122,6 +123,60 @@ JSValue promise_call(JSContext *ctx, const char *name, JSValueConst value)
 
 JSValue promise_resolve(JSContext *ctx, JSValueConst value) { return promise_call(ctx, "resolve", value); }
 JSValue promise_reject(JSContext *ctx, JSValueConst value) { return promise_call(ctx, "reject", value); }
+
+std::string exception_to_string(JSContext *ctx)
+{
+    JSValue ex = JS_GetException(ctx);
+    std::string out;
+    if (!js_to_string(ctx, ex, &out)) out = "handler exception";
+    JS_FreeValue(ctx, ex);
+    return out;
+}
+
+std::string value_to_string(JSContext *ctx, JSValueConst value, const char *fallback)
+{
+    std::string out;
+    if (!js_to_string(ctx, value, &out)) out = fallback ? fallback : "<value>";
+    return out;
+}
+
+void make_error_response(HttpResponse *out, int status, const std::string &message)
+{
+    if (!out) return;
+    out->status = status;
+    out->content_type = "text/plain; charset=utf-8";
+    out->body = message;
+    out->body_set = true;
+}
+
+bool is_promise(JSContext *ctx, JSValueConst value)
+{
+    return JS_PromiseState(ctx, value) >= 0;
+}
+
+bool drain_route_promise(JSContext *ctx, JSValueConst promise, std::string *error)
+{
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    int jobs = 0;
+    while (JS_PromiseState(ctx, promise) == JS_PROMISE_PENDING) {
+        JSContext *job_ctx = nullptr;
+        int rc = JS_ExecutePendingJob(rt, &job_ctx);
+        if (rc < 0) {
+            if (error) *error = exception_to_string(job_ctx ? job_ctx : ctx);
+            return false;
+        }
+        if (rc == 0) {
+            if (error) *error = "route promise did not settle";
+            return false;
+        }
+        jobs++;
+        if (jobs >= kMaxRoutePromiseJobs) {
+            if (error) *error = "too many route promise jobs";
+            return false;
+        }
+    }
+    return true;
+}
 
 bool define_value(JSContext *ctx, JSValueConst obj, const char *name, JSValue value, int flags = JS_PROP_ENUMERABLE)
 {
@@ -243,6 +298,16 @@ bool convert_handler_result(JSContext *ctx, JSValueConst value, HttpResponse *ou
     out->status = 204;
     out->body.clear();
     out->body_set = true;
+    return true;
+}
+
+bool convert_or_error_response(JSContext *ctx, JSValueConst value, HttpResponse *out, std::string *error)
+{
+    std::string conversion_error;
+    if (convert_handler_result(ctx, value, out, &conversion_error)) return true;
+    const std::string msg = conversion_error.empty() ? "invalid route response" : conversion_error;
+    if (error) *error = msg;
+    make_error_response(out, 500, "route response error: " + msg);
     return true;
 }
 
@@ -694,16 +759,38 @@ bool Runtime::dispatch_get(const char *path, HttpResponse *out, std::string *err
     JSValue result = JS_Call(ctx_, r->handler, JS_UNDEFINED, 1, argv);
     JS_FreeValue(ctx_, req);
     if (JS_IsException(result)) {
-        if (error) {
-            JSValue ex = JS_GetException(ctx_);
-            std::string s;
-            if (js_to_string(ctx_, ex, &s)) *error = s;
-            else *error = "handler exception";
-            JS_FreeValue(ctx_, ex);
-        }
-        return false;
+        std::string msg = exception_to_string(ctx_);
+        if (error) *error = msg;
+        make_error_response(out, 500, "route handler exception: " + msg);
+        return true;
     }
-    bool ok = convert_handler_result(ctx_, result, out, error);
+
+    bool ok = true;
+    if (is_promise(ctx_, result)) {
+        std::string promise_error;
+        if (!drain_route_promise(ctx_, result, &promise_error)) {
+            if (error) *error = promise_error;
+            const int status = (promise_error == "route promise did not settle" || promise_error == "too many route promise jobs") ? 504 : 500;
+            make_error_response(out, status, "route promise error: " + promise_error);
+            JS_FreeValue(ctx_, result);
+            return true;
+        }
+
+        const JSPromiseStateEnum state = JS_PromiseState(ctx_, result);
+        JSValue settled = JS_PromiseResult(ctx_, result);
+        if (state == JS_PROMISE_REJECTED) {
+            std::string msg = value_to_string(ctx_, settled, "route promise rejected");
+            if (error) *error = msg;
+            make_error_response(out, 500, "route promise rejected: " + msg);
+            JS_FreeValue(ctx_, settled);
+            JS_FreeValue(ctx_, result);
+            return true;
+        }
+        ok = convert_or_error_response(ctx_, settled, out, error);
+        JS_FreeValue(ctx_, settled);
+    } else {
+        ok = convert_or_error_response(ctx_, result, out, error);
+    }
     JS_FreeValue(ctx_, result);
     return ok;
 }

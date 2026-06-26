@@ -17,6 +17,30 @@ printf '%s\n' "$route_out"
 [[ "$route_out" == *'"ok":true'* ]]
 [[ "$route_out" == *'"path":"/api/hello"'* ]]
 
+promise_out=$(
+  "$BIN" "$HOST_DIR/examples/async-routes.js" --dispatch /api/promise
+)
+printf '%s\n' "$promise_out"
+[[ "$promise_out" == *"routes=3 mounts=0"* ]]
+[[ "$promise_out" == *"DISPATCH status=200 content-type=application/json; charset=utf-8"* ]]
+[[ "$promise_out" == *'"kind":"promise"'* ]]
+[[ "$promise_out" == *'"path":"/api/promise"'* ]]
+
+async_out=$(
+  "$BIN" "$HOST_DIR/examples/async-routes.js" --dispatch /api/async
+)
+printf '%s\n' "$async_out"
+[[ "$async_out" == *"DISPATCH status=200 content-type=application/json; charset=utf-8"* ]]
+[[ "$async_out" == *'"kind":"async-value"'* ]]
+[[ "$async_out" == *'"path":"/api/async"'* ]]
+
+reject_out=$(
+  "$BIN" "$HOST_DIR/examples/async-routes.js" --dispatch /api/reject
+)
+printf '%s\n' "$reject_out"
+[[ "$reject_out" == *"DISPATCH status=500 content-type=text/plain; charset=utf-8"* ]]
+[[ "$reject_out" == *"route promise rejected: Error: route boom"* ]]
+
 python3 - <<'PY' &
 from http.server import BaseHTTPRequestHandler, HTTPServer
 class H(BaseHTTPRequestHandler):

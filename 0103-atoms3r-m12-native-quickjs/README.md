@@ -169,12 +169,15 @@ Expected response:
 {"ok":true,"path":"/run/hello"}
 ```
 
-Dynamic handlers should return one of the supported response shapes:
+Dynamic handlers should return one of the supported response shapes, or a Promise that resolves to one of those shapes:
 
 ```js
 return { status: 200, json: { ok: true } };
 return { status: 200, text: 'hello', contentType: 'text/plain; charset=utf-8' };
+return Promise.resolve({ status: 200, json: { ok: true } });
 ```
+
+Promise-returning route handlers are drained inside the dynamic dispatch job. Rejected route Promises return `500 Internal Server Error`; Promises that do not settle during the bounded dispatch drain return `504 Gateway Timeout`.
 
 `fetch()` is a bounded firmware API in this milestone:
 

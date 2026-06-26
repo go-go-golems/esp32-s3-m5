@@ -14,6 +14,7 @@ The intended recovery-safe workflow is:
 Current examples:
 
 - `http-static-and-routes.js` registers `/api/hello`, `/api/status`, and `/static -> /data`.
+- `async-routes.js` registers Promise-returning `/async-promise`, async-function `/async-await`, and rejecting `/async-reject` routes.
 - `fetch-healthz.js` calls `fetch('http://<device-ip>/healthz')` and prints the response.
 
 ## Console upload examples
@@ -26,3 +27,5 @@ js run /scripts/server.js
 ```
 
 For multiline scripts, use JavaScript-side `storage.writeText()` with an escaped string, or paste a minified version. A larger upload helper can be added later; boot-time autoload should remain disabled unless there is a recovery switch.
+
+Promise-returning dynamic routes are supported for Promises that settle during the route dispatch job. A route that returns a never-settling Promise returns `504 Gateway Timeout`; a route that returns a rejected Promise returns `500 Internal Server Error`.
