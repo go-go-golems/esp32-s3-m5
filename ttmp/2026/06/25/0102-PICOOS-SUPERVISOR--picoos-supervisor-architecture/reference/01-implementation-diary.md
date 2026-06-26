@@ -20,6 +20,7 @@ RelatedFiles:
         picoos start/stop/frame console integration (commit b5378d1)
         Physical keyboard routing through PicoOS (commit e409fda)
         Visual REPL slash commands and Break-to-REPL key mapping
+        Global Home/Shift+Tab keyboard shortcut implementation (commit fe454b6)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
@@ -52,12 +53,15 @@ RelatedFiles:
       Note: Reusable serial crash logger
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/08-start-serial-crash-logger-tmux.sh
       Note: Tmux wrapper for serial crash logging
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py
+      Note: REPL-to-Home semantic key validation probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1047,3 +1051,64 @@ Log file:
 ```text
 /tmp/picoos_physical_crash.log
 ```
+
+## Step 10: Make the Home key open PicoOS Home from the REPL
+
+This step closes a usability gap in the physical keyboard path. PicoCalc Shift+Tab emits the Home key code, and the user expects that key to open the PicoOS Home launcher even while the native visual REPL editor is active.
+
+The fix makes Home a global keyboard shortcut before the keyboard task branches into PicoOS app mode, legacy PicoJS app mode, or REPL text editing. The old editor-only behavior of moving the cursor to column zero no longer wins over the system Home action when PicoOS is available.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue. also, even from the repl, shift+tab (== home key) should go to home."
+
+**Assistant interpretation:** Continue the PicoOS/PicoJS integration work and specifically ensure that the physical Home key opens the PicoOS launcher from the REPL surface, not just from app surfaces.
+
+**Inferred user intent:** Make the launcher feel like a real system shell with a reliable hardware Home shortcut from anywhere.
+
+**Commit (code):** fe454b6827bddebcf2bccccb1e44ee67c186369e — "0102: make Home key open PicoOS launcher"
+
+### What I did
+- Updated `keyboard_task()` in `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp`.
+- Added an early global handler for key code `0xd2` (`home`, Shift+Tab on PicoCalc).
+- The handler calls `picoos_key(g_picoos_os, "home")`, which launches the `home` app and renders the PicoOS Home surface.
+- Added `scripts/09-repl-home-key-probe.py` to validate the semantic Home path from the REPL surface.
+- Built, flashed, and ran the new probe.
+
+### Why
+- Before this change, Home from the REPL editor path moved the input cursor to the beginning of the line.
+- PicoOS already treated semantic `home` as a global launcher shortcut, but physical REPL input bypassed that path.
+- A system Home key should not depend on whether the current surface is an app or the native REPL editor.
+
+### What worked
+- Build passed with binary size `0xe9780`, leaving 77% of the app partition free.
+- Flash to `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00` succeeded.
+- `REPL_HOME_KEY_PROBE PASS` confirmed that semantic `picoos key home` transitions from `surface=repl` to `surface=app active=home` and renders the launcher.
+
+### What didn't work
+- I did not physically press Shift+Tab in this automated pass, because the independent probe can only exercise the same semantic `picoos_key("home")` target that the new keyboard branch calls.
+- Full physical-key confirmation should still be done when convenient, especially given the existing keyboard reliability concerns.
+
+### What I learned
+- The PicoOS semantic key layer already had the correct Home behavior; the bug was that REPL edit mode handled physical Home locally before reaching PicoOS.
+- Global system shortcuts should run before surface-specific editor behavior in the keyboard task.
+
+### What was tricky to build
+- The subtlety is ordering. App surfaces already used `key_to_picojs_token()` and `picoos_key()`, but the REPL branch called `handle_editor_key()` directly. Adding Home inside `handle_editor_key()` would have worked, but placing it earlier makes the shortcut explicitly global and prevents legacy PicoJS app mode from shadowing it.
+
+### What warrants a second pair of eyes
+- Review whether any other keys should be elevated to global shortcuts before mode dispatch.
+- Review whether Home should be ignored on key repeat to avoid relaunching Home repeatedly if Shift+Tab is held.
+
+### What should be done in the future
+- Physically validate Shift+Tab/Home on the device keyboard path.
+- Consider adding a general global-shortcut table for Home, Escape/Break, and future system keys.
+
+### Code review instructions
+- Start in `app_main.cpp` inside `keyboard_task()` around the early `ev.key == 0xd2` branch.
+- Validate with `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py`.
+
+### Technical details
+- Build command: `source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+- Flash command: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
+- Probe command: `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py`.

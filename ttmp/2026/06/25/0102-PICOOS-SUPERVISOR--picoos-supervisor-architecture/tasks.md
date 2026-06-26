@@ -26,3 +26,5 @@
 - [x] Add visual REPL slash commands for PicoOS app control.
 - [x] Map PicoCalc Break / Shift+Esc to the PicoOS escape-to-REPL path.
 - [x] Add visual REPL slash-command probe script.
+- [x] Map PicoCalc Home / Shift+Tab to PicoOS Home even from REPL edit mode.
+- [x] Add REPL-to-Home semantic key probe script.

@@ -99,3 +99,13 @@ Increased keyboard task stack from 4096 to 12288 words after physical /launch cr
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Keyboard task stack increase
 
+
+## 2026-06-25
+
+Mapped PicoCalc Home/Shift+Tab to PicoOS Home before REPL editor handling; REPL_HOME_KEY_PROBE passed (commit fe454b6).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Global Home keyboard shortcut
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py — Validation probe
+
