@@ -33,34 +33,34 @@ WhenToUse: Use while implementing or reviewing ATOMS3R-M12-QUICKJS-WORKER-FETCH.
 
 ## WF1 — Shared-core async fetch contract
 
-- [ ] **WF1.1 — Add optional async HostOps fetch.** Extend `HostOps` while preserving synchronous fallback.
-- [ ] **WF1.2 — Add Promise capability helper.** Create pending Promise plus resolve/reject handles on the owner context.
-- [ ] **WF1.3 — Preserve host synchronous fetch.** Existing host smoke must still pass unchanged.
-- [ ] **WF1.4 — Add host fake async adapter test.** Validate delayed resolve and rejection through the shared core.
+- [x] **WF1.1 — Add optional async HostOps fetch.** Extend `HostOps` while preserving synchronous fallback.
+- [x] **WF1.2 — Add Promise capability helper.** Create pending Promise plus resolve/reject handles on the owner context.
+- [x] **WF1.3 — Preserve host synchronous fetch.** Existing host smoke must still pass unchanged.
+- [x] **WF1.4 — Add host fake async adapter test.** Validate delayed resolve and rejection through the shared core.
 
 ## WF2 — Firmware pending operation model
 
-- [ ] **WF2.1 — Define pending fetch table.** Include id, generation, resolver values, native request/result, and status.
-- [ ] **WF2.2 — Add bounded allocation/backpressure.** Reject immediately when capacity is exhausted.
-- [ ] **WF2.3 — Enforce owner-task-only JSValue access.** Worker code must not call `JS_*` APIs.
-- [ ] **WF2.4 — Add reset invalidation.** Reject/free pending resolver values before runtime reset and ignore stale completions.
+- [x] **WF2.1 — Define pending fetch table.** Include id, generation, resolver values, native request/result, and status.
+- [x] **WF2.2 — Add bounded allocation/backpressure.** Reject immediately when capacity is exhausted.
+- [x] **WF2.3 — Enforce owner-task-only JSValue access.** Worker code must not call `JS_*` APIs.
+- [x] **WF2.4 — Add reset invalidation.** Reject/free pending resolver values before runtime reset and ignore stale completions.
 
 ## WF3 — Worker task and settlement jobs
 
-- [ ] **WF3.1 — Add worker task and queue.** Single worker first; no worker pool yet.
-- [ ] **WF3.2 — Move esp_http_client I/O to worker.** Reuse current caps and cleanup paths.
-- [ ] **WF3.3 — Post owner-task settlement job.** Resolve/reject Promise on owner task only.
-- [ ] **WF3.4 — Drain jobs after settlement.** Ensure `.then()`/`.catch()` callbacks run.
+- [x] **WF3.1 — Add worker task and queue.** Single worker first; no worker pool yet.
+- [x] **WF3.2 — Move esp_http_client I/O to worker.** Reuse current caps and cleanup paths.
+- [x] **WF3.3 — Post owner-task settlement job.** Resolve/reject Promise on owner task only.
+- [x] **WF3.4 — Drain jobs after settlement.** Ensure `.then()`/`.catch()` callbacks run.
 
 ## WF4 — Validation
 
-- [ ] **WF4.1 — Build firmware.** Run `idf.py -C 0103-atoms3r-m12-native-quickjs build`.
-- [ ] **WF4.2 — Validate fetch smoke.** Confirm `/healthz` fetch still prints status/body.
-- [ ] **WF4.3 — Validate delayed endpoint.** Confirm owner-task responsiveness during a slow request.
-- [ ] **WF4.4 — Validate reset during pending fetch.** Confirm no crash and stale completion is ignored.
-- [ ] **WF4.5 — Validate queue saturation.** Confirm excess fetch calls reject cleanly.
+- [x] **WF4.1 — Build firmware.** Run `idf.py -C 0103-atoms3r-m12-native-quickjs build`.
+- [x] **WF4.2 — Validate fetch smoke.** Confirm `/healthz` fetch still prints status/body.
+- [x] **WF4.3 — Validate delayed endpoint.** Confirm owner-task responsiveness during a slow request.
+- [x] **WF4.4 — Validate reset during pending fetch.** Confirm no crash and stale completion is ignored.
+- [x] **WF4.5 — Validate queue saturation.** Confirm excess fetch calls reject cleanly.
 
 ## WF5 — Documentation and examples
 
-- [ ] **WF5.1 — Update README and examples.** Document worker-backed behavior and limits.
-- [ ] **WF5.2 — Record diary and close ticket.** Update changelog/diary and close when validated.
+- [x] **WF5.1 — Update README and examples.** Document worker-backed behavior and limits.
+- [x] **WF5.2 — Record diary and close ticket.** Update changelog/diary and close when validated.

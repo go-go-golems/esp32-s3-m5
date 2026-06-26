@@ -15,22 +15,37 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0103-atoms3r-m12-native-quickjs/README.md
+      Note: Documents worker-backed fetch limits and reset behavior (commit b209ac4)
+    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js
+      Note: |-
+        Current fetch smoke example.
+        Worker-backed fetch example comment (commit b209ac4)
+    - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/src/host_http_ops.cpp
+      Note: Desktop fake async fetch adapter for HostOps.fetch_async coverage (commit b209ac4)
+    - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh
+      Note: Host smoke coverage for sync and fake-async fetch paths (commit b209ac4)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp
-      Note: Current blocking firmware fetch adapter using esp_http_client.
-    - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.h
-      Note: Current synchronous HostOps.fetch and FetchRequest/FetchResult DTOs.
+      Note: |-
+        Current blocking firmware fetch adapter using esp_http_client.
+        Firmware pending table
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
-      Note: Current fetch parser, response object, and Promise helpers.
+      Note: |-
+        Current fetch parser, response object, and Promise helpers.
+        fetch() Promise capability path and shared resolve/reject/drain helpers (commit b209ac4)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.h
+      Note: |-
+        Current synchronous HostOps.fetch and FetchRequest/FetchResult DTOs.
+        Async HostOps fetch contract and settlement helper declarations (commit b209ac4)
     - Path: components/qjs_service/qjs_service.cpp
       Note: Owner-task loop and existing Promise job drain after eval.
-    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js
-      Note: Current fetch smoke example.
 ExternalSources: []
 Summary: Chronological diary for the worker-backed firmware fetch design ticket.
-LastUpdated: 2026-06-25T20:55:00-07:00
+LastUpdated: 2026-06-25T23:25:00-07:00
 WhatFor: Use to resume design or implementation of worker-backed fetch.
 WhenToUse: Read before moving fetch network I/O off the QuickJS owner task.
 ---
+
 
 # Diary
 
@@ -121,3 +136,137 @@ The design is intentionally separate from async route handlers. Worker fetch cha
 - Current default fetch timeout: `1000 ms`, capped by the parser at `5000 ms`.
 - Current default max response body: `16 KiB`.
 - Current firmware fetch read chunk: `512` bytes.
+
+## Step 2: Implement and hardware-validate worker-backed fetch
+
+This step moves firmware `fetch()` network I/O off the QuickJS owner task. The JavaScript API remains `fetch(url, options) -> Promise`, but the firmware path now creates a pending Promise on the owner context, queues a native request to a single `qjs_fetch` worker task, and posts a completion job back to the QuickJS owner task to resolve or reject the Promise.
+
+The important ownership invariant is unchanged: the worker never calls `JS_*`. It only copies native request data, runs `esp_http_client`, and posts native result data. Resolver and rejector `JSValue`s stay in the owner-task pending table and are freed or settled only on the owner task.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Proceed with the remaining follow-on implementation, which is worker-backed firmware `fetch()`.
+
+**Inferred user intent:** Complete the planned worker-fetch ticket after the async route Promise work was finished.
+
+**Commit (code):** `b209ac4` — "0103: move firmware fetch onto worker task"
+
+### What I did
+
+- Extended `qjs_http::HostOps` with optional `fetch_async` while preserving the existing synchronous `fetch` fallback.
+- Added shared-core helper functions:
+  - `resolve_fetch_promise(...)`,
+  - `reject_fetch_promise(...)`,
+  - `drain_pending_jobs(...)`.
+- Updated `js_fetch()` so hosts with `fetch_async` create a Promise capability and let the host adapter settle it later.
+- Added firmware pending fetch state in `http_namespace.cpp`:
+  - four-slot pending table,
+  - monotonic request id,
+  - generation id for reset invalidation,
+  - stored request DTO,
+  - owner-task-owned resolve/reject `JSValue`s.
+- Added one `qjs_fetch` worker task and a bounded FreeRTOS queue.
+- Reused the existing bounded `esp_http_client` implementation inside the worker.
+- Added owner-task settlement jobs via `qjs_service_post()`.
+- Added reset invalidation in `clear_http_job()` so `js reset` rejects active fetch Promises and ignores stale worker completions.
+- Added a desktop `--fake-async-fetch` host flag to exercise the optional async HostOps path in host smoke tests.
+- Updated README and example docs to explain worker-backed settlement, four-pending-fetch limit, delayed console output, and reset cancellation.
+
+### Why
+
+- The previous firmware `fetch()` performed network I/O on the QuickJS owner task. That made the runtime unavailable while `esp_http_client` waited for sockets, headers, or response bytes.
+- Worker-backed fetch preserves the same JavaScript API while making slow network waits native-worker work.
+- Reset invalidation is required because a worker completion can arrive after the QuickJS runtime that created the Promise has already been destroyed.
+
+### What worked
+
+- Host smoke passed from a clean build, including the new fake async fetch mode:
+  - route dispatch smoke,
+  - Promise route smoke,
+  - async function route smoke,
+  - rejected route smoke,
+  - synchronous host fetch smoke,
+  - fake async host fetch smoke.
+- JS examples passed `node --check`.
+- Firmware build passed:
+  - command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`,
+  - binary size: `0x16d070`,
+  - app partition free: `0x292f90` bytes, 64% free.
+- Hardware flash/boot passed on AtomS3R by-id USB Serial/JTAG path.
+- Boot log showed `0103_http_ns: fetch worker start`.
+- Hardware `/healthz` fetch smoke passed:
+  - eval returned `[object Promise]` quickly,
+  - then the worker-settled callbacks printed `fetch status=200 ok=true` and `fetch body=ok` at the prompt.
+- Delayed endpoint validation passed against workstation `192.168.4.119:18081`:
+  - slow fetch returned after about `3329 ms`,
+  - a separate `js eval "print(\"responsive2=\"+(2+3))"` ran during the pending fetch and printed `responsive2=5` before the slow response completed.
+- Reset during pending fetch passed:
+  - pending Promise printed `reset fetch err=fetch cancelled by QuickJS reset`,
+  - namespace reinstall succeeded,
+  - `typeof fetch + " " + typeof http + " " + http.status().running` returned `function object true`.
+- Queue/pending saturation passed:
+  - six delayed fetches produced immediate `er4:too many pending fetches` and `er5:too many pending fetches`,
+  - first four delayed requests completed as `ok0`, `ok1`, `ok2`, `ok3`.
+
+### What didn't work
+
+- The first host smoke after editing hit a glibc heap assertion from an old build artifact. A clean host rebuild fixed it, and ASan also passed the first route dispatch case.
+- A long console one-liner for delayed fetch validation was truncated into invalid JavaScript and produced `SyntaxError: unexpected token in expression: ''`. A shorter one-liner validated the intended behavior.
+- The current host fake async adapter settles immediately rather than using a desktop thread/event loop. It still exercises the shared `fetch_async` Promise-capability path; firmware provides the true delayed worker-backed path.
+
+### What I learned
+
+- Once `fetch()` returns a Promise that is settled by a later posted job, console output from `.then()` callbacks can appear after the `js eval` result and prompt. This is expected for worker-backed settlement and is now documented.
+- A four-slot pending table is enough to validate backpressure and keeps resolver ownership auditable.
+- Generation invalidation is the simplest guard against stale worker completions after `js reset`.
+
+### What was tricky to build
+
+- The worker cannot hold or free any `JSValue`. The implementation solves this by copying only `FetchRequest` into `FetchWork` and only `FetchResult`/error text into `FetchCompletion`. Resolver values stay in the pending table and are only touched by owner-task jobs.
+- Reset ordering matters. `js reset` first calls `clear_http_namespace_state()`, which now rejects and frees active fetch Promises, increments the generation, deletes the runtime wrapper, and then lets `qjs_service_reset()` destroy/recreate QuickJS. Later worker completions carry the old generation and are ignored.
+- Promise settlement is not enough by itself. The settlement job also drains pending QuickJS Promise jobs so `.then()`/`.catch()` callbacks run without waiting for an unrelated future eval.
+
+### What warrants a second pair of eyes
+
+- Review `http_namespace.cpp::op_fetch_async()` and `settle_fetch_job()` for resolver ownership and all cleanup paths.
+- Review the behavior when `qjs_service_post()` fails after a worker completes. The current implementation retries briefly and logs an error; a pathological queue failure could leave a pending Promise until reset.
+- Review whether four pending fetches and one worker remain the right default after real scripts begin composing fetches from async routes.
+- Review whether the public `HostOps.fetch_async` signature should remain QuickJS-aware or whether a later abstraction should hide Promise capability details behind a core-owned pending object.
+
+### What should be done in the future
+
+- Add a true desktop delayed async adapter if host-side timing behavior needs to be tested without hardware.
+- Consider per-fetch cancellation once JavaScript gets an AbortController-like API.
+- Consider one additional diagnostic counter in `http.status().limits` or `js status` for pending worker fetches if scripts need observability.
+- Keep HTTPS/TLS out until memory and certificate handling are deliberately designed.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/http_namespace_core.h` and `http_namespace_core.cpp::js_fetch()` to understand the optional async contract.
+- Then review `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp` in this order:
+  - pending structs and globals,
+  - `op_fetch()` as the reused blocking worker I/O helper,
+  - `op_fetch_async()` allocation/backpressure,
+  - `fetch_worker_task()`,
+  - `settle_fetch_job()`,
+  - `invalidate_pending_fetches()`.
+- Validate with:
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`,
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`,
+  - hardware delayed fetch plus immediate `js eval`,
+  - `js reset` during a pending delayed fetch,
+  - six delayed fetches to confirm bounded rejection.
+
+### Technical details
+
+- Worker task name: `qjs_fetch`.
+- Worker stack: `6144` words.
+- Worker priority: `6`.
+- Pending fetch capacity: `4`.
+- Worker queue capacity: `4` pointers.
+- Settlement job timeout: `1000 ms`.
+- Promise drain cap after settlement: `64` jobs.
+- Firmware validation IP: `192.168.4.22`.
+- Workstation delayed-test IP: `192.168.4.119:18081`.
