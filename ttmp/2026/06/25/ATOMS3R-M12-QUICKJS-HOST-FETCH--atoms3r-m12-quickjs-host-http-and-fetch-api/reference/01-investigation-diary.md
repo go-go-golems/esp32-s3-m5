@@ -29,6 +29,7 @@ RelatedFiles:
         ESP-IDF wrapper that installs and clears the shared QuickJS HTTP core via qjs_service_run (commit acae5fb)
         Owner-task dynamic GET dispatch bridge from HTTP server to shared QuickJS route table (commit a0009cf)
         Bounded firmware fetch adapter using esp_http_client (commit faf621d)
+        Firmware fetch adapter hardware-validated against device /healthz endpoint
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace.h
       Note: Public firmware install/clear API for the QuickJS HTTP namespace (commit acae5fb)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_namespace_core.cpp
@@ -41,18 +42,22 @@ RelatedFiles:
       Note: |-
         Native HTTP status getter used by http.status() firmware adapter (commit acae5fb)
         Dynamic GET registration and dynamic-first fallback-to-static wildcard dispatch (commit a0009cf)
+        Dynamic route and static fallback hardware-validated over WiFi
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.h
       Note: Dynamic response/callback contracts between HTTP server and QuickJS namespace wrapper (commit a0009cf)
     - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
       Note: Pre-reset HTTP state clearing and post-reset namespace reinstall wiring (commit acae5fb)
+    - Path: components/qjs_service/qjs_service.cpp
+      Note: Eval now drains bounded QuickJS Promise jobs so fetch().then callbacks run in console (commit 05c8bc6)
     - Path: ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/design-doc/01-analysis-design-and-implementation-guide.md
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T20:40:00-07:00
+LastUpdated: 2026-06-25T21:20:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -593,3 +598,142 @@ This is still a build-validated milestone rather than a device-validated one. Th
 - Firmware fetch supports `http://` only in this milestone.
 - Firmware fetch methods are constrained by the shared parser to `GET` and `POST`.
 - Firmware fetch adapter is build-validated but not hardware-validated.
+
+## Step 6: Hardware-validate dynamic HTTP routes and firmware fetch
+
+This step validates the host/fetch firmware on the reconnected AtomS3R M12. The board flashed successfully over the by-id USB Serial/JTAG path, booted with 8 MB PSRAM, loaded the persisted WiFi credentials from NVS, joined the network, and announced `http://192.168.4.22/`.
+
+The hardware smoke exposed two useful integration details. First, dynamic route handlers must return the supported response shape (`text`, `json`, `contentType`) rather than arbitrary `headers`/`body` fields. Second, firmware `fetch()` was returning a Promise, but console eval did not run `.then(...)` callbacks until `qjs_service_eval()` learned to drain pending QuickJS jobs.
+
+### Prompt Context
+
+**User prompt (verbatim):** "it's back"
+
+**Assistant interpretation:** The AtomS3R device is reconnected and ready for the previously blocked hardware validation.
+
+**Inferred user intent:** Flash and test the host/fetch firmware on real hardware, then update the implementation diary and task state with evidence.
+
+**Commit (code):** `05c8bc6` — "qjs_service: drain promise jobs after eval"
+
+### What I did
+
+- Verified the board by-id path:
+  - `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00 -> ../../ttyACM1`
+- Cleared stale `tmux -L qjs0103` monitor ownership before flashing.
+- Flashed and monitored through a fresh `tmux -L qjs0103` session.
+- Confirmed boot hardware and memory evidence:
+  - ESP32-S3-PICO-1.
+  - Embedded flash 8 MB.
+  - Embedded PSRAM 8 MB.
+  - PSRAM speed 80 MHz.
+  - QuickJS runtime init in 9 ms on the final build.
+- Confirmed WiFi autoconnected and received IP `192.168.4.22`.
+- Started the HTTP server on port 80.
+- Configured static serving:
+  - `http static /static /data`
+  - `storage write /data/index.html static-html`
+- Registered a dynamic route with the supported response form:
+  - `http.get("/api/hello", function(req){ return {status:200, json:{ok:true, method:req.method, path:req.path}}; })`
+- Validated host curls:
+  - `/healthz`
+  - `/static/index.html`
+  - `/api/hello`
+- Tested firmware `fetch()` from QuickJS against the device's own `/healthz` endpoint.
+- Added bounded pending Promise-job draining to `components/qjs_service/qjs_service.cpp`.
+- Rebuilt, reran host smoke, reflashed, and revalidated firmware `fetch()`.
+- Validated reset safety:
+  - `js reset` reinstalls `http`.
+  - `/healthz` remains available because the native HTTP server is still running.
+  - dynamic `/api/hello` is cleared and returns 404 after reset.
+- Marked HF2.4, HF3.4, and HF4.4 complete.
+
+### Why
+
+- Previous phases were build-validated only because the device was disconnected.
+- Hardware validation was required to prove the owner-task bridge, HTTP server task, WiFi stack, FatFs streaming path, and ESP-IDF HTTP client all work together on the actual AtomS3R.
+- Promise-job draining is required for user-visible `fetch().then(...)` behavior in the console; otherwise the adapter can succeed internally while user callbacks never run.
+
+### What worked
+
+- Flash succeeded through the by-id USB Serial/JTAG path.
+- Final build size after Promise draining:
+  - `0x16bb90` bytes.
+  - `0x294470` bytes free in the 4 MiB app partition, 64% free.
+- Host smoke still passed after the `qjs_service` change:
+  - `PASS native-http host smoke`
+- Hardware `/healthz` passed:
+  - `HTTP/1.1 200 OK`
+  - `Content-Type: text/plain; charset=utf-8`
+  - body `ok`
+- Hardware static serving passed:
+  - `HTTP/1.1 200 OK`
+  - `Content-Type: text/html; charset=utf-8`
+  - body `static-html`
+- Hardware dynamic route passed:
+  - `HTTP/1.1 200 OK`
+  - `Content-Type: application/json; charset=utf-8`
+  - body `{"ok":true,"method":"GET","path":"/api/hello"}`
+- Firmware `fetch()` passed after Promise-job draining:
+  - `fetch status=200 ok=true`
+  - `fetch body=ok`
+- Reset safety passed:
+  - `js eval "typeof http + \" \" + http.status().running"` returned `object true`.
+  - `/api/hello` returned `HTTP/1.1 404 Not Found` after reset.
+
+### What didn't work
+
+- A shell wrapper failed once because `printf '--- /healthz ---\n'` was interpreted as an option-like format by Bash on this system. The retry used `printf --` and curl validation proceeded.
+- The first dynamic handler returned `{status, headers, body}` and produced `HTTP/1.1 204 No Content`. This was not a transport failure; the shared response parser intentionally supports `text`, `json`, and `contentType`, not arbitrary `headers`/`body` fields in this milestone.
+- The first firmware `fetch()` eval returned `[object Promise]` without printing `.then(...)` callbacks. The cause was `qjs_service_eval()` not calling `JS_ExecutePendingJob()` after `JS_Eval()`.
+
+### What I learned
+
+- The host/fetch stack works end-to-end on the real AtomS3R once the console drains QuickJS Promise jobs.
+- The supported dynamic response shape should be documented clearly in examples; `{json: ...}` is the reliable shape for JSON route handlers today.
+- Reset behavior is healthy: native server lifecycle survives `js reset`, while QuickJS-owned route callbacks are cleared and the namespace is reinstalled.
+
+### What was tricky to build
+
+- Promise execution is a runtime-service responsibility, not a fetch-adapter responsibility. The fetch adapter was already returning a resolved Promise, but QuickJS schedules `.then(...)` callbacks as pending jobs. Without `JS_ExecutePendingJob()`, console users only see `[object Promise]`.
+- The fix had to preserve the existing eval timeout semantics. `drain_pending_jobs()` now runs inside the same deadline window and caps each eval at 64 pending jobs to prevent unbounded microtask loops.
+- The route-response pitfall was easy to misread as a dynamic dispatch bug because the request reached QuickJS and returned a valid HTTP response. The 204 status came from the core's deliberate fallback for object responses without `json` or `text`.
+
+### What warrants a second pair of eyes
+
+- Review `qjs_service.cpp::drain_pending_jobs()` for correctness around exception contexts, timeout behavior, and the 64-job cap.
+- Review whether `qjs_service_run()` jobs should also drain pending jobs when native callbacks create Promises, or whether eval-only draining is the right boundary.
+- Review whether the dynamic response parser should accept `{headers, body}` as an alias in a future compatibility step or keep the smaller `{text,json,contentType}` contract.
+- Review whether self-fetch to `/healthz` is enough for the first firmware fetch validation, or whether the next test should hit an external LAN endpoint.
+
+### What should be done in the future
+
+- Add examples that use the accepted response shape:
+  - `{status: 200, json: {...}}`
+  - `{status: 200, text: "...", contentType: "text/plain; charset=utf-8"}`
+- Add `js run <virtual-path>` so server scripts can live under `/scripts` instead of being pasted into the console.
+- Consider worker-backed fetch if blocking the QuickJS owner task becomes a practical problem.
+- Keep HTTPS/TLS as a separate measured milestone.
+
+### Code review instructions
+
+- Start with `components/qjs_service/qjs_service.cpp::drain_pending_jobs()` and the `MSG_EVAL` path.
+- Then review `0103-atoms3r-m12-native-quickjs/main/http_namespace.cpp::op_fetch()` for the blocking firmware fetch implementation.
+- Then review `0103-atoms3r-m12-native-quickjs/main/http_server.cpp::try_dynamic_get()` for dynamic/static ordering.
+- Hardware validation commands used:
+  - `http start 80`
+  - `http static /static /data`
+  - `storage write /data/index.html static-html`
+  - `js eval "http.get(\"/api/hello\", function(req){ return {status:200, json:{ok:true, method:req.method, path:req.path}}; })"`
+  - `js eval "fetch(\"http://192.168.4.22/healthz\").then(function(r){ print(\"fetch status=\"+r.status+\" ok=\"+r.ok); return r.text(); }).then(function(t){ print(\"fetch body=\"+t); })"`
+  - `curl --max-time 5 -i http://192.168.4.22/healthz`
+  - `curl --max-time 5 -i http://192.168.4.22/static/index.html`
+  - `curl --max-time 5 -i http://192.168.4.22/api/hello`
+  - `js reset`
+
+### Technical details
+
+- Serial path: `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00`.
+- Final hardware IP during validation: `192.168.4.22`.
+- Final binary size: `0x16bb90`.
+- Final app partition free: `0x294470` bytes, 64%.
+- Pending Promise-job cap per eval: `64` jobs.

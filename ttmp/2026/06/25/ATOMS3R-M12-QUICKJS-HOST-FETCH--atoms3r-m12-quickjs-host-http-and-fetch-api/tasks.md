@@ -34,21 +34,21 @@ DocType: tasks
 - [x] **HF2.1 — Add ESP-IDF wrapper.** Install global `http` through `qjs_service_run()` and bridge to `http_server_*` functions.
 - [x] **HF2.2 — Reinstall/clear on reset.** Ensure `js reset` clears dynamic route references and reinstalls a fresh namespace.
 - [x] **HF2.3 — Expose lifecycle/static API.** Implement `http.status()`, `http.start()`, `http.stop()`, `http.static()`, and `http.clearStatic()`.
-- [ ] **HF2.4 — Validate host and firmware parity.** Confirm scripts that pass on host run on device when reconnected.
+- [x] **HF2.4 — Validate host and firmware parity.** Confirm scripts that pass on host run on device when reconnected.
 
 ## Phase 3 — Dynamic routes
 
 - [x] **HF3.1 — Add `http.get(path, handler)`.** Store duplicated QuickJS callbacks in the shared core.
 - [x] **HF3.2 — Add request and response DTOs.** Support bounded path/query/header/body fields and text/json response helpers.
 - [x] **HF3.3 — Dispatch through owner task.** Ensure firmware HTTP server tasks call into QuickJS only via `qjs_service_run()`.
-- [ ] **HF3.4 — Validate dynamic route smoke.** Test `http.get('/api/hello', () => ({ok:true}))` on host first, then on device.
+- [x] **HF3.4 — Validate dynamic route smoke.** Test `http.get('/api/hello', () => ({ok:true}))` on host first, then on device.
 
 ## Phase 4 — `fetch()` API
 
 - [x] **HF4.1 — Define bounded `fetch()` contract.** Decide supported URL schemes, methods, headers, body caps, timeout caps, and response fields.
 - [x] **HF4.2 — Implement host adapter.** Implement host-side HTTP fetch for local/off-device tests.
 - [x] **HF4.3 — Implement firmware adapter.** Use ESP-IDF HTTP client or a worker task to avoid unsafe QuickJS access from network callbacks.
-- [ ] **HF4.4 — Validate fetch smoke.** Test `await fetch('http://.../healthz')` or the accepted embedded equivalent.
+- [x] **HF4.4 — Validate fetch smoke.** Test `await fetch('http://.../healthz')` or the accepted embedded equivalent.
 
 ## Phase 5 — Script workflow
 
