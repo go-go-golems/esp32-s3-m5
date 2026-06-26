@@ -16,6 +16,7 @@ static i2c_master_bus_handle_t s_bus = NULL;
 static i2c_master_dev_handle_t s_dev = NULL;
 static SemaphoreHandle_t s_lock = NULL;
 static bool s_initialized = false;
+static volatile bool s_recovering = false;
 static uint8_t s_last_status = 0;
 static uint32_t s_error_count = 0;
 static uint32_t s_recover_count = 0;
@@ -79,6 +80,11 @@ esp_err_t picocalc_keyboard_init(void)
     if (err != ESP_OK) {
         note_error(err);
         return err;
+    }
+
+    if (s_recovering) {
+        give_lock();
+        return ESP_ERR_INVALID_STATE;
     }
 
     if (s_initialized) {
@@ -145,10 +151,14 @@ esp_err_t picocalc_keyboard_recover(void)
 
     ++s_recover_count;
     ESP_LOGW(TAG, "recovering PicoCalc keyboard I2C bus/device (attempt=%u)", (unsigned)s_recover_count);
+    s_recovering = true;
     teardown_locked();
     give_lock();
 
-    vTaskDelay(pdMS_TO_TICKS(100));
+    // Let the keyboard STM32 firmware's internal idle watchdog reset its I2C
+    // slave. The STM32 source resets Wire after ~2.5s without host I2C traffic.
+    vTaskDelay(pdMS_TO_TICKS(3100));
+    s_recovering = false;
     return picocalc_keyboard_init();
 }
 
