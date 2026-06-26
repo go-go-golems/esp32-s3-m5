@@ -34,3 +34,16 @@ Implemented and validated HTTP Phase 1 host service: console lifecycle commands 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/reference/01-investigation-diary.md — Phase 1 diary and validation evidence
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/tasks.md — Marked H1.1-H1.4 complete
 
+
+## 2026-06-25
+
+Implemented and validated HTTP Phase 2 static asset serving: URL prefixes map to bounded storage virtual roots, /static/index.html streams from FatFs, and FatFs long filenames are enabled for web assets (commit 3310933)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/http_server.cpp — Static mount table and HTTP streaming handler
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp — Storage streaming helper for HTTP
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/sdkconfig.defaults — FatFs LFN config for web assets
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/reference/01-investigation-diary.md — Phase 2 diary and validation evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/tasks.md — Marked H2.1-H2.4 complete
+

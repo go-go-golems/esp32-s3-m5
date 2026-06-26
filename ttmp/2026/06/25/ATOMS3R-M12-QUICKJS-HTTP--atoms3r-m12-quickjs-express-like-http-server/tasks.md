@@ -30,10 +30,10 @@ DocType: tasks
 
 ## Phase 2 — Static assets
 
-- [ ] **H2.1 — Add static mount table.** Map URL prefixes to storage virtual roots.
-- [ ] **H2.2 — Stream files from storage.** Serve chunks directly from FatFs, outside QuickJS.
-- [ ] **H2.3 — Add MIME detection.** Support html/js/css/json/png/jpeg/svg/text.
-- [ ] **H2.4 — Validate `/static/index.html`.** Write asset through storage, mount it, and fetch it with curl.
+- [x] **H2.1 — Add static mount table.** Map URL prefixes to storage virtual roots.
+- [x] **H2.2 — Stream files from storage.** Serve chunks directly from FatFs, outside QuickJS.
+- [x] **H2.3 — Add MIME detection.** Support html/js/css/json/png/jpeg/svg/text.
+- [x] **H2.4 — Validate `/static/index.html`.** Write asset through storage, mount it, and fetch it with curl.
 
 ## Phase 3 — Express-like QuickJS API
 

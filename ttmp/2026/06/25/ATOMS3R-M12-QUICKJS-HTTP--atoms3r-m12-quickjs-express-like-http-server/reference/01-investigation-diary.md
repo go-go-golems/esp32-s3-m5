@@ -18,15 +18,26 @@ RelatedFiles:
     - Path: 0103-atoms3r-m12-native-quickjs/main/app_main.cpp
       Note: Registers HTTP console commands during firmware startup (commit 7757d75)
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.cpp
-      Note: Host-owned esp_http_server lifecycle
+      Note: |-
+        Host-owned esp_http_server lifecycle
+        Static mount table
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.h
-      Note: Public HTTP host service API and command registration declaration (commit 7757d75)
+      Note: |-
+        Public HTTP host service API and command registration declaration (commit 7757d75)
+        Public static mount APIs for future QuickJS http namespace reuse (commit 3310933)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp
+      Note: Public virtual-path validation and bounded streaming helper reused by HTTP static serving (commit 3310933)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.h
+      Note: Storage streaming API exported without exposing native paths (commit 3310933)
+    - Path: 0103-atoms3r-m12-native-quickjs/sdkconfig.defaults
+      Note: Enables heap-backed FatFs long filenames for web asset names like index.html (commit 3310933)
 ExternalSources: []
 Summary: Chronological diary for the Express-like HTTP server on AtomS3R M12 QuickJS.
-LastUpdated: 2026-06-25T23:59:00-07:00
+LastUpdated: 2026-06-26T00:45:00-07:00
 WhatFor: Use to resume or review HTTP serving, static assets, and JavaScript route registration work.
 WhenToUse: Read before adding `esp_http_server`, static file serving, or QuickJS dynamic route dispatch.
 ---
+
 
 
 # Diary
@@ -217,3 +228,136 @@ The milestone proves that WiFi, the HTTP server task, and external client access
   - AtomS3R M12 ESP32-S3 over USB Serial/JTAG by-id path `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00`.
 - Observed HTTP validation IP:
   - `192.168.4.22` on the configured guest WiFi network.
+
+## Step 3: Serve static HTTP assets from bounded storage
+
+This step adds the static-file layer that sits between the host HTTP server and future JavaScript route dispatch. The HTTP server now has a small static mount table, a console command for mapping URL prefixes to storage virtual roots, MIME detection, and a streaming path that reads FatFs files outside QuickJS.
+
+The milestone also uncovered an important storage configuration constraint: the default FatFs build rejected `index.html` because long filenames were disabled. Enabling heap-backed long filename support is necessary for normal web asset names such as `index.html`, `app.js`, `data.json`, and `.jpeg` files.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 2)
+
+**Assistant interpretation:** Continue from the committed HTTP health server into Phase 2 static assets, validate on the AtomS3R hardware, and document the result before moving to dynamic QuickJS routes.
+
+**Inferred user intent:** Build web serving incrementally: first static files from bounded storage, then later JavaScript route registration once the host path is stable.
+
+**Commit (code):** `3310933` — "0103: serve static HTTP assets from storage"
+
+### What I did
+
+- Extended `0103-atoms3r-m12-native-quickjs/main/http_server.cpp` with a bounded static mount table.
+- Added public HTTP helpers in `0103-atoms3r-m12-native-quickjs/main/http_server.h`:
+  - `http_server_add_static_mount(...)`
+  - `http_server_clear_static_mounts()`
+- Added console commands:
+  - `http static`
+  - `http static <url-prefix> <storage-virtual-root>`
+  - `http static clear`
+- Registered a wildcard GET handler (`/*`) with `httpd_uri_match_wildcard` for static paths that are not `/` or `/healthz`.
+- Added URL-prefix to storage-virtual-path mapping, including default `index.html` lookup for a mounted prefix root.
+- Added MIME detection for `html`, `js`, `css`, `json`, `txt`, `svg`, `png`, `jpg`, and `jpeg`.
+- Added a storage streaming API in `0103-atoms3r-m12-native-quickjs/main/storage_namespace.{h,cpp}`:
+  - `storage_namespace_validate_virtual_path(...)`
+  - `storage_namespace_stream_file(...)`
+- Enabled heap-backed FatFs long filenames in `0103-atoms3r-m12-native-quickjs/sdkconfig.defaults`:
+  - `CONFIG_FATFS_LFN_HEAP=y`
+  - `CONFIG_FATFS_MAX_LFN=255`
+- Built, flashed, and hardware-smoked the result on AtomS3R.
+- Marked HTTP tasks H2.1 through H2.4 complete.
+
+### Why
+
+- Static assets should stream from FatFs outside QuickJS so request handling does not consume the JavaScript heap or violate QuickJS owner-task rules.
+- Static serving validates URL routing, bounded file reads, MIME types, WiFi reachability, and the HTTP server wildcard path before any dynamic handler registration is added.
+- Heap-backed long filenames are required because web assets commonly use filenames that are invalid under the default 8.3 FatFs mode.
+
+### What worked
+
+- Build passed after fixes:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Binary size with LFN/static serving: `0x14f470`.
+  - App partition remained 67% free.
+- Flash/monitor succeeded on the AtomS3R by-id USB Serial/JTAG path.
+- Boot remained healthy with WiFi and QuickJS:
+  - QuickJS runtime init elapsed: 12 ms.
+  - Internal free after QuickJS: `76655` bytes in the captured boot log.
+  - STA IP: `192.168.4.22`.
+- Static asset validation succeeded:
+  - `storage write /data/index.html static-html` -> `ESP_OK`
+  - `storage read /data/index.html` -> `static-html`
+  - `http static /static /data` -> `ESP_OK`
+  - `http start 80` -> `ESP_OK`
+  - `curl -i --max-time 5 http://192.168.4.22/static/index.html` returned:
+    - `HTTP/1.1 200 OK`
+    - `Content-Type: text/html; charset=utf-8`
+    - `Transfer-Encoding: chunked`
+    - body `static-html`
+- A missing static file path correctly returned `HTTP/1.1 404 Not Found` in the earlier static smoke.
+
+### What didn't work
+
+- The first Phase 2 build failed because ESP-IDF 5.4.2 does not define `HTTPD_503_SERVICE_UNAVAILABLE`:
+  - Command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Error: `http_server.cpp:176:38: error: 'HTTPD_503_SERVICE_UNAVAILABLE' was not declared in this scope`
+  - Fix: map `ESP_ERR_INVALID_STATE` to `HTTPD_500_INTERNAL_SERVER_ERROR` for now.
+- The first `/data/index.html` storage write failed before FatFs LFN was enabled:
+  - Command: `storage write /data/index.html <html><body>static-ok</body></html>`
+  - Result: `write: ESP_FAIL`
+  - A control write to `/data/index.txt` succeeded, which pointed at filename support rather than storage mount failure.
+  - `sdkconfig` showed `CONFIG_FATFS_LFN_NONE=y`.
+  - Fix: enable `CONFIG_FATFS_LFN_HEAP=y` and `CONFIG_FATFS_MAX_LFN=255`.
+
+### What I learned
+
+- The existing storage API was intentionally bounded but not reusable by HTTP because the virtual-root translator and storage lock were private. A small public streaming function is enough for static serving without exposing native `/storage/...` paths.
+- ESP-IDF's HTTP error enum is smaller than the usual HTTP status vocabulary; code should use the constants that exist in `esp_http_server.h` or manually set statuses later if more precision is needed.
+- FatFs 8.3 filename mode is too restrictive for a web-asset feature. Long filename support is part of the HTTP feature, not an optional convenience.
+
+### What was tricky to build
+
+- Static serving needs to share storage validation without duplicating the storage namespace's security boundary. The solution was to expose validation and streaming functions from `storage_namespace`, while keeping native path translation and the FatFs mount point private.
+- The HTTP wildcard route must not swallow `/healthz` and `/`. The server registers exact built-in routes first and uses `httpd_uri_match_wildcard` so `/*` handles only the remaining paths.
+- The storage stream holds the storage lock while sending chunks to the HTTP response. This is simple and safe for Phase 2, but it can block console/JS storage operations while a static file is being sent.
+- URL-to-virtual-path mapping must preserve the virtual-root invariant. The implementation maps `/static/index.html` to `/data/index.html`, validates the resulting virtual path, and rejects traversal-like components before reading.
+
+### What warrants a second pair of eyes
+
+- Review whether holding the storage mutex across `httpd_resp_send_chunk()` is acceptable for larger files, or whether the API should open a file handle under lock and release the lock during network sends.
+- Review the static mount prefix matching and default `index.html` behavior for edge cases such as `/static`, `/static/`, queries, and path traversal attempts.
+- Review the `128 KiB` static file cap against the storage partition size, internal heap budget, and expected web UI asset sizes.
+- Review whether the HTTP server should expose a more precise `503 Service Unavailable` response by setting a custom status string instead of using ESP-IDF's limited enum.
+
+### What should be done in the future
+
+- Add a QuickJS `http` namespace that can call the host-owned lifecycle/static functions.
+- Add dynamic `http.get()` route registration only after reset handling for stored JavaScript callbacks is designed.
+- Consider adding a console or JavaScript mkdir operation if the web asset convention should be `/data/www/index.html` instead of mounting `/data` directly.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/main/http_server.cpp`:
+  - `http_server_add_static_mount()`
+  - `uri_to_virtual_path()`
+  - `static_handler()`
+  - `mime_for_path()`
+  - `cmd_http()`
+- Then review `0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp`:
+  - `storage_namespace_validate_virtual_path()`
+  - `storage_namespace_stream_file()`
+- Validate with:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Flash/monitor over `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00`
+  - `storage write /data/index.html static-html`
+  - `http static /static /data`
+  - `http start 80`
+  - `curl -i http://<device-ip>/static/index.html`
+
+### Technical details
+
+- Code commit: `3310933`.
+- Validation IP: `192.168.4.22`.
+- Build binary: `0x14f470`, 67% app partition free.
+- Static file cap: `128 KiB` per request.
+- Storage virtual roots remain `/scripts`, `/data`, and `/tmp`; the HTTP server still never exposes native `/storage/...` paths to JavaScript or clients.
