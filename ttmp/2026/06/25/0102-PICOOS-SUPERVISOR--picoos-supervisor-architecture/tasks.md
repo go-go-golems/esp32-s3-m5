@@ -28,3 +28,5 @@
 - [x] Add visual REPL slash-command probe script.
 - [x] Map PicoCalc Home / Shift+Tab to PicoOS Home even from REPL edit mode.
 - [x] Add REPL-to-Home semantic key probe script.
+- [x] Add `picoos ps` and `/ps` process/status views.
+- [x] Add PicoOS process-view probe script.

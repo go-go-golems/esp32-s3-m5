@@ -21,6 +21,7 @@ RelatedFiles:
         Physical keyboard routing through PicoOS (commit e409fda)
         Visual REPL slash commands and Break-to-REPL key mapping
         Global Home/Shift+Tab keyboard shortcut implementation (commit fe454b6)
+        PicoOS ps and visual /ps command implementation (commit 52c65ef)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
@@ -55,12 +56,15 @@ RelatedFiles:
       Note: Tmux wrapper for serial crash logging
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py
       Note: REPL-to-Home semantic key validation probe
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py
+      Note: PicoOS process view validation probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -1112,3 +1116,65 @@ The fix makes Home a global keyboard shortcut before the keyboard task branches 
 - Build command: `source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
 - Flash command: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
 - Probe command: `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py`.
+
+## Step 11: Add PicoOS process/status views
+
+This step adds a lightweight process-list view as a stepping stone toward the multi-app-state work. The supervisor already tracks registered apps, foreground/background state, frame counts, and error counts; this makes that state visible through both UART and the visual REPL.
+
+The new `picoos ps` and `/ps` commands are intentionally observational. They do not preserve separate QuickJS contexts yet, but they give us a stable operator-facing view for validating foreground/background transitions as the runtime model evolves.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 10)
+
+**Assistant interpretation:** Continue building the next PicoOS supervisor capabilities after fixing the Home key shortcut.
+
+**Inferred user intent:** Keep advancing from launcher/app demos toward a real PicoOS operating surface with inspectable app state.
+
+**Commit (code):** 52c65ef83ef58a2971344a171fe7abc19deac9ed — "0102: add PicoOS ps views"
+
+### What I did
+- Added `picoos ps` as a concise UART process/status listing.
+- Added `/ps` in the visual REPL with 40-column rows showing app ID, state, frames, and errors.
+- Updated `/help` and console help text to include `ps`.
+- Added `scripts/10-picoos-ps-probe.py`.
+- Built, flashed, and validated the process views on hardware.
+
+### Why
+- Multi-app state preservation needs better visibility into foreground/background/stopped/crashed state.
+- `picoos apps` is a verbose registry dump; `picoos ps` is a compact runtime status view.
+- The visual REPL needs the same process view so the LCD can be used without a host terminal.
+
+### What worked
+- `picoos ps` reports all 10 registered apps with state, frames, errors, and preferred FPS.
+- `/ps` renders the same information compactly on the 40x20 display.
+- `PICOOS_PS_PROBE PASS` confirmed both UART and visual REPL views.
+
+### What didn't work
+- This is not true state-preserving multi-app support yet. Apps still share the single current PicoJS runtime behavior and relaunched JS source is evaluated again.
+- `/ps` can fill most of the visual history when all 10 apps are shown; future pagination may be useful as the app list grows.
+
+### What I learned
+- The existing `picoos_app_info_t` structure already contains enough information for a useful `ps` view.
+- A separate `ps` command lets `/apps` remain a compact app-discovery list while `/ps` focuses on runtime state.
+
+### What was tricky to build
+- The LCD rows have to stay within 40 columns while still showing useful state. The implementation uses bounded app ID/state columns plus compact `fN eN` counters.
+- The visual history can show previous `/ps` output above the new command because it is a scrolling REPL history, not a full-screen table surface.
+
+### What warrants a second pair of eyes
+- Review whether `ps` should sort foreground/background apps first or keep registry order.
+- Review whether `/ps` should paginate once multi-app state adds more metadata.
+
+### What should be done in the future
+- Implement actual state-preserving multi-app runtime records.
+- Add `picoos switch <id>` or a task-switcher surface once background app state is real.
+
+### Code review instructions
+- Start in `app_main.cpp` around `evaluate_visual_input()` handling for `apps`/`ps` and the `cmd_picoos()` `apps`/`ps` branch.
+- Validate with `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py`.
+
+### Technical details
+- Build command: `source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+- Flash command: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
+- Probe command: `ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py`.

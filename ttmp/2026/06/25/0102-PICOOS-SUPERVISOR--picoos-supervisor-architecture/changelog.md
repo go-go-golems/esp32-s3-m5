@@ -109,3 +109,13 @@ Mapped PicoCalc Home/Shift+Tab to PicoOS Home before REPL editor handling; REPL_
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Global Home keyboard shortcut
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/09-repl-home-key-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Added picoos ps and visual /ps process/status views; PICOOS_PS_PROBE passed (commit 52c65ef).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — PicoOS process views
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/10-picoos-ps-probe.py — Validation probe
+
