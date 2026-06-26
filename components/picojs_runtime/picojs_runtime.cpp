@@ -141,6 +141,7 @@ struct GenericWidget {
     StoredValue data;
     StoredValue items;
     StoredValue rows;
+    StoredValue on_pick;
     std::vector<std::string> columns;
     std::vector<GridLayer> layers;
 };
@@ -203,6 +204,7 @@ struct picojs_runtime {
     uint32_t mounted_app_count = 0;
     uint32_t last_frame_ms = 0;
     uint32_t last_error_count = 0;
+    char launch_request[24] = {};
     bool js_installed = false;
     bool app_mode = false;
     ScreenCell cells[kMaxCells];
@@ -951,6 +953,35 @@ JSValue js_gauge_show_pct(JSContext *ctx, JSValueConst this_val, int, JSValueCon
     return JS_DupValue(ctx, this_val);
 }
 
+int widget_item_count(JSContext *ctx, GenericWidget *w)
+{
+    if (!ctx || !w || !w->items.has()) return 0;
+    JSValue arr = JS_IsFunction(ctx, w->items.value) ? JS_Call(ctx, w->items.value, JS_UNDEFINED, 0, nullptr) : JS_DupValue(ctx, w->items.value);
+    if (JS_IsException(arr)) { JS_FreeValue(ctx, arr); return 0; }
+    const int count = js_array_len(ctx, arr);
+    JS_FreeValue(ctx, arr);
+    return std::max(0, count);
+}
+
+std::string widget_item_label(JSContext *ctx, GenericWidget *w, int index)
+{
+    if (!ctx || !w || !w->items.has() || index < 0) return "";
+    JSValue arr = JS_IsFunction(ctx, w->items.value) ? JS_Call(ctx, w->items.value, JS_UNDEFINED, 0, nullptr) : JS_DupValue(ctx, w->items.value);
+    if (JS_IsException(arr)) { JS_FreeValue(ctx, arr); return ""; }
+    JSValue item = JS_GetPropertyUint32(ctx, arr, (uint32_t)index);
+    std::string label = js_to_string(ctx, item);
+    JS_FreeValue(ctx, item);
+    JS_FreeValue(ctx, arr);
+    return label;
+}
+
+void widget_clamp_selection(JSContext *ctx, GenericWidget *w)
+{
+    const int count = widget_item_count(ctx, w);
+    if (count <= 0) { if (w) w->selected = 0; return; }
+    w->selected = std::max(0, std::min(w->selected, count - 1));
+}
+
 JSValue js_widget_at(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
@@ -1009,8 +1040,61 @@ JSValue js_widget_columns(JSContext *ctx, JSValueConst this_val, int argc, JSVal
 JSValue js_widget_select(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
-    if (w && argc > 0) { int32_t v = 0; JS_ToInt32(ctx, &v, argv[0]); w->selected = std::max<int32_t>(0, v); }
+    if (w && argc > 0) { int32_t v = 0; JS_ToInt32(ctx, &v, argv[0]); w->selected = std::max<int32_t>(0, v); widget_clamp_selection(ctx, w); }
     return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_move(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (!w) return JS_DupValue(ctx, this_val);
+    int32_t dx = 0, dy = 0;
+    if (argc > 0) JS_ToInt32(ctx, &dx, argv[0]);
+    if (argc > 1) JS_ToInt32(ctx, &dy, argv[1]);
+    const int count = widget_item_count(ctx, w);
+    if (count <= 0) return JS_DupValue(ctx, this_val);
+    const int grid = std::max(1, w->grid_cols);
+    int next = w->selected + (int)dx + (int)dy * ((w->kind == WidgetKind::Menu) ? grid : 1);
+    if (next < 0) next = 0;
+    if (next >= count) next = count - 1;
+    w->selected = next;
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_pick(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (!w) return JS_UNDEFINED;
+    widget_clamp_selection(ctx, w);
+    const std::string label = widget_item_label(ctx, w, w->selected);
+    if (w->on_pick.has() && JS_IsFunction(ctx, w->on_pick.value)) {
+        JSValue app_obj = (w->panel && w->panel->app) ? make_app_object(ctx, w->panel->app) : JS_UNDEFINED;
+        JSValue label_val = JS_NewString(ctx, label.c_str());
+        JSValue idx_val = JS_NewInt32(ctx, w->selected);
+        JSValue argv[3] = {label_val, app_obj, idx_val};
+        JSValue ret = JS_Call(ctx, w->on_pick.value, JS_UNDEFINED, 3, argv);
+        if (JS_IsException(ret) && w->panel && w->panel->app && w->panel->app->rt) ++w->panel->app->rt->last_error_count;
+        JS_FreeValue(ctx, ret);
+        JS_FreeValue(ctx, idx_val);
+        JS_FreeValue(ctx, label_val);
+        JS_FreeValue(ctx, app_obj);
+    }
+    return JS_NewString(ctx, label.c_str());
+}
+
+JSValue js_widget_on_pick(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->on_pick.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_value(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (!w) return JS_UNDEFINED;
+    widget_clamp_selection(ctx, w);
+    return JS_NewString(ctx, widget_item_label(ctx, w, w->selected).c_str());
 }
 
 JSValue js_widget_marker(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -1194,6 +1278,9 @@ JSValue make_widget_object(JSContext *ctx, GenericWidget *widget)
     set_func(ctx, obj, "rows", js_widget_rows, 1);
     set_func(ctx, obj, "columns", js_widget_columns, 1);
     set_func(ctx, obj, "select", js_widget_select, 1);
+    set_func(ctx, obj, "move", js_widget_move, 2);
+    set_func(ctx, obj, "pick", js_widget_pick, 0);
+    set_func(ctx, obj, "value", js_widget_value, 0);
     set_func(ctx, obj, "marker", js_widget_marker, 1);
     set_func(ctx, obj, "accent", js_widget_accent, 1);
     set_func(ctx, obj, "frame", js_widget_frame, 1);
@@ -1204,7 +1291,7 @@ JSValue make_widget_object(JSContext *ctx, GenericWidget *widget)
     set_func(ctx, obj, "range", js_widget_noop, 2);
     set_func(ctx, obj, "glyphs", js_widget_noop, 1);
     set_func(ctx, obj, "sortBy", js_widget_noop, 2);
-    set_func(ctx, obj, "onPick", js_widget_noop, 1);
+    set_func(ctx, obj, "onPick", js_widget_on_pick, 1);
     set_func(ctx, obj, "cell", js_widget_cell, 1);
     set_func(ctx, obj, "layer", js_widget_layer, 3);
     set_func(ctx, obj, "render", js_widget_noop, 1);
@@ -1282,21 +1369,14 @@ JSValue js_os_processes(JSContext *ctx, JSValueConst, int, JSValueConst *)
     return arr;
 }
 
-JSValue js_os_launch(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+JSValue js_os_launch(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
+    auto *rt = static_cast<picojs_runtime *>(JS_GetOpaque(this_val, g_os_class));
     std::string name = argc > 0 ? js_to_string(ctx, argv[0]) : "";
-    std::string msg = "launch -> " + name;
-    JSValue global = JS_GetGlobalObject(ctx);
-    JSValue print = JS_GetPropertyStr(ctx, global, "print");
-    if (JS_IsFunction(ctx, print)) {
-        JSValue arg = JS_NewString(ctx, msg.c_str());
-        JSValue ret = JS_Call(ctx, print, JS_UNDEFINED, 1, &arg);
-        JS_FreeValue(ctx, ret);
-        JS_FreeValue(ctx, arg);
+    if (rt && !name.empty()) {
+        std::snprintf(rt->launch_request, sizeof(rt->launch_request), "%s", name.c_str());
     }
-    JS_FreeValue(ctx, print);
-    JS_FreeValue(ctx, global);
-    return JS_UNDEFINED;
+    return JS_NewBool(ctx, rt && !name.empty());
 }
 
 JSValue js_os_eval_expr(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
@@ -1488,6 +1568,16 @@ esp_err_t picojs_runtime_key(picojs_runtime_t *rt, const char *token)
     if (!token || token[0] == 0) return ESP_ERR_INVALID_ARG;
     std::snprintf(rt->last_key, sizeof(rt->last_key), "%s", token);
     render_app(nullptr, rt);
+    return ESP_OK;
+}
+
+esp_err_t picojs_runtime_take_launch_request(picojs_runtime_t *rt, char *dst, size_t dst_len)
+{
+    if (!rt || !dst || dst_len == 0) return ESP_ERR_INVALID_ARG;
+    dst[0] = 0;
+    if (rt->launch_request[0] == 0) return ESP_ERR_NOT_FOUND;
+    std::snprintf(dst, dst_len, "%s", rt->launch_request);
+    rt->launch_request[0] = 0;
     return ESP_OK;
 }
 

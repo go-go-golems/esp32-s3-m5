@@ -353,6 +353,11 @@ esp_err_t picoos_key(picoos_supervisor_t *os, const char *token)
     esp_err_t err = qjs_service_run(os->qjs, &job);
     os->pending_key[0] = 0;
     if (err == ESP_OK) {
+        char requested[PICOOS_APP_ID_MAX] = {};
+        if (picojs_runtime_take_launch_request(os->runtime, requested, sizeof(requested)) == ESP_OK && requested[0]) {
+            err = picoos_launch(os, requested);
+            if (err != ESP_OK) return err;
+        }
         if (os->render_active) return os->render_active(os->render_user);
     } else {
         ++os->error_count;

@@ -72,13 +72,19 @@ app.mount();
 )JS";
 constexpr const char *kPicoJsHomeSource = R"JS(
 var home = OS.app('home');
-home.layout(function(l){ l.row(1,'bar').row('*','body'); });
-home.panel('bar').frame('single').title(' picoOS ').titleRight(function(){ return OS.clock('HH:mm'); });
-var body = home.panel('body').frame('single').title(' apps ');
-body.text('72F').at(2,1).fg('amber');
-body.gauge().at(12,1).label('batt').value(function(){ return OS.battery; }).width(10).style('blocks').showPct();
-body.menu().frame('single').title(' launcher ').at(2,3).grid(3).items(['term','notes','files','music','sysmon','snake']).marker('>').accent('cyan').onPick(function(name){ OS.launch(name); });
-home.statusbar('arrows select | enter open | picojs load sysmon');
+home.layout(function(l){ l.row(2,'bar').row('*','body'); });
+home.panel('bar').text(function(){ return 'PicoOS  ' + OS.clock('HH:mm') + '  batt ' + OS.battery + '%'; }).at(0,0).bold();
+home.panel('bar').gauge().at(0,1).label('batt').value(function(){ return OS.battery; }).width(20).style('blocks').showPct();
+var body = home.panel('body');
+body.text('Apps').at(0,0).bold();
+var menu = body.menu().at(0,2).width(38).grid(2).items(['repl','hello','sysmon','snake','calc','settings','notes']).marker('>').accent('cyan').onPick(function(name){ OS.launch(name); });
+home.key('left', function(){ menu.move(-1,0); });
+home.key('right', function(){ menu.move(1,0); });
+home.key('up', function(){ menu.move(0,-1); });
+home.key('down', function(){ menu.move(0,1); });
+home.key('enter', function(){ menu.pick(); });
+home.key('escape', function(){ OS.launch('repl'); });
+home.statusbar(function(){ return 'select ' + menu.value() + ' | enter open | brk repl'; });
 home.mount();
 'picojs home loaded';
 )JS";
@@ -107,6 +113,51 @@ game.key('down', function(){ st.y = Math.min(8, st.y + 1); });
 game.statusbar('arrows move | demo grid/layers');
 game.mount();
 'picojs snake loaded';
+)JS";
+constexpr const char *kPicoJsCalcSource = R"JS(
+var calc = OS.app('calc');
+var st = calc.state({expr:'', result:''});
+var p = calc.panel('main').frame('single').title(' calc ');
+p.text(function(){ return 'expr: ' + (st.expr || '0'); }).at(2,2).bold();
+p.text(function(){ return ' = ' + st.result; }).at(2,4);
+p.text('keys: 0-9 + - * / . enter =').at(2,7).dim();
+function add(k){ if(st.expr.length < 24) st.expr += k; }
+'0123456789+-*/.'.split('').forEach(function(k){ calc.key(k, function(){ add(k); }); });
+calc.key('enter', function(){ try { st.result = String(OS.eval(st.expr)); } catch(e) { st.result = 'ERR'; } });
+calc.key('backspace', function(){ st.expr = st.expr.slice(0,-1); });
+calc.key('delete', function(){ st.expr=''; st.result=''; });
+calc.statusbar('type expression | enter eval | del clear');
+calc.mount();
+'picojs calc loaded';
+)JS";
+constexpr const char *kPicoJsSettingsSource = R"JS(
+var app = OS.app('settings');
+var st = app.state({sel:0, bright:80, theme:'amber', echo:false});
+var p = app.panel('main').frame('single').title(' settings ');
+var rows = ['brightness','theme','echo','back'];
+function line(i){ var mark = i === st.sel ? '>' : ' '; var value = ''; if(i===0)value=st.bright+'%'; if(i===1)value=st.theme; if(i===2)value=st.echo?'on':'off'; if(i===3)value='home'; return mark + ' ' + rows[i] + ' ' + value; }
+[0,1,2,3].forEach(function(i){ p.text(function(){ return line(i); }).at(2,2+i); });
+app.key('up', function(){ st.sel=Math.max(0,st.sel-1); });
+app.key('down', function(){ st.sel=Math.min(rows.length-1,st.sel+1); });
+app.key('left', function(){ if(st.sel===0)st.bright=Math.max(0,st.bright-10); if(st.sel===1)st.theme='amber'; });
+app.key('right', function(){ if(st.sel===0)st.bright=Math.min(100,st.bright+10); if(st.sel===1)st.theme='cyan'; });
+app.key('enter', function(){ if(st.sel===2)st.echo=!st.echo; if(st.sel===3)OS.launch('home'); });
+app.statusbar('arrows adjust | enter toggle/open');
+app.mount();
+'picojs settings loaded';
+)JS";
+constexpr const char *kPicoJsNotesSource = R"JS(
+var app = OS.app('notes');
+var st = app.state({text:'type notes here'});
+var p = app.panel('main').frame('single').title(' notes ');
+p.text(function(){ return st.text.slice(0,34); }).at(2,2);
+p.text(function(){ return st.text.slice(34,68); }).at(2,3);
+'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,!?'.split('').forEach(function(k){ app.key(k, function(){ if(st.text.length<68) st.text += k; }); });
+app.key('backspace', function(){ st.text = st.text.slice(0,-1); });
+app.key('delete', function(){ st.text = ''; });
+app.statusbar('type text | backspace | del clear');
+app.mount();
+'picojs notes loaded';
 )JS";
 
 qjs_service_t *g_qjs = nullptr;
@@ -313,9 +364,11 @@ bool evaluate_visual_input(const char *source)
             char line[VISUAL_REPL_COLS + 1] = {};
             std::snprintf(line, sizeof(line), "APPS: %s COUNT=%u", esp_err_to_name(err), (unsigned)count);
             (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
-            const size_t shown = std::min<size_t>(count, 5);
-            for (size_t i = 0; i < shown; ++i) {
-                std::snprintf(line, sizeof(line), "%s %-9s %s", apps[i].system ? "*" : " ", apps[i].id, picoos_app_state_name(apps[i].state));
+            for (size_t i = 0; i < count && i < PICOOS_MAX_APPS; i += 2) {
+                const picoos_app_info_t &a = apps[i];
+                const picoos_app_info_t *b = (i + 1 < count && i + 1 < PICOOS_MAX_APPS) ? &apps[i + 1] : nullptr;
+                if (b) std::snprintf(line, sizeof(line), "%s%-11.11s %s%-11.11s", a.system ? "*" : " ", a.id, b->system ? "*" : " ", b->id);
+                else std::snprintf(line, sizeof(line), "%s%-11.11s", a.system ? "*" : " ", a.id);
                 (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
             }
             return true;
@@ -591,6 +644,7 @@ bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
     if (!dst || dst_len == 0) return false;
     const char *token = nullptr;
     switch (key) {
+        case 0x08: token = "backspace"; break;
         case 0xb4: token = "left"; break;
         case 0xb5: token = "up"; break;
         case 0xb6: token = "down"; break;
@@ -766,6 +820,9 @@ esp_err_t register_picoos_builtin_apps()
         {.id = "interactive", .title = "Interactive", .source = kPicoJsInteractiveSource, .filename = "<picojs-interactive>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 2},
         {.id = "sysmon", .title = "System Monitor", .source = kPicoJsSysmonSource, .filename = "<picojs-sysmon>", .system = false, .autostart = false, .allow_background_ticks = true, .preferred_fps = 1},
         {.id = "snake", .title = "Snake", .source = kPicoJsSnakeSource, .filename = "<picojs-snake>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 4},
+        {.id = "calc", .title = "Calculator", .source = kPicoJsCalcSource, .filename = "<picojs-calc>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 1},
+        {.id = "settings", .title = "Settings", .source = kPicoJsSettingsSource, .filename = "<picojs-settings>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 1},
+        {.id = "notes", .title = "Notes", .source = kPicoJsNotesSource, .filename = "<picojs-notes>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 1},
     };
     for (const auto &app : apps) {
         esp_err_t err = picoos_register_app(g_picoos_os, &app);
@@ -1210,8 +1267,10 @@ int cmd_picojs(int argc, char **argv)
     if (std::strcmp(argv[1], "load") == 0) {
         if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0 &&
                          std::strcmp(argv[2], "interactive") != 0 && std::strcmp(argv[2], "home") != 0 &&
-                         std::strcmp(argv[2], "sysmon") != 0 && std::strcmp(argv[2], "snake") != 0)) {
-            std::printf("usage: picojs load hello|dashboard|interactive|home|sysmon|snake\n");
+                         std::strcmp(argv[2], "sysmon") != 0 && std::strcmp(argv[2], "snake") != 0 &&
+                         std::strcmp(argv[2], "calc") != 0 && std::strcmp(argv[2], "settings") != 0 &&
+                         std::strcmp(argv[2], "notes") != 0)) {
+            std::printf("usage: picojs load hello|dashboard|interactive|home|sysmon|snake|calc|settings|notes\n");
             return 1;
         }
         const char *source = kPicoJsHelloSource;
@@ -1231,6 +1290,15 @@ int cmd_picojs(int argc, char **argv)
         } else if (std::strcmp(argv[2], "snake") == 0) {
             source = kPicoJsSnakeSource;
             filename = "<picojs-snake>";
+        } else if (std::strcmp(argv[2], "calc") == 0) {
+            source = kPicoJsCalcSource;
+            filename = "<picojs-calc>";
+        } else if (std::strcmp(argv[2], "settings") == 0) {
+            source = kPicoJsSettingsSource;
+            filename = "<picojs-settings>";
+        } else if (std::strcmp(argv[2], "notes") == 0) {
+            source = kPicoJsNotesSource;
+            filename = "<picojs-notes>";
         }
         esp_err_t install_err = install_picojs_runtime();
         if (install_err != ESP_OK) {
