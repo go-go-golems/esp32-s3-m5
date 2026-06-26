@@ -425,6 +425,11 @@ esp_err_t render_picojs_to_lcd_callback(void *)
     return render_picojs_to_lcd();
 }
 
+esp_err_t render_repl_callback(void *)
+{
+    return visual_repl_render();
+}
+
 bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
 {
     if (!dst || dst_len == 0) return false;
@@ -436,6 +441,7 @@ bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
         case 0xb7: token = "right"; break;
         case 0x0a:
         case 0x0d: token = "enter"; break;
+        case 0xb1: token = "escape"; break;
         case 0xd2: token = "home"; break;
         case 0xd4: token = "delete"; break;
         case 0xd5: token = "end"; break;
@@ -531,7 +537,20 @@ void keyboard_task(void *)
         }
         if (ev.state == PICOCALC_KBD_STATE_PRESSED || ev.state == PICOCALC_KBD_STATE_REPEATED) {
             bool handled = false;
-            if (picojs_runtime_app_mode(g_picojs)) {
+            picoos_status_t ost = {};
+            const bool picoos_active = g_picoos_os && picoos_get_status(g_picoos_os, &ost) == ESP_OK && ost.surface != PICOOS_SURFACE_REPL;
+            if (picoos_active) {
+                char token[16] = {};
+                handled = key_to_picojs_token(ev.key, token, sizeof(token));
+                if (handled) {
+                    esp_err_t key_err = picoos_key(g_picoos_os, token);
+                    if (key_err != ESP_OK) ESP_LOGW(kTag, "picoos key token=%s failed: %s", token, esp_err_to_name(key_err));
+                }
+                ESP_LOGI(kTag, "kbd picoos key=0x%02x(%s) token=%s state=%s handled=%d surface=%s active=%s",
+                         ev.key, picocalc_keyboard_key_name(ev.key), token,
+                         picocalc_keyboard_state_name(ev.state), handled,
+                         picoos_surface_name(ost.surface), ost.active_app_id[0] ? ost.active_app_id : "-");
+            } else if (picojs_runtime_app_mode(g_picojs)) {
                 if (ev.key == 0xb1) { // Escape returns to REPL edit mode.
                     (void)picojs_runtime_set_app_mode(g_picojs, false);
                     handled = true;
@@ -607,6 +626,7 @@ esp_err_t init_picoos_supervisor()
     cfg.rows = VISUAL_REPL_ROWS;
     cfg.default_fps = 4;
     cfg.render_active = render_picojs_to_lcd_callback;
+    cfg.render_repl = render_repl_callback;
     cfg.render_user = nullptr;
     esp_err_t err = picoos_supervisor_create(&cfg, &g_picoos_os);
     if (err != ESP_OK) return err;
@@ -924,8 +944,16 @@ int cmd_picoos(int argc, char **argv)
     }
     if (std::strcmp(argv[1], "repl") == 0) {
         esp_err_t err = picoos_show_repl(g_picoos_os);
-        if (err == ESP_OK) (void)visual_repl_render();
         std::printf("picoos repl: %s\n", esp_err_to_name(err));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "key") == 0) {
+        if (argc < 3) {
+            std::printf("usage: picoos key <token>\n");
+            return 1;
+        }
+        esp_err_t err = picoos_key(g_picoos_os, argv[2]);
+        std::printf("picoos key: %s token=%s\n", esp_err_to_name(err), argv[2]);
         return err == ESP_OK ? 0 : 1;
     }
     if (std::strcmp(argv[1], "start") == 0) {
@@ -978,7 +1006,7 @@ int cmd_picoos(int argc, char **argv)
         }
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picoos status | apps | launch <id> | launcher | repl | start [fps] | stop | frame [dt_ms]\n");
+    std::printf("usage: picoos status | apps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]\n");
     return 1;
 }
 
@@ -1231,7 +1259,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picoos_cmd = {
         .command = "picoos",
-        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl | start [fps] | stop | frame [dt_ms]",
+        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]",
         .func = cmd_picoos,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picoos_cmd));

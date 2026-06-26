@@ -32,6 +32,7 @@ void copy_cstr(char *dst, size_t dst_len, const char *src)
 PicoOsAppRecord *find_app(struct picoos_supervisor *os, const char *id);
 esp_err_t install_picojs_job(JSContext *ctx, void *user);
 esp_err_t picoos_frame_job(JSContext *ctx, void *user);
+esp_err_t picoos_key_job(JSContext *ctx, void *user);
 void picoos_frame_task(void *user);
 }  // namespace
 
@@ -47,9 +48,11 @@ struct picoos_supervisor {
     uint32_t error_count = 0;
     uint32_t frame_period_ms = 250;
     uint32_t pending_dt_ms = 0;
+    char pending_key[16] = {};
     bool stop_requested = false;
     TaskHandle_t frame_task = nullptr;
     esp_err_t (*render_active)(void *user) = nullptr;
+    esp_err_t (*render_repl)(void *user) = nullptr;
     void *render_user = nullptr;
     qjs_service_t *qjs = nullptr;
     picojs_runtime_t *runtime = nullptr;
@@ -102,6 +105,13 @@ esp_err_t picoos_frame_job(JSContext *ctx, void *user)
     auto *os = static_cast<picoos_supervisor *>(user);
     if (!ctx || !os || !os->runtime) return ESP_ERR_INVALID_ARG;
     return picojs_runtime_frame_js(ctx, os->runtime, os->pending_dt_ms);
+}
+
+esp_err_t picoos_key_job(JSContext *ctx, void *user)
+{
+    auto *os = static_cast<picoos_supervisor *>(user);
+    if (!ctx || !os || !os->runtime || os->pending_key[0] == 0) return ESP_ERR_INVALID_ARG;
+    return picojs_runtime_key_js(ctx, os->runtime, os->pending_key);
 }
 
 void picoos_frame_task(void *user)
@@ -170,6 +180,7 @@ esp_err_t picoos_supervisor_create(const picoos_supervisor_config_t *cfg, picoos
     os->default_fps = cfg->default_fps ? cfg->default_fps : kDefaultFps;
     os->frame_period_ms = 1000 / os->default_fps;
     os->render_active = cfg->render_active;
+    os->render_repl = cfg->render_repl;
     os->render_user = cfg->render_user;
     os->initialized = true;
     os->surface = PICOOS_SURFACE_REPL;
@@ -257,6 +268,7 @@ esp_err_t picoos_show_repl(picoos_supervisor_t *os)
         os->active_app_id[0] = 0;
     }
     os->surface = PICOOS_SURFACE_REPL;
+    if (os->render_repl) return os->render_repl(os->render_user);
     return ESP_OK;
 }
 
@@ -310,6 +322,38 @@ esp_err_t picoos_frame(picoos_supervisor_t *os, uint32_t dt_ms)
             esp_err_t render_err = os->render_active(os->render_user);
             if (render_err != ESP_OK) return render_err;
         }
+    } else {
+        ++os->error_count;
+        ++active->info.error_count;
+        active->info.state = PICOOS_APP_CRASHED;
+    }
+    return err;
+}
+
+esp_err_t picoos_key(picoos_supervisor_t *os, const char *token)
+{
+    if (!os || !os->initialized || !token || token[0] == 0) return ESP_ERR_INVALID_ARG;
+    if (std::strcmp(token, "home") == 0) {
+        esp_err_t err = picoos_launch(os, "home");
+        if (err == ESP_OK && os->render_active) return os->render_active(os->render_user);
+        return err;
+    }
+    if (std::strcmp(token, "escape") == 0 || std::strcmp(token, "repl") == 0) {
+        return picoos_show_repl(os);
+    }
+    if (os->surface != PICOOS_SURFACE_APP || os->active_app_id[0] == 0) return ESP_OK;
+    PicoOsAppRecord *active = find_app(os, os->active_app_id);
+    if (!active || !active->source) return ESP_OK;
+
+    copy_cstr(os->pending_key, sizeof(os->pending_key), token);
+    qjs_job_t job = {};
+    job.fn = picoos_key_job;
+    job.user = os;
+    job.timeout_ms = kFrameJobTimeoutMs;
+    esp_err_t err = qjs_service_run(os->qjs, &job);
+    os->pending_key[0] = 0;
+    if (err == ESP_OK) {
+        if (os->render_active) return os->render_active(os->render_user);
     } else {
         ++os->error_count;
         ++active->info.error_count;
