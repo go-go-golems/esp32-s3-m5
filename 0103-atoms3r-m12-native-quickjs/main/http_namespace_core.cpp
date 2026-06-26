@@ -568,7 +568,7 @@ JSValue js_fetch(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
 {
     Runtime *rt = active_runtime();
     if (!rt) return throw_error(ctx, "fetch", "runtime unavailable");
-    if (!rt->ops().fetch) return throw_error(ctx, "fetch", "host fetch adapter unavailable");
+    if (!rt->ops().fetch && !rt->ops().fetch_async) return throw_error(ctx, "fetch", "host fetch adapter unavailable");
     FetchRequest req;
     std::string parse_error;
     if (!parse_fetch_request(ctx, argc, argv, &req, &parse_error)) {
@@ -578,6 +578,22 @@ JSValue js_fetch(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
         JS_FreeValue(ctx, err);
         return p;
     }
+
+    if (rt->ops().fetch_async) {
+        JSValue resolving[2] = {JS_UNDEFINED, JS_UNDEFINED};
+        JSValue promise = JS_NewPromiseCapability(ctx, resolving);
+        if (JS_IsException(promise)) return promise;
+        std::string async_error;
+        int rc = rt->ops().fetch_async(rt->ops().user, ctx, &req, resolving[0], resolving[1], &async_error);
+        if (rc != 0) {
+            std::string reject_error;
+            (void)reject_fetch_promise(ctx, resolving[1], async_error.empty() ? "fetch failed" : async_error.c_str(), &reject_error);
+        }
+        JS_FreeValue(ctx, resolving[0]);
+        JS_FreeValue(ctx, resolving[1]);
+        return promise;
+    }
+
     FetchResult result;
     std::string fetch_error;
     int rc = rt->ops().fetch(rt->ops().user, &req, &result, &fetch_error);
@@ -605,6 +621,70 @@ bool set_function(JSContext *ctx, JSValueConst obj, const char *name, JSCFunctio
 
 Runtime *active_runtime() { return g_active_runtime; }
 void set_active_runtime(Runtime *runtime) { g_active_runtime = runtime; }
+
+int resolve_fetch_promise(JSContext *ctx,
+                          JSValueConst resolve,
+                          const FetchRequest &req,
+                          const FetchResult &res,
+                          std::string *error)
+{
+    if (!ctx) return -1;
+    JSValue response = make_fetch_response(ctx, req, res);
+    if (JS_IsException(response)) {
+        if (error) *error = exception_to_string(ctx);
+        return -1;
+    }
+    JSValue argv[1] = {response};
+    JSValue ret = JS_Call(ctx, resolve, JS_UNDEFINED, 1, argv);
+    JS_FreeValue(ctx, response);
+    if (JS_IsException(ret)) {
+        if (error) *error = exception_to_string(ctx);
+        return -1;
+    }
+    JS_FreeValue(ctx, ret);
+    return 0;
+}
+
+int reject_fetch_promise(JSContext *ctx, JSValueConst reject, const char *message, std::string *error)
+{
+    if (!ctx) return -1;
+    JSValue err = JS_NewError(ctx);
+    if (JS_IsException(err)) {
+        if (error) *error = exception_to_string(ctx);
+        return -1;
+    }
+    define_value(ctx, err, "message", JS_NewString(ctx, message ? message : "fetch failed"), 0);
+    JSValue argv[1] = {err};
+    JSValue ret = JS_Call(ctx, reject, JS_UNDEFINED, 1, argv);
+    JS_FreeValue(ctx, err);
+    if (JS_IsException(ret)) {
+        if (error) *error = exception_to_string(ctx);
+        return -1;
+    }
+    JS_FreeValue(ctx, ret);
+    return 0;
+}
+
+bool drain_pending_jobs(JSContext *ctx, int max_jobs, std::string *error)
+{
+    if (!ctx) return false;
+    JSRuntime *rt = JS_GetRuntime(ctx);
+    int jobs = 0;
+    for (;;) {
+        JSContext *job_ctx = nullptr;
+        int rc = JS_ExecutePendingJob(rt, &job_ctx);
+        if (rc == 0) return true;
+        if (rc < 0) {
+            if (error) *error = exception_to_string(job_ctx ? job_ctx : ctx);
+            return false;
+        }
+        jobs++;
+        if (max_jobs > 0 && jobs >= max_jobs) {
+            if (error) *error = "too many pending promise jobs";
+            return false;
+        }
+    }
+}
 
 Runtime::Runtime(JSContext *ctx, const HostOps &ops) : ctx_(ctx), ops_(ops) {}
 

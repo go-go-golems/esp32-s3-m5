@@ -8,6 +8,9 @@
 #include "esp_err.h"
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+#include "freertos/task.h"
 #include "http_namespace_core.h"
 #include "http_server.h"
 
@@ -15,8 +18,41 @@ namespace {
 constexpr const char *kTag = "0103_http_ns";
 constexpr uint32_t kInstallTimeoutMs = 1000;
 constexpr size_t kFetchChunkBytes = 512;
+constexpr size_t kMaxPendingFetches = 4;
+constexpr uint32_t kFetchSettleTimeoutMs = 1000;
+constexpr int kMaxFetchSettleJobs = 64;
 
 qjs_http::Runtime *s_runtime = nullptr;
+qjs_service_t *s_fetch_service = nullptr;
+QueueHandle_t s_fetch_queue = nullptr;
+TaskHandle_t s_fetch_task = nullptr;
+uint32_t s_fetch_generation = 1;
+uint32_t s_next_fetch_id = 1;
+
+struct PendingFetch {
+    bool active = false;
+    uint32_t id = 0;
+    uint32_t generation = 0;
+    qjs_http::FetchRequest request;
+    JSValue resolve = JS_UNDEFINED;
+    JSValue reject = JS_UNDEFINED;
+};
+
+struct FetchWork {
+    uint32_t id = 0;
+    uint32_t generation = 0;
+    qjs_http::FetchRequest request;
+};
+
+struct FetchCompletion {
+    uint32_t id = 0;
+    uint32_t generation = 0;
+    int rc = 0;
+    qjs_http::FetchResult result;
+    std::string error;
+};
+
+PendingFetch s_pending_fetches[kMaxPendingFetches];
 
 struct DispatchGetJob {
     const char *path = nullptr;
@@ -168,6 +204,183 @@ int op_fetch(void *, const qjs_http::FetchRequest *req, qjs_http::FetchResult *o
     return 0;
 }
 
+PendingFetch *find_pending_fetch(uint32_t id, uint32_t generation)
+{
+    for (auto &p : s_pending_fetches) {
+        if (p.active && p.id == id && p.generation == generation) return &p;
+    }
+    return nullptr;
+}
+
+PendingFetch *alloc_pending_fetch()
+{
+    for (auto &p : s_pending_fetches) {
+        if (!p.active) return &p;
+    }
+    return nullptr;
+}
+
+void free_pending_fetch(JSContext *ctx, PendingFetch &p)
+{
+    if (p.active && ctx) {
+        JS_FreeValue(ctx, p.resolve);
+        JS_FreeValue(ctx, p.reject);
+    }
+    p = PendingFetch{};
+}
+
+void invalidate_pending_fetches(JSContext *ctx)
+{
+    s_fetch_generation++;
+    if (s_fetch_generation == 0) s_fetch_generation = 1;
+    for (auto &p : s_pending_fetches) {
+        if (p.active) {
+            std::string reject_error;
+            (void)qjs_http::reject_fetch_promise(ctx, p.reject, "fetch cancelled by QuickJS reset", &reject_error);
+            free_pending_fetch(ctx, p);
+        }
+    }
+    std::string drain_error;
+    (void)qjs_http::drain_pending_jobs(ctx, kMaxFetchSettleJobs, &drain_error);
+}
+
+esp_err_t settle_fetch_job(JSContext *ctx, void *user)
+{
+    auto *completion = static_cast<FetchCompletion *>(user);
+    if (!ctx || !completion) {
+        delete completion;
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    PendingFetch *pending = find_pending_fetch(completion->id, completion->generation);
+    if (!pending) {
+        delete completion;
+        return ESP_OK;
+    }
+
+    std::string settle_error;
+    if (completion->rc == 0) {
+        (void)qjs_http::resolve_fetch_promise(ctx, pending->resolve, pending->request, completion->result, &settle_error);
+    } else {
+        (void)qjs_http::reject_fetch_promise(ctx,
+                                             pending->reject,
+                                             completion->error.empty() ? "fetch failed" : completion->error.c_str(),
+                                             &settle_error);
+    }
+    free_pending_fetch(ctx, *pending);
+
+    std::string drain_error;
+    if (!qjs_http::drain_pending_jobs(ctx, kMaxFetchSettleJobs, &drain_error)) {
+        ESP_LOGW(kTag, "fetch settle promise-drain warning: %s", drain_error.c_str());
+    }
+    if (!settle_error.empty()) {
+        ESP_LOGW(kTag, "fetch settle warning: %s", settle_error.c_str());
+    }
+    delete completion;
+    return ESP_OK;
+}
+
+void fetch_worker_task(void *)
+{
+    ESP_LOGI(kTag, "fetch worker start");
+    for (;;) {
+        FetchWork *work = nullptr;
+        if (xQueueReceive(s_fetch_queue, &work, portMAX_DELAY) != pdTRUE || !work) continue;
+
+        auto *completion = new (std::nothrow) FetchCompletion();
+        if (!completion) {
+            delete work;
+            continue;
+        }
+        completion->id = work->id;
+        completion->generation = work->generation;
+        completion->rc = op_fetch(nullptr, &work->request, &completion->result, &completion->error);
+        delete work;
+
+        qjs_job_t job = {};
+        job.fn = settle_fetch_job;
+        job.user = completion;
+        job.timeout_ms = kFetchSettleTimeoutMs;
+        esp_err_t post_err = ESP_FAIL;
+        for (int i = 0; i < 10; ++i) {
+            post_err = qjs_service_post(s_fetch_service, &job);
+            if (post_err == ESP_OK) break;
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+        if (post_err != ESP_OK) {
+            ESP_LOGE(kTag, "failed to post fetch completion: %s", esp_err_to_name(post_err));
+            delete completion;
+        }
+    }
+}
+
+esp_err_t ensure_fetch_worker(qjs_service_t *svc)
+{
+    if (!svc) return ESP_ERR_INVALID_ARG;
+    s_fetch_service = svc;
+    if (!s_fetch_queue) {
+        s_fetch_queue = xQueueCreate((UBaseType_t)kMaxPendingFetches, sizeof(FetchWork *));
+        if (!s_fetch_queue) return ESP_ERR_NO_MEM;
+    }
+    if (!s_fetch_task) {
+        BaseType_t ok = xTaskCreate(fetch_worker_task, "qjs_fetch", 6144, nullptr, 6, &s_fetch_task);
+        if (ok != pdPASS) return ESP_ERR_NO_MEM;
+    }
+    return ESP_OK;
+}
+
+int op_fetch_async(void *user,
+                   JSContext *ctx,
+                   const qjs_http::FetchRequest *req,
+                   JSValueConst resolve,
+                   JSValueConst reject,
+                   std::string *error)
+{
+    auto *svc = static_cast<qjs_service_t *>(user);
+    if (!svc || !ctx || !req) {
+        if (error) *error = "invalid async fetch arguments";
+        return (int)ESP_ERR_INVALID_ARG;
+    }
+    esp_err_t worker_err = ensure_fetch_worker(svc);
+    if (worker_err != ESP_OK) {
+        if (error) *error = esp_err_to_name(worker_err);
+        return (int)worker_err;
+    }
+
+    PendingFetch *pending = alloc_pending_fetch();
+    if (!pending) {
+        if (error) *error = "too many pending fetches";
+        return (int)ESP_ERR_NO_MEM;
+    }
+
+    auto *work = new (std::nothrow) FetchWork();
+    if (!work) {
+        if (error) *error = "fetch work allocation failed";
+        return (int)ESP_ERR_NO_MEM;
+    }
+
+    const uint32_t id = s_next_fetch_id++;
+    if (s_next_fetch_id == 0) s_next_fetch_id = 1;
+    pending->active = true;
+    pending->id = id;
+    pending->generation = s_fetch_generation;
+    pending->request = *req;
+    pending->resolve = JS_DupValue(ctx, resolve);
+    pending->reject = JS_DupValue(ctx, reject);
+
+    work->id = id;
+    work->generation = s_fetch_generation;
+    work->request = *req;
+
+    if (xQueueSend(s_fetch_queue, &work, 0) != pdTRUE) {
+        delete work;
+        free_pending_fetch(ctx, *pending);
+        if (error) *error = "fetch queue full";
+        return (int)ESP_ERR_TIMEOUT;
+    }
+    return 0;
+}
+
 esp_err_t dispatch_get_job(JSContext *ctx, void *user)
 {
     (void)ctx;
@@ -225,25 +438,27 @@ esp_err_t dynamic_get_handler(const char *path, http_dynamic_response_t *out, vo
     return ESP_OK;
 }
 
-qjs_http::HostOps make_firmware_ops()
+qjs_http::HostOps make_firmware_ops(qjs_service_t *svc)
 {
     qjs_http::HostOps ops = {};
+    ops.user = svc;
     ops.start = op_start;
     ops.stop = op_stop;
     ops.add_static_mount = op_static;
     ops.clear_static_mounts = op_clear_static;
     ops.status = op_status;
-    // First firmware fetch milestone: bounded blocking HTTP client on the owner
-    // task. This keeps the JS API shape shared with the host; a later phase can
-    // move the adapter to a worker-backed Promise settlement path if needed.
+    // Keep the blocking adapter available as a synchronous fallback/reference,
+    // but firmware fetch() uses fetch_async so esp_http_client work runs on the
+    // qjs_fetch worker instead of the QuickJS owner task.
     ops.fetch = op_fetch;
+    ops.fetch_async = op_fetch_async;
     return ops;
 }
 
 esp_err_t clear_http_job(JSContext *ctx, void *user)
 {
-    (void)ctx;
     (void)user;
+    invalidate_pending_fetches(ctx);
     delete s_runtime;
     s_runtime = nullptr;
     qjs_http::set_active_runtime(nullptr);
@@ -257,7 +472,12 @@ esp_err_t install_http_job(JSContext *ctx, void *user)
     }
 
     delete s_runtime;
-    s_runtime = new (std::nothrow) qjs_http::Runtime(ctx, make_firmware_ops());
+    auto *svc = static_cast<qjs_service_t *>(user);
+    esp_err_t worker_err = ensure_fetch_worker(svc);
+    if (worker_err != ESP_OK) {
+        return worker_err;
+    }
+    s_runtime = new (std::nothrow) qjs_http::Runtime(ctx, make_firmware_ops(svc));
     if (!s_runtime) {
         return ESP_ERR_NO_MEM;
     }

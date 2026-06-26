@@ -46,7 +46,21 @@ struct HostOps {
     int (*clear_static_mounts)(void *user) = nullptr;
     int (*status)(void *user, HostStatus *out) = nullptr;
     int (*fetch)(void *user, const FetchRequest *req, FetchResult *out, std::string *error) = nullptr;
+    int (*fetch_async)(void *user,
+                       JSContext *ctx,
+                       const FetchRequest *req,
+                       JSValueConst resolve,
+                       JSValueConst reject,
+                       std::string *error) = nullptr;
 };
+
+int resolve_fetch_promise(JSContext *ctx,
+                          JSValueConst resolve,
+                          const FetchRequest &req,
+                          const FetchResult &res,
+                          std::string *error);
+int reject_fetch_promise(JSContext *ctx, JSValueConst reject, const char *message, std::string *error);
+bool drain_pending_jobs(JSContext *ctx, int max_jobs, std::string *error);
 
 struct HttpResponse {
     int status = 200;

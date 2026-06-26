@@ -42,7 +42,7 @@ Milestone 1 is intentionally console-first and has been hardware validated on At
 - 32 KiB-class owner task stack.
 - A read-only JavaScript `system` namespace with board, target, firmware, flash, PSRAM, and QuickJS limit metadata.
 
-Later milestones add bounded storage, STA WiFi, a host-owned HTTP server, dynamic QuickJS HTTP routes, bounded HTTP-only `fetch()`, and explicit stored-script execution with `js run <virtual-path>`. There is still no boot-time script autoload; USB Serial/JTAG remains the recovery path.
+Later milestones add bounded storage, STA WiFi, a host-owned HTTP server, dynamic QuickJS HTTP routes, worker-backed bounded HTTP-only `fetch()`, and explicit stored-script execution with `js run <virtual-path>`. There is still no boot-time script autoload; USB Serial/JTAG remains the recovery path.
 
 ## Build
 
@@ -184,7 +184,12 @@ Promise-returning route handlers are drained inside the dynamic dispatch job. Re
 - `http://` only.
 - `GET` and `POST`.
 - bounded request and response bodies.
-- Promise callbacks are drained after console eval.
+- network I/O runs on the single `qjs_fetch` worker task, not on the QuickJS owner task.
+- Promise settlement is posted back to the QuickJS owner task, which then drains pending Promise jobs.
+- at most four firmware fetches may be pending; excess calls reject with `too many pending fetches`.
+- `js reset` rejects pending fetches with `fetch cancelled by QuickJS reset` and ignores stale worker completions.
+
+Because worker-backed `fetch()` settles after the console eval has returned, `.then()`/`.catch()` output can appear at the console prompt after the eval result.
 
 Example:
 

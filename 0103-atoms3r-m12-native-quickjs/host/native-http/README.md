@@ -28,5 +28,7 @@ make -C 0103-atoms3r-m12-native-quickjs/host/native-http all
 ```
 
 The host currently supports direct route dispatch for `http.get()` and a simple
-POSIX-socket `http://` fetch adapter. It is intentionally not a full browser or
-full Express clone.
+POSIX-socket `http://` fetch adapter. Pass `--fake-async-fetch` to exercise the
+shared optional `HostOps.fetch_async` path on desktop; firmware uses that path to
+settle Promises from its native worker task. It is intentionally not a full
+browser or full Express clone.

@@ -15,7 +15,7 @@ Current examples:
 
 - `http-static-and-routes.js` registers `/api/hello`, `/api/status`, and `/static -> /data`.
 - `async-routes.js` registers Promise-returning `/async-promise`, async-function `/async-await`, and rejecting `/async-reject` routes.
-- `fetch-healthz.js` calls `fetch('http://<device-ip>/healthz')` and prints the response.
+- `fetch-healthz.js` calls worker-backed `fetch('http://<device-ip>/healthz')` and prints the response after the Promise settles.
 
 ## Console upload examples
 
@@ -29,3 +29,5 @@ js run /scripts/server.js
 For multiline scripts, use JavaScript-side `storage.writeText()` with an escaped string, or paste a minified version. A larger upload helper can be added later; boot-time autoload should remain disabled unless there is a recovery switch.
 
 Promise-returning dynamic routes are supported for Promises that settle during the route dispatch job. A route that returns a never-settling Promise returns `504 Gateway Timeout`; a route that returns a rejected Promise returns `500 Internal Server Error`.
+
+Firmware `fetch()` runs HTTP I/O on a single native worker task and settles the JavaScript Promise back on the QuickJS owner task. Pending fetches survive after `js eval` returns, so output from `.then()` and `.catch()` callbacks may appear at the prompt later. `js reset` cancels pending fetch Promises and ignores stale worker completions.

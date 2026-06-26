@@ -103,7 +103,7 @@ bool drain_jobs(JSRuntime *rt, JSContext *ctx)
 
 void print_usage(const char *argv0)
 {
-    std::fprintf(stderr, "usage: %s <script.js> [--dispatch /path]\n", argv0);
+    std::fprintf(stderr, "usage: %s <script.js> [--dispatch /path] [--fake-async-fetch]\n", argv0);
 }
 
 }  // namespace
@@ -116,9 +116,12 @@ int main(int argc, char **argv)
     }
     std::string script = argv[1];
     std::string dispatch_path;
+    bool fake_async_fetch = false;
     for (int i = 2; i < argc; ++i) {
         if (std::strcmp(argv[i], "--dispatch") == 0 && i + 1 < argc) {
             dispatch_path = argv[++i];
+        } else if (std::strcmp(argv[i], "--fake-async-fetch") == 0) {
+            fake_async_fetch = true;
         } else {
             print_usage(argv[0]);
             return 2;
@@ -133,6 +136,7 @@ int main(int argc, char **argv)
     }
 
     qjs_http_host::HostState host_state;
+    host_state.fake_async_fetch = fake_async_fetch;
     auto *http = new qjs_http::Runtime(ctx, qjs_http_host::make_host_ops(&host_state));
     if (!http) {
         std::fprintf(stderr, "failed to create HTTP runtime\n");

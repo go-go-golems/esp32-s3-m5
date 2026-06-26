@@ -70,4 +70,11 @@ printf '%s\n' "$fetch_out"
 [[ "$fetch_out" == *"fetch status=200 ok=true"* ]]
 [[ "$fetch_out" == *"fetch body=ok"* ]]
 
+fake_async_fetch_out=$(
+  "$BIN" "$HOST_DIR/examples/fetch.js" --fake-async-fetch
+)
+printf '%s\n' "$fake_async_fetch_out"
+[[ "$fake_async_fetch_out" == *"fetch status=200 ok=true"* ]]
+[[ "$fake_async_fetch_out" == *"fetch body=ok"* ]]
+
 echo "PASS native-http host smoke"

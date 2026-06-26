@@ -232,6 +232,26 @@ int host_fetch(void *, const qjs_http::FetchRequest *req, qjs_http::FetchResult 
     return 0;
 }
 
+int host_fetch_async(void *user,
+                     JSContext *ctx,
+                     const qjs_http::FetchRequest *req,
+                     JSValueConst resolve,
+                     JSValueConst reject,
+                     std::string *error)
+{
+    qjs_http::FetchResult result;
+    std::string fetch_error;
+    int rc = host_fetch(user, req, &result, &fetch_error);
+    std::string settle_error;
+    if (rc == 0) {
+        rc = qjs_http::resolve_fetch_promise(ctx, resolve, *req, result, &settle_error);
+    } else {
+        rc = qjs_http::reject_fetch_promise(ctx, reject, fetch_error.empty() ? "fetch failed" : fetch_error.c_str(), &settle_error);
+    }
+    if (rc != 0 && error) *error = settle_error.empty() ? "fake async fetch settlement failed" : settle_error;
+    return rc;
+}
+
 }  // namespace
 
 qjs_http::HostOps make_host_ops(HostState *state)
@@ -244,6 +264,7 @@ qjs_http::HostOps make_host_ops(HostState *state)
     ops.clear_static_mounts = host_clear_static;
     ops.status = host_status;
     ops.fetch = host_fetch;
+    if (state && state->fake_async_fetch) ops.fetch_async = host_fetch_async;
     return ops;
 }
 
