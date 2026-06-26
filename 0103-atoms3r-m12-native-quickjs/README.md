@@ -42,7 +42,7 @@ Milestone 1 is intentionally console-first and has been hardware validated on At
 - 32 KiB-class owner task stack.
 - A read-only JavaScript `system` namespace with board, target, firmware, flash, PSRAM, and QuickJS limit metadata.
 
-No LCD, WiFi, filesystem, or storage APIs are part of the first smoke. Those should be added only after QuickJS memory and reset behavior are validated on the S3R hardware. The first memory stress pass supports keeping the QuickJS cap at 1 MiB until WiFi/TLS/storage pressure is measured.
+Later milestones add bounded storage, STA WiFi, a host-owned HTTP server, dynamic QuickJS HTTP routes, bounded HTTP-only `fetch()`, and explicit stored-script execution with `js run <virtual-path>`. There is still no boot-time script autoload; USB Serial/JTAG remains the recovery path.
 
 ## Build
 
@@ -67,6 +67,7 @@ idf.py -p "$PORT" flash monitor
 ```text
 js status
 js eval <source>
+js run <virtual-path>
 js reset
 js gc
 js bench
@@ -75,9 +76,14 @@ storage mount [format]
 storage list /scripts
 storage read /scripts/demo.js
 storage write /scripts/demo.js "print('hi')"
+wifi status
+wifi connect
+http status
+http start 80
+http static /static /data
 ```
 
-The firmware installs `system` and `storage` namespaces after boot and after `js reset`.
+The firmware installs `system`, `storage`, `wifi`, and `http` namespaces after boot and after `js reset`.
 
 `system` is a read-only metadata namespace:
 
@@ -146,10 +152,47 @@ Limits:
 
 Startup mounts the partition without formatting. On a blank development device, use `storage mount format` explicitly once.
 
-## Future namespace plan
+## HTTP, fetch, and stored scripts
 
-The ticket design guide defines the remaining namespace contract:
+The native HTTP server is host-owned and recoverable from the console. JavaScript route callbacks are owned by QuickJS and are cleared by `js reset`.
 
-- `wifi`: native ESP32-S3 WiFi status/request API, starting with firmware-owned state and polling; do not block the QuickJS owner task on scans/connects and never expose passwords.
+```text
+http start 80
+storage write /scripts/server.js http.get('/run/hello',function(req){return{json:{ok:true,path:req.path}};})
+js run /scripts/server.js
+curl http://192.168.4.22/run/hello
+```
+
+Expected response:
+
+```json
+{"ok":true,"path":"/run/hello"}
+```
+
+Dynamic handlers should return one of the supported response shapes:
+
+```js
+return { status: 200, json: { ok: true } };
+return { status: 200, text: 'hello', contentType: 'text/plain; charset=utf-8' };
+```
+
+`fetch()` is a bounded firmware API in this milestone:
+
+- `http://` only.
+- `GET` and `POST`.
+- bounded request and response bodies.
+- Promise callbacks are drained after console eval.
+
+Example:
+
+```text
+js eval "fetch('http://192.168.4.22/healthz').then(r => { print('status='+r.status+' ok='+r.ok); return r.text(); }).then(t => print('body='+t))"
+```
+
+Checked-in source examples live under `examples/scripts/`. They are not embedded automatically. Copy them into `/scripts/...` and run them explicitly with `js run`.
+
+## Recovery policy
 
 Do not add desktop QuickJS `std`/`os` compatibility as a shortcut. Keep firmware APIs explicit and reset-safe.
+
+Do not enable script autoload until there is a documented disable/recovery mechanism. A bad dynamic route script should be recoverable with USB Serial/JTAG plus `js reset`, `http stop`, or replacing the stored `/scripts/...` file.
