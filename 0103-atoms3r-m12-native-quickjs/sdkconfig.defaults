@@ -36,3 +36,9 @@ CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
 
 # Main task stack: C++ + console bring-up headroom.
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+
+# Static web assets need names such as index.html, app.js, and data.json.
+# Use heap-backed FatFs long filename buffers instead of owner-task stack buffers.
+# CONFIG_FATFS_LFN_NONE is not set
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255

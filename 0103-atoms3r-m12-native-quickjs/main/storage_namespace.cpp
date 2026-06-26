@@ -567,6 +567,83 @@ esp_err_t storage_namespace_start(bool format_if_mount_failed)
     return err;
 }
 
+esp_err_t storage_namespace_validate_virtual_path(const char *virtual_path)
+{
+    return validate_virtual_path(virtual_path);
+}
+
+esp_err_t storage_namespace_stream_file(const char *virtual_path,
+                                        size_t max_bytes,
+                                        storage_stream_writer_t writer,
+                                        void *user,
+                                        size_t *out_len)
+{
+    if (!writer || max_bytes == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (out_len) {
+        *out_len = 0;
+    }
+
+    lock_storage();
+    if (!s_mounted) {
+        unlock_storage();
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    char path[kNativePathBytes] = {};
+    esp_err_t err = native_path_for(virtual_path, path, sizeof(path));
+    if (err != ESP_OK) {
+        unlock_storage();
+        return err;
+    }
+
+    struct stat st = {};
+    if (stat(path, &st) != 0) {
+        unlock_storage();
+        return ESP_ERR_NOT_FOUND;
+    }
+    if (!S_ISREG(st.st_mode) || st.st_size < 0 || (size_t)st.st_size > max_bytes) {
+        unlock_storage();
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    FILE *f = fopen(path, "rb");
+    if (!f) {
+        unlock_storage();
+        return ESP_FAIL;
+    }
+
+    char chunk[1024];
+    size_t total = 0;
+    while (true) {
+        const size_t got = fread(chunk, 1, sizeof(chunk), f);
+        if (got > 0) {
+            err = writer(chunk, got, user);
+            if (err != ESP_OK) {
+                fclose(f);
+                unlock_storage();
+                return err;
+            }
+            total += got;
+        }
+        if (got < sizeof(chunk)) {
+            if (ferror(f)) {
+                fclose(f);
+                unlock_storage();
+                return ESP_FAIL;
+            }
+            break;
+        }
+    }
+    fclose(f);
+    if (out_len) {
+        *out_len = total;
+    }
+    unlock_storage();
+    return total == (size_t)st.st_size ? ESP_OK : ESP_FAIL;
+}
+
 esp_err_t install_storage_namespace(qjs_service_t *svc)
 {
     if (!svc) {
