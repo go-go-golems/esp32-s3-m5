@@ -14,6 +14,14 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: 0103-atoms3r-m12-native-quickjs/README.md
+      Note: Current HTTP/fetch/js-run workflow and recovery policy (commit 02b13e0)
+    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/README.md
+      Note: Example script usage and no-autoload recovery guidance (commit 02b13e0)
+    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js
+      Note: Checked-in firmware fetch example for js run workflow (commit 02b13e0)
+    - Path: 0103-atoms3r-m12-native-quickjs/examples/scripts/http-static-and-routes.js
+      Note: Checked-in dynamic route/static serving example for js run workflow (commit 02b13e0)
     - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/src/host_http_ops.cpp
       Note: Desktop HostOps adapter with in-memory server state and POSIX http:// fetch (commit 3737dfd)
     - Path: 0103-atoms3r-m12-native-quickjs/host/native-http/src/main.cpp
@@ -59,10 +67,11 @@ RelatedFiles:
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T21:45:00-07:00
+LastUpdated: 2026-06-25T22:05:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -842,3 +851,93 @@ The implementation is deliberately small: it reuses the same bounded storage rea
 - `js run` timeout: `1000 ms`.
 - `js run` accepts storage virtual paths validated by the storage namespace; no native filesystem path is accepted.
 - Hardware validation IP: `192.168.4.22`.
+
+## Step 8: Add checked-in examples and recovery-safe workflow documentation
+
+This step turns the validated console workflow into reusable source material. The firmware repository now includes example scripts for dynamic HTTP routes and firmware fetch, plus README documentation for `js run`, supported response shapes, and the no-autoload recovery policy.
+
+This closes the remaining ticket implementation tasks. The examples are intentionally source files only: they are not embedded, copied to flash, or executed automatically at boot.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ho ahead"
+
+**Assistant interpretation:** Continue with the next planned follow-up: add checked-in examples and document the upload/run/recovery workflow.
+
+**Inferred user intent:** Make the freshly validated `js run` and HTTP/fetch functionality easier to reuse without relying on remembered console one-liners.
+
+**Commit (code):** `02b13e0` — "0103: add QuickJS HTTP script examples"
+
+### What I did
+
+- Added `0103-atoms3r-m12-native-quickjs/examples/scripts/http-static-and-routes.js`.
+- Added `0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js`.
+- Added `0103-atoms3r-m12-native-quickjs/examples/scripts/README.md`.
+- Updated `0103-atoms3r-m12-native-quickjs/README.md` to describe:
+  - current validated namespaces,
+  - `js run <virtual-path>`,
+  - host-owned HTTP server usage,
+  - supported dynamic response shapes,
+  - bounded HTTP-only `fetch()`,
+  - explicit stored-script execution,
+  - no boot-time autoload without a recovery mechanism.
+- Syntax-checked the example JavaScript files with `node --check`.
+- Marked HF5.2 and HF5.3 complete.
+
+### Why
+
+- The hardware work proved the feature works, but developers need copyable examples and clear response-shape guidance.
+- The dynamic response parser currently supports `{json: ...}` and `{text: ...}` rather than arbitrary `{headers, body}`; documenting that avoids the 204-response pitfall seen during validation.
+- Recovery policy belongs next to the examples because stored scripts are powerful enough to register routes and start network-facing behavior.
+
+### What worked
+
+- `node --check` passed for:
+  - `examples/scripts/http-static-and-routes.js`
+  - `examples/scripts/fetch-healthz.js`
+- The staged example/README commit was focused and did not include unrelated dirty files.
+- `docmgr task check --ticket ATOMS3R-M12-QUICKJS-HOST-FETCH --id 22,23` completed all ticket tasks.
+
+### What didn't work
+
+- No runtime hardware revalidation was needed for this step because it only added checked-in examples and documentation. The examples are based on the already hardware-validated `js run`, dynamic route, static mount, and fetch behavior.
+- A fully friendly multiline upload tool is still not implemented; the examples document the current compact console upload and explicit `js run` workflow.
+
+### What I learned
+
+- The README still contained first-smoke wording saying WiFi/storage were not present. Updating that was necessary so the firmware docs match the current implementation state.
+- Keeping examples out of boot autoload keeps the development loop safe: scripts are reusable without changing startup behavior.
+
+### What was tricky to build
+
+- The examples had to stay faithful to the current firmware contract, especially response shapes. Using `{json: ...}` avoids suggesting unsupported `{headers, body}` behavior.
+- The fetch example includes the DHCP IP as an editable constant because the firmware does not yet provide a script-upload templating mechanism.
+- The documentation had to distinguish between source examples in Git and stored scripts under the device's `/scripts` virtual root.
+
+### What warrants a second pair of eyes
+
+- Review whether the example scripts should be mirrored in the ticket docs or only live with the firmware.
+- Review whether the response parser should eventually support `{headers, body}` for developer familiarity.
+- Review whether a host-side upload helper should be added before longer scripts are expected.
+
+### What should be done in the future
+
+- Add a proper multiline upload helper if scripts grow beyond compact console commands.
+- Consider a safe opt-in autoload design only if it includes a disable/recovery mechanism.
+- Keep HTTPS/TLS fetch examples separate until TLS is measured and validated.
+
+### Code review instructions
+
+- Start with `0103-atoms3r-m12-native-quickjs/examples/scripts/README.md`.
+- Then inspect `http-static-and-routes.js` and `fetch-healthz.js` for API-contract accuracy.
+- Review the new README sections under `HTTP, fetch, and stored scripts` and `Recovery policy`.
+- Validate syntax with:
+  - `node --check 0103-atoms3r-m12-native-quickjs/examples/scripts/http-static-and-routes.js`
+  - `node --check 0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js`
+
+### Technical details
+
+- Examples directory: `0103-atoms3r-m12-native-quickjs/examples/scripts/`.
+- Example route script registers `/api/hello`, `/api/status`, and `/static -> /data`.
+- Example fetch script calls `http://192.168.4.22/healthz` and prints status/body.
+- No boot-time autoload was added.

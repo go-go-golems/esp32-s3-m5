@@ -99,3 +99,16 @@ Added and hardware-validated js run <virtual-path> for explicit bounded executio
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — js run diary entry
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF5.1 complete
 
+
+## 2026-06-25
+
+Added checked-in QuickJS HTTP/fetch example scripts and documented explicit js run workflow plus recovery/no-autoload policy; completed remaining HF5 tasks (commit 02b13e0).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/README.md — Firmware workflow documentation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/examples/scripts/fetch-healthz.js — Fetch example
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/examples/scripts/http-static-and-routes.js — Route/static example
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Example/recovery diary entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF5.2 and HF5.3 complete
+
