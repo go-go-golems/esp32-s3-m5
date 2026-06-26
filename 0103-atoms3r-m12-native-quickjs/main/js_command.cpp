@@ -6,10 +6,12 @@
  *   js reset
  *   js gc
  *   js bench
+ *   js run <virtual-path>
  */
 #include "js_command.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 
 #include "esp_console.h"
@@ -23,6 +25,7 @@
 namespace {
 constexpr const char *kTag = "0103_js";
 constexpr size_t kMaxSrc = 2048;
+constexpr size_t kMaxRunBytes = 16 * 1024;
 constexpr uint32_t kDefaultEvalTimeoutMs = 1000;
 constexpr uint32_t kResetTimeoutMs = 2000;
 
@@ -158,6 +161,35 @@ int cmd_reset()
     return err == ESP_OK ? 0 : 1;
 }
 
+int cmd_run(const char *virtual_path)
+{
+    if (!g_svc) {
+        std::printf("QuickJS service is not started\n");
+        return 1;
+    }
+
+    char *source = nullptr;
+    size_t len = 0;
+    const esp_err_t read_err = storage_namespace_read_text_alloc(virtual_path, kMaxRunBytes, &source, &len);
+    if (read_err != ESP_OK) {
+        std::printf("run read %s: %s\n", virtual_path, esp_err_to_name(read_err));
+        return 1;
+    }
+
+    qjs_eval_result_t r = {};
+    const esp_err_t eval_err = qjs_service_eval(g_svc, source, len, kDefaultEvalTimeoutMs, virtual_path, &r);
+    free(source);
+    if (eval_err != ESP_OK) {
+        std::printf("service error: %s\n", esp_err_to_name(eval_err));
+        qjs_eval_result_free(&r);
+        return 1;
+    }
+    print_eval_result(virtual_path, r);
+    const bool ok = r.ok && !r.timed_out;
+    qjs_eval_result_free(&r);
+    return ok ? 0 : 1;
+}
+
 int cmd_bench()
 {
     int rc = 0;
@@ -176,7 +208,7 @@ int cmd_bench()
 int cmd_js(int argc, char **argv)
 {
     if (argc < 2) {
-        std::printf("usage: js status | eval <source> | reset | gc | bench\n");
+        std::printf("usage: js status | eval <source> | run <virtual-path> | reset | gc | bench\n");
         return 0;
     }
 
@@ -203,9 +235,16 @@ int cmd_js(int argc, char **argv)
         }
         return run_eval("atoms3r-eval", buf, kDefaultEvalTimeoutMs);
     }
+    if (std::strcmp(argv[1], "run") == 0) {
+        if (argc != 3) {
+            std::printf("usage: js run <virtual-path>\n");
+            return 1;
+        }
+        return cmd_run(argv[2]);
+    }
 
     std::printf("unknown subcommand: %s\n", argv[1]);
-    std::printf("usage: js status | eval <source> | reset | gc | bench\n");
+    std::printf("usage: js status | eval <source> | run <virtual-path> | reset | gc | bench\n");
     return 1;
 }
 }  // namespace
@@ -215,7 +254,7 @@ void register_js_commands(qjs_service_t *svc)
     g_svc = svc;
     esp_console_cmd_t js_cmd = {};
     js_cmd.command = "js";
-    js_cmd.help = "Native QuickJS: js status | eval <source> | reset | gc | bench";
+    js_cmd.help = "Native QuickJS: js status | eval <source> | run <virtual-path> | reset | gc | bench";
     js_cmd.func = &cmd_js;
     ESP_ERROR_CHECK(esp_console_cmd_register(&js_cmd));
     ESP_LOGI(kTag, "registered AtomS3R native QuickJS console commands");
