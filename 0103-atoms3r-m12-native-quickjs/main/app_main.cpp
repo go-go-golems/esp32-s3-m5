@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "esp_psram.h"
 
+#include "http_namespace.h"
 #include "http_server.h"
 #include "js_command.h"
 #include "qjs_service.h"
@@ -87,7 +88,11 @@ extern "C" void app_main(void)
         if (wifi_ns_err != ESP_OK) {
             ESP_LOGW(kTag, "install_wifi_namespace failed: %s", esp_err_to_name(wifi_ns_err));
         }
-        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"system.board\" | js eval \"wifi.status().state\" | js bench");
+        esp_err_t http_ns_err = install_http_namespace(svc);
+        if (http_ns_err != ESP_OK) {
+            ESP_LOGW(kTag, "install_http_namespace failed: %s", esp_err_to_name(http_ns_err));
+        }
+        ESP_LOGI(kTag, "QuickJS ready. Try: js status | js eval \"system.board\" | js eval \"wifi.status().state\" | js eval \"http.status().running\" | js bench");
     } else {
         ESP_LOGE(kTag, "QuickJS service unavailable; console will still start");
     }

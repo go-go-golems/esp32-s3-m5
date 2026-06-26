@@ -15,6 +15,7 @@
 #include "esp_console.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "http_namespace.h"
 #include "storage_namespace.h"
 #include "system_namespace.h"
 #include "wifi_namespace.h"
@@ -124,6 +125,12 @@ int cmd_reset()
         std::printf("QuickJS service is not started\n");
         return 1;
     }
+    esp_err_t clear_err = clear_http_namespace_state(g_svc);
+    if (clear_err != ESP_OK) {
+        std::printf("reset: pre-clear http namespace: %s\n", esp_err_to_name(clear_err));
+        return 1;
+    }
+
     esp_err_t err = qjs_service_reset(g_svc, kResetTimeoutMs);
     if (err == ESP_OK) {
         esp_err_t sys_err = install_system_namespace(g_svc);
@@ -139,6 +146,11 @@ int cmd_reset()
         esp_err_t wifi_err = install_wifi_namespace(g_svc);
         if (wifi_err != ESP_OK) {
             std::printf("reset: ESP_OK, wifi namespace: %s\n", esp_err_to_name(wifi_err));
+            return 1;
+        }
+        esp_err_t http_err = install_http_namespace(g_svc);
+        if (http_err != ESP_OK) {
+            std::printf("reset: ESP_OK, http namespace: %s\n", esp_err_to_name(http_err));
             return 1;
         }
     }

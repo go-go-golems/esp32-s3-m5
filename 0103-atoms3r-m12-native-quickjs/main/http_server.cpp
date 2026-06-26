@@ -400,6 +400,19 @@ esp_err_t http_server_stop(void)
     return httpd_stop(server);
 }
 
+esp_err_t http_server_get_status(bool *running, uint16_t *port)
+{
+    lock_http();
+    if (running) {
+        *running = s_server != nullptr;
+    }
+    if (port) {
+        *port = s_port;
+    }
+    unlock_http();
+    return ESP_OK;
+}
+
 esp_err_t http_server_add_static_mount(const char *url_prefix, const char *virtual_root)
 {
     char normalized_prefix[kMaxUrlPrefixBytes + 1] = {};

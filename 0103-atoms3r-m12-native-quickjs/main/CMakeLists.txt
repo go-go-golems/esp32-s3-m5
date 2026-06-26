@@ -1,6 +1,8 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "http_namespace.cpp"
+        "http_namespace_core.cpp"
         "http_server.cpp"
         "js_command.cpp"
         "storage_namespace.cpp"
