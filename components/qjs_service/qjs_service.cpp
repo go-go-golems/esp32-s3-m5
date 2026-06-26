@@ -21,6 +21,7 @@ namespace {
 constexpr const char* TAG = "qjs_service";
 constexpr size_t kDefaultMemoryLimit = 2 * 1024 * 1024;
 constexpr size_t kDefaultStackLimit = 64 * 1024;
+constexpr int kMaxPendingJobsPerEval = 64;
 
 enum MsgType : uint8_t {
   MSG_EVAL = 1,
@@ -203,14 +204,50 @@ static esp_err_t create_runtime(Service* s) {
   return ESP_OK;
 }
 
-static void fill_exception(Service* s, qjs_eval_result_t* out) {
-  if (!out) return;
-  JSValue exc = JS_GetException(s->ctx);
-  const char* text = JS_ToCString(s->ctx, exc);
+static void fill_exception_ctx(JSContext* ctx, qjs_eval_result_t* out) {
+  if (!ctx || !out) return;
+  JSValue exc = JS_GetException(ctx);
+  const char* text = JS_ToCString(ctx, exc);
   out->ok = false;
   out->error = dup_cstr(text ? text : "<exception stringify failed>");
-  if (text) JS_FreeCString(s->ctx, text);
-  JS_FreeValue(s->ctx, exc);
+  if (text) JS_FreeCString(ctx, text);
+  JS_FreeValue(ctx, exc);
+}
+
+static void fill_exception(Service* s, qjs_eval_result_t* out) {
+  if (!s) return;
+  fill_exception_ctx(s->ctx, out);
+}
+
+static bool drain_pending_jobs(Service* s, qjs_eval_result_t* out) {
+  if (!s || !s->rt) return false;
+  int jobs = 0;
+  for (;;) {
+    if (s->deadline_us != 0 && esp_timer_get_time() > s->deadline_us) {
+      if (out) {
+        out->ok = false;
+        out->timed_out = true;
+        out->error = dup_cstr("execution timed out while draining promise jobs");
+      }
+      return false;
+    }
+
+    JSContext* job_ctx = nullptr;
+    int rc = JS_ExecutePendingJob(s->rt, &job_ctx);
+    if (rc == 0) return true;
+    if (rc < 0) {
+      fill_exception_ctx(job_ctx ? job_ctx : s->ctx, out);
+      return false;
+    }
+    jobs++;
+    if (jobs >= kMaxPendingJobsPerEval) {
+      if (out) {
+        out->ok = false;
+        out->error = dup_cstr("too many pending promise jobs");
+      }
+      return false;
+    }
+  }
 }
 
 static void fill_status(Service* s, qjs_service_status_t* out) {
@@ -311,8 +348,14 @@ static void service_task(void* arg) {
       s->deadline_us = p->timeout_ms ? (esp_timer_get_time() + (int64_t)p->timeout_ms * 1000) : 0;
       const int64_t t_eval = esp_timer_get_time();
       JSValue val = JS_Eval(s->ctx, p->code, p->len, p->filename ? p->filename : "<eval>", JS_EVAL_TYPE_GLOBAL);
+      const bool eval_exception = JS_IsException(val);
+      if (eval_exception) {
+        fill_exception(s, p->out);
+      } else {
+        p->out->ok = drain_pending_jobs(s, p->out);
+      }
       const int64_t elapsed_us = esp_timer_get_time() - t_eval;
-      const bool timed_out = (s->deadline_us != 0) && (esp_timer_get_time() > s->deadline_us);
+      const bool timed_out = p->out->timed_out || ((s->deadline_us != 0) && (esp_timer_get_time() > s->deadline_us));
       s->deadline_us = 0;
       s->capture = nullptr;
       s->busy = false;
@@ -322,10 +365,7 @@ static void service_task(void* arg) {
       p->out->timed_out = timed_out;
       p->out->elapsed_ms = s->last_eval_ms;
       p->out->output = dup_string(printed);
-      if (JS_IsException(val)) {
-        fill_exception(s, p->out);
-      } else {
-        p->out->ok = true;
+      if (!eval_exception && p->out->ok) {
         if (!JS_IsUndefined(val)) {
           const char* text = JS_ToCString(s->ctx, val);
           if (text) {
