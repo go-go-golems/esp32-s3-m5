@@ -2,7 +2,6 @@
 
 ## TODO
 
-- [ ] Route physical keyboard through the PicoOS supervisor.
 - [ ] Add state-preserving multi-app support in `picojs_runtime`.
 
 ## DONE
@@ -21,3 +20,5 @@
 - [x] Add supervisor launch/repl hardware probe script.
 - [x] Add live frame pump with `picoos start [fps]`, `picoos stop`, and `picoos frame [dt_ms]`.
 - [x] Add supervisor frame-pump hardware probe script.
+- [x] Route physical keyboard through the PicoOS supervisor.
+- [x] Add supervisor semantic key probe script.

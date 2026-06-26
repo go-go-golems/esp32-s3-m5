@@ -58,3 +58,14 @@ Phase 3 implemented: PicoOS live frame pump with start/stop/frame commands; Snak
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picoos_core/picoos_core.cpp — Frame pump implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/03-supervisor-frame-pump-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Phase 4 implemented: PicoOS semantic input routing with global home/escape handling, physical keyboard routing, picoos key command, and passing input-router probe (commit e409fda)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Keyboard task integration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picoos_core/picoos_core.cpp — Key routing implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/04-supervisor-input-router-probe.py — Validation probe
+

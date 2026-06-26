@@ -18,6 +18,7 @@ RelatedFiles:
         PicoOS initialization and console command integration (commit ac906dc)
         picoos launch/launcher/repl console commands (commit c687e03)
         picoos start/stop/frame console integration (commit b5378d1)
+        Physical keyboard routing through PicoOS (commit e409fda)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
@@ -25,11 +26,13 @@ RelatedFiles:
         Phase 1 supervisor public API (commit ac906dc)
         Launch/repl public APIs (commit c687e03)
         Frame pump public API (commit b5378d1)
+        Key routing public API (commit e409fda)
     - Path: components/picoos_core/picoos_core.cpp
       Note: |-
         Phase 1 supervisor registry and status implementation (commit ac906dc)
         Supervisor launch and REPL surface implementation (commit c687e03)
         Live frame pump implementation (commit b5378d1)
+        Supervisor key routing and global key behavior (commit e409fda)
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/design-doc/01-picoos-supervisor-design-and-implementation-guide.md
       Note: Primary design deliverable described by this diary
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/01-supervisor-phase1-probe.py
@@ -38,12 +41,15 @@ RelatedFiles:
       Note: Passing launch/repl hardware probe
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/03-supervisor-frame-pump-probe.py
       Note: Passing live frame pump hardware probe
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/04-supervisor-input-router-probe.py
+      Note: Passing semantic input router probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -634,4 +640,106 @@ picoos stop: ESP_OK
 [05] | . . . . . . . . . O . . * . . . . . .
 picoos: initialized=1 running=0 surface=app active=snake cols=40 rows=20 default_fps=4 apps=7 frames=5 errors=0
 PICOOS_FRAME_PUMP_PROBE PASS [True, True, True, True, True, True, True, True]
+```
+
+
+## Step 6: Route semantic input through the PicoOS supervisor
+
+This step moved key routing into the supervisor path. Console-injected semantic keys now go through `picoos key <token>`, and the physical keyboard task routes non-REPL surfaces through `picoos_key()` instead of directly calling the lower-level PicoJS key helper.
+
+This gives PicoOS its first global key behavior: `home` returns to the launcher, `escape` returns to the REPL surface, and normal keys are dispatched to the active PicoJS app.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Continue after the live frame pump by implementing the global input routing phase.
+
+**Inferred user intent:** Make physical and console input go through the OS layer so launcher/app/REPL behavior can become consistent.
+
+**Commit (code):** e409fda176ef429c6341da394b6580dea9979793 — "0102: route PicoOS input through supervisor"
+
+### What I did
+
+- Added `picoos_key(picoos_supervisor_t *os, const char *token)`.
+- Added a QuickJS key job inside `picoos_core` that calls `picojs_runtime_key_js()` on the QuickJS service task.
+- Added global key handling:
+  - `home` launches/renders the home launcher.
+  - `escape` or `repl` switches/renders the REPL surface.
+  - other tokens go to the active app when the surface is `app`.
+- Extended supervisor config with a `render_repl` callback.
+- Wired `app_main.cpp` to pass `visual_repl_render()` as the REPL render callback.
+- Added `picoos key <token>` console command.
+- Updated `key_to_picojs_token()` to map the physical Escape byte to the semantic `escape` token.
+- Updated `keyboard_task()` so non-REPL PicoOS surfaces route physical keys through `picoos_key()`.
+- Added hardware probe:
+  - `scripts/04-supervisor-input-router-probe.py`
+
+### Why
+
+- The OS supervisor must see global keys before apps do.
+- Returning to launcher/REPL should not depend on each JavaScript app registering its own key callbacks.
+- Physical keyboard routing needs to follow the same semantic path as console-injected keys so UART probes remain useful.
+
+### What worked
+
+- ESP-IDF build passed with IDF 5.4.2.
+- Flash passed on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- The input router probe passed:
+  - `PICOOS_INPUT_ROUTER_PROBE PASS [True, True, True, True, True, True, True, True, True]`
+- `picoos key left` moved the Snake head left.
+- `picoos key home` switched to the home launcher and `picoos status` reported:
+  - `surface=app`
+  - `active=home`
+- `picoos key escape` switched to REPL and `picoos status` reported:
+  - `surface=repl`
+  - `active=repl`
+
+### What didn't work
+
+- N/A for the console-injected semantic key path.
+- Physical key behavior was compiled and routed through the supervisor, but I did not do a manual human keypress validation in this step. UART semantic key injection is the automated acceptance path.
+
+### What I learned
+
+- The supervisor can now own global behavior without removing the old `picojs mode app` compatibility path. The keyboard task checks PicoOS surface first and falls back to the older PicoJS app-mode branch only when PicoOS is in REPL or unavailable.
+- Adding `render_repl` to the supervisor config makes `picoos_key("escape")` self-contained enough to update the display, not just internal state.
+
+### What was tricky to build
+
+- REPL rendering is still owned by `visual_repl`, while app rendering goes through the PicoJS dump-frame path. The supervisor now has two render callbacks so it can switch surfaces without depending on `app_main.cpp` command-specific rendering.
+- `picoos_key()` must special-case global tokens before dispatching to app callbacks. If the order is reversed, an app could swallow `home` or `escape` and trap the user.
+
+### What warrants a second pair of eyes
+
+- Review the keyboard task's fallback order: PicoOS non-REPL surface first, old PicoJS app-mode second, editor third.
+- Review whether `escape` should always mean REPL or should sometimes mean launcher/back. The current implementation chooses REPL as the safest escape hatch.
+- Review the same unsynchronized supervisor-state caveat from the frame-pump phase; input and frame tasks can now both call into the supervisor.
+
+### What should be done in the future
+
+- Add a display/input lock or supervisor mutex before more concurrent display updates are added.
+- Add a manual physical keyboard validation note once someone confirms Home/Escape/arrows on the actual PicoCalc keyboard.
+- Implement state-preserving multi-app support in `picojs_runtime` next, or pause and refactor concurrency before doing so.
+
+### Code review instructions
+
+- Start in `components/picoos_core/picoos_core.cpp` at `picoos_key()`.
+- Then inspect `app_main.cpp` around `keyboard_task()` and `key_to_picojs_token()`.
+- Validate with:
+  - `idf.py build`
+  - `scripts/04-supervisor-input-router-probe.py`
+
+### Technical details
+
+Successful probe output included:
+
+```text
+picoos key: ESP_OK token=left
+[05] | . . . O . . . . . . . . * . . . . . .
+picoos key: ESP_OK token=home
+picoos: initialized=1 running=0 surface=app active=home cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
+picoos key: ESP_OK token=escape
+picoos: initialized=1 running=0 surface=repl active=repl cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
+PICOOS_INPUT_ROUTER_PROBE PASS [True, True, True, True, True, True, True, True, True]
 ```
