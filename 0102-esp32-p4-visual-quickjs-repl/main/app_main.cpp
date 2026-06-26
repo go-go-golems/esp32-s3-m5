@@ -420,6 +420,11 @@ esp_err_t render_picojs_to_lcd()
     return visual_repl_render_dump_frame(dump);
 }
 
+esp_err_t render_picojs_to_lcd_callback(void *)
+{
+    return render_picojs_to_lcd();
+}
+
 bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)
 {
     if (!dst || dst_len == 0) return false;
@@ -601,6 +606,8 @@ esp_err_t init_picoos_supervisor()
     cfg.cols = VISUAL_REPL_COLS;
     cfg.rows = VISUAL_REPL_ROWS;
     cfg.default_fps = 4;
+    cfg.render_active = render_picojs_to_lcd_callback;
+    cfg.render_user = nullptr;
     esp_err_t err = picoos_supervisor_create(&cfg, &g_picoos_os);
     if (err != ESP_OK) return err;
     return register_picoos_builtin_apps();
@@ -921,6 +928,41 @@ int cmd_picoos(int argc, char **argv)
         std::printf("picoos repl: %s\n", esp_err_to_name(err));
         return err == ESP_OK ? 0 : 1;
     }
+    if (std::strcmp(argv[1], "start") == 0) {
+        uint32_t fps = 0;
+        if (argc >= 3) {
+            bool ok = false;
+            int parsed = parse_int_arg(argv[2], 1, 60, &ok);
+            if (!ok) {
+                std::printf("usage: picoos start [fps:1..60]\n");
+                return 1;
+            }
+            fps = static_cast<uint32_t>(parsed);
+        }
+        esp_err_t err = picoos_start(g_picoos_os, fps);
+        std::printf("picoos start: %s fps=%u\n", esp_err_to_name(err), (unsigned)(fps ? fps : 4));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "stop") == 0) {
+        esp_err_t err = picoos_stop(g_picoos_os);
+        std::printf("picoos stop: %s\n", esp_err_to_name(err));
+        return err == ESP_OK ? 0 : 1;
+    }
+    if (std::strcmp(argv[1], "frame") == 0) {
+        uint32_t dt = 100;
+        if (argc >= 3) {
+            bool ok = false;
+            int parsed = parse_int_arg(argv[2], 0, 60000, &ok);
+            if (!ok) {
+                std::printf("usage: picoos frame [dt_ms]\n");
+                return 1;
+            }
+            dt = static_cast<uint32_t>(parsed);
+        }
+        esp_err_t err = picoos_frame(g_picoos_os, dt);
+        std::printf("picoos frame: %s dt_ms=%u\n", esp_err_to_name(err), (unsigned)dt);
+        return err == ESP_OK ? 0 : 1;
+    }
     if (std::strcmp(argv[1], "apps") == 0) {
         picoos_app_info_t apps[PICOOS_MAX_APPS] = {};
         size_t count = 0;
@@ -936,7 +978,7 @@ int cmd_picoos(int argc, char **argv)
         }
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picoos status | apps | launch <id> | launcher | repl\n");
+    std::printf("usage: picoos status | apps | launch <id> | launcher | repl | start [fps] | stop | frame [dt_ms]\n");
     return 1;
 }
 
@@ -1189,7 +1231,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picoos_cmd = {
         .command = "picoos",
-        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl",
+        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl | start [fps] | stop | frame [dt_ms]",
         .func = cmd_picoos,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picoos_cmd));

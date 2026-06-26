@@ -42,6 +42,8 @@ typedef struct {
     uint16_t cols;
     uint16_t rows;
     uint32_t default_fps;
+    esp_err_t (*render_active)(void *user);
+    void *render_user;
 } picoos_supervisor_config_t;
 
 typedef struct {
@@ -87,6 +89,9 @@ void picoos_supervisor_destroy(picoos_supervisor_t *os);
 esp_err_t picoos_register_app(picoos_supervisor_t *os, const picoos_app_descriptor_t *desc);
 esp_err_t picoos_launch(picoos_supervisor_t *os, const char *app_id);
 esp_err_t picoos_show_repl(picoos_supervisor_t *os);
+esp_err_t picoos_start(picoos_supervisor_t *os, uint32_t fps);
+esp_err_t picoos_stop(picoos_supervisor_t *os);
+esp_err_t picoos_frame(picoos_supervisor_t *os, uint32_t dt_ms);
 esp_err_t picoos_get_status(picoos_supervisor_t *os, picoos_status_t *out);
 esp_err_t picoos_list_apps(picoos_supervisor_t *os, picoos_app_info_t *out, size_t cap, size_t *count);
 
