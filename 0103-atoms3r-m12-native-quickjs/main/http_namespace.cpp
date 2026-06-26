@@ -6,6 +6,7 @@
 #include <new>
 
 #include "esp_err.h"
+#include "esp_http_client.h"
 #include "esp_log.h"
 #include "http_namespace_core.h"
 #include "http_server.h"
@@ -13,6 +14,7 @@
 namespace {
 constexpr const char *kTag = "0103_http_ns";
 constexpr uint32_t kInstallTimeoutMs = 1000;
+constexpr size_t kFetchChunkBytes = 512;
 
 qjs_http::Runtime *s_runtime = nullptr;
 
@@ -56,6 +58,113 @@ int op_status(void *, qjs_http::HostStatus *out)
     }
     out->running = running;
     out->port = port;
+    return 0;
+}
+
+int op_fetch(void *, const qjs_http::FetchRequest *req, qjs_http::FetchResult *out, std::string *error)
+{
+    if (!req || !out) {
+        if (error) *error = "invalid fetch arguments";
+        return (int)ESP_ERR_INVALID_ARG;
+    }
+    if (req->url.rfind("http://", 0) != 0) {
+        if (error) *error = "firmware fetch supports http:// only";
+        return (int)ESP_ERR_NOT_SUPPORTED;
+    }
+
+    esp_http_client_config_t config = {};
+    config.url = req->url.c_str();
+    config.timeout_ms = (int)req->timeout_ms;
+    config.disable_auto_redirect = true;
+    config.buffer_size = (int)kFetchChunkBytes;
+    config.buffer_size_tx = (int)kFetchChunkBytes;
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    if (!client) {
+        if (error) *error = "esp_http_client_init failed";
+        return (int)ESP_ERR_NO_MEM;
+    }
+
+    esp_err_t err = ESP_OK;
+    if (req->method == "POST") {
+        err = esp_http_client_set_method(client, HTTP_METHOD_POST);
+    } else {
+        err = esp_http_client_set_method(client, HTTP_METHOD_GET);
+    }
+    if (err == ESP_OK) {
+        for (const auto &h : req->headers) {
+            err = esp_http_client_set_header(client, h.name.c_str(), h.value.c_str());
+            if (err != ESP_OK) break;
+        }
+    }
+    if (err != ESP_OK) {
+        if (error) *error = esp_err_to_name(err);
+        esp_http_client_cleanup(client);
+        return (int)err;
+    }
+
+    const int write_len = (int)req->body.size();
+    err = esp_http_client_open(client, write_len);
+    if (err != ESP_OK) {
+        if (error) *error = esp_err_to_name(err);
+        esp_http_client_cleanup(client);
+        return (int)err;
+    }
+
+    if (!req->body.empty()) {
+        int wrote = esp_http_client_write(client, req->body.data(), write_len);
+        if (wrote != write_len) {
+            if (error) *error = "esp_http_client_write failed";
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            return (int)ESP_FAIL;
+        }
+    }
+
+    int64_t content_len = esp_http_client_fetch_headers(client);
+    if (content_len < 0 && content_len != -ESP_ERR_HTTP_EAGAIN) {
+        if (error) *error = "esp_http_client_fetch_headers failed";
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return (int)ESP_FAIL;
+    }
+    if (content_len > 0 && (size_t)content_len > req->max_response_bytes) {
+        if (error) *error = "fetch response too large";
+        esp_http_client_close(client);
+        esp_http_client_cleanup(client);
+        return (int)ESP_ERR_INVALID_SIZE;
+    }
+
+    out->status = esp_http_client_get_status_code(client);
+    out->status_text = "";
+    out->final_url = req->url;
+
+    char chunk[kFetchChunkBytes];
+    while (true) {
+        int got = esp_http_client_read(client, chunk, sizeof(chunk));
+        if (got == 0) {
+            break;
+        }
+        if (got < 0) {
+            if (got == -ESP_ERR_HTTP_EAGAIN) {
+                continue;
+            }
+            if (error) *error = "esp_http_client_read failed";
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            return (int)ESP_FAIL;
+        }
+        if (out->body.size() + (size_t)got > req->max_response_bytes) {
+            if (error) *error = "fetch response too large";
+            esp_http_client_close(client);
+            esp_http_client_cleanup(client);
+            return (int)ESP_ERR_INVALID_SIZE;
+        }
+        out->body.append(chunk, (size_t)got);
+    }
+
+    esp_http_client_close(client);
+    esp_http_client_cleanup(client);
     return 0;
 }
 
@@ -124,10 +233,10 @@ qjs_http::HostOps make_firmware_ops()
     ops.add_static_mount = op_static;
     ops.clear_static_mounts = op_clear_static;
     ops.status = op_status;
-    // Firmware fetch is deliberately left unimplemented in this phase. The shared
-    // core exposes fetch(), but calls reject/throw until a bounded ESP-IDF HTTP
-    // client or worker-backed adapter is wired in a later phase.
-    ops.fetch = nullptr;
+    // First firmware fetch milestone: bounded blocking HTTP client on the owner
+    // task. This keeps the JS API shape shared with the host; a later phase can
+    // move the adapter to a worker-backed Promise settlement path if needed.
+    ops.fetch = op_fetch;
     return ops;
 }
 
