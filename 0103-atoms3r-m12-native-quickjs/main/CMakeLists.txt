@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "http_server.cpp"
         "js_command.cpp"
         "storage_namespace.cpp"
         "system_namespace.cpp"
@@ -13,6 +14,7 @@ idf_component_register(
         qjs_service
         console
         esp_event
+        esp_http_server
         esp_netif
         esp_wifi
         fatfs

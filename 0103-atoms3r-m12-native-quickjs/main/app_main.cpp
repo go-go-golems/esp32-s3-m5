@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "esp_psram.h"
 
+#include "http_server.h"
 #include "js_command.h"
 #include "qjs_service.h"
 #include "storage_namespace.h"
@@ -98,6 +99,7 @@ extern "C" void app_main(void)
     esp_console_register_help_command();
     register_storage_commands();
     register_wifi_commands();
+    register_http_commands();
     register_js_commands(svc);
 
     esp_console_dev_usb_serial_jtag_config_t hw_cfg = ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
