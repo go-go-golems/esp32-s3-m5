@@ -36,3 +36,14 @@ Phase 1 implemented: added picoos_core supervisor skeleton, built-in app registr
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picoos_core/picoos_core.cpp — Supervisor registry/status implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/01-supervisor-phase1-probe.py — Validation probe
 
+
+## 2026-06-25
+
+Phase 2 implemented: picoos launch/launcher/repl commands now launch registered apps and track active surface/app; hardware launch probe passed (commit c687e03)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Console integration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picoos_core/picoos_core.cpp — Launch implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/02-supervisor-launch-probe.py — Validation probe
+

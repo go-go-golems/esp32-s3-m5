@@ -16,22 +16,30 @@ RelatedFiles:
       Note: |-
         Key source inspected while writing diary
         PicoOS initialization and console command integration (commit ac906dc)
+        picoos launch/launcher/repl console commands (commit c687e03)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
-      Note: Phase 1 supervisor public API (commit ac906dc)
+      Note: |-
+        Phase 1 supervisor public API (commit ac906dc)
+        Launch/repl public APIs (commit c687e03)
     - Path: components/picoos_core/picoos_core.cpp
-      Note: Phase 1 supervisor registry and status implementation (commit ac906dc)
+      Note: |-
+        Phase 1 supervisor registry and status implementation (commit ac906dc)
+        Supervisor launch and REPL surface implementation (commit c687e03)
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/design-doc/01-picoos-supervisor-design-and-implementation-guide.md
       Note: Primary design deliverable described by this diary
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/01-supervisor-phase1-probe.py
       Note: Passing hardware probe for status/apps
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/02-supervisor-launch-probe.py
+      Note: Passing launch/repl hardware probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -400,3 +408,115 @@ PICOOS_PHASE1_PROBE PASS [True, True, True, True, True, True, True, True]
 ```
 
 Host-side validation note: there is not yet a useful host-side harness for `picoos_core` because the component currently accepts ESP-IDF `qjs_service_t *` and `picojs_runtime_t *` handles and is built as an ESP-IDF component. The old host/native harness is still useful for portable PicoJS API shape, but supervisor validation currently relies on `idf.py build` and UART hardware probes. A future refactor can split a pure registry/state reducer from ESP-IDF handles to make host unit tests practical.
+
+
+## Step 4: Implement Phase 2 supervisor app launch and REPL surface commands
+
+This step moved app launching behind the new PicoOS supervisor. The old `picojs load ...` path still exists for low-level debugging, but the new user-facing path is now `picoos launch <id>`, with convenience commands for `picoos launcher` and `picoos repl`.
+
+This still does not make Snake live. It establishes the app registry as the source of launch metadata and records which surface/app the supervisor considers active.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Continue implementing the design phase by phase after the Phase 1 supervisor skeleton.
+
+**Inferred user intent:** Keep making small, testable OS increments with commits and diary evidence.
+
+**Commit (code):** c687e033819a08d519121e59d905f1aed5dd7792 — "0102: add PicoOS app launch commands"
+
+### What I did
+
+- Added public APIs:
+  - `picoos_launch(picoos_supervisor_t *os, const char *app_id)`
+  - `picoos_show_repl(picoos_supervisor_t *os)`
+- Implemented launch lookup through the supervisor app registry.
+- Added a small QuickJS job inside `picoos_core` to reinstall the PicoJS `OS` native object before evaluating a registered JavaScript app source.
+- Updated supervisor state on successful app launch:
+  - active app id;
+  - active surface;
+  - foreground/background app status rows.
+- Added console commands:
+  - `picoos launch <id>`
+  - `picoos launcher`
+  - `picoos repl`
+- Kept `picojs load`, `picojs dump`, `picojs frame`, and `picojs key` available for debugging.
+- Added hardware probe:
+  - `scripts/02-supervisor-launch-probe.py`
+
+### Why
+
+- The supervisor must own app launching before it can own scheduling and app switching.
+- Keeping app metadata in the registry avoids hard-coding launch behavior in `cmd_picojs()`.
+- `picoos repl` is the first concrete step toward making the REPL a system surface rather than a separate mode flag.
+
+### What worked
+
+- ESP-IDF build passed with IDF 5.4.2.
+- Flash passed on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- `picoos launcher` loaded/rendered the home launcher and `picojs dump` showed `picoOS` plus the launcher menu.
+- `picoos launch snake` loaded/rendered Snake and `picoos status` reported:
+  - `surface=app`
+  - `active=snake`
+- `picoos repl` switched the supervisor surface back to REPL and `picoos status` reported:
+  - `surface=repl`
+  - `active=repl`
+- The launch probe passed:
+  - `PICOOS_LAUNCH_PROBE PASS [True, True, True, True, True, True, True, True]`
+
+### What didn't work
+
+- The first version of `02-supervisor-launch-probe.py` looked for lowercase `picoos` in the home dump, but the actual top bar text is `picoOS`. The probe failed one check:
+  - `PICOOS_LAUNCH_PROBE FAIL [True, True, False, True, True, True, True, True]`
+- I fixed the assertion to match the real UI text:
+  - `"picoOS" in home_dump`
+
+### What I learned
+
+- Launching through the supervisor can reuse the current JavaScript source strings and renderer without moving all source ownership at once.
+- Reinstalling the PicoJS `OS` object before launch is a pragmatic safety measure because `js reset` can replace the QuickJS context/global object.
+- The current launch path still replaces the active PicoJS app in practice because `picojs_runtime` is not multi-app yet. The supervisor status model is ready for foreground/background state, but the runtime still needs the later multi-app refactor.
+
+### What was tricky to build
+
+- Native `repl` does not have JavaScript source, so `picoos_launch()` must treat null-source descriptors as native/system surfaces rather than invalid apps.
+- `picoos_core` can update supervisor state, but `app_main.cpp` still owns LCD rendering. For now, command handlers call `render_picojs_to_lcd()` after successful JS app launches and `visual_repl_render()` after `picoos repl`.
+
+### What warrants a second pair of eyes
+
+- Review whether `picoos_launch()` should call `qjs_service_eval()` directly or whether app evaluation should be a single explicit `qjs_service_run()` job that combines install/eval/state updates on the JS task.
+- Review whether repeated `picojs_runtime_install()` before every launch has any unwanted side effects beyond replacing the global `OS` object.
+- Review the current foreground/background app status semantics. They describe supervisor intent, not true preserved JS app execution yet.
+
+### What should be done in the future
+
+- Phase 3: add the live frame pump (`picoos start [fps]`, `picoos stop`, possibly `picoos frame [dt_ms]`).
+- Make `picoos launcher` boot default after the frame pump and input router are stable.
+- Refactor `picojs_runtime` to preserve multiple app states before claiming real stateful app switching.
+
+### Code review instructions
+
+- Start in `components/picoos_core/picoos_core.cpp` at `picoos_launch()` and `picoos_show_repl()`.
+- Check `app_main.cpp` `cmd_picoos()` for console behavior and render calls.
+- Validate with:
+  - `idf.py build`
+  - `scripts/02-supervisor-launch-probe.py`
+
+### Technical details
+
+Successful launch probe included:
+
+```text
+picoos launcher: ESP_OK
+picoos render after launcher: ESP_OK
+[00]   picoOS                          12:01
+...
+picoos launch snake: ESP_OK
+picoos render after launch: ESP_OK
+picoos: initialized=1 running=0 surface=app active=snake cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
+...
+picoos repl: ESP_OK
+picoos: initialized=1 running=0 surface=repl active=repl cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
+PICOOS_LAUNCH_PROBE PASS [True, True, True, True, True, True, True, True]
+```

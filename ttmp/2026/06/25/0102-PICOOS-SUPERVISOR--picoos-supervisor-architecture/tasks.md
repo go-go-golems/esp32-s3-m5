@@ -2,7 +2,6 @@
 
 ## TODO
 
-- [ ] Add `picoos launch <id>` using the built-in app registry.
 - [ ] Add live frame pump with `picoos start [fps]` and `picoos stop`.
 - [ ] Route physical keyboard through the PicoOS supervisor.
 - [ ] Add state-preserving multi-app support in `picojs_runtime`.
@@ -18,3 +17,6 @@
 - [x] Implement `components/picoos_core` skeleton.
 - [x] Add `picoos status` and `picoos apps` commands.
 - [x] Add supervisor phase-1 hardware probe script.
+- [x] Add `picoos launch <id>` using the built-in app registry.
+- [x] Add `picoos launcher` and `picoos repl` surface commands.
+- [x] Add supervisor launch/repl hardware probe script.
