@@ -749,6 +749,15 @@ void keyboard_task(void *)
         }
         if (ev.state == PICOCALC_KBD_STATE_PRESSED || ev.state == PICOCALC_KBD_STATE_REPEATED) {
             bool handled = false;
+            if (ev.key == 0xd2 && g_picoos_os) { // Home (Shift+Tab on PicoCalc) always opens the PicoOS launcher, including from REPL edit mode.
+                esp_err_t key_err = picoos_key(g_picoos_os, "home");
+                handled = key_err == ESP_OK;
+                if (key_err != ESP_OK) ESP_LOGW(kTag, "global home key failed: %s", esp_err_to_name(key_err));
+                ESP_LOGI(kTag, "kbd global home key=0x%02x(%s) state=%s handled=%d",
+                         ev.key, picocalc_keyboard_key_name(ev.key),
+                         picocalc_keyboard_state_name(ev.state), handled);
+                continue;
+            }
             picoos_status_t ost = {};
             const bool picoos_active = g_picoos_os && picoos_get_status(g_picoos_os, &ost) == ESP_OK && ost.surface != PICOOS_SURFACE_REPL;
             if (picoos_active) {
