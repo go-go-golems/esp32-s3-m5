@@ -24,10 +24,10 @@ DocType: tasks
 
 ## Phase 1 — Shared host/firmware core
 
-- [ ] **HF1.1 — Define portable HTTP QuickJS core.** Create `http_namespace_core.{h,cpp}` that owns JavaScript-facing objects and route state without ESP-IDF headers.
-- [ ] **HF1.2 — Define host operation table.** Use callbacks for start/stop/static/fetch so firmware and desktop adapters share JS binding code.
-- [ ] **HF1.3 — Add desktop native host.** Add a `host/native-http` build similar to the 0102 native host.
-- [ ] **HF1.4 — Add host smoke tests.** Run scripts locally without a connected AtomS3R.
+- [x] **HF1.1 — Define portable HTTP QuickJS core.** Create `http_namespace_core.{h,cpp}` that owns JavaScript-facing objects and route state without ESP-IDF headers.
+- [x] **HF1.2 — Define host operation table.** Use callbacks for start/stop/static/fetch so firmware and desktop adapters share JS binding code.
+- [x] **HF1.3 — Add desktop native host.** Add a `host/native-http` build similar to the 0102 native host.
+- [x] **HF1.4 — Add host smoke tests.** Run scripts locally without a connected AtomS3R.
 
 ## Phase 2 — Firmware `http` namespace
 
