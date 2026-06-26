@@ -52,6 +52,6 @@ DocType: tasks
 
 ## Phase 5 — Script workflow
 
-- [ ] **HF5.1 — Add `js run <virtual-path>`.** Load server scripts from `/scripts` using the bounded storage API.
+- [x] **HF5.1 — Add `js run <virtual-path>`.** Load server scripts from `/scripts` using the bounded storage API.
 - [ ] **HF5.2 — Add examples.** Provide host/device examples for static serving, dynamic routes, and fetch.
 - [ ] **HF5.3 — Document recovery policy.** Keep USB Serial/JTAG console as the authoritative recovery path; no autoload until disable controls exist.

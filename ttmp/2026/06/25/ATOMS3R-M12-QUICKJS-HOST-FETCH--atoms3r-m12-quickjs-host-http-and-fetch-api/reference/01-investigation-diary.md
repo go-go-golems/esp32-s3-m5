@@ -46,17 +46,24 @@ RelatedFiles:
     - Path: 0103-atoms3r-m12-native-quickjs/main/http_server.h
       Note: Dynamic response/callback contracts between HTTP server and QuickJS namespace wrapper (commit a0009cf)
     - Path: 0103-atoms3r-m12-native-quickjs/main/js_command.cpp
-      Note: Pre-reset HTTP state clearing and post-reset namespace reinstall wiring (commit acae5fb)
+      Note: |-
+        Pre-reset HTTP state clearing and post-reset namespace reinstall wiring (commit acae5fb)
+        Adds js run <virtual-path> command for explicit stored script execution (commit e2afdf3)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp
+      Note: Exposes bounded storage read wrapper used by js run (commit e2afdf3)
+    - Path: 0103-atoms3r-m12-native-quickjs/main/storage_namespace.h
+      Note: Public bounded storage read declaration for console script runner (commit e2afdf3)
     - Path: components/qjs_service/qjs_service.cpp
       Note: Eval now drains bounded QuickJS Promise jobs so fetch().then callbacks run in console (commit 05c8bc6)
     - Path: ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/design-doc/01-analysis-design-and-implementation-guide.md
       Note: Primary intern-facing design guide for host HTTP and fetch work
 ExternalSources: []
 Summary: Chronological diary for the shared host/firmware QuickJS HTTP namespace and fetch API work.
-LastUpdated: 2026-06-25T21:20:00-07:00
+LastUpdated: 2026-06-25T21:45:00-07:00
 WhatFor: Use to resume implementation of the desktop host, firmware HTTP namespace, dynamic routes, and fetch API.
 WhenToUse: Read before modifying `http_namespace_core`, host native HTTP tooling, or firmware reset/dispatch paths.
 ---
+
 
 
 
@@ -737,3 +744,101 @@ The hardware smoke exposed two useful integration details. First, dynamic route 
 - Final binary size: `0x16bb90`.
 - Final app partition free: `0x294470` bytes, 64%.
 - Pending Promise-job cap per eval: `64` jobs.
+
+## Step 7: Add `js run <virtual-path>` for stored scripts
+
+This step removes the need to paste every server script through `js eval`. The console can now read a JavaScript file from the firmware's virtual storage namespace and evaluate it with the file path as the QuickJS filename.
+
+The implementation is deliberately small: it reuses the same bounded storage read helper used by `storage.readText`, preserves the existing eval timeout, and does not introduce any autoload behavior. Running stored code remains an explicit console action.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead"
+
+**Assistant interpretation:** Implement the planned `js run <virtual-path>` command described in the previous answer.
+
+**Inferred user intent:** Make dynamic HTTP scripts reusable from `/scripts` instead of requiring long quoted `js eval` commands.
+
+**Commit (code):** `e2afdf3` — "0103: run JavaScript from storage paths"
+
+### What I did
+
+- Exposed `storage_namespace_read_text_alloc(...)` in `0103-atoms3r-m12-native-quickjs/main/storage_namespace.h`.
+- Added the public wrapper in `0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp`.
+- Added `js run <virtual-path>` to `0103-atoms3r-m12-native-quickjs/main/js_command.cpp`.
+- Kept `js run` bounded to `16 KiB`, matching the storage namespace read cap.
+- Used the virtual path as the QuickJS eval filename so errors can report the stored script path.
+- Built firmware locally.
+- Reran the desktop host smoke test.
+- Flashed the AtomS3R and validated a stored route script on hardware.
+- Marked HF5.1 complete.
+
+### Why
+
+- HTTP route scripts are too awkward to maintain as quoted console one-liners.
+- The existing storage namespace already provides virtual-root validation, path normalization, mount checks, and bounded reads.
+- Explicit `js run` gives reusable scripts without the operational risk of boot-time autoload.
+
+### What worked
+
+- ESP-IDF build passed:
+  - Command: `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - Binary size: `0x16bd00`.
+  - App partition free: `0x294300` bytes, 64% free.
+- Host smoke still passed:
+  - `PASS native-http host smoke`
+- Hardware validation passed:
+  - `storage write /scripts/server.js http.get('/run/hello',function(req){return{json:{ok:true,path:req.path}};})`
+  - `storage read /scripts/server.js` returned the stored script.
+  - `js run /scripts/server.js` returned `ok=1 timed_out=0 elapsed=3ms`.
+  - `curl http://192.168.4.22/run/hello` returned `HTTP/1.1 200 OK` with body `{"ok":true,"path":"/run/hello"}`.
+
+### What didn't work
+
+- Nothing blocked this step.
+- The existing `storage write` console command only accepts a single text argument, so multiline scripts still need either careful quoting, a future upload path, or JavaScript-side `storage.writeText(...)`.
+
+### What I learned
+
+- The storage namespace was already the right boundary for script loading; no raw filesystem API was needed.
+- Keeping `js run` explicit preserves the USB Serial/JTAG recovery policy because a bad script is not automatically executed on boot.
+- The command is useful immediately for dynamic HTTP route registration.
+
+### What was tricky to build
+
+- The internal storage read helper lived in the storage namespace implementation's anonymous namespace. The command needed a narrow public wrapper without exposing native paths or relaxing virtual-root validation.
+- `js run` must free both the allocated source buffer and the eval result buffers on every path. The implementation reads, evaluates synchronously through `qjs_service_eval()`, frees the source, then prints/frees the eval result.
+- The console `storage write` path is not a full file-upload mechanism; it is good enough for compact validation scripts but not yet good enough for comfortable multiline authoring.
+
+### What warrants a second pair of eyes
+
+- Review whether `js run` should be restricted to `/scripts` only or continue accepting any storage virtual root validated by `storage_namespace_read_text_alloc()`.
+- Review whether the eval timeout for stored scripts should remain `1000 ms` or get a separate run timeout.
+- Review the public storage read wrapper to ensure it does not expose unwanted filesystem capabilities.
+
+### What should be done in the future
+
+- Add checked-in example scripts for dynamic routes and fetch.
+- Add a friendlier script upload path for multiline files.
+- Consider `js run --timeout-ms <n> <virtual-path>` only if real scripts need a longer bounded setup window.
+- Keep autoload disabled unless there is also a safe disable/recovery mechanism.
+
+### Code review instructions
+
+- Start with `js_command.cpp::cmd_run()`.
+- Review `storage_namespace_read_text_alloc(...)` as the public wrapper around the existing bounded read implementation.
+- Validate locally with:
+  - `idf.py -C 0103-atoms3r-m12-native-quickjs build`
+  - `0103-atoms3r-m12-native-quickjs/host/native-http/tests/run-smoke.sh`
+- Validate on hardware with:
+  - `http start 80`
+  - `storage write /scripts/server.js http.get('/run/hello',function(req){return{json:{ok:true,path:req.path}};})`
+  - `js run /scripts/server.js`
+  - `curl --max-time 5 -i http://192.168.4.22/run/hello`
+
+### Technical details
+
+- `js run` maximum script size: `16 KiB`.
+- `js run` timeout: `1000 ms`.
+- `js run` accepts storage virtual paths validated by the storage namespace; no native filesystem path is accepted.
+- Hardware validation IP: `192.168.4.22`.

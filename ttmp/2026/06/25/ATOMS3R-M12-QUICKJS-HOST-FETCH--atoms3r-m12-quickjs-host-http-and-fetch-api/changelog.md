@@ -87,3 +87,15 @@ Hardware-validated AtomS3R QuickJS HTTP/fetch: /healthz, static /static/index.ht
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — Hardware validation diary entry
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF2.4
 
+
+## 2026-06-25
+
+Added and hardware-validated js run <virtual-path> for explicit bounded execution of stored scripts from the storage namespace; /scripts/server.js registered /run/hello successfully (commit e2afdf3).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/js_command.cpp — js run command
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/storage_namespace.cpp — bounded read wrapper
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/reference/01-investigation-diary.md — js run diary entry
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HOST-FETCH--atoms3r-m12-quickjs-host-http-and-fetch-api/tasks.md — Marked HF5.1 complete
+
