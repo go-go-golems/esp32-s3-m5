@@ -2,7 +2,6 @@
 
 ## TODO
 
-- [ ] Add live frame pump with `picoos start [fps]` and `picoos stop`.
 - [ ] Route physical keyboard through the PicoOS supervisor.
 - [ ] Add state-preserving multi-app support in `picojs_runtime`.
 
@@ -20,3 +19,5 @@
 - [x] Add `picoos launch <id>` using the built-in app registry.
 - [x] Add `picoos launcher` and `picoos repl` surface commands.
 - [x] Add supervisor launch/repl hardware probe script.
+- [x] Add live frame pump with `picoos start [fps]`, `picoos stop`, and `picoos frame [dt_ms]`.
+- [x] Add supervisor frame-pump hardware probe script.

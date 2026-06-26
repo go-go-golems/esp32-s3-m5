@@ -17,28 +17,34 @@ RelatedFiles:
         Key source inspected while writing diary
         PicoOS initialization and console command integration (commit ac906dc)
         picoos launch/launcher/repl console commands (commit c687e03)
+        picoos start/stop/frame console integration (commit b5378d1)
     - Path: components/picojs_runtime/picojs_runtime.cpp
       Note: Runtime source inspected while writing diary
     - Path: components/picoos_core/include/picoos_core.h
       Note: |-
         Phase 1 supervisor public API (commit ac906dc)
         Launch/repl public APIs (commit c687e03)
+        Frame pump public API (commit b5378d1)
     - Path: components/picoos_core/picoos_core.cpp
       Note: |-
         Phase 1 supervisor registry and status implementation (commit ac906dc)
         Supervisor launch and REPL surface implementation (commit c687e03)
+        Live frame pump implementation (commit b5378d1)
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/design-doc/01-picoos-supervisor-design-and-implementation-guide.md
       Note: Primary design deliverable described by this diary
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/01-supervisor-phase1-probe.py
       Note: Passing hardware probe for status/apps
     - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/02-supervisor-launch-probe.py
       Note: Passing launch/repl hardware probe
+    - Path: ttmp/2026/06/25/0102-PICOOS-SUPERVISOR--picoos-supervisor-architecture/scripts/03-supervisor-frame-pump-probe.py
+      Note: Passing live frame pump hardware probe
 ExternalSources: []
 Summary: Chronological diary for the PicoOS supervisor design ticket.
 LastUpdated: 2026-06-26T00:00:00Z
 WhatFor: Use this diary to understand how the supervisor design was produced, what evidence was inspected, and what remains for implementation.
 WhenToUse: Read before resuming the supervisor implementation or reviewing the design document.
 ---
+
 
 
 
@@ -519,4 +525,113 @@ picoos: initialized=1 running=0 surface=app active=snake cols=40 rows=20 default
 picoos repl: ESP_OK
 picoos: initialized=1 running=0 surface=repl active=repl cols=40 rows=20 default_fps=4 apps=7 frames=0 errors=0
 PICOOS_LAUNCH_PROBE PASS [True, True, True, True, True, True, True, True]
+```
+
+
+## Step 5: Implement Phase 3 live PicoOS frame pump
+
+This step made the first app genuinely live under PicoOS control. The supervisor now has a FreeRTOS frame task, `picoos start [fps]`, `picoos stop`, and `picoos frame [dt_ms]`. When Snake is active, `picoos start 4` advances the JavaScript `game.loop(4, ...)` callback without serial `picojs frame` or `picojs run` commands.
+
+This is the first visible shift from a console-driven runtime to an OS-like runtime. Serial commands still start/stop the pump, but once started the firmware clocks the app itself.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 3)
+
+**Assistant interpretation:** Continue through the design phases after app launching by implementing the live scheduler/frame pump.
+
+**Inferred user intent:** Make apps like Snake behave like real foreground apps instead of needing manual frame advancement over UART.
+
+**Commit (code):** b5378d1a0eb1d2757819b7854a3d4e345872bdd6 — "0102: add PicoOS live frame pump"
+
+### What I did
+
+- Extended `picoos_supervisor_config_t` with a render callback:
+  - `esp_err_t (*render_active)(void *user)`
+  - `void *render_user`
+- Added supervisor APIs:
+  - `picoos_start(picoos_supervisor_t *os, uint32_t fps)`
+  - `picoos_stop(picoos_supervisor_t *os)`
+  - `picoos_frame(picoos_supervisor_t *os, uint32_t dt_ms)`
+- Added a FreeRTOS `picoos_frame` task inside `picoos_core`.
+- The frame task computes elapsed `dt_ms`, submits JavaScript frame work through `qjs_service_run()`, and calls the render callback after successful frames.
+- Wired `app_main.cpp` to pass `render_picojs_to_lcd()` as the supervisor render callback.
+- Added console commands:
+  - `picoos start [fps]`
+  - `picoos stop`
+  - `picoos frame [dt_ms]`
+- Added hardware probe:
+  - `scripts/03-supervisor-frame-pump-probe.py`
+
+### Why
+
+- Snake already had `game.loop(4, ...)`, but no firmware scheduler called frames automatically.
+- The frame pump is the smallest change that makes the current app model feel like an actual OS foreground app.
+- Putting the pump in `picoos_core` keeps scheduling out of `app_main.cpp` and preserves the QuickJS ownership rule.
+
+### What worked
+
+- ESP-IDF build passed with IDF 5.4.2.
+- Flash passed on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- `picoos launch snake` loaded Snake.
+- `picoos start 4` started the frame pump.
+- After 1.5 seconds, `picoos status` reported:
+  - `running=1`
+  - `surface=app`
+  - `active=snake`
+  - `frames=5`
+  - `errors=0`
+- After `picoos stop`, `picojs dump` showed the Snake head had moved from the initial position without any `picojs frame` or `picojs run` command.
+- The frame-pump probe passed:
+  - `PICOOS_FRAME_PUMP_PROBE PASS [True, True, True, True, True, True, True, True]`
+
+### What didn't work
+
+- N/A for this phase. The first implementation built and validated on hardware.
+- Known limitation: the frame task renders directly through the callback from the supervisor task. This is acceptable for the first slice but should be reviewed for LCD concurrency with console/manual render commands.
+
+### What I learned
+
+- The existing `picojs_runtime_frame_js()` callback path was already sufficient for live app behavior once a firmware task called it periodically.
+- `qjs_service_run()` works well enough for the first frame pump because it serializes QuickJS access and gives a clear completion point before rendering.
+- The 4 FPS Snake loop visibly advances with low overhead; the firmware binary remains at about 77% free in the 4 MB app partition.
+
+### What was tricky to build
+
+- The frame task cannot touch QuickJS directly. The implementation stores `pending_dt_ms` on the supervisor and submits a `qjs_job_t` whose callback calls `picojs_runtime_frame_js(ctx, runtime, pending_dt_ms)` on the QuickJS service task.
+- Rendering after the frame happens outside the QuickJS job through the render callback. This keeps QuickJS ownership clean while still updating the LCD on each successful frame.
+- The frame task remains alive after `picoos stop` and simply pauses when `running=false`. This avoids task creation/deletion churn while preserving a simple stop/start API.
+
+### What warrants a second pair of eyes
+
+- Review the unsynchronized supervisor fields accessed by console and frame tasks (`running`, `surface`, `active_app_id`, counters). The first implementation is simple, but a mutex or critical section may be warranted before more concurrent features.
+- Review LCD render safety from the frame task. If future console commands also render frequently, add a display lock.
+- Review whether `picoos_stop()` should delete the frame task or leave it paused. The current implementation leaves it paused.
+
+### What should be done in the future
+
+- Phase 4: route physical keyboard through `picoos_key()` / supervisor global input routing.
+- Add `picoos start` behavior for boot-to-launcher/app mode once input routing is stable.
+- Add frame skipping or async `qjs_service_post()` if high-FPS apps ever block the scheduler.
+
+### Code review instructions
+
+- Start in `components/picoos_core/picoos_core.cpp` at `picoos_frame_task()`, `picoos_frame()`, `picoos_start()`, and `picoos_stop()`.
+- Check `app_main.cpp` for `render_picojs_to_lcd_callback()` and the new console commands.
+- Validate with:
+  - `idf.py build`
+  - `scripts/03-supervisor-frame-pump-probe.py`
+
+### Technical details
+
+Successful probe output included:
+
+```text
+picoos launch snake: ESP_OK
+picoos start: ESP_OK fps=4
+picoos: initialized=1 running=1 surface=app active=snake cols=40 rows=20 default_fps=4 apps=7 frames=5 errors=0
+picoos stop: ESP_OK
+[05] | . . . . . . . . . O . . * . . . . . .
+picoos: initialized=1 running=0 surface=app active=snake cols=40 rows=20 default_fps=4 apps=7 frames=5 errors=0
+PICOOS_FRAME_PUMP_PROBE PASS [True, True, True, True, True, True, True, True]
 ```
