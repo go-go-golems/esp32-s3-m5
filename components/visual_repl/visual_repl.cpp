@@ -35,28 +35,22 @@ struct Palette {
     uint16_t bg;
 };
 
-constexpr uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b)
-{
-    return static_cast<uint16_t>(((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3));
-}
-
 Palette palette_for(visual_repl_style_t style)
 {
     // Minimal Swiss-terminal palette: black canvas, strong foreground contrast,
-    // and a small accent set only (red/orange/yellow/white). The LCD swatch
+    // and a small accent set only (red/yellow/white). The LCD swatch
     // diagnostics verified that these RGB565 values map correctly on hardware.
     constexpr uint16_t kBlack = PICOCALC_LCD_RGB565_BLACK;
     constexpr uint16_t kWhite = PICOCALC_LCD_RGB565_WHITE;
     constexpr uint16_t kRed = PICOCALC_LCD_RGB565_RED;
     constexpr uint16_t kYellow = PICOCALC_LCD_RGB565_YELLOW;
-    constexpr uint16_t kOrange = rgb565(255, 128, 0);
 
     switch (style) {
         case VISUAL_REPL_STYLE_PROMPT: return {kYellow, kBlack};
         case VISUAL_REPL_STYLE_INPUT:  return {kWhite, kBlack};
         case VISUAL_REPL_STYLE_OUTPUT: return {kWhite, kBlack};
         case VISUAL_REPL_STYLE_ERROR:  return {kRed, kBlack};
-        case VISUAL_REPL_STYLE_STATUS: return {kOrange, kBlack};
+        case VISUAL_REPL_STYLE_STATUS: return {kRed, kBlack};
         case VISUAL_REPL_STYLE_SYSTEM:
         default:                       return {kWhite, kBlack};
     }

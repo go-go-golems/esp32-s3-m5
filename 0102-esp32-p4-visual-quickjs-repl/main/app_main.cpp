@@ -1065,6 +1065,20 @@ int cmd_kbd(int argc, char **argv)
                     (unsigned)diag.recover_count, esp_err_to_name(diag.last_error));
         return 0;
     }
+    if (argc >= 2 && std::strcmp(argv[1], "version") == 0) {
+        uint8_t ver[2] = {};
+        uint8_t off[2] = {};
+        esp_err_t ver_err = picocalc_keyboard_read_register(0x01, ver, sizeof(ver));
+        esp_err_t off_err = picocalc_keyboard_read_register(0x0e, off, sizeof(off));
+        const uint8_t bios = ver_err == ESP_OK ? ver[1] : 0;
+        const char *label = "unknown";
+        if (bios == 0x12 || (bios == 0 && off_err == ESP_OK && off[1] == 0)) label = "BIOS 1.2 or earlier";
+        else if (bios == 0x14 || (bios == 0 && off_err == ESP_OK && off[1] == 1)) label = "BIOS 1.4-compatible";
+        else if (bios == 0x16) label = "BIOS 1.6";
+        std::printf("kbd version: ver_err=%s reg01=[0x%02x 0x%02x] off_err=%s reg0e=[0x%02x 0x%02x] detected=0x%02x %s\n",
+                    esp_err_to_name(ver_err), ver[0], ver[1], esp_err_to_name(off_err), off[0], off[1], bios, label);
+        return ver_err == ESP_OK ? 0 : 1;
+    }
     if (argc >= 2 && std::strcmp(argv[1], "probe") == 0) {
         uint8_t addr = PICOCALC_KBD_I2C_ADDR;
         if (argc >= 3) {
@@ -1513,7 +1527,7 @@ void start_debug_console()
 
     const esp_console_cmd_t kbd_cmd = {
         .command = "kbd",
-        .help = "PicoCalc keyboard: kbd [limit] | status | recover | probe [addr] | scan",
+        .help = "PicoCalc keyboard: kbd [limit] | status | version | recover | probe [addr] | scan",
         .func = cmd_kbd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&kbd_cmd));
