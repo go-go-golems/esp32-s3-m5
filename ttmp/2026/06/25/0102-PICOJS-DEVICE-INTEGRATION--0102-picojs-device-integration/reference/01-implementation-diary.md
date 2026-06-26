@@ -12,13 +12,20 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: 0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp
+      Note: Built-in home/sysmon/snake app sources and load command
+    - Path: components/picojs_runtime/picojs_runtime.cpp
+      Note: Devkit compatibility API and widget subset
+    - Path: ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/scripts/02-devkit-subset-probe.py
+      Note: Probe for devkit subset apps
 ExternalSources: []
-Summary: "Chronological diary for merging PicoJS DSL groundwork into the ESP32-P4 device firmware and adding console-driven validation."
+Summary: Chronological diary for merging PicoJS DSL groundwork into the ESP32-P4 device firmware and adding console-driven validation.
 LastUpdated: 2026-06-25T14:39:56.11679486-07:00
-WhatFor: "Use this to resume device-side PicoJS DSL firmware work without rediscovering merge, build, console, and serial-port details."
-WhenToUse: "Read before continuing any task in 0102-PICOJS-DEVICE-INTEGRATION, especially before flashing or probing the PicoCalc."
+WhatFor: Use this to resume device-side PicoJS DSL firmware work without rediscovering merge, build, console, and serial-port details.
+WhenToUse: Read before continuing any task in 0102-PICOJS-DEVICE-INTEGRATION, especially before flashing or probing the PicoCalc.
 ---
+
 
 # Diary
 
@@ -263,3 +270,80 @@ QuickJS local backup path:
 ```text
 /tmp/quickjs-local-backup-1782424055
 ```
+
+
+## Step 6: Start picoOS devkit compatibility in firmware
+
+This step began turning the imported `picoos-devkit.jsx` parity assessment into firmware behavior. It adds a broader compatibility slice to the native PicoJS runtime: cheap app/panel/widget methods, minimal OS mock APIs, and built-in `home`, `sysmon`, and `snake` apps that exercise the new widgets.
+
+The work intentionally remains an incremental subset rather than a full devkit port. The goal was to make several more devkit-shaped apps load and render on the hardware path before extracting a host SDL emulator.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, do it all."
+
+**Assistant interpretation:** Proceed with the recommended devkit-parity milestones, starting from cheap compatibility APIs and moving into widgets/apps before host SDL extraction.
+
+**Inferred user intent:** Expand the firmware implementation toward the complete picoOS devkit app suite so host and hardware development can converge on one source-compatible DSL.
+
+**Commit (code):** pending — implementation built locally; latest flash was blocked when the ESP32-P4 by-id serial device disappeared.
+
+### What I did
+- Added firmware runtime support for `App.state()`, `App.refresh()`, `App.dispatch()`, and `App.exit()` compatibility methods.
+- Added `Panel.titleRight()` and `Panel.footer()`.
+- Added `Text.dim()` and `Gauge.max()` / `Gauge.style()`.
+- Added a generic widget class for early `spark`, `table`, `menu`, `list`, and `grid` rendering.
+- Added minimal OS compatibility APIs/properties: `OS.clock()`, `OS.battery`, `OS.metrics`, `OS.history()`, `OS.processes()`, `OS.launch()`, `OS.cfg`, `OS.eval()`, plus no-op `reset/step/turn` placeholders.
+- Added built-in `picojs load home`, `picojs load sysmon`, and `picojs load snake` firmware app sources.
+- Expanded the interactive demo key handlers to include `up`, `down`, and `enter` in addition to `left`, `right`, and `a`.
+- Added `scripts/02-devkit-subset-probe.py` for the new devkit subset.
+
+### Why
+- The parity assessment showed the host SDL emulator should not freeze today's incomplete firmware API.
+- `home`, `sysmon`, and `snake` cover useful widget categories: menu/grid launcher, gauges/spark/table, and grid/layer game rendering.
+- Cheap methods like `App.state()` and `Panel.titleRight()` unlock many devkit source snippets without committing to the full widget library yet.
+
+### What worked
+- Build passed with ESP-IDF 5.4.2:
+  - `cd 0102-esp32-p4-visual-quickjs-repl && source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`
+- Before the final title-rendering tweak, the device successfully loaded and dumped the new app subset:
+  - `picojs load home` rendered the launcher/menu and battery gauge.
+  - `picojs load sysmon` rendered CPU/memory/temp gauges, a sparkline, and a process table containing `kernel`.
+  - `picojs load snake` rendered a grid with head/food layers and responded to `picojs key left`.
+- The app binary still fits comfortably: latest build reported `0xe5ad0` bytes with about 78% of the 4 MB app partition free.
+
+### What didn't work
+- First validation expected `picoOS` in the home dump, but the top bar used a one-row framed panel. The runtime only rendered frame titles when the frame height was at least two rows, so the title was invisible. I fixed this by rendering titles/titleRight even for one-row or frameless panels.
+- The final flash after that title fix could not run because the ESP32-P4 by-id device disappeared:
+  - `Could not open /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 ... No such file or directory`
+  - `/dev/serial/by-id` only showed the separate S3R device afterward.
+- An earlier flash attempt failed because `idf_monitor` was still holding the port; I killed PID `1997757` before retrying.
+
+### What I learned
+- Several devkit methods can be compatibility no-ops as long as they preserve chaining and avoid syntax/runtime failures.
+- One-row panels are common in the devkit; renderer title placement cannot assume a minimum frame height.
+- The current 40x20 hardware screen truncates devkit status bars and some menu text; this is expected until we either adapt apps or add scrolling/alternate geometry.
+
+### What was tricky to build
+- The generic widget object needs to preserve method chaining for many different widget families while only rendering a subset. I used one native `PicoJSWidget` class with kind-specific rendering for spark/table/menu/list/grid.
+- Callback argument compatibility matters: devkit callbacks often expect an app argument (`m => m.refresh()`) or key callback `(m, k)`. The runtime now passes an app object into timer/loop/compute callbacks and `(app, token)` into key callbacks.
+
+### What warrants a second pair of eyes
+- Review the generic widget API carefully; it is intentionally broad and may hide mistakes because many methods are no-ops.
+- Review `OS.eval()` before exposing it widely. It currently delegates to QuickJS global evaluation and is only a placeholder for the devkit calculator helper.
+- Review Unicode handling. The current screen stores ASCII and maps non-ASCII glyphs to `?`, so the built-in subset avoids most Unicode-heavy devkit visuals.
+
+### What should be done in the future
+- Reconnect/reset the ESP32-P4 and rerun `scripts/02-devkit-subset-probe.py` after flashing the latest build.
+- Implement focus movement/activation for `menu`, `table`, and future form/input widgets.
+- Add real `keypad`, `pad`, `progress`, `form`, `feed`, `input`, `editor`, and `viewer` widgets in separate reviewable slices.
+
+### Code review instructions
+- Start in `components/picojs_runtime/picojs_runtime.cpp` around `GenericWidget`, `install_os_compat()`, and the `make_widget_object()` bindings.
+- Then review `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp` for `kPicoJsHomeSource`, `kPicoJsSysmonSource`, `kPicoJsSnakeSource`, and the expanded `picojs load` command.
+- Build with ESP-IDF 5.4.2 and validate with `ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/scripts/02-devkit-subset-probe.py` once the ESP32-P4 by-id port is visible again.
+
+### Technical details
+- Build command: `cd 0102-esp32-p4-visual-quickjs-repl && source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
+- Flash command that failed after the board disappeared: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
+- Visible devices after failure: only `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00` was present.

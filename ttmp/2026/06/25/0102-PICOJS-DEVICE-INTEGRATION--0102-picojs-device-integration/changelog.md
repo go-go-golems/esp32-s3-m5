@@ -92,3 +92,13 @@ Added picoOS devkit app parity assessment, estimating current firmware app-sourc
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/analysis/01-picoos-devkit-app-parity-assessment.md — Parity assessment
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/sources/picoos-devkit.jsx — Imported reference source
 
+
+## 2026-06-25
+
+Started firmware picoOS devkit compatibility: App.state/titleRight/gauge style, spark/table/menu/grid subset, OS mocks, and home/sysmon/snake built-ins; build passed but final flash awaits ESP32-P4 port reappearance
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Built-in devkit subset apps
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Compatibility runtime
+

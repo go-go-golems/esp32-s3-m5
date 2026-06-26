@@ -61,10 +61,51 @@ app.loop(2, function () { /* loop smoke */ });
 app.compute(function () { /* compute smoke */ });
 app.key('left', function () { key = 'left'; print('KEY left'); });
 app.key('right', function () { key = 'right'; print('KEY right'); });
+app.key('up', function () { key = 'up'; print('KEY up'); });
+app.key('down', function () { key = 'down'; print('KEY down'); });
+app.key('enter', function () { key = 'enter'; print('KEY enter'); });
 app.key('a', function () { key = 'a'; print('KEY a'); });
 app.statusbar(function () { return 'mode app ticks=' + ticks; });
 app.mount();
 'picojs interactive loaded';
+)JS";
+constexpr const char *kPicoJsHomeSource = R"JS(
+var home = OS.app('home');
+home.layout(function(l){ l.row(1,'bar').row('*','body'); });
+home.panel('bar').frame('single').title(' picoOS ').titleRight(function(){ return OS.clock('HH:mm'); });
+var body = home.panel('body').frame('single').title(' apps ');
+body.text('72F').at(2,1).fg('amber');
+body.gauge().at(12,1).label('batt').value(function(){ return OS.battery; }).width(10).style('blocks').showPct();
+body.menu().frame('single').title(' launcher ').at(2,3).grid(3).items(['term','notes','files','music','sysmon','snake']).marker('>').accent('cyan').onPick(function(name){ OS.launch(name); });
+home.statusbar('arrows select | enter open | picojs load sysmon');
+home.mount();
+'picojs home loaded';
+)JS";
+constexpr const char *kPicoJsSysmonSource = R"JS(
+var mon = OS.app('sysmon');
+var ui = mon.panel('main').frame('single').title(' sysmon ');
+['cpu','mem','tmp'].forEach(function(k,i){ ui.gauge().at(2,1+i).label(k).value(function(){ return OS.metrics[k]; }).width(20).style('bar').showPct(); });
+ui.spark().at(2,5).label('load').data(function(){ return OS.history('load',26); }).range(0,100).glyphs('._-=+#');
+ui.table().at(2,7).columns(['pid','name','cpu','mem']).rows(function(){ return OS.processes(); }).sortBy('cpu','desc').select(0).marker('>');
+mon.key('q', function(m){ m.exit(); });
+mon.on('tick', 1000, function(m){ m.refresh(); });
+mon.statusbar('q quit | up/down select | sysmon native subset');
+mon.mount();
+'picojs sysmon loaded';
+)JS";
+constexpr const char *kPicoJsSnakeSource = R"JS(
+var game = OS.app('snake');
+var st = game.state({score:0, status:'playing', x:4, y:3, fx:12, fy:3});
+var board = game.panel('board').frame('single').title(' snake ').titleRight(function(){ return 'score '+st.score; });
+board.grid().at(1,1).size(19,9).cell('. ').layer('head', function(){ return [{x:st.x,y:st.y}]; }, 'O').layer('food', function(){ return [{x:st.fx,y:st.fy}]; }, '*');
+game.loop(4, function(){ st.x = (st.x + 1) % 19; if (st.x === st.fx && st.y === st.fy) st.score += 10; });
+game.key('left', function(){ st.x = Math.max(0, st.x - 1); });
+game.key('right', function(){ st.x = Math.min(18, st.x + 1); });
+game.key('up', function(){ st.y = Math.max(0, st.y - 1); });
+game.key('down', function(){ st.y = Math.min(8, st.y + 1); });
+game.statusbar('arrows move | demo grid/layers');
+game.mount();
+'picojs snake loaded';
 )JS";
 
 qjs_service_t *g_qjs = nullptr;
@@ -817,8 +858,10 @@ int cmd_picojs(int argc, char **argv)
         return err == ESP_OK ? 0 : 1;
     }
     if (std::strcmp(argv[1], "load") == 0) {
-        if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0 && std::strcmp(argv[2], "interactive") != 0)) {
-            std::printf("usage: picojs load hello|dashboard|interactive\n");
+        if (argc < 3 || (std::strcmp(argv[2], "hello") != 0 && std::strcmp(argv[2], "dashboard") != 0 &&
+                         std::strcmp(argv[2], "interactive") != 0 && std::strcmp(argv[2], "home") != 0 &&
+                         std::strcmp(argv[2], "sysmon") != 0 && std::strcmp(argv[2], "snake") != 0)) {
+            std::printf("usage: picojs load hello|dashboard|interactive|home|sysmon|snake\n");
             return 1;
         }
         const char *source = kPicoJsHelloSource;
@@ -829,6 +872,15 @@ int cmd_picojs(int argc, char **argv)
         } else if (std::strcmp(argv[2], "interactive") == 0) {
             source = kPicoJsInteractiveSource;
             filename = "<picojs-interactive>";
+        } else if (std::strcmp(argv[2], "home") == 0) {
+            source = kPicoJsHomeSource;
+            filename = "<picojs-home>";
+        } else if (std::strcmp(argv[2], "sysmon") == 0) {
+            source = kPicoJsSysmonSource;
+            filename = "<picojs-sysmon>";
+        } else if (std::strcmp(argv[2], "snake") == 0) {
+            source = kPicoJsSnakeSource;
+            filename = "<picojs-snake>";
         }
         esp_err_t install_err = install_picojs_runtime();
         if (install_err != ESP_OK) {
@@ -933,7 +985,7 @@ int cmd_picojs(int argc, char **argv)
         std::printf("picojs mode: %s app_mode=%d\n", esp_err_to_name(err), enabled);
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picojs status | install | load hello|dashboard|interactive | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl\n");
+    std::printf("usage: picojs status | install | load hello|dashboard|interactive|home|sysmon|snake | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl\n");
     return 1;
 }
 
@@ -1030,7 +1082,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picojs_cmd = {
         .command = "picojs",
-        .help = "PicoJS runtime: status | install | load hello|dashboard|interactive | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl",
+        .help = "PicoJS runtime: status | install | load hello|dashboard|interactive|home|sysmon|snake | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl",
         .func = cmd_picojs,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picojs_cmd));

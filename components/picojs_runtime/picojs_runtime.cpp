@@ -21,6 +21,7 @@ JSClassID g_panel_class = 0;
 JSClassID g_text_class = 0;
 JSClassID g_gauge_class = 0;
 JSClassID g_layout_class = 0;
+JSClassID g_widget_class = 0;
 
 struct ScreenCell {
     char ch = ' ';
@@ -90,6 +91,7 @@ struct TextWidget {
     std::string x_align;
     std::string fg;
     bool bold = false;
+    bool dim = false;
 };
 
 struct GaugeWidget {
@@ -99,9 +101,48 @@ struct GaugeWidget {
     int width = 16;
     std::string label;
     StoredValue value;
+    StoredValue max;
     std::string source;
     int literal_value = 0;
+    int literal_max = 100;
+    std::string style;
     bool show_pct = false;
+};
+
+enum class WidgetKind {
+    Spark,
+    Table,
+    Menu,
+    List,
+    Grid,
+};
+
+struct GridLayer {
+    std::string name;
+    StoredValue fn;
+    std::string glyph;
+};
+
+struct GenericWidget {
+    Panel *panel = nullptr;
+    WidgetKind kind = WidgetKind::Spark;
+    int x = 0;
+    int y = 0;
+    int width = 20;
+    int height = 6;
+    int selected = 0;
+    int grid_cols = 1;
+    std::string label;
+    std::string marker = ">";
+    std::string accent;
+    std::string frame;
+    std::string title;
+    std::string cell = ". ";
+    StoredValue data;
+    StoredValue items;
+    StoredValue rows;
+    std::vector<std::string> columns;
+    std::vector<GridLayer> layers;
 };
 
 struct Panel {
@@ -109,8 +150,11 @@ struct Panel {
     std::string id;
     std::string frame;
     StoredValue title;
+    StoredValue title_right;
+    StoredValue footer;
     std::vector<std::unique_ptr<TextWidget>> texts;
     std::vector<std::unique_ptr<GaugeWidget>> gauges;
+    std::vector<std::unique_ptr<GenericWidget>> widgets;
 };
 
 struct TimerCallback {
@@ -317,16 +361,176 @@ void draw_gauge(JSContext *ctx, picojs_runtime *rt, const GaugeWidget *gauge, in
     if (y < inner_y || y >= inner_y + inner_h) return;
     const int x = inner_x + gauge->x;
     const int bar_w = std::max(4, std::min(gauge->width, inner_w - gauge->x - 8));
-    const int value = std::max(0, std::min(100, gauge_value(ctx, rt, gauge)));
+    const int max_value = std::max(1, stored_to_int(ctx, rt, gauge->max, gauge->literal_max));
+    const int value = std::max(0, std::min(max_value, gauge_value(ctx, rt, gauge)));
+    const int pct = (value * 100) / max_value;
     char line[96] = {};
-    const int filled = (bar_w * value) / 100;
+    const int filled = (bar_w * value) / max_value;
     char bar[48] = {};
     const int capped_w = std::min<int>(bar_w, sizeof(bar) - 1);
     for (int i = 0; i < capped_w; ++i) bar[i] = i < filled ? '#' : '-';
     bar[capped_w] = 0;
-    if (gauge->show_pct) std::snprintf(line, sizeof(line), "%s[%s] %d%%", gauge->label.c_str(), bar, value);
+    if (gauge->show_pct) std::snprintf(line, sizeof(line), "%s[%s] %d%%", gauge->label.c_str(), bar, pct);
     else std::snprintf(line, sizeof(line), "%s[%s]", gauge->label.c_str(), bar);
     put_text(rt, x, y, line);
+}
+
+int js_array_len(JSContext *ctx, JSValueConst v)
+{
+    if (!ctx || !JS_IsArray(ctx, v)) return 0;
+    JSValue lenv = JS_GetPropertyStr(ctx, v, "length");
+    int32_t len = 0;
+    JS_ToInt32(ctx, &len, lenv);
+    JS_FreeValue(ctx, lenv);
+    return std::max<int>(0, len);
+}
+
+std::string js_object_prop_string(JSContext *ctx, JSValueConst obj, const std::string &key)
+{
+    if (!ctx || key.empty()) return {};
+    JSValue v = JS_GetPropertyStr(ctx, obj, key.c_str());
+    std::string out = js_to_string(ctx, v);
+    JS_FreeValue(ctx, v);
+    return out;
+}
+
+void draw_spark(JSContext *ctx, picojs_runtime *rt, const GenericWidget *w, int inner_x, int inner_y, int inner_w, int inner_h)
+{
+    if (!ctx || !rt || !w || !w->data.has()) return;
+    const int y = inner_y + w->y;
+    if (y < inner_y || y >= inner_y + inner_h) return;
+    JSValue arr = JS_UNDEFINED;
+    bool owned = false;
+    if (JS_IsFunction(ctx, w->data.value)) {
+        arr = JS_Call(ctx, w->data.value, JS_UNDEFINED, 0, nullptr);
+        owned = true;
+    } else {
+        arr = w->data.value;
+    }
+    if (JS_IsException(arr)) {
+        ++rt->last_error_count;
+        JS_FreeValue(ctx, arr);
+        return;
+    }
+    char line[96] = {};
+    std::string prefix = w->label.empty() ? "" : w->label + " ";
+    std::snprintf(line, sizeof(line), "%s", prefix.c_str());
+    size_t n = std::strlen(line);
+    const char glyphs[] = "._-~=+#";
+    const int len = std::min<int>(js_array_len(ctx, arr), std::min<int>(inner_w - w->x - (int)n, 30));
+    for (int i = 0; i < len && n + 1 < sizeof(line); ++i) {
+        JSValue item = JS_GetPropertyUint32(ctx, arr, i);
+        int32_t value = 0;
+        JS_ToInt32(ctx, &value, item);
+        JS_FreeValue(ctx, item);
+        const int idx = std::max(0, std::min<int>(6, (value * 6) / 100));
+        line[n++] = glyphs[idx];
+    }
+    line[n] = 0;
+    put_text(rt, inner_x + w->x, y, line);
+    if (owned) JS_FreeValue(ctx, arr);
+}
+
+void draw_menu(JSContext *ctx, picojs_runtime *rt, const GenericWidget *w, int inner_x, int inner_y, int inner_w, int inner_h)
+{
+    if (!ctx || !rt || !w || !w->items.has()) return;
+    JSValue arr = JS_IsFunction(ctx, w->items.value) ? JS_Call(ctx, w->items.value, JS_UNDEFINED, 0, nullptr) : JS_DupValue(ctx, w->items.value);
+    if (JS_IsException(arr)) { ++rt->last_error_count; JS_FreeValue(ctx, arr); return; }
+    int ox = inner_x + w->x;
+    int oy = inner_y + w->y;
+    int width = std::max(8, std::min(inner_w - w->x, w->width > 0 ? w->width : inner_w - w->x));
+    if (!w->frame.empty() && oy + 2 < inner_y + inner_h) {
+        draw_box(rt, ox, oy, width, std::min(inner_h - w->y, 8));
+        if (!w->title.empty()) put_text(rt, ox + 2, oy, w->title.c_str());
+        ++ox; ++oy; width -= 2;
+    }
+    const int count = js_array_len(ctx, arr);
+    const int grid = std::max(1, w->grid_cols);
+    const int col_w = std::max(1, width / grid);
+    for (int i = 0; i < count && oy < inner_y + inner_h; ++i) {
+        JSValue item = JS_GetPropertyUint32(ctx, arr, i);
+        std::string label = js_to_string(ctx, item);
+        JS_FreeValue(ctx, item);
+        int row = (w->kind == WidgetKind::Menu) ? i / grid : i;
+        int col = (w->kind == WidgetKind::Menu) ? i % grid : 0;
+        int x = ox + col * col_w;
+        int y = oy + row;
+        if (y >= inner_y + inner_h) break;
+        char line[80] = {};
+        std::snprintf(line, sizeof(line), "%s %s", i == w->selected ? w->marker.c_str() : " ", label.c_str());
+        put_text(rt, x, y, line);
+    }
+    JS_FreeValue(ctx, arr);
+}
+
+void draw_table(JSContext *ctx, picojs_runtime *rt, const GenericWidget *w, int inner_x, int inner_y, int inner_w, int inner_h)
+{
+    if (!ctx || !rt || !w || !w->rows.has()) return;
+    JSValue arr = JS_IsFunction(ctx, w->rows.value) ? JS_Call(ctx, w->rows.value, JS_UNDEFINED, 0, nullptr) : JS_DupValue(ctx, w->rows.value);
+    if (JS_IsException(arr)) { ++rt->last_error_count; JS_FreeValue(ctx, arr); return; }
+    int x = inner_x + w->x;
+    int y = inner_y + w->y;
+    std::string header;
+    for (const auto &c : w->columns) { header += c; header += " "; }
+    put_text(rt, x, y++, header.c_str());
+    const int count = std::min<int>(js_array_len(ctx, arr), inner_y + inner_h - y);
+    for (int i = 0; i < count; ++i) {
+        JSValue row = JS_GetPropertyUint32(ctx, arr, i);
+        std::string line = (i == w->selected ? w->marker : " ");
+        line += " ";
+        for (const auto &c : w->columns) {
+            std::string v = js_object_prop_string(ctx, row, c);
+            if (v.size() > 8) v.resize(8);
+            line += v;
+            line += " ";
+        }
+        put_text(rt, x, y + i, line.c_str());
+        JS_FreeValue(ctx, row);
+    }
+    JS_FreeValue(ctx, arr);
+}
+
+void draw_grid(JSContext *ctx, picojs_runtime *rt, const GenericWidget *w, int inner_x, int inner_y, int inner_w, int inner_h)
+{
+    if (!rt || !w) return;
+    const int ox = inner_x + w->x;
+    const int oy = inner_y + w->y;
+    const int cw = std::max<int>(1, (int)w->cell.size());
+    for (int yy = 0; yy < w->height && oy + yy < inner_y + inner_h; ++yy) {
+        std::string line;
+        for (int xx = 0; xx < w->width && (int)line.size() < inner_w - w->x; ++xx) line += w->cell;
+        put_text(rt, ox, oy + yy, line.c_str());
+    }
+    if (!ctx) return;
+    for (const auto &layer : w->layers) {
+        if (!layer.fn.has()) continue;
+        JSValue arr = JS_IsFunction(ctx, layer.fn.value) ? JS_Call(ctx, layer.fn.value, JS_UNDEFINED, 0, nullptr) : JS_DupValue(ctx, layer.fn.value);
+        if (JS_IsException(arr)) { ++rt->last_error_count; JS_FreeValue(ctx, arr); continue; }
+        const int count = js_array_len(ctx, arr);
+        for (int i = 0; i < count; ++i) {
+            JSValue cell = JS_GetPropertyUint32(ctx, arr, i);
+            JSValue xv = JS_GetPropertyStr(ctx, cell, "x");
+            JSValue yv = JS_GetPropertyStr(ctx, cell, "y");
+            int32_t gx = 0, gy = 0;
+            JS_ToInt32(ctx, &gx, xv); JS_ToInt32(ctx, &gy, yv);
+            const char ch = layer.glyph.empty() ? '*' : layer.glyph[0];
+            put_char(rt, ox + gx * cw, oy + gy, ch);
+            JS_FreeValue(ctx, xv); JS_FreeValue(ctx, yv); JS_FreeValue(ctx, cell);
+        }
+        JS_FreeValue(ctx, arr);
+    }
+}
+
+void draw_generic_widget(JSContext *ctx, picojs_runtime *rt, const GenericWidget *w, int inner_x, int inner_y, int inner_w, int inner_h)
+{
+    if (!w) return;
+    switch (w->kind) {
+        case WidgetKind::Spark: draw_spark(ctx, rt, w, inner_x, inner_y, inner_w, inner_h); break;
+        case WidgetKind::Table: draw_table(ctx, rt, w, inner_x, inner_y, inner_w, inner_h); break;
+        case WidgetKind::Menu:
+        case WidgetKind::List: draw_menu(ctx, rt, w, inner_x, inner_y, inner_w, inner_h); break;
+        case WidgetKind::Grid: draw_grid(ctx, rt, w, inner_x, inner_y, inner_w, inner_h); break;
+    }
 }
 
 void render_app(JSContext *ctx, picojs_runtime *rt)
@@ -353,6 +557,15 @@ void render_app(JSContext *ctx, picojs_runtime *rt)
             inner_h = std::max(0, rect.h - 2);
             const std::string title = stored_to_string(ctx, rt, panel->title);
             if (!title.empty()) put_text(rt, rect.x + 2, rect.y, title.c_str());
+            const std::string title_right = stored_to_string(ctx, rt, panel->title_right);
+            if (!title_right.empty()) put_text(rt, rect.x + std::max(1, rect.w - (int)title_right.size() - 2), rect.y, title_right.c_str());
+            const std::string footer = stored_to_string(ctx, rt, panel->footer);
+            if (!footer.empty()) put_text(rt, rect.x + 2, rect.y + rect.h - 1, footer.c_str());
+        } else {
+            const std::string title = stored_to_string(ctx, rt, panel->title);
+            if (!title.empty()) put_text(rt, rect.x + 1, rect.y, title.c_str());
+            const std::string title_right = stored_to_string(ctx, rt, panel->title_right);
+            if (!title_right.empty()) put_text(rt, rect.x + std::max(1, rect.w - (int)title_right.size() - 1), rect.y, title_right.c_str());
         }
         for (const auto &text_ptr : panel->texts) {
             const TextWidget *text = text_ptr.get();
@@ -368,6 +581,7 @@ void render_app(JSContext *ctx, picojs_runtime *rt)
             }
         }
         for (const auto &gauge_ptr : panel->gauges) draw_gauge(ctx, rt, gauge_ptr.get(), inner_x, inner_y, inner_w, inner_h);
+        for (const auto &widget_ptr : panel->widgets) draw_generic_widget(ctx, rt, widget_ptr.get(), inner_x, inner_y, inner_w, inner_h);
     }
     const std::string status = stored_to_string(ctx, rt, rt->app->statusbar);
     if (!status.empty()) put_text(rt, 0, rt->rows - 1, status.c_str());
@@ -388,6 +602,7 @@ JSValue make_app_object(JSContext *ctx, App *app);
 JSValue make_panel_object(JSContext *ctx, Panel *panel);
 JSValue make_text_object(JSContext *ctx, TextWidget *text);
 JSValue make_gauge_object(JSContext *ctx, GaugeWidget *gauge);
+JSValue make_widget_object(JSContext *ctx, GenericWidget *widget);
 JSValue make_layout_object(JSContext *ctx, LayoutBuilder *layout);
 
 JSValue js_os_app(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -456,10 +671,20 @@ JSValue js_app_layout(JSContext *ctx, JSValueConst this_val, int argc, JSValueCo
     return JS_DupValue(ctx, this_val);
 }
 
+JSValue js_app_state(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+{
+    return argc > 0 ? JS_DupValue(ctx, argv[0]) : JS_NewObject(ctx);
+}
+
 JSValue js_app_statusbar(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
     if (app && argc > 0) app->statusbar.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_app_noop_this(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
+{
     return JS_DupValue(ctx, this_val);
 }
 
@@ -513,10 +738,21 @@ JSValue js_app_key(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst
 {
     auto *app = static_cast<App *>(JS_GetOpaque(this_val, g_app_class));
     if (!app || argc < 2 || !JS_IsFunction(ctx, argv[1])) return JS_DupValue(ctx, this_val);
-    KeyCallback key;
-    key.token = js_to_string(ctx, argv[0]);
-    key.fn.set(ctx, argv[1]);
-    app->keys.push_back(std::move(key));
+    std::string spec = js_to_string(ctx, argv[0]);
+    auto add_key = [&](const std::string &token) {
+        KeyCallback key;
+        key.token = token;
+        key.fn.set(ctx, argv[1]);
+        app->keys.push_back(std::move(key));
+    };
+    if (spec.find("↑") != std::string::npos) { add_key("↑"); add_key("up"); }
+    if (spec.find("↓") != std::string::npos) { add_key("↓"); add_key("down"); }
+    if (spec.find("←") != std::string::npos) { add_key("←"); add_key("left"); }
+    if (spec.find("→") != std::string::npos) { add_key("→"); add_key("right"); }
+    if (spec.find("↑") == std::string::npos && spec.find("↓") == std::string::npos &&
+        spec.find("←") == std::string::npos && spec.find("→") == std::string::npos) {
+        add_key(spec);
+    }
     return JS_DupValue(ctx, this_val);
 }
 
@@ -532,6 +768,46 @@ JSValue js_panel_title(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
     auto *panel = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class));
     if (panel && argc > 0) panel->title.set(ctx, argv[0]);
     return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_panel_title_right(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *panel = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class));
+    if (panel && argc > 0) panel->title_right.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_panel_footer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *panel = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class));
+    if (panel && argc > 0) panel->footer.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+GenericWidget *add_generic_widget(Panel *panel, WidgetKind kind)
+{
+    if (!panel) return nullptr;
+    auto widget = std::make_unique<GenericWidget>();
+    widget->panel = panel;
+    widget->kind = kind;
+    GenericWidget *ptr = widget.get();
+    panel->widgets.push_back(std::move(widget));
+    return ptr;
+}
+
+JSValue js_panel_widget(JSContext *ctx, JSValueConst this_val, int, JSValueConst *, int magic)
+{
+    auto *panel = static_cast<Panel *>(JS_GetOpaque(this_val, g_panel_class));
+    if (!panel) return JS_ThrowTypeError(ctx, "bad panel object");
+    WidgetKind kind = WidgetKind::Spark;
+    switch (magic) {
+        case 1: kind = WidgetKind::Table; break;
+        case 2: kind = WidgetKind::Menu; break;
+        case 3: kind = WidgetKind::List; break;
+        case 4: kind = WidgetKind::Grid; break;
+        default: kind = WidgetKind::Spark; break;
+    }
+    return make_widget_object(ctx, add_generic_widget(panel, kind));
 }
 
 JSValue js_panel_text(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
@@ -591,6 +867,13 @@ JSValue js_text_bold(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
     return JS_DupValue(ctx, this_val);
 }
 
+JSValue js_text_dim(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
+{
+    auto *text = static_cast<TextWidget *>(JS_GetOpaque(this_val, g_text_class));
+    if (text) text->dim = true;
+    return JS_DupValue(ctx, this_val);
+}
+
 JSValue js_gauge_at(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     auto *gauge = static_cast<GaugeWidget *>(JS_GetOpaque(this_val, g_gauge_class));
@@ -643,6 +926,24 @@ JSValue js_gauge_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueC
     return JS_DupValue(ctx, this_val);
 }
 
+JSValue js_gauge_max(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *gauge = static_cast<GaugeWidget *>(JS_GetOpaque(this_val, g_gauge_class));
+    if (gauge && argc > 0) {
+        gauge->max.set(ctx, argv[0]);
+        int32_t literal = 100;
+        if (JS_ToInt32(ctx, &literal, argv[0]) == 0) gauge->literal_max = std::max<int32_t>(1, literal);
+    }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_gauge_style(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *gauge = static_cast<GaugeWidget *>(JS_GetOpaque(this_val, g_gauge_class));
+    if (gauge && argc > 0) gauge->style = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
 JSValue js_gauge_show_pct(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
 {
     auto *gauge = static_cast<GaugeWidget *>(JS_GetOpaque(this_val, g_gauge_class));
@@ -650,12 +951,152 @@ JSValue js_gauge_show_pct(JSContext *ctx, JSValueConst this_val, int, JSValueCon
     return JS_DupValue(ctx, this_val);
 }
 
-void call_noarg(JSContext *ctx, picojs_runtime *rt, StoredValue &fn)
+JSValue js_widget_at(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) {
+        int32_t x = 0, y = 0;
+        JS_ToInt32(ctx, &x, argv[0]);
+        if (argc > 1) JS_ToInt32(ctx, &y, argv[1]);
+        w->x = (int)x; w->y = (int)y;
+    }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_label(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->label = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_data(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->data.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_items(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->items.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_rows(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->rows.set(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_columns(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0 && JS_IsArray(ctx, argv[0])) {
+        w->columns.clear();
+        int len = js_array_len(ctx, argv[0]);
+        for (int i = 0; i < len; ++i) {
+            JSValue item = JS_GetPropertyUint32(ctx, argv[0], i);
+            w->columns.push_back(js_to_string(ctx, item));
+            JS_FreeValue(ctx, item);
+        }
+    }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_select(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) { int32_t v = 0; JS_ToInt32(ctx, &v, argv[0]); w->selected = std::max<int32_t>(0, v); }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_marker(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->marker = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_accent(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->accent = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_frame(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->frame = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_title(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->title = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_grid_cols(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) { int32_t v = 1; JS_ToInt32(ctx, &v, argv[0]); w->grid_cols = std::max<int32_t>(1, v); }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_size(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 1) { int32_t x = 0, y = 0; JS_ToInt32(ctx, &x, argv[0]); JS_ToInt32(ctx, &y, argv[1]); w->width = std::max<int32_t>(1, x); w->height = std::max<int32_t>(1, y); }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_width(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) { int32_t v = 0; JS_ToInt32(ctx, &v, argv[0]); w->width = std::max<int32_t>(1, v); }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_cell(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 0) w->cell = js_to_string(ctx, argv[0]);
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_layer(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
+{
+    auto *w = static_cast<GenericWidget *>(JS_GetOpaque(this_val, g_widget_class));
+    if (w && argc > 2) {
+        GridLayer layer;
+        layer.name = js_to_string(ctx, argv[0]);
+        layer.fn.set(ctx, argv[1]);
+        layer.glyph = js_to_string(ctx, argv[2]);
+        w->layers.push_back(std::move(layer));
+    }
+    return JS_DupValue(ctx, this_val);
+}
+
+JSValue js_widget_noop(JSContext *ctx, JSValueConst this_val, int, JSValueConst *)
+{
+    return JS_DupValue(ctx, this_val);
+}
+
+void call_app_callback(JSContext *ctx, picojs_runtime *rt, StoredValue &fn)
 {
     if (!ctx || !fn.has() || !JS_IsFunction(ctx, fn.value)) return;
-    JSValue ret = JS_Call(ctx, fn.value, JS_UNDEFINED, 0, nullptr);
+    JSValue app_obj = (rt && rt->app) ? make_app_object(ctx, rt->app.get()) : JS_UNDEFINED;
+    JSValue ret = JS_IsUndefined(app_obj)
+        ? JS_Call(ctx, fn.value, JS_UNDEFINED, 0, nullptr)
+        : JS_Call(ctx, fn.value, JS_UNDEFINED, 1, &app_obj);
     if (JS_IsException(ret) && rt) ++rt->last_error_count;
     JS_FreeValue(ctx, ret);
+    if (!JS_IsUndefined(app_obj)) JS_FreeValue(ctx, app_obj);
 }
 
 void run_callbacks(JSContext *ctx, picojs_runtime *rt, uint32_t dt_ms)
@@ -666,7 +1107,7 @@ void run_callbacks(JSContext *ctx, picojs_runtime *rt, uint32_t dt_ms)
         timer.acc_ms += dt_ms;
         if (timer.acc_ms >= timer.interval_ms) {
             timer.acc_ms %= timer.interval_ms;
-            call_noarg(ctx, rt, timer.fn);
+            call_app_callback(ctx, rt, timer.fn);
         }
     }
     for (auto &loop : app->loops) {
@@ -674,16 +1115,17 @@ void run_callbacks(JSContext *ctx, picojs_runtime *rt, uint32_t dt_ms)
         uint32_t guard = 0;
         while (loop.acc_ms >= loop.step_ms && guard++ < 16) {
             loop.acc_ms -= loop.step_ms;
-            call_noarg(ctx, rt, loop.fn);
+            call_app_callback(ctx, rt, loop.fn);
         }
     }
-    for (auto &compute : app->computes) call_noarg(ctx, rt, compute);
+    for (auto &compute : app->computes) call_app_callback(ctx, rt, compute);
 }
 
 JSValue make_app_object(JSContext *ctx, App *app)
 {
     JSValue obj = JS_NewObjectClass(ctx, g_app_class);
     JS_SetOpaque(obj, app);
+    set_func(ctx, obj, "state", js_app_state, 1);
     set_func(ctx, obj, "layout", js_app_layout, 1);
     set_func(ctx, obj, "panel", js_app_panel, 1);
     set_func(ctx, obj, "statusbar", js_app_statusbar, 1);
@@ -692,6 +1134,9 @@ JSValue make_app_object(JSContext *ctx, App *app)
     set_func(ctx, obj, "loop", js_app_loop, 2);
     set_func(ctx, obj, "compute", js_app_compute, 1);
     set_func(ctx, obj, "key", js_app_key, 2);
+    set_func(ctx, obj, "refresh", js_app_noop_this, 0);
+    set_func(ctx, obj, "dispatch", js_app_noop_this, 0);
+    set_func(ctx, obj, "exit", js_app_noop_this, 0);
     return obj;
 }
 
@@ -701,8 +1146,15 @@ JSValue make_panel_object(JSContext *ctx, Panel *panel)
     JS_SetOpaque(obj, panel);
     set_func(ctx, obj, "frame", js_panel_frame, 1);
     set_func(ctx, obj, "title", js_panel_title, 1);
+    set_func(ctx, obj, "titleRight", js_panel_title_right, 1);
+    set_func(ctx, obj, "footer", js_panel_footer, 1);
     set_func(ctx, obj, "text", js_panel_text, 1);
     set_func(ctx, obj, "gauge", js_panel_gauge, 0);
+    JS_SetPropertyStr(ctx, obj, "spark", JS_NewCFunctionMagic(ctx, js_panel_widget, "spark", 0, JS_CFUNC_generic_magic, 0));
+    JS_SetPropertyStr(ctx, obj, "table", JS_NewCFunctionMagic(ctx, js_panel_widget, "table", 0, JS_CFUNC_generic_magic, 1));
+    JS_SetPropertyStr(ctx, obj, "menu", JS_NewCFunctionMagic(ctx, js_panel_widget, "menu", 0, JS_CFUNC_generic_magic, 2));
+    JS_SetPropertyStr(ctx, obj, "list", JS_NewCFunctionMagic(ctx, js_panel_widget, "list", 0, JS_CFUNC_generic_magic, 3));
+    JS_SetPropertyStr(ctx, obj, "grid", JS_NewCFunctionMagic(ctx, js_panel_widget, "grid", 0, JS_CFUNC_generic_magic, 4));
     return obj;
 }
 
@@ -713,6 +1165,7 @@ JSValue make_text_object(JSContext *ctx, TextWidget *text)
     set_func(ctx, obj, "at", js_text_at, 2);
     set_func(ctx, obj, "fg", js_text_fg, 1);
     set_func(ctx, obj, "bold", js_text_bold, 0);
+    set_func(ctx, obj, "dim", js_text_dim, 0);
     return obj;
 }
 
@@ -724,7 +1177,37 @@ JSValue make_gauge_object(JSContext *ctx, GaugeWidget *gauge)
     set_func(ctx, obj, "label", js_gauge_label, 1);
     set_func(ctx, obj, "value", js_gauge_value, 1);
     set_func(ctx, obj, "width", js_gauge_width, 1);
+    set_func(ctx, obj, "max", js_gauge_max, 1);
+    set_func(ctx, obj, "style", js_gauge_style, 1);
     set_func(ctx, obj, "showPct", js_gauge_show_pct, 0);
+    return obj;
+}
+
+JSValue make_widget_object(JSContext *ctx, GenericWidget *widget)
+{
+    JSValue obj = JS_NewObjectClass(ctx, g_widget_class);
+    JS_SetOpaque(obj, widget);
+    set_func(ctx, obj, "at", js_widget_at, 2);
+    set_func(ctx, obj, "label", js_widget_label, 1);
+    set_func(ctx, obj, "data", js_widget_data, 1);
+    set_func(ctx, obj, "items", js_widget_items, 1);
+    set_func(ctx, obj, "rows", js_widget_rows, 1);
+    set_func(ctx, obj, "columns", js_widget_columns, 1);
+    set_func(ctx, obj, "select", js_widget_select, 1);
+    set_func(ctx, obj, "marker", js_widget_marker, 1);
+    set_func(ctx, obj, "accent", js_widget_accent, 1);
+    set_func(ctx, obj, "frame", js_widget_frame, 1);
+    set_func(ctx, obj, "title", js_widget_title, 1);
+    set_func(ctx, obj, "grid", js_widget_grid_cols, 1);
+    set_func(ctx, obj, "size", js_widget_size, 2);
+    set_func(ctx, obj, "width", js_widget_width, 1);
+    set_func(ctx, obj, "range", js_widget_noop, 2);
+    set_func(ctx, obj, "glyphs", js_widget_noop, 1);
+    set_func(ctx, obj, "sortBy", js_widget_noop, 2);
+    set_func(ctx, obj, "onPick", js_widget_noop, 1);
+    set_func(ctx, obj, "cell", js_widget_cell, 1);
+    set_func(ctx, obj, "layer", js_widget_layer, 3);
+    set_func(ctx, obj, "render", js_widget_noop, 1);
     return obj;
 }
 
@@ -747,6 +1230,116 @@ void ensure_class_ids()
     if (!g_text_class) JS_NewClassID(&g_text_class);
     if (!g_gauge_class) JS_NewClassID(&g_gauge_class);
     if (!g_layout_class) JS_NewClassID(&g_layout_class);
+    if (!g_widget_class) JS_NewClassID(&g_widget_class);
+}
+
+JSValue js_os_clock(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+{
+    std::string fmt = argc > 0 ? js_to_string(ctx, argv[0]) : "HH:mm";
+    uint32_t sec = 12 * 3600;
+    const int64_t now_us = esp_log_timestamp();
+    sec += (uint32_t)(now_us / 1000);
+    const uint32_t h = (sec / 3600) % 24;
+    const uint32_t m = (sec / 60) % 60;
+    const uint32_t s = sec % 60;
+    char hh[3], mm[3], ss[3];
+    std::snprintf(hh, sizeof(hh), "%02u", (unsigned)h);
+    std::snprintf(mm, sizeof(mm), "%02u", (unsigned)m);
+    std::snprintf(ss, sizeof(ss), "%02u", (unsigned)s);
+    size_t pos = 0;
+    while ((pos = fmt.find("HH", pos)) != std::string::npos) { fmt.replace(pos, 2, hh); pos += 2; }
+    pos = 0;
+    while ((pos = fmt.find("mm", pos)) != std::string::npos) { fmt.replace(pos, 2, mm); pos += 2; }
+    pos = 0;
+    while ((pos = fmt.find("ss", pos)) != std::string::npos) { fmt.replace(pos, 2, ss); pos += 2; }
+    return JS_NewString(ctx, fmt.c_str());
+}
+
+JSValue js_os_history(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+{
+    int n = 26;
+    if (argc > 1) { int32_t parsed = 26; JS_ToInt32(ctx, &parsed, argv[1]); n = std::max<int32_t>(1, parsed); }
+    n = std::min(n, 64);
+    JSValue arr = JS_NewArray(ctx);
+    for (int i = 0; i < n; ++i) JS_SetPropertyUint32(ctx, arr, i, JS_NewInt32(ctx, 30 + ((i * 17) % 60)));
+    return arr;
+}
+
+JSValue js_os_processes(JSContext *ctx, JSValueConst, int, JSValueConst *)
+{
+    struct Proc { int pid; const char *name; int cpu; int mem; } procs[] = {
+        {1, "kernel", 2, 18}, {7, "ui", 11, 42}, {12, "music", 48, 31}, {19, "netd", 4, 9}, {23, "shell", 1, 6},
+    };
+    JSValue arr = JS_NewArray(ctx);
+    for (uint32_t i = 0; i < sizeof(procs) / sizeof(procs[0]); ++i) {
+        JSValue p = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, p, "pid", JS_NewInt32(ctx, procs[i].pid));
+        JS_SetPropertyStr(ctx, p, "name", JS_NewString(ctx, procs[i].name));
+        JS_SetPropertyStr(ctx, p, "cpu", JS_NewInt32(ctx, procs[i].cpu));
+        JS_SetPropertyStr(ctx, p, "mem", JS_NewInt32(ctx, procs[i].mem));
+        JS_SetPropertyUint32(ctx, arr, i, p);
+    }
+    return arr;
+}
+
+JSValue js_os_launch(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+{
+    std::string name = argc > 0 ? js_to_string(ctx, argv[0]) : "";
+    std::string msg = "launch -> " + name;
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue print = JS_GetPropertyStr(ctx, global, "print");
+    if (JS_IsFunction(ctx, print)) {
+        JSValue arg = JS_NewString(ctx, msg.c_str());
+        JSValue ret = JS_Call(ctx, print, JS_UNDEFINED, 1, &arg);
+        JS_FreeValue(ctx, ret);
+        JS_FreeValue(ctx, arg);
+    }
+    JS_FreeValue(ctx, print);
+    JS_FreeValue(ctx, global);
+    return JS_UNDEFINED;
+}
+
+JSValue js_os_eval_expr(JSContext *ctx, JSValueConst, int argc, JSValueConst *argv)
+{
+    if (argc < 1) return JS_NewFloat64(ctx, 0);
+    std::string expr = js_to_string(ctx, argv[0]);
+    JSValue ret = JS_Eval(ctx, expr.c_str(), expr.size(), "<picojs-os-eval>", JS_EVAL_TYPE_GLOBAL);
+    return ret;
+}
+
+JSValue js_os_noop(JSContext *ctx, JSValueConst, int, JSValueConst *)
+{
+    return JS_UNDEFINED;
+}
+
+void install_os_compat(JSContext *ctx, JSValue os)
+{
+    JS_SetPropertyStr(ctx, os, "battery", JS_NewInt32(ctx, 73));
+    JSValue metrics = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, metrics, "cpu", JS_NewInt32(ctx, 62));
+    JS_SetPropertyStr(ctx, metrics, "mem", JS_NewInt32(ctx, 41));
+    JS_SetPropertyStr(ctx, metrics, "tmp", JS_NewInt32(ctx, 48));
+    JS_SetPropertyStr(ctx, os, "metrics", metrics);
+    JSValue cfg = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, cfg, "bright", JS_NewInt32(ctx, 80));
+    JS_SetPropertyStr(ctx, cfg, "theme", JS_NewString(ctx, "amber"));
+    JS_SetPropertyStr(ctx, cfg, "font", JS_NewString(ctx, "6x8"));
+    JS_SetPropertyStr(ctx, cfg, "haptics", JS_NewBool(ctx, true));
+    JS_SetPropertyStr(ctx, cfg, "echo", JS_NewBool(ctx, false));
+    JS_SetPropertyStr(ctx, cfg, "sleep", JS_NewString(ctx, "2 min"));
+    JS_SetPropertyStr(ctx, os, "cfg", cfg);
+    JSValue food = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, food, "x", JS_NewInt32(ctx, 12));
+    JS_SetPropertyStr(ctx, food, "y", JS_NewInt32(ctx, 3));
+    JS_SetPropertyStr(ctx, os, "food", food);
+    set_func(ctx, os, "clock", js_os_clock, 1);
+    set_func(ctx, os, "history", js_os_history, 2);
+    set_func(ctx, os, "processes", js_os_processes, 0);
+    set_func(ctx, os, "launch", js_os_launch, 1);
+    set_func(ctx, os, "eval", js_os_eval_expr, 1);
+    set_func(ctx, os, "reset", js_os_noop, 0);
+    set_func(ctx, os, "step", js_os_noop, 0);
+    set_func(ctx, os, "turn", js_os_noop, 1);
 }
 
 esp_err_t register_classes(JSRuntime *js_rt)
@@ -758,12 +1351,14 @@ esp_err_t register_classes(JSRuntime *js_rt)
     JSClassDef text_def = {}; text_def.class_name = "PicoJSText";
     JSClassDef gauge_def = {}; gauge_def.class_name = "PicoJSGauge";
     JSClassDef layout_def = {}; layout_def.class_name = "PicoJSLayout";
+    JSClassDef widget_def = {}; widget_def.class_name = "PicoJSWidget";
     if (!JS_IsRegisteredClass(js_rt, g_os_class) && JS_NewClass(js_rt, g_os_class, &os_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_app_class) && JS_NewClass(js_rt, g_app_class, &app_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_panel_class) && JS_NewClass(js_rt, g_panel_class, &panel_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_text_class) && JS_NewClass(js_rt, g_text_class, &text_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_gauge_class) && JS_NewClass(js_rt, g_gauge_class, &gauge_def) < 0) return ESP_FAIL;
     if (!JS_IsRegisteredClass(js_rt, g_layout_class) && JS_NewClass(js_rt, g_layout_class, &layout_def) < 0) return ESP_FAIL;
+    if (!JS_IsRegisteredClass(js_rt, g_widget_class) && JS_NewClass(js_rt, g_widget_class, &widget_def) < 0) return ESP_FAIL;
     return ESP_OK;
 }
 } // namespace
@@ -799,6 +1394,7 @@ esp_err_t picojs_runtime_install(JSContext *ctx, picojs_runtime_t *rt)
     if (JS_IsException(os)) { JS_FreeValue(ctx, global); return ESP_FAIL; }
     JS_SetOpaque(os, rt);
     set_func(ctx, os, "app", js_os_app, 1);
+    install_os_compat(ctx, os);
     if (JS_SetPropertyStr(ctx, global, "OS", os) < 0) {
         JS_FreeValue(ctx, os);
         JS_FreeValue(ctx, global);
@@ -870,7 +1466,14 @@ esp_err_t picojs_runtime_key_js(JSContext *ctx, picojs_runtime_t *rt, const char
     if (rt->app) {
         for (auto &key : rt->app->keys) {
             if (key.token == token) {
-                call_noarg(ctx, rt, key.fn);
+                JSValue app_obj = make_app_object(ctx, rt->app.get());
+                JSValue tok = JS_NewString(ctx, token);
+                JSValue argv[2] = {app_obj, tok};
+                JSValue ret = JS_Call(ctx, key.fn.value, JS_UNDEFINED, 2, argv);
+                if (JS_IsException(ret)) ++rt->last_error_count;
+                JS_FreeValue(ctx, ret);
+                JS_FreeValue(ctx, tok);
+                JS_FreeValue(ctx, app_obj);
                 break;
             }
         }
