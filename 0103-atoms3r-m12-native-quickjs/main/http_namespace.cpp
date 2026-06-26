@@ -1,6 +1,8 @@
 // http_namespace.cpp — ESP-IDF wrapper for the shared QuickJS HTTP/fetch core.
 #include "http_namespace.h"
 
+#include <cstdlib>
+#include <cstring>
 #include <new>
 
 #include "esp_err.h"
@@ -13,6 +15,13 @@ constexpr const char *kTag = "0103_http_ns";
 constexpr uint32_t kInstallTimeoutMs = 1000;
 
 qjs_http::Runtime *s_runtime = nullptr;
+
+struct DispatchGetJob {
+    const char *path = nullptr;
+    qjs_http::HttpResponse response;
+    esp_err_t err = ESP_FAIL;
+    std::string error;
+};
 
 int op_start(void *, uint16_t port)
 {
@@ -50,6 +59,63 @@ int op_status(void *, qjs_http::HostStatus *out)
     return 0;
 }
 
+esp_err_t dispatch_get_job(JSContext *ctx, void *user)
+{
+    (void)ctx;
+    auto *job = static_cast<DispatchGetJob *>(user);
+    if (!job || !job->path) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    if (!s_runtime) {
+        job->err = ESP_ERR_NOT_FOUND;
+        job->error = "http runtime unavailable";
+        return ESP_OK;
+    }
+    bool ok = s_runtime->dispatch_get(job->path, &job->response, &job->error);
+    job->err = ok ? ESP_OK : ESP_ERR_NOT_FOUND;
+    return ESP_OK;
+}
+
+esp_err_t dynamic_get_handler(const char *path, http_dynamic_response_t *out, void *user)
+{
+    auto *svc = static_cast<qjs_service_t *>(user);
+    if (!path || !out || !svc) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    DispatchGetJob dispatch = {};
+    dispatch.path = path;
+    qjs_job_t job = {};
+    job.fn = dispatch_get_job;
+    job.user = &dispatch;
+    job.timeout_ms = 1000;
+    esp_err_t err = qjs_service_run(svc, &job);
+    if (err != ESP_OK) {
+        return err;
+    }
+    if (dispatch.err != ESP_OK) {
+        return dispatch.err;
+    }
+
+    out->status = dispatch.response.status;
+    if (out->status < 100 || out->status > 599) {
+        out->status = 500;
+    }
+    std::snprintf(out->content_type,
+                  sizeof(out->content_type),
+                  "%s",
+                  dispatch.response.content_type.empty() ? "text/plain; charset=utf-8" : dispatch.response.content_type.c_str());
+    out->body_len = dispatch.response.body.size();
+    if (out->body_len > 0) {
+        out->body = static_cast<char *>(std::malloc(out->body_len));
+        if (!out->body) {
+            return ESP_ERR_NO_MEM;
+        }
+        std::memcpy(out->body, dispatch.response.body.data(), out->body_len);
+    }
+    return ESP_OK;
+}
+
 qjs_http::HostOps make_firmware_ops()
 {
     qjs_http::HostOps ops = {};
@@ -77,8 +143,7 @@ esp_err_t clear_http_job(JSContext *ctx, void *user)
 
 esp_err_t install_http_job(JSContext *ctx, void *user)
 {
-    (void)user;
-    if (!ctx) {
+    if (!ctx || !user) {
         return ESP_ERR_INVALID_ARG;
     }
 
@@ -87,6 +152,8 @@ esp_err_t install_http_job(JSContext *ctx, void *user)
     if (!s_runtime) {
         return ESP_ERR_NO_MEM;
     }
+    (void)http_server_set_dynamic_get_handler(dynamic_get_handler, user);
+
     const int rc = s_runtime->install_global();
     if (rc != 0) {
         delete s_runtime;
@@ -117,6 +184,7 @@ esp_err_t install_http_namespace(qjs_service_t *svc)
     }
     qjs_job_t job = {};
     job.fn = install_http_job;
+    job.user = svc;
     job.timeout_ms = kInstallTimeoutMs;
     return qjs_service_run(svc, &job);
 }

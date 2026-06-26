@@ -35,6 +35,8 @@ struct SendCtx {
 httpd_handle_t s_server = nullptr;
 uint16_t s_port = 0;
 StaticMount s_static_mounts[kMaxStaticMounts] = {};
+http_dynamic_get_handler_t s_dynamic_get_handler = nullptr;
+void *s_dynamic_get_user = nullptr;
 SemaphoreHandle_t s_lock = nullptr;
 StaticSemaphore_t s_lock_storage = {};
 
@@ -95,6 +97,20 @@ bool prefix_matches(const char *path, size_t path_len, const char *prefix)
         return false;
     }
     return path_len == prefix_len || path[prefix_len] == '/';
+}
+
+esp_err_t uri_path_only(const char *uri, char *out, size_t out_len)
+{
+    if (!uri || !out || out_len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    const size_t path_len = strcspn(uri, "?#");
+    if (path_len == 0 || path_len >= out_len) {
+        return ESP_ERR_INVALID_SIZE;
+    }
+    memcpy(out, uri, path_len);
+    out[path_len] = '\0';
+    return ESP_OK;
 }
 
 esp_err_t uri_to_virtual_path(const char *uri, char *out, size_t out_len)
@@ -161,6 +177,62 @@ esp_err_t send_chunk_writer(const void *data, size_t len, void *user)
     return httpd_resp_send_chunk(ctx->req, static_cast<const char *>(data), len);
 }
 
+const char *status_line_for(int status)
+{
+    switch (status) {
+        case 200: return "200 OK";
+        case 201: return "201 Created";
+        case 202: return "202 Accepted";
+        case 204: return "204 No Content";
+        case 400: return "400 Bad Request";
+        case 404: return "404 Not Found";
+        case 405: return "405 Method Not Allowed";
+        case 413: return "413 Content Too Large";
+        case 500: return "500 Internal Server Error";
+        default: return (status >= 200 && status <= 299) ? "200 OK" : "500 Internal Server Error";
+    }
+}
+
+bool try_dynamic_get(httpd_req_t *req)
+{
+    http_dynamic_get_handler_t handler = nullptr;
+    void *user = nullptr;
+    lock_http();
+    handler = s_dynamic_get_handler;
+    user = s_dynamic_get_user;
+    unlock_http();
+    if (!handler) {
+        return false;
+    }
+
+    char path[kMaxVirtualPathBytes] = {};
+    esp_err_t err = uri_path_only(req->uri, path, sizeof(path));
+    if (err != ESP_OK) {
+        return false;
+    }
+
+    http_dynamic_response_t response = {};
+    err = handler(path, &response, user);
+    if (err == ESP_ERR_NOT_FOUND) {
+        http_dynamic_response_free(&response);
+        return false;
+    }
+    if (err != ESP_OK) {
+        http_dynamic_response_free(&response);
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, esp_err_to_name(err));
+        return true;
+    }
+
+    httpd_resp_set_status(req, status_line_for(response.status));
+    httpd_resp_set_type(req, response.content_type[0] ? response.content_type : "text/plain; charset=utf-8");
+    err = httpd_resp_send(req,
+                          response.body ? response.body : "",
+                          response.body ? response.body_len : 0);
+    ESP_LOGI(kTag, "dynamic %s status=%d bytes=%u", path, response.status, (unsigned)response.body_len);
+    http_dynamic_response_free(&response);
+    return true;
+}
+
 void send_error_for_storage(httpd_req_t *req, esp_err_t err)
 {
     switch (err) {
@@ -200,6 +272,10 @@ esp_err_t root_handler(httpd_req_t *req)
 
 esp_err_t static_handler(httpd_req_t *req)
 {
+    if (try_dynamic_get(req)) {
+        return ESP_OK;
+    }
+
     char virtual_path[kMaxVirtualPathBytes] = {};
     esp_err_t err = uri_to_virtual_path(req->uri, virtual_path, sizeof(virtual_path));
     if (err != ESP_OK) {
@@ -453,6 +529,27 @@ esp_err_t http_server_clear_static_mounts(void)
     memset(s_static_mounts, 0, sizeof(s_static_mounts));
     unlock_http();
     return ESP_OK;
+}
+
+esp_err_t http_server_set_dynamic_get_handler(http_dynamic_get_handler_t handler, void *user)
+{
+    lock_http();
+    s_dynamic_get_handler = handler;
+    s_dynamic_get_user = user;
+    unlock_http();
+    return ESP_OK;
+}
+
+void http_dynamic_response_free(http_dynamic_response_t *response)
+{
+    if (!response) {
+        return;
+    }
+    free(response->body);
+    response->body = nullptr;
+    response->body_len = 0;
+    response->status = 0;
+    response->content_type[0] = '\0';
 }
 
 void register_http_commands(void)
