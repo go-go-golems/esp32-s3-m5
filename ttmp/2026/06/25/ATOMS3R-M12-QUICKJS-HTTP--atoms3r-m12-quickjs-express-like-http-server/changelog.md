@@ -23,3 +23,14 @@ Uploaded HTTP guide bundle to reMarkable at /ai/2026/06/25/ATOMS3R-M12-QUICKJS-H
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/tasks.md — Upload task marked complete
 
+
+## 2026-06-25
+
+Implemented and validated HTTP Phase 1 host service: console lifecycle commands plus built-in /healthz and / routes over WiFi (commit 7757d75)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0103-atoms3r-m12-native-quickjs/main/http_server.cpp — HTTP server lifecycle and health route
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/reference/01-investigation-diary.md — Phase 1 diary and validation evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/ATOMS3R-M12-QUICKJS-HTTP--atoms3r-m12-quickjs-express-like-http-server/tasks.md — Marked H1.1-H1.4 complete
+

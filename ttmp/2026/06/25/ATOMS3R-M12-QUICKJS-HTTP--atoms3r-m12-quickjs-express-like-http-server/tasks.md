@@ -23,10 +23,10 @@ DocType: tasks
 
 ## Phase 1 — HTTP host service
 
-- [ ] **H1.1 — Add HTTP server module.** Add `http_namespace.{h,cpp}` or `http_server.{h,cpp}` with `esp_http_server` lifecycle.
-- [ ] **H1.2 — Add console diagnostics.** Implement `http status`, `http start [port]`, and `http stop`.
-- [ ] **H1.3 — Add `/healthz`.** Serve a firmware-owned health route without QuickJS.
-- [ ] **H1.4 — Validate over WiFi.** Use `curl` against the AtomS3R IP.
+- [x] **H1.1 — Add HTTP server module.** Add `http_namespace.{h,cpp}` or `http_server.{h,cpp}` with `esp_http_server` lifecycle.
+- [x] **H1.2 — Add console diagnostics.** Implement `http status`, `http start [port]`, and `http stop`.
+- [x] **H1.3 — Add `/healthz`.** Serve a firmware-owned health route without QuickJS.
+- [x] **H1.4 — Validate over WiFi.** Use `curl` against the AtomS3R IP.
 
 ## Phase 2 — Static assets
 
