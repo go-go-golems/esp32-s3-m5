@@ -177,6 +177,10 @@ topics:
       description: ESP32-P4 microcontroller (RISC-V dual-core, HP/LP cores, MIPI-PIx, PSRAM)
     - slug: psram
       description: External pseudo-static RAM used by ESP32-class firmware for larger heaps, buffers, and runtime allocations
+    - slug: concurrency
+      description: Concurrency, task ownership, scheduling, and cross-thread/task coordination
+    - slug: fetch
+      description: HTTP fetch APIs and client-side request/response handling
 docTypes:
     - slug: index
       description: Ticket index document
