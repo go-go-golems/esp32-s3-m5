@@ -353,7 +353,7 @@ bool evaluate_visual_input(const char *source)
             }
             return true;
         }
-        if (std::strcmp(argv[0], "apps") == 0) {
+        if (std::strcmp(argv[0], "apps") == 0 || std::strcmp(argv[0], "ps") == 0) {
             if (!g_picoos_os) {
                 (void)visual_repl_append_line(VISUAL_REPL_STYLE_ERROR, "PICOOS UNAVAILABLE");
                 return true;
@@ -362,19 +362,29 @@ bool evaluate_visual_input(const char *source)
             size_t count = 0;
             esp_err_t err = picoos_list_apps(g_picoos_os, apps, PICOOS_MAX_APPS, &count);
             char line[VISUAL_REPL_COLS + 1] = {};
-            std::snprintf(line, sizeof(line), "APPS: %s COUNT=%u", esp_err_to_name(err), (unsigned)count);
-            (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
-            for (size_t i = 0; i < count && i < PICOOS_MAX_APPS; i += 2) {
-                const picoos_app_info_t &a = apps[i];
-                const picoos_app_info_t *b = (i + 1 < count && i + 1 < PICOOS_MAX_APPS) ? &apps[i + 1] : nullptr;
-                if (b) std::snprintf(line, sizeof(line), "%s%-11.11s %s%-11.11s", a.system ? "*" : " ", a.id, b->system ? "*" : " ", b->id);
-                else std::snprintf(line, sizeof(line), "%s%-11.11s", a.system ? "*" : " ", a.id);
-                (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+            if (std::strcmp(argv[0], "ps") == 0) {
+                std::snprintf(line, sizeof(line), "PS: %s COUNT=%u", esp_err_to_name(err), (unsigned)count);
+                (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+                for (size_t i = 0; i < count && i < PICOOS_MAX_APPS; ++i) {
+                    std::snprintf(line, sizeof(line), "%-11.11s %-10.10s f%lu e%lu", apps[i].id, picoos_app_state_name(apps[i].state),
+                                  (unsigned long)apps[i].frame_count, (unsigned long)apps[i].error_count);
+                    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+                }
+            } else {
+                std::snprintf(line, sizeof(line), "APPS: %s COUNT=%u", esp_err_to_name(err), (unsigned)count);
+                (void)visual_repl_append_line(err == ESP_OK ? VISUAL_REPL_STYLE_STATUS : VISUAL_REPL_STYLE_ERROR, line);
+                for (size_t i = 0; i < count && i < PICOOS_MAX_APPS; i += 2) {
+                    const picoos_app_info_t &a = apps[i];
+                    const picoos_app_info_t *b = (i + 1 < count && i + 1 < PICOOS_MAX_APPS) ? &apps[i + 1] : nullptr;
+                    if (b) std::snprintf(line, sizeof(line), "%s%-11.11s %s%-11.11s", a.system ? "*" : " ", a.id, b->system ? "*" : " ", b->id);
+                    else std::snprintf(line, sizeof(line), "%s%-11.11s", a.system ? "*" : " ", a.id);
+                    (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, line);
+                }
             }
             return true;
         }
         if (std::strcmp(argv[0], "help") == 0) {
-            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/help /status /apps /reset /kbd");
+            (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/help /status /apps /ps /reset /kbd");
             (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/launch ID /home /repl /start [fps]");
             (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "/stop /frame [ms] /key TOKEN");
             (void)visual_repl_append_line(VISUAL_REPL_STYLE_STATUS, "JS: print(1+2), throw Error()...");
@@ -1230,22 +1240,30 @@ int cmd_picoos(int argc, char **argv)
         std::printf("picoos frame: %s dt_ms=%u\n", esp_err_to_name(err), (unsigned)dt);
         return err == ESP_OK ? 0 : 1;
     }
-    if (std::strcmp(argv[1], "apps") == 0) {
+    if (std::strcmp(argv[1], "apps") == 0 || std::strcmp(argv[1], "ps") == 0) {
         picoos_app_info_t apps[PICOOS_MAX_APPS] = {};
         size_t count = 0;
         esp_err_t err = picoos_list_apps(g_picoos_os, apps, PICOOS_MAX_APPS, &count);
-        std::printf("picoos apps: %s count=%u\n", esp_err_to_name(err), (unsigned)count);
+        const bool ps = std::strcmp(argv[1], "ps") == 0;
+        std::printf("picoos %s: %s count=%u\n", ps ? "ps" : "apps", esp_err_to_name(err), (unsigned)count);
         const size_t shown = count < PICOOS_MAX_APPS ? count : PICOOS_MAX_APPS;
         for (size_t i = 0; i < shown; ++i) {
-            std::printf("[%u] id=%s title=%s state=%s system=%d autostart=%d bg_ticks=%d fps=%u frames=%u errors=%u\n",
-                        (unsigned)i, apps[i].id, apps[i].title, picoos_app_state_name(apps[i].state),
-                        apps[i].system, apps[i].autostart, apps[i].allow_background_ticks,
-                        (unsigned)apps[i].preferred_fps, (unsigned)apps[i].frame_count,
-                        (unsigned)apps[i].error_count);
+            if (ps) {
+                std::printf("%-11s state=%-10s frames=%u errors=%u fps=%u\n",
+                            apps[i].id, picoos_app_state_name(apps[i].state),
+                            (unsigned)apps[i].frame_count, (unsigned)apps[i].error_count,
+                            (unsigned)apps[i].preferred_fps);
+            } else {
+                std::printf("[%u] id=%s title=%s state=%s system=%d autostart=%d bg_ticks=%d fps=%u frames=%u errors=%u\n",
+                            (unsigned)i, apps[i].id, apps[i].title, picoos_app_state_name(apps[i].state),
+                            apps[i].system, apps[i].autostart, apps[i].allow_background_ticks,
+                            (unsigned)apps[i].preferred_fps, (unsigned)apps[i].frame_count,
+                            (unsigned)apps[i].error_count);
+            }
         }
         return err == ESP_OK ? 0 : 1;
     }
-    std::printf("usage: picoos status | apps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]\n");
+    std::printf("usage: picoos status | apps | ps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]\n");
     return 1;
 }
 
@@ -1509,7 +1527,7 @@ void start_debug_console()
 
     const esp_console_cmd_t picoos_cmd = {
         .command = "picoos",
-        .help = "PicoOS supervisor: status | apps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]",
+        .help = "PicoOS supervisor: status | apps | ps | launch <id> | launcher | repl | key <token> | start [fps] | stop | frame [dt_ms]",
         .func = cmd_picoos,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&picoos_cmd));
