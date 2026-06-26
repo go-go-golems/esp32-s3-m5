@@ -9,6 +9,7 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/../components/picocalc_keyboard"
     "${CMAKE_CURRENT_LIST_DIR}/../components/visual_repl"
     "${CMAKE_CURRENT_LIST_DIR}/../components/picojs_runtime"
+    "${CMAKE_CURRENT_LIST_DIR}/../components/picoos_core"
 )
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

@@ -16,6 +16,7 @@
 #include "picocalc_keyboard.h"
 #include "picocalc_lcd.h"
 #include "picojs_runtime.h"
+#include "picoos_core.h"
 #include "qjs_service.h"
 #include "visual_repl.h"
 
@@ -110,6 +111,7 @@ game.mount();
 
 qjs_service_t *g_qjs = nullptr;
 picojs_runtime_t *g_picojs = nullptr;
+picoos_supervisor_t *g_picoos_os = nullptr;
 TaskHandle_t g_keyboard_task = nullptr;
 char g_input[VISUAL_REPL_INPUT_MAX + 1] = {};
 size_t g_input_len = 0;
@@ -571,6 +573,39 @@ esp_err_t install_picojs_runtime()
     return qjs_service_run(g_qjs, &job);
 }
 
+esp_err_t register_picoos_builtin_apps()
+{
+    if (!g_picoos_os) return ESP_ERR_INVALID_STATE;
+    const picoos_app_descriptor_t apps[] = {
+        {.id = "home", .title = "PicoOS Home", .source = kPicoJsHomeSource, .filename = "<picoos-home>", .system = true, .autostart = true, .allow_background_ticks = false, .preferred_fps = 1},
+        {.id = "repl", .title = "QuickJS REPL", .source = nullptr, .filename = "<native-repl>", .system = true, .autostart = false, .allow_background_ticks = false, .preferred_fps = 0},
+        {.id = "hello", .title = "Hello", .source = kPicoJsHelloSource, .filename = "<picojs-hello>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 1},
+        {.id = "dashboard", .title = "Dashboard", .source = kPicoJsDashboardSource, .filename = "<picojs-dashboard>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 1},
+        {.id = "interactive", .title = "Interactive", .source = kPicoJsInteractiveSource, .filename = "<picojs-interactive>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 2},
+        {.id = "sysmon", .title = "System Monitor", .source = kPicoJsSysmonSource, .filename = "<picojs-sysmon>", .system = false, .autostart = false, .allow_background_ticks = true, .preferred_fps = 1},
+        {.id = "snake", .title = "Snake", .source = kPicoJsSnakeSource, .filename = "<picojs-snake>", .system = false, .autostart = false, .allow_background_ticks = false, .preferred_fps = 4},
+    };
+    for (const auto &app : apps) {
+        esp_err_t err = picoos_register_app(g_picoos_os, &app);
+        if (err != ESP_OK) return err;
+    }
+    return ESP_OK;
+}
+
+esp_err_t init_picoos_supervisor()
+{
+    if (!g_qjs || !g_picojs) return ESP_ERR_INVALID_STATE;
+    picoos_supervisor_config_t cfg = {};
+    cfg.qjs = g_qjs;
+    cfg.runtime = g_picojs;
+    cfg.cols = VISUAL_REPL_COLS;
+    cfg.rows = VISUAL_REPL_ROWS;
+    cfg.default_fps = 4;
+    esp_err_t err = picoos_supervisor_create(&cfg, &g_picoos_os);
+    if (err != ESP_OK) return err;
+    return register_picoos_builtin_apps();
+}
+
 qjs_service_t *start_quickjs_service()
 {
     qjs_service_config_t cfg = {};
@@ -833,6 +868,45 @@ int cmd_js_smoke()
     return ok ? 0 : 1;
 }
 
+int cmd_picoos(int argc, char **argv)
+{
+    if (!g_picoos_os) {
+        std::printf("picoos unavailable\n");
+        return 1;
+    }
+    if (argc < 2 || std::strcmp(argv[1], "status") == 0) {
+        picoos_status_t st = {};
+        esp_err_t err = picoos_get_status(g_picoos_os, &st);
+        if (err != ESP_OK) {
+            std::printf("picoos status: %s\n", esp_err_to_name(err));
+            return 1;
+        }
+        std::printf("picoos: initialized=%d running=%d surface=%s active=%s cols=%u rows=%u default_fps=%u apps=%u frames=%u errors=%u\n",
+                    st.initialized, st.running, picoos_surface_name(st.surface),
+                    st.active_app_id[0] ? st.active_app_id : "-", st.cols, st.rows,
+                    (unsigned)st.default_fps, (unsigned)st.app_count,
+                    (unsigned)st.frame_count, (unsigned)st.error_count);
+        return 0;
+    }
+    if (std::strcmp(argv[1], "apps") == 0) {
+        picoos_app_info_t apps[PICOOS_MAX_APPS] = {};
+        size_t count = 0;
+        esp_err_t err = picoos_list_apps(g_picoos_os, apps, PICOOS_MAX_APPS, &count);
+        std::printf("picoos apps: %s count=%u\n", esp_err_to_name(err), (unsigned)count);
+        const size_t shown = count < PICOOS_MAX_APPS ? count : PICOOS_MAX_APPS;
+        for (size_t i = 0; i < shown; ++i) {
+            std::printf("[%u] id=%s title=%s state=%s system=%d autostart=%d bg_ticks=%d fps=%u frames=%u errors=%u\n",
+                        (unsigned)i, apps[i].id, apps[i].title, picoos_app_state_name(apps[i].state),
+                        apps[i].system, apps[i].autostart, apps[i].allow_background_ticks,
+                        (unsigned)apps[i].preferred_fps, (unsigned)apps[i].frame_count,
+                        (unsigned)apps[i].error_count);
+        }
+        return err == ESP_OK ? 0 : 1;
+    }
+    std::printf("usage: picoos status | apps\n");
+    return 1;
+}
+
 int cmd_picojs(int argc, char **argv)
 {
     if (!g_picojs) {
@@ -1080,6 +1154,13 @@ void start_debug_console()
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&js_cmd));
 
+    const esp_console_cmd_t picoos_cmd = {
+        .command = "picoos",
+        .help = "PicoOS supervisor: status | apps",
+        .func = cmd_picoos,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&picoos_cmd));
+
     const esp_console_cmd_t picojs_cmd = {
         .command = "picojs",
         .help = "PicoJS runtime: status | install | load hello|dashboard|interactive|home|sysmon|snake | dump | render | frame [dt_ms] | run <count> <dt_ms> | key <token> | mode app|repl",
@@ -1129,6 +1210,8 @@ extern "C" void app_main(void)
     if (picojs_err == ESP_OK) {
         esp_err_t install_err = install_picojs_runtime();
         ESP_LOGI(kTag, "picojs QuickJS install: %s", esp_err_to_name(install_err));
+        esp_err_t picoos_err = init_picoos_supervisor();
+        ESP_LOGI(kTag, "picoos supervisor init: %s", esp_err_to_name(picoos_err));
     }
 
     start_debug_console();
