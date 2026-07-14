@@ -201,6 +201,42 @@ def main() -> None:
             )
         )
 
+    dma_alloc = cpp.find("dma_buffer1 = static_cast")
+    dma_memset = cpp.find("memset(dma_buffer1")
+    dma_guard = cpp.find("if (!(dma_buffer")
+    if -1 not in (dma_alloc, dma_memset, dma_guard) and dma_alloc < dma_memset < dma_guard:
+        findings.append(
+            Finding(
+                "BLOCKER",
+                "DMA buffers are dereferenced before their delayed allocation guard",
+                f"`EPD_Painter.cpp:{line_number(cpp, 'memset(dma_buffer1')}` zeroes both row buffers before the guard near line {line_number(cpp, 'if (!(dma_buffer')}.",
+                "A DMA-capable internal-memory allocation failure crashes in `begin()` instead of returning a safe diagnostic.",
+                "Check both DMA allocations immediately, before `memset`, descriptor construction, power-driver creation, or task setup.",
+            )
+        )
+
+    if "log_w(" in cpp and '#include "esp_log.h"' not in cpp:
+        findings.append(
+            Finding(
+                "BLOCKER",
+                "The advertised pure ESP-IDF path contains an Arduino-only logging macro",
+                f"`EPD_Painter.cpp:{line_number(cpp, 'log_w(')}` calls `log_w` while the file includes Arduino logging support only under `#ifdef ARDUINO`.",
+                "A minimal pure ESP-IDF component can fail to compile before the hardware control is reproducible.",
+                "Replace the fallback message with `ESP_LOGW`/`printf` and build with the explicit M5PaperS3 preset definition.",
+            )
+        )
+
+    if "xSemaphoreCreateBinary()" in cpp and "xTaskCreatePinnedToCore(" in cpp:
+        findings.append(
+            Finding(
+                "BLOCKER",
+                "Semaphore and paint-task creation results are not validated",
+                f"Resource creation starts near `EPD_Painter.cpp:{line_number(cpp, '_paint_active_sem = xSemaphoreCreateBinary()')}` and ignores the return code from `xTaskCreatePinnedToCore`.",
+                "Low-memory or task-creation failure can leave a partially initialized driver that later blocks or dereferences invalid handles.",
+                "Check both semaphore handles and the task creation result; return failure before any command can energize the panel.",
+            )
+        )
+
     if "while(paintStage==(interlace_mode?3:2))" in cpp:
         findings.append(
             Finding(
@@ -230,7 +266,7 @@ def main() -> None:
                 "Adafruit framebuffer allocation is dereferenced without a null check",
                 f"`EPD_Painter_Adafruit.h:{line_number(adafruit, 'buffer = static_cast<uint8_t *>')}` allocates, then immediately calls `memset`.",
                 "A PSRAM allocation failure crashes before diagnostics.",
-                "Use a local hardened binding or raw driver wrapper with explicit allocation checks.",
+                "Exclude the Adafruit binding from the pure ESP-IDF control; if it is later enabled, patch allocation ownership and failure handling first.",
             )
         )
 

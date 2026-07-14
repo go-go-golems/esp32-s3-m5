@@ -12,6 +12,10 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: repo://0106-papers3-epd-qualification/README.md
+      Note: Cell D IDF 5.4.2 comparison and serial evidence conventions
+    - Path: repo://0106-papers3-epd-qualification/sdkconfig.defaults
+      Note: Known PaperS3 USB Serial/JTAG and octal-PSRAM baseline
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
       Note: |-
         Reproducible pre-hardware source audit
@@ -37,6 +41,7 @@ WhenToUse: Read before creating, building, flashing, or interpreting the indepen
 ---
 
 
+
 # EPD Painter independent-driver audit and experiment design
 
 ## Current status
@@ -49,7 +54,7 @@ The pre-hardware gate is currently:
 
 > **BLOCKED — do not build or flash the upstream source unchanged.**
 
-The reproducible audit found five blockers and two review items. The pin map is correct and the hard-clear phase counts are polarity-balanced at the action-count level, but initialization and completion semantics are not sufficient for controlled hardware evidence.
+The expanded reproducible audit found eight blockers and two review items in the full upstream surface. The raw-driver control excludes the Adafruit binding, but the remaining initialization, build, resource, and completion blockers still require a narrow patch. The pin map is correct and the hard-clear phase counts are polarity-balanced at the action-count level; neither fact is sufficient for controlled hardware evidence.
 
 ## Reproducibility policy
 
@@ -155,7 +160,21 @@ The existing check includes the DMA buffer, fast buffer, and screen buffer. It o
 
 **Gate:** validate every allocation and fail with a serial diagnostic before semaphores, tasks, or panel power are enabled.
 
-### Finding 4: `paint()` does not wait for physical completion
+The DMA row buffers have an additional ordering defect: `begin()` calls `memset()` on both pointers and constructs descriptors before the delayed allocation guard. Their checks must move immediately after allocation.
+
+### Finding 4: pure ESP-IDF compilation is not complete
+
+The source advertises a non-Arduino path through `build_opt.h`, but the PSRAM fallback calls Arduino's `log_w` macro without an unconditional compatible logging include.
+
+**Gate:** replace it with `ESP_LOGW` or `printf`, define `EPD_PAINTER_PRESET_M5PAPER_S3` explicitly, and compile as a pure ESP-IDF component with no Arduino dependency.
+
+### Finding 5: FreeRTOS resource creation is unchecked
+
+The driver does not validate either binary semaphore handle or the return from `xTaskCreatePinnedToCore`. A failed task creation would leave a partially initialized object that appears available to the console.
+
+**Gate:** check all handles and task return values. No command is registered unless driver initialization completes atomically.
+
+### Finding 6: `paint()` does not wait for physical completion
 
 `paint()` sets `paintStage` to two or three and waits only until the background task decrements that initial value. It returns after the buffer has been accepted, before the waveform scans complete.
 
@@ -163,13 +182,13 @@ This behavior is appropriate for asynchronous UI rendering, but invalid for an e
 
 **Gate:** add `waitIdle(timeout_ms)` with explicit timeout and require it after every experimental operation.
 
-### Finding 5: the Adafruit wrapper dereferences allocation without checking it
+### Finding 7: the Adafruit wrapper dereferences allocation without checking it
 
 The wrapper allocates a 960×540 8-bit framebuffer in PSRAM and immediately calls `memset`. Allocation failure crashes before diagnostics. Its private ownership member is also not assigned to the allocation used by the base class, so destruction leaks the framebuffer. The leak does not matter during a single boot, but the missing null check does.
 
 **Gate:** do not use the wrapper unchanged. Create a narrow local binding or patch allocation ownership and failure handling.
 
-### Finding 6: power-off differs from M5GFX
+### Finding 8: power-off differs from M5GFX
 
 Both drivers raise OE, wait 100 µs, and then raise PWR during power-on. Their power-off paths differ:
 
@@ -182,7 +201,7 @@ EPD_Painter's generic `powerOff()` does not explicitly lower SPV, LE, or SPH. Lo
 
 **Gate:** implement and document an explicit safe-state sequence. The review must decide the shutdown order before hardware execution rather than silently inheriting either implementation.
 
-### Finding 7: stage count is implicit
+### Finding 9: stage count is implicit
 
 The Adafruit binding calls `setInterlaceMode(true)`, which selects three stages. The background task alternates chunk handling and can need multiple stages to converge when one 64-pixel chunk contains both darkening and lightening transitions.
 
@@ -236,17 +255,483 @@ The approved next implementation is a local, pinned, narrow hardening patch with
 
 1. preserve the exact PaperS3 pin map and waveform arrays;
 2. correct GPIO pad selection;
-3. initialize and validate all memory;
-4. add bounded `waitIdle()`;
-5. make stage count explicit;
-6. disable automatic shutdown;
-7. establish a reviewed control-pin safe state;
-8. expose boot diagnostics before any panel operation;
-9. permit only HARD white cleanup as the first command;
-10. keep build and flash orchestration under ticket `scripts/`.
+3. initialize and validate all memory before dereference;
+4. make the pure ESP-IDF path compile without Arduino logging;
+5. validate semaphore and task creation;
+6. add bounded `waitIdle()`;
+7. make stage count explicit;
+8. disable automatic shutdown;
+9. establish a reviewed control-pin safe state;
+10. expose boot diagnostics before any panel operation;
+11. permit only HARD white cleanup as the first command;
+12. keep build and flash orchestration under ticket `scripts/`.
 
 This patch changes driver correctness and observability, not waveform content. That distinction preserves the experiment: if the independent waveform produces a different endpoint, the result can be attributed to its scan/waveform implementation rather than a locally invented LUT.
 
-## Next document increment
+## Independent-control experiment design
 
-The next task extends this document with the complete experiment matrix, command state machine, safety gates, evidence schema, and interpretation table. Firmware scaffolding begins only after that design is committed.
+### Question
+
+The experiment asks one narrow causal question:
+
+> On the same PaperS3, at controlled origin, area, history, temperature, and capture conditions, can an independently represented HIGH waveform produce a materially darker and more uniform black endpoint than M5GFX?
+
+The experiment does not attempt to tune a production waveform. It does not modify VCOM, rail components, pulse counts, pin assignment, or the upstream EPD_Painter tables. Its purpose is to decide which causal branch deserves the next measurement.
+
+### Decision 1: pure ESP-IDF control
+
+**Status:** accepted for implementation.
+
+The firmware will use ESP-IDF 5.4.2 and the base `EPD_Painter` class directly. It will not use Arduino, Adafruit_GFX, M5Unified, M5GFX, Wi-Fi, touch, RTC, SD, NVS, or an application framework.
+
+Reasons:
+
+1. Cell D already establishes the M5GFX behavior on IDF 5.4.2, so retaining that IDF controls one major variable.
+2. EPD_Painter has an explicit pure-IDF abstraction.
+3. The raw base API accepts packed 2-bpp frames, avoiding an unchecked 518,400-byte Adafruit framebuffer.
+4. Excluding M5GFX is necessary for waveform independence.
+
+Exact build identity:
+
+```text
+ESP-IDF:          /home/manuel/esp/esp-idf-5.4.2
+Target:           esp32s3
+EPD_Painter:      753c521da8aef59756df07c1a4eb88f1c64c8227
+Preset define:    EPD_PAINTER_PRESET_M5PAPER_S3
+Console:          USB Serial/JTAG
+PSRAM:            octal, enabled
+Application code: C++ / ESP-IDF only
+```
+
+A build must fail closed if the reported IDF version is not exactly 5.4.2.
+
+### Decision 2: vendor plus auditable patch
+
+**Status:** accepted for implementation.
+
+The firmware will live in `0107-papers3-epd-painter-control/`. Its driver component will be generated from the ticket-owned pinned snapshot by a numbered script. The local changes will be represented as a patch under `scripts/patches/`, applied by that script, and documented in the firmware component.
+
+The source-of-truth chain is:
+
+```text
+pinned upstream snapshot + SHA manifest
+        |
+        v
+numbered preparation script
+        |
+        +--> exact local hardening patch
+        v
+0107/components/epd_painter
+        |
+        v
+build metadata + patched-tree hash
+```
+
+The patch may change only correctness, failure handling, idle observability, and pin safe-state behavior. It may not change waveform arrays, row padding, LCD clock divisors, gate/source scan order, inter-pass delays, or hard-clear phase counts.
+
+### Decision 3: explicit two-stage convergence
+
+**Status:** proposed pending compile and unit inspection.
+
+The first control will use `setInterlaceMode(false)`. In upstream terms, this requests two convergence stages. The firmware will report `stage_policy=2` on every operation.
+
+For a uniform full-screen transition, the first stage should update all changed chunks and the second should be electrically neutral because software state has converged. For mixed-direction content, the second stage permits the opposite transition within a 64-pixel chunk. This is more explicit than the Adafruit wrapper's unconditional three-stage mode.
+
+The stage value is not interpreted as pulse dose. Serial diagnostics must also report selected quality, waveform length, elapsed scan time, target hash, and operation id.
+
+### Control-pin safe state
+
+At boot, before LCD_CAM routing and before any task exists, direct control pins will be driven to a documented low state:
+
+```text
+PWR=0, OE=0, SPV=0, CKV=0, SPH=0, LE=0, CL=0
+```
+
+Data outputs remain neutral until the LCD_CAM peripheral is configured with zeroed DMA buffers.
+
+Power-on retains the tested order:
+
+```text
+LE=0, SPV=0, SPH=0
+OE=1
+wait 100 us
+PWR=1
+wait 100 us
+SPV/CKV first-line initialization
+```
+
+Power-off will mirror the known M5GFX PaperS3 order after a final neutral scan:
+
+```text
+wait for LCD_CAM idle
+PWR=0
+wait 10 us
+OE=0
+wait 100 us
+SPV=0, CKV=0, LE=0, SPH=0
+```
+
+This is a deliberate control decision, not a claim that the upstream EPD_Painter order is electrically unsafe. It removes an avoidable difference from the known PaperS3 path.
+
+### Memory and task initialization contract
+
+`begin()` is successful only if all of the following hold:
+
+- both DMA row buffers are non-null before their first `memset`;
+- packed fast, screen, and paint buffers are non-null;
+- the per-row bitmask is non-null;
+- all packed buffers and bitmask are zeroed;
+- both semaphores exist;
+- the paint task is created successfully;
+- the M5PaperS3 preset assertion passes;
+- no panel power operation has occurred.
+
+On failure, direct power/control pins return to the safe state, the console reports a stable error code, and no EPD command except `status` is registered or accepted.
+
+`end()` is outside the first experiment. The firmware remains alive at the console until reset. This avoids introducing a partially audited dynamic teardown path.
+
+### Bounded idle semantics
+
+The patch will add:
+
+```cpp
+bool waitIdle(uint32_t timeout_ms);
+int pendingStages() const;
+```
+
+Waiting for `paintStage == 0` alone is insufficient because the task decrements the final stage before scanning it. Correct completion is:
+
+1. `paint()` returns only after the task has accepted the target and taken the active semaphore.
+2. `waitIdle()` observes final stage progression.
+3. It takes `_paint_active_sem` with the remaining timeout.
+4. Taking that semaphore proves that the task completed its final waveform and neutral scan.
+5. It gives the semaphore back before returning.
+
+A timeout moves the application to `FAULT`. The application must not issue cleanup while a timed-out task may still own the panel path. Recovery requires capturing the transcript and resetting only after serial activity has stopped.
+
+### Command state machine
+
+No panel operation runs automatically at boot. The prompt appears in `BOOT_LOCKED`.
+
+```mermaid
+stateDiagram-v2
+    [*] --> BOOT_LOCKED
+    BOOT_LOCKED --> WHITE_KNOWN: cleanup CONFIRM succeeds
+    BOOT_LOCKED --> FAULT: init or cleanup failure
+    WHITE_KNOWN --> TARGET_KNOWN: bounded target succeeds
+    WHITE_KNOWN --> WHITE_KNOWN: white no-op succeeds
+    TARGET_KNOWN --> TARGET_KNOWN: permitted repeat/inversion succeeds
+    TARGET_KNOWN --> WHITE_KNOWN: white target or cleanup succeeds
+    WHITE_KNOWN --> FAULT: timeout/integrity failure
+    TARGET_KNOWN --> FAULT: timeout/integrity failure
+    FAULT --> FAULT: status only
+```
+
+Allowed commands:
+
+```text
+epd help
+epd status
+epd cleanup CONFIRM
+epd target full white
+epd target full black
+epd target area 1|10|25|50|100
+epd target checker a|b
+epd target page
+epd wait
+epd heap
+```
+
+Constraints:
+
+- `cleanup` always means the unchanged upstream HARD clear, followed by bounded idle confirmation.
+- `target` always means unchanged EPD_Painter HIGH waveforms and explicit two-stage policy.
+- `area` is accepted only in `WHITE_KNOWN`.
+- checker B is accepted only after checker A unless a hard cleanup re-establishes white.
+- no command changes VCOM, pins, row padding, quality, pass count, clock divisor, inter-pass delay, or raw waveform codes.
+- no command turns off the whole PaperS3.
+- parser errors never invoke panel code.
+
+### Operation evidence record
+
+Every accepted operation emits one machine-parseable begin record and one terminal record:
+
+```text
+EPD_OP_BEGIN id=17 command="target full black" state=WHITE_KNOWN \
+  origin=white-commanded target=full-black quality=HIGH stages=2 \
+  target_sha256=<hash> heap_free=<bytes> heap_min=<bytes>
+EPD_OP_END id=17 result=ok elapsed_ms=<ms> pending=0 \
+  state=TARGET_KNOWN heap_free=<bytes> heap_min=<bytes> rails=idle
+```
+
+The firmware cannot know optical origin. It therefore reports `white-commanded` or `black-commanded`, never “physically white” or “physically black.” The operator disposition remains separate.
+
+A serial runner writes:
+
+- raw transcript;
+- JSON operation records;
+- build metadata path and binary hashes;
+- board USB identity;
+- requested fixture and sequence;
+- operator checklist with photo filenames;
+- ambient temperature supplied by the operator, or `unknown`;
+- pass/fail split into automatic and optical fields.
+
+### Deterministic fixtures
+
+All fixtures are 960×540 physical-landscape 2-bpp buffers with encoding `0=white`, `3=black`.
+
+#### Full fields
+
+- white: every packed byte `0x00`;
+- black: every packed byte `0xFF`.
+
+#### Area fixtures
+
+Area tests use centered black rectangles on white. Width and height are scaled by the square root of the requested fraction, then rounded to packed-pixel and row boundaries. The generator logs actual integer area and fraction.
+
+Requested fractions:
+
+```text
+1%, 10%, 25%, 50%, 100%
+```
+
+Centered geometry avoids making source-column load the only variable. If area dependence appears, a later orientation experiment can compare equal-area vertical and horizontal fixtures.
+
+#### Checker inversion
+
+Checker A uses 32×32-pixel squares. Checker B is its exact complement. This forces simultaneous lightening and darkening transitions and stresses 64-pixel chunk direction handling without changing total black area.
+
+#### Reader page
+
+The reader fixture is generated offline by a numbered ticket script, packed to 2 bpp, hashed, and embedded as a deliberate asset. It contains:
+
+- title and chapter heading;
+- several paragraphs with varied line lengths;
+- margins, footer, page number, and a small rule;
+- approximately reader-like black coverage rather than a synthetic full field.
+
+The generator, source text, font file/hash, rendering dimensions, and packed asset hash are preserved. Runtime font or layout libraries are excluded from this control.
+
+### Optical capture protocol
+
+Serial success is never an optical pass.
+
+For each judged endpoint:
+
+1. Place the board and camera in fixed marked positions.
+2. Use fixed camera exposure, ISO, focus, and white balance.
+3. Keep illumination position and level unchanged.
+4. Include a stable white and dark reference patch in the frame when possible.
+5. Record ambient temperature near the panel, not MCU die temperature.
+6. Capture the pre-transition origin after at least 30 seconds of rest.
+7. Execute exactly one named command.
+8. Capture at approximately 10 seconds and 60 seconds after `EPD_OP_END`.
+9. Do not touch, tilt, or power-cycle the board between a transition chain's origin and target.
+10. Associate every image filename with operation id and transcript.
+
+The operator records:
+
+```text
+black depth:       deep / medium / pale / indeterminate
+uniformity:        uniform / gradient / mottled / striped / indeterminate
+ghosting:          none / slight / material / severe / indeterminate
+edge correctness:  pass / repeated / clipped / shifted / indeterminate
+cleanup endpoint:  clean white / residual / degraded / indeterminate
+```
+
+If photographs permit, a script will compute median luminance in central and quadrant regions normalized to the reference patches. Those values are secondary evidence until the capture setup is calibrated.
+
+### Experiment 0: build and no-drive boot
+
+**Purpose:** prove reproducibility and that initialization does not energize the panel.
+
+Procedure:
+
+1. Prepare vendored source and verify upstream manifest.
+2. Apply the exact hardening patch.
+3. Build with IDF 5.4.2.
+4. Record `idf.py --version`, target, sdkconfig digest, source commit, patch digest, ELF/BIN digests, size output, and map path.
+5. Verify no Wi-Fi, M5, Arduino, touch, SD, or storage components are linked intentionally.
+6. Flash with the exclusive ticket script.
+7. Capture boot through the one serial owner.
+8. Run only `epd status` and `epd heap`.
+9. Confirm state is `BOOT_LOCKED`, pending stages are zero, and no EPD operation was logged.
+
+**Supports:** build/lifecycle correctness only.
+
+**Does not support:** optical quality, waveform safety, or rail correctness.
+
+### Experiment 1: bounded smoke and cleanup
+
+This is the maximum first live sequence:
+
+```text
+epd status
+epd cleanup CONFIRM
+# operator judges white and captures origin
+epd target full white
+# operator judges W→W
+epd target full black
+# operator judges W→B at 10 s and 60 s
+epd target full white
+# operator judges B→W
+epd cleanup CONFIRM
+# operator judges final cleanup
+`epd status`
+```
+
+Stop immediately if:
+
+- any command times out;
+- the prompt disappears or the board resets;
+- heap minimum drops unexpectedly;
+- edge data repeats or scan orientation is wrong;
+- the supposed white cleanup visibly darkens the panel;
+- the panel remains active or visibly drifts during the idle window;
+- unusual sound, heat, smell, or current behavior is observed.
+
+**Supports:** whether the hardened driver can complete one bounded HIGH transition chain and return to a clean endpoint.
+
+**Does not support:** endurance, production suitability, VCOM correctness, or long-term DC balance.
+
+### Experiment 2: full-field transition matrix
+
+After smoke passes:
+
+```text
+HARD white -> HIGH white  : W-commanded -> W
+HARD white -> HIGH black  : W-commanded -> B
+HIGH black -> HIGH black  : B-commanded -> B
+HIGH black -> HIGH white  : B-commanded -> W
+HARD white                : final cleanup
+```
+
+This chain preserves immediate history for B→B and B→W. It should be performed once before repetition. Commanded origins are photographed because software state cannot prove optical state.
+
+**Supports:** history dependence among the four binary transitions and whether no-op transitions disturb the endpoint.
+
+### Experiment 3: black-area response
+
+For each fraction in `1, 10, 25, 50, 100`:
+
+```text
+HARD white
+30 s rest + origin photo
+target area <fraction>
+10 s and 60 s photos
+HARD white
+final white disposition
+```
+
+Stop the matrix if final white worsens across fractions. Do not complete all fractions merely because commands return successfully.
+
+**Supports:** whether black endpoint or uniformity scales with switched area under one driver/waveform.
+
+**Interpretive value:** strong area dependence across independent drivers raises analog rail delivery, source/gate timing, panel load, or common physical-state hypotheses. Lack of area dependence lowers those hypotheses but does not eliminate VCOM or panel assignment.
+
+### Experiment 4: mixed-direction inversion
+
+```text
+HARD white
+target checker a
+target checker b
+HARD white
+```
+
+Capture after A, after B, and after cleanup.
+
+**Supports:** mixed lightening/darkening behavior, chunk-direction convergence, spatial alignment, and inversion ghosting.
+
+### Experiment 5: realistic reader page
+
+```text
+HARD white
+target page
+target page
+HIGH white
+HARD white
+```
+
+The repeated page is a commanded no-op test. The white target tests normal waveform cleanup; HARD white remains the final cleanup boundary.
+
+**Supports:** whether the independent control produces usable text contrast and whether repeating an unchanged page perturbs it.
+
+### Comparison baseline
+
+Independent output must be compared with the existing Cell D M5GFX evidence using the same camera protocol and equivalent content. If a new M5GFX replay is necessary, a numbered ticket script must wrap the existing `0106` matrix build/flash/run tools and capture its exact output. Direct ad hoc invocations are not accepted as final evidence.
+
+Factory V0.5 remains a vendor-application control, not an independent waveform control.
+
+## Result-to-hypothesis decision table
+
+| Result | Raises | Lowers | Required next step |
+|---|---|---|---|
+| EPD_Painter black is materially darker and uniform at 100% area | M5GFX LUT/transition representation or scan-policy limitation | panel incapable of black; global rail failure | isolate waveform and scan differences without changing hardware |
+| Both drivers are pale at 100%, but independent small areas are dark | area-dependent rail/load or scan-timing limit | global code-polarity error | design safe VPOS/VNEG/VGH/VGL/VCOM measurement and equal-area geometry tests |
+| Both drivers are pale even at 1% after clean white | VCOM mismatch, panel assignment/condition, polarity interpretation, temperature/history | pure area-load explanation | verify code-to-source polarity, panel temperature, assigned VCOM, then safe rail/VCOM probing |
+| Full fields work, checker inversion fails | mixed-direction chunk handling, stage policy, physical history | global rail inability | inspect two-stage direction masks; compare controlled three-stage only after review |
+| HARD white leaves increasing residue | cleanup/DC-balance implementation risk | safe continuation | stop all black tests; audit clear polarity and physical endpoint before another run |
+| Same spatial gradient appears in both drivers | rail distribution, gate/source timing, panel nonuniformity | M5GFX-only framebuffer defect | capture aligned images and plan electrical timing/rail measurements |
+| Independent edge repeats or shifts | row padding or source-chain timing | optical waveform-only diagnosis | stop; inspect row clocks and do not tune LUTs |
+| Endpoint changes materially between 10 s and 60 s while rails should be idle | residual charge, incomplete power-off, panel relaxation, rail leakage | stable settled endpoint | verify control-pin shutdown and measure rails before continuation |
+| Commands pass but prompt/heap degrades | firmware lifecycle defect | valid physical comparison | fix software before using optical evidence |
+
+No single optical result proves exact VCOM or rail voltage. Electrical claims require electrical measurement.
+
+## Risk register
+
+| Risk | Trigger | Mitigation | Stop condition |
+|---|---|---|---|
+| Wrong pin mux argument | upstream call retained | compile-time/source audit and local patch | any pin assertion mismatch |
+| Pin glitch at boot | outputs configured without low latch | explicit safe-low before driver initialization | panel activity before command |
+| Null memory dereference | allocation pressure | immediate checks and zeroing | any init error or reset |
+| Concurrent cleanup after timeout | asynchronous task still scanning | FAULT state; no cleanup after timeout | idle timeout |
+| Unbounded waveform repetition | broad low-level command API | fixed commands and one-operation runner | unexpected operation id/count |
+| DC imbalance/history accumulation | repeated black or incomplete cleanup | one chain, final HARD white, inspect after each fraction | worsening white residue |
+| Hidden stage count | wrapper default | raw driver, explicit policy and logs | stage metadata absent |
+| Wrong code-to-voltage interpretation | comments/tables are not electrical proof | do not alter waveform; use endpoints only | inverted/unexpected clear behavior |
+| Rail or panel stress | long full-area driving | no endurance, bounded sequence, idle between tests | heat, smell, sound, drift, unstable power |
+| Serial contention | monitor plus runner | stable by-id port and owner refusal | any competing PID |
+| Misleading photography | auto exposure/lighting changes | fixed manual capture and reference patches | capture settings unavailable |
+| Toolchain substitution | missing exact IDF | version check and fail closed | version not 5.4.2 |
+
+## Automatic acceptance gates before first flash
+
+All must pass:
+
+- source manifest strict verification;
+- patch applies with zero fuzz;
+- patch changes no preset waveform bytes;
+- pin-map audit still passes;
+- upstream audit blockers are either fixed or excluded by build scope;
+- exact IDF 5.4.2 check passes;
+- clean configure/build passes;
+- no compile warnings from the local component;
+- `idf.py size` and ELF/BIN hashes are captured;
+- USB Serial/JTAG remains the only console;
+- flash script sees the stable by-id port and no owner;
+- serial runner starts before any requested manual reset;
+- operation list defaults to no-drive smoke.
+
+## Optical acceptance gates before area testing
+
+All must pass:
+
+- HARD white reaches a plausible white endpoint without new severe artifacts;
+- W→W does not materially disturb white;
+- one W→B command completes with prompt continuity and stable heap;
+- B→W and final HARD white do not worsen residue materially;
+- output orientation and edges are correct;
+- every transition has transcript, operation id, and linked photographs;
+- operator explicitly approves continuation.
+
+## Implementation sequence
+
+1. **P0.14 — experiment design:** commit this audit/design and generated expanded audit output.
+2. **P0.15 — firmware:** create `0107-papers3-epd-painter-control`, vendored component preparation, hardening patch, source manifest, sdkconfig defaults, and no-drive boot.
+3. **P0.16 — commands:** implement state machine, packed fixtures, bounded wait, transaction records, heap checks, and host runner.
+4. **P0.17 — smoke:** review build evidence, acquire exclusive serial ownership, flash once, and run only Experiment 0/1 with operator capture.
+5. **P0.18 — matrix:** run transitions, area, checker inversion, and reader page only after the optical gate is accepted.
+
+P0.15 and P0.16 can be built and statically tested without touching hardware. P0.17 is the first task that changes the board from official FactoryTest V0.5.

@@ -14,20 +14,20 @@ RelatedFiles: []
 ExternalSources:
     - https://github.com/tonywestonuk/EPD_Painter/commit/753c521da8aef59756df07c1a4eb88f1c64c8227
 Summary: "Generated source audit and hardware-use gate for pinned EPD_Painter."
-LastUpdated: 2026-07-14T20:10:17.189748+00:00
+LastUpdated: 2026-07-14T20:15:55.547076+00:00
 WhatFor: "Reproduce the source-level decision that blocks unmodified EPD_Painter from PaperS3 hardware execution."
 WhenToUse: "Regenerate and review before changing the local hardening patch or flashing the independent control."
 ---
 
 # EPD_Painter pre-hardware audit
 
-Generated: 2026-07-14T20:10:17.189748+00:00
+Generated: 2026-07-14T20:15:55.547076+00:00
 
 ## Audit gate
 
 **BLOCKED — create and review a narrow local hardening patch before build/flash**
 
-Blockers: 5; review items: 2.
+Blockers: 8; review items: 2.
 
 This audit evaluates commit `753c521da8aef59756df07c1a4eb88f1c64c8227`. It does not establish optical quality or panel safety. It determines whether the unmodified source is suitable for the first controlled hardware run.
 
@@ -119,7 +119,31 @@ EPD_Painter documents `0=float`, `1=whiten`, `2=darken`, and `3=both`. Counts be
 
 **Required action:** Extend the guard and fail cleanly before creating semaphores or tasks.
 
-### 7. [BLOCKER] `paint()` returns after buffer pickup, not after scan completion
+### 7. [BLOCKER] DMA buffers are dereferenced before their delayed allocation guard
+
+**Evidence:** `EPD_Painter.cpp:329` zeroes both row buffers before the guard near line 404.
+
+**Consequence:** A DMA-capable internal-memory allocation failure crashes in `begin()` instead of returning a safe diagnostic.
+
+**Required action:** Check both DMA allocations immediately, before `memset`, descriptor construction, power-driver creation, or task setup.
+
+### 8. [BLOCKER] The advertised pure ESP-IDF path contains an Arduino-only logging macro
+
+**Evidence:** `EPD_Painter.cpp:357` calls `log_w` while the file includes Arduino logging support only under `#ifdef ARDUINO`.
+
+**Consequence:** A minimal pure ESP-IDF component can fail to compile before the hardware control is reproducible.
+
+**Required action:** Replace the fallback message with `ESP_LOGW`/`printf` and build with the explicit M5PaperS3 preset definition.
+
+### 9. [BLOCKER] Semaphore and paint-task creation results are not validated
+
+**Evidence:** Resource creation starts near `EPD_Painter.cpp:406` and ignores the return code from `xTaskCreatePinnedToCore`.
+
+**Consequence:** Low-memory or task-creation failure can leave a partially initialized driver that later blocks or dereferences invalid handles.
+
+**Required action:** Check both semaphore handles and the task creation result; return failure before any command can energize the panel.
+
+### 10. [BLOCKER] `paint()` returns after buffer pickup, not after scan completion
 
 **Evidence:** `EPD_Painter.cpp:491` waits only until the initial stage value changes.
 
@@ -127,7 +151,7 @@ EPD_Painter documents `0=float`, `1=whiten`, `2=darken`, and `3=both`. Counts be
 
 **Required action:** Add a public `waitIdle(timeout)` and require it after every experimental operation.
 
-### 8. [REVIEW] Adafruit binding unconditionally enables three-stage convergence
+### 11. [REVIEW] Adafruit binding unconditionally enables three-stage convergence
 
 **Evidence:** `EPD_Painter_Adafruit.h:68` sets `paintStage` to 3 per paint.
 
@@ -135,15 +159,15 @@ EPD_Painter documents `0=float`, `1=whiten`, `2=darken`, and `3=both`. Counts be
 
 **Required action:** Expose the stage policy explicitly in the control firmware and report it with each result.
 
-### 9. [BLOCKER] Adafruit framebuffer allocation is dereferenced without a null check
+### 12. [BLOCKER] Adafruit framebuffer allocation is dereferenced without a null check
 
 **Evidence:** `EPD_Painter_Adafruit.h:63` allocates, then immediately calls `memset`.
 
 **Consequence:** A PSRAM allocation failure crashes before diagnostics.
 
-**Required action:** Use a local hardened binding or raw driver wrapper with explicit allocation checks.
+**Required action:** Exclude the Adafruit binding from the pure ESP-IDF control; if it is later enabled, patch allocation ownership and failure handling first.
 
-### 10. [PASS] HARD clear alternates 20 full-panel actions with equal aggregate polarity counts
+### 13. [PASS] HARD clear alternates 20 full-panel actions with equal aggregate polarity counts
 
 **Evidence:** `EPD_Painter.cpp:829` uses phase counts 6, 2, 4, 8; alternating phases total 10 actions per polarity.
 
@@ -151,7 +175,7 @@ EPD_Painter documents `0=float`, `1=whiten`, `2=darken`, and `3=both`. Counts be
 
 **Required action:** Use HARD clear sparingly and record its duration and final optical state.
 
-### 11. [PASS] Automatic shutdown can be disabled for the experiment
+### 14. [PASS] Automatic shutdown can be disabled for the experiment
 
 **Evidence:** `EPD_Painter.h:195` exposes the control.
 
