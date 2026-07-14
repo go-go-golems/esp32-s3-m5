@@ -1,0 +1,19 @@
+# Cardcore: Cardputer-ADV / ESP32-S3, ESP-IDF 5.5.4.
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="8MB"
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# Arduino-ESP32 3.3.10 requires a 1 kHz FreeRTOS tick.
+CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_UART_DEFAULT=n
+CONFIG_ESP_CONSOLE_UART_CUSTOM=n
+CONFIG_ESP_CONSOLE_USB_CDC=n
+# Cardcore does not initialize Wi-Fi or Bluetooth. Arduino-ESP32 currently
+# brings optional library code into the compatibility build; reducing that
+# component's feature surface is a later integration task.
