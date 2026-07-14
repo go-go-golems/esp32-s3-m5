@@ -241,3 +241,12 @@ Step 20 committed exact F0 flash/video evidence and guarded synchronized Printal
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 20
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py — Code commit ec2bf1b
+
+## 2026-07-14
+
+Passed passive physical Printalyzer reference capture: valid CAL-LO was 0.05 D three times and valid CAL-HI was 1.49 D three times at BASIC 0.01 D resolution; six operator-invalid setup readings remain preserved and excluded; no serial input or panel operation occurred.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-calibration-20260714T235306Z.jsonl — Raw immutable event stream
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-reference-result.md — Timestamped reference-measurement disposition
