@@ -23,6 +23,10 @@ RelatedFiles:
       Note: Operator build/flash/monitor and visual qualification procedure
     - Path: repo://0106-papers3-epd-qualification/main/app_main.cpp
       Note: Standalone Phase 0 harness, boundary corpus, diagnostics, soaks, sleep/wake, and waveform comparison (commit 62b7b8e)
+    - Path: repo://0107-papers3-epd-painter-control/main/app_main.cpp
+      Note: Step 14 no-drive firmware entrypoint (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+    - Path: repo://0107-papers3-epd-painter-control/sdkconfig.defaults
+      Note: Exact tick, PSRAM, console, and partition defaults (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
       Note: |-
         Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
@@ -37,6 +41,12 @@ RelatedFiles:
       Note: Reproducible audit implementation (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
+      Note: Final build identity (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/13-built-control-audit-latest.md
+      Note: Passing no-drive binary gate (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
+      Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
       Note: Source that established audit blockers (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt
@@ -57,6 +67,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1351,4 +1362,133 @@ stage policy: 2, explicit non-interlaced
 boot panel operations: 0
 first allowed operation: HARD white cleanup + bounded completion
 first hardware task: P0.17, not yet started
+```
+
+## Step 14: Build the hardened no-drive independent control
+
+I completed P0.15 in the numbered `0107-papers3-epd-painter-control` directory. The project is a pure ESP-IDF 5.4.2 application with a vendored EPD_Painter component reconstructed from ticket evidence plus a zero-fuzz local patch. The current console exposes only help and status; static inspection confirms that no panel operation is reachable from the command surface.
+
+The final build is warning-free and passes a twelve-check source/configuration/ELF audit. No flash or serial attach occurred, so the board remains on FactoryTest V0.5. The implementation also exposed a critical timing requirement: a 100 Hz FreeRTOS tick would truncate EPD_Painter's 4 ms and 8 ms waveform gaps to zero, so the control fixes and records a 1000 Hz tick.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same request as Step 12)
+
+**Assistant interpretation:** Implement the next approved task in a numbered repository firmware directory, preserve every preparation/build/audit attempt under ticket scripts, and stop before hardware flashing.
+
+**Inferred user intent:** Obtain a reproducible independent-driver binary whose local differences are reviewable and whose initial behavior cannot accidentally run a panel waveform.
+
+**Commit (code/research):** `f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7` — "Firmware: add hardened PaperS3 EPD control"
+
+### What I did
+
+- Created `0107-papers3-epd-painter-control` with ESP-IDF project files, custom 4 MiB factory partition, octal PSRAM, USB Serial/JTAG, and 1000 Hz FreeRTOS tick defaults.
+- Added a status-only `BOOT_LOCKED` application that validates exact PaperS3 dimensions/pins and PSRAM before calling driver `begin()`.
+- Added `scripts/patches/11-epd-painter-pure-idf-hardening.patch` and a zero-fuzz preparation script that verifies upstream SHA manifests and waveform byte identity.
+- Corrected GPIO mux arguments, safe-low initialization, GDMA return handling, allocation ordering/checks, packed-state initialization, semaphore/task checks, pure-IDF logging, and current IDF API use.
+- Added `waitIdle()`, synchronous `powerDown()`, pending-stage, initialized, and panel-power-control-state diagnostics.
+- Disabled the boot/NVS/shutdown controller at compile time and excluded its source from the component build.
+- Added `scripts/12-build-epd-painter-control.sh`, which recreates sdkconfig/build state, enforces exact IDF 5.4.2, rejects warnings, captures size/hashes, and performs no flash.
+- Added `scripts/13-audit-built-epd-control.py`, which checks waveform identity, compile definitions, ELF/archive symbols, no-drive command surface, tick/console/PSRAM config, packed-buffer initialization, warnings, and absence of flash operations.
+- Preserved all five build logs and failed/passing binary-audit snapshots under `scripts/output/`.
+- Checked task P0.15 and committed the firmware/evidence milestone.
+
+### Why
+
+- The independent control must differ from M5GFX in driver/waveform representation, not in undocumented local pulse edits.
+- Safe initialization and a status-only first binary let firmware construction be reviewed separately from physical execution.
+- The 1000 Hz tick is required to preserve upstream millisecond delay intent; leaving the default at 100 Hz would silently create a different waveform timing experiment.
+
+### What worked
+
+- Strict upstream `MANIFEST.txt` verification passes.
+- The 469-line patch applies with zero fuzz.
+- Prepared and upstream `EPD_Painter_presets.h` hashes are identical: `98152d0a16bfe02d4c150617822ebd39dae940884aca7a9d5bcb5900b0169f47`.
+- Exact ESP-IDF 5.4.2 clean build succeeds with zero warnings.
+- Application size is 293,248 bytes in a 4 MiB partition.
+- Static/binary audit passes all twelve checks.
+- Build and audit scripts explicitly report `hardware_modified=no`.
+- Build directory and generated sdkconfig are ignored and were not committed.
+
+### What didn't work
+
+- The first clean configure failed with:
+
+  ```text
+  Failed to resolve component 'esp_driver_gdma' required by component
+  'epd_painter': unknown name.
+  ```
+
+  IDF 5.4.2 exposes the private GDMA API through `esp_hw_support`; the component requirement was corrected.
+
+- The next compilation failed under IDF warning policy with:
+
+  ```text
+  error: this 'if' clause does not guard... [-Werror=misleading-indentation]
+  ```
+
+  Braces were added around the existing `dither()` statement without changing behavior.
+
+- The following successful build exposed duplicate `IRAM_ATTR` declaration/definition section attributes and report generation printed:
+
+  ```text
+  scripts/12-build-epd-painter-control.sh: line 69: text: command not found
+  ```
+
+  The duplicate definition attributes were removed while retaining declaration placement, and Markdown code fences in the expanding heredoc were changed to tildes.
+
+- Initial binary audit failed only because `waitIdle()` was compiled into the component archive but garbage-collected from the status-only ELF. The audit was corrected to inspect the component archive for APIs intentionally unused by P0.15. The failed audit snapshot remains preserved.
+
+### What I learned
+
+- In IDF 5.4.2, `gdma_new_ahb_channel()` and `esp_private/periph_ctrl.h` avoid deprecated compatibility paths used by the upstream source.
+- `EPD_DELAY_MS(4)` and `EPD_DELAY_MS(8)` are not preserved by `pdMS_TO_TICKS` at 100 Hz. Toolchain configuration is part of waveform identity.
+- A static library symbol check is the correct P0.15 gate for an API deliberately not called by the no-drive application.
+- EPD_Painter's assembly consumes almost all separately reported IRAM even in the minimal build.
+
+### What was tricky to build
+
+- Driver initialization crosses GPIO routing, LCD_CAM, private GDMA, internal DMA-capable memory, PSRAM, FreeRTOS resources, and asynchronous power handling. Failure checks had to occur before any pointer dereference or command exposure.
+- The local patch had to preserve `EPD_Painter_presets.h` byte-for-byte while still adapting private IDF API use and non-waveform code quality.
+- The source uses `IRAM_ATTR` on both declarations and definitions. IDF's section macro includes a counter, so duplicate attributes name conflicting sections; retaining only one placement removes the warning.
+- Evidence logs contained cosmetic trailing spaces from CMake/size tables. The build script now normalizes those after capture so committed raw messages pass Git whitespace checks.
+
+### What warrants a second pair of eyes
+
+- Review `waitIdle()` for the final-stage/semaphore ordering described in Step 13.
+- Review `PanelPowerGuard::powerDownNow()` and the direct PWR→OE→SPV/CKV/LE/SPH safe-state sequence.
+- Review that `EPD_PAINTER_DISABLE_BOOTCTL` removes all reset-toggle and NVS behavior without leaving required lifecycle references.
+- Review the 1000 Hz tick as an intended preservation of 4/8 ms gaps.
+- IRAM is 16,383/16,384 bytes, leaving one byte. P0.16 must add no IRAM-attributed code and must rerun size validation.
+
+### What should be done in the future
+
+- Implement P0.16's constrained cleanup/target commands, packed fixtures, transaction records, FAULT behavior, and host runner.
+- Rerun clean build and twelve-check audit after P0.16.
+- Add exclusive flash/smoke scripts but do not execute them until P0.17 review and operator readiness.
+- Keep every new command sequence and result under ticket `scripts/output/`.
+
+### Code review instructions
+
+- Start with `0107-papers3-epd-painter-control/README.md` and `main/app_main.cpp`.
+- Review `scripts/patches/11-epd-painter-pure-idf-hardening.patch`, then rerun `scripts/11-prepare-epd-painter-control.sh`.
+- Run `scripts/12-build-epd-painter-control.sh`; expect exact IDF 5.4.2, zero warnings, and `hardware_modified=no`.
+- Run `scripts/13-audit-built-epd-control.py`; expect twelve passes and the IRAM review item.
+- Verify `git check-ignore -v` for `build-ticket/` and `sdkconfig.ticket`.
+
+### Technical details
+
+```text
+project: 0107-papers3-epd-painter-control
+upstream: 753c521da8aef59756df07c1a4eb88f1c64c8227
+patch SHA-256: 89e34a7f24060763c3f38aae7d4aaceeb8773e112256f1d21200b4a11fd1557b
+app SHA-256: e8cac94e9062a7b1a4cfc4d989d63e4e5bce5181e0d3f70a201b03dfec6ccbe1
+ELF SHA-256: fd973bc3f3439a05cca9e1d699a9bb3a0a4e970eea42945a0b5ad317167f98d0
+application bytes: 293248
+IRAM: 16383 / 16384 bytes
+build warnings: 0
+binary audit: 12 / 12 pass
+panel commands exposed: 0
+hardware flashed: no
+board firmware: FactoryTest V0.5
 ```
