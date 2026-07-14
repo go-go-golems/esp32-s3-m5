@@ -49,6 +49,8 @@ RelatedFiles:
       Note: Reproducible audit implementation (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/14-generate-epd-control-fixtures.py
       Note: Fixture generation and identity (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py
+      Note: Step 20 shared-clock serial capture and guarded raw mode (commit ec2bf1b)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
@@ -63,6 +65,8 @@ RelatedFiles:
       Note: Step 18 observer-effect evidence (commit 2badb87)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
       Note: Step 19 19-check audit (commit 4ab273a)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-synchronized-serial-capture-validation.md
+      Note: Step 20 validation and preserved observer reset failure (commit ec2bf1b)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
@@ -85,6 +89,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2073,4 +2078,131 @@ F2 app: 95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755
 F0 exact release: d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624
 audit: 19/19 PASS
 hardware modified: no
+```
+
+## Step 20: Capture F0 and establish a shared optical/firmware timebase
+
+This step executed the exact-vendor F0 treatment once, ingested its original locked-camera recording, and turned the newly connected Printalyzer into a timestampable evidence source. A single NDJSON process can now capture both serial channels against one monotonic clock while preserving raw bytes and receive-time bounds.
+
+The observer-control work also found a consequential failure: pyserial modem-state application reset the PaperS3 into ROM download mode. The failed trace is retained, the firmware channel was redesigned as a truly read-only OS descriptor, and the board was intentionally not rebooted because F0 would drive the panel again at boot.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, write a little program to capture timestamps streaming events, that way you can correlate to the firmware logs, and thus you can really do synchronized readings and get full feedback, right?"
+
+**Assistant interpretation:** Implement and validate a common-host-clock serial collector for Printalyzer optical events and PaperS3 firmware events, with explicit safety gates and enough metadata to correlate deferred firmware traces.
+
+**Inferred user intent:** Replace subjective-only EPD judgments with synchronized, reproducible optical feedback that can be joined to firmware scheduling evidence.
+
+**Commit (code):** `ec2bf1bc5efd366a684af1f345e3f0f8f62accf0` — "Experiment: capture F0 video and synchronized serial"
+
+### What I did
+
+- Flashed the exact F0 merged release once after operator camera readiness.
+- Preserved the flash transcript, append-only experiment events, and separate automatic/optical disposition.
+- Received the original 311,999,671-byte Blackmagic Camera MOV and stopped the temporary upload service.
+- Hashed the MOV as `2968870a3609a8bda80440aaacaf1e9f8b5acf2f551fb6c0ff2343d448420c06`.
+- Captured ffprobe metadata: iPhone 15 Pro 24 mm, Blackmagic Cam 3.3.100001, 60 fps, 1/120 s, ISO 149, 3210 K, tint +4, HEVC/BT.709.
+- Generated a tracked contact sheet while keeping the 298 MiB original local and hash-addressed outside normal Git storage.
+- Identified the Printalyzer at its stable by-id path and downloaded its pinned protocol/source/manual in the preceding source commit.
+- Implemented shared-clock dual-source capture with raw bytes, first/last receipt timestamps, monotonic-derived UTC, parsing, and ordered NDJSON.
+- Added passive, fixed read-only inventory, and explicitly gated raw-stream modes.
+- Added a pseudo-terminal integration test that proves raw parsing and STOP → light-off → remote-exit cleanup order.
+- Ran a successful read-only inventory of the physical Printalyzer v1.1.0.
+- Replaced pyserial firmware attachment with `O_RDONLY | O_NOCTTY | O_NONBLOCK` and validated that it issues no modem-control ioctl or write.
+
+### Why
+
+- One host monotonic clock permits optical and firmware records to be ordered without trusting independently adjusted wall clocks.
+- Raw bytes and receipt windows preserve evidence needed to estimate USB and integration latency later.
+- Printalyzer raw streaming changes light/sensor state and is not calibrated density, so it needs a stronger gate than passive capture.
+- ESP32 USB Serial/JTAG modem control is behaviorally active even when no application bytes are written; a scientific observer must not reset the treatment.
+
+### What worked
+
+- F0 flash completed and esptool verified the written data.
+- The original video captures the sequence at 60 fps with fixed shutter, ISO, and white balance metadata.
+- Preliminary contact-sheet review identifies black, white, and grayscale stages and suggests ordered grayscale with possible right-edge residue; this is not yet the optical disposition.
+- Printalyzer read-only commands all returned under DTR asserted, including firmware/build identity and calibration getters.
+- Physical inventory changed no calibration, light, remote mode, or panel state.
+- The fake raw stream produced nine parsed `GD S` samples and exact cleanup ordering.
+- A post-fix firmware-only attachment opened and closed with no reset output.
+
+### What didn't work
+
+- The first Printalyzer inventory used DTR deasserted and timed out:
+
+```text
+TimeoutError: timed out waiting for response to 'GS V'
+```
+
+  Source inspection confirmed the Printalyzer considers CDC connected only while DTR is asserted. The densitometer-specific path now uses DTR true; the firmware path does not use pyserial.
+- The first dual-port “passive” smoke test opened ESP32 USB Serial/JTAG with DTR/RTS deasserted through pyserial and caused:
+
+```text
+ESP-ROM:esp32s3-20210327
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x0 (DOWNLOAD(USB/UART0))
+waiting for download
+```
+
+  This was a real observer failure. The board remains in ROM download mode; no automatic recovery boot was performed.
+- The first pseudo-terminal harness exited on Linux PTY `EIO` before the slave opened:
+
+```text
+OSError: [Errno 5] Input/output error
+```
+
+  The permanent test treats pre-open PTY `EIO` as a retry condition and then passes.
+
+### What I learned
+
+- “No serial payload” does not mean “no hardware effect”; modem-control ioctls can reset and strap an ESP32-S3.
+- Printalyzer CDC and ESP USB Serial/JTAG need different open strategies despite both appearing as `/dev/ttyACM*`.
+- The Printalyzer installed firmware is v1.1.0 build `g7101373`, not necessarily the latest upstream source snapshot.
+- Common host timestamps improve correlation but do not erase sensor integration, USB buffering, or F2's deliberate post-idle dump delay.
+- Video container metadata can preserve camera controls more reliably than later operator recollection.
+
+### What was tricky to build
+
+- Concurrent readers must serialize output without losing per-source order. The sink assigns one process-global sequence under a lock while retaining source-local line sequences.
+- UTC must remain ordered if NTP changes the wall clock. Each event derives UTC from fixed realtime/monotonic anchors.
+- Firmware observation needed a descriptor that could not transmit or touch DTR/RTS. A read-only non-controlling `os.open` path replaced pyserial entirely.
+- Raw-stream cleanup must run after partial entry failure. Cleanup is armed before `IS REMOTE,1`, then attempts sensor stop, reflection light off, and remote exit in order.
+- The original video exceeds ordinary Git hosting limits. It remains local with SHA-256 and full ffprobe metadata while compact review derivatives are tracked.
+
+### What warrants a second pair of eyes
+
+- Review whether read-only tty open truly remains modem-neutral on all target kernels, not only this host.
+- Review first/last-byte timestamp semantics for chunks containing multiple lines; they are receipt bounds, not sensor integration bounds.
+- Review raw-stream gain/integration/light values only after a static target saturation experiment; defaults are not an authorization.
+- Review the video contact sheet at full-resolution representative frames before assigning F0 optical pass/fail.
+- Review recovery from ROM mode before pressing reset because F0 boot replays title → black → white → grayscale.
+
+### What should be done in the future
+
+- Extract exact F0 stage boundaries and full-resolution representative frames from the original MOV.
+- Complete operator and analytical F0 optical disposition before authorizing F1.
+- Preregister a separate Printalyzer geometry/latency/saturation experiment.
+- Add explicit device-time anchors before relying on sub-integration-period correlation.
+- After operator authorization, reset the board from ROM mode with the camera running or replace F0 with a non-driving firmware by an explicitly reviewed flash path.
+
+### Code review instructions
+
+- Start with `scripts/output/29-synchronized-serial-capture-validation.md`.
+- Review `scripts/29-capture-synchronized-serial.py`, especially `_open_firmware_read_only`, `enter_raw_stream`, and `leave_raw_stream`.
+- Run `scripts/30-test-synchronized-serial.py`; expect the seven-command sequence and PASS.
+- Run `ruff check` and `python3 -m py_compile` on scripts 29 and 30.
+- Verify the F0 preregistration hashes still pass and compare `events.jsonl` with the flash/video hashes.
+- Do not run actual raw streaming as part of code review.
+
+### Technical details
+
+```text
+F0 firmware SHA-256: d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624
+F0 video SHA-256: 2968870a3609a8bda80440aaacaf1e9f8b5acf2f551fb6c0ff2343d448420c06
+Printalyzer port: /dev/serial/by-id/usb-Dektronics_Printalyzer_Densitometer_323147103439323344002900-if00
+Printalyzer firmware: v1.1.0, g7101373, 2023-06-13 17:41
+Printalyzer UID: 323147103439323344002900
+PaperS3 state after observer failure: ROM download mode
+Actual Printalyzer raw stream executed: no
 ```
