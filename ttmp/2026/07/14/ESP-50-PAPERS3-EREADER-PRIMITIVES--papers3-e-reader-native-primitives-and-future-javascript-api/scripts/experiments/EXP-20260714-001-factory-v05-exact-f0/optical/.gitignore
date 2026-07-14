@@ -1,0 +1,4 @@
+# Original camera files are preserved locally and identified by SHA-256 in the ledger.
+# They exceed normal Git hosting limits; derived review images remain trackable.
+*.mov
+frames-overview/

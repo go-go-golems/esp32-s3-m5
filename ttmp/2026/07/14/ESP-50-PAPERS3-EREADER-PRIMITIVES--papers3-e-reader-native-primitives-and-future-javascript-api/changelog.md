@@ -222,3 +222,13 @@ Captured the Printalyzer Densitometer protocol at upstream commit f91c91e, inclu
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/docs/usb-control-protocol.md — USB protocol source
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/firmware/cdc_handler.c — Authoritative command implementation
+
+## 2026-07-14
+
+Executed exact F0 once, ingested and hashed the original 60 fps video, added common-host-clock Printalyzer/PaperS3 capture, verified Printalyzer v1.1.0 read-only inventory, and preserved a pyserial observer failure that reset the board into ROM download mode; no automatic recovery was attempted because F0 boot replays the panel sequence.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py — Synchronized capture implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/events.jsonl — F0 execution evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-synchronized-serial-capture-validation.md — Validation and observer failure

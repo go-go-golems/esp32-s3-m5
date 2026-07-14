@@ -17,12 +17,12 @@ RelatedFiles:
       Note: F2 post-idle fixed-ring implementation
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/17-decode-m5gfx-epd-waveforms.py
       Note: Deterministic non-invasive waveform decoder
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/01-preregistration.md
-      Note: F0 immutable hypothesis and optical protocol
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
       Note: 18-check observer-effect audit and machine-code identity evidence
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
       Note: 19-check stock-source observer and provenance audit
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-synchronized-serial-capture-validation.md
+      Note: Shared-clock collector validation, read-only inventory, and preserved ESP32 reset observer failure
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/docs/usb-control-protocol.md
       Note: Commit-pinned Printalyzer CDC command contract for optical-density logging
 ExternalSources: []
@@ -31,6 +31,8 @@ LastUpdated: 2026-07-14T21:25:00Z
 WhatFor: Turn visual EPD trials into source-backed, timing-aware, reproducible experiments.
 WhenToUse: Use before modifying M5GFX, replaying FactoryTest, attaching measurement equipment, or comparing waveform endpoints.
 ---
+
+
 
 
 
@@ -322,3 +324,20 @@ F2/trace: 95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755
 ```
 
 No 0109 or matrix A/B artifact has been flashed. The next action is an operator-gated F0 video run using the exact merged release, not an instrumented image.
+
+## Post-F0 adjunct: synchronized optical serial capture
+
+F0 exact release was subsequently flashed once and recorded. The original 45.6775-second, 60 fps HEVC MOV is preserved under the F0 experiment with SHA-256 `2968870a3609a8bda80440aaacaf1e9f8b5acf2f551fb6c0ff2343d448420c06`; optical disposition remains pending frame extraction and operator review.
+
+A connected Printalyzer Densitometer v1.1.0 provides a potential objective reflection channel. Script `29-capture-synchronized-serial.py` places Printalyzer CDC lines and PaperS3 serial lines on one host monotonic/UTC timeline. It preserves raw bytes, first/last-byte receipt bounds, per-source sequences, parsed density/raw sensor records, and any device timestamps present in firmware output.
+
+The modes remain deliberately separate:
+
+1. passive capture sends no input;
+2. read-only inventory sends a fixed `GS`/`GM`/`GC` allowlist;
+3. raw streaming requires an explicit confirmation and transiently executes `IS REMOTE`, sensor configuration, reflection-light control, and `ID S,START`;
+4. calibrated-density claims require the normal Printalyzer measurement path or a separately validated host conversion. `GD S` raw channels are not density.
+
+The first dual-port smoke test found an important observer effect: opening ESP32-S3 USB Serial/JTAG through pyserial with an assumed safe DTR/RTS state reset the board into ROM download mode. The implementation now opens firmware serial using a read-only, non-controlling OS file descriptor and cannot transmit or issue modem-control ioctls. The failed reset evidence is retained; the board is not reset back into F0 automatically because doing so would replay the panel sequence.
+
+Common host timing enables stronger correlation, but not exact physical simultaneity by itself. Printalyzer events are reported after integration and USB transport, while F2 ring events are intentionally dumped only after panel idle. Analysis must account for the integration window and USB latency, then align deferred device-time events through explicit anchors or observed optical transition edges. This channel still does not replace external rail, VCOM, current, or logic capture.
