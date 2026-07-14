@@ -1035,3 +1035,100 @@ factory broad-black concern + crisp dashboard
   does not establish: independent waveform failure
   next control: independent PaperS3 waveform/scan implementation
 ```
+
+## Step 11: Publish the complete investigation as a textbook-style Obsidian report
+
+I consolidated the complete reader-program context, electrophoretic foundations, PaperS3 electrical design, M5GFX software path, qualification methodology, Cell C/D results, factory control, related reports, hypothesis ranking, independent drivers, and next experiments into one long-form report. The report is written for a technically capable reader who starts with no e-paper background, so it defines the physical state variables and scan path before interpreting any firmware result.
+
+The ticket report is the source document. The Obsidian article contains the full body rather than a reduced summary, with vault-specific frontmatter, a project-context callout, and links to existing PaperS3 notes. It explicitly corrects older vault material that identified PaperS3 as an IT8951 system; this board directly drives the ED047TC1 panel.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, also  write a detailed project report for the obsidian vault as a deep dive technical analysis blog post using a textbook writing style (no analogies, see skill).
+ Commit and push the bsidian vault when done (go-go-parc vault).
+
+For the investigations so far, and all the work and research you did. Go in deep, the readers will know nothing about eink at first, so cover all the base stuff, and explain it in depth . This article can be substantially longer than usual since there is so much ground to cover"
+
+**Assistant interpretation:** Create a substantially longer-than-normal, foundational technical article covering the entire project and investigation; preserve it as a full ticket report and full Obsidian article; use precise textbook prose without analogies; then commit and push only the intended vault note.
+
+**Inferred user intent:** Turn the transient investigation into durable, self-contained engineering knowledge that a new reader can use to understand e-paper physics, reproduce the PaperS3 evidence, and continue the diagnosis safely.
+
+**Commit (code):** N/A — documentation only
+
+**Commit (research report):** pending
+
+**Commit (Obsidian vault):** pending
+
+### What I did
+
+- Loaded the Obsidian research-report, vault-writing, textbook-authoring, and Obsidian Markdown skills plus their writing, source, structure, and delivery references.
+- Read the vault's long-form article exemplar and existing PaperS3/e-ink notes to match frontmatter, wikilink, callout, and prose conventions.
+- Added `design-doc/02-papers3-e-paper-qualification-deep-dive.md` as the 64 KB primary ticket report.
+- Explained electrophoretic particle motion, active-matrix row scanning, source/gate rails, VCOM, temporal grayscale, temperature, transition history, and DC balance before introducing the software stack.
+- Covered the complete reader-program context: the fluent prototype, prior firmwares, native-first roadmap, one-owner architecture, and reason MicroQuickJS remains deferred.
+- Included four Mermaid diagrams, systematic comparison tables, equations, pseudocode, concrete logs, operator quotes, decision records, acceptance criteria, working rules, and a categorized reference section.
+- Created the full Obsidian article at `Research/2026/07/14/ARTICLE - PaperS3 E-Paper Qualification - Physics, Waveforms, and Physical Drive.md`.
+- Added vault links to `[[PROJ - PaperS3 E-Reader - Interactive Book Reader on E-Ink]]` and `[[E-Ink Display Driving]]` while preserving the new report as a standalone article.
+- Validated ticket frontmatter, vault YAML, balanced code fences, Markdown whitespace, article size, internal-link presence, and the no-analogy requirement.
+
+### Why
+
+- The investigation crosses physics, analog circuitry, scan timing, memory safety, software state, and application architecture. A concise incident summary would omit the causal relationships a new engineer needs.
+- The vault already contains older PaperS3 notes with low-level inaccuracies. A new dated report preserves history while establishing a corrected technical reference without overwriting older notes.
+- A full source report in the ticket keeps claims tied to downloaded evidence, while the vault copy makes the same depth available where the user reads long-form material.
+
+### What worked
+
+- The source report is 64,886 bytes and approximately 9,000 words, within the requested substantial-report range.
+- The vault article is 63,170 bytes and preserves the complete technical body with vault-specific metadata.
+- `docmgr validate frontmatter` passed for the ticket report.
+- YAML parsing passed for the vault article and confirmed required article metadata.
+- Both repositories passed `git diff --check` for the intended files.
+- A targeted phrase scan found none of the prohibited analogy patterns.
+
+### What didn't work
+
+- N/A for report generation. The existing vault had unrelated untracked `.pi/npm/`, `.pi/settings.json`, and `.ttmp.yaml` entries; they were intentionally left untouched and will not be staged.
+
+### What I learned
+
+- The earlier vault on-ramp incorrectly described PaperS3 as an IT8951 device and simplified full/partial refresh into fixed sequences. The new report corrects those claims with direct ED047TC1, schematic, M5GFX, and EPDiy evidence.
+- The project narrative is clearer when the reader first understands the three distinct states: target framebuffer, driver transition state, and physical panel state.
+- The factory result only becomes meaningful after the LUT source comparison; without that context, readers could incorrectly treat factory firmware as an independent waveform validation.
+
+### What was tricky to build
+
+- The article had to teach e-paper from first principles without replacing technical mechanisms with analogies. State variables, field polarity, scan diagrams, equations, and concrete transition tables provide the required clarity.
+- The report needed to separate measured facts, operator judgments, source claims, calculated nominal values, and untested hypotheses. Each section labels those evidentiary levels rather than collapsing them into one diagnosis.
+- The vault copy needed different YAML and internal links while retaining the full ticket body. The adaptation changes metadata and project context only; it does not shorten the technical report.
+
+### What warrants a second pair of eyes
+
+- Review the simplified particle-displacement equation and ensure readers do not interpret it as a complete electrohydrodynamic model.
+- Review the nominal rail and VCOM calculations against the original schematic render and the panel's actual printed VCOM assignment when available.
+- Review the characterization of EPD_Painter as the preferred next control; its documentation and source are current, but its safety and optical claims remain unverified on this unit.
+- Review the explicit corrections to older vault notes before those notes are separately updated or superseded.
+
+### What should be done in the future
+
+- Build and run the minimal independent-driver control described in the report.
+- Create a separate dated correction or update for the older `E-Ink Display Driving` on-ramp rather than silently rewriting its historical content.
+- Add objective optical photographs and rail measurements to the article when those experiments are complete.
+
+### Code review instructions
+
+- Read `design-doc/02-papers3-e-paper-qualification-deep-dive.md` from the beginning; it is designed to be self-contained.
+- Compare its evidence claims with `analysis/01-*`, `analysis/02-*`, and `sources/README.md`.
+- Inspect the vault article frontmatter, project-context callout, Mermaid blocks, and final references.
+- Validate with `docmgr validate frontmatter`, `docmgr doctor`, `git diff --check`, and a YAML parse of the vault frontmatter.
+
+### Technical details
+
+```text
+Ticket report: 64,886 bytes; 1,154 lines; ~9,000 words
+Vault article: 63,170 bytes; 1,139 lines
+Mermaid diagrams: 4
+Markdown tables/rows: 117
+Code-fence markers: 34 (balanced)
+Prohibited analogy phrase matches: 0
+```

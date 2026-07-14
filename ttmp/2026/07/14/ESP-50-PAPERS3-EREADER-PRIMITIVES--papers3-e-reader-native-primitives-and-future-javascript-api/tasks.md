@@ -189,3 +189,4 @@
 - [ ] [P13.8] Verify clean builds from the documented component pins and confirm build artifacts remain ignored <!-- t:8t9i -->
 - [ ] [P13.9] Complete the intern guide, architecture/API references, hardware operator playbook, and troubleshooting guide <!-- t:lrvm -->
 - [ ] [P13.10] Run final docmgr validation, code review checklist, firmware build, hardware acceptance, and reMarkable delivery <!-- t:y5v5 -->
+- [x] Publish the complete PaperS3 EPD investigation as a textbook-style Obsidian research article <!-- t:dv3y -->
