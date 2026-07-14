@@ -1055,9 +1055,9 @@ For the investigations so far, and all the work and research you did. Go in deep
 
 **Commit (code):** N/A — documentation only
 
-**Commit (research report):** pending
+**Commit (research report):** `fdb97055f0638e5e16dc29d39d0369956c900ef0` — "Docs: publish PaperS3 EPD technical deep dive"
 
-**Commit (Obsidian vault):** pending
+**Commit (Obsidian vault):** `218cd195a0e593fa3f1c465a5f48896468db422b` — "Research: document PaperS3 EPD qualification" (pushed to `origin/main`)
 
 ### What I did
 

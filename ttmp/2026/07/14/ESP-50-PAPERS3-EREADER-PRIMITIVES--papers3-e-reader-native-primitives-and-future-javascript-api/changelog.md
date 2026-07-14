@@ -66,7 +66,7 @@ Phase 0: flashed official FactoryTest V0.5, recorded similar broad-black weaknes
 
 ## 2026-07-14
 
-Published a self-contained 64 KB technical deep dive covering the reader program, e-paper physics, PaperS3 hardware, M5GFX waveforms, measured qualification, factory control, related reports, causal hypotheses, and independent-driver experiment design.
+Published a self-contained 64 KB technical deep dive covering the reader program, e-paper physics, PaperS3 hardware, M5GFX waveforms, measured qualification, factory control, related reports, causal hypotheses, and independent-driver experiment design (report commit `fdb97055f0638e5e16dc29d39d0369956c900ef0`; vault commit `218cd195a0e593fa3f1c465a5f48896468db422b`, pushed to `origin/main`).
 
 ### Related Files
 
