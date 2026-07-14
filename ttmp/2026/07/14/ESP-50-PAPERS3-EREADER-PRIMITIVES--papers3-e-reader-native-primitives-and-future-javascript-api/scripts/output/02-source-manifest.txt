@@ -1,0 +1,31 @@
+== Imported files ==
+858dc5d97febc3a1990969e1b72228e693ba68b81b6ad9981ce541cd97bb4110  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-api-design.md
+f5c438f2f6b9bedcfd4bd078035de981046e688558a5121d5a8c4417fdc9434a  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-studio.jsx
+
+== Defuddle downloads ==
+4a1e4ebe6567fcac1bd6fc7756cb318312093b64ec9f678a612720c4bb397fb0  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/01-m5stack-papers3-hardware.md
+e6e98dc86c69c5a7b8328f7bb6fb198b09babe7b2d378f474ef287b12c591d09  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/02-m5papers3-userdemo.md
+36bf88e91102dab850389909c724f454cb7d10c811d30f78940aefe08f815e1b  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/03-m5gfx-papers3-driver.md
+e0abd3351ccbfeb0c063421fcf7c3e3fd5c2ec7e1cb938dc672e5ac680a805dd  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/04-m5gfx-issue-181-panel-epd-heap-corruption.md
+b6f344a88a8352df0ae7c5456092129c05f2e10585bb99b019ed982ab44d0da7  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/05-m5gfx-issue-152-waveform-and-ghosting.md
+8cb6814e3c6d81c9915cd7f6fd319cd66c399508a0e6f272898722c8ffc95ccb  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/06-mquickjs-readme.md
+1d55f77afb0c45242e669ec67fca60dcb8d15d7a5630bff7eb11358f65038098  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/07-diy-esp32-epub-reader.md
+4eb76d834951164079131c1aaa31f57d825693ff7e2a5a0996cb971fcd147f5e  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/08-diy-ebook-reader-article.md
+d248104ae193aaf0cdb88ea0cebadfd7259be39b0167627343533fdfeba26eb9  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/09-crossink-architecture.md
+ab9be00ad1d4f15207b1bb393e72b002a690fc6214bd960ff620aeeeb01cb5a7  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/10-m5stack-papers3-touch.md
+942d6fdf9da36381d1a4d28fc96b8107b9a1d482455b492c29973a77be729bdd  ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/11-m5gfx-releases.md
+
+   160   5590 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-api-design.md
+  1120  36563 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-studio.jsx
+   265  12106 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/01-m5stack-papers3-hardware.md
+    71   5239 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/02-m5papers3-userdemo.md
+    36   1449 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/03-m5gfx-papers3-driver.md
+    42   3256 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/04-m5gfx-issue-181-panel-epd-heap-corruption.md
+     0    141 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/05-m5gfx-issue-152-waveform-and-ghosting.md
+   259  11652 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/06-mquickjs-readme.md
+   220  12638 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/07-diy-esp32-epub-reader.md
+   177  10613 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/08-diy-ebook-reader-article.md
+   207   8082 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/09-crossink-architecture.md
+   268   3882 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/10-m5stack-papers3-touch.md
+    84   4144 ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/web/11-m5gfx-releases.md
+  2909 115355 total

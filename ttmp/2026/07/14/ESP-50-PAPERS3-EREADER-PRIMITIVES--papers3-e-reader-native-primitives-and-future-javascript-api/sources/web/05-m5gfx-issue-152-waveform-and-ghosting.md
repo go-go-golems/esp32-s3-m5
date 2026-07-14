@@ -1,0 +1,1 @@
+When i update to v0.2.12 the screen of the paperS3 starts to behave erratic (inverted colors, smearing etc.). Downgrade to v0.2.11 fixes this

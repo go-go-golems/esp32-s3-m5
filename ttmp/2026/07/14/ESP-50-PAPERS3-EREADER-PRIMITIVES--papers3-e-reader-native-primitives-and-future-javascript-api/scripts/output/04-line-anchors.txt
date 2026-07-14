@@ -1,0 +1,216 @@
+== Imported JS design anchors ==
+9:## 1. Hello world
+23:## 2. Composing primitives — a status bar
+41:## 3. A reading view — pagination as a first-class concern
+48:    book(currentEpub)
+59:`book()` is a primitive that owns text layout + pagination. Page turns use **partial refresh by default**, but the runtime tracks ghosting and injects a full refresh every N turns — you never think about it (unless you want to; see below).
+63:## 4. Opting into refresh control — the escape hatch lambda
+67:  .refreshPolicy(ctx =>
+80:## 5. Reactive regions — updating a clock without redrawing the page
+85:const clockZone = region(text(() => clock.format("HH:mm")).size("sm"))
+97:## 6. Builder pattern for a full screen — the library
+116:      .paginate("fit")   // fit items to screen height, page — never scroll-blur on e-ink
+124:- **`.paginate("fit")` instead of scrolling.** Smooth scrolling is an anti-pattern on e-ink; the API doesn't offer it. Lists page.
+129:## 7. Everything together — a tiny complete app
+150:## The shape of the design, in one table
+152:| Layer | What it is | Customization point |
+158:| `paper` | the panel itself | `refreshPolicy` lambda |
+== Studio pipeline and runtime anchors ==
+6:   Pipeline (designed to port 1:1 to the device):
+15:   accounting and gesture dispatch stay untouched. No DOM, no CSS, no closures
+78:function layoutWidget(eng, node, box, inv) {
+92:function layoutText(eng, node, box, inv) {
+136:function layoutRow(eng, node, box, inv) {
+189:function layoutCol(eng, node, box, inv) {
+228:function layoutList(eng, node, box, inv) {
+254:function layoutBook(eng, node, box, inv) {
+288:    const pages = [];
+294:  const pages = node.cache.pages;
+321:function layoutRegion(eng, node) {
+350:function layoutPage(eng, n) {
+383:function paintOps(ctx, ops, invert) {
+406:const defaultPolicy = (ctx) => (ctx.turnsSinceFull >= 6 ? "full" : "partial");
+408:function createEngine(canvas, hooks) {
+477:  eng.requestRender = (kind) => {
+494:      k = (eng.policy || defaultPolicy)({
+502:  eng.mountPage = (name, kind) => {
+514:          eng.requestRender("partial");
+518:    eng.requestRender(kind);
+521:  eng.dispatch = (type, x, y) => {
+550:    if (acted && eng.lastRenderAt < t0) eng.requestRender("auto");
+563:function makeEnv(eng) {
+634:  const book = (content) => {
+642:      eng.requestRender("auto");
+646:      eng.requestRender("auto");
+651:  const region = (w) => {
+660:  const page = (name) => {
+685:    eng.mountPage(pb.__node.p.name, "full");
+688:  const paper = () => {
+701:  const nav = {
+706:      eng.mountPage(name, "full");
+710:      if (prev) eng.mountPage(prev, "full");
+730:const PRESETS = [
+1008:    if (end.y - start.y > 120) engineRef.current.dispatch("swipeDown", end.x, end.y);
+1009:    else engineRef.current.dispatch("tap", end.x, end.y);
+1110:                engineRef.current && engineRef.current.requestRender("full")
+== Existing reader app anchors ==
+16:static constexpr std::uint32_t kFullRefreshEveryN = 60;
+17:static constexpr int kCharsPerLine = 100;  // conservative for size 1 in 896px wide area
+18:static constexpr int kLinesPerPage = 31;
+23:void EReaderApp::InitBoard()
+48:void EReaderApp::MountStorage()
+62:    paginator_.Init(kCharsPerLine, kLinesPerPage);
+67:void EReaderApp::BuildReadingScreen()
+117:void EReaderApp::BuildLibraryScreen()
+172:void EReaderApp::ComputeTotalPages()
+210:void EReaderApp::LoadCurrentPage()
+255:void EReaderApp::NextPage()
+259:    LoadCurrentPage();
+266:void EReaderApp::PreviousPage()
+270:    LoadCurrentPage();
+277:void EReaderApp::FullRefresh()
+305:void EReaderApp::HandleTouch()
+321:                    PreviousPage();
+323:                    NextPage();
+329:                    SwitchScreen(AppScreen::LIBRARY);
+343:                            OpenBook(book_idx);
+354:                            SwitchScreen(AppScreen::READING);
+365:void EReaderApp::SwitchScreen(AppScreen target)
+369:        BuildReadingScreen();
+371:        LoadCurrentPage();
+372:        FullRefresh();
+374:        BuildLibraryScreen();
+376:        FullRefresh();
+380:void EReaderApp::ProcessDirtyRefresh()
+413:    if (partial_refresh_count_ >= kFullRefreshEveryN) {
+414:        FullRefresh();
+434:void EReaderApp::OpenBook(int index)
+443:    ComputeTotalPages();
+452:    SwitchScreen(AppScreen::READING);
+468:    LoadCurrentPage();
+487:    FullRefresh();
+493:    InitBoard();
+494:    MountStorage();
+497:void EReaderApp::RunLoop()
+501:        OpenBook(0);
+503:        SwitchScreen(AppScreen::LIBRARY);
+508:        HandleTouch();
+509:        ProcessDirtyRefresh();
+== Existing reader subsystem anchors ==
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:13:bool BookStore::Mount()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:37:bool BookStore::LoadIndex()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:82:        books_[count_].file_size = FileSize(books_[count_].filename);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:93:bool BookStore::SaveIndex()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:113:int BookStore::ReadChunk(const char* filename, int32_t offset, int32_t length, char* buf)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/book_store.cpp:132:int32_t BookStore::FileSize(const char* filename)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:21:int Paginator::PaginateOnePage(const char* text, int text_len)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:100:void Paginator::EnsurePage(BookStore& store, const char* filename, int page_number)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:108:        int bytes_read = store.ReadChunk(filename, offset, kReadAheadSize - 1, read_buf);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:112:        int page_len = PaginateOnePage(read_buf, bytes_read);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:125:int Paginator::FormatText(const char* raw, int raw_len, char* out, int out_size)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:194:int Paginator::GetPageText(BookStore& store, const char* filename, int page_number,
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:197:    EnsurePage(store, filename, page_number + 1);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:201:        EnsurePage(store, filename, page_number + 1);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:215:    int bytes_read = store.ReadChunk(filename, start, length, raw);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/paginator.cpp:222:    return FormatText(raw, bytes_read, buf, buf_size);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/dirty_tracker.cpp:19:void DirtyCollector::Collect(Node* node)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/dirty_tracker.cpp:25:            if (count < kMaxDirtyRects) {
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/dirty_tracker.cpp:46:void DirtyCollector::Merge()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/bookmark_store.cpp:55:bool BookmarkStore::Save()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/bookmark_store.cpp:86:void BookmarkStore::UpdatePosition(const char* filename, int32_t byte_offset, int32_t page_number)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/bookmark_store.cpp:107:        Save();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:48:        LayoutNode(c, x, cursor_y, w, ch);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:60:        LayoutNode(node->children[0], x, y, split_w, h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:61:        LayoutNode(node->children[1], static_cast<int16_t>(x + split_w + divider), y, right_w, h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:100:        LayoutNode(c, cursor_x, y, cw, h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:113:        LayoutNode(c, cx, cy, cw, ch);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:146:void LayoutNode(Node* node, int16_t x, int16_t y, int16_t w, int16_t h)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:167:void LayoutScreen(Screen& screen, int16_t W, int16_t H)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:173:    if (screen.bar) LayoutNode(screen.bar, 0, 0, W, bar_h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:174:    if (screen.body) LayoutNode(screen.body, 0, bar_h, W, body_h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/layout_engine.cpp:175:    if (screen.nav) LayoutNode(screen.nav, 0, static_cast<int16_t>(bar_h + body_h), W, nav_h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:186:void DrawTextBlock(M5GFX& display, Node* node)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:188:    const char* text = node->ext_text ? node->ext_text : node->text;
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:229:    case NodeType::TEXT_BLOCK: DrawTextBlock(display, node); break;
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:234:void RenderSubtree(M5GFX& display, Node* node, const Rect& clip)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/widget_renderer.cpp:257:            RenderSubtree(display, node->children[i], clip);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/gnosis_types.h:123:    const char* ext_text = nullptr;  // External text buffer (for large content like book pages)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/gnosis_types.h:162:static constexpr std::size_t kMaxNodes = 192;
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/gnosis_types.h:168:        if (count_ >= kMaxNodes) return nullptr;
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0080-papers3-ereader/main/gnosis_types.h:178:    Node nodes_[kMaxNodes];
+== Factory demo HAL and refresh anchors ==
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:45:    M5.begin();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:46:    M5.Display.setRotation(1);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:50:    sd_card_init();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:51:    wifi_init();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:141:void Hal::powerOff()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:149:    M5.Power.powerOff();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:159:    powerOff();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:176:void Hal::sd_card_init()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:253:        sd_card_init();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:296:void Hal::wifi_init()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:313:    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:314:    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:513:bool Hal::wasTouchClickedArea(int x, int y, int w, int h)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.cpp:515:    if (GetHAL().isTouchPressed()) {
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:33:    void requestRefresh()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:54:    void powerOff();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:102:    bool isTouchPressed()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:110:    bool wasTouchClickedArea(int x, int y, int w, int h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:120:    void sd_card_init();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/hal/hal.h:121:    void wifi_init();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:19:    GetHAL().display.setEpdMode(epd_mode_t::epd_quality);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:26:void draw_gray_scale_bars()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:31:    GetHAL().display.setEpdMode(epd_mode_t::epd_quality);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:41:void boot_display_test()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:46:    GetHAL().display.setEpdMode(epd_mode_t::epd_quality);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:50:    GetHAL().display.setEpdMode(epd_mode_t::epd_quality);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:54:    draw_gray_scale_bars();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:58:void check_full_display_refresh_request(bool force = false)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:64:        GetHAL().display.setEpdMode(epd_mode_t::epd_quality);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:68:        GetHAL().requestRefresh();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:80:    boot_display_test();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:91:    check_full_display_refresh_request(true);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/M5PaperS3-UserDemo/main/main.cpp:95:        check_full_display_refresh_request();
+== Existing queued canvas ABI anchors ==
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:52:int32_t NormalizePresentMode(int32_t mode)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:64:epd_mode_t MapPresentMode(int32_t mode)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:66:    switch (NormalizePresentMode(mode)) {
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:89:void BeginFrameIfNeeded()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:98:    M5.Display.setEpdMode(MapPresentMode(g_default_present_mode));
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:104:ClampedRect ClampRect(int32_t x, int32_t y, int32_t w, int32_t h)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:129:void InitializePaperCanvas()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:132:    PaperCanvasResetFrame();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:135:int32_t PaperCanvasWidth()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:141:int32_t PaperCanvasHeight()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:147:void PaperCanvasResetFrame()
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:159:void PaperCanvasScreenClear(uint32_t color)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:162:    BeginFrameIfNeeded();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:166:void PaperCanvasDrawRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:168:    const ClampedRect rect = ClampRect(x, y, w, h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:180:    BeginFrameIfNeeded();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:184:void PaperCanvasFillRect(int32_t x, int32_t y, int32_t w, int32_t h, uint32_t color)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:186:    const ClampedRect rect = ClampRect(x, y, w, h);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:198:    BeginFrameIfNeeded();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:202:void PaperCanvasPresent(int32_t mode)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:204:    g_default_present_mode = NormalizePresentMode(mode);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/papers3_canvas.cpp:210:    M5.Display.setEpdMode(MapPresentMode(g_default_present_mode));
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:24:constexpr std::size_t kMaxQueuedCommands = 256;
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:63:HostCommand g_host_commands[kMaxQueuedCommands] = {};
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:95:bool QueueHostCommand(const HostCommand &command)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:97:    if (g_host_api_status.queued_commands >= kMaxQueuedCommands) {
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:168:    InitializePaperCanvas();
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:203:    return QueueHostCommand({ HostCommandType::LogI32, tag, value, 0, 0, 0, 0, 0, 0 });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:208:    return QueueHostCommand({ HostCommandType::DelayMs, 0, ms, 0, 0, 0, 0, 0, 0 });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:217:    return QueueHostCommand({ HostCommandType::ScreenClear, 0, 0, 0, 0, 0, 0, color, 0 });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:231:    return QueueHostCommand({ HostCommandType::DrawRect, 0, 0, x, y, w, h, color, 0 });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:245:    return QueueHostCommand({ HostCommandType::FillRect, 0, 0, x, y, w, h, color, 0 });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:255:    return QueueHostCommand({ HostCommandType::Present, 0, 0, 0, 0, 0, 0, 0, mode });
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:264:bool FlushWasmHostFrame(char *error_message, std::size_t error_message_size)
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:312:                PaperCanvasScreenClear(command.color);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:320:                PaperCanvasDrawRect(command.x, command.y, command.w, command.h, command.color);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:328:                PaperCanvasFillRect(command.x, command.y, command.w, command.h, command.color);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:336:                PaperCanvasPresent(command.mode);
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:354:        std::printf("host_api.canvas.width=%" PRId32 "\n", PaperCanvasWidth());
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:355:        std::printf("host_api.canvas.height=%" PRId32 "\n", PaperCanvasHeight());
+/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0079-papers3-wamr-assemblyscript-console/main/wasm_host_api.cpp:361:    std::printf("host_api.command_queue.capacity=%u\n", static_cast<unsigned>(kMaxQueuedCommands));

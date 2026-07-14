@@ -217,6 +217,10 @@ topics:
       description: UDP networking and datagram protocols
     - slug: audio
       description: Audio hardware and audio control software
+    - slug: eink
+      description: Electronic-ink display hardware, waveforms, refresh policy, and applications.
+    - slug: ereader
+      description: Electronic reader applications, content layout, pagination, libraries, and reading state.
 docTypes:
     - slug: index
       description: Ticket index document
