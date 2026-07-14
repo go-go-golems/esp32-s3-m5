@@ -24,7 +24,9 @@ RelatedFiles:
     - Path: repo://0106-papers3-epd-qualification/main/app_main.cpp
       Note: Standalone Phase 0 harness, boundary corpus, diagnostics, soaks, sleep/wake, and waveform comparison (commit 62b7b8e)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
-      Note: Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
+      Note: |-
+        Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
+        Step 13 independent-control experiment protocol (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/00-research-log.md
       Note: Retroactive reproducibility trace requested by the user
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/05-add-phase-tasks.sh
@@ -33,6 +35,8 @@ RelatedFiles:
       Note: Safe replay control and non-destructive check (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
       Note: Reproducible audit implementation (commit 4c1c89c76e22768d142310b75db631132379a711)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
+      Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
       Note: Source that established audit blockers (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt
@@ -53,6 +57,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1243,4 +1248,107 @@ firmware created: no
 firmware flashed: no
 board state: official FactoryTest V0.5
 serial owner after checks: none
+```
+
+## Step 13: Design the bounded independent-driver experiment
+
+I completed P0.14 before creating firmware. The design fixes the toolchain and dependency boundary, defines an explicit no-drive boot state, specifies a constrained hardening patch, and turns every physical operation into a bounded state transition with machine-readable evidence. It also defines the exact transition, area, checker-inversion, and reader-page experiments plus what each outcome can and cannot establish.
+
+A deeper pass over initialization expanded the upstream audit from five to eight blockers. In addition to the first findings, DMA row buffers are dereferenced before their delayed guard, pure ESP-IDF compilation uses an Arduino-only `log_w` macro, and semaphore/task creation is unchecked. The generated audit and long-form analysis now agree on the expanded gate.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same request as Step 12)
+
+**Assistant interpretation:** Finish and commit the safety and causal design for the independent EPD control before implementing its firmware, while preserving every reproducible action in the ticket.
+
+**Inferred user intent:** Ensure the first non-M5 waveform experiment is safe, reviewable, and capable of distinguishing software-waveform behavior from shared physical-panel behavior.
+
+**Commit (code/research):** `e7e4848d9544b902dcf79246fa520f039c2d74ee` — "Docs: design independent PaperS3 EPD experiment"
+
+### What I did
+
+- Re-read the complete raw EPD_Painter initialization, task, clear, power, and packed-buffer paths.
+- Added source checks for DMA dereference-before-guard, Arduino-only logging in the pure-IDF path, and unchecked FreeRTOS resource creation.
+- Regenerated the audit with eight blockers and two review items.
+- Selected pure ESP-IDF 5.4.2 to match existing Cell D while excluding Arduino, Adafruit_GFX, M5GFX, M5Unified, Wi-Fi, touch, SD, RTC, and application frameworks.
+- Fixed the future firmware location as `0107-papers3-epd-painter-control/` and required vendor preparation through a numbered ticket script plus exact local patch.
+- Defined safe boot and shutdown pin states, unchanged HIGH waveform content, explicit two-stage convergence, and a semaphore-backed bounded `waitIdle()` contract.
+- Defined `BOOT_LOCKED`, `WHITE_KNOWN`, `TARGET_KNOWN`, and `FAULT` states with a deliberately small command grammar.
+- Specified full-field, centered area, checker inversion, and generated reader-page fixtures.
+- Specified fixed-camera optical capture, operator disposition fields, automatic versus optical acceptance, stop conditions, risk controls, and a result-to-hypothesis decision table.
+- Checked task P0.14 and committed the design milestone.
+
+### Why
+
+- Changing waveform content while changing drivers would make the result difficult to interpret. The local patch is therefore constrained to correctness and observability.
+- A timeout cannot safely be followed by automatic cleanup if the scan task may still own the panel. A terminal FAULT state is required.
+- Area fraction, immediate history, mixed-direction transitions, and capture delay are all possible determinants of the pale-black symptom and need separate controlled fixtures.
+
+### What worked
+
+- EPD_Painter's base class can operate without Arduino, making a smaller independent control possible after one logging fix.
+- Cell D provides a same-IDF M5GFX comparison baseline, so IDF 5.4.2 can be held constant.
+- The active semaphore can prove final scan completion when combined with stage progression; `paintStage == 0` alone cannot.
+- The document now gives each experiment an explicit supported claim and non-claim.
+- `docmgr doctor` passes with the expanded design and generated audit.
+
+### What didn't work
+
+- The upstream `begin()` zeroes DMA pointers before checking them, so the first allocation guard cannot be retained in place.
+- The non-Arduino fallback still calls `log_w`, contradicting the nominal pure-IDF compatibility path.
+- `xSemaphoreCreateBinary()` and `xTaskCreatePinnedToCore()` results are not checked.
+- A simple poll of `paintStage` cannot prove idle because the task decrements the final stage before performing its scan.
+- No firmware was built or flashed in this step; implementation and hardware execution remain gated.
+
+### What I learned
+
+- `clear()` is mostly synchronous because it takes the active semaphore before direct hardware phases, whereas `paint()` returns after target pickup. Their completion contracts must not be treated as equivalent.
+- The raw driver with packed 2-bpp fixtures avoids both the large 8-bpp framebuffer and the Adafruit wrapper's implicit three-stage policy.
+- A two-stage policy is needed for mixed transition directions within a 64-pixel chunk even when a uniform full field should converge in one active stage.
+- The firmware must report commanded origin rather than physical origin; only photographs and operator disposition establish the latter.
+
+### What was tricky to build
+
+- Idle proof has a race if the active semaphore is sampled before the task accepts work. The design relies on `paint()` first observing stage decrement, then `waitIdle()` waiting for final stage progression and taking the semaphore held through the scan.
+- A hard cleanup is the preferred boundary but is itself a twenty-action full-panel operation. The protocol uses it sparingly and stops if white residue worsens.
+- A same-area rectangle can still vary source/gate loading with geometry. The first area matrix uses centered rectangles and reserves orientation as a follow-up rather than conflating variables.
+- Power-off needed an explicit choice. The design mirrors the already-tested M5GFX PaperS3 order and labels that as a control decision, not proof that the upstream order is unsafe.
+
+### What warrants a second pair of eyes
+
+- Review the active-semaphore `waitIdle()` algorithm against all task interleavings before implementation.
+- Review the proposed safe-low boot order against ESP-IDF GPIO latch semantics and the PaperS3 schematic.
+- Confirm that two-stage non-interlaced convergence handles checker inversion as intended.
+- Review whether 30-second origin rest plus 10/60-second captures are sufficient for visible post-drive relaxation.
+- Confirm that no local patch accidentally changes waveform arrays, row padding, LCD clock, or hard-clear counts.
+
+### What should be done in the future
+
+- Implement P0.15 in `0107-papers3-epd-painter-control/` with ticket-owned preparation/build scripts.
+- Add P0.16's bounded command state machine, deterministic fixtures, runner, and evidence schema.
+- Build and inspect with exact ESP-IDF 5.4.2 before requesting any live hardware action.
+- Keep the board on FactoryTest V0.5 until P0.17 is explicitly reviewed and ready.
+
+### Code review instructions
+
+- Read the experiment-design half of `analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md`, beginning at “Independent-control experiment design.”
+- Regenerate `scripts/output/10-epd-painter-pre-hardware-audit.md` with `scripts/10-audit-epd-painter.py` and confirm eight blockers/two review items.
+- Inspect the command state diagram, timeout behavior, Experiment 0/1 gates, and result-to-hypothesis table.
+- Validate with `docmgr doctor --ticket ESP-50-PAPERS3-EREADER-PRIMITIVES --stale-after 30`.
+
+### Technical details
+
+```text
+implementation project: 0107-papers3-epd-painter-control
+selected ESP-IDF: 5.4.2
+selected driver commit: 753c521da8aef59756df07c1a4eb88f1c64c8227
+upstream audit gate: BLOCKED
+expanded blockers: 8
+review items: 2
+initial quality: HIGH
+stage policy: 2, explicit non-interlaced
+boot panel operations: 0
+first allowed operation: HARD white cleanup + bounded completion
+first hardware task: P0.17, not yet started
 ```
