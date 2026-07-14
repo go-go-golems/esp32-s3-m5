@@ -12,6 +12,10 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: repo://0105-cardcore-mesh-terminal
+      Note: Task 5ptk firmware scaffold built at commit eded12a317268664c7bb7b598e4e0b4ec8ae57a1
+    - Path: repo://0105-cardcore-mesh-terminal/dependencies.lock
+      Note: Resolved Arduino-ESP32 3.3.10 component graph
     - Path: repo://components/cardputer_kb
       Note: Local reusable keyboard evidence inspected during investigation
     - Path: repo://ttmp/2026/07/13/0104-CARDCORE-MESHCORE--cardputer-adv-meshcore-companion-terminal/design-doc/01-cardputer-adv-meshcore-companion-terminal-architecture-and-implementation-guide.md
@@ -24,6 +28,7 @@ LastUpdated: 2026-07-13T19:56:19-04:00
 WhatFor: Allow a future implementer to continue the research and bring-up without rediscovering constraints.
 WhenToUse: Read before modifying the proposed Cardcore firmware or taking ownership of the attached board serial port.
 ---
+
 
 
 # Diary
@@ -330,4 +335,87 @@ Dry run: passed
 Upload: passed
 Remote directory: /ai/2026/07/13/0104-CARDCORE-MESHCORE
 Bundle: Cardcore MeshCore Companion Terminal Guide.pdf
+```
+
+## Step 6: Scaffold project 0105 and prove the IDF compatibility build
+
+I created `0105-cardcore-mesh-terminal` as the next numerical firmware project and committed the reproducible ESP-IDF scaffold in commit `eded12a317268664c7bb7b598e4e0b4ec8ae57a1`. The project has a native `app_main`, an explicit 8 MB partition table, USB Serial/JTAG defaults, and a small `meshcore_compat` component that is the only project code allowed to include `Arduino.h`.
+
+The final clean-environment ESP-IDF 5.5.4 build succeeded and produced a 0x330e0-byte application, proving that Arduino-ESP32 3.3.10 can be resolved and linked behind the intended component boundary. The first flash attempt did not reach the bootloader because opening the connected USB serial device returned an I/O error; no additional live retry was made.
+
+### Prompt Context
+
+**User prompt (verbatim):** "create the new project in the next numerical id, then go ahead. Commit at appropriate intervals (including the ticket files), and keep a detailed diary as you work (so we can retrace your steps later on). You can use tmux to run idf.py flash monitor / reflash by sending Ctrl-A when you get there). 
+
+Work on it task by task."
+
+**Assistant interpretation:** Create project 0105, implement the ticket tasks sequentially, commit narrowly scoped source and ticket changes, record exact progress, and use a single-owner tmux serial workflow for hardware work.
+
+**Inferred user intent:** Move from design into an auditable, reproducible firmware implementation without losing the ability to reconstruct decisions, failures, and device interactions.
+
+**Commit (code):** eded12a317268664c7bb7b598e4e0b4ec8ae57a1 — "Feat: scaffold Cardcore ESP-IDF terminal"
+
+### What I did
+- Created `0105-cardcore-mesh-terminal` with root/main CMake files, `sdkconfig.defaults`, an 8 MB partition table, README, and `main/idf_component.yml` pinning `espressif/arduino-esp32 ^3.3.10`.
+- Moved Arduino initialization out of `main/app_main.cpp` into `components/meshcore_compat/meshcore_compat.cpp`; `main` now depends only on the component's native `runtime.h` contract.
+- Installed the missing ESP-IDF 5.5.4 Python environment from a clean shell, generated and committed `dependencies.lock`, and built with `IDF_PATH=/home/manuel/esp/esp-idf-5.5.4`.
+- Started one `tmux` session, confirmed no process owned the serial port first, then attempted one `idf.py -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00 flash monitor` operation.
+
+### Why
+- Task `5ptk` requires a real IDF/Arduino compatibility proof before adding BSP or MeshCore protocol code.
+- The component boundary prevents Arduino includes from spreading into native board, UI, storage, and model code.
+- The locked dependency file makes the resolved Arduino 3.3.10 component graph reproducible.
+
+### What worked
+- `env -u IDF_PATH -u IDF_PYTHON_ENV_PATH -u VIRTUAL_ENV -u PYTHONPATH bash --noprofile --norc -c 'source "$HOME/esp/esp-idf-5.5.4/export.sh" && idf.py build'` completed successfully.
+- The final image was `0x330e0` bytes; the 4 MB factory partition has `0x3ccf20` bytes (95%) free.
+- The successful configure reported ESP-IDF `5.5.4`, Arduino-ESP32 `3.3.10`, and the `meshcore_compat` component in the build graph.
+- Arduino-ESP32's required FreeRTOS 1 kHz tick was satisfied by `CONFIG_FREERTOS_HZ=1000`.
+
+### What didn't work
+- The first `source ~/esp/esp-idf-5.5.4/export.sh` inherited `IDF_PYTHON_ENV_PATH=/home/manuel/.espressif/python_env/idf5.4_py3.13_env`; it failed dependency validation and continued with IDF 5.4.1. The exact diagnostic included: `ERROR: Python environment is set to /home/manuel/.espressif/python_env/idf5.4_py3.13_env which was generated for ESP-IDF 5.4 instead of the current 5.5.`
+- Running `~/esp/esp-idf-5.5.4/install.sh esp32s3` in that contaminated environment failed for the same reason. Re-running it with `env -u IDF_PATH -u IDF_PYTHON_ENV_PATH -u VIRTUAL_ENV bash -lc ...` created the `idf5.5_py3.13_env` environment successfully.
+- The initial `REQUIRES arduino` name was wrong for the Component Manager artifact. CMake reported `Failed to resolve component 'arduino' required by component 'main': unknown name.` The correct dependency name is `arduino-esp32`.
+- Arduino CMake then reported `esp32-arduino requires CONFIG_FREERTOS_HZ=1000 (currently 100)`. Setting `CONFIG_FREERTOS_HZ=1000` and regenerating `sdkconfig` resolved it. An attempted `CONFIG_FREERTOS_HZ_1000=y` was an unknown Kconfig symbol and was removed before the final build.
+- The one tmux flash attempt reached esptool but failed before writing: `A serial exception error occurred: Could not configure port: (5, 'Input/output error')`.
+
+### What I learned
+- On this host, the `.envrc` automatically activates IDF 5.4.1; invoking `export.sh` is not enough when the old Python environment variables remain inherited. Run all 5.5.4 project commands in the documented clean shell until the workspace environment is corrected.
+- The managed Arduino component is named `arduino-esp32` at CMake dependency time, even though the registry package is `espressif/arduino-esp32`.
+- The Arduino component compiles a broad component graph, including optional library code. Cardcore does not initialize Wi-Fi/BLE, but future dependency-size work should narrow the Arduino component feature surface before final MVP size/power claims.
+
+### What was tricky to build
+- ESP-IDF version selection had two independent failure modes: the active `IDF_PATH` and the active `IDF_PYTHON_ENV_PATH`. The symptom was CMake resolving `idf (5.4.1)` even after requesting the 5.5.4 script. The fix was to install 5.5.4 from a clean environment and run `idf.py` from an `env -u ... bash --noprofile --norc` shell. This must be preserved in the project runbook.
+- The first flash failure is distinct from a firmware failure: esptool could not configure the OS serial device, so no image data was written and no monitor session was established. Retrying blindly would violate the single-owner/manual-reset guidance.
+
+### What warrants a second pair of eyes
+- Confirm whether the Cardputer needs a manual reset, USB replug, or boot-button sequence to make its USB Serial/JTAG interface writable; inspect the physical connection and attached cable before another flash attempt.
+- Review whether Arduino's broad managed dependency graph is acceptable for the intended flash/RAM budget, and identify component configuration needed to avoid unused transport features.
+- Verify the custom `storage` partition will be mounted as LittleFS when that component is introduced; it is not mounted in this task.
+
+### What should be done in the future
+- Complete Task `5ptk` only after the firmware is flashed and its `Cardcore boot` plus `Arduino compatibility runtime initialized` logs are observed through the single tmux monitor owner.
+- After that proof, proceed to Task `ptlo` with shared I2C/TCA8418/Cap-expander diagnostics and raw SX1262 work.
+
+### Code review instructions
+- Start with `0105-cardcore-mesh-terminal/main/app_main.cpp` and `components/meshcore_compat/meshcore_compat.cpp`; verify the Arduino include remains isolated.
+- Review `main/idf_component.yml`, `dependencies.lock`, and `sdkconfig.defaults` for the pinned IDF/Arduino and 1 kHz tick contract.
+- Rebuild with the clean-environment command in the technical details; do not flash until the operator confirms the board is reset/replugged and ready.
+
+### Technical details
+```text
+Successful final build:
+ESP-IDF v5.5.4
+Arduino-ESP32 3.3.10
+binary: build/cardcore_mesh_terminal.bin
+size:   0x330e0
+
+Clean-shell build command:
+env -u IDF_PATH -u IDF_PYTHON_ENV_PATH -u VIRTUAL_ENV -u PYTHONPATH \
+  bash --noprofile --norc -c \
+  'source "$HOME/esp/esp-idf-5.5.4/export.sh" && idf.py build'
+
+Blocked live operation:
+idf.py -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00 flash monitor
+→ Could not configure port: (5, 'Input/output error')
 ```

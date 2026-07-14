@@ -16,6 +16,12 @@ RelatedFiles:
       Note: USB Serial/JTAG recovery-console donor
     - Path: repo://0083-cardputer-adv-animation-ui
       Note: Queue-driven Cardputer-ADV UI and 8 MB configuration donor
+    - Path: repo://0105-cardcore-mesh-terminal/components/meshcore_compat/meshcore_compat.cpp
+      Note: Only Cardcore source file that initializes and includes Arduino runtime
+    - Path: repo://0105-cardcore-mesh-terminal/main/idf_component.yml
+      Note: Pinned Arduino-ESP32 dependency for the isolated compatibility implementation
+    - Path: repo://0105-cardcore-mesh-terminal/sdkconfig.defaults
+      Note: IDF 5.5.4-compatible S3, partition, console, and FreeRTOS defaults
     - Path: repo://components/cardputer_kb
       Note: Reusable Cardputer-ADV TCA8418 scanner and layout donor
     - Path: repo://ttmp/2026/07/13/0104-CARDCORE-MESHCORE--cardputer-adv-meshcore-companion-terminal/sources/meshcore
@@ -34,6 +40,7 @@ LastUpdated: 2026-07-13T19:56:19-04:00
 WhatFor: Implement the first Cardcore firmware increment and safely evolve it into a standalone MeshCore terminal.
 WhenToUse: Read before creating the firmware project, porting MeshCore, or touching Cardputer-ADV LoRa-cap hardware.
 ---
+
 
 
 # Cardputer-ADV MeshCore Companion Terminal: Architecture and Implementation Guide
