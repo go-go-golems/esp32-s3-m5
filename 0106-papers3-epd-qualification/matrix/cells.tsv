@@ -1,0 +1,5 @@
+# cell	idf	component_profile	m5gfx	m5unified	purpose
+A	5.3.3	legacy	0.2.15	0.2.10	Exact upstream M5PaperS3-UserDemo control
+B	5.3.3	current	0.2.25	0.2.18	Current M5 stack on conservative IDF control
+C	5.3.4	current	0.2.25	0.2.18	Current repository ESP32-S3 baseline
+D	5.4.2	current	0.2.25	0.2.18	Verify upstream ESP-IDF 5.4 PaperS3 repair

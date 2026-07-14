@@ -1,0 +1,7 @@
+build/
+build-cell-*/
+.component-matrix/
+matrix-results/
+sdkconfig
+sdkconfig.old
+sdkconfig.cell-*
