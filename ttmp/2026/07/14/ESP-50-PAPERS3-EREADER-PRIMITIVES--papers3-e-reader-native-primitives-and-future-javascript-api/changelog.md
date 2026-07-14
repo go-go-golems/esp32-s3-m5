@@ -48,7 +48,7 @@ Phase 0: added and live-tested the PaperS3 EPD qualification harness; Cell C pas
 
 ## 2026-07-14
 
-Phase 0: Cell D reproduced Cell C's almost-white TEXT black under IDF 5.4.2, ruling down IDF as the cause; added a fundamentals-first waveform, VCOM, rail, optical, and timing investigation plan.
+Phase 0: Cell D reproduced Cell C's almost-white TEXT black under IDF 5.4.2, ruling down IDF as the cause; added a fundamentals-first waveform, VCOM, rail, optical, and timing investigation plan (commit `60c3c94c3bf2e724023cedb13a3ccf25c14c117a`).
 
 ### Related Files
 

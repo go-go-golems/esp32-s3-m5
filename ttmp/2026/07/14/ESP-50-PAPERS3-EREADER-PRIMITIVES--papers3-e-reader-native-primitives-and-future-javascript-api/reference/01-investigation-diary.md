@@ -829,7 +829,9 @@ I stopped treating M5GFX mode names as experimental explanations. I downloaded a
 
 **Inferred user intent:** Reach a causal, physically defensible diagnosis before building reader abstractions or modifying waveforms and hardware blindly.
 
-**Commit (code):** N/A — research, live Cell D evidence, and analysis documentation
+**Commit (code):** N/A — no firmware changed in this step
+
+**Commit (research/evidence):** `60c3c94c3bf2e724023cedb13a3ccf25c14c117a` — "Docs: analyze PaperS3 waveform fundamentals"
 
 ### What I did
 
