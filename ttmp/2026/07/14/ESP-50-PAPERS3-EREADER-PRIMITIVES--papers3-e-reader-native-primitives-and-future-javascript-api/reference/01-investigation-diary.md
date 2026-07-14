@@ -933,7 +933,7 @@ Did you search the web for similar bug reports?"
 
 **Commit (code):** N/A — no project firmware source changed; the official factory binary was flashed as a black-box control
 
-**Commit (research/evidence):** pending
+**Commit (research/evidence):** `1e25338dcfdd10d4ca716e2ed439339cf8bb83b3` — "Docs: investigate PaperS3 factory display behavior"
 
 ### What I did
 
