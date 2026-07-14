@@ -24,7 +24,11 @@ RelatedFiles:
     - Path: repo://0106-papers3-epd-qualification/main/app_main.cpp
       Note: Standalone Phase 0 harness, boundary corpus, diagnostics, soaks, sleep/wake, and waveform comparison (commit 62b7b8e)
     - Path: repo://0107-papers3-epd-painter-control/main/app_main.cpp
-      Note: Step 14 no-drive firmware entrypoint (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+      Note: |-
+        Step 14 no-drive firmware entrypoint (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+        Step 15 bounded command implementation (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
+    - Path: repo://0107-papers3-epd-painter-control/main/fixtures/reader_page.bin
+      Note: Deterministic reader fixture (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://0107-papers3-epd-painter-control/sdkconfig.defaults
       Note: Exact tick, PSRAM, console, and partition defaults (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
@@ -39,12 +43,16 @@ RelatedFiles:
       Note: Safe replay control and non-destructive check (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
       Note: Reproducible audit implementation (commit 4c1c89c76e22768d142310b75db631132379a711)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/14-generate-epd-control-fixtures.py
+      Note: Fixture generation and identity (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
       Note: Final build identity (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/13-built-control-audit-latest.md
-      Note: Passing no-drive binary gate (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+      Note: |-
+        Passing no-drive binary gate (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+        Passing P0.16 pre-flash audit (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
@@ -67,6 +75,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1491,4 +1500,123 @@ binary audit: 12 / 12 pass
 panel commands exposed: 0
 hardware flashed: no
 board firmware: FactoryTest V0.5
+```
+
+## Step 15: Add bounded physical commands and deterministic fixtures
+
+After reporting that physical testing was one implementation gate away, I completed P0.16. The firmware still performs no EPD operation at boot, but now exposes the exact constrained cleanup, full-field, area, checker, reader-page, wait, status, and heap commands required by the experiment design.
+
+Every physical command is state-gated, runs through a bounded worker, emits a machine-readable begin/end transaction, proves final scan idle, and synchronously returns panel controls to idle. The final exact-IDF build is warning-free and the expanded static/binary audit passes fourteen checks. Hardware remains untouched pending P0.17.
+
+### Prompt Context
+
+**User prompt (verbatim):** "where are we at / when are we going to test things?"
+
+**User follow-up (verbatim):** "ok, go ahead"
+
+**Assistant interpretation:** Explain the remaining gate, then complete P0.16 so the project can proceed immediately to the first controlled hardware smoke test.
+
+**Inferred user intent:** Move from prolonged audit/build preparation into a safe, observable physical experiment without skipping the final reproducibility and command-safety gate.
+
+**Commit (code/research):** `e9f3769dc417adb1623ac0a1435b891c5f936d0f` — "Firmware: add bounded PaperS3 EPD experiments"
+
+### What I did
+
+- Added `BOOT_LOCKED`, `WHITE_KNOWN`, `TARGET_KNOWN`, and `FAULT` command-state enforcement.
+- Required exact `epd cleanup CONFIRM` as the first physical operation.
+- Added fixed HIGH/two-stage full white/black, 1/10/25/50/100% area, checker A/B, reader-page, wait, status, and heap commands.
+- Added a core-1 operation worker with a 120-second console bound, 110-second idle bound, and 5-second synchronous power-down bound.
+- Added transaction ids, target SHA-256, commanded origin, target, policy, elapsed time, stages, power-control state, and heap records.
+- Added terminal FAULT behavior with `FAULT_NO_AUTOMATIC_CLEANUP` after a timeout.
+- Added a ticket-owned fixture generator using pinned DejaVu Serif and ImageMagick.
+- Embedded the resulting 129,600-byte 2-bpp page and preserved a PNG preview, source text, and manifest.
+- Verified the preview objectively as exactly two colors despite a vision model inferring grayscale from its rendering.
+- Fixed two clean-build failures, regenerated final hashes, and passed fourteen static/binary audit checks.
+- Checked task P0.16 and committed the firmware/evidence milestone.
+
+### Why
+
+- A hardware test needs commands that encode valid experiment order, not a general low-level waveform console.
+- Cleanup after a timeout is unsafe if the scan task may still own LCD_CAM/GDMA; FAULT therefore refuses subsequent physical operations.
+- Offline page generation isolates display-drive behavior from runtime font, layout, storage, and allocation effects.
+
+### What worked
+
+- No-drive boot inspection passes: `app_main()` only initializes state/resources and starts the console.
+- The reader fixture is readable, unclipped, non-overlapping, and objectively bilevel.
+- Packed fixture SHA-256 is `14dcffa9d13e0daabda8dc56c038bcec2eb8b01c4d8ac97ae170de5509207e90`.
+- Final application builds warning-free at 433,776 bytes with exact ESP-IDF 5.4.2.
+- Expanded binary audit passes 14/14 checks.
+- IRAM remains unchanged at 16,383/16,384 bytes because no new function was IRAM-attributed.
+
+### What didn't work
+
+- The first P0.16 build failed because ESP32-S3's `uint32_t` is `unsigned long` under this toolchain:
+
+  ```text
+  error: format '%u' expects argument of type 'unsigned int', but argument 2 has type 'uint32_t' {aka 'long unsigned int'} [-Werror=format=]
+  ```
+
+  All operation and timeout fields now use `PRIu32`.
+
+- The second build linked the generated fixture object but used the wrong symbol names:
+
+  ```text
+  undefined reference to `_binary_fixtures_reader_page_bin_end'
+  undefined reference to `_binary_fixtures_reader_page_bin_start'
+  ```
+
+  Inspection of generated `reader_page.bin.S` showed `_binary_reader_page_bin_start/end`; the declarations were corrected.
+
+- The vision model interpreted the preview background and antialiased-looking edges as grayscale. `identify` and an exact histogram disproved that interpretation: `Type: Bilevel`, `Colors: 2`, 34,946 black pixels, and 483,454 white pixels.
+
+### What I learned
+
+- ESP-IDF's `EMBED_FILES` symbol names derive from the generated basename in this build, not the source subdirectory path.
+- Target identity can be logged without runtime rendering by hashing the final packed PSRAM buffer immediately before dispatch.
+- The page fixture's 6.741127% black coverage gives a realistic low-area workload distinct from full-field and centered-area tests.
+- A host timeout and a driver idle timeout serve different purposes and must both be visible in the protocol.
+
+### What was tricky to build
+
+- The driver updates `paintStage` before completing physical scans. The worker therefore combines `waitIdle()`'s active-semaphore proof with explicit synchronous `powerDown()` before reporting success.
+- Timeout handling cannot safely delete the worker or initiate cleanup. The request storage remains static, the state becomes terminal FAULT, and the potentially active worker is allowed to finish without a competing command.
+- Checker inversion requires command history: checker B is accepted only after checker A; area fixtures require `WHITE_KNOWN`; repeated page and repeated black are intentionally narrow exceptions.
+
+### What warrants a second pair of eyes
+
+- Review the worker timeout/static-request lifetime and task-notification ordering.
+- Review whether 120/110/5-second nested bounds are adequate for HARD clear and HIGH operations.
+- Review that all success paths call `powerDown()` and all timeout paths avoid cleanup.
+- Review the centered rectangle dimensions and actual area fractions before interpreting area scaling.
+- IRAM still has only one byte free; future changes must not add IRAM content.
+
+### What should be done in the future
+
+- Add P0.17's exclusive flash and serial runner scripts with check/dry-run modes.
+- Verify the stable port has no owner and preserve the pre-flash factory state.
+- Flash once, observe no-drive boot/status, then execute only the bounded smoke chain.
+- Stop for operator visual disposition before any P0.18 area/checker/page matrix.
+
+### Code review instructions
+
+- Review `0107-papers3-epd-painter-control/main/app_main.cpp`, especially `RunOperation`, `OperationTask`, and `CommandEpd`.
+- Regenerate the page with `scripts/14-generate-epd-control-fixtures.py` and compare hashes.
+- Run `scripts/12-build-epd-painter-control.sh` and `scripts/13-audit-built-epd-control.py`; expect zero warnings and 14/14 passes.
+- Confirm the board was not flashed by reviewing the final build report/log.
+
+### Technical details
+
+```text
+P0.16 commit: e9f3769dc417adb1623ac0a1435b891c5f936d0f
+application SHA-256: 2791e8334e2dae02612cf57ef58437758420a8168487fde3994d4fc73f3c5135
+ELF SHA-256: 451b4ffa026217a7fe10ff545174e0d6c62dd92b1ba2e9817577a7411f983358
+application bytes: 433776
+reader fixture SHA-256: 14dcffa9d13e0daabda8dc56c038bcec2eb8b01c4d8ac97ae170de5509207e90
+reader black coverage: 6.741127%
+binary audit: 14 / 14 pass
+boot operations: 0
+hardware flashed: no
+board firmware: FactoryTest V0.5
+next hardware task: P0.17
 ```

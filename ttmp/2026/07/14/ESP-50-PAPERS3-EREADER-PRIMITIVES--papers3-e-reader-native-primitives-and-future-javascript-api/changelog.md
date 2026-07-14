@@ -139,3 +139,12 @@ P0.16: added no-drive-at-boot, state-gated HIGH/two-stage cleanup/full/area/chec
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/main/fixtures/reader_page.bin — Deterministic packed reader workload
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/14-generate-epd-control-fixtures.py — Reproducible reader fixture generator
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/13-built-control-audit-latest.md — Passing 14-check pre-flash binary gate
+
+## 2026-07-14
+
+Step 15: completed P0.16 bounded state-gated EPD commands, deterministic fixtures, warning-free build, and 14-check pre-flash audit without modifying hardware (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/main/app_main.cpp — Committed bounded command state machine
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Chronological Step 15 record
