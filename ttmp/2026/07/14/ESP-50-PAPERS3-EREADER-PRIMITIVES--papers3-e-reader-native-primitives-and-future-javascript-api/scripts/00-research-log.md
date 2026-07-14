@@ -62,6 +62,12 @@ This directory makes the ESP-50 investigation reproducible. The extracted source
 14. `14-generate-epd-control-fixtures.py`
     - Generates the deterministic 960×540 binary reader page from a pinned DejaVu Serif font, packs it into EPD_Painter's 2-bpp format, and records source/asset/preview hashes.
     - Preview: `output/14-reader-page-preview.png`; firmware asset: `0107-papers3-epd-painter-control/main/fixtures/reader_page.bin`.
+15. `15-flash-epd-control.sh`
+    - Defaults to a non-destructive preflight that verifies exact app hash, PASS audit, ESP-IDF 5.4.2, serial presence/ownership, and esptool image validity.
+    - `--execute` additionally requires `--confirm FLASH-P0.17` and preserves a timestamped flash log.
+16. `16-epd-control-monitor.sh`
+    - Starts/stops the one-owner IDF monitor in tmux, captures a timestamped transcript, and sends only commands in the audited P0.16 grammar.
+    - Every sent command is appended to `output/16-command-actions.log`.
 
 ## Web discovery queries
 
@@ -121,6 +127,8 @@ $T/scripts/11-prepare-epd-painter-control.sh
 $T/scripts/12-build-epd-painter-control.sh
 $T/scripts/13-audit-built-epd-control.py
 $T/scripts/14-generate-epd-control-fixtures.py
+$T/scripts/15-flash-epd-control.sh --check
+$T/scripts/16-epd-control-monitor.sh status
 ```
 
 Upstream output is date-sensitive; review diffs instead of assuming a later run will match the 2026-07-14 snapshot.
