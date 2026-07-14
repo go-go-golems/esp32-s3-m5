@@ -33,6 +33,8 @@ RelatedFiles:
       Note: Exact tick, PSRAM, console, and partition defaults (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp
       Note: Step 18 fixed-ring implementation (commit 2badb87)
+    - Path: repo://0109-papers3-factory-v0.5-runtime-trace/main/main.cpp
+      Note: Step 19 exact factory sequence and post-idle F2 dump (commit 4ab273a)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
       Note: |-
         Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
@@ -59,6 +61,8 @@ RelatedFiles:
       Note: Chronological P0.17 HARD-white optical result
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
       Note: Step 18 observer-effect evidence (commit 2badb87)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
+      Note: Step 19 19-check audit (commit 4ab273a)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
@@ -81,6 +85,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1940,5 +1945,132 @@ trace-on app: a081daabe5a77d7405cde68e43955279ed5e5c0f954c2aee027b62d03fd9f6ea
 app delta: +1584 bytes
 ring BSS: 24576 bytes
 observer audit: 18/18 PASS
+hardware modified: no
+```
+
+## Step 19: Build and preregister the exact-IDF FactoryTest F0/F1/F2 controls
+
+This step closed the missing ESP-IDF 5.3.3 prerequisite, built the formerly blocked matrix cells, and created a separate FactoryTest V0.5 lineage project rather than projecting current-driver traces onto stock firmware. The resulting clean, F1/off, and F2/trace builds are statically qualified without touching the board.
+
+It also converted the planned physical comparison into three immutable experiments. Each treatment now has a frozen hypothesis, decision rule, binary identity, camera protocol, stop conditions, and separate automatic/optical disposition before the first F0 flash.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, update design doc, and then get to work until you need me"
+
+**Subsequent continuation prompt:** "continue"
+
+**Assistant interpretation:** Revise P0.17f into the exact-vendor/source-off/source-trace experiment, install the exact missing toolchain, implement and audit 0109, preregister all physical treatments, and stop only at the operator video gate.
+
+**Inferred user intent:** Obtain a scientifically defensible stock-firmware comparison with runtime telemetry while avoiding further unstructured panel drives.
+
+**Commit (code):** `4ab273a69231d50ccc51fcc5e839715e89fdfa57` — "Firmware: trace FactoryTest V0.5 display sequence"
+
+### What I did
+
+- Updated the runtime-instrumentation design with F0/F1/F2 semantics and execution ordering.
+- Installed exact ESP-IDF tag `v5.3.3`, commit `6db3dc25...`, under `/home/manuel/esp/esp-idf-5.3.3`.
+- Changed the matrix build script to redirect complete output to evidence logs and print concise hashes/failure tails.
+- Built matrix Cells A and B without flashing; both completed without warnings.
+- Created numbered project `0109-papers3-factory-v0.5-runtime-trace` from exact FactoryTest V0.5 source.
+- Added a legacy M5GFX 0.2.15 trace patch and clean/F1/F2 component preparation.
+- Preserved `boot_display_test()` byte-for-byte while ordering F2's dump after its final dwell and `waitDisplay()`.
+- Built clean, F1/off, and F2/trace variants under exact IDF 5.3.3.
+- Added and passed a 19-check source, toolchain, LUT, machine-code, ring, warning-set, and no-flash audit.
+- Created immutable F0/F1/F2 experiment directories with preregistration hashes and docmgr-valid frontmatter.
+- Added guarded treatment-specific flash checks and a no-input F2 serial/ring collector.
+- Verified all F0/F1/F2 preflight checks with no serial owner and no hardware modification.
+
+### Why
+
+- M5GFX 0.2.15 and 0.2.25 share LUT bytes but differ in scheduler/assembly/platform code; 0108 cannot stand in for the stock runtime.
+- The official merged binary is the optical authority, while a source-derived trace build is the semantic/runtime instrument. F0/F1/F2 keep those claims separate.
+- Exact IDF 5.3.3 permits both the adjacent B/C IDF comparison and faithful FactoryTest source-lineage builds.
+- Preregistration prevents camera settings, endpoint criteria, or treatment labels from changing after an unexpected result.
+
+### What worked
+
+- Exact IDF installation and version/tag/commit verification succeeded.
+- Cell A app SHA is `cfb03a6f...`; Cell B app SHA is `3efe2423...`; neither was flashed.
+- Factory `boot_display_test()` SHA is `9b5bca6e...` and matches V0.5 source exactly.
+- F1 `app_main`, `Panel_EPD::task_update`, and `Bus_EPD::powerControl` text sections are byte-identical to clean.
+- F1 contains no trace symbol or ring.
+- F2 has ten bounded call sites, no row-loop hook, a 49,152-byte ring, and only 1,440 application bytes of growth.
+- The audit passed 19/19 and every experiment preregistration checksum verifies.
+
+### What didn't work
+
+- The first IDF installation inherited the active 5.4 Python environment:
+
+```text
+ERROR: Python environment is set to /home/manuel/.espressif/python_env/idf5.4_py3.13_env which was generated for ESP-IDF 5.4 instead of the current 5.3.
+```
+
+  The installer now clears `IDF_PATH`, `IDF_VERSION`, and `IDF_PYTHON_ENV_PATH` before running `install.sh`.
+- The first 0109 build omitted explicit component requirements:
+
+```text
+fatal error: mooncake_log.h: No such file or directory
+```
+
+  Adding M5Unified, mooncake, mooncake_log, console, and USB console requirements exposed the next missing HAL dependencies.
+- The next build failed with:
+
+```text
+fatal error: esp_vfs_fat.h: No such file or directory
+```
+
+  The main component now explicitly requires driver, esp_adc, fatfs, esp_netif, esp_wifi, nvs_flash, and sdmmc.
+- The first warning policy rejected upstream FactoryTest missing-initializer and legacy-ADC warnings. The final gate requires the normalized warning set to be identical across clean/F1/F2, proving tracing adds none, rather than pretending the stock source is warning-free.
+- Initial experiment Markdown lacked docmgr frontmatter, then used unnumbered filenames. The generator was corrected and all ledgers were regenerated before execution; doctor now passes cleanly.
+
+### What I learned
+
+- A faithful source-derived control requires preserving not just LUTs but IDF, M5 versions, application sequence, tick rate, and scheduler machine code.
+- Source lineage can be audited strongly even when final binary hashes differ due descriptors/build timestamps: relocatable critical text sections remain comparable.
+- Upstream warnings are useful provenance when identical across variants; suppressing them would introduce another build difference.
+- The exact two-second black→white transition gives each judged white endpoint a known immediately preceding black command even though cross-run starting dashboard history differs.
+
+### What was tricky to build
+
+- The V0.5 project relied on legacy implicit component visibility. Exact IDF 5.3.3's dependency checker required reconstructing explicit requirements without changing runtime source behavior.
+- F2 must emit substantial JSONL output but cannot print while rails are active. The dump is compiled only in F2 and occurs after `waitDisplay()` following the complete boot test.
+- The experiment files live under the ticket tree, so docmgr validates them. Numbered, frontmatter-complete templates were necessary even though they are operational evidence rather than primary design docs.
+- The F2 collector must race USB re-enumeration after flash without sending bytes. It retries exclusive opens, captures passively, extracts JSONL, and rejects missing markers, invalid records, noncontiguous sequence numbers, or missing power/frame/idle events.
+
+### What warrants a second pair of eyes
+
+- Review whether adding USB Serial/JTAG console identically to clean/F1/F2 is an acceptable source-proxy deviation from F0.
+- Review the decision to dump F2 before dashboard app installation; the judged built-in sequence is preserved, but dashboard timing differs afterward.
+- Review the F2 ring capacity against expected frame count and reject any overwrite.
+- Review camera locking and reference-patch placement before F0.
+- F1/F2 must not be authorized automatically after F0; each preceding optical disposition is a gate.
+
+### What should be done in the future
+
+- Operator prepares a fixed 60 fps or faster camera with locked exposure, focus, white balance, stable illumination, and matte references.
+- Execute F0 only, record the exact factory white endpoint, and complete its ledger.
+- Review F0 before deciding whether F1 is eligible; similarly review F1 before F2.
+- Run matrix Cells A/B physically only as a separate later experiment, not during the FactoryTest F0/F1/F2 chain.
+
+### Code review instructions
+
+- Start with `analysis/04-m5gfx-runtime-waveform-instrumentation-and-scientific-experiment-ledger.md` and `scripts/output/25-factory-v0.5-trace-audit-latest.md`.
+- Review `0109-papers3-factory-v0.5-runtime-trace/main/main.cpp` around `boot_display_test()` and F2 dump ordering.
+- Review patch `scripts/patches/23-m5gfx-0.2.15-factory-runtime-trace.patch` for compile-out behavior and absence of row-loop hooks.
+- Run scripts 23, 24, and 25; expect 19/19 PASS and no hardware modification.
+- Verify preregistration hashes and run script 27 in check mode for each treatment.
+
+### Technical details
+
+```text
+IDF v5.3.3: 6db3dc25df7325c1c81b7cd7d4e42babff7a818e
+Factory V0.5 source: 5e275ad4b70abb85f7193fda137844730e64c4db
+M5GFX 0.2.15: c6f92dc03226cdc04d67c705a2020f62ad21ad01
+clean app: ad858733ab2ddd5c664f33ab593a3ea7775b26dbe35c3e575a3fe47c235d753f
+F1 app: 3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3
+F2 app: 95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755
+F0 exact release: d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624
+audit: 19/19 PASS
 hardware modified: no
 ```

@@ -204,3 +204,12 @@ Installed exact ESP-IDF v5.3.3, built previously blocked matrix Cells A/B, creat
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0109-papers3-factory-v0.5-runtime-trace/main/factory_trace_runtime.cpp — F2 trace implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/manifest.json — F0 preregistration
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md — Final audit
+
+## 2026-07-14
+
+Step 19 committed exact-IDF matrix A/B builds, 0109 FactoryTest V0.5 F1/F2 controls, 19/19 audit, and immutable F0/F1/F2 preregistrations as 4ab273a69231d50ccc51fcc5e839715e89fdfa57; no hardware modified.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0109-papers3-factory-v0.5-runtime-trace/main/main.cpp — Code commit 4ab273a
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/01-preregistration.md — F0 protocol
