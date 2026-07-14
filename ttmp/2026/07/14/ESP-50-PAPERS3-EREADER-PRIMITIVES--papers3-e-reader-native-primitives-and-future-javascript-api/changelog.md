@@ -167,3 +167,12 @@ P0.17 HARD-white gate: audited independent driver completed in 397 ms with zero 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210836Z.log — Runtime transcript
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-p0.17-hard-white-observation.md — Optical stop-gate evidence
+
+## 2026-07-14
+
+Designed minimally perturbing runtime M5GFX trace instrumentation and immutable experiment ledgers; statically decoded 0.2.15/0.2.25 LUTs to identical canonical SHA d24b2df1... without hardware access.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/04-m5gfx-runtime-waveform-instrumentation-and-scientific-experiment-ledger.md — Runtime trace and scientific ledger design
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/17-decode-m5gfx-epd-waveforms.py — Static waveform decoder

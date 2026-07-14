@@ -1725,3 +1725,98 @@ optical disposition: FAIL — lots of ghosting from the previous screen
 abnormal heat/smell/sound/power behavior: none noticed
 serial owner after stop: none
 ```
+
+## Step 17: Make runtime waveform traces and immutable experiments first-class evidence
+
+The failed independent white cleanup showed that endpoint descriptions alone are not enough. This step changed the next branch from another visual trial into a layered measurement program: static waveform decoding, minimally perturbing runtime traces, external physical capture, and immutable per-run records.
+
+I implemented the first non-invasive layer immediately. The generated decoder proves that the legacy/factory-family M5GFX 0.2.15 and current 0.2.25 Panel_EPD LUTs have canonical SHA-256 `d24b2df...`, while preserving every raw row and all sixteen target schedules for later runtime joins.
+
+### Prompt Context
+
+**User prompt (verbatim):** "we could potentially instrument and log the low-level details of M5GFX / the stock firmware to examine what it actually does and which waveforms and timings it uses. Then we can use the gather information and further things we collect to also just keep track of our experiments in a more scientific fashion."
+
+**Subsequent user prompt (verbatim):** "I think logging at runtime would also be valuable, no?"
+
+**Assistant interpretation:** Add runtime tracing—not merely static source inspection—and structure every hardware run as a preregistered, provenance-complete experiment.
+
+**Inferred user intent:** Replace ambiguous visual trial-and-error with enough software, timing, electrical, optical, and provenance evidence to compare drivers and explain outcomes scientifically.
+
+### What I did
+
+- Authored `analysis/04-m5gfx-runtime-waveform-instrumentation-and-scientific-experiment-ledger.md`.
+- Defined four evidence layers: static decoding, minimally perturbing runtime timing events, optional perturbing drive-code histograms, and external digital/analog capture.
+- Defined runtime events for application operation, queueing, eraser/target arming, power transitions, frame boundaries, idle, overflow, and completion.
+- Forbade printing, allocation, filesystem access, and JSON formatting while panel rails are active; trace dumping occurs only after idle/power-off.
+- Defined observer-effect controls comparing trace-disabled and trace-enabled builds.
+- Defined immutable per-experiment directories with preregistration, manifest, JSONL events, physical/optical evidence, hashes, verbatim observation, and separate automatic/optical dispositions.
+- Added seven P0.17 sub-tasks for decoding, trace design/implementation/audit, experiment ledger, factory video, and external capture.
+- Implemented and ran `scripts/17-decode-m5gfx-epd-waveforms.py` without hardware access.
+
+### Why
+
+- Static LUTs do not identify the actual origin, target, eraser insertion, queue merging, frame count, frame duration, or rail-on interval of a runtime operation.
+- Serial printing in a scan loop would perturb the timing under investigation and could create a false explanation.
+- The exact factory binary cannot be internally instrumented without ceasing to be exact; it requires external capture, while a source-equivalent rebuild can expose semantic runtime events.
+- Immutable experiment manifests prevent transition history, binary identity, environment, and optical judgments from being lost or conflated.
+
+### What worked
+
+- The decoder found all five expected LUTs in both source snapshots and validated all rows/codes/terminators.
+- Legacy and current canonical LUT SHA-256 values match exactly: `d24b2df188e4261d5891a0884e2510567ea45c38bcaebeb66ade1d4f4b979af3`.
+- Static evidence records the 16 MHz PaperS3 bus, eight encoded padding bytes, and exact power GPIO ordering.
+- Generated JSON preserves machine-readable schedules; Markdown gives a concise review surface.
+- No serial port was opened and no hardware was modified.
+
+### What didn't work
+
+- Runtime trace hooks are designed but not yet implemented or built.
+- The exact source-equivalent factory build remains blocked by missing ESP-IDF 5.3.3.
+- Actual physical timing, drive polarity, rails, VCOM, current, temperature, and factory-white endpoint remain unmeasured.
+
+### What I learned
+
+- M5GFX QUALITY black statically schedules `BWWBBBBBB--BB...`; QUALITY white schedules `BWWBBB-WWWWWW...`, while its eraser schedule depends on the current tone.
+- M5GFX's power command ordering is OE→PWR→SPV on and PWR→OE→SPV off, with fixed microsecond/millisecond delays.
+- Runtime semantics and exact factory identity require different controls: source hooks answer scheduler questions; external capture answers exact-binary timing questions.
+
+### What was tricky to build
+
+- The generated schedules contain deliberate no-op padding before termination. The decoder preserves that padding because it can affect runtime frame count even though it commands no particle motion.
+- Software names code 1 “toward black” and code 2 “toward white,” but those comments are not proof of physical source voltage polarity. Reports label them as software semantics until externally verified.
+- Runtime code-count collection is attractive but belongs in a separate perturbing mode because counting DMA nibbles in or near the row loop may stretch scan timing.
+
+### What warrants a second pair of eyes
+
+- Review whether every proposed trace event can be emitted lock-free and allocation-free.
+- Review the M5GFX step-frame state machine to locate eraser/target pixel counts without changing behavior.
+- Review whether `esp_timer_get_time()` at frame boundaries measurably alters inter-frame timing.
+- Validate static decoded schedules against M5GFX's assembly `blit_dmabuf` state transitions, not only source comments.
+- Review safe physical probe points before any external capture.
+
+### What should be done in the future
+
+- Implement compile-time-gated weak trace hooks and a fixed-size ring in a source-instrumented M5GFX control.
+- Build trace-off and trace-timing variants before either is flashed.
+- Add immutable experiment-directory generation and schema validation.
+- Replay/video the exact FactoryTest sequence separately from source-instrumented tests.
+
+### Code review instructions
+
+- Start with `analysis/04-m5gfx-runtime-waveform-instrumentation-and-scientific-experiment-ledger.md`.
+- Run `scripts/17-decode-m5gfx-epd-waveforms.py`; expect identical canonical hashes and `hardware_modified=no`.
+- Inspect the JSON companion for all sixteen schedules per LUT.
+- Compare claims against `Panel_EPD.cpp`, `Bus_EPD.cpp`, and the PaperS3 configuration in `M5GFX.cpp`.
+
+### Technical details
+
+```text
+static schema: esp50.m5gfx-waveform-static.v1
+legacy M5GFX: c6f92dc03226cdc04d67c705a2020f62ad21ad01
+current M5GFX: ad9b814264d4e2000e9f30070002310bbccaffc9
+canonical LUT SHA-256: d24b2df188e4261d5891a0884e2510567ea45c38bcaebeb66ade1d4f4b979af3
+bus speed: 16000000 Hz
+line padding: 8 bytes
+trace hot-path printing: forbidden
+hardware modified: no
+```
