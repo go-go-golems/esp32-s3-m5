@@ -13,6 +13,13 @@ GENERATED=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 LOG="$OUTPUT_DIR/12-epd-painter-build-$TIMESTAMP.log"
 REPORT="$OUTPUT_DIR/12-epd-painter-build-latest.md"
 
+normalize_log() {
+  if [[ -f "$LOG" ]]; then
+    perl -pi -e 's/[ \t]+$//' "$LOG"
+  fi
+}
+trap normalize_log EXIT
+
 if [[ ! -f "$IDF_ROOT/export.sh" ]]; then
   echo "error: exact ESP-IDF 5.4.2 is not installed at $IDF_ROOT" >&2
   exit 2
@@ -20,6 +27,9 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 "$TICKET_ROOT/scripts/11-prepare-epd-painter-control.sh"
+if [[ -x "$TICKET_ROOT/scripts/14-generate-epd-control-fixtures.py" ]]; then
+  "$TICKET_ROOT/scripts/14-generate-epd-control-fixtures.py"
+fi
 
 # shellcheck disable=SC1091
 source "$IDF_ROOT/export.sh" >/dev/null

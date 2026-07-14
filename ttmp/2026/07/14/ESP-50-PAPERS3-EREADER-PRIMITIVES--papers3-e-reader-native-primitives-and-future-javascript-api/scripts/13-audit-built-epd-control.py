@@ -30,6 +30,7 @@ def check(name: str, passed: bool, detail: str, rows: list[tuple[str, bool, str]
 def main() -> None:
     required = [
         PROJECT / "main/app_main.cpp",
+        PROJECT / "main/fixtures/reader_page.bin",
         PROJECT / "sdkconfig.ticket",
         PREPARED / "EPD_Painter.cpp",
         PREPARED / "EPD_Painter_presets.h",
@@ -42,6 +43,7 @@ def main() -> None:
         raise SystemExit("missing required build inputs:\n" + "\n".join(missing))
 
     main_cpp = (PROJECT / "main/app_main.cpp").read_text(encoding="utf-8")
+    app_main_body = main_cpp[main_cpp.find('extern "C" void app_main(void)'):]
     driver_cpp = (PREPARED / "EPD_Painter.cpp").read_text(encoding="utf-8")
     sdkconfig = (PROJECT / "sdkconfig.ticket").read_text(encoding="utf-8")
     compile_commands = json.loads((BUILD / "compile_commands.json").read_text(encoding="utf-8"))
@@ -69,9 +71,12 @@ def main() -> None:
     check("Exact 1000 Hz waveform-delay tick", "CONFIG_FREERTOS_HZ=1000" in sdkconfig, "sdkconfig.ticket", rows)
     check("USB Serial/JTAG console", "CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y" in sdkconfig and "CONFIG_ESP_CONSOLE_UART_DEFAULT=y" not in sdkconfig, "sdkconfig.ticket", rows)
     check("Octal PSRAM enabled", "CONFIG_SPIRAM=y" in sdkconfig and "CONFIG_SPIRAM_MODE_OCT=y" in sdkconfig, "sdkconfig.ticket", rows)
-    check("No-drive command surface", all(token not in main_cpp for token in (".clear(", ".paint(", ".paintPacked(", ".unpaintPacked(", ".powerDown(")), "app_main.cpp exposes only help/status", rows)
+    check("No-drive boot path", all(token not in app_main_body for token in (".clear(", ".paint(", ".paintPacked(", ".unpaintPacked(", ".powerDown(")), "app_main() initializes and starts the console only", rows)
+    expected_commands = ("cleanup CONFIRM", "target full", "target area", "target checker", "target page", "EPD_OP_BEGIN", "EPD_OP_END", "FAULT_NO_AUTOMATIC_CLEANUP")
+    check("Bounded command and evidence surface", all(token in main_cpp for token in expected_commands), "fixed command grammar and timeout terminal record", rows)
+    check("Reader fixture identity", sha(PROJECT / "main/fixtures/reader_page.bin") == "14dcffa9d13e0daabda8dc56c038bcec2eb8b01c4d8ac97ae170de5509207e90" and (PROJECT / "main/fixtures/reader_page.bin").stat().st_size == 129600, "129600 bytes; SHA-256 14dcffa9...", rows)
     check("Driver initializes packed buffers", all(token in driver_cpp for token in ("memset(packed_fastbuffer, 0, packed_size)", "memset(packed_screenbuffer, 0, packed_size)", "memset(packed_paintbuffer, 0, packed_size)")), "prepared EPD_Painter.cpp", rows)
-    check("Bounded idle API compiled", "EPD_Painter::waitIdle(unsigned long)" in component_symbols or "EPD_Painter::waitIdle(unsigned int)" in component_symbols, "component archive symbol scan", rows)
+    check("Bounded idle API linked", "EPD_Painter::waitIdle(unsigned long)" in symbols or "EPD_Painter::waitIdle(unsigned int)" in symbols, "ELF symbol scan", rows)
     check("Clean build has zero warnings", "warning:" not in log_text, latest_log.name, rows)
     check("Build did not flash hardware", "Project build complete" in log_text and "Writing at" not in log_text, latest_log.name, rows)
 
@@ -97,9 +102,9 @@ def main() -> None:
         "Owners: []",
         "RelatedFiles: []",
         "ExternalSources: []",
-        'Summary: "Static and binary audit of the no-drive P0.15 independent EPD control."',
+        'Summary: "Static and binary audit of the bounded P0.16 independent EPD control."',
         f"LastUpdated: {generated}",
-        'WhatFor: "Prove that the first independent-control build is pinned, waveform-identical to upstream, hardened, and incapable of panel operations from its exposed console."',
+        'WhatFor: "Prove that the independent-control build is pinned, waveform-identical, no-drive at boot, and exposes only bounded state-gated physical commands."',
         'WhenToUse: "Run after every P0.15/P0.16 source or build change and before creating a flash command."',
         "---",
         "",

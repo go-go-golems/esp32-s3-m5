@@ -57,8 +57,11 @@ This directory makes the ESP-50 investigation reproducible. The extracted source
     - Fails closed unless exact ESP-IDF 5.4.2 is active, recreates sdkconfig/build state, performs a clean warning-free build, captures size and hashes, and never flashes.
     - All failed and successful build logs plus latest evidence live under `output/12-*`.
 13. `13-audit-built-epd-control.py`
-    - Audits sdkconfig, compile definitions, symbols, command surface, waveform identity, initialization hardening, build warnings, flash absence, and IRAM headroom.
+    - Audits sdkconfig, compile definitions, symbols, no-drive boot behavior, bounded command surface, waveform/reader-fixture identity, initialization hardening, build warnings, flash absence, and IRAM headroom.
     - Timestamped audits plus `output/13-built-control-audit-latest.md` preserve gate history.
+14. `14-generate-epd-control-fixtures.py`
+    - Generates the deterministic 960×540 binary reader page from a pinned DejaVu Serif font, packs it into EPD_Painter's 2-bpp format, and records source/asset/preview hashes.
+    - Preview: `output/14-reader-page-preview.png`; firmware asset: `0107-papers3-epd-painter-control/main/fixtures/reader_page.bin`.
 
 ## Web discovery queries
 
@@ -117,6 +120,7 @@ $T/scripts/10-audit-epd-painter.py
 $T/scripts/11-prepare-epd-painter-control.sh
 $T/scripts/12-build-epd-painter-control.sh
 $T/scripts/13-audit-built-epd-control.py
+$T/scripts/14-generate-epd-control-fixtures.py
 ```
 
 Upstream output is date-sensitive; review diffs instead of assuming a later run will match the 2026-07-14 snapshot.

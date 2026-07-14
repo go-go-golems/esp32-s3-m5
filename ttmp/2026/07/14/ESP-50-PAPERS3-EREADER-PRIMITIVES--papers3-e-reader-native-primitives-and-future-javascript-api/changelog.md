@@ -128,3 +128,14 @@ Step 14: completed P0.15 hardened status-only independent control, exact IDF 5.4
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control — Committed independent control firmware
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Chronological Step 14 build record
+
+## 2026-07-14
+
+P0.16: added no-drive-at-boot, state-gated HIGH/two-stage cleanup/full/area/checker/page commands, bounded worker/FAULT behavior, operation evidence records, and a reproducible binary reader fixture. Exact-IDF build is warning-free and the expanded binary audit passes 14 checks; no flash occurred.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/main/app_main.cpp — Bounded command state machine and operation records
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/main/fixtures/reader_page.bin — Deterministic packed reader workload
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/14-generate-epd-control-fixtures.py — Reproducible reader fixture generator
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/13-built-control-audit-latest.md — Passing 14-check pre-flash binary gate

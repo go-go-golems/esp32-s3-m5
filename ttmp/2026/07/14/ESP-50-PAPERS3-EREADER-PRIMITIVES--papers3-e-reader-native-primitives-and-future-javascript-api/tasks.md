@@ -193,6 +193,6 @@
 - [x] [P0.13] Audit the pinned EPD_Painter PaperS3 waveform, scan timing, power sequencing, memory ownership, and cleanup/DC-balance behavior before hardware use <!-- t:i55j -->
 - [x] [P0.14] Write the independent-driver experiment design with safety gates, controlled transitions, area matrix, optical capture, and explicit claims each result can support <!-- t:jetk -->
 - [x] [P0.15] Create and reproducibly build a minimal pinned PaperS3 independent-driver control firmware without application, network, storage, or touch dependencies <!-- t:4v4e -->
-- [ ] [P0.16] Add bounded serial commands for hard cleanup, HIGH white/black, area fractions, reader page, status, and final DC-balanced cleanup <!-- t:v19b -->
+- [x] [P0.16] Add bounded serial commands for hard cleanup, HIGH white/black, area fractions, reader page, status, and final DC-balanced cleanup <!-- t:v19b -->
 - [ ] [P0.17] Flash and run the minimal independent-driver smoke sequence on hardware, preserving exact build metadata, transcript, timing, heap, and operator observations <!-- t:j92a -->
 - [ ] [P0.18] Run controlled origin-target and area-load optical fixtures; decide whether waveform behavior or analog rail/VCOM measurement is the next branch <!-- t:6b2c -->

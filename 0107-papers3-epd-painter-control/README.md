@@ -4,14 +4,21 @@ This project is the independent direct-driver control for ticket `ESP-50-PAPERS3
 
 ## Current gate
 
-P0.15 intentionally boots into `BOOT_LOCKED` with only:
+P0.16 boots into `BOOT_LOCKED` without running a panel waveform or power-on operation. The first accepted physical command is exactly `epd cleanup CONFIRM`; all targets are refused until that HARD white cleanup succeeds.
 
 ```text
 epd help
 epd status
+epd heap
+epd cleanup CONFIRM
+epd target full white|black
+epd target area 1|10|25|50|100
+epd target checker a|b
+epd target page
+epd wait
 ```
 
-No panel waveform or power-on operation runs at boot. Physical commands are added only in P0.16 after the hardened driver builds and its source/build evidence is reviewed. Do not flash this project with ad hoc commands; use the ticket scripts.
+Operations run in a worker with a 120-second console bound, explicit two-stage HIGH policy, SHA-256 target identity, heap/timing records, synchronous panel power-down, and terminal FAULT behavior. A timeout never starts automatic cleanup because the scan task may still own the hardware path. Do not flash this project with ad hoc commands; use the ticket scripts.
 
 ## Fixed inputs
 
@@ -33,7 +40,7 @@ T=ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-pri
 $T/scripts/11-prepare-epd-painter-control.sh
 ```
 
-The script verifies the ticket-owned upstream manifest, applies the reviewed patch with zero fuzz, proves that the preset/waveform file is byte-identical, and writes a prepared-source manifest.
+The script verifies the ticket-owned upstream manifest, applies the reviewed patch with zero fuzz, proves that the preset/waveform file is byte-identical, and writes a prepared-source manifest. `scripts/14-generate-epd-control-fixtures.py` reproducibly creates the embedded 960×540 reader page and ticket preview.
 
 ## Build
 
@@ -60,4 +67,4 @@ The local patch changes only initialization correctness, resource checks, idle/p
 - hard-clear phase counts;
 - quality delays.
 
-The board remains on official FactoryTest V0.5 until task P0.17 explicitly authorizes a flash.
+The board remains on official FactoryTest V0.5 until task P0.17 explicitly authorizes a flash. A successful build/audit does not authorize hardware execution.
