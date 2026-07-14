@@ -65,6 +65,8 @@ RelatedFiles:
       Note: Step 18 observer-effect evidence (commit 2badb87)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
       Note: Step 19 19-check audit (commit 4ab273a)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-reference-result.md
+      Note: Step 21 passive calibrated reference result (commit 3dc771a)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-synchronized-serial-capture-validation.md
       Note: Step 20 validation and preserved observer reset failure (commit ec2bf1b)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
@@ -89,6 +91,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2205,4 +2208,114 @@ Printalyzer firmware: v1.1.0, g7101373, 2023-06-13 17:41
 Printalyzer UID: 323147103439323344002900
 PaperS3 state after observer failure: ROM download mode
 Actual Printalyzer raw stream executed: no
+```
+
+## Step 21: Validate passive calibrated Printalyzer events
+
+This step exercised only the Printalyzer's ordinary local reflection-measurement workflow while the host passively timestamped CDC output. It established that normal calibrated readings arrive intact and repeat at the instrument's 0.01 D display resolution without remote mode, diagnostic illumination, or panel interaction.
+
+The operator caught a setup mistake during collection. Those first six records remain in the immutable stream but were prospectively excluded before analysis; the subsequent three low- and three high-density reference readings form the valid result.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, let's try"
+
+**Subsequent correction (verbatim):** "ok i made a mistake, the first 6 readings are nonsense, the 3 cal-l0 readings should say 0.05"
+
+**Completion report (verbatim):** "done (1.49)"
+
+**Assistant interpretation:** Run a no-input passive logger while the operator takes repeated normal reflection measurements on the supplied CAL-LO and CAL-HI references, preserving mistakes rather than rewriting the record.
+
+**Inferred user intent:** Confirm that synchronized optical capture works on the physical instrument before attempting automated raw sampling or PaperS3 measurements.
+
+**Commit (evidence):** `3dc771a935ecd81936444f73e82d71c31447e235` — "Experiment: validate passive Printalyzer readings"
+
+### What I did
+
+- Started script 29 in densitometer-only, passive, indefinite mode inside tmux.
+- Asked for three CAL-LO and three CAL-HI normal reflection measurements with repositioning.
+- Inspected the live append-only NDJSON after the operator reported the setup mistake.
+- Preserved and classified the first six samples as operator-invalid.
+- Continued the same capture for valid CAL-HI measurements.
+- Stopped the logger via SIGINT after the operator reported completion.
+- Verified clean `capture_end`, `result=ok`, `serial_input_sent=false`, and released `/dev/ttyACM1`.
+- Computed capture SHA-256 `5e8235e8...` and wrote a reference-result report.
+
+### Why
+
+- Normal calibrated measurement is the lowest-risk proof of physical event capture.
+- Prospective operator exclusion prevents accidental setup events from contaminating repeatability statistics without deleting inconvenient evidence.
+- Reference targets test the instrument and logger independently of PaperS3 cover-glass geometry.
+
+### What worked
+
+- Valid CAL-LO was `R+0.05D` three times.
+- Valid CAL-HI was `R+1.49D` three times and matched the operator-reported reference value.
+- Both valid groups had 0.00 D spread at BASIC output's 0.01 D resolution.
+- The logger captured twelve density lines, global ordering, nanosecond host receipt timestamps, and a clean termination.
+- No serial command was sent and no PaperS3 port was opened.
+
+### What didn't work
+
+- The first three records were taken in transmission mode:
+
+```text
+T+2.19D
+T+2.19D
+T+2.19D
+```
+
+- The next three reflection records were also classified by the operator as procedural mistakes:
+
+```text
+R+1.98D
+R+1.98D
+R+1.98D
+```
+
+  All six remain in the event stream and are explicitly excluded from valid statistics.
+
+### What I learned
+
+- Passive CDC capture works with normal on-device calibrated measurements.
+- The reference workflow is repeatable at displayed precision, but BASIC mode hides sub-0.01 D variation.
+- Immediate operator annotations are essential because serial values alone cannot reveal target identity or placement mistakes.
+- Host line timestamps do not reveal Action-button press time or integration start.
+
+### What was tricky to build
+
+- The logger ran indefinitely in tmux, so shutdown had to be graceful rather than killing the process and losing the final fsync/capture-end records.
+- The first six readings could not be deleted or silently relabeled. Their immutable sequence and the operator's prospective correction had to remain joined.
+- CAL-LO/CAL-HI target identity comes from the operator; the Printalyzer line only identifies reflection versus transmission and density.
+
+### What warrants a second pair of eyes
+
+- Confirm that `(1.49)` denotes both the printed CAL-HI target and observed readings; the captured readings themselves are unambiguous.
+- Review whether `SM FORMAT,EXT` is acceptable for the next normal-measurement run; it is transient but no longer strictly input-free.
+- Do not infer true zero variance below 0.01 D from rounded BASIC output.
+
+### What should be done in the future
+
+- Run a separately labeled EXT-format normal reference check if sub-centidensity values/raw counts are needed.
+- Measure button-to-result latency with an independent button marker or video/audio synchronization.
+- Qualify a fixture and target plane before placing the Printalyzer on PaperS3 glass.
+- Keep actual raw streaming blocked until gain, integration, light, and saturation are preregistered.
+
+### Code review instructions
+
+- Read `scripts/output/29-printalyzer-passive-reference-result.md` first.
+- Verify the raw JSONL hash and sequences; confirm records 2–7 are excluded and 8–13 are valid groups.
+- Confirm the final event says `result=ok`, `interrupted=true`, and `serial_input_sent=false`.
+- Confirm neither `/dev/ttyACM0` nor `/dev/ttyACM1` has an owner after capture.
+
+### Technical details
+
+```text
+valid CAL-LO: 0.05, 0.05, 0.05 D
+valid CAL-HI: 1.49, 1.49, 1.49 D
+BASIC precision: 0.01 D
+valid display-level spread: 0.00 D for each target
+capture SHA-256: 5e8235e8f9ed179806d914c75b4857b65d895ad7f15a17158190f6423560b8f7
+serial input sent: no
+PaperS3 panel operation: no
 ```

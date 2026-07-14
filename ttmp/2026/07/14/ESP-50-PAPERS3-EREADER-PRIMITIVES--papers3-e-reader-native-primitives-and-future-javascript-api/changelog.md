@@ -250,3 +250,12 @@ Passed passive physical Printalyzer reference capture: valid CAL-LO was 0.05 D t
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-calibration-20260714T235306Z.jsonl — Raw immutable event stream
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-reference-result.md — Timestamped reference-measurement disposition
+
+## 2026-07-14
+
+Step 21 committed the passive Printalyzer reference result as 3dc771a935ecd81936444f73e82d71c31447e235: 0.05 D ×3 CAL-LO and 1.49 D ×3 CAL-HI, with six operator-invalid setup samples preserved and excluded.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 21
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-reference-result.md — Evidence commit 3dc771a
