@@ -23,10 +23,18 @@ RelatedFiles:
       Note: Operator build/flash/monitor and visual qualification procedure
     - Path: repo://0106-papers3-epd-qualification/main/app_main.cpp
       Note: Standalone Phase 0 harness, boundary corpus, diagnostics, soaks, sleep/wake, and waveform comparison (commit 62b7b8e)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
+      Note: Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/00-research-log.md
       Note: Retroactive reproducibility trace requested by the user
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/05-add-phase-tasks.sh
       Note: Idempotent source for the detailed phase task breakdown
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/09-replay-factory-v0.5-flash.sh
+      Note: Safe replay control and non-destructive check (commit 4c1c89c76e22768d142310b75db631132379a711)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
+      Note: Reproducible audit implementation (commit 4c1c89c76e22768d142310b75db631132379a711)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
+      Note: Source that established audit blockers (commit 4c1c89c76e22768d142310b75db631132379a711)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt
       Note: Cell C flash, boot, boundary, sleep/wake, status, and waveform comparison transcript
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/03-operator-observations.md
@@ -45,6 +53,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1131,4 +1140,107 @@ Mermaid diagrams: 4
 Markdown tables/rows: 117
 Code-fence markers: 34 (balanced)
 Prohibited analogy phrase matches: 0
+```
+
+## Step 12: Gate the independent driver with a reproducible pre-hardware audit
+
+I converted the proposed EPD_Painter control from a general next step into six explicit Phase 0 tasks. Before creating firmware, I audited the complete pinned driver against M5GFX's known PaperS3 pin and power path. The audit confirms that the candidate addresses the correct pins and offers a balanced hard-clear primitive, but the upstream source is not approved for direct hardware execution.
+
+The audit found five blockers: incorrect GPIO pad-selection arguments, uninitialized packed state buffers, incomplete allocation validation, asynchronous `paint()` completion with no bounded idle wait, and an unchecked Adafruit framebuffer allocation. It also found two controlled differences that require review: power-off sequencing and an implicit three-stage convergence policy. No independent-driver firmware has been built or flashed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead. continue keeping a detailed diary and a detailed design / analysis document to explain where we are at, what you found, how it all fits together, what the next steps are, what experiments we are going to run, what they prove, etc...
+
+Then, implement task by task, and keep a detailed diary as you work, and commit at appropriate intervals"
+
+**User follow-up (verbatim):** "save all your experiments in the scripts/ folder of the ticket, retroactively too, so that we can keep a detailed trace of all your work. No firmwares in /tmp or so"
+
+**Assistant interpretation:** Continue Phase 0 through small committed gates, preserve every experiment and replay command under the ticket's numbered scripts, keep firmware projects in numbered repository directories, and maintain a detailed causal design document and diary throughout.
+
+**Inferred user intent:** Make the hardware investigation fully reproducible and reviewable while preventing undocumented temporary experiments or unsafe direct-driver execution.
+
+**Commit (code/research):** `4c1c89c76e22768d142310b75db631132379a711` — "Docs: audit PaperS3 independent EPD control"
+
+### What I did
+
+- Added tasks P0.13 through P0.18 for driver audit, experiment design, firmware build, bounded commands, smoke flash, and controlled optical matrix.
+- Expanded `scripts/07-download-epd-painter-reference.sh` to capture the complete build-relevant source directory at commit `753c521da8aef59756df07c1a4eb88f1c64c8227`.
+- Expanded `scripts/08-compare-m5gfx-luts.py` to preserve exact M5GFX 0.2.25 board source for pin-map comparison.
+- Added `scripts/09-replay-factory-v0.5-flash.sh`. Its default `--check` mode verifies binary SHA, image format, serial path, and port ownership without changing the device; `--execute` refuses to flash if another process owns the port.
+- Ran the factory replay check and preserved its timestamped output under `scripts/output/`.
+- Added and ran `scripts/10-audit-epd-painter.py`, which parses the pinned sources, compares pin assignments, counts waveform actions, checks source invariants, and emits `scripts/output/10-epd-painter-pre-hardware-audit.md`.
+- Removed the preliminary read-only source clone from `/tmp` after the user clarified artifact policy; the complete source now lives under ticket `sources/code/`.
+- Created `analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md` and recorded the pre-hardware gate, architecture, findings, and exact allowed patch scope.
+
+### Why
+
+- EPD_Painter directly controls panel scan timing and high-voltage enable signals. A successful public demo does not substitute for reviewing the exact pinned path used on this board.
+- The independent-driver result is useful only if local changes preserve waveform content and alter correctness/observability alone.
+- Ticket-owned scripts make the source acquisition, factory replay, pin comparison, and safety decision repeatable by another engineer.
+
+### What worked
+
+- EPD_Painter and M5GFX use identical PaperS3 power, control, clock, and D0–D7 pin mappings.
+- EPD_Painter's direct-GPIO power-on order matches M5GFX: OE high, 100 µs delay, then PWR high.
+- HARD clear uses 6/2/4/8 alternating phases, totaling ten actions of each polarity before a neutral scan.
+- Automatic reset-toggle shutdown can be disabled before driver initialization.
+- The factory replay check validated the official binary and confirmed that the serial port had no owner without reflashing the board.
+- The audit script completed deterministically and set the gate to blocked with five blockers and two review items.
+
+### What didn't work
+
+- The upstream driver cannot be used unchanged. `EPD_Painter.cpp` calls `esp_rom_gpio_pad_select_gpio()` with `GPIO_PIN_MUX_REG[pin]` rather than the GPIO number expected by the ESP-IDF API.
+- Packed physical-state buffers are allocated but not initialized before the paint task starts.
+- The allocation guard omits `packed_paintbuffer` and `bitmask`.
+- `paint()` returns after the task accepts the buffer rather than after panel scanning is complete.
+- The Adafruit wrapper calls `memset` without checking whether its PSRAM allocation succeeded.
+- The initial audit source was cloned under `/tmp` before the user's explicit artifact-location instruction. It was read-only, never built or flashed, and was deleted after the complete pinned source was captured under the ticket.
+
+### What I learned
+
+- A matching pin map is necessary but does not validate an independent direct driver; initialization, power-down state, completion semantics, and stage count all affect the experiment.
+- EPD_Painter's HIGH mode changes both its action tables and inter-pass delay. It is not merely a renamed speed setting.
+- The Adafruit binding implicitly selects three-stage convergence, so API call count is not waveform-pass count.
+- A first hard clear must be preceded by initialized software state; otherwise even the setup path can perform a differential update from garbage history.
+
+### What was tricky to build
+
+- The source mixes asynchronous application semantics with direct physical control. The code intentionally returns early for UI responsiveness, but that makes it unsuitable for evidence capture until a bounded `waitIdle()` exists.
+- Power-off ordering differs from M5GFX. Choosing one sequence requires a documented electrical decision rather than assuming the newer implementation is safer.
+- Waveform action counts are descriptive only. Code values, scan duration, chunk direction, rail voltage, and inter-pass delay must be traced before interpreting counts as physical dose.
+
+### What warrants a second pair of eyes
+
+- Confirm the GPIO pad-selection diagnosis against the exact Arduino-ESP32/ESP-IDF headers selected by the eventual build.
+- Review whether OE should fall before or after PWR on PaperS3 shutdown, and define safe LE/SPV/SPH states.
+- Review the proposed zero-initialized software state plus HARD clear as the first physical reconciliation sequence.
+- Trace waveform codes through the assembly packer to source pins before describing code 1/2 as measured panel polarity.
+
+### What should be done in the future
+
+- Complete P0.14 by extending the analysis with the command state machine, safety gates, evidence schema, area/history matrix, and claim table.
+- Create the independent firmware only in the next numbered repository directory.
+- Add ticket scripts for dependency preparation, patch application, build, flash, serial capture, and result extraction.
+- Do not flash until the local hardening patch, build metadata, and first-command gate pass review.
+
+### Code review instructions
+
+- Start with `analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md`.
+- Run `scripts/07-download-epd-painter-reference.sh`, `scripts/08-compare-m5gfx-luts.py`, and `scripts/10-audit-epd-painter.py`.
+- Review generated `scripts/output/10-epd-painter-pre-hardware-audit.md` against the pinned source lines.
+- Run `scripts/09-replay-factory-v0.5-flash.sh --check`; do not use `--execute` while a monitor owns the port.
+
+### Technical details
+
+```text
+candidate commit: 753c521da8aef59756df07c1a4eb88f1c64c8227
+pin-map result: exact match
+pre-hardware gate: BLOCKED
+blockers: 5
+review items: 2
+firmware created: no
+firmware flashed: no
+board state: official FactoryTest V0.5
+serial owner after checks: none
 ```
