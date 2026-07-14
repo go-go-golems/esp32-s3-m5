@@ -185,3 +185,12 @@ Implemented fixed-ring M5GFX runtime timing hooks and warning-free trace-off/tra
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp — Fixed nonblocking trace ring
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md — Observer-effect audit
+
+## 2026-07-14
+
+Step 18 committed fixed-ring M5GFX timing instrumentation, trace-off/on builds, and 18/18 observer audit as 2badb87b0ae91d2f5dd022551d822328c5de2fba; no hardware modified.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp — Code commit 2badb87
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md — Audit evidence

@@ -31,6 +31,8 @@ RelatedFiles:
       Note: Deterministic reader fixture (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://0107-papers3-epd-painter-control/sdkconfig.defaults
       Note: Exact tick, PSRAM, console, and partition defaults (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
+    - Path: repo://0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp
+      Note: Step 18 fixed-ring implementation (commit 2badb87)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md
       Note: |-
         Step 12 pre-hardware audit and decision (commit 4c1c89c76e22768d142310b75db631132379a711)
@@ -55,6 +57,8 @@ RelatedFiles:
         Passing P0.16 pre-flash audit (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-p0.17-hard-white-observation.md
       Note: Chronological P0.17 HARD-white optical result
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
+      Note: Step 18 observer-effect evidence (commit 2badb87)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
@@ -77,6 +81,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1834,6 +1839,8 @@ The observer audit passes 18/18 checks. Most importantly, extracted trace-off fr
 **Assistant interpretation:** Complete trace implementation, reproducible dual builds, and a source/binary observer-effect audit while preserving the board's current firmware and panel state.
 
 **Inferred user intent:** Obtain trustworthy runtime instrumentation whose disabled control is demonstrably unchanged and whose enabled perturbations are explicit before collecting more physical evidence.
+
+**Commit (code):** `2badb87b0ae91d2f5dd022551d822328c5de2fba` — "Firmware: instrument M5GFX runtime traces"
 
 ### What I did
 
