@@ -2,3 +2,10 @@
 2026-07-14T21:00:58Z action=send pane=papers3-0106:0.0 command=epd\ status
 2026-07-14T21:01:00Z action=send pane=papers3-0106:0.0 command=epd\ heap
 2026-07-14T21:01:10Z action=stop pane=papers3-0106:0.0
+2026-07-14T21:08:36Z action=start pane=papers3-0106:0.0 port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 log=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210836Z.log
+2026-07-14T21:08:43Z action=send pane=papers3-0106:0.0 command=epd\ status
+2026-07-14T21:08:45Z action=send pane=papers3-0106:0.0 command=epd\ heap
+2026-07-14T21:09:19Z action=send pane=papers3-0106:0.0 command=epd\ cleanup\ CONFIRM
+2026-07-14T21:09:36Z action=send pane=papers3-0106:0.0 command=epd\ status
+2026-07-14T21:09:37Z action=send pane=papers3-0106:0.0 command=epd\ heap
+2026-07-14T21:10:55Z action=stop pane=papers3-0106:0.0

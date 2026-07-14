@@ -1,0 +1,104 @@
+^C
+bash-5.2$ cd '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control' && source '/home/manuel/esp/esp-idf-5.4.2/export.sh' >/dev/null 2>&1 && idf.py -B '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket' -D SDKCONFIG='/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/sdkconfig.ticket' -p '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00' monitor
+Executing action: monitor
+Running idf_monitor in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control
+Executing "/home/manuel/.espressif/python_env/idf5.4_py3.13_env/bin/python /home/manuel/esp/esp-idf-5.4.2/tools/idf_monitor.py -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket/papers3_epd_painter_control.elf -m '/home/manuel/.espressif/python_env/idf5.4_py3.13_env/bin/python' '/home/manuel/esp/esp-idf-5.4.2/tools/idf.py' '-B' '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket' '-D' 'SDKCONFIG=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/sdkconfig.ticket' '-p' '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00'"...
+--- esp-idf-monitor 1.9.0 on /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 115200
+--- Quit: Ctrl+] | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x403786f2
+--- 0x403786f2: esp_cpu_wait_for_intr at /home/manuel/esp/esp-idf-5.4.2/components/esp_hw_support/cpu.c:64
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1564
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xc80
+load:0x403cb700,len:0x2ee0
+entry 0x403c8914
+I (26) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (26) boot: compile time Jul 14 2026 17:02:21
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (27) boot: efuse block revision: v1.3
+I (27) boot.esp32s3: Boot SPI Speed : 80MHz
+I (27) boot.esp32s3: SPI Mode       : DIO
+I (28) boot.esp32s3: SPI Flash Size : 16MB
+I (28) boot: Enabling RNG early entropy source...
+I (28) boot: Partition Table:
+I (28) boot: ## Label            Usage          Type ST Offset   Length
+I (28) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (29) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (29) boot:  2 factory          factory app      00 00 00010000 00400000
+I (30) boot: End of partition table
+I (30) esp_image: segment 0: paddr=00010020 vaddr=3c030020 size=2cc08h (183304) map
+I (63) esp_image: segment 1: paddr=0003cc30 vaddr=3fc94400 size=030a8h ( 12456) load
+I (65) esp_image: segment 2: paddr=0003fce0 vaddr=40374000 size=00338h (   824) load
+I (66) esp_image: segment 3: paddr=00040020 vaddr=42000020 size=29db8h (171448) map
+I (97) esp_image: segment 4: paddr=00069de0 vaddr=40374338 size=1003ch ( 65596) load
+I (111) esp_image: segment 5: paddr=00079e24 vaddr=600fe000 size=0001ch (    28) load
+I (118) boot: Loaded app from partition at offset 0x10000
+I (118) boot: Disabling RNG early entropy source...
+I (119) octal_psram: vendor id    : 0x0d (AP)
+I (119) octal_psram: dev id       : 0x02 (generation 3)
+I (119) octal_psram: density      : 0x03 (64 Mbit)
+I (119) octal_psram: good-die     : 0x01 (Pass)
+I (120) octal_psram: Latency      : 0x01 (Fixed)
+I (120) octal_psram: VCC          : 0x01 (3V)
+I (120) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (120) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (121) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (121) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (121) octal_psram: DriveStrength: 0x00 (1/1)
+I (121) esp_psram: Found 8MB PSRAM device
+I (121) esp_psram: Speed: 40MHz
+I (122) cpu_start: Multicore app
+I (853) esp_psram: SPI SRAM memory test OK
+I (862) cpu_start: Pro cpu start user code
+I (862) cpu_start: cpu freq: 160000000 Hz
+I (862) app_init: Application information:
+I (862) app_init: Project name:     papers3_epd_painter_control
+I (862) app_init: App version:      esp50-p0.16-e9f3769
+I (862) app_init: Compile time:     Jul 14 2026 17:02:05
+I (863) app_init: ELF file SHA256:  1f0134ada...
+I (863) app_init: ESP-IDF:          v5.4.2
+I (863) efuse_init: Min chip rev:     v0.0
+I (863) efuse_init: Max chip rev:     v0.99
+I (863) efuse_init: Chip rev:         v0.2
+I (863) heap_init: Initializing. RAM available for dynamic allocation:
+I (864) heap_init: At 3FC97FA8 len 00051768 (325 KiB): RAM
+I (864) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (864) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (864) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (865) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (866) spi_flash: detected chip: generic
+I (866) spi_flash: flash io: dio
+I (866) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (867) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (868) main_task: Started on CPU0
+I (869) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (870) main_task: Calling app_main()
+
+PaperS3 independent EPD control boot
+control.version=p0.16 upstream=753c521da8aef59756df07c1a4eb88f1c64c8227 idf=v5.4.2 expected_idf=v5.4.2
+EPD_CONTROL_STATUS state=BOOT_LOCKED initialized=yes preset=match pending=0 rails=idle last=none idf=v5.4.2 expected_idf=v5.4.2 upstream=753c521da8aef59756df07c1a4eb88f1c64c8227 psram=ready heap_free=8223935 heap_min=8223935
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+I (941) epd_control: bounded console ready; no panel operation executed at boot
+I (942) main_task: Returned from app_main()
+epd-control>  epd-control>  epd statusepd-control>  epd status
+EPD_CONTROL_STATUS state=BOOT_LOCKED initialized=yes preset=match pending=0 rails=idle last=none idf=v5.4.2 expected_idf=v5.4.2 upstream=753c521da8aef59756df07c1a4eb88f1c64c8227 psram=ready heap_free=8230123 heap_min=8217299
+epd-control>  epd-control>  epd heapepd-control>  epd heap
+EPD_HEAP free_8bit=8230107 min_8bit=8217299 free_internal=233195 free_psram=7996912
+epd-control>  epd-control>  epd cleanup CONFIRMepd-control>  epd cleanup CONFIRM
+EPD_OP_BEGIN id=1 command="cleanup CONFIRM" state=BOOT_LOCKED origin=unknown-commanded target=white quality=HIGH stages=2 target_sha256=3bd8d3cf878b4daa903082fe0a919c37faf030689116ca2a50e72c3d16748c9f heap_free=8229847 heap_min=8217299
+EPD_OP_END id=1 result=ok elapsed_ms=397 pending=0 rails=idle heap_free=8223351 heap_min=8217299
+epd-control>  epd-control>  epd statusepd-control>  epd status
+EPD_CONTROL_STATUS state=WHITE_KNOWN initialized=yes preset=match pending=0 rails=idle last=white idf=v5.4.2 expected_idf=v5.4.2 upstream=753c521da8aef59756df07c1a4eb88f1c64c8227 psram=ready heap_free=8229831 heap_min=8217299
+epd-control>  epd-control>  epd heapepd-control>  epd heap
+EPD_HEAP free_8bit=8229815 min_8bit=8217299 free_internal=232903 free_psram=7996912
+epd-control>
+bash-5.2$

@@ -53,6 +53,8 @@ RelatedFiles:
       Note: |-
         Passing no-drive binary gate (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
         Passing P0.16 pre-flash audit (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-p0.17-hard-white-observation.md
+      Note: Chronological P0.17 HARD-white optical result
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
@@ -75,6 +77,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -1619,4 +1622,106 @@ boot operations: 0
 hardware flashed: no
 board firmware: FactoryTest V0.5
 next hardware task: P0.17
+```
+
+## Step 16: Flash the exact independent control and stop on HARD-white ghosting
+
+This step crossed the hardware gate with an exact audited binary, proved no-drive boot, and executed one operator-observed HARD-white cleanup. The transaction completed cleanly in software, but the panel retained substantial content from the previous FactoryTest screen.
+
+That optical failure is the important result. I stopped before the black/white smoke sequence, powered the panel controls down through the bounded operation path, stopped the monitor, and released serial ownership rather than adding more waveform history.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i am watching"
+
+**Subsequent operator observation (verbatim):**
+
+> 1. lots of ghosting from the previous screen
+> 2. i don't think so
+> 3. how aggressive are you on the power stuff? but no
+
+**Assistant interpretation:** The operator was ready for the first physical cleanup, then reported that it failed to erase prior-screen content while showing no noticed abnormal heat, smell, sound, or power behavior.
+
+**Inferred user intent:** Safely determine whether the unchanged EPD_Painter control can establish a clean white baseline and understand how electrically aggressive the test is.
+
+**Commit (tooling):** `4b1cd7e46de05c206998b7c86b08bbd6b50140cb` — "Tools: make PaperS3 EPD flashing deterministic"
+
+### What I did
+
+- Fixed verbose build behavior so complete ESP-IDF output is redirected to the timestamped evidence log; normal stdout now contains only progress and the final size/hash summary, while failures show the final 100 lines.
+- Fixed preview determinism by stripping PNG date/time metadata and verified two consecutive generations were byte-identical.
+- Pinned `PROJECT_VER=esp50-p0.16-e9f3769` and changed flashing from `idf.py flash` to direct esptool `@flash_args` execution.
+- Rebuilt and passed all 14 static/binary audit checks.
+- Flashed application SHA-256 `f24705a69ac0355006d82ea1873191c6084f96bc7a79fcd1008ef433208437f9` and verified that the artifact hash was unchanged after flashing.
+- Verified version `esp50-p0.16-e9f3769`, ELF prefix `1f0134ada`, `BOOT_LOCKED`, zero pending stages, idle rails, initialized PSRAM, prompt continuity, and stable heap.
+- Sent exactly one physical command: `epd cleanup CONFIRM`.
+- Captured `EPD_OP_END id=1 result=ok elapsed_ms=397 pending=0 rails=idle` and the subsequent `WHITE_KNOWN` status.
+- Asked for immediate visual disposition, recorded substantial ghosting, stopped the matrix, exited the serial monitor, and confirmed no serial owner remained.
+
+### Why
+
+- Exact-artifact flashing makes the preflight audit meaningful; a post-preflight relink defeats binary identity even when source behavior is unchanged.
+- HARD white was the required history-normalization gate. If it cannot clear retained content, later black/page comparisons lack a trustworthy origin state.
+- Stopping after an optical failure avoids compounding panel history or confusing an explanatory experiment with blind waveform cycling.
+
+### What worked
+
+- Direct esptool flashing preserved the audited application hash before and after hardware modification.
+- The fixed project version appeared correctly in the boot transcript.
+- No-drive boot, console, status, heap, bounded completion, neutral end state, power-down, and serial ownership controls all behaved as designed.
+- The operator noticed no abnormal heat, smell, sound, or power behavior.
+- Build output is now concise without losing the complete evidence log.
+
+### What didn't work
+
+- The first version of the flash script called `idf.py flash`. IDF reran CMake after repository evidence changed, embedded version `9c59ed6-dirty`, and flashed SHA `dabe3338...` after preflight had audited `2791e833...`. No waveform was run on that image.
+- The corrected EPD_Painter HARD-white operation did not produce a clean optical endpoint. Operator report: `lots of ghosting from the previous screen`.
+- Automatic `result=ok` therefore did not imply optical success.
+
+### What I learned
+
+- `idf.py flash` is not an exact-artifact operation when CMake considers the project dirty; direct esptool execution is required for this evidence model.
+- EPD_Painter's unchanged HARD clear is not, by itself, a successful independent white-baseline control on this panel/history.
+- The 397 ms operation consisted of high scan activity but no local rail-amplitude change: HARD uses 20 full-panel passes in `6/2/4/8` alternating phases, ten passes of each code polarity overall, 5 ms gaps, and a final neutral scan.
+- Rail/VCOM values and current remain unmeasured. Software can prove enable duration and control state, not the analog voltages that reached the panel.
+
+### What was tricky to build
+
+- Repository state affected application bytes through the default project-version descriptor. The symptom was a mismatch between the preflight hash and the flashed image despite no intentional source edit. Pinning `PROJECT_VER` removed Git-state variability, and direct esptool invocation eliminated reconfiguration during flash.
+- Raw tmux capture contained carriage returns, NULs, ANSI escapes, and trailing whitespace. The stop path now normalizes those artifacts after closing `pipe-pane`, preserving readable evidence while preventing diff hygiene failures.
+- The panel transaction passed every software invariant while failing its actual optical purpose. The experiment therefore had to preserve two separate dispositions rather than collapsing them into a single pass/fail flag.
+
+### What warrants a second pair of eyes
+
+- Confirm the exact physical meaning/polarity of EPD_Painter patterns `0x55` and `0xAA` against ED047TC1 source-driver semantics.
+- Review whether the `6/2/4/8` ordering is appropriate for ending white despite equal aggregate code counts.
+- Review whether 397 ms is credible for 20 full-panel HARD scans plus state-machine activity on the configured scan timing.
+- Review whether the clear path's logical screen buffers and unknown physical starting state undermine the preliminary white-target stage.
+- Do not infer safe rail amplitudes from `rails=idle`; analog probing remains outstanding.
+
+### What should be done in the future
+
+- Do not run the black/white smoke chain or P0.18 area/checker/page matrix yet.
+- Analyze the HARD-clear implementation, physical code polarity, and prior-state assumptions against the ED047TC1 datasheet and known-good driver behavior.
+- Decide whether the next discriminating experiment is a reviewed polarity-ending cleanup, an official/factory white comparison, or safe rail/VCOM measurement.
+- Obtain a fixed-camera image and temperature measurement if the white endpoint is reproduced.
+
+### Code review instructions
+
+- Start with `scripts/output/17-p0.17-hard-white-observation.md` and the normalized `16-epd-control-monitor-20260714T210836Z.log`.
+- Review `EPD_Painter::clear` in `0107-papers3-epd-painter-control/components/epd_painter/src/EPD_Painter.cpp`, especially `totpass={6,2,4,8}`, pattern alternation, and final neutral scan.
+- Review `scripts/15-flash-epd-control.sh` for pre/post SHA checks and direct `@flash_args` use.
+- Confirm no later `EPD_OP_BEGIN` exists after operation ID 1.
+
+### Technical details
+
+```text
+application SHA-256: f24705a69ac0355006d82ea1873191c6084f96bc7a79fcd1008ef433208437f9
+ELF SHA-256: 1f0134ada20285026c0c9df12b89a7c5cf9bba26d9bb9b030e97bb9172d1ffc2
+project version: esp50-p0.16-e9f3769
+operation: EPD_OP_END id=1 result=ok elapsed_ms=397 pending=0 rails=idle
+post-state: WHITE_KNOWN
+optical disposition: FAIL — lots of ghosting from the previous screen
+abnormal heat/smell/sound/power behavior: none noticed
+serial owner after stop: none
 ```

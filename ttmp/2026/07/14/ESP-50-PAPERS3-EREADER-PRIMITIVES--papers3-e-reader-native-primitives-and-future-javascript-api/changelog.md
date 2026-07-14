@@ -158,3 +158,12 @@ P0.17 preliminary: first independent-control flash booted safely in BOOT_LOCKED 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/CMakeLists.txt — Deterministic project version
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/15-flash-epd-control.sh — Exact-artifact flash with pre/post SHA guard
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210036Z.log — Passing no-drive runtime boot evidence
+
+## 2026-07-14
+
+P0.17 HARD-white gate: audited independent driver completed in 397 ms with zero pending stages and idle rails, but operator observed lots of ghosting from the prior screen. Classified automatic PASS / optical FAIL; stopped before black or matrix operations.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210836Z.log — Runtime transcript
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-p0.17-hard-white-observation.md — Optical stop-gate evidence

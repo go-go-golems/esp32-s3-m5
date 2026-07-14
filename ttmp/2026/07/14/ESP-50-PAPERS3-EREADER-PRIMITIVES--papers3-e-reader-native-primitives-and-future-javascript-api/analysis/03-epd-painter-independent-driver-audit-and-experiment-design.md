@@ -18,10 +18,14 @@ RelatedFiles:
       Note: No-drive P0.15 control entrypoint and status-only console
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
       Note: Reproducible upstream pre-hardware source audit
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
-      Note: Exact local correctness and observability changes
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
       Note: Exact toolchain, configuration, binary hashes, and no-flash evidence
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210836Z.log
+      Note: Exact boot, command, timing, status, and heap transcript for audited binary f24705a6
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-p0.17-hard-white-observation.md
+      Note: Authoritative automatic and operator disposition for the failed HARD-white gate
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
+      Note: Exact local correctness and observability changes
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
       Note: Pinned independent driver implementation under audit
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter_presets.h
@@ -33,6 +37,7 @@ LastUpdated: 2026-07-14T16:36:00-04:00
 WhatFor: Prevent unreviewed third-party direct-drive code from reaching the PaperS3 panel and define the exact conditions under which an independent waveform experiment becomes valid.
 WhenToUse: Read before creating, building, flashing, or interpreting the independent-driver control firmware.
 ---
+
 
 
 
@@ -884,3 +889,19 @@ project version: esp50-p0.16-e9f3769
 ```
 
 This exact image must be reflashed before the first HARD cleanup. The incident does not invalidate the no-drive boot observation, but it prevents the first flash from serving as the final binary-identity baseline.
+
+## P0.17 HARD-white result: software pass, optical fail
+
+The corrected exact artifact (`f24705a6...`, version `esp50-p0.16-e9f3769`) passed no-drive boot and completed one bounded HARD-white cleanup:
+
+```text
+EPD_OP_BEGIN id=1 command="cleanup CONFIRM" state=BOOT_LOCKED origin=unknown-commanded target=white quality=HIGH stages=2
+EPD_OP_END id=1 result=ok elapsed_ms=397 pending=0 rails=idle
+EPD_CONTROL_STATUS state=WHITE_KN ... pending=0 rails=idle last=white
+```
+
+The operator reported **“lots of ghosting from the previous screen.”** No abnormal heat, smell, sound, or power behavior was noticed. This is therefore an automatic transaction pass but an optical stop-gate failure. No black target, repeated cleanup, or P0.18 matrix operation followed.
+
+The power profile was conservative in amplitude but active in scan count. Local code did not modify rail setpoints, VCOM, waveform bytes, scan timing, or pulse count. The HARD routine used its upstream four phases with `6/2/4/8` passes, alternating `0x55` and `0xAA`: ten full-screen passes of each code polarity overall, 5 ms between passes, followed by a neutral scan and power-down. The board's fixed analog rails were active only during the 397 ms transaction according to software state. Their actual voltage/current values were not measured.
+
+This result narrows the interpretation but does not yet identify the cause. EPD_Painter is independent of M5GFX and reproduced a poor white-cleanup endpoint, which weakens a theory confined to M5GFX's LUT tables. However, it does not distinguish among a wrong independent-driver polarity/order, an inadequate generic cleanup method, rail/VCOM mismatch, panel history, temperature, or panel condition. The next experiment must be selected from those hypotheses; blindly continuing to black would destroy the controlled stop point without explaining the failure.
