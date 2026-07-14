@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPD Painter — Waveform Calibrator</title>
+<style>
+:root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface2: #0f3460;
+    --accent: #e94560;
+    --accent2: #533483;
+    --text: #eee;
+    --text-dim: #aaa;
+    --border: #334;
+    --green: #4caf50;
+    --red: #e94560;
+    --yellow: #ffc107;
+    --changed: #4dd0e1;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+/* Header */
+.header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.header img {
+    height: 48px;
+    border-radius: 8px;
+}
+.header h1 {
+    font-size: 1.4em;
+    font-weight: 600;
+}
+.header h1 span { color: var(--accent); }
+.header-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Connection */
+.connect-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.status-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--red);
+    display: inline-block;
+}
+.status-dot.connected { background: var(--green); }
+button {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.15s;
+}
+button:hover { background: var(--accent2); border-color: var(--accent); }
+button:active { transform: scale(0.97); }
+button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+}
+button.primary:hover { background: #d63452; }
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Main layout */
+.main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Screen control */
+.control-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    padding: 14px;
+    background: var(--surface);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    align-items: center;
+}
+.control-bar label {
+    font-weight: 600;
+    margin-right: 8px;
+    color: var(--text-dim);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+}
+.tab {
+    padding: 10px 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: all 0.15s;
+}
+.tab:hover { color: var(--text); background: var(--surface2); }
+.tab.active {
+    background: var(--surface2);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* Tab content */
+.tab-content {
+    display: none;
+    background: var(--surface2);
+    border: 1px solid var(--accent);
+    border-radius: 0 8px 8px 8px;
+    padding: 20px;
+}
+.tab-content.active { display: block; }
+
+/* Waveform editor */
+.wf-section {
+    margin-bottom: 20px;
+}
+.wf-section h3 {
+    font-size: 1em;
+    margin-bottom: 8px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.wf-section h3 .arrow { font-size: 1.2em; }
+
+.wf-grid {
+    display: grid;
+    gap: 4px;
+    align-items: center;
+}
+.wf-grid .row-label {
+    font-size: 0.85em;
+    color: var(--text-dim);
+    text-align: right;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+.wf-grid .col-header {
+    font-size: 0.75em;
+    color: var(--text-dim);
+    text-align: center;
+}
+.wf-cell {
+    width: 100%;
+    padding: 4px 2px;
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+}
+.wf-cell:focus { border-color: var(--accent); outline: none; }
+.wf-cell.changed {
+    border-color: var(--changed);
+    box-shadow: 0 0 0 1px var(--changed);
+}
+.wf-cell:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.wf-cell option { background: var(--bg); color: var(--text); }
+
+/* Pulse type colors */
+.wf-cell[data-val="0"] { background: #222; color: #666; }
+.wf-cell[data-val="1"] { background: #1a3a1a; color: #6f6; }
+.wf-cell[data-val="2"] { background: #3a1a1a; color: #f66; }
+.wf-cell[data-val="3"] { background: #2a2a1a; color: #ff6; }
+
+/* Upload bar */
+.upload-bar {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* Log */
+.log-section {
+    margin-top: 20px;
+}
+.log-section h3 {
+    font-size: 0.9em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+}
+#log {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    height: 120px;
+    overflow-y: auto;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.8em;
+    color: var(--green);
+    white-space: pre-wrap;
+}
+
+/* Preset export */
+.export-section {
+    margin-top: 20px;
+}
+#presetOutput {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 0.8em;
+    color: var(--yellow);
+    white-space: pre;
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+    .header { padding: 10px 12px; }
+    .header h1 { font-size: 1.1em; }
+    .main { padding: 12px; }
+    .wf-cell { font-size: 0.8em; padding: 3px 1px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <img src="../img/epdpainter_logo.png" alt="EPD Painter" id="logo">
+    <h1>Waveform <span>Calibrator</span></h1>
+    <div class="header-right">
+        <div class="connect-section">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Disconnected</span>
+            <button id="btnConnect" onclick="toggleConnection()">Connect</button>
+        </div>
+    </div>
+</div>
+
+<div class="main">
+    <!-- Screen Controls -->
+    <div class="control-bar">
+        <label>Screen:</label>
+        <button onclick="sendCmd('PAGE:1')" id="btnPage1">Page 1 — Dither Demo</button>
+        <button onclick="sendCmd('PAGE:2')" id="btnPage2">Page 2 — Darker Calib.</button>
+        <button onclick="sendCmd('PAGE:3')" id="btnPage3">Page 3 — Lighter Calib.</button>
+        <button onclick="sendCmd('CLEAR')" id="btnClear">Clear Screen</button>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <label>Quality:</label>
+            <select id="qualitySelect" onchange="setQuality(this.value)" style="padding:6px 10px;border-radius:6px;background:var(--bg);color:var(--text);border:1px solid var(--border);">
+                <option value="FAST">FAST</option>
+                <option value="NORMAL" selected>NORMAL</option>
+                <option value="HIGH">HIGH</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Quality Tabs -->
+    <div class="tabs">
+        <div class="tab active" data-tab="fast" onclick="switchTab('fast')">FAST (7 passes)</div>
+        <div class="tab" data-tab="normal" onclick="switchTab('normal')">NORMAL (13 passes)</div>
+        <div class="tab" data-tab="high" onclick="switchTab('high')">HIGH (13 passes)</div>
+    </div>
+
+    <!-- FAST Tab -->
+    <div class="tab-content active" id="tab-fast"></div>
+    <!-- NORMAL Tab -->
+    <div class="tab-content" id="tab-normal"></div>
+    <!-- HIGH Tab -->
+    <div class="tab-content" id="tab-high"></div>
+
+    <!-- Upload -->
+    <div class="upload-bar">
+        <button class="primary" onclick="uploadAndUpdate()" id="btnUpload" style="font-size:1.1em;padding:12px 32px;">
+            UPLOAD &amp; UPDATE
+        </button>
+        <button onclick="requestWaveforms()">Read from Device</button>
+        <button onclick="exportPreset()">Export as Preset Code</button>
+        <button onclick="copyPreset()">Copy to Clipboard</button>
+    </div>
+
+    <!-- Preset export -->
+    <div class="export-section">
+        <pre id="presetOutput"></pre>
+    </div>
+
+    <!-- Log -->
+    <div class="log-section">
+        <h3>Serial Log</h3>
+        <div id="log"></div>
+    </div>
+</div>
+
+<script>
+// =========================================================================
+// Waveform data model
+// =========================================================================
+const WF_DEFS = {
+    fast:   { passes: 7,  names: ['FAST_LIGHTER', 'FAST_DARKER'] },
+    normal: { passes: 13, names: ['NORMAL_LIGHTER', 'NORMAL_DARKER'] },
+    high:   { passes: 13, names: ['HIGH_LIGHTER', 'HIGH_DARKER'] },
+};
+
+const ROW_LABELS = ['Light Gray', 'Dark Gray', 'Black'];
+const PULSE_LABELS = ['0 — None', '1 — Polarity A', '2 — Polarity B', '3 — DC Balance'];
+
+// Current waveform data: wfData[name] = [[row0], [row1], [row2]]
+const wfData = {};
+const loadedWfData = {};
+let deviceWaveformsLoaded = false;
+let incomingWfData = null;
+
+function cloneRows(rows) {
+    return rows.map(row => [...row]);
+}
+
+function getAllWaveformNames() {
+    return Object.values(WF_DEFS).flatMap(def => def.names);
+}
+
+function resetWaveformState() {
+    for (const key of Object.keys(wfData)) delete wfData[key];
+    for (const key of Object.keys(loadedWfData)) delete loadedWfData[key];
+    deviceWaveformsLoaded = false;
+}
+
+function applyLoadedWaveforms(sourceData) {
+    resetWaveformState();
+    const missingWaveforms = [];
+    for (const wfName of getAllWaveformNames()) {
+        if (!sourceData[wfName]) {
+            missingWaveforms.push(wfName);
+            continue;
+        }
+        wfData[wfName] = cloneRows(sourceData[wfName]);
+        loadedWfData[wfName] = cloneRows(sourceData[wfName]);
+    }
+    deviceWaveformsLoaded = getAllWaveformNames().every(name => Array.isArray(wfData[name]));
+    if (missingWaveforms.length > 0) {
+        log('Missing waveform(s): ' + missingWaveforms.join(', '));
+    }
+    updateUiState();
+}
+
+// =========================================================================
+// UI building
+// =========================================================================
+function buildWaveformGrid(tabKey) {
+    const def = WF_DEFS[tabKey];
+    const container = document.getElementById('tab-' + tabKey);
+    container.innerHTML = '';
+
+    for (let t = 0; t < 2; t++) {
+        const wfName = def.names[t];
+        const isLighter = t === 0;
+
+        const section = document.createElement('div');
+        section.className = 'wf-section';
+
+        const h3 = document.createElement('h3');
+        h3.innerHTML = (isLighter
+            ? '<span class="arrow">&#9650;</span> Lighter Waveform'
+            : '<span class="arrow">&#9660;</span> Darker Waveform')
+            + ` <code style="font-size:0.8em;color:var(--text-dim)">(${wfName})</code>`;
+        section.appendChild(h3);
+
+        const cols = def.passes;
+        const grid = document.createElement('div');
+        grid.className = 'wf-grid';
+        grid.style.gridTemplateColumns = `100px repeat(${cols}, 1fr)`;
+
+        // Column headers
+        grid.appendChild(createEl('div', 'col-header', 'Pass'));
+        for (let c = 0; c < cols; c++) {
+            grid.appendChild(createEl('div', 'col-header', '' + (c + 1)));
+        }
+
+        // Rows
+        for (let r = 0; r < 3; r++) {
+            grid.appendChild(createEl('div', 'row-label', ROW_LABELS[r]));
+            for (let c = 0; c < cols; c++) {
+                const sel = document.createElement('select');
+                sel.className = 'wf-cell';
+                sel.dataset.wf = wfName;
+                sel.dataset.row = r;
+                sel.dataset.col = c;
+                for (let v = 0; v < 4; v++) {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    opt.title = PULSE_LABELS[v];
+                    sel.appendChild(opt);
+                }
+                const currentValue = wfData[wfName]?.[r]?.[c];
+                if (currentValue === undefined) {
+                    const placeholder = document.createElement('option');
+                    placeholder.value = '';
+                    placeholder.textContent = '-';
+                    placeholder.disabled = true;
+                    placeholder.selected = true;
+                    sel.insertBefore(placeholder, sel.firstChild);
+                    sel.value = '';
+                    sel.dataset.val = '';
+                    sel.disabled = true;
+                } else {
+                    sel.value = currentValue;
+                    sel.dataset.val = sel.value;
+                    sel.disabled = false;
+                }
+                sel.classList.toggle('changed', isCellChanged(wfName, r, c));
+                sel.addEventListener('change', onCellChange);
+                grid.appendChild(sel);
+            }
+        }
+
+        section.appendChild(grid);
+        container.appendChild(section);
+    }
+}
+
+function createEl(tag, cls, text) {
+    const el = document.createElement(tag);
+    el.className = cls;
+    el.textContent = text;
+    return el;
+}
+
+function onCellChange(e) {
+    const sel = e.target;
+    const wfName = sel.dataset.wf;
+    const r = parseInt(sel.dataset.row);
+    const c = parseInt(sel.dataset.col);
+    const v = parseInt(sel.value);
+    wfData[wfName][r][c] = v;
+    sel.dataset.val = v;
+    sel.classList.toggle('changed', isCellChanged(wfName, r, c));
+}
+
+function isCellChanged(wfName, row, col) {
+    return deviceWaveformsLoaded
+        && loadedWfData[wfName]?.[row]?.[col] !== undefined
+        && wfData[wfName]?.[row]?.[col] !== loadedWfData[wfName][row][col];
+}
+
+function refreshGrids() {
+    for (const tabKey of Object.keys(WF_DEFS)) {
+        buildWaveformGrid(tabKey);
+    }
+}
+
+function updateUiState() {
+    const connected = !!port;
+    document.getElementById('btnUpload').disabled = !connected || !deviceWaveformsLoaded;
+}
+
+function switchTab(tabKey) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabKey));
+    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + tabKey));
+}
+
+// =========================================================================
+// Serial connection (Web Serial API)
+// =========================================================================
+let port = null;
+let reader = null;
+let writer = null;
+let readLoopRunning = false;
+let lineBuffer = '';
+let wfParseState = null; // null or 'reading'
+
+async function toggleConnection() {
+    if (port) {
+        await disconnect();
+    } else {
+        await connect();
+    }
+}
+
+async function connect() {
+    try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        writer = port.writable.getWriter();
+        resetWaveformState();
+        refreshGrids();
+        setConnected(true);
+        updateUiState();
+        log('Connected to serial port');
+        startReadLoop();
+        // Auto-read waveforms from device
+        setTimeout(() => sendCmd('GET_WF'), 500);
+    } catch (err) {
+        log('Connection failed: ' + err.message);
+        port = null;
+    }
+}
+
+async function disconnect() {
+    readLoopRunning = false;
+    try {
+        if (reader) { await reader.cancel(); reader.releaseLock(); reader = null; }
+        if (writer) { writer.releaseLock(); writer = null; }
+        if (port) { await port.close(); port = null; }
+    } catch (e) {}
+    resetWaveformState();
+    setConnected(false);
+    refreshGrids();
+    updateUiState();
+    log('Disconnected');
+}
+
+function setConnected(state) {
+    document.getElementById('statusDot').classList.toggle('connected', state);
+    document.getElementById('statusText').textContent = state ? 'Connected' : 'Disconnected';
+    document.getElementById('btnConnect').textContent = state ? 'Disconnect' : 'Connect';
+}
+
+async function startReadLoop() {
+    readLoopRunning = true;
+    const decoder = new TextDecoderStream();
+    const readableStreamClosed = port.readable.pipeTo(decoder.writable);
+    reader = decoder.readable.getReader();
+
+    try {
+        while (readLoopRunning) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            if (value) processIncoming(value);
+        }
+    } catch (e) {
+        if (readLoopRunning) log('Read error: ' + e.message);
+    }
+    readLoopRunning = false;
+}
+
+function processIncoming(text) {
+    lineBuffer += text;
+    let nlIdx;
+    while ((nlIdx = lineBuffer.indexOf('\n')) >= 0) {
+        let line = lineBuffer.substring(0, nlIdx).replace(/\r/g, '');
+        lineBuffer = lineBuffer.substring(nlIdx + 1);
+        handleLine(line);
+    }
+}
+
+function handleLine(line) {
+    if (line === 'WF_START') {
+        wfParseState = 'reading';
+        incomingWfData = {};
+        log('Reading waveforms from device...');
+        return;
+    }
+    if (line === 'WF_END') {
+        wfParseState = null;
+        if (incomingWfData && Object.keys(incomingWfData).length > 0) {
+            applyLoadedWaveforms(incomingWfData);
+            refreshGrids();
+            log('Waveforms loaded from device');
+        } else {
+            log('Waveform read finished, but no data was received');
+        }
+        incomingWfData = null;
+        return;
+    }
+    if (wfParseState === 'reading') {
+        parseWfLine(line);
+        return;
+    }
+    log('< ' + line);
+}
+
+function parseWfLine(line) {
+    // Format: NAME:v,v,v,...|v,v,v,...|v,v,v,...
+    const colonIdx = line.indexOf(':');
+    if (colonIdx < 0) return;
+    const name = line.substring(0, colonIdx);
+    const data = line.substring(colonIdx + 1);
+    const rows = data.split('|');
+    if (rows.length !== 3) return;
+
+    if (!incomingWfData) incomingWfData = {};
+    incomingWfData[name] = rows.map(r => r.split(',').map(Number));
+}
+
+async function sendRaw(text) {
+    if (!writer) { log('Not connected'); return; }
+    const encoder = new TextEncoder();
+    await writer.write(encoder.encode(text + '\n'));
+}
+
+async function sendCmd(cmd) {
+    log('> ' + cmd);
+    await sendRaw(cmd);
+}
+
+// =========================================================================
+// Actions
+// =========================================================================
+async function uploadAndUpdate() {
+    if (!writer) { log('Not connected!'); return; }
+    if (!deviceWaveformsLoaded) { log('Read waveform values from the device first'); return; }
+
+    // Upload all waveform tables
+    for (const tabKey of Object.keys(WF_DEFS)) {
+        const def = WF_DEFS[tabKey];
+        for (const wfName of def.names) {
+            const rows = wfData[wfName];
+            const rowStrs = rows.map(r => r.join(','));
+            await sendCmd('WF:' + wfName + ':' + rowStrs.join('|'));
+            // Small delay between commands
+            await sleep(50);
+        }
+    }
+
+    // Set quality to match active tab
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab) {
+        const quality = activeTab.dataset.tab.toUpperCase();
+        await sendCmd('QUALITY:' + quality);
+        document.getElementById('qualitySelect').value = quality;
+        await sleep(50);
+    }
+
+    // Repaint current page
+    await sendCmd('UPDATE');
+}
+
+async function setQuality(q) {
+    await sendCmd('QUALITY:' + q);
+}
+
+async function requestWaveforms() {
+    if (!writer) { log('Not connected!'); return; }
+    await sendCmd('GET_WF');
+}
+
+function exportPreset() {
+    if (!deviceWaveformsLoaded) {
+        log('Read waveform values from the device first');
+        return;
+    }
+    const out = document.getElementById('presetOutput');
+    const lines = [];
+    lines.push('.waveforms = {');
+
+    for (const tabKey of Object.keys(WF_DEFS)) {
+        const def = WF_DEFS[tabKey];
+        for (const wfName of def.names) {
+            const rows = wfData[wfName];
+            const field = wfName.toLowerCase();
+            const pad = '            ';
+            const rowStrs = rows.map((r, i) => {
+                const vals = '{ ' + r.join(', ') + ' }';
+                return (i === 0 ? '' : pad + '                        ') + vals;
+            });
+            lines.push(pad + '.' + field + '   = { ' + rowStrs.join(',\n') + ' },');
+        }
+    }
+
+    lines.push('        },');
+    out.textContent = lines.join('\n');
+    out.style.display = 'block';
+}
+
+function copyPreset() {
+    if (!deviceWaveformsLoaded) {
+        log('Read waveform values from the device first');
+        return;
+    }
+    const out = document.getElementById('presetOutput');
+    if (!out.textContent) exportPreset();
+    navigator.clipboard.writeText(out.textContent).then(() => log('Preset copied to clipboard'));
+}
+
+// =========================================================================
+// Helpers
+// =========================================================================
+function log(msg) {
+    const el = document.getElementById('log');
+    const ts = new Date().toLocaleTimeString();
+    el.textContent += '[' + ts + '] ' + msg + '\n';
+    el.scrollTop = el.scrollHeight;
+}
+
+function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+// =========================================================================
+// Init
+// =========================================================================
+refreshGrids();
+updateUiState();
+
+// Check Web Serial support
+if (!('serial' in navigator)) {
+    log('WARNING: Web Serial API not supported in this browser. Use Chrome/Edge 89+.');
+    document.getElementById('btnConnect').disabled = true;
+}
+</script>
+</body>
+</html>

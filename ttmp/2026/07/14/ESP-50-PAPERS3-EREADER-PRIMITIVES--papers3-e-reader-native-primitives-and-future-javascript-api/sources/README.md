@@ -27,6 +27,20 @@ The user prompt named `s3paper-api-design.md` twice but said “files.” `s3pap
 | `web/14-epdiy-vendor-waveforms.md` | EPDiy waveform documentation | Vendor waveform provenance and temperature/mode advantages |
 | `web/15-electrophoretic-waveform-dc-balance.md` | Frontiers waveform study | Particle activation, reference states, and DC balance |
 | `web/16-electrophoretic-ghosting-low-power-waveform.md` | EPD ghosting study | Physics and measured ghosting context |
+| `web/17-m5gfx-issue-119-full-thread.md` | M5GFX Issue 119 | PaperS3 progressive gray and M5GFX-versus-EPDiy evidence |
+| `web/18-m5gfx-issue-152-full-thread.md` | M5GFX Issue 152 | Full maintainer discussion of overload, recovery, and unstable gradations |
+| `web/19-m5gfx-issue-157-pushsprite-regression.md` | M5GFX Issue 157 | PaperS3 M5GFX 0.2.15 canvas regression and 0.2.16 fix |
+| `web/20-m5gfx-issue-160-idf54-stripes.md` | M5GFX Issue 160 | IDF 5.4 open-drain GPIO stripe regression and root cause |
+| `web/21-m5gfx-issue-166-panel-instability.md` | M5GFX Issue 166 | Panel, driver-overload, and board-circuit instability hypotheses |
+| `web/22-reddit-epd-grayscale-matrix.md` | FastEPD author post | PaperS3-specific 25-action grayscale matrix, captured with Defuddle |
+| `web/23-home-assistant-papers3-epdiy-idf55.md` | Home Assistant forum | PaperS3 EPDiy fork on ESP-IDF 5.5.1, captured with Defuddle |
+| `web/24-lilygo-issue-93-rails-vcom-corruption.md` | LilyGo EPD47 Issue 93 | Same panel-class rail ripple, VCOM, and corruption evidence on different hardware |
+| `web/25-fastepd-issue-29-4bpp-corruption.md` | FastEPD Issue 29 | Fixed 4-bpp backup-buffer corruption affecting 960×540 paths |
+
+## Downloaded code references
+
+- `code/m5gfx-lut-comparison/` — exact M5GFX 0.2.15 and 0.2.25 `Panel_EPD.cpp` sources plus normalized LUT hashes; all five built-in EPD LUTs are identical.
+- `code/epd-painter-753c521.../` — pinned selected source and documentation from the independent PaperS3-specific EPD_Painter driver, including waveform presets, hard-clear/DC-balance logic, and calibrator.
 
 ## Hardware and live evidence
 
@@ -35,8 +49,9 @@ The user prompt named `s3paper-api-design.md` twice but said “files.” `s3pap
 - `hardware/PaperS3-schematic-epd-{power,rails}.png` — enlarged crops used to read the analog EPD circuit directly.
 - `hardware/epdiy_ED047TC1.h` — external ED047TC1-specific origin/target waveform reference.
 - `hardware/2026-07-14-cell-{C,D}/` — exact build metadata, tmux transcripts, and operator observations.
+- `hardware/factory-v0.5/` — official merged FactoryTest V0.5 binary, provenance, flash transcript, and operator disposition.
 
-Defuddle only extracted the opening text of Issue 152. The full issue comments and current GitHub state are captured by `../scripts/03-query-upstream-state.sh` in `../scripts/output/03-upstream-state.txt`.
+Defuddle only extracted the opening text of the original Issue 152 capture. Full GitHub issue threads are now generated reproducibly by `../scripts/06-download-epd-bug-reports.py`; standard forum/Reddit pages use Defuddle markdown captures.
 
 ## Provenance and refresh
 

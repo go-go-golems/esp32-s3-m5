@@ -908,3 +908,130 @@ Ranked causes:
 5. Board/panel fault (pending factory baseline)
 6. ESP-IDF/color/geometry bug (now low probability)
 ```
+
+## Step 10: Run the factory control and search for matching failures
+
+The official FactoryTest V0.5 includes exactly the transient optical control we needed: QUALITY full black, QUALITY full white, and sixteen grayscale bars on every boot. I downloaded M5Stack's published merged binary, verified and flashed it without rebuilding through the unavailable IDF 5.3.3 toolchain, and preserved the artifact and flash transcript.
+
+The operator saw a similar concern during factory full black but found the final text dashboard decently crisp. A targeted literature and bug search then produced direct PaperS3 reports of M5GFX-driven progressive gray, residual images, excessive panel strain, unstable gradations, and unresolved driver/circuit/panel hypotheses. The decisive source comparison is that factory M5GFX 0.2.15 and current M5GFX 0.2.25 contain byte-identical quality, text, fast, fastest, and eraser LUTs. Factory V0.5 is therefore an official application/toolchain control, but not an independent waveform control.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead. I'm not sure if the stock firmware has a black / white test."
+
+**User follow-up (verbatim):** "❯ i think it looks like it might have had the same kind of issues when doing a whole black view.
+
+the final dashboard is decently crisp at least for text and such.
+
+Did you search the web for similar bug reports?"
+
+**User clarification (verbatim):** "remember to download relevant resources (potentially with defuddle to have markdown)"
+
+**Assistant interpretation:** Run an unmodified stock control, preserve its visual disposition, search specifically for the broad-black/crisp-text symptom and adjacent PaperS3 optical defects, and download complete reproducible sources rather than relying on snippets.
+
+**Inferred user intent:** Determine whether the observed output is a known PaperS3/M5GFX limitation and identify a genuinely independent driver control before risking local waveform or hardware modifications.
+
+**Commit (code):** N/A — no project firmware source changed; the official factory binary was flashed as a black-box control
+
+**Commit (research/evidence):** pending
+
+### What I did
+
+- Inspected upstream FactoryTest V0.5 source and confirmed `boot_display_test()` holds full black and full white for two seconds each, followed by sixteen grayscale bars.
+- Downloaded official release asset `C139-PaperS3-FactoryTest-V0.5_0x0.bin`, SHA-256 `d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624`.
+- Exited the sole tmux monitor with `Ctrl-]`, verified the USB Serial/JTAG port had no owner, and flashed the merged binary at address `0x0` with esptool v4.11.0 at 115200 baud.
+- Recorded the operator's tentative factory full-black failure and qualified dashboard pass in `sources/hardware/factory-v0.5/02-operator-observations.md`.
+- Searched M5GFX, M5Unified, the factory demo, M5Stack community pages, ED047TC1 projects, FastEPD, EPDiy, and broader web results for black, gray, ghosting, smearing, VCOM, and rail symptoms.
+- Added `scripts/06-download-epd-bug-reports.py` to preserve complete GitHub issue bodies and comments as Markdown.
+- Used Defuddle for the FastEPD PaperS3 grayscale-matrix post and the modern PaperS3 EPDiy forum thread.
+- Downloaded a commit-pinned selected snapshot of `tonywestonuk/EPD_Painter`, including PaperS3 waveform presets, hard-clear/DC-balance implementation, documentation, and waveform calibrator.
+- Added `scripts/08-compare-m5gfx-luts.py`; it downloaded exact M5GFX 0.2.15 and 0.2.25 `Panel_EPD.cpp` sources and proved all five built-in EPD LUT initializers are identical.
+- Wrote `analysis/02-similar-papers3-epd-bug-reports-and-independent-driver-controls.md` with relevance grading and the proposed independent-driver A/B test.
+
+### Why
+
+- The stock result only helps if its software lineage is understood. Reusing the same waveform under a different app cannot distinguish waveform inadequacy from hardware behavior.
+- Search snippets omitted crucial maintainer comments about control overload, long-lived panel history, individual panel instability, and M5GFX-versus-EPDiy comparisons.
+- A complete, pinned source corpus lets later reviewers distinguish close matches, indirect analog evidence, fixed regressions, and unrelated bugs.
+
+### What worked
+
+- The official merged binary flashed successfully and verified its data hash.
+- Factory V0.5 booted and displayed its normal dashboard, showing that the board remains functional after prior qualification tests.
+- The targeted search found multiple direct PaperS3 optical-control reports and at least three independent driver paths: EPD_Painter, FastEPD, and EPDiy.
+- The LUT comparison produced an unambiguous result: M5GFX 0.2.15 and 0.2.25 use identical built-in quality/text/fast/fastest/eraser pulse arrays.
+- Defuddle produced useful Markdown captures for both requested standard web pages.
+
+### What didn't work
+
+- My first image inspection command used esptool's hyphenated `image-info` spelling and failed exactly with:
+
+  ```text
+  esptool: error: argument operation: invalid choice: 'image-info'
+  ```
+
+  Esptool v4.11.0 expects `image_info`; the corrected command validated the ESP32-S3 image, checksum, and validation hash.
+- Initial `gh search issues` calls passed repository-qualified queries in a form the CLI quoted incorrectly and returned:
+
+  ```text
+  Invalid search query "repo:\"m5stack/M5GFX PaperS3 black\" type:issue".
+  ```
+
+  I switched to GitHub's `search/issues` API with explicit `q` parameters and retrieved the full matches.
+- The exact public symptom was not found verbatim. The evidence is a cluster of close PaperS3 driver/gradation/ghosting failures, not a single authoritative duplicate.
+- The operator did not separately disposition factory white or the sixteen grayscale bars, so the factory optical record remains partial.
+
+### What I learned
+
+- Factory V0.5 is not an independent waveform baseline: its M5GFX 0.2.15 pulse tables are identical to the M5GFX 0.2.25 tables exercised by Cells C/D.
+- A crisp sparse dashboard beside weak broad black fits either broad-area analog loading or a waveform/transition model that is acceptable for text but poor at area fills.
+- M5GFX issue 119 directly reports untouched PaperS3 regions becoming progressively gray under M5GFX while EPDiy gave better results.
+- M5GFX maintainers have previously identified excessive EPD strain, reverse gradation after release, and individual PaperS3 units with unstable gradations.
+- EPD_Painter offers PaperS3-specific high/normal/fast waveform tables and explicit DC-balance/clear operations, making it a higher-information control than another M5GFX version.
+
+### What was tricky to build
+
+- “Factory firmware” sounded independent until source lineage showed it reused the same waveform family. The core challenge was separating application/toolchain independence from drive-algorithm independence.
+- Similar bug reports mix several mechanisms: framebuffer overruns, GPIO mode regressions, partial-update policy, panel damage, waveform mismatch, VCOM, and rail ripple. Each report had to be relevance-graded rather than treated as confirmation.
+- GitHub issue comments contain the most valuable maintainer evidence, so preserving only issue opening text would have produced a materially misleading source set.
+
+### What warrants a second pair of eyes
+
+- Review the EPD_Painter waveform and power-control code before allowing it to drive this panel; it is active third-party code from 2026, not a panel-vendor waveform.
+- Review whether FactoryTest's short two-second black hold allowed a reliable operator judgment and whether a camera/video baseline should be captured on reset.
+- Review whether previous M5GFX experiments could have left long-lived panel history before the factory test.
+
+### What should be done in the future
+
+- Build a minimal, pinned EPD_Painter control with hard white clear, HIGH full black, HIGH full white, area-fraction fixtures, realistic text, and explicit cleanup.
+- Keep the official factory firmware available for replay; do not repeatedly flash merely to reproduce the same shared LUT.
+- Capture factory white and grayscale dispositions if the board is reset again.
+- If independent drivers also weaken primarily at high black area, measure PaperS3 rails/VCOM under small and full loads before tuning pulse tables.
+
+### Code review instructions
+
+- Start with `analysis/02-similar-papers3-epd-bug-reports-and-independent-driver-controls.md`.
+- Verify factory provenance and flash success under `sources/hardware/factory-v0.5/`.
+- Run `scripts/06-download-epd-bug-reports.py` and `scripts/08-compare-m5gfx-luts.py`; compare generated files for a clean reproducibility check.
+- Inspect the pinned EPD_Painter M5 preset in `sources/code/epd-painter-753c521.../src/EPD_Painter_presets.h` before any hardware run.
+
+### Technical details
+
+The direct LUT comparison result is:
+
+```text
+lut_quality=IDENTICAL
+lut_text=IDENTICAL
+lut_fast=IDENTICAL
+lut_fastest=IDENTICAL
+lut_eraser=IDENTICAL
+```
+
+Revised interpretation:
+
+```text
+factory broad-black concern + crisp dashboard
+  does establish: issue is reproducible in the official app/toolchain lineage
+  does not establish: independent waveform failure
+  next control: independent PaperS3 waveform/scan implementation
+```

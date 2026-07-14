@@ -54,3 +54,12 @@ Phase 0: Cell D reproduced Cell C's almost-white TEXT black under IDF 5.4.2, rul
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/01-papers3-epd-waveform-and-physical-drive-investigation-plan.md — Causal assessment and discriminating experiment plan
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-D/03-operator-observations.md — Matching Cell D visual failure and automatic boundary result
+
+## 2026-07-14
+
+Phase 0: flashed official FactoryTest V0.5, recorded similar broad-black weakness with crisp dashboard text, downloaded full matching bug reports, and proved M5GFX 0.2.15/0.2.25 built-in EPD LUTs are identical; next control is an independent PaperS3 driver.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/02-similar-papers3-epd-bug-reports-and-independent-driver-controls.md — Factory interpretation, report synthesis, and next independent-driver experiment
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/factory-v0.5/02-operator-observations.md — Measured factory visual disposition
