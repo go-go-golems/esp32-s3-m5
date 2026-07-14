@@ -1,0 +1,48 @@
+---
+Title: EPD Painter Control Build Evidence
+Ticket: ESP-50-PAPERS3-EREADER-PRIMITIVES
+Status: active
+Topics:
+    - papers3
+    - eink
+    - esp-idf
+    - hardware-qualification
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Latest reproducible no-flash build evidence for the hardened independent PaperS3 EPD control."
+LastUpdated: 2026-07-14T20:37:43Z
+WhatFor: "Verify exact toolchain, patched source, configuration, binary identity, and size before any hardware flash."
+WhenToUse: "Regenerate after any firmware, patch, SDK configuration, or toolchain change."
+---
+
+# EPD_Painter control build evidence
+
+- Build UTC: `20260714T203743Z`
+- ESP-IDF: `ESP-IDF v5.4.2`
+- Target: `esp32s3`
+- Upstream EPD_Painter: `753c521da8aef59756df07c1a4eb88f1c64c8227`
+- Local patch SHA-256: `89e34a7f24060763c3f38aae7d4aaceeb8773e112256f1d21200b4a11fd1557b`
+- Prepared manifest SHA-256: `4b4d281e8db55e9b12ad75c2023ba627b03423ea8a198506205bdacddf55d439`
+- sdkconfig.defaults SHA-256: `740cac96a2d01cf9121efc736ed9df50e4e82c39ec9d56b6eedd439523463616`
+- generated sdkconfig SHA-256: `01f25e79f3ae8e59e6b36fc57a4bcdeb601b39a91c6fdd81fec6aa5dd7d16b3c`
+- Application BIN: `293248 bytes`, SHA-256 `e8cac94e9062a7b1a4cfc4d989d63e4e5bce5181e0d3f70a201b03dfec6ccbe1`
+- ELF: `4494540 bytes`, SHA-256 `fd973bc3f3439a05cca9e1d699a9bb3a0a4e970eea42945a0b5ad317167f98d0`
+- Bootloader SHA-256: `875ad36deb0b792dd79917cbfc60e7c1b9367dcf772e3de7b128b3b88949701e`
+- Partition table SHA-256: `fd8026bff850ca0dee41c41305160317fffe604dda30a9bd5a701ac82d96fa17`
+- Full build log: `ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-20260714T203743Z.log`
+- Hardware modified: **no**
+
+## Fixed safety configuration
+
+~~~text
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_FREERTOS_HZ=1000
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+EPD_PAINTER_PRESET_M5PAPER_S3=1
+EPD_PAINTER_DISABLE_BOOTCTL=1
+~~~

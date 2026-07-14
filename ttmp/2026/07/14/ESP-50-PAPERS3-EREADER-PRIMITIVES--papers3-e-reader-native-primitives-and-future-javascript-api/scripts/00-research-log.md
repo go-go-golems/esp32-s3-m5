@@ -50,6 +50,15 @@ This directory makes the ESP-50 investigation reproducible. The extracted source
 10. `10-audit-epd-painter.py`
     - Performs the independent-driver pre-hardware audit: pin equivalence, waveform action counts, power sequencing, buffer initialization/allocation, completion semantics, cleanup, and safety gate.
     - Snapshot: `output/10-epd-painter-pre-hardware-audit.md`.
+11. `11-prepare-epd-painter-control.sh`
+    - Reconstructs the `0107` driver component from the strict upstream manifest plus `patches/11-epd-painter-pure-idf-hardening.patch`.
+    - Applies with zero fuzz and proves the PaperS3 preset/waveform source remains byte-identical.
+12. `12-build-epd-painter-control.sh`
+    - Fails closed unless exact ESP-IDF 5.4.2 is active, recreates sdkconfig/build state, performs a clean warning-free build, captures size and hashes, and never flashes.
+    - All failed and successful build logs plus latest evidence live under `output/12-*`.
+13. `13-audit-built-epd-control.py`
+    - Audits sdkconfig, compile definitions, symbols, command surface, waveform identity, initialization hardening, build warnings, flash absence, and IRAM headroom.
+    - Timestamped audits plus `output/13-built-control-audit-latest.md` preserve gate history.
 
 ## Web discovery queries
 
@@ -105,6 +114,9 @@ $T/scripts/07-download-epd-painter-reference.sh
 $T/scripts/08-compare-m5gfx-luts.py
 $T/scripts/09-replay-factory-v0.5-flash.sh --check
 $T/scripts/10-audit-epd-painter.py
+$T/scripts/11-prepare-epd-painter-control.sh
+$T/scripts/12-build-epd-painter-control.sh
+$T/scripts/13-audit-built-epd-control.py
 ```
 
 Upstream output is date-sensitive; review diffs instead of assuming a later run will match the 2026-07-14 snapshot.

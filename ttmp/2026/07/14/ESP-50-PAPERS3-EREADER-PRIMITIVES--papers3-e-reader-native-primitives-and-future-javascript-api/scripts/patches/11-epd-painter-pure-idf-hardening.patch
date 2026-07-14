@@ -1,0 +1,469 @@
+--- a/src/EPD_Painter.h
++++ b/src/EPD_Painter.h
+@@ -195,6 +195,15 @@
+   void setAutoShutdown(bool v) { _autoShutdown = v; }
+   EPD_PainterShutdown* shutdown() { return _shutdown; }
+
++  // Experimental-control synchronization. waitIdle() proves that the paint
++  // task completed its final neutral scan; powerDown() synchronously returns
++  // the direct panel controls to the reviewed idle state.
++  bool waitIdle(uint32_t timeout_ms);
++  bool powerDown(uint32_t timeout_ms);
++  int pendingStages() const { return paintStage.load(); }
++  bool initialized() const { return _initialized.load(); }
++  bool panelPowerActive() const;
++
+
+ private:
+   // ---- LCD_CAM / DMA ----
+@@ -225,6 +234,7 @@
+   bool interlace_mode = false;
+   bool shouldSkipRow = false;
+   bool _autoShutdown = true;
++  std::atomic<bool> _initialized{false};
+   EPD_PainterShutdown* _shutdown = nullptr;
+
+
+@@ -240,6 +250,7 @@
+   void powerOn();
+   void powerOff();
+   bool autoDetectBoard();
++  void driveSafeState();
+   void sendRow(bool firstLine, bool lastLine=false, bool skipRow=false);
+
+   // ---- Dual-core paint task ----
+@@ -253,40 +264,59 @@
+   // ---- Power management ----
+   class PanelPowerGuard {
+   public:
+-    PanelPowerGuard(EPD_Painter& d) : disp(d) {
+-      initOnce(d);
+-      xSemaphoreTake(power_mtx, portMAX_DELAY);
+-      if (state == 0) d.powerOn();
+-      state = 5;
++    explicit PanelPowerGuard(EPD_Painter& d) : disp(d) {
++      if (!power_mtx || xSemaphoreTake(power_mtx, portMAX_DELAY) != pdTRUE) return;
++      if (state.load() == 0) d.powerOn();
++      state.store(5);
++      active = true;
++      xSemaphoreGive(power_mtx);
++    }
++
++    bool ok() const { return active; }
++
++    static bool initialize(EPD_Painter& d) {
++      if (power_mtx) return owner == &d && task != nullptr;
++      power_mtx = xSemaphoreCreateMutex();
++      if (!power_mtx) return false;
++      owner = &d;
++      if (xTaskCreate(taskEntry, "panel_idle_off", 2048, nullptr, 1, &task) != pdPASS) {
++        vSemaphoreDelete(power_mtx);
++        power_mtx = nullptr;
++        owner = nullptr;
++        task = nullptr;
++        return false;
++      }
++      return true;
++    }
++
++    static bool powerDownNow(uint32_t timeout_ms) {
++      if (!power_mtx || !owner) return false;
++      if (xSemaphoreTake(power_mtx, pdMS_TO_TICKS(timeout_ms)) != pdTRUE) return false;
++      if (state.load() > 0) owner->powerOff();
++      state.store(0);
+       xSemaphoreGive(power_mtx);
++      return true;
+     }
+
++    static bool isPowerActive() { return state.load() > 0; }
++
+   private:
+     EPD_Painter& disp;
++    bool active = false;
+
+     static inline TaskHandle_t      task      = nullptr;
+     static inline EPD_Painter*      owner     = nullptr;
+     static inline SemaphoreHandle_t power_mtx = nullptr;
+-    static inline uint8_t           state     = 0;
+-
+-    static void initOnce(EPD_Painter& d) {
+-      struct Init {
+-        Init(EPD_Painter& d) {
+-          power_mtx = xSemaphoreCreateMutex();
+-          owner = &d;
+-          xTaskCreate(taskEntry, "panel_idle_off", 2048, nullptr, 1, &task);
+-        }
+-      };
+-      static Init init{ d };
+-    }
++    static inline std::atomic<uint8_t> state{0};
+
+     static void taskEntry(void*) {
+       for (;;) {
+         vTaskDelay(pdMS_TO_TICKS(1000));
+-        xSemaphoreTake(power_mtx, portMAX_DELAY);
+-        if (state > 0) {
+-          state--;
+-          if (state == 0) owner->powerOff();
++        if (!power_mtx || xSemaphoreTake(power_mtx, portMAX_DELAY) != pdTRUE) continue;
++        uint8_t current = state.load();
++        if (current > 0) {
++          state.store(--current);
++          if (current == 0 && owner) owner->powerOff();
+         }
+         xSemaphoreGive(power_mtx);
+       }
+--- a/src/EPD_Painter.cpp
++++ b/src/EPD_Painter.cpp
+@@ -6,9 +6,10 @@
+ #include "build_opt.h"
+ #include "esp_timer.h"
+ #include "esp_task_wdt.h"
++#include "esp_err.h"
+ #include "esp_heap_caps.h"
+ #include "esp_rom_gpio.h"
+-#include <driver/periph_ctrl.h>
++#include <esp_private/periph_ctrl.h>
+ #include <esp_private/gdma.h>
+ #include <hal/dma_types.h>
+ #include <hal/gpio_hal.h>
+@@ -228,16 +229,22 @@
+   // I2C not used in ESP-IDF builds
+ #endif
+
+-  // ---- Configure EPD control pins ----
+-  // Pins managed by powerctl (PCA9555) or encoded as EPD_SR_PIN() (shift register)
+-  // are skipped here — their hardware is initialised elsewhere.
+-  if (_config.pin_pwr >= 0 && !epd_pin_is_sr(_config.pin_pwr)) EPD_PIN_OUTPUT(_config.pin_pwr);
+-  if (_config.pin_spv >= 0 && !epd_pin_is_sr(_config.pin_spv)) EPD_PIN_OUTPUT(_config.pin_spv);
+-  EPD_PIN_OUTPUT(_config.pin_ckv);
+-  EPD_PIN_OUTPUT(_config.pin_sph);
+-  if (_config.pin_oe  >= 0 && !epd_pin_is_sr(_config.pin_oe))  EPD_PIN_OUTPUT(_config.pin_oe);
+-  if (_config.pin_le  >= 0 && !epd_pin_is_sr(_config.pin_le))  EPD_PIN_OUTPUT(_config.pin_le);
+-  EPD_PIN_OUTPUT(_config.pin_cl);
++  // ---- Configure EPD control pins in a no-drive state ----
++  // Set the output latch low before enabling output so panel power and scan
++  // controls cannot pulse during initialization.
++  auto output_low = [](int16_t pin) {
++    if (pin < 0 || epd_pin_is_sr(pin)) return;
++    EPD_PIN_LOW(pin);
++    EPD_PIN_OUTPUT(pin);
++    EPD_PIN_LOW(pin);
++  };
++  output_low(_config.pin_pwr);
++  output_low(_config.pin_spv);
++  output_low(_config.pin_ckv);
++  output_low(_config.pin_sph);
++  output_low(_config.pin_oe);
++  output_low(_config.pin_le);
++  output_low(_config.pin_cl);
+
+
+   packed_row_bytes = _config.width / 4;
+@@ -286,24 +293,38 @@
+   // ---- Route 8-bit data bus pins using config ----
+   for (int i = 0; i < 8; i++) {
+     int8_t pin = _config.data_pins[i];
++    gpio_set_level((gpio_num_t)pin, 0);
++    gpio_set_direction((gpio_num_t)pin, GPIO_MODE_OUTPUT);
+     esp_rom_gpio_connect_out_signal(pin, kDataSignals[i], false, false);
+-    epd_gpio_func_sel(GPIO_PIN_MUX_REG[pin]);
++    epd_gpio_func_sel(pin);
+     gpio_set_drive_capability((gpio_num_t)pin, (gpio_drive_cap_t)3);
+   }
+
+   // ---- Route pixel clock to CL pin ----
+   esp_rom_gpio_connect_out_signal(_config.pin_cl, LCD_PCLK_IDX, false, false);
+-  epd_gpio_func_sel(GPIO_PIN_MUX_REG[_config.pin_cl]);
++  epd_gpio_func_sel(_config.pin_cl);
+   gpio_set_drive_capability((gpio_num_t)_config.pin_cl, (gpio_drive_cap_t)3);
+
+   // ---- Allocate GDMA channel ----
+   gdma_channel_alloc_config_t dma_chan_config = {
+     .sibling_chan = NULL,
+     .direction = GDMA_CHANNEL_DIRECTION_TX,
+-    .flags = { .reserve_sibling = 0 },
++    .flags = { .reserve_sibling = 0, .isr_cache_safe = 0 },
+   };
+-  gdma_new_channel(&dma_chan_config, &dma_chan);
+-  gdma_connect(dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
++  esp_err_t dma_err = gdma_new_ahb_channel(&dma_chan_config, &dma_chan);
++  if (dma_err != ESP_OK || !dma_chan) {
++    printf("[EPD] gdma_new_channel failed: %s\n", esp_err_to_name(dma_err));
++    driveSafeState();
++    return false;
++  }
++  dma_err = gdma_connect(dma_chan, GDMA_MAKE_TRIGGER(GDMA_TRIG_PERIPH_LCD, 0));
++  if (dma_err != ESP_OK) {
++    printf("[EPD] gdma_connect failed: %s\n", esp_err_to_name(dma_err));
++    gdma_del_channel(dma_chan);
++    dma_chan = nullptr;
++    driveSafeState();
++    return false;
++  }
+
+   // Cache the GDMA channel index for direct register access in sendRow().
+   // LCD_CAM is peripheral 5 in the GDMA peri_sel register.
+@@ -315,14 +336,29 @@
+   gdma_strategy_config_t strategy_config = {
+     .owner_check = false,
+     .auto_update_desc = false,
++    .eof_till_data_popped = false,
+   };
+-  gdma_apply_strategy(dma_chan, &strategy_config);
++  dma_err = gdma_apply_strategy(dma_chan, &strategy_config);
++  if (dma_err != ESP_OK) {
++    printf("[EPD] gdma_apply_strategy failed: %s\n", esp_err_to_name(dma_err));
++    gdma_disconnect(dma_chan);
++    gdma_del_channel(dma_chan);
++    dma_chan = nullptr;
++    driveSafeState();
++    return false;
++  }
+
+   // ---- Allocate DMA row buffers ----
+   dma_buffer1 = static_cast<uint8_t *>(
+     heap_caps_aligned_alloc(16, dma_row_bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+   dma_buffer2 = static_cast<uint8_t *>(
+     heap_caps_aligned_alloc(16, dma_row_bytes, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
++  if (!dma_buffer1 || !dma_buffer2) {
++    printf("[EPD] DMA row-buffer allocation failed: a=%p b=%p bytes=%d\n",
++           dma_buffer1, dma_buffer2, dma_row_bytes);
++    driveSafeState();
++    return false;
++  }
+
+   // Zero both buffers once so the pad region stays neutral forever —
+   // pixel converts only ever write the first packed_row_bytes.
+@@ -354,7 +390,7 @@
+   packed_fastbuffer = static_cast<uint8_t *>(
+     heap_caps_aligned_alloc(16, packed_size, MALLOC_CAP_INTERNAL));
+   if (!packed_fastbuffer) {
+-    log_w("[EPD] packed_fastbuffer: internal alloc failed, retrying in PSRAM");
++    printf("[EPD] packed_fastbuffer: internal alloc failed, retrying in PSRAM\n");
+     packed_fastbuffer = static_cast<uint8_t *>(
+       heap_caps_aligned_alloc(16, packed_size, MALLOC_CAP_SPIRAM));
+   }
+@@ -367,6 +403,17 @@
+   bitmask = static_cast<uint32_t *>(
+     heap_caps_aligned_alloc(4, _config.height * 4, MALLOC_CAP_INTERNAL));
+
++  if (!(packed_fastbuffer && packed_screenbuffer && packed_paintbuffer && bitmask)) {
++    printf("[EPD] packed-buffer allocation failed: fast=%p screen=%p paint=%p mask=%p\n",
++           packed_fastbuffer, packed_screenbuffer, packed_paintbuffer, bitmask);
++    driveSafeState();
++    return false;
++  }
++  memset(packed_fastbuffer, 0, packed_size);
++  memset(packed_screenbuffer, 0, packed_size);
++  memset(packed_paintbuffer, 0, packed_size);
++  memset(bitmask, 0, _config.height * sizeof(*bitmask));
++
+   // ── Create the power driver for this board ──
+   if (_config.power.tps_addr != -1) {
+     printf("\n── PowerCtl Init ──\n");
+@@ -401,21 +448,44 @@
+   _pin_le  = make_pin(_config.pin_le);
+   _pin_sph = make_pin(uint8_t(_config.pin_sph));
+
+-  if (!(dma_buffer && packed_fastbuffer && packed_screenbuffer)) return false;
++  if (!(_powerDriver && _pin_spv && _pin_ckv && _pin_le && _pin_sph)) {
++    printf("[EPD] power/control driver allocation failed\n");
++    driveSafeState();
++    return false;
++  }
+
+   _paint_active_sem = xSemaphoreCreateBinary();
+-  xSemaphoreGive(_paint_active_sem);
+   _paint_buffer_sem = xSemaphoreCreateBinary();
++  if (!_paint_active_sem || !_paint_buffer_sem) {
++    printf("[EPD] paint semaphore allocation failed\n");
++    driveSafeState();
++    return false;
++  }
++  xSemaphoreGive(_paint_active_sem);
+   xSemaphoreGive(_paint_buffer_sem);
+
+-  xTaskCreatePinnedToCore(
+-    _paint_task_entry, "epd_paint", 8000, this, 10, &_paint_task_h, 0);
++  if (!PanelPowerGuard::initialize(*this)) {
++    printf("[EPD] panel idle-power guard initialization failed\n");
++    driveSafeState();
++    return false;
++  }
+
++  if (xTaskCreatePinnedToCore(
++        _paint_task_entry, "epd_paint", 8000, this, 10, &_paint_task_h, 0) != pdPASS) {
++    printf("[EPD] paint task creation failed\n");
++    _paint_task_h = nullptr;
++    driveSafeState();
++    return false;
++  }
++
++#ifndef EPD_PAINTER_DISABLE_BOOTCTL
+   if (_autoShutdown) {
+     EPD_BootCtl boot(*this);
+     if (boot.shutdownPending()) boot.shutdown();  // [[noreturn]] on shutdown path
+   }
++#endif
+
++  _initialized.store(true);
+   return true;
+ }
+
+@@ -423,19 +493,32 @@
+ // end()
+ // =============================================================================
+ bool EPD_Painter::end() {
++  if (_initialized.load()) {
++    waitIdle(30000);
++    powerDown(5000);
++  }
++  _initialized.store(false);
++
+   if (_paint_task_h) {
+     vTaskDelete(_paint_task_h);
+     _paint_task_h = nullptr;
+   }
+
+-  vSemaphoreDelete(_paint_active_sem);
+-  vSemaphoreDelete(_paint_buffer_sem);
++  if (_paint_active_sem) {
++    vSemaphoreDelete(_paint_active_sem);
++    _paint_active_sem = nullptr;
++  }
++  if (_paint_buffer_sem) {
++    vSemaphoreDelete(_paint_buffer_sem);
++    _paint_buffer_sem = nullptr;
++  }
+
+   if (dma_chan) {
+     gdma_disconnect(dma_chan);
+     gdma_del_channel(dma_chan);
+     dma_chan = nullptr;
+   }
++  driveSafeState();
+   periph_module_disable(PERIPH_LCD_CAM_MODULE);
+   return true;
+ }
+@@ -443,6 +526,20 @@
+ // =============================================================================
+ // Power control
+ // =============================================================================
++void EPD_Painter::driveSafeState() {
++  auto low_direct = [](int16_t pin) {
++    if (pin >= 0 && !epd_pin_is_sr(pin)) EPD_PIN_LOW(pin);
++  };
++  low_direct(_config.pin_pwr);
++  EPD_DELAY_US(10);
++  low_direct(_config.pin_oe);
++  EPD_DELAY_US(100);
++  low_direct(_config.pin_spv);
++  low_direct(_config.pin_ckv);
++  low_direct(_config.pin_le);
++  low_direct(_config.pin_sph);
++}
++
+ void EPD_Painter::powerOn() {
+   _pin_le->set(false);
+   _pin_spv->set(false);
+@@ -458,7 +555,37 @@
+ }
+
+ void EPD_Painter::powerOff() {
+-  _powerDriver->powerOff();
++  if (_powerDriver) _powerDriver->powerOff();
++  if (_pin_spv) _pin_spv->set(false);
++  if (_pin_ckv) _pin_ckv->set(false);
++  if (_pin_le) _pin_le->set(false);
++  if (_pin_sph) _pin_sph->set(false);
++}
++
++bool EPD_Painter::waitIdle(uint32_t timeout_ms) {
++  if (!_initialized.load() || !_paint_active_sem) return false;
++  const TickType_t start = xTaskGetTickCount();
++  const TickType_t timeout = pdMS_TO_TICKS(timeout_ms);
++
++  while (paintStage.load() != 0) {
++    if ((xTaskGetTickCount() - start) >= timeout) return false;
++    vTaskDelay(pdMS_TO_TICKS(1));
++  }
++
++  const TickType_t elapsed = xTaskGetTickCount() - start;
++  const TickType_t remaining = elapsed < timeout ? timeout - elapsed : 0;
++  if (xSemaphoreTake(_paint_active_sem, remaining) != pdTRUE) return false;
++  const bool idle = paintStage.load() == 0;
++  xSemaphoreGive(_paint_active_sem);
++  return idle;
++}
++
++bool EPD_Painter::powerDown(uint32_t timeout_ms) {
++  return PanelPowerGuard::powerDownNow(timeout_ms);
++}
++
++bool EPD_Painter::panelPowerActive() const {
++  return PanelPowerGuard::isPowerActive();
+ }
+
+ // Waveform tables are defined per-device in EPD_Painter_presets.h
+@@ -990,8 +1117,10 @@
+
+             carry = (err * 7) >> 4;
+             if (y + 1 < height) {
+-                if (x > 0)         next_err[x - 1] += (int16_t)((err * 3) >> 4);
+-                                   next_err[x]     += (int16_t)((err * 5) >> 4);
++                if (x > 0) {
++                    next_err[x - 1] += (int16_t)((err * 3) >> 4);
++                }
++                next_err[x] += (int16_t)((err * 5) >> 4);
+                 if (x + 1 < width) next_err[x + 1] += (int16_t)((err * 1) >> 4);
+             }
+         }
+--- a/src/epd_painter_powerctl.h
++++ b/src/epd_painter_powerctl.h
+@@ -80,9 +80,11 @@
+     }
+
+     void powerOff() override {
+-        EPD_PIN_LOW(_pin_oe);
+-        EPD_DELAY_US(100);
++        // Match the qualified M5GFX PaperS3 shutdown order: remove the rail
++        // enable first, then disable source output after a short settling gap.
+         EPD_PIN_LOW(_pin_pwr);
++        EPD_DELAY_US(10);
++        EPD_PIN_LOW(_pin_oe);
+         EPD_DELAY_US(100);
+     }
+
+--- a/src/epd_pin_driver.h
++++ b/src/epd_pin_driver.h
+@@ -1,6 +1,9 @@
+ #pragma once
+ #include <stdint.h>
+ #include <soc/gpio_reg.h>
++#ifdef ESP_PLATFORM
++#include "esp_attr.h"
++#endif
+
+ #ifndef IRAM_ATTR
+   #define IRAM_ATTR
+--- a/src/epd_pin_driver.cpp
++++ b/src/epd_pin_driver.cpp
+@@ -37,7 +37,7 @@
+     esp_rom_gpio_connect_out_signal(_str_pin,  str_sig,  false, false);
+ }
+
+-void IRAM_ATTR EPD_ShiftReg::push(uint8_t byte) {
++void EPD_ShiftReg::push(uint8_t byte) {
+     int core = xPortGetCoreID();
+     if (core != _fast_gpio_core) {
+         _reconfigure_fast_gpio(core);
+@@ -46,7 +46,7 @@
+     epd_sr_push_fast(byte, &_masks);
+ }
+
+-void IRAM_ATTR EPD_ShiftReg::sr_set_bit(uint8_t index, bool val) {
++void EPD_ShiftReg::sr_set_bit(uint8_t index, bool val) {
+     if (val) _state |=  (1u << index);
+     else     _state &= ~(1u << index);
+     push(_state);

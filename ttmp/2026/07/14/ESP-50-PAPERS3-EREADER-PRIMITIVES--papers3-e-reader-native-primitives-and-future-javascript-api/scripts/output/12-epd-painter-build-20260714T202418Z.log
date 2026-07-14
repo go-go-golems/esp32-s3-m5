@@ -1,0 +1,44 @@
+build_utc=20260714T202418Z
+idf=ESP-IDF v5.4.2
+project=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control
+command=idf.py -B /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket -D SDKCONFIG=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/sdkconfig.ticket set-target esp32s3 build
+Adding "set-target"'s dependency "fullclean" to list of commands with default set of options.
+Executing action: fullclean
+Build directory '/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket' not found. Nothing to clean.
+Executing action: set-target
+Set Target to: esp32s3, new sdkconfig will be created.
+Running cmake in directory /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket
+Executing "cmake -G Ninja -DPYTHON_DEPS_CHECKED=1 -DPYTHON=/home/manuel/.espressif/python_env/idf5.4_py3.13_env/bin/python -DESP_PLATFORM=1 -DSDKCONFIG=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/sdkconfig.ticket -DIDF_TARGET=esp32s3 -DCCACHE_ENABLE=0 /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control"...
+-- Found Git: /usr/bin/git (found version "2.43.0")
+-- The C compiler identification is GNU 14.2.0
+-- The CXX compiler identification is GNU 14.2.0
+-- The ASM compiler identification is GNU
+-- Found assembler: /home/manuel/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /home/manuel/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-gcc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /home/manuel/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32s3-elf-g++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Building ESP-IDF components for target esp32s3
+CMake Error at /home/manuel/esp/esp-idf-5.4.2/tools/cmake/build.cmake:328 (message):
+  Failed to resolve component 'esp_driver_gdma' required by component
+  'epd_painter': unknown name.
+Call Stack (most recent call first):
+  /home/manuel/esp/esp-idf-5.4.2/tools/cmake/build.cmake:371 (__build_resolve_and_add_req)
+  /home/manuel/esp/esp-idf-5.4.2/tools/cmake/build.cmake:372 (__build_expand_requirements)
+  /home/manuel/esp/esp-idf-5.4.2/tools/cmake/build.cmake:675 (__build_expand_requirements)
+  /home/manuel/esp/esp-idf-5.4.2/tools/cmake/project.cmake:718 (idf_build_process)
+  CMakeLists.txt:4 (project)
+
+
+-- Configuring incomplete, errors occurred!
+[0;33mHINT: The component 'esp_driver_gdma' could not be found. This could be because: component name was misspelled, the component was not added to the build, the component has been moved to the IDF component manager, the component has been removed and refactored into some other component or the component may not be supported by the selected target.
+Please look out for component in 'https://components.espressif.com' and add using 'idf.py add-dependency' command.
+Refer to the migration guide for more details about moved components.
+Refer to the build-system guide for more details about how components are found and included in the build.[0m
+cmake failed with exit code 1, output of the command is in the /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket/log/idf_py_stderr_output_3709824 and /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/build-ticket/log/idf_py_stdout_output_3709824

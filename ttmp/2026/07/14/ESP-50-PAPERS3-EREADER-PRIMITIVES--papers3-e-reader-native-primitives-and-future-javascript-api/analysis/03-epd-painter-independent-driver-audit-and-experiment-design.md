@@ -14,28 +14,22 @@ Owners: []
 RelatedFiles:
     - Path: repo://0106-papers3-epd-qualification/README.md
       Note: Cell D IDF 5.4.2 comparison and serial evidence conventions
-    - Path: repo://0106-papers3-epd-qualification/sdkconfig.defaults
-      Note: Known PaperS3 USB Serial/JTAG and octal-PSRAM baseline
+    - Path: repo://0107-papers3-epd-painter-control/main/app_main.cpp
+      Note: No-drive P0.15 control entrypoint and status-only console
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/10-audit-epd-painter.py
-      Note: |-
-        Reproducible pre-hardware source audit
-        Reproducible source audit logic
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
-      Note: |-
-        Generated audit findings and gate
-        Generated five-blocker gate and waveform statistics
+      Note: Reproducible upstream pre-hardware source audit
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/11-epd-painter-pure-idf-hardening.patch
+      Note: Exact local correctness and observability changes
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
+      Note: Exact toolchain, configuration, binary hashes, and no-flash evidence
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
-      Note: |-
-        Pinned independent driver implementation
-        Pinned direct-drive implementation under audit
+      Note: Pinned independent driver implementation under audit
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter_presets.h
       Note: Pinned PaperS3 pin and waveform tables
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/m5gfx-lut-comparison/M5GFX-0.2.25.cpp
-      Note: Known M5GFX PaperS3 pin-map control
 ExternalSources:
     - https://github.com/tonywestonuk/EPD_Painter/commit/753c521da8aef59756df07c1a4eb88f1c64c8227
 Summary: Pre-hardware audit of the independent EPD_Painter PaperS3 driver, including pin equivalence, waveform structure, power sequencing, initialization, asynchronous completion, cleanup, and mandatory local hardening gates.
-LastUpdated: 2026-07-14T16:10:00-04:00
+LastUpdated: 2026-07-14T16:36:00-04:00
 WhatFor: Prevent unreviewed third-party direct-drive code from reaching the PaperS3 panel and define the exact conditions under which an independent waveform experiment becomes valid.
 WhenToUse: Read before creating, building, flashing, or interpreting the independent-driver control firmware.
 ---
@@ -735,3 +729,59 @@ All must pass:
 5. **P0.18 — matrix:** run transitions, area, checker inversion, and reader page only after the optical gate is accepted.
 
 P0.15 and P0.16 can be built and statically tested without touching hardware. P0.17 is the first task that changes the board from official FactoryTest V0.5.
+
+## P0.15 implementation and build result
+
+P0.15 created `0107-papers3-epd-painter-control` and completed a clean, exact-IDF build without flashing. The application exposes only `epd help` and `epd status`; static inspection proves that its command source contains no call to `clear()`, `paint()`, `paintPacked()`, `unpaintPacked()`, or `powerDown()`.
+
+The ticket-owned preparation chain now applies a 469-line local patch with zero fuzz. The patch:
+
+- fixes GPIO number versus IOMUX-register arguments;
+- drives direct control latches low before enabling output;
+- validates GDMA creation and strategy setup;
+- checks DMA pointers before first dereference;
+- checks, zeros, and reports every packed allocation;
+- checks semaphore, idle-power task, and paint-task creation;
+- replaces Arduino-only logging;
+- excludes the automatic boot/NVS/shutdown controller;
+- adds bounded idle and synchronous power-down APIs;
+- uses the current IDF AHB-GDMA and private peripheral-control APIs;
+- mirrors the qualified M5GFX direct-GPIO shutdown order;
+- retains the complete upstream PaperS3 preset and waveform file byte-for-byte.
+
+### FreeRTOS tick-rate finding
+
+The pure-IDF abstraction maps `EPD_DELAY_MS(ms)` to `vTaskDelay(pdMS_TO_TICKS(ms))`. At ESP-IDF's common 100 Hz tick, both the NORMAL 4 ms gap and HIGH 8 ms gap truncate to zero ticks. That would silently change the intended upstream waveform timing even though the tables remained identical.
+
+The control therefore fixes `CONFIG_FREERTOS_HZ=1000`. The generated sdkconfig and binary audit verify it. This setting is part of the experimental waveform identity, not a general recommendation for reader firmware.
+
+### Build failures retained as evidence
+
+The final evidence build was reached through five recorded attempts:
+
+1. CMake rejected nonexistent IDF 5.4.2 component `esp_driver_gdma`; GDMA belongs to `esp_hw_support` in this release.
+2. Compilation rejected an upstream misleading-indentation warning in `dither()` and exposed deprecated/private-API warnings.
+3. The build succeeded but exposed duplicate `IRAM_ATTR` section attributes, and the report heredoc interpreted a Markdown code fence as command substitution.
+4. A clean build used current AHB-GDMA/peripheral-control headers, normalized the harmless indentation, removed duplicate definition attributes, fixed report generation, and produced zero warnings.
+5. The final build reran from scratch after normalizing committed patch/log whitespace; it reproduced the same size and zero-warning result against the final patch digest.
+
+Every attempt is preserved under `scripts/output/12-epd-painter-build-*.log`.
+
+### Successful binary identity
+
+```text
+ESP-IDF: ESP-IDF v5.4.2
+application size: 293,248 bytes
+application SHA-256: e8cac94e9062a7b1a4cfc4d989d63e4e5bce5181e0d3f70a201b03dfec6ccbe1
+ELF SHA-256: fd973bc3f3439a05cca9e1d699a9bb3a0a4e970eea42945a0b5ad317167f98d0
+local patch SHA-256: 89e34a7f24060763c3f38aae7d4aaceeb8773e112256f1d21200b4a11fd1557b
+preset/waveform SHA-256: 98152d0a16bfe02d4c150617822ebd39dae940884aca7a9d5bcb5900b0169f47
+build warnings: 0
+hardware modified: no
+```
+
+The static/binary audit passes twelve checks. One review item remains: IRAM is 16,383/16,384 bytes (99.99%) occupied, leaving one byte. P0.16 must not add IRAM-attributed functions and must rerun the full size gate. Flash-resident command and fixture code can still grow within the 4 MiB application partition.
+
+### P0.15 conclusion
+
+The independent control is now reproducibly buildable and statically no-drive. This does not establish runtime boot behavior because the board still runs FactoryTest V0.5. P0.16 may add the bounded physical command surface, but P0.17 remains the first authorized flash and requires an explicit review of the completed binary, runner, and operator sequence.
