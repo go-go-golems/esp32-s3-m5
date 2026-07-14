@@ -1,0 +1,8 @@
+commit=f91c91ecc60bb1f435b8dacfc9929f45315f3912
+commit_date=2024-02-13T09:42:13-08:00
+remote=https://github.com/dektronics/printalyzer-densitometer.git
+manual_url=https://docs.dektronics.com/densitometer/printalyzerdensitometer.pdf
+captured_utc=2026-07-14T23:27:12Z
+normalization=Trailing ASCII whitespace removed from the local protocol and software-license text copies for repository hygiene; semantics unchanged.
+upstream_protocol_sha256=1f82dcb9be54a61205098377ebe93e9e49b8a849e063cba7dbfb599fe14bd80b
+upstream_software_license_sha256=9dad540fe34f5a6a03b515478521f8698ba74e454ce91574bf5d90d8171c4ac5

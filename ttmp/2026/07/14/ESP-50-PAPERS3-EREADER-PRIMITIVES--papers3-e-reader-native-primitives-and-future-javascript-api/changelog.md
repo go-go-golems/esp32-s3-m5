@@ -213,3 +213,12 @@ Step 19 committed exact-IDF matrix A/B builds, 0109 FactoryTest V0.5 F1/F2 contr
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0109-papers3-factory-v0.5-runtime-trace/main/main.cpp — Code commit 4ab273a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/01-preregistration.md — F0 protocol
+
+## 2026-07-14
+
+Captured the Printalyzer Densitometer protocol at upstream commit f91c91e, including the command dispatcher, desktop parser, vendor manual, license, provenance, and verified SHA-256 manifest; no instrument command was sent.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/docs/usb-control-protocol.md — USB protocol source
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/firmware/cdc_handler.c — Authoritative command implementation

@@ -1,0 +1,9 @@
+585d49ea293df620b3ff79018e21d8c8eb4ac6c9b946285f1ef12b0a76f575da  ./desktop/denscommand.cpp
+8eed579042eba5a49551cd0e5639be80a8bd53aa48db8b8dc2a8bc21878fe1b7  ./desktop/denscommand.h
+568372d611a455fdf6c1c92ec67c4a8dd33d386e0cd8783e542ac0847222180c  ./desktop/densinterface.cpp
+aac49cd77142679064532bb2ce3e40c13b82038498383e5e1906c3f1f3cdb04e  ./desktop/densinterface.h
+1c2db7b68f0648b8ad1699936228aa18fcd757fe333beb4041dee6a7ad8ec01a  ./docs/printalyzer-densitometer-user-manual.pdf
+0e013e9edae3beec2d81ea6cd129d5f7f435111c929c9f0bc4124f9e68d2f7e4  ./docs/usb-control-protocol.md
+b0487d20b6c1da870362c47932795bc8e11779cc041fbae5a5bcc719d1bdce5c  ./firmware/cdc_handler.c
+6a6a7c5e0c6289f24c4d5367fe8d6a68c899a94e1f512b23979242adccce2026  ./PROVENANCE.txt
+96ec24bd6879a362d852ad1b644515e744d7ed0927968516326d7c3b7ac17c93  ./SOFTWARE-LICENSE.txt
