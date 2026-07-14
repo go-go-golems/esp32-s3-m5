@@ -1,0 +1,218 @@
+diff --git a/src/lgfx/v1/platforms/esp32/Bus_EPD.cpp b/src/lgfx/v1/platforms/esp32/Bus_EPD.cpp
+index ef0cb0f..6c894cb 100644
+--- a/src/lgfx/v1/platforms/esp32/Bus_EPD.cpp
++++ b/src/lgfx/v1/platforms/esp32/Bus_EPD.cpp
+@@ -17,6 +17,7 @@ Contributors:
+ /----------------------------------------------------------------------------*/
+
+ #include "Bus_EPD.h"
++#include "epd_trace_hooks.hpp"
+ #if SOC_LCD_I80_SUPPORTED
+
+ #include <stdio.h>
+@@ -80,19 +81,23 @@ bool Bus_EPD::powerControl(bool flg_on)
+     _pwr_on = flg_on;
+     wait();
+     if (flg_on) {
++      LGFX_EPD_TRACE_EMIT(epd_trace::power_on_begin);
+       lgfx::gpio_hi(_config.pin_oe);
+       lgfx::delayMicroseconds(100);
+       lgfx::gpio_hi(_config.pin_pwr);
+       lgfx::delayMicroseconds(100);
+       lgfx::gpio_hi(_config.pin_spv);
+       lgfx::delay(1);
++      LGFX_EPD_TRACE_EMIT(epd_trace::power_on_end);
+     } else {
++      LGFX_EPD_TRACE_EMIT(epd_trace::power_off_begin);
+       lgfx::delay(1);
+       lgfx::gpio_lo(_config.pin_pwr);
+       lgfx::delayMicroseconds(10);
+       lgfx::gpio_lo(_config.pin_oe);
+       lgfx::delayMicroseconds(100);
+       lgfx::gpio_lo(_config.pin_spv);
++      LGFX_EPD_TRACE_EMIT(epd_trace::power_off_end);
+     }
+   }
+   return true;
+diff --git a/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp b/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp
+index 589d4e5..a020d87 100644
+--- a/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp
++++ b/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp
+@@ -17,6 +17,7 @@ Contributors:
+ /----------------------------------------------------------------------------*/
+
+ #include "Panel_EPD.hpp"
++#include "epd_trace_hooks.hpp"
+ #if SOC_LCD_I80_SUPPORTED && defined (CONFIG_IDF_TARGET_ESP32S3)
+
+ #include "lgfx/v1/Bus.hpp"
+@@ -578,6 +579,10 @@ namespace lgfx
+     cacheWriteBack(&_buf[y * _cfg.panel_width >> 1], h * _cfg.panel_width >> 1);
+     vTaskDelay(1);
+     bool res = xQueueSend(_update_queue_handle, &upd, 128 / portTICK_PERIOD_MS) == pdTRUE;
++    LGFX_EPD_TRACE_EMIT(epd_trace::display_enqueue, static_cast<uint32_t>(upd.mode),
++                        (static_cast<uint32_t>(upd.x) << 16) | upd.y,
++                        (static_cast<uint32_t>(upd.w) << 16) | upd.h,
++                        res ? 1U : 0U, uxQueueSpacesAvailable(_update_queue_handle));
+ // printf("\nres: %d, xs: %d, xe: %d, ys: %d, ye: %d\n", res, xs, xe, ys, ye);
+     if (res)
+     {
+@@ -900,12 +905,17 @@ __asm__ __volatile(
+     auto bus = me->getBusEPD();
+
+     bool remain = false;
++    LGFX_EPD_TRACE_COUNTER(frame_ordinal);
+
+     for (;;) {
+       me->_display_busy = remain;
+       TickType_t wait_tick = remain ? 0 : portMAX_DELAY;
+       if (xQueueReceive(me->_update_queue_handle, &new_data, wait_tick)) {
+         me->_display_busy = true;
++        LGFX_EPD_TRACE_EMIT(epd_trace::update_dequeue, static_cast<uint32_t>(new_data.mode),
++                            (static_cast<uint32_t>(new_data.x) << 16) | new_data.y,
++                            (static_cast<uint32_t>(new_data.w) << 16) | new_data.h,
++                            uxQueueMessagesWaiting(me->_update_queue_handle), 0);
+         uint32_t usec = lgfx::micros();
+         for (;;) {
+ // printf("\n new_data: x:%d y:%d w:%d h:%d \n", new_data.x, new_data.y, new_data.w, new_data.h);
+@@ -918,6 +928,8 @@ __asm__ __volatile(
+           auto dst = &me->_step_framebuf[memory_idx*2];
+           size_t h = new_data.h;
+           uint_fast16_t lut_offset = me->_lut_offset_table[new_data.mode] << 8;
++          LGFX_EPD_TRACE_COUNTER(target_units);
++          LGFX_EPD_TRACE_COUNTER(eraser_units);
+
+           do {
+             size_t w = new_data.w >> 1;
+@@ -938,10 +950,12 @@ __asm__ __volatile(
+                 // 既にリクエスト済みの内容と相違がある場合のみ更新
+                 if (d1 != s0) {
+                   // 高速描画の場合は消去処理は行わず直接更新指示する。
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[0] = s0;
+                   d[1] = s0 | 0x8000;
+                 }
+                 if (d3 != s1) {
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[2] = s1;
+                   d[3] = s1 | 0x8000;
+                 }
+@@ -964,10 +978,12 @@ __asm__ __volatile(
+                 // 白以外またはリクエスト済みの内容と相違がある場合に更新
+                 if (white != d1 || d1 != s0) {
+                   uint_fast16_t d0 = d[0];
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[1] = s0;
+                   // 消去処理を挟んで更新指示する。(元の値の下位8bitのみを使用するとlut_eraser扱いになる)
+                   // 既に消去処理動作中の場合は変更しない
+                   if (d0 >= (lut_eraser_step << 8)) {
++                    LGFX_EPD_TRACE_INCREMENT(eraser_units);
+                     d[0] = (uint8_t)d0;
+                   }
+                 }
+@@ -975,8 +991,10 @@ __asm__ __volatile(
+                 // 白以外またはリクエスト済みの内容と相違がある場合に更新
+                 if (white != d3 || d3 != s1) {
+                   uint_fast16_t d2 = d[2];
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[3] = s1;
+                   if (d2 >= (lut_eraser_step << 8)) {
++                    LGFX_EPD_TRACE_INCREMENT(eraser_units);
+                     // 消去処理を挟んで更新指示する。(元の値の下位8bitのみを使用するとlut_eraser扱いになる)
+                     d[2] = (uint8_t)d2;
+                   }
+@@ -996,10 +1014,12 @@ __asm__ __volatile(
+                 // 既にリクエスト済みの内容と相違がある場合のみ更新
+                 if (d1 != s0) {
+                   uint_fast16_t d0 = d[0];
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[1] = s0;
+                   // 消去処理を挟んで更新指示する。(元の値の下位8bitのみを使用するとlut_eraser扱いになる)
+                   // 既に消去処理動作中の場合は変更しない
+                   if (d0 >= (lut_eraser_step << 8)) {
++                    LGFX_EPD_TRACE_INCREMENT(eraser_units);
+                     d[0] = (uint8_t)d0;
+                   }
+                 }
+@@ -1007,8 +1027,10 @@ __asm__ __volatile(
+                 // 既にリクエスト済みの内容と相違がある場合のみ更新
+                 if (d3 != s1) {
+                   uint_fast16_t d2 = d[2];
++                  LGFX_EPD_TRACE_INCREMENT(target_units);
+                   d[3] = s1;
+                   if (d2 >= (lut_eraser_step << 8)) {
++                    LGFX_EPD_TRACE_INCREMENT(eraser_units);
+                     // 消去処理を挟んで更新指示する。(元の値の下位8bitのみを使用するとlut_eraser扱いになる)
+                     d[2] = (uint8_t)d2;
+                   }
+@@ -1018,6 +1040,8 @@ __asm__ __volatile(
+               }
+             }
+           } while (--h);
++          LGFX_EPD_TRACE_EMIT(epd_trace::update_prepared, static_cast<uint32_t>(new_data.mode),
++                              target_units, eraser_units, new_data.w * new_data.h / 2U, 0);
+
+           if (lgfx::micros() - usec >= 2048) {
+             break;
+@@ -1033,6 +1057,9 @@ __asm__ __volatile(
+       }
+
+       bus->powerControl(true);
++      LGFX_EPD_TRACE_EMIT(epd_trace::frame_begin, frame_ordinal,
++                          static_cast<uint32_t>(new_data.mode), remain ? 1U : 0U,
++                          memory_w, me->_cfg.memory_height);
+
+       int w = (memory_w + 15) >> 4;
+       remain = false;
+@@ -1054,9 +1081,14 @@ __asm__ __volatile(
+       vTaskDelay(1);
+       bus->scanlineDone();
+       bus->endTransaction();
++      LGFX_EPD_TRACE_EMIT(epd_trace::frame_end, frame_ordinal,
++                          static_cast<uint32_t>(new_data.mode), remain ? 1U : 0U, 0, 0);
++      LGFX_EPD_TRACE_INCREMENT(frame_ordinal);
+
+       if (remain == false) {
+         bus->powerControl(false);
++        LGFX_EPD_TRACE_EMIT(epd_trace::display_idle, frame_ordinal,
++                            static_cast<uint32_t>(new_data.mode), 0, 0, 0);
+       }
+     }
+   }
+diff --git a/src/lgfx/v1/platforms/esp32/epd_trace_hooks.hpp b/src/lgfx/v1/platforms/esp32/epd_trace_hooks.hpp
+new file mode 100644
+index 0000000..ef2f729
+--- /dev/null
++++ b/src/lgfx/v1/platforms/esp32/epd_trace_hooks.hpp
+@@ -0,0 +1,31 @@
++#pragma once
++
++#include <stdint.h>
++#include "sdkconfig.h"
++
++namespace lgfx { inline namespace v1 { namespace epd_trace {
++enum event_t : uint32_t {
++  display_enqueue = 10, update_dequeue = 11, update_prepared = 12,
++  power_on_begin = 20, power_on_end = 21,
++  frame_begin = 30, frame_end = 31,
++  power_off_begin = 40, power_off_end = 41, display_idle = 50,
++};
++
++#if defined(CONFIG_PAPERS3_FACTORY_RUNTIME_TRACE) && CONFIG_PAPERS3_FACTORY_RUNTIME_TRACE
++extern "C" void lgfx_epd_trace_emit(uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t)
++    __attribute__((weak));
++inline __attribute__((always_inline)) void emit(uint32_t event, uint32_t a = 0, uint32_t b = 0,
++                                                 uint32_t c = 0, uint32_t d = 0, uint32_t e = 0)
++{
++  if (lgfx_epd_trace_emit != nullptr) lgfx_epd_trace_emit(event, a, b, c, d, e);
++}
++#define LGFX_EPD_TRACE_EMIT(...) ::lgfx::v1::epd_trace::emit(__VA_ARGS__)
++#define LGFX_EPD_TRACE_COUNTER(name) uint32_t name = 0
++#define LGFX_EPD_TRACE_INCREMENT(name) (++(name))
++#else
++#define LGFX_EPD_TRACE_EMIT(...) do { } while (0)
++#define LGFX_EPD_TRACE_COUNTER(name)
++#define LGFX_EPD_TRACE_INCREMENT(name) do { } while (0)
++#endif
++
++}}}  // namespace lgfx::v1::epd_trace

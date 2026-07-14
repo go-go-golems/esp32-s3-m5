@@ -1,0 +1,164 @@
+Cloning into '/home/manuel/esp/esp-idf-5.3.3'...
+Note: switching to '6db3dc25df7325c1c81b7cd7d4e42babff7a818e'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Updating files:  68% (10480/15197)Updating files:  69% (10486/15197)Updating files:  70% (10638/15197)Updating files:  71% (10790/15197)Updating files:  72% (10942/15197)Updating files:  73% (11094/15197)Updating files:  74% (11246/15197)Updating files:  75% (11398/15197)Updating files:  76% (11550/15197)Updating files:  77% (11702/15197)Updating files:  78% (11854/15197)Updating files:  79% (12006/15197)Updating files:  80% (12158/15197)Updating files:  81% (12310/15197)Updating files:  82% (12462/15197)Updating files:  83% (12614/15197)Updating files:  84% (12766/15197)Updating files:  85% (12918/15197)Updating files:  86% (13070/15197)Updating files:  87% (13222/15197)Updating files:  88% (13374/15197)Updating files:  89% (13526/15197)Updating files:  90% (13678/15197)Updating files:  91% (13830/15197)Updating files:  92% (13982/15197)Updating files:  93% (14134/15197)Updating files:  94% (14286/15197)Updating files:  95% (14438/15197)Updating files:  96% (14590/15197)Updating files:  97% (14742/15197)Updating files:  98% (14894/15197)Updating files:  99% (15046/15197)Updating files: 100% (15197/15197)Updating files: 100% (15197/15197), done.
+Submodule 'components/bootloader/subproject/components/micro-ecc/micro-ecc' (https://github.com/kmackay/micro-ecc.git) registered for path 'components/bootloader/subproject/components/micro-ecc/micro-ecc'
+Submodule 'components/bt/controller/lib_esp32' (https://github.com/espressif/esp32-bt-lib.git) registered for path 'components/bt/controller/lib_esp32'
+Submodule 'components/bt/controller/lib_esp32c2/esp32c2-bt-lib' (https://github.com/espressif/esp32c2-bt-lib.git) registered for path 'components/bt/controller/lib_esp32c2/esp32c2-bt-lib'
+Submodule 'components/bt/controller/lib_esp32c3_family' (https://github.com/espressif/esp32c3-bt-lib.git) registered for path 'components/bt/controller/lib_esp32c3_family'
+Submodule 'components/bt/controller/lib_esp32c5/esp32c5-bt-lib' (https://github.com/espressif/esp32c5-bt-lib.git) registered for path 'components/bt/controller/lib_esp32c5/esp32c5-bt-lib'
+Submodule 'components/bt/controller/lib_esp32c6/esp32c6-bt-lib' (https://github.com/espressif/esp32c6-bt-lib.git) registered for path 'components/bt/controller/lib_esp32c6/esp32c6-bt-lib'
+Submodule 'components/bt/controller/lib_esp32h2/esp32h2-bt-lib' (https://github.com/espressif/esp32h2-bt-lib.git) registered for path 'components/bt/controller/lib_esp32h2/esp32h2-bt-lib'
+Submodule 'components/bt/esp_ble_mesh/lib/lib' (https://github.com/espressif/esp-ble-mesh-lib.git) registered for path 'components/bt/esp_ble_mesh/lib/lib'
+Submodule 'components/bt/host/nimble/nimble' (https://github.com/espressif/esp-nimble.git) registered for path 'components/bt/host/nimble/nimble'
+Submodule 'components/cmock/CMock' (https://github.com/ThrowTheSwitch/CMock.git) registered for path 'components/cmock/CMock'
+Submodule 'components/esp_coex/lib' (https://github.com/espressif/esp-coex-lib.git) registered for path 'components/esp_coex/lib'
+Submodule 'components/esp_phy/lib' (https://github.com/espressif/esp-phy-lib.git) registered for path 'components/esp_phy/lib'
+Submodule 'components/esp_wifi/lib' (https://github.com/espressif/esp32-wifi-lib.git) registered for path 'components/esp_wifi/lib'
+Submodule 'components/heap/tlsf' (https://github.com/espressif/tlsf.git) registered for path 'components/heap/tlsf'
+Submodule 'components/json/cJSON' (https://github.com/DaveGamble/cJSON.git) registered for path 'components/json/cJSON'
+Submodule 'components/lwip/lwip' (https://github.com/espressif/esp-lwip.git) registered for path 'components/lwip/lwip'
+Submodule 'components/mbedtls/mbedtls' (https://github.com/espressif/mbedtls.git) registered for path 'components/mbedtls/mbedtls'
+Submodule 'components/mqtt/esp-mqtt' (https://github.com/espressif/esp-mqtt.git) registered for path 'components/mqtt/esp-mqtt'
+Submodule 'components/openthread/lib' (https://github.com/espressif/esp-thread-lib.git) registered for path 'components/openthread/lib'
+Submodule 'components/openthread/openthread' (https://github.com/espressif/openthread.git) registered for path 'components/openthread/openthread'
+Submodule 'components/protobuf-c/protobuf-c' (https://github.com/protobuf-c/protobuf-c.git) registered for path 'components/protobuf-c/protobuf-c'
+Submodule 'components/spiffs/spiffs' (https://github.com/pellepl/spiffs.git) registered for path 'components/spiffs/spiffs'
+Submodule 'components/unity/unity' (https://github.com/ThrowTheSwitch/Unity.git) registered for path 'components/unity/unity'
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bootloader/subproject/components/micro-ecc/micro-ecc'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32c2/esp32c2-bt-lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32c3_family'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32c5/esp32c5-bt-lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32c6/esp32c6-bt-lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/controller/lib_esp32h2/esp32h2-bt-lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/esp_ble_mesh/lib/lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/bt/host/nimble/nimble'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/cmock/CMock'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/esp_coex/lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/esp_phy/lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/esp_wifi/lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/heap/tlsf'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/json/cJSON'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/lwip/lwip'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/mbedtls/mbedtls'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/mqtt/esp-mqtt'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/openthread/lib'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/openthread/openthread'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/protobuf-c/protobuf-c'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/spiffs/spiffs'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/unity/unity'...
+From ssh://github.com/kmackay/micro-ecc
+ * branch            24c60e243580c7868f4334a1ba3123481fe1aa48 -> FETCH_HEAD
+Submodule path 'components/bootloader/subproject/components/micro-ecc/micro-ecc': checked out '24c60e243580c7868f4334a1ba3123481fe1aa48'
+From ssh://github.com/espressif/esp32-bt-lib
+ * branch            921944f3363a9697872a0c7d04e776b4ae5257fc -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32': checked out '921944f3363a9697872a0c7d04e776b4ae5257fc'
+From ssh://github.com/espressif/esp32c2-bt-lib
+ * branch            1e88fa4606b62faf7350ac12d4317ab4d1cd286d -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32c2/esp32c2-bt-lib': checked out '1e88fa4606b62faf7350ac12d4317ab4d1cd286d'
+From ssh://github.com/espressif/esp32c3-bt-lib
+ * branch            daab5dbba958a13041bd496e4a6ed506c9284a06 -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32c3_family': checked out 'daab5dbba958a13041bd496e4a6ed506c9284a06'
+From ssh://github.com/espressif/esp32c5-bt-lib
+ * branch            77c67a4d06c95113a2d1766892cde59f5af744af -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32c5/esp32c5-bt-lib': checked out '77c67a4d06c95113a2d1766892cde59f5af744af'
+From ssh://github.com/espressif/esp32c6-bt-lib
+ * branch            b75747061f79a6eb070b5b0f96ebda79bffee485 -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32c6/esp32c6-bt-lib': checked out 'b75747061f79a6eb070b5b0f96ebda79bffee485'
+From ssh://github.com/espressif/esp32h2-bt-lib
+ * branch            cd36ec849cbfc8cef8dd48228ca70fffc1e240a3 -> FETCH_HEAD
+Submodule path 'components/bt/controller/lib_esp32h2/esp32h2-bt-lib': checked out 'cd36ec849cbfc8cef8dd48228ca70fffc1e240a3'
+From ssh://github.com/espressif/esp-ble-mesh-lib
+ * branch            590bd6e3d2b20327138a96e44cf3da6d43a8abdc -> FETCH_HEAD
+Submodule path 'components/bt/esp_ble_mesh/lib/lib': checked out '590bd6e3d2b20327138a96e44cf3da6d43a8abdc'
+From ssh://github.com/espressif/esp-nimble
+ * branch            fc098022e7965ddbabb33cfdf38f1f9235b71538 -> FETCH_HEAD
+Submodule path 'components/bt/host/nimble/nimble': checked out 'fc098022e7965ddbabb33cfdf38f1f9235b71538'
+From ssh://github.com/ThrowTheSwitch/CMock
+ * branch            eeecc49ce8af123cf8ad40efdb9673e37b56230f -> FETCH_HEAD
+Submodule path 'components/cmock/CMock': checked out 'eeecc49ce8af123cf8ad40efdb9673e37b56230f'
+Submodule 'vendor/c_exception' (https://github.com/throwtheswitch/cexception.git) registered for path 'components/cmock/CMock/vendor/c_exception'
+Submodule 'vendor/unity' (https://github.com/throwtheswitch/unity.git) registered for path 'components/cmock/CMock/vendor/unity'
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/cmock/CMock/vendor/c_exception'...
+Cloning into '/home/manuel/esp/esp-idf-5.3.3/components/cmock/CMock/vendor/unity'...
+From ssh://github.com/throwtheswitch/cexception
+ * branch            71b47be7c950f1bf5f7e5303779fa99a16224bb6 -> FETCH_HEAD
+Submodule path 'components/cmock/CMock/vendor/c_exception': checked out '71b47be7c950f1bf5f7e5303779fa99a16224bb6'
+From ssh://github.com/throwtheswitch/unity
+ * branch            cf949f45ca6d172a177b00da21310607b97bc7a7 -> FETCH_HEAD
+Submodule path 'components/cmock/CMock/vendor/unity': checked out 'cf949f45ca6d172a177b00da21310607b97bc7a7'
+From ssh://github.com/espressif/esp-coex-lib
+ * branch            070b21458de97671380bd46e562b5dc67d41e8a9 -> FETCH_HEAD
+Submodule path 'components/esp_coex/lib': checked out '070b21458de97671380bd46e562b5dc67d41e8a9'
+From ssh://github.com/espressif/esp-phy-lib
+ * branch            e5944fc80c813150131566dd0761709ae9fdea89 -> FETCH_HEAD
+Submodule path 'components/esp_phy/lib': checked out 'e5944fc80c813150131566dd0761709ae9fdea89'
+From ssh://github.com/espressif/esp32-wifi-lib
+ * branch            711813cb0a41dd2459fd1a3a464d0dd78d323a49 -> FETCH_HEAD
+Submodule path 'components/esp_wifi/lib': checked out '711813cb0a41dd2459fd1a3a464d0dd78d323a49'
+From ssh://github.com/espressif/tlsf
+ * branch            8fc595fe223cd0b3b5d7b29eb86825e4bd38e6e8 -> FETCH_HEAD
+Submodule path 'components/heap/tlsf': checked out '8fc595fe223cd0b3b5d7b29eb86825e4bd38e6e8'
+From ssh://github.com/DaveGamble/cJSON
+ * branch            acc76239bee01d8e9c858ae2cab296704e52d916 -> FETCH_HEAD
+Submodule path 'components/json/cJSON': checked out 'acc76239bee01d8e9c858ae2cab296704e52d916'
+From ssh://github.com/espressif/esp-lwip
+ * branch            392707e5c3a5d8e2531461db77843b9759cd5a43 -> FETCH_HEAD
+Submodule path 'components/lwip/lwip': checked out '392707e5c3a5d8e2531461db77843b9759cd5a43'
+From ssh://github.com/espressif/mbedtls
+ * branch            98fcfd6d2cea90d306e8fde8e5bffd6087c9cda8 -> FETCH_HEAD
+Submodule path 'components/mbedtls/mbedtls': checked out '98fcfd6d2cea90d306e8fde8e5bffd6087c9cda8'
+From ssh://github.com/espressif/esp-mqtt
+ * branch            cac1552e62b0474c162547b7cce345d7cd1aecfe -> FETCH_HEAD
+Submodule path 'components/mqtt/esp-mqtt': checked out 'cac1552e62b0474c162547b7cce345d7cd1aecfe'
+From ssh://github.com/espressif/esp-thread-lib
+ * branch            6f8e03592ed42afd1a186463059daf8d91a19b99 -> FETCH_HEAD
+Submodule path 'components/openthread/lib': checked out '6f8e03592ed42afd1a186463059daf8d91a19b99'
+From ssh://github.com/espressif/openthread
+ * branch            005c5cefc22aaf0396e4327ee7f2e0ad32a7733b -> FETCH_HEAD
+Submodule path 'components/openthread/openthread': checked out '005c5cefc22aaf0396e4327ee7f2e0ad32a7733b'
+From ssh://github.com/protobuf-c/protobuf-c
+ * branch            abc67a11c6db271bedbb9f58be85d6f4e2ea8389 -> FETCH_HEAD
+Submodule path 'components/protobuf-c/protobuf-c': checked out 'abc67a11c6db271bedbb9f58be85d6f4e2ea8389'
+From ssh://github.com/pellepl/spiffs
+ * branch            0dbb3f71c5f6fae3747a9d935372773762baf852 -> FETCH_HEAD
+Submodule path 'components/spiffs/spiffs': checked out '0dbb3f71c5f6fae3747a9d935372773762baf852'
+From ssh://github.com/ThrowTheSwitch/Unity
+ * branch            bf560290f6020737eafaa8b5cbd2177c3956c03f -> FETCH_HEAD
+Submodule path 'components/unity/unity': checked out 'bf560290f6020737eafaa8b5cbd2177c3956c03f'
+Detecting the Python interpreter
+Checking "python3" ...
+Python 3.13.2
+"python3" has been detected
+Checking Python compatibility
+Installing ESP-IDF tools
+Updating /home/manuel/.espressif/idf-env.json
+Selected targets are: esp32s3
+Current system platform: linux-amd64
+Installing tools: xtensa-esp-elf-gdb, xtensa-esp-elf, riscv32-esp-elf, esp32ulp-elf, openocd-esp32, esp-rom-elfs
+Skipping xtensa-esp-elf-gdb@14.2_20240403 (already installed)
+Skipping xtensa-esp-elf@esp-13.2.0_20240530 (already installed)
+Skipping riscv32-esp-elf@esp-13.2.0_20240530 (already installed)
+Skipping esp32ulp-elf@2.38_20240113 (already installed)
+Skipping openocd-esp32@v0.12.0-esp32-20241016 (already installed)
+Skipping esp-rom-elfs@20240305 (already installed)
+Installing Python environment and packages
+Python 3.13.2
+pip 26.0.1 from /home/manuel/.espressif/python_env/idf5.4_py3.13_env/lib/python3.13/site-packages/pip (python 3.13)
+ERROR: Python environment is set to /home/manuel/.espressif/python_env/idf5.4_py3.13_env which was generated for ESP-IDF 5.4 instead of the current 5.3. The issue can be solved by (1) removing the directory and re-running the install script, or (2) unsetting the IDF_PYTHON_ENV_PATH environment variable, or (3) re-runing the install script from a clean shell where an ESP-IDF environment is not active.

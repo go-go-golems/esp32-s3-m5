@@ -1,0 +1,58 @@
+{
+  "automatic_and_optical_dispositions_are_separate": true,
+  "board": {
+    "model": "M5Stack PaperS3",
+    "port": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00",
+    "usb_serial": "D0:CF:13:16:17:DC"
+  },
+  "decision_rule": "Compare F1 white and dashboard against F0 video under identical camera settings; reject proxy status if endpoint class or spatial artifacts differ materially.",
+  "evidence": {
+    "flash_log": null,
+    "ring_jsonl": null,
+    "serial_log": null,
+    "video": null
+  },
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived",
+    "m5gfx": "0.2.15",
+    "m5unified": "0.2.10",
+    "ring": false,
+    "sha256": "3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3",
+    "source_commit": "5e275ad4b70abb85f7193fda137844730e64c4db"
+  },
+  "hypothesis": "The exact-source/toolchain trace-off rebuild reproduces F0 optical behavior closely enough to serve as its source-derived proxy.",
+  "id": "EXP-20260714-002-factory-v05-source-f1-off",
+  "optical_protocol": {
+    "camera_fixed": true,
+    "exposure_locked": true,
+    "focus_locked": true,
+    "minimum_fps": 60,
+    "record_from_before_reset_through_dashboard": true,
+    "reference_patches_in_frame": [
+      "matte-white",
+      "matte-dark"
+    ],
+    "stable_illumination": true,
+    "video_required": true,
+    "white_balance_locked": true
+  },
+  "panel": {
+    "assigned_vcom": null,
+    "model": "ED047TC1"
+  },
+  "schema": "esp50.epd-experiment.v1",
+  "starting_state": "F0 final dashboard; F1 commands full black immediately before judged white",
+  "status": "preregistered",
+  "stop_conditions": [
+    "unexpected heat",
+    "odor",
+    "sound",
+    "power instability",
+    "reset loop",
+    "visible worsening outside expected sequence"
+  ],
+  "telemetry": "video and operator observation; trace compiled completely out",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F1-stock-source-trace-off"
+}

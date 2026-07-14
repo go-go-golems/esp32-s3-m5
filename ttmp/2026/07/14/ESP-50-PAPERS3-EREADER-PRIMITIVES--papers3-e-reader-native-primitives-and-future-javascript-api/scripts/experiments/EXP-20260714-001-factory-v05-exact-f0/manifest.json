@@ -1,0 +1,55 @@
+{
+  "automatic_and_optical_dispositions_are_separate": true,
+  "board": {
+    "model": "M5Stack PaperS3",
+    "port": "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00",
+    "usb_serial": "D0:CF:13:16:17:DC"
+  },
+  "decision_rule": "Pass white only if the full-black field disappears without material retained field, gradient, or edge residue; dashboard quality is scored separately.",
+  "evidence": {
+    "flash_log": null,
+    "ring_jsonl": null,
+    "serial_log": null,
+    "video": null
+  },
+  "firmware": {
+    "flash_offset": "0x0",
+    "kind": "exact-merged-release",
+    "ring": false,
+    "sha256": "d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624"
+  },
+  "hypothesis": "The exact released FactoryTest V0.5 black-to-white sequence establishes whether vendor firmware erases its immediately preceding full-black field cleanly.",
+  "id": "EXP-20260714-001-factory-v05-exact-f0",
+  "optical_protocol": {
+    "camera_fixed": true,
+    "exposure_locked": true,
+    "focus_locked": true,
+    "minimum_fps": 60,
+    "record_from_before_reset_through_dashboard": true,
+    "reference_patches_in_frame": [
+      "matte-white",
+      "matte-dark"
+    ],
+    "stable_illumination": true,
+    "video_required": true,
+    "white_balance_locked": true
+  },
+  "panel": {
+    "assigned_vcom": null,
+    "model": "ED047TC1"
+  },
+  "schema": "esp50.epd-experiment.v1",
+  "starting_state": "0107 EPD_Painter commanded-white endpoint with substantial retained FactoryTest dashboard ghosting",
+  "status": "preregistered",
+  "stop_conditions": [
+    "unexpected heat",
+    "odor",
+    "sound",
+    "power instability",
+    "reset loop",
+    "visible worsening outside expected sequence"
+  ],
+  "telemetry": "video and operator observation only; exact binary has no ring",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F0-exact-vendor"
+}

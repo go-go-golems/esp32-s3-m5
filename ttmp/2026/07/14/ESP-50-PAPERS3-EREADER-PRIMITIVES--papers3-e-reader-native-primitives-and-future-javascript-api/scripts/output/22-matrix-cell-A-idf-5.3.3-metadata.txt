@@ -1,0 +1,11 @@
+cell=A
+captured_at=2026-07-14T18:23:25-04:00
+idf=ESP-IDF v5.3.3
+idf_path=/home/manuel/esp/esp-idf-5.3.3
+component_profile=legacy
+m5gfx_tag=0.2.15
+m5gfx_sha=c6f92dc03226cdc04d67c705a2020f62ad21ad01
+m5unified_tag=0.2.10
+m5unified_sha=5580ff6923a868cc71d5b30c962186bde2c85b67
+build_dir=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0106-papers3-epd-qualification/build-cell-A
+sdkconfig=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0106-papers3-epd-qualification/sdkconfig.cell-A

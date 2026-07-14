@@ -200,6 +200,7 @@
 - [x] [P0.17b] Design compile-time-gated nonblocking M5GFX runtime trace events and fixed-ring schema <!-- t:ekmz -->
 - [x] [P0.17c] Implement trace-timing hooks for enqueue/dequeue, eraser/target arming, power, frame, and idle events without scan-loop printing <!-- t:k0uh -->
 - [x] [P0.17d] Build and audit trace-disabled and trace-timing M5GFX controls; quantify binary/IRAM and observer-effect differences before flash <!-- t:v5zs -->
-- [ ] [P0.17e] Create immutable per-run experiment directories with preregistration, manifest JSON, JSONL events, optical evidence, hashes, and separate automatic/optical dispositions <!-- t:onob -->
-- [ ] [P0.17f] Replay and video FactoryTest V0.5 black-to-white boot sequence as exact-binary optical baseline <!-- t:6nak -->
+- [x] [P0.17e] Create immutable per-run experiment directories with preregistration, manifest JSON, JSONL events, optical evidence, hashes, and separate automatic/optical dispositions <!-- t:onob -->
+- [ ] [P0.17f] Create 0109 FactoryTest V0.5 lineage control under exact IDF 5.3.3: replay/video exact merged F0, then build/audit stock-source trace-off F1 and trace-on F2 preserving the black-to-white-to-grayscale boot sequence; capture ring only from F2 and keep all runs separately labeled <!-- t:6nak -->
 - [ ] [P0.17g] Design reviewed external logic/rail/VCOM capture for the unmodified factory binary <!-- t:31al -->
+- [x] [P0.17f.1] Install and verify exact ESP-IDF v5.3.3, then build matrix Cells A/B without flashing <!-- t:cv8d -->

@@ -1,0 +1,13 @@
+menu "FactoryTest V0.5 lineage runtime trace"
+
+config PAPERS3_FACTORY_RUNTIME_TRACE
+    bool "Enable fixed-ring M5GFX EPD runtime tracing"
+    default n
+
+config PAPERS3_FACTORY_TRACE_CAPACITY
+    int "Trace ring record capacity"
+    depends on PAPERS3_FACTORY_RUNTIME_TRACE
+    range 512 2048
+    default 1024
+
+endmenu

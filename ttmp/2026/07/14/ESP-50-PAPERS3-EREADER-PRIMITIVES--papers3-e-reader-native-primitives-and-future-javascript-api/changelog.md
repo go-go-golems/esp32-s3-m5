@@ -194,3 +194,13 @@ Step 18 committed fixed-ring M5GFX timing instrumentation, trace-off/on builds, 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp — Code commit 2badb87
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md — Audit evidence
+
+## 2026-07-14
+
+Installed exact ESP-IDF v5.3.3, built previously blocked matrix Cells A/B, created 0109 FactoryTest V0.5 clean/F1/F2 source-lineage controls, passed 19/19 no-hardware audit, and preregistered immutable F0/F1/F2 experiments. No firmware flashed.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0109-papers3-factory-v0.5-runtime-trace/main/factory_trace_runtime.cpp — F2 trace implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-001-factory-v05-exact-f0/manifest.json — F0 preregistration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md — Final audit

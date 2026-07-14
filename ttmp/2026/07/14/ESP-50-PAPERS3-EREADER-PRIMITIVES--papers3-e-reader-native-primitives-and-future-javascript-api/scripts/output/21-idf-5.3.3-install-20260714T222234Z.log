@@ -1,0 +1,181 @@
+existing_checkout=/home/manuel/esp/esp-idf-5.3.3
+Detecting the Python interpreter
+Checking "python3" ...
+Python 3.13.2
+"python3" has been detected
+Checking Python compatibility
+Installing ESP-IDF tools
+Selected targets are: esp32s3
+Current system platform: linux-amd64
+Installing tools: xtensa-esp-elf-gdb, xtensa-esp-elf, riscv32-esp-elf, esp32ulp-elf, openocd-esp32, esp-rom-elfs
+Skipping xtensa-esp-elf-gdb@14.2_20240403 (already installed)
+Skipping xtensa-esp-elf@esp-13.2.0_20240530 (already installed)
+Skipping riscv32-esp-elf@esp-13.2.0_20240530 (already installed)
+Skipping esp32ulp-elf@2.38_20240113 (already installed)
+Skipping openocd-esp32@v0.12.0-esp32-20241016 (already installed)
+Skipping esp-rom-elfs@20240305 (already installed)
+Installing Python environment and packages
+Python 3.13.2
+pip 26.0.1 from /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages/pip (python 3.13)
+Downloading https://dl.espressif.com/dl/esp-idf/espidf.constraints.v5.3.txt
+Destination: /home/manuel/.espressif/espidf.constraints.v5.3.txt.tmp
+0%100%Done
+Requirement already satisfied: pip in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (26.0.1)
+Collecting pip
+  Using cached pip-26.1.2-py3-none-any.whl.metadata (4.6 kB)
+Using cached pip-26.1.2-py3-none-any.whl (1.8 MB)
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 26.0.1
+    Uninstalling pip-26.0.1:
+      Successfully uninstalled pip-26.0.1
+Successfully installed pip-26.1.2
+Requirement already satisfied: setuptools in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (82.0.1)
+Collecting setuptools
+  Using cached setuptools-83.0.0-py3-none-any.whl.metadata (6.6 kB)
+Using cached setuptools-83.0.0-py3-none-any.whl (1.0 MB)
+Installing collected packages: setuptools
+  Attempting uninstall: setuptools
+    Found existing installation: setuptools 82.0.1
+    Uninstalling setuptools-82.0.1:
+      Successfully uninstalled setuptools-82.0.1
+Successfully installed setuptools-83.0.0
+Looking in indexes: https://pypi.org/simple, https://dl.espressif.com/pypi
+Ignoring importlib_metadata: markers 'python_version < "3.8"' don't match your environment
+Requirement already satisfied: setuptools in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 3)) (83.0.0)
+Requirement already satisfied: packaging in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 4)) (26.0)
+Collecting packaging (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 4))
+  Using cached packaging-26.2-py3-none-any.whl (100 kB)
+Requirement already satisfied: click in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 7)) (8.1.8)
+Requirement already satisfied: pyserial in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 8)) (3.5)
+Requirement already satisfied: cryptography in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 9)) (42.0.8)
+Requirement already satisfied: pyparsing in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 10)) (3.2.5)
+Requirement already satisfied: pyelftools in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 11)) (0.32)
+Collecting pyelftools (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 11))
+  Using cached pyelftools-0.33-py3-none-any.whl.metadata (1.0 kB)
+Requirement already satisfied: idf-component-manager in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2.4.8)
+Collecting idf-component-manager (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12))
+  Downloading idf_component_manager-2.5.0-py3-none-any.whl.metadata (9.6 kB)
+Requirement already satisfied: esp-coredump in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 13)) (1.15.0)
+Collecting esp-coredump (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 13))
+  Using cached esp_coredump-1.16.0-py3-none-any.whl (43 kB)
+Requirement already satisfied: esptool in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (4.11.0)
+Collecting esptool (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14))
+  Downloading esptool-4.12.0.tar.gz (463 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Requirement already satisfied: esp-idf-kconfig in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 15)) (2.5.3)
+Collecting esp-idf-kconfig (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 15))
+  Using cached esp_idf_kconfig-2.5.4-py3-none-any.whl (146 kB)
+Requirement already satisfied: esp-idf-monitor in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 16)) (1.9.0)
+Requirement already satisfied: esp-idf-nvs-partition-gen in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 17)) (0.1.9)
+Requirement already satisfied: esp-idf-size in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 18)) (1.7.1)
+Requirement already satisfied: esp-idf-panic-decoder in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 19)) (1.4.2)
+Collecting esp-idf-panic-decoder (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 19))
+  Using cached esp_idf_panic_decoder-1.5.0-py3-none-any.whl (21 kB)
+Requirement already satisfied: pyclang in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 20)) (0.6.3)
+Collecting pyclang (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 20))
+  Using cached pyclang-0.7.0-py3-none-any.whl.metadata (2.7 kB)
+Requirement already satisfied: construct in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 21)) (2.10.70)
+Requirement already satisfied: freertos_gdb in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from -r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 24)) (1.0.4)
+Requirement already satisfied: cffi>=1.12 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from cryptography->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 9)) (2.0.0)
+Requirement already satisfied: psutil in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (7.2.2)
+Requirement already satisfied: colorama in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (0.4.6)
+Requirement already satisfied: ruamel.yaml in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (0.19.1)
+Requirement already satisfied: requests in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2.32.5)
+Requirement already satisfied: requests-file in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (3.0.1)
+Requirement already satisfied: requests-toolbelt in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (1.0.0)
+Requirement already satisfied: tqdm in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (4.67.3)
+Requirement already satisfied: jsonref in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (1.1.0)
+Requirement already satisfied: pydantic!=2.12.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2.12.5)
+Requirement already satisfied: pydantic-core in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2.41.5)
+Requirement already satisfied: pydantic-settings in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2.13.1)
+Collecting pathvalidate (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12))
+  Downloading pathvalidate-3.3.1-py3-none-any.whl.metadata (12 kB)
+Requirement already satisfied: truststore in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (0.10.4)
+Requirement already satisfied: pygdbmi>=0.9.0.2 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esp-coredump->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 13)) (0.11.0.0)
+Requirement already satisfied: bitstring!=4.2.0,>=3.1.6 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (4.4.0)
+Requirement already satisfied: ecdsa>=0.16.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (0.19.1)
+Requirement already satisfied: reedsolo<1.8,>=1.5.3 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (1.7.0)
+Requirement already satisfied: PyYAML>=5.1 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (6.0.3)
+Requirement already satisfied: intelhex in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (2.3.0)
+Requirement already satisfied: argcomplete>=3 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (3.6.3)
+Requirement already satisfied: rich in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from esp-idf-size->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 18)) (14.3.3)
+Collecting esp-pylib>=1.1.1 (from esp-pylib[cli]>=1.1.1->pyclang->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 20))
+  Using cached esp_pylib-1.1.2-py3-none-any.whl.metadata (26 kB)
+Requirement already satisfied: bitarray<4.0,>=3.0.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from bitstring!=4.2.0,>=3.1.6->esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (3.8.0)
+Requirement already satisfied: tibs<0.6,>=0.5.6 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from bitstring!=4.2.0,>=3.1.6->esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (0.5.7)
+Requirement already satisfied: pycparser in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from cffi>=1.12->cryptography->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 9)) (3.0)
+Requirement already satisfied: six>=1.9.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from ecdsa>=0.16.0->esptool->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 14)) (1.17.0)
+Collecting rich-click<2,>=1.7 (from esp-pylib[cli]>=1.1.1->pyclang->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 20))
+  Using cached rich_click-1.9.8-py3-none-any.whl (72 kB)
+Requirement already satisfied: annotated-types>=0.6.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from pydantic!=2.12.0->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (0.7.0)
+Requirement already satisfied: typing-extensions>=4.14.1 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from pydantic!=2.12.0->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (4.15.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from pydantic!=2.12.0->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (0.4.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from rich->esp-idf-size->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 18)) (4.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from rich->esp-idf-size->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 18)) (2.19.2)
+Requirement already satisfied: mdurl~=0.1 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from markdown-it-py>=2.2.0->rich->esp-idf-size->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 18)) (0.1.2)
+Requirement already satisfied: python-dotenv>=0.21.0 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from pydantic-settings->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (1.2.2)
+Requirement already satisfied: charset_normalizer<4,>=2 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from requests->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (3.4.6)
+Requirement already satisfied: idna<4,>=2.5 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from requests->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (3.11)
+Requirement already satisfied: urllib3<3,>=1.21.1 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from requests->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (1.26.20)
+Requirement already satisfied: certifi>=2017.4.17 in /home/manuel/.espressif/python_env/idf5.3_py3.13_env/lib/python3.13/site-packages (from requests->idf-component-manager->-r /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt (line 12)) (2026.2.25)
+Using cached pyelftools-0.33-py3-none-any.whl (201 kB)
+Downloading idf_component_manager-2.5.0-py3-none-any.whl (184 kB)
+Using cached pyclang-0.7.0-py3-none-any.whl (13 kB)
+Using cached esp_pylib-1.1.2-py3-none-any.whl (58 kB)
+Downloading pathvalidate-3.3.1-py3-none-any.whl (24 kB)
+Building wheels for collected packages: esptool
+  Building wheel for esptool (pyproject.toml): started
+  Building wheel for esptool (pyproject.toml): finished with status 'done'
+  Created wheel for esptool: filename=esptool-4.12.0-py3-none-any.whl size=616537 sha256=39d019256a879b7ec48ceeb685819d4d031cd5fd200e73ce453b9d59cc51bbf6
+  Stored in directory: /home/manuel/.cache/pip/wheels/c7/e3/f1/e1301379bcb023fd2f4e6b05951a28fbf328b5194e9511cdc9
+Successfully built esptool
+Installing collected packages: pyelftools, pathvalidate, packaging, esp-idf-kconfig, esp-idf-panic-decoder, rich-click, esptool, esp-pylib, idf-component-manager, esp-coredump, pyclang
+  Attempting uninstall: pyelftools
+    Found existing installation: pyelftools 0.32
+    Uninstalling pyelftools-0.32:
+      Successfully uninstalled pyelftools-0.32
+  Attempting uninstall: packaging
+    Found existing installation: packaging 26.0
+    Uninstalling packaging-26.0:
+      Successfully uninstalled packaging-26.0
+  Attempting uninstall: esp-idf-kconfig
+    Found existing installation: esp-idf-kconfig 2.5.3
+    Uninstalling esp-idf-kconfig-2.5.3:
+      Successfully uninstalled esp-idf-kconfig-2.5.3
+  Attempting uninstall: esp-idf-panic-decoder
+    Found existing installation: esp_idf_panic_decoder 1.4.2
+    Uninstalling esp_idf_panic_decoder-1.4.2:
+      Successfully uninstalled esp_idf_panic_decoder-1.4.2
+  Attempting uninstall: esptool
+    Found existing installation: esptool 4.11.0
+    Uninstalling esptool-4.11.0:
+      Successfully uninstalled esptool-4.11.0
+  Attempting uninstall: idf-component-manager
+    Found existing installation: idf-component-manager 2.4.8
+    Uninstalling idf-component-manager-2.4.8:
+      Successfully uninstalled idf-component-manager-2.4.8
+  Attempting uninstall: esp-coredump
+    Found existing installation: esp-coredump 1.15.0
+    Uninstalling esp-coredump-1.15.0:
+      Successfully uninstalled esp-coredump-1.15.0
+  Attempting uninstall: pyclang
+    Found existing installation: pyclang 0.6.3
+    Uninstalling pyclang-0.6.3:
+      Successfully uninstalled pyclang-0.6.3
+
+Successfully installed esp-coredump-1.16.0 esp-idf-kconfig-2.5.4 esp-idf-panic-decoder-1.5.0 esp-pylib-1.1.2 esptool-4.12.0 idf-component-manager-2.5.0 packaging-26.2 pathvalidate-3.3.1 pyclang-0.7.0 pyelftools-0.33 rich-click-1.9.8
+Upgrading pip...
+Upgrading setuptools...
+Installing Python packages
+ Constraint file: /home/manuel/.espressif/espidf.constraints.v5.3.txt
+ Requirement files:
+  - /home/manuel/esp/esp-idf-5.3.3/tools/requirements/requirements.core.txt
+All done! You can now run:
+
+  . ./export.sh

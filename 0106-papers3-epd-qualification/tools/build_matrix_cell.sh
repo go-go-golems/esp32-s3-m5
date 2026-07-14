@@ -43,7 +43,7 @@ export PAPERS3_M5UNIFIED_SHA="$(git -C "$COMPONENTS_DIR/M5Unified" rev-parse HEA
 # IDF export scripts may inspect an inherited environment from another IDF.
 unset IDF_PYTHON_ENV_PATH IDF_TOOLS_PATH IDF_VERSION IDF_PATH
 # shellcheck disable=SC1090
-source "$IDF_DIR/export.sh" >/dev/null
+source "$IDF_DIR/export.sh" >/dev/null 2>&1
 
 BUILD_DIR="$PROJECT_DIR/build-cell-$CELL"
 SDKCONFIG="$PROJECT_DIR/sdkconfig.cell-$CELL"
@@ -63,8 +63,24 @@ METADATA="$RESULT_DIR/build-cell-$CELL.txt"
   printf 'sdkconfig=%s\n' "$SDKCONFIG"
 } | tee "$METADATA"
 
-if [[ ! -f "$SDKCONFIG" ]]; then
-  idf.py -C "$PROJECT_DIR" -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" set-target esp32s3
+LOG="$RESULT_DIR/build-cell-$CELL.log"
+echo "[build] matrix cell $CELL; full output -> $LOG"
+set +e
+{
+  if [[ ! -f "$SDKCONFIG" ]]; then
+    idf.py -C "$PROJECT_DIR" -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" set-target esp32s3
+  fi
+  idf.py -C "$PROJECT_DIR" -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" build
+} >"$LOG" 2>&1
+status=$?
+set -e
+perl -pi -e 's/[ \t]+$//' "$LOG"
+if [[ $status -ne 0 ]]; then
+  echo "error: matrix cell $CELL failed (exit $status); filtered tail:" >&2
+  tail -n 80 "$LOG" | cut -c1-500 >&2
+  exit "$status"
 fi
-idf.py -C "$PROJECT_DIR" -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" build 2>&1 \
-  | tee "$RESULT_DIR/build-cell-$CELL.log"
+APP="$BUILD_DIR/papers3_epd_qualification.bin"
+ELF="$BUILD_DIR/papers3_epd_qualification.elf"
+printf '[build] cell=%s complete app_sha256=%s elf_sha256=%s hardware_modified=no\n' \
+  "$CELL" "$(sha256sum "$APP" | awk '{print $1}')" "$(sha256sum "$ELF" | awk '{print $1}')"
