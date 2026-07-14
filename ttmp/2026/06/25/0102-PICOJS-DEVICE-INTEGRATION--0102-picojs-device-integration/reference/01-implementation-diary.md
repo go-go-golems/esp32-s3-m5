@@ -347,3 +347,85 @@ The work intentionally remains an incremental subset rather than a full devkit p
 - Build command: `cd 0102-esp32-p4-visual-quickjs-repl && source ~/esp/esp-idf-5.4.2/export.sh && idf.py build`.
 - Flash command that failed after the board disappeared: `idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`.
 - Visible devices after failure: only `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_B4:3A:45:BE:16:80-if00` was present.
+
+
+## Step 7: Flash and validate the picoOS devkit subset on hardware
+
+This step completed the hardware validation that was blocked in Step 6. The ESP32-P4 reappeared under the expected stable by-id path, the firmware flashed successfully, and the new devkit subset probe passed against the real UART console.
+
+The result is that the current firmware image can load and render the new `home`, `sysmon`, and `snake` built-ins on the PicoCalc LCD path while preserving UART `picojs dump` validation.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead?"
+
+**Assistant interpretation:** Retry the hardware flash/probe now that the user likely reset or reattached the ESP32-P4 board.
+
+**Inferred user intent:** Finish the blocked hardware validation for the devkit compatibility subset.
+
+**Commit (code):** 543e435141499d35aaa0002d7bd85d76d8442cff — "0102: add picoOS devkit compatibility subset"
+
+### What I did
+- Rechecked `/dev/serial/by-id` and saw the ESP32-P4 return as:
+  - `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 -> ../../ttyACM0`
+- Retried flash with ESP-IDF 5.4.2 using the restored stable by-id port.
+- Ran the new devkit subset probe:
+  - `ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/scripts/02-devkit-subset-probe.py`
+
+### Why
+- Step 6 had a passing build but no final flash/probe because the P4 serial path disappeared and briefly came back as a different CH340 by-id path that did not speak to the ESP32-P4 ROM.
+- The firmware needed real-device validation before continuing with more devkit widgets or host SDL extraction.
+
+### What worked
+- Flash succeeded on `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00`.
+- `02-devkit-subset-probe.py` passed.
+- `picojs load home` rendered:
+  - `picoOS` top bar
+  - `launcher` menu frame
+  - battery gauge
+- `picojs load sysmon` rendered:
+  - CPU/memory/temp gauges
+  - `load` sparkline
+  - process table with `kernel`
+- `picojs load snake` rendered:
+  - `score` title-right text
+  - grid/layer board
+  - `demo grid/layers` status bar
+- The one-row title rendering fix was verified by the home dump line:
+  - `[00]   picoOS                          12:00`
+
+### What didn't work
+- A transient retry used `/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0` while the board was not in the expected attach state and failed with `Failed to connect to ESP32-P4: No serial data received`.
+- The keyboard task still emitted an intermittent warning during the probe:
+  - `keyboard poll failed: ESP_ERR_INVALID_STATE consecutive_errors=10`
+  This did not block console key injection or PicoJS rendering.
+
+### What I learned
+- The expected by-id path can disappear and briefly reappear as a different CH340 identity during reset/attach trouble; the working firmware path is still the `USB_Single_Serial_5B61091051` by-id device.
+- The devkit subset is now large enough that probe output is a useful visual regression artifact, not just a boolean smoke check.
+
+### What was tricky to build
+- The attach state made it easy to accidentally try the wrong by-id path. I corrected this by rechecking `/dev/serial/by-id` immediately before the successful flash.
+- The probe validates semantic substrings rather than exact entire screens so minor truncation from 40x20 hardware rows does not make the test brittle.
+
+### What warrants a second pair of eyes
+- The device attach behavior should be watched in future sessions; if the port alternates between CH340 identities again, record the physical reset/boot-button sequence that makes it stable.
+- The `sysmon` and `snake` built-ins are intentionally simplified devkit subsets; reviewers should not confuse them with complete ports of the React presets.
+
+### What should be done in the future
+- Continue with focus movement/activation for menu/table/grid apps.
+- Add the next widget batch: progress/row buttons, keypad/pad, form, feed/input, editor/viewer.
+- Only start the host SDL extraction once the shared DSL surface has a little more widget stability.
+
+### Code review instructions
+- Validate by flashing commit `543e435` and running `02-devkit-subset-probe.py`.
+- Inspect `components/picojs_runtime/picojs_runtime.cpp` for the generic widget class and OS compatibility methods.
+- Inspect `0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp` for the built-in `home`, `sysmon`, and `snake` source strings.
+
+### Technical details
+- Successful flash command:
+  - `cd 0102-esp32-p4-visual-quickjs-repl && source ~/esp/esp-idf-5.4.2/export.sh && idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61091051-if00 flash`
+- Successful probe command:
+  - `ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/scripts/02-devkit-subset-probe.py`
+- Latest flashed binary size:
+  - `0xe5ad0` bytes; smallest app partition `0x400000`; about 78% free.

@@ -167,20 +167,56 @@ topics:
       description: Hardware design, PCBs, and electronics
     - slug: picocalc
       description: ClockworkPi PicoCalc handheld device
+    - slug: source
+      description: Downloaded or scraped reference source material
+    - slug: blinky
+      description: Blinky LED toggle app for M5StackChan
+    - slug: custom-app
+      description: Custom Mooncake app development
+    - slug: intern-guide
+      description: Guide written for new interns/team members
+    - slug: m5stackchan
+      description: M5StackChan kawaii desktop robot
+    - slug: mooncake
+      description: Mooncake app framework for embedded devices
+    - slug: architecture
+      description: 'Topic: architecture'
+    - slug: cpp
+      description: 'Topic: cpp'
+    - slug: geppetto
+      description: 'Topic: geppetto'
+    - slug: pinocchio
+      description: 'Topic: pinocchio'
+    - slug: port
+      description: 'Topic: port'
+    - slug: sessionstream
+      description: 'Topic: sessionstream'
+    - slug: esp32p4
+      description: ESP32-P4 microcontroller (RISC-V dual-core, HP/LP cores, MIPI-PIx, PSRAM)
     - slug: lcd
       description: LCD display rendering
     - slug: repl
       description: Read-eval-print-loop interfaces
-    - slug: source
-      description: Downloaded or scraped reference source material
-    - slug: esp32p4
-      description: ESP32-P4 microcontroller (RISC-V dual-core, HP/LP cores, MIPI-PIx, PSRAM)
+    - slug: visual-repl
+      description: Fixed-cell visual REPL model and renderer for PicoCalc QuickJS firmware
     - slug: psram
       description: External pseudo-static RAM used by ESP32-class firmware for larger heaps, buffers, and runtime allocations
+    - slug: picojs
+      description: PicoJS JavaScript DSL/runtime for PicoCalc firmware apps
+    - slug: picoos
+      description: PicoOS supervisor and app operating environment for PicoCalc
     - slug: concurrency
       description: Concurrency, task ownership, scheduling, and cross-thread/task coordination
     - slug: fetch
       description: HTTP fetch APIs and client-side request/response handling
+    - slug: lora
+      description: Long-range low-power radio hardware and protocol work
+    - slug: meshcore
+      description: MeshCore protocol and companion-node development
+    - slug: udp
+      description: UDP networking and datagram protocols
+    - slug: audio
+      description: Audio hardware and audio control software
 docTypes:
     - slug: index
       description: Ticket index document

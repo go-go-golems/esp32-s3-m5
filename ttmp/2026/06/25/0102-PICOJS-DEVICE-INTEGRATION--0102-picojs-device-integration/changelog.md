@@ -102,3 +102,13 @@ Started firmware picoOS devkit compatibility: App.state/titleRight/gauge style, 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp — Built-in devkit subset apps
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Compatibility runtime
 
+
+## 2026-06-25
+
+Flashed and validated the picoOS devkit subset on ESP32-P4 hardware: home/sysmon/snake loads and dumps passed via 02-devkit-subset-probe.py
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/picojs_runtime/picojs_runtime.cpp — Validated devkit subset runtime
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/06/25/0102-PICOJS-DEVICE-INTEGRATION--0102-picojs-device-integration/scripts/02-devkit-subset-probe.py — Passing hardware probe
+

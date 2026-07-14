@@ -1,0 +1,4926 @@
+schema_version: 1
+generated_at: '2026-07-13T13:54:22.126687Z'
+source_repository: /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5
+purpose: Index firmware projects for selecting evidence and demo projects to showcase in Upwork applications.
+usage_notes:
+- Tags must come from tag_vocabulary; add a vocabulary entry before introducing a new tag.
+- Keep project facts in the project record and subjective showcase judgments under showcase.
+- Use job_mapping.upwork_job_ids for explicit DB cross-references once a project is matched to a job.
+- review_state=unreviewed means the record still needs human/demo verification.
+field_guide:
+  status: Lifecycle inferred from README evidence; verify before making a public claim.
+  tags: Controlled vocabulary labels for search and cross-reference.
+  showcase: Human review fields for choosing portfolio/demo projects.
+  job_mapping: Cross-reference fields for Upwork jobs; initially empty.
+  repository_evidence: Paths and evidence hints for opening code/docs.
+  job_crosswalk: 'One record per active/non-PCB job: project recommendations, optional fresh-demo plan, known application
+    questions, and answer/cover-letter guidance.'
+tag_vocabulary:
+  board:
+    cardputer: M5Stack Cardputer/Cardputer-ADV
+    atoms3r: M5Stack AtomS3R/AtomS3R-CAM
+    papers3: M5Paper S3/PaperS3
+    m5dial: M5Dial
+    tab5: M5Tab5
+    xiao-esp32c6: Seeed XIAO ESP32-C6
+    esp32-p4: Waveshare ESP32-P4-WIFI6/PicoCalc
+    m5printer: M5Printer
+    qemu: ESP32-S3 QEMU
+  platform:
+    esp-idf: Native Espressif ESP-IDF
+    freertos: FreeRTOS concurrency
+    esp-event: esp_event application bus
+    esp-console: Interactive esp_console REPL
+    psram: External PSRAM
+    filesystem: On-device filesystem
+    storage: Persistent/bundled device data
+    wasm: WebAssembly/WAMR
+    quickjs: QuickJS runtime
+    assemblyscript: AssemblyScript
+  connectivity:
+    wifi: Wi-Fi networking/provisioning
+    http-server: Embedded HTTP server/API
+    websocket: WebSocket transport
+    ble: Bluetooth Low Energy
+    mqtt: MQTT
+    udp: UDP/multicast
+    zigbee: Zigbee architecture
+    protobuf: Protocol Buffers/nanopb
+    provisioning: Device provisioning
+  hardware-io:
+    gpio: GPIO I/O/interrupts
+    i2c: I2C
+    spi: SPI
+    uart: UART/serial protocols
+    keyboard: Keyboard input
+    touch: Touch input
+    display: Display rendering/drivers
+    e-ink: E-ink/EPD
+    lvgl: LVGL UI
+    m5gfx: M5GFX/LovyanGFX
+    camera: Camera
+    sensor: Sensors
+    led: LED/LED strip/matrix
+    audio: Audio
+    sd-card: SD card
+  application:
+    web-ui: Browser-hosted device UI
+    javascript: JavaScript execution/UI
+    graphics: Graphics/animation
+    media: GIF/image/media
+    terminal: Terminal/console
+    timer: Timer/workflow app
+    e-reader: E-reader/text rendering
+    handwriting: Gesture/handwriting recognition
+    remote-control: Remote device control
+    firmware: Embedded firmware
+    testing: Test harness/bench
+    bring-up: Board/peripheral bring-up
+    simulator: Simulation/mock
+    developer-tool: Diagnostic/calibration tool
+    demo: Demonstration firmware
+recommended_showcase_projects:
+- project_id: '0017'
+  why: Device-hosted web UI, HTTP, WebSocket, display, and storage.
+  project_key: 0017-atoms3r-web-ui
+- project_id: '0029'
+  why: Event-driven HTTP/WebSocket architecture for ESP32 IoT work.
+  project_key: 0029-mock-zigbee-http-hub
+- project_id: '0031'
+  why: Multi-MCU Zigbee-style architecture with asynchronous protocol boundaries.
+  project_key: 0031-zigbee-orchestrator
+- project_id: '0046'
+  why: ESP32-C6 web UI plus runtime LED control and provisioning.
+  project_key: 0046-xiao-esp32c6-led-patterns-webui
+- project_id: '0048'
+  why: Differentiated embedded JavaScript/Web IDE evidence.
+  project_key: 0048-cardputer-js-web
+- project_id: '0049'
+  why: UDP multicast/discovery/scheduled-cue protocol implementation.
+  project_key: 0049-xiao-esp32c6-mled-node
+- project_id: '0074'
+  why: End-to-end firmware, Go server, WebSocket, and React dashboard.
+  project_key: 0074-m5dial-web-remote
+- project_id: '0078'
+  why: Custom UI/layout/dirty-region engine and e-ink optimization.
+  project_key: 0078-papers3-gnosis-layout
+- project_id: '0101'
+  why: Validated native QuickJS runtime with limits and benchmarks.
+  project_key: 0101-esp32-p4-native-quickjs
+- project_id: '0103'
+  why: Cross-board runtime port with PSRAM and reusable architecture.
+  project_key: 0103-atoms3r-m12-native-quickjs
+projects:
+- id: '0001'
+  slug: cardputer-hello_world
+  name: 0001-cardputer-hello_world
+  path: 0001-cardputer-hello_world
+  title: Cardputer Tutorial 0001 — `hello_world` (ESP-IDF 5.4.1 baseline)
+  summary: 'This is the **known-good baseline** project for the Cardputer tutorial series. It is copied from the upstream
+    ESP-IDF `get-started/hello_world` example and is intended to compile cleanly on **ESP-IDF 5.4.1** for **ESP32-S3**. This
+    directory intentionally includes:'
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id001
+  - audio
+  - ble
+  - cardputer
+  - demo
+  - display
+  - esp-idf
+  - freertos
+  - keyboard
+  - led
+  - m5gfx
+  - psram
+  - storage
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0001-cardputer-hello_world/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/hello_world_main.c
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id001
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0001-cardputer-hello_world
+  notes: ''
+  project_key: 0001-cardputer-hello_world
+- id: '0002'
+  slug: freertos-queue-demo
+  name: 0002-freertos-queue-demo
+  path: 0002-freertos-queue-demo
+  title: ESP32-S3 M5 Tutorial 0002 — FreeRTOS Queue Demo (ESP-IDF 5.4.1)
+  summary: 'This tutorial demonstrates a minimal **producer/consumer** pipeline using: No M5Stack libraries are involved here
+    — this is pure ESP-IDF and should run on any ESP32-S3 board. You should see logs like: Starts a FreeRTOS task to print
+    "Hello World". (See the README.md file in the upper level ''examples'' directory for more'
+  status: demo
+  targets:
+  - esp32s3
+  boards: []
+  tags: &id002
+  - ble
+  - demo
+  - esp-idf
+  - freertos
+  - led
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0002-freertos-queue-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/hello_world_main.c
+    source_file_count: 7
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id002
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0002-freertos-queue-demo
+  notes: ''
+  project_key: 0002-freertos-queue-demo
+- id: '0003'
+  slug: gpio-isr-queue-demo
+  name: 0003-gpio-isr-queue-demo
+  path: 0003-gpio-isr-queue-demo
+  title: ESP32-S3 M5 Tutorial 0003 — GPIO ISR → Queue → Task (ESP-IDF 5.4.1)
+  summary: 'This tutorial demonstrates the core embedded pattern: This avoids doing heavy work in interrupt context. By default,
+    this example listens on **GPIO0** (`BUTTON_GPIO = GPIO_NUM_0`), which is commonly the **BOOT button** on ESP32-S3 dev
+    boards. If your board uses a different pin, change `BUTTON_GPIO` in `main/hello_world'
+  status: demo
+  targets:
+  - esp32s3
+  boards: []
+  tags: &id003
+  - ble
+  - demo
+  - esp-idf
+  - freertos
+  - gpio
+  - led
+  - testing
+  repository_evidence:
+    readme: 0003-gpio-isr-queue-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/hello_world_main.c
+    source_file_count: 7
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id003
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0003-gpio-isr-queue-demo
+  notes: ''
+  project_key: 0003-gpio-isr-queue-demo
+- id: '0004'
+  slug: i2c-rolling-average
+  name: 0004-i2c-rolling-average
+  path: 0004-i2c-rolling-average
+  title: ESP32-S3 M5 Tutorial 0004 — I2C polling (timer callback) → queue → rolling average (ESP-IDF 5.4.1)
+  summary: 'This tutorial demonstrates: This example targets **SHT30/SHT31**-compatible sensors (temp + humidity) over **I2C**,
+    default address `0x44`. **DS18B20 is not I2C** — it’s a **1‑Wire** sensor. You must set the correct SDA/SCL pins for your
+    board: Starts a FreeRTOS task to print "Hello World".'
+  status: investigation
+  targets:
+  - esp32s3
+  boards: []
+  tags: &id004
+  - ble
+  - demo
+  - developer-tool
+  - esp-idf
+  - freertos
+  - gpio
+  - i2c
+  - led
+  - sensor
+  - testing
+  - timer
+  repository_evidence:
+    readme: 0004-i2c-rolling-average/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/hello_world_main.c
+    source_file_count: 7
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022070286988167440361
+    - 022072591576501903207
+    - 022075630256576688680
+    - 022076287718910623461
+    fit_keywords: *id004
+    matched_job_families:
+    - ESP32 hardware builder needed custom Bluetooth force measurement rig
+    - ESP32-S3 Embedded Firmware Engineer – IoT Product
+    - Embedded Sensor Test Rig Development
+    - RAK11160 Firmware Developer — IoT Sensor Platform (STM32WLE5 + ESP32-C2, LoRaWAN + WiFi + BLE)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0004-i2c-rolling-average
+  notes: ''
+  project_key: 0004-i2c-rolling-average
+- id: '0005'
+  slug: wifi-event-loop
+  name: 0005-wifi-event-loop
+  path: 0005-wifi-event-loop
+  title: ESP32-S3 M5 Tutorial 0005 — WiFi STA + Event Loop (ESP-IDF 5.4.1)
+  summary: 'This tutorial demonstrates: Set these via menuconfig: Then go to: Starts a FreeRTOS task to print "Hello World".
+    (See the README.md file in the upper level ''examples'' directory for more information about examples.) Follow detailed
+    instructions provided specifically for this example.'
+  status: demo
+  targets:
+  - esp32s3
+  boards: []
+  tags: &id005
+  - ble
+  - demo
+  - esp-event
+  - esp-idf
+  - freertos
+  - led
+  - testing
+  - wifi
+  repository_evidence:
+    readme: 0005-wifi-event-loop/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.c
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022075655487423047315
+    fit_keywords: *id005
+    matched_job_families:
+    - ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0005-wifi-event-loop
+  notes: ''
+  project_key: 0005-wifi-event-loop
+- id: '0006'
+  slug: wifi-http-client
+  name: 0006-wifi-http-client
+  path: 0006-wifi-http-client
+  title: ESP32-S3 M5 Tutorial 0006 — WiFi STA + HTTP Client (ESP-IDF 5.4.1)
+  summary: 'This tutorial demonstrates: Set these via menuconfig: Then go to: Starts a FreeRTOS task to print "Hello World".
+    (See the README.md file in the upper level ''examples'' directory for more information about examples.) Follow detailed
+    instructions provided specifically for this example.'
+  status: demo
+  targets:
+  - esp32s3
+  boards: []
+  tags: &id006
+  - ble
+  - demo
+  - esp-event
+  - esp-idf
+  - freertos
+  - led
+  - testing
+  - wifi
+  repository_evidence:
+    readme: 0006-wifi-http-client/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.c
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022075655487423047315
+    fit_keywords: *id006
+    matched_job_families:
+    - ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0006-wifi-http-client
+  notes: ''
+  project_key: 0006-wifi-http-client
+- id: '0007'
+  slug: cardputer-keyboard-serial
+  name: 0007-cardputer-keyboard-serial
+  path: 0007-cardputer-keyboard-serial
+  title: Cardputer Tutorial 0007 — Keyboard → Serial Echo (ESP-IDF 5.4.1)
+  summary: This tutorial reads the **built-in Cardputer keyboard** (GPIO matrix scan) and **echoes what you type** to the
+    serial console in realtime. The keyboard is scanned using **3 output pins** and **7 input pins**. This firmware echoes
+    typed characters **inline** after the prompt (it does **not** print a newline until you pr
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id007
+  - ble
+  - cardputer
+  - demo
+  - display
+  - esp-idf
+  - firmware
+  - freertos
+  - gpio
+  - keyboard
+  - led
+  - terminal
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0007-cardputer-keyboard-serial/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.c
+    source_file_count: 11
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id007
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0007-cardputer-keyboard-serial
+  notes: ''
+  project_key: 0007-cardputer-keyboard-serial
+- id: '0008'
+  slug: atoms3r-display-animation
+  name: 0008-atoms3r-display-animation
+  path: 0008-atoms3r-display-animation
+  title: AtomS3R Tutorial 0008 — Display Animation (GC9107 + ESP-IDF 5.4.1)
+  summary: 'This tutorial brings up the **AtomS3R SPI LCD (GC9107)** using **ESP-IDF `esp_lcd`** and renders a simple looping
+    animation. From the ATOMS3R schematic crop (`atoms3r_display_pins_crop.png`) and the pin summary doc: AtomS3R uses **GC9107**.
+    The visible area is **128×128**, but the controller RAM is **128×160**, and M5’'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id008
+  - atoms3r
+  - ble
+  - demo
+  - display
+  - esp-idf
+  - freertos
+  - gpio
+  - graphics
+  - i2c
+  - led
+  - m5gfx
+  - spi
+  - testing
+  - uart
+  - web-ui
+  repository_evidence:
+    readme: 0008-atoms3r-display-animation/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.c
+    - main/idf_component.yml
+    source_file_count: 14
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id008
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0008-atoms3r-display-animation
+  notes: ''
+  project_key: 0008-atoms3r-display-animation
+- id: '0009'
+  slug: atoms3r-m5gfx-display-animation
+  name: 0009-atoms3r-m5gfx-display-animation
+  path: 0009-atoms3r-m5gfx-display-animation
+  title: AtomS3R Tutorial 0009 — Display Animation (GC9107 via M5GFX / LovyanGFX + ESP-IDF 5.4.1)
+  summary: This tutorial is the “same animation as 0008”, but implemented using **M5GFX (LovyanGFX)** instead of ESP-IDF `esp_lcd`.
+    `0008` uses `esp_lcd` + `espressif__esp_lcd_gc9107`. During real hardware bring-up we hit cases where the panel init logs
+    looked correct but the screen stayed black. `0009` is a controlled comparison
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id009
+  - atoms3r
+  - ble
+  - bring-up
+  - demo
+  - display
+  - esp-idf
+  - gpio
+  - graphics
+  - i2c
+  - led
+  - m5gfx
+  - spi
+  - uart
+  repository_evidence:
+    readme: 0009-atoms3r-m5gfx-display-animation/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.cpp
+    source_file_count: 9
+    has_build_directory: true
+    documentation:
+    - ttmp/2025/12/22/001-MAKE-GFX-EXAMPLE-WORK--make-gc9107-m5gfx-style-display-example-work-atoms3r/analysis/02-bug-report--i2c-driver-ng-conflict-m5gfx-0009.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id009
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0009-atoms3r-m5gfx-display-animation
+  notes: ''
+  project_key: 0009-atoms3r-m5gfx-display-animation
+- id: '0010'
+  slug: atoms3r-m5gfx-canvas-animation
+  name: 0010-atoms3r-m5gfx-canvas-animation
+  path: 0010-atoms3r-m5gfx-canvas-animation
+  title: AtomS3R Tutorial 0010 — Canvas Animation (GC9107 via M5GFX / LovyanGFX + ESP-IDF 5.4.1)
+  summary: 'This tutorial is a **fun animated demo** built around **M5GFX’s `M5Canvas` (sprite/canvas) API**. It renders each
+    frame into an offscreen canvas and then pushes the whole frame to the LCD (optionally via SPI DMA). This complements:
+    `0010` is the “use M5GFX like M5’s own demos” reference: **canvas/sprite rendering**, st'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id010
+  - atoms3r
+  - ble
+  - demo
+  - display
+  - esp-idf
+  - gpio
+  - graphics
+  - i2c
+  - led
+  - m5gfx
+  - spi
+  - uart
+  repository_evidence:
+    readme: 0010-atoms3r-m5gfx-canvas-animation/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.cpp
+    source_file_count: 10
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022071885913698917551
+    fit_keywords: *id010
+    matched_job_families:
+    - ESP32/P4 Developer for TFT Display
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0010-atoms3r-m5gfx-canvas-animation
+  notes: ''
+  project_key: 0010-atoms3r-m5gfx-canvas-animation
+- id: '0011'
+  slug: cardputer-m5gfx-plasma-animation
+  name: 0011-cardputer-m5gfx-plasma-animation
+  path: 0011-cardputer-m5gfx-plasma-animation
+  title: Cardputer Tutorial 0011 — M5GFX Plasma Animation (ST7789 via M5GFX / LovyanGFX + ESP-IDF 5.4.1)
+  summary: 'This tutorial is a **Cardputer** display demo built around **M5GFX autodetect** plus the **sprite/canvas** present
+    path. The end goal is a full-screen plasma animation that avoids “flutter” by ensuring DMA transfers don’t overlap frame
+    rendering. This is the Cardputer counterpart to AtomS3R `0010`:'
+  status: scaffold
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id011
+  - ble
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-idf
+  - graphics
+  - m5gfx
+  - uart
+  repository_evidence:
+    readme: 0011-cardputer-m5gfx-plasma-animation/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.cpp
+    source_file_count: 9
+    has_build_directory: true
+    documentation:
+    - ttmp/2025/12/22/004-CARDPUTER-M5GFX--cardputer-using-m5gfx-bring-up-plasma-animation/analysis/02-debug-flashing-0011-aborts-around-60-70.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id011
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0011-cardputer-m5gfx-plasma-animation
+  notes: ''
+  project_key: 0011-cardputer-m5gfx-plasma-animation
+- id: '0012'
+  slug: cardputer-typewriter
+  name: 0012-cardputer-typewriter
+  path: 0012-cardputer-typewriter
+  title: Cardputer Tutorial 0012 — Typewriter (keyboard → on-screen text via M5GFX + ESP-IDF 5.4.1)
+  summary: 'This tutorial is a **Cardputer** “typewriter” app: **press keys on the built-in keyboard → text appears on the
+    LCD**. It intentionally reuses two known-good building blocks already present in this repo: If `/dev/ttyACM0` disappears/re-enumerates
+    during flashing, use the stable by-id path:'
+  status: scaffold
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id012
+  - ble
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-idf
+  - gpio
+  - graphics
+  - keyboard
+  - led
+  - m5gfx
+  - uart
+  repository_evidence:
+    readme: 0012-cardputer-typewriter/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.cpp
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id012
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0012-cardputer-typewriter
+  notes: ''
+  project_key: 0012-cardputer-typewriter
+- id: '0013'
+  slug: atoms3r-gif-console
+  name: 0013-atoms3r-gif-console
+  path: 0013-atoms3r-gif-console
+  title: AtomS3R Tutorial 0013 — “GIF Console” (real GIFs + button + `esp_console`) (ESP-IDF 5.4.1)
+  summary: 'This tutorial is the “control plane + real payload” chapter: it plays **real GIFs** (decoded with **bitbank2/AnimatedGIF**)
+    selected via **serial console commands** and a **hardware button**. GIF files are stored on a flash-bundled FATFS partition
+    (`storage`) mounted at `/storage`.'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id013
+  - atoms3r
+  - ble
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - filesystem
+  - gpio
+  - graphics
+  - i2c
+  - led
+  - m5gfx
+  - media
+  - remote-control
+  - spi
+  - storage
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0013-atoms3r-gif-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/backlight.cpp
+    - main/backlight.h
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/control_plane.cpp
+    - main/control_plane.h
+    - main/display_hal.cpp
+    - main/display_hal.h
+    - main/hello_world_main.cpp
+    - main/uart_rx_heartbeat.cpp
+    - main/uart_rx_heartbeat.h
+    source_file_count: 25
+    has_build_directory: true
+    documentation:
+    - ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/analysis/02-analysis-build-map-code-locations-inspired-by-0013-atoms3r-gif-console.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022068794005998288562
+    fit_keywords: *id013
+    matched_job_families:
+    - Replicate Prototype and Test Hardware for ESP32 Noise Cancellation
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0013-atoms3r-gif-console
+  notes: ''
+  project_key: 0013-atoms3r-gif-console
+- id: '0014'
+  slug: atoms3r-animatedgif-single
+  name: 0014-atoms3r-animatedgif-single
+  path: 0014-atoms3r-animatedgif-single
+  title: AtomS3R Tutorial 0014 — AnimatedGIF (bitbank2) single-GIF playback harness (ESP-IDF 5.4.1)
+  summary: 'This tutorial is the **minimal harness** for ticket `0010-PORT-ANIMATED-GIF`: it brings up the AtomS3R GC9107
+    LCD via **M5GFX** and plays **one GIF** via the **AnimatedGIF** decoder. This project does **not** copy M5GFX into the
+    tutorial directory. Instead it uses:'
+  status: investigation
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id014
+  - atoms3r
+  - demo
+  - developer-tool
+  - display
+  - esp-idf
+  - m5gfx
+  - media
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0014-atoms3r-animatedgif-single/README.md
+    source_files:
+    - components/animatedgif/CMakeLists.txt
+    - components/animatedgif/LICENSE
+    - components/animatedgif/README.md
+    - components/animatedgif/src/AnimatedGIF.cpp
+    - components/animatedgif/src/AnimatedGIF.h
+    - components/animatedgif/src/GIFPlayer.h
+    - components/animatedgif/src/gif.inl
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/assets/green.h
+    - main/assets/homer_tiny.h
+    - main/hello_world_main.cpp
+    source_file_count: 17
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022068794005998288562
+    fit_keywords: *id014
+    matched_job_families:
+    - Replicate Prototype and Test Hardware for ESP32 Noise Cancellation
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0014-atoms3r-animatedgif-single
+  notes: ''
+  project_key: 0014-atoms3r-animatedgif-single
+- id: '0015'
+  slug: cardputer-serial-terminal
+  name: 0015-cardputer-serial-terminal
+  path: 0015-cardputer-serial-terminal
+  title: Cardputer Tutorial 0015 — Serial Terminal (keyboard → screen + UART/USB via ESP-IDF 5.4.1)
+  summary: 'This tutorial is a **Cardputer serial terminal** app: It reuses known-good building blocks already present in
+    this repo: If `/dev/ttyACM0` disappears/re-enumerates during flashing, use the stable by-id path: Go to: This tutorial
+    treats the GROVE port as a simple external UART:'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id015
+  - ble
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-idf
+  - gpio
+  - graphics
+  - keyboard
+  - led
+  - m5gfx
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0015-cardputer-serial-terminal/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/hello_world_main.cpp
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id015
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0015-cardputer-serial-terminal
+  notes: ''
+  project_key: 0015-cardputer-serial-terminal
+- id: '0016'
+  slug: atoms3r-grove-gpio-signal-tester
+  name: 0016-atoms3r-grove-gpio-signal-tester
+  path: 0016-atoms3r-grove-gpio-signal-tester
+  title: AtomS3R Tutorial 0016 — GROVE GPIO1/GPIO2 Signal Tester (USB Serial/JTAG manual REPL + LCD status) (ESP-IDF 5.4.1)
+  summary: 'This project is an **AtomS3R-only** firmware “instrument” to generate and observe signals on the GROVE pins: It
+    uses: ./build.sh set-target esp32s3 && \ ./build.sh build ./build.sh flash monitor'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id016
+  - atoms3r
+  - demo
+  - developer-tool
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - remote-control
+  - terminal
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0016-atoms3r-grove-gpio-signal-tester/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/backlight.cpp
+    - main/backlight.h
+    - main/control_plane.cpp
+    - main/control_plane.h
+    - main/display_hal.cpp
+    - main/display_hal.h
+    - main/gpio_rx.cpp
+    - main/gpio_rx.h
+    - main/gpio_tx.cpp
+    - main/gpio_tx.h
+    - main/hello_world_main.cpp
+    - main/lcd_ui.cpp
+    - main/lcd_ui.h
+    - main/manual_repl.cpp
+    - main/manual_repl.h
+    - main/signal_state.cpp
+    - main/signal_state.h
+    - main/uart_tester.cpp
+    source_file_count: 26
+    has_build_directory: true
+    documentation:
+    - ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/playbook/02-debug-grove-uart-using-0016-signal-tester.md
+    - ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/playbook/03-bring-up-build-flash-monitor-the-0016-signal-tester-atoms3r.md
+    - ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/playbook/04-cable-mapping-determine-whether-grove-g1-g2-are-swapped-using-0016.md
+    - ttmp/2025/12/25/009-GROVE-GPIO-SIGNAL-TESTER--atoms3r-cardputer-grove-gpio1-gpio2-rx-tx-investigation/reference/02-cli-contract-0016-signal-tester.md
+    - ttmp/2025/12/26/0013-GROVE-SERIAL-DEBUG--grove-serial-debug-gpio-spikes-wiring-coupling-analysis/analysis/01-why-does-tx-low-on-gpio2-create-a-spike-on-gpio1-gpio2-0016-signal-tester-hardware-coupling.md
+    - ttmp/2025/12/26/0013-GROVE-SERIAL-DEBUG--grove-serial-debug-gpio-spikes-wiring-coupling-analysis/design-doc/01-0016-add-uart-tx-rx-modes-for-grove-uart-functionality-speed-testing.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id016
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0016-atoms3r-grove-gpio-signal-tester
+  notes: ''
+  project_key: 0016-atoms3r-grove-gpio-signal-tester
+- id: '0017'
+  slug: atoms3r-web-ui
+  name: 0017-atoms3r-web-ui
+  path: 0017-atoms3r-web-ui
+  title: Tutorial 0017 — AtomS3R Web UI (graphics upload + WebSocket terminal)
+  summary: AtomS3R firmware with graphics upload, device-hosted web UI, and WebSocket terminal.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id017
+  - atoms3r
+  - demo
+  - display
+  - esp-idf
+  - http-server
+  - storage
+  - terminal
+  - web-ui
+  - websocket
+  - wifi
+  repository_evidence:
+    readme: 0017-atoms3r-web-ui/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/assets/assets/app.css
+    - main/assets/assets/app.js
+    - main/assets/index.html
+    - main/backlight.cpp
+    - main/backlight.h
+    - main/button_input.cpp
+    - main/button_input.h
+    - main/display_app.cpp
+    - main/display_app.h
+    - main/display_hal.cpp
+    - main/display_hal.h
+    - main/hello_world_main.cpp
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/storage_fatfs.cpp
+    - main/storage_fatfs.h
+    - main/uart_terminal.cpp
+    - main/uart_terminal.h
+    source_file_count: 53
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: AtomS3R firmware with graphics upload, device-hosted web UI, and WebSocket terminal.
+    proof_points:
+    - device-hosted web UI
+    - embedded HTTP server
+    - WebSocket terminal
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071529089233307686
+    - 022073369925690315084
+    fit_keywords: *id017
+    matched_job_families:
+    - ESP32-S3 E-Reader — Splash, Ukrainian UI & Re-branded Book Upload (BlinkRead)
+    - ESP32/ESP-IDF Embedded Developer for HTTP(S) server and WebSocket communication
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0017-atoms3r-web-ui
+  notes: ''
+  project_key: 0017-atoms3r-web-ui
+- id: '0018'
+  slug: qemu-uart-echo-firmware
+  name: 0018-qemu-uart-echo-firmware
+  path: 0018-qemu-uart-echo-firmware
+  title: Track C — ESP32-S3 QEMU UART Echo Firmware (0018)
+  summary: 'This is a minimal ESP-IDF firmware used to test whether ESP32-S3 QEMU can deliver **UART RX** bytes into ESP-IDF
+    at all. It intentionally avoids MicroQuickJS, SPIFFS, and any REPL parsing. It should: ./build.sh set-target esp32s3 &&
+    \ ./build.sh build ./build.sh qemu'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - qemu
+  tags: &id018
+  - ble
+  - esp-console
+  - esp-idf
+  - filesystem
+  - firmware
+  - qemu
+  - quickjs
+  - spi
+  - storage
+  - terminal
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0018-qemu-uart-echo-firmware/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/uart_echo_main.c
+    source_file_count: 6
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id018
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0018-qemu-uart-echo-firmware
+  notes: ''
+  project_key: 0018-qemu-uart-echo-firmware
+- id: '0019'
+  slug: cardputer-ble-temp-logger
+  name: 0019-cardputer-ble-temp-logger
+  path: 0019-cardputer-ble-temp-logger
+  title: Cardputer Tutorial 0019 — BLE Temperature Logger (ESP-IDF 5.4.1)
+  summary: This tutorial exposes a simple **BLE GATT server** that streams a mock temperature value via **notifications**.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id019
+  - ble
+  - cardputer
+  - demo
+  - esp-idf
+  - sensor
+  - simulator
+  repository_evidence:
+    readme: 0019-cardputer-ble-temp-logger/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/ble_temp_logger_main.c
+    source_file_count: 9
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022070286988167440361
+    - 022075630256576688680
+    - 022076287718910623461
+    fit_keywords: *id019
+    matched_job_families:
+    - ESP32 hardware builder needed custom Bluetooth force measurement rig
+    - Embedded Sensor Test Rig Development
+    - RAK11160 Firmware Developer — IoT Sensor Platform (STM32WLE5 + ESP32-C2, LoRaWAN + WiFi + BLE)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0019-cardputer-ble-temp-logger
+  notes: ''
+  project_key: 0019-cardputer-ble-temp-logger
+- id: '0020'
+  slug: cardputer-ble-keyboard-host
+  name: 0020-cardputer-ble-keyboard-host
+  path: 0020-cardputer-ble-keyboard-host
+  title: 0020 — Cardputer BLE Keyboard Host (WIP)
+  summary: 'Goal: pair/connect to a BLE HID keyboard (HOGP) as a Central and print key events over the USB Serial/JTAG console,
+    with an `esp_console` control plane. At the `ble>` prompt:'
+  status: wip
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id020
+  - ble
+  - cardputer
+  - esp-console
+  - esp-idf
+  - keyboard
+  - remote-control
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0020-cardputer-ble-keyboard-host/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/bt_console.c
+    - main/bt_console.h
+    - main/bt_decode.c
+    - main/bt_decode.h
+    - main/bt_host.c
+    - main/bt_host.h
+    - main/hid_host.c
+    - main/hid_host.h
+    - main/keylog.c
+    - main/keylog.h
+    source_file_count: 16
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-230020-cores3-host.log
+    - ttmp/2026/01/04/001-ZIGBEE-GATEWAY--zigbee-gateway-m5stack-unit-gateway-h2/various/logs/20260104-230020-h2-ncp.log
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id020
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0020-cardputer-ble-keyboard-host
+  notes: ''
+  project_key: 0020-cardputer-ble-keyboard-host
+- id: '0021'
+  slug: atoms3-memo-website
+  name: 0021-atoms3-memo-website
+  path: 0021-atoms3-memo-website
+  title: 0021 — AtomS3 Memo Website (CLINTS-MEMO-WEBSITE)
+  summary: AtomS3R device-hosted memo recorder web application with Wi-Fi and persistent device interaction.
+  status: demo
+  targets:
+  - unknown
+  boards: []
+  tags: &id021
+  - display
+  - esp-idf
+  - firmware
+  - http-server
+  - storage
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0021-atoms3-memo-website/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/assets/index.html
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/idf_component.yml
+    - main/main.cpp
+    - main/recorder.cpp
+    - main/recorder.h
+    - main/storage_spiffs.cpp
+    - main/storage_spiffs.h
+    - main/wifi.cpp
+    - main/wifi.h
+    - main/wifi_apsta.cpp
+    - main/wifi_apsta.h
+    - main/wifi_common.cpp
+    - main/wifi_common.h
+    - main/wifi_softap.cpp
+    - main/wifi_softap.h
+    - main/wifi_sta.cpp
+    source_file_count: 28
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: AtomS3R device-hosted memo recorder web application with Wi-Fi and persistent device interaction.
+    proof_points:
+    - device-hosted web application
+    - Wi-Fi setup
+    - embedded HTTP API
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id021
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0021-atoms3-memo-website
+  notes: ''
+  project_key: 0021-atoms3-memo-website
+- id: '0022'
+  slug: cardputer-m5gfx-demo-suite
+  name: 0022-cardputer-m5gfx-demo-suite
+  path: 0022-cardputer-m5gfx-demo-suite
+  title: Cardputer Demo Suite — M5GFX (LovyanGFX) Graphics Catalog (ESP-IDF 5.4.1)
+  summary: Cardputer graphics catalog showcasing M5GFX rendering techniques and screen capture.
+  status: scaffold
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id022
+  - cardputer
+  - demo
+  - developer-tool
+  - display
+  - esp-idf
+  - graphics
+  - m5gfx
+  repository_evidence:
+    readme: 0022-cardputer-m5gfx-demo-suite/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/demo_a1_hud.cpp
+    - main/demo_a1_hud.h
+    - main/demo_b2_perf.cpp
+    - main/demo_b2_perf.h
+    - main/demo_b3_screenshot.cpp
+    - main/demo_b3_screenshot.h
+    - main/demo_d1_text_fonts.cpp
+    - main/demo_d1_text_fonts.h
+    - main/demo_d2_text_wrap.cpp
+    - main/demo_d2_text_wrap.h
+    - main/demo_d3_text_utf8.cpp
+    - main/demo_d3_text_utf8.h
+    - main/demo_plasma.cpp
+    - main/demo_plasma.h
+    - main/demo_primitives.cpp
+    - main/demo_primitives.h
+    - main/input_keyboard.cpp
+    - main/input_keyboard.h
+    source_file_count: 35
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Cardputer graphics catalog showcasing M5GFX rendering techniques and screen capture.
+    proof_points:
+    - M5GFX graphics catalog
+    - embedded display rendering
+    - screen capture
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071885913698917551
+    - 022073742829112250700
+    fit_keywords: *id022
+    matched_job_families:
+    - ESP32/P4 Developer for TFT Display
+    - 'Firmware/Maker: Wrist-Worn ESP32 Game Device'
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0022-cardputer-m5gfx-demo-suite
+  notes: ''
+  project_key: 0022-cardputer-m5gfx-demo-suite
+- id: '0023'
+  slug: cardputer-kb-scancode-calibrator
+  name: 0023-cardputer-kb-scancode-calibrator
+  path: 0023-cardputer-kb-scancode-calibrator
+  title: Cardputer keyboard scancode calibrator (0023)
+  summary: 'Developer tool firmware for discovering the Cardputer keyboard matrix “scancodes” (physical `KeyPos` / vendor
+    `keyNum`) and Fn-combos. Ticket docs: ./build.sh build ./build.sh -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_*
+    flash Monitoring requires a TTY; use tmux:'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id023
+  - ble
+  - cardputer
+  - developer-tool
+  - firmware
+  - keyboard
+  - led
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0023-cardputer-kb-scancode-calibrator/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/wizard.cpp
+    - main/wizard.h
+    source_file_count: 12
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id023
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0023-cardputer-kb-scancode-calibrator
+  notes: ''
+  project_key: 0023-cardputer-kb-scancode-calibrator
+- id: '0025'
+  slug: cardputer-lvgl-demo
+  name: 0025-cardputer-lvgl-demo
+  path: 0025-cardputer-lvgl-demo
+  title: Cardputer LVGL Demo (ESP-IDF + M5GFX)
+  summary: 'Minimal LVGL bring-up on M5Stack Cardputer using: This demo starts an `esp_console` REPL over **USB-Serial/JTAG**.
+    You can type commands from a host terminal (via `idf.py monitor` or any serial terminal). Recommended (triggers the `screenshot`
+    console command and captures the PNG):'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id024
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - filesystem
+  - gpio
+  - keyboard
+  - led
+  - lvgl
+  - m5gfx
+  - remote-control
+  - spi
+  - storage
+  - terminal
+  - timer
+  - touch
+  - uart
+  repository_evidence:
+    readme: 0025-cardputer-lvgl-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/action_registry.cpp
+    - main/action_registry.h
+    - main/app_main.cpp
+    - main/command_palette.cpp
+    - main/command_palette.h
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/control_plane.cpp
+    - main/control_plane.h
+    - main/demo_basics.cpp
+    - main/demo_file_browser.cpp
+    - main/demo_file_viewer.cpp
+    - main/demo_manager.cpp
+    - main/demo_manager.h
+    - main/demo_menu.cpp
+    - main/demo_pomodoro.cpp
+    - main/demo_split_console.cpp
+    - main/demo_system_monitor.cpp
+    source_file_count: 41
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id024
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0025-cardputer-lvgl-demo
+  notes: ''
+  project_key: 0025-cardputer-lvgl-demo
+- id: '0028'
+  slug: cardputer-esp-event-demo
+  name: 0028-cardputer-esp-event-demo
+  path: 0028-cardputer-esp-event-demo
+  title: 'Tutorial 0028: Cardputer `esp_event` demo'
+  summary: 'Demo firmware for ESP-IDF `esp_event` on the M5Stack Cardputer (ESP32-S3):'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id025
+  - cardputer
+  - demo
+  - display
+  - esp-event
+  - esp-idf
+  - firmware
+  - graphics
+  - keyboard
+  repository_evidence:
+    readme: 0028-cardputer-esp-event-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    source_file_count: 8
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id025
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0028-cardputer-esp-event-demo
+  notes: ''
+  project_key: 0028-cardputer-esp-event-demo
+- id: '0029'
+  slug: mock-zigbee-http-hub
+  name: 0029-mock-zigbee-http-hub
+  path: 0029-mock-zigbee-http-hub
+  title: 'Tutorial 0029: Mock Zigbee HTTP hub (`esp_http_server` + `esp_event`)'
+  summary: Mock Zigbee coordinator architecture with HTTP commands, esp_event bus, virtual telemetry, and WebSocket observability.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id026
+  - demo
+  - esp-console
+  - esp-event
+  - esp-idf
+  - firmware
+  - freertos
+  - http-server
+  - websocket
+  - wifi
+  - zigbee
+  repository_evidence:
+    readme: 0029-mock-zigbee-http-hub/README.md
+    source_files:
+    - components/hub_proto/CMakeLists.txt
+    - components/hub_proto/defs/hub_events.proto
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/hub_bus.c
+    - main/hub_bus.h
+    - main/hub_http.c
+    - main/hub_http.h
+    - main/hub_pb.c
+    - main/hub_pb.h
+    - main/hub_registry.c
+    - main/hub_registry.h
+    - main/hub_sim.c
+    - main/hub_sim.h
+    - main/hub_stream.c
+    - main/hub_stream.h
+    - main/hub_types.h
+    - main/ui/app.js
+    - main/ui/index.html
+    source_file_count: 29
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/analysis/01-plan-stabilize-0029-mock-hub-using-0030-patterns-console-monitoring-nanopb-protobuf.md
+    - ttmp/2026/01/05/0031-ZIGBEE-ORCHESTRATOR--zigbee-orchestrator-esp-event-bus-http-protobuf-real-zigbee-driver/analysis/01-analysis-evolve-0029-mock-hub-into-real-zigbee-orchestrator.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Mock Zigbee coordinator architecture with HTTP commands, esp_event bus, virtual telemetry, and WebSocket observability.
+    proof_points:
+    - event-driven embedded architecture
+    - HTTP API
+    - WebSocket telemetry
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022072591576501903207
+    - 022073369925690315084
+    - 022075655487423047315
+    fit_keywords: *id026
+    matched_job_families:
+    - ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+    - ESP32-S3 Embedded Firmware Engineer – IoT Product
+    - ESP32/ESP-IDF Embedded Developer for HTTP(S) server and WebSocket communication
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0029-mock-zigbee-http-hub
+  notes: ''
+  project_key: 0029-mock-zigbee-http-hub
+- id: '0030'
+  slug: cardputer-console-eventbus
+  name: 0030-cardputer-console-eventbus
+  path: 0030-cardputer-console-eventbus
+  title: 'Tutorial 0030: Cardputer console + esp_event bus'
+  summary: 'Small demo firmware for ESP-IDF on the M5Stack Cardputer (ESP32-S3): When you see the `bus>` prompt: bus> help
+    bus> evt post hello bus> evt spam 10 bus> evt status bus> evt monitor on bus> evt monitor off bus> evt pb on bus> evt
+    pb last bus> evt pb off bus> evt clear'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id027
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-event
+  - esp-idf
+  - firmware
+  - graphics
+  - keyboard
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0030-cardputer-console-eventbus/README.md
+    source_files:
+    - components/proto/CMakeLists.txt
+    - components/proto/defs/demo_bus.proto
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    source_file_count: 10
+    has_build_directory: true
+    documentation:
+    - docs/01-playbook-esp-console-keyboard-ui-esp-event-nanopb-protobuf-0030.md
+    - ttmp/2026/01/05/0029-HTTP-EVENT-MOCK-ZIGBEE--mock-zigbee-hub-http-api-esp-event-bus-virtual-devices/analysis/01-plan-stabilize-0029-mock-hub-using-0030-patterns-console-monitoring-nanopb-protobuf.md
+    - ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/design-doc/01-design-protobuf-event-payloads-websocket-bridge-for-0030.md
+    - ttmp/2026/01/05/0030-CARDPUTER-CONSOLE-EVENTBUS--cardputer-keyboard-esp-console-esp-event-on-screen-event-log/playbook/01-playbook-esp-console-keyboard-ui-esp-event-nanopb-protobuf-0030.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id027
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0030-cardputer-console-eventbus
+  notes: ''
+  project_key: 0030-cardputer-console-eventbus
+- id: '0031'
+  slug: zigbee-orchestrator
+  name: 0031-zigbee-orchestrator
+  path: 0031-zigbee-orchestrator
+  title: '0031: Zigbee orchestrator (Cardputer host)'
+  summary: Cardputer-hosted Zigbee orchestrator with ESP32-H2 NCP integration, Wi-Fi, HTTP, WebSocket, and protocol contracts.
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id028
+  - cardputer
+  - esp-console
+  - esp-event
+  - esp-idf
+  - firmware
+  - freertos
+  - http-server
+  - protobuf
+  - websocket
+  - wifi
+  - zigbee
+  repository_evidence:
+    readme: 0031-zigbee-orchestrator/README.md
+    source_files:
+    - components/hub_proto/CMakeLists.txt
+    - components/hub_proto/defs/hub_events.proto
+    - components/zb_host/CMakeLists.txt
+    - components/zb_host/Kconfig
+    - components/zb_host/include/esp_host_zb_api.h
+    - components/zb_host/include/esp_zigbee_core.h
+    - components/zb_host/include/esp_zigbee_type.h
+    - components/zb_host/include/ha/esp_zigbee_ha_standard.h
+    - components/zb_host/include/zb_config_platform.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_basic.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_color_control.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_command.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_common.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_identify.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_level.h
+    - components/zb_host/include/zcl/esp_zigbee_zcl_on_off.h
+    - components/zb_host/include/zdo/esp_zigbee_zdo_command.h
+    - components/zb_host/include/zdo/esp_zigbee_zdo_common.h
+    - components/zb_host/src/esp_host_bus.c
+    - components/zb_host/src/esp_host_frame.c
+    source_file_count: 79
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/README.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/analysis/01-0031-zigbee-orchestrator-deep-dive-full-retrospective.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/analysis/02-technical-memo-parc-0031-zigbee-orchestrator-retrospective.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/changelog.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/design-doc/01-zigctl-znsp-slip-decoder-uart-transport-design.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/index.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/01-diary.md
+    - ttmp/2026/02/01/0069-ANALYZE-PAST-FIRMWARE--analyze-past-firmware-0031-zigbee-orchestrator-deep-dive/reference/02-esp32-h2-ncp-firmware-and-znsp-protocol-host-integration-reference.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Cardputer-hosted Zigbee orchestrator with ESP32-H2 NCP integration, Wi-Fi, HTTP, WebSocket, and protocol contracts.
+    proof_points:
+    - multi-MCU architecture
+    - async HTTP/WS contract
+    - NCP integration
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022073369925690315084
+    - 022075655487423047315
+    fit_keywords: *id028
+    matched_job_families:
+    - ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+    - ESP32/ESP-IDF Embedded Developer for HTTP(S) server and WebSocket communication
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0031-zigbee-orchestrator
+  notes: ''
+  project_key: 0031-zigbee-orchestrator
+- id: '0036'
+  slug: cardputer-adv-led-matrix-console
+  name: 0036-cardputer-adv-led-matrix-console
+  path: 0036-cardputer-adv-led-matrix-console
+  title: Tutorial 0036 — Cardputer-ADV LED Matrix Console (MAX7219) (ESP-IDF 5.4.x)
+  summary: This firmware is a Phase-1 bring-up tool for driving an external MAX7219-style 8×8 LED matrix from an interactive
+    `esp_console` REPL over **USB Serial/JTAG**. This firmware supports up to **16** chained 8×8 modules. Default is **12**
+    modules (a 96×8 strip); override with `matrix chain N`.
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id029
+  - ble
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - graphics
+  - i2c
+  - keyboard
+  - led
+  - spi
+  - terminal
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0036-cardputer-adv-led-matrix-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/matrix_console.c
+    - main/matrix_console.h
+    - main/max7219.c
+    - main/max7219.h
+    - main/tca8418.c
+    - main/tca8418.h
+    source_file_count: 13
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_read_boot_log.py
+    - ttmp/2026/01/06/0036-LED-MATRIX-CARDPUTER-ADV--cardputer-adv-led-matrix-firmware-adv-keyboard/scripts/0036_send_matrix_commands.py
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id029
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0036-cardputer-adv-led-matrix-console
+  notes: ''
+  project_key: 0036-cardputer-adv-led-matrix-console
+- id: '0037'
+  slug: cardputer-adv-fan-control-console
+  name: 0037-cardputer-adv-fan-control-console
+  path: 0037-cardputer-adv-fan-control-console
+  title: Tutorial 0037 — Cardputer-ADV Fan Control Console (GPIO3 relay) (ESP-IDF 5.4.x)
+  summary: 'This firmware uses an interactive `esp_console` REPL over **USB Serial/JTAG** to control a relay-driven fan on
+    **GPIO3**. Console backend is **USB Serial/JTAG** (`CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y`). Recommended tmux workflow:
+    ./build.sh tmux-flash-monitor'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id030
+  - cardputer
+  - demo
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - graphics
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0037-cardputer-adv-fan-control-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/fan_console.c
+    - main/fan_console.h
+    - main/fan_relay.c
+    - main/fan_relay.h
+    source_file_count: 11
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id030
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0037-cardputer-adv-fan-control-console
+  notes: ''
+  project_key: 0037-cardputer-adv-fan-control-console
+- id: '0038'
+  slug: cardputer-adv-serial-terminal
+  name: 0038-cardputer-adv-serial-terminal
+  path: 0038-cardputer-adv-serial-terminal
+  title: Tutorial 0038 — Cardputer-ADV Serial Terminal (ADV keyboard → screen + USB/UART) (ESP-IDF 5.4.1)
+  summary: 'This tutorial is a **graphical text terminal** for Cardputer using the **Cardputer-ADV keyboard (TCA8418 over
+    I²C)**: In parallel, the firmware starts an **`esp_console` REPL over USB Serial/JTAG** (prompt `adv>`), so you can run
+    interactive commands without stealing the UART pins.'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id031
+  - ble
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - graphics
+  - i2c
+  - keyboard
+  - led
+  - terminal
+  - uart
+  repository_evidence:
+    readme: 0038-cardputer-adv-serial-terminal/README.md
+    source_files:
+    - main/Adafruit_TCA8418.cpp
+    - main/Adafruit_TCA8418.h
+    - main/Adafruit_TCA8418_registers.h
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_state.cpp
+    - main/app_state.h
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/fan_cmd.cpp
+    - main/fan_cmd.h
+    - main/fan_control.cpp
+    - main/fan_control.h
+    - main/hello_world_main.cpp
+    - main/relay_control.cpp
+    - main/relay_control.h
+    source_file_count: 22
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id031
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0038-cardputer-adv-serial-terminal
+  notes: ''
+  project_key: 0038-cardputer-adv-serial-terminal
+- id: '0039'
+  slug: cardputer-adv-js-gpio-exercizer
+  name: 0039-cardputer-adv-js-gpio-exercizer
+  path: 0039-cardputer-adv-js-gpio-exercizer
+  title: 0039-cardputer-adv-js-gpio-exercizer
+  summary: Firmware project in 0039-cardputer-adv-js-gpio-exercizer.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id032
+  - cardputer
+  - gpio
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/console/IConsole.cpp
+    - main/console/IConsole.h
+    - main/console/UartConsole.cpp
+    - main/console/UartConsole.h
+    - main/console/UsbSerialJtagConsole.cpp
+    - main/console/UsbSerialJtagConsole.h
+    - main/esp32_stdlib.h
+    - main/esp32_stdlib_runtime.c
+    - main/eval/IEvaluator.h
+    - main/eval/JsEvaluator.cpp
+    - main/eval/JsEvaluator.h
+    - main/eval/ModeSwitchingEvaluator.cpp
+    - main/eval/ModeSwitchingEvaluator.h
+    - main/eval/RepeatEvaluator.cpp
+    - main/eval/RepeatEvaluator.h
+    - main/js_bindings.cpp
+    - main/js_bindings.h
+    source_file_count: 31
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id032
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0039-cardputer-adv-js-gpio-exercizer
+  notes: ''
+  project_key: 0039-cardputer-adv-js-gpio-exercizer
+- id: '0040'
+  slug: atoms3r-cam-streaming
+  name: 0040-atoms3r-cam-streaming
+  path: 0040-atoms3r-cam-streaming
+  title: 0040-atoms3r-cam-streaming
+  summary: Firmware project in 0040-atoms3r-cam-streaming.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id033
+  - atoms3r
+  repository_evidence:
+    readme: null
+    source_files: []
+    source_file_count: 71
+    has_build_directory: false
+    documentation:
+    - ttmp/2026/01/14/MO-001-ATOMS3R-WEBSOCKET-STREAMING--atoms3r-websocket-streaming/analysis/06-0040-camera-init-alignment-post-mo-002.md
+    - ttmp/2026/01/14/MO-001-ATOMS3R-WEBSOCKET-STREAMING--atoms3r-websocket-streaming/analysis/09-userdemo-vs-0040-camera-stream-pipeline-differences-and-frame2jpg-deep-dive.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id033
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0040-atoms3r-cam-streaming
+  notes: ''
+  project_key: 0040-atoms3r-cam-streaming
+- id: '0041'
+  slug: atoms3r-cam-jtag-serial-test
+  name: 0041-atoms3r-cam-jtag-serial-test
+  path: 0041-atoms3r-cam-jtag-serial-test
+  title: AtomS3R-CAM Camera Init Test
+  summary: Minimal ESP-IDF app that initializes the camera and logs frame metadata over USB Serial/JTAG. No Wi-Fi or USB UVC
+    is included.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id034
+  - atoms3r
+  - camera
+  - esp-idf
+  - testing
+  - uart
+  - wifi
+  repository_evidence:
+    readme: 0041-atoms3r-cam-jtag-serial-test/README.md
+    source_files:
+    - components/esp32-camera/.github/workflows/build.yml
+    - components/esp32-camera/.github/workflows/stale.yml
+    - components/esp32-camera/.github/workflows/upload_component.yml
+    - components/esp32-camera/.gitignore
+    - components/esp32-camera/CMakeLists.txt
+    - components/esp32-camera/Kconfig
+    - components/esp32-camera/LICENSE
+    - components/esp32-camera/README.md
+    - components/esp32-camera/conversions/esp_jpg_decode.c
+    - components/esp32-camera/conversions/include/esp_jpg_decode.h
+    - components/esp32-camera/conversions/include/img_converters.h
+    - components/esp32-camera/conversions/jpge.cpp
+    - components/esp32-camera/conversions/private_include/jpge.h
+    - components/esp32-camera/conversions/private_include/yuv.h
+    - components/esp32-camera/conversions/to_bmp.c
+    - components/esp32-camera/conversions/to_jpg.cpp
+    - components/esp32-camera/conversions/yuv.c
+    - components/esp32-camera/driver/cam_hal.c
+    - components/esp32-camera/driver/esp_camera.c
+    - components/esp32-camera/driver/include/esp_camera.h
+    source_file_count: 106
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/analysis/01-camera-init-analysis-userdemo-vs-0041.md
+    - ttmp/2026/01/14/MO-002-ATOMS3R-CAMERA-CONSOLE-USER-DEMO--atoms3r-cam-userdemo-usb-serial-jtag-console/reference/03-diary-0041-debugging.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id034
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0041-atoms3r-cam-jtag-serial-test
+  notes: ''
+  project_key: 0041-atoms3r-cam-jtag-serial-test
+- id: '0042'
+  slug: xiao-esp32c6-d0-gpio-toggle
+  name: 0042-xiao-esp32c6-d0-gpio-toggle
+  path: 0042-xiao-esp32c6-d0-gpio-toggle
+  title: ESP32-C6 (XIAO) 0042 — D0 GPIO Toggle (ESP-IDF 5.4.1)
+  summary: 'This firmware toggles a configurable GPIO output on an **ESP32-C6** target. It defaults to the **Seeed Studio
+    XIAO ESP32C6** board mapping **D0 = GPIO0**. Notes: `menuconfig` path: `Component config` → `MO-030: ESP32-C6 D0 GPIO
+    toggle`'
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id035
+  - ble
+  - esp-idf
+  - firmware
+  - gpio
+  - led
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0042-xiao-esp32c6-d0-gpio-toggle/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/main.c
+    source_file_count: 6
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id035
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0042-xiao-esp32c6-d0-gpio-toggle
+  notes: ''
+  project_key: 0042-xiao-esp32c6-d0-gpio-toggle
+- id: '0043'
+  slug: xiao-esp32c6-ws2811-4led-d1
+  name: 0043-xiao-esp32c6-ws2811-4led-d1
+  path: 0043-xiao-esp32c6-ws2811-4led-d1
+  title: ESP32-C6 (XIAO) 0043 — WS2811 (4 LEDs) on D1 (ESP-IDF 5.4.1)
+  summary: 'Drives a small WS2811 1-wire LED chain (RGB) using the ESP-IDF RMT TX driver. Defaults: Tuning: Recommended: `Component
+    config` → `MO-031: WS2811 (RMT) test`'
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id036
+  - ble
+  - esp-idf
+  - gpio
+  - graphics
+  - led
+  - testing
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0043-xiao-esp32c6-ws2811-4led-d1/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/main.c
+    - main/ws281x_encoder.c
+    - main/ws281x_encoder.h
+    source_file_count: 11
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id036
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0043-xiao-esp32c6-ws2811-4led-d1
+  notes: ''
+  project_key: 0043-xiao-esp32c6-ws2811-4led-d1
+- id: '0044'
+  slug: xiao-esp32c6-ws281x-patterns-console
+  name: 0044-xiao-esp32c6-ws281x-patterns-console
+  path: 0044-xiao-esp32c6-ws281x-patterns-console
+  title: ESP32-C6 (XIAO) 0044 — WS281x Patterns + Console (ESP-IDF)
+  summary: 'Goal: drive a WS2811/WS2812-style LED chain via RMT TX and control animations at runtime via an `esp_console`
+    REPL over USB Serial/JTAG. Console backend: USB Serial/JTAG (see `sdkconfig.defaults`).'
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id037
+  - esp-console
+  - esp-idf
+  - graphics
+  - led
+  - terminal
+  - uart
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0044-xiao-esp32c6-ws281x-patterns-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/led_console.c
+    - main/led_console.h
+    - main/led_patterns.c
+    - main/led_patterns.h
+    - main/led_task.c
+    - main/led_task.h
+    - main/led_ws281x.c
+    - main/led_ws281x.h
+    - main/main.c
+    - main/ws281x_encoder.c
+    - main/ws281x_encoder.h
+    source_file_count: 16
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/20/MO-032-ESP32C6-LED-PATTERNS-CONSOLE--esp32-c6-led-patterns-console/playbook/01-0044-build-flash-led-console-smoke-test.md
+    - ttmp/2026/01/20/MO-034-ESP32C6-LED-PATTERNS-WEBUI--esp32-c6-led-patterns-web-ui-control-mo-032-0044/analysis/01-existing-implementations-and-integration-plan-mo-032-0044-device-hosted-ui.md
+    - ttmp/2026/01/21/0057-MLED-NODE-LED--mled-node-ws281x-patterns-protocol-mapping/design-doc/01-design-protocol-patternconfig-ws281x-patterns-0049-0044-integration.md
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022073742829112250700
+    fit_keywords: *id037
+    matched_job_families:
+    - 'Firmware/Maker: Wrist-Worn ESP32 Game Device'
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0044-xiao-esp32c6-ws281x-patterns-console
+  notes: ''
+  project_key: 0044-xiao-esp32c6-ws281x-patterns-console
+- id: '0045'
+  slug: xiao-esp32c6-preact-web
+  name: 0045-xiao-esp32c6-preact-web
+  path: 0045-xiao-esp32c6-preact-web
+  title: ESP32-C6 (XIAO) 0045 — esp_console Wi-Fi selection + embedded Preact/Zustand web UI
+  summary: 'This firmware is a small “device-hosted UI” demo for **ESP32-C6** (default: **Seeed XIAO ESP32C6**): The Vite
+    build outputs directly into `main/assets/` (deterministic filenames). npm ci npm run build ./build.sh web ./build.sh all
+    At the `c6>` prompt: wifi scan'
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id038
+  - demo
+  - esp-console
+  - esp-idf
+  - firmware
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0045-xiao-esp32c6-preact-web/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/assets/assets/app.css
+    - main/assets/assets/app.js
+    - main/assets/assets/app.js.map
+    - main/assets/assets/app.js.map.gz
+    - main/assets/index.html
+    - main/http_server.c
+    - main/http_server.h
+    - main/wifi_console.c
+    - main/wifi_console.h
+    - main/wifi_mgr.c
+    - main/wifi_mgr.h
+    - web/.gitignore
+    - web/index.html
+    - web/package-lock.json
+    - web/package.json
+    - web/src/app.tsx
+    - web/src/main.tsx
+    source_file_count: 31
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id038
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0045-xiao-esp32c6-preact-web
+  notes: ''
+  project_key: 0045-xiao-esp32c6-preact-web
+- id: '0046'
+  slug: xiao-esp32c6-led-patterns-webui
+  name: 0046-xiao-esp32c6-led-patterns-webui
+  path: 0046-xiao-esp32c6-led-patterns-webui
+  title: ESP32-C6 (XIAO) 0046 — LED patterns control web UI (MO-032/0044) + esp_console Wi-Fi
+  summary: XIAO ESP32-C6 LED pattern engine with RMT output, Wi-Fi provisioning, console, and embedded web UI.
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id039
+  - demo
+  - esp-console
+  - esp-idf
+  - firmware
+  - graphics
+  - http-server
+  - led
+  - web-ui
+  - wifi
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0046-xiao-esp32c6-led-patterns-webui/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/assets/assets/app.css
+    - main/assets/assets/app.js
+    - main/assets/assets/app.js.map
+    - main/assets/assets/app.js.map.gz
+    - main/assets/index.html
+    - main/http_server.c
+    - main/http_server.h
+    - main/led_console.c
+    - main/led_console.h
+    - main/led_patterns.c
+    - main/led_patterns.h
+    - main/led_task.c
+    - main/led_task.h
+    - main/led_ws281x.c
+    - main/led_ws281x.h
+    - main/ws281x_encoder.c
+    - main/ws281x_encoder.h
+    source_file_count: 37
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: XIAO ESP32-C6 LED pattern engine with RMT output, Wi-Fi provisioning, console, and embedded web UI.
+    proof_points:
+    - ESP32-C6 firmware
+    - RMT LED control
+    - device-hosted web UI
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id039
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0046-xiao-esp32c6-led-patterns-webui
+  notes: ''
+  project_key: 0046-xiao-esp32c6-led-patterns-webui
+- id: '0047'
+  slug: cardputer-adv-lvgl-chain-encoder-list
+  name: 0047-cardputer-adv-lvgl-chain-encoder-list
+  path: 0047-cardputer-adv-lvgl-chain-encoder-list
+  title: Tutorial 0047 — Cardputer-ADV LVGL List + Chain Encoder navigation (U207 over Grove UART) (ESP-IDF 5.4.1)
+  summary: 'This firmware brings up **LVGL** on Cardputer-ADV (via **M5GFX**) and shows a scrollable **list** that you can
+    navigate using an attached **M5Stack Chain Encoder (U207)** over the **Grove UART** pins. UART settings (per protocol):
+    `115200 8N1`. ./build.sh build'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id040
+  - ble
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - keyboard
+  - led
+  - lvgl
+  - m5gfx
+  - terminal
+  - testing
+  - uart
+  repository_evidence:
+    readme: 0047-cardputer-adv-lvgl-chain-encoder-list/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/chain_encoder_uart.cpp
+    - main/chain_encoder_uart.h
+    - main/idf_component.yml
+    - main/lvgl_port_m5gfx.cpp
+    - main/lvgl_port_m5gfx.h
+    source_file_count: 14
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id040
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0047-cardputer-adv-lvgl-chain-encoder-list
+  notes: ''
+  project_key: 0047-cardputer-adv-lvgl-chain-encoder-list
+- id: '0048'
+  slug: cardputer-js-web
+  name: 0048-cardputer-js-web
+  path: 0048-cardputer-js-web
+  title: 0048-cardputer-js-web
+  summary: Cardputer device-hosted Web IDE evaluating JavaScript on-device through MicroQuickJS over HTTP.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id041
+  - cardputer
+  - esp-idf
+  - firmware
+  - http-server
+  - javascript
+  - quickjs
+  - terminal
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0048-cardputer-js-web/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/assets/assets/app.css
+    - main/assets/assets/app.js
+    - main/assets/index.html
+    - main/chain_encoder_uart.cpp
+    - main/chain_encoder_uart.h
+    - main/encoder_telemetry.cpp
+    - main/encoder_telemetry.h
+    - main/esp32_stdlib.h
+    - main/esp32_stdlib_runtime.c
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/js_console.cpp
+    - main/js_console.h
+    - main/js_runner.cpp
+    - main/js_runner.h
+    - main/js_service.cpp
+    - main/js_service.h
+    source_file_count: 36
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/20/0048-CARDPUTER-JS-WEB--cardputer-web-js-ide-preact-microquickjs/analysis/01-analysis-componentizing-0048-firmware-into-reusable-modules-wi-fi-http-ws-js-vm-service-bindings.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Cardputer device-hosted Web IDE evaluating JavaScript on-device through MicroQuickJS over HTTP.
+    proof_points:
+    - embedded JavaScript runtime
+    - device-hosted Web IDE
+    - HTTP API
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071529089233307686
+    fit_keywords: *id041
+    matched_job_families:
+    - ESP32-S3 E-Reader — Splash, Ukrainian UI & Re-branded Book Upload (BlinkRead)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0048-cardputer-js-web
+  notes: ''
+  project_key: 0048-cardputer-js-web
+- id: '0049'
+  slug: xiao-esp32c6-mled-node
+  name: 0049-xiao-esp32c6-mled-node
+  path: 0049-xiao-esp32c6-mled-node
+  title: ESP32-C6 (XIAO) 0049 — MLED/1 Node (UDP multicast)
+  summary: XIAO ESP32-C6 MLED/1 network node with Wi-Fi provisioning, UDP multicast discovery, scheduled cues, and status.
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id042
+  - demo
+  - esp-console
+  - esp-idf
+  - firmware
+  - led
+  - provisioning
+  - udp
+  - wifi
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0049-xiao-esp32c6-mled-node/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/mled_effect_led.c
+    - main/mled_effect_led.h
+    - main/wifi_console.c
+    - main/wifi_console.h
+    - main/wifi_mgr.c
+    - main/wifi_mgr.h
+    source_file_count: 15
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/21/0052-MLED-HOST-UI--mled-host-ui-go-http-server-preact-zustand/design-doc/01-node-protocol-analysis-0049-mled-web.md
+    - ttmp/2026/01/21/0057-MLED-NODE-LED--mled-node-ws281x-patterns-protocol-mapping/design-doc/01-design-protocol-patternconfig-ws281x-patterns-0049-0044-integration.md
+    - ttmp/2026/01/21/0057-MLED-NODE-LED--mled-node-ws281x-patterns-protocol-mapping/playbook/01-playbook-flash-0049-node-drive-led-cues-from-host.md
+    - ttmp/2026/01/21/0058-MLED-NODE-COMPONENT--extract-mled-node-protocol-network-into-reusable-component/playbook/01-playbook-validate-component-in-0049.md
+    - ttmp/2026/01/21/0059-WS281X-COMPONENT--extract-ws281x-engine-into-reusable-esp-idf-component/playbook/01-playbook-validate-ws281x-component-in-0049.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: XIAO ESP32-C6 MLED/1 network node with Wi-Fi provisioning, UDP multicast discovery, scheduled cues, and status.
+    proof_points:
+    - UDP multicast protocol
+    - device discovery
+    - scheduled cues
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022072591576501903207
+    - 022075630256576688680
+    - 022075655487423047315
+    fit_keywords: *id042
+    matched_job_families:
+    - ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+    - ESP32-S3 Embedded Firmware Engineer – IoT Product
+    - RAK11160 Firmware Developer — IoT Sensor Platform (STM32WLE5 + ESP32-C2, LoRaWAN + WiFi + BLE)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0049-xiao-esp32c6-mled-node
+  notes: ''
+  project_key: 0049-xiao-esp32c6-mled-node
+- id: '0050'
+  slug: tab5-web-text-echo
+  name: 0050-tab5-web-text-echo
+  path: 0050-tab5-web-text-echo
+  title: Tab5 web text echo
+  summary: 'A minimal Tab5-hosted web server that accepts text from a browser, echoes the current text back in the UI, and
+    lets you configure persistent Wi-Fi from the USB serial console. ./build.sh ./build.sh flash monitor The firmware starts
+    an `esp_console` REPL on the USB serial/JTAG port. Useful commands:'
+  status: demo
+  targets:
+  - esp32p4
+  boards:
+  - tab5
+  tags: &id043
+  - esp-console
+  - firmware
+  - storage
+  - tab5
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0050-tab5-web-text-echo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/assets/app.js
+    - main/assets/index.html
+    - main/echo_state.c
+    - main/echo_state.h
+    - main/http_server.c
+    - main/http_server.h
+    - main/idf_component.yml
+    - main/wifi_app.c
+    - main/wifi_app.h
+    - main/wifi_console.c
+    - main/wifi_console.h
+    source_file_count: 19
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id043
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0050-tab5-web-text-echo
+  notes: ''
+  project_key: 0050-tab5-web-text-echo
+- id: '0051'
+  slug: tab5-boot-logo
+  name: 0051-tab5-boot-logo
+  path: 0051-tab5-boot-logo
+  title: Tab5 web text echo
+  summary: 'A minimal Tab5-hosted web server that accepts text from a browser, echoes the current text back in the UI, and
+    lets you configure persistent Wi-Fi from the USB serial console. ./build.sh ./build.sh flash monitor The firmware starts
+    an `esp_console` REPL on the USB serial/JTAG port. Useful commands:'
+  status: demo
+  targets:
+  - esp32p4
+  boards:
+  - tab5
+  tags: &id044
+  - esp-console
+  - firmware
+  - storage
+  - tab5
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0051-tab5-boot-logo/README.md
+    source_files:
+    - components/espressif__esp_lvgl_port/.component_hash
+    - components/espressif__esp_lvgl_port/CHANGELOG.md
+    - components/espressif__esp_lvgl_port/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/README.md
+    - components/espressif__esp_lvgl_port/docs/frame_buffer_settings.png
+    - components/espressif__esp_lvgl_port/docs/performance.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/README.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/Kconfig.projbuild
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/i2c_oled_example_main.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/lvgl_demo_ui.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/sdkconfig.defaults
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/README.md
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/images/.gitignore
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/images/esp_logo.png
+    source_file_count: 142
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id044
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0051-tab5-boot-logo
+  notes: ''
+  project_key: 0051-tab5-boot-logo
+- id: '0065'
+  slug: xiao-esp32c6-gpio-web-server
+  name: 0065-xiao-esp32c6-gpio-web-server
+  path: 0065-xiao-esp32c6-gpio-web-server
+  title: ESP32-C6 (XIAO) 0065 — GPIO Web Server (toggle D2/D3) + esp_console Wi‑Fi
+  summary: 'Small ESP32‑C6 firmware that: Defaults (XIAO ESP32C6 mapping): Electrical defaults: At the `c6>` prompt: wifi
+    scan wifi join 0 mypassword --save wifi status Then open the printed URL: `http://<sta-ip>/`. `Component config` → `MO-065:
+    GPIO web server` `Component config` → `MO-065: OLED status display (SSD1306-class, I2C'
+  status: demo
+  targets:
+  - esp32c6
+  boards:
+  - xiao-esp32c6
+  tags: &id045
+  - ble
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - gpio
+  - i2c
+  - led
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  - xiao-esp32c6
+  repository_evidence:
+    readme: 0065-xiao-esp32c6-gpio-web-server/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/assets/index.html
+    - main/gpio_ctl.c
+    - main/gpio_ctl.h
+    - main/http_server.c
+    - main/http_server.h
+    - main/oled_font_5x7.h
+    - main/oled_status.c
+    - main/oled_status.h
+    source_file_count: 14
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id045
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0065-xiao-esp32c6-gpio-web-server
+  notes: ''
+  project_key: 0065-xiao-esp32c6-gpio-web-server
+- id: '0066'
+  slug: cardputer-adv-ledchain-gfx-sim
+  name: 0066-cardputer-adv-ledchain-gfx-sim
+  path: 0066-cardputer-adv-ledchain-gfx-sim
+  title: Cardputer ADV 0066 — LED chain GFX simulator (console-driven)
+  summary: 'MVP goal: render a **virtual 50-LED WS281x chain** on the Cardputer display and drive patterns via `esp_console`
+    over **USB Serial/JTAG** (no network protocol in the MVP). The REPL prompt is `sim>`. Try: Enter the JS REPL (nested prompt):
+    Endpoints:'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id046
+  - cardputer
+  - display
+  - esp-console
+  - graphics
+  - http-server
+  - javascript
+  - led
+  - simulator
+  - terminal
+  - uart
+  - wifi
+  repository_evidence:
+    readme: 0066-cardputer-adv-ledchain-gfx-sim/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/assets/app.css
+    - main/assets/app.js
+    - main/assets/index.html
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/mqjs/esp32_stdlib.h
+    - main/mqjs/esp32_stdlib_runtime.c
+    - main/mqjs/js_service.cpp
+    - main/mqjs/js_service.h
+    - main/mqjs/mqjs_console.cpp
+    - main/mqjs/mqjs_console.h
+    - main/mqjs/mqjs_engine.cpp
+    - main/mqjs/mqjs_engine.h
+    - main/mqjs/mqjs_timers.cpp
+    - main/mqjs/mqjs_timers.h
+    - main/sim_console.cpp
+    - main/sim_console.h
+    source_file_count: 33
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/gen_esp32_stdlib_0066.py
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/http_smoke_0066.py
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/serial_smoke_0066.py
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/serial_smoke_js_0066.py
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/scripts/tmux_monitor_0066.sh
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/various/http-smoke-0066-20260123-185411.log
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/various/http-smoke-0066-20260123-185619.log
+    - ttmp/2026/01/23/0066-cardputer-ledchain-gfx-sim--cardputer-simulate-esp32c6-50-led-chain-on-screen/various/http-smoke-0066-20260123-185759.log
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id046
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0066-cardputer-adv-ledchain-gfx-sim
+  notes: ''
+  project_key: 0066-cardputer-adv-ledchain-gfx-sim
+- id: '0067'
+  slug: esp-c3-led-matrix-http
+  name: 0067-esp-c3-led-matrix-http
+  path: 0067-esp-c3-led-matrix-http
+  title: 0067-esp-c3-led-matrix-http
+  summary: Firmware project in 0067-esp-c3-led-matrix-http.
+  status: demo
+  targets:
+  - unknown
+  boards: []
+  tags: &id047
+  - led
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.c
+    - main/assets/index.html
+    - main/assets/js-api-guide.md
+    - main/http_server.c
+    - main/http_server.h
+    - main/js_console.c
+    - main/js_console.h
+    - main/matrix_console.c
+    - main/matrix_console.h
+    - main/matrix_engine.c
+    - main/matrix_engine.h
+    - main/max7219.c
+    - main/max7219.h
+    - main/mqjs/esp32_stdlib.h
+    - main/mqjs/esp32_stdlib_runtime.c
+    - main/mqjs/js_runtime_bridge.cpp
+    - main/mqjs/js_runtime_bridge.h
+    - main/mqjs/mqjs_timers.cpp
+    source_file_count: 45
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/02/21/ESP-01-STAMP-MATRIX--esp32-c3-stamp-matrix-http-firmware/design/01-0067-esp-c3-led-matrix-http-firmware-architecture-and-intern-guide.md
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_console_js_smoke.py
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_flash.sh
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_http_js_smoke.sh
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_http_matrix_smoke.sh
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_monitor_capture.sh
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_play_js_example.sh
+    - ttmp/2026/02/21/ESP-02-JS-MATRIX-API--matrix-javascript-runtime-api-mquickjs/scripts/0067_run_js_diagnostics.sh
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id047
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0067-esp-c3-led-matrix-http
+  notes: ''
+  project_key: 0067-esp-c3-led-matrix-http
+- id: '0071'
+  slug: cardputer-adv-photo-timer
+  name: 0071-cardputer-adv-photo-timer
+  path: 0071-cardputer-adv-photo-timer
+  title: Tutorial 0071 - Cardputer-ADV Photo Development Timer
+  summary: Cardputer-ADV film-development timer with encoder navigation, preset JSON storage, Wi-Fi APIs, and browser editing.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id048
+  - cardputer
+  - demo
+  - display
+  - esp-console
+  - esp-idf
+  - http-server
+  - lvgl
+  - storage
+  - timer
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0071-cardputer-adv-photo-timer/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/app_state.cpp
+    - main/app_state.h
+    - main/assets/index.html
+    - main/chain_encoder_uart.cpp
+    - main/chain_encoder_uart.h
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/idf_component.yml
+    - main/lvgl_port_m5gfx.cpp
+    - main/lvgl_port_m5gfx.h
+    - main/photo_timer_types.h
+    - main/preset_store.cpp
+    - main/preset_store.h
+    - main/timer_engine.cpp
+    - main/timer_engine.h
+    source_file_count: 24
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/02/28/ESP-24-SETTINGS-IP-SCROLLBAR--0071-settings-screen-with-ip-and-horizontal-scrollbar-fix/design-doc/01-0071-settings-and-scrollbar-implementation-plan.md
+    - ttmp/2026/02/28/ESP-25-SCREENSHOT-PIPELINE--0071-ui-screenshot-capture-and-verification-workflow/design-doc/01-0071-screenshot-pipeline-implementation-plan.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Cardputer-ADV film-development timer with encoder navigation, preset JSON storage, Wi-Fi APIs, and browser
+      editing.
+    proof_points:
+    - embedded workflow application
+    - persistent JSON configuration
+    - browser editing
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022072591576501903207
+    fit_keywords: *id048
+    matched_job_families:
+    - ESP32-S3 Embedded Firmware Engineer – IoT Product
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0071-cardputer-adv-photo-timer
+  notes: ''
+  project_key: 0071-cardputer-adv-photo-timer
+- id: '0072'
+  slug: m5dial-timer-demo
+  name: 0072-m5dial-timer-demo
+  path: 0072-m5dial-timer-demo
+  title: Tutorial 0072 - M5Dial Timer Demo
+  summary: 'This tutorial is a new, smaller M5Dial example for `esp32-s3-m5`. The project is being built in stages: The current
+    firmware boots into a round LVGL timer screen:'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5dial
+  tags: &id049
+  - bring-up
+  - demo
+  - display
+  - esp-idf
+  - firmware
+  - lvgl
+  - m5dial
+  - m5gfx
+  - testing
+  - timer
+  - touch
+  repository_evidence:
+    readme: 0072-m5dial-timer-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/idf_component.yml
+    - main/input_events.h
+    - main/lvgl_port_m5dial.cpp
+    - main/lvgl_port_m5dial.h
+    - main/m5dial_board.cpp
+    - main/m5dial_board.h
+    - main/timer_controller.cpp
+    - main/timer_controller.h
+    - main/timer_model.cpp
+    - main/timer_model.h
+    - main/ui_timer_screen.cpp
+    - main/ui_timer_screen.h
+    source_file_count: 19
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id049
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0072-m5dial-timer-demo
+  notes: ''
+  project_key: 0072-m5dial-timer-demo
+- id: '0073'
+  slug: m5dial-film-developer-timer
+  name: 0073-m5dial-film-developer-timer
+  path: 0073-m5dial-film-developer-timer
+  title: Tutorial 0073 - M5Dial Film Developer Timer
+  summary: Working M5Dial film-development timer with catalog resolution, recipe selection, and pause/resume timing.
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - m5dial
+  tags: &id050
+  - demo
+  - display
+  - esp-idf
+  - firmware
+  - lvgl
+  - m5dial
+  - storage
+  - timer
+  - touch
+  repository_evidence:
+    readme: 0073-m5dial-film-developer-timer/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/film_catalog.cpp
+    - main/film_catalog.h
+    - main/film_process_screen.cpp
+    - main/film_process_screen.h
+    - main/film_selector_controller.cpp
+    - main/film_selector_controller.h
+    - main/film_selector_screen.cpp
+    - main/film_selector_screen.h
+    - main/film_timer_controller.cpp
+    - main/film_timer_controller.h
+    - main/film_timer_model.cpp
+    - main/film_timer_model.h
+    - main/generated_film_catalog.cpp
+    - main/generated_film_catalog.h
+    - main/idf_component.yml
+    - main/input_events.h
+    - main/lvgl_port_m5dial.cpp
+    - main/lvgl_port_m5dial.h
+    source_file_count: 37
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Working M5Dial film-development timer with catalog resolution, recipe selection, and pause/resume timing.
+    proof_points:
+    - working product-style application
+    - runtime catalog
+    - touch/encoder UI
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022072591576501903207
+    fit_keywords: *id050
+    matched_job_families:
+    - ESP32-S3 Embedded Firmware Engineer – IoT Product
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0073-m5dial-film-developer-timer
+  notes: ''
+  project_key: 0073-m5dial-film-developer-timer
+- id: '0074'
+  slug: m5dial-web-remote
+  name: 0074-m5dial-web-remote
+  path: 0074-m5dial-web-remote
+  title: 0074 M5Dial Web Remote
+  summary: M5Dial remote-control system combining ESP-IDF firmware, Go WebSocket server, and React/Vite dashboard.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5dial
+  tags: &id051
+  - display
+  - esp-idf
+  - firmware
+  - javascript
+  - m5dial
+  - remote-control
+  - web-ui
+  - websocket
+  - wifi
+  repository_evidence:
+    readme: 0074-m5dial-web-remote/README.md
+    source_files:
+    - firmware/CMakeLists.txt
+    - firmware/components/LovyanGFX/.gitignore
+    - firmware/components/LovyanGFX/CMakeLists.txt
+    - firmware/components/LovyanGFX/README.md
+    - firmware/components/LovyanGFX/boards.cmake/esp-idf.cmake
+    - firmware/components/LovyanGFX/boards.cmake/pico-sdk.cmake
+    - firmware/components/LovyanGFX/component.mk
+    - firmware/components/LovyanGFX/doc/Panel_CVBS.md
+    - firmware/components/LovyanGFX/examples/Advanced/EPD/EPD.ino
+    - firmware/components/LovyanGFX/examples/Advanced/ESP32DeepSleepDisplay/ESP32DeepSleepDisplay.ino
+    - firmware/components/LovyanGFX/examples/Advanced/LVGL_PlatformIO/platformio.ini
+    - firmware/components/LovyanGFX/examples/Advanced/LVGL_PlatformIO/src/lv_conf.h
+    - firmware/components/LovyanGFX/examples/Advanced/LVGL_PlatformIO/src/lv_demo_conf.h
+    - firmware/components/LovyanGFX/examples/Advanced/LVGL_PlatformIO/src/main.cpp
+    - firmware/components/LovyanGFX/examples/Game/BallMaze/BallMaze.ino
+    - firmware/components/LovyanGFX/examples/HowToUse/1_simple_use/1_simple_use.ino
+    - firmware/components/LovyanGFX/examples/HowToUse/2_user_setting/2_user_setting.ino
+    - firmware/components/LovyanGFX/examples/HowToUse/3_fonts/3_fonts.ino
+    - firmware/components/LovyanGFX/examples/HowToUse/4_unicode_fonts/arduino_misaki/arduino_misaki.ino
+    - firmware/components/LovyanGFX/examples/HowToUse/4_unicode_fonts/arduino_misaki/misakiUTF16FontData.h
+    source_file_count: 576
+    has_build_directory: false
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: M5Dial remote-control system combining ESP-IDF firmware, Go WebSocket server, and React/Vite dashboard.
+    proof_points:
+    - end-to-end device/server/browser system
+    - WebSocket control plane
+    - Go backend
+    - React dashboard
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022073369925690315084
+    fit_keywords: *id051
+    matched_job_families:
+    - ESP32/ESP-IDF Embedded Developer for HTTP(S) server and WebSocket communication
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0074-m5dial-web-remote
+  notes: ''
+  project_key: 0074-m5dial-web-remote
+- id: '0075'
+  slug: papers3-touch-draw-demo
+  name: 0075-papers3-touch-draw-demo
+  path: 0075-papers3-touch-draw-demo
+  title: Tutorial 0075 - PaperS3 Touch Draw Demo
+  summary: 'This project is a small standalone `PaperS3` drawing demo for `esp32-s3-m5`. It uses the vendored display and
+    GT911 touch stack from: The firmware boots into a simple screen with:'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id052
+  - demo
+  - display
+  - e-ink
+  - esp-idf
+  - firmware
+  - graphics
+  - m5gfx
+  - papers3
+  - terminal
+  - touch
+  - uart
+  repository_evidence:
+    readme: 0075-papers3-touch-draw-demo/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    source_file_count: 8
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id052
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0075-papers3-touch-draw-demo
+  notes: ''
+  project_key: 0075-papers3-touch-draw-demo
+- id: '0076'
+  slug: papers3-protractor-trainer
+  name: 0076-papers3-protractor-trainer
+  path: 0076-papers3-protractor-trainer
+  title: Tutorial 0076 - PaperS3 Protractor Gesture Trainer
+  summary: PaperS3 touch gesture trainer with stroke preprocessing, vectorization, persistent template slots, and recognition
+    feedback.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id053
+  - demo
+  - display
+  - e-ink
+  - esp-idf
+  - firmware
+  - handwriting
+  - papers3
+  - storage
+  - touch
+  repository_evidence:
+    readme: 0076-papers3-protractor-trainer/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/protractor_math.cpp
+    - main/protractor_math.h
+    - main/trainer_app.cpp
+    - main/trainer_app.h
+    source_file_count: 12
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: PaperS3 touch gesture trainer with stroke preprocessing, vectorization, persistent template slots, and recognition
+      feedback.
+    proof_points:
+    - touch gesture recognition
+    - stroke vectorization
+    - persistent templates
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022073742829112250700
+    fit_keywords: *id053
+    matched_job_families:
+    - 'Firmware/Maker: Wrist-Worn ESP32 Game Device'
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0076-papers3-protractor-trainer
+  notes: ''
+  project_key: 0076-papers3-protractor-trainer
+- id: '0077'
+  slug: papers3-alphabet-graffiti
+  name: 0077-papers3-alphabet-graffiti
+  path: 0077-papers3-alphabet-graffiti
+  title: Tutorial 0077 - PaperS3 Alphabet Graffiti
+  summary: 'This project is a standalone `PaperS3` handwriting app for `esp32-s3-m5`. The planned product has two modes: This
+    first task creates the new project shell, reuses the donor PaperS3 component stack, and shows a simple placeholder UI
+    that already exposes the two-mode product direction.'
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id054
+  - demo
+  - e-ink
+  - esp-idf
+  - handwriting
+  - papers3
+  - storage
+  repository_evidence:
+    readme: 0077-papers3-alphabet-graffiti/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/alphabet_app.cpp
+    - main/alphabet_app.h
+    - main/app_main.cpp
+    - main/glyph_store.cpp
+    - main/glyph_store.h
+    - main/protractor_math.cpp
+    - main/protractor_math.h
+    source_file_count: 14
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id054
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0077-papers3-alphabet-graffiti
+  notes: ''
+  project_key: 0077-papers3-alphabet-graffiti
+- id: '0078'
+  slug: papers3-gnosis-layout
+  name: 0078-papers3-gnosis-layout
+  path: 0078-papers3-gnosis-layout
+  title: 0078-papers3-gnosis-layout
+  summary: PaperS3 declarative UI layout engine with widgets, dirty rectangles, partial e-ink refresh, and live preset switching.
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id055
+  - developer-tool
+  - display
+  - e-ink
+  - esp-idf
+  - firmware
+  - graphics
+  - papers3
+  - terminal
+  - touch
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/bitmap_font.cpp
+    - main/bitmap_font.h
+    - main/dirty_tracker.cpp
+    - main/dirty_tracker.h
+    - main/gnosis_app.cpp
+    - main/gnosis_app.h
+    - main/gnosis_console.cpp
+    - main/gnosis_console.h
+    - main/gnosis_types.h
+    - main/layout_engine.cpp
+    - main/layout_engine.h
+    - main/node_builder.h
+    - main/screens.cpp
+    - main/screens.h
+    - main/widget_renderer.cpp
+    - main/widget_renderer.h
+    source_file_count: 22
+    has_build_directory: true
+    documentation:
+    - docs/projects/PROJ - Gnosis Layout Engine - PaperS3 UI Operating System.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: PaperS3 declarative UI layout engine with widgets, dirty rectangles, partial e-ink refresh, and live preset
+      switching.
+    proof_points:
+    - custom UI layout engine
+    - dirty-region rendering
+    - e-ink refresh optimization
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071529089233307686
+    fit_keywords: *id055
+    matched_job_families:
+    - ESP32-S3 E-Reader — Splash, Ukrainian UI & Re-branded Book Upload (BlinkRead)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0078-papers3-gnosis-layout
+  notes: ''
+  project_key: 0078-papers3-gnosis-layout
+- id: '0079'
+  slug: papers3-wamr-assemblyscript-console
+  name: 0079-papers3-wamr-assemblyscript-console
+  path: 0079-papers3-wamr-assemblyscript-console
+  title: Tutorial 0079 - PaperS3 WAMR AssemblyScript Console
+  summary: 'This project is a standalone `PaperS3` runtime demo for `esp32-s3-m5`. It is intended to host a small curated
+    set of precompiled AssemblyScript programs that are compiled into WebAssembly on the host and then executed on-device
+    through `esp_console`. Current milestone:'
+  status: scaffold
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id056
+  - assemblyscript
+  - ble
+  - demo
+  - e-ink
+  - esp-console
+  - esp-idf
+  - led
+  - papers3
+  - terminal
+  - uart
+  - wasm
+  repository_evidence:
+    readme: 0079-papers3-wamr-assemblyscript-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/idf_component.yml
+    - main/papers3_canvas.cpp
+    - main/papers3_canvas.h
+    - main/wasm-assets/bars.wasm
+    - main/wasm-assets/checkerboard.wasm
+    - main/wasm-assets/hello-frame.wasm
+    - main/wasm-assets/log-only.wasm
+    - main/wasm-assets/manifest.json
+    - main/wasm-assets/nested-boxes.wasm
+    - main/wasm-assets/radar-sweep.wasm
+    - main/wasm-assets/return-42.wasm
+    - main/wasm_command.cpp
+    - main/wasm_command.h
+    - main/wasm_host_api.cpp
+    - main/wasm_host_api.h
+    source_file_count: 74
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id056
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0079-papers3-wamr-assemblyscript-console
+  notes: ''
+  project_key: 0079-papers3-wamr-assemblyscript-console
+- id: '0080'
+  slug: papers3-ereader
+  name: 0080-papers3-ereader
+  path: 0080-papers3-ereader
+  title: 0080-papers3-ereader
+  summary: PaperS3 interactive e-reader with SPIFFS books, word-wrap pagination, bookmarks, and touch navigation.
+  status: blocked
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id057
+  - display
+  - e-ink
+  - e-reader
+  - esp-idf
+  - filesystem
+  - firmware
+  - papers3
+  - storage
+  - touch
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/bitmap_font.cpp
+    - main/bitmap_font.h
+    - main/book_store.cpp
+    - main/book_store.h
+    - main/bookmark_store.cpp
+    - main/bookmark_store.h
+    - main/dirty_tracker.cpp
+    - main/dirty_tracker.h
+    - main/ereader_app.cpp
+    - main/ereader_app.h
+    - main/ereader_console.cpp
+    - main/ereader_console.h
+    - main/gnosis_types.h
+    - main/layout_engine.cpp
+    - main/layout_engine.h
+    - main/node_builder.h
+    - main/paginator.cpp
+    - main/paginator.h
+    source_file_count: 30
+    has_build_directory: true
+    documentation:
+    - docs/projects/PROJ - PaperS3 E-Reader - Interactive Book Reader on E-Ink.md
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: medium
+    demo_readiness: needs-validation
+    demo_angle: PaperS3 interactive e-reader with SPIFFS books, word-wrap pagination, bookmarks, and touch navigation.
+    proof_points:
+    - embedded filesystem application
+    - pagination engine
+    - bookmark persistence
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071529089233307686
+    fit_keywords: *id057
+    matched_job_families:
+    - ESP32-S3 E-Reader — Splash, Ukrainian UI & Re-branded Book Upload (BlinkRead)
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0080-papers3-ereader
+  notes: ''
+  project_key: 0080-papers3-ereader
+- id: '0081'
+  slug: atoms3r-wamr-probe-console
+  name: 0081-atoms3r-wamr-probe-console
+  path: 0081-atoms3r-wamr-probe-console
+  title: 0081 AtomS3R WAMR Probe Console
+  summary: 'This project is a control-board probe for the WAMR investigation. It combines: The purpose is not to recreate
+    the full PaperS3 demo. The purpose is to answer whether the remaining failures survive on a second ESP32-S3 board with
+    a non-EPD display path. Initial command surface:'
+  status: investigation
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id058
+  - atoms3r
+  - bring-up
+  - demo
+  - developer-tool
+  - display
+  - e-ink
+  - esp-console
+  - terminal
+  - wasm
+  repository_evidence:
+    readme: 0081-atoms3r-wamr-probe-console/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/atoms3r_canvas.cpp
+    - main/atoms3r_canvas.h
+    - main/backlight.cpp
+    - main/backlight.h
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/display_hal.cpp
+    - main/display_hal.h
+    - main/idf_component.yml
+    - main/wasm-assets/empty-module.wasm
+    - main/wasm-assets/hello-frame.wasm
+    - main/wasm-assets/log-only.wasm
+    - main/wasm-assets/return-42.wasm
+    - main/wasm_command.cpp
+    - main/wasm_command.h
+    - main/wasm_host_api.cpp
+    - main/wasm_host_api.h
+    source_file_count: 33
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id058
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0081-atoms3r-wamr-probe-console
+  notes: ''
+  project_key: 0081-atoms3r-wamr-probe-console
+- id: '0082'
+  slug: papers3-wamr-allocator-control
+  name: 0082-papers3-wamr-allocator-control
+  path: 0082-papers3-wamr-allocator-control
+  title: Tutorial 0082 - PaperS3 WAMR Allocator Control
+  summary: 'This project is a stripped `PaperS3` control harness for isolating the WAMR instantiate-vs-PSRAM contamination
+    bug. It intentionally removes the demo display stack and keeps only: before and after `instantiate-bare-keepalive return-42`.'
+  status: investigation
+  targets:
+  - esp32s3
+  boards:
+  - papers3
+  tags: &id059
+  - demo
+  - developer-tool
+  - display
+  - e-ink
+  - esp-idf
+  - firmware
+  - led
+  - papers3
+  - psram
+  - storage
+  - terminal
+  - touch
+  - uart
+  - wasm
+  repository_evidence:
+    readme: 0082-papers3-wamr-allocator-control/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/console_repl.cpp
+    - main/console_repl.h
+    - main/idf_component.yml
+    - main/papers3_canvas.cpp
+    - main/papers3_canvas.h
+    - main/wasm-assets/bars.wasm
+    - main/wasm-assets/checkerboard.wasm
+    - main/wasm-assets/empty-module.wasm
+    - main/wasm-assets/hello-frame.wasm
+    - main/wasm-assets/log-only.wasm
+    - main/wasm-assets/manifest.json
+    - main/wasm-assets/nested-boxes.wasm
+    - main/wasm-assets/radar-sweep.wasm
+    - main/wasm-assets/return-42.wasm
+    - main/wasm_command.cpp
+    - main/wasm_command.h
+    - main/wasm_host_api.cpp
+    source_file_count: 52
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id059
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0082-papers3-wamr-allocator-control
+  notes: ''
+  project_key: 0082-papers3-wamr-allocator-control
+- id: '0083'
+  slug: cardputer-adv-animation-ui
+  name: 0083-cardputer-adv-animation-ui
+  path: 0083-cardputer-adv-animation-ui
+  title: Tutorial 0083 - Cardputer-ADV Animation UI
+  summary: Keyboard-driven, sprite-rendered animation UI for Cardputer-ADV. ./build.sh build ./build.sh -p /dev/ttyACM0 flash
+    monitor ./build.sh tmux-flash-monitor
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - cardputer
+  tags: &id060
+  - bring-up
+  - cardputer
+  - demo
+  - display
+  - graphics
+  - keyboard
+  - spi
+  repository_evidence:
+    readme: 0083-cardputer-adv-animation-ui/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/Kconfig.projbuild
+    - main/app_main.cpp
+    - main/ui_kb.cpp
+    - main/ui_kb.h
+    - main/ui_model.cpp
+    - main/ui_model.h
+    - main/ui_render.cpp
+    - main/ui_render.h
+    source_file_count: 15
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022073742829112250700
+    fit_keywords: *id060
+    matched_job_families:
+    - 'Firmware/Maker: Wrist-Worn ESP32 Game Device'
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0083-cardputer-adv-animation-ui
+  notes: ''
+  project_key: 0083-cardputer-adv-animation-ui
+- id: '0090'
+  slug: m5printer-research
+  name: 0090-m5printer-research
+  path: 0090-m5printer-research
+  title: 0090-m5printer-research
+  summary: Firmware project in 0090-m5printer-research.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5printer
+  tags: &id061
+  - m5printer
+  repository_evidence:
+    readme: null
+    source_files: []
+    source_file_count: 41
+    has_build_directory: false
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id061
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0090-m5printer-research
+  notes: ''
+  project_key: 0090-m5printer-research
+- id: '0091'
+  slug: m5printer-ble-provision
+  name: 0091-m5printer-ble-provision
+  path: 0091-m5printer-ble-provision
+  title: 0091-m5printer-ble-provision
+  summary: Firmware project in 0091-m5printer-ble-provision.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5printer
+  tags: &id062
+  - ble
+  - m5printer
+  - provisioning
+  repository_evidence:
+    readme: null
+    source_files: []
+    source_file_count: 13
+    has_build_directory: false
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id062
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0091-m5printer-ble-provision
+  notes: ''
+  project_key: 0091-m5printer-ble-provision
+- id: '0092'
+  slug: m5-printer-esp-idf-provision
+  name: 0092-m5-printer-esp-idf-provision
+  path: 0092-m5-printer-esp-idf-provision
+  title: 0092-m5-printer-esp-idf-provision
+  summary: Firmware project in 0092-m5-printer-esp-idf-provision.
+  status: demo
+  targets:
+  - unknown
+  boards: []
+  tags: &id063
+  - esp-idf
+  - provisioning
+  repository_evidence:
+    readme: null
+    source_files: []
+    source_file_count: 11
+    has_build_directory: false
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id063
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0092-m5-printer-esp-idf-provision
+  notes: ''
+  project_key: 0092-m5-printer-esp-idf-provision
+- id: '0093'
+  slug: tab5-ui-screen-viewer
+  name: 0093-tab5-ui-screen-viewer
+  path: 0093-tab5-ui-screen-viewer
+  title: Tab5 UI Screen Viewer
+  summary: 'A firmware for the M5Tab5 that runs a Wi-Fi webserver and accepts uploaded images via HTTP, blitting them fullscreen
+    onto the 720×1280 MIPI DSI display. Designed for previewing UI mockups on actual hardware without reflashing. The firmware
+    starts an `esp_console` REPL on the USB serial/JTAG port. Useful commands:'
+  status: demo
+  targets:
+  - esp32p4
+  boards:
+  - tab5
+  tags: &id064
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - javascript
+  - lvgl
+  - media
+  - simulator
+  - spi
+  - tab5
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0093-tab5-ui-screen-viewer/README.md
+    source_files:
+    - components/espressif__esp_lvgl_port/.component_hash
+    - components/espressif__esp_lvgl_port/CHANGELOG.md
+    - components/espressif__esp_lvgl_port/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/README.md
+    - components/espressif__esp_lvgl_port/docs/frame_buffer_settings.png
+    - components/espressif__esp_lvgl_port/docs/performance.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/README.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/Kconfig.projbuild
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/i2c_oled_example_main.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/lvgl_demo_ui.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/sdkconfig.defaults
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/README.md
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/images/esp_logo.png
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/main.c
+    source_file_count: 137
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id064
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0093-tab5-ui-screen-viewer
+  notes: ''
+  project_key: 0093-tab5-ui-screen-viewer
+- id: '0094'
+  slug: tab5-wifi-bench
+  name: 0094-tab5-wifi-bench
+  path: 0094-tab5-wifi-bench
+  title: Tab5 UI Screen Viewer
+  summary: 'A firmware for the M5Tab5 that runs a Wi-Fi webserver and accepts uploaded images via HTTP, blitting them fullscreen
+    onto the 720×1280 MIPI DSI display. Designed for previewing UI mockups on actual hardware without reflashing. The firmware
+    starts an `esp_console` REPL on the USB serial/JTAG port. Useful commands:'
+  status: demo
+  targets:
+  - esp32p4
+  boards:
+  - tab5
+  tags: &id065
+  - display
+  - esp-console
+  - esp-idf
+  - firmware
+  - javascript
+  - lvgl
+  - media
+  - simulator
+  - spi
+  - tab5
+  - terminal
+  - testing
+  - uart
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0094-tab5-wifi-bench/README.md
+    source_files:
+    - components/espressif__esp_lvgl_port/.component_hash
+    - components/espressif__esp_lvgl_port/CHANGELOG.md
+    - components/espressif__esp_lvgl_port/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/README.md
+    - components/espressif__esp_lvgl_port/docs/frame_buffer_settings.png
+    - components/espressif__esp_lvgl_port/docs/performance.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/README.md
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/Kconfig.projbuild
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/i2c_oled_example_main.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/main/lvgl_demo_ui.c
+    - components/espressif__esp_lvgl_port/examples/i2c_oled/sdkconfig.defaults
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/README.md
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/CMakeLists.txt
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/idf_component.yml
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/images/esp_logo.png
+    - components/espressif__esp_lvgl_port/examples/rgb_lcd/main/main.c
+    source_file_count: 138
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id065
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0094-tab5-wifi-bench
+  notes: ''
+  project_key: 0094-tab5-wifi-bench
+- id: '0095'
+  slug: cores3-wifi-bench
+  name: 0095-cores3-wifi-bench
+  path: 0095-cores3-wifi-bench
+  title: 0095-cores3-wifi-bench
+  summary: Firmware project in 0095-cores3-wifi-bench.
+  status: demo
+  targets:
+  - unknown
+  boards: []
+  tags: &id066
+  - testing
+  - wifi
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/assets/app.js
+    - main/assets/index.html
+    - main/bench_server.c
+    - main/bench_server.h
+    - main/idf_component.yml
+    - main/wifi_app.c
+    - main/wifi_app.h
+    - main/wifi_console.c
+    - main/wifi_console.h
+    source_file_count: 17
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id066
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0095-cores3-wifi-bench
+  notes: ''
+  project_key: 0095-cores3-wifi-bench
+- id: '0095'
+  slug: m5dial-wifi-bench
+  name: 0095-m5dial-wifi-bench
+  path: 0095-m5dial-wifi-bench
+  title: 0095-m5dial-wifi-bench
+  summary: Firmware project in 0095-m5dial-wifi-bench.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5dial
+  tags: &id067
+  - m5dial
+  - testing
+  - wifi
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/assets/app.js
+    - main/assets/index.html
+    - main/bench_server.c
+    - main/bench_server.h
+    - main/idf_component.yml
+    - main/wifi_app.c
+    - main/wifi_app.h
+    - main/wifi_console.c
+    - main/wifi_console.h
+    source_file_count: 17
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id067
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0095-m5dial-wifi-bench
+  notes: ''
+  project_key: 0095-m5dial-wifi-bench
+- id: '0096'
+  slug: m5dial-dithered-3d
+  name: 0096-m5dial-dithered-3d
+  path: 0096-m5dial-dithered-3d
+  title: 0096-m5dial-dithered-3d
+  summary: Firmware project in 0096-m5dial-dithered-3d.
+  status: demo
+  targets:
+  - esp32s3
+  boards:
+  - m5dial
+  tags: &id068
+  - m5dial
+  repository_evidence:
+    readme: null
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/console_commands.cpp
+    - main/console_commands.h
+    - main/fixedpoint.h
+    - main/framebuffer.cpp
+    - main/framebuffer.h
+    - main/input_events.h
+    - main/m5dial_board.cpp
+    - main/m5dial_board.h
+    - main/palette.cpp
+    - main/palette.h
+    - main/renderer.cpp
+    - main/renderer.h
+    - main/renderer3d.cpp
+    - main/renderer3d.h
+    - main/scene.cpp
+    - main/scene.h
+    - main/scene_stubs.cpp
+    - main/scene_terrain.cpp
+    source_file_count: 33
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id068
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0096-m5dial-dithered-3d
+  notes: ''
+  project_key: 0096-m5dial-dithered-3d
+- id: '0097'
+  slug: esp32-p4-picocalc-bringup
+  name: 0097-esp32-p4-picocalc-bringup
+  path: 0097-esp32-p4-picocalc-bringup
+  title: ESP32-P4-WIFI6 PicoCalc Bring-Up
+  summary: Phase 1 firmware for the Waveshare ESP32-P4-WIFI6 board as a PicoCalc MCU replacement. Just USB-C for power + console.
+    Optionally wire an LED + resistor to GPIO49 and GND on the left header.
+  status: demo
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id069
+  - audio
+  - ble
+  - bring-up
+  - display
+  - esp-console
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - gpio
+  - keyboard
+  - led
+  - psram
+  - sd-card
+  - spi
+  - terminal
+  - uart
+  - wifi
+  repository_evidence:
+    readme: 0097-esp32-p4-picocalc-bringup/README.md
+    source_files:
+    - main/0097-esp32-p4-picocalc-bringup.c
+    - main/CMakeLists.txt
+    source_file_count: 5
+    has_build_directory: true
+    documentation:
+    - ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/almanach-0097-planet-renderer-preview.png
+    - ttmp/2026/05/28/0097--m5dial-proper-3d-planet-renderer-design/artifacts/almanach-0097-planet-renderer.yaml
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id069
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0097-esp32-p4-picocalc-bringup
+  notes: ''
+  project_key: 0097-esp32-p4-picocalc-bringup
+- id: '0098'
+  slug: esp32-p4-wifi6-webserver
+  name: 0098-esp32-p4-wifi6-webserver
+  path: 0098-esp32-p4-wifi6-webserver
+  title: 0098 — ESP32-P4-WIFI6 simple webserver
+  summary: Simple networking experiment for the Waveshare ESP32-P4-WIFI6 board before the PicoCalc peripherals are connected.
+    The ESP32-P4 has no native Wi-Fi radio. On this board, networking runs through the onboard ESP32-C6 module over ESP-Hosted
+    SDIO. The application uses normal `esp_wifi_*` calls, but `esp_wifi_remote` forwar
+  status: active
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id070
+  - camera
+  - esp-console
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - gpio
+  - i2c
+  - keyboard
+  - led
+  - remote-control
+  - terminal
+  - uart
+  - web-ui
+  - wifi
+  repository_evidence:
+    readme: 0098-esp32-p4-wifi6-webserver/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/idf_component.yml
+    - main/picocalc_keyboard.c
+    - main/picocalc_keyboard.h
+    source_file_count: 10
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id070
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0098-esp32-p4-wifi6-webserver
+  notes: ''
+  project_key: 0098-esp32-p4-wifi6-webserver
+- id: '0099'
+  slug: esp32-p4-picocalc-display-keyboard
+  name: 0099-esp32-p4-picocalc-display-keyboard
+  path: 0099-esp32-p4-picocalc-display-keyboard
+  title: 0099 — ESP32-P4 PicoCalc display + keyboard smoke test
+  summary: 'Lean PicoCalc peripheral firmware for the same-position RPico-to-Waveshare ESP32-P4-WIFI6 adapter. No ESP-Hosted,
+    no Wi-Fi, no HTTP server. This exists to iterate quickly on the PicoCalc keyboard and LCD without compiling the networking
+    stack. Keyboard: LCD: Console remains the Waveshare CH343 USB-UART bridge on UART0 '
+  status: active
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id071
+  - ble
+  - bring-up
+  - display
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - gpio
+  - graphics
+  - http-server
+  - keyboard
+  - led
+  - spi
+  - terminal
+  - testing
+  - uart
+  - wifi
+  repository_evidence:
+    readme: 0099-esp32-p4-picocalc-display-keyboard/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.c
+    - main/picocalc_keyboard.c
+    - main/picocalc_keyboard.h
+    source_file_count: 7
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: unreviewed
+    candidate: false
+    strength: unknown
+    demo_readiness: unknown
+    demo_angle: ''
+    proof_points: []
+    assets_to_prepare: []
+  job_mapping:
+    upwork_job_ids:
+    - 022071885913698917551
+    fit_keywords: *id071
+    matched_job_families:
+    - ESP32/P4 Developer for TFT Display
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0099-esp32-p4-picocalc-display-keyboard
+  notes: ''
+  project_key: 0099-esp32-p4-picocalc-display-keyboard
+- id: '0100'
+  slug: esp32-p4-quickjs-wasm
+  name: 0100-esp32-p4-quickjs-wasm
+  path: 0100-esp32-p4-quickjs-wasm
+  title: 0100 — ESP32-P4 QuickJS-WASM (run QuickJS compiled to WASM via WAMR)
+  summary: ESP32-P4 runtime for executing QuickJS compiled to WebAssembly inside WAMR.
+  status: scaffold
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id072
+  - assemblyscript
+  - developer-tool
+  - esp-console
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - freertos
+  - quickjs
+  - terminal
+  - wasm
+  repository_evidence:
+    readme: 0100-esp32-p4-quickjs-wasm/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/idf_component.yml
+    - main/js_command.cpp
+    - main/js_command.h
+    - main/quickjs.wasm
+    - main/quickjs_embed.h
+    - main/wasm_host_api.cpp
+    - main/wasm_host_api.h
+    - main/wasm_runner.cpp
+    - main/wasm_runner.h
+    - main/wasm_runtime_service.cpp
+    - main/wasm_runtime_service.h
+    source_file_count: 28
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: ESP32-P4 runtime for executing QuickJS compiled to WebAssembly inside WAMR.
+    proof_points:
+    - JavaScript-in-Wasm-in-WAMR
+    - embedded runtime integration
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id072
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0100-esp32-p4-quickjs-wasm
+  notes: ''
+  project_key: 0100-esp32-p4-quickjs-wasm
+- id: '0101'
+  slug: esp32-p4-native-quickjs
+  name: 0101-esp32-p4-native-quickjs
+  path: 0101-esp32-p4-native-quickjs
+  title: 0101 — ESP32-P4 Native QuickJS
+  summary: Validated native QuickJS service on ESP32-P4 with eval, errors, reset, GC, benchmarks, and interruption.
+  status: active
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id073
+  - developer-tool
+  - esp-console
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - javascript
+  - quickjs
+  - terminal
+  repository_evidence:
+    readme: 0101-esp32-p4-native-quickjs/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/js_command.cpp
+    - main/js_command.h
+    source_file_count: 8
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: Validated native QuickJS service on ESP32-P4 with eval, errors, reset, GC, benchmarks, and interruption.
+    proof_points:
+    - native embedded JavaScript runtime
+    - resource limits
+    - benchmarking
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id073
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0101-esp32-p4-native-quickjs
+  notes: ''
+  project_key: 0101-esp32-p4-native-quickjs
+- id: '0102'
+  slug: esp32-p4-visual-quickjs-repl
+  name: 0102-esp32-p4-visual-quickjs-repl
+  path: 0102-esp32-p4-visual-quickjs-repl
+  title: 0102 — ESP32-P4 Visual QuickJS REPL
+  summary: ESP32-P4 visual REPL combining PicoCalc display/keyboard work with native QuickJS.
+  status: scaffold
+  targets:
+  - esp32p4
+  boards:
+  - esp32-p4
+  tags: &id074
+  - display
+  - esp-console
+  - esp-idf
+  - esp32-p4
+  - firmware
+  - javascript
+  - keyboard
+  - quickjs
+  - terminal
+  repository_evidence:
+    readme: 0102-esp32-p4-visual-quickjs-repl/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    source_file_count: 39
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: medium
+    demo_readiness: needs-validation
+    demo_angle: ESP32-P4 visual REPL combining PicoCalc display/keyboard work with native QuickJS.
+    proof_points:
+    - embedded visual REPL
+    - display/keyboard integration
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids:
+    - 022071885913698917551
+    fit_keywords: *id074
+    matched_job_families:
+    - ESP32/P4 Developer for TFT Display
+    match_notes: Linked by shared firmware, connectivity, UI, runtime, or sensor evidence; verify claims before using publicly.
+    project_key: 0102-esp32-p4-visual-quickjs-repl
+  notes: ''
+  project_key: 0102-esp32-p4-visual-quickjs-repl
+- id: '0103'
+  slug: atoms3r-m12-native-quickjs
+  name: 0103-atoms3r-m12-native-quickjs
+  path: 0103-atoms3r-m12-native-quickjs
+  title: 0103 — AtomS3R M12 Native QuickJS with PSRAM
+  summary: AtomS3R M12 port of native QuickJS with PSRAM and planned bounded storage/Wi-Fi/HTTP scripting.
+  status: active
+  targets:
+  - esp32s3
+  boards:
+  - atoms3r
+  tags: &id075
+  - atoms3r
+  - esp-console
+  - esp-idf
+  - firmware
+  - http-server
+  - javascript
+  - psram
+  - quickjs
+  - terminal
+  - wifi
+  repository_evidence:
+    readme: 0103-atoms3r-m12-native-quickjs/README.md
+    source_files:
+    - main/CMakeLists.txt
+    - main/app_main.cpp
+    - main/http_namespace.cpp
+    - main/http_namespace.h
+    - main/http_namespace_core.cpp
+    - main/http_namespace_core.h
+    - main/http_server.cpp
+    - main/http_server.h
+    - main/js_command.cpp
+    - main/js_command.h
+    - main/storage_namespace.cpp
+    - main/storage_namespace.h
+    - main/system_namespace.cpp
+    - main/system_namespace.h
+    - main/wifi_app.c
+    - main/wifi_app.h
+    - main/wifi_command.cpp
+    - main/wifi_command.h
+    - main/wifi_namespace.cpp
+    - main/wifi_namespace.h
+    source_file_count: 37
+    has_build_directory: true
+    documentation: []
+  showcase:
+    review_state: curated
+    candidate: true
+    strength: high
+    demo_readiness: needs-validation
+    demo_angle: AtomS3R M12 port of native QuickJS with PSRAM and planned bounded storage/Wi-Fi/HTTP scripting.
+    proof_points:
+    - cross-board runtime port
+    - PSRAM-aware runtime
+    - reusable architecture
+    assets_to_prepare:
+    - README excerpt
+    - source links
+    - hardware/demo photos or capture
+  job_mapping:
+    upwork_job_ids: []
+    fit_keywords: *id075
+    matched_job_families: []
+    match_notes: ''
+    project_key: 0103-atoms3r-m12-native-quickjs
+  notes: ''
+  project_key: 0103-atoms3r-m12-native-quickjs
+job_crosswalk:
+- job_id: '022073369925690315084'
+  title: ESP32/ESP-IDF Embedded Developer for HTTP(S) server and WebSocket communication
+  db_status: new
+  starred: true
+  fit: high
+  project_strategy: existing-projects
+  recommended_projects:
+  - '0017'
+  - '0029'
+  - '0031'
+  - '0074'
+  project_recommendation: Lead with 0017 for the closest embedded HTTP/WebSocket proof; use 0074 to show a complete firmware/server/browser
+    system and 0029/0031 for event-driven async protocol design.
+  fresh_project_option:
+    recommended: false
+    name: ''
+    basis: Existing projects already provide stronger evidence than a fresh demo for this job.
+    scope: []
+  known_questions: true
+  screening_questions:
+  - question: Describe your recent experience with similar projects
+    answer_guidance: Describe one concrete ESP-IDF device-hosted web project, one WebSocket/control-plane project, and the
+      exact firmware/browser responsibilities. Do not claim HTTPS or REST migration unless the selected example supports it.
+    draft_answer: I have built ESP-IDF device-hosted web interfaces and embedded control planes. The closest examples are
+      0017, where an AtomS3R serves graphics and a WebSocket terminal, and 0074, an end-to-end M5Dial system with ESP-IDF
+      firmware, a Go WebSocket server, and a React dashboard. I would adapt the same event-driven approach to the existing
+      HTTP API, then add authenticated HTTPS, a versioned WebSocket message model, and reconnect/resync behavior. [Add your
+      exact personal role, HTTPS/TLS evidence, and a link or capture before sending.]
+  answer_guidance:
+  - Explain the firmware and browser halves separately.
+  - Mention reconnect/resync, message framing, API migration, and testing.
+  - Clarify the $100 proposal prefill against the listing rate of $8–$15/hr.
+  cover_letter_guidance: Open with the closest HTTP/WebSocket project, then describe how you would preserve the existing architecture
+    rather than replace it. Ask for the current REST schema, browser build setup, TLS certificate model, and reconnect expectations.
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP-span-span-class-highlight-ESP-span-span-class-highlight-IDF-span-Embedded-Developer-for-HTTP-server-and-WebSocket-communication_~022073369925690315084/
+  proposal_metadata:
+    connects_cost: 15
+    proposal_rate_prefill: '100'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022073369925690315084/apply/
+    proposal_template_path: bid-022073369925690315084.txt
+  question_status: fetched
+- job_id: '022075655487423047315'
+  title: ESP32 Firmware Developer Needed to Debug Wi-Fi/BLE/MQTT Connectivity & OTA Issues (ESP-IDF)
+  db_status: new
+  starred: true
+  fit: high
+  project_strategy: existing-plus-fresh-test
+  recommended_projects:
+  - '0029'
+  - '0031'
+  - '0049'
+  - '0005'
+  - '0006'
+  project_recommendation: Use 0029/0031 for event-driven firmware and 0049 for a real Wi-Fi protocol node. Add 0005/0006 as
+    focused evidence for Wi-Fi events and HTTP behavior.
+  fresh_project_option:
+    recommended: true
+    name: esp32-s3-network-reliability-lab
+    basis: Synthesize the existing Wi-Fi/event/HTTP patterns into a small reproducible reliability harness.
+    scope:
+    - Wi-Fi disconnect/reconnect state machine
+    - BLE advertising while Wi-Fi is active
+    - MQTT reconnect/backoff and watchdog-safe tasks
+    - OTA rollback/failure logging
+    - heap and task-watermark telemetry
+    deliverable: A short README, architecture diagram, serial log capture, and a fault-injection demo.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Lead with debugging and reliability, not UI.
+  - Show task ownership, event ordering, reconnect/backoff, watchdog diagnosis, heap/task-watermark measurements, and OTA
+    recovery.
+  - Be explicit about what was actually tested on hardware.
+  cover_letter_guidance: 'Propose a staged diagnosis: reproduce and instrument, isolate Wi-Fi/BLE/MQTT interactions, fix lifecycle/reconnect
+    ownership, then harden OTA and watchdog paths with repeatable soak tests.'
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP-span-Firmware-Developer-Needed-Debug-BLE-MQTT-Connectivity-amp-OTA-Issues-span-class-highlight-ESP-span-span-class-highlight-IDF-span_~022075655487423047315/
+  proposal_metadata:
+    connects_cost: 9
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022075655487423047315/apply/
+    proposal_template_path: bid-022075655487423047315.txt
+  question_status: fetched
+- job_id: '022072591576501903207'
+  title: ESP32-S3 Embedded Firmware Engineer – IoT Product
+  db_status: new
+  starred: true
+  fit: medium-high
+  project_strategy: existing-plus-fresh-synthesis
+  recommended_projects:
+  - '0004'
+  - '0029'
+  - '0049'
+  - '0071'
+  - '0073'
+  project_recommendation: Use 0004 for sensor acquisition, 0049 for networked device protocol behavior, and 0071/0073 for
+    persistent, user-facing workflow state. 0029 supports event-driven telemetry architecture.
+  fresh_project_option:
+    recommended: true
+    name: esp32-s3-reliable-sensor-node
+    basis: Combine the repository’s I2C sensor, persistent-storage, event-bus, and network patterns into a focused IoT reliability
+      demo.
+    scope:
+    - verified sample writes
+    - MQTT acknowledgement/retry simulation
+    - NVS sample-ID monotonicity
+    - NTP timestamping
+    - OTA status/rollback reporting
+    - touchscreen status screen
+    deliverable: A fault-injection test plan, serial evidence of retries and recovery, and a concise architecture diagram.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Do not present the existing projects as having MQTT/OTA/data-integrity features they do not contain.
+  - Use them as evidence for the underlying sensor, storage, event, UI, and device-control patterns.
+  - Ask for the current firmware architecture, display protocol, cloud contract, and acceptance tests before quoting the fixed
+    price.
+  cover_letter_guidance: Frame yourself as an engineer who can make data paths observable and durable. Offer a milestone plan
+    that separates data integrity, OTA, battery gauge, and UI work.
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP32-span-Embedded-Firmware-Engineer-IoT-Product_~022072591576501903207/
+  proposal_metadata:
+    connects_cost: 14
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022072591576501903207/apply/
+    proposal_template_path: bid-022072591576501903207.txt
+  question_status: fetched
+- job_id: '022071885913698917551'
+  title: ESP32/P4 Developer for TFT Display
+  db_status: new
+  starred: true
+  fit: medium
+  project_strategy: existing-plus-fresh-project
+  recommended_projects:
+  - '0099'
+  - '0022'
+  - '0010'
+  - '0102'
+  project_recommendation: Use 0099 for ESP32-P4 display/keyboard bring-up and 0022/0010 for M5GFX canvas and rendering evidence.
+    0102 supports the display-plus-interaction direction.
+  fresh_project_option:
+    recommended: true
+    name: esp32-p4-tft-touch-ui-reference
+    basis: Extend the 0099 peripheral smoke test into a small Waveshare/PicoCalc-style TFT UI with static screens, dynamic
+      data, and touch/selection handling.
+    scope:
+    - panel initialization and driver notes
+    - 2–3 static screens
+    - 3 dynamic screens
+    - touch selection state machine
+    - frame-rate and redraw measurements
+    deliverable: Compiled firmware, screen captures/video, pin map, and a short integration README.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Confirm the exact Waveshare ESP32/P4 board and TFT controller before claiming compatibility.
+  - Describe driver initialization, frame-buffer/redraw strategy, touch event handling, and how dynamic updates avoid flicker.
+  - Clarify why the listing’s web/mobile skill list does not match the embedded scope and why the $30 budget is realistic.
+  cover_letter_guidance: Lead with the closest display bring-up and rendering examples, then ask for the exact board revision,
+    SDK, controller, touch interface, and required interaction states.
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP32-span-Developer-for-TFT-Display_~022071885913698917551/
+  proposal_metadata:
+    connects_cost: 18
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022071885913698917551/apply/
+    proposal_template_path: bid-022071885913698917551.txt
+  question_status: fetched
+- job_id: '022071529089233307686'
+  title: ESP32-S3 E-Reader — Splash, Ukrainian UI & Re-branded Book Upload (BlinkRead)
+  db_status: new
+  starred: true
+  fit: high
+  project_strategy: existing-plus-fresh-port
+  recommended_projects:
+  - '0080'
+  - '0078'
+  - '0017'
+  - '0048'
+  project_recommendation: Lead with 0080 for the e-reader, pagination, filesystem, and bookmark architecture; use 0017/0048
+    for device-hosted web UI and 0078 for reusable UI/rendering work. Be transparent that 0080 is PaperS3/e-ink rather than
+    the exact Waveshare LCD board.
+  fresh_project_option:
+    recommended: true
+    name: esp32-s3-touch-reader-brand-port
+    basis: Port the proven 0080 reader/application concepts to the client’s exact Waveshare ESP32-S3-Touch-LCD base rather
+      than presenting a generic demo.
+    scope:
+    - boot splash asset path
+    - UTF-8/Cyrillic font loading and glyph verification
+    - Ukrainian UI strings
+    - BlinkRead upload-page branding
+    - phone/laptop upload acceptance test
+    deliverable: A 1.5–2 day patch branch, compiled .bin, README, and demo capture.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Show the exact-board distinction and explain which parts are portable application logic versus board/display integration.
+  - Mention UTF-8, Cyrillic glyph coverage, font size/flash impact, asset embedding, and upload-page regression testing.
+  - Give a firm timeline and price only after reviewing the supplied codebase.
+  cover_letter_guidance: 'This is the strongest bounded application: give a concrete 1.5–2 day plan, list the three changes,
+    and attach 0080 plus the web-UI examples as supporting evidence.'
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP32-span-Reader-Splash-Ukrainian-amp-branded-Book-Upload-BlinkRead_~022071529089233307686/
+  proposal_metadata:
+    connects_cost: 11
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022071529089233307686/apply/
+    proposal_template_path: bid-022071529089233307686.txt
+  question_status: fetched
+- job_id: '022075630256576688680'
+  title: RAK11160 Firmware Developer — IoT Sensor Platform (STM32WLE5 + ESP32-C2, LoRaWAN + WiFi + BLE)
+  db_status: new
+  starred: false
+  fit: low-medium
+  project_strategy: fresh-project-required
+  recommended_projects:
+  - '0004'
+  - '0019'
+  - '0049'
+  project_recommendation: Use 0004 for I2C sensor acquisition, 0019 for BLE GATT notifications, and 0049 for low-power network-node/provisioning
+    patterns. None is direct LoRaWAN/RAK11160 proof.
+  fresh_project_option:
+    recommended: false
+    name: ''
+    basis: A credible demo would require the actual RAK11160/LoRaWAN hardware and should not be fabricated from unrelated
+      ESP32 projects.
+    scope: []
+  known_questions: true
+  screening_questions:
+  - question: Describe your recent experience with similar projects
+    answer_guidance: Name the closest real project, your exact role, the firmware/protocol stack, and the measurable result.
+      Replace placeholders with truthful evidence and a link or capture.
+  - question: Please list any certifications related to this project
+    answer_guidance: List only certifications you actually hold; if none, say so briefly and pivot to relevant hands-on evidence.
+  - question: What frameworks have you worked with?
+    answer_guidance: Name frameworks you have actually used, separating direct RAK11160/STM32/LoRaWAN experience from transferable
+      ESP-IDF/FreeRTOS experience.
+  - question: Describe your approach to testing and improving QA
+    answer_guidance: 'Describe a concrete loop: define acceptance cases, instrument the device, test failure/recovery paths,
+      capture logs, reproduce regressions, and document results.'
+  answer_guidance:
+  - Only apply if you can provide real STM32WLE5/LoRaWAN/RAK11160 evidence outside this repository.
+  - Use the repository projects as secondary evidence for BLE, sensor, provisioning, and embedded networking only.
+  cover_letter_guidance: Treat this as a weak repository match. Ask about RUI3 versus custom STM32 firmware boundaries, ESP32-C2
+    power control, LoRaWAN region, and battery acceptance measurements.
+  job_url: https://www.upwork.com/jobs/RAK11160-Firmware-Developer-IoT-Sensor-Platform-STM32WLE5-span-class-highlight-ESP-span-LoRaWAN-WiFi-BLE_~022075630256576688680/
+  proposal_metadata:
+    connects_cost: 19
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022075630256576688680/apply/
+    proposal_template_path: bid-022075630256576688680.txt
+  question_status: fetched
+- job_id: '022073742829112250700'
+  title: 'Firmware/Maker: Wrist-Worn ESP32 Game Device'
+  db_status: new
+  starred: false
+  fit: medium-high
+  project_strategy: existing-plus-fresh-demo
+  recommended_projects:
+  - '0083'
+  - '0022'
+  - '0044'
+  - '0076'
+  project_recommendation: Use 0083 for keyboard-driven animation/state UI, 0022 for display graphics, 0044 for runtime LED
+    pattern control, and 0076 for gesture recognition concepts.
+  fresh_project_option:
+    recommended: true
+    name: m5sticks3-quest-device-demo
+    basis: Create a short wearable interaction demo on an M5StickS3/ESP32-S3 with motion-triggered state transitions and station-event
+      simulation.
+    scope:
+    - IMU gesture recognition
+    - BLE or simulated station protocol
+    - screen/icon feedback
+    - sound/LED feedback
+    - battery-aware idle mode
+    deliverable: A 30–60 second demo video, event/state diagram, and firmware README.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Emphasize interaction design, state machines, motion input, feedback timing, and field-testability.
+  - Do not claim M5StickS3 hardware validation until tested on that board.
+  cover_letter_guidance: Use the graphics and interaction projects as evidence, then propose a small playable vertical slice
+    rather than promising the entire camp system at once.
+  job_url: https://www.upwork.com/jobs/Firmware-Maker-Wrist-Worn-span-class-highlight-ESP-span-Game-Device-That-Interacts-Stations-POC-For-non-profit_~022073742829112250700/
+  proposal_metadata:
+    connects_cost: 26
+    proposal_rate_prefill: '100'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022073742829112250700/apply/
+    proposal_template_path: bid-022073742829112250700.txt
+  question_status: fetched
+- job_id: '022070286988167440361'
+  title: ESP32 hardware builder needed custom Bluetooth force measurement rig
+  db_status: new
+  starred: false
+  fit: low-medium
+  project_strategy: fresh-hardware-demo-required
+  recommended_projects:
+  - '0004'
+  - '0019'
+  project_recommendation: Use 0004 for sensor sampling and 0019 for BLE notifications as conceptual evidence only. The repository
+    has no load-cell force-rig project.
+  fresh_project_option:
+    recommended: true
+    name: esp32-load-cell-ble-rig
+    basis: Build a real load-cell prototype before presenting this as portfolio evidence.
+    scope:
+    - load-cell ADC acquisition
+    - calibration and filtering
+    - BLE data stream to iPad
+    - mechanical fixture
+    - repeatability test
+    deliverable: Calibrated prototype, measurement logs, BLE packet description, and test video.
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - This is hardware-building work, not a direct software-only match.
+  - Only use 0004/0019 as supporting patterns; do not imply load-cell experience.
+  cover_letter_guidance: Ask for the load cell, ADC/front-end, expected force range, sampling rate, iPad protocol, and mechanical
+    fixture before committing.
+  job_url: https://www.upwork.com/jobs/span-class-highlight-ESP-span-hardware-builder-needed-custom-Bluetooth-force-measurement-rig-for-sports-performance-coaching_~022070286988167440361/
+  proposal_metadata:
+    connects_cost: 15
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022070286988167440361/apply/
+    proposal_template_path: bid-022070286988167440361.txt
+  question_status: fetched
+- job_id: '022068794005998288562'
+  title: Replicate Prototype and Test Hardware for ESP32 Noise Cancellation
+  db_status: new
+  starred: false
+  fit: low
+  project_strategy: no-direct-project
+  recommended_projects:
+  - '0013'
+  - '0014'
+  project_recommendation: The GIF projects only demonstrate embedded media/display integration; they are not evidence of audio
+    DSP or prototype manufacturing. Do not lead with them.
+  fresh_project_option:
+    recommended: false
+    name: ''
+    basis: A fresh project would require the supplied audio hardware and test fixtures; it is not an efficient portfolio build
+      for this job.
+    scope: []
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - The client explicitly says this is replication/testing, not firmware or ML development.
+  - Only pursue if you have separate hardware manufacturing and audio test evidence.
+  cover_letter_guidance: This is not a good repository-backed application. Avoid presenting unrelated display/media projects
+    as audio proof.
+  job_url: https://www.upwork.com/jobs/Replicate-Prototype-and-Test-Hardware-for-span-class-highlight-ESP-span-Noise-Cancellation_~022068794005998288562/
+  proposal_metadata:
+    connects_cost: 14
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022068794005998288562/apply/
+    proposal_template_path: bid-022068794005998288562.txt
+  question_status: fetched
+- job_id: '022076536468795365824'
+  title: Experienced STM32 Firmware Developer — LoRa & Cellular Communication
+  db_status: new
+  starred: false
+  fit: low
+  project_strategy: no-direct-project
+  recommended_projects: []
+  project_recommendation: The repository is ESP32-focused and does not contain direct STM32/LoRa/SIMCom proof. Do not use
+    a superficially similar project as a substitute.
+  fresh_project_option:
+    recommended: false
+    name: ''
+    basis: A credible showcase would require STM32, LoRa, and SIMCom hardware plus validation; this is outside the current
+      evidence base.
+    scope: []
+  known_questions: true
+  screening_questions: []
+  answer_guidance:
+  - Only apply if you have separate STM32 + LoRa + GSM/GPRS examples.
+  - The listing asks for task-by-task time estimates and concrete comparable projects.
+  cover_letter_guidance: Treat as a non-match from this repository; keep it out of the primary demo portfolio.
+  job_url: https://www.upwork.com/jobs/Experienced-STM32-Firmware-Developer-LoRa-Cellular-Communication_~022076536468795365824/
+  proposal_metadata:
+    connects_cost: 7
+    proposal_rate_prefill: '100'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022076536468795365824/apply/
+    proposal_template_path: bid-022076536468795365824.txt
+  question_status: fetched
+- job_id: '022076287718910623461'
+  title: Embedded Sensor Test Rig Development
+  db_status: new
+  starred: false
+  fit: high
+  project_strategy: existing-plus-small-fresh-demo
+  recommended_projects:
+  - '0004'
+  - '0019'
+  project_recommendation: Use 0004 for I2C acquisition and rolling averages, and 0019 for device telemetry/notifications.
+    A small BME688-specific logger built from 0004 would be a very good targeted demo.
+  fresh_project_option:
+    recommended: true
+    name: esp32-bme688-sensor-logger
+    basis: Adapt 0004’s queued sensor pipeline to the client’s BME688 breakout and add the requested host-side tooling.
+    scope:
+    - maximum-rate raw BME688 logging
+    - configurable heater profiles
+    - USB serial CSV framing
+    - Python live plot
+    - wiring and run instructions
+    deliverable: Firmware, Python logger/plotter, wiring diagram, and a short video of the two milestone states.
+  known_questions: true
+  screening_questions:
+  - question: Describe your recent experience with similar projects
+    answer_guidance: Name the closest real project, your exact role, the firmware/protocol stack, and the measurable result.
+      Replace placeholders with truthful evidence and a link or capture.
+  - question: Please list any certifications related to this project
+    answer_guidance: List only certifications you actually hold; if none, say so briefly and pivot to relevant hands-on evidence.
+  - question: How do you incorporate feedback and changes into your work?
+    answer_guidance: Explain how you turn client feedback into a small prioritized change, validate it on hardware, record
+      the result, and keep the demo/build reproducible.
+  answer_guidance:
+  - Show sampling architecture, raw-data fidelity, serial framing, heater configuration, and reproducible instructions.
+  - Ask for the BME688 sample-rate target, serial format, host OS, and NDA/IP constraints.
+  cover_letter_guidance: 'This is a strong small project: propose a two-milestone implementation and explicitly connect 0004
+    to the BME688 adaptation.'
+  job_url: https://www.upwork.com/jobs/span-class-highlight-Embedded-span-Sensor-Test-Rig-Development_~022076287718910623461/
+  proposal_metadata:
+    connects_cost: 13
+    proposal_rate_prefill: '0'
+    apply_url: https://www.upwork.com/nx/proposals/job/~022076287718910623461/apply/
+    proposal_template_path: bid-022076287718910623461.txt
+  question_status: fetched
