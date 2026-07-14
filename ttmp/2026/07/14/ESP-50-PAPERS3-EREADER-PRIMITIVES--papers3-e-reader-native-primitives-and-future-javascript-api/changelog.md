@@ -148,3 +148,13 @@ Step 15: completed P0.16 bounded state-gated EPD commands, deterministic fixture
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/main/app_main.cpp — Committed bounded command state machine
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Chronological Step 15 record
+
+## 2026-07-14
+
+P0.17 preliminary: first independent-control flash booted safely in BOOT_LOCKED with zero pending stages and idle rails. Detected that idf.py flash relinked the app descriptor after preflight; no waveform was run. Fixed deterministic PROJECT_VER and direct-esptool exact-artifact flashing, then rebuilt/audited candidate SHA f24705a6...
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0107-papers3-epd-painter-control/CMakeLists.txt — Deterministic project version
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/15-flash-epd-control.sh — Exact-artifact flash with pre/post SHA guard
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/16-epd-control-monitor-20260714T210036Z.log — Passing no-drive runtime boot evidence

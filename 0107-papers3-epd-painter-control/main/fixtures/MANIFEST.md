@@ -9,4 +9,4 @@
 - Source text SHA-256: `e7339532a2ae74e456d12c16bc890173ef4e8afa1944a83d10180c4fe877be38`
 - Packed fixture bytes: `129600`
 - Packed fixture SHA-256: `14dcffa9d13e0daabda8dc56c038bcec2eb8b01c4d8ac97ae170de5509207e90`
-- Preview SHA-256: `ed3055bc6d80efa1a2483430abe5c21132489458e34ee5e8f8a6273bcd520c7e`
+- Preview SHA-256: `72e79669e5468bc46a391460c83a45d2acd9dbcf518fbeb86a35d9cb7114b478`

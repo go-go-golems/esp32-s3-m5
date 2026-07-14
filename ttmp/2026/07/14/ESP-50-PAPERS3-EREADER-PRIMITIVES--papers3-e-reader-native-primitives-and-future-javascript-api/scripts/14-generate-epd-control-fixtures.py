@@ -64,7 +64,7 @@ def main() -> None:
     args += ["-stroke", "black", "-strokewidth", "1", "-draw", "line 70,485 890,485"]
     args += ["-stroke", "none", "-pointsize", "15", "-annotate", "+70+515", "ESP-50 • fixed reader fixture"]
     args += ["-pointsize", "15", "-annotate", "+855+515", "1"]
-    args += ["-threshold", "55%", str(preview)]
+    args += ["-threshold", "55%", "-strip", "-define", "png:exclude-chunks=date,time", str(preview)]
     subprocess.run(args, check=True)
 
     raw = subprocess.check_output([convert, str(preview), "-colorspace", "Gray", "-depth", "8", "gray:-"])

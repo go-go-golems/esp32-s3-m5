@@ -852,3 +852,35 @@ The expanded static/binary audit passes fourteen checks, including no-drive boot
 ### P0.16 conclusion
 
 The source and binary are ready for the P0.17 hardware smoke gate. This is not yet optical evidence: the board still runs FactoryTest V0.5. The next step is to commit P0.16, add an exclusive check/flash/serial script, and execute only boot/status plus the bounded smoke chain before any area or checker matrix.
+
+## P0.17 preliminary flash and no-drive boot
+
+The exclusive preflight passed and the first P0.17 flash completed successfully. The new firmware booted to `BOOT_LOCKED` with:
+
+```text
+initialized=yes
+preset=match
+pending=0
+rails=idle
+psram=ready
+heap_free=8223935
+```
+
+`epd status` and `epd heap` preserved prompt continuity. No clear or paint command ran, so this established runtime initialization and no-drive boot only.
+
+The first flash exposed an evidence-reproducibility defect in the host script. Preflight verified application SHA-256 `2791e833...`, but `idf.py flash` reran CMake because the repository contained new evidence files. IDF regenerated the application descriptor as version `9c59ed6-dirty`, relinked the image, and flashed a new application SHA-256 `dabe3338...`. Source behavior was unchanged, but the flashed bytes no longer matched the audited preflight hash.
+
+No waveform was run on that image. The monitor was stopped, leaving the panel-control state idle. Two corrections were made before continuing:
+
+1. project version is fixed to `esp50-p0.16-e9f3769`, so unrelated repository state cannot alter the descriptor;
+2. the flash script now invokes esptool directly with the existing `flash_args`, verifies the application hash before and after flashing, and cannot trigger a rebuild.
+
+A new clean warning-free build and 14-check audit now identify the exact candidate:
+
+```text
+application SHA-256: f24705a69ac0355006d82ea1873191c6084f96bc7a79fcd1008ef433208437f9
+ELF SHA-256: 1f0134ada20285026c0c9df12b89a7c5cf9bba26d9bb9b030e97bb9172d1ffc2
+project version: esp50-p0.16-e9f3769
+```
+
+This exact image must be reflashed before the first HARD cleanup. The incident does not invalidate the no-drive boot observation, but it prevents the first flash from serving as the final binary-identity baseline.

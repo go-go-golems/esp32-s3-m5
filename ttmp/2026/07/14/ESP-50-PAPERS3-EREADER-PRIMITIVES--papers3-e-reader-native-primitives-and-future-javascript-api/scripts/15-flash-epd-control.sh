@@ -66,7 +66,7 @@ grep -q 'Hardware modified: \*\*no\*\*' "$REPORT" || {
 }
 
 # shellcheck disable=SC1091
-source "$IDF_ROOT/export.sh" >/dev/null
+source "$IDF_ROOT/export.sh" >/dev/null 2>&1
 [[ "$(idf.py --version)" == 'ESP-IDF v5.4.2' ]] || {
   echo "error: exact ESP-IDF 5.4.2 is not active" >&2
   exit 4
@@ -95,8 +95,18 @@ trap normalize_log EXIT
   echo "real_port=$REAL_PORT"
   echo "app_sha256=$ACTUAL_SHA"
   echo "idf=$(idf.py --version)"
-  cd "$PROJECT"
-  idf.py -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" -p "$PORT" flash
+  cd "$BUILD_DIR"
+  # Flash exactly the audited artifacts. `idf.py flash` may reconfigure and
+  # relink the app descriptor when unrelated repository state changes, which
+  # would invalidate the preflight SHA after it was checked.
+  python -m esptool --chip esp32s3 -p "$PORT" -b 460800 \
+    --before default_reset --after hard_reset write_flash @flash_args
+  POST_FLASH_SHA=$(sha256sum "$APP_BIN" | awk '{print $1}')
+  [[ "$POST_FLASH_SHA" == "$ACTUAL_SHA" ]] || {
+    echo "error: application artifact changed during flash" >&2
+    exit 6
+  }
+  echo "post_flash_app_sha256=$POST_FLASH_SHA"
 } 2>&1 | tee "$LOG"
 
 echo "flash_log=$LOG"

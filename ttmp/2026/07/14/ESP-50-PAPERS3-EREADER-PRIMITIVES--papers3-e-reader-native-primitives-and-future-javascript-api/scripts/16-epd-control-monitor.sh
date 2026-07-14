@@ -16,6 +16,22 @@ shift || true
 PORT="$DEFAULT_PORT"
 PANE="$DEFAULT_PANE"
 
+normalize_monitor_log() {
+  local log=$1
+  [[ -f "$log" ]] || return 0
+  python3 - "$log" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+data = path.read_bytes().replace(b"\r", b"").replace(b"\x00", b"")
+data = re.sub(rb"\x1b\[[0-?]*[ -/]*[@-~]", b"", data)
+lines = [line.rstrip(b" \t") for line in data.split(b"\n")]
+path.write_bytes(b"\n".join(lines).rstrip(b"\n") + b"\n")
+PY
+}
+
 while (($#)); do
   case "$1" in
     --port) PORT=${2:?missing port}; shift 2 ;;
@@ -38,7 +54,7 @@ case "$MODE" in
     printf 'PANE=%q\nPORT=%q\nLOG=%q\nSTARTED_UTC=%q\n' "$PANE" "$PORT" "$LOG" "$STAMP" > "$STATE"
     tmux pipe-pane -t "$PANE" "cat >> '$LOG'"
     tmux send-keys -t "$PANE" C-c
-    tmux send-keys -t "$PANE" -l "cd '$PROJECT' && source '$IDF_ROOT/export.sh' >/dev/null && idf.py -B '$BUILD_DIR' -D SDKCONFIG='$SDKCONFIG' -p '$PORT' monitor"
+    tmux send-keys -t "$PANE" -l "cd '$PROJECT' && source '$IDF_ROOT/export.sh' >/dev/null 2>&1 && idf.py -B '$BUILD_DIR' -D SDKCONFIG='$SDKCONFIG' -p '$PORT' monitor"
     tmux send-keys -t "$PANE" Enter
     printf '%s action=start pane=%s port=%s log=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PANE" "$PORT" "$LOG" >> "$ACTIONS"
     echo "monitor_log=$LOG"
@@ -63,6 +79,7 @@ case "$MODE" in
     tmux send-keys -t "$PANE" C-]
     sleep 1
     tmux pipe-pane -t "$PANE"
+    normalize_monitor_log "$LOG"
     echo "stopped=$PANE"
     ;;
   status)

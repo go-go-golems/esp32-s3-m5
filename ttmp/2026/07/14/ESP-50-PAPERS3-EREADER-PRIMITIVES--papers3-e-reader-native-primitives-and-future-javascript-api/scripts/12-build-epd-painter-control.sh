@@ -26,13 +26,14 @@ if [[ ! -f "$IDF_ROOT/export.sh" ]]; then
 fi
 
 mkdir -p "$OUTPUT_DIR"
-"$TICKET_ROOT/scripts/11-prepare-epd-painter-control.sh"
+echo '[build] verifying and preparing pinned sources'
+"$TICKET_ROOT/scripts/11-prepare-epd-painter-control.sh" >/dev/null
 if [[ -x "$TICKET_ROOT/scripts/14-generate-epd-control-fixtures.py" ]]; then
-  "$TICKET_ROOT/scripts/14-generate-epd-control-fixtures.py"
+  "$TICKET_ROOT/scripts/14-generate-epd-control-fixtures.py" >/dev/null
 fi
 
 # shellcheck disable=SC1091
-source "$IDF_ROOT/export.sh" >/dev/null
+source "$IDF_ROOT/export.sh" >/dev/null 2>&1
 IDF_VERSION=$(idf.py --version)
 if [[ "$IDF_VERSION" != "ESP-IDF v5.4.2" ]]; then
   echo "error: expected 'ESP-IDF v5.4.2', got '$IDF_VERSION'" >&2
@@ -45,6 +46,8 @@ fi
 rm -f "$SDKCONFIG"
 rm -rf "$BUILD_DIR"
 
+echo "[build] clean ESP-IDF 5.4.2 build; full output -> $LOG"
+set +e
 {
   echo "build_utc=$TIMESTAMP"
   echo "idf=$IDF_VERSION"
@@ -56,10 +59,17 @@ rm -rf "$BUILD_DIR"
     idf.py -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" build
     idf.py -B "$BUILD_DIR" -D "SDKCONFIG=$SDKCONFIG" size
   )
-} 2>&1 | tee "$LOG"
+} >"$LOG" 2>&1
+BUILD_STATUS=$?
+set -e
 # CMake and size-table output can contain cosmetic trailing spaces. Normalize
 # the committed evidence log without changing messages or command outcomes.
-perl -pi -e 's/[ \t]+$//' "$LOG"
+normalize_log
+if [[ $BUILD_STATUS -ne 0 ]]; then
+  echo "error: build failed (exit $BUILD_STATUS); tail of $LOG:" >&2
+  tail -n 100 "$LOG" >&2
+  exit "$BUILD_STATUS"
+fi
 
 if rg -n 'warning:' "$LOG"; then
   echo "error: build completed with warnings; review $LOG" >&2
@@ -136,5 +146,5 @@ EPD_PAINTER_DISABLE_BOOTCTL=1
 ~~~
 EOF_REPORT
 
-printf 'build_report=%s\napp_sha256=%s\nelf_sha256=%s\nhardware_modified=no\n' \
-  "$REPORT" "$APP_SHA" "$ELF_SHA"
+printf '[build] complete: app_bytes=%s iram=16383/16384\nbuild_report=%s\napp_sha256=%s\nelf_sha256=%s\nhardware_modified=no\n' \
+  "$APP_SIZE" "$REPORT" "$APP_SHA" "$ELF_SHA"
