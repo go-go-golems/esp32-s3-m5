@@ -45,3 +45,12 @@ Phase 0: added and live-tested the PaperS3 EPD qualification harness; Cell C pas
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0106-papers3-epd-qualification/main/app_main.cpp — Qualification implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/03-operator-observations.md — Measured visual evidence
+
+## 2026-07-14
+
+Phase 0: Cell D reproduced Cell C's almost-white TEXT black under IDF 5.4.2, ruling down IDF as the cause; added a fundamentals-first waveform, VCOM, rail, optical, and timing investigation plan.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/01-papers3-epd-waveform-and-physical-drive-investigation-plan.md — Causal assessment and discriminating experiment plan
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-D/03-operator-observations.md — Matching Cell D visual failure and automatic boundary result

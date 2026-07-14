@@ -1,0 +1,1012 @@
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+Version: 0.1
+
+
+
+
+                                        TECHNICAL SPECIFICATION
+
+                                               MODEL NO: ED047TC1
+
+
+
+The content of this information is subject to be changed without notice.
+                                                                 not
+Please contact E Ink or its agent for further information.
+
+
+
+
+   Customer’s Confirmation
+
+Customer
+
+
+Date
+
+
+By
+
+   E Ink’s Confirmation
+           Conf
+           Co
+            onf
+             n ir
+                irma
+                  mati
+                     t on
+                     ti on
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:1
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+                                              Revision History
+  Rev.     Issued Date                Revised     Contents
+  0.1      Nov.04,2014                Preliminary
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:2
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+
+                             TECHNICAL SPECIFICATION
+
+                                                  CONTENTS
+                   NO.                                      ITEM                                      PAGE
+                      -                                      Cover                                        1
+                      -                                Revision History                                   2
+                      -                                    Contents                                       3
+                     1                              General Description                                   4
+                     2                                     Features                                       4
+                     3                           Mechanical Specifications                                4
+                     4                   Mechanical Drawing of Display module
+                                                                            e                             5
+                     5                             Input/Output Interface                                 6
+                     6                  Display Module Electrical C
+                                                                  Characteristics
+                                                                   hara
+                                                                   har ct
+                                                                        cter
+                                                                          eris
+                                                                          er isstiics
+                                                                                   c                      9
+                     7                                Power Sequence
+                                                            Se
+                                                             equen
+                                                                 nce
+                                                                  ce                                     14
+                     8                             Optical Characteristics
+                                                           Ch
+                                                            harrac
+                                                                acte
+                                                                  teri
+                                                                  te r st
+                                                                     ristic
+                                                                          ics
+                                                                          ic                             16
+
+                                  Handling, Safety an
+                                                   a
+                                                   and
+                                                     dEEnvironment
+                                                        n irron
+                                                        nv   onment Requirements
+                     9                                                                                   18
+                                                         And
+                                                         An  Remark
+                                                          nd Re
+                                                             Remark
+                     10                                 Reliability
+                                                        Reliability test                                 20
+                     11                              Barr Code definition
+                                                     B
+                                                     Ba                                                  21
+                     12                               Border definition                                  22
+                     13
+                     13                                Block Diagram                                     23
+                     14
+                     14                                     Packing                                      24
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:3
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+1. General Description
+   ED047TC1 is a reflective electrophoretic E Ink® technology display module based on active matrix
+TFT substrate. It has 4.7” active area with 540 x 960 pixels, the display is capable to display images at
+2-16 gray levels (1-4 bits) depending on the display controller and the associated waveform file it used.
+  ED047TC1 is for mobile phone use only.
+
+
+2. Features
+ ¾ High contrast reflective/electrophoretic technology
+ ¾ 540 x 960 dots resolution
+¾    High reflectance
+¾    Ultra wide viewing angle
+¾    Ultra low power consumption
+¾    Pure reflective mode
+¾    Bi-stable
+¾    Commercial temperature range
+¾    Landscape, portrait mode
+
+
+
+3. Mechanical Specifications
+          Parameter                                     Specifications
+                                                        S
+                                                        Spec
+                                                        Sppec
+                                                            cif
+                                                             ific
+                                                                icat
+                                                                   ations                           Unit          Remark
+Screen Size                                                   4.7
+                                                              4  .7                                 Inch
+Display Resolution                                      540
+                                                        540 (H)ǘ960(V)                              Pixel
+Active Area                                          58.32
+                                                     58
+                                                      8.32 (H)×103.68 (V)                           mm
+Pixel Pitch                                          0.108 (H) × 0.108 (V)                          mm
+Pixel Configuration                                        Rectangle
+Outline Dimension
+        Dimensio
+               io
+                on                             62.5 (W) × 113.9 (H) × 0.872 (D)                      mm
+Module Weight
+       Weigh
+           ht                                                   TBD                                    g
+Number of Gr
+          G
+          Gray
+            ray                                  16 Gray Level (monochrome)
+Display operat
+        operating
+             tin
+               ng mo
+                  m
+                  mod
+                  mode
+                    ode                                  Reflective mode
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:4
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+4. Mechanical Drawing of Display Module
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:5
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                                ED047TC1
+5. Input/Output Interface
+5-1) Connector type: PANASONIC AXE644224
+Pin Assignment
+
+
+    Pin        Symbol                                      Description                                         Remark
+     1          VNEG                           Negative power supply source driver                         ġ
+     2          VPOS                           Positive power supply source driver                         ġ
+     3           GND                                           Ground                                      ġ
+     4           GND                                           Ground                                      ġ
+     5            NC                                             NC                                        ġ
+     6           GND                                           Ground                                      ġ
+     7           VDD                            Digital power supply drivers (3.3V)                        ġ
+     8           GND                                           Ground                                      ġ
+     9           GND                                           Ground                                      ġ
+     10          XCL                                    Clock source driver                                ġ
+     11          XLE                                Latch enable source driver                             ġ
+     12          XOE                               Output enable source driver                             ġ
+     13          XSTL                                Start pulse source driver
+                                                                        drive
+                                                                            er                             ġ
+     14           D0                                 Data signal source
+                                                                      e driver
+                                                                        dri
+                                                                         r ve
+                                                                            er                             ġ
+     15           D1                                 Data signa
+                                                          signal
+                                                              al so
+                                                                 ssource
+                                                                    urce
+                                                                      c driver
+                                                                      ce dri
+                                                                         dr vve
+                                                                          ri  er                           ġ
+     16           D2                                 Data sig
+                                                          signal
+                                                            gna
+                                                              al so
+                                                                 ssource
+                                                                 sou
+                                                                   our
+                                                                    urce
+                                                                       e driver
+                                                                         dri
+                                                                         drive
+                                                                          river
+                                                                            ver                            ġ
+     17           D3                                 Data signa
+                                                          signal
+                                                             nal so
+                                                             na  ssource
+                                                                   ourrce
+                                                                        e driver
+                                                                          driver                           ġ
+     18           D4                                 Data
+                                                     Da
+                                                      ata
+                                                        t ssignal
+                                                            ig
+                                                             gna
+                                                               nal so
+                                                                   source
+                                                                    our
+                                                                      urce driver                          ġ
+     19           D5                                 Data
+                                                     Da a si
+                                                          ssignal
+                                                          sign
+                                                            ig a
+                                                               all ssource
+                                                                     ource driver                          ġ
+     20           D6                                 Data
+                                                     Da
+                                                      ata
+                                                        a ssignal
+                                                            ig
+                                                             gnal source driver                            ġ
+     21           D7                                 Data
+                                                     D
+                                                     Da tta
+                                                          a signal source driver                           ġ
+     22           NC                                             NC                                        ġ
+     23          TEST                                  Eink internal test pin                              ġ Note1
+     24         VCOM
+                  O                                    Common connection                                   ġ
+     25          VGG
+                 VG
+                  GG                            Positive power supply gate driver                          ġ
+     26         VCOM
+                VC
+                VCOM
+                   M                                   Common connection                                   ġ
+     27          VGG
+                 VG
+                  GG                            Positive power supply gate driver                          ġ
+     28          GND
+                 GN
+                  ND                                           Ground                                      ġ
+     29          GND                                           Ground                                      ġ
+     30       BORDER                                     Border connection                                 ġ
+     31          VEE                            Negative power supply gate driver                          ġ
+     32       BORDER                                     Border connection                                 ġ
+     33          VEE                            Negative power supply gate driver                          ġ
+     34          GND                                           Ground                                      ġ
+     35          GND                                           Ground                                      ġ
+     36          CKV                                     Clock gate driver                                 ġ
+     37          SPV                                   Start pulse gate driver                             ġ
+     38        MODE 1                           Output mode selection gate driver                          ġ
+     39           NC                                             NC                                        ġ
+     40           NC                                             NC                                        ġ
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:6
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+    Pin        Symbol                                      Description                                      Remark
+     41           NC                                             NC
+     42           NC                                             NC
+     43           NC                                             NC
+     44           NC                                             NC
+
+
+Note1:Please connect to VDD voltage.
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:7
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+5-2) Panel Scan direction
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:8
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+6. Display Module Electrical Characteristics
+6-1) Absolute Maximum Ratings:
+
+              Parameter                     Symbol                     Rating                     Unit           Remark
+        Logic Supply Voltage                 VDD                     -0.3 to +7                     V                --
+       Positive Supply Voltage               VPOS                   -0.3 to +18                     V                --
+      Negative Supply Voltage                VNEG                   +0.3 to -18                     V                --
+     Max .Drive Voltage Range             VPOS - VNEG                    36                         V                --
+            Supply Voltage                   VGG                    -0.3 to +45                     V                --
+            Supply Voltage                   VEE                   -25.0 to +0.3                    V                --
+            Supply Range                  VGG-VEE                   -0.3 to +45                     V                --
+      Operating Temp. Range                 TOTR                      0 to +50                     ɗ                 --
+        Storage Temperature                  TSTG                    -25 to +70                    ɗ                 --
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:9
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                                ED047TC1
+6-2) Display Module DC characteristics
+        Parameter               Symbol           Conditions               Min            Typ           Max         Unit
+       Signal ground              VSS                                       -               0             -         V
+                                 VDD                                       3.0            3.3           3.6         V
+  Logic Voltage supply
+                                 IVDD            VDD=3.3V                   -            TBD           TBD         mA
+                                 VEE                                      -21             -20           -19         V
+  Gate Negative supply
+                                  IEE            VEE =-20V                  -            TBD           TBD         mA
+                                 VGG                                       21              22            23         V
+   Gate Positive supply
+                                  IGG            VGG = 22V                  -            TBD           TBD         mA
+                                 VNEG                                    -15.4            -15          -14.6        V
+ Source Negative supply
+                                 INEG           VNEG = -15V                 -            TBD           TBD
+                                                                                                       TBBD        mA
+                                 VPOS                                     14.6             15          15.4
+                                                                                                       155.44       V
+  Source Positive supply
+                                 IPOS            VPOS = 15V                 -            TBD           TBD
+                                                                                                       TBBD        mA
+      Border supply              VCOM                                      -          Adjusted
+                                                                                      Adju
+                                                                                         usted
+                                                                                            ed
+                                                                                             d            -          V
+    Asymmetry source             VAsym           VPOS+VNEG               -800             0            800         mV
+                                 VCOM                                      -          Adjusted
+                                                                                      Adju
+                                                                                      Ad ju
+                                                                                          ust
+                                                                                            s ed         -          V
+     Common voltage
+                                 ICOM                                      -           TBD
+                                                                                       T
+                                                                                       TB   D            -         mA
+      Panel Power                  P                                       -           TBD
+                                                                                       TB              TBD         mW
+  Standby power panel            PSTBY                                     -              -             0.1        mW
+  Operating temperature                                                    0              -             50         ɗ
+   Storage temperature                                                    -25              -             70        ɗ
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:10
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+
+     -   The maximum power consumption is measured using 85Hz waveform with following pattern transition:
+         from pattern of repeated 1 consecutive black scan lines followed by 1 consecutive white scan line to that
+         of repeated 1 consecutive white scan lines followed by 1 consecutive black scan lines. (Note 7-1)
+     -   The Typical power consumption is measured using 85Hz waveform with following pattern transition:
+         from horizontal 4 gray scale pattern to vertical 4 gray scale pattern. (Note 7-2)
+     -   The standby power is the consumed power when the panel controller is in standby mode.
+     -   The listed electrical/optical characteristics are only guaranteed under the controller & waveform
+         provided by E Ink.
+     -   Vcom is recommended to be set in the range of assigned value Ʋ 0.1V.
+     -   The maximum ICOM inrush current is about TBD mA
+
+
+     Note 6-1
+     The maximum power consumption
+
+
+
+
+     Note 6-2
+     The Typical power consumptionn
+
+
+
+
+6-3) Refresh Rate
+The module ED047TC1 is applied at a maximum screen refresh rate of 85Hz.
+
+                                                            Min                                       Max
+Refresh Rate                                                 -                                        85Hz
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:11
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+6-3 ) Display Module AC characteristics
+VDD=3.0V to 3.6V, unless otherwise specified.
+                   Parameter                         Symbol            Min.         Typ.             Max.              Unit
+   Clock frequency                                     fckv              -             -              200              kHz
+   Minimum “L” clock pulse width                       twL              0.5            -                -               us
+   Minimum “H” clock pulse width                       twH              0.5            -                -               us
+   Clock rise time                                     trckv             -             -              100               ns
+   Clock fall time                                     tfckv             -             -              100               ns
+   SPV setup time                                       tSU            100             -           twH-100              ns
+   SPV hold time                                        tH             100             -           twH-100
+                                                                                                   twH-10
+                                                                                                       10
+                                                                                                       1 00             ns
+   Pulse rise time                                     trspv             -             -              10
+                                                                                                      1
+                                                                                                      100
+                                                                                                        00              ns
+   Pulse fall time                                     tfspv             -             -              100
+                                                                                                      10
+                                                                                                      1 00              ns
+   Clock XCL cycle time                                 tcy           16.67           50                -               ns
+   D0 .. D7 setup time                                  tsu              8             -                -               ns
+   D0 .. D7 hold time                                    th              8             -                -               ns
+   XSTL setup time                                     tstls         0.5*
+                                                                     0.5*tcy
+                                                                       5*
+                                                                        *tccy          -            0.8*tcy             ns
+   XSTL hold time                                      tstlh         0.5*
+                                                                     0.5*tcy
+                                                                       5* y
+                                                                       5*
+                                                                       5*tcy           -         240*tcy-tstls          ns
+   XLE on delay time                                  tLEdlyy        3.5*tcy
+                                                                     3 .5*t
+                                                                       .5*tcy
+                                                                         *t c
+                                                                            cy         -                -               ns
+   XLE high-level pulse width
+                                                       tLEw
+                                                       tL
+                                                        LEw
+                                                         Ew            300             -                -               ns
+   (When VCC=3.0V to 3.6V)
+   XLE off delay time                                 tLEoff
+                                                      tL
+                                                       LEo
+                                                        Eofff           200            -                -               ns
+   Output setting time to +/-                           ttout
+                                                         to
+                                                          out            -             -               20               us
+   30mV(Cload=200pF)
+
+
+
+
+           960
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:12
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+                                               CLOCK & DATA TIMING
+
+
+
+
+                                                  CKV & SPV TIMING
+
+
+
+
+                                               GATE OUTPUT TIMING
+
+
+
+
+ Note烉First gate line on timing
+      After 5CKV炻gate line is on .
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:13
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+7. Power Sequence
+
+Power Rails must be sequenced in the following order烉
+1. VSS Æ VDD Æ VNEG Æ VPOS (Source driver) Æ VCOM
+
+2. VSS Æ VDD Æ VGL Æ VGH (Gate driver)
+
+
+POWER ON
+
+
+
+
+                                                                                               VGH
+                                                                                                 H
+
+
+
+
+                                                                                                VGL
+
+
+
+
+                                                            Min                                        Max
+Tsd                                                        30us                                         -
+Tdn                                                       100us                                         -
+Tnp                                                       1000us                                        -
+Tpv                                                       100us                                         -
+Tvd                                                       100us                                         -
+Tne                                                        0us                                          -
+Teg                                                       1000us                                        -
+Tgv                                                       100us                                         -
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:14
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+POWER OFF
+
+
+
+
+                                            Tvg                                            Tne
+
+
+
+
+                                           VGH
+
+
+
+
+                                           VPOS
+
+
+
+
+                                            VDD
+
+                                            Vss
+   Data
+                                                                   Tgp
+                                                                   Tgp
+     Vcom
+                                           VN
+                                            NEG
+                                              EG
+                                               G
+
+
+
+                                            VG
+                                             GL
+                                              L
+
+
+
+
+                       Tdv
+                       Tdv                                                        Tpn               Ted
+
+
+
+
+                                Min                             Max
+      Tdv                      100ȫs                             -
+      Tvg                       0ȫs                              -
+      Tgp                       0ȫs                              -
+      Tpn                       0ȫs                              -
+      Tne                       0ȫs                              -
+      Ted                       0.5s                             -                      Discharged point @ -7.4 Volt
+
+Note1烉Supply voltages decay through pull-down resistors.
+Note2烉Begin to turn off VGL power after VNEG and VPOS are completely or almost discharged to GND state.
+Note3烉VGL must remain negative of Vcom during decay period
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:15
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+8. Optical characteristics
+8-1) Specifications
+Measurements are made with that the illumination is under an angle of 45 degrees, the detector is
+perpendicular unless otherwise specified.
+
+
+                                                                                                                T = 25oC
+Symbol       Parameter           Conditions               Min                 Typ.                Max           Unit   Note
+                                                                                                                       Note
+  R          Reflectance             White                 30                  35                   -            %
+                                                                                                                        8-1
+                                                                         DS+(WS-DS)
+  Gn       Nth Grey Level               -                      -                                    -             L*         -
+                                                                           ǘn/(m-1)
+ CR        Contrast Ratio               -                  10                  12                   -                        -
+
+
+                                                                      ˣG2
+WS: White state , DS: Dark state, Gray state from Dark to White :DSˣG1ˣG2…ˣGn…ˣGm-
+                                                                :DSˣG1ˣG …ˣGn
+                                                                           Gn…ˣGm-2ˣWS
+                                                                           Gn
+    m:4ˣ8ˣ16 when 2ˣ3ˣ4 bits mode
+Note 8-1: Luminance meter: Eye – One Pro Spectrophotometerr
+
+
+
+8-2) Definition of contrast ratio
+     The contrast ratio (CR) is the ratio between tthe
+                                                    he reflectance
+                                                    he ref
+                                                        efle   ance in a full white area (Rl) and the
+                                                           ecttan
+reflectance in a dark area (Rd): CR = Rl / Rd
+
+
+                               Eye–On
+                                    ne S
+                               Eye–One   pectro
+                                              ophotometer
+                                       Spectrophotometer
+
+
+
+                                                       Detector
+
+
+
+
+                                               Light Sources in a ring
+
+
+
+
+                                                         45°       45°
+
+
+
+
+                                                      EPD Sample
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:16
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+8-3) Reflection Ratio
+
+
+The reflection ratio is expressed as:
+
+R = Reflectance Factorwhite board x ( Lcenter / Lwhite board )
+Lcenter is the luminance measured at center in a white area (R=G=B=1). Lwhite board is the luminance of a
+standard white board.
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:17
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+9.HANDLING, SAFETY AND ENVIROMENTAL REQUIREMENTS AND REMARK
+
+
+                                                        WARNING
+The display glass may break when it is dropped or bumped on a hard surface. Handle with
+care. Should the display break, do not touch the electrophoretic material. In case of contact with
+electrophoretic material, wash with water and soap.
+
+
+                                                         REMARK
+All The specifications listed in this document are guaranteed for module only. Post-assembled
+                                                                               Po
+                                                                                o
+operation or component(s) may impact module performance or cause unexpected
+                                                                       unexpecteed effect
+                                                                                   e fect or
+                                                                                   ef
+damage and therefore listed specifications is not warranted after any Post-assembled
+                                                                      Poost
+                                                                         s -as
+                                                                             sse
+                                                                              semb
+                                                                                 m le
+                                                                                 mb led
+                                                                                     ed
+operation.
+
+
+                                                         CAUTION
+The display module should not be exposed to harmful gases,
+                                                    ga s,
+                                                        s, such
+                                                           succh ass acid and alkali gases,
+which corrode electronic components.
+Disassembling the display module can cause p
+                                           permanent
+                                             erma
+                                             erma
+                                             er man
+                                                  neent d
+                                                        damage
+                                                          amage and invalidate the warranty
+                                                          am
+agreements.
+IPA solvent can only be applied on active area
+                                          arrea
+                                          a  ea and
+                                                an
+                                                 ndd the
+                                                     the back of a glass. For the rest part, it is
+not allowed.
+
+
+                                                Mounting Precautions
+                                                Mo
+(1) It`s recommended that
+                     tha
+                       at you
+                          yo
+                           ou consider
+                              cons
+                              co n ider the mounting structure so that uneven force (ex.
+Twisted stress)
+             s)) is
+                  s no
+                    not
+                     ot ap
+                        a
+                        appl
+                        applied
+                          ppl
+                           p ie
+                              ed to
+                                 to the module.
+(2) It`s recom
+         recommended
+            om
+            omm
+             mme
+               mend
+                 n ed tthat
+                        ha
+                         at you attach a transparent protective plate to the surface in order to
+protect the EPD.
+             EPD.
+             EP D Transparent
+                  Tra
+                   ranssparent protective plate should have sufficient strength in order to resist
+external force.
+(3) You should adopt radiation structure to satisfy the temperature specification.
+(4) Acetic acid type and chlorine type materials for the cover case are not desirable because
+the former generates corrosive gas of attacking the PS at high temperature and the latter
+causes circuit break by electro-chemical reaction.
+(5) Do not touch, push or rub the exposed PS with glass, tweezers or anything harder than HB
+pencil lead. And please do not rub with dust clothes with chemical treatment. Do not touch the
+surface of PS for bare hand or greasy cloth. (Some cosmetics deteriorate the PS)
+(6) When the surface becomes dusty, please wipe gently with absorbent cotton or other soft
+materials like chamois soaks with petroleum benzene. Normal-hexane is recommended for
+cleaning the adhesives used to attach the PS. Do not use acetone, toluene and alcohol
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:18
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+because they cause chemical damage to the PS.
+(7) Wipe off saliva or water drops as soon as possible. Their long time contact with PS causes
+deformations and color fading.
+
+
+
+Data sheet status
+Product                       This data sheet contains Preliminary product specifications.
+specification
+Limiting values
+Limiting values given are in accordance with the Absolute Maximum Rating Sys       System
+                                                                                      ste
+                                                                                        em
+(IEC 134). Stress above one or more of the limiting values may cause p      permanent
+                                                                              ermaanent
+                                                                                    nent
+                                                                                    ne
+damage to the device. These are stress ratings only and operation of the   th
+                                                                            he device
+                                                                                d vi
+                                                                                de vice
+                                                                                     c at
+                                                                                     ce at
+these or at any other conditions above those given in the Characteristics
+                                                            Characterists iccs sections
+                                                                        st     seect
+                                                                                  c io
+                                                                                     ons
+                                                                                       n of
+the specification is not implied. Exposure to limiting values for ex
+                                                                  extended
+                                                                   xtend
+                                                                    te
+                                                                     end
+                                                                       nded
+                                                                         e periods
+                                                                         ed   per
+                                                                                erio
+                                                                                  i ds may
+affect device reliability.
+Application information
+Where application information is given, it is advi
+                                              advisory
+                                                viiso
+                                                viso
+                                                   sorry
+                                                      ry and
+                                                          nd d
+                                                             does
+                                                               o s not form part of the
+                                                               oe
+specification.
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:19
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+10. Reliability test
+
+   TBD
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:20
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+11.Bar Code definition
+EDV      00       4       01      1          I       7       4   00361        A       T
+ 1        2      3       4        2      5       6       2       7        2       8
+
+
+ 1 烉EPD model code:
+       ED047TC1: EDV
+ 2 烉Internal control codes:
+ 3 烉FPL reversion code
+       V220:6 V220E:8
+ 4 烉FPL batch code:
+         01~99        001~099 G0~G9 160~169 Q0~Q9 230~239 X0~X9 300~309
+         A0~A9        100~109 H0~H9 170~179 R0~R9 240~249 Y0~Y9 3 310~
+                                                                  310~319
+                                                                      ~31
+                                                                       3199
+         B0~B9        110~119 J0~J9 180~189 S0~S9 250~259 Z0~Z Z9 32
+                                                            Z0~Z9 320~329
+                                                                  320~
+                                                                     0 32
+                                                                     0~329
+                                                                        29
+         C0~C9        120~129 K0~K9 190~199 T0~T9 260~269
+         D0~D9        130~139 L0~L9 200~209 U0~U9 270~279
+         E0~E9        140~149 M0~M9 210~219 V0~V9 28
+                                                  280~289
+                                                   80~2889
+         F0~F9        150~159 N0~N9 220~229 W0~W9 29
+                                                  290~299
+                                                   90~
+                                                     0~29
+                                                       299
+                                                       29 9
+ 5 烉Year:
+      N: 2013 / P: 2014 / Q: 2015 / R: 2016 /... / Z: 2024
+                                                         4
+ 6 烉Month:
+      1:Jan. 2:Feb. ... 9:Sep. A:Oct. B:Nov. C:Dec.
+                                             C:De
+                                             C:
+                                             C:De
+                                                Dec.
+                                                  c
+ 7 烉Serial number
+      00000-99999
+ 8 烉MFG code:
+    TOC FAB3 : T烊TOC FA
+                     FAB2
+                      AB
+                       B22 : Y烊TOC FAB1 : K烊EIH : P烊MOS : S烊Microveiw : G烊
+                             Y烊TOC
+    TYT FAB5 : G烊TY
+               G烊TYT
+                 TYT FAB4
+                 TY  FA
+                     FAB4 : L
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:21
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+12. Border definition
+
+    TBD
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:22
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+13.Block Diagram
+
+      TBD
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:23
+          DKE   GROUP
+          Beyond Expectation
+                                                                                                              ED047TC1
+14.Packing
+
+TBD
+
+
+
+
+ The information contained herein is the exclusive property of E Ink Holdings Inc., and shall not be distributed, reproduced, or
+disclosed in whole or in part without prior written permission of E Ink Holdings Inc.                            PAGE:24
+

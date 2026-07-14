@@ -22,6 +22,19 @@ The user prompt named `s3paper-api-design.md` twice but said “files.” `s3pap
 | `web/09-crossink-architecture.md` | CrossInk architecture | Modern SD cache/activity/reader precedent |
 | `web/10-m5stack-papers3-touch.md` | M5Stack touch docs | GT911 touch API examples |
 | `web/11-m5gfx-releases.md` | M5GFX releases | Current release state, including 0.2.25 |
+| `web/12-epdiy-waveform-timings.md` | EPDiy waveform timing wiki | Origin/target lookup and phase timing model |
+| `web/13-epdiy-parallel-pixel-drive.md` | EPDiy direct-drive wiki | Gate/source signals, VCOM, ±15 V pixel actions |
+| `web/14-epdiy-vendor-waveforms.md` | EPDiy waveform documentation | Vendor waveform provenance and temperature/mode advantages |
+| `web/15-electrophoretic-waveform-dc-balance.md` | Frontiers waveform study | Particle activation, reference states, and DC balance |
+| `web/16-electrophoretic-ghosting-low-power-waveform.md` | EPD ghosting study | Physics and measured ghosting context |
+
+## Hardware and live evidence
+
+- `hardware/ED047TC1-datasheet.{pdf,txt}` — official panel electrical, VCOM, timing, temperature, and optical specification.
+- `hardware/PaperS3-schematic-V1.0.{pdf,png,txt}` — official board schematic and render/extraction.
+- `hardware/PaperS3-schematic-epd-{power,rails}.png` — enlarged crops used to read the analog EPD circuit directly.
+- `hardware/epdiy_ED047TC1.h` — external ED047TC1-specific origin/target waveform reference.
+- `hardware/2026-07-14-cell-{C,D}/` — exact build metadata, tmux transcripts, and operator observations.
 
 Defuddle only extracted the opening text of Issue 152. The full issue comments and current GitHub state are captured by `../scripts/03-query-upstream-state.sh` in `../scripts/output/03-upstream-state.txt`.
 

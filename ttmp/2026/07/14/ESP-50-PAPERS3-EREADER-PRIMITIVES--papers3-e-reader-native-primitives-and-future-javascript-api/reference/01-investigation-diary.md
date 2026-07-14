@@ -725,3 +725,184 @@ updates.max_ms=2837
 ```
 
 The source-level explanation for mode-dependent output is anchored in the exact M5GFX checkout: `Panel_EPD.cpp` selects separate quality/text/fast/fastest LUTs, and `enum.hpp` assigns mode IDs 1–4. The evidence does not yet justify modifying those LUTs locally.
+
+## Step 8: Interpret the four-waveform black comparison
+
+The simultaneous four-column fixture showed that none of the partial-update waveforms produces an ideal solid black. FASTEST reaches the deepest black but leaves texture, FAST is uniform but gray, TEXT is lighter and textured, and QUALITY is both light and visibly uneven. This rules out selecting a mode solely by its enum name or nominal black value.
+
+Because the earlier full checkerboard under TEXT looked much deeper than the partial TEXT column, I ran a controlled full-screen TEXT transition from white to black. The operator found that result very light—almost white—with slight ghosting, so TEXT strongly fails as a clean solid-black waveform in Cell C despite its good checkerboard appearance.
+
+### Prompt Context
+
+**User prompt (verbatim):** "faster is deepest black, altohugh it has some \"texture\". Fasst is grey but very uniform, text is light with some texture. quality has some weird gradients and is lightest. It's not great."
+
+**User follow-up (verbatim):** "it's light, slight ghost. which idf are you using?"
+
+**User clarification (verbatim):** "it's very light in fact, almost white"
+
+**Assistant interpretation:** Treat “faster” as the FASTEST column and “Fasst” as FAST, preserve the visual ranking, investigate why the prior full-screen/mixed TEXT fixture looked better than the partial TEXT comparison column, and identify the exact active matrix cell/toolchain.
+
+**Inferred user intent:** Avoid freezing an unattractive waveform policy and continue toward an e-reader-specific refresh strategy that balances density, texture, uniformity, and ghost cleanup.
+
+**Commit (code):** N/A — no firmware change in this step; the already committed diagnostic was exercised further
+
+### What I did
+
+- Recorded the operator's per-column comparison in `sources/hardware/2026-07-14-cell-C/03-operator-observations.md`.
+- Preserved the post-comparison status: heap integrity passed after two full and four partial comparison updates.
+- Issued `epd waveform text white`, waited for completion, then issued `epd waveform text black` and waited for the REPL to return.
+- Left the full-screen TEXT black result visible for operator assessment; the operator reported it was very light—almost white—with slight ghosting.
+- Confirmed the active firmware is matrix Cell C: ESP-IDF 5.3.4, M5GFX 0.2.25, and M5Unified 0.2.18.
+
+### Why
+
+- The four-column comparison uses partial, non-overlapping updates after a QUALITY white baseline. It is excellent for relative comparison but does not reproduce the full-screen checkerboard's transition history.
+- A white-to-black full-screen transition under one mode is a cleaner test of whether TEXT can reach acceptable black when it owns the complete update.
+
+### What worked
+
+- All comparison and controlled-transition commands returned `command.result=pass` without a reboot or heap failure.
+- The comparison gave a clear relative ranking rather than the earlier ambiguous “washed out” description.
+
+### What didn't work
+
+- None of the four partial black columns was visually acceptable without qualification, and the controlled full-screen TEXT black was almost white with slight ghosting.
+- My first attempt to queue the black command immediately after polling the white command did not reach the REPL. The poll had matched an old prompt before the new transaction was visibly complete. I resent the black command only after confirming the white command's fresh `command.result=pass`; it then completed normally.
+
+### What I learned
+
+- Black density depends on waveform, update extent, previous physical state, and likely spatial transition pattern—not just framebuffer color.
+- FASTEST's density does not make it a clean-refresh default; its texture and no-erase fast path make it a candidate only for transient/local updates.
+- FAST's uniform gray may be useful for low-latency interaction, but it is not a final reader-page appearance.
+- The reader should be judged primarily with realistic white-page/black-text fixtures and controlled cleanup cycles, not only with pathological full-black fills.
+
+### What was tricky to build
+
+- Tmux pane polling includes old prompts and results. A completion check must identify output specific to the newly issued command, not merely any trailing prompt, before sending the next transaction.
+- EPD comparisons are stateful experiments. Updating four strips sequentially means each strip has a different waveform but shares the same earlier physical baseline; a full-screen follow-up is needed before attributing the differences entirely to partial geometry.
+
+### What warrants a second pair of eyes
+
+- Review why full-screen TEXT black remains light/ghosted while the TEXT checkerboard's black cells looked deep; likely transition pattern and neighboring white pixels materially affect perceived density.
+- Review whether the comparison should be repeated in reversed mode order to detect order or accumulated-history bias.
+
+### What should be done in the future
+
+- Treat Cell C's full-screen TEXT black as a visual failure and preserve it in the matrix evidence.
+- Add a realistic reader-page waveform fixture and test page-turn plus cleanup sequences.
+- Repeat the same scenes under Cell D (ESP-IDF 5.4.2) before blaming or accepting M5GFX's waveform behavior.
+- Do not select FASTEST as the reader default merely because it produced the darkest partial column.
+
+### Code review instructions
+
+- Compare the four-column observations with `DrawWaveformComparison` in `0106-papers3-epd-qualification/main/app_main.cpp`.
+- Review the controlled commands near the end of the tmux transcript: `epd waveform text white` and `epd waveform text black`.
+
+### Technical details
+
+Four-column visual ranking, left to right:
+
+```text
+QUALITY  lightest; strange gradients
+TEXT     light; textured
+FAST     gray; very uniform
+FASTEST  deepest black; textured
+```
+
+The controlled full 960×540 TEXT-mode black update after a full TEXT-mode white update was almost white and retained slight ghosting. Active configuration: Cell C, ESP-IDF 5.3.4, M5GFX 0.2.25, M5Unified 0.2.18.
+
+## Step 9: Return to panel physics, analog rails, and waveform representation
+
+Cell D reproduced Cell C's almost-white TEXT black under ESP-IDF 5.4.2, then passed the full boundary corpus and final heap check. That substantially lowers the probability of an ESP-IDF-specific display defect and shifts the investigation toward the ED047TC1 waveform, fixed VCOM, high-voltage rail behavior, temperature, and transition history.
+
+I stopped treating M5GFX mode names as experimental explanations. I downloaded and inspected the official panel datasheet and PaperS3 schematic directly, traced the actual source/gate/VCOM circuits, read the M5GFX phase LUT and update state machine, collected EPDiy waveform documentation plus an ED047TC1-specific header, and wrote a causal investigation plan in `analysis/01-papers3-epd-waveform-and-physical-drive-investigation-plan.md`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "so if you were to go back to fundamentals, and maybe examine the waveform itself or do some physically grounded / electrochemically grounded analysis, how would you proceed? it feels we are digging int the dark a little bit here. no? what are your assessments of the situation?"
+
+**User follow-up (verbatim):** "you can look at images with the read tool yourself, btw"
+
+**User clarification (verbatim):** "i wouldn't trust the tool all that much necessarily."
+
+**Assistant interpretation:** Stop trial-and-error mode cycling; personally inspect primary-source schematic/datasheet images and code, explain the electrophoretic and electrical mechanisms, rank hypotheses, and define discriminating optical/electrical/waveform experiments.
+
+**Inferred user intent:** Reach a causal, physically defensible diagnosis before building reader abstractions or modifying waveforms and hardware blindly.
+
+**Commit (code):** N/A — research, live Cell D evidence, and analysis documentation
+
+### What I did
+
+- Flashed matrix Cell D: ESP-IDF 5.4.2 with the same M5GFX 0.2.25 and M5Unified 0.2.18 SHAs as Cell C.
+- Repeated TEXT white→black; the operator reported the same almost-white result.
+- Ran Cell D boundaries 0–3. Final status passed heap integrity after 267 updates.
+- Downloaded the official ED047TC1 datasheet and PaperS3 V1.0 schematic, rendered enlarged schematic crops, and inspected them directly with the `read` tool.
+- Verified the board's MT3608 source-rail regulator, 120 kΩ/5.1 kΩ feedback divider, discrete VGH/VGL networks, and fixed VCOM divider (5.6 kΩ from VNEG, 1 kΩ to ground).
+- Calculated nominal VPOS near +14.7 V and nominal VCOM near −2.27 V from schematic values and normal regulator assumptions.
+- Verified the datasheet requires approximately ±15 V source rails, +22/−20 V gate rails, a panel-assigned VCOM within ±0.1 V, and the associated controller/waveform for guaranteed optics.
+- Read M5GFX's LUT comments and update state machine. PaperS3 installs no panel-specific LUT; it receives generic quality/text/fast/fastest arrays.
+- Downloaded an ED047TC1 EPDiy waveform header. It contains origin→target transition data and 15/30-phase programs rather than M5GFX's simpler target-level LUT plus generic eraser.
+- Collected waveform/physics references and wrote a staged diagnosis plan covering known-good firmware, controlled transition matrices, optical measurement, rail/VCOM probing, logic timing, offline LUT decoding, temperature, and safe waveform engineering.
+
+### Why
+
+- Matching failures across C and D make another IDF swap low-value.
+- An EPD pixel is an analog state reached by a time sequence of ±15 V/no-op actions relative to VCOM. “Black” is not a framebuffer value that the panel directly understands.
+- The observed area/history dependence can arise from waveform calibration, rail droop, VCOM mismatch, or combinations thereof; only controlled experiments can separate them.
+
+### What worked
+
+- Cell D remained machine-stable: all rotations passed, free internal heap was 305,655 bytes, and free SPIRAM was 7,088,344 bytes.
+- The enlarged schematic is legible enough to read key component values directly; no interpretation model is needed for the central VCOM conclusion.
+- Primary sources align: the datasheet's voltage/VCOM requirements, schematic rail design, M5GFX drive codes, and EPDiy physical explanation form one coherent model.
+
+### What didn't work
+
+- The first separate image-question tool call failed with a network reset. A later tool interpretation also overreached on test points. Direct image inspection showed no TP-designated test points and provided clearer component values, so the analysis does not rely on those speculative claims.
+- Plain PDF text extraction destroyed schematic spatial relationships. Rendering and cropping the vector schematic was necessary.
+- A current M5GFX mode comparison cannot reveal a vendor waveform's behavior because M5GFX's representation and EPDiy's origin→target representation are structurally different.
+
+### What I learned
+
+- VCOM is fixed in PaperS3 hardware at approximately −2.27 V nominal, not firmware-adjustable. The panel datasheet nevertheless expects its assigned VCOM within ±0.1 V.
+- The TEXT black sequence begins with several lighten frames and only a small net darken excess. Its almost-white endpoint is physically plausible when the sequence is not calibrated for the actual panel/temperature/rails.
+- FASTEST's dark texture is consistent with its direct no-erase path, not evidence that it is a high-quality reader waveform.
+- The deep checkerboard versus pale full black suggests full-area load and spatial pattern must be investigated alongside waveform history.
+
+### What was tricky to build
+
+- Physical EPD behavior spans four layers: electrophoretic particle dynamics, analog high-voltage generation/VCOM, gate/source scan timing, and software transition LUTs. A conclusion drawn from only one layer is underdetermined.
+- Waveforms must be assessed as origin→target paths over time. Counting target pulses alone misses generic eraser state, prior physical state, frame duration, and DC-balance obligations.
+- Hardware probing has real risk: rails reach about +22 V and −20 V, there are no explicit test points, and an earth-referenced scope ground can damage hardware if attached incorrectly.
+
+### What warrants a second pair of eyes
+
+- Review the schematic calculations and identify the panel's printed VCOM assignment before any resistor change.
+- Review whether to port the EPDiy ED047TC1 waveform wholesale or extend M5GFX's transition model.
+- Review the proposed high-voltage probing procedure with someone experienced in switching converters and fine-pitch e-paper hardware.
+
+### What should be done in the future
+
+- Run official factory firmware on this same board as the first known-good baseline.
+- Install exact ESP-IDF 5.3.3 and run Cell A rather than substituting another IDF.
+- Add an offline M5GFX/EPDiy waveform decoder and controlled area/history test fixture.
+- Delay long endurance soaks until the nearly-white black endpoint has a causal explanation.
+
+### Code review instructions
+
+- Read the new physical investigation plan first.
+- Cross-check rail values against the rendered schematic and datasheet text in `sources/hardware/`.
+- Cross-check software claims against M5GFX `Panel_EPD.cpp`, `Bus_EPD.cpp`, and `M5GFX.cpp` at the pinned Cell C/D SHA.
+
+### Technical details
+
+Ranked causes:
+
+```text
+1. Generic/non-panel-specific M5GFX waveform or transition model
+2. Full-area high-voltage/VCOM droop or ripple
+3. Fixed VCOM mismatch for this panel
+4. Temperature mismatch
+5. Board/panel fault (pending factory baseline)
+6. ESP-IDF/color/geometry bug (now low probability)
+```
