@@ -43,3 +43,13 @@ Task 5ptk complete: flashed and monitored Cardcore successfully on the Cardputer
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0105-cardcore-mesh-terminal — Flashed firmware project at commit eded12a
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/13/0104-CARDCORE-MESHCORE--cardputer-adv-meshcore-companion-terminal/reference/01-investigation-diary.md — Records port recovery, esptool verification, and boot logs
 
+
+## 2026-07-13
+
+Task ptlo in progress: native Cardputer/Cap diagnostics built and flashed; verified TCA8418 0x34, Cap expander 0x43/P0, and SX1262 status 0x2a (commit 0059094).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0105-cardcore-mesh-terminal/components/cardputer_bsp/bringup.cpp — Validated non-transmitting board bring-up
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/13/0104-CARDCORE-MESHCORE--cardputer-adv-meshcore-companion-terminal/reference/01-investigation-diary.md — Records compile fix, flash, and physical hardware logs
+

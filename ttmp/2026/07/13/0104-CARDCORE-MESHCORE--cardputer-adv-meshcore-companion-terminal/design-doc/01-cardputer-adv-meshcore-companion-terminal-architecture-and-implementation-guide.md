@@ -16,6 +16,8 @@ RelatedFiles:
       Note: USB Serial/JTAG recovery-console donor
     - Path: repo://0083-cardputer-adv-animation-ui
       Note: Queue-driven Cardputer-ADV UI and 8 MB configuration donor
+    - Path: repo://0105-cardcore-mesh-terminal/components/cardputer_bsp/bringup.cpp
+      Note: Native shared-I2C Cap P0 and SX1262 status bring-up implementation at commit 0059094
     - Path: repo://0105-cardcore-mesh-terminal/components/meshcore_compat/meshcore_compat.cpp
       Note: Only Cardcore source file that initializes and includes Arduino runtime
     - Path: repo://0105-cardcore-mesh-terminal/main/idf_component.yml
@@ -40,6 +42,7 @@ LastUpdated: 2026-07-13T19:56:19-04:00
 WhatFor: Implement the first Cardcore firmware increment and safely evolve it into a standalone MeshCore terminal.
 WhenToUse: Read before creating the firmware project, porting MeshCore, or touching Cardputer-ADV LoRa-cap hardware.
 ---
+
 
 
 

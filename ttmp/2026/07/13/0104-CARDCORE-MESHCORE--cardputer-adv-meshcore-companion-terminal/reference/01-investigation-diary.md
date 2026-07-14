@@ -14,6 +14,8 @@ Owners: []
 RelatedFiles:
     - Path: repo://0105-cardcore-mesh-terminal
       Note: Task 5ptk firmware scaffold built at commit eded12a317268664c7bb7b598e4e0b4ec8ae57a1
+    - Path: repo://0105-cardcore-mesh-terminal/components/cardputer_bsp/bringup.cpp
+      Note: Exact hardware diagnostic sequence and observed Cardputer/Cap evidence
     - Path: repo://0105-cardcore-mesh-terminal/dependencies.lock
       Note: Resolved Arduino-ESP32 3.3.10 component graph
     - Path: repo://components/cardputer_kb
@@ -28,6 +30,7 @@ LastUpdated: 2026-07-13T19:56:19-04:00
 WhatFor: Allow a future implementer to continue the research and bring-up without rediscovering constraints.
 WhenToUse: Read before modifying the proposed Cardcore firmware or taking ownership of the attached board serial port.
 ---
+
 
 
 
@@ -478,4 +481,77 @@ Port stability: 12/12 present samples, no fuser owner
 Flash: SHA verification succeeded for all three images
 Target: ESP32-S3 QFN56 rev 0.2, 8 MB XMC flash
 Runtime proof: Arduino compatibility + Cardcore boot logs observed
+```
+
+## Step 8: Prove shared I2C, Cap RF enable, and SX1262 status access
+
+I began Task `ptlo` by adding the native `cardputer_bsp` component and committed it as `0059094cb8c9f4ea6c919a2c18487de126d44e34`. It creates one ESP-IDF I2C0 bus, probes the Cardputer-ADV TCA8418 and Cap's PI4IOE5V6408, uses register read-modify-write to enable only expander P0, and performs an SX1262 reset plus non-transmitting `GetStatus` SPI command.
+
+The resulting image built and flashed successfully through the existing single-owner tmux session. The physical device confirmed the expected keyboard and Cap I2C addresses and returned a valid SX1262 status byte. This is safe, concrete Cap bring-up progress, but Task `ptlo` remains open because it still requires a configured raw receive/transmit interoperability test with a second known-good radio.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 6)
+
+**Assistant interpretation:** Continue tasks sequentially after the runtime proof, committing hardware bring-up evidence as small auditable increments.
+
+**Inferred user intent:** Establish the real Cardputer/Cap hardware layer before attempting protocol integration, rather than assuming third-party pin mappings work.
+
+**Commit (code):** 0059094cb8c9f4ea6c919a2c18487de126d44e34 — "Feat: add Cardputer Cap bring-up diagnostics"
+
+### What I did
+- Added `components/cardputer_bsp` with a native I2C0 owner and an explicit bring-up API.
+- Probed TCA8418 address `0x34` by reading its `CFG` register without changing keyboard configuration.
+- Probed the Cap PI4IOE5V6408 at `0x43`, then changed only P0 by read-modify-write: direction output, high-Z disabled, output high.
+- Initialized SPI3 on GPIO40/14/39, reset SX1262 through GPIO3, verified GPIO6 BUSY deasserted, and issued command `0xC0` (`GetStatus`) through CS GPIO5.
+- Built the new firmware, exited the existing monitor with `Ctrl+]`, flashed/monitored through the same tmux session, and observed the device logs.
+
+### Why
+- The Cap RF front-end cannot be assumed enabled after reset. Narrow P0 read-modify-write prevents accidental writes to undocumented expander pins.
+- A status command validates the real SPI/control wiring without selecting a radio region, setting PA power, configuring DIO2 RF switching, or transmitting.
+
+### What worked
+- Build completed with `cardcore_mesh_terminal.bin binary size 0x41cf0 bytes` and 94% of the 4 MB factory partition free.
+- Hardware monitor evidence:
+  - `TCA8418 found at 0x34, CFG=0x00`
+  - `Cap IO expander found at 0x43, ID=0xa0`
+  - `Cap RF front-end enabled through IO expander P0`
+  - `SX1262 status probe succeeded, status=0x2a`
+- Flash wrote and hash-verified bootloader, application, and partition table before the monitor observed all diagnostics.
+
+### What didn't work
+- The first compile of this component failed because `ESP_RETURN_ON_ERROR` was not declared. Exact error: `error: 'ESP_RETURN_ON_ERROR' was not declared in this scope`. Adding `#include "esp_check.h"` resolved it; the next build passed.
+
+### What I learned
+- The attached hardware matches the researched I2C and SX1262 control/SPI mapping closely enough for native diagnostics: keyboard `0x34`, Cap expander `0x43`, and SX1262 status path all respond.
+- The Cap expander device ID observed on this actual hardware is `0xa0`; preserve that value as diagnostic evidence, not as a hard rejection criterion until the manufacturer register specification is confirmed.
+- No native Cardcore component has initialized Arduino `Wire` or `SPI`; I2C0/SPI3 ownership is currently unambiguous.
+
+### What was tricky to build
+- The generic ESP-IDF helper macro used in the design pseudocode is declared outside the initially included headers. The symptom was a compile-time unresolved macro rather than a runtime error. Including `esp_check.h` made error propagation explicit and preserved the desired fail-fast diagnostic sequence.
+- The status probe must not be misrepresented as a LoRa receive/transmit test. It proves physical SPI/reset/BUSY/CS communication only; DIO2 RF switching, frequency configuration, IRQ handling, receive, and transmit remain deliberately untouched.
+
+### What warrants a second pair of eyes
+- Verify the PI4IOE5V6408 register semantics and Cap P0 function against M5Stack documentation/schematic before extending expander writes beyond this exact sequence.
+- Verify SPI3 is the intended host for these pins on ESP32-S3 and that no future display/SD client initializes it independently.
+- Review the SX1262 status interpretation before using `0x2a` as a strict health predicate; current code only reports successful transfer.
+
+### What should be done in the future
+- Add a bounded SX1262 configuration/IRQ receive component using the validated pins, with DIO2 RF switching and PA settings gated behind a region-specific configuration.
+- Perform raw receive/transmit against a second known-good device (with antenna attached) before marking Task `ptlo` complete or beginning MeshCore transport work.
+
+### Code review instructions
+- Start in `0105-cardcore-mesh-terminal/components/cardputer_bsp/bringup.cpp`; inspect `initialize_i2c`, `update_register_bit`, and `initialize_sx1262_status_probe`.
+- Rebuild, then flash through the one tmux owner and require all four hardware log lines above. Do not interpret this diagnostic image as ready to transmit.
+
+### Technical details
+```text
+Validated physical interfaces:
+I2C0 GPIO8/GPIO9: TCA8418 @ 0x34, CFG=0x00
+I2C0 GPIO8/GPIO9: PI4IOE5V6408 @ 0x43, ID=0xa0
+SPI3 GPIO40/14/39: SX1262 CS=5 RESET=3 BUSY=6 DIO1=4
+SX1262 GetStatus (0xC0): status=0x2a
+
+Non-transmitting scope:
+No frequency, DIO2 RF switch, PA, RX, TX, or interrupt configuration yet.
 ```
