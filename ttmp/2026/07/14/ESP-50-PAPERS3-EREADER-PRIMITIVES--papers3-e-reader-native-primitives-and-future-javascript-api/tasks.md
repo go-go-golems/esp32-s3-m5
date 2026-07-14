@@ -43,13 +43,13 @@
 - [ ] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
 - [ ] Phase 12 - Bind the stable primitive ABI into the fluent s3paper JavaScript layer and port the hello, status, library, and reader acceptance scripts <!-- t:pj4p -->
 - [ ] Phase 13 - Harden with long-run ghosting, malformed-content, power-loss, heap, concurrency, latency, and battery tests; then publish intern and operator guides <!-- t:9quv -->
-- [ ] [P0.1] Create a minimal standalone PaperS3 EPD qualification firmware with no reader/application dependencies <!-- t:mxag -->
+- [x] [P0.1] Create a minimal standalone PaperS3 EPD qualification firmware with no reader/application dependencies <!-- t:mxag -->
 - [ ] [P0.2] Record exact board revision, flash/PSRAM configuration, USB port identity, and reset/attach behavior <!-- t:er7u -->
-- [ ] [P0.3] Create reproducible build configurations for matrix cells A-D with exact ESP-IDF, M5GFX, and M5Unified pins <!-- t:4s33 -->
-- [ ] [P0.4] Add boot diagnostics for display count, logical/physical size, rotation, free heap, largest DMA block, and PSRAM <!-- t:lat8 -->
-- [ ] [P0.5] Implement full white, full black, full white, grayscale bars, checkerboard, and text quality test scenes <!-- t:onog -->
-- [ ] [P0.6] Implement Issue 181 boundary tests for 1-16 pixel widths, all corners, edges, and portrait/landscape full ranges <!-- t:3w54 -->
-- [ ] [P0.7] Implement a mixed partial/full refresh soak command with heap integrity checks and timing counters <!-- t:krae -->
+- [x] [P0.3] Create reproducible build configurations for matrix cells A-D with exact ESP-IDF, M5GFX, and M5Unified pins <!-- t:4s33 -->
+- [x] [P0.4] Add boot diagnostics for display count, logical/physical size, rotation, free heap, largest DMA block, and PSRAM <!-- t:lat8 -->
+- [x] [P0.5] Implement full white, full black, full white, grayscale bars, checkerboard, and text quality test scenes <!-- t:onog -->
+- [x] [P0.6] Implement Issue 181 boundary tests for 1-16 pixel widths, all corners, edges, and portrait/landscape full ranges <!-- t:3w54 -->
+- [x] [P0.7] Implement a mixed partial/full refresh soak command with heap integrity checks and timing counters <!-- t:krae -->
 - [ ] [P0.8] Implement display idle, sleep/power transition, and wake/reinitialization qualification commands <!-- t:y655 -->
 - [ ] [P0.9] Run the identical visual/logging corpus for matrix cells A-D on real hardware and preserve photos/logs <!-- t:io1c -->
 - [ ] [P0.10] Decide and document the accepted toolchain/component pin and any narrowly required local M5GFX patch <!-- t:5cww -->

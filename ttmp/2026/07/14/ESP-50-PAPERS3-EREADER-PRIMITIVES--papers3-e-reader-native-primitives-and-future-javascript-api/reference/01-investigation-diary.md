@@ -19,10 +19,18 @@ RelatedFiles:
       Note: Driver and local patch state examined in Steps 2 and 3
     - Path: repo://0080-papers3-ereader/main/ereader_app.cpp
       Note: Existing reader examined in Step 2
+    - Path: repo://0106-papers3-epd-qualification/README.md
+      Note: Operator build/flash/monitor and visual qualification procedure
+    - Path: repo://0106-papers3-epd-qualification/main/app_main.cpp
+      Note: Standalone Phase 0 harness, boundary corpus, diagnostics, soaks, sleep/wake, and waveform comparison (commit 62b7b8e)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/00-research-log.md
       Note: Retroactive reproducibility trace requested by the user
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/05-add-phase-tasks.sh
       Note: Idempotent source for the detailed phase task breakdown
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt
+      Note: Cell C flash, boot, boundary, sleep/wake, status, and waveform comparison transcript
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/03-operator-observations.md
+      Note: Human visual findings for washed black and ghosting
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-api-design.md
       Note: Imported source recorded in Step 1
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/local/s3paper-studio.jsx
@@ -37,6 +45,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -559,3 +568,160 @@ Detailed task counts by phase:
 P0=12 P1=10 P2=11 P3=10 P4=9 P5=10 P6=11
 P7=11 P8=11 P9=11 P10=9 P11=10 P12=11 P13=10
 ```
+
+## Step 7: Build and begin live qualification of the standalone EPD harness
+
+I created tutorial `0106-papers3-epd-qualification` as a deliberately standalone Phase 0 instrument, pinned clean M5 component checkouts, and built it under the currently installed matrix cells C and D. The harness now exposes deterministic static scenes, explicit waveform comparisons, the Issue 181 edge/rotation corpus, text and mixed-update soaks, heap/timing diagnostics, and display sleep/wake controls over USB Serial/JTAG.
+
+The first Cell C hardware run established that current M5GFX no longer corrupts heap or reboots during the boundary corpus, but it also found a visual policy problem that a compile could not reveal: `epd_quality` renders nominal black as washed-out gray on this panel, whereas `epd_text` produces a deep black checkerboard. I preserved the transcript and operator report, added a four-waveform comparison fixture, and have not accepted a production waveform or toolchain pin.
+
+### Prompt Context
+
+**User prompt (verbatim):** "the all black is not really black, it's a weird washed out grey. I was see a bit of the same wasout effect on the grey example, and the left most bar is not really black either.
+
+checkerboard is fine and nice deep black as far as i can tell.
+
+epd scene text is fine but i can see a bit of ghosing of the checker pattern within the grey swatches
+
+
+---
+
+it's running the rotation corruption boundary tests right now.
+
+Poll the tmux until done (you can use coarse sleep times, we're on the rotation 3), and then test the last few statuses, then advise, continue.
+
+Keep a detailed diary as you work."
+
+**Assistant interpretation:** Let the active boundary test finish without serial contention, collect its result, run sleep/wake and final diagnostics, preserve the user's visual findings, investigate the mode-dependent black/ghosting behavior, and continue refining Phase 0.
+
+**Inferred user intent:** Qualify real PaperS3 behavior rather than mistaking a successful render or compile for a safe e-reader display policy, while leaving enough evidence for a future session to resume precisely.
+
+**Commit (code):** `62b7b8ec19728dfe8ffc56ca659119b007363277` — "Add PaperS3 EPD qualification harness"
+
+### What I did
+
+- Created `0106-papers3-epd-qualification` with ESP-IDF project files, a custom partition table, USB Serial/JTAG console defaults, and committed `dependencies.lock`.
+- Added exact matrix cells and clean component preparation:
+  - C: ESP-IDF 5.3.4, M5GFX 0.2.25 at `ad9b814264d4e2000e9f30070002310bbccaffc9`, M5Unified 0.2.18 at `b1ffcc677014ed8bd01e5a1f240736ae654bfe12`;
+  - D: ESP-IDF 5.4.2 with the same M5 revisions;
+  - A/B remain configured for exact ESP-IDF 5.3.3 and fail closed because that IDF is not installed.
+- Added build, flash, matrix-list, clean-component, and one-session serial qualification tools.
+- Implemented boot/status diagnostics, static scenes, 1–16-pixel edge/corner updates in rotations 0–3, explicit full logical ranges, text soak, mixed full/partial soak, sleep/wake, and guarded power-off.
+- Configured the monitor menu key as `Ctrl-A`; the actual reflash chord is `Ctrl-A`, then `Ctrl-F`.
+- Built cells C and D successfully. Cell C produced a 16 MB-flash image with ample partition headroom.
+- Flashed Cell C, polled the running boundary command at 20-second intervals, then ran `epd cycle-sleep 2000` and `epd status` through the existing tmux-owned monitor.
+- Preserved the live transcript, exact build metadata, and operator findings under `sources/hardware/2026-07-14-cell-C/`.
+- Inspected M5GFX 0.2.25's `Panel_EPD` source. `epd_quality`, `epd_text`, `epd_fast`, and `epd_fastest` select distinct LUTs; fast modes also quantize framebuffer writes differently.
+- Added `epd waveform <mode> black|white|gray` and `epd waveform-compare`. The latter leaves simultaneous nominal-black columns rendered with QUALITY, TEXT, FAST, and FASTEST for direct operator comparison.
+- Corrected reset reason 11 to report `usb` and added physical panel dimensions to status.
+- Checked tasks P0.1 and P0.3–P0.7. P0.8 remains open until an explicit display-idle command is implemented and tested.
+
+### Why
+
+- Phase 0 exists to expose driver, waveform, geometry, and power behavior before reader code obscures the source of failures.
+- The checkerboard/black discrepancy demonstrates that the same framebuffer value is not enough to predict physical output; refresh intent must explicitly select a qualified waveform.
+- Capturing the serial transcript and human visual report together distinguishes machine safety from display quality.
+
+### What worked
+
+- The second flash completed at 115200 baud and the board autodetected as `board_M5PaperS3`.
+- Boot reported one EPD display, physical/logical 960×540 geometry, 8 MiB PSRAM, and passing heap integrity.
+- The boundary corpus completed all four rotations without reboot, prompt loss, heap failure, or command failure.
+- Sleep/wake completed in 2003 ms and restored the text scene; final heap integrity passed.
+- After 271 updates (11 full and 260 partial), final free internal heap was 305,387 bytes and free SPIRAM was 7,088,072 bytes. Average measured transaction time was 1,831 ms; maximum was 2,837 ms.
+- Both ESP-IDF 5.3.4 and 5.4.2 compile the current component/API combination.
+- The four-column waveform comparison compiled, reflashed, ran, and returned `command.result=pass` with heap integrity intact.
+
+### What didn't work
+
+- The first live flash at 460800 baud lost the USB connection at 21%:
+
+  ```text
+  Lost connection, retrying...
+  serial.serialutil.SerialException: device reports readiness to read but returned no data (device disconnected or multiple access on port?)
+  serial.serialutil.SerialException: Could not configure port: (5, 'Input/output error')
+  ```
+
+  No competing holder existed. Moving to another host USB port and lowering the requested baud to 115200 produced a complete flash. This attach/cable/port sensitivity remains part of the board evidence.
+- The first C build failed under `-Werror` because M5GFX dimensions are `int32_t` on this toolchain while the format strings used `%d`, and because untyped `std::max(0, int32_t_value)` could not deduce one type. I replaced the formats with `PRI` macros and supplied explicit `int32_t` template arguments.
+- ESP-IDF 5.3.3 is absent at `~/esp/esp-idf-5.3.3`; matrix A/B correctly stop with:
+
+  ```text
+  error: ESP-IDF 5.3.3 is not installed at /home/manuel/esp/esp-idf-5.3.3
+  install the exact toolchain before building matrix cell A
+  ```
+- Sending `Ctrl-A` followed by lowercase `f` did not reflash:
+
+  ```text
+  --- Error: Unknown menu character 'f'
+  ```
+
+  The monitor command is `Ctrl-A`, then `Ctrl-F`; this exact distinction is now in the README.
+- Visual Cell C findings are not an unconditional pass:
+  - quality-mode full black is washed-out gray;
+  - quality-mode grayscale has no convincing black endpoint;
+  - the quality-mode text scene retained checker-pattern ghosting in gray swatches;
+  - text-mode checkerboard black looked deep and clean.
+
+### What I learned
+
+- On this PaperS3/M5GFX combination, `epd_quality` means the grayscale-capable LUT, not “best black-and-white output.” `epd_text` is currently the stronger candidate for reader text and high-contrast fixtures.
+- Ghost cleanup cannot be inferred from `startWrite`/`endWrite` success. It needs history-aware full-refresh policy plus visual acceptance.
+- M5GFX's four EPD modes are materially different physical operations, so the future `PresentIntent` mapping must be measured and documented rather than named heuristically.
+- Lowering the requested baud was part of the successful recovery, although esptool's compressed-write throughput means baud alone may not explain the earlier physical disconnect; the host port change is confounded with it.
+
+### What was tricky to build
+
+- The display driver performs asynchronous queued EPD work. Every scene and boundary update therefore has to wait before changing mode, wrap drawing in one transaction, and wait again before recording timing or checking heap. Omitting the second wait would report success while physical work was still in flight.
+- The Issue 181 corpus had to exercise logical width/height after each rotation and explicitly submit the full logical range, while keeping every tiny edge rectangle in bounds. The historical bug was rotation/range arithmetic in the driver, not merely a visually malformed rectangle.
+- Live work had to preserve serial single ownership. Polling used `tmux capture-pane`; commands were injected into the existing monitor pane rather than opening pyserial or a second monitor.
+- Comparing waveforms is history-sensitive. The comparison fixture first establishes a common white quality baseline, then updates four non-overlapping black columns so all modes remain visible simultaneously. Even this does not eliminate panel history as a variable, so operator notes remain essential.
+
+### What warrants a second pair of eyes
+
+- Confirm the visual ordering and black density of the four waveform-comparison columns; automatic `pass` only proves the driver/heap path completed.
+- Review whether `epd_text` should be the default clean monochrome mode and whether grayscale should be isolated to regions that genuinely require it.
+- Review the boundary fixture's visual result, especially at the physical edges after rotation 3, despite the automatic pass.
+- Review whether the USB disconnect was solely a connection problem or whether repeated flashing at 460800 can reproduce it on the new port.
+
+### What should be done in the future
+
+- Record the operator's QUALITY/TEXT/FAST/FASTEST comparison and the visual sleep/wake/boundary disposition.
+- Add and test an explicit display-idle command, then complete P0.8.
+- Run a short text/mixed smoke soak before committing to the full 1,000-update corpus.
+- Flash and repeat the identical corpus with Cell D. Install exact ESP-IDF 5.3.3 before attempting cells A/B; do not substitute 5.3.4.
+- Preserve photos under the Cell C evidence directory and do not select the accepted Phase 0 pin until all required matrix evidence is reviewed.
+
+### Code review instructions
+
+- Start with `0106-papers3-epd-qualification/main/app_main.cpp`, especially `DrawTransaction`, `RunBoundaryRotation`, `RunSoak`, and `DrawWaveformComparison`.
+- Review `matrix/cells.tsv` and the preparation/build scripts for exact-tag and dirty-checkout enforcement.
+- Inspect `sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt` beside `03-operator-observations.md`.
+- Validate with:
+
+  ```bash
+  ./0106-papers3-epd-qualification/tools/prepare_matrix_components.sh
+  ./0106-papers3-epd-qualification/tools/build_matrix_cell.sh C
+  ./0106-papers3-epd-qualification/tools/build_matrix_cell.sh D
+  git diff --check -- 0106-papers3-epd-qualification
+  ```
+
+### Technical details
+
+Cell C final automatic status before the waveform-comparison reflash:
+
+```text
+boundary.rotation=0 result=pass
+boundary.rotation=1 result=pass
+boundary.rotation=2 result=pass
+boundary.rotation=3 result=pass
+display_sleep_cycle_ms=2003
+heap.integrity=pass
+updates.total=271
+updates.full=11
+updates.partial=260
+updates.average_ms=1831
+updates.max_ms=2837
+```
+
+The source-level explanation for mode-dependent output is anchored in the exact M5GFX checkout: `Panel_EPD.cpp` selects separate quality/text/fast/fastest LUTs, and `enum.hpp` assigns mode IDs 1–4. The evidence does not yet justify modifying those LUTs locally.

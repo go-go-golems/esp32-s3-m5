@@ -36,3 +36,12 @@ Expanded the 14 implementation phases into 146 detailed resumable subtasks, adde
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 6 records the task breakdown and commit workflow
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/05-add-phase-tasks.sh — Idempotent task seed used to create the breakdown
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/tasks.md — Detailed milestone and subtask tracking for Phases 0-13
+
+## 2026-07-14
+
+Phase 0: added and live-tested the PaperS3 EPD qualification harness; Cell C passed boundary and sleep/wake machine checks but exposed quality-mode washed black/ghosting, so waveform policy remains open (commit 62b7b8e).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0106-papers3-epd-qualification/main/app_main.cpp — Qualification implementation
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/03-operator-observations.md — Measured visual evidence
