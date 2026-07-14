@@ -1,0 +1,17 @@
+menu "PaperS3 M5GFX runtime trace"
+
+config PAPERS3_M5GFX_RUNTIME_TRACE
+    bool "Enable fixed-ring M5GFX EPD runtime tracing"
+    default n
+    help
+        Compile minimally perturbing EPD trace hooks into M5GFX and retain
+        fixed-size timestamped records in RAM. Records are printed only after
+        the display reports idle.
+
+config PAPERS3_M5GFX_TRACE_CAPACITY
+    int "Trace ring record capacity"
+    depends on PAPERS3_M5GFX_RUNTIME_TRACE
+    range 128 2048
+    default 512
+
+endmenu

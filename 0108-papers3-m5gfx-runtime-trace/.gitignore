@@ -1,0 +1,4 @@
+build-*/
+sdkconfig.*.generated
+components/
+managed_components/

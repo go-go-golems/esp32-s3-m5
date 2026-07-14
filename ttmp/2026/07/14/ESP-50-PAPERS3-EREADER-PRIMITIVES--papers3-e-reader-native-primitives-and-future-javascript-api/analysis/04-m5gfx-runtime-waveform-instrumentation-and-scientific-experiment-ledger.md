@@ -11,22 +11,26 @@ DocType: analysis
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: repo://0106-papers3-epd-qualification/.component-matrix/current/M5GFX/src/M5GFX.cpp
-      Note: PaperS3 bus clock pin and padding configuration
     - Path: repo://0106-papers3-epd-qualification/.component-matrix/current/M5GFX/src/lgfx/v1/platforms/esp32/Bus_EPD.cpp
       Note: Physical scan and power GPIO ordering to trace
     - Path: repo://0106-papers3-epd-qualification/.component-matrix/current/M5GFX/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp
       Note: Runtime LUT state machine and frame loop to instrument
+    - Path: repo://0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp
+      Note: Fixed-ring publication and idle-time JSONL dump implementation
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/17-decode-m5gfx-epd-waveforms.py
       Note: Deterministic non-invasive waveform decoder
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/17-m5gfx-waveform-static-decoding.md
-      Note: Generated canonical LUT comparison and endpoint schedules
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
+      Note: 18-check observer-effect audit and machine-code identity evidence
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/patches/18-m5gfx-runtime-trace-hooks.patch
+      Note: Compile-time-gated M5GFX queue power and frame hooks
 ExternalSources: []
 Summary: Design for minimally perturbing M5GFX runtime traces, external physical validation, and immutable PaperS3 experiment records.
 LastUpdated: 2026-07-14T21:25:00Z
 WhatFor: Turn visual EPD trials into source-backed, timing-aware, reproducible experiments.
 WhenToUse: Use before modifying M5GFX, replaying FactoryTest, attaching measurement equipment, or comparing waveform endpoints.
 ---
+
+
 
 
 
@@ -189,3 +193,60 @@ This design lets us answer questions that visual trials alone cannot:
 - Are poor endpoints correlated with software schedule, analog rails, temperature, area, or history?
 
 Until these records exist, “factory blank,” “quality white,” and “hard clear” are useful descriptions but not interchangeable experimental treatments.
+
+## Implementation result: trace-off identity and bounded timing instrumentation
+
+The design is now implemented in numbered project `0108-papers3-m5gfx-runtime-trace`. A reproducible preparation script copies the clean pinned M5GFX/M5Unified checkouts and applies patch `18-m5gfx-runtime-trace-hooks.patch`. The patch changes only `Panel_EPD`, `Bus_EPD`, and a compile-time trace header; the generated audit independently re-parses the patched source and confirms canonical LUT SHA-256 `d24b2df...` is unchanged.
+
+The application supplies a 512-record fixed ring. Each 48-byte record contains a release-published commit marker, monotonic sequence number, microsecond timestamp, current application operation, event ID, and five integer arguments. Writers reserve records with an atomic sequence increment and never allocate, format text, access storage, or print. The operator may dump JSON Lines only through `epd trace dump`, which takes the display mutex and calls `waitDisplay()` first.
+
+Driver events cover:
+
+- display enqueue and update dequeue;
+- target and eraser two-pixel-unit counts during update preparation;
+- power-on and power-off begin/end;
+- frame begin/end and continuation state;
+- display idle.
+
+Application events bracket every controlled draw transaction. There is deliberately no per-row hook and no drive-code histogram. Static LUT schedules can be joined to frame records for uniform fixtures without moving work into the scan loop.
+
+Two clean ESP-IDF 5.4.2 variants built with zero warnings:
+
+```text
+trace off application:    546064 bytes
+trace timing application: 547648 bytes
+delta:                       1584 bytes
+trace ring BSS:             24576 bytes
+```
+
+The most important observer-effect result is stronger than equal symbol sizes. The audit extracted the relocatable `.text` sections for `Panel_EPD::task_update` and `Bus_EPD::powerControl` from the trace-off build and the earlier clean Cell D build. Both pairs are byte-for-byte identical:
+
+```text
+Panel_EPD::task_update:
+634d10897d6fc00f0f31c5fdeeb9468ac131a6113ae42244a397d8707b6277b5
+
+Bus_EPD::powerControl:
+0688a43e27ad3af9b410419477f0eda234f4e464f5007fc3ccc77a0833e884d4
+```
+
+This required using a compile-time macro that removes both hook calls and argument evaluation. An earlier empty inline function still evaluated `uxQueueMessagesWaiting()` in the off build and changed generated code. The final macro also compiles counters and frame ordinals out. The off ELF contains neither the trace hook nor ring.
+
+The timing variant intentionally changes the two critical functions:
+
+```text
+Panel_EPD::task_update: 815 -> 1024 bytes (+209)
+Bus_EPD::powerControl:  292 -> 388 bytes (+96)
+linked hook call sites: 10
+```
+
+No call site occurs inside the 540-row loop. The application grows by 1,584 bytes, while the ring adds 24,576 BSS bytes. These are compile-time bounds, not a runtime duration measurement. A later physical trace-off/trace-on comparison is still required before interpreting microsecond differences as unperturbed panel timing.
+
+Final identities:
+
+```text
+trace patch SHA-256: 6c21e45e0909accd2b5df5ae3178534192b10a51ec4a319ebc2309bfe983d89f
+trace-off app SHA-256: 609aba851db118ee26a3051d4f78ae96255229493f9783f60f43334355925e68
+trace-on app SHA-256: a081daabe5a77d7405cde68e43955279ed5e5c0f954c2aee027b62d03fd9f6ea
+observer audit: 18 / 18 PASS
+hardware modified: no
+```

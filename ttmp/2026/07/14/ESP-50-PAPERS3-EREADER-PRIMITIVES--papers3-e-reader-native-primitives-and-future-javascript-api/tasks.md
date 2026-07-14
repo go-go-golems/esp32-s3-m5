@@ -198,8 +198,8 @@
 - [ ] [P0.18] Run controlled origin-target and area-load optical fixtures; decide whether waveform behavior or analog rail/VCOM measurement is the next branch <!-- t:6b2c -->
 - [x] [P0.17a] Decode and hash M5GFX 0.2.15/0.2.25 PaperS3 LUTs, bus configuration, and power ordering without hardware access <!-- t:qg59 -->
 - [x] [P0.17b] Design compile-time-gated nonblocking M5GFX runtime trace events and fixed-ring schema <!-- t:ekmz -->
-- [ ] [P0.17c] Implement trace-timing hooks for enqueue/dequeue, eraser/target arming, power, frame, and idle events without scan-loop printing <!-- t:k0uh -->
-- [ ] [P0.17d] Build and audit trace-disabled and trace-timing M5GFX controls; quantify binary/IRAM and observer-effect differences before flash <!-- t:v5zs -->
+- [x] [P0.17c] Implement trace-timing hooks for enqueue/dequeue, eraser/target arming, power, frame, and idle events without scan-loop printing <!-- t:k0uh -->
+- [x] [P0.17d] Build and audit trace-disabled and trace-timing M5GFX controls; quantify binary/IRAM and observer-effect differences before flash <!-- t:v5zs -->
 - [ ] [P0.17e] Create immutable per-run experiment directories with preregistration, manifest JSON, JSONL events, optical evidence, hashes, and separate automatic/optical dispositions <!-- t:onob -->
 - [ ] [P0.17f] Replay and video FactoryTest V0.5 black-to-white boot sequence as exact-binary optical baseline <!-- t:6nak -->
 - [ ] [P0.17g] Design reviewed external logic/rail/VCOM capture for the unmodified factory binary <!-- t:31al -->

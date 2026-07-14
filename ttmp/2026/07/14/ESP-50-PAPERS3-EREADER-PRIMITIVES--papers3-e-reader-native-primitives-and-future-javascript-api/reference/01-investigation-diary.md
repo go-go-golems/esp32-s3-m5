@@ -1820,3 +1820,118 @@ line padding: 8 bytes
 trace hot-path printing: forbidden
 hardware modified: no
 ```
+
+## Step 18: Implement and audit fixed-ring M5GFX runtime traces without flashing
+
+This step implemented the complete no-hardware runtime instrumentation gate. The new numbered project builds the same M5GFX source twice: once with every trace argument and counter compiled out, and once with fixed-ring timing events at operation, queue, update, power, frame, and idle boundaries.
+
+The observer audit passes 18/18 checks. Most importantly, extracted trace-off frame-scheduler and power-control machine-code sections are byte-identical to the earlier clean Cell D build, while trace-on perturbations are isolated outside the 540-row loop and measured at the binary/memory level.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead. do all the Next Steps: Next steps: Implement fixed-ring trace hooks, build trace-off/on variants, and audit observer effects without flashing."
+
+**Assistant interpretation:** Complete trace implementation, reproducible dual builds, and a source/binary observer-effect audit while preserving the board's current firmware and panel state.
+
+**Inferred user intent:** Obtain trustworthy runtime instrumentation whose disabled control is demonstrably unchanged and whose enabled perturbations are explicit before collecting more physical evidence.
+
+### What I did
+
+- Created `0108-papers3-m5gfx-runtime-trace` with pinned project version, no-drive boot, USB Serial/JTAG console, and 100 Hz FreeRTOS baseline.
+- Added a Kconfig-selectable 512 × 48-byte fixed trace ring using monotonic atomics and release-published commit markers.
+- Added operation bracketing and explicit `epd trace status|dump|reset`; dumping waits for display idle and occurs outside the worker.
+- Added M5GFX hooks for enqueue, dequeue, update preparation, power, frame, and idle boundaries.
+- Counted target/eraser two-pixel units only during existing update-preparation loops; did not count drive codes or call hooks in the 540-row loop.
+- Added exact-source preparation script `18`, dual warning-free build script `19`, patch evidence, and observer audit `20`.
+- Redirected full build output to ticket logs, printing concise success summaries and only filtered/truncated tails on failure.
+- Built trace-off and trace-timing variants from clean state with ESP-IDF 5.4.2.
+- Compared trace-off critical `.text` sections to clean Cell D and proved byte identity.
+- Verified the timing ring is 24,576 BSS bytes, app delta is 1,584 bytes, and there are ten bounded linked hook call sites.
+- Did not flash, monitor, or open the serial device.
+
+### Why
+
+- Runtime records are useful only if the control proves instrumentation can be removed without changing the code under study.
+- Fixed records avoid serial, allocation, JSON, and storage latency while rails are active.
+- Frame-boundary timestamps answer scheduler and rail-duration questions without adding work to every physical row.
+- Trace-on size and call-site evidence makes the observer effect reviewable before physical use.
+
+### What worked
+
+- Final trace-off and trace-on builds completed with zero warnings.
+- Patched M5GFX retained canonical LUT SHA-256 `d24b2df...`.
+- Trace-off ELF contains no trace hook or ring.
+- Trace-off `Panel_EPD::task_update` and `Bus_EPD::powerControl` text sections exactly match clean Cell D.
+- The timing build links one strong hook, a 512-record ring, and no per-row trace calls.
+- Audit result: 18/18 PASS; hardware modified: no.
+
+### What didn't work
+
+- The first off build failed with:
+
+```text
+error: 'CONFIG_PAPERS3_M5GFX_RUNTIME_TRACE' was not declared in this scope
+```
+
+  A disabled Kconfig boolean is absent rather than defined as zero. I replaced direct expression use with a preprocessor-selected `kTraceVariant` constant.
+- The first failure path ran `idf.py size` after compilation had already failed, duplicating a long compiler command. I changed the three build actions to an `&&` chain and truncate failure-tail lines to 500 characters.
+- A later off build produced:
+
+```text
+warning: unused variable 'continuation' [-Wunused-variable]
+```
+
+  I removed the temporary and passed the pre-reset `remain` expression directly to the compile-time hook macro.
+- An initial empty-inline-function design removed the hook body but still evaluated side-effectful arguments such as `uxQueueMessagesWaiting()`. Trace-off `task_update` differed from clean Cell D. Replacing it with a variadic compile-time macro, plus compile-out counter macros, restored exact text-section identity.
+
+### What I learned
+
+- “No-op function” is not equivalent to “no instrumentation”: C++ argument evaluation can survive and perturb behavior even if an inline callee is empty.
+- Relocatable section comparison is a stronger control than final ELF addresses or symbol sizes. Final link placement differs between applications, but extracted function text can still be identical.
+- A 512-record ring costs exactly 24 KiB BSS at 48 bytes per record; this is acceptable for a bounded experiment but should not silently enter production firmware.
+- M5GFX's trace-on worker growth is concentrated in frame scheduling (+209 bytes) and power control (+96 bytes), with no row-loop hook.
+
+### What was tricky to build
+
+- The trace hook is called from M5GFX while its implementation lives in the application. A weak C declaration plus one strong application definition keeps the patch narrow and lets the linker prove whether instrumentation is present.
+- The ring has writers on application and display-task contexts. Atomic sequence reservation gives each writer a unique slot; a release commit marker lets the later idle-time dump reject a partially published or overwritten record.
+- Observer auditing must distinguish source equivalence, relocatable machine-code equivalence, final-link identity, and physical timing equivalence. Only the first three are possible without flashing.
+
+### What warrants a second pair of eyes
+
+- Review ring wrap behavior if more than 512 events occur before dump; overwritten count is explicit, but such a run should be rejected.
+- Review operation association when queue coalescing spans application boundaries.
+- Verify target/eraser counts are correctly described as two-pixel units, not pixels.
+- Review whether one `esp_timer_get_time()` plus atomic publication per frame is sufficiently small relative to the 100 Hz inter-frame delay; this still requires physical A/B evidence.
+- Confirm `M5.begin(clear_display=false)` does not energize the panel on actual boot before any future flash authorization.
+
+### What should be done in the future
+
+- Implement the immutable experiment-directory generator before collecting trace data.
+- Review and authorize a no-drive boot of one variant only after exact binary selection.
+- Use external capture or trace-off/trace-on matched optical runs to measure runtime perturbation.
+- Preserve the exact FactoryTest video baseline separately from source-instrumented builds.
+
+### Code review instructions
+
+- Review `0108-papers3-m5gfx-runtime-trace/main/epd_trace_runtime.cpp` for publication, wrap, reset, and dump ordering.
+- Review patch `scripts/patches/18-m5gfx-runtime-trace-hooks.patch`, especially that no hook appears in the row loop.
+- Run scripts `18`, `19`, and `20`; normal build output should remain concise and audit should pass 18/18.
+- Inspect `scripts/output/20-m5gfx-runtime-trace-audit-latest.md` for exact section hashes and size deltas.
+- Confirm build scripts contain no flash/monitor operation.
+
+### Technical details
+
+```text
+project: 0108-papers3-m5gfx-runtime-trace
+ESP-IDF: 5.4.2
+M5GFX: ad9b814264d4e2000e9f30070002310bbccaffc9
+M5Unified: b1ffcc677014ed8bd01e5a1f240736ae654bfe12
+trace patch: 6c21e45e0909accd2b5df5ae3178534192b10a51ec4a319ebc2309bfe983d89f
+trace-off app: 609aba851db118ee26a3051d4f78ae96255229493f9783f60f43334355925e68
+trace-on app: a081daabe5a77d7405cde68e43955279ed5e5c0f954c2aee027b62d03fd9f6ea
+app delta: +1584 bytes
+ring BSS: 24576 bytes
+observer audit: 18/18 PASS
+hardware modified: no
+```

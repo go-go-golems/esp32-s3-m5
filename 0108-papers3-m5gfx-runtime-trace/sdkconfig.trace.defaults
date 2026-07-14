@@ -1,0 +1,3 @@
+# Fixed-ring frame/power timing trace. No drive-content counting or hot-path printing.
+CONFIG_PAPERS3_M5GFX_RUNTIME_TRACE=y
+CONFIG_PAPERS3_M5GFX_TRACE_CAPACITY=512
