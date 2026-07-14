@@ -1,13 +1,23 @@
-repository=https://github.com/tonywestonuk/EPD_Painter
-commit=753c521da8aef59756df07c1a4eb88f1c64c8227
-retrieved_utc=2026-07-14T19:43:49Z
+# repository=https://github.com/tonywestonuk/EPD_Painter
+# commit=753c521da8aef59756df07c1a4eb88f1c64c8227
+# retrieved_utc=2026-07-14T20:10:17Z
 
-32a9b1799e9a1aba459b5118814d87ca45ac610508d873774beab37abe0f4f07  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/README.md
-76da65ce9fa561275c03829138a5379e1316442e96ffdbb46506785fb60d0eef  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/How_It_Works.md
-8dc42ab47fab1ddfd9877dd950a23df6c04d9d8144fa5b6ee0d7bbf2f9f438ef  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/reference_manual.md
-2693b6a51fc0190aa25fe3f7f0d24047f38a4c594b411ceed9cf4993582be390  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
-8723ee3389320da8bfc01c6609acd2ce575f84f8a488398af0f7bc76c53deca7  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.h
-98152d0a16bfe02d4c150617822ebd39dae940884aca7a9d5bcb5900b0169f47  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter_presets.h
-719f6ac06c516dcdfbcedaed6595d4f12dd6039795e1d3ffd3e781f14455ba37  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/epd_painter_powerctl.cpp
-8d77f6274ee236c298a4af38063a5ec202e7096bd62574210f6e407e893ec27a  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/tools/waveform_calibrator.html
-6090a467209bab4a119105526eb5cb12f352e103098766089bcc6f095faa0145  /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/examples/adafruit/page_text/page_text.ino
+32a9b1799e9a1aba459b5118814d87ca45ac610508d873774beab37abe0f4f07  README.md
+76da65ce9fa561275c03829138a5379e1316442e96ffdbb46506785fb60d0eef  How_It_Works.md
+8dc42ab47fab1ddfd9877dd950a23df6c04d9d8144fa5b6ee0d7bbf2f9f438ef  reference_manual.md
+ea6b0b3efd7a7878184dbf48ffee98492feb5935608ac43cb04d6dd0990d070e  library.properties
+43cfc31453aadcbb5bfe4c2cecdac8126678eee68303037d1bc4e3398b1b3d47  src/build_opt.h
+2693b6a51fc0190aa25fe3f7f0d24047f38a4c594b411ceed9cf4993582be390  src/EPD_Painter.cpp
+8723ee3389320da8bfc01c6609acd2ce575f84f8a488398af0f7bc76c53deca7  src/EPD_Painter.h
+c93be7418846bcb515ce6592840dec86955bdc9b780893de2b0827f2c325041c  src/EPD_Painter.S
+ca0bb7ad692b00cd587d8837cb3d17084a19764171890027cf4f979d3fe286e5  src/EPD_Painter_Adafruit.h
+2f82292f8a4b490ed1aeeb8f243418bb6a5e373deffff808fac32dea8fae3e42  src/EPD_Painter_LVGL.h
+98152d0a16bfe02d4c150617822ebd39dae940884aca7a9d5bcb5900b0169f47  src/EPD_Painter_presets.h
+7ea0a5a81b4bbfe88c0f9a3327b6f479b0d71b5d5579a5b2acc892d9fd2c6c07  src/epd_painter_bootctl.cpp
+74cf318ae00c2304095fe265934cc0dc3d7db95eca1d865596182790e713c23a  src/epd_painter_bootctl.h
+719f6ac06c516dcdfbcedaed6595d4f12dd6039795e1d3ffd3e781f14455ba37  src/epd_painter_powerctl.cpp
+74884001817060f2cc57d017b59efc2b2bfae387e053f10db17187e1d108c841  src/epd_painter_powerctl.h
+b0dbe001c940d203d2e356e51218e7c642115ac3383a8dc4cb45540d26aaae62  src/epd_pin_driver.cpp
+ba3f7d7de7cb77c0771d64cb569e32d59bdd67b8f14a72c59e24bfadad873e6d  src/epd_pin_driver.h
+8d77f6274ee236c298a4af38063a5ec202e7096bd62574210f6e407e893ec27a  tools/waveform_calibrator.html
+6090a467209bab4a119105526eb5cb12f352e103098766089bcc6f095faa0145  examples/adafruit/page_text/page_text.ino

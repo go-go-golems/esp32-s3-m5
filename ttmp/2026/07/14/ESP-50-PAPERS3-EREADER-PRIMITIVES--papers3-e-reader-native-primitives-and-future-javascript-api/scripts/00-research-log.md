@@ -36,6 +36,20 @@ This directory makes the ESP-50 investigation reproducible. The extracted source
 4. `04-collect-line-anchors.sh`
    - Captures line anchors for the imported prototype, existing reader, factory HAL, and earlier queued canvas ABI.
    - Snapshot: `output/04-line-anchors.txt`.
+5. `05-add-phase-tasks.sh`
+   - Creates the original detailed Phase 0–13 implementation roadmap.
+6. `06-download-epd-bug-reports.py`
+   - Downloads complete GitHub issue bodies and comments for the PaperS3/M5GFX, LilyGo rail/VCOM, and FastEPD cases.
+7. `07-download-epd-painter-reference.sh`
+   - Downloads the complete build-relevant EPD_Painter 1.0.7 source at commit `753c521da8aef59756df07c1a4eb88f1c64c8227`, selected docs/examples, and a hash manifest.
+8. `08-compare-m5gfx-luts.py`
+   - Downloads M5GFX 0.2.15/0.2.25 panel sources plus the 0.2.25 board mapping and proves the five built-in LUTs are identical.
+9. `09-replay-factory-v0.5-flash.sh`
+   - Replays or checks the exact official merged factory binary. Default `--check` mode is non-destructive; `--execute` refuses a serial port with another owner.
+   - Timestamped check/flash logs live under `output/`.
+10. `10-audit-epd-painter.py`
+    - Performs the independent-driver pre-hardware audit: pin equivalence, waveform action counts, power sequencing, buffer initialization/allocation, completion semantics, cleanup, and safety gate.
+    - Snapshot: `output/10-epd-painter-pre-hardware-audit.md`.
 
 ## Web discovery queries
 
@@ -86,6 +100,11 @@ $T/scripts/01-inventory-local-evidence.sh > $T/scripts/output/01-local-inventory
 $T/scripts/02-import-and-fetch-sources.sh
 $T/scripts/03-query-upstream-state.sh > $T/scripts/output/03-upstream-state.txt
 $T/scripts/04-collect-line-anchors.sh > $T/scripts/output/04-line-anchors.txt
+$T/scripts/06-download-epd-bug-reports.py
+$T/scripts/07-download-epd-painter-reference.sh
+$T/scripts/08-compare-m5gfx-luts.py
+$T/scripts/09-replay-factory-v0.5-flash.sh --check
+$T/scripts/10-audit-epd-painter.py
 ```
 
 Upstream output is date-sensitive; review diffs instead of assuming a later run will match the 2026-07-14 snapshot.

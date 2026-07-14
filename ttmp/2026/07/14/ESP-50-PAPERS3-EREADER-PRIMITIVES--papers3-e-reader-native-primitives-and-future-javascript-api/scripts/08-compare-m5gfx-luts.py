@@ -13,6 +13,7 @@ DEST = ROOT / "sources" / "code" / "m5gfx-lut-comparison"
 TAGS = ("0.2.15", "0.2.25")
 LUTS = ("lut_quality", "lut_text", "lut_fast", "lut_fastest", "lut_eraser")
 URL = "https://raw.githubusercontent.com/m5stack/M5GFX/{tag}/src/lgfx/v1/platforms/esp32/Panel_EPD.cpp"
+BOARD_URL = "https://raw.githubusercontent.com/m5stack/M5GFX/{tag}/src/M5GFX.cpp"
 
 
 def extract(source: str, name: str) -> str:
@@ -48,6 +49,19 @@ def main() -> None:
             value = extract(source, name)
             lines.append(f"{name}_sha256={hashlib.sha256(value.encode()).hexdigest()}")
         lines.append("")
+
+    # Preserve the current board pin mapping used as a control by the independent-driver audit.
+    board_url = BOARD_URL.format(tag=TAGS[-1])
+    board_source = urllib.request.urlopen(board_url, timeout=30).read().decode("utf-8")
+    normalized_board = "\n".join(line.rstrip() for line in board_source.splitlines()) + "\n"
+    (DEST / f"M5GFX-{TAGS[-1]}.cpp").write_text(normalized_board, encoding="utf-8")
+    lines.extend(
+        [
+            f"board_source_url={board_url}",
+            f"board_source_sha256={hashlib.sha256(board_source.encode()).hexdigest()}",
+            "",
+        ]
+    )
 
     lines.append("pairwise_results:")
     for name in LUTS:

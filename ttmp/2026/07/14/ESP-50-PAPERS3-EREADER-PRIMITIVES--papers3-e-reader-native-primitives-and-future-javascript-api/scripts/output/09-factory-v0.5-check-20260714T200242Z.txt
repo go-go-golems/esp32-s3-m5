@@ -1,0 +1,22 @@
+mode=check
+utc=2026-07-14T20:02:42Z
+binary=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/factory-v0.5/C139-PaperS3-FactoryTest-V0.5_0x0.bin
+sha256=d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624
+port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00
+resolved_port=/dev/ttyACM0
+python=/home/manuel/.espressif/python_env/idf5.3_py3.13_env/bin/python
+esptool.py v4.11.0
+File size: 1439168 (bytes)
+Detected image type: ESP32-S3
+Image version: 1
+Entry point: 403c8918
+4 segments
+
+Segment 1: len 0x0154c load 0x3fce2810 file_offs 0x00000018 [BYTE_ACCESSIBLE,MEM_INTERNAL,DRAM]
+Segment 2: len 0x00004 load 0x403c8700 file_offs 0x0000156c [MEM_INTERNAL,IRAM]
+Segment 3: len 0x00ce8 load 0x403c8704 file_offs 0x00001578 [MEM_INTERNAL,IRAM]
+Segment 4: len 0x02ed8 load 0x403cb700 file_offs 0x00002268 [MEM_INTERNAL,IRAM]
+Checksum: ca (valid)
+Validation Hash: 292f68feda190f24c6acb2202cace90b364b903ed206c83548e4367d291b3a82 (valid)
+serial_owner=none
+result=check-only; device unchanged

@@ -72,3 +72,12 @@ Published a self-contained 64 KB technical deep dive covering the reader program
 
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Research/2026/07/14/ARTICLE - PaperS3 E-Paper Qualification - Physics, Waveforms, and Physical Drive.md — Full Obsidian article
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/design-doc/02-papers3-e-paper-qualification-deep-dive.md — Primary textbook-style ticket report
+
+## 2026-07-14
+
+P0.13: audited pinned EPD_Painter before hardware use; pin mapping matches M5GFX, but five correctness/observability blockers prohibit flashing the upstream source unchanged. Captured all source, replay commands, audit logic, and outputs under ticket scripts/sources.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/analysis/03-epd-painter-independent-driver-audit-and-experiment-design.md — Pre-hardware gate, findings, and constrained local patch scope
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md — Generated audit evidence

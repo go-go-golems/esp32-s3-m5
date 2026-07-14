@@ -40,7 +40,7 @@ The user prompt named `s3paper-api-design.md` twice but said “files.” `s3pap
 ## Downloaded code references
 
 - `code/m5gfx-lut-comparison/` — exact M5GFX 0.2.15 and 0.2.25 `Panel_EPD.cpp` sources plus normalized LUT hashes; all five built-in EPD LUTs are identical.
-- `code/epd-painter-753c521.../` — pinned selected source and documentation from the independent PaperS3-specific EPD_Painter driver, including waveform presets, hard-clear/DC-balance logic, and calibrator.
+- `code/epd-painter-753c521.../` — complete build-relevant source plus selected documentation/examples from the independent PaperS3-specific EPD_Painter driver, including assembly, waveform presets, hard-clear/DC-balance logic, boot/power control, and calibrator.
 
 ## Hardware and live evidence
 

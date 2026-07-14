@@ -18,6 +18,9 @@ lut_fast_sha256=b586ca3d9c59a4dad7c6377d253dbc4b2c1ce24f664bf51d9c8f8a86a03d5d7c
 lut_fastest_sha256=133e39cdb25f0eee16f627617fa4c464aab6f67f338398c6cbc2032c88f1f1bc
 lut_eraser_sha256=7ac381da1078a072703b7b6a050fc7183b2274e7997e3e4cb7478e635a44898c
 
+board_source_url=https://raw.githubusercontent.com/m5stack/M5GFX/0.2.25/src/M5GFX.cpp
+board_source_sha256=c979a04beddb551fe62b5666fe24b8bc1c7180425467288ed8e7042ad6ee6d59
+
 pairwise_results:
 lut_quality=IDENTICAL
 lut_text=IDENTICAL

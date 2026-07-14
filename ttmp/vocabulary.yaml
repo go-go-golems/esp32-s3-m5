@@ -221,6 +221,10 @@ topics:
       description: Electronic-ink display hardware, waveforms, refresh policy, and applications.
     - slug: ereader
       description: Electronic reader applications, content layout, pagination, libraries, and reading state.
+    - slug: waveform
+      description: Electrophoretic display waveform design, timing, and transition behavior
+    - slug: hardware-qualification
+      description: Reproducible hardware acceptance, safety gating, and physical validation
 docTypes:
     - slug: index
       description: Ticket index document
