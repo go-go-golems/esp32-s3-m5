@@ -419,3 +419,63 @@ Blocked live operation:
 idf.py -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00 flash monitor
 → Could not configure port: (5, 'Input/output error')
 ```
+
+## Step 7: Recover USB Serial/JTAG and complete the runtime proof
+
+After the operator replugged the Cardputer, its by-id USB Serial/JTAG device remained present for twelve consecutive one-second samples and had no competing process owner. A retry through the existing tmux session then connected, identified the ESP32-S3, wrote bootloader/partition/application images, and kept one `idf_monitor` session open through a successful Cardcore boot.
+
+This completes Task `5ptk`: the device now runs the IDF 5.5.4 build and logs both Arduino compatibility initialization and the native Cardcore boot message. The radio/BSP task is now unblocked, but no Cap-specific pin has been driven by Cardcore yet.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 6)
+
+**Assistant interpretation:** Verify the restored USB serial device, then retry the single-owner flash/monitor path and advance only after concrete boot evidence.
+
+**Inferred user intent:** Recover safely from transient USB instability and avoid mistaking a host-side port error for a firmware problem.
+
+### What I did
+- Sampled `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00` once per second for 12 seconds; every sample resolved to `/dev/ttyACM0`.
+- Verified `fuser` reported no port owner.
+- Reused tmux session `cardcore-0105` as the only flash/monitor owner and reran the clean-environment `idf.py ... flash monitor` command.
+- Observed successful esptool connection, write/hash verification, automatic reset, ESP-IDF boot, Arduino runtime initialization, and Cardcore boot log.
+
+### Why
+- The prior failure was an OS-level port configuration error. Stability and ownership needed to be confirmed before retrying an operation that resets and rewrites the device.
+
+### What worked
+- esptool identified `Chip is ESP32-S3 (QFN56) (revision v0.2)` with `Embedded Flash 8MB (XMC)` and `USB mode: USB-Serial/JTAG`.
+- Bootloader, partition table, and app all wrote and verified successfully.
+- Monitor produced:
+  - `I (101) meshcore_compat: Arduino compatibility runtime initialized`
+  - `I (101) cardcore: Cardcore boot: native IDF app with isolated Arduino compatibility runtime`
+- The boot log confirms ESP-IDF `v5.5.4`, 240 MHz CPU configuration, 8 MB flash, and the expected custom partition table.
+
+### What didn't work
+- N/A in this recovery attempt. The prior failed flash is retained in Step 6.
+
+### What I learned
+- The USB device can return after replug and remain stable; the prior error was not reproduced on the controlled retry.
+- The custom partition row is displayed as `storage Unknown data 01 82`, which is expected before the LittleFS component mounts it in a later task.
+
+### What was tricky to build
+- The first output capture included an incomplete early line followed by a reset banner because monitoring began around the automatic post-flash reset. Waiting for the complete subsequent boot sequence—not treating one truncated line as evidence—established the correct result.
+
+### What warrants a second pair of eyes
+- Verify whether USB stability remains reliable during repeated resets and long monitor sessions before relying on it for raw-radio experiments.
+- Confirm the stored partition subtype is accepted by the chosen LittleFS component before persistence implementation.
+
+### What should be done in the future
+- Start Task `ptlo`: add native shared-I2C ownership, probe TCA8418 and Cap expander, then perform SX1262 diagnostics/raw RX/TX with the antenna attached.
+
+### Code review instructions
+- In tmux session `cardcore-0105`, inspect the monitor output beginning at `Chip is ESP32-S3` and ending at `Cardcore boot`.
+- Reproduce only with one port owner: `idf.py -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_AC:A7:04:04:88:F4-if00 flash monitor` from the clean IDF 5.5.4 shell.
+
+### Technical details
+```text
+Port stability: 12/12 present samples, no fuser owner
+Flash: SHA verification succeeded for all three images
+Target: ESP32-S3 QFN56 rev 0.2, 8 MB XMC flash
+Runtime proof: Arduino compatibility + Cardcore boot logs observed
+```
