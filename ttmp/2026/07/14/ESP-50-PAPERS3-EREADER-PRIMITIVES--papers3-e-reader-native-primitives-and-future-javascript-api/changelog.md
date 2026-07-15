@@ -295,3 +295,12 @@ Extended synchronized Printalyzer raw capture to snapshot read-only calibration,
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py — Density-aware raw capture
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/30-test-synchronized-serial.py — No-hardware command/cleanup integration test
+
+## 2026-07-14
+
+Preregistered and passed a five-second static Printalyzer raw capture over a middle-ish PaperS3 white region in ROM mode: 46 post-settling samples, density estimate 0.678142 ± 0.000625 D, zero saturation/invalid records, 0.002243 D range, and complete cleanup; absolute density remains unqualified pending repositioning and raw reference checks.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md — Static raw statistics and limits
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/raw-static-white.jsonl — Immutable synchronized raw evidence

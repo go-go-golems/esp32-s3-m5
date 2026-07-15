@@ -1,0 +1,51 @@
+{
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "invalid_density_estimates": 0,
+    "maximum_density_range_d": 0.05,
+    "minimum_post_settling_samples": 20,
+    "saturated_samples": 0
+  },
+  "hypothesis": "A stationary white PaperS3 region produces unsaturated, stable raw channel data and valid host-derived reflection-density estimates under the instrument calibration duty.",
+  "id": "EXP-20260714-004-printalyzer-static-white-raw",
+  "limitations": [
+    "single aperture point",
+    "operator-selected coordinates not recorded",
+    "diagnostic single-sample estimate is not the normal two-reading calibrated workflow",
+    "no claim about whole-panel uniformity or F0 white endpoint"
+  ],
+  "papers3": {
+    "panel": "ED047TC1",
+    "sample_region": "operator-selected white region; exact coordinates not recorded",
+    "sensor_head": "operator confirmed flat, stable, and aperture fully covered",
+    "state": "ROM download mode; no reset, flash, or panel update permitted"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 5,
+    "gain_index": 2,
+    "gain_name": "HIGH",
+    "integration_index": 0,
+    "integration_ms": 100,
+    "mode": "remote diagnostic continuous reflection",
+    "reflection_light_duty": 128,
+    "settling_samples_excluded": 2,
+    "uid": "323147103439323344002900",
+    "version": "v1.1.0"
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "stop_conditions": [
+    "sensor head moves",
+    "unexpected panel change",
+    "Printalyzer command rejection",
+    "cleanup error",
+    "serial disconnect"
+  ],
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Printalyzer static raw stream over operator-identified white PaperS3 region"
+}
