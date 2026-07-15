@@ -1,0 +1,62 @@
+{
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "collector_result": "ok",
+    "comparison": "compare F1/F0 point traces after host-marker time normalization; do not claim spatial endpoint equivalence or cross-run absolute density if the head moved",
+    "f2_gate": "F2 is ineligible if F1 capture fails or F1/F0 point trace shows material unexplained order/shape divergence",
+    "invalid_density_estimates": 0,
+    "minimum_post_flash_capture_seconds": 25,
+    "saturated_samples": 0
+  },
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived trace-off",
+    "sha256": "3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3",
+    "source_commit": "5e275ad4b70abb85f7193fda137844730e64c4db",
+    "trace_compiled_out": true
+  },
+  "hypothesis": "At the unchanged aperture, trace-off F1 produces a valid transition trace whose ordered density activity and normalized plateau structure can be compared with exact F0 before any trace-on F2 run.",
+  "id": "EXP-20260715-010-factory-f1-density-only-control",
+  "limitations": [
+    "no new camera or spatial evidence",
+    "single point only",
+    "this does not replace original F0 video",
+    "F1 remains necessary observer/source control before F2"
+  ],
+  "papers3": {
+    "camera": "not required for this density-only treatment",
+    "expected_sequence": [
+      "title",
+      "full black",
+      "full white",
+      "grayscale bars",
+      "dashboard"
+    ],
+    "sample_region": "fixed unchanged aperture from F0 experiment 008"
+  },
+  "predecessor": {
+    "experiment": "EXP-20260715-008-factory-f0-dynamic-density",
+    "point_density_scope": "valid only if Printalyzer, PaperS3, table, and cables remain unmoved"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 45,
+    "gain_index": 2,
+    "integration_ms": 100,
+    "pre_flash_baseline_seconds": 2,
+    "reflection_light_duty": 128,
+    "version": "v1.1.0"
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "supersedes_for_current_decision": {
+    "experiment": "EXP-20260715-009-factory-f1-dynamic-density",
+    "reason": "operator chooses point-density evidence over a new camera recording; EXP-009 remains immutable and unexecuted"
+  },
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F1 stock-source trace-off fixed-point density-only observer control"
+}
