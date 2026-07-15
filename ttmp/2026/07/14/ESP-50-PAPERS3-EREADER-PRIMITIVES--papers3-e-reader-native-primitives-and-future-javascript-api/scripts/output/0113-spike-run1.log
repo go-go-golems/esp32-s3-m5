@@ -1,0 +1,16 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (102) cpu_start: Multicore app
+SPIKE|gcroot|PASS|rooted object intact after 20 gc cycles (n=41, moved=yes)
+SPIKE|widget|PASS|construct + read -> 7
+SPIKE|widget|PASS|method mutate -> 8
+SPIKE|widget|PASS|native live count -> 1
+SPIKE|widget|PASS|post-teardown access -> "stale widget handle" (stale_hits=1)
+SPIKE|widget|PASS|finalizer after gc (created=1 finalized=1 live=0)
+SPIKE|widget|PASS|millis() diagnostic binding -> "number"
+SPIKE|cancel|PASS|runaway loop stopped after 100ms -> InternalError: interrupted
+    at <eval> (<probe>:1:1)
+SPIKE|cancel|PASS|recovery eval after cancellation -> 4
+SPIKE|bytecode|PASS|compile->relocate->load->run (244 bytes) -> "bytecode:42"
+SPIKE|suite|FAIL|pass=37 fail=1
+
+# >>>  

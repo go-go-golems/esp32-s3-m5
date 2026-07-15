@@ -40,7 +40,7 @@
 - [x] Phase 8 - Ship a native vertical slice with library, reading view, page turns, progress, bookmarks, and resume without any JavaScript runtime <!-- t:ylnh -->
 - [x] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
 - [ ] Phase 10 - Implement coordinated power-off/deep-sleep, wake sources, final persistence flush, display quiescence, and resume contracts <!-- t:gnr0 -->
-- [ ] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
+- [x] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
 - [ ] Phase 12 - Bind the stable primitive ABI into the fluent s3paper JavaScript layer and port the hello, status, library, and reader acceptance scripts <!-- t:pj4p -->
 - [ ] Phase 13 - Harden with long-run ghosting, malformed-content, power-loss, heap, concurrency, latency, and battery tests; then publish intern and operator guides <!-- t:9quv -->
 - [x] [P0.1] Create a minimal standalone PaperS3 EPD qualification firmware with no reader/application dependencies <!-- t:mxag -->
@@ -158,16 +158,16 @@
 - [x] [P10.7] Implement low-battery behavior using qualified battery/USB detection without corrupting state <!-- t:tv0p -->
 - [ ] [P10.8] Run repeated sleep/wake, shutdown-during-write, missing-card-on-wake, and low-battery simulations <!-- t:1k7u -->
 - [ ] [P10.9] Measure idle/standby behavior and document wake limitations, reset behavior, and operator recovery <!-- t:5fwn -->
-- [ ] [P11.1] Pin an exact MicroQuickJS commit and record source, license, build flags, and local integration strategy <!-- t:zyxp -->
-- [ ] [P11.2] Cross-compile a minimal MicroQuickJS context for ESP32-S3 without linking it into the production reader path <!-- t:atze -->
-- [ ] [P11.3] Measure context startup and failure behavior at several fixed memory-arena sizes <!-- t:868e -->
-- [ ] [P11.4] Bind one diagnostic C function and validate argument conversion, exceptions, logging, and stack checks <!-- t:durp -->
-- [ ] [P11.5] Bind one generation-safe opaque widget handle and validate finalization and stale-handle errors <!-- t:dygk -->
-- [ ] [P11.6] Exercise compacting GC and audit every native JSValue lifetime with JSGCRef rooting discipline <!-- t:vq48 -->
-- [ ] [P11.7] Evaluate source execution and trusted relocated 32-bit bytecode; document compatibility/security constraints <!-- t:m1w2 -->
-- [ ] [P11.8] Compile syntax probes for fluent chains, closures, var/let/const, arrows, modules, spread, and candidate transpiled output <!-- t:0fdb -->
-- [ ] [P11.9] Establish and test execution budget, cancellation/watchdog behavior, exception recovery, and runaway-script handling <!-- t:dzfz -->
-- [ ] [P11.10] Publish memory, latency, syntax, safety results and make an explicit proceed/postpone decision <!-- t:s384 -->
+- [x] [P11.1] Pin an exact MicroQuickJS commit and record source, license, build flags, and local integration strategy <!-- t:zyxp -->
+- [x] [P11.2] Cross-compile a minimal MicroQuickJS context for ESP32-S3 without linking it into the production reader path <!-- t:atze -->
+- [x] [P11.3] Measure context startup and failure behavior at several fixed memory-arena sizes <!-- t:868e -->
+- [x] [P11.4] Bind one diagnostic C function and validate argument conversion, exceptions, logging, and stack checks <!-- t:durp -->
+- [x] [P11.5] Bind one generation-safe opaque widget handle and validate finalization and stale-handle errors <!-- t:dygk -->
+- [x] [P11.6] Exercise compacting GC and audit every native JSValue lifetime with JSGCRef rooting discipline <!-- t:vq48 -->
+- [x] [P11.7] Evaluate source execution and trusted relocated 32-bit bytecode; document compatibility/security constraints <!-- t:m1w2 -->
+- [x] [P11.8] Compile syntax probes for fluent chains, closures, var/let/const, arrows, modules, spread, and candidate transpiled output <!-- t:0fdb -->
+- [x] [P11.9] Establish and test execution budget, cancellation/watchdog behavior, exception recovery, and runaway-script handling <!-- t:dzfz -->
+- [x] [P11.10] Publish memory, latency, syntax, safety results and make an explicit proceed/postpone decision <!-- t:s384 -->
 - [ ] [P12.1] Define and version the s3paper native ABI plus capability-query and compatibility behavior <!-- t:qoou -->
 - [ ] [P12.2] Generate/register a minimal MicroQuickJS standard library containing only required s3paper and diagnostic APIs <!-- t:wiie -->
 - [ ] [P12.3] Implement ES5-compatible fluent wrappers for paper, page, text, row, col, spacer, divider, progress, list, book, and region <!-- t:5toh -->

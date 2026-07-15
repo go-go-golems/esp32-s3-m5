@@ -538,3 +538,12 @@ Step 15: Phase 10 power lifecycle - documented quiesce order, retained sleep ima
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_power.cpp — Coordinated sleep sequence and policies (commit 7e31f8f)
 
+
+## 2026-07-15
+
+Step 16: Phase 11 MicroQuickJS spike complete - 38/38 hardware probes (arenas 8KB-4MB, ES5 syntax matrix, OOM recovery, GC rooting with observed compaction, generation-safe handles, 100ms cancellation, on-device trusted bytecode); decision: PROCEED to Phase 12 (design-doc/05, commit edba960)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0113-papers3-mquickjs-spike/main/app_main.cpp — Phase 11 probe suite (commit edba960)
+

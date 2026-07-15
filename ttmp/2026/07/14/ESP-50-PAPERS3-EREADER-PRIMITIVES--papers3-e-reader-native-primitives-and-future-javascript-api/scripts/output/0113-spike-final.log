@@ -1,0 +1,116 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (103) boot: Loaded app from partition at offset 0x10000
+
+# >>> x
+
+SPIKE|suite|BEGIN|run=2 mquickjs feasibility (ESP-50 P11)
+SPIKE|env|INFO|internal_free=375407 psram_free=8386308
+SPIKE|startup|PASS|8KB internal: create=558us eval=983us result=42
+SPIKE|startup|PASS|16KB internal: create=610us eval=922us result=42
+SPIKE|startup|PASS|32KB internal: create=592us eval=935us result=42
+SPIKE|startup|PASS|64KB internal: create=594us eval=913us result=42
+SPIKE|startup|PASS|128KB internal: create=596us eval=918us result=42
+SPIKE|startup|PASS|256KB internal: create=587us eval=926us result=42
+SPIKE|startup|PASS|1024KB psram: create=591us eval=934us result=42
+SPIKE|startup|PASS|4096KB psram: create=610us eval=905us result=42
+SPIKE|syntax|PASS|var: OK -> 1
+SPIKE|syntax|PASS|let: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|const: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|arrow: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:42
+SPIKE|syntax|PASS|class: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|template-literal: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:8
+SPIKE|syntax|PASS|spread-array: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:23
+SPIKE|syntax|PASS|for-of: OK -> 6
+SPIKE|syntax|PASS|destructuring: ERR -> SyntaxError: variable name expected
+    at <probe>:1:19
+SPIKE|syntax|PASS|getter-literal: OK -> 4
+SPIKE|syntax|PASS|module-import: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|undeclared-global: ERR -> ReferenceError: variable 'q1' is not defined
+    at <eval> (<probe>:1:1)
+SPIKE|syntax|PASS|array-hole-write: ERR -> TypeError: invalid array subscript
+    at <eval> (<probe>:1:14)
+SPIKE|syntax|PASS|closure: OK -> 2
+SPIKE|syntax|PASS|fluent-es5: OK -> "hi"
+SPIKE|syntax|PASS|json: OK -> "{\"a\":[1,2]}"
+SPIKE|syntax|PASS|array-map: OK -> "2,4,6"
+SPIKE|syntax|PASS|regexp: OK -> "123"
+SPIKE|oom|PASS|exhaustion after 20ms -> InternalError: out of memory
+    at push (native)
+    at <eval> (<probe>:1:27)
+SPIKE|oom|PASS|recovery eval after OOM -> 2
+SPIKE|gcroot|PASS|rooted object intact after 20 gc cycles (n=41, moved=yes)
+SPIKE|widget|PASS|construct + read -> 7
+SPIKE|widget|PASS|method mutate -> 8
+SPIKE|widget|PASS|native live count -> 1
+SPIKE|widget|PASS|post-teardown access -> "stale widget handle" (stale_hits=1)
+SPIKE|widget|PASS|finalizer after gc (created=1 finalized=1 live=0)
+SPIKE|widget|PASS|millis() diagnostic binding -> "number"
+SPIKE|cancel|PASS|runaway loop stopped after 101ms -> InternalError: interrupted
+    at <eval> (<probe>:1:1)
+SPIKE|cancel|PASS|recovery eval after cancellation -> 4
+SPIKE|bytecode|PASS|compile->relocate->load->run (244 bytes) -> "bytecode:42"
+SPIKE|suite|PASS|run=2 pass=38 fail=0
+
+SPIKE|suite|BEGIN|run=3 mquickjs feasibility (ESP-50 P11)
+SPIKE|env|INFO|internal_free=375407 psram_free=8386308
+SPIKE|startup|PASS|8KB internal: create=558us eval=981us result=42
+SPIKE|startup|PASS|16KB internal: create=621us eval=917us result=42
+SPIKE|startup|PASS|32KB internal: create=594us eval=931us result=42
+SPIKE|startup|PASS|64KB internal: create=596us eval=909us result=42
+SPIKE|startup|PASS|128KB internal: create=591us eval=919us result=42
+SPIKE|startup|PASS|256KB internal: create=590us eval=924us result=42
+SPIKE|startup|PASS|1024KB psram: create=610us eval=926us result=42
+SPIKE|startup|PASS|4096KB psram: create=597us eval=917us result=42
+SPIKE|syntax|PASS|var: OK -> 1
+SPIKE|syntax|PASS|let: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|const: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|arrow: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:42
+SPIKE|syntax|PASS|class: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|template-literal: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:8
+SPIKE|syntax|PASS|spread-array: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:23
+SPIKE|syntax|PASS|for-of: OK -> 6
+SPIKE|syntax|PASS|destructuring: ERR -> SyntaxError: variable name expected
+    at <probe>:1:19
+SPIKE|syntax|PASS|getter-literal: OK -> 4
+SPIKE|syntax|PASS|module-import: ERR -> SyntaxError: unexpected character in expression
+    at <probe>:1:1
+SPIKE|syntax|PASS|undeclared-global: ERR -> ReferenceError: variable 'q1' is not defined
+    at <eval> (<probe>:1:1)
+SPIKE|syntax|PASS|array-hole-write: ERR -> TypeError: invalid array subscript
+    at <eval> (<probe>:1:14)
+SPIKE|syntax|PASS|closure: OK -> 2
+SPIKE|syntax|PASS|fluent-es5: OK -> "hi"
+SPIKE|syntax|PASS|json: OK -> "{\"a\":[1,2]}"
+SPIKE|syntax|PASS|array-map: OK -> "2,4,6"
+SPIKE|syntax|PASS|regexp: OK -> "123"
+SPIKE|oom|PASS|exhaustion after 20ms -> InternalError: out of memory
+    at push (native)
+    at <eval> (<probe>:1:27)
+SPIKE|oom|PASS|recovery eval after OOM -> 2
+SPIKE|gcroot|PASS|rooted object intact after 20 gc cycles (n=41, moved=yes)
+SPIKE|widget|PASS|construct + read -> 7
+SPIKE|widget|PASS|method mutate -> 8
+SPIKE|widget|PASS|native live count -> 1
+SPIKE|widget|PASS|post-teardown access -> "stale widget handle" (stale_hits=1)
+SPIKE|widget|PASS|finalizer after gc (created=1 finalized=1 live=0)
+SPIKE|widget|PASS|millis() diagnostic binding -> "number"
+SPIKE|cancel|PASS|runaway loop stopped after 101ms -> InternalError: interrupted
+    at <eval> (<probe>:1:1)
+SPIKE|cancel|PASS|recovery eval after cancellation -> 4
+SPIKE|bytecode|PASS|compile->relocate->load->run (244 bytes) -> "bytecode:42"
+SPIKE|suite|PASS|run=3 pass=38 fail=0
+
+# done

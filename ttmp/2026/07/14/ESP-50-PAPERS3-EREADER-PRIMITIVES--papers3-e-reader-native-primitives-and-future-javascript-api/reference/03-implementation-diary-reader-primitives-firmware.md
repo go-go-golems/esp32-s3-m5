@@ -971,3 +971,61 @@ This step made battery behavior a lifecycle instead of an ad-hoc powerOff(): a d
 
 ### Technical details
 - Boot-cause decoding: reset_reason 1=POWERON, 8=DEEPSLEEP, 11=USB; wakeup_cause 4=TIMER (esp_sleep.h enums, surfaced raw in PowerSnapshot).
+
+## Step 16: Phase 11 — MicroQuickJS feasibility spike, 38/38 on hardware
+
+The bounded spike the design doc demanded before any JS work: a separate firmware project (`0113-papers3-mquickjs-spike`) that answers every integration question on the real PaperS3 without touching the reader. The suite autoruns at boot and loops; the final capture is 38/38 PASS, and the proceed/postpone decision (design-doc/05) is **proceed** — bounded execution, cancellation, and C-API rooting discipline are all demonstrated, which is exactly what the stop rule required.
+
+### Prompt Context
+
+**User prompt (verbatim):** "1 2 3 work. continue with phase 11 now" — followed by "we have a esp-idf components service to run mqjs, did you find it?"
+
+**Assistant interpretation:** Operator confirmed the Phase 10 hardware checks; proceed with the MicroQuickJS spike, using the repo's existing mqjs infrastructure rather than importing anything new.
+
+**Inferred user intent:** Get the JS go/no-go answered cheaply with what the repo already has (the vendored engine and `mqjs_service`), keeping the reader firmware untouched.
+
+**Commit (code):** edba960 — "Spike: MicroQuickJS feasibility suite on PaperS3 (Phase 11)"
+
+### What I did
+- Pinned provenance (P11.1): in-repo vendored engine (`imports/esp32-mqjs-repl/.../components/mquickjs`, MIT) copied into the spike project; reference upstream `bellard/mquickjs@84d793e0` recorded (local clone `~/code/others/mquickjs`; header identical, engine .c predates upstream's StringBuffer rework by ~709 diff lines).
+- Custom stdlib via the upstream generator flow: `tools/spike_stdlib.c` + patched `mqjs_stdlib_spike.c` (CONFIG_SPIKE block) compiled on host by `tools/gen_spike_stdlib.sh` → `main/spike_stdlib.h` (32-bit table) + project-local `mquickjs_atom.h`. Key insight: `mquickjs_build.h` stringifies all function references, so the generator needs no function symbols at all.
+- Device runtime (`main/spike_stdlib_runtime.c`): print/gc/millis + the `S3Widget` class — packed (generation<<16|index)+1 opaque handles, stale-handle TypeErrors, finalizer accounting — mirroring the s3paper_core generation-handle scheme.
+- 7-probe suite in `main/app_main.cpp` using the shared `MqjsVm` (from `components/mqjs_service`): arena startup (8 KB–4 MB), 18-case syntax matrix, OOM+recovery, GC rooting under churn, widget lifecycle, 100 ms deadline cancellation, on-device trusted-bytecode round trip.
+- Results + decision in `design-doc/05-microquickjs-spike-results-and-proceed-decision.md`.
+
+### Why
+- Design §Phase 11 stop rule: postpone scripting if bounded execution/cancellation or C API safety can't be demonstrated in a short ticket. Both demonstrated → Phase 12 is unblocked.
+
+### What worked
+- All 38 probes: ~600 µs context creation at every arena size; OOM at 20 ms with the same context recovering; rooted object surviving 20 compaction cycles while observably moving; `"stale widget handle"` on post-teardown access with finalizers balancing; runaway `for(;;);` stopped at exactly 100 ms and the context reusable; 244-byte bytecode image compiled, relocated, and executed across two contexts entirely on-device.
+- Syntax matrix matches the ES5-stricter contract, with one pleasant surprise: **for-of is supported** (my initial expectation said no — the probe corrected me).
+
+### What didn't work
+- First capture lost the suite's early output: USB Serial/JTAG drops printf while no host reads, and a one-shot suite raced the console attach. Fixed by looping the suite every 30 s.
+- PSRAM silently absent on the first flashes: `set(COMPONENTS main)` trimmed `esp_psram` out of the build, so `CONFIG_SPIRAM` wasn't a known Kconfig symbol and the defaults were dropped with only a reconfigure-time warning ("unknown kconfig symbol 'SPIRAM'"). Fix: `set(COMPONENTS main esp_psram)` + rm sdkconfig.
+- `TRUE`/`FALSE` from the mquickjs API aren't defined under the ESP-IDF C++ toolchain — used `1`/`0`.
+- The console client crashes on a whitespace-only `--cmd " "` (`cmd.split()[0]` IndexError) — worked around with a real dummy command; worth a one-line guard someday.
+- An external-source permission gate blocked cloning/building `bellard/mquickjs` directly; resolved better by using the repo's own vendored engine (which the user pointed to), keeping the spike fully in-repo.
+
+### What I learned
+- Bytecode is stdlib-coupled: images embed atom indices, so bytecode must be produced by a context with the SAME stdlib. Compiling on-device (JS_NewContext2 prepare mode) sidesteps the whole host-toolchain/atom-mismatch problem for trusted images.
+- The generator warning "Too many properties, consider increasing ATOM_ALIGN" is advisory (global-object hash clamps; lookups stay correct, slightly slower).
+
+### What was tricky to build
+- The stdlib def/runtime pairing contract: the generated header references C functions by symbol name and must be included at the END of the translation unit that defines them; the atom header it also emits is included by the ENGINE — so a shared engine component cannot serve two different stdlibs. That's why the spike has a project-local engine copy and the README warns about it.
+
+### What warrants a second pair of eyes
+- The widget finalizer counts a stale-handle finalization as "finalized" even though the native slot was already torn down — correct for the spike's accounting, but the Phase 12 binding should decide explicitly who owns slot release when teardown races collection.
+- `MqjsVm::InterruptHandler` polls `esp_timer_get_time()` on every VM interrupt check; fine at 100 ms deadlines, but worth measuring overhead before using very tight budgets.
+
+### What should be done in the future
+- Phase 12 (pj4p): bind the real s3paper widget/page ABI using the spike's rooting + handle patterns; author the fluent facade in the proven ES5 subset.
+- Unify the JS-side generation-handle scheme with s3paper_core's WidgetHandle generations.
+- Reflash 0112 onto the PaperS3 when spike evidence gathering is done (the device currently runs the spike loop).
+
+### Code review instructions
+- Start at `0113-papers3-mquickjs-spike/README.md` (provenance + regeneration), then `main/app_main.cpp` (probes) and `main/spike_stdlib_runtime.c` (binding patterns, especially the JSGCRef use in `js_s3widget_constructor`).
+- Validate: `idf.py build flash` in 0113, then capture ~55 s of console output and grep `SPIKE|` — expect `suite|PASS|... pass=38 fail=0` every ~30 s. Evidence: `scripts/output/0113-spike-final.log`.
+
+### Technical details
+- Decision record: design-doc/05. Arena guidance for Phase 12: 128 KB internal is comfortable (the whole suite runs there); PSRAM supports 4 MB if scripts ever need it; startup cost is negligible (~1.5 ms create+first-eval).
