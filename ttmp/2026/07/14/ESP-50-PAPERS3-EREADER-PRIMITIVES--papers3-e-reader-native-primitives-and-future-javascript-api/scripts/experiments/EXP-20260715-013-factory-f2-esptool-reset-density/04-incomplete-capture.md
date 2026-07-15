@@ -40,6 +40,12 @@ No ring, alignment, or evidence checksum was generated. The raw density stream i
 
 The evidence proves a verified flash, an esptool hard-reset command, and healthy Printalyzer collection. It **does not prove that F2 booted into the FactoryTest application** or that the USB Serial/JTAG output path was observable after that reset. Do not infer an F2/F1 comparison or a panel disposition from this attempt.
 
+## Passive follow-up observation
+
+At `2026-07-15T01:56:31Z`, a separate 15-second PaperS3-only passive read-only capture completed without reset, input, pyserial, modem-control ioctl, or panel action. It also received zero firmware payload lines. This is expected if the FactoryTest application emitted its one-shot trace only during boot; it neither proves nor disproves which F2/ROM state is currently running.
+
+Evidence: `scripts/output/44-f2-current-firmware-passive-20260715T015631Z.jsonl`, SHA-256 `baf18896743d9c7a82b2a9aade4b2568dca5d1e45302e364aed4c8fabbfa6131`.
+
 ## Required next evidence
 
 Obtain the operator's visual/no-anomaly observation for this exact run. Then investigate the two unresolved alternatives before rerunning: (1) the reset may have left the board in ROM download mode rather than booting F2; (2) F2 may have booted while its USB console output was unavailable to the safe observer.
