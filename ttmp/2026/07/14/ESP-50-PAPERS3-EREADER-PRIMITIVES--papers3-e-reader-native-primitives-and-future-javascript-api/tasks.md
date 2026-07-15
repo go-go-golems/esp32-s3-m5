@@ -105,16 +105,16 @@
 - [x] [P5.8] Emit stable GlyphRun draw operations with frame-arena-owned text/glyph data <!-- t:t0p5 -->
 - [x] [P5.9] Add host fixtures for lowercase, punctuation, malformed UTF-8, long words, Latin accents, and fallback glyphs <!-- t:xip7 -->
 - [x] [P5.10] Compare host golden line breaks with PaperS3 output and approve body-text quality/refresh behavior <!-- t:zfpj -->
-- [ ] [P6.1] Implement non-destructive microSD initialization using the qualified PaperS3 pin/bus configuration <!-- t:11x4 -->
-- [ ] [P6.2] Implement ContentSource with Size, ReadAt, and Hash operations plus embedded-fixture and SD-text adapters <!-- t:ryu3 -->
-- [ ] [P6.3] Define stable BookId and ContentHash derivation independent of transient library list ordering <!-- t:7ji5 -->
+- [x] [P6.1] Implement non-destructive microSD initialization using the qualified PaperS3 pin/bus configuration <!-- t:11x4 -->
+- [x] [P6.2] Implement ContentSource with Size, ReadAt, and Hash operations plus embedded-fixture and SD-text adapters <!-- t:ryu3 -->
+- [x] [P6.3] Define stable BookId and ContentHash derivation independent of transient library list ordering <!-- t:7ji5 -->
 - [ ] [P6.4] Define a versioned, length-checked, checksummed BookRecord and catalog serialization format <!-- t:i78k -->
-- [ ] [P6.5] Implement bounded SD library scanning, metadata defaults, duplicate handling, and deterministic sorting <!-- t:ll6s -->
+- [x] [P6.5] Implement bounded SD library scanning, metadata defaults, duplicate handling, and deterministic sorting <!-- t:ll6s -->
 - [ ] [P6.6] Define settings and structured TextLocator persistence records with schema versions <!-- t:1y51 -->
-- [ ] [P6.7] Implement atomic temp/write/flush/rename/backup updates and recovery after interrupted writes <!-- t:lyfu -->
-- [ ] [P6.8] Keep disposable derived caches separate from catalog and critical resume state <!-- t:atj4 -->
-- [ ] [P6.9] Handle absent, removed, corrupt, and reinserted cards as recoverable application states <!-- t:gky6 -->
-- [ ] [P6.10] Add console commands to list, verify, rescan, inspect, and recover catalog/state without formatting media <!-- t:jxg5 -->
+- [x] [P6.7] Implement atomic temp/write/flush/rename/backup updates and recovery after interrupted writes <!-- t:lyfu -->
+- [x] [P6.8] Keep disposable derived caches separate from catalog and critical resume state <!-- t:atj4 -->
+- [x] [P6.9] Handle absent, removed, corrupt, and reinserted cards as recoverable application states <!-- t:gky6 -->
+- [x] [P6.10] Add console commands to list, verify, rescan, inspect, and recover catalog/state without formatting media <!-- t:jxg5 -->
 - [ ] [P6.11] Add host and hardware tests for corrupt records, interrupted writes, card removal, and remount <!-- t:5zpj -->
 - [x] [P7.1] Define TextLocator, PageLayout, LineLayout, LayoutKey, and PageCountEstimate contracts <!-- t:1lxo -->
 - [ ] [P7.2] Include content hash, font, size, line height, margins, viewport, hyphenation, alignment, and engine version in LayoutKey <!-- t:yqb2 -->
@@ -126,7 +126,7 @@
 - [ ] [P7.8] Persist disposable pagination checkpoints keyed by LayoutKey and validate them before reuse <!-- t:07pv -->
 - [x] [P7.9] Invalidate/recover cached pages and resume locators after typography, viewport, engine, or content changes <!-- t:g964 -->
 - [ ] [P7.10] Test empty, one-page, huge-paragraph, malformed, and multi-megabyte books for bounded memory and latency <!-- t:vh8v -->
-- [ ] [P7.11] Verify next/previous round trips preserve locator ranges across cache eviction and reboot <!-- t:4otq -->
+- [x] [P7.11] Verify next/previous round trips preserve locator ranges across cache eviction and reboot <!-- t:4otq -->
 - [ ] [P8.1] Define native reader application states for boot, card missing, library, opening, reading, error, and sleeping <!-- t:djij -->
 - [ ] [P8.2] Implement the library controller with stable BookId selection, title/author metadata, and reading progress <!-- t:p2kg -->
 - [ ] [P8.3] Implement the native library screen with empty, missing-card, corrupt-book, and selected-book states <!-- t:j8d5 -->

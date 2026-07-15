@@ -493,3 +493,12 @@ Typography upgrade (3r0u closed): vendored stb_truetype 1.26 + embedded PT Serif
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/text.cpp — TTF registry, kerned measurement and breaking
 
+
+## 2026-07-15
+
+Phase 6 core complete: non-destructive SD mount (M5-first SPI ownership fix after a bus-collision reboot), FATFS LFN, deterministic library scan, SD ContentSource, and atomic versioned position persistence with validated resume across reboot (resumed=1 at exact locator). Reader opens library books by index; positions persist on every turn (commit d9c5912). Open: on-screen library/bookmarks (ylnh), catalog serialization (i78k), settings (1y51), fault-injection tests (5zpj).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_storage.cpp — SD mount, library, atomic position persistence
+

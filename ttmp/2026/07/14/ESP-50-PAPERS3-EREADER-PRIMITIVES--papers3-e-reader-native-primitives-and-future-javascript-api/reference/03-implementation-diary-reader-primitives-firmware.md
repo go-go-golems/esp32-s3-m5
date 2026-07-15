@@ -667,3 +667,65 @@ hardware      -> fixture: 640 ms cold, 260 ms warm; reader page ~450 ms;
 host checks   -> 3922 (goldens re-pinned for PT Serif; check-count drop
                  vs 4541 is denser pages => fewer pagination loop checks)
 ```
+
+## Step 11: Phase 6 — SD library, content sources, and resume across reboot
+
+With a microSD card freshly inserted by the operator, this step made the reader read real books from removable media and remember where you stopped. `app_storage.cpp` (owner-task-only) provides: a non-destructive SDSPI mount (`format_if_mount_failed=false`, pins per the vendor demo: MISO 40 / MOSI 38 / SCLK 39 / CS 47), a bounded deterministic library scan of `*.txt` in `/sdcard` and `/sdcard/books`, an `SdContentSource` whose FNV-head+size identity matches `MemoryContentSource` semantics, and reading-position persistence — a versioned, checksummed, fixed-capacity record file written atomically (tmp → fflush → fsync → rename, with the previous generation kept as `.bak` and used as load fallback).
+
+The reader controller now opens library books by scan index (`reader open <n>`, gestures unchanged), persists the locator on every page turn (embedded book included — positions key on content hash), and on open validates a persisted locator against live content before resuming; a failed validation falls back to the beginning explicitly. The full loop was proven on hardware: read to 54.7% on an SD book, hard-reboot the device, remount, reopen — `resumed=1` at the exact byte offset.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, continue then" / mid-turn: "i put a sd card in"
+
+**Assistant interpretation:** Proceed with the next phase (Phase 6, SD content and persistence), now unblocked by real media.
+
+**Inferred user intent:** A real e-reader: books from the card, position remembered across power cycles.
+
+**Commit (code):** d9c59120dd96979fe3b1d60a90f5f67cb50a7055 — "Reader: add SD library, content source, and resume persistence (Phase 6)"
+
+### What I did
+- `main/app_storage.{h,cpp}`: mount/unmount/status, library scan (title-sorted, 32-book bound), `LibraryPrint` (owner prints; strings don't fit POD replies), `StorageWriteDemoBook` (writes the embedded Alice text to `/sdcard/books/alice-demo.txt`, never overwrites), `SdContentSource`, positions file (magic `S3RP`, version, CRC over payload, 32 records, oldest-slot replacement policy).
+- Reader: `OpenCommon` (fresh heap paginator per open, resume lookup + `Validate`), `ReaderOpenSd(index)`, `PersistPosition()` after successful next/prev; snapshot gained title/source/resumed.
+- Events/console: `ConsolePayload.arg2`, `ConsoleOp::{Sd,Library}`, `SdSnapshot`; commands `sd [mount|unmount|demo|status]`, `library [scan|list]`, `reader open [n]`.
+- `sdkconfig.defaults`: `CONFIG_FATFS_LFN_HEAP=y`, `CONFIG_FATFS_MAX_LFN=255` (removed `sdkconfig` to apply — the documented seeding trap).
+- Validation transcripts: `0112-phase6-validation-01.log` (first attempt, two real failures below), `-02.log` (mount 7580 MiB, demo write, 2-book scan, SD reading to offset 1701, `position_writes=2 failures=0`), `-03-resume.log` (reboot → `loaded 1 reading position(s)` → `resuming "alice-demo" at offset 1701` → `resumed=1`).
+
+### Why
+- Phase 6 is what turns the vertical slice into an e-reader: content from user media, identity by content hash (never list order), positions as validated locators (never page numbers), and persistence that survives interruption.
+
+### What didn't work
+- **SPI bus collision reboot:** the first `reader open 0` lazily initialized M5GFX *after* the SD mount owned the SPI bus — `spi: spi_bus_initialize(806): SPI bus already initialized`, then LGFX's failure path de-initialized the live bus (`spi_master_deinit_driver(345): not all CSses freed`) and the device rebooted. Root cause: nondeterministic bus-ownership order between two components sharing SPI2. Fix: `StorageMount` calls `EnsureM5Init()` first (M5 always owns bus setup) and treats `ESP_ERR_INVALID_STATE` from `spi_bus_initialize` as reuse.
+- **8.3 filenames:** the scan listed `P3C_FW~1.TXT` and the demo-book write returned `CorruptData` — FATFS long-filename support is off by default; `alice-demo.txt` and the `.s3paper` state dir are illegal as 8.3 names. Fix: LFN via heap + fresh `sdkconfig`.
+
+### What I learned
+- M5GFX's PaperS3 preset touches the same SPI bus the SD card uses (heritage of the M5Paper shared-bus design); any firmware combining both must fix the init order deliberately.
+- The card already contained a `.txt` from earlier PaperS3 experiments — the scan's non-destructive, additive behavior got a free real-world test.
+
+### What was tricky to build
+- Resume correctness across content change: a persisted locator is only trusted after `Paginator::Validate` re-hashes the bytes at the offset; an edited/replaced book falls back to page one rather than composing garbage from a stale offset. The content-hash identity (head + size) also means a re-written demo book with identical text resumes seamlessly.
+
+### What warrants a second pair of eyes
+- Position writes happen on *every* page turn (~10 ms SD write). Fine at reading cadence; if wear or latency ever matters, coalesce via the scheduler (quiet-window deadline already exists).
+- `PositionsFile` capacity policy replaces slot 0 when full (explicit but crude); a proper LRU needs a timestamp field (schema v2).
+- Card removal mid-read is handled only reactively (reads fail with explicit errors; `sd mount` recovers after reinsertion) — no removal detection task. Task `5zpj` (fault-injection tests) remains open.
+
+### What should be done in the future
+- On-screen library UI and bookmarks (rest of Phase 8's `ylnh`), catalog serialization (`i78k`), settings records (`1y51`), interrupted-write/removal test fixtures (`5zpj`), pagination-checkpoint cache on SD (`07pv`).
+- Then Phase 9 (retained widgets — the JS binding surface) and Phase 10 (sleep/wake with final persistence flush).
+
+### Code review instructions
+- Read `main/app_storage.cpp` (`StorageMount` ordering comment, `PositionsSave` rename dance, `ScanDirectory` bounds), then `OpenCommon`/`PersistPosition` in `app_reader.cpp`.
+- Validate: `sd mount`, `sd demo`, `library scan`, `reader open 0`, page a few times, reboot, `sd mount` + `reader open 0` → expect `resumed=1` at the persisted offset.
+
+### Technical details
+
+```text
+card         -> 7580 MiB, FAT, preexisting P3C_FW_RESULT_AB.txt preserved
+library      -> [0] alice-demo (4699 B, hash bd230159), [1] P3C_FW_RESULT_AB
+positions    -> /sdcard/.s3paper/positions.bin, magic S3RP v1, CRC=FNV,
+                32 records, .bak generation; writes=2 failures=0
+resume proof -> reboot -> loaded 1 position -> resumed=1 offset=1701 (54.7%)
+spi fix      -> EnsureM5Init() before esp_vfs_fat_sdspi_mount; INVALID_STATE
+                from spi_bus_initialize treated as bus reuse
+```
