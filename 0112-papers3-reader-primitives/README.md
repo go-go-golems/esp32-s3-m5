@@ -54,7 +54,42 @@ and implementation handoff (`reference/02-*.md`).
   timing, heap high-water, and `heap_caps_check_integrity_all` every 256
   steps.
 
-Touch, SD, power, and JavaScript work still belong to later phases.
+## Phase 4 scope (input)
+
+- `s3paper/input.h` — touch→logical transforms, `PointerTracker` (dedup,
+  stale-cancel), gesture detector (tap/long-press/cardinal swipes),
+  z-ordered deterministic hit testing, monotonic `Scheduler`.
+- A tick-producer task posts 20 ms poll events; the owner reads the GT911
+  via the M5 backend (`M5Backend::ReadTouch`) and runs the pipeline.
+- Console: `touch [on|off|status]`.
+
+## Phase 5 scope (text)
+
+- `s3paper/text.h` — UTF-8 decoder (U+FFFD + one-byte advance on malformed
+  input), font metrics over vendored FreeSerif 12/18pt GFX data
+  (`components/s3paper_core/fonts/`, same arrays as the pinned m5gfx: one
+  metrics source for host layout and device blitting), paragraph split,
+  measured greedy line breaking with long-word hard breaks.
+- The M5 backend blits vendored glyphs as HLine runs; `fixture text`
+  renders a measured body-text page.
+
+## Phases 7–8 scope (pagination + reading slice)
+
+- `s3paper/content.h` — `ContentSource` interface + `MemoryContentSource`.
+- `s3paper/paginator.h` — locator-based streaming composition (8 KiB
+  window), sparse checkpoints + bounded backward reconstruction for
+  previous-page, context-hash locator validation, permille progress.
+  Positions are locators, never page numbers.
+- `main/app_reader.cpp` — owner-owned reading controller over an embedded
+  Alice fixture: header/body/footer pages through the refresh planner,
+  gesture page turns (tap right/left half, swipe left/right), console
+  `reader [open|next|prev|status]`.
+
+Still open: Phase 6 (SD catalog/persistence — needs a microSD card),
+Phase 9+ (retained widgets, power, MicroQuickJS), and the operator-facing
+qualification tasks tracked in the ticket.
+
+Host tests cover the whole pure core: 4541 checks under ASan/UBSan.
 
 ## Decision records
 
