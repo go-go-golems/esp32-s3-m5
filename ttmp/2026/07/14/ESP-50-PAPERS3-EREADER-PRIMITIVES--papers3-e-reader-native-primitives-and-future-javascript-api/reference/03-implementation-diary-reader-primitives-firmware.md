@@ -360,3 +360,69 @@ planner      -> policy max_turns=64; history turns_since_full=54 = 10000 mod 65
 queue        -> internal accepted=10000 rejected=0 high_water=2 out_of_order=0
 plan proof   -> fixture #1 reason=FirstRender, #2 reason=ExplicitRequest (CleanFull intent)
 ```
+
+## Step 6: Phase 4 — input primitives and the GT911 pipeline
+
+Implemented the input layer as pure host-testable primitives plus a thin hardware pipeline. `s3paper_core/input.h` provides: `TouchToLogical` (the exact inverse of `RotateInBounds`' point maps, round-trip tested for all four rotations and all corners), `PointerTracker` (deduplicates identical samples, cancels stale sequences whose release sample was lost), `GestureDetector` (tap, long-press via time-driven `Update()`, cardinal swipes with off-axis ratio rejection), z-ordered deterministic `HitTest` (highest z wins, paint order breaks ties), and a fixed-capacity monotonic `Scheduler` where re-adding an id reschedules it — the primitive behind quiet/deferred region scheduling.
+
+On the firmware side the ownership rule shaped the design: `M5.update()`/`M5.Touch` mutate M5Unified state, so the poll must happen in the owner task. A dedicated tick-producer task posts a `TimerDue` every 20 ms (never touching M5 or the model); the owner does the GT911 read, feeds the tracker/detector, reschedules the 2 s quiet-window deadline on every input, and exposes everything through `touch [on|off|status]`.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Continue phase-by-phase: implement task group P4.1–P4.9.
+
+**Inferred user intent:** Stable logical input events with host-provable semantics before the reader UI consumes them.
+
+**Commit (code):** 0024622e9f2a8af861735cd3bfed61cd57f6612f — "Reader: add input primitives and GT911 pipeline (Phase 4)"
+
+### What I did
+- `s3paper_core/include/s3paper/input.h` + `src/input.cpp` (all pure), added to both the IDF component and the host suite.
+- Host tests (now 455 checks): rotation round-trips against `RotateInBounds`, tracker dedup/stale-cancel, gesture corpus (tap, slow-release rejection, right/up swipes, diagonal rejection, long-press firing once from `Update()` and swallowing its `Up`, cancel suppression), hit regions (z-order, paint-order ties, explicit miss), scheduler (order, reschedule-by-readd, cancel, capacity), and a recorded 11-sample replay fixture asserting the exact event and gesture sequence including a stale-touch `Cancel`.
+- `M5Backend::ReadTouch()` (the only GT911 access), `EnsureM5Init()`/`ReadM5Touch()` pass-throughs in `app_display`, `main/app_input.{h,cpp}` (owner-only state + tick producer), `ConsoleOp::Touch` + `TouchSnapshot`, console `touch` command.
+- Validated on hardware: `touch on` initializes M5 and polling runs (samples counting at 50 Hz, internal tick events accepted in order, queue high_water=1). Armed a read-only capture and asked the operator to interact with the panel for real-gesture evidence.
+
+### Why
+- Phase 4's gate: stable logical events independent of raw polling, with recorded-trace host replays. Everything gesture-shaped is decided in pure code; the firmware only samples and forwards.
+
+### What worked
+- Host suite passed after one real fix (see below); hardware pipeline runs with zero queue rejects at 50 Hz.
+
+### What didn't work
+- First host run failed `RunGestureTrace(detector, diag, 2, out, 4) == 0`: a diagonal drag with **no Move samples** (coarse polling) slipped past the tap check because `moved_beyond_tap_` only tracked Move events. Real bug, not a test bug: the detector now also requires the Up position to be within tap distance.
+- `touch on` initially hit the 500 ms reply timeout — `M5.begin()` takes seconds; raised that command's bound to 15 s (same class as the fixture/soak-status lessons; long-running owner work needs matching reply bounds).
+- Initial link failed with `undefined reference to s3paper::PointerTracker::Feed(...)` — `input.cpp` was in the host Makefile but not the IDF component SRCS.
+
+### What I learned
+- M5.Touch coordinates already arrive in the panel's logical orientation, so the firmware path uses them directly at rotation 0; `TouchToLogical` is exercised on host and will matter when the reader adds rotation support.
+- The tick-producer pattern (dumb producer + owner-side polling) keeps the single-owner rule intact even for hardware that must be polled, at the cost of one 20 ms task.
+
+### What was tricky to build
+- The inverse rotation transforms: my first attempt used the wrong bounds dimension for rotations 1 and 3 (physical height where the logical height — which equals the physical *width* — was required). The round-trip-against-`RotateInBounds` test pinned it immediately; deriving the inverse from the forward map's algebra rather than intuition is the way.
+
+### What warrants a second pair of eyes
+- **Operator action needed:** tap, swipe (left/right/up/down), and long-press the panel while touch polling is enabled, then run `touch status` — the counters and gesture log are the P4.9 hardware evidence. A capture monitor is armed for this session.
+- Long-press position tolerance: movement beyond `tap_max_dist` suppresses long-press entirely (deliberate, prevents drag-then-hold misfires) — confirm that matches intended reader UX.
+- The quiet-window counter currently only proves the mechanism; nothing consumes it until widgets exist.
+
+### What should be done in the future
+- P4.5 hit regions are implemented and tested but not yet fed by layout output (layout emits them in Phase 9).
+- Wire gesture events into `AppEventKind::Pointer` payloads for controllers once Phase 8 states exist (currently gestures only update counters/logs).
+- Next: Phase 5 (fonts, UTF-8, measured text layout) — the biggest remaining pure-core chunk before the vertical slice.
+
+### Code review instructions
+- Start at `s3paper_core/src/input.cpp` (`TouchToLogical` comments, `GestureDetector::Feed` Up handling), then `TestInputReplayFixture` in the host suite, then `main/app_input.cpp` (`InputHandleTick`).
+- Validate host: `make run` in the host test dir (455 checks).
+- Validate hardware: `python3 ttmp/.../scripts/52-papers3-console-client.py --settle 8 --cmd "touch on"`, touch the panel, then `--cmd "touch status"`.
+
+### Technical details
+
+```text
+poll rate     -> 20 ms tick producer (prio 4, core 0); owner does M5.update()
+pipeline      -> sample -> PointerTracker -> GestureDetector(+Update) -> counters
+quiet window  -> Scheduler id=1 re-added at last_input + 2s; PopDue in tick
+hardware      -> touch on: enabled=1, samples at 50 Hz, internal events ordered,
+                 queue high_water=1, no rejects
+host checks   -> 455 total (input adds ~156)
+```

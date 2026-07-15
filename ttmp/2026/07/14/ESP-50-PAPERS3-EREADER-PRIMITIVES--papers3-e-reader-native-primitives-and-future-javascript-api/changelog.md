@@ -447,3 +447,12 @@ Phase 3 core complete: RefreshPlanner (aligned/merged damage, intent-to-waveform
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/0112-phase3-soak-10k-final.log — 10k soak evidence
 
+
+## 2026-07-15
+
+Phase 4 core complete: pure input primitives (touch transforms, pointer tracker, gestures, hit testing, monotonic scheduler; 455 host checks incl. trace replay) and the GT911 owner-side pipeline with touch console command (commit 0024622). Open: operator touch-gesture evidence (utsz), layout-fed hit regions (dfp0).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/input.cpp — Input primitives
+

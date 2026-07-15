@@ -86,14 +86,14 @@
 - [ ] [P3.8] Build committed visual fixtures for checkerboards, gray bars, inverse text, folios, page pairs, corners, and edges <!-- t:cmmr -->
 - [x] [P3.9] Run and capture a 10,000-update mixed refresh soak with heap integrity and timing summaries <!-- t:g16p -->
 - [ ] [P3.10] Review photographs/logs, approve a baseline policy, and document known ghosting limits <!-- t:71dg -->
-- [ ] [P4.1] Implement physical-to-logical touch coordinate transforms for every supported rotation <!-- t:omr2 -->
-- [ ] [P4.2] Define normalized PointerEvent down/move/up/cancel records with pointer ID and monotonic timestamps <!-- t:prii -->
-- [ ] [P4.3] Implement a pointer state machine that prevents duplicate taps and cancels stale/incomplete sequences <!-- t:91av -->
-- [ ] [P4.4] Implement configurable tap, long-press, and cardinal-swipe recognizers <!-- t:nju8 -->
+- [x] [P4.1] Implement physical-to-logical touch coordinate transforms for every supported rotation <!-- t:omr2 -->
+- [x] [P4.2] Define normalized PointerEvent down/move/up/cancel records with pointer ID and monotonic timestamps <!-- t:prii -->
+- [x] [P4.3] Implement a pointer state machine that prevents duplicate taps and cancels stale/incomplete sequences <!-- t:91av -->
+- [x] [P4.4] Implement configurable tap, long-press, and cardinal-swipe recognizers <!-- t:nju8 -->
 - [ ] [P4.5] Emit immutable hit regions from layout output and perform deepest/topmost deterministic hit testing <!-- t:dfp0 -->
-- [ ] [P4.6] Implement one monotonic scheduler for region deadlines, persistence deadlines, and inactivity deadlines <!-- t:mo55 -->
-- [ ] [P4.7] Track last-input time and implement quiet/deferred region scheduling without direct timer drawing <!-- t:cox7 -->
-- [ ] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
+- [x] [P4.6] Implement one monotonic scheduler for region deadlines, persistence deadlines, and inactivity deadlines <!-- t:mo55 -->
+- [x] [P4.7] Track last-input time and implement quiet/deferred region scheduling without direct timer drawing <!-- t:cox7 -->
+- [x] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
 - [ ] [P4.9] Route normalized input/timer events through AppEvent and validate owner-task integration on hardware <!-- t:utsz -->
 - [ ] [P5.1] Define reader typography requirements and compare candidate font formats for size, quality, metrics, and speed <!-- t:3r0u -->
 - [ ] [P5.2] Select, license, package, and document the initial regular reader font and diagnostic fallback font <!-- t:19jk -->
