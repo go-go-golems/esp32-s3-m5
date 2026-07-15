@@ -8,9 +8,12 @@
 #include "app_display.h"
 #include "app_reader_book.h"
 #include "app_storage.h"
+#include "app_ui.h"
 #include "s3paper/content.h"
+#include "s3paper/page.h"
 #include "s3paper/paginator.h"
 #include "s3paper/text.h"
+#include "s3paper/widget.h"
 
 namespace reader {
 namespace {
@@ -75,26 +78,66 @@ void PersistPosition() {
     PositionStore(s_state.content_hash, s_state.current);
 }
 
-// Renders the current page: header (title), body lines, footer (progress).
-StatusCode RenderCurrentPage() {
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    const s3paper::FontLineMetrics ui =
-        s3paper::GetFontLineMetrics(s3paper::kFontUi).value;
+// ---- Phase 9: both screens are retained widget pages (design §5).
+// The reading page keeps its tree across page turns (SetText updates the
+// chrome); the library rebuilds per show because its rows change.
+
+struct ReadingUi {
+    s3paper::WidgetHandle title{};
+    s3paper::WidgetHandle star{};
+    s3paper::WidgetHandle footer_text{};
+    s3paper::WidgetHandle book{};
+    s3paper::PageSlots slots{};
+};
+
+ReadingUi s_reading_ui;
+s3paper::PageId s_page_reading = s3paper::kNoPage;
+s3paper::PageId s_page_library = s3paper::kNoPage;
+
+void EnsurePagesRegistered() {
+    if (s_page_reading != s3paper::kNoPage) {
+        return;
+    }
+    s3paper::PageRouter &router = UiRouter();
+    s_page_reading =
+        router.Register("reading", s3paper::PageSlots{}).value;
+    s_page_library =
+        router.Register("library", s3paper::PageSlots{}).value;
+}
+
+// Route transition helper: prefer Back when it lands on `page` (bounded
+// stack), else Push. Every transition presents with a screen-change full.
+void RouteTo(s3paper::PageId page) {
+    s3paper::PageRouter &router = UiRouter();
+    const s3paper::Result<s3paper::PageId> current = router.Current();
+    if (current.ok() && current.value == page) {
+        return;
+    }
+    if (router.stack_depth() >= 2) {
+        const s3paper::Result<s3paper::PageId> back = router.Back();
+        if (back.ok() && back.value == page) {
+            return;
+        }
+        if (back.ok()) {
+            (void)router.Push(current.value);  // undo: wrong destination
+        }
+    }
+    if (!router.Push(page).ok()) {
+        // Bounded stack exhausted by odd navigation: reset to this page.
+        ESP_LOGW(kTag, "route stack full; keeping current page");
+    }
+}
+
+// Extra draw ops after widget compilation: the book body lines, using the
+// paginator's absolute baselines (LayoutKey margins are unchanged from
+// Phase 8, so persisted positions and goldens stay valid).
+StatusCode ComposeBodyOps(s3paper::FrameBuilder &fb,
+                          const s3paper::LayoutEntry *entries,
+                          uint32_t entry_count) {
+    (void)entries;
+    (void)entry_count;
     const s3paper::FontLineMetrics body =
         s3paper::GetFontLineMetrics(s3paper::kFontBody).value;
-    fb.Begin();
-    s3paper::Status st = fb.FillRect(s3paper::Rect{0, 0, 540, 960}, 255);
-    if (!st.ok()) return st.code;
-    // Header.
-    st = fb.GlyphRun(s3paper::Rect{kMarginX, 16, 460, ui.line_height + 4},
-                     16 + ui.line_height, s3paper::kFontUi, 0,
-                     s_state.title,
-                     static_cast<uint32_t>(strlen(s_state.title)), 0);
-    if (!st.ok()) return st.code;
-    st = fb.HLine(kMarginX, 56, 540 - 2 * kMarginX, 0);
-    if (!st.ok()) return st.code;
-    // Body lines: read each line's bytes from the content source into a
-    // stack buffer; GlyphRun copies them into the frame arena.
     for (uint32_t i = 0; i < s_state.page.line_count; ++i) {
         const s3paper::PageLine &line = s_state.page.lines[i];
         char buf[256];
@@ -104,25 +147,77 @@ StatusCode RenderCurrentPage() {
         const s3paper::Result<uint32_t> got = s_state.active->ReadAt(
             line.byte_start, reinterpret_cast<uint8_t *>(buf), len);
         if (!got.ok()) return got.code;
-        st = fb.GlyphRun(
+        const s3paper::Status st = fb.GlyphRun(
             s3paper::Rect{kMarginX, line.baseline_y - body.ascent,
                           line.width, body.line_height},
             line.baseline_y, s3paper::kFontBody, 0, buf, got.value, 0);
         if (!st.ok()) return st.code;
     }
-    // Bookmark indicator at the right edge of the header.
-    if (StorageMounted() &&
-        BookmarkIsSet(s_state.content_hash, s_state.current.byte_offset)) {
-        st = fb.GlyphRun(s3paper::Rect{540 - kMarginX - 24, 16, 24,
-                                       ui.line_height + 4},
-                         16 + ui.line_height, s3paper::kFontUi, 0, "*", 1, 0);
-        if (!st.ok()) return st.code;
+    return StatusCode::Ok;
+}
+
+// Builds the retained reading page: header row (title + bookmark star),
+// Book content node reserving the body, footer (divider + status line).
+StatusCode BuildReadingTree() {
+    s3paper::WidgetArena &a = UiArena();
+    a.Reset();
+
+    s3paper::WidgetHandle header = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *hn = a.Configure(header);
+    if (hn == nullptr) {
+        return StatusCode::CapacityExceeded;
     }
-    // Footer: progress + page-turn count + bookmark count.
+    hn->padding = s3paper::Insets{16, kMarginX, 4, kMarginX};
+    hn->gap = 8;
+    s3paper::WidgetHandle title_row = s3paper::NewRow(a).value;
+    s_reading_ui.title = s3paper::NewText(a, "", s3paper::kFontUi, 0).value;
+    a.Configure(s_reading_ui.title)->flex = 1;
+    s_reading_ui.star = s3paper::NewText(a, "", s3paper::kFontUi, 0,
+                                         s3paper::TextAlign::End)
+                            .value;
+    a.Configure(s_reading_ui.star)->fixed_w = 24;
+    (void)a.AddChild(title_row, s_reading_ui.title);
+    (void)a.AddChild(title_row, s_reading_ui.star);
+    (void)a.AddChild(header, title_row);
+    (void)a.AddChild(header, s3paper::NewDivider(a, 1, 0).value);
+
+    s_reading_ui.book = s3paper::NewBook(a, 1).value;
+
+    s3paper::WidgetHandle footer = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *fn = a.Configure(footer);
+    fn->padding = s3paper::Insets{4, kMarginX, 10, kMarginX};
+    fn->gap = 6;
+    (void)a.AddChild(footer, s3paper::NewDivider(a, 1, 0).value);
+    s_reading_ui.footer_text =
+        s3paper::NewText(a, "", s3paper::kFontUi, 0).value;
+    (void)a.AddChild(footer, s_reading_ui.footer_text);
+
+    s_reading_ui.slots = s3paper::PageSlots{header, s_reading_ui.book,
+                                            footer, s3paper::kNullWidget};
+    EnsurePagesRegistered();
+    (void)UiRouter().SetSlots(s_page_reading, s_reading_ui.slots);
+    return StatusCode::Ok;
+}
+
+// Renders the current page through the generic widget pipeline.
+StatusCode RenderCurrentPage() {
+    s3paper::WidgetArena &a = UiArena();
+    // Rebuild when never built or when another screen reset the arena.
+    if (a.Get(s_reading_ui.title) == nullptr) {
+        const StatusCode built = BuildReadingTree();
+        if (built != StatusCode::Ok) {
+            return built;
+        }
+    }
+    (void)a.SetText(s_reading_ui.title, s_state.title);
+    const bool marked =
+        StorageMounted() &&
+        BookmarkIsSet(s_state.content_hash, s_state.current.byte_offset);
+    (void)a.SetText(s_reading_ui.star, marked ? "*" : "");
     const s3paper::Result<uint32_t> progress =
         s_state.paginator->ProgressPermille(s_state.page.next);
     const uint32_t marks = BookmarkCountFor(s_state.content_hash);
-    char footer[80];
+    char footer[s3paper::TextProps::kCapacity];
     int footer_len = snprintf(
         footer, sizeof(footer), "%u%%%s   turns %u",
         progress.ok() ? static_cast<unsigned>(progress.value / 10) : 0,
@@ -130,32 +225,23 @@ StatusCode RenderCurrentPage() {
         static_cast<unsigned>(s_state.page_turns));
     if (marks > 0 && footer_len > 0 &&
         footer_len < static_cast<int>(sizeof(footer))) {
-        footer_len += snprintf(footer + footer_len,
-                               sizeof(footer) - footer_len, "   marks %u",
-                               static_cast<unsigned>(marks));
+        snprintf(footer + footer_len, sizeof(footer) - footer_len,
+                 "   marks %u", static_cast<unsigned>(marks));
     }
-    st = fb.HLine(kMarginX, 960 - 44, 540 - 2 * kMarginX, 0);
-    if (!st.ok()) return st.code;
-    st = fb.GlyphRun(s3paper::Rect{kMarginX, 960 - 40, 460, 32}, 960 - 14,
-                     s3paper::kFontUi, 0, footer,
-                     static_cast<uint32_t>(footer_len), 0);
-    if (!st.ok()) return st.code;
+    (void)a.SetText(s_reading_ui.footer_text, footer);
 
-    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
-    if (!frame.ok()) return frame.code;
-    const s3paper::Status init = EnsureM5Init();
-    if (!init.ok()) return init.code;
-    const PlannedPresent presented = PresentFramePlanned(
-        frame.value, s3paper::PresentIntent::TextPage, true);
-    if (presented.present.status == StatusCode::Ok) {
-        ESP_LOGI(kTag, "page at %llu lines=%u full=%d reason=%s",
+    const UiPresentResult presented =
+        UiPresentPage(s_reading_ui.slots, s3paper::PresentIntent::TextPage,
+                      false, nullptr, 0, &ComposeBodyOps);
+    if (presented.status == StatusCode::Ok) {
+        RouteTo(s_page_reading);
+        ESP_LOGI(kTag, "page at %llu lines=%u full=%d",
                  static_cast<unsigned long long>(
                      s_state.current.byte_offset),
                  static_cast<unsigned>(s_state.page.line_count),
-                 presented.plan.full_refresh ? 1 : 0,
-                 s3paper::RefreshReasonName(presented.plan.reason));
+                 presented.full_refresh ? 1 : 0);
     }
-    return presented.present.status;
+    return presented.status;
 }
 
 // Takes the locator BY VALUE: callers pass s_state.page.next, which
@@ -230,100 +316,113 @@ StatusCode ReaderOpen() {
     return OpenCommon(&s_state.embedded_source, kEmbeddedBookTitle, false);
 }
 
+// Library rows are widgets with hit ids: embedded = kRegionEmbedded, SD
+// book i = i + 1 (hit id 0 means "not tappable", so indices shift by one).
+StatusCode AddLibraryRow(s3paper::WidgetArena &a, s3paper::WidgetHandle list,
+                         const char *text, uint32_t hit_id, bool dark) {
+    const s3paper::Result<s3paper::WidgetHandle> row = s3paper::NewCol(a);
+    if (!row.ok()) {
+        return row.code;
+    }
+    s3paper::WidgetNode *rn = a.Configure(row.value);
+    rn->padding = s3paper::Insets{10, kMarginX, 8, kMarginX};
+    rn->gap = 8;
+    if (hit_id != 0) {
+        rn->hit_id = hit_id;
+        rn->hit_z = 1;
+    }
+    const s3paper::Result<s3paper::WidgetHandle> label =
+        s3paper::NewText(a, text, s3paper::kFontBody,
+                         dark ? 0 : 96);
+    if (!label.ok()) {
+        return label.code;
+    }
+    (void)a.AddChild(row.value, label.value);
+    const s3paper::Result<s3paper::WidgetHandle> rule =
+        s3paper::NewDivider(a, 1, 176);
+    if (!rule.ok()) {
+        return rule.code;
+    }
+    (void)a.AddChild(row.value, rule.value);
+    (void)a.AddChild(list, row.value);
+    return StatusCode::Ok;
+}
+
 StatusCode LibraryShow() {
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    const s3paper::FontLineMetrics ui =
-        s3paper::GetFontLineMetrics(s3paper::kFontUi).value;
-    const s3paper::FontLineMetrics body =
-        s3paper::GetFontLineMetrics(s3paper::kFontBody).value;
-    fb.Begin();
-    s3paper::Status st = fb.FillRect(s3paper::Rect{0, 0, 540, 960}, 255);
-    if (!st.ok()) return st.code;
-    static const char kHeader[] = "Library";
-    st = fb.GlyphRun(s3paper::Rect{kMarginX, 16, 460, ui.line_height + 4},
-                     16 + ui.line_height, s3paper::kFontUi, 0, kHeader,
-                     sizeof(kHeader) - 1, 0);
-    if (!st.ok()) return st.code;
-    st = fb.HLine(kMarginX, 56, 540 - 2 * kMarginX, 0);
-    if (!st.ok()) return st.code;
+    s3paper::WidgetArena &a = UiArena();
+    a.Reset();  // the reading tree rebuilds on next render
 
-    s_state.region_count = 0;
-    const int32_t row_height = body.line_height + 20;
-    int32_t row_top = 76;
-    char row[96];
+    s3paper::WidgetHandle header = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *hn = a.Configure(header);
+    if (hn == nullptr) {
+        return StatusCode::CapacityExceeded;
+    }
+    hn->padding = s3paper::Insets{16, kMarginX, 4, kMarginX};
+    hn->gap = 8;
+    (void)a.AddChild(header,
+                     s3paper::NewText(a, "Library", s3paper::kFontUi, 0)
+                         .value);
+    (void)a.AddChild(header, s3paper::NewDivider(a, 1, 0).value);
 
-    // Row renderer shared by the embedded book and SD books.
-    const auto add_row = [&](const char *text, uint32_t region_id,
-                             bool dark) -> s3paper::Status {
-        const int32_t baseline = row_top + body.ascent + 8;
-        s3paper::Status row_st = fb.GlyphRun(
-            s3paper::Rect{kMarginX, row_top, 540 - 2 * kMarginX,
-                          row_height},
-            baseline, s3paper::kFontBody, 0, text,
-            static_cast<uint32_t>(strlen(text)), dark ? 0 : 96);
-        if (!row_st.ok()) return row_st;
-        row_st = fb.HLine(kMarginX, row_top + row_height - 2,
-                          540 - 2 * kMarginX, 176);
-        if (!row_st.ok()) return row_st;
-        if (region_id != UINT32_MAX &&
-            s_state.region_count < kMaxBooks + 1) {
-            s_state.regions[s_state.region_count++] = s3paper::HitRegion{
-                s3paper::Rect{0, row_top - 4, 540, row_height + 8},
-                region_id, 1};
-        }
-        row_top += row_height;
-        return s3paper::OkStatus();
-    };
+    s3paper::WidgetHandle list = s3paper::NewList(a).value;
+    a.Configure(list)->padding = s3paper::Insets{12, 0, 0, 0};
 
-    // Embedded book is always available, even without a card.
+    char row[s3paper::TextProps::kCapacity];
     const s3paper::ContentHash embedded_hash =
         s_state.embedded_source.Hash().value;
     snprintf(row, sizeof(row), "%s (embedded) %u%%", kEmbeddedBookTitle,
              static_cast<unsigned>(PersistedPercent(
                  embedded_hash, sizeof(kEmbeddedBookText) - 1)));
-    st = add_row(row, kRegionEmbedded, true);
-    if (!st.ok()) return st.code;
+    StatusCode st = AddLibraryRow(a, list, row, kRegionEmbedded, true);
+    if (st != StatusCode::Ok) return st;
 
     if (!StorageMounted()) {
-        st = add_row("(no SD card - use 'sd mount')", UINT32_MAX, false);
-        if (!st.ok()) return st.code;
+        st = AddLibraryRow(a, list, "(no SD card - use 'sd mount')", 0,
+                           false);
+        if (st != StatusCode::Ok) return st;
     } else if (LibraryCount() == 0) {
-        st = add_row("(no .txt books on card)", UINT32_MAX, false);
-        if (!st.ok()) return st.code;
+        st = AddLibraryRow(a, list, "(no .txt books on card)", 0, false);
+        if (st != StatusCode::Ok) return st;
     } else {
         for (uint32_t i = 0; i < LibraryCount(); ++i) {
-            if (row_top + row_height > 940) {
-                break;  // bounded: first screenful (scroll arrives later)
-            }
             const BookEntry *book = LibraryGet(i);
             snprintf(row, sizeof(row), "%s  %uKB %u%%", book->title,
                      static_cast<unsigned>(book->size / 1024),
                      static_cast<unsigned>(
                          PersistedPercent(book->content_hash, book->size)));
-            st = add_row(row, i, true);
-            if (!st.ok()) return st.code;
+            st = AddLibraryRow(a, list, row, i + 1, true);
+            if (st == StatusCode::CapacityExceeded) {
+                ESP_LOGW(kTag, "library arena full after %u rows",
+                         static_cast<unsigned>(i));
+                break;  // bounded: List paginates what was built
+            }
+            if (st != StatusCode::Ok) return st;
         }
     }
 
-    static const char kHint[] = "tap a book to read";
-    st = fb.GlyphRun(s3paper::Rect{kMarginX, 960 - 40, 460, 32}, 960 - 14,
-                     s3paper::kFontUi, 0, kHint, sizeof(kHint) - 1, 96);
-    if (!st.ok()) return st.code;
+    s3paper::WidgetHandle footer = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *fn = a.Configure(footer);
+    fn->padding = s3paper::Insets{4, kMarginX, 10, kMarginX};
+    (void)a.AddChild(footer, s3paper::NewText(a, "tap a book to read",
+                                              s3paper::kFontUi, 96)
+                                 .value);
 
-    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
-    if (!frame.ok()) return frame.code;
-    const s3paper::Status init = EnsureM5Init();
-    if (!init.ok()) return init.code;
-    Planner().NoteScreenChange();
-    const PlannedPresent presented = PresentFramePlanned(
-        frame.value, s3paper::PresentIntent::CleanFull, true);
-    if (presented.present.status == StatusCode::Ok) {
+    EnsurePagesRegistered();
+    const s3paper::PageSlots slots{header, list, footer,
+                                   s3paper::kNullWidget};
+    (void)UiRouter().SetSlots(s_page_library, slots);
+    const UiPresentResult presented = UiPresentPage(
+        slots, s3paper::PresentIntent::CleanFull, true, s_state.regions,
+        kMaxBooks + 1, nullptr);
+    if (presented.status == StatusCode::Ok) {
+        s_state.region_count = presented.hit_count;
         s_state.screen = Screen::Library;
+        RouteTo(s_page_library);
         StorageFlushNow();  // leaving reading: persist immediately
         ESP_LOGI(kTag, "library screen: %u row region(s)",
                  static_cast<unsigned>(s_state.region_count));
     }
-    return presented.present.status;
+    return presented.status;
 }
 
 StatusCode ReaderBookmarkToggle() {
@@ -492,7 +591,7 @@ bool ReaderHandleGesture(const s3paper::GestureEvent &gesture) {
         if (hit.value == kRegionEmbedded) {
             (void)ReaderOpen();
         } else {
-            (void)ReaderOpenSd(hit.value);
+            (void)ReaderOpenSd(hit.value - 1);  // widget hit ids are 1-based
         }
         return true;
     }

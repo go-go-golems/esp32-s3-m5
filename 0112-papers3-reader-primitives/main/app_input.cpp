@@ -171,4 +171,6 @@ void FillTouchSnapshot(TouchSnapshot *out) {
     out->scheduler_pending = s_state.scheduler.pending();
 }
 
+int64_t InputLastInputUs() { return s_state.last_input_us; }
+
 }  // namespace reader

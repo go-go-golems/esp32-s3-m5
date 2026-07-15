@@ -1,0 +1,33 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (173) esp_image: segment 4: paddr=000c8bd8 vaddr=403803d8 size[5nI (991) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1006) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1006) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| P
+# >>> reader
+reader
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=2572 progress=72.8% lines=23 turns=0 at_end=0 checkpoints=1 bookmarked=1 marks=2
+reader> 
+# >>> widget status
+widget status
+I (32150) m5_backend: present id=2 intent=CleanFull ops=8 skipped=0 damage=0,0,540,960 render_us=138906 wait_us=13
+I (32151) ui: status fixture: clock region live (2000 ms interval)
+widget fixture result: Ok
+reader> I (34188) m5_backend: present id=3 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=11306 wait_us=11
+I (34190) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (36190) m5_backend: present id=4 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6395 wait_us=9
+I (36191) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (38191) m5_backend: present id=5 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=7360 wait_us=10
+I (38192) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (40191) m5_backend: present id=6 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=7377 wait_us=10
+I (40192) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (42191) m5_backend: present id=7 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=7380 wait_us=10
+I (42192) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (44190) m5_backend: present id=8 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6382 wait_us=9
+I (44191) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (46190) m5_backend: present id=9 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6378 wait_us=9
+I (46191) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (48190) m5_backend: present id=10 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6357 wait_us=9
+I (48191) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (50190) m5_backend: present id=11 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6380 wait_us=9
+I (50191) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+
+# done

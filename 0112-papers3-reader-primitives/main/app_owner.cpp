@@ -4,6 +4,7 @@
 #include "app_input.h"
 #include "app_reader.h"
 #include "app_storage.h"
+#include "app_ui.h"
 
 #include <atomic>
 #include <cstring>
@@ -243,6 +244,9 @@ void HandleConsoleCommand(const AppEvent &event) {
             }
             break;
         }
+        case ConsoleOp::Widget:
+            reply.status = UiRunFixture(event.payload.console.arg);
+            break;
         case ConsoleOp::Refresh: {
             const s3paper::RefreshPolicy &policy =
                 Planner().policy();
@@ -536,6 +540,7 @@ void OwnerTask(void *) {
         if (xQueueReceive(s_event_queue, &event, pdMS_TO_TICKS(500)) !=
             pdTRUE) {
             StorageFlushIfDue(esp_timer_get_time());
+            UiRegionTick(esp_timer_get_time());
             continue;
         }
         const uint32_t depth =
@@ -546,6 +551,7 @@ void OwnerTask(void *) {
         HandleEvent(event);
         MaybeQueueSoakStep();
         StorageFlushIfDue(esp_timer_get_time());
+        UiRegionTick(esp_timer_get_time());
     }
 }
 

@@ -656,6 +656,25 @@ int CmdSd(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdWidget(int argc, char **argv) {
+    uint32_t arg = 1;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "hello") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "status") == 0) {
+            arg = 2;
+        } else {
+            printf("error: InvalidArgument: usage widget [hello|status]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Widget, arg, 0, &reply, 15000);
+    printf("widget fixture result: %s\n", StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdLibrary(int argc, char **argv) {
     uint32_t arg = 0;
     if (argc >= 2) {
@@ -754,6 +773,10 @@ void ConsoleStart() {
                     &CmdReader);
     RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
                     &CmdSd);
+    RegisterCommand("widget",
+                    "widget [hello|status] - present widget-tree fixtures "
+                    "(status has a live clock region)",
+                    &CmdWidget);
     RegisterCommand("library",
                     "library [scan|list|show] - scan/list books or show the "
                     "on-screen library (tap to open)",

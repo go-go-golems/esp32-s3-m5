@@ -30,4 +30,8 @@ void InputHandleTick();
 // Owner-task-only: fills the console snapshot.
 void FillTouchSnapshot(TouchSnapshot *out);
 
+// Owner-task-only: monotonic time of the last touch input (0 = never).
+// Quiet-while-active regions defer their updates against this.
+int64_t InputLastInputUs();
+
 }  // namespace reader

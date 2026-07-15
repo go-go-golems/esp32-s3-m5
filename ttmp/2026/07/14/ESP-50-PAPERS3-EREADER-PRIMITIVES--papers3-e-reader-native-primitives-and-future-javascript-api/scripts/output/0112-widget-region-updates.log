@@ -1,0 +1,21 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (132069) m5_backend: present id=15 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6302 wait_us=8
+I (132070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+
+# >>> ping
+ping
+pong round_trip_us=84
+reader> I (134069) m5_backend: present id=16 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6299 wait_us=8
+I (134070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (136069) m5_backend: present id=17 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6295 wait_us=9
+I (136070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (138069) m5_backend: present id=18 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6275 wait_us=8
+I (138070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (140069) m5_backend: present id=19 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6293 wait_us=9
+I (140070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (142069) m5_backend: present id=20 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6293 wait_us=8
+I (142070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+I (144069) m5_backend: present id=21 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=6295 wait_us=9
+I (144070) ui: region update: damage 460x34 at (40,180) full=0 ops=2
+
+# done

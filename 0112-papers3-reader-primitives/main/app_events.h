@@ -68,6 +68,7 @@ enum class ConsoleOp : uint8_t {
     Sd,          // arg: 0 = status, 1 = mount, 2 = unmount, 3 = write demo
     Library,     // arg: 0 = list, 1 = scan, 2 = show on-screen
     Bookmark,    // arg: 0 = list, 1 = toggle, 2 = goto (index in arg2)
+    Widget,      // arg: 1 = hello fixture, 2 = status fixture (live region)
 };
 
 enum class PointerPhase : uint8_t {

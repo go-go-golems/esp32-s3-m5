@@ -7,6 +7,7 @@ idf_component_register(
         "app_input.cpp"
         "app_reader.cpp"
         "app_storage.cpp"
+        "app_ui.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
