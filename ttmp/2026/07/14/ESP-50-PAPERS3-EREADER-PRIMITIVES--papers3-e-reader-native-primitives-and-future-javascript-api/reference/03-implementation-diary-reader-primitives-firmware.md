@@ -592,3 +592,78 @@ The operator paged through the embedded book by touch and approved the result: t
 
 ### Code review instructions
 - N/A (bookkeeping step; no code changed).
+
+## Step 10: TTF typography — stb_truetype + PT Serif with Ukrainian support
+
+Executed the `3r0u` decision (recorded first in `design-doc/04-font-rendering-decision-stb-truetype-with-pt-serif.md`): the reader's typography moved from 7-bit bitmap fonts to runtime TTF rasterization. `stb_truetype.h` v1.26 is vendored into `s3paper_core/third_party/` and compiled identically on host and device — the strongest possible version of the one-metrics-source rule, since advances and kern pairs now come from the same code *and* the same font bytes everywhere. PT Serif Regular (SIL OFL, Cyrillic-first foundry) is subsetted to Latin + Ukrainian + punctuation (134 KB) by a checked-in reproducible script that also verifies every Ukrainian-critical codepoint (Ґґ Єє Іі Її, U+2019, «») is present, then embedded in firmware and registered at UI 22 px / body 34 px.
+
+The pipeline gained kerning end to end: `MeasureText` and `BreakLines` accumulate `advance + kern(prev, cp)` with the breaker's accumulation deliberately mirroring `MeasureText` so the `line.width == re-measurement` invariant stays exact (host-asserted per line, including on the Ukrainian pangram). The M5 backend gained a 256 KB PSRAM glyph cache (explicit reset-on-full, counted) and a run-based coverage blitter that quantizes AA to the panel's 16 grays for TextPage/Quality intents and thresholds to 1-bit for fast waveforms — the waveform-aware AA policy from the decision record.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, do stb, update, then implement"
+
+**Assistant interpretation:** Adopt the stb_truetype + PT Serif recommendation (from the preceding font discussion, refined for Ukrainian), record the decision in the ticket, then implement and validate it.
+
+**Inferred user intent:** High-quality Latin+Ukrainian typography in the working reader without compromising the host-testable architecture.
+
+**Commit (code):** 55d273586a8e3adb1f6d6a4888b428254782b625 — "Reader: switch typography to stb_truetype + PT Serif Ukrainian subset"
+
+### What I did
+- `design-doc/04-*.md`: decision record (alternatives table, constraints incl. trusted-fonts-only policy, rollback path).
+- `scripts/53-subset-pt-serif.sh`: downloads PT Serif from google/fonts, subsets via pyftsubset (pinned unicode ranges, `--layout-features=kern --legacy-kern`), installs font + OFL license into `s3paper_core/fonts/`, verifies Ukrainian coverage via ttx. Output sha256 recorded in the script output.
+- `s3paper_core`: vendored `third_party/stb_truetype.h` (v1.26, public domain); `text.h/.cpp` gained `RegisterTtfFont`/`IsTtfFont`, `FontLineMetrics`/`GetFontLineMetrics` (GFX fallback derives ascent/descent from glyph extents), `GetKernAdvance`, `RasterizeGlyph`, TTF dispatch in `GetGlyphMetrics`, kerned `MeasureText`, kerning-aware `BreakLines`; deterministic integer advances via `lround(units * scale)`.
+- `paginator.cpp`, `app_display.cpp`, `app_reader.cpp`: all raw `GfxFont::y_advance` uses replaced with `GetFontLineMetrics` (real ascent-based baselines).
+- `m5_backend.cpp`: glyph cache + `BlitCoverage` (equal-value horizontal runs) + `RenderTtfGlyphRun` (kerned pen, fallback boxes); GlyphRun dispatch selects AA by present intent. Font embedded via `EMBED_FILES` in the s3paper_core component.
+- Fixture text rebuilt as a typography acceptance page: kerning pairs, the Ukrainian pangram, apostrophe/guillemet cases, Latin accents, one CJK fallback box.
+- Host tests: `TestUkrainianAndKerning` (coverage, `MeasureText("AV") == adv(A)+adv(V)+kern`, kerned break invariants, ґ rasterization), é moved from fallback-expected to covered, golden line breaks re-pinned for PT Serif 34 px (3 lines → 2; deliberate, dated comment). 3922 checks pass under ASan/UBSan.
+
+### Why
+- Ukrainian reading requires Ґґ Єє Іі Її and the typographic apostrophe; quality typography requires kerning and AA. The bitmap-font path could deliver none of these without a custom offline toolchain, and stb_truetype preserves the architecture's host/device metrics identity more cheaply than FreeType (~40 KB vs ~300 KB flash, negligible steady-state RAM difference once the glyph cache dominates).
+
+### What worked
+- On hardware: typography fixture `status=Ok` — 640 ms cold (full glyph-cache population), 260 ms warm; reader pages now 23 lines of PT Serif at ~450 ms per turn with byte-exact next/prev round trips (0 → 867 → 0).
+- The kerned-accumulation-equals-MeasureText design held on the first full test run; only the golden needed re-pinning (expected — metrics changed by design).
+
+### What didn't work
+- The subset script's coverage check first ran under the wrong Python (`ModuleNotFoundError: No module named 'fontTools'` — pyenv shim provides `pyftsubset`/`ttx` but not the module in the default env); switched verification to `ttx -t cmap` + grep from the same install.
+- pyftsubset warned `'kern' subtable longer than defined: 125762 bytes instead of 60226 bytes` on the upstream font — a source-font quirk it repairs during subsetting; kerning verified working by the AV test.
+
+### What I learned
+- PT Serif at 34 px sets ~23 lines per 960 px page (line height 44) vs 19 lines for the old 42 px bitmap font — denser and, per the fixture, more readable.
+- The stb rasterizer under `-Wextra -Werror` needs `-Wunused-function`/`-Wsign-compare` suppressions around the include (STBTT_STATIC makes unused API static).
+
+### What was tricky to build
+- Keeping the line-break width invariant exact under kerning: the greedy breaker's word-fitting accumulation must apply kern pairs across word/space boundaries exactly as `MeasureText` does over the final span, with the kerning context (`prev_cp`) threaded through word scans and space consumption and reset at line starts. The Ukrainian-pangram per-line equality check pins this.
+- The glyph cache's reset-on-full recursion (`GlyphCacheGet` → `GlyphCacheReset` → retry) is safe only because a single glyph can never exceed the pool; that invariant is a size argument (max ~2 KB per 34 px glyph vs 256 KB pool), not a code guard — noted for review.
+
+### What warrants a second pair of eyes
+- **Operator:** the typography fixture is on the panel — please judge PT Serif quality, the Ukrainian pangram (Ґ ґ є ї shapes), apostrophes, and whether AA text looks clean after a few page turns (tap returns to the book; touch is on).
+- `BlitCoverage` assumes a white background when compositing coverage (documented); glyph boxes overlapping non-white surfaces would need real alpha blending.
+- Page-turn render grew from ~360 ms to ~450 ms (AA edge runs are shorter than 1-bit runs). Acceptable now; candidates if it ever matters: 4-bit packed cache + `pushGrayscaleImage`, or caching composed line images.
+
+### What should be done in the future
+- Bold/italic PT Serif faces (same subset script) when the reader gains emphasis rendering.
+- If user-supplied SD fonts ever become a feature: migrate parsing to libschrift or FreeType first (decision-record constraint #2).
+- Consider U+02BC → U+2019 normalization in the content pipeline for Ukrainian books encoded with the modifier-letter apostrophe.
+
+### Code review instructions
+- Read `design-doc/04-*.md`, then `text.cpp` (`RegisterTtfFont`, TTF branch of `GetGlyphMetrics`, kerned `BreakLines`), then `m5_backend.cpp` (`GlyphCacheGet`, `BlitCoverage`), then `scripts/53-subset-pt-serif.sh`.
+- Validate host: `make run` (3922 checks). Hardware: `--cmd "fixture text"` (Ukrainian page), `--cmd "reader open"` + page turns.
+- Reproduce the font asset: run `scripts/53-subset-pt-serif.sh` and compare sha256 `718b987ce653eb65132cd3e83e896e37ee85d5d8b5b223129bb769bde1f1bef1`.
+
+### Technical details
+
+```text
+font          -> PT Serif Regular subset, 134264 bytes, sha256 718b987c...
+                 ranges: 0020-007E, 00A0-00FF, 0400-045F, 0490-0491,
+                 2010-2027, 20AC, 2116; kern + GPOS pair kerning kept
+sizes         -> kFontUi 22 px, kFontBody 34 px (body line_height 44,
+                 23 lines/page)
+kerning       -> MeasureText("AV") == adv(A)+adv(V)+kern(A,V), kern < 0
+cache         -> 512 slots / 256 KB PSRAM, reset-on-full counted
+hardware      -> fixture: 640 ms cold, 260 ms warm; reader page ~450 ms;
+                 all presents status=Ok, plan reasons as expected
+host checks   -> 3922 (goldens re-pinned for PT Serif; check-count drop
+                 vs 4541 is denser pages => fewer pagination loop checks)
+```

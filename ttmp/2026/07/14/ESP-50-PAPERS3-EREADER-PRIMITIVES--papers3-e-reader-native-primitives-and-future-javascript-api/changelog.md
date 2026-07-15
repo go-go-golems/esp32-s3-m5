@@ -484,3 +484,12 @@ Operator review 2026-07-15: touch confirmed working, body-text quality approved,
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/refresh_planner.cpp — Approved baseline refresh policy
 
+
+## 2026-07-15
+
+Typography upgrade (3r0u closed): vendored stb_truetype 1.26 + embedded PT Serif Ukrainian subset (reproducible pyftsubset script with coverage verification), kerning-aware measurement/line breaking with exact width invariants, PSRAM glyph cache and waveform-aware AA blitting in the M5 backend; Ukrainian pangram fixture on-panel, reader at 23 lines/page (commit 55d2735). Decision record in design-doc/04.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/text.cpp — TTF registry, kerned measurement and breaking
+

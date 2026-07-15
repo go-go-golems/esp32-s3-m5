@@ -12,13 +12,18 @@ Topics:
 DocType: design-doc
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/src/text.cpp
+      Note: Implementation of the decision (commit 55d2735)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/53-subset-pt-serif.sh
+      Note: Reproducible font asset pipeline
 ExternalSources: []
 Summary: Decision record (ticket task 3r0u) selecting runtime TTF rasterization via vendored stb_truetype with a subsetted PT Serif for high-quality Latin+Ukrainian reader typography.
 LastUpdated: 2026-07-15T15:50:00-04:00
 WhatFor: Records why stb_truetype and PT Serif were chosen over FreeType, libschrift, and pre-rasterized bitmap fonts, and the constraints the implementation must honor.
 WhenToUse: Read before changing the reader font stack, adding fonts, or considering user-supplied font files.
 ---
+
 
 # Font Rendering Decision — stb_truetype with PT Serif
 

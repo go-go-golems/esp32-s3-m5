@@ -95,7 +95,7 @@
 - [x] [P4.7] Track last-input time and implement quiet/deferred region scheduling without direct timer drawing <!-- t:cox7 -->
 - [x] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
 - [x] [P4.9] Route normalized input/timer events through AppEvent and validate owner-task integration on hardware <!-- t:utsz -->
-- [ ] [P5.1] Define reader typography requirements and compare candidate font formats for size, quality, metrics, and speed <!-- t:3r0u -->
+- [x] [P5.1] Define reader typography requirements and compare candidate font formats for size, quality, metrics, and speed <!-- t:3r0u -->
 - [x] [P5.2] Select, license, package, and document the initial regular reader font and diagnostic fallback font <!-- t:19jk -->
 - [x] [P5.3] Implement incremental UTF-8 decoding with replacement behavior and byte/codepoint position tracking <!-- t:pav8 -->
 - [x] [P5.4] Define FontId, GlyphId, GlyphMetrics, GlyphBitmap, FontMetrics, and font-fallback contracts <!-- t:lt14 -->
