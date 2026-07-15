@@ -1,0 +1,384 @@
+#include "app_console.h"
+
+#include <atomic>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <initializer_list>
+
+#include "esp_console.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "freertos/task.h"
+
+#include "app_events.h"
+#include "app_owner.h"
+
+namespace reader {
+namespace {
+
+const char *kTag = "console";
+
+constexpr uint32_t kReplyTimeoutMs = 500;
+
+QueueHandle_t s_reply_queue = nullptr;
+std::atomic<uint32_t> s_next_request_id{1};
+
+// Stress fixture state (owned by the console module, not the app model).
+struct StressProducerConfig {
+    EventSource source;
+    uint32_t count;
+    std::atomic<uint32_t> sent;
+    std::atomic<uint32_t> rejected_attempts;
+    std::atomic<bool> done;
+};
+
+StressProducerConfig s_stress_console;
+StressProducerConfig s_stress_input;
+
+AppEvent MakeEvent(AppEventKind kind, EventSource source, bool wants_reply) {
+    AppEvent event;
+    std::memset(&event, 0, sizeof(event));
+    event.kind = kind;
+    event.source = source;
+    event.producer_seq = NextProducerSeq(source);
+    event.request_id =
+        wants_reply ? s_next_request_id.fetch_add(1) : 0;
+    event.monotonic_us = esp_timer_get_time();
+    event.reply_queue = wants_reply ? s_reply_queue : nullptr;
+    return event;
+}
+
+// Posts a console op and waits for its reply. Prints explicit errors for
+// queue-full and reply-timeout instead of hiding them.
+StatusCode RunConsoleOp(ConsoleOp op, AppReply *out) {
+    AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
+                               EventSource::Console, true);
+    event.payload.console.op = op;
+    const StatusCode posted = PostEvent(event);
+    if (posted != StatusCode::Ok) {
+        printf("error: enqueue failed: %s\n", StatusCodeName(posted));
+        return posted;
+    }
+    const StatusCode waited =
+        AwaitReply(s_reply_queue, event.request_id, kReplyTimeoutMs, out);
+    if (waited != StatusCode::Ok) {
+        printf("error: reply wait failed: %s (timeout %ums)\n",
+               StatusCodeName(waited), static_cast<unsigned>(kReplyTimeoutMs));
+        return waited;
+    }
+    return out->status;
+}
+
+const char *PhaseName(uint8_t phase) {
+    switch (phase) {
+        case 0: return "booting";
+        case 1: return "ready";
+        case 2: return "shutting-down";
+    }
+    return "unknown";
+}
+
+int CmdStatus(int, char **) {
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::Status, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    const StatusSnapshot &s = reply.payload.status_snapshot;
+    printf("state=%s uptime_ms=%u owner_seq=%u\n", PhaseName(s.app_state),
+           static_cast<unsigned>(s.uptime_ms),
+           static_cast<unsigned>(s.owner_seq));
+    for (uint8_t i = 0; i < static_cast<uint8_t>(AppEventKind::kCount); ++i) {
+        printf("processed[%s]=%u\n",
+               AppEventKindName(static_cast<AppEventKind>(i)),
+               static_cast<unsigned>(s.processed_by_kind[i]));
+    }
+    return 0;
+}
+
+int CmdHeap(int, char **) {
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::Heap, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    const HeapSnapshot &h = reply.payload.heap;
+    printf("internal_free=%u internal_min_free=%u internal_largest=%u\n",
+           static_cast<unsigned>(h.internal_free),
+           static_cast<unsigned>(h.internal_min_free),
+           static_cast<unsigned>(h.internal_largest_block));
+    printf("psram_free=%u psram_largest=%u\n",
+           static_cast<unsigned>(h.psram_free),
+           static_cast<unsigned>(h.psram_largest_block));
+    return 0;
+}
+
+int CmdDisplay(int, char **) {
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::Display, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    // Phase 1: the display backend decision is deliberately deferred; see the
+    // project README. The owner still answers so the command path is proven.
+    printf("backend=none (phase 1: display work deferred, panel unqualified)\n");
+    printf("owner_alive=yes app_state=%s\n",
+           PhaseName(reply.payload.status_snapshot.app_state));
+    return 0;
+}
+
+int CmdEvents(int, char **) {
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::Events, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    const EventsSnapshot &e = reply.payload.events;
+    printf("queue capacity=%u depth=%u high_water=%u\n",
+           static_cast<unsigned>(e.queue_capacity),
+           static_cast<unsigned>(e.queue_depth_now),
+           static_cast<unsigned>(e.queue_high_water));
+    for (uint8_t i = 0; i < static_cast<uint8_t>(EventSource::kCount); ++i) {
+        printf("source[%s] accepted=%u rejected_sends=%u\n",
+               EventSourceName(static_cast<EventSource>(i)),
+               static_cast<unsigned>(e.accepted_by_source[i]),
+               static_cast<unsigned>(e.dropped_by_source[i]));
+    }
+    printf("out_of_order_total=%u replies_sent=%u replies_dropped=%u\n",
+           static_cast<unsigned>(e.out_of_order_total),
+           static_cast<unsigned>(e.replies_sent),
+           static_cast<unsigned>(e.replies_dropped));
+    return 0;
+}
+
+int CmdPing(int, char **) {
+    AppReply reply;
+    const StatusCode status = RunConsoleOp(ConsoleOp::Ping, &reply);
+    if (status == StatusCode::Busy) {
+        printf("busy: owner is shutting down\n");
+        return 1;
+    }
+    if (status != StatusCode::Ok) {
+        return 1;
+    }
+    printf("pong round_trip_us=%lld\n",
+           static_cast<long long>(esp_timer_get_time() -
+                                  reply.payload.echo_monotonic_us));
+    return 0;
+}
+
+// Stress producer: delivers exactly `count` ordered events, retrying on a
+// full queue. Rejected attempts stay visible in the events diagnostics.
+void StressProducerTask(void *arg) {
+    auto *cfg = static_cast<StressProducerConfig *>(arg);
+    for (uint32_t i = 0; i < cfg->count; ++i) {
+        AppEvent event = MakeEvent(
+            cfg->source == EventSource::StressInput ? AppEventKind::Pointer
+                                                    : AppEventKind::ConsoleCommand,
+            cfg->source, false);
+        if (cfg->source == EventSource::StressInput) {
+            event.payload.pointer = {
+                .x = static_cast<int32_t>(i % 540),
+                .y = static_cast<int32_t>(i % 960),
+                .phase = (i % 2 == 0) ? PointerPhase::Down : PointerPhase::Up,
+                .pointer_id = 0,
+            };
+        } else {
+            event.payload.console.op = ConsoleOp::Status;
+        }
+        for (;;) {
+            const StatusCode posted = PostEvent(event);
+            if (posted == StatusCode::Ok) {
+                break;
+            }
+            cfg->rejected_attempts.fetch_add(1);
+            vTaskDelay(1);
+        }
+        cfg->sent.fetch_add(1);
+    }
+    cfg->done.store(true);
+    vTaskDelete(nullptr);
+}
+
+int CmdStress(int argc, char **argv) {
+    uint32_t per_source = 500;
+    if (argc >= 2) {
+        const long parsed = strtol(argv[1], nullptr, 10);
+        if (parsed <= 0 || parsed > 100000) {
+            printf("error: InvalidArgument: count must be 1..100000\n");
+            return 1;
+        }
+        per_source = static_cast<uint32_t>(parsed);
+    }
+
+    // Reset stress counters in the owner first so the report is exact.
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::StressReset, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+
+    for (auto *cfg : {&s_stress_console, &s_stress_input}) {
+        cfg->count = per_source;
+        cfg->sent.store(0);
+        cfg->rejected_attempts.store(0);
+        cfg->done.store(false);
+    }
+    s_stress_console.source = EventSource::StressConsole;
+    s_stress_input.source = EventSource::StressInput;
+
+    const int64_t start_us = esp_timer_get_time();
+    xTaskCreatePinnedToCore(StressProducerTask, "stress_con", 4096,
+                            &s_stress_console, 4, nullptr, 0);
+    xTaskCreatePinnedToCore(StressProducerTask, "stress_inp", 4096,
+                            &s_stress_input, 4, nullptr, 0);
+
+    // While the producers hammer the queue, keep issuing real console pings
+    // so three producers are demonstrably concurrent.
+    uint32_t pings_ok = 0;
+    uint32_t pings_failed = 0;
+    while (!s_stress_console.done.load() || !s_stress_input.done.load()) {
+        AppReply ping_reply;
+        if (RunConsoleOp(ConsoleOp::Ping, &ping_reply) == StatusCode::Ok) {
+            pings_ok++;
+        } else {
+            pings_failed++;
+        }
+        vTaskDelay(pdMS_TO_TICKS(20));
+        if (esp_timer_get_time() - start_us > 60'000'000LL) {
+            printf("error: Timeout: stress producers did not finish in 60s\n");
+            return 1;
+        }
+    }
+    const int64_t elapsed_us = esp_timer_get_time() - start_us;
+
+    if (RunConsoleOp(ConsoleOp::StressReport, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    const StressSnapshot &s = reply.payload.stress;
+    const bool pass = s.console_received == per_source &&
+                      s.input_received == per_source && s.out_of_order == 0 &&
+                      s.last_console_seq == per_source &&
+                      s.last_input_seq == per_source;
+    printf("stress sent=%u+%u received=%u+%u out_of_order=%u\n",
+           static_cast<unsigned>(per_source),
+           static_cast<unsigned>(per_source),
+           static_cast<unsigned>(s.console_received),
+           static_cast<unsigned>(s.input_received),
+           static_cast<unsigned>(s.out_of_order));
+    printf("stress last_seq console=%u input=%u rejected_attempts=%u+%u\n",
+           static_cast<unsigned>(s.last_console_seq),
+           static_cast<unsigned>(s.last_input_seq),
+           static_cast<unsigned>(s_stress_console.rejected_attempts.load()),
+           static_cast<unsigned>(s_stress_input.rejected_attempts.load()));
+    printf("stress concurrent_pings ok=%u failed=%u elapsed_ms=%lld\n",
+           static_cast<unsigned>(pings_ok),
+           static_cast<unsigned>(pings_failed),
+           static_cast<long long>(elapsed_us / 1000));
+    printf("stress result=%s\n", pass ? "PASS" : "FAIL");
+    return pass ? 0 : 1;
+}
+
+// Flood: non-blocking burst that intentionally overflows the queue to prove
+// queue-full behavior is explicit and counted, not silent.
+int CmdFlood(int argc, char **argv) {
+    uint32_t burst = 256;
+    if (argc >= 2) {
+        const long parsed = strtol(argv[1], nullptr, 10);
+        if (parsed <= 0 || parsed > 100000) {
+            printf("error: InvalidArgument: count must be 1..100000\n");
+            return 1;
+        }
+        burst = static_cast<uint32_t>(parsed);
+    }
+    uint32_t accepted = 0;
+    uint32_t rejected = 0;
+    for (uint32_t i = 0; i < burst; ++i) {
+        AppEvent event =
+            MakeEvent(AppEventKind::TimerDue, EventSource::Console, false);
+        // Flood events carry no producer ordering claim: the rejected ones
+        // would otherwise create legitimate-looking sequence gaps.
+        event.producer_seq = 0;
+        event.payload.timer.timer_id = i;
+        if (PostEvent(event) == StatusCode::Ok) {
+            accepted++;
+        } else {
+            rejected++;
+        }
+    }
+    printf("flood burst=%u accepted=%u rejected=%u (%s)\n",
+           static_cast<unsigned>(burst), static_cast<unsigned>(accepted),
+           static_cast<unsigned>(rejected),
+           StatusCodeName(StatusCode::CapacityExceeded));
+    return 0;
+}
+
+int CmdShutdown(int, char **) {
+    AppEvent event = MakeEvent(AppEventKind::ShutdownRequest,
+                               EventSource::Console, true);
+    const StatusCode posted = PostEvent(event);
+    if (posted != StatusCode::Ok) {
+        printf("error: enqueue failed: %s\n", StatusCodeName(posted));
+        return 1;
+    }
+    AppReply reply;
+    if (AwaitReply(s_reply_queue, event.request_id, kReplyTimeoutMs, &reply) !=
+        StatusCode::Ok) {
+        printf("error: reply wait failed: Timeout\n");
+        return 1;
+    }
+    printf("shutdown acknowledged; interactive commands now report Busy "
+           "(reboot to leave this state)\n");
+    return 0;
+}
+
+void RegisterCommand(const char *name, const char *help,
+                     esp_console_cmd_func_t func) {
+    const esp_console_cmd_t cmd = {
+        .command = name,
+        .help = help,
+        .hint = nullptr,
+        .func = func,
+        .argtable = nullptr,
+        .func_w_context = nullptr,
+        .context = nullptr,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
+}
+
+}  // namespace
+
+void ConsoleStart() {
+    s_reply_queue = xQueueCreate(4, sizeof(AppReply));
+    configASSERT(s_reply_queue != nullptr);
+
+    esp_console_repl_t *repl = nullptr;
+    esp_console_repl_config_t repl_config =
+        ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_config.prompt = "reader>";
+    repl_config.max_cmdline_length = 128;
+    esp_console_dev_usb_serial_jtag_config_t hw_config =
+        ESP_CONSOLE_DEV_USB_SERIAL_JTAG_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_console_new_repl_usb_serial_jtag(&hw_config,
+                                                         &repl_config, &repl));
+
+    RegisterCommand("status", "App state and per-kind event counters",
+                    &CmdStatus);
+    RegisterCommand("heap", "Internal and PSRAM heap diagnostics", &CmdHeap);
+    RegisterCommand("display", "Display backend state (phase 1: none)",
+                    &CmdDisplay);
+    RegisterCommand("events",
+                    "Event queue depth, per-source accept/reject, ordering",
+                    &CmdEvents);
+    RegisterCommand("ping", "Round-trip an event through the owner task",
+                    &CmdPing);
+    RegisterCommand("stress",
+                    "stress [n] - run console+input producers concurrently",
+                    &CmdStress);
+    RegisterCommand("flood",
+                    "flood [n] - burst-post events to prove explicit "
+                    "queue-full behavior",
+                    &CmdFlood);
+    RegisterCommand("shutdown", "Request owner shutdown state", &CmdShutdown);
+
+    ESP_ERROR_CHECK(esp_console_start_repl(repl));
+    ESP_LOGI(kTag, "console ready on USB Serial/JTAG");
+}
+
+}  // namespace reader

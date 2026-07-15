@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "app_owner.cpp"
+        "app_console.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        console
+        esp_driver_usb_serial_jtag
+        esp_timer
+)
