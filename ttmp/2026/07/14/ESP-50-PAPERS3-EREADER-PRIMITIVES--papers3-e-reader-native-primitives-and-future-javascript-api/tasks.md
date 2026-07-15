@@ -206,5 +206,5 @@
 - [x] [P0.17f.1] Install and verify exact ESP-IDF v5.3.3, then build matrix Cells A/B without flashing <!-- t:cv8d -->
 - [x] [P0.19] Preregister and implement a native EPD_Painter fixed-aperture white-black-white density step-response firmware <!-- t:jtk1 -->
 - [x] [P0.19.1] Build/audit exact direct-driver artifact and preserve binary identity <!-- t:bflw -->
-- [ ] [P0.19.2] Run one fixed-head synchronized density/firmware-marker capture with safe serial ownership <!-- t:ca9i -->
+- [x] [P0.19.2] Run one fixed-head synchronized density/firmware-marker capture with safe serial ownership <!-- t:ca9i -->
 - [ ] [P0.19.3] Analyze fixed-point step response and record operator/optical disposition <!-- t:utzh -->

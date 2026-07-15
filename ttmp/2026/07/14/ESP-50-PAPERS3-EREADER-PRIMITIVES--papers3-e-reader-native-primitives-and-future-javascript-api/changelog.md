@@ -403,3 +403,12 @@ Preregistered and no-hardware-validated a final F2 sequence that serializes USB 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/44-run-f2-auto-reset-density.sh — Guarded execution
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-013-factory-f2-esptool-reset-density/01-preregistration.md — Sequential ownership rationale
+
+## 2026-07-14
+
+Built and executed P0.19 native EPD_Painter density step response. All direct-driver operations and capture cleanup passed, but a successful full-black command did not produce expected fixed-aperture darkening; operator optical disposition remains pending.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0110-papers3-epd-density-step-response/main/app_main.cpp — Automatic semantic treatment
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-016-native-epd-density-step-response/04-analysis.md — Measured result

@@ -2730,3 +2730,67 @@ F1 physical execution: no
 F2 physical execution: no
 camera requirement for EXP-010: no
 ```
+
+## Step 26: Build and run the native direct-driver density step response
+
+I converted the prior FactoryTest observations into a bounded causal experiment. The new direct-driver application waits ten seconds after boot so its synchronized observers can attach, then executes exactly HARD white, full black, and full white with post-idle semantic markers. The physical run completed all three operations under the pinned EPD_Painter/IDF configuration.
+
+The run proves the key negative result at the fixed aperture: a successful full-black command did not yield a sustained density increase. This moves the work from opaque vendor behavior to a reproducible driver-level treatment, while retaining the limits of a single optical point.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead, create a design doc + tasks, then build it and run it"
+
+**Assistant interpretation:** Design, implement, build, and physically execute a controlled native EPD experiment that joins explicit firmware actions to density observations.
+
+**Inferred user intent:** Stop spending effort on FactoryTest internals and establish a direct, reproducible basis for deciding the next PaperS3 EPD investigation.
+
+**Commit (code):** e4cf9de9f166af0e4c2b73ef81d88cdb0b9ab7be — "Experiment: add native EPD density step response"
+
+### What I did
+- Added design doc `design-doc/03-native-epd-density-step-response-experiment.md` and P0.19 tasks.
+- Created `0110-papers3-epd-density-step-response` from the reviewed direct-driver control.
+- Built under ESP-IDF v5.4.2; initial build failed on `%u` versus `uint32_t` format checking, then passed after an explicit cast.
+- Flashed SHA-256 `eb77a34c7073e0dce54725d2d10ae134168e843825013861f5dfaf8d37134bce` with no-reset staging, armed separate Printalyzer and read-only reconnecting PaperS3 capture, and coordinated one operator Reset.
+- Preserved raw captures and analyzed 1,477 valid density estimates.
+
+### Why
+- FactoryTest’s visual sequence and incomplete M5GFX power-off/idle trace could not state which requested image caused a density change.
+- The independent driver offers fixed target bytes, a bounded treatment count, explicit `waitIdle()` results, and semantic markers.
+
+### What worked
+- All three direct-driver operations returned `result=ok`, `pending=0`, and `rails=idle`.
+- The semantic marker sequence and raw-density stream were synchronized by host monotonic time.
+- The second boot completed the intended run; the first reset before the ten-second grace and performed no panel operation.
+
+### What didn't work
+- First build command failed with the exact compiler diagnostic:
+  ```text
+  error: format '%u' expects argument of type 'unsigned int', but argument 6 has type 'long unsigned int' [-Werror=format=]
+  ```
+  The source used `kBootCaptureGraceMs` directly in `ESP_LOGI`; casting to `unsigned` fixed it.
+- The full-black target did not meet the directional fixed-point density criterion: settled black `0.617748 D` was below preceding white `0.621181 D`.
+
+### What I learned
+- The panel/driver issue survives a minimal, pinned, non-M5GFX direct-driver treatment at the measured location.
+- Software success and direct-driver `waitIdle()` are not evidence of expected optical blackness.
+
+### What was tricky to build
+- The single USB Serial/JTAG endpoint must never be shared by a flash/reset process and a firmware observer. The run stages with `--after no_reset`, then arms a reconnecting read-only observer and the independent Printalyzer writer before human Reset. This preserves trace capture across USB disconnect/reopen without PaperS3 modem-control ioctls.
+
+### What warrants a second pair of eyes
+- Review the interpretation of the small white/black density deltas against the Printalyzer aperture location and reported visual panel state.
+- Review why the first boot reset before its grace period; it did not contaminate treatment, but should not be silently ignored in later runs.
+
+### What should be done in the future
+- Record the operator visual/no-anomaly observations for EXP-016.
+- Use camera/spatial evidence or reviewed rail/VCOM probing before attributing the failed blackness criterion to a specific physical cause.
+
+### Code review instructions
+- Start with `0110-papers3-epd-density-step-response/main/app_main.cpp`, especially `RunStep()` and `DensityStepResponseTask()`.
+- Review `design-doc/03-native-epd-density-step-response-experiment.md` and `scripts/experiments/EXP-20260715-016-native-epd-density-step-response/04-analysis.md`.
+- Validate with `source ~/esp/esp-idf-5.4.2/export.sh && cd 0110-papers3-epd-density-step-response && idf.py build`.
+
+### Technical details
+- Operation marker times: cleanup begin `02:50:54.631217Z`, black begin `02:50:59.073733Z`, white begin `02:51:03.494421Z`.
+- Settled means: cleanup white `0.621181 D`, black `0.617748 D`, final white `0.614748 D`.

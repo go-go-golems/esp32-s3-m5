@@ -16,12 +16,19 @@ RelatedFiles:
       Note: Build/safety contract
     - Path: repo://0110-papers3-epd-density-step-response/main/app_main.cpp
       Note: Automatic semantic marker and direct-driver sequence
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/48-stage-native-density-step.sh
+      Note: Hash-gated no-reset flash stage
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/49-arm-native-density-step-capture.sh
+      Note: Synchronized density/read-only capture arm
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-016-native-epd-density-step-response/04-analysis.md
+      Note: First native fixed-aperture causal result
 ExternalSources: []
 Summary: Design for a bounded direct-driver white-black-white experiment that joins semantic firmware markers to fixed-aperture Printalyzer density readings.
 LastUpdated: 2026-07-15T02:45:00Z
 WhatFor: Replace opaque FactoryTest behavior with a minimal reproducible native EPD step-response experiment.
 WhenToUse: Use before building, flashing, or interpreting the P0.19 direct-driver density run.
 ---
+
 
 
 # Native EPD Density Step-Response Experiment
