@@ -19,8 +19,8 @@ WhenToUse: "Use only after EXP-014 expired before Reset."
 
 # Operator observation
 
-- Reset pressed exactly once immediately after capture armed: pending
-- Approximate Reset time: pending
+- Reset pressed exactly once immediately after capture armed: reported yes
+- Approximate Reset time: `Tue Jul 14 22:23:20 EDT 2026`
 - LED remained off: pending
 - Expected FactoryTest sequence observed: pending
 - Heat/odor/sound/power/reset anomaly: pending

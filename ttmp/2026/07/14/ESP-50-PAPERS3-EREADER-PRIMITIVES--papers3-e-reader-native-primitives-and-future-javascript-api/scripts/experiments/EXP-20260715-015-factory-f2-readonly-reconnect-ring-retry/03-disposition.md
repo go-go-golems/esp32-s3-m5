@@ -19,7 +19,10 @@ WhenToUse: "Use only after EXP-014 expired before Reset."
 
 # Disposition
 
-- Observer/capture: pending
-- Operator timing confirmation: pending
-- F2 dump markers: pending
-- Ring validation: pending
+- Observer/capture: pass — 180-second read-only capture completed; boot output received
+- Operator timing confirmation: pass — reported approximately 2026-07-14 22:23:20 EDT
+- F2 dump markers: pass — `begin=0 end=287 overwritten=0`, followed by end marker
+- Ring integrity: pass — 287 contiguous records with monotonic device timestamps
+- Full scheduler-ring validation: fail — no POWER_OFF_BEGIN, POWER_OFF_END, or DISPLAY_IDLE records
+- F2 boot provenance: pass — hash-verified F2 boot output and trace dump captured
+- F2/F1 scheduler comparison: blocked — full preregistered power-off/idle event criterion not met

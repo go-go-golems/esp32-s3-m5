@@ -1,0 +1,2420 @@
+I (286) boot: Loaded app from partition at offset 0x10000
+
+[3376731571] [[32minfo[0m] [HAL] sd card init
+
+[3376731571] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731571] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731571] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731571] [[32minfo[0m] [HAL] mounting filesystem
+
+I (111390) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (111410) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (111410) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731571] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731571] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731573] [[32minfo[0m] [HAL] sd card init
+
+[3376731573] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731573] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731573] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731573] [[32minfo[0m] [HAL] mounting filesystem
+
+I (113450) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (113470) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (113470) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731573] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731573] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731575] [[32minfo[0m] [HAL] sd card init
+
+[3376731575] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731575] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731575] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731575] [[32minfo[0m] [HAL] mounting filesystem
+
+I (115520) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (115540) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (115540) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731575] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731575] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731577] [[32minfo[0m] [HAL] sd card init
+
+[3376731577] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731577] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731577] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731577] [[32minfo[0m] [HAL] mounting filesystem
+
+I (117570) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (117590) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (117590) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731577] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731577] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731579] [[32minfo[0m] [HAL] sd card init
+
+[3376731579] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731579] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731579] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731579] [[32minfo[0m] [HAL] mounting filesystem
+
+I (119640) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (119660) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (119660) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731579] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731579] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731581] [[32minfo[0m] [HAL] sd card init
+
+[3376731581] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731581] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731581] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731581] [[32minfo[0m] [HAL] mounting filesystem
+
+I (121710) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (121730) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (121730) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731581] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731581] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731583] [[32minfo[0m] [HAL] sd card init
+
+[3376731583] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731583] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731583] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731583] [[32minfo[0m] [HAL] mounting filesystem
+
+I (123080) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (123100) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (123100) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731583] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731583] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731585] [[32minfo[0m] [HAL] sd card init
+
+[3376731585] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731585] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731585] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731585] [[32minfo[0m] [HAL] mounting filesystem
+
+I (125150) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (125170) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (125170) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731585] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731585] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376731587] [[32minfo[0m] [HAL] sd card init
+
+[3376731587] [[32minfo[0m] [HAL] initializing SD card
+
+[3376731587] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376731587] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376731587] [[32minfo[0m] [HAL] mounting filesystem
+
+I (127250) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (127270) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (127270) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376731587] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376731587] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+I (286) boot: Loaded app from partition at offset 0x10000
+
+I (1025) esp_psram: SPI SRAM memory test OK
+
+I (1034) cpu_start: Pro cpu start user code
+
+I (1034) cpu_start: cpu freq: 160000000 Hz
+
+I (1034) app_init: Application information:
+
+I (1035) app_init: Project name:     papers3_factory_v05_trace
+
+I (1035) app_init: App version:      esp50-factory-v0.5-lineage
+
+I (1035) app_init: Compile time:     Jul 14 2026 18:45:03
+
+I (1035) app_init: ELF file SHA256:  ff7f1f7b5...
+
+I (1035) app_init: ESP-IDF:          v5.3.3
+
+I (1036) efuse_init: Min chip rev:     v0.0
+
+I (1036) efuse_init: Max chip rev:     v0.99 
+
+I (1036) efuse_init: Chip rev:         v0.2
+
+I (1036) heap_init: Initializing. RAM available for dynamic allocation:
+
+I (1036) heap_init: At 3FCB51C8 len 00034548 (209 KiB): RAM
+
+I (1036) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+
+I (1037) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+
+I (1037) heap_init: At 600FE070 len 00001F78 (7 KiB): RTCRAM
+
+I (1037) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+
+I (1039) spi_flash: detected chip: generic
+
+I (1039) spi_flash: flash io: dio
+
+I (1040) sleep: Configure to isolate all GPIO pins in sleep state
+
+I (1041) sleep: Enable automatic switching of GPIO sleep configuration
+
+I (1042) main_task: Started on CPU0
+
+I (1052) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+
+I (1052) main_task: Calling app_main()
+
+[0] [[32minfo[0m] [HAL] creating hal instance
+
+[0] [[32minfo[0m] [HAL] init
+
+I (1082) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (1082) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (1082) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (1082) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (1082) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (1092) M5GFX: [Autodetect] board_M5PaperS3
+
+[3376728133] [[32minfo[0m] [HAL] rtc init
+
+[3376728133] [[32minfo[0m] [HAL] power init
+
+I (2602) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (2602) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (2602) gpio: GPIO[3]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+[3376728133] [[32minfo[0m] [HAL] sd card init
+
+[3376728133] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728133] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728133] [[32minfo[0m] [HAL] spi bus initialized
+
+[3376728133] [[32minfo[0m] [HAL] mounting filesystem
+
+I (2612) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (2642) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (2642) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728133] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728133] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728133] [[32minfo[0m] [HAL] wifi init
+
+I (2652) pp: pp rom version: e7ae62f
+
+I (2652) net80211: net80211 rom version: e7ae62f
+
+I (2662) wifi:wifi driver task: 3fcd40bc, prio:23, stack:6656, core=0
+
+I (2662) wifi:wifi firmware version: b0b320f
+
+I (2662) wifi:wifi certification version: v7.0
+
+I (2662) wifi:config NVS flash: enabled
+
+I (2662) wifi:config nano formating: disabled
+
+I (2662) wifi:Init data frame dynamic rx buffer num: 32
+
+I (2662) wifi:Init static rx mgmt buffer num: 5
+
+I (2662) wifi:Init management short buffer num: 32
+
+I (2662) wifi:Init static tx buffer num: 16
+
+I (2662) wifi:Init static tx FG buffer num: 2
+
+I (2672) wifi:Init static rx buffer size: 1600
+
+I (2672) wifi:Init static rx buffer num: 10
+
+I (2672) wifi:Init dynamic rx buffer num: 32
+
+I (2672) wifi_init: rx ba win: 6
+
+I (2672) wifi_init: accept mbox: 6
+
+I (2672) wifi_init: tcpip mbox: 32
+
+I (2672) wifi_init: udp mbox: 6
+
+I (2672) wifi_init: tcp mbox: 6
+
+I (2672) wifi_init: tcp tx win: 5760
+
+I (2672) wifi_init: tcp rx win: 5760
+
+I (2672) wifi_init: tcp mss: 1440
+
+I (2672) wifi_init: WiFi IRAM OP enabled
+
+I (2672) wifi_init: WiFi RX IRAM OP enabled
+
+I (2672) phy_init: phy_version 700,8582a7fd,Feb 10 2025,20:13:11
+
+I (2722) wifi:mode : sta (d0:cf:13:16:17:dc)
+
+I (2722) wifi:enable tsf
+
+[3376728133] [[32minfo[0m] [HAL] buzzer init
+
+[3376728133] [[32minfo[0m] [HAL] buzzer initialized successfully
+
+[3376728133] [[32minfo[0m] [HAL] ext port init
+
+I (2732) gpio: GPIO[0]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (2732) gpio: GPIO[1]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+I (2732) gpio: GPIO[2]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+FACTORY_TRACE_DUMP_BEGIN schema=esp50.factory-v05-runtime-trace.v1 begin=0 end=287 overwritten=0
+
+{"schema":1,"sequence":0,"timestamp_us":299561,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":1,"timestamp_us":299561,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":2,"timestamp_us":368205,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":3,"timestamp_us":368226,"event":20,"name":"POWER_ON_BEGIN","a":0,"b":0,"c":0,"d":0,"e":0}
+
+{"schema":1,"sequence":4,"timestamp_us":374536,"event":21,"name":"POWER_ON_END","a":0,"b":0,"c":0,"d":0,"e":0}
+
+{"schema":1,"sequence":5,"timestamp_us":374543,"event":30,"name":"FRAME_BEGIN","a":0,"b":1,"c":0,"d":960,"e":540}
+
+{"schema":1,"sequence":6,"timestamp_us":444551,"event":31,"name":"FRAME_END","a":0,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":7,"timestamp_us":444570,"event":30,"name":"FRAME_BEGIN","a":1,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":8,"timestamp_us":524542,"event":31,"name":"FRAME_END","a":1,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":9,"timestamp_us":524546,"event":30,"name":"FRAME_BEGIN","a":2,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":10,"timestamp_us":599545,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":11,"timestamp_us":604536,"event":31,"name":"FRAME_END","a":2,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":12,"timestamp_us":604542,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":13,"timestamp_us":672118,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":0,"d":259200,"e":0}
+
+{"schema":1,"sequence":14,"timestamp_us":672124,"event":30,"name":"FRAME_BEGIN","a":3,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":15,"timestamp_us":744536,"event":31,"name":"FRAME_END","a":3,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":16,"timestamp_us":744540,"event":30,"name":"FRAME_BEGIN","a":4,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":17,"timestamp_us":824539,"event":31,"name":"FRAME_END","a":4,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":18,"timestamp_us":824543,"event":30,"name":"FRAME_BEGIN","a":5,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":19,"timestamp_us":899542,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":20,"timestamp_us":904549,"event":31,"name":"FRAME_END","a":5,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":21,"timestamp_us":904558,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":22,"timestamp_us":974247,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":23,"timestamp_us":974268,"event":30,"name":"FRAME_BEGIN","a":6,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":24,"timestamp_us":1044545,"event":31,"name":"FRAME_END","a":6,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":25,"timestamp_us":1044553,"event":30,"name":"FRAME_BEGIN","a":7,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":26,"timestamp_us":1114540,"event":31,"name":"FRAME_END","a":7,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":27,"timestamp_us":1114543,"event":30,"name":"FRAME_BEGIN","a":8,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":28,"timestamp_us":1184545,"event":31,"name":"FRAME_END","a":8,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":29,"timestamp_us":1184554,"event":30,"name":"FRAME_BEGIN","a":9,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":30,"timestamp_us":1254547,"event":31,"name":"FRAME_END","a":9,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":31,"timestamp_us":1254554,"event":30,"name":"FRAME_BEGIN","a":10,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":32,"timestamp_us":1324542,"event":31,"name":"FRAME_END","a":10,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":33,"timestamp_us":1324552,"event":30,"name":"FRAME_BEGIN","a":11,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":34,"timestamp_us":1394536,"event":31,"name":"FRAME_END","a":11,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":35,"timestamp_us":1394540,"event":30,"name":"FRAME_BEGIN","a":12,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":36,"timestamp_us":1464545,"event":31,"name":"FRAME_END","a":12,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":37,"timestamp_us":1464552,"event":30,"name":"FRAME_BEGIN","a":13,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":38,"timestamp_us":1534547,"event":31,"name":"FRAME_END","a":13,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":39,"timestamp_us":1534559,"event":30,"name":"FRAME_BEGIN","a":14,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":40,"timestamp_us":1609747,"event":31,"name":"FRAME_END","a":14,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":41,"timestamp_us":1609874,"event":30,"name":"FRAME_BEGIN","a":15,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":42,"timestamp_us":1704563,"event":31,"name":"FRAME_END","a":15,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":43,"timestamp_us":1704584,"event":30,"name":"FRAME_BEGIN","a":16,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":44,"timestamp_us":1709547,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":21233921,"c":20709408,"d":1,"e":7}
+
+{"schema":1,"sequence":45,"timestamp_us":1774536,"event":31,"name":"FRAME_END","a":16,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":46,"timestamp_us":1774544,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":21233921,"c":20709408,"d":0,"e":0}
+
+{"schema":1,"sequence":47,"timestamp_us":1775941,"event":12,"name":"UPDATE_PREPARED","a":1,"b":5056,"c":5056,"d":5056,"e":0}
+
+{"schema":1,"sequence":48,"timestamp_us":1775949,"event":30,"name":"FRAME_BEGIN","a":17,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":49,"timestamp_us":1844536,"event":31,"name":"FRAME_END","a":17,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":50,"timestamp_us":1844540,"event":30,"name":"FRAME_BEGIN","a":18,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":51,"timestamp_us":1914538,"event":31,"name":"FRAME_END","a":18,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":52,"timestamp_us":1914542,"event":30,"name":"FRAME_BEGIN","a":19,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":53,"timestamp_us":1984536,"event":31,"name":"FRAME_END","a":19,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":54,"timestamp_us":1984540,"event":30,"name":"FRAME_BEGIN","a":20,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":55,"timestamp_us":2054536,"event":31,"name":"FRAME_END","a":20,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":56,"timestamp_us":2054540,"event":30,"name":"FRAME_BEGIN","a":21,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":57,"timestamp_us":2124536,"event":31,"name":"FRAME_END","a":21,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":58,"timestamp_us":2124540,"event":30,"name":"FRAME_BEGIN","a":22,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":59,"timestamp_us":2194536,"event":31,"name":"FRAME_END","a":22,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":60,"timestamp_us":2194540,"event":30,"name":"FRAME_BEGIN","a":23,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":61,"timestamp_us":2264536,"event":31,"name":"FRAME_END","a":23,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":62,"timestamp_us":2264540,"event":30,"name":"FRAME_BEGIN","a":24,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":63,"timestamp_us":2334536,"event":31,"name":"FRAME_END","a":24,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":64,"timestamp_us":2334540,"event":30,"name":"FRAME_BEGIN","a":25,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":65,"timestamp_us":2404536,"event":31,"name":"FRAME_END","a":25,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":66,"timestamp_us":2404540,"event":30,"name":"FRAME_BEGIN","a":26,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":67,"timestamp_us":2474536,"event":31,"name":"FRAME_END","a":26,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":68,"timestamp_us":2474540,"event":30,"name":"FRAME_BEGIN","a":27,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":69,"timestamp_us":2544536,"event":31,"name":"FRAME_END","a":27,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":70,"timestamp_us":2544540,"event":30,"name":"FRAME_BEGIN","a":28,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":71,"timestamp_us":2614551,"event":31,"name":"FRAME_END","a":28,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":72,"timestamp_us":2614563,"event":30,"name":"FRAME_BEGIN","a":29,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":73,"timestamp_us":2684536,"event":31,"name":"FRAME_END","a":29,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":74,"timestamp_us":2684540,"event":30,"name":"FRAME_BEGIN","a":30,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":75,"timestamp_us":2764540,"event":31,"name":"FRAME_END","a":30,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":76,"timestamp_us":2764546,"event":30,"name":"FRAME_BEGIN","a":31,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":77,"timestamp_us":2839545,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":78,"timestamp_us":2844539,"event":31,"name":"FRAME_END","a":31,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":79,"timestamp_us":2844544,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":80,"timestamp_us":2912605,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":81,"timestamp_us":2912611,"event":30,"name":"FRAME_BEGIN","a":32,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":82,"timestamp_us":2984536,"event":31,"name":"FRAME_END","a":32,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":83,"timestamp_us":2984540,"event":30,"name":"FRAME_BEGIN","a":33,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":84,"timestamp_us":3054536,"event":31,"name":"FRAME_END","a":33,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":85,"timestamp_us":3054540,"event":30,"name":"FRAME_BEGIN","a":34,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":86,"timestamp_us":3124536,"event":31,"name":"FRAME_END","a":34,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":87,"timestamp_us":3124540,"event":30,"name":"FRAME_BEGIN","a":35,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":88,"timestamp_us":3194536,"event":31,"name":"FRAME_END","a":35,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":89,"timestamp_us":3194540,"event":30,"name":"FRAME_BEGIN","a":36,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":90,"timestamp_us":3264536,"event":31,"name":"FRAME_END","a":36,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":91,"timestamp_us":3264540,"event":30,"name":"FRAME_BEGIN","a":37,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":92,"timestamp_us":3334536,"event":31,"name":"FRAME_END","a":37,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":93,"timestamp_us":3334540,"event":30,"name":"FRAME_BEGIN","a":38,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":94,"timestamp_us":3404536,"event":31,"name":"FRAME_END","a":38,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":95,"timestamp_us":3404540,"event":30,"name":"FRAME_BEGIN","a":39,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":96,"timestamp_us":3474536,"event":31,"name":"FRAME_END","a":39,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":97,"timestamp_us":3474540,"event":30,"name":"FRAME_BEGIN","a":40,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":98,"timestamp_us":3544536,"event":31,"name":"FRAME_END","a":40,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":99,"timestamp_us":3544540,"event":30,"name":"FRAME_BEGIN","a":41,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":100,"timestamp_us":3614542,"event":31,"name":"FRAME_END","a":41,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":101,"timestamp_us":3614550,"event":30,"name":"FRAME_BEGIN","a":42,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":102,"timestamp_us":3684536,"event":31,"name":"FRAME_END","a":42,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":103,"timestamp_us":3684540,"event":30,"name":"FRAME_BEGIN","a":43,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":104,"timestamp_us":3754536,"event":31,"name":"FRAME_END","a":43,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":105,"timestamp_us":3754540,"event":30,"name":"FRAME_BEGIN","a":44,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":106,"timestamp_us":3824536,"event":31,"name":"FRAME_END","a":44,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":107,"timestamp_us":3824540,"event":30,"name":"FRAME_BEGIN","a":45,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":108,"timestamp_us":3894536,"event":31,"name":"FRAME_END","a":45,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":109,"timestamp_us":3894540,"event":30,"name":"FRAME_BEGIN","a":46,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":110,"timestamp_us":3964536,"event":31,"name":"FRAME_END","a":46,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":111,"timestamp_us":3964540,"event":30,"name":"FRAME_BEGIN","a":47,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":112,"timestamp_us":4034536,"event":31,"name":"FRAME_END","a":47,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":113,"timestamp_us":4034540,"event":30,"name":"FRAME_BEGIN","a":48,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":114,"timestamp_us":4104536,"event":31,"name":"FRAME_END","a":48,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":115,"timestamp_us":4104540,"event":30,"name":"FRAME_BEGIN","a":49,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":116,"timestamp_us":4174536,"event":31,"name":"FRAME_END","a":49,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":117,"timestamp_us":4174540,"event":30,"name":"FRAME_BEGIN","a":50,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":118,"timestamp_us":4244536,"event":31,"name":"FRAME_END","a":50,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":119,"timestamp_us":4244540,"event":30,"name":"FRAME_BEGIN","a":51,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":120,"timestamp_us":4314536,"event":31,"name":"FRAME_END","a":51,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":121,"timestamp_us":4314540,"event":30,"name":"FRAME_BEGIN","a":52,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":122,"timestamp_us":4384536,"event":31,"name":"FRAME_END","a":52,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":123,"timestamp_us":4384540,"event":30,"name":"FRAME_BEGIN","a":53,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":124,"timestamp_us":4454536,"event":31,"name":"FRAME_END","a":53,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":125,"timestamp_us":4454540,"event":30,"name":"FRAME_BEGIN","a":54,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":126,"timestamp_us":4524536,"event":31,"name":"FRAME_END","a":54,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":127,"timestamp_us":4524540,"event":30,"name":"FRAME_BEGIN","a":55,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":128,"timestamp_us":4594536,"event":31,"name":"FRAME_END","a":55,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":129,"timestamp_us":4594540,"event":30,"name":"FRAME_BEGIN","a":56,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":130,"timestamp_us":4664536,"event":31,"name":"FRAME_END","a":56,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":131,"timestamp_us":4664540,"event":30,"name":"FRAME_BEGIN","a":57,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":132,"timestamp_us":4734536,"event":31,"name":"FRAME_END","a":57,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":133,"timestamp_us":4734540,"event":30,"name":"FRAME_BEGIN","a":58,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":134,"timestamp_us":4804536,"event":31,"name":"FRAME_END","a":58,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":135,"timestamp_us":4804540,"event":30,"name":"FRAME_BEGIN","a":59,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":136,"timestamp_us":4874539,"event":31,"name":"FRAME_END","a":59,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":137,"timestamp_us":4874543,"event":30,"name":"FRAME_BEGIN","a":60,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":138,"timestamp_us":4954539,"event":31,"name":"FRAME_END","a":60,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":139,"timestamp_us":4954543,"event":30,"name":"FRAME_BEGIN","a":61,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":140,"timestamp_us":4979550,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":141,"timestamp_us":5024536,"event":31,"name":"FRAME_END","a":61,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":142,"timestamp_us":5024542,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":143,"timestamp_us":5092603,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":144,"timestamp_us":5092607,"event":30,"name":"FRAME_BEGIN","a":62,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":145,"timestamp_us":5164536,"event":31,"name":"FRAME_END","a":62,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":146,"timestamp_us":5164540,"event":30,"name":"FRAME_BEGIN","a":63,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":147,"timestamp_us":5234536,"event":31,"name":"FRAME_END","a":63,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":148,"timestamp_us":5234540,"event":30,"name":"FRAME_BEGIN","a":64,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":149,"timestamp_us":5304536,"event":31,"name":"FRAME_END","a":64,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":150,"timestamp_us":5304540,"event":30,"name":"FRAME_BEGIN","a":65,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":151,"timestamp_us":5374536,"event":31,"name":"FRAME_END","a":65,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":152,"timestamp_us":5374540,"event":30,"name":"FRAME_BEGIN","a":66,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":153,"timestamp_us":5444536,"event":31,"name":"FRAME_END","a":66,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":154,"timestamp_us":5444540,"event":30,"name":"FRAME_BEGIN","a":67,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":155,"timestamp_us":5514536,"event":31,"name":"FRAME_END","a":67,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":156,"timestamp_us":5514540,"event":30,"name":"FRAME_BEGIN","a":68,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":157,"timestamp_us":5584536,"event":31,"name":"FRAME_END","a":68,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":158,"timestamp_us":5584540,"event":30,"name":"FRAME_BEGIN","a":69,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":159,"timestamp_us":5654540,"event":31,"name":"FRAME_END","a":69,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":160,"timestamp_us":5654548,"event":30,"name":"FRAME_BEGIN","a":70,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":161,"timestamp_us":5724536,"event":31,"name":"FRAME_END","a":70,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":162,"timestamp_us":5724540,"event":30,"name":"FRAME_BEGIN","a":71,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":163,"timestamp_us":5794536,"event":31,"name":"FRAME_END","a":71,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":164,"timestamp_us":5794540,"event":30,"name":"FRAME_BEGIN","a":72,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":165,"timestamp_us":5864536,"event":31,"name":"FRAME_END","a":72,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":166,"timestamp_us":5864540,"event":30,"name":"FRAME_BEGIN","a":73,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":167,"timestamp_us":5934536,"event":31,"name":"FRAME_END","a":73,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":168,"timestamp_us":5934540,"event":30,"name":"FRAME_BEGIN","a":74,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":169,"timestamp_us":6004536,"event":31,"name":"FRAME_END","a":74,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":170,"timestamp_us":6004540,"event":30,"name":"FRAME_BEGIN","a":75,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":171,"timestamp_us":6074536,"event":31,"name":"FRAME_END","a":75,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":172,"timestamp_us":6074540,"event":30,"name":"FRAME_BEGIN","a":76,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":173,"timestamp_us":6144536,"event":31,"name":"FRAME_END","a":76,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":174,"timestamp_us":6144540,"event":30,"name":"FRAME_BEGIN","a":77,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":175,"timestamp_us":6214536,"event":31,"name":"FRAME_END","a":77,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":176,"timestamp_us":6214540,"event":30,"name":"FRAME_BEGIN","a":78,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":177,"timestamp_us":6284536,"event":31,"name":"FRAME_END","a":78,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":178,"timestamp_us":6284540,"event":30,"name":"FRAME_BEGIN","a":79,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":179,"timestamp_us":6354536,"event":31,"name":"FRAME_END","a":79,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":180,"timestamp_us":6354540,"event":30,"name":"FRAME_BEGIN","a":80,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":181,"timestamp_us":6424536,"event":31,"name":"FRAME_END","a":80,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":182,"timestamp_us":6424540,"event":30,"name":"FRAME_BEGIN","a":81,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":183,"timestamp_us":6494536,"event":31,"name":"FRAME_END","a":81,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":184,"timestamp_us":6494540,"event":30,"name":"FRAME_BEGIN","a":82,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":185,"timestamp_us":6564536,"event":31,"name":"FRAME_END","a":82,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":186,"timestamp_us":6564540,"event":30,"name":"FRAME_BEGIN","a":83,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":187,"timestamp_us":6634545,"event":31,"name":"FRAME_END","a":83,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":188,"timestamp_us":6634557,"event":30,"name":"FRAME_BEGIN","a":84,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":189,"timestamp_us":6704536,"event":31,"name":"FRAME_END","a":84,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":190,"timestamp_us":6704540,"event":30,"name":"FRAME_BEGIN","a":85,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":191,"timestamp_us":6774536,"event":31,"name":"FRAME_END","a":85,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":192,"timestamp_us":6774540,"event":30,"name":"FRAME_BEGIN","a":86,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":193,"timestamp_us":6844536,"event":31,"name":"FRAME_END","a":86,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":194,"timestamp_us":6844540,"event":30,"name":"FRAME_BEGIN","a":87,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":195,"timestamp_us":6914536,"event":31,"name":"FRAME_END","a":87,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":196,"timestamp_us":6914540,"event":30,"name":"FRAME_BEGIN","a":88,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":197,"timestamp_us":6984539,"event":31,"name":"FRAME_END","a":88,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":198,"timestamp_us":6984545,"event":30,"name":"FRAME_BEGIN","a":89,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":199,"timestamp_us":7064539,"event":31,"name":"FRAME_END","a":89,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":200,"timestamp_us":7064543,"event":30,"name":"FRAME_BEGIN","a":90,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":201,"timestamp_us":7109556,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":202,"timestamp_us":7134536,"event":31,"name":"FRAME_END","a":90,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":203,"timestamp_us":7134541,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":204,"timestamp_us":7202605,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":205,"timestamp_us":7202611,"event":30,"name":"FRAME_BEGIN","a":91,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":206,"timestamp_us":7274536,"event":31,"name":"FRAME_END","a":91,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":207,"timestamp_us":7274540,"event":30,"name":"FRAME_BEGIN","a":92,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":208,"timestamp_us":7344536,"event":31,"name":"FRAME_END","a":92,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":209,"timestamp_us":7344540,"event":30,"name":"FRAME_BEGIN","a":93,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":210,"timestamp_us":7414536,"event":31,"name":"FRAME_END","a":93,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":211,"timestamp_us":7414540,"event":30,"name":"FRAME_BEGIN","a":94,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":212,"timestamp_us":7484536,"event":31,"name":"FRAME_END","a":94,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":213,"timestamp_us":7484540,"event":30,"name":"FRAME_BEGIN","a":95,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":214,"timestamp_us":7554536,"event":31,"name":"FRAME_END","a":95,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":215,"timestamp_us":7554540,"event":30,"name":"FRAME_BEGIN","a":96,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":216,"timestamp_us":7624540,"event":31,"name":"FRAME_END","a":96,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":217,"timestamp_us":7624548,"event":30,"name":"FRAME_BEGIN","a":97,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":218,"timestamp_us":7694536,"event":31,"name":"FRAME_END","a":97,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":219,"timestamp_us":7694540,"event":30,"name":"FRAME_BEGIN","a":98,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":220,"timestamp_us":7764536,"event":31,"name":"FRAME_END","a":98,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":221,"timestamp_us":7764540,"event":30,"name":"FRAME_BEGIN","a":99,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":222,"timestamp_us":7834536,"event":31,"name":"FRAME_END","a":99,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":223,"timestamp_us":7834540,"event":30,"name":"FRAME_BEGIN","a":100,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":224,"timestamp_us":7904540,"event":31,"name":"FRAME_END","a":100,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":225,"timestamp_us":7904544,"event":30,"name":"FRAME_BEGIN","a":101,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":226,"timestamp_us":7984540,"event":31,"name":"FRAME_END","a":101,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":227,"timestamp_us":7984544,"event":30,"name":"FRAME_BEGIN","a":102,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":228,"timestamp_us":8064539,"event":31,"name":"FRAME_END","a":102,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":229,"timestamp_us":8064543,"event":30,"name":"FRAME_BEGIN","a":103,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":230,"timestamp_us":8069562,"event":10,"name":"DISPLAY_ENQUEUE","a":1,"b":0,"c":62915100,"d":1,"e":7}
+
+{"schema":1,"sequence":231,"timestamp_us":8134536,"event":31,"name":"FRAME_END","a":103,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":232,"timestamp_us":8134542,"event":11,"name":"UPDATE_DEQUEUE","a":1,"b":0,"c":62915100,"d":0,"e":0}
+
+{"schema":1,"sequence":233,"timestamp_us":8202595,"event":12,"name":"UPDATE_PREPARED","a":1,"b":259200,"c":259200,"d":259200,"e":0}
+
+{"schema":1,"sequence":234,"timestamp_us":8202599,"event":30,"name":"FRAME_BEGIN","a":104,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":235,"timestamp_us":8274536,"event":31,"name":"FRAME_END","a":104,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":236,"timestamp_us":8274540,"event":30,"name":"FRAME_BEGIN","a":105,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":237,"timestamp_us":8344536,"event":31,"name":"FRAME_END","a":105,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":238,"timestamp_us":8344540,"event":30,"name":"FRAME_BEGIN","a":106,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":239,"timestamp_us":8414536,"event":31,"name":"FRAME_END","a":106,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":240,"timestamp_us":8414540,"event":30,"name":"FRAME_BEGIN","a":107,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":241,"timestamp_us":8484536,"event":31,"name":"FRAME_END","a":107,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":242,"timestamp_us":8484540,"event":30,"name":"FRAME_BEGIN","a":108,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":243,"timestamp_us":8554536,"event":31,"name":"FRAME_END","a":108,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":244,"timestamp_us":8554540,"event":30,"name":"FRAME_BEGIN","a":109,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":245,"timestamp_us":8624540,"event":31,"name":"FRAME_END","a":109,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":246,"timestamp_us":8624548,"event":30,"name":"FRAME_BEGIN","a":110,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":247,"timestamp_us":8694536,"event":31,"name":"FRAME_END","a":110,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":248,"timestamp_us":8694540,"event":30,"name":"FRAME_BEGIN","a":111,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":249,"timestamp_us":8764536,"event":31,"name":"FRAME_END","a":111,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":250,"timestamp_us":8764540,"event":30,"name":"FRAME_BEGIN","a":112,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":251,"timestamp_us":8834536,"event":31,"name":"FRAME_END","a":112,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":252,"timestamp_us":8834540,"event":30,"name":"FRAME_BEGIN","a":113,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":253,"timestamp_us":8904536,"event":31,"name":"FRAME_END","a":113,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":254,"timestamp_us":8904540,"event":30,"name":"FRAME_BEGIN","a":114,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":255,"timestamp_us":8974536,"event":31,"name":"FRAME_END","a":114,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":256,"timestamp_us":8974540,"event":30,"name":"FRAME_BEGIN","a":115,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":257,"timestamp_us":9044536,"event":31,"name":"FRAME_END","a":115,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":258,"timestamp_us":9044540,"event":30,"name":"FRAME_BEGIN","a":116,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":259,"timestamp_us":9114536,"event":31,"name":"FRAME_END","a":116,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":260,"timestamp_us":9114540,"event":30,"name":"FRAME_BEGIN","a":117,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":261,"timestamp_us":9184536,"event":31,"name":"FRAME_END","a":117,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":262,"timestamp_us":9184540,"event":30,"name":"FRAME_BEGIN","a":118,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":263,"timestamp_us":9254536,"event":31,"name":"FRAME_END","a":118,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":264,"timestamp_us":9254540,"event":30,"name":"FRAME_BEGIN","a":119,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":265,"timestamp_us":9324536,"event":31,"name":"FRAME_END","a":119,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":266,"timestamp_us":9324540,"event":30,"name":"FRAME_BEGIN","a":120,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":267,"timestamp_us":9394536,"event":31,"name":"FRAME_END","a":120,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":268,"timestamp_us":9394540,"event":30,"name":"FRAME_BEGIN","a":121,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":269,"timestamp_us":9464536,"event":31,"name":"FRAME_END","a":121,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":270,"timestamp_us":9464540,"event":30,"name":"FRAME_BEGIN","a":122,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":271,"timestamp_us":9534536,"event":31,"name":"FRAME_END","a":122,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":272,"timestamp_us":9534540,"event":30,"name":"FRAME_BEGIN","a":123,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":273,"timestamp_us":9604536,"event":31,"name":"FRAME_END","a":123,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":274,"timestamp_us":9604540,"event":30,"name":"FRAME_BEGIN","a":124,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":275,"timestamp_us":9674536,"event":31,"name":"FRAME_END","a":124,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":276,"timestamp_us":9674540,"event":30,"name":"FRAME_BEGIN","a":125,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":277,"timestamp_us":9744536,"event":31,"name":"FRAME_END","a":125,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":278,"timestamp_us":9744540,"event":30,"name":"FRAME_BEGIN","a":126,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":279,"timestamp_us":9814536,"event":31,"name":"FRAME_END","a":126,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":280,"timestamp_us":9814540,"event":30,"name":"FRAME_BEGIN","a":127,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":281,"timestamp_us":9884536,"event":31,"name":"FRAME_END","a":127,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":282,"timestamp_us":9884540,"event":30,"name":"FRAME_BEGIN","a":128,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":283,"timestamp_us":9954536,"event":31,"name":"FRAME_END","a":128,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":284,"timestamp_us":9954540,"event":30,"name":"FRAME_BEGIN","a":129,"b":1,"c":1,"d":960,"e":540}
+
+{"schema":1,"sequence":285,"timestamp_us":10024536,"event":31,"name":"FRAME_END","a":129,"b":1,"c":1,"d":0,"e":0}
+
+{"schema":1,"sequence":286,"timestamp_us":10024540,"event":30,"name":"FRAME_BEGIN","a":130,"b":1,"c":1,"d":960,"e":540}
+
+FACTORY_TRACE_DUMP_END total=287
+
+
+
+ _____ _____ _____ _____ _____ _____ _____ _____
+
+|     |     |     |   | |     |  _  |  |  |   __|
+
+| | | |  |  |  |  | | | |   --|     |    -|   __|
+
+|_|_|_|_____|_____|_|___|_____|__|__|__|__|_____|
+
+
+
+- @author Forairaaaaa
+
+- @version 2.0.0
+
+- @build at 18:45:53 Jul 14 2026
+
+
+
+[3376728143] [[32minfo[0m] [AppPower] onCreate
+
+[3376728143] [[32minfo[0m] [AppSdCard] onCreate
+
+[3376728143] [[32minfo[0m] [AppRtc] onCreate
+
+[3376728143] [[32minfo[0m] [AppBuzzer] onCreate
+
+[3376728143] [[32minfo[0m] [AppImu] onCreate
+
+[3376728143] [[32minfo[0m] [AppWifi] onCreate
+
+[3376728143] [[32minfo[0m] [HAL] sd card init
+
+[3376728143] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728143] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728143] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728143] [[32minfo[0m] [HAL] mounting filesystem
+
+I (12332) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (12352) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (12352) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728143] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728143] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728145] [[32minfo[0m] [HAL] sd card init
+
+[3376728145] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728145] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728145] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728145] [[32minfo[0m] [HAL] mounting filesystem
+
+I (14492) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (14512) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (14512) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728145] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728145] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728147] [[32minfo[0m] [HAL] sd card init
+
+[3376728147] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728147] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728147] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728147] [[32minfo[0m] [HAL] mounting filesystem
+
+I (16562) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (16582) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (16582) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728147] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728147] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728149] [[32minfo[0m] [HAL] sd card init
+
+[3376728149] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728149] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728149] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728149] [[32minfo[0m] [HAL] mounting filesystem
+
+I (18632) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (18652) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (18652) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728149] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728149] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728151] [[32minfo[0m] [HAL] sd card init
+
+[3376728151] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728151] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728151] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728151] [[32minfo[0m] [HAL] mounting filesystem
+
+I (20682) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (20702) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (20702) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728151] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728151] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728153] [[32minfo[0m] [HAL] sd card init
+
+[3376728153] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728153] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728153] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728153] [[32minfo[0m] [HAL] mounting filesystem
+
+I (22742) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (22762) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (22762) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728153] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728153] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728155] [[32minfo[0m] [HAL] sd card init
+
+[3376728155] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728155] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728155] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728155] [[32minfo[0m] [HAL] mounting filesystem
+
+I (24802) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (24822) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (24822) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728155] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728155] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728157] [[32minfo[0m] [HAL] sd card init
+
+[3376728157] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728157] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728157] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728157] [[32minfo[0m] [HAL] mounting filesystem
+
+I (26852) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (26872) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (26872) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728157] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728157] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728159] [[32minfo[0m] [HAL] sd card init
+
+[3376728159] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728159] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728159] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728159] [[32minfo[0m] [HAL] mounting filesystem
+
+I (28132) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (28152) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (28152) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728159] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728159] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728161] [[32minfo[0m] [HAL] sd card init
+
+[3376728161] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728161] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728161] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728161] [[32minfo[0m] [HAL] mounting filesystem
+
+I (30202) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (30222) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (30222) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728161] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728161] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728163] [[32minfo[0m] [HAL] sd card init
+
+[3376728163] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728163] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728163] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728163] [[32minfo[0m] [HAL] mounting filesystem
+
+I (32302) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (32322) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (32322) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728163] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728163] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728165] [[32minfo[0m] [HAL] sd card init
+
+[3376728165] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728165] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728165] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728165] [[32minfo[0m] [HAL] mounting filesystem
+
+I (34362) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (34382) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (34382) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728165] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728165] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728167] [[32minfo[0m] [HAL] sd card init
+
+[3376728167] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728167] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728167] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728167] [[32minfo[0m] [HAL] mounting filesystem
+
+I (36432) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (36452) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (36452) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728167] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728167] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728169] [[32minfo[0m] [HAL] sd card init
+
+[3376728169] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728169] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728169] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728169] [[32minfo[0m] [HAL] mounting filesystem
+
+I (38482) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (38502) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (38502) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728169] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728169] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728171] [[32minfo[0m] [HAL] sd card init
+
+[3376728171] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728171] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728171] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728171] [[32minfo[0m] [HAL] mounting filesystem
+
+I (40552) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (40572) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (40572) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728171] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728171] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728173] [[32minfo[0m] [HAL] sd card init
+
+[3376728173] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728173] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728173] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728173] [[32minfo[0m] [HAL] mounting filesystem
+
+I (42622) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (42642) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (42642) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728173] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728173] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728175] [[32minfo[0m] [HAL] sd card init
+
+[3376728175] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728175] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728175] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728175] [[32minfo[0m] [HAL] mounting filesystem
+
+I (44012) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (44032) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (44032) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728175] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728175] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728177] [[32minfo[0m] [HAL] sd card init
+
+[3376728177] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728177] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728177] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728177] [[32minfo[0m] [HAL] mounting filesystem
+
+I (46082) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (46102) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (46102) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728177] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728177] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728179] [[32minfo[0m] [HAL] sd card init
+
+[3376728179] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728179] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728179] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728179] [[32minfo[0m] [HAL] mounting filesystem
+
+I (48182) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (48202) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (48202) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728179] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728179] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728181] [[32minfo[0m] [HAL] sd card init
+
+[3376728181] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728181] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728181] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728181] [[32minfo[0m] [HAL] mounting filesystem
+
+I (50252) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (50272) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (50272) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728181] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728181] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728183] [[32minfo[0m] [HAL] sd card init
+
+[3376728183] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728183] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728183] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728183] [[32minfo[0m] [HAL] mounting filesystem
+
+I (52322) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (52342) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (52342) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728183] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728183] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728185] [[32minfo[0m] [HAL] sd card init
+
+[3376728185] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728185] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728185] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728185] [[32minfo[0m] [HAL] mounting filesystem
+
+I (54372) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (54392) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (54392) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728185] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728185] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728187] [[32minfo[0m] [HAL] sd card init
+
+[3376728187] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728187] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728187] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728187] [[32minfo[0m] [HAL] mounting filesystem
+
+I (56442) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (56462) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (56462) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728187] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728187] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728189] [[32minfo[0m] [HAL] sd card init
+
+[3376728189] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728189] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728189] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728189] [[32minfo[0m] [HAL] mounting filesystem
+
+I (58502) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (58522) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (58522) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728189] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728189] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728190] [[32minfo[0m] [HAL] sd card init
+
+[3376728190] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728190] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728190] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728190] [[32minfo[0m] [HAL] mounting filesystem
+
+I (59842) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (59862) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (59862) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728190] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728190] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728192] [[32minfo[0m] [HAL] sd card init
+
+[3376728192] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728192] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728192] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728192] [[32minfo[0m] [HAL] mounting filesystem
+
+I (61912) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (61932) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (61932) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728192] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728192] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728195] [[32minfo[0m] [HAL] sd card init
+
+[3376728195] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728195] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728195] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728195] [[32minfo[0m] [HAL] mounting filesystem
+
+I (64012) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (64032) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (64032) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728195] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728195] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728197] [[32minfo[0m] [HAL] sd card init
+
+[3376728197] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728197] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728197] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728197] [[32minfo[0m] [HAL] mounting filesystem
+
+I (66082) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (66102) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (66102) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728197] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728197] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728199] [[32minfo[0m] [HAL] sd card init
+
+[3376728199] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728199] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728199] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728199] [[32minfo[0m] [HAL] mounting filesystem
+
+I (68152) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (68172) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (68172) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728199] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728199] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728201] [[32minfo[0m] [HAL] sd card init
+
+[3376728201] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728201] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728201] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728201] [[32minfo[0m] [HAL] mounting filesystem
+
+I (70202) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (70222) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (70222) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728201] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728201] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728203] [[32minfo[0m] [HAL] sd card init
+
+[3376728203] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728203] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728203] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728203] [[32minfo[0m] [HAL] mounting filesystem
+
+I (72272) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (72292) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (72292) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728203] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728203] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728205] [[32minfo[0m] [HAL] sd card init
+
+[3376728205] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728205] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728205] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728205] [[32minfo[0m] [HAL] mounting filesystem
+
+I (74332) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (74352) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (74352) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728205] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728205] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728206] [[32minfo[0m] [HAL] sd card init
+
+[3376728206] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728206] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728206] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728206] [[32minfo[0m] [HAL] mounting filesystem
+
+I (75672) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (75692) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (75692) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728206] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728206] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728208] [[32minfo[0m] [HAL] sd card init
+
+[3376728208] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728208] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728208] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728208] [[32minfo[0m] [HAL] mounting filesystem
+
+I (77742) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (77762) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (77762) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728208] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728208] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728210] [[32minfo[0m] [HAL] sd card init
+
+[3376728210] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728210] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728210] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728210] [[32minfo[0m] [HAL] mounting filesystem
+
+I (79842) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (79862) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (79862) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728210] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728210] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728212] [[32minfo[0m] [HAL] sd card init
+
+[3376728212] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728212] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728212] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728212] [[32minfo[0m] [HAL] mounting filesystem
+
+I (81912) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (81932) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (81932) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728212] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728212] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728215] [[32minfo[0m] [HAL] sd card init
+
+[3376728215] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728215] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728215] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728215] [[32minfo[0m] [HAL] mounting filesystem
+
+I (83982) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (84002) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (84002) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728215] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728215] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728217] [[32minfo[0m] [HAL] sd card init
+
+[3376728217] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728217] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728217] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728217] [[32minfo[0m] [HAL] mounting filesystem
+
+I (86032) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (86052) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (86052) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728217] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728217] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728219] [[32minfo[0m] [HAL] sd card init
+
+[3376728219] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728219] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728219] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728219] [[32minfo[0m] [HAL] mounting filesystem
+
+I (88102) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (88122) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (88122) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728219] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728219] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728221] [[32minfo[0m] [HAL] sd card init
+
+[3376728221] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728221] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728221] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728221] [[32minfo[0m] [HAL] mounting filesystem
+
+I (90162) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (90182) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (90182) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728221] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728221] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728222] [[32minfo[0m] [HAL] sd card init
+
+[3376728222] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728222] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728222] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728222] [[32minfo[0m] [HAL] mounting filesystem
+
+I (91502) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (91522) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (91522) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728222] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728222] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728224] [[32minfo[0m] [HAL] sd card init
+
+[3376728224] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728224] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728224] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728224] [[32minfo[0m] [HAL] mounting filesystem
+
+I (93572) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (93592) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (93592) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728224] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728224] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728226] [[32minfo[0m] [HAL] sd card init
+
+[3376728226] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728226] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728226] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728226] [[32minfo[0m] [HAL] mounting filesystem
+
+I (95672) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (95692) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (95692) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728226] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728226] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728228] [[32minfo[0m] [HAL] sd card init
+
+[3376728228] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728228] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728228] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728228] [[32minfo[0m] [HAL] mounting filesystem
+
+I (97732) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (97752) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (97752) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728228] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728228] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728230] [[32minfo[0m] [HAL] sd card init
+
+[3376728230] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728230] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728230] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728230] [[32minfo[0m] [HAL] mounting filesystem
+
+I (99802) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (99822) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (99822) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728230] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728230] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728232] [[32minfo[0m] [HAL] sd card init
+
+[3376728232] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728232] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728232] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728232] [[32minfo[0m] [HAL] mounting filesystem
+
+I (101852) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (101872) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (101872) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728232] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728232] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728234] [[32minfo[0m] [HAL] sd card init
+
+[3376728234] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728234] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728234] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728234] [[32minfo[0m] [HAL] mounting filesystem
+
+I (103922) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (103942) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (103942) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728234] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728234] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728237] [[32minfo[0m] [HAL] sd card init
+
+[3376728237] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728237] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728237] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728237] [[32minfo[0m] [HAL] mounting filesystem
+
+I (105992) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (106012) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (106012) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728237] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728237] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728238] [[32minfo[0m] [HAL] sd card init
+
+[3376728238] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728238] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728238] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728238] [[32minfo[0m] [HAL] mounting filesystem
+
+I (107362) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (107382) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (107382) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728238] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728238] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728240] [[32minfo[0m] [HAL] sd card init
+
+[3376728240] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728240] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728240] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728240] [[32minfo[0m] [HAL] mounting filesystem
+
+I (109432) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (109452) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (109452) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728240] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728240] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728242] [[32minfo[0m] [HAL] sd card init
+
+[3376728242] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728242] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728242] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728242] [[32minfo[0m] [HAL] mounting filesystem
+
+I (111532) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (111552) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (111552) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728242] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728242] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728244] [[32minfo[0m] [HAL] sd card init
+
+[3376728244] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728244] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728244] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728244] [[32minfo[0m] [HAL] mounting filesystem
+
+I (113602) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (113622) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (113622) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728244] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728244] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728246] [[32minfo[0m] [HAL] sd card init
+
+[3376728246] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728246] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728246] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728246] [[32minfo[0m] [HAL] mounting filesystem
+
+I (115672) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (115692) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (115692) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728246] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728246] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728248] [[32minfo[0m] [HAL] sd card init
+
+[3376728248] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728248] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728248] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728248] [[32minfo[0m] [HAL] mounting filesystem
+
+I (117722) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (117742) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (117742) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728248] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728248] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728250] [[32minfo[0m] [HAL] sd card init
+
+[3376728250] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728250] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728250] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728250] [[32minfo[0m] [HAL] mounting filesystem
+
+I (119792) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (119812) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (119812) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728250] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728250] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728252] [[32minfo[0m] [HAL] sd card init
+
+[3376728252] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728252] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728252] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728252] [[32minfo[0m] [HAL] mounting filesystem
+
+I (121852) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (121872) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (121872) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728252] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728252] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728254] [[32minfo[0m] [HAL] sd card init
+
+[3376728254] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728254] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728254] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728254] [[32minfo[0m] [HAL] mounting filesystem
+
+I (123182) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (123202) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (123202) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728254] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728254] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728256] [[32minfo[0m] [HAL] sd card init
+
+[3376728256] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728256] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728256] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728256] [[32minfo[0m] [HAL] mounting filesystem
+
+I (125252) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (125272) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (125272) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728256] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728256] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728258] [[32minfo[0m] [HAL] sd card init
+
+[3376728258] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728258] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728258] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728258] [[32minfo[0m] [HAL] mounting filesystem
+
+I (127352) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (127372) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (127372) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728258] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728258] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728260] [[32minfo[0m] [HAL] sd card init
+
+[3376728260] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728260] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728260] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728260] [[32minfo[0m] [HAL] mounting filesystem
+
+I (129422) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (129442) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (129442) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728260] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728260] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728262] [[32minfo[0m] [HAL] sd card init
+
+[3376728262] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728262] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728262] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728262] [[32minfo[0m] [HAL] mounting filesystem
+
+I (131492) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (131512) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (131512) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728262] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728262] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728264] [[32minfo[0m] [HAL] sd card init
+
+[3376728264] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728264] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728264] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728264] [[32minfo[0m] [HAL] mounting filesystem
+
+I (133542) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (133562) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (133562) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728264] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728264] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728266] [[32minfo[0m] [HAL] sd card init
+
+[3376728266] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728266] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728266] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728266] [[32minfo[0m] [HAL] mounting filesystem
+
+I (135612) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (135632) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (135632) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728266] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728266] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728268] [[32minfo[0m] [HAL] sd card init
+
+[3376728268] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728268] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728268] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728268] [[32minfo[0m] [HAL] mounting filesystem
+
+I (137672) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (137692) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (137692) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728268] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728268] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728270] [[32minfo[0m] [HAL] sd card init
+
+[3376728270] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728270] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728270] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728270] [[32minfo[0m] [HAL] mounting filesystem
+
+I (139002) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (139022) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (139022) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728270] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728270] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728272] [[32minfo[0m] [HAL] sd card init
+
+[3376728272] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728272] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728272] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728272] [[32minfo[0m] [HAL] mounting filesystem
+
+I (141072) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (141092) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (141092) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728272] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728272] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728274] [[32minfo[0m] [HAL] sd card init
+
+[3376728274] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728274] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728274] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728274] [[32minfo[0m] [HAL] mounting filesystem
+
+I (143172) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (143192) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (143192) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728274] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728274] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728276] [[32minfo[0m] [HAL] sd card init
+
+[3376728276] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728276] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728276] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728276] [[32minfo[0m] [HAL] mounting filesystem
+
+I (145242) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (145262) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (145262) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728276] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728276] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728278] [[32minfo[0m] [HAL] sd card init
+
+[3376728278] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728278] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728278] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728278] [[32minfo[0m] [HAL] mounting filesystem
+
+I (147312) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (147332) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (147332) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728278] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728278] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728280] [[32minfo[0m] [HAL] sd card init
+
+[3376728280] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728280] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728280] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728280] [[32minfo[0m] [HAL] mounting filesystem
+
+I (149362) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (149382) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (149382) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728280] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728280] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728282] [[32minfo[0m] [HAL] sd card init
+
+[3376728282] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728282] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728282] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728282] [[32minfo[0m] [HAL] mounting filesystem
+
+I (151432) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (151452) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (151452) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728282] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728282] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728284] [[32minfo[0m] [HAL] sd card init
+
+[3376728284] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728284] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728284] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728284] [[32minfo[0m] [HAL] mounting filesystem
+
+I (153492) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (153512) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (153512) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728284] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728284] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
+[3376728285] [[32minfo[0m] [HAL] sd card init
+
+[3376728285] [[32minfo[0m] [HAL] initializing SD card
+
+[3376728285] [[32minfo[0m] [HAL] using SPI peripheral
+
+[3376728285] [[32minfo[0m] [HAL] spi bus already initialized, reusing
+
+[3376728285] [[32minfo[0m] [HAL] mounting filesystem
+
+I (154832) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+E (154852) vfs_fat_sdmmc: sdmmc_card_init failed (0x107).
+
+I (154852) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+
+[3376728285] [[31merror[0m] [HAL] failed to initialize the card, make sure SD card lines have pull-up resistors
+
+[3376728285] [[32minfo[0m] [HAL] sd card init failed, but spi bus remains initialized for retry
+
