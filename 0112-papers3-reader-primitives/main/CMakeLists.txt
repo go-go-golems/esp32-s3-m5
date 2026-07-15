@@ -6,6 +6,7 @@ idf_component_register(
         "app_display.cpp"
         "app_input.cpp"
         "app_reader.cpp"
+        "app_storage.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
@@ -14,4 +15,7 @@ idf_component_register(
         esp_timer
         s3paper_core
         s3paper_m5
+        fatfs
+        sdmmc
+        esp_driver_sdspi
 )

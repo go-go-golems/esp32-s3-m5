@@ -1,0 +1,50 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (170) esp_image: segment 4: paddr=000c4dec vaddr=40380d5c size[5nI (987) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (988) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when 
+# >>> sd mount
+sd mount
+I (23031) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (23031) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (23032) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (23033) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (23033) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (23035) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23036) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23037) M5GFX: [Autodetect] board_M5PaperS3
+I (23287) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23288) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23292) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23293) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23354) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23355) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (28148) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (28149) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (28154) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (28155) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (28560) m5_backend: init board=19 display=540x960
+I (28564) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (28566) sdspi_transaction: cmd=52, R1 response: command not supported
+I (28609) sdspi_transaction: cmd=5, R1 response: command not supported
+I (28662) storage: mounted /sdcard: 7580 MiB
+I (28671) storage: loaded 1 reading position(s)
+sd mounted=1 capacity_mib=7580 books=0 positions=1 position_writes=0 write_failures=0
+reader> 
+# >>> library scan
+library scan
+I (33058) storage: library scan: 2 book(s)
+library: 2 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+reader> 
+# >>> reader open 0
+reader open 0
+I (43099) reader_ctl: resuming "alice-demo" at offset 1701
+I (43630) m5_backend: present id=1 intent=CleanFull ops=28 skipped=0 damage=0,0,540,960 render_us=495765 wait_us=13
+I (43631) reader_ctl: page at 1701 lines=23 full=1 reason=FirstRender
+reader open=1 title="alice-demo" source=sd resumed=1 offset=1701 progress=54.7% lines=23 turns=0 at_end=0 checkpoints=1
+reader> 
+# done

@@ -11,7 +11,8 @@
 namespace reader {
 
 // All owner-task-only.
-StatusCode ReaderOpen();
+StatusCode ReaderOpen();                  // embedded fixture book
+StatusCode ReaderOpenSd(uint32_t index);  // library book by scan index
 StatusCode ReaderNext();
 StatusCode ReaderPrev();
 void FillReaderSnapshot(ReaderSnapshot *out);

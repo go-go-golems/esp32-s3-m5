@@ -63,7 +63,10 @@ enum class ConsoleOp : uint8_t {
     SoakStart,   // arg: number of steps
     SoakStatus,
     Touch,       // arg: 0 = status, 1 = enable, 2 = disable
-    Reader,      // arg: 0 = status, 1 = open, 2 = next, 3 = prev
+    Reader,      // arg: 0 = status, 1 = open embedded, 2 = next, 3 = prev,
+                 //      4 = open SD library book (index in arg2)
+    Sd,          // arg: 0 = status, 1 = mount, 2 = unmount, 3 = write demo
+    Library,     // arg: 0 = list, 1 = scan
 };
 
 enum class PointerPhase : uint8_t {
@@ -76,6 +79,7 @@ enum class PointerPhase : uint8_t {
 struct ConsolePayload {
     ConsoleOp op;
     uint32_t arg;
+    uint32_t arg2;
 };
 
 struct PointerPayload {
@@ -213,11 +217,23 @@ struct TouchSnapshot {
 struct ReaderSnapshot {
     uint8_t open;
     uint8_t at_end;
+    uint8_t source;   // 0 = embedded, 1 = SD library
+    uint8_t resumed;  // 1 when open restored a persisted position
     uint64_t byte_offset;
     uint32_t line_count;
     uint32_t page_turns;
     uint32_t progress_permille;
     uint32_t checkpoints;
+    char title[40];
+};
+
+struct SdSnapshot {
+    uint8_t mounted;
+    uint32_t capacity_mib;
+    uint32_t book_count;
+    uint32_t position_records;
+    uint32_t position_writes;
+    uint32_t position_write_failures;
 };
 
 struct DisplaySnapshot {
@@ -244,6 +260,7 @@ struct AppReply {
         SoakSnapshot soak;
         TouchSnapshot touch;
         ReaderSnapshot reader;
+        SdSnapshot sd;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

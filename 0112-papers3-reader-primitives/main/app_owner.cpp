@@ -3,6 +3,7 @@
 #include "app_display.h"
 #include "app_input.h"
 #include "app_reader.h"
+#include "app_storage.h"
 
 #include <atomic>
 #include <cstring>
@@ -294,10 +295,40 @@ void HandleConsoleCommand(const AppEvent &event) {
                 case 3:
                     reply.status = ReaderPrev();
                     break;
+                case 4:
+                    reply.status = ReaderOpenSd(event.payload.console.arg2);
+                    break;
                 default:
                     break;
             }
             FillReaderSnapshot(&reply.payload.reader);
+            break;
+        }
+        case ConsoleOp::Sd: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = StorageMount();
+                    break;
+                case 2:
+                    reply.status = StorageUnmount();
+                    break;
+                case 3:
+                    reply.status = StorageWriteDemoBook();
+                    break;
+                default:
+                    break;
+            }
+            FillSdSnapshot(&reply.payload.sd);
+            break;
+        }
+        case ConsoleOp::Library: {
+            if (event.payload.console.arg == 1) {
+                uint32_t count = 0;
+                reply.status = LibraryScan(&count);
+            }
+            // Owner prints the catalog (strings do not fit POD replies).
+            LibraryPrint();
+            FillSdSnapshot(&reply.payload.sd);
             break;
         }
         case ConsoleOp::Touch: {

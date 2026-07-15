@@ -1,0 +1,159 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (155) esp_image: segment 3: paddr=000b41b8 vaddr=3fc98188 size[5nI (986) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (987) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when 
+# >>> sd mount
+sd mount
+I (2656) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (2701) sdspi_transaction: cmd=5, R1 response: command not supported
+I (2857) storage: mounted /sdcard: 7580 MiB
+W (2858) storage: positions not loaded: InvalidArgument (starting fresh)
+sd mounted=1 capacity_mib=7580 books=0 positions=0 position_writes=0 write_failures=0
+reader> 
+# >>> sd demo
+sd demo
+sd op result: CorruptData
+sd mounted=1 capacity_mib=7580 books=0 positions=0 position_writes=0 write_failures=0
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> library scan
+library scan
+I (18694) storage: library scan: 1 book(s)
+library: 1 book(s)
+  [0] "P3C_FW~1" 250 bytes hash=8c6650f0 /sdcard/P3C_FW~1.TXT
+reader> 
+# >>> reader open 0
+reader open 0
+E (26738) spi: spi_bus_initialize(806): SPI bus already initialized.
+W (26739) LGFX: Failed to spi_bus_initialize. 
+E (26739) spi_master: spi_master_deinit_driver(345): not all CSses freed
+I (26740) gpio: GPIO[38]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (26740) gpio: GPIO[40]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (26741) gpio: GPIO[39]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+
+assert failed: spi_bus_deinit_lock spi_bus_lock.c:606 (atomic_load(&lock->dev[i]) == (intptr_t)NULL)
+
+
+Backtrace: 0x40375dd2:0x3fcad9e0 0x4037df75:0x3fcada00 0x403859c5:0x3fcada20 0x420379cf:0x3fcadb40 0x4203adc9:0x3fcadb60 0x42030869:0x3fcadb80 0x4202e014:0x3fcadba0 0x42024ab5:0x3fcadbc0 0x42026702:0x3fcae010 0x42015dcb:0x3fcae040 0x42015ea9:0x3fcae060 0x4200d107:0x3fcae0c0 0x4200d7d0:0x3fcae0e0 0x4200d897:0x3fcae3d0 0x4200d9cd:0x3fcae410 0x4200da0e:0x3fcae490 0x4200b0a6:0x3fcae4b0 0x4200b4bd:0x3fcae650 0x4200b6e7:0x3fcae720 0x4037eb05:0x3fcae770
+
+
+
+
+ELF file SHA256: 146a03824
+
+Rebooting...
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037aa82
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2810,len:0x1510
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xc40
+load:0x403cb700,len:0x2ec8
+entry 0x403c8908
+I (26) boot: ESP-IDF v5.3.4 2nd stage bootloader
+I (26) boot: compile time Jul 15 2026 14:01:22
+I (26) boot: Multicore bootloader
+I (26) boot: chip revision: v0.2
+I (27) boot: efuse block revision: v1.3
+I (27) boot.esp32s3: Boot SPI Speed : 80MHz
+I (27) boot.esp32s3: SPI Mode       : DIO
+I (27) boot.esp32s3: SPI Flash Size : 16MB
+I (27) boot: Enabling RNG early entropy source...
+I (28) boot: Partition Table:
+I (28) boot: ## Label            Usage          Type ST Offset   Length
+I (28) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (29) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (29) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (29) boot:  3 factory          factory app      00 00 00010000 00400000
+I (30) boot:  4 storage          Unknown data     01 82 00410000 00080000
+I (30) boot: End of partition table
+I (30) boot: Defaulting to factory image
+I (31) esp_image: segment 0: paddr=00010020 vaddr=3c070020 size=3fc68h (261224) map
+I (79) esp_image: segment 1: paddr=0004fc90 vaddr=3fc97e00 size=00388h (   904) load
+I (80) esp_image: segment 2: paddr=00050020 vaddr=42000020 size=64190h (410000) map
+I (155) esp_image: segment 3: paddr=000b41b8 vaddr=3fc98188 size=02e6ch ( 11884) load
+I (158) esp_image: segment 4: paddr=000b702c vaddr=40374000 size=13de0h ( 81376) load
+I (185) boot: Loaded app from partition at offset 0x10000
+I (185) boot: Disabling RNG early entropy source...
+I (186) octal_psram: vendor id    : 0x0d (AP)
+I (186) octal_psram: dev id       : 0x02 (generation 3)
+I (186) octal_psram: density      : 0x03 (64 Mbit)
+I (186) octal_psram: good-die     : 0x01 (Pass)
+I (187) octal_psram: Latency      : 0x01 (Fixed)
+I (187) octal_psram: VCC          : 0x01 (3V)
+I (187) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (187) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (187) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (188) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (188) octal_psram: DriveStrength: 0x00 (1/1)
+I (188) esp_psram: Found 8MB PSRAM device
+I (188) esp_psram: Speed: 40MHz
+I (189) cpu_start: Multicore app
+I (920) esp_psram: SPI SRAM memory test OK
+I (929) cpu_start: Pro cpu start user code
+I (929) cpu_start: cpu freq: 160000000 Hz
+I (929) app_init: Application information:
+I (929) app_init: Project name:     papers3_reader_primitives
+I (929) app_init: App version:      5f04baa-dirty
+I (929) app_init: Compile time:     Jul 15 2026 16:07:04
+I (929) app_init: ELF file SHA256:  146a03824...
+I (930) app_init: ESP-IDF:          v5.3.4
+I (930) efuse_init: Min chip rev:     v0.0
+I (930) efuse_init: Max chip rev:     v0.99 
+I (930) efuse_init: Chip rev:         v0.2
+I (930) heap_init: Initializing. RAM available for dynamic allocation:
+I (931) heap_init: At 3FC9E550 len 0004B1C0 (300 KiB): RAM
+I (931) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (931) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (931) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (932) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (933) spi_flash: detected chip: generic
+I (933) spi_flash: flash io: dio
+I (934) sleep: Configure to isolate all GPIO pins in sleep state
+I (935) sleep: Enable automatic switching of GPIO sleep configuration
+I (935) main_task: Started on CPU0
+I (936) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (937) main_task: Calling app_main()
+I (937) app_main: reader-primitives phase1 boot
+I (937) app_main: chip=esp32s3 cores=2 rev=2 reset_reason=4
+I (937) app_main: heap internal_free=344187 largest=249856
+I (937) app_main: psram free=8385916 largest=8257536
+I (938) app_main: display backend=none (deferred; panel unqualified)
+I (938) display: PT Serif registered: 134264 bytes, body ascent=27 descent=7 line_height=34
+[5nI (939) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (940) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Putty instead.
+reader> I (1491) console: console ready on USB Serial/JTAG
+I (1491) app_main: phase1 ready: owner task + console proxy active
+I (1492) main_task: Returned from app_main()
+
+# >>> reader next
+reader next
+reader op failed: Busy
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> reader next
+reader next
+reader op failed: Busy
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> reader status
+reader status
+reader open=0 title="" source=embedded resumed=0 offset=0 progress=0.0% lines=0 turns=0 at_end=0 checkpoints=0
+reader> 
+# done

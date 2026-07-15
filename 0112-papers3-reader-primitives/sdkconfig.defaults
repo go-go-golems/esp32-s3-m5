@@ -21,6 +21,10 @@ CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 # CONFIG_ESP_CONSOLE_UART is not set
 CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
 
+# Long filenames on the SD card (books like "war-and-peace.txt").
+CONFIG_FATFS_LFN_HEAP=y
+CONFIG_FATFS_MAX_LFN=255
+
 # Stable machine-readable logs.
 CONFIG_LOG_COLORS=n
 CONFIG_ESP_SYSTEM_PANIC_PRINT_REBOOT=y

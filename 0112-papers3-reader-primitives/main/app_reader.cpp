@@ -7,6 +7,7 @@
 
 #include "app_display.h"
 #include "app_reader_book.h"
+#include "app_storage.h"
 #include "s3paper/content.h"
 #include "s3paper/paginator.h"
 #include "s3paper/text.h"
@@ -22,8 +23,14 @@ constexpr int32_t kMarginBottom = 56;  // leaves room for the footer
 
 struct ReaderState {
     bool open = false;
-    s3paper::MemoryContentSource source{
+    bool from_sd = false;
+    bool resumed = false;
+    s3paper::MemoryContentSource embedded_source{
         kEmbeddedBookText, sizeof(kEmbeddedBookText) - 1};
+    SdContentSource sd_source;
+    s3paper::ContentSource *active = nullptr;
+    s3paper::ContentHash content_hash = 0;
+    char title[40] = {};
     s3paper::Paginator *paginator = nullptr;
     s3paper::TextLocator current{};
     s3paper::PageLayout page{};
@@ -32,9 +39,9 @@ struct ReaderState {
 
 ReaderState s_state;
 
-s3paper::LayoutKey MakeKey() {
+s3paper::LayoutKey MakeKey(s3paper::ContentHash content) {
     s3paper::LayoutKey key{};
-    key.content = s_state.source.Hash().value;
+    key.content = content;
     key.font_id = s3paper::kFontBody;
     key.viewport_w = 540;
     key.viewport_h = 960;
@@ -43,6 +50,16 @@ s3paper::LayoutKey MakeKey() {
     key.margin_bottom = kMarginBottom;
     key.engine_version = s3paper::kLayoutEngineVersion;
     return key;
+}
+
+// Persists the current position (embedded book included) whenever a card
+// is mounted; failures are counted, never fatal to reading.
+void PersistPosition() {
+    if (!s_state.open || !StorageMounted()) {
+        return;
+    }
+    PositionStore(s_state.content_hash, s_state.current);
+    (void)PositionsSave();
 }
 
 // Renders the current page: header (title), body lines, footer (progress).
@@ -58,7 +75,8 @@ StatusCode RenderCurrentPage() {
     // Header.
     st = fb.GlyphRun(s3paper::Rect{kMarginX, 16, 460, ui.line_height + 4},
                      16 + ui.line_height, s3paper::kFontUi, 0,
-                     kEmbeddedBookTitle, sizeof(kEmbeddedBookTitle) - 1, 0);
+                     s_state.title,
+                     static_cast<uint32_t>(strlen(s_state.title)), 0);
     if (!st.ok()) return st.code;
     st = fb.HLine(kMarginX, 56, 540 - 2 * kMarginX, 0);
     if (!st.ok()) return st.code;
@@ -70,7 +88,7 @@ StatusCode RenderCurrentPage() {
         const uint32_t len = line.byte_len < sizeof(buf)
                                  ? line.byte_len
                                  : static_cast<uint32_t>(sizeof(buf));
-        const s3paper::Result<uint32_t> got = s_state.source.ReadAt(
+        const s3paper::Result<uint32_t> got = s_state.active->ReadAt(
             line.byte_start, reinterpret_cast<uint8_t *>(buf), len);
         if (!got.ok()) return got.code;
         st = fb.GlyphRun(
@@ -126,17 +144,63 @@ StatusCode ComposeAndRender(s3paper::TextLocator at) {
 
 }  // namespace
 
-StatusCode ReaderOpen() {
-    static s3paper::Paginator paginator(&s_state.source, MakeKey());
-    s_state.paginator = &paginator;
-    const s3paper::Result<s3paper::TextLocator> begin = paginator.Begin();
-    if (!begin.ok()) {
-        return begin.code;
+// Shared open path: builds a fresh paginator over `source`, restores a
+// persisted position when one validates, and renders the first page.
+StatusCode OpenCommon(s3paper::ContentSource *source, const char *title,
+                      bool from_sd) {
+    const s3paper::Result<s3paper::ContentHash> hash = source->Hash();
+    if (!hash.ok()) {
+        return hash.code;
+    }
+    delete s_state.paginator;
+    s_state.paginator = new s3paper::Paginator(source, MakeKey(hash.value));
+    s_state.active = source;
+    s_state.content_hash = hash.value;
+    s_state.from_sd = from_sd;
+    s_state.resumed = false;
+    snprintf(s_state.title, sizeof(s_state.title), "%s", title);
+
+    s3paper::TextLocator start;
+    s3paper::TextLocator persisted;
+    if (PositionLookup(hash.value, &persisted) &&
+        s_state.paginator->Validate(persisted).ok()) {
+        start = persisted;
+        s_state.resumed = true;
+        ESP_LOGI(kTag, "resuming \"%s\" at offset %llu", s_state.title,
+                 static_cast<unsigned long long>(persisted.byte_offset));
+    } else {
+        const s3paper::Result<s3paper::TextLocator> begin =
+            s_state.paginator->Begin();
+        if (!begin.ok()) {
+            return begin.code;
+        }
+        start = begin.value;
     }
     s_state.open = true;
     s_state.page_turns = 0;
     Planner().NoteScreenChange();  // opening a book is a screen change
-    return ComposeAndRender(begin.value);
+    return ComposeAndRender(start);
+}
+
+StatusCode ReaderOpen() {
+    return OpenCommon(&s_state.embedded_source, kEmbeddedBookTitle, false);
+}
+
+StatusCode ReaderOpenSd(uint32_t index) {
+    const BookEntry *book = LibraryGet(index);
+    if (book == nullptr) {
+        return StatusCode::InvalidArgument;
+    }
+    const StatusCode opened = s_state.sd_source.Open(book->path);
+    if (opened != StatusCode::Ok) {
+        return opened;
+    }
+    const StatusCode result =
+        OpenCommon(&s_state.sd_source, book->title, true);
+    if (result != StatusCode::Ok) {
+        s_state.sd_source.Close();
+    }
+    return result;
 }
 
 StatusCode ReaderNext() {
@@ -147,7 +211,11 @@ StatusCode ReaderNext() {
         return StatusCode::InvalidArgument;  // explicit end-of-content
     }
     s_state.page_turns++;
-    return ComposeAndRender(s_state.page.next);
+    const StatusCode result = ComposeAndRender(s_state.page.next);
+    if (result == StatusCode::Ok) {
+        PersistPosition();
+    }
+    return result;
 }
 
 StatusCode ReaderPrev() {
@@ -163,7 +231,11 @@ StatusCode ReaderPrev() {
         return StatusCode::InvalidArgument;  // already at the beginning
     }
     s_state.page_turns++;
-    return ComposeAndRender(prev.value);
+    const StatusCode result = ComposeAndRender(prev.value);
+    if (result == StatusCode::Ok) {
+        PersistPosition();
+    }
+    return result;
 }
 
 void FillReaderSnapshot(ReaderSnapshot *out) {
@@ -173,6 +245,9 @@ void FillReaderSnapshot(ReaderSnapshot *out) {
         return;
     }
     out->at_end = s_state.page.at_end ? 1 : 0;
+    out->source = s_state.from_sd ? 1 : 0;
+    out->resumed = s_state.resumed ? 1 : 0;
+    snprintf(out->title, sizeof(out->title), "%s", s_state.title);
     out->byte_offset = s_state.current.byte_offset;
     out->line_count = s_state.page.line_count;
     out->page_turns = s_state.page_turns;

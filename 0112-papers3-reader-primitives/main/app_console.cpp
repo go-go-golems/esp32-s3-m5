@@ -52,12 +52,13 @@ AppEvent MakeEvent(AppEventKind kind, EventSource source, bool wants_reply) {
 
 // Posts a console op and waits for its reply. Prints explicit errors for
 // queue-full and reply-timeout instead of hiding them.
-StatusCode RunConsoleOpWithArg(ConsoleOp op, uint32_t arg, AppReply *out,
-                               uint32_t timeout_ms) {
+StatusCode RunConsoleOpWithArgs(ConsoleOp op, uint32_t arg, uint32_t arg2,
+                                AppReply *out, uint32_t timeout_ms) {
     AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
                                EventSource::Console, true);
     event.payload.console.op = op;
     event.payload.console.arg = arg;
+    event.payload.console.arg2 = arg2;
     const StatusCode posted = PostEvent(event);
     if (posted != StatusCode::Ok) {
         printf("error: enqueue failed: %s\n", StatusCodeName(posted));
@@ -71,6 +72,11 @@ StatusCode RunConsoleOpWithArg(ConsoleOp op, uint32_t arg, AppReply *out,
         return waited;
     }
     return out->status;
+}
+
+StatusCode RunConsoleOpWithArg(ConsoleOp op, uint32_t arg, AppReply *out,
+                               uint32_t timeout_ms) {
+    return RunConsoleOpWithArgs(op, arg, 0, out, timeout_ms);
 }
 
 StatusCode RunConsoleOp(ConsoleOp op, AppReply *out) {
@@ -526,22 +532,32 @@ int CmdTouch(int argc, char **argv) {
 
 int CmdReader(int argc, char **argv) {
     uint32_t arg = 0;
+    uint32_t arg2 = 0;
     if (argc >= 2) {
         if (strcmp(argv[1], "open") == 0) {
             arg = 1;
+            if (argc >= 3) {
+                const long parsed = strtol(argv[2], nullptr, 10);
+                if (parsed < 0 || parsed >= 1000) {
+                    printf("error: InvalidArgument: book index 0..999\n");
+                    return 1;
+                }
+                arg = 4;  // open SD library book
+                arg2 = static_cast<uint32_t>(parsed);
+            }
         } else if (strcmp(argv[1], "next") == 0) {
             arg = 2;
         } else if (strcmp(argv[1], "prev") == 0) {
             arg = 3;
         } else if (strcmp(argv[1], "status") != 0) {
             printf("error: InvalidArgument: usage reader "
-                   "[open|next|prev|status]\n");
+                   "[open [n]|next|prev|status]\n");
             return 1;
         }
     }
     AppReply reply;
     const StatusCode status =
-        RunConsoleOpWithArg(ConsoleOp::Reader, arg, &reply, 15000);
+        RunConsoleOpWithArgs(ConsoleOp::Reader, arg, arg2, &reply, 15000);
     const ReaderSnapshot &r = reply.payload.reader;
     if (status != StatusCode::Ok && status != StatusCode::InvalidArgument) {
         printf("reader op failed: %s\n", StatusCodeName(status));
@@ -551,14 +567,70 @@ int CmdReader(int argc, char **argv) {
         printf("reader: %s\n",
                r.at_end ? "at end of book" : "at beginning of book");
     }
-    printf("reader open=%u offset=%llu progress=%u.%u%% lines=%u "
-           "turns=%u at_end=%u checkpoints=%u\n",
-           r.open, static_cast<unsigned long long>(r.byte_offset),
+    printf("reader open=%u title=\"%s\" source=%s resumed=%u offset=%llu "
+           "progress=%u.%u%% lines=%u turns=%u at_end=%u checkpoints=%u\n",
+           r.open, r.title, r.source ? "sd" : "embedded", r.resumed,
+           static_cast<unsigned long long>(r.byte_offset),
            static_cast<unsigned>(r.progress_permille / 10),
            static_cast<unsigned>(r.progress_permille % 10),
            static_cast<unsigned>(r.line_count),
            static_cast<unsigned>(r.page_turns), r.at_end,
            static_cast<unsigned>(r.checkpoints));
+    return 0;
+}
+
+void PrintSdSnapshot(const SdSnapshot &s) {
+    printf("sd mounted=%u capacity_mib=%u books=%u positions=%u "
+           "position_writes=%u write_failures=%u\n",
+           s.mounted, static_cast<unsigned>(s.capacity_mib),
+           static_cast<unsigned>(s.book_count),
+           static_cast<unsigned>(s.position_records),
+           static_cast<unsigned>(s.position_writes),
+           static_cast<unsigned>(s.position_write_failures));
+}
+
+int CmdSd(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "mount") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "unmount") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "demo") == 0) {
+            arg = 3;
+        } else if (strcmp(argv[1], "status") != 0) {
+            printf("error: InvalidArgument: usage sd "
+                   "[mount|unmount|demo|status]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Sd, arg, 0, &reply, 15000);
+    if (status != StatusCode::Ok) {
+        printf("sd op result: %s\n", StatusCodeName(status));
+    }
+    PrintSdSnapshot(reply.payload.sd);
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
+int CmdLibrary(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "scan") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "list") != 0) {
+            printf("error: InvalidArgument: usage library [scan|list]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Library, arg, 0, &reply, 15000);
+    if (status != StatusCode::Ok) {
+        printf("library op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
     return 0;
 }
 
@@ -632,9 +704,15 @@ void ConsoleStart() {
                     "gestures, quiet windows",
                     &CmdTouch);
     RegisterCommand("reader",
-                    "reader [open|next|prev|status] - embedded-book reading "
-                    "slice (touch: tap/swipe turns pages)",
+                    "reader [open [n]|next|prev|status] - read the embedded "
+                    "book or SD library book n (touch turns pages)",
                     &CmdReader);
+    RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
+                    &CmdSd);
+    RegisterCommand("library",
+                    "library [scan|list] - scan/list *.txt books on the SD "
+                    "card",
+                    &CmdLibrary);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);
