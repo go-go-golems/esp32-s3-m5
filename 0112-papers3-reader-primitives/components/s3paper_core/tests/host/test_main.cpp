@@ -16,8 +16,14 @@
 #include "s3paper/input.h"
 #include "s3paper/paginator.h"
 #include "s3paper/refresh_planner.h"
+#include "s3paper/page.h"
+#include "s3paper/region.h"
 #include "s3paper/status.h"
 #include "s3paper/text.h"
+#include "s3paper/widget.h"
+#include "s3paper/widget_diff.h"
+#include "s3paper/widget_layout.h"
+#include "s3paper/widget_render.h"
 
 using namespace s3paper;
 
@@ -1085,6 +1091,352 @@ static void TestUkrainianAndKerning() {
     CHECK(any_dark);
 }
 
+// ---- Phase 9: widgets, layout, render compilation, diff, pages ----
+
+static void TestWidgetArena() {
+    WidgetArena arena;
+    Result<WidgetHandle> a = arena.Create(WidgetKind::Row);
+    CHECK(a.ok());
+    CHECK(arena.Get(a.value) != nullptr);
+    CHECK(arena.Get(a.value)->kind == WidgetKind::Row);
+
+    // Stale handle after destroy; new node in the slot is not aliased.
+    const WidgetHandle old = a.value;
+    CHECK(arena.Destroy(old).ok());
+    CHECK(arena.Get(old) == nullptr);
+    CHECK(!arena.Destroy(old).ok());
+    Result<WidgetHandle> b = arena.Create(WidgetKind::Col);
+    CHECK(b.ok());
+    CHECK(b.value.index == old.index);
+    CHECK(b.value.generation != old.generation);
+    CHECK(arena.Get(old) == nullptr);
+
+    // Subtree destroy releases children; AddChild rejects double-linking.
+    Result<WidgetHandle> child1 = NewText(arena, "x", kFontUi, 0);
+    Result<WidgetHandle> child2 = NewText(arena, "y", kFontUi, 0);
+    CHECK(arena.AddChild(b.value, child1.value).ok());
+    CHECK(arena.AddChild(b.value, child2.value).ok());
+    CHECK(!arena.AddChild(b.value, child1.value).ok());
+    CHECK(arena.live_count() == 3);
+    CHECK(arena.Destroy(b.value).ok());
+    CHECK(arena.live_count() == 0);
+    CHECK(arena.Get(child1.value) == nullptr);
+
+    // Capacity is explicit.
+    for (uint32_t i = 0; i < WidgetArena::kCapacity; ++i) {
+        CHECK(arena.Create(WidgetKind::Spacer).ok());
+    }
+    CHECK(arena.Create(WidgetKind::Spacer).code ==
+          StatusCode::CapacityExceeded);
+
+    // SetText bumps the version only on change.
+    arena.Reset();
+    Result<WidgetHandle> t = NewText(arena, "hello", kFontUi, 0);
+    const uint32_t v0 = arena.Get(t.value)->content_version;
+    CHECK(arena.SetText(t.value, "hello").ok());
+    CHECK(arena.Get(t.value)->content_version == v0);
+    CHECK(arena.SetText(t.value, "world").ok());
+    CHECK(arena.Get(t.value)->content_version == v0 + 1);
+    CHECK(!arena.SetText(b.value, "nope").ok());  // stale after Reset
+}
+
+static void TestWidgetLayoutRow() {
+    WidgetArena arena;
+    WidgetHandle row = NewRow(arena).value;
+    WidgetNode *r = arena.Configure(row);
+    r->padding = Insets{5, 5, 5, 10};
+    r->gap = 5;
+    WidgetHandle a = NewSpacer(arena, 40).value;
+    WidgetHandle b = NewSpacer(arena, 0, 1).value;  // flex
+    WidgetHandle c = NewDivider(arena, 3, 0).value;
+    CHECK(arena.AddChild(row, a).ok());
+    CHECK(arena.AddChild(row, b).ok());
+    CHECK(arena.AddChild(row, c).ok());
+
+    LayoutEntry entries[16];
+    Result<uint32_t> n =
+        LayoutTree(arena, row, Rect{0, 0, 200, 50}, entries, 16);
+    CHECK(n.ok());
+    CHECK(n.value == 4);
+    CHECK(RectEquals(entries[0].frame, Rect{0, 0, 200, 50}));
+    // content = {10,5,185,40}; A=40, C=3, gaps=10, flex B=132.
+    CHECK(RectEquals(entries[1].frame, Rect{10, 5, 40, 40}));
+    CHECK(RectEquals(entries[2].frame, Rect{55, 5, 132, 40}));
+    CHECK(RectEquals(entries[3].frame, Rect{192, 5, 3, 40}));
+    CHECK(entries[1].parent_index == 0);
+
+    // Intrinsic measurement of the row (flex contributes zero).
+    Result<Size> m = MeasureWidget(arena, row, false);
+    CHECK(m.ok());
+    CHECK(m.value.w == 40 + 0 + 3 + 5 * 2 + 15);  // children+gaps+padding
+}
+
+static void TestWidgetLayoutAlign() {
+    WidgetArena arena;
+    WidgetHandle col = NewCol(arena).value;
+    arena.Configure(col)->main_align = MainAlign::Center;
+    WidgetHandle a = NewSpacer(arena, 20).value;
+    WidgetHandle b = NewSpacer(arena, 20).value;
+    arena.Configure(b)->fixed_w = 40;
+    arena.Configure(col)->cross_align = CrossAlign::Center;
+    CHECK(arena.AddChild(col, a).ok());
+    CHECK(arena.AddChild(col, b).ok());
+    LayoutEntry entries[8];
+    Result<uint32_t> n =
+        LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n.ok());
+    // Main centered: leftover 60 -> children start at y=30. Cross Center:
+    // a has intrinsic cross 0 -> x=50; b fixed_w 40 -> x=30.
+    CHECK(RectEquals(entries[1].frame, Rect{50, 30, 0, 20}));
+    CHECK(RectEquals(entries[2].frame, Rect{30, 50, 40, 20}));
+
+    // SpaceBetween pushes children to the edges.
+    arena.Configure(col)->main_align = MainAlign::SpaceBetween;
+    arena.Configure(col)->cross_align = CrossAlign::Stretch;
+    n = LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n.ok());
+    CHECK(RectEquals(entries[1].frame, Rect{0, 0, 100, 20}));
+    // b keeps its fixed_w=40: fixed cross size wins over Stretch.
+    CHECK(RectEquals(entries[2].frame, Rect{0, 80, 40, 20}));
+}
+
+static void TestWidgetListPagination() {
+    WidgetArena arena;
+    WidgetHandle list = NewList(arena).value;
+    WidgetHandle rows[5];
+    for (int i = 0; i < 5; ++i) {
+        rows[i] = NewSpacer(arena, 30).value;
+        CHECK(arena.AddChild(list, rows[i]).ok());
+    }
+    LayoutEntry entries[8];
+    Result<uint32_t> n =
+        LayoutTree(arena, list, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n.ok());
+    CHECK(n.value == 4);  // list + 3 fitting children
+    CHECK(entries[0].list_shown == 3);
+    CHECK(RectEquals(entries[3].frame, Rect{0, 60, 100, 30}));
+
+    // Pagination: skip the first four, the fifth renders at the top.
+    CHECK(arena.SetListFirstVisible(list, 4).ok());
+    n = LayoutTree(arena, list, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n.ok());
+    CHECK(n.value == 2);
+    CHECK(entries[0].list_shown == 1);
+    CHECK(RectEquals(entries[1].frame, Rect{0, 0, 100, 30}));
+    CHECK(entries[1].widget.index == rows[4].index);
+}
+
+static void TestWidgetCompile() {
+    WidgetArena arena;
+    WidgetHandle col = NewCol(arena).value;
+    WidgetHandle title = NewText(arena, "Title", kFontUi, 0).value;
+    WidgetHandle divider = NewDivider(arena, 2, 128).value;
+    WidgetHandle progress = NewProgress(arena, 500, 10, 0).value;
+    arena.Configure(progress)->fixed_h = 10;
+    arena.Configure(title)->hit_id = 42;
+    WidgetHandle region = NewRegion(arena, 7, 60000, true).value;
+    arena.Configure(region)->dependency = 9;
+    WidgetHandle clock = NewText(arena, "12:00", kFontUi, 0).value;
+    CHECK(arena.AddChild(region, clock).ok());
+    CHECK(arena.AddChild(col, title).ok());
+    CHECK(arena.AddChild(col, divider).ok());
+    CHECK(arena.AddChild(col, progress).ok());
+    CHECK(arena.AddChild(col, region).ok());
+
+    LayoutEntry entries[16];
+    Result<uint32_t> n =
+        LayoutTree(arena, col, Rect{0, 0, 540, 200}, entries, 16);
+    CHECK(n.ok());
+
+    DrawOp ops[32];
+    uint8_t arena_buf[2048];
+    FrameArena frame_arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 32, &frame_arena, Size{540, 960});
+    fb.Begin();
+    HitRegion hits[4];
+    RegionSpec regions[4];
+    Result<CompileResult> compiled =
+        CompileTree(arena, entries, n.value, fb, hits, 4, regions, 4);
+    CHECK(compiled.ok());
+    CHECK(compiled.value.hit_count == 1);
+    CHECK(hits[0].region_id == 42);
+    CHECK(compiled.value.region_count == 1);
+    CHECK(regions[0].id == 7);
+    CHECK(regions[0].dependency == 9);
+    CHECK(regions[0].interval_ms == 60000);
+    CHECK(regions[0].quiet_while_active);
+    // Ops: title glyph run, divider fill, progress stroke+fill, clock run.
+    CHECK(fb.ops_used() == 5);
+    Result<RenderFrame> frame = fb.Finish(1);
+    CHECK(frame.ok());
+
+    // FindFrame exposes reserved rects (Book compositing contract).
+    Result<Rect> title_frame = FindFrame(entries, n.value, title);
+    CHECK(title_frame.ok());
+    CHECK(RectEquals(hits[0].rect, title_frame.value));
+}
+
+static void TestWidgetDiff() {
+    WidgetArena arena;
+    WidgetHandle col = NewCol(arena).value;
+    WidgetHandle text = NewText(arena, "before", kFontUi, 0).value;
+    arena.Configure(text)->fixed_h = 20;
+    WidgetHandle bar = NewProgress(arena, 100, 8, 0).value;
+    arena.Configure(bar)->fixed_h = 8;
+    CHECK(arena.AddChild(col, text).ok());
+    CHECK(arena.AddChild(col, bar).ok());
+
+    LayoutEntry entries[8];
+    Result<uint32_t> n =
+        LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n.ok());
+
+    RenderStateDiff diff;
+    diff.Reset();
+    diff.Capture(arena, entries, n.value);
+
+    // No change -> no damage.
+    Rect damage[8];
+    Result<uint32_t> d =
+        diff.Diff(arena, entries, n.value, damage, 8);
+    CHECK(d.ok());
+    CHECK(d.value == 0);
+
+    // Content change -> that node's frame only.
+    CHECK(arena.SetProgress(bar, 900).ok());
+    d = diff.Diff(arena, entries, n.value, damage, 8);
+    CHECK(d.ok());
+    CHECK(d.value == 1);
+    CHECK(RectEquals(damage[0], entries[2].frame));
+    diff.Capture(arena, entries, n.value);
+
+    // Geometry change -> old and new frames.
+    arena.Configure(text)->fixed_h = 40;
+    Result<uint32_t> n2 =
+        LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n2.ok());
+    d = diff.Diff(arena, entries, n2.value, damage, 8);
+    CHECK(d.ok());
+    CHECK(d.value >= 2);  // text old+new, bar moved old+new
+
+    // Disappearance -> old frame damage.
+    diff.Capture(arena, entries, n2.value);
+    CHECK(arena.RemoveChild(col, bar).ok());
+    CHECK(!arena.RemoveChild(col, bar).ok());  // already unlinked
+    CHECK(arena.Destroy(bar).ok());
+    Result<uint32_t> n3 =
+        LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n3.ok());
+    d = diff.Diff(arena, entries, n3.value, damage, 8);
+    CHECK(d.ok());
+    CHECK(d.value == 1);
+
+    // Tiny caps degrade to an explicit CapacityExceeded, never silence.
+    arena.Configure(text)->fixed_h = 60;
+    Result<uint32_t> n4 =
+        LayoutTree(arena, col, Rect{0, 0, 100, 100}, entries, 8);
+    CHECK(n4.ok());
+    CHECK(diff.Diff(arena, entries, n4.value, damage, 0).code ==
+          StatusCode::CapacityExceeded);
+}
+
+static void TestDependencyTracker() {
+    WidgetArena arena;
+    WidgetHandle a = NewText(arena, "clock", kFontUi, 0).value;
+    WidgetHandle b = NewText(arena, "battery", kFontUi, 0).value;
+    arena.Configure(a)->dependency = 7;
+    arena.Configure(b)->dependency = 8;
+
+    DependencyTracker tracker;
+    tracker.Clear();
+    CHECK(!tracker.MarkDirty(0).ok());
+    CHECK(tracker.MarkDirty(7).ok());
+    CHECK(tracker.MarkDirty(7).ok());  // idempotent
+    CHECK(tracker.dirty_count() == 1);
+    WidgetHandle dirty[4];
+    CHECK(tracker.CollectDirtyWidgets(arena, dirty, 4) == 1);
+    CHECK(dirty[0].index == a.index);
+    tracker.Clear();
+    CHECK(tracker.CollectDirtyWidgets(arena, dirty, 4) == 0);
+}
+
+static void TestRegionTable() {
+    RegionTable table;
+    table.Clear();
+    CHECK(table.Add(RegionSpec{1, Rect{0, 0, 10, 10}, 7, 60000, true}).ok());
+    CHECK(table.Add(RegionSpec{2, Rect{0, 20, 10, 10}, 8, 0, false}).ok());
+    // Replacing by id keeps registration order.
+    CHECK(table.Add(RegionSpec{1, Rect{0, 0, 20, 20}, 7, 30000, true}).ok());
+    CHECK(table.count() == 2);
+    CHECK(table.Find(1)->interval_ms == 30000);
+
+    table.Invalidate(8);
+    uint32_t ids[4];
+    CHECK(table.TakeInvalid(ids, 4) == 1);
+    CHECK(ids[0] == 2);
+    CHECK(table.TakeInvalid(ids, 4) == 0);  // marks cleared
+    CHECK(table.InvalidateRegion(1).ok());
+    CHECK(!table.InvalidateRegion(99).ok());
+    CHECK(table.TakeInvalid(ids, 4) == 1);
+    CHECK(ids[0] == 1);
+}
+
+static void TestPageRouter() {
+    WidgetArena arena;
+    // Header/footer with deterministic intrinsic heights.
+    WidgetHandle header = NewCol(arena).value;
+    CHECK(arena.AddChild(header, NewSpacer(arena, 30).value).ok());
+    WidgetHandle footer = NewCol(arena).value;
+    CHECK(arena.AddChild(footer, NewSpacer(arena, 20).value).ok());
+    WidgetHandle content = NewCol(arena).value;
+    WidgetHandle body = NewSpacer(arena, 0, 1).value;
+    CHECK(arena.AddChild(content, body).ok());
+
+    PageRouter router;
+    router.Reset();
+    Result<PageId> reading = router.Register(
+        "reading", PageSlots{header, content, footer, kNullWidget});
+    Result<PageId> library = router.Register(
+        "library", PageSlots{kNullWidget, content, kNullWidget, kNullWidget});
+    CHECK(reading.ok());
+    CHECK(library.ok());
+    CHECK(!router.Current().ok());
+    CHECK(router.Push(reading.value).ok());
+    CHECK(router.Push(library.value).ok());
+    CHECK(router.Push(library.value).ok());  // no duplicate growth
+    CHECK(router.stack_depth() == 2);
+    CHECK(router.Current().value == library.value);
+    Result<PageId> back = router.Back();
+    CHECK(back.ok());
+    CHECK(back.value == reading.value);
+    CHECK(!router.Back().ok());  // bottom of stack
+    CHECK(std::strcmp(router.Name(reading.value), "reading") == 0);
+    CHECK(!router.Push(99).ok());
+
+    // Slot layout: header 30 on top, footer 20 at bottom, content between.
+    LayoutEntry entries[16];
+    Result<uint32_t> n = LayoutPage(arena, *router.Slots(reading.value),
+                                    Rect{0, 0, 540, 960}, entries, 16);
+    CHECK(n.ok());
+    Result<Rect> header_frame = FindFrame(entries, n.value, header);
+    Result<Rect> content_frame = FindFrame(entries, n.value, content);
+    Result<Rect> footer_frame = FindFrame(entries, n.value, footer);
+    CHECK(header_frame.ok());
+    CHECK(RectEquals(header_frame.value, Rect{0, 0, 540, 30}));
+    CHECK(RectEquals(content_frame.value, Rect{0, 30, 540, 910}));
+    CHECK(RectEquals(footer_frame.value, Rect{0, 940, 540, 20}));
+    // The flexible body fills the content slot.
+    Result<Rect> body_frame = FindFrame(entries, n.value, body);
+    CHECK(RectEquals(body_frame.value, Rect{0, 30, 540, 910}));
+    // Parent indices survive the multi-slot fixup: the footer's spacer
+    // points at the footer entry, not at some header-relative index.
+    for (uint32_t i = 0; i < n.value; ++i) {
+        if (entries[i].parent_index != kNoWidgetIndex) {
+            CHECK(entries[i].parent_index < i);
+        }
+    }
+}
+
 int main() {
     // Register the embedded TTF exactly as the firmware does (same file,
     // same pixel sizes) so pagination goldens match the device.
@@ -1145,6 +1497,15 @@ int main() {
     TestPaginatorForward();
     TestPaginatorPrevRoundTrip();
     TestPaginatorEdgeCases();
+    TestWidgetArena();
+    TestWidgetLayoutRow();
+    TestWidgetLayoutAlign();
+    TestWidgetListPagination();
+    TestWidgetCompile();
+    TestWidgetDiff();
+    TestDependencyTracker();
+    TestRegionTable();
+    TestPageRouter();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

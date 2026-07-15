@@ -10,6 +10,12 @@ idf_component_register(
         "src/text.cpp"
         "src/content.cpp"
         "src/paginator.cpp"
+        "src/widget.cpp"
+        "src/widget_layout.cpp"
+        "src/widget_render.cpp"
+        "src/widget_diff.cpp"
+        "src/region.cpp"
+        "src/page.cpp"
     INCLUDE_DIRS
         "include"
     EMBED_FILES
