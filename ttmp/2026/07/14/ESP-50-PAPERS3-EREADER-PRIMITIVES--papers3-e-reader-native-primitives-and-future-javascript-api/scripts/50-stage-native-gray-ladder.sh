@@ -3,8 +3,8 @@ set -euo pipefail
 TICKET=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ROOT=$(git -C "$TICKET" rev-parse --show-toplevel)
 EXP="$TICKET/scripts/experiments/EXP-20260715-017-native-epd-density-gray-ladder"
-BUILD="$ROOT/0110-papers3-epd-gray-ladder-response/build"
-BIN="$BUILD/papers3_epd_gray_ladder_response.bin"
+BUILD="$ROOT/0111-papers3-epd-density-gray-ladder/build"
+BIN="$BUILD/papers3_epd_density_gray_ladder.bin"
 PORT=${PAPERS3_PORT:-/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00}
 EXPECTED=3a263b5fc211c9c4564378ae178538f58cdaa031554e802a5405d5ba517858ab
 [[ ${1:-} == --execute && ${2:-} == --confirm && ${3:-} == STAGE-GRAY-LADDER ]] || { echo 'usage: --execute --confirm STAGE-GRAY-LADDER' >&2; exit 2; }
