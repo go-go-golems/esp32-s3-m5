@@ -38,7 +38,7 @@
 - [ ] Phase 6 - Implement SD-first content sources, a versioned library catalog, stable book identities, settings, and atomic position persistence <!-- t:mcac -->
 - [x] Phase 7 - Implement locator-based streaming pagination, page offset caches keyed by layout settings, next/previous traversal, and invalidation rules <!-- t:0dxd -->
 - [x] Phase 8 - Ship a native vertical slice with library, reading view, page turns, progress, bookmarks, and resume without any JavaScript runtime <!-- t:ylnh -->
-- [ ] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
+- [x] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
 - [ ] Phase 10 - Implement coordinated power-off/deep-sleep, wake sources, final persistence flush, display quiescence, and resume contracts <!-- t:gnr0 -->
 - [ ] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
 - [ ] Phase 12 - Bind the stable primitive ABI into the fluent s3paper JavaScript layer and port the hello, status, library, and reader acceptance scripts <!-- t:pj4p -->
@@ -138,16 +138,16 @@
 - [x] [P8.9] Route list/open/goto/info/refresh/bookmark console commands through the owner task <!-- t:25f9 -->
 - [x] [P8.10] Execute the end-to-end TXT acceptance flow on hardware, including power cycle and resume <!-- t:9gye -->
 - [ ] [P8.11] Record native vertical-slice screenshots, latency, heap, known limitations, and intern review instructions <!-- t:r3wg -->
-- [ ] [P9.1] Define typed widget variants for text, row, column, spacer, divider, progress, list, book, and region <!-- t:fopv -->
-- [ ] [P9.2] Implement a bounded widget arena with generation-safe handles and explicit stale/capacity errors <!-- t:h6i3 -->
-- [ ] [P9.3] Implement native builder helpers without embedding callbacks or transient borrowed pointers in nodes <!-- t:ybmi -->
-- [ ] [P9.4] Implement measured row/column layout, padding, gap, fixed/flexible sizing, alignment, and overflow rules <!-- t:d5dy -->
-- [ ] [P9.5] Compile laid-out widgets into flat frame-arena DrawOps and immutable hit regions <!-- t:xdgp -->
-- [ ] [P9.6] Implement previous/current render-state comparison and dependency-based damage invalidation <!-- t:aofv -->
-- [ ] [P9.7] Implement named pages, header/content/footer/overlay slots, route push/back, and full-refresh route policy <!-- t:anwd -->
-- [ ] [P9.8] Implement RegionSpec dependencies, intervals, quiet behavior, and scheduler integration <!-- t:vzbo -->
-- [ ] [P9.9] Implement native hello, status, library, and reader fixtures matching the studio's intended semantics <!-- t:2awq -->
-- [ ] [P9.10] Migrate the Phase 8 reader onto the generic widget/page system without behavior regression <!-- t:zxxd -->
+- [x] [P9.1] Define typed widget variants for text, row, column, spacer, divider, progress, list, book, and region <!-- t:fopv -->
+- [x] [P9.2] Implement a bounded widget arena with generation-safe handles and explicit stale/capacity errors <!-- t:h6i3 -->
+- [x] [P9.3] Implement native builder helpers without embedding callbacks or transient borrowed pointers in nodes <!-- t:ybmi -->
+- [x] [P9.4] Implement measured row/column layout, padding, gap, fixed/flexible sizing, alignment, and overflow rules <!-- t:d5dy -->
+- [x] [P9.5] Compile laid-out widgets into flat frame-arena DrawOps and immutable hit regions <!-- t:xdgp -->
+- [x] [P9.6] Implement previous/current render-state comparison and dependency-based damage invalidation <!-- t:aofv -->
+- [x] [P9.7] Implement named pages, header/content/footer/overlay slots, route push/back, and full-refresh route policy <!-- t:anwd -->
+- [x] [P9.8] Implement RegionSpec dependencies, intervals, quiet behavior, and scheduler integration <!-- t:vzbo -->
+- [x] [P9.9] Implement native hello, status, library, and reader fixtures matching the studio's intended semantics <!-- t:2awq -->
+- [x] [P9.10] Migrate the Phase 8 reader onto the generic widget/page system without behavior regression <!-- t:zxxd -->
 - [ ] [P9.11] Add golden layout/draw-op/refresh-plan traces and hardware screenshots for all native fixtures <!-- t:n7h2 -->
 - [ ] [P10.1] Define inactivity, explicit sleep, low-battery shutdown, and user-cancel power policies <!-- t:9i89 -->
 - [ ] [P10.2] Force pending locator/settings/catalog persistence before any power transition <!-- t:teie -->

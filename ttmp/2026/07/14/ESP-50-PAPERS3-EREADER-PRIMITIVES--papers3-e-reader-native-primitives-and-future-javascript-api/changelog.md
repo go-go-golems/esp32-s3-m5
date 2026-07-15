@@ -520,3 +520,12 @@ Step 13: serialized library catalog (S3CT, path+size+mtime validation) removes p
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_storage.cpp — Catalog load/save/lookup + scan rebuild (commit a5de610)
 
+
+## 2026-07-15
+
+Step 14: Phase 9 complete - retained widget trees, layout, draw-op compilation, diff-driven damage, routable pages, and regions (277 new host checks, 4199 total); reader/library migrated onto the generic tree with no regression; live clock region demo updates 460x34 partially every 2s (commits c15fa32, 04b9d92, a352f3f)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_ui.cpp — Widget UI service with region tick (commit 04b9d92)
+

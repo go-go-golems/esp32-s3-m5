@@ -19,6 +19,8 @@ RelatedFiles:
       Note: 'Decision records: IDF 5.3.4 pin, no display backend in Phase 1'
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/geometry.h
       Note: Pure defensive geometry contracts incl. provisional EPD alignment (commit a00161e)
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/widget.h
+      Note: Phase 9 retained widget arena contract (commit c15fa32)
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/src/refresh_planner.cpp
       Note: 'Refresh policy owner: damage merge, waveform mapping, clean-full triggers (commit 7aec26e)'
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/tests/host/test_main.cpp
@@ -45,6 +47,7 @@ LastUpdated: 2026-07-15T14:20:00-04:00
 WhatFor: Record what was built per phase, what failed with exact errors, validation evidence, and review instructions.
 WhenToUse: Read before resuming reader implementation work; the display-investigation history lives in 01-investigation-diary.md.
 ---
+
 
 
 
@@ -855,3 +858,60 @@ The library scan re-opened and re-hashed every book on every boot, which made th
 
 ### Technical details
 - On-disk format: `{u32 magic 'S3CT', u32 version=1, u32 count, CatalogRecord[32]{char path[96], char title[40], u64 size, i64 mtime, u32 hash}, u32 crc}`, FNV-1a CRC over all preceding bytes, written via tmp → fsync → bak swap → rename.
+
+## Step 14: Phase 9 — retained widgets, pages, regions, and the reader migration
+
+This step generalized the proven vertical slice into the widget architecture the future JavaScript API will bind: a bounded retained tree, measured layout, flat draw-op compilation, dependency-driven diffing, routable pages, and overlay regions — all pure and host-tested first, then wired under the real reader without behavior regression. The flagship hardware demo is a live clock region updating every 2 s through diff-computed damage: 2 draw ops, a 460×34 partial refresh, zero full flashes.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 13 — "go ahead. do that one first, then do phase 9 and 10")
+
+**Assistant interpretation:** After the catalog, implement Phase 9 per the design doc: widget trees, layout, draw-op output, regions, dependency invalidation, routable pages, fixtures, and the reader migration.
+
+**Inferred user intent:** Establish the stable native binding surface (design §13.3) so the MicroQuickJS layer later manipulates widget handles instead of drawing.
+
+**Commits (code):** c15fa32 — "Widgets: retained tree, layout, render compile, diff, pages, regions"; 04b9d92 — "Reader: run library and reading screens on the generic widget tree"; a352f3f — "Tests: pin golden widget-page draw-op trace"
+
+### What I did
+- New s3paper_core modules: `widget.h` (typed nodes text/row/col/spacer/divider/progress/list/book/region in a 128-slot arena with generation-safe handles and builder helpers), `widget_layout.h` (flexbox-lite: padding/gap/fixed/flex/alignment; List paginates, never scrolls), `widget_render.h` (compile to FrameBuilder ops + immutable HitRegions + RegionSpecs, ancestor-frame clipping), `widget_diff.h` (DependencyTracker + RenderStateDiff), `page.h` (PageRouter with header/content/footer/overlay slots, bounded stack), `region.h` (RegionTable).
+- 277 new host checks (4199 total), including a pinned golden draw-op trace of a widget page.
+- Firmware: `main/app_ui.{h,cpp}` owns the PSRAM arena, router, diff snapshot, region table, and one present pipeline (LayoutPage → CompileTree → extra ops → planner). `widget hello|status` console fixtures; the status fixture's clock Region updates via owner-loop ticks: SetText → re-layout → diff → clipped re-render → TextRegion present. Quiet-while-active regions defer while touch input is fresher than 2 s (`InputLastInputUs`).
+- Migrated the reader (P9.10): the reading page is a retained tree (title/star/footer updated via SetText across page turns; body composited into the reserved Book node with unchanged LayoutKey margins), the library builds rows as widgets whose hit regions come from compilation (SD hit ids are 1-based since 0 = not tappable).
+
+### Why
+- §6.1 of the design doc: JS closures can't live in native nodes. Everything dynamic is now a DependencyId, a hit id, or a SetText from app code — exactly the callback-agnostic boundary the JS runtime needs.
+
+### What worked
+- Boot restore, page turns (full=0), bookmark toggle re-render, library (3 hit regions), and open-from-library all behaved identically after the migration — validated over the console against the flashed device.
+- The region demo: `region update: damage 460x34 at (40,180) full=0 ops=2` every 2 s, indefinitely, planner never forced a full.
+
+### What didn't work
+- First host-test run segfaulted under ASan (`widget_layout.cpp:144 member access within null pointer`): destroying a widget still linked in its parent's child list left a dangling index. Fixed twice over: added `RemoveChild` (unlink before destroy) and made all three tree walks stop deterministically at a dead link.
+- One wrong test expectation: a child with `fixed_w` set does not stretch under `CrossAlign::Stretch` (fixed wins) — the test, not the code, was corrected.
+
+### What I learned
+- Compiling clips from ancestor *frames* (not a clip stack) lets a flat entry array carry the whole overflow rule; FrameBuilder's stack is only pushed one level per op emission.
+- The retained tree pays off immediately: page turns now touch three SetText calls instead of rebuilding chrome geometry.
+
+### What was tricky to build
+- Per-entry effective clips: each layout entry stores its parent's entry index, so clip[i] = Intersect(clip[parent], frame[parent]) computes incrementally in paint order; roots use their own frame. Multi-slot pages (LayoutPage) must offset parent indices when appending slot layouts into the shared array — off-by-one there scrambles clipping silently, which is why the router test asserts every parent index precedes its child.
+- Region partial updates re-render the whole page under a PushClip of the diff damage: ops outside are dropped by the builder, so frame.damage collapses to the region and the planner refreshes only it. No per-widget framebuffers needed.
+
+### What warrants a second pair of eyes
+- `RouteTo` heuristics (Back-if-it-lands-right, else Push) keep the stack bounded for two pages but would surprise with deeper navigation graphs; revisit when a third page arrives.
+- The fixture's region tick is single-region by design; generalizing to N regions needs per-region deadlines through the shared Scheduler (task vzbo's full ambition) — the RegionTable API already supports it.
+- WidgetArena::kCapacity=128 caps the library at ~40 rows (3 nodes/row); the List paginates entries, but row *creation* is what consumes slots.
+
+### What should be done in the future
+- Hardware screenshots for the fixture corpus (n7h2 stays open).
+- Migrate `s_state.regions` consumers to read hit regions straight from the compile result if a future screen needs >33 regions.
+- Operator validation of quiet-region deferral (needs live touch during a fixture interval).
+
+### Code review instructions
+- Core: `components/s3paper_core/include/s3paper/{widget,widget_layout,widget_render,widget_diff,page,region}.h` and matching src; tests at the end of `tests/host/test_main.cpp` (`TestWidget*`, `TestPageRouter`, `TestRegionTable`, `TestWidgetGoldenTrace`).
+- Firmware: `main/app_ui.cpp` (`UiPresentPage`, `UiRegionTick`), `main/app_reader.cpp` (`BuildReadingTree`, `LibraryShow`, `RouteTo`).
+- Validate: `make run` in tests/host (4199 checks); on device `widget status` then watch `ui: region update` lines; `library show` + `reader open` for the migrated screens.
+
+### Technical details
+- Node mutation contract: setters bump `content_version`; `RenderStateDiff` compares (generation, kind, version, frame) per arena slot between Capture and Diff — damage falls out of retained state, never from dirty flags in app code.
