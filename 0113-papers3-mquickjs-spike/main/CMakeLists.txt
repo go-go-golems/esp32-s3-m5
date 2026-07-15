@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "spike_stdlib_runtime.c"
+    INCLUDE_DIRS
+        "."
+    PRIV_REQUIRES
+        esp_timer
+        mquickjs
+        mqjs_service
+)
