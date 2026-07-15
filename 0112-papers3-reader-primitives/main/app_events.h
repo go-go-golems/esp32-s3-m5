@@ -238,6 +238,10 @@ struct SdSnapshot {
     uint32_t position_records;
     uint32_t position_writes;
     uint32_t position_write_failures;
+    uint32_t scan_cached;   // last scan: hashes reused from the catalog
+    uint32_t scan_hashed;   // last scan: files actually read and hashed
+    uint32_t scan_ms;       // last scan duration
+    uint32_t catalog_writes;
 };
 
 struct DisplaySnapshot {

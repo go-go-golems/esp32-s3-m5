@@ -624,6 +624,11 @@ void PrintSdSnapshot(const SdSnapshot &s) {
            static_cast<unsigned>(s.position_records),
            static_cast<unsigned>(s.position_writes),
            static_cast<unsigned>(s.position_write_failures));
+    printf("scan cached=%u hashed=%u last_ms=%u catalog_writes=%u\n",
+           static_cast<unsigned>(s.scan_cached),
+           static_cast<unsigned>(s.scan_hashed),
+           static_cast<unsigned>(s.scan_ms),
+           static_cast<unsigned>(s.catalog_writes));
 }
 
 int CmdSd(int argc, char **argv) {

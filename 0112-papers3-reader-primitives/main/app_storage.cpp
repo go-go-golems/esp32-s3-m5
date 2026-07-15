@@ -39,6 +39,45 @@ bool s_spi_bus_initialized = false;
 BookEntry s_books[kMaxBooks];
 uint32_t s_book_count = 0;
 
+// Serialized library catalog (task i78k): the scan result persisted on the
+// card so boot doesn't re-open and re-hash unchanged books. Records are
+// validated by path + size + mtime; any mismatch falls back to hashing.
+// The catalog is disposable derived state: deleting it only costs one slow
+// rescan, never positions or bookmarks.
+constexpr uint32_t kCatalogMagic = 0x53334354;  // "S3CT"
+constexpr uint32_t kCatalogVersion = 1;
+constexpr char kCatalogPath[] = "/sdcard/.s3paper/catalog.bin";
+constexpr char kCatalogTmp[] = "/sdcard/.s3paper/catalog.tmp";
+constexpr char kCatalogBak[] = "/sdcard/.s3paper/catalog.bak";
+
+struct CatalogRecord {
+    char path[96];
+    char title[40];
+    uint64_t size;
+    int64_t mtime;
+    s3paper::ContentHash content_hash;
+};
+
+struct CatalogFile {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t count;
+    CatalogRecord records[kMaxBooks];
+    uint32_t crc;  // FNV over all preceding bytes
+};
+
+CatalogFile s_catalog{};
+// ~5 KiB: far too big for a stack local on the 8 KiB owner task (a stack
+// local here crash-looped the first flash). Owner-task-only, like all of
+// this file, so one static scratch is safe.
+CatalogFile s_catalog_scratch;
+uint32_t s_catalog_writes = 0;
+
+// Last-scan statistics (console/snapshot evidence for the cache).
+uint32_t s_scan_cached = 0;
+uint32_t s_scan_hashed = 0;
+uint32_t s_scan_ms = 0;
+
 // Versioned, checksummed position file (design doc: never bare offsets).
 constexpr uint32_t kPositionsMagic = 0x53335250;  // "S3RP"
 constexpr uint32_t kPositionsVersion = 1;
@@ -103,6 +142,11 @@ uint32_t BookmarksCrc(const BookmarksFile &f) {
                           offsetof(BookmarksFile, crc));
 }
 
+uint32_t CatalogCrc(const CatalogFile &f) {
+    return s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&f),
+                          offsetof(CatalogFile, crc));
+}
+
 // Shared atomic write: tmp -> flush -> fsync -> bak swap -> rename.
 bool AtomicWrite(const char *tmp, const char *bak, const char *path,
                  const void *data, size_t size) {
@@ -121,6 +165,63 @@ bool AtomicWrite(const char *tmp, const char *bak, const char *path,
     unlink(bak);
     rename(path, bak);
     return rename(tmp, path) == 0;
+}
+
+StatusCode CatalogLoad() {
+    std::memset(&s_catalog, 0, sizeof(s_catalog));
+    FILE *f = fopen(kCatalogPath, "rb");
+    if (f == nullptr) {
+        f = fopen(kCatalogBak, "rb");
+        if (f == nullptr) {
+            return StatusCode::InvalidArgument;  // fresh card: no catalog
+        }
+        ESP_LOGW(kTag, "primary catalog missing; using backup");
+    }
+    CatalogFile &loaded = s_catalog_scratch;
+    const size_t n = fread(&loaded, 1, sizeof(loaded), f);
+    fclose(f);
+    if (n != sizeof(loaded) || loaded.magic != kCatalogMagic ||
+        loaded.version != kCatalogVersion || loaded.count > kMaxBooks ||
+        loaded.crc != CatalogCrc(loaded)) {
+        ESP_LOGW(kTag, "catalog file invalid (len=%u); ignoring (rescan)",
+                 static_cast<unsigned>(n));
+        return StatusCode::CorruptData;
+    }
+    s_catalog = loaded;
+    ESP_LOGI(kTag, "loaded catalog with %u book(s)",
+             static_cast<unsigned>(s_catalog.count));
+    return StatusCode::Ok;
+}
+
+StatusCode CatalogSave() {
+    if (!StorageMounted()) {
+        return StatusCode::Busy;
+    }
+    s_catalog.magic = kCatalogMagic;
+    s_catalog.version = kCatalogVersion;
+    s_catalog.crc = CatalogCrc(s_catalog);
+    if (!AtomicWrite(kCatalogTmp, kCatalogBak, kCatalogPath, &s_catalog,
+                     sizeof(s_catalog))) {
+        return StatusCode::CorruptData;
+    }
+    s_catalog_writes++;
+    return StatusCode::Ok;
+}
+
+// True when the catalog has a record for this exact path with matching
+// size and mtime; the cached hash can then stand in for re-reading the
+// file head. Any mismatch (new, grown, edited) forces a real hash.
+bool CatalogLookup(const char *path, uint64_t size, int64_t mtime,
+                   s3paper::ContentHash *out_hash) {
+    for (uint32_t i = 0; i < s_catalog.count; ++i) {
+        const CatalogRecord &r = s_catalog.records[i];
+        if (r.size == size && r.mtime == mtime &&
+            strncmp(r.path, path, sizeof(r.path)) == 0) {
+            *out_hash = r.content_hash;
+            return true;
+        }
+    }
+    return false;
 }
 
 void ScanDirectory(const char *dir_path) {
@@ -150,20 +251,30 @@ void ScanDirectory(const char *dir_path) {
             continue;
         }
         book.size = static_cast<uint64_t>(st.st_size);
+        book.mtime = static_cast<int64_t>(st.st_mtime);
         // Title = filename without extension, truncated.
         snprintf(book.title, sizeof(book.title), "%.*s",
                  static_cast<int>(name_len - 4), name);
         // Identity: FNV over first 4 KiB + size (matches ContentSource).
-        SdContentSource probe;
-        if (probe.Open(book.path) != StatusCode::Ok) {
-            continue;
+        // The serialized catalog short-circuits this when path/size/mtime
+        // are unchanged — that open+read is what made boot scans slow.
+        s3paper::ContentHash cached = 0;
+        if (CatalogLookup(book.path, book.size, book.mtime, &cached)) {
+            book.content_hash = cached;
+            s_scan_cached++;
+        } else {
+            SdContentSource probe;
+            if (probe.Open(book.path) != StatusCode::Ok) {
+                continue;
+            }
+            const s3paper::Result<s3paper::ContentHash> hash = probe.Hash();
+            probe.Close();
+            if (!hash.ok()) {
+                continue;
+            }
+            book.content_hash = hash.value;
+            s_scan_hashed++;
         }
-        const s3paper::Result<s3paper::ContentHash> hash = probe.Hash();
-        probe.Close();
-        if (!hash.ok()) {
-            continue;
-        }
-        book.content_hash = hash.value;
         s_book_count++;
     }
     closedir(dir);
@@ -234,6 +345,11 @@ StatusCode StorageMount() {
         ESP_LOGW(kTag, "bookmarks not loaded: %s (starting fresh)",
                  StatusCodeName(marks));
     }
+    const StatusCode catalog = CatalogLoad();
+    if (catalog != StatusCode::Ok) {
+        ESP_LOGW(kTag, "catalog not loaded: %s (first scan will hash)",
+                 StatusCodeName(catalog));
+    }
     return StatusCode::Ok;
 }
 
@@ -244,6 +360,9 @@ StatusCode StorageUnmount() {
     esp_vfs_fat_sdcard_unmount(kMountPoint, s_card);
     s_card = nullptr;
     s_book_count = 0;
+    // A reinserted card may be a different one: drop its derived catalog.
+    std::memset(&s_catalog, 0, sizeof(s_catalog));
+    s_scan_cached = s_scan_hashed = s_scan_ms = 0;
     ESP_LOGI(kTag, "unmounted");
     return StatusCode::Ok;
 }
@@ -263,12 +382,19 @@ void FillSdSnapshot(SdSnapshot *out) {
     out->position_records = s_positions.count;
     out->position_writes = s_position_writes;
     out->position_write_failures = s_position_write_failures;
+    out->scan_cached = s_scan_cached;
+    out->scan_hashed = s_scan_hashed;
+    out->scan_ms = s_scan_ms;
+    out->catalog_writes = s_catalog_writes;
 }
 
 StatusCode LibraryScan(uint32_t *out_count) {
     if (!StorageMounted()) {
         return StatusCode::Busy;
     }
+    const int64_t started_us = esp_timer_get_time();
+    s_scan_cached = 0;
+    s_scan_hashed = 0;
     s_book_count = 0;
     ScanDirectory("/sdcard/books");
     ScanDirectory("/sdcard");
@@ -281,8 +407,37 @@ StatusCode LibraryScan(uint32_t *out_count) {
     if (out_count != nullptr) {
         *out_count = s_book_count;
     }
-    ESP_LOGI(kTag, "library scan: %u book(s)",
-             static_cast<unsigned>(s_book_count));
+    // Rebuild the catalog from this scan; only rewrite the card when it
+    // differs (new/changed/removed books), so steady-state boots are
+    // read-only. memset keeps struct padding deterministic for memcmp/CRC.
+    CatalogFile &fresh = s_catalog_scratch;
+    std::memset(&fresh, 0, sizeof(fresh));
+    fresh.count = s_book_count;
+    for (uint32_t i = 0; i < s_book_count; ++i) {
+        CatalogRecord &r = fresh.records[i];
+        snprintf(r.path, sizeof(r.path), "%s", s_books[i].path);
+        snprintf(r.title, sizeof(r.title), "%s", s_books[i].title);
+        r.size = s_books[i].size;
+        r.mtime = s_books[i].mtime;
+        r.content_hash = s_books[i].content_hash;
+    }
+    if (fresh.count != s_catalog.count ||
+        std::memcmp(fresh.records, s_catalog.records,
+                    sizeof(CatalogRecord) * fresh.count) != 0) {
+        s_catalog = fresh;
+        const StatusCode saved = CatalogSave();
+        if (saved != StatusCode::Ok) {
+            ESP_LOGW(kTag, "catalog save failed: %s (scan still valid)",
+                     StatusCodeName(saved));
+        }
+    }
+    s_scan_ms = static_cast<uint32_t>(
+        (esp_timer_get_time() - started_us) / 1000);
+    ESP_LOGI(kTag, "library scan: %u book(s) (%u cached, %u hashed) in %u ms",
+             static_cast<unsigned>(s_book_count),
+             static_cast<unsigned>(s_scan_cached),
+             static_cast<unsigned>(s_scan_hashed),
+             static_cast<unsigned>(s_scan_ms));
     return StatusCode::Ok;
 }
 

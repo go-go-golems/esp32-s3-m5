@@ -21,6 +21,7 @@ struct BookEntry {
     char path[96];    // absolute VFS path
     char title[40];   // filename without extension
     uint64_t size;
+    int64_t mtime;    // FAT mtime; catalog cache-validation key with size
     s3paper::ContentHash content_hash;
 };
 
