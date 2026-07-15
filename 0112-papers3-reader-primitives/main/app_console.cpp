@@ -275,8 +275,37 @@ int CmdStress(int argc, char **argv) {
     return pass ? 0 : 1;
 }
 
-// Flood: non-blocking burst that intentionally overflows the queue to prove
-// queue-full behavior is explicit and counted, not silent.
+// Flood: burst that intentionally overflows the queue to prove queue-full
+// behavior is explicit and counted, not silent. The burst runs on the owner's
+// core at higher priority so the owner cannot drain mid-burst; overflow is
+// therefore deterministic once burst > queue capacity.
+struct FloodResult {
+    uint32_t burst;
+    std::atomic<uint32_t> accepted;
+    std::atomic<uint32_t> rejected;
+    std::atomic<bool> done;
+};
+
+FloodResult s_flood;
+
+void FloodTask(void *) {
+    for (uint32_t i = 0; i < s_flood.burst; ++i) {
+        AppEvent event =
+            MakeEvent(AppEventKind::TimerDue, EventSource::Console, false);
+        // Flood events carry no producer ordering claim: the rejected ones
+        // would otherwise create legitimate-looking sequence gaps.
+        event.producer_seq = 0;
+        event.payload.timer.timer_id = i;
+        if (PostEvent(event) == StatusCode::Ok) {
+            s_flood.accepted.fetch_add(1);
+        } else {
+            s_flood.rejected.fetch_add(1);
+        }
+    }
+    s_flood.done.store(true);
+    vTaskDelete(nullptr);
+}
+
 int CmdFlood(int argc, char **argv) {
     uint32_t burst = 256;
     if (argc >= 2) {
@@ -287,24 +316,24 @@ int CmdFlood(int argc, char **argv) {
         }
         burst = static_cast<uint32_t>(parsed);
     }
-    uint32_t accepted = 0;
-    uint32_t rejected = 0;
-    for (uint32_t i = 0; i < burst; ++i) {
-        AppEvent event =
-            MakeEvent(AppEventKind::TimerDue, EventSource::Console, false);
-        // Flood events carry no producer ordering claim: the rejected ones
-        // would otherwise create legitimate-looking sequence gaps.
-        event.producer_seq = 0;
-        event.payload.timer.timer_id = i;
-        if (PostEvent(event) == StatusCode::Ok) {
-            accepted++;
-        } else {
-            rejected++;
+    s_flood.burst = burst;
+    s_flood.accepted.store(0);
+    s_flood.rejected.store(0);
+    s_flood.done.store(false);
+    // Owner runs on core 1 at priority 5; the flood outranks it there.
+    xTaskCreatePinnedToCore(FloodTask, "flood", 4096, nullptr, 6, nullptr, 1);
+    const int64_t start_us = esp_timer_get_time();
+    while (!s_flood.done.load()) {
+        if (esp_timer_get_time() - start_us > 10'000'000LL) {
+            printf("error: Timeout: flood task did not finish in 10s\n");
+            return 1;
         }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
     printf("flood burst=%u accepted=%u rejected=%u (%s)\n",
-           static_cast<unsigned>(burst), static_cast<unsigned>(accepted),
-           static_cast<unsigned>(rejected),
+           static_cast<unsigned>(burst),
+           static_cast<unsigned>(s_flood.accepted.load()),
+           static_cast<unsigned>(s_flood.rejected.load()),
            StatusCodeName(StatusCode::CapacityExceeded));
     return 0;
 }

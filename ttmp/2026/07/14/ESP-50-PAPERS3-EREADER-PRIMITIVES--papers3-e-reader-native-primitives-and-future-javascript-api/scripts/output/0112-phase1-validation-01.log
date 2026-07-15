@@ -1,0 +1,56 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (828) esp_psram: SPI SRAM memory test OK
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history f
+# >>> status
+status
+state=ready uptime_ms=13913 owner_seq=1
+processed[ConsoleCommand]=1
+processed[Pointer]=0
+processed[TimerDue]=0
+processed[StorageComplete]=0
+processed[ShutdownRequest]=0
+reader> 
+# >>> heap
+heap
+internal_free=369863 internal_min_free=356879 internal_largest=262144
+psram_free=8385328 psram_largest=8257536
+reader> 
+# >>> display
+display
+backend=none (phase 1: display work deferred, panel unqualified)
+owner_alive=yes app_state=ready
+reader> 
+# >>> events
+events
+queue capacity=32 depth=0 high_water=1
+source[console] accepted=4 rejected_sends=0
+source[stress-console] accepted=0 rejected_sends=0
+source[stress-input] accepted=0 rejected_sends=0
+source[internal] accepted=0 rejected_sends=0
+out_of_order_total=0 replies_sent=3 replies_dropped=0
+reader> 
+# >>> ping
+ping
+pong round_trip_us=45
+reader> 
+# >>> flood 100
+flood 100
+flood burst=100 accepted=100 rejected=0 (CapacityExceeded)
+reader> 
+# >>> events
+events
+queue capacity=32 depth=0 high_water=5
+source[console] accepted=106 rejected_sends=0
+source[stress-console] accepted=0 rejected_sends=0
+source[stress-input] accepted=0 rejected_sends=0
+source[internal] accepted=0 rejected_sends=0
+out_of_order_total=0 replies_sent=5 replies_dropped=0
+reader> 
+# done

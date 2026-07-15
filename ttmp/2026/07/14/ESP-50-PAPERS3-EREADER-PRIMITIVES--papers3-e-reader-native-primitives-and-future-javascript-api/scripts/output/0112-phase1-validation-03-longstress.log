@@ -1,0 +1,32 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (828) esp_psram: SPI SRAM memory test OK
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history f
+# >>> stress 100000
+stress 100000
+stress sent=100000+100000 received=100000+100000 out_of_order=0
+stress last_seq console=100000 input=100000 rejected_attempts=1+0
+stress concurrent_pings ok=5 failed=0 elapsed_ms=1087
+stress result=PASS
+reader> 
+# >>> events
+events
+queue capacity=32 depth=0 high_water=32
+source[console] accepted=8 rejected_sends=0
+source[stress-console] accepted=100000 rejected_sends=1
+source[stress-input] accepted=100000 rejected_sends=0
+source[internal] accepted=0 rejected_sends=0
+out_of_order_total=0 replies_sent=7 replies_dropped=0
+reader> 
+# >>> heap
+heap
+internal_free=369827 internal_min_free=356863 internal_largest=262144
+psram_free=8385328 psram_largest=8257536
+reader> 
+# done
