@@ -358,3 +358,12 @@ Pivoted from a new F1 camera run to a separately preregistered F1 density-only c
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/36-run-synchronized-f1-density-only.sh — Guarded F1 density-only runner
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/01-preregistration.md — F1 density-only rationale and gate
+
+## 2026-07-14
+
+Step 25 recorded the density-only F1 decision and prepared-only control as 396a51d761f62a2c48411c1c3323c3764475e4f9; F1 remains required before F2 but no new camera recording is required.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 25
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/01-preregistration.md — Step 25 protocol

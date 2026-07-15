@@ -59,6 +59,8 @@ RelatedFiles:
       Note: Step 23 static PaperS3 raw-density qualification (commit 6d7d19e)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md
       Note: Step 24 exact F0 run report and reproducible evidence (commit 115475f)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/01-preregistration.md
+      Note: Step 25 F1 density-only rationale and F2 gate (commit 396a51d)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
@@ -101,6 +103,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2648,4 +2651,82 @@ F0 sample duration: 44.773896 s
 F0 candidate bins: 20 at |delta bin mean| >= 0.010 D
 F1 trace-off SHA-256: 3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3
 F1 physical execution: no
+```
+
+## Step 25: Keep F1, remove the new-camera gate, and use density as the primary control
+
+The requested simplification is valid in part: the densitometer is the more precise and lower-volume channel for the unchanged aperture point. The plan therefore pivots F1 from a new camera-plus-density treatment to a density-only source-proxy control.
+
+F1 itself cannot be skipped. Its trace-off binary is the control that distinguishes stock-source/runtime behavior from trace-on observer effects. Going straight to F2 would make any density difference ambiguous: it could be source lineage, the instrumented ring, or both.
+
+### Prompt Context
+
+**User prompt (verbatim):** "whatever can we just skip to F2, i don't know what you will get from the camera, I can move the printalizer to different regions, but it's going to be way more precise for you and less data to analyze"
+
+**Assistant interpretation:** Prefer point-density evidence to another camera recording and accelerate toward F2, while preserving only the controls needed to make F2 interpretable.
+
+**Inferred user intent:** Reduce data-collection burden and maximize objective measurement without wasting time on unneeded video.
+
+**Commit (code/experiment):** `396a51d761f62a2c48411c1c3323c3764475e4f9` — "Experiment: prepare F1 density-only control"
+
+### What I did
+
+- Left unexecuted camera-required experiment 009 immutable rather than editing its preregistration.
+- Created new experiment 010 for F1 trace-off at the current fixed aperture without a new camera requirement.
+- Created `36-run-synchronized-f1-density-only.sh`, locked to the F1 artifact and experiment 010.
+- Preserved the exact same Printalyzer settings used for F0: gain 2, 100 ms, duty 128, 45 seconds, and two-second baseline.
+- Added explicit rationale, F2 block condition, check-only validation, source relationships, changelog, and script guide entry.
+
+### Why
+
+- A stable fixed aperture provides higher temporal precision and substantially less interpretive data than video.
+- F1 remains necessary because F2 cannot by itself demonstrate that instrumentation has not changed source-derived behavior.
+- Moving the Printalyzer between regions is useful later for spatial mapping, but invalidates absolute cross-run point comparisons at the observed roughly 0.078 D reseating scale.
+
+### What worked
+
+- New F1 density-only ledger hashes validate.
+- Exact F1 toolchain/artifact/audit/by-id/ownership preflight passes without hardware modification.
+- `docmgr doctor` passes cleanly.
+
+### What didn't work
+
+- N/A: no physical action was attempted in this step.
+
+### What I learned
+
+- Camera is not required for the narrow F1/F2 point-observer question, provided all spatial claims are explicitly excluded.
+- The F0 locked video remains the retained spatial baseline; it is not discarded merely because later runs are density-only.
+
+### What was tricky to build
+
+- Existing experiment 009 required fixed camera/video. Removing that requirement after preregistration would be a post-hoc protocol change, so a new experiment ID was required.
+- The F1 runner must be separate from F0 and refuse evidence-path reuse to avoid confusing treatments.
+
+### What warrants a second pair of eyes
+
+- Review that F1 density-only scope does not accidentally claim F0/F1 spatial equivalence.
+- Confirm the Printalyzer, PaperS3, table, and cables remain fixed before F1; otherwise only within-run behavior is comparable.
+- Review F1/F0 point-trace order/shape before F2, not just summary density values.
+
+### What should be done in the future
+
+- Execute experiment 010 only after explicit F1 authorization.
+- If F1 point trace passes, preregister an F2 density-plus-ring experiment; do not run F2 under the current F1 ledger.
+- Use deliberate Printalyzer region moves later as separately labeled spatial samples, not as a continuous cross-run time series.
+
+### Code review instructions
+
+- Run `scripts/36-run-synchronized-f1-density-only.sh --check`.
+- Read `EXP-20260715-010.../01-preregistration.md` and confirm F2 blocking criteria.
+- Verify F1 has no camera requirement and no physical F1 evidence files yet.
+
+### Technical details
+
+```text
+F1 source-off SHA-256: 3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3
+F1 run authorization: RUN-DENS-F1-NOVIDEO
+F1 physical execution: no
+F2 physical execution: no
+camera requirement for EXP-010: no
 ```
