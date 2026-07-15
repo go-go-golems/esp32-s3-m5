@@ -1,0 +1,72 @@
+{
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "collector_result": "ok",
+    "comparison": "F2/F1 point trace must have ordered update structure without unexplained material divergence; host/device alignment is explicitly approximate and cannot support sub-millisecond physical claims",
+    "invalid_density_estimates": 0,
+    "ring": {
+      "contiguous_sequences": true,
+      "dump_begin_end_markers": true,
+      "invalid_records": 0,
+      "required_events": [
+        "POWER_ON_BEGIN",
+        "FRAME_BEGIN",
+        "FRAME_END",
+        "POWER_OFF_END",
+        "DISPLAY_IDLE"
+      ]
+    },
+    "saturated_samples": 0
+  },
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived trace-on",
+    "ring": {
+      "capacity_records": 1024,
+      "record_bytes": 48,
+      "schema": "esp50.factory-v05-runtime-trace.v1"
+    },
+    "sha256": "95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755",
+    "source_commit": "5e275ad4b70abb85f7193fda137844730e64c4db"
+  },
+  "hypothesis": "F2 preserves F1-like fixed-point density activity while its post-idle ring reveals ordered enqueue/power/frame/idle timing that can be approximately mapped to host density time.",
+  "id": "EXP-20260715-011-factory-f2-ring-density",
+  "limitations": [
+    "single aperture point",
+    "60-second full-duty reflection illumination",
+    "F2 device timestamps are host-aligned through approximate post-idle dump anchor",
+    "no camera spatial evidence"
+  ],
+  "papers3": {
+    "camera": "not required for this density/ring treatment",
+    "firmware_serial": "safe read-only non-modem-control capture; no PaperS3 serial input",
+    "sample_region": "unchanged fixed Printalyzer aperture from F0/F1"
+  },
+  "predecessor": {
+    "experiment": "EXP-20260715-010-factory-f1-density-only-control",
+    "result": "automatic and provisional F1/F0 point-trace pass; operator/no-anomaly pass"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 60,
+    "gain_index": 2,
+    "integration_ms": 100,
+    "pre_flash_baseline_seconds": 2,
+    "reflection_light_duty": 128,
+    "version": "v1.1.0"
+  },
+  "safety": [
+    "do not move Printalyzer/table/cables",
+    "stop on heat odor sound power instability or mechanical movement",
+    "F2 dump occurs only after DISPLAY_IDLE",
+    "no F3 anchor behavior is introduced into this preserved F2 artifact"
+  ],
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F2 source-derived trace-on ring plus fixed-point density capture"
+}

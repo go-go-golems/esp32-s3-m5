@@ -19,7 +19,11 @@ WhenToUse: "Use after exact F0 density analysis and before F2 trace-on execution
 
 # Operator observation
 
-- Head/cables/table remained fixed: pending
-- LED off afterward: pending
-- Expected display sequence observed: pending
-- Heat/odor/sound/power anomaly: pending
+- Head/cables/table remained fixed: yes
+- LED off afterward: yes
+- Expected display sequence observed: yes — title → black → white → grayscale → dashboard
+- Heat/odor/sound/power anomaly: no
+
+## Verbatim response
+
+> 1. 2. 3. yes 4. no

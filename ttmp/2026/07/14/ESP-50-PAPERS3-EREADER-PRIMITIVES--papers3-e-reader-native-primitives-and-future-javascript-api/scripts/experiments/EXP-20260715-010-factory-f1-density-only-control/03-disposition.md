@@ -22,5 +22,5 @@ WhenToUse: "Use after exact F0 density analysis and before F2 trace-on execution
 - Execution: complete — F1 trace-off replay with 45-second fixed-point density stream
 - Automatic transaction disposition: **pass** — F1 hash/preflight, flash, 442-sample collector, zero saturation/invalid records, and complete cleanup passed
 - F1/F0 point-trace comparison: **provisional pass** — baseline-subtracted 0–25 s shape Pearson correlation 0.943874 after a 0.5 s F1-to-F0 alignment; normalized RMS difference 0.019832 D
-- Operator/no-anomaly disposition: pending
-- F2 eligibility: conditional pending operator confirmation and review of F1/F0 comparison limits
+- Operator/no-anomaly disposition: **pass** — fixed head/cables/table, LED off afterward, expected sequence observed, and no reported heat/odor/sound/power anomaly
+- F2 eligibility: conditional yes — a separate F2 ring-plus-density ledger and explicit authorization are still required

@@ -49,6 +49,19 @@ scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html
 
 The dashboard is self-contained: it makes no network requests and embeds its data. It distinguishes host flash markers, candidate density activity, and derived density. Candidate activity is not an asserted semantic display phase.
 
+## F2 ring-plus-density capture
+
+`39-run-synchronized-f2-ring-density.sh` runs the preserved F2 artifact with 60 seconds of fixed-point density and a safe read-only PaperS3 serial capture. `38-extract-factory-f2-ring.py` validates the post-idle ring dump and produces an explicitly approximate host alignment. `40-test-extract-factory-f2-ring.py` is the no-hardware synthetic extraction test.
+
+```bash
+scripts/40-test-extract-factory-f2-ring.py
+scripts/39-run-synchronized-f2-ring-density.sh --check
+# Physical action, only after explicit authorization:
+scripts/39-run-synchronized-f2-ring-density.sh --execute --confirm RUN-DENS-F2
+```
+
+The alignment maps final `DISPLAY_IDLE` to host receipt of `FACTORY_TRACE_DUMP_BEGIN`; it is useful for relative sequence correlation but does not claim sub-millisecond physical timing.
+
 ## F0/F1 trace comparison
 
 `37-compare-f0-f1-density.py` baseline-subtracts both point traces, normalizes time against each host `flash_runner_complete` marker, resamples at 100 ms, and searches bounded time shifts for maximum Pearson shape correlation. It explicitly does **not** claim spatial equivalence, exact semantic phase labeling, or cross-run absolute density equivalence.
