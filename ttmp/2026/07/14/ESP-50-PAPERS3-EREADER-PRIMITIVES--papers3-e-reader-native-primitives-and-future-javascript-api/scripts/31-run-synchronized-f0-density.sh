@@ -7,6 +7,7 @@ RAW="$EXP/raw-dynamic-f0.jsonl"
 HOST="$EXP/host-events.jsonl"
 COLLECTOR_LOG="$EXP/collector-console.log"
 FLASH_RUNNER_LOG="$EXP/flash-runner-console.log"
+FLASH_FULL_LOG="$EXP/flash-full.log"
 MODE=check
 CONFIRM=''
 
@@ -33,7 +34,7 @@ if [[ "$MODE" == check ]]; then
   exit 0
 fi
 [[ "$CONFIRM" == RUN-DENS-F0 ]] || { echo 'execute requires --confirm RUN-DENS-F0' >&2; exit 4; }
-for path in "$RAW" "$HOST" "$COLLECTOR_LOG" "$FLASH_RUNNER_LOG"; do
+for path in "$RAW" "$HOST" "$COLLECTOR_LOG" "$FLASH_RUNNER_LOG" "$FLASH_FULL_LOG"; do
   [[ ! -e "$path" ]] || { echo "refusing to replace evidence: $path" >&2; exit 5; }
 done
 
@@ -83,6 +84,9 @@ sleep 2
 emit_host_event flash_begin
 "$TICKET/scripts/27-run-factory-comparison-flash.sh" \
   --execute --treatment f0 --confirm RUN-F0 >"$FLASH_RUNNER_LOG" 2>&1
+flash_source=$(awk -F= '/^flash_log=/{print $2}' "$FLASH_RUNNER_LOG")
+[[ -n "$flash_source" && -f "$flash_source" ]] || { echo 'full flash log path missing' >&2; exit 7; }
+cp "$flash_source" "$FLASH_FULL_LOG"
 emit_host_event flash_runner_complete
 wait "$collector_pid"
 collector_pid=''

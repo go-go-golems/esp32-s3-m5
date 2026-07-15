@@ -19,7 +19,11 @@ WhenToUse: "Establish F0 temporal black/white/grayscale behavior before source-d
 
 # Operator observation
 
-- Head remained fixed: pending
-- LED off afterward: pending
-- Expected display sequence observed: pending
-- Heat/odor/sound/power anomaly: pending
+- Head remained fixed: yes
+- LED off afterward: yes
+- Expected display sequence observed: yes — title → black → white → grayscale → dashboard
+- Heat/odor/sound/power anomaly: no
+
+## Verbatim response
+
+> 1. 2. 3. yes 4. no

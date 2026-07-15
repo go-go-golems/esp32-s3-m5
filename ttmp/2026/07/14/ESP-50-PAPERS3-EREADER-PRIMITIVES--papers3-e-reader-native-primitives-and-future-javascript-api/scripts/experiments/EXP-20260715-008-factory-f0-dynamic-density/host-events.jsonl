@@ -1,0 +1,5 @@
+{"event":"orchestrator_begin","host_monotonic_ns":993430641277336,"host_realtime_ns":1784077004051077101,"hostname":"f","pid":112957,"schema":"esp50.host-marker.v1"}
+{"event":"raw_stream_confirmed","host_monotonic_ns":993431707975502,"host_realtime_ns":1784077005117775170,"hostname":"f","pid":112984,"schema":"esp50.host-marker.v1"}
+{"event":"flash_begin","host_monotonic_ns":993433746818032,"host_realtime_ns":1784077007156617913,"hostname":"f","pid":113008,"schema":"esp50.host-marker.v1"}
+{"event":"flash_runner_complete","host_monotonic_ns":993447530091163,"host_realtime_ns":1784077020939891367,"hostname":"f","pid":113477,"schema":"esp50.host-marker.v1"}
+{"event":"orchestrator_complete","host_monotonic_ns":993476883213835,"host_realtime_ns":1784077050293013380,"hostname":"f","pid":113665,"schema":"esp50.host-marker.v1"}

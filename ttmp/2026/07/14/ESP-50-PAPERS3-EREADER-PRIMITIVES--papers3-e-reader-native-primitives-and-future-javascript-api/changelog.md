@@ -322,3 +322,12 @@ Preserved placement and perturbation experiments 005-007: manual reseating chang
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/31-run-synchronized-f0-density.sh — Guarded raw-stream plus exact-F0 orchestration
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/01-preregistration.md — Dynamic F0 density protocol
+
+## 2026-07-14
+
+Executed and analyzed exact F0 fixed-point density experiment: 442 valid unsaturated samples over 44.77 s, full flash and cleanup evidence, reproducible CSV/JSON/SVG calculations, and a self-contained retro monochrome HTML dashboard. F1 is only conditionally eligible under a new fixed-head/fixed-camera ledger.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md — F0 result and interpretation limits
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html — Interactive evidence dashboard

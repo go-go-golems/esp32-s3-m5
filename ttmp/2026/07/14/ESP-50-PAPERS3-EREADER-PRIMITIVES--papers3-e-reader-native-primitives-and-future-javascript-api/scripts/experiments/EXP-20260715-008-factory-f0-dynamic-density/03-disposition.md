@@ -19,8 +19,8 @@ WhenToUse: "Establish F0 temporal black/white/grayscale behavior before source-d
 
 # Disposition
 
-- Execution: pending
-- Automatic transaction disposition: pending
-- Density-trace disposition: pending
-- F0 optical disposition: remains separate
-- F1 eligibility: no
+- Execution: complete — exact F0 replay with 45-second fixed-head density stream
+- Automatic transaction disposition: **pass** — exact artifact, flash, collector, and cleanup passed
+- Density-trace disposition: **pass** — 442 samples, zero saturation/invalid records, expected sequence observed; phase labels remain source/host-time approximate
+- F0 optical disposition: remains separate — density is one point and existing video remains spatial evidence
+- F1 eligibility: conditional yes — requires a new F1 dynamic ledger, unchanged head, fixed camera/video, and explicit operator authorization

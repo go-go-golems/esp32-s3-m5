@@ -1,0 +1,210 @@
+{
+  "adjacent_density_mean_deltas": [
+    {
+      "absolute_delta": 0.0780669072107657,
+      "earlier": "EXP-004-initial",
+      "later": "EXP-005-repositioned",
+      "signed_delta": -0.0780669072107657
+    },
+    {
+      "absolute_delta": 0.009820311211453436,
+      "earlier": "EXP-005-repositioned",
+      "later": "EXP-006-fixed-repeat",
+      "signed_delta": 0.009820311211453436
+    },
+    {
+      "absolute_delta": 0.003620114050671752,
+      "earlier": "EXP-006-fixed-repeat",
+      "later": "EXP-007-hand-wave",
+      "signed_delta": -0.003620114050671752
+    }
+  ],
+  "captures": [
+    {
+      "capture_result": "ok",
+      "channel_0": {
+        "count": 46,
+        "maximum": 1932,
+        "maximum_absolute_excursion_from_median": 8.0,
+        "mean": 1929.304347826087,
+        "median": 1930.0,
+        "minimum": 1922,
+        "standard_deviation": 2.78782723215204,
+        "value_range": 10
+      },
+      "channel_1": {
+        "count": 46,
+        "maximum": 200,
+        "maximum_absolute_excursion_from_median": 1.0,
+        "mean": 199.7608695652174,
+        "median": 200.0,
+        "minimum": 199,
+        "standard_deviation": 0.43126597148888435,
+        "value_range": 1
+      },
+      "cleanup_commands": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "density": {
+        "count": 46,
+        "maximum": 0.6797808885626463,
+        "maximum_absolute_excursion_from_median": 0.0017951786915371137,
+        "mean": 0.678141959858665,
+        "median": 0.6779857098711092,
+        "minimum": 0.6775380885968666,
+        "standard_deviation": 0.0006249516999838359,
+        "value_range": 0.002242799965779696
+      },
+      "excluded_settling_samples": 2,
+      "invalid_density_estimates": 0,
+      "label": "EXP-004-initial",
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/raw-static-white.jsonl",
+      "post_settling_samples": 46,
+      "raw_samples": 48,
+      "saturated_samples": 0,
+      "total_records": 77
+    },
+    {
+      "capture_result": "ok",
+      "channel_0": {
+        "count": 46,
+        "maximum": 2313,
+        "maximum_absolute_excursion_from_median": 1.0,
+        "mean": 2311.608695652174,
+        "median": 2312.0,
+        "minimum": 2311,
+        "standard_deviation": 0.5365842946956327,
+        "value_range": 2
+      },
+      "channel_1": {
+        "count": 46,
+        "maximum": 240,
+        "maximum_absolute_excursion_from_median": 0.0,
+        "mean": 240,
+        "median": 240.0,
+        "minimum": 240,
+        "standard_deviation": 0.0,
+        "value_range": 0
+      },
+      "cleanup_commands": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "density": {
+        "count": 46,
+        "maximum": 0.6001886690841777,
+        "maximum_absolute_excursion_from_median": 0.00018665848328014434,
+        "mean": 0.6000750526478993,
+        "median": 0.6000020106008975,
+        "minimum": 0.599815433580656,
+        "standard_deviation": 0.00010015331732688104,
+        "value_range": 0.0003732355035216406
+      },
+      "excluded_settling_samples": 2,
+      "invalid_density_estimates": 0,
+      "label": "EXP-005-repositioned",
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-005-printalyzer-repositioned-white-raw/raw-repositioned-white.jsonl",
+      "post_settling_samples": 46,
+      "raw_samples": 48,
+      "saturated_samples": 0,
+      "total_records": 77
+    },
+    {
+      "capture_result": "ok",
+      "channel_0": {
+        "count": 46,
+        "maximum": 2308,
+        "maximum_absolute_excursion_from_median": 393.0,
+        "mean": 2261.0434782608695,
+        "median": 2286.0,
+        "minimum": 1893,
+        "standard_deviation": 78.50717066237088,
+        "value_range": 415
+      },
+      "channel_1": {
+        "count": 46,
+        "maximum": 240,
+        "maximum_absolute_excursion_from_median": 42.0,
+        "mean": 234.5,
+        "median": 237.0,
+        "minimum": 195,
+        "standard_deviation": 8.466272956725279,
+        "value_range": 45
+      },
+      "cleanup_commands": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "density": {
+        "count": 46,
+        "maximum": 0.6863522288058358,
+        "maximum_absolute_excursion_from_median": 0.08147041331658456,
+        "mean": 0.6098953638593527,
+        "median": 0.6048818154892512,
+        "minimum": 0.6007491340210958,
+        "standard_deviation": 0.01585000007073805,
+        "value_range": 0.08560309478474004
+      },
+      "excluded_settling_samples": 2,
+      "invalid_density_estimates": 0,
+      "label": "EXP-006-fixed-repeat",
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-006-printalyzer-fixed-position-repeat/raw-fixed-repeat.jsonl",
+      "post_settling_samples": 46,
+      "raw_samples": 48,
+      "saturated_samples": 0,
+      "total_records": 77
+    },
+    {
+      "capture_result": "ok",
+      "channel_0": {
+        "count": 96,
+        "maximum": 2301,
+        "maximum_absolute_excursion_from_median": 377.0,
+        "mean": 2279.3958333333335,
+        "median": 2296.0,
+        "minimum": 1919,
+        "standard_deviation": 56.827991465782844,
+        "value_range": 382
+      },
+      "channel_1": {
+        "count": 96,
+        "maximum": 239,
+        "maximum_absolute_excursion_from_median": 40.0,
+        "mean": 236.4375,
+        "median": 238.0,
+        "minimum": 198,
+        "standard_deviation": 6.098856665931652,
+        "value_range": 41
+      },
+      "cleanup_commands": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "density": {
+        "count": 96,
+        "maximum": 0.6804560254534526,
+        "maximum_absolute_excursion_from_median": 0.07745765516459302,
+        "mean": 0.606275249808681,
+        "median": 0.6029983702888596,
+        "minimum": 0.6020597500143854,
+        "standard_deviation": 0.011423911084129094,
+        "value_range": 0.07839627543906724
+      },
+      "excluded_settling_samples": 2,
+      "invalid_density_estimates": 0,
+      "label": "EXP-007-hand-wave",
+      "path": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-007-printalyzer-hand-wave-perturbation/raw-hand-wave.jsonl",
+      "post_settling_samples": 96,
+      "raw_samples": 98,
+      "saturated_samples": 0,
+      "total_records": 127
+    }
+  ],
+  "exclude_first": 2,
+  "schema": "esp50.printalyzer-static-analysis.v1"
+}
