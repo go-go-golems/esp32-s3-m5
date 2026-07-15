@@ -1,0 +1,71 @@
+{
+  "decision_rule": {
+    "alignment": "final DISPLAY_IDLE to dump-begin host receipt is approximate only",
+    "capture": {
+      "cleanup": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "invalid_density_estimates": 0,
+      "result": "ok",
+      "saturated_samples": 0
+    },
+    "flash": "verified write hash",
+    "reset": "esptool chip_id identifies ESP32-S3 and completes hard-reset command",
+    "ring": {
+      "contiguous": true,
+      "dump_markers": true,
+      "required_events": [
+        "POWER_ON_BEGIN",
+        "FRAME_BEGIN",
+        "FRAME_END",
+        "POWER_OFF_END",
+        "DISPLAY_IDLE"
+      ]
+    }
+  },
+  "exclusive_ownership_sequence": [
+    "esptool write_flash --after no_reset",
+    "esptool chip_id --before no_reset --after hard_reset --no-stub",
+    "close esptool port",
+    "safe read-only PaperS3 and Printalyzer capture"
+  ],
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived trace-on",
+    "ring_schema": "esp50.factory-v05-runtime-trace.v1",
+    "sha256": "95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755"
+  },
+  "hypothesis": "A sequential esptool-owned reset, followed by non-controlling capture, preserves single-owner serial safety and captures delayed F2 ring dump plus fixed-point density without requiring a physical reset.",
+  "id": "EXP-20260715-013-factory-f2-esptool-reset-density",
+  "paper_serial": {
+    "capture": "os.open read-only nonblocking; no modem control; no serial input",
+    "reset": "esptool only; target-specific USB-JTAG sequence"
+  },
+  "predecessors": {
+    "F1": "EXP-20260715-010-factory-f1-density-only-control",
+    "F2_auto_owner_failure": "EXP-20260715-011-factory-f2-ring-density",
+    "F2_manual_reset_alternative": "EXP-20260715-012-factory-f2-manual-reset-density"
+  },
+  "printalyzer": {
+    "duration_seconds": 60,
+    "fixed_aperture": "unchanged F0/F1 location",
+    "gain_index": 2,
+    "integration_ms": 100,
+    "reflection_light_duty": 128
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "stop_conditions": [
+    "heat",
+    "odor",
+    "sound",
+    "power instability",
+    "reset loop",
+    "Printalyzer movement",
+    "missing ring"
+  ],
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F2 trace-on density with esptool-owned USB-JTAG hard reset and delayed ring capture"
+}

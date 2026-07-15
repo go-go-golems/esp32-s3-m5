@@ -394,3 +394,12 @@ Recorded the F2 automatic capture ownership conflict before flash, then replaced
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-011-factory-f2-ring-density/04-failed-attempt.md — Failure evidence
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-012-factory-f2-manual-reset-density/01-preregistration.md — Manual-reset F2 protocol
+
+## 2026-07-14
+
+Preregistered and no-hardware-validated a final F2 sequence that serializes USB ownership: esptool flashes with no reset, esptool executes its ESP32-S3 hard reset, then the existing non-controlling reader captures the delayed ring and 60-second density trace. F2 has not yet executed.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/44-run-f2-auto-reset-density.sh — Guarded execution
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-013-factory-f2-esptool-reset-density/01-preregistration.md — Sequential ownership rationale

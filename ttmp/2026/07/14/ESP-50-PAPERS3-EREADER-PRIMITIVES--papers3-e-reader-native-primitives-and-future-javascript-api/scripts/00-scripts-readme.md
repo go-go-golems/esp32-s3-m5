@@ -49,6 +49,18 @@ scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html
 
 The dashboard is self-contained: it makes no network requests and embeds its data. It distinguishes host flash markers, candidate density activity, and derived density. Candidate activity is not an asserted semantic display phase.
 
+## F2 esptool-reset capture
+
+`44-run-f2-auto-reset-density.sh` serializes ownership instead of requiring a human reset: esptool flashes F2 with `--after no_reset`, uses `chip_id --before no_reset --after hard_reset` to perform the target-aware USB-JTAG reset, exits, then the existing PaperS3-safe read-only collector captures the delayed post-idle dump.
+
+```bash
+scripts/44-run-f2-auto-reset-density.sh --check
+# Physical action, only after explicit authorization:
+scripts/44-run-f2-auto-reset-density.sh --execute --confirm RUN-DENS-F2-AUTORESET
+```
+
+No Python serial library accesses PaperS3; the collector uses only its non-controlling read-only fd.
+
 ## F2 manual-reset capture
 
 The automatic F2 runner in experiment 011 deliberately stopped before flash because it cannot simultaneously give esptool exclusive USB ownership and capture F2 boot/dump output. Use the experiment-012 three-stage manual protocol instead:

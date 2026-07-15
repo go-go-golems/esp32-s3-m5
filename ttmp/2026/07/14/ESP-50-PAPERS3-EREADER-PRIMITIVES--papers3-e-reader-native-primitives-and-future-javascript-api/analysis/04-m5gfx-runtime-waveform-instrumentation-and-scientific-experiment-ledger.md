@@ -29,6 +29,8 @@ RelatedFiles:
       Note: Read-only capture arm
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/43-finalize-f2-manual-reset-capture.sh
       Note: Ring extraction finalization
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/44-run-f2-auto-reset-density.sh
+      Note: Sequential F2 flash/reset/capture runner
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md
       Note: Exact F0 objective density disposition and timing limits
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-009-factory-f1-dynamic-density/01-preregistration.md
@@ -43,6 +45,8 @@ RelatedFiles:
       Note: Safe automatic F2 ownership failure
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-012-factory-f2-manual-reset-density/01-preregistration.md
       Note: Manual-reset F2 recovery protocol
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-013-factory-f2-esptool-reset-density/01-preregistration.md
+      Note: Esptool-owned F2 reset protocol
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
       Note: 18-check observer-effect audit and machine-code identity evidence
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
@@ -57,6 +61,7 @@ LastUpdated: 2026-07-14T21:25:00Z
 WhatFor: Turn visual EPD trials into source-backed, timing-aware, reproducible experiments.
 WhenToUse: Use before modifying M5GFX, replaying FactoryTest, attaching measurement equipment, or comparing waveform endpoints.
 ---
+
 
 
 
