@@ -60,3 +60,13 @@ scripts/31-run-synchronized-f0-density.sh --execute --confirm RUN-DENS-F0
 ```
 
 Do not use the F0 runner to replay a completed experiment. Create a new experiment ID and update the runner/output locations first.
+
+## Prepared F1 source-proxy runner
+
+`35-run-synchronized-f1-density.sh` is the F1-specific counterpart for experiment 009. It checks the audited F1 trace-off artifact and refuses execution unless its own ledger exists and the literal F1 confirmation is supplied. It is prepared but has **not** been executed. F1 also requires the fixed-camera gate because the density stream cannot score spatial artifacts.
+
+```bash
+scripts/35-run-synchronized-f1-density.sh --check
+# Physical action, only after camera recording is confirmed:
+scripts/35-run-synchronized-f1-density.sh --execute --confirm RUN-DENS-F1
+```

@@ -1,0 +1,63 @@
+{
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "collector_result": "ok",
+    "invalid_density_estimates": 0,
+    "minimum_post_flash_capture_seconds": 25,
+    "saturated_samples": 0,
+    "spatial_comparison": "review fixed-camera video against F0 before F2 authorization",
+    "temporal_comparison": "compare F1/F0 with an explicit post-hoc time normalization but do not compare absolute plateau density if the head has moved"
+  },
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived trace-off",
+    "sha256": "3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3",
+    "source_commit": "5e275ad4b70abb85f7193fda137844730e64c4db",
+    "trace_compiled_out": true
+  },
+  "hypothesis": "The stock-source trace-off F1 replay produces the same ordered point-density transition structure and materially similar video endpoint as exact F0 at the unchanged aperture point.",
+  "id": "EXP-20260715-009-factory-f1-dynamic-density",
+  "limitations": [
+    "single point density channel",
+    "source-derived binary differs from exact F0",
+    "video is required for spatial comparison"
+  ],
+  "papers3": {
+    "camera": "fixed and recording before execution",
+    "expected_sequence": [
+      "title",
+      "full black",
+      "full white",
+      "grayscale bars",
+      "dashboard"
+    ],
+    "sample_region": "do not move the Printalyzer from its F0 position"
+  },
+  "predecessor": {
+    "artifact_sha256": "d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624",
+    "experiment": "EXP-20260715-008-factory-f0-dynamic-density",
+    "result": "automatic and temporal-density pass; spatial outcome remains separately video-reviewed"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 45,
+    "gain_index": 2,
+    "integration_ms": 100,
+    "pre_flash_baseline_seconds": 2,
+    "reflection_light_duty": 128,
+    "version": "v1.1.0"
+  },
+  "safety": [
+    "head/camera/table/cables remain still",
+    "stop on heat odor sound power instability or mechanical movement",
+    "do not authorize F2 automatically"
+  ],
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "FactoryTest V0.5 stock-source F1 trace-off replay with fixed-position Printalyzer density stream"
+}

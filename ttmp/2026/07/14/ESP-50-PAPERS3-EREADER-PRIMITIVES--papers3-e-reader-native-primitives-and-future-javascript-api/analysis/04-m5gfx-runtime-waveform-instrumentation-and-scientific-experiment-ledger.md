@@ -19,8 +19,12 @@ RelatedFiles:
       Note: Deterministic non-invasive waveform decoder
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/34-build-f0-density-dashboard.py
       Note: Self-contained F0 evidence dashboard generator
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/35-run-synchronized-f1-density.sh
+      Note: Guarded F1 density orchestration
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md
       Note: Exact F0 objective density disposition and timing limits
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-009-factory-f1-dynamic-density/01-preregistration.md
+      Note: Fixed-head/camera F1 source-proxy comparison gate
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/20-m5gfx-runtime-trace-audit-latest.md
       Note: 18-check observer-effect audit and machine-code identity evidence
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/25-factory-v0.5-trace-audit-latest.md
@@ -35,6 +39,7 @@ LastUpdated: 2026-07-14T21:25:00Z
 WhatFor: Turn visual EPD trials into source-backed, timing-aware, reproducible experiments.
 WhenToUse: Use before modifying M5GFX, replaying FactoryTest, attaching measurement equipment, or comparing waveform endpoints.
 ---
+
 
 
 

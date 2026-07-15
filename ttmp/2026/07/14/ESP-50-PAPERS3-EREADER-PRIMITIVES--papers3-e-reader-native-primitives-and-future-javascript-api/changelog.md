@@ -331,3 +331,12 @@ Executed and analyzed exact F0 fixed-point density experiment: 442 valid unsatur
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md — F0 result and interpretation limits
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html — Interactive evidence dashboard
+
+## 2026-07-14
+
+Prepared and check-validated the separately preregistered F1 stock-source trace-off density/video comparison. It retains the current fixed Printalyzer position, requires fixed camera recording, and has not flashed hardware.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/35-run-synchronized-f1-density.sh — F1 guarded runner
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-009-factory-f1-dynamic-density/01-preregistration.md — F1 physical protocol
