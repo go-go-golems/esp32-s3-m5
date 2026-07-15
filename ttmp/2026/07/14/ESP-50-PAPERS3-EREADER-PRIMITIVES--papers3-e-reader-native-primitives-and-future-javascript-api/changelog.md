@@ -420,3 +420,12 @@ Added a colleague-facing native-first s3paper e-reader implementation handoff: e
 ### Related Files
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/02-implementation-handoff-native-first-s3paper-e-reader.md — Implementation handoff
+
+## 2026-07-15
+
+Phase 1 complete: scaffolded 0112-papers3-reader-primitives (single owner task, bounded AppEvent/reply queues, console proxy, diagnostics, stress/flood fixtures) and validated the exit gate on hardware: 200k ordered events under concurrent producers, deterministic CapacityExceeded overflow, explicit reply timeouts, Busy-after-shutdown (commits f7c5a21, 1aea3b4)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_owner.cpp — Owner task and event queue core
+

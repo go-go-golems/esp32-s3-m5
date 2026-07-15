@@ -30,7 +30,7 @@
 ## TODO
 
 - [ ] Phase 0 - Freeze and document a reproducible PaperS3 hardware/toolchain/component qualification matrix before application work <!-- t:la6t -->
-- [ ] Phase 1 - Scaffold the new native reader-primitives firmware with one UI owner task, USB Serial/JTAG console, and message-based commands <!-- t:q22x -->
+- [x] Phase 1 - Scaffold the new native reader-primitives firmware with one UI owner task, USB Serial/JTAG console, and message-based commands <!-- t:q22x -->
 - [ ] Phase 2 - Implement defensive geometry, status/result types, display transactions, clipping, draw operations, and a deterministic fake display backend <!-- t:t1yc -->
 - [ ] Phase 3 - Implement and hardware-qualify the EPD refresh planner, waveform selection, dirty-region alignment/merging, ghosting accounting, and visual test corpus <!-- t:hdvv -->
 - [ ] Phase 4 - Implement normalized touch events, hit testing, gestures, input-idle tracking, timers, and quiet/deferred region scheduling <!-- t:a7sc -->
@@ -55,16 +55,16 @@
 - [ ] [P0.10] Decide and document the accepted toolchain/component pin and any narrowly required local M5GFX patch <!-- t:5cww -->
 - [ ] [P0.11] Add Phase 0 build/flash/probe scripts and component-SHA capture under the ticket scripts directory <!-- t:lied -->
 - [ ] [P0.12] Update the guide, README, diary, and changelog with measured Phase 0 results and review instructions <!-- t:6sog -->
-- [ ] [P1.1] Create the next-numbered PaperS3 reader-primitives firmware directory and minimal ESP-IDF project files <!-- t:p0mo -->
-- [ ] [P1.2] Add sdkconfig.defaults for ESP32-S3, octal PSRAM, 16MB flash, custom partitions, and USB Serial/JTAG console <!-- t:l97g -->
+- [x] [P1.1] Create the next-numbered PaperS3 reader-primitives firmware directory and minimal ESP-IDF project files <!-- t:p0mo -->
+- [x] [P1.2] Add sdkconfig.defaults for ESP32-S3, octal PSRAM, 16MB flash, custom partitions, and USB Serial/JTAG console <!-- t:l97g -->
 - [ ] [P1.3] Pin the accepted Phase 0 M5GFX/M5Unified revisions reproducibly and commit dependencies.lock where applicable <!-- t:ambe -->
-- [ ] [P1.4] Define bounded AppEvent, AppCommand, and AppReply message types with explicit payload ownership <!-- t:x5vy -->
-- [ ] [P1.5] Create the single UI/application owner task and prohibit display/model mutation from producer tasks <!-- t:pt40 -->
-- [ ] [P1.6] Route console commands through the command queue and return results through bounded reply queues <!-- t:z15o -->
-- [ ] [P1.7] Add status, heap, display, event-queue, and task diagnostics to the USB console <!-- t:kvf8 -->
-- [ ] [P1.8] Add explicit queue-full, reply-timeout, invalid-command, and shutdown behavior <!-- t:x8lf -->
-- [ ] [P1.9] Stress console and synthetic input producers concurrently and verify deterministic owner-task ordering <!-- t:uc4q -->
-- [ ] [P1.10] Document build, flash, monitor, architecture ownership, and validation commands in the firmware README <!-- t:cw1v -->
+- [x] [P1.4] Define bounded AppEvent, AppCommand, and AppReply message types with explicit payload ownership <!-- t:x5vy -->
+- [x] [P1.5] Create the single UI/application owner task and prohibit display/model mutation from producer tasks <!-- t:pt40 -->
+- [x] [P1.6] Route console commands through the command queue and return results through bounded reply queues <!-- t:z15o -->
+- [x] [P1.7] Add status, heap, display, event-queue, and task diagnostics to the USB console <!-- t:kvf8 -->
+- [x] [P1.8] Add explicit queue-full, reply-timeout, invalid-command, and shutdown behavior <!-- t:x8lf -->
+- [x] [P1.9] Stress console and synthetic input producers concurrently and verify deterministic owner-task ordering <!-- t:uc4q -->
+- [x] [P1.10] Document build, flash, monitor, architecture ownership, and validation commands in the firmware README <!-- t:cw1v -->
 - [ ] [P2.1] Define StatusCode, Status, and Result contracts without exceptions or silent boolean failures <!-- t:3s70 -->
 - [ ] [P2.2] Implement half-open Point, Size, Insets, and Rect types using overflow-safe intermediate arithmetic <!-- t:7jda -->
 - [ ] [P2.3] Implement rectangle contains, intersection, union, clamp, empty, area, and rotation transforms <!-- t:84f7 -->
