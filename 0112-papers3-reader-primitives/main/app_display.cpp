@@ -6,6 +6,7 @@
 
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 
 #include "s3paper/fake_backend.h"
 #include "s3paper/frame_arena.h"
@@ -30,7 +31,46 @@ s3paper::FrameArena *s_arena = nullptr;
 s3paper::FrameBuilder *s_builder = nullptr;
 s3paper::FakeBackend *s_fake = nullptr;
 s3paper::M5Backend *s_m5 = nullptr;
+s3paper::RefreshPlanner *s_planner = nullptr;
 s3paper::FrameId s_next_frame_id = 1;
+
+// Soak policy: a longer turn budget than the default so a 10k-step soak is
+// dominated by partial updates with periodic planner-driven clean fulls.
+s3paper::RefreshPolicy MakePlannerPolicy() {
+    s3paper::RefreshPolicy policy;
+    policy.max_turns_between_full = 64;
+    return policy;
+}
+
+// Presents a frozen frame through the planner on the chosen backend and
+// commits the result to refresh history.
+PlannedPresent PresentPlanned(const s3paper::RenderFrame &frame,
+                              s3paper::PresentIntent intent, bool use_m5) {
+    PlannedPresent out{};
+    s3paper::Status st = s_planner->AddDamage(frame.damage);
+    if (!st.ok()) {
+        out.present.status = st.code;
+        return out;
+    }
+    const int64_t now_us = esp_timer_get_time();
+    out.plan = s_planner->Plan(intent, now_us);
+    // The backend still consumes per-op clip rects; the plan chooses the
+    // effective intent (a planner-forced full becomes CleanFull).
+    const s3paper::PresentIntent effective =
+        out.plan.full_refresh ? s3paper::PresentIntent::CleanFull : intent;
+    if (use_m5) {
+        out.present = s_m5->Present(frame, effective);
+    } else {
+        s_fake->ClearTrace();
+        out.present = s_fake->Present(frame, effective);
+    }
+    if (out.present.status == s3paper::StatusCode::Ok) {
+        s_planner->RecordPresent(out.plan, esp_timer_get_time());
+    } else {
+        s_planner->ClearDamage();
+    }
+    return out;
+}
 
 // Deterministic primitive fixture (ticket task tb0m): background, borders,
 // corner markers, width ladder 1..16, gray ladder, checkerboard, a clipped
@@ -107,10 +147,12 @@ void DisplayServiceInit() {
     static s3paper::FakeBackend fake(s_trace_buf, kTraceCapacity,
                                      s3paper::Size{540, 960});
     static s3paper::M5Backend m5;
+    static s3paper::RefreshPlanner planner(kViewport, MakePlannerPolicy());
     s_arena = &arena;
     s_builder = &builder;
     s_fake = &fake;
     s_m5 = &m5;
+    s_planner = &planner;
     (void)s_fake->Init();
     ESP_LOGI(kTag,
              "frame storage ready: ops=%u arena=%uB trace=%uB (PSRAM)",
@@ -119,33 +161,85 @@ void DisplayServiceInit() {
              static_cast<unsigned>(kTraceCapacity));
 }
 
-s3paper::PresentResult RunFixture(bool use_m5) {
-    s3paper::PresentResult result{};
+PlannedPresent RunFixture(bool use_m5) {
+    PlannedPresent out{};
     if (s_builder == nullptr) {
-        result.status = s3paper::StatusCode::Busy;
-        return result;
+        out.present.status = s3paper::StatusCode::Busy;
+        return out;
     }
     const s3paper::Status built = BuildFixture(*s_builder);
     if (!built.ok()) {
-        result.status = built.code;
-        return result;
+        out.present.status = built.code;
+        return out;
     }
     const s3paper::Result<s3paper::RenderFrame> frame =
         s_builder->Finish(s_next_frame_id++);
     if (!frame.ok()) {
-        result.status = frame.code;
-        return result;
+        out.present.status = frame.code;
+        return out;
     }
     if (use_m5) {
         const s3paper::Status init = s_m5->Init();
         if (!init.ok()) {
-            result.status = init.code;
-            return result;
+            out.present.status = init.code;
+            return out;
         }
-        return s_m5->Present(frame.value, s3paper::PresentIntent::CleanFull);
     }
-    s_fake->ClearTrace();
-    return s_fake->Present(frame.value, s3paper::PresentIntent::CleanFull);
+    return PresentPlanned(frame.value, s3paper::PresentIntent::CleanFull,
+                          use_m5);
+}
+
+PlannedPresent RunSoakStep(uint32_t step_index) {
+    PlannedPresent out{};
+    if (s_builder == nullptr) {
+        out.present.status = s3paper::StatusCode::Busy;
+        return out;
+    }
+    const s3paper::Status init = s_m5->Init();
+    if (!init.ok()) {
+        out.present.status = init.code;
+        return out;
+    }
+    using s3paper::Rect;
+    // Deterministic pseudo-scatter: primes keep successive steps apart so
+    // damage rects rarely merge and the panel sees varied regions.
+    const int32_t x =
+        static_cast<int32_t>((step_index * 97) % 440);
+    const int32_t y = static_cast<int32_t>((step_index * 211) % 860);
+    const bool black = (step_index & 1) == 0;
+    const s3paper::Gray8 gray = black ? 0 : 255;
+    s3paper::FrameBuilder &fb = *s_builder;
+    fb.Begin();
+    s3paper::Status st = fb.FillRect(Rect{x, y, 64, 48}, gray);
+    if (st.ok() && step_index % 8 == 0) {
+        // Periodic text-shaped update.
+        static const char kSoakText[] = "soak";
+        st = fb.GlyphRun(Rect{x, y, 64, 24}, y + 20, 0, 16, kSoakText,
+                         sizeof(kSoakText) - 1, black ? 255 : 0);
+    }
+    if (!st.ok()) {
+        out.present.status = st.code;
+        return out;
+    }
+    const s3paper::Result<s3paper::RenderFrame> frame =
+        s_builder->Finish(s_next_frame_id++);
+    if (!frame.ok()) {
+        out.present.status = frame.code;
+        return out;
+    }
+    // Cycle intents so every waveform class appears in the soak.
+    s3paper::PresentIntent intent;
+    switch (step_index % 4) {
+        case 0: intent = s3paper::PresentIntent::InteractiveInk; break;
+        case 1: intent = s3paper::PresentIntent::TextRegion; break;
+        case 2: intent = s3paper::PresentIntent::TextPage; break;
+        default:
+            intent = (step_index % 64 == 3)
+                         ? s3paper::PresentIntent::ImageQuality
+                         : s3paper::PresentIntent::TextRegion;
+            break;
+    }
+    return PresentPlanned(frame.value, intent, true);
 }
 
 void PrintFakeTrace() {
@@ -166,5 +260,7 @@ s3paper::BackendState FakeBackendState() {
 s3paper::BackendState M5BackendState() {
     return s_m5 ? s_m5->GetState() : s3paper::BackendState{};
 }
+
+s3paper::RefreshPlanner &Planner() { return *s_planner; }
 
 }  // namespace reader

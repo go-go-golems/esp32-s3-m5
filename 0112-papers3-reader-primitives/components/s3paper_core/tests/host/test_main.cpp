@@ -12,6 +12,7 @@
 #include "s3paper/frame_arena.h"
 #include "s3paper/frame_builder.h"
 #include "s3paper/geometry.h"
+#include "s3paper/refresh_planner.h"
 #include "s3paper/status.h"
 
 using namespace s3paper;
@@ -309,6 +310,134 @@ static void TestFakeBackendTrace() {
     CHECK(small.trace_truncated());
 }
 
+static RefreshPlan PresentOnce(RefreshPlanner &planner, PresentIntent intent,
+                               int64_t now_us) {
+    const RefreshPlan plan = planner.Plan(intent, now_us);
+    planner.RecordPresent(plan, now_us);
+    return plan;
+}
+
+static void TestPlannerDamageMerge() {
+    RefreshPlanner planner(kViewport);
+    // Damage aligns to x-multiples of 8.
+    CHECK(planner.AddDamage(Rect{13, 10, 5, 5}).ok());
+    CHECK(planner.pending_damage_count() == 1);
+    // Nearby rect (aligned gap 8 < merge_distance 16) merges instead of
+    // adding. A gap of exactly merge_distance does NOT merge (half-open).
+    CHECK(planner.AddDamage(Rect{36, 10, 5, 5}).ok());
+    CHECK(planner.pending_damage_count() == 1);
+    // Distant rect occupies a second slot.
+    CHECK(planner.AddDamage(Rect{300, 700, 10, 10}).ok());
+    CHECK(planner.pending_damage_count() == 2);
+    // Off-screen damage is a no-op, not an error.
+    CHECK(planner.AddDamage(Rect{600, 0, 10, 10}).ok());
+    CHECK(planner.pending_damage_count() == 2);
+    // A rect bridging both existing ones cascades into a single merge.
+    CHECK(planner.AddDamage(Rect{8, 8, 400, 800}).ok());
+    CHECK(planner.pending_damage_count() == 1);
+    planner.ClearDamage();
+    CHECK(planner.pending_damage_count() == 0);
+}
+
+static void TestPlannerCapacityFallback() {
+    RefreshPolicy policy;
+    policy.merge_distance = 0;  // prevent proximity merging
+    RefreshPlanner planner(kViewport, policy);
+    // Fill all 8 slots with far-apart 8px rects (merge_distance 0 still
+    // merges touching rects, so space them well apart).
+    for (uint32_t i = 0; i < RefreshPlanner::kMaxDamageRects; ++i) {
+        CHECK(planner.AddDamage(
+                     Rect{static_cast<int32_t>(i * 64),
+                          static_cast<int32_t>(i * 100), 8, 8})
+                  .ok());
+    }
+    CHECK(planner.pending_damage_count() == RefreshPlanner::kMaxDamageRects);
+    CHECK(planner.history().merge_fallbacks == 0);
+    // One more distinct rect forces the explicit collapse-to-bounding-box.
+    CHECK(planner.AddDamage(Rect{528, 900, 8, 8}).ok());
+    CHECK(planner.pending_damage_count() == 1);
+    CHECK(planner.history().merge_fallbacks == 1);
+}
+
+static void TestPlannerFullTriggers() {
+    RefreshPolicy policy;
+    policy.max_turns_between_full = 4;
+    policy.max_partial_area_between_full = 100000;
+    policy.max_elapsed_us_between_full = 1000000;  // 1 s
+    RefreshPlanner planner(kViewport, policy);
+    int64_t now = 0;
+
+    // First render is always a clean full with Quality waveform.
+    CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+    RefreshPlan plan = PresentOnce(planner, PresentIntent::TextRegion, now);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::FirstRender);
+    CHECK(plan.waveform == EpdWaveform::Quality);
+    CHECK(plan.region_count == 1);
+    CHECK(RectEquals(plan.regions[0], Rect{0, 0, 540, 960}));
+
+    // Ordinary partials follow intent waveforms.
+    CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+    plan = PresentOnce(planner, PresentIntent::InteractiveInk, now += 1000);
+    CHECK(!plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::PartialDamage);
+    CHECK(plan.waveform == EpdWaveform::Fastest);
+    CHECK(plan.aligned_area == 64);
+
+    // Turn budget: with max 4 turns, the 5th partial becomes a full.
+    for (int i = 0; i < 3; ++i) {
+        CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+        plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+        CHECK(!plan.full_refresh);
+    }
+    CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::BudgetTurns);
+    CHECK(planner.history().turns_since_full == 0);
+
+    // Area budget: one huge partial then a tiny one trips the area check.
+    CHECK(planner.AddDamage(Rect{0, 0, 540, 200}).ok());
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(!plan.full_refresh);
+    CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::BudgetPartialArea);
+
+    // Elapsed budget.
+    CHECK(planner.AddDamage(Rect{0, 0, 8, 8}).ok());
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now + 2000000);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::BudgetElapsed);
+    now += 2000000;
+
+    // One-shot triggers: wake, screen change, explicit request.
+    planner.NoteWake();
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::Wake);
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(!plan.full_refresh);  // trigger consumed
+
+    planner.NoteScreenChange();
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(plan.reason == RefreshReason::ScreenChange);
+
+    planner.RequestFull();
+    plan = PresentOnce(planner, PresentIntent::TextRegion, now += 1000);
+    CHECK(plan.reason == RefreshReason::ExplicitRequest);
+
+    // CleanFull intent is an explicit request too.
+    plan = PresentOnce(planner, PresentIntent::CleanFull, now += 1000);
+    CHECK(plan.full_refresh);
+    CHECK(plan.reason == RefreshReason::ExplicitRequest);
+
+    // History accounting adds up.
+    CHECK(planner.history().fulls_total == 8);
+    CHECK(planner.history().partials_total == 6);
+}
+
 int main() {
     TestGeometryBasics();
     TestIntersectUnion();
@@ -320,6 +449,9 @@ int main() {
     TestBuilderClipping();
     TestBuilderCapacityAndLifetime();
     TestFakeBackendTrace();
+    TestPlannerDamageMerge();
+    TestPlannerCapacityFallback();
+    TestPlannerFullTriggers();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

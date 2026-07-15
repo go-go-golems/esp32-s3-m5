@@ -1,0 +1,31 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> soak status
+soak status
+soak active=0 progress=10000/10000 errors=0 fulls=154 partials=9846
+soak heap start=350591 now=299991 min=299991 integrity checks=40 failures=0 elapsed_ms=148024
+soak waveform[Quality] count=308 avg_us=8911 max_us=55723
+soak waveform[Text] count=2462 avg_us=40014 max_us=57690
+soak waveform[Fast] count=4769 avg_us=4506 max_us=58643
+soak waveform[Fastest] count=2461 avg_us=2811 max_us=58591
+reader> 
+# >>> refresh
+refresh
+policy max_turns=64 max_area=8294400 max_elapsed_ms=900000 merge_distance=16 align_x=8
+history first_render_done=1 turns_since_full=54 area_since_full=184320 fulls=154 partials=9846 merge_fallbacks=0 pending_damage=0
+reader> 
+# >>> heap
+heap
+internal_free=299959 internal_min_free=299959 internal_largest=196608
+psram_free=7012052 psram_largest=6946816
+reader> 
+# >>> events
+events
+queue capacity=32 depth=0 high_water=2
+source[console] accepted=12 rejected_sends=0
+source[stress-console] accepted=0 rejected_sends=0
+source[stress-input] accepted=0 rejected_sends=0
+source[internal] accepted=10000 rejected_sends=0
+out_of_order_total=0 replies_sent=11 replies_dropped=0
+reader> 
+# done

@@ -1,0 +1,54 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (120) esp_image: segment 4: paddr=00082f0c vaddr=403794a8 sizeI (942) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+[5nI (943) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when 
+# >>> refresh
+refresh
+policy max_turns=64 max_area=8294400 max_elapsed_ms=900000 merge_distance=16 align_x=8
+history first_render_done=0 turns_since_full=0 area_since_full=0 fulls=0 partials=0 merge_fallbacks=0 pending_damage=0
+reader> 
+# >>> fixture m5
+fixture m5
+I (24802) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (24802) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (24803) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (24803) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (24804) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (24806) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (24807) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (24808) M5GFX: [Autodetect] board_M5PaperS3
+I (25058) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (25059) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (25077) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (25078) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (25140) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (25141) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (29928) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (29929) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (29934) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (29935) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (30273) m5_backend: init board=19 display=540x960
+I (30479) m5_backend: present id=1 intent=CleanFull ops=74 skipped=0 damage=0,0,540,960 render_us=204530 wait_us=12
+fixture backend=m5 id=1 ops_drawn=74 ops_skipped=0 damage=0,0,540,960 render_us=204530 wait_us=12 status=Ok
+plan full=1 waveform=Quality reason=FirstRender
+reader> 
+# >>> refresh
+refresh
+policy max_turns=64 max_area=8294400 max_elapsed_ms=900000 merge_distance=16 align_x=8
+history first_render_done=1 turns_since_full=0 area_since_full=0 fulls=1 partials=0 merge_fallbacks=0 pending_damage=0
+reader> 
+# >>> fixture m5
+fixture m5
+I (48937) m5_backend: present id=2 intent=CleanFull ops=74 skipped=0 damage=0,0,540,960 render_us=108793 wait_us=3
+fixture backend=m5 id=2 ops_drawn=74 ops_skipped=0 damage=0,0,540,960 render_us=108793 wait_us=3 status=Ok
+plan full=1 waveform=Quality reason=ExplicitRequest
+reader> 
+# >>> refresh
+refresh
+policy max_turns=64 max_area=8294400 max_elapsed_ms=900000 merge_distance=16 align_x=8
+history first_render_done=1 turns_since_full=0 area_since_full=0 fulls=2 partials=0 merge_fallbacks=0 pending_damage=0
+reader> 
+# done

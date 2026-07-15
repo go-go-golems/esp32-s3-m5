@@ -5,6 +5,7 @@ idf_component_register(
         "src/frame_arena.cpp"
         "src/frame_builder.cpp"
         "src/fake_backend.cpp"
+        "src/refresh_planner.cpp"
     INCLUDE_DIRS
         "include"
 )

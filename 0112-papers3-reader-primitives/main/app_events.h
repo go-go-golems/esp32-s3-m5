@@ -17,6 +17,7 @@
 #include "freertos/queue.h"
 
 #include "s3paper/display_backend.h"
+#include "s3paper/refresh_planner.h"
 #include "s3paper/status.h"
 
 namespace reader {
@@ -57,7 +58,10 @@ enum class ConsoleOp : uint8_t {
     Ping,
     StressReport,
     StressReset,
-    Fixture,  // arg: 0 = fake backend, 1 = M5 backend
+    Fixture,     // arg: 0 = fake backend, 1 = M5 backend
+    Refresh,     // planner policy/history inspection
+    SoakStart,   // arg: number of steps
+    SoakStatus,
 };
 
 enum class PointerPhase : uint8_t {
@@ -69,7 +73,7 @@ enum class PointerPhase : uint8_t {
 
 struct ConsolePayload {
     ConsoleOp op;
-    uint8_t arg;
+    uint32_t arg;
 };
 
 struct PointerPayload {
@@ -143,6 +147,52 @@ struct StressSnapshot {
     uint32_t last_input_seq;
 };
 
+struct PlannedPresentSnapshot {
+    s3paper::PresentResult present;
+    uint8_t full_refresh;
+    uint8_t waveform;  // s3paper::EpdWaveform
+    uint8_t reason;    // s3paper::RefreshReason
+};
+
+struct RefreshSnapshot {
+    // Policy.
+    uint32_t max_turns_between_full;
+    uint64_t max_partial_area_between_full;
+    int64_t max_elapsed_us_between_full;
+    int32_t merge_distance;
+    int32_t align_x;
+    // History.
+    uint8_t first_render_done;
+    uint32_t turns_since_full;
+    uint64_t partial_area_since_full;
+    uint32_t fulls_total;
+    uint32_t partials_total;
+    uint32_t merge_fallbacks;
+    uint32_t pending_damage;
+};
+
+struct SoakWaveformStats {
+    uint32_t count;
+    uint64_t total_us;  // render + wait
+    uint32_t max_us;
+};
+
+struct SoakSnapshot {
+    uint8_t active;
+    uint32_t target;
+    uint32_t completed;
+    uint32_t errors;
+    uint32_t fulls;
+    uint32_t partials;
+    uint32_t heap_free_start;
+    uint32_t heap_free_now;
+    uint32_t heap_free_min;
+    uint32_t integrity_checks;
+    uint32_t integrity_failures;
+    int64_t elapsed_us;
+    SoakWaveformStats by_waveform[4];  // s3paper::EpdWaveform order
+};
+
 struct DisplaySnapshot {
     uint8_t app_state;
     uint8_t fake_initialized;
@@ -162,7 +212,9 @@ struct AppReply {
         EventsSnapshot events;
         StressSnapshot stress;
         DisplaySnapshot display;
-        s3paper::PresentResult present;  // Fixture
+        PlannedPresentSnapshot present;  // Fixture
+        RefreshSnapshot refresh;
+        SoakSnapshot soak;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

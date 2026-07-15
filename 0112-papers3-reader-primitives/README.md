@@ -36,6 +36,24 @@ and implementation handoff (`reference/02-*.md`).
   primitive scene (border, corner markers, width ladder 1..16, 16-step gray
   ladder, checkerboard, clip demo, lines, glyph run) through either backend.
 
+## Phase 3 scope (refresh planner)
+
+- `s3paper_core/include/s3paper/refresh_planner.h` — the single owner of
+  refresh policy. Collects damage (aligned, distance-merged, explicit
+  capacity fallback), maps `PresentIntent` to backend-neutral `EpdWaveform`,
+  and forces clean fulls for first render, wake, screen change, explicit
+  request, and turn/area/elapsed budgets. Host-tested with synthetic
+  histories.
+- Owner presents go through `PresentPlanned()`; a planner-forced full
+  becomes a `CleanFull` present. Plan regions currently inform policy and
+  metrics only — ops carry their own clip rects until retained widgets
+  (Phase 9) do region-limited redraws.
+- Console: `refresh` (policy + history inspection), `soak start [n]` /
+  `soak status` — a mixed partial/full soak on the M5 backend driven by
+  self-posted owner events (console stays responsive), with per-waveform
+  timing, heap high-water, and `heap_caps_check_integrity_all` every 256
+  steps.
+
 Touch, SD, power, and JavaScript work still belong to later phases.
 
 ## Decision records

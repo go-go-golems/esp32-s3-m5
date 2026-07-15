@@ -1,0 +1,350 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (120) esp_image: segment 4: paddr=00082f0c vaddr=403794a8 sizeI (942) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+[5nI (943) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when 
+# >>> soak start 300
+soak start 300
+I (18369) owner: soak start target=300
+soak started: 300 steps (query with 'soak status')
+reader> I (18385) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (18385) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (18386) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (18386) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (18387) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (18389) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18390) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18391) M5GFX: [Autodetect] board_M5PaperS3
+I (18641) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18642) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18660) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18661) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18723) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (18724) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+
+# >>> soak status
+soak status
+I (23512) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23513) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23518) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23519) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (23857) m5_backend: init board=19 display=540x960
+I (23862) m5_backend: present id=1 intent=CleanFull ops=2 skipped=0 damage=0,0,64,48 render_us=3320 wait_us=8
+soak active=1 progress=1/300 errors=0 fulls=1 partials=0
+soak heap start=350595 now=299995 min=299995 integrity checks=0 failures=0 elapsed_ms=5493
+soak waveform[Quality] count=1 avg_us=3328 max_us=3328
+reader> I (23866) m5_backend: present id=2 intent=TextRegion ops=1 skipped=0 damage=97,211,64,48 render_us=1989 wait_us=3
+I (23870) m5_backend: present id=3 intent=TextPage ops=1 skipped=0 damage=194,422,64,48 render_us=2829 wait_us=14
+I (23874) m5_backend: present id=4 intent=ImageQuality ops=1 skipped=0 damage=291,633,64,48 render_us=2561 wait_us=7
+I (23878) m5_backend: present id=5 intent=InteractiveInk ops=1 skipped=0 damage=388,844,64,48 render_us=2617 wait_us=3
+I (23882) m5_backend: present id=6 intent=TextRegion ops=1 skipped=0 damage=45,195,64,48 render_us=2653 wait_us=7
+I (23886) m5_backend: present id=7 intent=TextPage ops=1 skipped=0 damage=142,406,64,48 render_us=2607 wait_us=7
+I (23909) m5_backend: present id=8 intent=TextRegion ops=1 skipped=0 damage=239,617,64,48 render_us=2658 wait_us=18994
+I (23913) m5_backend: present id=9 intent=InteractiveInk ops=2 skipped=0 damage=336,828,64,48 render_us=2788 wait_us=18
+I (23917) m5_backend: present id=10 intent=TextRegion ops=1 skipped=0 damage=433,179,64,48 render_us=2258 wait_us=5
+I (23976) m5_backend: present id=11 intent=TextPage ops=1 skipped=0 damage=90,390,64,48 render_us=2498 wait_us=54986
+I (23979) m5_backend: present id=12 intent=TextRegion ops=1 skipped=0 damage=187,601,64,48 render_us=1861 wait_us=20
+I (23983) m5_backend: present id=13 intent=InteractiveInk ops=1 skipped=0 damage=284,812,64,48 render_us=2606 wait_us=5
+I (24042) m5_backend: present id=14 intent=TextRegion ops=1 skipped=0 damage=381,163,64,48 render_us=2516 wait_us=54994
+I (24045) m5_backend: present id=15 intent=TextPage ops=1 skipped=0 damage=38,374,64,48 render_us=1894 wait_us=4
+I (24049) m5_backend: present id=16 intent=TextRegion ops=1 skipped=0 damage=135,585,64,48 render_us=2580 wait_us=16
+I (24109) m5_backend: present id=17 intent=InteractiveInk ops=2 skipped=0 damage=232,796,64,48 render_us=3504 wait_us=54996
+I (24113) m5_backend: present id=18 intent=TextRegion ops=1 skipped=0 damage=329,147,64,48 render_us=2580 wait_us=10
+I (24117) m5_backend: present id=19 intent=TextPage ops=1 skipped=0 damage=426,358,64,48 render_us=2481 wait_us=10
+I (24176) m5_backend: present id=20 intent=TextRegion ops=1 skipped=0 damage=83,569,64,48 render_us=2555 wait_us=54993
+I (24179) m5_backend: present id=21 intent=InteractiveInk ops=1 skipped=0 damage=180,780,64,48 render_us=1814 wait_us=12
+I (24183) m5_backend: present id=22 intent=TextRegion ops=1 skipped=0 damage=277,131,64,48 render_us=2557 wait_us=6
+I (24242) m5_backend: present id=23 intent=TextPage ops=1 skipped=0 damage=374,342,64,48 render_us=2583 wait_us=54994
+I (24245) m5_backend: present id=24 intent=TextRegion ops=1 skipped=0 damage=31,553,64,48 render_us=1831 wait_us=18
+I (24250) m5_backend: present id=25 intent=InteractiveInk ops=2 skipped=0 damage=128,764,64,48 render_us=3456 wait_us=16
+I (24309) m5_backend: present id=26 intent=TextRegion ops=1 skipped=0 damage=225,115,64,48 render_us=2212 wait_us=54989
+I (24312) m5_backend: present id=27 intent=TextPage ops=1 skipped=0 damage=322,326,64,48 render_us=1775 wait_us=11
+I (24316) m5_backend: present id=28 intent=TextRegion ops=1 skipped=0 damage=419,537,64,48 render_us=2674 wait_us=6
+I (24375) m5_backend: present id=29 intent=InteractiveInk ops=1 skipped=0 damage=76,748,64,48 render_us=2581 wait_us=54990
+I (24378) m5_backend: present id=30 intent=TextRegion ops=1 skipped=0 damage=173,99,64,48 render_us=1821 wait_us=13
+I (24382) m5_backend: present id=31 intent=TextPage ops=1 skipped=0 damage=270,310,64,48 render_us=2655 wait_us=17
+I (24441) m5_backend: present id=32 intent=TextRegion ops=1 skipped=0 damage=367,521,64,48 render_us=2540 wait_us=54995
+I (24445) m5_backend: present id=33 intent=InteractiveInk ops=2 skipped=0 damage=24,732,64,48 render_us=2774 wait_us=17
+I (24449) m5_backend: present id=34 intent=TextRegion ops=1 skipped=0 damage=121,83,64,48 render_us=2342 wait_us=10
+I (24508) m5_backend: present id=35 intent=TextPage ops=1 skipped=0 damage=218,294,64,48 render_us=2534 wait_us=54984
+I (24511) m5_backend: present id=36 intent=TextRegion ops=1 skipped=0 damage=315,505,64,48 render_us=1844 wait_us=13
+I (24515) m5_backend: present id=37 intent=InteractiveInk ops=1 skipped=0 damage=412,716,64,48 render_us=2615 wait_us=5
+I (24574) m5_backend: present id=38 intent=TextRegion ops=1 skipped=0 damage=69,67,64,48 render_us=2517 wait_us=54985
+I (24577) m5_backend: present id=39 intent=TextPage ops=1 skipped=0 damage=166,278,64,48 render_us=1838 wait_us=11
+I (24581) m5_backend: present id=40 intent=TextRegion ops=1 skipped=0 damage=263,489,64,48 render_us=2527 wait_us=30
+I (24641) m5_backend: present id=41 intent=InteractiveInk ops=2 skipped=0 damage=360,700,64,48 render_us=3461 wait_us=54990
+I (24645) m5_backend: present id=42 intent=TextRegion ops=1 skipped=0 damage=17,51,64,48 render_us=2594 wait_us=16
+I (24706) m5_backend: present id=43 intent=TextPage ops=1 skipped=0 damage=114,262,64,48 render_us=2501 wait_us=56989
+I (24709) m5_backend: present id=44 intent=TextRegion ops=1 skipped=0 damage=211,473,64,48 render_us=1825 wait_us=11
+I (24713) m5_backend: present id=45 intent=InteractiveInk ops=1 skipped=0 damage=308,684,64,48 render_us=2590 wait_us=5
+I (24772) m5_backend: present id=46 intent=TextRegion ops=1 skipped=0 damage=405,35,64,48 render_us=2524 wait_us=54989
+I (24775) m5_backend: present id=47 intent=TextPage ops=1 skipped=0 damage=62,246,64,48 render_us=1859 wait_us=20
+I (24779) m5_backend: present id=48 intent=TextRegion ops=1 skipped=0 damage=159,457,64,48 render_us=2597 wait_us=5
+I (24838) m5_backend: present id=49 intent=InteractiveInk ops=2 skipped=0 damage=256,668,64,48 render_us=3491 wait_us=53975
+I (24842) m5_backend: present id=50 intent=TextRegion ops=1 skipped=0 damage=353,19,64,48 render_us=2599 wait_us=13
+I (24846) m5_backend: present id=51 intent=TextPage ops=1 skipped=0 damage=10,230,64,48 render_us=2484 wait_us=5
+I (24904) m5_backend: present id=52 intent=TextRegion ops=1 skipped=0 damage=107,441,64,48 render_us=2592 wait_us=53992
+I (24907) m5_backend: present id=53 intent=InteractiveInk ops=1 skipped=0 damage=204,652,64,48 render_us=1812 wait_us=14
+I (24911) m5_backend: present id=54 intent=TextRegion ops=1 skipped=0 damage=301,3,64,48 render_us=2586 wait_us=5
+I (24970) m5_backend: present id=55 intent=TextPage ops=1 skipped=0 damage=398,214,64,48 render_us=2602 wait_us=54990
+I (24973) m5_backend: present id=56 intent=TextRegion ops=1 skipped=0 damage=55,425,64,48 render_us=1823 wait_us=14
+I (24978) m5_backend: present id=57 intent=InteractiveInk ops=2 skipped=0 damage=152,636,64,48 render_us=3529 wait_us=20
+I (25036) m5_backend: present id=58 intent=TextRegion ops=1 skipped=0 damage=249,847,64,48 render_us=2221 wait_us=53989
+I (25039) m5_backend: present id=59 intent=TextPage ops=1 skipped=0 damage=346,198,64,48 render_us=1758 wait_us=24
+I (25043) m5_backend: present id=60 intent=TextRegion ops=1 skipped=0 damage=3,409,64,48 render_us=2655 wait_us=21
+I (25102) m5_backend: present id=61 intent=InteractiveInk ops=1 skipped=0 damage=100,620,64,48 render_us=2578 wait_us=54983
+I (25105) m5_backend: present id=62 intent=TextRegion ops=1 skipped=0 damage=197,831,64,48 render_us=1813 wait_us=11
+I (25109) m5_backend: present id=63 intent=TextPage ops=1 skipped=0 damage=294,182,64,48 render_us=2602 wait_us=5
+I (25168) m5_backend: present id=64 intent=TextRegion ops=1 skipped=0 damage=391,393,64,48 render_us=2559 wait_us=54990
+I (25172) m5_backend: present id=65 intent=InteractiveInk ops=2 skipped=0 damage=48,604,64,48 render_us=2758 wait_us=22
+I (25176) m5_backend: present id=66 intent=CleanFull ops=1 skipped=0 damage=145,815,64,48 render_us=2290 wait_us=5
+I (25234) m5_backend: present id=67 intent=TextPage ops=1 skipped=0 damage=242,166,64,48 render_us=2519 wait_us=53990
+I (25237) m5_backend: present id=68 intent=ImageQuality ops=1 skipped=0 damage=339,377,64,48 render_us=1828 wait_us=25
+I (25241) m5_backend: present id=69 intent=InteractiveInk ops=1 skipped=0 damage=436,588,64,48 render_us=2642 wait_us=9
+I (25300) m5_backend: present id=70 intent=TextRegion ops=1 skipped=0 damage=93,799,64,48 render_us=1561 wait_us=55984
+I (25303) m5_backend: present id=71 intent=TextPage ops=1 skipped=0 damage=190,150,64,48 render_us=1854 wait_us=8
+I (25307) m5_backend: present id=72 intent=TextRegion ops=1 skipped=0 damage=287,361,64,48 render_us=2605 wait_us=34
+I (25366) m5_backend: present id=73 intent=InteractiveInk ops=2 skipped=0 damage=384,572,64,48 render_us=3491 wait_us=53991
+I (25370) m5_backend: present id=74 intent=TextRegion ops=1 skipped=0 damage=41,783,64,48 render_us=2570 wait_us=10
+I (25430) m5_backend: present id=75 intent=TextPage ops=1 skipped=0 damage=138,134,64,48 render_us=2487 wait_us=55990
+I (25433) m5_backend: present id=76 intent=TextRegion ops=1 skipped=0 damage=235,345,64,48 render_us=1814 wait_us=8
+I (25437) m5_backend: present id=77 intent=InteractiveInk ops=1 skipped=0 damage=332,556,64,48 render_us=2611 wait_us=9
+I (25496) m5_backend: present id=78 intent=TextRegion ops=1 skipped=0 damage=429,767,64,48 render_us=2570 wait_us=54988
+I (25499) m5_backend: present id=79 intent=TextPage ops=1 skipped=0 damage=86,118,64,48 render_us=1836 wait_us=9
+I (25503) m5_backend: present id=80 intent=TextRegion ops=1 skipped=0 damage=183,329,64,48 render_us=2613 wait_us=5
+I (25562) m5_backend: present id=81 intent=InteractiveInk ops=2 skipped=0 damage=280,540,64,48 render_us=3495 wait_us=53971
+I (25565) m5_backend: present id=82 intent=TextRegion ops=1 skipped=0 damage=377,751,64,48 render_us=1597 wait_us=18
+I (25569) m5_backend: present id=83 intent=TextPage ops=1 skipped=0 damage=34,102,64,48 render_us=2494 wait_us=4
+I (25628) m5_backend: present id=84 intent=TextRegion ops=1 skipped=0 damage=131,313,64,48 render_us=2586 wait_us=54992
+I (25631) m5_backend: present id=85 intent=InteractiveInk ops=1 skipped=0 damage=228,524,64,48 render_us=1809 wait_us=28
+I (25635) m5_backend: present id=86 intent=TextRegion ops=1 skipped=0 damage=325,735,64,48 render_us=2588 wait_us=5
+I (25693) m5_backend: present id=87 intent=TextPage ops=1 skipped=0 damage=422,86,64,48 render_us=2609 wait_us=53989
+I (25696) m5_backend: present id=88 intent=TextRegion ops=1 skipped=0 damage=79,297,64,48 render_us=1836 wait_us=11
+I (25701) m5_backend: present id=89 intent=InteractiveInk ops=2 skipped=0 damage=176,508,64,48 render_us=3505 wait_us=15
+I (25759) m5_backend: present id=90 intent=TextRegion ops=1 skipped=0 damage=273,719,64,48 render_us=2258 wait_us=53979
+I (25762) m5_backend: present id=91 intent=TextPage ops=1 skipped=0 damage=370,70,64,48 render_us=1763 wait_us=8
+I (25766) m5_backend: present id=92 intent=TextRegion ops=1 skipped=0 damage=27,281,64,48 render_us=2672 wait_us=10
+I (25824) m5_backend: present id=93 intent=InteractiveInk ops=1 skipped=0 damage=124,492,64,48 render_us=2601 wait_us=53989
+I (25827) m5_backend: present id=94 intent=TextRegion ops=1 skipped=0 damage=221,703,64,48 render_us=1849 wait_us=18
+I (25831) m5_backend: present id=95 intent=TextPage ops=1 skipped=0 damage=318,54,64,48 render_us=2692 wait_us=5
+I (25889) m5_backend: present id=96 intent=TextRegion ops=1 skipped=0 damage=415,265,64,48 render_us=1570 wait_us=54996
+I (25893) m5_backend: present id=97 intent=InteractiveInk ops=2 skipped=0 damage=72,476,64,48 render_us=2793 wait_us=18
+I (25897) m5_backend: present id=98 intent=TextRegion ops=1 skipped=0 damage=169,687,64,48 render_us=2344 wait_us=9
+I (25956) m5_backend: present id=99 intent=TextPage ops=1 skipped=0 damage=266,38,64,48 render_us=2492 wait_us=54983
+I (25959) m5_backend: present id=100 intent=TextRegion ops=1 skipped=0 damage=363,249,64,48 render_us=1876 wait_us=9
+I (25962) m5_backend: present id=101 intent=InteractiveInk ops=1 skipped=0 damage=20,460,64,48 render_us=1678 wait_us=5
+I (26009) m5_backend: present id=102 intent=TextRegion ops=1 skipped=0 damage=117,671,64,48 render_us=2553 wait_us=42992
+I (26012) m5_backend: present id=103 intent=TextPage ops=1 skipped=0 damage=214,22,64,48 render_us=1943 wait_us=12
+I (26016) m5_backend: present id=104 intent=TextRegion ops=1 skipped=0 damage=311,233,64,48 render_us=2644 wait_us=8
+I (26063) m5_backend: present id=105 intent=InteractiveInk ops=2 skipped=0 damage=408,444,64,48 render_us=2561 wait_us=42988
+I (26066) m5_backend: present id=106 intent=TextRegion ops=1 skipped=0 damage=65,655,64,48 render_us=1733 wait_us=12
+I (26070) m5_backend: present id=107 intent=TextPage ops=1 skipped=0 damage=162,6,64,48 render_us=2575 wait_us=8
+I (26117) m5_backend: present id=108 intent=TextRegion ops=1 skipped=0 damage=259,217,64,48 render_us=2602 wait_us=42992
+I (26120) m5_backend: present id=109 intent=InteractiveInk ops=1 skipped=0 damage=356,428,64,48 render_us=1927 wait_us=11
+I (26124) m5_backend: present id=110 intent=TextRegion ops=1 skipped=0 damage=13,639,64,48 render_us=2640 wait_us=10
+I (26171) m5_backend: present id=111 intent=TextPage ops=1 skipped=0 damage=110,850,64,48 render_us=2616 wait_us=42984
+I (26174) m5_backend: present id=112 intent=TextRegion ops=1 skipped=0 damage=207,201,64,48 render_us=1931 wait_us=13
+I (26179) m5_backend: present id=113 intent=InteractiveInk ops=2 skipped=0 damage=304,412,64,48 render_us=3532 wait_us=27
+I (26183) m5_backend: present id=114 intent=TextRegion ops=1 skipped=0 damage=401,623,64,48 render_us=2339 wait_us=8
+I (26227) m5_backend: present id=115 intent=TextPage ops=1 skipped=0 damage=58,834,64,48 render_us=1579 wait_us=40975
+I (26230) m5_backend: present id=116 intent=TextRegion ops=1 skipped=0 damage=155,185,64,48 render_us=1920 wait_us=14
+I (26233) m5_backend: present id=117 intent=InteractiveInk ops=1 skipped=0 damage=252,396,64,48 render_us=1660 wait_us=5
+I (26281) m5_backend: present id=118 intent=TextRegion ops=1 skipped=0 damage=349,607,64,48 render_us=2624 wait_us=43993
+I (26284) m5_backend: present id=119 intent=TextPage ops=1 skipped=0 damage=6,818,64,48 render_us=1927 wait_us=11
+I (26288) m5_backend: present id=120 intent=TextRegion ops=1 skipped=0 damage=103,169,64,48 render_us=2689 wait_us=17
+I (26335) m5_backend: present id=121 intent=InteractiveInk ops=2 skipped=0 damage=200,380,64,48 render_us=2533 wait_us=42986
+I (26338) m5_backend: present id=122 intent=TextRegion ops=1 skipped=0 damage=297,591,64,48 render_us=1720 wait_us=9
+I (26342) m5_backend: present id=123 intent=TextPage ops=1 skipped=0 damage=394,802,64,48 render_us=2589 wait_us=8
+I (26389) m5_backend: pr
+# >>> soak status
+esent id=124 intent=TextRegion ops=1 skipped=0 damage=51,153,64,48 render_us=2600 wait_us=42981
+soakI (26392) m5_backend: present id=125 intent=InteractiveInk ops=1 skipped=0 damage=148,364,64,48 render_us=1930 wait_us=12
+ statusI (26396) m5_backend: present id=126 intent=TextRegion ops=1 skipped=0 damage=245,575,64,48 render_us=2517 wait_us=12
+
+I (26444) m5_backend: present id=127 intent=TextPage ops=1 skipped=0 damage=342,786,64,48 render_us=2410 wait_us=43971
+soak active=1 progress=127/300 errors=0 fulls=2 partials=125
+soak heap start=350595 now=299995 min=299995 integrity checks=0 failures=0 elapsed_ms=8075
+I (26447) m5_backend: present id=128 intent=TextRegion ops=1 skipped=0 damage=439,137,64,48 render_us=1763 wait_us=11
+soak waveform[Quality] count=4 avg_us=2511 max_us=3328
+soak waveform[Text] count=32 avg_us=21809 max_us=59490
+soak waveform[Fast] count=60 avg_us=18310 max_us=57578
+I (26451) m5_backend: present id=129 intent=InteractiveInk ops=2 skipped=0 damage=96,348,64,48 render_us=2273 wait_us=19
+soak waveform[Fastest] count=31 avg_us=19544 max_us=58500
+reader> I (26500) m5_backend: present id=130 intent=TextRegion ops=1 skipped=0 damage=193,559,64,48 render_us=2327 wait_us=44977
+I (26503) m5_backend: present id=131 intent=CleanFull ops=1 skipped=0 damage=290,770,64,48 render_us=1816 wait_us=8
+I (26507) m5_backend: present id=132 intent=ImageQuality ops=1 skipped=0 damage=387,121,64,48 render_us=2692 wait_us=10
+I (26554) m5_backend: present id=133 intent=InteractiveInk ops=1 skipped=0 damage=44,332,64,48 render_us=1634 wait_us=43984
+I (26557) m5_backend: present id=134 intent=TextRegion ops=1 skipped=0 damage=141,543,64,48 render_us=1949 wait_us=12
+I (26560) m5_backend: present id=135 intent=TextPage ops=1 skipped=0 damage=238,754,64,48 render_us=1697 wait_us=4
+I (26608) m5_backend: present id=136 intent=TextRegion ops=1 skipped=0 damage=335,105,64,48 render_us=1149 wait_us=45493
+I (26612) m5_backend: present id=137 intent=InteractiveInk ops=2 skipped=0 damage=432,316,64,48 render_us=2881 wait_us=16
+I (26616) m5_backend: present id=138 intent=TextRegion ops=1 skipped=0 damage=89,527,64,48 render_us=2315 wait_us=8
+I (26662) m5_backend: present id=139 intent=TextPage ops=1 skipped=0 damage=186,738,64,48 render_us=2598 wait_us=41991
+I (26665) m5_backend: present id=140 intent=TextRegion ops=1 skipped=0 damage=283,89,64,48 render_us=1916 wait_us=9
+I (26668) m5_backend: present id=141 intent=InteractiveInk ops=1 skipped=0 damage=380,300,64,48 render_us=1663 wait_us=10
+I (26716) m5_backend: present id=142 intent=TextRegion ops=1 skipped=0 damage=37,511,64,48 render_us=2627 wait_us=43988
+I (26719) m5_backend: present id=143 intent=TextPage ops=1 skipped=0 damage=134,722,64,48 render_us=1933 wait_us=7
+I (26722) m5_backend: present id=144 intent=TextRegion ops=1 skipped=0 damage=231,73,64,48 render_us=1660 wait_us=10
+I (26770) m5_backend: present id=145 intent=InteractiveInk ops=2 skipped=0 damage=328,284,64,48 render_us=2568 wait_us=43965
+I (26773) m5_backend: present id=146 intent=TextRegion ops=1 skipped=0 damage=425,495,64,48 render_us=1729 wait_us=8
+I (26777) m5_backend: present id=147 intent=TextPage ops=1 skipped=0 damage=82,706,64,48 render_us=2573 wait_us=10
+I (26823) m5_backend: present id=148 intent=TextRegion ops=1 skipped=0 damage=179,57,64,48 render_us=2618 wait_us=41982
+I (26826) m5_backend: present id=149 intent=InteractiveInk ops=1 skipped=0 damage=276,268,64,48 render_us=1948 wait_us=9
+I (26830) m5_backend: present id=150 intent=TextRegion ops=1 skipped=0 damage=373,479,64,48 render_us=2615 wait_us=25
+I (26877) m5_backend: present id=151 intent=TextPage ops=1 skipped=0 damage=30,690,64,48 render_us=2619 wait_us=42992
+I (26880) m5_backend: present id=152 intent=TextRegion ops=1 skipped=0 damage=127,41,64,48 render_us=1946 wait_us=9
+I (26884) m5_backend: present id=153 intent=InteractiveInk ops=2 skipped=0 damage=224,252,64,48 render_us=2550 wait_us=17
+I (26888) m5_backend: present id=154 intent=TextRegion ops=1 skipped=0 damage=321,463,64,48 render_us=2317 wait_us=11
+I (26933) m5_backend: present id=155 intent=TextPage ops=1 skipped=0 damage=418,674,64,48 render_us=1624 wait_us=41983
+I (26936) m5_backend: present id=156 intent=TextRegion ops=1 skipped=0 damage=75,25,64,48 render_us=1939 wait_us=10
+I (26940) m5_backend: present id=157 intent=InteractiveInk ops=1 skipped=0 damage=172,236,64,48 render_us=2640 wait_us=8
+I (26944) m5_backend: present id=158 intent=TextRegion ops=1 skipped=0 damage=269,447,64,48 render_us=2624 wait_us=8
+I (26988) m5_backend: present id=159 intent=TextPage ops=1 skipped=0 damage=366,658,64,48 render_us=2644 wait_us=39979
+I (26991) m5_backend: present id=160 intent=TextRegion ops=1 skipped=0 damage=23,9,64,48 render_us=1951 wait_us=6
+I (26996) m5_backend: present id=161 intent=InteractiveInk ops=2 skipped=0 damage=120,220,64,48 render_us=3547 wait_us=24
+I (27000) m5_backend: present id=162 intent=TextRegion ops=1 skipped=0 damage=217,431,64,48 render_us=2323 wait_us=5
+I (27044) m5_backend: present id=163 intent=TextPage ops=1 skipped=0 damage=314,642,64,48 render_us=1664 wait_us=40976
+I (27047) m5_backend: present id=164 intent=TextRegion ops=1 skipped=0 damage=411,853,64,48 render_us=1928 wait_us=12
+I (27050) m5_backend: present id=165 intent=InteractiveInk ops=1 skipped=0 damage=68,204,64,48 render_us=1654 wait_us=10
+I (27098) m5_backend: present id=166 intent=TextRegion ops=1 skipped=0 damage=165,415,64,48 render_us=2586 wait_us=43986
+I (27101) m5_backend: present id=167 intent=TextPage ops=1 skipped=0 damage=262,626,64,48 render_us=1932 wait_us=13
+I (27104) m5_backend: present id=168 intent=TextRegion ops=1 skipped=0 damage=359,837,64,48 render_us=1632 wait_us=5
+I (27152) m5_backend: present id=169 intent=InteractiveInk ops=2 skipped=0 damage=16,188,64,48 render_us=2552 wait_us=43970
+I (27155) m5_backend: present id=170 intent=TextRegion ops=1 skipped=0 damage=113,399,64,48 render_us=1728 wait_us=15
+I (27159) m5_backend: present id=171 intent=TextPage ops=1 skipped=0 damage=210,610,64,48 render_us=2573 wait_us=27
+I (27206) m5_backend: present id=172 intent=TextRegion ops=1 skipped=0 damage=307,821,64,48 render_us=2610 wait_us=42988
+I (27209) m5_backend: present id=173 intent=InteractiveInk ops=1 skipped=0 damage=404,172,64,48 render_us=1932 wait_us=15
+I (27213) m5_backend: present id=174 intent=TextRegion ops=1 skipped=0 damage=61,383,64,48 render_us=2604 wait_us=7
+I (27260) m5_backend: present id=175 intent=TextPage ops=1 skipped=0 damage=158,594,64,48 render_us=2630 wait_us=42984
+I (27263) m5_backend: present id=176 intent=TextRegion ops=1 skipped=0 damage=255,805,64,48 render_us=1919 wait_us=12
+I (27267) m5_backend: present id=177 intent=InteractiveInk ops=2 skipped=0 damage=352,156,64,48 render_us=2013 wait_us=14
+I (27270) m5_backend: present id=178 intent=TextRegion ops=1 skipped=0 damage=9,367,64,48 render_us=1860 wait_us=5
+I (27316) m5_backend: present id=179 intent=TextPage ops=1 skipped=0 damage=106,578,64,48 render_us=1588 wait_us=42979
+I (27319) m5_backend: present id=180 intent=TextRegion ops=1 skipped=0 damage=203,789,64,48 render_us=1908 wait_us=9
+I (27322) m5_backend: present id=181 intent=InteractiveInk ops=1 skipped=0 damage=300,140,64,48 render_us=1654 wait_us=5
+I (27370) m5_backend: present id=182 intent=TextRegion ops=1 skipped=0 damage=397,351,64,48 render_us=2608 wait_us=43986
+I (27373) m5_backend: present id=183 intent=TextPage ops=1 skipped=0 damage=54,562,64,48 render_us=1938 wait_us=14
+I (27376) m5_backend: present id=184 intent=TextRegion ops=1 skipped=0 damage=151,773,64,48 render_us=1676 wait_us=5
+I (27425) m5_backend: present id=185 intent=InteractiveInk ops=2 skipped=0 damage=248,124,64,48 render_us=3523 wait_us=43980
+I (27428) m5_backend: present id=186 intent=TextRegion ops=1 skipped=0 damage=345,335,64,48 render_us=1731 wait_us=8
+I (27432) m5_backend: present id=187 intent=TextPage ops=1 skipped=0 damage=2,546,64,48 render_us=2578 wait_us=8
+I (27479) m5_backend: present id=188 intent=TextRegion ops=1 skipped=0 damage=99,757,64,48 render_us=2647 wait_us=42972
+I (27482) m5_backend: present id=189 intent=InteractiveInk ops=1 skipped=0 damage=196,108,64,48 render_us=1927 wait_us=9
+I (27486) m5_backend: present id=190 intent=TextRegion ops=1 skipped=0 damage=293,319,64,48 render_us=2634 wait_us=8
+I (27533) m5_backend: present id=191 intent=TextPage ops=1 skipped=0 damage=390,530,64,48 render_us=2597 wait_us=42990
+I (27536) m5_backend: present id=192 intent=TextRegion ops=1 skipped=0 damage=47,741,64,48 render_us=1950 wait_us=9
+I (27541) m5_backend: present id=193 intent=InteractiveInk ops=2 skipped=0 damage=144,92,64,48 render_us=3515 wait_us=18
+I (27545) m5_backend: present id=194 intent=TextRegion ops=1 skipped=0 damage=241,303,64,48 render_us=2302 wait_us=5
+I (27589) m5_backend: present id=195 intent=TextPage ops=1 skipped=0 damage=338,514,64,48 render_us=1650 wait_us=40986
+I (27592) m5_backend: present id=196 intent=CleanFull ops=1 skipped=0 damage=435,725,64,48 render_us=1930 wait_us=11
+I (27595) m5_backend: present id=197 intent=InteractiveInk ops=1 skipped=0 damage=92,76,64,48 render_us=1690 wait_us=6
+I (27643) m5_backend: present id=198 intent=TextRegion ops=1 skipped=0 damage=189,287,64,48 render_us=2597 wait_us=43978
+I (27646) m5_backend: present id=199 intent=TextPage ops=1 skipped=0 damage=286,498,64,48 render_us=1923 wait_us=9
+I (27649) m5_backend: present id=200 intent=TextRegion ops=1 skipped=0 damage=383,709,64,48 render_us=1717 wait_us=5
+I (27697) m5_backend: present id=201 intent=InteractiveInk ops=2 skipped=0 damage=40,60,64,48 render_us=3537 wait_us=42974
+I (27700) m5_backend: present id=202 intent=TextRegion ops=1 skipped=0 damage=137,271,64,48 render_us=1739 wait_us=25
+I (27704) m5_backend: present id=203 intent=TextPage ops=1 skipped=0 damage=234,482,64,48 render_us=2567 wait_us=16
+I (27751) m5_backend: present id=204 intent=TextRegion ops=1 skipped=0 damage=331,693,64,48 render_us=2576 wait_us=42971
+I (27754) m5_backend: present id=205 intent=InteractiveInk ops=1 skipped=0 damage=428,44,64,48 render_us=1927 wait_us=12
+I (27758) m5_backend: present id=206 intent=TextRegion ops=1 skipped=0 damage=85,255,64,48 render_us=2635 wait_us=8
+I (27805) m5_backend: present id=207 intent=TextPage ops=1 skipped=0 damage=182,466,64,48 render_us=2629 wait_us=42990
+I (27808) m5_backend: present id=208 intent=TextRegion ops=1 skipped=0 damage=279,677,64,48 render_us=1935 wait_us=15
+I (27812) m5_backend: present id=209 intent=InteractiveInk ops=2 skipped=0 damage=376,28,64,48 render_us=2567 wait_us=16
+I (27816) m5_backend: present id=210 intent=TextRegion ops=1 skipped=0 damage=33,239,64,48 render_us=2293 wait_us=5
+I (27861) m5_backend: present id=211 intent=TextPage ops=1 skipped=0 damage=130,450,64,48 render_us=1564 wait_us=41993
+I (27864) m5_backend: present id=212 intent=TextRegion ops=1 skipped=0 damage=227,661,64,48 render_us=1922 wait_us=12
+I (27867) m5_backend: present id=213 intent=InteractiveInk ops=1 skipped=0 damage=324,12,64,48 render_us=1711 wait_us=4
+I (27915) m5_backend: present id=214 intent=TextRegion ops=1 skipped=0 damage=421,223,64,48 render_us=2615 wait_us=43977
+I (27918) m5_backend: present id=215 intent=TextPage ops=1 skipped=0 damage=78,434,64,48 render_us=1914 wait_us=15
+I (27921) m5_backend: present id=216 intent=TextRegion ops=1 skipped=0 damage=175,645,64,48 render_us=1648 wait_us=6
+I (27970) m5_backend: present id=217 intent=InteractiveInk ops=2 skipped=0 damage=272,856,64,48 render_us=2554 wait_us=44976
+I (27973) m5_backend: present id=218 intent=TextRegion ops=1 skipped=0 damage=369,207,64,48 render_us=1695 wait_us=12
+I (27977) m5_backend: present id=219 intent=TextPage ops=1 skipped=0 damage=26,418,64,48 render_us=2586 wait_us=8
+I (28024) m5_backend: present id=220 intent=TextRegion ops=1 skipped=0 damage=123,629,64,48 render_us=2647 wait_us=42977
+I (28027) m5_backend: present id=221 intent=InteractiveInk ops=1 skipped=0 damage=220,840,64,48 render_us=1940 wait_us=12
+I (28031) m5_backend: present id=222 intent=TextRegion ops=1 skipped=0 damage=317,191,64,48 render_us=2576 wait_us=8
+I (28078) m5_backend: present id=223 intent=TextPage ops=1 skipped=0 damage=414,402,64,48 render_us=2648 wait_us=42966
+I (28081) m5_backend: present id=224 intent=TextRegion ops=1 skipped=0 damage=71,613,64,48 render_us=1947 wait_us=13
+I (28086) m5_backend: present id=225 intent=InteractiveInk ops=2 skipped=0 damage=168,824,64,48 render_us=3580 wait_us=26
+I (28090) m5_backend: present id=226 intent=TextRegion ops=1 skipped=0 damage=265,175,64,48 render_us=2297 wait_us=5
+I (28134) m5_backend: present id=227 intent=TextPage ops=1 skipped=0 damage=362,386,64,48 render_us=1633 wait_us=40992
+I (28137) m5_backend: present id=228 intent=TextRegion ops=1 skipped=0 damage=19,597,64,48 render_us=1935 wait_us=12
+I (28141) m5_backend: present id=229 intent=InteractiveInk ops=1 skipped=0 damage=116,808,64,48 render_us=2608 wait_us=8
+I (28145) m5_backend: present id=230 intent=TextRegion ops=1 skipped=0 damage=213,159,64,48 render_us=2586 wait_us=9
+I (28190) m5_backend: present id=231 intent=TextPage ops=1 skipped=0 damage=310,370,64,48 render_us=2627 wait_us=40989
+I (28193) m5_backend: present id=232 intent=TextRegion ops=1 skipped=0 damage=407,581,64,48 render_us=1930 wait_us=6
+I (28197) m5_backend: present id=233 intent=InteractiveInk ops=2 skipped=0 damage=64,792,64,48 render_us=2537 wait_us=16
+I (28245) m5_backend: present id=234 intent=TextRegion ops=1 skipped=0 damage=161,143,64,48 render_us=2312 wait_us=43983
+I (28248) m5_backend: present id=235 intent=TextPage ops=1 skipped=0 damage=258,354,64,48 render_us=1903 wait_us=11
+I (28252) m5_backend: present id=236 intent=TextRegion ops=1 skipped=0 damage=355,565,64,48 render_us=2651 wait_us=8
+I (28299) m5_backend: present id=237 intent=InteractiveInk ops=1 skipped=0 damage=12,776,64,48 render_us=1604 wait_us=43989
+I (28302) m5_backend: present id=238 intent=TextRegion ops=1 skipped=0 damage=109,127,64,48 render_us=1933 wait_us=9
+I (28306) m5_backend: present id=239 intent=TextPage ops=1 skipped=0 damage=206,338,64,48 render_us=2648 wait_us=19
+I (28353) m5_backend: present id=240 intent=TextRegion ops=1 skipped=0 damage=303,549,64,48 render_us=2589 wait_us=42966
+I (28357) m5_backend: present id=241 intent=InteractiveInk ops=2 skipped=0 damage=400,760,64,48 render_us=2863 wait_us=18
+I (28361) m5_backend: present id=242 intent=TextRegion ops=1 skipped=0 damage=57,111,64,48 render_us=2374 wait_us=5
+I (28407) m5_backend: present id=243 intent=TextPage ops=1 skipped=0 damage=154,322,64,48 render_us=1600 wait_us=42971
+I (28410) m5_backend: present id=244 intent=TextRegion ops=1 skipped=0 damage=251,533,64,48 render_us=1958 wait_us=12
+I (28414) m5_backend: present id=245 intent=InteractiveInk ops=1 skipped=0 damage=348,744,64,48 render_us=2535 wait_us=23
+I (28418) m5_backend: present id=246 intent=TextRegion ops=1 skipped=0 damage=5,95,64,48 render_us=2578 wait_us=27
+I (28463) m5_backend: present id=247 intent=TextPage ops=1 skipped=0 damage=102,306,64,48 render_us=2633 wait_us=40990
+I (28466) m5_backend: present id=248 intent=TextRegion ops=1 skipped=0 damage=199,517,64,48 render_us=1947 wait_us=11
+I (28470) m5_backend: present id=249 intent=InteractiveInk ops=2 skipped=0 damage=296,728,64,48 render_us=2532 wait_us=18
+I (28517) m5_backend: present id=250 intent=TextRegion ops=1 skipped=0 damage=393,79,64,48 render_us=2265 wait_us=42977
+I (28520) m5_backend: present id=251 intent=TextPage ops=1 skipped=0 damage=50,290,64,48 render_us=1931 wait_us=11
+I (28524) m5_backend: present id=252 intent=TextRegion ops=1 skipped=0 damage=147,501,64,48 render_us=2641 wait_us=8
+I (28571) m5_backend: present id=253 intent=InteractiveInk ops=1 skipped=0 damage=244,712,64,48 render_us=1648 wait_us=43971
+I (28574) m5_backend: present id=254 intent=TextRegion ops=1 skipped=0 damage=341,63,64,48 render_us=1931 wait_us=8
+I (28578) m5_backend: present id=255 intent=TextPage ops=1 skipped=0 damage=438,274,64,48 render_us=2596 wait_us=24
+I (28581) m5_backend: present id=256 intent=TextRegion ops=1 skipped=0 damage=95,485,64,48 render_us=1131 wait_us=4
+I (28582) owner: soak progress 256/300 fulls=4 partials=252 errors=0 heap_free=299995
+I (28627) m5_backend: present id=257 intent=InteractiveInk ops=2 skipped=0 damage=192,696,64,48 render_us=2715 wait_us=40974
+I (28630) m5_backend: present id=258 intent=TextRegion ops=1 skipped=0 damage=289,47,64,48 render_us=1722 wait_us=15
+I (28634) m5_backend: present id=259 intent=TextPage ops=1 skipped=0 damage=386,258,64,48 render_us=2573 wait_us=8
+I (28681) m5_backend: present id=260 intent=ImageQuality ops=1 skipped=0 damage=43,469,64,48 render_us=2590 wait_us=42990
+I (28684) m5_backend: present id=261 intent=CleanFull ops=1 skipped=0 damage=140,680,64,48 render_us=1936 wait_us=11
+I (28688) m5_backend: present id=262 intent=TextRegion ops=1 skipped=0 damage=237,31,64,48 render_us=2648 wait_us=8
+I (28735) m5_backend: present id=263 intent=TextPage ops=1 skipped=0 damage=334,242,64,48 render_us=2606 wait_us=42991
+I (28738) m5_backend: present id=264 intent=TextRegion ops=1 skipped=0 damage=431,453,64,48 render_us=1914 wait_us=11
+I (28742) m5_backend: present id=265 intent=InteractiveInk ops=2 skipped=0 damage=88,664,64,48 render_us=2478 wait_us=17
+I (28789) m5_backend: present id=266 intent=TextRegion ops=1 skipped=0 damage=185,15,64,48 render_us=2325 wait_us=42976
+I (28792) m5_backend: present id=267 intent=TextPage ops=1 skipped=0 damage=282,226,64,48 render_us=1907 wait_us=9
+I (28796) m5_backend: present id=268 intent=TextRegion ops=1 skipped=0 damage=379,437,64,48 render_us=2660 wait_us=8
+I (28843) m5_backend: present id=269 intent=InteractiveInk ops=1 skipped=0 damage=36,648,64,48 render_us=1631 wait_us=43986
+I (28846) m5_backend: present id=270 intent=TextRegion ops=1 skipped=0 damage=133,859,64,48 render_us=1939 wait_us=5
+I (28850) m5_backend: present id=271 intent=TextPage ops=1 skipped=0 damage=230,210,64,48 render_us=2622 wait_us=12
+I (28897) m5_backend: present id=272 intent=TextRegion ops=1 skipped=0 damage=327,421,64,48 render_us=1635 wait_us=43984
+I (28901) m5_backend: present id=273 intent=InteractiveInk ops=2 skipped=0 damage=424,632,64,48 render_us=2864 wait_us=23
+I (28905) m5_backend: present id=274 intent=TextRegion ops=1 skipped=0 damage=81,843,64,48 render_us=2325 wait_us=8
+I (28951) m5_backend: present id=275 intent=TextPage ops=1 skipped=0 damage=178,194,64,48 render_us=1597 wait_us=42996
+I (28954) m5_backend: present id=276 intent=TextRegion ops=1 skipped=0 damage=275,405,64,48 render_us=1967 wait_us=9
+I (28958) m5_backend: present id=277 intent=InteractiveInk ops=1 skipped=0 damage=372,616,64,48 render_us=2572 wait_us=23
+I (28962) m5_backend: present id=278 intent=TextRegion ops=1 skipped=0 damage=29,827,64,48 render_us=2609 wait_us=8
+I (29006) m5_backend: present id=279 intent=TextPage ops=1 skipped=0 damage=126,178,64,48 render_us=2645 wait_us=39998
+I (29009) m5_backend: present id=280 intent=TextRegion ops=1 skipped=0 damage=223,389,64,48 render_us=1948 wait_us=5
+I (29013) m5_backend: present id=281 intent=InteractiveInk ops=2 skipped=0 damage=320,600,64,48 render_us=2576 wait_us=16
+I (29017) m5_backend: present id=282 intent=TextRegion ops=1 skipped=0 damage=417,811,64,48 render_us=2328 wait_us=8
+I (29062) m5_backend: present id=283 intent=TextPage ops=1 skipped=0 damage=74,162,64,48 render_us=1652 wait_us=41985
+I (29065) m5_backend: present id=284 intent=TextRegion ops=1 skipped=0 damage=171,373,64,48 render_us=1941 wait_us=14
+I (29068) m5_backend: present id=285 intent=InteractiveInk ops=1 skipped=0 damage=268,584,64,48 render_us=1706 wait_us=8
+I (29116) m5_backend: present id=286 intent=TextRegion ops=1 skipped=0 damage=365,795,64,48 render_us=2606 wait_us=43980
+I (29119) m5_backend: present id=287 intent=TextPage ops=1 skipped=0 damage=22,146,64,48 render_us=1925 wait_us=12
+I (29122) m5_backend: present id=288 intent=TextRegion ops=1 skipped=0 damage=119,357,64,48 render_us=1658 wait_us=9
+I (29170) m5_backend: present id=289 intent=InteractiveInk ops=2 skipped=0 damage=216,568,64,48 render_us=2563 wait_us=43975
+I (29173) m5_backend: present id=290 intent=TextRegion ops=1 skipped=0 damage=313,779,64,48 render_us=1706 wait_us=11
+I (29176) m5_backend: present id=291 intent=TextPage ops=1 skipped=0 damage=410,130,64,48 render_us=1629 wait_us=8
+I (29224) m5_backend: present id=292 intent=TextRegion ops=1 skipped=0 damage=67,341,64,48 render_us=2633 wait_us=43993
+I (29227) m5_backend: present id=293 intent=InteractiveInk ops=1 skipped=0 damage=164,552,64,48 render_us=1946 wait_us=21
+I (29231) m5_backend: present id=294 intent=TextRegion ops=1 skipped=0 damage=261,763,64,48 render_us=2596 wait_us=8
+I (29278) m5_backend: present id=295 intent=TextPage ops=1 skipped=0 damage=358,114,64,48 render_us=1133 wait_us=44477
+I (29281) m5_backend: present id=296 intent=TextRegion ops=1 skipped=0 damage=15,325,64,48 render_us=1933 wait_us=12
+I (29285) m5_backend: present id=297 intent=InteractiveInk ops=2 skipped=0 damage=112,536,64,48 render_us=2538 wait_us=17
+I (29289) m5_backend: present id=298 intent=TextRegion ops=1 skipped=0 damage=209,747,64,48 render_us=2300 wait_us=7
+I (29334) m5_backend: present id=299 intent=TextPage ops=1 skipped=0 damage=306,98,64,48 render_us=1627 wait_us=41982
+I (29337) m5_backend: present id=300 intent=TextRegion ops=1 skipped=0 damage=403,309,64,48 render_us=1925 wait_us=11
+I (29339) owner: soak progress 300/300 fulls=5 partials=295 errors=0 heap_free=299995
+I (29340) owner: soak done steps=300 fulls=5 partials=295 errors=0 integrity_failures=0 elapsed_ms=10970
+
+# done

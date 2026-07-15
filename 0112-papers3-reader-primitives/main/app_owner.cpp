@@ -25,6 +25,27 @@ enum class Phase : uint8_t {
     ShuttingDown,
 };
 
+// Self-posted TimerDue id driving soak steps through the ordinary queue so
+// console commands interleave with a running soak.
+constexpr uint32_t kSoakTimerId = 0x50AC;
+
+struct SoakState {
+    bool active = false;
+    bool step_queued = false;
+    uint32_t target = 0;
+    uint32_t completed = 0;
+    uint32_t errors = 0;
+    uint32_t fulls = 0;
+    uint32_t partials = 0;
+    uint32_t heap_free_start = 0;
+    uint32_t heap_free_min = 0;
+    uint32_t integrity_checks = 0;
+    uint32_t integrity_failures = 0;
+    int64_t start_us = 0;
+    int64_t end_us = 0;
+    SoakWaveformStats by_waveform[4] = {};
+};
+
 // Application state. Touched exclusively by the owner task; AssertOwner()
 // enforces that at runtime in debug and release builds alike.
 struct AppState {
@@ -43,6 +64,7 @@ struct AppState {
     // ConsoleCommand events from StressConsole).
     uint32_t stress_console_received = 0;
     uint32_t stress_input_received = 0;
+    SoakState soak;
 };
 
 AppState s_state;
@@ -72,6 +94,91 @@ void SendReply(const AppEvent &event, const AppReply &reply) {
     } else {
         s_state.replies_dropped++;
     }
+}
+
+// Runs one soak step in the owner context and folds the result into stats.
+void RunOneSoakStep() {
+    SoakState &soak = s_state.soak;
+    const PlannedPresent planned = RunSoakStep(soak.completed);
+    if (planned.present.status != StatusCode::Ok) {
+        soak.errors++;
+        ESP_LOGW(kTag, "soak step %u failed: %s",
+                 static_cast<unsigned>(soak.completed),
+                 StatusCodeName(planned.present.status));
+    } else {
+        if (planned.plan.full_refresh) {
+            soak.fulls++;
+        } else {
+            soak.partials++;
+        }
+        const uint8_t wf = static_cast<uint8_t>(planned.plan.waveform);
+        SoakWaveformStats &stats = soak.by_waveform[wf & 3];
+        const uint32_t step_us =
+            planned.present.render_us + planned.present.wait_us;
+        stats.count++;
+        stats.total_us += step_us;
+        if (step_us > stats.max_us) {
+            stats.max_us = step_us;
+        }
+    }
+    soak.completed++;
+    const uint32_t heap_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    if (heap_free < soak.heap_free_min) {
+        soak.heap_free_min = heap_free;
+    }
+    if (soak.completed % 256 == 0 || soak.completed == soak.target) {
+        soak.integrity_checks++;
+        if (!heap_caps_check_integrity_all(true)) {
+            soak.integrity_failures++;
+            ESP_LOGE(kTag, "soak heap integrity FAILURE at step %u",
+                     static_cast<unsigned>(soak.completed));
+        }
+        ESP_LOGI(kTag,
+                 "soak progress %u/%u fulls=%u partials=%u errors=%u "
+                 "heap_free=%u",
+                 static_cast<unsigned>(soak.completed),
+                 static_cast<unsigned>(soak.target),
+                 static_cast<unsigned>(soak.fulls),
+                 static_cast<unsigned>(soak.partials),
+                 static_cast<unsigned>(soak.errors),
+                 static_cast<unsigned>(heap_free));
+    }
+    if (soak.completed >= soak.target) {
+        soak.active = false;
+        soak.end_us = esp_timer_get_time();
+        ESP_LOGI(kTag,
+                 "soak done steps=%u fulls=%u partials=%u errors=%u "
+                 "integrity_failures=%u elapsed_ms=%lld",
+                 static_cast<unsigned>(soak.completed),
+                 static_cast<unsigned>(soak.fulls),
+                 static_cast<unsigned>(soak.partials),
+                 static_cast<unsigned>(soak.errors),
+                 static_cast<unsigned>(soak.integrity_failures),
+                 static_cast<long long>((soak.end_us - soak.start_us) /
+                                        1000));
+    }
+}
+
+// Keeps exactly one soak-step event circulating through the queue while a
+// soak is active, so console commands interleave with soak progress.
+void MaybeQueueSoakStep() {
+    AssertOwner();
+    SoakState &soak = s_state.soak;
+    if (!soak.active || soak.step_queued) {
+        return;
+    }
+    AppEvent event;
+    std::memset(&event, 0, sizeof(event));
+    event.kind = AppEventKind::TimerDue;
+    event.source = EventSource::Internal;
+    event.producer_seq = NextProducerSeq(EventSource::Internal);
+    event.monotonic_us = esp_timer_get_time();
+    event.payload.timer.timer_id = kSoakTimerId;
+    if (PostEvent(event) == StatusCode::Ok) {
+        soak.step_queued = true;
+    }
+    // On CapacityExceeded the next owner-loop iteration retries; the drop is
+    // visible in the internal source's rejected counter.
 }
 
 AppReply MakeReply(const AppEvent &event, StatusCode status) {
@@ -115,12 +222,81 @@ void HandleConsoleCommand(const AppEvent &event) {
         }
         case ConsoleOp::Fixture: {
             const bool use_m5 = event.payload.console.arg == 1;
-            reply.payload.present = RunFixture(use_m5);
-            reply.status = reply.payload.present.status;
+            const PlannedPresent planned = RunFixture(use_m5);
+            reply.payload.present.present = planned.present;
+            reply.payload.present.full_refresh =
+                planned.plan.full_refresh ? 1 : 0;
+            reply.payload.present.waveform =
+                static_cast<uint8_t>(planned.plan.waveform);
+            reply.payload.present.reason =
+                static_cast<uint8_t>(planned.plan.reason);
+            reply.status = planned.present.status;
             if (!use_m5 && reply.status == StatusCode::Ok) {
                 // Owner prints the normalized trace; the console command
                 // only round-trips the summary.
                 PrintFakeTrace();
+            }
+            break;
+        }
+        case ConsoleOp::Refresh: {
+            const s3paper::RefreshPolicy &policy =
+                Planner().policy();
+            const s3paper::RefreshHistory &hist = Planner().history();
+            RefreshSnapshot &r = reply.payload.refresh;
+            r.max_turns_between_full = policy.max_turns_between_full;
+            r.max_partial_area_between_full =
+                policy.max_partial_area_between_full;
+            r.max_elapsed_us_between_full = policy.max_elapsed_us_between_full;
+            r.merge_distance = policy.merge_distance;
+            r.align_x = policy.align_x;
+            r.first_render_done = hist.first_render_done ? 1 : 0;
+            r.turns_since_full = hist.turns_since_full;
+            r.partial_area_since_full = hist.partial_area_since_full;
+            r.fulls_total = hist.fulls_total;
+            r.partials_total = hist.partials_total;
+            r.merge_fallbacks = hist.merge_fallbacks;
+            r.pending_damage = Planner().pending_damage_count();
+            break;
+        }
+        case ConsoleOp::SoakStart: {
+            if (s_state.soak.active) {
+                reply.status = StatusCode::Busy;
+                break;
+            }
+            const uint32_t target = event.payload.console.arg;
+            if (target == 0 || target > 1000000) {
+                reply.status = StatusCode::InvalidArgument;
+                break;
+            }
+            s_state.soak = SoakState{};
+            s_state.soak.active = true;
+            s_state.soak.target = target;
+            s_state.soak.heap_free_start =
+                heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+            s_state.soak.heap_free_min = s_state.soak.heap_free_start;
+            s_state.soak.start_us = esp_timer_get_time();
+            ESP_LOGI(kTag, "soak start target=%u",
+                     static_cast<unsigned>(target));
+            break;
+        }
+        case ConsoleOp::SoakStatus: {
+            const SoakState &s = s_state.soak;
+            SoakSnapshot &out = reply.payload.soak;
+            out.active = s.active ? 1 : 0;
+            out.target = s.target;
+            out.completed = s.completed;
+            out.errors = s.errors;
+            out.fulls = s.fulls;
+            out.partials = s.partials;
+            out.heap_free_start = s.heap_free_start;
+            out.heap_free_now = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+            out.heap_free_min = s.heap_free_min;
+            out.integrity_checks = s.integrity_checks;
+            out.integrity_failures = s.integrity_failures;
+            out.elapsed_us =
+                (s.active ? esp_timer_get_time() : s.end_us) - s.start_us;
+            for (int i = 0; i < 4; ++i) {
+                out.by_waveform[i] = s.by_waveform[i];
             }
             break;
         }
@@ -234,8 +410,14 @@ void HandleEvent(const AppEvent &event) {
             }
             break;
         case AppEventKind::TimerDue:
+            if (event.payload.timer.timer_id == kSoakTimerId &&
+                s_state.soak.active) {
+                s_state.soak.step_queued = false;
+                RunOneSoakStep();
+            }
+            break;
         case AppEventKind::StorageComplete:
-            // Counted via processed_by_kind; no Phase 1 model behind them.
+            // Counted via processed_by_kind; no model behind it yet.
             break;
         case AppEventKind::ShutdownRequest:
             s_state.phase = Phase::ShuttingDown;
@@ -266,6 +448,7 @@ void OwnerTask(void *) {
             s_state.queue_high_water = depth;
         }
         HandleEvent(event);
+        MaybeQueueSoakStep();
     }
 }
 

@@ -5,7 +5,8 @@ CXXFLAGS ?= -std=c++17 -g -O1 -Wall -Wextra -Werror \
             -fsanitize=address,undefined -fno-omit-frame-pointer
 INCLUDES = -I../../include
 SRCS = ../../src/status.cpp ../../src/geometry.cpp ../../src/frame_arena.cpp \
-       ../../src/frame_builder.cpp ../../src/fake_backend.cpp test_main.cpp
+       ../../src/frame_builder.cpp ../../src/fake_backend.cpp \
+       ../../src/refresh_planner.cpp test_main.cpp
 
 s3paper_core_tests: $(SRCS) $(wildcard ../../include/s3paper/*.h)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) $(SRCS) -o $@

@@ -51,7 +51,7 @@ AppEvent MakeEvent(AppEventKind kind, EventSource source, bool wants_reply) {
 
 // Posts a console op and waits for its reply. Prints explicit errors for
 // queue-full and reply-timeout instead of hiding them.
-StatusCode RunConsoleOpWithArg(ConsoleOp op, uint8_t arg, AppReply *out,
+StatusCode RunConsoleOpWithArg(ConsoleOp op, uint32_t arg, AppReply *out,
                                uint32_t timeout_ms) {
     AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
                                EventSource::Console, true);
@@ -152,7 +152,8 @@ int CmdFixture(int argc, char **argv) {
         printf("fixture result=%s\n", StatusCodeName(status));
         return 1;
     }
-    const s3paper::PresentResult &p = reply.payload.present;
+    const PlannedPresentSnapshot &pp = reply.payload.present;
+    const s3paper::PresentResult &p = pp.present;
     printf("fixture backend=%s id=%u ops_drawn=%u ops_skipped=%u "
            "damage=%d,%d,%d,%d render_us=%u wait_us=%u status=%s\n",
            backend == 1 ? "m5" : "fake", static_cast<unsigned>(p.frame_id),
@@ -161,6 +162,99 @@ int CmdFixture(int argc, char **argv) {
            static_cast<int>(p.damage.y), static_cast<int>(p.damage.w),
            static_cast<int>(p.damage.h), static_cast<unsigned>(p.render_us),
            static_cast<unsigned>(p.wait_us), StatusCodeName(p.status));
+    printf("plan full=%u waveform=%s reason=%s\n", pp.full_refresh,
+           s3paper::EpdWaveformName(
+               static_cast<s3paper::EpdWaveform>(pp.waveform)),
+           s3paper::RefreshReasonName(
+               static_cast<s3paper::RefreshReason>(pp.reason)));
+    return 0;
+}
+
+int CmdRefresh(int, char **) {
+    AppReply reply;
+    if (RunConsoleOp(ConsoleOp::Refresh, &reply) != StatusCode::Ok) {
+        return 1;
+    }
+    const RefreshSnapshot &r = reply.payload.refresh;
+    printf("policy max_turns=%u max_area=%llu max_elapsed_ms=%lld "
+           "merge_distance=%d align_x=%d\n",
+           static_cast<unsigned>(r.max_turns_between_full),
+           static_cast<unsigned long long>(r.max_partial_area_between_full),
+           static_cast<long long>(r.max_elapsed_us_between_full / 1000),
+           static_cast<int>(r.merge_distance), static_cast<int>(r.align_x));
+    printf("history first_render_done=%u turns_since_full=%u "
+           "area_since_full=%llu fulls=%u partials=%u merge_fallbacks=%u "
+           "pending_damage=%u\n",
+           r.first_render_done, static_cast<unsigned>(r.turns_since_full),
+           static_cast<unsigned long long>(r.partial_area_since_full),
+           static_cast<unsigned>(r.fulls_total),
+           static_cast<unsigned>(r.partials_total),
+           static_cast<unsigned>(r.merge_fallbacks),
+           static_cast<unsigned>(r.pending_damage));
+    return 0;
+}
+
+void PrintSoakSnapshot(const SoakSnapshot &s) {
+    printf("soak active=%u progress=%u/%u errors=%u fulls=%u partials=%u\n",
+           s.active, static_cast<unsigned>(s.completed),
+           static_cast<unsigned>(s.target), static_cast<unsigned>(s.errors),
+           static_cast<unsigned>(s.fulls), static_cast<unsigned>(s.partials));
+    printf("soak heap start=%u now=%u min=%u integrity checks=%u "
+           "failures=%u elapsed_ms=%lld\n",
+           static_cast<unsigned>(s.heap_free_start),
+           static_cast<unsigned>(s.heap_free_now),
+           static_cast<unsigned>(s.heap_free_min),
+           static_cast<unsigned>(s.integrity_checks),
+           static_cast<unsigned>(s.integrity_failures),
+           static_cast<long long>(s.elapsed_us / 1000));
+    static const char *kWaveformNames[4] = {"Quality", "Text", "Fast",
+                                            "Fastest"};
+    for (int i = 0; i < 4; ++i) {
+        const SoakWaveformStats &w = s.by_waveform[i];
+        if (w.count == 0) {
+            continue;
+        }
+        printf("soak waveform[%s] count=%u avg_us=%llu max_us=%u\n",
+               kWaveformNames[i], static_cast<unsigned>(w.count),
+               static_cast<unsigned long long>(w.total_us / w.count),
+               static_cast<unsigned>(w.max_us));
+    }
+}
+
+int CmdSoak(int argc, char **argv) {
+    if (argc >= 2 && strcmp(argv[1], "start") == 0) {
+        uint32_t steps = 10000;
+        if (argc >= 3) {
+            const long parsed = strtol(argv[2], nullptr, 10);
+            if (parsed <= 0 || parsed > 1000000) {
+                printf("error: InvalidArgument: steps must be 1..1000000\n");
+                return 1;
+            }
+            steps = static_cast<uint32_t>(parsed);
+        }
+        AppReply reply;
+        const StatusCode status =
+            RunConsoleOpWithArg(ConsoleOp::SoakStart, steps, &reply, 15000);
+        if (status != StatusCode::Ok) {
+            printf("soak start failed: %s\n", StatusCodeName(status));
+            return 1;
+        }
+        printf("soak started: %u steps (query with 'soak status')\n",
+               static_cast<unsigned>(steps));
+        return 0;
+    }
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        printf("error: InvalidArgument: usage soak [start [n]|status]\n");
+        return 1;
+    }
+    AppReply reply;
+    // During a soak the owner may be inside a ~1 s full refresh when this
+    // event lands; give the reply the same generous bound as fixture.
+    if (RunConsoleOpWithArg(ConsoleOp::SoakStatus, 0, &reply, 15000) !=
+        StatusCode::Ok) {
+        return 1;
+    }
+    PrintSoakSnapshot(reply.payload.soak);
     return 0;
 }
 
@@ -435,6 +529,13 @@ void ConsoleStart() {
                     "fixture [fake|m5] - render the phase 2 primitive "
                     "fixture through a backend",
                     &CmdFixture);
+    RegisterCommand("refresh",
+                    "Refresh planner policy and history diagnostics",
+                    &CmdRefresh);
+    RegisterCommand("soak",
+                    "soak [start [n]|status] - mixed partial/full refresh "
+                    "soak on the M5 backend",
+                    &CmdSoak);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);
