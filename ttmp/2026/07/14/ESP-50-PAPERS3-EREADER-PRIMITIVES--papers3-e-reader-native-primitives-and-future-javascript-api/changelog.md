@@ -259,3 +259,13 @@ Step 21 committed the passive Printalyzer reference result as 3dc771a935ecd81936
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 21
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-printalyzer-passive-reference-result.md — Evidence commit 3dc771a
+
+## 2026-07-14
+
+Captured a focused official-source snapshot matching the connected Printalyzer v1.1.0 build g7101373 (commit 7101373), including first-party firmware/desktop sources and relevant docs, board, and enclosure resources; explicitly excluded Git history, vendored dependencies, deployment binaries, and toolchains because no Printalyzer build or flash is planned.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md — Scope and file rationale
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/software/firmware/src/densitometer.c — Installed-version density conversion
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/software/firmware/src/sensor.c — Installed-version sensor timing and raw conversion

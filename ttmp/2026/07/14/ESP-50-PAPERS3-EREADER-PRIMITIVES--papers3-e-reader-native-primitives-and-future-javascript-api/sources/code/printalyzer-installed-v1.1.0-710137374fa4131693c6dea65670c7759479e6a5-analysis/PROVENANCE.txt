@@ -1,0 +1,12 @@
+upstream=https://github.com/dektronics/printalyzer-densitometer.git
+commit=710137374fa4131693c6dea65670c7759479e6a5
+commit_date=2023-06-13T10:25:26-07:00
+commit_title=Bump app version to v1.1.0
+device_reported_version=v1.1.0
+device_reported_build=g7101373
+device_reported_build_date=2023-06-13 17:41
+captured_utc=2026-07-15T00:04:32Z
+scope=First-party firmware src, desktop src, docs, board source/plots, enclosure 2D resources, README, and licenses.
+excluded=.git history, vendored external firmware dependencies, desktop deployment binaries, STM32Cube generated reports, complete 3D CAD, and toolchains.
+intent=Source-backed protocol, sensor, calibration, state-machine, geometry, and timing analysis only; no firmware build or flash planned.
+normalization=Trailing ASCII whitespace and excess blank EOF lines were removed from eight local text copies for repository hygiene; use the pinned upstream commit for byte-exact originals.

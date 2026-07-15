@@ -23,14 +23,16 @@ RelatedFiles:
       Note: 19-check stock-source observer and provenance audit
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/29-synchronized-serial-capture-validation.md
       Note: Shared-clock collector validation, read-only inventory, and preserved ESP32 reset observer failure
-    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-protocol-f91c91ecc60bb1f435b8dacfc9929f45315f3912/docs/usb-control-protocol.md
-      Note: Commit-pinned Printalyzer CDC command contract for optical-density logging
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md
+      Note: Focused source map matching the connected Printalyzer v1.1.0 g7101373 firmware
 ExternalSources: []
 Summary: Design for minimally perturbing M5GFX runtime traces, external physical validation, and immutable PaperS3 experiment records.
 LastUpdated: 2026-07-14T21:25:00Z
 WhatFor: Turn visual EPD trials into source-backed, timing-aware, reproducible experiments.
 WhenToUse: Use before modifying M5GFX, replaying FactoryTest, attaching measurement equipment, or comparing waveform endpoints.
 ---
+
+
 
 
 
