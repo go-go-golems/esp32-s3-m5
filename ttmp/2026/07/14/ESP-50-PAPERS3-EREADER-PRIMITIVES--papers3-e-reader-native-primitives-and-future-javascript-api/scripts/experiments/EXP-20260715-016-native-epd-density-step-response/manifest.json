@@ -1,0 +1,21 @@
+{
+  "capture": {
+    "duration_seconds": 150,
+    "papers3": "read-only reconnecting observer",
+    "printalyzer": {
+      "gain": 2,
+      "integration_ms": 100,
+      "light_duty": 128
+    }
+  },
+  "decision_rule": "All three semantic begin/idle/settled marker groups, no driver fault, valid density stream/cleanup, and one reset after capture arm.",
+  "firmware_sha256": "eb77a34c7073e0dce54725d2d10ae134168e843825013861f5dfaf8d37134bce",
+  "id": "EXP-20260715-016-native-epd-density-step-response",
+  "idf": "v5.4.2",
+  "schema": "esp50.native-epd-density-step.v1",
+  "sequence": [
+    "hard-white-cleanup",
+    "full-black",
+    "full-white"
+  ]
+}
