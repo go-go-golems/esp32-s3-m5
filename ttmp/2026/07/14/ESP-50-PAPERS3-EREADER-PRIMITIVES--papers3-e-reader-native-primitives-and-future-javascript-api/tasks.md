@@ -57,7 +57,7 @@
 - [ ] [P0.12] Update the guide, README, diary, and changelog with measured Phase 0 results and review instructions <!-- t:6sog -->
 - [x] [P1.1] Create the next-numbered PaperS3 reader-primitives firmware directory and minimal ESP-IDF project files <!-- t:p0mo -->
 - [x] [P1.2] Add sdkconfig.defaults for ESP32-S3, octal PSRAM, 16MB flash, custom partitions, and USB Serial/JTAG console <!-- t:l97g -->
-- [ ] [P1.3] Pin the accepted Phase 0 M5GFX/M5Unified revisions reproducibly and commit dependencies.lock where applicable <!-- t:ambe -->
+- [x] [P1.3] Pin the accepted Phase 0 M5GFX/M5Unified revisions reproducibly and commit dependencies.lock where applicable <!-- t:ambe -->
 - [x] [P1.4] Define bounded AppEvent, AppCommand, and AppReply message types with explicit payload ownership <!-- t:x5vy -->
 - [x] [P1.5] Create the single UI/application owner task and prohibit display/model mutation from producer tasks <!-- t:pt40 -->
 - [x] [P1.6] Route console commands through the command queue and return results through bounded reply queues <!-- t:z15o -->
@@ -65,16 +65,16 @@
 - [x] [P1.8] Add explicit queue-full, reply-timeout, invalid-command, and shutdown behavior <!-- t:x8lf -->
 - [x] [P1.9] Stress console and synthetic input producers concurrently and verify deterministic owner-task ordering <!-- t:uc4q -->
 - [x] [P1.10] Document build, flash, monitor, architecture ownership, and validation commands in the firmware README <!-- t:cw1v -->
-- [ ] [P2.1] Define StatusCode, Status, and Result contracts without exceptions or silent boolean failures <!-- t:3s70 -->
-- [ ] [P2.2] Implement half-open Point, Size, Insets, and Rect types using overflow-safe intermediate arithmetic <!-- t:7jda -->
-- [ ] [P2.3] Implement rectangle contains, intersection, union, clamp, empty, area, and rotation transforms <!-- t:84f7 -->
+- [x] [P2.1] Define StatusCode, Status, and Result contracts without exceptions or silent boolean failures <!-- t:3s70 -->
+- [x] [P2.2] Implement half-open Point, Size, Insets, and Rect types using overflow-safe intermediate arithmetic <!-- t:7jda -->
+- [x] [P2.3] Implement rectangle contains, intersection, union, clamp, empty, area, and rotation transforms <!-- t:84f7 -->
 - [ ] [P2.4] Implement and document EPD damage alignment based on Phase 0 measurements and driver constraints <!-- t:lvjt -->
-- [ ] [P2.5] Define bounded POD DrawOp variants and stable frame-arena references for text and bitmap payloads <!-- t:5fc6 -->
-- [ ] [P2.6] Implement frame arena capacity accounting, lifetime rules, reset, and explicit overflow errors <!-- t:229c -->
-- [ ] [P2.7] Implement clip-stack validation and draw-op clipping independent of M5GFX <!-- t:vl4t -->
-- [ ] [P2.8] Implement a deterministic fake display backend that records normalized draw/present traces <!-- t:1f68 -->
-- [ ] [P2.9] Implement the M5 display backend transaction shell with wait, startWrite, endWrite, timeout, and recovery <!-- t:99ls -->
-- [ ] [P2.10] Add host tests for geometry overflow, clipping, capacity limits, operation order, and fake-backend traces <!-- t:u2yz -->
+- [x] [P2.5] Define bounded POD DrawOp variants and stable frame-arena references for text and bitmap payloads <!-- t:5fc6 -->
+- [x] [P2.6] Implement frame arena capacity accounting, lifetime rules, reset, and explicit overflow errors <!-- t:229c -->
+- [x] [P2.7] Implement clip-stack validation and draw-op clipping independent of M5GFX <!-- t:vl4t -->
+- [x] [P2.8] Implement a deterministic fake display backend that records normalized draw/present traces <!-- t:1f68 -->
+- [x] [P2.9] Implement the M5 display backend transaction shell with wait, startWrite, endWrite, timeout, and recovery <!-- t:99ls -->
+- [x] [P2.10] Add host tests for geometry overflow, clipping, capacity limits, operation order, and fake-backend traces <!-- t:u2yz -->
 - [ ] [P2.11] Render the same primitive fixture through fake and M5 backends and preserve expected traces/screenshots <!-- t:tb0m -->
 - [ ] [P3.1] Define PresentIntent, EpdWaveform, RefreshReason, RefreshContext, RefreshPlan, and PresentResult contracts <!-- t:1n6u -->
 - [ ] [P3.2] Implement damage collection, bounds clamp, EPD alignment, overlap/nearby merge, and capacity fallback <!-- t:t14u -->

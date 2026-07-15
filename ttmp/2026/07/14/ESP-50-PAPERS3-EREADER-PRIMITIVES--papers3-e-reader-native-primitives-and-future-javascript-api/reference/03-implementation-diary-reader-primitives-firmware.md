@@ -17,6 +17,12 @@ Owners: []
 RelatedFiles:
     - Path: repo://0112-papers3-reader-primitives/README.md
       Note: 'Decision records: IDF 5.3.4 pin, no display backend in Phase 1'
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/geometry.h
+      Note: Pure defensive geometry contracts incl. provisional EPD alignment (commit a00161e)
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/tests/host/test_main.cpp
+      Note: 237-check host suite for geometry/arena/builder/fake-backend (commit a00161e)
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_m5/src/m5_backend.cpp
+      Note: M5GFX transaction shell, only module calling M5.Display (commit a00161e)
     - Path: repo://0112-papers3-reader-primitives/main/app_console.cpp
       Note: Console proxy plus stress/flood fixtures (commit 1aea3b4)
     - Path: repo://0112-papers3-reader-primitives/main/app_events.h
@@ -33,6 +39,7 @@ LastUpdated: 2026-07-15T14:20:00-04:00
 WhatFor: Record what was built per phase, what failed with exact errors, validation evidence, and review instructions.
 WhenToUse: Read before resuming reader implementation work; the display-investigation history lives in 01-investigation-diary.md.
 ---
+
 
 
 # Implementation Diary - Reader Primitives Firmware
@@ -205,4 +212,78 @@ shutdown       -> ping: "busy: owner is shutting down"; status: state=shutting-d
 counters       -> owner_seq=1040 = ConsoleCommand 507 + Pointer 500 + TimerDue 32 + Shutdown 1
 heap           -> internal_free 369827 before/after 200k events (byte-stable)
 toolchain      -> ESP-IDF v5.3.4, app sha256 in build/; flashed at 460800 baud
+```
+
+## Step 4: Phase 2 — s3paper_core primitives, fake backend, and the M5 transaction shell
+
+Implemented the host-testable rendering substrate: a pure `s3paper_core` component (geometry, status/result vocabulary, DrawOps, frame arena, clip-stack FrameBuilder, fake backend) with 237 host checks under ASan/UBSan, and a `s3paper_m5` backend that is the only module permitted to call `M5.Display`. The same deterministic 74-op fixture now renders through both backends behind one `DisplayBackend` boundary, selected by a `fixture [fake|m5]` console command that round-trips through the owner task like everything else.
+
+The M5 dependency decision is now a real decision record instead of an inherited accident: `s3paper_m5/idf_component.yml` pins upstream `m5stack/m5unified ==0.2.18` and `m5stack/m5gfx ==0.2.25` from the component registry (exact hashes in the committed `dependencies.lock`), explicitly avoiding the locally patched `M5PaperS3-UserDemo/components` checkout left over from the display investigation.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Continue phase-by-phase: implement task group P2.1–P2.11.
+
+**Inferred user intent:** Host-provable rendering primitives before any refresh-policy or text work.
+
+**Commit (code):** a00161ef3ce9b29563f1788050033023006bcb0a — "Reader: add s3paper_core primitives, fake backend, and M5 shell (Phase 2)"
+
+### What I did
+- `components/s3paper_core/`: `status.h` (stable `StatusCode` + `Result<T>`), `geometry.h/.cpp` (half-open rects, int64 intermediates, Intersect/Union/ClampTo/Translate/Shrink/RotateInBounds, single authoritative `AlignDamageForEpd`), `draw_ops.h` (POD ops with arena-offset payloads), `frame_arena.h/.cpp`, `frame_builder.h/.cpp` (clip stack depth 8, drop-and-count fully-clipped ops, damage union, `CorruptData` on unbalanced clips), `fake_backend.h/.cpp` (normalized text traces, explicit truncation flag).
+- Host tests `components/s3paper_core/tests/host/` (Makefile + test_main.cpp): geometry overflow at INT32 extremes, half-open edge semantics, rotation round trips, EPD alignment for widths 1..16 and all four corners, arena capacity/reset/alignment, builder clipping/capacity/lifetime, golden fake-backend trace, determinism, truncation.
+- `components/s3paper_m5/`: `M5Backend` transaction shell — bounded 5 s busy-wait (never a blind `waitDisplay()`), naive intent→`epd_mode_t` map, `startWrite`/per-op clip rects/`endWrite`, per-present metrics via `ESP_LOGI`, Bitmap explicitly counted as skipped.
+- Firmware integration: unified `reader::StatusCode` onto `s3paper::StatusCode`; `DisplayServiceInit()` allocates op array (512), arena (32 KB), and trace buffer (16 KB) in PSRAM inside the owner task; `ConsoleOp::Fixture` (arg selects backend, 15 s reply timeout because a CleanFull EPD present takes seconds) and a real `display` diagnostics snapshot.
+- Validated on hardware: `fixture fake` printed the normalized 74-op trace (clip demo confined a full-screen fill to `bounds=300,340,100,100 clip=300,340,100,100`); `fixture m5` initialized M5Unified (board=19, 540x960) and presented the identical frame: `ops=74 skipped=0 damage=0,0,540,960 render_us=203829 status=Ok`. Transcripts: `scripts/output/0112-phase2-validation-01.log`, `-02-m5.log`.
+
+### Why
+- The design doc's Phase 2 gate: host tests must cover overflow/edge geometry, and one fixture must produce both an expected trace and a hardware frame through the same boundary. Everything above exists to make later display-policy work (Phase 3) a planner change, not an application rewrite.
+
+### What worked
+- Host suite passed first run (237 checks, ASan/UBSan clean).
+- The registry pin resolved and built against IDF 5.3.4 without patches.
+- Both backends consumed the identical frozen frame; ownership rules held (fixture runs inside the owner; the console only sees the POD `PresentResult`).
+
+### What didn't work
+- First target build: `Failed to resolve component 'm5gfx'` — m5unified 0.2.18's registry manifest does not declare m5gfx as a dependency; fixed by pinning `m5stack/m5gfx ==0.2.25` explicitly.
+- Second build round, exact errors:
+  - `error: union member 'reader::AppReply::<unnamed union>::present' with non-trivial 'constexpr s3paper::PresentResult::PresentResult()'` — the geometry structs' default member initializers (`int32_t x = 0;`) made `Rect` (and so `PresentResult`) non-trivially-default-constructible and thus illegal in the reply union. Fixed by stripping the initializers (plain aggregates; value-init `{}` where zeroing is needed).
+  - `error: deducing from brace-enclosed initializer list requires '#include <initializer_list>'` in `app_display.cpp` (same class of miss as Step 2).
+  - `-Werror=format=` on xtensa: `int32_t` is `long int`, so `%d` needs `static_cast<int>` in `ESP_LOGI`/`printf` (three sites).
+
+### What I learned
+- On this xtensa toolchain `int32_t` is `long int`; every `%d` of a geometry field needs a cast, and custom variadic helpers (fake-backend `Append`) silently escape `-Wformat` checking.
+- `wait_us=24` after `endWrite` suggests `displayBusy()` clears almost immediately on this M5GFX path; real flush time is inside the write phase (`render_us≈204ms`). Phase 3 instrumentation must not equate `wait_us` with panel busy time.
+
+### What was tricky to build
+- Union-compatibility versus ergonomic defaults: the cleanest fix (removing default member initializers from `Point/Size/Insets/Rect`) ripples into every default-constructed use; it worked because all uses already aggregate-initialize, and the host suite proved it immediately.
+- Keeping the trace normalization stable enough for golden-string tests while still human-readable: glyph text is escaped byte-wise (`\x22`) so arbitrary UTF-8 cannot corrupt trace parsing.
+
+### What warrants a second pair of eyes
+- **Operator visual check (blocking tb0m):** the panel should now show the fixture — border, corner squares, 1..16 px width ladder, 16-step gray ladder, checkerboard, a mid-gray 100x100 clip window, crosshair lines, and the text "s3paper phase2 fixture". Please confirm/photograph; the software result alone makes no optical claim.
+- The naive intent→`epd_mode_t` map in `m5_backend.cpp` (CleanFull→`epd_quality` etc.) — placeholder policy that Phase 3 must own.
+- `AlignDamageForEpd` right-edge behavior: the aligned right edge re-clamps to `bounds.w` (540 is not a multiple of 8), so edge damage ends unaligned at the panel border. Tested and documented, but a driver constraint might require full-block alignment instead.
+
+### What should be done in the future
+- Task `lvjt` stays open: replace the provisional `align_x=8` with a Phase-0-measured driver constraint when hardware qualification resumes.
+- Task `tb0m` stays open until the operator confirms the visible frame (a photo under `scripts/output/` would close it).
+- Phase 3 (`hdvv`, P3.1–P3.10): refresh planner, damage merge, present metrics, clean-full triggers, soak test.
+
+### Code review instructions
+- Start at `components/s3paper_core/include/s3paper/` (contracts first), then `frame_builder.cpp`, then `components/s3paper_m5/src/m5_backend.cpp` (the transaction shell), then `main/app_display.cpp` (`BuildFixture`).
+- Validate host: `cd 0112-papers3-reader-primitives/components/s3paper_core/tests/host && make run`.
+- Validate hardware: flash per README, then `python3 ttmp/.../scripts/52-papers3-console-client.py --settle 12 --cmd "fixture fake" --cmd "fixture m5" --cmd display`.
+
+### Technical details
+
+```text
+component pins  -> m5stack/m5unified ==0.2.18, m5stack/m5gfx ==0.2.25 (dependencies.lock committed)
+host tests      -> PASS: 237 checks, 0 failures (g++ -fsanitize=address,undefined)
+fixture (fake)  -> present id=1 intent=CleanFull ops=74 damage=0,0,540,960; clip demo op:
+                   op kind=FillRect gray=128 bounds=300,340,100,100 clip=300,340,100,100
+fixture (m5)    -> init board=19 display=540x960
+                   present id=2 intent=CleanFull ops=74 skipped=0 damage=0,0,540,960
+                   render_us=203829 wait_us=24 status=Ok
+frame storage   -> 512 ops + 32KB arena + 16KB trace in PSRAM, allocated in owner task
 ```

@@ -429,3 +429,12 @@ Phase 1 complete: scaffolded 0112-papers3-reader-primitives (single owner task, 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_owner.cpp — Owner task and event queue core
 
+
+## 2026-07-15
+
+Phase 2 complete except lvjt/tb0m: pure s3paper_core (geometry, DrawOps, arena, clipping, fake backend; 237 host checks under ASan/UBSan), M5 transaction shell pinned to upstream m5unified 0.2.18 + m5gfx 0.2.25, and the same 74-op fixture rendered through fake and M5 backends on hardware (commit a00161e). Operator visual confirmation of the panel fixture still pending.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/frame_builder.h — Clip-stack frame builder contract
+

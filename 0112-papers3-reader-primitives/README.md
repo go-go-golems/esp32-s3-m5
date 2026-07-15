@@ -19,8 +19,24 @@ and implementation handoff (`reference/02-*.md`).
 - A stress fixture proving deterministic per-source ordering under three
   concurrent producers.
 
-No display, touch, SD, power, or JavaScript work lives here yet — that is
-Phases 2+ in the ticket task list.
+## Phase 2 scope (rendering primitives)
+
+- `components/s3paper_core/` — pure, host-testable component (no ESP/M5
+  headers): defensive half-open geometry, `Status`/`Result`, EPD damage
+  alignment (provisional `align_x=8` pending Phase 0 measurements), POD
+  `DrawOp`s, fixed-capacity frame arena, clip-stack `FrameBuilder`, and a
+  deterministic trace-recording `FakeBackend`. Host tests:
+  `cd components/s3paper_core/tests/host && make run` (237 checks,
+  ASan/UBSan).
+- `components/s3paper_m5/` — the only module allowed to call `M5.Display`.
+  Transaction shell: bounded busy-wait, `setEpdMode`, `startWrite`/batched
+  ops/`endWrite`, bounded flush wait, per-present metrics logging. Naive
+  intent→mode mapping until the Phase 3 refresh planner.
+- `fixture [fake|m5]` console command renders the same deterministic
+  primitive scene (border, corner markers, width ladder 1..16, 16-step gray
+  ladder, checkerboard, clip demo, lines, glyph run) through either backend.
+
+Touch, SD, power, and JavaScript work still belong to later phases.
 
 ## Decision records
 
