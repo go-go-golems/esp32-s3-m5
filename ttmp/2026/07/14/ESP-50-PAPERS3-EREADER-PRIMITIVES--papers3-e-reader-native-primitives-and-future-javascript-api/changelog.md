@@ -304,3 +304,12 @@ Preregistered and passed a five-second static Printalyzer raw capture over a mid
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md — Static raw statistics and limits
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/raw-static-white.jsonl — Immutable synchronized raw evidence
+
+## 2026-07-14
+
+Step 23 recorded code-only Printalyzer sources (194e58a), density-aware raw capture (de423ea), and the passing static PaperS3 point-signal experiment (6d7d19e); absolute density and dynamic eligibility remain gated.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 23
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md — Step 23 experiment result

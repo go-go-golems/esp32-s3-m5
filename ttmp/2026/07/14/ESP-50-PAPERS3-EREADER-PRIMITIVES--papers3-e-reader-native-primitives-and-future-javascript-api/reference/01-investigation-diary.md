@@ -51,6 +51,8 @@ RelatedFiles:
       Note: Fixture generation and identity (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py
       Note: Step 20 shared-clock serial capture and guarded raw mode (commit ec2bf1b)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md
+      Note: Step 23 static PaperS3 raw-density qualification (commit 6d7d19e)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
@@ -93,6 +95,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2417,4 +2420,114 @@ reported firmware: v1.1.0 / g7101373
 snapshot intent: source-backed analysis only
 Printalyzer build planned: no
 Printalyzer flash planned: no
+```
+
+## Step 23: Reduce Printalyzer sources and qualify a static PaperS3 point signal
+
+This step narrowed both Printalyzer snapshots to code/text only, then extended the collector to compute a source-derived density estimate from diagnostic raw samples. The physical test used the Printalyzer exactly where the operator had already placed it: flat over a middle-ish white PaperS3 region while the board remained in ROM download mode.
+
+The five-second stream was highly stable and unsaturated. It qualifies the temporal point signal and sensor settings, but not the absolute `0.678 D` value; placement sensitivity and known raw reference targets must pass before dynamic F0/F1/F2 interpretation.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i only need the code to avoid binary files and such. Then continue your work."
+
+**Placement context (verbatim):** "I currently have it pointed at the s3paper, btw"
+
+**Target context (verbatim):** "it's white although it might change as the firmware flashes"
+
+**Location context (verbatim):** "middle ish"
+
+**Post-run observation (verbatim):** "1. i don't know but it's off now . 2. yes 3. i think so"
+
+**Assistant interpretation:** Remove non-code Printalyzer assets, finish density-aware raw capture, and use the current stable middle-ish white placement for a no-panel-drive static qualification before any firmware replay.
+
+**Inferred user intent:** Make the densitometer the primary objective temporal feedback channel without retaining unnecessary upstream binaries or prematurely flashing the panel.
+
+**Commit (source scope):** `194e58a6a4670c87148f224599c12959872329ca` — "Research: keep Printalyzer snapshots code-only"
+
+**Commit (collector):** `de423ea53d7b4f285397013c3a775be30041a954` — "Tools: derive Printalyzer density from raw stream"
+
+**Commit (experiment):** `6d7d19ed20c11f52334856c613f2b0d2097d2f8d` — "Experiment: qualify static PaperS3 density capture"
+
+### What I did
+
+- Removed Printalyzer PDFs, PNGs, DXFs, hardware/enclosure trees, and other non-code resources from both source snapshots.
+- Regenerated and verified both SHA-256 manifests.
+- Added exact installed-v1.1.0 host reproduction of gain normalization, slope correction, and reflection target mapping.
+- Added calibration snapshot commands before remote mode and rejected saturation, invalid values, or LED-duty mismatch.
+- Changed the preregistered raw setting to gain 2, 100 ms, duty 128 and updated the fake-device integration test.
+- Created immutable experiment `EXP-20260714-004-printalyzer-static-white-raw` before physical execution.
+- Recorded operator placement as flat, stable, aperture-covered, middle-ish, and white.
+- Ran one five-second raw stream without opening PaperS3 serial or driving the panel.
+- Parsed 48 samples, excluded the preregistered first two, computed statistics, and recorded operator cleanup/movement observations.
+
+### Why
+
+- Code-only source is sufficient for source-backed measurement semantics and avoids ticket bloat.
+- Raw counts alone cannot be compared meaningfully across gain/integration settings; installed calibration and source formulas provide a controlled estimate.
+- A static ROM-mode panel is the safest way to establish signal stability before combining densitometry with an EPD transition.
+
+### What worked
+
+- Forty-six post-settling samples exceeded the required twenty.
+- Channel 0 was `1929.304 ± 2.788` counts with range 10.
+- Host density estimate was `0.678142 ± 0.000625 D` with range `0.002243 D`.
+- No sample saturated and every estimate was valid.
+- Cleanup acknowledgements occurred exactly as STOP → LED off → remote exit.
+- The operator confirmed the head did not move and the LED was off afterward.
+- PaperS3 serial remained unopened and the board remained in ROM mode.
+
+### What didn't work
+
+- Absolute density was not qualified. The diagnostic path uses fixed gain, one 100 ms sample, and an open/fixture geometry rather than the normal auto-gain, 200 ms, two-reading average path.
+- The operator did not observe the exact instant the LED switched off.
+- The operator's visual confirmation that the panel remained unchanged was uncertain (`“i think so”`), although no software path opened or controlled the PaperS3.
+- Exact aperture coordinates were not recorded; placement is only “middle-ish.”
+
+### What I learned
+
+- Gain 2 at 100 ms and calibrated duty 128 has ample headroom on the current white region.
+- The point signal is stable enough for transition-edge detection at sensor cadence.
+- Stable precision does not imply absolute accuracy; a consistently wrong target plane can still produce very low variance.
+- Densitometry can become the primary point-time endpoint, but video remains necessary for spatial gradients and edges.
+
+### What was tricky to build
+
+- The firmware stores calibration floats as eight-character big-endian hexadecimal IEEE-754 values. The host must decode gain pairs, slope coefficients, and target calibration without changing device state.
+- The density transformation is layered: raw count → basic count using integration and gain → log-space slope correction → two-point reflection density mapping.
+- Diagnostic LED duty must equal captured calibration duty; otherwise the host refuses to label the estimate valid.
+- Physical execution needed an immutable ledger despite the operator already holding the instrument in place.
+
+### What warrants a second pair of eyes
+
+- Review the Python reproduction against installed `sensor_convert_to_basic_counts`, `sensor_apply_slope_calibration`, and `reflection_measure`.
+- Review whether first-two-sample exclusion is sufficient for LED/sensor settling.
+- Treat `0.678 D` as provisional until same-plane reference and reposition tests pass.
+- Do not infer whole-panel white quality from a single middle-ish aperture.
+
+### What should be done in the future
+
+- Lift and deliberately reposition over the same white region, then rerun under a new experiment ID to quantify placement sensitivity.
+- Run raw CAL-LO and CAL-HI under identical settings and compare host estimates with normal readings.
+- Only then preregister a dynamic density trace synchronized with F0/F1/F2.
+
+### Code review instructions
+
+- Review `scripts/29-capture-synchronized-serial.py` calibration decoding and `ReflectionCalibration.derive`.
+- Run `scripts/30-test-synchronized-serial.py`; expect calibration getters, gain 2, duty 128, parsed estimates, and full cleanup.
+- Read experiment 004 preregistration before `04-analysis.md`.
+- Verify capture hash `8ef75e37...`, sample count, decision-rule calculations, and cleanup events.
+
+### Technical details
+
+```text
+experiment: EXP-20260714-004-printalyzer-static-white-raw
+sample region: operator-identified white, middle-ish
+PaperS3 state: ROM download; no serial open/reset/flash
+raw settings: gain=2, integration=0/100 ms, duty=128
+post-settling n: 46
+density estimate: 0.678142 ± 0.000625 D
+capture SHA-256: 8ef75e37a070d7fa319afda30b942c7a4ce7e3334d18d627a4142bf79f70cfac
+absolute density qualified: no
 ```
