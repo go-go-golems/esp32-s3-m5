@@ -31,6 +31,8 @@ RelatedFiles:
       Note: Phase 1 POD event/reply contracts and StatusCode vocabulary (commit f7c5a21)
     - Path: repo://0112-papers3-reader-primitives/main/app_owner.cpp
       Note: Single owner task, ordering validation, bounded replies (commit f7c5a21)
+    - Path: repo://0112-papers3-reader-primitives/main/app_reader.cpp
+      Note: Phase 8 reading controller with gesture page turns (commit 3ec8c0c)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/52-papers3-console-client.py
       Note: Modem-control-safe interactive console client used for gate validation
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/0112-phase1-validation-02.log
@@ -41,6 +43,7 @@ LastUpdated: 2026-07-15T14:20:00-04:00
 WhatFor: Record what was built per phase, what failed with exact errors, validation evidence, and review instructions.
 WhenToUse: Read before resuming reader implementation work; the display-investigation history lives in 01-investigation-diary.md.
 ---
+
 
 
 
@@ -492,4 +495,72 @@ golden       -> "It was a bright cold day in April, ..." @460px/kFontBody
 hardware     -> fixture text: ops_drawn=22 skipped=0 damage=0,0,540,960
                 render_us=358425 status=Ok plan reason=FirstRender
 host checks  -> 564 total (text adds ~109)
+```
+
+## Step 8: Phases 7–8 — streaming pagination and the reading vertical slice
+
+This step turned the primitive stack into an e-reader. `s3paper_core` gained `ContentSource` (pure interface + `MemoryContentSource`; the SD adapter arrives with Phase 6) and `Paginator`: locator-based streaming page composition inside an 8 KiB window, sparse checkpoints (128-slot ring) with bounded backward reconstruction for previous-page, context-hash locator validation, and non-blocking permille progress. Positions are locators, never page numbers, exactly as the design doc demands. Mid-word page seams from window truncation are avoided by dropping a window-edge paragraph's final broken line and recomposing it from a fresh window on the next page.
+
+The firmware side is the first actual reading experience: `app_reader.cpp` (owner-only) opens an embedded Alice fixture (~4.7 KB), renders pages with a title header, measured body lines, and a progress footer through the frame builder and refresh planner, and maps gestures to page turns (tap right half / swipe left = next; tap left half / swipe right = previous). The `reader` console command mirrors the same operations through the event queue. On hardware: 9-page traversal to 100%, previous-page returns byte-exact to earlier page starts, and begin/end refusals are explicit `InvalidArgument` with human-readable console output.
+
+Real operator touch evidence also landed this step (preserved as `scripts/output/0112-phase4-touch-gestures-operator.jsonl`): 3 taps, 3 SwipeLeft, 1 SwipeUp, and a quiet-window firing — closing the Phase 4 hardware task (`utsz`).
+
+### Prompt Context
+
+**User prompt (verbatim):** "let me know when you need me to test touch"
+
+**Assistant interpretation:** The operator is available for hardware interaction; call for touches at the right moment (done — mid-step, while the text fixture was on screen), and continue implementation.
+
+**Inferred user intent:** Keep autonomous progress going; involve the human only where a finger on the panel is genuinely required.
+
+**Commit (code):** 3ec8c0ce6936a53aa728b19aa924fe4dd0b76824 — "Reader: add streaming paginator and reading vertical slice (Phases 7-8)"
+
+### What I did
+- `s3paper/content.h|.cpp`: `ContentSource` (Size/ReadAt/Hash), `MemoryContentSource`, shared FNV-1a; identity = FNV over first 4 KiB + size.
+- `s3paper/paginator.h|.cpp`: `TextLocator` (offset + 16-byte context hash), `LayoutKey` (+ `kLayoutEngineVersion`), `ComposePage`, `PreviousPageStart` (checkpoints → bounded back-scan for a paragraph boundary → forward reconstruction), `Validate`, `ProgressPermille`.
+- Host tests (now 4541 checks): content-source reads/identity, 200-paragraph forward walk (per-line bounds, monotone coverage, at_end), prev round trips with warm checkpoints and with a cold cache, empty/one-line books, a 40 KB single paragraph (window bound), malformed UTF-8 books, locator corruption detection.
+- Firmware: `app_reader.{h,cpp}` + `app_reader_book.h` (embedded fixture), `ConsoleOp::Reader` + `ReaderSnapshot`, gesture hook from `app_input` into the reader (both owner-context), console `reader [open|next|prev|status]`.
+- Hardware validation transcripts: `0112-phase8-validation-02.log` (round trip 0→580→1151→580→0 with identical snapshots at repeated offsets), `-03-walk.log` (walk to `at_end=1`, two explicit end refusals).
+
+### Why
+- Phase 8's gate is a usable native reading slice with no JavaScript. Pagination had to be locator-based and streaming *first*, or the reading UI would have baked in page-number assumptions that Phase 6 persistence could never honor.
+
+### What worked
+- The full pipeline — content → decode → break → compose → GlyphRun → planner → M5 — produces a readable paged book with correct progress on real hardware.
+- Cold-cache previous-page (no checkpoints) reconstructs a valid earlier page start via the bounded backward scan, and composing forward from it reaches the target page exactly.
+
+### What didn't work
+- The first hardware run showed page starts drifting (`0 → 1151 → 1692` where the corrected build gives `0 → 580 → 1151`) with stale line/progress values after `prev`. Root cause: `ComposeAndRender(s_state.page.next)` bound a `const TextLocator&` into `s_state.page`, and `ComposePage` overwrites `out->next` before the caller copies the locator — the classic alias-the-output hazard. Fixed by passing locators **by value** in `ComposeAndRender` and, defensively, in the core `Paginator::ComposePage` signature itself, with a comment explaining why. Host tests kept passing throughout because they never aliased — the lesson is that the core API allowed a hazard only integration code would hit.
+
+### What I learned
+- The observable symptom of the aliasing bug (page starts equal to what should have been *next* page's start) looked exactly like an off-by-one-page pagination error; only reasoning about storage lifetimes found it.
+- 19 lines per page at FreeSerif 18 pt with these margins; the embedded chapter is 9 pages — a good smoke-test size.
+
+### What was tricky to build
+- Window-edge handling in `ComposePage`: distinguishing "paragraph ends at the window edge because the window cut it" from "paragraph genuinely ends here", and keeping the guarantee that every page consumes at least one byte even for degenerate content. The 40 KB single-paragraph test exists precisely to pin these paths.
+- `PreviousPageStart` without checkpoints must not overshoot: it returns the last page start whose composed `next` reaches the target, bounded by a 4096-page guard returning explicit `Timeout`.
+
+### What warrants a second pair of eyes
+- **Operator:** the book is open on the panel with touch enabled — please page through by tap/swipe and judge the reading experience (page-turn latency, text quality, ghosting after several turns). This is the Phase 8 gate's human half.
+- `PreviousPageStart`'s backward scan takes the *last* newline before the target; if a page starts exactly at a paragraph boundary the scan can land on the page itself and fall back to the window start — covered by tests via the forward-reconstruction bound, but the fallback path deserves review.
+- The embedded book approach means `reader open` re-uses a function-static `Paginator`; when Phase 6 brings multiple books this must become per-book state with explicit invalidation.
+
+### What should be done in the future
+- Phase 6 (SD content sources, catalog, atomic persistence) — needs a microSD card inserted in the PaperS3; resume/bookmarks and multi-book library build on it. Left open: 07pv (persisted checkpoints), 4otq (round trips across reboot), vh8v (multi-megabyte books), yqb2 (full LayoutKey fields), hfge (page cache), P8 library/state tasks.
+- Page-turn latency: full pipeline re-reads and re-blits every turn; a composed-page cache (hfge) is the obvious next optimization.
+
+### Code review instructions
+- Read `s3paper_core/src/paginator.cpp` (`ComposePage` window-edge branches, `PreviousPageStart`), then the paginator host tests, then `main/app_reader.cpp` (`ComposeAndRender` by-value note, `ReaderHandleGesture`).
+- Validate host: `make run` (4541 checks). Hardware: `--cmd "reader open"` then `reader next/prev/status`, or tap/swipe the panel with touch on.
+
+### Technical details
+
+```text
+book         -> embedded Alice fixture, 4708 bytes, 9 pages @ 19 lines
+walk         -> 0/580/1151/1692/2257/2776/3370/3959/4548(end); progress
+                12.3% .. 100.0%; prev returns byte-exact; refusals explicit
+prev (cold)  -> backward scan + forward reconstruction verified on host
+operator     -> gestures: 3x Tap, 3x SwipeLeft, 1x SwipeUp, 1 quiet window
+                (0112-phase4-touch-gestures-operator.jsonl)
+host checks  -> 4541 total
 ```

@@ -94,7 +94,7 @@
 - [x] [P4.6] Implement one monotonic scheduler for region deadlines, persistence deadlines, and inactivity deadlines <!-- t:mo55 -->
 - [x] [P4.7] Track last-input time and implement quiet/deferred region scheduling without direct timer drawing <!-- t:cox7 -->
 - [x] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
-- [ ] [P4.9] Route normalized input/timer events through AppEvent and validate owner-task integration on hardware <!-- t:utsz -->
+- [x] [P4.9] Route normalized input/timer events through AppEvent and validate owner-task integration on hardware <!-- t:utsz -->
 - [ ] [P5.1] Define reader typography requirements and compare candidate font formats for size, quality, metrics, and speed <!-- t:3r0u -->
 - [x] [P5.2] Select, license, package, and document the initial regular reader font and diagnostic fallback font <!-- t:19jk -->
 - [x] [P5.3] Implement incremental UTF-8 decoding with replacement behavior and byte/codepoint position tracking <!-- t:pav8 -->
@@ -116,15 +116,15 @@
 - [ ] [P6.9] Handle absent, removed, corrupt, and reinserted cards as recoverable application states <!-- t:gky6 -->
 - [ ] [P6.10] Add console commands to list, verify, rescan, inspect, and recover catalog/state without formatting media <!-- t:jxg5 -->
 - [ ] [P6.11] Add host and hardware tests for corrupt records, interrupted writes, card removal, and remount <!-- t:5zpj -->
-- [ ] [P7.1] Define TextLocator, PageLayout, LineLayout, LayoutKey, and PageCountEstimate contracts <!-- t:1lxo -->
+- [x] [P7.1] Define TextLocator, PageLayout, LineLayout, LayoutKey, and PageCountEstimate contracts <!-- t:1lxo -->
 - [ ] [P7.2] Include content hash, font, size, line height, margins, viewport, hyphenation, alignment, and engine version in LayoutKey <!-- t:yqb2 -->
-- [ ] [P7.3] Implement forward page composition from a locator using the shared measured text layout pipeline <!-- t:tgse -->
-- [ ] [P7.4] Implement next-page traversal with guaranteed forward progress and explicit end-of-content status <!-- t:vvwh -->
-- [ ] [P7.5] Implement previous-page traversal using sparse checkpoints and bounded backward reconstruction <!-- t:abca -->
+- [x] [P7.3] Implement forward page composition from a locator using the shared measured text layout pipeline <!-- t:tgse -->
+- [x] [P7.4] Implement next-page traversal with guaranteed forward progress and explicit end-of-content status <!-- t:vvwh -->
+- [x] [P7.5] Implement previous-page traversal using sparse checkpoints and bounded backward reconstruction <!-- t:abca -->
 - [ ] [P7.6] Implement in-memory page/checkpoint caches with explicit capacity and eviction behavior <!-- t:hfge -->
-- [ ] [P7.7] Implement non-blocking total-progress estimation without scanning the whole book before first display <!-- t:kt5h -->
+- [x] [P7.7] Implement non-blocking total-progress estimation without scanning the whole book before first display <!-- t:kt5h -->
 - [ ] [P7.8] Persist disposable pagination checkpoints keyed by LayoutKey and validate them before reuse <!-- t:07pv -->
-- [ ] [P7.9] Invalidate/recover cached pages and resume locators after typography, viewport, engine, or content changes <!-- t:g964 -->
+- [x] [P7.9] Invalidate/recover cached pages and resume locators after typography, viewport, engine, or content changes <!-- t:g964 -->
 - [ ] [P7.10] Test empty, one-page, huge-paragraph, malformed, and multi-megabyte books for bounded memory and latency <!-- t:vh8v -->
 - [ ] [P7.11] Verify next/previous round trips preserve locator ranges across cache eviction and reboot <!-- t:4otq -->
 - [ ] [P8.1] Define native reader application states for boot, card missing, library, opening, reading, error, and sleeping <!-- t:djij -->

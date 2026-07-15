@@ -465,3 +465,13 @@ Phase 5 core complete: UTF-8 decoder, vendored FreeSerif metrics shared by host 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/text.cpp — Text pipeline
 
+
+## 2026-07-15
+
+Phases 7-8 vertical slice: streaming locator-based Paginator with checkpoints and bounded backward reconstruction (4541 host checks), owner-owned reading controller over an embedded book with gesture page turns, validated 9-page traversal with byte-exact prev on hardware; operator touch gestures captured, closing utsz (commit 3ec8c0c). Fixed a locator reference-aliasing bug by passing locators by value.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/paginator.cpp — Streaming pagination core
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_reader.cpp — Reading vertical slice controller
+
