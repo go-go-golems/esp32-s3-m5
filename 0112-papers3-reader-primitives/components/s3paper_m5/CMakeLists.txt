@@ -1,6 +1,7 @@
 idf_component_register(
     SRCS
         "src/m5_backend.cpp"
+        "src/m5_power.cpp"
     INCLUDE_DIRS
         "include"
     REQUIRES

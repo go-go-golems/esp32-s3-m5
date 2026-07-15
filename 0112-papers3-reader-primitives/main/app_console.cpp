@@ -656,6 +656,53 @@ int CmdSd(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdSleep(int argc, char **argv) {
+    uint32_t arg = 0;
+    uint32_t seconds = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "deep") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "timer") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "off") == 0) {
+            arg = 3;
+        } else if (strcmp(argv[1], "auto") == 0) {
+            arg = 4;
+        } else {
+            printf("error: InvalidArgument: usage sleep "
+                   "[status|deep N|timer N|off|auto N]\n");
+            return 1;
+        }
+        if (arg == 1 || arg == 2 || arg == 4) {
+            if (argc < 3 && arg != 4) {
+                printf("error: InvalidArgument: seconds required\n");
+                return 1;
+            }
+            if (argc >= 3) {
+                seconds = static_cast<uint32_t>(strtoul(argv[2], nullptr, 10));
+            }
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Sleep, arg, seconds, &reply, 30000);
+    if (status != StatusCode::Ok) {
+        printf("sleep op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    if (arg == 0 || arg == 4) {
+        const PowerSnapshot &p = reply.payload.power;
+        printf("power battery=%d%% (%d mV) charging=%u wakeup_cause=%u "
+               "reset_reason=%u auto_sleep=%u s\n",
+               static_cast<int>(p.battery_level),
+               static_cast<int>(p.battery_mv), p.charging, p.wakeup_cause,
+               p.reset_reason, static_cast<unsigned>(p.auto_sleep_sec));
+    } else {
+        printf("sleep accepted: device is quiescing\n");
+    }
+    return 0;
+}
+
 int CmdWidget(int argc, char **argv) {
     uint32_t arg = 1;
     if (argc >= 2) {
@@ -773,6 +820,11 @@ void ConsoleStart() {
                     &CmdReader);
     RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
                     &CmdSd);
+    RegisterCommand("sleep",
+                    "sleep [status|deep N|timer N|off|auto N] - power "
+                    "lifecycle (deep: timer wake; timer: RTC power-off; "
+                    "off: button wake; auto: inactivity policy)",
+                    &CmdSleep);
     RegisterCommand("widget",
                     "widget [hello|status] - present widget-tree fixtures "
                     "(status has a live clock region)",

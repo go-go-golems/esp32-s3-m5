@@ -5,6 +5,7 @@ idf_component_register(
         "app_console.cpp"
         "app_display.cpp"
         "app_input.cpp"
+        "app_power.cpp"
         "app_reader.cpp"
         "app_storage.cpp"
         "app_ui.cpp"

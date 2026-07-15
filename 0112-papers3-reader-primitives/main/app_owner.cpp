@@ -2,6 +2,7 @@
 
 #include "app_display.h"
 #include "app_input.h"
+#include "app_power.h"
 #include "app_reader.h"
 #include "app_storage.h"
 #include "app_ui.h"
@@ -247,6 +248,33 @@ void HandleConsoleCommand(const AppEvent &event) {
         case ConsoleOp::Widget:
             reply.status = UiRunFixture(event.payload.console.arg);
             break;
+        case ConsoleOp::Sleep: {
+            const uint32_t arg = event.payload.console.arg;
+            const uint32_t seconds = event.payload.console.arg2;
+            if (arg == 0) {
+                FillPowerSnapshot(&reply.payload.power);
+            } else if (arg == 4) {
+                PowerSetAutoSleep(seconds);
+                FillPowerSnapshot(&reply.payload.power);
+            } else if (arg <= 3) {
+                if ((arg == 1 || arg == 2) &&
+                    (seconds == 0 || seconds > 86400)) {
+                    reply.status = StatusCode::InvalidArgument;
+                    break;
+                }
+                // The reply must leave before power drops: send it now,
+                // then run the quiesce sequence (does not return).
+                SendReply(event, reply);
+                reply.status = PowerSleep(static_cast<SleepMode>(arg),
+                                          seconds);
+                ESP_LOGE(kTag, "sleep failed: %s",
+                         StatusCodeName(reply.status));
+                return;  // already replied
+            } else {
+                reply.status = StatusCode::InvalidArgument;
+            }
+            break;
+        }
         case ConsoleOp::Refresh: {
             const s3paper::RefreshPolicy &policy =
                 Planner().policy();
@@ -522,6 +550,7 @@ void HandleEvent(const AppEvent &event) {
 
 void OwnerTask(void *) {
     s_state.boot_us = esp_timer_get_time();
+    PowerLogBootCause();
     // Display/frame storage is application state: initialize inside the
     // owner task so no other task ever touches it.
     DisplayServiceInit();
@@ -541,6 +570,7 @@ void OwnerTask(void *) {
             pdTRUE) {
             StorageFlushIfDue(esp_timer_get_time());
             UiRegionTick(esp_timer_get_time());
+            PowerAutoTick(esp_timer_get_time());
             continue;
         }
         const uint32_t depth =
@@ -552,6 +582,7 @@ void OwnerTask(void *) {
         MaybeQueueSoakStep();
         StorageFlushIfDue(esp_timer_get_time());
         UiRegionTick(esp_timer_get_time());
+        PowerAutoTick(esp_timer_get_time());
     }
 }
 

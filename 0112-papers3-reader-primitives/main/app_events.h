@@ -69,6 +69,9 @@ enum class ConsoleOp : uint8_t {
     Library,     // arg: 0 = list, 1 = scan, 2 = show on-screen
     Bookmark,    // arg: 0 = list, 1 = toggle, 2 = goto (index in arg2)
     Widget,      // arg: 1 = hello fixture, 2 = status fixture (live region)
+    Sleep,       // arg: 0 = status, 1 = deep (timer wake, arg2 s),
+                 //      2 = rtc-off (RTC wake, arg2 s), 3 = off,
+                 //      4 = auto-sleep policy (arg2 s, 0 disables)
 };
 
 enum class PointerPhase : uint8_t {
@@ -232,6 +235,15 @@ struct ReaderSnapshot {
     char title[40];
 };
 
+struct PowerSnapshot {
+    int32_t battery_level;  // 0..100, -1 unknown
+    int32_t battery_mv;
+    uint8_t charging;
+    uint8_t wakeup_cause;   // esp_sleep_wakeup_cause_t of this boot
+    uint8_t reset_reason;   // esp_reset_reason_t of this boot
+    uint32_t auto_sleep_sec;
+};
+
 struct SdSnapshot {
     uint8_t mounted;
     uint32_t capacity_mib;
@@ -270,6 +282,7 @@ struct AppReply {
         TouchSnapshot touch;
         ReaderSnapshot reader;
         SdSnapshot sd;
+        PowerSnapshot power;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

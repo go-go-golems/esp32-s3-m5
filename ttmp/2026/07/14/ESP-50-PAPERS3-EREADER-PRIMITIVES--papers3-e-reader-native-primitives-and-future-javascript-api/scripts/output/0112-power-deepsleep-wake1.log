@@ -1,0 +1,15 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (932) esp_psram: SPI SRAM memory test OK
+
+[5nI (1001) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1016) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1016) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| I (932) esp_psra
+# >>> sleep status
+sleep status
+Unrecognized command
+reader> 
+# >>> reader
+reader
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=2572 progress=72.8% lines=23 turns=0 at_end=0 checkpoints=1 bookmarked=1 marks=2
+reader> 
+# done
