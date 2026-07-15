@@ -313,3 +313,12 @@ Step 23 recorded code-only Printalyzer sources (194e58a), density-aware raw capt
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 23
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md — Step 23 experiment result
+
+## 2026-07-14
+
+Preserved placement and perturbation experiments 005-007: manual reseating changed mean density by 0.078 D, an immediate repeat contained a recoverable 0.086 D excursion, and a hand-wave run was causally confounded by app-background changes. Preregistered experiment 008 and a guarded orchestrator for an exact-F0 fixed-point dynamic density trace.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/31-run-synchronized-f0-density.sh — Guarded raw-stream plus exact-F0 orchestration
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/01-preregistration.md — Dynamic F0 density protocol

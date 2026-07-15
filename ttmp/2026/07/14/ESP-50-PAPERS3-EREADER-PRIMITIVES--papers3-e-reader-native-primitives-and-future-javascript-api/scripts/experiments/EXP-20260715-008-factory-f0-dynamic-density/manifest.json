@@ -1,0 +1,59 @@
+{
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "collector_result": "ok",
+    "interpretation": "segment change points and plateau densities without imposing post-hoc visual labels; reject absolute cross-run comparisons",
+    "invalid_density_estimates": 0,
+    "minimum_post_flash_capture_seconds": 25,
+    "saturated_samples": 0
+  },
+  "firmware": {
+    "flash_offset": "0x0",
+    "kind": "exact merged release",
+    "sha256": "d6733a0ca378f95335fa5fba4d4d992fb1dd97c17557b20e9aebfca08ba6d624"
+  },
+  "hypothesis": "A fixed point-density trace objectively separates the F0 full-black, full-white, grayscale, and dashboard states without relying on camera luminance.",
+  "id": "EXP-20260715-008-factory-f0-dynamic-density",
+  "limitations": [
+    "single point only",
+    "100 ms integration plus USB latency",
+    "exact F0 has no firmware ring",
+    "continuous full-duty reflection light for at most 45 seconds",
+    "current open-head geometry is placement-sensitive"
+  ],
+  "papers3": {
+    "expected_sequence": [
+      "title",
+      "full black",
+      "full white",
+      "grayscale bars",
+      "dashboard"
+    ],
+    "panel": "ED047TC1",
+    "pre_run_state": "current app/background state is not trusted; exact F0 flash establishes sequence",
+    "sample_region": "fixed current middle-ish aperture; no movement from EXP-007"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 45,
+    "gain_index": 2,
+    "integration_ms": 100,
+    "pre_flash_baseline_seconds": 2,
+    "reflection_light_duty": 128,
+    "version": "v1.1.0"
+  },
+  "safety": [
+    "do not move Printalyzer during run",
+    "stop on heat, odor, sound, power instability, or mechanical movement",
+    "retain original F0 video as spatial evidence",
+    "no F1 authorization follows automatically from this run"
+  ],
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Exact FactoryTest V0.5 F0 replay with fixed-position 100 ms Printalyzer stream"
+}

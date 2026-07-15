@@ -1,0 +1,56 @@
+{
+  "baseline": {
+    "density_range_d": 0.002242799965779696,
+    "experiment": "EXP-20260714-004-printalyzer-static-white-raw",
+    "mean_density_d": 0.678141959858665
+  },
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "invalid_density_estimates": 0,
+    "maximum_absolute_mean_delta_from_exp004_d": 0.03,
+    "maximum_density_range_d": 0.05,
+    "minimum_post_settling_samples": 20,
+    "saturated_samples": 0
+  },
+  "hypothesis": "Lift-and-reseat changes the mean host density estimate by no more than 0.03 D while preserving within-run stability and headroom.",
+  "id": "EXP-20260715-005-printalyzer-repositioned-white-raw",
+  "limitations": [
+    "operator could not reproduce exact aperture coordinates",
+    "between-run delta includes spatial nonuniformity and placement sensitivity",
+    "single aperture point",
+    "host estimate is not normal calibrated measurement"
+  ],
+  "papers3": {
+    "panel": "ED047TC1",
+    "sample_region": "operator deliberately lifted and re-seated in same orientation on approximately same middle-ish white region",
+    "sensor_head": "operator reported repositioning complete",
+    "state": "ROM download mode; no reset, flash, or panel update permitted"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 5,
+    "gain_index": 2,
+    "integration_index": 0,
+    "integration_ms": 100,
+    "mode": "remote diagnostic continuous reflection",
+    "reflection_light_duty": 128,
+    "settling_samples_excluded": 2,
+    "uid": "323147103439323344002900",
+    "version": "v1.1.0"
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "stop_conditions": [
+    "sensor head moves",
+    "unexpected panel change",
+    "command rejection",
+    "cleanup error",
+    "serial disconnect"
+  ],
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Printalyzer lift-and-reseat repeat over approximately the same middle-ish white PaperS3 region"
+}

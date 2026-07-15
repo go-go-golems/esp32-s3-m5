@@ -1,0 +1,44 @@
+{
+  "baseline": {
+    "experiment": "EXP-20260715-005-printalyzer-repositioned-white-raw",
+    "mean_density_d": 0.6000750526478993
+  },
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "invalid_density_estimates": 0,
+    "maximum_absolute_mean_delta_from_exp005_d": 0.005,
+    "maximum_density_range_d": 0.01,
+    "minimum_post_settling_samples": 20,
+    "saturated_samples": 0
+  },
+  "hypothesis": "Without movement, the repeated mean differs from EXP-005 by no more than 0.005 D.",
+  "id": "EXP-20260715-006-printalyzer-fixed-position-repeat",
+  "limitations": [
+    "exploratory immediate repeat requested by operator",
+    "does not resolve spatial/placement cause of EXP-004 versus EXP-005 delta",
+    "single aperture point"
+  ],
+  "papers3": {
+    "operator_instruction": "leave Printalyzer in place",
+    "sample_region": "unchanged from EXP-005 repositioned middle-ish white location",
+    "state": "ROM download mode; no reset, flash, or panel update"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 5,
+    "gain_index": 2,
+    "integration_index": 0,
+    "integration_ms": 100,
+    "reflection_light_duty": 128,
+    "settling_samples_excluded": 2,
+    "version": "v1.1.0"
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Immediate repeat with no Printalyzer movement after EXP-005"
+}

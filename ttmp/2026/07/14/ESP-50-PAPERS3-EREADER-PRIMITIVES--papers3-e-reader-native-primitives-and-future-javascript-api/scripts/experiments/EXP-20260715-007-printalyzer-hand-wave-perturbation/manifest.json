@@ -1,0 +1,43 @@
+{
+  "baseline": {
+    "experiment": "EXP-20260715-005-printalyzer-repositioned-white-raw",
+    "mean_density_d": 0.6000750526478993
+  },
+  "decision_rule": {
+    "cleanup_required": [
+      "ID S,STOP",
+      "SD LR,0",
+      "IS REMOTE,0"
+    ],
+    "invalid_density_estimates": 0,
+    "maximum_absolute_excursion_from_median_d": 0.01,
+    "maximum_density_range_d": 0.01,
+    "minimum_post_settling_samples": 80,
+    "saturated_samples": 0
+  },
+  "hypothesis": "A properly light-sealed stationary reflection geometry is insensitive to nearby hand motion: post-settling density range remains <=0.01 D and no excursion from the median exceeds 0.01 D.",
+  "id": "EXP-20260715-007-printalyzer-hand-wave-perturbation",
+  "limitations": [
+    "operator hand-wave timing is not independently marked",
+    "a failure detects optical/mechanical sensitivity but does not identify exact ingress path"
+  ],
+  "operator_perturbation": "wave hand around instrument during capture; do not touch instrument, table, PaperS3, or cables",
+  "papers3": {
+    "sample_region": "unchanged middle-ish white position from EXP-005/006",
+    "state": "ROM download mode; no reset, flash, or panel update"
+  },
+  "printalyzer": {
+    "build": "g7101373",
+    "duration_seconds": 10,
+    "gain_index": 2,
+    "integration_index": 0,
+    "integration_ms": 100,
+    "reflection_light_duty": 128,
+    "settling_samples_excluded": 2,
+    "version": "v1.1.0"
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "status": "preregistered",
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Ten-second fixed-position stream while operator waves a hand around the Printalyzer without touching it"
+}
