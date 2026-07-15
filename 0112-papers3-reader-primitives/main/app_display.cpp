@@ -357,6 +357,18 @@ s3paper::BackendState M5BackendState() {
 
 s3paper::RefreshPlanner &Planner() { return *s_planner; }
 
+s3paper::FrameBuilder &FrameBuilderRef() { return *s_builder; }
+
+s3paper::Result<s3paper::RenderFrame> FinishFrame() {
+    return s_builder->Finish(s_next_frame_id++);
+}
+
+PlannedPresent PresentFramePlanned(const s3paper::RenderFrame &frame,
+                                   s3paper::PresentIntent intent,
+                                   bool use_m5) {
+    return PresentPlanned(frame, intent, use_m5);
+}
+
 s3paper::Status EnsureM5Init() {
     if (s_m5 == nullptr) {
         return s3paper::ErrStatus(s3paper::StatusCode::Busy);

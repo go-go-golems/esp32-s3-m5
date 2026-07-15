@@ -8,6 +8,7 @@
 #pragma once
 
 #include "s3paper/display_backend.h"
+#include "s3paper/frame_builder.h"
 #include "s3paper/input.h"
 #include "s3paper/refresh_planner.h"
 
@@ -43,6 +44,12 @@ s3paper::BackendState M5BackendState();
 
 // The single refresh planner (owner-task-only, like everything here).
 s3paper::RefreshPlanner &Planner();
+
+// Frame-building hooks for owner-side controllers (owner-task-only).
+s3paper::FrameBuilder &FrameBuilderRef();
+s3paper::Result<s3paper::RenderFrame> FinishFrame();
+PlannedPresent PresentFramePlanned(const s3paper::RenderFrame &frame,
+                                   s3paper::PresentIntent intent, bool use_m5);
 
 // Initializes the M5 backend if it isn't yet (owner-task-only).
 s3paper::Status EnsureM5Init();

@@ -1,0 +1,61 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> reader next
+reader next
+I (103030) m5_backend: present id=6 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=191765 wait_us=6
+I (103031) reader_ctl: page at 580 lines=19 full=0 reason=PartialDamage
+reader open=1 offset=580 progress=24.4% lines=19 turns=5 at_end=0 checkpoints=3
+reader> 
+# >>> reader next
+reader next
+I (111044) m5_backend: present id=7 intent=TextPage ops=23 skipped=0 damage=0,0,540,960 render_us=190330 wait_us=6
+I (111045) reader_ctl: page at 1151 lines=18 full=0 reason=PartialDamage
+reader open=1 offset=1151 progress=36.0% lines=18 turns=6 at_end=0 checkpoints=3
+reader> 
+# >>> reader next
+reader next
+I (119066) m5_backend: present id=8 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=197668 wait_us=5
+I (119067) reader_ctl: page at 1692 lines=19 full=0 reason=PartialDamage
+reader open=1 offset=1692 progress=48.0% lines=19 turns=7 at_end=0 checkpoints=4
+reader> 
+# >>> reader next
+reader next
+I (127075) m5_backend: present id=9 intent=TextPage ops=23 skipped=0 damage=0,0,540,960 render_us=185335 wait_us=6
+I (127076) reader_ctl: page at 2257 lines=18 full=0 reason=PartialDamage
+reader open=1 offset=2257 progress=59.0% lines=18 turns=8 at_end=0 checkpoints=5
+reader> 
+# >>> reader next
+reader next
+I (135096) m5_backend: present id=10 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=196902 wait_us=6
+I (135097) reader_ctl: page at 2776 lines=19 full=0 reason=PartialDamage
+reader open=1 offset=2776 progress=71.7% lines=19 turns=9 at_end=0 checkpoints=6
+reader> 
+# >>> reader next
+reader next
+I (143118) m5_backend: present id=11 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=198752 wait_us=6
+I (143119) reader_ctl: page at 3370 lines=19 full=0 reason=PartialDamage
+reader open=1 offset=3370 progress=84.2% lines=19 turns=10 at_end=0 checkpoints=7
+reader> 
+# >>> reader next
+reader next
+I (151138) m5_backend: present id=12 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=196965 wait_us=6
+I (151139) reader_ctl: page at 3959 lines=19 full=0 reason=PartialDamage
+reader open=1 offset=3959 progress=96.7% lines=19 turns=11 at_end=0 checkpoints=8
+reader> 
+# >>> reader next
+reader next
+I (159080) m5_backend: present id=13 intent=TextPage ops=11 skipped=0 damage=0,0,540,960 render_us=120065 wait_us=6
+I (159081) reader_ctl: page at 4548 lines=6 full=0 reason=PartialDamage
+reader open=1 offset=4548 progress=100.0% lines=6 turns=12 at_end=1 checkpoints=9
+reader> 
+# >>> reader next
+reader next
+reader: at end of book
+reader open=1 offset=4548 progress=100.0% lines=6 turns=12 at_end=1 checkpoints=9
+reader> 
+# >>> reader next
+reader next
+reader: at end of book
+reader open=1 offset=4548 progress=100.0% lines=6 turns=12 at_end=1 checkpoints=9
+reader> 
+# done

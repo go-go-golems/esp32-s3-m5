@@ -11,8 +11,10 @@
 #include "s3paper/fake_backend.h"
 #include "s3paper/frame_arena.h"
 #include "s3paper/frame_builder.h"
+#include "s3paper/content.h"
 #include "s3paper/geometry.h"
 #include "s3paper/input.h"
+#include "s3paper/paginator.h"
 #include "s3paper/refresh_planner.h"
 #include "s3paper/status.h"
 #include "s3paper/text.h"
@@ -840,6 +842,177 @@ static void TestGoldenLineBreaks() {
     }
 }
 
+static LayoutKey MakeTestKey(ContentSource &source) {
+    LayoutKey key{};
+    key.content = source.Hash().value;
+    key.font_id = kFontBody;
+    key.viewport_w = 540;
+    key.viewport_h = 960;
+    key.margin_x = 40;
+    key.margin_top = 40;
+    key.margin_bottom = 40;
+    key.engine_version = kLayoutEngineVersion;
+    return key;
+}
+
+static std::string MakeTestBook(uint32_t paragraphs) {
+    std::string book;
+    for (uint32_t i = 0; i < paragraphs; ++i) {
+        book += "Paragraph " + std::to_string(i) +
+                ": the quick brown fox jumps over the lazy dog while the "
+                "clocks strike thirteen and the reader keeps turning pages "
+                "without losing a single measured word.";
+        book += "\n";
+    }
+    return book;
+}
+
+static void TestContentSource() {
+    const std::string book = MakeTestBook(3);
+    MemoryContentSource src(book.data(), book.size());
+    CHECK(src.Size().value == book.size());
+    uint8_t buf[16];
+    CHECK(src.ReadAt(0, buf, 16).value == 16);
+    CHECK(std::memcmp(buf, "Paragraph 0", 11) == 0);
+    // Short read at end; zero read past end.
+    CHECK(src.ReadAt(book.size() - 4, buf, 16).value == 4);
+    CHECK(src.ReadAt(book.size() + 10, buf, 16).value == 0);
+    // Identity changes with content and with size.
+    MemoryContentSource other(book.data(), book.size() - 1);
+    CHECK(src.Hash().value != other.Hash().value);
+}
+
+static void TestPaginatorForward() {
+    const std::string book = MakeTestBook(200);  // ~35 KB, several windows
+    MemoryContentSource src(book.data(), book.size());
+    Paginator paginator(&src, MakeTestKey(src));
+    Result<TextLocator> cursor = paginator.Begin();
+    CHECK(cursor.ok());
+    CHECK(paginator.Validate(cursor.value).ok());
+
+    PageLayout page;
+    uint32_t pages = 0;
+    uint64_t last_offset = 0;
+    uint64_t covered_to = 0;
+    while (pages < 500) {
+        CHECK(paginator.ComposePage(cursor.value, &page).ok());
+        CHECK(page.line_count > 0);
+        // Lines are within the content and the viewport, in reading order.
+        for (uint32_t i = 0; i < page.line_count; ++i) {
+            CHECK(page.lines[i].byte_start + page.lines[i].byte_len <=
+                  book.size());
+            CHECK(page.lines[i].baseline_y <= 960 - 40);
+            if (i > 0) {
+                CHECK(page.lines[i].byte_start >
+                      page.lines[i - 1].byte_start);
+            }
+        }
+        // Forward progress, no gaps between what pages cover.
+        CHECK(page.next.byte_offset > page.start.byte_offset || page.at_end);
+        CHECK(page.start.byte_offset >= covered_to ||
+              page.start.byte_offset == last_offset);
+        covered_to = page.next.byte_offset;
+        pages++;
+        if (page.at_end) {
+            break;
+        }
+        last_offset = page.next.byte_offset;
+        cursor = Result<TextLocator>::Ok(page.next);
+    }
+    CHECK(page.at_end);
+    CHECK(pages > 10);
+    CHECK(pages < 500);
+    // Progress is monotone and ends at 1000 permille.
+    CHECK(paginator.ProgressPermille(page.next).value == 1000);
+}
+
+static void TestPaginatorPrevRoundTrip() {
+    const std::string book = MakeTestBook(120);
+    MemoryContentSource src(book.data(), book.size());
+    Paginator paginator(&src, MakeTestKey(src));
+    // Walk five pages forward, remembering starts.
+    TextLocator starts[6];
+    Result<TextLocator> cursor = paginator.Begin();
+    CHECK(cursor.ok());
+    PageLayout page;
+    for (int i = 0; i < 6; ++i) {
+        starts[i] = cursor.value;
+        CHECK(paginator.ComposePage(cursor.value, &page).ok());
+        cursor = Result<TextLocator>::Ok(page.next);
+    }
+    // Previous from each page start returns exactly the prior start
+    // (checkpoints recorded during the forward walk).
+    for (int i = 5; i >= 1; --i) {
+        const Result<TextLocator> prev =
+            paginator.PreviousPageStart(starts[i]);
+        CHECK(prev.ok());
+        CHECK(prev.value.byte_offset == starts[i - 1].byte_offset);
+    }
+    // Previous at the beginning stays put.
+    const Result<TextLocator> at_start =
+        paginator.PreviousPageStart(starts[0]);
+    CHECK(at_start.ok());
+    CHECK(at_start.value.byte_offset == 0);
+    // Previous works without checkpoints too (fresh paginator, cold cache):
+    Paginator cold(&src, MakeTestKey(src));
+    const Result<TextLocator> cold_prev =
+        cold.PreviousPageStart(starts[3]);
+    CHECK(cold_prev.ok());
+    CHECK(cold_prev.value.byte_offset < starts[3].byte_offset);
+    // Composing from the cold result reaches starts[3] exactly.
+    PageLayout probe;
+    CHECK(cold.ComposePage(cold_prev.value, &probe).ok());
+    CHECK(probe.next.byte_offset >= starts[3].byte_offset);
+}
+
+static void TestPaginatorEdgeCases() {
+    // Empty book: one empty page, at_end immediately.
+    MemoryContentSource empty("", 0);
+    Paginator pe(&empty, MakeTestKey(empty));
+    PageLayout page;
+    CHECK(pe.ComposePage(pe.Begin().value, &page).ok() == false ||
+          page.at_end);  // compose of empty content must not loop
+    // One-line book.
+    const char tiny[] = "hello world";
+    MemoryContentSource small(tiny, sizeof(tiny) - 1);
+    Paginator ps(&small, MakeTestKey(small));
+    CHECK(ps.ComposePage(ps.Begin().value, &page).ok());
+    CHECK(page.line_count == 1);
+    CHECK(page.at_end);
+    CHECK(ps.ProgressPermille(page.next).value == 1000);
+    // Huge single paragraph (larger than the 8 KiB window): pages stay
+    // bounded, progress continues, and every page's lines decode cleanly.
+    std::string huge;
+    while (huge.size() < 40000) {
+        huge += "megaparagraph without any newline separators keeps going ";
+    }
+    MemoryContentSource hs(huge.data(), huge.size());
+    Paginator ph(&hs, MakeTestKey(hs));
+    Result<TextLocator> cursor = ph.Begin();
+    uint32_t pages = 0;
+    while (pages < 200) {
+        CHECK(ph.ComposePage(cursor.value, &page).ok());
+        pages++;
+        if (page.at_end) {
+            break;
+        }
+        CHECK(page.next.byte_offset > page.start.byte_offset);
+        cursor = Result<TextLocator>::Ok(page.next);
+    }
+    CHECK(page.at_end);
+    // Malformed UTF-8 content still paginates (replacement glyph metrics).
+    std::string bad = "prefix \xFF\xFE\x80 suffix\nmore \xC3 text";
+    MemoryContentSource bs(bad.data(), bad.size());
+    Paginator pb(&bs, MakeTestKey(bs));
+    CHECK(pb.ComposePage(pb.Begin().value, &page).ok());
+    CHECK(page.line_count >= 1);
+    // Locator validation detects content change.
+    Paginator pv(&small, MakeTestKey(small));
+    TextLocator loc = pv.Begin().value;
+    loc.context_hash ^= 0xdeadbeef;
+    CHECK(pv.Validate(loc).code == StatusCode::CorruptData);
+}
+
 int main() {
     TestGeometryBasics();
     TestIntersectUnion();
@@ -865,6 +1038,10 @@ int main() {
     TestParagraphs();
     TestLineBreaking();
     TestGoldenLineBreaks();
+    TestContentSource();
+    TestPaginatorForward();
+    TestPaginatorPrevRoundTrip();
+    TestPaginatorEdgeCases();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

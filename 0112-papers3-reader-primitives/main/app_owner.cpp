@@ -2,6 +2,7 @@
 
 #include "app_display.h"
 #include "app_input.h"
+#include "app_reader.h"
 
 #include <atomic>
 #include <cstring>
@@ -280,6 +281,23 @@ void HandleConsoleCommand(const AppEvent &event) {
             s_state.soak.start_us = esp_timer_get_time();
             ESP_LOGI(kTag, "soak start target=%u",
                      static_cast<unsigned>(target));
+            break;
+        }
+        case ConsoleOp::Reader: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = ReaderOpen();
+                    break;
+                case 2:
+                    reply.status = ReaderNext();
+                    break;
+                case 3:
+                    reply.status = ReaderPrev();
+                    break;
+                default:
+                    break;
+            }
+            FillReaderSnapshot(&reply.payload.reader);
             break;
         }
         case ConsoleOp::Touch: {

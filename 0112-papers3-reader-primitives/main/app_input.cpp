@@ -9,6 +9,7 @@
 
 #include "app_display.h"
 #include "app_owner.h"
+#include "app_reader.h"
 #include "s3paper/input.h"
 
 namespace reader {
@@ -73,6 +74,8 @@ void HandleGesture(const s3paper::GestureEvent &gesture) {
              s3paper::GestureKindName(gesture.kind),
              static_cast<int>(gesture.pos.x),
              static_cast<int>(gesture.pos.y));
+    // Owner context: hand gestures to the reader controller directly.
+    (void)ReaderHandleGesture(gesture);
 }
 
 }  // namespace

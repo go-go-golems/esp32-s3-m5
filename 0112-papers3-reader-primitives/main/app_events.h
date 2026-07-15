@@ -63,6 +63,7 @@ enum class ConsoleOp : uint8_t {
     SoakStart,   // arg: number of steps
     SoakStatus,
     Touch,       // arg: 0 = status, 1 = enable, 2 = disable
+    Reader,      // arg: 0 = status, 1 = open, 2 = next, 3 = prev
 };
 
 enum class PointerPhase : uint8_t {
@@ -209,6 +210,16 @@ struct TouchSnapshot {
     uint32_t scheduler_pending;
 };
 
+struct ReaderSnapshot {
+    uint8_t open;
+    uint8_t at_end;
+    uint64_t byte_offset;
+    uint32_t line_count;
+    uint32_t page_turns;
+    uint32_t progress_permille;
+    uint32_t checkpoints;
+};
+
 struct DisplaySnapshot {
     uint8_t app_state;
     uint8_t fake_initialized;
@@ -232,6 +243,7 @@ struct AppReply {
         RefreshSnapshot refresh;
         SoakSnapshot soak;
         TouchSnapshot touch;
+        ReaderSnapshot reader;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

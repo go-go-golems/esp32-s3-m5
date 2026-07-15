@@ -524,6 +524,44 @@ int CmdTouch(int argc, char **argv) {
     return 0;
 }
 
+int CmdReader(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "open") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "next") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "prev") == 0) {
+            arg = 3;
+        } else if (strcmp(argv[1], "status") != 0) {
+            printf("error: InvalidArgument: usage reader "
+                   "[open|next|prev|status]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArg(ConsoleOp::Reader, arg, &reply, 15000);
+    const ReaderSnapshot &r = reply.payload.reader;
+    if (status != StatusCode::Ok && status != StatusCode::InvalidArgument) {
+        printf("reader op failed: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    if (status == StatusCode::InvalidArgument) {
+        printf("reader: %s\n",
+               r.at_end ? "at end of book" : "at beginning of book");
+    }
+    printf("reader open=%u offset=%llu progress=%u.%u%% lines=%u "
+           "turns=%u at_end=%u checkpoints=%u\n",
+           r.open, static_cast<unsigned long long>(r.byte_offset),
+           static_cast<unsigned>(r.progress_permille / 10),
+           static_cast<unsigned>(r.progress_permille % 10),
+           static_cast<unsigned>(r.line_count),
+           static_cast<unsigned>(r.page_turns), r.at_end,
+           static_cast<unsigned>(r.checkpoints));
+    return 0;
+}
+
 int CmdShutdown(int, char **) {
     AppEvent event = MakeEvent(AppEventKind::ShutdownRequest,
                                EventSource::Console, true);
@@ -593,6 +631,10 @@ void ConsoleStart() {
                     "touch [on|off|status] - GT911 polling, pointer events, "
                     "gestures, quiet windows",
                     &CmdTouch);
+    RegisterCommand("reader",
+                    "reader [open|next|prev|status] - embedded-book reading "
+                    "slice (touch: tap/swipe turns pages)",
+                    &CmdReader);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);

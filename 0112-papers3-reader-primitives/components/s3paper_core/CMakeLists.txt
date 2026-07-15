@@ -8,6 +8,8 @@ idf_component_register(
         "src/refresh_planner.cpp"
         "src/input.cpp"
         "src/text.cpp"
+        "src/content.cpp"
+        "src/paginator.cpp"
     INCLUDE_DIRS
         "include"
 )
