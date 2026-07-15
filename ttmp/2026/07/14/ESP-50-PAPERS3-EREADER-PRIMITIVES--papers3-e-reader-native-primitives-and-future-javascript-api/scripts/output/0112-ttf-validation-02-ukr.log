@@ -1,0 +1,9 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> fixture text
+fixture text
+I (119692) m5_backend: present id=5 intent=TextPage ops=16 skipped=0 damage=0,0,540,960 render_us=260309 wait_us=6
+fixture backend=text-m5 id=5 ops_drawn=16 ops_skipped=0 damage=0,0,540,960 render_us=260309 wait_us=6 status=Ok
+plan full=0 waveform=Text reason=PartialDamage
+reader> 
+# done

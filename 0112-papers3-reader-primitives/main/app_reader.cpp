@@ -48,13 +48,16 @@ s3paper::LayoutKey MakeKey() {
 // Renders the current page: header (title), body lines, footer (progress).
 StatusCode RenderCurrentPage() {
     s3paper::FrameBuilder &fb = FrameBuilderRef();
-    const s3paper::GfxFont *ui = s3paper::GetFont(s3paper::kFontUi);
+    const s3paper::FontLineMetrics ui =
+        s3paper::GetFontLineMetrics(s3paper::kFontUi).value;
+    const s3paper::FontLineMetrics body =
+        s3paper::GetFontLineMetrics(s3paper::kFontBody).value;
     fb.Begin();
     s3paper::Status st = fb.FillRect(s3paper::Rect{0, 0, 540, 960}, 255);
     if (!st.ok()) return st.code;
     // Header.
-    st = fb.GlyphRun(s3paper::Rect{kMarginX, 16, 460, ui->y_advance + 4},
-                     16 + ui->y_advance, s3paper::kFontUi, 0,
+    st = fb.GlyphRun(s3paper::Rect{kMarginX, 16, 460, ui.line_height + 4},
+                     16 + ui.line_height, s3paper::kFontUi, 0,
                      kEmbeddedBookTitle, sizeof(kEmbeddedBookTitle) - 1, 0);
     if (!st.ok()) return st.code;
     st = fb.HLine(kMarginX, 56, 540 - 2 * kMarginX, 0);
@@ -71,12 +74,8 @@ StatusCode RenderCurrentPage() {
             line.byte_start, reinterpret_cast<uint8_t *>(buf), len);
         if (!got.ok()) return got.code;
         st = fb.GlyphRun(
-            s3paper::Rect{kMarginX,
-                          line.baseline_y -
-                              s3paper::GetFont(s3paper::kFontBody)->y_advance +
-                              8,
-                          line.width, s3paper::GetFont(s3paper::kFontBody)
-                              ->y_advance},
+            s3paper::Rect{kMarginX, line.baseline_y - body.ascent,
+                          line.width, body.line_height},
             line.baseline_y, s3paper::kFontBody, 0, buf, got.value, 0);
         if (!st.ok()) return st.code;
     }

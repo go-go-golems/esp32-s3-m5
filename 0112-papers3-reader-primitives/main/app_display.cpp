@@ -128,9 +128,36 @@ s3paper::Status BuildFixture(s3paper::FrameBuilder &fb) {
 
 }  // namespace
 
+// Embedded PT Serif subset (Latin + Ukrainian), registered for both font
+// ids. Pixel sizes chosen so the body line height (~42 px) matches the
+// previous bitmap font's rhythm. See design-doc/04 for the decision record.
+extern "C" const uint8_t _binary_PTSerifUkr_ttf_start[];
+extern "C" const uint8_t _binary_PTSerifUkr_ttf_end[];
+
 void DisplayServiceInit() {
     if (s_builder != nullptr) {
         return;
+    }
+    const uint32_t font_size = static_cast<uint32_t>(
+        _binary_PTSerifUkr_ttf_end - _binary_PTSerifUkr_ttf_start);
+    const s3paper::Status ui_font = s3paper::RegisterTtfFont(
+        s3paper::kFontUi, _binary_PTSerifUkr_ttf_start, font_size, 22);
+    const s3paper::Status body_font = s3paper::RegisterTtfFont(
+        s3paper::kFontBody, _binary_PTSerifUkr_ttf_start, font_size, 34);
+    if (!ui_font.ok() || !body_font.ok()) {
+        ESP_LOGE(kTag, "TTF font registration failed (%s/%s); GFX fallback",
+                 s3paper::StatusCodeName(ui_font.code),
+                 s3paper::StatusCodeName(body_font.code));
+    } else {
+        const s3paper::FontLineMetrics body =
+            s3paper::GetFontLineMetrics(s3paper::kFontBody).value;
+        ESP_LOGI(kTag,
+                 "PT Serif registered: %u bytes, body ascent=%d descent=%d "
+                 "line_height=%d",
+                 static_cast<unsigned>(font_size),
+                 static_cast<int>(body.ascent),
+                 static_cast<int>(body.descent),
+                 static_cast<int>(body.line_height));
     }
     s_ops = static_cast<s3paper::DrawOp *>(heap_caps_malloc(
         kOpCapacity * sizeof(s3paper::DrawOp), MALLOC_CAP_SPIRAM));
@@ -190,20 +217,27 @@ PlannedPresent RunFixture(bool use_m5) {
                           use_m5);
 }
 
-// Canned public-domain body text for the Phase 5 fixture (Alice in
-// Wonderland opening) with an accent to exercise the fallback glyph.
-constexpr const char kFixtureTitle[] = "Chapter I: Down the Rabbit-Hole";
+// Canned body text for the Phase 5 typography fixture: English paragraph,
+// the Ukrainian pangram + apostrophe cases (ticket 3r0u acceptance), an
+// accented-Latin line, and a CJK codepoint to prove the fallback box.
+constexpr const char kFixtureTitle[] = "Typography fixture / \xD0\xA8\xD1\x80\xD0\xB8\xD1\x84\xD1\x82";
 constexpr const char kFixtureBody[] =
     "Alice was beginning to get very tired of sitting by her sister on the "
     "bank, and of having nothing to do: once or twice she had peeped into "
     "the book her sister was reading, but it had no pictures or "
-    "conversations in it, \"and what is the use of a book,\" thought Alice, "
-    "\"without pictures or conversations?\"\n"
-    "So she was considering in her own mind (as well as she could, for the "
-    "hot day made her feel very sleepy and stupid), whether the pleasure of "
-    "making a daisy-chain would be worth the trouble of getting up and "
-    "picking the daisies, when suddenly a White Rabbit with pink eyes ran "
-    "close by her \xC3\xA9tude.";
+    "conversations in it. AVATAR Yield Tempo \xE2\x80\x94 kerning pairs.\n"
+    "\xD0\xA7\xD1\x83\xD1\x94\xD1\x88 \xD1\x97\xD1\x85, \xD0\xB4\xD0\xBE"
+    "\xD1\x86\xD1\x8E, \xD0\xB3\xD0\xB0? \xD0\x9A\xD1\x83\xD0\xBC\xD0\xB5"
+    "\xD0\xB4\xD0\xBD\xD0\xB0 \xD0\xB6 \xD1\x82\xD0\xB8, \xD0\xBF\xD1\x80"
+    "\xD0\xBE\xD1\x89\xD0\xB0\xD0\xB9\xD1\x81\xD1\x8F \xD0\xB1\xD0\xB5"
+    "\xD0\xB7 \xD2\x91\xD0\xBE\xD0\xBB\xD1\x8C\xD1\x84\xD1\x96\xD0\xB2!\n"
+    "\xD0\x9F'\xD1\x8F\xD1\x82\xD1\x8C \xE2\x80\x99 \xD0\xBC\xE2\x80\x99"
+    "\xD1\x8F\xD1\x87, \xD0\x9A\xD0\xB8\xD1\x97\xD0\xB2, \xD0\x84\xD0\xB2"
+    "\xD1\x80\xD0\xBE\xD0\xBF\xD0\xB0, \xD2\x90\xD0\xB0\xD0\xBD\xD0\xBE"
+    "\xD0\xBA \xE2\x80\x94 \xC2\xAB\xD0\xBB\xD0\xB0\xD0\xBF\xD0\xBA\xD0\xB8"
+    "\xC2\xBB.\n"
+    "Latin accents: caf\xC3\xA9 na\xC3\xAFve \xC3\xA9tude; fallback box: "
+    "\xE4\xB8\x80.";
 
 s3paper::Status BuildTextPage(s3paper::FrameBuilder &fb) {
     using s3paper::Rect;
@@ -214,18 +248,20 @@ s3paper::Status BuildTextPage(s3paper::FrameBuilder &fb) {
     s3paper::Status st = fb.FillRect(Rect{0, 0, 540, 960}, 255);
     if (!st.ok()) return st;
 
-    const s3paper::GfxFont *ui = s3paper::GetFont(s3paper::kFontUi);
-    const s3paper::GfxFont *body = s3paper::GetFont(s3paper::kFontBody);
-    int32_t baseline = kMarginTop + ui->y_advance;
+    const s3paper::FontLineMetrics ui =
+        s3paper::GetFontLineMetrics(s3paper::kFontUi).value;
+    const s3paper::FontLineMetrics body =
+        s3paper::GetFontLineMetrics(s3paper::kFontBody).value;
+    int32_t baseline = kMarginTop + ui.line_height;
     // Title in the UI font.
-    st = fb.GlyphRun(Rect{kMarginX, baseline - ui->y_advance, kTextWidth,
-                          ui->y_advance + 8},
+    st = fb.GlyphRun(Rect{kMarginX, baseline - ui.ascent, kTextWidth,
+                          ui.line_height + 8},
                      baseline, s3paper::kFontUi, 0, kFixtureTitle,
                      sizeof(kFixtureTitle) - 1, 0);
     if (!st.ok()) return st;
     st = fb.HLine(kMarginX, baseline + 10, kTextWidth, 0);
     if (!st.ok()) return st;
-    baseline += ui->y_advance + body->y_advance;
+    baseline += ui.line_height + body.line_height;
 
     // Body: paragraphs -> measured lines -> one GlyphRun per line.
     s3paper::TextSpan paras[16];
@@ -242,15 +278,15 @@ s3paper::Status BuildTextPage(s3paper::FrameBuilder &fb) {
                 return s3paper::OkStatus();  // page full
             }
             st = fb.GlyphRun(
-                Rect{kMarginX, baseline - body->y_advance + 8,
-                     lines[i].width, body->y_advance},
+                Rect{kMarginX, baseline - body.ascent, lines[i].width,
+                     body.line_height},
                 baseline, s3paper::kFontBody, 0,
                 kFixtureBody + paras[p].byte_start + lines[i].byte_start,
                 lines[i].byte_len, 0);
             if (!st.ok()) return st;
-            baseline += body->y_advance;
+            baseline += body.line_height;
         }
-        baseline += body->y_advance / 2;  // paragraph spacing
+        baseline += body.line_height / 2;  // paragraph spacing
     }
     return s3paper::OkStatus();
 }

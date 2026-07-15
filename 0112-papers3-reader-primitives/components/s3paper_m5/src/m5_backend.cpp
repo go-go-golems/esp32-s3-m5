@@ -2,6 +2,9 @@
 
 #include <M5Unified.h>
 
+#include <cstring>
+
+#include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 
@@ -42,6 +45,172 @@ epd_mode_t ModeForIntent(PresentIntent intent) {
 
 uint32_t GrayToColor(Gray8 gray) {
     return M5.Display.color888(gray, gray, gray);
+}
+
+// ---- TTF glyph cache (PSRAM) ----
+//
+// Rasterized 8-bit coverage bitmaps keyed by (font_id, codepoint); pixel
+// size is fixed per font id. When either the slot table or the byte pool
+// fills, the whole cache resets (explicit, counted) rather than evicting
+// silently.
+constexpr uint32_t kGlyphCacheSlots = 512;
+constexpr uint32_t kGlyphCacheBytes = 256 * 1024;
+
+struct GlyphCacheEntry {
+    bool valid;
+    uint8_t font_id;
+    uint32_t codepoint;
+    GlyphRaster raster;
+    uint32_t offset;
+};
+
+GlyphCacheEntry *s_glyph_slots = nullptr;
+uint8_t *s_glyph_pool = nullptr;
+uint32_t s_glyph_pool_used = 0;
+uint32_t s_glyph_cache_resets = 0;
+
+void GlyphCacheInit() {
+    if (s_glyph_slots != nullptr) {
+        return;
+    }
+    s_glyph_slots = static_cast<GlyphCacheEntry *>(heap_caps_calloc(
+        kGlyphCacheSlots, sizeof(GlyphCacheEntry), MALLOC_CAP_SPIRAM));
+    s_glyph_pool = static_cast<uint8_t *>(
+        heap_caps_malloc(kGlyphCacheBytes, MALLOC_CAP_SPIRAM));
+    if (s_glyph_slots == nullptr || s_glyph_pool == nullptr) {
+        ESP_LOGE(kTag, "glyph cache PSRAM allocation failed");
+        abort();
+    }
+}
+
+void GlyphCacheReset() {
+    std::memset(s_glyph_slots, 0,
+                kGlyphCacheSlots * sizeof(GlyphCacheEntry));
+    s_glyph_pool_used = 0;
+    s_glyph_cache_resets++;
+    ESP_LOGW(kTag, "glyph cache reset (%u total)",
+             static_cast<unsigned>(s_glyph_cache_resets));
+}
+
+// Returns the cached (or freshly rasterized) coverage bitmap, or nullptr
+// when the glyph has no raster (missing from font).
+const uint8_t *GlyphCacheGet(uint8_t font_id, uint32_t codepoint,
+                             GlyphRaster *out_raster) {
+    const uint32_t hash =
+        (codepoint * 2654435761u + font_id) % kGlyphCacheSlots;
+    for (uint32_t probe = 0; probe < kGlyphCacheSlots; ++probe) {
+        GlyphCacheEntry &slot =
+            s_glyph_slots[(hash + probe) % kGlyphCacheSlots];
+        if (slot.valid && slot.font_id == font_id &&
+            slot.codepoint == codepoint) {
+            *out_raster = slot.raster;
+            return s_glyph_pool + slot.offset;
+        }
+        if (!slot.valid) {
+            // Miss: rasterize into the pool at this slot.
+            const uint32_t remaining = kGlyphCacheBytes - s_glyph_pool_used;
+            const Result<GlyphRaster> raster = RasterizeGlyph(
+                font_id, codepoint, s_glyph_pool + s_glyph_pool_used,
+                remaining);
+            if (!raster.ok()) {
+                if (raster.code == StatusCode::CapacityExceeded) {
+                    GlyphCacheReset();
+                    return GlyphCacheGet(font_id, codepoint, out_raster);
+                }
+                return nullptr;  // glyph not in font
+            }
+            slot.valid = true;
+            slot.font_id = font_id;
+            slot.codepoint = codepoint;
+            slot.raster = raster.value;
+            slot.offset = s_glyph_pool_used;
+            s_glyph_pool_used += static_cast<uint32_t>(raster.value.width) *
+                                 raster.value.height;
+            *out_raster = slot.raster;
+            return s_glyph_pool + slot.offset;
+        }
+    }
+    // Slot table full of other glyphs: reset and retry once.
+    GlyphCacheReset();
+    return GlyphCacheGet(font_id, codepoint, out_raster);
+}
+
+// Blits an 8-bit coverage bitmap as horizontal runs of equal quantized
+// gray. AA mode quantizes coverage to the panel's 16 levels; 1-bit mode
+// thresholds at 50% (AA fringes are unpredictable in fast waveforms).
+void BlitCoverage(const uint8_t *coverage, const GlyphRaster &raster,
+                  int32_t pen_x, int32_t baseline_y, Gray8 text_gray,
+                  bool antialias) {
+    const int32_t x0 = pen_x + raster.x_offset;
+    const int32_t y0 = baseline_y + raster.y_offset;
+    for (int32_t row = 0; row < raster.height; ++row) {
+        const uint8_t *src = coverage + row * raster.width;
+        int32_t run_start = -1;
+        uint8_t run_value = 0;
+        for (int32_t col = 0; col <= raster.width; ++col) {
+            uint8_t v = 0;
+            if (col < raster.width) {
+                uint8_t c = src[col];
+                if (!antialias) {
+                    c = c >= 128 ? 255 : 0;
+                } else {
+                    c = static_cast<uint8_t>((c >> 4) * 17);  // 16 levels
+                }
+                // Composite text_gray over an assumed white background.
+                v = static_cast<uint8_t>(255 -
+                                         ((255 - text_gray) * c) / 255);
+            } else {
+                v = 255;  // sentinel: flush at end of row
+            }
+            if (run_start >= 0 && v != run_value) {
+                M5.Display.writeFastHLine(x0 + run_start, y0 + row,
+                                          col - run_start,
+                                          GrayToColor(run_value));
+                run_start = -1;
+            }
+            if (col < raster.width && v != 255 && run_start < 0) {
+                run_start = col;
+                run_value = v;
+            }
+        }
+    }
+}
+
+// Renders a glyph run from a registered TTF font with kerning.
+void RenderTtfGlyphRun(const DrawOp &op, const FrameArena *arena,
+                       bool antialias) {
+    const GlyphRunPayload &g = op.payload.glyph_run;
+    const char *text =
+        reinterpret_cast<const char *>(arena->Data(g.text_offset));
+    int32_t pen_x = op.bounds.x;
+    uint32_t pos = 0;
+    uint32_t cp = 0;
+    uint32_t prev_cp = 0;
+    while (Utf8Next(text, g.text_len, &pos, &cp)) {
+        const Result<GlyphMetrics> m = GetGlyphMetrics(g.font_id, cp);
+        if (!m.ok()) {
+            continue;
+        }
+        if (prev_cp != 0) {
+            pen_x += GetKernAdvance(g.font_id, prev_cp, cp);
+        }
+        if (m.value.fallback) {
+            M5.Display.drawRect(pen_x + m.value.x_offset,
+                                g.baseline_y + m.value.y_offset,
+                                m.value.width, m.value.height,
+                                GrayToColor(op.gray));
+        } else if (cp != ' ') {
+            GlyphRaster raster;
+            const uint8_t *coverage =
+                GlyphCacheGet(g.font_id, cp, &raster);
+            if (coverage != nullptr && raster.width > 0) {
+                BlitCoverage(coverage, raster, pen_x, g.baseline_y, op.gray,
+                             antialias);
+            }
+        }
+        pen_x += m.value.advance;
+        prev_cp = cp;
+    }
 }
 
 // Blits one glyph from the vendored GFX bitmap data as horizontal runs of
@@ -115,6 +284,7 @@ Status M5Backend::Init() {
         return ErrStatus(StatusCode::CorruptData);
     }
     physical_size_ = Size{M5.Display.width(), M5.Display.height()};
+    GlyphCacheInit();
     initialized_ = true;
     ESP_LOGI(kTag, "init board=%d display=%dx%d",
              static_cast<int>(M5.getBoard()),
@@ -174,7 +344,17 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                     result.ops_skipped++;
                     break;
                 }
-                RenderGlyphRun(op, frame.arena);
+                if (IsTtfFont(op.payload.glyph_run.font_id)) {
+                    // AA only in grayscale-capable waveform intents; fast
+                    // 1-bit waveforms threshold AA fringes unpredictably.
+                    const bool antialias =
+                        intent == PresentIntent::TextPage ||
+                        intent == PresentIntent::ImageQuality ||
+                        intent == PresentIntent::CleanFull;
+                    RenderTtfGlyphRun(op, frame.arena, antialias);
+                } else {
+                    RenderGlyphRun(op, frame.arena);
+                }
                 result.ops_drawn++;
                 break;
             case DrawOpKind::Bitmap:

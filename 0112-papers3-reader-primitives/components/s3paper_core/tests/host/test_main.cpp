@@ -721,11 +721,14 @@ static void TestFontMetrics() {
     const Result<GlyphMetrics> a_ui = GetGlyphMetrics(kFontUi, 'a');
     CHECK(a_ui.ok());
     CHECK(a.value.advance > a_ui.value.advance);
-    // Missing codepoint (é is outside 7b coverage): deterministic fallback.
+    // é is covered by the PT Serif subset; CJK is the deterministic fallback.
     const Result<GlyphMetrics> accent = GetGlyphMetrics(kFontBody, 0xE9);
     CHECK(accent.ok());
-    CHECK(accent.value.fallback);
-    CHECK(accent.value.advance > 0);
+    CHECK(!accent.value.fallback);
+    const Result<GlyphMetrics> cjk = GetGlyphMetrics(kFontBody, 0x4E00);
+    CHECK(cjk.ok());
+    CHECK(cjk.value.fallback);
+    CHECK(cjk.value.advance > 0);
     // Measurement sums advances; wider strings measure wider.
     const Result<int32_t> hello =
         MeasureText(kFontBody, "hello", 5);
@@ -824,14 +827,14 @@ static void TestGoldenLineBreaks() {
         BreakLines(kFontBody, para, sizeof(para) - 1, 460, lines, 16);
     CHECK(n.ok());
     // Pin the exact segmentation; any metrics or breaker change must be a
-    // deliberate golden update.
+    // deliberate golden update. Re-pinned 2026-07-15 for PT Serif 34 px
+    // (previous golden was FreeSerif18pt7b bitmap metrics).
     static const char *kExpected[] = {
-        "It was a bright cold day in April,",
-        "and the clocks were striking",
-        "thirteen.",
+        "It was a bright cold day in April, and the",
+        "clocks were striking thirteen.",
     };
-    CHECK(n.value == 3);
-    for (uint32_t i = 0; i < n.value && i < 3; ++i) {
+    CHECK(n.value == 2);
+    for (uint32_t i = 0; i < n.value && i < 2; ++i) {
         std::string got(para + lines[i].byte_start, lines[i].byte_len);
         if (got != kExpected[i]) {
             g_failures++;
@@ -1013,7 +1016,106 @@ static void TestPaginatorEdgeCases() {
     CHECK(pv.Validate(loc).code == StatusCode::CorruptData);
 }
 
+static void TestUkrainianAndKerning() {
+    CHECK(IsTtfFont(kFontBody));
+    CHECK(IsTtfFont(kFontUi));
+    // Ukrainian-critical codepoints are real glyphs, not fallbacks.
+    for (const uint32_t cp : {0x490u, 0x491u, 0x404u, 0x454u, 0x406u,
+                              0x456u, 0x407u, 0x457u, 0x2019u}) {
+        const Result<GlyphMetrics> m = GetGlyphMetrics(kFontBody, cp);
+        CHECK(m.ok());
+        CHECK(!m.value.fallback);
+        CHECK(m.value.advance > 0);
+    }
+    // Line metrics are sane for the registered pixel sizes.
+    const Result<FontLineMetrics> body = GetFontLineMetrics(kFontBody);
+    CHECK(body.ok());
+    CHECK(body.value.ascent > 0);
+    CHECK(body.value.descent > 0);
+    CHECK(body.value.line_height >= body.value.ascent + body.value.descent);
+    // Kerning exists and measurement includes it: "AV" measures tighter
+    // than the sum of the isolated advances.
+    const int32_t kern_av = GetKernAdvance(kFontBody, 'A', 'V');
+    CHECK(kern_av < 0);
+    const int32_t a = GetGlyphMetrics(kFontBody, 'A').value.advance;
+    const int32_t v = GetGlyphMetrics(kFontBody, 'V').value.advance;
+    const Result<int32_t> av = MeasureText(kFontBody, "AV", 2);
+    CHECK(av.ok());
+    CHECK(av.value == a + v + kern_av);
+    // Ukrainian pangram: measures, breaks, and every line width matches an
+    // independent re-measurement (kerned accumulation == MeasureText).
+    const char pangram[] =
+        "\xD0\xA7\xD1\x83\xD1\x94\xD1\x88 \xD1\x97\xD1\x85, \xD0\xB4\xD0\xBE"
+        "\xD1\x86\xD1\x8E, \xD0\xB3\xD0\xB0? \xD0\x9A\xD1\x83\xD0\xBC\xD0\xB5"
+        "\xD0\xB4\xD0\xBD\xD0\xB0 \xD0\xB6 \xD1\x82\xD0\xB8, \xD0\xBF\xD1\x80"
+        "\xD0\xBE\xD1\x89\xD0\xB0\xD0\xB9\xD1\x81\xD1\x8F \xD0\xB1\xD0\xB5"
+        "\xD0\xB7 \xD2\x91\xD0\xBE\xD0\xBB\xD1\x8C\xD1\x84\xD1\x96\xD0\xB2!";
+    LineSpan lines[16];
+    const Result<uint32_t> n = BreakLines(kFontBody, pangram,
+                                          sizeof(pangram) - 1, 220, lines, 16);
+    CHECK(n.ok());
+    CHECK(n.value >= 2);
+    for (uint32_t i = 0; i < n.value; ++i) {
+        CHECK(lines[i].width <= 220);
+        const Result<int32_t> w = MeasureText(
+            kFontBody, pangram + lines[i].byte_start, lines[i].byte_len);
+        CHECK(w.ok());
+        CHECK(w.value == lines[i].width);
+        // Every line decodes cleanly (no mid-UTF-8 splits).
+        uint32_t pos = 0, cp = 0;
+        while (Utf8Next(pangram + lines[i].byte_start, lines[i].byte_len,
+                        &pos, &cp)) {
+            CHECK(cp != kReplacementChar);
+        }
+    }
+    // Rasterization: ghe-with-upturn produces a non-empty coverage bitmap.
+    uint8_t buf[4096];
+    const Result<GlyphRaster> raster =
+        RasterizeGlyph(kFontBody, 0x491, buf, sizeof(buf));
+    CHECK(raster.ok());
+    CHECK(raster.value.width > 0);
+    CHECK(raster.value.height > 0);
+    bool any_dark = false;
+    for (int32_t i = 0; i < raster.value.width * raster.value.height; ++i) {
+        if (buf[i] > 128) {
+            any_dark = true;
+            break;
+        }
+    }
+    CHECK(any_dark);
+}
+
 int main() {
+    // Register the embedded TTF exactly as the firmware does (same file,
+    // same pixel sizes) so pagination goldens match the device.
+    static std::vector<uint8_t> font_bytes;
+    {
+        FILE *f = fopen("../../fonts/PTSerifUkr.ttf", "rb");
+        if (f == nullptr) {
+            std::printf("FAIL: cannot open fonts/PTSerifUkr.ttf\n");
+            return 1;
+        }
+        fseek(f, 0, SEEK_END);
+        font_bytes.resize(static_cast<size_t>(ftell(f)));
+        fseek(f, 0, SEEK_SET);
+        if (fread(font_bytes.data(), 1, font_bytes.size(), f) !=
+            font_bytes.size()) {
+            std::printf("FAIL: short read of PTSerifUkr.ttf\n");
+            fclose(f);
+            return 1;
+        }
+        fclose(f);
+    }
+    if (!RegisterTtfFont(kFontUi, font_bytes.data(),
+                         static_cast<uint32_t>(font_bytes.size()), 22)
+             .ok() ||
+        !RegisterTtfFont(kFontBody, font_bytes.data(),
+                         static_cast<uint32_t>(font_bytes.size()), 34)
+             .ok()) {
+        std::printf("FAIL: TTF registration failed\n");
+        return 1;
+    }
+
     TestGeometryBasics();
     TestIntersectUnion();
     TestOverflow();
@@ -1038,6 +1140,7 @@ int main() {
     TestParagraphs();
     TestLineBreaking();
     TestGoldenLineBreaks();
+    TestUkrainianAndKerning();
     TestContentSource();
     TestPaginatorForward();
     TestPaginatorPrevRoundTrip();

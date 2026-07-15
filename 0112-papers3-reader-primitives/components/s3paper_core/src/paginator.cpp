@@ -53,8 +53,9 @@ void Paginator::RecordCheckpoint(uint64_t offset) {
 }
 
 Status Paginator::ComposePage(TextLocator start, PageLayout *out) {
-    const GfxFont *font = GetFont(key_.font_id);
-    if (font == nullptr || out == nullptr || source_ == nullptr) {
+    const Result<FontLineMetrics> line_metrics =
+        GetFontLineMetrics(key_.font_id);
+    if (!line_metrics.ok() || out == nullptr || source_ == nullptr) {
         return ErrStatus(StatusCode::InvalidArgument);
     }
     const Result<uint64_t> size = source_->Size();
@@ -75,7 +76,7 @@ Status Paginator::ComposePage(TextLocator start, PageLayout *out) {
     out->at_end = false;
 
     const int32_t text_width = key_.viewport_w - 2 * key_.margin_x;
-    const int32_t line_height = font->y_advance;
+    const int32_t line_height = line_metrics.value.line_height;
     const int32_t last_baseline = key_.viewport_h - key_.margin_bottom;
     int32_t baseline = key_.margin_top + line_height;
     if (text_width <= 0 || baseline > last_baseline) {

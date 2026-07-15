@@ -12,4 +12,6 @@ idf_component_register(
         "src/paginator.cpp"
     INCLUDE_DIRS
         "include"
+    EMBED_FILES
+        "fonts/PTSerifUkr.ttf"
 )

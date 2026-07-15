@@ -43,13 +43,46 @@ struct GfxFont {
 
 // Font ids are stable across host and device.
 enum : uint8_t {
-    kFontUi = 0,    // FreeSerif 12pt
-    kFontBody = 1,  // FreeSerif 18pt
+    kFontUi = 0,    // TTF UI size (fallback: FreeSerif 12pt bitmap)
+    kFontBody = 1,  // TTF body size (fallback: FreeSerif 18pt bitmap)
     kFontCount = 2,
 };
 
-// Returns nullptr for unknown ids.
+// Returns the GFX bitmap fallback data; nullptr for unknown ids. Metrics
+// callers should use GetFontLineMetrics/GetGlyphMetrics, which prefer a
+// registered TTF font.
 const GfxFont *GetFont(uint8_t font_id);
+
+// Registers a TrueType font (vendored stb_truetype) for a font id at a
+// fixed pixel size. `data` must outlive the registration (embedded asset).
+// Fonts are trusted firmware assets ONLY — stb_truetype is not hardened
+// against hostile files (see design-doc/04).
+Status RegisterTtfFont(uint8_t font_id, const uint8_t *data, uint32_t size,
+                       int32_t pixel_size);
+bool IsTtfFont(uint8_t font_id);
+
+struct FontLineMetrics {
+    int32_t ascent;       // pixels above the baseline
+    int32_t descent;      // pixels below the baseline (positive)
+    int32_t line_height;  // baseline-to-baseline
+};
+
+Result<FontLineMetrics> GetFontLineMetrics(uint8_t font_id);
+
+// Kerning adjustment (usually negative) between two codepoints in pixels.
+// Zero for bitmap fonts and unknown pairs.
+int32_t GetKernAdvance(uint8_t font_id, uint32_t left_cp, uint32_t right_cp);
+
+// Rasterization for backends (TTF fonts only): 8-bit coverage, row-major.
+struct GlyphRaster {
+    int32_t width;
+    int32_t height;
+    int32_t x_offset;  // pen-relative left edge
+    int32_t y_offset;  // baseline-relative top edge (negative above)
+};
+
+Result<GlyphRaster> RasterizeGlyph(uint8_t font_id, uint32_t codepoint,
+                                   uint8_t *out, uint32_t out_capacity);
 
 // Metrics for one codepoint. Codepoints outside the font map to a fallback
 // box glyph with deterministic metrics (never a silent zero advance).
@@ -64,7 +97,8 @@ struct GlyphMetrics {
 
 Result<GlyphMetrics> GetGlyphMetrics(uint8_t font_id, uint32_t codepoint);
 
-// Measured width of a UTF-8 string (sum of advances, fallback included).
+// Measured width of a UTF-8 string: sum of advances plus kerning between
+// consecutive codepoints (fallback glyphs included).
 Result<int32_t> MeasureText(uint8_t font_id, const char *text, uint32_t len);
 
 // ---- Paragraphs and lines ----
