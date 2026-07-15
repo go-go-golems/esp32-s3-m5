@@ -33,6 +33,8 @@ RelatedFiles:
       Note: Single owner task, ordering validation, bounded replies (commit f7c5a21)
     - Path: repo://0112-papers3-reader-primitives/main/app_reader.cpp
       Note: Phase 8 reading controller with gesture page turns (commit 3ec8c0c)
+    - Path: repo://0112-papers3-reader-primitives/main/app_storage.cpp
+      Note: Serialized catalog + static scratch fix (commit a5de610)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/52-papers3-console-client.py
       Note: Modem-control-safe interactive console client used for gate validation
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/0112-phase1-validation-02.log
@@ -43,6 +45,7 @@ LastUpdated: 2026-07-15T14:20:00-04:00
 WhatFor: Record what was built per phase, what failed with exact errors, validation evidence, and review instructions.
 WhenToUse: Read before resuming reader implementation work; the display-investigation history lives in 01-investigation-diary.md.
 ---
+
 
 
 
@@ -797,3 +800,58 @@ boot restore -> mount -> scan -> lastbook.bin -> reopen at persisted locator
                 (validated: reopened operator's last-tapped book after reset)
 evidence     -> 0112-phase8ui-validation-01/-02.log, -boot-restore.log
 ```
+
+## Step 13: Serialized library catalog — boot scans without re-hashing
+
+The library scan re-opened and re-hashed every book on every boot, which made the boot flow noticeably slow and would scale linearly with library size. This step added the serialized catalog from task i78k: the scan result persisted on the card itself, validated per file by path+size+mtime, so a steady-state boot only stats files instead of reading them. Along the way it produced the project's first genuine crash-loop, caused not by the catalog logic but by where its buffer lived.
+
+### Prompt Context
+
+**User prompt (verbatim):** "go ahead. do that one first, then do phase 9 and 10" — followed mid-turn by "continue keeping a detailed diary as you work (see skill for the format), and commit at appropriate intervals", "make sure to read the design doc to refresh your memory as well", and "seems to crash? not sure."
+
+**Assistant interpretation:** Implement the serialized catalog (i78k) first, then proceed to Phases 9 and 10, keeping the diary and commit cadence, and grounding the work in the design doc (§11.2 catalog, Phase 9/10 work lists).
+
+**Inferred user intent:** Eliminate the slow boot scan before moving on to the remaining architecture phases; keep the documentation trail intact for later review.
+
+**Commit (code):** a5de610 — "Storage: add serialized library catalog to skip re-hashing unchanged books"
+
+### What I did
+- Re-read design doc §11 (storage/catalog), §12 (boot flow), and the Phase 9/10 sections before coding.
+- Added `CatalogFile` (magic "S3CT", version 1, CRC, 32 fixed-size records of path/title/size/mtime/content_hash) to `main/app_storage.cpp`, persisted with the same AtomicWrite tmp/bak/rename pattern as positions and bookmarks.
+- `ScanDirectory` now consults `CatalogLookup(path, size, mtime)` and only opens+hashes files with no matching record; `LibraryScan` rebuilds the catalog after sorting and rewrites it only when records changed (memset first so struct padding is deterministic for memcmp/CRC).
+- `CatalogLoad` runs at mount next to PositionsLoad/BookmarksLoad; `StorageUnmount` drops the in-memory catalog so a swapped card cannot reuse stale hashes.
+- Added `mtime` to `BookEntry`, scan stats (`scan_cached/scan_hashed/scan_ms/catalog_writes`) to `SdSnapshot`, and a second line to the console `sd` printer.
+- Fixed the crash the user spotted: moved the ~5 KiB `CatalogFile` locals off the owner-task stack into a single static scratch buffer.
+- Hardware evidence in `scripts/output/0112-catalog-{first,second}-boot.log`.
+
+### Why
+- Boot ran the full hash pass every time; the design doc (§11.4) explicitly wants derived caches disposable and separate from critical state, which this catalog is: deleting it costs one slow rescan, never a reading position.
+
+### What worked
+- First boot after flash: `scan cached=0 hashed=2 last_ms=84 catalog_writes=1`.
+- After a hard reset: `scan cached=2 hashed=0 last_ms=13 catalog_writes=0`, and boot restore still resumed alice-demo at offset 2572 with `bookmarked=1 marks=2` — proving cached hashes key correctly into positions/bookmarks.
+
+### What didn't work
+- **First flash crash-looped the device.** Transcript: boot reached `W (6624) storage: catalog not loaded:` (status name garbled to empty — an early corruption symptom) then went silent; console commands never answered. Cause: `CatalogFile loaded;` and `CatalogFile fresh;` are ~5136 bytes each, allocated on the owner task's 8192-byte stack deep inside the boot call chain (StorageMount → CatalogLoad under M5/FATFS frames). The positions (656 B) and bookmarks (~1.3 KiB) files made the same stack-local pattern safe; scaling the record to 160 bytes × 32 silently broke it. Fix: one namespace-scope `s_catalog_scratch` reused by load and rebuild (owner-task-only file, so no aliasing risk).
+
+### What I learned
+- The measured scan itself is fast (84 ms hashing 2 books): the ~15 s boot observed earlier is dominated by M5 init, mount, and EPD present, not hashing. The catalog still matters — hashing cost is the only per-book term and now it's gone — but the honest number is 84 ms → 13 ms for 2 books, not 15 s → instant.
+- Copying a persistence pattern must include re-checking its stack budget when the struct grows ~8×.
+
+### What was tricky to build
+- Comparing "did the catalog change" via memcmp requires every byte of the record array to be deterministic; snprintf leaves garbage after the NUL and the struct has tail padding. Symptom would have been a catalog rewrite on every boot (wear + latency); avoided by memset-ing the rebuilt file before filling records.
+
+### What warrants a second pair of eyes
+- FAT mtime granularity is 2 s and files written by a clock-less device carry epoch-era timestamps; size+mtime as the validation key is standard but an in-place same-size edit within the mtime granularity would keep a stale hash. Acceptable for books; worth a comment if the catalog ever guards writable state.
+- The static scratch makes CatalogLoad/LibraryScan non-reentrant; safe today under the owner-task-only rule, but AssertOwner-style protection doesn't cover this file.
+
+### What should be done in the future
+- Fault-injection tests for the catalog (truncated/corrupt/interrupted write) belong in task 5zpj alongside positions/bookmarks.
+- If libraries grow past 32 books the record array and kMaxBooks scale together; the file is 5 KiB per 32 books.
+
+### Code review instructions
+- Start at `0112-papers3-reader-primitives/main/app_storage.cpp`: `CatalogLoad`, `CatalogSave`, `CatalogLookup`, and the rebuild block at the end of `LibraryScan`; note `s_catalog_scratch` and its comment.
+- Validate on hardware: flash, then `python3 scripts/52-papers3-console-client.py --cmd sd` — first boot shows `hashed=N catalog_writes=1`, any later boot shows `cached=N hashed=0`.
+
+### Technical details
+- On-disk format: `{u32 magic 'S3CT', u32 version=1, u32 count, CatalogRecord[32]{char path[96], char title[40], u64 size, i64 mtime, u32 hash}, u32 crc}`, FNV-1a CRC over all preceding bytes, written via tmp → fsync → bak swap → rename.

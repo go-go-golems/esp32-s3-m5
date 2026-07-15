@@ -511,3 +511,12 @@ Phase 8 complete (ylnh checked): on-screen library with hit-region tap-to-open, 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_reader.cpp — Library screen, bookmarks, boot restore
 
+
+## 2026-07-15
+
+Step 13: serialized library catalog (S3CT, path+size+mtime validation) removes per-boot re-hashing; second boot scans in 13 ms with 0 hashes; fixed owner-stack overflow from 5 KiB stack local (commit a5de610)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_storage.cpp — Catalog load/save/lookup + scan rebuild (commit a5de610)
+

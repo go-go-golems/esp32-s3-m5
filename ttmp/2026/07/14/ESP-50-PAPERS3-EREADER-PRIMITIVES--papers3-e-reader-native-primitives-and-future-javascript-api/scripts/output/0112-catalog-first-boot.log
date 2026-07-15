@@ -1,0 +1,10 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (171) esp_image: segment 4: paddr=000c6000 vaddr=4038071c size[5nI (988) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1003) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1003) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| P
+# >>> sd
+sd
+sd mounted=1 capacity_mib=7580 books=2 positions=1 position_writes=0 write_failures=0
+scan cached=0 hashed=2 last_ms=84 catalog_writes=1
+reader> 
+# done

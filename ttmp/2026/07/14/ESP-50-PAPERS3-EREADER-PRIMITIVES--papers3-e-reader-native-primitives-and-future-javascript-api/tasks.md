@@ -108,7 +108,7 @@
 - [x] [P6.1] Implement non-destructive microSD initialization using the qualified PaperS3 pin/bus configuration <!-- t:11x4 -->
 - [x] [P6.2] Implement ContentSource with Size, ReadAt, and Hash operations plus embedded-fixture and SD-text adapters <!-- t:ryu3 -->
 - [x] [P6.3] Define stable BookId and ContentHash derivation independent of transient library list ordering <!-- t:7ji5 -->
-- [ ] [P6.4] Define a versioned, length-checked, checksummed BookRecord and catalog serialization format <!-- t:i78k -->
+- [x] [P6.4] Define a versioned, length-checked, checksummed BookRecord and catalog serialization format <!-- t:i78k -->
 - [x] [P6.5] Implement bounded SD library scanning, metadata defaults, duplicate handling, and deterministic sorting <!-- t:ll6s -->
 - [ ] [P6.6] Define settings and structured TextLocator persistence records with schema versions <!-- t:1y51 -->
 - [x] [P6.7] Implement atomic temp/write/flush/rename/backup updates and recovery after interrupted writes <!-- t:lyfu -->
