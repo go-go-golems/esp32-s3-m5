@@ -1,0 +1,11 @@
+mode=execute
+densitometer_port=/dev/serial/by-id/usb-Dektronics_Printalyzer_Densitometer_323147103439323344002900-if00
+densitometer_real_port=/dev/ttyACM1
+firmware_port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00
+firmware_real_port=/dev/ttyACM0
+output=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-013-factory-f2-esptool-reset-density/raw-dynamic-f2.jsonl
+serial_input_planned=yes
+raw_stream_planned=yes
+capture=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-013-factory-f2-esptool-reset-density/raw-dynamic-f2.jsonl
+result=ok
+hardware_modified=transient-densitometer-state-only

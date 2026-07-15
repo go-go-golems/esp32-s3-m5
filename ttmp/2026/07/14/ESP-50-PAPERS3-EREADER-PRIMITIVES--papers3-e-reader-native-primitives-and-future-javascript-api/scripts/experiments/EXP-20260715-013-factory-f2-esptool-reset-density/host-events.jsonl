@@ -1,0 +1,2 @@
+{"event":"activation_begin","host_monotonic_ns":996691594751090,"host_realtime_ns":1784080265004550854,"hostname":"f","pid":332408,"schema":"esp50.host-marker.v1"}
+{"event":"activation_hard_reset_complete","host_monotonic_ns":996691870276844,"host_realtime_ns":1784080265280076642,"hostname":"f","pid":332411,"schema":"esp50.host-marker.v1"}

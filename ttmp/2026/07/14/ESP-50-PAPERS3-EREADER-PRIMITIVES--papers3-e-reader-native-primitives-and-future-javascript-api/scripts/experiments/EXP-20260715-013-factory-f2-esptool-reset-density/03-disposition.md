@@ -19,9 +19,9 @@ WhenToUse: "Use after F2 auto ownership failure and instead of a human reset."
 
 # Disposition
 
-- Exact F2 flash: pending
-- Esptool hard reset: pending
-- Density/cleanup: pending
-- Ring validation: pending
-- F2/F1 observer comparison: pending
-- Next branch decision: pending
+- Exact F2 flash: pass — all flash writes hash-verified
+- Esptool hard reset: command completed — `Hard resetting via RTS pin...`; resulting boot state is not yet proven
+- Density/cleanup: collector pass; 60-second raw stream retained
+- Ring validation: fail/incomplete — zero firmware payload lines, no dump markers
+- F2/F1 observer comparison: not valid; do not compare without ring
+- Next branch decision: collect operator observation, then distinguish ROM-download reset outcome from unavailable USB console before any retry

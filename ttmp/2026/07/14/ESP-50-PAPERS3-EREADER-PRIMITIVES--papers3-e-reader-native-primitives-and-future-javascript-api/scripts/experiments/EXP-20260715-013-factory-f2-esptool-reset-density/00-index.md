@@ -19,4 +19,4 @@ WhenToUse: "Use after F2 auto ownership failure and instead of a human reset."
 
 # EXP-20260715-013-factory-f2-esptool-reset-density
 
-Manifest and preregistration are immutable. Execution requires `RUN-DENS-F2-AUTORESET`.
+Manifest and preregistration are immutable. The authorized attempt completed flash/reset/capture but is incomplete because zero firmware payload lines arrived; see `04-incomplete-capture.md`. Do not retry this experiment ID.
