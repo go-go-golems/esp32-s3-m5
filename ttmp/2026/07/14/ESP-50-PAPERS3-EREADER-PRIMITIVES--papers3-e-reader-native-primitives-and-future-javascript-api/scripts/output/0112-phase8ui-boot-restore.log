@@ -1,0 +1,16 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (171) esp_image: segment 4: paddr=000c5bc4 vaddr=403808ec size[5nI (988) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1003) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1003) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| P
+# >>> reader status
+reader status
+reader open=0 screen=none title="" source=embedded resumed=0 offset=0 progress=0.0% lines=0 turns=0 at_end=0 checkpoints=0 bookmarked=0 marks=0
+reader> 
+# >>> touch status
+touch status
+touch enabled=1 samples=1519 last=-1,-1 last_input_age_ms=-1
+events down=0 move=0 up=0 cancel=0
+gestures tap=0 longpress=0 swipeL=0 swipeR=0 swipeU=0 swipeD=0
+quiet_windows=0 scheduler_pending=0
+reader> 
+# done

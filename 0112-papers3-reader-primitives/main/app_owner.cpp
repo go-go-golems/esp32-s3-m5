@@ -325,10 +325,28 @@ void HandleConsoleCommand(const AppEvent &event) {
             if (event.payload.console.arg == 1) {
                 uint32_t count = 0;
                 reply.status = LibraryScan(&count);
+            } else if (event.payload.console.arg == 2) {
+                reply.status = LibraryShow();
             }
             // Owner prints the catalog (strings do not fit POD replies).
             LibraryPrint();
             FillSdSnapshot(&reply.payload.sd);
+            break;
+        }
+        case ConsoleOp::Bookmark: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = ReaderBookmarkToggle();
+                    break;
+                case 2:
+                    reply.status =
+                        ReaderBookmarkGoto(event.payload.console.arg2);
+                    break;
+                default:
+                    ReaderBookmarksPrint();
+                    break;
+            }
+            FillReaderSnapshot(&reply.payload.reader);
             break;
         }
         case ConsoleOp::Touch: {
@@ -489,6 +507,7 @@ void HandleEvent(const AppEvent &event) {
             break;
         case AppEventKind::ShutdownRequest:
             s_state.phase = Phase::ShuttingDown;
+            StorageFlushNow();  // final persistence flush
             ESP_LOGI(kTag, "shutdown requested; commands now report Busy");
             SendReply(event, MakeReply(event, StatusCode::Ok));
             break;
@@ -503,12 +522,20 @@ void OwnerTask(void *) {
     // owner task so no other task ever touches it.
     DisplayServiceInit();
     InputServiceInit();
+    // Product boot flow: restore the last book (or show the library) and
+    // enable touch so the device reads standalone from power-on.
+    (void)ReaderBootRestore();
+    (void)TouchEnable();
     s_state.phase = Phase::Ready;
     ESP_LOGI(kTag, "owner task ready; queue capacity=%u",
              static_cast<unsigned>(kEventQueueCapacity));
     for (;;) {
         AppEvent event;
-        if (xQueueReceive(s_event_queue, &event, portMAX_DELAY) != pdTRUE) {
+        // Bounded wait so deferred work (coalesced persistence flushes)
+        // runs even when no events arrive.
+        if (xQueueReceive(s_event_queue, &event, pdMS_TO_TICKS(500)) !=
+            pdTRUE) {
+            StorageFlushIfDue(esp_timer_get_time());
             continue;
         }
         const uint32_t depth =
@@ -518,6 +545,7 @@ void OwnerTask(void *) {
         }
         HandleEvent(event);
         MaybeQueueSoakStep();
+        StorageFlushIfDue(esp_timer_get_time());
     }
 }
 

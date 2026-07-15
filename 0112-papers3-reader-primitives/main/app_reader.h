@@ -15,6 +15,15 @@ StatusCode ReaderOpen();                  // embedded fixture book
 StatusCode ReaderOpenSd(uint32_t index);  // library book by scan index
 StatusCode ReaderNext();
 StatusCode ReaderPrev();
+// Renders the on-screen library (books + hit regions; tap opens).
+StatusCode LibraryShow();
+// Boot flow: mount card, scan, reopen the last book at its persisted
+// position, else show the library. Owner-task-only, called once at start.
+StatusCode ReaderBootRestore();
+// Bookmark actions on the current page start.
+StatusCode ReaderBookmarkToggle();
+StatusCode ReaderBookmarkGoto(uint32_t index);
+void ReaderBookmarksPrint();
 void FillReaderSnapshot(ReaderSnapshot *out);
 
 // Routes a gesture to the reader when a book is open. Returns true when

@@ -1,0 +1,105 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (171) esp_image: segment 4: paddr=000c5a54 vaddr=4038097c size[5nI (988) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (989) owner: owner task ready; queue capacity=32
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when 
+# >>> sd mount
+sd mount
+I (2680) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (2680) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (2681) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (2681) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (2682) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (2684) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (2685) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (2686) M5GFX: [Autodetect] board_M5PaperS3
+I (2936) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (2937) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (2941) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (2942) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (3003) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (3004) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (7797) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (7798) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (7803) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (7804) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (8113) m5_backend: init board=19 display=540x960
+I (8117) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (8119) sdspi_transaction: cmd=52, R1 response: command not supported
+I (8162) sdspi_transaction: cmd=5, R1 response: command not supported
+I (8215) storage: mounted /sdcard: 7580 MiB
+I (8224) storage: loaded 1 reading position(s)
+W (8236) storage: bookmarks not loaded: InvalidArgument (starting fresh)
+sd mounted=1 capacity_mib=7580 books=0 positions=1 position_writes=0 write_failures=0
+reader> 
+# >>> library scan
+library scan
+I (12721) storage: library scan: 2 book(s)
+library: 2 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+reader> 
+# >>> library show
+library show
+I (22862) m5_backend: present id=1 intent=CleanFull ops=10 skipped=0 damage=0,0,540,960 render_us=160951 wait_us=16
+I (22863) reader_ctl: library screen: 3 row region(s)
+library: 2 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+reader> 
+# >>> reader open 0
+reader open 0
+I (32751) reader_ctl: resuming "alice-demo" at offset 4322
+I (33031) m5_backend: present id=2 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=264825 wait_us=16
+I (33032) reader_ctl: page at 4322 lines=10 full=1 reason=ScreenChange
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4322 progress=100.0% lines=10 turns=0 at_end=1 checkpoints=1 bookmarked=0 marks=0
+reader> 
+# >>> bookmark toggle
+bookmark toggle
+I (42759) reader_ctl: bookmark set at offset 4322
+I (43016) m5_backend: present id=3 intent=TextPage ops=16 skipped=0 damage=0,0,540,960 render_us=252041 wait_us=20
+I (43017) reader_ctl: page at 4322 lines=10 full=0 reason=PartialDamage
+bookmarked=1 marks=1 offset=4322
+reader> 
+# >>> reader next
+reader next
+reader: at end of book
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4322 progress=100.0% lines=10 turns=0 at_end=1 checkpoints=1 bookmarked=1 marks=1
+reader> 
+# >>> reader next
+reader next
+reader: at end of book
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4322 progress=100.0% lines=10 turns=0 at_end=1 checkpoints=1 bookmarked=1 marks=1
+reader> 
+# >>> bookmark toggle
+bookmark toggle
+I (72866) reader_ctl: bookmark removed at offset 4322
+I (73119) m5_backend: present id=4 intent=TextPage ops=15 skipped=0 damage=0,0,540,960 render_us=248652 wait_us=3
+I (73120) reader_ctl: page at 4322 lines=10 full=0 reason=PartialDamage
+bookmarked=0 marks=0 offset=4322
+reader> 
+# >>> bookmark list
+bookmark list
+bookmarks: 0 for this book (0 total)
+bookmarked=0 marks=0 offset=4322
+reader> 
+# >>> bookmark goto 0
+bookmark goto 0
+bookmark op result: InvalidArgument
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> reader status
+reader status
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4322 progress=100.0% lines=10 turns=0 at_end=1 checkpoints=1 bookmarked=0 marks=0
+reader> 
+# >>> touch on
+touch on
+I (112984) input: touch polling enabled (20ms)
+touch enabled=1 samples=0 last=-1,-1 last_input_age_ms=-1
+events down=0 move=0 up=0 cancel=0
+gestures tap=0 longpress=0 swipeL=0 swipeR=0 swipeU=0 swipeD=0
+quiet_windows=0 scheduler_pending=0
+reader> 
+# done

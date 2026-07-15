@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_vfs_fat.h"
 #include "driver/sdspi_host.h"
 #include "driver/spi_common.h"
@@ -61,9 +62,65 @@ PositionsFile s_positions{};
 uint32_t s_position_writes = 0;
 uint32_t s_position_write_failures = 0;
 
+// Bookmarks: same persistence pattern, separate file and generation.
+constexpr uint32_t kBookmarksMagic = 0x53334D42;  // "S3MB"
+constexpr uint32_t kBookmarksVersion = 1;
+constexpr uint32_t kMaxBookmarks = 64;
+constexpr char kBookmarksPath[] = "/sdcard/.s3paper/bookmarks.bin";
+constexpr char kBookmarksTmp[] = "/sdcard/.s3paper/bookmarks.tmp";
+constexpr char kBookmarksBak[] = "/sdcard/.s3paper/bookmarks.bak";
+
+struct BookmarkRecord {
+    s3paper::ContentHash content;
+    uint64_t byte_offset;
+    uint32_t context_hash;
+};
+
+struct BookmarksFile {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t count;
+    BookmarkRecord records[kMaxBookmarks];
+    uint32_t crc;
+};
+
+BookmarksFile s_bookmarks{};
+
+// Coalesced-write state: dirty flags plus the age of the oldest unflushed
+// change (design task sda9: don't hit the card on every page turn).
+bool s_positions_dirty = false;
+bool s_bookmarks_dirty = false;
+int64_t s_dirty_since_us = 0;
+constexpr int64_t kFlushAfterUs = 2'000'000;
+
 uint32_t PositionsCrc(const PositionsFile &f) {
     return s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&f),
                           offsetof(PositionsFile, crc));
+}
+
+uint32_t BookmarksCrc(const BookmarksFile &f) {
+    return s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&f),
+                          offsetof(BookmarksFile, crc));
+}
+
+// Shared atomic write: tmp -> flush -> fsync -> bak swap -> rename.
+bool AtomicWrite(const char *tmp, const char *bak, const char *path,
+                 const void *data, size_t size) {
+    mkdir(kStateDir, 0775);
+    FILE *f = fopen(tmp, "wb");
+    if (f == nullptr) {
+        return false;
+    }
+    const bool wrote = fwrite(data, 1, size, f) == size;
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f);
+    if (!wrote) {
+        return false;
+    }
+    unlink(bak);
+    rename(path, bak);
+    return rename(tmp, path) == 0;
 }
 
 void ScanDirectory(const char *dir_path) {
@@ -171,6 +228,11 @@ StatusCode StorageMount() {
     if (loaded != StatusCode::Ok) {
         ESP_LOGW(kTag, "positions not loaded: %s (starting fresh)",
                  StatusCodeName(loaded));
+    }
+    const StatusCode marks = BookmarksLoad();
+    if (marks != StatusCode::Ok) {
+        ESP_LOGW(kTag, "bookmarks not loaded: %s (starting fresh)",
+                 StatusCodeName(marks));
     }
     return StatusCode::Ok;
 }
@@ -370,34 +432,209 @@ StatusCode PositionsSave() {
     if (!StorageMounted()) {
         return StatusCode::Busy;
     }
-    mkdir(kStateDir, 0775);
     s_positions.magic = kPositionsMagic;
     s_positions.version = kPositionsVersion;
     s_positions.crc = PositionsCrc(s_positions);
-    FILE *f = fopen(kPositionsTmp, "wb");
-    if (f == nullptr) {
-        s_position_write_failures++;
-        return StatusCode::CorruptData;
-    }
-    const bool wrote =
-        fwrite(&s_positions, 1, sizeof(s_positions), f) ==
-        sizeof(s_positions);
-    fflush(f);
-    fsync(fileno(f));
-    fclose(f);
-    if (!wrote) {
-        s_position_write_failures++;
-        return StatusCode::CorruptData;
-    }
-    // Atomic-ish generation swap: current -> .bak, tmp -> current.
-    unlink(kPositionsBak);
-    rename(kPositionsPath, kPositionsBak);
-    if (rename(kPositionsTmp, kPositionsPath) != 0) {
+    if (!AtomicWrite(kPositionsTmp, kPositionsBak, kPositionsPath,
+                     &s_positions, sizeof(s_positions))) {
         s_position_write_failures++;
         return StatusCode::CorruptData;
     }
     s_position_writes++;
+    s_positions_dirty = false;
     return StatusCode::Ok;
+}
+
+StatusCode BookmarksSave() {
+    if (!StorageMounted()) {
+        return StatusCode::Busy;
+    }
+    s_bookmarks.magic = kBookmarksMagic;
+    s_bookmarks.version = kBookmarksVersion;
+    s_bookmarks.crc = BookmarksCrc(s_bookmarks);
+    if (!AtomicWrite(kBookmarksTmp, kBookmarksBak, kBookmarksPath,
+                     &s_bookmarks, sizeof(s_bookmarks))) {
+        s_position_write_failures++;
+        return StatusCode::CorruptData;
+    }
+    s_position_writes++;
+    s_bookmarks_dirty = false;
+    return StatusCode::Ok;
+}
+
+void StorageFlushIfDue(int64_t now_us) {
+    if (!s_positions_dirty && !s_bookmarks_dirty) {
+        return;
+    }
+    if (now_us - s_dirty_since_us < kFlushAfterUs) {
+        return;
+    }
+    StorageFlushNow();
+}
+
+void StorageFlushNow() {
+    if (s_positions_dirty) {
+        (void)PositionsSave();
+    }
+    if (s_bookmarks_dirty) {
+        (void)BookmarksSave();
+    }
+}
+
+// ---- Last-book record ----
+
+constexpr uint32_t kLastBookMagic = 0x53334C42;  // "S3LB"
+constexpr char kLastBookPath[] = "/sdcard/.s3paper/lastbook.bin";
+constexpr char kLastBookTmp[] = "/sdcard/.s3paper/lastbook.tmp";
+constexpr char kLastBookBak[] = "/sdcard/.s3paper/lastbook.bak";
+
+struct LastBookFile {
+    uint32_t magic;
+    uint32_t version;
+    char path[96];  // "" = embedded book
+    uint32_t crc;
+};
+
+void LastBookStore(const char *sd_path_or_empty) {
+    if (!StorageMounted()) {
+        return;
+    }
+    LastBookFile record{};
+    record.magic = kLastBookMagic;
+    record.version = 1;
+    snprintf(record.path, sizeof(record.path), "%s", sd_path_or_empty);
+    record.crc = s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&record),
+                                offsetof(LastBookFile, crc));
+    (void)AtomicWrite(kLastBookTmp, kLastBookBak, kLastBookPath, &record,
+                      sizeof(record));
+}
+
+bool LastBookGet(char *out, uint32_t out_size) {
+    FILE *f = fopen(kLastBookPath, "rb");
+    if (f == nullptr) {
+        f = fopen(kLastBookBak, "rb");
+        if (f == nullptr) {
+            return false;
+        }
+    }
+    LastBookFile record;
+    const size_t n = fread(&record, 1, sizeof(record), f);
+    fclose(f);
+    if (n != sizeof(record) || record.magic != kLastBookMagic ||
+        record.version != 1 ||
+        record.crc != s3paper::Fnv1a(
+                          reinterpret_cast<const uint8_t *>(&record),
+                          offsetof(LastBookFile, crc))) {
+        return false;
+    }
+    record.path[sizeof(record.path) - 1] = '\0';
+    snprintf(out, out_size, "%s", record.path);
+    return true;
+}
+
+StatusCode BookmarksLoad() {
+    std::memset(&s_bookmarks, 0, sizeof(s_bookmarks));
+    FILE *f = fopen(kBookmarksPath, "rb");
+    if (f == nullptr) {
+        f = fopen(kBookmarksBak, "rb");
+        if (f == nullptr) {
+            return StatusCode::InvalidArgument;
+        }
+        ESP_LOGW(kTag, "primary bookmarks missing; using backup");
+    }
+    BookmarksFile loaded;
+    const size_t n = fread(&loaded, 1, sizeof(loaded), f);
+    fclose(f);
+    if (n != sizeof(loaded) || loaded.magic != kBookmarksMagic ||
+        loaded.version != kBookmarksVersion ||
+        loaded.count > kMaxBookmarks || loaded.crc != BookmarksCrc(loaded)) {
+        ESP_LOGW(kTag, "bookmarks file invalid; ignoring");
+        return StatusCode::CorruptData;
+    }
+    s_bookmarks = loaded;
+    ESP_LOGI(kTag, "loaded %u bookmark(s)",
+             static_cast<unsigned>(s_bookmarks.count));
+    return StatusCode::Ok;
+}
+
+StatusCode BookmarkToggle(s3paper::ContentHash content,
+                          const s3paper::TextLocator &locator,
+                          bool *now_set) {
+    for (uint32_t i = 0; i < s_bookmarks.count; ++i) {
+        if (s_bookmarks.records[i].content == content &&
+            s_bookmarks.records[i].byte_offset == locator.byte_offset) {
+            s_bookmarks.records[i] =
+                s_bookmarks.records[--s_bookmarks.count];
+            s_bookmarks_dirty = true;
+            s_dirty_since_us = 0;  // bookmark changes flush promptly
+            if (now_set != nullptr) {
+                *now_set = false;
+            }
+            return StatusCode::Ok;
+        }
+    }
+    if (s_bookmarks.count >= kMaxBookmarks) {
+        return StatusCode::CapacityExceeded;
+    }
+    s_bookmarks.records[s_bookmarks.count++] =
+        BookmarkRecord{content, locator.byte_offset, locator.context_hash};
+    s_bookmarks_dirty = true;
+    s_dirty_since_us = 0;
+    if (now_set != nullptr) {
+        *now_set = true;
+    }
+    return StatusCode::Ok;
+}
+
+bool BookmarkIsSet(s3paper::ContentHash content, uint64_t byte_offset) {
+    for (uint32_t i = 0; i < s_bookmarks.count; ++i) {
+        if (s_bookmarks.records[i].content == content &&
+            s_bookmarks.records[i].byte_offset == byte_offset) {
+            return true;
+        }
+    }
+    return false;
+}
+
+uint32_t BookmarkCountFor(s3paper::ContentHash content) {
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < s_bookmarks.count; ++i) {
+        if (s_bookmarks.records[i].content == content) {
+            count++;
+        }
+    }
+    return count;
+}
+
+bool BookmarkGet(s3paper::ContentHash content, uint32_t index,
+                 s3paper::TextLocator *out) {
+    uint32_t seen = 0;
+    for (uint32_t i = 0; i < s_bookmarks.count; ++i) {
+        if (s_bookmarks.records[i].content != content) {
+            continue;
+        }
+        if (seen++ == index) {
+            out->byte_offset = s_bookmarks.records[i].byte_offset;
+            out->context_hash = s_bookmarks.records[i].context_hash;
+            return true;
+        }
+    }
+    return false;
+}
+
+void BookmarksPrint(s3paper::ContentHash content) {
+    uint32_t shown = 0;
+    for (uint32_t i = 0; i < s_bookmarks.count; ++i) {
+        if (s_bookmarks.records[i].content != content) {
+            continue;
+        }
+        printf("  bookmark[%u] offset=%llu\n", static_cast<unsigned>(shown++),
+               static_cast<unsigned long long>(
+                   s_bookmarks.records[i].byte_offset));
+    }
+    printf("bookmarks: %u for this book (%u total)\n",
+           static_cast<unsigned>(shown),
+           static_cast<unsigned>(s_bookmarks.count));
 }
 
 bool PositionLookup(s3paper::ContentHash content, s3paper::TextLocator *out) {
@@ -413,6 +650,10 @@ bool PositionLookup(s3paper::ContentHash content, s3paper::TextLocator *out) {
 
 void PositionStore(s3paper::ContentHash content,
                    const s3paper::TextLocator &locator) {
+    if (!s_positions_dirty && !s_bookmarks_dirty) {
+        s_dirty_since_us = esp_timer_get_time();
+    }
+    s_positions_dirty = true;
     for (uint32_t i = 0; i < s_positions.count; ++i) {
         if (s_positions.records[i].content == content) {
             s_positions.records[i].byte_offset = locator.byte_offset;

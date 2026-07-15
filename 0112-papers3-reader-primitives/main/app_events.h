@@ -66,7 +66,8 @@ enum class ConsoleOp : uint8_t {
     Reader,      // arg: 0 = status, 1 = open embedded, 2 = next, 3 = prev,
                  //      4 = open SD library book (index in arg2)
     Sd,          // arg: 0 = status, 1 = mount, 2 = unmount, 3 = write demo
-    Library,     // arg: 0 = list, 1 = scan
+    Library,     // arg: 0 = list, 1 = scan, 2 = show on-screen
+    Bookmark,    // arg: 0 = list, 1 = toggle, 2 = goto (index in arg2)
 };
 
 enum class PointerPhase : uint8_t {
@@ -216,14 +217,17 @@ struct TouchSnapshot {
 
 struct ReaderSnapshot {
     uint8_t open;
+    uint8_t screen;   // 0 = none, 1 = library, 2 = reading
     uint8_t at_end;
     uint8_t source;   // 0 = embedded, 1 = SD library
     uint8_t resumed;  // 1 when open restored a persisted position
+    uint8_t bookmarked;  // current page start has a bookmark
     uint64_t byte_offset;
     uint32_t line_count;
     uint32_t page_turns;
     uint32_t progress_permille;
     uint32_t checkpoints;
+    uint32_t bookmark_count;
     char title[40];
 };
 

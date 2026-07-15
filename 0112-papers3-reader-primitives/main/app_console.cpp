@@ -567,15 +567,52 @@ int CmdReader(int argc, char **argv) {
         printf("reader: %s\n",
                r.at_end ? "at end of book" : "at beginning of book");
     }
-    printf("reader open=%u title=\"%s\" source=%s resumed=%u offset=%llu "
-           "progress=%u.%u%% lines=%u turns=%u at_end=%u checkpoints=%u\n",
-           r.open, r.title, r.source ? "sd" : "embedded", r.resumed,
+    printf("reader open=%u screen=%s title=\"%s\" source=%s resumed=%u "
+           "offset=%llu progress=%u.%u%% lines=%u turns=%u at_end=%u "
+           "checkpoints=%u bookmarked=%u marks=%u\n",
+           r.open,
+           r.screen == 2 ? "reading" : (r.screen == 1 ? "library" : "none"),
+           r.title, r.source ? "sd" : "embedded", r.resumed,
            static_cast<unsigned long long>(r.byte_offset),
            static_cast<unsigned>(r.progress_permille / 10),
            static_cast<unsigned>(r.progress_permille % 10),
            static_cast<unsigned>(r.line_count),
            static_cast<unsigned>(r.page_turns), r.at_end,
-           static_cast<unsigned>(r.checkpoints));
+           static_cast<unsigned>(r.checkpoints), r.bookmarked,
+           static_cast<unsigned>(r.bookmark_count));
+    return 0;
+}
+
+int CmdBookmark(int argc, char **argv) {
+    uint32_t arg = 0;
+    uint32_t arg2 = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "toggle") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "goto") == 0) {
+            if (argc < 3) {
+                printf("error: InvalidArgument: usage bookmark goto <n>\n");
+                return 1;
+            }
+            arg = 2;
+            arg2 = static_cast<uint32_t>(strtol(argv[2], nullptr, 10));
+        } else if (strcmp(argv[1], "list") != 0) {
+            printf("error: InvalidArgument: usage bookmark "
+                   "[list|toggle|goto n]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Bookmark, arg, arg2, &reply, 15000);
+    if (status != StatusCode::Ok) {
+        printf("bookmark op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    const ReaderSnapshot &r = reply.payload.reader;
+    printf("bookmarked=%u marks=%u offset=%llu\n", r.bookmarked,
+           static_cast<unsigned>(r.bookmark_count),
+           static_cast<unsigned long long>(r.byte_offset));
     return 0;
 }
 
@@ -619,8 +656,11 @@ int CmdLibrary(int argc, char **argv) {
     if (argc >= 2) {
         if (strcmp(argv[1], "scan") == 0) {
             arg = 1;
+        } else if (strcmp(argv[1], "show") == 0) {
+            arg = 2;
         } else if (strcmp(argv[1], "list") != 0) {
-            printf("error: InvalidArgument: usage library [scan|list]\n");
+            printf("error: InvalidArgument: usage library "
+                   "[scan|list|show]\n");
             return 1;
         }
     }
@@ -710,9 +750,13 @@ void ConsoleStart() {
     RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
                     &CmdSd);
     RegisterCommand("library",
-                    "library [scan|list] - scan/list *.txt books on the SD "
-                    "card",
+                    "library [scan|list|show] - scan/list books or show the "
+                    "on-screen library (tap to open)",
                     &CmdLibrary);
+    RegisterCommand("bookmark",
+                    "bookmark [list|toggle|goto n] - bookmarks for the open "
+                    "book (long-press toggles)",
+                    &CmdBookmark);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);

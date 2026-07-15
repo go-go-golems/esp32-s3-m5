@@ -62,13 +62,40 @@ class SdContentSource : public s3paper::ContentSource {
 };
 
 // ---- Reading-position persistence ----
-// Records keyed by content hash; loaded on mount, saved atomically on
-// change. Works for the embedded book too when a card is present.
+// Records keyed by content hash; loaded on mount. Stores mark the state
+// dirty; StorageFlushIfDue() coalesces the actual atomic writes (quiet
+// window or age-based), and StorageFlushNow() forces one (screen change,
+// shutdown). Works for the embedded book too when a card is present.
 StatusCode PositionsLoad();
 StatusCode PositionsSave();
 bool PositionLookup(s3paper::ContentHash content,
                     s3paper::TextLocator *out);
 void PositionStore(s3paper::ContentHash content,
                    const s3paper::TextLocator &locator);
+
+// Coalesced flushing of dirty positions/bookmarks.
+void StorageFlushIfDue(int64_t now_us);
+void StorageFlushNow();
+
+// ---- Last-book record (boot restore) ----
+// Path of the most recently opened book ("" = embedded). Saved atomically
+// on every successful open.
+void LastBookStore(const char *sd_path_or_empty);
+// Returns true and fills out (size >= 96) when a valid record exists.
+bool LastBookGet(char *out, uint32_t out_size);
+
+// ---- Bookmarks ----
+// Multiple bookmarks per book, persisted like positions (versioned +
+// checksummed + atomic). Toggle semantics: same content+offset removes.
+StatusCode BookmarksLoad();
+StatusCode BookmarkToggle(s3paper::ContentHash content,
+                          const s3paper::TextLocator &locator,
+                          bool *now_set);
+bool BookmarkIsSet(s3paper::ContentHash content, uint64_t byte_offset);
+uint32_t BookmarkCountFor(s3paper::ContentHash content);
+// nth bookmark of this content (insertion order); false when out of range.
+bool BookmarkGet(s3paper::ContentHash content, uint32_t index,
+                 s3paper::TextLocator *out);
+void BookmarksPrint(s3paper::ContentHash content);
 
 }  // namespace reader

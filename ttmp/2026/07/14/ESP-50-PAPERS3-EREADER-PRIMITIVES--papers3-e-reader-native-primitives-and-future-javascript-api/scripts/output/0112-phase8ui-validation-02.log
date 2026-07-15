@@ -1,0 +1,52 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> reader prev
+reader prev
+I (147605) m5_backend: present id=5 intent=TextPage ops=23 skipped=0 damage=0,0,540,960 render_us=371353 wait_us=14
+I (147606) reader_ctl: page at 4022 lines=18 full=0 reason=PartialDamage
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4022 progress=100.0% lines=18 turns=1 at_end=1 checkpoints=2 bookmarked=0 marks=0
+reader> 
+# >>> bookmark toggle
+bookmark toggle
+I (157187) reader_ctl: bookmark set at offset 4022
+I (157566) m5_backend: present id=6 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=373456 wait_us=3
+I (157567) reader_ctl: page at 4022 lines=18 full=0 reason=PartialDamage
+bookmarked=1 marks=1 offset=4022
+reader> 
+# >>> reader prev
+reader prev
+I (167901) m5_backend: present id=7 intent=TextPage ops=28 skipped=0 damage=0,0,540,960 render_us=467650 wait_us=12
+I (167902) reader_ctl: page at 3422 lines=23 full=0 reason=PartialDamage
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=3422 progress=91.9% lines=23 turns=2 at_end=0 checkpoints=7 bookmarked=0 marks=1
+reader> 
+# >>> reader prev
+reader prev
+I (177772) m5_backend: present id=8 intent=TextPage ops=28 skipped=0 damage=0,0,540,960 render_us=444807 wait_us=15
+I (177773) reader_ctl: page at 2572 lines=23 full=0 reason=PartialDamage
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=2572 progress=72.8% lines=23 turns=3 at_end=0 checkpoints=7 bookmarked=0 marks=1
+reader> 
+# >>> bookmark toggle
+bookmark toggle
+I (187251) reader_ctl: bookmark set at offset 2572
+I (187702) m5_backend: present id=9 intent=TextPage ops=29 skipped=0 damage=0,0,540,960 render_us=442284 wait_us=4
+I (187703) reader_ctl: page at 2572 lines=23 full=0 reason=PartialDamage
+bookmarked=1 marks=2 offset=2572
+reader> 
+# >>> bookmark list
+bookmark list
+  bookmark[0] offset=4022
+  bookmark[1] offset=2572
+bookmarks: 2 for this book (2 total)
+bookmarked=1 marks=2 offset=2572
+reader> 
+# >>> bookmark goto 0
+bookmark goto 0
+I (207714) m5_backend: present id=10 intent=TextPage ops=24 skipped=0 damage=0,0,540,960 render_us=373907 wait_us=20
+I (207715) reader_ctl: page at 4022 lines=18 full=0 reason=PartialDamage
+bookmarked=1 marks=2 offset=4022
+reader> 
+# >>> reader status
+reader status
+reader open=1 screen=reading title="alice-demo" source=sd resumed=1 offset=4022 progress=100.0% lines=18 turns=4 at_end=1 checkpoints=7 bookmarked=1 marks=2
+reader> 
+# done
