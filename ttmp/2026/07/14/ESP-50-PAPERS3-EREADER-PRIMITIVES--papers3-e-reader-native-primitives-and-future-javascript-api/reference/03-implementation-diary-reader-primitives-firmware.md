@@ -564,3 +564,31 @@ operator     -> gestures: 3x Tap, 3x SwipeLeft, 1x SwipeUp, 1 quiet window
                 (0112-phase4-touch-gestures-operator.jsonl)
 host checks  -> 4541 total
 ```
+
+## Step 9: Operator approval of the reading experience
+
+The operator paged through the embedded book by touch and approved the result: touch works, body text reads well, and ghosting is invisible even during fast page turns under the Phase 3 planner policy (64-turn full-refresh budget, Text/Fast partial waveforms). This closes the visual halves of the Phase 3 and Phase 5 gates that software evidence alone could not.
+
+### Prompt Context
+
+**User prompt (verbatim):** "looks good, touch works, ghosting is invisible even in fast turns. where does the font come from?"
+
+**Assistant interpretation:** Operator sign-off on touch, text quality, and ghosting; plus a provenance question about the reader font.
+
+**Inferred user intent:** Confirm the slice is genuinely usable and understand the font supply chain (licensing/quality implications).
+
+### What I did
+- Checked tasks `zfpj` (body-text quality approval) and `71dg` (ghosting baseline review) and recorded the approval in the changelog. No photographs were taken; the approval is verbal and dated.
+- Answered the font question: GNU FreeFont **FreeSerif** (GPLv3 + font-embedding exception) → rasterized to Adafruit-GFX bitmap format (`7b` = ASCII 0x20–0x7E) → shipped in the pinned m5gfx 0.2.25 → vendored byte-identical into `components/s3paper_core/fonts/` so host layout and device blitting share one metrics source.
+
+### What I learned
+- The naive Phase 2/3 intent→`epd_mode_t` mapping is good enough that ghosting is not user-visible at reading cadence — the planner's budgeted fulls are doing their job on this panel despite the paused optical qualification.
+
+### What warrants a second pair of eyes
+- The approval is verbal; if a durable baseline record is wanted for `cmmr`/hardening later, a few photos of text pages and post-soak screens should be captured and committed.
+
+### What should be done in the future
+- `3r0u` remains the right place to revisit font coverage (accents currently render as fallback boxes) and the long-term reader font decision.
+
+### Code review instructions
+- N/A (bookkeeping step; no code changed).

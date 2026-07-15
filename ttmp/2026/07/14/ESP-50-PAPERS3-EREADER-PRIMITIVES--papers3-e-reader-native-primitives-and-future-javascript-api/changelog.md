@@ -475,3 +475,12 @@ Phases 7-8 vertical slice: streaming locator-based Paginator with checkpoints an
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/paginator.cpp — Streaming pagination core
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_reader.cpp — Reading vertical slice controller
 
+
+## 2026-07-15
+
+Operator review 2026-07-15: touch confirmed working, body-text quality approved, ghosting invisible even in fast page turns under the Phase 3 planner policy (max_turns=64, epd_text/epd_fast partials). Closes zfpj (body-text approval) and 71dg (ghosting baseline review); no photos taken, verbal approval recorded.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/refresh_planner.cpp — Approved baseline refresh policy
+
