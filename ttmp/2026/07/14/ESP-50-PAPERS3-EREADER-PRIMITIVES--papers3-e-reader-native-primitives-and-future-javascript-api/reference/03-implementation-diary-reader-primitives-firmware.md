@@ -1029,3 +1029,55 @@ The bounded spike the design doc demanded before any JS work: a separate firmwar
 
 ### Technical details
 - Decision record: design-doc/05. Arena guidance for Phase 12: 128 KB internal is comfortable (the whole suite runs there); PSRAM supports 4 MB if scripts ever need it; startup cost is negligible (~1.5 ms create+first-eval).
+
+## Step 17: Phase 12 core — the fluent s3paper facade runs the panel
+
+MicroQuickJS now lives inside the reader firmware and drives real screens through the exact architecture the design prescribed: a flat, versioned native ABI over the Phase 9 widget arena, an ES5 fluent facade on top, callback IDs instead of closures, and gesture dispatch into JS only while a JS page owns the panel. The embedded hello and taps apps render through the same planner/backend as the reader, and the reader coexists — it rebuilds its retained tree when a JS app has reset the shared arena.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue"
+
+**Assistant interpretation:** Proceed to Phase 12 per the ticket order.
+
+**Inferred user intent:** Reach the product goal: the JS API surface running over the proven native primitives.
+
+**Commit (code):** 9e030af — "JS: fluent s3paper facade over the widget ABI (Phase 12 core)"
+
+### What I did
+- Vendored the engine into `0112/components/mquickjs` (byte-identical to the spike/imports copy; atom header regenerated) and added the s3 stdlib generation flow (`tools/js/{s3_stdlib.c,mqjs_stdlib_s3.c,gen_s3_stdlib.sh}` → `main/js_stdlib.h`).
+- ABI v1 (task qoou), 15 functions: widget constructors, `s3AddChild`, `s3SetText/-Progress`, one versioned `s3Config(handle, prop, a..d)` property channel (unknown prop → TypeError), and `s3Present(h,c,f,o,full)`. Handles are the s3paper `WidgetHandle` generation+index packed into an int32 — the SAME generation scheme end to end, so a stale JS handle throws `TypeError: stale widget handle` after any arena reset (muo1 validation on every call).
+- `main/app_js.{h,cpp}`: owner-task VM host — 160 KB PSRAM arena (internal fallback), every eval under an esp_timer deadline, exceptions recorded in a console-visible snapshot; the embedded ES5 facade (`s3.text('…').pad(…).onTap(fn)…`) plus hello and taps acceptance apps.
+- Callback model (0yat/pqfs): `.onTap(fn)` stores the closure in the JS-side `s3._taps` registry keyed by a numeric hit id; the widget node carries only that id. Gestures hit-test natively over the JS page's compiled hit regions and call `s3Dispatch(kind,x,y,hit)` by name — native never holds a JSValue across calls, so no long-lived GC roots exist.
+- Screen ownership: `UiPresentCount()` in app_ui; JS is "active" only while no other present happened since its own. `app_input` routes gestures to `JsHandleGesture` first.
+- Console `js [status|hello|taps]`; snapshot shows init/active/evals/exceptions/dispatches/last_error.
+
+### Why
+- Design §13.3/§13.4: bind the stable native model, never M5GFX; JS owns callbacks, native owns rendering. This step is that boundary made concrete.
+
+### What worked
+- `js hello`: 10 draw ops, clean full, zero exceptions. `js taps`: 8 ops, **hits=1** (the counter row's tap region emitted from widget compilation).
+- Coexistence: `reader open` after a JS app → JS `screen_active` drops to 0 automatically, the reader rebuilds its tree (full=1) and partial page turns resume (full=0).
+
+### What didn't work
+- 160 KB contiguous internal RAM isn't available inside the full reader firmware — first `js hello` returned OutOfMemory. Moved the arena to PSRAM (the Phase 11 spike had measured identical eval latency there); internal is now only a fallback.
+- `mquickjs.h` unqualified needs `<stddef.h>` first and C linkage in C++ TUs — two quick build fixes (`unknown type name 'size_t'`, then mangled `_Z10JS_ToInt32…` link errors).
+
+### What I learned
+- The generated stdlib table references binding functions by bare identifier with no prototypes, so a dedicated C TU (`js_stdlib_table.c`) including a shared prototypes header (`app_js_bindings.h`) pairs cleanly with C++ implementations defined `extern "C"` inside `namespace reader` (C linkage ignores namespaces — the bindings can touch the host's anonymous-namespace state).
+
+### What was tricky to build
+- Panel-ownership without coupling: rather than JS/reader knowing about each other, `UiPresentCount()` gives every transient screen the same rule — "you own gestures until someone else presents." The fixture clock uses its own flag today and should migrate to this counter.
+
+### What warrants a second pair of eyes
+- `s3Present` pushes the "js" router page with plain `Push` (no Back heuristics); alternating reader/JS navigation could hit the bounded stack's CapacityExceeded (logged, non-fatal, present unaffected). Fine for acceptance apps; revisit if JS pages become routable peers.
+- The dispatch path evals a snprintf'd `s3Dispatch(...)` string — robust and GC-safe, but each tap costs a parse. If tap latency ever matters, switch to JS_GetPropertyStr + JS_Call with the push-args protocol.
+- JS apps and the reader share one WidgetArena; `s3.reset()` invalidates reader handles by design (reader self-heals). If a JS app someday must persist alongside the reader, the arena needs partitioning.
+
+### What should be done in the future
+- Remaining Phase 12 subtasks: library/reader acceptance ports (wipy), native-vs-JS trace equivalence (17nn), the host authoring/bytecode pipeline (ibe5), fault-injection for scripts (rs5w) — the spike covered engine-level OOM/cancel; app-level fallback-to-native-screen is untested.
+- Operator: run `js taps` and tap the counter line — expect the number to increment with a partial refresh (the counter row is the only hit region).
+
+### Code review instructions
+- Start at `main/app_js.cpp`: `EvalBounded`, `ArgHandle`, `js_s3_config`, `js_s3_present`, and the embedded `kFacadeJs`; then `main/js_stdlib_table.c` + `main/app_js_bindings.h` for the pairing contract; `tools/js/gen_s3_stdlib.sh` regenerates.
+- Validate: `js hello`, `js taps` (check `hits=1`), tap the counter, then `reader open` + `reader next` (reader self-heals). Evidence: `scripts/output/0112-js-apps.log`, `0112-js-reader-coexist.log`.

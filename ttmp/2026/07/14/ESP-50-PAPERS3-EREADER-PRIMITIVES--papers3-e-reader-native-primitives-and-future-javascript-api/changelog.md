@@ -547,3 +547,12 @@ Step 16: Phase 11 MicroQuickJS spike complete - 38/38 hardware probes (arenas 8K
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0113-papers3-mquickjs-spike/main/app_main.cpp — Phase 11 probe suite (commit edba960)
 
+
+## 2026-07-15
+
+Step 17: Phase 12 core - MicroQuickJS in the reader firmware with versioned s3 ABI, ES5 fluent facade, hit-id callback registry, JS gesture dispatch, and hello/taps acceptance apps rendering through the planner; reader/JS screens coexist (commit 9e030af). Open: wipy (library/reader ports), 17nn (trace equivalence), ibe5 (host pipeline), rs5w (fault tests)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_js.cpp — VM host, s3 ABI bindings, fluent facade (commit 9e030af)
+

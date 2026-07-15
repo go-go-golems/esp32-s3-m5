@@ -168,13 +168,13 @@
 - [x] [P11.8] Compile syntax probes for fluent chains, closures, var/let/const, arrows, modules, spread, and candidate transpiled output <!-- t:0fdb -->
 - [x] [P11.9] Establish and test execution budget, cancellation/watchdog behavior, exception recovery, and runaway-script handling <!-- t:dzfz -->
 - [x] [P11.10] Publish memory, latency, syntax, safety results and make an explicit proceed/postpone decision <!-- t:s384 -->
-- [ ] [P12.1] Define and version the s3paper native ABI plus capability-query and compatibility behavior <!-- t:qoou -->
-- [ ] [P12.2] Generate/register a minimal MicroQuickJS standard library containing only required s3paper and diagnostic APIs <!-- t:wiie -->
-- [ ] [P12.3] Implement ES5-compatible fluent wrappers for paper, page, text, row, col, spacer, divider, progress, list, book, and region <!-- t:5toh -->
-- [ ] [P12.4] Implement generation-safe JS wrappers and a rooted callback registry with deterministic teardown <!-- t:xmua -->
-- [ ] [P12.5] Map dynamic values to CallbackId, DependencyId, and RegionId without storing JS closures in native layout nodes <!-- t:0yat -->
-- [ ] [P12.6] Dispatch gesture, timer, route, and selection events to JS outside display transactions <!-- t:pqfs -->
-- [ ] [P12.7] Validate JS-produced patches/descriptors for type, bounds, capacity, ownership, and stale handles before applying them <!-- t:muo1 -->
+- [x] [P12.1] Define and version the s3paper native ABI plus capability-query and compatibility behavior <!-- t:qoou -->
+- [x] [P12.2] Generate/register a minimal MicroQuickJS standard library containing only required s3paper and diagnostic APIs <!-- t:wiie -->
+- [x] [P12.3] Implement ES5-compatible fluent wrappers for paper, page, text, row, col, spacer, divider, progress, list, book, and region <!-- t:5toh -->
+- [x] [P12.4] Implement generation-safe JS wrappers and a rooted callback registry with deterministic teardown <!-- t:xmua -->
+- [x] [P12.5] Map dynamic values to CallbackId, DependencyId, and RegionId without storing JS closures in native layout nodes <!-- t:0yat -->
+- [x] [P12.6] Dispatch gesture, timer, route, and selection events to JS outside display transactions <!-- t:pqfs -->
+- [x] [P12.7] Validate JS-produced patches/descriptors for type, bounds, capacity, ownership, and stale handles before applying them <!-- t:muo1 -->
 - [ ] [P12.8] Implement the host authoring/transpile/compile/relocate/embed pipeline pinned to the runtime commit <!-- t:ibe5 -->
 - [ ] [P12.9] Port the hello, status, library, and reader studio programs to the supported on-device dialect <!-- t:wipy -->
 - [ ] [P12.10] Compare native and JS normalized layout, DrawOp, hit-region, and refresh-plan traces <!-- t:17nn -->
