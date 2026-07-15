@@ -19,7 +19,8 @@ WhenToUse: "Use after F2 flash verification when automatic post-reset observatio
 
 # Disposition
 
-- Observer reconnect: pending
-- F2 dump markers: pending
-- Ring validation: pending
-- F2 boot provenance: pending
+- Observer reconnect: not tested — Reset occurred after the 75-second capture expired
+- F2 dump markers: not tested
+- Ring validation: not tested
+- F2 boot provenance: not tested
+- Disposition: procedural miss; no conclusion and no retry under this experiment ID
