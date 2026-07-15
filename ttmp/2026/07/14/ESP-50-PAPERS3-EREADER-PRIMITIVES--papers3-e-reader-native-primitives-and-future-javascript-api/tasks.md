@@ -208,3 +208,4 @@
 - [x] [P0.19.1] Build/audit exact direct-driver artifact and preserve binary identity <!-- t:bflw -->
 - [x] [P0.19.2] Run one fixed-head synchronized density/firmware-marker capture with safe serial ownership <!-- t:ca9i -->
 - [ ] [P0.19.3] Analyze fixed-point step response and record operator/optical disposition <!-- t:utzh -->
+- [ ] [P0.20] Run a native direct-driver 2-bit gray-code ladder (00→55→AA→FF→00) with synchronized fixed-aperture density evidence <!-- t:1qly -->
