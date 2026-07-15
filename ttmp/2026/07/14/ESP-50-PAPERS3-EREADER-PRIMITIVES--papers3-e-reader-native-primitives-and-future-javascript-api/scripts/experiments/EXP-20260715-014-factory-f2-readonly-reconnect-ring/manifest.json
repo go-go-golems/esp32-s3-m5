@@ -1,0 +1,46 @@
+{
+  "capture": {
+    "duration_seconds": 75,
+    "forbidden": [
+      "pyserial on PaperS3",
+      "writes",
+      "termios configuration",
+      "DTR/RTS ioctl"
+    ],
+    "reset": "operator presses physical Reset exactly once after observer armed",
+    "serial_access": "O_RDONLY|O_NOCTTY|O_NONBLOCK only; reconnect after USB reset"
+  },
+  "decision_rule": {
+    "no_claim": [
+      "density",
+      "spatial waveform quality",
+      "sub-millisecond host/device alignment"
+    ],
+    "require": [
+      "capture_end ok",
+      "at least one reconnect/open after reset",
+      "FACTORY_TRACE_DUMP_BEGIN",
+      "FACTORY_TRACE_DUMP_END",
+      "contiguous valid ring records",
+      "DISPLAY_IDLE"
+    ]
+  },
+  "firmware": {
+    "provenance": "hash-verified flash in EXP-013; visual identity alone is not sufficient",
+    "sha256": "95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755"
+  },
+  "id": "EXP-20260715-014-factory-f2-readonly-reconnect-ring",
+  "predecessor": "EXP-20260715-013-factory-f2-esptool-reset-density",
+  "schema": "esp50.serial-observation-experiment.v1",
+  "status": "preregistered",
+  "stop_conditions": [
+    "unexpected heat",
+    "odor",
+    "sound",
+    "power instability",
+    "reset loop",
+    "more than one reset"
+  ],
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "Current verified-F2 image, one physical reset, reconnecting read-only USB-JTAG trace capture"
+}
