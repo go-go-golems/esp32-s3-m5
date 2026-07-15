@@ -529,3 +529,12 @@ Step 14: Phase 9 complete - retained widget trees, layout, draw-op compilation, 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_ui.cpp — Widget UI service with region tick (commit 04b9d92)
 
+
+## 2026-07-15
+
+Step 15: Phase 10 power lifecycle - documented quiesce order, retained sleep image, verified PaperS3 wake sources (timer deep-sleep x2 rst=8/cause=4; BM8563 RTC re-power rst=1), inactivity auto-sleep and low-battery shutdown policies; resume via boot restore proven each cycle (commit 7e31f8f). 1k7u (fault sims) and gnr0 umbrella stay open pending low-battery/interrupted-write tests
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_power.cpp — Coordinated sleep sequence and policies (commit 7e31f8f)
+

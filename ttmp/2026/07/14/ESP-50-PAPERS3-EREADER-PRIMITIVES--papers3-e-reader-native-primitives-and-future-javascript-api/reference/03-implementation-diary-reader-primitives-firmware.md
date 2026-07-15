@@ -915,3 +915,59 @@ This step generalized the proven vertical slice into the widget architecture the
 
 ### Technical details
 - Node mutation contract: setters bump `content_version`; `RenderStateDiff` compares (generation, kind, version, frame) per arena slot between Capture and Diff — damage falls out of retained state, never from dirty flags in app code.
+
+## Step 15: Phase 10 — coordinated power lifecycle, verified wake sources, resume
+
+This step made battery behavior a lifecycle instead of an ad-hoc powerOff(): a documented quiesce sequence, a retained sleep image on the panel, verified wake sources for the actual M5PaperS3 revision, and hardware-proven resume. The strongest evidence pair: two deep-sleep cycles waking by timer (`reset_reason=8, wakeup_cause=4`) and one true power-off re-powered by the BM8563 RTC alarm (`reset_reason=1` POWERON) — each time the reader came back at offset 2572 with both bookmarks intact.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 13 — "go ahead. do that one first, then do phase 9 and 10")
+
+**Assistant interpretation:** Implement Phase 10 (power/resume) after Phase 9, keeping the diary and commit cadence.
+
+**Inferred user intent:** A real e-reader must survive being put down for a week: sleep deep, keep the page on the panel, wake fast, and never lose the reading position.
+
+**Commit (code):** 7e31f8f — "Power: coordinated sleep/wake lifecycle for PaperS3"
+
+### What I did
+- `components/s3paper_m5/{include/s3paper_m5/m5_power.h,src/m5_power.cpp}`: the only module calling M5.Power/M5.Rtc — battery read (ADC GPIO3 ratio 2.0, CHG_STAT GPIO4), `PowerDeepSleep` (timer wake), `PowerRtcOff` (BM8563 alarm + power-latch pulse), `PowerOff`.
+- `main/app_power.{h,cpp}`: `PowerSleep(mode, s)` runs the documented quiesce order (touch tick off → StorageFlushNow → retained widget sleep image (title, percent read, wake hint) presented CleanFull → SD unmount → console flush → wake source + transition); `PowerAutoTick` implements inactivity auto-sleep (default off, any touch cancels) and a 30 s rate-limited low-battery shutdown (level ≤ 5 % and not charging → same quiesce path); `PowerLogBootCause` stamps every boot with reset/wakeup cause.
+- Console `sleep [status|deep N|timer N|off|auto N]`; `PowerSnapshot` in the reply union; owner replies BEFORE sleeping (the reply must cross USB before power drops).
+- Hardware validation transcripts in `scripts/output/0112-power-*.log`.
+
+### Why
+- Design Phase 10 gate: repeated sleep/wake without losing state or leaving an in-flight EPD operation. Wake on this hardware is a reboot, so `ReaderBootRestore()` (Phase 8) is the resume contract — no separate warm-resume path to maintain.
+
+### What worked
+- Cycle 1: `sleep deep 20` → USB re-enumerated ~20 s later → `wakeup_cause=4 reset_reason=8`, reader restored. Cycle 2 (15 s): identical.
+- `sleep timer 25` (true power-off): board re-powered by the RTC alarm, `reset_reason=1` — proving the BM8563 alarm + power-latch path works on this revision.
+- Battery telemetry: 4150–4180 mV, 100 %, charging=0.
+- Auto-sleep arm/disarm round-trips through the console.
+
+### What didn't work
+- Nothing failed outright this step; note the first `sleep status` immediately after a wake raced the ~35 s boot-restore and returned nothing (same mid-boot race documented in Step 12 — query again after boot settles).
+
+### What I learned
+- Verified wake-source matrix for M5PaperS3 (m5unified 0.2.18): touch INT is GPIO48, NOT an RTC IO on ESP32-S3 → deep sleep cannot wake on touch; timer only. True power-off wakes via BM8563 RTC alarm or the physical side button. This is task go0n's answer and is encoded as a comment in m5_power.h.
+- M5's own `_timerSleep`/`deepSleep` call `M5.Display.sleep(); M5.Display.waitDisplay();` first, which is what guarantees "no in-flight EPD operation" — the quiesce sequence only needs to get the sleep image *issued* before that.
+
+### What was tricky to build
+- Reply-before-sleep ordering in the owner: a sleep command that quiesces first would eat the console reply (host sees a timeout and can't distinguish "sleeping" from "hung"). The owner sends the Ok reply, then runs `PowerSleep`, and only an error path falls through with a log.
+- PaperS3 power-off is not a GPIO level: the latch needs a pulse loop (Power_Class does 5 low/high cycles); that's why `PowerRtcOff`/`PowerOff` park in `vTaskDelay(portMAX_DELAY)` — power drops mid-loop.
+
+### What warrants a second pair of eyes
+- The low-battery threshold (≤ 5 %, not charging) has never fired on real hardware — the battery reads 100 %. A drained-battery or mocked-ADC test belongs in 1k7u before trusting it in the field.
+- `sleep off` and physical-button wake were not exercised (needs a hand on the device); the code path is identical to `timer` minus the alarm.
+- Auto-sleep powering off while USB-attached will drop the development console mid-session by design; consider a "USB-powered → skip auto-sleep" qualifier if that annoys.
+
+### What should be done in the future
+- 1k7u remainder: shutdown-during-write injection, missing-card-on-wake, low-battery simulation.
+- Operator: visually confirm the retained sleep image (title + "asleep" + wake hint should stay on the panel while off).
+
+### Code review instructions
+- Start at `main/app_power.cpp` (`PowerSleep` sequence, `PowerAutoTick`), then `components/s3paper_m5/src/m5_power.cpp` against `managed_components/m5stack__m5unified/src/utility/Power_Class.cpp` (PaperS3 cases at lines ~244, ~1079, ~1255).
+- Validate: `sleep status` (battery + boot cause), `sleep deep 20` then reconnect after ~60 s and check `reset_reason=8 wakeup_cause=4` plus the reader snapshot; `sleep timer 25` for the RTC path (`reset_reason=1`).
+
+### Technical details
+- Boot-cause decoding: reset_reason 1=POWERON, 8=DEEPSLEEP, 11=USB; wakeup_cause 4=TIMER (esp_sleep.h enums, surfaced raw in PowerSnapshot).

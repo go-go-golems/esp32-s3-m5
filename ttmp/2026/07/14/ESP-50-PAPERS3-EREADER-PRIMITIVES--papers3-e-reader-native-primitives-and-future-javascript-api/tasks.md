@@ -149,13 +149,13 @@
 - [x] [P9.9] Implement native hello, status, library, and reader fixtures matching the studio's intended semantics <!-- t:2awq -->
 - [x] [P9.10] Migrate the Phase 8 reader onto the generic widget/page system without behavior regression <!-- t:zxxd -->
 - [ ] [P9.11] Add golden layout/draw-op/refresh-plan traces and hardware screenshots for all native fixtures <!-- t:n7h2 -->
-- [ ] [P10.1] Define inactivity, explicit sleep, low-battery shutdown, and user-cancel power policies <!-- t:9i89 -->
-- [ ] [P10.2] Force pending locator/settings/catalog persistence before any power transition <!-- t:teie -->
-- [ ] [P10.3] Wait for display idle with timeout handling and render the selected retained sleep image <!-- t:078s -->
-- [ ] [P10.4] Quiesce timers, app events, storage activity, SD, and future script execution in a documented order <!-- t:542x -->
-- [ ] [P10.5] Verify and configure supported RTC/button wake sources for the actual PaperS3 board revision <!-- t:go0n -->
-- [ ] [P10.6] Implement wake/reinitialize flow for display, touch, SD, catalog, reader state, and refresh history <!-- t:kark -->
-- [ ] [P10.7] Implement low-battery behavior using qualified battery/USB detection without corrupting state <!-- t:tv0p -->
+- [x] [P10.1] Define inactivity, explicit sleep, low-battery shutdown, and user-cancel power policies <!-- t:9i89 -->
+- [x] [P10.2] Force pending locator/settings/catalog persistence before any power transition <!-- t:teie -->
+- [x] [P10.3] Wait for display idle with timeout handling and render the selected retained sleep image <!-- t:078s -->
+- [x] [P10.4] Quiesce timers, app events, storage activity, SD, and future script execution in a documented order <!-- t:542x -->
+- [x] [P10.5] Verify and configure supported RTC/button wake sources for the actual PaperS3 board revision <!-- t:go0n -->
+- [x] [P10.6] Implement wake/reinitialize flow for display, touch, SD, catalog, reader state, and refresh history <!-- t:kark -->
+- [x] [P10.7] Implement low-battery behavior using qualified battery/USB detection without corrupting state <!-- t:tv0p -->
 - [ ] [P10.8] Run repeated sleep/wake, shutdown-during-write, missing-card-on-wake, and low-battery simulations <!-- t:1k7u -->
 - [ ] [P10.9] Measure idle/standby behavior and document wake limitations, reset behavior, and operator recovery <!-- t:5fwn -->
 - [ ] [P11.1] Pin an exact MicroQuickJS commit and record source, license, build flags, and local integration strategy <!-- t:zyxp -->
