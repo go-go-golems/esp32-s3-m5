@@ -204,3 +204,7 @@
 - [ ] [P0.17f] Create 0109 FactoryTest V0.5 lineage control under exact IDF 5.3.3: replay/video exact merged F0, then build/audit stock-source trace-off F1 and trace-on F2 preserving the black-to-white-to-grayscale boot sequence; capture ring only from F2 and keep all runs separately labeled <!-- t:6nak -->
 - [ ] [P0.17g] Design reviewed external logic/rail/VCOM capture for the unmodified factory binary <!-- t:31al -->
 - [x] [P0.17f.1] Install and verify exact ESP-IDF v5.3.3, then build matrix Cells A/B without flashing <!-- t:cv8d -->
+- [x] [P0.19] Preregister and implement a native EPD_Painter fixed-aperture white-black-white density step-response firmware <!-- t:jtk1 -->
+- [x] [P0.19.1] Build/audit exact direct-driver artifact and preserve binary identity <!-- t:bflw -->
+- [ ] [P0.19.2] Run one fixed-head synchronized density/firmware-marker capture with safe serial ownership <!-- t:ca9i -->
+- [ ] [P0.19.3] Analyze fixed-point step response and record operator/optical disposition <!-- t:utzh -->

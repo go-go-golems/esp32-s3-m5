@@ -1,0 +1,16 @@
+Electrophoretic Display Qualification
+Chapter 1 — Controlled Transitions
+
+A reader page is a structured optical workload, not a full-field test.
+Margins remain white while glyph stems, bowls, and punctuation switch
+small regions of the panel. The resulting area fraction is modest, but
+the transitions are spatially dense and repeated across many gate rows.
+
+This fixed page separates rendering from display drive. Its pixels are
+generated offline, packed to the driver's two-bit format, and identified
+by a cryptographic digest. Runtime code performs no font selection, line
+breaking, anti-aliasing, storage access, or application animation.
+
+The first comparison asks only whether text reaches a stable dark endpoint
+after a known white origin. A repeated page then tests whether a commanded
+no-op disturbs the image before the final white cleanup is applied.
