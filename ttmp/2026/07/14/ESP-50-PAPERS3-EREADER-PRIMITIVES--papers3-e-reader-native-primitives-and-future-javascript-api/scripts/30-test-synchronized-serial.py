@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Pseudo-terminal integration test for synchronized Printalyzer raw capture."""
+
 from __future__ import annotations
 
 import errno
@@ -47,7 +48,15 @@ def main() -> None:
                     pending = bytearray(remainder)
                     command = raw.rstrip(b"\r").decode("ascii")
                     commands.append(command)
-                    if command == "IS REMOTE,1":
+                    if command == "GC LIGHT":
+                        response = "GC LIGHT,128,122"
+                    elif command == "GC GAIN":
+                        response = "GC GAIN,3F800000,3F800000,41C414E0,41CD2F71,43CC95C1,43CDF800,46141D28,46257619"
+                    elif command == "GC SLOPE":
+                        response = "GC SLOPE,3E1F077D,3F785719,BC24228A"
+                    elif command == "GC REFL":
+                        response = "GC REFL,3D75C28F,42D6DDBA,3FC00000,409478EF"
+                    elif command == "IS REMOTE,1":
                         response = "IS REMOTE,1"
                     elif command == "IS REMOTE,0":
                         response = "IS REMOTE,0"
@@ -65,7 +74,7 @@ def main() -> None:
                         response = f"{command},OK"
                     os.write(master, (response + "\r\n").encode("ascii"))
             if streaming and time.monotonic() - last_reading >= 0.03:
-                os.write(master, b"GD S,1234,56,1,0\r\n")
+                os.write(master, b"GD S,1234,56,2,0\r\n")
                 last_reading = time.monotonic()
 
     fake_thread = threading.Thread(target=fake_printalyzer, daemon=True)
@@ -104,9 +113,13 @@ def main() -> None:
             if record.get("parsed", {}).get("kind") == "raw_sensor"
         ]
         expected_commands = [
+            "GC LIGHT",
+            "GC GAIN",
+            "GC SLOPE",
+            "GC REFL",
             "IS REMOTE,1",
-            "SD S,CFG,1,0",
-            "SD LR,32",
+            "SD S,CFG,2,0",
+            "SD LR,128",
             "ID S,START",
             "ID S,STOP",
             "SD LR,0",
@@ -114,10 +127,16 @@ def main() -> None:
         ]
         assert commands == expected_commands, commands
         assert raw_records, "no parsed raw-sensor records"
+        assert all(
+            record["parsed"]["derived"]["density_estimate_valid"]
+            for record in raw_records
+        )
         assert records[-1]["event"] == "capture_end"
         assert records[-1]["result"] == "ok"
         assert [record["sequence"] for record in records] == list(range(len(records)))
-        print(f"fake_raw_stream_test=PASS records={len(records)} raw={len(raw_records)}")
+        print(
+            f"fake_raw_stream_test=PASS records={len(records)} raw={len(raw_records)}"
+        )
         print("commands=" + repr(commands))
 
 

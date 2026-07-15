@@ -81,19 +81,25 @@ Opening the Printalyzer with DTR deasserted caused the first read-only inventory
 
 ## Raw-stream synthetic test
 
-A pseudo-terminal fake Printalyzer validated the exact gated command and cleanup sequence:
+A pseudo-terminal fake Printalyzer initially validated gated state sequencing at duty 32. The current density-aware test first captures calibration through read-only getters, then uses the installed instrument's calibrated reflection duty and a preregistered high-gain/100 ms configuration:
 
 ```text
+GC LIGHT
+GC GAIN
+GC SLOPE
+GC REFL
 IS REMOTE,1
-SD S,CFG,1,0
-SD LR,32
+SD S,CFG,2,0
+SD LR,128
 ID S,START
 ID S,STOP
 SD LR,0
 IS REMOTE,0
 ```
 
-Nine synthetic `GD S,...` records were parsed. The final three cleanup commands were verified in order. Cleanup is armed before the first state-changing command so partial-entry failures still attempt sensor stop, reflection-light off, and remote-mode exit.
+Nine synthetic `GD S,...` records were parsed and given host-derived density estimates. The final three cleanup commands were verified in order. Cleanup is armed before the first state-changing command so partial-entry failures still attempt sensor stop, reflection-light off, and remote-mode exit.
+
+The host estimate reproduces the installed v1.1.0 source formulas: raw channel 0 is normalized using integration time and per-gain calibration, transformed by the slope-calibration polynomial in log space, and mapped through the two reflection target-calibration points. Estimates are rejected when the sample saturates, input is invalid, or runtime LED duty differs from captured calibration duty. They remain labeled single-sample estimates because normal local measurements auto-select gain, use 200 ms integration, and average two target readings.
 
 ## Safety gate
 

@@ -286,3 +286,12 @@ Reduced both Printalyzer source snapshots to code/text only: removed PDFs, image
 ### Related Files
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md — Revised code-only source scope
+
+## 2026-07-14
+
+Extended synchronized Printalyzer raw capture to snapshot read-only calibration, reproduce the installed v1.1.0 channel-normalization/slope/target-density formula per sample, reject saturation or light-duty mismatch, and test the exact gain-2/100 ms/duty-128 command and cleanup sequence against a fake device.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py — Density-aware raw capture
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/30-test-synchronized-serial.py — No-hardware command/cleanup integration test

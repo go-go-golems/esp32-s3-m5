@@ -5,19 +5,23 @@ Passive capture sends no input.  Read-only inventory is explicit.  Continuous
 Printalyzer raw-sensor mode is separately gated because it enters remote mode,
 changes transient sensor/light state, and does not produce calibrated density.
 """
+
 from __future__ import annotations
 
 import argparse
 import fcntl
 import json
+import math
 import os
 import queue
 import re
 import select
 import signal
 import socket
+import struct
 import threading
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -30,8 +34,7 @@ DEFAULT_DENS_PORT = Path(
     "323147103439323344002900-if00"
 )
 DEFAULT_FIRMWARE_PORT = Path(
-    "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_"
-    "D0:CF:13:16:17:DC-if00"
+    "/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00"
 )
 READ_ONLY_DENS_COMMANDS = (
     "GS V",
@@ -49,6 +52,80 @@ READ_ONLY_DENS_COMMANDS = (
 DENSITY_RE = re.compile(r"^([RT])([+-])(\d+(?:\.\d+)?)D(?:,(.*))?$")
 RAW_SENSOR_RE = re.compile(r"^GD S,(\d+),(\d+),(\d+),(\d+)$")
 ESP_LOG_RE = re.compile(r"^[A-Z] \((\d+)\)")
+TSL2591_LUX_DF = 408.0
+TSL2591_LUX_GA = 1.16
+TSL2591_ANALOG_SATURATION = 37888
+TSL2591_DIGITAL_SATURATION = 65535
+REFLECTION_MAX_D = 2.50
+
+
+@dataclass(frozen=True)
+class ReflectionCalibration:
+    reflection_light_duty: int
+    gain_ch0: tuple[float, float, float, float]
+    gain_ch1: tuple[float, float, float, float]
+    slope: tuple[float, float, float]
+    lo_density: float
+    lo_value: float
+    hi_density: float
+    hi_value: float
+
+    def derive(
+        self, channel_0: int, gain_index: int, integration_index: int, light_duty: int
+    ) -> dict[str, Any]:
+        integration_ms = (integration_index + 1) * 100
+        saturation_limit = (
+            TSL2591_ANALOG_SATURATION
+            if integration_index == 0
+            else TSL2591_DIGITAL_SATURATION
+        )
+        result: dict[str, Any] = {
+            "integration_ms": integration_ms,
+            "saturation_limit": saturation_limit,
+            "saturated": channel_0 >= saturation_limit,
+            "calibration_light_duty": self.reflection_light_duty,
+            "light_duty_matches_calibration": light_duty == self.reflection_light_duty,
+        }
+        if not 0 <= gain_index < len(self.gain_ch0) or channel_0 <= 0:
+            result["density_estimate_valid"] = False
+            return result
+        cpl = (integration_ms * self.gain_ch0[gain_index]) / (
+            TSL2591_LUX_GA * TSL2591_LUX_DF
+        )
+        basic = channel_0 / cpl
+        result["channel_0_basic"] = basic
+        if (
+            basic <= 0
+            or result["saturated"]
+            or light_duty != self.reflection_light_duty
+        ):
+            result["density_estimate_valid"] = False
+            return result
+        log_basic = math.log10(basic)
+        b0, b1, b2 = self.slope
+        corrected = 10 ** (b0 + b1 * log_basic + b2 * (log_basic**2))
+        result["channel_0_corrected"] = corrected
+        if corrected <= 0 or self.lo_value <= 0 or self.hi_value <= 0:
+            result["density_estimate_valid"] = False
+            return result
+        calibration_slope = (self.hi_density - self.lo_density) / (
+            math.log10(self.hi_value) - math.log10(self.lo_value)
+        )
+        density = (
+            calibration_slope * (math.log10(corrected) - math.log10(self.lo_value))
+            + self.lo_density
+        )
+        result["density_unclamped"] = density
+        result["density_estimate"] = min(REFLECTION_MAX_D, max(0.0, density))
+        result["density_estimate_valid"] = True
+        result["estimate_kind"] = "single-sample-host-reproduction-of-v1.1.0-formula"
+        return result
+
+
+def decode_f32(value: str) -> float:
+    if not re.fullmatch(r"[0-9A-Fa-f]{8}", value):
+        raise ValueError(f"invalid encoded float: {value!r}")
+    return struct.unpack(">f", bytes.fromhex(value))[0]
 
 
 def utcstamp() -> str:
@@ -132,7 +209,9 @@ class EventSink:
                 **fields,
             }
             self.sequence += 1
-            self.file.write(json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n")
+            self.file.write(
+                json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
+            )
             self.file.flush()
 
     def close(self) -> None:
@@ -151,6 +230,8 @@ class SerialSource:
         self.stop_event = threading.Event()
         self.responses: queue.Queue[tuple[int, str]] = queue.Queue()
         self.line_sequence = 0
+        self.reflection_calibration: ReflectionCalibration | None = None
+        self.raw_light_duty: int | None = None
         self.thread: threading.Thread | None = None
         self.serial: serial.Serial | None = None
         self.read_fd: int | None = None
@@ -205,7 +286,9 @@ class SerialSource:
         return device
 
     def start(self) -> None:
-        self.thread = threading.Thread(target=self._reader, name=f"serial-{self.name}", daemon=True)
+        self.thread = threading.Thread(
+            target=self._reader, name=f"serial-{self.name}", daemon=True
+        )
         self.thread.start()
 
     def _reader(self) -> None:
@@ -244,9 +327,22 @@ class SerialSource:
                         "raw_hex": bytes(raw_line).hex(),
                     }
                     parsed = parse_line(self.name, line)
+                    if (
+                        parsed.get("kind") == "raw_sensor"
+                        and self.reflection_calibration is not None
+                        and self.raw_light_duty is not None
+                    ):
+                        parsed["derived"] = self.reflection_calibration.derive(
+                            parsed["channel_0"],
+                            parsed["gain_index"],
+                            parsed["integration_index"],
+                            self.raw_light_duty,
+                        )
                     if parsed:
                         event_fields["parsed"] = parsed
-                    self.sink.emit(self.name, "rx_line", _monotonic_ns=read_ns, **event_fields)
+                    self.sink.emit(
+                        self.name, "rx_line", _monotonic_ns=read_ns, **event_fields
+                    )
                     self.responses.put((read_ns, line))
                     self.line_sequence += 1
                     first_byte_ns = read_ns if pending else None
@@ -273,10 +369,18 @@ class SerialSource:
         payload = line.encode("ascii") + b"\r\n"
         self.serial.write(payload)
         self.serial.flush()
-        self.sink.emit(self.name, "tx_line", _monotonic_ns=sent_ns, line=line, raw_hex=payload.hex())
+        self.sink.emit(
+            self.name,
+            "tx_line",
+            _monotonic_ns=sent_ns,
+            line=line,
+            raw_hex=payload.hex(),
+        )
         return sent_ns
 
-    def send_and_wait(self, line: str, predicate: Callable[[str], bool], timeout: float = 3.0) -> str:
+    def send_and_wait(
+        self, line: str, predicate: Callable[[str], bool], timeout: float = 3.0
+    ) -> str:
         sent_ns = self.send(line)
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
@@ -314,14 +418,78 @@ def command_prefix(command: str) -> str:
 
 
 def run_inventory(dens: SerialSource) -> None:
-    dens.sink.emit("session", "inventory_begin", command_count=len(READ_ONLY_DENS_COMMANDS))
+    dens.sink.emit(
+        "session", "inventory_begin", command_count=len(READ_ONLY_DENS_COMMANDS)
+    )
     for command in READ_ONLY_DENS_COMMANDS:
         prefix = command_prefix(command)
         dens.send_and_wait(command, lambda line, prefix=prefix: line.startswith(prefix))
     dens.sink.emit("session", "inventory_end", result="ok")
 
 
-def enter_raw_stream(dens: SerialSource, gain: int, integration: int, duty: int) -> None:
+def response_args(response: str) -> list[str]:
+    try:
+        return response.split(",", 1)[1].split(",")
+    except IndexError as exc:
+        raise ValueError(f"response has no arguments: {response!r}") from exc
+
+
+def capture_reflection_calibration(dens: SerialSource) -> ReflectionCalibration:
+    light = response_args(
+        dens.send_and_wait("GC LIGHT", lambda line: line.startswith("GC LIGHT,"))
+    )
+    gain = [
+        decode_f32(value)
+        for value in response_args(
+            dens.send_and_wait("GC GAIN", lambda line: line.startswith("GC GAIN,"))
+        )
+    ]
+    slope = [
+        decode_f32(value)
+        for value in response_args(
+            dens.send_and_wait("GC SLOPE", lambda line: line.startswith("GC SLOPE,"))
+        )
+    ]
+    reflection = [
+        decode_f32(value)
+        for value in response_args(
+            dens.send_and_wait("GC REFL", lambda line: line.startswith("GC REFL,"))
+        )
+    ]
+    if len(light) != 2 or len(gain) != 8 or len(slope) != 3 or len(reflection) != 4:
+        raise ValueError("unexpected Printalyzer calibration response shape")
+    calibration = ReflectionCalibration(
+        reflection_light_duty=int(light[0]),
+        gain_ch0=(gain[0], gain[2], gain[4], gain[6]),
+        gain_ch1=(gain[1], gain[3], gain[5], gain[7]),
+        slope=(slope[0], slope[1], slope[2]),
+        lo_density=reflection[0],
+        lo_value=reflection[1],
+        hi_density=reflection[2],
+        hi_value=reflection[3],
+    )
+    dens.reflection_calibration = calibration
+    dens.sink.emit(
+        "session",
+        "reflection_calibration_snapshot",
+        reflection_light_duty=calibration.reflection_light_duty,
+        gain_ch0=calibration.gain_ch0,
+        gain_ch1=calibration.gain_ch1,
+        slope=calibration.slope,
+        lo_density=calibration.lo_density,
+        lo_value=calibration.lo_value,
+        hi_density=calibration.hi_density,
+        hi_value=calibration.hi_value,
+        formula_source="Printalyzer v1.1.0 firmware formula",
+    )
+    return calibration
+
+
+def enter_raw_stream(
+    dens: SerialSource, gain: int, integration: int, duty: int
+) -> None:
+    calibration = capture_reflection_calibration(dens)
+    dens.raw_light_duty = duty
     dens.send_and_wait("IS REMOTE,1", lambda line: line == "IS REMOTE,1", timeout=5)
     dens.send_and_wait(
         f"SD S,CFG,{gain},{integration}",
@@ -336,6 +504,8 @@ def enter_raw_stream(dens: SerialSource, gain: int, integration: int, duty: int)
         integration_index=integration,
         reflection_light_duty=duty,
         calibrated_density=False,
+        host_density_estimate_enabled=duty == calibration.reflection_light_duty,
+        calibration_light_duty=calibration.reflection_light_duty,
     )
 
 
@@ -390,13 +560,38 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--firmware-port", type=Path, default=DEFAULT_FIRMWARE_PORT)
     parser.add_argument("--no-densitometer", action="store_true")
     parser.add_argument("--no-firmware", action="store_true")
-    parser.add_argument("--duration", type=float, default=10.0, help="seconds; 0 means until interrupted")
+    parser.add_argument(
+        "--duration",
+        type=float,
+        default=10.0,
+        help="seconds; 0 means until interrupted",
+    )
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--dens-inventory", action="store_true", help="send only the fixed read-only query allowlist")
-    parser.add_argument("--dens-raw-stream", action="store_true", help="enter transient diagnostic raw streaming mode")
-    parser.add_argument("--gain", type=int, choices=range(4), default=1)
+    parser.add_argument(
+        "--dens-inventory",
+        action="store_true",
+        help="send only the fixed read-only query allowlist",
+    )
+    parser.add_argument(
+        "--dens-raw-stream",
+        action="store_true",
+        help="enter transient diagnostic raw streaming mode",
+    )
+    parser.add_argument(
+        "--gain",
+        type=int,
+        choices=range(4),
+        default=2,
+        help="TSL2591 gain index; 2=HIGH is preregistered for reference characterization",
+    )
     parser.add_argument("--integration", type=int, choices=range(6), default=0)
-    parser.add_argument("--light-duty", type=int, choices=range(1, 129), default=32)
+    parser.add_argument(
+        "--light-duty",
+        type=int,
+        choices=range(1, 129),
+        default=128,
+        help="reflection LED duty; 128 matches this instrument's captured calibration",
+    )
     parser.add_argument("--confirm", default="")
     args = parser.parse_args()
     if args.no_densitometer and args.no_firmware:
@@ -420,13 +615,18 @@ def main() -> None:
     for label, port in ports:
         validate_port(label, port)
 
-    output = args.output or TICKET / "scripts/output" / f"29-synchronized-serial-{utcstamp()}.jsonl"
+    output = (
+        args.output
+        or TICKET / "scripts/output" / f"29-synchronized-serial-{utcstamp()}.jsonl"
+    )
     print(f"mode={'check' if args.check else 'execute'}")
     for label, port in ports:
         print(f"{label}_port={port}")
         print(f"{label}_real_port={port.resolve()}")
     print(f"output={output}")
-    print(f"serial_input_planned={'yes' if args.dens_inventory or args.dens_raw_stream else 'no'}")
+    print(
+        f"serial_input_planned={'yes' if args.dens_inventory or args.dens_raw_stream else 'no'}"
+    )
     print(f"raw_stream_planned={'yes' if args.dens_raw_stream else 'no'}")
     if args.check:
         print("hardware_modified=no")
@@ -493,7 +693,12 @@ def main() -> None:
             try:
                 source.close()
             except BaseException as exc:
-                sink.emit("session", "source_close_error", source_name=source.name, error=repr(exc))
+                sink.emit(
+                    "session",
+                    "source_close_error",
+                    source_name=source.name,
+                    error=repr(exc),
+                )
                 if failure is None:
                     failure = exc
         sink.emit(
@@ -508,7 +713,9 @@ def main() -> None:
 
     print(f"capture={output}")
     print(f"result={'error' if failure else 'ok'}")
-    print(f"hardware_modified={'transient-densitometer-state-only' if args.dens_raw_stream else 'no'}")
+    print(
+        f"hardware_modified={'transient-densitometer-state-only' if args.dens_raw_stream else 'no'}"
+    )
     if failure:
         raise failure
 
