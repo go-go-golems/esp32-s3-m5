@@ -269,3 +269,12 @@ Captured a focused official-source snapshot matching the connected Printalyzer v
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md — Scope and file rationale
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/software/firmware/src/densitometer.c — Installed-version density conversion
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/software/firmware/src/sensor.c — Installed-version sensor timing and raw conversion
+
+## 2026-07-14
+
+Step 22 committed the focused installed-Printalyzer v1.1.0 source subset as 239b4470667b0553305dae8a0be6bf8b54b71b3d; it is for analysis only, with no Printalyzer build or flash planned.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 22
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md — Source scope and commit mapping

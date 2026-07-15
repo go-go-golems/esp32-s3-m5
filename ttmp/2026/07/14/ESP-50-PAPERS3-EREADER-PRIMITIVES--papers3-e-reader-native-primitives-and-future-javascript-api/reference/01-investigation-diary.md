@@ -73,6 +73,8 @@ RelatedFiles:
       Note: Audited source hardening (commit f7c3e7347ebe75c9d654a9c9d92a5ae7f439dfd7)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/epd-painter-753c521da8aef59756df07c1a4eb88f1c64c8227/src/EPD_Painter.cpp
       Note: Source that established audit blockers (commit 4c1c89c76e22768d142310b75db631132379a711)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/code/printalyzer-installed-v1.1.0-710137374fa4131693c6dea65670c7759479e6a5-analysis/ANALYSIS-MAP.md
+      Note: Step 22 installed-version analytical source scope (commit 239b447)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/01-tmux-live-transcript.txt
       Note: Cell C flash, boot, boundary, sleep/wake, status, and waveform comparison transcript
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/sources/hardware/2026-07-14-cell-C/03-operator-observations.md
@@ -91,6 +93,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2318,4 +2321,100 @@ valid display-level spread: 0.00 D for each target
 capture SHA-256: 5e8235e8f9ed179806d914c75b4857b65d895ad7f15a17158190f6423560b8f7
 serial input sent: no
 PaperS3 panel operation: no
+```
+
+## Step 22: Preserve only the installed Printalyzer sources used for analysis
+
+This step corrected an overbroad interpretation of “all resources.” Instead of importing a complete 341 MiB development checkout, it captured a focused 3.5 MiB source subset matching the firmware actually reported by the connected Printalyzer.
+
+The snapshot is explicitly analytical, not buildable. It preserves the code and hardware resources used to explain CDC behavior, sensor timing, density conversion, detect-switch behavior, and fixture geometry while excluding vendored dependencies, toolchains, deployment binaries, Git history, and unrelated large assets.
+
+### Prompt Context
+
+**User prompt (verbatim):** "what were you doing with the firmware anyway? Copy the relevant files over so we can track your steps and analysis, but i don't think we are going to build that firmware, right"
+
+**Preceding correction (verbatim):** "wait... i don't need the full git. where did you get it from?"
+
+**Assistant interpretation:** Preserve only source material that substantiates the Printalyzer analysis, tie it to the installed firmware version, and make clear that no custom firmware build or flash is planned.
+
+**Inferred user intent:** Keep the research reproducible without bloating the ticket or accidentally turning measurement work into a Printalyzer firmware-development project.
+
+**Commit (evidence):** `239b4470667b0553305dae8a0be6bf8b54b71b3d` — "Research: preserve installed Printalyzer source subset"
+
+### What I did
+
+- Identified the official upstream as `https://github.com/dektronics/printalyzer-densitometer.git`, linked by the vendor protocol documentation.
+- Resolved the physical device's `GS B` value `g7101373` through the GitHub commit API to full commit `710137374fa4131693c6dea65670c7759479e6a5`.
+- Verified that commit is dated 2023-06-13 and titled “Bump app version to v1.1.0.”
+- Removed the interrupted temporary full-repository archive attempt.
+- Copied all first-party `software/firmware/src/` and `software/desktop/src/` files from the installed commit.
+- Copied protocol/assembly docs, schematic/PCB plots and sources, transmission LED board sources, 2D enclosure resources, README, and licenses.
+- Excluded Git history, vendored third-party trees, deployment binaries, STM32Cube generated reports, full 3D CAD, and toolchains.
+- Added provenance, an analysis map, and a SHA-256 manifest.
+- Updated the ticket source inventory and related the installed-version map to the runtime design.
+
+### Why
+
+- The latest upstream source may differ from the v1.1.0 firmware actually running on the instrument.
+- Source-backed claims need the exact installed lineage for DTR handling, command behavior, sensor integration, and density conversion.
+- Building the Printalyzer is outside the qualification scope and would introduce unnecessary toolchain and firmware risk.
+
+### What worked
+
+- GitHub resolved `7101373` to an exact official commit.
+- The focused snapshot contains 149 files and roughly 3.2 MiB rather than the full 341 MiB clone.
+- The snapshot includes every first-party firmware source file, so analysis does not cherry-pick only favorable functions.
+- `SHA256SUMS` verifies all local files and `docmgr doctor` passes.
+
+### What didn't work
+
+- Fetching the abbreviated build hash directly failed:
+
+```text
+fatal: couldn't find remote ref 7101373
+```
+
+  GitHub's commits API resolved the abbreviation to `710137374fa4131693c6dea65670c7759479e6a5`, after which an exact shallow fetch succeeded.
+- A first attempt began creating a compressed archive of the complete tracked repository. The user stopped it; the partial `/tmp` archive was deleted and nothing from it entered the ticket.
+- Generated STM32Cube reports and a few upstream text files contained trailing whitespace. Irrelevant generated reports were excluded; eight retained text copies were whitespace-normalized with that fact recorded in provenance. The pinned commit remains the byte-exact recovery source.
+
+### What I learned
+
+- The device's build descriptor is sufficient to recover the exact public source commit.
+- “Relevant sources” for this experiment means measurement semantics and geometry, not a complete reproducible firmware build environment.
+- Current protocol documentation and installed implementation must remain separately labeled.
+
+### What was tricky to build
+
+- The upstream repository includes large vendored U8g2, TinyUSB, STM32, and desktop deployment assets. A naïve copy would add hundreds of megabytes without improving the current analysis.
+- Hardware and enclosure resources had to be scoped broadly enough to support fixture/geometry questions while excluding unrelated 3D and module-library bulk.
+- Normalizing repository hygiene without claiming byte identity required recording both the exact commit and the limited local whitespace normalization.
+
+### What warrants a second pair of eyes
+
+- Confirm the selected board/enclosure resources are sufficient before designing a physical PaperS3 fixture.
+- Use installed-commit sources for behavioral claims; do not accidentally cite the sibling current-master snapshot as v1.1.0 behavior.
+- Do not treat this source subset as a build checkout.
+
+### What should be done in the future
+
+- N/A unless a specific analysis requires an excluded upstream file.
+- If custom Printalyzer firmware ever becomes a real goal, create a separate ticket and exact build checkout rather than expanding this snapshot ad hoc.
+
+### Code review instructions
+
+- Start with `sources/code/printalyzer-installed-v1.1.0-7101373...-analysis/ANALYSIS-MAP.md`.
+- Verify `PROVENANCE.txt`, the upstream commit, and `SHA256SUMS`.
+- Review `densitometer.c`, `sensor.c`, `cdc_handler.c`, `state_display.c`, and `state_remote.c` for the current measurement claims.
+- Confirm no vendored `external/` tree or build artifact entered the snapshot.
+
+### Technical details
+
+```text
+upstream: https://github.com/dektronics/printalyzer-densitometer.git
+installed commit: 710137374fa4131693c6dea65670c7759479e6a5
+reported firmware: v1.1.0 / g7101373
+snapshot intent: source-backed analysis only
+Printalyzer build planned: no
+Printalyzer flash planned: no
 ```
