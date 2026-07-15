@@ -1381,6 +1381,69 @@ static void TestRegionTable() {
     CHECK(ids[0] == 1);
 }
 
+// Golden trace for a small widget page (P9.11): layout -> compile -> fake
+// backend. Pins PT Serif 22px metrics like the line-break goldens; a
+// mismatch means widget layout, compilation, or font metrics changed.
+static void TestWidgetGoldenTrace() {
+    WidgetArena arena;
+    WidgetHandle header = NewCol(arena).value;
+    WidgetNode *hn = arena.Configure(header);
+    hn->padding = Insets{10, 20, 4, 20};
+    hn->gap = 6;
+    CHECK(arena.AddChild(header,
+                         NewText(arena, "Golden", kFontUi, 0).value)
+              .ok());
+    CHECK(arena.AddChild(header, NewDivider(arena, 2, 0).value).ok());
+    WidgetHandle content = NewCol(arena).value;
+    arena.Configure(content)->padding = Insets{8, 20, 8, 20};
+    WidgetHandle bar = NewProgress(arena, 250, 12, 0).value;
+    arena.Configure(bar)->fixed_h = 12;
+    CHECK(arena.AddChild(content, bar).ok());
+    const PageSlots slots{header, content, kNullWidget, kNullWidget};
+
+    LayoutEntry entries[16];
+    const Result<uint32_t> n =
+        LayoutPage(arena, slots, Rect{0, 0, 540, 960}, entries, 16);
+    CHECK(n.ok());
+
+    DrawOp ops[16];
+    uint8_t arena_buf[1024];
+    FrameArena frame_arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 16, &frame_arena, Size{540, 960});
+    fb.Begin();
+    HitRegion hits[2];
+    RegionSpec regions[2];
+    const Result<CompileResult> compiled =
+        CompileTree(arena, entries, n.value, fb, hits, 2, regions, 2);
+    CHECK(compiled.ok());
+    const Result<RenderFrame> frame = fb.Finish(9);
+    CHECK(frame.ok());
+
+    char trace_buf[2048];
+    FakeBackend backend(trace_buf, sizeof(trace_buf), Size{960, 540});
+    CHECK(backend.Init().ok());
+    CHECK(backend.Present(frame.value, PresentIntent::TextPage).status ==
+          StatusCode::Ok);
+    // Pinned 2026-07-15 (PT Serif ui=22px: line_height 22, ascent 17;
+    // clips are ancestor frames; progress fill = 496 * 250/1000 = 124).
+    const char *expected =
+        "init size=960x540\n"
+        "present id=9 intent=TextPage ops=4 damage=20,10,500,54\n"
+        "op kind=GlyphRun gray=0 bounds=20,10,500,22 clip=0,0,540,44"
+        " baseline=27 font=0 size=0 text=\"Golden\"\n"
+        "op kind=FillRect gray=0 bounds=20,38,500,2 clip=0,0,540,44\n"
+        "op kind=StrokeRect gray=0 bounds=20,52,500,12 clip=0,44,540,916"
+        " thickness=1\n"
+        "op kind=FillRect gray=0 bounds=22,54,124,8 clip=0,44,540,916\n";
+    if (std::strcmp(backend.trace(), expected) != 0) {
+        g_failures++;
+        std::printf("FAIL widget trace mismatch.\n--- expected ---\n%s--- "
+                    "actual ---\n%s---\n",
+                    expected, backend.trace());
+    }
+    g_checks++;
+}
+
 static void TestPageRouter() {
     WidgetArena arena;
     // Header/footer with deterministic intrinsic heights.
@@ -1505,6 +1568,7 @@ int main() {
     TestWidgetDiff();
     TestDependencyTracker();
     TestRegionTable();
+    TestWidgetGoldenTrace();
     TestPageRouter();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
