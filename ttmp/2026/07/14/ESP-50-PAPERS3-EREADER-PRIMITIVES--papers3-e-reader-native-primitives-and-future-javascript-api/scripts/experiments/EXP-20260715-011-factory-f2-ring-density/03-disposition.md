@@ -19,9 +19,9 @@ WhenToUse: "Use after F1 trace-off review and before any waveform/rail conclusio
 
 # Disposition
 
-- Execution: pending
-- Automatic transaction disposition: pending
-- Ring validation: pending
-- F2/F1 point-trace observer comparison: pending
-- Host/device timing alignment: pending
-- Next branch decision: pending
+- Execution: stopped before F2 flash
+- Automatic transaction disposition: **fail safe** — flash runner correctly refused concurrent ownership of USB Serial/JTAG
+- Ring validation: not attempted; no F2 boot/dump occurred
+- F2/F1 point-trace observer comparison: not attempted
+- Host/device timing alignment: not attempted
+- Next branch decision: use a separately preregistered manual-reset capture protocol; do not retry EXP-011

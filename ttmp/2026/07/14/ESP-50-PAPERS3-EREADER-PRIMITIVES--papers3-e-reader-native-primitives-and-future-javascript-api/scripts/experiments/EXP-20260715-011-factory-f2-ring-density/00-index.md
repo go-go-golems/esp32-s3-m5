@@ -19,4 +19,4 @@ WhenToUse: "Use after F1 trace-off review and before any waveform/rail conclusio
 
 # EXP-20260715-011-factory-f2-ring-density
 
-Manifest and preregistration are immutable. Execution requires `RUN-DENS-F2`.
+Manifest and preregistration are immutable. An automatic attempt authorized by `RUN-DENS-F2` stopped safely before flashing; see `04-failed-attempt.md`. Do not retry this experiment ID.

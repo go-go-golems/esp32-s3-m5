@@ -1,0 +1,3 @@
+{"event":"orchestrator_begin","host_monotonic_ns":995781805672114,"host_realtime_ns":1784079355215471909,"hostname":"f","pid":172168,"schema":"esp50.host-marker.v1"}
+{"event":"raw_stream_confirmed","host_monotonic_ns":995783270431933,"host_realtime_ns":1784079356680232010,"hostname":"f","pid":172213,"schema":"esp50.host-marker.v1"}
+{"event":"flash_begin","host_monotonic_ns":995785302268729,"host_realtime_ns":1784079358712068674,"hostname":"f","pid":172659,"schema":"esp50.host-marker.v1"}

@@ -1,0 +1,70 @@
+{
+  "decision_rule": {
+    "alignment": "relative only; final DISPLAY_IDLE maps approximately to host DUMP_BEGIN receipt",
+    "density": {
+      "cleanup_required": [
+        "ID S,STOP",
+        "SD LR,0",
+        "IS REMOTE,0"
+      ],
+      "collector_result": "ok",
+      "invalid_density_estimates": 0,
+      "saturated_samples": 0
+    },
+    "manual_reset": "operator reset exactly once after capture_armed confirmation",
+    "ring": {
+      "contiguous_valid_records": true,
+      "dump_markers": true,
+      "required_events": [
+        "POWER_ON_BEGIN",
+        "FRAME_BEGIN",
+        "FRAME_END",
+        "POWER_OFF_END",
+        "DISPLAY_IDLE"
+      ]
+    }
+  },
+  "firmware": {
+    "idf": "v5.3.3",
+    "kind": "source-derived trace-on",
+    "ring": {
+      "capacity_records": 1024,
+      "record_bytes": 48,
+      "schema": "esp50.factory-v05-runtime-trace.v1"
+    },
+    "sha256": "95334c261762205ab95d3f578a5d3d0a0eac4fe7fffdfd1ada0e836ba8a2d755"
+  },
+  "hypothesis": "Manual reset resolves the USB single-owner conflict and yields a complete valid F2 post-idle ring plus fixed-point density trace without changing the preserved F2 artifact.",
+  "id": "EXP-20260715-012-factory-f2-manual-reset-density",
+  "predecessors": {
+    "f1": "EXP-20260715-010-factory-f1-density-only-control",
+    "failed_auto_attempt": "EXP-20260715-011-factory-f2-ring-density"
+  },
+  "printalyzer": {
+    "duration_seconds": 75,
+    "fixed_aperture": "unchanged F0/F1 location",
+    "gain_index": 2,
+    "integration_ms": 100,
+    "reflection_light_duty": 128
+  },
+  "schema": "esp50.optical-density-experiment.v1",
+  "serial_protocol": {
+    "boot_trigger": "one operator physical Reset while capture is armed",
+    "capture": "safe read-only non-modem-control PaperS3 serial plus Printalyzer raw stream",
+    "flash_stage": "exclusive esptool flash with --after no_reset",
+    "paper_serial_input": "forbidden"
+  },
+  "status": "preregistered",
+  "stop_conditions": [
+    "unexpected heat",
+    "odor",
+    "sound",
+    "power instability",
+    "reset loop",
+    "Printalyzer movement",
+    "missed ring markers",
+    "operator reset more than once"
+  ],
+  "ticket": "ESP-50-PAPERS3-EREADER-PRIMITIVES",
+  "treatment": "F2 trace-on manual-reset ring plus fixed-point density capture"
+}

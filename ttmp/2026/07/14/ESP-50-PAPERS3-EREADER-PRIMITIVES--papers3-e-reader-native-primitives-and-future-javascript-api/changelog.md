@@ -385,3 +385,12 @@ Prepared and no-hardware-tested the F2 ring-plus-density hardware path after F1 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/39-run-synchronized-f2-ring-density.sh — F2 guarded runner
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-011-factory-f2-ring-density/01-preregistration.md — F2 physical protocol
+
+## 2026-07-14
+
+Recorded the F2 automatic capture ownership conflict before flash, then replaced it with a separately preregistered manual-reset protocol: no-reset stage, safe read-only capture arm, one operator reset, and post-capture ring extraction. All scripts pass no-hardware checks; F2 remains unflashed.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-011-factory-f2-ring-density/04-failed-attempt.md — Failure evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-012-factory-f2-manual-reset-density/01-preregistration.md — Manual-reset F2 protocol

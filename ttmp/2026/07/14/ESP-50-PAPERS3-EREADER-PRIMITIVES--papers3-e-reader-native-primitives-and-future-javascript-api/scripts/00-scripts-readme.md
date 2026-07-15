@@ -49,6 +49,22 @@ scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html
 
 The dashboard is self-contained: it makes no network requests and embeds its data. It distinguishes host flash markers, candidate density activity, and derived density. Candidate activity is not an asserted semantic display phase.
 
+## F2 manual-reset capture
+
+The automatic F2 runner in experiment 011 deliberately stopped before flash because it cannot simultaneously give esptool exclusive USB ownership and capture F2 boot/dump output. Use the experiment-012 three-stage manual protocol instead:
+
+```bash
+scripts/41-stage-f2-no-reset.sh --check
+# Flash F2 but leave it unbooted; requires explicit authorization:
+scripts/41-stage-f2-no-reset.sh --execute --confirm STAGE-F2-NO-RESET
+scripts/42-arm-f2-manual-reset-capture.sh --execute --confirm ARM-F2-CAPTURE
+# On capture_armed=yes, operator presses Reset once.
+# After the 75-second capture ends:
+scripts/43-finalize-f2-manual-reset-capture.sh
+```
+
+Do not start capture before staging and do not press Reset before `capture_armed=yes`.
+
 ## F2 ring-plus-density capture
 
 `39-run-synchronized-f2-ring-density.sh` runs the preserved F2 artifact with 60 seconds of fixed-point density and a safe read-only PaperS3 serial capture. `38-extract-factory-f2-ring.py` validates the post-idle ring dump and produces an explicitly approximate host alignment. `40-test-extract-factory-f2-ring.py` is the no-hardware synthetic extraction test.
