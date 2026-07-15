@@ -31,13 +31,13 @@
 
 - [ ] Phase 0 - Freeze and document a reproducible PaperS3 hardware/toolchain/component qualification matrix before application work <!-- t:la6t -->
 - [x] Phase 1 - Scaffold the new native reader-primitives firmware with one UI owner task, USB Serial/JTAG console, and message-based commands <!-- t:q22x -->
-- [ ] Phase 2 - Implement defensive geometry, status/result types, display transactions, clipping, draw operations, and a deterministic fake display backend <!-- t:t1yc -->
-- [ ] Phase 3 - Implement and hardware-qualify the EPD refresh planner, waveform selection, dirty-region alignment/merging, ghosting accounting, and visual test corpus <!-- t:hdvv -->
-- [ ] Phase 4 - Implement normalized touch events, hit testing, gestures, input-idle tracking, timers, and quiet/deferred region scheduling <!-- t:a7sc -->
-- [ ] Phase 5 - Implement font loading, UTF-8 decoding, glyph metrics, text measurement, line breaking, and deterministic page-layout fixtures <!-- t:kkmo -->
+- [x] Phase 2 - Implement defensive geometry, status/result types, display transactions, clipping, draw operations, and a deterministic fake display backend <!-- t:t1yc -->
+- [x] Phase 3 - Implement and hardware-qualify the EPD refresh planner, waveform selection, dirty-region alignment/merging, ghosting accounting, and visual test corpus <!-- t:hdvv -->
+- [x] Phase 4 - Implement normalized touch events, hit testing, gestures, input-idle tracking, timers, and quiet/deferred region scheduling <!-- t:a7sc -->
+- [x] Phase 5 - Implement font loading, UTF-8 decoding, glyph metrics, text measurement, line breaking, and deterministic page-layout fixtures <!-- t:kkmo -->
 - [ ] Phase 6 - Implement SD-first content sources, a versioned library catalog, stable book identities, settings, and atomic position persistence <!-- t:mcac -->
-- [ ] Phase 7 - Implement locator-based streaming pagination, page offset caches keyed by layout settings, next/previous traversal, and invalidation rules <!-- t:0dxd -->
-- [ ] Phase 8 - Ship a native vertical slice with library, reading view, page turns, progress, bookmarks, and resume without any JavaScript runtime <!-- t:ylnh -->
+- [x] Phase 7 - Implement locator-based streaming pagination, page offset caches keyed by layout settings, next/previous traversal, and invalidation rules <!-- t:0dxd -->
+- [x] Phase 8 - Ship a native vertical slice with library, reading view, page turns, progress, bookmarks, and resume without any JavaScript runtime <!-- t:ylnh -->
 - [ ] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
 - [ ] Phase 10 - Implement coordinated power-off/deep-sleep, wake sources, final persistence flush, display quiescence, and resume contracts <!-- t:gnr0 -->
 - [ ] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
@@ -90,7 +90,7 @@
 - [x] [P4.2] Define normalized PointerEvent down/move/up/cancel records with pointer ID and monotonic timestamps <!-- t:prii -->
 - [x] [P4.3] Implement a pointer state machine that prevents duplicate taps and cancels stale/incomplete sequences <!-- t:91av -->
 - [x] [P4.4] Implement configurable tap, long-press, and cardinal-swipe recognizers <!-- t:nju8 -->
-- [ ] [P4.5] Emit immutable hit regions from layout output and perform deepest/topmost deterministic hit testing <!-- t:dfp0 -->
+- [x] [P4.5] Emit immutable hit regions from layout output and perform deepest/topmost deterministic hit testing <!-- t:dfp0 -->
 - [x] [P4.6] Implement one monotonic scheduler for region deadlines, persistence deadlines, and inactivity deadlines <!-- t:mo55 -->
 - [x] [P4.7] Track last-input time and implement quiet/deferred region scheduling without direct timer drawing <!-- t:cox7 -->
 - [x] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
@@ -127,16 +127,16 @@
 - [x] [P7.9] Invalidate/recover cached pages and resume locators after typography, viewport, engine, or content changes <!-- t:g964 -->
 - [ ] [P7.10] Test empty, one-page, huge-paragraph, malformed, and multi-megabyte books for bounded memory and latency <!-- t:vh8v -->
 - [x] [P7.11] Verify next/previous round trips preserve locator ranges across cache eviction and reboot <!-- t:4otq -->
-- [ ] [P8.1] Define native reader application states for boot, card missing, library, opening, reading, error, and sleeping <!-- t:djij -->
-- [ ] [P8.2] Implement the library controller with stable BookId selection, title/author metadata, and reading progress <!-- t:p2kg -->
-- [ ] [P8.3] Implement the native library screen with empty, missing-card, corrupt-book, and selected-book states <!-- t:j8d5 -->
-- [ ] [P8.4] Implement the reader controller with current book, PageLayout, locator, progress, and bookmark state <!-- t:ajl0 -->
-- [ ] [P8.5] Implement the reading screen with measured body text, title, folio, progress, library action, and bookmark action <!-- t:7qyr -->
-- [ ] [P8.6] Wire left/right touch zones, library selection, back navigation, and bookmark gestures through AppEvent <!-- t:3c5c -->
-- [ ] [P8.7] Integrate refresh intents so page turns, route changes, errors, and overlays use the qualified planner <!-- t:sayr -->
-- [ ] [P8.8] Restore the last valid book/locator on boot and coalesce position writes during reading <!-- t:sda9 -->
-- [ ] [P8.9] Route list/open/goto/info/refresh/bookmark console commands through the owner task <!-- t:25f9 -->
-- [ ] [P8.10] Execute the end-to-end TXT acceptance flow on hardware, including power cycle and resume <!-- t:9gye -->
+- [x] [P8.1] Define native reader application states for boot, card missing, library, opening, reading, error, and sleeping <!-- t:djij -->
+- [x] [P8.2] Implement the library controller with stable BookId selection, title/author metadata, and reading progress <!-- t:p2kg -->
+- [x] [P8.3] Implement the native library screen with empty, missing-card, corrupt-book, and selected-book states <!-- t:j8d5 -->
+- [x] [P8.4] Implement the reader controller with current book, PageLayout, locator, progress, and bookmark state <!-- t:ajl0 -->
+- [x] [P8.5] Implement the reading screen with measured body text, title, folio, progress, library action, and bookmark action <!-- t:7qyr -->
+- [x] [P8.6] Wire left/right touch zones, library selection, back navigation, and bookmark gestures through AppEvent <!-- t:3c5c -->
+- [x] [P8.7] Integrate refresh intents so page turns, route changes, errors, and overlays use the qualified planner <!-- t:sayr -->
+- [x] [P8.8] Restore the last valid book/locator on boot and coalesce position writes during reading <!-- t:sda9 -->
+- [x] [P8.9] Route list/open/goto/info/refresh/bookmark console commands through the owner task <!-- t:25f9 -->
+- [x] [P8.10] Execute the end-to-end TXT acceptance flow on hardware, including power cycle and resume <!-- t:9gye -->
 - [ ] [P8.11] Record native vertical-slice screenshots, latency, heap, known limitations, and intern review instructions <!-- t:r3wg -->
 - [ ] [P9.1] Define typed widget variants for text, row, column, spacer, divider, progress, list, book, and region <!-- t:fopv -->
 - [ ] [P9.2] Implement a bounded widget arena with generation-safe handles and explicit stale/capacity errors <!-- t:h6i3 -->

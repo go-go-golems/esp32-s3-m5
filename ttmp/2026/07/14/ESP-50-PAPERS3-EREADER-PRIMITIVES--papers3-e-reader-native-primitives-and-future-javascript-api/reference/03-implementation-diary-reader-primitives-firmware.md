@@ -729,3 +729,71 @@ resume proof -> reboot -> loaded 1 position -> resumed=1 offset=1701 (54.7%)
 spi fix      -> EnsureM5Init() before esp_vfs_fat_sdspi_mount; INVALID_STATE
                 from spi_bus_initialize treated as bus reuse
 ```
+
+## Step 12: Phase 8 complete — library screen, bookmarks, and standalone boot
+
+The vertical slice became a standalone product this step. The device now boots straight into reading: mount the card, scan the library, reopen the last book at its persisted position (a small versioned `lastbook.bin` record), else show the library screen — and touch enables automatically. No console interaction is needed to read from power-on.
+
+The on-screen library renders the embedded book plus every scanned SD book (title, size, persisted-percent) with card-missing and empty-library states as rendered rows, and emits an **immutable hit-region array** per render — the Phase 4 `HitTest` finally consuming layout output (closing `dfp0` and with it the Phase 4 umbrella `a7sc`). Gestures are screen-aware: in the library, a tap hit-tests to a row and opens that book; in reading, swipe-down returns to the library, long-press toggles a bookmark on the current page (header `*` indicator, footer mark count), and taps/swipes turn pages as before. Bookmarks persist exactly like positions (versioned, CRC, atomic with `.bak`), and position writes now **coalesce**: stores mark a dirty flag, the owner loop flushes after 2 s of quiet (bounded 500 ms queue wait makes deferred work possible), and screen changes/shutdown flush immediately — the sda9 requirement, replacing the write-per-page-turn behavior.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue" / mid-turn: "check off the tasks you finished, btw..."
+
+**Assistant interpretation:** Proceed with the remaining Phase 8 work (library UI, bookmarks, boot restore) and reconcile the ticket task list with what is actually done.
+
+**Inferred user intent:** Finish the native e-reader product loop and keep the ticket bookkeeping trustworthy.
+
+**Commit (code):** 4474aae7deadd1e0da52611af63fc179460964a3 — "Reader: complete Phase 8 - library screen, bookmarks, boot restore"
+
+### What I did
+- Task reconciliation first (user request): checked phase-level tasks whose gates were already met and operator-approved — `t1yc` (P2), `hdvv` (P3), `kkmo` (P5), `0dxd` (P7), `9gye` (P8 acceptance incl. power cycle) — leaving honest gaps open (`mcac` settings, `cmmr` corpus, `k7og` instrumentation, fault-injection `5zpj`, `r3wg` intern docs).
+- `app_storage`: bookmark file (magic `S3MB`, 64 records, toggle-removes semantics), shared `AtomicWrite` helper, dirty-flag coalescing (`StorageFlushIfDue`/`StorageFlushNow`), `lastbook.bin` record, all loaded on mount.
+- `app_reader`: `Screen` enum (None/Library/Reading), `LibraryShow()` with row renderer + hit regions + persisted-percent per book, `ReaderBookmarkToggle/Goto/Print`, `ReaderBootRestore()`, screen-aware `ReaderHandleGesture`, header bookmark indicator and footer mark count (fixing a printf format bug that would have printed "turns 30" for zero marks).
+- Owner: boot flow calls `ReaderBootRestore()` + `TouchEnable()`; event loop uses a bounded 500 ms receive so flushes run without traffic; `ShutdownRequest` flushes persistence.
+- Console: `library show`, `bookmark [list|toggle|goto n]`, extended `reader status` (screen/bookmarked/marks).
+- Validated on hardware (`0112-phase8ui-*.log`): library render with 3 regions; bookmark set → page away → set second → list shows both → `goto 0` jumps 2572→4022; refusals explicit at book end; boot restore reopened the operator's last-tapped book after a reset.
+
+### Why
+- Phase 8's definition of done is a usable reader without JavaScript: library, reading, page turns, progress, bookmarks, resume. All six now exist and were exercised on hardware, so `ylnh` is checked.
+
+### What worked
+- The operator's tap on a library row (real finger, previous boot) opened `P3C_FW_RESULT_AB` — and after my reset, boot restore reopened exactly that book: two features accidentally validating each other.
+- The hit-region path from render → immutable array → `HitTest` → open worked on the first hardware attempt.
+
+### What didn't work
+- My first post-flash `reader status` returned `screen=none` and looked like a boot-restore failure; it was a race — the boot flow (M5 init ~5 s + mount + per-book hash scan) takes ~30 s, and the query landed mid-flow. The settled state was correct. Lesson: status queries after reset must wait for the boot flow, or the boot flow needs a progress marker in `status`.
+- A quick-and-dirty boot-log capture (background read-only capture + esptool reset + broken pgrep loop) timed out and left a straggler process holding the port; killed it and queried the settled state instead. The read-only capture tool is for preplanned evidence, not ad-hoc races.
+
+### What I learned
+- The library scan is slow (~15 s for 2 books) because each book's identity hash opens and reads 4 KiB over SDSPI plus FATFS mount overhead; fine at this scale, but a cached catalog (`i78k`) becomes performance-relevant, not just hygiene, with tens of books.
+- `LibraryShow` doubles as the "leaving reading" flush point — a natural place for durability without a timer.
+
+### What was tricky to build
+- The coalescing needed a way to run deferred work in an event-driven owner: switching `xQueueReceive` from `portMAX_DELAY` to a bounded 500 ms wait keeps the single-owner model intact while giving flushes (and future deferred work) a heartbeat. The flush also runs after every event so busy periods don't starve it.
+
+### What warrants a second pair of eyes
+- **Operator:** the full product loop is live — power-cycle the device and it should come back reading your last book at your last page; swipe down for the library, tap to open, long-press to bookmark. Please try the loop end to end.
+- Crash-window tradeoff: up to 2 s of reading position can be lost on abrupt power removal (the coalescing window). Bookmarks flush promptly (age forced to 0). Acceptable for now; Phase 10's sleep path flushes explicitly.
+- Library screen shows only the first screenful (bounded, no scrolling) — fine for ≤14 books; scrolling is future work.
+
+### What should be done in the future
+- Library scrolling, corrupt-book row indicator, settings records (`1y51`), serialized catalog (`i78k`), fault-injection tests (`5zpj`), slice metrics/screenshots for intern docs (`r3wg`).
+- Phase 9 (retained widgets — the JS binding surface) and Phase 10 (sleep/wake with wake sources) are the remaining pre-JS phases.
+
+### Code review instructions
+- Read `LibraryShow`/`ReaderHandleGesture`/`ReaderBootRestore` in `main/app_reader.cpp`, then the bookmark/lastbook/coalescing sections of `main/app_storage.cpp`, then the owner-loop bounded-wait change.
+- Validate: power-cycle → device resumes last book; `library show` + tap; `bookmark toggle/list/goto`; `shutdown` then reboot → position retained.
+
+### Technical details
+
+```text
+screens      -> None/Library/Reading; card-missing + empty as library rows
+hit regions  -> up to 33 immutable rows/render, z=1, full-width strips
+bookmarks    -> S3MB v1, 64 records, toggle-removes; header '*', footer count
+coalescing   -> dirty flags + 2 s age; owner loop waits 500 ms; flush on
+                screen change + shutdown; bookmark changes flush promptly
+boot restore -> mount -> scan -> lastbook.bin -> reopen at persisted locator
+                (validated: reopened operator's last-tapped book after reset)
+evidence     -> 0112-phase8ui-validation-01/-02.log, -boot-restore.log
+```

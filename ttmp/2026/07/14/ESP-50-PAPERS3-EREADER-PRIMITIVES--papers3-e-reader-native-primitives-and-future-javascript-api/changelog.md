@@ -502,3 +502,12 @@ Phase 6 core complete: non-destructive SD mount (M5-first SPI ownership fix afte
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_storage.cpp — SD mount, library, atomic position persistence
 
+
+## 2026-07-15
+
+Phase 8 complete (ylnh checked): on-screen library with hit-region tap-to-open, screen-aware gestures, persistent bookmarks (toggle/list/goto + indicators), coalesced position writes, and standalone boot restore of the last book at its persisted position with touch auto-enabled (commit 4474aae). Operator tap validated the library path; boot restore reopened the operator's book after reset. Also reconciled phase-level tasks t1yc/hdvv/kkmo/0dxd/9gye per operator request.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_reader.cpp — Library screen, bookmarks, boot restore
+
