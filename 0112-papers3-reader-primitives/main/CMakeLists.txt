@@ -4,6 +4,7 @@ idf_component_register(
         "app_owner.cpp"
         "app_console.cpp"
         "app_display.cpp"
+        "app_input.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES

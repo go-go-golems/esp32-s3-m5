@@ -12,6 +12,7 @@
 #include "s3paper/frame_arena.h"
 #include "s3paper/frame_builder.h"
 #include "s3paper/geometry.h"
+#include "s3paper/input.h"
 #include "s3paper/refresh_planner.h"
 #include "s3paper/status.h"
 
@@ -438,6 +439,242 @@ static void TestPlannerFullTriggers() {
     CHECK(planner.history().partials_total == 6);
 }
 
+static void TestTouchTransforms() {
+    // Consistency with RotateInBounds: a 1x1 logical rect rotated into
+    // physical space must map back to its logical origin.
+    const Size logical{540, 960};
+    const Point samples[] = {{0, 0}, {539, 0}, {0, 959}, {539, 959},
+                             {123, 456}};
+    for (uint8_t rot = 0; rot < 4; ++rot) {
+        const Size physical =
+            (rot % 2 == 1) ? Size{logical.h, logical.w} : logical;
+        for (const Point &lp : samples) {
+            const Result<Rect> pr =
+                RotateInBounds(Rect{lp.x, lp.y, 1, 1}, logical, rot);
+            CHECK(pr.ok());
+            const Result<Point> back = TouchToLogical(
+                Point{pr.value.x, pr.value.y}, physical, rot);
+            CHECK(back.ok());
+            CHECK(back.value.x == lp.x && back.value.y == lp.y);
+        }
+    }
+    // Out-of-range samples and rotations are explicit errors.
+    CHECK(!TouchToLogical(Point{540, 0}, Size{540, 960}, 0).ok());
+    CHECK(!TouchToLogical(Point{-1, 0}, Size{540, 960}, 0).ok());
+    CHECK(!TouchToLogical(Point{0, 0}, Size{540, 960}, 4).ok());
+}
+
+static void TestPointerTracker() {
+    PointerTracker tracker(100000);  // 100 ms stale timeout
+    PointerEvent events[2];
+    // Down.
+    CHECK(tracker.Feed({{10, 10}, true, 1000}, events) == 1);
+    CHECK(events[0].kind == PointerEventKind::Down);
+    // Identical position: no duplicate event.
+    CHECK(tracker.Feed({{10, 10}, true, 2000}, events) == 0);
+    // Moved: one Move.
+    CHECK(tracker.Feed({{12, 10}, true, 3000}, events) == 1);
+    CHECK(events[0].kind == PointerEventKind::Move);
+    // Release: Up at last position.
+    CHECK(tracker.Feed({{12, 10}, false, 4000}, events) == 1);
+    CHECK(events[0].kind == PointerEventKind::Up);
+    CHECK(events[0].pos.x == 12);
+    // No-touch idle: nothing.
+    CHECK(tracker.Feed({{0, 0}, false, 5000}, events) == 0);
+    // Stale sequence: Down, then a gap > timeout with a new touch produces
+    // Cancel followed by a fresh Down.
+    CHECK(tracker.Feed({{50, 50}, true, 10000}, events) == 1);
+    CHECK(tracker.Feed({{60, 60}, true, 200000}, events) == 2);
+    CHECK(events[0].kind == PointerEventKind::Cancel);
+    CHECK(events[1].kind == PointerEventKind::Down);
+    // Stale then no-touch: Cancel only, no Up.
+    CHECK(tracker.Feed({{0, 0}, false, 400000}, events) == 1);
+    CHECK(events[0].kind == PointerEventKind::Cancel);
+}
+
+static uint32_t RunGestureTrace(GestureDetector &detector,
+                                const PointerEvent *trace, uint32_t count,
+                                GestureEvent *out, uint32_t out_cap) {
+    uint32_t emitted = 0;
+    for (uint32_t i = 0; i < count; ++i) {
+        GestureEvent g;
+        if (detector.Feed(trace[i], &g) == 1 && emitted < out_cap) {
+            out[emitted++] = g;
+        }
+    }
+    return emitted;
+}
+
+static void TestGestures() {
+    GestureDetector detector;
+    GestureEvent out[4];
+    // Tap: quick down/up without movement.
+    const PointerEvent tap[] = {
+        {PointerEventKind::Down, {100, 100}, 0},
+        {PointerEventKind::Up, {102, 101}, 150000},
+    };
+    CHECK(RunGestureTrace(detector, tap, 2, out, 4) == 1);
+    CHECK(out[0].kind == GestureKind::Tap);
+    CHECK(out[0].pos.x == 100);
+    // Slow release: no tap.
+    const PointerEvent slow[] = {
+        {PointerEventKind::Down, {100, 100}, 0},
+        {PointerEventKind::Up, {100, 100}, 400000},
+    };
+    CHECK(RunGestureTrace(detector, slow, 2, out, 4) == 0);
+    // Swipe right: long horizontal, small off-axis.
+    const PointerEvent swipe_r[] = {
+        {PointerEventKind::Down, {100, 500}, 0},
+        {PointerEventKind::Move, {180, 510}, 100000},
+        {PointerEventKind::Up, {220, 520}, 200000},
+    };
+    CHECK(RunGestureTrace(detector, swipe_r, 3, out, 4) == 1);
+    CHECK(out[0].kind == GestureKind::SwipeRight);
+    // Swipe up.
+    const PointerEvent swipe_u[] = {
+        {PointerEventKind::Down, {270, 800}, 0},
+        {PointerEventKind::Up, {275, 700}, 200000},
+    };
+    CHECK(RunGestureTrace(detector, swipe_u, 2, out, 4) == 1);
+    CHECK(out[0].kind == GestureKind::SwipeUp);
+    // Diagonal movement: rejected (off-axis too large), and no tap either
+    // because it moved beyond tap distance.
+    const PointerEvent diag[] = {
+        {PointerEventKind::Down, {100, 100}, 0},
+        {PointerEventKind::Up, {200, 190}, 200000},
+    };
+    CHECK(RunGestureTrace(detector, diag, 2, out, 4) == 0);
+    // Long-press: fires from Update() while held, and swallows the Up.
+    GestureEvent g;
+    CHECK(detector.Feed({PointerEventKind::Down, {50, 50}, 1000000}, &g) == 0);
+    CHECK(detector.Update(1300000, &g) == 0);  // not yet
+    CHECK(detector.Update(1700000, &g) == 1);
+    CHECK(g.kind == GestureKind::LongPress);
+    CHECK(detector.Update(1800000, &g) == 0);  // fires once
+    CHECK(detector.Feed({PointerEventKind::Up, {50, 50}, 1900000}, &g) == 0);
+    // Cancel suppresses everything.
+    CHECK(detector.Feed({PointerEventKind::Down, {50, 50}, 2000000}, &g) == 0);
+    CHECK(detector.Feed({PointerEventKind::Cancel, {50, 50}, 2050000}, &g) ==
+          0);
+    CHECK(detector.Update(9000000, &g) == 0);
+}
+
+static void TestHitRegions() {
+    const HitRegion regions[] = {
+        {{0, 0, 540, 960}, 1, 0},     // background
+        {{0, 0, 540, 100}, 2, 1},     // header
+        {{440, 0, 100, 100}, 3, 2},   // header button above header
+        {{440, 0, 100, 100}, 4, 2},   // same z, later in paint order
+    };
+    Result<uint32_t> hit = HitTest(regions, 4, Point{10, 500});
+    CHECK(hit.ok());
+    CHECK(hit.value == 1);
+    hit = HitTest(regions, 4, Point{10, 50});
+    CHECK(hit.ok());
+    CHECK(hit.value == 2);
+    // Highest z wins; equal z resolves to the later (paint-order) entry.
+    hit = HitTest(regions, 4, Point{450, 50});
+    CHECK(hit.ok());
+    CHECK(hit.value == 4);
+    // Miss is explicit.
+    CHECK(!HitTest(regions, 4, Point{-5, -5}).ok());
+    CHECK(!HitTest(regions, 0, Point{0, 0}).ok());
+}
+
+static void TestScheduler() {
+    Scheduler sched;
+    CHECK(!sched.NextDue().ok());
+    CHECK(sched.Add(1, 1000).ok());
+    CHECK(sched.Add(2, 500).ok());
+    CHECK(sched.Add(3, 2000).ok());
+    CHECK(sched.NextDue().ok());
+    CHECK(sched.NextDue().value == 500);
+    // Nothing due yet.
+    CHECK(!sched.PopDue(400).ok());
+    // Due items pop in deadline order.
+    Result<uint32_t> due = sched.PopDue(1500);
+    CHECK(due.ok());
+    CHECK(due.value == 2);
+    due = sched.PopDue(1500);
+    CHECK(due.ok());
+    CHECK(due.value == 1);
+    CHECK(!sched.PopDue(1500).ok());
+    // Re-adding an id reschedules (quiet/deferred pattern).
+    CHECK(sched.Add(3, 5000).ok());
+    CHECK(sched.pending() == 1);
+    CHECK(!sched.PopDue(2500).ok());
+    CHECK(sched.PopDue(5000).value == 3);
+    // Cancel and capacity are explicit.
+    CHECK(sched.Cancel(99).code == StatusCode::InvalidArgument);
+    for (uint32_t i = 0; i < Scheduler::kCapacity; ++i) {
+        CHECK(sched.Add(100 + i, 1000 + i).ok());
+    }
+    CHECK(sched.Add(999, 1).code == StatusCode::CapacityExceeded);
+    CHECK(sched.Cancel(100).ok());
+    CHECK(sched.Add(999, 1).ok());
+}
+
+// Recorded-trace replay: raw samples (as the touch poller would produce)
+// through tracker + detector, asserting the exact event/gesture sequence.
+static void TestInputReplayFixture() {
+    struct Expect {
+        PointerEventKind kind;
+    };
+    const PointerSample trace[] = {
+        // A tap.
+        {{200, 300}, true, 10000},
+        {{200, 300}, true, 30000},
+        {{201, 300}, true, 50000},
+        {{201, 300}, false, 70000},
+        // A left swipe (page turn).
+        {{400, 480}, true, 200000},
+        {{340, 482}, true, 240000},
+        {{280, 484}, true, 280000},
+        {{250, 485}, false, 320000},
+        // A stale sequence: touch that never got a release sample, then a
+        // fresh tap 1s later.
+        {{100, 100}, true, 400000},
+        {{500, 900}, true, 1500000},
+        {{500, 900}, false, 1550000},
+    };
+    PointerTracker tracker;
+    GestureDetector detector;
+    GestureEvent gestures[8];
+    PointerEvent events[8];
+    uint32_t gesture_count = 0;
+    uint32_t event_log_count = 0;
+    PointerEventKind event_log[16];
+    for (const PointerSample &sample : trace) {
+        PointerEvent out[2];
+        const uint32_t n = tracker.Feed(sample, out);
+        for (uint32_t i = 0; i < n; ++i) {
+            if (event_log_count < 16) {
+                event_log[event_log_count++] = out[i].kind;
+            }
+            GestureEvent g;
+            if (detector.Feed(out[i], &g) == 1 && gesture_count < 8) {
+                gestures[gesture_count++] = g;
+            }
+        }
+        (void)events;
+    }
+    const PointerEventKind expected_events[] = {
+        PointerEventKind::Down, PointerEventKind::Move, PointerEventKind::Up,
+        PointerEventKind::Down, PointerEventKind::Move, PointerEventKind::Move,
+        PointerEventKind::Up,   PointerEventKind::Down,
+        PointerEventKind::Cancel, PointerEventKind::Down,
+        PointerEventKind::Up,
+    };
+    CHECK(event_log_count == 11);
+    for (uint32_t i = 0; i < 11 && i < event_log_count; ++i) {
+        CHECK(event_log[i] == expected_events[i]);
+    }
+    CHECK(gesture_count == 3);
+    CHECK(gestures[0].kind == GestureKind::Tap);
+    CHECK(gestures[1].kind == GestureKind::SwipeLeft);
+    CHECK(gestures[2].kind == GestureKind::Tap);
+}
+
 int main() {
     TestGeometryBasics();
     TestIntersectUnion();
@@ -452,6 +689,12 @@ int main() {
     TestPlannerDamageMerge();
     TestPlannerCapacityFallback();
     TestPlannerFullTriggers();
+    TestTouchTransforms();
+    TestPointerTracker();
+    TestGestures();
+    TestHitRegions();
+    TestScheduler();
+    TestInputReplayFixture();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

@@ -8,6 +8,7 @@
 #pragma once
 
 #include "s3paper/display_backend.h"
+#include "s3paper/input.h"
 
 namespace s3paper {
 
@@ -19,6 +20,11 @@ class M5Backend : public DisplayBackend {
     PresentResult Present(const RenderFrame &frame,
                           PresentIntent intent) override;
     BackendState GetState() const override;
+
+    // Polls the GT911 via M5Unified. Coordinates are already in the panel's
+    // current logical orientation. Owner-task-only (M5.update mutates M5
+    // state). Returns false when not initialized.
+    bool ReadTouch(PointerSample *out);
 
   private:
     bool initialized_ = false;

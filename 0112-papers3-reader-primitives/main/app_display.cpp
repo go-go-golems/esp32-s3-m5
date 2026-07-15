@@ -263,4 +263,15 @@ s3paper::BackendState M5BackendState() {
 
 s3paper::RefreshPlanner &Planner() { return *s_planner; }
 
+s3paper::Status EnsureM5Init() {
+    if (s_m5 == nullptr) {
+        return s3paper::ErrStatus(s3paper::StatusCode::Busy);
+    }
+    return s_m5->Init();
+}
+
+bool ReadM5Touch(s3paper::PointerSample *out) {
+    return s_m5 != nullptr && s_m5->ReadTouch(out);
+}
+
 }  // namespace reader

@@ -1,6 +1,7 @@
 #include "app_owner.h"
 
 #include "app_display.h"
+#include "app_input.h"
 
 #include <atomic>
 #include <cstring>
@@ -279,6 +280,20 @@ void HandleConsoleCommand(const AppEvent &event) {
                      static_cast<unsigned>(target));
             break;
         }
+        case ConsoleOp::Touch: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = TouchEnable();
+                    break;
+                case 2:
+                    TouchDisable();
+                    break;
+                default:
+                    break;
+            }
+            FillTouchSnapshot(&reply.payload.touch);
+            break;
+        }
         case ConsoleOp::SoakStatus: {
             const SoakState &s = s_state.soak;
             SoakSnapshot &out = reply.payload.soak;
@@ -414,6 +429,8 @@ void HandleEvent(const AppEvent &event) {
                 s_state.soak.active) {
                 s_state.soak.step_queued = false;
                 RunOneSoakStep();
+            } else if (event.payload.timer.timer_id == kTouchTimerId) {
+                InputHandleTick();
             }
             break;
         case AppEventKind::StorageComplete:
@@ -434,6 +451,7 @@ void OwnerTask(void *) {
     // Display/frame storage is application state: initialize inside the
     // owner task so no other task ever touches it.
     DisplayServiceInit();
+    InputServiceInit();
     s_state.phase = Phase::Ready;
     ESP_LOGI(kTag, "owner task ready; queue capacity=%u",
              static_cast<unsigned>(kEventQueueCapacity));

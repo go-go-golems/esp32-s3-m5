@@ -13,6 +13,7 @@
 
 #include "app_events.h"
 #include "app_owner.h"
+#include "s3paper/input.h"
 
 namespace reader {
 namespace {
@@ -471,6 +472,55 @@ int CmdFlood(int argc, char **argv) {
     return 0;
 }
 
+int CmdTouch(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "on") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "off") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "status") != 0) {
+            printf("error: InvalidArgument: usage touch [on|off|status]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    // "touch on" initializes the M5 stack (seconds); use the long bound.
+    if (RunConsoleOpWithArg(ConsoleOp::Touch, arg, &reply, 15000) !=
+        StatusCode::Ok) {
+        return 1;
+    }
+    const TouchSnapshot &t = reply.payload.touch;
+    printf("touch enabled=%u samples=%u last=%d,%d last_input_age_ms=%lld\n",
+           t.enabled, static_cast<unsigned>(t.samples),
+           static_cast<int>(t.last_x), static_cast<int>(t.last_y),
+           static_cast<long long>(t.last_input_age_ms));
+    printf("events down=%u move=%u up=%u cancel=%u\n",
+           static_cast<unsigned>(t.events_by_kind[0]),
+           static_cast<unsigned>(t.events_by_kind[1]),
+           static_cast<unsigned>(t.events_by_kind[2]),
+           static_cast<unsigned>(t.events_by_kind[3]));
+    printf("gestures tap=%u longpress=%u swipeL=%u swipeR=%u swipeU=%u "
+           "swipeD=%u\n",
+           static_cast<unsigned>(t.gestures_by_kind[0]),
+           static_cast<unsigned>(t.gestures_by_kind[1]),
+           static_cast<unsigned>(t.gestures_by_kind[2]),
+           static_cast<unsigned>(t.gestures_by_kind[3]),
+           static_cast<unsigned>(t.gestures_by_kind[4]),
+           static_cast<unsigned>(t.gestures_by_kind[5]));
+    if (t.last_gesture != 0xff) {
+        printf("last_gesture=%s at %d,%d\n",
+               s3paper::GestureKindName(
+                   static_cast<s3paper::GestureKind>(t.last_gesture)),
+               static_cast<int>(t.last_gesture_x),
+               static_cast<int>(t.last_gesture_y));
+    }
+    printf("quiet_windows=%u scheduler_pending=%u\n",
+           static_cast<unsigned>(t.quiet_windows),
+           static_cast<unsigned>(t.scheduler_pending));
+    return 0;
+}
+
 int CmdShutdown(int, char **) {
     AppEvent event = MakeEvent(AppEventKind::ShutdownRequest,
                                EventSource::Console, true);
@@ -536,6 +586,10 @@ void ConsoleStart() {
                     "soak [start [n]|status] - mixed partial/full refresh "
                     "soak on the M5 backend",
                     &CmdSoak);
+    RegisterCommand("touch",
+                    "touch [on|off|status] - GT911 polling, pointer events, "
+                    "gestures, quiet windows",
+                    &CmdTouch);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);

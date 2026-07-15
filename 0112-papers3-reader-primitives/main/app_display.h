@@ -8,6 +8,7 @@
 #pragma once
 
 #include "s3paper/display_backend.h"
+#include "s3paper/input.h"
 #include "s3paper/refresh_planner.h"
 
 namespace reader {
@@ -38,5 +39,12 @@ s3paper::BackendState M5BackendState();
 
 // The single refresh planner (owner-task-only, like everything here).
 s3paper::RefreshPlanner &Planner();
+
+// Initializes the M5 backend if it isn't yet (owner-task-only).
+s3paper::Status EnsureM5Init();
+
+// Polls the touch controller via the M5 backend (owner-task-only).
+// Returns false when the backend is uninitialized.
+bool ReadM5Touch(s3paper::PointerSample *out);
 
 }  // namespace reader

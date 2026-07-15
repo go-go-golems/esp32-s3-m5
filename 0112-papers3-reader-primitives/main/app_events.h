@@ -62,6 +62,7 @@ enum class ConsoleOp : uint8_t {
     Refresh,     // planner policy/history inspection
     SoakStart,   // arg: number of steps
     SoakStatus,
+    Touch,       // arg: 0 = status, 1 = enable, 2 = disable
 };
 
 enum class PointerPhase : uint8_t {
@@ -193,6 +194,21 @@ struct SoakSnapshot {
     SoakWaveformStats by_waveform[4];  // s3paper::EpdWaveform order
 };
 
+struct TouchSnapshot {
+    uint8_t enabled;
+    uint32_t samples;
+    uint32_t events_by_kind[4];    // s3paper::PointerEventKind order
+    uint32_t gestures_by_kind[6];  // s3paper::GestureKind order
+    int32_t last_x;
+    int32_t last_y;
+    uint8_t last_gesture;  // 0xff = none
+    int32_t last_gesture_x;
+    int32_t last_gesture_y;
+    uint32_t quiet_windows;
+    int64_t last_input_age_ms;  // -1 = never
+    uint32_t scheduler_pending;
+};
+
 struct DisplaySnapshot {
     uint8_t app_state;
     uint8_t fake_initialized;
@@ -215,6 +231,7 @@ struct AppReply {
         PlannedPresentSnapshot present;  // Fixture
         RefreshSnapshot refresh;
         SoakSnapshot soak;
+        TouchSnapshot touch;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

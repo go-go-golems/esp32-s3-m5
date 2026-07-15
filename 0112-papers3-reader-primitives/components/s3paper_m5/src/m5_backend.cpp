@@ -165,4 +165,16 @@ BackendState M5Backend::GetState() const {
     return BackendState{initialized_, physical_size_, frames_presented_};
 }
 
+bool M5Backend::ReadTouch(PointerSample *out) {
+    if (!initialized_) {
+        return false;
+    }
+    M5.update();
+    const auto detail = M5.Touch.getDetail();
+    out->touching = detail.isPressed();
+    out->pos = Point{detail.x, detail.y};
+    out->t_us = esp_timer_get_time();
+    return true;
+}
+
 }  // namespace s3paper
