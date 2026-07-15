@@ -656,6 +656,37 @@ int CmdSd(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdJs(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "hello") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "app") == 0 ||
+                   strcmp(argv[1], "taps") == 0) {
+            arg = 2;
+        } else {
+            printf("error: InvalidArgument: usage js [status|hello|taps]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Js, arg, 0, &reply, 15000);
+    const JsSnapshot &j = reply.payload.js;
+    printf("js init=%u screen_active=%u arena=%u evals=%u exceptions=%u "
+           "dispatches=%u last_error=\"%s\"\n",
+           j.initialized, j.screen_active,
+           static_cast<unsigned>(j.arena_bytes),
+           static_cast<unsigned>(j.evals),
+           static_cast<unsigned>(j.exceptions),
+           static_cast<unsigned>(j.dispatches), j.last_error);
+    if (status != StatusCode::Ok) {
+        printf("js op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    return 0;
+}
+
 int CmdSleep(int argc, char **argv) {
     uint32_t arg = 0;
     uint32_t seconds = 0;
@@ -820,6 +851,10 @@ void ConsoleStart() {
                     &CmdReader);
     RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
                     &CmdSd);
+    RegisterCommand("js",
+                    "js [status|hello|taps] - MicroQuickJS s3paper apps "
+                    "(taps: tap the counter line on screen)",
+                    &CmdJs);
     RegisterCommand("sleep",
                     "sleep [status|deep N|timer N|off|auto N] - power "
                     "lifecycle (deep: timer wake; timer: RTC power-off; "

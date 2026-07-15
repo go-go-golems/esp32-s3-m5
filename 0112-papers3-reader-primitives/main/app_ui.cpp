@@ -32,6 +32,8 @@ s3paper::PageSlots s_last_slots{};
 UiExtraOps s_last_extra = nullptr;
 bool s_last_valid = false;
 
+uint32_t s_present_count = 0;
+
 // Fixture state: one live clock region driven by the owner loop.
 bool s_fixture_active = false;
 s3paper::WidgetHandle s_fixture_clock{};
@@ -142,9 +144,12 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
         s_last_slots = slots;
         s_last_extra = extra_ops;
         s_last_valid = true;
+        s_present_count++;
     }
     return out;
 }
+
+uint32_t UiPresentCount() { return s_present_count; }
 
 // ---- Fixtures ----
 

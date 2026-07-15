@@ -1,0 +1,18 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (193) esp_image: segment 4: paddr=000e5014 vaddr=40379538 sizeI (1018) display: PT Serif registered: 134264 bytes, body ascent=27 descent=7 line_height=34
+[5nI (1019) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1035) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pu
+# >>> js hello
+js hello
+I (14053) js: context ready: arena=163840 bytes, abi=v1
+I (14223) m5_backend: present id=2 intent=CleanFull ops=10 skipped=0 damage=0,0,540,960 render_us=152958 wait_us=10
+I (14224) js: js present: hits=0 full=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+reader> 
+# >>> js taps
+js taps
+I (39167) m5_backend: present id=3 intent=CleanFull ops=8 skipped=0 damage=0,0,540,960 render_us=108662 wait_us=10
+I (39168) js: js present: hits=1 full=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=0 last_error=""
+reader> 
+# done

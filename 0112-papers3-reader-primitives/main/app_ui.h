@@ -50,4 +50,9 @@ StatusCode UiRunFixture(uint32_t which);
 // re-render -> TextRegion present). Cheap when nothing is active.
 void UiRegionTick(int64_t now_us);
 
+// Monotonic count of successful full-page presents. Layers that own a
+// transient screen (JS apps, fixtures) compare against the value at their
+// own last present to learn another screen took the panel.
+uint32_t UiPresentCount();
+
 }  // namespace reader

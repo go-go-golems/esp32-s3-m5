@@ -2,6 +2,7 @@
 
 #include "app_display.h"
 #include "app_input.h"
+#include "app_js.h"
 #include "app_power.h"
 #include "app_reader.h"
 #include "app_storage.h"
@@ -248,6 +249,18 @@ void HandleConsoleCommand(const AppEvent &event) {
         case ConsoleOp::Widget:
             reply.status = UiRunFixture(event.payload.console.arg);
             break;
+        case ConsoleOp::Js: {
+            const uint32_t arg = event.payload.console.arg;
+            if (arg == 0) {
+                FillJsSnapshot(&reply.payload.js);
+            } else if (arg <= 2) {
+                reply.status = JsRunApp(arg);
+                FillJsSnapshot(&reply.payload.js);
+            } else {
+                reply.status = StatusCode::InvalidArgument;
+            }
+            break;
+        }
         case ConsoleOp::Sleep: {
             const uint32_t arg = event.payload.console.arg;
             const uint32_t seconds = event.payload.console.arg2;

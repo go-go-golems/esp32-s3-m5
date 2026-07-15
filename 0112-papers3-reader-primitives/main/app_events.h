@@ -72,6 +72,7 @@ enum class ConsoleOp : uint8_t {
     Sleep,       // arg: 0 = status, 1 = deep (timer wake, arg2 s),
                  //      2 = rtc-off (RTC wake, arg2 s), 3 = off,
                  //      4 = auto-sleep policy (arg2 s, 0 disables)
+    Js,          // arg: 0 = status, 1 = hello app, 2 = status app
 };
 
 enum class PointerPhase : uint8_t {
@@ -235,6 +236,16 @@ struct ReaderSnapshot {
     char title[40];
 };
 
+struct JsSnapshot {
+    uint8_t initialized;
+    uint8_t screen_active;
+    uint32_t arena_bytes;
+    uint32_t evals;
+    uint32_t exceptions;
+    uint32_t dispatches;
+    char last_error[48];
+};
+
 struct PowerSnapshot {
     int32_t battery_level;  // 0..100, -1 unknown
     int32_t battery_mv;
@@ -283,6 +294,7 @@ struct AppReply {
         ReaderSnapshot reader;
         SdSnapshot sd;
         PowerSnapshot power;
+        JsSnapshot js;
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

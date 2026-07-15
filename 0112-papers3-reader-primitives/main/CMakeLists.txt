@@ -5,6 +5,8 @@ idf_component_register(
         "app_console.cpp"
         "app_display.cpp"
         "app_input.cpp"
+        "app_js.cpp"
+        "js_stdlib_table.c"
         "app_power.cpp"
         "app_reader.cpp"
         "app_storage.cpp"
@@ -20,4 +22,5 @@ idf_component_register(
         fatfs
         sdmmc
         esp_driver_sdspi
+        mquickjs
 )

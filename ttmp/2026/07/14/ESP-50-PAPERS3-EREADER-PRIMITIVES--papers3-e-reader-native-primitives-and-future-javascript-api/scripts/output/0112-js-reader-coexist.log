@@ -1,0 +1,20 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> reader open
+reader open
+I (77259) reader_ctl: resuming "Alice in Wonderland" at offset 3422
+I (77770) m5_backend: present id=4 intent=CleanFull ops=28 skipped=0 damage=0,0,540,960 render_us=476046 wait_us=10
+I (77771) reader_ctl: page at 3422 lines=23 full=1
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=3422 progress=91.9% lines=23 turns=0 at_end=0 checkpoints=1 bookmarked=0 marks=1
+reader> 
+# >>> reader next
+reader next
+I (85571) m5_backend: present id=5 intent=TextPage ops=15 skipped=0 damage=0,0,540,960 render_us=255542 wait_us=9
+I (85572) reader_ctl: page at 4322 lines=10 full=0
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=4322 progress=100.0% lines=10 turns=1 at_end=1 checkpoints=2 bookmarked=0 marks=1
+reader> 
+# >>> js status
+js status
+js init=1 screen_active=0 arena=163840 evals=3 exceptions=0 dispatches=0 last_error=""
+reader> 
+# done

@@ -9,6 +9,7 @@
 
 #include "app_display.h"
 #include "app_owner.h"
+#include "app_js.h"
 #include "app_reader.h"
 #include "s3paper/input.h"
 
@@ -74,8 +75,11 @@ void HandleGesture(const s3paper::GestureEvent &gesture) {
              s3paper::GestureKindName(gesture.kind),
              static_cast<int>(gesture.pos.x),
              static_cast<int>(gesture.pos.y));
-    // Owner context: hand gestures to the reader controller directly.
-    (void)ReaderHandleGesture(gesture);
+    // Owner context: a JS app screen (Phase 12) consumes gestures while it
+    // owns the panel; otherwise the reader controller handles them.
+    if (!JsHandleGesture(gesture)) {
+        (void)ReaderHandleGesture(gesture);
+    }
 }
 
 }  // namespace
