@@ -11,6 +11,7 @@
 #include "s3paper/fake_backend.h"
 #include "s3paper/frame_arena.h"
 #include "s3paper/frame_builder.h"
+#include "s3paper/text.h"
 #include "s3paper_m5/m5_backend.h"
 
 namespace reader {
@@ -186,6 +187,99 @@ PlannedPresent RunFixture(bool use_m5) {
         }
     }
     return PresentPlanned(frame.value, s3paper::PresentIntent::CleanFull,
+                          use_m5);
+}
+
+// Canned public-domain body text for the Phase 5 fixture (Alice in
+// Wonderland opening) with an accent to exercise the fallback glyph.
+constexpr const char kFixtureTitle[] = "Chapter I: Down the Rabbit-Hole";
+constexpr const char kFixtureBody[] =
+    "Alice was beginning to get very tired of sitting by her sister on the "
+    "bank, and of having nothing to do: once or twice she had peeped into "
+    "the book her sister was reading, but it had no pictures or "
+    "conversations in it, \"and what is the use of a book,\" thought Alice, "
+    "\"without pictures or conversations?\"\n"
+    "So she was considering in her own mind (as well as she could, for the "
+    "hot day made her feel very sleepy and stupid), whether the pleasure of "
+    "making a daisy-chain would be worth the trouble of getting up and "
+    "picking the daisies, when suddenly a White Rabbit with pink eyes ran "
+    "close by her \xC3\xA9tude.";
+
+s3paper::Status BuildTextPage(s3paper::FrameBuilder &fb) {
+    using s3paper::Rect;
+    constexpr int32_t kMarginX = 40;
+    constexpr int32_t kMarginTop = 60;
+    constexpr int32_t kTextWidth = 540 - 2 * kMarginX;
+    fb.Begin();
+    s3paper::Status st = fb.FillRect(Rect{0, 0, 540, 960}, 255);
+    if (!st.ok()) return st;
+
+    const s3paper::GfxFont *ui = s3paper::GetFont(s3paper::kFontUi);
+    const s3paper::GfxFont *body = s3paper::GetFont(s3paper::kFontBody);
+    int32_t baseline = kMarginTop + ui->y_advance;
+    // Title in the UI font.
+    st = fb.GlyphRun(Rect{kMarginX, baseline - ui->y_advance, kTextWidth,
+                          ui->y_advance + 8},
+                     baseline, s3paper::kFontUi, 0, kFixtureTitle,
+                     sizeof(kFixtureTitle) - 1, 0);
+    if (!st.ok()) return st;
+    st = fb.HLine(kMarginX, baseline + 10, kTextWidth, 0);
+    if (!st.ok()) return st;
+    baseline += ui->y_advance + body->y_advance;
+
+    // Body: paragraphs -> measured lines -> one GlyphRun per line.
+    s3paper::TextSpan paras[16];
+    const uint32_t para_count = s3paper::SplitParagraphs(
+        kFixtureBody, sizeof(kFixtureBody) - 1, paras, 16);
+    for (uint32_t p = 0; p < para_count && p < 16; ++p) {
+        s3paper::LineSpan lines[64];
+        const s3paper::Result<uint32_t> n = s3paper::BreakLines(
+            s3paper::kFontBody, kFixtureBody + paras[p].byte_start,
+            paras[p].byte_len, kTextWidth, lines, 64);
+        if (!n.ok()) return s3paper::ErrStatus(n.code);
+        for (uint32_t i = 0; i < n.value; ++i) {
+            if (baseline > 940) {
+                return s3paper::OkStatus();  // page full
+            }
+            st = fb.GlyphRun(
+                Rect{kMarginX, baseline - body->y_advance + 8,
+                     lines[i].width, body->y_advance},
+                baseline, s3paper::kFontBody, 0,
+                kFixtureBody + paras[p].byte_start + lines[i].byte_start,
+                lines[i].byte_len, 0);
+            if (!st.ok()) return st;
+            baseline += body->y_advance;
+        }
+        baseline += body->y_advance / 2;  // paragraph spacing
+    }
+    return s3paper::OkStatus();
+}
+
+PlannedPresent RunTextFixture(bool use_m5) {
+    PlannedPresent out{};
+    if (s_builder == nullptr) {
+        out.present.status = s3paper::StatusCode::Busy;
+        return out;
+    }
+    const s3paper::Status built = BuildTextPage(*s_builder);
+    if (!built.ok()) {
+        out.present.status = built.code;
+        return out;
+    }
+    const s3paper::Result<s3paper::RenderFrame> frame =
+        s_builder->Finish(s_next_frame_id++);
+    if (!frame.ok()) {
+        out.present.status = frame.code;
+        return out;
+    }
+    if (use_m5) {
+        const s3paper::Status init = s_m5->Init();
+        if (!init.ok()) {
+            out.present.status = init.code;
+            return out;
+        }
+    }
+    return PresentPlanned(frame.value, s3paper::PresentIntent::TextPage,
                           use_m5);
 }
 

@@ -31,6 +31,10 @@ PlannedPresent RunFixture(bool use_m5);
 // cycling intent), plans it, and presents through the M5 backend.
 PlannedPresent RunSoakStep(uint32_t step_index);
 
+// Renders a measured body-text page (Phase 5 fixture: decode -> paragraph
+// split -> measured line breaking -> GlyphRun ops) through a backend.
+PlannedPresent RunTextFixture(bool use_m5);
+
 // Prints the fake backend's trace of the last present via printf.
 void PrintFakeTrace();
 

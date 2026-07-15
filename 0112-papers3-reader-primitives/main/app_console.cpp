@@ -140,8 +140,10 @@ int CmdFixture(int argc, char **argv) {
     if (argc >= 2) {
         if (strcmp(argv[1], "m5") == 0) {
             backend = 1;
+        } else if (strcmp(argv[1], "text") == 0) {
+            backend = 2;  // measured text page on the M5 backend
         } else if (strcmp(argv[1], "fake") != 0) {
-            printf("error: InvalidArgument: usage fixture [fake|m5]\n");
+            printf("error: InvalidArgument: usage fixture [fake|m5|text]\n");
             return 1;
         }
     }
@@ -157,7 +159,8 @@ int CmdFixture(int argc, char **argv) {
     const s3paper::PresentResult &p = pp.present;
     printf("fixture backend=%s id=%u ops_drawn=%u ops_skipped=%u "
            "damage=%d,%d,%d,%d render_us=%u wait_us=%u status=%s\n",
-           backend == 1 ? "m5" : "fake", static_cast<unsigned>(p.frame_id),
+           backend == 2 ? "text-m5" : (backend == 1 ? "m5" : "fake"),
+           static_cast<unsigned>(p.frame_id),
            static_cast<unsigned>(p.ops_drawn),
            static_cast<unsigned>(p.ops_skipped), static_cast<int>(p.damage.x),
            static_cast<int>(p.damage.y), static_cast<int>(p.damage.w),

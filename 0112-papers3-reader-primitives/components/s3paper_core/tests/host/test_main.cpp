@@ -15,6 +15,7 @@
 #include "s3paper/input.h"
 #include "s3paper/refresh_planner.h"
 #include "s3paper/status.h"
+#include "s3paper/text.h"
 
 using namespace s3paper;
 
@@ -675,6 +676,170 @@ static void TestInputReplayFixture() {
     CHECK(gestures[2].kind == GestureKind::Tap);
 }
 
+static void TestUtf8() {
+    uint32_t pos = 0, cp = 0;
+    // ASCII.
+    const char ascii[] = "Ab";
+    CHECK(Utf8Next(ascii, 2, &pos, &cp) && cp == 'A' && pos == 1);
+    CHECK(Utf8Next(ascii, 2, &pos, &cp) && cp == 'b' && pos == 2);
+    CHECK(!Utf8Next(ascii, 2, &pos, &cp));
+    // 2-byte (é U+00E9), 3-byte (€ U+20AC), 4-byte (😀 U+1F600).
+    const char multi[] = "\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80";
+    pos = 0;
+    CHECK(Utf8Next(multi, 9, &pos, &cp) && cp == 0xE9 && pos == 2);
+    CHECK(Utf8Next(multi, 9, &pos, &cp) && cp == 0x20AC && pos == 5);
+    CHECK(Utf8Next(multi, 9, &pos, &cp) && cp == 0x1F600 && pos == 9);
+    // Malformed: stray continuation, truncated sequence, overlong, and a
+    // surrogate half all yield U+FFFD advancing exactly one byte.
+    const char bad1[] = "\x80x";
+    pos = 0;
+    CHECK(Utf8Next(bad1, 2, &pos, &cp) && cp == kReplacementChar && pos == 1);
+    CHECK(Utf8Next(bad1, 2, &pos, &cp) && cp == 'x');
+    const char bad2[] = "\xE2\x82";  // truncated €
+    pos = 0;
+    CHECK(Utf8Next(bad2, 2, &pos, &cp) && cp == kReplacementChar && pos == 1);
+    const char overlong[] = "\xC0\xAF";  // overlong '/'
+    pos = 0;
+    CHECK(Utf8Next(overlong, 2, &pos, &cp) && cp == kReplacementChar);
+    const char surrogate[] = "\xED\xA0\x80";  // U+D800
+    pos = 0;
+    CHECK(Utf8Next(surrogate, 3, &pos, &cp) && cp == kReplacementChar);
+}
+
+static void TestFontMetrics() {
+    CHECK(GetFont(kFontUi) != nullptr);
+    CHECK(GetFont(kFontBody) != nullptr);
+    CHECK(GetFont(99) == nullptr);
+    // Lowercase coverage (the 0080 reader font had none).
+    const Result<GlyphMetrics> a = GetGlyphMetrics(kFontBody, 'a');
+    CHECK(a.ok());
+    CHECK(!a.value.fallback);
+    CHECK(a.value.advance > 0);
+    // Body font is larger than UI font.
+    const Result<GlyphMetrics> a_ui = GetGlyphMetrics(kFontUi, 'a');
+    CHECK(a_ui.ok());
+    CHECK(a.value.advance > a_ui.value.advance);
+    // Missing codepoint (é is outside 7b coverage): deterministic fallback.
+    const Result<GlyphMetrics> accent = GetGlyphMetrics(kFontBody, 0xE9);
+    CHECK(accent.ok());
+    CHECK(accent.value.fallback);
+    CHECK(accent.value.advance > 0);
+    // Measurement sums advances; wider strings measure wider.
+    const Result<int32_t> hello =
+        MeasureText(kFontBody, "hello", 5);
+    const Result<int32_t> hello_w =
+        MeasureText(kFontBody, "hello world", 11);
+    CHECK(hello.ok() && hello_w.ok());
+    CHECK(hello.value > 0);
+    CHECK(hello_w.value > hello.value);
+    CHECK(MeasureText(kFontBody, "", 0).ok());
+    CHECK(MeasureText(kFontBody, "", 0).value == 0);
+}
+
+static void TestParagraphs() {
+    TextSpan spans[8];
+    const char text[] = "first\nsecond\r\nthird\n\nfifth";
+    const uint32_t n = SplitParagraphs(text, sizeof(text) - 1, spans, 8);
+    CHECK(n == 5);
+    CHECK(spans[0].byte_start == 0 && spans[0].byte_len == 5);
+    CHECK(spans[1].byte_len == 6);   // "second" (CR stripped)
+    CHECK(spans[2].byte_len == 5);   // "third"
+    CHECK(spans[3].byte_len == 0);   // empty paragraph
+    CHECK(spans[4].byte_len == 5);   // "fifth"
+    // Count exceeding cap is reported, extra spans simply unwritten.
+    CHECK(SplitParagraphs(text, sizeof(text) - 1, spans, 2) == 5);
+}
+
+static void TestLineBreaking() {
+    LineSpan lines[32];
+    const char para[] =
+        "The quick brown fox jumps over the lazy dog and keeps running";
+    const uint32_t len = sizeof(para) - 1;
+    // Break at 200px in the body font: every line fits, breaks at spaces,
+    // and concatenating the spans (plus separators) restores every word.
+    const Result<uint32_t> n =
+        BreakLines(kFontBody, para, len, 200, lines, 32);
+    CHECK(n.ok());
+    CHECK(n.value >= 3);
+    for (uint32_t i = 0; i < n.value; ++i) {
+        CHECK(lines[i].width <= 200);
+        CHECK(lines[i].byte_len > 0);
+        // No line starts or ends with a space.
+        CHECK(para[lines[i].byte_start] != ' ');
+        CHECK(para[lines[i].byte_start + lines[i].byte_len - 1] != ' ');
+        // Width matches an independent measurement (same metrics source).
+        const Result<int32_t> w = MeasureText(
+            kFontBody, para + lines[i].byte_start, lines[i].byte_len);
+        CHECK(w.ok());
+        CHECK(w.value == lines[i].width);
+        if (i > 0) {
+            CHECK(lines[i].byte_start >
+                  lines[i - 1].byte_start + lines[i - 1].byte_len);
+        }
+    }
+    // A word wider than the line hard-breaks at codepoint boundaries.
+    const char longword[] = "abc Supercalifragilisticexpialidocious xyz";
+    const Result<uint32_t> hard =
+        BreakLines(kFontBody, longword, sizeof(longword) - 1, 120, lines, 32);
+    CHECK(hard.ok());
+    CHECK(hard.value >= 3);
+    for (uint32_t i = 0; i < hard.value; ++i) {
+        CHECK(lines[i].width <= 120 || lines[i].byte_len <= 4);
+    }
+    // Multi-byte text never splits inside a UTF-8 sequence: every line
+    // boundary decodes cleanly from its own start.
+    const char utf8para[] =
+        "\xE2\x82\xAC\xE2\x82\xAC\xE2\x82\xAC \xE2\x82\xAC\xE2\x82\xAC "
+        "\xE2\x82\xAC\xE2\x82\xAC\xE2\x82\xAC\xE2\x82\xAC";
+    const Result<uint32_t> un =
+        BreakLines(kFontBody, utf8para, sizeof(utf8para) - 1, 60, lines, 32);
+    CHECK(un.ok());
+    for (uint32_t i = 0; i < un.value; ++i) {
+        uint32_t pos = 0, cp = 0, count = 0;
+        while (Utf8Next(utf8para + lines[i].byte_start, lines[i].byte_len,
+                        &pos, &cp)) {
+            CHECK(cp != kReplacementChar);
+            count++;
+        }
+        CHECK(count > 0);
+    }
+    // Empty and capacity cases are explicit.
+    CHECK(BreakLines(kFontBody, "", 0, 200, lines, 32).ok());
+    CHECK(BreakLines(kFontBody, "", 0, 200, lines, 32).value == 0);
+    CHECK(BreakLines(kFontBody, para, len, 200, lines, 1).code ==
+          StatusCode::CapacityExceeded);
+    CHECK(BreakLines(kFontBody, para, len, 0, lines, 32).code ==
+          StatusCode::InvalidArgument);
+}
+
+// Golden line breaks for a fixed paragraph (P5.10 host reference).
+static void TestGoldenLineBreaks() {
+    const char para[] =
+        "It was a bright cold day in April, and the clocks were striking "
+        "thirteen.";
+    LineSpan lines[16];
+    const Result<uint32_t> n =
+        BreakLines(kFontBody, para, sizeof(para) - 1, 460, lines, 16);
+    CHECK(n.ok());
+    // Pin the exact segmentation; any metrics or breaker change must be a
+    // deliberate golden update.
+    static const char *kExpected[] = {
+        "It was a bright cold day in April,",
+        "and the clocks were striking",
+        "thirteen.",
+    };
+    CHECK(n.value == 3);
+    for (uint32_t i = 0; i < n.value && i < 3; ++i) {
+        std::string got(para + lines[i].byte_start, lines[i].byte_len);
+        if (got != kExpected[i]) {
+            g_failures++;
+            std::printf("FAIL golden line %u: got \"%s\" want \"%s\"\n", i,
+                        got.c_str(), kExpected[i]);
+        }
+        g_checks++;
+    }
+}
+
 int main() {
     TestGeometryBasics();
     TestIntersectUnion();
@@ -695,6 +860,11 @@ int main() {
     TestHitRegions();
     TestScheduler();
     TestInputReplayFixture();
+    TestUtf8();
+    TestFontMetrics();
+    TestParagraphs();
+    TestLineBreaking();
+    TestGoldenLineBreaks();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

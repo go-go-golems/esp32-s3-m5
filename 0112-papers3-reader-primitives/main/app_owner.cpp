@@ -222,8 +222,10 @@ void HandleConsoleCommand(const AppEvent &event) {
             break;
         }
         case ConsoleOp::Fixture: {
-            const bool use_m5 = event.payload.console.arg == 1;
-            const PlannedPresent planned = RunFixture(use_m5);
+            const uint32_t arg = event.payload.console.arg;
+            const bool use_m5 = arg != 0;
+            const PlannedPresent planned =
+                (arg == 2) ? RunTextFixture(true) : RunFixture(use_m5);
             reply.payload.present.present = planned.present;
             reply.payload.present.full_refresh =
                 planned.plan.full_refresh ? 1 : 0;

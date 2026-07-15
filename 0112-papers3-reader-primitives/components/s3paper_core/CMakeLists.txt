@@ -7,6 +7,7 @@ idf_component_register(
         "src/fake_backend.cpp"
         "src/refresh_planner.cpp"
         "src/input.cpp"
+        "src/text.cpp"
     INCLUDE_DIRS
         "include"
 )

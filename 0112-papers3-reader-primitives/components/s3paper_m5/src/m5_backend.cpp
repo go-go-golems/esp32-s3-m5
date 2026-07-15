@@ -6,6 +6,7 @@
 #include "esp_timer.h"
 
 #include "s3paper/frame_arena.h"
+#include "s3paper/text.h"
 
 namespace s3paper {
 namespace {
@@ -41,6 +42,64 @@ epd_mode_t ModeForIntent(PresentIntent intent) {
 
 uint32_t GrayToColor(Gray8 gray) {
     return M5.Display.color888(gray, gray, gray);
+}
+
+// Blits one glyph from the vendored GFX bitmap data as horizontal runs of
+// set bits. Same data source as host-side measurement: one metrics truth.
+void BlitGlyph(const GfxFont &font, const GfxGlyph &glyph, int32_t pen_x,
+               int32_t baseline_y, uint32_t color) {
+    const uint8_t *bits = font.bitmaps + glyph.bitmap_offset;
+    uint32_t bit = 0;
+    const int32_t x0 = pen_x + glyph.x_offset;
+    const int32_t y0 = baseline_y + glyph.y_offset;
+    for (int32_t row = 0; row < glyph.height; ++row) {
+        int32_t run_start = -1;
+        for (int32_t col = 0; col < glyph.width; ++col, ++bit) {
+            const bool set = (bits[bit >> 3] >> (7 - (bit & 7))) & 1;
+            if (set && run_start < 0) {
+                run_start = col;
+            } else if (!set && run_start >= 0) {
+                M5.Display.writeFastHLine(x0 + run_start, y0 + row,
+                                          col - run_start, color);
+                run_start = -1;
+            }
+        }
+        if (run_start >= 0) {
+            M5.Display.writeFastHLine(x0 + run_start, y0 + row,
+                                      glyph.width - run_start, color);
+        }
+    }
+}
+
+// Renders a glyph run with the s3paper font data; unknown codepoints get
+// the deterministic fallback box.
+void RenderGlyphRun(const DrawOp &op, const FrameArena *arena) {
+    const GlyphRunPayload &g = op.payload.glyph_run;
+    const GfxFont *font = GetFont(g.font_id);
+    if (font == nullptr || arena == nullptr) {
+        return;
+    }
+    const char *text =
+        reinterpret_cast<const char *>(arena->Data(g.text_offset));
+    const uint32_t color = GrayToColor(op.gray);
+    int32_t pen_x = op.bounds.x;
+    uint32_t pos = 0;
+    uint32_t cp = 0;
+    while (Utf8Next(text, g.text_len, &pos, &cp)) {
+        const Result<GlyphMetrics> m = GetGlyphMetrics(g.font_id, cp);
+        if (!m.ok()) {
+            continue;
+        }
+        if (m.value.fallback) {
+            M5.Display.drawRect(pen_x + m.value.x_offset,
+                                g.baseline_y + m.value.y_offset,
+                                m.value.width, m.value.height, color);
+        } else if (cp != ' ') {
+            BlitGlyph(*font, font->glyphs[cp - font->first], pen_x,
+                      g.baseline_y, color);
+        }
+        pen_x += m.value.advance;
+    }
 }
 
 }  // namespace
@@ -109,25 +168,15 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                                           op.bounds.h, GrayToColor(op.gray));
                 result.ops_drawn++;
                 break;
-            case DrawOpKind::GlyphRun: {
-                const GlyphRunPayload &g = op.payload.glyph_run;
-                if (frame.arena == nullptr) {
+            case DrawOpKind::GlyphRun:
+                if (frame.arena == nullptr ||
+                    GetFont(op.payload.glyph_run.font_id) == nullptr) {
                     result.ops_skipped++;
                     break;
                 }
-                // Phase 2: builtin font scaled to size_px; the Phase 5 text
-                // pipeline replaces this with measured glyph rendering.
-                const char *text = reinterpret_cast<const char *>(
-                    frame.arena->Data(g.text_offset));
-                M5.Display.setTextColor(GrayToColor(op.gray));
-                M5.Display.setTextSize(
-                    g.size_px > 8 ? static_cast<float>(g.size_px) / 8.0f
-                                  : 1.0f);
-                M5.Display.setCursor(op.bounds.x, op.bounds.y);
-                M5.Display.printf("%.*s", static_cast<int>(g.text_len), text);
+                RenderGlyphRun(op, frame.arena);
                 result.ops_drawn++;
                 break;
-            }
             case DrawOpKind::Bitmap:
                 // Explicitly unsupported in Phase 2.
                 result.ops_skipped++;
