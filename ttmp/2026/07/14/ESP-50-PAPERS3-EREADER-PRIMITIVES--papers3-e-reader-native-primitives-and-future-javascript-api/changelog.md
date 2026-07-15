@@ -367,3 +367,12 @@ Step 25 recorded the density-only F1 decision and prepared-only control as 396a5
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/reference/01-investigation-diary.md — Step 25
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/01-preregistration.md — Step 25 protocol
+
+## 2026-07-14
+
+Executed F1 density-only trace-off control: 442 valid unsaturated samples and complete cleanup. Deterministic F1/F0 fixed-point comparison found Pearson 0.943874 over normalized 0–25 s activity with a 0.5 s alignment; F2 remains pending operator/no-anomaly confirmation.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/05-f0-comparison.md — Reproducible F1/F0 comparison
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/raw-dynamic-f1.jsonl — Immutable F1 raw stream

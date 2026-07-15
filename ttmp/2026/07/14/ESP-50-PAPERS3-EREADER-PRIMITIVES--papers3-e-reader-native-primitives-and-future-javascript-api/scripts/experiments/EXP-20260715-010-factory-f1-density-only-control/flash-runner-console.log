@@ -1,0 +1,11 @@
+mode=execute
+treatment=f1
+experiment=EXP-20260714-002-factory-v05-source-f1-off
+port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00
+real_port=/dev/ttyACM0
+app_sha256=3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3
+audit=PASS
+serial_owner=none
+[flash] treatment=f1; full output -> /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-002-factory-v05-source-f1-off/flash-20260715T012309Z.log
+flash_log=/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-002-factory-v05-source-f1-off/flash-20260715T012309Z.log
+hardware_modified=yes

@@ -1105,7 +1105,7 @@
     }
   ],
   "candidate_delta": 0.01,
-  "capture": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/raw-dynamic-f0.jsonl",
+  "capture": "ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/raw-dynamic-f0.jsonl",
   "capture_result": "ok",
   "cleanup_commands": [
     "ID S,STOP",
@@ -1121,7 +1121,7 @@
     "standard_deviation": 0.047744831244906444
   },
   "duration_seconds": 44.773896103,
-  "host_events": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/host-events.jsonl",
+  "host_events": "ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/host-events.jsonl",
   "invalid_samples": 0,
   "markers_relative_to_first_sample_seconds": {
     "flash_begin": 1.922857126,

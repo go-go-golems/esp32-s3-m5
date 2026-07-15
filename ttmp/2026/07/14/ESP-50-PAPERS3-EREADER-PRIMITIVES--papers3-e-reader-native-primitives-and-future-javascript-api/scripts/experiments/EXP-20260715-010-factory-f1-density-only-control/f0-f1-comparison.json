@@ -1,0 +1,388 @@
+{
+  "all_lags": [
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -3.0,
+      "pearson": 0.05704928146859067,
+      "rms_delta_d": 0.08011101019167444
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.9,
+      "pearson": 0.0807067794948707,
+      "rms_delta_d": 0.07908907200142326
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.8,
+      "pearson": 0.10088375135647208,
+      "rms_delta_d": 0.07820533865862088
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.7,
+      "pearson": 0.1325027452967695,
+      "rms_delta_d": 0.07680867816285586
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.6,
+      "pearson": 0.17658533812051488,
+      "rms_delta_d": 0.07482504107266624
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.5,
+      "pearson": 0.2143527250303152,
+      "rms_delta_d": 0.07308203143596642
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.4,
+      "pearson": 0.24148583381069555,
+      "rms_delta_d": 0.07180057681531818
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.3,
+      "pearson": 0.2656955567127194,
+      "rms_delta_d": 0.07063675086817411
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.2,
+      "pearson": 0.29396057221847893,
+      "rms_delta_d": 0.06925662223534125
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.1,
+      "pearson": 0.32217446545967976,
+      "rms_delta_d": 0.06785186891646929
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -2.0,
+      "pearson": 0.3468211926853969,
+      "rms_delta_d": 0.06659962631250718
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.9,
+      "pearson": 0.36713041454435225,
+      "rms_delta_d": 0.06554819346895757
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.8,
+      "pearson": 0.38985984953116365,
+      "rms_delta_d": 0.06435337957341666
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.7,
+      "pearson": 0.40987563104189834,
+      "rms_delta_d": 0.06328172219975235
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.6,
+      "pearson": 0.4374914276183517,
+      "rms_delta_d": 0.06177836996490815
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.5,
+      "pearson": 0.4748651542685861,
+      "rms_delta_d": 0.05968930375478552
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.4,
+      "pearson": 0.5170925534394295,
+      "rms_delta_d": 0.05724045913415009
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.3,
+      "pearson": 0.549040677542659,
+      "rms_delta_d": 0.055314105881280315
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.2,
+      "pearson": 0.5959424277438581,
+      "rms_delta_d": 0.05236536927284747
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.1,
+      "pearson": 0.6520054430652219,
+      "rms_delta_d": 0.04861131433492174
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -1.0,
+      "pearson": 0.7070915237736495,
+      "rms_delta_d": 0.04461856226706255
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.9,
+      "pearson": 0.7464073876088324,
+      "rms_delta_d": 0.04153394191469759
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.8,
+      "pearson": 0.7894370445443801,
+      "rms_delta_d": 0.03787457934728711
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.7,
+      "pearson": 0.8610092543937957,
+      "rms_delta_d": 0.03085314856634888
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.6,
+      "pearson": 0.9392156810879996,
+      "rms_delta_d": 0.020615649396671546
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.5,
+      "pearson": 0.9438737594194018,
+      "rms_delta_d": 0.019831593379033265
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.4,
+      "pearson": 0.8892030486633234,
+      "rms_delta_d": 0.02758011760761052
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.3,
+      "pearson": 0.8512504459823073,
+      "rms_delta_d": 0.031865053199718225
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.2,
+      "pearson": 0.8399288844917949,
+      "rms_delta_d": 0.03302903554372978
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": -0.1,
+      "pearson": 0.8138951582178892,
+      "rms_delta_d": 0.0355706800521741
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.0,
+      "pearson": 0.7472144944331516,
+      "rms_delta_d": 0.041383305550597875
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.1,
+      "pearson": 0.6636616223473243,
+      "rms_delta_d": 0.04767496567414162
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.2,
+      "pearson": 0.5904730139537122,
+      "rms_delta_d": 0.052567013970439225
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.3,
+      "pearson": 0.5330637376324685,
+      "rms_delta_d": 0.056102307685142
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.4,
+      "pearson": 0.48058778048467987,
+      "rms_delta_d": 0.05914634237672768
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.5,
+      "pearson": 0.4320891646644827,
+      "rms_delta_d": 0.06182397897614092
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.6,
+      "pearson": 0.39609676519789705,
+      "rms_delta_d": 0.06373438274118916
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.7,
+      "pearson": 0.36849425180834144,
+      "rms_delta_d": 0.06515789113174338
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.8,
+      "pearson": 0.3415001456078899,
+      "rms_delta_d": 0.06651942798911618
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 0.9,
+      "pearson": 0.3133257616309124,
+      "rms_delta_d": 0.0679110194555077
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.0,
+      "pearson": 0.2854746513397711,
+      "rms_delta_d": 0.06925815509502288
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.1,
+      "pearson": 0.2597781952158832,
+      "rms_delta_d": 0.07047647825490619
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.2,
+      "pearson": 0.23261839029808346,
+      "rms_delta_d": 0.07174147631789426
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.3,
+      "pearson": 0.2046027376390721,
+      "rms_delta_d": 0.07302258332867975
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.4,
+      "pearson": 0.17808644609372415,
+      "rms_delta_d": 0.07421285935949276
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.5,
+      "pearson": 0.14549165474571515,
+      "rms_delta_d": 0.07565321550220466
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.6,
+      "pearson": 0.10324446646128514,
+      "rms_delta_d": 0.07749191056112252
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.7,
+      "pearson": 0.06747404187418714,
+      "rms_delta_d": 0.07902718526035356
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.8,
+      "pearson": 0.049972036436650054,
+      "rms_delta_d": 0.07977113836873949
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 1.9,
+      "pearson": 0.02934095992871205,
+      "rms_delta_d": 0.08064356054317318
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.0,
+      "pearson": -0.007121137778692955,
+      "rms_delta_d": 0.08215873921380994
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.1,
+      "pearson": -0.052894713025660525,
+      "rms_delta_d": 0.08399637642614466
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.2,
+      "pearson": -0.07995751173886317,
+      "rms_delta_d": 0.08505286255861783
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.3,
+      "pearson": -0.09260869627375579,
+      "rms_delta_d": 0.08553481425436221
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.4,
+      "pearson": -0.10566532256908791,
+      "rms_delta_d": 0.08603773865185019
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.5,
+      "pearson": -0.12083454641327589,
+      "rms_delta_d": 0.08662882253936376
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.6,
+      "pearson": -0.12878254115186485,
+      "rms_delta_d": 0.08693162506403936
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.7,
+      "pearson": -0.1337088996557421,
+      "rms_delta_d": 0.08714481981416651
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.8,
+      "pearson": -0.142053385557874,
+      "rms_delta_d": 0.08749211667064037
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 2.9,
+      "pearson": -0.15455563517173632,
+      "rms_delta_d": 0.08799484145724715
+    },
+    {
+      "count": 251,
+      "lag_seconds_f1_sampled_at_f0_plus_lag": 3.0,
+      "pearson": -0.15975813142622086,
+      "rms_delta_d": 0.08813244239682197
+    }
+  ],
+  "baseline_seconds": 1.0,
+  "best_alignment": {
+    "count": 251,
+    "lag_seconds_f1_sampled_at_f0_plus_lag": -0.5,
+    "pearson": 0.9438737594194018,
+    "rms_delta_d": 0.019831593379033265
+  },
+  "comparison_window_seconds": [
+    0.0,
+    25.0
+  ],
+  "f0": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/density-timeline.csv",
+  "f0_baseline_density": 0.608864264321,
+  "f1": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-010-factory-f1-density-only-control/density-timeline.csv",
+  "f1_baseline_density": 0.6181671574004001,
+  "interpretation": "Pearson correlation compares baseline-subtracted point-density shape after host flash-runner completion. It does not prove spatial equivalence, absolute-density equivalence after movement, or semantic display-phase identity.",
+  "resample_step_seconds": 0.1,
+  "schema": "esp50.f0-f1-density-comparison.v1"
+}

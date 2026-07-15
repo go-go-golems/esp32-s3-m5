@@ -1,5 +1,5 @@
 ---
-Title: "Analysis - Exact F0 dynamic density"
+Title: "Analysis - Source F1 trace-off dynamic density"
 Ticket: ESP-50-PAPERS3-EREADER-PRIMITIVES
 Status: active
 Topics:
@@ -11,22 +11,22 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: "Reproducible timeline and candidate change points for the Exact F0 fixed-point density trace."
+Summary: "Reproducible timeline and candidate change points for the Source F1 trace-off fixed-point density trace."
 LastUpdated: 2026-07-15T01:00:00Z
-WhatFor: "Capture an objective fixed-point density trace for Exact F0."
+WhatFor: "Capture an objective fixed-point density trace for Source F1 trace-off."
 WhenToUse: "Review temporal black/white/grayscale activity before a later comparison treatment."
 ---
 
-# Exact F0 dynamic density analysis
+# Source F1 trace-off dynamic density analysis
 
 ## Automatic result
 
 ```text
 samples: 442
-duration: 44.773896 seconds
-post-flash-runner coverage: 29.067766 seconds
+duration: 44.722003 seconds
+post-flash-runner coverage: 28.952269 seconds
 saturated / invalid: 0 / 0
-density min / max: 0.606205 / 0.835286 D
+density min / max: 0.614619 / 0.851753 D
 cleanup: ID S,STOP -> SD LR,0 -> IS REMOTE,0
 capture result: ok
 ```
@@ -37,11 +37,11 @@ The fixed-point trace clearly detects multiple FactoryTest update blocks and the
 
 | Marker | Relative to first sample |
 |---|---:|
-| `orchestrator_begin` | -1.182684 s |
-| `raw_stream_confirmed` | -0.115985 s |
-| `flash_begin` | 1.922857 s |
-| `flash_runner_complete` | 15.706130 s |
-| `orchestrator_complete` | 45.059253 s |
+| `orchestrator_begin` | -1.189455 s |
+| `raw_stream_confirmed` | -0.134896 s |
+| `flash_begin` | 1.903342 s |
+| `flash_runner_complete` | 15.769734 s |
+| `orchestrator_complete` | 45.055438 s |
 
 ## Candidate 500 ms change bins
 
@@ -49,26 +49,28 @@ A candidate is a 500 ms bin whose mean differs from the previous bin by at least
 
 | Bin start | Mean density | Delta from previous bin |
 |---:|---:|---:|
-| 17.5 s | 0.624811 D | +0.016346 D |
-| 18.5 s | 0.652729 D | +0.035456 D |
-| 19.0 s | 0.770559 D | +0.117830 D |
-| 19.5 s | 0.739529 D | -0.031030 D |
-| 20.0 s | 0.630962 D | -0.108568 D |
-| 21.0 s | 0.677797 D | +0.039735 D |
-| 21.5 s | 0.696800 D | +0.019003 D |
-| 22.0 s | 0.668644 D | -0.028156 D |
-| 22.5 s | 0.643068 D | -0.025576 D |
-| 23.0 s | 0.621520 D | -0.021548 D |
-| 24.5 s | 0.636154 D | +0.020012 D |
-| 25.0 s | 0.659710 D | +0.023556 D |
-| 25.5 s | 0.627055 D | -0.032655 D |
-| 26.0 s | 0.662458 D | +0.035403 D |
-| 26.5 s | 0.767199 D | +0.104741 D |
-| 27.0 s | 0.795327 D | +0.028128 D |
-| 28.0 s | 0.780787 D | -0.013834 D |
-| 29.0 s | 0.696854 D | -0.086984 D |
-| 29.5 s | 0.627200 D | -0.069654 D |
-| 44.5 s | 0.637266 D | +0.014963 D |
+| 2.0 s | 0.663393 D | +0.039760 D |
+| 2.5 s | 0.641841 D | -0.021552 D |
+| 3.0 s | 0.622100 D | -0.019741 D |
+| 18.5 s | 0.729571 D | +0.097641 D |
+| 19.0 s | 0.744929 D | +0.015358 D |
+| 19.5 s | 0.640915 D | -0.104014 D |
+| 20.5 s | 0.674002 D | +0.030278 D |
+| 21.0 s | 0.690944 D | +0.016942 D |
+| 21.5 s | 0.673870 D | -0.017074 D |
+| 22.0 s | 0.643490 D | -0.030380 D |
+| 22.5 s | 0.631390 D | -0.012099 D |
+| 23.0 s | 0.620296 D | -0.011095 D |
+| 24.0 s | 0.643454 D | +0.024095 D |
+| 24.5 s | 0.688299 D | +0.044845 D |
+| 25.0 s | 0.639646 D | -0.048654 D |
+| 25.5 s | 0.667330 D | +0.027684 D |
+| 26.0 s | 0.795301 D | +0.127971 D |
+| 26.5 s | 0.810611 D | +0.015310 D |
+| 27.5 s | 0.794675 D | -0.015265 D |
+| 28.5 s | 0.692333 D | -0.098732 D |
+| 29.0 s | 0.631809 D | -0.060524 D |
+| 44.0 s | 0.657609 D | +0.027905 D |
 
 ## Files
 

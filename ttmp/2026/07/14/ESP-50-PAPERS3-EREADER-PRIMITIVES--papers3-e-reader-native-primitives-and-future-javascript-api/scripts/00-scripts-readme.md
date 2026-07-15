@@ -49,6 +49,14 @@ scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/dashboard.html
 
 The dashboard is self-contained: it makes no network requests and embeds its data. It distinguishes host flash markers, candidate density activity, and derived density. Candidate activity is not an asserted semantic display phase.
 
+## F0/F1 trace comparison
+
+`37-compare-f0-f1-density.py` baseline-subtracts both point traces, normalizes time against each host `flash_runner_complete` marker, resamples at 100 ms, and searches bounded time shifts for maximum Pearson shape correlation. It explicitly does **not** claim spatial equivalence, exact semantic phase labeling, or cross-run absolute density equivalence.
+
+```bash
+scripts/37-compare-f0-f1-density.py
+```
+
 ## Exact F0 dynamic runner
 
 `31-run-synchronized-f0-density.sh` starts a fixed 45-second Printalyzer stream, waits for it to become active, writes host markers, flashes the exact F0 release, retains the full flash log, and verifies cleanup evidence. It is intentionally single-use for experiment 008: output paths already exist and the script refuses replacement.

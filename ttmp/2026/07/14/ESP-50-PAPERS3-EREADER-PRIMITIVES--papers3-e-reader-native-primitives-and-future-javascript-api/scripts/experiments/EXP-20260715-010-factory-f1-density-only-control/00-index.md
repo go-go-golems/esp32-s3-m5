@@ -19,4 +19,8 @@ WhenToUse: "Use after exact F0 density analysis and before F2 trace-on execution
 
 # EXP-20260715-010-factory-f1-density-only-control
 
-Manifest and preregistration are immutable. Execution requires `RUN-DENS-F1-NOVIDEO`.
+Manifest and preregistration are immutable. Execution was authorized with `RUN-DENS-F1-NOVIDEO`.
+
+Status: automatic F1 capture and provisional F1/F0 point-trace comparison passed; operator/no-anomaly confirmation remains pending before F2.
+
+Evidence: `raw-dynamic-f1.jsonl`, `host-events.jsonl`, `flash-full.log`, `density-timeline.csv`, `density-analysis.json`, `density-timeline.svg`, `f0-f1-comparison.{json,md}`, and `evidence.sha256`.

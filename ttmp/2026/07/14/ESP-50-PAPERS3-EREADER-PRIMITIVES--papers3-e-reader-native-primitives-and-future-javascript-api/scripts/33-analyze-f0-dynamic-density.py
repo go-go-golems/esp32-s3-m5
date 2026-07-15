@@ -179,6 +179,11 @@ def main() -> None:
     parser.add_argument("--output-svg", type=Path, default=EXP / "density-timeline.svg")
     parser.add_argument("--bin-seconds", type=float, default=0.5)
     parser.add_argument("--candidate-delta", type=float, default=0.01)
+    parser.add_argument(
+        "--experiment-label",
+        default="Exact F0",
+        help="human-facing label used only in generated analysis documentation",
+    )
     args = parser.parse_args()
 
     records, samples = load_samples(args.capture)
@@ -287,7 +292,7 @@ def main() -> None:
     )
     args.output_markdown.write_text(
         f"""---
-Title: "Analysis - EXP-20260715-008-factory-f0-dynamic-density"
+Title: "Analysis - {args.experiment_label} dynamic density"
 Ticket: ESP-50-PAPERS3-EREADER-PRIMITIVES
 Status: active
 Topics:
@@ -299,13 +304,13 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: "Reproducible timeline and candidate change points for the exact-F0 fixed-point density trace."
+Summary: "Reproducible timeline and candidate change points for the {args.experiment_label} fixed-point density trace."
 LastUpdated: 2026-07-15T01:00:00Z
-WhatFor: "Capture an objective fixed-point density trace of exact FactoryTest F0."
-WhenToUse: "Establish F0 temporal black/white/grayscale behavior before source-derived F1/F2 runs."
+WhatFor: "Capture an objective fixed-point density trace for {args.experiment_label}."
+WhenToUse: "Review temporal black/white/grayscale activity before a later comparison treatment."
 ---
 
-# Exact F0 dynamic density analysis
+# {args.experiment_label} dynamic density analysis
 
 ## Automatic result
 
@@ -319,7 +324,7 @@ cleanup: {" -> ".join(cleanup)}
 capture result: {capture_end["result"]}
 ```
 
-The fixed-point trace clearly detects multiple FactoryTest update blocks and the later periodic dashboard refresh. Exact title/black/white/grayscale endpoint labels remain provisional because F0 has no internal frame-boundary ring; F2 is required to join optical transitions to scheduler events without relying only on waveform shape.
+The fixed-point trace clearly detects multiple FactoryTest update blocks and the later periodic dashboard refresh. Exact title/black/white/grayscale endpoint labels remain provisional because this density stream is only a single physical aperture; internal frame-boundary evidence or video alignment is required to assign semantic phase names without relying only on waveform shape.
 
 ## Host markers
 
