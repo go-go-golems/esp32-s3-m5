@@ -96,14 +96,14 @@
 - [x] [P4.8] Add recorded touch-trace fixtures and host replay tests for zones, gestures, cancellation, and rotation <!-- t:ox8h -->
 - [ ] [P4.9] Route normalized input/timer events through AppEvent and validate owner-task integration on hardware <!-- t:utsz -->
 - [ ] [P5.1] Define reader typography requirements and compare candidate font formats for size, quality, metrics, and speed <!-- t:3r0u -->
-- [ ] [P5.2] Select, license, package, and document the initial regular reader font and diagnostic fallback font <!-- t:19jk -->
-- [ ] [P5.3] Implement incremental UTF-8 decoding with replacement behavior and byte/codepoint position tracking <!-- t:pav8 -->
-- [ ] [P5.4] Define FontId, GlyphId, GlyphMetrics, GlyphBitmap, FontMetrics, and font-fallback contracts <!-- t:lt14 -->
-- [ ] [P5.5] Implement glyph measurement and loading so layout and rendering use the same metrics <!-- t:yqtu -->
-- [ ] [P5.6] Implement paragraph segmentation, whitespace normalization policy, and explicit paragraph spacing/indent rules <!-- t:bhb3 -->
-- [ ] [P5.7] Implement measured line breaking with long-word handling and no split inside UTF-8 sequences <!-- t:vwfp -->
-- [ ] [P5.8] Emit stable GlyphRun draw operations with frame-arena-owned text/glyph data <!-- t:t0p5 -->
-- [ ] [P5.9] Add host fixtures for lowercase, punctuation, malformed UTF-8, long words, Latin accents, and fallback glyphs <!-- t:xip7 -->
+- [x] [P5.2] Select, license, package, and document the initial regular reader font and diagnostic fallback font <!-- t:19jk -->
+- [x] [P5.3] Implement incremental UTF-8 decoding with replacement behavior and byte/codepoint position tracking <!-- t:pav8 -->
+- [x] [P5.4] Define FontId, GlyphId, GlyphMetrics, GlyphBitmap, FontMetrics, and font-fallback contracts <!-- t:lt14 -->
+- [x] [P5.5] Implement glyph measurement and loading so layout and rendering use the same metrics <!-- t:yqtu -->
+- [x] [P5.6] Implement paragraph segmentation, whitespace normalization policy, and explicit paragraph spacing/indent rules <!-- t:bhb3 -->
+- [x] [P5.7] Implement measured line breaking with long-word handling and no split inside UTF-8 sequences <!-- t:vwfp -->
+- [x] [P5.8] Emit stable GlyphRun draw operations with frame-arena-owned text/glyph data <!-- t:t0p5 -->
+- [x] [P5.9] Add host fixtures for lowercase, punctuation, malformed UTF-8, long words, Latin accents, and fallback glyphs <!-- t:xip7 -->
 - [ ] [P5.10] Compare host golden line breaks with PaperS3 output and approve body-text quality/refresh behavior <!-- t:zfpj -->
 - [ ] [P6.1] Implement non-destructive microSD initialization using the qualified PaperS3 pin/bus configuration <!-- t:11x4 -->
 - [ ] [P6.2] Implement ContentSource with Size, ReadAt, and Hash operations plus embedded-fixture and SD-text adapters <!-- t:ryu3 -->

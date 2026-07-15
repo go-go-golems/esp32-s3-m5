@@ -456,3 +456,12 @@ Phase 4 core complete: pure input primitives (touch transforms, pointer tracker,
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/input.cpp — Input primitives
 
+
+## 2026-07-15
+
+Phase 5 core complete: UTF-8 decoder, vendored FreeSerif metrics shared by host layout and device blitting, measured line breaking with golden host fixtures (564 checks), and an on-panel measured lowercase text page via 'fixture text' (commit 9c51e5c). Open: font-format decision record (3r0u), operator body-text approval (zfpj).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/src/text.cpp — Text pipeline
+

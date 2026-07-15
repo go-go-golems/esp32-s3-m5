@@ -426,3 +426,70 @@ hardware      -> touch on: enabled=1, samples at 50 Hz, internal events ordered,
                  queue high_water=1, no rejects
 host checks   -> 455 total (input adds ~156)
 ```
+
+## Step 7: Phase 5 — text pipeline with one metrics source
+
+Implemented the text stack around the design doc's central constraint: layout and rendering must use the same metrics or pages drift and locators lose meaning. The solution vendors the Adafruit-GFX FreeSerif 12pt/18pt data files verbatim from the pinned m5gfx 0.2.25 into `s3paper_core/fonts/` (GNU FreeFont, GPL + font-embedding exception, documented in `fonts/README.md`). Host-side measurement, line breaking, pagination (later), and device-side blitting all read the same glyph arrays.
+
+`s3paper/text.h` provides `Utf8Next` (malformed input yields U+FFFD advancing exactly one byte — progress guaranteed, byte positions exact), a font/metrics API with a deterministic fallback box glyph for uncovered codepoints, `SplitParagraphs` (CRLF-tolerant), and `BreakLines` — greedy measured breaking at spaces with long-word hard breaks at codepoint boundaries. The M5 backend's GlyphRun path dropped the Phase 2 builtin-font placeholder and now blits vendored glyph bitmaps as horizontal runs of set bits (`writeFastHLine` per run). `fixture text` renders a two-paragraph Alice in Wonderland page (including an `étude` to show the fallback box) through decode → split → break → GlyphRun → planner → M5.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Continue phase-by-phase: implement task group P5.1–P5.10.
+
+**Inferred user intent:** Real measured body text with lowercase — the capability whose absence made the 0080 reader a dead end.
+
+**Commit (code):** 9c51e5c5b20f7613307449563fcd53a36d73a592 — "Reader: add text pipeline with vendored FreeSerif metrics (Phase 5)"
+
+### What I did
+- Vendored `FreeSerif12pt7b.h`/`FreeSerif18pt7b.h` (byte-identical to the pinned m5gfx) + license README; mapped their `GFXglyph`/`GFXfont` names onto s3paper structs so the data files stay unmodified.
+- `s3paper_core/src/text.cpp`: UTF-8 decoder (overlong/surrogate/truncation rejection), `GetGlyphMetrics` with fallback, `MeasureText`, `SplitParagraphs`, `BreakLines`.
+- Host tests (564 checks): 1–4-byte decoding, each malformed class advancing one byte, lowercase coverage, fallback for accents, measurement monotonicity, line-break invariants (no leading/trailing spaces, width == independent re-measurement, monotone spans), long-word hard breaks, no mid-UTF-8 splits (every line re-decodes cleanly), capacity/invalid-arg, and a **pinned golden segmentation** of an Orwell sentence at 460 px.
+- `M5Backend`: `BlitGlyph` (bit-run HLine blitter) + `RenderGlyphRun`; unsupported font ids count as `ops_skipped`.
+- `BuildTextPage` fixture + `fixture text` console arg; rendered on hardware: `ops_drawn=22 status=Ok`, planner `reason=FirstRender waveform=Quality`, render 358 ms for a full page of 18 pt text.
+
+### Why
+- Phase 5's gate is body-text quality with shared metrics. The golden host test and the on-panel page come from the identical code path up to the backend boundary.
+
+### What worked
+- 564 host checks on first run after the pipeline landed (including the golden — the breaker and metrics agreed immediately).
+- Full text page renders in 358 ms via the run-blitter — acceptable without any glyph caching yet.
+
+### What didn't work
+- A flash raced the still-armed Phase 4 read-only capture monitor (it held the port flock; esptool doesn't flock): the device kept running the old firmware and `fixture text` answered `InvalidArgument: usage fixture [fake|m5]`. Stopped the monitor, reflashed cleanly, verified. Lesson recorded: **stop any capture monitor before flashing** — the single-owner serial rule applies to my own background tasks too.
+- The console client refused to start with `BlockingIOError: [Errno 11] Resource temporarily unavailable` for the same reason (its flock is doing its job).
+
+### What I learned
+- GFX 7b fonts cover 0x20–0x7E only; accents arrive as fallback boxes for now. Proper Latin-1+ coverage needs either a larger vendored table or a font-format change — that is the still-open P5.1 comparison (`3r0u`).
+- `étude`'s é box on the panel is the visible proof the fallback path runs (deliberate fixture content).
+
+### What was tricky to build
+- The line breaker's three-way exit (word fits / break at last word / hard-break inside an oversized word) with the progress guarantee (at least one codepoint per line) — the hard-break path re-measures its span so `LineSpan.width` stays consistent with `MeasureText`, which the tests then assert for every line.
+
+### What warrants a second pair of eyes
+- **Operator:** the panel now shows the Alice page — please judge body-text quality/readability (P5.10, `zfpj`) and note the é fallback box. Touch polling is re-enabled and a capture is armed: taps/swipes/long-presses now also close the Phase 4 evidence (`utsz`).
+- The greedy breaker has no hyphenation and treats only ASCII space as a break opportunity (no NBSP handling); fine for Phase 5, must be revisited with justification requirements.
+- `BuildTextPage` baseline math approximates ascent with `y_advance`; real page layout (Phase 7) should derive ascent from glyph extents.
+
+### What should be done in the future
+- `3r0u` (typography requirements + font-format comparison) stays open — the vendored GFX data is a pragmatic Phase 5 baseline, not the final reader font decision.
+- Glyph blit performance: consider per-glyph caching or pushImage batching when page-turn latency matters (Phase 8).
+- Next: Phase 6 (SD content sources, catalog, persistence) needs a microSD card in the device — confirm one is inserted — or Phase 7 (pure streaming pagination) can proceed host-first without hardware.
+
+### Code review instructions
+- Read `s3paper_core/src/text.cpp` (`Utf8Next` validity rules, `BreakLines` exits), then the Phase 5 tests (`TestUtf8` … `TestGoldenLineBreaks`), then `RenderGlyphRun`/`BlitGlyph` in `m5_backend.cpp`, then `BuildTextPage` in `main/app_display.cpp`.
+- Validate host: `make run` (564 checks). Hardware: `--cmd "fixture text"` then inspect the panel.
+
+### Technical details
+
+```text
+fonts        -> vendored FreeSerif12pt7b (kFontUi) / FreeSerif18pt7b (kFontBody),
+                y_advance 29 / 42 px; coverage 0x20-0x7E + fallback box
+golden       -> "It was a bright cold day in April, ..." @460px/kFontBody
+                = 3 exact lines (pinned strings in TestGoldenLineBreaks)
+hardware     -> fixture text: ops_drawn=22 skipped=0 damage=0,0,540,960
+                render_us=358425 status=Ok plan reason=FirstRender
+host checks  -> 564 total (text adds ~109)
+```
