@@ -25,10 +25,7 @@ GitHub resolves `g7101373` to official upstream commit `710137374fa4131693c6dea6
 | `software/firmware/src/settings.*` | Persisted light, gain, slope, and target calibration representations |
 | `software/firmware/src/task_sensor.*` | Continuous sensor task and event cadence |
 | `software/desktop/src/` | Vendor-side serial parsing, float decoding, and remote-control usage |
-| `docs/` | Protocol, assembly, schematic plots, and operating context at the installed commit |
-| `hardware/main-board/` | Detect switch, sensor, USB, and controller board source/plots |
-| `hardware/trans-led-board/` | Transmission-light board source/plots |
-| `enclosure/` | 2D geometry and enclosure notes relevant to a PaperS3 measurement fixture |
+| `docs/protocol.md` | Installed-commit CDC protocol contract |
 
 ## Deliberate exclusions
 
@@ -37,10 +34,11 @@ This is not a complete build checkout. It excludes:
 - `.git` history and metadata;
 - vendored TinyUSB, U8g2, STM32 HAL, FreeRTOS, and other third-party trees;
 - desktop deployment binaries;
+- hardware, enclosure, image, PDF, and other binary resources;
 - complete 3D CAD;
 - compiler/toolchain installation and generated build products.
 
-Those are unnecessary for the current protocol, timing, calibration, and measurement-geometry analysis. There is no plan to build or flash custom Printalyzer firmware. If that goal changes, create a separate exact checkout and build-reproduction task rather than treating this analysis snapshot as buildable.
+Those are unnecessary for the current protocol, timing, and calibration analysis. There is no plan to build or flash custom Printalyzer firmware. If that goal changes, create a separate exact checkout and build-reproduction task rather than treating this analysis snapshot as buildable.
 
 ## Relationship to the current-upstream snapshot
 

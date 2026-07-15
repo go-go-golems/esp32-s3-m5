@@ -41,8 +41,8 @@ The user prompt named `s3paper-api-design.md` twice but said “files.” `s3pap
 
 - `code/m5gfx-lut-comparison/` — exact M5GFX 0.2.15 and 0.2.25 `Panel_EPD.cpp` sources plus normalized LUT hashes; all five built-in EPD LUTs are identical.
 - `code/epd-painter-753c521.../` — complete build-relevant source plus selected documentation/examples from the independent PaperS3-specific EPD_Painter driver, including assembly, waveform presets, hard-clear/DC-balance logic, boot/power control, and calibrator.
-- `code/printalyzer-protocol-f91c91e.../` — current-upstream protocol-focused snapshot: USB protocol, command dispatcher, desktop parser/interface, current vendor manual, license, provenance, and SHA-256 manifest.
-- `code/printalyzer-installed-v1.1.0-7101373...-analysis/` — focused source snapshot matching the connected instrument's reported `v1.1.0` / `g7101373` build. It contains all first-party firmware `src/`, desktop protocol sources, documentation, main/transmission-board sources and plots, 2D enclosure resources, licenses, provenance, and hashes. It deliberately excludes Git history, vendored third-party firmware trees, deployment binaries, complete 3D CAD, and toolchains because the ticket uses this source for protocol/sensor/calibration/geometry analysis, not to build or flash Printalyzer firmware.
+- `code/printalyzer-protocol-f91c91e.../` — text/code-only current-upstream protocol snapshot: USB protocol, command dispatcher, desktop parser/interface, software license, provenance, and SHA-256 manifest.
+- `code/printalyzer-installed-v1.1.0-7101373...-analysis/` — code-only snapshot matching the connected instrument's reported `v1.1.0` / `g7101373` build. It contains all first-party firmware `src/`, desktop sources, protocol text, README, software license, provenance, and hashes. Git history, vendored dependencies, build toolchains, deployment files, hardware/enclosure resources, images, PDFs, and other binary assets are deliberately excluded because no Printalyzer build or flash is planned.
 
 ## Hardware and live evidence
 
