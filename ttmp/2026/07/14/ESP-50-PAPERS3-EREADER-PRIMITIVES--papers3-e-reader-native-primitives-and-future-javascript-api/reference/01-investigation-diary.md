@@ -51,8 +51,14 @@ RelatedFiles:
       Note: Fixture generation and identity (commit e9f3769dc417adb1623ac0a1435b891c5f936d0f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/29-capture-synchronized-serial.py
       Note: Step 20 shared-clock serial capture and guarded raw mode (commit ec2bf1b)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/34-build-f0-density-dashboard.py
+      Note: Step 24 self-contained evidence dashboard (commit 115475f)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/35-run-synchronized-f1-density.sh
+      Note: Step 24 prepared-only F1 guard (commit be55cbb)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260714-004-printalyzer-static-white-raw/04-analysis.md
       Note: Step 23 static PaperS3 raw-density qualification (commit 6d7d19e)
+    - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/experiments/EXP-20260715-008-factory-f0-dynamic-density/05-run-report.md
+      Note: Step 24 exact F0 run report and reproducible evidence (commit 115475f)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/10-epd-painter-pre-hardware-audit.md
       Note: Expanded eight-blocker audit (commit e7e4848d9544b902dcf79246fa520f039c2d74ee)
     - Path: repo://ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/12-epd-painter-build-latest.md
@@ -95,6 +101,7 @@ LastUpdated: 2026-07-14T16:30:00-04:00
 WhatFor: Resume or review the ESP-50 research without rediscovering its evidence, failures, or decisions.
 WhenToUse: Read before continuing implementation or revisiting the toolchain and MicroQuickJS conclusions.
 ---
+
 
 
 
@@ -2530,4 +2537,115 @@ post-settling n: 46
 density estimate: 0.678142 ± 0.000625 D
 capture SHA-256: 8ef75e37a070d7fa319afda30b942c7a4ce7e3334d18d627a4142bf79f70cfac
 absolute density qualified: no
+```
+
+## Step 24: Analyze exact F0 and prepare the fixed-camera F1 comparison
+
+This step converted the completed exact F0 run into reproducible machine-readable evidence and an interactive visual dashboard. It then preregistered and check-validated the source-derived trace-off F1 comparison, but deliberately stopped before its physical flash because that treatment needs the same fixed camera/video conditions as F0.
+
+The F0 point-density trace is useful and complete for temporal activity at the unchanged aperture. It does not override the separation between a single-point numeric trace and spatial optical judgment, so F1 remains a controlled proxy comparison rather than an automatic next step.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, continue with what you think is best."
+
+**Dashboard request (verbatim):** "can you make a nice HTML + JS graph so i can see all that info in a dashboard?
+
+Use a retro macos1 monochrome style (no menu bar, no window chrome, no chicago font). You can use colors for the graphs and for text color for accents. Use a muted 50ies pastel like palette."
+
+**Post-run response (verbatim):** "1. 2. 3. yes 4. no"
+
+**Assistant interpretation:** Finish F0 evidence/reproducibility, build a readable self-contained dashboard, record the expected-sequence/no-anomaly observation, and prepare—not execute—the next F1 source-proxy run under the same head/camera constraints.
+
+**Inferred user intent:** Inspect objective EPD evidence directly, preserve all calculation steps, and advance the controlled F0→F1→F2 chain without losing experimental rigor.
+
+**Commit (F0 evidence):** `115475fc517eb54c2937a2d0401aa5bb079a36cc` — "Experiment: analyze FactoryTest density trace"
+
+**Commit (frontmatter fix):** `9b2d9f811d1b0ef5fdd7d9f45595374476fa42a5` and `1cd4634351caaffdba6bf06d5a676e8280981d10` — "Docs: validate Printalyzer script outputs" / "Docs: number script reference"
+
+**Commit (F1 preparation):** `be55cbb96344b09f94269f4eb8c9659bfa3e5554` — "Experiment: prepare F1 density proxy comparison"
+
+### What I did
+
+- Ran deterministic static-capture and F0 dynamic analyses to produce JSON, Markdown, CSV, SVG, and evidence hashes.
+- Built a self-contained `dashboard.html` with embedded data and no network dependencies.
+- Applied the requested retro monochrome system aesthetic: Courier-like non-Chicago type, no menu/window chrome, black ruled panels, off-white/dithered surfaces, and muted teal/coral/mustard/blue data accents.
+- Used browser automation to verify page load, no JavaScript console error, hover inspection, scope controls, point toggle, and twenty candidate rows.
+- Added scripts 32–34 and `00-scripts-readme.md` so all calculations and dashboard generation are repeatable from the ticket tree.
+- Retained full F0 flash log inside experiment 008 and wrote a hash manifest for raw capture, markers, flash log, CSV, JSON, SVG, and dashboard.
+- Wrote F0 run report and separated automatic temporal pass from unresolved spatial optical disposition.
+- Created guarded `35-run-synchronized-f1-density.sh` and immutable experiment 009 for F1 trace-off with camera/head prerequisites.
+- Checked all F1 artifact/audit/serial prerequisites in check mode; did not flash F1.
+
+### Why
+
+- Reproducibility requires calculations to exist as scripts, not transient ad-hoc Python snippets.
+- The dashboard makes provenance and timing limits legible without misrepresenting density activity as exact semantic phases.
+- F1 is the next scientific control, but moving the Printalyzer or omitting video would destroy the direct F0 comparison.
+
+### What worked
+
+- Exact F0 evidence verified: 442 samples, 44.773896 seconds, zero saturation, zero invalid estimates, normal capture/cleanup result.
+- Host markers, raw stream, and full flash transcript are hash-verified in `evidence.sha256`.
+- Browser validation confirmed dashboard controls and tooltips; the only initial browser console error was a missing favicon, fixed by embedding a data-URI icon.
+- `docmgr doctor` passes cleanly after final numeric filename/frontmatter correction.
+- F1 preflight validates exact trace-off hash/audit/toolchain/port ownership with no hardware modification.
+
+### What didn't work
+
+- The first evidence manifest used repository-relative paths, then was verified from inside the experiment directory:
+
+```text
+sha256sum: .../raw-dynamic-f0.jsonl: No such file or directory
+sha256sum: WARNING: 7 listed files could not be read
+```
+
+  The manifest now stores local basenames and passes from the experiment directory.
+- `docmgr doctor` initially rejected two generated Markdown files without frontmatter and then warned that `scripts/README.md` lacked a numeric prefix. Scripts 32 and the script guide now generate/use valid frontmatter, and the guide is `scripts/00-scripts-readme.md`; doctor passes cleanly.
+- The initial F0 runner did not copy the full flash log into experiment 008. The historical source log was copied and hashed; the runner now copies full flash output automatically for future fresh experiments.
+
+### What I learned
+
+- Nanosecond host timestamps represent receipt/order precision, not panel physics. F0 physical timing is bounded by 100 ms integration, USB delivery, and absent device-side event timestamps.
+- F0 exact vendor binary can establish ordered optical activity but cannot independently identify individual driver frames.
+- F2's ring gives precise scheduler-relative timing; direct host/device alignment would require a separately preregistered anchor variant, not mutation of F2.
+- A dashboard needs explicit warnings and candidate wording to avoid turning visualized spikes into unjustified claims.
+
+### What was tricky to build
+
+- The dashboard must remain reproducible and local: JSON data is embedded at generation time, canvas plots are handwritten, and no chart/font/network library is fetched.
+- The CSS uses a deliberately constrained aesthetic without literal Macintosh window/menu imitation: black rules/shadows and dithered paper provide period character, while muted data colors preserve legibility.
+- F1 cannot reuse F0 output paths. The new runner and experiment ID are treatment-specific and reject existing evidence paths.
+
+### What warrants a second pair of eyes
+
+- Review the F0 activity candidates against the original video; they are change detectors, not phase labels.
+- Review the decision to permit F1 conditionally while retaining F0 spatial disposition as separate.
+- Review the single-point and placement-sensitivity warnings in the dashboard/run report.
+- Before F2, decide whether existing host/device precision is adequate or an anchor variant is scientifically necessary.
+
+### What should be done in the future
+
+- Start the iPhone camera under the same locked settings and keep the Printalyzer/head/table/cables fixed.
+- Run experiment 009 only after explicit F1 authorization.
+- Compare F1’s source-off temporal structure and video endpoints against F0; do not authorize F2 automatically.
+- Consider a distinct F3 anchor experiment only if sub-100 ms absolute host/device mapping is essential.
+
+### Code review instructions
+
+- Run scripts 32, 33, and 34 using `scripts/00-scripts-readme.md`.
+- Verify `EXP-20260715-008.../evidence.sha256` from its directory.
+- Open `dashboard.html`; test ALL/POST RESET/ACTIVITY, marker and point toggles, and trace hover.
+- Run `scripts/35-run-synchronized-f1-density.sh --check`; do not use execute in review.
+- Run `docmgr doctor --ticket ESP-50-PAPERS3-EREADER-PRIMITIVES --stale-after 30`.
+
+### Technical details
+
+```text
+F0 raw evidence SHA-256: 2a585ee5392b4e71b001a3f82234f45a9bcb1fc47affc57a4bce8ae71e157d50
+F0 dynamic samples: 442
+F0 sample duration: 44.773896 s
+F0 candidate bins: 20 at |delta bin mean| >= 0.010 D
+F1 trace-off SHA-256: 3d9bf37a5c5faa120fa1dccf357e8d0676a77495359754d062a5fa654dd2d2b3
+F1 physical execution: no
 ```
