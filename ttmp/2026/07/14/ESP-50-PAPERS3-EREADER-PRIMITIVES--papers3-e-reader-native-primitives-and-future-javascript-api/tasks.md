@@ -76,15 +76,15 @@
 - [x] [P2.9] Implement the M5 display backend transaction shell with wait, startWrite, endWrite, timeout, and recovery <!-- t:99ls -->
 - [x] [P2.10] Add host tests for geometry overflow, clipping, capacity limits, operation order, and fake-backend traces <!-- t:u2yz -->
 - [ ] [P2.11] Render the same primitive fixture through fake and M5 backends and preserve expected traces/screenshots <!-- t:tb0m -->
-- [ ] [P3.1] Define PresentIntent, EpdWaveform, RefreshReason, RefreshContext, RefreshPlan, and PresentResult contracts <!-- t:1n6u -->
-- [ ] [P3.2] Implement damage collection, bounds clamp, EPD alignment, overlap/nearby merge, and capacity fallback <!-- t:t14u -->
+- [x] [P3.1] Define PresentIntent, EpdWaveform, RefreshReason, RefreshContext, RefreshPlan, and PresentResult contracts <!-- t:1n6u -->
+- [x] [P3.2] Implement damage collection, bounds clamp, EPD alignment, overlap/nearby merge, and capacity fallback <!-- t:t14u -->
 - [ ] [P3.3] Map semantic present intents to the waveform modes qualified in Phase 0 <!-- t:1ow9 -->
 - [ ] [P3.4] Instrument queue wait, render time, panel busy time, aligned area, mode, and cleanup reason for every present <!-- t:k7og -->
-- [ ] [P3.5] Track turns, partial area, high-contrast area, elapsed time, screen changes, and wake state since full refresh <!-- t:91ka -->
-- [ ] [P3.6] Implement clean-full triggers for first render, route changes, wake, explicit request, and configurable budget <!-- t:o3n6 -->
-- [ ] [P3.7] Add refresh-policy console inspection and deterministic synthetic-history host tests <!-- t:6w1j -->
+- [x] [P3.5] Track turns, partial area, high-contrast area, elapsed time, screen changes, and wake state since full refresh <!-- t:91ka -->
+- [x] [P3.6] Implement clean-full triggers for first render, route changes, wake, explicit request, and configurable budget <!-- t:o3n6 -->
+- [x] [P3.7] Add refresh-policy console inspection and deterministic synthetic-history host tests <!-- t:6w1j -->
 - [ ] [P3.8] Build committed visual fixtures for checkerboards, gray bars, inverse text, folios, page pairs, corners, and edges <!-- t:cmmr -->
-- [ ] [P3.9] Run and capture a 10,000-update mixed refresh soak with heap integrity and timing summaries <!-- t:g16p -->
+- [x] [P3.9] Run and capture a 10,000-update mixed refresh soak with heap integrity and timing summaries <!-- t:g16p -->
 - [ ] [P3.10] Review photographs/logs, approve a baseline policy, and document known ghosting limits <!-- t:71dg -->
 - [ ] [P4.1] Implement physical-to-logical touch coordinate transforms for every supported rotation <!-- t:omr2 -->
 - [ ] [P4.2] Define normalized PointerEvent down/move/up/cancel records with pointer ID and monotonic timestamps <!-- t:prii -->

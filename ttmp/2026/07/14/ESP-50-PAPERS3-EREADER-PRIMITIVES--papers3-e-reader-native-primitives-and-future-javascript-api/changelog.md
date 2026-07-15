@@ -438,3 +438,12 @@ Phase 2 complete except lvjt/tb0m: pure s3paper_core (geometry, DrawOps, arena, 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/frame_builder.h — Clip-stack frame builder contract
 
+
+## 2026-07-15
+
+Phase 3 core complete: RefreshPlanner (aligned/merged damage, intent-to-waveform mapping, budgeted clean-full triggers; host-tested to 299 checks) and a 10,000-update mixed soak on hardware with 0 errors, 0 heap-integrity failures, and budget-exact 154 fulls (commit 7aec26e). Open: operator visual review (71dg), visual corpus (cmmr), queue-wait/panel-busy instrumentation (k7og).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/14/ESP-50-PAPERS3-EREADER-PRIMITIVES--papers3-e-reader-native-primitives-and-future-javascript-api/scripts/output/0112-phase3-soak-10k-final.log — 10k soak evidence
+

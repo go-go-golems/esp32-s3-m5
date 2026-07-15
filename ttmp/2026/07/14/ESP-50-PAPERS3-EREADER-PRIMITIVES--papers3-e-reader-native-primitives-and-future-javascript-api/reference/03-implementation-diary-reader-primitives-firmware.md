@@ -19,6 +19,8 @@ RelatedFiles:
       Note: 'Decision records: IDF 5.3.4 pin, no display backend in Phase 1'
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/geometry.h
       Note: Pure defensive geometry contracts incl. provisional EPD alignment (commit a00161e)
+    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/src/refresh_planner.cpp
+      Note: 'Refresh policy owner: damage merge, waveform mapping, clean-full triggers (commit 7aec26e)'
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/tests/host/test_main.cpp
       Note: 237-check host suite for geometry/arena/builder/fake-backend (commit a00161e)
     - Path: repo://0112-papers3-reader-primitives/components/s3paper_m5/src/m5_backend.cpp
@@ -39,6 +41,7 @@ LastUpdated: 2026-07-15T14:20:00-04:00
 WhatFor: Record what was built per phase, what failed with exact errors, validation evidence, and review instructions.
 WhenToUse: Read before resuming reader implementation work; the display-investigation history lives in 01-investigation-diary.md.
 ---
+
 
 
 
@@ -286,4 +289,74 @@ fixture (m5)    -> init board=19 display=540x960
                    present id=2 intent=CleanFull ops=74 skipped=0 damage=0,0,540,960
                    render_us=203829 wait_us=24 status=Ok
 frame storage   -> 512 ops + 32KB arena + 16KB trace in PSRAM, allocated in owner task
+```
+
+## Step 5: Phase 3 — refresh planner and the 10,000-update hardware soak
+
+Implemented the refresh planner as the single owner of display refresh policy and proved it on hardware. `RefreshPlanner` lives in pure `s3paper_core`: damage rects are clamped, EPD-aligned, and distance-merged (with an explicit collapse-to-bounding-box fallback when all 8 slots fill), intents map to backend-neutral `EpdWaveform` classes, and clean fulls are forced by first render, wake, screen change, explicit request, or turn/area/elapsed budgets. Every owner present now goes through `PresentPlanned()`, and every plan carries a `RefreshReason` — the planner can explain each full refresh, which is the heart of the Phase 3 gate.
+
+The soak fixture is the part worth reading: instead of blocking the owner for minutes, `soak start` keeps exactly one self-posted `TimerDue` event circulating through the ordinary bounded queue. Each step builds a small deterministic frame (prime-scattered 64x48 region, cycling intents), plans, presents on the M5 backend, and updates per-waveform stats; console commands interleave naturally with a running soak. The 10,000-step run finished in 148 s with zero errors, zero heap-integrity failures (40 checks), heap byte-stable after one-time M5 init, and exactly 154 fulls — 10000/65, matching the 64-turn budget to the step.
+
+### Prompt Context
+
+**User prompt (verbatim):** "keep a diary (see skill for format), make sure to not forget that."
+
+**Assistant interpretation:** Mid-task reminder to keep writing diary steps in the skill's strict format as each phase lands (Steps 1–4 already existed; this step records Phase 3).
+
+**Inferred user intent:** The paper trail matters as much as the firmware; don't defer documentation to the end.
+
+**Commit (code):** 7aec26e377eb0150f5309df94f40072362cc825c — "Reader: add refresh planner and 10k hardware soak (Phase 3)"
+
+### What I did
+- `s3paper_core/include/s3paper/refresh_planner.h` + `src/refresh_planner.cpp`: policy (`max_turns_between_full=64` in firmware, merge_distance 16, align_x 8), history, `AddDamage` (cascading merge, capacity fallback counted in history), `Plan` (priority: FirstRender > Wake > ScreenChange > Explicit/CleanFull > BudgetTurns > BudgetPartialArea > BudgetElapsed), `RecordPresent`.
+- Host tests: damage merge semantics (gap < merge_distance merges; gap == merge_distance does not — half-open expansion), capacity fallback, and a scripted synthetic history walking every full-refresh trigger and the history arithmetic (now 299 checks total, still ASan/UBSan clean).
+- Firmware: `PresentPlanned()` in `app_display.cpp` (planner-forced fulls present as `CleanFull`), `RunSoakStep()`, owner-side `SoakState` + `RunOneSoakStep()` + `MaybeQueueSoakStep()` self-posting loop, `ConsoleOp::{Refresh,SoakStart,SoakStatus}` with `RefreshSnapshot`/`SoakSnapshot` POD replies, console commands `refresh` and `soak start [n]` / `soak status`.
+- Ran on hardware: planner fixture sequence (FirstRender → ExplicitRequest fulls), then `soak start 10000`. Transcripts: `scripts/output/0112-phase3-validation-01.log`, `-soak-10k-final.log`, `-soak-status-timeout-fix.log`.
+
+### Why
+- Phase 3 gate: "10,000 mixed bounded updates complete without heap corruption; the planner explains every full refresh." Both are now demonstrated; only the visual-artifact half (operator judgment) remains.
+
+### What worked
+- Soak: `10000/10000 errors=0 fulls=154 partials=9846`, `integrity checks=40 failures=0`, heap `min == now` after init, all 10,000 internal events accepted in order with zero queue rejects (high_water=2 — the self-posting design keeps the queue almost empty).
+- `refresh` history reconciles: `turns_since_full=54` after 10,000 steps ≡ 10000 mod 65.
+
+### What didn't work
+- `soak start 10000` first ran only 16 steps: `RunConsoleOpWithArg` still declared `uint8_t arg`, truncating 10000 (0x2710) to 0x10. Fixed to `uint32_t`. Lesson: the demoted-parameter class of bug survives even when the wire struct is right.
+- `soak status` during a soak hit `error: reply wait failed: Timeout (timeout 500ms)` — the owner can be inside a ~1 s full refresh when the status event lands. Raised that command's reply bound to 15 s; verified mid-soak queries now answer while steps continue interleaving.
+
+### What I learned
+- `render_us` dominates and `wait_us` is usually microseconds (occasionally ~44 ms) on this M5GFX path: `displayBusy()` clears long before the panel physically settles, so soak timing measures software cost, not ink physics. Phase 3's optical claims must come from the operator/photos, not these counters.
+- Full-refresh cost in the soak (~3-9 ms render for 1-2 ops) is op-count-bound, not area-bound, on the write side; the panel-side settle is invisible to us (same lesson as above, quantified).
+
+### What was tricky to build
+- Keeping the soak from starving the console: a naive `for (10000)` loop inside one event handler would block every reply for minutes. The self-posting design (one `TimerDue` in flight, re-armed in the owner loop after every event) makes soak progress and console traffic share the queue fairly, and a failed re-post self-heals because every subsequent event re-runs `MaybeQueueSoakStep()`.
+- Merge semantics at the boundary: expansion by `merge_distance` with half-open intersection means a gap of exactly `merge_distance` does not merge. The first test data assumed inclusive; the planner was right and the test was fixed, with the boundary now pinned by an explicit check.
+
+### What warrants a second pair of eyes
+- **Operator visual check (blocking 71dg):** after the soak the panel has seen ~10k small updates plus 154 fulls; please assess ghosting/artifacts and photograph the panel for the baseline-policy record. The last soak leaves scattered rects; run `fixture m5` first for a clean reference scene.
+- The soak's `heap start=350591 → 299991` drop is one-time M5Unified/M5GFX init (lazy at first step), not a leak — verified by `min == now` across all 10k steps — but worth a skeptical read.
+- Plan regions are currently metrics-only: the backend redraws all frame ops (each op carries its clip). True region-limited redraw arrives with retained widgets (Phase 9); confirm this staging is acceptable.
+
+### What should be done in the future
+- P3.4 (`k7og`) partially done: per-present logging exists, but queue-wait time and true panel-busy time are not yet measured; needs event-timestamp deltas and a qualified busy signal.
+- P3.8 (`cmmr`): build the committed visual corpus (checkerboards, gray bars, inverse text, folios, page pairs) — the phase 2 fixture is a start, not the corpus.
+- P3.3 (`1ow9`) and P2.4 (`lvjt`) stay open pending Phase 0 hardware qualification (waveform mapping + measured alignment).
+- Next implementation phase: Phase 4 input/gestures/scheduler (P4.1–P4.9).
+
+### Code review instructions
+- Read `s3paper_core/src/refresh_planner.cpp` (AddDamage merge cascade and Plan trigger ordering), then `TestPlannerFullTriggers` in the host suite, then `RunOneSoakStep`/`MaybeQueueSoakStep` in `main/app_owner.cpp`.
+- Validate host: `cd 0112-papers3-reader-primitives/components/s3paper_core/tests/host && make run` (299 checks).
+- Validate hardware: `python3 ttmp/.../scripts/52-papers3-console-client.py --settle 3 --cmd "soak start 1000" --cmd "soak status"`, then poll `soak status` until `active=0` and read `refresh`.
+
+### Technical details
+
+```text
+soak (10k)   -> progress=10000/10000 errors=0 fulls=154 partials=9846 elapsed_ms=148024
+                heap start=350591 now=299991 min=299991 (one-time M5 init delta)
+                integrity checks=40 failures=0
+waveforms    -> Quality n=308 avg=8.9ms | Text n=2462 avg=40.0ms
+                Fast n=4769 avg=4.5ms  | Fastest n=2461 avg=2.8ms (max ~58ms each)
+planner      -> policy max_turns=64; history turns_since_full=54 = 10000 mod 65
+queue        -> internal accepted=10000 rejected=0 high_water=2 out_of_order=0
+plan proof   -> fixture #1 reason=FirstRender, #2 reason=ExplicitRequest (CleanFull intent)
 ```
