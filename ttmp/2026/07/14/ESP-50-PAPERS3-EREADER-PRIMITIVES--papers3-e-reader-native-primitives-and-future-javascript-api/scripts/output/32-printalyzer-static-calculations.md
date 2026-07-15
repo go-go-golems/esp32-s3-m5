@@ -1,3 +1,22 @@
+---
+Title: Printalyzer Static Capture Calculations
+Ticket: ESP-50-PAPERS3-EREADER-PRIMITIVES
+Status: active
+Topics:
+    - papers3
+    - eink
+    - hardware-qualification
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Deterministic statistics and pairwise deltas for static Printalyzer raw captures."
+LastUpdated: 2026-07-15T01:15:00Z
+WhatFor: "Reproduce placement and repeatability calculations from immutable raw JSONL captures."
+WhenToUse: "Review static point-density stability, placement sensitivity, or capture validity."
+---
+
 # Printalyzer static capture calculations
 
 Settling samples excluded from every capture: **2**.

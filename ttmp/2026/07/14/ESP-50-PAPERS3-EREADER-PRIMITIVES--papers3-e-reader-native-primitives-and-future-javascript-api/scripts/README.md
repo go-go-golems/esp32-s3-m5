@@ -1,3 +1,22 @@
+---
+Title: PaperS3 and Printalyzer Experiment Scripts
+Ticket: ESP-50-PAPERS3-EREADER-PRIMITIVES
+Status: active
+Topics:
+    - papers3
+    - eink
+    - hardware-qualification
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles: []
+ExternalSources: []
+Summary: "Reproducible script inventory and rerun instructions for PaperS3/Printalyzer evidence tools."
+LastUpdated: 2026-07-15T01:15:00Z
+WhatFor: "Locate and safely rerun evidence calculations and guarded experiment tooling."
+WhenToUse: "Before rerunning a ticket script or interpreting generated outputs."
+---
+
 # PaperS3 / Printalyzer experiment scripts
 
 These scripts are evidence tools, not general-purpose panel drivers. Each physical action has a preregistered experiment directory and requires an explicit execute confirmation.
