@@ -1,5 +1,7 @@
 #include "app_owner.h"
 
+#include "app_display.h"
+
 #include <atomic>
 #include <cstring>
 #include <initializer_list>
@@ -96,11 +98,32 @@ void HandleConsoleCommand(const AppEvent &event) {
     AppReply reply = MakeReply(event, StatusCode::Ok);
     switch (event.payload.console.op) {
         case ConsoleOp::Status:
-        case ConsoleOp::Display:
-            // Phase 1 has no display backend; Display returns the same app
-            // snapshot and the console reports backend=none.
             FillStatusSnapshot(&reply.payload.status_snapshot);
             break;
+        case ConsoleOp::Display: {
+            DisplaySnapshot &d = reply.payload.display;
+            const s3paper::BackendState fake = FakeBackendState();
+            const s3paper::BackendState m5 = M5BackendState();
+            d.app_state = static_cast<uint8_t>(s_state.phase);
+            d.fake_initialized = fake.initialized ? 1 : 0;
+            d.m5_initialized = m5.initialized ? 1 : 0;
+            d.m5_w = m5.physical_size.w;
+            d.m5_h = m5.physical_size.h;
+            d.fake_frames = fake.frames_presented;
+            d.m5_frames = m5.frames_presented;
+            break;
+        }
+        case ConsoleOp::Fixture: {
+            const bool use_m5 = event.payload.console.arg == 1;
+            reply.payload.present = RunFixture(use_m5);
+            reply.status = reply.payload.present.status;
+            if (!use_m5 && reply.status == StatusCode::Ok) {
+                // Owner prints the normalized trace; the console command
+                // only round-trips the summary.
+                PrintFakeTrace();
+            }
+            break;
+        }
         case ConsoleOp::Heap: {
             HeapSnapshot &h = reply.payload.heap;
             h.internal_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
@@ -226,6 +249,9 @@ void HandleEvent(const AppEvent &event) {
 
 void OwnerTask(void *) {
     s_state.boot_us = esp_timer_get_time();
+    // Display/frame storage is application state: initialize inside the
+    // owner task so no other task ever touches it.
+    DisplayServiceInit();
     s_state.phase = Phase::Ready;
     ESP_LOGI(kTag, "owner task ready; queue capacity=%u",
              static_cast<unsigned>(kEventQueueCapacity));
@@ -244,20 +270,6 @@ void OwnerTask(void *) {
 }
 
 }  // namespace
-
-const char *StatusCodeName(StatusCode code) {
-    switch (code) {
-        case StatusCode::Ok: return "Ok";
-        case StatusCode::InvalidArgument: return "InvalidArgument";
-        case StatusCode::CapacityExceeded: return "CapacityExceeded";
-        case StatusCode::Busy: return "Busy";
-        case StatusCode::Timeout: return "Timeout";
-        case StatusCode::CorruptData: return "CorruptData";
-        case StatusCode::OutOfMemory: return "OutOfMemory";
-        case StatusCode::Unimplemented: return "Unimplemented";
-    }
-    return "Unknown";
-}
 
 const char *AppEventKindName(AppEventKind kind) {
     switch (kind) {

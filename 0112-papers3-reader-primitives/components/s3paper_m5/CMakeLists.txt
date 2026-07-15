@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "src/m5_backend.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        s3paper_core
+    PRIV_REQUIRES
+        esp_timer
+)

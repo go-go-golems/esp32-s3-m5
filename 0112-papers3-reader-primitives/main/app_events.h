@@ -16,21 +16,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#include "s3paper/display_backend.h"
+#include "s3paper/status.h"
+
 namespace reader {
 
-// Stable error vocabulary shared with future C/JS bindings.
-enum class StatusCode : uint8_t {
-    Ok = 0,
-    InvalidArgument,
-    CapacityExceeded,
-    Busy,
-    Timeout,
-    CorruptData,
-    OutOfMemory,
-    Unimplemented,
-};
-
-const char *StatusCodeName(StatusCode code);
+// Stable error vocabulary lives in s3paper_core and is shared with future
+// C/JS bindings.
+using StatusCode = s3paper::StatusCode;
+using s3paper::StatusCodeName;
 
 enum class AppEventKind : uint8_t {
     ConsoleCommand = 0,
@@ -63,6 +57,7 @@ enum class ConsoleOp : uint8_t {
     Ping,
     StressReport,
     StressReset,
+    Fixture,  // arg: 0 = fake backend, 1 = M5 backend
 };
 
 enum class PointerPhase : uint8_t {
@@ -74,6 +69,7 @@ enum class PointerPhase : uint8_t {
 
 struct ConsolePayload {
     ConsoleOp op;
+    uint8_t arg;
 };
 
 struct PointerPayload {
@@ -147,6 +143,16 @@ struct StressSnapshot {
     uint32_t last_input_seq;
 };
 
+struct DisplaySnapshot {
+    uint8_t app_state;
+    uint8_t fake_initialized;
+    uint8_t m5_initialized;
+    int32_t m5_w;
+    int32_t m5_h;
+    uint32_t fake_frames;
+    uint32_t m5_frames;
+};
+
 struct AppReply {
     uint32_t request_id;
     StatusCode status;
@@ -155,6 +161,8 @@ struct AppReply {
         HeapSnapshot heap;
         EventsSnapshot events;
         StressSnapshot stress;
+        DisplaySnapshot display;
+        s3paper::PresentResult present;  // Fixture
         int64_t echo_monotonic_us;  // Ping: the event's enqueue timestamp
     } payload;
 };

@@ -51,23 +51,29 @@ AppEvent MakeEvent(AppEventKind kind, EventSource source, bool wants_reply) {
 
 // Posts a console op and waits for its reply. Prints explicit errors for
 // queue-full and reply-timeout instead of hiding them.
-StatusCode RunConsoleOp(ConsoleOp op, AppReply *out) {
+StatusCode RunConsoleOpWithArg(ConsoleOp op, uint8_t arg, AppReply *out,
+                               uint32_t timeout_ms) {
     AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
                                EventSource::Console, true);
     event.payload.console.op = op;
+    event.payload.console.arg = arg;
     const StatusCode posted = PostEvent(event);
     if (posted != StatusCode::Ok) {
         printf("error: enqueue failed: %s\n", StatusCodeName(posted));
         return posted;
     }
     const StatusCode waited =
-        AwaitReply(s_reply_queue, event.request_id, kReplyTimeoutMs, out);
+        AwaitReply(s_reply_queue, event.request_id, timeout_ms, out);
     if (waited != StatusCode::Ok) {
         printf("error: reply wait failed: %s (timeout %ums)\n",
-               StatusCodeName(waited), static_cast<unsigned>(kReplyTimeoutMs));
+               StatusCodeName(waited), static_cast<unsigned>(timeout_ms));
         return waited;
     }
     return out->status;
+}
+
+StatusCode RunConsoleOp(ConsoleOp op, AppReply *out) {
+    return RunConsoleOpWithArg(op, 0, out, kReplyTimeoutMs);
 }
 
 const char *PhaseName(uint8_t phase) {
@@ -117,11 +123,44 @@ int CmdDisplay(int, char **) {
     if (RunConsoleOp(ConsoleOp::Display, &reply) != StatusCode::Ok) {
         return 1;
     }
-    // Phase 1: the display backend decision is deliberately deferred; see the
-    // project README. The owner still answers so the command path is proven.
-    printf("backend=none (phase 1: display work deferred, panel unqualified)\n");
-    printf("owner_alive=yes app_state=%s\n",
-           PhaseName(reply.payload.status_snapshot.app_state));
+    const DisplaySnapshot &d = reply.payload.display;
+    printf("app_state=%s\n", PhaseName(d.app_state));
+    printf("backend[fake] initialized=%u frames=%u (primary dev backend)\n",
+           d.fake_initialized, static_cast<unsigned>(d.fake_frames));
+    printf("backend[m5] initialized=%u size=%dx%d frames=%u "
+           "(transaction shell; panel optically unqualified)\n",
+           d.m5_initialized, static_cast<int>(d.m5_w),
+           static_cast<int>(d.m5_h), static_cast<unsigned>(d.m5_frames));
+    return 0;
+}
+
+int CmdFixture(int argc, char **argv) {
+    uint8_t backend = 0;
+    if (argc >= 2) {
+        if (strcmp(argv[1], "m5") == 0) {
+            backend = 1;
+        } else if (strcmp(argv[1], "fake") != 0) {
+            printf("error: InvalidArgument: usage fixture [fake|m5]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    // A full EPD refresh takes seconds; use a generous bounded timeout.
+    const StatusCode status =
+        RunConsoleOpWithArg(ConsoleOp::Fixture, backend, &reply, 15000);
+    if (status != StatusCode::Ok) {
+        printf("fixture result=%s\n", StatusCodeName(status));
+        return 1;
+    }
+    const s3paper::PresentResult &p = reply.payload.present;
+    printf("fixture backend=%s id=%u ops_drawn=%u ops_skipped=%u "
+           "damage=%d,%d,%d,%d render_us=%u wait_us=%u status=%s\n",
+           backend == 1 ? "m5" : "fake", static_cast<unsigned>(p.frame_id),
+           static_cast<unsigned>(p.ops_drawn),
+           static_cast<unsigned>(p.ops_skipped), static_cast<int>(p.damage.x),
+           static_cast<int>(p.damage.y), static_cast<int>(p.damage.w),
+           static_cast<int>(p.damage.h), static_cast<unsigned>(p.render_us),
+           static_cast<unsigned>(p.wait_us), StatusCodeName(p.status));
     return 0;
 }
 
@@ -390,8 +429,12 @@ void ConsoleStart() {
     RegisterCommand("status", "App state and per-kind event counters",
                     &CmdStatus);
     RegisterCommand("heap", "Internal and PSRAM heap diagnostics", &CmdHeap);
-    RegisterCommand("display", "Display backend state (phase 1: none)",
+    RegisterCommand("display", "Display backend states (fake and m5)",
                     &CmdDisplay);
+    RegisterCommand("fixture",
+                    "fixture [fake|m5] - render the phase 2 primitive "
+                    "fixture through a backend",
+                    &CmdFixture);
     RegisterCommand("events",
                     "Event queue depth, per-source accept/reject, ordering",
                     &CmdEvents);

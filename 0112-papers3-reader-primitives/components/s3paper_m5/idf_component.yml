@@ -1,0 +1,9 @@
+## Phase 2 decision record: the M5 backend pins upstream M5Unified and M5GFX
+## from the component registry (exact revisions recorded in
+## dependencies.lock). The shared ../../M5PaperS3-UserDemo/components checkout
+## is NOT used: its M5GFX HEAD carries local debug patches from the paused
+## display investigation.
+dependencies:
+  m5stack/m5unified: "==0.2.18"
+  m5stack/m5gfx: "==0.2.25"
+  idf: ">=5.3.0"

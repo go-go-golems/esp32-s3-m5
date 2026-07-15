@@ -3,10 +3,13 @@ idf_component_register(
         "app_main.cpp"
         "app_owner.cpp"
         "app_console.cpp"
+        "app_display.cpp"
     INCLUDE_DIRS
         "."
     REQUIRES
         console
         esp_driver_usb_serial_jtag
         esp_timer
+        s3paper_core
+        s3paper_m5
 )

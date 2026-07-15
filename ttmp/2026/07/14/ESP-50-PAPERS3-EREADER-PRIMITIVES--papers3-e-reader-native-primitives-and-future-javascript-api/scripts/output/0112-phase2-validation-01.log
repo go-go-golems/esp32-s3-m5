@@ -1,0 +1,100 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (119) esp_image: segment 4: paddr=00081e04 vaddr=403799c8 sizeI (942) owner: owner task ready; queue capacity=32
+[5n
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not sup
+# >>> display
+display
+app_state=ready
+backend[fake] initialized=1 frames=0 (primary dev backend)
+backend[m5] initialized=0 size=0x0 frames=0 (transaction shell; panel optically unqualified)
+reader> 
+# >>> fixture fake
+fixture fake
+present id=1 intent=CleanFull ops=74 damage=0,0,540,960
+op kind=FillRect gray=255 bounds=0,0,540,960 clip=0,0,540,960
+op kind=StrokeRect gray=0 bounds=0,0,540,960 clip=0,0,540,960 thickness=3
+op kind=FillRect gray=0 bounds=0,0,24,24 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=516,0,24,24 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=0,936,24,24 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=516,936,24,24 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,60,1,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=53,60,2,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=67,60,3,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=82,60,4,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=98,60,5,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=115,60,6,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=133,60,7,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=152,60,8,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=172,60,9,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=193,60,10,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=215,60,11,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=238,60,12,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=262,60,13,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=287,60,14,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=313,60,15,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=340,60,16,120 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=17 bounds=69,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=34 bounds=98,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=51 bounds=127,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=68 bounds=156,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=85 bounds=185,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=102 bounds=214,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=119 bounds=243,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=136 bounds=272,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=153 bounds=301,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=170 bounds=330,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=187 bounds=359,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=204 bounds=388,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=221 bounds=417,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=238 bounds=446,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=255 bounds=475,220,29,80 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,340,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=72,340,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=104,340,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=136,340,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=56,356,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=88,356,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=120,356,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=152,356,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,372,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=72,372,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=104,372,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=136,372,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=56,388,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=88,388,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=120,388,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=152,388,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,404,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=72,404,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=104,404,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=136,404,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=56,420,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=88,420,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=120,420,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=152,420,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=40,436,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=72,436,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=104,436,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=136,436,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=56,452,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=88,452,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=120,452,16,16 clip=0,0,540,960
+op kind=FillRect gray=0 bounds=152,452,16,16 clip=0,0,540,960
+op kind=FillRect gray=128 bounds=300,340,100,100 clip=300,340,100,100
+op kind=HLine gray=0 bounds=40,500,460,1 clip=0,0,540,960
+op kind=VLine gray=0 bounds=270,520,1,200 clip=0,0,540,960
+op kind=GlyphRun gray=0 bounds=40,760,460,40 clip=0,0,540,960 baseline=792 font=0 size=24 text="s3paper phase2 fixture"
+fixture backend=fake id=1 ops_drawn=74 ops_skipped=0 damage=0,0,540,960 render_us=0 wait_us=0 status=Ok
+reader> 
+# >>> display
+display
+app_state=ready
+backend[fake] initialized=1 frames=1 (primary dev backend)
+backend[m5] initialized=0 size=0x0 frames=0 (transaction shell; panel optically unqualified)
+reader> 
+# done

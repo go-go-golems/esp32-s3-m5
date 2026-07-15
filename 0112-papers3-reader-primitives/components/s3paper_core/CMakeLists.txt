@@ -1,0 +1,10 @@
+idf_component_register(
+    SRCS
+        "src/status.cpp"
+        "src/geometry.cpp"
+        "src/frame_arena.cpp"
+        "src/frame_builder.cpp"
+        "src/fake_backend.cpp"
+    INCLUDE_DIRS
+        "include"
+)
