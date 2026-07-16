@@ -2,8 +2,13 @@
 // builder API (js probe N). Each probe exercises one area and prints
 // deterministic evidence; probes 9/10 additionally render through the fake
 // backend and dump the full op trace.
+#include "esp_timer.h"
+#include <cstdio>
 #include "app_js.h"
 #include "app_js_internal.h"
+#include "s3paper/text.h"
+#include "esp_heap_caps.h"
+#include <cstring>
 #include "s3paper_runtime/runtime.h"
 
 namespace pulp {
@@ -157,6 +162,126 @@ const char kProbe11Js[] =
     "catch (e2) { full = e2.message; }\n"
     "print('probe11: capacity -> ' + full);\n";
 
+// probe 14: trace equivalence (ESP-50 harness ported). A deterministic
+// native tree and its JS mirror must produce byte-identical normalized
+// draw-op traces through the fake backend.
+const char kProbe14MirrorJs[] =
+    "resetTree();\n"
+    "var header = col().pad(16,40,4,40).gap(8)\n"
+    "  .add(text('trace fixture').font(0), divider(2,0));\n"
+    "var content = col().pad(24,40,24,40).gap(16)\n"
+    "  .add(text('alpha').font(1),\n"
+    "       text('beta').font(1).center().gray(96),\n"
+    "       text(' chip ').font(0).invert());\n"
+    "var footer = col().pad(6,40,10,40).gap(6)\n"
+    "  .add(divider(1,0), text('native == js').font(0).gray(96));\n"
+    "page('trace14').header(header).content(content).footer(footer)\n"
+    "  .show(1);\n";
+
+StatusCode BuildProbe14NativeSlots(s3paper::PageSlots *out) {
+    s3paper::WidgetArena &a = s3paper_runtime::Arena();
+    a.Reset();
+    s3paper::WidgetHandle header = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *hn = a.Configure(header);
+    hn->padding = s3paper::Insets{16, 40, 4, 40};
+    hn->gap = 8;
+    (void)a.AddChild(header, s3paper::NewText(a, "trace fixture",
+                                              s3paper::kFontUi, 0)
+                                 .value);
+    (void)a.AddChild(header, s3paper::NewDivider(a, 2, 0).value);
+    s3paper::WidgetHandle content = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *cn = a.Configure(content);
+    cn->padding = s3paper::Insets{24, 40, 24, 40};
+    cn->gap = 16;
+    (void)a.AddChild(content,
+                     s3paper::NewText(a, "alpha", s3paper::kFontBody, 0)
+                         .value);
+    (void)a.AddChild(content,
+                     s3paper::NewText(a, "beta", s3paper::kFontBody, 96,
+                                      s3paper::TextAlign::Center)
+                         .value);
+    s3paper::WidgetHandle chip =
+        s3paper::NewText(a, " chip ", s3paper::kFontUi, 0).value;
+    a.Configure(chip)->props.text.invert = 1;
+    (void)a.AddChild(content, chip);
+    s3paper::WidgetHandle footer = s3paper::NewCol(a).value;
+    s3paper::WidgetNode *fn = a.Configure(footer);
+    fn->padding = s3paper::Insets{6, 40, 10, 40};
+    fn->gap = 6;
+    (void)a.AddChild(footer, s3paper::NewDivider(a, 1, 0).value);
+    (void)a.AddChild(footer,
+                     s3paper::NewText(a, "native == js", s3paper::kFontUi,
+                                      96)
+                         .value);
+    *out = s3paper::PageSlots{header, content, footer,
+                              s3paper::kNullWidget};
+    return StatusCode::Ok;
+}
+
+// Copies a fake-backend trace, replacing volatile "id=NNN" frame ids with
+// "id=#" so two presents of the same content compare equal.
+void NormalizeTraceInto(const char *src, char *dst, uint32_t cap) {
+    uint32_t w = 0;
+    for (const char *p = src; *p != '\0' && w + 5 < cap;) {
+        if (strncmp(p, "id=", 3) == 0) {
+            dst[w++] = 'i';
+            dst[w++] = 'd';
+            dst[w++] = '=';
+            dst[w++] = '#';
+            p += 3;
+            while (*p >= '0' && *p <= '9') {
+                p++;
+            }
+            continue;
+        }
+        dst[w++] = *p++;
+    }
+    dst[w] = '\0';
+}
+
+StatusCode RunTraceEquivalence() {
+    constexpr uint32_t kTraceCap = 12 * 1024;
+    static char *s_native = nullptr;
+    static char *s_js = nullptr;
+    if (s_native == nullptr) {
+        s_native = static_cast<char *>(
+            heap_caps_malloc(kTraceCap, MALLOC_CAP_SPIRAM));
+        s_js = static_cast<char *>(
+            heap_caps_malloc(kTraceCap, MALLOC_CAP_SPIRAM));
+        if (s_native == nullptr || s_js == nullptr) {
+            return StatusCode::OutOfMemory;
+        }
+    }
+    s3paper::PageSlots slots{};
+    (void)BuildProbe14NativeSlots(&slots);
+    s3paper_runtime::SetTracePresent(true);
+    const s3paper_runtime::PresentPageResult native =
+        s3paper_runtime::PresentPage(slots,
+                                     s3paper::PresentIntent::CleanFull,
+                                     true, nullptr, 0, nullptr);
+    if (native.status != StatusCode::Ok) {
+        s3paper_runtime::SetTracePresent(false);
+        return native.status;
+    }
+    NormalizeTraceInto(s3paper_runtime::FakeTrace(), s_native, kTraceCap);
+    const StatusCode js =
+        jsi::EvalBounded(kProbe14MirrorJs, 3000, "<trace14>");
+    s3paper_runtime::SetTracePresent(false);
+    if (js != StatusCode::Ok) {
+        return js;
+    }
+    NormalizeTraceInto(s3paper_runtime::FakeTrace(), s_js, kTraceCap);
+    const bool equal = strcmp(s_native, s_js) == 0;
+    printf("probe14 trace-compare: %s (native=%u bytes, js=%u bytes)\n",
+           equal ? "EQUAL" : "DIFFER",
+           static_cast<unsigned>(strlen(s_native)),
+           static_cast<unsigned>(strlen(s_js)));
+    if (!equal) {
+        printf("--- native ---\n%s--- js ---\n%s---\n", s_native, s_js);
+    }
+    return equal ? StatusCode::Ok : StatusCode::CorruptData;
+}
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -185,6 +310,27 @@ StatusCode JsRunProbe(uint32_t which) {
         case 10: return RunTraced(kProbe10Js, "<probe10>");
         case 11: return jsi::EvalBounded(kProbe11Js, 3000, "<probe11>");
         case 12: return RunTraced(kProbe11Js, "<probe12>");
+        case 13: {
+            // Fault battery (ESP-51 P9): a runaway loop dies at the
+            // deadline, an exception storm is counted, and the context
+            // stays usable through all of it.
+            const int64_t t0 = esp_timer_get_time();
+            const StatusCode runaway =
+                jsi::EvalBounded("for(;;){}", 800, "<runaway>");
+            const int64_t elapsed_ms =
+                (esp_timer_get_time() - t0) / 1000;
+            printf("probe13: runaway -> %s after %lld ms\n",
+                   StatusCodeName(runaway),
+                   static_cast<long long>(elapsed_ms));
+            for (int i = 0; i < 50; ++i) {
+                (void)jsi::EvalBounded("throw new Error('storm');", 200,
+                                       "<storm>");
+            }
+            return jsi::EvalBounded(
+                "print('probe13: context alive after storm');", 500,
+                "<alive>");
+        }
+        case 14: return RunTraceEquivalence();
         default: return StatusCode::InvalidArgument;
     }
 }
