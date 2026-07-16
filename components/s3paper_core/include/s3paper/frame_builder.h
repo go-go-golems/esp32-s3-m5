@@ -35,6 +35,15 @@ class FrameBuilder {
     Status StrokeRect(const Rect &r, Gray8 gray, int32_t thickness);
     Status HLine(int32_t x, int32_t y, int32_t w, Gray8 gray);
     Status VLine(int32_t x, int32_t y, int32_t h, Gray8 gray);
+    // Arbitrary-angle segment; endpoints are true geometry (rasterizers
+    // honor op.clip), bounds is the clipped bbox for damage.
+    Status Line(int32_t x0, int32_t y0, int32_t x1, int32_t y1, Gray8 gray,
+                int32_t thickness = 1);
+    // Filled disc.
+    Status Circle(int32_t cx, int32_t cy, int32_t r, Gray8 gray);
+    // Circle outline, `thickness` px inward from radius r.
+    Status Ring(int32_t cx, int32_t cy, int32_t r, Gray8 gray,
+                int32_t thickness);
     // Copies text into the arena; the DrawOp references it by offset.
     Status GlyphRun(const Rect &bounds, int32_t baseline_y, uint8_t font_id,
                     uint8_t size_px, const char *text, uint32_t text_len,

@@ -361,6 +361,44 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                 }
                 result.ops_drawn++;
                 break;
+            case DrawOpKind::Line: {
+                // The panel clip (set above from op.clip) confines the
+                // rasterization; endpoints are true geometry. Thickness
+                // is emulated by parallel lines offset along the minor
+                // axis (M5GFX has no thick-line primitive).
+                const LinePayload &l = op.payload.line;
+                const int32_t dx = l.x1 - l.x0;
+                const int32_t dy = l.y1 - l.y0;
+                const bool steep = (dy < 0 ? -dy : dy) > (dx < 0 ? -dx : dx);
+                for (int32_t s = 0; s < l.thickness; ++s) {
+                    const int32_t off = s - l.thickness / 2;
+                    if (steep) {
+                        M5.Display.drawLine(l.x0 + off, l.y0, l.x1 + off,
+                                            l.y1, GrayToColor(op.gray));
+                    } else {
+                        M5.Display.drawLine(l.x0, l.y0 + off, l.x1,
+                                            l.y1 + off, GrayToColor(op.gray));
+                    }
+                }
+                result.ops_drawn++;
+                break;
+            }
+            case DrawOpKind::Circle: {
+                const CirclePayload &c = op.payload.circle;
+                if (c.thickness == 0) {
+                    M5.Display.fillCircle(c.cx, c.cy, c.r,
+                                          GrayToColor(op.gray));
+                } else {
+                    // Ring: concentric outlines stepping inward. Never
+                    // paint the interior (it would erase what is behind).
+                    for (int32_t s = 0; s < c.thickness; ++s) {
+                        M5.Display.drawCircle(c.cx, c.cy, c.r - s,
+                                              GrayToColor(op.gray));
+                    }
+                }
+                result.ops_drawn++;
+                break;
+            }
             case DrawOpKind::Bitmap:
                 // Explicitly unsupported in Phase 2.
                 result.ops_skipped++;

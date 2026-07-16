@@ -181,6 +181,65 @@ Result<RenderFrame> FrameBuilder::Finish(FrameId id) {
     return Result<RenderFrame>::Ok(frame);
 }
 
+Status FrameBuilder::Line(int32_t x0, int32_t y0, int32_t x1, int32_t y1,
+                          Gray8 gray, int32_t thickness) {
+    if (thickness <= 0) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    // Conservative bbox: endpoint extent inflated by the thickness so
+    // thick diagonal edges never escape the damage rect.
+    const int32_t min_x = x0 < x1 ? x0 : x1;
+    const int32_t min_y = y0 < y1 ? y0 : y1;
+    const int32_t max_x = x0 > x1 ? x0 : x1;
+    const int32_t max_y = y0 > y1 ? y0 : y1;
+    const Rect bbox{min_x - thickness / 2, min_y - thickness / 2,
+                    (max_x - min_x) + thickness + 1,
+                    (max_y - min_y) + thickness + 1};
+    const Result<Rect> clipped = Intersect(bbox, CurrentClip());
+    if (!clipped.ok()) {
+        return ErrStatus(clipped.code);
+    }
+    if (IsEmpty(clipped.value)) {
+        dropped_clipped_++;
+        return OkStatus();
+    }
+    DrawOp op{};
+    op.kind = DrawOpKind::Line;
+    op.gray = gray;
+    op.bounds = clipped.value;
+    op.clip = CurrentClip();
+    op.payload.line = LinePayload{x0, y0, x1, y1, thickness};
+    return Emit(op);
+}
+
+Status FrameBuilder::Circle(int32_t cx, int32_t cy, int32_t r, Gray8 gray) {
+    return Ring(cx, cy, r, gray, 0);
+}
+
+Status FrameBuilder::Ring(int32_t cx, int32_t cy, int32_t r, Gray8 gray,
+                          int32_t thickness) {
+    if (r < 0 || thickness < 0) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    const int32_t t = thickness > r ? r : thickness;  // clamp: ring -> disc
+    const Rect bbox{cx - r, cy - r, 2 * r + 1, 2 * r + 1};
+    const Result<Rect> clipped = Intersect(bbox, CurrentClip());
+    if (!clipped.ok()) {
+        return ErrStatus(clipped.code);
+    }
+    if (IsEmpty(clipped.value)) {
+        dropped_clipped_++;
+        return OkStatus();
+    }
+    DrawOp op{};
+    op.kind = DrawOpKind::Circle;
+    op.gray = gray;
+    op.bounds = clipped.value;
+    op.clip = CurrentClip();
+    op.payload.circle = CirclePayload{cx, cy, r, t};
+    return Emit(op);
+}
+
 const char *DrawOpKindName(DrawOpKind kind) {
     switch (kind) {
         case DrawOpKind::FillRect: return "FillRect";
@@ -189,6 +248,8 @@ const char *DrawOpKindName(DrawOpKind kind) {
         case DrawOpKind::VLine: return "VLine";
         case DrawOpKind::GlyphRun: return "GlyphRun";
         case DrawOpKind::Bitmap: return "Bitmap";
+        case DrawOpKind::Line: return "Line";
+        case DrawOpKind::Circle: return "Circle";
     }
     return "Unknown";
 }

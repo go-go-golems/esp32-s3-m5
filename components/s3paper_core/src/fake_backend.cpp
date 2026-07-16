@@ -75,6 +75,16 @@ PresentResult FakeBackend::Present(const RenderFrame &frame,
             case DrawOpKind::StrokeRect:
                 Append(" thickness=%d", op.payload.stroke.thickness);
                 break;
+            case DrawOpKind::Line:
+                Append(" from=%d,%d to=%d,%d t=%d", op.payload.line.x0,
+                       op.payload.line.y0, op.payload.line.x1,
+                       op.payload.line.y1, op.payload.line.thickness);
+                break;
+            case DrawOpKind::Circle:
+                Append(" c=%d,%d r=%d t=%d", op.payload.circle.cx,
+                       op.payload.circle.cy, op.payload.circle.r,
+                       op.payload.circle.thickness);
+                break;
             case DrawOpKind::GlyphRun: {
                 const GlyphRunPayload &g = op.payload.glyph_run;
                 Append(" baseline=%d font=%u size=%u text=\"", g.baseline_y,

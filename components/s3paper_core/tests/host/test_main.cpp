@@ -1276,6 +1276,63 @@ static void TestWidgetCompile() {
     CHECK(RectEquals(hits[0].rect, title_frame.value));
 }
 
+static void TestLineCircleOps() {
+    DrawOp ops[16];
+    uint8_t arena_buf[256];
+    FrameArena arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 16, &arena, Size{540, 960});
+
+    // In-view line: conservative bbox, payload preserved verbatim.
+    fb.Begin();
+    CHECK(fb.Line(40, 40, 200, 120, 0, 2).ok());
+    CHECK(fb.ops_used() == 1);
+    CHECK(ops[0].kind == DrawOpKind::Line);
+    CHECK(ops[0].payload.line.x0 == 40);
+    CHECK(ops[0].payload.line.y1 == 120);
+    CHECK(ops[0].payload.line.thickness == 2);
+    CHECK(ops[0].bounds.x == 39);   // 40 - t/2
+    CHECK(ops[0].bounds.w == 163);  // 160 + t + 1
+
+    // Partially clipped line: bounds intersects the clip, payload true.
+    CHECK(fb.PushClip(Rect{0, 0, 100, 100}).ok());
+    CHECK(fb.Line(50, 50, 300, 50, 128, 1).ok());
+    CHECK(ops[1].bounds.w == 50);  // clipped at x=100
+    CHECK(ops[1].payload.line.x1 == 300);
+    // Fully clipped: dropped and counted.
+    const uint32_t dropped_before = fb.ops_dropped_clipped();
+    CHECK(fb.Line(200, 200, 300, 300, 0, 1).ok());
+    CHECK(fb.ops_used() == 2);
+    CHECK(fb.ops_dropped_clipped() == dropped_before + 1);
+    CHECK(fb.PopClip().ok());
+
+    // Disc and ring: bbox math, thickness clamp, invalid args.
+    CHECK(fb.Circle(270, 480, 60, 32).ok());
+    CHECK(ops[2].kind == DrawOpKind::Circle);
+    CHECK(ops[2].payload.circle.thickness == 0);
+    CHECK(ops[2].bounds.x == 210);
+    CHECK(ops[2].bounds.w == 121);
+    CHECK(fb.Ring(270, 480, 40, 0, 6).ok());
+    CHECK(ops[3].payload.circle.thickness == 6);
+    CHECK(fb.Ring(10, 10, 4, 0, 9).ok());  // thicker than radius: clamps
+    CHECK(ops[4].payload.circle.thickness == 4);
+    CHECK(!fb.Ring(0, 0, -1, 0, 1).ok());
+    CHECK(!fb.Line(0, 0, 10, 10, 0, 0).ok());
+
+    // Fake-backend trace format for the new ops (golden-stable).
+    Result<RenderFrame> frame = fb.Finish(7);
+    CHECK(frame.ok());
+    char trace_buf[2048];
+    FakeBackend fake(trace_buf, sizeof(trace_buf), Size{540, 960});
+    CHECK(fake.Init().ok());
+    CHECK(fake.Present(frame.value, PresentIntent::TextPage).status ==
+          StatusCode::Ok);
+    CHECK(std::strstr(fake.trace(),
+                      "kind=Line gray=0 bounds=39,39,163,83") != nullptr);
+    CHECK(std::strstr(fake.trace(), "from=40,40 to=200,120 t=2") != nullptr);
+    CHECK(std::strstr(fake.trace(), "c=270,480 r=60 t=0") != nullptr);
+    CHECK(std::strstr(fake.trace(), "c=270,480 r=40 t=6") != nullptr);
+}
+
 static void TestWidgetInvertText() {
     // invert: filled chip (background in the node's gray) + inverse ink.
     WidgetArena arena;
@@ -1784,6 +1841,7 @@ int main() {
     TestWidgetListPagination();
     TestWidgetCompile();
     TestWidgetInvertText();
+    TestLineCircleOps();
     TestWidgetDiff();
     TestDependencyTracker();
     TestRegionTable();

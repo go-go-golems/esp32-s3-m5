@@ -24,11 +24,28 @@ enum class DrawOpKind : uint8_t {
     VLine,
     GlyphRun,
     Bitmap,
+    Line,    // arbitrary-angle segment (LinePayload)
+    Circle,  // filled disc or ring (CirclePayload)
 };
 
 const char *DrawOpKindName(DrawOpKind kind);
 
 struct StrokePayload {
+    int32_t thickness;
+};
+
+// Arbitrary-angle segment (ESP-52 canvas primitives). Endpoints are the
+// TRUE pre-clip geometry; `bounds` is the clipped bbox for damage, and the
+// rasterizer must honor `clip` per pixel (GlyphRun pattern).
+struct LinePayload {
+    int32_t x0, y0, x1, y1;
+    int32_t thickness;  // >= 1
+};
+
+// Circle: filled disc (thickness == 0) or ring (thickness > 0). Center and
+// radius are true geometry; `bounds` is the clipped bbox.
+struct CirclePayload {
+    int32_t cx, cy, r;
     int32_t thickness;
 };
 
@@ -58,6 +75,8 @@ struct DrawOp {
         StrokePayload stroke;
         GlyphRunPayload glyph_run;
         BitmapPayload bitmap;
+        LinePayload line;
+        CirclePayload circle;
     } payload;
 };
 
