@@ -1,0 +1,40 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (95482) js: js present: hits=2 full=0
+I (96482) js: js present: hits=2 full=0
+I (97482) js: js present: hits=2 full=0
+I (98482) js: js present: hits=2 full=0
+I (99482) js: js present: hits=2 full=0
+I (100482) js: js present: hits=2 full=0
+I (101482) jsI (144482) js: js present: hits=2 full=0
+
+# >>> js tap 270 150
+js tap 270 150
+W (144896) js: js present FAILED: CapacityExceeded
+js init=1 screen_active=1 arena=163840 evals=79 exceptions=0 dispatches=77 last_error=""
+reader> W (145485) js: js present FAILED: CapacityExceeded
+W (146485) js: js present FAILED: CapacityExceeded
+W (147485) js: js present FAILED: CapacityExceeded
+W (148485) js: js present FAILED: CapacityExceeded
+W (149485) js: js present FAILED: CapacityExceeded
+W (150485) js: js present FAILED: CapacityExceeded
+W (151485) js: js present FAILED: CapacityExceeded
+W (152485) js: js present FAILED: CapacityExceeded
+W (153485) js: js present FAILED: CapacityExceeded
+W (154485) js: js present FAILED: CapacityExceeded
+
+# >>> js tap 270 400
+js tap 270 400
+W (154899) js: js present FAILED: CapacityExceeded
+js init=1 screen_active=1 arena=163840 evals=90 exceptions=0 dispatches=88 last_error=""
+reader> W (155485) js: js present FAILED: CapacityExceeded
+W (156485) js: js present FAILED: CapacityExceeded
+W (157485) js: js present FAILED: CapacityExceeded
+W (158485) js: js present FAILED: CapacityExceeded
+W (159485) js: js present FAILED: CapacityExceeded
+W (160485) js: js present FAILED: CapacityExceeded
+W (161485) js: js present FAILED: CapacityExceeded
+W (162485) js: js present FAILED: CapacityExceeded
+W (163485) js: js present FAILED: CapacityExceeded
+W (164485) js: js present FAILED: CapacityExceeded
+
+# done

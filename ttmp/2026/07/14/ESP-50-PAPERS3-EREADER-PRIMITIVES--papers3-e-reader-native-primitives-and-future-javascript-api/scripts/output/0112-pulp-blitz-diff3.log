@@ -1,0 +1,40 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (104) esp_image: segment 2: paddr=00070020 vaddr=42000020 size[5nI (1036) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1051) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1051) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| 
+# >>> js pulp
+js pulp
+I (59336) js: context ready: arena=163840 bytes, abi=v1
+PULP OS booting, abi v1
+pulp screen: home
+I (59532) m5_backend: present id=2 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=167702 wait_us=20
+I (59534) js: js present: hits=7 full=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+reader> 
+# >>> js tap 270 330
+js tap 270 330
+pulp screen: blitz
+I (67481) m5_backend: present id=3 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=158042 wait_us=16
+I (67482) js: js present: hits=2 full=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=1 last_error=""
+reader> I (68349) js: js present: hits=2 full=0
+I (69369) js: js present: hits=2 full=0
+I (70382) js: js present: hits=2 full=0
+I (71382) js: js present: hits=2 full=0
+I (72382) js: js present: hits=2 full=0
+I (73382) js: js present: hits=2 full=0
+I (74382) js: js present: hits=2 full=0
+
+# >>> js tap 270 260
+js tap 270 260
+js init=1 screen_active=1 arena=163840 evals=11 exceptions=0 dispatches=9 last_error=""
+reader> I (75382) js: js present: hits=2 full=0
+I (76402) js: js present: hits=2 full=0
+I (77402) js: js present: hits=2 full=0
+I (78402) js: js present: hits=2 full=0
+I (79402) js: js present: hits=2 full=0
+I (80402) js: js present: hits=2 full=0
+I (81402) js: js present: hits=2 full=0
+I (82402) js: js present: hits=2 full=0
+
+# done

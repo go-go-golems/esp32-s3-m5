@@ -152,6 +152,99 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
 
 uint32_t UiPresentCount() { return s_present_count; }
 
+UiPresentResult UiPresentPageUpdate(const s3paper::PageSlots &slots,
+                                    s3paper::HitRegion *hits,
+                                    uint32_t hit_cap, UiExtraOps extra_ops) {
+    UiInit();
+    if (!s_last_valid) {
+        return UiPresentPage(slots, s3paper::PresentIntent::TextPage, false,
+                             hits, hit_cap, extra_ops);
+    }
+    // Layout first: the diff compares new frames + content versions
+    // against the capture of the last present.
+    const s3paper::Result<uint32_t> laid = s3paper::LayoutPage(
+        *s_arena, slots, kPageBounds, s_entries,
+        s3paper::WidgetArena::kCapacity);
+    if (!laid.ok()) {
+        UiPresentResult out{laid.code, 0, false};
+        return out;
+    }
+    s3paper::Rect damage[16];
+    const s3paper::Result<uint32_t> rects =
+        s_diff.Diff(*s_arena, s_entries, laid.value, damage, 16);
+    if (!rects.ok()) {
+        // More damage than the budget: one full-tree partial is cheaper
+        // and simpler than many rects.
+        return UiPresentPage(slots, s3paper::PresentIntent::TextPage, false,
+                             hits, hit_cap, extra_ops);
+    }
+    UiPresentResult out{StatusCode::Ok, 0, false};
+    if (rects.value == 0) {
+        return out;  // nothing visible changed: no EPD work at all
+    }
+    s3paper::Rect clip = damage[0];
+    for (uint32_t i = 1; i < rects.value; ++i) {
+        const s3paper::Result<s3paper::Rect> u = Union(clip, damage[i]);
+        if (u.ok()) {
+            clip = u.value;
+        }
+    }
+    s3paper::FrameBuilder &fb = FrameBuilderRef();
+    fb.Begin();
+    if (!fb.PushClip(clip).ok()) {
+        out.status = StatusCode::CapacityExceeded;
+        return out;
+    }
+    (void)fb.FillRect(kPageBounds, 255);
+    // Hit regions are NOT propagated: compiled under the damage clip they
+    // would shrink to the clip, so the caller keeps its previous hits.
+    // CompileTree still needs an output array (hit nodes are an error
+    // otherwise); this scratch is discarded.
+    (void)hits;
+    (void)hit_cap;
+    s3paper::HitRegion hit_scratch[64];
+    uint32_t hit_scratch_count = 0;
+    const s3paper::Result<uint32_t> built = BuildPageOps(
+        slots, hit_scratch, 64, &hit_scratch_count);
+    out.hit_count = 0;
+    if (!built.ok()) {
+        (void)fb.PopClip();
+        out.status = built.code;
+        return out;
+    }
+    if (extra_ops != nullptr) {
+        const StatusCode extra = extra_ops(fb, s_entries, built.value);
+        if (extra != StatusCode::Ok) {
+            (void)fb.PopClip();
+            out.status = extra;
+            return out;
+        }
+    }
+    (void)fb.PopClip();
+    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
+    if (!frame.ok()) {
+        out.status = frame.code;
+        return out;
+    }
+    const PlannedPresent presented = PresentFramePlanned(
+        frame.value, s3paper::PresentIntent::TextRegion, !s_trace_present);
+    out.status = presented.present.status;
+    out.full_refresh = presented.plan.full_refresh;
+    if (out.status == StatusCode::Ok) {
+        s_diff.Capture(*s_arena, s_entries, built.value);
+        s_last_slots = slots;
+        s_last_extra = extra_ops;
+        s_present_count++;
+        ESP_LOGI(kTag, "update present: %u rect(s), damage %dx%d at %d,%d",
+                 static_cast<unsigned>(rects.value),
+                 static_cast<int>(frame.value.damage.w),
+                 static_cast<int>(frame.value.damage.h),
+                 static_cast<int>(frame.value.damage.x),
+                 static_cast<int>(frame.value.damage.y));
+    }
+    return out;
+}
+
 void UiSetTracePresent(bool enabled) { s_trace_present = enabled; }
 
 // ---- Fixtures ----

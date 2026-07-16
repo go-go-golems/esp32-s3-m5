@@ -1,0 +1,20 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (83402) js: js present: hits=2 full=0
+I (84402) js: js present: hits=2 full=0
+I (85402) js: js present: hits=2 full=0
+I (86402) js: js present: hits=2 full=0
+I (87402) js: js present: hits=2 full=0
+I (88402) js: js present: hits=2 full=0
+I (89402) js: I (114402) js: js present: hits=2 full=0
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=51 exceptions=0 dispatches=49 last_error=""
+reader> I (115402) js: js present: hits=2 full=0
+I (116402) js: js present: hits=2 full=0
+I (117402) js: js present: hits=2 full=0
+I (118402) js: js present: hits=2 full=0
+I (119402) js: js present: hits=2 full=0
+I (120402) js: js present: hits=2 full=0
+
+# done

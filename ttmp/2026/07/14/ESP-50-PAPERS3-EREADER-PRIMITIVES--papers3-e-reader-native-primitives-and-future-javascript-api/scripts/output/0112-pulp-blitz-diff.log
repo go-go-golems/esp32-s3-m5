@@ -1,0 +1,56 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (104) esp_image: segment 2: paddr=00070020 vaddr=42000020 size[5nI (1036) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1051) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1051) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| 
+# >>> js pulp
+js pulp
+I (42801) js: context ready: arena=163840 bytes, abi=v1
+PULP OS booting, abi v1
+pulp screen: home
+I (42996) m5_backend: present id=2 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=166763 wait_us=20
+I (42998) js: js present: hits=7 full=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+reader> 
+# >>> js tap 270 330
+js tap 270 330
+pulp screen: blitz
+I (58926) m5_backend: present id=3 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=158495 wait_us=15
+I (58927) js: js present: hits=2 full=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=1 last_error=""
+reader> I (59789) js: js present: hits=0 full=0
+I (60809) js: js present: hits=0 full=0
+I (61822) js: js present: hits=0 full=0
+I (62822) js: js present: hits=0 full=0
+I (63822) js: js present: hits=0 full=0
+I (64822) js: js present: hits=0 full=0
+I (65822) js: js present: hits=0 full=0
+I (66822) js: js present: hits=0 full=0
+I (67822) js: js present: hits=0 full=0
+I (68822) js: js present: hits=0 full=0
+I (69822) js: js present: hits=0 full=0
+I (70822) js: js present: hits=0 full=0
+I (71822) js: js present: hits=0 full=0
+I (72822) js: js present: hits=0 full=0
+I (73822) js: js present: hits=0 full=0
+
+# >>> js tap 270 200
+js tap 270 200
+js init=1 screen_active=1 arena=163840 evals=19 exceptions=0 dispatches=17 last_error=""
+reader> I (74822) js: js present: hits=0 full=0
+I (75842) js: js present: hits=0 full=0
+I (76842) js: js present: hits=0 full=0
+I (77842) js: js present: hits=0 full=0
+I (78842) js: js present: hits=0 full=0
+I (79842) js: js present: hits=0 full=0
+I (80842) js: js present: hits=0 full=0
+I (81842) js: js present: hits=0 full=0
+I (82842) js: js present: hits=0 full=0
+I (83842) js: js present: hits=0 full=0
+I (84842) js: js present: hits=0 full=0
+I (85842) js: js present: hits=0 full=0
+I (86842) js: js present: hits=0 full=0
+I (87842) js: js present: hits=0 full=0
+I (88842) js: js present: hits=0 full=0
+I (89842) js: js present: hits=0 full=0
+
+# done

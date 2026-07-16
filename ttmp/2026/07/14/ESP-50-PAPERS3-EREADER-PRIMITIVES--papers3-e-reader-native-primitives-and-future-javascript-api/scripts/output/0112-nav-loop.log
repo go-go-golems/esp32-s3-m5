@@ -1,0 +1,74 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (104) esp_image: segment 2: paddr=0006fbe4 vaddr=40374000 size[5nI (1036) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1051) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1051) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| 
+# >>> js pulp
+js pulp
+PULP OS booting, abi v1
+pulp screen: home
+I (57949) m5_backend: present id=27 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=203380 wait_us=6
+I (57951) js: js present: hits=7 full=1
+js init=1 screen_active=1 arena=163840 evals=42 exceptions=0 dispatches=39 last_error=""
+reader> I (58717) input: quiet window reached (9 total)
+I (61437) input: gesture Tap at 290,317
+pulp screen: blitz
+I (61591) m5_backend: present id=28 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=141951 wait_us=5
+I (61592) js: js present: hits=2 full=1
+pulp screen: blitz
+I (62741) m5_backend: present id=29 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=258723 wait_us=12
+I (62743) js: js present: hits=2 full=0
+I (63457) input: quiet window reached (10 total)
+pulp screen: blitz
+I (63742) m5_backend: present id=30 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=258311 wait_us=12
+I (63744) js: js present: hits=2 full=0
+pulp screen: blitz
+I (64761) m5_backend: present id=31 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=258087 wait_us=12
+I (64763) js: js present: hits=2 full=0
+pulp screen: blitz
+
+# >>> js tap 270 190
+js tap 270 190
+I (65732) m5_backend: present id=32 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=232516 wait_us=15
+I (65734) js: js present: hits=2 full=0
+pulp screen: blitz
+I (65982) m5_backend: present id=33 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=222655 wait_us=19
+I (65984) js: js present: hits=2 full=0
+js init=1 screen_active=1 arena=163840 evals=48 exceptions=0 dispatches=45 last_error=""
+reader> pulp screen: blitz
+I (66735) m5_backend: present id=34 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=234175 wait_us=11
+I (66737) js: js present: hits=2 full=0
+pulp screen: blitz
+I (67755) m5_backend: present id=35 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=234639 wait_us=9
+I (67757) js: js present: hits=2 full=0
+pulp screen: blitz
+I (68753) m5_backend: present id=36 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=231614 wait_us=10
+I (68755) js: js present: hits=2 full=0
+pulp screen: blitz
+I (69774) m5_backend: present id=37 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=233406 wait_us=19
+I (69776) js: js present: hits=2 full=0
+I (70478) input: gesture SwipeDown at 273,530
+pulp screen: home
+I (70786) m5_backend: present id=38 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=246819 wait_us=11
+I (70788) js: js present: hits=7 full=1
+I (72497) input: quiet window reached (11 total)
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: postcard
+I (73895) m5_backend: present id=39 intent=CleanFull ops=42 skipped=0 damage=0,0,540,960 render_us=167726 wait_us=14
+I (73897) js: js present: hits=30 full=1
+js init=1 screen_active=1 arena=163840 evals=54 exceptions=0 dispatches=51 last_error=""
+reader> I (76697) input: gesture SwipeDown at 262,643
+pulp screen: home
+I (76874) m5_backend: present id=40 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=148092 wait_us=6
+I (76875) js: js present: hits=7 full=1
+I (78717) input: quiet window reached (12 total)
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: postcard
+I (81900) m5_backend: present id=41 intent=CleanFull ops=42 skipped=0 damage=0,0,540,960 render_us=146907 wait_us=6
+I (81901) js: js present: hits=30 full=1
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=0 dispatches=53 last_error=""
+reader> 
+# done

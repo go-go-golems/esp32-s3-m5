@@ -42,6 +42,16 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
                               bool screen_change, s3paper::HitRegion *hits,
                               uint32_t hit_cap, UiExtraOps extra_ops);
 
+// Diff-driven update of the SAME retained tree presented last: re-layouts,
+// diffs against the captured render state, and presents ONLY the changed
+// rects (clipped re-render, TextRegion intent). Returns Ok with zero work
+// when nothing visible changed; falls back to a full TextPage present when
+// there is no valid capture or the damage overflows. The caller must have
+// mutated widgets through version-bumping setters (SetText/SetProgress).
+UiPresentResult UiPresentPageUpdate(const s3paper::PageSlots &slots,
+                                    s3paper::HitRegion *hits,
+                                    uint32_t hit_cap, UiExtraOps extra_ops);
+
 // Console fixtures: 1 = hello page, 2 = status page with a live clock
 // region (interval updates until another screen presents).
 StatusCode UiRunFixture(uint32_t which);

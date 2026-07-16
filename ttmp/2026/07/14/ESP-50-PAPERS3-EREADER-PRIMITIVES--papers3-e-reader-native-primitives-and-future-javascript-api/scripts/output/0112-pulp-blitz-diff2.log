@@ -1,0 +1,38 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (90842) js: js present: hits=0 full=0
+I (91842) js: js present: hits=0 full=0
+I (92842) js: js present: hits=0 full=0
+I (93842) js: js present: hits=0 full=0
+I (94842) js: js present: hits=0 full=0
+I (95842) js: js present: hits=0 full=0
+I (96842) js: I (133842) js: js present: hits=0 full=0
+
+# >>> js tap 270 260
+js tap 270 260
+js init=1 screen_active=1 arena=163840 evals=80 exceptions=0 dispatches=78 last_error=""
+reader> I (134842) js: js present: hits=0 full=0
+I (135842) js: js present: hits=0 full=0
+I (136842) js: js present: hits=0 full=0
+I (137842) js: js present: hits=0 full=0
+I (138842) js: js present: hits=0 full=0
+I (139842) js: js present: hits=0 full=0
+I (140842) js: js present: hits=0 full=0
+I (141842) js: js present: hits=0 full=0
+I (142842) js: js present: hits=0 full=0
+I (143842) js: js present: hits=0 full=0
+
+# >>> js tap 270 700
+js tap 270 700
+js init=1 screen_active=1 arena=163840 evals=91 exceptions=0 dispatches=89 last_error=""
+reader> I (144842) js: js present: hits=0 full=0
+I (145842) js: js present: hits=0 full=0
+I (146842) js: js present: hits=0 full=0
+I (147842) js: js present: hits=0 full=0
+I (148842) js: js present: hits=0 full=0
+I (149842) js: js present: hits=0 full=0
+I (150842) js: js present: hits=0 full=0
+I (151842) js: js present: hits=0 full=0
+I (152842) js: js present: hits=0 full=0
+I (153842) js: js present: hits=0 full=0
+
+# done

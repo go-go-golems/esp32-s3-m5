@@ -6,6 +6,7 @@
 #include "esp_log.h"
 
 #include "app_display.h"
+#include "app_js.h"
 #include "app_reader_book.h"
 #include "app_storage.h"
 #include "app_ui.h"
@@ -600,6 +601,13 @@ void ReaderFormatLibraryLine(uint32_t index, char *out, uint32_t out_size) {
 
 bool ReaderHandleGesture(const s3paper::GestureEvent &gesture) {
     if (s_state.screen == Screen::Library) {
+        if (gesture.kind == s3paper::GestureKind::SwipeDown) {
+            // Back navigation continues past the library: reading ->
+            // library -> PULP launcher (the JS home screen).
+            s_state.screen = Screen::None;
+            (void)JsRunApp(9);
+            return true;
+        }
         if (gesture.kind != s3paper::GestureKind::Tap) {
             return false;
         }

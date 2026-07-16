@@ -231,7 +231,7 @@ const char kFacadeJs[] =
     "                       sl.content ? sl.content.h : 0,\n"
     "                       sl.footer ? sl.footer.h : 0,\n"
     "                       sl.overlay ? sl.overlay.h : 0,\n"
-    "                       sl.full ? 1 : 0); }\n"
+    "                       sl.full ? 1 : (sl.update ? 2 : 0)); }\n"
     "  };\n"
     "  return api;\n"
     "})();\n"
@@ -581,15 +581,18 @@ void JsTimerTick(int64_t now_us) {
 }
 
 StatusCode JsSyntheticGesture(uint32_t kind, int32_t x, int32_t y) {
-    if (!JsScreenActive()) {
-        return StatusCode::Busy;
-    }
     s3paper::GestureEvent gesture{};
     gesture.kind = static_cast<s3paper::GestureKind>(kind);
     gesture.pos = s3paper::Point{x, y};
     gesture.t_us = esp_timer_get_time();
-    return JsHandleGesture(gesture) ? StatusCode::Ok
-                                    : StatusCode::InvalidArgument;
+    // Mirror the real input path: JS first while its screen is active,
+    // otherwise the native reader controller (lets the console validate
+    // native-side gestures like library swipe-down too).
+    if (JsHandleGesture(gesture)) {
+        return StatusCode::Ok;
+    }
+    return ReaderHandleGesture(gesture) ? StatusCode::Ok
+                                        : StatusCode::InvalidArgument;
 }
 
 bool JsScreenActive() {
@@ -924,13 +927,21 @@ JSValue js_s3_present(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
         (void)UiRouter().SetSlots(s_js_page, slots);
         (void)UiRouter().Push(s_js_page);
     }
-    const UiPresentResult presented = UiPresentPage(
-        slots,
-        full != 0 ? s3paper::PresentIntent::CleanFull
-                  : s3paper::PresentIntent::TextPage,
-        full != 0, s_js_hits, kMaxJsHits, nullptr);
+    // full: 0 = full-tree partial, 1 = clean-full screen change,
+    // 2 = diff update (present only rects whose widgets changed).
+    const UiPresentResult presented =
+        full == 2
+            ? UiPresentPageUpdate(slots, s_js_hits, kMaxJsHits, nullptr)
+            : UiPresentPage(slots,
+                            full == 1 ? s3paper::PresentIntent::CleanFull
+                                      : s3paper::PresentIntent::TextPage,
+                            full == 1, s_js_hits, kMaxJsHits, nullptr);
     if (presented.status == StatusCode::Ok) {
-        s_js_hit_count = presented.hit_count;
+        if (full != 2) {
+            // Update mode keeps the previous hit regions (geometry is
+            // unchanged; the clipped re-render collects none).
+            s_js_hit_count = presented.hit_count;
+        }
         s_js_present_seq = UiPresentCount();
         s_js_presented = true;
         ESP_LOGI(kTag, "js present: hits=%u full=%d",
