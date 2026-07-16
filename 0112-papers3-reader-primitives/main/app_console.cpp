@@ -640,9 +640,37 @@ int CmdSd(int argc, char **argv) {
             arg = 2;
         } else if (strcmp(argv[1], "demo") == 0) {
             arg = 3;
+        } else if (strcmp(argv[1], "reload") == 0) {
+            arg = 4;
+        } else if (strcmp(argv[1], "fault") == 0 && argc >= 4) {
+            // sd fault <positions|bookmarks|catalog|settings|lastbook>
+            //          <flip|trunc|del>
+            static const char *kKinds[] = {"positions", "bookmarks",
+                                           "catalog", "settings",
+                                           "lastbook"};
+            static const char *kModes[] = {"flip", "trunc", "del"};
+            int kind = -1;
+            int mode = -1;
+            for (int i = 0; i < 5; ++i) {
+                if (strcmp(argv[2], kKinds[i]) == 0) {
+                    kind = i;
+                }
+            }
+            for (int i = 0; i < 3; ++i) {
+                if (strcmp(argv[3], kModes[i]) == 0) {
+                    mode = i;
+                }
+            }
+            if (kind < 0 || mode < 0) {
+                printf("error: InvalidArgument: sd fault <kind> <mode>\n");
+                return 1;
+            }
+            arg = 10 + static_cast<uint32_t>(kind) * 3 +
+                  static_cast<uint32_t>(mode);
         } else if (strcmp(argv[1], "status") != 0) {
             printf("error: InvalidArgument: usage sd "
-                   "[mount|unmount|demo|status]\n");
+                   "[mount|unmount|demo|status|reload|fault <kind> "
+                   "<mode>]\n");
             return 1;
         }
     }

@@ -19,6 +19,7 @@ idf_component_register(
         esp_timer
         s3paper_core
         s3paper_m5
+        s3paper_storage
         fatfs
         sdmmc
         esp_driver_sdspi

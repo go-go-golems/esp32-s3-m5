@@ -7,7 +7,8 @@ cmake_minimum_required(VERSION 3.16)
 # per-firmware: its atom table is generated from THIS firmware's stdlib.
 set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_core"
-    "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_m5")
+    "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_m5"
+    "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_storage")
 
 # Trim the build to main + resolved dependencies. esp_psram must be NAMED:
 # a trimmed COMPONENTS list silently drops its Kconfig symbols otherwise

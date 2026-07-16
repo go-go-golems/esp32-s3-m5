@@ -1,0 +1,13 @@
+idf_component_register(
+    SRCS
+        "src/storage.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        s3paper_core
+        fatfs
+        sdmmc
+        esp_driver_sdspi
+    PRIV_REQUIRES
+        esp_timer
+)

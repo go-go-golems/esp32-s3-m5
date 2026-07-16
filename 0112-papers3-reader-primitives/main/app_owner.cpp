@@ -383,7 +383,17 @@ void HandleConsoleCommand(const AppEvent &event) {
                 case 3:
                     reply.status = StorageWriteDemoBook();
                     break;
+                case 4:
+                    s3paper_storage::DebugReloadState();
+                    break;
                 default:
+                    // 10.. = fault injection: 10 + kind*3 + mode.
+                    if (event.payload.console.arg >= 10) {
+                        const uint32_t packed =
+                            event.payload.console.arg - 10;
+                        reply.status = s3paper_storage::
+                            DebugCorruptStateFile(packed / 3, packed % 3);
+                    }
                     break;
             }
             FillSdSnapshot(&reply.payload.sd);
