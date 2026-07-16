@@ -9,6 +9,7 @@
 #include "freertos/task.h"
 
 #include "app_book_seed.h"
+#include "app_buzzer.h"
 #include "app_home.h"
 #include "app_input.h"
 #include "app_js.h"
@@ -249,6 +250,33 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillJsSnapshot(&reply.payload.js);
             break;
         }
+        case ConsoleOp::Buzz: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = BuzzerBeep();
+                    break;
+                case 2:
+                    BuzzerStop();
+                    break;
+                case 3:
+                    reply.status = BuzzerTone(
+                        static_cast<int32_t>(
+                            event.payload.console.arg2 >> 16),
+                        static_cast<int32_t>(
+                            event.payload.console.arg2 & 0xFFFF));
+                    break;
+                case 4:
+                    // Rising triad with a rest: exercises tone, rest, and
+                    // sequencing in one audible gate.
+                    reply.status = BuzzerMelody(
+                        "880:120,0:40,1109:120,0:40,1319:200");
+                    break;
+                default:
+                    break;
+            }
+            FillBuzzSnapshot(&reply.payload.buzz);
+            break;
+        }
     }
     SendReply(event, reply);
 }
@@ -303,6 +331,7 @@ void TickHooks() {
     const int64_t now = esp_timer_get_time();
     s3paper_storage::StorageFlushIfDue(now);
     JsTimerTick(now);
+    BuzzerTick(now);
     PowerAutoTick(now);
 }
 

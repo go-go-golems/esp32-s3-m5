@@ -341,6 +341,38 @@ int CmdJs(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdBuzz(int argc, char **argv) {
+    uint32_t arg = 0;
+    uint32_t arg2 = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "beep") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "stop") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "tone") == 0 && argc >= 4) {
+            arg = 3;
+            arg2 = (static_cast<uint32_t>(atoi(argv[2])) << 16) |
+                   (static_cast<uint32_t>(atoi(argv[3])) & 0xFFFF);
+        } else if (strcmp(argv[1], "melody") == 0) {
+            arg = 4;
+        } else {
+            printf("error: usage buzz [status|beep|stop|tone F MS|"
+                   "melody]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status = RunConsoleOpWithArgs(
+        ConsoleOp::Buzz, arg, arg2, &reply, kReplyTimeoutMs);
+    const BuzzSnapshot &b = reply.payload.buzz;
+    printf("buzz init=%u playing=%u melody=%u (%u/%u) tones=%u "
+           "result=%s\n",
+           b.initialized, b.playing, b.melody_active, b.melody_index,
+           b.melody_len, static_cast<unsigned>(b.tones_played),
+           StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -399,6 +431,10 @@ void ConsoleStart() {
                     "sleep [status|deep N|rtc-off N|off|auto N] - power",
                     &CmdSleep);
     RegisterCommand("home", "Present the native home page", &CmdHome);
+    RegisterCommand("buzz",
+                    "buzz [status|beep|stop|tone F MS|melody] - GPIO21 "
+                    "buzzer",
+                    &CmdBuzz);
     RegisterCommand("js",
                     "js [status|probe N|pulp|tap X Y|swipe K] - "
                     "MicroQuickJS runtime",

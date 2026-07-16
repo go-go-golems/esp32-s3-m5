@@ -372,6 +372,7 @@ function g2048() {
       st.prev = before;
       st.pscore = st.score;
       st.score += gained;
+      if (gained > 0) { buzzer.tone(Math.min(660 + gained * 2, 1760), 30); }
       spawn(g);
       if (st.score > storeGet('2048best', 0)) {
         storeSet('2048best', st.score);
@@ -479,7 +480,11 @@ function tea() {
   p.on(G.TICK, function () {
     if (t.run && t.left > 0) {
       t.left -= 1;
-      if (t.left <= 0) { t.run = false; t.done = true; refresh(true); }
+      if (t.left <= 0) {
+        t.run = false; t.done = true;
+        buzzer.melody('880:150,0:60,1109:150,0:60,1319:300');
+        refresh(true);
+      }
       else { refresh(false); }
     }
   });
@@ -543,6 +548,7 @@ function postcard() {
       if (pc.draft === '') { pc.msg = 'nothing to seal'; }
       else if (appendPostcard(pc.draft) === 0) {
         pc.msg = 'sealed.'; pc.draft = '';
+        buzzer.melody('1319:40,880:80');
       } else { pc.msg = 'no card?'; }
       refresh();
     }));

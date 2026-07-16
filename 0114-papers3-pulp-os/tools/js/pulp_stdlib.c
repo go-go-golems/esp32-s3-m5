@@ -86,5 +86,17 @@ static const JSPropDef js_paper[] = {
 
 static const JSClassDef js_paper_obj = JS_OBJECT_DEF("Paper", js_paper);
 
+/* buzzer singleton (ESP-53): GPIO21 LEDC chimes. Synchronous verbs; the
+   owner tick times note stops, so nothing here blocks. */
+static const JSPropDef js_buzzer[] = {
+    JS_CFUNC_DEF("tone", 2, js_buzzer_tone),
+    JS_CFUNC_DEF("beep", 0, js_buzzer_beep),
+    JS_CFUNC_DEF("stop", 0, js_buzzer_stop),
+    JS_CFUNC_DEF("melody", 1, js_buzzer_melody),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_buzzer_obj = JS_OBJECT_DEF("Buzzer", js_buzzer);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

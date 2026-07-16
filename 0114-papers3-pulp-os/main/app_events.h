@@ -54,6 +54,8 @@ enum class ConsoleOp : uint8_t {
              //      3 = off, 4 = auto-sleep policy (arg2 s, 0 disables)
     Home,    // present the native home page (Phase 4 skeleton)
     Js,      // JS runtime ops (Phase 5+)
+    Buzz,    // arg: 0 = status, 1 = beep, 2 = stop,
+             //      3 = tone (arg2 = freq<<16 | ms), 4 = demo melody
 };
 
 enum class PointerPhase : uint8_t {
@@ -174,6 +176,15 @@ struct SdSnapshot {
     uint32_t catalog_writes;
 };
 
+struct BuzzSnapshot {
+    uint8_t initialized;
+    uint8_t playing;  // 1 = tone or melody currently sounding
+    uint8_t melody_active;
+    uint8_t melody_len;
+    uint8_t melody_index;
+    uint32_t tones_played;
+};
+
 struct JsSnapshot {
     uint8_t initialized;
     uint8_t screen_active;
@@ -196,6 +207,7 @@ struct AppReply {
         PowerSnapshot power;
         SdSnapshot sd;
         JsSnapshot js;
+        BuzzSnapshot buzz;
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

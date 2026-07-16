@@ -101,6 +101,10 @@ STUB(js_pulp_store_get)
 STUB(js_pulp_store_set)
 STUB(js_pulp_append_postcard)
 STUB(js_pulp_battery_level)
+STUB(js_buzzer_tone)
+STUB(js_buzzer_beep)
+STUB(js_buzzer_stop)
+STUB(js_buzzer_melody)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

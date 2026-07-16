@@ -106,6 +106,12 @@ PULP_JS_FN(js_pulp_store_set);
 PULP_JS_FN(js_pulp_append_postcard);
 PULP_JS_FN(js_pulp_battery_level);
 
+/* ESP-53 connectivity + peripherals. */
+PULP_JS_FN(js_buzzer_tone);
+PULP_JS_FN(js_buzzer_beep);
+PULP_JS_FN(js_buzzer_stop);
+PULP_JS_FN(js_buzzer_melody);
+
 #ifdef __cplusplus
 }
 #endif

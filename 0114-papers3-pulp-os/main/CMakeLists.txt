@@ -1,12 +1,14 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "app_buzzer.cpp"
         "app_owner.cpp"
         "app_console.cpp"
         "app_input.cpp"
         "app_power.cpp"
         "app_home.cpp"
         "app_js.cpp"
+        "js_buzzer.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
         "js_services.cpp"
@@ -18,6 +20,7 @@ idf_component_register(
         mquickjs
         console
         esp_driver_usb_serial_jtag
+        esp_driver_ledc
         esp_timer
         s3paper_core
         s3paper_m5

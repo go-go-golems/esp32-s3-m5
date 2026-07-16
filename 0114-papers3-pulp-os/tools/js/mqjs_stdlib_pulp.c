@@ -419,6 +419,8 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("appendPostcard", 1, js_pulp_append_postcard),
     /* Power/battery surface for launcher chrome. */
     JS_CFUNC_DEF("batteryLevel", 0, js_pulp_battery_level),
+    /* ESP-53 connectivity + peripherals. */
+    JS_PROP_CLASS_DEF("buzzer", &js_buzzer_obj),
 #endif
     JS_PROP_END,
 };
