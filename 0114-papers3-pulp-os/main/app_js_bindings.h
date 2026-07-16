@@ -65,6 +65,13 @@ PULP_JS_FN(js_w_progress);
 PULP_JS_FN(js_w_on_tap);
 PULP_JS_FN(js_w_every);
 PULP_JS_FN(js_w_quiet);
+PULP_JS_FN(js_w_line);
+PULP_JS_FN(js_w_disc);
+PULP_JS_FN(js_w_ring);
+PULP_JS_FN(js_w_box);
+PULP_JS_FN(js_w_paint);
+PULP_JS_FN(js_w_wipe);
+PULP_JS_FN(js_pulp_canvas);
 void js_widget_finalizer(JSContext *ctx, void *opaque);
 
 PULP_JS_FN(js_page_ctor);

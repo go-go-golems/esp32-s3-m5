@@ -461,6 +461,120 @@ JSValue js_w_quiet(JSContext *ctx, JSValue *this_val, int, JSValue *) {
     return *this_val;
 }
 
+// ---- Canvas methods (ESP-52): freehand command list ----
+
+JSValue js_pulp_canvas(JSContext *ctx, JSValue *, int, JSValue *) {
+    return MakeWidget(ctx, s3paper::NewCanvas(s3paper_runtime::Arena()));
+}
+
+namespace {
+
+int16_t ClampI16(int v) {
+    if (v < -32768) return -32768;
+    if (v > 32767) return 32767;
+    return static_cast<int16_t>(v);
+}
+
+// Shared body: parse up to `n_args` ints, build the command, append.
+JSValue CanvasMethod(JSContext *ctx, JSValue *this_val, int argc,
+                     JSValue *argv, uint8_t kind, int n_coords,
+                     bool has_thickness, const char *usage) {
+    JSValue err;
+    s3paper::WidgetHandle h;
+    s3paper::WidgetNode *n = ThisNode(ctx, this_val, &h, &err);
+    if (n == nullptr) return err;
+    if (n->kind != s3paper::WidgetKind::Canvas) {
+        return JS_ThrowTypeError(ctx, "%s: not a Canvas", usage);
+    }
+    // Args: n_coords ints, then gray, then optional thickness.
+    const int needed = n_coords + 1;
+    if (argc < needed) {
+        return JS_ThrowTypeError(ctx, "%s", usage);
+    }
+    int vals[4] = {0, 0, 0, 0};
+    for (int i = 0; i < n_coords; ++i) {
+        if (JS_ToInt32(ctx, &vals[i], argv[i])) return JS_EXCEPTION;
+    }
+    int gray = 0;
+    if (JS_ToInt32(ctx, &gray, argv[n_coords])) return JS_EXCEPTION;
+    int thickness = 1;
+    if (has_thickness && argc > needed &&
+        JS_ToInt32(ctx, &thickness, argv[needed])) {
+        return JS_EXCEPTION;
+    }
+    s3paper::CanvasCmd cmd{};
+    cmd.kind = kind;
+    cmd.gray = static_cast<s3paper::Gray8>(gray);
+    cmd.thickness =
+        static_cast<uint8_t>(thickness < 0 ? 0
+                                           : (thickness > 255 ? 255
+                                                              : thickness));
+    cmd.a = ClampI16(vals[0]);
+    cmd.b = ClampI16(vals[1]);
+    cmd.c = ClampI16(vals[2]);
+    cmd.d = ClampI16(vals[3]);
+    const s3paper::Status st =
+        s3paper_runtime::Arena().CanvasAppend(h, cmd);
+    if (!st.ok()) {
+        return JS_ThrowTypeError(ctx, "canvas append failed: %s",
+                                 s3paper::StatusCodeName(st.code));
+    }
+    return *this_val;
+}
+
+}  // namespace
+
+JSValue js_w_line(JSContext *ctx, JSValue *this_val, int argc,
+                  JSValue *argv) {
+    return CanvasMethod(ctx, this_val, argc, argv,
+                        s3paper::CanvasCmd::kLine, 4, true,
+                        "line(x0,y0,x1,y1,gray,t?)");
+}
+
+JSValue js_w_disc(JSContext *ctx, JSValue *this_val, int argc,
+                  JSValue *argv) {
+    return CanvasMethod(ctx, this_val, argc, argv,
+                        s3paper::CanvasCmd::kDisc, 3, false,
+                        "disc(cx,cy,r,gray)");
+}
+
+JSValue js_w_ring(JSContext *ctx, JSValue *this_val, int argc,
+                  JSValue *argv) {
+    return CanvasMethod(ctx, this_val, argc, argv,
+                        s3paper::CanvasCmd::kRing, 3, true,
+                        "ring(cx,cy,r,gray,t?)");
+}
+
+JSValue js_w_box(JSContext *ctx, JSValue *this_val, int argc,
+                 JSValue *argv) {
+    return CanvasMethod(ctx, this_val, argc, argv,
+                        s3paper::CanvasCmd::kBox, 4, true,
+                        "box(x,y,w,h,gray,t?)");
+}
+
+JSValue js_w_paint(JSContext *ctx, JSValue *this_val, int argc,
+                   JSValue *argv) {
+    return CanvasMethod(ctx, this_val, argc, argv,
+                        s3paper::CanvasCmd::kFill, 4, false,
+                        "paint(x,y,w,h,gray)");
+}
+
+JSValue js_w_wipe(JSContext *ctx, JSValue *this_val, int, JSValue *) {
+    JSValue err;
+    s3paper::WidgetHandle h;
+    s3paper::WidgetNode *n = ThisNode(ctx, this_val, &h, &err);
+    if (n == nullptr) return err;
+    if (n->kind != s3paper::WidgetKind::Canvas) {
+        return JS_ThrowTypeError(ctx, "wipe: not a Canvas");
+    }
+    const s3paper::Status st = s3paper_runtime::Arena().CanvasClear(h);
+    if (!st.ok()) {
+        return JS_ThrowTypeError(ctx, "wipe failed: %s",
+                                 s3paper::StatusCodeName(st.code));
+    }
+    return *this_val;
+}
+
 }  // extern "C"
 
 }  // namespace pulp

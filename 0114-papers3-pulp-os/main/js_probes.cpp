@@ -131,6 +131,32 @@ const char kProbe10Js[] =
     "p.show(true);\n"
     "print('pulp screen: probe10');\n";
 
+// 11: canvas primitives on the panel (ESP-52).
+const char kProbe11Js[] =
+    "resetTree();\n"
+    "var cv = canvas().height(700);\n"
+    "cv.box(20, 20, 460, 660, 0, 3);\n"
+    "cv.line(20, 20, 480, 680, 0, 2);\n"
+    "cv.line(480, 20, 20, 680, 128, 1);\n"
+    "cv.disc(250, 200, 80, 0);\n"
+    "cv.ring(250, 460, 100, 0, 6);\n"
+    "cv.ring(250, 460, 70, 128, 3);\n"
+    "cv.paint(60, 560, 120, 80, 200);\n"
+    "var p11 = page('probe11')\n"
+    "  .header(col().pad(16,40,6,40).gap(8)\n"
+    "    .add(text('CANVAS PROBE').size('lg'), divider(6,0)))\n"
+    "  .content(col().pad(10,40,10,40).add(cv));\n"
+    "p11.show(true);\n"
+    "print('pulp screen: probe11');\n"
+    "var bad = 'MISSED';\n"
+    "try { text('x').line(0,0,1,1,0); } catch (e) { bad = e.message; }\n"
+    "print('probe11: kindcheck -> ' + bad);\n"
+    "var full = 'MISSED';\n"
+    "try { var i; for (i = 0; i < 200; i++) {\n"
+    "  cv.line(0, i, 480, i, 0); } }\n"
+    "catch (e2) { full = e2.message; }\n"
+    "print('probe11: capacity -> ' + full);\n";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -157,6 +183,8 @@ StatusCode JsRunProbe(uint32_t which) {
         case 8: return jsi::EvalBounded(kProbe8Js, 3000, "<probe8>");
         case 9: return RunTraced(kProbe6Js, "<probe9>");
         case 10: return RunTraced(kProbe10Js, "<probe10>");
+        case 11: return jsi::EvalBounded(kProbe11Js, 3000, "<probe11>");
+        case 12: return RunTraced(kProbe11Js, "<probe12>");
         default: return StatusCode::InvalidArgument;
     }
 }

@@ -397,6 +397,7 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("progressBar", 2, js_pulp_progress_bar),
     JS_CFUNC_DEF("list", 0, js_pulp_list),
     JS_CFUNC_DEF("region", 3, js_pulp_region),
+    JS_CFUNC_DEF("canvas", 0, js_pulp_canvas),
     JS_CFUNC_DEF("page", 1, js_pulp_page),
     JS_PROP_CLASS_DEF("Widget", &js_widget_class),
     JS_PROP_CLASS_DEF("Page", &js_page_class),

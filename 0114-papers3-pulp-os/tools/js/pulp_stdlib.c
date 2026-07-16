@@ -42,6 +42,13 @@ static const JSPropDef js_widget_proto[] = {
     JS_CFUNC_DEF("onTap", 1, js_w_on_tap),
     JS_CFUNC_DEF("every", 2, js_w_every),
     JS_CFUNC_DEF("quiet", 0, js_w_quiet),
+    /* Canvas-kind methods (ESP-52): freehand command list. */
+    JS_CFUNC_DEF("line", 6, js_w_line),
+    JS_CFUNC_DEF("disc", 4, js_w_disc),
+    JS_CFUNC_DEF("ring", 5, js_w_ring),
+    JS_CFUNC_DEF("box", 6, js_w_box),
+    JS_CFUNC_DEF("paint", 5, js_w_paint),
+    JS_CFUNC_DEF("wipe", 0, js_w_wipe),
     JS_PROP_END,
 };
 
