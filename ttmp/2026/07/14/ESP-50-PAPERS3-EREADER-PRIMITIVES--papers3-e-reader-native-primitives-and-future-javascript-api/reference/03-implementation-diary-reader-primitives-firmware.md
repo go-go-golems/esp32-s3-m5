@@ -1208,3 +1208,43 @@ The design session ("let's design a little OS and a bunch of fun apps") became a
 - Native: `main/app_storage.cpp` (settings block), `main/app_js.cpp` (timer/store/postcard bindings, kMaxJsHits), `components/s3paper_m5/src/m5_backend.cpp` (GlyphRun guard), `main/app_display.cpp` (font registration), `components/s3paper_core/fonts/` (LibSansBoldUkr.ttf + license).
 - JS: `tools/js/apps/pulp.js` end to end.
 - Validate: `js pulp` → tap rows (console `js tap 270 <240|330|420|510|600>`), watch `pulp screen:` lines and `skipped=0`. Evidence: `scripts/output/0112-pulp-*.log`.
+
+## Step 21: Minimal-blit JS updates and the closed navigation loop
+
+Two user asks landed together: swipe-down on the book index should return to the PULP launcher, and "modify the draw algorithm to only redraw modified blit locations — for example in the chess clock, only the timers and only when they change." The second is now real: `UiPresentPageUpdate` brings the Phase 9 diff machinery to the JS present path, and the chess clock's tick went from a 540×960 full-page partial to a single 460×86 blit of the running clock's digits — with ZERO EPD work on ticks where nothing changed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "swipe down on book index so we can go back to the launcher." — mid-turn: "can we modify the draw algorithm to only redraw modified blit locations, for example in the chess clock, only the timers and only when they change?"
+
+**Assistant interpretation:** Close the navigation loop (library → launcher) and add diff-driven partial presents for JS apps so periodic updates blit only changed widgets.
+
+**Inferred user intent:** Make PULP OS feel like a coherent OS (navigation) and be a good e-ink citizen (no whole-page flashing for a ticking clock).
+
+**Commit (code):** cff325d — "UI: diff-driven JS updates + library swipe-down to launcher"
+
+### What I did
+- `UiPresentPageUpdate` (app_ui): re-layout the retained tree, `RenderStateDiff::Diff` against the last capture, union the damage, clipped re-render, TextRegion present; zero-damage ticks return Ok without touching the panel; missing capture or >16 rects falls back to a full-tree partial. `s3Present` mode 2 / facade `update: true` exposes it to JS.
+- Reworked blitz, tea, 2048, and postcard from rebuild-per-render to retained trees mutated via `.set()`/`.progress()` — `SetText`'s no-op-on-equal semantics means "update everything, only changes damage" (2048 sets all 16 cells; only moved tiles blit).
+- Library swipe-down → `JsRunApp(9)` (the launcher); synthetic console gestures now fall through to the native reader path when no JS screen is active, so the whole loop validates hands-free.
+
+### What worked
+- Chess clock running: `update present: 1 rect(s), damage 460x86 at 40,336` once a second (13× less area than before); stopped clock: timer dispatches continue but the diff yields zero rects and no present at all.
+- Full loop on hardware: blitz → swipe-down → launcher → tap Reader → native reader → swipe-down → library (4 rows — the operator's sealed postcard is now a real book on the shelf) → swipe-down → launcher.
+
+### What didn't work (two real bugs found by validation)
+- First update-mode build re-collected hit regions under the damage clip — regions shrank to the clip and taps died after the first tick. Update mode now preserves the caller's previous hit regions (geometry is unchanged by contract).
+- `CompileTree` treats a hit-id node with a null hits array as CapacityExceeded — the update path passed nullptr and every present failed once the clock had tap zones. It now compiles into a discarded scratch array.
+- Also learned: the per-second `js present` log fires even for zero-work updates (status Ok, no EPD) — twice I misread idle ticks as a running clock. The new `update present` log line reports actual damage.
+
+### What warrants a second pair of eyes
+- The update contract ("content-only mutations, geometry unchanged") is enforced by convention, not code: a JS app that changes layout and then presents with update:true gets frame-move damage from the diff (correct) but keeps STALE hit regions. Documented in the header; a geometry-change detector could force a full present.
+- The 16-rect diff budget and 64-slot hit scratch are new fixed caps; both fall back explicitly.
+
+### What should be done in the future
+- Migrate the native fixture clock's bespoke tick path onto UiPresentPageUpdate (it predates it).
+- Operator: watch the chess clock tick — only the running clock's digits should flicker, once a second.
+
+### Code review instructions
+- `main/app_ui.cpp` `UiPresentPageUpdate` (fallbacks, hit scratch, damage log); `main/app_js.cpp` present mode 2 + hit preservation; `tools/js/apps/pulp.js` retained blitz/tea/2048/postcard; `main/app_reader.cpp` library SwipeDown branch.
+- Validate: `js pulp` → open Blitz Ink → start a side → console shows one small `update present` rect per second; library swipe-down returns to the launcher. Evidence: `scripts/output/0112-pulp-diff-final3.log`, `0112-nav-loop2.log`.

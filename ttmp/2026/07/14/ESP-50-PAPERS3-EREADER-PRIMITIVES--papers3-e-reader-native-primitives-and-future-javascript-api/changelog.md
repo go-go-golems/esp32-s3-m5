@@ -583,3 +583,12 @@ Step 20: PULP OS - JS launcher + six apps (dice, chess clock, 2048, tea timer, p
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/tools/js/apps/pulp.js — PULP OS bytecode source (commit e7aa3c8)
 
+
+## 2026-07-16
+
+Step 21: diff-driven JS partial updates (chess clock ticks blit one 460x86 rect instead of full page; zero EPD work when idle) and library swipe-down back to the PULP launcher; retained-tree rework of blitz/tea/2048/postcard; fixed hit-region clipping and null-hits compile errors in the update path (commit cff325d)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_ui.cpp — UiPresentPageUpdate diff present (commit cff325d)
+
