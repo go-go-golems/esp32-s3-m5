@@ -8,12 +8,12 @@
 - [x] [P0.3] Flash 0112, exercise console: status, reader next/prev, library show, js pulp, js trace <!-- t:wbkl -->
 - [x] [P0.4] Run the console client with a saved transcript; confirm serial discipline understood <!-- t:muup -->
 - [x] [P0.5] Create the 0114 diary doc and record Step 1 with environment evidence <!-- t:tzvn -->
-- [ ] Phase 1 - Extract s3paper_core and s3paper_m5 to top-level components/; re-point 0112 <!-- t:1ba6 -->
-- [ ] [P1.1] Move components/s3paper_core and s3paper_m5 from 0112 to repo components/ (git mv, history preserved) <!-- t:wzda -->
-- [ ] [P1.2] Add EXTRA_COMPONENT_DIRS to 0112 and set(COMPONENTS ...) trimming; keep esp_psram named <!-- t:pj47 -->
-- [ ] [P1.3] Rebuild 0112 clean (rm -rf build sdkconfig), verify binary size and boot <!-- t:cfrc -->
-- [ ] [P1.4] Host suite still green from the new location; fix Makefile paths <!-- t:fiqf -->
-- [ ] [P1.5] Device smoke: boot restore, one page turn partial, library show transcript saved <!-- t:p93u -->
+- [x] Phase 1 - Extract s3paper_core and s3paper_m5 to top-level components/; re-point 0112 <!-- t:1ba6 -->
+- [x] [P1.1] Move components/s3paper_core and s3paper_m5 from 0112 to repo components/ (git mv, history preserved) <!-- t:wzda -->
+- [x] [P1.2] Add EXTRA_COMPONENT_DIRS to 0112 and set(COMPONENTS ...) trimming; keep esp_psram named <!-- t:pj47 -->
+- [x] [P1.3] Rebuild 0112 clean (rm -rf build sdkconfig), verify binary size and boot <!-- t:cfrc -->
+- [x] [P1.4] Host suite still green from the new location; fix Makefile paths <!-- t:fiqf -->
+- [x] [P1.5] Device smoke: boot restore, one page turn partial, library show transcript saved <!-- t:p93u -->
 - [ ] Phase 2 - Extract s3paper_storage component from 0112 main/app_storage <!-- t:bgb6 -->
 - [ ] [P2.1] Define the component API header (mount/scan/catalog/positions/bookmarks/settings/lastbook) using s3paper::StatusCode only <!-- t:amcj -->
 - [ ] [P2.2] Inject the display-init-before-mount constraint as a callback; parameterize the demo-book seed <!-- t:e2rt -->

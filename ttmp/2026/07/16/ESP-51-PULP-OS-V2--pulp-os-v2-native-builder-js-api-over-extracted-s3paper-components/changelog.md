@@ -22,3 +22,12 @@ Step 1: Phase 0 orientation complete - host suite 37989 green, 0112 builds (1008
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/16/ESP-51-PULP-OS-V2--pulp-os-v2-native-builder-js-api-over-extracted-s3paper-components/scripts/output/p0-baseline-smoke.log — Phase 0 device evidence
 
+
+## 2026-07-16
+
+Step 2: Phase 1 complete - components promoted to repo components/, 0112 re-pointed and device-validated (commit 9d80478)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/CMakeLists.txt — EXTRA_COMPONENT_DIRS + trimmed COMPONENTS
+

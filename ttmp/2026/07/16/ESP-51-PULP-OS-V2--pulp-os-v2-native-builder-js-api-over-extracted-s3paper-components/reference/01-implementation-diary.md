@@ -64,3 +64,46 @@ Phase 0 of the plan: prove the environment end to end before touching anything. 
 
 ### Technical details
 - Baseline binary size 1008K; host suite 37,989 checks; console fingerprints: postcard hits=30, `js present ... full=1` after CleanFull.
+
+## Step 2: Phase 1 — s3paper_core and s3paper_m5 promoted to repo components/
+
+The two pure/proven components moved out of 0112 into the repo-level `components/` directory with `git mv` (history preserved), and 0112 was re-pointed with explicit `EXTRA_COMPONENT_DIRS` entries plus a trimmed `set(COMPONENTS main esp_psram)`. The engine copy (`0112/components/mquickjs`) deliberately stays per-firmware: its atom header is generated from that firmware's stdlib.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Phase 1 of the plan: extract shared components without regressing 0112.
+
+**Inferred user intent:** Shared foundation for the 0114 firmware.
+
+**Commit (code):** 9d80478 — "ESP-51 Phase 1: promote s3paper_core + s3paper_m5 to repo components/, re-point 0112"
+
+### What I did
+- `git mv 0112-papers3-reader-primitives/components/{s3paper_core,s3paper_m5} components/`.
+- Rewrote `0112/CMakeLists.txt`: EXTRA_COMPONENT_DIRS pointing at the two specific component dirs (never the whole shared components/ tree), `set(COMPONENTS main esp_psram)` with a comment explaining the named-esp_psram gotcha.
+- Clean rebuild (`rm -rf build sdkconfig`): binary 0xfa9b0 (~1002 KiB, matches 1008K baseline). `CONFIG_SPIRAM=y` confirmed re-seeded.
+- Host suite from the new location: `components/s3paper_core/tests/host` -> 37,989 green (relative paths inside the component were unaffected by the move).
+- Flashed; smoke transcript `scripts/output/p1-relocated-components-smoke.log`: boot restore `resumed=1` into Alice at saved offset, `reader next/prev` TextPage present, `library show` with 4 row regions and 3 books.
+
+### Why
+- 0114 must consume these components without copying; 0112 stays the regression guard.
+
+### What worked
+- Everything on the first build. The explicit-dirs approach avoided the 0113 failure mode (whole-directory EXTRA_COMPONENT_DIRS pulling unresolved components).
+
+### What didn't work
+- N/A — the two known gotchas (esp_psram naming, sdkconfig re-seed) were designed around up front.
+
+### What was tricky to build
+- Only the CMake trim: `set(COMPONENTS main esp_psram)` prunes the build graph, so anything not reachable from main's REQUIRES disappears, including Kconfig-only components. esp_psram is named explicitly for that reason.
+
+### What warrants a second pair of eyes
+- Any other project referencing these components by the old path (none found; 0113 has its own copies).
+
+### What should be done in the future
+- Phase 2/3 extractions build on this layout.
+
+### Code review instructions
+- `0112-papers3-reader-primitives/CMakeLists.txt` (the whole change surface besides the move).
+- Validate: host suite from `components/s3paper_core/tests/host`; `idf.py build` in 0112.
