@@ -620,6 +620,10 @@ var INK = { scene: 0, lastMin: -1 };
 
 function ink() {
   enter('ink');
+  // Scene geometry follows the live canvas width (540 minus the global
+  // margins), so the margin toggle keeps compositions centered.
+  var W = 540 - 2 * M;
+  var CX = Math.floor(W / 2);
   var cv = canvas().height(760);
   var cap = text(' ').size('xs').gray(96).center();
   var p = page('ink')
@@ -629,7 +633,7 @@ function ink() {
 
   function clockFace(min) {
     cv.wipe();
-    var cx = 230;
+    var cx = CX;
     var cy = 340;
     var r = 190;
     cv.ring(cx, cy, r, 0, 4);
@@ -658,12 +662,12 @@ function ink() {
     cv.wipe();
     var i;
     for (i = 0; i < 4; i++) {
-      cv.line(Math.floor(Math.random() * 460), 0,
-              Math.floor(Math.random() * 460), 760,
+      cv.line(Math.floor(Math.random() * W), 0,
+              Math.floor(Math.random() * W), 760,
               Math.floor(Math.random() * 160), 1);
     }
     for (i = 0; i < 30; i++) {
-      var x = 30 + Math.floor(Math.random() * 400);
+      var x = 30 + Math.floor(Math.random() * (W - 60));
       var y = 30 + Math.floor(Math.random() * 700);
       var rr = 6 + Math.floor(Math.random() * 44);
       var g = (i * 37) % 256;
@@ -675,16 +679,19 @@ function ink() {
 
   function ladder() {
     cv.wipe();
-    var cx = 230;
+    var cx = CX;
     var cy = 360;
     var i;
     for (i = 0; i < 16; i++) {
       cv.ring(cx, cy, 300 - i * 18, i * 17, 9);
     }
     cv.disc(cx, cy, 300 - 16 * 18, 255);
-    cv.box(10, 700, 440, 40, 0, 2);
+    var cell = Math.floor((W - 24) / 16);
+    var strip = cell * 16;
+    var sx = Math.floor((W - strip) / 2);
+    cv.box(sx - 2, 700, strip + 4, 40, 0, 2);
     for (i = 0; i < 16; i++) {
-      cv.paint(12 + i * 27, 702, 27, 36, i * 17);
+      cv.paint(sx + i * cell, 702, cell, 36, i * 17);
     }
     cap.set('sixteen grays - the whole palette');
   }
