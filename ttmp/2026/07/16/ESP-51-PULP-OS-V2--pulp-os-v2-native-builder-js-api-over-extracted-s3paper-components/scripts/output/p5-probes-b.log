@@ -1,0 +1,40 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js probe 1
+js probe 1
+I (77205) m5_backend: present id=2 intent=CleanFull ops=13 skipped=0 damage=0,0,540,960 render_us=131121 wait_us=12
+I (77206) js: js present: page=probe1 hits=0 mode=1
+pulp screen: probe1
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js probe 3
+js probe 3
+js error in <probe3>: TypeError: invalid array subscript
+    at onTap (native)
+    at <eval> (<probe3>:5:9)
+js op result: CorruptData
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=1 dispatches=0 last_error="TypeError: invalid array subscript"
+Command returned non-zero error code: 0x1 (ERROR)
+pulp> 
+# >>> js tap 270 300
+js tap 270 300
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=1 dispatches=1 last_error="TypeError: invalid array subscript"
+pulp> 
+# >>> js tap 270 300
+js tap 270 300
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=1 dispatches=2 last_error="TypeError: invalid array subscript"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=1 dispatches=3 last_error="TypeError: invalid array subscript"
+pulp> 
+# >>> js probe 4
+js probe 4
+js error in <probe4>: TypeError: invalid array subscript
+    at text (native)
+    at <eval> (<probe4>:3:17)
+js op result: CorruptData
+js init=1 screen_active=1 arena=163840 evals=6 exceptions=2 dispatches=3 last_error="TypeError: invalid array subscript"
+Command returned non-zero error code: 0x1 (ERROR)
+pulp> 
+# done

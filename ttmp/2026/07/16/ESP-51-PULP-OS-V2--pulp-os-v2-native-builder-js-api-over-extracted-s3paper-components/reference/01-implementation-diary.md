@@ -239,3 +239,57 @@ New project `0114-papers3-pulp-os` (namespace `pulp`): 16 MB partitions and PSRA
 ### Code review instructions
 - Start: `0114-papers3-pulp-os/main/app_owner.cpp` (boot flow + tick hooks), `app_input.cpp` (handler hook), `app_power.cpp` (SleepImageBuilder).
 - Validate: build + flash, then `status`, `home`, `sd status` via the console client.
+
+## Step 6: Phases 5+6 — the v2 builder API works end to end on hardware
+
+The heart of the ticket. 0114 now runs MicroQuickJS with the v2 stdlib: factories (`text/row/col/spacer/divider/progressBar/list/region/page`) return native class instances whose opaque is the packed WidgetHandle; the fluent methods (`pad/gap/aligns/width/height/flex/font/size/gray/center/align/invert/dep/hit/add/set/progress/onTap/every/quiet`) are C functions in the ROM Widget prototype chaining via `*this_val`; `Page` (retained by name, `header/content/footer/overlay/on/every/show/update`) and the `paper` singleton (`home/sleepImage/refreshTurns/version`) complete the surface. Closures live in the kernel's `__cbs` array (the ~2-line JS kernel is all that remains of the v1 facade); native code stores only integer callback ids and dispatches gestures with direct `JS_Call` — no eval-string parse per gesture. `text(fn)` dynamic values re-evaluate on the page tick with SetText's no-op-on-equal doing the damage minimization.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1) — plus mid-turn: "ok, maybe you can split those big ass files into something a bit more manageable."
+
+**Assistant interpretation:** Implement Phases 5 and 6; refactor the monolithic app_js.cpp into focused translation units.
+
+**Inferred user intent:** A maintainable v2 JS platform proven on hardware.
+
+**Commit (code):** e5f6313 — "ESP-51 Phase 5+6: v2 builder API - native Widget/Page classes, __cbs closures, direct dispatch, dyn values; fix TTF-only MeasureText guard"
+
+### What I did
+- Vendored the engine (`0114/components/mquickjs`, provenance README), wrote the v2 stdlib (`tools/js/pulp_stdlib.c` + CONFIG_PULP block), ported the gen scripts + host compiler (`pulpjsc`), generated device+host headers.
+- `main/` JS platform split per the user's request: `app_js.cpp` (host core: context/deadline/exceptions/CallCb/dispatch/tick, 520 lines), `js_widgets.cpp` (464), `js_pages.cpp` (222), `js_services.cpp` (book/library/store/postcard/battery, 296), `js_probes.cpp` (10 embedded validation probes, 164), sharing state via `app_js_internal.h` (namespace `pulp::jsi`).
+- s3paper_core: `invert` text prop (filled chip + inverse ink) with host test; `RefreshPlanner::set_policy` for the paper singleton.
+- Console: `js [status|probe N|pulp|tap X Y|swipe K]`; probe/pulp arg-space separated after a collision (probe 10 originally decoded as the pulp op).
+- Hardware evidence (p56-final-a/b.log): probe1 13 ops incl. invert chip; probe2 stale/badfont/arena-full all contained; probe3 taps -> JS closure -> counter set -> **127x45 damage rect per tap**; swipe-down page handler; probe4 dynamic clock ticking **one 460x86 rect/second** (render_us ~15k); exceptions=0 across the battery.
+
+### Why
+- This is the design the whole ticket exists for (intern guide §7): prototypes in ROM not arena RAM, no facade eval, single native validation point, direct dispatch.
+
+### What worked
+- The spike's opaque-handle pattern transplanted cleanly; probe1 rendered correctly on the first flash.
+
+### What didn't work (chronological, all fixed)
+- `JS_CLASS_COUNT` must be defined to cover user classes before including the generated table ("array index in initializer exceeds array bounds").
+- `resetTree` created an EMPTY `__cbs` array; the first `onTap` then wrote index 1 and mquickjs's stricter dialect threw `TypeError: invalid array subscript` (array holes are errors). Fixed by seeding slot 0 with null.
+- **The big one:** a row-nested display-face text vanished (probe3/6/7/8, ops=2 instead of 3). Bisect: probe10 matrix (plain-font rows all fine) -> host repro of the exact tree (fine with kFontUi) -> host font repro: `MeasureText(kFontDisplay, ...) == InvalidArgument for EVERYTHING`. Root cause: `MeasureText`/`BreakLines` gate on `GetFont(font_id) == nullptr` — the bitmap-fallback table that only knows ids 0/1 — so TTF-only faces failed measurement; in a row (intrinsic width) the text laid out zero-size and its glyph was clipped away. The EXACT bug class as the m5 backend's GlyphRun skip guard (ESP-50 S20), one layer down. Fixed both call sites with `IsTtfFont(id) ||` and added a host regression test (38,007 checks green). v1 never hit this because no v1 app ever put a display-face text in a row.
+- `js probe 1` swallowed once by sending commands before boot settle (console client raced the 7 s boot; harmless, re-ran).
+
+### What I learned
+- "Same bug class, one layer down" is real: when a legacy two-font assumption is found once, grep for the PATTERN (`GetFont(font_id) == nullptr`), not the symptom.
+- The probe suite earned its keep: probe10's row-variant matrix + the fake-backend trace probes (9/10) localized the bug to measurement in two iterations.
+
+### What was tricky to build
+- GC discipline in CallCb/RegisterCb: int32 args are immediates (safe to push), but every JSValue held across an allocating call must be re-fetched; RegisterCb re-reads `__cbs` after the property set for exactly this reason.
+- The dispatch layering: tap -> topmost hit cb; other gestures -> page handler; swipe-down -> paper.home fallback; everything consumed while a JS page owns the panel (PresentCount contract).
+
+### What warrants a second pair of eyes
+- `CallCb` returns JS_UNDEFINED for "no cb" AND "cb threw" — callers cannot distinguish; fine for gestures, watch it for future value-returning callbacks (sleepImage already tolerates it).
+- The `tap x,y hit=N` ESP_LOGI is intentionally permanent (transcript evidence technique).
+
+### What should be done in the future
+- P5.7's bytecode load-before-eval is scaffolded but unproven until Phase 7 ships the pulp.js image (task 9ryy left open).
+- Kernel list `.item()` sugar (task doxu) deferred to Phase 7 — ROM prototypes cannot be extended at runtime, so it may become a native method instead.
+
+### Code review instructions
+- Start: `0114/main/app_js_internal.h` (the contract), then `app_js.cpp` CallCb/RegisterCb/JsHandleGesture/JsTimerTick, then `js_widgets.cpp` onTap + text(fn).
+- The core fix: `components/s3paper_core/src/text.cpp` MeasureText/BreakLines guards + the regression test in tests/host/test_main.cpp (font init block).
+- Validate: `js probe 1..8`, `js tap 270 160` on probe3, probe4 tick logs; transcripts `p56-final-a/b.log`.

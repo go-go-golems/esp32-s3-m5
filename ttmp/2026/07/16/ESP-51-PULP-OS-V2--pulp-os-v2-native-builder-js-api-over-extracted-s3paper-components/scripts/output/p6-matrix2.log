@@ -1,0 +1,33 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (106) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1026) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1041) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1041) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> js probe 10
+js probe 10
+I (8735) js: context ready: arena=163840 bytes, abi=v2
+I (8751) js: text[2.25] "AAA"
+I (8752) js: add parent[1.26] child[2.25]
+I (8752) js: text[4.15] "BBB"
+I (8753) js: add parent[3.24] child[4.15]
+I (8754) js: text[6.15] "CCC"
+I (8754) js: add parent[5.15] child[6.15]
+I (8755) js: text[8.15] "DDD"
+I (8756) js: text[9.15] "EEE"
+I (8756) js: add parent[7.15] child[8.15]
+I (8757) js: add parent[7.15] child[9.15]
+I (8757) js: add parent[0.15377] child[1.26]
+I (8758) js: add parent[0.15377] child[3.24]
+I (8758) js: add parent[0.15377] child[5.15]
+I (8758) js: add parent[0.15377] child[7.15]
+I (8765) js: js present: page=probe10 hits=0 mode=1
+pulp screen: probe10
+present id=2 intent=CleanFull ops=6 damage=0,0,540,960
+op kind=FillRect gray=255 bounds=0,0,540,960 clip=0,0,540,960
+op kind=GlyphRun gray=0 bounds=40,40,54,34 clip=40,40,460,34 baseline=67 font=1 size=0 text="AAA"
+op kind=GlyphRun gray=0 bounds=80,106,48,34 clip=40,94,460,58 baseline=133 font=1 size=0 text="BBB"
+op kind=GlyphRun gray=0 bounds=40,172,460,34 clip=40,172,460,34 baseline=199 font=1 size=0 text="CCC"
+op kind=GlyphRun gray=0 bounds=40,226,54,34 clip=40,226,460,34 baseline=253 font=1 size=0 text="DDD"
+op kind=GlyphRun gray=0 bounds=106,226,45,34 clip=40,226,460,34 baseline=253 font=1 size=0 text="EEE"
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# done

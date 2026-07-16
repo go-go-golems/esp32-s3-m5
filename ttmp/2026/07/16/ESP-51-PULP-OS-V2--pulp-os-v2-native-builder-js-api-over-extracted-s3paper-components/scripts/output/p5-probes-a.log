@@ -1,0 +1,118 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (106) esp_image: segment 3: paddr=00070020 vaddr=42000020 sizeI (219) esp_image: segment 6: paddr=000fcb30 vaddr=600fe000 size=0006ch (   108) load
+I (228) boot: Loaded app from partition at offset 0x10000
+I (228) boot: Disabling RNG early entropy source...
+I (229) octal_psram: vendor id    : 0x0d (AP)
+I (229) octal_psram: dev id       : 0x02 (generation 3)
+I (229) octal_psram: density      : 0x03 (64 Mbit)
+I (229) octal_psram: good-die     : 0x01 (Pass)
+I (229) octal_psram: Latency      : 0x01 (Fixed)
+I (230) octal_psram: VCC          : 0x01 (3V)
+I (230) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (230) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (230) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (231) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (231) octal_psram: DriveStrength: 0x00 (1/1)
+I (231) esp_psram: Found 8MB PSRAM device
+I (231) esp_psram: Speed: 40MHz
+I (232) cpu_start: Multicore app
+
+# >>> js probe 1
+I (963) esp_psram: SPI SRAM memory test OK
+I (971) cpu_start: Pro cpu start user code
+I (971) cpu_start: cpu freq: 160000000 Hz
+I (972) app_init: Application information:
+I (972) app_init: Project name:     papers3_pulp_os
+I (972) app_init: App version:      ff558d7-dirty
+I (972) app_init: Compile time:     Jul 16 2026 15:08:50
+I (972) app_init: ELF file SHA256:  53bf89630...
+I (972) app_init: ESP-IDF:          v5.3.4
+I (973) efuse_init: Min chip rev:     v0.0
+I (973) efuse_init: Max chip rev:     v0.99 
+I (973) efuse_init: Chip rev:         v0.2
+I (973) heap_init: Initializing. RAM available for dynamic allocation:
+I (974) heap_init: At 3FCA5550 len 000441C0 (272 KiB): RAM
+I (974) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (974) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (974) heap_init: At 600FE06C len 00001F7C (7 KiB): RTCRAM
+I (974) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (976) spi_flash: detected chip: generic
+I (976) spi_flash: flash io: dio
+I (977) sleep: Configure to isolate all GPIO pins in sleep state
+I (977) sleep: Enable automatic switching of GPIO sleep configuration
+I (978) main_task: Started on CPU0
+I (979) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (980) main_task: Calling app_main()
+I (980) app_main: pulp-os boot
+I (980) app_main: chip=esp32s3 cores=2 rev=2 reset_reason=11
+I (980) app_main: heap internal_free=315407 largest=221184
+I (980) app_main: psram free=8385916 largest=8257536
+I (981) power: boot: reset_reason=11 wakeup_cause=0
+I (981) runtime: fonts registered: serif=134264B sans=56032B body line_height=34
+[5nI (983) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (998) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (998) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (999) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1000) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1000) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1002) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1003) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1004) M5GFX: [Autodetect] board_M5PaperS3
+I (1255) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1256) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1260) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1261) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1322) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1323) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Putty instead.
+pulp> I (2942) app_main: pulp-os ready: owner task + console proxy active
+I (3004) main_task: Returned from app_main()
+I (6126) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6127) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6132) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6133) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6431) m5_backend: init board=19 display=540x960
+I (6434) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (6436) sdspi_transaction: cmd=52, R1 response: command not supported
+I (6480) sdspi_transaction: cmd=5, R1 response: command not supported
+I (6533) storage: mounted /sdcard: 7580 MiB
+I (6542) storage: loaded 1 reading position(s)
+I (6554) storage: loaded 2 bookmark(s)
+I (6573) storage: loaded catalog with 3 book(s)
+W (6586) storage: primary settings missing; using backup
+I (6589) storage: loaded 1 setting(s)
+I (6971) m5_backend: present id=1 intent=CleanFull ops=9 skipped=0 damage=0,0,540,960 render_us=365273 wait_us=17
+pulp screen: home-native
+I (6973) home: home presented (full=1)
+I (6973) input: touch polling enabled (20ms)
+I (6974) owner: owner task ready; queue capacity=32
+
+# >>> js probe 2
+js probe 2
+I (10787) js: context ready: arena=163840 bytes, abi=v2
+probe2: stale -> stale widget handle
+probe2: badfont -> bad font id
+probe2: arena-full -> widget arena full
+js init=1 screen_active=0 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js probe 5
+js probe 5
+probe5: battery=100
+probe5: store=42
+probe5: books=0
+js init=1 screen_active=0 arena=163840 evals=3 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js status
+js status
+js init=1 screen_active=0 arena=163840 evals=3 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# done

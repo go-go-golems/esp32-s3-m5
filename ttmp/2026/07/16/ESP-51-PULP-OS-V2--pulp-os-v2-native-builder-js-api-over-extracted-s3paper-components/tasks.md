@@ -31,22 +31,22 @@
 - [x] [P4.3] Console skeleton: status, heap, display; input service with gesture pipeline <!-- t:j8kr -->
 - [x] [P4.4] Boot renders a native hello page through s3paper_runtime; transcript saved <!-- t:pglr -->
 - [x] [P4.5] Power module: sleep sequence, battery status, boot-cause log (copy/trim; sleep image placeholder) <!-- t:b3np -->
-- [ ] Phase 5 - MicroQuickJS engine + v2 builder stdlib (classes, factories, ROM prototypes) <!-- t:tbhl -->
-- [ ] [P5.1] Vendor the engine copy; port gen scripts; generate stdlib+atoms; record provenance in README <!-- t:xrqj -->
-- [ ] [P5.2] Widget class: opaque packed handle, no-op finalizer, generation-checked methods throwing stale TypeError <!-- t:hiou -->
-- [ ] [P5.3] Factories text/row/col/spacer/divider/progressBar/list/region/book returning class instances <!-- t:otgj -->
-- [ ] [P5.4] Prototype methods pad/gap/aligns/width/height/flex/size-token/gray/center/add/set/progress, chaining via this <!-- t:7u0w -->
-- [ ] [P5.5] Page class (opaque PageId): header/content/footer/overlay/show; paper singleton with refresh param setters <!-- t:cz4t -->
-- [ ] [P5.6] New native text prop: invert (filled background); host test + golden update <!-- t:o3nn -->
+- [x] Phase 5 - MicroQuickJS engine + v2 builder stdlib (classes, factories, ROM prototypes) <!-- t:tbhl -->
+- [x] [P5.1] Vendor the engine copy; port gen scripts; generate stdlib+atoms; record provenance in README <!-- t:xrqj -->
+- [x] [P5.2] Widget class: opaque packed handle, no-op finalizer, generation-checked methods throwing stale TypeError <!-- t:hiou -->
+- [x] [P5.3] Factories text/row/col/spacer/divider/progressBar/list/region/book returning class instances <!-- t:otgj -->
+- [x] [P5.4] Prototype methods pad/gap/aligns/width/height/flex/size-token/gray/center/add/set/progress, chaining via this <!-- t:7u0w -->
+- [x] [P5.5] Page class (opaque PageId): header/content/footer/overlay/show; paper singleton with refresh param setters <!-- t:cz4t -->
+- [x] [P5.6] New native text prop: invert (filled background); host test + golden update <!-- t:o3nn -->
 - [ ] [P5.7] VM host: PSRAM arena, deadline wrapper, exception snapshot, bytecode load-before-eval <!-- t:9ryy -->
-- [ ] [P5.8] Console js eval probes validating each builder on hardware <!-- t:eokc -->
-- [ ] Phase 6 - Closures without native JSValues: __cbs registry, direct dispatch, dynamic values <!-- t:bm1c -->
+- [x] [P5.8] Console js eval probes validating each builder on hardware <!-- t:eokc -->
+- [x] Phase 6 - Closures without native JSValues: __cbs registry, direct dispatch, dynamic values <!-- t:bm1c -->
 - [ ] [P6.1] Kernel JS: __cbs array + gesture-name constants + list .item() sugar (~30 lines, part of the bytecode image) <!-- t:doxu -->
-- [ ] [P6.2] onTap(fn): cb id in node hit_id, fn stored via JS_SetPropertyUint32; page.on(gesture, fn) native map <!-- t:xfb8 -->
-- [ ] [P6.3] Gesture path: hit-test -> JS_Call(__cbs[id], kind, x, y) directly (no eval-string); synthetic tap/swipe console injectors <!-- t:48s8 -->
-- [ ] [P6.4] text(fn) dynamic values: native {handle, cb_id} table; owner tick calls fns, SetText, single PresentPageUpdate <!-- t:lrgf -->
-- [ ] [P6.5] every(ms)/quiet() region sugar wired to the tick; zero-damage ticks must do zero EPD work (log proves it) <!-- t:6s9i -->
-- [ ] [P6.6] Fault containment: throwing callbacks counted + surfaced; stale-handle and arena-full paths validated <!-- t:jec7 -->
+- [x] [P6.2] onTap(fn): cb id in node hit_id, fn stored via JS_SetPropertyUint32; page.on(gesture, fn) native map <!-- t:xfb8 -->
+- [x] [P6.3] Gesture path: hit-test -> JS_Call(__cbs[id], kind, x, y) directly (no eval-string); synthetic tap/swipe console injectors <!-- t:48s8 -->
+- [x] [P6.4] text(fn) dynamic values: native {handle, cb_id} table; owner tick calls fns, SetText, single PresentPageUpdate <!-- t:lrgf -->
+- [x] [P6.5] every(ms)/quiet() region sugar wired to the tick; zero-damage ticks must do zero EPD work (log proves it) <!-- t:6s9i -->
+- [x] [P6.6] Fault containment: throwing callbacks counted + surfaced; stale-handle and arena-full paths validated <!-- t:jec7 -->
 - [ ] Phase 7 - PULP apps on v2 + book service <!-- t:r712 -->
 - [ ] [P7.1] Port the book service (JsBook + s3Book* equivalents) keeping the 0112 LayoutKey for position interop <!-- t:ao0i -->
 - [ ] [P7.2] Launcher + Dice + Tea on v2; per-app line counts should drop sharply vs v1 <!-- t:v23v -->

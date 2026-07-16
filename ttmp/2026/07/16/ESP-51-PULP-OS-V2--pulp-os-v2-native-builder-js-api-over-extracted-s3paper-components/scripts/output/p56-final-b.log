@@ -1,0 +1,25 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (37322) m5_backend: present id=10 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15713 wait_us=12
+I (37323) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (37324) js: js present: page=probe4 hits=0 mode=2
+I (38362) m5_bacI (41503) m5_backend: present id=14 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=16712 wait_us=12
+I (41504) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (41505) js: js present: page=probe4 hits=0 mode=2
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=0 dispatches=11 last_error=""
+pulp> I (42542) m5_backend: present id=15 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15716 wait_us=9
+I (42543) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (42544) js: js present: page=probe4 hits=0 mode=2
+I (43582) m5_backend: present id=16 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15639 wait_us=6
+I (43583) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (43584) js: js present: page=probe4 hits=0 mode=2
+I (44621) m5_backend: present id=17 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14634 wait_us=6
+I (44622) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (44623) js: js present: page=probe4 hits=0 mode=2
+I (45641) m5_backend: present id=18 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14632 wait_us=6
+I (45642) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (45643) js: js present: page=probe4 hits=0 mode=2
+I (46662) m5_backe
+# done

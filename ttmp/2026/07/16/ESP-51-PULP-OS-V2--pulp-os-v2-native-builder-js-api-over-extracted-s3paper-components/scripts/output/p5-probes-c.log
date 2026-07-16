@@ -1,0 +1,7 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=6 exceptions=2 dispatches=3 last_error="TypeError: invalid array subscript"
+pulp> 
+# done

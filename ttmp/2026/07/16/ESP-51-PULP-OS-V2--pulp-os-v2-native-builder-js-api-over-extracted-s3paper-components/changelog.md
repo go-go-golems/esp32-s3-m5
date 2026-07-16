@@ -58,3 +58,12 @@ Step 5: Phase 4 complete - 0114 skeleton boots: owner/console/input/power/native
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_owner.cpp — Boot flow and owner loop
 
+
+## 2026-07-16
+
+Step 6: Phases 5+6 - v2 builder API live on hardware (native classes, closures, direct dispatch, dyn values); fixed TTF-only MeasureText core bug (commit e5f6313)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/s3paper_core/src/text.cpp — MeasureText/BreakLines TTF-only guard fix
+

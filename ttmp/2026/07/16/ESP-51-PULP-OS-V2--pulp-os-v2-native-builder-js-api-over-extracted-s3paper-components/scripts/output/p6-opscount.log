@@ -1,0 +1,17 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js probe 1
+js probe 1
+I (177797) m5_backend: present id=3 intent=CleanFull ops=13 skipped=0 damage=0,0,540,960 render_us=131466 wait_us=6
+I (177798) js: js present: page=probe1 hits=0 mode=1
+pulp screen: probe1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=1 last_error=""
+pulp> 
+# >>> js probe 3
+js probe 3
+I (180765) m5_backend: present id=4 intent=CleanFull ops=2 skipped=0 damage=0,0,540,960 render_us=97306 wait_us=6
+I (180766) js: js present: page=probe3 hits=1 mode=1
+pulp screen: probe3
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=1 last_error=""
+pulp> 
+# done

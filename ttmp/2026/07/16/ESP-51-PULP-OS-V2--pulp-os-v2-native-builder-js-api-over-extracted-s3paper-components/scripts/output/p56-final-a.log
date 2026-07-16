@@ -1,0 +1,66 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (106) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1026) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1041) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1041) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> js probe 1
+js probe 1
+I (8922) js: context ready: arena=163840 bytes, abi=v2
+I (9207) m5_backend: present id=2 intent=CleanFull ops=13 skipped=0 damage=0,0,540,960 render_us=243071 wait_us=16
+I (9209) js: js present: page=probe1 hits=0 mode=1
+pulp screen: probe1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js probe 2
+js probe 2
+probe2: stale -> stale widget handle
+probe2: badfont -> bad font id
+probe2: arena-full -> widget arena full
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js probe 3
+js probe 3
+I (17072) m5_backend: present id=3 intent=CleanFull ops=3 skipped=0 damage=0,0,540,960 render_us=109492 wait_us=9
+I (17073) js: js present: page=probe3 hits=1 mode=1
+pulp screen: probe3
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js tap 270 160
+js tap 270 160
+I (20988) js: tap 270,160 hit=1 (regions=1)
+probe3: tap 1 at 270,160
+I (20997) m5_backend: present id=4 intent=TextRegion ops=2 skipped=0 damage=80,117,127,45 render_us=5323 wait_us=10
+I (20998) runtime: update present: 1 rect(s), damage 127x45 at 80,117
+I (20998) js: js present: page=probe3 hits=1 mode=2
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=1 last_error=""
+pulp> 
+# >>> js tap 270 160
+js tap 270 160
+I (25013) js: tap 270,160 hit=1 (regions=1)
+probe3: tap 2 at 270,160
+I (25022) m5_backend: present id=5 intent=TextRegion ops=2 skipped=0 damage=80,117,127,45 render_us=4808 wait_us=6
+I (25023) runtime: update present: 1 rect(s), damage 127x45 at 80,117
+I (25023) js: js present: page=probe3 hits=1 mode=2
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=2 last_error=""
+pulp> 
+# >>> js swipe 5
+js swipe 5
+probe3: swipe down
+js init=1 screen_active=1 arena=163840 evals=4 exceptions=0 dispatches=3 last_error=""
+pulp> 
+# >>> js probe 4
+js probe 4
+I (33171) m5_backend: present id=6 intent=CleanFull ops=3 skipped=0 damage=0,0,540,960 render_us=116087 wait_us=8
+I (33172) js: js present: page=probe4 hits=0 mode=1
+pulp screen: probe4
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=0 dispatches=3 last_error=""
+pulp> I (34217) m5_backend: present id=7 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=27955 wait_us=11
+I (34219) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (34219) js: js present: page=probe4 hits=0 mode=2
+I (35255) m5_backend: present id=8 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=26307 wait_us=10
+I (35257) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (35257) js: js present: page=probe4 hits=0 mode=2
+I (36282) m5_backend: present id=9 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15716 wait_us=12
+I (36283) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (36284) js: js present: page=probe4 hits=0 mode=2
+
+# done

@@ -1,0 +1,31 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (44036) m5_backend: present id=7 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15869 wait_us=5
+I (44037) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (44038) js: js present: page=probe4 hits=0 mode=2
+I (44340) input: gI (49156) m5_backend: present id=12 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15882 wait_us=5
+I (49157) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (49158) js: js present: page=probe4 hits=0 mode=2
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=16 last_error=""
+pulp> I (50176) m5_backend: present id=13 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15873 wait_us=6
+I (50177) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (50178) js: js present: page=probe4 hits=0 mode=2
+I (51195) m5_backend: present id=14 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14865 wait_us=7
+I (51196) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (51197) js: js present: page=probe4 hits=0 mode=2
+I (52215) m5_backend: present id=15 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14857 wait_us=7
+I (52216) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (52217) js: js present: page=probe4 hits=0 mode=2
+I (53235) m5_backend: present id=16 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14865 wait_us=7
+I (53236) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (53237) js: js present: page=probe4 hits=0 mode=2
+I (54256) m5_backend: present id=17 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=15862 wait_us=7
+I (54257) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (54258) js: js present: page=probe4 hits=0 mode=2
+I (55275) m5_backend: present id=18 intent=TextRegion ops=2 skipped=0 damage=40,129,460,86 render_us=14865 wait_us=7
+I (55276) runtime: update present: 1 rect(s), damage 460x86 at 40,129
+I (55277) js: js present: page=probe4 hits=0 mode=2
+
+# done
