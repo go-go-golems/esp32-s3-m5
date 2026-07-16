@@ -54,11 +54,11 @@
 - [x] [P7.4] 2048 with retained cells; only moved tiles blit; best score via settings store <!-- t:101p -->
 - [x] [P7.5] Postcard keyboard + journal append; sealed line appears as a library book after rescan <!-- t:wepo -->
 - [x] [P7.6] JS reader + Daily Pulp over the book service; position interop with 0112 demonstrated both ways <!-- t:oda7 -->
-- [ ] Phase 8 - Product polish: boot-to-launcher, JS screensaver, navigation, auto-sleep <!-- t:ijfh -->
-- [ ] [P8.1] Boot flow: mount -> persistence -> JS context -> launcher clean render -> touch on <!-- t:8eq5 -->
-- [ ] [P8.2] sleepImage(fn): power path evaluates the JS lambda into a tree and presents it before sleeping <!-- t:ihdn -->
-- [ ] [P8.3] Navigation grammar enforced: swipe-down home everywhere (trapping opt-in), long-press conventions <!-- t:iaq3 -->
-- [ ] [P8.4] Sleep/wake cycles on hardware: deep-timer x2 and rtc-off, resuming into the launcher with state intact <!-- t:tjsq -->
+- [x] Phase 8 - Product polish: boot-to-launcher, JS screensaver, navigation, auto-sleep <!-- t:ijfh -->
+- [x] [P8.1] Boot flow: mount -> persistence -> JS context -> launcher clean render -> touch on <!-- t:8eq5 -->
+- [x] [P8.2] sleepImage(fn): power path evaluates the JS lambda into a tree and presents it before sleeping <!-- t:ihdn -->
+- [x] [P8.3] Navigation grammar enforced: swipe-down home everywhere (trapping opt-in), long-press conventions <!-- t:iaq3 -->
+- [x] [P8.4] Sleep/wake cycles on hardware: deep-timer x2 and rtc-off, resuming into the launcher with state intact <!-- t:tjsq -->
 - [ ] Phase 9 - Hardening, acceptance, docs <!-- t:bkd8 -->
 - [ ] [P9.1] Host suite extended for v2-touched core (invert prop, any layout changes); fuzz still green <!-- t:swug -->
 - [ ] [P9.2] Script fault battery: OOM app, exception storm, runaway loop, stale handles; owner fallback to a native screen <!-- t:v3ex -->

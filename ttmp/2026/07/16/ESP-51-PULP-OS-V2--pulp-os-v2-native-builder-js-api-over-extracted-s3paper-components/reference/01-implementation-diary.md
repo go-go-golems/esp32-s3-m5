@@ -342,3 +342,43 @@ The full product runs from one 25 KB bytecode image: launcher, Library, Reader (
 ### Code review instructions
 - `0114/tools/js/apps/pulp.js` (the product), `main/app_js.cpp` LoadBytecodeApps/JsRunPulp, `main/app_book_seed.h`.
 - Validate: `js pulp`, then `js hits` + taps per transcripts p7-*.log.
+
+## Step 8: Phase 8 — boot-to-launcher, JS sleep image, sleep/wake matrix, live polish
+
+0114 is now a product: power-on boots straight into the PULP launcher (native home page demoted to fallback), the sleep image is built by the JS `paper.sleepImage` lambda, and both timed wake paths are hardware-proven. Three more operator requests landed mid-phase: book titles on the shelf at app-row size in a NEW serif display face, and a periodic clean-full re-blank in 2048 against ghosting.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1) — plus mid-turn: "render book names in the bookshelf the same size as the apps, but with serif font." / "add refresh on the 2048 because it overloads ghosting after a while... Or maybe it's just properly setting the refresh policy? It should just reblank the board if possible, but otherwise just blank the whole screen"
+
+**Assistant interpretation:** Phase 8 polish plus live UX: typography on the shelf, ghosting management in 2048.
+
+**Inferred user intent:** The daily-driver feel: boots into the launcher, sleeps beautifully, stays crisp.
+
+**Commit (code):** c33e1c7 — "ESP-51 Phase 8: boot-to-launcher, JS sleep image, sleep/wake matrix, kFontTitle serif shelf, 2048 ghosting re-blank"
+
+### What I did
+- Boot flow: OwnerTask now runs `JsRunPulp()` after mount (launcher clean full), native home only as fallback. Verified: fresh boot -> `pulp screen: home`, js active.
+- Sleep: `sleep deep 20` presented the JS sleep image (ops=3: PULP wordmark + hint) then slept; wake boot-cause `reset_reason=8 wakeup_cause=4` (DEEPSLEEP/TIMER) and the launcher came back. `sleep rtc-off 20`: BM8563 re-latched power, `reset_reason=1` (POWERON), launcher again. Transcripts p8-*.log.
+- New core face `kFontTitle` (=4, kFontCount=5): PT Serif at 44 px, registered by the runtime, exposed as size('title'); the shelf renders book names in it with the size right-aligned in xs gray (v1-app-row pattern). Host suite still 38,007.
+- 2048: every 12th present is `p.show(true)` (clean full re-blank) instead of a diff update — repeated tile blits accumulate ghosting on this panel.
+
+### What worked
+- The whole sleep quiesce sequence transplanted from 0112 worked on the first cycle, now with a JS-provided image.
+
+### What didn't work
+- `sleep status` sent immediately after wake races console registration ("Unrecognized command") — the client connects faster than esp_console spins up; retry a second later succeeds. Cosmetic.
+
+### What was tricky to build
+- Choosing app-level re-blank over planner policy for 2048: the planner's turn budget is global and would force fulls on OTHER screens too. A JS-side counter keeps the policy where the knowledge is (the app knows its blits are ghosting-prone).
+
+### What warrants a second pair of eyes
+- kFontTitle costs another 44 px PT Serif rasterization cache; watch PSRAM if more faces accrue.
+- The deep/rtc-off wake resume goes to the LAUNCHER (state intact in JS globals is NOT preserved across reboot — apps re-enter fresh; persistent state via storeGet/storeSet only). Matches the wake=reboot contract.
+
+### What should be done in the future
+- Side-button wake (mode 3) not exercised this session (needs a physical press).
+
+### Code review instructions
+- `0114/main/app_owner.cpp` boot block, `app_power.cpp` PresentSleepImage, `components/s3paper_runtime/src/runtime.cpp` font block, pulp.js library/2048 sections.
+- Validate: `sleep deep 20`, reconnect after 40 s, `sleep status` shows reset_reason=8 wakeup_cause=4.

@@ -76,3 +76,12 @@ Step 7: Phase 7 - all PULP apps live on v2 from one bytecode image; operator-dri
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — PULP OS v2 apps
 
+
+## 2026-07-16
+
+Step 8: Phase 8 - boot-to-launcher, JS sleep image, deep+rtc-off wake matrix, kFontTitle shelf, 2048 re-blank (commit c33e1c7)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_power.cpp — JS sleep image path
+
