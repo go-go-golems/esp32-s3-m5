@@ -1500,6 +1500,155 @@ static void TestPageRouter() {
     }
 }
 
+// ---- Phase 13: deterministic fuzz/regression corpora (task 666s) ----
+
+static uint32_t g_fuzz_state = 0x2026'0715;
+static uint32_t FuzzNext() {
+    // xorshift32: deterministic across runs, no seed-time dependency.
+    uint32_t x = g_fuzz_state;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    g_fuzz_state = x;
+    return x;
+}
+
+// Malformed UTF-8 through the whole text pipeline: decode, measure,
+// break lines. ASan/UBSan enforce memory safety; the checks enforce the
+// documented contracts (progress guaranteed, byte-accurate spans).
+static void TestFuzzMalformedUtf8() {
+    for (int round = 0; round < 400; ++round) {
+        char buf[128];
+        const uint32_t len = FuzzNext() % sizeof(buf);
+        for (uint32_t i = 0; i < len; ++i) {
+            buf[i] = static_cast<char>(FuzzNext() & 0xFF);
+        }
+        // Decoder: always advances, never past the end.
+        uint32_t pos = 0;
+        uint32_t cp = 0;
+        uint32_t steps = 0;
+        while (Utf8Next(buf, len, &pos, &cp)) {
+            CHECK(pos <= len);
+            steps++;
+            if (steps > len + 1) {
+                break;  // progress violated; the CHECK below fails loudly
+            }
+        }
+        CHECK(steps <= len);
+        CHECK(pos == len);
+        // Measurement and line breaking must stay in-bounds and agree
+        // with the span invariants on garbage input.
+        const Result<int32_t> w = MeasureText(kFontBody, buf, len);
+        CHECK(w.ok());
+        LineSpan lines[32];
+        const Result<uint32_t> broken =
+            BreakLines(kFontBody, buf, len, 300, lines, 32);
+        if (broken.ok()) {
+            for (uint32_t i = 0; i < broken.value; ++i) {
+                CHECK(lines[i].byte_start <= len);
+                CHECK(lines[i].byte_start + lines[i].byte_len <= len);
+            }
+        }
+    }
+}
+
+// Random content through the paginator: compose forward to the end, then
+// walk backward; every locator must validate and re-compose identically.
+static void TestFuzzPaginatorRoundTrip() {
+    for (int round = 0; round < 12; ++round) {
+        static char content[4096];
+        const uint32_t len = 512 + FuzzNext() % (sizeof(content) - 512);
+        for (uint32_t i = 0; i < len; ++i) {
+            const uint32_t r = FuzzNext() % 100;
+            if (r < 15) {
+                content[i] = ' ';
+            } else if (r < 18) {
+                content[i] = '\n';
+            } else if (r < 22) {
+                content[i] = static_cast<char>(0x80 + (FuzzNext() % 0x40));
+            } else {
+                content[i] = static_cast<char>('a' + (FuzzNext() % 26));
+            }
+        }
+        MemoryContentSource source(content, len);
+        LayoutKey key{};
+        key.content = source.Hash().value;
+        key.font_id = kFontBody;
+        key.viewport_w = 540;
+        key.viewport_h = 960;
+        key.margin_x = 40;
+        key.margin_top = 72;
+        key.margin_bottom = 56;
+        key.engine_version = kLayoutEngineVersion;
+        Paginator paginator(&source, key);
+        TextLocator at = paginator.Begin().value;
+        PageLayout page;
+        uint64_t starts[64];
+        uint32_t pages = 0;
+        while (pages < 64) {
+            CHECK(paginator.ComposePage(at, &page).ok());
+            starts[pages++] = at.byte_offset;
+            if (page.at_end) {
+                break;
+            }
+            CHECK(page.next.byte_offset > at.byte_offset);
+            at = page.next;
+        }
+        CHECK(pages >= 1);
+        // Backward walk must land exactly on the recorded page starts.
+        for (uint32_t p = pages; p-- > 1;) {
+            TextLocator here{};
+            here.byte_offset = starts[p];
+            const Result<TextLocator> prev =
+                paginator.PreviousPageStart(here);
+            if (!prev.ok()) {
+                CHECK(prev.ok());
+                break;
+            }
+            CHECK(prev.value.byte_offset == starts[p - 1]);
+        }
+    }
+}
+
+// Random widget-tree operations against arena invariants.
+static void TestFuzzWidgetOps() {
+    WidgetArena arena;
+    WidgetHandle live[64];
+    uint32_t live_count = 0;
+    for (int step = 0; step < 4000; ++step) {
+        const uint32_t op = FuzzNext() % 100;
+        if (op < 45 || live_count == 0) {
+            const WidgetKind kind =
+                static_cast<WidgetKind>(FuzzNext() % 9);
+            const Result<WidgetHandle> h = arena.Create(kind);
+            if (h.ok() && live_count < 64) {
+                live[live_count++] = h.value;
+            }
+        } else if (op < 70 && live_count >= 2) {
+            const uint32_t p = FuzzNext() % live_count;
+            const uint32_t c = FuzzNext() % live_count;
+            (void)arena.AddChild(live[p], live[c]);  // may legally fail
+        } else if (op < 85) {
+            const uint32_t i = FuzzNext() % live_count;
+            // Destroy may cascade to children still in `live`; stale
+            // handles afterwards must fail cleanly, never crash.
+            (void)arena.Destroy(live[i]);
+            live[i] = live[--live_count];
+        } else {
+            // Layout of a random live root must never crash even with
+            // odd trees (cycles are impossible: AddChild rejects linked
+            // children, but diamond attempts were attempted above).
+            const uint32_t i = FuzzNext() % live_count;
+            LayoutEntry entries[WidgetArena::kCapacity];
+            (void)LayoutTree(arena, live[i], Rect{0, 0, 540, 960}, entries,
+                             WidgetArena::kCapacity);
+        }
+        CHECK(arena.live_count() <= WidgetArena::kCapacity);
+    }
+    arena.Reset();
+    CHECK(arena.live_count() == 0);
+}
+
 int main() {
     // Register the embedded TTF exactly as the firmware does (same file,
     // same pixel sizes) so pagination goldens match the device.
@@ -1570,6 +1719,9 @@ int main() {
     TestRegionTable();
     TestWidgetGoldenTrace();
     TestPageRouter();
+    TestFuzzMalformedUtf8();
+    TestFuzzPaginatorRoundTrip();
+    TestFuzzWidgetOps();
     std::printf("%s: %d checks, %d failures\n",
                 g_failures == 0 ? "PASS" : "FAIL", g_checks, g_failures);
     return g_failures == 0 ? 0 : 1;

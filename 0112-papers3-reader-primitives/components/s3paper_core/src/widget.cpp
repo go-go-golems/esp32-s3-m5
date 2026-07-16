@@ -29,6 +29,7 @@ void WidgetArena::Reset() {
         nodes_[i].first_child = kNoWidgetIndex;
         nodes_[i].last_child = kNoWidgetIndex;
         nodes_[i].next_sibling = kNoWidgetIndex;
+        nodes_[i].parent = kNoWidgetIndex;
     }
     live_count_ = 0;
 }
@@ -51,6 +52,7 @@ Result<WidgetHandle> WidgetArena::Create(WidgetKind kind) {
         n.first_child = kNoWidgetIndex;
         n.last_child = kNoWidgetIndex;
         n.next_sibling = kNoWidgetIndex;
+        n.parent = kNoWidgetIndex;
         n.fixed_w = -1;
         n.fixed_h = -1;
         live_count_++;
@@ -101,6 +103,7 @@ void WidgetArena::DestroyIndex(uint16_t index) {
     n.first_child = kNoWidgetIndex;
     n.last_child = kNoWidgetIndex;
     n.next_sibling = kNoWidgetIndex;
+    n.parent = kNoWidgetIndex;
     live_count_--;
 }
 
@@ -122,8 +125,18 @@ Status WidgetArena::AddChild(WidgetHandle parent, WidgetHandle child) {
     if (parent.index == child.index) {
         return ErrStatus(StatusCode::InvalidArgument);
     }
-    if (c->next_sibling != kNoWidgetIndex) {
+    // A node has at most one parent (found by fuzzing: a trailing child has
+    // no next_sibling, so the old sibling-only check allowed diamonds and
+    // ancestor cycles that made every tree walk recurse forever).
+    if (c->parent != kNoWidgetIndex) {
         return ErrStatus(StatusCode::InvalidArgument);
+    }
+    // Reject making a node a child of its own descendant.
+    for (uint16_t up = parent.index; up != kNoWidgetIndex;
+         up = nodes_[up].parent) {
+        if (up == child.index) {
+            return ErrStatus(StatusCode::InvalidArgument);
+        }
     }
     if (p->first_child == kNoWidgetIndex) {
         p->first_child = child.index;
@@ -131,6 +144,7 @@ Status WidgetArena::AddChild(WidgetHandle parent, WidgetHandle child) {
         nodes_[p->last_child].next_sibling = child.index;
     }
     p->last_child = child.index;
+    c->parent = parent.index;
     return OkStatus();
 }
 
@@ -156,6 +170,7 @@ Status WidgetArena::RemoveChild(WidgetHandle parent, WidgetHandle child) {
             p->last_child = prev;
         }
         c->next_sibling = kNoWidgetIndex;
+        c->parent = kNoWidgetIndex;
         return OkStatus();
     }
     return ErrStatus(StatusCode::InvalidArgument);

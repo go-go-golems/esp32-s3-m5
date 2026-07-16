@@ -93,6 +93,7 @@ struct WidgetNode {
     uint16_t first_child;
     uint16_t last_child;
     uint16_t next_sibling;
+    uint16_t parent;  // kNoWidgetIndex when detached; guards re-parenting
     uint32_t content_version;  // bumped by setters; diffed for damage
 
     // Layout props (containers use all; leaves use sizing only).
