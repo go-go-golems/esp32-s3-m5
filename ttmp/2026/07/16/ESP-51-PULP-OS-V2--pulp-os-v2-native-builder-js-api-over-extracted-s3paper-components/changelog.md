@@ -94,3 +94,12 @@ Step 9: P9 hardening - fault battery (deadline 804ms, storm contained), trace-eq
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/js_probes.cpp — Fault + trace-equivalence probes
 
+
+## 2026-07-16
+
+Global margin toggle: all 17 horizontal pad sites hoisted to var M; long-press on the launcher flips 40px <-> 0 and persists via storeSet('margin')
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — Margin variable + toggle
+
