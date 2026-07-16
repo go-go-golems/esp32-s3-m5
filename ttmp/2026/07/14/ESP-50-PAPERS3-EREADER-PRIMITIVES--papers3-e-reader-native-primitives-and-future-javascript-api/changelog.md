@@ -592,3 +592,8 @@ Step 21: diff-driven JS partial updates (chess clock ticks blit one 460x86 rect 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_ui.cpp — UiPresentPageUpdate diff present (commit cff325d)
 
+
+## 2026-07-16
+
+Handoff: successor ticket ESP-51-PULP-OS-V2 created (component extraction + v2 native-builder JS API + 0114 PULP OS firmware); intern guide indexes this ticket's diary and design docs
+
