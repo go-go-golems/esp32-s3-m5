@@ -102,6 +102,9 @@ class RefreshPlanner {
 
     const RefreshHistory &history() const { return history_; }
     const RefreshPolicy &policy() const { return policy_; }
+    // Runtime policy adjustment (e.g. the JS paper singleton's parameter
+    // setters). Takes effect on the next Plan().
+    void set_policy(const RefreshPolicy &policy) { policy_ = policy; }
 
   private:
     Size viewport_;

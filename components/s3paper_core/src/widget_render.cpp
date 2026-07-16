@@ -46,6 +46,18 @@ Status EmitNode(const WidgetNode &n, const Rect &frame, FrameBuilder &fb) {
             int32_t baseline = 0;
             TextPlacement(n, frame, &x, &baseline);
             const Rect bounds{x, frame.y, frame.w - (x - frame.x), frame.h};
+            if (n.props.text.invert != 0) {
+                // Filled chip: background in the node's gray, glyphs in
+                // the inverse so default black text becomes white-on-black.
+                const Status bg = fb.FillRect(frame, n.props.text.gray);
+                if (!bg.ok()) {
+                    return bg;
+                }
+                const Gray8 ink = static_cast<Gray8>(
+                    255 - static_cast<int32_t>(n.props.text.gray));
+                return fb.GlyphRun(bounds, baseline, n.props.text.font_id,
+                                   0, n.props.text.value, len, ink);
+            }
             return fb.GlyphRun(bounds, baseline, n.props.text.font_id, 0,
                                n.props.text.value, len, n.props.text.gray);
         }

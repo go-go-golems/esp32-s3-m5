@@ -298,6 +298,47 @@ int CmdSleep(int argc, char **argv) {
     return 0;
 }
 
+void PrintJsSnapshot(const JsSnapshot &j) {
+    printf("js init=%u screen_active=%u arena=%u evals=%u exceptions=%u "
+           "dispatches=%u last_error=\"%s\"\n",
+           j.initialized, j.screen_active,
+           static_cast<unsigned>(j.arena_bytes),
+           static_cast<unsigned>(j.evals),
+           static_cast<unsigned>(j.exceptions),
+           static_cast<unsigned>(j.dispatches), j.last_error);
+}
+
+int CmdJs(int argc, char **argv) {
+    uint32_t arg = 0;
+    uint32_t arg2 = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "probe") == 0 && argc >= 3) {
+            arg = 20 + static_cast<uint32_t>(atoi(argv[2]));
+        } else if (strcmp(argv[1], "pulp") == 0) {
+            arg = 10;
+        } else if (strcmp(argv[1], "tap") == 0 && argc >= 4) {
+            arg = 11;
+            arg2 = (static_cast<uint32_t>(atoi(argv[2])) << 16) |
+                   (static_cast<uint32_t>(atoi(argv[3])) & 0xFFFF);
+        } else if (strcmp(argv[1], "swipe") == 0 && argc >= 3) {
+            arg = 12;
+            arg2 = static_cast<uint32_t>(atoi(argv[2]));
+        } else {
+            printf("error: usage js [status|probe N|pulp|tap X Y|"
+                   "swipe K]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Js, arg, arg2, &reply, 15000);
+    if (status != StatusCode::Ok) {
+        printf("js op result: %s\n", StatusCodeName(status));
+    }
+    PrintJsSnapshot(reply.payload.js);
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -356,6 +397,10 @@ void ConsoleStart() {
                     "sleep [status|deep N|rtc-off N|off|auto N] - power",
                     &CmdSleep);
     RegisterCommand("home", "Present the native home page", &CmdHome);
+    RegisterCommand("js",
+                    "js [status|probe N|pulp|tap X Y|swipe K] - "
+                    "MicroQuickJS runtime",
+                    &CmdJs);
 
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
 }

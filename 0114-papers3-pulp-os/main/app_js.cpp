@@ -1,0 +1,520 @@
+// JS host core: context lifecycle, deadline/exception discipline, the
+// callback registry, gesture dispatch, and the page tick. The builder
+// bindings live in js_widgets.cpp / js_pages.cpp / js_services.cpp and
+// share state through app_js_internal.h.
+#include "app_js.h"
+
+#include <cstdio>
+#include <cstring>
+
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+
+#include "app_input.h"
+#include "app_js_internal.h"
+#include "app_power.h"
+#include "s3paper/text.h"
+#include "s3paper_runtime/runtime.h"
+
+extern "C" const JSSTDLibraryDef js_stdlib;  // main/js_stdlib_table.c
+
+namespace pulp {
+
+namespace jsi {
+
+JSContext *g_ctx = nullptr;
+uint32_t g_evals = 0;
+uint32_t g_exceptions = 0;
+uint32_t g_dispatches = 0;
+PageEntry g_pages[kMaxPages];
+int32_t g_current_page = -1;
+DynEntry g_dyn[kMaxDynValues];
+uint32_t g_dyn_count = 0;
+int32_t g_next_cb = 1;
+int32_t g_home_cb = 0;
+int32_t g_sleep_image_cb = 0;
+s3paper::HitRegion g_hits[kMaxJsHits];
+uint32_t g_hit_count = 0;
+int64_t g_timer_due_us = 0;
+
+}  // namespace jsi
+
+namespace {
+
+using namespace jsi;
+
+const char *kTag = "js";
+
+constexpr uint32_t kArenaBytes = 160 * 1024;
+
+uint8_t *s_arena = nullptr;
+int64_t s_deadline_us = 0;
+char s_last_error[48] = {};
+uint32_t s_present_seq = 0;
+bool s_presented = false;
+
+int InterruptHandler(JSContext *, void *) {
+    return s_deadline_us != 0 && esp_timer_get_time() > s_deadline_us;
+}
+
+void LogFunc(void *, const void *buf, size_t len) {
+    fwrite(buf, 1, len, stdout);
+}
+
+// Re-evaluates every live dynamic text value (SetText no-ops on equal
+// strings, so unchanged values cost nothing at present time).
+void RefreshDynValues() {
+    for (uint32_t i = 0; i < g_dyn_count; ++i) {
+        s3paper::WidgetArena &arena = s3paper_runtime::Arena();
+        if (arena.Get(g_dyn[i].widget) == nullptr) {
+            continue;  // page was rebuilt; entry is inert
+        }
+        const JSValue v = CallCb(g_dyn[i].cb_id, 0, 0, 0, 0);
+        if (JS_IsUndefined(v)) {
+            continue;
+        }
+        JSCStringBuf buf;
+        size_t len;
+        const char *str = JS_ToCStringLen(g_ctx, &len, v, &buf);
+        if (str == nullptr) {
+            continue;
+        }
+        char text[s3paper::TextProps::kCapacity];
+        snprintf(text, sizeof(text), "%.*s", static_cast<int>(len), str);
+        (void)arena.SetText(g_dyn[i].widget, text);
+    }
+}
+
+// The kernel (evaluated once at context creation): the closure registry
+// plus gesture-name constants. ~ the whole remaining JS facade of v2.
+const char kKernelJs[] =
+    "var __cbs = [null];\n"
+    "var G = {TAP:0, LONG:1, LEFT:2, RIGHT:3, UP:4, DOWN:5, TICK:100};\n";
+
+// Sleep image builder hook: asks the JS lambda for a Widget tree.
+s3paper::WidgetHandle JsSleepImage(SleepMode, uint32_t) {
+    if (g_ctx == nullptr || g_sleep_image_cb == 0) {
+        return s3paper::kNullWidget;
+    }
+    const JSValue v = CallCb(g_sleep_image_cb, 0, 0, 0, 0);
+    if (JS_GetClassID(g_ctx, v) != JS_CLASS_WIDGET) {
+        return s3paper::kNullWidget;
+    }
+    const s3paper::WidgetHandle h = UnpackWidget(JS_GetOpaque(g_ctx, v));
+    return s3paper_runtime::Arena().Get(h) != nullptr ? h
+                                                      : s3paper::kNullWidget;
+}
+
+}  // namespace
+
+// ---- jsi helper definitions ----
+
+namespace jsi {
+
+void RecordException(const char *where) {
+    g_exceptions++;
+    const JSValue err = JS_GetException(g_ctx);
+    JSCStringBuf buf;
+    const char *msg = JS_ToCString(g_ctx, err, &buf);
+    snprintf(s_last_error, sizeof(s_last_error), "%s",
+             msg != nullptr ? msg : "?");
+    printf("js error in %s: ", where);
+    JS_PrintValueF(g_ctx, err, JS_DUMP_LONG);
+    printf("\n");
+}
+
+StatusCode EvalBounded(const char *code, uint32_t timeout_ms,
+                       const char *name) {
+    s_deadline_us =
+        esp_timer_get_time() + static_cast<int64_t>(timeout_ms) * 1000;
+    const JSValue v = JS_Eval(g_ctx, code, strlen(code), name, 0);
+    s_deadline_us = 0;
+    g_evals++;
+    if (JS_IsException(v)) {
+        RecordException(name);
+        return StatusCode::CorruptData;
+    }
+    return StatusCode::Ok;
+}
+
+void *PackWidget(s3paper::WidgetHandle h) {
+    return reinterpret_cast<void *>(static_cast<uintptr_t>(
+        (static_cast<uint32_t>(h.generation) << 16 | h.index) + 1));
+}
+
+s3paper::WidgetHandle UnpackWidget(void *opaque) {
+    if (opaque == nullptr) {
+        return s3paper::kNullWidget;
+    }
+    const uint32_t packed =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(opaque)) - 1;
+    return s3paper::WidgetHandle{static_cast<uint16_t>(packed & 0xFFFF),
+                                 static_cast<uint16_t>(packed >> 16)};
+}
+
+void *PackPage(uint32_t index, uint16_t generation) {
+    return reinterpret_cast<void *>(static_cast<uintptr_t>(
+        (static_cast<uint32_t>(generation) << 16 | index) + 1));
+}
+
+PageEntry *UnpackPage(void *opaque) {
+    if (opaque == nullptr) {
+        return nullptr;
+    }
+    const uint32_t packed =
+        static_cast<uint32_t>(reinterpret_cast<uintptr_t>(opaque)) - 1;
+    const uint32_t index = packed & 0xFFFF;
+    const uint16_t generation = static_cast<uint16_t>(packed >> 16);
+    if (index >= kMaxPages || !g_pages[index].in_use ||
+        g_pages[index].generation != generation) {
+        return nullptr;
+    }
+    return &g_pages[index];
+}
+
+JSValue MakeWidget(JSContext *ctx,
+                   s3paper::Result<s3paper::WidgetHandle> r) {
+    if (!r.ok()) {
+        return JS_ThrowTypeError(ctx, "widget arena full");
+    }
+    const JSValue obj = JS_NewObjectClassUser(ctx, JS_CLASS_WIDGET);
+    if (JS_IsException(obj)) {
+        return obj;
+    }
+    JS_SetOpaque(ctx, obj, PackWidget(r.value));
+    return obj;
+}
+
+s3paper::WidgetNode *ThisNode(JSContext *ctx, JSValue *this_val,
+                              s3paper::WidgetHandle *out_handle,
+                              JSValue *err) {
+    if (JS_GetClassID(ctx, *this_val) != JS_CLASS_WIDGET) {
+        *err = JS_ThrowTypeError(ctx, "expecting Widget");
+        return nullptr;
+    }
+    const s3paper::WidgetHandle h =
+        UnpackWidget(JS_GetOpaque(ctx, *this_val));
+    s3paper::WidgetNode *n = s3paper_runtime::Arena().Configure(h);
+    if (n == nullptr) {
+        *err = JS_ThrowTypeError(ctx, "stale widget handle");
+        return nullptr;
+    }
+    if (out_handle != nullptr) {
+        *out_handle = h;
+    }
+    return n;
+}
+
+PageEntry *ThisPage(JSContext *ctx, JSValue *this_val, JSValue *err) {
+    if (JS_GetClassID(ctx, *this_val) != JS_CLASS_PAGE) {
+        *err = JS_ThrowTypeError(ctx, "expecting Page");
+        return nullptr;
+    }
+    PageEntry *page = UnpackPage(JS_GetOpaque(ctx, *this_val));
+    if (page == nullptr) {
+        *err = JS_ThrowTypeError(ctx, "stale page handle");
+        return nullptr;
+    }
+    return page;
+}
+
+bool ArgString(JSContext *ctx, JSValue arg, char *out, size_t cap,
+               JSValue *err) {
+    JSCStringBuf buf;
+    size_t len;
+    const char *str = JS_ToCStringLen(ctx, &len, arg, &buf);
+    if (str == nullptr) {
+        *err = JS_EXCEPTION;
+        return false;
+    }
+    snprintf(out, cap, "%.*s", static_cast<int>(len), str);
+    return true;
+}
+
+int32_t RegisterCb(JSContext *ctx, JSValue fn) {
+    const int32_t id = g_next_cb++;
+    const JSValue global = JS_GetGlobalObject(ctx);
+    const JSValue cbs = JS_GetPropertyStr(ctx, global, "__cbs");
+    if (JS_IsException(cbs)) {
+        return 0;
+    }
+    if (JS_IsException(JS_SetPropertyUint32(
+            ctx, cbs, static_cast<uint32_t>(id), fn))) {
+        return 0;
+    }
+    return id;
+}
+
+JSValue CallCb(int32_t cb_id, int32_t a, int32_t b, int32_t c, int argc) {
+    if (g_ctx == nullptr || cb_id <= 0) {
+        return JS_UNDEFINED;
+    }
+    const JSValue global = JS_GetGlobalObject(g_ctx);
+    const JSValue cbs = JS_GetPropertyStr(g_ctx, global, "__cbs");
+    const JSValue fn =
+        JS_GetPropertyUint32(g_ctx, cbs, static_cast<uint32_t>(cb_id));
+    if (!JS_IsFunction(g_ctx, fn)) {
+        return JS_UNDEFINED;
+    }
+    if (JS_StackCheck(g_ctx, static_cast<uint32_t>(argc) + 2)) {
+        return JS_UNDEFINED;
+    }
+    // Args push in reverse; int32 values are immediates (no GC hazard).
+    if (argc >= 3) JS_PushArg(g_ctx, JS_NewInt32(g_ctx, c));
+    if (argc >= 2) JS_PushArg(g_ctx, JS_NewInt32(g_ctx, b));
+    if (argc >= 1) JS_PushArg(g_ctx, JS_NewInt32(g_ctx, a));
+    JS_PushArg(g_ctx, fn);
+    JS_PushArg(g_ctx, JS_NULL);
+    s_deadline_us = esp_timer_get_time() + 1'000'000;
+    const JSValue out = JS_Call(g_ctx, argc);
+    s_deadline_us = 0;
+    if (JS_IsException(out)) {
+        RecordException("<callback>");
+        return JS_UNDEFINED;
+    }
+    return out;
+}
+
+StatusCode PresentPage(PageEntry &page, int mode) {
+    const s3paper_runtime::PresentPageResult presented =
+        mode == 2 ? s3paper_runtime::PresentPageUpdate(
+                        page.slots, g_hits, kMaxJsHits, nullptr)
+                  : s3paper_runtime::PresentPage(
+                        page.slots,
+                        mode == 1 ? s3paper::PresentIntent::CleanFull
+                                  : s3paper::PresentIntent::TextPage,
+                        mode == 1, g_hits, kMaxJsHits, nullptr);
+    if (presented.status == StatusCode::Ok) {
+        if (mode != 2) {
+            g_hit_count = presented.hit_count;
+        }
+        s_present_seq = s3paper_runtime::PresentCount();
+        s_presented = true;
+        g_current_page = static_cast<int32_t>(&page - g_pages);
+        if (page.every_ms != 0) {
+            g_timer_due_us = esp_timer_get_time() +
+                             static_cast<int64_t>(page.every_ms) * 1000;
+        }
+        ESP_LOGI(kTag, "js present: page=%s hits=%u mode=%d", page.name,
+                 static_cast<unsigned>(g_hit_count), mode);
+    } else {
+        ESP_LOGW(kTag, "js present FAILED: %s",
+                 StatusCodeName(presented.status));
+    }
+    return presented.status;
+}
+
+}  // namespace jsi
+
+// ---- public API ----
+
+StatusCode JsInit() {
+    if (g_ctx != nullptr) {
+        return StatusCode::Ok;
+    }
+    // PSRAM first (measured identical eval speed); internal is scarce.
+    s_arena = static_cast<uint8_t *>(
+        heap_caps_malloc(kArenaBytes, MALLOC_CAP_SPIRAM));
+    if (s_arena == nullptr) {
+        s_arena = static_cast<uint8_t *>(
+            heap_caps_malloc(kArenaBytes, MALLOC_CAP_INTERNAL));
+    }
+    if (s_arena == nullptr) {
+        return StatusCode::OutOfMemory;
+    }
+    g_ctx = JS_NewContext(s_arena, kArenaBytes, &js_stdlib);
+    if (g_ctx == nullptr) {
+        free(s_arena);
+        s_arena = nullptr;
+        return StatusCode::OutOfMemory;
+    }
+    JS_SetLogFunc(g_ctx, LogFunc);
+    JS_SetInterruptHandler(g_ctx, InterruptHandler);
+    // (Bytecode images load here in Phase 7, BEFORE any eval: the
+    // zero-RAM-atom rule.)
+    const StatusCode kernel = EvalBounded(kKernelJs, 1000, "<kernel>");
+    if (kernel != StatusCode::Ok) {
+        ESP_LOGE(kTag, "kernel failed to load");
+        return kernel;
+    }
+    InputSetGestureHandler(&JsHandleGesture);
+    PowerSetSleepImageBuilder(&JsSleepImage);
+    ESP_LOGI(kTag, "context ready: arena=%u bytes, abi=v%u",
+             static_cast<unsigned>(kArenaBytes),
+             static_cast<unsigned>(jsi::kAbiVersion));
+    return StatusCode::Ok;
+}
+
+StatusCode JsRunPulp() {
+    // Phase 7: run the bytecode launcher.
+    return StatusCode::Unimplemented;
+}
+
+bool JsScreenActive() {
+    return s_presented &&
+           s3paper_runtime::PresentCount() == s_present_seq;
+}
+
+bool JsHandleGesture(const s3paper::GestureEvent &gesture) {
+    if (g_ctx == nullptr || !JsScreenActive()) {
+        return false;
+    }
+    const int32_t kind = static_cast<int32_t>(gesture.kind);
+    g_dispatches++;
+    // Taps route to the topmost hit callback first.
+    if (gesture.kind == s3paper::GestureKind::Tap) {
+        const s3paper::Result<uint32_t> tested =
+            s3paper::HitTest(g_hits, g_hit_count, gesture.pos);
+        ESP_LOGI(kTag, "tap %d,%d hit=%u (regions=%u)",
+                 static_cast<int>(gesture.pos.x),
+                 static_cast<int>(gesture.pos.y),
+                 tested.ok() ? static_cast<unsigned>(tested.value) : 0,
+                 static_cast<unsigned>(g_hit_count));
+        if (tested.ok() && tested.value != 0) {
+            (void)CallCb(static_cast<int32_t>(tested.value), kind,
+                         gesture.pos.x, gesture.pos.y, 3);
+            return true;
+        }
+    }
+    PageEntry *page =
+        g_current_page >= 0 ? &g_pages[g_current_page] : nullptr;
+    if (page != nullptr && kind >= 0 && kind < 6 &&
+        page->gesture_cb[kind] != 0) {
+        (void)CallCb(page->gesture_cb[kind], kind, gesture.pos.x,
+                     gesture.pos.y, 3);
+        return true;
+    }
+    // Navigation grammar: swipe-down goes home unless the page trapped it.
+    if (gesture.kind == s3paper::GestureKind::SwipeDown && g_home_cb != 0) {
+        (void)CallCb(g_home_cb, kind, gesture.pos.x, gesture.pos.y, 3);
+        return true;
+    }
+    return true;  // the JS screen consumes gestures while active
+}
+
+StatusCode JsSyntheticGesture(uint32_t kind, int32_t x, int32_t y) {
+    s3paper::GestureEvent gesture{};
+    gesture.kind = static_cast<s3paper::GestureKind>(kind);
+    gesture.pos = s3paper::Point{x, y};
+    gesture.t_us = esp_timer_get_time();
+    return JsHandleGesture(gesture) ? StatusCode::Ok
+                                    : StatusCode::InvalidArgument;
+}
+
+void JsTimerTick(int64_t now_us) {
+    if (g_ctx == nullptr || !JsScreenActive() || g_current_page < 0) {
+        return;
+    }
+    PageEntry &page = g_pages[g_current_page];
+    if (page.every_ms == 0 || now_us < g_timer_due_us) {
+        return;
+    }
+    g_timer_due_us = now_us + static_cast<int64_t>(page.every_ms) * 1000;
+    g_dispatches++;
+    if (page.tick_cb != 0) {
+        (void)CallCb(page.tick_cb, 100, 0, 0, 3);
+    }
+    RefreshDynValues();
+    // One diff update; zero visible change costs zero EPD work.
+    (void)PresentPage(page, 2);
+}
+
+void FillJsSnapshot(JsSnapshot *out) {
+    std::memset(out, 0, sizeof(*out));
+    out->initialized = g_ctx != nullptr ? 1 : 0;
+    out->screen_active = JsScreenActive() ? 1 : 0;
+    out->arena_bytes = g_ctx != nullptr ? kArenaBytes : 0;
+    out->evals = g_evals;
+    out->exceptions = g_exceptions;
+    out->dispatches = g_dispatches;
+    snprintf(out->last_error, sizeof(out->last_error), "%s", s_last_error);
+}
+
+// ---- basic C ABI implementations (stdlib table) ----
+
+extern "C" {
+
+JSValue js_print(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
+    for (int i = 0; i < argc; i++) {
+        if (i != 0) {
+            putchar(' ');
+        }
+        if (JS_IsString(ctx, argv[i])) {
+            JSCStringBuf buf;
+            size_t len;
+            const char *str = JS_ToCStringLen(ctx, &len, argv[i], &buf);
+            fwrite(str, 1, len, stdout);
+        } else {
+            JS_PrintValueF(ctx, argv[i], JS_DUMP_LONG);
+        }
+    }
+    putchar('\n');
+    return JS_UNDEFINED;
+}
+
+JSValue js_gc(JSContext *ctx, JSValue *, int, JSValue *) {
+    JS_GC(ctx);
+    return JS_UNDEFINED;
+}
+
+JSValue js_load(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_ThrowTypeError(ctx, "load() not supported");
+}
+
+JSValue js_setTimeout(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_ThrowTypeError(ctx, "setTimeout() not supported");
+}
+
+JSValue js_clearTimeout(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_ThrowTypeError(ctx, "clearTimeout() not supported");
+}
+
+JSValue js_date_now(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt64(ctx, esp_timer_get_time() / 1000);
+}
+
+JSValue js_performance_now(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt64(ctx, esp_timer_get_time() / 1000);
+}
+
+JSValue js_millis(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt64(ctx, esp_timer_get_time() / 1000);
+}
+
+JSValue js_pulp_abi_version(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt32(ctx, static_cast<int32_t>(jsi::kAbiVersion));
+}
+
+// Full tree/page/callback reset: the app-switch boundary. Generations
+// advance, so every retained Widget/Page wrapper turns stale (and throws)
+// instead of dangling.
+JSValue js_pulp_reset_tree(JSContext *ctx, JSValue *, int, JSValue *) {
+    s3paper_runtime::Arena().Reset();
+    for (uint32_t i = 0; i < jsi::kMaxPages; ++i) {
+        if (g_pages[i].in_use) {
+            g_pages[i].in_use = false;
+            g_pages[i].generation++;
+        }
+    }
+    g_current_page = -1;
+    g_dyn_count = 0;
+    g_next_cb = 1;
+    g_home_cb = 0;
+    g_sleep_image_cb = 0;
+    // Fresh registry seeded with a slot 0 placeholder: cb ids start at 1
+    // and mquickjs treats array holes as TypeError (stricter dialect).
+    const JSValue arr = JS_NewArray(ctx, 0);
+    if (JS_IsException(arr)) {
+        return arr;
+    }
+    const JSValue global = JS_GetGlobalObject(ctx);
+    (void)JS_SetPropertyStr(ctx, global, "__cbs", arr);
+    const JSValue cbs = JS_GetPropertyStr(ctx, global, "__cbs");
+    (void)JS_SetPropertyUint32(ctx, cbs, 0, JS_NULL);
+    return JS_UNDEFINED;
+}
+
+}  // extern "C"
+
+}  // namespace pulp

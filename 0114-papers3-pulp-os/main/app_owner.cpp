@@ -10,6 +10,7 @@
 
 #include "app_home.h"
 #include "app_input.h"
+#include "app_js.h"
 #include "app_power.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
@@ -223,10 +224,28 @@ void HandleConsoleCommand(const AppEvent &event) {
         case ConsoleOp::Home:
             reply.status = HomeShowNative();
             break;
-        case ConsoleOp::Js:
-            // Phase 5 wires the JS runtime here.
-            reply.status = StatusCode::Unimplemented;
+        case ConsoleOp::Js: {
+            const uint32_t arg = event.payload.console.arg;
+            if (arg == 0) {
+                (void)JsInit();
+            } else if (arg >= 20 && arg <= 40) {
+                reply.status = JsRunProbe(arg - 20);
+            } else if (arg == 10) {
+                reply.status = JsRunPulp();
+            } else if (arg == 11) {
+                const uint32_t xy = event.payload.console.arg2;
+                reply.status = JsSyntheticGesture(
+                    0, static_cast<int32_t>(xy >> 16),
+                    static_cast<int32_t>(xy & 0xFFFF));
+            } else if (arg == 12) {
+                reply.status = JsSyntheticGesture(
+                    event.payload.console.arg2, 270, 480);
+            } else {
+                reply.status = StatusCode::InvalidArgument;
+            }
+            FillJsSnapshot(&reply.payload.js);
             break;
+        }
     }
     SendReply(event, reply);
 }
@@ -280,6 +299,7 @@ void HandleEvent(const AppEvent &event) {
 void TickHooks() {
     const int64_t now = esp_timer_get_time();
     s3paper_storage::StorageFlushIfDue(now);
+    JsTimerTick(now);
     PowerAutoTick(now);
 }
 

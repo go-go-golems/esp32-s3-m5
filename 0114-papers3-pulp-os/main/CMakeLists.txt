@@ -6,9 +6,16 @@ idf_component_register(
         "app_input.cpp"
         "app_power.cpp"
         "app_home.cpp"
+        "app_js.cpp"
+        "js_widgets.cpp"
+        "js_pages.cpp"
+        "js_services.cpp"
+        "js_probes.cpp"
+        "js_stdlib_table.c"
     INCLUDE_DIRS
         "."
     REQUIRES
+        mquickjs
         console
         esp_driver_usb_serial_jtag
         esp_timer

@@ -1276,6 +1276,55 @@ static void TestWidgetCompile() {
     CHECK(RectEquals(hits[0].rect, title_frame.value));
 }
 
+static void TestWidgetInvertText() {
+    // invert: filled chip (background in the node's gray) + inverse ink.
+    WidgetArena arena;
+    WidgetHandle col = NewCol(arena).value;
+    WidgetHandle chip = NewText(arena, "SEAL", kFontUi, 0).value;
+    arena.Configure(chip)->props.text.invert = 1;
+    arena.Configure(chip)->fixed_h = 30;
+    CHECK(arena.AddChild(col, chip).ok());
+
+    LayoutEntry entries[4];
+    Result<uint32_t> n =
+        LayoutTree(arena, col, Rect{0, 0, 540, 100}, entries, 4);
+    CHECK(n.ok());
+
+    DrawOp ops[8];
+    uint8_t arena_buf[512];
+    FrameArena frame_arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 8, &frame_arena, Size{540, 960});
+    fb.Begin();
+    HitRegion hits[1];
+    RegionSpec regions[1];
+    Result<CompileResult> compiled =
+        CompileTree(arena, entries, n.value, fb, hits, 1, regions, 1);
+    CHECK(compiled.ok());
+    // One FillRect (chip) then one GlyphRun (inverse ink).
+    CHECK(fb.ops_used() == 2);
+    CHECK(ops[0].kind == DrawOpKind::FillRect);
+    CHECK(ops[0].gray == 0);
+    CHECK(ops[1].kind == DrawOpKind::GlyphRun);
+    CHECK(ops[1].gray == 255);
+
+    // Non-inverted control: exactly one op, original gray.
+    WidgetArena arena2;
+    WidgetHandle col2 = NewCol(arena2).value;
+    WidgetHandle plain = NewText(arena2, "SEAL", kFontUi, 0).value;
+    arena2.Configure(plain)->fixed_h = 30;
+    CHECK(arena2.AddChild(col2, plain).ok());
+    Result<uint32_t> n2 =
+        LayoutTree(arena2, col2, Rect{0, 0, 540, 100}, entries, 4);
+    CHECK(n2.ok());
+    fb.Begin();
+    Result<CompileResult> compiled2 =
+        CompileTree(arena2, entries, n2.value, fb, hits, 1, regions, 1);
+    CHECK(compiled2.ok());
+    CHECK(fb.ops_used() == 1);
+    CHECK(ops[0].kind == DrawOpKind::GlyphRun);
+    CHECK(ops[0].gray == 0);
+}
+
 static void TestWidgetDiff() {
     WidgetArena arena;
     WidgetHandle col = NewCol(arena).value;
@@ -1679,6 +1728,26 @@ int main() {
         std::printf("FAIL: TTF registration failed\n");
         return 1;
     }
+    // kFontDisplay is TTF-ONLY (no bitmap fallback like ids 0/1): register
+    // it and prove text measurement works. MeasureText/BreakLines once
+    // gated on the bitmap table and rejected TTF-only ids — the bug that
+    // made row-nested display-face text vanish (ESP-51 probe6).
+    if (!RegisterTtfFont(kFontDisplay, font_bytes.data(),
+                         static_cast<uint32_t>(font_bytes.size()), 44)
+             .ok()) {
+        std::printf("FAIL: display TTF registration failed\n");
+        return 1;
+    }
+    {
+        const Result<int32_t> w = MeasureText(kFontDisplay, "taps: 0", 7);
+        CHECK(w.ok());
+        CHECK(w.value > 0);
+        LineSpan spans[4];
+        const Result<uint32_t> lines =
+            BreakLines(kFontDisplay, "taps: 0", 7, 400, spans, 4);
+        CHECK(lines.ok());
+        CHECK(lines.value == 1);
+    }
 
     TestGeometryBasics();
     TestIntersectUnion();
@@ -1714,6 +1783,7 @@ int main() {
     TestWidgetLayoutAlign();
     TestWidgetListPagination();
     TestWidgetCompile();
+    TestWidgetInvertText();
     TestWidgetDiff();
     TestDependencyTracker();
     TestRegionTable();

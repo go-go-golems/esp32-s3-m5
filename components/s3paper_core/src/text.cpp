@@ -262,7 +262,10 @@ Result<GlyphMetrics> GetGlyphMetrics(uint8_t font_id, uint32_t codepoint) {
 }
 
 Result<int32_t> MeasureText(uint8_t font_id, const char *text, uint32_t len) {
-    if (GetFont(font_id) == nullptr || (text == nullptr && len > 0)) {
+    // TTF-only ids (display faces) have no bitmap fallback: accept either
+    // registration (the m5 backend's GlyphRun guard had this exact bug).
+    if ((!IsTtfFont(font_id) && GetFont(font_id) == nullptr) ||
+        (text == nullptr && len > 0)) {
         return Result<int32_t>::Err(StatusCode::InvalidArgument);
     }
     int64_t width = 0;
@@ -308,8 +311,8 @@ uint32_t SplitParagraphs(const char *text, uint32_t len, TextSpan *out,
 
 Result<uint32_t> BreakLines(uint8_t font_id, const char *text, uint32_t len,
                             int32_t max_width, LineSpan *out, uint32_t cap) {
-    if (GetFont(font_id) == nullptr || max_width <= 0 ||
-        (text == nullptr && len > 0)) {
+    if ((!IsTtfFont(font_id) && GetFont(font_id) == nullptr) ||
+        max_width <= 0 || (text == nullptr && len > 0)) {
         return Result<uint32_t>::Err(StatusCode::InvalidArgument);
     }
     uint32_t line_count = 0;

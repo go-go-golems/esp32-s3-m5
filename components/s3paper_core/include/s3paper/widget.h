@@ -55,6 +55,9 @@ struct TextProps {
     uint8_t font_id;
     Gray8 gray;
     TextAlign align;
+    // Filled background in `gray`, glyphs in the inverse (Swiss chrome
+    // chips). ESP-51 v2 builder prop.
+    uint8_t invert;
 };
 
 struct SpacerProps {
