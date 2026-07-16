@@ -32,4 +32,10 @@ StatusCode AwaitReply(QueueHandle_t reply_queue, uint32_t request_id,
 // state call this at their entry points.
 void AssertOwner();
 
+// ESP-53 completion mailboxes: posts a ModuleDone event from any task.
+// The caller must have finished writing the module's mailbox BEFORE this
+// call (the queue is the memory barrier).
+StatusCode PostModuleDone(ModuleId module, int32_t kind, int32_t value,
+                          int32_t err);
+
 }  // namespace pulp

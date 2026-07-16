@@ -316,6 +316,12 @@ void HandleEvent(const AppEvent &event) {
                 InputHandleTick();
             }
             break;
+        case AppEventKind::ModuleDone:
+            JsModuleDone(event.payload.module_done.module,
+                         event.payload.module_done.kind,
+                         event.payload.module_done.value,
+                         event.payload.module_done.err);
+            break;
         case AppEventKind::ShutdownRequest:
             s_state.phase = Phase::ShuttingDown;
             s3paper_storage::StorageFlushNow();
@@ -404,6 +410,7 @@ const char *AppEventKindName(AppEventKind kind) {
         case AppEventKind::Pointer: return "Pointer";
         case AppEventKind::TimerDue: return "TimerDue";
         case AppEventKind::ShutdownRequest: return "ShutdownRequest";
+        case AppEventKind::ModuleDone: return "ModuleDone";
         case AppEventKind::kCount: break;
     }
     return "Unknown";
@@ -448,6 +455,21 @@ StatusCode PostEvent(const AppEvent &event) {
     s_dropped_by_source[static_cast<uint8_t>(event.source)].fetch_add(
         1, std::memory_order_relaxed);
     return StatusCode::CapacityExceeded;
+}
+
+StatusCode PostModuleDone(ModuleId module, int32_t kind, int32_t value,
+                          int32_t err) {
+    AppEvent event;
+    std::memset(&event, 0, sizeof(event));
+    event.kind = AppEventKind::ModuleDone;
+    event.source = EventSource::Internal;
+    event.producer_seq = NextProducerSeq(EventSource::Internal);
+    event.monotonic_us = esp_timer_get_time();
+    event.payload.module_done.module = module;
+    event.payload.module_done.kind = kind;
+    event.payload.module_done.value = value;
+    event.payload.module_done.err = err;
+    return PostEvent(event);
 }
 
 uint32_t NextProducerSeq(EventSource source) {

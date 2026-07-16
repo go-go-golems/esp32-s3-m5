@@ -421,6 +421,7 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("batteryLevel", 0, js_pulp_battery_level),
     /* ESP-53 connectivity + peripherals. */
     JS_PROP_CLASS_DEF("buzzer", &js_buzzer_obj),
+    JS_PROP_CLASS_DEF("files", &js_files_obj),
 #endif
     JS_PROP_END,
 };

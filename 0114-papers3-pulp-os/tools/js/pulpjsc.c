@@ -105,6 +105,17 @@ STUB(js_buzzer_tone)
 STUB(js_buzzer_beep)
 STUB(js_buzzer_stop)
 STUB(js_buzzer_melody)
+STUB(js_files_exists)
+STUB(js_files_list)
+STUB(js_files_read)
+STUB(js_files_write)
+STUB(js_files_append)
+STUB(js_files_remove)
+STUB(js_files_name)
+STUB(js_files_size)
+STUB(js_files_is_dir)
+STUB(js_files_line)
+STUB(js_files_line_count)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

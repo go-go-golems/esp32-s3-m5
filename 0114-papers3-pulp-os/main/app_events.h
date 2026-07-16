@@ -28,7 +28,35 @@ enum class AppEventKind : uint8_t {
     Pointer,
     TimerDue,
     ShutdownRequest,
+    // ESP-53 completion mailboxes: a module worker finished; the payload
+    // carries the three ints for the JS callback. Result data waits in
+    // the module's mailbox (written BEFORE this event was posted; the
+    // queue send/receive is the memory barrier).
+    ModuleDone,
     kCount,
+};
+
+// ESP-53 module ids (one pending completion callback per module).
+enum class ModuleId : uint8_t {
+    Files = 0,
+    Wifi,
+    Http,
+    Serve,
+    kCount,
+};
+
+// Completion-callback kinds delivered as the first CallCb argument.
+// Shared JS-visible vocabulary — keep in sync with the intern guide §3.
+enum ModuleDoneKind : int32_t {
+    kDoneWifiScan = 1,
+    kDoneWifiJoin = 2,
+    kDoneHttp = 3,
+    kDoneServeRequest = 4,
+    kDoneFilesList = 10,
+    kDoneFilesRead = 11,
+    kDoneFilesWrite = 12,
+    kDoneFilesAppend = 13,
+    kDoneFilesRemove = 14,
 };
 
 const char *AppEventKindName(AppEventKind kind);
@@ -82,6 +110,13 @@ struct TimerPayload {
     uint32_t timer_id;
 };
 
+struct ModuleDonePayload {
+    ModuleId module;
+    int32_t kind;   // ModuleDoneKind
+    int32_t value;  // count / status code / bytes, per kind
+    int32_t err;    // 0 = ok; module-specific error otherwise
+};
+
 struct AppEvent {
     AppEventKind kind;
     EventSource source;
@@ -99,6 +134,7 @@ struct AppEvent {
         ConsolePayload console;
         PointerPayload pointer;
         TimerPayload timer;
+        ModuleDonePayload module_done;
     } payload;
 };
 

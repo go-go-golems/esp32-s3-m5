@@ -47,6 +47,9 @@ extern uint32_t g_dyn_count;
 extern int32_t g_next_cb;
 extern int32_t g_home_cb;
 extern int32_t g_sleep_image_cb;
+// One pending completion callback per module (ESP-53); 0 = none. Bindings
+// set via RegisterModuleCb; JsModuleDone consumes; resetTree clears.
+extern int32_t g_module_cb[static_cast<uint8_t>(ModuleId::kCount)];
 extern s3paper::HitRegion g_hits[kMaxJsHits];
 extern uint32_t g_hit_count;
 extern int64_t g_timer_due_us;
@@ -83,6 +86,12 @@ bool ArgString(JSContext *ctx, JSValue arg, char *out, size_t cap,
 // Registers a JS closure in the kernel's __cbs array (which roots it
 // against the compacting GC); returns its id, 0 on failure.
 int32_t RegisterCb(JSContext *ctx, JSValue fn);
+
+// Registers fn as the module's single pending completion callback.
+// Returns false with *err set (TypeError on a non-function, Busy-style
+// TypeError when an operation is already in flight).
+bool RegisterModuleCb(JSContext *ctx, ModuleId module, JSValue fn,
+                      JSValue *err);
 
 // Calls __cbs[id](a, b, c) under a deadline; JS_UNDEFINED when unset or
 // throwing (exception recorded).

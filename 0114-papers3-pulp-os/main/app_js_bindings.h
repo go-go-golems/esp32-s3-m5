@@ -112,6 +112,18 @@ PULP_JS_FN(js_buzzer_beep);
 PULP_JS_FN(js_buzzer_stop);
 PULP_JS_FN(js_buzzer_melody);
 
+PULP_JS_FN(js_files_exists);
+PULP_JS_FN(js_files_list);
+PULP_JS_FN(js_files_read);
+PULP_JS_FN(js_files_write);
+PULP_JS_FN(js_files_append);
+PULP_JS_FN(js_files_remove);
+PULP_JS_FN(js_files_name);
+PULP_JS_FN(js_files_size);
+PULP_JS_FN(js_files_is_dir);
+PULP_JS_FN(js_files_line);
+PULP_JS_FN(js_files_line_count);
+
 #ifdef __cplusplus
 }
 #endif

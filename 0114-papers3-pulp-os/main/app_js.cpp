@@ -33,6 +33,7 @@ DynEntry g_dyn[kMaxDynValues];
 uint32_t g_dyn_count = 0;
 int32_t g_next_cb = 1;
 int32_t g_home_cb = 0;
+int32_t g_module_cb[static_cast<uint8_t>(ModuleId::kCount)] = {};
 int32_t g_sleep_image_cb = 0;
 s3paper::HitRegion g_hits[kMaxJsHits];
 uint32_t g_hit_count = 0;
@@ -261,6 +262,30 @@ bool ArgString(JSContext *ctx, JSValue arg, char *out, size_t cap,
         return false;
     }
     snprintf(out, cap, "%.*s", static_cast<int>(len), str);
+    return true;
+}
+
+bool RegisterModuleCb(JSContext *ctx, ModuleId module, JSValue fn,
+                      JSValue *err) {
+    const uint8_t idx = static_cast<uint8_t>(module);
+    if (idx >= static_cast<uint8_t>(ModuleId::kCount)) {
+        *err = JS_ThrowTypeError(ctx, "bad module");
+        return false;
+    }
+    if (!JS_IsFunction(ctx, fn)) {
+        *err = JS_ThrowTypeError(ctx, "callback must be a function");
+        return false;
+    }
+    if (g_module_cb[idx] != 0) {
+        *err = JS_ThrowTypeError(ctx, "module busy");
+        return false;
+    }
+    const int32_t id = RegisterCb(ctx, fn);
+    if (id == 0) {
+        *err = JS_EXCEPTION;
+        return false;
+    }
+    g_module_cb[idx] = id;
     return true;
 }
 
@@ -497,6 +522,23 @@ void FillJsSnapshot(JsSnapshot *out) {
     snprintf(out->last_error, sizeof(out->last_error), "%s", s_last_error);
 }
 
+void JsModuleDone(ModuleId module, int32_t kind, int32_t value,
+                  int32_t err) {
+    const uint8_t idx = static_cast<uint8_t>(module);
+    if (idx >= static_cast<uint8_t>(ModuleId::kCount)) {
+        return;
+    }
+    const int32_t cb = g_module_cb[idx];
+    // Cleared BEFORE the call so the callback can start a new operation
+    // (which re-registers) without tripping the Busy check.
+    g_module_cb[idx] = 0;
+    if (cb == 0 || g_ctx == nullptr) {
+        return;  // cancelled by resetTree; mailbox stays readable
+    }
+    g_dispatches++;
+    (void)CallCb(cb, kind, value, err, 3);
+}
+
 // ---- basic C ABI implementations (stdlib table) ----
 
 extern "C" {
@@ -568,6 +610,11 @@ JSValue js_pulp_reset_tree(JSContext *ctx, JSValue *, int, JSValue *) {
     g_next_cb = 1;
     g_home_cb = 0;
     g_sleep_image_cb = 0;
+    // App switch cancels pending completion deliveries (design §3 rule 5);
+    // in-flight native operations run to completion and drop the callback.
+    for (uint8_t i = 0; i < static_cast<uint8_t>(ModuleId::kCount); ++i) {
+        g_module_cb[i] = 0;
+    }
     // Fresh registry seeded with a slot 0 placeholder: cb ids start at 1
     // and mquickjs treats array holes as TypeError (stricter dialect).
     const JSValue arr = JS_NewArray(ctx, 0);

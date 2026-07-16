@@ -98,5 +98,25 @@ static const JSPropDef js_buzzer[] = {
 
 static const JSClassDef js_buzzer_obj = JS_OBJECT_DEF("Buzzer", js_buzzer);
 
+/* files singleton (ESP-53): bounded SD access rooted at /sdcard. Async
+   verbs take (path, [body,] fn) and complete as fn(kind, value, err);
+   accessors read the native mailboxes. */
+static const JSPropDef js_files[] = {
+    JS_CFUNC_DEF("exists", 1, js_files_exists),
+    JS_CFUNC_DEF("list", 2, js_files_list),
+    JS_CFUNC_DEF("read", 2, js_files_read),
+    JS_CFUNC_DEF("write", 3, js_files_write),
+    JS_CFUNC_DEF("append", 3, js_files_append),
+    JS_CFUNC_DEF("remove", 2, js_files_remove),
+    JS_CFUNC_DEF("name", 1, js_files_name),
+    JS_CFUNC_DEF("size", 1, js_files_size),
+    JS_CFUNC_DEF("isDir", 1, js_files_is_dir),
+    JS_CFUNC_DEF("line", 1, js_files_line),
+    JS_CFUNC_DEF("lineCount", 0, js_files_line_count),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_files_obj = JS_OBJECT_DEF("Files", js_files);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

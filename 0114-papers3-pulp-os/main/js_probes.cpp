@@ -282,6 +282,45 @@ StatusCode RunTraceEquivalence() {
     return equal ? StatusCode::Ok : StatusCode::CorruptData;
 }
 
+// Probe 15 (ESP-53 P2): files module denials, caps, busy rejection, and a
+// full write->read->list->remove chain. The chain rides completion
+// callbacks, so its prints land on later owner-loop passes — read the
+// whole transcript, not just the eval result.
+const char kProbe15Js[] =
+    "print('probe15: exists /books=' + files.exists('/books')"
+    "      + ' rel=' + files.exists('books'));"
+    "print('probe15: deny dotdot=' + files.remove('/../x', function(){})"
+    "      + ' state=' + files.list('/.s3paper', function(){})"
+    "      + ' slashes=' + files.read('//x', function(){}));"
+    "var big = '0123456789abcdef';"
+    "while (big.length < 17000) { big = big + big; }"
+    "print('probe15: cap=' + files.write('/notes/big.txt', big,"
+    "      function(){}));"
+    "files.list('/books', function (k, n, e) {"
+    "  print('probe15: list books k=' + k + ' n=' + n + ' e=' + e);"
+    "  files.write('/notes/probe.txt', 'alpha\\nbeta\\ngamma',"
+    "      function (k2, wrote, e2) {"
+    "    print('probe15: write k=' + k2 + ' bytes=' + wrote + ' e=' + e2);"
+    "    files.read('/notes/probe.txt', function (k3, lines, e3) {"
+    "      print('probe15: read k=' + k3 + ' lines=' + lines + ' e=' + e3"
+    "            + ' l0=' + files.line(0) + ' l2=' + files.line(2));"
+    "      files.list('/notes', function (k4, n4, e4) {"
+    "        print('probe15: list notes n=' + n4 + ' first='"
+    "              + files.name(0) + ' size=' + files.size(0)"
+    "              + ' dir=' + files.isDir(0));"
+    "        files.remove('/notes/probe.txt', function (k5, ok, e5) {"
+    "          print('probe15: remove ok=' + ok + ' e=' + e5"
+    "                + ' exists=' + files.exists('/notes/probe.txt'));"
+    "        });"
+    "      });"
+    "    });"
+    "  });"
+    "});"
+    "var busy = 'no';"
+    "try { files.list('/books', function () {}); }"
+    "catch (err) { busy = 'yes'; }"
+    "print('probe15: busy=' + busy);";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -331,6 +370,7 @@ StatusCode JsRunProbe(uint32_t which) {
                 "<alive>");
         }
         case 14: return RunTraceEquivalence();
+        case 15: return jsi::EvalBounded(kProbe15Js, 3000, "<probe15>");
         default: return StatusCode::InvalidArgument;
     }
 }

@@ -40,6 +40,13 @@ void JsTimerTick(int64_t now_us);
 
 void FillJsSnapshot(JsSnapshot *out);
 
+// Owner-loop sink for ModuleDone events (ESP-53): fires (and clears) the
+// module's pending completion callback as fn(kind, value, err). A missing
+// callback (cancelled by resetTree) drops the delivery silently — the
+// operation's mailbox stays readable until the next operation.
+void JsModuleDone(ModuleId module, int32_t kind, int32_t value,
+                  int32_t err);
+
 // Prints the live hit regions (owner context; coordinate-hunting aid).
 void JsPrintHits();
 

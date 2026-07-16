@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "app_main.cpp"
         "app_buzzer.cpp"
+        "app_files.cpp"
         "app_owner.cpp"
         "app_console.cpp"
         "app_input.cpp"
@@ -9,6 +10,7 @@ idf_component_register(
         "app_home.cpp"
         "app_js.cpp"
         "js_buzzer.cpp"
+        "js_files.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
         "js_services.cpp"
