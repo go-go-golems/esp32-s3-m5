@@ -260,7 +260,7 @@ void HandleConsoleCommand(const AppEvent &event) {
                     arg == 7 ? JsSyntheticGesture(0, 400, 500)
                              : JsSyntheticGesture(3, 270, 500);
                 FillJsSnapshot(&reply.payload.js);
-            } else if (arg <= 6) {
+            } else if (arg <= 6 || arg == 9) {
                 reply.status = JsRunApp(arg);
                 if (reply.status != StatusCode::Ok && JsScreenActive()) {
                     // A failed script left its page on the panel: fall back

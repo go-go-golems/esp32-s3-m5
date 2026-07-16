@@ -676,6 +676,8 @@ int CmdJs(int argc, char **argv) {
             arg = 7;  // synthetic tap on the right half
         } else if (strcmp(argv[1], "prev") == 0) {
             arg = 8;  // synthetic swipe right
+        } else if (strcmp(argv[1], "bc") == 0) {
+            arg = 9;  // embedded host-compiled bytecode app
         } else {
             printf("error: InvalidArgument: usage js "
                    "[status|hello|taps|library|fault|trace|reader|"
