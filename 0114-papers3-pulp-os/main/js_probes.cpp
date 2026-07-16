@@ -321,6 +321,34 @@ const char kProbe15Js[] =
     "catch (err) { busy = 'yes'; }"
     "print('probe15: busy=' + busy);";
 
+// Probe 16 (ESP-53 P4): http fetch battery — plain http, https via the
+// cert bundle, truncation at a small limit, and a clean timeout error on
+// an unroutable address. Requires the network to be up (net joinsaved
+// first). Chained completions; the timeout leg takes ~10 s.
+const char kProbe16Js[] =
+    "http.get('http://example.com/').limit(4096)"
+    "    .done(function (k, st, len) {"
+    "  print('probe16: http st=' + st + ' len=' + len"
+    "        + ' l0=' + http.bodyLine(0).slice(0, 30));"
+    "  http.get('https://example.com/').limit(4096)"
+    "      .done(function (k2, st2, len2) {"
+    "    print('probe16: https st=' + st2 + ' len=' + len2);"
+    "    http.get('https://example.com/').limit(256)"
+    "        .done(function (k3, st3, len3) {"
+    "      print('probe16: trunc st=' + st3 + ' len=' + len3"
+    "            + ' (limit 256)');"
+    "      http.get('http://10.255.255.1/')"
+    "          .done(function (k4, st4, e4) {"
+    "        print('probe16: timeout st=' + st4 + ' err=' + e4);"
+    "      }).send();"
+    "    }).send();"
+    "  }).send();"
+    "}).send();"
+    "var busy = 'no';"
+    "try { http.get('http://example.com/x'); }"
+    "catch (err) { busy = 'yes'; }"
+    "print('probe16: busy=' + busy);";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -371,6 +399,7 @@ StatusCode JsRunProbe(uint32_t which) {
         }
         case 14: return RunTraceEquivalence();
         case 15: return jsi::EvalBounded(kProbe15Js, 3000, "<probe15>");
+        case 16: return jsi::EvalBounded(kProbe16Js, 3000, "<probe16>");
         default: return StatusCode::InvalidArgument;
     }
 }

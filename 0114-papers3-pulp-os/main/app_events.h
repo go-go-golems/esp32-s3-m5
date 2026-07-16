@@ -87,6 +87,8 @@ enum class ConsoleOp : uint8_t {
     Net,     // arg: 0 = status, 1 = scan, 2 = join (str_a/str_b),
              //      3 = join-saved, 4 = save (str_a/str_b),
              //      5 = forget (str_a), 6 = off, 7 = saved-list (printed)
+    Http,    // arg: 0 = status, 1 = get (str_a = url, arg2 = limit or 0),
+             //      2 = abort, 3 = print body head
 };
 
 enum class PointerPhase : uint8_t {
@@ -100,9 +102,9 @@ struct ConsolePayload {
     ConsoleOp op;
     uint32_t arg;
     uint32_t arg2;
-    // Bounded string arguments (ESP-53: net join/save/forget). POD rule
-    // kept: fixed arrays copied by value with the event.
-    char str_a[33];
+    // Bounded string arguments (ESP-53: net join/save/forget, http get).
+    // POD rule kept: fixed arrays copied by value with the event.
+    char str_a[128];
     char str_b[65];
 };
 
@@ -228,6 +230,14 @@ struct NetSnapshot {
     uint32_t saved_count;
 };
 
+struct HttpSnapshot {
+    uint8_t in_flight;
+    int32_t status;
+    uint32_t length;
+    uint32_t limit;
+    char url[64];
+};
+
 struct BuzzSnapshot {
     uint8_t initialized;
     uint8_t playing;  // 1 = tone or melody currently sounding
@@ -261,6 +271,7 @@ struct AppReply {
         JsSnapshot js;
         BuzzSnapshot buzz;
         NetSnapshot net;
+        HttpSnapshot http;
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

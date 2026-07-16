@@ -132,6 +132,17 @@ STUB(js_wifi_forget)
 STUB(js_wifi_saved_count)
 STUB(js_wifi_saved_ssid)
 STUB(js_wifi_off)
+STUB(js_http_get)
+STUB(js_http_header)
+STUB(js_http_limit)
+STUB(js_http_done)
+STUB(js_http_send)
+STUB(js_http_abort)
+STUB(js_http_status)
+STUB(js_http_length)
+STUB(js_http_body)
+STUB(js_http_body_line)
+STUB(js_http_body_line_count)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

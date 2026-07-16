@@ -141,6 +141,18 @@ PULP_JS_FN(js_wifi_saved_count);
 PULP_JS_FN(js_wifi_saved_ssid);
 PULP_JS_FN(js_wifi_off);
 
+PULP_JS_FN(js_http_get);
+PULP_JS_FN(js_http_header);
+PULP_JS_FN(js_http_limit);
+PULP_JS_FN(js_http_done);
+PULP_JS_FN(js_http_send);
+PULP_JS_FN(js_http_abort);
+PULP_JS_FN(js_http_status);
+PULP_JS_FN(js_http_length);
+PULP_JS_FN(js_http_body);
+PULP_JS_FN(js_http_body_line);
+PULP_JS_FN(js_http_body_line_count);
+
 #ifdef __cplusplus
 }
 #endif

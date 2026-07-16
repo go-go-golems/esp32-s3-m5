@@ -4,6 +4,7 @@ idf_component_register(
         "app_buzzer.cpp"
         "app_files.cpp"
         "app_owner.cpp"
+        "net_http.cpp"
         "net_wifi.cpp"
         "app_console.cpp"
         "app_input.cpp"
@@ -12,6 +13,7 @@ idf_component_register(
         "app_js.cpp"
         "js_buzzer.cpp"
         "js_files.cpp"
+        "js_http.cpp"
         "js_wifi.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
@@ -27,6 +29,9 @@ idf_component_register(
         esp_driver_ledc
         esp_timer
         esp_wifi
+        esp_http_client
+        esp-tls
+        mbedtls
         esp_netif
         esp_event
         nvs_flash

@@ -433,6 +433,49 @@ int CmdNet(int argc, char **argv) {
     return reply.status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdHttp(int argc, char **argv) {
+    AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
+                               EventSource::Console, true);
+    event.payload.console.op = ConsoleOp::Http;
+    event.payload.console.arg = 0;
+    ConsolePayload &c = event.payload.console;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "get") == 0 && argc >= 3) {
+            c.arg = 1;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+            c.arg2 = argc >= 4 ? static_cast<uint32_t>(atoi(argv[3])) : 0;
+        } else if (strcmp(argv[1], "abort") == 0) {
+            c.arg = 2;
+        } else if (strcmp(argv[1], "body") == 0) {
+            c.arg = 3;
+        } else {
+            printf("error: usage http [status|get URL [LIMIT]|body|"
+                   "abort]\n");
+            return 1;
+        }
+    }
+    const StatusCode posted = PostEvent(event);
+    if (posted != StatusCode::Ok) {
+        printf("error: enqueue failed: %s\n", StatusCodeName(posted));
+        return 1;
+    }
+    AppReply reply;
+    const StatusCode status =
+        AwaitReply(s_reply_queue, event.request_id, 5000, &reply);
+    if (status != StatusCode::Ok) {
+        printf("http op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    const HttpSnapshot &h = reply.payload.http;
+    printf("http in_flight=%u status=%d len=%u limit=%u url=\"%s\" "
+           "result=%s\n",
+           h.in_flight, static_cast<int>(h.status),
+           static_cast<unsigned>(h.length),
+           static_cast<unsigned>(h.limit), h.url,
+           StatusCodeName(reply.status));
+    return reply.status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -491,6 +534,10 @@ void ConsoleStart() {
                     "sleep [status|deep N|rtc-off N|off|auto N] - power",
                     &CmdSleep);
     RegisterCommand("home", "Present the native home page", &CmdHome);
+    RegisterCommand("http",
+                    "http [status|get URL [LIMIT]|body|abort] - bounded "
+                    "fetch",
+                    &CmdHttp);
     RegisterCommand("net",
                     "net [status|scan|join SSID [PASS]|joinsaved|save "
                     "SSID PASS|forget SSID|saved|off] - wifi station",

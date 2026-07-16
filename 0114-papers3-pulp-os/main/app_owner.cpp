@@ -14,6 +14,7 @@
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
+#include "net_http.h"
 #include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
@@ -324,6 +325,40 @@ void HandleConsoleCommand(const AppEvent &event) {
                     break;
             }
             FillNetSnapshot(&reply.payload.net);
+            break;
+        }
+        case ConsoleOp::Http: {
+            const ConsolePayload &c = event.payload.console;
+            switch (c.arg) {
+                case 1:
+                    reply.status = HttpBegin(c.str_a);
+                    if (reply.status == StatusCode::Ok && c.arg2 != 0) {
+                        reply.status = HttpLimit(c.arg2);
+                    }
+                    if (reply.status == StatusCode::Ok) {
+                        reply.status = HttpSend();
+                    }
+                    break;
+                case 2:
+                    HttpAbort();
+                    break;
+                case 3: {
+                    // Body head for console eyes (bounded).
+                    const uint32_t n = HttpLineCount();
+                    for (uint32_t i = 0; i < n && i < 8; ++i) {
+                        uint32_t len = 0;
+                        const char *line = HttpLine(i, &len);
+                        printf("http body[%u]: %.*s\n",
+                               static_cast<unsigned>(i),
+                               static_cast<int>(len > 120 ? 120 : len),
+                               line);
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+            FillHttpSnapshot(&reply.payload.http);
             break;
         }
     }

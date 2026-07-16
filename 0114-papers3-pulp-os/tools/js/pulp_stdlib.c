@@ -142,5 +142,24 @@ static const JSPropDef js_wifi[] = {
 
 static const JSClassDef js_wifi_obj = JS_OBJECT_DEF("Wifi", js_wifi);
 
+/* http singleton (ESP-53): fetch builder with a terminal verb, per the
+   express taste — get/header/limit/done chain, send() launches. */
+static const JSPropDef js_http[] = {
+    JS_CFUNC_DEF("get", 1, js_http_get),
+    JS_CFUNC_DEF("header", 2, js_http_header),
+    JS_CFUNC_DEF("limit", 1, js_http_limit),
+    JS_CFUNC_DEF("done", 1, js_http_done),
+    JS_CFUNC_DEF("send", 0, js_http_send),
+    JS_CFUNC_DEF("abort", 0, js_http_abort),
+    JS_CFUNC_DEF("status", 0, js_http_status),
+    JS_CFUNC_DEF("length", 0, js_http_length),
+    JS_CFUNC_DEF("body", 0, js_http_body),
+    JS_CFUNC_DEF("bodyLine", 1, js_http_body_line),
+    JS_CFUNC_DEF("bodyLineCount", 0, js_http_body_line_count),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_http_obj = JS_OBJECT_DEF("Http", js_http);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"
