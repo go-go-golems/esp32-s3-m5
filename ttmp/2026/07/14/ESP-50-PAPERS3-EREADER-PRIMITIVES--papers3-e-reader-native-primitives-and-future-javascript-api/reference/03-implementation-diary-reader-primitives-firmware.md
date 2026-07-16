@@ -1163,3 +1163,48 @@ The user rightly pushed back on skipping the open Phase 12 items, so this step f
 - JS reader: `main/app_js.cpp` (`JsBook`, `JsBookCompose`, `kReaderJs`, the seven `js_s3_book_*` bindings, `JsSyntheticGesture`).
 - Pipeline: `tools/js/s3jsc.c`, `tools/js/build_bytecode_apps.sh`, `tools/js/apps/bc_hello.js`, `JsLoadBytecodeApps` ordering in `JsInit`.
 - Validate: `make run` (37,989 checks); on device `js reader` → `js next/prev`; `js bc` twice. Evidence: `scripts/output/0112-js-{reader*,bytecode2}.log`.
+
+## Step 20: PULP OS — a JS launcher and six apps, set in Swiss bold
+
+The design session ("let's design a little OS and a bunch of fun apps") became a working product in one image: PULP OS, a 20 KB host-compiled bytecode blob containing a launcher and six apps, running entirely over the s3 ABI. Mid-implementation the user demanded "BOLD TYPOGRAPHY. THINK SWISS." — which added two Liberation Sans Bold display faces and flushed out a real rendering bug that had been waiting since Phase 12: the M5 backend silently skipped every glyph run whose font id had no bitmap fallback.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok implement it" — mid-turn: "BOLD TYPOGRAPHY. THINK SWISS."
+
+**Assistant interpretation:** Build the previously ASCII-mocked PULP OS (launcher + apps) for real, then restyle it with bold grotesque display typography in the International Typographic Style.
+
+**Inferred user intent:** Prove the JS platform by shipping something fun and cohesive on it, and make the e-ink screen look designed, not defaulted.
+
+**Commit (code):** e7aa3c8 — "PULP OS: launcher + six JS apps with Swiss display typography"
+
+### What I did
+- Native services: settings key-value store (`S3ST`, 16 int32 records, atomic + coalesced, loaded at mount — closes the settings persistence gap), JS interval timer (`s3TimerStart/Stop`, owner-loop dispatch as kind 100 while the JS screen is active, 250 ms floor), fixed-path postcard append (`/sdcard/books/postcard.txt` — native owns the path; the journal becomes a library book), console `js tap x y` / `js swipe k` injectors, `kMaxJsHits` 16→48.
+- `tools/js/apps/pulp.js` (single bytecode image, replaces bc_hello in the one available ROM atom-table slot): home launcher; Dice Tray (2d6 with pip art, d20, coin, d%, history); Blitz Ink (5+3 chess clock, tap-your-side, long-press pause, 1 s ticks, flag on zero); 2048 INK (full slide/merge logic, swipe moves with **trapped swipe-down**, one-level undo, best score persisted via the store); Tea Timer (presets, +30 s, drain bar, full-refresh "blink" when done); Postcard (30-key tap keyboard, 63-char line, SEAL appends to the journal); Daily Pulp (random book + random page through the book ABI, reveal/another/keep-reading into the native reader).
+- Typography: `scripts/54-subset-liberation-bold.sh` subsets the system Liberation Sans Bold (SIL OFL, license copied) to the pinned repertoire (56 KB); registered as `kFontDisplay` 44 px and `kFontXL` 84 px (`kFontCount` 2→4); facade constants FONT_DISPLAY/FONT_XL; PULP restyled — XL flush-left wordmark, bold row labels, 6–8 px rules, XL clock digits and dice results, serif reserved for book text.
+
+### What worked (all on hardware, via synthetic taps/swipes)
+- Boot from bytecode: home with 7 hit regions. Row probes by screen-name print: dice, blitz (13+ one-second partial clock ticks after starting it, pause via long-press), 2048 (three swipes incl. trapped down, all partial refreshes), tea, daily, postcard (42 ops, 30 keys, skipped=0 after the fixes).
+- The store round-trips (2048 best shows in the launcher sub-label), and the whole OS coexists with the reader (Reader row opens the native reader; swipe-down home everywhere else).
+
+### What didn't work (two real bugs, both fixed)
+- **Postcard's keyboard overflowed `kMaxJsHits=16`** — `CompileTree` returned CapacityExceeded and `s3Present` failed silently. Raised to 48 and added an ESP_LOGW on failed JS presents (silent render failures cost a blind debugging round).
+- **The m5 backend skipped TTF-only font ids**: its GlyphRun guard (`GetFont(id)==nullptr` → skip) predates multiple faces — GetFont only knows the two bitmap-fallback ids, so every kFontDisplay/kFontXL run was dropped (`ops=15 skipped=27` was the tell). Guard now accepts `IsTtfFont(id) || GetFont(id)`.
+
+### What was tricky to build
+- Blind tap-coordinate validation: launcher row pitch changed with every typography tweak. The fix that made it tractable was a one-line `print('pulp screen: ' + P.app)` in `present()` — screens identify themselves in the transcript, so probing is deterministic.
+- The OS gesture wrapper must be re-registered on every present (s3.reset clears it); `P.trapDown` lets 2048 claim swipe-down as a move while every other screen keeps it as "home".
+
+### What warrants a second pair of eyes
+- Timer callbacks re-render whole pages as partials each tick (blitz: one per second). Fine for the planner's budget, but a long chess game will accumulate partial area fast — watch the forced-full cadence in a real game.
+- `SettingsSet` replaces slot 0 when all 16 records are used (documented capacity policy); apps share that namespace.
+- Postcard has no shift/uppercase and truncates at 63 chars by design.
+
+### What should be done in the future
+- Operator play-test: type and SEAL a postcard line, then rescan the library — the journal should appear as a book. Check the Swiss home visually (XL wordmark, bold rows).
+- The bitmap-fallback GetFont table could learn the display ids, or the fallback path deserves removal now that TTF is the only real path.
+
+### Code review instructions
+- Native: `main/app_storage.cpp` (settings block), `main/app_js.cpp` (timer/store/postcard bindings, kMaxJsHits), `components/s3paper_m5/src/m5_backend.cpp` (GlyphRun guard), `main/app_display.cpp` (font registration), `components/s3paper_core/fonts/` (LibSansBoldUkr.ttf + license).
+- JS: `tools/js/apps/pulp.js` end to end.
+- Validate: `js pulp` → tap rows (console `js tap 270 <240|330|420|510|600>`), watch `pulp screen:` lines and `skipped=0`. Evidence: `scripts/output/0112-pulp-*.log`.

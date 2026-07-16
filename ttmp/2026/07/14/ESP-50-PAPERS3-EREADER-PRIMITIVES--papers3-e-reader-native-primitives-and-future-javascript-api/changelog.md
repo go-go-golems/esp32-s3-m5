@@ -574,3 +574,12 @@ Step 19: Phase 12 closed - JS reader port with bidirectional position interop ov
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/tools/js/s3jsc.c — Host bytecode compiler (commit 83b7165)
 
+
+## 2026-07-15
+
+Step 20: PULP OS - JS launcher + six apps (dice, chess clock, 2048, tea timer, postcard journal, daily pulp) as one bytecode image with Swiss Liberation Sans Bold display faces (44/84px); native settings store closes mcac/1y51; fixed m5 backend dropping TTF-only font ids and raised JS hit capacity (commit e7aa3c8)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/tools/js/apps/pulp.js — PULP OS bytecode source (commit e7aa3c8)
+

@@ -35,7 +35,7 @@
 - [x] Phase 3 - Implement and hardware-qualify the EPD refresh planner, waveform selection, dirty-region alignment/merging, ghosting accounting, and visual test corpus <!-- t:hdvv -->
 - [x] Phase 4 - Implement normalized touch events, hit testing, gestures, input-idle tracking, timers, and quiet/deferred region scheduling <!-- t:a7sc -->
 - [x] Phase 5 - Implement font loading, UTF-8 decoding, glyph metrics, text measurement, line breaking, and deterministic page-layout fixtures <!-- t:kkmo -->
-- [ ] Phase 6 - Implement SD-first content sources, a versioned library catalog, stable book identities, settings, and atomic position persistence <!-- t:mcac -->
+- [x] Phase 6 - Implement SD-first content sources, a versioned library catalog, stable book identities, settings, and atomic position persistence <!-- t:mcac -->
 - [x] Phase 7 - Implement locator-based streaming pagination, page offset caches keyed by layout settings, next/previous traversal, and invalidation rules <!-- t:0dxd -->
 - [x] Phase 8 - Ship a native vertical slice with library, reading view, page turns, progress, bookmarks, and resume without any JavaScript runtime <!-- t:ylnh -->
 - [x] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
@@ -110,7 +110,7 @@
 - [x] [P6.3] Define stable BookId and ContentHash derivation independent of transient library list ordering <!-- t:7ji5 -->
 - [x] [P6.4] Define a versioned, length-checked, checksummed BookRecord and catalog serialization format <!-- t:i78k -->
 - [x] [P6.5] Implement bounded SD library scanning, metadata defaults, duplicate handling, and deterministic sorting <!-- t:ll6s -->
-- [ ] [P6.6] Define settings and structured TextLocator persistence records with schema versions <!-- t:1y51 -->
+- [x] [P6.6] Define settings and structured TextLocator persistence records with schema versions <!-- t:1y51 -->
 - [x] [P6.7] Implement atomic temp/write/flush/rename/backup updates and recovery after interrupted writes <!-- t:lyfu -->
 - [x] [P6.8] Keep disposable derived caches separate from catalog and critical resume state <!-- t:atj4 -->
 - [x] [P6.9] Handle absent, removed, corrupt, and reinserted cards as recoverable application states <!-- t:gky6 -->
