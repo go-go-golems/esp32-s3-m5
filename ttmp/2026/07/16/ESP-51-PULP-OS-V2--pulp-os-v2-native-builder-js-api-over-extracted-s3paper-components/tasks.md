@@ -1,0 +1,69 @@
+# Tasks
+
+## TODO
+
+- [ ] Phase 0 - Orientation: environment proven, 0112 built/flashed, guide and diaries read <!-- t:4jpb -->
+- [ ] [P0.1] Read the intern guide end to end; skim ESP-50 design-doc/01 and diary Steps 1-21 <!-- t:sciz -->
+- [ ] [P0.2] Build 0112 with IDF 5.3.4 and run the host suite (expect 37989 checks green) <!-- t:78pw -->
+- [ ] [P0.3] Flash 0112, exercise console: status, reader next/prev, library show, js pulp, js trace <!-- t:wbkl -->
+- [ ] [P0.4] Run the console client with a saved transcript; confirm serial discipline understood <!-- t:muup -->
+- [ ] [P0.5] Create the 0114 diary doc and record Step 1 with environment evidence <!-- t:tzvn -->
+- [ ] Phase 1 - Extract s3paper_core and s3paper_m5 to top-level components/; re-point 0112 <!-- t:1ba6 -->
+- [ ] [P1.1] Move components/s3paper_core and s3paper_m5 from 0112 to repo components/ (git mv, history preserved) <!-- t:wzda -->
+- [ ] [P1.2] Add EXTRA_COMPONENT_DIRS to 0112 and set(COMPONENTS ...) trimming; keep esp_psram named <!-- t:pj47 -->
+- [ ] [P1.3] Rebuild 0112 clean (rm -rf build sdkconfig), verify binary size and boot <!-- t:cfrc -->
+- [ ] [P1.4] Host suite still green from the new location; fix Makefile paths <!-- t:fiqf -->
+- [ ] [P1.5] Device smoke: boot restore, one page turn partial, library show transcript saved <!-- t:p93u -->
+- [ ] Phase 2 - Extract s3paper_storage component from 0112 main/app_storage <!-- t:bgb6 -->
+- [ ] [P2.1] Define the component API header (mount/scan/catalog/positions/bookmarks/settings/lastbook) using s3paper::StatusCode only <!-- t:amcj -->
+- [ ] [P2.2] Inject the display-init-before-mount constraint as a callback; parameterize the demo-book seed <!-- t:e2rt -->
+- [ ] [P2.3] Move code, keep the static-scratch catalog buffer and never-format policy; 0112 adapts <!-- t:0e9r -->
+- [ ] [P2.4] Device validation: catalog cached scan (hashed=0 on 2nd boot), positions/bookmarks/settings round-trip <!-- t:2qsd -->
+- [ ] [P2.5] Fault injection: corrupt/truncate each state file and verify loader recovery plus .bak fallback <!-- t:5hyg -->
+- [ ] Phase 3 - Extract s3paper_runtime (present pipeline) from 0112 app_ui/app_display <!-- t:afv2 -->
+- [ ] [P3.1] Component API: Init (frame storage, backends, fonts), Planner access, PresentPage, PresentPageUpdate, PresentCount, trace mode <!-- t:9xkm -->
+- [ ] [P3.2] Preserve the two update-mode invariants: hits never re-collected under clip; compile always given a hits array <!-- t:kjec -->
+- [ ] [P3.3] Re-point 0112 (reader, fixtures, JS v1) at the component; delete app_ui remnants <!-- t:7bxm -->
+- [ ] [P3.4] Device validation on 0112: page turn full=0, widget status region ticks, js trace EQUAL, blitz update damage 460x86 <!-- t:23s5 -->
+- [ ] Phase 4 - 0114 skeleton: owner loop, console, input, native hello via s3paper_runtime <!-- t:kdot -->
+- [ ] [P4.1] Project scaffold: 16MB partitions, PSRAM sdkconfig.defaults, USB-Serial-JTAG console, README with serial discipline <!-- t:haee -->
+- [ ] [P4.2] Owner task + bounded event queue + AssertOwner + tick hooks (copy/trim from 0112) <!-- t:i8bs -->
+- [ ] [P4.3] Console skeleton: status, heap, display; input service with gesture pipeline <!-- t:j8kr -->
+- [ ] [P4.4] Boot renders a native hello page through s3paper_runtime; transcript saved <!-- t:pglr -->
+- [ ] [P4.5] Power module: sleep sequence, battery status, boot-cause log (copy/trim; sleep image placeholder) <!-- t:b3np -->
+- [ ] Phase 5 - MicroQuickJS engine + v2 builder stdlib (classes, factories, ROM prototypes) <!-- t:tbhl -->
+- [ ] [P5.1] Vendor the engine copy; port gen scripts; generate stdlib+atoms; record provenance in README <!-- t:xrqj -->
+- [ ] [P5.2] Widget class: opaque packed handle, no-op finalizer, generation-checked methods throwing stale TypeError <!-- t:hiou -->
+- [ ] [P5.3] Factories text/row/col/spacer/divider/progressBar/list/region/book returning class instances <!-- t:otgj -->
+- [ ] [P5.4] Prototype methods pad/gap/aligns/width/height/flex/size-token/gray/center/add/set/progress, chaining via this <!-- t:7u0w -->
+- [ ] [P5.5] Page class (opaque PageId): header/content/footer/overlay/show; paper singleton with refresh param setters <!-- t:cz4t -->
+- [ ] [P5.6] New native text prop: invert (filled background); host test + golden update <!-- t:o3nn -->
+- [ ] [P5.7] VM host: PSRAM arena, deadline wrapper, exception snapshot, bytecode load-before-eval <!-- t:9ryy -->
+- [ ] [P5.8] Console js eval probes validating each builder on hardware <!-- t:eokc -->
+- [ ] Phase 6 - Closures without native JSValues: __cbs registry, direct dispatch, dynamic values <!-- t:bm1c -->
+- [ ] [P6.1] Kernel JS: __cbs array + gesture-name constants + list .item() sugar (~30 lines, part of the bytecode image) <!-- t:doxu -->
+- [ ] [P6.2] onTap(fn): cb id in node hit_id, fn stored via JS_SetPropertyUint32; page.on(gesture, fn) native map <!-- t:xfb8 -->
+- [ ] [P6.3] Gesture path: hit-test -> JS_Call(__cbs[id], kind, x, y) directly (no eval-string); synthetic tap/swipe console injectors <!-- t:48s8 -->
+- [ ] [P6.4] text(fn) dynamic values: native {handle, cb_id} table; owner tick calls fns, SetText, single PresentPageUpdate <!-- t:lrgf -->
+- [ ] [P6.5] every(ms)/quiet() region sugar wired to the tick; zero-damage ticks must do zero EPD work (log proves it) <!-- t:6s9i -->
+- [ ] [P6.6] Fault containment: throwing callbacks counted + surfaced; stale-handle and arena-full paths validated <!-- t:jec7 -->
+- [ ] Phase 7 - PULP apps on v2 + book service <!-- t:r712 -->
+- [ ] [P7.1] Port the book service (JsBook + s3Book* equivalents) keeping the 0112 LayoutKey for position interop <!-- t:ao0i -->
+- [ ] [P7.2] Launcher + Dice + Tea on v2; per-app line counts should drop sharply vs v1 <!-- t:v23v -->
+- [ ] [P7.3] Blitz Ink declarative (dynamic clock lambdas); verify one small damage rect per second <!-- t:ivkl -->
+- [ ] [P7.4] 2048 with retained cells; only moved tiles blit; best score via settings store <!-- t:101p -->
+- [ ] [P7.5] Postcard keyboard + journal append; sealed line appears as a library book after rescan <!-- t:wepo -->
+- [ ] [P7.6] JS reader + Daily Pulp over the book service; position interop with 0112 demonstrated both ways <!-- t:oda7 -->
+- [ ] Phase 8 - Product polish: boot-to-launcher, JS screensaver, navigation, auto-sleep <!-- t:ijfh -->
+- [ ] [P8.1] Boot flow: mount -> persistence -> JS context -> launcher clean render -> touch on <!-- t:8eq5 -->
+- [ ] [P8.2] sleepImage(fn): power path evaluates the JS lambda into a tree and presents it before sleeping <!-- t:ihdn -->
+- [ ] [P8.3] Navigation grammar enforced: swipe-down home everywhere (trapping opt-in), long-press conventions <!-- t:iaq3 -->
+- [ ] [P8.4] Sleep/wake cycles on hardware: deep-timer x2 and rtc-off, resuming into the launcher with state intact <!-- t:tjsq -->
+- [ ] Phase 9 - Hardening, acceptance, docs <!-- t:bkd8 -->
+- [ ] [P9.1] Host suite extended for v2-touched core (invert prop, any layout changes); fuzz still green <!-- t:swug -->
+- [ ] [P9.2] Script fault battery: OOM app, exception storm, runaway loop, stale handles; owner fallback to a native screen <!-- t:v3ex -->
+- [ ] [P9.3] Capacity saturation: widget arena full from JS, cb registry growth policy, event queue flood <!-- t:n35p -->
+- [ ] [P9.4] Mixed soak: 200+ scripted interactions across apps; heap watermarks flat; planner budget fulls observed <!-- t:wdey -->
+- [ ] [P9.5] Trace-equivalence harness ported; one native/JS fixture pair EQUAL <!-- t:3c7d -->
+- [ ] [P9.6] License inventory (engine MIT, fonts OFL, M5 MIT) and both-firmware build matrix in the ticket <!-- t:5hiv -->
+- [ ] [P9.7] Final acceptance: doctor clean, PULP standalone demo checklist executed by someone else <!-- t:n7cl -->
