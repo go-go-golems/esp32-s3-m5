@@ -132,3 +132,59 @@ The hardware gate passed on first flash: `buzz beep` lazily initialized LEDC and
 ### Technical details
 - Gate transcript (device): `buzz init=0→1`, `tones=0→5`, `melody=1 (1/5)` → `melody=0 (5/5)`, all `result=Ok`.
 - Bytecode grew to 30216 bytes (one image, well under the ROM atom table budget).
+
+## Step 3: P2 files module + P3.1 completion-mailbox plumbing
+
+This step built the ticket's async backbone and its first consumer. The `ModuleDone` machinery went in first: a new `AppEventKind::ModuleDone` with `ModulePayload{module, kind, value, err}`, `PostModuleDone()` (postable from any task; the queue send/receive is the memory barrier), a per-module pending-callback registry in the JS host (`g_module_cb[ModuleId::kCount]`, one in-flight operation per module, `RegisterModuleCb` throwing "module busy" on overlap), and `JsModuleDone()` in the owner loop which consumes-then-calls so a callback can immediately start the next operation. `resetTree()` clears the registry — an app switch cancels delivery, per design §3 rule 5.
+
+The files module then rode that backbone: `app_files.{h,cpp}` (path sanitizer, mailboxes, five verbs) plus `js_files.cpp` bindings. All ops run synchronously on the owner (whole-file ops at the 16 KiB cap are single-digit ms on this card) but complete through the mailbox path, so JS sees exactly one async model whether the native side blocked or not. Probe 15 validated everything on hardware in one pass, including the full callback-chained write→read→list→remove cycle.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2 — same implementation directive)
+
+**Assistant interpretation:** Continue the phase plan: P2 files + the P3.1 plumbing it depends on.
+
+**Inferred user intent:** Same as Step 2.
+
+**Commit (code):** 558f4e8 — "ESP-53 P2+P3.1: files module with completion mailboxes, ModuleDone plumbing, probe 15"
+
+### What I did
+- `app_events.h`: `AppEventKind::ModuleDone`, `ModuleId{Files,Wifi,Http,Serve}`, `ModuleDoneKind` vocabulary (10–14 for files), `ModuleDonePayload` in the event union.
+- `app_owner.{h,cpp}`: `PostModuleDone()`, ModuleDone case → `JsModuleDone`.
+- `app_js.{h,cpp}` + `app_js_internal.h`: `g_module_cb[]`, `RegisterModuleCb` (non-function → TypeError; overlap → "module busy"), `JsModuleDone` (clear-before-call), resetTree clearing.
+- `app_files.{h,cpp}`: `FilesResolvePath` (leading `/`, charset `[A-Za-z0-9._-/]`, no `//`, no trailing `/`, and ALL dot-leading segments denied — one rule covers `..`, `.`, and `/.s3paper`), `FilesExists` sync, `FilesList` (32-entry mailbox, hidden + overlong names skipped and counted), `FilesRead` (16 KiB PSRAM body + 512-line index, CR stripped at the accessor), `FilesWrite`/`FilesAppend` (16 KiB cap, one-level parent mkdir), `FilesRemove` (unlink, rmdir fallback).
+- `js_files.cpp`: `files` singleton (11 functions) with shared `PathOp`/`BodyOp` helpers.
+- Probe 15 in `js_probes.cpp`; stdlib/pulpjsc/bindings/CMake updates; regen + build + flash + gate.
+
+### Why
+- One async model everywhere: even synchronous ops complete via ModuleDone so app code never needs to know which verbs block. The delivery lands on the next owner-loop pass — real async semantics without worker tasks for ops that don't need them.
+- Deny-dot-segments beats a denylist of `/.s3paper`: hidden entries are native-owned by definition, and `..` falls out of the same check.
+
+### What worked
+- Probe 15 green on the first flash: `exists /books=1 rel=0`, `deny dotdot=1 state=1 slashes=1`, `cap=2` (CapacityExceeded), `busy=yes`, then the chain `list books n=3` → `write bytes=16` → `read lines=3 l0=alpha l2=gamma` → `list notes first=probe.txt size=16` → `remove ok=1 exists=0`.
+
+### What didn't work
+- `-Werror=format-truncation` rejected `snprintf(out.name, 40, "%s", d_name)` (d_name is 256 bytes). Fixed semantically, not just syntactically: names that don't fit the mailbox field are now skipped and counted instead of truncated — a truncated name couldn't be re-opened by JS anyway.
+
+### What I learned
+- The engine's argv values can be consumed via `JS_ToCStringLen` after other allocating calls as long as no JS call happens between fetch and use — the write/append bindings register the callback FIRST (allocates), then fetch the body pointer, then run the op (no JS calls). Order documented in js_files.cpp's header comment.
+
+### What was tricky to build
+- Callback lifecycle around synchronous failures: `RegisterModuleCb` must precede the op (the op posts the completion), but a synchronous failure (bad path, cap) means no completion will ever arrive — the binding must cancel the registration or the module stays busy forever. `PathOp`/`BodyOp` centralize the register→op→cancel-on-error dance so all five verbs share one correct implementation.
+- Probe sequencing: only ONE module operation may be pending when an eval ends, so the probe nests the whole verb chain inside completion callbacks and runs its busy-check against the single outer pending op.
+
+### What warrants a second pair of eyes
+- The GC-safety argument in `BodyOp` (holding a JS heap string pointer across the native op) — sound per the no-JS-calls rule, but it is the subtlest invariant added this step.
+- `EnsureParentDir` creates one level silently; confirm that matches the intern-guide contract (it documents write() convenience, but deep-tree behavior is "fails" — that is the case here since only one level is created).
+
+### What should be done in the future
+- If an app ever needs concurrent files + wifi operations, nothing blocks it (separate module slots); but two concurrent files ops require a queue — noted as out of v1 scope.
+
+### Code review instructions
+- Start at `app_files.cpp` `FilesResolvePath` (the security surface) and `js_files.cpp` `BodyOp` (the GC-safety comment), then `app_js.cpp` `JsModuleDone`/`RegisterModuleCb`.
+- Validate: `js probe 15` on device; every `probe15:` line in the transcript should match the values quoted above.
+
+### Technical details
+- Mailboxes: listing 32 × `{name[40], size, is_dir}`; read body 16 KiB PSRAM + 512 × `{start,len}` uint16 line refs.
+- Callback vocabulary: `fn(kind, value, err)` with kinds 10 list / 11 read / 12 write / 13 append / 14 remove; `err` is errno (or −1) when the op itself failed, 0 on success.

@@ -31,3 +31,12 @@ P0+P1 complete: buzzer module app_buzzer.{h,cpp} (lazy LEDC GPIO21, owner-tick n
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_buzzer.cpp — Buzzer module with owner-tick sequencer
 
+
+## 2026-07-16
+
+P2+P3.1 complete: ModuleDone event kind + PostModuleDone + per-module pending-cb registry (JsModuleDone, cleared by resetTree); files module app_files.{h,cpp} (sanitizer denying dot-segments//sdcard/.s3paper, list/read/write/append/remove with mailboxes, exists sync); js_files.cpp bindings; probe 15 green on hardware: denials, 16KiB cap, busy rejection, async write-read-list-remove chain
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_files.cpp — Files module with path sanitizer and mailboxes
+

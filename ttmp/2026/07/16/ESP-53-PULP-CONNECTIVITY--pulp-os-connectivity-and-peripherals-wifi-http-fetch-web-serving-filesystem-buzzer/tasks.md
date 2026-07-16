@@ -6,9 +6,9 @@
 - [x] [P1.1] Buzzer module: LEDC GPIO21 port from UserDemo, tone/beep/stop/melody, owner-tick sequencer <!-- t:rpjk -->
 - [x] [P1.2] buzz console command + stdlib regen; audible gate on device <!-- t:h59l -->
 - [x] [P1.3] Product chimes: tea READY, postcard SEAL, 2048 merge <!-- t:22os -->
-- [ ] [P2.1] files module: path sanitizer (reject .., absolutes, state dir), sync exists/stat <!-- t:580w -->
-- [ ] [P2.2] files list/read/write/append/remove with mailboxes; probes for caps + denials <!-- t:ejvc -->
-- [ ] [P3.1] ModuleDone event kind + completion-mailbox plumbing in owner loop <!-- t:qqi3 -->
+- [x] [P2.1] files module: path sanitizer (reject .., absolutes, state dir), sync exists/stat <!-- t:580w -->
+- [x] [P2.2] files list/read/write/append/remove with mailboxes; probes for caps + denials <!-- t:ejvc -->
+- [x] [P3.1] ModuleDone event kind + completion-mailbox plumbing in owner loop <!-- t:qqi3 -->
 - [ ] [P3.2] wifi module: lazy esp_wifi init, scan mailbox (16 APs), status block, nvs_flash init <!-- t:yub5 -->
 - [ ] [P3.3] S3WF credentials file in s3paper_storage (8 records, CRC, atomic) + fault-injection kind 5 <!-- t:xz4v -->
 - [ ] [P3.4] join/joinSaved/forget flows with timeout+retry; net console command; hardware gate: IP acquired, survives reboot <!-- t:ay8p -->
