@@ -10,9 +10,12 @@
 #include "app_display.h"
 #include "app_js_bindings.h"
 #include "app_reader.h"
+#include "app_reader_book.h"
 #include "app_storage.h"
 #include "app_ui.h"
+#include "s3paper/content.h"
 #include "s3paper/page.h"
+#include "s3paper/paginator.h"
 #include "s3paper/text.h"
 #include "s3paper/widget.h"
 #include "s3paper/widget_render.h"
@@ -43,6 +46,53 @@ uint32_t s_js_hit_count = 0;
 uint32_t s_js_present_seq = 0;
 bool s_js_presented = false;
 s3paper::PageId s_js_page = s3paper::kNoPage;
+
+// Headless book service for the JS reader port (task wipy): the paginator
+// and content sources are native primitives; JS owns chrome and gestures.
+// Uses the SAME LayoutKey as the native reader, so content hashes and
+// persisted positions interoperate (a book left in the JS reader resumes
+// at the same page in the native one and vice versa).
+struct JsBook {
+    bool open = false;
+    s3paper::MemoryContentSource embedded{kEmbeddedBookText,
+                                          sizeof(kEmbeddedBookText) - 1};
+    SdContentSource sd;
+    s3paper::ContentSource *active = nullptr;
+    s3paper::Paginator *paginator = nullptr;
+    s3paper::ContentHash hash = 0;
+    s3paper::TextLocator current{};
+    s3paper::PageLayout page{};
+    char title[40] = {};
+};
+
+JsBook s_book;
+
+s3paper::LayoutKey JsBookKey(s3paper::ContentHash content) {
+    s3paper::LayoutKey key{};
+    key.content = content;
+    key.font_id = s3paper::kFontBody;
+    key.viewport_w = 540;
+    key.viewport_h = 960;
+    key.margin_x = 40;
+    key.margin_top = 72;
+    key.margin_bottom = 56;
+    key.engine_version = s3paper::kLayoutEngineVersion;
+    return key;
+}
+
+// Composes the page at `at` (by value: `at` may alias page.next).
+StatusCode JsBookCompose(s3paper::TextLocator at) {
+    const s3paper::Status composed =
+        s_book.paginator->ComposePage(at, &s_book.page);
+    if (!composed.ok()) {
+        return composed.code;
+    }
+    s_book.current = at;
+    if (StorageMounted()) {
+        PositionStore(s_book.hash, s_book.current);
+    }
+    return StatusCode::Ok;
+}
 
 int InterruptHandler(JSContext *, void *) {
     return s_deadline_us != 0 && esp_timer_get_time() > s_deadline_us;
@@ -161,8 +211,9 @@ const char kFacadeJs[] =
     "    progressBar: function(p, h) {\n"
     "      return new W(s3Progress(p, h || 12, 0)); },\n"
     "    list: function() { return new W(s3List()); },\n"
+    "    _onGesture: null,\n"
     "    reset: function() { this._taps = {}; this._nextHit = 1;\n"
-    "      s3Reset(); return this; },\n"
+    "      this._onGesture = null; s3Reset(); return this; },\n"
     "    render: function(sl) {\n"
     "      return s3Present(sl.header ? sl.header.h : 0,\n"
     "                       sl.content ? sl.content.h : 0,\n"
@@ -173,6 +224,7 @@ const char kFacadeJs[] =
     "  return api;\n"
     "})();\n"
     "function s3Dispatch(kind, x, y, hit) {\n"
+    "  if (s3._onGesture && s3._onGesture(kind, x, y, hit)) { return; }\n"
     "  if (hit && s3._taps[hit]) { s3._taps[hit](kind, x, y); }\n"
     "}\n";
 
@@ -254,6 +306,41 @@ const char kFaultJs[] =
     "  badProp = e2.message; }\n"
     "print('fault: invalid prop -> ' + badProp);\n"
     "throw new Error('deliberate failure after present');\n";
+
+// Reader port (task wipy): native pagination through the book ABI, JS
+// chrome, JS gesture policy (kind 0=Tap 2=SwipeLeft 3=SwipeRight), partial
+// page turns, full-refresh policy left to the native planner.
+const char kReaderJs[] =
+    "if (s3BookOpen(-1) !== 0) { throw new Error('book open failed'); }\n"
+    "var jsTurns = 0;\n"
+    "function renderReader(fullRefresh) {\n"
+    "  s3.reset();\n"
+    "  var header = s3.col().pad(16, 40, 4, 40).gap(8)\n"
+    "    .add(s3.text(s3BookTitle() + '  [js reader]').font(s3.FONT_UI),\n"
+    "         s3.divider(1, 0));\n"
+    "  var body = s3.col().pad(4, 40, 0, 40);\n"
+    "  var n = s3BookLineCount();\n"
+    "  var i;\n"
+    "  for (i = 0; i < n; i++) { body.add(s3.text(s3BookLine(i))); }\n"
+    "  var footer = s3.col().pad(4, 40, 10, 40).gap(6)\n"
+    "    .add(s3.divider(1, 0),\n"
+    "         s3.text(Math.floor(s3BookProgress() / 10) + '%  turns ' +\n"
+    "                 jsTurns + '  -  js reader')\n"
+    "           .font(s3.FONT_UI).gray(96));\n"
+    "  s3._onGesture = function(kind, x, y, hit) {\n"
+    "    var moved = -1;\n"
+    "    if (kind === 2) { moved = s3BookNext(); }\n"
+    "    else if (kind === 3) { moved = s3BookPrev(); }\n"
+    "    else if (kind === 0) {\n"
+    "      moved = (x >= 270) ? s3BookNext() : s3BookPrev();\n"
+    "    } else { return false; }\n"
+    "    if (moved === 0) { jsTurns++; renderReader(false); }\n"
+    "    return true;\n"
+    "  };\n"
+    "  s3.render({header: header, content: body, footer: footer,\n"
+    "             full: fullRefresh});\n"
+    "}\n"
+    "renderReader(true);\n";
 
 const char kStatusJs[] =
     "s3.reset();\n"
@@ -402,8 +489,21 @@ StatusCode JsRunApp(uint32_t which) {
         case 3: return EvalBounded(kLibraryJs, 3000, "<library>");
         case 4: return EvalBounded(kFaultJs, 3000, "<fault>");
         case 5: return JsTraceCompare();
+        case 6: return EvalBounded(kReaderJs, 5000, "<reader>");
         default: return StatusCode::InvalidArgument;
     }
+}
+
+StatusCode JsSyntheticGesture(uint32_t kind, int32_t x, int32_t y) {
+    if (!JsScreenActive()) {
+        return StatusCode::Busy;
+    }
+    s3paper::GestureEvent gesture{};
+    gesture.kind = static_cast<s3paper::GestureKind>(kind);
+    gesture.pos = s3paper::Point{x, y};
+    gesture.t_us = esp_timer_get_time();
+    return JsHandleGesture(gesture) ? StatusCode::Ok
+                                    : StatusCode::InvalidArgument;
 }
 
 bool JsScreenActive() {
@@ -788,6 +888,134 @@ JSValue js_s3_open_book(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
         index < 0 ? ReaderOpen()
                   : ReaderOpenSd(static_cast<uint32_t>(index));
     return JS_NewInt32(ctx, static_cast<int32_t>(opened));
+}
+
+JSValue js_s3_book_open(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
+    int index = -1;
+    if (argc < 1 || JS_ToInt32(ctx, &index, argv[0])) {
+        return JS_EXCEPTION;
+    }
+    delete s_book.paginator;
+    s_book.paginator = nullptr;
+    s_book.open = false;
+    s_book.sd.Close();
+    if (index < 0) {
+        s_book.active = &s_book.embedded;
+        snprintf(s_book.title, sizeof(s_book.title), "%s",
+                 kEmbeddedBookTitle);
+    } else {
+        const BookEntry *book = LibraryGet(static_cast<uint32_t>(index));
+        if (book == nullptr) {
+            return JS_NewInt32(
+                ctx, static_cast<int32_t>(StatusCode::InvalidArgument));
+        }
+        if (s_book.sd.Open(book->path) != StatusCode::Ok) {
+            return JS_NewInt32(ctx,
+                               static_cast<int32_t>(StatusCode::Busy));
+        }
+        s_book.active = &s_book.sd;
+        snprintf(s_book.title, sizeof(s_book.title), "%s", book->title);
+    }
+    const s3paper::Result<s3paper::ContentHash> hash = s_book.active->Hash();
+    if (!hash.ok()) {
+        return JS_NewInt32(ctx, static_cast<int32_t>(hash.code));
+    }
+    s_book.hash = hash.value;
+    s_book.paginator =
+        new s3paper::Paginator(s_book.active, JsBookKey(hash.value));
+    s3paper::TextLocator start{};
+    s3paper::TextLocator persisted{};
+    if (StorageMounted() && PositionLookup(s_book.hash, &persisted) &&
+        s_book.paginator->Validate(persisted).ok()) {
+        start = persisted;  // resumes exactly where the native reader was
+    } else {
+        const s3paper::Result<s3paper::TextLocator> begin =
+            s_book.paginator->Begin();
+        if (!begin.ok()) {
+            return JS_NewInt32(ctx, static_cast<int32_t>(begin.code));
+        }
+        start = begin.value;
+    }
+    const StatusCode composed = JsBookCompose(start);
+    if (composed == StatusCode::Ok) {
+        s_book.open = true;
+    }
+    return JS_NewInt32(ctx, static_cast<int32_t>(composed));
+}
+
+JSValue js_s3_book_title(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewString(ctx, s_book.open ? s_book.title : "");
+}
+
+JSValue js_s3_book_line_count(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt32(
+        ctx, s_book.open ? static_cast<int32_t>(s_book.page.line_count) : 0);
+}
+
+JSValue js_s3_book_line(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
+    int index = 0;
+    if (argc < 1 || JS_ToInt32(ctx, &index, argv[0])) {
+        return JS_EXCEPTION;
+    }
+    if (!s_book.open || index < 0 ||
+        static_cast<uint32_t>(index) >= s_book.page.line_count) {
+        return JS_ThrowTypeError(ctx, "line index out of range");
+    }
+    const s3paper::PageLine &line = s_book.page.lines[index];
+    // Text widget capacity bounds a line; truncate at a UTF-8 boundary.
+    char buf[s3paper::TextProps::kCapacity];
+    uint32_t len = line.byte_len < sizeof(buf) - 1
+                       ? line.byte_len
+                       : static_cast<uint32_t>(sizeof(buf) - 1);
+    const s3paper::Result<uint32_t> got = s_book.active->ReadAt(
+        line.byte_start, reinterpret_cast<uint8_t *>(buf), len);
+    if (!got.ok()) {
+        return JS_ThrowTypeError(ctx, "line read failed");
+    }
+    len = got.value;
+    while (len > 0 && (static_cast<uint8_t>(buf[len - 1]) & 0xC0) == 0x80) {
+        len--;  // do not split a UTF-8 sequence at the truncation point
+    }
+    return JS_NewStringLen(ctx, buf, len);
+}
+
+JSValue js_s3_book_next(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s_book.open) {
+        return JS_NewInt32(ctx, static_cast<int32_t>(StatusCode::Busy));
+    }
+    if (s_book.page.at_end) {
+        return JS_NewInt32(
+            ctx, static_cast<int32_t>(StatusCode::InvalidArgument));
+    }
+    return JS_NewInt32(
+        ctx, static_cast<int32_t>(JsBookCompose(s_book.page.next)));
+}
+
+JSValue js_s3_book_prev(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s_book.open) {
+        return JS_NewInt32(ctx, static_cast<int32_t>(StatusCode::Busy));
+    }
+    const s3paper::Result<s3paper::TextLocator> prev =
+        s_book.paginator->PreviousPageStart(s_book.current);
+    if (!prev.ok()) {
+        return JS_NewInt32(ctx, static_cast<int32_t>(prev.code));
+    }
+    if (prev.value.byte_offset == s_book.current.byte_offset) {
+        return JS_NewInt32(
+            ctx, static_cast<int32_t>(StatusCode::InvalidArgument));
+    }
+    return JS_NewInt32(ctx, static_cast<int32_t>(JsBookCompose(prev.value)));
+}
+
+JSValue js_s3_book_progress(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s_book.open) {
+        return JS_NewInt32(ctx, 0);
+    }
+    const s3paper::Result<uint32_t> progress =
+        s_book.paginator->ProgressPermille(s_book.page.next);
+    return JS_NewInt32(ctx,
+                       progress.ok() ? static_cast<int32_t>(progress.value)
+                                     : 0);
 }
 
 }  // extern "C"

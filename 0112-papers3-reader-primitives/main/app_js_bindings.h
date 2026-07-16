@@ -62,6 +62,20 @@ JSValue js_s3_embedded_line(JSContext *ctx, JSValue *this_val, int argc,
                             JSValue *argv);
 JSValue js_s3_open_book(JSContext *ctx, JSValue *this_val, int argc,
                         JSValue *argv);
+JSValue js_s3_book_open(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_book_title(JSContext *ctx, JSValue *this_val, int argc,
+                         JSValue *argv);
+JSValue js_s3_book_line_count(JSContext *ctx, JSValue *this_val, int argc,
+                              JSValue *argv);
+JSValue js_s3_book_line(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_book_next(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_book_prev(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_book_progress(JSContext *ctx, JSValue *this_val, int argc,
+                            JSValue *argv);
 
 #ifdef __cplusplus
 }

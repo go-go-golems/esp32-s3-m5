@@ -253,7 +253,14 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 FillJsSnapshot(&reply.payload.js);
-            } else if (arg <= 5) {
+            } else if (arg == 7 || arg == 8) {
+                // Synthetic gestures for console-driven JS reader checks:
+                // 7 = tap right half (next), 8 = swipe right (prev).
+                reply.status =
+                    arg == 7 ? JsSyntheticGesture(0, 400, 500)
+                             : JsSyntheticGesture(3, 270, 500);
+                FillJsSnapshot(&reply.payload.js);
+            } else if (arg <= 6) {
                 reply.status = JsRunApp(arg);
                 if (reply.status != StatusCode::Ok && JsScreenActive()) {
                     // A failed script left its page on the panel: fall back

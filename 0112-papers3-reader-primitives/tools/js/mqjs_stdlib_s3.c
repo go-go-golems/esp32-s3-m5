@@ -404,6 +404,15 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("s3LibraryLine", 1, js_s3_library_line),
     JS_CFUNC_DEF("s3EmbeddedLine", 0, js_s3_embedded_line),
     JS_CFUNC_DEF("s3OpenBook", 1, js_s3_open_book),
+    /* Headless book service for the JS reader port: native pagination,
+       JS-owned chrome and gestures. */
+    JS_CFUNC_DEF("s3BookOpen", 1, js_s3_book_open),
+    JS_CFUNC_DEF("s3BookTitle", 0, js_s3_book_title),
+    JS_CFUNC_DEF("s3BookLineCount", 0, js_s3_book_line_count),
+    JS_CFUNC_DEF("s3BookLine", 1, js_s3_book_line),
+    JS_CFUNC_DEF("s3BookNext", 0, js_s3_book_next),
+    JS_CFUNC_DEF("s3BookPrev", 0, js_s3_book_prev),
+    JS_CFUNC_DEF("s3BookProgress", 0, js_s3_book_progress),
 #endif
     JS_PROP_END,
 };

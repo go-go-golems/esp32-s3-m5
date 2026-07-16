@@ -1,0 +1,122 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (193) esp_image: segment 4: paddr=000e5a04 vaddr=40377354 sizeI (224) boot: Loaded app from partition at offset 0x10000
+I (224) boot: Disabling RNG early entropy source...
+I (225) octal_psram: vendor id    : 0x0d (AP)
+I (225) octal_psram: dev id       : 0x02 (generation 3)
+I (225) octal_psram: density      : 0x03 (64 Mbit)
+I (226) octal_psram: good-die     : 0x01 (Pass)
+I (226) octal_psram: Latency      : 0x01 (Fixed)
+I (226) octal_psram: VCC          : 0x01 (3V)
+I (226) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (226) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (227) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (227) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (227) octal_psram: DriveStrength: 0x00 (1/1)
+I (227) esp_psram: Found 8MB PSRAM device
+I (227) esp_psram: Speed: 40MHz
+I (228) cpu_start: Multicore app
+
+# >>> js reader
+I (959) esp_psram: SPI SRAM memory test OK
+I (968) cpu_start: Pro cpu start user code
+I (968) cpu_start: cpu freq: 160000000 Hz
+I (968) app_init: Application information:
+I (968) app_init: Project name:     papers3_reader_primitives
+I (968) app_init: App version:      b9b7be1-dirty
+I (968) app_init: Compile time:     Jul 15 2026 21:17:34
+I (969) app_init: ELF file SHA256:  be7c50ad9...
+I (969) app_init: ESP-IDF:          v5.3.4
+I (969) efuse_init: Min chip rev:     v0.0
+I (969) efuse_init: Max chip rev:     v0.99 
+I (969) efuse_init: Chip rev:         v0.2
+I (969) heap_init: Initializing. RAM available for dynamic allocation:
+I (970) heap_init: At 3FCA53C0 len 00044350 (272 KiB): RAM
+I (970) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (970) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (970) heap_init: At 600FE06C len 00001F7C (7 KiB): RTCRAM
+I (971) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (972) spi_flash: detected chip: generic
+I (972) spi_flash: flash io: dio
+I (973) sleep: Configure to isolate all GPIO pins in sleep state
+I (974) sleep: Enable automatic switching of GPIO sleep configuration
+I (975) main_task: Started on CPU0
+I (976) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (977) main_task: Calling app_main()
+I (977) app_main: reader-primitives phase1 boot
+I (977) app_main: chip=esp32s3 cores=2 rev=2 reset_reason=11
+I (977) app_main: heap internal_free=315807 largest=221184
+I (977) app_main: psram free=8385916 largest=8257536
+I (978) app_main: display backend=none (deferred; panel unqualified)
+I (978) power: boot: reset_reason=11 wakeup_cause=0
+I (979) display: PT Serif registered: 134264 bytes, body ascent=27 descent=7 line_height=34
+[5nI (980) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (995) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (995) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (996) gpio: GPIO[4]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (996) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (997) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (999) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1000) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1001) M5GFX: [Autodetect] board_M5PaperS3
+I (1251) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1252) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1256) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1257) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1318) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (1319) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+
+Type 'help' to get the list of commands.
+Use UP/DOWN arrows to navigate through command history.
+Press TAB when typing command name to auto-complete.
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Putty instead.
+reader> I (2998) console: console ready on USB Serial/JTAG
+I (3060) app_main: phase1 ready: owner task + console proxy active
+I (3122) main_task: Returned from app_main()
+I (6113) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6114) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6119) gpio: GPIO[41]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6120) gpio: GPIO[42]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0 
+I (6516) m5_backend: init board=19 display=540x960
+I (6520) gpio: GPIO[47]| InputEn: 0| OutputEn: 1| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (6522) sdspi_transaction: cmd=52, R1 response: command not supported
+I (6566) sdspi_transaction: cmd=5, R1 response: command not supported
+I (6619) storage: mounted /sdcard: 7580 MiB
+I (6629) storage: loaded 1 reading position(s)
+I (6640) storage: loaded 1 bookmark(s)
+I (6660) storage: loaded catalog with 2 book(s)
+I (6674) storage: library scan: 2 book(s) (2 cached, 0 hashed) in 13 ms
+I (6683) reader_ctl: resuming "Alice in Wonderland" at offset 4322
+I (6705) ui: widget arena ready (128 nodes, 17412 bytes)
+I (7254) m5_backend: present id=1 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=537654 wait_us=24
+I (7256) reader_ctl: page at 4322 lines=10 full=1
+I (7317) input: touch polling enabled (20ms)
+I (7318) owner: owner task ready; queue capacity=32
+
+# >>> js next
+js next
+js init=0 screen_active=0 arena=0 evals=0 exceptions=0 dispatches=0 last_error=""
+js op result: Busy
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> js next
+js next
+js init=0 screen_active=0 arena=0 evals=0 exceptions=0 dispatches=0 last_error=""
+js op result: Busy
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> js prev
+js prev
+js init=0 screen_active=0 arena=0 evals=0 exceptions=0 dispatches=0 last_error=""
+js op result: Busy
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> reader
+reader
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=4322 progress=100.0% lines=10 turns=0 at_end=1 checkpoints=1 bookmarked=0 marks=1
+reader> 
+# done

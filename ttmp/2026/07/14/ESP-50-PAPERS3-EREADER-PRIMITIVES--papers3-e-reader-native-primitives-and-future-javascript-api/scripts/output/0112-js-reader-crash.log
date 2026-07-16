@@ -1,0 +1,10 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js reader
+js reader
+I (159635) js: context ready: arena=163840 bytes, abi=v1
+I (160086) m5_backend: present id=6 intent=CleanFull ops=23 skipped=0 damage=0,0,540,960 render_us=379034 wait_us=6
+I (160087) js: js present: hits=0 full=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+reader> 
+# done

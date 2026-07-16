@@ -670,9 +670,16 @@ int CmdJs(int argc, char **argv) {
             arg = 4;
         } else if (strcmp(argv[1], "trace") == 0) {
             arg = 5;
+        } else if (strcmp(argv[1], "reader") == 0) {
+            arg = 6;
+        } else if (strcmp(argv[1], "next") == 0) {
+            arg = 7;  // synthetic tap on the right half
+        } else if (strcmp(argv[1], "prev") == 0) {
+            arg = 8;  // synthetic swipe right
         } else {
             printf("error: InvalidArgument: usage js "
-                   "[status|hello|taps|library|fault|trace]\n");
+                   "[status|hello|taps|library|fault|trace|reader|"
+                   "next|prev]\n");
             return 1;
         }
     }
