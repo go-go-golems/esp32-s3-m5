@@ -14,7 +14,7 @@
 - [x] [P3.1] Stdlib: canvas() factory + line/disc/ring/box/paint/wipe methods; regen atoms + pulpjsc stubs <!-- t:fiwe -->
 - [x] [P3.2] Bindings in js_widgets.cpp with kind checks + capacity TypeErrors <!-- t:ai12 -->
 - [x] [P3.3] Console probes: canvas render probe + traced op-list probe; hardware transcript <!-- t:qp8y -->
-- [ ] [P4.1] Ink app scene 1: analog clock, one blit per minute (transcript evidence) <!-- t:11qz -->
-- [ ] [P4.2] Ink app scene 2: generative field, clean-full reveal <!-- t:61na -->
-- [ ] [P4.3] Ink app scene 3: gray ladder rings; launcher entry + tap-rotate + swipe-down home <!-- t:3l3b -->
+- [x] [P4.1] Ink app scene 1: analog clock, one blit per minute (transcript evidence) <!-- t:11qz -->
+- [x] [P4.2] Ink app scene 2: generative field, clean-full reveal <!-- t:61na -->
+- [x] [P4.3] Ink app scene 3: gray ladder rings; launcher entry + tap-rotate + swipe-down home <!-- t:3l3b -->
 - [ ] [P5.1] Hardening: goldens re-pinned, 30-min clock soak (heap flat), diary + changelog, doctor clean <!-- t:a1fb -->

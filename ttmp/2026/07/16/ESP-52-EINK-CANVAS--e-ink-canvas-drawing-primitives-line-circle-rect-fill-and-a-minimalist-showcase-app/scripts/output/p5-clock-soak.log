@@ -1,0 +1,44 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (259345) js: js present: page=ink hits=0 mode=2
+I (260365) js: js present: page=ink hits=0 mode=2
+I (261385) js: js present: page=ink hits=0 mode=2
+I (262404) js: js present: page=ink hits=0 mode=2
+I (263425) js: js present: page=ink hits=0 mode=2
+I (26I (273625) js: js present: page=ink hits=0 mode=2
+
+# >>> heap
+heap
+internal_free=225959 internal_min_free=223263 internal_largest=124928
+psram_free=6515760 psram_largest=6422528
+pulp> I (274645) js: js present: page=ink hits=0 mode=2
+I (275665) js: js present: page=ink hits=0 mode=2
+I (276685) js: js present: page=ink hits=0 mode=2
+I (277705) js: js present: page=ink hits=0 mode=2
+I (278725) js: js present: page=ink hits=0 mode=2
+I (279745) js: js present: page=ink hits=0 mode=2
+I (280765) js: js present: page=ink hits=0 mode=2
+I (281785) js: js present: page=ink hits=0 mode=2
+I (282805) js: js present: page=ink hits=0 mode=2
+I (283825) js: js present: page=ink hits=0 mode=2
+I (284845) js: js present: page=ink hits=0 mode=2
+I (285865) js: js present: page=ink hits=0 mode=2
+I (286885) js: js present: page=ink hits=0 mode=2
+I (287905) js: js present: page=ink hits=0 mode=2
+I (288925) js: js present: page=ink hits=0 mode=2
+I (289945) js: js present: page=ink hits=0 mode=2
+I (290965) js: js present: page=ink hits=0 mode=2
+I (291985) js: js present: page=ink hits=0 mode=2
+I (293005) js: js present: page=ink hits=0 mode=2
+I (294025) js: js present: page=ink hits=0 mode=2
+I (295045) js: js present: page=ink hits=0 mode=2
+I (296065) js: js present: page=ink hits=0 mode=2
+I (297085) js: js present: page=ink hits=0 mode=2
+I (298105) js: js present: page=ink hits=0 mode=2
+I (299125) js: js present: page=ink hits=0 mode=2
+I (300145) js: js present: page=ink hits=0 mode=2
+I (301249) m5_backend: present id=10 intent=TextRegion ops=19 skipped=0 damage=40,87,460,790 render_us=77533 wait_us=7
+I (301250) runtime: update present: 2 rect(s), damage 460x790 at 40,87
+I (301251) js: js present: page=ink hits=0 mode=2
+I (301255) js: js present: page=ink hits=0 mode=2
+I (302265) js: js present: page=ink hits=0 mode=2
+I (303285) js: js present: page=ink hits=0 mode=2

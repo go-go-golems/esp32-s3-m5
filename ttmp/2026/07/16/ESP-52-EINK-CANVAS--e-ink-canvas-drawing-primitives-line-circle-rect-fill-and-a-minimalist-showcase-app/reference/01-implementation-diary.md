@@ -80,3 +80,31 @@ The core now speaks freehand geometry. Two new DrawOp kinds (`Line`, `Circle`) f
 - Core: `components/s3paper_core/src/{frame_builder,widget,widget_render}.cpp` diffs; tests `TestLineCircleOps`, `TestCanvasWidget`.
 - Binding: `0114/main/js_widgets.cpp` CanvasMethod.
 - Validate: host suite; `js probe 11` and `js probe 12` on hardware.
+
+## Step 3: Phase 4 — Ink, the showcase app
+
+The demo exists and behaves exactly as designed: one page, one canvas, three scenes rotating on tap. The clock scene (ring face, 12 tick marks, hour/minute hands, hub) redraws only when the minute changes; the generative field (~30 discs/rings spanning the gray palette plus 4 long verticals) and the 16-gray ladder (concentric rings + a labeled strip) arrive on deliberate clean fulls — the flash is the reveal. Swipe-down goes home through the default grammar (no G.DOWN registered).
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1) — "make a refined minimalist demo application showcasing all the beauty of eink"
+
+**Commit (code):** 668f688 — "ESP-52 P4: Ink showcase app - clock (one blit/min), generative field, gray ladder"
+
+### What I did
+- `tools/js/apps/pulp.js`: the `ink()` app (~110 lines) + launcher row. Scene state in `INK` survives re-entry; `clockFace/field/ladder` rebuild the same canvas via `wipe()` + appends.
+- Command budgets: clock 17, field 34, ladder 34 — comfortably under the 96/slot cap.
+- Hardware evidence (p4-ink-scenes.log, p4-ink-minute.log): scene cycle presents 21/38/38 ops CleanFull; clock scene over 140 s produced EXACTLY TWO update presents 60.26 s apart (`2 rect(s), damage 460x790`), zero panel work between ticks.
+
+### What was tricky to build
+- Time source: there is no wall-clock JS binding (BM8563 is not exposed), so the clock shows minutes-since-boot and says so in its caption. A future `rtcNow()` binding would make it a real clock without touching the drawing code.
+- The scene-cycle refresh policy: returning to the clock from the ladder uses a clean full (the ladder leaves heavy ink; a partial transition would ghost), while clock->field->ladder rely on their own fulls.
+
+### What warrants a second pair of eyes
+- The minute redraw damages the whole canvas frame (460x790) — canvas diff coarseness. Acceptable at 1/min; a hands-only sub-canvas would shrink it if ever needed.
+
+### What should be done in the future
+- P5 soak + goldens + docs; an `rtcNow()` binding for true time.
+
+### Code review instructions
+- pulp.js `ink()`; validate with `js pulp`, tap Ink, tap through scenes, leave the clock 2+ minutes and count `update present` lines.

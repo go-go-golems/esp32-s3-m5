@@ -22,3 +22,12 @@ Steps 1-2: Line/Circle ops + Canvas widget + JS binding all proven (host 38,174 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/s3paper_core/src/widget.cpp — Canvas store + Destroy unlink fix
 
+
+## 2026-07-16
+
+Step 3: Phase 4 - Ink app live: 3 scenes, clock proven at one blit per minute (commit 668f688)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — ink() showcase app
+
