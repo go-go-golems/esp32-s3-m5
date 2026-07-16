@@ -1,0 +1,47 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js tap 104 632
+js tap 104 632
+I (99493) js: tap 104,632 hit=3 (regions=3)
+I (99519) m5_backend: present id=11 intent=TextRegion ops=2 skipped=0 damage=40,574,460,22 render_us=4645 wait_us=6
+I (99520) runtime: update present: 1 rect(s), damage 460x22 at 40,574
+I (99521) js: js present: page=daily hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=7 last_error=""
+pulp> 
+# >>> js tap 245 632
+js tap 245 632
+I (102495) js: tap 245,632 hit=4 (regions=3)
+I (102634) m5_backend: present id=12 intent=TextRegion ops=13 skipped=0 damage=40,91,460,505 render_us=96982 wait_us=8
+I (102635) runtime: update present: 11 rect(s), damage 460x505 at 40,91
+I (102636) js: js present: page=daily hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=8 last_error=""
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (105735) m5_backend: present id=13 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=195992 wait_us=6
+I (105737) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=9 last_error=""
+pulp> 
+# >>> js tap 270 420
+js tap 270 420
+I (108554) js: tap 270,420 hit=7 (regions=7)
+pulp screen: tea
+I (108691) m5_backend: present id=14 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=123149 wait_us=11
+I (108692) js: js present: page=tea hits=6 mode=1
+I (108797) m5_backend: present id=15 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=81236 wait_us=11
+I (108799) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (108799) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=10 last_error=""
+pulp> I (109831) js: js present: page=tea hits=6 mode=2
+I (110850) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 130 590
+js tap 130 590
+I (111560) js: tap 130,590 hit=0 (regions=6)
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=13 last_error=""
+pulp> I (111865) js: js present: page=tea hits=6 mode=2
+I (112885) js: js present: page=tea hits=6 mode=2
+I (113905) js: js present: page=tea hits=6 mode=2
+
+# done

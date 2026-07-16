@@ -1,0 +1,26 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (75447) m5_backend: present id=9 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=16886 wait_us=6
+I (75448) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (75449) js: js present: page=blitz hits=2 mode=2
+I (76485) m5_backenI (80686) m5_backend: present id=14 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=15885 wait_us=6
+I (80687) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (80688) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (80952) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=51 last_error=""
+pulp> I (81974) m5_backend: present id=15 intent=TextRegion ops=2 skipped=0 damage=40,428,460,22 render_us=4354 wait_us=6
+I (81975) runtime: update present: 1 rect(s), damage 460x22 at 40,428
+I (81976) js: js present: page=blitz hits=2 mode=2
+I (82985) js: js present: page=blitz hits=2 mode=2
+I (84005) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (85187) m5_backend: present id=16 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=197407 wait_us=6
+I (85189) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=55 last_error=""
+pulp> 
+# done

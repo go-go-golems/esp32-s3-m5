@@ -8,6 +8,7 @@
 #include "esp_timer.h"
 #include "freertos/task.h"
 
+#include "app_book_seed.h"
 #include "app_home.h"
 #include "app_input.h"
 #include "app_js.h"
@@ -240,6 +241,8 @@ void HandleConsoleCommand(const AppEvent &event) {
             } else if (arg == 12) {
                 reply.status = JsSyntheticGesture(
                     event.payload.console.arg2, 270, 480);
+            } else if (arg == 13) {
+                JsPrintHits();
             } else {
                 reply.status = StatusCode::InvalidArgument;
             }
@@ -315,11 +318,17 @@ void OwnerTask(void *) {
         // M5GFX owns the bus before the SD mount (ESP-50 diary S9).
         s3paper_storage::StorageConfig config{};
         config.pre_mount = &s3paper_runtime::EnsureM5Init;
+        config.seed_path = kSeedBookPath;
+        config.seed_text = kSeedBookText;
+        config.seed_len = sizeof(kSeedBookText) - 1;
         s3paper_storage::StorageConfigure(config);
         const StatusCode mounted = s3paper_storage::StorageMount();
         if (mounted != StatusCode::Ok) {
             ESP_LOGW(kTag, "SD mount: %s (running cardless)",
                      StatusCodeName(mounted));
+        } else {
+            // Cyrillic sample onto the shelf (never overwrites).
+            (void)s3paper_storage::StorageWriteSeedBook();
         }
     }
     InputServiceInit();

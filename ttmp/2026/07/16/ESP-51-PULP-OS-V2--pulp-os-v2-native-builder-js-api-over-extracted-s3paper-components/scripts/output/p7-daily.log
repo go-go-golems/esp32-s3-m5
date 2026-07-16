@@ -1,0 +1,29 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (70322) m5_backend: present id=8 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=196221 wait_us=6
+I (70324) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=5 last_error=""
+pulp> 
+# >>> js tap 270 545
+js tap 270 545
+I (73127) js: tap 270,545 hit=9 (regions=7)
+pulp screen: daily
+I (73288) m5_backend: present id=9 intent=CleanFull ops=23 skipped=0 damage=0,0,540,960 render_us=117654 wait_us=8
+I (73289) js: js present: page=daily hits=3 mode=1
+I (73430) m5_backend: present id=10 intent=TextRegion ops=6 skipped=0 damage=40,91,460,505 render_us=104920 wait_us=11
+I (73432) runtime: update present: 14 rect(s), damage 460x505 at 40,91
+I (73432) js: js present: page=daily hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=6 last_error=""
+pulp> 
+# >>> js hits
+js hits
+js hits: 3 region(s), page=daily active=1
+  hit[0] cb=3 rect=44,604 120x56 z=0
+  hit[1] cb=4 rect=180,604 130x56 z=0
+  hit[2] cb=5 rect=326,604 170x56 z=0
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=6 last_error=""
+pulp> 
+# done

@@ -1,0 +1,33 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (114925) js: js present: page=tea hits=6 mode=2
+I (115945) js: js present: page=tea hits=6 mode=2
+I (116965) js: js present: page=tea hits=6 mode=2
+I (117985) js: js present: page=tea hits=6 mode=2
+I (119005) js: js present: page=tea hits=6 mode=2
+
+# >>> js hits
+js hits
+js hits: 6 region(s), page=tea active=1
+  hit[0] cb=3 rect=42,317 140x56 z=0
+  hit[1] cb=4 rect=200,317 140x56 z=0
+  hit[2] cb=5 rect=358,317 140x56 z=0
+  hit[3] cb=6 rect=66,393 120x56 z=0
+  hit[4] cb=7 rect=210,393 120x56 z=0
+  hit[5] cb=8 rect=354,393 120x56 z=0
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=21 last_error=""
+pulp> I (120025) js: js present: page=tea hits=6 mode=2
+I (121045) js: js present: page=tea hits=6 mode=2
+I (122065) js: js present: page=tea hits=6 mode=2
+I (123085) js: js present: page=tea hits=6 mode=2
+I (124105) js: js present: page=tea hits=6 mode=2
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=26 last_error=""
+pulp> I (125125) js: js present: page=tea hits=6 mode=2
+I (126145) js: js present: page=tea hits=6 mode=2
+I (127165) js: js present: page=tea hits=6 mode=2
+I (128185) js: js present: page=tea hits=6 mode=2
+I (129205) js: js present: page=tea hits=6 mode=2
+
+# done

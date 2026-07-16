@@ -1,0 +1,37 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (106) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1032) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1047) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1047) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> js pulp
+js pulp
+I (24635) js: context ready: arena=163840 bytes, abi=v2
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (24888) m5_backend: present id=2 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=221558 wait_us=6
+I (24890) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (28653) js: tap 270,400 hit=7 (regions=7)
+pulp screen: tea
+I (28791) m5_backend: present id=3 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=123754 wait_us=6
+I (28792) js: js present: page=tea hits=6 mode=1
+I (28893) m5_backend: present id=4 intent=TextRegion ops=11 skipped=0 damage=40,99,460,282 render_us=71982 wait_us=5
+I (28895) runtime: update present: 8 rect(s), damage 460x282 at 40,99
+I (28895) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=1 last_error=""
+pulp> I (29914) js: js present: page=tea hits=6 mode=2
+I (30934) js: js present: page=tea hits=6 mode=2
+I (31947) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 300
+js tap 270 300
+I (32702) js: tap 270,300 hit=0 (regions=6)
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=5 last_error=""
+pulp> I (32967) js: js present: page=tea hits=6 mode=2
+I (33987) js: js present: page=tea hits=6 mode=2
+I (35007) js: js present: page=tea hits=6 mode=2
+I (36027) js: js present: page=tea hits=6 mode=2
+
+# done

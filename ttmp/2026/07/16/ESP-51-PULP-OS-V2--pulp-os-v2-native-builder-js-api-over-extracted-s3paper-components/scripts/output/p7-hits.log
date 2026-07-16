@@ -1,0 +1,77 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (105) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1031) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1046) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1046) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> js pulp
+js pulp
+I (9188) js: context ready: arena=163840 bytes, abi=v2
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (9614) m5_backend: present id=2 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=355044 wait_us=8
+I (9616) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js hits
+js hits
+js hits: 7 region(s), page=home active=1
+  hit[0] cb=3 rect=0,150 540x61 z=0
+  hit[1] cb=4 rect=0,211 540x61 z=0
+  hit[2] cb=5 rect=0,272 540x61 z=0
+  hit[3] cb=6 rect=0,333 540x61 z=0
+  hit[4] cb=7 rect=0,394 540x61 z=0
+  hit[5] cb=8 rect=0,455 540x61 z=0
+  hit[6] cb=9 rect=0,516 540x61 z=0
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> I (15592) input: gesture Tap at 185,248
+I (15593) js: tap 185,248 hit=4 (regions=7)
+pulp screen: dice
+I (15742) m5_backend: present id=3 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=139731 wait_us=5
+I (15743) js: js present: page=dice hits=4 mode=1
+I (16007) m5_backend: present id=4 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=231884 wait_us=8
+I (16009) js: js present: page=dice hits=4 mode=2
+
+# >>> js tap 270 358
+js tap 270 358
+I (17215) js: tap 270,358 hit=0 (regions=4)
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=2 last_error=""
+pulp> I (17592) input: gesture Tap at 304,171
+I (17593) js: tap 304,171 hit=0 (regions=4)
+I (18752) input: gesture Tap at 287,278
+I (18753) js: tap 287,278 hit=0 (regions=4)
+I (19312) input: gesture Tap at 264,403
+I (19313) js: tap 264,403 hit=0 (regions=4)
+I (19832) input: gesture Tap at 225,710
+I (19833) js: tap 225,710 hit=0 (regions=4)
+I (20532) input: gesture SwipeUp at 271,846
+
+# >>> js hits
+js hits
+js hits: 4 region(s), page=dice active=1
+  hit[0] cb=3 rect=120,348 68x45 z=0
+  hit[1] cb=4 rect=196,348 68x45 z=0
+  hit[2] cb=5 rect=272,348 81x45 z=0
+  hit[3] cb=6 rect=361,348 59x45 z=0
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=7 last_error=""
+pulp> I (21492) input: gesture SwipeUp at 275,823
+I (21832) input: gesture Tap at 304,206
+I (21833) js: tap 304,206 hit=0 (regions=4)
+I (22212) input: gesture Tap at 305,149
+I (22213) js: tap 305,149 hit=0 (regions=4)
+I (22412) input: gesture Tap at 273,171
+I (22413) js: tap 273,171 hit=0 (regions=4)
+I (22672) input: gesture Tap at 226,278
+I (22673) js: tap 226,278 hit=0 (regions=4)
+I (22972) input: gesture Tap at 307,300
+I (22973) js: tap 307,300 hit=0 (regions=4)
+I (23172) input: gesture Tap at 322,279
+I (23173) js: tap 322,279 hit=0 (regions=4)
+I (23392) input: gesture Tap at 300,169
+I (23393) js: tap 300,169 hit=0 (regions=4)
+I (23772) input: gesture Tap at 276,309
+I (23773) js: tap 276,309 hit=0 (regions=4)
+I (24052) input: gesture Tap at 301,274
+I (24053) js: tap 301,274 hit=0 (regions=4)
+I (24252) input: gesture Tap at 284,264
+I (24253) js: tap 284,264 hit=0 (regions=4)
+
+# done

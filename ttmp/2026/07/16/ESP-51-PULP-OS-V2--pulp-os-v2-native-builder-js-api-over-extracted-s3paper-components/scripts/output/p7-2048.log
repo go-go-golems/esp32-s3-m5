@@ -1,0 +1,42 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> js tap 270 358
+js tap 270 358
+I (113892) js: tap 270,358 hit=6 (regions=7)
+pulp screen: 2048
+I (114024) m5_backend: present id=17 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=118858 wait_us=6
+I (114025) js: js present: page=2048 hits=3 mode=1
+I (114098) m5_backend: present id=18 intent=TextRegion ops=17 skipped=0 damage=30,159,480,251 render_us=47743 wait_us=8
+I (114099) runtime: update present: 3 rect(s), damage 480x251 at 30,159
+I (114100) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=56 last_error=""
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (116946) m5_backend: present id=19 intent=TextRegion ops=15 skipped=0 damage=34,93,472,196 render_us=20054 wait_us=6
+I (116947) runtime: update present: 3 rect(s), damage 472x196 at 34,93
+I (116948) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=57 last_error=""
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (120014) m5_backend: present id=20 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=39081 wait_us=6
+I (120015) runtime: update present: 4 rect(s), damage 480x317 at 30,93
+I (120016) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=58 last_error=""
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (123001) m5_backend: present id=21 intent=TextRegion ops=8 skipped=0 damage=34,93,118,262 render_us=8162 wait_us=6
+I (123002) runtime: update present: 3 rect(s), damage 118x262 at 34,93
+I (123003) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=59 last_error=""
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (126064) m5_backend: present id=22 intent=TextRegion ops=17 skipped=0 damage=30,159,480,251 render_us=33580 wait_us=6
+I (126065) runtime: update present: 9 rect(s), damage 480x251 at 30,159
+I (126066) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=60 last_error=""
+pulp> 
+# done

@@ -1,0 +1,38 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (37047) js: js present: page=tea hits=6 mode=2
+I (38067) js: js present: page=tea hits=6 mode=2
+I (39087) js: js present: page=tea hits=6 mode=2
+I (40107) js: js present: page=tea hits=6 mode=2
+I (41127) js: js present: page=tea hits=6 mode=2
+I (42147)
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (66486) m5_backend: present id=5 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=197638 wait_us=6
+I (66488) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=38 last_error=""
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (69298) js: tap 270,297 hit=5 (regions=7)
+pulp screen: blitz
+I (69459) m5_backend: present id=6 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=148852 wait_us=6
+I (69460) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=39 last_error=""
+pulp> I (70492) js: js present: page=blitz hits=2 mode=2
+I (71512) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 200
+js tap 270 200
+I (72318) js: tap 270,200 hit=8 (regions=2)
+I (72324) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=3 exceptions=0 dispatches=42 last_error=""
+pulp> I (73371) m5_backend: present id=7 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=21250 wait_us=6
+I (73372) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (73373) js: js present: page=blitz hits=2 mode=2
+I (74406) m5_backend: present id=8 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=15888 wait_us=6
+I (74407) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (74408) js: js present: page=blitz hits=2 mode=2
+
+# done

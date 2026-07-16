@@ -102,9 +102,11 @@ static void js_page_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;
 }
 
-/* User class ids (device values; only the names matter to the table). */
+/* User class ids (device values; only the names matter to the table).
+   JS_CLASS_COUNT sizes the generated finalizer table. */
 #define JS_CLASS_WIDGET (JS_CLASS_USER + 0)
 #define JS_CLASS_PAGE   (JS_CLASS_USER + 1)
+#define JS_CLASS_COUNT  (JS_CLASS_USER + 2)
 
 /* 64-bit host build of the SAME stdlib definition (generated without
    -m32 by build_bytecode_apps.sh). */

@@ -323,9 +323,11 @@ int CmdJs(int argc, char **argv) {
         } else if (strcmp(argv[1], "swipe") == 0 && argc >= 3) {
             arg = 12;
             arg2 = static_cast<uint32_t>(atoi(argv[2]));
+        } else if (strcmp(argv[1], "hits") == 0) {
+            arg = 13;
         } else {
             printf("error: usage js [status|probe N|pulp|tap X Y|"
-                   "swipe K]\n");
+                   "swipe K|hits]\n");
             return 1;
         }
     }

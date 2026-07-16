@@ -1,0 +1,32 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (105) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1032) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1047) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1047) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> js pulp
+js pulp
+I (9187) js: context ready: arena=163840 bytes, abi=v2
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (9650) m5_backend: present id=2 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=390786 wait_us=12
+I (9652) js: js present: page=home hits=7 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# >>> js tap 270 180
+js tap 270 180
+I (13186) js: tap 270,180 hit=3 (regions=7)
+I (13269) storage: library scan: 4 book(s) (3 cached, 1 hashed) in 81 ms
+pulp screen: library
+I (13408) m5_backend: present id=3 intent=CleanFull ops=13 skipped=0 damage=0,0,540,960 render_us=124227 wait_us=7
+I (13409) js: js present: page=library hits=4 mode=1
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=1 last_error=""
+pulp> 
+# >>> js hits
+js hits
+js hits: 4 region(s), page=library active=1
+  hit[0] cb=3 rect=0,85 540x41 z=0
+  hit[1] cb=4 rect=0,126 540x41 z=0
+  hit[2] cb=5 rect=0,167 540x41 z=0
+  hit[3] cb=6 rect=0,208 540x41 z=0
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=1 last_error=""
+pulp> 
+# done

@@ -40,4 +40,7 @@ void JsTimerTick(int64_t now_us);
 
 void FillJsSnapshot(JsSnapshot *out);
 
+// Prints the live hit regions (owner context; coordinate-hunting aid).
+void JsPrintHits();
+
 }  // namespace pulp
