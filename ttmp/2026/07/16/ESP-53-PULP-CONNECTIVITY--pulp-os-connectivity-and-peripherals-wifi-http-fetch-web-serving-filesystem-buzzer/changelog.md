@@ -40,3 +40,12 @@ P2+P3.1 complete: ModuleDone event kind + PostModuleDone + per-module pending-cb
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_files.cpp — Files module with path sanitizer and mailboxes
 
+
+## 2026-07-16
+
+P3 complete: net_wifi module (lazy esp_wifi, scan mailbox 16 APs, join with 2 retries + 15s owner-tick timeout, joinSaved sequencing via owner-side ModuleDone interceptor, off); S3WF credentials file in s3paper_storage (8 records, CRC, atomic, fault kind 5, last_ok ordinal); wifi JS singleton (16 fns); net console command with string-capable ConsolePayload; nvs_flash init in app_main. Hardware gate: 16-AP scan, joinSaved acquired 192.168.0.149, creds survived deep-sleep reboot, wrong password fails to idle, forget works
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_wifi.cpp — WiFi station module with joinSaved sequencer
+

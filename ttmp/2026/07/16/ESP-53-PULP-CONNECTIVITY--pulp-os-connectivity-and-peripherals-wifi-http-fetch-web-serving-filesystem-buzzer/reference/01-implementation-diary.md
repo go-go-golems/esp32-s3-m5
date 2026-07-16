@@ -188,3 +188,60 @@ The files module then rode that backbone: `app_files.{h,cpp}` (path sanitizer, m
 ### Technical details
 - Mailboxes: listing 32 × `{name[40], size, is_dir}`; read body 16 KiB PSRAM + 512 × `{start,len}` uint16 line refs.
 - Callback vocabulary: `fn(kind, value, err)` with kinds 10 list / 11 read / 12 write / 13 append / 14 remove; `err` is errno (or −1) when the op itself failed, 0 on success.
+
+## Step 4: P3 WiFi — station module, S3WF credentials, joinSaved sequencer
+
+The radio went in. Three moving parts: the S3WF credentials file as a fifth member of the storage component's persistence family (8 fixed `{ssid[33], pass[65], last_ok}` records, magic+version+count+CRC, tmp/fsync/bak/rename, coalesced flush, fault-injection kind 5); `net_wifi.{h,cpp}` as the station module (lazy `esp_wifi` init, non-blocking scan into a 16-entry mailbox, join with 2 event-handler retries plus a 15 s owner-tick timeout, `off` = `esp_wifi_stop`); and the `wifi` JS singleton (16 functions) plus a `net` console command whose join/save/forget subcommands travel in new bounded `str_a[33]/str_b[65]` fields on `ConsolePayload`.
+
+The interesting design piece is the joinSaved sequencer. Credentials are storage (owner-only), but join failures surface on the system event task. Rather than let the event task touch storage, the owner intercepts `ModuleDone{Wifi}` events (`WifiOwnerOnModuleDone`) before JS delivery: a failed join in saved mode quietly starts the next ranked credential and suppresses the event; success marks the credential's `last_ok` ordinal (a monotonic per-file counter, not a clock — it must order across reboots) and lets the event through. JS sees exactly one completion for the whole sequence.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2; plus mid-turn: "the network locally is yolobolo / bring3248camera, btw. (for later)")
+
+**Assistant interpretation:** Continue with P3; use the provided network for the hardware join gate.
+
+**Inferred user intent:** Same as Step 2; enable real end-to-end validation on their LAN.
+
+**Commit (code):** e65d70b — "ESP-53 P3: wifi module (scan/join/joinSaved/off), S3WF credentials in s3paper_storage, net console command"
+
+### What I did
+- `s3paper_storage`: `WifiCredential`/`kMaxWifiCreds` + `WifiCredsLoad/Save/Set/Forget/Count/GetRanked/MarkOk`; wired into mount-load, `DebugReloadState`, `StorageFlushNow/IfDue` (new dirty flag), and `DebugCorruptStateFile` kind 5.
+- `net_wifi.{h,cpp}`: state machine (Off/Idle/Scanning/Joining/Up in an atomic), event handlers that touch only POD + `PostModuleDone`, `EnsureUp()` lazy init, `StartJoin`/`SavedTryNext`, `WifiTick` timeout, `WifiOwnerOnModuleDone` interceptor, status + scan-mailbox accessors, `FillNetSnapshot`.
+- `app_events.h`: `ConsoleOp::Net`, `NetSnapshot`, string fields on `ConsolePayload`.
+- `app_owner.cpp`: Net console case (9 subops incl. `saved`/`results` printers), Wifi interception in the ModuleDone case, `WifiTick` in TickHooks.
+- `app_main.cpp`: `nvs_flash_init` with erase-on-version-mismatch (esp_wifi needs it; was absent, as the design's gotcha 6 predicted).
+- `js_wifi.cpp` + stdlib/stub/prototype/CMake plumbing (esp_wifi, esp_netif, esp_event, nvs_flash components).
+
+### Why
+- Owner-side interception is the only place the joinSaved sequencer can live without violating either the owner-only storage rule or the event-task POD rule.
+- `last_ok` as an ordinal instead of a timestamp: `esp_timer` restarts at zero every boot, so a clock would rank a network joined 10 s after this boot above one joined yesterday.
+
+### What worked
+- Everything passed on the first flash, including esp_wifi's first-ever inclusion in this firmware: 16-AP scan (yolobolo at −44 dBm), `joinsaved` → `state=up ip=192.168.0.149 rssi=-45`, `last_ok` bumped 0→1, deep-sleep reboot → creds reloaded → `joinsaved` re-acquired the same IP, wrong password → joining→idle after retries, `forget` 1→0, re-save 0→1.
+- sdkconfig needed no hand-editing: adding the esp_wifi component let the reconfigure append its defaults.
+
+### What didn't work
+- Nothing failed outright this step. (First draft of `WifiCredsGetRanked` was a recursive selection monstrosity — rewritten as a plain index sort before it ever compiled.)
+
+### What I learned
+- `net saved` sent immediately after a deep-sleep wake was swallowed once (the boot race from ESP-50 applies after wake too); the follow-up command in the same session worked. Known discipline: settle + retry after wake.
+
+### What was tricky to build
+- The join failure path has three writers: the event handler (disconnect+retry), the owner tick (timeout), and the owner interceptor (saved-mode advance). The invariants that keep them from double-firing: the handler only posts fail after retries exhaust while state==Joining; the tick only fires when state==Joining and flips state before disconnecting (so the resulting disconnect event sees Idle and stays silent); the interceptor runs only on posted events. State transitions all go through the atomic.
+
+### What warrants a second pair of eyes
+- A join started while state==Up is allowed (OpInFlight only blocks Scanning/Joining) and implicitly drops the current link — intended (how you switch networks) but worth confirming as product behavior.
+- The unexpected-disconnect path (state Up → link lost) only flips state to Idle; no JS notification. Apps must poll `wifi.status()`. Fine for v1; the settings app should surface it.
+
+### What should be done in the future
+- P7: wire `wifi.off()` into the sleep quiesce sequence (design §9 step 0).
+- Consider a `wifi.onDrop(fn)` persistent callback if any app needs push-style link-loss handling.
+
+### Code review instructions
+- Start at `net_wifi.cpp`: `HandlerWifi` (event-task constraints), `WifiTick` + `WifiOwnerOnModuleDone` (the three-writer failure path), then `storage.cpp` WifiCreds family.
+- Validate: `net save <ssid> <pass> && net scan` → `net results` → `net joinsaved` → `net status` shows `state=up ip=...`; `sleep deep 2` → `net joinsaved` still works.
+
+### Technical details
+- Gate transcript: scan=16 APs; `net state=up ip=192.168.0.149 ssid="yolobolo" rssi=-45 saved=1`; post-reboot identical; wrong-pass → `state=idle`; forget → `saved=0`.
+- ConsolePayload grew by 98 bytes; event queue (32 deep) static cost +~3 KB. Accepted for POD-rule compliance.

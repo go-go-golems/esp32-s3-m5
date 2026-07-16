@@ -9,9 +9,9 @@
 - [x] [P2.1] files module: path sanitizer (reject .., absolutes, state dir), sync exists/stat <!-- t:580w -->
 - [x] [P2.2] files list/read/write/append/remove with mailboxes; probes for caps + denials <!-- t:ejvc -->
 - [x] [P3.1] ModuleDone event kind + completion-mailbox plumbing in owner loop <!-- t:qqi3 -->
-- [ ] [P3.2] wifi module: lazy esp_wifi init, scan mailbox (16 APs), status block, nvs_flash init <!-- t:yub5 -->
-- [ ] [P3.3] S3WF credentials file in s3paper_storage (8 records, CRC, atomic) + fault-injection kind 5 <!-- t:xz4v -->
-- [ ] [P3.4] join/joinSaved/forget flows with timeout+retry; net console command; hardware gate: IP acquired, survives reboot <!-- t:ay8p -->
+- [x] [P3.2] wifi module: lazy esp_wifi init, scan mailbox (16 APs), status block, nvs_flash init <!-- t:yub5 -->
+- [x] [P3.3] S3WF credentials file in s3paper_storage (8 records, CRC, atomic) + fault-injection kind 5 <!-- t:xz4v -->
+- [x] [P3.4] join/joinSaved/forget flows with timeout+retry; net console command; hardware gate: IP acquired, survives reboot <!-- t:ay8p -->
 - [ ] [P4.1] http fetch builder: single slot, 4 headers, limit, worker task, PSRAM body mailbox <!-- t:8bla -->
 - [ ] [P4.2] TLS cert bundle; probes: http+https fetch, truncation, timeout <!-- t:2lor -->
 - [ ] [P5.1] serve module: route table (8 exact paths), request slot, semaphore handoff with dual timeouts <!-- t:43jw -->
