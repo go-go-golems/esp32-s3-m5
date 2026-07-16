@@ -1,0 +1,22 @@
+idf_component_register(
+    SRCS
+        "app_main.cpp"
+        "app_owner.cpp"
+        "app_console.cpp"
+        "app_input.cpp"
+        "app_power.cpp"
+        "app_home.cpp"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        console
+        esp_driver_usb_serial_jtag
+        esp_timer
+        s3paper_core
+        s3paper_m5
+        s3paper_storage
+        s3paper_runtime
+        fatfs
+        sdmmc
+        esp_driver_sdspi
+)
