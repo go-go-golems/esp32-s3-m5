@@ -6,6 +6,10 @@
 
 var P = { app: 'home' };
 
+// Global content margin (px). Toggled by long-pressing the launcher and
+// persisted in the settings store; every app reads it at build time.
+var M = 40;
+
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 function fmtClock(ms) {
   if (ms < 0) { ms = 0; }
@@ -20,7 +24,7 @@ function enter(name) {
   resetTree();
   paper.home(function () { home(); });
   paper.sleepImage(function () {
-    return col().pad(0, 40, 0, 40).gap(24).mainAlign(1)
+    return col().pad(0, M, 0, M).gap(24).mainAlign(1)
       .add(text('PULP').size('xl').center(),
            text('asleep - press the side button').size('xs').center());
   });
@@ -29,12 +33,12 @@ function enter(name) {
 function announce(name) { print('pulp screen: ' + name); }
 
 function chrome(title) {
-  return col().pad(16, 40, 6, 40).gap(8)
+  return col().pad(16, M, 6, M).gap(8)
     .add(text(title).size('lg'), divider(6, 0));
 }
 
 function hintFooter(hint) {
-  return col().pad(4, 40, 10, 40).gap(5)
+  return col().pad(4, M, 10, M).gap(5)
     .add(divider(1, 0), text(hint).size('xs').gray(96));
 }
 
@@ -42,7 +46,7 @@ function hintFooter(hint) {
 
 function home() {
   enter('home');
-  var header = col().pad(16, 40, 6, 40).gap(4).add(
+  var header = col().pad(16, M, 6, M).gap(4).add(
     text('PULP').size('xl'),
     text('THE PAPERBACK OF COMPUTERS').size('xs').gray(96),
     divider(8, 0));
@@ -52,7 +56,7 @@ function home() {
     var line = row().pad(8, 0, 6, 0).gap(10).crossAlign(3)
       .add(text(label).size('lg'), spacer(0, 1),
            text(sub).size('xs').gray(112));
-    menu.add(col().pad(0, 40, 0, 40).add(line, divider(2, 0)).onTap(fn));
+    menu.add(col().pad(0, M, 0, M).add(line, divider(2, 0)).onTap(fn));
   }
   entryRow('Reader', 'books on the card', library);
   entryRow('Dice Tray', '2d6 coin d20 d%', dice);
@@ -63,7 +67,12 @@ function home() {
   entryRow('Daily Pulp', 'a page at random', daily);
   entryRow('Ink', 'the beauty of e-ink', ink);
   var p = page('home').header(header).content(menu)
-    .footer(hintFooter('tap to open - swipe down = home anywhere'));
+    .footer(hintFooter('tap to open - hold = margins - swipe down = home'));
+  p.on(G.LONG, function () {
+    M = M === 40 ? 0 : 40;
+    storeSet('margin', M);
+    home();
+  });
   announce('home');
   p.show(true);
 }
@@ -84,7 +93,7 @@ function library() {
       var cut = s.lastIndexOf('  ');
       var name = cut > 0 ? s.slice(0, cut) : s;
       var kb = cut > 0 ? s.slice(cut + 2) : '';
-      menu.add(col().pad(0, 40, 0, 40).add(
+      menu.add(col().pad(0, M, 0, M).add(
         row().pad(8, 0, 6, 0).gap(10).crossAlign(3)
           .add(text(name).size('title'), spacer(0, 1),
                text(kb).size('xs').gray(112)),
@@ -92,7 +101,7 @@ function library() {
     })(i);
   }
   if (n === 0) {
-    menu.add(col().pad(20, 40, 0, 40)
+    menu.add(col().pad(20, M, 0, M)
       .add(text('no books on the card').size('sm').gray(96)));
   }
   var p = page('library').header(chrome('LIBRARY')).content(menu)
@@ -122,9 +131,9 @@ function reader(idx) {
   RD.lines = [];
   RD.turns = 0;
   RD.title = text('').size('xs');
-  var header = col().pad(14, 40, 4, 40).gap(6)
+  var header = col().pad(14, M, 4, M).gap(6)
     .add(RD.title, divider(1, 0));
-  var body = col().pad(4, 40, 0, 40).gap(2);
+  var body = col().pad(4, M, 0, M).gap(2);
   var i;
   for (i = 0; i < 24; i++) {
     var line = text(' ');
@@ -132,7 +141,7 @@ function reader(idx) {
     body.add(line);
   }
   RD.foot = text('').size('xs').gray(96);
-  var footer = col().pad(4, 40, 10, 40).gap(6)
+  var footer = col().pad(4, M, 10, M).gap(6)
     .add(divider(1, 0), RD.foot);
   var p = page('reader').header(header).content(body).footer(footer);
   function turn(fwd) {
@@ -182,7 +191,7 @@ function dice() {
     ui.hist.set('history: ' + DZ.hist.join(' - '));
     p.update();
   }
-  var body = col().pad(16, 40, 8, 40).gap(12);
+  var body = col().pad(16, M, 8, M).gap(12);
   body.add(row().gap(24).mainAlign(1).add(die(ui.dieA), die(ui.dieB)));
   ui.big = text('ROLL').size('xl').center();
   body.add(ui.big);
@@ -269,9 +278,9 @@ function blitz() {
     }
     p.update();
   }
-  var zb = col().pad(20, 40, 20, 40).gap(6).add(ui.bt, ui.bl)
+  var zb = col().pad(20, M, 20, M).gap(6).add(ui.bt, ui.bl)
     .onTap(function () { hit(2); });
-  var zw = col().pad(20, 40, 20, 40).gap(6).add(ui.wt, ui.wl)
+  var zw = col().pad(20, M, 20, M).gap(6).add(ui.wt, ui.wl)
     .onTap(function () { hit(1); });
   var body = col().pad(8, 0, 0, 0).gap(4)
     .add(zb, divider(6, 0), ui.mid, divider(6, 0), zw);
@@ -441,7 +450,7 @@ function tea() {
   ui.kind = text(' ').size('lg').center();
   ui.time = text(' ').size('xl').center();
   ui.bar = progressBar(0, 24).height(24);
-  var body = col().pad(18, 40, 8, 40).gap(14)
+  var body = col().pad(18, M, 8, M).gap(14)
     .add(ui.kind, ui.time, ui.bar, divider(1, 176));
   var kinds = row().pad(6, 0, 0, 0).gap(18).mainAlign(1);
   var i;
@@ -576,7 +585,7 @@ function daily() {
     p.update();
   }
   if (!shuffle()) { library(); return; }
-  var body = col().pad(10, 40, 0, 40).gap(2);
+  var body = col().pad(10, M, 0, M).gap(2);
   var i;
   for (i = 0; i < 13; i++) {
     var line = text(' ');
@@ -614,9 +623,9 @@ function ink() {
   var cv = canvas().height(760);
   var cap = text(' ').size('xs').gray(96).center();
   var p = page('ink')
-    .header(col().pad(16, 40, 6, 40).gap(8)
+    .header(col().pad(16, M, 6, M).gap(8)
       .add(text('INK').size('lg'), divider(6, 0)))
-    .content(col().pad(6, 40, 0, 40).gap(8).add(cv, cap));
+    .content(col().pad(6, M, 0, M).gap(8).add(cv, cap));
 
   function clockFace(min) {
     cv.wipe();
@@ -713,4 +722,5 @@ function ink() {
 // ---------------------------------------------------------------- boot --
 
 print('PULP OS v2 booting, abi v' + abiVersion());
+M = storeGet('margin', 40);
 home();
