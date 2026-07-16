@@ -12,7 +12,7 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: repo://0112-papers3-reader-primitives/components/s3paper_core/include/s3paper/widget.h
+    - Path: repo://components/s3paper_core/include/s3paper/widget.h
       Note: Widget arena contract the v2 builders wrap
     - Path: repo://0112-papers3-reader-primitives/main/app_js.cpp
       Note: v1 JS host/ABI - migration source for v2
