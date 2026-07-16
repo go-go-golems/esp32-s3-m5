@@ -41,7 +41,7 @@
 - [x] Phase 9 - Generalize the proven vertical slice into retained widget trees, layout, flat draw-op output, regions, dependency invalidation, and routable pages <!-- t:3ysy -->
 - [ ] Phase 10 - Implement coordinated power-off/deep-sleep, wake sources, final persistence flush, display quiescence, and resume contracts <!-- t:gnr0 -->
 - [x] Phase 11 - Run a bounded MicroQuickJS feasibility spike covering ESP32-S3 integration, memory limits, C API rooting, syntax compatibility, cancellation, and trusted bytecode <!-- t:r4zd -->
-- [ ] Phase 12 - Bind the stable primitive ABI into the fluent s3paper JavaScript layer and port the hello, status, library, and reader acceptance scripts <!-- t:pj4p -->
+- [x] Phase 12 - Bind the stable primitive ABI into the fluent s3paper JavaScript layer and port the hello, status, library, and reader acceptance scripts <!-- t:pj4p -->
 - [ ] Phase 13 - Harden with long-run ghosting, malformed-content, power-loss, heap, concurrency, latency, and battery tests; then publish intern and operator guides <!-- t:9quv -->
 - [x] [P0.1] Create a minimal standalone PaperS3 EPD qualification firmware with no reader/application dependencies <!-- t:mxag -->
 - [ ] [P0.2] Record exact board revision, flash/PSRAM configuration, USB port identity, and reset/attach behavior <!-- t:er7u -->
@@ -175,8 +175,8 @@
 - [x] [P12.5] Map dynamic values to CallbackId, DependencyId, and RegionId without storing JS closures in native layout nodes <!-- t:0yat -->
 - [x] [P12.6] Dispatch gesture, timer, route, and selection events to JS outside display transactions <!-- t:pqfs -->
 - [x] [P12.7] Validate JS-produced patches/descriptors for type, bounds, capacity, ownership, and stale handles before applying them <!-- t:muo1 -->
-- [ ] [P12.8] Implement the host authoring/transpile/compile/relocate/embed pipeline pinned to the runtime commit <!-- t:ibe5 -->
-- [ ] [P12.9] Port the hello, status, library, and reader studio programs to the supported on-device dialect <!-- t:wipy -->
+- [x] [P12.8] Implement the host authoring/transpile/compile/relocate/embed pipeline pinned to the runtime commit <!-- t:ibe5 -->
+- [x] [P12.9] Port the hello, status, library, and reader studio programs to the supported on-device dialect <!-- t:wipy -->
 - [x] [P12.10] Compare native and JS normalized layout, DrawOp, hit-region, and refresh-plan traces <!-- t:17nn -->
 - [x] [P12.11] Test script exceptions, OOM, callback teardown, invalid descriptors, and app fallback to a native error screen <!-- t:rs5w -->
 - [ ] [P13.1] Consolidate host unit, golden trace, serialization, pagination, gesture, refresh, and JS binding tests into repeatable commands <!-- t:4u67 -->

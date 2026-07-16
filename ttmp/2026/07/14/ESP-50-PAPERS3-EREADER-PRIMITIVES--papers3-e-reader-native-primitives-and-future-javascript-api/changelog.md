@@ -565,3 +565,12 @@ Step 18: Phase 12 exit gate met - native and JS hello fixtures produce byte-iden
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_js.cpp — Trace harness, library port, fault app (commit 05b5a7d)
 
+
+## 2026-07-15
+
+Step 19: Phase 12 closed - JS reader port with bidirectional position interop over a headless book ABI, host s3jsc bytecode pipeline (parser-free execution validated on device), and new fuzz suites (37989 host checks) that caught and fixed an AddChild tree-cycle bug (commits b9b7be1, 226a5e1, 83b7165)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/tools/js/s3jsc.c — Host bytecode compiler (commit 83b7165)
+

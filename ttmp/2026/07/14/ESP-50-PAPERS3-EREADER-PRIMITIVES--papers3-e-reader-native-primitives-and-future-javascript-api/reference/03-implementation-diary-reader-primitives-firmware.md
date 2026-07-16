@@ -1124,3 +1124,42 @@ The phase's exit gate is now measured, not asserted: the native hello fixture an
 ### Code review instructions
 - `main/app_js.cpp`: `JsTraceCompare`, `NormalizeTraceInto`, `kHelloTraceJs` vs `app_ui.cpp`'s `BuildHelloFixture` (they must stay mirrors), `kFaultJs`, the four library bindings; owner fallback in `app_owner.cpp` (ConsoleOp::Js).
 - Validate: `js trace` → EQUAL; `js library` → hits=3, tap opens a book; `js fault` → two "fault:" containment lines, owner fallback, native library on panel. Evidence: `scripts/output/0112-js-{trace,library-fault,fault2}.log`.
+
+## Step 19: Phase 12 closed — JS reader port, host bytecode pipeline, and a fuzz-found core bug
+
+The user rightly pushed back on skipping the open Phase 12 items, so this step finished them: the fourth acceptance port (a JS reader over a headless book ABI) and the host authoring pipeline (ES5 source compiled to relocated 32-bit bytecode that runs on device without the parser). The step opened with new host fuzz suites that immediately caught a genuine s3paper_core bug: AddChild allowed tree cycles.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue" — followed mid-turn by "what about the open phase 12 items? why not do those?"
+
+**Assistant interpretation:** Do not defer wipy/ibe5 to a hardening backlog; complete Phase 12 fully before Phase 13.
+
+**Inferred user intent:** The ticket's phases should close in order and completely; "the native reader is the product" is not a reason to leave the JS acceptance surface half-ported.
+
+**Commits (code):** b9b7be1 — "Widgets: fix AddChild cycle hole found by new fuzz suites"; 226a5e1 — "JS: reader acceptance port over a headless book ABI (wipy)"; 83b7165 — "JS: host authoring/bytecode pipeline (ibe5) completes Phase 12"
+
+### What I did
+- Fuzz suites (task 666s, started for Phase 13 before the redirect): deterministic xorshift corpora for malformed UTF-8 (decode/measure/break), random-content paginator forward/backward round trips, and random widget-tree ops. Host suite now 37,989 checks. The widget fuzz crashed ASan in minutes: a trailing child (next_sibling == none) could be re-added under another node or its own descendant — diamonds and cycles that recursed every tree walk to death. Nodes now carry a parent link; AddChild rejects double-parenting and ancestor cycles.
+- JS reader (wipy): `s3Book*` ABI (open/title/lineCount/line/next/prev/progress) — a SECOND paginator instance with the same LayoutKey and content hash as the native reader, so persisted positions interoperate bidirectionally (validated: the JS reader resumed at the native reader's end-of-book position and correctly refused `next` at at_end while `prev` turned with a partial refresh). The ES5 app owns chrome and gesture policy via a new `s3._onGesture` hook; body lines are Text widgets (64-byte cap, truncated at UTF-8 boundaries — fine for Latin body text, documented for Cyrillic). Console `js reader|next|prev` with synthetic gestures for operator-free validation.
+- Host pipeline (ibe5): `tools/js/s3jsc.c` (stubs + host-word-size s3 stdlib + JS_Parse + JS_PrepareBytecode64to32 → C header) driven by `build_bytecode_apps.sh`; `tools/js/apps/bc_hello.js` compiles to `main/js_bc_hello.h`; device loads it at context setup and `js bc` runs it parser-free (validated twice on hardware, prints from bytecode + full present).
+
+### What didn't work (three real pitfalls, all now documented in code)
+- Quoted `#include "mquickjs_atom.h"` searches the including file's directory before -I: the host engine build silently used the DEVICE atom header, mismatching the host stdlib table — symptom was surreal (`var x = 1;` a parse error while `s3.reset();` compiled). Fix: copy mquickjs.c into the host build dir.
+- `JS_LoadBytecode` demands zero RAM atoms (`no atom must be defined in RAM`) — images must load BEFORE the facade evaluates. My first version loaded lazily and passed the resulting exception value into JS_Run, which masked it as `bytecode function expected`. Always JS_IsException-check load results.
+- A transient `js reader` failure right after flashing was a mid-boot race plus USB re-enumeration (reset_reason=11, not a panic) — retry after boot settles reproduced nothing.
+
+### What warrants a second pair of eyes
+- The relocated bytecode buffer is intentionally never freed (engine contract: must outlive the context) and `s_bc_main` is held as a raw JSValue — safe because it points into that non-GC buffer registered as a ROM atom table, but the pattern deserves a look.
+- Two paginators (native reader + JS book service) can hold the same SD file via separate FILE* handles; fine for FATFS reads, but concurrent open of the same book from both readers is untested.
+- `AddChild`'s ancestor walk is O(depth) per insert — negligible at depth ≤ 16, but worth remembering if kMaxLayoutDepth ever grows.
+
+### What should be done in the future
+- Phase 13 proper: hardware soak, storage fault injection on-device, queue saturation, power-loss matrix, docs/licenses (some fuzz groundwork landed here).
+- Operator: `js reader` then swipe/tap to turn pages; `js bc` to see the bytecode screen.
+
+### Code review instructions
+- Cycle fix: `components/s3paper_core/src/widget.cpp` AddChild/RemoveChild/parent field; fuzz suites at the end of `tests/host/test_main.cpp` (`TestFuzz*`).
+- JS reader: `main/app_js.cpp` (`JsBook`, `JsBookCompose`, `kReaderJs`, the seven `js_s3_book_*` bindings, `JsSyntheticGesture`).
+- Pipeline: `tools/js/s3jsc.c`, `tools/js/build_bytecode_apps.sh`, `tools/js/apps/bc_hello.js`, `JsLoadBytecodeApps` ordering in `JsInit`.
+- Validate: `make run` (37,989 checks); on device `js reader` → `js next/prev`; `js bc` twice. Evidence: `scripts/output/0112-js-{reader*,bytecode2}.log`.
