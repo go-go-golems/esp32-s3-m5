@@ -33,6 +33,7 @@ UiExtraOps s_last_extra = nullptr;
 bool s_last_valid = false;
 
 uint32_t s_present_count = 0;
+bool s_trace_present = false;
 
 // Fixture state: one live clock region driven by the owner loop.
 bool s_fixture_active = false;
@@ -136,7 +137,7 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
         Planner().NoteScreenChange();
     }
     const PlannedPresent presented =
-        PresentFramePlanned(frame.value, intent, true);
+        PresentFramePlanned(frame.value, intent, !s_trace_present);
     out.status = presented.present.status;
     out.full_refresh = presented.plan.full_refresh;
     if (out.status == StatusCode::Ok) {
@@ -150,6 +151,8 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
 }
 
 uint32_t UiPresentCount() { return s_present_count; }
+
+void UiSetTracePresent(bool enabled) { s_trace_present = enabled; }
 
 // ---- Fixtures ----
 
@@ -266,15 +269,15 @@ StatusCode BuildStatusFixture(s3paper::PageSlots *out) {
 
 }  // namespace
 
+StatusCode UiBuildFixtureSlots(uint32_t which, s3paper::PageSlots *out) {
+    UiInit();
+    return which == 2 ? BuildStatusFixture(out) : BuildHelloFixture(out);
+}
+
 StatusCode UiRunFixture(uint32_t which) {
     UiInit();
     s3paper::PageSlots slots{};
-    StatusCode built;
-    if (which == 2) {
-        built = BuildStatusFixture(&slots);
-    } else {
-        built = BuildHelloFixture(&slots);
-    }
+    const StatusCode built = UiBuildFixtureSlots(which, &slots);
     if (built != StatusCode::Ok) {
         return built;
     }

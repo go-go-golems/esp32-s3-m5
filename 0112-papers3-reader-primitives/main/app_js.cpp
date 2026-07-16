@@ -7,7 +7,10 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "app_display.h"
 #include "app_js_bindings.h"
+#include "app_reader.h"
+#include "app_storage.h"
 #include "app_ui.h"
 #include "s3paper/page.h"
 #include "s3paper/text.h"
@@ -189,6 +192,69 @@ const char kHelloJs[] =
     "s3.render({header: header, content: content, footer: footer,\n"
     "           full: true});\n";
 
+// Byte-exact mirror of app_ui's BuildHelloFixture: the trace-equivalence
+// harness (task 17nn) presents both through the fake backend and compares
+// the normalized draw-op traces.
+const char kHelloTraceJs[] =
+    "s3.reset();\n"
+    "var header = s3.col().pad(16, 40, 4, 40).gap(8)\n"
+    "  .add(s3.text('Widget fixture: hello').font(s3.FONT_UI),\n"
+    "       s3.divider(2, 0));\n"
+    "var content = s3.col().pad(24, 40, 24, 40).gap(16).add(\n"
+    "  s3.text('Hello, PaperS3.'),\n"
+    "  s3.text('Rows, columns, dividers,'),\n"
+    "  s3.row().gap(12).add(s3.text('progress:'),\n"
+    "                       s3.progressBar(640, 24).height(24)),\n"
+    "  s3.text('centered text').center().gray(96));\n"
+    "var footer = s3.col().pad(6, 40, 10, 40).gap(6)\n"
+    "  .add(s3.divider(1, 0),\n"
+    "       s3.text('generic tree -> draw ops -> EPD')\n"
+    "         .font(s3.FONT_UI).gray(96));\n"
+    "s3.render({header: header, content: content, footer: footer,\n"
+    "           full: true});\n";
+
+// Library port (task wipy): real catalog data through the ABI, tap a row
+// to open the book in the NATIVE reader (JS routes, native reads).
+const char kLibraryJs[] =
+    "s3.reset();\n"
+    "var header = s3.col().pad(16, 40, 4, 40).gap(8)\n"
+    "  .add(s3.text('JS Library').font(s3.FONT_UI), s3.divider(1, 0));\n"
+    "var listW = s3.list().pad(12, 0, 0, 0);\n"
+    "function addRow(line, idx) {\n"
+    "  var r = s3.col().pad(10, 40, 8, 40).gap(8)\n"
+    "    .add(s3.text(line), s3.divider(1, 176))\n"
+    "    .onTap(function() { s3OpenBook(idx); });\n"
+    "  listW.add(r);\n"
+    "}\n"
+    "addRow(s3EmbeddedLine(), -1);\n"
+    "var n = s3LibraryCount();\n"
+    "var i;\n"
+    "for (i = 0; i < n; i++) { addRow(s3LibraryLine(i), i); }\n"
+    "var footer = s3.col().pad(4, 40, 10, 40)\n"
+    "  .add(s3.text('JS library - tap a book to read')\n"
+    "         .font(s3.FONT_UI).gray(96));\n"
+    "s3.render({header: header, content: listW, footer: footer,\n"
+    "           full: true});\n";
+
+// Fault app (task rs5w): presents, proves stale-handle and invalid-prop
+// containment, then fails; the owner falls back to the native library.
+const char kFaultJs[] =
+    "s3.reset();\n"
+    "var body = s3.col().pad(24, 40, 24, 40).gap(12)\n"
+    "  .add(s3.text('fault app: about to fail'));\n"
+    "s3.render({content: body, full: true});\n"
+    "var w = s3.text('victim');\n"
+    "s3Reset();\n"
+    "var stale = 'MISSED';\n"
+    "try { w.set('x'); } catch (e) { stale = e.message; }\n"
+    "print('fault: stale handle -> ' + stale);\n"
+    "var badProp = 'MISSED';\n"
+    "var t2 = s3.text('probe');\n"
+    "try { s3Config(t2.h, 99, 0, 0, 0, 0); } catch (e2) {\n"
+    "  badProp = e2.message; }\n"
+    "print('fault: invalid prop -> ' + badProp);\n"
+    "throw new Error('deliberate failure after present');\n";
+
 const char kStatusJs[] =
     "s3.reset();\n"
     "var taps = 0;\n"
@@ -247,14 +313,97 @@ StatusCode JsInit() {
     return StatusCode::Ok;
 }
 
+namespace {
+
+// Copies a fake-backend trace, replacing volatile "id=NNN" frame ids with
+// "id=#" so two presents of the same content compare equal.
+void NormalizeTraceInto(const char *src, char *dst, uint32_t cap) {
+    uint32_t w = 0;
+    for (const char *p = src; *p != '\0' && w + 5 < cap;) {
+        if (strncmp(p, "id=", 3) == 0) {
+            dst[w++] = 'i';
+            dst[w++] = 'd';
+            dst[w++] = '=';
+            dst[w++] = '#';
+            p += 3;
+            while (*p >= '0' && *p <= '9') {
+                p++;
+            }
+            continue;
+        }
+        dst[w++] = *p++;
+    }
+    dst[w] = '\0';
+}
+
+}  // namespace
+
+// Exit-gate harness (task 17nn): the native hello fixture and its JS mirror
+// must produce identical normalized draw-op traces and effective intents.
+StatusCode JsTraceCompare() {
+    const StatusCode init = JsInit();
+    if (init != StatusCode::Ok) {
+        return init;
+    }
+    constexpr uint32_t kTraceCap = 12 * 1024;
+    static char *s_native_trace = nullptr;
+    static char *s_js_trace = nullptr;
+    if (s_native_trace == nullptr) {
+        s_native_trace = static_cast<char *>(
+            heap_caps_malloc(kTraceCap, MALLOC_CAP_SPIRAM));
+        s_js_trace = static_cast<char *>(
+            heap_caps_malloc(kTraceCap, MALLOC_CAP_SPIRAM));
+        if (s_native_trace == nullptr || s_js_trace == nullptr) {
+            return StatusCode::OutOfMemory;
+        }
+    }
+
+    s3paper::PageSlots slots{};
+    const StatusCode built = UiBuildFixtureSlots(1, &slots);
+    if (built != StatusCode::Ok) {
+        return built;
+    }
+    UiSetTracePresent(true);
+    const UiPresentResult native = UiPresentPage(
+        slots, s3paper::PresentIntent::CleanFull, true, nullptr, 0, nullptr);
+    if (native.status != StatusCode::Ok) {
+        UiSetTracePresent(false);
+        return native.status;
+    }
+    NormalizeTraceInto(FakeTrace(), s_native_trace, kTraceCap);
+
+    const StatusCode js = EvalBounded(kHelloTraceJs, 3000, "<hello-trace>");
+    UiSetTracePresent(false);
+    if (js != StatusCode::Ok) {
+        return js;
+    }
+    NormalizeTraceInto(FakeTrace(), s_js_trace, kTraceCap);
+
+    const bool equal = strcmp(s_native_trace, s_js_trace) == 0;
+    printf("js trace-compare: %s (native=%u bytes, js=%u bytes)\n",
+           equal ? "EQUAL" : "DIFFER",
+           static_cast<unsigned>(strlen(s_native_trace)),
+           static_cast<unsigned>(strlen(s_js_trace)));
+    if (!equal) {
+        printf("--- native ---\n%s--- js ---\n%s---\n", s_native_trace,
+               s_js_trace);
+    }
+    return equal ? StatusCode::Ok : StatusCode::CorruptData;
+}
+
 StatusCode JsRunApp(uint32_t which) {
     const StatusCode init = JsInit();
     if (init != StatusCode::Ok) {
         return init;
     }
-    const char *src = which == 2 ? kStatusJs : kHelloJs;
-    const char *name = which == 2 ? "<status>" : "<hello>";
-    return EvalBounded(src, 3000, name);
+    switch (which) {
+        case 1: return EvalBounded(kHelloJs, 3000, "<hello>");
+        case 2: return EvalBounded(kStatusJs, 3000, "<status>");
+        case 3: return EvalBounded(kLibraryJs, 3000, "<library>");
+        case 4: return EvalBounded(kFaultJs, 3000, "<fault>");
+        case 5: return JsTraceCompare();
+        default: return StatusCode::InvalidArgument;
+    }
 }
 
 bool JsScreenActive() {
@@ -603,6 +752,42 @@ JSValue js_s3_present(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
                  presented.full_refresh ? 1 : 0);
     }
     return JS_NewInt32(ctx, static_cast<int32_t>(presented.status));
+}
+
+JSValue js_s3_library_count(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_NewInt32(ctx, static_cast<int32_t>(LibraryCount()));
+}
+
+JSValue js_s3_library_line(JSContext *ctx, JSValue *, int argc,
+                           JSValue *argv) {
+    int index = 0;
+    if (argc < 1 || JS_ToInt32(ctx, &index, argv[0])) {
+        return JS_EXCEPTION;
+    }
+    if (index < 0 || static_cast<uint32_t>(index) >= LibraryCount()) {
+        return JS_ThrowTypeError(ctx, "book index out of range");
+    }
+    char line[96];
+    ReaderFormatLibraryLine(static_cast<uint32_t>(index), line,
+                            sizeof(line));
+    return JS_NewString(ctx, line);
+}
+
+JSValue js_s3_embedded_line(JSContext *ctx, JSValue *, int, JSValue *) {
+    char line[96];
+    ReaderFormatLibraryLine(0xFFFFFFFF, line, sizeof(line));
+    return JS_NewString(ctx, line);
+}
+
+JSValue js_s3_open_book(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
+    int index = -1;
+    if (argc < 1 || JS_ToInt32(ctx, &index, argv[0])) {
+        return JS_EXCEPTION;
+    }
+    const StatusCode opened =
+        index < 0 ? ReaderOpen()
+                  : ReaderOpenSd(static_cast<uint32_t>(index));
+    return JS_NewInt32(ctx, static_cast<int32_t>(opened));
 }
 
 }  // extern "C"

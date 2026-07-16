@@ -253,8 +253,14 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 FillJsSnapshot(&reply.payload.js);
-            } else if (arg <= 2) {
+            } else if (arg <= 5) {
                 reply.status = JsRunApp(arg);
+                if (reply.status != StatusCode::Ok && JsScreenActive()) {
+                    // A failed script left its page on the panel: fall back
+                    // to the native library screen (task rs5w).
+                    ESP_LOGW(kTag, "js app failed; native fallback");
+                    (void)LibraryShow();
+                }
                 FillJsSnapshot(&reply.payload.js);
             } else {
                 reply.status = StatusCode::InvalidArgument;

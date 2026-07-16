@@ -400,6 +400,10 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("s3SetProgress", 2, js_s3_set_progress),
     JS_CFUNC_DEF("s3Config", 6, js_s3_config),
     JS_CFUNC_DEF("s3Present", 5, js_s3_present),
+    JS_CFUNC_DEF("s3LibraryCount", 0, js_s3_library_count),
+    JS_CFUNC_DEF("s3LibraryLine", 1, js_s3_library_line),
+    JS_CFUNC_DEF("s3EmbeddedLine", 0, js_s3_embedded_line),
+    JS_CFUNC_DEF("s3OpenBook", 1, js_s3_open_book),
 #endif
     JS_PROP_END,
 };

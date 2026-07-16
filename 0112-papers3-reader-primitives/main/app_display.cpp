@@ -383,6 +383,10 @@ void PrintFakeTrace() {
     }
 }
 
+const char *FakeTrace() {
+    return s_fake != nullptr ? s_fake->trace() : "";
+}
+
 s3paper::BackendState FakeBackendState() {
     return s_fake ? s_fake->GetState() : s3paper::BackendState{};
 }

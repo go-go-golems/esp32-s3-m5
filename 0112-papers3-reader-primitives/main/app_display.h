@@ -39,6 +39,10 @@ PlannedPresent RunTextFixture(bool use_m5);
 // Prints the fake backend's trace of the last present via printf.
 void PrintFakeTrace();
 
+// The fake backend's normalized trace of the last fake present ("" when
+// unavailable). Owner-task-only; valid until the next fake present.
+const char *FakeTrace();
+
 s3paper::BackendState FakeBackendState();
 s3paper::BackendState M5BackendState();
 

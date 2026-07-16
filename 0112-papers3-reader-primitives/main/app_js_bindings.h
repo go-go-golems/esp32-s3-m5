@@ -54,6 +54,14 @@ JSValue js_s3_config(JSContext *ctx, JSValue *this_val, int argc,
                      JSValue *argv);
 JSValue js_s3_present(JSContext *ctx, JSValue *this_val, int argc,
                       JSValue *argv);
+JSValue js_s3_library_count(JSContext *ctx, JSValue *this_val, int argc,
+                            JSValue *argv);
+JSValue js_s3_library_line(JSContext *ctx, JSValue *this_val, int argc,
+                           JSValue *argv);
+JSValue js_s3_embedded_line(JSContext *ctx, JSValue *this_val, int argc,
+                            JSValue *argv);
+JSValue js_s3_open_book(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
 
 #ifdef __cplusplus
 }

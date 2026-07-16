@@ -26,6 +26,10 @@ StatusCode ReaderBookmarkGoto(uint32_t index);
 void ReaderBookmarksPrint();
 void FillReaderSnapshot(ReaderSnapshot *out);
 
+// Formats a library row line ("title  12KB 45%"). index 0xFFFFFFFF formats
+// the embedded book ("title (embedded) 45%"). Used by the JS library port.
+void ReaderFormatLibraryLine(uint32_t index, char *out, uint32_t out_size);
+
 // Routes a gesture to the reader when a book is open. Returns true when
 // the gesture was consumed (a page turn happened or was attempted).
 bool ReaderHandleGesture(const s3paper::GestureEvent &gesture);

@@ -578,6 +578,26 @@ void FillReaderSnapshot(ReaderSnapshot *out) {
     out->checkpoints = s_state.paginator->checkpoint_count();
 }
 
+void ReaderFormatLibraryLine(uint32_t index, char *out, uint32_t out_size) {
+    if (index == 0xFFFFFFFF) {
+        const s3paper::ContentHash embedded_hash =
+            s_state.embedded_source.Hash().value;
+        snprintf(out, out_size, "%s (embedded) %u%%", kEmbeddedBookTitle,
+                 static_cast<unsigned>(PersistedPercent(
+                     embedded_hash, sizeof(kEmbeddedBookText) - 1)));
+        return;
+    }
+    const BookEntry *book = LibraryGet(index);
+    if (book == nullptr) {
+        snprintf(out, out_size, "(no book %u)", static_cast<unsigned>(index));
+        return;
+    }
+    snprintf(out, out_size, "%s  %uKB %u%%", book->title,
+             static_cast<unsigned>(book->size / 1024),
+             static_cast<unsigned>(
+                 PersistedPercent(book->content_hash, book->size)));
+}
+
 bool ReaderHandleGesture(const s3paper::GestureEvent &gesture) {
     if (s_state.screen == Screen::Library) {
         if (gesture.kind != s3paper::GestureKind::Tap) {

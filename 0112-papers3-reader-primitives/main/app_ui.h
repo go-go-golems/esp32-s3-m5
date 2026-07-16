@@ -46,6 +46,14 @@ UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
 // region (interval updates until another screen presents).
 StatusCode UiRunFixture(uint32_t which);
 
+// Builds a fixture's widget tree without presenting (trace-equivalence
+// harness renders it through the fake backend). Resets the arena.
+StatusCode UiBuildFixtureSlots(uint32_t which, s3paper::PageSlots *out);
+
+// Trace mode: while enabled, UiPresentPage renders through the FAKE
+// backend (normalized trace, no panel) instead of M5. Owner-task-only.
+void UiSetTracePresent(bool enabled);
+
 // Owner-loop hook: performs due interval-region updates (diff -> clipped
 // re-render -> TextRegion present). Cheap when nothing is active.
 void UiRegionTick(int64_t now_us);

@@ -664,8 +664,15 @@ int CmdJs(int argc, char **argv) {
         } else if (strcmp(argv[1], "app") == 0 ||
                    strcmp(argv[1], "taps") == 0) {
             arg = 2;
+        } else if (strcmp(argv[1], "library") == 0) {
+            arg = 3;
+        } else if (strcmp(argv[1], "fault") == 0) {
+            arg = 4;
+        } else if (strcmp(argv[1], "trace") == 0) {
+            arg = 5;
         } else {
-            printf("error: InvalidArgument: usage js [status|hello|taps]\n");
+            printf("error: InvalidArgument: usage js "
+                   "[status|hello|taps|library|fault|trace]\n");
             return 1;
         }
     }
@@ -852,8 +859,8 @@ void ConsoleStart() {
     RegisterCommand("sd", "sd [mount|unmount|demo|status] - microSD card",
                     &CmdSd);
     RegisterCommand("js",
-                    "js [status|hello|taps] - MicroQuickJS s3paper apps "
-                    "(taps: tap the counter line on screen)",
+                    "js [status|hello|taps|library|fault|trace] - MicroQuickJS "
+                    "s3paper apps (trace: native-vs-JS draw-op equivalence)",
                     &CmdJs);
     RegisterCommand("sleep",
                     "sleep [status|deep N|timer N|off|auto N] - power "
