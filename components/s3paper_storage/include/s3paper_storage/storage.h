@@ -147,11 +147,37 @@ bool BookmarkGet(s3paper::ContentHash content, uint32_t index,
                  s3paper::TextLocator *out);
 void BookmarksPrint(s3paper::ContentHash content);
 
+// ---- WiFi credentials (ESP-53) ----
+// S3WF file: 8 fixed records, same persistence family (magic + version +
+// count + CRC, tmp/fsync/bak/rename, coalesced flush). Passwords are
+// PLAINTEXT on the card by design — the threat model of a hobby
+// e-reader's SD card; do not add crypto here. last_ok is an ordinal
+// (monotonic per-file counter, not a clock) so joinSaved can order
+// records by most-recently-successful across reboots.
+struct WifiCredential {
+    char ssid[33];
+    char pass[65];
+    uint32_t last_ok;
+};
+
+constexpr uint32_t kMaxWifiCreds = 8;
+
+StatusCode WifiCredsLoad();
+// Upsert by SSID; evicts the stalest record when full.
+StatusCode WifiCredsSet(const char *ssid, const char *pass);
+StatusCode WifiCredsForget(const char *ssid);
+uint32_t WifiCredsCount();
+// Records ranked by last_ok descending (rank 0 = most recent success).
+const WifiCredential *WifiCredsGetRanked(uint32_t rank);
+// Marks a successful join (bumps the record's ordinal; coalesced flush).
+void WifiCredsMarkOk(const char *ssid);
+
 // ---- Fault injection (debug/testing only) ----
 // Damages a state file on the card so loader recovery can be exercised
 // from the console. kind: 0=positions 1=bookmarks 2=catalog 3=settings
-// 4=lastbook. mode: 0=flip a byte mid-file (CRC mismatch), 1=truncate to
-// half (short read), 2=delete the primary (forces .bak fallback).
+// 4=lastbook 5=wifi-credentials. mode: 0=flip a byte mid-file (CRC
+// mismatch), 1=truncate to half (short read), 2=delete the primary
+// (forces .bak fallback).
 StatusCode DebugCorruptStateFile(uint32_t kind, uint32_t mode);
 // Re-runs every loader against the current card state and logs results.
 void DebugReloadState();

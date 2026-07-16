@@ -150,11 +150,30 @@ struct SettingsFile {
 
 SettingsFile s_settings{};
 
+// WiFi credentials (ESP-53): same persistence family. Plaintext by
+// documented design (see header).
+constexpr uint32_t kWifiCredsMagic = 0x53335746;  // "S3WF"
+constexpr uint32_t kWifiCredsVersion = 1;
+constexpr char kWifiCredsPath[] = "/sdcard/.s3paper/wifi.bin";
+constexpr char kWifiCredsTmp[] = "/sdcard/.s3paper/wifi.tmp";
+constexpr char kWifiCredsBak[] = "/sdcard/.s3paper/wifi.bak";
+
+struct WifiCredsFile {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t count;
+    WifiCredential records[kMaxWifiCreds];
+    uint32_t crc;
+};
+
+WifiCredsFile s_wifi_creds{};
+
 // Coalesced-write state: dirty flags plus the age of the oldest unflushed
 // change (design task sda9: don't hit the card on every page turn).
 bool s_positions_dirty = false;
 bool s_bookmarks_dirty = false;
 bool s_settings_dirty = false;
+bool s_wifi_creds_dirty = false;
 int64_t s_dirty_since_us = 0;
 constexpr int64_t kFlushAfterUs = 2'000'000;
 
@@ -385,6 +404,11 @@ StatusCode StorageMount() {
     if (settings != StatusCode::Ok) {
         ESP_LOGW(kTag, "settings not loaded: %s (starting fresh)",
                  StatusCodeName(settings));
+    }
+    const StatusCode wifi = WifiCredsLoad();
+    if (wifi != StatusCode::Ok) {
+        ESP_LOGW(kTag, "wifi creds not loaded: %s (starting fresh)",
+                 StatusCodeName(wifi));
     }
     return StatusCode::Ok;
 }
@@ -712,7 +736,8 @@ int32_t SettingsGet(const char *key, int32_t fallback) {
 }
 
 void SettingsSet(const char *key, int32_t value) {
-    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty) {
+    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty &&
+        !s_wifi_creds_dirty) {
         s_dirty_since_us = esp_timer_get_time();
     }
     s_settings_dirty = true;
@@ -732,8 +757,159 @@ void SettingsSet(const char *key, int32_t value) {
     slot->value = value;
 }
 
+// ---- WiFi credentials (ESP-53, S3WF) ----
+
+static uint32_t WifiCredsCrc(const WifiCredsFile &f) {
+    return s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&f),
+                          offsetof(WifiCredsFile, crc));
+}
+
+StatusCode WifiCredsLoad() {
+    std::memset(&s_wifi_creds, 0, sizeof(s_wifi_creds));
+    FILE *f = fopen(kWifiCredsPath, "rb");
+    if (f == nullptr) {
+        f = fopen(kWifiCredsBak, "rb");
+        if (f == nullptr) {
+            return StatusCode::InvalidArgument;
+        }
+        ESP_LOGW(kTag, "primary wifi creds missing; using backup");
+    }
+    WifiCredsFile loaded;
+    const size_t n = fread(&loaded, 1, sizeof(loaded), f);
+    fclose(f);
+    if (n != sizeof(loaded) || loaded.magic != kWifiCredsMagic ||
+        loaded.version != kWifiCredsVersion ||
+        loaded.count > kMaxWifiCreds ||
+        loaded.crc != WifiCredsCrc(loaded)) {
+        ESP_LOGW(kTag, "wifi creds file invalid; ignoring");
+        return StatusCode::CorruptData;
+    }
+    s_wifi_creds = loaded;
+    ESP_LOGI(kTag, "loaded %u wifi credential(s)",
+             static_cast<unsigned>(s_wifi_creds.count));
+    return StatusCode::Ok;
+}
+
+StatusCode WifiCredsSave() {
+    if (!StorageMounted()) {
+        return StatusCode::Busy;
+    }
+    s_wifi_creds.magic = kWifiCredsMagic;
+    s_wifi_creds.version = kWifiCredsVersion;
+    s_wifi_creds.crc = WifiCredsCrc(s_wifi_creds);
+    if (!AtomicWrite(kWifiCredsTmp, kWifiCredsBak, kWifiCredsPath,
+                     &s_wifi_creds, sizeof(s_wifi_creds))) {
+        return StatusCode::CorruptData;
+    }
+    s_wifi_creds_dirty = false;
+    return StatusCode::Ok;
+}
+
+static void WifiCredsMarkDirty() {
+    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty &&
+        !s_wifi_creds_dirty) {
+        s_dirty_since_us = esp_timer_get_time();
+    }
+    s_wifi_creds_dirty = true;
+}
+
+static uint32_t WifiCredsNextOrdinal() {
+    uint32_t max = 0;
+    for (uint32_t i = 0; i < s_wifi_creds.count; ++i) {
+        if (s_wifi_creds.records[i].last_ok > max) {
+            max = s_wifi_creds.records[i].last_ok;
+        }
+    }
+    return max + 1;
+}
+
+StatusCode WifiCredsSet(const char *ssid, const char *pass) {
+    if (ssid == nullptr || pass == nullptr || ssid[0] == '\0' ||
+        strlen(ssid) >= sizeof(WifiCredential{}.ssid) ||
+        strlen(pass) >= sizeof(WifiCredential{}.pass)) {
+        return StatusCode::InvalidArgument;
+    }
+    WifiCredential *slot = nullptr;
+    for (uint32_t i = 0; i < s_wifi_creds.count; ++i) {
+        if (strcmp(s_wifi_creds.records[i].ssid, ssid) == 0) {
+            slot = &s_wifi_creds.records[i];
+            break;
+        }
+    }
+    if (slot == nullptr) {
+        if (s_wifi_creds.count < kMaxWifiCreds) {
+            slot = &s_wifi_creds.records[s_wifi_creds.count++];
+        } else {
+            // Explicit capacity policy: evict the stalest record.
+            slot = &s_wifi_creds.records[0];
+            for (uint32_t i = 1; i < kMaxWifiCreds; ++i) {
+                if (s_wifi_creds.records[i].last_ok < slot->last_ok) {
+                    slot = &s_wifi_creds.records[i];
+                }
+            }
+        }
+    }
+    std::memset(slot, 0, sizeof(*slot));
+    snprintf(slot->ssid, sizeof(slot->ssid), "%s", ssid);
+    snprintf(slot->pass, sizeof(slot->pass), "%s", pass);
+    slot->last_ok = 0;  // unproven until a join succeeds
+    WifiCredsMarkDirty();
+    return StatusCode::Ok;
+}
+
+StatusCode WifiCredsForget(const char *ssid) {
+    for (uint32_t i = 0; i < s_wifi_creds.count; ++i) {
+        if (strcmp(s_wifi_creds.records[i].ssid, ssid) == 0) {
+            s_wifi_creds.records[i] =
+                s_wifi_creds.records[s_wifi_creds.count - 1];
+            std::memset(&s_wifi_creds.records[s_wifi_creds.count - 1], 0,
+                        sizeof(WifiCredential));
+            s_wifi_creds.count--;
+            WifiCredsMarkDirty();
+            return StatusCode::Ok;
+        }
+    }
+    return StatusCode::InvalidArgument;
+}
+
+uint32_t WifiCredsCount() { return s_wifi_creds.count; }
+
+const WifiCredential *WifiCredsGetRanked(uint32_t rank) {
+    if (rank >= s_wifi_creds.count) {
+        return nullptr;
+    }
+    // Order: last_ok descending, insertion index breaking ties. Sorting
+    // <=8 indices per call beats maintaining sorted state.
+    uint8_t order[kMaxWifiCreds];
+    for (uint32_t i = 0; i < s_wifi_creds.count; ++i) {
+        order[i] = static_cast<uint8_t>(i);
+    }
+    for (uint32_t a = 0; a < s_wifi_creds.count; ++a) {
+        for (uint32_t b = a + 1; b < s_wifi_creds.count; ++b) {
+            if (s_wifi_creds.records[order[b]].last_ok >
+                s_wifi_creds.records[order[a]].last_ok) {
+                const uint8_t t = order[a];
+                order[a] = order[b];
+                order[b] = t;
+            }
+        }
+    }
+    return &s_wifi_creds.records[order[rank]];
+}
+
+void WifiCredsMarkOk(const char *ssid) {
+    for (uint32_t i = 0; i < s_wifi_creds.count; ++i) {
+        if (strcmp(s_wifi_creds.records[i].ssid, ssid) == 0) {
+            s_wifi_creds.records[i].last_ok = WifiCredsNextOrdinal();
+            WifiCredsMarkDirty();
+            return;
+        }
+    }
+}
+
 void StorageFlushIfDue(int64_t now_us) {
-    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty) {
+    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty &&
+        !s_wifi_creds_dirty) {
         return;
     }
     if (now_us - s_dirty_since_us < kFlushAfterUs) {
@@ -751,6 +927,9 @@ void StorageFlushNow() {
     }
     if (s_settings_dirty) {
         (void)SettingsSave();
+    }
+    if (s_wifi_creds_dirty) {
+        (void)WifiCredsSave();
     }
 }
 
@@ -954,7 +1133,8 @@ StatusCode DebugCorruptStateFile(uint32_t kind, uint32_t mode) {
     }
     static const char *kPaths[] = {kPositionsPath, kBookmarksPath,
                                    kCatalogPath, kSettingsPath,
-                                   "/sdcard/.s3paper/lastbook.bin"};
+                                   "/sdcard/.s3paper/lastbook.bin",
+                                   kWifiCredsPath};
     if (kind >= sizeof(kPaths) / sizeof(kPaths[0]) || mode > 2) {
         return StatusCode::InvalidArgument;
     }
@@ -998,14 +1178,15 @@ void DebugReloadState() {
     const StatusCode marks = BookmarksLoad();
     const StatusCode catalog = CatalogLoad();
     const StatusCode settings = SettingsLoad();
+    const StatusCode wifi = WifiCredsLoad();
     char last[96];
     const bool last_ok = LastBookGet(last, sizeof(last));
     ESP_LOGI(kTag,
              "reload: positions=%s bookmarks=%s catalog=%s settings=%s "
-             "lastbook=%s",
+             "wifi=%s lastbook=%s",
              StatusCodeName(pos), StatusCodeName(marks),
              StatusCodeName(catalog), StatusCodeName(settings),
-             last_ok ? "Ok" : "none");
+             StatusCodeName(wifi), last_ok ? "Ok" : "none");
 }
 
 }  // namespace s3paper_storage

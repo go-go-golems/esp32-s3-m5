@@ -6,6 +6,7 @@
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "nvs_flash.h"
 
 #include "app_console.h"
 #include "app_owner.h"
@@ -37,6 +38,15 @@ void LogBootDiagnostics() {
 
 extern "C" void app_main(void) {
     LogBootDiagnostics();
+    // esp_wifi requires NVS (PHY calibration data); init before anything
+    // can lazily bring the radio up (ESP-53).
+    esp_err_t nvs = nvs_flash_init();
+    if (nvs == ESP_ERR_NVS_NO_FREE_PAGES ||
+        nvs == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        nvs = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(nvs);
     pulp::OwnerStart();
     pulp::ConsoleStart();
     ESP_LOGI(kTag, "pulp-os ready: owner task + console proxy active");

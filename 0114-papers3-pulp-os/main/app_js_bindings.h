@@ -124,6 +124,23 @@ PULP_JS_FN(js_files_is_dir);
 PULP_JS_FN(js_files_line);
 PULP_JS_FN(js_files_line_count);
 
+PULP_JS_FN(js_wifi_status);
+PULP_JS_FN(js_wifi_ip);
+PULP_JS_FN(js_wifi_ssid_current);
+PULP_JS_FN(js_wifi_rssi_current);
+PULP_JS_FN(js_wifi_scan);
+PULP_JS_FN(js_wifi_count);
+PULP_JS_FN(js_wifi_ssid);
+PULP_JS_FN(js_wifi_rssi);
+PULP_JS_FN(js_wifi_secure);
+PULP_JS_FN(js_wifi_join);
+PULP_JS_FN(js_wifi_join_saved);
+PULP_JS_FN(js_wifi_save);
+PULP_JS_FN(js_wifi_forget);
+PULP_JS_FN(js_wifi_saved_count);
+PULP_JS_FN(js_wifi_saved_ssid);
+PULP_JS_FN(js_wifi_off);
+
 #ifdef __cplusplus
 }
 #endif

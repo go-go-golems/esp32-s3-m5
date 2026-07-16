@@ -84,6 +84,9 @@ enum class ConsoleOp : uint8_t {
     Js,      // JS runtime ops (Phase 5+)
     Buzz,    // arg: 0 = status, 1 = beep, 2 = stop,
              //      3 = tone (arg2 = freq<<16 | ms), 4 = demo melody
+    Net,     // arg: 0 = status, 1 = scan, 2 = join (str_a/str_b),
+             //      3 = join-saved, 4 = save (str_a/str_b),
+             //      5 = forget (str_a), 6 = off, 7 = saved-list (printed)
 };
 
 enum class PointerPhase : uint8_t {
@@ -97,6 +100,10 @@ struct ConsolePayload {
     ConsoleOp op;
     uint32_t arg;
     uint32_t arg2;
+    // Bounded string arguments (ESP-53: net join/save/forget). POD rule
+    // kept: fixed arrays copied by value with the event.
+    char str_a[33];
+    char str_b[65];
 };
 
 struct PointerPayload {
@@ -212,6 +219,15 @@ struct SdSnapshot {
     uint32_t catalog_writes;
 };
 
+struct NetSnapshot {
+    uint8_t state;  // 0 off, 1 idle, 2 scanning, 3 joining, 4 up
+    char ip[16];
+    char ssid[33];
+    int32_t rssi;
+    uint32_t scan_count;
+    uint32_t saved_count;
+};
+
 struct BuzzSnapshot {
     uint8_t initialized;
     uint8_t playing;  // 1 = tone or melody currently sounding
@@ -244,6 +260,7 @@ struct AppReply {
         SdSnapshot sd;
         JsSnapshot js;
         BuzzSnapshot buzz;
+        NetSnapshot net;
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

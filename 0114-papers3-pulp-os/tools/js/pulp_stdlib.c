@@ -118,5 +118,29 @@ static const JSPropDef js_files[] = {
 
 static const JSClassDef js_files_obj = JS_OBJECT_DEF("Files", js_files);
 
+/* wifi singleton (ESP-53): station verbs with one completion callback,
+   scan mailbox + saved-credential accessors. Radio off at boot; lazy. */
+static const JSPropDef js_wifi[] = {
+    JS_CFUNC_DEF("status", 0, js_wifi_status),
+    JS_CFUNC_DEF("ip", 0, js_wifi_ip),
+    JS_CFUNC_DEF("ssidCurrent", 0, js_wifi_ssid_current),
+    JS_CFUNC_DEF("rssiCurrent", 0, js_wifi_rssi_current),
+    JS_CFUNC_DEF("scan", 1, js_wifi_scan),
+    JS_CFUNC_DEF("count", 0, js_wifi_count),
+    JS_CFUNC_DEF("ssid", 1, js_wifi_ssid),
+    JS_CFUNC_DEF("rssi", 1, js_wifi_rssi),
+    JS_CFUNC_DEF("secure", 1, js_wifi_secure),
+    JS_CFUNC_DEF("join", 3, js_wifi_join),
+    JS_CFUNC_DEF("joinSaved", 1, js_wifi_join_saved),
+    JS_CFUNC_DEF("save", 2, js_wifi_save),
+    JS_CFUNC_DEF("forget", 1, js_wifi_forget),
+    JS_CFUNC_DEF("savedCount", 0, js_wifi_saved_count),
+    JS_CFUNC_DEF("savedSsid", 1, js_wifi_saved_ssid),
+    JS_CFUNC_DEF("off", 0, js_wifi_off),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_wifi_obj = JS_OBJECT_DEF("Wifi", js_wifi);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

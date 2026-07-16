@@ -373,6 +373,66 @@ int CmdBuzz(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdNet(int argc, char **argv) {
+    AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
+                               EventSource::Console, true);
+    event.payload.console.op = ConsoleOp::Net;
+    event.payload.console.arg = 0;
+    ConsolePayload &c = event.payload.console;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "scan") == 0) {
+            c.arg = 1;
+        } else if (strcmp(argv[1], "join") == 0 && argc >= 3) {
+            c.arg = 2;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+            snprintf(c.str_b, sizeof(c.str_b), "%s",
+                     argc >= 4 ? argv[3] : "");
+        } else if (strcmp(argv[1], "joinsaved") == 0) {
+            c.arg = 3;
+        } else if (strcmp(argv[1], "save") == 0 && argc >= 4) {
+            c.arg = 4;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+            snprintf(c.str_b, sizeof(c.str_b), "%s", argv[3]);
+        } else if (strcmp(argv[1], "forget") == 0 && argc >= 3) {
+            c.arg = 5;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+        } else if (strcmp(argv[1], "off") == 0) {
+            c.arg = 6;
+        } else if (strcmp(argv[1], "saved") == 0) {
+            c.arg = 7;
+        } else if (strcmp(argv[1], "results") == 0) {
+            c.arg = 8;
+        } else {
+            printf("error: usage net [status|scan|results|join SSID "
+                   "[PASS]|joinsaved|save SSID PASS|forget SSID|saved|"
+                   "off]\n");
+            return 1;
+        }
+    }
+    const StatusCode posted = PostEvent(event);
+    if (posted != StatusCode::Ok) {
+        printf("error: enqueue failed: %s\n", StatusCodeName(posted));
+        return 1;
+    }
+    AppReply reply;
+    const StatusCode status =
+        AwaitReply(s_reply_queue, event.request_id, 5000, &reply);
+    if (status != StatusCode::Ok) {
+        printf("net op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    const NetSnapshot &n = reply.payload.net;
+    static const char *kStates[] = {"off", "idle", "scanning", "joining",
+                                    "up"};
+    printf("net state=%s ip=%s ssid=\"%s\" rssi=%d scan=%u saved=%u "
+           "result=%s\n",
+           n.state <= 4 ? kStates[n.state] : "?", n.ip, n.ssid,
+           static_cast<int>(n.rssi), static_cast<unsigned>(n.scan_count),
+           static_cast<unsigned>(n.saved_count),
+           StatusCodeName(reply.status));
+    return reply.status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -431,6 +491,10 @@ void ConsoleStart() {
                     "sleep [status|deep N|rtc-off N|off|auto N] - power",
                     &CmdSleep);
     RegisterCommand("home", "Present the native home page", &CmdHome);
+    RegisterCommand("net",
+                    "net [status|scan|join SSID [PASS]|joinsaved|save "
+                    "SSID PASS|forget SSID|saved|off] - wifi station",
+                    &CmdNet);
     RegisterCommand("buzz",
                     "buzz [status|beep|stop|tone F MS|melody] - GPIO21 "
                     "buzzer",

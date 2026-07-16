@@ -14,6 +14,7 @@
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
+#include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
 
@@ -277,6 +278,54 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillBuzzSnapshot(&reply.payload.buzz);
             break;
         }
+        case ConsoleOp::Net: {
+            const ConsolePayload &c = event.payload.console;
+            switch (c.arg) {
+                case 1:
+                    reply.status = WifiScan();
+                    break;
+                case 2:
+                    reply.status = WifiJoin(c.str_a, c.str_b);
+                    break;
+                case 3:
+                    reply.status = WifiJoinSaved();
+                    break;
+                case 4:
+                    reply.status =
+                        s3paper_storage::WifiCredsSet(c.str_a, c.str_b);
+                    break;
+                case 5:
+                    reply.status =
+                        s3paper_storage::WifiCredsForget(c.str_a);
+                    break;
+                case 6:
+                    reply.status = WifiOff();
+                    break;
+                case 7: {
+                    const uint32_t n = s3paper_storage::WifiCredsCount();
+                    for (uint32_t i = 0; i < n; ++i) {
+                        const s3paper_storage::WifiCredential *cred =
+                            s3paper_storage::WifiCredsGetRanked(i);
+                        printf("net saved[%u]: %s last_ok=%u\n",
+                               static_cast<unsigned>(i), cred->ssid,
+                               static_cast<unsigned>(cred->last_ok));
+                    }
+                    break;
+                }
+                case 8:
+                    for (uint32_t i = 0; i < WifiScanCount(); ++i) {
+                        printf("net ap[%u]: \"%s\" rssi=%d secure=%d\n",
+                               static_cast<unsigned>(i), WifiScanSsid(i),
+                               static_cast<int>(WifiScanRssi(i)),
+                               static_cast<int>(WifiScanSecure(i)));
+                    }
+                    break;
+                default:
+                    break;
+            }
+            FillNetSnapshot(&reply.payload.net);
+            break;
+        }
     }
     SendReply(event, reply);
 }
@@ -316,12 +365,18 @@ void HandleEvent(const AppEvent &event) {
                 InputHandleTick();
             }
             break;
-        case AppEventKind::ModuleDone:
+        case AppEventKind::ModuleDone: {
+            int32_t value = event.payload.module_done.value;
+            int32_t err = event.payload.module_done.err;
+            if (event.payload.module_done.module == ModuleId::Wifi &&
+                !WifiOwnerOnModuleDone(event.payload.module_done.kind,
+                                       &value, &err)) {
+                break;  // consumed by the joinSaved sequencer
+            }
             JsModuleDone(event.payload.module_done.module,
-                         event.payload.module_done.kind,
-                         event.payload.module_done.value,
-                         event.payload.module_done.err);
+                         event.payload.module_done.kind, value, err);
             break;
+        }
         case AppEventKind::ShutdownRequest:
             s_state.phase = Phase::ShuttingDown;
             s3paper_storage::StorageFlushNow();
@@ -338,6 +393,7 @@ void TickHooks() {
     s3paper_storage::StorageFlushIfDue(now);
     JsTimerTick(now);
     BuzzerTick(now);
+    WifiTick(now);
     PowerAutoTick(now);
 }
 

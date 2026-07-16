@@ -4,6 +4,7 @@ idf_component_register(
         "app_buzzer.cpp"
         "app_files.cpp"
         "app_owner.cpp"
+        "net_wifi.cpp"
         "app_console.cpp"
         "app_input.cpp"
         "app_power.cpp"
@@ -11,6 +12,7 @@ idf_component_register(
         "app_js.cpp"
         "js_buzzer.cpp"
         "js_files.cpp"
+        "js_wifi.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
         "js_services.cpp"
@@ -24,6 +26,10 @@ idf_component_register(
         esp_driver_usb_serial_jtag
         esp_driver_ledc
         esp_timer
+        esp_wifi
+        esp_netif
+        esp_event
+        nvs_flash
         s3paper_core
         s3paper_m5
         s3paper_storage

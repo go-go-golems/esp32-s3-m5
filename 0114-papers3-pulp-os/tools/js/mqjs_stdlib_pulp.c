@@ -422,6 +422,7 @@ static const JSPropDef js_global_object[] = {
     /* ESP-53 connectivity + peripherals. */
     JS_PROP_CLASS_DEF("buzzer", &js_buzzer_obj),
     JS_PROP_CLASS_DEF("files", &js_files_obj),
+    JS_PROP_CLASS_DEF("wifi", &js_wifi_obj),
 #endif
     JS_PROP_END,
 };
