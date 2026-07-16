@@ -31,6 +31,7 @@ enum class WidgetKind : uint8_t {
     List,
     Book,
     Region,
+    Canvas,  // freehand command list (ESP-52); content in the arena store
 };
 
 const char *WidgetKindName(WidgetKind kind);
@@ -83,6 +84,29 @@ struct BookProps {
     uint32_t book_ref;  // app-defined content identity; layout only reserves
 };
 
+// Canvas: node side holds only the store slot; commands live in the
+// arena's CanvasCmd slabs (a POD node cannot hold a variable list).
+struct CanvasProps {
+    uint16_t store;  // index into WidgetArena's canvas slabs
+};
+
+// One freehand drawing command, canvas-relative coordinates (the emitter
+// adds the frame origin at render time). 12 bytes, POD.
+struct CanvasCmd {
+    enum Kind : uint8_t {
+        kFill = 0,   // a,b,c,d = x,y,w,h
+        kBox,        // a,b,c,d = x,y,w,h (outline, thickness)
+        kLine,       // a,b,c,d = x0,y0,x1,y1 (thickness)
+        kDisc,       // a,b,c = cx,cy,r
+        kRing,       // a,b,c = cx,cy,r (thickness)
+    };
+    uint8_t kind;
+    Gray8 gray;
+    uint8_t thickness;
+    uint8_t _pad;
+    int16_t a, b, c, d;
+};
+
 struct RegionProps {
     uint32_t region_id;
     uint32_t interval_ms;  // 0 = event-only
@@ -121,6 +145,7 @@ struct WidgetNode {
         ListProps list;
         BookProps book;
         RegionProps region;
+        CanvasProps canvas;
     } props;
 };
 
@@ -155,6 +180,17 @@ class WidgetArena {
     Status SetProgress(WidgetHandle handle, uint16_t permille);
     Status SetListFirstVisible(WidgetHandle handle, uint16_t first_visible);
 
+    // ---- Canvas command store (ESP-52) ----
+    static constexpr uint32_t kCanvasSlots = 8;
+    static constexpr uint32_t kCanvasCmds = 96;  // per slot
+    // Appends one command (CapacityExceeded when the slot is full).
+    Status CanvasAppend(WidgetHandle handle, const CanvasCmd &cmd);
+    // Drops all commands (version bump: the diff damages the frame).
+    Status CanvasClear(WidgetHandle handle);
+    // Render-side access; count 0 for stale/non-canvas handles.
+    const CanvasCmd *CanvasCmds(const WidgetNode &node,
+                                uint32_t *out_count) const;
+
     // ---- Prop configuration (no version bump; call before first render) ----
     // Returns a mutable node for builder-time setup; nullptr when stale.
     WidgetNode *Configure(WidgetHandle handle);
@@ -164,6 +200,11 @@ class WidgetArena {
   private:
     WidgetNode nodes_[kCapacity];
     uint32_t live_count_ = 0;
+    CanvasCmd canvas_cmds_[kCanvasSlots][kCanvasCmds];
+    uint16_t canvas_count_[kCanvasSlots] = {};
+    bool canvas_used_[kCanvasSlots] = {};
+
+    friend Result<WidgetHandle> NewCanvas(WidgetArena &arena);
 
     WidgetNode *GetMutable(WidgetHandle handle);
     void DestroyIndex(uint16_t index);
@@ -184,6 +225,7 @@ Result<WidgetHandle> NewDivider(WidgetArena &arena, int32_t thickness,
 Result<WidgetHandle> NewProgress(WidgetArena &arena, uint16_t permille,
                                  int32_t height, Gray8 gray);
 Result<WidgetHandle> NewList(WidgetArena &arena);
+Result<WidgetHandle> NewCanvas(WidgetArena &arena);
 Result<WidgetHandle> NewBook(WidgetArena &arena, uint32_t book_ref);
 Result<WidgetHandle> NewRegion(WidgetArena &arena, uint32_t region_id,
                                uint32_t interval_ms, bool quiet_while_active);

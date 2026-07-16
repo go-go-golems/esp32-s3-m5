@@ -15,6 +15,7 @@ const char *WidgetKindName(WidgetKind kind) {
         case WidgetKind::List: return "List";
         case WidgetKind::Book: return "Book";
         case WidgetKind::Region: return "Region";
+        case WidgetKind::Canvas: return "Canvas";
     }
     return "?";
 }
@@ -32,6 +33,10 @@ void WidgetArena::Reset() {
         nodes_[i].parent = kNoWidgetIndex;
     }
     live_count_ = 0;
+    for (uint32_t s = 0; s < kCanvasSlots; ++s) {
+        canvas_used_[s] = false;
+        canvas_count_[s] = 0;
+    }
 }
 
 Result<WidgetHandle> WidgetArena::Create(WidgetKind kind) {
@@ -95,6 +100,11 @@ void WidgetArena::DestroyIndex(uint16_t index) {
         DestroyIndex(child);
         child = next;
     }
+    if (n.kind == WidgetKind::Canvas &&
+        n.props.canvas.store < kCanvasSlots) {
+        canvas_used_[n.props.canvas.store] = false;
+        canvas_count_[n.props.canvas.store] = 0;
+    }
     n.in_use = false;
     n.generation = static_cast<uint16_t>(n.generation + 1);
     if (n.generation == 0) {
@@ -111,6 +121,15 @@ Status WidgetArena::Destroy(WidgetHandle handle) {
     WidgetNode *n = GetMutable(handle);
     if (n == nullptr) {
         return ErrStatus(StatusCode::InvalidArgument);
+    }
+    // Unlink from a live parent first. Destroying a still-linked child
+    // used to leave the parent's child index dangling; once the slot was
+    // reused the parent pointed at an unrelated node, and the resulting
+    // shared/looped links made tree walks recurse forever (found by the
+    // ESP-52 canvas fuzz extension, but latent since Phase 9).
+    if (n->parent != kNoWidgetIndex && nodes_[n->parent].in_use) {
+        (void)RemoveChild(
+            WidgetHandle{n->parent, nodes_[n->parent].generation}, handle);
     }
     DestroyIndex(handle.index);
     return OkStatus();
@@ -302,6 +321,73 @@ Result<WidgetHandle> NewBook(WidgetArena &arena, uint32_t book_ref) {
         return h;
     }
     arena.Configure(h.value)->props.book.book_ref = book_ref;
+    return h;
+}
+
+Status WidgetArena::CanvasAppend(WidgetHandle handle,
+                                 const CanvasCmd &cmd) {
+    WidgetNode *n = GetMutable(handle);
+    if (n == nullptr || n->kind != WidgetKind::Canvas) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    const uint16_t slot = n->props.canvas.store;
+    if (slot >= kCanvasSlots || !canvas_used_[slot]) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    if (canvas_count_[slot] >= kCanvasCmds) {
+        return ErrStatus(StatusCode::CapacityExceeded);
+    }
+    canvas_cmds_[slot][canvas_count_[slot]++] = cmd;
+    n->content_version++;
+    return OkStatus();
+}
+
+Status WidgetArena::CanvasClear(WidgetHandle handle) {
+    WidgetNode *n = GetMutable(handle);
+    if (n == nullptr || n->kind != WidgetKind::Canvas) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    const uint16_t slot = n->props.canvas.store;
+    if (slot >= kCanvasSlots || !canvas_used_[slot]) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    if (canvas_count_[slot] != 0) {
+        canvas_count_[slot] = 0;
+        n->content_version++;
+    }
+    return OkStatus();
+}
+
+const CanvasCmd *WidgetArena::CanvasCmds(const WidgetNode &node,
+                                         uint32_t *out_count) const {
+    if (node.kind != WidgetKind::Canvas ||
+        node.props.canvas.store >= kCanvasSlots ||
+        !canvas_used_[node.props.canvas.store]) {
+        *out_count = 0;
+        return nullptr;
+    }
+    *out_count = canvas_count_[node.props.canvas.store];
+    return canvas_cmds_[node.props.canvas.store];
+}
+
+Result<WidgetHandle> NewCanvas(WidgetArena &arena) {
+    uint16_t slot = WidgetArena::kCanvasSlots;
+    for (uint16_t s = 0; s < WidgetArena::kCanvasSlots; ++s) {
+        if (!arena.canvas_used_[s]) {
+            slot = s;
+            break;
+        }
+    }
+    if (slot >= WidgetArena::kCanvasSlots) {
+        return Result<WidgetHandle>::Err(StatusCode::CapacityExceeded);
+    }
+    Result<WidgetHandle> h = arena.Create(WidgetKind::Canvas);
+    if (!h.ok()) {
+        return h;
+    }
+    arena.canvas_used_[slot] = true;
+    arena.canvas_count_[slot] = 0;
+    arena.Configure(h.value)->props.canvas.store = slot;
     return h;
 }
 

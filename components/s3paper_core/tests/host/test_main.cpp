@@ -1333,6 +1333,96 @@ static void TestLineCircleOps() {
     CHECK(std::strstr(fake.trace(), "c=270,480 r=40 t=6") != nullptr);
 }
 
+static void TestCanvasWidget() {
+    WidgetArena arena;
+
+    // Store lifecycle: 8 slots, the 9th allocation fails.
+    WidgetHandle canvases[WidgetArena::kCanvasSlots];
+    for (uint32_t i = 0; i < WidgetArena::kCanvasSlots; ++i) {
+        Result<WidgetHandle> h = NewCanvas(arena);
+        CHECK(h.ok());
+        canvases[i] = h.value;
+    }
+    CHECK(!NewCanvas(arena).ok());
+    // Destroy releases the slot for reuse.
+    CHECK(arena.Destroy(canvases[7]).ok());
+    Result<WidgetHandle> again = NewCanvas(arena);
+    CHECK(again.ok());
+    // Stale handles fail loudly on the canvas mutators too.
+    CanvasCmd line{CanvasCmd::kLine, 0, 1, 0, 0, 0, 50, 50};
+    CHECK(!arena.CanvasAppend(canvases[7], line).ok());
+
+    // Append/version/capacity semantics.
+    arena.Reset();
+    WidgetHandle canvas = NewCanvas(arena).value;
+    const uint32_t v0 = arena.Get(canvas)->content_version;
+    CHECK(arena.CanvasAppend(canvas, line).ok());
+    CHECK(arena.Get(canvas)->content_version == v0 + 1);
+    for (uint32_t i = 1; i < WidgetArena::kCanvasCmds; ++i) {
+        CHECK(arena.CanvasAppend(canvas, line).ok());
+    }
+    CHECK(arena.CanvasAppend(canvas, line).code ==
+          StatusCode::CapacityExceeded);
+    CHECK(arena.CanvasClear(canvas).ok());
+    uint32_t count = 99;
+    CHECK(arena.CanvasCmds(*arena.Get(canvas), &count) != nullptr);
+    CHECK(count == 0);
+    // Clearing an already-empty canvas does not bump the version.
+    const uint32_t v_cleared = arena.Get(canvas)->content_version;
+    CHECK(arena.CanvasClear(canvas).ok());
+    CHECK(arena.Get(canvas)->content_version == v_cleared);
+
+    // Emission: canvas-relative commands land at frame origin + offset,
+    // clipped to the canvas frame.
+    arena.Reset();
+    WidgetHandle col = NewCol(arena).value;
+    canvas = NewCanvas(arena).value;
+    arena.Configure(canvas)->fixed_w = 200;
+    arena.Configure(canvas)->fixed_h = 200;
+    CHECK(arena.AddChild(col, canvas).ok());
+    CanvasCmd disc{CanvasCmd::kDisc, 128, 0, 0, 100, 100, 40, 0};
+    CHECK(arena.CanvasAppend(canvas, disc).ok());
+    CanvasCmd escape{CanvasCmd::kLine, 0, 1, 0, 0, 0, 400, 400};
+    CHECK(arena.CanvasAppend(canvas, escape).ok());
+
+    LayoutEntry entries[8];
+    Result<uint32_t> n =
+        LayoutTree(arena, col, Rect{100, 300, 540, 400}, entries, 8);
+    CHECK(n.ok());
+    DrawOp ops[16];
+    uint8_t arena_buf[512];
+    FrameArena frame_arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 16, &frame_arena, Size{540, 960});
+    fb.Begin();
+    HitRegion hits[1];
+    RegionSpec regions[1];
+    Result<CompileResult> compiled =
+        CompileTree(arena, entries, n.value, fb, hits, 1, regions, 1);
+    CHECK(compiled.ok());
+    CHECK(fb.ops_used() == 2);
+    CHECK(ops[0].kind == DrawOpKind::Circle);
+    CHECK(ops[0].payload.circle.cx == 200);  // frame.x 100 + 100
+    CHECK(ops[0].payload.circle.cy == 400);  // frame.y 300 + 100
+    CHECK(ops[1].kind == DrawOpKind::Line);
+    // The escaping line is clipped to the 200x200 canvas frame.
+    CHECK(ops[1].bounds.x + ops[1].bounds.w <= 300);
+    CHECK(ops[1].bounds.y + ops[1].bounds.h <= 500);
+
+    // Diff: an append damages exactly the canvas frame; silence is free.
+    RenderStateDiff diff;
+    diff.Capture(arena, entries, n.value);
+    Rect damage[4];
+    Result<uint32_t> rects =
+        diff.Diff(arena, entries, n.value, damage, 4);
+    CHECK(rects.ok());
+    CHECK(rects.value == 0);
+    CHECK(arena.CanvasAppend(canvas, disc).ok());
+    rects = diff.Diff(arena, entries, n.value, damage, 4);
+    CHECK(rects.ok());
+    CHECK(rects.value == 1);
+    CHECK(RectEquals(damage[0], Rect{100, 300, 200, 200}));
+}
+
 static void TestWidgetInvertText() {
     // invert: filled chip (background in the node's gray) + inverse ink.
     WidgetArena arena;
@@ -1723,12 +1813,34 @@ static void TestFuzzWidgetOps() {
     uint32_t live_count = 0;
     for (int step = 0; step < 4000; ++step) {
         const uint32_t op = FuzzNext() % 100;
-        if (op < 45 || live_count == 0) {
+        if (op < 40 || live_count == 0) {
             const WidgetKind kind =
                 static_cast<WidgetKind>(FuzzNext() % 9);
             const Result<WidgetHandle> h = arena.Create(kind);
             if (h.ok() && live_count < 64) {
                 live[live_count++] = h.value;
+            }
+        } else if (op < 45) {
+            // Canvas creation goes through NewCanvas (slot allocation) and
+            // random appends/clears; capacity errors are legal, crashes
+            // and slot leaks are not.
+            const Result<WidgetHandle> h = NewCanvas(arena);
+            if (h.ok() && live_count < 64) {
+                live[live_count++] = h.value;
+                CanvasCmd cmd{};
+                cmd.kind = static_cast<uint8_t>(FuzzNext() % 5);
+                cmd.gray = static_cast<Gray8>(FuzzNext() % 256);
+                cmd.thickness = static_cast<uint8_t>(FuzzNext() % 8);
+                cmd.a = static_cast<int16_t>(FuzzNext() % 600);
+                cmd.b = static_cast<int16_t>(FuzzNext() % 600);
+                cmd.c = static_cast<int16_t>(FuzzNext() % 600);
+                cmd.d = static_cast<int16_t>(FuzzNext() % 600);
+                for (uint32_t k = 0; k < FuzzNext() % 20; ++k) {
+                    (void)arena.CanvasAppend(h.value, cmd);
+                }
+                if (FuzzNext() % 4 == 0) {
+                    (void)arena.CanvasClear(h.value);
+                }
             }
         } else if (op < 70 && live_count >= 2) {
             const uint32_t p = FuzzNext() % live_count;
@@ -1842,6 +1954,7 @@ int main() {
     TestWidgetCompile();
     TestWidgetInvertText();
     TestLineCircleOps();
+    TestCanvasWidget();
     TestWidgetDiff();
     TestDependencyTracker();
     TestRegionTable();

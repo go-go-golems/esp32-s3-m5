@@ -101,6 +101,10 @@ Size Measure(const WidgetArena &arena, uint16_t index, bool parent_horizontal,
             return Size{0, n->props.progress.height};
         case WidgetKind::Book:
             return Size{0, 0};
+        case WidgetKind::Canvas:
+            // No intrinsic content size: size a canvas with fixed_w/h or
+            // flex, exactly like Book (an unsized canvas collapses).
+            return Size{0, 0};
         case WidgetKind::Region: {
             if (n->first_child == kNoWidgetIndex) {
                 return Size{0, 0};

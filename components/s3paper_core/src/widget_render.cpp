@@ -34,7 +34,8 @@ void TextPlacement(const WidgetNode &n, const Rect &frame, int32_t *out_x,
     *out_x = x;
 }
 
-Status EmitNode(const WidgetNode &n, const Rect &frame, FrameBuilder &fb) {
+Status EmitNode(const WidgetArena &arena, const WidgetNode &n,
+                const Rect &frame, FrameBuilder &fb) {
     switch (n.kind) {
         case WidgetKind::Text: {
             const uint32_t len =
@@ -82,6 +83,45 @@ Status EmitNode(const WidgetNode &n, const Rect &frame, FrameBuilder &fb) {
             return fb.FillRect(Rect{inner.x, inner.y, fill_w, inner.h},
                                n.props.progress.gray);
         }
+        case WidgetKind::Canvas: {
+            // Commands are canvas-relative; confine them to the frame so
+            // freehand geometry can never escape its widget box. A
+            // disjoint frame/clip pair means nothing to draw.
+            if (!fb.PushClip(frame).ok()) {
+                return OkStatus();
+            }
+            uint32_t count = 0;
+            const CanvasCmd *cmds = arena.CanvasCmds(n, &count);
+            Status st = OkStatus();
+            for (uint32_t i = 0; st.ok() && i < count; ++i) {
+                const CanvasCmd &c = cmds[i];
+                const int32_t x = frame.x + c.a;
+                const int32_t y = frame.y + c.b;
+                switch (c.kind) {
+                    case CanvasCmd::kFill:
+                        st = fb.FillRect(Rect{x, y, c.c, c.d}, c.gray);
+                        break;
+                    case CanvasCmd::kBox:
+                        st = fb.StrokeRect(Rect{x, y, c.c, c.d}, c.gray,
+                                           c.thickness);
+                        break;
+                    case CanvasCmd::kLine:
+                        st = fb.Line(x, y, frame.x + c.c, frame.y + c.d,
+                                     c.gray, c.thickness);
+                        break;
+                    case CanvasCmd::kDisc:
+                        st = fb.Circle(x, y, c.c, c.gray);
+                        break;
+                    case CanvasCmd::kRing:
+                        st = fb.Ring(x, y, c.c, c.gray, c.thickness);
+                        break;
+                    default:
+                        break;
+                }
+            }
+            const Status popped = fb.PopClip();
+            return st.ok() ? popped : st;
+        }
         default:
             return OkStatus();  // containers, spacers, book, region
     }
@@ -122,7 +162,7 @@ Result<CompileResult> CompileTree(const WidgetArena &arena,
         if (!s.ok()) {
             return Result<CompileResult>::Err(s.code);
         }
-        s = EmitNode(*n, e.frame, fb);
+        s = EmitNode(arena, *n, e.frame, fb);
         const Status popped = fb.PopClip();
         if (!s.ok()) {
             return Result<CompileResult>::Err(s.code);
