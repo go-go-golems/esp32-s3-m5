@@ -154,3 +154,47 @@ The two pure/proven components moved out of 0112 into the repo-level `components
 ### Code review instructions
 - `components/s3paper_storage/include/s3paper_storage/storage.h` (API), `src/storage.cpp` diff vs old `app_storage.cpp` (git follows the move), `0112/main/app_storage.{h,cpp}` shim.
 - Validate: `sd fault positions flip` then `sd reload` on hardware; transcripts in this ticket's scripts/output/.
+
+## Step 4: Phase 3 — s3paper_runtime extracted; 0112 fully on shared components
+
+The present pipeline is now the shared `s3paper_runtime` component: frame storage, fake+M5 backends, refresh planner, font registration, the retained WidgetArena/PageRouter, render-state diffing, region table, and both present entry points (`PresentPage` / `PresentPageUpdate`, invariant comments carried over verbatim). 0112's `app_display.{h,cpp}` keeps only its console fixtures (primitive scene, typography page, soak step) plus using-declaration re-exports; `app_ui.{h,cpp}` keeps only the hello/status widget fixtures and the fixture region tick, now expressed AGAINST the component API instead of shared internals.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Phase 3: extract the present pipeline; 0112 must keep all behaviors including diff updates and trace equivalence.
+
+**Inferred user intent:** 0114 renders through the identical hardware-proven pipeline.
+
+**Commit (code):** c0f9eb7 — "ESP-51 Phase 3: extract s3paper_runtime (present pipeline); 0112 keeps fixtures + shims"
+
+### What I did
+- `components/s3paper_runtime/{include/s3paper_runtime/runtime.h, src/runtime.cpp}`: merged app_display core + app_ui core under namespace `s3paper_runtime` with a `RuntimeConfig` (viewport, capacities, planner turn budget, default-font toggle). Fonts register from the s3paper_core embeds inside the component.
+- New API surface the fixture layer needed: `FindRegion(id)` (region-spec lookup) and the existing `PresentCount()` contract replaces the old direct `s_fixture_active=false` coupling — the status fixture now detects "someone else presented" exactly like the JS layer does.
+- 0112 shims: `app_ui.h` inline-wraps Ui* names onto the component; `app_display.h` re-exports the frame hooks; fixtures stay app-side.
+- Device gate (transcripts p3-runtime-smoke-a.log, p3-runtime-blitz2.log): boot restore + page turn OK, `js trace` EQUAL (1083 bytes both), `widget status` region live and ticking `update present: 1 rect(s), damage 460x34 at 40,180` every 2 s, blitz clock exactly one `460x86 at 40,336` rect per second — all logged under the new `runtime:` tag.
+
+### Why
+- P3 of the plan; the two update-mode invariants had to move as code+comments, not folklore.
+
+### What worked
+- Everything after one missing-include fix. The PresentCount-based fixture decoupling worked first try.
+
+### What didn't work
+- First build: `error: 'kFontUi' is not a member of 's3paper'` — new app_ui.cpp lost the transitive `s3paper/text.h` include when app_ui.h stopped including widget headers directly. One-line fix.
+- First validation run used `widget 2` (usage is `widget status`) and the wrong blitz start tap (270,260 = label area; the working recipe from ESP-50 diff-final3 is 270,150). Lesson re-learned: read the old transcript BEFORE tapping, coordinates are typography-dependent.
+
+### What was tricky to build
+- The fixture region tick previously reached into pipeline internals (s_last_slots/s_diff). Re-expressing it as SetText + `PresentPageUpdate(own_slots,...)` is behaviorally equivalent BUT changes the fallback: the old code clip-fell-back to whole-page within a TextRegion present; the new path falls back to a full TextPage present on rect overflow. For a single clock region this path is unreachable; noting it for review.
+
+### What warrants a second pair of eyes
+- `RuntimeInit` uses function-local statics sized by config at FIRST call; a second init with a different config silently keeps the first (documented as idempotent, same as before, but now config exists).
+- app_js.cpp still calls reader::Ui* through the shim — fine, but 0114 will use s3paper_runtime:: directly.
+
+### What should be done in the future
+- Phase 4: 0114 skeleton on all four components.
+
+### Code review instructions
+- Diff `components/s3paper_runtime/src/runtime.cpp` against old `0112/main/{app_display.cpp,app_ui.cpp}` (logic verbatim; only naming/config changed).
+- Validate: `js trace` (EQUAL), `widget status` then watch 2 s ticks, blitz recipe `js pulp; js tap 270 330; js tap 270 150`.

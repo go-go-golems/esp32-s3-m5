@@ -20,11 +20,11 @@
 - [x] [P2.3] Move code, keep the static-scratch catalog buffer and never-format policy; 0112 adapts <!-- t:0e9r -->
 - [x] [P2.4] Device validation: catalog cached scan (hashed=0 on 2nd boot), positions/bookmarks/settings round-trip <!-- t:2qsd -->
 - [x] [P2.5] Fault injection: corrupt/truncate each state file and verify loader recovery plus .bak fallback <!-- t:5hyg -->
-- [ ] Phase 3 - Extract s3paper_runtime (present pipeline) from 0112 app_ui/app_display <!-- t:afv2 -->
-- [ ] [P3.1] Component API: Init (frame storage, backends, fonts), Planner access, PresentPage, PresentPageUpdate, PresentCount, trace mode <!-- t:9xkm -->
-- [ ] [P3.2] Preserve the two update-mode invariants: hits never re-collected under clip; compile always given a hits array <!-- t:kjec -->
-- [ ] [P3.3] Re-point 0112 (reader, fixtures, JS v1) at the component; delete app_ui remnants <!-- t:7bxm -->
-- [ ] [P3.4] Device validation on 0112: page turn full=0, widget status region ticks, js trace EQUAL, blitz update damage 460x86 <!-- t:23s5 -->
+- [x] Phase 3 - Extract s3paper_runtime (present pipeline) from 0112 app_ui/app_display <!-- t:afv2 -->
+- [x] [P3.1] Component API: Init (frame storage, backends, fonts), Planner access, PresentPage, PresentPageUpdate, PresentCount, trace mode <!-- t:9xkm -->
+- [x] [P3.2] Preserve the two update-mode invariants: hits never re-collected under clip; compile always given a hits array <!-- t:kjec -->
+- [x] [P3.3] Re-point 0112 (reader, fixtures, JS v1) at the component; delete app_ui remnants <!-- t:7bxm -->
+- [x] [P3.4] Device validation on 0112: page turn full=0, widget status region ticks, js trace EQUAL, blitz update damage 460x86 <!-- t:23s5 -->
 - [ ] Phase 4 - 0114 skeleton: owner loop, console, input, native hello via s3paper_runtime <!-- t:kdot -->
 - [ ] [P4.1] Project scaffold: 16MB partitions, PSRAM sdkconfig.defaults, USB-Serial-JTAG console, README with serial discipline <!-- t:haee -->
 - [ ] [P4.2] Owner task + bounded event queue + AssertOwner + tick hooks (copy/trim from 0112) <!-- t:i8bs -->
