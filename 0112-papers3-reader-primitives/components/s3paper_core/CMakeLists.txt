@@ -20,4 +20,5 @@ idf_component_register(
         "include"
     EMBED_FILES
         "fonts/PTSerifUkr.ttf"
+        "fonts/LibSansBoldUkr.ttf"
 )

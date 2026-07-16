@@ -24,6 +24,10 @@ StatusCode JsRunApp(uint32_t which);
 // (kind = s3paper::GestureKind). Busy when no JS screen is active.
 StatusCode JsSyntheticGesture(uint32_t kind, int32_t x, int32_t y);
 
+// Owner-loop hook: fires the JS interval timer (s3TimerStart) as dispatch
+// kind 100 while the JS screen is active. Cheap when stopped.
+void JsTimerTick(int64_t now_us);
+
 // True while the JS app's page is the one on the panel (no other screen
 // presented since). Gestures then go to JS instead of the reader.
 bool JsScreenActive();

@@ -134,6 +134,10 @@ s3paper::Status BuildFixture(s3paper::FrameBuilder &fb) {
 extern "C" const uint8_t _binary_PTSerifUkr_ttf_start[];
 extern "C" const uint8_t _binary_PTSerifUkr_ttf_end[];
 
+// Liberation Sans Bold subset: the PULP OS display faces (Swiss chrome).
+extern "C" const uint8_t _binary_LibSansBoldUkr_ttf_start[];
+extern "C" const uint8_t _binary_LibSansBoldUkr_ttf_end[];
+
 void DisplayServiceInit() {
     if (s_builder != nullptr) {
         return;
@@ -144,6 +148,18 @@ void DisplayServiceInit() {
         s3paper::kFontUi, _binary_PTSerifUkr_ttf_start, font_size, 22);
     const s3paper::Status body_font = s3paper::RegisterTtfFont(
         s3paper::kFontBody, _binary_PTSerifUkr_ttf_start, font_size, 34);
+    const uint32_t sans_size = static_cast<uint32_t>(
+        _binary_LibSansBoldUkr_ttf_end - _binary_LibSansBoldUkr_ttf_start);
+    const s3paper::Status display_font = s3paper::RegisterTtfFont(
+        s3paper::kFontDisplay, _binary_LibSansBoldUkr_ttf_start, sans_size,
+        44);
+    const s3paper::Status xl_font = s3paper::RegisterTtfFont(
+        s3paper::kFontXL, _binary_LibSansBoldUkr_ttf_start, sans_size, 84);
+    if (!display_font.ok() || !xl_font.ok()) {
+        ESP_LOGE(kTag, "display font registration failed (%s/%s)",
+                 s3paper::StatusCodeName(display_font.code),
+                 s3paper::StatusCodeName(xl_font.code));
+    }
     if (!ui_font.ok() || !body_font.ok()) {
         ESP_LOGE(kTag, "TTF font registration failed (%s/%s); GFX fallback",
                  s3paper::StatusCodeName(ui_font.code),

@@ -676,8 +676,13 @@ int CmdJs(int argc, char **argv) {
             arg = 7;  // synthetic tap on the right half
         } else if (strcmp(argv[1], "prev") == 0) {
             arg = 8;  // synthetic swipe right
-        } else if (strcmp(argv[1], "bc") == 0) {
-            arg = 9;  // embedded host-compiled bytecode app
+        } else if (strcmp(argv[1], "bc") == 0 ||
+                   strcmp(argv[1], "pulp") == 0) {
+            arg = 9;  // PULP OS: embedded host-compiled bytecode image
+        } else if (strcmp(argv[1], "tap") == 0 && argc >= 4) {
+            arg = 11;  // synthetic tap at x,y (validation)
+        } else if (strcmp(argv[1], "swipe") == 0 && argc >= 3) {
+            arg = 12;  // synthetic swipe kind 2..5 (validation)
         } else {
             printf("error: InvalidArgument: usage js "
                    "[status|hello|taps|library|fault|trace|reader|"
@@ -685,9 +690,17 @@ int CmdJs(int argc, char **argv) {
             return 1;
         }
     }
+    uint32_t arg2 = 0;
+    if (arg == 11) {
+        const uint32_t x = static_cast<uint32_t>(strtoul(argv[2], nullptr, 10));
+        const uint32_t y = static_cast<uint32_t>(strtoul(argv[3], nullptr, 10));
+        arg2 = (x << 16) | (y & 0xFFFF);
+    } else if (arg == 12) {
+        arg2 = static_cast<uint32_t>(strtoul(argv[2], nullptr, 10));
+    }
     AppReply reply;
     const StatusCode status =
-        RunConsoleOpWithArgs(ConsoleOp::Js, arg, 0, &reply, 15000);
+        RunConsoleOpWithArgs(ConsoleOp::Js, arg, arg2, &reply, 15000);
     const JsSnapshot &j = reply.payload.js;
     printf("js init=%u screen_active=%u arena=%u evals=%u exceptions=%u "
            "dispatches=%u last_error=\"%s\"\n",

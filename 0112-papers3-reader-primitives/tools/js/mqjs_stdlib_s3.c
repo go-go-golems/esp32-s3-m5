@@ -413,6 +413,14 @@ static const JSPropDef js_global_object[] = {
     JS_CFUNC_DEF("s3BookNext", 0, js_s3_book_next),
     JS_CFUNC_DEF("s3BookPrev", 0, js_s3_book_prev),
     JS_CFUNC_DEF("s3BookProgress", 0, js_s3_book_progress),
+    /* PULP OS services: interval ticks (dispatched as kind 100 while the
+       JS screen is active), a persisted int32 key-value store, and the
+       fixed-path postcard journal. */
+    JS_CFUNC_DEF("s3TimerStart", 1, js_s3_timer_start),
+    JS_CFUNC_DEF("s3TimerStop", 0, js_s3_timer_stop),
+    JS_CFUNC_DEF("s3StoreGet", 2, js_s3_store_get),
+    JS_CFUNC_DEF("s3StoreSet", 2, js_s3_store_set),
+    JS_CFUNC_DEF("s3AppendPostcard", 1, js_s3_append_postcard),
 #endif
     JS_PROP_END,
 };

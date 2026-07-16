@@ -253,6 +253,16 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 FillJsSnapshot(&reply.payload.js);
+            } else if (arg == 11) {
+                const uint32_t xy = event.payload.console.arg2;
+                reply.status = JsSyntheticGesture(
+                    0, static_cast<int32_t>(xy >> 16),
+                    static_cast<int32_t>(xy & 0xFFFF));
+                FillJsSnapshot(&reply.payload.js);
+            } else if (arg == 12) {
+                reply.status = JsSyntheticGesture(
+                    event.payload.console.arg2, 270, 480);
+                FillJsSnapshot(&reply.payload.js);
             } else if (arg == 7 || arg == 8) {
                 // Synthetic gestures for console-driven JS reader checks:
                 // 7 = tap right half (next), 8 = swipe right (prev).
@@ -596,6 +606,7 @@ void OwnerTask(void *) {
             pdTRUE) {
             StorageFlushIfDue(esp_timer_get_time());
             UiRegionTick(esp_timer_get_time());
+            JsTimerTick(esp_timer_get_time());
             PowerAutoTick(esp_timer_get_time());
             continue;
         }
@@ -608,6 +619,7 @@ void OwnerTask(void *) {
         MaybeQueueSoakStep();
         StorageFlushIfDue(esp_timer_get_time());
         UiRegionTick(esp_timer_get_time());
+        JsTimerTick(esp_timer_get_time());
         PowerAutoTick(esp_timer_get_time());
     }
 }

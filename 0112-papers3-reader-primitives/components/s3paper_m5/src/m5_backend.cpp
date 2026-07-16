@@ -339,8 +339,12 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                 result.ops_drawn++;
                 break;
             case DrawOpKind::GlyphRun:
+                // A font is renderable when a TTF is registered for the id
+                // OR a bitmap fallback exists (GetFont only knows ids 0/1;
+                // TTF-only ids like the display faces must not be skipped).
                 if (frame.arena == nullptr ||
-                    GetFont(op.payload.glyph_run.font_id) == nullptr) {
+                    (!IsTtfFont(op.payload.glyph_run.font_id) &&
+                     GetFont(op.payload.glyph_run.font_id) == nullptr)) {
                     result.ops_skipped++;
                     break;
                 }

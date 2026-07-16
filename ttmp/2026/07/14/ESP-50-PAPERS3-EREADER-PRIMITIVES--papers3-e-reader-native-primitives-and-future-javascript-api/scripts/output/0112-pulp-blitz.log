@@ -1,0 +1,35 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (203720) m5_backend: present id=14 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=187630 wait_us=6
+I (203722) js: js present: hits=2 full=0
+
+# >>> js tap 270 150
+js tap 270 150
+I (204252) m5_backend: present id=15 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=195375 wait_us=8
+I (204254) js: js present: hits=2 full=0
+js init=1 screen_active=1 arena=163840 evals=17 exceptions=0 dispatches=14 last_error=""
+reader> I (204752) m5_backend: present id=16 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=195351 wait_us=13
+I (204754) js: js present: hits=2 full=0
+I (205749) m5_backend: present id=17 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=192742 wait_us=24
+I (205751) js: js present: hits=2 full=0
+I (206769) m5_backend: present id=18 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=192728 wait_us=5
+I (206771) js: js present: hits=2 full=0
+I (207770) m5_backend: present id=19 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=193293 wait_us=5
+I (207772) js: js present: hits=2 full=0
+I (208771) m5_backend: present id=20 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=194774 wait_us=9
+I (208773) js: js present: hits=2 full=0
+I (209790) m5_backend: present id=21 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=193447 wait_us=6
+I (209792) js: js present: hits=2 full=0
+I (210791) m5_backend: present id=22 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=194634 wait_us=6
+I (210793) js: js present: hits=2 full=0
+I (211809) m5_backend: present id=23 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=192590 wait_us=6
+I (211811) js: js present: hits=2 full=0
+I (212812) m5_backend: present id=24 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=195305 wait_us=14
+I (212814) js: js present: hits=2 full=0
+I (213829) m5_backend: present id=25 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=192660 wait_us=6
+I (213831) js: js present: hits=2 full=0
+I (214852) m5_backend: present id=26 intent=TextPage ops=12 skipped=0 damage=0,0,540,960 render_us=195608 wait_us=8
+I (214854) js: js present: hits=2 full=0
+I (215851) m5_backend: present id=27 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=194590 wait_us=5
+I (215853) js: js present: hits=2 full=1
+
+# done

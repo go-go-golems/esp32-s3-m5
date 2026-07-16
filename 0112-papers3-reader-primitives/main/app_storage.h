@@ -85,6 +85,14 @@ void LastBookStore(const char *sd_path_or_empty);
 // Returns true and fills out (size >= 96) when a valid record exists.
 bool LastBookGet(char *out, uint32_t out_size);
 
+// ---- Settings (small key-value store) ----
+// Named int32 records (versioned + CRC + atomic like positions), used for
+// app state and high scores. Works without a card (RAM-only until mount);
+// writes coalesce through the same flush machinery.
+StatusCode SettingsLoad();
+int32_t SettingsGet(const char *key, int32_t fallback);
+void SettingsSet(const char *key, int32_t value);
+
 // ---- Bookmarks ----
 // Multiple bookmarks per book, persisted like positions (versioned +
 // checksummed + atomic). Toggle semantics: same content+offset removes.

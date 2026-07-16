@@ -43,9 +43,11 @@ struct GfxFont {
 
 // Font ids are stable across host and device.
 enum : uint8_t {
-    kFontUi = 0,    // TTF UI size (fallback: FreeSerif 12pt bitmap)
-    kFontBody = 1,  // TTF body size (fallback: FreeSerif 18pt bitmap)
-    kFontCount = 2,
+    kFontUi = 0,       // TTF UI size (fallback: FreeSerif 12pt bitmap)
+    kFontBody = 1,     // TTF body size (fallback: FreeSerif 18pt bitmap)
+    kFontDisplay = 2,  // bold grotesque display face (PULP OS chrome)
+    kFontXL = 3,       // bold grotesque numerals/hero size
+    kFontCount = 4,
 };
 
 // Returns the GFX bitmap fallback data; nullptr for unknown ids. Metrics

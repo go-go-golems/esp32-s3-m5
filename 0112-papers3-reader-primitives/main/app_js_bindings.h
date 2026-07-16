@@ -76,6 +76,16 @@ JSValue js_s3_book_prev(JSContext *ctx, JSValue *this_val, int argc,
                         JSValue *argv);
 JSValue js_s3_book_progress(JSContext *ctx, JSValue *this_val, int argc,
                             JSValue *argv);
+JSValue js_s3_timer_start(JSContext *ctx, JSValue *this_val, int argc,
+                          JSValue *argv);
+JSValue js_s3_timer_stop(JSContext *ctx, JSValue *this_val, int argc,
+                         JSValue *argv);
+JSValue js_s3_store_get(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_store_set(JSContext *ctx, JSValue *this_val, int argc,
+                        JSValue *argv);
+JSValue js_s3_append_postcard(JSContext *ctx, JSValue *this_val, int argc,
+                              JSValue *argv);
 
 #ifdef __cplusplus
 }

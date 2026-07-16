@@ -125,10 +125,34 @@ struct BookmarksFile {
 
 BookmarksFile s_bookmarks{};
 
+// Settings: named int32 records, same persistence family (task mcac/1y51).
+constexpr uint32_t kSettingsMagic = 0x53335354;  // "S3ST"
+constexpr uint32_t kSettingsVersion = 1;
+constexpr uint32_t kMaxSettings = 16;
+constexpr char kSettingsPath[] = "/sdcard/.s3paper/settings.bin";
+constexpr char kSettingsTmp[] = "/sdcard/.s3paper/settings.tmp";
+constexpr char kSettingsBak[] = "/sdcard/.s3paper/settings.bak";
+
+struct SettingRecord {
+    char key[16];
+    int32_t value;
+};
+
+struct SettingsFile {
+    uint32_t magic;
+    uint32_t version;
+    uint32_t count;
+    SettingRecord records[kMaxSettings];
+    uint32_t crc;
+};
+
+SettingsFile s_settings{};
+
 // Coalesced-write state: dirty flags plus the age of the oldest unflushed
 // change (design task sda9: don't hit the card on every page turn).
 bool s_positions_dirty = false;
 bool s_bookmarks_dirty = false;
+bool s_settings_dirty = false;
 int64_t s_dirty_since_us = 0;
 constexpr int64_t kFlushAfterUs = 2'000'000;
 
@@ -349,6 +373,11 @@ StatusCode StorageMount() {
     if (catalog != StatusCode::Ok) {
         ESP_LOGW(kTag, "catalog not loaded: %s (first scan will hash)",
                  StatusCodeName(catalog));
+    }
+    const StatusCode settings = SettingsLoad();
+    if (settings != StatusCode::Ok) {
+        ESP_LOGW(kTag, "settings not loaded: %s (starting fresh)",
+                 StatusCodeName(settings));
     }
     return StatusCode::Ok;
 }
@@ -617,8 +646,84 @@ StatusCode BookmarksSave() {
     return StatusCode::Ok;
 }
 
+uint32_t SettingsCrc(const SettingsFile &f) {
+    return s3paper::Fnv1a(reinterpret_cast<const uint8_t *>(&f),
+                          offsetof(SettingsFile, crc));
+}
+
+StatusCode SettingsLoad() {
+    std::memset(&s_settings, 0, sizeof(s_settings));
+    FILE *f = fopen(kSettingsPath, "rb");
+    if (f == nullptr) {
+        f = fopen(kSettingsBak, "rb");
+        if (f == nullptr) {
+            return StatusCode::InvalidArgument;
+        }
+        ESP_LOGW(kTag, "primary settings missing; using backup");
+    }
+    SettingsFile loaded;
+    const size_t n = fread(&loaded, 1, sizeof(loaded), f);
+    fclose(f);
+    if (n != sizeof(loaded) || loaded.magic != kSettingsMagic ||
+        loaded.version != kSettingsVersion ||
+        loaded.count > kMaxSettings || loaded.crc != SettingsCrc(loaded)) {
+        ESP_LOGW(kTag, "settings file invalid; ignoring");
+        return StatusCode::CorruptData;
+    }
+    s_settings = loaded;
+    ESP_LOGI(kTag, "loaded %u setting(s)",
+             static_cast<unsigned>(s_settings.count));
+    return StatusCode::Ok;
+}
+
+StatusCode SettingsSave() {
+    if (!StorageMounted()) {
+        return StatusCode::Busy;
+    }
+    s_settings.magic = kSettingsMagic;
+    s_settings.version = kSettingsVersion;
+    s_settings.crc = SettingsCrc(s_settings);
+    if (!AtomicWrite(kSettingsTmp, kSettingsBak, kSettingsPath, &s_settings,
+                     sizeof(s_settings))) {
+        return StatusCode::CorruptData;
+    }
+    s_settings_dirty = false;
+    return StatusCode::Ok;
+}
+
+int32_t SettingsGet(const char *key, int32_t fallback) {
+    for (uint32_t i = 0; i < s_settings.count; ++i) {
+        if (strncmp(s_settings.records[i].key, key,
+                    sizeof(s_settings.records[i].key)) == 0) {
+            return s_settings.records[i].value;
+        }
+    }
+    return fallback;
+}
+
+void SettingsSet(const char *key, int32_t value) {
+    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty) {
+        s_dirty_since_us = esp_timer_get_time();
+    }
+    s_settings_dirty = true;
+    for (uint32_t i = 0; i < s_settings.count; ++i) {
+        if (strncmp(s_settings.records[i].key, key,
+                    sizeof(s_settings.records[i].key)) == 0) {
+            s_settings.records[i].value = value;
+            return;
+        }
+    }
+    SettingRecord *slot =
+        s_settings.count < kMaxSettings
+            ? &s_settings.records[s_settings.count++]
+            : &s_settings.records[0];  // explicit capacity policy: oldest
+    std::memset(slot, 0, sizeof(*slot));
+    snprintf(slot->key, sizeof(slot->key), "%s", key);
+    slot->value = value;
+}
+
 void StorageFlushIfDue(int64_t now_us) {
-    if (!s_positions_dirty && !s_bookmarks_dirty) {
+    if (!s_positions_dirty && !s_bookmarks_dirty && !s_settings_dirty) {
         return;
     }
     if (now_us - s_dirty_since_us < kFlushAfterUs) {
@@ -633,6 +738,9 @@ void StorageFlushNow() {
     }
     if (s_bookmarks_dirty) {
         (void)BookmarksSave();
+    }
+    if (s_settings_dirty) {
+        (void)SettingsSave();
     }
 }
 

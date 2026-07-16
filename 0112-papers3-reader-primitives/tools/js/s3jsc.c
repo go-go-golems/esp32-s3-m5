@@ -60,6 +60,11 @@ STUB(js_s3_book_line)
 STUB(js_s3_book_next)
 STUB(js_s3_book_prev)
 STUB(js_s3_book_progress)
+STUB(js_s3_timer_start)
+STUB(js_s3_timer_stop)
+STUB(js_s3_store_get)
+STUB(js_s3_store_set)
+STUB(js_s3_append_postcard)
 
 /* 64-bit host build of the SAME stdlib definition (generated without
    -m32 by build_bytecode_apps.sh). */
