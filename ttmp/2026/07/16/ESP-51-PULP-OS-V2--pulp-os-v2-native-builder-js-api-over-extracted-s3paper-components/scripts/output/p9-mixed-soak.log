@@ -75,3 +75,2015 @@ I (88517) runtime: update present: 3 rect(s), damage 472x196 at 34,93
 I (88517) js: js present: page=2048 hits=3 mode=2
 js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=12 last_error="Error: storm"
 pulp> 
+# >>> js swipe 4
+js swipe 4
+I (90540) m5_backend: present id=14 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41136 wait_us=7
+I (90541) runtime: update present: 4 rect(s), damage 480x317 at 30,93
+I (90542) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=13 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (92552) m5_backend: present id=15 intent=TextRegion ops=20 skipped=0 damage=34,93,472,262 render_us=28659 wait_us=7
+I (92553) runtime: update present: 7 rect(s), damage 472x262 at 34,93
+I (92554) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=14 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (94578) m5_backend: present id=16 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41350 wait_us=7
+I (94579) runtime: update present: 8 rect(s), damage 480x317 at 30,93
+I (94580) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=15 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (96547) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (96786) m5_backend: present id=17 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204277 wait_us=7
+I (96788) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=16 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=17 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (100570) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (100719) m5_backend: present id=18 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=138692 wait_us=8
+I (100720) js: js present: page=dice hits=4 mode=1
+I (100984) m5_backend: present id=19 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=232485 wait_us=8
+I (100986) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=56 exceptions=51 dispatches=18 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (103059) m5_backend: present id=20 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=378988 wait_us=6
+I (103061) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=18 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (104627) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (104888) m5_backend: present id=21 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=236710 wait_us=5
+I (104890) js: js present: page=dice hits=4 mode=1
+I (105153) m5_backend: present id=22 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=222486 wait_us=6
+I (105155) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=19 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (106669) js: tap 96,380 hit=3 (regions=4)
+I (106787) m5_backend: present id=23 intent=TextRegion ops=14 skipped=0 damage=40,97,460,367 render_us=75490 wait_us=7
+I (106789) runtime: update present: 11 rect(s), damage 460x367 at 40,97
+I (106789) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=20 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (108705) js: tap 212,380 hit=4 (regions=4)
+I (108845) m5_backend: present id=24 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=128748 wait_us=8
+I (108846) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=21 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (110712) js: tap 328,380 hit=5 (regions=4)
+I (110763) m5_backend: present id=25 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=39083 wait_us=12
+I (110764) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (110765) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=22 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (112732) js: tap 444,380 hit=6 (regions=4)
+I (112779) m5_backend: present id=26 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=35145 wait_us=12
+I (112780) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (112781) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=23 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (114986) m5_backend: present id=27 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204158 wait_us=7
+I (114988) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=24 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (116755) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=25 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (118771) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (118906) m5_backend: present id=28 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120939 wait_us=5
+I (118907) js: js present: page=tea hits=6 mode=1
+I (119002) m5_backend: present id=29 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71240 wait_us=12
+I (119004) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (119004) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=26 last_error="Error: storm"
+pulp> I (120017) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (120776) js: tap 270,400 hit=7 (regions=6)
+I (120809) m5_backend: present id=30 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5420 wait_us=6
+I (120811) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (120811) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=28 last_error="Error: storm"
+pulp> I (121861) m5_backend: present id=31 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=21165 wait_us=13
+I (121862) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (121863) js: js present: page=tea hits=6 mode=2
+I (121872) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (122781) js: tap 270,400 hit=7 (regions=6)
+I (122799) m5_backend: present id=32 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3470 wait_us=5
+I (122800) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (122801) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=30 last_error="Error: storm"
+pulp> I (123812) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (125059) m5_backend: present id=33 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204132 wait_us=7
+I (125061) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=32 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (126827) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (127114) m5_backend: present id=34 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=258708 wait_us=6
+I (127116) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=33 last_error="Error: storm"
+pulp> I (128139) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (128849) js: tap 270,150 hit=8 (regions=2)
+I (128861) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=35 last_error="Error: storm"
+pulp> I (129896) m5_backend: present id=35 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18830 wait_us=7
+I (129897) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (129898) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (130857) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=37 last_error="Error: storm"
+pulp> I (130932) m5_backend: present id=36 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14883 wait_us=7
+I (130933) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (130934) js: js present: page=blitz hits=2 mode=2
+I (131972) m5_backend: present id=37 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14825 wait_us=7
+I (131973) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (131974) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (132887) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=40 last_error="Error: storm"
+pulp> I (133934) m5_backend: present id=38 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17677 wait_us=5
+I (133935) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (133936) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (135134) m5_backend: present id=39 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204714 wait_us=7
+I (135136) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=42 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (136903) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (137152) m5_backend: present id=40 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219208 wait_us=6
+I (137154) js: js present: page=2048 hits=3 mode=1
+I (137238) m5_backend: present id=41 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=60483 wait_us=6
+I (137239) runtime: update present: 3 rect(s), damage 480x317 at 30,93
+I (137240) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=43 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (138970) m5_backend: present id=42 intent=TextRegion ops=16 skipped=0 damage=34,93,354,262 render_us=36085 wait_us=7
+I (138972) runtime: update present: 5 rect(s), damage 354x262 at 34,93
+I (138972) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=44 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (140994) m5_backend: present id=43 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41091 wait_us=7
+I (140995) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (140996) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=45 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (143020) m5_backend: present id=44 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41531 wait_us=5
+I (143021) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (143022) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=46 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (145019) m5_backend: present id=45 intent=TextRegion ops=12 skipped=0 damage=270,93,236,262 render_us=15797 wait_us=7
+I (145020) runtime: update present: 5 rect(s), damage 236x262 at 270,93
+I (145021) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=47 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (147037) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (147276) m5_backend: present id=46 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204752 wait_us=7
+I (147278) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=48 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=49 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (151060) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (151200) m5_backend: present id=47 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130365 wait_us=5
+I (151201) js: js present: page=dice hits=4 mode=1
+I (151267) m5_backend: present id=48 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47110 wait_us=8
+I (151268) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (151269) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=57 exceptions=51 dispatches=50 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (153495) m5_backend: present id=49 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=340230 wait_us=6
+I (153497) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=50 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (155113) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (155375) m5_backend: present id=50 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237949 wait_us=6
+I (155377) js: js present: page=dice hits=4 mode=1
+I (155638) m5_backend: present id=51 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=224879 wait_us=7
+I (155640) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=51 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (157155) js: tap 96,380 hit=3 (regions=4)
+I (157425) m5_backend: present id=52 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=228539 wait_us=6
+I (157427) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=52 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (159193) js: tap 212,380 hit=4 (regions=4)
+I (159328) m5_backend: present id=53 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=124141 wait_us=8
+I (159329) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=53 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (161196) js: tap 328,380 hit=5 (regions=4)
+I (161241) m5_backend: present id=54 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33922 wait_us=7
+I (161242) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (161243) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=54 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (163209) js: tap 444,380 hit=6 (regions=4)
+I (163255) m5_backend: present id=55 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33740 wait_us=12
+I (163256) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (163257) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=55 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (165463) m5_backend: present id=56 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204596 wait_us=7
+I (165465) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=56 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (167231) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=57 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (169250) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (169384) m5_backend: present id=57 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120812 wait_us=5
+I (169385) js: js present: page=tea hits=6 mode=1
+I (169480) m5_backend: present id=58 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71203 wait_us=8
+I (169482) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (169482) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=58 last_error="Error: storm"
+pulp> I (170497) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (171257) js: tap 270,400 hit=7 (regions=6)
+I (171291) m5_backend: present id=59 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=6109 wait_us=5
+I (171293) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (171293) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=60 last_error="Error: storm"
+pulp> I (172338) m5_backend: present id=60 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18157 wait_us=7
+I (172339) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (172340) js: js present: page=tea hits=6 mode=2
+I (172349) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (173258) js: tap 270,400 hit=7 (regions=6)
+I (173276) m5_backend: present id=61 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3646 wait_us=5
+I (173277) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (173278) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=62 last_error="Error: storm"
+pulp> I (174292) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (175540) m5_backend: present id=62 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204452 wait_us=7
+I (175542) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=64 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (177308) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (177596) m5_backend: present id=63 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259690 wait_us=6
+I (177598) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=65 last_error="Error: storm"
+pulp> I (178619) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (179329) js: tap 270,150 hit=8 (regions=2)
+I (179340) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=67 last_error="Error: storm"
+pulp> I (180376) m5_backend: present id=64 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18832 wait_us=7
+I (180377) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (180378) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (181336) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=69 last_error="Error: storm"
+pulp> I (181412) m5_backend: present id=65 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14864 wait_us=5
+I (181413) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (181414) js: js present: page=blitz hits=2 mode=2
+I (182452) m5_backend: present id=66 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14825 wait_us=7
+I (182453) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (182454) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (183368) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=72 last_error="Error: storm"
+pulp> I (184414) m5_backend: present id=67 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17672 wait_us=5
+I (184415) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (184416) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (185613) m5_backend: present id=68 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204157 wait_us=7
+I (185615) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=74 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (187381) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (187631) m5_backend: present id=69 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219945 wait_us=6
+I (187633) js: js present: page=2048 hits=3 mode=1
+I (187717) m5_backend: present id=70 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=60526 wait_us=6
+I (187718) runtime: update present: 3 rect(s), damage 480x317 at 30,93
+I (187719) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=75 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=76 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (191460) m5_backend: present id=71 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=40466 wait_us=7
+I (191461) runtime: update present: 4 rect(s), damage 480x317 at 30,93
+I (191462) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=77 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (193471) m5_backend: present id=72 intent=TextRegion ops=20 skipped=0 damage=34,93,472,262 render_us=28046 wait_us=7
+I (193472) runtime: update present: 5 rect(s), damage 472x262 at 34,93
+I (193473) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=78 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (195464) m5_backend: present id=73 intent=TextRegion ops=8 skipped=0 damage=388,93,118,262 render_us=9050 wait_us=5
+I (195465) runtime: update present: 4 rect(s), damage 118x262 at 388,93
+I (195466) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=79 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (197483) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (197722) m5_backend: present id=74 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204308 wait_us=7
+I (197724) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=80 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=81 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (201508) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (201648) m5_backend: present id=75 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130233 wait_us=5
+I (201649) js: js present: page=dice hits=4 mode=1
+I (201714) m5_backend: present id=76 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=46293 wait_us=6
+I (201715) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (201716) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=58 exceptions=51 dispatches=82 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (203942) m5_backend: present id=77 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339882 wait_us=8
+I (203944) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=82 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (205561) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (205822) m5_backend: present id=78 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237487 wait_us=6
+I (205824) js: js present: page=dice hits=4 mode=1
+I (206086) m5_backend: present id=79 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225425 wait_us=5
+I (206088) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=83 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (207603) js: tap 96,380 hit=3 (regions=4)
+I (207874) m5_backend: present id=80 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=228937 wait_us=6
+I (207876) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=84 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (209642) js: tap 212,380 hit=4 (regions=4)
+I (209779) m5_backend: present id=81 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=126037 wait_us=5
+I (209780) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=85 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (211648) js: tap 328,380 hit=5 (regions=4)
+I (211693) m5_backend: present id=82 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33675 wait_us=7
+I (211694) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (211695) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=86 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (213662) js: tap 444,380 hit=6 (regions=4)
+I (213706) m5_backend: present id=83 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=32125 wait_us=7
+I (213707) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (213708) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=87 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (215913) m5_backend: present id=84 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204233 wait_us=7
+I (215915) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=88 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (217681) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=89 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (219699) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (219833) m5_backend: present id=85 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120705 wait_us=5
+I (219834) js: js present: page=tea hits=6 mode=1
+I (219929) m5_backend: present id=86 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71266 wait_us=12
+I (219931) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (219931) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=90 last_error="Error: storm"
+pulp> I (220958) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (221717) js: tap 270,400 hit=7 (regions=6)
+I (221751) m5_backend: present id=87 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=4943 wait_us=6
+I (221753) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (221753) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=92 last_error="Error: storm"
+pulp> I (222798) m5_backend: present id=88 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18160 wait_us=7
+I (222799) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (222800) js: js present: page=tea hits=6 mode=2
+I (222809) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (223718) js: tap 270,400 hit=7 (regions=6)
+I (223736) m5_backend: present id=89 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3057 wait_us=5
+I (223737) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (223738) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=94 last_error="Error: storm"
+pulp> I (224752) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (226000) m5_backend: present id=90 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204709 wait_us=7
+I (226002) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=96 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (227769) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (228056) m5_backend: present id=91 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259211 wait_us=6
+I (228058) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=97 last_error="Error: storm"
+pulp> I (229079) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (229789) js: tap 270,150 hit=8 (regions=2)
+I (229800) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=99 last_error="Error: storm"
+pulp> I (230836) m5_backend: present id=92 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18831 wait_us=7
+I (230837) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (230838) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (231797) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=101 last_error="Error: storm"
+pulp> I (231872) m5_backend: present id=93 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14883 wait_us=5
+I (231873) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (231874) js: js present: page=blitz hits=2 mode=2
+I (232912) m5_backend: present id=94 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14825 wait_us=7
+I (232913) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (232914) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (233828) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=104 last_error="Error: storm"
+pulp> I (234874) m5_backend: present id=95 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17681 wait_us=5
+I (234875) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (234876) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (236073) m5_backend: present id=96 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204485 wait_us=7
+I (236075) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=106 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (237841) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (238091) m5_backend: present id=97 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219531 wait_us=7
+I (238093) js: js present: page=2048 hits=3 mode=1
+I (238168) m5_backend: present id=98 intent=TextRegion ops=17 skipped=0 damage=30,159,480,251 render_us=51550 wait_us=6
+I (238169) runtime: update present: 3 rect(s), damage 480x251 at 30,159
+I (238170) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=107 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (239950) m5_backend: present id=99 intent=TextRegion ops=15 skipped=0 damage=34,159,472,196 render_us=36638 wait_us=17
+I (239952) runtime: update present: 5 rect(s), damage 472x196 at 34,159
+I (239952) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=108 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (241975) m5_backend: present id=100 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41502 wait_us=7
+I (241976) runtime: update present: 7 rect(s), damage 480x317 at 30,93
+I (241977) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=109 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (243999) m5_backend: present id=101 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41034 wait_us=7
+I (244000) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (244001) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=110 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (246004) m5_backend: present id=102 intent=TextRegion ops=16 skipped=0 damage=152,93,354,262 render_us=22467 wait_us=7
+I (246005) runtime: update present: 7 rect(s), damage 354x262 at 152,93
+I (246006) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=111 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (247972) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (248211) m5_backend: present id=103 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=203988 wait_us=7
+I (248213) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=112 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=113 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (251996) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (252136) m5_backend: present id=104 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130397 wait_us=5
+I (252137) js: js present: page=dice hits=4 mode=1
+I (252203) m5_backend: present id=105 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47093 wait_us=6
+I (252204) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (252205) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=59 exceptions=51 dispatches=114 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (254431) m5_backend: present id=106 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339549 wait_us=7
+I (254433) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=114 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (256049) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (256310) m5_backend: present id=107 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237832 wait_us=6
+I (256312) js: js present: page=dice hits=4 mode=1
+I (256574) m5_backend: present id=108 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225487 wait_us=6
+I (256576) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=115 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (258091) js: tap 96,380 hit=3 (regions=4)
+I (258365) m5_backend: present id=109 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=231468 wait_us=6
+I (258367) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=116 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (260133) js: tap 212,380 hit=4 (regions=4)
+I (260271) m5_backend: present id=110 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=127086 wait_us=5
+I (260272) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=117 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (262139) js: tap 328,380 hit=5 (regions=4)
+I (262185) m5_backend: present id=111 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33920 wait_us=7
+I (262186) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (262187) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=118 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (264153) js: tap 444,380 hit=6 (regions=4)
+I (264197) m5_backend: present id=112 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=31883 wait_us=7
+I (264198) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (264199) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=119 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (266404) m5_backend: present id=113 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204589 wait_us=7
+I (266406) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=120 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (268172) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=121 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (270189) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (270323) m5_backend: present id=114 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120703 wait_us=5
+I (270324) js: js present: page=tea hits=6 mode=1
+I (270419) m5_backend: present id=115 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71186 wait_us=27
+I (270421) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (270421) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=122 last_error="Error: storm"
+pulp> I (271437) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (272196) js: tap 270,400 hit=7 (regions=6)
+I (272230) m5_backend: present id=116 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5671 wait_us=6
+I (272232) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (272232) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=124 last_error="Error: storm"
+pulp> I (273278) m5_backend: present id=117 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18159 wait_us=7
+I (273279) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (273280) js: js present: page=tea hits=6 mode=2
+I (273289) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (274198) js: tap 270,400 hit=7 (regions=6)
+I (274216) m5_backend: present id=118 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3151 wait_us=5
+I (274217) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (274218) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=126 last_error="Error: storm"
+pulp> I (275232) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (276479) m5_backend: present id=119 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204016 wait_us=7
+I (276481) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=128 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (278248) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (278534) m5_backend: present id=120 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=258642 wait_us=6
+I (278536) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=129 last_error="Error: storm"
+pulp> I (279559) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (280269) js: tap 270,150 hit=8 (regions=2)
+I (280280) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=131 last_error="Error: storm"
+pulp> I (281316) m5_backend: present id=121 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18839 wait_us=7
+I (281317) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (281318) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (282276) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=133 last_error="Error: storm"
+pulp> I (282352) m5_backend: present id=122 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14881 wait_us=7
+I (282353) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (282354) js: js present: page=blitz hits=2 mode=2
+I (283392) m5_backend: present id=123 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14824 wait_us=7
+I (283393) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (283394) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (284307) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=136 last_error="Error: storm"
+pulp> I (285354) m5_backend: present id=124 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17680 wait_us=5
+I (285355) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (285356) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (286554) m5_backend: present id=125 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204775 wait_us=7
+I (286556) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=138 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (288323) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (288572) m5_backend: present id=126 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219461 wait_us=6
+I (288574) js: js present: page=2048 hits=3 mode=1
+I (288648) m5_backend: present id=127 intent=TextRegion ops=17 skipped=0 damage=30,159,480,251 render_us=51071 wait_us=6
+I (288649) runtime: update present: 3 rect(s), damage 480x251 at 30,159
+I (288650) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=139 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (290416) m5_backend: present id=128 intent=TextRegion ops=8 skipped=0 damage=34,159,354,130 render_us=21048 wait_us=6
+I (290418) runtime: update present: 5 rect(s), damage 354x130 at 34,159
+I (290418) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=140 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (292418) m5_backend: present id=129 intent=TextRegion ops=12 skipped=0 damage=34,93,354,196 render_us=17433 wait_us=7
+I (292419) runtime: update present: 6 rect(s), damage 354x196 at 34,93
+I (292420) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=141 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (294443) m5_backend: present id=130 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41115 wait_us=7
+I (294444) runtime: update present: 8 rect(s), damage 480x317 at 30,93
+I (294445) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=142 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (296449) m5_backend: present id=131 intent=TextRegion ops=16 skipped=0 damage=152,93,354,262 render_us=22733 wait_us=7
+I (296450) runtime: update present: 8 rect(s), damage 354x262 at 152,93
+I (296451) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=143 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (298419) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (298658) m5_backend: present id=132 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204709 wait_us=7
+I (298660) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=144 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=145 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (302439) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (302579) m5_backend: present id=133 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130292 wait_us=5
+I (302580) js: js present: page=dice hits=4 mode=1
+I (302646) m5_backend: present id=134 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47121 wait_us=7
+I (302647) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (302648) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=60 exceptions=51 dispatches=146 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (304873) m5_backend: present id=135 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339658 wait_us=15
+I (304875) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=146 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (306490) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (306751) m5_backend: present id=136 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237508 wait_us=6
+I (306753) js: js present: page=dice hits=4 mode=1
+I (307015) m5_backend: present id=137 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=224536 wait_us=5
+I (307017) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=147 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (308533) js: tap 96,380 hit=3 (regions=4)
+I (308812) m5_backend: present id=138 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=236420 wait_us=6
+I (308814) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=148 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (310580) js: tap 212,380 hit=4 (regions=4)
+I (310716) m5_backend: present id=139 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=124903 wait_us=5
+I (310717) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=149 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (312584) js: tap 328,380 hit=5 (regions=4)
+I (312629) m5_backend: present id=140 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33510 wait_us=7
+I (312630) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (312631) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=150 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (314598) js: tap 444,380 hit=6 (regions=4)
+I (314642) m5_backend: present id=141 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=31985 wait_us=7
+I (314643) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (314644) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=151 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (316849) m5_backend: present id=142 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204750 wait_us=7
+I (316851) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=152 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (318617) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=153 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (320633) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (320768) m5_backend: present id=143 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120917 wait_us=5
+I (320769) js: js present: page=tea hits=6 mode=1
+I (320864) m5_backend: present id=144 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71234 wait_us=12
+I (320866) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (320866) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=154 last_error="Error: storm"
+pulp> I (321898) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (322657) js: tap 270,400 hit=7 (regions=6)
+I (322691) m5_backend: present id=145 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5248 wait_us=7
+I (322693) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (322693) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=156 last_error="Error: storm"
+pulp> I (323738) m5_backend: present id=146 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18159 wait_us=7
+I (323739) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (323740) js: js present: page=tea hits=6 mode=2
+I (323749) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (324658) js: tap 270,400 hit=7 (regions=6)
+I (324676) m5_backend: present id=147 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3248 wait_us=5
+I (324677) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (324678) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=158 last_error="Error: storm"
+pulp> I (325692) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (326940) m5_backend: present id=148 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204351 wait_us=7
+I (326942) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=160 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (328709) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (328996) m5_backend: present id=149 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259204 wait_us=6
+I (328998) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=161 last_error="Error: storm"
+pulp> I (330019) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (330729) js: tap 270,150 hit=8 (regions=2)
+I (330740) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=163 last_error="Error: storm"
+pulp> I (331776) m5_backend: present id=150 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18815 wait_us=7
+I (331777) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (331778) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (332737) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=165 last_error="Error: storm"
+pulp> I (332812) m5_backend: present id=151 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14882 wait_us=5
+I (332813) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (332814) js: js present: page=blitz hits=2 mode=2
+I (333852) m5_backend: present id=152 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14824 wait_us=7
+I (333853) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (333854) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (334767) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=168 last_error="Error: storm"
+pulp> I (335814) m5_backend: present id=153 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17678 wait_us=5
+I (335815) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (335816) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (337022) m5_backend: present id=154 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204825 wait_us=7
+I (337024) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=170 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (338790) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (339039) m5_backend: present id=155 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=218860 wait_us=6
+I (339041) js: js present: page=2048 hits=3 mode=1
+I (339104) m5_backend: present id=156 intent=TextRegion ops=12 skipped=0 damage=30,225,480,185 render_us=39430 wait_us=9
+I (339105) runtime: update present: 3 rect(s), damage 480x185 at 30,225
+I (339106) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=171 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (340888) m5_backend: present id=157 intent=TextRegion ops=16 skipped=0 damage=34,93,354,262 render_us=36712 wait_us=7
+I (340890) runtime: update present: 3 rect(s), damage 354x262 at 34,93
+I (340890) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=172 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (342913) m5_backend: present id=158 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41320 wait_us=7
+I (342914) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (342915) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=173 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (344911) m5_backend: present id=159 intent=TextRegion ops=10 skipped=0 damage=34,93,472,130 render_us=14372 wait_us=7
+I (344912) runtime: update present: 5 rect(s), damage 472x130 at 34,93
+I (344913) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=174 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (346961) m5_backend: present id=160 intent=TextRegion ops=12 skipped=0 damage=270,93,236,262 render_us=16461 wait_us=7
+I (346962) runtime: update present: 5 rect(s), damage 236x262 at 270,93
+I (346963) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=175 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (348980) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (349219) m5_backend: present id=161 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204306 wait_us=7
+I (349221) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=176 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=177 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (353004) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (353145) m5_backend: present id=162 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=131008 wait_us=5
+I (353146) js: js present: page=dice hits=4 mode=1
+I (353212) m5_backend: present id=163 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47123 wait_us=9
+I (353213) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (353214) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=61 exceptions=51 dispatches=178 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (355439) m5_backend: present id=164 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339594 wait_us=5
+I (355441) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=178 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (357058) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (357319) m5_backend: present id=165 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237442 wait_us=16
+I (357321) js: js present: page=dice hits=4 mode=1
+I (357583) m5_backend: present id=166 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225467 wait_us=7
+I (357585) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=179 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (359100) js: tap 96,380 hit=3 (regions=4)
+I (359371) m5_backend: present id=167 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=228790 wait_us=6
+I (359373) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=180 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (361137) js: tap 212,380 hit=4 (regions=4)
+I (361274) m5_backend: present id=168 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=125891 wait_us=5
+I (361275) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=181 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (363141) js: tap 328,380 hit=5 (regions=4)
+I (363187) m5_backend: present id=169 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33870 wait_us=7
+I (363188) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (363189) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=182 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (365156) js: tap 444,380 hit=6 (regions=4)
+I (365200) m5_backend: present id=170 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=32063 wait_us=7
+I (365201) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (365202) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=183 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (367407) m5_backend: present id=171 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204051 wait_us=7
+I (367409) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=184 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (369176) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=185 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (371194) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (371328) m5_backend: present id=172 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120727 wait_us=5
+I (371329) js: js present: page=tea hits=6 mode=1
+I (371424) m5_backend: present id=173 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71272 wait_us=12
+I (371426) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (371426) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=186 last_error="Error: storm"
+pulp> I (372458) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (373217) js: tap 270,400 hit=7 (regions=6)
+I (373251) m5_backend: present id=174 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5609 wait_us=13
+I (373253) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (373253) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=188 last_error="Error: storm"
+pulp> I (374298) m5_backend: present id=175 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18157 wait_us=7
+I (374299) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (374300) js: js present: page=tea hits=6 mode=2
+I (374309) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (375218) js: tap 270,400 hit=7 (regions=6)
+I (375236) m5_backend: present id=176 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3275 wait_us=5
+I (375237) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (375238) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=190 last_error="Error: storm"
+pulp> I (376252) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (377500) m5_backend: present id=177 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204752 wait_us=7
+I (377502) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=192 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (379268) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (379556) m5_backend: present id=178 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259663 wait_us=6
+I (379558) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=193 last_error="Error: storm"
+pulp> I (380579) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (381289) js: tap 270,150 hit=8 (regions=2)
+I (381300) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=195 last_error="Error: storm"
+pulp> I (382336) m5_backend: present id=179 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18826 wait_us=7
+I (382337) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (382338) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (383297) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=197 last_error="Error: storm"
+pulp> I (383372) m5_backend: present id=180 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14881 wait_us=7
+I (383373) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (383374) js: js present: page=blitz hits=2 mode=2
+I (384412) m5_backend: present id=181 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14821 wait_us=7
+I (384413) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (384414) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (385327) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=200 last_error="Error: storm"
+pulp> I (386374) m5_backend: present id=182 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17670 wait_us=5
+I (386375) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (386376) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (387573) m5_backend: present id=183 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204413 wait_us=7
+I (387575) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=202 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (389341) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (389590) m5_backend: present id=184 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=218723 wait_us=6
+I (389592) js: js present: page=2048 hits=3 mode=1
+I (389667) m5_backend: present id=185 intent=TextRegion ops=17 skipped=0 damage=30,159,480,251 render_us=51561 wait_us=6
+I (389668) runtime: update present: 3 rect(s), damage 480x251 at 30,159
+I (389669) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=203 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (391433) m5_backend: present id=186 intent=TextRegion ops=8 skipped=0 damage=34,225,354,130 render_us=17819 wait_us=6
+I (391435) runtime: update present: 3 rect(s), damage 354x130 at 34,225
+I (391435) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=204 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (393459) m5_backend: present id=187 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41357 wait_us=5
+I (393460) runtime: update present: 5 rect(s), damage 480x317 at 30,93
+I (393461) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=205 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (395465) m5_backend: present id=188 intent=TextRegion ops=15 skipped=0 damage=34,93,472,196 render_us=22424 wait_us=7
+I (395466) runtime: update present: 6 rect(s), damage 472x196 at 34,93
+I (395467) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=206 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (397490) m5_backend: present id=189 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41466 wait_us=7
+I (397491) runtime: update present: 7 rect(s), damage 480x317 at 30,93
+I (397492) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=207 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (399458) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (399697) m5_backend: present id=190 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204478 wait_us=7
+I (399699) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=208 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=209 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (403481) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (403622) m5_backend: present id=191 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130995 wait_us=5
+I (403623) js: js present: page=dice hits=4 mode=1
+I (403689) m5_backend: present id=192 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47055 wait_us=6
+I (403690) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (403691) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=62 exceptions=51 dispatches=210 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (405917) m5_backend: present id=193 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339826 wait_us=6
+I (405919) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=210 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (407536) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (407797) m5_backend: present id=194 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237897 wait_us=7
+I (407799) js: js present: page=dice hits=4 mode=1
+I (408061) m5_backend: present id=195 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225841 wait_us=5
+I (408063) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=211 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (409579) js: tap 96,380 hit=3 (regions=4)
+I (409851) m5_backend: present id=196 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=230377 wait_us=6
+I (409853) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=212 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (411620) js: tap 212,380 hit=4 (regions=4)
+I (411758) m5_backend: present id=197 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=127573 wait_us=5
+I (411759) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=213 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (413625) js: tap 328,380 hit=5 (regions=4)
+I (413678) m5_backend: present id=198 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=41584 wait_us=12
+I (413679) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (413680) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=214 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (415646) js: tap 444,380 hit=6 (regions=4)
+I (415690) m5_backend: present id=199 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=32275 wait_us=7
+I (415691) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (415692) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=215 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (417897) m5_backend: present id=200 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204608 wait_us=7
+I (417899) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=216 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (419664) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=217 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (421679) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (421814) m5_backend: present id=201 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=121345 wait_us=5
+I (421815) js: js present: page=tea hits=6 mode=1
+I (421910) m5_backend: present id=202 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71192 wait_us=9
+I (421912) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (421912) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=218 last_error="Error: storm"
+pulp> I (422938) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (423697) js: tap 270,400 hit=7 (regions=6)
+I (423732) m5_backend: present id=203 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5757 wait_us=5
+I (423734) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (423734) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=220 last_error="Error: storm"
+pulp> I (424778) m5_backend: present id=204 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18159 wait_us=7
+I (424779) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (424780) js: js present: page=tea hits=6 mode=2
+I (424789) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (425698) js: tap 270,400 hit=7 (regions=6)
+I (425716) m5_backend: present id=205 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=2903 wait_us=5
+I (425717) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (425718) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=222 last_error="Error: storm"
+pulp> I (426732) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (427980) m5_backend: present id=206 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204407 wait_us=7
+I (427982) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=224 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (429748) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (430035) m5_backend: present id=207 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=258695 wait_us=6
+I (430037) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=225 last_error="Error: storm"
+pulp> I (431059) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (431768) js: tap 270,150 hit=8 (regions=2)
+I (431780) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=227 last_error="Error: storm"
+pulp> I (432816) m5_backend: present id=208 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18833 wait_us=7
+I (432817) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (432818) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (433777) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=229 last_error="Error: storm"
+pulp> I (433852) m5_backend: present id=209 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14882 wait_us=5
+I (433853) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (433854) js: js present: page=blitz hits=2 mode=2
+I (434892) m5_backend: present id=210 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14820 wait_us=7
+I (434893) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (434894) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (435808) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=232 last_error="Error: storm"
+pulp> I (436854) m5_backend: present id=211 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17675 wait_us=5
+I (436855) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (436856) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (438052) m5_backend: present id=212 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204235 wait_us=7
+I (438054) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=234 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (439821) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (440070) m5_backend: present id=213 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219281 wait_us=6
+I (440072) js: js present: page=2048 hits=3 mode=1
+I (440156) m5_backend: present id=214 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=60525 wait_us=6
+I (440157) runtime: update present: 3 rect(s), damage 480x317 at 30,93
+I (440158) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=235 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (441882) m5_backend: present id=215 intent=TextRegion ops=12 skipped=0 damage=34,93,354,196 render_us=29686 wait_us=6
+I (441884) runtime: update present: 5 rect(s), damage 354x196 at 34,93
+I (441884) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=236 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (443908) m5_backend: present id=216 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41355 wait_us=7
+I (443909) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (443910) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=237 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (445934) m5_backend: present id=217 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=42828 wait_us=8
+I (445935) runtime: update present: 5 rect(s), damage 480x317 at 30,93
+I (445936) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=238 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (447960) m5_backend: present id=218 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41394 wait_us=7
+I (447961) runtime: update present: 5 rect(s), damage 480x317 at 30,93
+I (447962) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=239 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (449928) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (450167) m5_backend: present id=219 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204211 wait_us=7
+I (450169) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=240 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=241 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (453951) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (454092) m5_backend: present id=220 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130731 wait_us=5
+I (454093) js: js present: page=dice hits=4 mode=1
+I (454159) m5_backend: present id=221 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47186 wait_us=6
+I (454160) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (454161) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=63 exceptions=51 dispatches=242 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (456386) m5_backend: present id=222 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339536 wait_us=6
+I (456388) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=242 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (458004) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (458265) m5_backend: present id=223 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237273 wait_us=6
+I (458267) js: js present: page=dice hits=4 mode=1
+I (458529) m5_backend: present id=224 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225186 wait_us=6
+I (458531) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=243 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (460046) js: tap 96,380 hit=3 (regions=4)
+I (460325) m5_backend: present id=225 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=236522 wait_us=6
+I (460327) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=244 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (462093) js: tap 212,380 hit=4 (regions=4)
+I (462229) m5_backend: present id=226 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=124748 wait_us=5
+I (462230) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=245 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (464097) js: tap 328,380 hit=5 (regions=4)
+I (464142) m5_backend: present id=227 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=33451 wait_us=7
+I (464143) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (464144) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=246 last_error="Error: storm"
+pulp>
+# >>> js tap 444 380
+js tap 444 380
+I (466112) js: tap 444,380 hit=6 (regions=4)
+I (466155) m5_backend: present id=228 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=31491 wait_us=7
+I (466156) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (466157) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=247 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (468363) m5_backend: present id=229 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204892 wait_us=7
+I (468365) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=248 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (470132) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=249 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (472149) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (472284) m5_backend: present id=230 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=120932 wait_us=5
+I (472285) js: js present: page=tea hits=6 mode=1
+I (472380) m5_backend: present id=231 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71248 wait_us=12
+I (472382) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (472382) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=250 last_error="Error: storm"
+pulp> I (473397) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (474157) js: tap 270,400 hit=7 (regions=6)
+I (474191) m5_backend: present id=232 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5558 wait_us=5
+I (474193) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (474193) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=252 last_error="Error: storm"
+pulp> I (475238) m5_backend: present id=233 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18159 wait_us=7
+I (475239) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (475240) js: js present: page=tea hits=6 mode=2
+I (475249) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (476158) js: tap 270,400 hit=7 (regions=6)
+I (476176) m5_backend: present id=234 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3520 wait_us=5
+I (476177) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (476178) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=254 last_error="Error: storm"
+pulp> I (477192) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (478440) m5_backend: present id=235 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204901 wait_us=7
+I (478442) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=256 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (480207) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (480494) m5_backend: present id=236 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259034 wait_us=5
+I (480496) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=257 last_error="Error: storm"
+pulp> I (481519) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (482228) js: tap 270,150 hit=8 (regions=2)
+I (482240) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=259 last_error="Error: storm"
+pulp> I (483276) m5_backend: present id=237 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18831 wait_us=7
+I (483277) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (483278) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (484237) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=261 last_error="Error: storm"
+pulp> I (484312) m5_backend: present id=238 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14882 wait_us=7
+I (484313) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (484314) js: js present: page=blitz hits=2 mode=2
+I (485352) m5_backend: present id=239 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14823 wait_us=7
+I (485353) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (485354) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (486267) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=264 last_error="Error: storm"
+pulp> I (487314) m5_backend: present id=240 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17677 wait_us=5
+I (487315) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (487316) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (488513) m5_backend: present id=241 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204415 wait_us=7
+I (488515) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=266 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (490281) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (490530) m5_backend: present id=242 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=218992 wait_us=6
+I (490532) js: js present: page=2048 hits=3 mode=1
+I (490616) m5_backend: present id=243 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=60278 wait_us=6
+I (490617) runtime: update present: 3 rect(s), damage 480x317 at 30,93
+I (490618) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=267 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (492333) m5_backend: present id=244 intent=TextRegion ops=9 skipped=0 damage=34,93,236,196 render_us=20286 wait_us=6
+I (492335) runtime: update present: 5 rect(s), damage 236x196 at 34,93
+I (492335) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=268 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (494358) m5_backend: present id=245 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=40955 wait_us=7
+I (494359) runtime: update present: 5 rect(s), damage 480x317 at 30,93
+I (494360) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=269 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (496369) m5_backend: present id=246 intent=TextRegion ops=20 skipped=0 damage=34,93,472,262 render_us=29222 wait_us=7
+I (496370) runtime: update present: 7 rect(s), damage 472x262 at 34,93
+I (496371) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=270 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (498395) m5_backend: present id=247 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=42073 wait_us=7
+I (498396) runtime: update present: 7 rect(s), damage 480x317 at 30,93
+I (498397) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=271 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (500363) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (500602) m5_backend: present id=248 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=203941 wait_us=7
+I (500604) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=272 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=273 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (504386) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (504527) m5_backend: present id=249 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130978 wait_us=5
+I (504528) js: js present: page=dice hits=4 mode=1
+I (504593) m5_backend: present id=250 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=46095 wait_us=6
+I (504594) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (504595) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=64 exceptions=51 dispatches=274 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (506821) m5_backend: present id=251 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=338672 wait_us=5
+I (506823) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=274 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (508440) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (508702) m5_backend: present id=252 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237804 wait_us=6
+I (508704) js: js present: page=dice hits=4 mode=1
+I (508966) m5_backend: present id=253 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225826 wait_us=6
+I (508968) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=275 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (510483) js: tap 96,380 hit=3 (regions=4)
+I (510753) m5_backend: present id=254 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=228237 wait_us=6
+I (510755) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=276 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (512522) js: tap 212,380 hit=4 (regions=4)
+I (512659) m5_backend: present id=255 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=126224 wait_us=5
+I (512660) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=277 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (514527) js: tap 328,380 hit=5 (regions=4)
+I (514575) m5_backend: present id=256 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=36790 wait_us=7
+I (514576) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (514577) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=278 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (516544) js: tap 444,380 hit=6 (regions=4)
+I (516588) m5_backend: present id=257 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=32471 wait_us=5
+I (516589) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (516590) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=279 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (518795) m5_backend: present id=258 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=203929 wait_us=7
+I (518797) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=280 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (520563) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=281 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (522581) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (522716) m5_backend: present id=259 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=121311 wait_us=5
+I (522717) js: js present: page=tea hits=6 mode=1
+I (522812) m5_backend: present id=260 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71196 wait_us=8
+I (522814) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (522814) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=282 last_error="Error: storm"
+pulp> I (523838) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (524597) js: tap 270,400 hit=7 (regions=6)
+I (524631) m5_backend: present id=261 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=5753 wait_us=5
+I (524633) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (524633) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=284 last_error="Error: storm"
+pulp> I (525678) m5_backend: present id=262 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18158 wait_us=7
+I (525679) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (525680) js: js present: page=tea hits=6 mode=2
+I (525689) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (526598) js: tap 270,400 hit=7 (regions=6)
+I (526616) m5_backend: present id=263 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3478 wait_us=5
+I (526617) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (526618) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=286 last_error="Error: storm"
+pulp> I (527632) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (528879) m5_backend: present id=264 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204035 wait_us=7
+I (528881) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=288 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 297
+js tap 270 297
+I (530648) js: tap 270,297 hit=5 (regions=8)
+pulp screen: blitz
+I (530935) m5_backend: present id=265 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=259281 wait_us=6
+I (530937) js: js present: page=blitz hits=2 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=289 last_error="Error: storm"
+pulp> I (531960) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 150
+js tap 270 150
+I (532669) js: tap 270,150 hit=8 (regions=2)
+I (532681) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=291 last_error="Error: storm"
+pulp> I (533716) m5_backend: present id=266 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=18827 wait_us=7
+I (533717) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (533718) js: js present: page=blitz hits=2 mode=2
+
+# >>> js tap 270 700
+js tap 270 700
+I (534677) js: tap 270,700 hit=0 (regions=2)
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=293 last_error="Error: storm"
+pulp> I (534752) m5_backend: present id=267 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14882 wait_us=5
+I (534753) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (534754) js: js present: page=blitz hits=2 mode=2
+I (535792) m5_backend: present id=268 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14822 wait_us=7
+I (535793) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (535794) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 1
+js swipe 1
+I (536707) js: js present: page=blitz hits=2 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=296 last_error="Error: storm"
+pulp> I (537754) m5_backend: present id=269 intent=TextRegion ops=3 skipped=0 damage=40,336,460,114 render_us=17668 wait_us=5
+I (537755) runtime: update present: 2 rect(s), damage 460x114 at 40,336
+I (537756) js: js present: page=blitz hits=2 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (538952) m5_backend: present id=270 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204051 wait_us=7
+I (538954) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=298 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 358
+js tap 270 358
+I (540719) js: tap 270,358 hit=6 (regions=8)
+pulp screen: 2048
+I (540968) m5_backend: present id=271 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=219157 wait_us=6
+I (540970) js: js present: page=2048 hits=3 mode=1
+I (541055) m5_backend: present id=272 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=60611 wait_us=5
+I (541056) runtime: update present: 3 rect(s), damage 480x317 at 30,93
+I (541057) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=299 last_error="Error: storm"
+pulp> 
+# >>> js swipe 2
+js swipe 2
+I (542787) m5_backend: present id=273 intent=TextRegion ops=15 skipped=0 damage=34,93,472,196 render_us=36615 wait_us=6
+I (542789) runtime: update present: 3 rect(s), damage 472x196 at 34,93
+I (542789) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=300 last_error="Error: storm"
+pulp> 
+# >>> js swipe 4
+js swipe 4
+I (544813) m5_backend: present id=274 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=41355 wait_us=7
+I (544814) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (544815) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=301 last_error="Error: storm"
+pulp> 
+# >>> js swipe 3
+js swipe 3
+I (546837) m5_backend: present id=275 intent=TextRegion ops=22 skipped=0 damage=30,93,480,317 render_us=40937 wait_us=7
+I (546838) runtime: update present: 6 rect(s), damage 480x317 at 30,93
+I (546839) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=302 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+I (548835) m5_backend: present id=276 intent=TextRegion ops=12 skipped=0 damage=270,93,236,262 render_us=14958 wait_us=7
+I (548836) runtime: update present: 5 rect(s), damage 236x262 at 270,93
+I (548837) js: js present: page=2048 hits=3 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=303 last_error="Error: storm"
+pulp> 
+# >>> js tap 390 460
+js tap 390 460
+I (550855) js: tap 390,460 hit=5 (regions=3)
+pulp screen: home
+I (551094) m5_backend: present id=277 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204259 wait_us=7
+I (551096) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=304 last_error="Error: storm"
+pulp> 
+# >>> js swipe 1
+js swipe 1
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=305 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (554877) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (555017) m5_backend: present id=278 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=130115 wait_us=5
+I (555018) js: js present: page=dice hits=4 mode=1
+I (555084) m5_backend: present id=279 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=47145 wait_us=6
+I (555085) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (555086) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=65 exceptions=51 dispatches=306 last_error="Error: storm"
+pulp> 
+# >>> js pulp
+js pulp
+PULP OS v2 booting, abi v2
+pulp screen: home
+I (557312) m5_backend: present id=280 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=339593 wait_us=6
+I (557314) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=306 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 236
+js tap 270 236
+I (558930) js: tap 270,236 hit=4 (regions=8)
+pulp screen: dice
+I (559191) m5_backend: present id=281 intent=CleanFull ops=18 skipped=0 damage=0,0,540,960 render_us=237961 wait_us=5
+I (559193) js: js present: page=dice hits=4 mode=1
+I (559455) m5_backend: present id=282 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=225566 wait_us=6
+I (559457) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=307 last_error="Error: storm"
+pulp> 
+# >>> js tap 96 380
+js tap 96 380
+I (560973) js: tap 96,380 hit=3 (regions=4)
+I (561242) m5_backend: present id=283 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=227101 wait_us=6
+I (561244) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=308 last_error="Error: storm"
+pulp> 
+# >>> js tap 212 380
+js tap 212 380
+I (563011) js: tap 212,380 hit=4 (regions=4)
+I (563145) m5_backend: present id=284 intent=TextPage ops=18 skipped=0 damage=0,0,540,960 render_us=123708 wait_us=5
+I (563146) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=309 last_error="Error: storm"
+pulp> 
+# >>> js tap 328 380
+js tap 328 380
+I (565013) js: tap 328,380 hit=5 (regions=4)
+I (565061) m5_backend: present id=285 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=36071 wait_us=7
+I (565062) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (565063) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=310 last_error="Error: storm"
+pulp> 
+# >>> js tap 444 380
+js tap 444 380
+I (567029) js: tap 444,380 hit=6 (regions=4)
+I (567073) m5_backend: present id=286 intent=TextRegion ops=8 skipped=0 damage=40,227,460,237 render_us=32096 wait_us=7
+I (567074) runtime: update present: 2 rect(s), damage 460x237 at 40,227
+I (567075) js: js present: page=dice hits=4 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=311 last_error="Error: storm"
+pulp> 
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (569282) m5_backend: present id=287 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204176 wait_us=7
+I (569284) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=312 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 668
+js tap 270 668
+I (571049) js: tap 270,668 hit=0 (regions=8)
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=313 last_error="Error: storm"
+pulp> 
+# >>> js tap 270 400
+js tap 270 400
+I (573068) js: tap 270,400 hit=7 (regions=8)
+pulp screen: tea
+I (573203) m5_backend: present id=288 intent=CleanFull ops=15 skipped=0 damage=0,0,540,960 render_us=121187 wait_us=5
+I (573204) js: js present: page=tea hits=6 mode=1
+I (573299) m5_backend: present id=289 intent=TextRegion ops=11 skipped=0 damage=40,99,460,350 render_us=71198 wait_us=8
+I (573301) runtime: update present: 3 rect(s), damage 460x350 at 40,99
+I (573301) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=314 last_error="Error: storm"
+pulp> I (574317) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (575077) js: tap 270,400 hit=7 (regions=6)
+I (575111) m5_backend: present id=290 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=6073 wait_us=5
+I (575113) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (575113) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=316 last_error="Error: storm"
+pulp> I (576158) m5_backend: present id=291 intent=TextRegion ops=4 skipped=0 damage=40,158,460,124 render_us=18157 wait_us=7
+I (576159) runtime: update present: 2 rect(s), damage 460x124 at 40,158
+I (576160) js: js present: page=tea hits=6 mode=2
+I (576169) js: js present: page=tea hits=6 mode=2
+
+# >>> js tap 270 400
+js tap 270 400
+I (577078) js: tap 270,400 hit=7 (regions=6)
+I (577096) m5_backend: present id=292 intent=TextRegion ops=2 skipped=0 damage=210,393,120,56 render_us=3495 wait_us=5
+I (577097) runtime: update present: 1 rect(s), damage 120x56 at 210,393
+I (577098) js: js present: page=tea hits=6 mode=2
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=318 last_error="Error: storm"
+pulp> I (578112) js: js present: page=tea hits=6 mode=2
+
+# >>> js swipe 5
+js swipe 5
+pulp screen: home
+I (579360) m5_backend: present id=293 intent=CleanFull ops=30 skipped=0 damage=0,0,540,960 render_us=204505 wait_us=7
+I (579362) js: js present: page=home hits=8 mode=1
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=320 last_error="Error: storm"
+pulp> 
+# >>> heap
+heap
+internal_free=225435 internal_min_free=222755 internal_largest=124928
+psram_free=6491176 psram_largest=6422528
+pulp> 
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=66 exceptions=51 dispatches=320 last_error="Error: storm"
+pulp> 
+# >>> events
+events
+queue capacity=32 depth=0 high_water=32
+source[console] accepted=258 dropped=0
+source[internal] accepted=28876 dropped=18
+out_of_order=0 replies sent=257 dropped=0
+pulp> 
+# done

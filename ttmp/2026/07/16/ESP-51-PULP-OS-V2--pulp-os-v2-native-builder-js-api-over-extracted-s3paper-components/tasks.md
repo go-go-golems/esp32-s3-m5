@@ -59,11 +59,11 @@
 - [x] [P8.2] sleepImage(fn): power path evaluates the JS lambda into a tree and presents it before sleeping <!-- t:ihdn -->
 - [x] [P8.3] Navigation grammar enforced: swipe-down home everywhere (trapping opt-in), long-press conventions <!-- t:iaq3 -->
 - [x] [P8.4] Sleep/wake cycles on hardware: deep-timer x2 and rtc-off, resuming into the launcher with state intact <!-- t:tjsq -->
-- [ ] Phase 9 - Hardening, acceptance, docs <!-- t:bkd8 -->
+- [x] Phase 9 - Hardening, acceptance, docs <!-- t:bkd8 -->
 - [x] [P9.1] Host suite extended for v2-touched core (invert prop, any layout changes); fuzz still green <!-- t:swug -->
-- [ ] [P9.2] Script fault battery: OOM app, exception storm, runaway loop, stale handles; owner fallback to a native screen <!-- t:v3ex -->
-- [ ] [P9.3] Capacity saturation: widget arena full from JS, cb registry growth policy, event queue flood <!-- t:n35p -->
-- [ ] [P9.4] Mixed soak: 200+ scripted interactions across apps; heap watermarks flat; planner budget fulls observed <!-- t:wdey -->
-- [ ] [P9.5] Trace-equivalence harness ported; one native/JS fixture pair EQUAL <!-- t:3c7d -->
+- [x] [P9.2] Script fault battery: OOM app, exception storm, runaway loop, stale handles; owner fallback to a native screen <!-- t:v3ex -->
+- [x] [P9.3] Capacity saturation: widget arena full from JS, cb registry growth policy, event queue flood <!-- t:n35p -->
+- [x] [P9.4] Mixed soak: 200+ scripted interactions across apps; heap watermarks flat; planner budget fulls observed <!-- t:wdey -->
+- [x] [P9.5] Trace-equivalence harness ported; one native/JS fixture pair EQUAL <!-- t:3c7d -->
 - [x] [P9.6] License inventory (engine MIT, fonts OFL, M5 MIT) and both-firmware build matrix in the ticket <!-- t:5hiv -->
 - [ ] [P9.7] Final acceptance: doctor clean, PULP standalone demo checklist executed by someone else <!-- t:n7cl -->

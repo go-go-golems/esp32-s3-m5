@@ -382,3 +382,34 @@ The full product runs from one 25 KB bytecode image: launcher, Library, Reader (
 ### Code review instructions
 - `0114/main/app_owner.cpp` boot block, `app_power.cpp` PresentSleepImage, `components/s3paper_runtime/src/runtime.cpp` font block, pulp.js library/2048 sections.
 - Validate: `sleep deep 20`, reconnect after 40 s, `sleep status` shows reset_reason=8 wakeup_cause=4.
+
+## Step 9: Phase 9 — hardening evidence: faults, trace equivalence, mixed soak
+
+The hardening pass ran against the live product build. The script fault battery, the ported trace-equivalence harness, and a 258-command mixed-app soak all passed; the license inventory and build matrix are recorded in reference/02.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Commits (code):** 0715fdd (license inventory), b2704a8 (probes 13/14)
+
+### What I did
+- `js probe 13` (fault battery): `for(;;){}` killed by the interrupt deadline at 804 ms of an 800 ms budget with status CorruptData; a 50-exception storm counted cleanly (exceptions 1 -> 51); the context evaluated normally afterwards ("context alive after storm").
+- `js probe 14` (trace equivalence, ESP-50 harness ported): a deterministic native tree (header/content/footer, invert chip, center + gray props) and its v2-builder JS mirror produce byte-identical normalized fake-backend traces — **EQUAL, 831 bytes both**. This is the strongest statement available that the builder classes drive the identical pipeline.
+- Mixed soak: 255 scripted interactions (blitz start/pause, 2048 swipes incl. trapped down, dice rolls, ink scene cycling, repeated launcher re-entry) — transcript p9-mixed-soak.log. Results: console source 258 accepted / 0 dropped / 0 out-of-order; replies 257 sent / 0 dropped; internal (touch/timer) source 28,876 accepted with 18 counted drops under momentary queue pressure (the designed non-blocking behavior); heap internal_free 225,435 with min_free 222,755 (flat across the ~50-minute combined soak window); no new exceptions.
+- reference/02: license inventory (engine MIT, stb public-domain/MIT, fonts OFL, M5 MIT, IDF Apache-2.0) + verified build matrix.
+
+### What worked
+- Everything on the first run; the deadline precision (804/800 ms) matches the ESP-50 spike measurement.
+
+### What warrants a second pair of eyes
+- The per-second `js present ... mode=2` tick log on every()-pages is noise (zero-damage ticks log a present line without panel work). Consider demoting to LOGD.
+- 18 internal-source drops during the soak: touch ticks racing a briefly-full queue. By design (next tick 20 ms later), but the count is the number to watch in longer soaks.
+
+### What should be done in the future
+- n7cl (final acceptance walkthrough by someone else) stays open — it requires a human operator by definition.
+- ESP-50-era open items (power-loss sim during write, fixture screenshots) remain in the ESP-50 ticket.
+
+### Code review instructions
+- `0114/main/js_probes.cpp` cases 13/14 (RunTraceEquivalence, NormalizeTraceInto).
+- Transcripts: p9-fault-trace.log, p9-mixed-soak.log; license doc reference/02.

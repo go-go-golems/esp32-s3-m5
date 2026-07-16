@@ -108,3 +108,26 @@ The demo exists and behaves exactly as designed: one page, one canvas, three sce
 
 ### Code review instructions
 - pulp.js `ink()`; validate with `js pulp`, tap Ink, tap through scenes, leave the clock 2+ minutes and count `update present` lines.
+
+## Step 4: Phase 5 — soak and closure
+
+The 30-minute clock soak and the shared mixed-app soak close the ticket's hardening gate. No goldens shifted (the new trace assertions were added as new checks; the suite grew 37,989 -> 38,174 across ESP-51/52 without re-pinning anything).
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+### What I did
+- Clock soak (p5-clock-soak.log, ~36 min on the Ink clock scene): **36 update presents, exactly one per minute** (60.26 s spacing), zero panel work between ticks, heap internal_free 225,959 / min_free 223,263 (max dip 2.7 KB), 1,944 tick dispatches, zero exceptions.
+- The ESP-51 mixed soak (p9-mixed-soak.log) exercised Ink's scene cycling within its 255-command battery; heap flat after both soaks combined.
+- docmgr doctor clean on the ticket; all tasks checked except this closing entry.
+
+### What warrants a second pair of eyes
+- The per-second zero-damage tick logs "js present mode=2" — cosmetic noise inherited from the ESP-51 tick design; noted there for demotion to debug level.
+
+### What should be done in the future
+- An `rtcNow()` binding (BM8563) would turn the Ink clock into a wall clock.
+- Canvas damage granularity (whole frame per change burst) is fine at 1/min; revisit only if a high-frequency drawing app appears.
+
+### Code review instructions
+- Everything is in commits e1f9231, 2deb364, 40ff4ff, 668f688; transcripts in scripts/output/.

@@ -31,3 +31,12 @@ Step 3: Phase 4 - Ink app live: 3 scenes, clock proven at one blit per minute (c
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — ink() showcase app
 
+
+## 2026-07-16
+
+Step 4: P5 closure - 36-min clock soak (one blit/min, heap flat, 0 exceptions); ticket complete
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/16/ESP-52-EINK-CANVAS--e-ink-canvas-drawing-primitives-line-circle-rect-fill-and-a-minimalist-showcase-app/scripts/output/p5-clock-soak.log — Soak evidence
+

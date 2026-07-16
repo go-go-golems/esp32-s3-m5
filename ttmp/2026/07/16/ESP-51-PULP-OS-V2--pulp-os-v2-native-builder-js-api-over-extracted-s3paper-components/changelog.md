@@ -85,3 +85,12 @@ Step 8: Phase 8 - boot-to-launcher, JS sleep image, deep+rtc-off wake matrix, kF
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_power.cpp — JS sleep image path
 
+
+## 2026-07-16
+
+Step 9: P9 hardening - fault battery (deadline 804ms, storm contained), trace-equivalence EQUAL 831B, 258-command mixed soak heap-flat (commits 0715fdd, b2704a8)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/js_probes.cpp — Fault + trace-equivalence probes
+
