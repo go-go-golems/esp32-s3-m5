@@ -198,3 +198,44 @@ The present pipeline is now the shared `s3paper_runtime` component: frame storag
 ### Code review instructions
 - Diff `components/s3paper_runtime/src/runtime.cpp` against old `0112/main/{app_display.cpp,app_ui.cpp}` (logic verbatim; only naming/config changed).
 - Validate: `js trace` (EQUAL), `widget status` then watch 2 s ticks, blitz recipe `js pulp; js tap 270 330; js tap 270 150`.
+
+## Step 5: Phase 4 — 0114 skeleton boots on the shared components
+
+New project `0114-papers3-pulp-os` (namespace `pulp`): 16 MB partitions and PSRAM sdkconfig copied from 0112, owner task + bounded queue + AssertOwner (trimmed: no soak/stress fixtures), a fresh smaller console (`status/heap/events/display/ping/touch/sd/sleep/home`), the input pipeline with a REGISTERED gesture handler hook (`InputSetGestureHandler` — Phase 6 points it at JS; 0112 hardcoded JS-then-reader routing), the power module with a `SleepImageBuilder` hook (Phase 8 points it at the JS `sleepImage(fn)` lambda; placeholder = PULP wordmark in the Swiss faces), and a native Swiss home page presented at boot. Boot flow: RuntimeInit -> storage configure(pre_mount=EnsureM5Init) + mount -> home present -> touch on.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Phase 4: a bootable 0114 shell proving all four components together.
+
+**Inferred user intent:** The platform for Phases 5-8.
+
+**Commit (code):** f722b77 — "ESP-51 Phase 4: 0114-papers3-pulp-os skeleton (owner, console, input, power, native home)"
+
+### What I did
+- 12 files (~1500 lines): CMakeLists (explicit EXTRA_COMPONENT_DIRS + `COMPONENTS main esp_psram`), app_events.h (trimmed contract: 4 event kinds, 2 sources, 10 console ops), app_owner, app_console, app_input, app_power, app_home, app_main, README with the serial discipline.
+- Device validation (transcript p4-skeleton-boot.log): `runtime ready` in PSRAM, SD mounted 7580 MiB, `pulp screen: home-native` + `home presented (full=1)` at boot, all console snapshots green, battery 100%/4158 mV, reset_reason=11 (USB).
+
+### Why
+- The plan's Phase 4 gate: boot renders a native page through s3paper_runtime before any JS exists.
+
+### What worked
+- Binary is 825 KB (vs 0112's 1002 KB) with zero JS; one compile fix needed.
+
+### What didn't work
+- `error: no match for 'operator=='` on WidgetHandle: the core deliberately has no handle equality; null tests are `s3paper::IsNull(h)`. Also app_power.h needed `s3paper/widget.h` (app_events.h no longer includes widget types).
+
+### What was tricky to build
+- Deciding what NOT to copy: soak/stress fixtures, refresh snapshot, reader ops all stayed behind. The 0112 console remains the hardware-qualification surface; 0114's console only needs product-debugging ops. Anything missed can be cherry-picked later.
+
+### What warrants a second pair of eyes
+- `ConsoleOp::Js` returns Unimplemented until Phase 5 — intentional.
+- Home page reads free-heap at build time of the tree; numbers freeze until re-present (fine for a placeholder).
+
+### What should be done in the future
+- Phase 5: engine + v2 builder stdlib.
+
+### Code review instructions
+- Start: `0114-papers3-pulp-os/main/app_owner.cpp` (boot flow + tick hooks), `app_input.cpp` (handler hook), `app_power.cpp` (SleepImageBuilder).
+- Validate: build + flash, then `status`, `home`, `sd status` via the console client.

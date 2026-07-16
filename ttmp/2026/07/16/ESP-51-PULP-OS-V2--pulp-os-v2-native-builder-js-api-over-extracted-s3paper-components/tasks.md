@@ -25,12 +25,12 @@
 - [x] [P3.2] Preserve the two update-mode invariants: hits never re-collected under clip; compile always given a hits array <!-- t:kjec -->
 - [x] [P3.3] Re-point 0112 (reader, fixtures, JS v1) at the component; delete app_ui remnants <!-- t:7bxm -->
 - [x] [P3.4] Device validation on 0112: page turn full=0, widget status region ticks, js trace EQUAL, blitz update damage 460x86 <!-- t:23s5 -->
-- [ ] Phase 4 - 0114 skeleton: owner loop, console, input, native hello via s3paper_runtime <!-- t:kdot -->
-- [ ] [P4.1] Project scaffold: 16MB partitions, PSRAM sdkconfig.defaults, USB-Serial-JTAG console, README with serial discipline <!-- t:haee -->
-- [ ] [P4.2] Owner task + bounded event queue + AssertOwner + tick hooks (copy/trim from 0112) <!-- t:i8bs -->
-- [ ] [P4.3] Console skeleton: status, heap, display; input service with gesture pipeline <!-- t:j8kr -->
-- [ ] [P4.4] Boot renders a native hello page through s3paper_runtime; transcript saved <!-- t:pglr -->
-- [ ] [P4.5] Power module: sleep sequence, battery status, boot-cause log (copy/trim; sleep image placeholder) <!-- t:b3np -->
+- [x] Phase 4 - 0114 skeleton: owner loop, console, input, native hello via s3paper_runtime <!-- t:kdot -->
+- [x] [P4.1] Project scaffold: 16MB partitions, PSRAM sdkconfig.defaults, USB-Serial-JTAG console, README with serial discipline <!-- t:haee -->
+- [x] [P4.2] Owner task + bounded event queue + AssertOwner + tick hooks (copy/trim from 0112) <!-- t:i8bs -->
+- [x] [P4.3] Console skeleton: status, heap, display; input service with gesture pipeline <!-- t:j8kr -->
+- [x] [P4.4] Boot renders a native hello page through s3paper_runtime; transcript saved <!-- t:pglr -->
+- [x] [P4.5] Power module: sleep sequence, battery status, boot-cause log (copy/trim; sleep image placeholder) <!-- t:b3np -->
 - [ ] Phase 5 - MicroQuickJS engine + v2 builder stdlib (classes, factories, ROM prototypes) <!-- t:tbhl -->
 - [ ] [P5.1] Vendor the engine copy; port gen scripts; generate stdlib+atoms; record provenance in README <!-- t:xrqj -->
 - [ ] [P5.2] Widget class: opaque packed handle, no-op finalizer, generation-checked methods throwing stale TypeError <!-- t:hiou -->

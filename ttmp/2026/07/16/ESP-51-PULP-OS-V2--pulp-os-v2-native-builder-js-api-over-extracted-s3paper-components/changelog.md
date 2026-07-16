@@ -49,3 +49,12 @@ Step 4: Phase 3 complete - s3paper_runtime extracted; 0112 device gate green (tr
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/s3paper_runtime/include/s3paper_runtime/runtime.h — Runtime component API
 
+
+## 2026-07-16
+
+Step 5: Phase 4 complete - 0114 skeleton boots: owner/console/input/power/native home on shared components (commit f722b77)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_owner.cpp — Boot flow and owner loop
+
