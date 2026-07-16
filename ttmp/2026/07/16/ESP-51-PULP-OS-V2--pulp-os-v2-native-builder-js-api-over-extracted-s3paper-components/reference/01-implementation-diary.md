@@ -293,3 +293,52 @@ The heart of the ticket. 0114 now runs MicroQuickJS with the v2 stdlib: factorie
 - Start: `0114/main/app_js_internal.h` (the contract), then `app_js.cpp` CallCb/RegisterCb/JsHandleGesture/JsTimerTick, then `js_widgets.cpp` onTap + text(fn).
 - The core fix: `components/s3paper_core/src/text.cpp` MeasureText/BreakLines guards + the regression test in tests/host/test_main.cpp (font init block).
 - Validate: `js probe 1..8`, `js tap 270 160` on probe3, probe4 tick logs; transcripts `p56-final-a/b.log`.
+
+## Step 7: Phase 7 — PULP OS on v2, all apps live (with the operator in the loop)
+
+The full product runs from one 25 KB bytecode image: launcher, Library, Reader (new in v2 — 0114 has no native reader), Dice Tray, Blitz Ink, 2048 INK, Tea Timer, Postcard, and Daily Pulp, all on the builder classes. The bytecode pipeline is live: pulpjsc compiles apps/pulp.js, JsInit relocates+loads the image BEFORE any eval (zero-RAM-atom rule), `js pulp` runs main. The operator played with the physical device during validation and drove three fixes in real time.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1) — plus mid-turn, from the device: "dice roll doesn't work btw." / "(didn't before either)" / "the horizontal lines separating the apps should have the same margin as the bold line under \"the paperback of computers\"" / "same on the book shelf, the margins for the book separaors should also be same margin," / "add a book in cyrillic as well"
+
+**Assistant interpretation:** Ship the apps on v2 and fold in live usability feedback: tap-target sizes, separator margins, Cyrillic content.
+
+**Inferred user intent:** A usable, finger-operated product, not just console-validated demos.
+
+**Commit (code):** c9119b0 — "ESP-51 Phase 7: PULP apps on v2 ..."
+
+### What I did
+- `tools/js/apps/pulp.js` (~600 lines): every app rewritten on pages/classes. Blitz is fully declarative — the clocks/labels/move-counter are `text(fn)` dynamic lambdas; the tick handler only calls `settle()` and the native tick refreshes + diff-presents.
+- Bytecode: LoadBytecodeApps in JsInit (buffer outlives context), JsRunPulp via JS_Run; `js pulp` console op.
+- New `js hits` console command dumping the live hit-region table — ends the blind coordinate guessing that plagued ESP-50 validation.
+- Operator-driven fixes: fat tap targets (dice 108x72 buttons; tea/2048/daily buttons 110-170x56 — bare text rects were 45px tall and finger taps missed, in v1 too); launcher + library separators inside pad(0,40,0,40) so they share the header rule's margins; Ukrainian seed book (Shevchenko, public domain, UTF-8 escapes in `app_book_seed.h`) written to /sdcard/books/kobzar.txt at boot via the storage seed hook.
+- Evidence (p7-*.log): launcher hits 7 rows; blitz start->one 460x86 rect/s, long-press pause, swipe-down home; 2048 swipes incl. TRAPPED down-as-move, 3-9 rects per move; postcard typed 'hi' + SEAL -> journal re-hashed by the next scan; library 4 books; reader opened alice AT 0112'S PERSISTED POSITION (interop), page turns both ways; kobzar Cyrillic page renders ops=20 skipped=0; daily reveal (460x22 title rect) + another (full re-page).
+
+### Why
+- Phase 7 is the product gate; the operator feedback loop is exactly what the phase is for.
+
+### What worked
+- Every app on first flash after the Phase 5/6 foundation; zero exceptions across the entire walk.
+
+### What didn't work
+- pulpjsc needed JS_CLASS_COUNT too (same finalizer-table sizing as the device TU).
+- `js probe 10` collided with the pulp op (arg space); probes moved to 20+N.
+- Physical dice taps missed: bare-text hit rects. Console taps at exact coordinates worked, which localized it to target size, not dispatch.
+- My blind tap coordinates missed buttons repeatedly until `js hits` existed. Build the introspection tool FIRST next time.
+
+### What was tricky to build
+- App-switch semantics: `enter()` = resetTree + re-register paper.home/sleepImage (resetTree clears the cb registry, so OS-level callbacks must re-register per app entry). Retained pages die at each resetTree by design; apps rebuild their page on entry, keeping app STATE in JS globals (DZ/BZ/GG/TT/PC/DP survive).
+- The reader "not turning" red herring: alice resumed at 0112's end-of-book locator, so next legitimately refused. Reading the persistence semantics before debugging saved a round.
+
+### What warrants a second pair of eyes
+- 2048 traps swipe-down (a move) — home only via button; deliberate but worth a design look.
+- Blitz flag detection happens on tick settle; between flag and tick the clock can show 00:00 without FLAGS for <1 s.
+
+### What should be done in the future
+- 0114 -> 0112 position interop direction not yet demonstrated (alice write-back happens on page turns; verify when 0112 is next flashed).
+- Tea end-to-end steep + READY blink not exercised (mechanism identical to blitz tick).
+
+### Code review instructions
+- `0114/tools/js/apps/pulp.js` (the product), `main/app_js.cpp` LoadBytecodeApps/JsRunPulp, `main/app_book_seed.h`.
+- Validate: `js pulp`, then `js hits` + taps per transcripts p7-*.log.

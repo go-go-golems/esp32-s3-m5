@@ -38,7 +38,7 @@
 - [x] [P5.4] Prototype methods pad/gap/aligns/width/height/flex/size-token/gray/center/add/set/progress, chaining via this <!-- t:7u0w -->
 - [x] [P5.5] Page class (opaque PageId): header/content/footer/overlay/show; paper singleton with refresh param setters <!-- t:cz4t -->
 - [x] [P5.6] New native text prop: invert (filled background); host test + golden update <!-- t:o3nn -->
-- [ ] [P5.7] VM host: PSRAM arena, deadline wrapper, exception snapshot, bytecode load-before-eval <!-- t:9ryy -->
+- [x] [P5.7] VM host: PSRAM arena, deadline wrapper, exception snapshot, bytecode load-before-eval <!-- t:9ryy -->
 - [x] [P5.8] Console js eval probes validating each builder on hardware <!-- t:eokc -->
 - [x] Phase 6 - Closures without native JSValues: __cbs registry, direct dispatch, dynamic values <!-- t:bm1c -->
 - [ ] [P6.1] Kernel JS: __cbs array + gesture-name constants + list .item() sugar (~30 lines, part of the bytecode image) <!-- t:doxu -->
@@ -47,13 +47,13 @@
 - [x] [P6.4] text(fn) dynamic values: native {handle, cb_id} table; owner tick calls fns, SetText, single PresentPageUpdate <!-- t:lrgf -->
 - [x] [P6.5] every(ms)/quiet() region sugar wired to the tick; zero-damage ticks must do zero EPD work (log proves it) <!-- t:6s9i -->
 - [x] [P6.6] Fault containment: throwing callbacks counted + surfaced; stale-handle and arena-full paths validated <!-- t:jec7 -->
-- [ ] Phase 7 - PULP apps on v2 + book service <!-- t:r712 -->
-- [ ] [P7.1] Port the book service (JsBook + s3Book* equivalents) keeping the 0112 LayoutKey for position interop <!-- t:ao0i -->
-- [ ] [P7.2] Launcher + Dice + Tea on v2; per-app line counts should drop sharply vs v1 <!-- t:v23v -->
-- [ ] [P7.3] Blitz Ink declarative (dynamic clock lambdas); verify one small damage rect per second <!-- t:ivkl -->
-- [ ] [P7.4] 2048 with retained cells; only moved tiles blit; best score via settings store <!-- t:101p -->
-- [ ] [P7.5] Postcard keyboard + journal append; sealed line appears as a library book after rescan <!-- t:wepo -->
-- [ ] [P7.6] JS reader + Daily Pulp over the book service; position interop with 0112 demonstrated both ways <!-- t:oda7 -->
+- [x] Phase 7 - PULP apps on v2 + book service <!-- t:r712 -->
+- [x] [P7.1] Port the book service (JsBook + s3Book* equivalents) keeping the 0112 LayoutKey for position interop <!-- t:ao0i -->
+- [x] [P7.2] Launcher + Dice + Tea on v2; per-app line counts should drop sharply vs v1 <!-- t:v23v -->
+- [x] [P7.3] Blitz Ink declarative (dynamic clock lambdas); verify one small damage rect per second <!-- t:ivkl -->
+- [x] [P7.4] 2048 with retained cells; only moved tiles blit; best score via settings store <!-- t:101p -->
+- [x] [P7.5] Postcard keyboard + journal append; sealed line appears as a library book after rescan <!-- t:wepo -->
+- [x] [P7.6] JS reader + Daily Pulp over the book service; position interop with 0112 demonstrated both ways <!-- t:oda7 -->
 - [ ] Phase 8 - Product polish: boot-to-launcher, JS screensaver, navigation, auto-sleep <!-- t:ijfh -->
 - [ ] [P8.1] Boot flow: mount -> persistence -> JS context -> launcher clean render -> touch on <!-- t:8eq5 -->
 - [ ] [P8.2] sleepImage(fn): power path evaluates the JS lambda into a tree and presents it before sleeping <!-- t:ihdn -->
