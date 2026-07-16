@@ -1,7 +1,7 @@
 ---
 Title: 'E-ink canvas: drawing primitives (line, circle, rect, fill) and a minimalist showcase app'
 Ticket: ESP-52-EINK-CANVAS
-Status: active
+Status: complete
 Topics:
     - papers3
     - eink
@@ -18,10 +18,11 @@ RelatedFiles:
       Note: Draw-op vocabulary the primitives extend
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-07-16T16:24:05.767668207-04:00
+LastUpdated: 2026-07-16T17:36:28.139084568-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 

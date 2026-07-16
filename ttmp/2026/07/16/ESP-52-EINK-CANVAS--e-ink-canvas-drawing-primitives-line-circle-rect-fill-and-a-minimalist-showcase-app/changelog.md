@@ -40,3 +40,8 @@ Step 4: P5 closure - 36-min clock soak (one blit/min, heap flat, 0 exceptions); 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/16/ESP-52-EINK-CANVAS--e-ink-canvas-drawing-primitives-line-circle-rect-fill-and-a-minimalist-showcase-app/scripts/output/p5-clock-soak.log — Soak evidence
 
+
+## 2026-07-16
+
+Ticket closed
+
