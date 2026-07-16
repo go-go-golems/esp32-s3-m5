@@ -76,3 +76,59 @@ It was written from verified sources, not memory: the API tables came from grepp
 ### Technical details
 - Upload pipeline: `python3 ~/.local/bin/remarkable_upload.py --force <md>` (pandoc/xelatex + DejaVu → PDF → `rmapi put`), then `rmapi mv "ai/2026/07/16/<name>" "ai/2026/07/16/ESP-53-PULP-CONNECTIVITY/"`.
 - Guide structure: §1 what it is, §2 hardware/constraints, §3 repo+toolchain, §4 s3paper_core, §5 m5/storage/runtime, §6 MicroQuickJS facts, §7 binding layer, §8 bytecode toolchain, §9 JS API reference, §10 pulp.js, §11 owner/events, §12 console/validation, §13 ESP-53 pointer, §14 gotcha catalog, §15 glossary.
+
+## Step 2: P0 orientation + P1 buzzer (module, console command, product chimes)
+
+Implementation began. P0 was a baseline `idf.py build` of 0114 (green) plus re-reading the binding/owner/console/stdlib sources to refresh the exact contracts. P1 then added the first ESP-53 module end to end: `app_buzzer.{h,cpp}` (LEDC on GPIO21, lazy init, owner-tick note sequencer, 16-note melody parser), a thin `js_buzzer.cpp` bindings TU exposing the `buzzer` singleton (`tone/beep/stop/melody`), a `buzz` console command riding a new `ConsoleOp::Buzz`, and three product chimes in pulp.js (tea READY rising melody, postcard seal click, 2048 merge tone scaled by points gained, frequency clamped to 1760 Hz).
+
+The hardware gate passed on first flash: `buzz beep` lazily initialized LEDC and sounded, `buzz tone 440 300` played, the demo melody (`880:120,0:40,1109:120,0:40,1319:200` — triad with rests) sequenced all five notes off the owner tick and self-silenced, and `js status` showed `exceptions=0` — which also proves the regenerated atom table and bytecode image load cleanly, since boot would have failed the zero-RAM-atom check otherwise.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, now implement." (followed mid-turn by: "keep a detailed diary as you work (see skill for the format), and commit at appropriate intervals")
+
+**Assistant interpretation:** Execute the ESP-53 task plan phase by phase (buzzer → files → wifi → http → serve → settings → hardening) with hardware gates, per-phase commits, and diary steps.
+
+**Inferred user intent:** Ship the connectivity feature set designed in design-doc/01, with the same disciplined evidence trail as ESP-51/52.
+
+**Commit (code):** f57c61b — "ESP-53 P1: buzzer module (GPIO21 LEDC), buzz console command, product chimes"
+
+### What I did
+- `main/app_buzzer.{h,cpp}`: LEDC port of `M5PaperS3-UserDemo/main/hal/hal.cpp:385` (timer 0, low-speed, 13-bit, duty 4096); `BuzzerTone/Beep/Stop/Melody` + `BuzzerTick` sequencer; bounds: 40–12000 Hz, ≤10 s/note, ≤16 notes; freq 0 = rest.
+- `main/js_buzzer.cpp`: `js_buzzer_*` bindings; `buzzer` object added to `pulp_stdlib.c`/`mqjs_stdlib_pulp.c`, STUBs to `pulpjsc.c`, prototypes to `app_js_bindings.h`.
+- `app_events.h`: `ConsoleOp::Buzz` (arg 0 status / 1 beep / 2 stop / 3 tone arg2=freq<<16|ms / 4 demo melody) + `BuzzSnapshot` in the reply union. Owner handles the op and calls `BuzzerTick` from `TickHooks`.
+- `app_console.cpp`: `buzz [status|beep|stop|tone F MS|melody]`.
+- pulp.js chimes at the three product moments; regenerated stdlib + bytecode; built; flashed; ran the console gate.
+
+### Why
+- Buzzer first per the phase plan: smallest module, exercises the full stdlib-regeneration + console + owner-tick pipeline before any networking complexity arrives.
+- Rests are notes with freq 0 rather than a separate mechanism — one code path through `StartNote` and the tick.
+
+### What worked
+- The entire chain (stdlib regen → bytecode → flash → audible) passed on the first hardware attempt; the only build fix was a wrong StatusCode name.
+- Owner-tick sequencing at the touch producer's 20 ms cadence is audibly clean for 40–300 ms notes.
+
+### What didn't work
+- `BuzzStatusCode::Internal` — the s3paper StatusCode enum has no `Internal`; compile error `'Internal' is not a member`. Used `Busy` for LEDC init failure instead.
+- First draft of `CmdBuzz` posted the tone op twice (a RunConsoleOp then a RunConsoleOpWithArgs); caught on self-review before build, collapsed to one call.
+
+### What I learned
+- `TickHooks` cadence is 20 ms only while touch is enabled (the touch producer task is the metronome); with touch off it degrades to the 500 ms queue timeout. Fine for chimes; anything needing precise off-screen timing must not rely on it.
+
+### What was tricky to build
+- Melody advance on skip: an unplayable note (bad freq after storage corruption, say) must not abandon the melody or leave the buzzer stuck sounding. `MelodyAdvance` loops past failed notes and `Silence()`s at the end; a direct `tone()` call preempts an active melody by clearing `melody_active` before `StartNote`.
+
+### What warrants a second pair of eyes
+- The `arg2 = freq<<16 | ms` console packing caps ms at 65535 — fine for chimes, but the JS path allows 10 s notes while the console path truncates silently above 65.5 s (both above the 10 s module cap, so no real exposure; still, asymmetry).
+- `BuzzerTick` runs on every owner loop pass; confirm no audible glitch when a long present (~1 s full refresh) delays the tick mid-melody (notes stretch, never overlap — by construction, but worth an ear).
+
+### What should be done in the future
+- P6's settings app could add a mute toggle (`storeGet('mute')` checked in the JS chime helpers).
+
+### Code review instructions
+- Start at `0114-papers3-pulp-os/main/app_buzzer.cpp` (StartNote/MelodyAdvance/BuzzerTick state machine), then `app_owner.cpp` ConsoleOp::Buzz case and TickHooks.
+- Validate: `buzz beep && buzz melody && buzz status` over the console client; expect `tones` to advance and `melody (n/n)` to complete; `js status` exceptions=0.
+
+### Technical details
+- Gate transcript (device): `buzz init=0→1`, `tones=0→5`, `melody=1 (1/5)` → `melody=0 (5/5)`, all `result=Ok`.
+- Bytecode grew to 30216 bytes (one image, well under the ROM atom table budget).

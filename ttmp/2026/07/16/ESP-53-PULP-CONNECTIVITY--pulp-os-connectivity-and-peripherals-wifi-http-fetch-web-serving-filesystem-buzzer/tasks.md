@@ -2,10 +2,10 @@
 
 ## TODO
 
-- [ ] Phase 0 - Orientation: build/flash 0114, read guide + ESP-51 §6-7, skim go-go-goja modules + widgetdsl <!-- t:uo37 -->
-- [ ] [P1.1] Buzzer module: LEDC GPIO21 port from UserDemo, tone/beep/stop/melody, owner-tick sequencer <!-- t:rpjk -->
-- [ ] [P1.2] buzz console command + stdlib regen; audible gate on device <!-- t:h59l -->
-- [ ] [P1.3] Product chimes: tea READY, postcard SEAL, 2048 merge <!-- t:22os -->
+- [x] Phase 0 - Orientation: build/flash 0114, read guide + ESP-51 §6-7, skim go-go-goja modules + widgetdsl <!-- t:uo37 -->
+- [x] [P1.1] Buzzer module: LEDC GPIO21 port from UserDemo, tone/beep/stop/melody, owner-tick sequencer <!-- t:rpjk -->
+- [x] [P1.2] buzz console command + stdlib regen; audible gate on device <!-- t:h59l -->
+- [x] [P1.3] Product chimes: tea READY, postcard SEAL, 2048 merge <!-- t:22os -->
 - [ ] [P2.1] files module: path sanitizer (reject .., absolutes, state dir), sync exists/stat <!-- t:580w -->
 - [ ] [P2.2] files list/read/write/append/remove with mailboxes; probes for caps + denials <!-- t:ejvc -->
 - [ ] [P3.1] ModuleDone event kind + completion-mailbox plumbing in owner loop <!-- t:qqi3 -->

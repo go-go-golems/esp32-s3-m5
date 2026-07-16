@@ -22,3 +22,12 @@ Added design-doc/02: full-system onboarding guide (hardware, component stack, pr
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/16/ESP-53-PULP-CONNECTIVITY--pulp-os-connectivity-and-peripherals-wifi-http-fetch-web-serving-filesystem-buzzer/design-doc/02-pulp-os-system-onboarding-guide-every-part-of-the-system-for-a-new-intern.md — The new onboarding guide
 
+
+## 2026-07-16
+
+P0+P1 complete: buzzer module app_buzzer.{h,cpp} (lazy LEDC GPIO21, owner-tick note sequencer, 16-note melody parser), buzzer JS singleton (tone/beep/stop/melody), buzz console command via ConsoleOp::Buzz, product chimes (tea READY melody, postcard seal click, 2048 merge tone). Hardware gate passed: beep/tone/melody audible, melody 5/5 notes sequenced, js exceptions=0 (commit f57c61b)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_buzzer.cpp — Buzzer module with owner-tick sequencer
+
