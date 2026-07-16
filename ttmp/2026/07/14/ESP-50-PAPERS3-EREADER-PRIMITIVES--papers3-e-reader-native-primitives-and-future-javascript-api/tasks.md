@@ -177,8 +177,8 @@
 - [x] [P12.7] Validate JS-produced patches/descriptors for type, bounds, capacity, ownership, and stale handles before applying them <!-- t:muo1 -->
 - [ ] [P12.8] Implement the host authoring/transpile/compile/relocate/embed pipeline pinned to the runtime commit <!-- t:ibe5 -->
 - [ ] [P12.9] Port the hello, status, library, and reader studio programs to the supported on-device dialect <!-- t:wipy -->
-- [ ] [P12.10] Compare native and JS normalized layout, DrawOp, hit-region, and refresh-plan traces <!-- t:17nn -->
-- [ ] [P12.11] Test script exceptions, OOM, callback teardown, invalid descriptors, and app fallback to a native error screen <!-- t:rs5w -->
+- [x] [P12.10] Compare native and JS normalized layout, DrawOp, hit-region, and refresh-plan traces <!-- t:17nn -->
+- [x] [P12.11] Test script exceptions, OOM, callback teardown, invalid descriptors, and app fallback to a native error screen <!-- t:rs5w -->
 - [ ] [P13.1] Consolidate host unit, golden trace, serialization, pagination, gesture, refresh, and JS binding tests into repeatable commands <!-- t:4u67 -->
 - [ ] [P13.2] Add malformed UTF-8, catalog, state, cache, TXT, and future EPUB fuzz/regression corpora <!-- t:666s -->
 - [ ] [P13.3] Run long-duration mixed refresh, navigation, storage, and heap-integrity soak tests on hardware <!-- t:ge9q -->

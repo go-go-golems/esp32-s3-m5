@@ -1081,3 +1081,46 @@ MicroQuickJS now lives inside the reader firmware and drives real screens throug
 ### Code review instructions
 - Start at `main/app_js.cpp`: `EvalBounded`, `ArgHandle`, `js_s3_config`, `js_s3_present`, and the embedded `kFacadeJs`; then `main/js_stdlib_table.c` + `main/app_js_bindings.h` for the pairing contract; `tools/js/gen_s3_stdlib.sh` regenerates.
 - Validate: `js hello`, `js taps` (check `hits=1`), tap the counter, then `reader open` + `reader next` (reader self-heals). Evidence: `scripts/output/0112-js-apps.log`, `0112-js-reader-coexist.log`.
+
+## Step 18: Phase 12 exit gate — trace equivalence, JS library, fault fallback
+
+The phase's exit gate is now measured, not asserted: the native hello fixture and a byte-exact ES5 mirror of it render through the fake backend and produce identical normalized draw-op traces (1083 bytes each, frame ids normalized away). Alongside it, the JS library app drives real catalog data with tap-to-open routing into the native reader, and the fault app proves that script failures are contained and the owner falls back to a native screen.
+
+### Prompt Context
+
+**User prompt (verbatim):** "it does increment."
+
+**Assistant interpretation:** Operator confirmed the tap-counter loop; continue with the remaining Phase 12 subtasks (trace equivalence, acceptance ports, fault handling).
+
+**Inferred user intent:** Close out Phase 12 with its exit gate demonstrated.
+
+**Commit (code):** 05b5a7d — "JS: trace equivalence, library port, and fault fallback (Phase 12)"
+
+### What I did
+- Trace harness (17nn): `UiSetTracePresent()` routes UiPresentPage through the FAKE backend; `FakeTrace()` exposes the normalized trace; `UiBuildFixtureSlots()` exposes the native fixture builders. `js trace` presents the native hello fixture, then evaluates `kHelloTraceJs` (a parameter-for-parameter ES5 mirror), normalizes both traces (volatile `id=NNN` → `id=#`), and strcmps: **EQUAL, 1083 bytes both.** Effective intent, damage, op geometry, glyph text — all byte-identical.
+- Library port (wipy 3/4): ABI additions `s3LibraryCount/s3LibraryLine/s3EmbeddedLine/s3OpenBook` (row text formatted by one native function, `ReaderFormatLibraryLine`); `js library` renders embedded + SD rows with per-row `.onTap(function(){ s3OpenBook(idx); })` — hits=3 on hardware; a tap opens the book in the NATIVE reader (JS routes, native reads).
+- Fault containment (rs5w): `js fault` presents, then proves `TypeError: stale widget handle` and `unknown prop 99 (abi v1)` are catchable in JS, then throws; the owner detects a failed app whose page still owns the panel and falls back to the native library screen (`W owner: js app failed; native fallback` → `library screen: 3 row region(s)`).
+
+### What worked
+- Everything above on hardware, plus `js trace` re-verified EQUAL after the reflash.
+
+### What didn't work
+- The first fault script died before its probes ran: **mquickjs stricter mode rejects reusing a `catch` variable name in one scope** (`SyntaxError: catch variable already exists`). Renamed the second catch var. Silver lining: the syntax matrix gains a rule, and the fallback path got exercised by a genuinely unexpected failure mode first.
+
+### What I learned
+- Byte-exact trace equality is achievable across the language boundary because both paths share one widget arena, one layout engine, and one compiler — the JS layer adds zero geometry of its own. The only normalization needed was the frame id.
+
+### What was tricky to build
+- Comparing refresh plans fairly: sequential presents see different planner history, so both runs mark a screen change and present CleanFull; the effective intent lands in the trace header and is covered by the strcmp.
+
+### What warrants a second pair of eyes
+- The trace harness compares the hello pair only; the status fixture's dynamic values (uptime) would need value-freezing to compare. The machinery is reusable when more pairs matter.
+- `NormalizeTraceInto` caps at 12 KB per side; the hello trace is ~1 KB, but a denser fixture could truncate silently — add a truncation warning if bigger pairs are compared.
+
+### What should be done in the future
+- wipy remainder: the JS reader port (needs Book-widget/pagination ABI; the native reader remains the product path). ibe5: host authoring/transpile/bytecode pipeline (on-device trusted bytecode already proven in Phase 11). Both stay open, as does the pj4p umbrella until they land.
+- Operator: `js library`, tap a row — expect the native reading screen to open that book.
+
+### Code review instructions
+- `main/app_js.cpp`: `JsTraceCompare`, `NormalizeTraceInto`, `kHelloTraceJs` vs `app_ui.cpp`'s `BuildHelloFixture` (they must stay mirrors), `kFaultJs`, the four library bindings; owner fallback in `app_owner.cpp` (ConsoleOp::Js).
+- Validate: `js trace` → EQUAL; `js library` → hits=3, tap opens a book; `js fault` → two "fault:" containment lines, owner fallback, native library on panel. Evidence: `scripts/output/0112-js-{trace,library-fault,fault2}.log`.

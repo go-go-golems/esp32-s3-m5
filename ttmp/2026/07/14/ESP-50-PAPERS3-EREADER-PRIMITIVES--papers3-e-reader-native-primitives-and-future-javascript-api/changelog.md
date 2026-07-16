@@ -556,3 +556,12 @@ Step 17: Phase 12 core - MicroQuickJS in the reader firmware with versioned s3 A
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_js.cpp — VM host, s3 ABI bindings, fluent facade (commit 9e030af)
 
+
+## 2026-07-15
+
+Step 18: Phase 12 exit gate met - native and JS hello fixtures produce byte-identical normalized draw-op traces (1083 bytes); JS library app with tap-to-open-native-reader; fault containment + owner fallback to native screen (commit 05b5a7d). Open: wipy (JS reader port), ibe5 (host pipeline), pj4p umbrella
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/main/app_js.cpp — Trace harness, library port, fault app (commit 05b5a7d)
+
