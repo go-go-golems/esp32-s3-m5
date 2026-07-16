@@ -1,0 +1,23 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (103) esp_image: segment 2: paddr=0006f01c vaddr=40374000 size[5nI (1037) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1052) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1052) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> reader next
+reader next
+I (13364) m5_backend: present id=2 intent=TextPage ops=15 skipped=0 damage=0,0,540,960 render_us=256237 wait_us=6
+I (13365) reader_ctl: page at 4322 lines=10 full=0
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=4322 progress=100.0% lines=10 turns=1 at_end=1 checkpoints=2 bookmarked=0 marks=2
+reader> 
+# >>> widget 2
+widget 2
+error: InvalidArgument: usage widget [hello|status]
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> js trace
+js trace
+I (33228) js: context ready: arena=163840 bytes, abi=v1
+I (33259) js: js present: hits=0 full=1
+js trace-compare: EQUAL (native=1083 bytes, js=1083 bytes)
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+reader> 
+# done

@@ -1,0 +1,74 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (115343) js: js present: hits=2 full=0
+I (116343) js: js present: hits=2 full=0
+I (117343) js: js present: hits=2 full=0
+I (118343) js: js present: hits=2 full=0
+I (119343) js: js present: hits=2 full=0
+I (120343) js: js present: hits=2 full=0
+I (12134
+# >>> widget status
+widget status
+I (175095) m5_backend: present id=7 intent=CleanFull ops=8 skipped=0 damage=0,0,540,960 render_us=134443 wait_us=6
+I (175096) ui: status fixture: clock region live (2000 ms interval)
+widget fixture result: Ok
+reader> I (177136) m5_backend: present id=8 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=13154 wait_us=5
+I (177138) runtime: update present: 1 rect(s), damage 460x34 at 40,180
+I (179138) m5_backend: present id=9 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=8271 wait_us=9
+I (179139) runtime: update present: 1 rect(s), damage 460x34 at 40,180
+I (181137) m5_backend: present id=10 intent=TextRegion ops=2 skipped=0 damage=40,180,460,34 render_us=7259 wait_us=7
+I (181138) runtime: update present: 1 rect(s), damage 460x34 at 40,180
+
+# >>> js pulp
+js pulp
+PULP OS booting, abi v1
+pulp screen: home
+I (183169) m5_backend: present id=11 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=147859 wait_us=5
+I (183171) js: js present: hits=7 full=1
+js init=1 screen_active=1 arena=163840 evals=84 exceptions=0 dispatches=80 last_error=""
+reader> 
+# >>> js tap 270 330
+js tap 270 330
+pulp screen: blitz
+I (191148) m5_backend: present id=12 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=142210 wait_us=7
+I (191149) js: js present: hits=2 full=1
+js init=1 screen_active=1 arena=163840 evals=85 exceptions=0 dispatches=81 last_error=""
+reader> I (192030) js: js present: hits=2 full=0
+I (193030) js: js present: hits=2 full=0
+I (194044) js: js present: hits=2 full=0
+I (195043) js: js present: hits=2 full=0
+I (196043) js: js present: hits=2 full=0
+I (197043) js: js present: hits=2 full=0
+I (198043) js: js present: hits=2 full=0
+
+# >>> js tap 270 150
+js tap 270 150
+I (199014) m5_backend: present id=13 intent=TextRegion ops=2 skipped=0 damage=40,428,460,22 render_us=5485 wait_us=5
+I (199015) runtime: update present: 1 rect(s), damage 460x22 at 40,428
+I (199016) js: js present: hits=2 full=0
+js init=1 screen_active=1 arena=163840 evals=93 exceptions=0 dispatches=89 last_error=""
+reader> I (199087) m5_backend: present id=14 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=30776 wait_us=12
+I (199089) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (199089) js: js present: hits=2 full=0
+I (200084) m5_backend: present id=15 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=16777 wait_us=7
+I (200085) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (200086) js: js present: hits=2 full=0
+I (201083) m5_backend: present id=16 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=15778 wait_us=7
+I (201084) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (201085) js: js present: hits=2 full=0
+I (202084) m5_backend: present id=17 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=16776 wait_us=5
+I (202085) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (202086) js: js present: hits=2 full=0
+I (203082) m5_backend: present id=18 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14776 wait_us=7
+I (203083) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (203084) js: js present: hits=2 full=0
+I (204082) m5_backend: present id=19 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=14768 wait_us=5
+I (204083) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (204084) js: js present: hits=2 full=0
+I (205084) m5_backend: present id=20 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=16773 wait_us=7
+I (205085) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (205086) js: js present: hits=2 full=0
+I (206084) m5_backend: present id=21 intent=TextRegion ops=2 skipped=0 damage=40,336,460,86 render_us=16777 wait_us=7
+I (206085) runtime: update present: 1 rect(s), damage 460x86 at 40,336
+I (206086) js: js present: hits=2 full=0
+
+# done

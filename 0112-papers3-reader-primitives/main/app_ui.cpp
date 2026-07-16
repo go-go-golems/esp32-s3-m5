@@ -1,259 +1,33 @@
 #include "app_ui.h"
 
 #include <cstdio>
-#include <cstring>
-#include <new>
 
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 
-#include "app_display.h"
 #include "app_input.h"
 #include "s3paper/text.h"
-#include "s3paper/widget_diff.h"
 
 namespace reader {
 namespace {
 
 const char *kTag = "ui";
 
-constexpr s3paper::Rect kPageBounds{0, 0, 540, 960};
-constexpr uint32_t kMaxRegionSpecs = s3paper::RegionTable::kCapacity;
-
-s3paper::WidgetArena *s_arena = nullptr;
-s3paper::PageRouter s_router;
-s3paper::RenderStateDiff s_diff;
-s3paper::RegionTable s_regions;
-s3paper::LayoutEntry s_entries[s3paper::WidgetArena::kCapacity];
-
-// Last presented page (region ticks re-render it with a damage clip).
-s3paper::PageSlots s_last_slots{};
-UiExtraOps s_last_extra = nullptr;
-bool s_last_valid = false;
-
-uint32_t s_present_count = 0;
-bool s_trace_present = false;
-
-// Fixture state: one live clock region driven by the owner loop.
+// Fixture state: one live clock region driven by the owner loop. The
+// fixture keeps its own slots and the present count at its last present;
+// a different count means another screen took the panel (same contract
+// the JS layer uses).
 bool s_fixture_active = false;
+s3paper::PageSlots s_fixture_slots{};
 s3paper::WidgetHandle s_fixture_clock{};
 int64_t s_fixture_due_us = 0;
 uint32_t s_fixture_interval_ms = 0;
-
-// Layout + compile into the current frame builder. Returns entry count.
-s3paper::Result<uint32_t> BuildPageOps(const s3paper::PageSlots &slots,
-                                       s3paper::HitRegion *hits,
-                                       uint32_t hit_cap,
-                                       uint32_t *out_hit_count) {
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    const s3paper::Result<uint32_t> laid = s3paper::LayoutPage(
-        *s_arena, slots, kPageBounds, s_entries,
-        s3paper::WidgetArena::kCapacity);
-    if (!laid.ok()) {
-        return laid;
-    }
-    s3paper::RegionSpec specs[kMaxRegionSpecs];
-    const s3paper::Result<s3paper::CompileResult> compiled =
-        s3paper::CompileTree(*s_arena, s_entries, laid.value, fb, hits,
-                             hit_cap, specs, kMaxRegionSpecs);
-    if (!compiled.ok()) {
-        return s3paper::Result<uint32_t>::Err(compiled.code);
-    }
-    s_regions.Clear();
-    for (uint32_t i = 0; i < compiled.value.region_count; ++i) {
-        (void)s_regions.Add(specs[i]);
-    }
-    if (out_hit_count != nullptr) {
-        *out_hit_count = compiled.value.hit_count;
-    }
-    return laid;
-}
-
-}  // namespace
-
-void UiInit() {
-    if (s_arena != nullptr) {
-        return;
-    }
-    void *mem = heap_caps_malloc(sizeof(s3paper::WidgetArena),
-                                 MALLOC_CAP_SPIRAM);
-    if (mem == nullptr) {
-        mem = malloc(sizeof(s3paper::WidgetArena));
-    }
-    s_arena = new (mem) s3paper::WidgetArena();
-    s_router.Reset();
-    s_diff.Reset();
-    ESP_LOGI(kTag, "widget arena ready (%u nodes, %u bytes)",
-             static_cast<unsigned>(s3paper::WidgetArena::kCapacity),
-             static_cast<unsigned>(sizeof(s3paper::WidgetArena)));
-}
-
-s3paper::WidgetArena &UiArena() {
-    UiInit();
-    return *s_arena;
-}
-
-s3paper::PageRouter &UiRouter() { return s_router; }
-
-UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
-                              s3paper::PresentIntent intent,
-                              bool screen_change, s3paper::HitRegion *hits,
-                              uint32_t hit_cap, UiExtraOps extra_ops) {
-    UiInit();
-    s_fixture_active = false;  // whoever presents now owns the panel
-    UiPresentResult out{StatusCode::Busy, 0, false};
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    fb.Begin();
-    s3paper::Status st = fb.FillRect(kPageBounds, 255);
-    if (!st.ok()) {
-        out.status = st.code;
-        return out;
-    }
-    const s3paper::Result<uint32_t> laid =
-        BuildPageOps(slots, hits, hit_cap, &out.hit_count);
-    if (!laid.ok()) {
-        out.status = laid.code;
-        return out;
-    }
-    if (extra_ops != nullptr) {
-        const StatusCode extra = extra_ops(fb, s_entries, laid.value);
-        if (extra != StatusCode::Ok) {
-            out.status = extra;
-            return out;
-        }
-    }
-    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
-    if (!frame.ok()) {
-        out.status = frame.code;
-        return out;
-    }
-    const s3paper::Status init = EnsureM5Init();
-    if (!init.ok()) {
-        out.status = init.code;
-        return out;
-    }
-    if (screen_change) {
-        Planner().NoteScreenChange();
-    }
-    const PlannedPresent presented =
-        PresentFramePlanned(frame.value, intent, !s_trace_present);
-    out.status = presented.present.status;
-    out.full_refresh = presented.plan.full_refresh;
-    if (out.status == StatusCode::Ok) {
-        s_diff.Capture(*s_arena, s_entries, laid.value);
-        s_last_slots = slots;
-        s_last_extra = extra_ops;
-        s_last_valid = true;
-        s_present_count++;
-    }
-    return out;
-}
-
-uint32_t UiPresentCount() { return s_present_count; }
-
-UiPresentResult UiPresentPageUpdate(const s3paper::PageSlots &slots,
-                                    s3paper::HitRegion *hits,
-                                    uint32_t hit_cap, UiExtraOps extra_ops) {
-    UiInit();
-    if (!s_last_valid) {
-        return UiPresentPage(slots, s3paper::PresentIntent::TextPage, false,
-                             hits, hit_cap, extra_ops);
-    }
-    // Layout first: the diff compares new frames + content versions
-    // against the capture of the last present.
-    const s3paper::Result<uint32_t> laid = s3paper::LayoutPage(
-        *s_arena, slots, kPageBounds, s_entries,
-        s3paper::WidgetArena::kCapacity);
-    if (!laid.ok()) {
-        UiPresentResult out{laid.code, 0, false};
-        return out;
-    }
-    s3paper::Rect damage[16];
-    const s3paper::Result<uint32_t> rects =
-        s_diff.Diff(*s_arena, s_entries, laid.value, damage, 16);
-    if (!rects.ok()) {
-        // More damage than the budget: one full-tree partial is cheaper
-        // and simpler than many rects.
-        return UiPresentPage(slots, s3paper::PresentIntent::TextPage, false,
-                             hits, hit_cap, extra_ops);
-    }
-    UiPresentResult out{StatusCode::Ok, 0, false};
-    if (rects.value == 0) {
-        return out;  // nothing visible changed: no EPD work at all
-    }
-    s3paper::Rect clip = damage[0];
-    for (uint32_t i = 1; i < rects.value; ++i) {
-        const s3paper::Result<s3paper::Rect> u = Union(clip, damage[i]);
-        if (u.ok()) {
-            clip = u.value;
-        }
-    }
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    fb.Begin();
-    if (!fb.PushClip(clip).ok()) {
-        out.status = StatusCode::CapacityExceeded;
-        return out;
-    }
-    (void)fb.FillRect(kPageBounds, 255);
-    // Hit regions are NOT propagated: compiled under the damage clip they
-    // would shrink to the clip, so the caller keeps its previous hits.
-    // CompileTree still needs an output array (hit nodes are an error
-    // otherwise); this scratch is discarded.
-    (void)hits;
-    (void)hit_cap;
-    s3paper::HitRegion hit_scratch[64];
-    uint32_t hit_scratch_count = 0;
-    const s3paper::Result<uint32_t> built = BuildPageOps(
-        slots, hit_scratch, 64, &hit_scratch_count);
-    out.hit_count = 0;
-    if (!built.ok()) {
-        (void)fb.PopClip();
-        out.status = built.code;
-        return out;
-    }
-    if (extra_ops != nullptr) {
-        const StatusCode extra = extra_ops(fb, s_entries, built.value);
-        if (extra != StatusCode::Ok) {
-            (void)fb.PopClip();
-            out.status = extra;
-            return out;
-        }
-    }
-    (void)fb.PopClip();
-    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
-    if (!frame.ok()) {
-        out.status = frame.code;
-        return out;
-    }
-    const PlannedPresent presented = PresentFramePlanned(
-        frame.value, s3paper::PresentIntent::TextRegion, !s_trace_present);
-    out.status = presented.present.status;
-    out.full_refresh = presented.plan.full_refresh;
-    if (out.status == StatusCode::Ok) {
-        s_diff.Capture(*s_arena, s_entries, built.value);
-        s_last_slots = slots;
-        s_last_extra = extra_ops;
-        s_present_count++;
-        ESP_LOGI(kTag, "update present: %u rect(s), damage %dx%d at %d,%d",
-                 static_cast<unsigned>(rects.value),
-                 static_cast<int>(frame.value.damage.w),
-                 static_cast<int>(frame.value.damage.h),
-                 static_cast<int>(frame.value.damage.x),
-                 static_cast<int>(frame.value.damage.y));
-    }
-    return out;
-}
-
-void UiSetTracePresent(bool enabled) { s_trace_present = enabled; }
-
-// ---- Fixtures ----
-
-namespace {
+uint32_t s_fixture_present_count = 0;
 
 // Hello fixture: proves the generic pipeline end to end.
 StatusCode BuildHelloFixture(s3paper::PageSlots *out) {
-    s3paper::WidgetArena &a = *s_arena;
+    s3paper::WidgetArena &a = UiArena();
     a.Reset();
     s3paper::WidgetHandle header = s3paper::NewCol(a).value;
     s3paper::WidgetNode *hn = a.Configure(header);
@@ -306,7 +80,7 @@ StatusCode BuildHelloFixture(s3paper::PageSlots *out) {
 
 // Status fixture: a live uptime clock inside an interval Region.
 StatusCode BuildStatusFixture(s3paper::PageSlots *out) {
-    s3paper::WidgetArena &a = *s_arena;
+    s3paper::WidgetArena &a = UiArena();
     a.Reset();
     s3paper::WidgetHandle header = s3paper::NewCol(a).value;
     s3paper::WidgetNode *hn = a.Configure(header);
@@ -374,18 +148,22 @@ StatusCode UiRunFixture(uint32_t which) {
     if (built != StatusCode::Ok) {
         return built;
     }
+    s_fixture_active = false;
     const UiPresentResult presented = UiPresentPage(
         slots, s3paper::PresentIntent::CleanFull, true, nullptr, 0, nullptr);
     if (presented.status != StatusCode::Ok) {
         return presented.status;
     }
     if (which == 2) {
-        const s3paper::RegionSpec *clock_region = s_regions.Find(1);
+        const s3paper::RegionSpec *clock_region =
+            s3paper_runtime::FindRegion(1);
         s_fixture_interval_ms =
             clock_region != nullptr ? clock_region->interval_ms : 2000;
         s_fixture_due_us =
             esp_timer_get_time() +
             static_cast<int64_t>(s_fixture_interval_ms) * 1000;
+        s_fixture_slots = slots;
+        s_fixture_present_count = UiPresentCount();
         s_fixture_active = true;
         ESP_LOGI(kTag, "status fixture: clock region live (%u ms interval)",
                  static_cast<unsigned>(s_fixture_interval_ms));
@@ -394,12 +172,17 @@ StatusCode UiRunFixture(uint32_t which) {
 }
 
 void UiRegionTick(int64_t now_us) {
-    if (!s_fixture_active || now_us < s_fixture_due_us || !s_last_valid) {
+    if (!s_fixture_active || now_us < s_fixture_due_us) {
+        return;
+    }
+    // Another screen presented since our last present: it owns the panel.
+    if (UiPresentCount() != s_fixture_present_count) {
+        s_fixture_active = false;
         return;
     }
     // Quiet-while-active regions defer while the user is interacting
     // (design §9.6): retry shortly after instead of fighting page turns.
-    const s3paper::RegionSpec *spec = s_regions.Find(1);
+    const s3paper::RegionSpec *spec = s3paper_runtime::FindRegion(1);
     if (spec != nullptr && spec->quiet_while_active) {
         const int64_t last_input = InputLastInputUs();
         if (last_input != 0 && now_us - last_input < 2'000'000) {
@@ -413,70 +196,19 @@ void UiRegionTick(int64_t now_us) {
     char text[32];
     snprintf(text, sizeof(text), "uptime: %lld s",
              static_cast<long long>(now_us / 1000000));
-    if (!s_arena->SetText(s_fixture_clock, text).ok()) {
+    if (!UiArena().SetText(s_fixture_clock, text).ok()) {
         s_fixture_active = false;  // tree was rebuilt under us
         return;
     }
 
-    // Re-layout and diff against the presented snapshot for exact damage.
-    const s3paper::Result<uint32_t> laid = s3paper::LayoutPage(
-        *s_arena, s_last_slots, kPageBounds, s_entries,
-        s3paper::WidgetArena::kCapacity);
-    if (!laid.ok()) {
-        return;
-    }
-    s3paper::Rect damage[8];
-    const s3paper::Result<uint32_t> rects =
-        s_diff.Diff(*s_arena, s_entries, laid.value, damage, 8);
-    s3paper::Rect clip = kPageBounds;  // fallback: whole page
-    if (rects.ok()) {
-        if (rects.value == 0) {
-            return;  // nothing visible changed
-        }
-        clip = damage[0];
-        for (uint32_t i = 1; i < rects.value; ++i) {
-            const s3paper::Result<s3paper::Rect> u = Union(clip, damage[i]);
-            if (u.ok()) {
-                clip = u.value;
-            }
-        }
-    }
-
-    // Clipped re-render: only ops intersecting the damage survive, so the
-    // frame's damage equals the region and the planner refreshes just it.
-    s3paper::FrameBuilder &fb = FrameBuilderRef();
-    fb.Begin();
-    if (!fb.PushClip(clip).ok()) {
-        return;
-    }
-    (void)fb.FillRect(kPageBounds, 255);
-    uint32_t hit_count = 0;
-    const s3paper::Result<uint32_t> rebuilt =
-        BuildPageOps(s_last_slots, nullptr, 0, &hit_count);
-    if (!rebuilt.ok()) {
-        (void)fb.PopClip();
-        return;
-    }
-    if (s_last_extra != nullptr) {
-        (void)s_last_extra(fb, s_entries, rebuilt.value);
-    }
-    (void)fb.PopClip();
-    const s3paper::Result<s3paper::RenderFrame> frame = FinishFrame();
-    if (!frame.ok()) {
-        return;
-    }
-    const PlannedPresent presented = PresentFramePlanned(
-        frame.value, s3paper::PresentIntent::TextRegion, true);
-    if (presented.present.status == StatusCode::Ok) {
-        s_diff.Capture(*s_arena, s_entries, rebuilt.value);
-        ESP_LOGI(kTag,
-                 "region update: damage %dx%d at (%d,%d) full=%d ops=%u",
-                 static_cast<int>(frame.value.damage.w),
-                 static_cast<int>(frame.value.damage.h),
-                 static_cast<int>(frame.value.damage.x),
-                 static_cast<int>(frame.value.damage.y),
-                 presented.plan.full_refresh ? 1 : 0,
-                 static_cast<unsigned>(frame.value.op_count));
+    // Diff-driven update: only the clock's damage blits (zero rects when
+    // the second didn't visibly change the text).
+    const UiPresentResult updated =
+        UiPresentPageUpdate(s_fixture_slots, nullptr, 0, nullptr);
+    if (updated.status == StatusCode::Ok) {
+        s_fixture_present_count = UiPresentCount();
+    } else {
+        s_fixture_active = false;
     }
 }
 

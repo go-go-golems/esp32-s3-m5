@@ -1,56 +1,46 @@
-// Widget UI service (Phase 9). Owner-task-only.
-//
-// Owns the retained WidgetArena, the PageRouter, render-state diffing, and
-// the region table. Screens (reader, library, fixtures) build widget trees
-// here and present them through one pipeline: LayoutPage -> CompileTree ->
-// optional extra ops (book body) -> refresh planner -> backend. Interval
-// regions (fixture clock) update through diff-driven partial presents.
+// Widget UI shim (ESP-51 Phase 3): the retained-tree present pipeline is
+// the shared s3paper_runtime component now; this header re-exports it
+// under the Ui* names 0112 call sites use, and keeps the 0112 console
+// fixtures (hello page, status page with a live clock region).
 #pragma once
 
 #include "app_events.h"
-#include "s3paper/input.h"
-#include "s3paper/page.h"
-#include "s3paper/widget.h"
-#include "s3paper/widget_render.h"
+#include "s3paper_runtime/runtime.h"
 
 namespace reader {
 
-// Idempotent; allocates the arena in PSRAM. All functions owner-task-only.
-void UiInit();
+using UiExtraOps = s3paper_runtime::ExtraOps;
+using UiPresentResult = s3paper_runtime::PresentPageResult;
 
-s3paper::WidgetArena &UiArena();
-s3paper::PageRouter &UiRouter();
+// Idempotent; allocates arena + frame storage in PSRAM.
+inline void UiInit() { s3paper_runtime::RuntimeInit(); }
 
-// Ops drawn after widget compilation, into the same frame (book body lines
-// use the paginator's absolute baselines). Plain function pointer: widget
-// nodes never store callbacks.
-using UiExtraOps = StatusCode (*)(s3paper::FrameBuilder &fb,
-                                  const s3paper::LayoutEntry *entries,
-                                  uint32_t entry_count);
+inline s3paper::WidgetArena &UiArena() { return s3paper_runtime::Arena(); }
+inline s3paper::PageRouter &UiRouter() { return s3paper_runtime::Router(); }
 
-struct UiPresentResult {
-    StatusCode status;
-    uint32_t hit_count;
-    bool full_refresh;
-};
+inline UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
+                                     s3paper::PresentIntent intent,
+                                     bool screen_change,
+                                     s3paper::HitRegion *hits,
+                                     uint32_t hit_cap,
+                                     UiExtraOps extra_ops) {
+    return s3paper_runtime::PresentPage(slots, intent, screen_change, hits,
+                                        hit_cap, extra_ops);
+}
 
-// Full-page present of a slot set. screen_change notes a planner screen
-// change (route transitions get clean fulls). Deactivates any fixture
-// region ticking (the new screen owns the panel now).
-UiPresentResult UiPresentPage(const s3paper::PageSlots &slots,
-                              s3paper::PresentIntent intent,
-                              bool screen_change, s3paper::HitRegion *hits,
-                              uint32_t hit_cap, UiExtraOps extra_ops);
+inline UiPresentResult UiPresentPageUpdate(const s3paper::PageSlots &slots,
+                                           s3paper::HitRegion *hits,
+                                           uint32_t hit_cap,
+                                           UiExtraOps extra_ops) {
+    return s3paper_runtime::PresentPageUpdate(slots, hits, hit_cap,
+                                              extra_ops);
+}
 
-// Diff-driven update of the SAME retained tree presented last: re-layouts,
-// diffs against the captured render state, and presents ONLY the changed
-// rects (clipped re-render, TextRegion intent). Returns Ok with zero work
-// when nothing visible changed; falls back to a full TextPage present when
-// there is no valid capture or the damage overflows. The caller must have
-// mutated widgets through version-bumping setters (SetText/SetProgress).
-UiPresentResult UiPresentPageUpdate(const s3paper::PageSlots &slots,
-                                    s3paper::HitRegion *hits,
-                                    uint32_t hit_cap, UiExtraOps extra_ops);
+inline uint32_t UiPresentCount() { return s3paper_runtime::PresentCount(); }
+
+inline void UiSetTracePresent(bool enabled) {
+    s3paper_runtime::SetTracePresent(enabled);
+}
 
 // Console fixtures: 1 = hello page, 2 = status page with a live clock
 // region (interval updates until another screen presents).
@@ -60,17 +50,8 @@ StatusCode UiRunFixture(uint32_t which);
 // harness renders it through the fake backend). Resets the arena.
 StatusCode UiBuildFixtureSlots(uint32_t which, s3paper::PageSlots *out);
 
-// Trace mode: while enabled, UiPresentPage renders through the FAKE
-// backend (normalized trace, no panel) instead of M5. Owner-task-only.
-void UiSetTracePresent(bool enabled);
-
-// Owner-loop hook: performs due interval-region updates (diff -> clipped
-// re-render -> TextRegion present). Cheap when nothing is active.
+// Owner-loop hook: performs due interval-region updates for the status
+// fixture. Cheap when nothing is active.
 void UiRegionTick(int64_t now_us);
-
-// Monotonic count of successful full-page presents. Layers that own a
-// transient screen (JS apps, fixtures) compare against the value at their
-// own last present to learn another screen took the panel.
-uint32_t UiPresentCount();
 
 }  // namespace reader

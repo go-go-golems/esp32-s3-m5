@@ -1,0 +1,46 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (64438) input: gesture Tap at 25,823
+I (64758) input: gesture SwipeRight at 366,953
+I (66778) input: quiet window reached (1 total)
+
+# >>> widget 2
+widget 2
+error: InvalidArgument: usage widget [hello|status]
+Command returned non-zero error code: 0x1 (ERROR)
+reader> 
+# >>> js pulp
+js pulp
+PULP OS booting, abi v1
+pulp screen: home
+I (90487) m5_backend: present id=5 intent=CleanFull ops=20 skipped=0 damage=0,0,540,960 render_us=167039 wait_us=5
+I (90489) js: js present: hits=7 full=1
+js init=1 screen_active=1 arena=163840 evals=5 exceptions=0 dispatches=2 last_error=""
+reader> 
+# >>> js tap 270 330
+js tap 270 330
+pulp screen: blitz
+I (98479) m5_backend: present id=6 intent=CleanFull ops=12 skipped=0 damage=0,0,540,960 render_us=157378 wait_us=7
+I (98480) js: js present: hits=2 full=1
+js init=1 screen_active=1 arena=163840 evals=6 exceptions=0 dispatches=3 last_error=""
+reader> I (99330) js: js present: hits=2 full=0
+I (100330) js: js present: hits=2 full=0
+I (101344) js: js present: hits=2 full=0
+I (102343) js: js present: hits=2 full=0
+I (103343) js: js present: hits=2 full=0
+I (104343) js: js present: hits=2 full=0
+I (105343) js: js present: hits=2 full=0
+I (106343) js: 
+# >>> js tap 270 260
+js present: hits=2 full=0
+js tap 270 260
+js init=1 screen_active=1 arena=163840 evals=15 exceptions=0 dispatches=12 last_error=""
+reader> I (107343) js: js present: hits=2 full=0
+I (108343) js: js present: hits=2 full=0
+I (109343) js: js present: hits=2 full=0
+I (110343) js: js present: hits=2 full=0
+I (111343) js: js present: hits=2 full=0
+I (112343) js: js present: hits=2 full=0
+I (113343) js: js present: hits=2 full=0
+I (114343) js: js present: hits=2 full=0
+
+# done

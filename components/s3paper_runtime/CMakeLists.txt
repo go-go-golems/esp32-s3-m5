@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS
+        "src/runtime.cpp"
+    INCLUDE_DIRS
+        "include"
+    REQUIRES
+        s3paper_core
+        s3paper_m5
+    PRIV_REQUIRES
+        esp_timer
+)
