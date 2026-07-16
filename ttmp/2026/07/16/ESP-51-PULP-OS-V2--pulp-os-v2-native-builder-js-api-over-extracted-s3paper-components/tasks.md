@@ -2,12 +2,12 @@
 
 ## TODO
 
-- [ ] Phase 0 - Orientation: environment proven, 0112 built/flashed, guide and diaries read <!-- t:4jpb -->
-- [ ] [P0.1] Read the intern guide end to end; skim ESP-50 design-doc/01 and diary Steps 1-21 <!-- t:sciz -->
-- [ ] [P0.2] Build 0112 with IDF 5.3.4 and run the host suite (expect 37989 checks green) <!-- t:78pw -->
-- [ ] [P0.3] Flash 0112, exercise console: status, reader next/prev, library show, js pulp, js trace <!-- t:wbkl -->
-- [ ] [P0.4] Run the console client with a saved transcript; confirm serial discipline understood <!-- t:muup -->
-- [ ] [P0.5] Create the 0114 diary doc and record Step 1 with environment evidence <!-- t:tzvn -->
+- [x] Phase 0 - Orientation: environment proven, 0112 built/flashed, guide and diaries read <!-- t:4jpb -->
+- [x] [P0.1] Read the intern guide end to end; skim ESP-50 design-doc/01 and diary Steps 1-21 <!-- t:sciz -->
+- [x] [P0.2] Build 0112 with IDF 5.3.4 and run the host suite (expect 37989 checks green) <!-- t:78pw -->
+- [x] [P0.3] Flash 0112, exercise console: status, reader next/prev, library show, js pulp, js trace <!-- t:wbkl -->
+- [x] [P0.4] Run the console client with a saved transcript; confirm serial discipline understood <!-- t:muup -->
+- [x] [P0.5] Create the 0114 diary doc and record Step 1 with environment evidence <!-- t:tzvn -->
 - [ ] Phase 1 - Extract s3paper_core and s3paper_m5 to top-level components/; re-point 0112 <!-- t:1ba6 -->
 - [ ] [P1.1] Move components/s3paper_core and s3paper_m5 from 0112 to repo components/ (git mv, history preserved) <!-- t:wzda -->
 - [ ] [P1.2] Add EXTRA_COMPONENT_DIRS to 0112 and set(COMPONENTS ...) trimming; keep esp_psram named <!-- t:pj47 -->

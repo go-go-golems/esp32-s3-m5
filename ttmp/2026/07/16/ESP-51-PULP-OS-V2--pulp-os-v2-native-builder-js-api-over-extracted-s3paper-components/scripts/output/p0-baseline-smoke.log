@@ -1,0 +1,27 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (355517) input: gesture Tap at 56,483
+pulp screen: postcard
+I (355708) m5_backend: present id=22 intent=CleanFull ops=42 skipped=0 damage=0,0,540,960 render_us=167920 wait_us=14
+I (355710) js: js present: hits=30 full=1
+I (357537) input: quiet window 
+# >>> status
+status
+state=ready uptime_ms=11262416 owner_seq=562748
+processed[ConsoleCommand]=8
+processed[Pointer]=0
+processed[TimerDue]=562740
+processed[StorageComplete]=0
+processed[ShutdownRequest]=0
+reader> 
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=395 exceptions=0 dispatches=391 last_error=""
+reader> 
+# >>> library
+library
+library: 3 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+  [2] "postcard" 9 bytes hash=6f0b3ff5 /sdcard/books/postcard.txt
+reader> 
+# done
