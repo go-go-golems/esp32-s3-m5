@@ -31,3 +31,12 @@ Step 2: Phase 1 complete - components promoted to repo components/, 0112 re-poin
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0112-papers3-reader-primitives/CMakeLists.txt — EXTRA_COMPONENT_DIRS + trimmed COMPONENTS
 
+
+## 2026-07-16
+
+Step 3: Phase 2 complete - s3paper_storage extracted with injected pre-mount hook, seed book, and fault-injection console; full recovery battery proven on hardware (commit f018182)
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/components/s3paper_storage/include/s3paper_storage/storage.h — Component API
+

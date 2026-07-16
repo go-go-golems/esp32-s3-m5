@@ -1,0 +1,45 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> sd fault positions flip
+sd fault positions flip
+W (53380) storage: fault: flipped byte at 396/792 in /sdcard/.s3paper/positions.bin
+sd mounted=1 capacity_mib=7580 books=3 positions=2 position_writes=0 write_failures=0
+scan cached=3 hashed=0 last_ms=16 catalog_writes=0
+reader> 
+# >>> sd fault catalog trunc
+sd fault catalog trunc
+W (56408) storage: fault: truncated /sdcard/.s3paper/catalog.bin from 5144 to 2572
+sd mounted=1 capacity_mib=7580 books=3 positions=2 position_writes=0 write_failures=0
+scan cached=3 hashed=0 last_ms=16 catalog_writes=0
+reader> 
+# >>> sd fault settings del
+sd fault settings del
+W (59440) storage: fault: deleted /sdcard/.s3paper/settings.bin (rc=0)
+sd mounted=1 capacity_mib=7580 books=3 positions=2 position_writes=0 write_failures=0
+scan cached=3 hashed=0 last_ms=16 catalog_writes=0
+reader> 
+# >>> sd reload
+sd reload
+W (62457) storage: positions file invalid (len=792); ignoring
+I (62465) storage: loaded 2 bookmark(s)
+W (62474) storage: catalog file invalid (len=2572); ignoring (rescan)
+W (62483) storage: primary settings missing; using backup
+I (62485) storage: loaded 1 setting(s)
+I (62490) storage: reload: positions=CorruptData bookmarks=Ok catalog=CorruptData settings=Ok lastbook=Ok
+sd mounted=1 capacity_mib=7580 books=3 positions=0 position_writes=0 write_failures=0
+scan cached=3 hashed=0 last_ms=16 catalog_writes=0
+reader> 
+# >>> library scan
+library scan
+I (65585) storage: library scan: 3 book(s) (0 cached, 3 hashed) in 85 ms
+library: 3 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+  [2] "postcard" 18 bytes hash=61990437 /sdcard/books/postcard.txt
+reader> 
+# >>> sd status
+sd status
+sd mounted=1 capacity_mib=7580 books=3 positions=0 position_writes=0 write_failures=0
+scan cached=0 hashed=3 last_ms=85 catalog_writes=1
+reader> 
+# done

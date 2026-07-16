@@ -1,0 +1,17 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (103) esp_image: segment 2: paddr=0006f07c vaddr=40374000 sizeI (1035) display: PT Serif registered: 134264 bytes, body ascent=27 descent=7 line_height=34
+[5nI (1037) display: frame storage ready: ops=512 arena=32768B trace=16384B (PSRAM)
+I (1052) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pu
+# >>> sd status
+sd status
+sd mounted=1 capacity_mib=7580 books=3 positions=2 position_writes=0 write_failures=0
+scan cached=3 hashed=0 last_ms=16 catalog_writes=0
+reader> 
+# >>> library
+library
+library: 3 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+  [2] "postcard" 18 bytes hash=61990437 /sdcard/books/postcard.txt
+reader> 
+# done

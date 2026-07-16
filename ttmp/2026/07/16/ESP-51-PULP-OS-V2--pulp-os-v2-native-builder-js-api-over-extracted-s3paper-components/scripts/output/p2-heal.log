@@ -1,0 +1,27 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> reader next
+reader next
+reader: at end of book
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=4022 progress=100.0% lines=18 turns=0 at_end=1 checkpoints=1 bookmarked=1 marks=2
+reader> 
+# >>> reader prev
+reader prev
+I (104957) m5_backend: present id=2 intent=TextPage ops=29 skipped=0 damage=0,0,540,960 render_us=471754 wait_us=9
+I (104958) reader_ctl: page at 3422 lines=23 full=0
+reader open=1 screen=reading title="Alice in Wonderland" source=embedded resumed=1 offset=3422 progress=91.9% lines=23 turns=1 at_end=0 checkpoints=6 bookmarked=1 marks=2
+reader> 
+# >>> library scan
+library scan
+I (107329) storage: library scan: 3 book(s) (3 cached, 0 hashed) in 10 ms
+library: 3 book(s)
+  [0] "alice-demo" 4699 bytes hash=bd230159 /sdcard/books/alice-demo.txt
+  [1] "P3C_FW_RESULT_AB" 250 bytes hash=8c6650f0 /sdcard/P3C_FW_RESULT_AB.txt
+  [2] "postcard" 18 bytes hash=61990437 /sdcard/books/postcard.txt
+reader> 
+# >>> sd status
+sd status
+sd mounted=1 capacity_mib=7580 books=3 positions=1 position_writes=1 write_failures=0
+scan cached=3 hashed=0 last_ms=10 catalog_writes=1
+reader> 
+# done

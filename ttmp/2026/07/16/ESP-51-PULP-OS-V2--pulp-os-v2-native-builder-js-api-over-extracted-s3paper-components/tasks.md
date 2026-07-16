@@ -14,12 +14,12 @@
 - [x] [P1.3] Rebuild 0112 clean (rm -rf build sdkconfig), verify binary size and boot <!-- t:cfrc -->
 - [x] [P1.4] Host suite still green from the new location; fix Makefile paths <!-- t:fiqf -->
 - [x] [P1.5] Device smoke: boot restore, one page turn partial, library show transcript saved <!-- t:p93u -->
-- [ ] Phase 2 - Extract s3paper_storage component from 0112 main/app_storage <!-- t:bgb6 -->
-- [ ] [P2.1] Define the component API header (mount/scan/catalog/positions/bookmarks/settings/lastbook) using s3paper::StatusCode only <!-- t:amcj -->
-- [ ] [P2.2] Inject the display-init-before-mount constraint as a callback; parameterize the demo-book seed <!-- t:e2rt -->
-- [ ] [P2.3] Move code, keep the static-scratch catalog buffer and never-format policy; 0112 adapts <!-- t:0e9r -->
-- [ ] [P2.4] Device validation: catalog cached scan (hashed=0 on 2nd boot), positions/bookmarks/settings round-trip <!-- t:2qsd -->
-- [ ] [P2.5] Fault injection: corrupt/truncate each state file and verify loader recovery plus .bak fallback <!-- t:5hyg -->
+- [x] Phase 2 - Extract s3paper_storage component from 0112 main/app_storage <!-- t:bgb6 -->
+- [x] [P2.1] Define the component API header (mount/scan/catalog/positions/bookmarks/settings/lastbook) using s3paper::StatusCode only <!-- t:amcj -->
+- [x] [P2.2] Inject the display-init-before-mount constraint as a callback; parameterize the demo-book seed <!-- t:e2rt -->
+- [x] [P2.3] Move code, keep the static-scratch catalog buffer and never-format policy; 0112 adapts <!-- t:0e9r -->
+- [x] [P2.4] Device validation: catalog cached scan (hashed=0 on 2nd boot), positions/bookmarks/settings round-trip <!-- t:2qsd -->
+- [x] [P2.5] Fault injection: corrupt/truncate each state file and verify loader recovery plus .bak fallback <!-- t:5hyg -->
 - [ ] Phase 3 - Extract s3paper_runtime (present pipeline) from 0112 app_ui/app_display <!-- t:afv2 -->
 - [ ] [P3.1] Component API: Init (frame storage, backends, fonts), Planner access, PresentPage, PresentPageUpdate, PresentCount, trace mode <!-- t:9xkm -->
 - [ ] [P3.2] Preserve the two update-mode invariants: hits never re-collected under clip; compile always given a hits array <!-- t:kjec -->

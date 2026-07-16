@@ -107,3 +107,50 @@ The two pure/proven components moved out of 0112 into the repo-level `components
 ### Code review instructions
 - `0112-papers3-reader-primitives/CMakeLists.txt` (the whole change surface besides the move).
 - Validate: host suite from `components/s3paper_core/tests/host`; `idf.py build` in 0112.
+
+## Step 3: Phase 2 — s3paper_storage extracted, fault battery green
+
+`app_storage.cpp` moved wholesale into `components/s3paper_storage` (namespace `s3paper_storage`), with the two firmware couplings inverted: the display-before-SD-mount constraint is now an injected `pre_mount` hook, and the demo book is a configured seed (`StorageConfig{seed_path, seed_text, seed_len}`). 0112 keeps its `reader::` names through a thin shim (`main/app_storage.{h,cpp}`, ~60 lines: ConfigureOnce + using-declarations + SdSnapshot adapter). New in the component: `DebugCorruptStateFile`/`DebugReloadState` fault-injection hooks, exposed as `sd fault <kind> <mode>` / `sd reload` console commands — these also close the long-open ESP-50 fault-sim item and will serve 0114's Phase 9 hardening.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Phase 2: extract persistence into a reusable component and prove loader recovery on hardware.
+
+**Inferred user intent:** 0114 gets crash-safe persistence for free; 0112 stays green.
+
+**Commit (code):** f018182 — "ESP-51 Phase 2: extract s3paper_storage component with fault-injection hooks"
+
+### What I did
+- Component: `include/s3paper_storage/storage.h` (API sans app_events types: own `StorageStats`, `StorageConfig`), `src/storage.cpp` (git-mv'd history), CMakeLists (REQUIRES s3paper_core fatfs sdmmc esp_driver_sdspi).
+- 0112 shim + EXTRA_COMPONENT_DIRS entry + main REQUIRES s3paper_storage.
+- Console: `sd fault <positions|bookmarks|catalog|settings|lastbook> <flip|trunc|del>` and `sd reload` (owner op args 4 and 10+kind*3+mode).
+- Device evidence (transcripts `p2-storage-component-boot1.log`, `p2-fault-battery.log`, `p2-heal.log`):
+  - Boot scan through the component: `cached=3 hashed=0` in 16 ms, 2 positions loaded, boot restore intact.
+  - flip(positions) -> "positions file invalid (len=792); ignoring", reload=CorruptData, fresh state, no crash.
+  - trunc(catalog) -> "catalog file invalid (len=2572)", next scan hashes everything (0 cached, 3 hashed, 85 ms) and rewrites the catalog (catalog_writes=1).
+  - del(settings) -> "primary settings missing; using backup", reload settings=Ok (.bak fallback proven).
+  - Heal: page turns re-dirty positions, coalesced flush wrote them (position_writes=1), steady-state scan cached again (10 ms).
+
+### Why
+- The plan's P2 gate: component API on s3paper types only, injected constraints, device-proven recovery.
+
+### What worked
+- Move + shim compiled first try; every fault mode recovered exactly as the loaders promise.
+
+### What didn't work
+- Console client has no --settle-after flag (invented one, got argparse error); split the heal check into two invocations with a sleep instead.
+
+### What was tricky to build
+- Loader semantics distinction worth knowing: .bak fallback only triggers when the PRIMARY IS MISSING (fopen fails). A corrupt primary is ignored-with-log (fresh state), NOT recovered from .bak — by design, since a corrupt primary usually means a mid-write cut and the bak swap happens before rename. The fault battery exercises both paths deliberately (flip vs del).
+
+### What warrants a second pair of eyes
+- `DebugCorruptStateFile` ships in the component (not #ifdef'd out). It requires console access, and 0114 wants it for Phase 9; flagging in case someone objects to fault hooks in production builds.
+
+### What should be done in the future
+- Phase 3: extract s3paper_runtime the same way.
+
+### Code review instructions
+- `components/s3paper_storage/include/s3paper_storage/storage.h` (API), `src/storage.cpp` diff vs old `app_storage.cpp` (git follows the move), `0112/main/app_storage.{h,cpp}` shim.
+- Validate: `sd fault positions flip` then `sd reload` on hardware; transcripts in this ticket's scripts/output/.
