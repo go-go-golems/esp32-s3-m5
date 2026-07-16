@@ -1,0 +1,11 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (967) esp_psram: SPI SRAM memory test OK
+
+[5nI (1036) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1051) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1051) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDrI (967) esp_psra
+# >>> sleep status
+sleep status
+Unrecognized command
+pulp> 
+# done

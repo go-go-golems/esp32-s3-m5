@@ -140,6 +140,13 @@ void RuntimeInit(const RuntimeConfig &config) {
         const s3paper::Status xl_font = s3paper::RegisterTtfFont(
             s3paper::kFontXL, _binary_LibSansBoldUkr_ttf_start, sans_size,
             84);
+        const s3paper::Status title_font = s3paper::RegisterTtfFont(
+            s3paper::kFontTitle, _binary_PTSerifUkr_ttf_start, serif_size,
+            44);
+        if (!title_font.ok()) {
+            ESP_LOGE(kTag, "title font registration failed (%s)",
+                     s3paper::StatusCodeName(title_font.code));
+        }
         if (!ui_font.ok() || !body_font.ok() || !display_font.ok() ||
             !xl_font.ok()) {
             ESP_LOGE(kTag, "font registration failed (%s/%s/%s/%s)",

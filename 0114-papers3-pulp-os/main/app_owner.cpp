@@ -332,9 +332,18 @@ void OwnerTask(void *) {
         }
     }
     InputServiceInit();
-    const StatusCode home = HomeShowNative();
-    if (home != StatusCode::Ok) {
-        ESP_LOGE(kTag, "home present failed: %s", StatusCodeName(home));
+    // Product boot: straight into the JS launcher (clean full render);
+    // the native home page is the fallback when the script platform is
+    // unavailable (owner keeps running either way).
+    const StatusCode pulp = JsRunPulp();
+    if (pulp != StatusCode::Ok) {
+        ESP_LOGW(kTag, "pulp boot failed: %s (native fallback)",
+                 StatusCodeName(pulp));
+        const StatusCode home = HomeShowNative();
+        if (home != StatusCode::Ok) {
+            ESP_LOGE(kTag, "home present failed: %s",
+                     StatusCodeName(home));
+        }
     }
     (void)TouchEnable();
     s_state.phase = Phase::Ready;

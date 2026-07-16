@@ -1,0 +1,13 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> sleep rtc-off 20
+sleep rtc-off 20
+battery=0% (0 mV) charging=0 wakeup_cause=0 reset_reason=0 auto_sleep=0s
+I (93732) power: sleep: mode=rtc-off seconds=20 (quiesce begins)
+pulp> I (93733) input: touch polling disabled
+I (93843) m5_backend: present id=2 intent=CleanFull ops=3 skipped=0 damage=0,0,540,960 render_us=105826 wait_us=7
+I (93845) gpio: GPIO[47]| InputEn: 1| OutputEn: 0| OpenDrain: 0| Pullup: 0| Pulldown: 0| Intr:0 
+I (93846) storage: unmounted
+I (93846) power: entering rtc-off sleep
+
+# done

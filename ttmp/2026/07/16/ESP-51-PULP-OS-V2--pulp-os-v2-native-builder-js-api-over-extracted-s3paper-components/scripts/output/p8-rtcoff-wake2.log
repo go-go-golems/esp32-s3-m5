@@ -1,0 +1,7 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+
+# >>> sleep status
+sleep status
+battery=100% (4164 mV) charging=0 wakeup_cause=0 reset_reason=1 auto_sleep=0s
+pulp> 
+# done

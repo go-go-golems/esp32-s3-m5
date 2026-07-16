@@ -1,0 +1,13 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (105) esp_image: segment 3: paddr=00070020 vaddr=42000020 size[5nI (1032) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1047) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1047) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> sleep status
+sleep status
+battery=100% (4166 mV) charging=0 wakeup_cause=0 reset_reason=11 auto_sleep=0s
+pulp> 
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=0 last_error=""
+pulp> 
+# done

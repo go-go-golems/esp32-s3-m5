@@ -266,6 +266,8 @@ JSValue js_w_size(JSContext *ctx, JSValue *this_val, int argc,
             font = s3paper::kFontDisplay;
         } else if (strcmp(token, "xl") == 0) {
             font = s3paper::kFontXL;
+        } else if (strcmp(token, "title") == 0) {
+            font = s3paper::kFontTitle;  // serif at display size
         }
     } else if (JS_ToInt32(ctx, &font, argv[0])) {
         return JS_EXCEPTION;

@@ -77,9 +77,16 @@ function library() {
   var i;
   for (i = 0; i < n; i++) {
     (function (idx) {
-      // Separators share the header rule's 40px margins.
+      // Separators share the header rule's 40px margins; titles render
+      // at app-row size in the serif face, sizes small at the right.
+      var s = libraryLine(idx);
+      var cut = s.lastIndexOf('  ');
+      var name = cut > 0 ? s.slice(0, cut) : s;
+      var kb = cut > 0 ? s.slice(cut + 2) : '';
       menu.add(col().pad(0, 40, 0, 40).add(
-        row().pad(10, 0, 8, 0).add(text(libraryLine(idx)).size('sm')),
+        row().pad(8, 0, 6, 0).gap(10).crossAlign(3)
+          .add(text(name).size('title'), spacer(0, 1),
+               text(kb).size('xs').gray(112)),
         divider(1, 176)).onTap(function () { reader(idx); }));
     })(i);
   }
@@ -278,7 +285,7 @@ function blitz() {
 
 // --------------------------------------------------------------- 2048 ---
 
-var GG = { g: null, score: 0, prev: null, pscore: 0 };
+var GG = { g: null, score: 0, prev: null, pscore: 0, blits: 0 };
 
 function g2048() {
   enter('2048');
@@ -301,14 +308,16 @@ function g2048() {
   if (!st.g) { fresh(); }
   var p = page('2048');
   // Diff update: .set() no-ops on unchanged text, so only tiles that
-  // actually moved/merged produce damage rects.
+  // actually moved/merged produce damage rects. Repeated tile blits
+  // accumulate ghosting, so every 12th present is a clean full re-blank.
   function refresh() {
     var i;
     for (i = 0; i < 16; i++) {
       cells[i].set(st.g[i] === 0 ? '.' : '' + st.g[i]);
     }
     scoreT.set('SCORE ' + st.score + '   BEST ' + storeGet('2048best', 0));
-    p.update();
+    st.blits = st.blits + 1;
+    if (st.blits % 12 === 0) { p.show(true); } else { p.update(); }
   }
   function slideRow(c) {
     var out = [];

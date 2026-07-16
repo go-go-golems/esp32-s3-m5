@@ -1,0 +1,37 @@
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_D0:CF:13:16:17:DC-if00 modem_control=none
+I (204) esp_image: segment 4: paddr=000f3ba4 vaddr=40378d78 size[5nI (1032) runtime: runtime ready: ops=512 arena=32768B trace=16384B widgets=128 (17412 bytes, PSRAM)
+I (1047) gpio: GPIO[5]| InputEn: 0| OutputEn: 0| OpenDrain: 0| Pullup: 1| Pulldown: 0| Intr:0 
+I (1047) gpio: GPIO[6]| InputEn: 0| OutputEn: 0| OpenDr
+# >>> status
+status
+state=ready uptime_ms=10522 owner_seq=215
+processed[ConsoleCommand]=1
+processed[Pointer]=0
+processed[TimerDue]=214
+processed[ShutdownRequest]=0
+pulp> I (12568) input: gesture Tap at 189,550
+I (12569) js: tap 189,550 hit=9 (regions=7)
+I (12584) storage: library scan: 4 book(s) (4 cached, 0 hashed) in 13 ms
+pulp screen: library
+I (12723) m5_backend: present id=2 intent=CleanFull ops=13 skipped=0 damage=0,0,540,960 render_us=124412 wait_us=7
+I (12724) js: js present: page=library hits=4 mode=1
+I (14588) input: quiet window reached (1 total)
+I (15268) input: gesture Tap at 140,148
+I (15269) js: tap 140,148 hit=4 (regions=4)
+pulp screen: reader
+I (15375) m5_backend: present id=3 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=90161 wait_us=7
+I (15376) js: js present: page=reader hits=0 mode=1
+I (15666) m5_backend: present id=4 intent=TextPage ops=8 skipped=0 damage=0,0,540,960 render_us=262988 wait_us=11
+I (15668) js: js present: page=reader hits=0 mode=2
+I (17288) input: quiet window reached (2 total)
+
+# >>> js status
+js status
+js init=1 screen_active=1 arena=163840 evals=2 exceptions=0 dispatches=2 last_error=""
+pulp> I (17809) input: gesture SwipeDown at 256,319
+pulp screen: home
+I (18061) m5_backend: present id=5 intent=CleanFull ops=27 skipped=0 damage=0,0,540,960 render_us=197124 wait_us=7
+I (18063) js: js present: page=home hits=7 mode=1
+I (19828) input: quiet window reached (3 total)
+
+# done

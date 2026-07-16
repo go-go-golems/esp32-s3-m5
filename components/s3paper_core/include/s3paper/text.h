@@ -47,7 +47,8 @@ enum : uint8_t {
     kFontBody = 1,     // TTF body size (fallback: FreeSerif 18pt bitmap)
     kFontDisplay = 2,  // bold grotesque display face (PULP OS chrome)
     kFontXL = 3,       // bold grotesque numerals/hero size
-    kFontCount = 4,
+    kFontTitle = 4,    // serif at display size (book titles on the shelf)
+    kFontCount = 5,
 };
 
 // Returns the GFX bitmap fallback data; nullptr for unknown ids. Metrics
