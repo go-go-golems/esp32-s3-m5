@@ -299,3 +299,58 @@ The JS surface is the express-flavored builder from the design: `http.get(url).h
 ### Technical details
 - Completion: `fn(3, status, len)`; status=0 ⇒ transport failure and len = −esp_err.
 - Mailbox: 32 KiB PSRAM body + 1024 line refs; CR stripped at `bodyLine`.
+
+## Step 6: P5 serve — JS routes over the semaphore handoff, static mount
+
+The web server landed: `net_serve.{h,cpp}` (route table, request slot, handoff, static streaming) and `js_serve.cpp` (the express-flavored `serve.get(path).handle(fn)` builder plus `serve.text/json/status` response tokens). The httpd task claims the single request slot, fills uri/query, bumps the slot generation, drains any stale semaphore give, posts `ModuleDone{Serve, route, gen}`, and blocks 5 s on the response semaphore. The owner routes Serve completions to `ServeOwnerDispatch` (they bypass the single-slot module-callback path — routes own their callbacks), runs the handler under the JS deadline, and gives the semaphore only if the generation still matches. `serve.text()` writes the response slot through the same generation guard, so a response computed after an httpd-side timeout is dropped rather than corrupting the next request. Static files stream from `/sdcard/www` on the httpd task itself — the one sanctioned off-owner storage read — with a default `index.html` auto-created at mount. `resetTree()` clears the route table (the callback ids just died with `__cbs`), so an app switch degrades routes to 404/static rather than dangling.
+
+The curl gate from the workstation: `/status` returned live JSON (`{"battery":100,"ssid":"yolobolo","rssi":-45,...}`), `/` served the auto-created index.html, `/note?hello-from-curl` appended to the postcard journal, unknown paths 404. The planned "concurrent second request → 503" test produced 200/200 instead — and investigation showed why: **the default esp_http_server processes all requests on a single worker task**, so a second request is serialized behind the first, never concurrent. The busy-503 path is an unreachable defensive net under this config; the real protection is the 5 s owner-wedge timeout (whose logic is generation-guarded and code-reviewed, but not provokable on demand — nothing in the firmware wedges the owner past the 1 s JS deadline).
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue with P5 per the phase plan.
+
+**Inferred user intent:** Same as Step 2.
+
+**Commit (code):** 0e404e9 — "ESP-53 P5: serve module (JS routes via semaphore handoff, static mount, default site), serve console command, probe 17"
+
+### What I did
+- `net_serve.{h,cpp}`: 8-route exact-match table, `RequestSlot` with atomic busy + generation, `Send503` helper (IDF 5.3 httpd has no 503 enum), `ServeStatic` with `..` rejection + MIME table + 1 KiB chunk streaming, `ServeJsRoute` handoff, `ServeOwnerDispatch`/`ServeRespond` with the generation guard, wildcard GET handler, default-index writer.
+- `js_serve.cpp` (10 bindings incl. `JsServeInvokeRoute` owner entry), `ServeSnapshot` + `ConsoleOp::Serve` + `serve` console command, resetTree → `ServeRoutesClear()`, probe 17 (three routes incl. a 600 ms `/slow`, files mount, start, URL print), stdlib/stubs/CMake (esp_http_server).
+
+### Why
+- Serve events bypass `g_module_cb`: a server has N persistent route callbacks, not one pending completion — forcing it through the single-slot path would serialize route registration with every other module.
+- Generation numbers instead of locks: the only cross-task disagreement is "did httpd give up on this request?", which a monotonic counter answers without blocking either side.
+
+### What worked
+- Full curl gate on the first flash after two compile fixes. Auto-created default site worked (index.html appeared on the card and served with text/html).
+- `serve status` counters: `requests=6 busy503=0 timeout503=0`, `js exceptions=0` after the whole gate.
+
+### What didn't work
+- `HTTPD_503_SERVICE_UNAVAILABLE` does not exist in IDF 5.3's httpd error enum — hand-rolled `Send503` with `httpd_resp_set_status`.
+- Two more `-Werror=format-truncation` hits on uri copies (`%.127s` precision caps).
+- The concurrent-503 gate as designed cannot fire: single-worker httpd serializes. Documented as an architecture finding rather than forcing an artificial pass.
+
+### What I learned
+- Default esp_http_server = one task, sequential request processing. This makes the request slot uncontendable in practice (simplifying the correctness argument to just the timeout path) and means heavy static transfers block JS routes behind them — acceptable for a device status page, worth remembering if anyone mounts big assets.
+
+### What was tricky to build
+- The three-way timeout dance: owner wedged pre-dispatch → event processed late → slot generation already bumped by httpd's timeout → dispatch's give is skipped AND ServeRespond drops the write; owner wedged mid-dispatch is bounded by the 1 s JS deadline (< 5 s semaphore), so the give always races ahead of a new claim; a stale give that loses anyway is drained by the next request's `xSemaphoreTake(sem, 0)`. Each leg is one line of code; the correctness story took longer than the implementation.
+
+### What warrants a second pair of eyes
+- The mid-dispatch wedge window: if a route handler runs right up against the JS deadline while the semaphore window is nearly exhausted, `ServeRespond`'s gen check and the httpd timeout's gen bump can interleave (check-then-memcpy is not atomic). Requires an owner stall > 4 s before dispatch even starts; documented, accepted for v1.
+- `serve.files` accepts a JS-supplied directory (unlike the files module's rooted paths) — deliberate, since pulp.js is trusted firmware code, but the intern guide should flag it.
+
+### What should be done in the future
+- P6 settings app: serve on/off toggle + URL display; P7: 30-min curl soak.
+- If multi-connection serving ever matters, `httpd_config.max_open_sockets` + worker tasks would resurrect the busy-503 path — the slot logic is already correct for it.
+
+### Code review instructions
+- Start at `net_serve.cpp` `ServeJsRoute` (handoff, drain, timeout) and `ServeOwnerDispatch`/`ServeRespond` (generation guard), then `js_serve.cpp` `js_serve_handle`.
+- Validate: `net joinsaved`, `js probe 17`, then from the workstation: `curl http://<ip>/status` (JSON), `curl http://<ip>/` (HTML), `curl "http://<ip>/note?x"`, `curl http://<ip>/nope` (404).
+
+### Technical details
+- Handoff: slot claim (CAS) → fill → gen++ → drain sem → PostModuleDone → take(5 s); owner: dispatch under 1 s JS deadline → give iff gen matches.
+- Response slot: status/type(text|json)/4 KiB body; unfilled slot after dispatch → 500 "route returned nothing".

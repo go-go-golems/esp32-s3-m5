@@ -58,3 +58,12 @@ P4 complete: net_http module (single slot builder: url[256]/4 headers/limit<=32K
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_http.cpp — HTTP fetch worker and response mailbox
 
+
+## 2026-07-16
+
+P5 complete: net_serve module (8 exact GET routes, single request slot with generation-guarded 5s semaphore handoff, static /sdcard/www streaming from the httpd task as the one sanctioned off-owner read, default index.html auto-created); serve JS singleton (get/handle builder, text/json/status response tokens, query accessor, files/start/stop/url); serve console command; routes cleared by resetTree. Curl gate from workstation: /status JSON with live battery/rssi, static index.html, /note appends postcard, 404. Finding: default esp_http_server is single-worker so concurrent requests serialize (200/200) - busy-503 is a defensive unreachable path; timeout-503 guards a >5s owner wedge
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_serve.cpp — httpd handoff with dual timeouts and generation guard
+
