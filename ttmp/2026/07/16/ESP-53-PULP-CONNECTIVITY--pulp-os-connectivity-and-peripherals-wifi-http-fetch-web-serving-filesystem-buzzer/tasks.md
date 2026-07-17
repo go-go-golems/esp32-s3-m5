@@ -19,5 +19,5 @@
 - [x] [P5.3] Gate: curl hits JS route + static file; concurrent 503; owner-wedge 503 <!-- t:43b7 -->
 - [x] [P6.1] Settings app: scan list, join with keyboard, saved/forget, serve toggle + URL, margin toggle relocation <!-- t:fmuw -->
 - [x] [P6.2] Launcher wifi status glyph (dynamic text); Radio demo app (fetch feed to shelf) <!-- t:oh6o -->
-- [ ] [P7.1] Hardening: module fault probes, 30-min serve soak under curl, sleep sequence with radio-down step 0 <!-- t:s8ra -->
-- [ ] [P7.2] Docs: diary complete, changelog, doctor clean, host suite green <!-- t:4gai -->
+- [x] [P7.1] Hardening: module fault probes, 30-min serve soak under curl, sleep sequence with radio-down step 0 <!-- t:s8ra -->
+- [x] [P7.2] Docs: diary complete, changelog, doctor clean, host suite green <!-- t:4gai -->

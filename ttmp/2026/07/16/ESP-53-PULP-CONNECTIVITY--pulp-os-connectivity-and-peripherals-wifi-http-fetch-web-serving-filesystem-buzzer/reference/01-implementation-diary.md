@@ -11,13 +11,24 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://0114-papers3-pulp-os/main/app_js.cpp
+      Note: Module callback registry + JsModuleDone (step 3)
+    - Path: repo://0114-papers3-pulp-os/main/net_http.cpp
+      Note: HTTP worker; perform+ON_DATA chunked fix (steps 5,7)
+    - Path: repo://0114-papers3-pulp-os/main/net_serve.cpp
+      Note: Semaphore handoff with generation guard (step 6)
+    - Path: repo://0114-papers3-pulp-os/main/net_wifi.cpp
+      Note: WiFi module with joinSaved owner-side sequencer (step 4)
+    - Path: repo://0114-papers3-pulp-os/tools/js/apps/pulp.js
+      Note: Settings/Radio apps, osRoutes, chimes (steps 2,7,8)
 ExternalSources: []
-Summary: "Chronological diary of ESP-53 work: design docs, onboarding guide, and (later) implementation steps."
+Summary: 'Chronological diary of ESP-53 work: design docs, onboarding guide, and (later) implementation steps.'
 LastUpdated: 2026-07-16T18:36:11.328080972-04:00
-WhatFor: "Resuming ESP-53 work: read this before touching the ticket."
-WhenToUse: "Before resuming or reviewing ESP-53 work."
+WhatFor: 'Resuming ESP-53 work: read this before touching the ticket.'
+WhenToUse: Before resuming or reviewing ESP-53 work.
 ---
+
 
 # Diary
 
@@ -410,3 +421,55 @@ The phase also caught a real fetch bug: zenquotes returned `200` with **zero byt
 ### Technical details
 - Size tokens → faces: `lg` = LibertinusSansBold 44 (`kFontDisplay`), `xl` = LibSansBold 84 (`kFontXL`), `title` = PT Serif 44.
 - Feed: `https://api.adviceslip.com/advice` (chunked, ~60–140 char quotes).
+
+## Step 8: P7 hardening — fault battery, soak, radio-aware sleep; ticket complete
+
+The closing phase. Probe 18 ran the cross-module fault battery (malformed melody → InvalidArgument, 17-note overflow → CapacityExceeded, join-during-scan → "module busy" throw, double `serve.start` → Busy, clean stop, async scan completion n=16). Stop-during-request drained gracefully: an in-flight `/slow` completed (200 in 0.82 s — its dispatch was queued ahead of the console stop) before the server stopped. The sleep quiesce gained step 0 (ServeStop + WifiOff before touch-off), verified in the transcript: `serve: stopped` → wifi teardown → deep sleep; the wake boots with the radio off per the §9 power policy.
+
+The 30-minute soak earned its keep twice. The FIRST run failed immediately: every `/status` hit 404'd while static kept serving. Diagnosis: `routes=0` — an app switch (`resetTree`, most plausibly a phantom swipe-home from the GT911 while the device sat on the desk) had wiped the probe's route table, which is exactly the designed degradation but wrong for an OS-level endpoint. The fix follows the existing chrome pattern: `enter()` now calls `osRoutes()`, re-registering an OS-owned `/status` route (battery, ssid, rssi, current app, uptime) whenever the server is running — routes survive app switches the same way `paper.home` does. The SECOND soak ran clean: **834 iterations, 1668/1668 requests OK (plus ~41 `/slow` legs), heap flat (76,871 → 76,775 internal free), zero JS exceptions across 1210 dispatches.** Host suite green (38,174 checks), doctor clean, all 19 tasks checked.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2; plus mid-turn: "how are things going?" — answered with a phase-by-phase status)
+
+**Assistant interpretation:** Finish P7: fault probes, soak, radio-aware sleep, docs; close the ticket.
+
+**Inferred user intent:** Same as Step 2 — a hardened, evidenced connectivity stack.
+
+**Commit (code):** 27ce61a — probe 18 + sleep step 0 + guide updates; ae48d61 — OS /status route fix.
+
+### What I did
+- Probe 18 (`js_probes.cpp`); quiesce step 0 in `app_power.cpp`; `osRoutes()` in pulp.js `enter()`; onboarding guide §9.5/§12/§14 updated (modules, console mirrors, two new gotchas) and re-uploaded to reMarkable; soak script in the session scratchpad (nohup-detached, 2 s cadence, /status + / + periodic /slow); pre/post heap snapshots; host suite run.
+
+### Why
+- The soak's job is to find exactly what it found: not leaks, but a lifecycle interaction (route table vs. app switches) invisible to short gates.
+
+### What worked
+- Every P7 gate: fault battery values matched predictions exactly; graceful stop; radio-down sleep; flat heap over 1711 served requests.
+
+### What didn't work
+- Soak run 1: `/status` 404 from the first iteration (routes wiped by an app switch). The first diagnosis pass also found `exceptions=7 "InternalError: out of memory"` from that window — not reproduced after `js pulp` re-init under identical load (0 exceptions across the full second soak); recorded as unexplained, likely tied to the phantom-gesture window, watch item for future soaks.
+- `pkill -f scratchpad/soak.sh` matched its own shell's command line and killed it (exit 144) — bracket-escape the pattern (`[s]oak.sh`).
+- A `remarkable_upload` re-upload created a same-name duplicate on-device, and `rmapi rm` deleted BOTH copies; re-uploaded once. rmapi treats same-name siblings as one target.
+
+### What I learned
+- "Designed degradation" (routes die with resetTree) needs an explicit carve-out for OS-owned endpoints; the enter()-re-registration pattern already existed for `paper.home` and extends naturally.
+- Background Bash tasks in this harness still obey the 10-min cap; nohup-detached scripts remain the only reliable soak vehicle.
+
+### What was tricky to build
+- Distinguishing the three candidate causes of the soak failure (leak? handoff bug? lifecycle?) from a 404: `serve status` (`running=1 routes=0 static=1`) split them in one command — the counters added in P5 paid for themselves within the hour.
+
+### What warrants a second pair of eyes
+- The frozen `exceptions=7` OOM burst from soak run 1's window — bounded, non-recurring, but not root-caused.
+- Phantom swipe-home: if the GT911 really does emit idle-desk gestures, the launcher may occasionally rebuild unprompted; a gesture-source counter would confirm.
+
+### What should be done in the future
+- Backlog: rtcNow() BM8563 binding; keyboard shift/symbol layer; wifi.onDrop notification; POST support; per-quote radio font adaptation; side-button wake test.
+
+### Code review instructions
+- `app_power.cpp` quiesce step 0; pulp.js `osRoutes()`/`enter()`; probe 18 expectations in `js_probes.cpp`.
+- Validate: `js probe 18` (values in the probe comment); server up → `js swipe 5` → `curl /status` still 200; `sleep deep 2` transcript shows `serve: stopped` before sleep.
+
+### Technical details
+- Soak: 2 s cadence × 30 min; 834 iterations; requests counter 1711 (soak + slow legs + spot checks); busy503=0 timeout503=0.
+- Final firmware state: probes 1–18, console commands status/heap/events/display/ping/touch/sd/sleep/home/js/buzz/net/http/serve.

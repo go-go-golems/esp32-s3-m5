@@ -76,3 +76,17 @@ P6 complete: Settings app (wifi status row, scan list with rssi/lock, join via 4
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — Settings/Radio apps and launcher glyph
 
+
+## 2026-07-16
+
+P7 complete: probe 18 module fault battery green (bad/overlong melody, join-during-scan busy throw, double start Busy); stop-during-request drains gracefully (in-flight 200 then clean stop); sleep quiesce step 0 = ServeStop+WifiOff verified in transcript, radio off after wake; 30-min serve soak 834 iterations 1668/1668 OK, heap flat (76871->76775), zero JS exceptions. Soak-found product bug fixed: app switch (resetTree) wiped web routes - enter() now re-registers an OS-owned /status route (commit ae48d61). Host suite 38174 checks green; onboarding guide updated and re-uploaded to reMarkable
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/app_power.cpp — Quiesce step 0 radio-down
+
+
+## 2026-07-16
+
+Ticket closed
+

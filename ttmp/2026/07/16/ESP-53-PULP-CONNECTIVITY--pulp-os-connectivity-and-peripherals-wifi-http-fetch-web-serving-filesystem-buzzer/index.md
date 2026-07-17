@@ -1,7 +1,7 @@
 ---
 Title: 'PULP OS connectivity and peripherals: WiFi, HTTP fetch, web serving, filesystem, buzzer'
 Ticket: ESP-53-PULP-CONNECTIVITY
-Status: active
+Status: complete
 Topics:
     - papers3
     - esp32s3
@@ -18,10 +18,11 @@ RelatedFiles:
       Note: Mailbox-accessor binding pattern to copy
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-07-16T18:36:09.735029504-04:00
+LastUpdated: 2026-07-16T21:22:11.512275358-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
