@@ -435,7 +435,15 @@ Canvas verbs (on a `canvas()` node, coords canvas-relative): `.line(x0,y0,x1,y1,
 - **postcard**: `appendPostcard(s)`.
 - **battery**: `batteryLevel()`.
 
-ESP-53 adds `wifi`, `http`, `serve`, `files`, `buzzer` as further singletons in this style — see design-doc/01 §4–8.
+### 9.5 Connectivity modules (ESP-53, implemented)
+
+All async verbs complete as `fn(kind, value, err)` via the completion-mailbox path (§13); one operation in flight per module ("module busy" TypeError on overlap); `resetTree()` cancels pending deliveries.
+
+- **buzzer** (`app_buzzer.cpp`): `tone(hz, ms)`, `beep()`, `stop()`, `melody('880:120,0:40,...')` (16 notes, freq 0 = rest; owner-tick sequencer). Synchronous, returns status ints.
+- **files** (`app_files.cpp`): `exists(p)` sync; `list(p,fn)`/`read(p,fn)`/`write(p,body,fn)`/`append(p,line,fn)`/`remove(p,fn)` async (kinds 10–14); accessors `name/size/isDir(i)`, `line(i)`, `lineCount()`. Paths are rooted virtual paths (`/notes/a.txt`); dot-segments denied; 16 KiB body cap; 32-entry listing; 512-line read index.
+- **wifi** (`net_wifi.cpp`): `status()` (0 off–4 up), `ip()`, `ssidCurrent()`, `rssiCurrent()`; `scan(fn)` (kind 1) + `count/ssid/rssi/secure(i)`; `join(ssid,pass,fn)`/`joinSaved(fn)` (kind 2, value 1 = joined, err = disconnect reason or −1 timeout); `save/forget(ssid)`, `savedCount()`, `savedSsid(i)` (ranked by last success); `off()`. Credentials persist in the S3WF storage file.
+- **http** (`net_http.cpp`): builder `http.get(url).header(k,v).limit(n).done(fn).send()` (kind 3: `fn(3, status, len)`; status 0 ⇒ len is −esp_err); accessors `body()`, `bodyLine(i)`, `bodyLineCount()`, `status()`, `length()`; `abort()`. 32 KiB cap, 10 s timeout, 3 redirects, TLS via the cert bundle, worker uses perform+ON_DATA (chunked bodies work).
+- **serve** (`net_serve.cpp`): `serve.get(path).handle(fn)` (8 exact GET routes; handler returns `serve.text(s)`/`json(s)`/`status(n)`; `serve.query(req)` reads the request); `files('/', '/sdcard/www')` static mount (default index.html auto-created); `start(port)`, `stop()`, `url()`. Handlers run on the owner via a 5 s semaphore handoff; static files stream from the httpd task.
 
 ---
 
@@ -497,7 +505,8 @@ The one-owner rule in practice: workers and ISQ-adjacent code *never* call `Pres
 - `js pulp` — (re)launch the JS product.
 - `js tap X Y` / `js swipe K` — synthetic input, exact coordinates.
 - `js hits` — dump the live hit-region table. Built because blind tap coordinates kept missing; now you look up the rect first.
-- `js probe N` — the harness, probes 1–14: builder construction, containment, tap routing, tick behavior, services, regression variants (the trio that bisected the TTF bug), canvas ops, storage fault battery, and probe 14 = trace equivalence against the fake backend.
+- `js probe N` — the harness, probes 1–18: builder construction, containment, tap routing, tick behavior, services, regression variants (the trio that bisected the TTF bug), canvas ops, storage fault battery, probe 14 = trace equivalence against the fake backend, 15 = files denials/caps/chain, 16 = http+https/truncation/timeout, 17 = serve routes + static + start (then curl from the workstation), 18 = cross-module fault battery.
+- ESP-53 console mirrors: `buzz [status|beep|stop|tone F MS|melody]`, `net [status|scan|results|join SSID [PASS]|joinsaved|save SSID PASS|forget SSID|saved|off]`, `http [status|get URL [LIMIT]|body|abort]`, `serve [status|start [PORT]|stop|mount]`.
 
 ### 12.3 The validation ladder (use it in this order)
 
@@ -528,6 +537,8 @@ Read `design-doc/01` next. In one paragraph: the ticket adds `wifi` (scan/join/r
 8. **Fill-then-erase on e-ink flashes** — draw only the pixels you want (concentric rings, not filled-minus-filled).
 9. **Bare text is untappable** — always `.hit()` at finger scale.
 10. **cwd drift** — automation shells lose `cd`; use absolute paths from the repo root.
+11. **esp_http_client misses chunked bodies on the read path** — open→fetch_headers→read returns 200 with zero bytes for responses without Content-Length. Use `esp_http_client_perform` with an `HTTP_EVENT_ON_DATA` collector (net_http.cpp does). *Found via zenquotes in ESP-53 P6.*
+12. **Default esp_http_server is single-worker** — concurrent requests serialize; a slow route blocks static files behind it. The serve module's busy-503 is a defensive net, not a hot path.
 
 ## 15. Glossary
 

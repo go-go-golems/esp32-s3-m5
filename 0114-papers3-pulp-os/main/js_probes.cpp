@@ -375,6 +375,28 @@ const char kProbe17Js[] =
     "print('probe17: start=' + serve.start(80)"
     "      + ' url=' + serve.url());";
 
+// Probe 18 (ESP-53 P7): module fault battery — malformed/overlong melody,
+// wifi op overlap (join during scan throws "module busy"), double server
+// start (Busy), and a clean stop. Expected: bad=1 overflow=2, scan=0,
+// busy=yes, start1=0 start2=3, stop=0; scan-done arrives asynchronously.
+const char kProbe18Js[] =
+    "print('probe18: melody bad=' + buzzer.melody('garbage')"
+    "      + ' overflow=' + buzzer.melody("
+    "  '100:9,100:9,100:9,100:9,100:9,100:9,100:9,100:9,100:9,100:9,"
+    "100:9,100:9,100:9,100:9,100:9,100:9,100:9'));"
+    "buzzer.stop();"
+    "var r1 = wifi.scan(function (k, n, e) {"
+    "  print('probe18: scan done n=' + n + ' e=' + e);"
+    "});"
+    "var busy = 'no';"
+    "try { wifi.join('x', 'y', function () {}); }"
+    "catch (err) { busy = 'yes'; }"
+    "serve.stop();"
+    "print('probe18: scan=' + r1 + ' join-during-scan=' + busy"
+    "      + ' start1=' + serve.start(8080)"
+    "      + ' start2=' + serve.start(8080)"
+    "      + ' stop=' + serve.stop());";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -427,6 +449,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 15: return jsi::EvalBounded(kProbe15Js, 3000, "<probe15>");
         case 16: return jsi::EvalBounded(kProbe16Js, 3000, "<probe16>");
         case 17: return jsi::EvalBounded(kProbe17Js, 3000, "<probe17>");
+        case 18: return jsi::EvalBounded(kProbe18Js, 3000, "<probe18>");
         default: return StatusCode::InvalidArgument;
     }
 }
