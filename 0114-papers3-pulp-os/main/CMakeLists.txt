@@ -5,6 +5,7 @@ idf_component_register(
         "app_files.cpp"
         "app_owner.cpp"
         "net_http.cpp"
+        "net_serve.cpp"
         "net_wifi.cpp"
         "app_console.cpp"
         "app_input.cpp"
@@ -14,6 +15,7 @@ idf_component_register(
         "js_buzzer.cpp"
         "js_files.cpp"
         "js_http.cpp"
+        "js_serve.cpp"
         "js_wifi.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
@@ -30,6 +32,7 @@ idf_component_register(
         esp_timer
         esp_wifi
         esp_http_client
+        esp_http_server
         esp-tls
         mbedtls
         esp_netif

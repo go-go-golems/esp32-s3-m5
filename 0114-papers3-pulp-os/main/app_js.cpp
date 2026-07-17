@@ -14,6 +14,7 @@
 #include "app_input.h"
 #include "app_js_internal.h"
 #include "app_power.h"
+#include "net_serve.h"
 #include "s3paper/text.h"
 #include "s3paper_runtime/runtime.h"
 
@@ -615,6 +616,9 @@ JSValue js_pulp_reset_tree(JSContext *ctx, JSValue *, int, JSValue *) {
     for (uint8_t i = 0; i < static_cast<uint8_t>(ModuleId::kCount); ++i) {
         g_module_cb[i] = 0;
     }
+    // Route callbacks died with __cbs; drop the native table with them
+    // (unmatched requests fall through to the static mount / 404).
+    ServeRoutesClear();
     // Fresh registry seeded with a slot 0 placeholder: cb ids start at 1
     // and mquickjs treats array holes as TypeError (stricter dialect).
     const JSValue arr = JS_NewArray(ctx, 0);

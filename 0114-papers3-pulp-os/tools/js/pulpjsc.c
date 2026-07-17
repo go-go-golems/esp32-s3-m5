@@ -143,6 +143,16 @@ STUB(js_http_length)
 STUB(js_http_body)
 STUB(js_http_body_line)
 STUB(js_http_body_line_count)
+STUB(js_serve_get)
+STUB(js_serve_handle)
+STUB(js_serve_text)
+STUB(js_serve_json)
+STUB(js_serve_status)
+STUB(js_serve_query)
+STUB(js_serve_files)
+STUB(js_serve_start)
+STUB(js_serve_stop)
+STUB(js_serve_url)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

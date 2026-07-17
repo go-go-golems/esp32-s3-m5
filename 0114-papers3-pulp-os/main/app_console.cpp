@@ -476,6 +476,39 @@ int CmdHttp(int argc, char **argv) {
     return reply.status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdServe(int argc, char **argv) {
+    uint32_t arg = 0;
+    uint32_t arg2 = 80;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "start") == 0) {
+            arg = 1;
+            if (argc >= 3) {
+                arg2 = static_cast<uint32_t>(atoi(argv[2]));
+            }
+        } else if (strcmp(argv[1], "stop") == 0) {
+            arg = 2;
+        } else if (strcmp(argv[1], "mount") == 0) {
+            arg = 3;
+        } else {
+            printf("error: usage serve [status|start [PORT]|stop|"
+                   "mount]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status = RunConsoleOpWithArgs(
+        ConsoleOp::Serve, arg, arg2, &reply, 5000);
+    const ServeSnapshot &s = reply.payload.serve;
+    printf("serve running=%u port=%u routes=%u static=%u url=\"%s\" "
+           "requests=%u busy503=%u timeout503=%u result=%s\n",
+           s.running, static_cast<unsigned>(s.port),
+           static_cast<unsigned>(s.routes), s.static_mounted, s.url,
+           static_cast<unsigned>(s.requests),
+           static_cast<unsigned>(s.busy_503),
+           static_cast<unsigned>(s.timeout_503), StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -534,6 +567,9 @@ void ConsoleStart() {
                     "sleep [status|deep N|rtc-off N|off|auto N] - power",
                     &CmdSleep);
     RegisterCommand("home", "Present the native home page", &CmdHome);
+    RegisterCommand("serve",
+                    "serve [status|start [PORT]|stop|mount] - web server",
+                    &CmdServe);
     RegisterCommand("http",
                     "http [status|get URL [LIMIT]|body|abort] - bounded "
                     "fetch",

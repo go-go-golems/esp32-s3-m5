@@ -15,6 +15,7 @@
 #include "app_js.h"
 #include "app_power.h"
 #include "net_http.h"
+#include "net_serve.h"
 #include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
@@ -361,6 +362,24 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillHttpSnapshot(&reply.payload.http);
             break;
         }
+        case ConsoleOp::Serve: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = ServeStart(static_cast<uint16_t>(
+                        event.payload.console.arg2));
+                    break;
+                case 2:
+                    reply.status = ServeStop();
+                    break;
+                case 3:
+                    reply.status = ServeFilesMount("/", "/sdcard/www");
+                    break;
+                default:
+                    break;
+            }
+            FillServeSnapshot(&reply.payload.serve);
+            break;
+        }
     }
     SendReply(event, reply);
 }
@@ -403,6 +422,12 @@ void HandleEvent(const AppEvent &event) {
         case AppEventKind::ModuleDone: {
             int32_t value = event.payload.module_done.value;
             int32_t err = event.payload.module_done.err;
+            if (event.payload.module_done.module == ModuleId::Serve) {
+                // Serve requests carry route callbacks of their own; the
+                // single-slot module-cb path does not apply.
+                ServeOwnerDispatch(value, err);
+                break;
+            }
             if (event.payload.module_done.module == ModuleId::Wifi &&
                 !WifiOwnerOnModuleDone(event.payload.module_done.kind,
                                        &value, &err)) {

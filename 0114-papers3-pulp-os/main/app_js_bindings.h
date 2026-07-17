@@ -153,6 +153,17 @@ PULP_JS_FN(js_http_body);
 PULP_JS_FN(js_http_body_line);
 PULP_JS_FN(js_http_body_line_count);
 
+PULP_JS_FN(js_serve_get);
+PULP_JS_FN(js_serve_handle);
+PULP_JS_FN(js_serve_text);
+PULP_JS_FN(js_serve_json);
+PULP_JS_FN(js_serve_status);
+PULP_JS_FN(js_serve_query);
+PULP_JS_FN(js_serve_files);
+PULP_JS_FN(js_serve_start);
+PULP_JS_FN(js_serve_stop);
+PULP_JS_FN(js_serve_url);
+
 #ifdef __cplusplus
 }
 #endif

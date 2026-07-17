@@ -349,6 +349,32 @@ const char kProbe16Js[] =
     "catch (err) { busy = 'yes'; }"
     "print('probe16: busy=' + busy);";
 
+// Probe 17 (ESP-53 P5): brings the web server up with three JS routes and
+// the static mount, then prints the URL for the workstation-side curl
+// gate. /slow busy-waits 600 ms so two parallel curls provoke the
+// single-slot 503; /note appends its query to the postcard journal.
+const char kProbe17Js[] =
+    "serve.get('/status').handle(function (req) {"
+    "  return serve.json('{\"battery\":' + batteryLevel()"
+    "      + ',\"ssid\":\"' + wifi.ssidCurrent() + '\"'"
+    "      + ',\"rssi\":' + wifi.rssiCurrent()"
+    "      + ',\"uptime_ms\":' + millis() + '}');"
+    "});"
+    "serve.get('/note').handle(function (req) {"
+    "  var q = serve.query(req);"
+    "  if (q === '') { return serve.status(400); }"
+    "  appendPostcard(q);"
+    "  return serve.text('noted: ' + q);"
+    "});"
+    "serve.get('/slow').handle(function (req) {"
+    "  var t = millis();"
+    "  while (millis() - t < 600) {}"
+    "  return serve.text('slow done');"
+    "});"
+    "serve.files('/', '/sdcard/www');"
+    "print('probe17: start=' + serve.start(80)"
+    "      + ' url=' + serve.url());";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -400,6 +426,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 14: return RunTraceEquivalence();
         case 15: return jsi::EvalBounded(kProbe15Js, 3000, "<probe15>");
         case 16: return jsi::EvalBounded(kProbe16Js, 3000, "<probe16>");
+        case 17: return jsi::EvalBounded(kProbe17Js, 3000, "<probe17>");
         default: return StatusCode::InvalidArgument;
     }
 }

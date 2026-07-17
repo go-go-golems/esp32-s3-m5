@@ -89,6 +89,8 @@ enum class ConsoleOp : uint8_t {
              //      5 = forget (str_a), 6 = off, 7 = saved-list (printed)
     Http,    // arg: 0 = status, 1 = get (str_a = url, arg2 = limit or 0),
              //      2 = abort, 3 = print body head
+    Serve,   // arg: 0 = status, 1 = start (arg2 = port),
+             //      2 = stop, 3 = mount /sdcard/www
 };
 
 enum class PointerPhase : uint8_t {
@@ -238,6 +240,17 @@ struct HttpSnapshot {
     char url[64];
 };
 
+struct ServeSnapshot {
+    uint8_t running;
+    uint8_t static_mounted;
+    uint16_t port;
+    uint32_t routes;
+    uint32_t requests;
+    uint32_t busy_503;
+    uint32_t timeout_503;
+    char url[32];
+};
+
 struct BuzzSnapshot {
     uint8_t initialized;
     uint8_t playing;  // 1 = tone or melody currently sounding
@@ -272,6 +285,7 @@ struct AppReply {
         BuzzSnapshot buzz;
         NetSnapshot net;
         HttpSnapshot http;
+        ServeSnapshot serve;
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

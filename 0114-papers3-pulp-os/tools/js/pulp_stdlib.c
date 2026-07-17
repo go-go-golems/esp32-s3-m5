@@ -161,5 +161,24 @@ static const JSPropDef js_http[] = {
 
 static const JSClassDef js_http_obj = JS_OBJECT_DEF("Http", js_http);
 
+/* serve singleton (ESP-53): JS routes with an express-style builder
+   (get(path).handle(fn)); handlers are synchronous and return a token
+   from text()/json()/status(). The HOST owns the listener lifecycle. */
+static const JSPropDef js_serve[] = {
+    JS_CFUNC_DEF("get", 1, js_serve_get),
+    JS_CFUNC_DEF("handle", 1, js_serve_handle),
+    JS_CFUNC_DEF("text", 1, js_serve_text),
+    JS_CFUNC_DEF("json", 1, js_serve_json),
+    JS_CFUNC_DEF("status", 1, js_serve_status),
+    JS_CFUNC_DEF("query", 1, js_serve_query),
+    JS_CFUNC_DEF("files", 2, js_serve_files),
+    JS_CFUNC_DEF("start", 1, js_serve_start),
+    JS_CFUNC_DEF("stop", 0, js_serve_stop),
+    JS_CFUNC_DEF("url", 0, js_serve_url),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_serve_obj = JS_OBJECT_DEF("Serve", js_serve);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"
