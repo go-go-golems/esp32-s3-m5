@@ -17,6 +17,20 @@ function fmtClock(ms) {
   return pad2(Math.floor(s / 60)) + ':' + pad2(s % 60);
 }
 
+// OS-owned web routes: re-registered at every app switch so they survive
+// resetTree as long as the server runs (found by the P7 soak: a phantom
+// swipe-home wiped the probe's routes mid-soak).
+function osRoutes() {
+  if (serve.url() === '') { return; }
+  serve.get('/status').handle(function (req) {
+    return serve.json('{"battery":' + batteryLevel()
+      + ',"ssid":"' + wifi.ssidCurrent() + '"'
+      + ',"rssi":' + wifi.rssiCurrent()
+      + ',"app":"' + P.app + '"'
+      + ',"uptime_ms":' + millis() + '}');
+  });
+}
+
 // App-switch boundary: drop the whole tree/page/callback state, then
 // re-register the OS chrome callbacks that resetTree cleared.
 function enter(name) {
@@ -28,6 +42,7 @@ function enter(name) {
       .add(text('PULP').size('xl').center(),
            text('asleep - press the side button').size('xs').center());
   });
+  osRoutes();
 }
 
 function announce(name) { print('pulp screen: ' + name); }
