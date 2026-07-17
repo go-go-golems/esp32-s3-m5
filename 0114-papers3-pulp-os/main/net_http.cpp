@@ -84,6 +84,29 @@ void IndexLines() {
     }
 }
 
+// WORKER TASK: collects body bytes as they stream in. perform() decodes
+// chunked transfers, which open/fetch_headers/read does not (zenquotes
+// regression: 200 with 0 bytes captured). Returning ESP_FAIL aborts.
+esp_err_t HttpEvent(esp_http_client_event_t *evt) {
+    if (evt->event_id != HTTP_EVENT_ON_DATA) {
+        return ESP_OK;
+    }
+    if (s_state.abort.load(std::memory_order_acquire)) {
+        return ESP_FAIL;
+    }
+    const uint32_t room = s_state.limit > s_state.body_len
+                              ? s_state.limit - s_state.body_len
+                              : 0;
+    const uint32_t take = evt->data_len > static_cast<int>(room)
+                              ? room
+                              : static_cast<uint32_t>(evt->data_len);
+    if (take > 0) {
+        std::memcpy(s_state.body + s_state.body_len, evt->data, take);
+        s_state.body_len += take;
+    }
+    return ESP_OK;  // excess beyond the limit is drained and dropped
+}
+
 void HttpWorker(void *) {
     // WORKER TASK: module mailbox + PostModuleDone only. No JS, no arena,
     // no storage — the single most tempting place to violate the rule.
@@ -95,6 +118,7 @@ void HttpWorker(void *) {
     cfg.max_redirection_count = kMaxRedirects;
     cfg.crt_bundle_attach = esp_crt_bundle_attach;
     cfg.disable_auto_redirect = false;
+    cfg.event_handler = &HttpEvent;
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
     if (client == nullptr) {
         err_or_len = -1;
@@ -103,25 +127,12 @@ void HttpWorker(void *) {
             esp_http_client_set_header(client, s_state.headers[i].key,
                                        s_state.headers[i].value);
         }
-        const esp_err_t opened = esp_http_client_open(client, 0);
-        if (opened != ESP_OK) {
-            err_or_len = -static_cast<int32_t>(opened);
+        const esp_err_t performed = esp_http_client_perform(client);
+        if (performed != ESP_OK) {
+            err_or_len = -static_cast<int32_t>(performed);
         } else {
-            (void)esp_http_client_fetch_headers(client);
             status = esp_http_client_get_status_code(client);
-            uint32_t total = 0;
-            while (total < s_state.limit &&
-                   !s_state.abort.load(std::memory_order_acquire)) {
-                const int got = esp_http_client_read(
-                    client, s_state.body + total,
-                    static_cast<int>(s_state.limit - total));
-                if (got <= 0) {
-                    break;
-                }
-                total += static_cast<uint32_t>(got);
-            }
-            s_state.body_len = total;
-            err_or_len = static_cast<int32_t>(total);
+            err_or_len = static_cast<int32_t>(s_state.body_len);
         }
         esp_http_client_cleanup(client);
     }
