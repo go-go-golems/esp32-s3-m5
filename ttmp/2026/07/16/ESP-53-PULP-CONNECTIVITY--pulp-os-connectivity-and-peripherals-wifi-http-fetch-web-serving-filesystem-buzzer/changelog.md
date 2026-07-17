@@ -49,3 +49,12 @@ P3 complete: net_wifi module (lazy esp_wifi, scan mailbox 16 APs, join with 2 re
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_wifi.cpp — WiFi station module with joinSaved sequencer
 
+
+## 2026-07-16
+
+P4 complete: net_http module (single slot builder: url[256]/4 headers/limit<=32KiB, 6KiB worker task, 10s timeout, 3 redirects, esp_crt_bundle TLS, abort flag); http JS builder singleton (get/header/limit/done/send + body/bodyLine accessors); http console command. Probe 16 hardware gate: http 200 len=559, https 200 (TLS bundle), truncation at limit=256, unroutable timeout st=0 err=-28674, busy=yes
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_http.cpp — HTTP fetch worker and response mailbox
+

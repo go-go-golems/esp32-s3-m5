@@ -12,8 +12,8 @@
 - [x] [P3.2] wifi module: lazy esp_wifi init, scan mailbox (16 APs), status block, nvs_flash init <!-- t:yub5 -->
 - [x] [P3.3] S3WF credentials file in s3paper_storage (8 records, CRC, atomic) + fault-injection kind 5 <!-- t:xz4v -->
 - [x] [P3.4] join/joinSaved/forget flows with timeout+retry; net console command; hardware gate: IP acquired, survives reboot <!-- t:ay8p -->
-- [ ] [P4.1] http fetch builder: single slot, 4 headers, limit, worker task, PSRAM body mailbox <!-- t:8bla -->
-- [ ] [P4.2] TLS cert bundle; probes: http+https fetch, truncation, timeout <!-- t:2lor -->
+- [x] [P4.1] http fetch builder: single slot, 4 headers, limit, worker task, PSRAM body mailbox <!-- t:8bla -->
+- [x] [P4.2] TLS cert bundle; probes: http+https fetch, truncation, timeout <!-- t:2lor -->
 - [ ] [P5.1] serve module: route table (8 exact paths), request slot, semaphore handoff with dual timeouts <!-- t:43jw -->
 - [ ] [P5.2] Static mount /sdcard/www (httpd-task streaming) + default device-status site <!-- t:6v92 -->
 - [ ] [P5.3] Gate: curl hits JS route + static file; concurrent 503; owner-wedge 503 <!-- t:43b7 -->

@@ -245,3 +245,57 @@ The interesting design piece is the joinSaved sequencer. Credentials are storage
 ### Technical details
 - Gate transcript: scan=16 APs; `net state=up ip=192.168.0.149 ssid="yolobolo" rssi=-45 saved=1`; post-reboot identical; wrong-pass → `state=idle`; forget → `saved=0`.
 - ConsolePayload grew by 98 bytes; event queue (32 deep) static cost +~3 KB. Accepted for POD-rule compliance.
+
+## Step 5: P4 HTTP — bounded fetch builder over a worker task
+
+The first true worker-task module. `net_http.{h,cpp}` holds one request slot (`url[256]`, up to 4 headers, limit ≤ 32 KiB, default 16 KiB) that the owner mutates through builder calls; `HttpSend()` launches a short-lived 6 KiB worker (`xTaskCreatePinnedToCore`, prio 4, core 0) because `esp_http_client` blocks. The worker opens, fetches headers, reads into the PSRAM body mailbox up to the limit (checking an atomic abort flag between reads), indexes lines, clears `in_flight`, posts `ModuleDone{Http, 3, status, len_or_negative_err}`, and deletes itself. HTTPS rides `esp_crt_bundle_attach`. Redirects cap at 3, timeout at 10 s.
+
+The JS surface is the express-flavored builder from the design: `http.get(url).header(k,v).limit(n).done(fn).send()` — the chainable methods return the singleton itself and THROW on misuse (a broken chain should fail at the call site, not surface as a mystery status later); only `send()` returns a status int. Accessors (`body/bodyLine/status/length`) read the mailbox after completion.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation:** Continue with P4 per the phase plan.
+
+**Inferred user intent:** Same as Step 2.
+
+**Commit (code):** eaa9626 — "ESP-53 P4: http fetch builder (worker task, PSRAM mailbox, TLS bundle), http console command, probe 16"
+
+### What I did
+- `net_http.{h,cpp}` (module + worker), `js_http.cpp` (builder bindings), `HttpSnapshot` + `ConsoleOp::Http` (`http [status|get URL [LIMIT]|body|abort]`), probe 16, stdlib/stubs/CMake (esp_http_client, esp-tls, mbedtls); `ConsolePayload.str_a` widened to 128 for console URLs.
+- Gate on hardware (network joined via `net joinsaved` first): probe 16 full transcript.
+
+### Why
+- Worker-task pattern here (unlike files) because esp_http_client genuinely blocks for seconds; the owner must keep servicing touch and ticks during a fetch.
+- `in_flight` atomic as the slot-ownership token: owner writes the slot only while false, worker reads it only while true, and the store-release before PostModuleDone pairs with the owner's read after the queue receive.
+
+### What worked
+- Probe 16, one flash: `http st=200 len=559`, `https st=200 len=559` (cert bundle first try), `trunc st=200 len=256 (limit 256)`, `timeout st=0 err=-28674` (ESP_ERR_HTTP_CONNECT) after the clean 10 s bound, `busy=yes` for an overlapped get.
+- sdkconfig again needed nothing: the mbedtls cert bundle is on by default.
+
+### What didn't work
+- `-Werror=format-truncation` on the snapshot's url copy (256 → 64 field) — precision-capped (`%.63s`); intentional truncation, display-only.
+- The probe's timeout-leg print vanished from the first transcript: it fired between console sessions, and USB-Serial-JTAG drops output with no reader attached (§12 gotcha, met again). Re-ran with `--settle 30` so the reader stayed attached; full transcript captured.
+
+### What I learned
+- `err=-28674` = −ESP_ERR_HTTP_CONNECT (0x7002): esp_http_client's connect failure surfaces on open, not as a status; mapping transport errors to negative `len` keeps the JS signature `(k, status, len)` unambiguous (status 0 ⇒ len is a negative esp_err).
+
+### What was tricky to build
+- Callback/slot lifecycle asymmetry: `.done(fn)` registers the module callback but `.send()` may fail synchronously (Busy/OOM) — send cancels the registration on failure. Conversely `.done()` without `.send()` parks a callback until resetTree; documented as single-slot behavior rather than adding timers to reap it.
+
+### What warrants a second pair of eyes
+- Worker stack size (6 KiB) with TLS: mbedtls handshakes run mostly on their own internal allocations, but a deep cert chain could stress the worker stack — the 30-min P7 soak should include an https leg.
+- `HttpAbort` only stops the read loop; a worker blocked inside connect/handshake still holds the slot until the 10 s timeout. Acceptable v1 semantics, worth documenting in the guide.
+
+### What should be done in the future
+- P6 Radio demo will exercise bodyLine() against a real text feed.
+- Consider POST support (body upload) only when an app needs it — the slot design extends naturally.
+
+### Code review instructions
+- Start at `net_http.cpp` `HttpWorker` (the never-touch-JS rule) and `HttpSend` (slot ownership handoff), then `js_http.cpp` throw-vs-status split.
+- Validate: join network, `js probe 16` with a 30 s reader; expect the five `probe16:` lines quoted above.
+
+### Technical details
+- Completion: `fn(3, status, len)`; status=0 ⇒ transport failure and len = −esp_err.
+- Mailbox: 32 KiB PSRAM body + 1024 line refs; CR stripped at `bodyLine`.
