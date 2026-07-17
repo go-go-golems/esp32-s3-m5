@@ -354,3 +354,59 @@ The curl gate from the workstation: `/status` returned live JSON (`{"battery":10
 ### Technical details
 - Handoff: slot claim (CAS) → fill → gen++ → drain sem → PostModuleDone → take(5 s); owner: dispatch under 1 s JS deadline → give iff gen matches.
 - Response slot: status/type(text|json)/4 KiB body; unfilled slot after dispatch → 500 "route returned nothing".
+
+## Step 7: P6 product — Settings app, launcher glyph, Radio poster; the chunked-body bug
+
+The connectivity stack became product. The Settings app (three views in the launcher idiom): a main list with the wifi status row (tap → scan), saved networks (tap to forget), a Serve on/off row driven by a shared `netUp(fn)` helper (joinSaved if needed, then mount static + start :80), the margin toggle relocated from the launcher long-press easter egg, and a radio-off row. The scan view shows a "scanning..." placeholder, then rebuilds with SSIDs + RSSI + a lock mark when the completion lands; tapping one opens a password view whose 4-row keyboard (digits + qwerty + del/space) reuses the postcard keyboard idiom, with JOIN wiring `wifi.join` → save-on-success → chime → back to main. The launcher header gained a wifi glyph as a dynamic `text(fn)` on a 5 s tick (presents only when the string changes). The Radio app fetches a quote feed over chunked https and — after live feedback ("white background and much bigger font... think bold typography") — renders it poster-style: no header chrome, up to seven lines of the 84 px LibertinusSans Bold face, black on plain white, word-wrapped at ~10 chars; hold-to-save appends the full text to `/books/radio.txt` and rescans the shelf.
+
+The phase also caught a real fetch bug: zenquotes returned `200` with **zero bytes captured**. The response is EOF-delimited/chunked with no Content-Length, and the worker's open→fetch_headers→read loop never sees such bodies. The worker now uses `esp_http_client_perform` with an `HTTP_EVENT_ON_DATA` collector (which decodes chunked transfers), verified against `api.adviceslip.com` (chunked https, 62–101 bytes captured, JSON parsed on device).
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2; plus mid-turn: "do we do https?", "the quotes from the ether should be on white background and much bigger font.", "think bold typography")
+
+**Assistant interpretation:** Continue P6; confirm https support; restyle the Radio quote display as large bold poster typography.
+
+**Inferred user intent:** A Radio app that looks like a designed artifact, not a debug readout; confidence that TLS works.
+
+**Commit (code):** 9aef937 — "ESP-53 P6: settings app (scan/join keyboard/saved/forget/serve/margins), launcher wifi glyph, Radio poster app"
+
+### What I did
+- pulp.js: `settings()/settingsScan()/settingsPass()` (three views), `netUp()`, `wifiGlyph()` + home header row + `p.every(5000)`, `radio()/radioShow()` poster renderer, home rows for Radio and Settings, margin long-press removed, footer hints updated.
+- `net_http.cpp`: perform + ON_DATA rewrite (chunked fix); abort now returns ESP_FAIL from the collector.
+- Hardware validation by synthetic taps: settings open (5 rows), scan view → 14-network list rebuild, serve toggle (joinSaved → `listening on :80` → curl fetched the static page), radio tune (chunked fetch → poster present), hold-to-save (shelf book count 4→5). `js status` exceptions=0 throughout.
+
+### Why
+- One `netUp()` helper implements the design §9 power policy: nothing joins implicitly except through stored credentials, and only when a feature needs the network.
+- Poster wrap at ~10 chars for the 84 px face: the display is a teaser/poster; the shelf copy carries the full text, so truncation with an ellipsis is honest.
+
+### What worked
+- The whole settings flow drove cleanly through synthetic taps on the first flash of the phase; the scan completion → page rebuild (no resetTree between registration and delivery) behaved exactly as designed.
+- adviceslip as the feed doubles as a chunked-transfer regression test.
+
+### What didn't work
+- zenquotes: `200` + 0 bytes (chunked/EOF-delimited body invisible to the read-loop worker). Root-caused via `curl --http1.1 -D-` showing no Content-Length; fixed with perform+ON_DATA; kept adviceslip as the endpoint since it exercises the fixed path.
+- First draft of the settings Serve toggle rebuilt the page immediately AND in the netUp callback — the immediate rebuild's resetTree would cancel the pending joinSaved completion. Caught on self-review; the rebuild now happens only in the callback.
+- First radio draft called `libraryRescan()` right after `files.append(...)` returned — racing the async append. Moved into the completion callback.
+
+### What I learned
+- esp_http_client's open/fetch_headers/read path silently yields zero bytes for responses without Content-Length; perform+events is the robust shape for arbitrary servers. This belongs in the intern guide's gotcha list.
+- `js swipe 1` (synthetic LONG at center) is the cheap way to drive long-press handlers from the console.
+
+### What was tricky to build
+- Async view transitions in an app that rebuilds via `enter()` (resetTree): any pending module callback dies at the transition. The discipline that emerged: register the completion FIRST, transition views ONLY inside completions, and treat "rebuild now + rebuild in callback" as a bug pattern (it cancels the very callback it waits for).
+
+### What warrants a second pair of eyes
+- The password keyboard offers lowercase+digits+`.-_` only; WPA passwords with uppercase/symbols can't be typed on-device yet (the console `net save` path covers them). Footer hints this.
+- Poster layout overflow: 7 × 84 px lines + attribution can exceed the content slot for max-length quotes; layout clips at the footer boundary. Visually acceptable, unverified for every quote length.
+
+### What should be done in the future
+- Shift/symbol layer for the keyboard; per-quote font-size adaptation (drop to the 44 px face when 7 poster lines overflow).
+
+### Code review instructions
+- pulp.js: `settings()` (the serve toggle's callback-only rebuild), `settingsPass()` JOIN handler, `radioShow()` wrap; `net_http.cpp` `HttpEvent`.
+- Validate: `js tap` through home→settings→wifi (scan list), home→radio→tap (poster + `done status=200 captured>0`), `js swipe 1` on radio (shelf gains radio.txt), `js status` exceptions=0.
+
+### Technical details
+- Size tokens → faces: `lg` = LibertinusSansBold 44 (`kFontDisplay`), `xl` = LibSansBold 84 (`kFontXL`), `title` = PT Serif 44.
+- Feed: `https://api.adviceslip.com/advice` (chunked, ~60–140 char quotes).

@@ -67,3 +67,12 @@ P5 complete: net_serve module (8 exact GET routes, single request slot with gene
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_serve.cpp — httpd handoff with dual timeouts and generation guard
 
+
+## 2026-07-16
+
+P6 complete: Settings app (wifi status row, scan list with rssi/lock, join via 4-row on-screen keyboard with digits, saved networks with tap-to-forget, serve on/off toggle with netUp helper, margin toggle relocated from launcher long-press, radio-off row); launcher wifi glyph as dynamic text on 5s tick; Radio app rewritten to poster typography (84px bold LibSans, no chrome, 7-line word wrap) fetching chunked https advice feed, hold-to-save appends to /books/radio.txt. Fixed: esp_http_client read path missed chunked bodies (zenquotes 200/0 bytes) - worker now uses esp_http_client_perform + ON_DATA collector, verified 62-101 byte chunked https fetches
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — Settings/Radio apps and launcher glyph
+
