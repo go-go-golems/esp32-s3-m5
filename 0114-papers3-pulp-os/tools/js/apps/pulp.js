@@ -34,6 +34,7 @@ function osRoutes() {
 // App-switch boundary: drop the whole tree/page/callback state, then
 // re-register the OS chrome callbacks that resetTree cleared.
 function enter(name) {
+  if (P.app === 'sensor' && name !== 'sensor') { socket.stop(); }
   P.app = name;
   resetTree();
   paper.home(function () { home(); });
@@ -94,6 +95,7 @@ function home() {
   entryRow('Daily Pulp', 'a page at random', daily);
   entryRow('Ink', 'the beauty of e-ink', ink);
   entryRow('Radio', 'words from the ether', radio);
+  entryRow('Sensor Link', 'device auth - live plot', sensorLink);
   entryRow('Settings', 'wifi - serve - margins', settings);
   var p = page('home').header(header).content(menu)
     .footer(hintFooter('tap to open - swipe down = home'));
@@ -755,6 +757,158 @@ function ink() {
   });
   p.every(1000);
   show(0, true);
+}
+
+// --------------------------------------------------------- sensor link --
+
+var AUTH_ISSUER = 'https://192.168.0.39:8790/idp';
+var AUTH_RESOURCE = 'https://192.168.0.39:8790/api';
+var AUTH_SOCKET = 'wss://192.168.0.39:8790/api/v1/sensors/ws';
+var AUTH_SCOPES = 'openid profile demo.read sensors.read';
+var SA = { samples: [], lastSeq: 0, restStarted: 0, socketStarted: 0, qrValue: '' };
+
+function sensorPlot(canvas, values) {
+  var w = 460, h = 280;
+  canvas.wipe().box(0, 0, w, h, 0, 3)
+    .line(0, 70, w, 70, 192, 1)
+    .line(0, 140, w, 140, 192, 1)
+    .line(0, 210, w, 210, 192, 1);
+  if (values.length < 2) { return; }
+  var lo = values[0].temp_c, hi = lo, i;
+  for (i = 1; i < values.length; i++) {
+    if (values[i].temp_c < lo) { lo = values[i].temp_c; }
+    if (values[i].temp_c > hi) { hi = values[i].temp_c; }
+  }
+  if (hi - lo < 0.5) { lo = lo - 0.25; hi = hi + 0.25; }
+  for (i = 1; i < values.length; i++) {
+    var x0 = 8 + Math.floor((i - 1) * 444 / 59);
+    var x1 = 8 + Math.floor(i * 444 / 59);
+    var y0 = 272 - Math.floor((values[i - 1].temp_c - lo) * 264 / (hi - lo));
+    var y1 = 272 - Math.floor((values[i].temp_c - lo) * 264 / (hi - lo));
+    canvas.line(x0, y0, x1, y1, 0, 2);
+  }
+}
+
+function sensorLink() {
+  enter('sensor');
+  SA.samples = [];
+  SA.lastSeq = 0;
+  SA.restStarted = 0;
+  SA.socketStarted = 0;
+  SA.qrValue = '';
+  if (auth.state() === 0) {
+    auth.configure(AUTH_ISSUER, 'pulp-papers3', AUTH_SCOPES, AUTH_RESOURCE);
+  }
+
+  var stateT = text('NOT AUTHORIZED').size('xs').invert();
+  var codeT = text('TAP CONNECT').size('xl').center();
+  var urlT = text(AUTH_ISSUER).size('xs').gray(96).center();
+  var qr = canvas().width(460).height(180);
+  var metaT = text('TOKEN / NATIVE RAM ONLY').size('xs').gray(96);
+  var fortuneT = text(' ').size('xs').gray(96);
+  var latestT = text('WAITING FOR SAMPLES').size('lg');
+  var graph = canvas().width(460).height(280);
+  var connect = col().pad(8, 0, 8, 0).gap(6).add(
+    divider(8, 0), text('CONNECT / REAUTHORIZE').size('sm').center(),
+    divider(2, 0)).hit(460, 76);
+  var body = col().pad(8, M, 0, M).gap(8).add(
+    stateT, codeT, urlT, qr, metaT, fortuneT, latestT, graph, connect);
+  var p = page('sensor').header(chrome('SENSOR LINK')).content(body)
+    .footer(hintFooter('BROWSER APPROVAL / LIVE E-INK / 0.5 HZ'));
+
+  function startAuth() {
+    socket.stop();
+    auth.clear();
+    auth.configure(AUTH_ISSUER, 'pulp-papers3', AUTH_SCOPES, AUTH_RESOURCE);
+    SA.restStarted = 0;
+    SA.socketStarted = 0;
+    SA.samples = [];
+    SA.lastSeq = 0;
+    SA.qrValue = '';
+    qr.wipe();
+    var rc = 1;
+    netUp(function (ok) {
+      if (ok !== 1) { stateT.set('WIFI UNAVAILABLE'); p.update(); return; }
+      rc = auth.start();
+      stateT.set(rc === 0 ? 'REQUESTING DEVICE CODE' : 'AUTH START FAILED ' + rc);
+      p.update();
+    });
+  }
+
+  function startRestAndSocket() {
+    if (SA.restStarted) { return; }
+    SA.restStarted = 1;
+    http.get(AUTH_RESOURCE + '/v1/me').bearer().limit(2048)
+      .done(function (k, status, len) {
+        if (status !== 200) {
+          stateT.set('API /ME FAILED ' + status);
+          if (status === 401) { auth.clear(); }
+          p.update(); return;
+        }
+        var me = JSON.parse(http.body());
+        metaT.set('subject ' + me.subject + ' - token ' + auth.tokenSecondsLeft() + 's');
+        http.get(AUTH_RESOURCE + '/v1/demo/fortune').bearer().limit(1024)
+          .done(function (k2, status2, len2) {
+            if (status2 === 200) {
+              fortuneT.set(JSON.parse(http.body()).message);
+            }
+            var rc = socket.open(AUTH_SOCKET).bearer().start();
+            SA.socketStarted = rc === 0 ? 1 : 0;
+            stateT.set(rc === 0 ? 'AUTHORIZED / STREAM CONNECTING' : 'SOCKET FAILED ' + rc);
+            p.update();
+          }).send();
+      }).send();
+  }
+
+  connect.onTap(startAuth);
+  p.on(G.TICK, function () {
+    var st = auth.state();
+    if (st === 3) {
+      stateT.set('APPROVE DEVICE / ' + auth.grantSecondsLeft() + 'S');
+      codeT.set(auth.userCode());
+      urlT.set('SCAN QR / OR ENTER CODE MANUALLY');
+      var completeUri = auth.verificationUriComplete();
+      if (completeUri && completeUri !== SA.qrValue) {
+        qr.wipe().qr(completeUri, 180);
+        SA.qrValue = completeUri;
+      }
+    } else if (st === 5) {
+      if (SA.qrValue) { qr.wipe(); SA.qrValue = ''; }
+      codeT.set('AUTHORIZED');
+      urlT.set('access token is hidden from JavaScript');
+      startRestAndSocket();
+    } else if (st === 6 || st === 7) {
+      stateT.set((auth.stateName() + ' / ' + auth.error()).toUpperCase());
+      codeT.set('TAP TO RETRY');
+    } else {
+      stateT.set(auth.stateName().toUpperCase());
+    }
+
+    var n = socket.messageCount();
+    var changed = 0, i;
+    for (i = 0; i < n; i++) {
+      var seq = socket.messageSeq(i);
+      if (seq <= SA.lastSeq) { continue; }
+      var sample = JSON.parse(socket.message(i));
+      if (sample.v === 1 && sample.type === 'sensor.sample') {
+        SA.samples.push(sample);
+        if (SA.samples.length > 60) { SA.samples.shift(); }
+        SA.lastSeq = seq;
+        changed = 1;
+      }
+    }
+    if (changed) {
+      var last = SA.samples[SA.samples.length - 1];
+      latestT.set(last.temp_c + ' C  /  ' + last.humidity_pct + '%  /  ' + last.seq);
+      sensorPlot(graph, SA.samples);
+      stateT.set(('STREAM ' + socket.stateName() + ' / RX ' + socket.received()
+        + ' / DROP ' + socket.dropped()).toUpperCase());
+      p.update();
+    }
+  });
+  p.every(2000);
+  announce('sensor');
+  p.show(true);
 }
 
 // ------------------------------------------------------------ settings --

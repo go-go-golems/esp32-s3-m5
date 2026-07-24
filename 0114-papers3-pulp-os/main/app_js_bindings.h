@@ -70,6 +70,7 @@ PULP_JS_FN(js_w_disc);
 PULP_JS_FN(js_w_ring);
 PULP_JS_FN(js_w_box);
 PULP_JS_FN(js_w_paint);
+PULP_JS_FN(js_w_qr);
 PULP_JS_FN(js_w_wipe);
 PULP_JS_FN(js_pulp_canvas);
 void js_widget_finalizer(JSContext *ctx, void *opaque);
@@ -143,6 +144,7 @@ PULP_JS_FN(js_wifi_off);
 
 PULP_JS_FN(js_http_get);
 PULP_JS_FN(js_http_header);
+PULP_JS_FN(js_http_bearer);
 PULP_JS_FN(js_http_limit);
 PULP_JS_FN(js_http_done);
 PULP_JS_FN(js_http_send);
@@ -152,6 +154,32 @@ PULP_JS_FN(js_http_length);
 PULP_JS_FN(js_http_body);
 PULP_JS_FN(js_http_body_line);
 PULP_JS_FN(js_http_body_line_count);
+
+PULP_JS_FN(js_auth_configure);
+PULP_JS_FN(js_auth_start);
+PULP_JS_FN(js_auth_state);
+PULP_JS_FN(js_auth_state_name);
+PULP_JS_FN(js_auth_user_code);
+PULP_JS_FN(js_auth_verification_uri);
+PULP_JS_FN(js_auth_verification_uri_complete);
+PULP_JS_FN(js_auth_error);
+PULP_JS_FN(js_auth_grant_seconds);
+PULP_JS_FN(js_auth_token_seconds);
+PULP_JS_FN(js_auth_poll_seconds);
+PULP_JS_FN(js_auth_clear);
+
+PULP_JS_FN(js_socket_open);
+PULP_JS_FN(js_socket_bearer);
+PULP_JS_FN(js_socket_start);
+PULP_JS_FN(js_socket_stop);
+PULP_JS_FN(js_socket_state);
+PULP_JS_FN(js_socket_state_name);
+PULP_JS_FN(js_socket_message_count);
+PULP_JS_FN(js_socket_message_seq);
+PULP_JS_FN(js_socket_message);
+PULP_JS_FN(js_socket_received);
+PULP_JS_FN(js_socket_dropped);
+PULP_JS_FN(js_socket_error);
 
 PULP_JS_FN(js_serve_get);
 PULP_JS_FN(js_serve_handle);

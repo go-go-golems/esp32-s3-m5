@@ -12,6 +12,7 @@
 #include "freertos/task.h"
 
 #include "app_owner.h"
+#include "net_auth.h"
 
 namespace pulp {
 namespace {
@@ -40,6 +41,8 @@ struct HttpState {
     uint32_t header_count = 0;
     uint32_t limit = kHttpDefaultLimit;
     bool slot_open = false;  // Begin called, Send not yet
+    bool use_bearer = false;
+    char authorization[2300]{};
 
     std::atomic<bool> in_flight{false};
     std::atomic<bool> abort{false};
@@ -116,7 +119,11 @@ void HttpWorker(void *) {
     cfg.url = s_state.url;
     cfg.timeout_ms = kTimeoutMs;
     cfg.max_redirection_count = kMaxRedirects;
-    cfg.crt_bundle_attach = esp_crt_bundle_attach;
+    if (AuthTrustedApiUrl(s_state.url)) {
+        cfg.cert_pem = PulpDemoCACert();
+    } else {
+        cfg.crt_bundle_attach = esp_crt_bundle_attach;
+    }
     cfg.disable_auto_redirect = false;
     cfg.event_handler = &HttpEvent;
     esp_http_client_handle_t client = esp_http_client_init(&cfg);
@@ -127,6 +134,10 @@ void HttpWorker(void *) {
             esp_http_client_set_header(client, s_state.headers[i].key,
                                        s_state.headers[i].value);
         }
+        if (s_state.use_bearer) {
+            esp_http_client_set_header(client, "Authorization",
+                                       s_state.authorization);
+        }
         const esp_err_t performed = esp_http_client_perform(client);
         if (performed != ESP_OK) {
             err_or_len = -static_cast<int32_t>(performed);
@@ -136,6 +147,9 @@ void HttpWorker(void *) {
         }
         esp_http_client_cleanup(client);
     }
+    volatile char *secret = s_state.authorization;
+    for (size_t i = 0; i < sizeof(s_state.authorization); ++i) secret[i] = 0;
+    s_state.use_bearer = false;
     s_state.status = status;
     IndexLines();
     ESP_LOGI(kTag, "done status=%d captured=%u",
@@ -163,6 +177,8 @@ StatusCode HttpBegin(const char *url) {
     snprintf(s_state.url, sizeof(s_state.url), "%s", url);
     s_state.header_count = 0;
     s_state.limit = kHttpDefaultLimit;
+    s_state.use_bearer = false;
+    std::memset(s_state.authorization, 0, sizeof(s_state.authorization));
     s_state.slot_open = true;
     return StatusCode::Ok;
 }
@@ -185,6 +201,18 @@ StatusCode HttpHeader(const char *key, const char *value) {
     snprintf(slot.value, sizeof(slot.value), "%s", value);
     s_state.header_count++;
     return StatusCode::Ok;
+}
+
+StatusCode HttpBearer() {
+    AssertOwner();
+    if (!s_state.slot_open ||
+        s_state.in_flight.load(std::memory_order_acquire)) {
+        return StatusCode::InvalidArgument;
+    }
+    const StatusCode status = AuthCopyAuthorization(
+        s_state.url, s_state.authorization, sizeof(s_state.authorization));
+    if (status == StatusCode::Ok) s_state.use_bearer = true;
+    return status;
 }
 
 StatusCode HttpLimit(uint32_t limit) {

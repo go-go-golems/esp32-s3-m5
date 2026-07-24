@@ -509,6 +509,55 @@ int CmdServe(int argc, char **argv) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdAuth(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "start") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "clear") == 0) {
+            arg = 2;
+        } else {
+            printf("error: usage auth [status|start|clear]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status = RunConsoleOp(ConsoleOp::Auth, arg, &reply, 5000);
+    const AuthSnapshot &a = reply.payload.auth;
+    printf("auth state=%u in_flight=%u user_code=\"%s\" grant_left=%d "
+           "poll_left=%d token_left=%d token_len=%u error=\"%s\" result=%s\n",
+           a.state, a.in_flight, a.user_code, static_cast<int>(a.grant_left),
+           static_cast<int>(a.poll_left), static_cast<int>(a.token_left),
+           static_cast<unsigned>(a.token_len), a.error,
+           StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
+int CmdSocket(int argc, char **argv) {
+    uint32_t arg = 0;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "start") == 0) {
+            arg = 1;
+        } else if (strcmp(argv[1], "stop") == 0) {
+            arg = 2;
+        } else {
+            printf("error: usage socket [status|start|stop]\n");
+            return 1;
+        }
+    }
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOp(ConsoleOp::Socket, arg, &reply, 10000);
+    const SocketSnapshot &s = reply.payload.socket;
+    printf("socket state=%u received=%u dropped=%u ring=%u error=\"%s\" "
+           "result=%s\n",
+           s.state, static_cast<unsigned>(s.received),
+           static_cast<unsigned>(s.dropped),
+           static_cast<unsigned>(s.ring_count), s.error,
+           StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
 int CmdHome(int, char **) {
     AppReply reply;
     const StatusCode status =
@@ -570,6 +619,10 @@ void ConsoleStart() {
     RegisterCommand("serve",
                     "serve [status|start [PORT]|stop|mount] - web server",
                     &CmdServe);
+    RegisterCommand("auth", "auth [status|start|clear] - device authorization",
+                    &CmdAuth);
+    RegisterCommand("socket", "socket [status|start|stop] - sensor WebSocket",
+                    &CmdSocket);
     RegisterCommand("http",
                     "http [status|get URL [LIMIT]|body|abort] - bounded "
                     "fetch",

@@ -4,18 +4,22 @@ idf_component_register(
         "app_buzzer.cpp"
         "app_files.cpp"
         "app_owner.cpp"
+        "net_auth.cpp"
         "net_http.cpp"
         "net_serve.cpp"
+        "net_socket.cpp"
         "net_wifi.cpp"
         "app_console.cpp"
         "app_input.cpp"
         "app_power.cpp"
         "app_home.cpp"
         "app_js.cpp"
+        "js_auth.cpp"
         "js_buzzer.cpp"
         "js_files.cpp"
         "js_http.cpp"
         "js_serve.cpp"
+        "js_socket.cpp"
         "js_wifi.cpp"
         "js_widgets.cpp"
         "js_pages.cpp"
@@ -33,16 +37,21 @@ idf_component_register(
         esp_wifi
         esp_http_client
         esp_http_server
+        esp_websocket_client
         esp-tls
         mbedtls
+        json
         esp_netif
         esp_event
         nvs_flash
         s3paper_core
         s3paper_m5
+        m5stack__m5gfx
         s3paper_storage
         s3paper_runtime
         fatfs
         sdmmc
         esp_driver_sdspi
+    EMBED_TXTFILES
+        "pulp_demo_ca.pem"
 )

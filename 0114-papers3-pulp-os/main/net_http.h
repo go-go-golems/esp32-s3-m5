@@ -26,6 +26,8 @@ constexpr uint32_t kHttpMaxLines = 1024;
 StatusCode HttpBegin(const char *url);
 StatusCode HttpHeader(const char *key, const char *value);
 StatusCode HttpLimit(uint32_t limit);
+// Attach the RAM-only device bearer after trusted API origin/path checks.
+StatusCode HttpBearer();
 // Validates and launches the worker. The Http module callback must
 // already be registered by the binding.
 StatusCode HttpSend();

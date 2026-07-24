@@ -42,6 +42,7 @@ enum class ModuleId : uint8_t {
     Wifi,
     Http,
     Serve,
+    Auth,
     kCount,
 };
 
@@ -52,6 +53,8 @@ enum ModuleDoneKind : int32_t {
     kDoneWifiJoin = 2,
     kDoneHttp = 3,
     kDoneServeRequest = 4,
+    kDoneAuthDeviceCode = 20,
+    kDoneAuthTokenPoll = 21,
     kDoneFilesList = 10,
     kDoneFilesRead = 11,
     kDoneFilesWrite = 12,
@@ -91,6 +94,8 @@ enum class ConsoleOp : uint8_t {
              //      2 = abort, 3 = print body head
     Serve,   // arg: 0 = status, 1 = start (arg2 = port),
              //      2 = stop, 3 = mount /sdcard/www
+    Auth,    // arg: 0 = status, 1 = start, 2 = clear
+    Socket,  // arg: 0 = status, 1 = start configured URL, 2 = stop
 };
 
 enum class PointerPhase : uint8_t {
@@ -251,6 +256,25 @@ struct ServeSnapshot {
     char url[32];
 };
 
+struct AuthSnapshot {
+    uint8_t state;
+    uint8_t in_flight;
+    uint16_t token_len;  // length only; token bytes never leave net_auth
+    int32_t grant_left;
+    int32_t token_left;
+    int32_t poll_left;
+    char user_code[24];
+    char error[40];
+};
+
+struct SocketSnapshot {
+    uint8_t state;
+    uint32_t received;
+    uint32_t dropped;
+    uint32_t ring_count;
+    char error[48];
+};
+
 struct BuzzSnapshot {
     uint8_t initialized;
     uint8_t playing;  // 1 = tone or melody currently sounding
@@ -286,6 +310,8 @@ struct AppReply {
         NetSnapshot net;
         HttpSnapshot http;
         ServeSnapshot serve;
+        AuthSnapshot auth;
+        SocketSnapshot socket;
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

@@ -6,6 +6,7 @@
 #include "esp_log.h"
 
 #include "app_js_internal.h"
+#include "lgfx/utility/lgfx_qrcode.h"
 #include "s3paper/text.h"
 #include "s3paper/widget.h"
 #include "s3paper_runtime/runtime.h"
@@ -557,6 +558,61 @@ JSValue js_w_paint(JSContext *ctx, JSValue *this_val, int argc,
     return CanvasMethod(ctx, this_val, argc, argv,
                         s3paper::CanvasCmd::kFill, 4, false,
                         "paint(x,y,w,h,gray)");
+}
+
+JSValue js_w_qr(JSContext *ctx, JSValue *this_val, int argc,
+                JSValue *argv) {
+    JSValue err;
+    s3paper::WidgetHandle h;
+    s3paper::WidgetNode *n = ThisNode(ctx, this_val, &h, &err);
+    if (n == nullptr) return err;
+    if (n->kind != s3paper::WidgetKind::Canvas || argc < 2) {
+        return JS_ThrowTypeError(ctx, "qr(text,size): not a Canvas or missing argument");
+    }
+
+    char value[384] = {};
+    if (!ArgString(ctx, argv[0], value, sizeof(value), &err)) return err;
+    int target = 0;
+    if (JS_ToInt32(ctx, &target, argv[1])) return JS_EXCEPTION;
+    if (target < 64 || target > 480) {
+        return JS_ThrowRangeError(ctx, "qr size must be 64..480");
+    }
+
+    QRCode qr{};
+    uint8_t storage[4096] = {};
+    bool encoded = false;
+    for (uint8_t version = 1; version <= 10; ++version) {
+        if (lgfx_qrcode_initText(&qr, storage, version, 0, value) == 0) {
+            encoded = true;
+            break;
+        }
+    }
+    if (!encoded) return JS_ThrowRangeError(ctx, "qr text is too long");
+
+    const int scale = target / (static_cast<int>(qr.size) + 8);
+    if (scale < 1) return JS_ThrowRangeError(ctx, "qr size is too small");
+    const int origin = (target - static_cast<int>(qr.size) * scale) / 2;
+    for (int y = 0; y < qr.size; ++y) {
+        int x = 0;
+        while (x < qr.size) {
+            while (x < qr.size && !lgfx_qrcode_getModule(&qr, x, y)) ++x;
+            const int start = x;
+            while (x < qr.size && lgfx_qrcode_getModule(&qr, x, y)) ++x;
+            if (start == x) continue;
+            s3paper::CanvasCmd cmd{};
+            cmd.kind = s3paper::CanvasCmd::kFill;
+            cmd.gray = 0;
+            cmd.a = ClampI16(origin + start * scale);
+            cmd.b = ClampI16(origin + y * scale);
+            cmd.c = ClampI16((x - start) * scale);
+            cmd.d = ClampI16(scale);
+            const s3paper::Status st = s3paper_runtime::Arena().CanvasAppend(h, cmd);
+            if (!st.ok()) {
+                return JS_ThrowRangeError(ctx, "qr exceeds canvas command capacity");
+            }
+        }
+    }
+    return *this_val;
 }
 
 JSValue js_w_wipe(JSContext *ctx, JSValue *this_val, int, JSValue *) {

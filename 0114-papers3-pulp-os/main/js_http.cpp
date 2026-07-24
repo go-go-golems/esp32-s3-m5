@@ -59,6 +59,14 @@ JSValue js_http_header(JSContext *ctx, JSValue *this_val, int argc,
     return *this_val;
 }
 
+JSValue js_http_bearer(JSContext *ctx, JSValue *this_val, int, JSValue *) {
+    const StatusCode status = HttpBearer();
+    if (status != StatusCode::Ok) {
+        return ThrowStatus(ctx, "http.bearer", status);
+    }
+    return *this_val;
+}
+
 JSValue js_http_limit(JSContext *ctx, JSValue *this_val, int argc,
                       JSValue *argv) {
     int limit = 0;

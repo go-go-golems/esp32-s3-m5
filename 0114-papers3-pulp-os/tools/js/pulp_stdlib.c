@@ -48,6 +48,7 @@ static const JSPropDef js_widget_proto[] = {
     JS_CFUNC_DEF("ring", 5, js_w_ring),
     JS_CFUNC_DEF("box", 6, js_w_box),
     JS_CFUNC_DEF("paint", 5, js_w_paint),
+    JS_CFUNC_DEF("qr", 2, js_w_qr),
     JS_CFUNC_DEF("wipe", 0, js_w_wipe),
     JS_PROP_END,
 };
@@ -147,6 +148,7 @@ static const JSClassDef js_wifi_obj = JS_OBJECT_DEF("Wifi", js_wifi);
 static const JSPropDef js_http[] = {
     JS_CFUNC_DEF("get", 1, js_http_get),
     JS_CFUNC_DEF("header", 2, js_http_header),
+    JS_CFUNC_DEF("bearer", 0, js_http_bearer),
     JS_CFUNC_DEF("limit", 1, js_http_limit),
     JS_CFUNC_DEF("done", 1, js_http_done),
     JS_CFUNC_DEF("send", 0, js_http_send),
@@ -160,6 +162,43 @@ static const JSPropDef js_http[] = {
 };
 
 static const JSClassDef js_http_obj = JS_OBJECT_DEF("Http", js_http);
+
+/* auth singleton (ESP-54): owner-driven RFC 8628 state; access token remains
+   native and is intentionally absent from this API. */
+static const JSPropDef js_auth[] = {
+    JS_CFUNC_DEF("configure", 4, js_auth_configure),
+    JS_CFUNC_DEF("start", 0, js_auth_start),
+    JS_CFUNC_DEF("state", 0, js_auth_state),
+    JS_CFUNC_DEF("stateName", 0, js_auth_state_name),
+    JS_CFUNC_DEF("userCode", 0, js_auth_user_code),
+    JS_CFUNC_DEF("verificationUri", 0, js_auth_verification_uri),
+    JS_CFUNC_DEF("verificationUriComplete", 0, js_auth_verification_uri_complete),
+    JS_CFUNC_DEF("error", 0, js_auth_error),
+    JS_CFUNC_DEF("grantSecondsLeft", 0, js_auth_grant_seconds),
+    JS_CFUNC_DEF("tokenSecondsLeft", 0, js_auth_token_seconds),
+    JS_CFUNC_DEF("pollSecondsLeft", 0, js_auth_poll_seconds),
+    JS_CFUNC_DEF("clear", 0, js_auth_clear),
+    JS_PROP_END,
+};
+static const JSClassDef js_auth_obj = JS_OBJECT_DEF("Auth", js_auth);
+
+/* socket singleton (ESP-54): bounded text WebSocket ring with native bearer. */
+static const JSPropDef js_socket[] = {
+    JS_CFUNC_DEF("open", 1, js_socket_open),
+    JS_CFUNC_DEF("bearer", 0, js_socket_bearer),
+    JS_CFUNC_DEF("start", 0, js_socket_start),
+    JS_CFUNC_DEF("stop", 0, js_socket_stop),
+    JS_CFUNC_DEF("state", 0, js_socket_state),
+    JS_CFUNC_DEF("stateName", 0, js_socket_state_name),
+    JS_CFUNC_DEF("messageCount", 0, js_socket_message_count),
+    JS_CFUNC_DEF("messageSeq", 1, js_socket_message_seq),
+    JS_CFUNC_DEF("message", 1, js_socket_message),
+    JS_CFUNC_DEF("received", 0, js_socket_received),
+    JS_CFUNC_DEF("dropped", 0, js_socket_dropped),
+    JS_CFUNC_DEF("error", 0, js_socket_error),
+    JS_PROP_END,
+};
+static const JSClassDef js_socket_obj = JS_OBJECT_DEF("Socket", js_socket);
 
 /* serve singleton (ESP-53): JS routes with an express-style builder
    (get(path).handle(fn)); handlers are synchronous and return a token

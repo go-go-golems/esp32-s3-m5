@@ -424,6 +424,8 @@ static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("files", &js_files_obj),
     JS_PROP_CLASS_DEF("wifi", &js_wifi_obj),
     JS_PROP_CLASS_DEF("http", &js_http_obj),
+    JS_PROP_CLASS_DEF("auth", &js_auth_obj),
+    JS_PROP_CLASS_DEF("socket", &js_socket_obj),
     JS_PROP_CLASS_DEF("serve", &js_serve_obj),
 #endif
     JS_PROP_END,

@@ -9,6 +9,13 @@ CONFIG_PARTITION_TABLE_FILENAME="partitions.csv"
 # PaperS3 has octal PSRAM; the runtime keeps frames/caches there later.
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
+# TLS handshakes for HTTP + WebSocket coexist with the UI only when mbedTLS
+# uses PSRAM; internal-only allocation fragments the ~100 KiB internal heap.
+# The PaperS3 has trusted octal PSRAM and the demo does not handle secrets in
+# a hostile physical-memory threat model.
+CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC=y
+# CONFIG_MBEDTLS_INTERNAL_MEM_ALLOC is not set
+CONFIG_MBEDTLS_DYNAMIC_BUFFER=y
 CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
 CONFIG_COMPILER_ORPHAN_SECTIONS_WARNING=y
 

@@ -182,7 +182,10 @@ class WidgetArena {
 
     // ---- Canvas command store (ESP-52) ----
     static constexpr uint32_t kCanvasSlots = 8;
-    static constexpr uint32_t kCanvasCmds = 96;  // per slot
+    // A QR code is emitted as horizontally coalesced fill runs. Version 10
+    // needs at most 57 * 29 runs, while the device-auth URL currently uses
+    // roughly 300; keep ample bounded room without dynamic allocation.
+    static constexpr uint32_t kCanvasCmds = 512;  // per slot
     // Appends one command (CapacityExceeded when the slot is full).
     Status CanvasAppend(WidgetHandle handle, const CanvasCmd &cmd);
     // Drops all commands (version bump: the diff damages the frame).

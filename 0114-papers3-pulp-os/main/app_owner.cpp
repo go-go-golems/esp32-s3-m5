@@ -14,8 +14,10 @@
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
+#include "net_auth.h"
 #include "net_http.h"
 #include "net_serve.h"
+#include "net_socket.h"
 #include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
@@ -24,6 +26,11 @@ namespace pulp {
 namespace {
 
 const char *kTag = "owner";
+const char *kDemoIssuer = "https://192.168.0.39:8790/idp";
+const char *kDemoResource = "https://192.168.0.39:8790/api";
+const char *kDemoSocket = "wss://192.168.0.39:8790/api/v1/sensors/ws";
+const char *kDemoClient = "pulp-papers3";
+const char *kDemoScopes = "openid profile demo.read sensors.read";
 
 constexpr uint8_t kSourceCount = static_cast<uint8_t>(EventSource::kCount);
 constexpr uint8_t kKindCount = static_cast<uint8_t>(AppEventKind::kCount);
@@ -380,6 +387,48 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillServeSnapshot(&reply.payload.serve);
             break;
         }
+        case ConsoleOp::Auth: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    if (AuthStatus() ==
+                        static_cast<int32_t>(AuthState::Unconfigured)) {
+                        reply.status = AuthConfigure(kDemoIssuer, kDemoClient,
+                                                     kDemoScopes, kDemoResource);
+                    }
+                    if (reply.status == StatusCode::Ok) {
+                        reply.status = AuthStart();
+                    }
+                    break;
+                case 2:
+                    SocketStop();
+                    AuthClear();
+                    break;
+                default:
+                    break;
+            }
+            FillAuthSnapshot(&reply.payload.auth);
+            break;
+        }
+        case ConsoleOp::Socket: {
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = SocketBegin(kDemoSocket);
+                    if (reply.status == StatusCode::Ok) {
+                        reply.status = SocketBearer();
+                    }
+                    if (reply.status == StatusCode::Ok) {
+                        reply.status = SocketStart();
+                    }
+                    break;
+                case 2:
+                    SocketStop();
+                    break;
+                default:
+                    break;
+            }
+            FillSocketSnapshot(&reply.payload.socket);
+            break;
+        }
     }
     SendReply(event, reply);
 }
@@ -422,6 +471,12 @@ void HandleEvent(const AppEvent &event) {
         case AppEventKind::ModuleDone: {
             int32_t value = event.payload.module_done.value;
             int32_t err = event.payload.module_done.err;
+            if (event.payload.module_done.module == ModuleId::Auth) {
+                AuthOwnerOnModuleDone(event.payload.module_done.kind,
+                                      event.payload.module_done.value,
+                                      event.payload.module_done.err);
+                break;
+            }
             if (event.payload.module_done.module == ModuleId::Serve) {
                 // Serve requests carry route callbacks of their own; the
                 // single-slot module-cb path does not apply.
@@ -454,6 +509,8 @@ void TickHooks() {
     JsTimerTick(now);
     BuzzerTick(now);
     WifiTick(now);
+    AuthTick(now);
+    SocketTick();
     PowerAutoTick(now);
 }
 
