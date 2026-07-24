@@ -51,4 +51,9 @@ const char *PulpDemoCACert();
 struct AuthSnapshot;
 void FillAuthSnapshot(AuthSnapshot *out);
 
+// Owner-only deterministic parser fault battery used by console probe 24.
+// It injects bounded synthetic HTTP payloads without starting a worker and
+// restores configured-idle state before returning.
+StatusCode AuthRunParserProbe();
+
 }  // namespace pulp

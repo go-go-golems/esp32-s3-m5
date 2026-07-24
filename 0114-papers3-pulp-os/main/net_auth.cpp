@@ -501,6 +501,84 @@ StatusCode AuthCopyAuthorization(const char *url, char *out, size_t cap) {
     return StatusCode::Ok;
 }
 
+StatusCode AuthRunParserProbe() {
+    AssertOwner();
+    if (s.in_flight.load(std::memory_order_acquire) || !EnsureResponse()) {
+        return StatusCode::Busy;
+    }
+    bool passed = true;
+    auto load = [](const char *body, int status = 200) {
+        s.response_len = strlen(body);
+        memcpy(s.response, body, s.response_len + 1);
+        s.response_overflow = false;
+        s.http_status = status;
+    };
+    auto expect = [&passed](const char *name, AuthState state,
+                            const char *error) {
+        const bool ok = s.state == state && strcmp(s.error, error) == 0 &&
+                        s.access_token[0] == '\0';
+        printf("probe24: %s=%s state=%s error=%s token_len=%u\n", name,
+               ok ? "PASS" : "FAIL", AuthStateName(), s.error,
+               static_cast<unsigned>(strlen(s.access_token)));
+        passed = passed && ok;
+    };
+
+    ResetSecrets();
+    s.response_overflow = true;
+    s.http_status = 200;
+    HandleDeviceResponse(0);
+    expect("device-overflow", AuthState::Error, "response_too_large");
+
+    ResetSecrets();
+    load("{");
+    HandleDeviceResponse(0);
+    expect("device-malformed", AuthState::Error, "invalid_json");
+
+    ResetSecrets();
+    load("{\"expires_in\":600,\"device_code\":\"only-one-field\"}");
+    HandleDeviceResponse(0);
+    expect("device-missing-fields", AuthState::Error,
+           "invalid_device_response");
+
+    ResetSecrets();
+    load("{\"expires_in\":600,\"interval\":1,"
+         "\"device_code\":\"probe-device\",\"user_code\":\"ABCD-EFGH\","
+         "\"verification_uri\":\"https://example.test/device\","
+         "\"verification_uri_complete\":"
+         "\"https://example.test/device?user_code=ABCD-EFGH\"}");
+    HandleDeviceResponse(0);
+    const bool pending = s.state == AuthState::WaitingForUser &&
+                         strcmp(s.device_code, "probe-device") == 0;
+    printf("probe24: device-valid=%s state=%s\n",
+           pending ? "PASS" : "FAIL", AuthStateName());
+    passed = passed && pending;
+
+    load("{\"error\":\"slow_down\"}", 400);
+    HandlePollResponse(0);
+    const bool slowed = s.state == AuthState::WaitingForUser &&
+                        strcmp(s.error, "slow_down") == 0 &&
+                        strcmp(s.device_code, "probe-device") == 0;
+    printf("probe24: slow-down=%s state=%s error=%s\n",
+           slowed ? "PASS" : "FAIL", AuthStateName(), s.error);
+    passed = passed && slowed;
+
+    load("not-json", 200);
+    HandlePollResponse(0);
+    expect("token-malformed", AuthState::Error, "invalid_json");
+
+    ResetSecrets();
+    load("{\"expires_in\":60,\"access_token\":\"short\","
+         "\"token_type\":\"mac\"}", 200);
+    HandlePollResponse(0);
+    expect("token-wrong-type", AuthState::Error,
+           "invalid_token_response");
+
+    AuthClear();
+    printf("probe24: result=%s restored=%s\n", passed ? "PASS" : "FAIL",
+           AuthStateName());
+    return passed ? StatusCode::Ok : StatusCode::CorruptData;
+}
+
 void FillAuthSnapshot(AuthSnapshot *out) {
     memset(out, 0, sizeof(*out));
     out->state = static_cast<uint8_t>(s.state);
