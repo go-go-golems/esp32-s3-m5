@@ -460,3 +460,85 @@ I hardened `AuthStart()` and token polling to require `kWifiUp`, changed the liv
 - Fixed pending evidence: `/tmp/esp54-probe20-safe.log`.
 - Protected REST/WSS evidence: `/tmp/esp54-probes21-22.log`.
 - Final probe firmware size: `0x1c4220`, with 56% application partition free.
+
+## Step 5: Exercise denial, ring wrap, sleep, reconnect, soak, and token expiry
+
+I ran the long-duration and lifecycle acceptance paths against the probe-enabled firmware. This included a CSRF-protected user denial, an authorized deep-sleep transition, server termination/restart, Wi-Fi off/rejoin, a timed 30-minute WSS soak, deliberate ring wrap with no consumer, and waiting for the one-hour access token to expire naturally.
+
+All security and lifecycle transitions were explicit and redacted. Denial ended in `access_denied`; deep sleep quiesced networking and woke with no token or socket state; both server and Wi-Fi recovery reconnected WSS without reissuing the token; the 30-minute stream stayed connected; and expiry securely cleared the token and stopped the socket.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the Step 1 implementation request)
+
+**Assistant interpretation:** Continue through the ticket's fault, lifecycle, soak, and expiry gates with real elapsed-time hardware evidence.
+
+**Inferred user intent:** Prove the system survives realistic interruptions and does not retain or use credentials beyond their lifecycle.
+
+**Commit (code):** N/A — hardware acceptance against `e97c589`.
+
+### What I did
+
+- Started grant `RKQR-6AM7`, submitted a real denial through tiny-idp's CSRF interaction, and inspected native state.
+- Allowed the unconsumed socket ring to wrap, proving bounded 64-message behavior and drop accounting.
+- Authorized grant `8KT8-GH9X`, started WSS, invoked `sleep deep 3`, and reconnected after timer wake.
+- Authorized grant `AHR6-G22E`, ran WSS continuously from 22:07:44 to 22:37:44, then collected auth/socket/heap/JS snapshots.
+- Terminated the `esp54-auth-server` tmux process, observed socket reconnect state, recreated the tmux server, and observed automatic reconnection.
+- Ran `net off`, observed disconnect, ran `net joinsaved`, and observed Wi-Fi and WSS recovery while the same native token remained valid.
+- Waited through the remaining token lifetime and collected the expiry snapshot.
+
+### Why
+
+- Happy-path connectivity does not prove credential lifecycle, bounded storage, or reconnect correctness.
+- Real elapsed time catches leaks, timer errors, and stale state that accelerated unit tests cannot establish on the complete device stack.
+
+### What worked
+
+- Denial: `auth state=7 ... token_len=0 error="access_denied"`, with zero JS exceptions.
+- Ring wrap: `received=213 dropped=149 ring=64`; capacity remained fixed.
+- Sleep: logs showed `sleep: mode=deep-timer seconds=3 (quiesce begins)` and `entering deep-timer sleep`; after wake, auth/socket counters and token length were zero.
+- 30-minute soak: auth remained state 5 with 1,751 seconds left; WSS remained state 2 with 3,685 messages; internal free/min/largest were 49,611/42,107/21,504 bytes; exceptions remained zero.
+- Server recovery: socket moved to reconnecting with an error, then returned to state 2 and resumed receive counts after the tmux server restarted.
+- Wi-Fi recovery: socket moved to reconnecting after `net off`, saved network `yolobolo` rejoined, and socket returned to state 2 while auth stayed state 5.
+- Expiry: `auth state=6 ... token_len=0 error="token_expired"`; socket stopped at state 0; internal heap recovered to 64,991 bytes; exceptions remained zero.
+
+### What didn't work
+
+- The first denial submission omitted login/password because the button used `formnovalidate`; tiny-idp still required authentication and redisplayed `Enter your username and password.` Reposting the same valid interaction/CSRF token with credentials and action `deny` correctly denied the grant.
+- Sending Ctrl-C to the original server pipeline ended the tmux session itself. I recreated `esp54-auth-server` with an explicit trailing shell and confirmed the service and socket recovered.
+- `sleep status` was reported as an unrecognized command by one post-wake console transcript despite the source accepting it. Auth/socket/JS snapshots and deep-sleep logs supplied the required lifecycle evidence; this console anomaly should be checked separately.
+
+### What I learned
+
+- A non-consuming probe is a useful deterministic ring-wrap test: overwrite/drop counts should increase while memory and capacity remain fixed.
+- The WebSocket component's reconnect loop survives both application-server and Wi-Fi outages without JavaScript intervention.
+- Token expiry correctly couples authorization and socket lifecycle: secure token clearing precedes socket shutdown.
+- Deep sleep intentionally clears RAM-only authorization; reauthorization after wake is required and security-preserving.
+
+### What was tricky to build
+
+- Server interruption had to preserve the intended tmux workflow while genuinely closing the listener. The original pipeline exited its session on Ctrl-C, so recovery required recreating the named session rather than silently starting a background process elsewhere.
+- Expiry evidence required waiting for the actual one-hour opaque token, not modifying clocks or adding a test-only shortcut. The final snapshot therefore proves production timer behavior.
+
+### What warrants a second pair of eyes
+
+- Investigate why one `sleep status` invocation was rejected after wake even though `sleep deep 3` and the parser source are valid.
+- Review whether ring overwrite should be called `dropped` in operator UI; it accurately counts messages not retained, but during a deliberate no-consumer probe the number is expected and large.
+- The 30-minute soak used the transport probe rather than the SENSOR LINK consumer, so it proves native stream stability/ring bounds but not 30 minutes of continuous panel updates.
+
+### What should be done in the future
+
+- Run the remaining malformed/oversized auth and WebSocket payload probes.
+- Run a full 30-minute SENSOR LINK UI/panel soak and capture a camera artifact with final chart, present count, and drop count before checking P8 complete.
+- Recheck the post-wake `sleep status` console anomaly.
+
+### Code review instructions
+
+- Compare `/tmp/esp54-denial-result2.log`, `/tmp/esp54-sleep-active.log`, `/tmp/esp54-sleep-wake.log`, `/tmp/esp54-soak-final.log`, `/tmp/esp54-server-loss.log`, `/tmp/esp54-server-restart2.log`, `/tmp/esp54-wifi-rejoin.log`, and `/tmp/esp54-token-expired.log`.
+- Verify token length is always redacted and becomes zero on denial, sleep, and expiry.
+
+### Technical details
+
+- Soak window: 2026-07-23 22:07:44–22:37:44 EDT (exactly 30 minutes).
+- Expiry wait window: 2026-07-23 22:41:34–23:07:54 EDT.
+- Final expired state: socket stopped, 7,043 total messages observed, bounded ring 64, no active token, zero JavaScript exceptions.

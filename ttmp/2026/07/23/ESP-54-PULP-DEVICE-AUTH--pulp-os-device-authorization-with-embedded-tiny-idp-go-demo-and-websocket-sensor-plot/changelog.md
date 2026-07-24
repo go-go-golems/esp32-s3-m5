@@ -50,3 +50,12 @@ Added hardware probes 20-23 and fixed a probe-discovered pre-Wi-Fi lwIP Invalid 
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/js_probes.cpp — Live auth, REST, WSS, and QR acceptance probes
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Safe Wi-Fi lifecycle guard before auth HTTP
+
+## 2026-07-23
+
+Hardware acceptance exercised denial, bounded ring wrap, deep sleep quiesce/wake, server and Wi-Fi reconnect, a timed 30-minute WSS soak, and natural token expiry. Token cleared and socket stopped on expiry; malformed payload and full SENSOR LINK panel soak remain.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Denied and expired token lifecycle evidence
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_socket.cpp — Reconnect, ring wrap, soak, and expiry shutdown evidence
