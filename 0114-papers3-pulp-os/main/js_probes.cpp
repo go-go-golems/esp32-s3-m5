@@ -413,6 +413,52 @@ const char kProbe19Js[] =
     "  + ' http-host-denied=' + h + ' ws-host-denied=' + w"
     "  + ' token-accessor=' + (typeof auth.token));";
 
+// Probe 20 starts a real device grant but deliberately preserves an existing
+// authorized session. Inspect `auth status` after the asynchronous request.
+const char kProbe20Js[] =
+    "if (auth.state() === 0) {"
+    "  auth.configure('https://192.168.0.39:8790/idp', 'pulp-papers3',"
+    "    'openid profile demo.read sensors.read',"
+    "    'https://192.168.0.39:8790/api');"
+    "}"
+    "function begin20(ok) {"
+    "  var rc = auth.state() === 5 ? 0 : (ok ? auth.start() : 1);"
+    "  print('probe20: network=' + ok + ' start=' + rc"
+    "    + ' state=' + auth.stateName()"
+    "    + ' authorized-preserved=' + (auth.state() === 5));"
+    "}"
+    "if (auth.state() === 5 || wifi.status() === 4) { begin20(1); }"
+    "else if (wifi.savedCount() > 0) {"
+    "  wifi.joinSaved(function(k, ok, err) { begin20(ok); });"
+    "} else { begin20(0); }";
+
+// Probe 21 exercises native bearer injection against the protected REST API.
+// The callback print proves status/body visibility without exposing the token.
+const char kProbe21Js[] =
+    "http.get('https://192.168.0.39:8790/api/v1/me').bearer().limit(2048)"
+    ".done(function(k, status, len) {"
+    "  print('probe21: status=' + status + ' len=' + len"
+    "    + ' body=' + http.body());"
+    "}).send();";
+
+// Probe 22 starts the authenticated WSS stream. Follow with `socket status`
+// after several seconds to inspect connection, receive, drop, and ring counts.
+const char kProbe22Js[] =
+    "socket.stop();"
+    "var rc = socket.open('wss://192.168.0.39:8790/api/v1/sensors/ws')"
+    "  .bearer().start();"
+    "print('probe22: start=' + rc + ' state=' + socket.stateName());";
+
+// Probe 23 validates retained QR rendering and bounded argument failures.
+const char kProbe23Js[] =
+    "resetTree();"
+    "var q = canvas().width(460).height(240);"
+    "q.qr('https://example.test/device?user_code=ABCD-EFGH', 220);"
+    "var small = 'no'; try { q.qr('x', 20); } catch (e) { small = 'yes'; }"
+    "page('probe23').content(col().pad(24,40,24,40)"
+    "  .add(text('QR PROBE').size('lg').center(), q)).show(true);"
+    "print('probe23: rendered=yes small-denied=' + small);";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -467,6 +513,10 @@ StatusCode JsRunProbe(uint32_t which) {
         case 17: return jsi::EvalBounded(kProbe17Js, 3000, "<probe17>");
         case 18: return jsi::EvalBounded(kProbe18Js, 3000, "<probe18>");
         case 19: return jsi::EvalBounded(kProbe19Js, 3000, "<probe19>");
+        case 20: return jsi::EvalBounded(kProbe20Js, 3000, "<probe20>");
+        case 21: return jsi::EvalBounded(kProbe21Js, 3000, "<probe21>");
+        case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
+        case 23: return jsi::EvalBounded(kProbe23Js, 3000, "<probe23>");
         default: return StatusCode::InvalidArgument;
     }
 }

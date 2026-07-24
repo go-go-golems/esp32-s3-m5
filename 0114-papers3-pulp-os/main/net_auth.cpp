@@ -14,6 +14,7 @@
 #include "freertos/task.h"
 
 #include "app_owner.h"
+#include "net_wifi.h"
 
 namespace pulp {
 namespace {
@@ -372,6 +373,10 @@ StatusCode AuthStart() {
     AssertOwner();
     if (s.state == AuthState::Unconfigured) return StatusCode::InvalidArgument;
     if (s.in_flight.load(std::memory_order_acquire)) return StatusCode::Busy;
+    // esp_http_client ultimately posts to lwIP's TCP/IP mailbox. Wi-Fi is
+    // initialized lazily in this firmware, so starting before it is up would
+    // assert inside lwIP (`Invalid mbox`) instead of returning a safe error.
+    if (WifiStatus() != kWifiUp) return StatusCode::InvalidArgument;
     ResetSecrets();
     const char *keys[] = {"client_id", "scope", "resource"};
     const char *values[] = {s.client_id, s.scopes, s.resource};
@@ -403,7 +408,7 @@ void AuthTick(int64_t now_us) {
         s.state = AuthState::Expired;
         return;
     }
-    if (now_us < s.next_poll_us) return;
+    if (now_us < s.next_poll_us || WifiStatus() != kWifiUp) return;
     const char *keys[] = {"grant_type", "client_id", "device_code"};
     const char *values[] = {
         "urn:ietf:params:oauth:grant-type:device_code", s.client_id,

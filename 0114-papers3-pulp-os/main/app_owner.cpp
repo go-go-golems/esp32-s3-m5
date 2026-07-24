@@ -240,7 +240,7 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 (void)JsInit();
-            } else if (arg >= 20 && arg <= 40) {
+            } else if (arg >= 20 && arg <= 43) {
                 reply.status = JsRunProbe(arg - 20);
             } else if (arg == 10) {
                 reply.status = JsRunPulp();
