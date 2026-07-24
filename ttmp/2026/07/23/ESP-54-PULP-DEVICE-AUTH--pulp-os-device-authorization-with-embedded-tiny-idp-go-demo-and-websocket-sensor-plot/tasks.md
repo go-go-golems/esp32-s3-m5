@@ -21,3 +21,4 @@
 - [x] [P6] Implement the ESP WebSocket client, fragmentation reassembly, bounded ring, reconnect, and probes <!-- t:e1b6 -->
 - [x] [P7] Build the SENSOR LINK approval/dashboard/streaming UI and bounded e-ink chart <!-- t:0asf -->
 - [x] [P8] Add sleep quiesce, fault tests, 30-minute soak, final diary/changelog, and hardware acceptance evidence <!-- t:gs5a -->
+- [x] Write tiny-idp integration friction and maintainer improvement guide, validate it, and upload to reMarkable <!-- t:iz0q -->

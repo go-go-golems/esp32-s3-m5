@@ -700,3 +700,90 @@ The final system remained authorized and connected, performed 881 panel presents
 - Baseline: `/tmp/esp54-ui-soak2-active.log`.
 - Final: `/tmp/esp54-ui-soak2-final.log` and `/tmp/esp54-ui-soak2-window.txt`.
 - Final firmware build before soak: ESP-IDF 5.3.4, image well below the 4 MiB application partition.
+
+## Step 8: Convert integration friction into a tiny-idp maintainer and intern guide
+
+I revisited the completed ESP-54 implementation as an external tiny-idp consumer and separated tiny-idp API/documentation friction from ESP32 platform failures. The resulting report explains the complete provider/device/browser/resource-server architecture, records every tiny-idp-specific issue encountered, and proposes a prioritized maintainer roadmap with concrete public APIs, commands, examples, tests, and documentation changes.
+
+The report deliberately preserves tiny-idp's security invariants. It does not recommend LAN HTTP, a CSRF bypass, direct token-table access, or publishing arbitrary internal packages. The highest-priority proposal is a supported `pkg/resourceauth` package extracted from the already proven xapp implementation, followed by a complete strict embedded device/resource example and turnkey LAN development trust tooling.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> Create a detailed report in the ticket about all the issues you encountered regarding tiny-idp, what you wished you had known, how to improve the doucment, in fact also how to improve tiny-idp or its APIs or its tooling so  that your job would have been smoother / someone not as knowledgeable as you (like the new intern) could have done their job.
+>
+> Create  a detailed analysis / design guide that is both for us to improve tiny-idp (the tiny-idp maintained) for a new intern starting on the tiny-idp/esp32 project, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable.
+>
+> [REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory.
+
+**Assistant interpretation:** Write a technically exhaustive, evidence-backed postmortem and design guide in the existing ESP-54 ticket. Explain the full tiny-idp/ESP32 system to an intern, identify documentation/API/tooling friction, propose safe maintainer improvements with API sketches and phased implementation, update ticket bookkeeping, validate, and upload the guide to reMarkable.
+
+**Inferred user intent:** Turn the expensive knowledge gained during ESP-54 into upstream improvements so the next engineer can follow a supported path instead of rediscovering security boundaries through source archaeology and hardware failures.
+
+**Commit (code):** N/A — documentation and maintainer design only.
+
+### What I did
+
+- Re-read the completed ESP-54 diary and extracted tiny-idp-specific failures, cross-system failures, and downstream ESP32 failures separately.
+- Audited current tiny-idp README, embedding guide, device tutorial, public embedding APIs, issuer validation, UI interaction contracts, and xapp resource authenticator.
+- Compared the internal xapp resource authenticator with ESP-54's independently implemented introspection middleware.
+- Wrote `design-doc/02-tiny-idp-and-esp32-integration-friction-analysis-and-maintainer-improvement-guide.md` with architecture/state diagrams, API sketches, decisions, phased work, tests, and source reading order.
+- Added a new ticket task for this post-completion documentation deliverable.
+
+### Why
+
+- The implementation succeeded without tiny-idp changes, but “sufficient public primitives” is not the same as “an obvious complete integration path.”
+- Security-sensitive duplication in resource authentication indicates a missing public abstraction, not permission to import internal code.
+- LAN TLS and strict browser interaction behavior are predictable requirements for hardware integration and should be introduced before an intern reaches the first failure.
+
+### What worked
+
+- Existing tiny-idp docs accurately defined the supported public package boundary and provider construction order.
+- The strict provider and public embedding APIs were sufficient for the complete project.
+- The implementation diary provided exact errors, fixes, and hardware evidence, allowing recommendations to remain evidence-backed.
+- The internal xapp resource authenticator provides a mature starting point for a public package proposal.
+
+### What didn't work
+
+- No single existing tiny-idp example combined strict embedding, SQLite, accounts, device and introspection clients, HTTPS, protected REST, protected WSS, and browser approval.
+- The reusable resource authenticator is under a Go `internal` path and correctly unavailable to external consumers, forcing security-sensitive duplication.
+- The loopback curl tutorial did not prepare an external-hardware integrator for mandatory LAN TLS and CA provisioning.
+- Browser approval automation details were discoverable in form HTML/tests but not presented as an integration contract in the device tutorial.
+
+### What I learned
+
+- The right upstream improvement is to complete the supported boundary, not weaken it.
+- A public resource-server package, complete executable example, and preflight tooling would remove more integration cost than exposing additional provider internals.
+- Constrained-device documentation must distinguish OAuth protocol states from Wi-Fi readiness, TLS memory, WebSocket framing, credential ownership, and display cadence.
+
+### What was tricky to build
+
+- Several failures were adjacent to tiny-idp but not caused by it. The report had to avoid blaming the provider for ESP32 heap fragmentation, lazy lwIP initialization, or malformed application JSON while still recommending that tiny-idp teach those integration risks.
+- Current tiny-idp documentation has evolved since the first ESP-54 investigation. The report distinguishes present capabilities from what was missing or hard to discover during implementation, rather than treating old assumptions as current facts.
+
+### What warrants a second pair of eyes
+
+- Maintainers should review whether `pkg/resourceauth` is the right package/API name and which xapp policies are generic enough for public support.
+- Security reviewers should evaluate the proposed browser test helper and LAN certificate tool to ensure they cannot become approval or trust bypasses.
+- API maintainers should review whether a typed endpoint manifest and resource-server client constructor fit the current bootstrap compatibility policy.
+
+### What should be done in the future
+
+- Create separate tiny-idp tickets for the P0/P1/P2 roadmap rather than implementing all recommendations under ESP-54.
+- Re-measure future external-consumer sessions to confirm that source archaeology shifts from initial discovery to verification.
+
+### Code review instructions
+
+- Start with report Sections 3–5 for observed evidence and friction classification.
+- Review Section 7 for the proposed API/tooling roadmap and Section 8 for decisions that preserve security invariants.
+- Compare the proposed `pkg/resourceauth` API to `cmd/tinyidp-xapp/internal/resourceauth/resourceauth.go` and ESP-54 `internal/authn/introspection.go`.
+- Validate frontmatter, ticket relations, `docmgr doctor`, and the reMarkable bundle output.
+
+### Technical details
+
+- Primary report: `design-doc/02-tiny-idp-and-esp32-integration-friction-analysis-and-maintainer-improvement-guide.md`.
+- Upstream public boundary: tiny-idp `docs/embedding-foundations.md` and `pkg/embeddedidp/*`.
+- Duplicate resource-auth evidence: tiny-idp xapp internal `resourceauth.go` and ESP-54 `internal/authn/introspection.go`.
+- Proposed protocols remain RFC 8628 device authorization, RFC 7662 introspection, and RFC 8707 resource indicators.
+- reMarkable dry-run and real upload succeeded as `ESP-54 Tiny-IDP ESP32 Integration Improvement Guide.pdf` under `/ai/2026/07/24/ESP-54-PULP-DEVICE-AUTH`.

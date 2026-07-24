@@ -74,3 +74,20 @@ Completed malformed auth/WS parser probes, fixed malformed sample containment, a
 ## 2026-07-23
 
 Ticket closed
+
+## 2026-07-24
+
+Added a 6,200-word tiny-idp/ESP32 integration friction and maintainer improvement guide with public API proposals, LAN TLS tooling, browser test automation, documentation redesign, intern phases, decision records, and validation strategy.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/23/ESP-54-PULP-DEVICE-AUTH--pulp-os-device-authorization-with-embedded-tiny-idp-go-demo-and-websocket-sensor-plot/design-doc/02-tiny-idp-and-esp32-integration-friction-analysis-and-maintainer-improvement-guide.md — Postmortem and upstream improvement roadmap
+
+
+## 2026-07-24
+
+Validated frontmatter and ticket hygiene, completed reMarkable dry-run, and uploaded ESP-54 Tiny-IDP ESP32 Integration Improvement Guide.pdf to /ai/2026/07/24/ESP-54-PULP-DEVICE-AUTH.
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/07/23/ESP-54-PULP-DEVICE-AUTH--pulp-os-device-authorization-with-embedded-tiny-idp-go-demo-and-websocket-sensor-plot/design-doc/02-tiny-idp-and-esp32-integration-friction-analysis-and-maintainer-improvement-guide.md — Validated and delivered report
