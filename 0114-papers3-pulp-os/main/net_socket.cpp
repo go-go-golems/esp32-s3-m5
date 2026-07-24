@@ -313,6 +313,63 @@ uint32_t SocketReceived() {
 }
 const char *SocketLastError() { return s.last_error; }
 
+StatusCode SocketRunParserProbe() {
+    AssertOwner();
+    if (s.client != nullptr || !EnsureStorage()) return StatusCode::Busy;
+    Lock();
+    s.head = 0;
+    s.count = 0;
+    Unlock();
+    s.received.store(0, std::memory_order_relaxed);
+    s.dropped.store(0, std::memory_order_relaxed);
+    s.next_seq = 1;
+    s.assembly_active = false;
+
+    auto data = [](const char *ptr, int len, int total, int offset,
+                   int opcode) {
+        esp_websocket_event_data_t event{};
+        event.data_ptr = const_cast<char *>(ptr);
+        event.data_len = len;
+        event.payload_len = total;
+        event.payload_offset = offset;
+        event.op_code = opcode;
+        HandleData(&event);
+    };
+
+    data("he", 2, 5, 0, 1);
+    data("llo", 3, 5, 2, 1);
+    char message[kMessageCapacity + 1]{};
+    uint64_t seq = 0;
+    const bool fragmented = SocketMessageCount() == 1 &&
+                            SocketCopyMessage(0, message, sizeof(message), &seq) &&
+                            strcmp(message, "hello") == 0 && seq == 1;
+    printf("probe25: fragmented=%s count=%u received=%u\n",
+           fragmented ? "PASS" : "FAIL",
+           static_cast<unsigned>(SocketMessageCount()),
+           static_cast<unsigned>(SocketReceived()));
+
+    data("x", 1, kMessageCapacity + 1, 0, 1);
+    data("ab", 2, 5, 0, 1);
+    data("cd", 2, 5, 3, 1);
+    data("x", 1, 1, 0, 2);
+    const bool rejected = SocketDropped() == 3 && SocketMessageCount() == 1;
+    printf("probe25: limits=%s dropped=%u count=%u\n",
+           rejected ? "PASS" : "FAIL",
+           static_cast<unsigned>(SocketDropped()),
+           static_cast<unsigned>(SocketMessageCount()));
+
+    for (uint32_t i = 0; i < 70; ++i) StoreMessage("m", 1);
+    const bool wrapped = SocketMessageCount() == kRingCapacity &&
+                         SocketReceived() == 71 && SocketDropped() == 10;
+    printf("probe25: ring-wrap=%s received=%u dropped=%u count=%u\n",
+           wrapped ? "PASS" : "FAIL",
+           static_cast<unsigned>(SocketReceived()),
+           static_cast<unsigned>(SocketDropped()),
+           static_cast<unsigned>(SocketMessageCount()));
+    return fragmented && rejected && wrapped ? StatusCode::Ok
+                                             : StatusCode::CorruptData;
+}
+
 void FillSocketSnapshot(SocketSnapshot *out) {
     memset(out, 0, sizeof(*out));
     out->state = static_cast<uint8_t>(SocketStatus());

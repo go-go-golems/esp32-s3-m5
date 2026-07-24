@@ -7,6 +7,7 @@
 #include "app_js.h"
 #include "app_js_internal.h"
 #include "net_auth.h"
+#include "net_socket.h"
 #include "s3paper/text.h"
 #include "esp_heap_caps.h"
 #include <cstring>
@@ -519,6 +520,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
         case 23: return jsi::EvalBounded(kProbe23Js, 3000, "<probe23>");
         case 24: return AuthRunParserProbe();
+        case 25: return SocketRunParserProbe();
         default: return StatusCode::InvalidArgument;
     }
 }

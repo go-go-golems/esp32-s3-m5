@@ -32,4 +32,7 @@ const char *SocketLastError();
 struct SocketSnapshot;
 void FillSocketSnapshot(SocketSnapshot *out);
 
+// Owner-only deterministic fragmentation/limit battery for console probe 25.
+StatusCode SocketRunParserProbe();
+
 }  // namespace pulp
