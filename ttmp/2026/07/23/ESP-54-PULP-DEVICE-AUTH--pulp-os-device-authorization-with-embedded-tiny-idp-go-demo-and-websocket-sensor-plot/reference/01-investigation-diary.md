@@ -29,6 +29,10 @@ RelatedFiles:
         WebSocket client prior art
     - Path: repo://0114-papers3-pulp-os/demo-device-auth-server/internal/app/app.go
       Note: Embedded tiny-idp host and protected API composition (commit c6f742b)
+    - Path: repo://0114-papers3-pulp-os/main/app_owner.cpp
+      Note: Bounded owner dispatch through probe 23 (commit e97c589)
+    - Path: repo://0114-papers3-pulp-os/main/js_probes.cpp
+      Note: Executable live auth REST WSS and QR probes (commit e97c589)
     - Path: repo://0114-papers3-pulp-os/main/js_widgets.cpp
       Note: Retained Canvas QR encoder binding (commit 4c2364c)
     - Path: repo://0114-papers3-pulp-os/main/net_auth.cpp
@@ -55,6 +59,7 @@ LastUpdated: 2026-07-23T20:36:53.043094463-04:00
 WhatFor: Resuming or reviewing ESP-54 research and implementation.
 WhenToUse: Read before changing the design or beginning implementation phases.
 ---
+
 
 
 
@@ -370,3 +375,88 @@ The QR encoder runs natively with M5GFX's bounded encoder and emits horizontally
 - QR source: `auth.verificationUriComplete()`; target: 180×180 px; error correction: M5GFX level 0; versions: 1–10.
 - Pending evidence: `/tmp/esp54-qr-pending.log`, `/tmp/esp54-qr-status.log`, `/tmp/esp54-qr-js.log`.
 - Post-approval/TLS evidence: `/tmp/esp54-psram-ws.log`.
+
+## Step 4: Add executable probes and harden auth startup before lazy Wi-Fi initialization
+
+I added probes 20–23 for live device authorization, protected REST, authenticated WSS, and retained QR rendering. The first live probe immediately found a real native fault: starting ESP HTTP before the lazily initialized Wi-Fi/TCP-IP stack asserted in lwIP instead of returning an error.
+
+I hardened `AuthStart()` and token polling to require `kWifiUp`, changed the live probe to join saved Wi-Fi before starting, rebuilt and reflashed, and reran the complete chain. The fixed firmware created and approved a real grant, preserved authorization when probe 20 was rerun, returned protected `/me`, connected WSS, received samples without drops, and retained zero JavaScript exceptions.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the Step 1 implementation request)
+
+**Assistant interpretation:** Add repeatable console probes for the completed auth surfaces, then treat every hardware failure as a defect to triage rather than documenting a nominal pass.
+
+**Inferred user intent:** Leave executable acceptance tools that prove both security boundaries and real network behavior on future builds.
+
+**Commit (code):** `e97c589` — "ESP-54 probes: validate live auth, bearer REST, WSS, and QR"
+
+### What I did
+
+- Added probe 20 to join saved Wi-Fi, start a real device grant, and preserve an existing authorized session.
+- Added probe 21 for native bearer REST, probe 22 for authenticated WSS, and probe 23 for QR render/range checks.
+- Extended owner probe dispatch through probe 23.
+- Added `WifiStatus() == kWifiUp` guards before authorization HTTP startup and token polling.
+- Rebuilt and flashed twice: once to expose the crash and once to validate the fix.
+- Approved grant `UNHV-JQ2E` through tiny-idp's cookie/interaction/CSRF form and ran probes 20–22.
+
+### Why
+
+- Console probes turn manual product behavior into repeatable, redacted hardware evidence.
+- A public native API must reject invalid lifecycle order safely; JavaScript UI sequencing is not an acceptable crash guard.
+
+### What worked
+
+- Probe 23 rendered a QR with `ops=227` and printed `rendered=yes small-denied=yes` with zero exceptions.
+- Probe 19 reconfirmed arbitrary HTTP/WSS origins are denied and `auth.token` is undefined.
+- Fixed probe 20 reported `network=1 start=0 state=requesting`, then native status reached pending with a real code.
+- After approval, probe 20 reported `authorized-preserved=true`.
+- Probe 21 returned HTTP 200 and the expected subject/scopes; probe 22 reached `socket state=2 received=4 dropped=0 ring=4`.
+- Heap evidence was `internal_free=49615 internal_min_free=44083 internal_largest=21504`; JavaScript exceptions remained zero.
+
+### What didn't work
+
+- The first probe 23 attempt returned `InvalidArgument` because owner dispatch stopped at probe 20. Extending the bounded dispatch range to 23 fixed it.
+- The first probe 20 run crashed with:
+
+  ```text
+  assert failed: tcpip_send_msg_wait_sem /IDF/components/lwip/lwip/src/api/tcpip.c:449 (Invalid mbox)
+  ```
+
+  The device rebooted with `RTC_SW_CPU_RST`. The underlying cause was invoking `esp_http_client` before lazy Wi-Fi initialization. Native guards plus Wi-Fi-aware probe sequencing eliminated the assertion.
+
+### What I learned
+
+- Probe code is valuable precisely because it bypasses product-level helpers and exposes whether the native API itself is safe.
+- Lazy radio initialization means all native network entry points need explicit lifecycle contracts; relying on lwIP internals to be ready is unsafe.
+- Rerunning an auth probe while authorized must be non-destructive, mirroring the SENSOR LINK fix.
+
+### What was tricky to build
+
+- Probe 20 is asynchronous: `wifi.joinSaved()` completes later on the owner event path, so the probe must print from its callback and operators must inspect subsequent `auth status` rather than treating eval completion as network completion.
+- The crash occurred after the probe printed success because worker startup raced into an uninitialized TCP/IP mailbox. Capturing the full monitor transcript, not just command return status, was required to diagnose it.
+
+### What warrants a second pair of eyes
+
+- Audit other native HTTP/socket starts for the same pre-Wi-Fi lifecycle assumption.
+- Review whether `InvalidArgument` is sufficiently expressive for “network not up”; the stable status enum currently has no `Unavailable` member.
+- Confirm token polling behavior across Wi-Fi loss/rejoin: it now pauses while down, but final reconnect acceptance remains open.
+
+### What should be done in the future
+
+- Run denial, expiry, reconnect, sleep, malformed/oversized response, ring-wrap, and soak gates.
+- Consider a shared native `NetworkReady()` precondition helper if more modules gain direct network starts.
+
+### Code review instructions
+
+- Review probe scripts and dispatcher bounds in `main/js_probes.cpp` and `main/app_owner.cpp`.
+- Review Wi-Fi guards in `AuthStart()` and `AuthTick()` in `main/net_auth.cpp`.
+- Flash, run probes 19, 23, then 20; approve the code; run 20, 21, and 22 again; inspect auth/socket/heap/JS status.
+
+### Technical details
+
+- Failure evidence: `/tmp/esp54-probes-pending.log`.
+- Fixed pending evidence: `/tmp/esp54-probe20-safe.log`.
+- Protected REST/WSS evidence: `/tmp/esp54-probes21-22.log`.
+- Final probe firmware size: `0x1c4220`, with 56% application partition free.

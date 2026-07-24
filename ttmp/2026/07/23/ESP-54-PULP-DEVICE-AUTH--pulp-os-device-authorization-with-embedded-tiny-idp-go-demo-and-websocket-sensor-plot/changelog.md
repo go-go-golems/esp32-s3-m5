@@ -41,3 +41,12 @@ Implemented and hardware-proved embedded tiny-idp service, native device auth, b
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Native device authorization implementation
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — QR-assisted SENSOR LINK and live plot
+
+## 2026-07-23
+
+Added hardware probes 20-23 and fixed a probe-discovered pre-Wi-Fi lwIP Invalid mbox crash; verified authorized-session preservation, protected REST 200, authenticated WSS samples, zero drops, and zero JS exceptions (commit e97c589).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/js_probes.cpp — Live auth, REST, WSS, and QR acceptance probes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Safe Wi-Fi lifecycle guard before auth HTTP
