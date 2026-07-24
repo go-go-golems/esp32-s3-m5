@@ -889,11 +889,16 @@ function sensorLink() {
     for (i = 0; i < n; i++) {
       var seq = socket.messageSeq(i);
       if (seq <= SA.lastSeq) { continue; }
-      var sample = JSON.parse(socket.message(i));
-      if (sample.v === 1 && sample.type === 'sensor.sample') {
+      // Advance before parsing so one malformed or non-JSON frame cannot be
+      // retried forever or escape the page tick as a JS exception.
+      SA.lastSeq = seq;
+      var sample = null;
+      try { sample = JSON.parse(socket.message(i)); } catch (parseError) {}
+      if (sample && sample.v === 1 && sample.type === 'sensor.sample'
+          && typeof sample.temp_c === 'number'
+          && typeof sample.humidity_pct === 'number') {
         SA.samples.push(sample);
         if (SA.samples.length > 60) { SA.samples.shift(); }
-        SA.lastSeq = seq;
         changed = 1;
       }
     }
