@@ -20,4 +20,4 @@
 - [x] [P5] Add native-only bearer attachment to HTTP and prove protected REST calls on hardware <!-- t:4btb -->
 - [x] [P6] Implement the ESP WebSocket client, fragmentation reassembly, bounded ring, reconnect, and probes <!-- t:e1b6 -->
 - [x] [P7] Build the SENSOR LINK approval/dashboard/streaming UI and bounded e-ink chart <!-- t:0asf -->
-- [ ] [P8] Add sleep quiesce, fault tests, 30-minute soak, final diary/changelog, and hardware acceptance evidence <!-- t:gs5a -->
+- [x] [P8] Add sleep quiesce, fault tests, 30-minute soak, final diary/changelog, and hardware acceptance evidence <!-- t:gs5a -->

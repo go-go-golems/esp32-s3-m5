@@ -1,7 +1,7 @@
 ---
 Title: PULP OS device authorization with embedded tiny-idp Go demo and WebSocket sensor plot
 Ticket: ESP-54-PULP-DEVICE-AUTH
-Status: active
+Status: complete
 Topics:
     - papers3
     - esp32s3
@@ -16,11 +16,12 @@ Intent: long-term
 Owners: []
 RelatedFiles: []
 ExternalSources: []
-Summary: Implemented RFC 8628 device authorization, an embedded tiny-idp Go host, protected REST/WebSocket APIs, QR-assisted approval, and an e-ink sensor chart in PULP OS; final fault and soak acceptance remains active.
-LastUpdated: 2026-07-23T20:36:50.762963432-04:00
+Summary: Completed RFC 8628 device authorization, an embedded tiny-idp Go host, protected REST/WebSocket APIs, QR-assisted approval, bounded e-ink plotting, fault validation, and hardware soak acceptance in PULP OS.
+LastUpdated: 2026-07-23T23:58:40.012874938-04:00
 WhatFor: Tracking the implementation and evidence for authenticated PULP OS network applications.
 WhenToUse: Read the design guide before implementing server or firmware phases; read the diary before resuming work.
 ---
+
 
 # PULP OS device authorization with embedded tiny-idp Go demo and WebSocket sensor plot
 
@@ -28,7 +29,7 @@ WhenToUse: Read the design guide before implementing server or firmware phases; 
 
 ESP-54 extends the completed ESP-53 connectivity stack with a native RFC 8628 device-authorization client, bearer-protected REST and WebSocket transports, a Go demo service embedding tiny-idp without modifying it, and an e-ink-aware realtime sensor plot. The primary design document is an intern-oriented implementation guide; the diary records evidence and decisions chronologically.
 
-Current phase: Go service and firmware implementation are committed and hardware-proven. The PaperS3 completes device authorization, protected REST calls, authenticated WSS streaming, QR-assisted approval, and bounded e-ink plotting. Final fault-path probes, sleep/reconnect validation, and the planned 30-minute soak remain open.
+Current phase: implementation and acceptance complete. The PaperS3 completes device authorization, QR-assisted approval, protected REST, authenticated WSS streaming, bounded e-ink plotting, denial/expiry/sleep/reconnect handling, parser fault batteries, and the final 30-minute SENSOR LINK panel soak.
 
 ## Key Links
 
@@ -37,7 +38,7 @@ Current phase: Go service and firmware implementation are committed and hardware
 
 ## Status
 
-Current status: **active** — core implementation is complete; final hardening and acceptance evidence remain.
+Current status: **complete** — implementation, hardware validation, final soak, documentation, and focused commits are complete.
 
 ## Topics
 

@@ -59,3 +59,18 @@ Hardware acceptance exercised denial, bounded ring wrap, deep sleep quiesce/wake
 
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Denied and expired token lifecycle evidence
 - /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_socket.cpp — Reconnect, ring wrap, soak, and expiry shutdown evidence
+
+## 2026-07-23
+
+Completed malformed auth/WS parser probes, fixed malformed sample containment, and passed the final 30-minute SENSOR LINK panel soak: 881 presents, 3,778 WSS messages, stable heap, 101,580 internal events with zero queue drops, and zero JS exceptions (commits 2dd2356, de57051, 10f4864).
+
+### Related Files
+
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_auth.cpp — Production-path malformed OAuth response probe
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/main/net_socket.cpp — Fragmentation, oversize, discontinuity, binary, and ring probes
+- /home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/pulp.js — Malformed sample containment and final UI soak
+
+
+## 2026-07-23
+
+Ticket closed
