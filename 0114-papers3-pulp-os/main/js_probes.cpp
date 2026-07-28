@@ -397,6 +397,59 @@ const char kProbe18Js[] =
     "      + ' start2=' + serve.start(8080)"
     "      + ' stop=' + serve.stop());";
 
+// Probe 19 (ESP-54 P1): battery singleton + legacy alias. Asserts level is
+// in range, charging is a known flag, and the formatted status text is
+// non-empty. The legacy batteryLevel() global must still equal battery.level().
+const char kProbe19Js[] =
+    "var lvl = battery.level();"
+    "var mv = battery.mv();"
+    "var ch = battery.charging();"
+    "var st = battery.statusText();"
+    "var legacy = batteryLevel();"
+    "var lvlOk = (lvl >= -1 && lvl <= 100) ? 'ok' : 'BAD';"
+    "var chOk = (ch >= -1 && ch <= 1) ? 'ok' : 'BAD';"
+    "var match = (lvl === legacy) ? 'match' : 'MISMATCH';"
+    "print('probe19: level=' + lvl + ' (' + lvlOk + ') mv=' + mv"
+    "      + ' charging=' + ch + ' (' + chOk + ') statusText=\"' + st + '\"'"
+    "      + ' legacy=' + match);";
+
+// Probe 20 (ESP-54 P2): mDNS accessors. Asserts status is 0 or 1, host is
+// "pulp", and url is empty when not announced or http://pulp.local when up.
+const char kProbe20Js[] =
+    "var st = mdns.status();"
+    "var h = mdns.host();"
+    "var u = mdns.url();"
+    "var stOk = (st === 0 || st === 1) ? 'ok' : 'BAD';"
+    "var hOk = (h === 'pulp') ? 'ok' : 'BAD';"
+    "var uOk = (st === 0 ? u === '' : u.indexOf('pulp.local') >= 0)"
+    "  ? 'ok' : 'BAD';"
+    "print('probe20: status=' + st + ' (' + stOk + ') host=' + h"
+    "      + ' (' + hOk + ') url=\"' + u + '\" (' + uOk + ')');";
+
+// Probe 21 (ESP-54 P4): images catalog + display. Lists the catalog and, if
+// non-empty, displays the first image. Expected: count >= 0, name(0) set
+// when count > 0, display returns 0 when an image exists.
+const char kProbe21Js[] =
+    "var n = images.count();"
+    "var first = n > 0 ? images.name(0) : '';"
+    "var disp = n > 0 ? images.display(first) : -1;"
+    "print('probe21: count=' + n + ' first=\"' + first + '\"'"
+    "      + ' display=' + disp);";
+
+// Probe 22 (ESP-54 P3): images upload-received registration. Registers a
+// received callback and asserts the module-cb path accepts it; a second
+// registration without completion must throw "module busy".
+const char kProbe22Js[] =
+    "var ok = 'no';"
+    "images.received(function (k, bytes, err) {"
+    "  print('probe22: received k=' + k + ' bytes=' + bytes + ' err=' + err);"
+    "});"
+    "ok = 'registered';"
+    "var busy = 'no';"
+    "try { images.received(function () {}); }"
+    "catch (e) { busy = 'yes'; }"
+    "print('probe22: cb=' + ok + ' second-busy=' + busy);";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -450,6 +503,10 @@ StatusCode JsRunProbe(uint32_t which) {
         case 16: return jsi::EvalBounded(kProbe16Js, 3000, "<probe16>");
         case 17: return jsi::EvalBounded(kProbe17Js, 3000, "<probe17>");
         case 18: return jsi::EvalBounded(kProbe18Js, 3000, "<probe18>");
+        case 19: return jsi::EvalBounded(kProbe19Js, 3000, "<probe19>");
+        case 20: return jsi::EvalBounded(kProbe20Js, 3000, "<probe20>");
+        case 21: return jsi::EvalBounded(kProbe21Js, 5000, "<probe21>");
+        case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
         default: return StatusCode::InvalidArgument;
     }
 }

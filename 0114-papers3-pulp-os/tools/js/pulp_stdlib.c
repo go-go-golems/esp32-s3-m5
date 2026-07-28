@@ -180,5 +180,43 @@ static const JSPropDef js_serve[] = {
 
 static const JSClassDef js_serve_obj = JS_OBJECT_DEF("Serve", js_serve);
 
+/* battery singleton (ESP-54): surfaces charging + mv already read by
+   s3paper::PowerRead(). Sync, owner-only, thin wrappers; batteryLevel()
+   remains the historical alias global. */
+static const JSPropDef js_battery[] = {
+    JS_CFUNC_DEF("level", 0, js_battery_level),
+    JS_CFUNC_DEF("mv", 0, js_battery_mv),
+    JS_CFUNC_DEF("charging", 0, js_battery_charging),
+    JS_CFUNC_DEF("statusText", 0, js_battery_status_text),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_battery_obj = JS_OBJECT_DEF("Battery", js_battery);
+
+/* mdns singleton (ESP-54): read-only accessors. pulp.local is announced as
+   a side effect of serve.start() and withdrawn by serve.stop()/wifi.off(). */
+static const JSPropDef js_mdns[] = {
+    JS_CFUNC_DEF("status", 0, js_mdns_status),
+    JS_CFUNC_DEF("host", 0, js_mdns_host),
+    JS_CFUNC_DEF("url", 0, js_mdns_url),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_mdns_obj = JS_OBJECT_DEF("Mdns", js_mdns);
+
+/* images singleton (ESP-54): gallery catalog + display + upload callback.
+   count/name/remove are sync; received(fn) registers the upload-completion
+   callback (the module-cb mailbox pattern). */
+static const JSPropDef js_images[] = {
+    JS_CFUNC_DEF("count", 0, js_images_count),
+    JS_CFUNC_DEF("name", 1, js_images_name),
+    JS_CFUNC_DEF("display", 1, js_images_display),
+    JS_CFUNC_DEF("remove", 1, js_images_remove),
+    JS_CFUNC_DEF("received", 1, js_images_received),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_images_obj = JS_OBJECT_DEF("Images", js_images);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

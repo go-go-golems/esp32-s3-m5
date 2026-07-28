@@ -11,10 +11,12 @@
 #include "app_book_seed.h"
 #include "app_buzzer.h"
 #include "app_home.h"
+#include "app_images.h"
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
 #include "net_http.h"
+#include "net_mdns.h"
 #include "net_serve.h"
 #include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
@@ -233,7 +235,7 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 (void)JsInit();
-            } else if (arg >= 20 && arg <= 40) {
+            } else if (arg >= 20 && arg <= 44) {
                 reply.status = JsRunProbe(arg - 20);
             } else if (arg == 10) {
                 reply.status = JsRunPulp();
@@ -380,6 +382,48 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillServeSnapshot(&reply.payload.serve);
             break;
         }
+        case ConsoleOp::Battery: {
+            // arg 0 = status snapshot (level/mv/charging). Battery has no
+            // verbs beyond read; the JS singleton is the rich surface.
+            FillPowerSnapshot(&reply.payload.power);
+            break;
+        }
+        case ConsoleOp::Mdns: {
+            // ESP-54 P2: arg 0 = status, 1 = announce (arg2 = port), 2 = stop.
+            switch (event.payload.console.arg) {
+                case 1:
+                    reply.status = MdnsAnnounce(static_cast<uint16_t>(
+                        event.payload.console.arg2));
+                    break;
+                case 2:
+                    reply.status = MdnsStop();
+                    break;
+                default:
+                    break;
+            }
+            FillMdnsSnapshot(&reply.payload.mdns);
+            break;
+        }
+        case ConsoleOp::Images: {
+            // ESP-54 P3: arg 0 = status, 1 = list, 2 = display (str_a),
+            // 3 = remove (str_a), 4 = received-cb status.
+            const ConsolePayload &c = event.payload.console;
+            switch (c.arg) {
+                case 1:
+                    ImagesPrintCatalog();
+                    break;
+                case 2:
+                    reply.status = ImagesDisplay(c.str_a);
+                    break;
+                case 3:
+                    reply.status = ImagesRemove(c.str_a);
+                    break;
+                default:
+                    break;
+            }
+            FillImagesSnapshot(&reply.payload.images);
+            break;
+        }
     }
     SendReply(event, reply);
 }
@@ -463,7 +507,16 @@ void OwnerTask(void *) {
     // All display/frame/storage state initializes inside the owner task so
     // no other task ever touches it. Boot flow: runtime -> storage mount
     // -> native home page -> touch on.
-    s3paper_runtime::RuntimeInit();
+    // ESP-54: a full 540x960 .g4 image is ~253 KiB and the bitmap op
+    // copies it into the frame arena (GlyphRun pattern). Raise the arena
+    // capacity so a full image + the usual text payloads fit. PSRAM is
+    // 8 MB; 320 KiB leaves ample headroom. Must be the FIRST RuntimeInit
+    // (it is idempotent; a later default call would be a no-op).
+    {
+        s3paper_runtime::RuntimeConfig cfg{};
+        cfg.arena_capacity = 320 * 1024;
+        s3paper_runtime::RuntimeInit(cfg);
+    }
     {
         // SPI bus is shared with the display: the pre-mount hook guarantees
         // M5GFX owns the bus before the SD mount (ESP-50 diary S9).

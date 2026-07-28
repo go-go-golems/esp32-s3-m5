@@ -48,7 +48,9 @@ using namespace jsi;
 
 const char *kTag = "js";
 
-constexpr uint32_t kArenaBytes = 160 * 1024;
+// ESP-54: raised from 160 KiB to 192 KiB — the gallery app + battery
+// surface grew pulp.js enough to OOM the 160 KiB arena at boot.
+constexpr uint32_t kArenaBytes = 192 * 1024;
 
 uint8_t *s_arena = nullptr;
 int64_t s_deadline_us = 0;

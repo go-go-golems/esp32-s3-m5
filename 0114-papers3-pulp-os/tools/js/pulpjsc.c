@@ -153,6 +153,18 @@ STUB(js_serve_files)
 STUB(js_serve_start)
 STUB(js_serve_stop)
 STUB(js_serve_url)
+STUB(js_battery_level)
+STUB(js_battery_mv)
+STUB(js_battery_charging)
+STUB(js_battery_status_text)
+STUB(js_mdns_status)
+STUB(js_mdns_host)
+STUB(js_mdns_url)
+STUB(js_images_count)
+STUB(js_images_name)
+STUB(js_images_display)
+STUB(js_images_remove)
+STUB(js_images_received)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

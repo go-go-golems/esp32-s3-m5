@@ -48,6 +48,11 @@ class FrameBuilder {
     Status GlyphRun(const Rect &bounds, int32_t baseline_y, uint8_t font_id,
                     uint8_t size_px, const char *text, uint32_t text_len,
                     Gray8 gray);
+    // ESP-54: packed 4-bit grayscale bitmap (2 px/byte, high nibble first).
+    // `data` is copied into the arena; the DrawOp references it by offset
+    // (the GlyphRun pattern). stride is bytes per row.
+    Status Bitmap(const Rect &bounds, const uint8_t *data, uint32_t data_len,
+                 int32_t stride);
 
     // Freezes the frame. The returned frame stays valid until Begin() or the
     // underlying storage is reset. A dangling clip push is CorruptData.

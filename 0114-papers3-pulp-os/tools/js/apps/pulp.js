@@ -5,6 +5,7 @@
 // paper.home unless an app registers its own G.DOWN handler.
 
 var P = { app: 'home' };
+var ROUTES_READY = false;  // ESP-54: routes register once serve is up
 
 // Global content margin (px). Toggled by long-pressing the launcher and
 // persisted in the settings store; every app reads it at build time.
@@ -19,15 +20,32 @@ function fmtClock(ms) {
 
 // OS-owned web routes: re-registered at every app switch so they survive
 // resetTree as long as the server runs (found by the P7 soak: a phantom
-// swipe-home wiped the probe's routes mid-soak).
+// swipe-home wiped the probe's routes mid-soak). Registered whenever the
+// server is actually running (ESP-54: serve may start after boot, so the
+// home tick re-checks serve.url() and registers on first availability).
 function osRoutes() {
   if (serve.url() === '') { return; }
+  ROUTES_READY = true;
   serve.get('/status').handle(function (req) {
     return serve.json('{"battery":' + batteryLevel()
+      + ',"charging":' + battery.charging()
       + ',"ssid":"' + wifi.ssidCurrent() + '"'
       + ',"rssi":' + wifi.rssiCurrent()
       + ',"app":"' + P.app + '"'
+      + ',"mdns":"' + mdns.url() + '"'
       + ',"uptime_ms":' + millis() + '}');
+  });
+  // ESP-54: list stored images for the upload page's gallery sidebar.
+  serve.get('/images/list').handle(function (req) {
+    var n = images.count();
+    var s = '{"count":' + n + ',"images":[';
+    var i;
+    for (i = 0; i < n; i++) {
+      if (i > 0) { s += ','; }
+      s += '"' + images.name(i) + '"';
+    }
+    s += ']}';
+    return serve.json(s);
   });
 }
 
@@ -69,12 +87,20 @@ function wifiGlyph() {
   return st === 0 ? '' : 'wifi idle';
 }
 
+// Battery glyph (ESP-54): level% and a '+' when charging. A dyn value so
+// the home tick refreshes it only when the string changes.
+function batteryGlyph() {
+  var s = battery.statusText();
+  return s === '?' ? '' : s;
+}
+
 function home() {
   enter('home');
   var header = col().pad(16, M, 6, M).gap(4).add(
     row().crossAlign(3).add(
       text('PULP').size('xl'), spacer(0, 1),
-      text(function () { return wifiGlyph(); }).size('xs').gray(96)),
+      text(function () { return batteryGlyph() + '  ' + wifiGlyph(); })
+        .size('xs').gray(96)),
     text('THE PAPERBACK OF COMPUTERS').size('xs').gray(96),
     divider(8, 0));
   var menu = list().pad(4, 0, 0, 0);
@@ -93,11 +119,21 @@ function home() {
   entryRow('Postcard', 'one line a day', postcard);
   entryRow('Daily Pulp', 'a page at random', daily);
   entryRow('Ink', 'the beauty of e-ink', ink);
+  entryRow('Gallery', 'your pictures', gallery);
   entryRow('Radio', 'words from the ether', radio);
   entryRow('Settings', 'wifi - serve - margins', settings);
   var p = page('home').header(header).content(menu)
     .footer(hintFooter('tap to open - swipe down = home'));
   p.every(5000);
+  // ESP-54: register OS web routes once serve becomes available. Runs
+  // from the tick because serve may start after boot (osRoutes no-ops
+  // when serve.url()==='' at enter() time).
+  p.on(G.TICK, function () {
+    if (!ROUTES_READY && serve.url() !== '') {
+      ROUTES_READY = true;
+      osRoutes();
+    }
+  });
   announce('home');
   p.show(true);
 }
@@ -755,6 +791,70 @@ function ink() {
   });
   p.every(1000);
   show(0, true);
+}
+
+// ------------------------------------------------------------ gallery --
+// ESP-54: display stored .g4 images full-screen, swipe left/right to
+// browse, tap to delete. images.display() does a clean-full present of
+// the bitmap; the chrome (counter + name + hint) is drawn in the SAME
+// frame so there is exactly one present per navigation.
+var GAL = { idx: 0 };
+
+function galleryRefresh() {
+  var n = images.count();
+  if (n === 0) { gallery(); return; }
+  if (GAL.idx >= n) { GAL.idx = n - 1; }
+  if (GAL.idx < 0) { GAL.idx = 0; }
+  // The image present (clean full) is the primary; the hint is overlaid.
+  var ok = images.display(images.name(GAL.idx));
+  print('gallery: ' + (GAL.idx + 1) + '/' + n + ' '
+        + images.name(GAL.idx) + ' -> ' + ok);
+}
+
+function gallery() {
+  enter('gallery');
+  var n = images.count();
+  if (n === 0) {
+    var url = mdns.url() !== '' ? mdns.url()
+             : (serve.url() !== '' ? serve.url() : 'pulp.local');
+    var body0 = col().pad(20, M, 0, M).gap(8)
+      .add(text('no images yet').size('md').gray(96),
+           text('upload at ' + url).size('xs').gray(128));
+    var p0 = page('gallery').header(chrome('GALLERY')).content(body0)
+      .footer(hintFooter('upload a picture from your browser'));
+    announce('gallery');
+    p0.show(true);
+    return;
+  }
+  paper.refreshTurns(1);
+  // A page with gesture handlers but empty content; the image is the
+  // present. p.show() draws the chrome once, then galleryRefresh()
+  // draws the image over it as the final present of this navigation.
+  var p = page('gallery')
+    .header(col().pad(16, M, 6, M).gap(8)
+      .add(text('GALLERY').size('lg'),
+           text(function () { return (GAL.idx + 1) + ' / ' + n; })
+             .size('xs').gray(96)))
+    .content(spacer(1, 0))
+    .footer(hintFooter('swipe = browse - tap = delete - home = menu'));
+  p.on(G.LEFT, function () {
+    if (GAL.idx > 0) { GAL.idx = GAL.idx - 1; galleryRefresh(); }
+  });
+  p.on(G.RIGHT, function () {
+    if (GAL.idx + 1 < images.count()) { GAL.idx = GAL.idx + 1;
+      galleryRefresh(); }
+  });
+  p.on(G.TAP, function () {
+    var nm = images.name(GAL.idx);
+    if (images.remove(nm) === 0) {
+      GAL.idx = 0;
+      galleryRefresh();
+    }
+  });
+  announce('gallery');
+  p.show(true);
+  // The image present is the final, topmost blit for this view.
+  galleryRefresh();
 }
 
 // ------------------------------------------------------------ settings --

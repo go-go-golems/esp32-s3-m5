@@ -7,6 +7,8 @@ idf_component_register(
         "net_http.cpp"
         "net_serve.cpp"
         "net_wifi.cpp"
+        "net_mdns.cpp"
+        "app_images.cpp"
         "app_console.cpp"
         "app_input.cpp"
         "app_power.cpp"
@@ -20,6 +22,8 @@ idf_component_register(
         "js_widgets.cpp"
         "js_pages.cpp"
         "js_services.cpp"
+        "js_images.cpp"
+        "js_mdns.cpp"
         "js_probes.cpp"
         "js_stdlib_table.c"
     INCLUDE_DIRS
@@ -38,6 +42,7 @@ idf_component_register(
         esp_netif
         esp_event
         nvs_flash
+        mdns
         s3paper_core
         s3paper_m5
         s3paper_storage

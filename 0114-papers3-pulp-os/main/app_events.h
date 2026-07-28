@@ -42,6 +42,7 @@ enum class ModuleId : uint8_t {
     Wifi,
     Http,
     Serve,
+    Images,  // ESP-54 image upload completion
     kCount,
 };
 
@@ -57,6 +58,7 @@ enum ModuleDoneKind : int32_t {
     kDoneFilesWrite = 12,
     kDoneFilesAppend = 13,
     kDoneFilesRemove = 14,
+    kDoneImagesUpload = 20,  // ESP-54: value = bytes, err = 0 ok
 };
 
 const char *AppEventKindName(AppEventKind kind);
@@ -91,6 +93,11 @@ enum class ConsoleOp : uint8_t {
              //      2 = abort, 3 = print body head
     Serve,   // arg: 0 = status, 1 = start (arg2 = port),
              //      2 = stop, 3 = mount /sdcard/www
+    Battery, // arg: 0 = status (level/mv/charging printed)  [ESP-54]
+    Mdns,    // arg: 0 = status, 1 = announce (arg2 = port),  [ESP-54]
+             //      2 = stop
+    Images,  // arg: 0 = status, 1 = list, 2 = display (str_a = name), [ESP-54]
+             //      3 = remove (str_a = name), 4 = received cb status
 };
 
 enum class PointerPhase : uint8_t {
@@ -251,6 +258,21 @@ struct ServeSnapshot {
     char url[32];
 };
 
+// ESP-54 mDNS + image gallery snapshots.
+struct MdnsSnapshot {
+    uint8_t announced;   // 0 off, 1 announced
+    uint16_t port;
+    char host[24];       // "pulp"
+    char url[40];        // "http://pulp.local" or ""
+};
+
+struct ImagesSnapshot {
+    uint8_t sd_ok;       // 1 = /sdcard/images mounted & writable
+    uint32_t count;      // images on the card
+    uint32_t last_bytes; // last upload byte count
+    uint8_t upload_busy; // 1 = a POST upload is in flight
+};
+
 struct BuzzSnapshot {
     uint8_t initialized;
     uint8_t playing;  // 1 = tone or melody currently sounding
@@ -286,6 +308,8 @@ struct AppReply {
         NetSnapshot net;
         HttpSnapshot http;
         ServeSnapshot serve;
+        MdnsSnapshot mdns;       // ESP-54
+        ImagesSnapshot images;  // ESP-54
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

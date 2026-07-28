@@ -291,6 +291,52 @@ JSValue js_pulp_battery_level(JSContext *ctx, JSValue *, int, JSValue *) {
     return JS_NewInt32(ctx, st.battery_level);
 }
 
+// ---- battery singleton (ESP-54): charging + mv already in PowerStatus ----
+//
+// All four are sync, owner-only, thin wrappers over s3paper::PowerRead().
+// `batteryLevel()` (above) is kept as the historical alias; the new
+// `battery.*` surface adds the missing charging/mv fields and a formatted
+// status string for the home glyph.
+
+JSValue js_battery_level(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s3paper_runtime::M5BackendState().initialized) {
+        return JS_NewInt32(ctx, -1);
+    }
+    const s3paper::PowerStatus st = s3paper::PowerRead();
+    return JS_NewInt32(ctx, st.battery_level);
+}
+
+JSValue js_battery_mv(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s3paper_runtime::M5BackendState().initialized) {
+        return JS_NewInt32(ctx, -1);
+    }
+    const s3paper::PowerStatus st = s3paper::PowerRead();
+    return JS_NewInt32(ctx, st.battery_mv);
+}
+
+JSValue js_battery_charging(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s3paper_runtime::M5BackendState().initialized) {
+        return JS_NewInt32(ctx, -1);
+    }
+    const s3paper::PowerStatus st = s3paper::PowerRead();
+    return JS_NewInt32(ctx, st.charging ? 1 : 0);
+}
+
+JSValue js_battery_status_text(JSContext *ctx, JSValue *, int, JSValue *) {
+    if (!s3paper_runtime::M5BackendState().initialized) {
+        return JS_NewString(ctx, "?");
+    }
+    const s3paper::PowerStatus st = s3paper::PowerRead();
+    if (st.battery_level < 0) {
+        return JS_NewString(ctx, "?");
+    }
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%d%%%s",
+             static_cast<int>(st.battery_level),
+             st.charging ? " +" : "");
+    return JS_NewString(ctx, buf);
+}
+
 }  // extern "C"
 
 }  // namespace pulp

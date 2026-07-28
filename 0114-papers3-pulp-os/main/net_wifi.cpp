@@ -11,6 +11,7 @@
 #include "esp_wifi.h"
 
 #include "app_owner.h"
+#include "net_mdns.h"
 #include "s3paper_storage/storage.h"
 
 namespace pulp {
@@ -250,6 +251,8 @@ StatusCode WifiOff() {
     if (!s_state.started) {
         return StatusCode::Ok;
     }
+    // ESP-54: pulp.local is useless without a link; withdraw it first.
+    (void)MdnsStop();
     esp_wifi_disconnect();
     esp_wifi_stop();
     s_state.started = false;

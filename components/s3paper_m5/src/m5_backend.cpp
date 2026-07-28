@@ -399,10 +399,55 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                 result.ops_drawn++;
                 break;
             }
-            case DrawOpKind::Bitmap:
-                // Explicitly unsupported in Phase 2.
-                result.ops_skipped++;
+            case DrawOpKind::Bitmap: {
+                // ESP-54: packed 4-bit grayscale bitmap (2 px/byte, high
+                // nibble first). Unpack to RGB565 gray and push one row at
+                // a time within the op clip rect. The pixel data lives in
+                // the frame arena (copied at emit time, GlyphRun pattern).
+                const BitmapPayload &b = op.payload.bitmap;
+                if (frame.arena == nullptr || b.data_len == 0) {
+                    result.ops_skipped++;
+                    break;
+                }
+                const uint8_t *data = frame.arena->Data(b.data_offset);
+                const int32_t w = op.bounds.w;
+                const int32_t h = op.bounds.h;
+                if (w <= 0 || h <= 0 || w > 540) {
+                    result.ops_skipped++;
+                    break;
+                }
+                // One-row RGB565 scratch in PSRAM (reused across ops).
+                static uint16_t *row = nullptr;
+                static int32_t row_cap = 0;
+                if (row == nullptr || row_cap < w) {
+                    if (row != nullptr) {
+                        heap_caps_free(row);
+                    }
+                    row = static_cast<uint16_t *>(heap_caps_malloc(
+                        w * 2, MALLOC_CAP_SPIRAM));
+                    row_cap = w;
+                    if (row == nullptr) {
+                        result.ops_skipped++;
+                        break;
+                    }
+                }
+                const uint8_t *src = data;
+                for (int32_t y = 0; y < h; ++y) {
+                    const uint8_t *s = src + y * b.stride;
+                    for (int32_t x = 0; x < w; ++x) {
+                        const uint8_t nib =
+                            (x & 1) ? (s[x >> 1] & 0x0F)
+                                    : (s[x >> 1] >> 4);
+                        // 0..15 -> 0..255 gray -> RGB565
+                        const uint8_t g = (nib * 255) / 15;
+                        row[x] = M5.Display.color565(g, g, g);
+                    }
+                    M5.Display.pushImage(op.bounds.x, op.bounds.y + y,
+                                         w, 1, row);
+                }
+                result.ops_drawn++;
                 break;
+            }
         }
     }
     M5.Display.clearClipRect();

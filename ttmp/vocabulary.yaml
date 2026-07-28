@@ -225,6 +225,14 @@ topics:
       description: Electrophoretic display waveform design, timing, and transition behavior
     - slug: hardware-qualification
       description: Reproducible hardware acceptance, safety gating, and physical validation
+    - slug: mdns
+      description: Multicast DNS service discovery (esp_mdns)
+    - slug: image-upload
+      description: Browser-to-device image upload, conversion, and storage pipelines
+    - slug: gallery
+      description: Image gallery apps and SD-backed image browsing on e-ink
+    - slug: battery
+      description: Battery level and charge status monitoring (M5Unified power)
 docTypes:
     - slug: index
       description: Ticket index document

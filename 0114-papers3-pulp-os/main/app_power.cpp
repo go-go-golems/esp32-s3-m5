@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 
 #include "app_input.h"
+#include "net_mdns.h"
 #include "net_serve.h"
 #include "net_wifi.h"
 #include "s3paper/text.h"
@@ -109,7 +110,9 @@ StatusCode PowerSleep(SleepMode mode, uint32_t seconds) {
              SleepModeName(mode), static_cast<unsigned>(seconds));
     // 0. Radio: stop serving, drop the link, power the RF down (ESP-53).
     //    Before touch-off so a wedged httpd handler cannot outlive input.
+    //    ESP-54: mDNS withdraws with serve/wifi (both called below).
     (void)ServeStop();
+    (void)MdnsStop();
     (void)WifiOff();
     // 1. Input: stop the touch tick producer.
     TouchDisable();
