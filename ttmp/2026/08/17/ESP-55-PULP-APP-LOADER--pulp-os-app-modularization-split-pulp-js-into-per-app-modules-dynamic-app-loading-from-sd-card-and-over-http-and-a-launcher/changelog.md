@@ -36,3 +36,8 @@ Step 3: intern guide written (design-doc/01), diary steps 2-3 (commit c5bb6e1a)
 
 Step 4: bookkeeping + doctor clean; reMarkable upload blocked by cloud 'invalid root schema' (rmapi v4 root index rejected) — task left open
 
+
+## 2026-08-17
+
+Step 6: remarquee fixed (root index sorted); bundle uploaded to /ai/2026/08/17/ESP-55-PULP-APP-LOADER as 'ESP-55 PULP App Loader Intern Guide.pdf'
+

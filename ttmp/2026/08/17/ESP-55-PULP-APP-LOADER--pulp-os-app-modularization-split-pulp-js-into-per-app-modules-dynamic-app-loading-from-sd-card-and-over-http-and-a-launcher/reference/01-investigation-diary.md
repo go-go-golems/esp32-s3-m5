@@ -387,3 +387,26 @@ server-side validation change that landed the same day.
 - Sources: https://github.com/ddvk/rmapi/issues/76 , /issues/75 , /pull/77 ;
   rmapi-js CHANGELOG 10.1.0 (2026-06-12: schema-3 roots rejected with
   "Software must be updated", always write schema 4).
+
+## Step 6: reMarkable upload succeeded after the remarquee fix
+
+Once remarquee was rebuilt with the sorted-root-index fix (go-go-golems/remarquee#23), the Step 4 command ran clean.
+
+### Prompt Context
+
+**User prompt (verbatim):** "remarquee is fixed, upload original guide"
+
+**Assistant interpretation:** Re-run the bundle upload.
+
+**Inferred user intent:** Read the guide on the tablet.
+
+### What I did
+- `remarquee upload bundle <design-doc/01> <reference/01> <sources/01> <sources/02> --name "ESP-55 PULP App Loader Intern Guide" --remote-dir /ai/2026/08/17/ESP-55-PULP-APP-LOADER --toc-depth 2 --non-interactive`
+  → `OK: uploaded ESP-55 PULP App Loader Intern Guide.pdf -> /ai/2026/08/17/ESP-55-PULP-APP-LOADER`.
+- Checked the upload task; changelog updated.
+
+### What worked / didn't work
+- Upload OK first try (mkdir of `17/ESP-55-…` included).
+
+### Code review instructions
+- `remarquee cloud ls /ai/2026/08/17/ESP-55-PULP-APP-LOADER --long --non-interactive`.

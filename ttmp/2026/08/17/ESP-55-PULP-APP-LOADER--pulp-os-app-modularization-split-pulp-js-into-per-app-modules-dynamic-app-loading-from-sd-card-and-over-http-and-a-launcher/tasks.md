@@ -11,4 +11,4 @@
 - [x] Write intern guide: design (app module format, manifest, loader, launcher, SD layout, HTTP install) <!-- t:ob42 -->
 - [x] Write intern guide: decision records + phased implementation plan + testing <!-- t:1kdx -->
 - [x] Bookkeeping: relate files, changelog, doctor <!-- t:1jjk -->
-- [ ] Upload bundle to reMarkable <!-- t:276o -->
+- [x] Upload bundle to reMarkable <!-- t:276o -->
