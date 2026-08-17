@@ -341,3 +341,49 @@ lose an hour on it.
   "Upload bundle to reMarkable" left open. `remarquee` binary:
   `~/.local/bin/remarquee` built 2026-08-10 from
   `~/code/wesen/go-go-golems/remarquee` @183a9d3.
+
+## Step 5: Root cause of the reMarkable "invalid root schema" failure (investigation only)
+
+The user asked what changed on the reMarkable side and whether the local
+remarquee checkout still uses the unfixed rmapi. It does; the cause is a
+server-side validation change that landed the same day.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can you find information online about the root schema change?" / "the local code for remarquee is in ~/code/wesen/go-go-golems/remarquee, is it still using the old without fix?" / "(don't fix it, just investigate)"
+
+**Assistant interpretation:** Diagnose, do not patch.
+
+**Inferred user intent:** Decide how to unblock uploads (bump the rmapi dependency).
+
+### What I did
+- Serialized the cached tree with the fork's own `IndexReader()` in a scratch
+  Go program (`scratchpad/rootcheck`): schema 4 header `0:.:10478:11516896433`,
+  10,478 entries, all `type 0`, no duplicates, **already sorted** (because it
+  was mirrored from the server) — so the format itself matches rmapi-js's
+  schema-4 writer.
+- Web search: `ddvk/rmapi` issues #75 and #76 (both opened 2026-08-17): "All
+  write operations fail with 400 'invalid root schema'"; maintainer
+  diagnosis: **the server now requires root index entries strictly sorted by
+  document ID**; `HashTree.Add()` appends and `Remove()` swaps, so any write
+  that adds a document (our `mkdir` created a new folder id) breaks the
+  order → 400. Fix: PR #77 "sort root index by document ID before
+  serializing (fixes #75)" — sorts in `IndexReader()` /
+  `IndexReaderWithSchema()`, still open at the time of writing.
+- `~/code/wesen/go-go-golems/remarquee/go.mod:22` pins
+  `replace github.com/juruen/rmapi => github.com/marcobarcelos/rmapi v0.0.0-20260518211546-a0d079936d46`
+  (May 18 fork; writes v4 but does not sort) → **still the unfixed version**.
+
+### What worked / didn't work
+- The earlier hypotheses (stale cache, wrong schema) were ruled out by
+  reproducing the writer's output offline.
+
+### What should be done in the future
+- In remarquee: bump the replace to a fork containing ddvk/rmapi PR #77 (or
+  the equivalent one-line sort in `IndexReader()`), rebuild, re-run the
+  Step 4 upload command. Not done here by request.
+
+### Technical details
+- Sources: https://github.com/ddvk/rmapi/issues/76 , /issues/75 , /pull/77 ;
+  rmapi-js CHANGELOG 10.1.0 (2026-06-12: schema-3 roots rejected with
+  "Software must be updated", always write schema 4).
