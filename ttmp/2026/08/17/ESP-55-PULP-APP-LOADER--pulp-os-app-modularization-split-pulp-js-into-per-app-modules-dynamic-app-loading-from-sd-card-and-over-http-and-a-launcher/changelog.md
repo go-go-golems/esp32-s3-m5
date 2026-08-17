@@ -31,3 +31,8 @@ Step 3: intern guide written (design-doc/01), diary steps 2-3 (commit c5bb6e1a)
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/design-doc/01-intern-guide-pulp-os-app-modularization-dynamic-app-loading-sd-http-and-launcher-analysis-design-implementation.md — guide
 
+
+## 2026-08-17
+
+Step 4: bookkeeping + doctor clean; reMarkable upload blocked by cloud 'invalid root schema' (rmapi v4 root index rejected) — task left open
+

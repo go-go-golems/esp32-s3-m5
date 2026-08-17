@@ -266,3 +266,78 @@ glossary.
   decision records (R-SOURCEEVAL, R-ONEIMAGE, R-DESCRIPTOR, R-CATALOGFILE,
   R-NATIVELOAD, R-ROMSEED, R-HTTPPUSHPULL, R-TRUST, R-STATE) · 8 phases 0–7 ·
   9 tests · 10 risks · 11 gotchas · 12 references · 13 glossary.
+
+## Step 4: Bookkeeping, doctor, and the reMarkable upload
+
+Related every file that shaped the guide, wrote the changelog entries,
+ran `docmgr doctor` (clean), and uploaded the bundle. The upload hit a
+reMarkable cloud write failure that turned out to be a stale local rmapi
+tree cache; the fix and the evidence are below so the next person does not
+lose an hour on it.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Close the loop: bookkeeping, validation, delivery to the tablet.
+
+**Inferred user intent:** Read the guide on the reMarkable.
+
+### What I did
+- `docmgr doc relate` ×23 (design doc) and ×5 (diary), three
+  `docmgr changelog update` entries, `docmgr doctor --ticket
+  ESP-55-PULP-APP-LOADER --stale-after 30` → "All checks passed".
+- `remarquee upload bundle <guide> <diary> <sources/01> <sources/02> --name
+  "ESP-55 PULP App Loader Intern Guide" --remote-dir /ai/2026/08/17/ESP-55-PULP-APP-LOADER --toc-depth 2 --non-interactive`.
+
+### What didn't work
+- Every cloud *write* failed with HTTP 400 while reads worked:
+  `ERR rmcloud mkdir-all: create remote directory failed error="request failed with status 400" entry=17 parent_id=... parent_name=08`,
+  the same for `remarquee cloud mkdir /ai/2026/08/16/ESP-55-test`, and a
+  probe `remarquee upload md` into the existing `/ai/2026/08/16` folder
+  (`ERROR-UPLOAD ... request failed with status 400`). `--reauth` did not
+  help (auth was fine: `cloud ls` listed folders).
+- First hypothesis (stale local tree cache → generation mismatch) was
+  wrong: after `mv ~/.cache/rmapi/tree.cache ~/.cache/rmapi/tree.cache.bak-20260817-esp55`
+  and a ~6-minute rebuild (26 MB), `remarquee cloud mkdir /ai/2026/08/17`
+  still returned 400.
+- Root cause from `--log-level debug`: the blob PUTs succeed (200/202) and
+  the final `PUT .../sync/v3/files/<root hash>` (`rm-filename: root.docSchema`)
+  is rejected with `{"message":"invalid root schema"}` — the reMarkable
+  cloud no longer accepts the v4 root index that the rmapi fork pinned by
+  remarquee writes (`github.com/marcobarcelos/rmapi@v0.0.0-20260518…`,
+  `api/sync15/tree.go:155-190`: "always emit v4 root indexes"). This is a
+  tooling/server-format regression outside this ticket; reads work, all
+  writes fail. Not fixed here.
+- Consequence: **the bundle is not on the tablet yet.** Re-run once
+  remarquee/rmapi is updated:
+  `remarquee upload bundle <design-doc/01> <reference/01> <sources/01> <sources/02> --name "ESP-55 PULP App Loader Intern Guide" --remote-dir /ai/2026/08/17/ESP-55-PULP-APP-LOADER --toc-depth 2 --non-interactive`.
+
+### What worked
+- Doctor clean; relations and changelog in place.
+
+### What I learned
+- When reMarkable reads work and every write returns 400, run the command
+  with `--log-level debug` first: the response body names the cause
+  (`invalid root schema` here) and saves a cache-rebuild detour.
+
+### What was tricky to build
+- Distinguishing an auth failure from a cache/generation failure: `ls`
+  succeeding rules out auth.
+
+### What warrants a second pair of eyes
+- N/A
+
+### What should be done in the future
+- Re-run the on-device Phase 0 measurements once `cdc_acm` is loaded
+  (`sudo modprobe cdc_acm`, then re-plug the PaperS3 or re-enumerate).
+
+### Code review instructions
+- `docmgr doctor --ticket ESP-55-PULP-APP-LOADER --stale-after 30`;
+  `remarquee cloud ls /ai/2026/08/17/ESP-55-PULP-APP-LOADER --long --non-interactive`.
+
+### Technical details
+- Upload result: FAILED (server rejects root schema); ticket task
+  "Upload bundle to reMarkable" left open. `remarquee` binary:
+  `~/.local/bin/remarquee` built 2026-08-10 from
+  `~/code/wesen/go-go-golems/remarquee` @183a9d3.
