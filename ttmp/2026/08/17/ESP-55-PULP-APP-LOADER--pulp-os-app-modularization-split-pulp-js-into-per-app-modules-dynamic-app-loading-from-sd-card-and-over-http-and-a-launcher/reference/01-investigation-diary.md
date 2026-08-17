@@ -14,13 +14,24 @@ Topics:
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://0114-papers3-pulp-os/components/mquickjs/mquickjs.c
+      Note: Step 1 bytecode load rules verified
+    - Path: repo://0114-papers3-pulp-os/main/app_js.cpp
+      Note: Step 1 first-hand read of the JS host core
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/01-trial-split-bytecode-sizes.py
+      Note: Step 2 experiment script
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/02-host-eval-harness.c
+      Note: Step 2 harness
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/02-host-eval-harness.sh
+      Note: Step 2 harness build/run wrapper
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-08-17T11:02:44.989239565-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # Investigation diary — ESP-55 PULP app loader
 
@@ -96,3 +107,162 @@ Mid-turn addition: "here's some docs /home/manuel/code/wesen/go-go-golems/go-go-
 
 ### Technical details
 - Bytecode facts: `JS_LoadBytecode` checks `unique_strings_len == 0`, `n_rom_atom_tables < 2`, magic/version/word size, and that the buffer was relocated in place; the image buffer must outlive the context.
+
+## Step 2: Host experiments — trial split sizes and source-eval vs bytecode cost
+
+With the engine rules established (one bytecode image per context, boot
+only; source eval live), the open question was *cost*: how much arena does
+an app take when evaluated from source, how long does it take, and how big
+are the per-app pieces. The device was unreachable, so I built two host
+experiments on the firmware's own vendored engine and host stdlib table.
+The results size the whole design (§4 of the guide) and empirically confirm
+the "too many rom atom tables" limit.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Ground the design in numbers before writing it.
+
+**Inferred user intent:** A design that will not OOM the arena or make launches slow.
+
+### What I did
+- `scripts/01-trial-split-bytecode-sizes.py`: cuts pulp.js at its
+  `// ---- name --` banners, compiles each section with
+  `tools/js/host/pulpjsc`, tabulates source vs bytecode bytes.
+- `scripts/02-host-eval-harness.c` + `.sh`: `#include`s `pulpjsc.c` (stubs
+  + host stdlib) with `main` renamed, then either `JS_Eval`s files into a
+  192 KiB context (mode `eval`, kernel first, `JS_DumpMemory` parsed for
+  `heap size=`) or compiles each file to a host image and loads all images
+  before the kernel, then `JS_Run`s (mode `bc`).
+- Ran: `02-host-eval-harness.sh eval 192 <14 sections>`, `bc 192 noboot.js`,
+  `bc 192 <two files>` (fails as predicted), and an arena bisection loop
+  (8..160 KiB) per app to find the smallest arena that evaluates.
+
+### Why
+- The choice between source and bytecode modules, and the arena/deadline
+  budgets in the loader, need numbers; host ratios are the best available
+  without the port.
+
+### What worked
+- Per-app bytecode 2.1–8.7 KB; whole image 45,332 B vs sum-of-parts 57,116 B.
+- Source eval (host64): retained 2.2–12.0 KB per section after GC; smallest
+  arena that evaluates: dice 16 KiB, 2048 16 KiB, ink 14 KiB, settings
+  24 KiB, whole file 96 KiB; parse+run 0.1–0.6 ms per section on x86.
+- Bytecode: whole image `JS_Run` 0.01 ms, retained 8,080 B; second image →
+  `InternalError: too many rom atom tables` (verifies `N_ROM_ATOM_TABLES_MAX=2`).
+
+### What didn't work
+- First harness run reported `4294965472` for the prelude's after-GC delta:
+  the baseline was taken before the kernel's garbage was collected. Fixed by
+  `JS_GC` before both baselines.
+- Zsh: `F="a b c"; cmd $F` passed one argument (`No such file or directory`
+  with the whole list as one path) — used an array `F=(...)`.
+- `gcc -m32` is unavailable (`bits/libc-header-start.h: No such file`), so
+  device-word-size numbers could not be produced on the host; the guide
+  states the 64-bit caveat and the ×0.5–0.67 / ×50–100 conversion.
+
+### What I learned
+- Bytecode is *larger* than source (debug tables, unique strings) and lives
+  in internal SRAM; source-eval'd code lives in the PSRAM arena. Moving
+  apps out of the image is an internal-RAM win.
+- The engine GCs on demand during parse, so the "arena delta" column
+  overstates the requirement; the bisection numbers are the true transient.
+- The ESP-54 "OOM at 160 KiB" for the *bytecode* image is unexplained by
+  the host numbers (8 KB retained) — flagged as the first Phase 0 measurement.
+
+### What was tricky to build
+- Measuring heap use without access to the private `JSContext` struct: I
+  captured `JS_DumpMemory`'s summary line through `JS_SetLogFunc` and parsed
+  `heap size=`. It works because the harness sets its own log function; on
+  the device the guide proposes a 4-line `JS_GetHeapUsed()` accessor instead.
+
+### What warrants a second pair of eyes
+- The ×0.5–0.67 arena and ×50–100 time conversion factors are estimates,
+  not measurements; Phase 0 replaces them.
+
+### What should be done in the future
+- Run the same harness against a 32-bit build if a multilib toolchain is
+  installed; port the `bc` mode to exercise the "process model" alternative.
+
+### Code review instructions
+- `scripts/02-host-eval-harness.c` (`mode_eval`, `mode_bc`, `heap_used`);
+  re-run with `scripts/02-host-eval-harness.sh eval 192 <files>`.
+
+### Technical details
+- Build line: `gcc -O2 -w -I tools/js/host -I components/mquickjs -I tools/js
+  02-host-eval-harness.c tools/js/host/mquickjs.c cutils.c dtoa.c libm.c -lm`.
+- The harness must include the *host copy* of `mquickjs.c` (device atom
+  header otherwise; every keyword becomes a parse error — the same trap
+  `build_bytecode_apps.sh` documents).
+
+## Step 3: Writing the intern guide
+
+With the evidence in `sources/` and the measurements in hand I wrote the
+design doc: current-state analysis with pulp.js anatomy, the two code paths
+into the engine, the build pipeline, the native modules the loader leans
+on, the measurements, a gap table, the proposed architecture (descriptor
+contract, `os` facade, catalog + manifests + ROM registry, native `load`,
+launcher, HTTP push/pull/hot-reload, `os.state`, trust), nine decision
+records, seven phases with gates, tests, risks, gotchas, references and a
+glossary.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** The main deliverable; long-form, evidence-anchored, implementable.
+
+**Inferred user intent:** Hand the ticket to someone new and have them build it.
+
+### What I did
+- Wrote `design-doc/01-*.md` (~1,420 lines) in three parts and assembled it
+  under the docmgr frontmatter (Summary/WhatFor/WhenToUse filled).
+- Verified the line-number citations for `app_js.cpp` (`RegisterCb` 295,
+  `CallCb` 309, `JsInit` 372, `js_load` 572, `resetTree` 603), `net_serve.cpp`
+  (`ServeUpload` 118, POST dispatch 301, `max_uri_handlers` 503, marker 473),
+  `app_files.cpp` (CR strip 318-321) and fixed three off-by-two references.
+- Verified dialect features used in the pseudocode exist in the stdlib:
+  `hasOwnProperty`, `String.prototype.replace/lastIndexOf`, the `delete`
+  opcode, `JSON.parse`.
+
+### Why
+- The user asked for an intern-level guide with prose, bullets, pseudocode,
+  diagrams, API and file references; the ESP-54 guide's structure
+  (numbered sections, `R-<TOKEN>` decision records, gotcha catalog, phases
+  with gates) is the house style and was followed.
+
+### What worked
+- The design falls out of two facts (one image per context; eval is live)
+  plus the measurements; every component reuses an existing pattern
+  (`enter()`, module mailboxes, POST handoff, index.html marker seeding).
+
+### What didn't work
+- N/A (documentation step; no failures beyond the port).
+
+### What I learned
+- The `load` atom already exists (stub throws), so a real `load(path)` needs
+  no atom-name regeneration; adding `assets.copy`/`apps.received` does.
+
+### What was tricky to build
+- Deciding where `settings` lives: it is both an app and the recovery tool
+  for WiFi. Resolved as "an asset like the others, but exempt from SD
+  override" (§10).
+
+### What warrants a second pair of eyes
+- The loader ordering (`RUN.desc=null; gc(); load(); validate; enter();
+  main()`) and the "app showed nothing" rule; the trust position (R-TRUST).
+
+### What should be done in the future
+- Phase 0 numbers; a host JS runtime for app development (own ticket).
+
+### Code review instructions
+- Read the guide top to bottom; cross-check §3 citations against
+  `main/app_js.cpp` and `main/net_serve.cpp`; run the two scripts.
+
+### Technical details
+- Doc outline: 0 how to read · 1 summary · 2 scope · 3 current state
+  (3.1–3.10) · 4 measurements · 5 gaps · 6 architecture (6.1–6.10) · 7
+  decision records (R-SOURCEEVAL, R-ONEIMAGE, R-DESCRIPTOR, R-CATALOGFILE,
+  R-NATIVELOAD, R-ROMSEED, R-HTTPPUSHPULL, R-TRUST, R-STATE) · 8 phases 0–7 ·
+  9 tests · 10 risks · 11 gotchas · 12 references · 13 glossary.

@@ -14,13 +14,60 @@ Topics:
 DocType: design-doc
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://0114-papers3-pulp-os/components/mquickjs/mquickjs.c
+      Note: JS_LoadBytecode zero-RAM-atom rule and N_ROM_ATOM_TABLES_MAX=2; js_global_eval
+    - Path: repo://0114-papers3-pulp-os/components/mquickjs/mquickjs.h
+      Note: Bytecode/eval API and JS_EVAL flags
+    - Path: repo://0114-papers3-pulp-os/main/CMakeLists.txt
+      Note: Where EMBED_TXTFILES for app assets and js_assets.cpp are added
+    - Path: repo://0114-papers3-pulp-os/main/app_console.cpp
+      Note: Console js command arg encoding; where js load goes
+    - Path: repo://0114-papers3-pulp-os/main/app_events.h
+      Note: ModuleId enum and ModuleDone kinds; where ModuleId::Apps / kDoneAppsUpload go
+    - Path: repo://0114-papers3-pulp-os/main/app_files.cpp
+      Note: Path sanitizer, EnsureBody PSRAM buffer pattern, synchronous owner-side I/O reused by load()
+    - Path: repo://0114-papers3-pulp-os/main/app_files.h
+      Note: files limits (16 KiB body, 512 lines, 96 path)
+    - Path: repo://0114-papers3-pulp-os/main/app_images.cpp
+      Note: Directory-scan catalog precedent
+    - Path: repo://0114-papers3-pulp-os/main/app_js.cpp
+      Note: 'JS host core: kernel, __cbs registry, LoadBytecodeApps (boot-only), EvalBounded, js_load stub to become real load(), resetTree'
+    - Path: repo://0114-papers3-pulp-os/main/app_js_internal.h
+      Note: Limits (kMaxPages/kMaxJsHits/kMaxDynValues), PageEntry, ModuleId callback slots
+    - Path: repo://0114-papers3-pulp-os/main/app_owner.cpp
+      Note: Owner loop, console op dispatch, boot order
+    - Path: repo://0114-papers3-pulp-os/main/net_http.h
+      Note: http.get limits (32 KiB body) bounding pull-install
+    - Path: repo://0114-papers3-pulp-os/main/net_serve.cpp
+      Note: POST dispatch, ServeUpload streaming precedent for /apps/upload, index.html marker seeding, max_uri_handlers
+    - Path: repo://0114-papers3-pulp-os/tools/js/apps/pulp.js
+      Note: The monolith being split; sections, prelude/enter/osRoutes, hard-coded launcher rows
+    - Path: repo://0114-papers3-pulp-os/tools/js/build_bytecode_apps.sh
+      Note: Bytecode pipeline to be changed to concatenate os/*.js and embed apps/*.js
+    - Path: repo://0114-papers3-pulp-os/tools/js/gen_pulp_stdlib.sh
+      Note: Atom/stdlib regeneration protocol
+    - Path: repo://0114-papers3-pulp-os/tools/js/mqjs_stdlib_pulp.c
+      Note: Global table incl. load/eval/print; CONFIG_PULP block
+    - Path: repo://0114-papers3-pulp-os/tools/js/pulp_stdlib.c
+      Note: Stdlib definition (native API surface); where new natives are declared
+    - Path: repo://0114-papers3-pulp-os/tools/js/pulpjsc.c
+      Note: Host compiler + STUB list; harness reuses it
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/01-trial-split-bytecode-sizes.py
+      Note: Experiment 1 (per-app bytecode sizes)
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/02-host-eval-harness.c
+      Note: Experiment 2 (source-eval vs bytecode arena/time)
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/sources/01-native-side-map.md
+      Note: 'Evidence collection: native side'
+    - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/sources/02-prior-ticket-fact-sheet.md
+      Note: 'Evidence collection: prior tickets'
 ExternalSources: []
 Summary: Intern-level analysis, design and phased implementation guide for splitting pulp.js into an embedded OS core plus per-app source modules, a native deadline-bounded load(path), an SD-card app catalog with ROM seeding, a data-driven launcher, and HTTP install (push via POST /apps/upload, pull via http.get). Grounded in file:line evidence and two host experiments.
 LastUpdated: 2026-08-17T11:02:44.294456085-04:00
 WhatFor: Read to understand what pulp.js and the PULP JS runtime are today, why apps must be loaded as source (one bytecode image per context), what the loader/launcher/catalog/install design is, and how to implement it phase by phase.
 WhenToUse: Before implementing ESP-55, when adding an app to PULP OS, or when touching main/app_js.cpp, tools/js/build_bytecode_apps.sh, or the serve/files modules for app loading.
 ---
+
 
 # Intern Guide — PULP OS App Modularisation, Dynamic App Loading (SD + HTTP), and the Launcher
 
@@ -513,10 +560,13 @@ time):
 
 - A typical app costs **~2–4 KB of retained arena** and needs
   **~8–16 KiB of free arena during parse**; the biggest (settings)
-  ~6 KB / ~16 KiB. Against a 192 KiB arena in which the whole OS today
-  retains roughly 35–45 KB, that is comfortable — *provided one app is
-  loaded at a time and the previous app's functions become garbage at the
-  switch* (§6.5).
+  ~6 KB / ~16 KiB. Against a 192 KiB arena that is comfortable — *provided
+  one app is loaded at a time and the previous app's functions become
+  garbage at the switch* (§6.5). One caveat: the ESP-54 diary records that
+  the current *bytecode* image "OOM'd at 160 KiB after the gallery app was
+  added" (`ESP-54 reference/01:191, :222`) although the host run of the
+  same image retains only ~8 KB — the boot-time arena high-water mark of
+  the image has never been profiled and is the first number Phase 0 takes.
 - Parse+run of a 2–5 KB app is estimated at **15–60 ms** on the device;
   the full clean-full e-ink present it precedes is measured at ~243 ms of
   panel work (`ESP-51 scripts/output/p56-final-a.log:8`) plus refresh time.
@@ -1167,9 +1217,10 @@ guide.
 - Add `arena_used` (heap_free − heap_base) to `JsSnapshot`: expose a tiny
   engine accessor (`JS_GetHeapUsed(ctx)` — 4 lines in `mquickjs.c` next to
   `JS_DumpMemory`, the struct is private) and print it in `js status`.
-- Measure: eval time and arena delta for `dice.js` and `settings.js`;
-  internal free before/after; ten repeated evals with `gc()` between them
-  (arena must return to baseline).
+- Measure: `arena_used` right after boot and after `gc()` (explains the
+  ESP-54 160 KiB OOM); eval time and arena delta for `dice.js` and
+  `settings.js`; internal free before/after; ten repeated evals with
+  `gc()` between them (arena must return to baseline).
 - **Gate:** numbers recorded in the diary; parse time < 150 ms for the
   largest app; arena returns to baseline after GC.
 
