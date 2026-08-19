@@ -597,13 +597,29 @@ time):
   ~35–45 KB and need ~50–60 KiB transient — feasible, but the ROM image is
   free (0.01 ms, 8 KB), so the OS core stays bytecode (R-ONEIMAGE).
 
-### 4.3 What remains to measure on the device (Phase 0)
+### 4.3 Device measurements (Phase 0, measured 2026-08-19)
 
-1. `load()` wall time and arena high-water mark for the largest app.
-2. Internal-RAM delta after the image shrinks (`heap` before/after).
-3. Whether GC reclaims the previous app's functions after a switch (`js
-   status` arena numbers across ten launches must be flat).
-4. SD read time for a 5 KB file (expected < 5 ms; FATFS on SPI).
+`js measure` (commit 4d59929a) on the PaperS3, 192 KiB PSRAM arena, home
+screen showing, whole ESP-54 bytecode image loaded:
+
+| metric | value |
+|---|---|
+| arena at boot / after GC | 14,956 B / **7,496 B** (the image retains almost nothing — matches the host's 8,080 B) |
+| dice (2,388 B source): eval / transient / retained after GC | **35.4 ms** / +24,264 B / **+3,024 B** |
+| settings (5,447 B source): eval / transient / retained after GC | **80.6 ms** / +50,840 B / **+7,456 B** |
+| dice ×10 with GC between | flat at 17,980 B — no creep |
+| internal free before = after | 124,931 B (evals live entirely in the PSRAM arena) |
+
+Rules of thumb: **≈15 ms and ≈1.4 KB retained per KB of app source**;
+transient ≈10× retained. The Phase 0 gate passes: the largest app parses in
+81 ms (< 150 ms budget, and well under one panel refresh), and the arena
+returns to an exactly flat baseline after GC. Host→device conversion came
+out at ×130 for time and ×0.62 for retained arena — close to the §4
+estimates. Loading every app of the current OS from source at launch is
+therefore comfortably affordable; R-SOURCEEVAL stands on measured ground.
+
+Still open (moves to Phase 3/4 validation): SD read time for a 5 KB file
+(expected < 5 ms) and the internal-RAM win from shrinking the image.
 
 ## 5. Gap analysis
 

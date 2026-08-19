@@ -51,3 +51,8 @@ Step 7: design extended — multi-context runtime (§6.11), page-script browser 
 
 Step 8 (P0): js measure op + JS_GetHeapUsed + arena_used flashed (4d59929a); device wedged in ROM download mode (force-download latch), needs power-on reset; hold-open console client added
 
+
+## 2026-08-19
+
+Step 9 (P0 done): measured on device — dice 35 ms/+3.0 KB, settings 81 ms/+7.5 KB retained, x10 flat, boot retention 7.5 KB; gate passed; guide §4.3 updated
+

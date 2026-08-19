@@ -581,3 +581,65 @@ control = safe" assumption on this host.
   bytes=<n> rc=<s> us=<n> arena before=<n> after=<n> (+d) gc=<n> (+d)`,
   `measure: dice x10 arena_after_gc: n0..n9`, `measure: done
   internal_free=<n>`.
+
+## Step 9: Phase 0 numbers measured on the device
+
+After the user re-seated the flaky USB connection (the device had dropped
+off the bus entirely; the brief power interruption also cleared the
+force-download latch from step 8), `idf.py flash` succeeded and the app
+booted normally. `js measure` produced the full Phase 0 dataset; the gate
+passes and the guide's §4.3 now carries measured numbers.
+
+### Prompt Context
+
+**User prompt (verbatim):** "esp-idf.py flash ? try again" / "could be that the serial was a bit flaky" / "ok now maybe?"
+
+**Assistant interpretation:** Retry flash + measurement after the re-plug.
+
+**Inferred user intent:** Unblock Phase 0.
+
+### What I did
+- `idf.py flash` (clean), then
+  `04-papers3-console-hold.py --no-reset --cmd status --cmd "js status"
+  --cmd heap --cmd "js measure" --cmd "js status"`.
+- Updated guide §4.3 from "what remains to measure" to the measured table;
+  checked ticket task 8udr.
+
+### What worked
+- Everything, first try after the re-plug:
+  - boot arena 14,956 B, after GC 7,496 B (the 45 KB image retains ~7.5 KB
+    — the ESP-54 "OOM at 160 KiB" was a transient, not steady retention);
+  - dice 2,388 B: eval 35,362 us, transient +24,264 B, retained +3,024 B;
+  - settings 5,447 B: eval 80,582 us, transient +50,840 B, retained +7,456 B;
+  - dice ×10 with GC: flat 17,980 B ×10 (zero creep);
+  - internal_free identical before/after (124,931 B) — arena-only cost.
+- Gate: largest app 81 ms < 150 ms; flat baseline. ≈15 ms and ≈1.4 KB
+  retained per KB of source; transient ≈10× retained.
+
+### What didn't work
+- First `idf.py flash` attempt failed mid-write ("Waiting for the chip to
+  reconnect / Connecting...") when the device dropped off USB — root cause
+  of the whole step-8 mystery was most plausibly the flaky cable/port all
+  along (enumerations on two different ports, one-second connects).
+
+### What I learned
+- The step-8 download-mode latch cleared with the USB power interruption,
+  confirming the POR theory without a button press.
+- Device/host conversion factors: time ×130, retained arena ×0.62 — worth
+  reusing when the host harness sizes future apps.
+
+### What was tricky to build
+- N/A (measurement run; the tricky part was step 8).
+
+### What warrants a second pair of eyes
+- The interpretation that ESP-54's 160 KiB OOM was transient (during
+  JS_Run/page build), given steady retention is only ~18 KB total.
+
+### What should be done in the future
+- Phase 1 (mechanical split); add the download-mode diagnostic to the
+  firmware README serial section (from step 8).
+
+### Code review instructions
+- Transcript: scratchpad p0-measure2.log; evidence lines all prefixed
+  `measure:`. Re-run: `python3 <ticket>/scripts/04-papers3-console-hold.py
+  --no-reset --cmd "js measure"`.
