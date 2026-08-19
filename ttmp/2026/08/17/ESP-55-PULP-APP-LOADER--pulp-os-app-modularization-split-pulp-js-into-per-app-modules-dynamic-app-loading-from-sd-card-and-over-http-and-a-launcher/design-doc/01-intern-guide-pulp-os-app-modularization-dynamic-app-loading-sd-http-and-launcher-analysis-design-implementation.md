@@ -62,7 +62,7 @@ RelatedFiles:
     - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/sources/02-prior-ticket-fact-sheet.md
       Note: 'Evidence collection: prior tickets'
 ExternalSources: []
-Summary: Intern-level analysis, design and phased implementation guide for splitting pulp.js into an embedded OS core plus per-app source modules, a native deadline-bounded load(path), an SD-card app catalog with ROM seeding, a data-driven launcher, and HTTP install (push via POST /apps/upload, pull via http.get). Grounded in file:line evidence and two host experiments.
+Summary: Intern-level analysis, design and phased implementation guide for splitting pulp.js into an embedded OS core plus per-app source modules, a native deadline-bounded load(path), an SD-card app catalog with ROM seeding, a data-driven launcher, and HTTP install (push via POST /apps/upload, pull via http.get). Grounded in file:line evidence and two host experiments. Extended with a multi-context runtime design (one engine context per app or page) and a page-script browser: web pages served as sandboxed JS builder scripts (UI-only stdlib), i.e. the builder DSL as a cheap markup language.
 LastUpdated: 2026-08-17T11:02:44.294456085-04:00
 WhatFor: Read to understand what pulp.js and the PULP JS runtime are today, why apps must be loaded as source (one bytecode image per context), what the loader/launcher/catalog/install design is, and how to implement it phase by phase.
 WhenToUse: Before implementing ESP-55, when adding an app to PULP OS, or when touching main/app_js.cpp, tools/js/build_bytecode_apps.sh, or the serve/files modules for app loading.
@@ -153,6 +153,21 @@ independently editable files, a launcher that discovers apps instead of
 listing them, and a way to put a new app on the device from a laptop in one
 command.
 
+Two further sections extend the design beyond the single-context loader.
+§6.11 shows how the binding layer can host **several MicroQuickJS
+contexts** (one for the OS, one per running app or page): the engine has no
+global state, every context carries its own arena, atoms and one bytecode
+image, and the existing int-only callback boundary is already
+context-agnostic — only the singleton state in `main/app_js*.cpp` has to
+move behind a per-context struct. §6.12 uses that to sketch the **PULP
+browser**: a web server returns a page as a small JS script, the device
+runs it in a context whose stdlib exposes *only* the UI builders and a
+`nav` object — files, network, radio, store and the OS callbacks are
+denied at the function-table level — so the builder DSL becomes a cheap,
+fully sandboxed markup language for an e-ink client. These are designed
+now so the loader and bindings are not built in a way that forecloses them,
+and scheduled as Phases 8–10.
+
 ## 2. Problem statement and scope
 
 ### 2.1 What the operator wants
@@ -187,6 +202,12 @@ command.
    the module-level globals (`DZ`, `BZ`, `GG`, `TT`, `PC`, `DP`, `INK`,
    `GAL`, `RA`) that survive today only because everything is global.
 7. Probes, a dev script, docs, and a diary.
+8. **Forward design (scheduled after Phase 7):** a multi-context runtime
+   (one MicroQuickJS context per app or page, §6.11) and, on top of it, a
+   **page-script browser** — a PULP app that fetches pages from any web
+   server as small JS scripts and runs them in a UI-only sandbox, using the
+   builder DSL as a cheap markup language (§6.12). Designed here because
+   it constrains the loader and the binding layer now.
 
 ### 2.3 Out of scope (explicitly deferred)
 
@@ -1037,6 +1058,198 @@ main/
 `pulp.js` itself disappears at the end of Phase 1; until then it is
 regenerated from the parts so the diff stays reviewable.
 
+### 6.11 Multi-context runtime: one engine context per app or page
+
+Everything above runs in the single context created by `JsInit()`. The
+engine does not require that. Evidence:
+
+- `JS_NewContext(mem, size, stdlib)` takes its own arena; `mquickjs.c` has
+  no mutable file-scope state (checked: no non-const statics), so two
+  contexts are independent heaps with independent RAM atoms, stacks,
+  interrupt handlers, log functions and — crucially — **their own
+  one-bytecode-image slot** (`n_rom_atom_tables` is per context,
+  `mquickjs.c:182, :231`). A context may also carry an opaque pointer
+  (`JS_SetContextOpaque`, `mquickjs.h:266`) that the interrupt handler and
+  log function receive.
+- `JSValue`s cannot cross contexts (they point into one arena). The
+  binding layer already never lets anything but int32 cross `CallCb`
+  (§3.5); strings go through mailboxes; widgets and pages are packed-int
+  opaques. The ABI is therefore context-agnostic by accident of design.
+- What is *not* ready is the singleton state: `jsi::g_ctx` (34 uses in
+  `main/*.cpp`), `g_pages[]`, `g_hits[]`, `g_dyn[]`, `g_next_cb`,
+  `g_home_cb`, `g_sleep_image_cb`, `g_module_cb[]`, `s_deadline_us`,
+  `s_present_seq`, and the `ServeRoutes` table are file-scope in
+  `main/app_js.cpp` / `main/app_js_internal.h`.
+
+The refactor is mechanical:
+
+```c
+// main/app_js_internal.h (after Phase 8)
+struct JsCtxState {
+    JSContext *ctx; uint8_t *arena; uint32_t arena_bytes;
+    enum Kind { kOs, kApp, kPage } kind;
+    const JSSTDLibraryDef *stdlib;          // full or UI-only (6.12)
+    PageEntry pages[kMaxPages]; int32_t current_page;
+    s3paper::HitRegion hits[kMaxJsHits]; uint32_t hit_count;
+    DynEntry dyn[kMaxDynValues]; uint32_t dyn_count;
+    int32_t next_cb, home_cb, sleep_image_cb;
+    int64_t deadline_us, timer_due_us;
+    uint32_t evals, exceptions; char last_error[48];
+};
+JsCtxState *g_os;      // the ROM-image context, always alive
+JsCtxState *g_fg;      // whoever owns the panel right now (os, an app, a page)
+JsCtxState *StateOf(JSContext *ctx);   // 3-entry lookup (or a JS_GetContextOpaque accessor, 3 lines in the engine)
+```
+
+Rules that replace today's single-context assumptions:
+
+1. **Foreground owns the panel.** `JsHandleGesture`, `JsTimerTick`,
+   `RefreshDynValues` and `PresentPage` operate on `g_fg`. Switching
+   foreground = `Arena().Reset()` (the widget tree is native and singular)
+   + `g_fg = next` + the new foreground rebuilds its page. The old
+   foreground keeps its JS heap (it can be resumed) but has no widgets.
+2. **Completions route to the registering context.** `g_module_cb[]`
+   becomes `{JsCtxState *owner; int32_t cb}`; `JsModuleDone` calls into
+   `owner`. A context that is torn down while an op is in flight drops
+   the callback (same as `resetTree` today).
+3. **Serve routes belong to the OS context only.** Apps/pages register
+   routes through the OS (or not at all, §6.12).
+4. **Teardown = `JS_FreeContext` + free the arena** — which also frees
+   every RAM atom the app ever created (risk "RAM atoms accumulate" in
+   §10 disappears) and every closure (no `RUN.desc = null; gc()` dance).
+5. **Memory.** Each context needs its own PSRAM arena: OS 128 KiB (the ROM
+   image retains ~8 KB on the host, §4.2) + app/page 96–128 KiB. Two to
+   three contexts fit trivially in 8 MB PSRAM; internal RAM is untouched
+   (bytecode image buffers would be per context — load them into PSRAM,
+   not `MALLOC_CAP_INTERNAL`, when more than one exists).
+6. **No parallelism.** All contexts run on `ui_owner`, time-sliced by the
+   same event loop, under the same 1 s callback deadline and 8 KiB stack.
+
+What it buys the loader (option (3) of R-SOURCEEVAL becomes cheap):
+`launch(id)` = `newAppContext()` → `load(src)` into it (source **or** a
+per-app bytecode image, since the fresh context has a free image slot and
+no RAM atoms yet) → `switchForeground()` → `main(os, arg)`. The OS context
+stays warm, so swipe-home is a foreground switch back, not a rebuild.
+`os.state` becomes unnecessary if an app context is *kept* across
+switches (it is its own state), or stays as is if contexts are torn down
+at switch; both are configuration, not design.
+
+### 6.12 The PULP browser: pages as sandboxed JS scripts
+
+The idea: instead of inventing a markup language (an HTML/CSS subset, a
+Markdown dialect, a binary widget tree), let a web server return a page as
+**a small JS script in the builder DSL**, and run it on the device in a
+context whose standard library can *only* build and present UI. The
+builder DSL already is a declarative layout language —
+
+```js
+// GET http://host/pages/menu.js  →  text/javascript
+({
+  title: 'Kitchen',
+  main: function (ui, nav) {
+    var p = page('menu').header(ui.chrome('KITCHEN'))
+      .content(list().add(
+        ui.row('Soup of the day', 'tomato', function () { nav.go('/pages/soup.js'); }),
+        ui.row('Stock', '3 jars', function () { nav.go('/pages/stock.js?sort=age'); }),
+        text(function () { return 'clock ' + nav.clock(); }).size('xs').gray(96)))
+      .footer(ui.hintFooter('tap = open - swipe left = back'));
+    p.on(G.LEFT, function () { nav.back(); });
+    p.every(60000);
+    p.show(true);
+  }
+})
+```
+
+— so the "parser" is the engine we already ship, the "layout engine" is
+`s3paper_core`, and the "browser" is a ~200-line PULP app plus one new
+stdlib table. A 5 KB page costs ~10–20 KiB of arena (§4.2) and tens of
+milliseconds to parse; the server can be a static directory, a Go or Python
+handler, or the device's own `serve.files`. Pages can even be served as
+**bytecode** (compiled on the server with `pulpjsc`) because every page
+context is fresh and has an empty image slot — no parse at all.
+
+**Sandbox mechanism — a second `JSSTDLibraryDef` with a filtered function
+table.** The generated stdlib (`main/js_stdlib.h`) is a ROM object table
+plus `js_c_function_table[]`, an array of C function pointers that the
+engine indexes at call time (`ctx->c_function_table[idx]`,
+`mquickjs.c:3786, :5361`). Atoms, prototypes and classes live in the ROM
+table and are identical for every context. So:
+
+```c
+// main/js_stdlib_table_ui.c  (Phase 9)
+#include "app_js_bindings.h"
+#define js_files_read   js_ui_denied     /* every non-UI native is renamed */
+#define js_http_get     js_ui_denied     /* to one stub before including   */
+/* ... files/http/serve/wifi/mdns/images/buzzer/battery/store/book/load/   */
+/* ... resetTree/paper.home/paper.sleepImage/paper.refreshTurns ...        */
+#include "js_stdlib.h"                   /* same ROM table, different fn table */
+/* emits: const JSSTDLibraryDef js_stdlib_ui = { js_stdlib_table, js_c_function_table, ... } */
+
+JSValue js_ui_denied(JSContext *ctx, JSValue *, int, JSValue *) {
+    return JS_ThrowTypeError(ctx, "not available to pages");
+}
+```
+
+(The `#define` trick works because the generated header references the
+bindings by bare name, `main/js_stdlib_table.c:1-6`; if the generator
+grows a `--deny` list instead, same result.) Because the atoms are the same,
+**page scripts compile with the same `pulpjsc` and the same bytecode format
+as apps**, and the UI context costs no extra ROM table.
+
+What the page context gets, and what it is denied:
+
+| Allowed (UI stdlib) | Denied (throws `not available to pages`) |
+|---|---|
+| `page`, all widget factories and `Widget`/`Page` prototypes, `G`, `print`, `millis`, `Math`/`JSON`/`String`/… engine built-ins, `eval` (harmless inside the sandbox) | `files.*`, `http.*`, `serve.*`, `wifi.*`, `mdns.*`, `images.*`, `battery.*`, `buzzer.*` (or `beep` only), `storeGet/Set`, `book*`/`library*`, `load`, `resetTree`, `paper.home/sleepImage/refreshTurns`, `abiVersion` is fine |
+| `nav` singleton (new, Phase 9): `go(url)`, `back()`, `reload()`, `url()`, `clock()` — `go/back/reload` only *record* the request in a native mailbox and post an event; the **OS-context browser app** performs the fetch | any way to start I/O or keep a callback registered in the OS |
+| `ui` helper object built by the browser app *inside the page context* (chrome/hintFooter/row — plain JS, evaluated from a ROM asset into the page context before the page) | |
+
+Isolation properties (this is the first real sandbox in PULP, unlike
+R-TRUST for apps):
+
+- Separate heap and arena: a page can OOM only itself (`InternalError`
+  caught by the browser app → error page).
+- Deadline per callback (1 s) and per page eval (3 s): a spinning page is
+  killed, context survives or is torn down.
+- No I/O, no persistence, no OS callbacks: the page can draw, react to
+  gestures on its own page, and ask `nav` to go somewhere. The browser app
+  decides whether to follow (same-origin policy, `http://` + `https://`
+  only, 32 KiB cap, max redirects).
+- Shared native resources are bounded and reset on navigation: widget
+  arena 128 nodes (throws `widget arena full`), 12 pages, 48 hits, 48 dyn
+  values — a page that exhausts them fails loudly, not silently.
+- Residual: a page can keep the panel busy (full refreshes on every tick)
+  — the browser app can cap `every()` to ≥ 1 s for pages and count
+  presents per minute.
+
+Browser app flow (OS context, `tools/js/apps/browser.js`, Phase 10):
+
+```
+ user types/opens URL ─► netUp ─► http.get(url).limit(32768).done(cb).send()
+   cb: status 200 ─► pageCtx = newPageContext(96 KiB)      // JS_NewContext(..., &js_stdlib_ui)
+                     evalInto(pageCtx, 'rom:ui-helpers')   // ui object
+                     desc = loadInto(pageCtx, http.body())  // or bytecode image if content-type says so
+                     switchForeground(pageCtx); desc.main(ui, nav)
+   nav.go(u) from the page ─► native mailbox + event ─► browser app (OS ctx):
+                     teardown(pageCtx) ─► push history ─► fetch u ─► repeat
+   swipe-down ─► OS home (paper.home stays in the OS context; the page cannot trap it
+                 because `paper` is denied — the navigation grammar is enforced, not a convention)
+```
+
+The natives that make this possible beyond §6.11 are small: `loadInto(ctx,
+buf, len)` (the `js_load` core parameterised by context), `newPageContext`
+/ `freeContext`, and the `nav` mailbox (`NavRequest{kind, url[256]}` +
+`kDoneNavRequest` posted to the owner). Everything else is the existing
+present pipeline.
+
+Why this is worth doing: it turns the PaperS3 into a thin client for
+anything that can print JavaScript text — home dashboards, a recipe book,
+a Hacker News front page rendered server-side, the device's own settings
+served by a laptop — without a second rendering stack, and with a trust
+model that finally matches "fetched from the network". The same mechanism
+(UI stdlib + per-context isolation) can later be offered to *apps* that
+want to run untrusted plug-ins.
+
 ## 7. Decision records
 
 Format follows ESP-54 §6 (`R-<TOKEN>`: context, options, decision,
@@ -1200,6 +1413,64 @@ rationale, consequences, status).
 - **Consequences.** State is a plain object; the loader may evict it on OOM.
 - **Status.** proposed.
 
+### R-MULTICTX — the binding layer moves to per-context state; the single-context loader ships first
+
+- **Context.** §6.11: the engine supports many contexts; the bindings are
+  singletons; per-context isolation would simplify unload, free RAM atoms,
+  re-enable per-app bytecode, and is required for the page sandbox.
+- **Options.** (1) Ship Phases 1–7 single-context, then refactor to
+  `JsCtxState` in Phase 8 and switch the loader to per-app contexts behind
+  the same `launch()` API. (2) Do the per-context refactor first. (3) Never;
+  keep one context.
+- **Decision.** (1).
+- **Rationale.** The descriptor, catalog, `load()`, launcher and HTTP
+  install are independent of how many contexts exist; shipping them first
+  delivers the operator value early and keeps the refactor reviewable. The
+  refactor is mechanical (state struct + foreground pointer + owner-tagged
+  completions) and touches every binding, so it deserves its own phase and
+  probes.
+- **Consequences.** Phase 3's `js_load` must be written as
+  `LoadInto(JsCtxState*, ...)` from the start (trivial now, painful later);
+  bytecode image buffers go to PSRAM when more than one context exists;
+  `os.state` may become redundant under (1)-with-kept-contexts.
+- **Status.** proposed.
+
+### R-UISANDBOX — pages run in a context whose stdlib has a filtered function table
+
+- **Context.** §6.12: untrusted scripts must be able to draw and navigate
+  and nothing else.
+- **Options.** (1) Second `JSSTDLibraryDef` sharing the ROM table with a
+  function table whose non-UI entries are one `js_ui_denied` stub. (2) A
+  separately generated, smaller stdlib (own atoms, own ROM table). (3) JS-
+  level capability wrapping in one context (`os` without I/O members).
+- **Decision.** (1).
+- **Rationale.** (1) costs no flash, keeps atoms identical (same
+  `pulpjsc`, same bytecode), and is enforced by the engine's call path, not
+  by JS discipline; (2) would mean a second atom space and a second
+  compiler build; (3) is not a sandbox — globals like `files` remain
+  reachable.
+- **Consequences.** One new TU (`js_stdlib_table_ui.c`), one new singleton
+  (`nav`, atom regen once), a deny-list that must be reviewed whenever a
+  native is added (checklist item in §3.7's protocol).
+- **Status.** proposed.
+
+### R-PAGESCRIPT — a page is a JS descriptor `({title, main(ui, nav)})`, same shape as an app
+
+- **Context.** The server needs a contract; the browser app needs
+  metadata before running; apps already use a descriptor.
+- **Options.** (1) Same descriptor shape as apps with `main(ui, nav)`
+  instead of `main(os, arg)`. (2) Bare function. (3) JSON widget tree
+  interpreted by the device.
+- **Decision.** (1).
+- **Rationale.** One mental model for authors and one loader core; (3)
+  would be a second, weaker language (no dyn text, no handlers) and a
+  second interpreter.
+- **Consequences.** Page authors can use everything the builder API
+  offers; the browser app supplies `ui` helpers so pages look like PULP
+  screens; `Content-Type: text/javascript` (source) or
+  `application/x-pulp-bytecode` (image) selects the load path.
+- **Status.** proposed.
+
 ## 8. Implementation plan
 
 Each phase ends with a commit, a diary step, and the acceptance gate
@@ -1324,6 +1595,47 @@ guide.
   onboarding guide errata (`load()` now real; `setTimeout` still not).
 - Diary, changelog, tasks, reMarkable.
 
+### Phase 8 — Multi-context binding layer (3 days)
+
+- `main/app_js_internal.h`: `JsCtxState` (§6.11); `main/app_js.cpp`:
+  `CreateContext(kind, arena_bytes, stdlib)`, `FreeContext`,
+  `SwitchForeground`, `StateOf(ctx)`; every `g_*` use in `js_*.cpp` goes
+  through `StateOf(ctx)` (callee) or `g_fg` (dispatch); `g_module_cb[]`
+  gains an owner; `LoadInto(state, buf, len, name)` replaces the Phase 3
+  `js_load` core; bytecode image buffer → PSRAM.
+- Loader option: `launch(id)` creates an app context (96–128 KiB), loads
+  source or `rom:` bytecode, switches foreground, runs `main`; swipe-home
+  switches back to the OS context and tears the app context down (or keeps
+  it, behind a setting).
+- **Gate:** all existing probes pass under the new layer; probe 27 (two
+  contexts alive, completions routed to the right one, teardown frees the
+  arena, ten launches with `heap`/arena flat); fingerprints unchanged.
+
+### Phase 9 — UI sandbox stdlib + `nav` (1–2 days)
+
+- `tools/js/pulp_stdlib.c`: `nav` singleton (`go back reload url clock`);
+  regenerate; `main/js_stdlib_table_ui.c` with the deny mapping;
+  `js_ui_denied`; `NavRequest` mailbox + `kDoneNavRequest`; `rom:ui-helpers`
+  asset (chrome/hintFooter/row in plain JS).
+- **Gate:** probe 28 — a page context evaluating `files.read` /
+  `http.get` / `paper.home` / `resetTree` gets `not available to pages`;
+  `nav.go` posts the mailbox; widget building and `show` work; OOM inside
+  the page context leaves the OS context healthy.
+
+### Phase 10 — The browser app + a reference page server (2 days)
+
+- `tools/js/apps/browser.js`: URL entry (keyboard), history (8 deep),
+  fetch (`limit(32768)`, `http://`/`https://`, same-origin follow for
+  relative `nav.go`), content-type switch (source vs bytecode), error page,
+  `every()` floor for pages, evidence lines `pulp screen: browser/<url>`.
+- `scripts/05-pulp-page-server.py`: static + dynamic example pages
+  (menu, list with query, live clock, a form using the keyboard widget),
+  optional `--bytecode` mode shelling out to `pulpjsc`.
+- **Gate:** browse the example server from the device; a deliberately
+  hostile page (infinite loop, `files.read`, 200 widgets, `eval` bomb)
+  produces an error page and the launcher remains reachable by swipe-down;
+  probe 29; soak: 200 navigations, heap flat.
+
 ## 9. Testing and validation strategy
 
 ### 9.1 Host
@@ -1395,8 +1707,22 @@ Plus the console op `js load <path>` (Phase 0) for ad-hoc timing, and
 - **Open:** a host runtime for JS behaviour (stubbed natives with a fake
   widget arena) would make app development possible without a device;
   worth its own ticket after this one.
-- **Alternative not chosen:** downloading *bytecode* — pointless while
-  bytecode cannot be loaded at run time.
+- **Alternative not chosen (single-context loader):** downloading
+  *bytecode* — pointless while the one image slot is taken by the OS core.
+  It becomes viable again under R-MULTICTX (fresh context per app/page).
+- **Multi-context risks (Phases 8–10):** every binding touched once (regressions
+  caught by the existing probes only if they run under the new layer);
+  shared native singletons (widget arena, page table, present pipeline)
+  must be reset on every foreground switch or a page sees another
+  context's widgets; the deny-list is a maintenance duty — a new native
+  added to `pulp_stdlib.c` is *allowed* in pages until someone adds it to
+  the UI table's deny mapping (make the generator default to deny).
+- **Browser open questions:** cookies/auth (none in v1; the browser app
+  could add a header per origin via `http.header`); caching (none; pages
+  are small); forms (the keyboard widget exists in Settings — expose it to
+  pages through `ui`); images (a page cannot call `images.display`; a
+  `rom:`/URL bitmap widget would need the ESP-54 blit path opened to the
+  UI stdlib with a size cap).
 
 ## 11. Gotcha catalog (inherited + anticipated)
 
@@ -1459,6 +1785,7 @@ Anticipated by this design:
 | console client, serial rules | `ttmp/2026/07/14/ESP-50-*/scripts/52-papers3-console-client.py`, `0114-papers3-pulp-os/README.md` |
 | Experiments for this ticket | ticket `scripts/01-trial-split-bytecode-sizes.py`, `scripts/02-host-eval-harness.{c,sh}` |
 | Evidence collections | ticket `sources/01-native-side-map.md`, `sources/02-prior-ticket-fact-sheet.md` |
+| Multi-context / sandbox evidence | `components/mquickjs/mquickjs.h:260-266` (`JS_NewContext`, `JS_SetContextOpaque`), `mquickjs.c:182, :231, :3628-3656, :3786, :5361` (per-context atom tables, opaque, `c_function_table` indexing), `main/js_stdlib_table.c:1-6`, `main/js_stdlib.h:3584, :4439` (function table, `JSSTDLibraryDef`) |
 
 ## 13. Glossary
 
@@ -1488,3 +1815,14 @@ Anticipated by this design:
   `http.get` from the device.
 - **Seed** — first-boot copy of the ROM apps onto the card, marked in the
   manifest so a firmware update can refresh unedited copies.
+- **Context (JsCtxState)** — one MicroQuickJS heap with its own arena,
+  atoms, image slot, pages, hits, dyn values and callbacks; the OS has one,
+  each app or page may get one (§6.11).
+- **Foreground** — the context that currently owns the widget arena and
+  receives gestures/ticks.
+- **Page script** — a descriptor `({title, main(ui, nav)})` fetched from a
+  web server and run in a UI-sandbox context (§6.12).
+- **UI stdlib** — the second `JSSTDLibraryDef` sharing the ROM table whose
+  non-UI function-table entries are the `js_ui_denied` stub.
+- **`nav`** — the page-side navigation singleton; records `go/back/reload`
+  requests in a native mailbox for the browser app to act on.

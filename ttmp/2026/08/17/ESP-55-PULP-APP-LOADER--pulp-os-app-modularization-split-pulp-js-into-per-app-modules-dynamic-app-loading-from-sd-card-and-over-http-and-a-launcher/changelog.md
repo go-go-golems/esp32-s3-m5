@@ -41,3 +41,8 @@ Step 4: bookkeeping + doctor clean; reMarkable upload blocked by cloud 'invalid 
 
 Step 6: remarquee fixed (root index sorted); bundle uploaded to /ai/2026/08/17/ESP-55-PULP-APP-LOADER as 'ESP-55 PULP App Loader Intern Guide.pdf'
 
+
+## 2026-08-19
+
+Step 7: design extended — multi-context runtime (§6.11), page-script browser with UI-only sandbox stdlib (§6.12), R-MULTICTX/R-UISANDBOX/R-PAGESCRIPT, Phases 8–10
+

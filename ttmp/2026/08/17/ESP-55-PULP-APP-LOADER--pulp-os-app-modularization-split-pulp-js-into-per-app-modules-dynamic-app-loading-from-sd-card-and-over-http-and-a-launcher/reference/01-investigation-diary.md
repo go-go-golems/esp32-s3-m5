@@ -410,3 +410,71 @@ Once remarquee was rebuilt with the sorted-root-index fix (go-go-golems/remarque
 
 ### Code review instructions
 - `remarquee cloud ls /ai/2026/08/17/ESP-55-PULP-APP-LOADER --long --non-interactive`.
+
+## Step 7: Design extension — multi-context runtime and the page-script browser
+
+The user asked whether the app work approaches running several MicroQuickJS
+contexts at once, then asked to fold a concrete idea into the design: a
+little browser where the backend returns pages as JS scripts that are fully
+sandboxed to UI display only — the builder DSL as a cheap markup language.
+I verified the engine-side facts and extended the guide.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Does the work on the apps approach the possibility of running multiple microquickjs at once?" then "Update the deisgn. The idea is that we could actually build a little browser where the backend returns pages as actual JS scripts that can be fully sandboxed to only do UI display, as a "cheap" markup languages"
+
+**Assistant interpretation:** Add a designed-but-later multi-context runtime and a page-script browser (with a real sandbox) to the intern guide, consistent with the single-context loader that ships first.
+
+**Inferred user intent:** Keep the loader work from foreclosing a thin-client/browser direction; get a concrete sandbox mechanism.
+
+### What I did
+- Verified: `mquickjs.c` has no mutable file-scope state; `JS_NewContext`
+  takes its own arena; `n_rom_atom_tables` is per context (`:182, :231`);
+  `JS_SetContextOpaque` exists (`mquickjs.h:266`; opaque reaches the
+  interrupt handler/log func; no getter — bindings map `ctx`→state by
+  lookup or a 3-line accessor); native calls index
+  `ctx->c_function_table[idx]` (`mquickjs.c:3786, :5361`) and the generated
+  stdlib references bindings by bare name (`main/js_stdlib_table.c`),
+  so a second `JSSTDLibraryDef` sharing the ROM table with a filtered
+  function table is a zero-atom sandbox.
+- Counted single-context assumptions in the bindings (`jsi::g_ctx` ×34,
+  page/hit/dyn tables, module-cb slots, deadline, serve routes).
+- Guide: scope item 8; executive-summary addendum; §6.11 (per-context
+  `JsCtxState`, foreground rule, owner-tagged completions, teardown frees
+  atoms, memory, no parallelism; loader becomes new-context + load +
+  switch, per-app bytecode viable again); §6.12 (page descriptor
+  `({title, main(ui, nav)})`, UI stdlib via `#define`-renamed natives to
+  `js_ui_denied`, allow/deny table, `nav` mailbox, isolation properties,
+  browser app flow, bytecode pages); decision records R-MULTICTX,
+  R-UISANDBOX, R-PAGESCRIPT; Phases 8–10 with gates; risks, references,
+  glossary; frontmatter summary.
+
+### What worked
+- The existing int-only `CallCb` boundary and packed-int handles make the
+  ABI context-agnostic already — the refactor is state plumbing, not API.
+
+### What didn't work
+- N/A
+
+### What I learned
+- `ctx->opaque` is the same pointer the log/interrupt callbacks get; there
+  is no public getter, so per-context binding state needs either a tiny
+  engine accessor or a lookup table.
+
+### What was tricky to build
+- Keeping two designs coherent: the single-context loader ships first
+  (R-SOURCEEVAL/R-ONEIMAGE unchanged), and R-MULTICTX only requires Phase 3
+  to write `js_load` as `LoadInto(state, …)` so the later switch is cheap.
+
+### What warrants a second pair of eyes
+- The deny-list default (generator should default to *deny* for new natives
+  in the UI table); the foreground-switch rule that resets the widget arena
+  (a kept-alive background context must rebuild its page on return).
+
+### What should be done in the future
+- Phases 8–10 after the loader ships; a `scripts/05-pulp-page-server.py`
+  reference server.
+
+### Code review instructions
+- Guide §6.11, §6.12, R-MULTICTX/R-UISANDBOX/R-PAGESCRIPT, Phases 8–10;
+  cross-check the `c_function_table` claim at `mquickjs.c:3786`.
