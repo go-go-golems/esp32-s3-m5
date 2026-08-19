@@ -478,3 +478,106 @@ I verified the engine-side facts and extended the guide.
 ### Code review instructions
 - Guide §6.11, §6.12, R-MULTICTX/R-UISANDBOX/R-PAGESCRIPT, Phases 8–10;
   cross-check the `c_function_table` claim at `mquickjs.c:3786`.
+
+## Step 8: Phase 0 instrumentation built and flashed; console blocked by ROM download-mode latch
+
+Phase 0 began: the `js measure` console op, the `JS_GetHeapUsed` engine
+accessor and `arena_used` in `js status` are implemented, built and flashed.
+Measurement is blocked at the last step: the device is wedged in ROM
+download mode and no USB-side reset sequence brings the app up — a
+physical power-cycle is needed. The debugging that established this is
+recorded verbatim because it invalidates the ESP-50 client's "no modem
+control = safe" assumption on this host.
+
+### Prompt Context
+
+**User prompt (verbatim):** "alright, cdc_acm loaded. \n\ncommit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Start implementation (Phase 0 first, as recommended), with commits and diary.
+
+**Inferred user intent:** Get the on-device numbers that gate the ESP-55 design.
+
+**Commit (code):** 4d59929a — "ESP-55 P0: js measure console op, JS_GetHeapUsed accessor, arena_used in js status"
+
+### What I did
+- `scripts/03-gen-measure-src.py` → `main/js_measure_src.h` (dice 2,388 B +
+  settings 5,447 B sections embedded as byte arrays).
+- Engine: `JS_GetHeapUsed(ctx)` (heap_free − heap_base) in
+  `components/mquickjs/mquickjs.c` + header declaration.
+- `JsSnapshot.arena_used` (`app_events.h`), filled in `FillJsSnapshot`,
+  printed by `js status` (`app_console.cpp`).
+- `js measure` (console arg 14 → `JsRunMeasure()` in `js_probes.cpp`):
+  baseline arena/GC/internal/PSRAM, timed eval of dice and settings with
+  arena before/after/GC, dice ×10 with GC (flatness), evidence lines
+  prefixed `measure:`.
+- `idf.py build` clean; flash OK ("Hash of data verified", hard reset).
+- Console debugging (below); wrote `scripts/04-papers3-console-hold.py`
+  (hold-open client with in-fd reset).
+
+### What worked
+- Build + flash on the first try; the instrumentation compiles into the
+  existing probe/console plumbing with no stdlib/atom regeneration (console
+  ops are native-side).
+
+### What didn't work
+- The console is entirely silent — before AND after flashing:
+  `52-papers3-console-client.py --settle 12 --cmd ping --cmd status` reads
+  zero bytes; no other process holds the port (`lsof` empty, no
+  ModemManager); kernel bound `cdc_acm 3-3:1.0: ttyACM0` at 17:50 (device
+  re-plugged today; an iPhone used bus 3-3 yesterday).
+- Boot-catch attempts read zero bytes for 20–28 s after esptool
+  "Hard resetting via RTS pin...".
+- Diagnosis: `python -m esptool --before no_reset flash_id` syncs
+  immediately → **the chip is sitting in ROM download mode**; the app never
+  runs. Explains everything (esptool works; app console dead).
+- In-fd reset attempts through a held cdc_acm fd (script 04):
+  - `(1,1)→(0,1)→(0,0)` and `(0,0)→(0,1)→(0,0)`: chip resets but
+    `rst:0x15 (USB_UART_CHIP_RESET), boot:0x0 (DOWNLOAD(USB/UART0))`,
+    "waiting for download".
+  - `(1,1)→(1,0)`: no reset at all.
+- `esptool --after soft_reset`: `A fatal error occurred: Soft resetting is
+  currently only supported on ESP8266`.
+- Conclusion: either the ESP32-S3 **force-download strap latch** is set
+  (entering download via USB-Serial-JTAG persists across non-POR resets;
+  `rst:0x15` is not a POR) or the BOOT strap is physically low. No USB-side
+  sequence can clear it; a power-on reset (power the device off and on via
+  the side button, or a full battery/USB power cycle) is required.
+
+### What I learned
+- On this kernel (6.8, cdc_acm), **every open of /dev/ttyACM0 asserts
+  DTR+RTS**; the ESP-50 client's "no modem-control ioctls" does not cover
+  the open itself. The repo's serial discipline should gain: if the console
+  goes silent, first test `esptool --before no_reset flash_id` — instant
+  sync means download mode, and the fix is physical (POR), not more client
+  tweaks.
+- `rst:0x15 USB_UART_CHIP_RESET` + `boot:0x0 DOWNLOAD` is the fingerprint
+  of the latched state.
+
+### What was tricky to build
+- Distinguishing four identical-looking silences: asleep device, stolen
+  port, wrong console backend, and download mode. The discriminator was
+  esptool with `--before no_reset` (talks to the ROM only if the ROM is
+  listening).
+
+### What warrants a second pair of eyes
+- The reset-sequence table above, if anyone wants to derive the S3's real
+  DTR/RTS latch semantics; and whether `04-papers3-console-hold.py` should
+  replace the ESP-50 client wholesale once verified after the power cycle.
+
+### What should be done in the future
+- After POR: run `js measure`, record the Phase 0 numbers, close task 8udr.
+- Add the download-mode diagnostic to `0114-papers3-pulp-os/README.md`'s
+  serial discipline section.
+
+### Code review instructions
+- `git show 4d59929a`; start at `main/js_probes.cpp` (`JsRunMeasure`,
+  `MeasureOne`), then `components/mquickjs/mquickjs.c` (`JS_GetHeapUsed`).
+- Validate after power cycle:
+  `python3 <ticket>/scripts/04-papers3-console-hold.py --no-reset --cmd "js measure"`.
+
+### Technical details
+- `js measure` evidence grammar: `measure: baseline arena_used=<n>
+  after_gc=<n> internal_free=<n> psram_free=<n>`, `measure: <name>
+  bytes=<n> rc=<s> us=<n> arena before=<n> after=<n> (+d) gc=<n> (+d)`,
+  `measure: dice x10 arena_after_gc: n0..n9`, `measure: done
+  internal_free=<n>`.

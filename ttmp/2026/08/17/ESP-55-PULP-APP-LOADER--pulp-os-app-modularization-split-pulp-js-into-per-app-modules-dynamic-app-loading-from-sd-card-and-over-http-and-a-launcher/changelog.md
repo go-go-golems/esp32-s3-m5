@@ -46,3 +46,8 @@ Step 6: remarquee fixed (root index sorted); bundle uploaded to /ai/2026/08/17/E
 
 Step 7: design extended — multi-context runtime (§6.11), page-script browser with UI-only sandbox stdlib (§6.12), R-MULTICTX/R-UISANDBOX/R-PAGESCRIPT, Phases 8–10
 
+
+## 2026-08-19
+
+Step 8 (P0): js measure op + JS_GetHeapUsed + arena_used flashed (4d59929a); device wedged in ROM download mode (force-download latch), needs power-on reset; hold-open console client added
+
