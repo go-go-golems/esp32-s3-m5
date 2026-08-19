@@ -20,6 +20,10 @@ StatusCode JsInit();
 // Runs one embedded console probe (P5.8/P6 validation surface).
 StatusCode JsRunProbe(uint32_t which);
 
+// ESP-55 Phase 0: times JS_Eval of embedded app-module sources and prints
+// arena/heap evidence (console: js measure).
+StatusCode JsRunMeasure();
+
 // Runs the PULP OS bytecode image (Phase 7).
 StatusCode JsRunPulp();
 

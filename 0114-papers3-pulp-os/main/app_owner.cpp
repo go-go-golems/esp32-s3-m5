@@ -249,6 +249,8 @@ void HandleConsoleCommand(const AppEvent &event) {
                     event.payload.console.arg2, 270, 480);
             } else if (arg == 13) {
                 JsPrintHits();
+            } else if (arg == 14) {
+                reply.status = JsRunMeasure();  // ESP-55 Phase 0
             } else {
                 reply.status = StatusCode::InvalidArgument;
             }

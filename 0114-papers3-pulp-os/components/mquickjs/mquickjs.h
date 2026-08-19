@@ -378,5 +378,7 @@ void JS_DumpValueF(JSContext *ctx, const char *str,
 void JS_DumpValue(JSContext *ctx, const char *str,
                   JSValue val);
 void JS_DumpMemory(JSContext *ctx, JS_BOOL is_long);
+/* ESP-55: heap-side arena bytes in use (instrumentation) */
+uint32_t JS_GetHeapUsed(JSContext *ctx);
 
 #endif /* MQUICKJS_H */

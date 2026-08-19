@@ -7102,6 +7102,13 @@ static __maybe_unused void JS_DumpUniqueStrings(JSContext *ctx)
 }
 #endif
 
+/* ESP-55: arena bytes currently allocated on the heap side (excludes the
+   value stack). Cheap accessor for instrumentation; always compiled. */
+uint32_t JS_GetHeapUsed(JSContext *ctx)
+{
+    return (uint32_t)(ctx->heap_free - ctx->heap_base);
+}
+
 void JS_DumpValueF(JSContext *ctx, const char *str,
                    JSValue val, int flags)
 {

@@ -299,10 +299,11 @@ int CmdSleep(int argc, char **argv) {
 }
 
 void PrintJsSnapshot(const JsSnapshot &j) {
-    printf("js init=%u screen_active=%u arena=%u evals=%u exceptions=%u "
-           "dispatches=%u last_error=\"%s\"\n",
+    printf("js init=%u screen_active=%u arena=%u arena_used=%u evals=%u "
+           "exceptions=%u dispatches=%u last_error=\"%s\"\n",
            j.initialized, j.screen_active,
            static_cast<unsigned>(j.arena_bytes),
+           static_cast<unsigned>(j.arena_used),
            static_cast<unsigned>(j.evals),
            static_cast<unsigned>(j.exceptions),
            static_cast<unsigned>(j.dispatches), j.last_error);
@@ -325,9 +326,11 @@ int CmdJs(int argc, char **argv) {
             arg2 = static_cast<uint32_t>(atoi(argv[2]));
         } else if (strcmp(argv[1], "hits") == 0) {
             arg = 13;
+        } else if (strcmp(argv[1], "measure") == 0) {
+            arg = 14;  // ESP-55 Phase 0: eval-cost measurement suite
         } else {
             printf("error: usage js [status|probe N|pulp|tap X Y|"
-                   "swipe K|hits]\n");
+                   "swipe K|hits|measure]\n");
             return 1;
         }
     }

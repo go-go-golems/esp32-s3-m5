@@ -458,7 +458,72 @@ StatusCode RunTraced(const char *code, const char *name) {
     return ran;
 }
 
+#include "js_measure_src.h"  // ESP-55 Phase 0: dice + settings sources
+
+// Evals one embedded module source under the standard deadline, printing
+// wall time and arena use (before, after, after GC). Returns the eval rc.
+StatusCode MeasureOne(const char *name, const unsigned char *src,
+                      unsigned len) {
+    const uint32_t before = JS_GetHeapUsed(jsi::g_ctx);
+    const int64_t t0 = esp_timer_get_time();
+    const StatusCode rc =
+        jsi::EvalBounded(reinterpret_cast<const char *>(src), 3000, name);
+    const int64_t dt = esp_timer_get_time() - t0;
+    const uint32_t after = JS_GetHeapUsed(jsi::g_ctx);
+    JS_GC(jsi::g_ctx);
+    const uint32_t gc = JS_GetHeapUsed(jsi::g_ctx);
+    printf("measure: %s bytes=%u rc=%s us=%lld arena before=%u after=%u "
+           "(+%d) gc=%u (+%d)\n",
+           name, len, StatusCodeName(rc), static_cast<long long>(dt),
+           static_cast<unsigned>(before), static_cast<unsigned>(after),
+           static_cast<int>(after - before), static_cast<unsigned>(gc),
+           static_cast<int>(gc - before));
+    return rc;
+}
+
 }  // namespace
+
+// ESP-55 Phase 0 (console: js measure). Evidence lines are stable-prefixed
+// "measure:" for the console transcript.
+StatusCode JsRunMeasure() {
+    const StatusCode init = JsInit();
+    if (init != StatusCode::Ok) {
+        return init;
+    }
+    const uint32_t boot_used = JS_GetHeapUsed(jsi::g_ctx);
+    JS_GC(jsi::g_ctx);
+    printf("measure: baseline arena_used=%u after_gc=%u internal_free=%u "
+           "psram_free=%u\n",
+           static_cast<unsigned>(boot_used),
+           static_cast<unsigned>(JS_GetHeapUsed(jsi::g_ctx)),
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+    StatusCode rc = MeasureOne("<dice>", kMeasureDice, kMeasureDiceLen);
+    if (rc != StatusCode::Ok) { return rc; }
+    rc = MeasureOne("<settings>", kMeasureSettings, kMeasureSettingsLen);
+    if (rc != StatusCode::Ok) { return rc; }
+    // Flatness: ten repeated evals of dice with GC between them must not
+    // grow the arena (redefinition garbage is fully collectable).
+    uint32_t used[10];
+    for (int i = 0; i < 10; ++i) {
+        const StatusCode r = jsi::EvalBounded(
+            reinterpret_cast<const char *>(kMeasureDice), 3000, "<dice-n>");
+        if (r != StatusCode::Ok) { return r; }
+        JS_GC(jsi::g_ctx);
+        used[i] = JS_GetHeapUsed(jsi::g_ctx);
+    }
+    printf("measure: dice x10 arena_after_gc:");
+    for (int i = 0; i < 10; ++i) {
+        printf(" %u", static_cast<unsigned>(used[i]));
+    }
+    printf("\n");
+    printf("measure: done internal_free=%u\n",
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL)));
+    return StatusCode::Ok;
+}
 
 StatusCode JsRunProbe(uint32_t which) {
     const StatusCode init = JsInit();

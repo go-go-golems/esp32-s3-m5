@@ -519,6 +519,7 @@ void FillJsSnapshot(JsSnapshot *out) {
     out->initialized = g_ctx != nullptr ? 1 : 0;
     out->screen_active = JsScreenActive() ? 1 : 0;
     out->arena_bytes = g_ctx != nullptr ? kArenaBytes : 0;
+    out->arena_used = g_ctx != nullptr ? JS_GetHeapUsed(g_ctx) : 0;
     out->evals = g_evals;
     out->exceptions = g_exceptions;
     out->dispatches = g_dispatches;
