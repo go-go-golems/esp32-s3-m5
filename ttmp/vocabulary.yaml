@@ -233,6 +233,8 @@ topics:
       description: Image gallery apps and SD-backed image browsing on e-ink
     - slug: battery
       description: Battery level and charge status monitoring (M5Unified power)
+    - slug: design-system
+      description: 'UI design systems: tokens, idioms, typography and layout consistency'
 docTypes:
     - slug: index
       description: Ticket index document
