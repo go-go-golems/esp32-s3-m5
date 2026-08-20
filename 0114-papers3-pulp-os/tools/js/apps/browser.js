@@ -89,27 +89,26 @@
       var p = page('burl');
       function refresh() { draftT.set(draft); p.update(); }
       function put(ch) { if (draft.length < 120) { draft += ch; refresh(); } }
-      var body = col().pad(10, 24, 0, 24).gap(8);
-      body.add(text('open page url:').size('sm'));
-      draftT = text(' ').size('xs');
+      var body = os.body(10).gap(8);
+      body.add(os.label('open page url'));
+      draftT = text(' ').size('sm');
       body.add(draftT);
       body.add(divider(1, 0));
-      os.keyboard(body, URL_ROWS, put, {
-        del: function () { draft = draft.slice(0, -1); refresh(); }
-      });
-      var extra = row().gap(2).mainAlign(1);
+      os.keyboard(body, URL_ROWS, put);
+      var extra = row().pad(6, 0, 0, 0).gap(10).mainAlign(1);
       var EXTRA = [':', '/', '.', '-', '_'];
       var i;
       for (i = 0; i < EXTRA.length; i++) {
         (function (ch) {
-          extra.add(text(ch).size('lg').center().width(60).height(56)
-            .onTap(function () { put(ch); }));
+          extra.add(os.key(ch, function () { put(ch); }, 42));
         })(EXTRA[i]);
       }
+      extra.add(os.button('del', function () {
+        draft = draft.slice(0, -1); refresh(); }, { w: 80, size: 'sm' }));
       extra.add(os.button('GO', function () { go(draft); },
-                          { w: 100, primary: true, size: 'sm' }));
+                          { w: 90, primary: true, size: 'sm' }));
       body.add(extra);
-      var hist = col().pad(8, 24, 0, 24).gap(4);
+      var hist = col().pad(8, 0, 0, 0).gap(4);
       for (i = st.hist.length - 1; i >= 0; i--) {
         (function (u) {
           hist.add(text(u).size('xs').gray(96).height(40)

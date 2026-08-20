@@ -122,19 +122,20 @@
       function put(ch) {
         if (draft.length < 63) { draft += ch; refresh(); }
       }
-      var body = col().pad(10, 24, 0, 24).gap(8);
-      body.add(text('join ' + ssid).size('sm'));
-      draftT = text(' ').size('xs');
+      var body = os.body(10).gap(8);
+      body.add(os.label('join ' + ssid));
+      draftT = text(' ').size('sm');
       body.add(draftT);
       msgT = text(' ').size('xs').gray(128);
       body.add(msgT);
       body.add(divider(1, 0));
-      os.keyboard(body, KB_ROWS, put, {
-        del: function () { draft = draft.slice(0, -1); refresh(); }
-      });
-      var last = row().gap(2).mainAlign(1);
+      os.keyboard(body, KB_ROWS, put);
+      var last = row().pad(6, 0, 0, 0).gap(14).mainAlign(1);
+      last.add(os.button('delete', function () {
+        draft = draft.slice(0, -1); refresh(); },
+        { w: 110, size: 'sm' }));
       last.add(os.button('space', function () { put(' '); },
-                         { w: 160, size: 'sm' }));
+                         { w: 130, size: 'sm' }));
       last.add(os.button('JOIN', function () {
           msgT.set('joining...');
           p.update();
@@ -225,25 +226,24 @@
       function put(ch) {
         if (draft.length < 63) { draft += ch; refresh(); }
       }
-      var body = col().pad(10, 24, 0, 24).gap(8);
-      body.add(text('install app from url:').size('sm'));
-      draftT = text(' ').size('xs');
+      var body = os.body(10).gap(8);
+      body.add(os.label('install app from url'));
+      draftT = text(' ').size('sm');
       body.add(draftT);
       msgT = text(' ').size('xs').gray(128);
       body.add(msgT);
       body.add(divider(1, 0));
-      os.keyboard(body, URL_ROWS, put, {
-        del: function () { draft = draft.slice(0, -1); refresh(); }
-      });
-      var extra = row().gap(2).mainAlign(1);
+      os.keyboard(body, URL_ROWS, put);
+      var extra = row().pad(6, 0, 0, 0).gap(10).mainAlign(1);
       var EXTRA = [':', '/', '.', '-', '_'];
       var i;
       for (i = 0; i < EXTRA.length; i++) {
         (function (ch) {
-          extra.add(text(ch).size('lg').center().width(60).height(56)
-            .onTap(function () { put(ch); }));
+          extra.add(os.key(ch, function () { put(ch); }, 42));
         })(EXTRA[i]);
       }
+      extra.add(os.button('del', function () {
+        draft = draft.slice(0, -1); refresh(); }, { w: 80, size: 'sm' }));
       extra.add(os.button('GET', function () {
           msgT.set('fetching ' + draft);
           p.update();
@@ -251,7 +251,7 @@
             st.msg = msg;
             os.launch('settings', { screen: 'apps' });
           });
-        }, { w: 110, primary: true, size: 'sm' }));
+        }, { w: 100, primary: true, size: 'sm' }));
       body.add(extra);
       p.header(os.chrome('INSTALL')).content(body)
         .footer(os.hintFooter('type the module url - GET = fetch'));

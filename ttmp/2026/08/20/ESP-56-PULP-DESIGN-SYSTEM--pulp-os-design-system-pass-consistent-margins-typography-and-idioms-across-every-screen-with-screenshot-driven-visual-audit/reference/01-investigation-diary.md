@@ -124,3 +124,48 @@ white-on-black for what is likely the first time on hardware.
 ### Code review instructions
 - Compare `sources/baseline/` vs `sources/after/` side by side; then
   `git show` the three commits; on device: `shot` + any screen.
+
+## Step 4: The second gutter, and words vs symbols
+
+The user spotted the residual discrepancy on the re-captured postcard:
+the title chrome sat at the 40 px margin while the keyboard screens kept
+a private 24 px gutter, and prompts ("today, one line:") wore the small
+serif. Both violated the system, so the system absorbed them.
+
+### Prompt Context
+
+**User prompt (verbatim):** "so I still see a discrepacancy stay on the postcard, where the title and its separator (POSTCARD) has more margin than the rest of the app. for example. / Also, "today, one line" should be a larger sans title font, the small serif really is just for reading text ."
+
+**Assistant interpretation:** Kill the second gutter; prompts become grotesque section labels; small serif is reading text only.
+
+**Inferred user intent:** One grid, one typographic hierarchy, no exceptions.
+
+**Commit (code):** (this commit)
+
+### What I did
+- Facade: `os.label(t)` (grotesque `lg` section label); `os.keyboard`
+  keys narrowed 48→42 px so a ten-column row (438 px) fits INSIDE the
+  40 px margins — the 24 px keyboard gutter existed only because 48 px
+  keys could not; `os.key` for single-symbol wide keys; delete moved out
+  of the key block.
+- Postcard, settings-pass, settings-url, browser-url: `os.body(10)` +
+  `os.label`, draft text serif `sm` (it IS reading text), action rows
+  re-set as symbols-as-keys + words-as-serif-buttons (`delete`, `space`)
+  with the primary chip last. 2048's board joined the grid (cells
+  118→112, pad 30→os.M).
+- First re-capture showed one more composition fault: `,<del>` collided —
+  a word set in the key face. Rule added to the system: **symbols are
+  keys, words are buttons.** Fixed and re-verified.
+
+### What worked
+- postcard4.png / settings-url2.png: single gutter end to end, grotesque
+  prompts, composed action rows.
+
+### What didn't work
+- Two push attempts failed before evidence-checked networking (a wrong
+  path glob silently skipped `net joinsaved`; a fresh flash starts with
+  the radio down). Lesson repeated: bring the network up with VISIBLE
+  evidence (`net state=up`) before curling.
+
+### Code review instructions
+- Compare sources/after/postcard2.png (v2) → postcard4.png (v3).

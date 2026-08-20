@@ -22,21 +22,21 @@
     function put(ch) {
       if (pc.draft.length < 63) { pc.draft += ch; pc.msg = ''; refresh(); }
     }
-    var body = col().pad(10, 24, 0, 24).gap(8);
-    body.add(text('today, one line:').size('xs').gray(96));
-    draftT = text(' ').size('xs');
+    var body = os.body(10).gap(8);
+    body.add(os.label('today, one line'));
+    draftT = text(' ').size('sm');
     body.add(draftT);
     countT = text(' ').size('xs').gray(128);
     body.add(countT);
     body.add(divider(1, 0));
-    os.keyboard(body, PC_ROWS, put, {
-      del: function () { pc.draft = pc.draft.slice(0, -1); refresh(); }
-    });
-    var last = row().gap(2).mainAlign(1);
-    last.add(text(',').size('lg').center().width(48).height(56)
-      .onTap(function () { put(','); }));
+    os.keyboard(body, PC_ROWS, put);
+    var last = row().pad(6, 0, 0, 0).gap(14).mainAlign(1);
+    last.add(os.key(',', function () { put(','); }, 42));
+    last.add(os.button('delete', function () {
+      pc.draft = pc.draft.slice(0, -1); refresh(); },
+      { w: 110, size: 'sm' }));
     last.add(os.button('space', function () { put(' '); },
-                       { w: 200, size: 'sm' }));
+                       { w: 140, size: 'sm' }));
     last.add(os.button('SEAL', function () {
         if (pc.draft === '') { pc.msg = 'nothing to seal'; }
         else if (appendPostcard(pc.draft) === 0) {

@@ -89,13 +89,13 @@
         refresh();
       }
     }
-    var body = col().pad(10, 30, 4, 30).gap(0);
+    var body = col().pad(10, os.M, 4, os.M).gap(0);
     body.add(divider(2, 0));
     var r2, c2;
     for (r2 = 0; r2 < 4; r2++) {
       var line2 = row().gap(0).mainAlign(1);
       for (c2 = 0; c2 < 4; c2++) {
-        var cell = text('.').size('lg').center().width(118).height(64);
+        var cell = text('.').size('lg').center().width(112).height(64);
         cells.push(cell);
         line2.add(cell);
       }

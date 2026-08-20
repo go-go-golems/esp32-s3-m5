@@ -69,28 +69,30 @@ var os = {
   buttonRow: function () {
     return row().pad(10, 0, 0, 0).gap(16).mainAlign(1);
   },
-  // One keyboard for every text-entry screen: 48x56 serif-capable keys
-  // (keys render in the grotesque face deliberately — single glyphs read
-  // as symbols, not prose), hairline rules inside a 24 px gutter.
-  // rows: array of key strings; onKey(ch); opts.del adds a delete key on
-  // the last row calling opts.del().
-  keyboard: function (body, rows, onKey, opts) {
-    var o = opts || {};
+  // Section label: prompts and group headings are grotesque (ESP-56 v2:
+  // the small serif is reading text ONLY, never labels).
+  label: function (t) { return text(t).size('lg'); },
+  // One keyboard for every text-entry screen, ON THE GRID: 42x56 keys so
+  // a ten-column row (438 px) sits inside the 40 px margins; hairline
+  // rules span the content column. Delete lives in the screen's action
+  // row (os.key), not inside the key block.
+  keyboard: function (body, rows, onKey) {
     var r, i;
     for (r = 0; r < rows.length; r++) {
       var line = row().gap(2).mainAlign(1);
       for (i = 0; i < rows[r].length; i++) {
         (function (ch) {
-          line.add(text(ch).size('lg').center().width(48).height(56)
+          line.add(text(ch).size('lg').center().width(42).height(56)
             .onTap(function () { onKey(ch); }));
         })(rows[r].charAt(i));
-      }
-      if (o.del && r === rows.length - 1) {
-        line.add(text('<del>').size('xs').center().width(70).height(52)
-          .onTap(function () { o.del(); }));
       }
       body.add(line);
       body.add(divider(1, 200));
     }
+  },
+  // A single wide key for action rows (del, symbols).
+  key: function (label, fn, w) {
+    return text(label).size('lg').center().width(w || 52).height(56)
+      .onTap(fn);
   }
 };
