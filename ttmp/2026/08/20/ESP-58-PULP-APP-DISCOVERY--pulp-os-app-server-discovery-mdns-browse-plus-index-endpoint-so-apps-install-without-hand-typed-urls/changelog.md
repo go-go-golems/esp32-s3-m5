@@ -22,3 +22,12 @@ Step 2: P3 index server (dd592140) + P1 mdns.browse verb (d8c13f2f), probe-29 ha
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/net_mdns.cpp — BrowseWorker + deferred stop (commit d8c13f2f)
 
+
+## 2026-08-20
+
+Step 3: P2 store screens (6e1b6acb); widget-arena ceiling found and scoped around
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/settings.js — Store screens + Get apps row (commit 6e1b6acb)
+

@@ -235,3 +235,77 @@ console probe — discovery works end to end, no URL typed anywhere.
 - Probe 29 live output: `browse _pulp-apps._tcp (3000 ms window)` →
   `browse done: 1 server(s)` → `[0] Demo Shelf ->
   http://192.168.0.39:8123/pulp/index.json`.
+
+## Step 3: P2 — the store screens, and the widget-arena ceiling
+
+The store UI went in as designed (three screens, all launch-mediated),
+but its first flash crashed the settings app with `TypeError: widget
+arena full` — the ticket's first genuinely new platform finding: the
+retained widget tree caps at `WidgetArena::kCapacity = 128`, and the
+Settings apps screen with a full catalog (4 action rows + 16 visible
+apps = 20 menuRows) already sits at the edge. My 21st row ("Get apps")
+pushed it over.
+
+The fix was scoping, not surgery: raising kCapacity is NOT a drive-by —
+`widget_diff.cpp` keeps two `CurrentSlot current[kCapacity]` arrays and
+`widget_render.cpp` a `Rect clips[kCapacity]` ON THE STACK of the 8 KiB
+owner task; doubling the capacity means ~10 KiB of new stack pressure or
+a static/heap rework. So: "Get apps" moved to the MAIN settings screen
+(7 rows, headroom, arguably better placement anyway), and the shelf
+screen defensively caps at 14 rows + a "+N more (not shown)" note.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Assistant interpretation / intent:** (see Step 2)
+
+**Commit (code):** 6e1b6acb — "ESP-58 P2: 'Get apps' store screens"
+
+### What I did
+- `settings.js`: storeScreen (browse placeholder → server rows on
+  completion; empty state names the script and the AP-isolation
+  fallback), storeAppsScreen (installed marks via catalogFind,
+  id/url-mismatch rows rendered inert, install via installFromUrl, index
+  object rides the os.launch arg), dispatch entries, "Get apps" row on
+  the main screen.
+- On-panel walk (shots in sources/shots/): wifi-down → footer toast "no
+  network - join wifi first" on the Apps screen; live → GET APPS lists
+  "Demo Shelf" + URL; tap → DEMO SHELF, 12 rows all "- installed"; tap
+  d-books → "installed d-books (1970B)".
+
+### What worked
+- The scanScreen async-rebuild shape transplanted cleanly to browse and
+  index-fetch; no new UI machinery.
+- Passing the parsed index through the os.launch arg (plain object,
+  same-context relaunch) — no serialization, no os.state bloat.
+
+### What didn't work
+- First flash: `crashed: TypeError: widget arena full` opening the Apps
+  screen (21 menuRows). See above; relocation + cap. The error page
+  itself worked as designed (the ESP-55 errorPage caught it).
+
+### What I learned
+- Widget budget arithmetic: a menuRow costs ~5 retained widgets; page
+  chrome ~8; the 128 cap supports roughly 22 rows. The launcher (13
+  rows) has headroom; the apps screen is the first real pressure point.
+
+### What was tricky to build
+- Choosing NOT to bump kCapacity: the stack-allocated diff/render
+  scratch arrays scale with it on the owner's 8 KiB stack. A capacity
+  pass needs those arrays moved to statics or the render heap first —
+  follow-up ticket material, recorded in the guide's open questions.
+
+### What warrants a second pair of eyes
+- storeAppsScreen trusts idx.name for the header after toUpperCase
+  (plain-ASCII by contract; a hostile shelf name is only ever text — but
+  worth eyeballing).
+- The 14-row shelf cap: silent-truncation rule says the remainder note
+  must always render; verify with a >14-app shelf when one exists.
+
+### What should be done in the future
+- Widget-arena capacity pass (kCapacity + stack arrays); shelf paging.
+
+### Code review instructions
+- `git show 6e1b6acb` — settings.js only; walk: main → Get apps with and
+  without wifi; shelf tap; install tap.
