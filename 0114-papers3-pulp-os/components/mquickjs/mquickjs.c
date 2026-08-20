@@ -3654,6 +3654,13 @@ void JS_SetContextOpaque(JSContext *ctx, void *opaque)
     ctx->opaque = opaque;
 }
 
+/* ESP-55 P8: paired getter (the opaque slot carries the host's
+   per-context binding state). */
+void *JS_GetContextOpaque(JSContext *ctx)
+{
+    return ctx->opaque;
+}
+
 void JS_SetInterruptHandler(JSContext *ctx, JSInterruptHandler *interrupt_handler)
 {
     ctx->interrupt_handler = interrupt_handler;

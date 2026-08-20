@@ -11,7 +11,7 @@ using namespace jsi;
 namespace {
 
 void CancelWifiCb() {
-    g_module_cb[static_cast<uint8_t>(ModuleId::Wifi)] = 0;
+    CancelModuleCb(ModuleId::Wifi);
 }
 
 }  // namespace

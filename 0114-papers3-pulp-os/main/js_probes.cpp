@@ -505,6 +505,48 @@ const char kProbe26Js[] =
     "      + ' id3=' + idFromUrl('http://h/'));"
     "files.remove('/apps/probe26.js', function () {});";
 
+// 27 (ESP-55 P8): multi-context — create a second engine context,
+// prove global isolation, per-context callback registries, OOM
+// containment, foreground stability, and full teardown reclamation.
+extern "C" const JSSTDLibraryDef js_stdlib;
+
+StatusCode RunProbe27() {
+    const uint32_t psram0 = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    jsi::JsCtxState *st = jsi::CreateContext(
+        jsi::CtxKind::kProbe, 64 * 1024, &js_stdlib, nullptr, 0);
+    if (st == nullptr) {
+        printf("probe27: create FAILED\n");
+        return StatusCode::OutOfMemory;
+    }
+    (void)jsi::EvalInto(st,
+        "var probe27x = 42; print('probe27: inner x=' + probe27x);",
+        2000, "<p27>");
+    (void)jsi::EvalBounded(
+        "print('probe27: os sees=' + (typeof probe27x));", 2000,
+        "<p27os>");
+    printf("probe27: os_next_cb=%d probe_next_cb=%d fg_is_os=%d\n",
+           static_cast<int>(jsi::g_os->next_cb),
+           static_cast<int>(st->next_cb),
+           jsi::g_fg == jsi::g_os ? 1 : 0);
+    // OOM containment: exhaust the 64 KiB context; the exception must be
+    // catchable there and the OS context must stay healthy.
+    (void)jsi::EvalInto(st,
+        // Note: report AFTER gc() — building the message while the arena
+        // is still full would OOM again (uncatchable second failure).
+        "var a = []; var oom = 'no';"
+        "try { for (;;) { a.push('xxxxxxxxxxxxxxxx' + a.length); } }"
+        "catch (e) { oom = 'caught'; }"
+        "a = null; gc(); print('probe27: oom=' + oom);",
+        3000, "<p27oom>");
+    (void)jsi::EvalBounded(
+        "print('probe27: os alive=' + (1 + 1));", 2000, "<p27alive>");
+    jsi::DestroyContext(st);
+    const uint32_t psram1 = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    printf("probe27: psram_delta_after_teardown=%d\n",
+           static_cast<int>(psram0) - static_cast<int>(psram1));
+    return StatusCode::Ok;
+}
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -519,14 +561,14 @@ StatusCode RunTraced(const char *code, const char *name) {
 // wall time and arena use (before, after, after GC). Returns the eval rc.
 StatusCode MeasureOne(const char *name, const unsigned char *src,
                       unsigned len) {
-    const uint32_t before = JS_GetHeapUsed(jsi::g_ctx);
+    const uint32_t before = JS_GetHeapUsed(jsi::g_os->ctx);
     const int64_t t0 = esp_timer_get_time();
     const StatusCode rc =
         jsi::EvalBounded(reinterpret_cast<const char *>(src), 3000, name);
     const int64_t dt = esp_timer_get_time() - t0;
-    const uint32_t after = JS_GetHeapUsed(jsi::g_ctx);
-    JS_GC(jsi::g_ctx);
-    const uint32_t gc = JS_GetHeapUsed(jsi::g_ctx);
+    const uint32_t after = JS_GetHeapUsed(jsi::g_os->ctx);
+    JS_GC(jsi::g_os->ctx);
+    const uint32_t gc = JS_GetHeapUsed(jsi::g_os->ctx);
     printf("measure: %s bytes=%u rc=%s us=%lld arena before=%u after=%u "
            "(+%d) gc=%u (+%d)\n",
            name, len, StatusCodeName(rc), static_cast<long long>(dt),
@@ -545,12 +587,12 @@ StatusCode JsRunMeasure() {
     if (init != StatusCode::Ok) {
         return init;
     }
-    const uint32_t boot_used = JS_GetHeapUsed(jsi::g_ctx);
-    JS_GC(jsi::g_ctx);
+    const uint32_t boot_used = JS_GetHeapUsed(jsi::g_os->ctx);
+    JS_GC(jsi::g_os->ctx);
     printf("measure: baseline arena_used=%u after_gc=%u internal_free=%u "
            "psram_free=%u\n",
            static_cast<unsigned>(boot_used),
-           static_cast<unsigned>(JS_GetHeapUsed(jsi::g_ctx)),
+           static_cast<unsigned>(JS_GetHeapUsed(jsi::g_os->ctx)),
            static_cast<unsigned>(
                heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
            static_cast<unsigned>(
@@ -566,8 +608,8 @@ StatusCode JsRunMeasure() {
         const StatusCode r = jsi::EvalBounded(
             reinterpret_cast<const char *>(kMeasureDice), 3000, "<dice-n>");
         if (r != StatusCode::Ok) { return r; }
-        JS_GC(jsi::g_ctx);
-        used[i] = JS_GetHeapUsed(jsi::g_ctx);
+        JS_GC(jsi::g_os->ctx);
+        used[i] = JS_GetHeapUsed(jsi::g_os->ctx);
     }
     printf("measure: dice x10 arena_after_gc:");
     for (int i = 0; i < 10; ++i) {
@@ -631,6 +673,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 24: return jsi::EvalBounded(kProbe24Js, 5000, "<probe24>");
         case 25: return jsi::EvalBounded(kProbe25Js, 3000, "<probe25>");
         case 26: return jsi::EvalBounded(kProbe26Js, 5000, "<probe26>");
+        case 27: return RunProbe27();
         default: return StatusCode::InvalidArgument;
     }
 }

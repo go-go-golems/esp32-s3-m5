@@ -17,9 +17,6 @@ using namespace jsi;
 
 namespace {
 
-void CancelModuleCb(ModuleId module) {
-    g_module_cb[static_cast<uint8_t>(module)] = 0;
-}
 
 // Shared shape for list/read/remove: (path, fn).
 JSValue PathOp(JSContext *ctx, int argc, JSValue *argv,

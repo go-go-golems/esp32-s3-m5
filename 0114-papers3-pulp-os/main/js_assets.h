@@ -20,6 +20,11 @@ const char *AssetsName(uint32_t i);
 // resolve vpath through the files sanitizer, create the parent directory
 // (one level) and fsync. Return s3paper::StatusCode as int32 (0 = Ok).
 int32_t AssetsCopy(const char *name, const char *vpath);
+
+// ESP-55 P9: page assets — flash text served to load("page:<name>") for
+// the browser runtime (ui-helpers, test pages). Separate namespace from
+// app assets so seeding never copies them to /sdcard/apps.
+bool PageAssetsFind(const char *name, const char **src, uint32_t *len);
 int32_t AssetsWriteText(const char *vpath, const char *body, uint32_t len);
 
 }  // namespace pulp

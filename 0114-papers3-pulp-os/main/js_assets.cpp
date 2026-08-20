@@ -109,6 +109,13 @@ int32_t WriteWhole(const char *vpath, const char *data, uint32_t len) {
 
 }  // namespace
 
+bool PageAssetsFind(const char *name, const char **src, uint32_t *len) {
+    (void)name;
+    (void)src;
+    (void)len;
+    return false;  // page assets land in P9
+}
+
 int32_t AssetsCopy(const char *name, const char *vpath) {
     const char *src = nullptr;
     uint32_t len = 0;

@@ -1183,3 +1183,85 @@ serial gotcha.
 
 ### Code review instructions
 - Re-run: `python3 <ticket>/scripts/07-pulp-soak.py --minutes 5 --output /tmp/soak.log`.
+
+## Step 17: Phase 8 — the binding layer goes multi-context
+
+Every piece of per-engine state — pages, hit regions, dynamic text
+values, the callback registry, home/sleep callbacks, the page timer —
+moved from file-scope globals into `JsCtxState`, resolved in O(1) from
+the engine's per-context opaque slot (a new 4-line `JS_GetContextOpaque`
+accessor). `g_os` holds the ROM image and all built-in apps exactly as
+before; `g_fg` names the panel owner; contexts are created and destroyed
+at run time. Probe 27 proves the model on hardware.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Do phase 8 - 10, commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)" (plus mid-turn: "also do the QR code / pulp.local/apps")
+
+**Assistant interpretation:** Implement the forward phases from the guide (multi-context runtime, UI sandbox, browser), and add a pulp.local/apps URL + QR surface to Settings along the way.
+
+**Inferred user intent:** The browser vision, on the runtime that makes it safe.
+
+**Commit (code):** (this commit) — "ESP-55 P8: multi-context binding layer (JsCtxState), probe 27"
+
+### What I did
+- `app_js_internal.h`: `JsCtxState` (ctx, arena, kind, pages[12], dyn[48],
+  hits[48], next_cb, home/sleep cbs, timer), `ModuleCb{owner, cb}`,
+  `kMaxContexts=3`; lifecycle API `CreateContext / DestroyContext /
+  SwitchForeground / StateOf / EvalInto / LoadInto / CallCbIn /
+  PresentPage(st, …)`.
+- `app_js.cpp` rewritten around the model: kernel eval per context; the
+  bytecode image is a CreateContext argument (OS only); gesture dispatch,
+  tick, dyn refresh operate on `g_fg`; module completions deliver to the
+  registering context; serve routes hard-target `g_os`; `resetTree`
+  scopes to the calling context (arena reset only when it owns the
+  panel); `p.show()` claims the foreground for a background context
+  (the browser error-page path); the swipe-home grammar is now ENFORCED
+  for non-OS foregrounds: control returns to the OS and a reclaim hook
+  (`g_page_reclaim`) frees the page context.
+- Dependent TUs patched: `js_pages` (per-state page table, home/sleep),
+  `js_widgets` (dyn), `js_serve` (route → OS), `js_files/http/wifi`
+  (shared `CancelModuleCb`), `js_probes` (`g_os->ctx`).
+- Engine: `JS_GetContextOpaque` (vendored copy, next to the setter).
+- Probe 27 (native): second 64 KiB context — globals isolated (`os sees=
+  undefined`), independent cb registries (os_next_cb=20, probe=1),
+  foreground untouched, OOM caught inside the small context with the OS
+  healthy after, and PSRAM delta after teardown = 0.
+
+### What worked
+- Two-error first build (dyn scope), then clean; full regression on
+  hardware: launcher fingerprint, dice/settings loads, probes 1/13/23
+  unchanged.
+
+### What didn't work
+- Probe 27's OOM leg caught the exception but died building the report
+  message: `'' + e` allocates while the arena is still full, so the
+  *report* OOM'd (uncatchable second failure, `last_error="InternalError:
+  out of memory"`, missing print). Fixed by `gc()` before printing —
+  a lesson worth keeping: after catching OOM, collect before allocating.
+
+### What I learned
+- The int-only `CallCb` boundary and packed-int handles made the ABI
+  context-agnostic already; the refactor was state plumbing, no API
+  change — exactly what R-MULTICTX predicted.
+- `ctx->opaque` doubles as the log-function cookie; storing the state
+  pointer there is free and makes `StateOf` one load.
+
+### What was tricky to build
+- Ownership rules more than code: the widget arena belongs to the
+  foreground (so `resetTree` from a background context must not reset
+  it), routes belong to the OS, module completions belong to their
+  registrant, and `show()` claims the panel. Each rule is one guard, but
+  finding where each belonged was the design work.
+
+### What warrants a second pair of eyes
+- `SwitchForeground` clearing the outgoing context's cursor/hits/dyn;
+  DestroyContext orphaning module cbs; the enforced home grammar in
+  `JsHandleGesture` (teardown-before-callback ordering).
+
+### What should be done in the future
+- P9: UI stdlib + nav; P10: browser + QR/URL surface.
+
+### Code review instructions
+- `git show <this commit>` — read `app_js_internal.h` first, then
+  `app_js.cpp` top to bottom; `js probe 27` on hardware.
