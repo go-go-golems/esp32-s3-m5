@@ -80,9 +80,15 @@ function merge() {
         hit.title = m.title || hit.title;
         hit.subtitle = m.subtitle || hit.subtitle;
       }
+      // ROM's hidden flag stays authoritative on overrides: an SD patch
+      // cannot unhide `reader` by accident.
     } else {
       out.push({ id: m.id, title: m.title || m.id,
-                 subtitle: m.subtitle || '', src: src, source: 'sd' });
+                 subtitle: m.subtitle || '', src: src, source: 'sd',
+                 // ESP-57: installed suites may declare themselves hidden
+                 // (launchable by id, no launcher row — the Demos index
+                 // fronts them).
+                 hidden: m.hidden === true });
     }
   }
   return out;
@@ -107,13 +113,18 @@ function catalogFind(id) {
 // dies — callers rescan on demand.
 function scanApps(done) {
   if (files.exists('/apps') !== 1) {
+    print('pulp apps: scan skipped (/apps missing)');
     SD_APPS = [];
     catalogInvalidate();
     if (done) { done(); }
     return;
   }
   var rc = files.list('/apps', function (k, count, err) {
-    if (err !== 0) { if (done) { done(); } return; }
+    if (err !== 0) {
+      print('pulp apps: scan list err=' + err);
+      if (done) { done(); }
+      return;
+    }
     var names = [];
     var i;
     for (i = 0; i < count; i++) {
@@ -143,7 +154,10 @@ function scanApps(done) {
     }
     next(0);
   });
-  if (rc !== 0 && done) { done(); }
+  if (rc !== 0) {
+    print('pulp apps: scan list rc=' + rc);
+    if (done) { done(); }
+  }
 }
 
 // First-boot seeding: copy every ROM app + a seed-marked manifest to the

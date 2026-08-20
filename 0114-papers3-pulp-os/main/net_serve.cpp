@@ -315,7 +315,7 @@ static esp_err_t ServeAppsUpload(httpd_req_t *req) {
     if (req->content_len == 0 || req->content_len > kAppUploadMax) {
         return SendStatus(req, 413, "too large");
     }
-    char query[128] = "";
+    char query[224] = "";
     char name[32] = "";
     (void)httpd_req_get_url_query_str(req, query, sizeof(query));
     if (httpd_query_key_value(query, "name", name, sizeof(name)) != ESP_OK ||
@@ -371,19 +371,55 @@ static esp_err_t ServeAppsUpload(httpd_req_t *req) {
         (void)PostModuleDone(ModuleId::Apps, kDoneAppsUpload, 0, 1);
         return SendStatus(req, 503, "rename failed");
     }
-    // Minimal manifest so the catalog lists the app; never clobbers an
-    // existing (possibly operator-authored) manifest.
+    // Manifest when none exists; never clobbers an operator-authored one.
+    // ESP-57: optional query fields fill it (title/subtitle sanitized to
+    // [A-Za-z0-9 _.&-]; '+' decodes to space; hidden=1 marks suite apps
+    // that are launchable by id but get no launcher row).
     char mpath[80];
     snprintf(mpath, sizeof(mpath), "%s/%s.json", kAppsDir, name);
     struct stat st;
-    if (stat(mpath, &st) != 0) {
+    char title[48] = "";
+    (void)httpd_query_key_value(query, "title", title, sizeof(title));
+    // ESP-57: metadata in the query REWRITES the manifest (a repeated
+    // push with fields is an intentional update); a bare push still never
+    // clobbers an existing manifest.
+    if (stat(mpath, &st) != 0 || title[0] != '\0') {
+        char subtitle[64] = "";
+        char hidden[8] = "";
+        (void)httpd_query_key_value(query, "subtitle", subtitle,
+                                    sizeof(subtitle));
+        (void)httpd_query_key_value(query, "hidden", hidden,
+                                    sizeof(hidden));
+        auto sanitize = [](char *sv) {
+            for (size_t i = 0; sv[i] != '\0'; ++i) {
+                const char c = sv[i];
+                if (c == '+') {
+                    sv[i] = ' ';
+                    continue;
+                }
+                const bool ok = (c >= 'A' && c <= 'Z') ||
+                                (c >= 'a' && c <= 'z') ||
+                                (c >= '0' && c <= '9') || c == ' ' ||
+                                c == '_' || c == '.' || c == '&' ||
+                                c == '-';
+                if (!ok) {
+                    sv[i] = ' ';
+                }
+            }
+        };
+        sanitize(title);
+        sanitize(subtitle);
         FILE *m = fopen(mpath, "wb");
         if (m != nullptr) {
             fprintf(m,
                     "{\"id\":\"%s\",\"title\":\"%s\",\"subtitle\":"
-                    "\"installed over http\",\"version\":1,\"abi\":2,"
-                    "\"src\":\"/apps/%s.js\"}\n",
-                    name, name, name);
+                    "\"%s\",\"version\":1,\"abi\":2,"
+                    "\"src\":\"/apps/%s.js\"%s}\n",
+                    name, title[0] != '\0' ? title : name,
+                    subtitle[0] != '\0' ? subtitle
+                                         : "installed over http",
+                    name,
+                    hidden[0] == '1' ? ",\"hidden\":true" : "");
             fflush(m);
             fsync(fileno(m));
             fclose(m);
@@ -616,6 +652,10 @@ StatusCode ServeStart(uint16_t port) {
     }
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.server_port = port == 0 ? 80 : port;
+    // ESP-57: the manifest-writing upload path (query + field buffers +
+    // FATFS fprintf) overflowed the 4 KiB default — detected by the
+    // FreeRTOS stack watchdog on the first suite push.
+    cfg.stack_size = 6144;
     cfg.max_uri_handlers = 3;  // ESP-54: GET+POST; ESP-55: +PUT (curl -T)
     cfg.uri_match_fn = httpd_uri_match_wildcard;
     cfg.lru_purge_enable = true;
