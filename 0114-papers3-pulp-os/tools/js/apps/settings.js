@@ -65,6 +65,11 @@
       setRow(menu, 'Apps', 'installed apps - rescan - state', function () {
         os.launch('settings', { screen: 'apps' });
       });
+      // ESP-58: lives on the MAIN screen, not the apps screen — the apps
+      // screen's action rows + a full catalog already graze the widget
+      // arena ceiling (a 21st menuRow threw "widget arena full").
+      setRow(menu, 'Get apps', 'find app shelves nearby (mdns)',
+        function () { os.launch('settings', { screen: 'store' }); });
       setRow(menu, 'Radio off', 'save power', function () {
         serve.stop();
         wifi.off();
@@ -260,6 +265,127 @@
       refresh();
     }
 
+    // ESP-58 store: browse -> pick server -> index -> pick app -> install.
+    // Same shape as scanScreen: placeholder page, async completion
+    // rebuilds. Every screen change crosses os.launch so the loader owns
+    // resetTree; the fetched index rides the launch arg (plain object).
+    function storeScreen() {
+      var body = col().pad(20, os.M, 0, os.M).gap(12)
+        .add(text('looking for app shelves...').size('sm').gray(96));
+      var p = page('settings').header(os.chrome('GET APPS')).content(body)
+        .footer(os.hintFooter('mdns browse - 3s'));
+      os.announce('settings-store');
+      p.show(true);
+      function found() {
+        var menu = list().pad(4, 0, 0, 0);
+        var n = mdns.count();
+        var i;
+        for (i = 0; i < n; i++) {
+          (function (name, url) {
+            setRow(menu, name, url, function () {
+              fetchIndex(name, url);
+            });
+          })(mdns.name(i), mdns.indexUrl(i));
+        }
+        if (n === 0) {
+          menu.add(col().pad(20, os.M, 0, os.M).gap(8).add(
+            text('no shelves found').size('sm').gray(96),
+            text('start one: scripts/01-app-index-server.py').size('xs')
+              .gray(128),
+            text('AP isolation blocks mdns - use Install from URL')
+              .size('xs').gray(128)));
+        }
+        var p2 = page('settings').header(os.chrome('GET APPS'))
+          .content(menu)
+          .footer(os.hintFooter(n === 0 ? 'swipe down = home'
+                                        : 'tap a shelf to open it'));
+        p2.show(true);
+      }
+      function fetchIndex(name, url) {
+        var rc2 = http.get(url).limit(8192).done(function (k, sc, len) {
+          if (sc !== 200 || len <= 0) {
+            st.msg = 'index http ' + sc;
+            os.launch('settings', { screen: 'apps' });
+            return;
+          }
+          var idx = null;
+          try { idx = JSON.parse(http.body()); } catch (ex) { idx = null; }
+          if (!idx || !idx.apps || !idx.apps.length) {
+            st.msg = 'bad index from ' + name;
+            os.launch('settings', { screen: 'apps' });
+            return;
+          }
+          os.launch('settings',
+                    { screen: 'store-apps', shelf: idx, from: name });
+        }).send();
+        if (rc2 !== 0) {
+          st.msg = 'http busy (' + rc2 + ')';
+          os.launch('settings', { screen: 'apps' });
+        }
+      }
+      var rc = mdns.browse(function (k, n, err) {
+        if (err !== 0) {
+          st.msg = err === 1 ? 'no network - join wifi first'
+                             : 'browse failed (' + err + ')';
+          os.launch('settings', { screen: 'apps' });
+          return;
+        }
+        found();
+      });
+      if (rc !== 0) {
+        st.msg = 'browse rc=' + rc;
+        os.launch('settings', { screen: 'apps' });
+      }
+    }
+
+    function storeAppsScreen(a) {
+      var idx = a.shelf;
+      var menu = list().pad(4, 0, 0, 0);
+      var i;
+      // Widget-arena ceiling: a shelf can advertise ~60 apps but the
+      // retained tree cannot hold that many menuRows. 14 rows + a
+      // remainder note keeps the page well under the cap.
+      var MAX_ROWS = 14;
+      var shown = idx.apps.length < MAX_ROWS ? idx.apps.length : MAX_ROWS;
+      for (i = 0; i < shown; i++) {
+        (function (e) {
+          if (!e || !e.id || !e.url) { return; }
+          var have = catalogFind(e.id);
+          if (idFromUrl(e.url) !== e.id) {
+            // Contract breach: the URL-derived id would not match the
+            // advertised one; installing would create a different app.
+            setRow(menu, e.title || e.id, '! id/url mismatch', null);
+            return;
+          }
+          var sub = (e.subtitle || '') +
+            (have ? (have.source === 'rom' ? ' - installed (rom)'
+                                           : ' - installed') : '');
+          setRow(menu, e.title || e.id, sub, function () {
+            st.msg = 'fetching ' + e.id + '...';
+            installFromUrl(e.url, function (msg) {
+              st.msg = msg;
+              os.launch('settings',
+                        { screen: 'store-apps', shelf: idx,
+                          from: a.from });
+            });
+          });
+        })(idx.apps[i]);
+      }
+      if (idx.apps.length > shown) {
+        menu.add(col().pad(10, os.M, 0, os.M).add(
+          text('+ ' + (idx.apps.length - shown) +
+               ' more on this shelf (not shown)').size('xs').gray(96)));
+      }
+      var p = page('settings')
+        .header(os.chrome((idx.name || a.from || 'SHELF').toUpperCase()))
+        .content(menu)
+        .footer(os.hintFooter(st.msg === ''
+          ? 'tap to install - swipe down = home' : st.msg));
+      st.msg = '';
+      os.announce('settings-store-apps');
+      p.show(true);
+    }
+
     function webScreen() {
       // QR for http://pulp.local/apps (version-2 QR, EC L; constant thanks
       // to mDNS, so the matrix is precomputed by the ticket's
@@ -318,6 +444,8 @@
     else if (a.screen === 'pass') { passScreen(a.ssid); }
     else if (a.screen === 'apps') { appsScreen(); }
     else if (a.screen === 'url') { urlScreen(); }
+    else if (a.screen === 'store') { storeScreen(); }
+    else if (a.screen === 'store-apps') { storeAppsScreen(a); }
     else if (a.screen === 'web') { webScreen(); }
     else { mainScreen(); }
   }
