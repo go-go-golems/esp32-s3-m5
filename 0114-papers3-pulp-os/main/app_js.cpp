@@ -515,9 +515,15 @@ JSValue CallCbIn(JsCtxState *st, int32_t cb_id, int32_t a, int32_t b,
     const JSValue fn =
         JS_GetPropertyUint32(ctx, cbs, static_cast<uint32_t>(cb_id));
     if (!JS_IsFunction(ctx, fn)) {
+        // ESP-57 scan-death hunt: a registered id whose slot is no longer
+        // a function means __cbs was replaced after registration.
+        ESP_LOGW(kTag, "cb %ld lost (__cbs slot not a function)",
+                 static_cast<long>(cb_id));
         return JS_UNDEFINED;
     }
     if (JS_StackCheck(ctx, static_cast<uint32_t>(argc) + 2)) {
+        ESP_LOGW(kTag, "cb %ld skipped (stack check)",
+                 static_cast<long>(cb_id));
         return JS_UNDEFINED;
     }
     // Args push in reverse; int32 values are immediates (no GC hazard).
@@ -745,9 +751,18 @@ void JsModuleDone(ModuleId module, int32_t kind, int32_t value,
     // (which re-registers) without tripping the Busy check.
     g_module_cb[idx] = ModuleCb{};
     if (entry.cb == 0 || entry.owner == nullptr) {
+        // ESP-57 scan-death hunt: make the drop visible.
+        ESP_LOGW(kTag, "module=%u done kind=%ld dropped (cancelled)",
+                 static_cast<unsigned>(idx), static_cast<long>(kind));
         return;  // cancelled by resetTree; mailbox stays readable
     }
     g_dispatches++;
+    if (module == ModuleId::Files) {
+        // ESP-57 scan-death hunt: trace every Files delivery.
+        ESP_LOGI(kTag, "files done kind=%ld cb=%ld val=%ld err=%ld",
+                 static_cast<long>(kind), static_cast<long>(entry.cb),
+                 static_cast<long>(value), static_cast<long>(err));
+    }
     (void)CallCbIn(entry.owner, entry.cb, kind, value, err, 3);
 }
 
@@ -841,6 +856,12 @@ JSValue js_pulp_reset_tree(JSContext *ctx, JSValue *, int, JSValue *) {
         for (uint8_t i = 0; i < static_cast<uint8_t>(ModuleId::kCount);
              ++i) {
             if (g_module_cb[i].owner == st) {
+                if (g_module_cb[i].cb != 0) {
+                    // ESP-57 scan-death hunt: a resetTree that cancels a
+                    // live completion is exactly the silent killer.
+                    ESP_LOGW(kTag, "resetTree cancels module=%u cb=%ld",
+                             static_cast<unsigned>(i), static_cast<long>(g_module_cb[i].cb));
+                }
                 g_module_cb[i] = ModuleCb{};
             }
         }

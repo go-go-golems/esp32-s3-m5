@@ -627,6 +627,21 @@ StatusCode PostEvent(const AppEvent &event) {
         static_cast<uint8_t>(event.kind) >= kKindCount) {
         return StatusCode::InvalidArgument;
     }
+    // ESP-57: TimerDue ticks are droppable by design (the producer sends
+    // another one 20 ms later), but at ~50/s they can fill the queue while
+    // the owner is stuck in one long event (a full OS re-eval + CleanFull
+    // present is ~700 ms ≈ 35 ticks). Module completions are NOT droppable
+    // — a lost ModuleDone strands its JS callback forever (this is exactly
+    // how the catalog scan died silently). Reserve headroom: ticks may not
+    // consume the last kReservedForCritical slots.
+    if (event.kind == AppEventKind::TimerDue) {
+        constexpr UBaseType_t kReservedForCritical = 8;
+        if (uxQueueSpacesAvailable(s_event_queue) <= kReservedForCritical) {
+            s_dropped_by_source[static_cast<uint8_t>(event.source)]
+                .fetch_add(1, std::memory_order_relaxed);
+            return StatusCode::CapacityExceeded;
+        }
+    }
     if (xQueueSend(s_event_queue, &event, 0) == pdTRUE) {
         return StatusCode::Ok;
     }
