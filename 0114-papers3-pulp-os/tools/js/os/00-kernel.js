@@ -72,6 +72,34 @@ function osRoutes() {
     PENDING_ARG = url === '' ? null : { url: url };
     return serve.json('{"run":"' + id + '"}');
   });
+  serve.get('/pulp/index.json').handle(function (req) {
+    // ESP-58 P4: this device as an app shelf. Only card-backed, visible,
+    // healthy entries — their source is fetchable at /appsrc/<id>.js.
+    // Response cap is 4 KiB; budget and say so rather than clip silently.
+    var c = catalog();
+    var base = 'http://' + wifi.ip();
+    var s = '';
+    var i;
+    var cut = 0;
+    var first = true;
+    for (i = 0; i < c.length; i++) {
+      var e = c[i];
+      if (e.hidden || e.broken) { continue; }
+      if (typeof e.src !== 'string' || e.src.charAt(0) !== '/') {
+        continue;  // rom-only (no card copy to serve)
+      }
+      var sub = (typeof e.subtitle === 'string') ? e.subtitle : '';
+      var row = (first ? '' : ',') + '{"id":"' + e.id + '","title":"' +
+        e.title + '","subtitle":"' + sub + '","url":"' + base +
+        '/appsrc/' + e.id + '.js"}';
+      if (s.length + row.length > 3500) { cut = cut + 1; continue; }
+      s += row;
+      first = false;
+    }
+    return serve.json('{"v":1,"name":"' + mdns.host() +
+      ' (this pulp)","apps":[' + s + ']' +
+      (cut > 0 ? ',"truncated":' + cut : '') + '}');
+  });
   serve.get('/images/list').handle(function (req) {
     var n = images.count();
     var s = '{"count":' + n + ',"images":[';

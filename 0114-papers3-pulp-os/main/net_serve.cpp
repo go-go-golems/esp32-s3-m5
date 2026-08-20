@@ -204,16 +204,9 @@ int FindRoute(const char *uri) {
     return -1;
 }
 
-// HTTPD TASK: streams a file from the static mount. The one sanctioned
-// off-owner storage access (plain VFS reads).
-esp_err_t ServeStatic(httpd_req_t *req, const char *uri) {
-    if (strstr(uri, "..") != nullptr) {
-        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no");
-        return ESP_OK;
-    }
-    char path[160];
-    snprintf(path, sizeof(path), "%s%s%s", s_state.static_dir, uri,
-             uri[strlen(uri) - 1] == '/' ? "index.html" : "");
+// HTTPD TASK: streams one file (shared by the static mount and the
+// /appsrc alias). Plain VFS reads — the sanctioned off-owner access.
+esp_err_t StreamFile(httpd_req_t *req, const char *path) {
     struct stat st;
     if (stat(path, &st) != 0 || S_ISDIR(st.st_mode)) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "not found");
@@ -235,6 +228,49 @@ esp_err_t ServeStatic(httpd_req_t *req, const char *uri) {
     fclose(f);
     httpd_resp_send_chunk(req, nullptr, 0);
     return ESP_OK;
+}
+
+// HTTPD TASK (ESP-58 P4): "/appsrc/<id>.js" -> /sdcard/apps/<id>.js, so
+// the /pulp/index.json this device serves has fetchable module URLs
+// (device-to-device install). Independent of the static mount; the id
+// charset is the app-id contract, so no traversal is expressible.
+bool ServeAppSrc(httpd_req_t *req, const char *uri, esp_err_t *out) {
+    const char *kPrefix = "/appsrc/";
+    const size_t plen = strlen(kPrefix);
+    if (strncmp(uri, kPrefix, plen) != 0) {
+        return false;
+    }
+    const char *name = uri + plen;
+    const size_t nlen = strlen(name);
+    if (nlen < 4 || nlen > 27 || strcmp(name + nlen - 3, ".js") != 0) {
+        *out = SendStatus(req, 404, "not found");
+        return true;
+    }
+    for (size_t i = 0; i + 3 < nlen; ++i) {
+        const char c = name[i];
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                        c == '_' || c == '-';
+        if (!ok) {
+            *out = SendStatus(req, 404, "not found");
+            return true;
+        }
+    }
+    char path[96];
+    snprintf(path, sizeof(path), "/sdcard/apps/%s", name);
+    *out = StreamFile(req, path);
+    return true;
+}
+
+// HTTPD TASK: streams a file from the static mount.
+esp_err_t ServeStatic(httpd_req_t *req, const char *uri) {
+    if (strstr(uri, "..") != nullptr) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "no");
+        return ESP_OK;
+    }
+    char path[160];
+    snprintf(path, sizeof(path), "%s%s%s", s_state.static_dir, uri,
+             uri[strlen(uri) - 1] == '/' ? "index.html" : "");
+    return StreamFile(req, path);
 }
 
 // HTTPD TASK: the JS-route handoff.
@@ -457,6 +493,10 @@ esp_err_t Handler(httpd_req_t *req) {
     const int route = FindRoute(uri);
     if (route >= 0) {
         return ServeJsRoute(req, route);
+    }
+    esp_err_t alias_rc = ESP_OK;
+    if (ServeAppSrc(req, uri, &alias_rc)) {
+        return alias_rc;  // ESP-58: /appsrc/<id>.js from the card
     }
     if (s_state.static_mounted) {
         return ServeStatic(req, uri);

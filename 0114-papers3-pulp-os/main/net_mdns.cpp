@@ -159,13 +159,22 @@ StatusCode MdnsAnnounce(uint16_t port) {
         if (s_state.port == port) {
             return StatusCode::Ok;  // already announced on this port
         }
-        // Port changed: remove the old service before re-adding.
+        // Port changed: remove the old services before re-adding.
         mdns_service_remove("_http", "_tcp");
+        mdns_service_remove(kMdnsAppSvc, "_tcp");
         s_state.announced = false;
     }
     if (mdns_service_add(nullptr, "_http", "_tcp", port, nullptr, 0) != ESP_OK) {
         ESP_LOGW(kTag, "mdns_service_add failed");
         return StatusCode::Busy;
+    }
+    // ESP-58 P4: this device is itself an app shelf (/pulp/index.json +
+    // /appsrc/). No TXT name: browsers fall back to the instance name,
+    // which mDNS uniquifies when two PULPs share a network.
+    mdns_txt_item_t txt[] = {{"path", kMdnsDefaultIndexPath}};
+    if (mdns_service_add(nullptr, kMdnsAppSvc, "_tcp", port, txt, 1) !=
+        ESP_OK) {
+        ESP_LOGW(kTag, "app-shelf service_add failed");
     }
     s_state.announced = true;
     s_state.port = port;
@@ -188,6 +197,7 @@ StatusCode MdnsStop() {
     }
     if (s_state.announced) {
         mdns_service_remove("_http", "_tcp");
+        mdns_service_remove(kMdnsAppSvc, "_tcp");
         s_state.announced = false;
     }
     mdns_free();
