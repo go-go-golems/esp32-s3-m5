@@ -33,10 +33,16 @@ gcc -O2 -Wall -I"${HOST_DIR}" -I"${ENGINE_DIR}" \
     "${ENGINE_DIR}/libm.c" \
     -lm -o "${HOST_DIR}/pulpjsc"
 
-# 3. Compile every app to an embedded header.
-for app in "${JS_DIR}"/apps/*.js; do
-    name="$(basename "${app}" .js)"
-    "${HOST_DIR}/pulpjsc" "${app}" "${ROOT_DIR}/main/js_${name}.h" \
-        "kJsBytecode_${name}"
-done
-echo "bytecode apps written to main/"
+# 3. Concatenate the OS core + app sections into ONE image (ESP-55 P1:
+#    mechanical split of pulp.js; the concatenation preserves the original
+#    semantics — os/[0-3]* first, app sections, then launcher + boot last,
+#    so the only executing statement, boot's home(), runs after every
+#    definition; function declarations hoist across the whole file).
+BUILD_DIR="${JS_DIR}/build"
+mkdir -p "${BUILD_DIR}"
+ALL="${BUILD_DIR}/pulp_all.js"
+cat "${JS_DIR}"/os/[0-3]*.js "${JS_DIR}"/apps/*.js \
+    "${JS_DIR}"/os/[4-9]*.js > "${ALL}"
+"${HOST_DIR}/pulpjsc" "${ALL}" "${ROOT_DIR}/main/js_pulp.h" \
+    "kJsBytecode_pulp"
+echo "bytecode image written to main/js_pulp.h"

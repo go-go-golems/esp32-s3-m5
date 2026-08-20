@@ -643,3 +643,70 @@ passes and the guide's §4.3 now carries measured numbers.
 - Transcript: scratchpad p0-measure2.log; evidence lines all prefixed
   `measure:`. Re-run: `python3 <ticket>/scripts/04-papers3-console-hold.py
   --no-reset --cmd "js measure"`.
+
+## Step 10: Phase 1 — mechanical split, one image, byte-equivalent behavior
+
+pulp.js is gone: the fifteen banner sections now live as
+`tools/js/os/{00-kernel,40-launcher,90-boot}.js` plus twelve
+`tools/js/apps/<id>.js`, and `build_bytecode_apps.sh` concatenates them
+back into one `build/pulp_all.js` compiled to `main/js_pulp.h`. Nothing
+about the code changed — the image grew by exactly 20 bytes (the embedded
+filename string) — and the device gate confirms identical behavior.
+
+### Prompt Context
+
+**User prompt (verbatim):** "phase 1 - 3. commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Implement Phases 1, 2 and 3 from the guide, commit per phase, diary per phase.
+
+**Inferred user intent:** Get the modular loader working on the device.
+
+**Commit (code):** (this commit) — "ESP-55 P1: mechanical split of pulp.js into os/ + apps/, single-image concat build"
+
+### What I did
+- `scripts/05-phase1-split.py` (one-off): cut pulp.js at its banners into
+  os/00-kernel.js (prelude, 2,694 B), os/40-launcher.js (home, 2,433 B),
+  os/90-boot.js (164 B), and apps/{library,reader,dice,blitz,2048,tea,
+  postcard,daily,ink,gallery,settings,radio}.js — verbatim; deleted pulp.js.
+- `build_bytecode_apps.sh` step 3: replaced the per-app compile loop with
+  `cat os/[0-3]*.js apps/*.js os/[4-9]*.js > build/pulp_all.js` +
+  one pulpjsc call → `main/js_pulp.h` (45,352 B vs 45,332 B).
+- Ignored `tools/js/build/` in the repo .gitignore; froze
+  `main/js_measure_src.h` (script 03 noted as frozen baseline).
+- Build + flash + gate.
+
+### Why
+- Reviewable next phases: every later diff is against a small file, and the
+  concatenation order (kernel → apps → launcher → boot) keeps the single
+  executing statement (boot's `home()`) after all definitions, with function
+  hoisting covering forward references.
+
+### What worked
+- Gate: `js hits` = 11 regions on home (fingerprint unchanged); probe 1
+  (13-op builder page), probe 5 (services), probe 13 (runaway killed at
+  802 ms, context alive after a 51-exception storm); `js pulp` → home, 11
+  regions; zero unexpected exceptions; arena_used at boot 14,812 B (same as
+  pre-split 14,860 ± jitter).
+
+### What didn't work
+- N/A (the ATOM_ALIGN "Too many properties" warning is the documented
+  benign one).
+
+### What was tricky to build
+- Only the concat order: apps sort lexically (2048 first), so top-level
+  `var` initializers now run in a different order than the original file —
+  safe because every section's initializers are self-contained; the diary
+  records this so nobody adds a cross-section initializer dependency.
+
+### What warrants a second pair of eyes
+- `git diff` of build_bytecode_apps.sh; confirm no other consumer expected
+  per-app `js_<name>.h` headers (grep found none).
+
+### What should be done in the future
+- Phase 2 rewrites the app files as descriptors; do not merge P1 alone
+  without noting pulp.js is regenerable as `build/pulp_all.js`.
+
+### Code review instructions
+- `python3 <ticket>/scripts/05-phase1-split.py` is not idempotent (pulp.js
+  removed); review the split by `cat`ing build/pulp_all.js against the old
+  pulp.js from git history: `git show 4d59929a:0114-papers3-pulp-os/tools/js/apps/pulp.js | diff - 0114-papers3-pulp-os/tools/js/build/pulp_all.js` — expect only section reordering.

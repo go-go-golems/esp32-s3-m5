@@ -37,3 +37,4 @@ __pycache__/
 
 # Local clone (embedded git repo); track as a real submodule if needed.
 imports/lv_m5_emulator/
+tools/js/build/

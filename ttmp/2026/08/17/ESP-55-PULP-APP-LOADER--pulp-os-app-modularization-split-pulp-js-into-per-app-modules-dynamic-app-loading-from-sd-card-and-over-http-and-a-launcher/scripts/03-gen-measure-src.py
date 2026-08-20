@@ -4,7 +4,8 @@ arrays in main/js_measure_src.h so the `js measure` console op can time
 JS_Eval of realistic app-module source on the device.
 
 Temporary instrumentation: superseded in Phase 3 by the real load(path).
-Regenerate after editing pulp.js: sections are cut at `// ---- name --`.
+NOTE (P1): pulp.js is gone; main/js_measure_src.h is FROZEN at the pre-split
+sections as the measurement baseline. Do not regenerate.
 """
 import re, sys, os
 

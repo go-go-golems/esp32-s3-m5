@@ -1,0 +1,63 @@
+// ---------------------------------------------------------------- home --
+
+// Status glyph text for the launcher header (dynamic; refreshed on the
+// home page's slow tick, presented only when it changes).
+function wifiGlyph() {
+  var st = wifi.status();
+  if (st === 4) { return 'wifi ' + wifi.ip(); }
+  if (st === 3) { return 'wifi joining'; }
+  if (st === 2) { return 'wifi scanning'; }
+  return st === 0 ? '' : 'wifi idle';
+}
+
+// Battery glyph (ESP-54): level% and a '+' when charging. A dyn value so
+// the home tick refreshes it only when the string changes.
+function batteryGlyph() {
+  var s = battery.statusText();
+  return s === '?' ? '' : s;
+}
+
+function home() {
+  enter('home');
+  var header = col().pad(16, M, 6, M).gap(4).add(
+    row().crossAlign(3).add(
+      text('PULP').size('xl'), spacer(0, 1),
+      text(function () { return batteryGlyph() + '  ' + wifiGlyph(); })
+        .size('xs').gray(96)),
+    text('THE PAPERBACK OF COMPUTERS').size('xs').gray(96),
+    divider(8, 0));
+  var menu = list().pad(4, 0, 0, 0);
+  function entryRow(label, sub, fn) {
+    // Separators carry the same 40px margins as the header rule.
+    var line = row().pad(6, 0, 4, 0).gap(10).crossAlign(3)
+      .add(text(label).size('lg'), spacer(0, 1),
+           text(sub).size('xs').gray(112));
+    menu.add(col().pad(0, M, 0, M).add(line, divider(2, 0)).onTap(fn));
+  }
+  entryRow('Reader', 'books on the card', library);
+  entryRow('Dice Tray', '2d6 coin d20 d%', dice);
+  entryRow('Blitz Ink', 'chess clock 5+3', blitz);
+  entryRow('2048 INK', 'best ' + storeGet('2048best', 0), g2048);
+  entryRow('Tea Timer', 'steep watch', tea);
+  entryRow('Postcard', 'one line a day', postcard);
+  entryRow('Daily Pulp', 'a page at random', daily);
+  entryRow('Ink', 'the beauty of e-ink', ink);
+  entryRow('Gallery', 'your pictures', gallery);
+  entryRow('Radio', 'words from the ether', radio);
+  entryRow('Settings', 'wifi - serve - margins', settings);
+  var p = page('home').header(header).content(menu)
+    .footer(hintFooter('tap to open - swipe down = home'));
+  p.every(5000);
+  // ESP-54: register OS web routes once serve becomes available. Runs
+  // from the tick because serve may start after boot (osRoutes no-ops
+  // when serve.url()==='' at enter() time).
+  p.on(G.TICK, function () {
+    if (!ROUTES_READY && serve.url() !== '') {
+      ROUTES_READY = true;
+      osRoutes();
+    }
+  });
+  announce('home');
+  p.show(true);
+}
+
