@@ -235,6 +235,10 @@ topics:
       description: Battery level and charge status monitoring (M5Unified power)
     - slug: design-system
       description: 'UI design systems: tokens, idioms, typography and layout consistency'
+    - slug: demo
+      description: Demo and showcase applications
+    - slug: networking
+      description: 'Network stack work: WiFi, HTTP, mDNS, discovery, webserver routes'
 docTypes:
     - slug: index
       description: Ticket index document
