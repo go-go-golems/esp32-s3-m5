@@ -12,3 +12,6 @@
 - [x] Write intern guide: decision records + phased implementation plan + testing <!-- t:1kdx -->
 - [x] Bookkeeping: relate files, changelog, doctor <!-- t:1jjk -->
 - [x] Upload bundle to reMarkable <!-- t:276o -->
+- [x] P1: mechanical split into os/ + apps/, single-image concat (commit 17557c9a) <!-- t:2c2e -->
+- [x] P2: descriptors + os facade + loader + catalog launcher (commit 9ee1fd6f) <!-- t:cci2 -->
+- [x] P3: native load(), ROM assets, image = OS core <!-- t:g7tl -->

@@ -299,11 +299,14 @@ int CmdSleep(int argc, char **argv) {
 }
 
 void PrintJsSnapshot(const JsSnapshot &j) {
-    printf("js init=%u screen_active=%u arena=%u arena_used=%u evals=%u "
+    printf("js init=%u screen_active=%u arena=%u arena_used=%u loads=%u "
+           "last_load_ms=%u evals=%u "
            "exceptions=%u dispatches=%u last_error=\"%s\"\n",
            j.initialized, j.screen_active,
            static_cast<unsigned>(j.arena_bytes),
            static_cast<unsigned>(j.arena_used),
+           static_cast<unsigned>(j.loads),
+           static_cast<unsigned>(j.last_load_ms),
            static_cast<unsigned>(j.evals),
            static_cast<unsigned>(j.exceptions),
            static_cast<unsigned>(j.dispatches), j.last_error);

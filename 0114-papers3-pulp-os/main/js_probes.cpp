@@ -450,6 +450,20 @@ const char kProbe22Js[] =
     "catch (e) { busy = 'yes'; }"
     "print('probe22: cb=' + ok + ' second-busy=' + busy);";
 
+// 23 (ESP-55 P3): load() happy path + every failure mode is a catchable
+// JS exception (missing asset, bad SD path, missing file).
+const char kProbe23Js[] =
+    "var d = load('rom:dice');"
+    "print('probe23: dice typeof=' + typeof d.main + ' id=' + d.id"
+    "      + ' abi=' + d.abi);"
+    "var miss = 'no'; try { load('rom:nope'); } catch (e) { miss = '' + e; }"
+    "print('probe23: miss=' + miss);"
+    "var bad = 'no'; try { load('/../x.js'); } catch (e2) { bad = '' + e2; }"
+    "print('probe23: badpath=' + bad);"
+    "var sd = 'no'; try { load('/apps/missing.js'); }"
+    "catch (e3) { sd = '' + e3; }"
+    "print('probe23: sd=' + sd);";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -572,6 +586,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 20: return jsi::EvalBounded(kProbe20Js, 3000, "<probe20>");
         case 21: return jsi::EvalBounded(kProbe21Js, 5000, "<probe21>");
         case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
+        case 23: return jsi::EvalBounded(kProbe23Js, 5000, "<probe23>");
         default: return StatusCode::InvalidArgument;
     }
 }

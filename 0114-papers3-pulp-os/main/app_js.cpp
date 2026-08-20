@@ -11,9 +11,11 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 
+#include "app_files.h"
 #include "app_input.h"
 #include "app_js_internal.h"
 #include "app_power.h"
+#include "js_assets.h"
 #include "net_serve.h"
 #include "s3paper/text.h"
 #include "s3paper_runtime/runtime.h"
@@ -54,6 +56,13 @@ constexpr uint32_t kArenaBytes = 192 * 1024;
 
 uint8_t *s_arena = nullptr;
 int64_t s_deadline_us = 0;
+// ESP-55 P3: load() counters + SD read buffer (lazy PSRAM, like the files
+// module's body buffer). Sized for the 32 KiB module cap with headroom.
+uint32_t s_loads = 0;
+uint32_t s_last_load_ms = 0;
+constexpr uint32_t kLoadBufBytes = 64 * 1024;
+constexpr int64_t kLoadDeadlineUs = 3'000'000;
+char *s_load_buf = nullptr;
 char s_last_error[48] = {};
 uint32_t s_present_seq = 0;
 bool s_presented = false;
@@ -520,6 +529,8 @@ void FillJsSnapshot(JsSnapshot *out) {
     out->screen_active = JsScreenActive() ? 1 : 0;
     out->arena_bytes = g_ctx != nullptr ? kArenaBytes : 0;
     out->arena_used = g_ctx != nullptr ? JS_GetHeapUsed(g_ctx) : 0;
+    out->loads = s_loads;
+    out->last_load_ms = s_last_load_ms;
     out->evals = g_evals;
     out->exceptions = g_exceptions;
     out->dispatches = g_dispatches;
@@ -570,8 +581,70 @@ JSValue js_gc(JSContext *ctx, JSValue *, int, JSValue *) {
     return JS_UNDEFINED;
 }
 
-JSValue js_load(JSContext *ctx, JSValue *, int, JSValue *) {
-    return JS_ThrowTypeError(ctx, "load() not supported");
+// ESP-55 P3: load(path) — read an app module and evaluate it, returning
+// the file's value (JS_EVAL_RETVAL). Sources: "rom:<id>" (flash asset,
+// zero-copy) or a /sdcard-rooted virtual path under the files sanitizer.
+// Runs under its own deadline; the caller's deadline is restored after
+// (load() is invoked from inside JS, where a CallCb deadline may be live).
+JSValue js_load(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
+    char path[kFilesMaxPath];
+    JSValue err = JS_UNDEFINED;
+    if (argc < 1 || !ArgString(ctx, argv[0], path, sizeof(path), &err)) {
+        return JS_ThrowTypeError(ctx, "load(path) expected");
+    }
+    const char *src = nullptr;
+    uint32_t len = 0;
+    if (strncmp(path, "rom:", 4) == 0) {
+        if (!AssetsFind(path + 4, &src, &len)) {
+            return JS_ThrowTypeError(ctx, "load: no such asset");
+        }
+    } else {
+        char real[kFilesMaxPath + 8];
+        if (FilesResolvePath(path, real, sizeof(real)) !=
+            StatusCode::Ok) {
+            return JS_ThrowTypeError(ctx, "load: bad path");
+        }
+        if (s_load_buf == nullptr) {
+            s_load_buf = static_cast<char *>(
+                heap_caps_malloc(kLoadBufBytes, MALLOC_CAP_SPIRAM));
+            if (s_load_buf == nullptr) {
+                return JS_ThrowTypeError(ctx, "load: no memory");
+            }
+        }
+        FILE *f = fopen(real, "rb");
+        if (f == nullptr) {
+            return JS_ThrowTypeError(ctx, "load: no such file");
+        }
+        const size_t got = fread(s_load_buf, 1, kLoadBufBytes, f);
+        const bool more = fgetc(f) != EOF;
+        fclose(f);
+        if (more || got == kLoadBufBytes) {
+            return JS_ThrowTypeError(ctx, "load: file too large");
+        }
+        src = s_load_buf;
+        len = static_cast<uint32_t>(got);
+    }
+    const int64_t saved_deadline = s_deadline_us;
+    const int64_t t0 = esp_timer_get_time();
+    s_deadline_us = t0 + kLoadDeadlineUs;
+    const JSValue parsed = JS_Parse(ctx, src, len, path, JS_EVAL_RETVAL);
+    const JSValue out =
+        JS_IsException(parsed) ? parsed : JS_Run(ctx, parsed);
+    s_deadline_us = saved_deadline;
+    g_evals++;
+    s_loads++;
+    s_last_load_ms = static_cast<uint32_t>(
+        (esp_timer_get_time() - t0) / 1000);
+    if (JS_IsException(out)) {
+        RecordException(path);
+        ESP_LOGW(kTag, "js load FAILED: %s (%u bytes)", path,
+                 static_cast<unsigned>(len));
+        return out;  // propagate to the JS caller
+    }
+    ESP_LOGI(kTag, "js load: %s %u bytes %u ms", path,
+             static_cast<unsigned>(len),
+             static_cast<unsigned>(s_last_load_ms));
+    return out;
 }
 
 JSValue js_setTimeout(JSContext *ctx, JSValue *, int, JSValue *) {

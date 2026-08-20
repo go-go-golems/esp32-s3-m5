@@ -56,3 +56,14 @@ Step 8 (P0): js measure op + JS_GetHeapUsed + arena_used flashed (4d59929a); dev
 
 Step 9 (P0 done): measured on device — dice 35 ms/+3.0 KB, settings 81 ms/+7.5 KB retained, x10 flat, boot retention 7.5 KB; gate passed; guide §4.3 updated
 
+
+## 2026-08-19
+
+Phases 1-3 implemented and hardware-validated: pulp.js split (17557c9a), descriptors+facade+loader (9ee1fd6f), native load()+ROM assets, image 45.3->10.7 KB, +34.7 KB internal RAM, all apps load in 15-35 ms, probe 23, ten-launch flatness
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/app_js.cpp — real js_load with deadline save/restore and load counters
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/js_assets.cpp — ROM app asset registry (EMBED_TXTFILES)
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/tools/js/os/30-loader.js — gc-load-validate-enter-main loader
+

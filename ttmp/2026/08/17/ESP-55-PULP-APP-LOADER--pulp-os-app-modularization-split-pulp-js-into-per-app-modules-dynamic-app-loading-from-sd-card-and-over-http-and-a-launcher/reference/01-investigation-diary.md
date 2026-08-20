@@ -17,8 +17,22 @@ Owners: []
 RelatedFiles:
     - Path: repo://0114-papers3-pulp-os/components/mquickjs/mquickjs.c
       Note: Step 1 bytecode load rules verified
+    - Path: repo://0114-papers3-pulp-os/main/CMakeLists.txt
+      Note: EMBED_TXTFILES wiring
     - Path: repo://0114-papers3-pulp-os/main/app_js.cpp
       Note: Step 1 first-hand read of the JS host core
+    - Path: repo://0114-papers3-pulp-os/main/js_assets.cpp
+      Note: flash asset registry
+    - Path: repo://0114-papers3-pulp-os/tools/js/apps/settings.js
+      Note: largest descriptor conversion (multi-screen relaunch)
+    - Path: repo://0114-papers3-pulp-os/tools/js/os/10-facade.js
+      Note: the os facade (P2)
+    - Path: repo://0114-papers3-pulp-os/tools/js/os/20-catalog.js
+      Note: ROM_APPS catalog (P3)
+    - Path: repo://0114-papers3-pulp-os/tools/js/os/30-loader.js
+      Note: loader (P2/P3)
+    - Path: repo://0114-papers3-pulp-os/tools/js/os/40-launcher.js
+      Note: catalog-driven launcher
     - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/01-trial-split-bytecode-sizes.py
       Note: Step 2 experiment script
     - Path: repo://ttmp/2026/08/17/ESP-55-PULP-APP-LOADER--pulp-os-app-modularization-split-pulp-js-into-per-app-modules-dynamic-app-loading-from-sd-card-and-over-http-and-a-launcher/scripts/02-host-eval-harness.c
@@ -31,6 +45,7 @@ LastUpdated: 2026-08-17T11:02:44.989239565-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 # Investigation diary — ESP-55 PULP app loader
@@ -804,3 +819,93 @@ launcher builds its rows from the catalog.
   execution order.
 - Device: `js hits` on home must show 11 rows at y=150..777; tap-walk per
   p2-walk.log.
+
+## Step 12: Phase 3 — native load(), flash assets, the image shrinks to the OS core
+
+Apps are no longer in the bytecode image. `load(path)` is real: it serves
+`rom:<id>` from NUL-terminated flash assets (zero-copy `JS_Parse` straight
+from flash) and `/sdcard`-rooted paths through the files sanitizer into a
+lazy 64 KiB PSRAM buffer, evaluates under a 3 s deadline with the caller's
+deadline saved/restored, and returns the file's value. The loader
+gc()s, loads, validates and only then crosses the app-switch boundary.
+The image dropped 49,408 → 10,656 bytes and internal RAM gained exactly
+the difference.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 10)
+
+**Assistant interpretation:** Phase 3 of the plan.
+
+**Inferred user intent:** Apps load dynamically; reflash only for OS changes.
+
+**Commit (code):** (this commit) — "ESP-55 P3: native load(), ROM app assets, catalog/loader on load(), image = OS core"
+
+### What I did
+- `main/js_assets.{h,cpp}`: EMBED_TXTFILES all 12 `tools/js/apps/*.js`
+  (main/CMakeLists.txt), `AssetsFind(name, &src, &len)` registry (len
+  excludes the appended NUL; symbol names confirmed against IDF's
+  `data_file_embed_asm.cmake` — `_binary_2048_js_start` is legal).
+- `main/app_js.cpp`: real `js_load` replacing the throwing stub (same
+  name/arity → **no stdlib/atom regeneration**); `s_loads`,
+  `s_last_load_ms`, 64 KiB `s_load_buf`; deadline save/restore because
+  load() runs inside a live CallCb deadline; evidence lines
+  `js load: <path> <bytes> <ms>` / `js load FAILED: <path>`.
+- `JsSnapshot.loads/last_load_ms` + `js status` print; probe 23.
+- `os/20-catalog.js`: ROM_APPS with metadata + `src:'rom:<id>'` (reader
+  hidden); `os/30-loader.js`: `RUN.desc=null; gc(); load(e.src)` →
+  validate → enter → main; launcher iterates ROM_APPS.
+- `build_bytecode_apps.sh`: image = `cat os/*.js` only.
+
+### Why
+- Descriptor-shaped files from P2 made this a plumbing change: no app file
+  was touched in P3.
+
+### What worked (gate)
+- Image 10,656 B (estimate was ~16 KB); internal_free 124,947 → 159,631
+  (+34,684 B — the bytecode copy shrank by exactly 34,696 B).
+- Probe 23: `dice typeof=function id=dice abi=2`; rom miss / bad path /
+  missing SD file all throw catchable TypeErrors.
+- All 11 launcher rows load-and-launch from flash: `js load: rom:library
+  1323 bytes 15 ms` … `rom:settings`; every `pulp screen:` line correct;
+  12 returns to home.
+- Ten consecutive dice launches: 10 × `35 ms`, arena stable ≈40 KB after
+  22 loads (the gc()-before-load keeps the P2 walk's 114 KB drift down),
+  exceptions 0 throughout.
+
+### What didn't work
+- N/A first-try on device; one design nit found while writing: failing
+  loads return before `s_loads++`, so `loads=` counts *evaluated* loads
+  only — documented here, acceptable.
+
+### What I learned
+- `EMBED_TXTFILES` `_end` points past the appended NUL (len = end−start−1),
+  and IDF's MAKE_C_IDENTIFIER only prefixes `_` when the *whole* string
+  starts with a digit — `_binary_2048_js_start` needs no special casing.
+- Measured load() cost matches the Phase 0 prediction exactly (dice 35 ms
+  both as raw eval and as load()).
+
+### What was tricky to build
+- The deadline nesting: `load()` is called from inside a JS callback that
+  already has a 1 s CallCb deadline; naively clearing `s_deadline_us` after
+  load would have removed the outer deadline. Saved/restored instead.
+- Asset symbol naming for `2048.js` (digit-leading basename) — verified in
+  the IDF cmake script rather than trial-and-error.
+
+### What warrants a second pair of eyes
+- `js_load`'s error paths (fclose before every return; `more || got ==
+  kLoadBufBytes` oversize check); the loader's `desc && typeof desc.main`
+  validation order; whether `loads` should also count failed loads.
+
+### What should be done in the future
+- Phase 4: SD catalog + seeding (needs `assets.copy` native + manifest
+  scan); Phase 5–6: HTTP push/pull; the README "adding an app" section
+  should be updated when Phase 4 lands (today: EMBED_TXTFILES + js_assets
+  row + ROM_APPS entry).
+
+### Code review instructions
+- `git show <this commit>`: `main/app_js.cpp` (js_load), `main/js_assets.*`,
+  `os/{20-catalog,30-loader}.js`, `build_bytecode_apps.sh`.
+- Device validation: `js probe 23`; tap-walk (p3-walk.log); flatness
+  (p3-flat.log): ten `js tap 270 235` + `js swipe 5` cycles → ten
+  `js load: rom:dice 2685 bytes 35 ms` lines, arena_used stable.

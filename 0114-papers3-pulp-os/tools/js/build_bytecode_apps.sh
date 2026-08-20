@@ -41,18 +41,12 @@ gcc -O2 -Wall -I"${HOST_DIR}" -I"${ENGINE_DIR}" \
 BUILD_DIR="${JS_DIR}/build"
 mkdir -p "${BUILD_DIR}"
 ALL="${BUILD_DIR}/pulp_all.js"
-cat "${JS_DIR}"/os/[0-3]*.js > "${ALL}"
-# Each app file is a bare descriptor expression (ESP-55 P2); the registry
-# glue is generated here so the files stay in load()-ready form.
-for app in "${JS_DIR}"/apps/*.js; do
-    name="$(basename "${app}" .js)"
-    {
-        printf "APPS['%s'] =\n" "${name}"
-        cat "${app}"
-        printf ";\n"
-    } >> "${ALL}"
-done
-cat "${JS_DIR}"/os/[4-9]*.js >> "${ALL}"
+# ESP-55 P3: the image is the OS core only. App modules are flash assets
+# (main/CMakeLists.txt EMBED_TXTFILES + main/js_assets.cpp) loaded on
+# demand by load('rom:<id>'). Adding an app: create tools/js/apps/<id>.js,
+# add it to EMBED_TXTFILES + js_assets.cpp, and append a ROM_APPS entry in
+# os/20-catalog.js.
+cat "${JS_DIR}"/os/*.js > "${ALL}"
 "${HOST_DIR}/pulpjsc" "${ALL}" "${ROOT_DIR}/main/js_pulp.h" \
     "kJsBytecode_pulp"
 echo "bytecode image written to main/js_pulp.h"

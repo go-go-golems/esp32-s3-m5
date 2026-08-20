@@ -287,6 +287,8 @@ struct JsSnapshot {
     uint8_t screen_active;
     uint32_t arena_bytes;
     uint32_t arena_used;  // ESP-55: JS_GetHeapUsed at snapshot time
+    uint32_t loads;         // ESP-55 P3: load() invocations
+    uint32_t last_load_ms;  // ESP-55 P3: wall time of the last load()
     uint32_t evals;
     uint32_t exceptions;
     uint32_t dispatches;

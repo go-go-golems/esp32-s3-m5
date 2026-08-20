@@ -38,14 +38,13 @@ function home() {
   }
   // ESP-55: rows come from the catalog, not a hard-coded list.
   var i;
-  for (i = 0; i < ROM_ORDER.length; i++) {
-    (function (id) {
-      var d = APPS.hasOwnProperty(id) ? APPS[id] : null;
-      if (!d) { return; }
-      var sub = typeof d.subtitle === 'function' ? d.subtitle()
-                                                 : (d.subtitle || '');
-      entryRow(d.title, sub, function () { launch(id); });
-    })(ROM_ORDER[i]);
+  for (i = 0; i < ROM_APPS.length; i++) {
+    (function (e) {
+      if (e.hidden) { return; }
+      var sub = typeof e.subtitle === 'function' ? e.subtitle()
+                                                 : (e.subtitle || '');
+      entryRow(e.title, sub, function () { launch(e.id); });
+    })(ROM_APPS[i]);
   }
   var p = page('home').header(header).content(menu)
     .footer(hintFooter('tap to open - swipe down = home'));

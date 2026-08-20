@@ -25,9 +25,23 @@ idf_component_register(
         "js_images.cpp"
         "js_mdns.cpp"
         "js_probes.cpp"
+        "js_assets.cpp"
         "js_stdlib_table.c"
     INCLUDE_DIRS
         "."
+    EMBED_TXTFILES
+        "../tools/js/apps/2048.js"
+        "../tools/js/apps/blitz.js"
+        "../tools/js/apps/daily.js"
+        "../tools/js/apps/dice.js"
+        "../tools/js/apps/gallery.js"
+        "../tools/js/apps/ink.js"
+        "../tools/js/apps/library.js"
+        "../tools/js/apps/postcard.js"
+        "../tools/js/apps/radio.js"
+        "../tools/js/apps/reader.js"
+        "../tools/js/apps/settings.js"
+        "../tools/js/apps/tea.js"
     REQUIRES
         mquickjs
         console

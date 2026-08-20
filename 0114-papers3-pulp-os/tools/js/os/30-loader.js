@@ -1,16 +1,27 @@
 // ------------------------------------------------------------- loader --
-// launch(id, arg): resolve the descriptor, validate, cross the app-switch
-// boundary, run main. Failures land on the error page, never in a broken
-// tree: enter() runs only after validation.
+// launch(id, arg): catalog lookup -> drop the previous module + gc (the
+// parser competes with garbage for arena headroom) -> load() -> validate
+// -> app-switch boundary -> main. Failures land on the error page; the
+// previous page stays presented until validation has passed, so a broken
+// module never leaves a half-torn tree.
 
 var RUN = { id: 'home', desc: null };
 
 function launch(id, arg) {
-  var desc = APPS.hasOwnProperty(id) ? APPS[id] : null;
-  if (!desc) { errorPage(id, 'not in catalog'); return; }
-  if (typeof desc.main !== 'function' || desc.id !== id ||
+  var e = catalogFind(id);
+  if (!e) { errorPage(id, 'not in catalog'); return; }
+  RUN.desc = null;
+  gc();
+  var desc = null;
+  try {
+    desc = load(e.src);
+  } catch (ex) {
+    errorPage(id, 'load failed: ' + ex);
+    return;
+  }
+  if (!desc || typeof desc.main !== 'function' || desc.id !== id ||
       desc.abi !== os.abi) {
-    errorPage(id, 'bad descriptor (abi ' + desc.abi + ')');
+    errorPage(id, 'bad descriptor (abi ' + (desc && desc.abi) + ')');
     return;
   }
   RUN.id = id;
@@ -18,8 +29,8 @@ function launch(id, arg) {
   enter(id);
   try {
     desc.main(os, arg);
-  } catch (e) {
-    errorPage(id, 'crashed: ' + e);
+  } catch (ex2) {
+    errorPage(id, 'crashed: ' + ex2);
   }
 }
 
