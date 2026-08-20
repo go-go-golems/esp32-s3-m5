@@ -710,3 +710,97 @@ filename string) — and the device gate confirms identical behavior.
 - `python3 <ticket>/scripts/05-phase1-split.py` is not idempotent (pulp.js
   removed); review the split by `cat`ing build/pulp_all.js against the old
   pulp.js from git history: `git show 4d59929a:0114-papers3-pulp-os/tools/js/apps/pulp.js | diff - 0114-papers3-pulp-os/tools/js/build/pulp_all.js` — expect only section reordering.
+
+## Step 11: Phase 2 — descriptors, the os facade, catalog-driven launcher
+
+Every app file is now a bare descriptor expression `({id, title, subtitle,
+version, abi, main: function (os, arg) {...}})` — the exact shape `load()`
+will consume in Phase 3 — and the build script generates the registry glue
+(`APPS['<id>'] = (<file>);`). The OS grew three files: the facade
+(os/10-facade.js: os.M getter, os.state/clearState, chrome/hintFooter/
+announce/pad2/fmtClock, home, launch, netUp, abi), the catalog
+(os/20-catalog.js: APPS + ROM_ORDER, reader launchable but unlisted), and
+the loader (os/30-loader.js: validate → enter → main, errorPage). The
+launcher builds its rows from the catalog.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 10)
+
+**Assistant interpretation:** Phase 2 of the plan.
+
+**Inferred user intent:** Apps in their final module shape, one image still.
+
+**Commit (code):** (this commit) — "ESP-55 P2: app descriptors + os facade + loader + catalog launcher"
+
+### What I did
+- Rewrote all 12 app files as descriptors: enter() removed (loader owns
+  it); chrome/hintFooter/announce/fmtClock/pad2/netUp → os.*; margins → 
+  os.M; cross-app calls → os.launch('reader', idx) / os.launch('library')
+  / os.home(); persistent state → os.state('<id>', init) (dice, blitz,
+  2048, tea, postcard, gallery, radio, settings msg); per-entry state left
+  local (reader, daily, ink).
+- settings became one app with three internal screens (main/scan/pass)
+  navigated by relaunching itself: os.launch('settings', {screen, ssid}).
+  The old code called enter() at every screen change; enter is deliberately
+  not on the facade, so screen changes cross the loader (guide §6.3).
+- build_bytecode_apps.sh wraps each app file as `APPS['<id>'] = (…);` at
+  concatenation time — files stay load()-ready.
+- Gate on device (transcripts p2-*.log in the session scratchpad).
+
+### Why
+- The descriptor + facade contract is the whole point of the ticket; doing
+  it while everything is still one image isolates the contract change from
+  the loading change.
+
+### What worked
+- pulpjsc accepts the ES5 object-literal getter (`get M() { return M; }`).
+- Gate: launcher 11 rows from the catalog (same fingerprint, same y
+  rects); all 11 rows tap-launch with correct `pulp screen:` lines
+  (library, dice, blitz, 2048, tea, postcard, daily, ink/0, gallery —
+  which displayed its stored image —, radio, settings); settings margin
+  toggle relaunches through the loader twice; dice rolled twice and
+  re-entered (os.state path); probes 1 and 13 pass; zero unexpected
+  exceptions across the whole walk.
+- Image: 49,408 B (+4 KB for facade/loader/registry glue + descriptor
+  wrappers).
+
+### What didn't work
+- N/A — no failed attempts this step; the settings-relaunch design
+  question was settled in the guide beforehand.
+
+### What I learned
+- arena_used climbs across app switches without eval (18 KB → 114 KB over
+  the walk + probe storm): garbage from rebuilt pages accumulates until
+  the engine GCs on allocation pressure. Not a leak (the measure op's
+  dice ×10 with explicit gc() is flat), but the P3 loader's gc()-before-
+  load is doing real work, and `js status` arena_used is only meaningful
+  after a gc().
+
+### What was tricky to build
+- settings: three enter()-calling screens plus completion callbacks that
+  rebuilt the page (netUp → serve.start → settings()). Every rebuild
+  became os.launch('settings', arg); the "no rebuild until the callback
+  lands" rule from ESP-53 is preserved because the relaunch happens inside
+  the completion callback, exactly like the old code.
+- The 2048 subtitle is a function (`'best ' + storeGet(...)`) evaluated by
+  the launcher at build time — descriptors may carry function subtitles
+  only in ROM (JSON manifests in Phase 4 cannot, guide gotcha 8).
+
+### What warrants a second pair of eyes
+- apps/settings.js (the largest rewrite; compare against git history of
+  the settings section); the facade getter (`get M()`) — if any tool in
+  the pipeline ever chokes on getters, os.M becomes a function.
+- Launcher dispatches launch(id) through a closure per row; cb ids 4–14
+  map to rows in ROM_ORDER order — the fingerprint table in p2-hits.log.
+
+### What should be done in the future
+- Phase 3: load() + assets; the walk's arena numbers justify the gc()
+  before load.
+
+### Code review instructions
+- `git show <this commit>`; run `tools/js/build_bytecode_apps.sh` and read
+  `tools/js/build/pulp_all.js` top to bottom — it is the whole OS in
+  execution order.
+- Device: `js hits` on home must show 11 rows at y=150..777; tap-walk per
+  p2-walk.log.

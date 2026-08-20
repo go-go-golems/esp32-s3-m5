@@ -18,6 +18,8 @@ function batteryGlyph() {
 }
 
 function home() {
+  RUN.id = 'home';
+  RUN.desc = null;
   enter('home');
   var header = col().pad(16, M, 6, M).gap(4).add(
     row().crossAlign(3).add(
@@ -34,17 +36,17 @@ function home() {
            text(sub).size('xs').gray(112));
     menu.add(col().pad(0, M, 0, M).add(line, divider(2, 0)).onTap(fn));
   }
-  entryRow('Reader', 'books on the card', library);
-  entryRow('Dice Tray', '2d6 coin d20 d%', dice);
-  entryRow('Blitz Ink', 'chess clock 5+3', blitz);
-  entryRow('2048 INK', 'best ' + storeGet('2048best', 0), g2048);
-  entryRow('Tea Timer', 'steep watch', tea);
-  entryRow('Postcard', 'one line a day', postcard);
-  entryRow('Daily Pulp', 'a page at random', daily);
-  entryRow('Ink', 'the beauty of e-ink', ink);
-  entryRow('Gallery', 'your pictures', gallery);
-  entryRow('Radio', 'words from the ether', radio);
-  entryRow('Settings', 'wifi - serve - margins', settings);
+  // ESP-55: rows come from the catalog, not a hard-coded list.
+  var i;
+  for (i = 0; i < ROM_ORDER.length; i++) {
+    (function (id) {
+      var d = APPS.hasOwnProperty(id) ? APPS[id] : null;
+      if (!d) { return; }
+      var sub = typeof d.subtitle === 'function' ? d.subtitle()
+                                                 : (d.subtitle || '');
+      entryRow(d.title, sub, function () { launch(id); });
+    })(ROM_ORDER[i]);
+  }
   var p = page('home').header(header).content(menu)
     .footer(hintFooter('tap to open - swipe down = home'));
   p.every(5000);
@@ -60,4 +62,3 @@ function home() {
   announce('home');
   p.show(true);
 }
-

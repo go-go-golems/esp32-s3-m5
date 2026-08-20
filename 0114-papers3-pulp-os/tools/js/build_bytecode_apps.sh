@@ -41,8 +41,18 @@ gcc -O2 -Wall -I"${HOST_DIR}" -I"${ENGINE_DIR}" \
 BUILD_DIR="${JS_DIR}/build"
 mkdir -p "${BUILD_DIR}"
 ALL="${BUILD_DIR}/pulp_all.js"
-cat "${JS_DIR}"/os/[0-3]*.js "${JS_DIR}"/apps/*.js \
-    "${JS_DIR}"/os/[4-9]*.js > "${ALL}"
+cat "${JS_DIR}"/os/[0-3]*.js > "${ALL}"
+# Each app file is a bare descriptor expression (ESP-55 P2); the registry
+# glue is generated here so the files stay in load()-ready form.
+for app in "${JS_DIR}"/apps/*.js; do
+    name="$(basename "${app}" .js)"
+    {
+        printf "APPS['%s'] =\n" "${name}"
+        cat "${app}"
+        printf ";\n"
+    } >> "${ALL}"
+done
+cat "${JS_DIR}"/os/[4-9]*.js >> "${ALL}"
 "${HOST_DIR}/pulpjsc" "${ALL}" "${ROOT_DIR}/main/js_pulp.h" \
     "kJsBytecode_pulp"
 echo "bytecode image written to main/js_pulp.h"
