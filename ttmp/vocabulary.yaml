@@ -239,6 +239,8 @@ topics:
       description: Demo and showcase applications
     - slug: networking
       description: 'Network stack work: WiFi, HTTP, mDNS, discovery, webserver routes'
+    - slug: golang
+      description: Go tooling and servers in this repo
 docTypes:
     - slug: index
       description: Ticket index document
