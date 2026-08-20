@@ -356,3 +356,50 @@ Phases are ordered so each lands independently testable; hardware gates use the 
 - `tools/js/gen_pulp_stdlib.sh` — stdlib/atom regen + bytecode-recoupling warning.
 - `managed_components/espressif__mdns/include/mdns.h` — `mdns_query_ptr` (:680), async query family (:577–:634).
 - ESP-55 ticket (app loader: push/pull/QR, worker patterns, soak driver); ESP-56 (design idioms); ESP-57 (encoding trap, manifest rules, files.list cap history).
+
+## 10. As built — validation evidence (2026-08-20)
+
+All five phases landed the same day the guide was written; the design
+survived contact with hardware with three deviations, each recorded here
+and in the diary.
+
+**Evidence (shots in ticket `sources/shots/`, commits dd592140 →
+fbd4c299):**
+
+- **P3:** 12-app index over HTTP from `tools/js/demos`; record browsable
+  with TXT `path`/`name`. Two host traps: `Zeroconf()` must bind one
+  interface (igmp_max_memberships ENOBUFS), and avahi on this host sees
+  no `_pulp-apps` records at all (not even the device's) — gate with the
+  zeroconf client snippet from the diary, never avahi-browse.
+- **P1:** probe 29 on hardware: wifi-down → `rc=0` then `done k=50 n=0
+  e=1`; live → `[0] Demo Shelf -> http://192.168.0.39:8123/pulp/index.json`;
+  overlapping browse throws "module busy" (the module-cb guard fires
+  before the Busy rc can — same semantics as wifi join-during-scan).
+- **P2:** on-panel walk: wifi-down toast lands on Apps; GET APPS lists
+  the shelf; DEMO SHELF shows 12 installed-marked rows; tap →
+  `installed d-books (1970B)`. Zero URLs typed end to end.
+- **P4:** device index returns 14 card-backed apps (`truncated: 0`);
+  `/appsrc/dice.js` → 200, 2624 B; `/appsrc/../books/x.js` → 404; host
+  browse sees both shelves (`PULP OS` @ 192.168.0.149:80, `Demo Shelf` @
+  192.168.0.39:8123). The device's own store does not list itself
+  (espressif mdns ignores its own answers) — accidental, correct.
+
+**Deviations from the design:**
+
+1. The WiFi gate moved BEFORE `MdnsInit()` in `MdnsBrowse` — `mdns_init`
+   itself fails without a netif, and the wifi-down contract must be the
+   deterministic immediate completion, not an init error.
+2. "Get apps" lives on the MAIN Settings screen, not the apps screen: a
+   21st menuRow threw `widget arena full` (`WidgetArena::kCapacity=128`;
+   the apps screen with a full catalog already sits at ~20 rows). The
+   shelf screen caps at 14 rows + a "+N more" note for the same reason.
+   A capacity bump is not a drive-by: `widget_diff.cpp`/`widget_render.cpp`
+   keep kCapacity-sized scratch arrays on the 8 KiB owner stack.
+3. Module source for the device's own index is served by a native httpd
+   alias (`/appsrc/<id>.js`, id-charset validated), not a JS route — JS
+   route handlers are synchronous and `files.*` is async; the httpd task
+   is the one sanctioned off-owner VFS reader.
+
+**New open questions from the build:** JS route table now 5/8 used by
+the OS (d-serve fills it exactly); index paging beyond the 3.5 KB
+budget; `/appsrc/` widens the unauthenticated LAN surface to reads.

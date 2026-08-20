@@ -31,3 +31,17 @@ Step 3: P2 store screens (6e1b6acb); widget-arena ceiling found and scoped aroun
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/tools/js/apps/settings.js — Store screens + Get apps row (commit 6e1b6acb)
 
+
+## 2026-08-20
+
+Step 4: P4 device-as-shelf (fbd4c299) + P5 evidence; guide section 10 as-built appendix
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/net_serve.cpp — appsrc alias + StreamFile (commit fbd4c299)
+
+
+## 2026-08-20
+
+Ticket closed
+

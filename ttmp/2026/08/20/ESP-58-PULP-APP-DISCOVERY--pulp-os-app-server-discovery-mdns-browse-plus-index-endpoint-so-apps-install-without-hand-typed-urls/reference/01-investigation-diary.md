@@ -309,3 +309,80 @@ screen defensively caps at 14 rows + a "+N more (not shown)" note.
 ### Code review instructions
 - `git show 6e1b6acb` — settings.js only; walk: main → Get apps with and
   without wifi; shelf tap; install tap.
+
+## Step 4: P4 — the device as a shelf, P5 — evidence and closure
+
+The reciprocity phase: the device now advertises `_pulp-apps._tcp`
+itself, serves `/pulp/index.json` over its catalog, and streams module
+source at `/appsrc/<id>.js` — so any second PULP on the network can
+install this one's apps with four taps. With one device on the bench the
+gate was host-side: a zeroconf browse sees both shelves (`PULP OS` at
+192.168.0.149:80 and `Demo Shelf` at 192.168.0.39:8123), the index
+parses, a module fetch returns the exact source, and a traversal attempt
+404s.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 2)
+
+**Commit (code):** fbd4c299 — "ESP-58 P4: the device is itself an app shelf"
+
+### What I did
+- `net_mdns.cpp`: `_pulp-apps._tcp` announced beside `_http._tcp` (TXT
+  `path=` only), removed on stop/port-change.
+- `net_serve.cpp`: `StreamFile` extracted from ServeStatic; `/appsrc/`
+  httpd alias (id charset `[a-z0-9_-]{1,24}` + `.js` — traversal is not
+  expressible in the charset).
+- `00-kernel.js` osRoutes: `/pulp/index.json` over the catalog —
+  card-backed, visible, healthy entries only; 3.5 KB byte budget with a
+  `truncated` count (no-silent-caps rule; serve's response cap is 4 KiB).
+- Walk shots copied to sources/shots/ (main, store empty/list, shelf,
+  install toast, wifi-down toast).
+
+### What worked
+- Full host-side gate: 14-app index, `/appsrc/dice.js` 200 (2624 B),
+  traversal 404, both shelves browsable.
+- The device's store does NOT list the device itself — espressif mdns
+  never answers its own queries. Accidental but correct UX (installing
+  from yourself is a no-op); a second PULP will see this one.
+
+### What didn't work
+- `avahi-browse` on this host sees NEITHER shelf — not just the same-host
+  python-zeroconf record but also the DEVICE's (cross-host) announcement,
+  while python-zeroconf sees both. avahi on this machine is not a usable
+  mDNS gate at all; the ticket standard is the zeroconf client snippet
+  (in this diary) or the device itself.
+
+### What I learned
+- JS route slots (`kServeMaxRoutes = 8`) are now 5/8 used by the OS
+  (/status, /apps/list, /apps/run, /pulp/index.json, /images/list);
+  d-serve's three routes fill the table exactly. The next OS route needs
+  a capacity bump or route consolidation — recorded as an open question.
+- ROM subtitles can be functions (2048's best-score); the index route
+  must type-check (`typeof e.subtitle === 'string'`) like the launcher
+  does — same idiom, third occurrence.
+
+### What was tricky to build
+- Where module bytes come from: JS route handlers are synchronous and
+  files.* is async, so the index's URLs cannot be served by a JS route.
+  The `/appsrc/` alias lives in the httpd task instead — the one
+  sanctioned off-owner VFS reader (same rule as the static mount),
+  reusing its streaming path.
+
+### What warrants a second pair of eyes
+- `/appsrc/` exposes installed app source to the LAN unauthenticated —
+  deliberate (same trust level as /apps/upload accepting pushes), but it
+  widens the surface; the guide's out-of-scope note on auth now covers
+  reads too.
+- The 3.5 KB index budget: with ~26 card apps the index fits, but a
+  full 60-app card would truncate; `truncated` makes it visible, paging
+  is future work.
+
+### What should be done in the future
+- Two-device test when a second PaperS3 is on the bench.
+- Route-table capacity or consolidation; index paging; auth story.
+
+### Code review instructions
+- `git show fbd4c299`: net_serve.cpp (ServeAppSrc charset gate FIRST),
+  net_mdns.cpp announce/remove symmetry, 00-kernel.js budget loop.
+- Validate: curl the three URLs above against a served device.

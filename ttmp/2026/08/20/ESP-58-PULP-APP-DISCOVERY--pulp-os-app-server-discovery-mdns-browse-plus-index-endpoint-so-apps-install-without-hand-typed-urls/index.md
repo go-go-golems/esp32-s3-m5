@@ -1,7 +1,7 @@
 ---
 Title: 'PULP OS app-server discovery: mDNS browse plus index endpoint so apps install without hand-typed URLs'
 Ticket: ESP-58-PULP-APP-DISCOVERY
-Status: active
+Status: complete
 Topics:
     - papers3
     - esp32s3
@@ -16,10 +16,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-08-20T12:55:57.06197061-04:00
+LastUpdated: 2026-08-20T14:05:40.994320356-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # PULP OS app-server discovery: mDNS browse plus index endpoint so apps install without hand-typed URLs
 
