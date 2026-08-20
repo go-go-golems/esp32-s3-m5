@@ -104,6 +104,10 @@ static JSValue js_ui_denied(JSContext *ctx, JSValue *this_val, int argc,
 #define js_mdns_status js_ui_denied
 #define js_mdns_host js_ui_denied
 #define js_mdns_url js_ui_denied
+#define js_mdns_browse js_ui_denied   /* ESP-58: network probe, pages never */
+#define js_mdns_count js_ui_denied
+#define js_mdns_name js_ui_denied
+#define js_mdns_index_url js_ui_denied
 /* images + apps + browser control */
 #define js_images_count js_ui_denied
 #define js_images_name js_ui_denied

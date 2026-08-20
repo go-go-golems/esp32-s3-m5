@@ -486,6 +486,11 @@ void HandleEvent(const AppEvent &event) {
                                        &value, &err)) {
                 break;  // consumed by the joinSaved sequencer
             }
+            if (event.payload.module_done.module == ModuleId::Mdns) {
+                // ESP-58: applies a stop that was deferred while the
+                // browse worker held a live query.
+                MdnsOnBrowseDone();
+            }
             JsModuleDone(event.payload.module_done.module,
                          event.payload.module_done.kind, value, err);
             break;

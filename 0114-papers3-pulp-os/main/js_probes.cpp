@@ -556,6 +556,24 @@ const char kProbe28Js[] =
     "      + ' navUrl=\"' + browser.navUrl() + '\"');"
     "print('probe28: close=' + browser.close());";
 
+// 29 (ESP-58 P1): mdns.browse against a _pulp-apps._tcp server on the
+// LAN (ticket scripts/01-app-index-server.py). Prints rc, then the
+// result snapshot from the completion. Also exercises the error paths:
+// a second browse during the window must return Busy (2).
+const char kProbe29Js[] =
+    "var rc = mdns.browse(function (k, n, e) {"
+    "  print('probe29: done k=' + k + ' n=' + n + ' e=' + e);"
+    "  var i;"
+    "  for (i = 0; i < mdns.count(); i++) {"
+    "    print('probe29: [' + i + '] ' + mdns.name(i) + ' -> '"
+    "          + mdns.indexUrl(i));"
+    "  }"
+    "});"
+    "print('probe29: rc=' + rc);"
+    "var busy = 0;"
+    "try { busy = mdns.browse(function () {}); } catch (e2) { busy = -1; }"
+    "print('probe29: second=' + busy + ' (2=Busy expected when rc=0)');";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -684,6 +702,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 26: return jsi::EvalBounded(kProbe26Js, 5000, "<probe26>");
         case 27: return RunProbe27();
         case 28: return jsi::EvalBounded(kProbe28Js, 8000, "<probe28>");
+        case 29: return jsi::EvalBounded(kProbe29Js, 3000, "<probe29>");
         default: return StatusCode::InvalidArgument;
     }
 }

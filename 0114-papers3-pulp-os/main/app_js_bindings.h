@@ -116,6 +116,10 @@ PULP_JS_FN(js_battery_status_text);
 PULP_JS_FN(js_mdns_status);
 PULP_JS_FN(js_mdns_host);
 PULP_JS_FN(js_mdns_url);
+PULP_JS_FN(js_mdns_browse);
+PULP_JS_FN(js_mdns_count);
+PULP_JS_FN(js_mdns_name);
+PULP_JS_FN(js_mdns_index_url);
 
 /* ESP-54 images singleton (gallery catalog + display + upload cb). */
 PULP_JS_FN(js_images_count);

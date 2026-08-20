@@ -45,6 +45,7 @@ enum class ModuleId : uint8_t {
     Images,  // ESP-54 image upload completion
     Apps,    // ESP-55 app upload completion
     Nav,     // ESP-55 P9 page navigation request
+    Mdns,    // ESP-58 mDNS browse completion
     kCount,
 };
 
@@ -63,6 +64,7 @@ enum ModuleDoneKind : int32_t {
     kDoneImagesUpload = 20,  // ESP-54: value = bytes, err = 0 ok
     kDoneAppsUpload = 30,    // ESP-55: value = bytes, err 0 ok/1 card/2 short
     kDoneNavRequest = 40,    // ESP-55 P9: value = 1 go / 2 back / 3 reload
+    kDoneMdnsBrowse = 50,    // ESP-58: value = servers found, err 0 ok/1 no wifi
 };
 
 const char *AppEventKindName(AppEventKind kind);

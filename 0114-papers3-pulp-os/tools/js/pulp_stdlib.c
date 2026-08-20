@@ -193,12 +193,18 @@ static const JSPropDef js_battery[] = {
 
 static const JSClassDef js_battery_obj = JS_OBJECT_DEF("Battery", js_battery);
 
-/* mdns singleton (ESP-54): read-only accessors. pulp.local is announced as
-   a side effect of serve.start() and withdrawn by serve.stop()/wifi.off(). */
+/* mdns singleton (ESP-54, ESP-58): status/host/url are read-only
+   accessors (pulp.local announced by serve.start, withdrawn by
+   serve.stop/wifi.off). browse(fn) is the ESP-58 discovery verb:
+   fn(50, count, err), results via count()/name(i)/indexUrl(i). */
 static const JSPropDef js_mdns[] = {
     JS_CFUNC_DEF("status", 0, js_mdns_status),
     JS_CFUNC_DEF("host", 0, js_mdns_host),
     JS_CFUNC_DEF("url", 0, js_mdns_url),
+    JS_CFUNC_DEF("browse", 1, js_mdns_browse),
+    JS_CFUNC_DEF("count", 0, js_mdns_count),
+    JS_CFUNC_DEF("name", 1, js_mdns_name),
+    JS_CFUNC_DEF("indexUrl", 1, js_mdns_index_url),
     JS_PROP_END,
 };
 
