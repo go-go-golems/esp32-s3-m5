@@ -30,6 +30,7 @@ idf_component_register(
         "js_browser.cpp"
         "js_stdlib_table_ui.c"
         "js_stdlib_table.c"
+        "app_shot.cpp"
     INCLUDE_DIRS
         "."
     EMBED_TXTFILES
@@ -67,6 +68,7 @@ idf_component_register(
         s3paper_m5
         s3paper_storage
         s3paper_runtime
+        screenshot_qoi
         fatfs
         sdmmc
         esp_driver_sdspi

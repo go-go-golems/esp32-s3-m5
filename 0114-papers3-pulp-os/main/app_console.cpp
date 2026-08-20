@@ -582,6 +582,19 @@ int CmdImages(int argc, char **argv) {
     return reply.status == StatusCode::Ok ? 0 : 1;
 }
 
+int CmdShot(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    AppReply reply;
+    // The QOI stream rides the same USB serial before the reply lands.
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Shot, 0, 0, &reply, 30000);
+    printf("shot result: %s\n",
+           StatusCodeName(status == StatusCode::Ok ? reply.status
+                                                   : status));
+    return 0;
+}
+
 void RegisterCommand(const char *name, const char *help,
                      esp_console_cmd_func_t fn) {
     const esp_console_cmd_t cmd = {
@@ -654,6 +667,7 @@ void ConsoleStart() {
                     "images [status|list|display NAME|remove NAME] - "
                     "SD image gallery (ESP-54)",
                     &CmdImages);
+    RegisterCommand("shot", "stream framebuffer as QOI (ESP-56)", &CmdShot);
     RegisterCommand("js",
                     "js [status|probe N|pulp|tap X Y|swipe K] - "
                     "MicroQuickJS runtime",

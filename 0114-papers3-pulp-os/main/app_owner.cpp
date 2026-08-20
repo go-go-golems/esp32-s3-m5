@@ -15,6 +15,7 @@
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
+#include "app_shot.h"
 #include "net_http.h"
 #include "net_mdns.h"
 #include "net_serve.h"
@@ -382,6 +383,12 @@ void HandleConsoleCommand(const AppEvent &event) {
                     break;
             }
             FillServeSnapshot(&reply.payload.serve);
+            break;
+        }
+        case ConsoleOp::Shot: {
+            uint32_t len = 0;
+            reply.status = ShotToConsole(&len) ? StatusCode::Ok
+                                               : StatusCode::CorruptData;
             break;
         }
         case ConsoleOp::Battery: {

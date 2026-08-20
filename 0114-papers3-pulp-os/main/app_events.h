@@ -102,6 +102,7 @@ enum class ConsoleOp : uint8_t {
              //      2 = stop
     Images,  // arg: 0 = status, 1 = list, 2 = display (str_a = name), [ESP-54]
              //      3 = remove (str_a = name), 4 = received cb status
+    Shot,    // stream the framebuffer as QOI over USB serial [ESP-56]
 };
 
 enum class PointerPhase : uint8_t {
