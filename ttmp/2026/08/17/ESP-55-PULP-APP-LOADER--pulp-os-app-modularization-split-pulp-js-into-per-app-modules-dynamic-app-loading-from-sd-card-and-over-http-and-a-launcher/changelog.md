@@ -67,3 +67,8 @@ Phases 1-3 implemented and hardware-validated: pulp.js split (17557c9a), descrip
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/js_assets.cpp — ROM app asset registry (EMBED_TXTFILES)
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/tools/js/os/30-loader.js — gc-load-validate-enter-main loader
 
+
+## 2026-08-19
+
+Phases 4-7 complete: SD catalog+seeding (5d969185), HTTP push+hot reload (7c6c65da), pull install + load NUL fix + list cap (52d0c827), soak 25 cycles/275 loads/0 exceptions, README updated
+

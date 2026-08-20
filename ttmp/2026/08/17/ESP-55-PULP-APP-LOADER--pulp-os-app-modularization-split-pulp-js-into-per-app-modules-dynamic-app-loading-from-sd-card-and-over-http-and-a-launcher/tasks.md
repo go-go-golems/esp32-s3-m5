@@ -15,3 +15,7 @@
 - [x] P1: mechanical split into os/ + apps/, single-image concat (commit 17557c9a) <!-- t:2c2e -->
 - [x] P2: descriptors + os facade + loader + catalog launcher (commit 9ee1fd6f) <!-- t:cci2 -->
 - [x] P3: native load(), ROM assets, image = OS core <!-- t:g7tl -->
+- [x] P4: SD catalog + seeding + merge + apps singleton + upload route (5d969185) <!-- t:sfb0 -->
+- [x] P5: HTTP push + /apps/list + /apps/run hot reload, live gate (7c6c65da) <!-- t:vfcu -->
+- [x] P6: pull install + URL screen + load NUL fix + list cap (52d0c827) <!-- t:k4nf -->
+- [x] P7: soak + README + close-out <!-- t:n2a4 -->

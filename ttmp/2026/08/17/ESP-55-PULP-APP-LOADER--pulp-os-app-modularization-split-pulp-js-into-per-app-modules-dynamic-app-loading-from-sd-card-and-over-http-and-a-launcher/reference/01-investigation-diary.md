@@ -1137,3 +1137,49 @@ genuine firmware bugs on the way.
 - `git show <this commit>`; on device: `js probe 26`, then the meta-gate:
   push driver (script 06), `curl /apps/run?id=driver`, watch
   `driver: installed pulled`, `curl /apps/list`, run pulled.
+
+## Step 16: Phase 7 — soak, README, close-out
+
+The 22-minute soak walked the launcher through every app in a loop
+(scripts/07-pulp-soak.py) while an HTTP poller hit /status and /apps/list
+every 10 s. Result: 25 full cycles, 275 dynamic loads, 274 screen
+presents, zero JS exceptions, arena oscillating in GC steady-state
+(126,224 / ~137,000 B, final 43,456 B after the last collection —
+never approaching the 192 KiB ceiling). HTTP polling: 119 ok / 11 failed
+(timeouts while the single-worker httpd waited behind long panel
+refreshes — the known ESP-53 "one task, sequential requests" behavior,
+not a regression). README gained the apps workflow and the download-mode
+serial gotcha.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 13)
+
+**Assistant interpretation:** Final phase: soak + docs + close-out.
+
+**Inferred user intent:** Confidence the loader holds up under sustained use.
+
+**Commit (code):** (this commit) — "ESP-55 P7: soak script + results, README apps section"
+
+### What I did
+- scripts/07-pulp-soak.py (hold-open port, tap-walk all 11 rows per cycle,
+  `js pulp` after 2048's G.DOWN trap, per-cycle js status sampling).
+- Ran 22 min soak + HTTP poller; collected transcripts (scratchpad
+  p7-soak.log / p7-soak-summary.txt / p7-http.txt).
+- README: serial discipline (download-mode diagnostic, hold-open client),
+  console list updated, new "Apps (ESP-55)" section (descriptor contract,
+  override order, adding apps with and without reflash, caps).
+
+### What worked
+- Zero exceptions over 275 loads / 25 cycles; arena flat in steady state;
+  every app present cycled correctly.
+
+### What didn't work
+- 11/130 HTTP polls timed out during panel refreshes (single httpd worker
+  blocked behind e-ink presents; pre-existing, documented).
+
+### What should be done in the future
+- Phases 8–10 (multi-context runtime, UI sandbox, browser) per the guide.
+
+### Code review instructions
+- Re-run: `python3 <ticket>/scripts/07-pulp-soak.py --minutes 5 --output /tmp/soak.log`.
