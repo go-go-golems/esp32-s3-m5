@@ -1000,3 +1000,60 @@ get a `*`, broken manifests a `!`. Settings grew an Apps screen
   `net_serve.cpp` (ServeAppsUpload), `tools/js/os/20-catalog.js`.
 - Device: `js probe 24` / `25`; first-boot evidence `pulp apps: seeded
   12/12`; `js hits` on settings main = 6 rows.
+
+## Step 14: Phase 5 — HTTP push, /apps/list, hot reload: verified over real WiFi
+
+The developer loop is real: `06-pulp-app-push.sh hello.js --host <ip>
+--run` uploaded a brand-new app over WiFi, the OS watcher rescanned, the
+launcher rebuilt, `/apps/run` queued it, and the home tick launched it —
+`GET /status` then reported `"app":"hello"`. No reflash anywhere.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 13)
+
+**Assistant interpretation:** Phase 5 with a live-network gate.
+
+**Inferred user intent:** One-command app deploys from a laptop.
+
+**Commit (code):** (this commit) — "ESP-55 P5: PUT support for curl -T, push script, live HTTP gate"
+
+### What I did
+- Brought the device up (`net joinsaved` → 192.168.0.149, `serve start 80`).
+- `scripts/06-pulp-app-push.sh` (curl -T + optional /apps/run).
+- Wrote a demo `hello.js` descriptor; pushed; hot-ran.
+- Fixed the one failure: `curl -T` sends **PUT**, the wildcard handler only
+  accepted POST → 405. Added a PUT wildcard handler
+  (`max_uri_handlers` 3), dispatching PUT/POST `/apps/upload` to
+  `ServeAppsUpload` (images upload stays POST-only).
+
+### What worked
+- Push 200 → `/apps/list` gained `{"id":"hello","source":"sd"}` → run
+  `{"run":"hello"}` → within one home tick `/status` `"app":"hello"`.
+- Error paths from the host: bad name → 400, 40 KB body → 413, unknown id
+  → 404, run while an app is showing → 409 (launcher-only by design).
+
+### What didn't work
+- `curl: (22) ... 405` on the first push (PUT vs POST, above); the
+  follow-up `/apps/run` then 404'd because the app never landed.
+
+### What I learned
+- `curl -T` = PUT; the guide's own §6.7 examples used `-T`, so the design
+  implied PUT support all along — now explicit.
+- `/status` is the most reliable remote assertion of "what is on the
+  panel" (`"app":"hello"`), better than scraping console output.
+
+### What was tricky to build
+- Nothing beyond the method mismatch; the P4 plumbing did all the work.
+
+### What warrants a second pair of eyes
+- The PUT handler registration (third wildcard slot) and the POST/PUT
+  dispatch asymmetry (images stays POST-only on purpose).
+
+### What should be done in the future
+- P6 pull install; P7 soak.
+
+### Code review instructions
+- `git show <this commit>` (net_serve.cpp PUT paths, push script).
+- Live: `06-pulp-app-push.sh <app.js> --host pulp.local --run`, then
+  `curl http://pulp.local/status`.

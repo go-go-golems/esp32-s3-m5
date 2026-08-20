@@ -408,11 +408,12 @@ esp_err_t Handler(httpd_req_t *req) {
         *qmark = '\0';
     }
     // ESP-54: POST /images/upload streams the body to the SD card.
-    if (req->method == HTTP_POST) {
-        if (strcmp(uri, "/images/upload") == 0) {
+    // ESP-55: POST or PUT (curl -T) /apps/upload streams an app module.
+    if (req->method == HTTP_POST || req->method == HTTP_PUT) {
+        if (req->method == HTTP_POST && strcmp(uri, "/images/upload") == 0) {
             return ServeUpload(req);
         }
-        if (strcmp(uri, "/apps/upload") == 0) {  // ESP-55 P5
+        if (strcmp(uri, "/apps/upload") == 0) {
             return ServeAppsUpload(req);
         }
         return SendStatus(req, 404, "not found");
@@ -615,7 +616,7 @@ StatusCode ServeStart(uint16_t port) {
     }
     httpd_config_t cfg = HTTPD_DEFAULT_CONFIG();
     cfg.server_port = port == 0 ? 80 : port;
-    cfg.max_uri_handlers = 2;  // ESP-54: GET + POST handlers
+    cfg.max_uri_handlers = 3;  // ESP-54: GET+POST; ESP-55: +PUT (curl -T)
     cfg.uri_match_fn = httpd_uri_match_wildcard;
     cfg.lru_purge_enable = true;
     if (httpd_start(&s_state.server, &cfg) != ESP_OK) {
@@ -636,6 +637,14 @@ StatusCode ServeStart(uint16_t port) {
         .user_ctx = nullptr,
     };
     httpd_register_uri_handler(s_state.server, &all_post);
+    // ESP-55 P5: curl -T uses PUT; same dispatch as POST (uploads only).
+    static const httpd_uri_t all_put = {
+        .uri = "/*",
+        .method = HTTP_PUT,
+        .handler = &Handler,
+        .user_ctx = nullptr,
+    };
+    httpd_register_uri_handler(s_state.server, &all_put);
     s_state.port = cfg.server_port;
     ESP_LOGI(kTag, "listening on :%u",
              static_cast<unsigned>(s_state.port));
