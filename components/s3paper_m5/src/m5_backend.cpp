@@ -156,19 +156,29 @@ void BlitCoverage(const uint8_t *coverage, const GlyphRaster &raster,
                 } else {
                     c = static_cast<uint8_t>((c >> 4) * 17);  // 16 levels
                 }
-                // Composite text_gray over an assumed white background.
-                v = static_cast<uint8_t>(255 -
-                                         ((255 - text_gray) * c) / 255);
+                // Composite text_gray over the assumed background. Dark
+                // ink assumes white paper (skip untouched = 255); light
+                // ink is the INVERTED-chip case (ESP-56): composite over
+                // black and skip untouched = 0 — before this, white
+                // glyphs computed to all-255, every pixel was treated as
+                // background, and inverted chips rendered as blank slabs.
+                if (text_gray < 128) {
+                    v = static_cast<uint8_t>(
+                        255 - ((255 - text_gray) * c) / 255);
+                } else {
+                    v = static_cast<uint8_t>((text_gray * c) / 255);
+                }
             } else {
-                v = 255;  // sentinel: flush at end of row
+                v = text_gray < 128 ? 255 : 0;  // sentinel: flush row end
             }
+            const uint8_t skip = text_gray < 128 ? 255 : 0;
             if (run_start >= 0 && v != run_value) {
                 M5.Display.writeFastHLine(x0 + run_start, y0 + row,
                                           col - run_start,
                                           GrayToColor(run_value));
                 run_start = -1;
             }
-            if (col < raster.width && v != 255 && run_start < 0) {
+            if (col < raster.width && v != skip && run_start < 0) {
                 run_start = col;
                 run_value = v;
             }

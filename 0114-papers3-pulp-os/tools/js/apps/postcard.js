@@ -29,37 +29,22 @@
     countT = text(' ').size('xs').gray(128);
     body.add(countT);
     body.add(divider(1, 0));
-    var r, i;
-    for (r = 0; r < 3; r++) {
-      var line = row().gap(2).mainAlign(1);
-      for (i = 0; i < PC_ROWS[r].length; i++) {
-        (function (ch) {
-          line.add(text(ch).size('lg').center().width(52).height(56)
-            .onTap(function () { put(ch); }));
-        })(PC_ROWS[r].charAt(i));
-      }
-      if (r === 2) {
-        line.add(text('<del>').size('xs').center().width(70).height(52)
-          .onTap(function () {
-            pc.draft = pc.draft.slice(0, -1); refresh(); }));
-      }
-      body.add(line);
-      body.add(divider(1, 200));
-    }
+    os.keyboard(body, PC_ROWS, put, {
+      del: function () { pc.draft = pc.draft.slice(0, -1); refresh(); }
+    });
     var last = row().gap(2).mainAlign(1);
-    last.add(text(',').size('lg').center().width(52).height(56)
+    last.add(text(',').size('lg').center().width(48).height(56)
       .onTap(function () { put(','); }));
-    last.add(text('space').size('xs').center().width(200).height(56)
-      .onTap(function () { put(' '); }));
-    last.add(text(' SEAL ').size('xs').invert().center().width(90).height(56)
-      .onTap(function () {
+    last.add(os.button('space', function () { put(' '); },
+                       { w: 200, size: 'sm' }));
+    last.add(os.button('SEAL', function () {
         if (pc.draft === '') { pc.msg = 'nothing to seal'; }
         else if (appendPostcard(pc.draft) === 0) {
           pc.msg = 'sealed.'; pc.draft = '';
           buzzer.melody('1319:40,880:80');
         } else { pc.msg = 'no card?'; }
         refresh();
-      }));
+      }, { w: 100, primary: true, size: 'sm' }));
     body.add(last);
     p.header(os.chrome('POSTCARD')).content(body)
       .footer(os.hintFooter('seal = save to postcard.txt - no edits'));

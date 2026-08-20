@@ -29,13 +29,8 @@ function home() {
     text('THE PAPERBACK OF COMPUTERS').size('xs').gray(96),
     divider(8, 0));
   var menu = list().pad(4, 0, 0, 0);
-  function entryRow(label, sub, fn) {
-    // Separators carry the same 40px margins as the header rule.
-    var line = row().pad(6, 0, 4, 0).gap(10).crossAlign(3)
-      .add(text(label).size('lg'), spacer(0, 1),
-           text(sub).size('xs').gray(112));
-    menu.add(col().pad(0, M, 0, M).add(line, divider(2, 0)).onTap(fn));
-  }
+  // ESP-56: one row idiom for launcher, settings and catalogs.
+  function entryRow(label, sub, fn) { os.menuRow(menu, label, sub, fn); }
   // ESP-55: rows come from the merged catalog (ROM + SD). '*' marks an
   // operator-installed/patched copy; '!' marks a broken manifest.
   var apps_ = catalog();

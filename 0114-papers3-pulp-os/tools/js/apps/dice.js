@@ -42,7 +42,7 @@
     ui.big = text('ROLL').size('xl').center();
     body.add(ui.big);
     body.add(divider(1, 176));
-    var btns = row().pad(10, 0, 10, 0).gap(8).mainAlign(1);
+    var btns = os.buttonRow();
     var p = page('dice').header(os.chrome('DICE TRAY')).content(body)
       .footer(os.hintFooter('tap a roll - swipe down = home'));
     function roll(mode) {
@@ -65,9 +65,8 @@
       refresh(p);
     }
     function btn(label, mode) {
-      // Fat tap targets: a finger needs more than the glyph rect.
-      btns.add(text(label).size('lg').center().width(108).height(72)
-        .onTap(function () { roll(mode); }));
+      // Controls are serif (ESP-56): the grotesque face is identity only.
+      btns.add(os.button(label, function () { roll(mode); }, { w: 104 }));
     }
     btn('2d6', '2d6');
     btn('d20', 'd20');

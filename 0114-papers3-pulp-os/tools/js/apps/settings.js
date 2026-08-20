@@ -15,12 +15,7 @@
     var st = os.state('settings', function () { return { msg: '' }; });
 
     function setRow(menu, label, sub, fn) {
-      var line = row().pad(6, 0, 4, 0).gap(10).crossAlign(3)
-        .add(text(label).size('lg'), spacer(0, 1),
-             text(sub).size('xs').gray(112));
-      var entry = col().pad(0, os.M, 0, os.M).add(line, divider(2, 0));
-      if (fn) { entry.onTap(fn); }
-      menu.add(entry);
+      os.menuRow(menu, label, sub, fn);
     }
 
     function mainScreen() {
@@ -62,10 +57,9 @@
             os.launch('settings');
           });
         });
-      setRow(menu, 'Margins', M === 40 ? 'on (40px) - tap to remove' :
+      setRow(menu, 'Margins', os.M === 40 ? 'on (40px) - tap to remove' :
         'off - tap to restore', function () {
-          M = M === 40 ? 0 : 40;
-          storeSet('margin', M);
+          os.setMargin(os.M === 40 ? 0 : 40);
           os.launch('settings');
         });
       setRow(menu, 'Apps', 'installed apps - rescan - state', function () {
@@ -135,27 +129,13 @@
       msgT = text(' ').size('xs').gray(128);
       body.add(msgT);
       body.add(divider(1, 0));
-      var r, i;
-      for (r = 0; r < 4; r++) {
-        var line = row().gap(2).mainAlign(1);
-        for (i = 0; i < KB_ROWS[r].length; i++) {
-          (function (ch) {
-            line.add(text(ch).size('lg').center().width(48).height(56)
-              .onTap(function () { put(ch); }));
-          })(KB_ROWS[r].charAt(i));
-        }
-        if (r === 3) {
-          line.add(text('<del>').size('xs').center().width(70).height(52)
-            .onTap(function () { draft = draft.slice(0, -1); refresh(); }));
-        }
-        body.add(line);
-        body.add(divider(1, 200));
-      }
+      os.keyboard(body, KB_ROWS, put, {
+        del: function () { draft = draft.slice(0, -1); refresh(); }
+      });
       var last = row().gap(2).mainAlign(1);
-      last.add(text('space').size('xs').center().width(160).height(56)
-        .onTap(function () { put(' '); }));
-      last.add(text(' JOIN ').size('xs').invert().center().width(110)
-        .height(56).onTap(function () {
+      last.add(os.button('space', function () { put(' '); },
+                         { w: 160, size: 'sm' }));
+      last.add(os.button('JOIN', function () {
           msgT.set('joining...');
           p.update();
           var rc = wifi.join(ssid, draft, function (k, ok, err) {
@@ -170,7 +150,7 @@
             }
           });
           if (rc !== 0) { msgT.set('busy (' + rc + ')'); p.update(); }
-        }));
+        }, { w: 120, primary: true, size: 'sm' }));
       body.add(last);
       p.header(os.chrome('PASSWORD')).content(body)
         .footer(os.hintFooter('lowercase + digits - swipe down = home'));
@@ -252,40 +232,26 @@
       msgT = text(' ').size('xs').gray(128);
       body.add(msgT);
       body.add(divider(1, 0));
-      var r, i;
-      for (r = 0; r < 4; r++) {
-        var line = row().gap(2).mainAlign(1);
-        for (i = 0; i < URL_ROWS[r].length; i++) {
-          (function (ch) {
-            line.add(text(ch).size('lg').center().width(48).height(56)
-              .onTap(function () { put(ch); }));
-          })(URL_ROWS[r].charAt(i));
-        }
-        if (r === 3) {
-          line.add(text('<del>').size('xs').center().width(70).height(52)
-            .onTap(function () {
-              draft = draft.slice(0, -1); refresh(); }));
-        }
-        body.add(line);
-        body.add(divider(1, 200));
-      }
+      os.keyboard(body, URL_ROWS, put, {
+        del: function () { draft = draft.slice(0, -1); refresh(); }
+      });
       var extra = row().gap(2).mainAlign(1);
       var EXTRA = [':', '/', '.', '-', '_'];
+      var i;
       for (i = 0; i < EXTRA.length; i++) {
         (function (ch) {
-          extra.add(text(ch).size('lg').center().width(64).height(56)
+          extra.add(text(ch).size('lg').center().width(60).height(56)
             .onTap(function () { put(ch); }));
         })(EXTRA[i]);
       }
-      extra.add(text(' GET ').size('xs').invert().center().width(100)
-        .height(56).onTap(function () {
+      extra.add(os.button('GET', function () {
           msgT.set('fetching ' + draft);
           p.update();
           installFromUrl(draft, function (msg) {
             st.msg = msg;
             os.launch('settings', { screen: 'apps' });
           });
-        }));
+        }, { w: 110, primary: true, size: 'sm' }));
       body.add(extra);
       p.header(os.chrome('INSTALL')).content(body)
         .footer(os.hintFooter('type the module url - GET = fetch'));

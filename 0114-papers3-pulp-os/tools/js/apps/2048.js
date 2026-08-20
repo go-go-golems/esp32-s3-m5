@@ -105,17 +105,15 @@
     body.add(spacer(8, 0));
     scoreT = text(' ').size('lg').center();
     body.add(scoreT);
-    var btns = row().pad(8, 0, 0, 0).gap(20).mainAlign(1);
-    btns.add(text('[ new game ]').size('xs').center().width(160).height(56)
-      .onTap(function () { fresh(); refresh(); }));
-    btns.add(text('[ undo ]').size('xs').center().width(110).height(56)
-      .onTap(function () {
-        if (st.prev) {
-          st.g = st.prev; st.score = st.pscore; st.prev = null; refresh();
-        }
-      }));
-    btns.add(text('[ home ]').size('xs').center().width(110).height(56)
-      .onTap(function () { os.home(); }));
+    var btns = os.buttonRow();
+    btns.add(os.button('new game', function () { fresh(); refresh(); },
+                       { w: 170 }));
+    btns.add(os.button('undo', function () {
+      if (st.prev) {
+        st.g = st.prev; st.score = st.pscore; st.prev = null; refresh();
+      }
+    }, { w: 110 }));
+    btns.add(os.button('home', function () { os.home(); }, { w: 110 }));
     body.add(btns);
     p.header(os.chrome('2048 INK')).content(body)
       .footer(os.hintFooter('swipe to slide tiles - home via button'));

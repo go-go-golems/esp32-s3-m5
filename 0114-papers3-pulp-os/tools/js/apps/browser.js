@@ -46,10 +46,8 @@
           text(why).size('md'),
           text(st.url === '' ? ' ' : st.url).size('xs').gray(96),
           row().gap(16).mainAlign(1).add(
-            text('[ back ]').size('xs').center().width(120).height(56)
-              .onTap(function () { back(); }),
-            text('[ url ]').size('xs').center().width(120).height(56)
-              .onTap(function () { urlScreen(); }))))
+            os.button('back', function () { back(); }, { w: 120 }),
+            os.button('url', function () { urlScreen(); }, { w: 120 }))))
         .footer(os.hintFooter('swipe down = home'));
       print('pulp screen: browser/error ' + why);
       p.show(true);
@@ -96,32 +94,20 @@
       draftT = text(' ').size('xs');
       body.add(draftT);
       body.add(divider(1, 0));
-      var r, i;
-      for (r = 0; r < 4; r++) {
-        var line = row().gap(2).mainAlign(1);
-        for (i = 0; i < URL_ROWS[r].length; i++) {
-          (function (ch) {
-            line.add(text(ch).size('lg').center().width(48).height(56)
-              .onTap(function () { put(ch); }));
-          })(URL_ROWS[r].charAt(i));
-        }
-        if (r === 3) {
-          line.add(text('<del>').size('xs').center().width(70).height(52)
-            .onTap(function () { draft = draft.slice(0, -1); refresh(); }));
-        }
-        body.add(line);
-        body.add(divider(1, 200));
-      }
+      os.keyboard(body, URL_ROWS, put, {
+        del: function () { draft = draft.slice(0, -1); refresh(); }
+      });
       var extra = row().gap(2).mainAlign(1);
       var EXTRA = [':', '/', '.', '-', '_'];
+      var i;
       for (i = 0; i < EXTRA.length; i++) {
         (function (ch) {
-          extra.add(text(ch).size('lg').center().width(64).height(56)
+          extra.add(text(ch).size('lg').center().width(60).height(56)
             .onTap(function () { put(ch); }));
         })(EXTRA[i]);
       }
-      extra.add(text(' GO ').size('xs').invert().center().width(90)
-        .height(56).onTap(function () { go(draft); }));
+      extra.add(os.button('GO', function () { go(draft); },
+                          { w: 100, primary: true, size: 'sm' }));
       body.add(extra);
       var hist = col().pad(8, 24, 0, 24).gap(4);
       for (i = st.hist.length - 1; i >= 0; i--) {

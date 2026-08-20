@@ -42,13 +42,13 @@
     body.add(divider(1, 176));
     ui.title = text(' ').size('xs').center();
     body.add(ui.title);
-    var btns = row().pad(6, 0, 0, 0).gap(16).mainAlign(1);
-    btns.add(text('[ reveal ]').size('xs').center().width(120).height(56)
-      .onTap(function () { dp.revealed = true; refresh(); }));
-    btns.add(text('[ another ]').size('xs').center().width(130).height(56)
-      .onTap(function () { shuffle(); refresh(); }));
-    btns.add(text('[ keep reading ]').size('xs').center().width(170)
-      .height(56).onTap(function () { os.launch('reader', dp.idx); }));
+    var btns = os.buttonRow();
+    btns.add(os.button('reveal', function () {
+      dp.revealed = true; refresh(); }, { w: 120 }));
+    btns.add(os.button('another', function () {
+      shuffle(); refresh(); }, { w: 130 }));
+    btns.add(os.button('keep reading', function () {
+      os.launch('reader', dp.idx); }, { w: 180 }));
     body.add(btns);
     p.header(os.chrome('DAILY PULP')).content(body)
       .footer(os.hintFooter('a page at random from your shelf'));
