@@ -909,3 +909,94 @@ the difference.
 - Device validation: `js probe 23`; tap-walk (p3-walk.log); flatness
   (p3-flat.log): ten `js tap 270 235` + `js swipe 5` cycles → ten
   `js load: rom:dice 2685 bytes 35 ms` lines, arena_used stable.
+
+## Step 13: Phase 4 — SD catalog, seeding, launcher merge (+P5 natives)
+
+The card is now an app store: on first boot the OS seeds all 12 ROM apps
+to `/sdcard/apps/<id>.js` with one-line seed-marked manifests, an async
+manifest scan builds `SD_APPS`, and the launcher shows the merged catalog
+— SD overrides ROM (except `settings`, the recovery app), seeded copies
+keep ROM metadata (2048's dynamic subtitle survives), operator installs
+get a `*`, broken manifests a `!`. Settings grew an Apps screen
+(remove/rescan/clear-state). The `apps` native singleton and the
+`/apps/upload` POST route landed in the same stdlib regeneration.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok phases 4-7 (included). commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill) ."
+
+**Assistant interpretation:** Implement Phases 4, 5, 6 and 7 with per-phase commits and diary steps.
+
+**Inferred user intent:** Finish the ticket's original scope: card + network app management.
+
+**Commit (code):** (this commit) — "ESP-55 P4: SD catalog + seeding + merge, apps singleton, upload route, probes 23-25"
+
+### What I did
+- Stdlib (ONE regeneration for P4+P5): `apps` singleton — `count/name/
+  copy/writeText/received/uploadName` (`tools/js/pulp_stdlib.c`,
+  `mqjs_stdlib_pulp.c`, `app_js_bindings.h`, `pulpjsc.c` STUBs,
+  `gen_pulp_stdlib.sh` + bytecode rebuild).
+- `main/js_assets.cpp`: `AssetsCopy`/`AssetsWriteText` (sync owner-side
+  writes: sanitizer → mkdir parent → write → fsync); `main/js_apps.cpp`
+  bindings; `ModuleId::Apps` + `kDoneAppsUpload=30`.
+- `main/net_serve.cpp`: `POST /apps/upload?name=<id>` — name regex
+  [a-z0-9_-]{1,24}, 32 KiB cap (413), single upload slot (503), stream to
+  `upload.part`, unlink+rename (FATFS rename does not overwrite), minimal
+  manifest only if none exists, `PostModuleDone(Apps, …)`; upload-name
+  mailbox + `ServeAppsUploadName()`.
+- OS core: `scanApps` (files.list → sequential files.read of `*.json` →
+  `JSON.parse(files.line(0))`), `merge()` per the guide's rule, `seedApps`
+  (sync via `apps.copy`/`apps.writeText`, only when `/apps` missing),
+  `appsWatch` (upload watcher re-registered by every `enter()`), OS routes
+  `/apps/list` + `/apps/run?id=` with `PENDING_LAUNCH` picked up by the
+  home tick, launcher markers, boot = seed → home → scan → rebuild home,
+  `os.clearAllState`, settings Apps screen.
+- Probes 24 (assets/copy/writeText/SD-load/catalog) and 25 (watcher holds
+  the slot; name mailbox).
+
+### What worked
+- First boot: `pulp apps: seeded 12/12`, `scanned 12 manifest(s)`; the
+  launcher stays 11 rows (seeded copies carry no `*` by design); dice now
+  loads from the card: `js load: /apps/dice.js 2685 bytes 36 ms` (first
+  SD access 114 ms, warm 36 ms — same as flash); settings correctly stays
+  `rom:settings`; settings main screen fingerprint 5 → 6 rows (Apps row);
+  probes 23/24/25 pass.
+
+### What didn't work
+- `js probe 25` initially returned InvalidArgument silently: the owner's
+  probe dispatch was capped at `arg <= 44` (= probe 24) — widened to 49
+  (`app_owner.cpp:238`). Symptom to remember: evals does not advance and
+  the snapshot is unchanged.
+- Probe 25 v1 then failed with `TypeError: module busy` — correctly: the
+  OS's own `appsWatch()` holds the Apps slot from every `enter()`. The
+  probe was wrong, not the code; it now asserts busy=yes.
+
+### What I learned
+- A module-cb slot can be OS-owned-by-convention: `appsWatch` re-registers
+  after every resetTree exactly like `osRoutes`, so the slot is
+  permanently taken and apps can never steal upload completions.
+- FATFS `rename()` fails onto an existing name — unlink first.
+
+### What was tricky to build
+- Seeding synchronously vs. the async files module: manifests are written
+  with the new sync `apps.writeText` because chaining 24 `files.write`
+  completions through the boot sequence (under JsRunPulp's 3 s deadline)
+  would be a state machine for no benefit. The whole seed pass is ~24
+  small writes on the owner, well under the deadline.
+- Merge metadata semantics: seeded entries keep ROM titles/subtitles
+  (functions can't live in JSON), operator manifests win when `seed` is
+  absent.
+
+### What warrants a second pair of eyes
+- `ServeAppsUpload` (error paths, `.part` cleanup, the shared
+  `s_upload_busy` slot with the images upload); `merge()` precedence; the
+  probe-range constant (now 49).
+
+### What should be done in the future
+- P5 device gate over real WiFi (curl push + /apps/run), P6 pull install.
+
+### Code review instructions
+- `git show <this commit>`: `main/js_apps.cpp`, `js_assets.cpp` (WriteWhole),
+  `net_serve.cpp` (ServeAppsUpload), `tools/js/os/20-catalog.js`.
+- Device: `js probe 24` / `25`; first-boot evidence `pulp apps: seeded
+  12/12`; `js hits` on settings main = 6 rows.

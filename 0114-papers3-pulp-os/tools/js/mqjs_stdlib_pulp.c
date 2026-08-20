@@ -430,6 +430,8 @@ static const JSPropDef js_global_object[] = {
     /* ESP-54: mDNS + images singletons. */
     JS_PROP_CLASS_DEF("mdns", &js_mdns_obj),
     JS_PROP_CLASS_DEF("images", &js_images_obj),
+    /* ESP-55: app assets + upload surface. */
+    JS_PROP_CLASS_DEF("apps", &js_apps_obj),
 #endif
     JS_PROP_END,
 };

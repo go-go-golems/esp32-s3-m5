@@ -218,5 +218,21 @@ static const JSPropDef js_images[] = {
 
 static const JSClassDef js_images_obj = JS_OBJECT_DEF("Images", js_images);
 
+/* apps singleton (ESP-55 P4/P5): ROM asset registry (count/name/copy),
+   sync small-file text writes for seeding + manifests (writeText), and
+   the /apps/upload completion callback + name mailbox (received /
+   uploadName — the module-cb pattern, ModuleId::Apps). */
+static const JSPropDef js_apps[] = {
+    JS_CFUNC_DEF("count", 0, js_apps_count),
+    JS_CFUNC_DEF("name", 1, js_apps_name),
+    JS_CFUNC_DEF("copy", 2, js_apps_copy),
+    JS_CFUNC_DEF("writeText", 2, js_apps_write_text),
+    JS_CFUNC_DEF("received", 1, js_apps_received),
+    JS_CFUNC_DEF("uploadName", 0, js_apps_upload_name),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_apps_obj = JS_OBJECT_DEF("Apps", js_apps);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

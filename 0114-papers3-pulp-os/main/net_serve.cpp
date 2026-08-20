@@ -286,6 +286,118 @@ esp_err_t ServeJsRoute(httpd_req_t *req, int route_index) {
     return ESP_OK;
 }
 
+// ---- ESP-55 P5: POST /apps/upload?name=<id> ----------------------------
+// Streams an app module to /sdcard/apps/<id>.js (.part + rename). The
+// THIRD sanctioned off-owner SD write: plain files under /sdcard/apps
+// only, never state files. Completion: ModuleDone{Apps, kDoneAppsUpload,
+// bytes, err} -> the OS core's apps.received callback rescans.
+constexpr uint32_t kAppUploadMax = 32 * 1024;
+constexpr const char *kAppsDir = "/sdcard/apps";
+static char s_apps_upload_name[32] = "";
+
+static bool AppNameOk(const char *name) {
+    const size_t n = strlen(name);
+    if (n == 0 || n > 24) {
+        return false;
+    }
+    for (size_t i = 0; i < n; i++) {
+        const char c = name[i];
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+                        c == '_' || c == '-';
+        if (!ok) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static esp_err_t ServeAppsUpload(httpd_req_t *req) {
+    if (req->content_len == 0 || req->content_len > kAppUploadMax) {
+        return SendStatus(req, 413, "too large");
+    }
+    char query[128] = "";
+    char name[32] = "";
+    (void)httpd_req_get_url_query_str(req, query, sizeof(query));
+    if (httpd_query_key_value(query, "name", name, sizeof(name)) != ESP_OK ||
+        !AppNameOk(name)) {
+        return SendStatus(req, 400, "bad name");
+    }
+    bool expected = false;
+    if (!s_upload_busy.compare_exchange_strong(expected, true)) {
+        s_state.busy_503++;
+        return SendStatus(req, 503, "busy");
+    }
+    mkdir(kAppsDir, 0775);
+    char part[80];
+    char path[80];
+    snprintf(part, sizeof(part), "%s/upload.part", kAppsDir);
+    snprintf(path, sizeof(path), "%s/%s.js", kAppsDir, name);
+    FILE *f = fopen(part, "wb");
+    if (f == nullptr) {
+        s_upload_busy.store(false);
+        (void)PostModuleDone(ModuleId::Apps, kDoneAppsUpload, 0, 1);
+        return SendStatus(req, 503, "no card");
+    }
+    static char achunk[1024];
+    const size_t total = req->content_len;
+    size_t received = 0;
+    while (received < total) {
+        const size_t want = total - received < sizeof(achunk)
+                                ? total - received
+                                : sizeof(achunk);
+        const int n = httpd_req_recv(req, achunk, want);
+        if (n <= 0) {
+            if (n == HTTPD_SOCK_ERR_TIMEOUT) {
+                continue;
+            }
+            break;  // connection dropped
+        }
+        fwrite(achunk, 1, static_cast<size_t>(n), f);
+        received += static_cast<size_t>(n);
+    }
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f);
+    if (received != total) {
+        (void)unlink(part);
+        s_upload_busy.store(false);
+        (void)PostModuleDone(ModuleId::Apps, kDoneAppsUpload, 0, 2);
+        return SendStatus(req, 499, "short");
+    }
+    (void)unlink(path);  // FATFS rename does not overwrite
+    if (rename(part, path) != 0) {
+        (void)unlink(part);
+        s_upload_busy.store(false);
+        (void)PostModuleDone(ModuleId::Apps, kDoneAppsUpload, 0, 1);
+        return SendStatus(req, 503, "rename failed");
+    }
+    // Minimal manifest so the catalog lists the app; never clobbers an
+    // existing (possibly operator-authored) manifest.
+    char mpath[80];
+    snprintf(mpath, sizeof(mpath), "%s/%s.json", kAppsDir, name);
+    struct stat st;
+    if (stat(mpath, &st) != 0) {
+        FILE *m = fopen(mpath, "wb");
+        if (m != nullptr) {
+            fprintf(m,
+                    "{\"id\":\"%s\",\"title\":\"%s\",\"subtitle\":"
+                    "\"installed over http\",\"version\":1,\"abi\":2,"
+                    "\"src\":\"/apps/%s.js\"}\n",
+                    name, name, name);
+            fflush(m);
+            fsync(fileno(m));
+            fclose(m);
+        }
+    }
+    snprintf(s_apps_upload_name, sizeof(s_apps_upload_name), "%s", name);
+    s_upload_busy.store(false);
+    (void)PostModuleDone(ModuleId::Apps, kDoneAppsUpload,
+                         static_cast<int32_t>(received), 0);
+    ESP_LOGI(kTag, "apps upload %s: %u bytes", name,
+             static_cast<unsigned>(received));
+    return SendStatus(req, 200, name);
+}
+
 esp_err_t Handler(httpd_req_t *req) {
     // HTTPD TASK entry point for every request.
     s_state.requests++;
@@ -299,6 +411,9 @@ esp_err_t Handler(httpd_req_t *req) {
     if (req->method == HTTP_POST) {
         if (strcmp(uri, "/images/upload") == 0) {
             return ServeUpload(req);
+        }
+        if (strcmp(uri, "/apps/upload") == 0) {  // ESP-55 P5
+            return ServeAppsUpload(req);
         }
         return SendStatus(req, 404, "not found");
     }
@@ -622,5 +737,7 @@ void FillServeSnapshot(ServeSnapshot *out) {
     out->timeout_503 = s_state.timeout_503;
     ServeUrl(out->url, sizeof(out->url));
 }
+
+const char *ServeAppsUploadName() { return s_apps_upload_name; }
 
 }  // namespace pulp

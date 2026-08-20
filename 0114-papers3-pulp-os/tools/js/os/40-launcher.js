@@ -36,15 +36,22 @@ function home() {
            text(sub).size('xs').gray(112));
     menu.add(col().pad(0, M, 0, M).add(line, divider(2, 0)).onTap(fn));
   }
-  // ESP-55: rows come from the catalog, not a hard-coded list.
+  // ESP-55: rows come from the merged catalog (ROM + SD). '*' marks an
+  // operator-installed/patched copy; '!' marks a broken manifest.
+  var apps_ = catalog();
   var i;
-  for (i = 0; i < ROM_APPS.length; i++) {
+  for (i = 0; i < apps_.length; i++) {
     (function (e) {
       if (e.hidden) { return; }
       var sub = typeof e.subtitle === 'function' ? e.subtitle()
                                                  : (e.subtitle || '');
-      entryRow(e.title, sub, function () { launch(e.id); });
-    })(ROM_APPS[i]);
+      if (e.broken) { sub = '! ' + e.broken; }
+      else if (e.source === 'sd') { sub = sub + ' *'; }
+      entryRow(e.title, sub, function () {
+        if (e.broken) { errorPage(e.id, e.broken); }
+        else { launch(e.id); }
+      });
+    })(apps_[i]);
   }
   var p = page('home').header(header).content(menu)
     .footer(hintFooter('tap to open - swipe down = home'));
@@ -53,6 +60,12 @@ function home() {
   // from the tick because serve may start after boot (osRoutes no-ops
   // when serve.url()==='' at enter() time).
   p.on(G.TICK, function () {
+    if (PENDING_LAUNCH !== '') {           // ESP-55: GET /apps/run pickup
+      var id = PENDING_LAUNCH;
+      PENDING_LAUNCH = '';
+      launch(id);
+      return;
+    }
     if (!ROUTES_READY && serve.url() !== '') {
       ROUTES_READY = true;
       osRoutes();

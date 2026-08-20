@@ -43,6 +43,7 @@ enum class ModuleId : uint8_t {
     Http,
     Serve,
     Images,  // ESP-54 image upload completion
+    Apps,    // ESP-55 app upload completion
     kCount,
 };
 
@@ -59,6 +60,7 @@ enum ModuleDoneKind : int32_t {
     kDoneFilesAppend = 13,
     kDoneFilesRemove = 14,
     kDoneImagesUpload = 20,  // ESP-54: value = bytes, err = 0 ok
+    kDoneAppsUpload = 30,    // ESP-55: value = bytes, err 0 ok/1 card/2 short
 };
 
 const char *AppEventKindName(AppEventKind kind);

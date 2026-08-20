@@ -1,7 +1,13 @@
 // ESP-55 P3: ROM app asset registry — see js_assets.h.
 #include "js_assets.h"
 
+#include <cstdio>
 #include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include "app_files.h"
+#include "s3paper/status.h"
 
 // EMBED_TXTFILES symbols (main/CMakeLists.txt): file <id>.js becomes
 // _binary_<id>_js_start/_end, NUL-terminated; end points past the NUL.
@@ -70,6 +76,51 @@ uint32_t AssetsCount() { return kAssetCount; }
 
 const char *AssetsName(uint32_t i) {
     return i < kAssetCount ? kAssets[i].name : nullptr;
+}
+
+namespace {
+
+// Shared sync write path: sanitize, mkdir the parent (one level, like
+// EnsureParentDir in app_files.cpp), write whole, fsync.
+int32_t WriteWhole(const char *vpath, const char *data, uint32_t len) {
+    using s3paper::StatusCode;
+    char real[kFilesMaxPath + 8];
+    if (FilesResolvePath(vpath, real, sizeof(real)) != StatusCode::Ok) {
+        return static_cast<int32_t>(StatusCode::InvalidArgument);
+    }
+    char *slash = std::strrchr(real, '/');
+    if (slash != nullptr && slash != real) {
+        *slash = '\0';
+        (void)mkdir(real, 0775);  // EEXIST is fine
+        *slash = '/';
+    }
+    FILE *f = std::fopen(real, "wb");
+    if (f == nullptr) {
+        return static_cast<int32_t>(StatusCode::Busy);  // no card / locked
+    }
+    const size_t wrote = std::fwrite(data, 1, len, f);
+    std::fflush(f);
+    fsync(fileno(f));
+    std::fclose(f);
+    return wrote == len
+               ? static_cast<int32_t>(StatusCode::Ok)
+               : static_cast<int32_t>(StatusCode::CapacityExceeded);
+}
+
+}  // namespace
+
+int32_t AssetsCopy(const char *name, const char *vpath) {
+    const char *src = nullptr;
+    uint32_t len = 0;
+    if (!AssetsFind(name, &src, &len)) {
+        return static_cast<int32_t>(s3paper::StatusCode::InvalidArgument);
+    }
+    return WriteWhole(vpath, src, len);
+}
+
+int32_t AssetsWriteText(const char *vpath, const char *body,
+                        uint32_t len) {
+    return WriteWhole(vpath, body, len);
 }
 
 }  // namespace pulp

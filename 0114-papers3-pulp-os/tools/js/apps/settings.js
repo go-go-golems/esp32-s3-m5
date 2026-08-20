@@ -68,6 +68,9 @@
           storeSet('margin', M);
           os.launch('settings');
         });
+      setRow(menu, 'Apps', 'installed apps - rescan - state', function () {
+        os.launch('settings', { screen: 'apps' });
+      });
       setRow(menu, 'Radio off', 'save power', function () {
         serve.stop();
         wifi.off();
@@ -176,9 +179,55 @@
       refresh();
     }
 
+    function appsScreen() {
+      var menu = list().pad(4, 0, 0, 0);
+      var c = catalog();
+      var i;
+      for (i = 0; i < c.length; i++) {
+        (function (e) {
+          if (e.hidden) { return; }
+          var sub = e.broken ? ('! ' + e.broken) : e.source;
+          var fn = null;
+          if (e.source !== 'rom') {
+            sub = sub + ' - tap to remove';
+            fn = function () {
+              files.remove('/apps/' + e.id + '.js', function () {
+                files.remove('/apps/' + e.id + '.json', function () {
+                  scanApps(function () {
+                    st.msg = 'removed ' + e.id;
+                    os.launch('settings', { screen: 'apps' });
+                  });
+                });
+              });
+            };
+          }
+          setRow(menu, e.title, sub, fn);
+        })(c[i]);
+      }
+      setRow(menu, 'Rescan', 'reload /apps from the card', function () {
+        scanApps(function () {
+          st.msg = 'rescanned';
+          os.launch('settings', { screen: 'apps' });
+        });
+      });
+      setRow(menu, 'Clear app state', 'forget in-memory app state',
+        function () {
+          os.clearAllState();
+          st.msg = 'state cleared';
+          os.launch('settings', { screen: 'apps' });
+        });
+      var p = page('settings').header(os.chrome('APPS')).content(menu)
+        .footer(os.hintFooter(st.msg === '' ? 'swipe down = home'
+                                            : st.msg));
+      st.msg = '';
+      os.announce('settings-apps');
+      p.show(true);
+    }
+
     var a = arg || {};
     if (a.screen === 'scan') { scanScreen(); }
     else if (a.screen === 'pass') { passScreen(a.ssid); }
+    else if (a.screen === 'apps') { appsScreen(); }
     else { mainScreen(); }
   }
 })

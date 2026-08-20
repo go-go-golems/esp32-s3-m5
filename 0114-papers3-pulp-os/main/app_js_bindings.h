@@ -124,6 +124,14 @@ PULP_JS_FN(js_images_display);
 PULP_JS_FN(js_images_remove);
 PULP_JS_FN(js_images_received);
 
+/* ESP-55 P4/P5: apps singleton. */
+PULP_JS_FN(js_apps_count);
+PULP_JS_FN(js_apps_name);
+PULP_JS_FN(js_apps_copy);
+PULP_JS_FN(js_apps_write_text);
+PULP_JS_FN(js_apps_received);
+PULP_JS_FN(js_apps_upload_name);
+
 /* ESP-53 connectivity + peripherals. */
 PULP_JS_FN(js_buzzer_tone);
 PULP_JS_FN(js_buzzer_beep);

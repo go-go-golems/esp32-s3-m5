@@ -165,6 +165,12 @@ STUB(js_images_name)
 STUB(js_images_display)
 STUB(js_images_remove)
 STUB(js_images_received)
+STUB(js_apps_count)
+STUB(js_apps_name)
+STUB(js_apps_copy)
+STUB(js_apps_write_text)
+STUB(js_apps_received)
+STUB(js_apps_upload_name)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

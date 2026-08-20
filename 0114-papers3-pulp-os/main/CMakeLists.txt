@@ -26,6 +26,7 @@ idf_component_register(
         "js_mdns.cpp"
         "js_probes.cpp"
         "js_assets.cpp"
+        "js_apps.cpp"
         "js_stdlib_table.c"
     INCLUDE_DIRS
         "."

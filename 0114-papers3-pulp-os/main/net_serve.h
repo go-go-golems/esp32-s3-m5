@@ -58,4 +58,9 @@ const char *ServeRequestUri();
 struct ServeSnapshot;
 void FillServeSnapshot(ServeSnapshot *out);
 
+// ESP-55 P5: name of the last /apps/upload (httpd task writes, owner
+// reads after the completion; same relaxed discipline as the images
+// upload result). Empty string before any upload.
+const char *ServeAppsUploadName();
+
 }  // namespace pulp

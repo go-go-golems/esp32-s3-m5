@@ -23,6 +23,7 @@ var os = {
     return STATE[id];
   },
   clearState: function (id) { delete STATE[id]; },
+  clearAllState: function () { STATE = {}; },
   // Brings the network up with saved credentials, then fn(ok).
   netUp: function (fn) {
     if (wifi.status() === 4) { fn(1); return; }

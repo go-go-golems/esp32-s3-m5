@@ -6,6 +6,7 @@
 
 var P = { app: 'home' };
 var ROUTES_READY = false;  // ESP-54: routes register once serve is up
+var PENDING_LAUNCH = '';   // ESP-55: set by GET /apps/run, run by the home tick
 
 // Global content margin (px). Toggled by long-pressing the launcher and
 // persisted in the settings store; every app reads it at build time.
@@ -36,6 +37,32 @@ function osRoutes() {
       + ',"uptime_ms":' + millis() + '}');
   });
   // ESP-54: list stored images for the upload page's gallery sidebar.
+  // ESP-55 P5: catalog listing + remote launch (picked up by the home
+  // tick — route handlers must not present or resetTree).
+  serve.get('/apps/list').handle(function (req) {
+    var c = catalog();
+    var s = '{"apps":[';
+    var i;
+    var first = true;
+    for (i = 0; i < c.length; i++) {
+      if (c[i].hidden) { continue; }
+      if (!first) { s += ','; }
+      first = false;
+      s += '{"id":"' + c[i].id + '","title":"' + c[i].title +
+           '","source":"' + c[i].source +
+           (c[i].broken ? '","broken":"' + c[i].broken : '') + '"}';
+    }
+    s += ']}';
+    return serve.json(s);
+  });
+  serve.get('/apps/run').handle(function (req) {
+    var q = serve.query(req);
+    var id = q.indexOf('id=') === 0 ? q.slice(3) : '';
+    if (!catalogFind(id)) { return serve.status(404); }
+    if (P.app !== 'home') { return serve.status(409); }
+    PENDING_LAUNCH = id;
+    return serve.json('{"run":"' + id + '"}');
+  });
   serve.get('/images/list').handle(function (req) {
     var n = images.count();
     var s = '{"count":' + n + ',"images":[';
@@ -61,6 +88,7 @@ function enter(name) {
            text('asleep - press the side button').size('xs').center());
   });
   osRoutes();
+  appsWatch();
 }
 
 function announce(name) { print('pulp screen: ' + name); }

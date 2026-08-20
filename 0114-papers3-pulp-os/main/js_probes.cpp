@@ -464,6 +464,29 @@ const char kProbe23Js[] =
     "catch (e3) { sd = '' + e3; }"
     "print('probe23: sd=' + sd);";
 
+// 24 (ESP-55 P4): asset registry + sync copy/writeText + SD load round
+// trip + merged catalog surface.
+const char kProbe24Js[] =
+    "print('probe24: assets=' + apps.count());"
+    "var rc = apps.copy('dice', '/apps/probe24.js');"
+    "print('probe24: copy=' + rc);"
+    "var d = rc === 0 ? load('/apps/probe24.js') : null;"
+    "print('probe24: sdload=' + (d ? d.id : 'skip'));"
+    "var w = apps.writeText('/apps/probe24.txt', 'x');"
+    "print('probe24: write=' + w);"
+    "var c = catalog();"
+    "print('probe24: catalog=' + c.length + ' dice_src='"
+    "      + catalogFind('dice').src);";
+
+// 25 (ESP-55 P5): the OS upload watcher (appsWatch, re-registered by
+// every enter()) must hold the Apps module slot — a probe registration
+// must throw "module busy" — and the name mailbox must answer.
+const char kProbe25Js[] =
+    "var busy = 'no';"
+    "try { apps.received(function () {}); } catch (e) { busy = 'yes'; }"
+    "print('probe25: os-watch-busy=' + busy"
+    "      + ' name=\"' + apps.uploadName() + '\"');";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -587,6 +610,8 @@ StatusCode JsRunProbe(uint32_t which) {
         case 21: return jsi::EvalBounded(kProbe21Js, 5000, "<probe21>");
         case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
         case 23: return jsi::EvalBounded(kProbe23Js, 5000, "<probe23>");
+        case 24: return jsi::EvalBounded(kProbe24Js, 5000, "<probe24>");
+        case 25: return jsi::EvalBounded(kProbe25Js, 3000, "<probe25>");
         default: return StatusCode::InvalidArgument;
     }
 }
