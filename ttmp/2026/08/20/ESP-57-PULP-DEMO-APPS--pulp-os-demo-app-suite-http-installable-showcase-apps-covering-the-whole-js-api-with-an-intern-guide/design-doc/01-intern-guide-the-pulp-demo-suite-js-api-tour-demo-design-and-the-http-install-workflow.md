@@ -229,15 +229,73 @@ marked), the launcher shows exactly one new row (Demos), and the ESP-56
 
 ## 7. Implementation notes (as built)
 
-Filled in during implementation — see the diary for the narrative.
+The suite shipped as designed (twelve modules in `tools/js/demos/`, HTTP-only
+distribution, hidden manifests fronted by the Demos index), but installing it
+was the real test campaign — five platform defects surfaced, each fixed at the
+root rather than routed around. The diary carries the narrative; the facts:
+
+1. **httpd stack overflow (crash).** The upload route's new manifest-writing
+   path (224 B query buffer + title/subtitle buffers + FATFS fprintf) blew the
+   default 4096 B httpd task stack on the first suite push and rebooted the
+   device. `cfg.stack_size = 6144` in `main/net_serve.cpp`. Lesson: the first
+   failure read as "network went away" — only re-running with the console
+   attached showed the `***ERROR*** A stack overflow in task httpd` banner.
+2. **Query encoding contract.** The upload route deliberately does not
+   urldecode; a naive push script let `&` in a title split the query. The
+   push script (`scripts/02-push-demos.sh`) now uses `quote_plus`, titles are
+   plain ASCII by rule (§5), and a title-bearing upload rewrites a stale
+   manifest instead of being blocked by write-once behavior.
+3. **`files.list` cap, again.** The suite pushed `/sdcard/apps` past 64
+   entries; `kFilesMaxList` raised to 128 (`main/app_files.h`) with a sizing
+   comment. Second occurrence of the class — pagination is now a standing
+   open question, not a someday note.
+4. **Silent catalog-scan death (the ESP-57 regression).** Boots (and every
+   `js pulp` re-eval) intermittently came up with a ROM-only catalog and no
+   scan diagnostics at all. Instrumenting every silent exit in the dispatch
+   path caught it live: `FilesList` runs synchronously on the owner task and
+   posts its completion to the 32-slot owner event queue; during a long owner
+   event (full OS re-eval + CleanFull present ≈ 700 ms) the 20 ms touch-tick
+   producer fills the queue, the completion post fails `CapacityExceeded`,
+   and the scan callback waits forever. Two-layer fix (commit `147507c7`):
+   `PostEvent` denies droppable TimerDue ticks the last 8 queue slots (ticks
+   self-heal 20 ms later; completions are load-bearing), and every files-op
+   completion post that fails now propagates as a non-Ok status so the JS
+   binding cancels the callback and the caller sees a nonzero rc. The
+   formerly silent paths (resetTree cancelling a live cb, dropped ModuleDone,
+   lost `__cbs` slot) now log permanently.
+5. **The reproducer that earned its keep:** `js pulp` forces a full OS
+   re-eval and was a 100% reproducer of (4) — worth remembering as the
+   cheapest way to stress the queue-under-long-event path.
 
 ## 8. Validation
 
-- Push the suite; `/apps/list` count and `hidden` flags correct.
-- Launcher fingerprint: +1 row only.
-- Walk every demo via `js tap` + `shot`; capture to `sources/demos/`.
-- `js status` exceptions=0 across the walk; the storage demo's chain
-  prints `demo:` evidence lines.
+Evidence captured on hardware 2026-08-20 (shots in `sources/shots/`):
+
+- **Install:** 12/12 uploads returned 200 in one `02-push-demos.sh` run
+  (after the stack fix); `/apps/list` shows 16 visible entries with all
+  `d-*` hidden, `demos` visible; launcher fingerprint is +1 row exactly
+  (hits 12 → 13).
+- **Scan robustness:** cold boot + three consecutive `js pulp` re-evals =
+  4/4 `pulp apps: scanned 27 manifest(s)`, zero `completion post failed`,
+  zero dropped completions — the previously 100%-reproducible silent death
+  is gone.
+- **Walk:** all 12 demos launched over HTTP (`/apps/run?id=…` → 200, forced
+  home first per the 409 rule) and screenshot-verified: `demos.png` (index
+  listing 11), `d-widgets` (every face + INVERT CHIP label rendering — the
+  BlitCoverage light-ink path at work), `d-canvas` (line/disc/ring/box/16
+  grays), `d-touch`, `d-ticker` (caught mid diff-blit, demonstrating its own
+  point), `d-storage` (full async chain: write/append/read/list/remove +
+  JSON round trip, err=0 throughout), `d-net` (live station status),
+  `d-serve` (routes registered, counter at 0), `d-sound`, `d-power` (battery
+  100% + live mdns status), `d-books` (Alice page + progress 100%),
+  `d-sysinfo` (catalog introspection: 28 entries, 2 rom-sourced, 26 card,
+  12 hidden — matching the design arithmetic).
+- **Stability:** `js status` across the walk: exceptions=0, last_error="".
+
+Known cosmetic notes (deliberate or accepted): the widgets specimen's `xl`
+line clips at the right edge (a scale specimen, not a layout bug); index-row
+subtitles truncate at the margin; the sound demo's 7-key scale row clips its
+last key at 540 px — a future pass could drop it to 6 keys.
 
 ## 9. References
 
