@@ -13,3 +13,12 @@ Step 1: ticket created; intern guide written (9 sections, 3 decision records, 5-
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-58-PULP-APP-DISCOVERY--pulp-os-app-server-discovery-mdns-browse-plus-index-endpoint-so-apps-install-without-hand-typed-urls/design-doc/01-intern-guide-app-server-discovery-mdns-browse-the-index-contract-and-the-store-screen.md — Primary deliverable of step 1
 
+
+## 2026-08-20
+
+Step 2: P3 index server (dd592140) + P1 mdns.browse verb (d8c13f2f), probe-29 hardware gates green
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/net_mdns.cpp — BrowseWorker + deferred stop (commit d8c13f2f)
+

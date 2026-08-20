@@ -130,3 +130,108 @@ R-BROWSEEXEC (blocking `mdns_query_ptr` on a priority-4 worker task,
   `mdns.count()`, `mdns.name(i)`, `mdns.indexUrl(i)`.
 - Index contract: `{"v":1,"name":...,"apps":[{"id","title","subtitle","url"}]}`,
   ids `[a-z0-9_-]{1,24}`, plain-ASCII titles, absolute URLs, ≤ 8 KiB.
+
+## Step 2: P3 + P1 — the server exists, and the device can find it
+
+Implementation began at the two ends of the wire and met in the middle:
+first the host server (P3, so the browse verb would have something real
+to find), then the browse verb (P1). By the end of the step the PaperS3
+printed `Demo Shelf -> http://192.168.0.39:8123/pulp/index.json` from a
+console probe — discovery works end to end, no URL typed anywhere.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, build ESP-58, commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Implement the ESP-58 guide phases P1–P5 with per-phase commits and diary steps.
+
+**Inferred user intent:** Working zero-typing app discovery on the device, built to the guide's decision records.
+
+**Commit (code):** dd592140 (P3 server script), d8c13f2f (P1 browse verb)
+
+### What I did
+- P3: `scripts/01-app-index-server.py` — http.server + zeroconf,
+  `_pulp-apps._tcp` with TXT `path=`/`name=`, index built per request from
+  the directory (drop a file in, it appears), sidecar `<id>.json`
+  metadata, fail-fast plain-ASCII validation. Verified: 12-app index over
+  HTTP; record browsable with an independent zeroconf client.
+- P1: `ModuleId::Mdns` + `kDoneMdnsBrowse=50` (`app_events.h`);
+  `MdnsBrowse` + worker + snapshot + accessors (`net_mdns.{h,cpp}`); four
+  natives (`js_mdns.cpp`); registration in `pulp_stdlib.c` + regen +
+  bytecode rebuild; host STUBs in `pulpjsc.c`; UI-sandbox denies; owner
+  hook `MdnsOnBrowseDone` in `app_owner.cpp`; probe 29.
+- Hardware gates: wifi-down → `rc=0` then `done k=50 n=0 e=1` (exact
+  contract); live browse → 1 server, correct name and assembled URL;
+  second browse during window → "module busy" throw.
+
+### Why
+- P3-before-P1 made the browse verb verifiable the moment it flashed —
+  the same reason ESP-55 built the page server before the browser.
+
+### What worked
+- The HttpWorker copy-exactly plan: single-flight atomic, mailbox,
+  ModuleDone-as-last-act transplanted without surprises.
+- Probe 29 as the P1 gate: all three contract paths exercised from the
+  console before any UI existed.
+
+### What didn't work
+1. `Zeroconf()` on all interfaces: `OSError: [Errno 105] No buffer space
+   available` (IP_ADD_MEMBERSHIP; igmp_max_memberships exhausted by the
+   host's many virtual interfaces). Fix: `Zeroconf(interfaces=[ip])`.
+2. `avahi-browse` cannot see the python-zeroconf record on the SAME host
+   (two mDNS stacks sharing 5353; a known rivalry). An independent
+   zeroconf client — and then the device itself — sees it fine. Do not
+   use avahi-browse as the gate for this script.
+3. First build: `-Werror=format-truncation` on the URL assembly
+   (host 63 + path 47 > url[96]). Fix: url[128] sized for the worst case
+   (124) with a sizing comment, `%.31s` on the name fallback.
+4. First flash: `mdns_init failed` with wifi down — `mdns_init` needs a
+   live netif, so the wifi gate had to move BEFORE `MdnsInit()` for the
+   deterministic wifi-down contract (rc=0 + immediate err=1 completion)
+   instead of an opaque init error.
+5. `gen_pulp_stdlib.sh` prints "Too many properties, consider increasing
+   ATOM_ALIGN" — verified pre-existing (same warning on HEAD without the
+   four new properties): the builder clamps a hash size, correctness
+   preserved. Not ours, left alone.
+
+### What I learned
+- The espressif mdns component's query half coexists with the announce
+  half with no extra init — MdnsInit covers both.
+- The "second browse" guard is the module-cb "module busy" throw, not
+  the Busy rc: RegisterModuleCb runs first and throws while a completion
+  is pending. Same semantics as wifi join-during-scan (probe 18).
+
+### What was tricky to build
+- The MdnsStop/browse interplay (guide §8): `serve.stop`/`wifi.off`/power
+  quiesce call MdnsStop, which frees the component; a live
+  `mdns_query_ptr` on the worker must not have the rug pulled. Chosen
+  shape: MdnsStop defers (flag) when the worker is in flight; the owner
+  applies the stop in `MdnsOnBrowseDone` when ModuleDone(Mdns) is
+  processed — worst case one 3 s window later. A lost completion would
+  leave the deferral pending until the next explicit stop; the ESP-57
+  queue reservation makes that loss unlikely.
+
+### What warrants a second pair of eyes
+- The deferred-stop path is code-reviewed but not hardware-exercised
+  (timing a stop inside the 3 s window from the console is awkward);
+  worth a targeted probe if it ever matters.
+- BrowseWorker reads TXT/hostname/addr fields of mdns_result_t on the
+  worker task after mdns_query_ptr returns — safe (results are a
+  caller-owned copy freed by mdns_query_results_free), but confirm on
+  component upgrades.
+
+### What should be done in the future
+- P2 store screen, P4 self-index + announce, P5 validation (next steps).
+
+### Code review instructions
+- `git show d8c13f2f`; start at `net_mdns.cpp` (BrowseWorker, MdnsBrowse,
+  MdnsStop deferral), then the four-file registration checklist
+  (`app_js_bindings.h`, `pulp_stdlib.c`, `js_stdlib_table_ui.c`,
+  `pulpjsc.c` STUBs — the guide §3.6 list plus the host compiler).
+- Validate: run the P3 script, `js probe 29` on the console; expect the
+  three contract lines.
+
+### Technical details
+- Probe 29 live output: `browse _pulp-apps._tcp (3000 ms window)` →
+  `browse done: 1 server(s)` → `[0] Demo Shelf ->
+  http://192.168.0.39:8123/pulp/index.json`.
