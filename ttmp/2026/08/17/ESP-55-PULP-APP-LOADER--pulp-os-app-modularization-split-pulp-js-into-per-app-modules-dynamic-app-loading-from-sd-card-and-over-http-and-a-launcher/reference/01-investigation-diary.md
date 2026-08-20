@@ -1347,3 +1347,96 @@ denial matrix from within.
 ### Code review instructions
 - `git show <this commit>`: js_stdlib_table_ui.c (rule + list),
   js_browser.cpp (RunPage), probe 28 output in scratchpad p9-gate.log.
+
+## Step 19: Phase 10 — the PULP browser, live over WiFi, plus the QR install surface
+
+The device now browses. A page is a JS descriptor served by any web
+server; the browser app (OS context) fetches it, caches it to
+`/web/page.js`, and `browser.run` executes it in a fresh sandboxed page
+context. The whole navigation loop ran live against a laptop `python3 -m
+http.server`: remote launch with a URL, relative `nav.go`, a ticking
+clock page, the enforced swipe-home reclaim, and a hostile page that was
+deadline-killed onto the browser's error page with the launcher one swipe
+away. Settings gained the requested `pulp.local/apps` QR screen.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 17)
+
+**Assistant interpretation:** Phase 10 + the QR/URL surface.
+
+**Inferred user intent:** The browser vision demonstrated end to end.
+
+**Commit (code):** (this commit) — "ESP-55 P10: browser app, page server, /apps/run url arg, QR web-install screen"
+
+### What I did
+- `tools/js/apps/browser.js` (ROM app, catalog row "Browser"): URL
+  keyboard + history (8), relative/absolute URL resolution, fetch via
+  `http.get(...).limit(32768)` → `apps.writeText('/web/page.js')` →
+  `browser.run(path, url)`; `browser.watch` re-armed on every delivery;
+  failures close the page context and present a `bfail` error page.
+- Kernel: `/apps/run?id=<id>&url=<u>` fills `PENDING_ARG` (launcher tick
+  passes it to `launch(id, arg)`) — remote `curl` can open a page in one
+  request.
+- `scripts/08-pulp-page-server.py`: reference server + four demo pages
+  (menu, clock with dyn-text tick, about, hostile).
+- Settings → Apps → **Web install**: QR of `http://pulp.local/apps`
+  (version-2 matrix precomputed by `scripts/09-gen-qr.py`, embedded as 25
+  row bitmasks, drawn run-length-encoded across TWO canvases because the
+  canvas command list caps at 96 and the code needs 170 row-runs) + the
+  URL and the curl push one-liner.
+- Fixed a gate-found UX bug: appsScreen listed 15 apps before the action
+  rows, pushing Web install off the 960 px panel — actions now come first.
+
+### What worked (all on hardware, live network)
+- `curl "/apps/run?id=browser&url=http://192.168.0.39:8123/menu.js"` →
+  `js load: /web/page.js 571 bytes 6 ms`, foreground kind 1,
+  `pulp screen: browser/...menu.js`, `/status` `"app":"browser"`.
+- Tap on a menu row → `nav.go('about.js')` → relative resolve → fetch →
+  new page context (`browser/...about.js`), zero exceptions.
+- Clock page: **39 diff presents** from the page context's dyn text +
+  1 s tick — the full present machinery works inside the sandbox.
+- Swipe-home (twice): `browser: page reclaimed (home gesture)` → home.
+- Hostile page (tries `files.remove` + `wifi.forget`, then `for(;;){}`):
+  denials no-op, the loop dies at the 3 s deadline
+  (`last_error="InternalError: interrupted"`), `page=bfail` error page,
+  exactly one exception, launcher reachable, dice.js untouched.
+- QR screen: home → Settings → Apps (14 regions, actions on top) →
+  `settings-web`, both canvases under the command cap, no exceptions.
+
+### What didn't work
+- Two empty console transcripts during the gate: the hold-open client
+  silently exits when another instance still flocks the port, and an
+  `until pgrep …` wait-loop matched its own command line (the documented
+  ESP-53 self-match trap, hit again). Bracket-expressions or just waiting
+  are the fixes; noted for the client's future --wait flag.
+- First tap test aimed at launcher-row coordinates on a *page* (pages
+  have no launcher header, rows sit higher) — js hits, then tap.
+
+### What I learned
+- A page context exercises every runtime path (pages, hits, dyn, tick,
+  presents) with zero page-specific code in the present pipeline — the P8
+  state model carried it.
+- The `/web/page.js` cache file makes the fetched-source path identical
+  to the SD-app path; the browser adds no second loading mechanism.
+
+### What was tricky to build
+- URL resolution without regexes worth trusting: three cases (absolute,
+  host-relative `/x`, dir-relative `x`) against the stored base.
+- The QR under the canvas cap: run-length rows (170 runs) split 13/12
+  across two stacked canvases (86/84 ≤ 96).
+
+### What warrants a second pair of eyes
+- browser.js's watch/re-arm ordering (re-arm BEFORE dispatching, so a
+  nav during fetch is not lost); the `/apps/run` query parsing (url= takes
+  the raw remainder); the appsScreen reorder.
+
+### What should be done in the future
+- nav.reload/back deserve a dedicated probe; bytecode pages
+  (content-type switch) remain unimplemented by choice; a `--wait` flag
+  for the console client.
+
+### Code review instructions
+- `git show <this commit>`; live demo: `scripts/08-pulp-page-server.py` +
+  `curl "http://pulp.local/apps/run?id=browser&url=http://<host>:8123/menu.js"`.
+- Transcripts: scratchpad p10-*.log (menu/about/clock/hostile/QR).

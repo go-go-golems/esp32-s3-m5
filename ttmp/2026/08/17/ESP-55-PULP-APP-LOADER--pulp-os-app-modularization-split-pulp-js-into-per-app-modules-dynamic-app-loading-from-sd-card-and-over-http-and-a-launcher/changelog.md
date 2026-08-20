@@ -72,3 +72,8 @@ Phases 1-3 implemented and hardware-validated: pulp.js split (17557c9a), descrip
 
 Phases 4-7 complete: SD catalog+seeding (5d969185), HTTP push+hot reload (7c6c65da), pull install + load NUL fix + list cap (52d0c827), soak 25 cycles/275 loads/0 exceptions, README updated
 
+
+## 2026-08-20
+
+Phases 8-10 complete: multi-context runtime (6002cc63), UI sandbox stdlib + nav (61dc5daf), browser app live over WiFi (menu/about/clock/hostile pages, enforced home reclaim), QR web-install screen
+

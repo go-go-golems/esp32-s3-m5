@@ -16,6 +16,7 @@
     extern const char _binary_##sym##_end[];
 PULP_ASSET(2048_js)
 PULP_ASSET(blitz_js)
+PULP_ASSET(browser_js)
 PULP_ASSET(daily_js)
 PULP_ASSET(dice_js)
 PULP_ASSET(gallery_js)
@@ -44,6 +45,7 @@ struct Asset {
 const Asset kAssets[] = {
     PULP_ASSET_ROW("2048", 2048_js),
     PULP_ASSET_ROW("blitz", blitz_js),
+    PULP_ASSET_ROW("browser", browser_js),
     PULP_ASSET_ROW("daily", daily_js),
     PULP_ASSET_ROW("dice", dice_js),
     PULP_ASSET_ROW("gallery", gallery_js),

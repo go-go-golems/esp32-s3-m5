@@ -183,6 +183,26 @@
       var menu = list().pad(4, 0, 0, 0);
       var c = catalog();
       var i;
+      // Action rows FIRST: with a dozen installed apps the list clips at
+      // the panel edge and bottom rows would be unreachable (found by the
+      // P10 gate when Web install landed off-screen).
+      setRow(menu, 'Web install', 'pulp.local/apps + QR', function () {
+        os.launch('settings', { screen: 'web' });
+      });
+      setRow(menu, 'Install from URL', 'fetch a module over http(s)',
+        function () { os.launch('settings', { screen: 'url' }); });
+      setRow(menu, 'Rescan', 'reload /apps from the card', function () {
+        scanApps(function () {
+          st.msg = 'rescanned';
+          os.launch('settings', { screen: 'apps' });
+        });
+      });
+      setRow(menu, 'Clear app state', 'forget in-memory app state',
+        function () {
+          os.clearAllState();
+          st.msg = 'state cleared';
+          os.launch('settings', { screen: 'apps' });
+        });
       for (i = 0; i < c.length; i++) {
         (function (e) {
           if (e.hidden) { return; }
@@ -204,20 +224,6 @@
           setRow(menu, e.title, sub, fn);
         })(c[i]);
       }
-      setRow(menu, 'Install from URL', 'fetch a module over http(s)',
-        function () { os.launch('settings', { screen: 'url' }); });
-      setRow(menu, 'Rescan', 'reload /apps from the card', function () {
-        scanApps(function () {
-          st.msg = 'rescanned';
-          os.launch('settings', { screen: 'apps' });
-        });
-      });
-      setRow(menu, 'Clear app state', 'forget in-memory app state',
-        function () {
-          os.clearAllState();
-          st.msg = 'state cleared';
-          os.launch('settings', { screen: 'apps' });
-        });
       var p = page('settings').header(os.chrome('APPS')).content(menu)
         .footer(os.hintFooter(st.msg === '' ? 'swipe down = home'
                                             : st.msg));
@@ -288,11 +294,65 @@
       refresh();
     }
 
+    function webScreen() {
+      // QR for http://pulp.local/apps (version-2 QR, EC L; constant thanks
+      // to mDNS, so the matrix is precomputed by the ticket's
+      // 09-gen-qr.py). Two canvases because the canvas command list caps
+      // at 96 entries and the code needs 170 row-runs.
+      var QR_N = 25;
+      var QR_ROWS = [33377919, 17070145, 24497757, 24489309, 24450397,
+        17106497, 33379711, 20992, 3208931, 16287117,
+        28023795, 19696794, 17139314, 9164351, 27623513,
+        22336685, 6255085, 5325568, 20273023, 1166145,
+        33525341, 28144221, 21587037, 18559297, 19087231];
+      var SC = 16;
+      function drawRows(cv, from, to) {
+        var y = 0;
+        var r, c, run;
+        for (r = from; r < to; r++) {
+          var bits = QR_ROWS[r];
+          c = 0;
+          while (c < QR_N) {
+            if (bits & (1 << c)) {
+              run = 1;
+              while (c + run < QR_N && (bits & (1 << (c + run)))) {
+                run = run + 1;
+              }
+              cv.paint(c * SC, y, run * SC, SC, 0);
+              c = c + run;
+            } else { c = c + 1; }
+          }
+          y = y + SC;
+        }
+      }
+      var cv1 = canvas().height(13 * SC);
+      var cv2 = canvas().height(12 * SC);
+      drawRows(cv1, 0, 13);
+      drawRows(cv2, 13, 25);
+      var up = serve.url() !== '';
+      var body = col().pad(16, 70, 0, 70).gap(0).add(
+        col().gap(0).add(cv1, cv2),
+        spacer(14, 0),
+        text('http://pulp.local/apps').size('sm').center(),
+        text(up ? 'server is up - scan to browse installed apps'
+                : 'server is OFF - start it under Serve first')
+          .size('xs').gray(96).center(),
+        spacer(8, 0),
+        text('push: curl -T app.js pulp.local/apps/upload?name=id')
+          .size('xs').gray(128).center());
+      var p = page('settings').header(os.chrome('WEB INSTALL'))
+        .content(body)
+        .footer(os.hintFooter('swipe down = home'));
+      os.announce('settings-web');
+      p.show(true);
+    }
+
     var a = arg || {};
     if (a.screen === 'scan') { scanScreen(); }
     else if (a.screen === 'pass') { passScreen(a.ssid); }
     else if (a.screen === 'apps') { appsScreen(); }
     else if (a.screen === 'url') { urlScreen(); }
+    else if (a.screen === 'web') { webScreen(); }
     else { mainScreen(); }
   }
 })

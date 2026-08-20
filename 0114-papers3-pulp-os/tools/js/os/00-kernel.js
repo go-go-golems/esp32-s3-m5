@@ -7,6 +7,7 @@
 var P = { app: 'home' };
 var ROUTES_READY = false;  // ESP-54: routes register once serve is up
 var PENDING_LAUNCH = '';   // ESP-55: set by GET /apps/run, run by the home tick
+var PENDING_ARG = null;    // ESP-55 P10: optional launch arg (e.g. browser url)
 
 // Global content margin (px). Toggled by long-pressing the launcher and
 // persisted in the settings store; every app reads it at build time.
@@ -57,10 +58,18 @@ function osRoutes() {
   });
   serve.get('/apps/run').handle(function (req) {
     var q = serve.query(req);
-    var id = q.indexOf('id=') === 0 ? q.slice(3) : '';
+    var id = '';
+    var url = '';
+    var amp = q.indexOf('&');
+    if (q.indexOf('id=') === 0) {
+      id = amp < 0 ? q.slice(3) : q.slice(3, amp);
+    }
+    var upos = q.indexOf('url=');
+    if (upos >= 0) { url = q.slice(upos + 4); }
     if (!catalogFind(id)) { return serve.status(404); }
     if (P.app !== 'home') { return serve.status(409); }
     PENDING_LAUNCH = id;
+    PENDING_ARG = url === '' ? null : { url: url };
     return serve.json('{"run":"' + id + '"}');
   });
   serve.get('/images/list').handle(function (req) {

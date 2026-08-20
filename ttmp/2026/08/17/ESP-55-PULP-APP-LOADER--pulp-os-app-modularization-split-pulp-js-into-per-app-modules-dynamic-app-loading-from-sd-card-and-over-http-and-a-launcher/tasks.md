@@ -19,3 +19,6 @@
 - [x] P5: HTTP push + /apps/list + /apps/run hot reload, live gate (7c6c65da) <!-- t:vfcu -->
 - [x] P6: pull install + URL screen + load NUL fix + list cap (52d0c827) <!-- t:k4nf -->
 - [x] P7: soak + README + close-out <!-- t:n2a4 -->
+- [x] P8: multi-context binding layer + probe 27 (6002cc63) <!-- t:ftqh -->
+- [x] P9: UI sandbox stdlib + nav mailbox + probe 28 (61dc5daf) <!-- t:liqg -->
+- [x] P10: browser app + page server + QR web-install screen <!-- t:xlkw -->

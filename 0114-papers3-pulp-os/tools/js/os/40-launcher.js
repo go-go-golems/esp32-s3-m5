@@ -62,8 +62,10 @@ function home() {
   p.on(G.TICK, function () {
     if (PENDING_LAUNCH !== '') {           // ESP-55: GET /apps/run pickup
       var id = PENDING_LAUNCH;
+      var parg = PENDING_ARG;
       PENDING_LAUNCH = '';
-      launch(id);
+      PENDING_ARG = null;
+      launch(id, parg);
       return;
     }
     if (!ROUTES_READY && serve.url() !== '') {

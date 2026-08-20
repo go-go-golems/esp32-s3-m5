@@ -29,6 +29,8 @@ var ROM_APPS = [
     src: 'rom:gallery' },
   { id: 'radio', title: 'Radio', subtitle: 'words from the ether',
     src: 'rom:radio' },
+  { id: 'browser', title: 'Browser', subtitle: 'pages from the ether',
+    src: 'rom:browser' },
   { id: 'settings', title: 'Settings', subtitle: 'wifi - serve - margins',
     src: 'rom:settings' }
 ];

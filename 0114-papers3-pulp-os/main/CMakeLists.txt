@@ -35,6 +35,7 @@ idf_component_register(
     EMBED_TXTFILES
         "../tools/js/apps/2048.js"
         "../tools/js/apps/blitz.js"
+        "../tools/js/apps/browser.js"
         "../tools/js/apps/daily.js"
         "../tools/js/apps/dice.js"
         "../tools/js/apps/gallery.js"
