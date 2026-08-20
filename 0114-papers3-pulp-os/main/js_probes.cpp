@@ -547,6 +547,15 @@ StatusCode RunProbe27() {
     return StatusCode::Ok;
 }
 
+// 28 (ESP-55 P9): the UI sandbox — run the probe page in a fresh page
+// context (denials print from inside the sandbox), then close it.
+const char kProbe28Js[] =
+    "var rc = browser.run('page:probe-page', 'probe://x');"
+    "print('probe28: run=' + rc);"
+    "print('probe28: navKind=' + browser.navKind()"
+    "      + ' navUrl=\"' + browser.navUrl() + '\"');"
+    "print('probe28: close=' + browser.close());";
+
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
     const StatusCode ran = jsi::EvalBounded(code, 3000, name);
@@ -674,6 +683,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 25: return jsi::EvalBounded(kProbe25Js, 3000, "<probe25>");
         case 26: return jsi::EvalBounded(kProbe26Js, 5000, "<probe26>");
         case 27: return RunProbe27();
+        case 28: return jsi::EvalBounded(kProbe28Js, 8000, "<probe28>");
         default: return StatusCode::InvalidArgument;
     }
 }

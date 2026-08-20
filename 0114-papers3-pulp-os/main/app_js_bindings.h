@@ -132,6 +132,17 @@ PULP_JS_FN(js_apps_write_text);
 PULP_JS_FN(js_apps_received);
 PULP_JS_FN(js_apps_upload_name);
 
+/* ESP-55 P9: nav (page-side) + browser (OS-side page runtime). */
+PULP_JS_FN(js_nav_go);
+PULP_JS_FN(js_nav_back);
+PULP_JS_FN(js_nav_reload);
+PULP_JS_FN(js_nav_url);
+PULP_JS_FN(js_browser_run);
+PULP_JS_FN(js_browser_close);
+PULP_JS_FN(js_browser_watch);
+PULP_JS_FN(js_browser_nav_url);
+PULP_JS_FN(js_browser_nav_kind);
+
 /* ESP-53 connectivity + peripherals. */
 PULP_JS_FN(js_buzzer_tone);
 PULP_JS_FN(js_buzzer_beep);

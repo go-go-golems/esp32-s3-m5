@@ -1265,3 +1265,85 @@ at run time. Probe 27 proves the model on hardware.
 ### Code review instructions
 - `git show <this commit>` — read `app_js_internal.h` first, then
   `app_js.cpp` top to bottom; `js probe 27` on hardware.
+
+## Step 18: Phase 9 — the UI sandbox stdlib and the nav mailbox
+
+Pages now run in a context whose standard library can only draw. The
+second `JSSTDLibraryDef` (`js_stdlib_ui`) is the generated stdlib re-
+emitted with every non-UI native #defined to one `js_ui_denied` stub —
+identical ROM object table, identical atoms (page scripts parse exactly
+like apps), different C function table, enforced by the engine's call
+dispatch rather than JS discipline. `nav.go/back/reload` record a request
+in a native mailbox and post `ModuleDone{Nav}`; the browser (OS context)
+watches. Probe 28 runs a probe page inside the sandbox and prints the
+denial matrix from within.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 17)
+
+**Assistant interpretation:** Phase 9 of the forward design.
+
+**Inferred user intent:** Untrusted page scripts that cannot do anything but display.
+
+**Commit (code):** (this commit) — "ESP-55 P9: UI sandbox stdlib, nav mailbox, page assets, probe 28"
+
+### What I did
+- Stdlib (one regeneration): `nav` {go, back, reload, url} + `browser`
+  {run, close, watch, navUrl, navKind} singletons; `ModuleId::Nav` +
+  `kDoneNavRequest=40`; pulpjsc stubs.
+- `main/js_stdlib_table_ui.c`: 100+ denial #defines with a stated
+  maintenance rule (new natives are denied by default) and
+  `#define js_stdlib js_stdlib_ui` to re-emit the generated tables.
+- `main/js_browser.cpp`: `RunPage(path, url)` — teardown old page ctx →
+  CreateContext(96 KiB, UI stdlib) → eval `page:ui-helpers` → LoadInto
+  the page script → root the descriptor as a page-global (`__page`) →
+  validate via a driver eval → SwitchForeground → `__page.main(ui, nav)`
+  under a 3 s deadline; every failure tears down and returns to the OS.
+  nav verbs post the deferred Nav completion (the watcher runs on a later
+  owner pass, safely outside the page's call frame). The reclaim hook
+  frees the page context on the enforced swipe-home.
+- Page assets namespace (`page:`): `tools/js/pages/{ui-helpers,
+  probe-page}.js` embedded and served by `PageAssetsFind` — separate from
+  app assets so seeding never copies them to the card.
+- Probe 28.
+
+### What worked
+- On hardware, first try after two missing-declaration fixes:
+  `probe-page: files=denied http=denied serve=denied wifi=denied
+  load=denied reset=denied paper=denied store=denied apps=denied
+  browser=denied`; `url=probe://x abi=2`; page presents
+  (`pulp screen: page/probe`, foreground kind 1→0); `run=0 close=0`;
+  zero exceptions.
+
+### What didn't work
+- First build: `g_page_reclaim` was defined in app_js.cpp but not
+  declared in the internal header; js_browser.cpp also needed
+  app_files.h for `kFilesMaxPath`. Two-line fixes.
+
+### What I learned
+- Re-emitting the generated stdlib under #define renames costs one extra
+  ROM table in flash but keeps the atom space literally identical — the
+  property that makes page scripts and app modules the same dialect with
+  different capabilities.
+- Rooting a loaded descriptor by storing it as a context global
+  (`__page`) then driving it with fixed eval strings avoids every native
+  GC-rooting hazard the direct JS_Call path would have had.
+
+### What was tricky to build
+- The teardown ordering: nav requests must reach the watcher OUTSIDE the
+  page's call frame (the watcher usually destroys the posting context) —
+  hence the completion queue, not a direct call; and `DestroyContext`
+  switches foreground first so the arena never renders dead widgets.
+
+### What warrants a second pair of eyes
+- The deny list completeness (audit against app_js_bindings.h); RunPage's
+  failure paths (each TeardownPage returns foreground to the OS).
+
+### What should be done in the future
+- P10: the browser app over this runtime; the deny-by-default rule should
+  eventually be enforced by the stdlib generator rather than by review.
+
+### Code review instructions
+- `git show <this commit>`: js_stdlib_table_ui.c (rule + list),
+  js_browser.cpp (RunPage), probe 28 output in scratchpad p9-gate.log.

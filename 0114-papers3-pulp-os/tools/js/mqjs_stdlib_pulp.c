@@ -432,6 +432,9 @@ static const JSPropDef js_global_object[] = {
     JS_PROP_CLASS_DEF("images", &js_images_obj),
     /* ESP-55: app assets + upload surface. */
     JS_PROP_CLASS_DEF("apps", &js_apps_obj),
+    /* ESP-55 P9: page navigation + the OS-side page runtime. */
+    JS_PROP_CLASS_DEF("nav", &js_nav_obj),
+    JS_PROP_CLASS_DEF("browser", &js_browser_obj),
 #endif
     JS_PROP_END,
 };

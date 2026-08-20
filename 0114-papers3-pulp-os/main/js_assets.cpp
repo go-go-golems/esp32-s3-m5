@@ -26,6 +26,8 @@ PULP_ASSET(radio_js)
 PULP_ASSET(reader_js)
 PULP_ASSET(settings_js)
 PULP_ASSET(tea_js)
+PULP_ASSET(ui_helpers_js)
+PULP_ASSET(probe_page_js)
 #undef PULP_ASSET
 
 namespace pulp {
@@ -109,11 +111,28 @@ int32_t WriteWhole(const char *vpath, const char *data, uint32_t len) {
 
 }  // namespace
 
+namespace {
+
+const Asset kPageAssets[] = {
+    {"ui-helpers", _binary_ui_helpers_js_start, _binary_ui_helpers_js_end},
+    {"probe-page", _binary_probe_page_js_start, _binary_probe_page_js_end},
+};
+
+constexpr uint32_t kPageAssetCount =
+    sizeof(kPageAssets) / sizeof(kPageAssets[0]);
+
+}  // namespace
+
 bool PageAssetsFind(const char *name, const char **src, uint32_t *len) {
-    (void)name;
-    (void)src;
-    (void)len;
-    return false;  // page assets land in P9
+    for (uint32_t i = 0; i < kPageAssetCount; ++i) {
+        if (std::strcmp(kPageAssets[i].name, name) == 0) {
+            *src = kPageAssets[i].start;
+            *len = static_cast<uint32_t>(kPageAssets[i].end -
+                                         kPageAssets[i].start) - 1;
+            return true;
+        }
+    }
+    return false;
 }
 
 int32_t AssetsCopy(const char *name, const char *vpath) {

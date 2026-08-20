@@ -171,6 +171,15 @@ STUB(js_apps_copy)
 STUB(js_apps_write_text)
 STUB(js_apps_received)
 STUB(js_apps_upload_name)
+STUB(js_nav_go)
+STUB(js_nav_back)
+STUB(js_nav_reload)
+STUB(js_nav_url)
+STUB(js_browser_run)
+STUB(js_browser_close)
+STUB(js_browser_watch)
+STUB(js_browser_nav_url)
+STUB(js_browser_nav_kind)
 
 static void js_widget_finalizer(JSContext *ctx, void *opaque) {
     (void)ctx; (void)opaque;

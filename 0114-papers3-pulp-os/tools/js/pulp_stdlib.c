@@ -234,5 +234,34 @@ static const JSPropDef js_apps[] = {
 
 static const JSClassDef js_apps_obj = JS_OBJECT_DEF("Apps", js_apps);
 
+/* nav singleton (ESP-55 P9): the ONLY outward surface of a sandboxed
+   page context. go/back/reload record a request in a native mailbox and
+   post a completion; the browser app (OS context) decides what happens.
+   url() reports the current page's address. */
+static const JSPropDef js_nav[] = {
+    JS_CFUNC_DEF("go", 1, js_nav_go),
+    JS_CFUNC_DEF("back", 0, js_nav_back),
+    JS_CFUNC_DEF("reload", 0, js_nav_reload),
+    JS_CFUNC_DEF("url", 0, js_nav_url),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_nav_obj = JS_OBJECT_DEF("Nav", js_nav);
+
+/* browser singleton (ESP-55 P9/P10): OS-side page runtime control. run()
+   creates a sandboxed page context and executes a page script in it;
+   watch() registers the nav-request completion (ModuleId::Nav). Denied
+   wholesale in the UI stdlib. */
+static const JSPropDef js_browser[] = {
+    JS_CFUNC_DEF("run", 2, js_browser_run),
+    JS_CFUNC_DEF("close", 0, js_browser_close),
+    JS_CFUNC_DEF("watch", 1, js_browser_watch),
+    JS_CFUNC_DEF("navUrl", 0, js_browser_nav_url),
+    JS_CFUNC_DEF("navKind", 0, js_browser_nav_kind),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_browser_obj = JS_OBJECT_DEF("Browser", js_browser);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

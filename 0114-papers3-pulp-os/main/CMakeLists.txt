@@ -27,6 +27,8 @@ idf_component_register(
         "js_probes.cpp"
         "js_assets.cpp"
         "js_apps.cpp"
+        "js_browser.cpp"
+        "js_stdlib_table_ui.c"
         "js_stdlib_table.c"
     INCLUDE_DIRS
         "."
@@ -43,6 +45,8 @@ idf_component_register(
         "../tools/js/apps/reader.js"
         "../tools/js/apps/settings.js"
         "../tools/js/apps/tea.js"
+        "../tools/js/pages/ui-helpers.js"
+        "../tools/js/pages/probe-page.js"
     REQUIRES
         mquickjs
         console

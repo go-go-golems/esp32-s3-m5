@@ -82,6 +82,9 @@ extern uint32_t g_evals;
 extern uint32_t g_exceptions;
 extern uint32_t g_dispatches;
 extern ModuleCb g_module_cb[static_cast<uint8_t>(ModuleId::kCount)];
+// Reclaim hook (js_browser.cpp): invoked with the outgoing non-OS
+// foreground when the swipe-home grammar returns control to the OS.
+extern void (*g_page_reclaim)(JsCtxState *st);
 
 // ---- context lifecycle (defined in app_js.cpp) ----
 
