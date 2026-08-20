@@ -204,6 +204,8 @@
           setRow(menu, e.title, sub, fn);
         })(c[i]);
       }
+      setRow(menu, 'Install from URL', 'fetch a module over http(s)',
+        function () { os.launch('settings', { screen: 'url' }); });
       setRow(menu, 'Rescan', 'reload /apps from the card', function () {
         scanApps(function () {
           st.msg = 'rescanned';
@@ -224,10 +226,73 @@
       p.show(true);
     }
 
+    function urlScreen() {
+      var URL_ROWS = ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+      var draft = 'http://';
+      var draftT = null;
+      var msgT = null;
+      var p = page('settings');
+      function refresh() {
+        draftT.set(draft);
+        p.update();
+      }
+      function put(ch) {
+        if (draft.length < 63) { draft += ch; refresh(); }
+      }
+      var body = col().pad(10, 24, 0, 24).gap(8);
+      body.add(text('install app from url:').size('sm'));
+      draftT = text(' ').size('xs');
+      body.add(draftT);
+      msgT = text(' ').size('xs').gray(128);
+      body.add(msgT);
+      body.add(divider(1, 0));
+      var r, i;
+      for (r = 0; r < 4; r++) {
+        var line = row().gap(2).mainAlign(1);
+        for (i = 0; i < URL_ROWS[r].length; i++) {
+          (function (ch) {
+            line.add(text(ch).size('lg').center().width(48).height(56)
+              .onTap(function () { put(ch); }));
+          })(URL_ROWS[r].charAt(i));
+        }
+        if (r === 3) {
+          line.add(text('<del>').size('xs').center().width(70).height(52)
+            .onTap(function () {
+              draft = draft.slice(0, -1); refresh(); }));
+        }
+        body.add(line);
+        body.add(divider(1, 200));
+      }
+      var extra = row().gap(2).mainAlign(1);
+      var EXTRA = [':', '/', '.', '-', '_'];
+      for (i = 0; i < EXTRA.length; i++) {
+        (function (ch) {
+          extra.add(text(ch).size('lg').center().width(64).height(56)
+            .onTap(function () { put(ch); }));
+        })(EXTRA[i]);
+      }
+      extra.add(text(' GET ').size('xs').invert().center().width(100)
+        .height(56).onTap(function () {
+          msgT.set('fetching ' + draft);
+          p.update();
+          installFromUrl(draft, function (msg) {
+            st.msg = msg;
+            os.launch('settings', { screen: 'apps' });
+          });
+        }));
+      body.add(extra);
+      p.header(os.chrome('INSTALL')).content(body)
+        .footer(os.hintFooter('type the module url - GET = fetch'));
+      os.announce('settings-url');
+      p.show(true);
+      refresh();
+    }
+
     var a = arg || {};
     if (a.screen === 'scan') { scanScreen(); }
     else if (a.screen === 'pass') { passScreen(a.ssid); }
     else if (a.screen === 'apps') { appsScreen(); }
+    else if (a.screen === 'url') { urlScreen(); }
     else { mainScreen(); }
   }
 })

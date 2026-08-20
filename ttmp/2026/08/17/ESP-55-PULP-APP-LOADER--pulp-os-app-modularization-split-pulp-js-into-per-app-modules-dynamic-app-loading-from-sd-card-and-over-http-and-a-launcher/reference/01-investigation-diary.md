@@ -1057,3 +1057,83 @@ launcher rebuilt, `/apps/run` queued it, and the home tick launched it —
 - `git show <this commit>` (net_serve.cpp PUT paths, push script).
 - Live: `06-pulp-app-push.sh <app.js> --host pulp.local --run`, then
   `curl http://pulp.local/status`.
+
+## Step 15: Phase 6 — pull install, and two real bugs the gate caught
+
+`installFromUrl(url, done)` lives in the OS core (Settings drives it from
+a new Install-from-URL keyboard screen; test drivers can call it
+directly). The end-to-end gate was deliberately meta: a driver app was
+*pushed* over HTTP (P5) whose `main` *pulls* `pulled.js` from a laptop
+HTTP server (P6) — and the device ended up running the app it had
+downloaded itself (`/status` → `"app":"pulled"`). The gate caught two
+genuine firmware bugs on the way.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 13)
+
+**Assistant interpretation:** Phase 6 with a live pull gate.
+
+**Inferred user intent:** Install apps with no laptop-side tooling beyond a URL.
+
+**Commit (code):** (this commit) — "ESP-55 P6: installFromUrl + URL screen, load NUL fix, files list cap 64, probe 26"
+
+### What I did
+- `kFilesMaxBody` 16→32 KiB; `installFromUrl` + `idFromUrl` in
+  os/20-catalog.js (http.get limit 32768 → `apps.writeText` module +
+  manifest-if-missing → `scanApps` → `done(msg)`); Settings `url` screen
+  (URL keyboard: letters/digits + `: / . - _` row + GET); probe 26
+  (writeText+load round trip, id-derivation edge cases) with cleanup.
+- Gate rig: `python3 -m http.server 8123` on the host (192.168.0.39),
+  `driver.js` pushed via script 06, `pulled.js` served.
+
+### What didn't work (both found by the gate, both real)
+1. **`load()` of SD files parsed past EOF.** Symptoms: probe 26's file
+   failed `SyntaxError: expecting ';' at 1:66` (one past EOF), later
+   `invalid lvalue at 2:2`, and `driver.js` failed with `undefined` —
+   positions *beyond the file*. Cause: the mquickjs lexer uses a NUL
+   sentinel (flash assets are NUL-terminated by EMBED_TXTFILES; every
+   JS_Eval caller passes C strings); my SD read buffer wasn't terminated,
+   so parsing continued into stale bytes from the previous load. Fix:
+   `s_load_buf[got] = '\0'` (first attempt appended `\n` on the ASI
+   theory — wrong, disproved by the next run). P4's SD loads had only
+   *appeared* to work because the buffer tail happened to be benign.
+2. **The 33rd file in /sdcard/apps silently vanished.** After seeding
+   (24 files) + hello + driver + probe leftovers + pulled (33 files),
+   `files.list`'s 32-entry mailbox dropped `pulled.json`: install
+   reported success, catalog never showed it. Fix: `kFilesMaxList` 32→64
+   and probes now delete their scratch files. This was the P4 "fine v1"
+   assumption failing within hours — recorded as a lesson.
+
+### What worked
+- probe26: `write=0`, `load=probe26 main=function`, `id1=dice id2= id3=`
+  (uppercase and empty rejected).
+- Driver chain: `js load: /apps/driver.js 584 bytes 13 ms` →
+  `driver: installed pulled (542B)` → after the cap fix `/apps/list`
+  shows hello+driver+pulled → `/apps/run?id=pulled` → `"app":"pulled"`.
+
+### What I learned
+- "Success" one layer up (installFromUrl's done) hid the list-cap loss —
+  end-to-end assertions (`/apps/list`, `/status`) catch what unit-level
+  status codes cannot.
+- The NUL-sentinel contract for `JS_Parse`/`JS_Eval` buffers is
+  undocumented in the engine header; recorded here and in the load()
+  comment.
+
+### What was tricky to build
+- Diagnosing parse errors "past EOF" required correlating byte counts
+  (65/584) with error positions and remembering what previously occupied
+  the shared load buffer.
+
+### What warrants a second pair of eyes
+- The NUL fix (`fread` cap now kLoadBufBytes−1); kFilesMaxList memory
+  cost (64 × ~48 B static); installFromUrl's manifest-if-missing rule.
+
+### What should be done in the future
+- P7 soak + docs; consider `files.list` pagination if /apps ever grows
+  past 64 entries (launcher + images + books also share the mailbox).
+
+### Code review instructions
+- `git show <this commit>`; on device: `js probe 26`, then the meta-gate:
+  push driver (script 06), `curl /apps/run?id=driver`, watch
+  `driver: installed pulled`, `curl /apps/list`, run pulled.

@@ -615,12 +615,17 @@ JSValue js_load(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
         if (f == nullptr) {
             return JS_ThrowTypeError(ctx, "load: no such file");
         }
-        const size_t got = fread(s_load_buf, 1, kLoadBufBytes, f);
+        const size_t got = fread(s_load_buf, 1, kLoadBufBytes - 1, f);
         const bool more = fgetc(f) != EOF;
         fclose(f);
-        if (more || got == kLoadBufBytes) {
+        if (more || got == kLoadBufBytes - 1) {
             return JS_ThrowTypeError(ctx, "load: file too large");
         }
+        // The lexer treats NUL as the end-of-input sentinel (flash assets
+        // are NUL-terminated by EMBED_TXTFILES; JS_Eval callers pass C
+        // strings). Without this, parsing continues into stale buffer
+        // bytes and fails with off-the-end positions (probe 26 regression).
+        s_load_buf[got] = '\0';
         src = s_load_buf;
         len = static_cast<uint32_t>(got);
     }

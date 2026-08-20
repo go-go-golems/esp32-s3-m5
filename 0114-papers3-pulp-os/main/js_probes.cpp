@@ -476,7 +476,10 @@ const char kProbe24Js[] =
     "print('probe24: write=' + w);"
     "var c = catalog();"
     "print('probe24: catalog=' + c.length + ' dice_src='"
-    "      + catalogFind('dice').src);";
+    "      + catalogFind('dice').src);"
+    "files.remove('/apps/probe24.txt', function () {"
+    "  files.remove('/apps/probe24.js', function () {});"
+    "});";
 
 // 25 (ESP-55 P5): the OS upload watcher (appsWatch, re-registered by
 // every enter()) must hold the Apps module slot — a probe registration
@@ -486,6 +489,21 @@ const char kProbe25Js[] =
     "try { apps.received(function () {}); } catch (e) { busy = 'yes'; }"
     "print('probe25: os-watch-busy=' + busy"
     "      + ' name=\"' + apps.uploadName() + '\"');";
+
+// 26 (ESP-55 P6): pull-install core — sync writeText of a descriptor,
+// load round trip, id derivation edge cases.
+const char kProbe26Js[] =
+    "var w = apps.writeText('/apps/probe26.js',"
+    "  \"({id:'probe26',title:'P26',version:1,abi:2,\" +"
+    "  \"main:function(o,a){}})\");"
+    "print('probe26: write=' + w);"
+    "var d = w === 0 ? load('/apps/probe26.js') : null;"
+    "print('probe26: load=' + (d ? d.id : 'skip') + ' main='"
+    "      + (d ? typeof d.main : '-'));"
+    "print('probe26: id1=' + idFromUrl('http://h:8/x/dice.js?v=1')"
+    "      + ' id2=' + idFromUrl('http://h/UPPER.js')"
+    "      + ' id3=' + idFromUrl('http://h/'));"
+    "files.remove('/apps/probe26.js', function () {});";
 
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
@@ -612,6 +630,7 @@ StatusCode JsRunProbe(uint32_t which) {
         case 23: return jsi::EvalBounded(kProbe23Js, 5000, "<probe23>");
         case 24: return jsi::EvalBounded(kProbe24Js, 5000, "<probe24>");
         case 25: return jsi::EvalBounded(kProbe25Js, 3000, "<probe25>");
+        case 26: return jsi::EvalBounded(kProbe26Js, 5000, "<probe26>");
         default: return StatusCode::InvalidArgument;
     }
 }

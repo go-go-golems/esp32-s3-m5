@@ -171,6 +171,47 @@ function seedApps() {
   print('pulp apps: seeded ' + seeded + '/' + n);
 }
 
+// Pull install (ESP-55 P6): fetch a module over http(s) and store it on
+// the card. Lives in the OS core so Settings and test drivers share it.
+// done(msg) always fires exactly once with a human-readable outcome.
+function idFromUrl(u) {
+  var q = u.indexOf('?');
+  if (q >= 0) { u = u.slice(0, q); }
+  var id = u.slice(u.lastIndexOf('/') + 1);
+  if (id.slice(-3) === '.js') { id = id.slice(0, -3); }
+  if (id.length === 0 || id.length > 24) { return ''; }
+  var i;
+  for (i = 0; i < id.length; i++) {
+    var c = id.charAt(i);
+    var ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') ||
+             c === '_' || c === '-';
+    if (!ok) { return ''; }
+  }
+  return id;
+}
+
+function installFromUrl(url, done) {
+  var id = idFromUrl(url);
+  if (id === '') { done('bad url (no app id)'); return; }
+  if (id === 'settings') { done('cannot replace settings'); return; }
+  os.netUp(function (ok) {
+    if (ok !== 1) { done('no network'); return; }
+    var rc = http.get(url).limit(32768).done(function (k, status, len) {
+      if (status !== 200 || len <= 0) { done('http ' + status); return; }
+      var w = apps.writeText('/apps/' + id + '.js', http.body());
+      if (w !== 0) { done('write failed (' + w + ')'); return; }
+      if (files.exists('/apps/' + id + '.json') !== 1) {
+        apps.writeText('/apps/' + id + '.json',
+          '{"id":"' + id + '","title":"' + id + '","subtitle":' +
+          '"installed from url","version":1,"abi":' + os.abi +
+          ',"src":"/apps/' + id + '.js"}');
+      }
+      scanApps(function () { done('installed ' + id + ' (' + len + 'B)'); });
+    }).send();
+    if (rc !== 0) { done('http busy (' + rc + ')'); }
+  });
+}
+
 // Upload watcher (ESP-55 P5): re-registered by enter() at every app
 // switch, like osRoutes. A successful push rescans; the launcher rebuilds
 // if it is showing.

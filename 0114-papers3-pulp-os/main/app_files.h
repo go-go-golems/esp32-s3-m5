@@ -18,8 +18,8 @@ namespace pulp {
 using FilesStatusCode = s3paper::StatusCode;
 
 constexpr uint32_t kFilesMaxPath = 96;      // virtual path cap
-constexpr uint32_t kFilesMaxList = 32;      // listing mailbox entries
-constexpr uint32_t kFilesMaxBody = 16384;   // read/write byte cap
+constexpr uint32_t kFilesMaxList = 64;      // listing mailbox entries (ESP-55 P6: 32 was exceeded by /sdcard/apps after installs — the 33rd entry silently vanished)
+constexpr uint32_t kFilesMaxBody = 32768;   // read/write byte cap (ESP-55 P6: raised 16->32 KiB for pulled app modules)
 constexpr uint32_t kFilesMaxLines = 512;    // read mailbox line index
 
 // Validates a virtual path and writes the real "/sdcard/..." path into
