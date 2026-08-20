@@ -506,7 +506,7 @@ control = safe" assumption on this host.
 
 ### Prompt Context
 
-**User prompt (verbatim):** "alright, cdc_acm loaded. \n\ncommit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+**User prompt (verbatim):** "alright, cdc_acm loaded. / commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
 
 **Assistant interpretation:** Start implementation (Phase 0 first, as recommended), with commits and diary.
 
