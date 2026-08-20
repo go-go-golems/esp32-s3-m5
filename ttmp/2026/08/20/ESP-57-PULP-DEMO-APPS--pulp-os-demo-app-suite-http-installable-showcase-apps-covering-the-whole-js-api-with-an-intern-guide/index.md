@@ -1,7 +1,7 @@
 ---
 Title: 'PULP OS demo app suite: HTTP-installable showcase apps covering the whole JS API, with an intern guide'
 Ticket: ESP-57-PULP-DEMO-APPS
-Status: active
+Status: complete
 Topics:
     - papers3
     - esp32s3
@@ -16,10 +16,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-08-20T10:57:29.870240628-04:00
+LastUpdated: 2026-08-20T13:34:31.357086104-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # PULP OS demo app suite: HTTP-installable showcase apps covering the whole JS API, with an intern guide
 

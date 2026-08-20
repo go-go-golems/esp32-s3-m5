@@ -18,3 +18,8 @@ Step 3: scan-death root-caused (lost ModuleDone under queue pressure) and fixed 
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0114-papers3-pulp-os/main/app_owner.cpp — TimerDue queue reservation
 
+
+## 2026-08-20
+
+Ticket closed
+
