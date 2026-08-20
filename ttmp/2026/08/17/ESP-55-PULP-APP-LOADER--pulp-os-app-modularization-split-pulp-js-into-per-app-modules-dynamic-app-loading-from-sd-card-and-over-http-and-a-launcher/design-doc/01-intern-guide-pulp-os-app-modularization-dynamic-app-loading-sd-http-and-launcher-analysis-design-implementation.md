@@ -41,8 +41,8 @@ RelatedFiles:
       Note: http.get limits (32 KiB body) bounding pull-install
     - Path: repo://0114-papers3-pulp-os/main/net_serve.cpp
       Note: POST dispatch, ServeUpload streaming precedent for /apps/upload, index.html marker seeding, max_uri_handlers
-    - Path: repo://0114-papers3-pulp-os/tools/js/apps/pulp.js
-      Note: The monolith being split; sections, prelude/enter/osRoutes, hard-coded launcher rows
+    - Path: repo://0114-papers3-pulp-os/tools/js/os/00-kernel.js
+      Note: The OS kernel (former pulp.js prelude); the monolith was split in P1 (commit 17557c9a), see git history
     - Path: repo://0114-papers3-pulp-os/tools/js/build_bytecode_apps.sh
       Note: Bytecode pipeline to be changed to concatenate os/*.js and embed apps/*.js
     - Path: repo://0114-papers3-pulp-os/tools/js/gen_pulp_stdlib.sh
