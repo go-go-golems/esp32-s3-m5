@@ -62,3 +62,12 @@ Step 14: official Detect.ino read PICC, isolating remaining ESP-IDF failure to I
 
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - Porting the ST25R3916 Reader to ESP-IDF.md — Published technical project report
 
+
+## 2026-08-21
+
+Step 15: corrected tag-absence record; valid tag-present 400/100 kHz tests both failed, 100 kHz was worse and reverted; vault report corrected (223bcd7)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - Porting the ST25R3916 Reader to ESP-IDF.md — Corrected test preconditions and 100 kHz result
+

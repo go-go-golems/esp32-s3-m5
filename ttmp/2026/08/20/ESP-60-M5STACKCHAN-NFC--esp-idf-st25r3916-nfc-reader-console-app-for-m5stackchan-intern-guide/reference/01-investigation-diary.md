@@ -1100,3 +1100,82 @@ Restoring the ESP-IDF firmware without moving the tag immediately exposed an `i2
 - Vault commit/push: `e7003d40d3ca40f2602dd020ecc7fd5ca0db9a05` on `go-go-parc/main`.
 - Official result: screen state B, `PICC:<UID> ...`.
 - Current ESP-IDF failure class: intermittent new-driver I2C timeout/corrupt readback before a stable ATQA.
+
+---
+
+## Step 15: Correct the tag-presence record and reject the 100 kHz hypothesis
+
+The user discovered that the tag had been removed during the first ESP-IDF run after the successful official-firmware bisect. That run remains evidence of an I2C timeout, but it cannot support any conclusion about NFC reception with a tag present. I corrected the record immediately and repeated the experiment with the tag restored.
+
+The valid tag-present tests showed that 400 kHz still produced no receive IRQ and intermittent corrupt register readback. A controlled 100 kHz build made transport behavior worse and also produced no receive IRQ. I rejected and reverted the 100 kHz change, restored the committed 400 kHz firmware, and pushed a factual correction to the Obsidian report.
+
+### Prompt Context
+
+**User prompt (verbatim):** "oh lol somehow i had removed the tag. try again"
+
+**Assistant interpretation:** Invalidate the earlier NFC conclusion, repeat the ESP-IDF test with the tag physically present, and correct any documentation that relied on the mistaken setup.
+
+**Inferred user intent:** Obtain a valid comparison between the successful official firmware and the ESP-IDF firmware under the same tag-present condition.
+
+**Commit (vault correction):** `223bcd7a027b84109ad471fa54571a394c259634` — "Correct StackChan NFC report with tag-present transport tests"
+
+### What I did
+
+- Re-ran ten `nfc-read` attempts on the committed 400 kHz ESP-IDF build with the tag present.
+- Observed no NFC receive IRQ and transient invalid readback (`ISO=00 AUX=09`, later `ANT2=00`).
+- Built and flashed the prepared 100 kHz experiment with matching `IO_CONFIG_1=0x07`.
+- Ran ten tag-present reads at 100 kHz.
+- Observed no NFC receive IRQ, repeated `ESP_ERR_INVALID_STATE`, invalid Space-B values, and corrupt NRT readback.
+- Reverted the uncommitted 100 kHz source change.
+- Rebuilt and reflashed the committed 400 kHz firmware.
+- Corrected and pushed the Obsidian report.
+
+### Why
+
+- Physical test state is part of the evidence. The earlier claim had to be withdrawn as soon as tag absence was known.
+- The 100 kHz experiment tested whether bus speed alone caused the new-driver transport failures.
+
+### What worked
+
+- The repeated test now has a valid tag-present setup.
+- Reverting the failed experiment returned the source tree and board to the committed 400 kHz state.
+- The published report now distinguishes timeout evidence from tag-presence evidence.
+
+### What didn't work
+
+- 400 kHz: ten attempts, no receive IRQ; transient `ISO=00 AUX=09` and `ANT2=00` readback.
+- 100 kHz: ten attempts, no receive IRQ; repeated invalid state errors; Space-B values read as `00/00` or `CORR=93`; NRT read as `0050`/`00D0` instead of `0350`.
+- Lowering bus speed did not stabilize transport.
+
+### What I learned
+
+- The simplest clock-rate hypothesis is disproved.
+- The next comparison must target transaction semantics/backend behavior rather than another protocol or RF setting.
+- Documentation should state test preconditions explicitly, especially physical tag presence and placement.
+
+### What was tricky to build
+
+- The original timeout and the invalid NFC comparison occurred in the same run. The timeout remains real evidence, while the no-tag result from that run does not; those claims had to be separated rather than discarding or preserving the entire run.
+
+### What warrants a second pair of eyes
+
+- Compare M5 `I2C_Class` start/restart/read/write/stop behavior to ESP-IDF `i2c_master_transmit_receive()`.
+- Decide whether an explicit defined-operation transaction or the legacy ESP-IDF I2C backend is the cleaner next controlled experiment.
+
+### What should be done in the future
+
+- Quantify baseline register-read failure rates on the restored 400 kHz build.
+- Implement one transport-backend experiment without changing NFC configuration.
+- Retry in the exact position proven by official firmware.
+
+### Code review instructions
+
+- Confirm `main/st25r3916/st25r3916.c` is back at `I2C_FREQ_HZ=400000` and IO_CONFIG_1 `0x17`.
+- Review corrected vault article commit `223bcd7`.
+- Use `/tmp/esp60-tag-replaced-read.log` and `/tmp/esp60-100khz-tag-read.log` as transient raw evidence.
+
+### Technical details
+
+- Current flashed firmware: committed 400 kHz ESP-IDF build.
+- 100 kHz experiment: failed, reverted, never committed.
+- Remaining diagnosis: transaction implementation/recovery, not tag placement and not bus clock alone.
