@@ -1664,3 +1664,92 @@ The resulting image excludes all standard app implementations, installs only NFC
 - Full flash log: `/tmp/esp60-nfc-only-full-flash.log`.
 - Boot/runtime capture: `/tmp/esp60-nfc-only-boot.log`.
 - Partial UI-3 preservation: `/tmp/esp60-ui3-partial-event-log.patch`.
+
+---
+
+## Step 21: Publish the NFC LAB deep dive and classify the rising error count
+
+The first operator test of the physically deployed NFC LAB showed that the tag was not recognized and that the header error count increased. This is consistent with the known ESP-IDF transport instability: the displayed count is populated from failed low-level I2C transactions, not from ordinary no-tag outcomes.
+
+I wrote a new 5,093-word textbook-style Obsidian article focused on the UI/runtime phase of the project and pushed it to the go-go-parc vault. The report preserves the incomplete result directly: the application, display, worker, diagnostics, and physical deployment work, but the ESP-IDF backend has not produced a UID.
+
+### Prompt Context
+
+**User prompt (verbatim):** "write a detailed project report for the obsidian vault as a deep dive technical analysis blog post using a textbook writing style (no analogies, see skill).&#32;&#32;&#32;&#32;&#32;&#32;
+ Commit and push the bsidian vault when done (go-go-parc vault)."
+
+**Additional user prompt (verbatim):** "doesn't seem to recognize my tag? i get error count goes up"
+
+**Assistant interpretation:** Publish a durable technical account of the NFC LAB architecture and current evidence, while immediately clarifying what the rising physical-device error counter measures.
+
+**Inferred user intent:** Preserve the complete project knowledge in the vault and understand whether the failed physical tag read indicates a bad tag, bad placement, or the known firmware transport defect.
+
+**Commit (documentation):** `83513da3109b23b43d952f45809b7ccf772ca01e` — "Add M5StackChan NFC LAB deep-dive report" (go-go-parc vault)
+
+### What I did
+
+- Loaded the Obsidian vault-writing, Obsidian Markdown, textbook-authoring, and deep-dive report guidance.
+- Read the existing standalone NFC article, the complete UI design, UI implementation diary Steps 16–20, overlay README, service, view, driver instrumentation, app lifecycle, and composition scripts.
+- Explained that `err:NNN` is the driver's failed low-level I2C transaction count, not a tag-miss count.
+- Asked the operator to keep the known-good tag on the literal narrow top edge and use a single READ ONCE operation.
+- Captured two passive serial windows without resetting the board; neither contained a new NFC poll, so they do not classify a synchronized read.
+- Created a new append-only vault article rather than overwriting the existing standalone-driver report.
+- Wrote 800 lines / 5,093 words with three Mermaid diagrams, real code, UI layouts, failure analysis, deployment evidence, and explicit incomplete status.
+- Validated frontmatter, required sections, balanced code fences, and `git diff --check`.
+- Staged only the new article despite unrelated pre-existing vault changes.
+- Committed and pushed vault `main` successfully.
+
+### Why
+
+- The existing vault article documents the standalone register-level port and Arduino bisect; the new article documents the distinct Mooncake/LVGL integration, concurrency model, source overlay, NFC-only composition, and first deployment.
+- The tag is already proven by official firmware, so the error count must not be interpreted as evidence of an unsupported tag without transport evidence.
+- A synchronized one-shot operation is more useful than AUTO polling because it preserves the first failing transaction before counters grow rapidly.
+
+### What worked
+
+- The article was committed and pushed to `origin/main` at `83513da3109b23b43d952f45809b7ccf772ca01e`.
+- The report links the earlier NFC article and distinguishes established facts from pending validation.
+- Vault validation found balanced fences, valid expected metadata/sections, and three Mermaid diagrams.
+- Only the intended article was staged; unrelated transcript modifications/deletions remained untouched.
+
+### What didn't work
+
+- The passive serial captures did not coincide with a READ ONCE press. They contained only periodic system information, so no new raw request/error trace was obtained.
+- NFC LAB still does not recognize the known-good tag; no ESP-IDF UID was produced.
+
+### What I learned
+
+- The observed rising counter confirms that physical UI use reaches the instrumented low-level transport path.
+- AUTO was no longer active during the later passive captures, which narrows but does not explain why it appeared active immediately after the first flash.
+- The next useful evidence is one operator-triggered read paired with the Bus page's last operation/key/error and RF/IRQ page values.
+
+### What was tricky to build
+
+- The report needed to cover a functioning UI architecture without implying that the NFC reader itself works. The article repeatedly separates deployment success from protocol success.
+- The vault contained unrelated modified and deleted transcript files. Staging by exact article path prevented those changes from entering the report commit.
+- The two user requests arrived together: documentation could proceed independently, but tag diagnosis still requires synchronized human interaction with the physical screen.
+
+### What warrants a second pair of eyes
+
+- Confirm the on-screen state after one READ ONCE and record the Bus page's exact last operation, key, and error.
+- Review the article's distinction between command result and cumulative transport health, especially the case where Reader reports NO TAG while the header remains amber.
+- Verify that AUTO cannot activate from a reset-time touch event.
+
+### What should be done in the future
+
+- Capture one synchronized tag-present READ ONCE trace.
+- Continue the explicit M5-like I2C transaction or legacy-backend experiment.
+- Reapply the preserved UI-3 event-log patch after the immediate transport evidence is recorded.
+
+### Code review instructions
+
+- Read the new vault article at `Projects/2026/08/21/ARTICLE - M5StackChan NFC LAB - Building an On-Device NFC Diagnostic Firmware.md`.
+- Compare its transport-counter explanation with `st25r3916.c::record_transport()` and its task model with `NfcDebugService::task_loop()`.
+- For the next physical test, disable AUTO, note Bus counters, press READ ONCE once, and immediately record Reader, Bus, and RF/IRQ values.
+
+### Technical details
+
+- Vault commit: `83513da3109b23b43d952f45809b7ccf772ca01e`.
+- Article size: 800 lines, 5,093 words, 37,799 bytes.
+- Passive captures: `/tmp/esp60-tag-present-live.log` and `/tmp/esp60-tag-read-once-live.log`.
+- Both passive captures lacked a new poll sequence and are not synchronized-read evidence.

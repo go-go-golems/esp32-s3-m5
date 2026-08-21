@@ -120,3 +120,12 @@ Step 20: converted to NFC-only auto-open firmware, reduced app by ~613 KiB, comp
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/scripts/flash.sh — Full migration and later app-only flash workflow
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh — NFC-only app registry and source filtering
 
+
+## 2026-08-21
+
+Step 21: published and pushed the 5,093-word NFC LAB deep dive; documented that the rising UI counter represents low-level I2C failures, while synchronized tag-read capture remains pending (vault commit 83513da)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC LAB - Building an On-Device NFC Diagnostic Firmware.md — Published NFC LAB architecture and physical deployment deep dive
+
