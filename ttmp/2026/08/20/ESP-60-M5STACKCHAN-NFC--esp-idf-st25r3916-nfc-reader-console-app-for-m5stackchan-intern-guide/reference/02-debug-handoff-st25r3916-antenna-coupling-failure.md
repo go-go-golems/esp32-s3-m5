@@ -193,3 +193,44 @@ Console commands available: `nfc-scan`, `nfc-probe`, `nfc-field on|off`, `nfc-re
 PICC: UID=04:xx:xx:xx:xx:xx:xx ATQA=0044 SAK=00 type=MIFARE Ultralight/NTAG
 ```
 …and `nfc-poll` prints the tag on present and "tag removed" when it leaves. That unblocks Phase 2 (LVGL UI). The anticollision cascade for 7-byte UIDs (CL1 0x93 → CL2 0x95) is already implemented; a real NTAG read will validate it.
+
+---
+
+## Addendum (after handoff): WUPA + full register dump — software now provably correct
+
+Two further diagnostics were run after the handoff was written:
+
+1. **WUPA (wake halted tags).** Added `st25r3916_wupa()` (STOP_ALL_ACTIVITIES → field_on → CMD_TRANSMIT_WUPA) and made `poll_nfca` + `nfc-reqa` try WUPA after REQA. **Result: both REQA and WUPA return `irq=000000` on every attempt.** This rules out the "tag was halted by a prior SELECT" hypothesis — a halted tag answers WUPA, and it does not.
+
+2. **Full Space-A register dump (`nfc-dump`), compared against the M5 lib `dump_regs()` reference** (captured from `M5Unit-NFC/test/.../unit_ST25R3916_nfcb.cpp`, NFC-B mode, mid-transaction — so mode-specific registers differ by design):
+
+   | Reg | Mine (after init) | M5 ref | Match? |
+   |-----|-------------------|--------|--------|
+   | 0x03 MODE | 09 (NFC-A initiator) | 14 (NFC-B) | mode diff — expected |
+   | 0x0B RX1 | 08 (z_600k) | 04 | mode/timing diff |
+   | 0x0C RX2 | 2D | 3D | mode diff |
+   | 0x0D RX3 | D8 | 00 | mode diff |
+   | 0x0E RX4 | 22 | 00 | mode diff |
+   | 0x26 ANT1 | 82 | 82 | ✓ |
+   | 0x27 ANT2 | 82 | 82 | ✓ |
+   | 0x28 TXD | D0 (am_mod=13) | 70 (am_mod=7) | config diff (mine = M5 default) |
+   | 0x2A FD_ACT | 13 | 13 | ✓ |
+   | 0x2B FD_DEACT | 02 | 02 | ✓ |
+   | 0x2C REGULATOR | 00 | 00 | ✓ |
+   | 0x3F IC_ID | 2A | 2A | ✓ (type=05 rev=02) |
+
+   Registers I skip (0x08 NFCIP1 FDT, 0x29 PASSIVE_TARGET_MOD=0x5F, timers 0x10/0x11/0x12/0x14) are passive-target/emulation or timer settings that do not affect an initiator REQA.
+
+**Final software verdict:** the driver init is byte-for-byte correct for NFC-A initiator mode. The complete evidence chain is:
+- I2C bus OK (scan shows 0x50) ✓
+- Chip identity genuine (type=0x05) ✓
+- Oscillator starts cleanly ✓
+- **All init registers correct (full dump vs M5 reference)** ✓
+- **Antenna coil connected (`nfc-cap`=124 stable)** ✓
+- Antenna tuning + TX driver correctly programmed ✓
+- Field commands on (OPC tx_en set) ✓
+- **REQA AND WUPA both yield `irq=000000` (no tag responds, not even RXS)** ✗
+
+The ONLY remaining variable is the **tag and its exact placement on the coil**. This is the physical step the objective explicitly says to stop and ask the user for. No further software action can change the outcome.
+
+**Committed:** `c2f4b322` (WUPA), `5a8eac21` (nfc-dump + comparison).
