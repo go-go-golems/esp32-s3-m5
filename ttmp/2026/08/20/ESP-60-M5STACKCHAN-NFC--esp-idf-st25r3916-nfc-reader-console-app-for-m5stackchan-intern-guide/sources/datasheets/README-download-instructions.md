@@ -6,13 +6,16 @@ The official ST25R3916B / ST25R3917B / ST25R3919B datasheet is hosted by STMicro
 - **Title:** ST25R3916B ST25R3917B ST25R3919B — NFC reader for payment and e-Government
 - **Publisher:** STMicroelectronics
 
-> Note: ST.com blocks automated downloads (HTTP/2 INTERNAL_ERROR on `curl`). Download it
-> manually in a browser and place the PDF in this `datasheets/` directory:
+> Note: ST.com blocked the automated download with an HTTP/2 error. The ticket now includes
+> `ST25R3916-datasheet.pdf`, the 157-page ST25R3916/7 datasheet (DS12484 Rev 3), downloaded
+> from Mouser's ST-hosted mirror:
 >
-> ```
-> # in a browser, save as:
-> sources/datasheets/ST25R3916B-datasheet.pdf
-> ```
+> - URL: https://www.mouser.com/datasheet/2/389/st25r3916-1761505.pdf
+> - SHA-256: `4964c0b1e53c62802ac64a200b49371eb6381e5d34937a028d3dc8257bd0c07f`
+> - Relevant interface pages: document pages 53–57, especially Figures 20–26.
+>
+> The newer ST25R3916B family datasheet remains available at the canonical ST URL above and
+> should be downloaded separately if revision-specific electrical behavior becomes relevant.
 
 ## Why it matters
 

@@ -16,3 +16,4 @@
 - [ ] UI-3: Register matrix and event log <!-- t:grvn -->
 - [ ] UI-4: auto-poll lifecycle and stability validation <!-- t:rvng -->
 - [ ] NFC Debug UI final hardware verification and write-up <!-- t:ruz0 -->
+- [ ] Research ESP-IDF/M5 I2C failure behavior and publish intern debugging implementation guide <!-- t:mu8t -->
