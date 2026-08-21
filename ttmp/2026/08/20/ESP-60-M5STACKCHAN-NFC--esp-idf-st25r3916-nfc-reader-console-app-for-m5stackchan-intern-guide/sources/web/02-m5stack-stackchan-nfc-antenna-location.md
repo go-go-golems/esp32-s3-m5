@@ -6,7 +6,9 @@ Captured: 2026-08-21 via Playwright (JS-rendered; defuddle returns empty).
 ## The decisive facts
 
 The NFC reader/writer antenna is on the **TOP sensing surface of StackChan**
-(the head / CoreS3 top), NOT the robot body.
+(the literal narrow top edge / roof of the CoreS3 head), NOT the front display
+surface and NOT the robot body. This interpretation is confirmed by the official
+photographs preserved in `03-m5stack-stackchan-nfc-official-images.md`.
 
 - Quick Scan Identification example:
   > "After uploading the above code ... place one or more tag cards near the
@@ -22,13 +24,15 @@ The NFC reader/writer antenna is on the **TOP sensing surface of StackChan**
 
 ## Implication for ESP-60 Phase 1
 
-The ST25R3916 sits on the body I2C bus, but the **NFC antenna coil is on the
-top of the head** (CoreS3 side). A tag must be placed **flat on the top of the
-device** (over the display/head area) to couple — NOT on the lower body.
+The ST25R3916 sits on the body I2C bus, but the sensing position is the
+**literal top edge / roof of the head**. The official photo shows cards resting
+horizontally across that narrow upper face, perpendicular to the front display.
+Do NOT interpret “top” as the display glass, and do NOT move the tag to the lower body.
 
-Earlier debugging rounds told the user to "move the tag to the body". That was
-WRONG and moved the tag OFF the coil. Correct placement is: **tag flat on the
-top of the StackChan head**.
+Earlier debugging rounds first told the user to move the tag to the body, then
+incorrectly interpreted “top” as the display face. Both were wrong. Correct
+placement is: **tag/card horizontally across the literal narrow top edge of the
+StackChan head**, as shown in the official images.
 
 ## The official reader workflow (from the M5 NFC docs, "Reader Basic Workflow")
 
