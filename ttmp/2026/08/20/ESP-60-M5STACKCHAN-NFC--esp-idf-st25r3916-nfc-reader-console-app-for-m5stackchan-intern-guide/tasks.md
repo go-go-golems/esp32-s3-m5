@@ -10,3 +10,9 @@
 - [x] Upload guide bundle to reMarkable <!-- t:pbpb -->
 ---
 
+- [x] UI-0: pinned StackChan overlay and serialized NFC service <!-- t:41zj -->
+- [ ] UI-1: 320x240 app shell and Reader page <!-- t:pddn -->
+- [ ] UI-2: Bus and RF/IRQ diagnostic pages <!-- t:bmxl -->
+- [ ] UI-3: Register matrix and event log <!-- t:grvn -->
+- [ ] UI-4: auto-poll lifecycle and stability validation <!-- t:rvng -->
+- [ ] NFC Debug UI final hardware verification and write-up <!-- t:ruz0 -->

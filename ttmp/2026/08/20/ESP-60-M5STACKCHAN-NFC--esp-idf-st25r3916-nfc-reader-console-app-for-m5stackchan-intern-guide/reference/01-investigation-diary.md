@@ -13,6 +13,10 @@ RelatedFiles:
         Documented M5 initialization and Space-B diagnostics
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp
+      Note: UI-0 serialized NFC worker and immutable snapshot implementation (commit 50d7c151)
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
+      Note: Pinned reproducible upstream composition process (commit 50d7c151)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
       Note: Authoritative initialization implementation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
@@ -25,6 +29,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1266,3 +1271,98 @@ The resulting design is a four-page 320×240 Mooncake diagnostic app with full-s
 - Layout: 28 px header + 168 px content + 44 px navigation = 240 px.
 - Primary pages: READ, RF/IRQ, BUS, REGS/LOG.
 - Runtime: one NFC worker owns I2C; command queue in; immutable snapshot/event queue out; UI updates at ≤10 Hz under `LvglLockGuard`.
+
+---
+
+## Step 17: UI-0 — create the pinned firmware overlay and serialized NFC service
+
+UI implementation began with a reproducibility problem: the production StackChan firmware existed only as a temporary upstream clone, so changing it directly would leave the source outside this repository. I created a tracked overlay project pinned to the exact upstream revision and a deterministic composition script that can rebuild the modified firmware from a clean checkout.
+
+The first implementation milestone also establishes the concurrency boundary required by the design. `NfcDebugService` owns a FreeRTOS worker, accepts fixed-size commands, performs all NFC I2C calls on that worker, and publishes immutable snapshots through a one-element overwrite queue. A complete StackChan firmware build and a second idempotent prepare/rebuild both succeeded.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, read the design doc, read the diary, commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)
+
+Print a brutalist work slip with a list of all the phases. Then before each phase, print a brutalist work slip for the phase. Then when done, print another with the write up"
+
+**Assistant interpretation:** Implement the entire NFC Debug UI plan in explicit phases, printing an overall thermal plan and one slip before every phase, making focused code commits, and maintaining the strict diary format throughout; finish with a printed status/write-up slip.
+
+**Inferred user intent:** Produce a physically visible, auditable implementation process and a reproducible final firmware rather than an undocumented one-off modification in a temporary clone.
+
+**Commit (code):** `50d7c1512f772aef1b6b436231b28914c4504496` — "ESP-60 UI-0: add pinned StackChan NFC service overlay"
+
+### What I did
+
+- Read the complete 320×240 UI design and all 16 existing diary steps before implementation.
+- Read the brutalist-work-slip skill and printed the six-phase overall plan slip successfully.
+- Printed the UI-0 phase slip before changing code.
+- Confirmed upstream StackChan source is not tracked in this monorepo and pinned commit `1b5765599fba8aaad1811d9a79358ccc7051f5f3`.
+- Created tracked project `0116-m5stackchan-nfc-debug-ui/` with `upstream.env`, README, `.work/` ignore rule, overlay source, and prepare/build scripts.
+- Added idempotent integration of `AppNfcDebug` into upstream `apps.h` and `main.cpp`.
+- Ported the corrected standalone ST25R3916 driver into the overlay and added `st25r3916_deinit()` so app close removes its device handle from the shared bus.
+- Defined service commands, reader/transport/protocol states, transport counters, last-error context, UID/card fields, and immutable snapshots.
+- Implemented a single FreeRTOS worker and command/snapshot queues; UI/app lifecycle code never calls NFC directly.
+- Attached the driver to `hal_bridge::board_get_i2c_bus()` rather than creating another I2C bus.
+- Ran a clean full build with ESP-IDF 5.5.4: 2,494 actions, `stack-chan.bin` successful, 27% app partition free.
+- Re-ran `prepare.sh`, verified exactly one include and one app registration, and completed a successful incremental rebuild.
+
+### Why
+
+- Code changed only under `/tmp` would not survive cleanup or appear in project commits.
+- A pinned overlay preserves upstream provenance without vendoring 232 unrelated firmware files.
+- One worker must own NFC transactions because concurrent touch/UI/console calls would make the current I2C failure evidence unreliable.
+- Complete snapshots prevent the LVGL task from observing partially updated driver state.
+
+### What worked
+
+- Local-clone preparation and dependency fetch produced a complete upstream build under ESP-IDF 5.5.4.
+- Upstream recursive source collection compiled the new C and C++ sources without CMake changes.
+- The overlay preparation is idempotent: include and install statements remained singletons after a second run.
+- The full build accepted the shared-bus service, driver lifecycle, FreeRTOS queues, and Mooncake registration.
+
+### What didn't work
+
+- No UI page exists in UI-0; opening the app currently starts the service and emits state changes only to logs.
+- `VerifyRegisters`, `SampleIrqWindow`, and `ResetBus` deliberately return `ESP_ERR_NOT_SUPPORTED` until their later phases.
+- The full upstream build emits pre-existing warnings about ioctl macro redefinitions and unused variables; none originated in `app_nfc_debug`.
+
+### What I learned
+
+- StackChan's `main/CMakeLists.txt` recursively collects `apps/*.c`, `*.cc`, and `*.cpp`, so the overlay only needs app registration patches.
+- The complete production firmware is large but still leaves `0x151cb0` bytes (27%) in the smallest app partition after adding the service.
+- A disposable composed checkout is a better boundary than either committing a nested Git repository or duplicating the complete vendor firmware.
+
+### What was tricky to build
+
+- The service must stop without deleting queues while its worker may still access them. `stop()` enqueues a shutdown command, waits for worker termination, and only then deletes queues; the worker turns off the field and removes the device before clearing its task handle.
+- The driver had process-lifetime static device state in the standalone firmware. Mooncake apps can open and close repeatedly, so an explicit deinit path was required to avoid duplicate device registration.
+- Preparation must preserve fetched dependencies and build caches while reliably replacing only the app overlay. The script resets the pinned upstream files and cleans the app directory, not the entire ignored worktree.
+
+### What warrants a second pair of eyes
+
+- `Service::stop()` intentionally refuses to delete resources if the worker misses the two-second shutdown deadline; review whether a stronger recovery policy is appropriate.
+- Transport counters currently count commands, not every low-level I2C transaction. UI-2 must add driver-level transaction instrumentation before presenting them as bus transaction totals.
+- The app temporarily reuses the setup icon until a dedicated NFC icon is added.
+
+### What should be done in the future
+
+- UI-1: build the exact 320×240 frame and Reader page under `LvglLockGuard`.
+- UI-2: add driver-level diagnostics, Bus and RF/IRQ pages, and register verification.
+- Keep generated `.work/` source, dependencies, sdkconfig, and build products untracked.
+
+### Code review instructions
+
+- Start at `0116-m5stackchan-nfc-debug-ui/README.md` and `scripts/prepare.sh` to understand the source composition boundary.
+- Review `nfc_debug_service.h/.cpp` for worker ownership, shutdown order, and snapshot publication.
+- Review `st25r3916_deinit()` and confirm all driver calls occur only in `Service::task_loop()`.
+- Validate with:
+  `cd 0116-m5stackchan-nfc-debug-ui && STACKCHAN_SOURCE=/tmp/nfc-research/repos/StackChan ./scripts/prepare.sh && source ~/esp/esp-idf-5.5.4/export.sh && ./scripts/build.sh`.
+
+### Technical details
+
+- Upstream commit: `1b5765599fba8aaad1811d9a79358ccc7051f5f3`.
+- Code commit: `50d7c1512f772aef1b6b436231b28914c4504496`.
+- Full build log: `/tmp/esp60-ui0-build.log`.
+- Incremental rebuild log: `/tmp/esp60-ui0-rebuild.log`.
+- Binary size: `0x39e350`; smallest app partition: `0x4f0000`; free: `0x151cb0` (27%).
