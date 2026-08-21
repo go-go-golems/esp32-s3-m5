@@ -10,7 +10,7 @@ TRACE_IMPL = r'''
 #include <esp_timer.h>
 
 namespace {
-constexpr size_t ESP60_TRACE_CAPACITY = 512;
+constexpr size_t ESP60_TRACE_CAPACITY = 6000;
 constexpr uint8_t ESP60_ST25R3916_ADDRESS = 0x50;
 
 struct Esp60TraceContext {
