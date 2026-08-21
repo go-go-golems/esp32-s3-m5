@@ -29,6 +29,8 @@ RelatedFiles:
       Note: Pinned reproducible upstream composition process (commit 50d7c151)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md
       Note: Empirical Arduino-versus-ESP-IDF transaction comparison
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md
+      Note: Arduino-comparable ESP-IDF trace design and evidence-ranked backend diagnosis
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
       Note: Reproducible no-serial-in-hot-path M5Unified tracer
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
@@ -53,6 +55,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2585,3 +2588,113 @@ The article was validated as Obsidian Markdown, staged by exact path, committed 
 - Mermaid diagrams: 4.
 - Vault commit: `0e916a6db8031c702d3fff8c2c7d87d8ca2ff6b3`.
 - Push target: `origin/main`.
+
+---
+
+## Step 29: Design Arduino-comparable ESP-IDF instrumentation and diagnose invalid-state failures
+
+The Arduino control now provides a complete logical-transaction stream, while NFC LAB records aggregate counters and each failed operation. I designed the missing ESP-IDF layer: a fixed-size, observer-safe ring that records successes and failures with the same START-to-STOP boundaries, wire keys, lengths, timings, and deferred output used by the M5 tracer. The design also freezes the transactions surrounding the first error so later diagnostic reads cannot replace causal evidence.
+
+Reading the exact ESP-IDF 5.5.4 synchronous driver path produced a stronger diagnosis. A hardware NACK interrupt becomes `I2C_STATUS_ACK_ERROR` and `I2C_EVENT_NACK`; after STOP handling, the final status remains non-DONE, so `s_i2c_transaction_start()` returns `ESP_ERR_INVALID_STATE`. The observed 195 microsecond failures and absence of the driver's ERROR-level timeout message make this NACK path the strongest current explanation. The physical byte stage and underlying cause remain open until driver DEBUG or SDA/SCL confirms them.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, now write up instrumentation for esp-idf to compare with arduino, and figure out what is going on. Add new design doc."
+
+**Assistant interpretation:** Design a directly comparable ESP-IDF trace system, inspect the exact driver implementation behind the observed invalid-state result, rank the remaining causes, and store the implementation/experiment plan as a new ticket design document.
+
+**Inferred user intent:** Turn the successful Arduino comparison into a concrete ESP-IDF implementation plan that can identify why the new driver fails and guide the next code phase without disturbing transaction timing.
+
+**Commit (documentation):** `9696544000ae473e328d34c104bb1d886d44b9a6` — "ESP-60: design Arduino-comparable ESP-IDF tracing"
+
+### What I did
+
+- Added ticket task `fl3w` and completed it after validation.
+- Created `design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md`.
+- Re-read ESP-IDF 5.5.4 `i2c_master.c` around synchronous command sending, ISR event classification, status checks, NACK STOP handling, FSM reset, and public return mapping.
+- Re-read the public defined-operation types and final-read NACK requirement.
+- Re-read M5GFX `i2c_wait()`, per-transaction `fsm_rst`, raw NACK inspection, explicit STOP, pin-level bus clear, peripheral reset, and lock behavior.
+- Compared those paths against the measured M5 transaction trace and current NFC LAB failure records.
+- Reconstructed the exact `I2C_EVENT_NACK -> I2C_STATUS_ACK_ERROR -> status != DONE -> ESP_ERR_INVALID_STATE` path.
+- Distinguished this likely synchronous NACK path from asynchronous queue invalid-state errors that NFC LAB does not use.
+- Designed common logical transaction boundaries and key normalization for Arduino and ESP-IDF.
+- Added separate logical and wire keys so raw register `0x0A` and encoded read key `0x4A` compare correctly.
+- Designed a fixed-size event schema with backend, phase, attempt, timing, gap, operation, lengths, API result, driver hint, and error class.
+- Designed a 512-entry ring plus frozen 16-event prefix/error/16-event suffix bundle.
+- Specified no logging, allocation, LVGL, or extra I2C operations in the hot path.
+- Specified a short diagnostic build with `CONFIG_I2C_ENABLE_DEBUG_LOG=y` and `esp_log_level_set("i2c.master", ESP_LOG_DEBUG)`.
+- Explained why public asynchronous callbacks are not the first comparison mechanism.
+- Designed normalized `TRACE_BEGIN`, `I2C_TRACE`, and `TRACE_END` serial records.
+- Added a common comparison report for summary, first divergence, and predecessor timing.
+- Ranked host-controller state/recovery highest, direct-command busy timing medium, shared-bus interleaving medium-low as a sole cause, and deterministic register/protocol error low for the transport symptom.
+- Added six controlled experiments, console/UI requirements, instrumentation acceptance tests, backend acceptance matrix, risks, commit boundaries, and immediate implementation actions.
+- Related the design to ESP-IDF source, M5GFX source, standalone driver, NFC LAB driver, and the empirical Arduino comparison.
+
+### Why
+
+- Aggregate counters cannot show the successful operations that precede a failure.
+- Last-error state can be overwritten by diagnostic traffic after the initial fault.
+- Arduino and ESP-IDF currently label read keys differently, making manual comparisons error-prone.
+- Serial output inside the API call would alter timing by much more than the transaction itself.
+- The public `esp_err_t` name is too broad to identify NACK, timeout, or byte stage without driver or waveform evidence.
+
+### What worked
+
+- Exact source inspection identified a concrete NACK-to-invalid-state mapping in ESP-IDF 5.5.4.
+- M5GFX source exposed a clear preventive difference: `fsm_rst` is asserted at every transaction begin on ESP32-S3.
+- The design preserves one logical START-to-STOP event under both backends.
+- The design doc passed frontmatter validation and `docmgr doctor`.
+- `git diff --check` passed.
+- The final document contains 4,426 words, 932 lines, two Mermaid diagrams, tables, C API sketches, pseudocode, experiment procedures, and acceptance gates.
+
+### What didn't work
+
+- The first local quality assertion required at least three Mermaid diagrams and failed with a plain `AssertionError`; the document intentionally contained two meaningful diagrams. The validation threshold was corrected to two rather than adding a decorative diagram. All substantive checks then passed.
+- No hardware capture was performed in this step because the board currently runs the Arduino monitor and the request was for instrumentation design. The NACK classification remains a strong inference until implemented diagnostic logging or waveform capture confirms it.
+
+### What I learned
+
+- For the current synchronous ESP-IDF path, invalid state is the final public consequence of a non-DONE status, not a useful physical cause name.
+- NACK is the most likely current driver event because it has a direct source path to invalid state, returns quickly, and does not produce the timeout ERROR log.
+- ESP-IDF already resets the FSM after a synchronous error. The more relevant M5 difference may be preventive FSM reset before every transaction.
+- Enabling `CONFIG_I2C_ENABLE_DEBUG_LOG` is necessary because the NACK message is DEBUG and otherwise may be compiled out by the source-local level.
+- A driver callback experiment would change the application to asynchronous semantics and may not report NACK as a normal completed transaction; it is not an apples-to-apples first step.
+- Predecessor gap and preceding direct command are essential trace fields for testing ST25R busy-window hypotheses.
+
+### What was tricky to build
+
+- The evidence supports NACK at the ESP32 controller event level but not a physical NACK at a specific byte. The design introduces `driver_hint` and `error_class` separately so later evidence can refine classification without rewriting raw results.
+- M5's trace key is the first wire byte, while NFC LAB's key is a logical raw register. Recording both forms prevents incorrect alignment.
+- A circular trace can overwrite the first failure during a one-second retry loop. The frozen prefix/error/suffix bundle preserves causality independently of ring wraparound.
+- ESP-IDF driver DEBUG output itself changes failure-path timing. The design limits it to a short classification run and keeps baseline rate measurements RAM-only.
+- A public whole-bus reset is broader than M5's per-transaction FSM reset and is unsafe in NFC LAB. The design keeps that experiment in standalone firmware.
+
+### What warrants a second pair of eyes
+
+- Review the interpretation of the NACK STOP path and whether any status transition omitted from the inspected code can produce DONE afterward.
+- Review the naturally aligned trace-record size before choosing DRAM capacity.
+- Review whether 16 predecessor and 16 successor events are sufficient around all direct commands.
+- Confirm the safest way to isolate preventive FSM reset without maintaining a production fork of ESP-IDF.
+
+### What should be done in the future
+
+- Implement the trace model and host tests in standalone `0115` first.
+- Capture one baseline failure without driver DEBUG.
+- Run one short debug-compiled capture to confirm `I2C_EVENT_NACK`.
+- Capture SDA/SCL to locate address versus command/data NACK.
+- Compare defined operations and an isolated FSM-reset/direct backend using the same schema.
+
+### Code review instructions
+
+- Start with Sections 3, 5–10, 14–15, and 21 of the new design document.
+- Verify the error path against ESP-IDF `i2c_master.c` around `s_i2c_send_commands()`, the ISR, and `s_i2c_transaction_start()`.
+- Verify M5 differences against `M5GFX-0.2.27-esp32-common.cpp::beginTransaction()`, `i2c_wait()`, and `i2c_stop()`.
+- Confirm that implementation records no serial output from `transport_read()` or `transport_write()`.
+
+### Technical details
+
+- Design doc: 4,426 words, 932 lines.
+- Primary likely event: `I2C_EVENT_NACK` exposed as `ESP_ERR_INVALID_STATE` through non-DONE synchronous status.
+- Highest-ranked hypothesis: host-controller state/recovery difference, especially preventive transaction-start FSM reset.
+- Immediate implementation target: standalone `0115` trace ring and `nfc-trace` console commands.
+- Board state remains the persistent multi-tag Arduino firmware with the Arduino partition table.

@@ -193,3 +193,12 @@ Step 28: published and pushed a 5,321-word Obsidian deep dive synthesizing the A
 
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md — Durable project report, measured comparison, architecture, and backend plan
 
+
+## 2026-08-21
+
+Step 29: designed observer-safe Arduino-comparable ESP-IDF transaction tracing and traced ESP_ERR_INVALID_STATE to the likely synchronous NACK/non-DONE path (commit 96965440)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md — Trace schema, first-error freeze, debug classification, hypothesis ranking, and experiment plan
+
