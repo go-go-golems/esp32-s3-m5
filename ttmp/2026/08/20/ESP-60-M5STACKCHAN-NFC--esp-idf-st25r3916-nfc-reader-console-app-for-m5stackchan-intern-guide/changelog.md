@@ -34,3 +34,12 @@ Step 11: live NRT probe produced RXS/RXE/COL; fixed reversed FIFO status byte or
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Correct FIFO status byte order exposed by live RXE
 
+
+## 2026-08-20
+
+Step 12: matched M5 continuous-carrier polling; receive/collision events increased but FIFO remained empty, requiring tag-absent/present baseline (commit f183853b)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Continuous RF carrier across REQA/WUPA/poll
+

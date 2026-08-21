@@ -801,3 +801,84 @@ The receive IRQ immediately exposed a second bug: FIFO status decoding had its r
 - NRT receive evidence: IRQ `0x34 = 0x20 (RXS) | 0x10 (RXE) | 0x04 (COL)`.
 - Correct FIFO formula: `bytes = status1 | ((status2 & 0xC0) << 2)`, where `status1=reg0x1E`, `status2=reg0x1F`.
 - Firmware commits under test: NRT `74bc45f9`; FIFO correction `f8015daa`.
+
+---
+
+## Step 12: Preserve the RF carrier and separate valid frames from collision noise
+
+A second live sweep reproduced receive activity but still yielded no FIFO payload. Comparing our WUPA/poll path to M5Unit-NFC revealed that our driver unnecessarily stopped all ST25R3916 activity and restarted the field before every WUPA, while the reference keeps the carrier continuously established. I removed that power cycling so the passive NTAG can remain energized across request attempts.
+
+The continuous-carrier build increased nonzero receive events during a 34-second sweep from one to four, across both REQA and WUPA. All events remained `IRQ=0x34` with zero FIFO bytes, however, so they are collision/noise indications rather than valid ATQA frames. The next test must compare tag-absent and tag-present baselines before further software changes.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok continue. can"
+
+**Assistant interpretation:** Continue the live NFC investigation and perform the next safe firmware/probe steps.
+
+**Inferred user intent:** Keep driving toward a successful UID read without pausing after every intermediate diagnostic.
+
+**Commit (code):** `f183853b202975ac700aead102491a2f40d55748` — "ESP-60 P1: keep NFC carrier continuous across polling"
+
+### What I did
+
+- Ran a 34-second live REQA/WUPA sweep with the FIFO-corrected build; captured 348 lines and one nonzero receive event.
+- Rechecked M5's `nfc_initial_field_on()` against our implementation; both clear TX/RX after the initial-field command.
+- Found a sequence mismatch in our WUPA implementation: it issued STOP_ALL_ACTIVITIES, restarted the field, and waited 5 ms before every WUPA.
+- Removed the WUPA stop/restart sequence and removed redundant field restart at the start of every `poll_nfca()` call.
+- Built, committed, and flashed the continuous-carrier firmware.
+- Ran another 34-second sweep; captured 350 lines and four nonzero receive events.
+- Re-verified FIFO register addresses and M5's big-endian read semantics; the corrected FIFO formula is confirmed.
+
+### Why
+
+- Passive NTAGs derive power from the RF carrier. Repeatedly stopping the field every other loop iteration can reset the tag and prevent stable protocol progress.
+- A zero-length FIFO after RXE required ruling out another status-decoding mistake before treating the IRQ as analog noise/collision.
+
+### What worked
+
+- Continuous carrier increased observed receive events from one to four during comparable capture windows.
+- Both REQA and WUPA generated receive/collision IRQs, showing that the direct commands execute and the receiver is active.
+- Build and flash succeeded; no serial ownership conflict occurred.
+
+### What didn't work
+
+- No event produced two FIFO bytes or `ATQA=...`.
+- Every nonzero event was `irq=000034 fifo=0 rxs=1 rxe=1 col=1`, followed by `wake err: ESP_FAIL`.
+- UID reading remains incomplete.
+
+### What I learned
+
+- The old WUPA implementation did not match the reference and repeatedly depowered the tag.
+- IRQ 0x34 without FIFO data is not a valid ISO14443-A response; it is best treated as collision/noise until proven otherwise.
+- M5 register constants confirm FIFO Status 1=0x1E and Status 2=0x1F; `read_register16()` is big-endian, validating the corrected formula.
+
+### What was tricky to build
+
+- More IRQ events are not automatically progress: receive-start/end plus collision can be caused by marginal coupling or noise and still produce no frame.
+- Physical sweep timing varies, so comparing event counts is directional evidence, not a controlled RF measurement.
+
+### What warrants a second pair of eyes
+
+- Determine whether COL with no FIFO bytes indicates receiver gain/noise configuration, malformed modulation, or another nearby NFC object.
+- Review the M5 receiver configuration and error IRQ handling, including parity/CRC/error registers currently omitted from logs.
+- Confirm whether external-field detector settings influence carrier stability in this board arrangement.
+
+### What should be done in the future
+
+- Capture a tag-absent baseline with all NFC objects and phones removed.
+- Capture a tag-present sweep under otherwise identical conditions.
+- If collision events occur without a tag, instrument error/timer IRQ registers and tune the receiver path rather than protocol logic.
+- If collision events only occur with the tag, optimize placement and inspect analog receiver settings.
+
+### Code review instructions
+
+- Review `st25r3916_wupa()` and `st25r3916_poll_nfca()` in `main/st25r3916/st25r3916.c`.
+- Compare them to M5Unit-NFC `nfca_request_wakeup()`, which does not cycle the field.
+- Reproduce using fixed 34-second `nfc-reqa` captures and compare nonzero IRQ events.
+
+### Technical details
+
+- Pre-change sweep: 348 lines, one `IRQ=0x34` event.
+- Continuous-field sweep: 350 lines, four `IRQ=0x34` events.
+- Logs: `/tmp/esp60-live-sweep.log` and `/tmp/esp60-continuous-sweep.log` (local transient evidence, not committed).
