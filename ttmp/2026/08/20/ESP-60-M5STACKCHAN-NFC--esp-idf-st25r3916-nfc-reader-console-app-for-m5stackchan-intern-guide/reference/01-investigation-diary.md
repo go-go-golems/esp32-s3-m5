@@ -54,6 +54,8 @@ RelatedFiles:
       Note: 197-cycle multi-tag persistence validation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/05-standalone-trace-runtime.txt
       Note: 'Live capture: 96/13816 transport failures, first error READ_A 0x1C INVALID_STATE 251us'
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/06-driver-debug-nack-classification.txt
+      Note: Live driver DEBUG capture confirming I2C_EVENT_NACK behind ESP_ERR_INVALID_STATE
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -62,6 +64,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2871,3 +2874,80 @@ I full-flashed the standalone 0115 firmware (the board had the Arduino partition
 - First error: `READ_A logical=1C wire=5C`, `ESP_ERR_INVALID_STATE`, 251 us, phase `irq-wait`.
 - Polling gap: 2-13 us (busy-spin); failure rate 0.69%.
 - Board now runs standalone 0115 (Arduino monitor overwritten).
+
+---
+
+## Step 32: Confirm I2C_EVENT_NACK via the driver DEBUG log (Phase 4)
+
+The design's central diagnosis was that `ESP_ERR_INVALID_STATE` corresponds to the driver's `I2C_EVENT_NACK` event, exposed because the synchronous path leaves status non-DONE after a NACK. I confirmed this directly on hardware by compiling in the I2C master driver's DEBUG log lines (`CONFIG_I2C_ENABLE_DEBUG_LOG=y`) and raising the `i2c.master` tag to DEBUG at runtime via a new `nfc-i2c-debug on` command. During a no-tag polling run the driver printed `I2C transaction unexpected nack detected` for every failing transaction and printed zero timeout lines.
+
+This turns the Step 29 "strong inference" into confirmed driver-event evidence. The frozen first error, annotated with `nfc-trace annotate nack`, now reads `hint=NACK class=HOST_NACK`. The remaining open question is the physical byte stage of the NACK (address vs register-command vs data), which still requires SDA/SCL capture.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 30)
+
+**Commit (code):** `8e0f97b1` enable I2C driver DEBUG log + nfc-i2c-debug command
+
+### What I did
+
+- Added `CONFIG_I2C_ENABLE_DEBUG_LOG=y` to `sdkconfig.defaults` and forced it with `rm sdkconfig && idf.py build` (per AGENTS.md; verified `CONFIG_I2C_ENABLE_DEBUG_LOG=y` in the regenerated sdkconfig).
+- Added the `nfc-i2c-debug on|off` console command that calls `esp_log_level_set("i2c.master", ESP_LOG_DEBUG|INFO)` so a short classification run can surface the driver's NACK/timeout lines without raising global verbosity.
+- Re-read `i2c_master.c` around `s_i2c_err_log_print` (line 155), the NACK bus-idle wait (line 598), `s_i2c_transaction_start` (line 678), and the non-DONE -> `ESP_ERR_INVALID_STATE` return (line 725-727) to confirm the exact path the design predicted.
+- Full-flashed the debug build and ran `scripts/07-probe-i2c-driver-debug.py`: `nfc-i2c-debug on`, `nfc-trace clear`, `nfc-read --attempts 10`, `nfc-i2c-debug off`, `nfc-trace annotate nack`, `nfc-trace status`, `nfc-trace first-error`.
+- Saved `sources/hardware/06-driver-debug-nack-classification.txt` + provenance.
+
+### Why
+
+- The public `esp_err_t` (`ESP_ERR_INVALID_STATE`) is ambiguous; only the driver's own event log distinguishes NACK from timeout. Phase 4 of design doc 04 is the decisive classification step.
+- Keeping the log level raise scoped to the `i2c.master` tag (not global) preserves timing as much as possible while still attributing the DEBUG lines.
+
+### What worked
+
+- The driver printed `D i2c.master: I2C transaction unexpected nack detected` repeatedly during the failing polling transactions (18 captured in the window; 61 total failures this run).
+- Zero `I2C transaction timeout detected` lines and zero `bus is still busy` lines -> the failures are purely NACK events, not timeouts.
+- `nfc-trace annotate nack` upgraded the frozen first error to `hint=NACK class=HOST_NACK`.
+- The first error this boot was `IRQ_R logical=1A` (the 2-byte MAIN_INTERRUPT read), while Step 31's was `READ_A 0x1C`; both legs of the `read_main_irq()` pair are subject to NACK.
+
+### What didn't work
+
+- A first annotate attempt returned `FIRST_ERROR: none` because opening the serial port reset the board into a fresh boot with no failures yet; the annotate must run after a read that generated failures. Fixed by ordering `nfc-read` before `nfc-trace annotate nack` in the probe.
+- Only 18 of 61 NACK DEBUG lines were captured in the probe's settle window; the DEBUG lines are frequent and interleaved. The trace ring's `failed=61` is the authoritative total.
+
+### What I learned
+
+- The exact ESP-IDF 5.5.4 path is: ISR raises `I2C_EVENT_NACK` -> `s_i2c_send_commands` receives NACK, waits for bus idle, does NOT set status to DONE -> `s_i2c_err_log_print` prints the DEBUG NACK line (unless `bypass_nack_log`, which is true only for `i2c_master_probe`) -> `s_i2c_transaction_start` sees `status != I2C_STATUS_DONE` and returns `ESP_ERR_INVALID_STATE`. Confirmed verbatim against the source.
+- After the first NACK, the next transaction can also NACK and take ~1378 us (the `s_i2c_hw_fsm_reset(clear_bus=true)` recovery path, triggered when status is non-DONE/timeout or the bus reads busy), then transactions resume. Recovery completes within one extra failed transaction.
+- The failures remain load-correlated (irq-wait busy-spin) and transient; `read_main_irq()` still masks them as "no IRQ".
+
+### What was tricky to build
+
+- Forcing the Kconfig change required `rm sdkconfig` (AGENTS.md: sdkconfig.defaults only seeds absent options), which regenerated the full config and rebuilt 1049 targets; forgetting this step would silently leave `CONFIG_I2C_ENABLE_DEBUG_LOG` unset and the DEBUG lines compiled out.
+- The NACK DEBUG line is compiled out unless `CONFIG_I2C_ENABLE_DEBUG_LOG=y` (the file-local `LOG_LOCAL_LEVEL` guard) AND the runtime tag level is DEBUG; both are required.
+
+### What warrants a second pair of eyes
+
+- Confirm the claim that `bypass_nack_log` is false for all `rd8`/`wr8`/`read_main_irq` paths (it is set true only around `i2c_master_probe` at line 1368/1405), so the NACK log is never suppressed for real register traffic.
+- Confirm zero timeouts holds across multiple boots, not just this one run.
+
+### What should be done in the future
+
+- Phase 5: write the Arduino/ESP-IDF normalized comparison script joining by phase and operation sequence.
+- Capture SDA/SCL on GPIO12/GPIO11 during a failing `READ_A 0x1C` / `IRQ_R 0x1A` to locate the physical NACK byte stage (address vs command vs data).
+- Change `read_main_irq()` to propagate transport errors so no-tag and transport-failure are distinguishable to the application.
+- Replace `vTaskDelay(pdMS_TO_TICKS(1))` with a real delay in `wait_irq` and re-measure the NACK rate to test the load-correlation hypothesis.
+- Re-run with a tag present to determine whether the transient NACKs prevent UID reading or a separate protocol issue exists.
+
+### Code review instructions
+
+- Read `sources/hardware/06-driver-debug-nack-classification.txt` (NACK DEBUG lines, annotate output, first-error bundle with `class=HOST_NACK`) and the provenance file.
+- In `nfc_console.c`, review `cmd_i2c_debug` (on -> `ESP_LOG_DEBUG`, off -> `ESP_LOG_INFO`).
+- In `sdkconfig.defaults`, confirm `CONFIG_I2C_ENABLE_DEBUG_LOG=y`.
+- Cross-check the source path in `i2c_master.c` lines 155-162, 598-606, 725-727.
+
+### Technical details
+
+- NACK DEBUG lines captured: 18 (lower bound); total failures this run: 61; timeouts: 0.
+- Annotated first error: `seq=326 op=IRQ_R logical=1A wire=5A api=ESP_ERR_INVALID_STATE hint=NACK class=HOST_NACK elapsed_us=226`.
+- Back-to-back failure: `seq=327 READ_A 0x1C INVALID_STATE elapsed_us=1378` (FSM-reset recovery), then `seq=328` OK.
+- Build: `CONFIG_I2C_ENABLE_DEBUG_LOG=y`, `m5stackchan_nfc_reader.bin` ~0x3d570 bytes, 76% free.

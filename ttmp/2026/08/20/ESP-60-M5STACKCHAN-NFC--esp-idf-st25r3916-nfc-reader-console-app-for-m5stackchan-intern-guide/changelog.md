@@ -220,3 +220,12 @@ Step 31: full-flashed standalone 0115; live trace capture showed clean init (66/
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/05-standalone-trace-runtime.txt — Live evidence
 
+
+## 2026-08-21
+
+Step 32: Phase 4 confirmed I2C_EVENT_NACK via driver DEBUG log (0 timeouts); annotated first error hint=NACK class=HOST_NACK (commit 8e0f97b1)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/nfc_console.c — nfc-i2c-debug command toggles i2c.master log level
+
