@@ -278,6 +278,10 @@ typedef void (*st25r_trace_emit_fn)(const char *line, void *arg);
 void st25r_trace_dump(const st25r_trace_store_t *store,
                       st25r_trace_emit_fn emit, void *arg);
 
+/* Pretty-print only the `last` most recent events (chronological order). */
+void st25r_trace_dump_last(const st25r_trace_store_t *store, uint32_t last,
+                           st25r_trace_emit_fn emit, void *arg);
+
 /* Pretty-print the first-error bundle (prefix + error + suffix). */
 void st25r_trace_dump_first_error(const st25r_trace_store_t *store,
                                   st25r_trace_emit_fn emit, void *arg);

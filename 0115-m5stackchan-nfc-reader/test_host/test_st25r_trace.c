@@ -256,6 +256,27 @@ static void test_dump_format(void)
     printf("PASS dump_format\n");
 }
 
+static void test_dump_last(void)
+{
+    st25r_trace_store_t s;
+    st25r_trace_init(&s);
+    st25r_trace_set_mode(&s, ST25R_TRACE_MODE_ALL);
+    st25r_trace_set_context(&s, ST25R_TRACE_BACKEND_IDF_HIGH, ST25R_PHASE_DIAGNOSTIC, 1);
+    int64_t t = 1000;
+    for (uint32_t i = 0; i < 10; i++) {
+        rec_read(&s, 0x02, t, 30, ST25R_ESP_OK, 0);
+        t += 80;
+    }
+    /* dump_last(3) should print the 3 most recent events (seq 8,9,10) in order */
+    st25r_trace_dump_last(&s, 3, emit_stdout, NULL);
+    st25r_trace_event_t out[10];
+    st25r_trace_snapshot(&s, out, 10, NULL);
+    /* sanity: last 3 are seq 8,9,10 */
+    CHECK(out[7].sequence == 8);
+    CHECK(out[9].sequence == 10);
+    printf("PASS dump_last\n");
+}
+
 int main(void)
 {
     test_off_mode_records_nothing();
@@ -268,6 +289,7 @@ int main(void)
     test_clear_preserves_mode_backend();
     test_annotate_upgrades_class();
     test_dump_format();
+    test_dump_last();
 
     if (g_failures == 0) {
         printf("\nALL TESTS PASSED\n");

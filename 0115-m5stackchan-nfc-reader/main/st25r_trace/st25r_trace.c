@@ -466,6 +466,31 @@ void st25r_trace_dump(const st25r_trace_store_t *store,
     emit(line, arg);
 }
 
+void st25r_trace_dump_last(const st25r_trace_store_t *store, uint32_t last,
+                           st25r_trace_emit_fn emit, void *arg)
+{
+    uint32_t n = store->count;
+    if (last < n) n = last;
+    uint32_t failed = store->total_failed;
+    uint32_t fe = store->first_error_set ? store->first_error.sequence : 0;
+    char line[192];
+    snprintf(line, sizeof(line),
+        "TRACE_BEGIN schema=1 tail=%lu events=%lu overwritten=%lu failed=%lu first_error_seq=%lu",
+        (unsigned long)n, (unsigned long)store->count, (unsigned long)store->overwritten,
+        (unsigned long)failed, (unsigned long)fe);
+    emit(line, arg);
+    /* chronological order: oldest of the window first.
+     * ring_recent(k) is the k-th most recent; iterate k from (n-1) down to 0. */
+    for (uint32_t k = n; k > 0; k--) {
+        const st25r_trace_event_t *e = ring_recent(store, k - 1);
+        if (e) dump_event(e, emit, arg, "I2C_TRACE");
+    }
+    const char *result = (failed == 0) ? "ok" : "transport-error";
+    snprintf(line, sizeof(line), "TRACE_END result=%s tail=%lu failed=%lu first_error_seq=%lu",
+             result, (unsigned long)n, (unsigned long)failed, (unsigned long)fe);
+    emit(line, arg);
+}
+
 void st25r_trace_dump_first_error(const st25r_trace_store_t *store,
                                   st25r_trace_emit_fn emit, void *arg)
 {
