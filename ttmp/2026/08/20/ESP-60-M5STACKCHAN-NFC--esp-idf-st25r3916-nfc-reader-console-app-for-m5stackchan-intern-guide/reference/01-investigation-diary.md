@@ -1,17 +1,28 @@
 ---
-title: Investigation Diary
-doc_type: reference
-ticket: ESP-60-M5STACKCHAN-NFC
-topics:
-  - m5stackchan
-  - nfc
-  - st25r3916
-  - esp32-s3
-  - esp-idf
-  - esp-console
-  - intern-guide
-status: active
+Title: Investigation diary
+Ticket: ESP-60-M5STACKCHAN-NFC
+Status: active
+Topics: []
+DocType: reference
+Intent: long-term
+Owners: []
+RelatedFiles:
+    - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
+      Note: Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
+    - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
+      Note: Adds NRT and timer control register definitions (commit 74bc45f9)
+ExternalSources: []
+Summary: ""
+LastUpdated: 2026-08-20T21:53:02.871902069-04:00
+WhatFor: ""
+WhenToUse: ""
 ---
+
+
+
+
+
+
 
 # Diary: ESP-IDF ST25R3916 NFC Reader Intern Guide
 
@@ -612,3 +623,86 @@ For several turns I assumed the coil was on the body and told the user to move t
 ### Technical details
 
 - Commit: `e5705ed9` (correction + source). Antenna location: TOP of head (M5 docs). Tag-on-top still `irq=000000`.
+
+---
+
+## Step 10: Add the missing NFC-A frame-wait timer
+
+The confirmed ISO14443-A NTAG changed the diagnosis from a questionable tag to a concrete firmware discrepancy. I implemented the ST25R3916 No-Response Timer setup that the M5 reference driver performs before REQA/WUPA and anticollision, while preserving integer arithmetic suitable for embedded firmware.
+
+The firmware builds cleanly, but this step intentionally stops short of claiming a successful read. Live validation requires the user to place the NTAG flat on the top sensing surface; the code commit is therefore an implementation milestone, not proof that the timer hypothesis is correct.
+
+### Prompt Context
+
+**User prompt (verbatim):** "commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Continue the NFC fix with focused commits and maintain a strict, evidence-backed implementation diary rather than batching undocumented work.
+
+**Inferred user intent:** Preserve a reviewable debugging trail and make each firmware experiment reproducible and easy to hand off.
+
+**Commit (code):** `74bc45f981e39f44d09d4ea20ac5497f33d62019` — "ESP-60 P1: configure ST25R3916 frame wait timer before NFC-A exchanges"
+
+### What I did
+
+- Inspected M5Unit-NFC's `write_fwt_timer()`, `calculate_nrt()`, `writeNoResponseTimer()`, and NFC-A timeout constants.
+- Confirmed reference timeouts: 4 ms for REQA/WUPA and 8 ms for anticollision.
+- Added register definitions for NRT1 (0x10), NRT2 (0x11), Timer/EMV Control (0x12), and `nrt_step` (bit 0).
+- Added integer-only `set_frame_wait_time()` using ceiling division at 13.56 MHz.
+- Wrote the 16-bit NRT big-endian, matching M5's `writeRegister16BE()` behavior.
+- Configured 4 ms before REQA/WUPA and 8 ms before anticollision.
+- Added NRT and Timer/EMV values to `nfc-regs` diagnostics.
+- Ran `source ~/esp/esp-idf-5.5.4/export.sh && idf.py build` successfully.
+
+### Why
+
+- The M5 reference driver explicitly programs NRT before every NFC-A exchange; our driver did not.
+- A confirmed NTAG213/215/216 should answer ISO14443-A REQA, so unexplained timing differences must be tested rather than blaming the tag.
+
+### What worked
+
+- The ported calculation exactly follows the reference integer formula and requires no floating point.
+- The firmware compiled and linked successfully; the binary remains 77% below the 1 MB partition limit.
+- `git diff --check` passed and the focused code change was committed separately from documentation.
+
+### What didn't work
+
+- Live RF validation has not run yet because it requires the user's physical confirmation that the NTAG is on the top sensing surface.
+- Therefore there is no evidence yet that NRT was the root cause.
+
+### What I learned
+
+- M5 uses `TIMEOUT_REQ_WUP=4` ms and `TIMEOUT_ANTICOLL=8` ms, not the 50 ms host-side polling timeout.
+- NRT register order is big-endian: register 0x10 receives the MSB and 0x11 the LSB.
+- With `nrt_step=0`, 4 ms calculates to 848 ticks (`0x0350`); 8 ms calculates to 1695 ticks (`0x069F`) using ceiling division.
+
+### What was tricky to build
+
+- The hardware timer and host polling timeout are separate invariants: NRT controls the chip's receive window, while `wait_irq(50)` controls how long firmware polls IRQ registers. Conflating them would hide timing failures.
+- Correct byte order matters because swapping `0x0350` into `0x5003` would create a dramatically longer timer and invalidate the comparison with M5's implementation.
+
+### What warrants a second pair of eyes
+
+- Verify from the ST25R3916 datasheet that an NRT expiration should be visible in the Timer/NFC IRQ register and whether our current IRQ-clearing strategy masks useful evidence.
+- Confirm whether anticollision and SELECT should each refresh NRT separately; this implementation sets 8 ms once before the anticollision command.
+- The handoff's claim that NRT exactly explains `irq=000000` remains a hypothesis until the live probe.
+
+### What should be done in the future
+
+- With the tag physically placed, flash commit `74bc45f9`, run `nfc-regs`, `nfc-reqa`, and `nfc-read`, and record exact output.
+- If REQA succeeds but UID selection fails, instrument anticollision and SELECT IRQ/FIFO states separately.
+- If REQA still has no RXS/RXE, inspect Timer/NFC IRQ bits and then run the official M5 Arduino Detect example as the firmware/hardware bisect.
+
+### Code review instructions
+
+- Start at `0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c::set_frame_wait_time()` and compare it to `/tmp/nfc-research/repos/M5Unit-NFC/src/unit/unit_ST25R3916_util.cpp::calculate_nrt()`.
+- Review calls in `nfca_wake()` and `nfca_anticoll_select()`.
+- Validate with `cd 0115-m5stackchan-nfc-reader && source ~/esp/esp-idf-5.5.4/export.sh && idf.py build`.
+- For hardware validation, place a known NTAG flat on top of the head, flash, then run `nfc-regs`, `nfc-reqa`, and `nfc-read` over `/dev/ttyACM0`.
+
+### Technical details
+
+- 4 ms, 64/fc step: `ceil(4000 us × 13,560,000 / 64,000,000) = 848 = 0x0350`.
+- 8 ms, 64/fc step: `ceil(8000 us × 13,560,000 / 64,000,000) = 1695 = 0x069F`.
+- Modified files:
+  - `/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c`
+  - `/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h`
