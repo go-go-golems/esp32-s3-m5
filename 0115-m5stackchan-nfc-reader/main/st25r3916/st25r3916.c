@@ -308,21 +308,37 @@ esp_err_t st25r3916_force_field_on(void)
     return ESP_OK;
 }
 
+uint8_t st25r3916_measure_capacitance(void)
+{
+    /* CMD_MEASURE_CAPACITANCE (0xDE) measures capacitance between CSO/CSI.
+     * Result is in REG_AD_CONVERTER_OUTPUT (0x25). */
+    direct_cmd(0xDE);
+    vTaskDelay(pdMS_TO_TICKS(10));
+    uint8_t v = 0;
+    rd8(0x25, &v);
+    return v;
+}
+
 void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
+    uint8_t ant1=0, ant2=0, txd=0;
     rd8(ST25R_REG_OPERATION_CONTROL, &opc);
     rd8(ST25R_REG_MODE_DEFINITION, &mode);
     rd8(ST25R_REG_ISO14443A_SETTINGS, &iso);
     rd8(ST25R_REG_AUXILIARY_DEFINITION, &aux);
     rd8(ST25R_REG_RECEIVER_CONFIGURATION_1, &rxc1);
     rd8(ST25R_REG_RECEIVER_CONFIGURATION_2, &rxc2);
+    rd8(0x26, &ant1);
+    rd8(0x27, &ant2);
+    rd8(ST25R_REG_TX_DRIVER, &txd);
     rd8(0x2D /* REG_RSSI_DISPLAY */, &rssi);
     uint32_t irq = read_main_irq();
     uint16_t fb = fifo_bytes();
     ESP_LOGI(TAG, "regs: OPC=%02X MODE=%02X ISO=%02X AUX=%02X RX1=%02X RX2=%02X RSSI=%02X",
              opc, mode, iso, aux, rxc1, rxc2, rssi);
-    ESP_LOGI(TAG, "      MAIN_IRQ=%06X FIFO_bytes=%u", (unsigned)irq, (unsigned)fb);
+    ESP_LOGI(TAG, "      ANT1=%02X ANT2=%02X TXD=%02X MAIN_IRQ=%06X FIFO_bytes=%u",
+             ant1, ant2, txd, (unsigned)irq, (unsigned)fb);
 }
 
 esp_err_t st25r3916_configure_nfca(void)
@@ -376,6 +392,9 @@ esp_err_t st25r3916_reqa(uint16_t *atqa)
     if (e != ESP_OK) return e;
 
     uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_RXS | ST25R_IRQ_COL, 50);
+    ESP_LOGI(TAG, "reqa: irq=%06X fifo=%u rxs=%d rxe=%d col=%d",
+             (unsigned)irq, (unsigned)fifo_bytes(),
+             !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
     if (!(irq & ST25R_IRQ_RXE)) {
         /* If only RX-start (RXS) fired, poll FIFO for 2 bytes briefly. */
         if (irq & ST25R_IRQ_RXS) {

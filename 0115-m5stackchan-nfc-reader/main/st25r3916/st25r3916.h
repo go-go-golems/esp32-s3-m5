@@ -68,6 +68,11 @@ esp_err_t st25r3916_reqa(uint16_t *atqa);
  * field detector might block field-on. */
 esp_err_t st25r3916_force_field_on(void);
 
+/* Measure the capacitance on the CSO/CSI antenna pins (CMD_MEASURE_CAPACITANCE).
+ * Returns the 8-bit ADC output (reg 0x25). A stable non-zero value means the
+ * antenna coil is connected; flat/0 means the antenna feed is open. */
+uint8_t st25r3916_measure_capacitance(void);
+
 /* Poll once for an ISO14443-A tag. Returns ESP_OK + out filled if a tag was found,
  * ESP_ERR_NOT_FOUND if no tag answered, ESP_FAIL on protocol error.
  * Leaves the field ON after a successful poll. */

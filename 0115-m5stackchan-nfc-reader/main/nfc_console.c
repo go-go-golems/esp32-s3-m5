@@ -115,6 +115,14 @@ static int cmd_regs(int argc, char **argv)
     return 0;
 }
 
+/* nfc-cap : measure antenna capacitance (is the coil connected?). */
+static int cmd_cap(int argc, char **argv)
+{
+    uint8_t c = st25r3916_measure_capacitance();
+    printf("cap=%3u (non-zero/stable => antenna coil connected; 0 => feed open)\n", c);
+    return 0;
+}
+
 /* nfc-sweep : field on + repeatedly measure RF amplitude (find the coil).
  * Slide the tag over the body; the value spikes when the tag is over the coil. */
 static int cmd_sweep(int argc, char **argv)
@@ -189,4 +197,5 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-regs",  "Dump key ST25R3916 registers",   cmd_regs,   NULL);
     reg("nfc-sweep", "Field on + measure RF amplitude (find coil)", cmd_sweep, NULL);
     reg("nfc-reqa", "Loop REQA, print ATQA on tag (find coil)", cmd_reqa, NULL);
+    reg("nfc-cap",  "Measure antenna capacitance (coil connected?)", cmd_cap, NULL);
 }
