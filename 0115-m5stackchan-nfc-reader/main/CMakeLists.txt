@@ -3,9 +3,11 @@ idf_component_register(
         "nfc_reader_main.c"
         "nfc_console.c"
         "st25r3916/st25r3916.c"
+        "st25r_trace/st25r_trace.c"
     INCLUDE_DIRS
         "."
         "st25r3916"
+        "st25r_trace"
     PRIV_REQUIRES
         driver
         esp_driver_i2c
