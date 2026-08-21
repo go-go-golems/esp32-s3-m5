@@ -9,10 +9,13 @@ Owners: []
 RelatedFiles:
     - Path: abs:///home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md
       Note: Published textbook-style synthesis of the complete Arduino-to-ESP-IDF NFC porting batch
+    - Path: repo://0115-m5stackchan-nfc-reader/main/nfc_console.c
+      Note: nfc-trace console commands + nfc-read --attempts (Phase 3, commit ab259991)
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
       Note: |-
         Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
         Documented M5 initialization and Space-B diagnostics
+        Instrumented all transport primitives + phase context (Phase 2, commit d3e9ef70)
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/README.md
@@ -33,6 +36,8 @@ RelatedFiles:
       Note: Arduino-comparable ESP-IDF trace design and evidence-ranked backend diagnosis
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
       Note: Reproducible no-serial-in-hot-path M5Unified tracer
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/06-probe-st25r-trace.py
+      Note: Single-owner serial probe for trace validation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
       Note: Continuous Arduino polling and on-screen diagnostics
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
@@ -47,6 +52,8 @@ RelatedFiles:
       Note: Runtime proof of repeated WUPA/select/identify cycles
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/04-arduino-persistent-four-device-registry.log
       Note: 197-cycle multi-tag persistence validation
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/05-standalone-trace-runtime.txt
+      Note: 'Live capture: 96/13816 transport failures, first error READ_A 0x1C INVALID_STATE 251us'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -55,6 +62,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2698,3 +2706,168 @@ Reading the exact ESP-IDF 5.5.4 synchronous driver path produced a stronger diag
 - Highest-ranked hypothesis: host-controller state/recovery difference, especially preventive transaction-start FSM reset.
 - Immediate implementation target: standalone `0115` trace ring and `nfc-trace` console commands.
 - Board state remains the persistent multi-tag Arduino firmware with the Arduino partition table.
+
+---
+
+## Step 30: Implement the observer-safe ESP-IDF trace ring and instrument the standalone transport
+
+I implemented the design from doc 04 in three committed phases. Phase 1 added a dependency-free `st25r_trace` module: a fixed-size event ring plus a frozen first-error bundle (16-event prefix + error + 16-event suffix) that survives ring wraparound. Phase 2 wrapped every ST25R3916 transport primitive (`rd8`, `wr8`, `direct_cmd`, `direct_cmd_data`, `wr8b`, `rd8b`, `fifo_write`, `fifo_read`, and the multi-byte IRQ reads) so each START..STOP transaction records logical key, wire key, kind, lengths, timing, phase, attempt, and the raw `esp_err_t`. Phase 3 added the `nfc-trace` console commands and `nfc-read --attempts`.
+
+The module stays clock-free and host-testable by having the caller pass both `started_us` and `elapsed_us` (two cheap `esp_timer_get_time()` reads around the I2C call), so the ring never touches a clock and can be unit-tested with plain gcc. Per design S9 it never infers NACK from the public `esp_err_t`: a non-OK result stores `driver_hint=UNKNOWN` and `error_class=NOT_DONE_UNKNOWN` until driver DEBUG or waveform evidence annotates it.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Implement, read the design doc, the tasks, and commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Implement the Phase 1-3 instrumentation from design doc 04 in the standalone `0115` firmware, build and host-test it, commit at phase boundaries, and keep a detailed diary.
+
+**Inferred user intent:** Turn the ESP-IDF-vs-Arduino comparison design into working, validated code that surfaces the hidden transport failures, with evidence-backed commits and diary entries.
+
+**Commit (code):** `608c4029` trace ring (host-tested), `31f4e83a` gitignore binary, `d3e9ef70` instrument transport (Phase 2), `ab259991` nfc-trace commands + dump_last (Phase 3)
+
+### What I did
+
+- Added `main/st25r_trace/st25r_trace.{h,c}`: backends, kinds, driver hints, error classes, transport ops, phases, modes, flags, the `st25r_trace_event_t` record, the 512-entry ring, and the first-error bundle. APIs: `init`, `clear`, `set_context`, `set_mode`/`get_mode`, `record`, `snapshot`, `first_error`, `annotate_first_error`, `dump`, `dump_last`, `status`, plus name helpers and mirrored ESP error codes (no `esp_err.h` dependency).
+- Added `test_host/test_st25r_trace.c` + `build.sh`: 11 host tests covering off/failure/all modes, first-error freeze surviving 2000 overwrites, wraparound/overwrite arithmetic, gap computation, diagnostic-flag exclusion, clear-preserves-mode-backend, annotate-upgrade, dump format, and `dump_last`.
+- Instrumented all transport primitives in `st25r3916.c` with a `trace_rec()` helper that captures `t0` before the I2C call and records after; added phase context calls at init boundaries (identity/reset/config/oscillator/analog), field-on, configure, request-setup/transmit/irq-wait/fifo-read, anticollision/select, identify, and diagnostic dumps.
+- Exposed `st25r3916_trace()` so console/UI code can read the ring without recording.
+- Set recording to `all` mode at the start of `st25r3916_init` so the full init sequence is captured from transaction one.
+- Added `nfc-trace status|dump [--last N]|first-error|clear|mode|annotate` and `nfc-read --attempts N` (which prints a transport-failure notice when `total_failed > 0` so a no-tag result is not confused with a transport failure).
+- Added `st25r_trace_dump_last()` to the module for clean tail-window dumps.
+- Updated the README with the trace command reference and the Arduino-comparability note.
+- Built the firmware under ESP-IDF 5.5.4 and ran the host tests after every phase.
+
+### Why
+
+- Aggregate counters and last-error state could not show the successful transactions preceding a failure or survive a retry loop's overwrite of the first error.
+- Arduino and ESP-IDF labelled read keys differently (logical register vs first wire byte), making manual comparison error-prone; recording both forms removes that.
+- Serial output inside the API call would perturb timing far more than the transaction itself, so the hot path records only to RAM and defers all output.
+- The public `esp_err_t` name is too coarse to identify NACK vs timeout vs byte stage without driver or waveform evidence, so the module keeps the raw result as ground truth and a separate `driver_hint` for later annotation.
+
+### What worked
+
+- All 11 host tests pass; the firmware builds cleanly under ESP-IDF 5.5.4 (fixed two `-Werror=format=` cases where `uint32_t` is `long unsigned int` on Xtensa by casting to `unsigned long` with `%lu`).
+- The normalized `I2C_TRACE` line format matches design S10 and is directly comparable to the Arduino `M5_I2C` records.
+- The first-error freeze is provably durable (host test: 2000 overwrites leave the bundle unchanged).
+
+### What didn't work
+
+- First implementation computed elapsed inside the module, which forced a clock dependency and broke host-testability; I changed the API to take `elapsed_us` explicitly (two cheap timer reads, still observer-safe).
+- The `RING_OVERWROTE` flag was originally set on a local copy after the ring had already stored the event, so it never landed; I now compute `will_overwrite` before pushing and set the flag on the stored copy.
+- The first-error suffix initially captured the error event itself; I guard suffix collection with `was_first_error_set` so only the events after the error are collected.
+- The first `nfc-trace dump --last N` console path was broken dead code; I replaced it with a proper `st25r_trace_dump_last()` in the module.
+- Sequence numbering and prefix ordering were off-by-one/reversed in the first pass; the host tests caught all of it.
+
+### What I learned
+
+- On ESP32 (Xtensa) `uint32_t` is `long unsigned int`, so `%u` fails `-Werror=format=`; casting to `unsigned long` with `%lu` is the portable fix that also passes on x86-64 host.
+- Passing `elapsed_us` explicitly (rather than reading a clock in the module) is the key to a clock-free, deterministic, host-testable trace module.
+- A circular ring plus a frozen prefix/error/suffix bundle is a clean way to preserve causal context across unbounded overwrites without unbounded memory.
+
+### What was tricky to build
+
+- The first-error freeze must snapshot the prefix BEFORE pushing the failing event, capture the error as a separate frozen copy, and collect the suffix only for subsequent events; getting the ordering and the `was_first_error_set` guard right required three host-test iterations.
+- Phase context is set above the raw I2C helpers via an explicit `set_context` call per NFC phase, not inferred from the call stack, so the trace stays meaningful without coupling the transport layer to phase names.
+- `pdMS_TO_TICKS(1)` at the default 100 Hz tick rounds to 0 (see Step 31), so the `wait_irq` loop busy-spins — a behaviour the trace's `gap_us` field exposes directly.
+
+### What warrants a second pair of eyes
+
+- The `trace_rec()` hot path adds two `esp_timer_get_time()` reads plus a struct fill per transaction; measure the overhead with tracing on vs off (design risk S19). The 251 us failure elapsed vs ~200 us success suggests recording is not the dominant cost, but it should be quantified.
+- Confirm the first-error freeze prefix/suffix indexing is correct for all ring fill levels (host tests cover empty, partial, and full + overwrite).
+- Review whether `read_main_irq()` returning 0 on I2C failure (masking transport errors as "no IRQ") should be changed to propagate the error so the application can distinguish no-tag from transport failure.
+
+### What should be done in the future
+
+- Phase 4: enable `CONFIG_I2C_ENABLE_DEBUG_LOG=y` and `esp_log_level_set("i2c.master", DEBUG)` for one short run to confirm `I2C_EVENT_NACK`, then `nfc-trace annotate nack` to upgrade the first error's class.
+- Phase 5: write the Arduino/ESP-IDF normalized comparison script joining by phase and operation sequence.
+- Capture SDA/SCL on GPIO12/GPIO11 during a failing `READ_A 0x1C` to locate the NACK byte stage.
+- Revisit `read_main_irq()` failure handling so hidden transport failures are not masked as tag absence.
+
+### Code review instructions
+
+- Start at `main/st25r_trace/st25r_trace.h` (data model) and `st25r_trace.c` (`record`, `ring_push`, `freeze_prefix`, `dump_last`).
+- Run `0115-m5stackchan-nfc-reader/test_host/build.sh` to exercise the ring logic.
+- In `st25r3916.c`, review every `trace_rec()` call site for correct op/kind/logical-key/wire-key/lengths; verify `st25r3916_init` sets `all` mode before any transaction.
+- In `nfc_console.c`, review `cmd_trace` subcommands and `cmd_read` `--attempts` + transport notice.
+
+### Technical details
+
+- Host tests: 11/11 pass (`ALL TESTS PASSED`).
+- Firmware: builds clean; `m5stackchan_nfc_reader.bin` ~0x3c080 bytes, 77% free.
+- Trace record: ~40 bytes, 512-entry ring; first-error bundle = 1 + 16 + 16 events.
+
+---
+
+## Step 31: Validate the trace ring on hardware and discover silent transport failures
+
+I full-flashed the standalone 0115 firmware (the board had the Arduino partition table, so a full flash was required) and ran a single-owner serial probe to capture a fresh boot and exercise the trace commands with no tag present. The instrumentation works end-to-end and produced a concrete new diagnosis: the ESP-IDF transport is unstable under rapid polling, and the application is blind to it.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 30)
+
+**Commit (evidence):** pending — diary + `sources/hardware/05-standalone-trace-runtime.*`
+
+### What I did
+
+- Full-flashed `0115` over `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00` (this overwrote the Arduino persistent monitor; reflashing via PlatformIO restores it).
+- Wrote `scripts/06-probe-st25r-trace.py` (single serial owner per AGENTS.md) and captured `sources/hardware/05-standalone-trace-runtime.txt` + provenance.
+- Ran `nfc-trace status`, `nfc-probe`, `nfc-regs`, `nfc-read --attempts 25`, then `nfc-trace status`, `nfc-trace dump --last 40`, `nfc-trace first-error`.
+
+### Why
+
+- The design's Phase 2/3 acceptance requires a standalone no-tag validation that proves the ring records successes and failures and preserves the first-error neighbourhood.
+- A no-tag run isolates the transport layer from the protocol layer so failures cannot be blamed on tag timing.
+
+### What worked
+
+- Boot init was clean: `recorded=66 failed=0 first_error=none`. The earlier "txn-65 init failure" is intermittent; this boot's init succeeded 66/66.
+- `nfc-probe` returned `type=0x05 rev=0x02`.
+- The trace ring captured 13,816 transactions with 96 failures (0.69%) and overflowed 13,304 times; the frozen first-error bundle survived all 13,304 overwrites intact.
+- First error (frozen): `seq=426 phase=irq-wait op=READ_A logical=1C wire=5C api=ESP_ERR_INVALID_STATE elapsed_us=251 hint=UNKNOWN class=NOT_DONE_UNKNOWN flags=FIRST_ERROR` with 16 `ESP_OK` prefix and 16 `ESP_OK` suffix events.
+- `nfc-read --attempts 25` printed `transport: 96 failed transaction(s) during read -- see 'nfc-trace first-error'`, surfacing the hidden failures.
+
+### What didn't work
+
+- All 25 `nfc-read` attempts reported `no tag` even though 96 poll iterations actually hit `ESP_ERR_INVALID_STATE`. `read_main_irq()` returns 0 ("no IRQ") when its `i2c_master_transmit_receive` fails, so a transport failure during `wait_irq` is indistinguishable from tag absence to the application.
+- The probe's 2.5 s settle window for `nfc-read` was slightly short relative to the 25-attempt run, so the tail REQA/WUPA log lines interleaved with the next command echo. The trace data itself (status/dump/first-error) was unaffected.
+
+### What I learned
+
+- The ESP-IDF transport failures are load-correlated: this boot's slower init and diagnostic reads were clean, but the high-frequency `irq-wait` polling produced 96 failures.
+- `wait_irq` busy-spins the I2C bus at ~2.6 kHz because `vTaskDelay(pdMS_TO_TICKS(1))` rounds to `vTaskDelay(0)` at the default 100 Hz FreeRTOS tick (yield-only, ~12 us). The trace's `gap_us` field (2-13 us between polling transactions) exposes this directly.
+- The 251 us failure elapsed (vs ~176-201 us for surrounding successes) is consistent with the NACK -> STOP -> non-DONE -> INVALID_STATE path from design S3, but is not proof of a physical NACK byte.
+- The first failing operation is a `READ_A` of register `0x1C` (ERROR_AND_WAKEUP_INTERRUPT) via `i2c_master_transmit_receive`, i.e. the read leg of `read_main_irq()`.
+
+### What was tricky to build
+
+- The probe had to be a single serial owner (one open, one process) per AGENTS.md, and opening the USB Serial/JTAG port can reset the chip (`rst:0x15`); I let any reset produce a fresh boot so init was captured cleanly.
+- Interleaving between a long-running `nfc-read` and the next command is a probe-timing artefact, not a firmware bug; a future probe should wait for the `nfc>` prompt rather than a fixed timeout.
+
+### What warrants a second pair of eyes
+
+- The claim "96 failures were all masked as no-tag" depends on `read_main_irq()` returning 0 on I2C failure — verify there is no other path that propagates the error during `wait_irq`.
+- The `gap_us` evidence for the busy-spin rests on the 100 Hz tick assumption; confirm `CONFIG_FREERTOS_HZ` for this build.
+- Confirm that the 96 failures are representative (run repeated boots) rather than a single-boot anomaly.
+
+### What should be done in the future
+
+- Phase 4: driver DEBUG classification to confirm `I2C_EVENT_NACK` for the `READ_A 0x1C` failure, then `nfc-trace annotate nack`.
+- Change `read_main_irq()` to propagate transport errors so the application can separate no-tag from transport failure.
+- Add a real `vTaskDelay(1)` (not `pdMS_TO_TICKS(1)`) or a `vTaskDelay(pdMS_TO_TICKS(2))` so `wait_irq` actually sleeps, then re-measure the failure rate to test the load-correlation hypothesis.
+- Capture SDA/SCL during a failing `READ_A 0x1C` to locate the NACK byte stage.
+- Re-run with a tag present to see whether the transient polling failures prevent UID reading or whether a separate protocol issue exists.
+
+### Code review instructions
+
+- Read `sources/hardware/05-standalone-trace-runtime.txt` (boot status, nfc-regs, read attempts, dump, first-error bundle) and `05-standalone-trace-runtime.provenance.md`.
+- Cross-check the first-error `seq=426` line against the prefix/suffix in the same file.
+- Verify `read_main_irq()` in `st25r3916.c` returns 0 on `e != ESP_OK` (the masking path).
+
+### Technical details
+
+- Boot init: 66 transactions, 0 failures.
+- Run totals: 13,816 recorded, 96 failed, 13,304 overwritten, ring 512.
+- First error: `READ_A logical=1C wire=5C`, `ESP_ERR_INVALID_STATE`, 251 us, phase `irq-wait`.
+- Polling gap: 2-13 us (busy-spin); failure rate 0.69%.
+- Board now runs standalone 0115 (Arduino monitor overwritten).

@@ -202,3 +202,21 @@ Step 29: designed observer-safe Arduino-comparable ESP-IDF transaction tracing a
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md — Trace schema, first-error freeze, debug classification, hypothesis ranking, and experiment plan
 
+
+## 2026-08-21
+
+Step 30: implemented observer-safe st25r_trace ring (host-tested), instrumented standalone transport, added nfc-trace commands (commits 608c4029 d3e9ef70 ab259991)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r_trace/st25r_trace.c — Trace ring + first-error freeze + dump
+
+
+## 2026-08-21
+
+Step 31: full-flashed standalone 0115; live trace capture showed clean init (66/66) but 96/13816 silent transport failures during irq-wait polling (READ_A 0x1C INVALID_STATE 251us), masked by read_main_irq as no-tag
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/05-standalone-trace-runtime.txt — Live evidence
+
