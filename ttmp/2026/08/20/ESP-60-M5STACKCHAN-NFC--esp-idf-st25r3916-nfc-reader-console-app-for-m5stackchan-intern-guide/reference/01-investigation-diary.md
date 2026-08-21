@@ -365,3 +365,73 @@ The design doc's pseudocode was a sketch; the real register bits had to be read 
 - Binary: 0x3b010 bytes (~244 KB), 77% of the 1 MB factory partition free.
 - Post-init regs: `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`.
 - Post field-on+read (no tag on coil): `OPC=8B MODE=09 ISO=01 AUX=80 RSSI=00 IRQ=000000`.
+
+---
+
+## Step 6: Debugging "no tag" — driver correctness vs antenna coupling
+
+After the init fixes, the chip detects and the field commands on, but `nfc-read`/`nfc-poll` return "no tag". I added diagnostics and chased the antenna-coupling question.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 5)
+**Assistant interpretation:** Keep debugging until the tag reads; stop only for physical steps.
+**Inferred user intent:** A working tag read on hardware.
+
+### What I did
+
+- Added `nfc-regs` (dump OPC/MODE/ISO/AUX/RX1/RX2/RSSI/MAIN_IRQ/FIFO) and `nfc-sweep` (CMD_MEASURE_AMPLITUDE loop) + `nfc-reqa` (loop REQA, print ATQA on hit) to locate the coil by sweeping the tag.
+- Found + fixed 3 more driver bugs by cross-checking the M5 lib:
+  1. `fifo_read` must use the dedicated `OP_READ_FIFO = 0x9F` and read only `fifo_bytes()` bytes (I was reading a fixed count from reg 0x1F).
+  2. `set_tx_bytes` layout: `value = (bytes << 3) | bits` across reg 0x22/0x23 (I had bytes/bits in wrong positions).
+  3. `fifo_bytes()` parsing: `bytes = reg0x1F | ((reg0x1E & 0xC0) << 2)` (I had the nibbles wrong).
+- Added `st25r3916_force_field_on()` (disable en_fd field detector, NFC_INITIAL_FIELD_ON, set tx_en|rx_en) to rule out the auto field detector vetoing field-on.
+- Observed: post-init `OPC=83 MODE=09 RX1=08 RX2=2D` (correct). After field-on: `OPC=8B` (tx_en set during TX). `RSSI=00`, `MAIN_IRQ=000000`. Amplitude sweep = 0 even with forced field + rx enabled. 40 s REQA sweep = 0 hits. ONE earlier `reqa err: ESP_FAIL` (before the fifo_bytes fix) implied RXE fired once — the antenna CAN radiate, but it is intermittent.
+- Confirmed oscillator starts cleanly (no "oscillator did not stabilize" warning in boot log).
+- Confirmed via StackChan-BSP that there is no NFC power-enable IO-expander pin; ST25R3916 is always powered when the body is seated.
+
+### Why
+
+I wanted to isolate whether the remaining failure is software (driver/IRQ/FIFO) or physical (tag placement / antenna coupling). The register dump + amplitude sweep isolate it to the antenna/RF stage.
+
+### What worked
+
+- `nfc-regs` confirms every init register now matches the M5 lib — the I2C + chip-config path is correct.
+- `nfc-reqa`/`nfc-sweep` give the user sweep tools to find the coil.
+
+### What didn't work
+
+- Amplitude measurement reads 0 even with forced field + rx enabled → either the antenna is not radiating, or CMD_MEASURE_AMPLITUDE needs configuration (reg 0x33/0x34) I have not set. As a coil-finder it is inconclusive.
+- 40 s of sweeping the tag over the body produced 0 REQA hits (one fluke RXE earlier). Cannot reliably couple a tag.
+
+### What I learned
+
+- The ST25R3916 FIFO is read via a special `OP_READ_FIFO=0x9F` command (not a normal register read), and the byte count lives in the FIFO status registers as `reg0x1F | ((reg0x1E & 0xC0) << 2)`.
+- The TX-byte-count register packs `value = (bytes << 3) | bits`.
+- amplitude=0 with the field commanded on is not by itself conclusive — the measurement may need its own config registers; the decisive test remains REQA getting RXE.
+
+### What was tricky to build
+
+- The forward-declaration / two-file edit ordering caused a couple of linker failures (calling a function before defining it). Resolved with a forward decl of `fifo_bytes()`.
+- Distinguishing "no tag" (REQA timeout, ESP_ERR_NOT_FOUND) from "tag answered but FIFO read failed" (ESP_FAIL) required reading `st25r3916_reqa`'s return paths carefully.
+
+### What warrants a second pair of eyes
+
+- Whether the antenna is actually radiating: amplitude=0 is suspicious. Needs either a spectrum analyzer / another NFC reader held near the coil, or confirming the body's NFC antenna is populated and seated.
+- Whether the tag is ISO14443-A and known-good on another reader.
+
+### What should be done in the future
+
+- Configure the amplitude measurement (reg 0x33/0x34) if we want a reliable coil-finder, or use CMD_MEASURE_CAPACITANCE to detect the antenna coil presence.
+- Once a tag reads reliably, re-enable the single-shot `nfc-read` path and validate the anticollision cascade levels with a 7-byte-UID NTAG.
+
+### Code review instructions
+
+- `nfc-regs` after boot should show `OPC=83 MODE=09 RX1=08 RX2=2D`.
+- `nfc-sweep`/`nfc-reqa` are the sweep tools; `nfc-read` does the full poll.
+- The driver init + REQA + anticollision now match `sources/code/unit_ST25R3916.hpp` + `unit_ST25R3916_nfca.cpp`.
+
+### Technical details
+
+- Commits: `794f7578` (FIFO/REQA fixes), this step pending.
+- Diagnostic outputs: post-init `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`; post forced-field `OPC=EB` (en|tx_en|rx_en|en_fd), amplitude=0.

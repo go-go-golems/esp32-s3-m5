@@ -63,6 +63,11 @@ void st25r3916_set_tx_rx(bool on);
  * tag answered, ESP_ERR_NOT_FOUND if no tag, ESP_FAIL on error. */
 esp_err_t st25r3916_reqa(uint16_t *atqa);
 
+/* Force the RF field on: disable the external field detector (en_fd=0), issue
+ * NFC_INITIAL_FIELD_ON, then enable tx+rx. Use for diagnostics when the auto
+ * field detector might block field-on. */
+esp_err_t st25r3916_force_field_on(void);
+
 /* Poll once for an ISO14443-A tag. Returns ESP_OK + out filled if a tag was found,
  * ESP_ERR_NOT_FOUND if no tag answered, ESP_FAIL on protocol error.
  * Leaves the field ON after a successful poll. */

@@ -296,6 +296,18 @@ void st25r3916_set_tx_rx(bool on)
     else    clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
 }
 
+esp_err_t st25r3916_force_field_on(void)
+{
+    /* Disable the external field detector (en_fd = 0b00) so NFC_INITIAL_FIELD_ON
+     * always switches the field on (no collision-avoidance veto). */
+    clear_bits(ST25R_REG_OPERATION_CONTROL, 0x03);
+    esp_err_t e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
+    if (e != ESP_OK) return e;
+    vTaskDelay(pdMS_TO_TICKS(5));
+    set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+    return ESP_OK;
+}
+
 void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;

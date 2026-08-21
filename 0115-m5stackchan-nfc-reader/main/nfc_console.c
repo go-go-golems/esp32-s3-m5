@@ -119,7 +119,7 @@ static int cmd_regs(int argc, char **argv)
  * Slide the tag over the body; the value spikes when the tag is over the coil. */
 static int cmd_sweep(int argc, char **argv)
 {
-    st25r3916_field_on();
+    st25r3916_force_field_on();
     st25r3916_set_tx_rx(true);  /* enable receiver for amplitude measurement */
     printf("sweeping (Ctrl-C/reset to stop). Higher = tag loading the field.\n");
     for (int i = 0; i < 200; i++) {  /* ~30s at 150ms */
