@@ -50,6 +50,10 @@ struct TagView {
     uint16_t atqa{};
     uint8_t sak{};
     bool identified{};
+    bool occupied{};
+    bool present{};
+    uint32_t last_seen_poll{};
+    uint32_t observations{};
 };
 
 std::array<ScreenLine, SCREEN_LOG_LINES> screen_log{};
@@ -59,7 +63,7 @@ uint32_t poll_number{};
 uint32_t cumulative_transactions{};
 uint32_t cumulative_failures{};
 uint32_t no_tag_count{};
-std::array<char, 128> last_signature{};
+std::array<TagView, MAX_DISPLAY_TAGS> seen_tags{};
 
 void append_screen_log(uint16_t color, const char* format, ...)
 {
@@ -127,7 +131,6 @@ TraceSummary collect_trace(const char* phase, bool phase_ok, uint32_t elapsed_ms
 }
 
 void render_screen(const char* state, uint16_t state_color,
-                   const std::array<TagView, MAX_DISPLAY_TAGS>& tags, size_t tag_count,
                    uint32_t elapsed_ms, const TraceSummary& trace)
 {
     lcd.startWrite();
@@ -151,18 +154,23 @@ void render_screen(const char* state, uint16_t state_color,
 
     for (size_t i = 0; i < MAX_DISPLAY_TAGS; ++i) {
         const int y = 47 + static_cast<int>(i) * 18;
-        if (i < tag_count) {
-            lcd.setTextColor(tags[i].identified ? TFT_GREEN : TFT_ORANGE, TFT_BLACK);
+        const auto& tag = seen_tags[i];
+        if (tag.occupied) {
+            const uint16_t color = tag.present
+                ? (tag.identified ? TFT_GREEN : TFT_ORANGE) : TFT_DARKGREY;
+            lcd.setTextColor(color, TFT_BLACK);
             lcd.setCursor(4, y);
-            lcd.printf("%u %-16s %04X/%02X", static_cast<unsigned>(i + 1),
-                       tags[i].uid.data(), tags[i].atqa, tags[i].sak);
-            lcd.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
+            lcd.printf("%c%u %-16s %04X/%02X", tag.present ? '*' : '-',
+                       static_cast<unsigned>(i + 1), tag.uid.data(), tag.atqa, tag.sak);
+            lcd.setTextColor(tag.present ? TFT_LIGHTGREY : TFT_DARKGREY, TFT_BLACK);
             lcd.setCursor(16, y + 9);
-            lcd.printf("%.28s%s", tags[i].type.data(), tags[i].identified ? "" : " ?");
+            lcd.printf("%.19s n:%lu last:%lu", tag.type.data(),
+                       static_cast<unsigned long>(tag.observations),
+                       static_cast<unsigned long>(tag.last_seen_poll));
         } else {
             lcd.setTextColor(TFT_DARKGREY, TFT_BLACK);
             lcd.setCursor(4, y);
-            lcd.printf("%u --", static_cast<unsigned>(i + 1));
+            lcd.printf(" %u --", static_cast<unsigned>(i + 1));
         }
     }
 
@@ -176,14 +184,46 @@ void render_screen(const char* state, uint16_t state_color,
     lcd.endWrite();
 }
 
-std::string make_signature(const std::array<TagView, MAX_DISPLAY_TAGS>& tags, size_t count)
+size_t seen_tag_count()
 {
-    std::string signature;
-    for (size_t i = 0; i < count; ++i) {
-        if (!signature.empty()) signature += ',';
-        signature += tags[i].uid.data();
+    return std::count_if(seen_tags.begin(), seen_tags.end(),
+                         [](const TagView& tag) { return tag.occupied; });
+}
+
+TagView& remember_tag(const PICC& picc, bool identified)
+{
+    const std::string uid = picc.uidAsString();
+    auto existing = std::find_if(seen_tags.begin(), seen_tags.end(), [&](const TagView& tag) {
+        return tag.occupied && uid == tag.uid.data();
+    });
+    auto slot = existing;
+    if (slot == seen_tags.end()) {
+        slot = std::find_if(seen_tags.begin(), seen_tags.end(),
+                            [](const TagView& tag) { return !tag.occupied; });
     }
-    return signature;
+    if (slot == seen_tags.end()) {
+        slot = std::min_element(seen_tags.begin(), seen_tags.end(), [](const TagView& a, const TagView& b) {
+            return a.last_seen_poll < b.last_seen_poll;
+        });
+        append_screen_log(TFT_ORANGE, "evict %s for %s", slot->uid.data(), uid.c_str());
+        *slot = {};
+    }
+
+    const bool first_observation = !slot->occupied;
+    slot->occupied = true;
+    slot->present = true;
+    slot->identified = identified;
+    slot->atqa = picc.atqa;
+    slot->sak = picc.sak;
+    slot->last_seen_poll = poll_number;
+    ++slot->observations;
+    std::snprintf(slot->uid.data(), slot->uid.size(), "%s", uid.c_str());
+    std::snprintf(slot->type.data(), slot->type.size(), "%s", picc.typeAsString().c_str());
+    if (first_observation) {
+        append_screen_log(identified ? TFT_GREEN : TFT_ORANGE, "NEW %s %s",
+                          slot->uid.data(), identified ? "OK" : "?");
+    }
+    return *slot;
 }
 }  // namespace
 
@@ -198,11 +238,10 @@ void setup()
     const uint32_t started = millis();
     const bool init_ok = Units.add(unit, M5.In_I2C) && Units.begin();
     const auto trace = collect_trace("init", init_ok, millis() - started);
-    std::array<TagView, MAX_DISPLAY_TAGS> no_tags{};
     if (!init_ok) {
         append_screen_log(TFT_RED, "INIT FAILED: I2C errors=%lu",
                           static_cast<unsigned long>(trace.stats.failed));
-        render_screen("INIT ERROR", TFT_RED, no_tags, 0, millis() - started, trace);
+        render_screen("INIT ERROR", TFT_RED, millis() - started, trace);
         while (true) m5::utility::delay(10000);
     }
 
@@ -210,7 +249,7 @@ void setup()
                       static_cast<unsigned long>(trace.stats.total));
     append_screen_log(TFT_CYAN, "WUPA + %lums collect window",
                       static_cast<unsigned long>(DETECT_WINDOW_MS));
-    render_screen("READY", TFT_GREEN, no_tags, 0, millis() - started, trace);
+    render_screen("READY", TFT_GREEN, millis() - started, trace);
     M5.Log.println("M5_MULTI_READY place up to four tags on literal top edge");
 }
 
@@ -227,21 +266,20 @@ void loop()
     std::vector<PICC> piccs;
     const bool detected = nfc_a.detect(piccs, DETECT_WINDOW_MS);
 
-    std::array<TagView, MAX_DISPLAY_TAGS> tags{};
-    const size_t displayed = std::min(piccs.size(), tags.size());
+    for (auto& tag : seen_tags) tag.present = false;
+    const size_t displayed = std::min(piccs.size(), seen_tags.size());
     size_t identified_count = 0;
+    bool discovered_new_tag = false;
     for (size_t i = 0; i < displayed; ++i) {
         const bool identified = nfc_a.identify(piccs[i]);
-        tags[i].identified = identified;
-        tags[i].atqa = piccs[i].atqa;
-        tags[i].sak = piccs[i].sak;
-        std::snprintf(tags[i].uid.data(), tags[i].uid.size(), "%s", piccs[i].uidAsString().c_str());
-        std::snprintf(tags[i].type.data(), tags[i].type.size(), "%s", piccs[i].typeAsString().c_str());
+        auto& tag = remember_tag(piccs[i], identified);
+        discovered_new_tag |= tag.observations == 1;
         identified_count += identified ? 1U : 0U;
         M5.Log.printf(
-            "M5_TAG cycle=%lu index=%u uid=%s identified=%u type=\"%s\" atqa=%04X sak=%02X\n",
-            static_cast<unsigned long>(poll_number), static_cast<unsigned>(i), tags[i].uid.data(),
-            identified ? 1U : 0U, tags[i].type.data(), tags[i].atqa, tags[i].sak);
+            "M5_TAG cycle=%lu index=%u uid=%s identified=%u type=\"%s\" atqa=%04X sak=%02X observations=%lu\n",
+            static_cast<unsigned long>(poll_number), static_cast<unsigned>(i), tag.uid.data(),
+            identified ? 1U : 0U, tag.type.data(), tag.atqa, tag.sak,
+            static_cast<unsigned long>(tag.observations));
     }
 
     const uint32_t elapsed = millis() - started;
@@ -258,41 +296,33 @@ void loop()
                           static_cast<unsigned long>(trace.stats.failed),
                           trace.has_last ? trace.last.key : 0);
     } else if (displayed) {
-        std::snprintf(state_text, sizeof(state_text), "%u TAGS / %u OK",
-                      static_cast<unsigned>(displayed), static_cast<unsigned>(identified_count));
+        std::snprintf(state_text, sizeof(state_text), "%u NOW / %u SEEN / %u OK",
+                      static_cast<unsigned>(displayed), static_cast<unsigned>(seen_tag_count()),
+                      static_cast<unsigned>(identified_count));
         state = state_text;
         state_color = identified_count == displayed ? TFT_GREEN : TFT_ORANGE;
-        const std::string signature = make_signature(tags, displayed);
-        if (std::strncmp(last_signature.data(), signature.c_str(), last_signature.size() - 1) != 0) {
-            std::snprintf(last_signature.data(), last_signature.size(), "%s", signature.c_str());
-            append_screen_log(state_color, "#%lu found %u tags (%u identified)",
-                              static_cast<unsigned long>(poll_number),
-                              static_cast<unsigned>(displayed),
-                              static_cast<unsigned>(identified_count));
-            for (size_t i = 0; i < displayed; ++i) {
-                append_screen_log(tags[i].identified ? TFT_GREEN : TFT_ORANGE,
-                                  "  %u %s %s", static_cast<unsigned>(i + 1),
-                                  tags[i].uid.data(), tags[i].identified ? "OK" : "?");
-            }
-            M5.Speaker.tone(3000, 10);
-        }
+        if (discovered_new_tag) M5.Speaker.tone(3000, 10);
     } else {
         ++no_tag_count;
+        std::snprintf(state_text, sizeof(state_text), "0 NOW / %u SEEN",
+                      static_cast<unsigned>(seen_tag_count()));
+        state = state_text;
         if (no_tag_count == 1 || (no_tag_count % 10) == 0) {
-            append_screen_log(TFT_YELLOW, "#%lu no tags (count %lu)",
+            append_screen_log(TFT_YELLOW, "#%lu no tags; %u retained",
                               static_cast<unsigned long>(poll_number),
-                              static_cast<unsigned long>(no_tag_count));
+                              static_cast<unsigned>(seen_tag_count()));
         }
     }
 
     M5.Log.printf(
-        "M5_MULTI cycle=%lu woke=%u wake_atqa=%04X detected=%u piccs=%u displayed=%u identified=%u elapsed_ms=%lu txns=%lu failed=%lu dropped=%lu\n",
+        "M5_MULTI cycle=%lu woke=%u wake_atqa=%04X detected=%u piccs=%u displayed=%u identified=%u seen=%u elapsed_ms=%lu txns=%lu failed=%lu dropped=%lu\n",
         static_cast<unsigned long>(poll_number), woke ? 1U : 0U, wake_atqa,
         detected ? 1U : 0U, static_cast<unsigned>(piccs.size()),
         static_cast<unsigned>(displayed), static_cast<unsigned>(identified_count),
-        static_cast<unsigned long>(elapsed), static_cast<unsigned long>(trace.stats.total),
-        static_cast<unsigned long>(trace.stats.failed), static_cast<unsigned long>(trace.stats.dropped));
+        static_cast<unsigned>(seen_tag_count()), static_cast<unsigned long>(elapsed),
+        static_cast<unsigned long>(trace.stats.total), static_cast<unsigned long>(trace.stats.failed),
+        static_cast<unsigned long>(trace.stats.dropped));
 
-    render_screen(state, state_color, tags, displayed, elapsed, trace);
+    render_screen(state, state_color, elapsed, trace);
     m5::utility::delay(POLL_INTERVAL_MS);
 }
