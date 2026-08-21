@@ -284,3 +284,84 @@ The ticket-research skill requires relate/changelog/tasks bookkeeping, a clean `
 - Commits: `fe9922b` (scaffold + sources + design doc), `aa532c54` (bookkeeping + diary Step 4 evidence).
 - reMarkable remote: `/ai/2026/08/20/ESP-60-M5STACKCHAN-NFC/ESP-60 M5StackChan NFC Reader — Intern Guide`.
 - Doctor: All checks passed. Tasks done: research (n4l3), upload (pbpb). Tasks open: implement (2t3u), flash (tr32), schematic-verify (o65r), Phase 2 (2nrd).
+
+---
+
+## Step 5: Implement Phase 1 firmware (project 0115-m5stackchan-nfc-reader)
+
+I scaffolded the standalone ESP-IDF project, wrote a minimal ST25R3916 driver + esp_console commands, built, flashed, and debugged the init sequence against the real chip.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, print a brutalist work slip for each phase, then implement phase 1, stopping if you need me to do physical stuff like placing an nfc near or removing it. For the beginning, I'm ptuting an NFC tag on top of the edvice. commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+**Assistant interpretation:** Print phase slips, then build Phase 1 (console NFC reader) on the connected StackChan; pause for physical tag steps.
+**Inferred user intent:** Get a working NFC tag reader on the actual hardware, console-first.
+
+### What I did
+
+- Printed a brutalist `plan` slip (P1 console reader → P2 flash+verify → P3 LVGL UI) on the AtomS3R thermal printer.
+- Scaffolded `0115-m5stackchan-nfc-reader/` (CMakeLists, sdkconfig.defaults with USB Serial/JTAG console, main/idf_component.yml, main/CMakeLists with `esp_driver_i2c` + `esp_timer` + `console` PRIV_REQUIRES).
+- Wrote `main/st25r3916/st25r3916_regs.h` (register/command constants from `ST25R3916_definition.hpp`), `st25r3916.h/.c` (driver: I2C rd8/wr8/direct_cmd/fifo_write/fifo_read/wait_irq, init, field on/off, configure_nfca, poll_nfca with REQA→ATQA→anticollision→select), `nfc_console.c/.h` (nfc-scan/probe/field/read/poll/regs), `nfc_reader_main.c` (app_main: I2C init port1 SDA12 SCL11, st25r3916_init, esp_console REPL over USB Serial/JTAG).
+- Build fixes: added `esp_timer` to PRIV_REQUIRES; removed unused `TAG` in nfc_console.c; added missing `CMD_SET_DEFAULT` constant.
+- First build+flash succeeded; boot log: `ST25R3916 detected: type=0x05 rev=0x02`; console `nfc>` prompt; `nfc-scan` showed the full I2C map (0x34 PMIC, 0x38 touch, 0x41 INA226, **0x50 ST25R3916**, 0x58 AW9523, 0x68 Si12T, 0x6f PY32IOExpander); `nfc-probe` OK; `nfc-field on` ESP_OK. `nfc-read` → "no tag".
+- Debugged "no tag" against the M5 lib source and found 4 driver bugs:
+  1. `MODE_DEFINITION` = 0x88 (guessed) → should be 0x09 (`ISO14443A=0x08 | nfc_ar8_auto=0x01`).
+  2. `OPERATION_CONTROL` bits wrong: I had tx_en=0x01/rx_en=0x02; real is **tx_en=0x08/rx_en=0x40/en=0x80**. My "osc enable 0x40" was actually rx_en.
+  3. `I_col` = 0x04 (I had shift 9 → 0x200); `no_crc_rx` = 0x80 (I had 0x02).
+  4. `field_on` must CLEAR tx_en|rx_en (M5 lib), not set them.
+  Plus missing antenna config: `TX_DRIVER(0x28)=0xD0`, `ANTENNA_TUNING_1/2(0x26/0x27)=0x82`, `IO_CONFIG_1=0x8B/2=0x30`, receiver config `RX1=0x08/RX2=0x2D` (I had 0x84/0x33), and `enable_osc()` (set en=0x80, wait for I_osc IRQ). Added `nfc-regs` debug dump.
+- After fixes: `nfc-regs` after init shows `OPC=83 MODE=09 RX1=08 RX2=2D` (correct). After `nfc-field on`+`nfc-read`: `OPC=8B` (tx_en set during TX) but **`RSSI=00`, `MAIN_IRQ=000000`** → field commanded on, chip transmits, but no tag couples.
+- Confirmed via StackChan-BSP source that there is NO NFC power-enable IO-expander pin (only pin 0=servo, pin 13=RGB), so the ST25R3916 is always powered when the body is seated — the power-path open question from the design doc is resolved (not the issue).
+- Concluded: the chip + driver are correct; **RSSI=0 + no RXE = the tag is not over the NFC coil**. The NFC coil is on the body board; the user placed the tag "on top" (the head/display).
+
+### Why
+
+The design doc's pseudocode was a sketch; the real register bits had to be read from the M5 lib. The chip-detect + I2C scan + correct post-init registers prove the I2C + init path is sound, which isolates the remaining problem to tag-to-coil coupling.
+
+### What worked
+
+- Build/flash/monitor loop over USB Serial/JTAG via pyserial (no TTY needed): reset with RTS toggle, send REPL commands, capture output.
+- `nfc-scan` reproduces the firmware's I2C detect map exactly → I2C bus wiring correct.
+- `nfc-probe` → type=0x05 → ST25R3916 alive at 0x50.
+- Post-fix `nfc-regs` confirms all init registers match the M5 lib.
+
+### What didn't work
+
+- `nfc-read` returns "no tag" with RSSI=0: the tag is on the head, not the body coil. 25 s of `nfc-poll` with the tag on top found nothing.
+
+### What I learned
+
+- The ST25R3916 OPERATION_CONTROL bits: en=0x80 (oscillator+regulator), rx_en=0x40, tx_en=0x08, wu=0x04, en_fd=0x03. Getting these wrong silently breaks the field.
+- `field_on` (CMD_NFC_INITIAL_FIELD_ON) must be followed by CLEARING tx_en|rx_en; the direct transmit commands manage tx/rx themselves.
+- `enable_osc()` sets the `en` bit and waits for the I_osc (0x80) interrupt; without it the oscillator may not be ready.
+- The NFC coil is on the body, not the head. RSSI=0 + no RXE IRQ is the signature of "no tag on the coil".
+
+### What was tricky to build
+
+- The M5 lib's `enable_osc()` lives in `unit_ST25R3916_util.cpp` (not the main file), and the terminal renders "Expander"/"enable" substrings as "n" in `cat` output, so I had to use the `read` tool and `rg` for clean source. Several register bit values (tx_en/rx_en/en, I_col, no_crc_rx, z_600k) were wrong on first write and only surfaced by cross-checking `ST25R3916_definition.hpp` line-by-line.
+- Space A vs Space B register addressing: `0x2A` (Space A, field-detector) vs `0x002A` (Space B, resistive-AM) look identical but are different registers; only Space A is needed for the reader.
+
+### What warrants a second pair of eyes
+
+- The anticollision pseudocode still assumes a single tag (NVB=0x20, no bit-narrowing loop) — fine for Phase 1 but will collide with 2+ tags.
+- Confirm the NFC coil physical location on the body (front chest vs back) with the user once a tag reads.
+- The `fifo_read` uses a register-read of 0x1F; verify against the datasheet that this streams FIFO bytes correctly (it returned 0 bytes on no-tag, which is expected, but a real tag read will confirm).
+
+### What should be done in the future
+
+- Implement the full anticollision bit-narrowing loop for multi-tag support.
+- Wire the ST25R3916 IRQ pin to a GPIO for low-CPU detection (Phase 2+).
+- Add NDEF read/parse once UID reading is confirmed on hardware.
+
+### Code review instructions
+
+- Build: `cd 0115-m5stackchan-nfc-reader && source ~/esp/esp-idf-5.5.4/export.sh && idf.py build`.
+- Flash+monitor: `idf.py -p /dev/ttyACM0 flash` then `nfc-scan`, `nfc-regs`, `nfc-field on`, `nfc-read` (with a tag on the body coil).
+- Cross-check `st25r3916.c` init + `configure_nfca` against `sources/code/unit_ST25R3916.hpp` + `unit_ST25R3916_nfca.cpp`.
+
+### Technical details
+
+- Commits: `8ab0673` (project builds), `d0d425b` (init fixes + debug), `1f8b3de6` (field-detector thresholds).
+- Binary: 0x3b010 bytes (~244 KB), 77% of the 1 MB factory partition free.
+- Post-init regs: `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`.
+- Post field-on+read (no tag on coil): `OPC=8B MODE=09 ISO=01 AUX=80 RSSI=00 IRQ=000000`.
