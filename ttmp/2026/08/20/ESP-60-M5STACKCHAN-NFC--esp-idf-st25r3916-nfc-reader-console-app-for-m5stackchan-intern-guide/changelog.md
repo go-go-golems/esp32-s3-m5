@@ -100,3 +100,13 @@ Step 18 / UI-1: implemented exact 320x240 Reader page with queued touch actions,
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp — Reader page LVGL implementation
 
+
+## 2026-08-21
+
+Step 19 / UI-2: instrumented every ST25R I2C transaction and added cooperative RF/IRQ sampling, register verification, Bus page, and RF/IRQ page (commit e7229ec9)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c — Raw transaction and RF diagnostic evidence
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp — RF and Bus screens
+

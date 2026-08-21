@@ -1459,3 +1459,98 @@ Touch callbacks for READ ONCE and AUTO only enqueue service commands. Snapshot c
 - Action buttons: `(16,120,138,44)` and `(166,120,138,44)` relative to content.
 - Failed logs: `/tmp/esp60-ui1-build.log`, `/tmp/esp60-ui1-build-2.log`.
 - Successful final log: `/tmp/esp60-ui1-build-final.log`.
+
+---
+
+## Step 19: UI-2 — add raw RF/IRQ and I2C transport pages
+
+UI-2 adds the evidence needed for the current ESP-IDF blocker. Every ST25R3916 read, write, direct command, and FIFO transfer now crosses one instrumentation boundary that records transaction totals, categorized failures, the failed operation/register or command byte, and elapsed time. The UI can therefore distinguish a protocol-level no-tag result from a transport timeout or invalid-state failure.
+
+The RF/IRQ and Bus pages are enabled in the bottom navigation. Their longer actions are cooperative worker jobs rather than ten-second touch callbacks: sampling alternates REQA/WUPA every 200 ms, while register verification performs one 12-register pass per worker iteration and preserves command-queue responsiveness.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 17)
+
+**Assistant interpretation:** Continue the printed phase plan by implementing the transport/RF diagnostic core and its two screens, then commit and document the milestone independently.
+
+**Inferred user intent:** Make the unresolved I2C problem measurable on the device while preserving raw low-level evidence needed to compare transport backends.
+
+**Commit (code):** `e7229ec9cbccb4f94b02417f977d4bbe91902bce` — "ESP-60 UI-2: add RF and I2C diagnostic pages"
+
+### What I did
+
+- Printed the UI-2 brutalist phase slip before implementation.
+- Added one instrumented transport boundary around `i2c_master_transmit()` and `i2c_master_transmit_receive()`.
+- Counted actual transactions, successes, failures, timeouts, invalid-state errors, and other errors.
+- Preserved the last failed operation type, Space-A/Space-B register or command byte, raw `esp_err_t`, and elapsed microseconds.
+- Added driver diagnostics for last main/timer/error IRQ bytes, collision display, FIFO size, capacitance, RSSI, operation control, and NRT.
+- Added a stable 12-register verification set covering IO1/IO2, MODE, RX1–RX4, ANT1/ANT2, TXD, Space-B CORR1, and EMD.
+- Extended immutable service snapshots with RF diagnostics, actual transport counters, register results, no-tag count, sampling progress, and verification progress.
+- Implemented a cooperative 10-second REQA/WUPA sample job at 200 ms intervals.
+- Implemented a cooperative 20-pass register verification job, one register set per worker iteration.
+- Added serialized NFC reinitialization that removes/re-adds only the NFC device, not the shared board bus.
+- Added RF/IRQ page with field, capacitance, RSSI, FIFO, NRT, raw IRQ bytes, RXS/RXE/COL/NRE/error flags, sample counts, and clear action.
+- Added Bus page with identity, backend/speed, actual transaction counts, categorized failures, mismatches, last raw transport error, PROBE, VERIFY 20x, and REINIT NFC actions.
+- Enabled READ, RF/IRQ, and BUS navigation while leaving REGS/LOG disabled until UI-3.
+- Built successfully under ESP-IDF 5.5.4 with no app-specific warnings.
+- Verified final ELF symbols for both renderers and both driver diagnostic APIs.
+
+### Why
+
+- Command-level success counters cannot diagnose a bus that corrupts one register access inside a larger NFC operation; individual I2C transactions must be counted.
+- Raw IRQ/FIFO state is required to distinguish no modulation, collision/noise, FIFO decode failure, and successful receive activity.
+- A ten-second operation inside an LVGL callback or one monolithic worker command would block close/reset and violate the app lifecycle design.
+- Resetting the full shared bus could disrupt touch, PMIC, audio, and other clients; NFC-only reinitialization is the safer diagnostic control.
+
+### What worked
+
+- Source search confirms the only direct ESP-IDF I2C calls in the driver are now the two instrumented wrappers.
+- Full firmware build succeeded; binary size is `0x3a0920`, leaving 27% app partition space.
+- `xtensa-esp32s3-elf-nm -C` confirms `NfcDebugView::render_rf`, `render_bus`, `st25r3916_get_transport_stats`, and `st25r3916_verify_configuration` are linked.
+- Reinitialization preserves cumulative transport counters; counters reset only at app/service start or explicit CLEAR.
+
+### What didn't work
+
+- The first symbol-inspection command failed because the ESP-IDF toolchain was not in that shell's PATH:
+  `/bin/bash: line 35: xtensa-esp32s3-elf-nm: command not found`.
+  Sourcing `~/esp/esp-idf-5.5.4/export.sh` before the command fixed it.
+- Physical navigation, touch, and live counter behavior are not yet validated; this phase is build- and symbol-validated.
+
+### What I learned
+
+- The driver still had a few direct burst reads outside `rd8()`; centralizing them was necessary for complete statistics.
+- NRE is Timer/NFC IRQ bit `0x40`, while RXS/RXE/COL are Main IRQ bits `0x20/0x10/0x04`; the UI must not flatten these separate register bytes.
+- A reset/reinit action must not silently clear the historical failure rate because that would hide whether recovery was needed.
+
+### What was tricky to build
+
+- Reading diagnostic registers is itself I2C activity and must appear in transaction totals. `refresh_driver_snapshot(true)` captures RF values first, then copies transport stats so those reads are included.
+- The last IRQ registers are clear-on-read. The driver stores the last protocol-observed bytes and reports those, rather than letting the UI perform unsynchronized reads that destroy evidence.
+- Verification under a failing bus can spend up to one timeout per register. Breaking 20 passes into worker iterations limits shutdown latency to one 12-register pass rather than the whole campaign.
+
+### What warrants a second pair of eyes
+
+- Under twelve consecutive 100 ms register timeouts, one verification pass can approach 1.2 seconds; confirm the two-second shutdown policy is adequate.
+- Capacitance is measured at initialization/reinitialization rather than continuously because the direct measurement command perturbs chip state.
+- Validate on hardware that stored IRQ bytes reflect the desired request attempt and are not overwritten by later diagnostic reads.
+
+### What should be done in the future
+
+- UI-3: expose the 12 expected/actual register rows and a fixed-size event log.
+- Hardware validation: compare displayed transaction failures and register mismatches to serial logs from the same actions.
+- A future transport-backend experiment can reuse these counters for controlled before/after comparison.
+
+### Code review instructions
+
+- Start with `st25r3916.c::transport_write()`, `transport_read()`, and `record_transport()`.
+- Review `Service::task_loop()`, `run_sample_step()`, and `run_verification_step()` for queue responsiveness.
+- Review `NfcDebugView::render_rf()` and `render_bus()` for raw field mapping.
+- Build and inspect symbols with the ESP-IDF 5.5.4 environment sourced.
+
+### Technical details
+
+- RF sample cadence: 200 ms for 10,000 ms, alternating REQA and WUPA.
+- Verification set: 12 registers × 20 passes = 240 explicit verification reads, plus snapshot diagnostics.
+- Build log: `/tmp/esp60-ui2-build-final.log`.
+- Binary: `0x3a0920`; free app space: `0x14f6e0` (27%).
