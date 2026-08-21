@@ -71,3 +71,13 @@ Step 15: corrected tag-absence record; valid tag-present 400/100 kHz tests both 
 
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - Porting the ST25R3916 Reader to ESP-IDF.md — Corrected test preconditions and 100 kHz result
 
+
+## 2026-08-21
+
+Step 16: archived full official NFC docs and designed a 320x240 Mooncake/LVGL diagnostic UI with ASCII screen sketches, worker/snapshot architecture, and phased implementation plan
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/02-m5stackchan-nfc-debug-ui-320x240-lvgl-design.md — Debug UI architecture and ASCII screen sketches
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/04-m5stack-stackchan-nfc-full-official-doc.md — Full official StackChan NFC documentation snapshot
+

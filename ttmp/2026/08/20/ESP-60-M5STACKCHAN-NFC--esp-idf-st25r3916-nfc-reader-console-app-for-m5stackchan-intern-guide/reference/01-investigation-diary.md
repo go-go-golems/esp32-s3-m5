@@ -1179,3 +1179,90 @@ The valid tag-present tests showed that 400 kHz still produced no receive IRQ an
 - Current flashed firmware: committed 400 kHz ESP-IDF build.
 - 100 kHz experiment: failed, reverted, never committed.
 - Remaining diagnosis: transaction implementation/recovery, not tag placement and not bus clock alone.
+
+---
+
+## Step 16: Design a 320×240 NFC diagnostic UI from official docs and StackChan patterns
+
+The user requested an on-device UI that makes the remaining transport and NFC debugging easier to operate. I researched the official CoreS3 display specification, the full official StackChan NFC page, LVGL widget availability, and the production firmware's existing app, display, touch, locking, and shared-I2C patterns.
+
+The resulting design is a four-page 320×240 Mooncake diagnostic app with full-screen ASCII sketches: Reader, RF/IRQ, I2C Bus, and Registers/Event Log. It preserves the console and separates transport, RF, and protocol failures instead of collapsing them into “No tag.”
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, how far are we right now? can you make a UI for things now so that I can maybe debug things a bit more nicely? sketch out UI in ascii with the different functionality it can show. Look up stackchan screen resolution and look for how to display widgets and stuff"
+
+**Additional user prompt (verbatim):** "here btw is the doc page for the NFC in case you didn't have it downloaded already: https://docs.m5stack.com/en/arduino/stackchan/nfc"
+
+**Additional user prompt (verbatim):** "ascii screenshots as sketches for the UI, btw. just so we can visualize a bit from the docs."
+
+**Assistant interpretation:** Research the actual screen and UI stack, give an honest project status, and produce concrete full-screen ASCII mockups for a touch-oriented NFC diagnostic interface before implementation.
+
+**Inferred user intent:** Make low-level NFC/I2C debugging understandable and operable directly on the device while preserving enough evidence to continue diagnosing the ESP-IDF transport failure.
+
+### What I did
+
+- Confirmed the official CoreS3 display is a 2.0-inch 320×240 capacitive-touch IPS panel using ILI9342C.
+- Confirmed production constants `DISPLAY_WIDTH=320`, `DISPLAY_HEIGHT=240`.
+- Read StackChan `stackchan_display.cc`: `esp_lvgl_port`, RGB565, 320×240 display, 20-line DMA buffer, LVGL task, and lock implementation.
+- Read `app_template.cpp`, setup workers, and status bar patterns for app lifecycle, 48–50 px buttons, 16/20/24 px fonts, static quit controls, and 320×28 bars.
+- Confirmed the full firmware exposes the shared bus through `hal_bridge::board_get_i2c_bus()`.
+- Downloaded the complete official NFC page with Defuddle (83 KB, 2,093 lines) and stored it under ticket `sources/web/`.
+- Extracted the official Reader Basic Workflow and touch-to-detect example behavior.
+- Created design doc `design-doc/02-m5stackchan-nfc-debug-ui-320x240-lvgl-design.md`.
+- Added full-screen ASCII sketches for ready, success, transport error, RF/IRQ, bus diagnostics, register matrix, and event log states.
+- Defined a worker/queue/snapshot architecture so touch callbacks never perform I2C and worker operations never hold the LVGL lock.
+- Used existing docmgr vocabulary (`ui`, `draft`) after doctor rejected unregistered synonyms.
+
+### Why
+
+- The current blocker is transport instability, so a useful UI must expose errors, retries, raw IRQ/FIFO state, and register mismatches—not only UID output.
+- Reusing the production Mooncake/LVGL stack avoids porting display, touch, backlight, and locking into the standalone transport experiment.
+- ASCII screenshots allow layout review against the real 320×240 constraint before implementation.
+
+### What worked
+
+- Defuddle extracted the full JavaScript-rendered official page successfully on this run.
+- Existing StackChan source provides strong pixel and widget precedents.
+- The board exposes the exact I2C handle needed by a Mooncake NFC app.
+- The design fits header, content, and 44 px navigation into exactly 240 vertical pixels.
+
+### What didn't work
+
+- Initial docmgr doctor reported unknown topic `debug-ui` and status `proposed`; these were replaced with registered values `ui` and `draft`.
+- No UI code was implemented in this step; the output is deliberately a design artifact.
+
+### What I learned
+
+- M5's official complete-reader example already uses touch as the explicit scan trigger, validating a `READ ONCE` interaction.
+- The production firmware's 48–50 px button precedent is appropriate for this small touch screen.
+- A second standalone display/touch stack would add uncontrolled I2C activity during the transport investigation; Mooncake is the safer UI host.
+
+### What was tricky to build
+
+- A 320×240 screen cannot show UID, protocol stages, raw IRQs, registers, and logs simultaneously. The design uses four fixed pages and a 44 px button-matrix navigation row.
+- “No tag,” “transport error,” and “protocol error” must remain separate visual states; otherwise the UI would preserve the same ambiguity that complicated console debugging.
+
+### What warrants a second pair of eyes
+
+- Confirm `lv_table` remains readable with production font/padding; a custom row list may fit better.
+- Decide whether bus reset is safe while all production peripherals share the bus.
+- Decide whether the first implementation should integrate the custom C driver or M5Unit-NFC's ESP-IDF support.
+
+### What should be done in the future
+
+- Review the ASCII layouts with the user and select a minimum first screen set.
+- Extract console operations into a serialized `NfcDebugService` before creating widgets.
+- Implement Reader and Bus pages first; defer register/log polish.
+
+### Code review instructions
+
+- Read `design-doc/02-m5stackchan-nfc-debug-ui-320x240-lvgl-design.md` from top to bottom.
+- Compare dimensions and controls against preserved StackChan app source references listed in the doc.
+- Verify the complete official page snapshot at `sources/web/04-m5stack-stackchan-nfc-full-official-doc.md`.
+
+### Technical details
+
+- Layout: 28 px header + 168 px content + 44 px navigation = 240 px.
+- Primary pages: READ, RF/IRQ, BUS, REGS/LOG.
+- Runtime: one NFC worker owns I2C; command queue in; immutable snapshot/event queue out; UI updates at ≤10 Hz under `LvglLockGuard`.
