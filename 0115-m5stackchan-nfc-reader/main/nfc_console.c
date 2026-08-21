@@ -272,6 +272,25 @@ static int cmd_trace(int argc, char **argv)
     return 1;
 }
 
+/* nfc-i2c-debug on|off : toggle the ESP-IDF I2C master driver DEBUG log so we can
+ * confirm I2C_EVENT_NACK ("I2C transaction unexpected nack detected") for a
+ * short classification run. Requires CONFIG_I2C_ENABLE_DEBUG_LOG=y (set in
+ * sdkconfig.defaults). The default INFO level is restored with `off`. */
+static int cmd_i2c_debug(int argc, char **argv)
+{
+    if (argc < 2) { printf("usage: nfc-i2c-debug on|off\n"); return 1; }
+    if (strcmp(argv[1], "on") == 0) {
+        esp_log_level_set("i2c.master", ESP_LOG_DEBUG);
+        printf("i2c.master log level: DEBUG (NACK/timeout lines now visible)\n");
+    } else if (strcmp(argv[1], "off") == 0) {
+        esp_log_level_set("i2c.master", ESP_LOG_INFO);
+        printf("i2c.master log level: INFO\n");
+    } else {
+        printf("usage: nfc-i2c-debug on|off\n"); return 1;
+    }
+    return 0;
+}
+
 static void reg(const char *cmd, const char *help, esp_console_cmd_func_t func, const char *hint)
 {
     esp_console_cmd_t c = {0};
@@ -296,4 +315,5 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-cap",  "Measure antenna capacitance (coil connected?)", cmd_cap, NULL);
     reg("nfc-dump", "Dump all Space-A registers (expert compare)", cmd_dump, NULL);
     reg("nfc-trace", "Transaction trace ring: status|dump|first-error|clear|mode|annotate", cmd_trace, NULL);
+    reg("nfc-i2c-debug", "Toggle I2C driver DEBUG log (confirm NACK): on|off", cmd_i2c_debug, NULL);
 }

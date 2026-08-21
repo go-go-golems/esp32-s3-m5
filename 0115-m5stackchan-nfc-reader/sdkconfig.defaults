@@ -21,3 +21,9 @@ CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
 CONFIG_COMPILER_OPTIMIZATION_SIZE=y
 
 # No PSRAM, no WiFi, no BLE for this standalone reader.
+
+# Phase 4: compile in the I2C master driver DEBUG log lines so we can confirm
+# I2C_EVENT_NACK at runtime via `esp_log_level_set("i2c.master", DEBUG)`.
+# Keep CONFIG_LOG_DEFAULT_LEVEL at INFO; the nfc-i2c-debug command raises only
+# the i2c.master tag for a short classification run (design doc 04 S9.1).
+CONFIG_I2C_ENABLE_DEBUG_LOG=y
