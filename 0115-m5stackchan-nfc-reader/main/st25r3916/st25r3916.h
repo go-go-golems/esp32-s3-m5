@@ -63,6 +63,11 @@ void st25r3916_set_tx_rx(bool on);
  * tag answered, ESP_ERR_NOT_FOUND if no tag, ESP_FAIL on error. */
 esp_err_t st25r3916_reqa(uint16_t *atqa);
 
+/* Send ISO14443-A WUPA (Wake-Up All) — wakes HALTED tags that REQA will not.
+ * Clears any halt state first (CMD_STOP_ALL_ACTIVITIES + field on), then WUPA.
+ * Use this when a tag may have been halted by a prior SELECT. */
+esp_err_t st25r3916_wupa(uint16_t *atqa);
+
 /* Force the RF field on: disable the external field detector (en_fd=0), issue
  * NFC_INITIAL_FIELD_ON, then enable tx+rx. Use for diagnostics when the auto
  * field detector might block field-on. */

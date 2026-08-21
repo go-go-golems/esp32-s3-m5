@@ -376,27 +376,24 @@ esp_err_t st25r3916_configure_nfca(void)
     return ESP_OK;
 }
 
-/* ---- REQA: get ATQA ---- */
-esp_err_t st25r3916_reqa(uint16_t *atqa)
+/* ---- REQA/WUPA: get ATQA (shared helper) ---- */
+static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
 {
     *atqa = 0;
-    /* FWT (frame waiting time) not strictly required for REQA in Phase-1; the
-     * chip handles REQA timing internally. Configure ISO14443A settings with
-     * anticollision (antcl) and no CRC on RX. */
     wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
     set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* no_crc_rx */
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
 
-    esp_err_t e = direct_cmd(ST25R_CMD_TRANSMIT_REQA);
+    esp_err_t e = direct_cmd(wake_cmd);
     if (e != ESP_OK) return e;
 
     uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_RXS | ST25R_IRQ_COL, 50);
-    ESP_LOGI(TAG, "reqa: irq=%06X fifo=%u rxs=%d rxe=%d col=%d",
-             (unsigned)irq, (unsigned)fifo_bytes(),
+    const char *wn = (wake_cmd == ST25R_CMD_TRANSMIT_REQA) ? "reqa" : "wupa";
+    ESP_LOGI(TAG, "%s: irq=%06X fifo=%u rxs=%d rxe=%d col=%d",
+             wn, (unsigned)irq, (unsigned)fifo_bytes(),
              !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
     if (!(irq & ST25R_IRQ_RXE)) {
-        /* If only RX-start (RXS) fired, poll FIFO for 2 bytes briefly. */
         if (irq & ST25R_IRQ_RXS) {
             int64_t dl = esp_timer_get_time() + 50 * 1000;
             while (esp_timer_get_time() < dl) {
@@ -406,13 +403,29 @@ esp_err_t st25r3916_reqa(uint16_t *atqa)
         }
         if (!(irq & ST25R_IRQ_RXE)) return ESP_ERR_NOT_FOUND;
     }
-
     uint8_t rbuf[2] = {0, 0};
     size_t got = 0;
     e = fifo_read(rbuf, 2, &got);
     if (e != ESP_OK || got != 2) return ESP_FAIL;
     *atqa = ((uint16_t)rbuf[1] << 8) | (uint16_t)rbuf[0];
     return ESP_OK;
+}
+
+/* ---- REQA: get ATQA ---- */
+esp_err_t st25r3916_reqa(uint16_t *atqa)
+{
+    return nfca_wake(atqa, ST25R_CMD_TRANSMIT_REQA);
+}
+
+/* ---- WUPA: wake halted tags, get ATQA ---- */
+esp_err_t st25r3916_wupa(uint16_t *atqa)
+{
+    /* Clear any halt/leftover state, then re-enable the field before WUPA so a
+     * previously-selected (halted) tag will answer. */
+    direct_cmd(ST25R_CMD_STOP_ALL_ACTIVITIES);
+    st25r3916_field_on();
+    vTaskDelay(pdMS_TO_TICKS(5));
+    return nfca_wake(atqa, ST25R_CMD_TRANSMIT_WUPA);
 }
 
 /* ---- Anticollision + select for one cascade level ---- */
@@ -486,9 +499,10 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
 
-    /* REQA -> ATQA. */
+    /* REQA -> ATQA. If no answer, try WUPA (wakes halted tags). */
     uint16_t atqa = 0;
     e = st25r3916_reqa(&atqa);
+    if (e == ESP_ERR_NOT_FOUND) e = st25r3916_wupa(&atqa);
     if (e != ESP_OK) return e; /* no tag */
     out->atqa = atqa;
 

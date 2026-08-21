@@ -90,18 +90,19 @@ static int cmd_read(int argc, char **argv)
     }
 }
 
-/* nfc-reqa : loop REQA and print every result (find the coil by sweeping tag).
- * Prints ATQA=xxxx when a tag answers, "no tag" otherwise. */
+/* nfc-reqa : loop REQA/WUPA and print every result (find the coil by sweeping tag).
+ * Alternates REQA and WUPA each iteration (WUPA wakes halted tags). Prints
+ * ATQA=xxxx when a tag answers, "." otherwise. */
 static int cmd_reqa(int argc, char **argv)
 {
     st25r3916_field_on();
-    printf("REQA loop (sweep tag over body). Reset to stop.\n");
+    printf("REQA/WUPA loop (sweep tag over body). Reset to stop.\n");
     for (int i = 0; i < 200; i++) {  /* ~30s at 150ms */
         uint16_t atqa = 0;
-        esp_err_t e = st25r3916_reqa(&atqa);
+        esp_err_t e = (i % 2) ? st25r3916_wupa(&atqa) : st25r3916_reqa(&atqa);
         if (e == ESP_OK)      printf("ATQA=%04X <== tag!\n", atqa);
         else if (e == ESP_ERR_NOT_FOUND) printf(".\n");
-        else                  printf("reqa err: %s\n", esp_err_to_name(e));
+        else                  printf("wake err: %s\n", esp_err_to_name(e));
         fflush(stdout);
         vTaskDelay(pdMS_TO_TICKS(150));
     }
