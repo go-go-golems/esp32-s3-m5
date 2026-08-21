@@ -43,3 +43,13 @@ Step 12: matched M5 continuous-carrier polling; receive/collision events increas
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Continuous RF carrier across REQA/WUPA/poll
 
+
+## 2026-08-20
+
+Step 13: preserved official M5 sources/images, corrected IO and Space-B NFC-A initialization, and built/flashed official Detect.ino for bisect (commits 4ccc993e, d4136068, 0b87585c)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Corrected documented initialization
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/README.md — Upstream source provenance
+

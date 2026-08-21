@@ -8,15 +8,24 @@ Intent: long-term
 Owners: []
 RelatedFiles:
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
-      Note: Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
+      Note: |-
+        Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
+        Documented M5 initialization and Space-B diagnostics
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
+      Note: Authoritative initialization implementation
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
+      Note: Authoritative NFC-A configuration and request sequence
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
+      Note: Official physical placement evidence
 ExternalSources: []
 Summary: ""
 LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -882,3 +891,115 @@ The continuous-carrier build increased nonzero receive events during a 34-second
 - Pre-change sweep: 348 lines, one `IRQ=0x34` event.
 - Continuous-field sweep: 350 lines, four `IRQ=0x34` events.
 - Logs: `/tmp/esp60-live-sweep.log` and `/tmp/esp60-continuous-sweep.log` (local transient evidence, not committed).
+
+---
+
+## Step 13: Re-anchor debugging in official documentation and run the Arduino bisect
+
+The user correctly challenged the incremental debugging approach and asked for the proper documentation and official sketch to be read. A fresh source-of-truth review found that prior claims of a byte-for-byte M5 initialization match were false: the ESP-IDF driver had swapped IO configuration bitfields between registers and omitted reader-critical Space-B analog/correlator writes.
+
+I preserved the exact upstream implementation and official placement photographs in the ticket, ported the documented initialization sequence, proved the new values through Space-B readback, and built/flashed the unmodified official StackChan `Detect.ino` as a hardware/firmware bisect. The official sketch now runs on the device; its screen result is awaiting the user's report because this Arduino board profile emitted no serial data on USB Serial/JTAG.
+
+### Prompt Context
+
+**User prompt (verbatim):** "make sure to read the proper documentation if you haven't, and maybe the ino code or so"
+
+**Additional user prompt (verbatim):** "save relevant documents from the web to sources/ if appropriate"
+
+**Assistant interpretation:** Stop speculative register debugging, inspect the official example and full implementation call chain, preserve authoritative sources in the ticket, then use the official firmware as the decisive bisect.
+
+**Inferred user intent:** Replace accumulated assumptions with reproducible vendor evidence and determine whether the NFC hardware/tag works under M5's supported stack.
+
+**Commit (sources):** `4ccc993ecd1259328651c77c2368587c17f23b8f` — "ESP-60: preserve official M5 NFC implementation and placement evidence"
+
+**Commit (code):** `d4136068e6e963041948a52da06e812ca99415c3` — "ESP-60 P1: match documented M5 ST25R analog and NFC-A initialization"
+
+**Commit (diagnostics):** `0b87585cec3d5a9ffdcf5d3fc49f0255dff047bc` — "ESP-60 P1: expose ST25R Space-B receive configuration readback"
+
+### What I did
+
+- Read the complete official `StackChan-BSP/examples/NFC/Detect/Detect.ino`.
+- Followed its call chain through `UnitST25R3916::begin()`, `configure_nfc_a()`, `nfca_request_wakeup()`, `NFCLayerA::detect()`, selection, identification, and deactivation.
+- Re-read the ticket's datasheet acquisition note; attempted the canonical ST PDF URL, which timed out without producing a file.
+- Preserved upstream M5Unit-NFC implementation files at commit `93745b54`, official Detect example at StackChan-BSP commit `f7ed40e6`, and official placement images in `sources/`.
+- Corrected the placement note: official photos show cards across the literal top edge/roof, not the front display.
+- Found and corrected IO configuration from incorrect `8B/30` to documented final `17/A4`.
+- Added mandatory test-access protection frame `FC 04 10` after SET_DEFAULT.
+- Added Space-B access and M5 analog initialization: resistive AM, EMD suppression, overshoot/undershoot protection, and correlator configuration.
+- Added NFCIP FDT `0x50` and passive-target modulation `0x5F` to match M5 begin().
+- Added Space-B readback diagnostics.
+- Built, committed, flashed, and confirmed readback:
+  `SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40`.
+- Created an isolated PlatformIO official-example build under `/tmp/esp60-official-detect`.
+- Resolved build environment requirements using pinned PIOArduino `55.03.311`, Arduino-ESP32 `3.3.11`, IDF libs `5.5.5`, C++17, and an explicit Wire include path.
+- Successfully built and flashed the official sketch.
+- Captured `/dev/ttyACM0` for 18 seconds; output was empty, so screen state is needed for the bisect.
+
+### Why
+
+- Header-only comparison omitted behavior implemented in `.cpp` files and led to false exoneration of firmware initialization.
+- The official sketch provides the cleanest firmware-versus-hardware/tag test.
+- Preserving exact source revisions prevents future sessions from relying on mutable `/tmp` clones or vague web summaries.
+
+### What worked
+
+- Official images resolved antenna placement unambiguously.
+- Full source review found concrete, high-impact initialization mismatches.
+- ESP-IDF build succeeded after the documented port.
+- Space-B readback proved the receive-path values reached the chip.
+- The official Arduino sketch built and flashed successfully with the correct modern toolchain.
+
+### What didn't work
+
+- ST datasheet download command timed out after 60 seconds and produced no file; the canonical URL remains documented in `sources/datasheets/README-download-instructions.md`.
+- First official build failed under C++11:
+  `error: deduced return type only available with -std=c++14 or -std=gnu++14`.
+- First config fix accidentally duplicated `build_flags`:
+  `InvalidProjectConfError ... option 'build_flags' ... already exists`.
+- Arduino core 2.0.16 build then failed because current BSP requires newer IDF symbols:
+  `error: 'UART_SCLK_DEFAULT' was not declared in this scope`.
+- PIOArduino initially rejected PlatformIO Core 6.1.18:
+  `depends on PlatformIO Core >=6.1.19`.
+- Modern builds twice exposed M5HAL dependency metadata failure:
+  `fatal error: Wire.h: No such file or directory`; fixed with an explicit framework Wire include path.
+- Official sketch produced no USB serial text on `/dev/ttyACM0`; the display must report detection status.
+- Corrected ESP-IDF initialization still did not read the tag at the then-current placement.
+
+### What I learned
+
+- M5's final IO pair is `IO_CONFIG_1=0x17`, `IO_CONFIG_2=0xA4`; the earlier `0x8B/0x30` values assigned bitfields to the wrong registers.
+- `configure_nfc_a()` programs reader-critical Space-B overshoot, undershoot, and correlator registers; they are not emulation-only.
+- Official placement is the literal top edge/roof of the head.
+- The current StackChan-BSP requires a modern Arduino-ESP32/ESP-IDF stack, not PlatformIO's legacy official espressif32 6.7.0 platform.
+
+### What was tricky to build
+
+- “Official example” still requires reproducing its expected toolchain. Building against an old Arduino core would create an invalid bisect even if local compatibility patches made it compile.
+- M5HAL's metadata does not propagate Wire's include path under this PlatformIO dependency graph; the temporary build needed an explicit framework include directory without changing NFC behavior.
+- Space-B access uses the two-byte command prefix `0xFB, register`, unlike normal Space-A access.
+
+### What warrants a second pair of eyes
+
+- Validate the IO pair and Space-B values against the ST datasheet once a manual PDF download is available.
+- Review whether the official sketch's empty USB output is expected for the `m5stack-cores3` board profile or needs `ARDUINO_USB_CDC_ON_BOOT` for diagnostics.
+- Investigate intermittent ESP-IDF I2C read anomalies separately if the official sketch succeeds.
+
+### What should be done in the future
+
+- Record whether the official sketch displays `PICC:<UID>`, the placement prompt, or an initialization error.
+- If official firmware reads the tag, restore ESP-IDF and compare runtime sequencing/I2C transport against M5Unit-NFC.
+- If official firmware does not read the tag, validate the tag with a phone and inspect hardware/placement rather than continuing protocol changes.
+- Restore ESP-IDF firmware after the bisect.
+
+### Code review instructions
+
+- Start with ticket sources `code/m5unit-nfc/README.md`, `unit_ST25R3916.cpp`, `unit_ST25R3916_nfca.cpp`, and `web/03-m5stack-stackchan-nfc-official-images.md`.
+- Review firmware changes in `main/st25r3916/st25r3916.c` around IO setup, `wr8b()`, and `configure_nfca()`.
+- Run `nfc-regs` and verify `SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40`.
+
+### Technical details
+
+- Official build platform: `https://github.com/pioarduino/platform-espressif32/releases/download/55.03.311/platform-espressif32.zip`.
+- Official build result: success, firmware image 671,527 bytes, RAM 30,116 bytes.
+- Temporary build path: `/tmp/esp60-official-detect`.
+- Official serial capture: `/tmp/esp60-official-detect-serial.log` (empty).
