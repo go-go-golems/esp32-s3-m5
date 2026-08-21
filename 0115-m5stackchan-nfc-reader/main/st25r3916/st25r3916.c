@@ -28,6 +28,21 @@ static i2c_master_dev_handle_t s_dev = NULL;
 static uint8_t s_last_timer_irq = 0;
 static uint8_t s_last_error_irq = 0;
 
+/* Observer-safe transaction trace ring (design doc 04). Records every I2C
+ * transaction to the ST25R3916; no serial/heap/log in the hot path. */
+static st25r_trace_store_t s_trace;
+
+st25r_trace_store_t *st25r3916_trace(void) { return &s_trace; }
+
+/* Record one traced transaction; computes elapsed_us from the captured t0. */
+static void trace_rec(st25r_trace_op_t op, uint8_t lkey, uint8_t wkey,
+                      st25r_trace_kind_t kind, uint16_t wlen, uint16_t rlen,
+                      int64_t t0, esp_err_t e)
+{
+    st25r_trace_record(&s_trace, op, lkey, wkey, kind, wlen, rlen, t0,
+                        (uint32_t)(esp_timer_get_time() - t0), (int32_t)e, 0);
+}
+
 /* ------------------------------------------------------------------ */
 /* Low-level register access (mirrors PY32IOExpander_Class style)     */
 /* ------------------------------------------------------------------ */
@@ -35,18 +50,27 @@ static uint8_t s_last_error_irq = 0;
 static esp_err_t rd8(uint8_t reg, uint8_t *out)
 {
     uint8_t cmd = (reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    return i2c_master_transmit_receive(s_dev, &cmd, 1, out, 1, I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, out, 1, I2C_TICKS);
+    trace_rec(ST25R_OP_READ_A, reg, cmd, ST25R_TRACE_KIND_WRITE_READ, 1, 1, t0, e);
+    return e;
 }
 
 static esp_err_t wr8(uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = { (uint8_t)((reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_WRITE_REGISTER), val };
-    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    trace_rec(ST25R_OP_WRITE_A, reg, buf[0], ST25R_TRACE_KIND_WRITE, 2, 0, t0, e);
+    return e;
 }
 
 static esp_err_t direct_cmd(uint8_t c)
 {
-    return i2c_master_transmit(s_dev, &c, 1, I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit(s_dev, &c, 1, I2C_TICKS);
+    trace_rec(ST25R_OP_DIRECT_CMD, c, c, ST25R_TRACE_KIND_WRITE, 1, 0, t0, e);
+    return e;
 }
 
 static esp_err_t direct_cmd_data(uint8_t c, const uint8_t *data, size_t len)
@@ -54,7 +78,10 @@ static esp_err_t direct_cmd_data(uint8_t c, const uint8_t *data, size_t len)
     if (len > 2) return ESP_ERR_INVALID_SIZE;
     uint8_t buf[3] = {c, 0, 0};
     if (len) memcpy(buf + 1, data, len);
-    return i2c_master_transmit(s_dev, buf, len + 1, I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit(s_dev, buf, len + 1, I2C_TICKS);
+    trace_rec(ST25R_OP_DIRECT_CMD_DATA, c, c, ST25R_TRACE_KIND_WRITE, (uint16_t)(len + 1), 0, t0, e);
+    return e;
 }
 
 /* Space-B I2C write: 0xFB prefix, Space-B register address, value. */
@@ -62,14 +89,20 @@ static esp_err_t wr8b(uint8_t reg, uint8_t val)
 {
     uint8_t buf[3] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
                       (uint8_t)(reg & ST25R_OP_TRAILER_MASK), val};
-    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    trace_rec(ST25R_OP_WRITE_B, reg, buf[0], ST25R_TRACE_KIND_WRITE, 3, 0, t0, e);
+    return e;
 }
 
 static esp_err_t rd8b(uint8_t reg, uint8_t *out)
 {
     uint8_t cmd[2] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
                       (uint8_t)((reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER)};
-    return i2c_master_transmit_receive(s_dev, cmd, sizeof(cmd), out, 1, I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit_receive(s_dev, cmd, sizeof(cmd), out, 1, I2C_TICKS);
+    trace_rec(ST25R_OP_READ_B, reg, cmd[0], ST25R_TRACE_KIND_WRITE_READ, 2, 1, t0, e);
+    return e;
 }
 
 static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
@@ -101,7 +134,11 @@ static esp_err_t fifo_write(const uint8_t *data, size_t len)
     if (len > ST25R_MAX_FIFO_DEPTH) return ESP_ERR_INVALID_SIZE;
     buf[0] = ST25R_OP_LOAD_FIFO;
     memcpy(buf + 1, data, len);
-    return i2c_master_transmit(s_dev, buf, 1 + len, I2C_TICKS);
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit(s_dev, buf, 1 + len, I2C_TICKS);
+    trace_rec(ST25R_OP_FIFO_WRITE, ST25R_OP_LOAD_FIFO, ST25R_OP_LOAD_FIFO,
+             ST25R_TRACE_KIND_WRITE, (uint16_t)(1 + len), 0, t0, e);
+    return e;
 }
 
 /* Read N bytes from the FIFO using the dedicated OP_READ_FIFO command (0x9F).
@@ -113,7 +150,9 @@ static esp_err_t fifo_read(uint8_t *data, size_t want, size_t *got)
     if (n == 0) return ESP_OK;
     if (n > want) n = (uint16_t)want;
     uint8_t cmd = 0x9F;  /* OP_READ_FIFO */
+    int64_t t0 = esp_timer_get_time();
     esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, n, I2C_TICKS);
+    trace_rec(ST25R_OP_FIFO_READ, 0x9F, 0x9F, ST25R_TRACE_KIND_WRITE_READ, 1, n, t0, e);
     if (e == ESP_OK && got) *got = n;
     return e;
 }
@@ -140,7 +179,10 @@ static uint32_t read_main_irq(void)
 
     uint8_t cmd = (ST25R_REG_MAIN_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
     uint8_t buf[2] = {0, 0};
-    if (i2c_master_transmit_receive(s_dev, &cmd, 1, buf, 2, I2C_TICKS) != ESP_OK) return 0;
+    int64_t t0 = esp_timer_get_time();
+    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, buf, 2, I2C_TICKS);
+    trace_rec(ST25R_OP_IRQ_READ, ST25R_REG_MAIN_INTERRUPT, cmd, ST25R_TRACE_KIND_WRITE_READ, 1, 2, t0, e);
+    if (e != ESP_OK) return 0;
     s_last_error_irq = error;
     s_last_timer_irq = buf[1];
     return ((uint32_t)buf[1] << 8) | (uint32_t)buf[0];
@@ -153,9 +195,19 @@ static esp_err_t clear_interrupts(void)
     /* Also clear error/wakeup and timer/nfc IRQ registers by reading them. */
     uint8_t cmd_a = (ST25R_REG_ERROR_AND_WAKEUP_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
     uint8_t tmp[2] = {0, 0};
-    (void)i2c_master_transmit_receive(s_dev, &cmd_a, 1, tmp, 2, I2C_TICKS);
+    {
+        int64_t t0 = esp_timer_get_time();
+        esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd_a, 1, tmp, 2, I2C_TICKS);
+        trace_rec(ST25R_OP_IRQ_READ, ST25R_REG_ERROR_AND_WAKEUP_INTERRUPT, cmd_a, ST25R_TRACE_KIND_WRITE_READ, 1, 2, t0, e);
+        (void)e;
+    }
     uint8_t cmd_b = (ST25R_REG_TIMER_AND_NFC_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    (void)i2c_master_transmit_receive(s_dev, &cmd_b, 1, tmp, 2, I2C_TICKS);
+    {
+        int64_t t0 = esp_timer_get_time();
+        esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd_b, 1, tmp, 2, I2C_TICKS);
+        trace_rec(ST25R_OP_IRQ_READ, ST25R_REG_TIMER_AND_NFC_INTERRUPT, cmd_b, ST25R_TRACE_KIND_WRITE_READ, 1, 2, t0, e);
+        (void)e;
+    }
     return ESP_OK;
 }
 
@@ -213,6 +265,12 @@ static uint32_t wait_irq(uint32_t want_mask, uint32_t timeout_ms)
 esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
 {
     if (!bus) return ESP_ERR_INVALID_ARG;
+    /* Start the trace ring in ALL mode so the full init sequence (including any
+     * pre-REQA transport failure) is captured from the first transaction. */
+    st25r_trace_init(&s_trace);
+    st25r_trace_set_mode(&s_trace, ST25R_TRACE_MODE_ALL);
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_IDENTITY, 1);
     i2c_device_config_t dev = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address  = ST25R3916_I2C_ADDR,
@@ -244,6 +302,8 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     }
     ESP_LOGI(TAG, "ST25R3916 detected: type=0x%02x rev=0x%02x", id.type, id.revision);
 
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_RESET, 1);
     /* Defensive reset: stop leftover activities, clear tx/rx enables. */
     direct_cmd(ST25R_CMD_STOP_ALL_ACTIVITIES);
     modify8(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN, 0x00);
@@ -259,6 +319,8 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     e = direct_cmd_data(ST25R_CMD_TEST_ACCESS, protection, sizeof(protection));
     if (e != ESP_OK) return e;
 
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_CONFIG, 1);
     /* Exact M5 I2C configuration after its modify/set operations:
      * IO_CONFIG_1=0x17: i2c_thd0 (400 kHz) + MCU clock disabled (low bits 111).
      * IO_CONFIG_2=0xA4: sup3v + aat_en + io_drv_lvl.
@@ -308,6 +370,8 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
 
     /* Enable oscillator: unmask I_osc, set the 'en' bit (0x80), wait for I_osc IRQ,
      * then remask I_osc. (Matches M5 lib enable_osc().) */
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_OSCILLATOR, 1);
     clear_bits(ST25R_REG_MASK_MAIN_INTERRUPT, ST25R_IRQ_OSC);
     clear_interrupts();
     set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_EN);
@@ -325,6 +389,8 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT + 2, 0x00);
 
     /* Enable external field detector automatically (en_fd = 0b11). */
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_ANALOG, 1);
     set_bits(ST25R_REG_OPERATION_CONTROL, 0x03);
 
     /* Adjust regulators and wait. */
@@ -348,6 +414,8 @@ esp_err_t st25r3916_read_id(st25r3916_id_t *out)
 
 esp_err_t st25r3916_field_on(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_FIELD_ON, 1);
     esp_err_t e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
@@ -365,6 +433,8 @@ esp_err_t st25r3916_field_off(void)
 
 uint8_t st25r3916_measure_amplitude(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_DIAGNOSTIC, 1);
     /* CMD_MEASURE_AMPLITUDE (0xD3) measures the amplitude of the signal on RFI.
      * Result is in REG_AMPLITUDE_MEASUREMENT_DISPLAY (0x36). */
     direct_cmd(0xD3);
@@ -382,6 +452,8 @@ void st25r3916_set_tx_rx(bool on)
 
 esp_err_t st25r3916_force_field_on(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_FIELD_ON, 1);
     /* Disable the external field detector (en_fd = 0b00) so NFC_INITIAL_FIELD_ON
      * always switches the field on (no collision-avoidance veto). */
     clear_bits(ST25R_REG_OPERATION_CONTROL, 0x03);
@@ -394,6 +466,8 @@ esp_err_t st25r3916_force_field_on(void)
 
 uint8_t st25r3916_measure_capacitance(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_DIAGNOSTIC, 1);
     /* CMD_MEASURE_CAPACITANCE (0xDE) measures capacitance between CSO/CSI.
      * Result is in REG_AD_CONVERTER_OUTPUT (0x25). */
     direct_cmd(0xDE);
@@ -405,6 +479,8 @@ uint8_t st25r3916_measure_capacitance(void)
 
 void st25r3916_dump_all(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_DIAGNOSTIC, 1);
     printf("dump_all (Space-A 0x00-0x3F):\n");
     for (uint8_t reg = 0x00; reg <= 0x3F; reg++) {
         uint8_t v = 0;
@@ -415,6 +491,8 @@ void st25r3916_dump_all(void)
 
 void st25r3916_debug_dump(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_DIAGNOSTIC, 1);
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
     uint8_t ant1=0, ant2=0, txd=0, nrt1=0, nrt2=0, temv=0;
     uint8_t os1=0, os2=0, us1=0, us2=0, corr1=0, corr2=0, emd=0;
@@ -450,6 +528,8 @@ void st25r3916_debug_dump(void)
 
 esp_err_t st25r3916_configure_nfca(void)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_INIT_CONFIG, 1);
     /* Mode definition: initiator, ISO14443-A (0x01<<3=0x08) | nfc_ar8_auto (0x01) = 0x09.
      * (writeInitiatorOperationMode: value = mode | (0x07 & optional); writeModeDefinition writes reg 0x03.) */
     esp_err_t e = wr8(ST25R_REG_MODE_DEFINITION, 0x09);
@@ -490,6 +570,8 @@ esp_err_t st25r3916_configure_nfca(void)
     clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x04);
 
     /* Initial field on + enable tx/rx. */
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_FIELD_ON, 1);
     e = st25r3916_field_on();
     if (e != ESP_OK) {
         ESP_LOGE(TAG, "configure_nfca: field_on failed: %s", esp_err_to_name(e));
@@ -502,6 +584,8 @@ esp_err_t st25r3916_configure_nfca(void)
 static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
 {
     *atqa = 0;
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_REQUEST_SETUP, 1);
     esp_err_t e = set_frame_wait_time(4); /* M5 TIMEOUT_REQ_WUP */
     if (e != ESP_OK) return e;
     e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
@@ -511,9 +595,13 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
 
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_REQUEST_TRANSMIT, 1);
     e = direct_cmd(wake_cmd);
     if (e != ESP_OK) return e;
 
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_IRQ_WAIT, 1);
     uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_RXS | ST25R_IRQ_COL, 50);
     const char *wn = (wake_cmd == ST25R_CMD_TRANSMIT_REQA) ? "reqa" : "wupa";
     uint8_t fifo_status1 = 0, fifo_status2 = 0, collision = 0;
@@ -534,6 +622,8 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
         }
         if (!(irq & ST25R_IRQ_RXE)) return ESP_ERR_NOT_FOUND;
     }
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_FIFO_READ, 1);
     uint8_t rbuf[2] = {0, 0};
     size_t got = 0;
     e = fifo_read(rbuf, 2, &got);
@@ -560,6 +650,8 @@ esp_err_t st25r3916_wupa(uint16_t *atqa)
 /* ---- Anticollision + select for one cascade level ---- */
 static esp_err_t nfca_anticoll_select(uint8_t sel, uint8_t *uid_out, uint8_t *sak_out)
 {
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_ANTICOLLISION, 1);
     /* ANTICOLLISION: SEL, NVB=0x20 (request full UID, all bits). */
     uint8_t frame[7] = { sel, 0x20 };
     esp_err_t e = set_frame_wait_time(8); /* M5 TIMEOUT_ANTICOLL */
@@ -587,6 +679,8 @@ static esp_err_t nfca_anticoll_select(uint8_t sel, uint8_t *uid_out, uint8_t *sa
     if (got != 5) return ESP_FAIL;
 
     /* SELECT: SEL, NVB=0x70, UID(4) + BCC(1) — with CRC (chip appends). */
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_SELECT, 1);
     uint8_t sel_frame[7] = { sel, 0x70, rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4] };
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
@@ -626,6 +720,8 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
     if (!out) return ESP_ERR_INVALID_ARG;
     memset(out, 0, sizeof(*out));
 
+    st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
+                            ST25R_PHASE_IDENTIFY, 1);
     /* Establish the field before each high-level read. nfc_initial_field_on()
      * clears TX/RX after its guard interval (matching M5), so a boot-time call
      * alone does not guarantee the analog front end is freshly prepared. Keep

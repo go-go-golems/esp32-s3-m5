@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "driver/i2c_master.h"
 #include "esp_err.h"
+#include "st25r_trace.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,6 +87,11 @@ uint8_t st25r3916_measure_capacitance(void);
  * ESP_ERR_NOT_FOUND if no tag answered, ESP_FAIL on protocol error.
  * Leaves the field ON after a successful poll. */
 esp_err_t st25r3916_poll_nfca(nfc_picc_t *out);
+
+/* Access the shared transport trace ring (records every I2C transaction to the
+ * ST25R3916). Console/UI code reads and dumps through this pointer via the
+ * st25r_trace_* API; it never records. */
+st25r_trace_store_t *st25r3916_trace(void);
 
 #ifdef __cplusplus
 }
