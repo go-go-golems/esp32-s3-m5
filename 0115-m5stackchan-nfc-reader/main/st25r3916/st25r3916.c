@@ -49,6 +49,22 @@ static esp_err_t direct_cmd(uint8_t c)
     return i2c_master_transmit(s_dev, &c, 1, I2C_TICKS);
 }
 
+static esp_err_t direct_cmd_data(uint8_t c, const uint8_t *data, size_t len)
+{
+    if (len > 2) return ESP_ERR_INVALID_SIZE;
+    uint8_t buf[3] = {c, 0, 0};
+    if (len) memcpy(buf + 1, data, len);
+    return i2c_master_transmit(s_dev, buf, len + 1, I2C_TICKS);
+}
+
+/* Space-B I2C write: 0xFB prefix, Space-B register address, value. */
+static esp_err_t wr8b(uint8_t reg, uint8_t val)
+{
+    uint8_t buf[3] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
+                      (uint8_t)(reg & ST25R_OP_TRAILER_MASK), val};
+    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+}
+
 static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
 
 static esp_err_t modify8(uint8_t reg, uint8_t mask, uint8_t bits)
@@ -230,22 +246,49 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     e = direct_cmd(ST25R_CMD_SET_DEFAULT);
     if (e != ESP_OK) { ESP_LOGE(TAG, "CMD_SET_DEFAULT failed"); return e; }
 
-    /* Minimal IO config for I2C (3V supply; body board runs 3.3V).
-     * IO_CONFIG_1: sup3v (0x80) + io_drv_lvl (0x04) + mcu_clk disabled (0x07) = 0x8B.
-     * IO_CONFIG_2: i2c_thd0 (0x10 for 400kHz) + aat_en (0x20) = 0x30. */
-    wr8(ST25R_REG_IO_CONFIGURATION_1, 0x8B);
-    wr8(ST25R_REG_IO_CONFIGURATION_2, 0x30);
+    /* Mandatory post-reset protection frame from M5 begin()/ST documentation:
+     * FC 04 10 prevents premature internal overheat protection triggering. */
+    const uint8_t protection[] = {0x04, 0x10};
+    e = direct_cmd_data(ST25R_CMD_TEST_ACCESS, protection, sizeof(protection));
+    if (e != ESP_OK) return e;
+
+    /* Exact M5 I2C configuration after its modify/set operations:
+     * IO_CONFIG_1=0x17: i2c_thd0 (400 kHz) + MCU clock disabled (low bits 111).
+     * IO_CONFIG_2=0xA4: sup3v + aat_en + io_drv_lvl.
+     * Earlier 0x8B/0x30 incorrectly assigned these bitfields to opposite registers. */
+    e = wr8(ST25R_REG_IO_CONFIGURATION_1, 0x17);
+    if (e != ESP_OK) return e;
+    e = wr8(ST25R_REG_IO_CONFIGURATION_2, 0xA4);
+    if (e != ESP_OK) return e;
+
+    /* Analog setup from M5 begin(): minimum then normal non-overlap, NFCIP FDT,
+     * passive-target/EMD defaults, antenna tuning, and field thresholds. */
+    e = wr8b(ST25R_REGB_RESISTIVE_AM_MODULATION, 0x80);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_RESISTIVE_AM_MODULATION, 0x00);
+    if (e != ESP_OK) return e;
+    e = modify8(ST25R_REG_NFCIP1_PASSIVE_TARGET, 0xF0, 0x50);
+    if (e != ESP_OK) return e;
+    e = wr8(ST25R_REG_PASSIVE_TARGET_MODULATION, 0x5F);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_EMD_SUPPRESSION_CONFIGURATION, 0x40);
+    if (e != ESP_OK) return e;
 
     /* Antenna settings — CRITICAL for RF coupling (from M5 lib begin()):
      *   TX_DRIVER (0x28) = 0xD0  (tx_am_modulation=13 << 4)
      *   ANTENNA_TUNING_CONTROL_1/2 (0x26/0x27) = 0x82
      *   External field detector thresholds (0x2A/0x2B) = 0x13 / 0x02
      * Without these the field register says "on" but the antenna is not driven. */
-    wr8(ST25R_REG_TX_DRIVER, 0xD0);
-    wr8(0x26, 0x82);
-    wr8(0x27, 0x82);
-    wr8(0x2A, 0x13);  /* field detector activation threshold */
-    wr8(0x2B, 0x02);  /* field detector deactivation threshold */
+    e = wr8(ST25R_REG_TX_DRIVER, 0xD0);
+    if (e != ESP_OK) return e;
+    e = wr8(0x26, 0x82);
+    if (e != ESP_OK) return e;
+    e = wr8(0x27, 0x82);
+    if (e != ESP_OK) return e;
+    e = wr8(0x2A, 0x13);  /* field detector activation threshold */
+    if (e != ESP_OK) return e;
+    e = wr8(0x2B, 0x02);  /* field detector deactivation threshold */
+    if (e != ESP_OK) return e;
 
     /* Clear FIFO. */
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
@@ -399,6 +442,21 @@ esp_err_t st25r3916_configure_nfca(void)
     if (e != ESP_OK) return e;
     /* ISO14443A settings: 0x00 (default). */
     e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x00);
+    if (e != ESP_OK) return e;
+
+    /* Reader receive-path Space-B settings from M5 configure_nfc_a(). These
+     * shape overshoot/undershoot protection and ISO14443-A correlation. */
+    e = wr8b(ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_1, 0x40);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_2, 0x03);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_1, 0x40);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_2, 0x03);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_CORRELATOR_CONFIGURATION_1, 0x47);
+    if (e != ESP_OK) return e;
+    e = wr8b(ST25R_REGB_CORRELATOR_CONFIGURATION_2, 0x00);
     if (e != ESP_OK) return e;
 
     /* Receiver configuration (stability-focused, from M5 lib configure_nfc_a).

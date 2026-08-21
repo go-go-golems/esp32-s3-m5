@@ -26,6 +26,7 @@
 #define ST25R_REG_MODE_DEFINITION               0x03
 #define ST25R_REG_BITRATE_DEFINITION            0x04
 #define ST25R_REG_ISO14443A_SETTINGS            0x05
+#define ST25R_REG_NFCIP1_PASSIVE_TARGET         0x08
 #define ST25R_REG_AUXILIARY_DEFINITION          0x0A
 #define ST25R_REG_RECEIVER_CONFIGURATION_1      0x0B
 #define ST25R_REG_RECEIVER_CONFIGURATION_2      0x0C
@@ -46,6 +47,7 @@
 #define ST25R_REG_NUM_TX_BYTES_1                0x22
 #define ST25R_REG_NUM_TX_BYTES_2                0x23
 #define ST25R_REG_TX_DRIVER                      0x28
+#define ST25R_REG_PASSIVE_TARGET_MODULATION      0x29
 #define ST25R_REG_REGULATOR_VOLTAGE_CONTROL     0x2C
 #define ST25R_REG_IC_IDENTITY                    0x3F
 
@@ -60,6 +62,18 @@
 #define ST25R_CMD_RESET_RX_GAIN                 0xD5
 #define ST25R_CMD_ADJUST_REGULATORS            0xD6
 #define ST25R_CMD_CLEAR_FIFO                    0xDB
+#define ST25R_CMD_REGISTER_SPACE_B_ACCESS       0xFB
+#define ST25R_CMD_TEST_ACCESS                   0xFC
+
+/* ---- Registers (Space B; addressed after 0xFB prefix) ---- */
+#define ST25R_REGB_EMD_SUPPRESSION_CONFIGURATION       0x05
+#define ST25R_REGB_CORRELATOR_CONFIGURATION_1          0x0C
+#define ST25R_REGB_CORRELATOR_CONFIGURATION_2          0x0D
+#define ST25R_REGB_RESISTIVE_AM_MODULATION             0x2A
+#define ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_1       0x30
+#define ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_2       0x31
+#define ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_1      0x32
+#define ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_2      0x33
 
 /* ---- Misc constants ---- */
 #define ST25R_VALID_IDENTIFY_TYPE              0x05   /* ST25R3916/7 */
