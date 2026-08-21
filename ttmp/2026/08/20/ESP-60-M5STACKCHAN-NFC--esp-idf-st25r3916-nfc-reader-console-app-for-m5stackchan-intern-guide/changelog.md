@@ -144,3 +144,13 @@ Step 23: researched ESP-IDF/M5GFX/ST25R I2C behavior, preserved authoritative so
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/03-st25r3916-i2c-transport-debugging-analysis-design-and-intern-implementation-guide.md — Intern analysis, experiment design, implementation phases, and acceptance gates
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/I2C-backend-source-provenance.md — Pinned ESP-IDF, M5GFX, and M5Unified source provenance
 
+
+## 2026-08-21
+
+Step 24: added structured USB serial diagnostics at transport and service layers, built with ESP-IDF 5.5.4, app-flashed NFC LAB, and captured a real pre-REQA register-0x02 failure (commit 9c9fa2e3)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c — Every failed I2C transaction is now emitted with operation/key/error/timing
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/01-nfc-lab-structured-serial-runtime.log — Hardware proof of structured log output
+

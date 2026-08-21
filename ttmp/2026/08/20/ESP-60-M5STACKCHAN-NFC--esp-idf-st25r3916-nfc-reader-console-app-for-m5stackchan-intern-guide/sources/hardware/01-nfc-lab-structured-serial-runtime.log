@@ -1,0 +1,162 @@
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40383512
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x1744
+load:0x403c8700,len:0xf40
+load:0x403cb700,len:0x3610
+entry 0x403c89c4
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 21 2026 14:57:34
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (28) boot: efuse block revision: v1.3
+I (31) qio_mode: Enabling default flash chip QIO
+I (36) boot.esp32s3: Boot SPI Speed : 80MHz
+I (39) boot.esp32s3: SPI Mode       : QIO
+I (43) boot.esp32s3: SPI Flash Size : 16MB
+I (47) boot: Enabling RNG early entropy source...
+I (51) boot: Partition Table:
+I (54) boot: ## Label            Usage          Type ST Offset   Length
+I (60) boot:  0 nvs              WiFi data        01 02 00009000 00004000
+I (67) boot:  1 otadata          OTA data         01 00 0000d000 00002000
+I (73) boot:  2 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  3 ota_0            OTA app          00 10 00020000 004f0000
+I (86) boot:  4 ota_1            OTA app          00 11 00510000 004f0000
+I (93) boot:  5 assets           Unknown data     01 82 00a00000 00400000
+I (99) boot:  6 coredump         Unknown data     01 03 00e00000 00010000
+I (106) boot: End of partition table
+I (109) esp_image: segment 0: paddr=00020020 vaddr=3c200020 size=f62f8h (1008376) map
+I (257) esp_image: segment 1: paddr=00116320 vaddr=3fca0e00 size=08830h ( 34864) load
+I (263) esp_image: segment 2: paddr=0011eb58 vaddr=40378000 size=014c0h (  5312) load
+I (264) esp_image: segment 3: paddr=00120020 vaddr=42000020 size=1f432ch (2048812) map
+I (553) esp_image: segment 4: paddr=00314354 vaddr=403794c0 size=17910h ( 96528) load
+I (570) esp_image: segment 5: paddr=0032bc6c vaddr=50000000 size=00020h (    32) load
+I (580) boot: Loaded app from partition at offset 0x20000
+I (580) boot: Disabling RNG early entropy source...
+I (590) esp_psram: Found 8MB PSRAM device
+I (590) esp_psram: Speed: 80MHz
+I (591) cpu_start: Multicore app
+I (600) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (601) cpu_start: Pro cpu start user code
+I (601) cpu_start: cpu freq: 240000000 Hz
+I (602) app_init: Application information:
+I (606) app_init: Project name:     stack-chan
+I (610) app_init: App version:      1.5.1
+I (614) app_init: Compile time:     Aug 21 2026 14:57:25
+I (619) app_init: ELF file SHA256:  a251ce68f...
+I (623) app_init: ESP-IDF:          v5.5.4
+I (627) efuse_init: Min chip rev:     v0.0
+I (631) efuse_init: Max chip rev:     v0.99
+I (635) efuse_init: Chip rev:         v0.2
+I (639) heap_init: Initializing. RAM available for dynamic allocation:
+I (645) heap_init: At 3FCB0F58 len 000387B8 (225 KiB): RAM
+I (650) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (655) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (661) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (666) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (673) spi_flash: detected chip: generic
+I (676) spi_flash: flash io: qio
+I (680) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (685) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (701) main_task: Started on CPU0
+I (711) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (711) main_task: Calling app_main()
+[943993268490] [info] [HAL] creating hal instance
+[943993268495] [info] [HAL] init
+[943993268510] [info] [HAL] xiaozhi board init
+I (731) Board: UUID=172aaa5c-cd01-4514-8aba-d6097964dadc SKU=m5stack-stack-chan
+I (741) M5Stack-StackChan-Board: Init AXP2101
+I (741) M5Stack-StackChan-Board: Set charge current success
+I (741) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (761) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- --
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- --
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- --
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+I (841) M5Stack-StackChan-Board: Init FT6336
+I (841) M5Stack-StackChan-Board: Init IlI9342
+I (851) ili9341: LCD panel create success, version: 1.2.0
+I (871) M5Stack-StackChan-Board: Reset IlI9342
+I (1001) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x10 / VENDID:0x11, panel:ILI9342C
+I (1001) Display: Power management not supported
+I (1061) StackChanAvatarDisplay: Turning display on
+I (1061) StackChanAvatarDisplay: Initialize LVGL library
+I (1061) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1061) StackChanAvatarDisplay: Initialize LVGL port
+I (1071) StackChanAvatarDisplay: Adding LCD display
+I (1071) LVGL: Starting LVGL task
+I (1081) StackChanAvatarDisplay: Create boot logo label
+I (1121) M5Stack-StackChan-Board: Init Camera
+I (1121) gc0308: Detected Camera sensor PID=0x9b
+I (1201) StackChanCamera: Camera init success
+I (1211) Backlight: Set brightness to 75
+[943993268982] [info] [HAL-MCP] init
+[943993268982] [info] [HAL-MCP] add robot.get_head_angles tool
+I (1211) MCP: Add tool: self.robot.get_head_angles
+[943993268991] [info] [HAL-MCP] add robot.set_head_angles tool
+I (1221) MCP: Add tool: self.robot.set_head_angles
+[943993269002] [info] [HAL-MCP] add robot.set_led_color tool
+I (1231) MCP: Add tool: self.robot.set_led_color
+[943993269013] [info] [HAL-MCP] add robot.create_reminder tool
+I (1241) MCP: Add tool: self.robot.create_reminder
+[943993269024] [info] [HAL-MCP] add robot.get_reminders tool
+I (1251) MCP: Add tool: self.robot.get_reminders
+[943993269034] [info] [HAL-MCP] add robot.stop_reminder tool
+I (1261) MCP: Add tool: self.robot.stop_reminder
+[943993269045] [info] [HAL-HeadTouch] init
+I (1271) Si12T: Si12T initialized, version: 0.0.2
+I (1291) Si12T: Si12T setup done
+[943993269065] [943993269065] [[infoinfo] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1491) PY32IOExpander: Version: 0x41
+[943993269717] [info] [HAL-IOE] init done
+[943993269717] [info] [HAL-RTC] init
+[943993269718] [info] [HAL-RTC] PCF8563 init ok
+[943993269720] [info] [HAL-RTC] load timezone from nvs: GMT0
+[943993270000] [info] [HAL-RTC] rtc synced to system (UTC): 2000-00-00 20:21:10
+[943993270007] [info] [HAL-IMU] init
+[943993270308] [info] [HAL-IMU] BMI270 init ok
+[943993270309] [info] [HAL-Servo] init
+I (2261) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[943993270317] [info] [ScsServo] id: 1 get zero pos: 446 from settings
+[943993270325] [info] [ScsServo] id: 2 get zero pos: 652 from settings
+[943993270333] [info] [HAL] lvgl init
+[943993270334] [info] [HAL] create lvgl touchpad indev
+
+ _____ _____ _____ _____ _____ _____ _____ _____
+|     |     |     |   | |     |  _  |  |  |   __|
+| | | |  |  |  |  | | | |   --|     |    -|   __|
+|_|_|_|_____|_____|_|___|_____|__|__|__|__|_____|
+
+- @author Forairaaaaa
+- @version 2.3.3
+- @build at 14:58:25 Aug 21 2026
+
+[943993270374] [info] [NFC.LAB] on create (NFC-only auto-open)
+[943993270374] [info] [NFC.LAB] on open
+I (2331) nfc-debug-service: NFC_SERVICE event=start queue_depth=8 stack=8192 priority=5
+I (2331) nfc-debug-service: NFC_INIT event=begin bus=0x3c301914 address=0x50 frequency_hz=400000
+[943993270424] [info] [NFC.LAB] state=STARTING generation=1 errors=0
+I (2391) st25r3916: ST25R3916 detected: type=0x05 rev=0x02
+E (2401) st25r3916: NFC_I2C_FAIL txn=65 failed=1 op=READ_A(1) key=0x02 err=ESP_ERR_INVALID_STATE(0x103) elapsed_us=195
+E (2401) st25r3916: configure_nfca: field_on failed: ESP_ERR_INVALID_STATE
+E (2401) nfc-debug-service: NFC_INIT event=failed err=ESP_ERR_INVALID_STATE(0x103) elapsed_us=59057 txns=65 failed=1 last_op=1 last_key=0x02
+[943993270494] [info] [NFC.LAB] state=TRANSPORT ERROR generation=2 errors=1
+I (10681) SystemInfo: free sram: 200375 minimal sram: 199639

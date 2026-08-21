@@ -13,8 +13,14 @@ RelatedFiles:
         Documented M5 initialization and Space-B diagnostics
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/README.md
+      Note: Exclusive-owner serial capture and record-prefix runbook
     - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp
-      Note: UI-0 serialized NFC worker and immutable snapshot implementation (commit 50d7c151)
+      Note: |-
+        UI-0 serialized NFC worker and immutable snapshot implementation (commit 50d7c151)
+        Command, initialization, UID, no-tag, sample, and verification serial summaries
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c
+      Note: Per-transaction structured NFC_I2C_FAIL serial evidence
     - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/flash.sh
       Note: NFC-only physical deployment workflow (commit 51efbe4f)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
@@ -23,6 +29,8 @@ RelatedFiles:
       Note: Authoritative initialization implementation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
       Note: Authoritative NFC-A configuration and request sequence
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/01-nfc-lab-structured-serial-runtime.log
+      Note: Normalized complete hardware boot and NFC initialization capture
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -31,6 +39,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1949,3 +1958,121 @@ The resulting guide teaches a new engineer how to separate target NACKs, host-co
 - reMarkable destination: `/ai/2026/08/21/ESP-60-M5STACKCHAN-NFC`.
 - Dry-run log: `/tmp/esp60-i2c-guide-remarkable-dry-run.log`.
 - Upload log: `/tmp/esp60-i2c-guide-remarkable-upload.log`.
+
+---
+
+## Step 24: Add structured serial diagnostics and verify them on hardware
+
+The UI counters made failures visible on the device, but remote debugging still depended on photographs and manually transcribed values. I added machine-greppable serial records at the two layers that know the necessary context: the C transport records exact failed I2C transactions, and the C++ service correlates them with initialization, user commands, polling results, long-running diagnostics, and cumulative counters.
+
+The implementation was committed after a clean ESP-IDF 5.5.4 build, then app-flashed to the CoreS3. A 20-second exclusive-owner capture rebooted the board and recorded a complete initialization attempt. The new logger immediately caught another pre-REQA failure: transaction 65, `READ_A`, register `0x02`, `ESP_ERR_INVALID_STATE`, 195 microseconds. The service correlated that low-level event with failed NFC-A initialization without requiring the UI to be photographed.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Add logging over serial as well so you can debug on your side as well, I guess. commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Add serial observability to the NFC LAB firmware, preserve enough transport and service context to diagnose failures from captured logs, commit buildable checkpoints, deploy and validate it, and document the work in the ticket diary.
+
+**Inferred user intent:** Make future hardware experiments remotely diagnosable from authoritative text records rather than relying only on the 320×240 screen.
+
+**Commit (code):** `9c9fa2e3168d2486923c6bab2b03d34c5afd3107` — "ESP-60: add structured NFC serial diagnostics"
+
+### What I did
+
+- Added the ticket task `vmwz` and completed it after build and hardware validation.
+- Added `NFC_I2C_FAIL` records for every failed low-level transaction.
+- Included transaction sequence, cumulative failure count, operation name/number, register or command key, ESP-IDF name/numeric code, and elapsed microseconds.
+- Added `NFC_SERVICE` worker lifecycle records.
+- Added `NFC_INIT` begin, ready, and failure records with bus, address, frequency, identity, capacitance, transaction totals, and last transport context.
+- Added `NFC_CONTROL` records for AUTO state and counter clearing.
+- Added `NFC_READ` records for UID/ATQA/SAK/type and rate-limited no-tag summaries.
+- Added `NFC_COMMAND` completion records with per-command transport-failure deltas.
+- Added an explicit `hidden_transport_failures` error when a command-level result does not expose low-level failures that happened during its operation or diagnostics.
+- Added `NFC_SAMPLE` and `NFC_VERIFY` begin/completion records.
+- Changed no-response `NFC_RF` detail to DEBUG while keeping actual RF/IRQ/error events at INFO.
+- Documented serial capture, exclusive port ownership, prefixes, and `rg` filtering in `0116-m5stackchan-nfc-debug-ui/README.md`.
+- Prepared the pinned StackChan overlay and built it with ESP-IDF 5.5.4.
+- Committed the buildable implementation before hardware deployment.
+- Verified `/dev/ttyACM0` had no holder, then used `./scripts/flash.sh app`.
+- Verified the 3,194,032-byte application image and flash hash.
+- Captured 20 seconds at 115200 baud with one pyserial owner.
+- Preserved both a byte-exact compressed capture and an ANSI/line-ending-normalized readable log under `sources/hardware/`.
+
+### Why
+
+- The UI snapshot preserves current state but not a complete chronological failure stream.
+- Every failed transaction must remain visible even after retries are added.
+- Command results and transport results can differ because diagnostics perform additional transactions and some helper paths intentionally collapse failures.
+- Rate-limiting ordinary no-tag summaries keeps AUTO mode readable without suppressing transport failures.
+
+### What worked
+
+- `git diff --check` passed before the code commit.
+- The pinned overlay composed successfully from StackChan commit `1b5765599fba8aaad1811d9a79358ccc7051f5f3`.
+- ESP-IDF 5.5.4 compiled and linked both modified translation units without warnings or errors.
+- `stack-chan.bin` measured `0x30bcb0` bytes with 38% free in the smallest application partition.
+- App-only flashing completed with hash verification.
+- Opening `/dev/ttyACM0` produced a full boot capture, including the new logger.
+- The capture contained:
+  `NFC_I2C_FAIL txn=65 failed=1 op=READ_A(1) key=0x02 err=ESP_ERR_INVALID_STATE(0x103) elapsed_us=195`
+- The service correlation contained:
+  `NFC_INIT event=failed err=ESP_ERR_INVALID_STATE(0x103) elapsed_us=59057 txns=65 failed=1 last_op=1 last_key=0x02`
+- NFC.LAB transitioned from `STARTING` to `TRANSPORT ERROR` consistently with the serial evidence.
+
+### What didn't work
+
+- NFC initialization did not complete on this boot. The failure occurred while `st25r3916_field_on()` performed the read half of `clear_bits(ST25R_REG_OPERATION_CONTROL, ...)` during `st25r3916_configure_nfca()`.
+- The failed register was `0x02`, not the previously observed `0x0A`. This confirms the intermittent fault can move among ordinary pre-REQA transactions.
+- Opening pyserial caused `rst:0x15 (USB_UART_CHIP_RESET)`. This was useful for obtaining a complete boot, but future passive captures must account for attachment-induced reset behavior.
+- Because initialization failed, this capture could not validate `NFC_READ result=tag` or rate-limited no-tag output on hardware. Those paths compiled, but remain pending runtime observation after an initialization attempt succeeds.
+
+### What I learned
+
+- Serial logging now proves that the transport defect is not confined to auxiliary register `0x0A`; a normal operation-control read can fail in the same way.
+- This boot failed after 64 successful transactions, reinforcing that address detection and early initialization success do not imply a stable transport.
+- A transaction-level record plus a service-level record is enough to reconstruct both the immediate operation and its high-level consequence.
+- The boot reports UART console pins GPIO44/GPIO43 while the logs are reachable through `/dev/ttyACM0`; console routing should be confirmed before changing sdkconfig defaults.
+- AUTO remained off during the capture: no background `NFC_READ` records appeared after failed initialization.
+
+### What was tricky to build
+
+- Logging every poll at INFO would make a 333 ms AUTO loop obscure useful events. I kept all transport failures at ERROR, actual RF activity at INFO, ordinary no-response RF detail at DEBUG, and no-tag summaries at INFO only for the first and every tenth result.
+- A high-level command may return `ESP_ERR_NOT_FOUND` even if a diagnostic transaction fails afterward. The implementation snapshots `failed_before`, refreshes transport counters, and reports `delta_failed` plus a separate hidden-failure error.
+- The logger must not perform I2C reads itself. Every serial record is derived from values already held by the transport or immutable service snapshot, so logging cannot change bus timing by adding NFC transactions.
+- The serial device is single-owner. Flashing and capture were run sequentially after checking `fuser`, not in parallel.
+
+### What warrants a second pair of eyes
+
+- Confirm that INFO/DEBUG rate choices provide enough RF detail without changing timing materially under AUTO mode.
+- Review ESP-IDF log formatting and stack use for the longest `NFC_COMMAND` record on the 8 KiB worker stack.
+- Confirm whether StackChan should explicitly select USB Serial/JTAG console instead of the current UART-default configuration even though `/dev/ttyACM0` receives the output.
+- Review the `hidden_transport_failures` condition when future retries make command results succeed after one or more failed attempts.
+
+### What should be done in the future
+
+- Capture a successful initialization followed by no-tag, READ ONCE, and known-good-tag interactions.
+- Add the fixed-size first-error/event ring described in Phase D0 so UI-3 can display the same history available on serial.
+- Add observable one-second request retries while preserving every `NFC_I2C_FAIL` record and command failure delta.
+- Use serial records and a synchronized logic-analyzer capture to correlate register `0x02` or `0x0A` failures with SDA/SCL ACK state.
+
+### Code review instructions
+
+- Start at `st25r3916.c::record_transport()` and verify that it logs only from already-completed transactions.
+- Review `nfc_debug_service.cpp::execute()` after `record_result()` for result classification, UID formatting, no-tag rate limiting, and hidden failure reporting.
+- Review initialization, sample, and verification lifecycle records separately.
+- Build with:
+  `STACKCHAN_SOURCE=/tmp/nfc-research/repos/StackChan ./scripts/prepare.sh && source ~/esp/esp-idf-5.5.4/export.sh && ./scripts/build.sh`
+- Capture with the exclusive-owner procedure in `0116-m5stackchan-nfc-debug-ui/README.md`.
+- Filter a capture with:
+  `rg 'NFC_(SERVICE|INIT|I2C_FAIL|READ|COMMAND|RF|SAMPLE|VERIFY|CONTROL)' <log>`.
+
+### Technical details
+
+- Application image: 3,194,032 bytes (`0x30bcb0`); 38% app-partition space free.
+- Build log: `/tmp/esp60-serial-logging-build.log`.
+- App-flash log: `/tmp/esp60-serial-logging-app-flash.log`.
+- Runtime capture: `/tmp/esp60-structured-serial-runtime.log`.
+- Preserved readable capture: `sources/hardware/01-nfc-lab-structured-serial-runtime.log`.
+- Preserved exact capture: `sources/hardware/01-nfc-lab-structured-serial-runtime.log.gz`.
+- Failure: transaction 65, first failure, Space-A read, key/register `0x02`, `ESP_ERR_INVALID_STATE`, 195 microseconds.
+- Service failure elapsed time: 59,057 microseconds.
