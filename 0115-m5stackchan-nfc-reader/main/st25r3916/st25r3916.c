@@ -136,6 +136,29 @@ static esp_err_t set_tx_bytes(uint32_t bytes, uint8_t bits)
     return wr8(ST25R_REG_NUM_TX_BYTES_2, (uint8_t)((value >> 8) & 0xFF));
 }
 
+/* Configure the frame-waiting/no-response timer exactly like M5Unit-NFC's
+ * write_fwt_timer(). NRT is ceil(timeout / step), where the step is selected
+ * by TIMER_AND_EMV_CONTROL.nrt_step: 64/fc or 4096/fc, fc=13.56 MHz. */
+static esp_err_t set_frame_wait_time(uint32_t timeout_ms)
+{
+    uint8_t timer_ctrl = 0;
+    esp_err_t e = rd8(ST25R_REG_TIMER_AND_EMV_CONTROL, &timer_ctrl);
+    if (e != ESP_OK) return e;
+
+    const uint64_t step_num = (timer_ctrl & ST25R_TIMER_NRT_STEP)
+        ? (4096ULL * 1000000ULL)
+        : (64ULL * 1000000ULL);
+    const uint64_t timeout_us = (uint64_t)timeout_ms * 1000ULL;
+    uint64_t nrt = (timeout_us * 13560000ULL + step_num - 1ULL) / step_num;
+    if (nrt < 1ULL) nrt = 1ULL;
+    if (nrt > 0xFFFFULL) nrt = 0xFFFFULL;
+
+    /* ST25R3916 16-bit register writes are big-endian: reg 0x10 is MSB. */
+    e = wr8(ST25R_REG_NO_RESPONSE_TIMER_1, (uint8_t)(nrt >> 8));
+    if (e != ESP_OK) return e;
+    return wr8(ST25R_REG_NO_RESPONSE_TIMER_2, (uint8_t)nrt);
+}
+
 /* Wait up to timeout_ms for any of the wanted IRQ bits. Returns the IRQ word
  * (with only the matched bits), or 0 on timeout. Phase-1 polls the register. */
 static uint32_t wait_irq(uint32_t want_mask, uint32_t timeout_ms)
@@ -332,7 +355,7 @@ void st25r3916_dump_all(void)
 void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
-    uint8_t ant1=0, ant2=0, txd=0;
+    uint8_t ant1=0, ant2=0, txd=0, nrt1=0, nrt2=0, temv=0;
     rd8(ST25R_REG_OPERATION_CONTROL, &opc);
     rd8(ST25R_REG_MODE_DEFINITION, &mode);
     rd8(ST25R_REG_ISO14443A_SETTINGS, &iso);
@@ -342,13 +365,16 @@ void st25r3916_debug_dump(void)
     rd8(0x26, &ant1);
     rd8(0x27, &ant2);
     rd8(ST25R_REG_TX_DRIVER, &txd);
+    rd8(ST25R_REG_NO_RESPONSE_TIMER_1, &nrt1);
+    rd8(ST25R_REG_NO_RESPONSE_TIMER_2, &nrt2);
+    rd8(ST25R_REG_TIMER_AND_EMV_CONTROL, &temv);
     rd8(0x2D /* REG_RSSI_DISPLAY */, &rssi);
     uint32_t irq = read_main_irq();
     uint16_t fb = fifo_bytes();
     ESP_LOGI(TAG, "regs: OPC=%02X MODE=%02X ISO=%02X AUX=%02X RX1=%02X RX2=%02X RSSI=%02X",
              opc, mode, iso, aux, rxc1, rxc2, rssi);
-    ESP_LOGI(TAG, "      ANT1=%02X ANT2=%02X TXD=%02X MAIN_IRQ=%06X FIFO_bytes=%u",
-             ant1, ant2, txd, (unsigned)irq, (unsigned)fb);
+    ESP_LOGI(TAG, "      ANT1=%02X ANT2=%02X TXD=%02X NRT=%02X%02X TEMV=%02X MAIN_IRQ=%06X FIFO_bytes=%u",
+             ant1, ant2, txd, nrt1, nrt2, temv, (unsigned)irq, (unsigned)fb);
 }
 
 esp_err_t st25r3916_configure_nfca(void)
@@ -390,12 +416,16 @@ esp_err_t st25r3916_configure_nfca(void)
 static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
 {
     *atqa = 0;
-    wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
-    set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* no_crc_rx */
+    esp_err_t e = set_frame_wait_time(4); /* M5 TIMEOUT_REQ_WUP */
+    if (e != ESP_OK) return e;
+    e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
+    if (e != ESP_OK) return e;
+    e = set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* no_crc_rx */
+    if (e != ESP_OK) return e;
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
 
-    esp_err_t e = direct_cmd(wake_cmd);
+    e = direct_cmd(wake_cmd);
     if (e != ESP_OK) return e;
 
     uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_RXS | ST25R_IRQ_COL, 50);
@@ -443,7 +473,10 @@ static esp_err_t nfca_anticoll_select(uint8_t sel, uint8_t *uid_out, uint8_t *sa
 {
     /* ANTICOLLISION: SEL, NVB=0x20 (request full UID, all bits). */
     uint8_t frame[7] = { sel, 0x20 };
-    wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
+    esp_err_t e = set_frame_wait_time(8); /* M5 TIMEOUT_ANTICOLL */
+    if (e != ESP_OK) return e;
+    e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
+    if (e != ESP_OK) return e;
     clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* re-enable CRC for select */
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);

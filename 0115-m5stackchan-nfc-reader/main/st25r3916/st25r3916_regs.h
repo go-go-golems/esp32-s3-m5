@@ -31,6 +31,9 @@
 #define ST25R_REG_RECEIVER_CONFIGURATION_2      0x0C
 #define ST25R_REG_RECEIVER_CONFIGURATION_3      0x0D
 #define ST25R_REG_RECEIVER_CONFIGURATION_4      0x0E
+#define ST25R_REG_NO_RESPONSE_TIMER_1           0x10
+#define ST25R_REG_NO_RESPONSE_TIMER_2           0x11
+#define ST25R_REG_TIMER_AND_EMV_CONTROL         0x12
 #define ST25R_REG_MASK_MAIN_INTERRUPT           0x16
 #define ST25R_REG_MASK_TIMER_AND_NFC_INTERRUPT  0x17
 #define ST25R_REG_MASK_ERROR_AND_WAKEUP_IRQ     0x18
@@ -67,6 +70,9 @@
 #define ST25R_OPCTRL_RX_EN                     0x40   /* Enables Rx operation */
 #define ST25R_OPCTRL_EN                        0x80   /* Enables oscillator + regulator (Ready mode) */
 #define ST25R_OPCTRL_WU                        0x04   /* Enables Wake-up mode */
+
+/* ---- REG_TIMER_AND_EMV_CONTROL bits (0x12) ---- */
+#define ST25R_TIMER_NRT_STEP                   0x01   /* 0: 64/fc, 1: 4096/fc */
 
 /* ---- REG_MAIN_INTERRUPT (0x1A) bit values (low byte of the 24-bit IRQ word) ---- */
 #define ST25R_IRQ_OSC                          0x80   /* oscillator frequency stable */
