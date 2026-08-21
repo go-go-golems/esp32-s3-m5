@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: MIT
  */
 #include "app_nfc_debug.h"
+#include "view/nfc_debug_view.h"
 
 #include <assets/assets.h>
 #include <esp_err.h>
 #include <hal/board/hal_bridge.h>
+#include <hal/hal.h>
 #include <mooncake_log.h>
 
 AppNfcDebug::AppNfcDebug()
@@ -17,6 +19,8 @@ AppNfcDebug::AppNfcDebug()
     static uint32_t theme_color = 0x6D4AFF;
     setAppInfo().userData = static_cast<void*>(&theme_color);
 }
+
+AppNfcDebug::~AppNfcDebug() = default;
 
 void AppNfcDebug::onCreate()
 {
@@ -31,6 +35,10 @@ void AppNfcDebug::onOpen()
     if (result != ESP_OK) {
         mclog::tagError(getAppInfo().name, "service start failed: {}", esp_err_to_name(result));
     }
+
+    LvglLockGuard lock;
+    _view = std::make_unique<nfc_debug::view::NfcDebugView>(_service, [this]() { close(); });
+    if (result != ESP_OK) _view->show_start_error(result);
 }
 
 void AppNfcDebug::onRunning()
@@ -41,10 +49,16 @@ void AppNfcDebug::onRunning()
     mclog::tagInfo(getAppInfo().name, "state={} generation={} errors={}",
                    nfc_debug::reader_state_name(snapshot.reader_state),
                    snapshot.generation, snapshot.counters.failed);
+
+    LvglLockGuard lock;
+    if (_view) _view->update(snapshot);
 }
 
 void AppNfcDebug::onClose()
 {
     mclog::tagInfo(getAppInfo().name, "on close");
     _service.stop();
+
+    LvglLockGuard lock;
+    _view.reset();
 }

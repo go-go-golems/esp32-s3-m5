@@ -24,4 +24,7 @@ cd "$FIRMWARE_DIR"
 if [[ ! -d xiaozhi-esp32 ]]; then
     python3 ./fetch_repos.py
 fi
+# Upstream collects app sources with GLOB_RECURSE but not CONFIGURE_DEPENDS.
+# Reconfigure so newly added overlay source files enter the generated build graph.
+idf.py reconfigure
 idf.py build
