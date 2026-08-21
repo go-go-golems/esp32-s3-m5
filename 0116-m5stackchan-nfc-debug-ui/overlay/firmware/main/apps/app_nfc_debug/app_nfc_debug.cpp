@@ -5,7 +5,6 @@
 #include "app_nfc_debug.h"
 #include "view/nfc_debug_view.h"
 
-#include <assets/assets.h>
 #include <esp_err.h>
 #include <hal/board/hal_bridge.h>
 #include <hal/hal.h>
@@ -14,8 +13,6 @@
 AppNfcDebug::AppNfcDebug()
 {
     setAppInfo().name = "NFC.LAB";
-    static auto icon = assets::get_image("icon_setup.bin");
-    setAppInfo().icon = static_cast<void*>(&icon);
     static uint32_t theme_color = 0x6D4AFF;
     setAppInfo().userData = static_cast<void*>(&theme_color);
 }
@@ -24,7 +21,8 @@ AppNfcDebug::~AppNfcDebug() = default;
 
 void AppNfcDebug::onCreate()
 {
-    mclog::tagInfo(getAppInfo().name, "on create");
+    mclog::tagInfo(getAppInfo().name, "on create (NFC-only auto-open)");
+    open();
 }
 
 void AppNfcDebug::onOpen()
@@ -37,7 +35,7 @@ void AppNfcDebug::onOpen()
     }
 
     LvglLockGuard lock;
-    _view = std::make_unique<nfc_debug::view::NfcDebugView>(_service, [this]() { close(); });
+    _view = std::make_unique<nfc_debug::view::NfcDebugView>(_service, []() {});
     if (result != ESP_OK) _view->show_start_error(result);
 }
 

@@ -159,13 +159,6 @@ void NfcDebugView::create_frame()
     _error_count = make_label(_header, 154, 6, 91, 18, &lv_font_montserrat_14, COLOR_MUTED);
     lv_label_set_text(_error_count, "err:000");
 
-    lv_obj_t* close = make_button(_header, 282, 0, 38, 28, COLOR_PANEL);
-    lv_obj_set_style_border_width(close, 0, 0);
-    lv_obj_add_event_cb(close, close_event, LV_EVENT_CLICKED, this);
-    lv_obj_t* close_label = make_label(close, 0, 5, 38, 18, &lv_font_montserrat_16,
-                                       COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-    lv_label_set_text(close_label, "X");
-
     _content = lv_obj_create(_root);
     lv_obj_set_pos(_content, 0, 28);
     lv_obj_set_size(_content, 320, 168);
