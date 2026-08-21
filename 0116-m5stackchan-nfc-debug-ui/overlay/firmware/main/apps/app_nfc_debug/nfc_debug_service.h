@@ -57,19 +57,42 @@ enum class ProtocolStage : uint8_t {
 };
 
 struct TransportCounters {
-    uint32_t commands = 0;
+    uint32_t transactions = 0;
     uint32_t succeeded = 0;
     uint32_t failed = 0;
-    uint32_t no_tag = 0;
     uint32_t timeouts = 0;
     uint32_t invalid_state = 0;
     uint32_t other_errors = 0;
+    uint32_t mismatches = 0;
 };
 
 struct LastError {
     esp_err_t code = ESP_OK;
     CommandType command = CommandType::Probe;
+    uint8_t transport_operation = 0;
+    uint8_t transport_key = 0;
     uint32_t elapsed_us = 0;
+};
+
+struct RfDiagnostics {
+    uint32_t main_irq = 0;
+    uint8_t timer_irq = 0;
+    uint8_t error_irq = 0;
+    uint8_t collision = 0;
+    uint16_t fifo_bytes = 0;
+    uint8_t capacitance = 0;
+    uint8_t rssi = 0;
+    uint16_t nrt = 0;
+    uint8_t operation_control = 0;
+};
+
+struct RegisterCheck {
+    std::array<char, 12> name{};
+    bool space_b = false;
+    uint8_t address = 0;
+    uint8_t expected = 0;
+    uint8_t actual = 0;
+    esp_err_t error = ESP_OK;
 };
 
 struct Snapshot {
@@ -92,6 +115,16 @@ struct Snapshot {
 
     TransportCounters counters{};
     LastError last_error{};
+    RfDiagnostics rf{};
+    std::array<RegisterCheck, 12> registers{};
+    uint8_t register_count = 0;
+    uint32_t commands_executed = 0;
+    uint32_t no_tag_count = 0;
+    bool sample_active = false;
+    uint16_t sample_attempts = 0;
+    uint16_t sample_events = 0;
+    bool verification_active = false;
+    uint8_t verification_passes = 0;
 };
 
 class Service {
@@ -113,6 +146,9 @@ private:
     void task_loop();
     void initialize_driver();
     void execute(const Command& command);
+    void run_sample_step();
+    void run_verification_step();
+    void refresh_driver_snapshot(bool read_rf);
     void publish();
     void record_result(const Command& command, esp_err_t result, uint32_t elapsed_us);
 
@@ -121,6 +157,10 @@ private:
     QueueHandle_t _snapshots = nullptr;
     TaskHandle_t _task = nullptr;
     Snapshot _snapshot{};
+    int64_t _sample_deadline_us = 0;
+    int64_t _sample_next_us = 0;
+    bool _sample_wupa = false;
+    uint8_t _verification_remaining = 0;
 };
 
 const char* reader_state_name(ReaderState state);

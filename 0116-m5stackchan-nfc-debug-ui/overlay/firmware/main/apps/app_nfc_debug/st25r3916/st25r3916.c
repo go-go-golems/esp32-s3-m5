@@ -16,6 +16,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include <stdio.h>
 #include <string.h>
 
 static const char *TAG = "st25r3916";
@@ -25,28 +26,72 @@ static const char *TAG = "st25r3916";
 #define I2C_TICKS        pdMS_TO_TICKS(I2C_TIMEOUT_MS)
 
 static i2c_master_dev_handle_t s_dev = NULL;
+static uint32_t s_last_main_irq = 0;
 static uint8_t s_last_timer_irq = 0;
 static uint8_t s_last_error_irq = 0;
+static uint8_t s_last_collision = 0;
+static uint16_t s_last_fifo_bytes = 0;
+static uint8_t s_last_capacitance = 0;
+static st25r3916_transport_stats_t s_transport_stats = {0};
 
 /* ------------------------------------------------------------------ */
 /* Low-level register access (mirrors PY32IOExpander_Class style)     */
 /* ------------------------------------------------------------------ */
 
+static void record_transport(st25r3916_transport_operation_t operation, uint8_t key,
+                             esp_err_t error, int64_t started_us)
+{
+    s_transport_stats.total++;
+    if (error == ESP_OK) {
+        s_transport_stats.succeeded++;
+        return;
+    }
+
+    s_transport_stats.failed++;
+    if (error == ESP_ERR_TIMEOUT) s_transport_stats.timeouts++;
+    else if (error == ESP_ERR_INVALID_STATE) s_transport_stats.invalid_state++;
+    else s_transport_stats.other_errors++;
+    s_transport_stats.last_operation = operation;
+    s_transport_stats.last_key = key;
+    s_transport_stats.last_error = error;
+    s_transport_stats.last_elapsed_us = (uint32_t)(esp_timer_get_time() - started_us);
+}
+
+static esp_err_t transport_write(st25r3916_transport_operation_t operation, uint8_t key,
+                                 const uint8_t *data, size_t len)
+{
+    int64_t started = esp_timer_get_time();
+    esp_err_t error = i2c_master_transmit(s_dev, data, len, I2C_TICKS);
+    record_transport(operation, key, error, started);
+    return error;
+}
+
+static esp_err_t transport_read(st25r3916_transport_operation_t operation, uint8_t key,
+                                const uint8_t *command, size_t command_len,
+                                uint8_t *data, size_t data_len)
+{
+    int64_t started = esp_timer_get_time();
+    esp_err_t error = i2c_master_transmit_receive(
+        s_dev, command, command_len, data, data_len, I2C_TICKS);
+    record_transport(operation, key, error, started);
+    return error;
+}
+
 static esp_err_t rd8(uint8_t reg, uint8_t *out)
 {
     uint8_t cmd = (reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    return i2c_master_transmit_receive(s_dev, &cmd, 1, out, 1, I2C_TICKS);
+    return transport_read(ST25R_TRANSPORT_READ_A, reg, &cmd, 1, out, 1);
 }
 
 static esp_err_t wr8(uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = { (uint8_t)((reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_WRITE_REGISTER), val };
-    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    return transport_write(ST25R_TRANSPORT_WRITE_A, reg, buf, sizeof(buf));
 }
 
 static esp_err_t direct_cmd(uint8_t c)
 {
-    return i2c_master_transmit(s_dev, &c, 1, I2C_TICKS);
+    return transport_write(ST25R_TRANSPORT_DIRECT_COMMAND, c, &c, 1);
 }
 
 static esp_err_t direct_cmd_data(uint8_t c, const uint8_t *data, size_t len)
@@ -54,7 +99,7 @@ static esp_err_t direct_cmd_data(uint8_t c, const uint8_t *data, size_t len)
     if (len > 2) return ESP_ERR_INVALID_SIZE;
     uint8_t buf[3] = {c, 0, 0};
     if (len) memcpy(buf + 1, data, len);
-    return i2c_master_transmit(s_dev, buf, len + 1, I2C_TICKS);
+    return transport_write(ST25R_TRANSPORT_DIRECT_COMMAND, c, buf, len + 1);
 }
 
 /* Space-B I2C write: 0xFB prefix, Space-B register address, value. */
@@ -62,14 +107,14 @@ static esp_err_t wr8b(uint8_t reg, uint8_t val)
 {
     uint8_t buf[3] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
                       (uint8_t)(reg & ST25R_OP_TRAILER_MASK), val};
-    return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
+    return transport_write(ST25R_TRANSPORT_WRITE_B, reg, buf, sizeof(buf));
 }
 
 static esp_err_t rd8b(uint8_t reg, uint8_t *out)
 {
     uint8_t cmd[2] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
                       (uint8_t)((reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER)};
-    return i2c_master_transmit_receive(s_dev, cmd, sizeof(cmd), out, 1, I2C_TICKS);
+    return transport_read(ST25R_TRANSPORT_READ_B, reg, cmd, sizeof(cmd), out, 1);
 }
 
 static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
@@ -101,7 +146,8 @@ static esp_err_t fifo_write(const uint8_t *data, size_t len)
     if (len > ST25R_MAX_FIFO_DEPTH) return ESP_ERR_INVALID_SIZE;
     buf[0] = ST25R_OP_LOAD_FIFO;
     memcpy(buf + 1, data, len);
-    return i2c_master_transmit(s_dev, buf, 1 + len, I2C_TICKS);
+    return transport_write(ST25R_TRANSPORT_FIFO_WRITE, ST25R_OP_LOAD_FIFO,
+                           buf, 1 + len);
 }
 
 /* Read N bytes from the FIFO using the dedicated OP_READ_FIFO command (0x9F).
@@ -113,7 +159,7 @@ static esp_err_t fifo_read(uint8_t *data, size_t want, size_t *got)
     if (n == 0) return ESP_OK;
     if (n > want) n = (uint16_t)want;
     uint8_t cmd = 0x9F;  /* OP_READ_FIFO */
-    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, n, I2C_TICKS);
+    esp_err_t e = transport_read(ST25R_TRANSPORT_FIFO_READ, cmd, &cmd, 1, data, n);
     if (e == ESP_OK && got) *got = n;
     return e;
 }
@@ -127,7 +173,8 @@ static uint16_t fifo_bytes(void)
     uint8_t status1 = 0, status2 = 0;
     if (rd8(ST25R_REG_FIFO_STATUS_1, &status1) != ESP_OK) return 0;
     if (rd8(ST25R_REG_FIFO_STATUS_2, &status2) != ESP_OK) return 0;
-    return (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
+    s_last_fifo_bytes = (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
+    return s_last_fifo_bytes;
 }
 
 /* Preserve the error IRQ before reading Main: per M5Unit-NFC/ST25R3916,
@@ -140,9 +187,11 @@ static uint32_t read_main_irq(void)
 
     uint8_t cmd = (ST25R_REG_MAIN_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
     uint8_t buf[2] = {0, 0};
-    if (i2c_master_transmit_receive(s_dev, &cmd, 1, buf, 2, I2C_TICKS) != ESP_OK) return 0;
+    if (transport_read(ST25R_TRANSPORT_READ_A, ST25R_REG_MAIN_INTERRUPT,
+                       &cmd, 1, buf, 2) != ESP_OK) return 0;
     s_last_error_irq = error;
     s_last_timer_irq = buf[1];
+    s_last_main_irq = buf[0];
     return ((uint32_t)buf[1] << 8) | (uint32_t)buf[0];
 }
 
@@ -153,9 +202,11 @@ static esp_err_t clear_interrupts(void)
     /* Also clear error/wakeup and timer/nfc IRQ registers by reading them. */
     uint8_t cmd_a = (ST25R_REG_ERROR_AND_WAKEUP_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
     uint8_t tmp[2] = {0, 0};
-    (void)i2c_master_transmit_receive(s_dev, &cmd_a, 1, tmp, 2, I2C_TICKS);
+    (void)transport_read(ST25R_TRANSPORT_READ_A, ST25R_REG_ERROR_AND_WAKEUP_INTERRUPT,
+                         &cmd_a, 1, tmp, 2);
     uint8_t cmd_b = (ST25R_REG_TIMER_AND_NFC_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    (void)i2c_master_transmit_receive(s_dev, &cmd_b, 1, tmp, 2, I2C_TICKS);
+    (void)transport_read(ST25R_TRANSPORT_READ_A, ST25R_REG_TIMER_AND_NFC_INTERRUPT,
+                         &cmd_b, 1, tmp, 2);
     return ESP_OK;
 }
 
@@ -342,8 +393,12 @@ void st25r3916_deinit(void)
         (void)i2c_master_bus_rm_device(s_dev);
         s_dev = NULL;
     }
+    s_last_main_irq = 0;
     s_last_timer_irq = 0;
     s_last_error_irq = 0;
+    s_last_collision = 0;
+    s_last_fifo_bytes = 0;
+    s_last_capacitance = 0;
 }
 
 esp_err_t st25r3916_read_id(st25r3916_id_t *out)
@@ -355,6 +410,86 @@ esp_err_t st25r3916_read_id(st25r3916_id_t *out)
     out->type = (v >> 3) & 0x0F;
     out->revision = v & 0x07;
     return ESP_OK;
+}
+
+void st25r3916_get_transport_stats(st25r3916_transport_stats_t *out)
+{
+    if (out) *out = s_transport_stats;
+}
+
+void st25r3916_reset_transport_stats(void)
+{
+    memset(&s_transport_stats, 0, sizeof(s_transport_stats));
+    s_transport_stats.last_error = ESP_OK;
+}
+
+esp_err_t st25r3916_get_diagnostics(st25r3916_diagnostics_t *out)
+{
+    if (!out) return ESP_ERR_INVALID_ARG;
+    memset(out, 0, sizeof(*out));
+    out->main_irq = s_last_main_irq;
+    out->timer_irq = s_last_timer_irq;
+    out->error_irq = s_last_error_irq;
+    out->collision = s_last_collision;
+    out->fifo_bytes = s_last_fifo_bytes;
+    out->capacitance = s_last_capacitance;
+
+    esp_err_t first_error = ESP_OK;
+    uint8_t nrt1 = 0, nrt2 = 0;
+    esp_err_t e = rd8(ST25R_REG_OPERATION_CONTROL, &out->operation_control);
+    if (e != ESP_OK && first_error == ESP_OK) first_error = e;
+    e = rd8(0x2D /* REG_RSSI_DISPLAY */, &out->rssi);
+    if (e != ESP_OK && first_error == ESP_OK) first_error = e;
+    e = rd8(ST25R_REG_NO_RESPONSE_TIMER_1, &nrt1);
+    if (e != ESP_OK && first_error == ESP_OK) first_error = e;
+    e = rd8(ST25R_REG_NO_RESPONSE_TIMER_2, &nrt2);
+    if (e != ESP_OK && first_error == ESP_OK) first_error = e;
+    out->nrt = (uint16_t)(((uint16_t)nrt1 << 8) | nrt2);
+    return first_error;
+}
+
+esp_err_t st25r3916_verify_configuration(st25r3916_register_check_t *checks,
+                                         size_t capacity, size_t *count)
+{
+    typedef struct {
+        const char *name;
+        bool space_b;
+        uint8_t address;
+        uint8_t expected;
+    } expected_t;
+    static const expected_t expected[] = {
+        {"IO1", false, ST25R_REG_IO_CONFIGURATION_1, 0x17},
+        {"IO2", false, ST25R_REG_IO_CONFIGURATION_2, 0xA4},
+        {"MODE", false, ST25R_REG_MODE_DEFINITION, 0x09},
+        {"RX1", false, ST25R_REG_RECEIVER_CONFIGURATION_1, 0x08},
+        {"RX2", false, ST25R_REG_RECEIVER_CONFIGURATION_2, 0x2D},
+        {"RX3", false, ST25R_REG_RECEIVER_CONFIGURATION_3, 0xD8},
+        {"RX4", false, ST25R_REG_RECEIVER_CONFIGURATION_4, 0x22},
+        {"ANT1", false, 0x26, 0x82},
+        {"ANT2", false, 0x27, 0x82},
+        {"TXD", false, ST25R_REG_TX_DRIVER, 0xD0},
+        {"CORR1", true, ST25R_REGB_CORRELATOR_CONFIGURATION_1, 0x47},
+        {"EMD", true, ST25R_REGB_EMD_SUPPRESSION_CONFIGURATION, 0x40},
+    };
+
+    if (!checks || !count || capacity < (sizeof(expected) / sizeof(expected[0]))) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    *count = sizeof(expected) / sizeof(expected[0]);
+    esp_err_t first_error = ESP_OK;
+    for (size_t i = 0; i < *count; ++i) {
+        memset(&checks[i], 0, sizeof(checks[i]));
+        snprintf(checks[i].name, sizeof(checks[i].name), "%s", expected[i].name);
+        checks[i].space_b = expected[i].space_b;
+        checks[i].address = expected[i].address;
+        checks[i].expected = expected[i].expected;
+        checks[i].error = expected[i].space_b
+            ? rd8b(expected[i].address, &checks[i].actual)
+            : rd8(expected[i].address, &checks[i].actual);
+        if (checks[i].error != ESP_OK && first_error == ESP_OK) first_error = checks[i].error;
+    }
+    return first_error;
 }
 
 esp_err_t st25r3916_field_on(void)
@@ -411,6 +546,7 @@ uint8_t st25r3916_measure_capacitance(void)
     vTaskDelay(pdMS_TO_TICKS(10));
     uint8_t v = 0;
     rd8(0x25, &v);
+    s_last_capacitance = v;
     return v;
 }
 
@@ -531,6 +667,7 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
     rd8(ST25R_REG_FIFO_STATUS_1, &fifo_status1);
     rd8(ST25R_REG_FIFO_STATUS_2, &fifo_status2);
     rd8(ST25R_REG_COLLISION_DISPLAY, &collision);
+    s_last_collision = collision;
     ESP_LOGI(TAG, "%s: irq=%06X timer=%02X error=%02X fifo=%u raw=%02X/%02X coll=%02X rxs=%d rxe=%d col=%d",
              wn, (unsigned)irq, s_last_timer_irq, s_last_error_irq, (unsigned)fifo_bytes(),
              fifo_status1, fifo_status2, collision,

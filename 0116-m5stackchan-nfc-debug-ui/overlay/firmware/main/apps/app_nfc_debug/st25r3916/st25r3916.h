@@ -14,6 +14,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "driver/i2c_master.h"
 #include "esp_err.h"
 
@@ -34,6 +35,51 @@ typedef struct {
     char     type_str[24]; /* provisional type guess from SAK */
 } nfc_picc_t;
 
+typedef enum {
+    ST25R_TRANSPORT_NONE = 0,
+    ST25R_TRANSPORT_READ_A,
+    ST25R_TRANSPORT_WRITE_A,
+    ST25R_TRANSPORT_READ_B,
+    ST25R_TRANSPORT_WRITE_B,
+    ST25R_TRANSPORT_DIRECT_COMMAND,
+    ST25R_TRANSPORT_FIFO_READ,
+    ST25R_TRANSPORT_FIFO_WRITE,
+} st25r3916_transport_operation_t;
+
+typedef struct {
+    uint32_t total;
+    uint32_t succeeded;
+    uint32_t failed;
+    uint32_t timeouts;
+    uint32_t invalid_state;
+    uint32_t other_errors;
+    st25r3916_transport_operation_t last_operation;
+    uint8_t last_key;
+    esp_err_t last_error;
+    uint32_t last_elapsed_us;
+} st25r3916_transport_stats_t;
+
+typedef struct {
+    uint8_t operation_control;
+    uint8_t rssi;
+    uint16_t nrt;
+    uint32_t main_irq;
+    uint8_t timer_irq;
+    uint8_t error_irq;
+    uint8_t collision;
+    uint16_t fifo_bytes;
+    uint8_t capacitance;
+} st25r3916_diagnostics_t;
+
+typedef struct {
+    char name[12];
+    bool space_b;
+    uint8_t address;
+    uint8_t expected;
+    uint8_t actual;
+    esp_err_t error;
+} st25r3916_register_check_t;
+
 /* Add the ST25R3916 as a device on the given I2C bus and bring the chip up. */
 esp_err_t st25r3916_init(i2c_master_bus_handle_t bus);
 
@@ -42,6 +88,17 @@ void st25r3916_deinit(void);
 
 /* Read the chip identity register. */
 esp_err_t st25r3916_read_id(st25r3916_id_t *out);
+
+/* Copy low-level transport counters without performing another transaction. */
+void st25r3916_get_transport_stats(st25r3916_transport_stats_t *out);
+void st25r3916_reset_transport_stats(void);
+
+/* Capture current RF/timer state plus the last IRQ/FIFO/collision evidence. */
+esp_err_t st25r3916_get_diagnostics(st25r3916_diagnostics_t *out);
+
+/* Read the stable expected Space-A/Space-B configuration set once. */
+esp_err_t st25r3916_verify_configuration(st25r3916_register_check_t *checks,
+                                         size_t capacity, size_t *count);
 
 /* RF field control. */
 esp_err_t st25r3916_field_on(void);

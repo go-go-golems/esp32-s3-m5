@@ -5,7 +5,6 @@
 #include "nfc_debug_view.h"
 
 #include <cstdio>
-#include <cstring>
 #include <esp_err.h>
 #include <utility>
 
@@ -21,6 +20,24 @@ constexpr lv_color_t COLOR_GREEN = LV_COLOR_MAKE(0x31, 0xC4, 0x78);
 constexpr lv_color_t COLOR_AMBER = LV_COLOR_MAKE(0xF0, 0xAE, 0x42);
 constexpr lv_color_t COLOR_RED = LV_COLOR_MAKE(0xF0, 0x4E, 0x5E);
 constexpr lv_color_t COLOR_MAGENTA = LV_COLOR_MAKE(0xD8, 0x4A, 0xFF);
+constexpr uint8_t IRQ_RXS = 0x20;
+constexpr uint8_t IRQ_RXE = 0x10;
+constexpr uint8_t IRQ_COL = 0x04;
+constexpr uint8_t IRQ_NRE = 0x40;
+
+lv_obj_t* make_panel(lv_obj_t* parent)
+{
+    lv_obj_t* panel = lv_obj_create(parent);
+    lv_obj_set_pos(panel, 0, 0);
+    lv_obj_set_size(panel, 320, 168);
+    lv_obj_set_style_pad_all(panel, 0, 0);
+    lv_obj_set_style_border_width(panel, 0, 0);
+    lv_obj_set_style_radius(panel, 0, 0);
+    lv_obj_set_style_bg_color(panel, COLOR_BACKGROUND, 0);
+    lv_obj_set_style_bg_opa(panel, LV_OPA_COVER, 0);
+    lv_obj_remove_flag(panel, LV_OBJ_FLAG_SCROLLABLE);
+    return panel;
+}
 
 lv_obj_t* make_label(lv_obj_t* parent, int x, int y, int width, int height,
                      const lv_font_t* font, lv_color_t color,
@@ -51,6 +68,14 @@ lv_obj_t* make_button(lv_obj_t* parent, int x, int y, int width, int height,
     return button;
 }
 
+lv_obj_t* make_button_label(lv_obj_t* button, int width, const char* text)
+{
+    lv_obj_t* label = make_label(button, 0, 13, width, 18, &lv_font_montserrat_14,
+                                 COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
+    lv_label_set_text(label, text);
+    return label;
+}
+
 lv_color_t reader_color(ReaderState state)
 {
     switch (state) {
@@ -62,6 +87,20 @@ lv_color_t reader_color(ReaderState state)
     default: return COLOR_TEXT;
     }
 }
+
+const char* operation_name(uint8_t operation)
+{
+    switch (operation) {
+    case 1: return "READ A";
+    case 2: return "WRITE A";
+    case 3: return "READ B";
+    case 4: return "WRITE B";
+    case 5: return "DIRECT";
+    case 6: return "FIFO READ";
+    case 7: return "FIFO WRITE";
+    default: return "NONE";
+    }
+}
 }  // namespace
 
 NfcDebugView::NfcDebugView(Service& service, std::function<void()> close_callback)
@@ -69,6 +108,9 @@ NfcDebugView::NfcDebugView(Service& service, std::function<void()> close_callbac
 {
     create_frame();
     create_reader_page();
+    create_rf_page();
+    create_bus_page();
+    select_page(Page::Reader);
 }
 
 NfcDebugView::~NfcDebugView()
@@ -103,7 +145,6 @@ void NfcDebugView::create_frame()
 
     lv_obj_t* title = make_label(_header, 8, 6, 82, 18, &lv_font_montserrat_14, COLOR_TEXT);
     lv_label_set_text(title, "NFC LAB");
-
     lv_obj_t* i2c = make_label(_header, 100, 6, 30, 18, &lv_font_montserrat_14, COLOR_MUTED);
     lv_label_set_text(i2c, "I2C");
 
@@ -158,50 +199,82 @@ void NfcDebugView::create_frame()
     lv_obj_set_style_text_color(_navigation, COLOR_TEXT, checked_items);
     lv_buttonmatrix_set_button_ctrl_all(_navigation, LV_BUTTONMATRIX_CTRL_CHECKABLE);
     lv_buttonmatrix_set_one_checked(_navigation, true);
-    lv_buttonmatrix_set_button_ctrl(_navigation, 0, LV_BUTTONMATRIX_CTRL_CHECKED);
-    lv_buttonmatrix_set_button_ctrl(_navigation, 1, LV_BUTTONMATRIX_CTRL_DISABLED);
-    lv_buttonmatrix_set_button_ctrl(_navigation, 2, LV_BUTTONMATRIX_CTRL_DISABLED);
     lv_buttonmatrix_set_button_ctrl(_navigation, 3, LV_BUTTONMATRIX_CTRL_DISABLED);
     lv_obj_add_event_cb(_navigation, navigation_event, LV_EVENT_VALUE_CHANGED, this);
 }
 
 void NfcDebugView::create_reader_page()
 {
-    _reader_state = make_label(_content, 8, 3, 304, 27, &lv_font_montserrat_20,
+    _reader_page = make_panel(_content);
+    _reader_state = make_label(_reader_page, 8, 3, 304, 27, &lv_font_montserrat_20,
                                COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
     lv_label_set_text(_reader_state, "STARTING");
-
-    _reader_primary = make_label(_content, 12, 34, 296, 38, &lv_font_montserrat_16,
+    _reader_primary = make_label(_reader_page, 12, 34, 296, 38, &lv_font_montserrat_16,
                                  COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
     lv_label_set_long_mode(_reader_primary, LV_LABEL_LONG_WRAP);
     lv_label_set_text(_reader_primary, "Starting NFC worker...");
-
-    _reader_secondary = make_label(_content, 12, 72, 296, 18, &lv_font_montserrat_14,
+    _reader_secondary = make_label(_reader_page, 12, 72, 296, 18, &lv_font_montserrat_14,
                                    COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-    _reader_meta = make_label(_content, 12, 90, 296, 18, &lv_font_montserrat_14,
+    _reader_meta = make_label(_reader_page, 12, 90, 296, 18, &lv_font_montserrat_14,
                               COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
-    _reader_stages = make_label(_content, 12, 105, 296, 18, &lv_font_montserrat_14,
+    _reader_stages = make_label(_reader_page, 12, 105, 296, 18, &lv_font_montserrat_14,
                                 COLOR_MUTED, LV_TEXT_ALIGN_CENTER);
     lv_label_set_text(_reader_stages, "DETECT -   SELECT -   IDENTIFY -");
 
-    _read_button = make_button(_content, 16, 120, 138, 44, COLOR_PURPLE);
+    _read_button = make_button(_reader_page, 16, 120, 138, 44, COLOR_PURPLE);
     lv_obj_add_event_cb(_read_button, read_event, LV_EVENT_CLICKED, this);
-    _read_button_label = make_label(_read_button, 0, 13, 138, 18, &lv_font_montserrat_14,
-                                    COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-    lv_label_set_text(_read_button_label, "READ ONCE");
-
-    _auto_button = make_button(_content, 166, 120, 138, 44, COLOR_PANEL);
+    _read_button_label = make_button_label(_read_button, 138, "READ ONCE");
+    _auto_button = make_button(_reader_page, 166, 120, 138, 44, COLOR_PANEL);
     lv_obj_add_event_cb(_auto_button, auto_event, LV_EVENT_CLICKED, this);
-    _auto_button_label = make_label(_auto_button, 0, 13, 138, 18, &lv_font_montserrat_14,
-                                    COLOR_TEXT, LV_TEXT_ALIGN_CENTER);
-    lv_label_set_text(_auto_button_label, "AUTO: OFF");
+    _auto_button_label = make_button_label(_auto_button, 138, "AUTO: OFF");
+}
+
+void NfcDebugView::create_rf_page()
+{
+    _rf_page = make_panel(_content);
+    _rf_line1 = make_label(_rf_page, 10, 6, 300, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _rf_line2 = make_label(_rf_page, 10, 28, 300, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _rf_irq = make_label(_rf_page, 10, 52, 300, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _rf_flags = make_label(_rf_page, 10, 74, 300, 18, &lv_font_montserrat_14, COLOR_MUTED);
+    _rf_raw = make_label(_rf_page, 10, 94, 300, 18, &lv_font_montserrat_14, COLOR_MUTED);
+    _rf_sample = make_label(_rf_page, 10, 112, 300, 18, &lv_font_montserrat_14, COLOR_AMBER);
+
+    lv_obj_t* sample = make_button(_rf_page, 16, 122, 138, 42, COLOR_PURPLE);
+    lv_obj_add_event_cb(sample, sample_event, LV_EVENT_CLICKED, this);
+    _rf_sample_button_label = make_button_label(sample, 138, "SAMPLE 10s");
+    lv_obj_t* clear = make_button(_rf_page, 166, 122, 138, 42, COLOR_PANEL);
+    lv_obj_add_event_cb(clear, clear_event, LV_EVENT_CLICKED, this);
+    make_button_label(clear, 138, "CLEAR");
+}
+
+void NfcDebugView::create_bus_page()
+{
+    _bus_page = make_panel(_content);
+    _bus_identity = make_label(_bus_page, 8, 5, 304, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _bus_backend = make_label(_bus_page, 8, 25, 304, 18, &lv_font_montserrat_14, COLOR_MUTED);
+    _bus_totals = make_label(_bus_page, 8, 48, 304, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _bus_errors = make_label(_bus_page, 8, 68, 304, 18, &lv_font_montserrat_14, COLOR_TEXT);
+    _bus_last = make_label(_bus_page, 8, 91, 304, 18, &lv_font_montserrat_14, COLOR_AMBER);
+    _bus_last_detail = make_label(_bus_page, 8, 109, 304, 18, &lv_font_montserrat_14, COLOR_MUTED);
+
+    lv_obj_t* probe = make_button(_bus_page, 8, 124, 94, 40, COLOR_PANEL);
+    lv_obj_add_event_cb(probe, probe_event, LV_EVENT_CLICKED, this);
+    make_button_label(probe, 94, "PROBE");
+    lv_obj_t* verify = make_button(_bus_page, 108, 124, 96, 40, COLOR_PURPLE);
+    lv_obj_add_event_cb(verify, verify_event, LV_EVENT_CLICKED, this);
+    _bus_verify_button_label = make_button_label(verify, 96, "VERIFY 20x");
+    lv_obj_t* reinitialize = make_button(_bus_page, 210, 124, 102, 40, COLOR_PANEL);
+    lv_obj_add_event_cb(reinitialize, reinitialize_event, LV_EVENT_CLICKED, this);
+    make_button_label(reinitialize, 102, "REINIT NFC");
 }
 
 void NfcDebugView::update(const Snapshot& snapshot)
 {
     _snapshot = snapshot;
     render_header(snapshot);
-    if (_page == Page::Reader) render_reader(snapshot);
+    render_reader(snapshot);
+    render_rf(snapshot);
+    render_bus(snapshot);
 }
 
 void NfcDebugView::show_start_error(esp_err_t error)
@@ -237,7 +310,6 @@ void NfcDebugView::render_reader(const Snapshot& snapshot)
     char secondary[64] = {};
     char meta[80] = {};
     const char* stages = "DETECT -   SELECT -   IDENTIFY -";
-
     switch (snapshot.reader_state) {
     case ReaderState::Starting:
         std::snprintf(primary, sizeof(primary), "Starting NFC worker...");
@@ -265,12 +337,11 @@ void NfcDebugView::render_reader(const Snapshot& snapshot)
     case ReaderState::NoTag:
         std::snprintf(primary, sizeof(primary), "No ISO14443-A response");
         std::snprintf(secondary, sizeof(secondary), "Transport completed without a tag");
-        stages = "DETECT -   SELECT -   IDENTIFY -";
         break;
     case ReaderState::TransportError:
         std::snprintf(primary, sizeof(primary), "%s", esp_err_to_name(snapshot.last_error.code));
-        std::snprintf(secondary, sizeof(secondary), "raw transport failure; command %u",
-                      static_cast<unsigned>(snapshot.last_error.command));
+        std::snprintf(secondary, sizeof(secondary), "raw transport failure; op %u key %02X",
+                      snapshot.last_error.transport_operation, snapshot.last_error.transport_key);
         std::snprintf(meta, sizeof(meta), "elapsed %.1f ms",
                       snapshot.last_error.elapsed_us / 1000.0);
         break;
@@ -284,7 +355,6 @@ void NfcDebugView::render_reader(const Snapshot& snapshot)
         std::snprintf(primary, sizeof(primary), "NFC worker stopped");
         break;
     }
-
     lv_label_set_text(_reader_primary, primary);
     lv_label_set_text(_reader_secondary, secondary);
     lv_label_set_text(_reader_meta, meta);
@@ -298,9 +368,71 @@ void NfcDebugView::render_reader(const Snapshot& snapshot)
         lv_label_set_text(_read_button_label,
                           snapshot.reader_state == ReaderState::TagFound ? "READ AGAIN" : "READ ONCE");
     }
-
     lv_label_set_text(_auto_button_label, snapshot.auto_poll ? "AUTO: ON" : "AUTO: OFF");
     lv_obj_set_style_bg_color(_auto_button, snapshot.auto_poll ? COLOR_PURPLE : COLOR_PANEL, 0);
+}
+
+void NfcDebugView::render_rf(const Snapshot& snapshot)
+{
+    char text[96];
+    std::snprintf(text, sizeof(text), "RF FIELD %-3s                 CAP %3u",
+                  snapshot.field_on ? "ON" : "OFF", snapshot.rf.capacitance);
+    lv_label_set_text(_rf_line1, text);
+    std::snprintf(text, sizeof(text), "RSSI %02X      FIFO %03u      NRT %04X",
+                  snapshot.rf.rssi, snapshot.rf.fifo_bytes, snapshot.rf.nrt);
+    lv_label_set_text(_rf_line2, text);
+    std::snprintf(text, sizeof(text), "LAST IRQ  main=%02lX timer=%02X err=%02X",
+                  static_cast<unsigned long>(snapshot.rf.main_irq),
+                  snapshot.rf.timer_irq, snapshot.rf.error_irq);
+    lv_label_set_text(_rf_irq, text);
+    std::snprintf(text, sizeof(text), "RXS %u  RXE %u  COL %u  NRE %u  ERR %u",
+                  (snapshot.rf.main_irq & IRQ_RXS) != 0,
+                  (snapshot.rf.main_irq & IRQ_RXE) != 0,
+                  (snapshot.rf.main_irq & IRQ_COL) != 0,
+                  (snapshot.rf.timer_irq & IRQ_NRE) != 0,
+                  snapshot.rf.error_irq != 0);
+    lv_label_set_text(_rf_flags, text);
+    std::snprintf(text, sizeof(text), "OPC %02X   COLL %02X   no-tag %lu",
+                  snapshot.rf.operation_control, snapshot.rf.collision,
+                  static_cast<unsigned long>(snapshot.no_tag_count));
+    lv_label_set_text(_rf_raw, text);
+    std::snprintf(text, sizeof(text), "sample events %u / %u%s",
+                  snapshot.sample_events, snapshot.sample_attempts,
+                  snapshot.sample_active ? "  RUNNING" : "");
+    lv_label_set_text(_rf_sample, text);
+    lv_label_set_text(_rf_sample_button_label,
+                      snapshot.sample_active ? "SAMPLING..." : "SAMPLE 10s");
+}
+
+void NfcDebugView::render_bus(const Snapshot& snapshot)
+{
+    char text[112];
+    std::snprintf(text, sizeof(text), "ST25R3916 0x50     type %02X rev %02X",
+                  snapshot.chip_type, snapshot.chip_revision);
+    lv_label_set_text(_bus_identity, text);
+    lv_label_set_text(_bus_backend, "backend idf-new     speed 400 kHz");
+    std::snprintf(text, sizeof(text), "txns %lu   ok %lu   fail %lu",
+                  static_cast<unsigned long>(snapshot.counters.transactions),
+                  static_cast<unsigned long>(snapshot.counters.succeeded),
+                  static_cast<unsigned long>(snapshot.counters.failed));
+    lv_label_set_text(_bus_totals, text);
+    std::snprintf(text, sizeof(text), "timeout %lu   invalid %lu   mismatch %lu",
+                  static_cast<unsigned long>(snapshot.counters.timeouts),
+                  static_cast<unsigned long>(snapshot.counters.invalid_state),
+                  static_cast<unsigned long>(snapshot.counters.mismatches));
+    lv_label_set_text(_bus_errors, text);
+    std::snprintf(text, sizeof(text), "LAST: %s key %02X",
+                  operation_name(snapshot.last_error.transport_operation),
+                  snapshot.last_error.transport_key);
+    lv_label_set_text(_bus_last, text);
+    std::snprintf(text, sizeof(text), "%s   %.1f ms   verify %u%s",
+                  esp_err_to_name(snapshot.last_error.code),
+                  snapshot.last_error.elapsed_us / 1000.0,
+                  snapshot.verification_passes,
+                  snapshot.verification_active ? " RUNNING" : "");
+    lv_label_set_text(_bus_last_detail, text);
+    lv_label_set_text(_bus_verify_button_label,
+                      snapshot.verification_active ? "VERIFYING" : "VERIFY 20x");
 }
 
 void NfcDebugView::request_read()
@@ -316,6 +448,18 @@ void NfcDebugView::toggle_auto()
 void NfcDebugView::select_page(Page page)
 {
     _page = page;
+    lv_obj_add_flag(_reader_page, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_rf_page, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(_bus_page, LV_OBJ_FLAG_HIDDEN);
+    if (page == Page::Reader) lv_obj_remove_flag(_reader_page, LV_OBJ_FLAG_HIDDEN);
+    else if (page == Page::RfIrq) lv_obj_remove_flag(_rf_page, LV_OBJ_FLAG_HIDDEN);
+    else if (page == Page::Bus) lv_obj_remove_flag(_bus_page, LV_OBJ_FLAG_HIDDEN);
+
+    for (uint32_t i = 0; i < 3; ++i) {
+        lv_buttonmatrix_clear_button_ctrl(_navigation, i, LV_BUTTONMATRIX_CTRL_CHECKED);
+    }
+    lv_buttonmatrix_set_button_ctrl(_navigation, static_cast<uint32_t>(page),
+                                    LV_BUTTONMATRIX_CTRL_CHECKED);
 }
 
 void NfcDebugView::close_event(lv_event_t* event)
@@ -336,13 +480,47 @@ void NfcDebugView::auto_event(lv_event_t* event)
     if (self != nullptr) self->toggle_auto();
 }
 
+void NfcDebugView::sample_event(lv_event_t* event)
+{
+    auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
+    if (self != nullptr && !self->_snapshot.sample_active) {
+        (void)self->_service.enqueue(Command{CommandType::SampleIrqWindow, 10});
+    }
+}
+
+void NfcDebugView::clear_event(lv_event_t* event)
+{
+    auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
+    if (self != nullptr) (void)self->_service.enqueue(Command{CommandType::ClearCounters, 0});
+}
+
+void NfcDebugView::probe_event(lv_event_t* event)
+{
+    auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
+    if (self != nullptr) (void)self->_service.enqueue(Command{CommandType::Probe, 0});
+}
+
+void NfcDebugView::verify_event(lv_event_t* event)
+{
+    auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
+    if (self != nullptr && !self->_snapshot.verification_active) {
+        (void)self->_service.enqueue(Command{CommandType::VerifyRegisters, 20});
+    }
+}
+
+void NfcDebugView::reinitialize_event(lv_event_t* event)
+{
+    auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
+    if (self != nullptr) (void)self->_service.enqueue(Command{CommandType::ResetBus, 0});
+}
+
 void NfcDebugView::navigation_event(lv_event_t* event)
 {
     auto* self = static_cast<NfcDebugView*>(lv_event_get_user_data(event));
     lv_obj_t* matrix = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (self == nullptr || matrix == nullptr) return;
     const uint32_t selected = lv_buttonmatrix_get_selected_button(matrix);
-    if (selected == 0) self->select_page(Page::Reader);
+    if (selected <= 2) self->select_page(static_cast<Page>(selected));
 }
 
 }  // namespace nfc_debug::view

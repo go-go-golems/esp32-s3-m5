@@ -33,12 +33,21 @@ private:
     static void close_event(lv_event_t* event);
     static void read_event(lv_event_t* event);
     static void auto_event(lv_event_t* event);
+    static void sample_event(lv_event_t* event);
+    static void clear_event(lv_event_t* event);
+    static void probe_event(lv_event_t* event);
+    static void verify_event(lv_event_t* event);
+    static void reinitialize_event(lv_event_t* event);
     static void navigation_event(lv_event_t* event);
 
     void create_frame();
     void create_reader_page();
+    void create_rf_page();
+    void create_bus_page();
     void render_header(const Snapshot& snapshot);
     void render_reader(const Snapshot& snapshot);
+    void render_rf(const Snapshot& snapshot);
+    void render_bus(const Snapshot& snapshot);
     void request_read();
     void toggle_auto();
     void select_page(Page page);
@@ -55,6 +64,10 @@ private:
     lv_obj_t* _health_dot = nullptr;
     lv_obj_t* _error_count = nullptr;
 
+    lv_obj_t* _reader_page = nullptr;
+    lv_obj_t* _rf_page = nullptr;
+    lv_obj_t* _bus_page = nullptr;
+
     lv_obj_t* _reader_state = nullptr;
     lv_obj_t* _reader_primary = nullptr;
     lv_obj_t* _reader_secondary = nullptr;
@@ -64,6 +77,22 @@ private:
     lv_obj_t* _read_button_label = nullptr;
     lv_obj_t* _auto_button = nullptr;
     lv_obj_t* _auto_button_label = nullptr;
+
+    lv_obj_t* _rf_line1 = nullptr;
+    lv_obj_t* _rf_line2 = nullptr;
+    lv_obj_t* _rf_irq = nullptr;
+    lv_obj_t* _rf_flags = nullptr;
+    lv_obj_t* _rf_raw = nullptr;
+    lv_obj_t* _rf_sample = nullptr;
+    lv_obj_t* _rf_sample_button_label = nullptr;
+
+    lv_obj_t* _bus_identity = nullptr;
+    lv_obj_t* _bus_backend = nullptr;
+    lv_obj_t* _bus_totals = nullptr;
+    lv_obj_t* _bus_errors = nullptr;
+    lv_obj_t* _bus_last = nullptr;
+    lv_obj_t* _bus_last_detail = nullptr;
+    lv_obj_t* _bus_verify_button_label = nullptr;
 };
 
 }  // namespace nfc_debug::view
