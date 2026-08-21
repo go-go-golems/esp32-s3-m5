@@ -497,3 +497,58 @@ The handoff listed these as the next decisive steps that don't need the user. `c
 
 - Commit: `86bbeee1` (instrumentation + decisive evidence). Handoff updated in the same ticket.
 - Evidence: cap=124 (coil connected); ANT1/2=82, TXD=D0 (programmed ok); REQA irq=000000 ×40+ (no tag responds).
+
+---
+
+## Step 8: WUPA fallback — rules out halted-tag state (still no response)
+
+Goal continuation asked me to keep making progress without the user. The one remaining software hypothesis was that the tag got HALTED by an earlier SELECT and would answer WUPA but not REQA. I added WUPA and retested.
+
+### Prompt Context
+
+**User prompt (verbatim):** (automated goal continuation: "Continue working toward the active thread goal... Choose the next concrete action.")
+**Assistant interpretation:** Do the one non-repeating software action that could still turn a no-tag into a read — add WUPA (wakes halted tags) — before handing back to the user for the physical step.
+**Inferred user intent:** Maximize software progress; only stop when genuinely blocked on hardware.
+
+### What I did
+
+- Refactored REQA into a shared `nfca_wake(atqa, wake_cmd)` helper; added `st25r3916_wupa()` (CMD_STOP_ALL_ACTIVITIES → field_on → CMD_TRANSMIT_WUPA) to clear halt state first.
+- Made `poll_nfca` fall back to WUPA when REQA returns NOT_FOUND.
+- Made `nfc-reqa` alternate REQA/WUPA each iteration so the sweep finder tries both.
+- Built, flashed, ran the alternating sweep ~12s with the tag on the device (as the user left it): **both `reqa: irq=000000` and `wupa: irq=000000` on every attempt** (0 ATQA hits).
+
+### Why
+
+A tag selected then halted by a prior `nfc-read` will not answer REQA but WILL answer WUPA. If WUPA had returned an ATQA, the halt state was the bug and we'd have a read. It did not — so the halt hypothesis is ruled out.
+
+### What worked
+
+- WUPA path builds and runs cleanly; `poll_nfca` is now more robust (real improvement, committed).
+
+### What didn't work
+
+- Both REQA and WUPA return `irq=000000`. The tag is not coupling to the coil in its current position (on top of the device = the head/display, not the body where the NFC coil lives).
+
+### What I learned
+
+- WUPA vs REQA is a clean discriminator for the halt-state hypothesis; getting `irq=000000` for both means the tag is simply not in the field, not that it's halted.
+
+### What was tricky to build
+
+- None significant; the refactor to a shared `nfca_wake()` kept the IRQ logging consistent for both commands.
+
+### What warrants a second pair of eyes
+
+- The user must place the tag on the **body** (lower part with servos), not the head. This is the only remaining variable.
+
+### What should be done in the future
+
+- Once the tag is on the coil, `nfc-read` should return a UID; validate the CL1→CL2 cascade with a 7-byte NTAG.
+
+### Code review instructions
+
+- `nfc-reqa` now prints alternating `reqa:` / `wupa:` lines; both `irq=000000` until the tag is on the coil.
+
+### Technical details
+
+- Commit: `c2f4b322`. Evidence: REQA irq=000000 AND WUPA irq=000000 (halt state ruled out); cap=124 (coil connected); all init regs correct.
