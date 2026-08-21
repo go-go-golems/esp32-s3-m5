@@ -551,10 +551,16 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
     if (!out) return ESP_ERR_INVALID_ARG;
     memset(out, 0, sizeof(*out));
 
-    /* configure_nfca() established the field at startup. Keep it continuous so
-     * passive tags remain powered between REQA, WUPA, and anticollision. */
+    /* Establish the field before each high-level read. nfc_initial_field_on()
+     * clears TX/RX after its guard interval (matching M5), so a boot-time call
+     * alone does not guarantee the analog front end is freshly prepared. Keep
+     * the field sequence intact across REQA -> WUPA -> anticollision. */
+    esp_err_t e = st25r3916_field_on();
+    if (e != ESP_OK) return e;
+    vTaskDelay(pdMS_TO_TICKS(5));
+
     uint16_t atqa = 0;
-    esp_err_t e = st25r3916_reqa(&atqa);
+    e = st25r3916_reqa(&atqa);
     if (e == ESP_ERR_NOT_FOUND) e = st25r3916_wupa(&atqa);
     if (e != ESP_OK) return e; /* no tag */
     out->atqa = atqa;
