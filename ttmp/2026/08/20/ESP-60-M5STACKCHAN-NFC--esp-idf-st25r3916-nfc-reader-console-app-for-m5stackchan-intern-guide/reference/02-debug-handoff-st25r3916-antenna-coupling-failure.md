@@ -234,3 +234,29 @@ Two further diagnostics were run after the handoff was written:
 The ONLY remaining variable is the **tag and its exact placement on the coil**. This is the physical step the objective explicitly says to stop and ask the user for. No further software action can change the outcome.
 
 **Committed:** `c2f4b322` (WUPA), `5a8eac21` (nfc-dump + comparison).
+
+---
+
+## CORRECTION (commit pending): the antenna is on the TOP of the head, not the body
+
+**Earlier rounds of this handoff told the user to "move the tag to the body". That was WRONG.** The official M5 StackChan NFC docs (https://docs.m5stack.com/en/arduino/stackchan/nfc, captured via Playwright) state, in both the Quick Scan and Complete Data Reading examples:
+
+> "place one or more tag cards near the **top sensing surface of StackChan**"
+> "place the card near the **top sensing surface of StackChan**"
+
+And the emulation example:
+
+> "When other NFC readers (such as a smartphone) approach the **top of StackChan**, they can detect and read the emulated NFC tag."
+
+So the **NFC antenna coil is on the top of the head (CoreS3 side)**, even though the ST25R3916 IC sits on the body I2C bus. The user's original placement ("on top of the device") was CORRECT; my "move to body" instruction moved the tag OFF the coil and was the likely cause of the no-read.
+
+After correcting placement (tag flat on top of the head), `nfc-reqa` STILL returns `irq=000000` for both REQA and WUPA. So with correct placement + verified-correct software + connected coil, the remaining variable is the **tag itself**: it is not ISO14443-A, not a real NFC tag, or dead.
+
+**Revised ranked hypotheses (placement now known-correct):**
+1. **(Prime) The tag is not ISO14443-A / not a real NFC tag / dead.** Needs a known-good NTAG or MIFARE Ultralight verified to read on a phone, placed flat on the top of the head.
+2. (Exonerated) Antenna location — was the wrong advice; now corrected.
+3. (Exonerated) Open feed — cap=124 confirms connected.
+4. (Exonerated) Init registers — full dump matches M5 lib.
+5. (Last resort) A subtle ESP-IDF-vs-Arduino difference; bisect by flashing the M5 Arduino `Detect.ino` to the same device (needs Arduino-ESP32 toolchain).
+
+**Corrected user ask:** place a **known-good ISO14443-A tag** (NTAG213/215/216, MIFARE Ultralight, or amiibo) flat on the **top of the head**, not the body. Verify the tag reads on a phone first.
