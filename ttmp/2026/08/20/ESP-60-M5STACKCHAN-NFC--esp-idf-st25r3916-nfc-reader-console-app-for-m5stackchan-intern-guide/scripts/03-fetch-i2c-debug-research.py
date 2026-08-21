@@ -73,7 +73,8 @@ def render_issue(number: int) -> str:
                 "",
             ]
         )
-    return "\n".join(lines).rstrip() + "\n"
+    text = "\n".join(lines).replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
 
 
 def main() -> None:

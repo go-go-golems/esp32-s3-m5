@@ -1837,3 +1837,115 @@ So why does the arduino sketch seem to work well but this has issue? or did the 
 - Last context: `WRITE A`, register `0x0A`, `ESP_ERR_INVALID_STATE`.
 - `0x0A`: ST25R3916 Auxiliary Definition; bit `0x80`: receive without CRC.
 - Descriptive transaction failure rate: approximately 1.37%.
+
+---
+
+## Step 23: Research online I2C failures and publish the intern debugging guide
+
+The controlled NFC LAB failure made the next work concrete: the firmware needs a transport experiment plan, not another round of RF register changes. I researched the exact ESP-IDF 5.5.4 driver, current and historical Espressif issue reports, the successful M5GFX/M5Unified backend, M5Unit-NFC retry semantics, and the ST25R3916 I2C protocol and command-completion rules.
+
+The resulting guide teaches a new engineer how to separate target NACKs, host-controller state, electrical timing, direct-command busy windows, retry policy, and NFC protocol failures. It defines the instrumentation and backend APIs to build, a logic-analyzer procedure, six implementation phases, a test matrix, and zero-failure acceptance gates. The guide was dry-run rendered and uploaded successfully to reMarkable.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Also look online for information about this. Save useful resources to the ticket's sources/ once done. Create  a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet point sand pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and the nupload to remarkable. The guide is about how to debug and what to build for it."
+
+**Assistant interpretation:** Research external evidence for the Arduino-versus-ESP-IDF transport difference, preserve the evidence with provenance, and produce an actionable intern guide that specifies diagnostics, backend experiments, APIs, tests, and safe integration.
+
+**Inferred user intent:** Make the next debugging phase executable by an unfamiliar engineer and preserve enough authoritative evidence that they do not repeat the same incorrect assumptions or hide the fault behind retries.
+
+**Commit (documentation):** `8c62d8ac25d24888820b8ba461245a5ce80e8698` — "ESP-60: add ST25R I2C transport debugging guide"
+
+### What I did
+
+- Added ticket task `mu8t` for the research and guide, then marked it complete after delivery.
+- Searched official ESP-IDF documentation, Espressif issues, ST25R3916 references, ST Community discussions, and M5GFX sources.
+- Preserved the complete ESP-IDF 5.5.4 ESP32-S3 I2C programming guide.
+- Preserved full issue bodies/comments for Espressif issues #13136, #14030, #17556, and #17720 through a reproducible GitHub API script.
+- Preserved exact tagged source for ESP-IDF 5.5.4 `i2c_master.c/.h`, M5GFX 0.2.27 ESP32 I2C, and M5Unified 0.2.20 `I2C_Class`.
+- Verified the M5GFX and M5Unified source hashes exactly match the versions used by the successful official PlatformIO build.
+- Preserved a byte-exact gzip of M5GFX source and a whitespace-normalized readable copy.
+- Downloaded the 157-page ST25R3916/7 datasheet and recorded its SHA-256 and source mirror.
+- Extracted the ST I2C transaction diagrams and the requirement that some direct commands forbid I2C access until completion.
+- Confirmed ESP-IDF maps any synchronous final status other than DONE to `ESP_ERR_INVALID_STATE`.
+- Confirmed the April 2025 NACK recovery change discussed in issue #14030 is already present in the project’s 5.5.4 source.
+- Confirmed M5GFX uses a per-port mutex, explicit start/restart/read/write/stop, transaction-start FSM reset, and forced STOP/bus recovery.
+- Confirmed M5Unit-NFC retries failed request discovery for up to one second.
+- Created `design-doc/03-st25r3916-i2c-transport-debugging-analysis-design-and-intern-implementation-guide.md`.
+- Wrote 1,267 lines / 6,396 words with Mermaid architecture, transaction diagrams, API sketches, pseudocode, decision records, implementation phases, test matrix, runbook, and acceptance gates.
+- Related the guide to current driver/service code and preserved backend sources.
+- Completed a reMarkable dry run and successful real upload.
+
+### Why
+
+- The first physical failure occurs before REQA, so changing tag protocol or RF settings would not address it.
+- Online reports show similar public error behavior but cannot prove the same root cause; the guide therefore requires waveform evidence.
+- M5 visible success combines a different backend and retry policy. These variables must be tested independently.
+- Broad retries can produce a UID while concealing transport defects, so the guide separates eventual success from zero-error transport acceptance.
+
+### What worked
+
+- The exact ESP-IDF 5.5.4 documentation page was available and preserved as Markdown.
+- GitHub API retrieval preserved complete issue discussions and metadata reproducibly.
+- Tagged M5 source matched the successful build artifacts byte-for-byte before readable-copy whitespace normalization.
+- The Mouser mirror provided the ST-authored DS12484 Rev 3 datasheet when ST’s server did not.
+- `docmgr validate frontmatter` passed for the new guide.
+- reMarkable dry run succeeded, then upload returned:
+  `OK: uploaded ESP-60 ST25R3916 I2C Debugging Guide.pdf -> /ai/2026/08/21/ESP-60-M5STACKCHAN-NFC`.
+
+### What didn't work
+
+- The Umans web search gateway returned:
+  `HTTP 401: {"error":{"type":"authentication_error","message":"Invalid API key"}}`.
+  Kagi and direct authoritative-source retrieval were used instead.
+- Direct ST and Mouser `curl` downloads failed with:
+  `curl: (92) HTTP/2 stream 1 was not closed cleanly: INTERNAL_ERROR (err 2)`.
+  `wget` against the Mouser mirror succeeded.
+- The ST Community Defuddle snapshots captured the initiating posts but not the complete dynamic reply threads. They are retained as supporting context, not primary conclusions.
+- Initial `git diff --check` found trailing whitespace inherited from web/API bodies and one upstream source. Generated Markdown was normalized; a byte-exact gzip preserves the original M5GFX source.
+- Local ESP-IDF is a shallow checkout and did not contain historical commit object `459b75f...`; the GitHub commit API supplied the patch, and the tagged source was inspected to verify the resulting code is present.
+
+### What I learned
+
+- M5GFX directly controls the ESP32 I2C peripheral rather than delegating normal ESP32 ports to the same high-level ESP-IDF API used by NFC LAB.
+- M5GFX resets the FSM at transaction start and implements explicit forced STOP/bus recovery, materially changing the comparison.
+- ESP-IDF 5.5.4 already contains one NACK recovery fix, but current issue reports and this hardware still show invalid-state behavior; upgrading to the already-used version is not a solution.
+- ST25R3916 direct-command completion timing is an independent target-side hypothesis that must be audited before assigning all faults to the host driver.
+- Defined operations can test framing while retaining the new driver core; they cannot isolate faults inside that core.
+- A legacy backend cannot coexist on the same port with StackChan’s new-driver bus, so it belongs first in standalone project `0115`.
+
+### What was tricky to build
+
+- External issue reports contain reports, corrections, and invalid conclusions. Issue #17556, for example, was closed after the author discovered the analyzer was connected to the wrong bus. The guide distinguishes supporting evidence from proof and preserves the correction.
+- A recovery design that is safe in the standalone firmware may be unsafe in NFC LAB because touch, RTC, IMU, and expanders share the bus. The guide rejects uncoordinated `i2c_master_bus_reset()`.
+- Retry placement matters. Repeating a plain register read differs from repeating a FIFO load or direct command. The guide uses operation-specific retry safety and whole-request retries.
+- The public ESP-IDF result does not expose enough information to label a physical NACK. The guide introduces conservative `HOST_NOT_DONE` classification until an analyzer or backend event proves NACK.
+
+### What warrants a second pair of eyes
+
+- Review the proposed defined-operations address bytes (`0xA0`/`0xA1`) and final read NACK against ESP-IDF 5.5.4 before implementation.
+- Review the direct-command completion table against the ST datasheet command-by-command.
+- Verify physical pull-up values and logic-analyzer access points from the actual StackChan/CoreS3 schematic.
+- Confirm the 1000 ms retry policy matches the exact official overload used by `Detect.ino`.
+
+### What should be done in the future
+
+- Implement Phase D0 first-error/event-ring instrumentation.
+- Implement Phase D1 observable M5-style request retries without clearing failures.
+- Capture the failing `0x0A` transaction on GPIO11/GPIO12 with a logic analyzer.
+- Implement defined-operations and legacy backends in standalone `0115` and compare them using the guide’s matrix.
+
+### Code review instructions
+
+- Start with the new guide’s Executive Summary, Sections 5–7, and phased implementation plan.
+- Verify source claims against `sources/code/esp-idf-v5.5.4-i2c_master.c` and `sources/code/M5GFX-0.2.27-esp32-common.cpp` at the line ranges cited in the guide.
+- Inspect `scripts/03-fetch-i2c-debug-research.py` for reproducible issue capture.
+- Validate with `docmgr validate frontmatter`, `docmgr doctor`, and the recorded reMarkable dry-run/upload logs.
+
+### Technical details
+
+- Guide: 1,267 lines, 6,396 words, 47,866 bytes before relation metadata refresh.
+- Research/code commit: `8c62d8ac25d24888820b8ba461245a5ce80e8698`.
+- reMarkable destination: `/ai/2026/08/21/ESP-60-M5STACKCHAN-NFC`.
+- Dry-run log: `/tmp/esp60-i2c-guide-remarkable-dry-run.log`.
+- Upload log: `/tmp/esp60-i2c-guide-remarkable-upload.log`.

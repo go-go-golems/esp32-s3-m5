@@ -14,20 +14,30 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c
-      Note: Current instrumented ESP-IDF transport and the failing NFC-A request sequence
-    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp
-      Note: Single-worker command ownership and UI-visible error classification
-    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp
-      Note: Bus and RF diagnostic presentation used by the physical test
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
       Note: Standalone transport experiment target
-    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/esp-idf-v5.5.4-i2c_master.c
-      Note: Exact ESP-IDF new-driver implementation used by the firmware
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp
+      Note: |-
+        Single-worker command ownership and UI-visible error classification
+        Serialized worker and error classification
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c
+      Note: |-
+        Current instrumented ESP-IDF transport and the failing NFC-A request sequence
+        Current instrumented transport and failing pre-REQA write
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp
+      Note: Bus and RF diagnostic presentation used by the physical test
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/M5GFX-0.2.27-esp32-common.cpp
-      Note: Exact successful Arduino-path controller, locking, and recovery implementation
+      Note: |-
+        Exact successful Arduino-path controller, locking, and recovery implementation
+        M5 controller transaction and recovery comparison
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/esp-idf-v5.5.4-i2c_master.c
+      Note: |-
+        Exact ESP-IDF new-driver implementation used by the firmware
+        Exact ESP-IDF 5.5.4 new I2C driver source
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/nfc_layer_a.cpp
-      Note: M5 request retry and NFC-A detection behavior
+      Note: |-
+        M5 request retry and NFC-A detection behavior
+        M5 one-second request retry behavior
 ExternalSources:
     - https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32s3/api-reference/peripherals/i2c.html
     - https://github.com/espressif/esp-idf/issues/14030
@@ -41,6 +51,7 @@ LastUpdated: 2026-08-21T17:00:00-04:00
 WhatFor: Teach a new engineer how to reproduce, measure, and fix the intermittent ST25R3916 I2C transport failure without hiding it behind NFC retries.
 WhenToUse: Before changing NFC register values, adding broad retries, resetting the shared bus, or selecting a replacement I2C backend.
 ---
+
 
 # ST25R3916 I2C Transport Debugging Analysis, Design, and Intern Implementation Guide
 

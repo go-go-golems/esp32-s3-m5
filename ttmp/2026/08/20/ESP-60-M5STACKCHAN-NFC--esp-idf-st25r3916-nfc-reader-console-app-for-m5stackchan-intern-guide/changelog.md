@@ -134,3 +134,13 @@ Step 21: published and pushed the 5,093-word NFC LAB deep dive; documented that 
 
 Step 22: localized first NFC LAB READ failure to Auxiliary Definition write 0x0A before REQA and established that M5 detect retries failed requests for up to one second
 
+
+## 2026-08-21
+
+Step 23: researched ESP-IDF/M5GFX/ST25R I2C behavior, preserved authoritative sources, published a 6,396-word intern transport-debugging guide, and uploaded it to reMarkable (commit 8c62d8ac)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/03-st25r3916-i2c-transport-debugging-analysis-design-and-intern-implementation-guide.md — Intern analysis, experiment design, implementation phases, and acceptance gates
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/I2C-backend-source-provenance.md — Pinned ESP-IDF, M5GFX, and M5Unified source provenance
+

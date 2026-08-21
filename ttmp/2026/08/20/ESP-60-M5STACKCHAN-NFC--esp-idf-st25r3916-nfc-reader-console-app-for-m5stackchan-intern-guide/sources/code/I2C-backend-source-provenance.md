@@ -24,7 +24,9 @@ historical commit object, but the tagged source contains the resulting `s_i2c_hw
 - Repository: https://github.com/m5stack/M5GFX
 - Tag: `0.2.27`
 - Commit: `93b480bb349749202c8a2a953065c8ae95f58320`
-- Preserved file: `M5GFX-0.2.27-esp32-common.cpp`
+- Readable preserved file: `M5GFX-0.2.27-esp32-common.cpp` (line endings and trailing whitespace normalized)
+- Byte-exact gzip snapshot: `M5GFX-0.2.27-esp32-common.cpp.gz`
+- Uncompressed upstream SHA-256: `221e6c8166c954285ab699b0da30e0e2b428bfd4376b5327d705a152727a822e`
 - Raw URL: https://raw.githubusercontent.com/m5stack/M5GFX/0.2.27/src/lgfx/v1/platforms/esp32/common.cpp
 
 This is the M5GFX version resolved by the successful official PlatformIO build. Its ESP32 I2C code directly manages
