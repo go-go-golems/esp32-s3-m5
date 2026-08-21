@@ -53,3 +53,12 @@ Step 13: preserved official M5 sources/images, corrected IO and Space-B NFC-A in
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Corrected documented initialization
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/README.md — Upstream source provenance
 
+
+## 2026-08-21
+
+Step 14: official Detect.ino read PICC, isolating remaining ESP-IDF failure to I2C transport; published and pushed 4,868-word Obsidian deep dive (vault commit e7003d4)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - Porting the ST25R3916 Reader to ESP-IDF.md — Published technical project report
+

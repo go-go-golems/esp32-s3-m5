@@ -1003,3 +1003,100 @@ I preserved the exact upstream implementation and official placement photographs
 - Official build result: success, firmware image 671,527 bytes, RAM 30,116 bytes.
 - Temporary build path: `/tmp/esp60-official-detect`.
 - Official serial capture: `/tmp/esp60-official-detect-serial.log` (empty).
+
+---
+
+## Step 14: Prove the hardware with official firmware and publish the technical report
+
+The corrected official StackChan `Detect.ino` displayed `PICC:<UID>` with the tag across the literal top edge of the head. This is the decisive hardware bisect: the tag, antenna, ST25R3916, and physical position work together on this exact device.
+
+Restoring the ESP-IDF firmware without moving the tag immediately exposed an `i2c.master` transaction timeout and invalid-state error, followed by occasional corrupt register readback. The remaining failure is therefore isolated to the ESP-IDF transport/runtime path. I published a textbook-style technical report to the Obsidian vault that records the complete architecture, protocol, evidence, withdrawn claims, official bisect, and next controlled experiment.
+
+### Prompt Context
+
+**User prompt (verbatim):** "B"
+
+**Additional user prompt (verbatim):** "so maybe it's also all about me having to figure out where to put the tag itself, but now that it works, I know"
+
+**Report prompt (verbatim):** "write a detailed project report for the obsidian vault as a deep dive technical analysis blog post using a textbook writing style (no analogies, see skill).      
+ Commit and push the bsidian vault when done (go-go-parc vault).   "
+
+**Assistant interpretation:** Treat the official PICC display as proof of the physical path, restore ESP-IDF to isolate its remaining failure, then write and publish a durable, evidence-backed technical article in the Obsidian vault.
+
+**Inferred user intent:** Preserve the project’s technical lessons and current status in a form that future engineers can learn from, while accurately separating placement resolution from the unfinished ESP-IDF UID read.
+
+**Commit (vault):** `e7003d40d3ca40f2602dd020ecc7fd5ca0db9a05` — "Add deep dive on porting StackChan NFC to ESP-IDF"
+
+### What I did
+
+- Recorded the corrected official firmware screen result: `PICC:<UID>`.
+- Restored the latest committed ESP-IDF firmware while the tag remained in the proven position.
+- Ran five `nfc-read` attempts.
+- Captured `E (...) i2c.master: I2C transaction timeout detected` and `ESP_ERR_INVALID_STATE` on the first attempt.
+- Observed later no-tag responses and intermittent invalid register readback, reinforcing the I2C transport diagnosis.
+- Prepared but did not build or commit a controlled 100 kHz I2C experiment with matching ST25R threshold configuration.
+- Loaded and followed the textbook-authoring, Obsidian vault-writing, and Obsidian Markdown skills.
+- Read existing M5StackChan vault articles and the vault’s article/project exemplars.
+- Wrote a 4,868-word, 36 KB deep-dive article with frontmatter, Mermaid diagrams, register tables, protocol sequences, failure analysis, and explicit incomplete status.
+- Validated frontmatter, headings, internal links, whitespace, and absence of analogy/metaphor phrases.
+- Staged only the new article despite unrelated pre-existing vault transcript modifications/deletions.
+- Committed and pushed the vault `main` branch; verified `origin/main` at `e7003d4`.
+
+### Why
+
+- The official PICC result is the strongest available evidence that the RF hardware and physical setup are correct.
+- The immediate ESP-IDF timeout after restoring firmware narrows the remaining defect to transport/runtime behavior.
+- The investigation accumulated several corrected assumptions; a durable report prevents those invalid conclusions from being repeated.
+
+### What worked
+
+- Official firmware read the tag at the literal top-edge position.
+- ESP-IDF firmware was restored successfully.
+- The vault report passed all structural and style validation.
+- The vault commit contained exactly one new article, and the push succeeded.
+
+### What didn't work
+
+- ESP-IDF still did not return a UID.
+- Exact failure output included:
+  `E (...) i2c.master: I2C transaction timeout detected`
+  and `read error: ESP_ERR_INVALID_STATE`.
+- The first diagnostic read after timeout reported `OPC=00`, while stable reads normally report `83` or `8B`; this is not valid chip state evidence.
+- The 100 kHz experiment remains untested and must not be described as a fix.
+
+### What I learned
+
+- Correct placement and correct firmware are independent variables. Placement is now resolved; ESP-IDF transport is not.
+- A successful vendor implementation on identical hardware converts the investigation from an RF uncertainty into a software transport comparison.
+- Obsidian publication must preserve incomplete status rather than turn a debugging narrative into a false success report.
+
+### What was tricky to build
+
+- The vault had unrelated modified/deleted transcript files. Staging had to target only the new article, and push verification had to prove those files were excluded.
+- The source repository simultaneously contained an untested 100 kHz working-tree change. Ticket documentation had to be committed without staging that experiment.
+
+### What warrants a second pair of eyes
+
+- Compare ESP-IDF `i2c_master_transmit_receive()` timing and bus recovery to M5 `I2C_Class` explicit start/restart/read/write/stop behavior.
+- Review whether 100 kHz plus `IO_CONFIG_1=0x07` is the right first controlled transport test.
+- Confirm that no protocol code should change until repeated identity/configuration reads are stable.
+
+### What should be done in the future
+
+- Build and flash the 100 kHz experiment while preserving the proven tag position.
+- Quantify I2C timeout/corruption rate before and after the speed change.
+- If 100 kHz fails, reproduce M5’s explicit transaction sequence or test the ESP-IDF legacy I2C backend in an isolated branch.
+- Complete Phase 1 only when ESP-IDF `nfc-read` prints the UID.
+
+### Code review instructions
+
+- Read the published article at `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - Porting the ST25R3916 Reader to ESP-IDF.md`.
+- Review the uncommitted source diff before building; it contains only the proposed 100 kHz transport experiment.
+- Re-run with one tag across the literal top edge and inspect I2C errors before NFC IRQs.
+
+### Technical details
+
+- Vault article: 36,366 bytes, 4,868 words, 58 headings.
+- Vault commit/push: `e7003d40d3ca40f2602dd020ecc7fd5ca0db9a05` on `go-go-parc/main`.
+- Official result: screen state B, `PICC:<UID> ...`.
+- Current ESP-IDF failure class: intermittent new-driver I2C timeout/corrupt readback before a stable ATQA.
