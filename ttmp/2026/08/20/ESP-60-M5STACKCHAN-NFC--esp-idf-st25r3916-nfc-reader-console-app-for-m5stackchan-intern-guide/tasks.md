@@ -22,3 +22,4 @@
 - [x] Add continuous Arduino NFC polling with on-screen event log and compact serial summaries <!-- t:ybrj -->
 - [x] Display multiple Arduino NFC tags and retain a UID-deduplicated seen-device registry <!-- t:3snv -->
 - [x] Publish textbook deep-dive project report on the Arduino-to-ESP-IDF NFC porting batch to go-go-parc <!-- t:tdpt -->
+- [ ] Design apples-to-apples ESP-IDF instrumentation against the Arduino M5 I2C trace and diagnose the backend divergence <!-- t:fl3w -->
