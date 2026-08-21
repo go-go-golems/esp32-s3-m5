@@ -1753,3 +1753,87 @@ I wrote a new 5,093-word textbook-style Obsidian article focused on the UI/runti
 - Article size: 800 lines, 5,093 words, 37,799 bytes.
 - Passive captures: `/tmp/esp60-tag-present-live.log` and `/tmp/esp60-tag-read-once-live.log`.
 - Both passive captures lacked a new poll sequence and are not synchronized-read evidence.
+
+---
+
+## Step 22: Localize the first physical READ failure and compare Arduino retry semantics
+
+The operator performed the requested first controlled read and reported five failures in 365 low-level transactions. The last failure was `ESP_ERR_INVALID_STATE`, operation 2, key `0x0A`: a Space-A write to the ST25R3916 Auxiliary Definition register.
+
+That write enables receive-without-CRC immediately before REQA. The NFC driver returns as soon as it fails, so this attempt did not reach RF request transmission or tag decoding. Source review also established why the official Arduino screen can show a successful PICC without proving a perfect bus: M5's multi-card detect operation retries failed REQA attempts for up to one second and reports the eventual result.
+
+### Prompt Context
+
+**User prompt (verbatim):** "firrst read, transport error / invalid state op 2 key 0a&#32;
+
+bus page says txns 365, ok 360, fail 5, speed 400, last write A key 0a.
+
+So why does the arduino sketch seem to work well but this has issue? or did the arduino sketch also cause issues?"
+
+**Assistant interpretation:** Explain the exact failed operation and determine whether the apparent Arduino reliability is true transport reliability or retry/error-hiding behavior.
+
+**Inferred user intent:** Identify why two software stacks on identical hardware produce different visible outcomes and choose the next experiment based on evidence rather than assuming the tag is bad.
+
+### What I did
+
+- Mapped operation 2 to `ST25R_TRANSPORT_WRITE_A` and key `0x0A` to `ST25R_REG_AUXILIARY_DEFINITION`.
+- Traced the failure to `nfca_wake()`, where `set_bits(..., 0x80)` enables `no_crc_rx` before interrupt clear, FIFO clear, and REQA/WUPA transmission.
+- Confirmed that a write failure returns immediately, before RF transmission.
+- Inspected ESP-IDF 5.5.4 `i2c_master.c` and found that synchronous transactions return `ESP_ERR_INVALID_STATE` whenever final controller status is not `I2C_STATUS_DONE`.
+- Confirmed the driver's NACK path uses `I2C_STATUS_ACK_ERROR`, which can therefore surface to this caller as `ESP_ERR_INVALID_STATE`.
+- Inspected M5Unified `I2C_Class`: it delegates to M5GFX explicit begin/restart/read/write/end transaction operations.
+- Inspected M5Unit-NFC `NFCLayerA::detect(vector, 1000)`: it loops REQA until the one-second deadline, delays 1 ms after a failed request, and only exposes the eventual aggregate result to the example.
+- Calculated the observed raw failure rate as 5/365, approximately 1.37%; this is descriptive only because failures may be clustered and transactions are not independent.
+
+### Why
+
+- `ESP_ERR_INVALID_STATE` alone was too broad to distinguish an invalid handle from a controller transaction that ended in NACK/timeout state.
+- The official Arduino result proves that at least one complete detect sequence succeeded; without bus instrumentation, it does not prove zero failed intermediate attempts.
+- Register `0x0A` is a pre-REQA configuration write, so the current failure is below RF/tag behavior.
+
+### What worked
+
+- The Bus page localized the first physical failure to a specific operation and register exactly as designed.
+- Local ESP-IDF source explains the broad invalid-state mapping.
+- Vendor source identifies an explicit whole-request retry policy absent from the current one-shot NFC LAB path.
+
+### What didn't work
+
+- No Arduino per-transaction counters were recorded during the successful vendor test, so its actual hidden error rate is unknown.
+- This evidence does not yet distinguish among a transient ST25R NACK, shared-bus interaction, controller FSM recovery behavior, or transaction-framing difference.
+
+### What I learned
+
+- The visible comparison is not one-shot versus one-shot: NFC LAB READ ONCE attempts a narrow sequence, while M5 `detect()` retries request discovery for up to one second.
+- A write to Auxiliary Definition failing before REQA rules out tag type and tag placement as causes of this specific attempt.
+- ESP-IDF's public error name loses the internal distinction between controller statuses in this synchronous path.
+
+### What was tricky to build
+
+- The same returned `ESP_ERR_INVALID_STATE` can represent multiple internal paths. Reading the driver source was required to avoid interpreting it only as an uninitialized API object.
+- Adding retries could make UID detection succeed while preserving the underlying defect. The next experiment must retain counters and first-error context so eventual success does not erase transport evidence.
+
+### What warrants a second pair of eyes
+
+- Confirm whether ESP-IDF debug logging reports hardware NACK on the same failing transaction when I2C logging is enabled.
+- Compare M5GFX bus locking/recovery and exact START/RESTART/STOP sequence with the new ESP-IDF driver's generated operation list.
+- Check whether another StackChan client can access the same bus between the read-modify-write operations used for register `0x0A`.
+
+### What should be done in the future
+
+- Add a controlled M5-style one-second request retry mode while retaining all transaction counters and the first failure.
+- Implement or test explicit defined I2C operations matching M5 transaction framing.
+- Compare both backends with the same 20-pass register verification and tag position.
+
+### Code review instructions
+
+- Start at `st25r3916.c::nfca_wake()` and follow `set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80)` through `wr8()` to `transport_write()`.
+- Compare with `M5Unit-NFC/src/nfc/layer/a/nfc_layer_a.cpp::detect()` and `unit_ST25R3916_nfca.cpp::nfca_request_wakeup()`.
+- Inspect ESP-IDF 5.5.4 `components/esp_driver_i2c/i2c_master.c::s_i2c_synchronous_transaction()` and its ACK-error path.
+
+### Technical details
+
+- Physical counters: total 365, succeeded 360, failed 5.
+- Last context: `WRITE A`, register `0x0A`, `ESP_ERR_INVALID_STATE`.
+- `0x0A`: ST25R3916 Auxiliary Definition; bit `0x80`: receive without CRC.
+- Descriptive transaction failure rate: approximately 1.37%.

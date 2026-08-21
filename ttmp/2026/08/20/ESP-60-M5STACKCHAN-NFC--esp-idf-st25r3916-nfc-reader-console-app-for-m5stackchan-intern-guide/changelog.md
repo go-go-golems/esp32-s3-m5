@@ -129,3 +129,8 @@ Step 21: published and pushed the 5,093-word NFC LAB deep dive; documented that 
 
 - /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC LAB - Building an On-Device NFC Diagnostic Firmware.md — Published NFC LAB architecture and physical deployment deep dive
 
+
+## 2026-08-21
+
+Step 22: localized first NFC LAB READ failure to Auxiliary Definition write 0x0A before REQA and established that M5 detect retries failed requests for up to one second
+
