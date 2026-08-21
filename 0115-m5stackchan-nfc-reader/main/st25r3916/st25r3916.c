@@ -25,6 +25,8 @@ static const char *TAG = "st25r3916";
 #define I2C_TICKS        pdMS_TO_TICKS(I2C_TIMEOUT_MS)
 
 static i2c_master_dev_handle_t s_dev = NULL;
+static uint8_t s_last_timer_irq = 0;
+static uint8_t s_last_error_irq = 0;
 
 /* ------------------------------------------------------------------ */
 /* Low-level register access (mirrors PY32IOExpander_Class style)     */
@@ -105,13 +107,20 @@ static uint16_t fifo_bytes(void)
     return (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
 }
 
-/* Read the 24-bit main interrupt register (3 bytes from 0x1A, read). */
+/* Preserve the error IRQ before reading Main: per M5Unit-NFC/ST25R3916,
+ * reading Main clears the Error/Wakeup register. Then read Main + Timer/NFC.
+ * The public return layout remains main in bits 7:0 and timer in bits 15:8. */
 static uint32_t read_main_irq(void)
 {
+    uint8_t error = 0;
+    (void)rd8(ST25R_REG_ERROR_AND_WAKEUP_INTERRUPT, &error);
+
     uint8_t cmd = (ST25R_REG_MAIN_INTERRUPT & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    uint8_t buf[3] = {0, 0, 0};
-    if (i2c_master_transmit_receive(s_dev, &cmd, 1, buf, 3, I2C_TICKS) != ESP_OK) return 0;
-    return ((uint32_t)buf[2] << 16) | ((uint32_t)buf[1] << 8) | (uint32_t)buf[0];
+    uint8_t buf[2] = {0, 0};
+    if (i2c_master_transmit_receive(s_dev, &cmd, 1, buf, 2, I2C_TICKS) != ESP_OK) return 0;
+    s_last_error_irq = error;
+    s_last_timer_irq = buf[1];
+    return ((uint32_t)buf[1] << 8) | (uint32_t)buf[0];
 }
 
 static esp_err_t clear_interrupts(void)
@@ -432,8 +441,13 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
 
     uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_RXS | ST25R_IRQ_COL, 50);
     const char *wn = (wake_cmd == ST25R_CMD_TRANSMIT_REQA) ? "reqa" : "wupa";
-    ESP_LOGI(TAG, "%s: irq=%06X fifo=%u rxs=%d rxe=%d col=%d",
-             wn, (unsigned)irq, (unsigned)fifo_bytes(),
+    uint8_t fifo_status1 = 0, fifo_status2 = 0, collision = 0;
+    rd8(ST25R_REG_FIFO_STATUS_1, &fifo_status1);
+    rd8(ST25R_REG_FIFO_STATUS_2, &fifo_status2);
+    rd8(ST25R_REG_COLLISION_DISPLAY, &collision);
+    ESP_LOGI(TAG, "%s: irq=%06X timer=%02X error=%02X fifo=%u raw=%02X/%02X coll=%02X rxs=%d rxe=%d col=%d",
+             wn, (unsigned)irq, s_last_timer_irq, s_last_error_irq, (unsigned)fifo_bytes(),
+             fifo_status1, fifo_status2, collision,
              !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
     if (!(irq & ST25R_IRQ_RXE)) {
         if (irq & ST25R_IRQ_RXS) {
