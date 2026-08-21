@@ -1366,3 +1366,96 @@ Print a brutalist work slip with a list of all the phases. Then before each phas
 - Full build log: `/tmp/esp60-ui0-build.log`.
 - Incremental rebuild log: `/tmp/esp60-ui0-rebuild.log`.
 - Binary size: `0x39e350`; smallest app partition: `0x4f0000`; free: `0x151cb0` (27%).
+
+---
+
+## Step 18: UI-1 — implement the 320×240 Reader page
+
+UI-1 turned the service contract into the first real touchscreen page. The app now creates an exact 320×240 LVGL frame with a 28 px health header, 168 px content region, and 44 px navigation row, then renders every reader outcome as a distinct state instead of reducing failures to “No tag.”
+
+Touch callbacks for READ ONCE and AUTO only enqueue service commands. Snapshot changes are detected before taking `LvglLockGuard`, so the app does not lock or redraw on every Mooncake loop iteration. The final phase build completed without app-specific warnings.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 17)
+
+**Assistant interpretation:** Continue the printed phased implementation by building the Reader screen exactly from the reviewed design, commit it independently, and record real failures and fixes.
+
+**Inferred user intent:** See the first useful on-device NFC screen while preserving the concurrency and evidence guarantees established in UI-0.
+
+**Commit (code):** `11d5f0e074a75b18d8b7bf32616b6646fb199a1b` — "ESP-60 UI-1: add 320x240 NFC Reader page"
+
+### What I did
+
+- Printed the UI-1 brutalist phase slip before implementation.
+- Added `view/NfcDebugView` with raw LVGL 9 widgets and no animation.
+- Implemented a full-screen 320×240 root, 28 px header, 168 px content area, and 44 px four-button navigation matrix.
+- Added NFC LAB title, I2C health dot, cumulative raw error count, and static 38×28 quit control.
+- Implemented Reader render states: STARTING, READY, SCANNING, TAG FOUND, NO TAG, TRANSPORT ERROR, PROTOCOL ERROR, and STOPPED.
+- Rendered UID, provisional type, ATQA, SAK, UID length, and Detect/Select/Identify stage status on success.
+- Preserved raw `esp_err_to_name()` and elapsed time for error states.
+- Added 138×44 READ ONCE and AUTO buttons; callbacks only enqueue service commands.
+- Disabled the three future navigation buttons until their pages exist.
+- Moved app view destruction to an out-of-line destructor so the header can forward-declare the view.
+- Updated `build.sh` to run `idf.py reconfigure` before building because upstream's source glob lacks `CONFIGURE_DEPENDS`.
+- Rebuilt successfully with no `app_nfc_debug` warnings; binary size `0x39f680`, 27% app partition free.
+
+### Why
+
+- The Reader page is the minimum operator interface that can display placement instructions, raw transport failure, no-tag, and eventual UID success distinctly.
+- Deferring the LVGL lock until a new snapshot arrives keeps rendering bounded and prevents I2C work from ever running under the display lock.
+- Forty-four-pixel controls match the design and existing StackChan touch conventions.
+
+### What worked
+
+- Raw LVGL 9 APIs compiled against the production component without introducing a separate UI dependency.
+- The final build included the new view source after explicit reconfiguration.
+- The visual hierarchy fits the native screen dimensions exactly and retains all primary reader evidence.
+- Final build scan found no warning or error originating in `app_nfc_debug`.
+
+### What didn't work
+
+- First UI-1 build failed with:
+  `error: invalid application of 'sizeof' to incomplete type 'nfc_debug::view::NfcDebugView'`.
+  `AppNfcDebug` owned `std::unique_ptr<NfcDebugView>` while its implicit destructor was instantiated in `main.cpp`. Fixed by declaring `~AppNfcDebug()` and defining it out-of-line after including the complete view type.
+- Second UI-1 build linked without the new view source and failed with undefined references including:
+  `undefined reference to 'nfc_debug::view::NfcDebugView::~NfcDebugView()'`.
+  Upstream uses `GLOB_RECURSE` without `CONFIGURE_DEPENDS`, so the existing generated build graph did not notice the new `.cpp`. Fixed permanently by running `idf.py reconfigure` in `scripts/build.sh` before `idf.py build`.
+- The page has not yet been flashed and visually inspected on the physical 320×240 panel; hardware UI validation remains scheduled for the final phase.
+
+### What I learned
+
+- Forward-declared unique-pointer members require an out-of-line owner destructor when consumers instantiate destruction without the pointee definition.
+- A source overlay that adds files must account for upstream CMake glob behavior; copying source alone is insufficient for incremental builds.
+- LVGL's button matrix provides the exact 80×44 four-tab geometry with a single callback and lower object count than four separate navigation buttons.
+
+### What was tricky to build
+
+- Header space is constrained by title, I2C health, error count, and quit control. The implementation uses a real colored 10×10 object for health instead of a Unicode glyph that might be absent from embedded fonts.
+- The Reader body must show either two-line placement guidance or a long UID without changing geometry. Fixed-size clipped/wrapped labels preserve the action-button positions across all states.
+- “No tag” remains neutral gray and keeps transport health green; transport and protocol failures use different colors and retain raw errors.
+
+### What warrants a second pair of eyes
+
+- Visually inspect text clipping, especially a 10-byte UID and long `esp_err_to_name()` values, on the physical display.
+- Confirm the 38 px visible quit control has a sufficient practical touch target; its parent header currently limits its hit region to 38×28.
+- The future page buttons are intentionally disabled, so navigation behavior must be revalidated when UI-2 enables them.
+
+### What should be done in the future
+
+- UI-2: add driver diagnostic snapshots and enable RF/IRQ and BUS navigation.
+- Final hardware phase: flash and inspect the Reader page, touch response, app close/reopen, and live tag outcomes.
+
+### Code review instructions
+
+- Start at `view/nfc_debug_view.cpp::create_frame()` to verify all pixel boundaries.
+- Review `render_reader()` for state separation and raw error preservation.
+- Review `AppNfcDebug::onRunning()` to confirm the LVGL lock is acquired only after snapshot generation changes.
+- Build with `source ~/esp/esp-idf-5.5.4/export.sh && ./scripts/build.sh`.
+
+### Technical details
+
+- Geometry: header `(0,0,320,28)`, content `(0,28,320,168)`, navigation `(0,196,320,44)`.
+- Action buttons: `(16,120,138,44)` and `(166,120,138,44)` relative to content.
+- Failed logs: `/tmp/esp60-ui1-build.log`, `/tmp/esp60-ui1-build-2.log`.
+- Successful final log: `/tmp/esp60-ui1-build-final.log`.

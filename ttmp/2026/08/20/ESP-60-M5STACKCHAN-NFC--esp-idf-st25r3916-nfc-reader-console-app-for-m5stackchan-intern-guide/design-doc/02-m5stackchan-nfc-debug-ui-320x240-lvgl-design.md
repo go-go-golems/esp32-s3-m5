@@ -18,6 +18,8 @@ RelatedFiles:
       Note: Existing console diagnostics that the UI should expose through a shared service
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
       Note: Current driver state, diagnostics, IRQ data, and transport failures
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp
+      Note: Implemented 320x240 Reader frame and state renderer (commit 11d5f0e0)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official tag placement and on-device result images
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/04-m5stack-stackchan-nfc-full-official-doc.md
@@ -30,6 +32,7 @@ LastUpdated: 2026-08-21T15:00:00-04:00
 WhatFor: Design a usable on-device NFC debugging interface without hiding low-level ST25R3916 and I2C evidence.
 WhenToUse: Before implementing the NFC Debug Mooncake app or adding display support to the standalone reader.
 ---
+
 
 
 # M5StackChan NFC Debug UI — 320x240 LVGL Design

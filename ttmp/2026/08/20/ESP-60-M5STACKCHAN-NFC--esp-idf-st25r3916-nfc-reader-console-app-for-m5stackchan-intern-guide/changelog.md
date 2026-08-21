@@ -91,3 +91,12 @@ Step 17 / UI-0: added pinned StackChan overlay, serialized NFC worker, shared-bu
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp — Single-owner NFC command and snapshot service
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh — Reproducible pinned firmware overlay
 
+
+## 2026-08-21
+
+Step 18 / UI-1: implemented exact 320x240 Reader page with queued touch actions, raw error states, UID/ATQA/SAK rendering, and reproducible source reconfiguration (commit 11d5f0e0)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp — Reader page LVGL implementation
+
