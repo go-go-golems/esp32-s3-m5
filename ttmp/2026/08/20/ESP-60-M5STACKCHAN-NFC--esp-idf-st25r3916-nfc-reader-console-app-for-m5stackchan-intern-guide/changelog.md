@@ -229,3 +229,12 @@ Step 32: Phase 4 confirmed I2C_EVENT_NACK via driver DEBUG log (0 timeouts); ann
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/nfc_console.c — nfc-i2c-debug command toggles i2c.master log level
 
+
+## 2026-08-21
+
+Step 33: Phase 5 comparison script proves apples-to-apples divergence (Arduino 2614/2614 OK on wire 0x5C vs ESP-IDF NACKs on same key)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/08-compare-arduino-espidf-traces.py — Comparison script
+

@@ -27,4 +27,4 @@
 - [x] Phase 2: instrument standalone 0115 transport (rd8/wr8/direct_cmd/fifo/space-b) with observer-safe recording <!-- t:tl1q -->
 - [x] Phase 3: first-error freeze + nfc-trace console commands (clear/status/dump/first-error/mode) <!-- t:2cn6 -->
 - [x] Phase 4: driver DEBUG diagnostic build config to confirm I2C_EVENT_NACK <!-- t:d6he -->
-- [ ] Phase 5: Arduino/ESP-IDF normalized comparison script + report <!-- t:y7yo -->
+- [x] Phase 5: Arduino/ESP-IDF normalized comparison script + report <!-- t:y7yo -->

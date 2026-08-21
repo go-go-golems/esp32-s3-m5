@@ -32,12 +32,16 @@ RelatedFiles:
       Note: Pinned reproducible upstream composition process (commit 50d7c151)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md
       Note: Empirical Arduino-versus-ESP-IDF transaction comparison
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-arduino-vs-espidf-trace-comparison.json
+      Note: 'Apples-to-apples comparison: Arduino 0 failures on 0x5C/0x5A vs ESP-IDF NACKs'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md
       Note: Arduino-comparable ESP-IDF trace design and evidence-ranked backend diagnosis
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
       Note: Reproducible no-serial-in-hot-path M5Unified tracer
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/06-probe-st25r-trace.py
       Note: Single-owner serial probe for trace validation
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/08-compare-arduino-espidf-traces.py
+      Note: Normalizes Arduino M5_I2C + ESP-IDF I2C_TRACE to one schema; emits summary/key-coverage/failure-timing/divergence (design S12)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
       Note: Continuous Arduino polling and on-screen diagnostics
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
@@ -64,6 +68,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2951,3 +2956,69 @@ This turns the Step 29 "strong inference" into confirmed driver-event evidence. 
 - Annotated first error: `seq=326 op=IRQ_R logical=1A wire=5A api=ESP_ERR_INVALID_STATE hint=NACK class=HOST_NACK elapsed_us=226`.
 - Back-to-back failure: `seq=327 READ_A 0x1C INVALID_STATE elapsed_us=1378` (FSM-reset recovery), then `seq=328` OK.
 - Build: `CONFIG_I2C_ENABLE_DEBUG_LOG=y`, `m5stackchan_nfc_reader.bin` ~0x3d570 bytes, 76% free.
+
+---
+
+## Step 33: Normalize Arduino and ESP-IDF traces for the apples-to-apples comparison (Phase 5)
+
+The instrumentation effort was meant to end in a direct comparison. I wrote `scripts/08-compare-arduino-espidf-traces.py`, which normalizes the Arduino `M5_I2C` records and the ESP-IDF `I2C_TRACE` records to one schema (backend, phase, kind, wire_key, logical_key, lengths, ok, result) and emits the design S12 outputs: per-backend/phase summary, per-wire-key coverage, ESP-IDF failure timing, and the first-divergence against the Arduino same-key success rate.
+
+I generated a 512-event ESP-IDF dump (`sources/hardware/07-espidf-full-dump-for-comparison.txt`) by running `nfc-trace clear`, `nfc-read --attempts 8`, `nfc-trace dump`, `nfc-trace first-error`, and compared it against the 4-chip Arduino control. The result is the clean apples-to-apples divergence the design called for: on wire key `0x5C` (READ_A of register 0x1C) Arduino succeeded 2614/2614 while ESP-IDF NACKed 3/247 times; on `0x5A` (the 2-byte MAIN_INTERRUPT read) Arduino 2925/2925 OK while ESP-IDF NACKed 2/246. Both backends touch the same register set; the failure is isolated to the ESP-IDF host-controller path, not the chip or the tag.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 30)
+
+### What I did
+
+- Wrote `scripts/08-compare-arduino-espidf-traces.py`: parses gzipped/text Arduino captures and ESP-IDF captures, normalizes both, and prints + emits JSON for summary, key coverage, failure timing, and divergence.
+- Generated `sources/hardware/07-espidf-full-dump-for-comparison.txt` (512 I2C_TRACE events, 5 NACK failures) via a single-owner inline probe.
+- Ran the comparison against `02-official-arduino-four-chip-full-i2c-trace.log.gz` and saved `analysis/02-arduino-vs-espidf-trace-comparison.json`.
+
+### Why
+
+- The two trace formats used different key labels (Arduino first wire byte vs ESP-IDF logical register), so a normalizer was required before any fair comparison.
+- A per-wire-key success-rate comparison is the honest apples-to-apples view given the two captures are from different runs/conditions; forcing an event-by-event alignment across mismatched runs would be misleading.
+
+### What worked
+
+- Arduino: 10,187 events, 0 transport failures across init/detect/identify and across every wire key touched.
+- ESP-IDF (512-event window): 5 NACK failures, all on the `irq-wait` polling keys `0x5A`/`0x5C`; max elapsed 1244 us (FSM-reset recovery path), median 177 us.
+- Divergence: ESP-IDF first failure `seq=3707 wire=0x5C ESP_ERR_INVALID_STATE`; Arduino same key `0x5C` = 2614 events, 0 failures.
+
+### What didn't work
+
+- The first ESP-IDF capture (the 40-event tail from Step 31) had no failures in window, so the first comparison run showed ESP-IDF `fails=0`; I regenerated a 512-event full-dump capture that included failures.
+- The ESP-IDF window is dominated by `irq-wait` because polling overwrote earlier init transactions in the 512-deep ring; init keys are under-represented on the ESP-IDF side.
+
+### What I learned
+
+- Normalizing both backends to wire_key + logical_key makes the comparison trivial: the same wire keys (0x5C, 0x5A) succeed 100% under M5 and fail intermittently under ESP-IDF, which isolates the defect to the host-controller path.
+- The 1244 us max ESP-IDF elapsed (vs 177 us median) quantifies the post-error FSM-reset recovery cost.
+
+### What was tricky to build
+
+- The Arduino capture is gzipped and ANSI-escaped; the parser strips ANSI and decompresses `.gz`.
+- A run-aware comparison (per-key rates) is more honest than a forced event-by-event divergence when the two captures cover different conditions; the script deliberately offers the divergence only as "first ESP-IDF failure vs Arduino same-key success", not as a synchronized sequence.
+
+### What warrants a second pair of eyes
+
+- Confirm the wire-key normalization is correct for Space-B (0xFB-prefixed) operations, which both backends handle differently; the current comparison focuses on Space-A polling keys where both align.
+- Confirm the ESP-IDF failure count (5) in this 512 window is representative across boots.
+
+### What should be done in the future
+
+- Capture SDA/SCL on GPIO12/GPIO11 during a failing `0x5C`/`0x5A` read to locate the physical NACK byte stage.
+- Implement the defined-operations backend (design Phase 6) and re-run the comparison to see whether explicit START/RESTART/STOP framing changes the NACK rate.
+- Add a tag-present ESP-IDF capture to the comparison to see whether the NACKs prevent UID reading or a separate protocol issue exists.
+
+### Code review instructions
+
+- Run `scripts/08-compare-arduino-espidf-traces.py 02-...log.gz 07-...txt --json out.json` and inspect `analysis/02-arduino-vs-espidf-trace-comparison.json`.
+- Verify the key-coverage table: Arduino `0x5C` 2614/0 vs ESP-IDF `0x5C` 247/3.
+
+### Technical details
+
+- Arduino: 10,187 events, 0 failures. ESP-IDF: 512 events, 5 failures (1%).
+- Divergence key: `0x5C` — Arduino 2614/2614 OK, ESP-IDF 3/247 fail.
+- ESP-IDF failure timing: median 175 us, max 1244 us (recovery), gap median 12 us (busy-spin).
