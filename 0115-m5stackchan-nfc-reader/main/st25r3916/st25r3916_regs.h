@@ -62,16 +62,14 @@
 #define ST25R_VALID_IDENTIFY_TYPE              0x05   /* ST25R3916/7 */
 #define ST25R_MAX_FIFO_DEPTH                   512
 
-/* ---- REG_OPERATION_CONTROL bits ---- */
-#define ST25R_OPCTRL_TX_EN                     0x01
-#define ST25R_OPCTRL_RX_EN                     0x02
+/* ---- REG_OPERATION_CONTROL bits (0x02) ---- */
+#define ST25R_OPCTRL_TX_EN                     0x08   /* Enables Tx operation */
+#define ST25R_OPCTRL_RX_EN                     0x40   /* Enables Rx operation */
+#define ST25R_OPCTRL_EN                        0x80   /* Enables oscillator + regulator (Ready mode) */
+#define ST25R_OPCTRL_WU                        0x04   /* Enables Wake-up mode */
 
-/* ---- REG_MAIN_INTERRUPT bit definitions (bit numbers; shift into 32-bit IRQ word) ---- */
-/* The ST25R3916 main interrupt is read as a 24-bit value (low byte at 0x1A).
- * For Phase-1 polling we care about the RX end (I_rxe, bit 4) and collision (I_col, bit 9). */
-#define ST25R_IRQ_RXE_SHIFT                     4
-#define ST25R_IRQ_COL_SHIFT                     9
-#define ST25R_IRQ_RXS_SHIFT                     5
-#define ST25R_IRQ_RXE                           (1u << ST25R_IRQ_RXE_SHIFT)
-#define ST25R_IRQ_RXS                           (1u << ST25R_IRQ_RXS_SHIFT)
-#define ST25R_IRQ_COL                           (1u << ST25R_IRQ_COL_SHIFT)
+/* ---- REG_MAIN_INTERRUPT (0x1A) bit values (low byte of the 24-bit IRQ word) ---- */
+#define ST25R_IRQ_OSC                          0x80   /* oscillator frequency stable */
+#define ST25R_IRQ_RXS                          0x20   /* start of receive */
+#define ST25R_IRQ_RXE                          0x10   /* end of receive */
+#define ST25R_IRQ_COL                          0x04   /* bit collision */

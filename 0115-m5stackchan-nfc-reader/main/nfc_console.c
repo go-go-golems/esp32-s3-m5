@@ -81,11 +81,20 @@ static int cmd_read(int argc, char **argv)
         return 0;
     } else if (e == ESP_ERR_NOT_FOUND) {
         printf("no tag\n");
+        st25r3916_debug_dump();
         return 1;
     } else {
         printf("read error: %s\n", esp_err_to_name(e));
+        st25r3916_debug_dump();
         return 1;
     }
+}
+
+/* nfc-regs : dump key ST25R3916 registers. */
+static int cmd_regs(int argc, char **argv)
+{
+    st25r3916_debug_dump();
+    return 0;
 }
 
 /* nfc-poll : continuously poll (until Ctrl-C / device reset). */
@@ -141,4 +150,5 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-field", "RF field on|off",                 cmd_field,  "on|off");
     reg("nfc-read",  "Poll one ISO14443-A tag",         cmd_read,   NULL);
     reg("nfc-poll",  "Continuously poll for tags",      cmd_poll,   NULL);
+    reg("nfc-regs",  "Dump key ST25R3916 registers",   cmd_regs,   NULL);
 }

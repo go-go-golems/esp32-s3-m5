@@ -206,28 +206,49 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     e = direct_cmd(ST25R_CMD_SET_DEFAULT);
     if (e != ESP_OK) { ESP_LOGE(TAG, "CMD_SET_DEFAULT failed"); return e; }
 
-    /* Minimal IO config for I2C (3V supply, internal; the body board runs 3.3V).
-     * IO_CONFIG_1 low bits: MCU_CLK disabled, no LF clock on MCU_CLK (0x07). */
-    set_bits(ST25R_REG_IO_CONFIGURATION_1, 0x07);
+    /* Minimal IO config for I2C (3V supply; body board runs 3.3V).
+     * IO_CONFIG_1: sup3v (0x80) + io_drv_lvl (0x04) + mcu_clk disabled (0x07) = 0x8B.
+     * IO_CONFIG_2: i2c_thd0 (0x10 for 400kHz) + aat_en (0x20) = 0x30. */
+    wr8(ST25R_REG_IO_CONFIGURATION_1, 0x8B);
+    wr8(ST25R_REG_IO_CONFIGURATION_2, 0x30);
+
+    /* Antenna settings — CRITICAL for RF coupling (from M5 lib begin()):
+     *   TX_DRIVER (0x28) = 0xD0  (tx_am_modulation=13 << 4)
+     *   ANTENNA_TUNING_CONTROL_1/2 (0x26/0x27) = 0x82
+     * Without these the field register says "on" but the antenna is not driven. */
+    wr8(ST25R_REG_TX_DRIVER, 0xD0);
+    wr8(0x26, 0x82);
+    wr8(0x27, 0x82);
 
     /* Clear FIFO. */
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
 
-    /* Mask all interrupts except error, clear them, enable oscillator (en=0x01 in
-     * OPERATION_CONTROL bit0 is the osc enable per datasheet? Actually osc is via
-     * CMD? The M5 lib uses enable_osc() which sets OPERATION_CONTROL bit "en" = 0x40.
-     * We set the enable bit conservatively. */
+    /* Mask all interrupts except error, clear them. */
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT, 0xFF);
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT + 1, 0xFF);
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT + 2, 0xFF);
     clear_interrupts();
-    /* Enable oscillator: OPERATION_CONTROL bit6 (en) — ST25R3916 "en" oscillator enable. */
-    set_bits(ST25R_REG_OPERATION_CONTROL, 0x40);
+
+    /* Enable oscillator: unmask I_osc, set the 'en' bit (0x80), wait for I_osc IRQ,
+     * then remask I_osc. (Matches M5 lib enable_osc().) */
+    clear_bits(ST25R_REG_MASK_MAIN_INTERRUPT, ST25R_IRQ_OSC);
+    clear_interrupts();
+    set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_EN);
+    {
+        uint32_t irq = wait_irq(ST25R_IRQ_OSC, 50);
+        set_bits(ST25R_REG_MASK_MAIN_INTERRUPT, ST25R_IRQ_OSC);
+        if (!(irq & ST25R_IRQ_OSC)) {
+            ESP_LOGW(TAG, "oscillator did not stabilize (no I_osc); continuing");
+        }
+    }
     vTaskDelay(pdMS_TO_TICKS(2));
-    /* Unmask interrupts. */
+    /* Unmask all interrupts. */
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT, 0x00);
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT + 1, 0x00);
     wr8(ST25R_REG_MASK_MAIN_INTERRUPT + 2, 0x00);
+
+    /* Enable external field detector automatically (en_fd = 0b11). */
+    set_bits(ST25R_REG_OPERATION_CONTROL, 0x03);
 
     /* Adjust regulators and wait. */
     direct_cmd(ST25R_CMD_ADJUST_REGULATORS);
@@ -253,22 +274,40 @@ esp_err_t st25r3916_field_on(void)
     esp_err_t e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
-    /* Enable TX/RX. */
-    return set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+    /* Per M5 lib nfc_initial_field_on(): clear tx_en|rx_en after field-on; the
+     * direct transmit commands manage tx/rx themselves. */
+    return clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
 }
 
 esp_err_t st25r3916_field_off(void)
 {
-    /* Stop RF and clear TX/RX enables. */
+    /* Stop RF and clear tx/rx enables. */
     direct_cmd(ST25R_CMD_STOP_ALL_ACTIVITIES);
     return clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
 }
 
+void st25r3916_debug_dump(void)
+{
+    uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
+    rd8(ST25R_REG_OPERATION_CONTROL, &opc);
+    rd8(ST25R_REG_MODE_DEFINITION, &mode);
+    rd8(ST25R_REG_ISO14443A_SETTINGS, &iso);
+    rd8(ST25R_REG_AUXILIARY_DEFINITION, &aux);
+    rd8(ST25R_REG_RECEIVER_CONFIGURATION_1, &rxc1);
+    rd8(ST25R_REG_RECEIVER_CONFIGURATION_2, &rxc2);
+    rd8(0x2D /* REG_RSSI_DISPLAY */, &rssi);
+    uint32_t irq = read_main_irq();
+    uint16_t fb = fifo_bytes();
+    ESP_LOGI(TAG, "regs: OPC=%02X MODE=%02X ISO=%02X AUX=%02X RX1=%02X RX2=%02X RSSI=%02X",
+             opc, mode, iso, aux, rxc1, rxc2, rssi);
+    ESP_LOGI(TAG, "      MAIN_IRQ=%06X FIFO_bytes=%u", (unsigned)irq, (unsigned)fb);
+}
+
 esp_err_t st25r3916_configure_nfca(void)
 {
-    /* Mode definition: initiator, ISO14443-A, 106 kbps, auto-rx. (0x88 per M5 lib's
-     * InitiatorOperationMode ISO14443A | nfc_ar8_auto=0x01 -> reg 0x03 = 0x88) */
-    esp_err_t e = wr8(ST25R_REG_MODE_DEFINITION, 0x88);
+    /* Mode definition: initiator, ISO14443-A (0x01<<3=0x08) | nfc_ar8_auto (0x01) = 0x09.
+     * (writeInitiatorOperationMode: value = mode | (0x07 & optional); writeModeDefinition writes reg 0x03.) */
+    esp_err_t e = wr8(ST25R_REG_MODE_DEFINITION, 0x09);
     if (e != ESP_OK) return e;
     /* Bitrate: tx=rx=106 kbps (0x00). */
     e = wr8(ST25R_REG_BITRATE_DEFINITION, 0x00);
@@ -277,12 +316,18 @@ esp_err_t st25r3916_configure_nfca(void)
     e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x00);
     if (e != ESP_OK) return e;
 
-    /* Receiver configuration (stability-focused, from M5 lib). */
-    wr8(ST25R_REG_RECEIVER_CONFIGURATION_1, 0x84);  /* z600k */
-    wr8(ST25R_REG_RECEIVER_CONFIGURATION_2, 0x33);  /* sqm_dyn|agc_en|agc_m|agc6_3 */
+    /* Receiver configuration (stability-focused, from M5 lib configure_nfc_a).
+     *   RX_CONFIG_1 (0x0B) = z_600k (0x08)
+     *   RX_CONFIG_2 (0x0C) = sqm_dyn|agc_en|agc_m|agc6_3 = 0x2D
+     *   RX_CONFIG_3 (0x0D) = 0xD8   RX_CONFIG_4 (0x0E) = 0x22  (stability recv gain) */
+    wr8(ST25R_REG_RECEIVER_CONFIGURATION_1, 0x08);
+    wr8(ST25R_REG_RECEIVER_CONFIGURATION_2, 0x2D);
     wr8(ST25R_REG_RECEIVER_CONFIGURATION_3, 0xD8);
     wr8(ST25R_REG_RECEIVER_CONFIGURATION_4, 0x22);
     direct_cmd(ST25R_CMD_RESET_RX_GAIN);
+
+    /* Clear correlator disable (dis_corr=0x04) for ISO14443-A. */
+    clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x04);
 
     /* Initial field on + enable tx/rx. */
     e = st25r3916_field_on();
@@ -301,7 +346,7 @@ static esp_err_t nfca_reqa(uint16_t *atqa)
      * chip handles REQA timing internally. Configure ISO14443A settings with
      * anticollision (antcl) and no CRC on RX. */
     wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
-    set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x02); /* no_crc_rx */
+    set_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* no_crc_rx */
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
 
@@ -335,7 +380,7 @@ static esp_err_t nfca_anticoll_select(uint8_t sel, uint8_t *uid_out, uint8_t *sa
     /* ANTICOLLISION: SEL, NVB=0x20 (request full UID, all bits). */
     uint8_t frame[7] = { sel, 0x20 };
     wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
-    clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x02); /* re-enable CRC for select */
+    clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* re-enable CRC for select */
     clear_interrupts();
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
     fifo_write(frame, 2);

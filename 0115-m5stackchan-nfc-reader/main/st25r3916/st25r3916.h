@@ -47,6 +47,9 @@ esp_err_t st25r3916_field_off(void);
 /* Configure the chip for ISO14443-A reader mode (called by init; re-callable). */
 esp_err_t st25r3916_configure_nfca(void);
 
+/* Print key register values for debugging (operation control, mode, IRQ, RSSI, FIFO). */
+void st25r3916_debug_dump(void);
+
 /* Poll once for an ISO14443-A tag. Returns ESP_OK + out filled if a tag was found,
  * ESP_ERR_NOT_FOUND if no tag answered, ESP_FAIL on protocol error.
  * Leaves the field ON after a successful poll. */
