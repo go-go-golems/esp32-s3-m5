@@ -110,3 +110,13 @@ Step 19 / UI-2: instrumented every ST25R I2C transaction and added cooperative R
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c — Raw transaction and RF diagnostic evidence
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp — RF and Bus screens
 
+
+## 2026-08-21
+
+Step 20: converted to NFC-only auto-open firmware, reduced app by ~613 KiB, completed the first full physical flash, and captured live NFC.LAB execution (commit 51efbe4f)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/scripts/flash.sh — Full migration and later app-only flash workflow
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh — NFC-only app registry and source filtering
+

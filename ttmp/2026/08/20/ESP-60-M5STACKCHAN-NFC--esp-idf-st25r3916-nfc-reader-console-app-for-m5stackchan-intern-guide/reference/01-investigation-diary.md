@@ -15,6 +15,8 @@ RelatedFiles:
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.cpp
       Note: UI-0 serialized NFC worker and immutable snapshot implementation (commit 50d7c151)
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/flash.sh
+      Note: NFC-only physical deployment workflow (commit 51efbe4f)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
       Note: Pinned reproducible upstream composition process (commit 50d7c151)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
@@ -29,6 +31,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -1554,3 +1557,110 @@ The RF/IRQ and Bus pages are enabled in the bottom navigation. Their longer acti
 - Verification set: 12 registers × 20 passes = 240 explicit verification reads, plus snapshot diagnostics.
 - Build log: `/tmp/esp60-ui2-build-final.log`.
 - Binary: `0x3a0920`; free app space: `0x14f6e0` (27%).
+
+---
+
+## Step 20: Convert to NFC-only firmware and perform the first physical UI flash
+
+The user noticed that the UI was not visible because the implementation had only been built, not flashed. They then clarified that this diagnostic device should not carry the standard StackChan application suite. I paused the partially started UI-3 event-log work, preserved its patch, and changed the reproducible overlay into an NFC-only firmware composition.
+
+The resulting image excludes all standard app implementations, installs only NFC.LAB, and opens it automatically at boot. The image shrank by approximately 613 KiB, the first full partition-layout flash succeeded with hash verification, and live USB logs prove that NFC.LAB is executing its worker and rendering snapshot generations on the physical device.
+
+### Prompt Context
+
+**User prompt (verbatim):** "I don't see th eUI on the device, are you running these things?"
+
+**Additional user prompt (verbatim):** "are we flashing all the stackchan apps each time?"
+
+**Additional user prompt (verbatim):** "can you disable the standard apps, so we have less to flash? we are only working on the nfc app"
+
+**Assistant interpretation:** Stop treating build success as physical deployment; strip the composed firmware to the NFC application and required shared framework code, flash it now, and optimize subsequent update flashing.
+
+**Inferred user intent:** See the in-progress NFC UI on the actual StackChan quickly, without repeatedly carrying unrelated standard apps through the build and flash cycle.
+
+**Commit (code):** `51efbe4fb337a76067937069da77913167feb877` — "ESP-60: boot directly into NFC-only StackChan firmware"
+
+### What I did
+
+- Explicitly corrected the record: UI-0 through UI-2 had been built but not flashed before this step.
+- Saved the uncommitted UI-3 event-ring work to `/tmp/esp60-ui3-partial-event-log.patch` and restored the tracked service files before changing firmware composition.
+- Changed generated `apps.h` to include only `AppNfcDebug`.
+- Changed generated `main.cpp` to install only `AppNfcDebug` and force Mooncake mode rather than AI-agent boot bypass.
+- Made `AppNfcDebug::onCreate()` open NFC.LAB automatically.
+- Removed the on-screen quit control because no launcher exists in NFC-only mode.
+- Removed the unused setup icon dependency.
+- Added a CMake source filter excluding standard implementations: Launcher, AI Agent, Avatar, Setup, Dance, ESP-NOW, App Center, EzData, and Template.
+- Retained `apps/common` after link evidence proved HAL uses its reminder, home-indicator, and status-bar functions.
+- Added `scripts/flash.sh`: `--full` for partition migration and `app` for later application-only updates.
+- Built the NFC-only firmware with ESP-IDF 5.5.4.
+- Verified no standard app object appeared in the build log.
+- Compared images: all-app UI-2 `0x3a0920`; NFC-only `0x30ae70`.
+- Checked `/dev/ttyACM0` for owners; no monitor/flasher held it.
+- Performed the required first full flash: bootloader, partition table, OTA data, app, and generated assets; every write hash verified.
+- Reset once under one pyserial owner and captured 15 seconds of live NFC.LAB logs.
+
+### Why
+
+- Build completion does not make UI visible on hardware; physical deployment is a separate evidence requirement.
+- Upstream links the `main` component `WHOLE_ARCHIVE`, so merely not installing standard apps does not reduce the image. Their source files must be filtered before entering `SOURCES`.
+- The board was running standalone project `0115`, whose partition layout does not match StackChan firmware; the first migration could not safely use app-only flashing.
+- Subsequent changes retain the new partition layout and can use `idf.py app-flash`.
+
+### What worked
+
+- NFC-only image built successfully at `0x30ae70` with 38% free in the smallest app partition.
+- The app image decreased by `0x95ab0` bytes, approximately 613 KiB or 16% relative to all-app UI-2.
+- Build-log search found no standard app object compilation.
+- Full flash succeeded on `/dev/ttyACM0` with verified hashes.
+- Live output proves physical execution, including:
+  `[NFC.LAB] state=SCANNING generation=3 errors=0`
+  followed by raw REQA/WUPA and NO TAG/TRANSPORT ERROR state transitions.
+
+### What didn't work
+
+- First NFC-only link excluded `apps/common` and failed with undefined references such as:
+  `undefined reference to 'tools::update_reminders()'`
+  `undefined reference to 'view::update_home_indicator()'`
+  `undefined reference to 'view::create_status_bar(...)'`.
+  The HAL calls these shared support functions directly. Fixed by retaining `apps/common` while continuing to exclude all launcher-visible standard apps.
+- The first physical log capture began after early boot output and therefore did not preserve the complete startup sequence.
+- Auto polling appeared active during the capture even though the service defaults it off. This could be a physical touch event, retained touch state, or an unintended callback and requires direct screen/touch validation.
+
+### What I learned
+
+- `apps/common` is framework support despite its location under `apps/`; app-directory classification alone is insufficient for safe source elimination.
+- Excluding standard app source materially reduces the image, but the StackChan HAL, display, touch, audio, networking, and Xiaozhi foundation still dominate the remaining 3.0 MiB image.
+- The first full flash wrote a 3.19 MB app and a 2.30 MB generated-assets partition; subsequent app-only iterations avoid rewriting the 2.30 MB assets partition.
+
+### What was tricky to build
+
+- The source filter had to reduce a `WHOLE_ARCHIVE` component without removing functions called indirectly by HAL background tasks. Link errors, not directory names, established the correct support boundary.
+- UI-3 was already partially edited. Preserving it as a patch before restoring files avoided mixing an unfinished event-log feature into the deployment-focused commit.
+- A full partition transition was unavoidable once; claiming that `app-flash` was immediately safe would have risked writing a 3 MB image into the standalone firmware's incompatible layout.
+
+### What warrants a second pair of eyes
+
+- Confirm visually that NFC.LAB fills the screen and that READ/RF/BUS navigation responds correctly.
+- Investigate why auto polling became active during the serial capture and ensure reset-time touch state cannot toggle AUTO accidentally.
+- The NFC worker recorded rapidly increasing transaction failures; compare the BUS page values to raw logs while the tag is in the proven position.
+
+### What should be done in the future
+
+- Reapply `/tmp/esp60-ui3-partial-event-log.patch` and continue UI-3.
+- Use `./scripts/flash.sh app` for subsequent iterations unless partition/assets configuration changes.
+- Capture a complete boot log on the next app-only flash and validate the visible screen with the operator.
+
+### Code review instructions
+
+- Review `scripts/prepare.sh` for generated app registry, main installation, and CMake source filter.
+- Review `AppNfcDebug::onCreate()` for auto-open behavior.
+- Reproduce build size with `prepare.sh` + `build.sh`; confirm no `apps/app_*` object other than `app_nfc_debug` is built.
+- Full migration flash: `./scripts/flash.sh --full`; subsequent update: `./scripts/flash.sh app`.
+
+### Technical details
+
+- All-app UI-2 image: `0x3a0920`.
+- NFC-only image: `0x30ae70`; free: `0x1e5190` (38%).
+- Full flash log: `/tmp/esp60-nfc-only-full-flash.log`.
+- Boot/runtime capture: `/tmp/esp60-nfc-only-boot.log`.
+- Partial UI-3 preservation: `/tmp/esp60-ui3-partial-event-log.patch`.
