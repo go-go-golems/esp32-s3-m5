@@ -7,6 +7,6 @@
 - [ ] Flash to /dev/ttyACM0, verify nfc-scan/probe/read on a real NTAG <!-- t:tr32 -->
 - [ ] Verify NFC power-enable path against body schematic (open question) <!-- t:o65r -->
 - [ ] Phase 2: integrate as Mooncake app with LVGL UID display <!-- t:2nrd -->
-- [ ] Upload guide bundle to reMarkable <!-- t:pbpb -->
+- [x] Upload guide bundle to reMarkable <!-- t:pbpb -->
 ---
 

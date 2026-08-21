@@ -234,41 +234,53 @@ I will relate the key files, update the changelog/tasks, run `docmgr doctor`, an
 
 ### What I did
 
-(see execution evidence appended below after running the commands)
+- Related `AGENTS.md` to the design doc via `docmgr doc relate` (the 5 in-ticket `sources/code/*` relations triggered a docmgr `repo://` anchor-resolution false-positive — doctor strips the anchor and resolves relative to the doc dir; removed them since the files are already documented in §13 + ExternalSources and exist on disk). Doctor then passed: **All checks passed**.
+- Updated the changelog with the Step 3 commit hash and added 6 tasks (research, implement, flash, schematic-verify, Phase 2, upload). Marked research + upload done.
+- Added vocabulary slugs `nfc`, `st25r3916`, `esp-console` (doctor flagged them as unknown topics).
+- Fixed a `doctor --fix` side-effect: it added a stray `---` to `README.md`/`changelog.md`/`tasks.md` (which originally had no frontmatter), breaking their parse. Removed the stray delimiter; amended the bookkeeping commit to drop the `.bak` files.
+- Uploaded the design doc + diary as a reMarkable bundle: dry-run first, then `remarquee upload bundle ... --remote-dir /ai/2026/08/20/ESP-60-M5STACKCHAN-NFC --toc-depth 2`. Verified with `remarquee cloud ls`: `ESP-60 M5StackChan NFC Reader — Intern Guide` present.
 
 ### Why
 
-The ticket-research skill requires relate/changelog/tasks bookkeeping, a clean `docmgr doctor`, and a dry-run-then-real reMarkable bundle upload.
+The ticket-research skill requires relate/changelog/tasks bookkeeping, a clean `docmgr doctor`, and a dry-run-then-real reMarkable bundle upload. Filling the diary's execution evidence makes the trail auditable.
 
 ### What worked
 
-(pending)
+- `docmgr doctor` passed cleanly after removing the in-ticket source relations and adding vocab.
+- The reMarkable bundle uploaded on the first real attempt (pandoc → PDF → rmapi), and `cloud ls` confirmed it.
 
 ### What didn't work
 
-(pending)
+- `docmgr doctor --fix` corrupted the frontmatter of the three scaffold files (README/changelog/tasks) by inserting a stray `---`; had to repair manually. Lesson: avoid `doctor --fix` on scaffold files that legitimately have no frontmatter.
+- In-ticket `sources/code/*` file relations show as `missing_related_file` due to a `repo://` anchor resolution quirk (doctor resolves the stripped path relative to the doc dir, not the ticket dir). Worked around by removing those 5 relations; the files remain referenced in the doc body.
 
 ### What I learned
 
-(pending)
+- docmgr writes the tightest containing anchor (`repo://` for in-repo files) but doctor's legacy-path resolution can mis-resolve deeply-nested `repo://` ticket paths. For in-ticket source files, document them in the doc body rather than `--file-note` relate.
+- The elechouse/ST.com sites block automated downloads (curl HTTP/2 INTERNAL_ERROR); record URLs for manual browser download instead of fighting the bot filter.
 
 ### What was tricky to build
 
-(pending)
+- The `ExternalSources` frontmatter field expects a list of **strings**, not a list of `Path:`/`Note:` maps (unlike `RelatedFiles` which accepts maps). The first relate attempt failed with a YAML unmarshal error until I converted `ExternalSources` to plain strings.
+- Keeping the diary honest: Step 4 was written as intent first, then back-filled with execution evidence after the commands ran, so the recorded commands match what actually happened.
 
 ### What warrants a second pair of eyes
 
-- Verify the reMarkable upload landed in `/ai/YYYY/MM/DD/ESP-60-M5STACKCHAN-NFC` and opens as a single PDF with a ToC.
+- Verify the reMarkable upload landed in `/ai/2026/08/20/ESP-60-M5STACKCHAN-NFC` and opens as a single PDF with a ToC. (Confirmed via `remarquee cloud ls`; a human should open it on the tablet.)
+- The 5 removed in-ticket source relations: confirm the intern can still find the source files — they are listed in `design-doc` §13 Key File Reference and committed under `sources/code/`.
 
 ### What should be done in the future
 
-- After the user greenlights implementation, add a Step 5 covering the actual Phase-1 build/flash/verify.
+- After the user greenlights implementation, add a Step 5 covering the actual Phase-1 build/flash/verify on `/dev/ttyACM0`.
+- Re-evaluate whether to re-relate `sources/code/*` once docmgr's `repo://` nested-path resolution is fixed.
 
 ### Code review instructions
 
-- `docmgr doctor --ticket ESP-60-M5STACKCHAN-NFC --stale-after 30` should be clean.
-- `remarquee cloud ls /ai/2026/08/20/ESP-60-M5STACKCHAN-NFC --long --non-interactive` should list the bundle.
+- `docmgr doctor --ticket ESP-60-M5STACKCHAN-NFC --stale-after 30` should print "All checks passed".
+- `remarquee cloud ls /ai/2026/08/20/ESP-60-M5STACKCHAN-NFC --long --non-interactive` lists `ESP-60 M5StackChan NFC Reader — Intern Guide`.
 
 ### Technical details
 
-(pending)
+- Commits: `fe9922b` (scaffold + sources + design doc), `aa532c54` (bookkeeping + diary Step 4 evidence).
+- reMarkable remote: `/ai/2026/08/20/ESP-60-M5STACKCHAN-NFC/ESP-60 M5StackChan NFC Reader — Intern Guide`.
+- Doctor: All checks passed. Tasks done: research (n4l3), upload (pbpb). Tasks open: implement (2t3u), flash (tr32), schematic-verify (o65r), Phase 2 (2nrd).
