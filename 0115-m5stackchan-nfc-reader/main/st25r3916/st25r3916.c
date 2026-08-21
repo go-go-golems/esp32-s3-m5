@@ -65,6 +65,13 @@ static esp_err_t wr8b(uint8_t reg, uint8_t val)
     return i2c_master_transmit(s_dev, buf, sizeof(buf), I2C_TICKS);
 }
 
+static esp_err_t rd8b(uint8_t reg, uint8_t *out)
+{
+    uint8_t cmd[2] = {ST25R_CMD_REGISTER_SPACE_B_ACCESS,
+                      (uint8_t)((reg & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER)};
+    return i2c_master_transmit_receive(s_dev, cmd, sizeof(cmd), out, 1, I2C_TICKS);
+}
+
 static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
 
 static esp_err_t modify8(uint8_t reg, uint8_t mask, uint8_t bits)
@@ -410,6 +417,7 @@ void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
     uint8_t ant1=0, ant2=0, txd=0, nrt1=0, nrt2=0, temv=0;
+    uint8_t os1=0, os2=0, us1=0, us2=0, corr1=0, corr2=0, emd=0;
     rd8(ST25R_REG_OPERATION_CONTROL, &opc);
     rd8(ST25R_REG_MODE_DEFINITION, &mode);
     rd8(ST25R_REG_ISO14443A_SETTINGS, &iso);
@@ -423,12 +431,21 @@ void st25r3916_debug_dump(void)
     rd8(ST25R_REG_NO_RESPONSE_TIMER_2, &nrt2);
     rd8(ST25R_REG_TIMER_AND_EMV_CONTROL, &temv);
     rd8(0x2D /* REG_RSSI_DISPLAY */, &rssi);
+    rd8b(ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_1, &os1);
+    rd8b(ST25R_REGB_OVERSHOOT_PROTECTION_CONFIG_2, &os2);
+    rd8b(ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_1, &us1);
+    rd8b(ST25R_REGB_UNDERSHOOT_PROTECTION_CONFIG_2, &us2);
+    rd8b(ST25R_REGB_CORRELATOR_CONFIGURATION_1, &corr1);
+    rd8b(ST25R_REGB_CORRELATOR_CONFIGURATION_2, &corr2);
+    rd8b(ST25R_REGB_EMD_SUPPRESSION_CONFIGURATION, &emd);
     uint32_t irq = read_main_irq();
     uint16_t fb = fifo_bytes();
     ESP_LOGI(TAG, "regs: OPC=%02X MODE=%02X ISO=%02X AUX=%02X RX1=%02X RX2=%02X RSSI=%02X",
              opc, mode, iso, aux, rxc1, rxc2, rssi);
     ESP_LOGI(TAG, "      ANT1=%02X ANT2=%02X TXD=%02X NRT=%02X%02X TEMV=%02X MAIN_IRQ=%06X FIFO_bytes=%u",
              ant1, ant2, txd, nrt1, nrt2, temv, (unsigned)irq, (unsigned)fb);
+    ESP_LOGI(TAG, "      SpaceB: OS=%02X/%02X US=%02X/%02X CORR=%02X/%02X EMD=%02X",
+             os1, os2, us1, us2, corr1, corr2, emd);
 }
 
 esp_err_t st25r3916_configure_nfca(void)
