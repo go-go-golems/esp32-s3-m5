@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import argparse
+import re
 import shutil
 
 TRACE_IMPL = r'''
@@ -10,7 +11,7 @@ TRACE_IMPL = r'''
 #include <esp_timer.h>
 
 namespace {
-constexpr size_t ESP60_TRACE_CAPACITY = 6000;
+constexpr size_t ESP60_TRACE_CAPACITY = __ESP60_TRACE_CAPACITY__;
 constexpr uint8_t ESP60_ST25R3916_ADDRESS = 0x50;
 
 struct Esp60TraceContext {
@@ -115,8 +116,12 @@ def replace_once(text: str, old: str, new: str, label: str) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("workspace", type=Path)
+    parser.add_argument("--mode", choices=("full", "continuous"), default="full",
+                        help="full preserves every one-second Detect trace; continuous installs the live screen monitor")
     args = parser.parse_args()
     workspace = args.workspace.resolve()
+    trace_capacity = 6000 if args.mode == "full" else 512
+    sketch_name = "Detect-traced.cpp" if args.mode == "full" else "Detect-continuous-traced.cpp"
     here = Path(__file__).resolve().parent.parent
     artifacts = here / "sources/code/arduino-trace"
     source = workspace / ".pio/libdeps/cores3/M5Unified/src/utility/I2C_Class.cpp"
@@ -127,7 +132,7 @@ def main() -> None:
 
     include_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(artifacts / "esp60_m5_i2c_trace.h", include_dir)
-    shutil.copy2(artifacts / "Detect-traced.cpp", sketch)
+    shutil.copy2(artifacts / sketch_name, sketch)
 
     # PlatformIO does not expose a project's include/ directory while compiling
     # dependency sources, so add it explicitly for patched M5Unified.
@@ -141,9 +146,17 @@ def main() -> None:
     text = source.read_text()
     marker = "ESP60_TRACE_CAPACITY"
     if marker in text:
-        print(f"already instrumented: {source}")
+        text, replacements = re.subn(
+            r"constexpr size_t ESP60_TRACE_CAPACITY = \d+;",
+            f"constexpr size_t ESP60_TRACE_CAPACITY = {trace_capacity};", text, count=1)
+        if replacements != 1:
+            raise RuntimeError("existing trace capacity declaration not found")
+        source.write_text(text)
+        print(f"updated instrumentation: {source} (capacity={trace_capacity})")
+        print(f"installed {args.mode} sketch: {sketch}")
         return
-    text = replace_once(text, '#include <M5GFX.h>\n', '#include <M5GFX.h>\n' + TRACE_IMPL + '\n', "trace implementation")
+    trace_impl = TRACE_IMPL.replace("__ESP60_TRACE_CAPACITY__", str(trace_capacity))
+    text = replace_once(text, '#include <M5GFX.h>\n', '#include <M5GFX.h>\n' + trace_impl + '\n', "trace implementation")
 
     text = replace_once(text,
 '''  bool I2C_Class::start(std::uint8_t address, bool read, std::uint32_t freq) const
