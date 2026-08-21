@@ -18,6 +18,12 @@ RelatedFiles:
       Note: Exact synchronous status/event/error mapping and recovery path
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
       Note: First implementation target for trace recording
+    - Path: repo://0115-m5stackchan-nfc-reader/main/st25r_trace/st25r_trace.c
+      Note: Clock-free observer-safe ring + first-error freeze + normalized dump
+    - Path: repo://0115-m5stackchan-nfc-reader/main/st25r_trace/st25r_trace.h
+      Note: Trace data model (backends/kinds/hints/classes/ops/phases/flags + ring + first-error bundle API)
+    - Path: repo://0115-m5stackchan-nfc-reader/test_host/test_st25r_trace.c
+      Note: Host unit tests for wraparound, first-error freeze, modes, dump_last
     - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c
       Note: Current UI transport counters and structured failure logging
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md
@@ -30,6 +36,7 @@ LastUpdated: 2026-08-21T17:30:00-04:00
 WhatFor: Implement the next diagnostic phase without changing NFC timing or losing first-error context.
 WhenToUse: Read before adding retries, defined operations, driver debug logging, waveform capture, or an alternative ESP-IDF I2C backend.
 ---
+
 
 
 # ESP-IDF Instrumentation for Arduino-Comparable ST25R3916 Transport Traces
