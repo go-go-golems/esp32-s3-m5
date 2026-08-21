@@ -47,6 +47,8 @@ static esp_err_t direct_cmd(uint8_t c)
     return i2c_master_transmit(s_dev, &c, 1, I2C_TICKS);
 }
 
+static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
+
 static esp_err_t modify8(uint8_t reg, uint8_t mask, uint8_t bits)
 {
     uint8_t v = 0;
@@ -77,40 +79,28 @@ static esp_err_t fifo_write(const uint8_t *data, size_t len)
     return i2c_master_transmit(s_dev, buf, 1 + len, I2C_TICKS);
 }
 
-/* Read N bytes from the FIFO: read register 0x1F (FIFO status 2 / data out uses the
- * read-FIFO command). The ST25R3916 exposes FIFO data via a direct read of the
- * FIFO status registers; the simplest portable read is: cmd byte = read of
- * the "read FIFO" which is the OP_LOAD_FIFO companion — but the chip actually
- * auto-streams FIFO reads from REG_FIFO_STATUS_1 region. Use the documented
- * read-FIFO direct command: 0x80 read counterpart is not standard; instead we
- * read using the normal register-read protocol on the FIFO data register.
- *
- * Per M5Unit-NFC, readFIFO() issues a read command byte of 0x5F (the FIFO data
- * read register in Space A is accessed at 0x1F with read bit). We emulate by
- * repeated-start reading from the FIFO data register. The chip streams FIFO
- * bytes when the read address is the FIFO data register (0x1F with READ bit).
- * The standard ST25R3916 "read FIFO" uses register 0x1F read; we do a
- * transmit_receive of the read cmd for that register. */
+/* Read N bytes from the FIFO using the dedicated OP_READ_FIFO command (0x9F).
+ * Reads only min(fifo_bytes, want) so we never over-read the FIFO. */
 static esp_err_t fifo_read(uint8_t *data, size_t want, size_t *got)
 {
-    /* Read the FIFO data register (0x1F, READ bit) with repeated start; the chip
-     * streams `want` bytes out of the FIFO. */
-    uint8_t cmd = (0x1F & ST25R_OP_TRAILER_MASK) | ST25R_OP_READ_REGISTER;
-    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, want, I2C_TICKS);
-    if (e == ESP_OK && got) *got = want;
+    if (got) *got = 0;
+    uint16_t n = fifo_bytes();
+    if (n == 0) return ESP_OK;
+    if (n > want) n = (uint16_t)want;
+    uint8_t cmd = 0x9F;  /* OP_READ_FIFO */
+    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, n, I2C_TICKS);
+    if (e == ESP_OK && got) *got = n;
     return e;
 }
 
-/* Read the FIFO byte count (REG_FIFO_STATUS_1 low nibble + STATUS_2 high bits).
- * FIFO_STATUS_1 [3:0] = number of bytes [7:4], FIFO_STATUS_2 [6:4] = [11:8]. */
+/* Read the FIFO byte count. Per M5 lib readFIFOSize(): the 16-bit FIFO status
+ * (reg 0x1E low, 0x1F high) gives bytes = reg0x1F | ((reg0x1E & 0xC0) << 2). */
 static uint16_t fifo_bytes(void)
 {
     uint8_t s1 = 0, s2 = 0;
     if (rd8(ST25R_REG_FIFO_STATUS_1, &s1) != ESP_OK) return 0;
     if (rd8(ST25R_REG_FIFO_STATUS_2, &s2) != ESP_OK) return 0;
-    uint16_t lo = (uint16_t)(s1 & 0x0F);
-    uint16_t hi = (uint16_t)((s2 >> 4) & 0x07);
-    return (hi << 8) | lo;
+    return (uint16_t)s2 | ((uint16_t)(s1 & 0xC0) << 2);
 }
 
 /* Read the 24-bit main interrupt register (3 bytes from 0x1A, read). */
@@ -135,15 +125,15 @@ static esp_err_t clear_interrupts(void)
     return ESP_OK;
 }
 
-/* Set the number of transmitted bytes (REG_NUM_TX_BYTES_1/2). */
+/* Set the number of transmitted bytes (REG_NUM_TX_BYTES_1/2 = 0x22/0x23).
+ * Layout (M5 lib): value = ((bytes & 0x1FF) << 3) | (bits & 0x07), split low/high
+ * across reg 0x22 / 0x23. */
 static esp_err_t set_tx_bytes(uint32_t bytes, uint8_t bits)
 {
-    /* bits[2:0] go into high nibble of byte2; bytes[7:0] into byte1, [10:8] into low of byte2. */
-    uint8_t b1 = (uint8_t)(bytes & 0xFF);
-    uint8_t b2 = (uint8_t)(((bytes >> 8) & 0x07) | ((bits & 0x07) << 5));
-    esp_err_t e = wr8(ST25R_REG_NUM_TX_BYTES_1, b1);
+    uint16_t value = (uint16_t)(((bytes & 0x1FF) << 3) | (bits & 0x07));
+    esp_err_t e = wr8(ST25R_REG_NUM_TX_BYTES_1, (uint8_t)(value & 0xFF));
     if (e != ESP_OK) return e;
-    return wr8(ST25R_REG_NUM_TX_BYTES_2, b2);
+    return wr8(ST25R_REG_NUM_TX_BYTES_2, (uint8_t)((value >> 8) & 0xFF));
 }
 
 /* Wait up to timeout_ms for any of the wanted IRQ bits. Returns the IRQ word
@@ -289,6 +279,23 @@ esp_err_t st25r3916_field_off(void)
     return clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
 }
 
+uint8_t st25r3916_measure_amplitude(void)
+{
+    /* CMD_MEASURE_AMPLITUDE (0xD3) measures the amplitude of the signal on RFI.
+     * Result is in REG_AMPLITUDE_MEASUREMENT_DISPLAY (0x36). */
+    direct_cmd(0xD3);
+    vTaskDelay(pdMS_TO_TICKS(8));  /* measurement takes a few ms */
+    uint8_t v = 0;
+    rd8(0x36, &v);
+    return v;
+}
+
+void st25r3916_set_tx_rx(bool on)
+{
+    if (on) set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+    else    clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+}
+
 void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;
@@ -342,7 +349,7 @@ esp_err_t st25r3916_configure_nfca(void)
 }
 
 /* ---- REQA: get ATQA ---- */
-static esp_err_t nfca_reqa(uint16_t *atqa)
+esp_err_t st25r3916_reqa(uint16_t *atqa)
 {
     *atqa = 0;
     /* FWT (frame waiting time) not strictly required for REQA in Phase-1; the
@@ -450,7 +457,7 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
 
     /* REQA -> ATQA. */
     uint16_t atqa = 0;
-    e = nfca_reqa(&atqa);
+    e = st25r3916_reqa(&atqa);
     if (e != ESP_OK) return e; /* no tag */
     out->atqa = atqa;
 

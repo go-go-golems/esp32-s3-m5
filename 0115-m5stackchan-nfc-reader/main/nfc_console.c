@@ -90,10 +90,46 @@ static int cmd_read(int argc, char **argv)
     }
 }
 
+/* nfc-reqa : loop REQA and print every result (find the coil by sweeping tag).
+ * Prints ATQA=xxxx when a tag answers, "no tag" otherwise. */
+static int cmd_reqa(int argc, char **argv)
+{
+    st25r3916_field_on();
+    printf("REQA loop (sweep tag over body). Reset to stop.\n");
+    for (int i = 0; i < 200; i++) {  /* ~30s at 150ms */
+        uint16_t atqa = 0;
+        esp_err_t e = st25r3916_reqa(&atqa);
+        if (e == ESP_OK)      printf("ATQA=%04X <== tag!\n", atqa);
+        else if (e == ESP_ERR_NOT_FOUND) printf(".\n");
+        else                  printf("reqa err: %s\n", esp_err_to_name(e));
+        fflush(stdout);
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
+    return 0;
+}
+
 /* nfc-regs : dump key ST25R3916 registers. */
 static int cmd_regs(int argc, char **argv)
 {
     st25r3916_debug_dump();
+    return 0;
+}
+
+/* nfc-sweep : field on + repeatedly measure RF amplitude (find the coil).
+ * Slide the tag over the body; the value spikes when the tag is over the coil. */
+static int cmd_sweep(int argc, char **argv)
+{
+    st25r3916_field_on();
+    st25r3916_set_tx_rx(true);  /* enable receiver for amplitude measurement */
+    printf("sweeping (Ctrl-C/reset to stop). Higher = tag loading the field.\n");
+    for (int i = 0; i < 200; i++) {  /* ~30s at 150ms */
+        uint8_t a = st25r3916_measure_amplitude();
+        printf("amp=%3u ", a);
+        for (uint8_t k = 0; k < (a / 4); k++) putchar('#');
+        printf("\n");
+        fflush(stdout);
+        vTaskDelay(pdMS_TO_TICKS(150));
+    }
     return 0;
 }
 
@@ -151,4 +187,6 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-read",  "Poll one ISO14443-A tag",         cmd_read,   NULL);
     reg("nfc-poll",  "Continuously poll for tags",      cmd_poll,   NULL);
     reg("nfc-regs",  "Dump key ST25R3916 registers",   cmd_regs,   NULL);
+    reg("nfc-sweep", "Field on + measure RF amplitude (find coil)", cmd_sweep, NULL);
+    reg("nfc-reqa", "Loop REQA, print ATQA on tag (find coil)", cmd_reqa, NULL);
 }

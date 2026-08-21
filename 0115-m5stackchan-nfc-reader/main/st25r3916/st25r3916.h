@@ -50,6 +50,19 @@ esp_err_t st25r3916_configure_nfca(void);
 /* Print key register values for debugging (operation control, mode, IRQ, RSSI, FIFO). */
 void st25r3916_debug_dump(void);
 
+/* Measure the RF amplitude on the RFI inputs (CMD_MEASURE_AMPLITUDE).
+ * Returns the 8-bit amplitude display value (reg 0x36); higher when a tag
+ * loads the field. Useful as a "metal detector" to locate the coil. */
+uint8_t st25r3916_measure_amplitude(void);
+
+/* Enable/disable the transmitter and receiver (OPERATION_CONTROL tx_en|rx_en).
+ * Some measurements (amplitude) need the receiver enabled. */
+void st25r3916_set_tx_rx(bool on);
+
+/* Send ISO14443-A REQA once and return the ATQA. Returns ESP_OK + atqa filled if a
+ * tag answered, ESP_ERR_NOT_FOUND if no tag, ESP_FAIL on error. */
+esp_err_t st25r3916_reqa(uint16_t *atqa);
+
 /* Poll once for an ISO14443-A tag. Returns ESP_OK + out filled if a tag was found,
  * ESP_ERR_NOT_FOUND if no tag answered, ESP_FAIL on protocol error.
  * Leaves the field ON after a successful poll. */
