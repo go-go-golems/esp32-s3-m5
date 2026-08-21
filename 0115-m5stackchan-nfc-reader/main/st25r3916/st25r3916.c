@@ -215,10 +215,13 @@ esp_err_t st25r3916_init(i2c_master_bus_handle_t bus)
     /* Antenna settings — CRITICAL for RF coupling (from M5 lib begin()):
      *   TX_DRIVER (0x28) = 0xD0  (tx_am_modulation=13 << 4)
      *   ANTENNA_TUNING_CONTROL_1/2 (0x26/0x27) = 0x82
+     *   External field detector thresholds (0x2A/0x2B) = 0x13 / 0x02
      * Without these the field register says "on" but the antenna is not driven. */
     wr8(ST25R_REG_TX_DRIVER, 0xD0);
     wr8(0x26, 0x82);
     wr8(0x27, 0x82);
+    wr8(0x2A, 0x13);  /* field detector activation threshold */
+    wr8(0x2B, 0x02);  /* field detector deactivation threshold */
 
     /* Clear FIFO. */
     direct_cmd(ST25R_CMD_CLEAR_FIFO);
