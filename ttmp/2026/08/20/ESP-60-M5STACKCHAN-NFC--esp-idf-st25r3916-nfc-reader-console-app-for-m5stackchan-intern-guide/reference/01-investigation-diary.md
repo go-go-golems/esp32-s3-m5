@@ -435,3 +435,65 @@ I wanted to isolate whether the remaining failure is software (driver/IRQ/FIFO) 
 
 - Commits: `794f7578` (FIFO/REQA fixes), this step pending.
 - Diagnostic outputs: post-init `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`; post forced-field `OPC=EB` (en|tx_en|rx_en|en_fd), amplitude=0.
+
+---
+
+## Step 7: Decisive instrumentation — coil connected, no tag responds
+
+Per the handoff's "one-line instrumentation that settles the most" (§8), I added `nfc-cap` (CMD_MEASURE_CAPACITANCE 0xDE → reg 0x25), raw MAIN_IRQ logging inside `st25r3916_reqa()`, and antenna-tuning/TX-driver readback in the debug dump. These are pure-software diagnostics I could run without the user.
+
+### Prompt Context
+
+**User prompt (verbatim):** (goal continuation: continue toward the Phase-1 objective, avoid repeating work, choose the next concrete action)
+**Assistant interpretation:** Do the software-only instrumentation from the handoff that distinguishes "no RF" from "FIFO/timing bug" before handing back to the user for physical steps.
+**Inferred user intent:** Make maximum progress on the diagnosis without needing the user, since the goal says to stop only for physical steps.
+
+### What I did
+
+- Added `st25r3916_measure_capacitance()` + `nfc-cap` command (CMD_MEASURE_CAPACITANCE 0xDE, read reg 0x25).
+- Added `ESP_LOGI(TAG, "reqa: irq=%06X fifo=%u rxs=%d rxe=%d col=%d", ...)` inside `st25r3916_reqa()` after `wait_irq()`.
+- Added ANT1/ANT2/TXD readback to `st25r3916_debug_dump()`.
+- Built, flashed, ran: `nfc-cap` → **cap=124 stable (123–125)**; `nfc-regs` → **ANT1=82 ANT2=82 TXD=D0** (all programmed correctly); `nfc-reqa` → **`reqa: irq=000000 fifo=0 rxs=0 rxe=0 col=0` on every one of 40+ attempts**.
+- Updated the handoff doc (§2 symptom, §6 hypotheses, §8 instrumentation) with the decisive evidence; ruled out the open-antenna-feed hypothesis (hypothesis 4) and the dropped-IRQ timing hypothesis (hypothesis 5).
+
+### Why
+
+The handoff listed these as the next decisive steps that don't need the user. `cap=124` proves the coil is connected; `irq=000000` proves no tag responds at all (not even RXS). Together they move the failure firmly out of software and into "the tag/placement" — the physical step the goal says to stop for.
+
+### What worked
+
+- `nfc-cap` returns a stable non-zero capacitance (124) → antenna coil is present and connected.
+- Readback confirms ANT1=82 ANT2=82 TXD=D0 → our writes stuck; the antenna tuning + TX driver are correctly programmed, matching the M5 lib.
+- Raw IRQ logging is clean and unambiguous: `irq=000000` every time.
+
+### What didn't work
+
+- Still no tag response. Every REQA yields zero IRQ bits. The antenna radiates (cap measurement works, field commands on, one earlier RXE) but no tag answers in the current placement.
+
+### What I learned
+
+- `CMD_MEASURE_CAPACITANCE` is an excellent non-physical "is the antenna connected?" probe: a stable non-zero value (124) means the coil is wired, no ohmmeter needed.
+- `irq=000000` after REQA (no RXS, no RXE, no COL) is the definitive "no tag in field" signature — distinct from "tag answered but FIFO read failed" (which would show RXE). This rules out the FIFO/timing bug hypothesis.
+
+### What was tricky to build
+
+- The `nfc-reqa` loop runs 200 iterations and does not return, so subsequent console commands queue behind it; had to reset the device (RTS toggle) to run `nfc-cap` cleanly.
+
+### What warrants a second pair of eyes
+
+- Confirm the tag is a real ISO14443-A tag (NTAG/MIFARE Ultralight), verified to read on a phone, and place it exactly on the body's coil sweet spot. This is the one remaining variable.
+
+### What should be done in the future
+
+- If a known-good tag also never answers, flash the M5 Arduino `Detect.ino` to bisect firmware vs antenna matching (handoff §7 step 5).
+- Configure the amplitude measurement regs (0x33/0x34) only if a real coil-finder is still wanted; `nfc-cap` already proved the coil is present.
+
+### Code review instructions
+
+- `nfc-cap` → expect cap≈124 (stable). `nfc-regs` → `ANT1=82 ANT2=82 TXD=D0`. `nfc-reqa` → `reqa: irq=000000` lines (no tag).
+- The driver init + REQA + anticollision match `sources/code/unit_ST25R3916.hpp` + `unit_ST25R3916_nfca.cpp`.
+
+### Technical details
+
+- Commit: `86bbeee1` (instrumentation + decisive evidence). Handoff updated in the same ticket.
+- Evidence: cap=124 (coil connected); ANT1/2=82, TXD=D0 (programmed ok); REQA irq=000000 ×40+ (no tag responds).

@@ -68,12 +68,15 @@ The StackChan body NFC coil is a copper trace on the **body PCB** (the lower par
 
 - `nfc-scan` → I2C map shows 0x34 (PMIC), 0x38 (touch), 0x41 (INA226), **0x50 (ST25R3916)**, 0x51 (RTC), 0x58 (AW9523), 0x68/0x69 (Si12T), 0x6f (PY32IOExpander). ✓ **bus OK**
 - `nfc-probe` → `ST25R3916 type=0x05 rev=0x02 (ST25R3916/7 OK)`. ✓ **chip alive**
-- `nfc-regs` (after boot/init) → `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`. ✓ **init matches M5 lib**
+- `nfc-regs` (after boot/init) → `OPC=83 MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00 IRQ=001C00`, and (with readback) `ANT1=82 ANT2=82 TXD=D0`. ✓ **init matches M5 lib, antenna tuning + TX driver correctly programmed**
+- `nfc-cap` (CMD_MEASURE_CAPACITANCE, repeated) → **`cap=124` stable (123–125)**. ✓ **antenna coil is connected and present** (rules out an open antenna feed / bad body seating)
 - `nfc-field on` → `ESP_OK`; `nfc-regs` after → `OPC=8B` (tx_en=0x08 set during transmit). ✓ **field commanded on**
+- `nfc-reqa` (raw IRQ logged after every REQA) → **`reqa: irq=000000 fifo=0 rxs=0 rxe=0 col=0` on EVERY attempt** (40+ samples). ✗ **no tag responds at all — not even RXS**
 - `nfc-read` / `nfc-poll` → **"no tag"**, `RSSI=00`, `MAIN_IRQ=000000`, `FIFO_bytes=0`. ✗
-- `nfc-sweep` (forced field + rx enabled, `CMD_MEASURE_AMPLITUDE` loop) → **`amp= 0` repeatedly**. ✗
-- `nfc-reqa` (loop REQA, print ATQA on hit) → **0 hits over 40 s of sweeping the tag over the body.** ✗
-- **One** earlier observation: a single `reqa err: ESP_FAIL` (before a FIFO-parsing fix) implied **RXE fired once** — so the antenna *can* radiate, but it is not reliable.
+- `nfc-sweep` (forced field + rx enabled, `CMD_MEASURE_AMPLITUDE` loop) → **`amp= 0` repeatedly**. ✗ (likely the amplitude meas needs regs 0x33/0x34; see §4)
+- **One** earlier observation: a single `reqa err: ESP_FAIL` (before a FIFO-parsing fix) implied **RXE fired once** — so the antenna *can* radiate, but it is intermittent.
+
+**Decisive conclusion:** the antenna coil is connected (cap=124) and correctly tuned/programmed (ANT1/2=82, TXD=D0), the chip is up and configured exactly per the M5 lib, the field is commanded on, yet **no tag ever answers REQA** (`irq=000000` always). The remaining variable is the **tag itself or its exact placement on the coil** — a physical step.
 
 ## 3. What has been ruled out
 
@@ -130,11 +133,13 @@ Console commands available: `nfc-scan`, `nfc-probe`, `nfc-field on|off`, `nfc-re
 
 ## 6. Ranked hypotheses
 
-1. **(Most likely) The antenna is not radiating because a register or analog config is still missing/wrong for THIS body's antenna.** The M5 lib was tuned for the M5Unit-NFC module + a known antenna, which may differ from the StackChan body coil. Candidates: antenna tuning regs (0x26/0x27), TX driver (0x28), the EMD suppression / passive-target modulation writes we skipped, or an antenna-specific calibration that the M5 lib does at runtime. **Test:** `CMD_MEASURE_CAPACITANCE` (0xDE) — if it returns a plausible capacitance, the antenna coil is connected; if 0/flat, the antenna feed is open.
-2. **(Likely) The amplitude diagnostic is misconfigured** (regs 0x33/0x34 never written), so `amp=0` is a red herring — but REQA still failing means the antenna truly isn't coupling a tag. **Test:** configure 0x33/0x34 and re-run `nfc-sweep` to get a real coil-finder.
-3. **(Possible) Tag or placement.** The tag may not be ISO14443-A, may be a bank card (won't bare-REQA), or just not over the tiny coil sweet spot. **Test:** use a known-good NTAG213/215 sticker verified on a phone; slow-sweep flat across the whole body, holding 2 s per spot.
-4. **(Less likely) Body seating / antenna contact.** I2C works so the brain is attached, but the antenna feed could be marginal. **Test:** reseat the body; measure the coil with `CMD_MEASURE_CAPACITANCE`.
-5. **(Least likely) A driver IRQ/timing bug that drops RXE.** The one earlier `ESP_FAIL` (RXE without a clean FIFO read) hints the IRQ path can fire. But 40 s of zero hits makes a pure-timing bug less likely than no-RF. Still, verify by logging the raw 24-bit `MAIN_IRQ` after every REQA (see Step 8 below).
+**Update after instrumentation (commit 86bbeee1):** `nfc-cap` returns cap=124 (coil connected), and `nfc-regs` readback confirms ANT1=82 ANT2=82 TXD=D0 (correctly programmed). Hypotheses 4 (open feed) is now RULED OUT. The chip sees no REQA response at all (`irq=000000` always).
+
+1. **(Now the prime suspect) The tag is not ISO14443-A, is not a real NFC tag, or is not over the coil's tiny sweet spot.** The coil is connected and tuned; the chip transmits; nothing answers. The one earlier RXE means a real tag *can* couple when placed exactly right. **Test:** use a known-good NTAG213/215/216 or MIFARE Ultralight sticker verified to read on a phone; slow-sweep flat over the body, holding 2 s per spot.
+2. **(Less likely now) Analog tuning for this specific body antenna differs from the M5Unit-NFC module** the lib was tuned for (ANT1/2=0x82/0x82 are fixed in the lib, not calibrated per-unit). If a known-good tag also never answers, the antenna matching may be off. **Test:** flash the M5 Arduino `Detect.ino` to the same device (§7 step 5); if it also fails, it's hardware/antenna matching.
+3. **(Possible) The amplitude measurement is misconfigured** (regs 0x33/0x34 never written), so `amp=0` is a red herring — but REQA failing is conclusive on its own.
+4. ~~Open antenna feed / body seating~~ — RULED OUT by `nfc-cap`=124.
+5. **(Least likely now) A driver IRQ/timing bug that drops RXE.** `irq=000000` on every REQA (no RXS either) makes a pure-timing bug very unlikely — if the receiver were merely slow we'd still see RXS. This is now the last resort.
 
 ## 7. Suggested next steps (in order)
 
@@ -147,13 +152,7 @@ Console commands available: `nfc-scan`, `nfc-probe`, `nfc-field on|off`, `nfc-re
 
 ## 8. The one-line instrumentation change that would settle the most
 
-In `st25r3916.c::st25r3916_reqa()`, after `wait_irq(...)` and before returning, log:
-```c
-ESP_LOGI(TAG, "reqa: irq=%06X fifo=%u rxs=%d rxe=%d col=%d",
-         (unsigned)irq, (unsigned)fifo_bytes(),
-         !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
-```
-Run `nfc-reqa` while sweeping the tag. **If you never see any IRQ bit at all, the antenna is not radiating → focus on hypotheses 1/4.** If you see RXS without RXE, it's a timing/FIFO issue → hypothesis 5.
+**DONE (commit 86bbeee1).** `st25r3916.c::st25r3916_reqa()` now logs `reqa: irq=%06X fifo=%u rxs=%d rxe=%d col=%d` after every REQA, and `nfc-cap` runs `CMD_MEASURE_CAPACITANCE`. **Result: cap=124 (coil connected), irq=000000 on every REQA (no RXS, no RXE, no collision).** This rules out an open antenna feed and a dropped-IRQ timing bug; the failure is no tag response. The next decisive action is **physical**: a known-good ISO14443-A tag placed exactly on the coil sweet spot.
 
 ## 9. Key files + references
 
