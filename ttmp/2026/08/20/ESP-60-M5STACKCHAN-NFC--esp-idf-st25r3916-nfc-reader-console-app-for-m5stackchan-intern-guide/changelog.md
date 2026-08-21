@@ -25,3 +25,12 @@ Step 10: added ST25R3916 NRT/frame-wait timer before REQA/WUPA and anticollision
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — NRT implementation and NFC-A integration
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h — NRT register constants
 
+
+## 2026-08-20
+
+Step 11: live NRT probe produced RXS/RXE/COL; fixed reversed FIFO status byte order; post-reflash coupling remained intermittent and UID is not yet read (commit f8015daa)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c — Correct FIFO status byte order exposed by live RXE
+

@@ -706,3 +706,98 @@ The firmware builds cleanly, but this step intentionally stops short of claiming
 - Modified files:
   - `/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c`
   - `/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h`
+
+---
+
+## Step 11: Live NRT probe exposes RF reception and a FIFO byte-order bug
+
+With the user holding the confirmed NTAG on the top sensing surface, I flashed the NRT build and observed the first reproducible receive activity: REQA produced `irq=000034`, meaning RXS, RXE, and collision were all asserted. This disproves the prior assumption that the reader never receives tag modulation and provides direct evidence that adding NRT materially changed runtime behavior.
+
+The receive IRQ immediately exposed a second bug: FIFO status decoding had its register bytes reversed, so RXE was reported while the driver falsely claimed the FIFO held zero bytes. I corrected the formula against M5Unit-NFC, rebuilt, committed, and reflashed. A subsequent stationary probe did not reproduce RF reception, so UID verification remains incomplete and the next experiment must adjust physical tag alignment while preserving the corrected firmware.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ready"
+
+**Assistant interpretation:** The known ISO14443-A NTAG is physically placed on the correct top sensing surface, so flashing and live reader validation may proceed.
+
+**Inferred user intent:** Complete Phase-1 hardware verification by obtaining the tag UID from `nfc-read`.
+
+**Commit (code):** `f8015daa2354bcfff844b10657bc54508e1cb3ae` — "ESP-60 P1: correct ST25R3916 FIFO status byte order"
+
+### What I did
+
+- Verified `/dev/ttyACM0` had no owner and flashed the NRT build.
+- Ran a single pyserial probe against `nfc-regs`, `nfc-reqa`, and `nfc-read`.
+- The first probe script timed out because `nfc-reqa` emits continuously for roughly 30 seconds and the script incorrectly waited for a quiet serial stream.
+- Reopened the port after timeout and captured fixed-duration windows.
+- Observed repeated real receive events including: `reqa: irq=000034 fifo=0 rxs=1 rxe=1 col=1`.
+- Sent Ctrl-C to stop the long-running console command cleanly.
+- Confirmed NRT readback: `NRT=0350 TEMV=00` (4 ms at the 64/fc timer step).
+- Compared `fifo_bytes()` directly with M5's `readFIFOSize()` and found our status bytes reversed.
+- Corrected FIFO bytes to `reg0x1E | ((reg0x1F & 0xC0) << 2)`.
+- Rebuilt and reflashed commit `f8015daa` successfully.
+- Ran `nfc-read` again; that later probe returned no receive IRQ.
+
+### Why
+
+- Live RF evidence was required to validate whether NRT affected the receive window.
+- RXE with an apparently empty FIFO demanded source-level comparison before changing higher-level NFC logic.
+
+### What worked
+
+- Flashing was reliable with no serial ownership conflict.
+- NRT register readback exactly matched the expected `0x0350`.
+- REQA produced RXS and RXE after the NRT fix, proving the receive path and tag can couple.
+- Source comparison identified a deterministic FIFO decoding bug.
+- The corrected firmware builds and flashes successfully.
+
+### What didn't work
+
+- Initial probe command:
+  `python3 ... while True: chunk=s.read(4096); if not chunk: break ...`
+  timed out after 20 seconds because the active `nfc-reqa` command never left the stream quiet.
+- Before the FIFO fix, the exact receive output was:
+  `I (...) st25r3916: reqa: irq=000034 fifo=0 rxs=1 rxe=1 col=1`
+  followed by `wake err: ESP_FAIL`.
+- After the FIFO fix and reflash, exact `nfc-read` output was:
+  `reqa: irq=000000 fifo=0 rxs=0 rxe=0 col=0`
+  `wupa: irq=000000 fifo=0 rxs=0 rxe=0 col=0`
+  `no tag`
+- A UID was not obtained, so Phase 1 is not complete.
+
+### What I learned
+
+- NRT was a real missing protocol step: it changed behavior from consistently no receive event to reproducible RXS/RXE events while the tag was placed.
+- The old FIFO formula recorded in prior diary/handoff work was wrong. M5's big-endian status read means register 0x1E supplies the low eight count bits; register 0x1F bits 7:6 supply count bits 9:8.
+- RF coupling remains sensitive enough that a reflash/reset or a small physical shift can change a received REQA into no response.
+
+### What was tricky to build
+
+- The `0x34` IRQ combines RXS (`0x20`), RXE (`0x10`), and COL (`0x04`). Collision does not negate RXE; M5 still attempts to read two ATQA bytes and warns that ATQA may be inaccurate during collision.
+- The apparent `fifo=0` initially looked like a receive-decoder problem, but it was a status-register byte-order error. The symptom only became visible after NRT allowed reception.
+- Live console commands have different lifetimes: `nfc-reqa` loops 200 times, so generic “read until quiet” automation is unsafe.
+
+### What warrants a second pair of eyes
+
+- Verify the corrected FIFO formula against the ST25R3916 datasheet in addition to M5Unit-NFC.
+- Determine why a single NTAG reports COL during REQA; this could be alignment/noise, multiple tags nearby, or receiver configuration.
+- Review whether repeated STOP_ALL_ACTIVITIES/WUPA field cycling contributes to intermittent coupling.
+
+### What should be done in the future
+
+- Ask the user to slide the tag slowly across the top surface while running the fixed NRT+FIFO build's `nfc-reqa` loop.
+- Stop at the first stable `irq` with RXE and immediately run `nfc-read` without reflashing or resetting.
+- If FIFO contains two ATQA bytes, continue into anticollision and instrument each cascade stage if UID selection fails.
+
+### Code review instructions
+
+- Review `fifo_bytes()` in `main/st25r3916/st25r3916.c` against M5Unit-NFC `readFIFOStatus()` + `readFIFOSize()`.
+- Reproduce with the tag on top: run `nfc-regs` (expect `NRT=0000` before a request), then `nfc-read` (expect NRT to become `0350`).
+- For placement search, run `nfc-reqa`, move the tag slowly, and look for `rxs=1 rxe=1`; interrupt with Ctrl-C before invoking `nfc-read`.
+
+### Technical details
+
+- NRT receive evidence: IRQ `0x34 = 0x20 (RXS) | 0x10 (RXE) | 0x04 (COL)`.
+- Correct FIFO formula: `bytes = status1 | ((status2 & 0xC0) << 2)`, where `status1=reg0x1E`, `status2=reg0x1F`.
+- Firmware commits under test: NRT `74bc45f9`; FIFO correction `f8015daa`.
