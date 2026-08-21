@@ -319,6 +319,16 @@ uint8_t st25r3916_measure_capacitance(void)
     return v;
 }
 
+void st25r3916_dump_all(void)
+{
+    printf("dump_all (Space-A 0x00-0x3F):\n");
+    for (uint8_t reg = 0x00; reg <= 0x3F; reg++) {
+        uint8_t v = 0;
+        esp_err_t e = rd8(reg, &v);
+        printf("  0x%02X: %s%02X\n", reg, (e == ESP_OK) ? "" : "?? ", v);
+    }
+}
+
 void st25r3916_debug_dump(void)
 {
     uint8_t opc=0, mode=0, iso=0, rssi=0, aux=0, rxc1=0, rxc2=0;

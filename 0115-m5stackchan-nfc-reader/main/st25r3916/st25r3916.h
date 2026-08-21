@@ -50,6 +50,10 @@ esp_err_t st25r3916_configure_nfca(void);
 /* Print key register values for debugging (operation control, mode, IRQ, RSSI, FIFO). */
 void st25r3916_debug_dump(void);
 
+/* Dump ALL Space-A registers 0x00-0x3F (one line each) for full comparison
+ * against the M5 lib dump_regs() reference. */
+void st25r3916_dump_all(void);
+
 /* Measure the RF amplitude on the RFI inputs (CMD_MEASURE_AMPLITUDE).
  * Returns the 8-bit amplitude display value (reg 0x36); higher when a tag
  * loads the field. Useful as a "metal detector" to locate the coil. */

@@ -124,6 +124,13 @@ static int cmd_cap(int argc, char **argv)
     return 0;
 }
 
+/* nfc-dump : dump all Space-A registers for expert comparison. */
+static int cmd_dump(int argc, char **argv)
+{
+    st25r3916_dump_all();
+    return 0;
+}
+
 /* nfc-sweep : field on + repeatedly measure RF amplitude (find the coil).
  * Slide the tag over the body; the value spikes when the tag is over the coil. */
 static int cmd_sweep(int argc, char **argv)
@@ -199,4 +206,5 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-sweep", "Field on + measure RF amplitude (find coil)", cmd_sweep, NULL);
     reg("nfc-reqa", "Loop REQA, print ATQA on tag (find coil)", cmd_reqa, NULL);
     reg("nfc-cap",  "Measure antenna capacitance (coil connected?)", cmd_cap, NULL);
+    reg("nfc-dump", "Dump all Space-A registers (expert compare)", cmd_dump, NULL);
 }
