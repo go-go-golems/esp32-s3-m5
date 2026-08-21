@@ -184,3 +184,12 @@ Step 27: added bounded multi-tag collection and a UID-deduplicated persistent fo
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp — Multi-tag enumeration and persistent seen registry
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/04-arduino-persistent-four-device-registry.log — Hardware evidence
 
+
+## 2026-08-21
+
+Step 28: published and pushed a 5,321-word Obsidian deep dive synthesizing the Arduino-to-ESP-IDF NFC porting batch (vault commit 0e916a6)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md — Durable project report, measured comparison, architecture, and backend plan
+

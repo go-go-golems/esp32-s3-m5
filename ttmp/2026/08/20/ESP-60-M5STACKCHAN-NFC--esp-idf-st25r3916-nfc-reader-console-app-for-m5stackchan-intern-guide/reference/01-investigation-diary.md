@@ -7,6 +7,8 @@ DocType: reference
 Intent: long-term
 Owners: []
 RelatedFiles:
+    - Path: abs:///home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md
+      Note: Published textbook-style synthesis of the complete Arduino-to-ESP-IDF NFC porting batch
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c
       Note: |-
         Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
@@ -51,6 +53,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2472,3 +2475,113 @@ I then separated current presence from historical discovery. The final screen us
 - Final evidence: cycle 197, zero current PICCs, four retained UIDs, zero transport failures.
 - Runtime capture: `sources/hardware/04-arduino-persistent-four-device-registry.log`.
 - Board currently runs the persistent multi-tag Arduino monitor and Arduino partition table.
+
+---
+
+## Step 28: Publish the Arduino-to-ESP-IDF porting batch report to Obsidian
+
+The earlier vault articles documented the initial register-level port and the NFC LAB UI separately. The latest work added decisive evidence that deserved a new append-only synthesis: transaction-level M5 instrumentation, a zero-error four-chip control, continuous WUPA polling, multi-tag enumeration, and a persistent UID registry. I wrote a standalone textbook-style article that connects these results to the unresolved ESP-IDF backend problem rather than updating or replacing the historical reports.
+
+The article was validated as Obsidian Markdown, staged by exact path, committed as the only vault file in the commit, and pushed to `origin/main`. Existing unrelated transcript modifications and deletions in the vault remained unstaged and untouched.
+
+### Prompt Context
+
+**User prompt (verbatim):**
+
+> write a detailed project report for the obsidian vault as a deep dive technical analysis blog post using a textbook writing style (no analogies, see skill).
+> Commit and push the bsidian vault when done (go-go-parc vault).    /
+>
+> We are basically doing a big batch on like, porting the arduino stuff to esp-idf.
+
+**Assistant interpretation:** Create a new durable Obsidian article that explains the complete NFC porting batch from the Arduino reference through the ESP-IDF diagnostic system, validate it, and commit and push only that article in the go-go-parc vault.
+
+**Inferred user intent:** Preserve the project’s accumulated implementation and debugging knowledge as a coherent technical chapter that future engineers can use to understand and finish the Arduino-to-ESP-IDF port.
+
+**Commit (vault):** `0e916a6db8031c702d3fff8c2c7d87d8ca2ff6b3` — "Add Arduino-to-ESP-IDF NFC porting deep dive"
+
+### What I did
+
+- Loaded the Obsidian vault writing, Obsidian Markdown, and textbook-authoring skill guidance.
+- Preserved append-only history by creating a third NFC article rather than modifying the two earlier reports.
+- Read the existing ST25R3916 port and NFC LAB articles to match frontmatter, tone, section numbering, callouts, path conventions, and related-note style.
+- Reviewed the current transport guide headings, empirical Arduino comparison, implementation diary, and source statistics.
+- Created `ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md`.
+- Wrote 5,321 words across 811 lines.
+- Added frontmatter with title, aliases, tags, status, article type, date, and source repository.
+- Added a summary callout and 24 numbered sections.
+- Explained why behavioral porting extends beyond translating Arduino APIs.
+- Mapped the official M5 and ESP-IDF software stacks side by side.
+- Covered hardware proof, physical placement, ST25R3916 framing, initialization, NFC-A state, console diagnostics, NFC LAB architecture, structured logging, exact failures, and `ESP_ERR_INVALID_STATE` interpretation.
+- Included the RAM-buffered M5 tracer design and pseudocode.
+- Included the 10,188-transaction Arduino comparison and exact `0x02`/`0x0A` evidence.
+- Included continuous polling, bounded multi-tag detection, and the persistent seen-device registry.
+- Added the backend experiment phases, acceptance criteria, reproduction commands, source map, related notes, and final working rules.
+- Added four Mermaid diagrams and multiple tables, code snippets, pseudocode, and real trace excerpts.
+- Avoided analogies and textbook anti-patterns such as wandering preambles, hedged non-claims, and vague bullets.
+- Validated YAML frontmatter, balanced code fences, summary callout, word count, Mermaid count, internal wikilink targets, and whitespace.
+- Staged only the new article in the vault.
+- Committed and pushed the article to `origin/main`.
+
+### Why
+
+- The project now spans three experiment hosts and several evidence layers; a future reader needs one coherent model of how they relate.
+- The latest Arduino transaction trace materially changes the confidence assigned to transport hypotheses.
+- The continuous and multi-tag sketches are part of the behavioral specification for the eventual ESP-IDF port, not isolated UI experiments.
+- Append-only publication preserves the historical state of the earlier articles while documenting the current conclusions.
+
+### What worked
+
+- Frontmatter parsed successfully and contained all required properties.
+- The article contained 5,321 words, exceeding the 5,000-word deep-dive target.
+- All 62 Markdown fence markers were balanced.
+- Four Mermaid diagrams were present.
+- All four related-note wikilinks resolved to existing vault files.
+- `git diff --check` passed.
+- `git diff --cached --name-status` showed exactly one added article.
+- Vault commit `0e916a6` contained only the intended file.
+- Push succeeded:
+  `0edcb12..0e916a6  main -> main`.
+
+### What didn't work
+
+- N/A for article generation, validation, commit, and push.
+- The underlying ESP-IDF UID milestone remains unresolved and is explicitly presented as incomplete rather than softened in the report.
+
+### What I learned
+
+- The most useful synthesis is organized around evidence boundaries—physical, transport, RF, protocol, runtime, and inventory state—rather than around chronological commits.
+- The M5 trace and persistent registry belong in the same report because they define both the reliable backend behavior and the application behavior the ESP-IDF port must eventually reproduce.
+- The prior two articles remain useful as detailed historical slices; the new report provides the current cross-cutting architecture and decision model.
+
+### What was tricky to build
+
+- The new article had to add value without duplicating two existing long reports. I used the latest measured backend comparison as the central argument and linked the historical articles for deeper phase-specific detail.
+- The report had to distinguish strong evidence from unproven mechanisms. It states that M5 completed zero-error API-level traces but does not claim that no lower-level electrical anomaly was internally recovered.
+- The persistent multi-tag Arduino firmware is a control and behavioral reference, not the completed port. The article keeps that distinction explicit.
+- Unrelated vault transcript changes were already present. Exact-path staging and a one-file staged-file audit prevented them from entering the report commit.
+
+### What warrants a second pair of eyes
+
+- Review the report’s M5-versus-ESP-IDF comparison for any claim that exceeds the measured API boundary.
+- Review the backend phase ordering before implementation begins.
+- Confirm that the article’s source paths remain useful if ticket directories are later archived.
+
+### What should be done in the future
+
+- Implement the report’s D0–D6 backend experiment plan.
+- Publish a dated follow-up article when ESP-IDF itself returns a stable UID or when waveform evidence identifies the controller failure.
+- Do not overwrite this report; preserve it as the state of knowledge on 2026-08-21.
+
+### Code review instructions
+
+- Open the new article in Obsidian reading view and inspect Mermaid rendering, tables, callouts, and long code blocks.
+- Start with the summary, Sections 9–14, the backend experiment plan, and acceptance criteria.
+- Verify the pushed commit with `git show --stat 0e916a6` in the go-go-parc vault.
+
+### Technical details
+
+- Article path: `/home/manuel/code/wesen/go-go-golems/go-go-parc/Projects/2026/08/21/ARTICLE - M5StackChan NFC - From Arduino Reference Firmware to an ESP-IDF Diagnostic System.md`.
+- Length: 5,321 words, 811 lines, 40,165 bytes before Git object compression.
+- Mermaid diagrams: 4.
+- Vault commit: `0e916a6db8031c702d3fff8c2c7d87d8ca2ff6b3`.
+- Push target: `origin/main`.
