@@ -462,11 +462,9 @@ esp_err_t st25r3916_reqa(uint16_t *atqa)
 /* ---- WUPA: wake halted tags, get ATQA ---- */
 esp_err_t st25r3916_wupa(uint16_t *atqa)
 {
-    /* Clear any halt/leftover state, then re-enable the field before WUPA so a
-     * previously-selected (halted) tag will answer. */
-    direct_cmd(ST25R_CMD_STOP_ALL_ACTIVITIES);
-    st25r3916_field_on();
-    vTaskDelay(pdMS_TO_TICKS(5));
+    /* Keep the carrier continuously established. WUPA itself wakes a halted
+     * PICC; STOP_ALL_ACTIVITIES + field restart here would depower the tag.
+     * This matches M5Unit-NFC's nfca_request_wakeup() sequence. */
     return nfca_wake(atqa, ST25R_CMD_TRANSMIT_WUPA);
 }
 
@@ -539,14 +537,10 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
     if (!out) return ESP_ERR_INVALID_ARG;
     memset(out, 0, sizeof(*out));
 
-    /* Make sure field is on. */
-    esp_err_t e = st25r3916_field_on();
-    if (e != ESP_OK) return e;
-    vTaskDelay(pdMS_TO_TICKS(5));
-
-    /* REQA -> ATQA. If no answer, try WUPA (wakes halted tags). */
+    /* configure_nfca() established the field at startup. Keep it continuous so
+     * passive tags remain powered between REQA, WUPA, and anticollision. */
     uint16_t atqa = 0;
-    e = st25r3916_reqa(&atqa);
+    esp_err_t e = st25r3916_reqa(&atqa);
     if (e == ESP_ERR_NOT_FOUND) e = st25r3916_wupa(&atqa);
     if (e != ESP_OK) return e; /* no tag */
     out->atqa = atqa;
