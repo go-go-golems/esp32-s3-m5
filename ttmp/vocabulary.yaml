@@ -241,6 +241,12 @@ topics:
       description: 'Network stack work: WiFi, HTTP, mDNS, discovery, webserver routes'
     - slug: golang
       description: Go tooling and servers in this repo
+    - slug: nfc
+      description: Near Field Communication; NFC reader/tag work (ST25R3916, ISO14443, MIFARE, NTAG)
+    - slug: st25r3916
+      description: STMicro ST25R3916/ST25R3916B NFC reader IC (I2C/SPI front-end) used on M5StackChan body
+    - slug: esp-console
+      description: ESP-IDF esp_console REPL (USB Serial/JTAG or UART) for interactive CLI firmware
 docTypes:
     - slug: index
       description: Ticket index document

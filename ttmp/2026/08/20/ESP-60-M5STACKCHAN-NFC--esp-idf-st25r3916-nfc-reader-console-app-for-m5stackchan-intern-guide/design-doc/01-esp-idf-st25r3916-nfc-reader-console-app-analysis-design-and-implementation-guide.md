@@ -14,24 +14,37 @@ DocType: design-doc
 Intent: long-term
 Owners: []
 RelatedFiles:
-    - Path: sources/code/ST25R3916_definition.hpp
-      Note: Register constants and direct-command opcodes for the ST25R3916 (extracted from M5Unit-NFC) — the coding reference
-    - Path: sources/code/unit_ST25R3916.hpp
-      Note: M5Unit-NFC register-level driver class — reference for the init + NFC-A poll sequence
-    - Path: sources/code/PY32IOExpander_Class.hpp
-      Note: Firmware's existing I2C driver pattern to mirror (new driver/i2c_master.h API)
-    - Path: sources/code/stackchan-board-config.h
-      Note: I2C pins (SDA=GPIO12, SCL=GPIO11) and board pin map
-    - Path: sources/code/BSP-NFC-Detect-example.ino
-      Note: Official Arduino NFC-A detect example (logic to port to ESP-IDF)
+    - Path: repo://AGENTS.md
+      Note: 'Build/env rules: IDF 5.5.4, USB Serial/JTAG console, serial ownership, partition traps'
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/BSP-NFC-Detect-example.ino
+      Note: Official Arduino NFC-A detect logic to port
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/PY32IOExpander_Class.hpp
+      Note: Firmware I2C driver style to mirror (i2c_master API)
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/ST25R3916_definition.hpp
+      Note: Register constants + direct-command opcodes; copy into st25r3916_regs.h
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/stackchan-board-config.h
+      Note: I2C pins SDA=GPIO12 SCL=GPIO11
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/unit_ST25R3916.hpp
+      Note: 'Reference driver: init + NFC-A poll sequence'
 ExternalSources:
-    - Path: sources/web/01-elechouse-ST25R3916-esp32-readme.md
-      Note: ESP32-focused ST25R3916 driver fork docs (SPI + I2C validation notes)
-    - Path: sources/datasheets/README-download-instructions.md
-      Note: ST25R3916B official datasheet URL + community links
+    - sources/web/01-elechouse-ST25R3916-esp32-readme.md — ESP32-focused ST25R3916 driver fork docs (SPI + I2C validation notes)
+    - sources/datasheets/README-download-instructions.md — ST25R3916B official datasheet URL + community links
+Summary: ""
+LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: Build a standalone ESP-IDF NFC reader for the M5StackChan that reads tags over a USB Serial/JTAG console before any UI work.
 WhenToUse: Onboarding a new intern to NFC + the StackChan firmware; reference for implementing Phase 1 (console reader) and planning Phase 2 (UI).
 ---
+
+
+
+
+
+
+
+
+
+
+
 
 # ESP-IDF ST25R3916 NFC Reader Console App: Analysis, Design, and Implementation Guide
 

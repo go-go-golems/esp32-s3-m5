@@ -19,3 +19,5 @@ Use docmgr commands to manage this workspace:
 - Add documents: `docmgr doc add --ticket ESP-60-M5STACKCHAN-NFC --doc-type design-doc --title "My Design"`
 - Import sources: `docmgr import file --ticket ESP-60-M5STACKCHAN-NFC --file /path/to/doc.md`
 - Update metadata: `docmgr meta update --ticket ESP-60-M5STACKCHAN-NFC --field Status --value review`
+---
+
