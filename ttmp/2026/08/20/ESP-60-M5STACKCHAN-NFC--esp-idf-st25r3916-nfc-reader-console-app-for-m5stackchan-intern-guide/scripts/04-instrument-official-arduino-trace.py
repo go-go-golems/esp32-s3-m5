@@ -120,7 +120,7 @@ def main() -> None:
                         help="full preserves every one-second Detect trace; continuous installs the live screen monitor")
     args = parser.parse_args()
     workspace = args.workspace.resolve()
-    trace_capacity = 6000 if args.mode == "full" else 512
+    trace_capacity = 6000 if args.mode == "full" else 1024
     sketch_name = "Detect-traced.cpp" if args.mode == "full" else "Detect-continuous-traced.cpp"
     here = Path(__file__).resolve().parent.parent
     artifacts = here / "sources/code/arduino-trace"
