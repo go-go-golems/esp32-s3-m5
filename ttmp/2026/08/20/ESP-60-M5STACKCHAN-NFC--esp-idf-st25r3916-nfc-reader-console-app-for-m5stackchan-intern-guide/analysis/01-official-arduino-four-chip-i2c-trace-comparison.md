@@ -20,16 +20,21 @@ RelatedFiles:
       Note: Reproducible M5Unified in-memory transport instrumentation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/05-analyze-arduino-trace.py
       Note: Reproducible capture parser and summarizer
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
+      Note: WUPA polling, bounded serial summaries, and 320x240 screen log
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/02-official-arduino-four-chip-full-i2c-trace.analysis.json
       Note: Machine-readable phase and latency summary
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/02-official-arduino-four-chip-full-i2c-trace.log.gz
       Note: Exact complete four-chip Arduino serial trace
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/03-arduino-continuous-screen-runtime.log
+      Note: Twenty-second continuous four-chip hardware validation
 ExternalSources: []
 Summary: Transaction-level comparison of the successful official Arduino/M5 I2C path with NFC LAB's intermittent ESP-IDF failures.
 LastUpdated: 2026-08-21T16:42:48.949026988-04:00
 WhatFor: Use this evidence when selecting and implementing the next ST25R3916 transport backend experiment.
 WhenToUse: Read before attributing ESP_ERR_INVALID_STATE to the tag, RF coupling, or a specific ST25R register.
 ---
+
 
 
 # Official Arduino Four-Chip I2C Trace Comparison
@@ -176,6 +181,24 @@ Implement the guide's standalone backend matrix in project `0115`:
 
 The strongest implementation candidate is the smallest backend change that reproduces M5's zero-error trace while remaining safe for StackChan's shared I2C bus.
 
+## Continuous screen-monitor follow-up
+
+The follow-up `.ino` monitor replaced the one-second multi-PICC enumeration loop with a 250 ms WUPA/select/identify cycle. WUPA wakes tags placed in HALT by the prior cycle, making the same physical chips visible repeatedly without removing or power-cycling them. The firmware retains the in-memory transaction recorder but prints only phase summaries and failures; this removes the long serial-drain pause between polls.
+
+A 20-second run with the same four chips produced:
+
+- 49 poll cycles;
+- 47 successful WUPA responses;
+- 31 successful selections;
+- 30 successful identifications;
+- 8,126 cumulative ST25R3916 transactions;
+- zero M5Unified-level transport failures;
+- three repeatedly selected UIDs: `04C9C54C9E6180`, `0491D44C9E6180`, and `047BD44D9E6180`.
+
+The 320×240 display continuously renders poll number, state, elapsed time, UID, type, ATQA/SAK, cumulative I2C totals, last transaction key/timing/failure stage, and a 13-entry scrolling event log. Transport failures are red, protocol failures orange, tags green, and no-tag state yellow.
+
+Selection occasionally failed after a valid WUPA response, and one selected tag failed identification. Some multi-tag cycles returned transient ATQA values `0x0188`, `0x0210`, or `0x2800` instead of `0x0044`. All underlying I2C transactions still succeeded. These are multi-tag RF/anticollision/protocol observations and reinforce that the live display must not classify every poll miss as transport failure.
+
 ## Artifacts
 
 - Raw exact serial capture: `sources/hardware/02-official-arduino-four-chip-full-i2c-trace.log.gz`.
@@ -185,3 +208,5 @@ The strongest implementation candidate is the smallest backend change that repro
 - Traced sketch: `sources/code/arduino-trace/Detect-traced.cpp`.
 - Trace ABI: `sources/code/arduino-trace/esp60_m5_i2c_trace.h`.
 - ESP-IDF comparison capture: `sources/hardware/01-nfc-lab-structured-serial-runtime.log`.
+- Continuous monitor source: `sources/code/arduino-trace/Detect-continuous-traced.cpp`.
+- Continuous monitor capture: `sources/hardware/03-arduino-continuous-screen-runtime.log`.

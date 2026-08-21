@@ -29,6 +29,8 @@ RelatedFiles:
       Note: Empirical Arduino-versus-ESP-IDF transaction comparison
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
       Note: Reproducible no-serial-in-hot-path M5Unified tracer
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
+      Note: Continuous Arduino polling and on-screen diagnostics
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
       Note: Authoritative initialization implementation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
@@ -37,6 +39,8 @@ RelatedFiles:
       Note: Normalized complete hardware boot and NFC initialization capture
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/02-official-arduino-four-chip-full-i2c-trace.log.gz
       Note: Exact four-chip hardware trace
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/03-arduino-continuous-screen-runtime.log
+      Note: Runtime proof of repeated WUPA/select/identify cycles
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -45,6 +49,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2218,3 +2223,128 @@ A first instrumented run immediately read the known UID with zero reported I2C f
 - Additional discovered UIDs: `0491D44C9E6180`, `04DAF74D9E6180`.
 - Complete first detection: 4,816 transactions, zero failures, zero dropped records.
 - Board currently contains the instrumented Arduino firmware and Arduino partition table.
+
+---
+
+## Step 26: Add continuous `.ino` polling and on-screen logs
+
+The full Arduino trace established a clean M5 transport, but its one-second detection phase printed thousands of records afterward and HALTed discovered tags. I created a separate continuous-monitor variant of the official `.ino` that wakes halted tags with WUPA, selects and identifies one tag per cycle, emits compact serial summaries, and displays a bounded diagnostic log on the CoreS3 screen.
+
+The monitor built, was committed, and was then full-flashed over the earlier trace build. A 20-second exclusive serial capture validated 49 cycles while the same four chips remained in place. It repeatedly selected three UIDs, reached 8,126 cumulative ST25R3916 transactions, and reported zero M5Unified-level failures. Selection and identification misses remained visible as protocol/RF outcomes rather than transport errors.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Can you do continuous polling and display logs on screen?"
+
+**Follow-up user prompt (verbatim):** "(with the ino)"
+
+**Assistant interpretation:** Extend the instrumented official Arduino sketch—not NFC LAB—with repeated tag polling, compact serial diagnostics, and a readable scrolling 320×240 log display.
+
+**Inferred user intent:** Turn the known-good Arduino implementation into a live hardware monitor that can be observed directly and compared continuously with the failing ESP-IDF transport.
+
+**Commit (code):** `64cd7e94e732ab31701e4703b1f0369b89f8429c` — "ESP-60: add continuous Arduino NFC screen monitor"
+
+### What I did
+
+- Added ticket task `ybrj` and marked it complete after hardware validation.
+- Preserved the historical full-trace `Detect-traced.cpp` and added `Detect-continuous-traced.cpp` separately.
+- Added `--mode full|continuous` to the reusable instrumentation patcher.
+- Kept the 6,000-entry ring for full one-second captures and selected a 512-entry ring for continuous mode.
+- Implemented a 250 ms poll interval.
+- Used `NFCLayerA::wakeup()` before every selection so tags HALTed by the previous cycle respond again.
+- Used `select()` and `identify()` to expose WUPA, anticollision/selection, and deeper protocol results independently.
+- Retained in-memory I2C tracing during each poll.
+- Changed serial output to one `M5_PHASE` and one `M5_POLL` summary per cycle, plus `M5_I2C_FAIL` only for actual failures.
+- Added cumulative transaction/failure counters.
+- Added a 13-entry screen event ring with fixed-size strings.
+- Added a 320×240 display containing poll number, current state, elapsed time, UID, type, ATQA/SAK, no-tag count, cumulative I2C totals, and last transaction details.
+- Used green for tags, yellow for no tag, orange for protocol failure, and red for transport failure.
+- Logged new UID observations, protocol failures, every transport failure, and rate-limited no-tag events on screen.
+- Built with PIOArduino 55.03.311 using PlatformIO 6.1.19.
+- Committed the buildable checkpoint before flashing.
+- Verified exclusive ownership of `/dev/ttyACM0`, full-flashed the Arduino image, and captured 20 seconds.
+- Preserved normalized and exact compressed runtime captures with provenance.
+- Added the continuous results to the Arduino comparison analysis.
+
+### Why
+
+- The official multi-PICC detect loop HALTs tags and does not wake them before the next loop, so the same physical tag can disappear after one successful cycle.
+- Dumping every successful transaction over serial creates long pauses and prevents a useful live monitor.
+- A bounded screen log provides immediate local feedback while retaining authoritative serial summaries for remote analysis.
+- WUPA/select/identify exposes the stage at which a multi-tag cycle fails without conflating that result with I2C transport health.
+
+### What worked
+
+- Continuous mode compiled and linked without warnings or errors.
+- Reducing the trace ring from 6,000 to 512 entries reduced RAM use from 44.0% to 12.4%.
+- The firmware image was 674,592 bytes and flashed with hash verification.
+- Initialization completed 335 transactions with zero failures.
+- The monitor completed 49 poll cycles in the captured 20 seconds.
+- WUPA succeeded in 47 cycles, selection in 31, and identification in 30.
+- The monitor repeatedly selected `04C9C54C9E6180`, `0491D44C9E6180`, and `047BD44D9E6180`.
+- Cumulative transport count reached 8,126 with zero failures and zero ring drops.
+- Repeated successful cycles typically completed in 40–45 ms, leaving ample time before the next 250 ms interval.
+- Serial remained compact: the 20-second capture was 13,332 bytes rather than approximately one megabyte per full trace cycle.
+- Continuous rendering calls completed throughout the run without a crash or watchdog reset.
+
+### What didn't work
+
+- Four physical chips did not yield a successful selected/identified tag on every cycle.
+- Two cycles had no WUPA response, 16 cycles woke a tag but failed selection, and one selected tag failed identification.
+- Multi-tag cycles occasionally reported transient ATQA values `0x0188`, `0x0210`, or `0x2800` instead of `0x0044` while still identifying a known UID.
+- The screen was exercised by firmware throughout the serial capture, but no photographic or framebuffer capture was taken to verify typography and clipping visually.
+- The monitor currently identifies one selected PICC per cycle rather than enumerating all four chips in one frame.
+
+### What I learned
+
+- WUPA solves the one-shot behavior: the same UID can be read repeatedly without removing the tag or cycling RF power.
+- The M5 path sustained thousands of additional transactions under continuous screen updates without a transport failure.
+- Multi-tag selection and ATQA instability can occur with a clean bus, so the screen's protocol/RF category is necessary.
+- A compact per-cycle serial summary is sufficient for long-duration transport-rate measurement; the full transaction mode should be reserved for targeted captures.
+- The fourth physical chip remained outside the repeatedly selected UID set during this capture, likely due to RF coupling or anticollision dynamics rather than I2C.
+
+### What was tricky to build
+
+- `detect(vector)` intentionally runs for one second and HALTs discovered PICCs. Reusing it would produce slow cycles and preserve the one-shot symptom. The monitor instead performs WUPA, select, and identify explicitly.
+- `identify()` internally reactivates and deactivates the selected PICC. The next cycle must begin with WUPA rather than REQA to recover from HALT.
+- Screen rendering must not perform NFC operations or drain a concurrently changing ring. The sketch completes and drains the poll trace before rendering.
+- Fixed-size screen strings prevent heap growth in the event history, while transient `std::string` values are limited to the current UID/type.
+- The last transaction shown on screen is diagnostic context, not necessarily a failed operation. Its failure-stage field makes this distinction explicit.
+
+### What warrants a second pair of eyes
+
+- Visually inspect the physical screen for clipped lines, font legibility, and color contrast.
+- Review whether 250 ms should be measured from cycle start rather than implemented as a post-cycle delay.
+- Decide whether a multi-tag monitor should enumerate all PICCs per cycle or deliberately select one.
+- Investigate inconsistent ATQA values under four-chip coupling before treating them as valid card metadata.
+- Consider clearing `last_uid` after a no-tag interval if reacquisition of the same UID should create a new screen log entry.
+
+### What should be done in the future
+
+- Run a longer stability capture and calculate poll/selection/identification rates.
+- Repeat with one chip to separate multi-tag RF behavior from continuous-poller behavior.
+- Add optional on-screen paging or touch controls only if the fixed summary becomes insufficient.
+- Restore NFC LAB with a full flash before resuming ESP-IDF UI work.
+
+### Code review instructions
+
+- Start at `Detect-continuous-traced.cpp::loop()` and verify WUPA/select/identify ordering.
+- Review `collect_trace()` to ensure serial output occurs only after the NFC operation.
+- Review `render_screen()` and `append_screen_log()` for bounds and 320×240 coordinates.
+- Prepare continuous mode with:
+  `scripts/04-instrument-official-arduino-trace.py --mode continuous /tmp/esp60-official-detect`.
+- Build with `/home/manuel/.platformio/penv/bin/pio run -e cores3`.
+- Filter runtime logs with `rg 'M5_(PHASE|POLL|I2C_FAIL)'`.
+
+### Technical details
+
+- Poll interval: 250 ms after each completed cycle.
+- Successful poll duration: generally 40–45 ms.
+- Trace capacity: 512 records.
+- RAM: 40,636 / 327,680 bytes (12.4%).
+- Flash payload: 674,592 bytes.
+- Runtime: 49 cycles, 47 WUPA, 31 selections, 30 identifications.
+- UID counts: `047BD44D9E6180` 14, `04C9C54C9E6180` 11, `0491D44C9E6180` 6.
+- Cumulative I2C: 8,126 successful, zero failed.
+- Runtime capture: `sources/hardware/03-arduino-continuous-screen-runtime.log`.
+- Board currently runs the continuous Arduino screen monitor and Arduino partition table.
