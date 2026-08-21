@@ -93,14 +93,16 @@ static esp_err_t fifo_read(uint8_t *data, size_t want, size_t *got)
     return e;
 }
 
-/* Read the FIFO byte count. Per M5 lib readFIFOSize(): the 16-bit FIFO status
- * (reg 0x1E low, 0x1F high) gives bytes = reg0x1F | ((reg0x1E & 0xC0) << 2). */
+/* Read the FIFO byte count. M5's readFIFOStatus() reads the registers as a
+ * big-endian 16-bit value: s = reg0x1E << 8 | reg0x1F. readFIFOSize() then
+ * computes bytes = (s >> 8) | ((s & 0x00C0) << 2), i.e. the low 8 count
+ * bits are in reg0x1E and count bits 9:8 are reg0x1F bits 7:6. */
 static uint16_t fifo_bytes(void)
 {
-    uint8_t s1 = 0, s2 = 0;
-    if (rd8(ST25R_REG_FIFO_STATUS_1, &s1) != ESP_OK) return 0;
-    if (rd8(ST25R_REG_FIFO_STATUS_2, &s2) != ESP_OK) return 0;
-    return (uint16_t)s2 | ((uint16_t)(s1 & 0xC0) << 2);
+    uint8_t status1 = 0, status2 = 0;
+    if (rd8(ST25R_REG_FIFO_STATUS_1, &status1) != ESP_OK) return 0;
+    if (rd8(ST25R_REG_FIFO_STATUS_2, &status2) != ESP_OK) return 0;
+    return (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
 }
 
 /* Read the 24-bit main interrupt register (3 bytes from 0x1A, read). */
