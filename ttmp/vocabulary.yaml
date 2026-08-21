@@ -247,6 +247,8 @@ topics:
       description: STMicro ST25R3916/ST25R3916B NFC reader IC (I2C/SPI front-end) used on M5StackChan body
     - slug: esp-console
       description: ESP-IDF esp_console REPL (USB Serial/JTAG or UART) for interactive CLI firmware
+    - slug: debug-handoff
+      description: 'Debug handoff doc: symptom + ruled-out + reproduction + ranked hypotheses + next steps for an expert colleague'
 docTypes:
     - slug: index
       description: Ticket index document
