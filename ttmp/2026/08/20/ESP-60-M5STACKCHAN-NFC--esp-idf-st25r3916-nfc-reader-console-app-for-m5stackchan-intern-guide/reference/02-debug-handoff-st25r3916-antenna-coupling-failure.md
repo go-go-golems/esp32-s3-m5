@@ -260,3 +260,52 @@ After correcting placement (tag flat on top of the head), `nfc-reqa` STILL retur
 5. (Last resort) A subtle ESP-IDF-vs-Arduino difference; bisect by flashing the M5 Arduino `Detect.ino` to the same device (needs Arduino-ESP32 toolchain).
 
 **Corrected user ask:** place a **known-good ISO14443-A tag** (NTAG213/215/216, MIFARE Ultralight, or amiibo) flat on the **top of the head**, not the body. Verify the tag reads on a phone first.
+
+---
+
+## UPDATE (2026-08-21): tag confirmed ISO14443-A NTAG → this is a FIRMWARE bug, not the tag
+
+**The user confirmed the tag:** "TKUS QBK 3M 20 Made in china timeskey NFC", **NTAG213/215/216**, protocol **ISO/IEC 14443-A / 18000-3**, 13.56 MHz. (A real NTAG sticker.)
+
+This **flips the diagnosis.** A genuine ISO14443-A NTAG flat on the correct surface (top of head) should answer REQA. Getting `irq=000000` for both REQA and WUPA with a known-good ISO14443-A tag means **the firmware/driver is still missing something the M5 lib does** — it is no longer plausible to blame the tag or placement.
+
+### The prime suspect: the No-Response Timer (NRT) is never configured
+
+The M5 lib calls `write_fwt_timer(TIMEOUT_REQ_WUP)` immediately before every REQA (`unit_ST25R3916_nfca.cpp:257`) and before anticollision (`:303`). `write_fwt_timer()` computes an NRT value via `calculate_nrt(ms, nrt_step)` and writes it to `REG_NO_RESPONSE_TIMER_1/2` (0x10/0x11), reading `nrt_step` from `REG_TIMER_AND_EMV_CONTROL` (0x12, bit `nrt_step`=0x01).
+
+**Our driver never sets the NRT.** After `CMD_SET_DEFAULT` the NRT register may be 0 or a tiny default, so the ST25R3916 aborts the receive window almost immediately after transmitting REQA — before an NTAG can load-power and answer. The symptom of "no IRQ at all, not even RXS" matches an NRT that fires before the tag's response window opens.
+
+This also explains the **one earlier fluke RXE**: occasionally the tag answered fast enough to beat a near-zero NRT.
+
+### Concrete next step (firmware, no hardware needed)
+
+1. Implement `write_fwt_timer(ms)` in `st25r3916.c` mirroring the M5 lib:
+   - read `REG_TIMER_AND_EMV_CONTROL` (0x12), take `nrt_step = val & 0x01`
+   - `nrt = calculate_nrt(ms, nstep)` (need the `calculate_nrt` source — see below)
+   - write `nrt` to `REG_NO_RESPONSE_TIMER_1/2` (0x10/0x11)
+2. Call `write_fwt_timer(50)` (≈TIMEOUT_REQ_WUP) right before `CMD_TRANSMIT_REQA` in `st25r3916_reqa()` / `nfca_wake()`, and before anticollision.
+3. Also set the timer-and-EMV control register (0x12) to a sane default if needed (the M5 lib's `default_nrt_for(NFC::A)` sets the mode default NRT in `configureNFCMode`).
+4. Re-flash and re-run `nfc-reqa` / `nfc-read` with the NTAG on top of the head → expect `ATQA=0044` and a 7-byte UID (CL1 0x93 → CL2 0x95 cascade).
+
+**Reference code to copy:** `M5Unit-NFC/src/unit/unit_ST25R3916.cpp::write_fwt_timer()` (line ~701), `calculate_nrt()` (search the file), and the `TIMEOUT_REQ_WUP` constant in `unit_ST25R3916_nfca.cpp`.
+
+### Revised ranked hypotheses (tag now confirmed good)
+
+1. **(Prime, NEW) No-Response Timer not configured** → RX window aborts before the NTAG answers. Fix: `write_fwt_timer()` before REQA. **This is the highest-value next action.**
+2. (Exonerated) Tag — confirmed ISO14443-A NTAG.
+3. (Exonerated) Placement — confirmed top of head (M5 docs).
+4. (Exonerated) Antenna feed — cap=124 connected.
+5. (Exonerated) Init registers — full dump matches M5 lib.
+6. (Possible, secondary) Other skipped M5-lib init writes (EMD suppression 0x40 Space-B, passive-target modulation 0x5F, resistive AM modulation) — unlikely to gate REQA but cheap to add once NRT is fixed.
+7. (Last resort) A subtle ESP-IDF-vs-Arduino timing difference; bisect by flashing the M5 Arduino `Detect.ino` (arduino-cli is installed; ESP32 core + M5 libs need installing).
+
+### Revised reproduction / quick check
+
+```bash
+cd 0115-m5stackchan-nfc-reader
+source ~/esp/esp-idf-5.5.4/export.sh
+idf.py -p /dev/ttyACM0 flash
+# tag (NTAG213/215/216) flat on TOP of the head
+python3 -c "import serial,time; s=serial.Serial('/dev/ttyACM0',115200,timeout=1); s.rts=True; time.sleep(0.1); s.rts=False; time.sleep(3.5); s.write(b'nfc-read\n'); time.sleep(3); print(s.read(8192).decode('utf-8','replace').replace(chr(13),''))"
+```
+Currently prints `no tag` + `reqa: irq=000000`. After the NRT fix it should print `PICC: UID=04:... ATQA=0044 SAK=00 type=MIFARE Ultralight/NTAG`.
