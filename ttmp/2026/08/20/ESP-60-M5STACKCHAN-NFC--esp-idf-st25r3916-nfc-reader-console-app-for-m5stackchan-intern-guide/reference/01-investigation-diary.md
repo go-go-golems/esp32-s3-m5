@@ -41,6 +41,8 @@ RelatedFiles:
       Note: Exact four-chip hardware trace
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/03-arduino-continuous-screen-runtime.log
       Note: Runtime proof of repeated WUPA/select/identify cycles
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/04-arduino-persistent-four-device-registry.log
+      Note: 197-cycle multi-tag persistence validation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -49,6 +51,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2348,3 +2351,124 @@ The monitor built, was committed, and was then full-flashed over the earlier tra
 - Cumulative I2C: 8,126 successful, zero failed.
 - Runtime capture: `sources/hardware/03-arduino-continuous-screen-runtime.log`.
 - Board currently runs the continuous Arduino screen monitor and Arduino partition table.
+
+---
+
+## Step 27: Display multiple tags and retain a deduplicated seen-device registry
+
+The first continuous monitor selected one PICC per WUPA cycle. I changed it to wake the field, run the official vector detection path for a bounded 120 ms collection window, identify up to four discovered PICCs, and render four tag rows together. The first multi-tag version correctly showed current discoveries but cleared those rows after an empty scan.
+
+I then separated current presence from historical discovery. The final screen uses a four-entry UID-keyed registry. Repeated observations update one row; empty scans mark rows absent without deleting them. An uninterrupted 197-cycle capture ended with zero current PICCs and `seen=4`, proving all four discovered devices remained in the list after they were no longer returned by the current scan.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can it pull and display multiple at once?"
+
+**Follow-up user prompt (verbatim):** "des it keep the list of seen devices though? it seems that they get recognized and then it's flushed at the next scan"
+
+**Follow-up user prompt (verbatim):** "so they don't get discovered twice?"
+
+**Follow-up user prompt (verbatim):** "ok whatever, it's good now"
+
+**Assistant interpretation:** Extend the continuous Arduino monitor to enumerate several tags in one bounded cycle, then preserve a deduplicated historical UID list across later empty scans.
+
+**Inferred user intent:** Keep a stable on-device inventory of the physical chips that have been observed rather than showing only a transient snapshot of the current RF response.
+
+**Commit (multi-tag display):** `eca56bf693d514c42e73d4ac00fbc760e7b78979` — "ESP-60: display multiple Arduino NFC tags per cycle"
+
+**Commit (persistent registry):** `32d64476e6c4fdcb3e174957a75d97d36c360377` — "ESP-60: retain Arduino NFC seen-device list"
+
+### What I did
+
+- Replaced one-PICC WUPA/select polling with WUPA followed by `detect(piccs, 120)`.
+- Preserved the 250 ms post-cycle interval.
+- Increased continuous trace capacity from 512 to 1,024 records for the bounded multi-tag phase.
+- Rendered four tag rows with UID, type, ATQA, SAK, and identification state.
+- Added `M5_TAG` records for each PICC and `M5_MULTI` cycle summaries.
+- Added current-tag count, identified count, and retained-tag count to serial summaries.
+- Implemented a fixed four-entry `seen_tags` registry keyed by UID.
+- Added per-entry presence, observation count, and last-seen poll fields.
+- Marked all entries absent at scan start and present only when rediscovered in that scan.
+- Updated an existing row when the same UID reappeared instead of allocating a duplicate.
+- Added least-recently-seen eviction for a fifth distinct UID.
+- Used `*` for currently present and `-` for retained/absent screen rows.
+- Logged first discovery and eviction events in the bounded screen log.
+- Built and committed the multi-tag version before flashing.
+- Observed no physical tags in the first post-flash capture, which produced 24,864 clean transactions but could not validate enumeration.
+- Added persistence, rebuilt, committed, and full-flashed again.
+- Opened one exclusive five-minute serial session so discovery and subsequent empty scans occurred without rebooting.
+- Stopped the background capture before releasing `/dev/ttyACM0`.
+- Preserved normalized and byte-exact compressed evidence with hashes.
+
+### Why
+
+- The vector `detect()` API already contains M5Unit-NFC's multi-PICC anticollision and HALT-based enumeration behavior.
+- A short collection window keeps the display responsive while allowing several PICCs to be discovered.
+- A live inventory needs different state from a current-scan result. Presence is ephemeral; identity and observation history persist.
+- UID-keyed updates prevent repeated polling from filling the screen with duplicate rows.
+
+### What worked
+
+- The multi-tag monitor compiled at 15.4% RAM and 9.8% flash use.
+- The persistent registry version compiled with 50,444 bytes of RAM use.
+- Both Arduino images flashed with hash verification.
+- The uninterrupted registry run completed 197 cycles.
+- Four distinct UIDs were retained: `04DAF74D9E6180`, `04ACE84D9E6180`, `0491D44C9E6180`, and `04C9C54C9E6180`.
+- Repeated observations increased counters rather than creating duplicate rows.
+- Maximum observation counts were 8, 10, 10, and 3 respectively.
+- The last captured cycle had `piccs=0`, `displayed=0`, and `seen=4`.
+- No `M5_I2C_FAIL` record or phase-level transport failure occurred.
+- The user confirmed the resulting behavior was good.
+
+### What didn't work
+
+- The first multi-tag validation capture ran while no chips were physically present. It validated no-tag stability but not the multi-tag screen.
+- A current-scan-only array caused the initial multi-tag rows to disappear after the next empty scan. This matched the user's observation and required a separate persistent registry.
+- The registry has four slots. A fifth distinct UID causes deliberate least-recently-seen eviction rather than unbounded growth.
+- Two physical chips with an identical UID cannot be distinguished; they update one logical row.
+
+### What I learned
+
+- Multi-tag enumeration and historical inventory are separate data models. The former is a bounded vector returned by one RF collection window; the latter is a UID-indexed table updated over time.
+- A screen can communicate both states compactly with present/absent markers and a retained count.
+- The official detect path can discover different subsets across cycles under four-chip coupling, so retention produces a more useful inventory than any single scan.
+- Deduplication must happen after UID extraction. ATQA, SAK, and type are not stable enough or unique enough to serve as identity keys.
+
+### What was tricky to build
+
+- `detect(piccs, timeout)` HALTs each selected PICC so another can answer. The cycle must begin with WUPA to make tags from the prior cycle eligible again.
+- The 120 ms detection phase performs roughly 625 transactions without tags. A 1,024-entry ring prevents ordinary phase overflow while remaining much smaller than the 6,000-entry forensic build.
+- Presence cannot be inferred from registry membership. Every cycle explicitly clears `present`, then sets it only for UIDs returned in that cycle.
+- Registry replacement must reset the evicted row's observation history before assigning a new UID.
+- Screen rows must remain stable across empty scans while still changing color and marker to show that the tag is no longer current.
+
+### What warrants a second pair of eyes
+
+- Visually inspect whether four two-line tag rows and ten log rows remain legible on the physical 320×240 display.
+- Review the four-entry capacity and least-recently-seen policy if future tests use more tags.
+- Consider preserving the strongest successful identification metadata rather than replacing it with a later provisional result.
+- Verify whether UID collisions need explicit indication for test cards with configurable duplicate UIDs.
+
+### What should be done in the future
+
+- Add a user-triggered clear-registry action if retained entries need manual reset without reflashing.
+- Optionally persist the registry in NVS only if survival across reboot becomes a requirement.
+- Restore NFC LAB with a full flash before returning to ESP-IDF backend work.
+
+### Code review instructions
+
+- Review `remember_tag()` for UID matching, empty-slot use, and least-recently-seen replacement.
+- Review the start-of-cycle `present=false` pass and subsequent updates.
+- Review `render_screen()` for `*` current and `-` retained row rendering.
+- Validate from serial by finding a later line with `piccs=0 ... seen=4` after prior `M5_TAG` records.
+
+### Technical details
+
+- Detection window: 120 ms.
+- Poll delay: 250 ms.
+- Trace ring: 1,024 transactions.
+- Registry: four fixed entries keyed by UID.
+- Validation: 197 uninterrupted cycles.
+- Final evidence: cycle 197, zero current PICCs, four retained UIDs, zero transport failures.
+- Runtime capture: `sources/hardware/04-arduino-persistent-four-device-registry.log`.
+- Board currently runs the persistent multi-tag Arduino monitor and Arduino partition table.

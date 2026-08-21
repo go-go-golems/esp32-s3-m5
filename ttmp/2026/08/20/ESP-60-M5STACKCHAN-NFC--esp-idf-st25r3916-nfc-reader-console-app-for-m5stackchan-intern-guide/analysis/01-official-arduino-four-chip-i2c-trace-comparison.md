@@ -28,12 +28,15 @@ RelatedFiles:
       Note: Exact complete four-chip Arduino serial trace
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/03-arduino-continuous-screen-runtime.log
       Note: Twenty-second continuous four-chip hardware validation
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/04-arduino-persistent-four-device-registry.log
+      Note: Uninterrupted proof that four UID rows survive empty scans
 ExternalSources: []
 Summary: Transaction-level comparison of the successful official Arduino/M5 I2C path with NFC LAB's intermittent ESP-IDF failures.
 LastUpdated: 2026-08-21T16:42:48.949026988-04:00
 WhatFor: Use this evidence when selecting and implementing the next ST25R3916 transport backend experiment.
 WhenToUse: Read before attributing ESP_ERR_INVALID_STATE to the tag, RF coupling, or a specific ST25R register.
 ---
+
 
 
 
@@ -199,6 +202,23 @@ The 320×240 display continuously renders poll number, state, elapsed time, UID,
 
 Selection occasionally failed after a valid WUPA response, and one selected tag failed identification. Some multi-tag cycles returned transient ATQA values `0x0188`, `0x0210`, or `0x2800` instead of `0x0044`. All underlying I2C transactions still succeeded. These are multi-tag RF/anticollision/protocol observations and reinforce that the live display must not classify every poll miss as transport failure.
 
+## Persistent multi-device registry follow-up
+
+The first multi-tag screen rendered only the current 120 ms collection window. An empty scan therefore erased the UID rows even though the scrolling log still contained prior discoveries. The final Arduino monitor separates **current presence** from **historical discovery** with a four-entry UID-keyed registry.
+
+Every newly enumerated PICC is matched by UID. A matching UID updates its existing row's observation count, last-seen poll, type, ATQA, SAK, identification result, and current-presence marker. It does not allocate a duplicate row. At the beginning of each scan, all rows become absent; tags found in that scan become present again. Empty scans retain the UID and metadata. The screen displays `*` for current presence and `-` for a retained but currently absent tag.
+
+An uninterrupted 197-cycle session proved the behavior. Four unique UIDs entered the registry:
+
+- `04DAF74D9E6180`, observed 8 times;
+- `04ACE84D9E6180`, observed 10 times;
+- `0491D44C9E6180`, observed 10 times;
+- `04C9C54C9E6180`, observed 3 times.
+
+At cycle 197, the current detect window returned zero PICCs while the serial summary still reported `seen=4`. No I2C failures occurred. The registry therefore preserved all four rows across empty scans without assigning duplicate rows to repeated observations.
+
+The four-entry capacity matches the physical test and screen layout. If a fifth unique UID appears, the least-recently-seen entry is evicted and the event is recorded on screen. Two physical tags that intentionally share an identical UID cannot be distinguished by this registry; they update the same logical device row.
+
 ## Artifacts
 
 - Raw exact serial capture: `sources/hardware/02-official-arduino-four-chip-full-i2c-trace.log.gz`.
@@ -210,3 +230,4 @@ Selection occasionally failed after a valid WUPA response, and one selected tag 
 - ESP-IDF comparison capture: `sources/hardware/01-nfc-lab-structured-serial-runtime.log`.
 - Continuous monitor source: `sources/code/arduino-trace/Detect-continuous-traced.cpp`.
 - Continuous monitor capture: `sources/hardware/03-arduino-continuous-screen-runtime.log`.
+- Persistent registry capture: `sources/hardware/04-arduino-persistent-four-device-registry.log`.

@@ -20,3 +20,4 @@
 - [x] Add structured NFC transport/service serial logging and validate on ESP-IDF 5.5.4 <!-- t:vmwz -->
 - [x] Instrument and rerun official Arduino Detect.ino for transaction-level comparison with NFC LAB <!-- t:2hyl -->
 - [x] Add continuous Arduino NFC polling with on-screen event log and compact serial summaries <!-- t:ybrj -->
+- [x] Display multiple Arduino NFC tags and retain a UID-deduplicated seen-device registry <!-- t:3snv -->
