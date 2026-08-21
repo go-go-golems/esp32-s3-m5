@@ -38,6 +38,21 @@ static st25r3916_transport_stats_t s_transport_stats = {0};
 /* Low-level register access (mirrors PY32IOExpander_Class style)     */
 /* ------------------------------------------------------------------ */
 
+static const char *transport_operation_name(st25r3916_transport_operation_t operation)
+{
+    switch (operation) {
+    case ST25R_TRANSPORT_READ_A: return "READ_A";
+    case ST25R_TRANSPORT_WRITE_A: return "WRITE_A";
+    case ST25R_TRANSPORT_READ_B: return "READ_B";
+    case ST25R_TRANSPORT_WRITE_B: return "WRITE_B";
+    case ST25R_TRANSPORT_DIRECT_COMMAND: return "DIRECT";
+    case ST25R_TRANSPORT_FIFO_READ: return "FIFO_READ";
+    case ST25R_TRANSPORT_FIFO_WRITE: return "FIFO_WRITE";
+    case ST25R_TRANSPORT_NONE: return "NONE";
+    }
+    return "UNKNOWN";
+}
+
 static void record_transport(st25r3916_transport_operation_t operation, uint8_t key,
                              esp_err_t error, int64_t started_us)
 {
@@ -55,6 +70,17 @@ static void record_transport(st25r3916_transport_operation_t operation, uint8_t 
     s_transport_stats.last_key = key;
     s_transport_stats.last_error = error;
     s_transport_stats.last_elapsed_us = (uint32_t)(esp_timer_get_time() - started_us);
+
+    /* This is the authoritative per-transaction serial evidence. Keep it on
+     * every failure: service-level retries must never make the transport fault
+     * disappear from a captured USB Serial/JTAG log. */
+    ESP_LOGE(TAG,
+             "NFC_I2C_FAIL txn=%lu failed=%lu op=%s(%u) key=0x%02X err=%s(0x%x) elapsed_us=%lu",
+             (unsigned long)s_transport_stats.total,
+             (unsigned long)s_transport_stats.failed,
+             transport_operation_name(operation), (unsigned)operation, key,
+             esp_err_to_name(error), (unsigned)error,
+             (unsigned long)s_transport_stats.last_elapsed_us);
 }
 
 static esp_err_t transport_write(st25r3916_transport_operation_t operation, uint8_t key,
@@ -668,10 +694,13 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
     rd8(ST25R_REG_FIFO_STATUS_2, &fifo_status2);
     rd8(ST25R_REG_COLLISION_DISPLAY, &collision);
     s_last_collision = collision;
-    ESP_LOGI(TAG, "%s: irq=%06X timer=%02X error=%02X fifo=%u raw=%02X/%02X coll=%02X rxs=%d rxe=%d col=%d",
-             wn, (unsigned)irq, s_last_timer_irq, s_last_error_irq, (unsigned)fifo_bytes(),
-             fifo_status1, fifo_status2, collision,
-             !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
+    const bool rf_event = (irq & (ST25R_IRQ_RXS | ST25R_IRQ_RXE | ST25R_IRQ_COL)) != 0 ||
+                          s_last_error_irq != 0;
+    ESP_LOG_LEVEL(rf_event ? ESP_LOG_INFO : ESP_LOG_DEBUG, TAG,
+                  "NFC_RF request=%s irq=%06X timer=%02X error=%02X fifo=%u raw=%02X/%02X coll=%02X rxs=%d rxe=%d col=%d",
+                  wn, (unsigned)irq, s_last_timer_irq, s_last_error_irq, (unsigned)fifo_bytes(),
+                  fifo_status1, fifo_status2, collision,
+                  !!(irq & ST25R_IRQ_RXS), !!(irq & ST25R_IRQ_RXE), !!(irq & ST25R_IRQ_COL));
     if (!(irq & ST25R_IRQ_RXE)) {
         if (irq & ST25R_IRQ_RXS) {
             int64_t dl = esp_timer_get_time() + 50 * 1000;

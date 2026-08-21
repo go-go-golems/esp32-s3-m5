@@ -44,6 +44,30 @@ Subsequent NFC iterations write only the combined application partition:
 
 This still writes one ESP-IDF app image, but standard Mooncake app implementations are excluded from that image.
 
+## Serial diagnostics
+
+NFC.LAB emits structured diagnostics through the board's USB Serial/JTAG console at 115200 baud. After flashing, capture a complete boot and interaction session with one serial owner only:
+
+```bash
+cd .work/StackChan/firmware
+idf.py -p /dev/ttyACM0 monitor 2>&1 | tee /tmp/nfc-lab-serial.log
+```
+
+Press `Ctrl+]` to stop the monitor before flashing or opening another serial tool. Useful record prefixes are:
+
+- `NFC_INIT`: reader initialization, identity, capacitance, transaction totals, and failure context.
+- `NFC_I2C_FAIL`: every failed low-level transaction, including sequence number, operation, register/command key, ESP-IDF error, and elapsed time.
+- `NFC_READ`: tag UID/ATQA/SAK or rate-limited no-tag summaries.
+- `NFC_COMMAND`: command result and any transport-failure delta observed during it.
+- `NFC_RF`: REQA/WUPA IRQ, FIFO, collision, and error evidence; no-response records are DEBUG level while RF events remain INFO.
+- `NFC_SAMPLE` and `NFC_VERIFY`: long-running diagnostic start/completion summaries.
+
+For a focused failure timeline:
+
+```bash
+rg 'NFC_(INIT|I2C_FAIL|READ|COMMAND|RF|SAMPLE|VERIFY)' /tmp/nfc-lab-serial.log
+```
+
 ## Architecture
 
 - `NfcDebugService` is the sole owner of NFC I2C operations.

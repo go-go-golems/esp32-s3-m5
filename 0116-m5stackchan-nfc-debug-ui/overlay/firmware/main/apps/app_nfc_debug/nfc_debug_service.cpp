@@ -6,6 +6,7 @@
 
 #include "st25r3916/st25r3916.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <esp_log.h>
 #include <esp_timer.h>
@@ -24,6 +25,35 @@ bool is_transport_error(esp_err_t error)
 {
     return error == ESP_ERR_TIMEOUT || error == ESP_ERR_INVALID_STATE ||
            error == ESP_ERR_INVALID_RESPONSE;
+}
+
+const char* command_name(CommandType type)
+{
+    switch (type) {
+    case CommandType::ReadOnce: return "READ_ONCE";
+    case CommandType::SetAutoPoll: return "SET_AUTO";
+    case CommandType::Probe: return "PROBE";
+    case CommandType::VerifyRegisters: return "VERIFY";
+    case CommandType::SampleIrqWindow: return "SAMPLE_IRQ";
+    case CommandType::ClearCounters: return "CLEAR_COUNTERS";
+    case CommandType::ResetBus: return "REINIT_NFC";
+    case CommandType::SetField: return "SET_FIELD";
+    case CommandType::Shutdown: return "SHUTDOWN";
+    }
+    return "UNKNOWN";
+}
+
+void format_uid(const Snapshot& snapshot, char* output, size_t capacity)
+{
+    if (capacity == 0) return;
+    size_t offset = 0;
+    output[0] = '\0';
+    for (uint8_t i = 0; i < snapshot.uid_len && offset < capacity; ++i) {
+        const int written = snprintf(output + offset, capacity - offset,
+                                     i == 0 ? "%02X" : ":%02X", snapshot.uid[i]);
+        if (written < 0 || static_cast<size_t>(written) >= capacity - offset) break;
+        offset += static_cast<size_t>(written);
+    }
 }
 }  // namespace
 
@@ -57,6 +87,7 @@ esp_err_t Service::start(i2c_master_bus_handle_t bus)
     _verification_remaining = 0;
     publish();
 
+    ESP_LOGI(TAG, "NFC_SERVICE event=start queue_depth=8 stack=8192 priority=5");
     BaseType_t created = xTaskCreate(
         task_entry, "nfc-debug", 8192, this, 5, &_task);
     if (created != pdPASS) {
@@ -151,6 +182,13 @@ void Service::task_loop()
     _snapshot.field_on = false;
     _snapshot.reader_state = ReaderState::Stopped;
     publish();
+    ESP_LOGI(TAG,
+             "NFC_SERVICE event=stopped commands=%lu txns=%lu ok=%lu failed=%lu no_tag=%lu",
+             (unsigned long)_snapshot.commands_executed,
+             (unsigned long)_snapshot.counters.transactions,
+             (unsigned long)_snapshot.counters.succeeded,
+             (unsigned long)_snapshot.counters.failed,
+             (unsigned long)_snapshot.no_tag_count);
 
     _task = nullptr;
     vTaskDelete(nullptr);
@@ -158,6 +196,7 @@ void Service::task_loop()
 
 void Service::initialize_driver()
 {
+    ESP_LOGI(TAG, "NFC_INIT event=begin bus=%p address=0x50 frequency_hz=400000", _bus);
     st25r3916_reset_transport_stats();
     const int64_t started = esp_timer_get_time();
     const esp_err_t result = st25r3916_init(_bus);
@@ -176,9 +215,20 @@ void Service::initialize_driver()
         }
         (void)st25r3916_measure_capacitance();
         refresh_driver_snapshot(true);
+        ESP_LOGI(TAG,
+                 "NFC_INIT event=ready type=0x%02X revision=0x%02X capacitance=%u elapsed_us=%lu txns=%lu failed=%lu",
+                 _snapshot.chip_type, _snapshot.chip_revision, _snapshot.rf.capacitance,
+                 (unsigned long)elapsed, (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed);
     } else {
         refresh_driver_snapshot(false);
         record_result(Command{CommandType::Probe, 0}, result, elapsed);
+        ESP_LOGE(TAG,
+                 "NFC_INIT event=failed err=%s(0x%x) elapsed_us=%lu txns=%lu failed=%lu last_op=%u last_key=0x%02X",
+                 esp_err_to_name(result), (unsigned)result, (unsigned long)elapsed,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 _snapshot.last_error.transport_operation, _snapshot.last_error.transport_key);
         st25r3916_deinit();
     }
     publish();
@@ -188,6 +238,8 @@ void Service::execute(const Command& command)
 {
     if (command.type == CommandType::SetAutoPoll) {
         _snapshot.auto_poll = command.argument != 0;
+        ESP_LOGI(TAG, "NFC_CONTROL command=SET_AUTO enabled=%u",
+                 _snapshot.auto_poll ? 1U : 0U);
         if (_snapshot.reader_state != ReaderState::TransportError &&
             _snapshot.reader_state != ReaderState::ProtocolError) {
             _snapshot.reader_state = ReaderState::Ready;
@@ -196,6 +248,11 @@ void Service::execute(const Command& command)
         return;
     }
     if (command.type == CommandType::ClearCounters) {
+        ESP_LOGI(TAG,
+                 "NFC_CONTROL command=CLEAR_COUNTERS previous_txns=%lu previous_failed=%lu previous_no_tag=%lu",
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 (unsigned long)_snapshot.no_tag_count);
         st25r3916_reset_transport_stats();
         _snapshot.counters = {};
         _snapshot.last_error = {};
@@ -214,6 +271,8 @@ void Service::execute(const Command& command)
             std::clamp<uint32_t>(command.argument == 0 ? 20 : command.argument, 1, 100));
         _snapshot.verification_active = true;
         _snapshot.verification_passes = 0;
+        ESP_LOGI(TAG, "NFC_VERIFY event=begin requested_passes=%u",
+                 (unsigned)_verification_remaining);
         _snapshot.counters.mismatches = 0;
         publish();
         return;
@@ -225,6 +284,8 @@ void Service::execute(const Command& command)
         _sample_wupa = false;
         _snapshot.sample_active = true;
         _snapshot.sample_attempts = 0;
+        ESP_LOGI(TAG, "NFC_SAMPLE event=begin duration_ms=%u interval_ms=%u",
+                 SAMPLE_DURATION_MS, SAMPLE_INTERVAL_MS);
         _snapshot.sample_events = 0;
         publish();
         return;
@@ -317,6 +378,66 @@ void Service::execute(const Command& command)
         _snapshot.last_error.elapsed_us = elapsed;
     }
     record_result(command, result, elapsed);
+
+    const uint32_t transport_failures = _snapshot.counters.failed - failed_before;
+    if (result == ESP_OK && command.type == CommandType::ReadOnce) {
+        char uid[3 * 10]{};
+        format_uid(_snapshot, uid, sizeof(uid));
+        ESP_LOGI(TAG,
+                 "NFC_READ result=tag uid=%s uid_len=%u atqa=0x%04X sak=0x%02X type=\"%s\" elapsed_us=%lu txns=%lu failed=%lu delta_failed=%lu",
+                 uid, _snapshot.uid_len, _snapshot.atqa, _snapshot.sak,
+                 _snapshot.type_name.data(), (unsigned long)elapsed,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 (unsigned long)transport_failures);
+    } else if (result == ESP_ERR_NOT_FOUND) {
+        ESP_LOGD(TAG,
+                 "NFC_READ result=no_tag count=%lu elapsed_us=%lu txns=%lu failed=%lu delta_failed=%lu irq=%06lX fifo=%u",
+                 (unsigned long)_snapshot.no_tag_count, (unsigned long)elapsed,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 (unsigned long)transport_failures,
+                 (unsigned long)_snapshot.rf.main_irq, _snapshot.rf.fifo_bytes);
+        if (_snapshot.no_tag_count == 1 || (_snapshot.no_tag_count % 10) == 0) {
+            ESP_LOGI(TAG,
+                     "NFC_READ result=no_tag count=%lu elapsed_us=%lu txns=%lu failed=%lu delta_failed=%lu",
+                     (unsigned long)_snapshot.no_tag_count, (unsigned long)elapsed,
+                     (unsigned long)_snapshot.counters.transactions,
+                     (unsigned long)_snapshot.counters.failed,
+                     (unsigned long)transport_failures);
+        }
+    } else if (result != ESP_OK) {
+        ESP_LOG_LEVEL(is_transport_error(result) ? ESP_LOG_ERROR : ESP_LOG_WARN, TAG,
+                      "NFC_COMMAND command=%s result=failed err=%s(0x%x) state=%s elapsed_us=%lu txns=%lu failed=%lu delta_failed=%lu last_op=%u last_key=0x%02X last_elapsed_us=%lu",
+                      command_name(command.type), esp_err_to_name(result), (unsigned)result,
+                      reader_state_name(_snapshot.reader_state), (unsigned long)elapsed,
+                      (unsigned long)_snapshot.counters.transactions,
+                      (unsigned long)_snapshot.counters.failed,
+                      (unsigned long)transport_failures,
+                      _snapshot.last_error.transport_operation,
+                      _snapshot.last_error.transport_key,
+                      (unsigned long)_snapshot.last_error.elapsed_us);
+    } else {
+        ESP_LOGI(TAG,
+                 "NFC_COMMAND command=%s result=ok argument=%lu elapsed_us=%lu txns=%lu failed=%lu delta_failed=%lu",
+                 command_name(command.type), (unsigned long)command.argument,
+                 (unsigned long)elapsed, (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 (unsigned long)transport_failures);
+    }
+
+    /* A command can return a protocol/no-tag result after an internal I2C
+     * failure was swallowed by a diagnostic read. Always emit that mismatch. */
+    if (transport_failures != 0 && !is_transport_error(result)) {
+        ESP_LOGE(TAG,
+                 "NFC_COMMAND command=%s result=%s hidden_transport_failures=%lu last_op=%u last_key=0x%02X last_err=%s(0x%x)",
+                 command_name(command.type), esp_err_to_name(result),
+                 (unsigned long)transport_failures,
+                 _snapshot.last_error.transport_operation,
+                 _snapshot.last_error.transport_key,
+                 esp_err_to_name(_snapshot.last_error.code),
+                 (unsigned)_snapshot.last_error.code);
+    }
     publish();
 }
 
@@ -325,6 +446,13 @@ void Service::run_sample_step()
     const int64_t now = esp_timer_get_time();
     if (now >= _sample_deadline_us) {
         _snapshot.sample_active = false;
+        ESP_LOGI(TAG,
+                 "NFC_SAMPLE event=complete attempts=%u events=%u txns=%lu failed=%lu irq=%06lX timer=%02X error=%02X",
+                 _snapshot.sample_attempts, _snapshot.sample_events,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed,
+                 (unsigned long)_snapshot.rf.main_irq,
+                 _snapshot.rf.timer_irq, _snapshot.rf.error_irq);
         publish();
         return;
     }
@@ -349,6 +477,12 @@ void Service::run_verification_step()
 {
     if (_verification_remaining == 0) {
         _snapshot.verification_active = false;
+        ESP_LOGI(TAG,
+                 "NFC_VERIFY event=complete passes=%u mismatches=%lu txns=%lu failed=%lu",
+                 _snapshot.verification_passes,
+                 (unsigned long)_snapshot.counters.mismatches,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed);
         publish();
         return;
     }
@@ -376,6 +510,14 @@ void Service::run_verification_step()
     _verification_remaining--;
     if (_verification_remaining == 0) _snapshot.verification_active = false;
     refresh_driver_snapshot(false);
+    if (!_snapshot.verification_active) {
+        ESP_LOGI(TAG,
+                 "NFC_VERIFY event=complete passes=%u mismatches=%lu txns=%lu failed=%lu",
+                 _snapshot.verification_passes,
+                 (unsigned long)_snapshot.counters.mismatches,
+                 (unsigned long)_snapshot.counters.transactions,
+                 (unsigned long)_snapshot.counters.failed);
+    }
     if (result != ESP_OK) {
         record_result(Command{CommandType::VerifyRegisters, 0}, result, elapsed);
     }
