@@ -18,3 +18,4 @@
 - [ ] NFC Debug UI final hardware verification and write-up <!-- t:ruz0 -->
 - [x] Research ESP-IDF/M5 I2C failure behavior and publish intern debugging implementation guide <!-- t:mu8t -->
 - [x] Add structured NFC transport/service serial logging and validate on ESP-IDF 5.5.4 <!-- t:vmwz -->
+- [x] Instrument and rerun official Arduino Detect.ino for transaction-level comparison with NFC LAB <!-- t:2hyl -->

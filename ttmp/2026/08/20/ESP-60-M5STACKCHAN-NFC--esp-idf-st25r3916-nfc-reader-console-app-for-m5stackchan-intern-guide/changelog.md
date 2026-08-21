@@ -154,3 +154,13 @@ Step 24: added structured USB serial diagnostics at transport and service layers
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/st25r3916/st25r3916.c — Every failed I2C transaction is now emitted with operation/key/error/timing
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/01-nfc-lab-structured-serial-runtime.log — Hardware proof of structured log output
 
+
+## 2026-08-21
+
+Step 25: instrumented the exact successful official Arduino path, traced a four-chip run, read UID 047BD44D9E6180, and measured 10,188 reported M5 I2C transactions with zero API-level failures (commits 04c8a7c2 and 73114a33)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md — Trace method, empirical comparison, limitations, and backend recommendation
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py — Reproducible instrumentation
+

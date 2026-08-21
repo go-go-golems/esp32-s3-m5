@@ -25,12 +25,18 @@ RelatedFiles:
       Note: NFC-only physical deployment workflow (commit 51efbe4f)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
       Note: Pinned reproducible upstream composition process (commit 50d7c151)
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md
+      Note: Empirical Arduino-versus-ESP-IDF transaction comparison
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
+      Note: Reproducible no-serial-in-hot-path M5Unified tracer
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
       Note: Authoritative initialization implementation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
       Note: Authoritative NFC-A configuration and request sequence
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/01-nfc-lab-structured-serial-runtime.log
       Note: Normalized complete hardware boot and NFC initialization capture
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/02-official-arduino-four-chip-full-i2c-trace.log.gz
+      Note: Exact four-chip hardware trace
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -39,6 +45,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -2076,3 +2083,138 @@ The implementation was committed after a clean ESP-IDF 5.5.4 build, then app-fla
 - Preserved exact capture: `sources/hardware/01-nfc-lab-structured-serial-runtime.log.gz`.
 - Failure: transaction 65, first failure, Space-A read, key/register `0x02`, `ESP_ERR_INVALID_STATE`, 195 microseconds.
 - Service failure elapsed time: 59,057 microseconds.
+
+---
+
+## Step 25: Instrument and rerun the official Arduino firmware with four chips
+
+The earlier official firmware proved eventual UID success but did not reveal whether M5's backend encountered hidden failed transactions. I added a transaction recorder at the `M5Unified::I2C_Class` boundary used by `M5UnitUnified` and the ST25R3916. The recorder buffers address-`0x50` transactions in RAM and prints them only after each high-level phase, avoiding serial delays inside initialization, REQA, anticollision, and identification.
+
+A first instrumented run immediately read the known UID with zero reported I2C failures, but its 512-entry ring retained only the end of the one-second detection window. I expanded the diagnostic-only ring to 6,000 entries, rebuilt and flashed, and captured a controlled run with four physical chips on the top edge. The firmware discovered three UIDs, fully identified one NTAG 215, and reported zero transport failures across 10,188 phase-level transactions. The complete first detection trace includes successful reads and writes of both registers that failed under NFC LAB.
+
+### Prompt Context
+
+**User prompt (verbatim):** "can we try to test the ino thing again, maybe adding our own lgging there to compare to this guy's traces?"
+
+**Follow-up user prompt (verbatim):** "i put 4 chips on it"
+
+**Follow-up user prompt (verbatim):** "commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill) btw (backfill if necessary)"
+
+**Assistant interpretation:** Instrument the exact known-good official Arduino firmware at the transaction boundary, rerun it on the same hardware with the user's tags, preserve a full serial trace, and compare it directly with NFC LAB's structured ESP-IDF failure records while maintaining phased commits and the ticket diary.
+
+**Inferred user intent:** Determine whether Arduino's visible UID success hides transport errors or whether the M5 backend actually completes the same ST25R3916 register/request traffic cleanly.
+
+**Commit (instrumentation):** `04c8a7c26ead2dcfcdd6f009c9b1012e846b4632` — "ESP-60: instrument official Arduino NFC I2C path"
+
+**Commit (analysis and evidence):** `73114a338594faa8ccdec258b84e6598d4d564e2` — "ESP-60: compare official Arduino four-chip I2C trace"
+
+### What I did
+
+- Added ticket task `2hyl` for the controlled Arduino comparison.
+- Reused the exact `/tmp/esp60-official-detect` workspace that previously read a UID.
+- Preserved PIOArduino `55.03.311`, Arduino-ESP32 `3.3.11`, ESP-IDF libraries `5.5.5`, M5Unified `0.2.20`, M5GFX `0.2.27`, M5UnitUnified `0.5.5`, and M5Unit-NFC `0.1.0`.
+- Added `esp60_m5_i2c_trace.h`, defining fixed-size transaction records, phase statistics, and the drain API.
+- Added a reproducible patcher, `scripts/04-instrument-official-arduino-trace.py`.
+- Patched `M5Unified::I2C_Class` rather than the sketch's high-level calls because `M5UnitUnified` uses explicit start/write/restart/read/stop through that class.
+- Recorded transaction start timestamp, duration, kind, first transmitted byte, write/read lengths, and failure-stage bits.
+- Filtered the recorder to ST25R3916 address `0x50`.
+- Represented failures independently for START, repeated START, write, read, and STOP.
+- Added `Detect-traced.cpp`, which separates initialization, detect, and identify traces.
+- Kept the official detection and identification behavior unchanged.
+- Built once with a 512-entry ring and captured the known UID `047BD44D9E6180`.
+- Increased the ring to 6,000 entries after the first one-second detect window dropped 4,245 early event records.
+- Rebuilt with 44.0% RAM use and flashed the full Arduino bootloader, partition table, and application.
+- Captured a complete 6,000-entry-capable trace while the user left four chips on the literal top edge.
+- Added `scripts/05-analyze-arduino-trace.py` to parse phase summaries, transaction latency, keys, identified UIDs, and failed identifications.
+- Preserved the exact 1,021,611-byte host capture as gzip with SHA-256 provenance.
+- Wrote `analysis/01-official-arduino-four-chip-i2c-trace-comparison.md`.
+- Committed the buildable instrumentation before flashing, then committed the expanded ring, analyzer, trace, and comparison separately.
+
+### Why
+
+- Visible `PICC:<UID>` output proves eventual protocol success but not zero transport failures.
+- Printing on every transaction would insert milliseconds of serial delay into the bus sequence and could hide a timing fault.
+- M5's explicit transaction path differs enough from `i2c_master_transmit_receive()` that both operation framing and failure rate must be measured.
+- The exact first-byte key permits direct comparison with NFC LAB's operation/register context.
+
+### What worked
+
+- The no-hot-path-serial design compiled with the exact official dependency versions.
+- The first instrumented run completed initialization with 335/335 transactions and no failures.
+- That run detected and identified `047BD44D9E6180` as NTAG 215.
+- The full-ring run completed initialization with 338/338 successful transactions.
+- Detection discovered three PICCs in 1,006 ms with 4,816/4,816 successful transactions.
+- The first UID identified successfully after 92/92 transactions.
+- Arduino read operation-control register `0x02` seven times and wrote it four times during initialization without failure.
+- Arduino read auxiliary-definition register `0x0A` 153 times and wrote it seven times during detection without failure.
+- The first REQA sequence completed `read 0x0A -> write 0x0A -> clear FIFO -> command 0xC6 -> FIFO read` successfully.
+- Typical M5 transaction medians were 176–179 microseconds; phase p95 values were 187–243 microseconds.
+- The trace had no failure-stage bits and no M5 I2C error lines.
+- The exact trace, machine-readable analysis, hashes, implementation, and comparison are committed.
+
+### What didn't work
+
+- The first build command used `/home/manuel/.local/bin/pio`, which was PlatformIO Core 6.1.18. It removed the installed platform and failed with:
+  `IncompatiblePlatform: Development platform 'espressif32' is not compatible with PlatformIO Core v6.1.18 and depends on PlatformIO Core >=6.1.19.`
+- Re-running with `/home/manuel/.platformio/penv/bin/pio` 6.1.19 reinstalled the pinned platform successfully.
+- The next build failed because PlatformIO does not expose the project's `include/` directory while compiling dependency source:
+  `.pio/libdeps/cores3/M5Unified/src/utility/I2C_Class.cpp:8:10: fatal error: esp60_m5_i2c_trace.h: No such file or directory`
+  The patcher now adds the absolute project include directory to `build_flags` before patching M5Unified.
+- The first 512-entry ring reported `txns=4757`, `buffered=512`, `dropped=4245`. Aggregate failure counters were valid, but the earliest successful tag exchange was overwritten. A 6,000-entry diagnostic ring fixed this with `dropped=0`.
+- Four physical chips produced three discovered PICCs, not four.
+- Two discovered Ultralight-compatible UIDs returned false from deeper `identify()` despite 87/87 successful I2C transactions each.
+- Capture stopped immediately after detection cycle 2's summary, so 4,767 of that phase's 4,768 individual event lines reached the host. Its firmware-side summary still reported all 4,768 successful.
+
+### What I learned
+
+- The successful Arduino path does not merely hide frequent adapter-level failures in this run: M5Unified observed zero errors over more than ten thousand logical transactions.
+- M5 executes the exact auxiliary-definition read-modify-write that failed before REQA in NFC LAB. Its first sequence used encoded read key `0x4A`, write key `0x0A`, clear-FIFO `0xDB`, and REQA `0xC6`, all successfully.
+- M5 also traverses operation-control register `0x02` repeatedly during initialization without errors.
+- The ESP-IDF failing duration of 195 microseconds is not obviously a timeout outlier; successful M5 read transactions routinely occupy a similar range.
+- Protocol failure is independent of transport failure: two `identify()` calls failed after completely clean transaction sequences.
+- The one-second M5 detect loop is extremely transaction-heavy: approximately 4,800 ST25R3916 operations per window when repeatedly requesting after tags are halted.
+- The evidence now favors backend/controller handling over a deterministic ST25R register-busy explanation, although waveform evidence is still needed.
+
+### What was tricky to build
+
+- The key requirement was avoiding an observer effect. Serializing roughly 100 characters after every I2C transaction at 115200 baud would add about 8–10 ms per operation and radically alter timing. The recorder therefore performs only fixed-size RAM writes in the hot path and drains later.
+- M5UnitUnified does not use M5GFX's convenience `transactionWriteRead()` wrappers here. Its adapter calls `I2C_Class::start/write/restart/read/stop` explicitly. The recorder maintains a per-port context across those calls so one register read appears as a single WR transaction.
+- A failed START or repeated START does not necessarily receive a later STOP call from the adapter. Those failures must finalize the trace record immediately, while write/read/STOP failures are accumulated until transaction completion.
+- ST25R read keys include the `0x40` read opcode. The comparison document explicitly maps Arduino `0x42` to raw register `0x02` and `0x4A` to raw register `0x0A`.
+- Preserving the complete official one-second loop required about 104 KiB more static BSS. This is acceptable for a disposable diagnostic firmware but not a production design.
+
+### What warrants a second pair of eyes
+
+- Confirm that no M5GFX internal recovery can convert a physical NACK into an API-level success without leaving an observable error.
+- Review the two-port trace-context assumption and lack of an extra trace lock; the underlying M5 I2C lock serializes this CoreS3 path, but the diagnostic implementation is not a generic concurrent library.
+- Review whether transaction count inflation includes every IRQ polling register read expected by M5Unit-NFC.
+- Investigate why two of three discovered UIDs failed deeper identification with a clean bus.
+- Do not interpret three detected PICCs from four physical chips as a transport defect without an anticollision/RF analysis.
+
+### What should be done in the future
+
+- Implement defined-operation and isolated legacy/direct backends in standalone project `0115`.
+- Reproduce M5's transaction-start FSM reset and explicit STOP/recovery behavior one variable at a time.
+- Run the same first-byte/timing trace schema on each backend.
+- Capture SDA/SCL during matching `0x02` and `0x0A` sequences to determine physical ACK state.
+- Full-flash NFC LAB before resuming StackChan UI work because PlatformIO replaced the partition table with the Arduino layout.
+
+### Code review instructions
+
+- Start with `scripts/04-instrument-official-arduino-trace.py`, especially `start()`, `restart()`, `stop()`, and `esp60_complete()` instrumentation.
+- Review `sources/code/arduino-trace/Detect-traced.cpp` to verify serial draining happens only after each phase.
+- Run the analyzer against a decompressed trace:
+  `python3 scripts/05-analyze-arduino-trace.py capture.log`.
+- Read `analysis/01-official-arduino-four-chip-i2c-trace-comparison.md` for the exact first REQA sequence and ESP-IDF comparison.
+- Rebuild only with `/home/manuel/.platformio/penv/bin/pio` 6.1.19 or newer.
+
+### Technical details
+
+- Instrumented firmware image: 675,568 bytes.
+- Full-ring RAM usage: 144,196 / 327,680 bytes (44.0%).
+- Raw capture: 10,229 lines, 1,021,611 bytes.
+- Raw capture SHA-256: `60daa11f661a557cd811cc49fc115d7b7efdddab46a6eeb3551ecc69fbbf8894`.
+- Successful UID: `047BD44D9E6180`, NTAG 215, ATQA `0x0044`, SAK `0x00`.
+- Additional discovered UIDs: `0491D44C9E6180`, `04DAF74D9E6180`.
+- Complete first detection: 4,816 transactions, zero failures, zero dropped records.
+- Board currently contains the instrumented Arduino firmware and Arduino partition table.
