@@ -265,3 +265,13 @@ Steps 36-39: restarted from base principles, fixed reversed TX/RX field-on seman
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-fresh-base-principles-reconstruction-of-the-esp-idf-st25r3916-failure.md — Fresh layered analysis
 
+
+## 2026-08-22
+
+Added pure ESP-IDF 0117 feature explorer covering all official StackChan NFC sketch families; identified the physical tag as NTAG215, read its full memory and empty valid NDEF state, validated both emulator boot profiles locally, and verified mutation guards (code commit 65e27591)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/main/nfc_explorer.cpp — Feature implementation
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/21-24-native-feature-explorer.provenance.md — Hardware evidence
+

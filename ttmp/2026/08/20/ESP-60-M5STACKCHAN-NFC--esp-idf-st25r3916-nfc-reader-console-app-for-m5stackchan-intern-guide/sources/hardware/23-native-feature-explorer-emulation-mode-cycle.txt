@@ -1,0 +1,607 @@
+# 0117 NFC emulation boot-mode probe
+# captured=2026-08-22T18:18:34.768610+00:00
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00
+# scope=local initialization and state only; no external RF reader
+
+=== BOOT: initial ===
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037976e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (26) boot.esp32s3: SPI Mode       : DIO
+I (26) boot.esp32s3: SPI Flash Size : 16MB
+I (26) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (28) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (101) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (108) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (125) cpu_start: Pro cpu start user code
+I (125) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (126) app_init: App version:      7ce8faea-dirty
+I (126) app_init: Compile time:     Aug 22 2026 14:12:05
+I (126) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (127) efuse_init: Max chip rev:     v0.99
+I (127) efuse_init: Chip rev:         v0.2
+I (127) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (128) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (128) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (129) spi_flash: detected chip: generic
+I (129) spi_flash: flash io: dio
+I (130) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (130) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (131) main_task: Started on CPU0
+I (132) main_task: Calling app_main()
+I (132) main: ESP-60 native NFC feature explorer starting
+I (148) main: boot mode=reader
+I (149) main: I2C ready port=1 SDA=12 SCL=11
+I (272) nfc_explorer: M5Unit-NFC ready mode=reader
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea88c:1 ADDR:50 CH:-1 parent:0 children:0/0
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-mode emulation-ultralight --confirm REBOOT ===
+ nfc-mode emulation-ultralight --confirm REBOOT
+NFC_MODE_STORE ok=1 next=emulation-ultralight error=ESP_OK
+I (838) main: console ready; run 'nfc-capabilities' and 'help'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037be99
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (24) boot: Multicore bootloader
+I (24) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : DIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (26) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (27) boot: End of partition table
+I (27) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (100) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (107) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (124) cpu_start: Pro cpu start user code
+I (124) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (125) app_init: App version:      7ce8faea-dirty
+I (125) app_init: Compile time:     Aug 22 2026 14:12:05
+I (125) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (126) efuse_init: Max chip rev:     v0.99
+I (126) efuse_init: Chip rev:         v0.2
+I (126) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (127) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (127) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (128) spi_flash: detected chip: generic
+I (128) spi_flash: flash io: dio
+I (129) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (129) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (130) main_task: Started on CPU0
+I (131) main_task: Calling app_main()
+I (131) main: ESP-60 native NFC feature explorer starting
+I (148) main: boot mode=emulation-ultralight
+I (149) main: I2C ready port=1 SDA=12 SCL=11
+I (265) nfc_explorer: M5Unit-NFC ready mode=emulation-ultralight
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+NFC_EMULATION_PICC uid=043456789ABCDE type="MIFARE Ultralight" atqa=0044 sak=00 uid_bytes=7 blocks=16 unit=4 user=48 total=64 first_user=4 last_user=15 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_EMULATION state=off memory=64 mode=emulation-ultralight
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>  I (830) main: console ready; run 'nfc-capabilities' and 'help'
+
+=== BOOT: emulation-ultralight ===
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037c95e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : DIO
+I (26) boot.esp32s3: SPI Flash Size : 16MB
+I (26) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (28) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (101) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (108) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (125) cpu_start: Pro cpu start user code
+I (125) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (126) app_init: App version:      7ce8faea-dirty
+I (126) app_init: Compile time:     Aug 22 2026 14:12:05
+I (126) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (127) efuse_init: Max chip rev:     v0.99
+I (127) efuse_init: Chip rev:         v0.2
+I (127) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (128) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (128) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (129) spi_flash: detected chip: generic
+I (129) spi_flash: flash io: dio
+I (130) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (130) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (131) main_task: Started on CPU0
+I (132) main_task: Calling app_main()
+I (132) main: ESP-60 native NFC feature explorer starting
+I (150) main: boot mode=emulation-ultralight
+I (150) main: I2C ready port=1 SDA=12 SCL=11
+I (265) nfc_explorer: M5Unit-NFC ready mode=emulation-ultralight
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+NFC_EMULATION_PICC uid=043456789ABCDE type="MIFARE Ultralight" atqa=0044 sak=00 uid_bytes=7 blocks=16 unit=4 user=48 total=64 first_user=4 last_user=15 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_EMULATION state=off memory=64 mode=emulation-ultralight
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-emulation-status ===
+nfc-emuI (830) main: console ready; run 'nfc-capabilities' and 'help'
+lation-status
+NFC_EMULATION_STATUS ok=1 mode=emulation-ultralight state=off memory=64
+NFC_EMULATION_PICC uid=043456789ABCDE type="MIFARE Ultralight" atqa=0044 sak=00 uid_bytes=7 blocks=16 unit=4 user=48 total=64 first_user=4 last_user=15 ndef=1 forum_tag=2 filesystem=0x00000001
+nfc-explorer>
+=== CMD: nfc-mode emulation-ntag213 --confirm REBOOT ===
+nfc-mode emulation-ntag213 --confirm REBOOT
+NFC_MODE_STORE ok=1 next=emulation-ntag213 error=ESP_OK
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037be99
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (24) boot: Multicore bootloader
+I (24) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : DIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (26) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (27) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (100) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (108) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (125) cpu_start: Pro cpu start user code
+I (125) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (125) app_init: App version:      7ce8faea-dirty
+I (125) app_init: Compile time:     Aug 22 2026 14:12:05
+I (126) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (126) efuse_init: Max chip rev:     v0.99
+I (126) efuse_init: Chip rev:         v0.2
+I (126) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (127) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (127) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (128) spi_flash: detected chip: generic
+I (128) spi_flash: flash io: dio
+I (129) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (130) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (130) main_task: Started on CPU0
+I (131) main_task: Calling app_main()
+I (131) main: ESP-60 native NFC feature explorer starting
+I (148) main: boot mode=emulation-ntag213
+I (149) main: I2C ready port=1 SDA=12 SCL=11
+I (264) nfc_explorer: M5Unit-NFC ready mode=emulation-ntag213
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+NFC_EMULATION_PICC uid=99887766554433 type="NTAG 213" atqa=0044 sak=00 uid_bytes=7 blocks=45 unit=4 user=144 total=180 first_user=4 last_user=39 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_EMULATION state=off memory=180 mode=emulation-ntag213
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>  I (829) main: console ready; run 'nfc-capabilities' and 'help'
+
+=== BOOT: emulation-ntag213 ===
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037976e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (26) boot.esp32s3: SPI Mode       : DIO
+I (26) boot.esp32s3: SPI Flash Size : 16MB
+I (26) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (28) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (101) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (108) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (125) cpu_start: Pro cpu start user code
+I (125) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (126) app_init: App version:      7ce8faea-dirty
+I (126) app_init: Compile time:     Aug 22 2026 14:12:05
+I (126) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (127) efuse_init: Max chip rev:     v0.99
+I (127) efuse_init: Chip rev:         v0.2
+I (127) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (128) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (128) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (129) spi_flash: detected chip: generic
+I (129) spi_flash: flash io: dio
+I (130) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (130) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (131) main_task: Started on CPU0
+I (132) main_task: Calling app_main()
+I (132) main: ESP-60 native NFC feature explorer starting
+I (150) main: boot mode=emulation-ntag213
+I (150) main: I2C ready port=1 SDA=12 SCL=11
+I (265) nfc_explorer: M5Unit-NFC ready mode=emulation-ntag213
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+NFC_EMULATION_PICC uid=99887766554433 type="NTAG 213" atqa=0044 sak=00 uid_bytes=7 blocks=45 unit=4 user=144 total=180 first_user=4 last_user=39 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_EMULATION state=off memory=180 mode=emulation-ntag213
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-emulation-status ===
+I (830) main: console ready; run 'nfc-capabilities' and 'help'
+nfc-emulation-status
+NFC_EMULATION_STATUS ok=1 mode=emulation-ntag213 state=off memory=180
+NFC_EMULATION_PICC uid=99887766554433 type="NTAG 213" atqa=0044 sak=00 uid_bytes=7 blocks=45 unit=4 user=144 total=180 first_user=4 last_user=39 ndef=1 forum_tag=2 filesystem=0x00000001
+nfc-explorer>
+=== CMD: nfc-mode reader --confirm REBOOT ===
+ nfc-mode reader --confirm REBOOT
+NFC_MODE_STORE ok=1 next=reader error=ESP_OK
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037be99
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (24) boot: Multicore bootloader
+I (24) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (25) boot.esp32s3: SPI Mode       : DIO
+I (25) boot.esp32s3: SPI Flash Size : 16MB
+I (25) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (26) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (26) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (27) boot: End of partition table
+I (27) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (100) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (107) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (124) cpu_start: Pro cpu start user code
+I (124) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (125) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (125) app_init: App version:      7ce8faea-dirty
+I (125) app_init: Compile time:     Aug 22 2026 14:12:05
+I (125) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (126) efuse_init: Max chip rev:     v0.99
+I (126) efuse_init: Chip rev:         v0.2
+I (126) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (127) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (127) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (128) spi_flash: detected chip: generic
+I (128) spi_flash: flash io: dio
+I (129) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (129) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (130) main_task: Started on CPU0
+I (131) main_task: Calling app_main()
+I (131) main: ESP-60 native NFC feature explorer starting
+I (148) main: boot mode=reader
+I (149) main: I2C ready port=1 SDA=12 SCL=11
+I (271) nfc_explorer: M5Unit-NFC ready mode=reader
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>  I (829) main: console ready; run 'nfc-capabilities' and 'help'
+
+=== BOOT: reader-restored ===
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037976e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x152c
+load:0x403c8700,len:0xce4
+load:0x403cb700,len:0x2efc
+entry 0x403c8920
+I (24) boot: ESP-IDF v5.5.4 2nd stage bootloader
+I (24) boot: compile time Aug 22 2026 14:12:22
+I (25) boot: Multicore bootloader
+I (25) boot: chip revision: v0.2
+I (25) boot: efuse block revision: v1.3
+I (25) boot.esp32s3: Boot SPI Speed : 80MHz
+I (26) boot.esp32s3: SPI Mode       : DIO
+I (26) boot.esp32s3: SPI Flash Size : 16MB
+I (26) boot: Enabling RNG early entropy source...
+I (26) boot: Partition Table:
+I (26) boot: ## Label            Usage          Type ST Offset   Length
+I (27) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (27) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (27) boot:  2 factory          factory app      00 00 00010000 00100000
+I (28) boot: End of partition table
+I (28) esp_image: segment 0: paddr=00010020 vaddr=3c040020 size=13200h ( 78336) map
+I (42) esp_image: segment 1: paddr=00023228 vaddr=3fc95400 size=0327ch ( 12924) load
+I (45) esp_image: segment 2: paddr=000264ac vaddr=40374000 size=09b6ch ( 39788) load
+I (54) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=3ff30h (261936) map
+I (101) esp_image: segment 4: paddr=0006ff58 vaddr=4037db6c size=077b0h ( 30640) load
+I (108) esp_image: segment 5: paddr=00077710 vaddr=50000000 size=00020h (    32) load
+I (115) boot: Loaded app from partition at offset 0x10000
+I (115) boot: Disabling RNG early entropy source...
+I (116) cpu_start: Multicore app
+I (125) cpu_start: Pro cpu start user code
+I (125) cpu_start: cpu freq: 160000000 Hz
+I (125) app_init: Application information:
+I (126) app_init: Project name:     m5stackchan_nfc_feature_explore
+I (126) app_init: App version:      7ce8faea-dirty
+I (126) app_init: Compile time:     Aug 22 2026 14:12:05
+I (126) app_init: ELF file SHA256:  78d25fb7d...
+I (126) app_init: ESP-IDF:          v5.5.4
+I (126) efuse_init: Min chip rev:     v0.0
+I (127) efuse_init: Max chip rev:     v0.99
+I (127) efuse_init: Chip rev:         v0.2
+I (127) heap_init: Initializing. RAM available for dynamic allocation:
+I (127) heap_init: At 3FC99440 len 000502D0 (320 KiB): RAM
+I (127) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (128) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (128) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (129) spi_flash: detected chip: generic
+I (129) spi_flash: flash io: dio
+I (130) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (130) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (131) main_task: Started on CPU0
+I (132) main_task: Calling app_main()
+I (132) main: ESP-60 native NFC feature explorer starting
+I (149) main: boot mode=reader
+I (150) main: I2C ready port=1 SDA=12 SCL=11
+I (273) nfc_explorer: M5Unit-NFC ready mode=reader
+M5UnitUnified: 1 units
+ [UnitST25R3916]:ID{0Xadc64d3e}:0x3fcea8ac:1 ADDR:50 CH:-1 parent:0 children:0/0
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-mode ===
+ I (831) main: console ready; run 'nfc-capabilities' and 'help'
+nfc-mode
+NFC_MODE current=reader ready=1
+nfc-explorer>
+=== CMD: nfc-info ===
+nfc-info
+NFC_ACTIVATE_DISCOVERY ok=1 source=REQA
+NFC_PICC uid=0491D44C9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=info ok=1
+nfc-explorer>

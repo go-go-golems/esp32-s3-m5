@@ -3,8 +3,8 @@
 ## TODO
 
 - [x] Research + write intern design doc (analysis only) <!-- t:n4l3 -->
-- [ ] Implement Phase 1: standalone ESP-IDF NFC reader (ST25R3916 component + esp_console commands) <!-- t:2t3u -->
-- [ ] Flash to /dev/ttyACM0, verify nfc-scan/probe/read on a real NTAG <!-- t:tr32 -->
+- [x] Implement Phase 1: standalone ESP-IDF NFC reader (ST25R3916 component + esp_console commands) <!-- t:2t3u -->
+- [x] Flash to /dev/ttyACM0, verify nfc-scan/probe/read on a real NTAG <!-- t:tr32 -->
 - [ ] Verify NFC power-enable path against body schematic (open question) <!-- t:o65r -->
 - [ ] Phase 2: integrate as Mooncake app with LVGL UID display <!-- t:2nrd -->
 - [x] Upload guide bundle to reMarkable <!-- t:pbpb -->
@@ -30,3 +30,11 @@
 - [x] Phase 5: Arduino/ESP-IDF normalized comparison script + report <!-- t:y7yo -->
 - [x] Apply the I2C FSM-reset diagnostic patch to the local ESP-IDF copy, rebuild, reflash, measure NACK rate <!-- t:7j5c -->
 - [ ] Fresh base-principles investigation: isolate transport, RF request, anticollision, selection, and UID behavior with four connected tags <!-- t:89gi -->
+- [x] Inventory official StackChan NFC sketches and map each capability to native ESP-IDF APIs <!-- t:cfa2 -->
+- [x] Create pure ESP-IDF M5StackChan NFC feature explorer on the existing I2C bus with safe console commands <!-- t:80jn -->
+- [x] Implement read-only quick scan, identification, raw dump, and NDEF inspection equivalents <!-- t:lcpm -->
+- [x] Implement guarded raw write, NDEF write, and MIFARE Classic value-block equivalents <!-- t:5ki3 -->
+- [x] Implement reboot-selectable Ultralight and NTAG213 emulation modes <!-- t:3r5e -->
+- [x] Build all feature modes with ESP-IDF 5.5.4 and validate read-only behavior on hardware <!-- t:9ex1 -->
+- [ ] Validate 0117 Ultralight and NTAG213 emulation over RF with a phone or second NFC reader <!-- t:5n2a -->
+- [ ] Validate guarded Type 2 write/NDEF replacement and Classic value-block operations on named sacrificial tags <!-- t:z5hl -->
