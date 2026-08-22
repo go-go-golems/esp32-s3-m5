@@ -65,6 +65,14 @@ RelatedFiles:
       Note: Phase 2 conversion host tests
     - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
       Note: Phase 2 safety host tests with NTAG215 and Classic fixtures
+    - Path: repo://components/gogolem_nfc_engine/CMakeLists.txt
+      Note: Phase 2 Engine component (REQUIRES gogolem_nfc + M5Unit-NFC)
+    - Path: repo://components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp
+      Note: Phase 2 synchronous Engine public API (pimpl)
+    - Path: repo://components/gogolem_nfc_engine/src/engine.cpp
+      Note: Phase 2 Engine wiring wrapping M5Unit-NFC, begin/scan, initialize-once
+    - Path: repo://examples/nfc_engine_smoke/main/smoke_main.cpp
+      Note: Phase 2 Engine runtime smoke
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
       Note: |-
         Phase 1 ESP-IDF integration smoke
@@ -75,6 +83,8 @@ RelatedFiles:
       Note: Reproducible host+hygiene+build validation
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/05-smoke-runtime-output.txt
       Note: Live target runtime evidence
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/08-engine-smoke-runtime.txt
+      Note: Live Engine runtime on real ST25R3916
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -85,6 +95,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -1019,3 +1030,85 @@ The host tests verify the family mapping across Classic, Ultralight, NTAG, ST25T
 - Phase 2 task: `godz`, still open (Engine wiring + WUPA hardware validation remain).
 - Host test evidence: `sources/software/12-phase2-picc-map-host-tests.txt`.
 - Tag recheck evidence: `sources/hardware/07-phase0-tag-recheck-4.txt`.
+
+## Step 12: Phase 2 Engine wiring — runs on the real ST25R3916 without a tag
+
+I implemented the synchronous Engine as a separate target-only component `gogolem_nfc_engine` that wraps the pinned M5Unit-NFC library, keeping the pure `gogolem_nfc` component host-testable. The Engine uses pimpl so M5Unit-NFC stays out of the public header, and ports `0117`'s proven begin/scan sequence faithfully (configure NFC-A + emulation flag, `units.add(unit, bus)`, `units.begin()`, then `reader.detect()`).
+
+A new `examples/nfc_engine_smoke` creates the CoreS3 I²C bus (GPIO12/11, port 1), attaches the Engine, and loops `scan()`. The ST25R3916 chip is on the board regardless of the tag, so begin() and no-card scan() are target-verifiable now — only WUPA-on-halted-tag needs the physical NTAG215.
+
+Runtime captured on the real board:
+
+```text
+smoke begin ok=1 state=ready-reader
+smoke scan ok=1 tags=0 state=ready-reader
+smoke scan ok=1 tags=0 state=ready-reader
+smoke scan ok=1 tags=0 state=ready-reader
+```
+
+This proves the Engine links and runs on target, begin() initializes the real ST25R3916 at 0x50, and scan() returns a typed no-tag result (success with an empty list) repeatedly without crashing or drifting state.
+
+The first smoke loop also produced a real, important finding: after `end()`, a second `begin()` on the same Engine fails (`state=faulted`) because the pinned M5Unit-NFC `UnitUnified::add()`/`begin()` cannot re-init on the same instance. This answers design-guide open question #1: the Engine is initialize-once. I encoded that honestly — `begin()` rejects re-begin with a typed Lifecycle error ("initialize-once; construct a new Engine") and a `static_assert` guards the mirrored upstream Type ordinals.
+
+### Prompt Context
+
+**User prompt (verbatim):** goal continuation — continue working toward the objective, choose the next concrete action.
+
+**Assistant interpretation:** Implement the Phase 2 Engine wiring now that the ST25R3916 (always present) lets begin/scan be target-verified without the tag.
+
+**Inferred user intent:** Make real, verified Engine progress; do not wait on the tag for the parts that do not need it.
+
+### What I did
+
+- Created `components/gogolem_nfc_engine/` (CMakeLists REQUIRES gogolem_nfc + m5stack__M5Unit-NFC + esp_driver_i2c + freertos; idf_component.yml pins M5Unit-NFC).
+- Wrote `include/gogolem/nfc/engine.hpp` (pimpl; EngineConfig, ScanResult, Engine begin/end/state/mode/scan) — no M5Unit-NFC includes in the public header.
+- Wrote `src/engine.cpp` porting 0117 begin/scan, converting PICC→TagInfo via the pure `picc_map`, with `static_assert` ordinal guards and an `ever_began` initialize-once guard.
+- Created `examples/nfc_engine_smoke` (bus on GPIO12/11, begin-once + loop-scan).
+- Built under ESP-IDF 5.5.4, flashed, and captured live USB Serial/JTAG runtime.
+
+### Why
+
+- The ST25R3916 is on the board independent of the tag, so begin() and no-card scan() are verifiable now; only WUPA-on-halted-tag needs the tag. Splitting the Engine into a target-only component keeps the pure component light and host-testable.
+
+### What worked
+
+- Engine smoke builds and runs on the real chip; begin ok=1, scan ok=1 tags=0 repeated, state stable.
+- A `static_assert` confirms the mirrored NTAG_215 and MIFARE_Classic_4K ordinals match the pinned upstream revision.
+- No warnings in my code (the only build warning is upstream `adapter_gpio.cpp` ADC handle code in M5UnitUnified).
+
+### What didn't work
+
+- The first smoke version looped begin/end/re-begin; the re-begin failed with `state=faulted`, exposing the upstream no-teardown behavior. Fixed by making the Engine initialize-once and changing the smoke to begin-once + loop-scan.
+
+### What I learned
+
+- Hardware answered design-guide open question #1: the pinned M5Unit-NFC cannot re-begin on the same UnitUnified/UnitNFC instance after end(); the Engine is initialize-once.
+- No-tag scan returning success-with-empty-list (not an error) is the correct typed result and is stable across repeated calls.
+
+### What was tricky to build
+
+- Hiding M5Unit-NFC behind pimpl while still passing `i2c_master_bus_handle_t` through the public EngineConfig (an ESP-IDF type, acceptable in a public header).
+- Distinguishing the abstract lifecycle rule (begin legal from New or Stopped) from the Engine binding (initialize-once), so the pure lifecycle tests stay correct and the Engine adds the binding-specific guard.
+
+### What warrants a second pair of eyes
+
+- Confirm `end()` leaving the bus attached to a dead upstream unit is acceptable for version one; document that re-use requires a new Engine + bus re-creation.
+- Confirm `scan()` deactivating after enumeration matches the desired multi-card enumeration semantics before adding `activate_one`.
+
+### What should be done in the future
+
+- Add `activate_one()` (REQA→WUPA fallback) and validate WUPA on the real NTAG215 when placed.
+- Decide whether the Service should own one Engine for the process lifetime (initialize-once) and restart the worker on fault by re-creating the bus + Engine.
+
+### Code review instructions
+
+- Read `components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp` and `src/engine.cpp`.
+- Build and flash `examples/nfc_engine_smoke`; expect `begin ok=1` and `scan ok=1 tags=0`.
+- Inspect `sources/hardware/08-engine-smoke-runtime.txt`.
+
+### Technical details
+
+- Phase 2 task: `godz`, still open (activate_one + WUPA-on-halted-tag hardware validation remain).
+- Engine smoke binary: `0x54ca0` bytes (67% free).
+- Build evidence: `sources/software/13-phase2-engine-smoke-build.txt`.
+- Runtime evidence: `sources/hardware/08-engine-smoke-runtime.txt`.

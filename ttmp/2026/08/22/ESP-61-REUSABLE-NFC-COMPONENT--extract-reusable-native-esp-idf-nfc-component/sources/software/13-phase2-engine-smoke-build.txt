@@ -1,0 +1,4 @@
+# Phase 2 Engine smoke build (ESP-IDF 5.5.4, gogolem_nfc_engine + M5Unit-NFC)
+
+22:nfc_engine_smoke.bin binary size 0x54ca0 bytes. Smallest app partition is 0x100000 bytes. 0xab360 bytes (67%) free.
+24:Project build complete. To flash, run:

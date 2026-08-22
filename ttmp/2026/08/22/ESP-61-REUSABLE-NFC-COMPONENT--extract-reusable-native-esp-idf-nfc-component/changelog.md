@@ -106,3 +106,13 @@ Phase 2 pure logic: added host-testable PICC->TagInfo conversion (mirrored upstr
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/picc_map.hpp — PICC conversion
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 11 PICC conversion
+
+## 2026-08-22
+
+Phase 2 Engine wiring: added target-only gogolem_nfc_engine wrapping M5Unit-NFC (pimpl, begin/scan, initialize-once, static_assert ordinal guards); engine smoke builds under ESP-IDF 5.5.4 and runs on the real ST25R3916 (begin ok=1, scan ok=1 tags=0 repeated). Hardware answered open question #1: Engine is initialize-once. activate_one + WUPA-on-halted-tag validation remain.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp — Engine API
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — Engine wiring
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 12 Engine wiring
