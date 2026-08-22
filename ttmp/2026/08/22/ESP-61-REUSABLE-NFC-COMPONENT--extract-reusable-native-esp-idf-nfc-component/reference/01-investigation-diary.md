@@ -23,6 +23,8 @@ RelatedFiles:
       Note: Evidence of console, reboot, confirmation, and output policy to move out of core
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp
       Note: Phase 2 lifecycle state machine (host-testable)
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/ndef.hpp
+      Note: Phase 3 NDEF public model and codec API
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/result.hpp
       Note: Phase 1 move-only Result<T> API without exceptions
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/safety.hpp
@@ -33,12 +35,16 @@ RelatedFiles:
       Note: Phase 1 helpers and version accessors
     - Path: repo://components/gogolem_nfc/src/lifecycle.cpp
       Note: Phase 2 lifecycle implementation
+    - Path: repo://components/gogolem_nfc/src/ndef.cpp
+      Note: Phase 3 NDEF encode/decode and Type 2 TLV framing
     - Path: repo://components/gogolem_nfc/src/safety.cpp
       Note: Phase 2 safety implementation, 4K-aware Classic model
     - Path: repo://components/gogolem_nfc/test_host/build.sh
       Note: Phase 1 host-test build
     - Path: repo://components/gogolem_nfc/test_host/test_lifecycle.cpp
       Note: Phase 2 lifecycle host tests
+    - Path: repo://components/gogolem_nfc/test_host/test_ndef.cpp
+      Note: Phase 3 NDEF round-trip host tests
     - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
       Note: Phase 2 safety host tests with NTAG215 and Classic fixtures
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
@@ -53,6 +59,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -627,3 +634,84 @@ The lifecycle module encodes begin/end/fault rules as pure functions returning t
 - Host test evidence: `sources/software/07-phase2-host-tests.txt`.
 - Smoke rebuild evidence: `sources/software/08-phase2-smoke-rebuild.txt`.
 - Phase 0 hardware acceptance (task `4igv`) and Phase 2 hardware acceptance (task `godz`) both await the physical NTAG215.
+
+## Step 7: Phase 3 host-testable NDEF public model and codec
+
+The NDEF layer is the headline interoperability deliverable and is fully deterministic, so I implemented it as a host-testable module before any hardware work. It encodes and decodes NFC Forum NDEF records and messages, provides URI and text record helpers with the official URI identifier-code table, and frames Type 2 TLVs. A round-trip test suite covers single- and multi-record messages, long records, record identifiers, chunk rejection, truncation rejection, and the empty-NDEF case that matches the known NTAG215 (`03 00 FE`).
+
+The implementation deliberately stays independent of M5Unit-NFC: the Engine will convert between upstream NDEF objects and these stable public types at the boundary. This keeps the public codec spec-driven and fully unit-testable now, while hardware-dependent raw read and dump validation remains deferred.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Implement the next deterministic, fully verifiable Phase 3 deliverable while hardware raw-read/dump validation is blocked.
+
+**Inferred user intent:** Keep producing audited, tested progress; do not write unverified hardware-wrapping code.
+
+### What I did
+
+- Printed the Phase 3 plan slip `NDEF Public Model and Codec`.
+- Implemented `include/gogolem/nfc/ndef.hpp` and `src/ndef.cpp`: `NdefTnf`, `NdefRecord`, `NdefMessage`, `make_uri_record`, `make_text_record`, `uri_record_to_string`, `text_record_to_string`, `encode_ndef_message`, `decode_ndef_message`, `encode_type2_ndef_tlv`, `decode_type2_ndef_tlv`.
+- Included the full NFC Forum RTD-URI identifier-code table (0x00..0x23) with longest-prefix selection.
+- Added `test_host/test_ndef.cpp` with round-trip and rejection tests.
+- Updated `CMakeLists.txt` SRCS and `test_host/build.sh`.
+- Rebuilt the smoke project under ESP-IDF 5.5.4 to confirm `ndef.cpp` compiles and links on target.
+- Re-probed the serial device; still no tag present.
+
+### Why
+
+- NDEF encode/decode is spec-determined, so correctness can be proven by host round-trips without a tag.
+- Framing the empty NDEF case (`03 00 FE`) as a test protects the real-tag behavior observed in ESP-60.
+- Keeping the public codec free of upstream types means later Engine conversion is the only hardware-dependent NDEF step.
+
+### What worked
+
+- All five host test suites passed:
+
+  ```text
+  ALL TESTS PASSED  (types)
+  ALL TESTS PASSED  (result)
+  ALL TESTS PASSED  (lifecycle)
+  ALL TESTS PASSED  (safety)
+  ALL TESTS PASSED  (ndef)
+  ```
+
+- The ESP-IDF smoke rebuild completed with `Project build complete` and no `warning:` or `error:` match.
+
+### What didn't work
+
+- The serial re-probe again returned `detected=0`; the NTAG215 is still not on the antenna.
+
+### What I learned
+
+- Longest-prefix URI selection matters: `https://www.` (0x02) must beat `https://` (0x04) for `https://www.example.com` to produce the most compact record.
+- A zero-length NDEF Message TLV is a valid empty NDEF area; the Engine should treat `decode_type2_ndef_tlv` returning false with no records as "valid format, zero records", not as an error.
+- Type 2 extended TLV length uses `0xFF` followed by a 2-byte big-endian length; long records inside the message use a 4-byte payload length. The two length scales are independent and must not be confused.
+
+### What was tricky to build
+
+- Distinguishing record-level SR/long payload length from TLV-level 1-byte/extended length; both appear in a Type 2 write and a wrong scale corrupts the tag.
+- The decode path must reject chunked records (CF) and truncated streams without reading past the buffer, since malformed NDEF from a partially written tag is a realistic input.
+
+### What warrants a second pair of eyes
+
+- Confirm the URI identifier-code table entries against the current NFC Forum RTD-URI spec, especially the less common schemes (0x07..0x0C).
+- Confirm the Engine treats empty-NDEF as success-with-zero-records rather than a DataFormat error.
+
+### What should be done in the future
+
+- Convert upstream M5Unit-NFC NDEF objects to these public records at the Engine boundary and validate round-trip parity on hardware.
+- Add a Type 2 capacity check using the capability container before writing, reusing `encode_type2_ndef_tlv` to size the message.
+
+### Code review instructions
+
+- Read `include/gogolem/nfc/ndef.hpp` and `src/ndef.cpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+- Rebuild `examples/nfc_types_smoke` under ESP-IDF 5.5.4.
+
+### Technical details
+
+- Phase 3 task: `3e9y`, still open (family-aware raw read and dump sink hardware validation remain).
+- Host test evidence: `sources/software/09-phase3-host-tests.txt`.
+- Tag recheck evidence: `sources/hardware/03-phase0-tag-recheck.txt`.

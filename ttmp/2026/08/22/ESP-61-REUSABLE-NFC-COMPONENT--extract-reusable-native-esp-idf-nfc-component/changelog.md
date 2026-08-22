@@ -60,3 +60,12 @@ Phase 2 partial: added host-testable lifecycle state machine and 4K-aware safety
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp — Lifecycle rules
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/safety.hpp — Safety validators
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 6 Phase 2 pure-logic subset
+
+## 2026-08-22
+
+Phase 3 partial: added host-testable NDEF public model and codec (URI/text records, message encode/decode, Type 2 TLV framing); all five host test suites pass and smoke rebuilds under ESP-IDF 5.5.4; raw-read/dump hardware validation remains
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/ndef.hpp — NDEF codec
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 7 Phase 3 NDEF codec
