@@ -7,4 +7,4 @@
 - [x] Write intern implementation guide with phased file-level steps, pseudocode, diagrams, and API examples <!-- t:dobz -->
 - [x] Define host, component, hardware, integration, and migration test strategy <!-- t:k332 -->
 - [x] Validate ticket metadata, relations, diary, tasks, and changelog with docmgr doctor <!-- t:4325 -->
-- [ ] Upload design and diary bundle to reMarkable <!-- t:jino -->
+- [x] Upload design and diary bundle to reMarkable <!-- t:jino -->

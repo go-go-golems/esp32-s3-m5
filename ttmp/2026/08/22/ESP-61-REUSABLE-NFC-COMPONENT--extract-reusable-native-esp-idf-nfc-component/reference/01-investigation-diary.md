@@ -201,3 +201,116 @@ The guide defines public domain types, typed errors, tag sessions, mutation perm
 - Mode is selected before `begin()` and immutable while ready in version one.
 - Engine is non-thread-safe by contract; Service is the supported multi-task owner.
 - Mutation permits bind operation kind to the selected UID.
+
+## Step 3: Validate, commit, and deliver the research bundle
+
+The final step validated the ticket as a documentation product and delivered it to reMarkable. Frontmatter validation passed for the primary guide and diary. `docmgr doctor` initially identified one new vocabulary term, which was added with a concrete description. The clean rerun passed all checks.
+
+The guide, index, and diary were bundled into one PDF with a depth-two table of contents. A dry run confirmed the exact files and destination before the real upload. The successful upload message is the delivery evidence.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 1)
+
+**Assistant interpretation:** (same as Step 1)
+
+**Inferred user intent:** (same as Step 1)
+
+**Commit (docs):** `3e275482b112b4e5a1b69a634721d28bfe187883` — "ESP-61: design reusable ESP-IDF NFC component"
+
+### What I did
+
+- Counted and inspected the 9,343-word primary guide and 1,590-word diary.
+- Verified balanced Markdown fences and five Mermaid diagrams in the design guide.
+- Ran `docmgr validate frontmatter` on the guide and diary.
+- Added vocabulary topic `component-architecture`.
+- Ran `docmgr doctor --ticket ESP-61-REUSABLE-NFC-COMPONENT --stale-after 30` to a clean result.
+- Ran `git diff --cached --check`, fixed its one finding, and committed the ticket package.
+- Ran the reMarkable bundle upload in dry-run mode.
+- Uploaded the real bundle to `/ai/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT`.
+
+### Why
+
+- A design package is not complete until its metadata, vocabulary, file relations, task state, rendering inputs, and delivery are verified.
+- The dry run prevents accidental destination or file-selection mistakes.
+
+### What worked
+
+- Both docmgr frontmatter validations passed.
+- The clean doctor result was:
+
+  ```text
+  ESP-61-REUSABLE-NFC-COMPONENT
+  - ✅ All checks passed
+  ```
+
+- The real upload returned:
+
+  ```text
+  OK: uploaded ESP-61 Reusable Native ESP-IDF NFC Component Guide.pdf -> /ai/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT
+  ```
+
+### What didn't work
+
+- A custom validation script incorrectly assumed `tasks.md` had YAML frontmatter and stopped with:
+
+  ```text
+  AssertionError: tasks.md
+  ```
+
+  `tasks.md` and `changelog.md` are docmgr bookkeeping files and do not use the same frontmatter contract as index/design/reference docs. The authoritative `docmgr validate` and `docmgr doctor` commands were used instead.
+
+- The first doctor run warned:
+
+  ```text
+  unknown topics value(s): component-architecture (3 docs)
+  ```
+
+  This was resolved with:
+
+  ```bash
+  docmgr vocab add --category topics --slug component-architecture \
+    --description 'Architecture and packaging of reusable software components and their public integration boundaries'
+  ```
+
+- The first staged commit check stopped with:
+
+  ```text
+  changelog.md:16: new blank line at EOF.
+  ```
+
+  The extra generated trailing blank line was removed, then `git diff --cached --check` passed.
+
+### What I learned
+
+- Ticket document types and bookkeeping files have different metadata contracts; validation scripts should target docmgr document files rather than every Markdown file uniformly.
+- Adding a precise vocabulary entry is preferable to replacing a useful topic with a less specific existing term.
+- reMarkable can render the complete long-form package directly from the index, design guide, and diary without intermediate manual PDF work.
+
+### What was tricky to build
+
+- The main guide contains many nested C++ and pseudocode blocks plus Mermaid diagrams. Balanced-fence validation was necessary before Pandoc rendering.
+- The ticket skill requires dry-run delivery, while the upload tool avoids redundant status/list calls. The final sequence used exactly the useful two calls: dry run and real upload.
+
+### What warrants a second pair of eyes
+
+- Review the rendered Mermaid diagrams and wide API tables on the reMarkable page size.
+- Review the open lifecycle and allocation questions before implementation starts; documentation completeness does not resolve those empirical questions.
+
+### What should be done in the future
+
+- Begin implementation with Phase 0 baseline verification and Phase 1 domain types.
+- Update this diary at every implementation evidence boundary.
+
+### Code review instructions
+
+- Review commit `3e275482` for ticket creation, design, diary, tasks, changelog, and vocabulary only.
+- Run `docmgr doctor --ticket ESP-61-REUSABLE-NFC-COMPONENT --stale-after 30`.
+- Render the same three-file bundle locally if PDF layout changes are needed.
+
+### Technical details
+
+- Bundle name: `ESP-61 Reusable Native ESP-IDF NFC Component Guide.pdf`.
+- Remote path: `/ai/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT`.
+- ToC depth: 2.
+- Included files: `index.md`, primary design guide, and investigation diary.
