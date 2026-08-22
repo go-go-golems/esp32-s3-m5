@@ -188,3 +188,12 @@ Phase 9 complete: 0117 migrated to nfc_feature_explorer using gogolem_nfc Engine
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_feature_explorer/main/console_adapter.cpp — Console adapter
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 9 complete
+
+## 2026-08-22
+
+Phase 10 complete: NFC LAB uses gogolem_nfc_engine Service on board-owned bus. App-local st25r3916 driver and nfc_debug_service removed. Auto-poll fixed with atomic flag callback. No-tag no longer counts as failure (Rf+NOT_FOUND excluded). Auto-poll validated: 20 ops, 0 failures with tag present.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/app_nfc_debug.cpp — NFC LAB app
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 10 complete

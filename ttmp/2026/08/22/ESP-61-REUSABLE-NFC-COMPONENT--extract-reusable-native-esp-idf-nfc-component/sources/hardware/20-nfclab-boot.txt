@@ -1,0 +1,129 @@
+I (262) esp_image: segment 1: paddr=0011f24c vaddr=3fca1e00 size=00dcch (  3532) load
+I (263) esp_image: segment 2: paddr=00120020 vaddr=42000020 size=20b204h (2142724) map
+I (564) esp_image: segment 3: paddr=0032b22c vaddr=3fca2bcc size=07b38h ( 31544) load
+I (569) esp_image: segment 4: paddr=00332d6c vaddr=40378000 size=19d40h (105792) load
+I (587) esp_image: segment 5: paddr=0034cab4 vaddr=50000000 size=00020h (    32) load
+I (598) boot: Loaded app from partition at offset 0x20000
+I (598) boot: Disabling RNG early entropy source...
+I (608) esp_psram: Found 8MB PSRAM device
+I (608) esp_psram: Speed: 80MHz
+I (608) cpu_start: Multicore app
+I (618) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (618) cpu_start: Pro cpu start user code
+I (618) cpu_start: cpu freq: 240000000 Hz
+I (620) app_init: Application information:
+I (624) app_init: Project name:     stack-chan
+I (628) app_init: App version:      1.5.1
+I (632) app_init: Compile time:     Aug 21 2026 14:57:25
+I (637) app_init: ELF file SHA256:  ef2ace634...
+I (641) app_init: ESP-IDF:          v5.5.4
+I (645) efuse_init: Min chip rev:     v0.0
+I (649) efuse_init: Max chip rev:     v0.99
+I (653) efuse_init: Chip rev:         v0.2
+I (657) heap_init: Initializing. RAM available for dynamic allocation:
+I (663) heap_init: At 3FCB2088 len 00037688 (221 KiB): RAM
+I (668) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (673) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (678) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (684) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (691) spi_flash: detected chip: generic
+I (694) spi_flash: flash io: qio
+I (698) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (703) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (718) main_task: Started on CPU0
+I (728) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (728) main_task: Calling app_main()
+[944085184425] [[32minfo[0m] [HAL] creating hal instance
+[944085184431] [[32minfo[0m] [HAL] init
+[944085184446] [[32minfo[0m] [HAL] xiaozhi board init
+I (758) Board: UUID=172aaa5c-cd01-4514-8aba-d6097964dadc SKU=m5stack-stack-chan
+I (758) M5Stack-StackChan-Board: Init AXP2101
+I (758) M5Stack-StackChan-Board: Set charge current success
+I (768) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (778) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- --
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- --
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- --
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+I (858) M5Stack-StackChan-Board: Init FT6336
+I (858) M5Stack-StackChan-Board: Init IlI9342
+I (868) ili9341: LCD panel create success, version: 1.2.0
+I (888) M5Stack-StackChan-Board: Reset IlI9342
+I (1018) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x10 / VENDID:0x11, panel:ILI9342C
+I (1018) Display: Power management not supported
+I (1078) StackChanAvatarDisplay: Turning display on
+I (1078) StackChanAvatarDisplay: Initialize LVGL library
+I (1078) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1078) StackChanAvatarDisplay: Initialize LVGL port
+I (1088) StackChanAvatarDisplay: Adding LCD display
+I (1088) LVGL: Starting LVGL task
+I (1098) StackChanAvatarDisplay: Create boot logo label
+I (1138) M5Stack-StackChan-Board: Init Camera
+I (1138) gc0308: Detected Camera sensor PID=0x9b
+I (1218) StackChanCamera: Camera init success
+I (1228) Backlight: Set brightness to 75
+[944085184917] [[32minfo[0m] [HAL-MCP] init
+[944085184917] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1228) MCP: Add tool: self.robot.get_head_angles
+[944085184927] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1238) MCP: Add tool: self.robot.set_head_angles
+[944085184937] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1248) MCP: Add tool: self.robot.set_led_color
+[944085184948] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1258) MCP: Add tool: self.robot.create_reminder
+[944085184959] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1268) MCP: Add tool: self.robot.get_reminders
+[944085184969] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1278) MCP: Add tool: self.robot.stop_reminder
+[944085184980] [[32minfo[0m] [HAL-HeadTouch] init
+I (1288) Si12T: Si12T initialized, version: 0.0.2
+I (1308) Si12T: Si12T setup done
+[944085185000] [944085185000] [[[32minfo[0m[32minfo[0m] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1508) PY32IOExpander: Version: 0x41
+[944085185652] [[32minfo[0m] [HAL-IOE] init done
+[944085185653] [[32minfo[0m] [HAL-RTC] init
+[944085185653] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[944085185655] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[944085186000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2000-00-01 21:53:06
+[944085186007] [[32minfo[0m] [HAL-IMU] init
+[944085186309] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[944085186310] [[32minfo[0m] [HAL-Servo] init
+I (2278) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[944085186318] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 446 from settings
+[944085186326] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 652 from settings
+[944085186333] [[32minfo[0m] [HAL] lvgl init
+[944085186335] [[32minfo[0m] [HAL] create lvgl touchpad indev
+
+ _____ _____ _____ _____ _____ _____ _____ _____
+|     |     |     |   | |     |  _  |  |  |   __|
+| | | |  |  |  |  | | | |   --|     |    -|   __|
+|_|_|_|_____|_____|_|___|_____|__|__|__|__|_____|
+
+- @author Forairaaaaa
+- @version 2.3.3
+- @build at 14:58:25 Aug 21 2026
+
+[944085186374] [[32minfo[0m] [NFC.LAB] on create (NFC-only auto-open)
+[944085186374] [[32minfo[0m] [NFC.LAB] on open
+[944085194164] [[32minfo[0m] [NFC.LAB] ops=1 fail=0 tag=0 ndef_ok=0
+[944085194214] [[32minfo[0m] [NFC.LAB] ops=2 fail=0 tag=1 ndef_ok=0
+[944085194274] [[32minfo[0m] [NFC.LAB] ops=3 fail=0 tag=1 ndef_ok=0
+I (10698) SystemInfo: free sram: 203443 minimal sram: 201847
+[944085194994] [[32minfo[0m] [NFC.LAB] ops=4 fail=0 tag=1 ndef_ok=1
+[944085195054] [[32minfo[0m] [NFC.LAB] ops=5 fail=0 tag=1 ndef_ok=1
+[944085195114] [[32minfo[0m] [NFC.LAB] ops=6 fail=0 tag=1 ndef_ok=1

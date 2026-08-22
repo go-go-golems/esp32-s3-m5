@@ -65,6 +65,43 @@ list(FILTER STACK_CHAN_SOURCES EXCLUDE REGEX
 if filter_anchor not in cmake_text:
     raise SystemExit(f"source-filter anchor missing in {cmake}")
 cmake.write_text(cmake_text.replace(filter_anchor, filter_block + filter_anchor, 1))
+
+# ESP-61: add reusable NFC components to the firmware build.
+# 1. EXTRA_COMPONENT_DIRS in firmware CMakeLists.txt
+fw_cmake = root / "firmware/CMakeLists.txt"
+fw_text = fw_cmake.read_text()
+if 'gogolem_nfc' not in fw_text:
+    # Components are at esp32-s3-m5/components; firmware is at
+    # 0116/.work/StackChan — root is .work/StackChan, so 3 levels up.
+    comp_base = str(root.parent.parent.parent / "components")
+    extra = f'''# ESP-61: reusable NFC components
+set(EXTRA_COMPONENT_DIRS
+    "{comp_base}/gogolem_nfc"
+    "{comp_base}/gogolem_nfc_engine"
+    ${{EXTRA_COMPONENT_DIRS}})
+'''
+    fw_cmake.write_text(fw_text.replace('include($ENV{IDF_PATH}/tools/cmake/project.cmake)',
+        extra + 'include($ENV{IDF_PATH}/tools/cmake/project.cmake)'))
+
+# 2. Add gogolem_nfc and gogolem_nfc_engine to main CMakeLists PRIV_REQUIRES
+main_cmake = root / "firmware/main/CMakeLists.txt"
+mc_text = main_cmake.read_text()
+if 'gogolem_nfc' not in mc_text:
+    mc_text = mc_text.replace(
+        'PRIV_REQUIRES\n                        esp_pm',
+        'PRIV_REQUIRES\n                        gogolem_nfc\n                        gogolem_nfc_engine\n                        esp_pm', 1)
+    main_cmake.write_text(mc_text)
+
+# 3. Add M5Unit-NFC to main/idf_component.yml
+comp_yml = root / "firmware/main/idf_component.yml"
+yml_text = comp_yml.read_text()
+if 'M5Unit-NFC' not in yml_text:
+    yml_text += '''
+  m5stack/M5Unit-NFC:
+    git: https://github.com/m5stack/M5Unit-NFC.git
+    version: 93745b547364f310cd64b5155a870103a7800a5d
+'''
+    comp_yml.write_text(yml_text)
 PY
 
 printf 'Prepared StackChan %s at %s\n' "$STACKCHAN_COMMIT" "$WORK_ROOT"

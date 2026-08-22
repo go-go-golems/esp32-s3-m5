@@ -115,6 +115,21 @@ void Service::execute(const Command& cmd) {
     ++snapshot_.operations;
     snapshot_.last_error = Error{};
 
+    // No-tag is a valid outcome (Rf + NOT_FOUND), not a failure. Only count
+    // real errors (transport, protocol, chip-state, etc.) as failures.
+    auto count_failure = [this](const Error& e) {
+        if (e.layer == ErrorLayer::Rf && e.esp_code == ESP_CODE_ERR_NOT_FOUND) {
+            // No tag present — valid outcome, not a failure.
+            return;
+        }
+        if (e.layer == ErrorLayer::CardFamily) {
+            // Tag doesn't support the operation — valid for wrong-family ops.
+            return;
+        }
+        snapshot_.last_error = e;
+        ++snapshot_.failures;
+    };
+
     switch (cmd.kind) {
         case ServiceCommand::Scan: {
             auto r = engine_.scan(1000);
@@ -136,8 +151,7 @@ void Service::execute(const Command& cmd) {
                 snapshot_.last_source = r.value().source;
                 engine_.deactivate();
             } else {
-                snapshot_.last_error = r.error();
-                ++snapshot_.failures;
+                count_failure(r.error());
             }
             break;
         }
@@ -147,8 +161,7 @@ void Service::execute(const Command& cmd) {
             if (r.ok() && r.value().size() <= 16) {
                 std::memcpy(snapshot_.raw_read_data.data(), r.value().data(), r.value().size());
             } else if (!r.ok()) {
-                snapshot_.last_error = r.error();
-                ++snapshot_.failures;
+                count_failure(r.error());
             }
             break;
         }
@@ -158,8 +171,7 @@ void Service::execute(const Command& cmd) {
             if (r.ok()) {
                 snapshot_.ndef_records = static_cast<uint32_t>(r.value().records.size());
             } else {
-                snapshot_.last_error = r.error();
-                ++snapshot_.failures;
+                count_failure(r.error());
             }
             break;
         }
@@ -167,8 +179,7 @@ void Service::execute(const Command& cmd) {
             auto r = engine_.dump();
             snapshot_.dump_ok = r.ok();
             if (!r.ok()) {
-                snapshot_.last_error = r.error();
-                ++snapshot_.failures;
+                count_failure(r.error());
             }
             break;
         }

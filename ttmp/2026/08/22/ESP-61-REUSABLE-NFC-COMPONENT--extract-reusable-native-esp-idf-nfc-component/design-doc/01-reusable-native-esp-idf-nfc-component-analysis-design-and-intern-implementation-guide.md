@@ -19,8 +19,6 @@ RelatedFiles:
       Note: Nearly standalone observer-safe diagnostic data model
     - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/app_nfc_debug.cpp
       Note: Production shared-bus integration through hal_bridge
-    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.h
-      Note: Accepted single-worker command/snapshot ownership pattern
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/app_main.cpp
       Note: Current application-owned bus creation and mode loop boundary
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_explorer.cpp
@@ -37,6 +35,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Guide a new engineer through understanding, implementing, testing, and integrating a reusable ESP-IDF NFC component based on the proven ESP-60 projects.
 WhenToUse: Use when extracting NFC code from 0115 or 0117, integrating NFC into NFC LAB or another ESP-IDF project, or reviewing ownership, safety, and API boundaries.
 ---
+
 
 
 # Reusable Native ESP-IDF NFC Component Analysis, Design, and Intern Implementation Guide

@@ -15,8 +15,12 @@ Owners: []
 RelatedFiles:
     - Path: repo://0115-m5stackchan-nfc-reader/test_host/test_st25r_trace.c
       Note: Evidence for host-testable trace extraction
-    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/nfc_debug_service.h
-      Note: Evidence for worker ownership decision
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/app_nfc_debug.cpp
+      Note: Phase 10 app using gogolem_nfc_engine Service
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/overlay/firmware/main/apps/app_nfc_debug/view/nfc_debug_view.cpp
+      Note: Phase 10 simplified view with Arduino-style tag info
+    - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
+      Note: Phase 10 overlay integration script
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/dependencies.lock
       Note: Pinned upstream revisions used during architecture assessment
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_console.cpp
@@ -82,7 +86,9 @@ RelatedFiles:
         Phase 6 reversible_write with safety gate and UID permit
         Phase 7 write_ndef with NdefMessage-to-TLV conversion
     - Path: repo://components/gogolem_nfc_engine/src/service.cpp
-      Note: Phase 4 Service worker implementation
+      Note: |-
+        Phase 4 Service worker implementation
+        Phase 10 no-tag not counted as failure
     - Path: repo://examples/nfc_emulation_smoke/main/smoke_main.cpp
       Note: Phase 5 emulation smoke with NTAG213 profile
     - Path: repo://examples/nfc_engine_smoke/main/smoke_main.cpp
@@ -119,6 +125,8 @@ RelatedFiles:
       Note: Phase 7 NDEF write on sacrificial NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/19-feature-explorer-validation.txt
       Note: Phase 9 all commands validated on NTAG215
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/23-nfclab-runtime-check.txt
+      Note: Phase 10 auto-poll runtime evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -129,6 +137,8 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
+
 
 
 

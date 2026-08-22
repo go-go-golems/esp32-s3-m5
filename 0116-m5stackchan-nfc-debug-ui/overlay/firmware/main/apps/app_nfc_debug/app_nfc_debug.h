@@ -1,12 +1,11 @@
-/*
- * SPDX-FileCopyrightText: 2026 ESP-60-M5STACKCHAN-NFC
- * SPDX-License-Identifier: MIT
- */
+// SPDX-License-Identifier: MIT
 #pragma once
 
-#include "nfc_debug_service.h"
+#include <atomic>
 #include <memory>
 #include <mooncake.h>
+
+#include "gogolem/nfc/service.hpp"
 
 namespace nfc_debug::view {
 class NfcDebugView;
@@ -23,7 +22,8 @@ public:
     void onClose() override;
 
 private:
-    nfc_debug::Service _service;
+    gogolem::nfc::Service _service;
     std::unique_ptr<nfc_debug::view::NfcDebugView> _view;
-    uint32_t _last_generation = 0;
+    uint32_t _last_operations = 0;
+    std::atomic<bool> _auto_poll{false};
 };
