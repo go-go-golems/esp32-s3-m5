@@ -522,13 +522,27 @@ esp_err_t st25r3916_read_id(st25r3916_id_t *out)
 esp_err_t st25r3916_field_on(void)
 {
     trace_phase(ST25R_PHASE_FIELD_ON);
-    esp_err_t e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
+    const uint8_t txrx = ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN;
+    uint8_t operation_control = 0;
+    esp_err_t e = rd8(ST25R_REG_OPERATION_CONTROL, &operation_control);
+    if (e != ESP_OK) return e;
+
+    /* M5Unit-NFC never issues NFC_INITIAL_FIELD_ON when TX is already active.
+     * Keep this API idempotent because poll_nfca() calls it before each read. */
+    if ((operation_control & txrx) == txrx) return ESP_OK;
+    if (operation_control & ST25R_OPCTRL_TX_EN) {
+        /* Recover the observed 0x8B state (TX on, RX off) without restarting the field. */
+        return set_bits(ST25R_REG_OPERATION_CONTROL, txrx);
+    }
+
+    e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
-    /* Match M5Unit-NFC nfc_initial_field_on(): after the field-on guard time,
-     * enable both the transmitter and receiver. The previous implementation
-     * cleared these bits, leaving the RF request path unable to observe tags. */
-    return set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+    e = set_bits(ST25R_REG_OPERATION_CONTROL, txrx);
+    if (e != ESP_OK) return e;
+    e = rd8(ST25R_REG_OPERATION_CONTROL, &operation_control);
+    if (e != ESP_OK) return e;
+    return (operation_control & txrx) == txrx ? ESP_OK : ESP_ERR_INVALID_STATE;
 }
 
 esp_err_t st25r3916_field_off(void)
