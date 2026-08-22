@@ -116,3 +116,12 @@ Phase 2 Engine wiring: added target-only gogolem_nfc_engine wrapping M5Unit-NFC 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp — Engine API
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — Engine wiring
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 12 Engine wiring
+
+## 2026-08-22
+
+Phase 0 complete: NTAG215 read-only hardware baseline proven (scan/info/raw-read/ndef-read/dump all ok=1, WUPA recovery confirmed). Tag UID 04:DA:F7:4D:9E:61:80, NTAG 215, 135 pages, valid empty NDEF.
+
+### Related Files
+
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 13 Phase 0 complete
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/11-phase0-read-only-with-tag.txt — Full read-only probe with tag

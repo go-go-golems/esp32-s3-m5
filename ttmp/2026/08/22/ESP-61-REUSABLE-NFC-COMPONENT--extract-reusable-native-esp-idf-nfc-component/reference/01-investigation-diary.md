@@ -1112,3 +1112,76 @@ The first smoke loop also produced a real, important finding: after `end()`, a s
 - Engine smoke binary: `0x54ca0` bytes (67% free).
 - Build evidence: `sources/software/13-phase2-engine-smoke-build.txt`.
 - Runtime evidence: `sources/hardware/08-engine-smoke-runtime.txt`.
+
+## Step 13: Phase 0 hardware baseline complete
+
+The user placed a physical NTAG215 on the antenna. The engine smoke immediately confirmed tag presence (`tags=1`), with the expected HALT alternation (`1 → 0 → 1`) proving the tag is real and the lifecycle is observable. Re-flashing `0117` and running the full read-only probe completed all five Phase 0 acceptance criteria: scan, info, raw-read, NDEF read, and full 135-page dump all returned `ok=1`. Every consecutive command activated via `source=WUPA`, proving the REQA→WUPA recovery on the halted stationary tag.
+
+The tag is a different NTAG215 (UID `04:DA:F7:4D:9E:61:80`, not the earlier `04:91:D4:4C:9E:61:80`) but the same product type and geometry: ATQA 0x0044, SAK 0x00, 135 pages, 504 user bytes, valid empty NDEF, capability container `E1 10 3E 00`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok I put a tag, sorry"
+
+**Assistant interpretation:** The physical NTAG215 is now on the antenna; resume the hardware-blocked phases.
+
+**Inferred user intent:** Complete Phase 0 and proceed to the hardware-dependent Engine validation.
+
+### What I did
+
+- Captured engine smoke with tag: `tags=1` on alternating scans, confirming tag presence and HALT lifecycle.
+- Re-flashed `0117` and ran the full read-only probe.
+- Verified all five acceptance criteria: scan ok=1, info ok=1, raw-read ok=1, ndef-read ok=1 valid=1, dump ok=1 (NFC_DUMP_BEGIN → NFC_DUMP_END, 135 pages).
+- Confirmed `source=WUPA` on every consecutive command.
+- Marked task `4igv` complete.
+- Printed the Phase 0 completion slip.
+
+### What worked
+
+- Full read-only acceptance:
+
+  ```text
+  NFC_RESULT op=scan ok=1 detected=1 identified=1
+  NFC_RESULT op=info ok=1
+  NFC_RESULT op=raw-read ok=1 address=0
+  NFC_RESULT op=ndef-read ok=1 valid=1
+  NFC_RESULT op=dump ok=1
+  ```
+
+- WUPA recovery proven: `NFC_ACTIVATE_DISCOVERY ok=1 source=WUPA` on info, raw-read, ndef-read, and dump — all after scan halted the tag.
+- The engine smoke independently detected the tag (`tags=1`) before 0117 was re-flashed, proving the Engine's `scan()` works on real hardware.
+
+### What didn't work
+
+- The first probe run captured only 2314 bytes (dump didn't finish); re-running with a 180s timeout captured the full 6457-byte output including `NFC_DUMP_END ok=1`.
+
+### What I learned
+
+- The engine smoke's `tags=1 → tags=0 → tags=1` alternation is the HALT lifecycle in action: `scan()` enumerates and halts, the next REQA sees nothing, then it recovers. This is exactly the behavior `activate_one`'s WUPA fallback fixes.
+- A different physical NTAG215 produces the same product identification and geometry, confirming the read path is product-level, not tag-specific.
+
+### What was tricky to build
+
+- The dump command needs more time than the default probe timeout; the 135-page read takes several seconds over USB Serial/JTAG.
+
+### What warrants a second pair of eyes
+
+- Confirm the full dump covers all 135 pages (NFC_DUMP_BEGIN to NFC_DUMP_END with no gaps).
+
+### What should be done in the future
+
+- Add `activate_one()` with REQA→WUPA fallback to the Engine and validate on this tag.
+
+### Code review instructions
+
+- Inspect `sources/hardware/11-phase0-read-only-with-tag.txt`.
+- Verify all five `NFC_RESULT op=... ok=1` markers.
+- Verify `source=WUPA` on consecutive commands.
+
+### Technical details
+
+- Tag UID: `04:DA:F7:4D:9E:61:80` (NTAG 215).
+- Capability container: `E1 10 3E 00` (Type 2, 496 NDEF bytes).
+- NDEF: valid format, zero records.
+- Phase 0 task `4igv`: complete.
+- Evidence: `sources/hardware/11-phase0-read-only-with-tag.txt`.
