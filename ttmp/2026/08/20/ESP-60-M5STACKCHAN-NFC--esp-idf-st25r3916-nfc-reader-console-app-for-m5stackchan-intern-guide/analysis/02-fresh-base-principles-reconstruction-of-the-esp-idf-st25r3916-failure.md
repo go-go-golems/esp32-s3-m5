@@ -19,12 +19,17 @@ RelatedFiles:
       Note: Prior evidence and refuted FSM-reset hypothesis
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/nfc_layer_a.cpp
       Note: Working M5 NFC-A request/anticollision reference
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/10-four-tag-layered-baseline.txt
+      Note: Before fix OPC=8B and no RF IRQ
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/11-four-tag-field-enable-fix.txt
+      Note: After fix OPC=CB and WUPA RXS+RXE+COL
 ExternalSources: []
 Summary: A clean-room investigation that separates I2C transport, ST25R3916 state, RF request/response, collision resolution, selection, and UID output instead of treating all failures as one backend problem.
 LastUpdated: 2026-08-21T21:35:00-04:00
 WhatFor: Drive a new evidence ladder from the connected four-tag hardware to a stable ESP-IDF UID read.
 WhenToUse: Use as the active investigation record after the bare per-transaction fsm_rst hypothesis was refuted.
 ---
+
 
 
 # Fresh Base-Principles Reconstruction of the ESP-IDF ST25R3916 Failure
@@ -231,10 +236,32 @@ The bare FSM reset is refuted. Remaining host differences include explicit comma
 
 ## 8. Active evidence log
 
-This section will be updated chronologically. The initial state is:
+### 8.1 Four-tag baseline: RF receive disabled by application code
 
-- board firmware: reverted baseline `0115` debug build;
+Capture: `sources/hardware/10-four-tag-layered-baseline.txt`.
+
+- `OPC=0x8B`: oscillator, TX, and external field detector enabled; `RX_EN=0`.
+- REQA and WUPA produced no `RXS`, `RXE`, or `COL`; FIFO stayed empty.
+- The request direct commands (`0xC6`/`0xC7`) were reached; three transient polling NACKs recovered immediately.
+
+A fresh source comparison found that our `st25r3916_field_on()` cleared `TX_EN|RX_EN` after the 5 ms field-on guard. M5Unit-NFC's `nfc_initial_field_on()` does the opposite: `modify_bit_register8(OPERATION_CONTROL, tx_en | rx_en, 0x00)` sets both bits. The local comment claiming M5 clears them was wrong.
+
+### 8.2 Field-enable correction: four-tag RF response confirmed
+
+Fix: commit `7465a834`, replace `clear_bits(TX_EN|RX_EN)` with `set_bits(TX_EN|RX_EN)`.
+
+Capture: `sources/hardware/11-four-tag-field-enable-fix.txt`.
+
+- `OPC=0xCB`: oscillator + TX + RX + external field detector enabled.
+- WUPA produced `irq=0x34` = `RXS|RXE|COL`.
+- This is positive RF evidence: the field is active, the receiver sees responses, and multiple tags collide.
+- The current helper then returned `ESP_FAIL` because it requires a clean two-byte ATQA FIFO result; the current anticollision implementation also explicitly aborts on `COL`.
+
+The first concrete root cause was therefore not the ESP-IDF backend: our application disabled the RF receiver after field-on. The remaining blocker is now at the protocol boundary: transition a collision-bearing WUPA into bounded anticollision and SELECT one UID branch.
+
+### 8.3 Current state
+
+- board firmware: `0115` with field-enable fix `7465a834`;
 - local ESP-IDF source: clean `73550728`;
 - hardware: four tags present on the top-edge antenna;
-- serial: `/dev/ttyACM0`, currently unowned;
-- next evidence: one-attempt four-tag `nfc-read` with trace status and first-error bundle.
+- next implementation: port M5Unit-NFC's collision-resolution loop (`nfca_anti_collision`) and preserve transport errors separately.
