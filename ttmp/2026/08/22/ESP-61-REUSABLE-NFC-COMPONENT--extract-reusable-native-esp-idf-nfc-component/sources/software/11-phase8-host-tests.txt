@@ -1,0 +1,11 @@
+# Phase 8 host tests (Classic value-block codec)
+
+Compiling host tests...
+Running host tests...
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED

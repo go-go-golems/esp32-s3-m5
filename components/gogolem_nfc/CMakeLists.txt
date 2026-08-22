@@ -7,6 +7,7 @@
 #   Phase 2: lifecycle, safety
 #   Phase 3: NDEF public model and codec
 #   Phase 6: mutation permits and write reports
+#   Phase 8: MIFARE Classic value-block codec and credentials
 #
 # The M5Unit-NFC-wrapped synchronous Engine and worker Service are added when
 # their hardware validation is available.
@@ -18,6 +19,7 @@ idf_component_register(
         "src/safety.cpp"
         "src/ndef.cpp"
         "src/mutation.cpp"
+        "src/classic.cpp"
     INCLUDE_DIRS
         "include"
 )

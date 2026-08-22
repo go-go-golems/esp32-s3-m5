@@ -21,6 +21,8 @@ RelatedFiles:
       Note: Pinned upstream revisions used during architecture assessment
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_console.cpp
       Note: Evidence of console, reboot, confirmation, and output policy to move out of core
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/classic.hpp
+      Note: Phase 8 Classic value-block codec and credentials
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp
       Note: Phase 2 lifecycle state machine (host-testable)
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/mutation.hpp
@@ -33,6 +35,8 @@ RelatedFiles:
       Note: Phase 2 safety/protected-region validators (host-testable)
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/types.hpp
       Note: Phase 1 host-clean domain types (commit pending)
+    - Path: repo://components/gogolem_nfc/src/classic.cpp
+      Note: Phase 8 value-block encode/decode with redundancy
     - Path: repo://components/gogolem_nfc/src/gogolem_nfc.cpp
       Note: Phase 1 helpers and version accessors
     - Path: repo://components/gogolem_nfc/src/lifecycle.cpp
@@ -45,6 +49,8 @@ RelatedFiles:
       Note: Phase 2 safety implementation, 4K-aware Classic model
     - Path: repo://components/gogolem_nfc/test_host/build.sh
       Note: Phase 1 host-test build
+    - Path: repo://components/gogolem_nfc/test_host/test_classic.cpp
+      Note: Phase 8 Classic host tests
     - Path: repo://components/gogolem_nfc/test_host/test_lifecycle.cpp
       Note: Phase 2 lifecycle host tests
     - Path: repo://components/gogolem_nfc/test_host/test_mutation.cpp
@@ -65,6 +71,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -785,3 +792,65 @@ Phase 6's safety core is UID-bound mutation permits and write-report precedence.
 
 - Phase 6 task: `7tya`, still open (reversible-write hardware validation remains).
 - Host test evidence: `sources/software/10-phase6-host-tests.txt`.
+
+## Step 9: Phase 8 host-testable Classic value-block codec
+
+Phase 8's deterministic core is the MIFARE Classic value-block format. I implemented encode/decode with full redundancy validation (value repeated three times with a complement, address repeated with its complement) plus `ClassicKey` and `ClassicCredentials` types. The decode validates every redundant copy and rejects interrupted writes, which is exactly what the chip does. This is the last host-testable pure-logic module; every remaining phase requires the physical tag and/or M5Unit-NFC runtime.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Implement the final deterministic Phase 8 subset while hardware Classic-wallet validation is blocked.
+
+**Inferred user intent:** Complete all safely host-testable pure logic before hardware work resumes.
+
+### What I did
+
+- Printed the Phase 8 plan slip `Classic Value-Block Codec`.
+- Implemented `include/gogolem/nfc/classic.hpp` and `src/classic.cpp`: `ClassicKey`, `ClassicCredentials`, `encode_value_block`, `decode_value_block`.
+- Added `test_host/test_classic.cpp` with round-trip and corruption-rejection tests.
+- Updated `CMakeLists.txt` SRCS.
+- Ran the full host suite and rebuilt the smoke project under ESP-IDF 5.5.4.
+
+### Why
+
+- The value-block redundancy check is what makes interrupted writes detectable; encoding it as pure logic lets the Engine validate blocks without trusting unverified chip behavior.
+- This completes the set of deterministic modules the Engine and mutation paths consume.
+
+### What worked
+
+- Seven host test suites passed.
+- The ESP-IDF smoke rebuild completed with `Project build complete`.
+
+### What didn't work
+
+- N/A — pure logic only.
+
+### What I learned
+
+- An all-zero 16-byte block must be rejected as a value block: value 0 passes the value checks, but address 0 with its complement 0 fails the address-complement check, so a zeroed data block is not misread as value 0 at address 0.
+- The complement of a signed `int32_t` via `~value` is portable here because the block stores the bitwise complement regardless of signedness.
+
+### What was tricky to build
+
+- Treating the value as signed `int32_t` for the API while performing the complement as an unsigned bitwise op, so negative values round-trip correctly.
+
+### What warrants a second pair of eyes
+
+- Confirm the address-byte semantics against the NXP Classic datasheet: the "free" byte is often the block address but the chip does not enforce it; the Engine should set it deliberately.
+
+### What should be done in the future
+
+- Wire increment/decrement/restore/transfer through upstream Classic commands once a sacrificial Classic card is available.
+
+### Code review instructions
+
+- Read `include/gogolem/nfc/classic.hpp` and `src/classic.cpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+
+### Technical details
+
+- Phase 8 task: `42gr`, still open (Classic wallet hardware validation remains).
+- Host test evidence: `sources/software/11-phase8-host-tests.txt`.
+- All host-testable pure logic is now complete: types, Result, lifecycle, safety, NDEF, mutation, Classic value block.

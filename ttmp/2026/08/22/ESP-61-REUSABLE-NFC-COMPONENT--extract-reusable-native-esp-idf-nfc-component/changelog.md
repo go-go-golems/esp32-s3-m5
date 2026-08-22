@@ -78,3 +78,12 @@ Phase 6 partial: added host-testable UID-bound mutation permits and write-report
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/mutation.hpp — Mutation safety
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 8 Phase 6 mutation
+
+## 2026-08-22
+
+Phase 8 partial: added host-testable MIFARE Classic value-block codec with full redundancy validation and credentials; seven host test suites pass and smoke rebuilds under ESP-IDF 5.5.4; Classic wallet hardware validation remains. All host-testable pure logic is now complete.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/classic.hpp — Classic codec
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 9 Phase 8 classic codec
