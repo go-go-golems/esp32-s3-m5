@@ -52,6 +52,8 @@ struct Engine::Impl {
     m5::unit::UnitUnified units{};
     m5::unit::UnitNFC unit{};
     m5::nfc::NFCLayerA reader{unit};
+    m5::nfc::EmulationLayerA emulation{unit};
+    std::vector<uint8_t> emulation_memory{};
     LifecycleState state{LifecycleState::New};
     Mode mode{Mode::Reader};
     uint8_t address{0x50};
@@ -109,6 +111,16 @@ Result<void> Engine::begin(const EngineConfig& cfg) {
     impl_->bus_attached = true;
     impl_->ever_began = true;
     impl_->state = after.value();
+
+    // Start emulation if configured for a target mode.
+    if (cfg.mode != Mode::Reader) {
+        auto emu = start_emulation(cfg.emulation_profile);
+        if (!emu.ok()) {
+            impl_->state = lifecycle_after_fault(impl_->state);
+            return emu;
+        }
+    }
+
     return Result<void>::success();
 }
 
@@ -382,6 +394,92 @@ Result<void> Engine::dump() {
         return Result<void>::failure(e);
     }
     return Result<void>::success();
+}
+
+// ---- Target emulation ----------------------------------------------------
+
+// Map the public EmulationState to the upstream EmulationLayerA::State.
+static EmulationState to_emulation_state(m5::nfc::EmulationLayerA::State s) {
+    using S = m5::nfc::EmulationLayerA::State;
+    switch (s) {
+        case S::None:  return EmulationState::None;
+        case S::Off:   return EmulationState::Off;
+        case S::Idle:  return EmulationState::Idle;
+        case S::Ready: return EmulationState::Ready;
+        case S::Active:return EmulationState::Active;
+        case S::Halt:  return EmulationState::Halt;
+        default:       return EmulationState::None;
+    }
+}
+
+// Compute BCC for UID blocks (same as 0117 bcc8).
+static uint8_t bcc8(const uint8_t* data, size_t len, uint8_t initial = 0) {
+    uint8_t result = initial;
+    for (size_t i = 0; i < len; ++i) result ^= data[i];
+    return result;
+}
+
+// Embed a 7-byte UID into a Type 2 memory image (same as 0117 embed_uid).
+static void embed_uid(std::vector<uint8_t>& memory, const uint8_t* uid, uint8_t uid_len) {
+    if (uid_len != 7 || memory.size() < 9) return;
+    std::memcpy(&memory[0], uid, 3);
+    memory[3] = bcc8(uid, 3, 0x88);
+    std::memcpy(&memory[4], uid + 3, 4);
+    memory[8] = bcc8(uid + 3, 4);
+}
+
+Result<void> Engine::start_emulation(const EmulationProfile& profile) {
+    if (impl_->mode == Mode::Reader) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::StartEmulation;
+        e.set_detail("not emulation mode");
+        return Result<void>::failure(e);
+    }
+
+    // Map family to upstream Type.
+    m5::nfc::a::Type type = m5::nfc::a::Type::Unknown;
+    if (profile.family == TagFamily::MifareUltralight) {
+        type = m5::nfc::a::Type::MIFARE_Ultralight;
+    } else if (profile.family == TagFamily::Ntag21x) {
+        type = m5::nfc::a::Type::NTAG_213;
+    } else {
+        Error e;
+        e.layer = ErrorLayer::Argument;
+        e.operation = Operation::StartEmulation;
+        e.set_detail("unsupported emulation family");
+        return Result<void>::failure(e);
+    }
+
+    // Copy and embed UID into memory (faithful port of 0117 start_emulation).
+    impl_->emulation_memory.assign(profile.memory.begin(), profile.memory.end());
+    embed_uid(impl_->emulation_memory, profile.uid.data(), profile.uid_length);
+
+    PICC picc{};
+    if (!picc.emulate(type, profile.uid.data(), profile.uid_length) ||
+        !impl_->emulation.begin(picc, impl_->emulation_memory.data(),
+                               impl_->emulation_memory.size())) {
+        Error e;
+        e.layer = ErrorLayer::ChipState;
+        e.operation = Operation::StartEmulation;
+        e.set_detail("emulation begin failed");
+        return Result<void>::failure(e);
+    }
+    return Result<void>::success();
+}
+
+EmulationState Engine::update_emulation() {
+    if (impl_->mode == Mode::Reader || !lifecycle_is_ready(impl_->state)) {
+        return EmulationState::None;
+    }
+    impl_->units.update();
+    impl_->emulation.update();
+    return to_emulation_state(impl_->emulation.state());
+}
+
+EmulationState Engine::emulation_state() const {
+    if (impl_->mode == Mode::Reader) return EmulationState::None;
+    return to_emulation_state(impl_->emulation.state());
 }
 
 }  // namespace gogolem::nfc

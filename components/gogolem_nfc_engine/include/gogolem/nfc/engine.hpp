@@ -22,10 +22,32 @@
 
 namespace gogolem::nfc {
 
+// Target emulation state, mirroring upstream EmulationLayerA::State.
+enum class EmulationState : uint8_t {
+    None = 0,
+    Off,
+    Idle,
+    Ready,
+    Active,
+    Halt,
+};
+
+// Caller-provided emulation profile. The Engine copies memory into
+// internal storage during begin(); the caller may release it after.
+struct EmulationProfile {
+    TagFamily family{TagFamily::Unknown};  // MifareUltralight or Ntag21x
+    std::array<uint8_t, 10> uid{};
+    uint8_t uid_length{0};
+    std::vector<uint8_t> memory;
+};
+
 struct EngineConfig {
     i2c_master_bus_handle_t bus{};   // caller-owned; must outlive the Engine
     uint8_t i2c_address{0x50};       // ST25R3916 default; applied when supported
     Mode mode{Mode::Reader};          // selected before begin(); immutable while ready
+    // Used when mode is an emulation mode. The Engine copies the memory image
+    // during begin(); the caller may release it after begin() returns.
+    EmulationProfile emulation_profile{};
 };
 
 struct ScanResult {
@@ -89,6 +111,13 @@ public:
     // Dump the entire card through the upstream library. Returns success when
     // the dump completes. (A sink-based API will replace this in a later phase.)
     Result<void> dump();
+
+    // Target emulation: start with the profile from EngineConfig, update in a
+    // loop, and query state. These are only valid when mode is an emulation
+    // mode.
+    Result<void> start_emulation(const EmulationProfile& profile);
+    EmulationState update_emulation();  // call in a tight loop (~1ms)
+    EmulationState emulation_state() const;
 
 private:
     struct Impl;
