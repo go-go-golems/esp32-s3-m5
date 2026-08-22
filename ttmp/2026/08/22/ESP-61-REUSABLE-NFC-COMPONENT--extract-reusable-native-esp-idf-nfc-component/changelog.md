@@ -31,3 +31,12 @@ Phase 0 started: printed overview and phase slips, passed the 0117 ESP-IDF 5.5.4
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 4 implementation narrative
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/02-phase-0-baseline-evidence.md — Phase 0 partial baseline and blocker evidence
+
+## 2026-08-22
+
+Phase 0: released the stale monitor, restored reader mode, and ran the fresh read-only probe; result was zero detected tags, so hardware acceptance still requires placing the NTAG215
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 4 updated with monitor release and no-tag probe
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/02-phase-0-baseline-evidence.md — Updated Phase 0 hardware status

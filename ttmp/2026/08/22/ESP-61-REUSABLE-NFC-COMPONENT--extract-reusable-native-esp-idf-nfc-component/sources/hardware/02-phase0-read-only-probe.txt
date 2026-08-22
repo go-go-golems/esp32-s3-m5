@@ -1,0 +1,71 @@
+# 0117 read-only NFC feature explorer probe
+# captured=2026-08-22T19:51:39.323096+00:00
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00
+# baud=115200
+# commands=nfc-mode,nfc-capabilities,nfc-scan 1000,nfc-info,nfc-raw-read 0,nfc-ndef-read,nfc-dump
+
+=== BOOT/PROMPT ===
+
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-mode ===
+I (831) main: console ready; run 'nfc-capabilities' and 'help'
+nfc-mode
+NFC_MODE current=reader ready=1
+nfc-explorer>
+=== CMD: nfc-capabilities ===
+nfc-capabilities
+NFC_CAPABILITY name=quick-scan command="nfc-scan [timeout_ms]" mutation=none
+NFC_CAPABILITY name=identification command=nfc-info mutation=none
+NFC_CAPABILITY name=complete-dump command=nfc-dump mutation=none
+NFC_CAPABILITY name=direct-read command="nfc-raw-read <address>" mutation=none
+NFC_CAPABILITY name=direct-write-test command="nfc-write-test <address> --confirm RESTORE-AFTER-TEST" mutation=reversible
+NFC_CAPABILITY name=ndef-read command=nfc-ndef-read mutation=none
+NFC_CAPABILITY name=ndef-write command="nfc-ndef-write-demo --confirm REPLACE-NDEF" mutation=replace
+NFC_CAPABILITY name=value-inspect command=nfc-value-inspect mutation=none card=MIFARE-Classic
+NFC_CAPABILITY name=wallet command="nfc-wallet-demo <block> <non-rechargeable|rechargeable> --confirm MUTATE-CLASSIC" mutation=structural card=MIFARE-Classic
+NFC_CAPABILITY name=tag-emulation command="nfc-mode <emulation-ultralight|emulation-ntag213> --confirm REBOOT" mutation=firmware-mode
+nfc-explorer>
+=== CMD: nfc-scan 1000 ===
+nfc-scan 1000
+NFC_RESULT op=scan ok=0 detected=0 identified=0 timeout_ms=1000
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-info ===
+nfc-info
+NFC_ACTIVATE ok=0 phase=request-or-wakeup
+NFC_RESULT op=info ok=0
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-raw-read 0 ===
+nfc-raw-read 0
+NFC_ACTIVATE ok=0 phase=request-or-wakeup
+NFC_RESULT op=raw-read ok=0 address=0
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-ndef-read ===
+ nfc-ndef-read
+NFC_ACTIVATE ok=0 phase=request-or-wakeup
+NFC_RESULT op=ndef-read ok=0 valid=0
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-dump ===
+ nfc-dump
+NFC_ACTIVATE ok=0 phase=request-or-wakeup
+NFC_RESULT op=dump ok=0
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>

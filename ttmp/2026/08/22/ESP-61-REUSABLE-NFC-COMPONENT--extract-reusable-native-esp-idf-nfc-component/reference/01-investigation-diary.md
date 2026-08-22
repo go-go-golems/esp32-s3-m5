@@ -375,7 +375,9 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
   python -m esp_idf_monitor -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00
   ```
 
-- The monitor remained active after the first request to close it. No competing probe was attempted.
+- The monitor remained active after the first request to close it. No competing probe was attempted at that point.
+- After the monitor remained idle for more than an hour and two explicit close requests, its parent and child were terminated with `SIGTERM`; the serial device released immediately after terminating child PID `189173`.
+- Reader mode restoration succeeded, but the fresh read-only probe found no physical card: scan detected zero tags and all subsequent card operations returned `ok=0`. This is now the active Phase 0 blocker.
 - The first doctor run warned that generic topic `testing` was not in the repository vocabulary. The baseline document was corrected to use the existing, more precise `hardware-qualification` topic rather than expanding vocabulary unnecessarily.
 - Raw logs were first placed under `sources/build/`; the repository-wide `**/build/` rule correctly ignored that directory, so the first checkpoint commit contained the summary but not the raw logs. I moved them to `sources/software/`, updated references, and committed them separately rather than forcing ignored artifacts.
 
@@ -383,6 +385,8 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 
 - The current software baseline is reproducible after the documentation phase and unrelated vault work.
 - The board is still running the intended `0117` firmware, as shown by the monitor ELF path.
+- The prompt-aware restore script confirmed `NFC_MODE current=reader ready=1` after reboot.
+- A successful console session with zero detected tags distinguishes physical absence from serial ownership or firmware initialization failure.
 - Hardware acceptance requires operator coordination even when all code and scripts are available.
 
 ### What was tricky to build
@@ -397,7 +401,7 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 
 ### What should be done in the future
 
-- Close the existing monitor, run the fresh read-only probe, and preserve its capture.
+- Place the physical NTAG215 on the narrow top antenna edge, rerun the fresh read-only probe, and preserve the successful capture.
 - Mark Phase 0 complete only after verifying UID, NTAG215 identity, raw read, NDEF, and full dump.
 - Print the Phase 0 completion slip only after the evidence commit.
 
@@ -407,6 +411,7 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 - Inspect `sources/software/01-04-*` for raw output.
 - Re-run the build and `0115/test_host/build.sh` under the pinned environment.
 - Use `fuser -v /dev/ttyACM0` before any serial operation.
+- Inspect `sources/hardware/01-phase0-reader-mode-restored.txt` and `02-phase0-read-only-probe.txt` for the current hardware boundary.
 
 ### Technical details
 
@@ -414,4 +419,6 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 - Build evidence: `sources/software/01-0117-esp-idf-5.5.4-build.txt`.
 - Host test evidence: `sources/software/02-st25r-trace-host-tests.txt`.
 - Dependency evidence: `sources/software/03-locked-dependencies.txt`.
-- Blocker evidence: `sources/software/04-serial-owner-blocker.txt`.
+- Original blocker evidence: `sources/software/04-serial-owner-blocker.txt`.
+- Reader-mode evidence: `sources/hardware/01-phase0-reader-mode-restored.txt`.
+- No-tag hardware evidence: `sources/hardware/02-phase0-read-only-probe.txt`.
