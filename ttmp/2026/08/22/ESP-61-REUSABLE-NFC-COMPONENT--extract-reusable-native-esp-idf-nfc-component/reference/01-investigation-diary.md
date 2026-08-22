@@ -314,3 +314,103 @@ The guide, index, and diary were bundled into one PDF with a depth-two table of 
 - Remote path: `/ai/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT`.
 - ToC depth: 2.
 - Included files: `index.md`, primary design guide, and investigation diary.
+
+## Step 4: Start Phase 0 and preserve the partial baseline
+
+Implementation began with the required thermal plan overview and a separate Phase 0 start slip. Phase 0 deliberately rechecks the existing software and hardware baseline before moving code, so extraction failures can be distinguished from pre-existing failures.
+
+The ESP-IDF build, trace host tests, and dependency lock all passed. The final read-only hardware probe could not run because an existing operator-owned ESP-IDF monitor still holds the exact USB Serial/JTAG device. I did not terminate it or open a competing process. Instead, I preserved the completed software evidence and exact blocker while leaving the phase task open.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, print a plan overview brutalist work slip up front. Then, before each phase, print a brutalist work lsip about the phase, and print another one when done. commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Implement all phases from the ESP-61 guide, print one overall phase plan, bracket every phase with start/completion slips, make focused evidence commits, and maintain the strict implementation diary continuously.
+
+**Inferred user intent:** Make the long extraction visible, auditable, and physically trackable instead of allowing implementation to outrun evidence and documentation.
+
+### What I did
+
+- Printed the overview slip `Reusable NFC Component Build` with Phases 0–10.
+- Printed the Phase 0 start slip `Prove the NFC Baseline`.
+- Added explicit docmgr tasks for Phases 0–10.
+- Built `0117` with ESP-IDF 5.5.4 and scanned the build log for warnings/errors.
+- Ran all `0115/test_host` trace tests.
+- Recorded direct and transitive dependency revisions.
+- Checked serial ownership before opening the hardware probe.
+- Inspected PID `189173` and confirmed it is `esp_idf_monitor` for the `0117` firmware on terminal `pts/23`.
+- Created `reference/02-phase-0-baseline-evidence.md` and preserved four raw evidence files under `sources/build/`.
+
+### Why
+
+- Phase 0 is the control condition for extraction. A later failure is only attributable to new code if the current build, tests, and hardware path are freshly proven first.
+- Serial contention creates false NFC evidence, so ownership must be checked before every probe.
+- A partial phase should be documented without being marked complete or receiving a completion slip.
+
+### What worked
+
+- The build completed with:
+
+  ```text
+  m5stackchan_nfc_feature_explorer.bin binary size 0x67760 bytes
+  0x988a0 bytes (60%) free
+  ```
+
+- The build log contained no `warning:` or `error:` match.
+- All trace host tests passed.
+- The dependency graph matches the previously proven revisions.
+- Both requested thermal slips printed successfully.
+
+### What didn't work
+
+- The hardware probe was blocked by the existing serial owner:
+
+  ```text
+  /dev/ttyACM0: manuel 189173 F.... python
+  ```
+
+- Process inspection identified:
+
+  ```text
+  python -m esp_idf_monitor -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00
+  ```
+
+- The monitor remained active after the first request to close it. No competing probe was attempted.
+- The first doctor run warned that generic topic `testing` was not in the repository vocabulary. The baseline document was corrected to use the existing, more precise `hardware-qualification` topic rather than expanding vocabulary unnecessarily.
+
+### What I learned
+
+- The current software baseline is reproducible after the documentation phase and unrelated vault work.
+- The board is still running the intended `0117` firmware, as shown by the monitor ELF path.
+- Hardware acceptance requires operator coordination even when all code and scripts are available.
+
+### What was tricky to build
+
+- The implementation goal requires continuous progress, but Phase 0 explicitly exists to prevent extraction before hardware control evidence. Starting Phase 1 while the read-only control is unproven would weaken the comparison.
+- The existing monitor may contain useful operator output. Killing it automatically would violate serial ownership and could discard that context.
+
+### What warrants a second pair of eyes
+
+- Confirm the monitor in `pts/23` is safe to close.
+- Confirm the physical NTAG215 is on the narrow top edge before the fresh probe.
+
+### What should be done in the future
+
+- Close the existing monitor, run the fresh read-only probe, and preserve its capture.
+- Mark Phase 0 complete only after verifying UID, NTAG215 identity, raw read, NDEF, and full dump.
+- Print the Phase 0 completion slip only after the evidence commit.
+
+### Code review instructions
+
+- Read `reference/02-phase-0-baseline-evidence.md`.
+- Inspect `sources/build/01-04-*` for raw output.
+- Re-run the build and `0115/test_host/build.sh` under the pinned environment.
+- Use `fuser -v /dev/ttyACM0` before any serial operation.
+
+### Technical details
+
+- Phase task: `4igv`, still open.
+- Build evidence: `sources/build/01-0117-esp-idf-5.5.4-build.txt`.
+- Host test evidence: `sources/build/02-st25r-trace-host-tests.txt`.
+- Dependency evidence: `sources/build/03-locked-dependencies.txt`.
+- Blocker evidence: `sources/build/04-serial-owner-blocker.txt`.

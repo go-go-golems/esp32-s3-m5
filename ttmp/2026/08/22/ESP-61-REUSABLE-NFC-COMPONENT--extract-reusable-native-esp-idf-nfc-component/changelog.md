@@ -22,3 +22,12 @@ Validated the ticket cleanly, committed the research package at 3e275482, and up
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/design-doc/01-reusable-native-esp-idf-nfc-component-analysis-design-and-intern-implementation-guide.md — Validated and delivered primary guide
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Validation, commit, and upload evidence
+
+## 2026-08-22
+
+Phase 0 started: printed overview and phase slips, passed the 0117 ESP-IDF 5.5.4 build and all 0115 trace host tests, recorded dependency revisions, and preserved the active serial-monitor blocker; hardware acceptance remains open
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 4 implementation narrative
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/02-phase-0-baseline-evidence.md — Phase 0 partial baseline and blocker evidence
