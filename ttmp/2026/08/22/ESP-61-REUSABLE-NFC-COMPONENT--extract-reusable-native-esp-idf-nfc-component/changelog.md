@@ -170,3 +170,12 @@ Phase 6 complete: reversible_write proven on sacrificial NTAG215 (write=1 verify
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — reversible_write
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 6 complete
+
+## 2026-08-22
+
+Phase 7 complete: NDEF write proven on sacrificial NTAG215 (write ok=1, readback 2 records: URI https://m5stack.com/esp60 + text Native ESP-IDF M5StackChan NFC). Reversible write still works after NDEF write. Public NdefMessage converted to upstream TLV at boundary.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — write_ndef
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 7 complete

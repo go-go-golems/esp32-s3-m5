@@ -6,6 +6,7 @@
 // reboot, no bus creation — the caller owns the bus.
 
 #include <cstring>
+#include <string>
 
 #include "gogolem/nfc/engine.hpp"
 #include "gogolem/nfc/lifecycle.hpp"
@@ -455,6 +456,117 @@ Result<WriteReport> Engine::reversible_write(uint8_t address, const MutationPerm
         return Result<WriteReport>::failure(report.first_error);
     }
     return Result<WriteReport>::success(std::move(report));
+}
+
+Result<void> Engine::write_ndef(const NdefMessage& message, const MutationPermit& permit) {
+    if (!lifecycle_is_ready(impl_->state)) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("not ready");
+        return Result<void>::failure(e);
+    }
+    impl_->units.update(true);
+    PICC picc{};
+    if (!impl_->reader.request(picc.atqa) && !impl_->reader.wakeup(picc.atqa)) {
+        Error e;
+        e.layer = ErrorLayer::Rf;
+        e.esp_code = ESP_CODE_ERR_NOT_FOUND;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("no tag");
+        return Result<void>::failure(e);
+    }
+    if (!impl_->reader.select(picc) || !impl_->reader.identify(picc) || !impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("activation failed");
+        return Result<void>::failure(e);
+    }
+
+    // Validate permit.
+    TagInfo tag = to_tag_info(picc_to_fields(picc));
+    if (!permit_allows(permit, MutationKind::ReplaceNdef, tag)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Policy;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("permit denied");
+        return Result<void>::failure(e);
+    }
+
+    // Check NDEF support.
+    if (!picc.supportsNDEF()) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::CardFamily;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("tag does not support NDEF");
+        return Result<void>::failure(e);
+    }
+
+    // Check existing valid format (do not convert non-NDEF tags).
+    bool valid = false;
+    if (!impl_->reader.ndefIsValidFormat(valid) || !valid) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::DataFormat;
+        e.operation = Operation::WriteNdef;
+        e.set_detail(valid ? "format query failed" : "invalid NDEF format");
+        return Result<void>::failure(e);
+    }
+
+    // Encode the public NdefMessage to bytes for capacity check.
+    std::vector<uint8_t> encoded;
+    if (!encode_ndef_message(message, encoded)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::DataFormat;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("encode failed");
+        return Result<void>::failure(e);
+    }
+
+    // Check capacity (encoded message + TLV overhead must fit user area).
+    size_t required = encoded.size() + 3;  // TLV tag + length + terminator
+    if (tag.user_bytes != 0 && required > tag.user_bytes) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Capacity;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("message exceeds user area");
+        return Result<void>::failure(e);
+    }
+
+    // Convert public NdefMessage to upstream TLV.
+    m5::nfc::ndef::TLV tlv(m5::nfc::ndef::Tag::Message);
+    for (const auto& rec : message.records) {
+        m5::nfc::ndef::Record upstream_rec(
+            static_cast<m5::nfc::ndef::TNF>(static_cast<uint8_t>(rec.tnf)));
+        if (!rec.type.empty()) {
+            // setType expects a null-terminated C string.
+            std::string type_str(rec.type.begin(), rec.type.end());
+            upstream_rec.setType(type_str.c_str());
+        }
+        if (!rec.payload.empty()) {
+            upstream_rec.setPayload(rec.payload.data(),
+                                   static_cast<uint32_t>(rec.payload.size()));
+        }
+        tlv.push_back(upstream_rec);
+    }
+
+    // Write NDEF.
+    if (!impl_->reader.ndefWrite(tlv)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Protocol;
+        e.operation = Operation::WriteNdef;
+        e.set_detail("ndefWrite failed");
+        return Result<void>::failure(e);
+    }
+    impl_->reader.deactivate();
+    return Result<void>::success();
 }
 
 Result<void> Engine::dump() {

@@ -116,6 +116,11 @@ public:
     // protected regions. Uses the pure is_safe_write_target() validator.
     Result<WriteReport> reversible_write(uint8_t address, const MutationPermit& permit);
 
+    // Write an NDEF message to the tag. The tag must already be NDEF-formatted
+    // (conversion of non-NDEF tags is refused). The message is checked against
+    // the tag's user area capacity before writing, and read back after.
+    Result<void> write_ndef(const NdefMessage& message, const MutationPermit& permit);
+
     // Dump the entire card through the upstream library. Returns success when
     // the dump completes. (A sink-based API will replace this in a later phase.)
     Result<void> dump();

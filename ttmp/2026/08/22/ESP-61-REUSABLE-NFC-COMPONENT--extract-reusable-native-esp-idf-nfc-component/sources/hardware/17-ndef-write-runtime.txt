@@ -1,0 +1,37 @@
+smoke begin ok=1 state=ready-reader
+smoke activate ok=0 layer=rf
+smoke raw_read ok=0 layer=rf
+smoke ndef_read ok=0 layer=rf
+smoke ndef_write ok=0
+smoke ndef_write err=rf detail=no tag
+smoke ndef_readback ok=0 layer=rf
+smoke write ok=0 write=0 verify=0 restore=0
+smoke write err=rf detail=no tag
+smoke ndef_after_write ok=0 layer=rf
+smoke activate ok=1 source=REQA uid=04DAF74D9E6180 family=NTAG21x
+smoke raw_read ok=1 len=16 hex=04DAF7A14D9E618032480000E1103E00
+smoke ndef_read ok=1 records=0
+smoke ndef_write ok=1
+smoke ndef_readback ok=1 records=2
+smoke ndef_record[0] uri=https://m5stack.com/esp60
+smoke ndef_record[1] text=Native ESP-IDF M5StackChan NFC lang=en
+smoke write ok=1 write=1 verify=1 restore=1
+smoke ndef_after_write ok=1 records=2
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke raw_read ok=1 len=16 hex=04DAF7A14D9E618032480000E1103E00
+smoke ndef_read ok=1 records=2
+smoke ndef_write ok=1
+smoke ndef_readback ok=1 records=2
+smoke ndef_record[0] uri=https://m5stack.com/esp60
+smoke ndef_record[1] text=Native ESP-IDF M5StackChan NFC lang=en
+smoke write ok=1 write=1 verify=1 restore=1
+smoke ndef_after_write ok=1 records=2
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke raw_read ok=1 len=16 hex=04DAF7A14D9E618032480000E1103E00
+smoke ndef_read ok=1 records=2
+smoke ndef_write ok=1
+smoke ndef_readback ok=1 records=2
+smoke ndef_record[0] uri=https://m5stack.com/esp60
+smoke ndef_record[1] text=Native ESP-IDF M5StackChan NFC lang=en
+smoke write ok=1 write=1 verify=1 restore=1
+smoke ndef_after_write ok=1 records=2
