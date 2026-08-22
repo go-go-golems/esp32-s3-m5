@@ -275,3 +275,12 @@ Added pure ESP-IDF 0117 feature explorer covering all official StackChan NFC ske
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/main/nfc_explorer.cpp — Feature implementation
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/21-24-native-feature-explorer.provenance.md — Hardware evidence
 
+
+## 2026-08-22
+
+Diary Steps 41-43 record the final UID root cause, vault publication, official sketch inventory, native 0117 implementation, HALT/WUPA lifecycle fix, NTAG215 discovery, emulation profiles, and mutation guard evidence
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/reference/01-investigation-diary.md — Chronological implementation and hardware record
+

@@ -31,6 +31,10 @@ RelatedFiles:
       Note: NFC-only physical deployment workflow (commit 51efbe4f)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/scripts/prepare.sh
       Note: Pinned reproducible upstream composition process (commit 50d7c151)
+    - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_console.cpp
+      Note: Steps 42-43 command equivalents and mutation guards (commit 65e27591)
+    - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_explorer.cpp
+      Note: Steps 42-43 native capability implementation and HALT/WUPA lifecycle correction (commit 65e27591)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/01-official-arduino-four-chip-i2c-trace-comparison.md
       Note: Empirical Arduino-versus-ESP-IDF transaction comparison
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-arduino-vs-espidf-trace-comparison.json
@@ -73,6 +77,10 @@ RelatedFiles:
       Note: 'Reverted run: 144/12274 failures, first error in irq-wait (baseline restored)'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/12-16-anticollision-and-single-tag-probes.provenance.md
       Note: Current four-tag and one-tag evidence
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/17-20-side-by-side-and-uid-breakthrough.provenance.md
+      Note: Step 41 final native UID causal evidence (commit 7ce8faea)
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/21-24-native-feature-explorer.provenance.md
+      Note: Step 43 NTAG215 read-only and emulator-mode hardware evidence (commit 62775142)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -81,6 +89,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -3531,3 +3540,264 @@ The user requested an immediate diary checkpoint. I stopped implementation, pres
 ### Technical details
 
 - Board currently runs `0115` with field-enable fix + bounded anticollision port; one tag remains on the antenna; ESP-IDF source is clean/reverted.
+
+---
+
+## Step 41: Close the native UID diagnosis and publish the resolved vault article
+
+The transport A/B work completed the layered diagnosis started before the Step 40 checkpoint. The same firmware showed that both ordinary ESP-IDF I2C calls and explicit defined operations could reach the ST25R3916 without transport failures, while still failing at the same RF/protocol boundary. A fresh Arduino full-flash proved the stationary single tag and antenna arrangement were valid. Two remaining application defects were then isolated: repeated initial-field-on commands disrupted an already-active field, and the FIFO transmitted-length register pair was written in reversed byte order.
+
+After making field-on idempotent and writing `NUM_TX_BYTES_1` as MSB and `NUM_TX_BYTES_2` as LSB, both native ESP-IDF backends printed `04:91:D4:4C:9E:61:80`, `ATQA=0044`, and `SAK=00` with zero transport failures. I preserved captures 17–20, updated the base-principles analysis, committed that evidence, wrote a new append-only textbook article in the Obsidian vault, and pushed the vault's `main` branch.
+
+### Prompt Context
+
+**User prompt (verbatim):** "continue commit and push the vault.
+
+Then, I want you to go through the arduino sketches https://docs.m5stack.com/en/arduino/stackchan/nfc and create NFC equivalents so that we can really figure out all the functionalities the tags afford us"
+
+**Assistant interpretation:** Finish and publish the resolved native-reader report, then expand the work from UID polling to equivalents of every official StackChan NFC example.
+
+**Inferred user intent:** Preserve the solved low-level diagnosis and turn the reader into a broad capability laboratory for understanding real tags.
+
+**Commit (code):** `c339ea7a` — "ESP-60: add same-firmware idf-high vs defined-ops backend A/B"
+
+**Commit (code):** `fe6252a5` — "ESP-60: make NFC initial field-on idempotent"
+
+**Commit (code):** `ace8a809` — "ESP-60: fix NUM_TX_BYTES register byte order"
+
+**Commit (evidence):** `7ce8faea` — "ESP-60: preserve native UID breakthrough evidence"
+
+**Commit (vault):** `6e99e9c` — "M5StackChan NFC: document native ESP-IDF breakthrough"
+
+### What I did
+
+- Added runtime `idf-high` and `idf-defined` backends and ran both in one boot.
+- Full-flashed the instrumented Arduino control with the same unmoved single tag.
+- Matched M5's field lifecycle: do not issue initial-field-on when TX is already active; recover TX-only state by enabling RX; read back the postcondition.
+- Compared M5's `writeNumberOfTransmittedBytes()` against the C port and corrected register `0x22/0x23` byte order.
+- Captured successful UID output and zero-failure trace summaries for both backends.
+- Normalized serial capture line endings after `git diff --check` rejected terminal trailing whitespace.
+- Created and pushed the append-only vault article `ARTICLE - M5StackChan NFC - Solving the Native ESP-IDF Reader from First Principles.md`.
+
+### Why
+
+- The project required a causal conclusion that distinguished transport anomalies from deterministic protocol-port defects.
+- The earlier vault article correctly preserved the unresolved state and should not be rewritten; the resolved result required a new historical note.
+
+### What worked
+
+- Same-firmware A/B removed framing as the active blocker: both backends had clean transport and identical protocol failure before the final fixes.
+- Arduino returned `ATQA=0x0044` and identified one PICC in the current physical arrangement.
+- Correcting the transmitted-length byte order immediately completed both UID cascade levels and SELECT.
+- The vault push succeeded: `135b38a..6e99e9c main -> main`.
+
+### What didn't work
+
+- Explicit defined operations did not restore RF behavior before the protocol fixes; both backends returned no UID despite zero transport failures.
+- The first evidence commit attempt stopped at `git diff --cached --check` because captured terminal lines contained carriage returns and trailing spaces. The captures were normalized without changing command content or measured values.
+
+### What I learned
+
+- REQA/WUPA success did not validate FIFO frame setup because those operations use ST25R3916 direct commands.
+- For a two-byte anticollision frame, the correct encoded value `0x0010` must be written as `0x22=0x00`, `0x23=0x10`; the reversed pair produced an invalid transmit length.
+- Real I2C NACKs can coexist with and distract from deterministic application defects. Layered state evidence is required before assigning root cause.
+
+### What was tricky to build
+
+- The strongest transport evidence initially appeared more actionable than the incorrect protocol semantics. Holding the protocol constant while switching backends was necessary to show that transport was not the current blocker.
+- Repeated field-on calls preserved `OP_CONTROL=0xCB` in snapshots while still disturbing request lifecycle. The defect was behavioral and temporal, so register equality alone did not expose it.
+
+### What warrants a second pair of eyes
+
+- Review the claim that earlier NACK counts were amplified by long broken IRQ-polling paths; successful fixed runs prove they were not required for the UID failure, but do not prove every prior NACK's cause.
+- Review UID cascade assembly and BCC handling for 4-, 7-, and 10-byte cards.
+
+### What should be done in the future
+
+- Add targeted regression tests for transmitted-length byte order and field-on idempotence.
+- Re-run the corrected bounded anticollision path with four tags.
+- Port the proven fixes into NFC LAB.
+
+### Code review instructions
+
+- Start at `0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916.c`: `st25r3916_field_on()`, `set_tx_bytes()`, and `nfca_anticoll_select()`.
+- Compare captures 17–20 through `sources/hardware/17-20-side-by-side-and-uid-breakthrough.provenance.md`.
+- Validate with ESP-IDF 5.5.4 and `scripts/11-compare-runtime-backends.py`.
+
+### Technical details
+
+- Final high-level backend: `failed=0/200`.
+- Final defined-operation backend: `failed=0/439`.
+- Final PICC: `UID=04:91:D4:4C:9E:61:80 ATQA=0044 SAK=00`.
+
+---
+
+## Step 42: Inventory the official sketches and build the native feature explorer
+
+The official StackChan NFC page defines six application families: quick identification, complete dump, target emulation, direct read/write, NDEF read/write, and MIFARE Classic value blocks. Current M5Unit-NFC main already contains pure ESP-IDF variants of these examples and, critically, M5UnitUnified can attach a unit to an application-created `i2c_master_bus_handle_t`. This made it unnecessary and undesirable to independently port Crypto1, NDEF, ISO-DEP, DESFire, and target-emulation state machines into the minimal C driver.
+
+I designed and implemented `0117-m5stackchan-nfc-feature-explorer` as a separate native ESP-IDF 5.5.4 console firmware. It creates I2C port 1 on GPIO12/11, passes that bus to the pinned official protocol component, exposes read-only feature commands, gates writes with exact confirmation strings, and persists reader versus Ultralight/NTAG213 emulation mode in NVS.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 41)
+
+**Assistant interpretation:** Translate every documented Arduino capability into a practical native ESP-IDF diagnostic surface rather than stopping at UID polling.
+
+**Inferred user intent:** Discover what each available tag can identify, store, expose through NDEF, emulate, and support through family-specific operations.
+
+**Commit (code):** `65e27591` — "ESP-60: add native NFC feature explorer"
+
+### What I did
+
+- Extracted and read the complete official page at `https://docs.m5stack.com/en/arduino/stackchan/nfc`.
+- Mapped all six sketch families to explicit console commands and mutation classes.
+- Inspected M5Unit-NFC commit `93745b547364f310cd64b5155a870103a7800a5d` and M5UnitUnified commit `bf711f370047cf16355b00005450ef615fab36e2`.
+- Created `design-doc/06-official-stackchan-nfc-sketches-to-native-esp-idf-feature-explorer.md`.
+- Added `0117` with a pinned Git dependency and committed `dependencies.lock`.
+- Implemented scan, info, dump, raw read, reversible write test, NDEF read/write, Classic value inspection/wallet demonstration, and two target-emulation profiles.
+- Added NVS-backed `nfc-mode` reboot selection and exact write confirmation tokens.
+- Built with the project-pinned ESP-IDF 5.5.4.
+
+### Why
+
+- The official protocol library is the executable specification for higher tag functions and now supports native ESP-IDF directly.
+- Keeping `0115` minimal preserves its value as an instrumented transport/RF regression harness.
+- A single console explorer makes repeated feature discovery faster than flashing six independent sketches.
+
+### What worked
+
+- The Git commit pin resolved through ESP-IDF Component Manager.
+- The build explicitly selected `ESP-IDF I2C backend: i2c_master (new driver)`.
+- The complete binary was `0x676e0` initially and `0x67760` after lifecycle correction, leaving 60% of the 1 MiB factory partition free.
+- Both reader and emulator code paths compiled in one binary.
+
+### What didn't work
+
+- `umans_web_search` failed with `HTTP 401: {"error":{"type":"authentication_error","message":"Invalid API key"}}`; Kagi and direct Defuddle extraction supplied the source instead.
+- `clang-format` was unavailable: `/bin/bash: line 35: clang-format: command not found`. I did not install an unrequested system package; compiler-clean source and `git diff --check` were used.
+
+### What I learned
+
+- Current M5Unit-NFC upstream already has native ESP-IDF example entry points and no longer requires an Arduino runtime for these protocol layers.
+- `UnitUnified::add(Component&, i2c_master_bus_handle_t)` is the correct integration point for application-owned bus policy.
+- Reader and target modes should be selected before `UnitNFC::begin()`. Persisted reboot selection is simpler and safer than runtime teardown for version one.
+
+### What was tricky to build
+
+- The feature set combines harmless inspection with operations that can replace NDEF, alter Classic access bits, or make data inaccessible. The command API had to make mutation risk visible and mechanically difficult to trigger accidentally.
+- MIFARE Classic restoration is best-effort because a communication failure after changing access conditions can prevent complete recovery. The implementation therefore requires a named sacrificial tag despite attempting data/access restoration.
+
+### What warrants a second pair of eyes
+
+- Review `wallet_demo()` restoration ordering and the assumptions that supplied Key A/Key B are both `FFFFFFFFFFFF`.
+- Review NDEF replacement capacity checks and the decision to refuse automatic Ultralight conversion and DESFire formatting.
+- Review emulation memory templates and UID/BCC embedding.
+
+### What should be done in the future
+
+- Add UID allow-list enforcement before any valid mutation confirmation is accepted.
+- Consider splitting irreversible DESFire/Ultralight formatting into purpose-built firmware rather than adding it to the general explorer.
+
+### Code review instructions
+
+- Start with `0117-m5stackchan-nfc-feature-explorer/README.md` for the safety contract.
+- Review `main/nfc_explorer.cpp` for protocol operations and `main/nfc_console.cpp` for confirmation parsing.
+- Build with `source ~/esp/esp-idf-5.5.4/export.sh && idf.py build`.
+
+### Technical details
+
+- Direct dependency: M5Unit-NFC `93745b547364f310cd64b5155a870103a7800a5d`.
+- Runtime bus: I2C port 1, SDA GPIO12, SCL GPIO11, address `0x50`.
+- Console: USB Serial/JTAG, prompt `nfc-explorer> `.
+
+---
+
+## Step 43: Identify the NTAG215, fix HALT lifecycle, and validate safe feature modes
+
+The first hardware run successfully identified the physical tag as an NTAG215, then exposed an orchestration defect: `detect(vector)` enumerates by placing each PICC into HALT, so the stationary tag did not answer the next command's REQA. The console wrapper incorrectly assumed each command started with an IDLE tag. I changed single-card activation to try REQA and then WUPA before SELECT, which made consecutive commands work without removing the tag.
+
+The corrected run read the complete 135-page memory, proved the tag has a valid but empty Type 2 NDEF area, cycled through both emulator boot profiles, restored reader mode, and confirmed all mutation commands reject missing or incorrect confirmation strings. No tag memory was changed.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 41)
+
+**Assistant interpretation:** Validate the new equivalents on the available hardware as far as possible without mutating an undeclared tag.
+
+**Inferred user intent:** Obtain concrete tag capabilities now while preserving the physical tags for deliberate later experiments.
+
+**Commit (evidence):** `62775142` — "ESP-60: document NFC feature explorer hardware proof"
+
+### What I did
+
+- Full-flashed `0117` through `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00`.
+- Added prompt-aware scripts 12–14 with single-owner serial behavior.
+- Preserved the first failed lifecycle capture as capture 21.
+- Changed `activate_one()` to REQA → WUPA fallback → SELECT → identify → reactivate.
+- Rebuilt and reflashed with ESP-IDF 5.5.4.
+- Ran scan, info, raw page read, NDEF read, and full dump as capture 22.
+- Cycled reader → Ultralight emulation → NTAG213 emulation → reader in capture 23.
+- Sent omitted/incorrect confirmation strings in capture 24 and verified all mutation bodies were refused.
+- Updated tasks, design results, provenance, relations, and changelog.
+
+### Why
+
+- Hardware evidence was needed to distinguish a complete API surface from a functioning feature explorer.
+- The current NTAG had not been declared sacrificial, so read-only evidence and guard validation were the maximum safe test scope.
+
+### What worked
+
+- The tag was identified as `NTAG 215`, 135 pages, 504-byte user area, 540-byte total memory.
+- Raw read returned manufacturer/UID pages and capability container.
+- Full dump read pages 0–134 successfully.
+- NDEF validation returned valid with zero records.
+- Both emulation profiles initialized with expected identities and memory sizes.
+- Reader mode was restored and `nfc-info` read the NTAG215 again.
+
+### What didn't work
+
+- First run after `nfc-scan` produced exact failures:
+  - `NFC_ACTIVATE ok=0 phase=detect`
+  - `NFC_RESULT op=info ok=0`
+  - the same detection failure for raw read, NDEF read, and dump.
+- Cause: the previous enumeration intentionally left the unmoved tag in HALT. The solution was to fall back to WUPA, not to reset the bus or ask the operator to move the tag.
+- Emulation remained in `state=off` because no phone or second reader field was present. This validates local initialization only, not over-the-air interoperability.
+
+### What I learned
+
+- The physical tag is an NTAG215, not merely an unspecified Ultralight/NTAG-family tag.
+- Page 3 `E1 10 3E 00` is the Type 2 capability container; page 4 `03 00 FE 00` is a zero-length NDEF Message TLV plus Terminator.
+- Reader command lifecycle must account for ISO14443-A state persistence across commands when a tag remains continuously powered by the field.
+
+### What was tricky to build
+
+- The first scan was a success but changed the PICC's protocol state. Treating command calls as independent transactions concealed that stateful side effect.
+- USB Serial/JTAG opens reset the board with `rst:0x15`; emulation mode transitions reboot with `rst:0xc`. The prompt scripts had to reopen the same device without introducing a second owner or misclassifying expected resets as crashes.
+
+### What warrants a second pair of eyes
+
+- Review whether field-off/on should be an alternative command-boundary reset policy for multi-tag sessions.
+- Review the interpretation of emulator `off` without an external field against the upstream state machine.
+- Confirm the Type 2 capability-container usable NDEF size distinction: CC reports 496 NDEF bytes while the identified general user-area model reports 504 bytes.
+
+### What should be done in the future
+
+- Validate Ultralight and NTAG213 emulation with a phone or second NFC reader.
+- Select a sacrificial Type 2 tag for reversible page write and NDEF replacement.
+- Select a default-key sacrificial MIFARE Classic card for authentication and value-block tests.
+- Add a UID allow-list before enabling those mutations.
+
+### Code review instructions
+
+- Read `sources/hardware/21-24-native-feature-explorer.provenance.md` first.
+- Compare captures 21 and 22 around `activate_one()`.
+- Re-run read-only validation with `scripts/12-probe-nfc-feature-explorer.py`.
+- Re-run local mode validation with `scripts/13-probe-nfc-emulation-modes.py`; it restores reader mode at the end.
+
+### Technical details
+
+- Physical tag: `04:91:D4:4C:9E:61:80`, NTAG215, Type 2.
+- Emulated Ultralight: `04:34:56:78:9A:BC:DE`, 64-byte image.
+- Emulated NTAG213: `99:88:77:66:55:44:33`, 180-byte image.
+- Board final state: `0117` reader mode with the physical NTAG215 still on the antenna.
