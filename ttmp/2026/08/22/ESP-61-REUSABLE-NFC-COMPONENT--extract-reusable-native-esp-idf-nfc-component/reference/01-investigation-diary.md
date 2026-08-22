@@ -339,7 +339,7 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 - Recorded direct and transitive dependency revisions.
 - Checked serial ownership before opening the hardware probe.
 - Inspected PID `189173` and confirmed it is `esp_idf_monitor` for the `0117` firmware on terminal `pts/23`.
-- Created `reference/02-phase-0-baseline-evidence.md` and preserved four raw evidence files under `sources/build/`.
+- Created `reference/02-phase-0-baseline-evidence.md` and preserved four raw evidence files under `sources/software/`.
 
 ### Why
 
@@ -377,6 +377,7 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 
 - The monitor remained active after the first request to close it. No competing probe was attempted.
 - The first doctor run warned that generic topic `testing` was not in the repository vocabulary. The baseline document was corrected to use the existing, more precise `hardware-qualification` topic rather than expanding vocabulary unnecessarily.
+- Raw logs were first placed under `sources/build/`; the repository-wide `**/build/` rule correctly ignored that directory, so the first checkpoint commit contained the summary but not the raw logs. I moved them to `sources/software/`, updated references, and committed them separately rather than forcing ignored artifacts.
 
 ### What I learned
 
@@ -403,14 +404,14 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 ### Code review instructions
 
 - Read `reference/02-phase-0-baseline-evidence.md`.
-- Inspect `sources/build/01-04-*` for raw output.
+- Inspect `sources/software/01-04-*` for raw output.
 - Re-run the build and `0115/test_host/build.sh` under the pinned environment.
 - Use `fuser -v /dev/ttyACM0` before any serial operation.
 
 ### Technical details
 
 - Phase task: `4igv`, still open.
-- Build evidence: `sources/build/01-0117-esp-idf-5.5.4-build.txt`.
-- Host test evidence: `sources/build/02-st25r-trace-host-tests.txt`.
-- Dependency evidence: `sources/build/03-locked-dependencies.txt`.
-- Blocker evidence: `sources/build/04-serial-owner-blocker.txt`.
+- Build evidence: `sources/software/01-0117-esp-idf-5.5.4-build.txt`.
+- Host test evidence: `sources/software/02-st25r-trace-host-tests.txt`.
+- Dependency evidence: `sources/software/03-locked-dependencies.txt`.
+- Blocker evidence: `sources/software/04-serial-owner-blocker.txt`.

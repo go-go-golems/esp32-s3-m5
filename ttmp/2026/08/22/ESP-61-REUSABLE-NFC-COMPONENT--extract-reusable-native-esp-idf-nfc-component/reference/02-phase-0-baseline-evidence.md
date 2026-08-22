@@ -18,11 +18,11 @@ RelatedFiles:
       Note: Exact ESP-IDF and transitive M5 revision baseline
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/idf_component.yml
       Note: Direct pinned M5Unit-NFC dependency used by Phase 0
-    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/build/01-0117-esp-idf-5.5.4-build.txt
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/01-0117-esp-idf-5.5.4-build.txt
       Note: Fresh Phase 0 ESP-IDF build output
-    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/build/02-st25r-trace-host-tests.txt
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/02-st25r-trace-host-tests.txt
       Note: Fresh Phase 0 host-test output
-    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/build/04-serial-owner-blocker.txt
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/04-serial-owner-blocker.txt
       Note: Exact process preventing the hardware probe
 ExternalSources: []
 Summary: Phase 0 software build, host-test, dependency, and serial-ownership evidence collected before reusable-component extraction.
@@ -72,7 +72,7 @@ Project build complete.
 Full incremental build output:
 
 ```text
-sources/build/01-0117-esp-idf-5.5.4-build.txt
+sources/software/01-0117-esp-idf-5.5.4-build.txt
 ```
 
 ## Host trace test evidence
@@ -106,7 +106,7 @@ ALL TESTS PASSED
 Full output:
 
 ```text
-sources/build/02-st25r-trace-host-tests.txt
+sources/software/02-st25r-trace-host-tests.txt
 ```
 
 ## Locked revisions
@@ -124,7 +124,7 @@ Source:
 ```text
 0117-m5stackchan-nfc-feature-explorer/main/idf_component.yml
 0117-m5stackchan-nfc-feature-explorer/dependencies.lock
-sources/build/03-locked-dependencies.txt
+sources/software/03-locked-dependencies.txt
 ```
 
 ## Hardware blocker
@@ -149,7 +149,7 @@ The monitor belongs to terminal `pts/23`. Opening another monitor or probe would
 Full process evidence:
 
 ```text
-sources/build/04-serial-owner-blocker.txt
+sources/software/04-serial-owner-blocker.txt
 ```
 
 ## Required action to finish Phase 0

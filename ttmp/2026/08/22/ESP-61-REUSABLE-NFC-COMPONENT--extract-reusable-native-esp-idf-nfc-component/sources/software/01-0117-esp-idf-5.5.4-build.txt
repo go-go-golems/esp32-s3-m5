@@ -1,0 +1,22 @@
+# Phase 0 0117 ESP-IDF 5.5.4 incremental build
+# command: source ~/esp/esp-idf-5.5.4/export.sh && idf.py build
+
+Executing action: all (aliases: build)
+Running ninja in directory /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build
+Executing "ninja all"...
+[1/4] cd /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python /home/manuel/esp/esp-idf-5.5.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/partition_table/partition-table.bin /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/m5stackchan_nfc_feature_explorer.bin
+m5stackchan_nfc_feature_explorer.bin binary size 0x67760 bytes. Smallest app partition is 0x100000 bytes. 0x988a0 bytes (60%) free.
+[2/4] Performing build step for 'bootloader'
+[1/1] cd /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/bootloader/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python /home/manuel/esp/esp-idf-5.5.4/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/bootloader/bootloader.bin
+Bootloader binary size 0x5160 bytes. 0x2ea0 bytes (36%) free.
+[3/4] No install step for 'bootloader'
+[4/4] Completed 'bootloader'
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 16MB --flash_freq 80m 0x0 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/m5stackchan_nfc_feature_explorer.bin
+or from the "/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"

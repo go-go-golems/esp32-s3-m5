@@ -1,0 +1,33 @@
+# Phase 0 st25r_trace host tests
+# command: 0115-m5stackchan-nfc-reader/test_host/build.sh
+
+Compiling host tests...
+Running host tests...
+PASS off_mode_records_nothing
+PASS all_mode_records_success_and_failure
+PASS first_error_freeze_survives_overwrite
+PASS wraparound_and_overwrite_count
+PASS gap_computation
+PASS diagnostic_flag_excludes_not_found
+PASS failure_mode_records_only_failures
+PASS clear_preserves_mode_backend
+PASS annotate_upgrades_class
+--- dump format sample ---
+  TRACE_STATUS mode=all backend=idf-high recorded=1 failed=1 ring=1/512 overwritten=0 first_error=set ESP_ERR_INVALID_STATE
+  TRACE_BEGIN schema=1 backend=idf-high mode=all events=1 overwritten=0 failed=1 first_error_seq=1
+  I2C_TRACE seq=1 t_us=1200456 gap_us=0 elapsed_us=195 backend=idf-high phase=req-setup attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_ERR_INVALID_STATE hint=UNKNOWN class=NOT_DONE_UNKNOWN flags=FIRST_ERROR
+  TRACE_END result=transport-error txns=1 failed=1 first_error_seq=1
+  FIRST_ERROR_BEGIN
+  FIRST_ERROR prefix_count=0 suffix_count=0
+  ERROR seq=1 t_us=1200456 gap_us=0 elapsed_us=195 backend=idf-high phase=req-setup attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_ERR_INVALID_STATE hint=UNKNOWN class=NOT_DONE_UNKNOWN flags=FIRST_ERROR
+  FIRST_ERROR_END
+--- end sample ---
+PASS dump_format
+  TRACE_BEGIN schema=1 tail=3 events=10 overwritten=0 failed=0 first_error_seq=0
+  I2C_TRACE seq=8 t_us=1560 gap_us=50 elapsed_us=30 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+  I2C_TRACE seq=9 t_us=1640 gap_us=50 elapsed_us=30 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+  I2C_TRACE seq=10 t_us=1720 gap_us=50 elapsed_us=30 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+  TRACE_END result=ok tail=3 failed=0 first_error_seq=0
+PASS dump_last
+
+ALL TESTS PASSED
