@@ -1,0 +1,59 @@
+[     2][I][esp32-hal-psram.c:106] psramAddToHeap(): PSRAM added to the heap.
+[    21][I][M5GFX.cpp:1031] init_impl(): [M5GFX] [Autodetect] load from NVS : board:27
+[    30][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[    44][I][M5GFX.cpp:1751] autodetect(): [M5GFX] [Autodetect] board_M5StackChan
+[   204][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   216][I][M5GFX.cpp:565] initPanelByTouchVersion(): [M5GFX] CoreS3 touch CIPHER:0x64 / FIRMID:0x10 / VENDID:0x11, panel:ILI9342C
+[   228][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   273][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   284][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[  1196][I][M5StackChan.cpp:158] get_zero_pos_from_nvs(): [M5StackChan] Servo ID: 1 get zero pos: 446 from settings
+[  1218][I][M5StackChan.cpp:158] get_zero_pos_from_nvs(): [M5StackChan] Servo ID: 2 get zero pos: 652 from settings
+[  1240][I][adapter_i2c.cpp:697] I2CClassImpl(): I2C_Class SDA:12, SCL:11
+M5_PHASE phase=init ok=1 elapsed_ms=122 txns=335 succeeded=335 failed=0 dropped=0 cumulative_txns=335 cumulative_failed=0
+M5_MULTI_READY place up to four tags on literal top edge
+M5_TAG cycle=1 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=1
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=148 txns=709 succeeded=709 failed=0 dropped=0 cumulative_txns=1044 cumulative_failed=0
+M5_MULTI cycle=1 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=1 elapsed_ms=148 txns=709 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=1656 cumulative_failed=0
+M5_MULTI cycle=2 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=2264 cumulative_failed=0
+M5_MULTI cycle=3 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=131 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=2875 cumulative_failed=0
+M5_MULTI cycle=4 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=3492 cumulative_failed=0
+M5_MULTI cycle=5 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=4106 cumulative_failed=0
+M5_MULTI cycle=6 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=4714 cumulative_failed=0
+M5_MULTI cycle=7 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=5325 cumulative_failed=0
+M5_MULTI cycle=8 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=5936 cumulative_failed=0
+M5_MULTI cycle=9 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=6550 cumulative_failed=0
+M5_MULTI cycle=10 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=7158 cumulative_failed=0
+M5_MULTI cycle=11 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=7763 cumulative_failed=0
+M5_MULTI cycle=12 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=8371 cumulative_failed=0
+M5_MULTI cycle=13 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=8982 cumulative_failed=0
+M5_MULTI cycle=14 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=9596 cumulative_failed=0
+M5_MULTI cycle=15 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=10207 cumulative_failed=0
+M5_MULTI cycle=16 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=10821 cumulative_failed=0
+M5_MULTI cycle=17 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=11432 cumulative_failed=0
+M5_MULTI cycle=18 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=12043 cumulative_failed=0
+M5_MULTI cycle=19 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=12648 cumulative_failed=0
+M5_MULTI cycle=20 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=13263 cumulative_failed=0
+M5_MULTI cycle=21 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=13874 cumulative_failed=0
+M5_MULTI cycle=22 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=611 failed=0 dropped=0

@@ -259,9 +259,46 @@ Capture: `sources/hardware/11-four-tag-field-enable-fix.txt`.
 
 The first concrete root cause was therefore not the ESP-IDF backend: our application disabled the RF receiver after field-on. The remaining blocker is now at the protocol boundary: transition a collision-bearing WUPA into bounded anticollision and SELECT one UID branch.
 
-### 8.3 Current state
+### 8.3 Collision port and single-tag simplification
 
-- board firmware: `0115` with field-enable fix `7465a834`;
-- local ESP-IDF source: clean `73550728`;
-- hardware: four tags present on the top-edge antenna;
-- next implementation: port M5Unit-NFC's collision-resolution loop (`nfca_anti_collision`) and preserve transport errors separately.
+The bounded M5 anticollision algorithm was ported (`6e365ebc`) and reusable field-state probes preserved (`e9d22b1f`). The user removed three tags, leaving one. Even with `OPC=0xCB`, responses were intermittent and FIFO-based anticollision timed out. A single tag sometimes produced `COL` with empty FIFO, proving that the earlier collision interpretation was not yet trustworthy.
+
+### 8.4 Same-firmware transport A/B removes I2C framing as active blocker
+
+Firmware `c339ea7a` added runtime `idf-high` and `idf-defined` transports plus `nfc-backend`/`nfc-configure`. Capture 17 ran both in one boot against the same tag:
+
+- `idf-high`: 0 failures / 2836 transactions, no RF response.
+- `idf-defined`: 0 failures / 2556 transactions, no RF response.
+
+Explicit START/address/repeated-START/final-NACK/STOP framing removed the NACK noise but did not change RF behavior. The active blocker was above I2C transport.
+
+### 8.5 Arduino control confirms current physical setup
+
+Capture 18 full-flashed the instrumented Arduino control without moving the tag. Cycle 1 returned WUPA ATQA `0x0044`, detected/identified one PICC, and retained it in the registry. More than 13,874 transactions completed with zero transport failures. Hardware, placement, and tag were good during the native ESP-IDF experiments.
+
+### 8.6 Idempotent field-on crosses the request layer
+
+M5 never issues `CMD_NFC_INITIAL_FIELD_ON` when TX is already active; ESP-IDF called it before every poll. Commit `fe6252a5` made field-on idempotent and read-backed. Capture 19 then produced a clean two-byte ATQA FIFO on both backends, but anticollision still timed out. This isolated the failure to FIFO-based transmit setup.
+
+### 8.7 NUM_TX_BYTES byte order was reversed — UID breakthrough
+
+M5Unit-NFC explicitly documents register `0x22` as the MSB and `0x23` as the LSB of `((bytes & 0x1FF) << 3) | bits`. Our code wrote low byte to `0x22` and high byte to `0x23`. For a two-byte anticollision frame (`0x0010`), the chip received `0x1000`, so REQA/WUPA special commands worked while every FIFO-based anticollision/SELECT frame used an invalid length.
+
+Commit `ace8a809` corrected the byte order. Capture 20 produced the same real UID on both backends with zero transport failures:
+
+```text
+idf-high:    UID=04:91:D4:4C:9E:61:80 ATQA=0044 SAK=00, failed=0/200
+idf-defined: UID=04:91:D4:4C:9E:61:80 ATQA=0044 SAK=00, failed=0/439
+```
+
+## 9. Final conclusion
+
+The missing UID was caused primarily by deterministic mistakes in our native port, not by a fundamental ESP-IDF I2C incompatibility:
+
+1. field-on cleared TX/RX instead of setting them;
+2. polling restarted initial-field-on while the carrier was already active;
+3. transmitted-byte-count registers were written in reversed byte order, breaking FIFO-based anticollision and SELECT.
+
+The intermittent I2C NACKs were real and worth instrumenting, but they were amplified by long broken IRQ-polling paths and were not the root cause of the missing UID. With the protocol path corrected, both ESP-IDF backends complete with zero transport failures and print a valid UID.
+
+The diagnostic collection remains useful: prompt-aware probes, trace ring, first-error bundle, runtime backend selector, explicit configuration command, Arduino trace normalizer, and the side-by-side comparison script are reusable for NFC and I2C regression testing.
