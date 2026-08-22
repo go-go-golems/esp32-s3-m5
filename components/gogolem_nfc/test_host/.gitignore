@@ -1,3 +1,5 @@
 # Host test build artifacts
 /test_types
 /test_result
+/test_lifecycle
+/test_safety

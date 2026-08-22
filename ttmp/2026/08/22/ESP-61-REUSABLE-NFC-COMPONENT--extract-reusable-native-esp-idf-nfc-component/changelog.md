@@ -50,3 +50,13 @@ Phase 1 complete: created dependency-free gogolem_nfc component (types, Result<T
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/types.hpp — Domain types
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/CMakeLists.txt — Component integration smoke
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 5 Phase 1 implementation
+
+## 2026-08-22
+
+Phase 2 partial: added host-testable lifecycle state machine and 4K-aware safety validators; all four host test suites pass and the smoke project rebuilds under ESP-IDF 5.5.4; M5Unit-NFC Engine wiring and WUPA hardware validation remain
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp — Lifecycle rules
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/safety.hpp — Safety validators
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 6 Phase 2 pure-logic subset

@@ -21,14 +21,26 @@ RelatedFiles:
       Note: Pinned upstream revisions used during architecture assessment
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_console.cpp
       Note: Evidence of console, reboot, confirmation, and output policy to move out of core
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp
+      Note: Phase 2 lifecycle state machine (host-testable)
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/result.hpp
       Note: Phase 1 move-only Result<T> API without exceptions
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/safety.hpp
+      Note: Phase 2 safety/protected-region validators (host-testable)
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/types.hpp
       Note: Phase 1 host-clean domain types (commit pending)
     - Path: repo://components/gogolem_nfc/src/gogolem_nfc.cpp
       Note: Phase 1 helpers and version accessors
+    - Path: repo://components/gogolem_nfc/src/lifecycle.cpp
+      Note: Phase 2 lifecycle implementation
+    - Path: repo://components/gogolem_nfc/src/safety.cpp
+      Note: Phase 2 safety implementation, 4K-aware Classic model
     - Path: repo://components/gogolem_nfc/test_host/build.sh
       Note: Phase 1 host-test build
+    - Path: repo://components/gogolem_nfc/test_host/test_lifecycle.cpp
+      Note: Phase 2 lifecycle host tests
+    - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
+      Note: Phase 2 safety host tests with NTAG215 and Classic fixtures
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
       Note: Phase 1 ESP-IDF integration smoke
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
@@ -41,6 +53,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -533,3 +546,84 @@ I created `components/gogolem_nfc` following the repository's existing shared-co
 - Component path: `components/gogolem_nfc/`.
 - Smoke project: `examples/nfc_types_smoke/`.
 - Phase 0 hardware acceptance (task `4igv`) remains open and is independent of Phase 1.
+
+## Step 6: Phase 2 pure-logic subset (lifecycle and safety)
+
+Phase 2's defining deliverable is the synchronous Engine wrapping M5Unit-NFC, whose acceptance requires hardware WUPA validation. With the NTAG215 still off the antenna, I advanced only the host-testable pure-logic subset that the Engine consumes: the lifecycle state machine and the safety/protected-region validators. I deliberately did not wire the M5Unit-NFC-wrapped Engine, because writing unverified upstream-wrapping code would risk repeating the ESP-60 class of porting bugs.
+
+The lifecycle module encodes begin/end/fault rules as pure functions returning typed `Result<LifecycleState>`. The safety module encodes Type 2 user-page boundaries and a 4K-aware MIFARE Classic sector/trailer/manufacturer model, plus a single `is_safe_write_target` gate the Engine will consult before any mutation. Both compile under `g++` and under the ESP-IDF xtensa toolchain (the smoke project relinked them cleanly).
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Continue the next low-risk verifiable step toward Phase 2 without fabricating hardware validation.
+
+**Inferred user intent:** Keep producing audited, tested progress while the physical tag blocker persists.
+
+### What I did
+
+- Printed the Phase 2 plan slip `Read-Only Engine Foundation`.
+- Implemented `include/gogolem/nfc/lifecycle.hpp` and `src/lifecycle.cpp` with `lifecycle_can_begin/end`, `lifecycle_is_ready/terminal`, `lifecycle_after_begin`, `lifecycle_after_end`, and `lifecycle_after_fault`.
+- Implemented `include/gogolem/nfc/safety.hpp` and `src/safety.cpp` with Type 2 user/protected page rules and a 4K-aware Classic sector, trailer, manufacturer, and user-data-block model, plus `is_safe_write_target`.
+- Added `test_host/test_lifecycle.cpp` and `test_host/test_safety.cpp` with NTAG215 and Classic 1K/4K fixtures.
+- Updated `CMakeLists.txt` SRCS and `test_host/build.sh` to include the new sources and tests.
+- Rebuilt the smoke project under ESP-IDF 5.5.4 to confirm the new sources compile and link on target.
+
+### Why
+
+- Lifecycle and safety rules are deterministic and have no hardware dependency, so they can be fully verified by host tests now.
+- Extracting them as pure functions keeps the later Engine small and makes its mutation gate a single audited call instead of ad-hoc checks.
+- A 4K-aware Classic model avoids a hidden 1K-only assumption that would silently misclassify large-sector trailers.
+
+### What worked
+
+- All four host test suites passed:
+
+  ```text
+  ALL TESTS PASSED  (types)
+  ALL TESTS PASSED  (result)
+  ALL TESTS PASSED  (lifecycle)
+  ALL TESTS PASSED  (safety)
+  ```
+
+- The ESP-IDF smoke rebuild completed with no `warning:` or `error:` match and `Project build complete`.
+
+### What didn't work
+
+- N/A — no hardware-dependent code was written in this step, so no hardware blocker applied.
+
+### What I learned
+
+- Splitting target-side `Config` (carries `i2c_master_bus_handle_t`) from host-clean validation rules lets the rules be tested without `driver/i2c_master.h`.
+- `is_safe_write_target` returning `false` for `TagFamily::Unknown` makes the unknown-family case a safe default rather than a write attempt.
+- The 4K Classic trailer at sector 32 is block 143, not 131; a 1K-only `block % 4 == 3` rule would have been wrong for 4K cards.
+
+### What was tricky to build
+
+- Keeping the safety API family-agnostic at the gate while family-specific behind it, so a generic write path cannot bypass the rules by passing a raw address.
+- Making `lifecycle_after_end` idempotent from `Stopped` but a real error from `New` and `Stopping`, so a double-shutdown is safe but a no-op end before begin is caught.
+
+### What warrants a second pair of eyes
+
+- Confirm the 4K Classic block/sector math against the NXP Classic 4K datasheet, especially sector 39's trailer at block 255.
+- Confirm `is_safe_write_target` is the only gate the future Engine and mutation paths consult.
+
+### What should be done in the future
+
+- Wire the synchronous Engine against M5Unit-NFC and validate WUPA fallback on hardware when the tag is placed.
+- Keep `Config` bus-handle field target-side; do not move `i2c_master_bus_handle_t` into host-clean headers.
+
+### Code review instructions
+
+- Read `include/gogolem/nfc/lifecycle.hpp` and `safety.hpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+- Rebuild `examples/nfc_types_smoke` under ESP-IDF 5.5.4.
+- Verify `rg -n 'printf|ESP_LOG|nvs_|esp_restart|GPIO_NUM|i2c_new_master_bus' components/gogolem_nfc/src` returns nothing.
+
+### Technical details
+
+- Phase 2 task: `godz`, still open (Engine wiring and WUPA hardware validation remain).
+- Host test evidence: `sources/software/07-phase2-host-tests.txt`.
+- Smoke rebuild evidence: `sources/software/08-phase2-smoke-rebuild.txt`.
+- Phase 0 hardware acceptance (task `4igv`) and Phase 2 hardware acceptance (task `godz`) both await the physical NTAG215.
