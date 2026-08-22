@@ -1,0 +1,9 @@
+dependencies:
+  idf:
+    version: ">=5.5.2"
+  # Native ESP-IDF support, including UnitUnified::add(i2c_master_bus_handle_t),
+  # is present on this upstream revision. dependencies.lock records the resolved
+  # Git commits for this component and its transitive M5UnitUnified dependency.
+  m5stack/M5Unit-NFC:
+    git: https://github.com/m5stack/M5Unit-NFC.git
+    version: 93745b547364f310cd64b5155a870103a7800a5d

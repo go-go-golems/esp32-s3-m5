@@ -1,0 +1,20 @@
+# ESP32-S3 CoreS3 native NFC feature explorer.
+CONFIG_IDF_TARGET="esp32s3"
+
+# Interactive console must use USB Serial/JTAG on StackChan.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED=y
+CONFIG_ESP_CONSOLE_UART_NUM=-1
+
+# M5Unit-NFC uses C++ protocol objects and moderately sized card buffers.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=12288
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+CONFIG_COMPILER_DISABLE_DEFAULT_ERRORS=y
+CONFIG_FREERTOS_HZ=1000
+
+# CoreS3 flash size. No embedded display assets are required.
+CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+CONFIG_ESPTOOLPY_FLASHSIZE="16MB"
+
+# No Wi-Fi/BLE. PSRAM is not required for this console explorer.
