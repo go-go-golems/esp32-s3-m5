@@ -539,19 +539,38 @@ Result<void> Engine::write_ndef(const NdefMessage& message, const MutationPermit
         return Result<void>::failure(e);
     }
 
-    // Convert public NdefMessage to upstream TLV.
+    // Convert public NdefMessage to upstream TLV. For well-known URI and text
+    // records, use the upstream helper methods which set internal state that
+    // ndefWrite depends on. For other record types, fall back to generic
+    // setType/setPayload.
     m5::nfc::ndef::TLV tlv(m5::nfc::ndef::Tag::Message);
     for (const auto& rec : message.records) {
         m5::nfc::ndef::Record upstream_rec(
             static_cast<m5::nfc::ndef::TNF>(static_cast<uint8_t>(rec.tnf)));
-        if (!rec.type.empty()) {
-            // setType expects a null-terminated C string.
-            std::string type_str(rec.type.begin(), rec.type.end());
-            upstream_rec.setType(type_str.c_str());
-        }
-        if (!rec.payload.empty()) {
-            upstream_rec.setPayload(rec.payload.data(),
-                                   static_cast<uint32_t>(rec.payload.size()));
+        if (rec.tnf == NdefTnf::WellKnown && rec.type.size() == 1 &&
+            rec.type[0] == 'U' && rec.payload.size() >= 1) {
+            // URI record: reconstruct via upstream setURIPayload.
+            std::string uri_str(rec.payload.begin() + 1, rec.payload.end());
+            upstream_rec.setURIPayload(uri_str.c_str(),
+                static_cast<m5::nfc::ndef::URIProtocol>(rec.payload[0]));
+        } else if (rec.tnf == NdefTnf::WellKnown && rec.type.size() == 1 &&
+                   rec.type[0] == 'T' && rec.payload.size() >= 1) {
+            // Text record: reconstruct via upstream setTextPayload.
+            uint8_t lang_len = rec.payload[0] & 0x3F;
+            if (rec.payload.size() >= 1 + lang_len) {
+                std::string lang(rec.payload.begin() + 1, rec.payload.begin() + 1 + lang_len);
+                std::string text(rec.payload.begin() + 1 + lang_len, rec.payload.end());
+                upstream_rec.setTextPayload(text.c_str(), lang.c_str());
+            }
+        } else {
+            if (!rec.type.empty()) {
+                std::string type_str(rec.type.begin(), rec.type.end());
+                upstream_rec.setType(type_str.c_str());
+            }
+            if (!rec.payload.empty()) {
+                upstream_rec.setPayload(rec.payload.data(),
+                                       static_cast<uint32_t>(rec.payload.size()));
+            }
         }
         tlv.push_back(upstream_rec);
     }

@@ -17,5 +17,6 @@
 - [x] Phase 6: add UID-bound mutation permits, protected-region validation, reversible writes, and fault tests <!-- t:7tya -->
 - [x] Phase 7: add caller-provided NDEF writes with capacity and semantic readback verification <!-- t:lj6l -->
 - [ ] Phase 8: add Classic credentials, read-only value inspection, guarded wallet plans, and restoration reports <!-- t:42gr -->
-- [ ] Phase 9: migrate 0117 into the reusable component example and preserve console/NVS/demo policy outside core <!-- t:depz -->
+- [x] Phase 9: migrate 0117 into the reusable component example and preserve console/NVS/demo policy outside core <!-- t:depz -->
 - [ ] Phase 10: integrate component Service into NFC LAB on the board-owned bus and run lifecycle endurance tests <!-- t:phrw -->
+- [ ] Phase 8 hardware validation BLOCKED: no MIFARE Classic card available. Pure logic (value-block codec, credentials) is host-tested and complete. Hardware wallet demo deferred until a Classic card is obtained. <!-- t:ov2r -->

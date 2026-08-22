@@ -89,6 +89,10 @@ RelatedFiles:
       Note: |-
         Phase 2 Engine runtime smoke
         Phase 2 activate_one smoke
+    - Path: repo://examples/nfc_feature_explorer/main/app_main.cpp
+      Note: Phase 9 migrated app_main using Engine API
+    - Path: repo://examples/nfc_feature_explorer/main/console_adapter.cpp
+      Note: Phase 9 console adapter calling Engine
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
       Note: |-
         Phase 1 ESP-IDF integration smoke
@@ -113,6 +117,8 @@ RelatedFiles:
       Note: Phase 6 reversible write on sacrificial NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/17-ndef-write-runtime.txt
       Note: Phase 7 NDEF write on sacrificial NTAG215
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/19-feature-explorer-validation.txt
+      Note: Phase 9 all commands validated on NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -123,6 +129,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 

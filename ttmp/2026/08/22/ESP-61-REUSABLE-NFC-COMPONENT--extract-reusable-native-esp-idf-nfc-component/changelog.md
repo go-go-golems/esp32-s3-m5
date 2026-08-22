@@ -179,3 +179,12 @@ Phase 7 complete: NDEF write proven on sacrificial NTAG215 (write ok=1, readback
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — write_ndef
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 7 complete
+
+## 2026-08-22
+
+Phase 9 complete: 0117 migrated to nfc_feature_explorer using gogolem_nfc Engine. All 7 reader commands validated on real NTAG215 (scan/info/raw-read/dump/ndef-read/ndef-write all ok=1). NDEF write fixed by using upstream setURIPayload/setTextPayload. Console/NVS/demo policy in example layer.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_feature_explorer/main/console_adapter.cpp — Console adapter
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 9 complete

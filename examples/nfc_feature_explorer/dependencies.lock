@@ -1,0 +1,84 @@
+dependencies:
+  idf:
+    source:
+      type: idf
+    version: 5.5.4
+  m5stack/M5HAL:
+    component_hash: 4745f7f657de5c18bdaccc42bf6f4f924e563182917e60b41b525d8674495cb8
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    - git: https://github.com/m5stack/M5Utility.git
+      name: m5stack/M5Utility
+      version: main
+    source:
+      git: https://github.com/m5stack/M5HAL.git
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s3
+    - esp32c3
+    - esp32c6
+    - esp32p4
+    - esp32h2
+    version: 0f06f9d3134706ce030fd5515601cce65a267233
+  m5stack/M5Unit-NFC:
+    component_hash: fb1bacb04244df619ee716615a0a93e8d388bb85205546f851181984d50f64c7
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    - git: https://github.com/m5stack/M5UnitUnified.git
+      name: m5stack/M5UnitUnified
+      version: main
+    source:
+      git: https://github.com/m5stack/M5Unit-NFC.git
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s3
+    - esp32c3
+    - esp32c6
+    - esp32h2
+    - esp32p4
+    version: 93745b547364f310cd64b5155a870103a7800a5d
+  m5stack/M5UnitUnified:
+    component_hash: 85547815ad5c13737cc17ba05fbd6ff350cea5068ede73cf03e956e50fb2f27d
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    - git: https://github.com/m5stack/M5HAL.git
+      name: m5stack/M5HAL
+      version: main
+    - git: https://github.com/m5stack/M5Utility.git
+      name: m5stack/M5Utility
+      version: main
+    source:
+      git: https://github.com/m5stack/M5UnitUnified.git
+      path: .
+      type: git
+    targets:
+    - esp32
+    - esp32s3
+    - esp32c3
+    - esp32c6
+    - esp32p4
+    - esp32h2
+    version: bf711f370047cf16355b00005450ef615fab36e2
+  m5stack/M5Utility:
+    component_hash: 957b178baad1d1c9fa2ac5fcc4d169d761709ed42522cd74bb1495114721440b
+    dependencies:
+    - name: idf
+      version: '>=5.0'
+    source:
+      git: https://github.com/m5stack/M5Utility.git
+      path: .
+      type: git
+    version: 301a6b5c6413875e1dd80b027e0639921972b433
+direct_dependencies:
+- idf
+- m5stack/M5Unit-NFC
+manifest_hash: 3099876633abfd9367b718684874aed99e77bfe7b45fa0d4b44dd21a4cd41235
+target: esp32s3
+version: 2.0.0
