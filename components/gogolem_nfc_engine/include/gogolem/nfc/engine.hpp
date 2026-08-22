@@ -16,6 +16,7 @@
 
 #include "driver/i2c_master.h"
 
+#include "gogolem/nfc/ndef.hpp"
 #include "gogolem/nfc/result.hpp"
 #include "gogolem/nfc/types.hpp"
 
@@ -74,6 +75,20 @@ public:
     // Deactivate the currently selected tag (HLTA). Safe to call when no tag
     // is active.
     Result<void> deactivate();
+
+    // Read 16 bytes (4 Type 2 pages or 1 Classic block) at the given address.
+    // Self-activates and deactivates. For Classic, uses default Key A.
+    Result<std::vector<uint8_t>> raw_read(uint8_t address);
+
+    // Read and parse NDEF from the tag. Returns success with a (possibly empty)
+    // NdefMessage when the tag is NDEF-formatted. Returns a CardFamily error if
+    // the tag does not support NDEF, or a DataFormat error if the format is
+    // invalid.
+    Result<NdefMessage> read_ndef();
+
+    // Dump the entire card through the upstream library. Returns success when
+    // the dump completes. (A sink-based API will replace this in a later phase.)
+    Result<void> dump();
 
 private:
     struct Impl;

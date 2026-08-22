@@ -9,6 +9,7 @@
 
 #include "gogolem/nfc/engine.hpp"
 #include "gogolem/nfc/lifecycle.hpp"
+#include "gogolem/nfc/ndef.hpp"
 #include "gogolem/nfc/picc_map.hpp"
 
 #include "M5UnitUnified.h"
@@ -230,6 +231,155 @@ Result<void> Engine::deactivate() {
     }
     if (impl_->reader.activatedPICC().valid()) {
         impl_->reader.deactivate();
+    }
+    return Result<void>::success();
+}
+
+Result<std::vector<uint8_t>> Engine::raw_read(uint8_t address) {
+    if (!lifecycle_is_ready(impl_->state)) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::Read;
+        e.set_detail("not ready");
+        return Result<std::vector<uint8_t>>::failure(e);
+    }
+    impl_->units.update(true);
+    PICC picc{};
+    if (!impl_->reader.request(picc.atqa) && !impl_->reader.wakeup(picc.atqa)) {
+        Error e;
+        e.layer = ErrorLayer::Rf;
+        e.esp_code = ESP_CODE_ERR_NOT_FOUND;
+        e.operation = Operation::Read;
+        e.set_detail("no tag");
+        return Result<std::vector<uint8_t>>::failure(e);
+    }
+    if (!impl_->reader.select(picc) || !impl_->reader.identify(picc) || !impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::Read;
+        e.set_detail("activation failed");
+        return Result<std::vector<uint8_t>>::failure(e);
+    }
+    std::vector<uint8_t> data(16, 0);
+    bool ok = impl_->reader.read16(data.data(), address);
+    impl_->reader.deactivate();
+    if (!ok) {
+        Error e;
+        e.layer = ErrorLayer::Protocol;
+        e.operation = Operation::Read;
+        e.set_detail("read16 failed");
+        return Result<std::vector<uint8_t>>::failure(e);
+    }
+    return Result<std::vector<uint8_t>>::success(std::move(data));
+}
+
+Result<NdefMessage> Engine::read_ndef() {
+    if (!lifecycle_is_ready(impl_->state)) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::ReadNdef;
+        e.set_detail("not ready");
+        return Result<NdefMessage>::failure(e);
+    }
+    impl_->units.update(true);
+    PICC picc{};
+    if (!impl_->reader.request(picc.atqa) && !impl_->reader.wakeup(picc.atqa)) {
+        Error e;
+        e.layer = ErrorLayer::Rf;
+        e.esp_code = ESP_CODE_ERR_NOT_FOUND;
+        e.operation = Operation::ReadNdef;
+        e.set_detail("no tag");
+        return Result<NdefMessage>::failure(e);
+    }
+    if (!impl_->reader.select(picc) || !impl_->reader.identify(picc) || !impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::ReadNdef;
+        e.set_detail("activation failed");
+        return Result<NdefMessage>::failure(e);
+    }
+    if (!picc.supportsNDEF()) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::CardFamily;
+        e.operation = Operation::ReadNdef;
+        e.set_detail("tag does not support NDEF");
+        return Result<NdefMessage>::failure(e);
+    }
+    bool valid = false;
+    if (!impl_->reader.ndefIsValidFormat(valid) || !valid) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::DataFormat;
+        e.operation = Operation::ReadNdef;
+        e.set_detail(valid ? "format query failed" : "invalid NDEF format");
+        return Result<NdefMessage>::failure(e);
+    }
+    m5::nfc::ndef::TLV tlv{};
+    if (!impl_->reader.ndefRead(tlv)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::DataFormat;
+        e.operation = Operation::ReadNdef;
+        e.set_detail("ndefRead failed");
+        return Result<NdefMessage>::failure(e);
+    }
+    impl_->reader.deactivate();
+
+    // Convert upstream TLV records to the public NdefMessage.
+    NdefMessage msg;
+    if (tlv.isMessageTLV()) {
+        for (const auto& rec : tlv.records()) {
+            NdefRecord r;
+            r.tnf = static_cast<NdefTnf>(static_cast<uint8_t>(rec.tnf()));
+            const char* type = rec.type();
+            if (type) r.type.assign(type, type + std::strlen(type));
+            r.payload.assign(rec.payload(), rec.payload() + rec.payloadSize());
+            const uint8_t* id = rec.identifier();
+            if (id && rec.identifierSize() > 0) r.id.assign(id, id + rec.identifierSize());
+            msg.records.push_back(std::move(r));
+        }
+    }
+    // Empty valid NDEF (zero records) is success with an empty message.
+    return Result<NdefMessage>::success(std::move(msg));
+}
+
+Result<void> Engine::dump() {
+    if (!lifecycle_is_ready(impl_->state)) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::Dump;
+        e.set_detail("not ready");
+        return Result<void>::failure(e);
+    }
+    impl_->units.update(true);
+    PICC picc{};
+    if (!impl_->reader.request(picc.atqa) && !impl_->reader.wakeup(picc.atqa)) {
+        Error e;
+        e.layer = ErrorLayer::Rf;
+        e.esp_code = ESP_CODE_ERR_NOT_FOUND;
+        e.operation = Operation::Dump;
+        e.set_detail("no tag");
+        return Result<void>::failure(e);
+    }
+    if (!impl_->reader.select(picc) || !impl_->reader.identify(picc) || !impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::Dump;
+        e.set_detail("activation failed");
+        return Result<void>::failure(e);
+    }
+    bool ok = impl_->reader.dump();
+    impl_->reader.deactivate();
+    if (!ok) {
+        Error e;
+        e.layer = ErrorLayer::Protocol;
+        e.operation = Operation::Dump;
+        e.set_detail("dump failed");
+        return Result<void>::failure(e);
     }
     return Result<void>::success();
 }

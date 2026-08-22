@@ -134,3 +134,12 @@ Phase 2 complete: Engine activate_one() with REQA→WUPA fallback proven on real
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — activate_one
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 14 Phase 2 complete
+
+## 2026-08-22
+
+Phase 3 complete: Engine raw_read (16 bytes), read_ndef (valid empty NDEF), and dump (135 pages) all proven on real NTAG215 through reusable API. WUPA fallback active on all consecutive operations.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — Phase 3 operations
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 15 Phase 3 complete

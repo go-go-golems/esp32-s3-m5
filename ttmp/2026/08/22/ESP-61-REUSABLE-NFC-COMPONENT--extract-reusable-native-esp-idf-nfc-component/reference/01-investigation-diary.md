@@ -73,6 +73,7 @@ RelatedFiles:
       Note: |-
         Phase 2 Engine wiring wrapping M5Unit-NFC, begin/scan, initialize-once
         Phase 2 activate_one + WUPA fallback + deactivate
+        Phase 3 raw_read + read_ndef + dump with NDEF conversion
     - Path: repo://examples/nfc_engine_smoke/main/smoke_main.cpp
       Note: |-
         Phase 2 Engine runtime smoke
@@ -91,6 +92,8 @@ RelatedFiles:
       Note: Live Engine runtime on real ST25R3916
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/12-engine-activate-one-runtime.txt
       Note: Live WUPA fallback on real NTAG215
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/13-engine-raw-ndef-dump-runtime.txt
+      Note: Phase 3 runtime on real NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -101,6 +104,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -1264,3 +1268,80 @@ With the tag on the antenna, I added `activate_one()` and `deactivate()` to the 
 - Phase 2 task `godz`: complete.
 - Runtime evidence: `sources/hardware/12-engine-activate-one-runtime.txt`.
 - Build evidence: `sources/software/15-phase2-activate-build.txt`.
+
+## Step 15: Phase 3 complete — Engine raw_read + read_ndef + dump on real NTAG215
+
+With the tag on the antenna, I added `raw_read()`, `read_ndef()`, and `dump()` to the Engine, each self-activating with the proven REQA→WUPA fallback. The `read_ndef()` converts upstream TLV records to the public `NdefMessage` at the boundary. The engine smoke exercises all three in a loop, and the runtime proves all succeed on the real NTAG215.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Add the Phase 3 read operations to the Engine and validate on the now-present tag.
+
+**Inferred user intent:** Complete the Engine's read-only surface on hardware.
+
+### What I did
+
+- Added `raw_read(uint8_t address)` → `Result<std::vector<uint8_t>>` (16 bytes via upstream `read16`).
+- Added `read_ndef()` → `Result<NdefMessage>` (checks NDEF support, validates format, reads TLV, converts upstream records to public `NdefRecord`/`NdefMessage`).
+- Added `dump()` → `Result<void>` (calls upstream `reader.dump()`, returns typed success/failure).
+- Each operation self-activates (REQA→WUPA→select→identify→reactivate) and deactivates.
+- Updated the engine smoke to exercise all four operations in a loop.
+- Built, flashed, and captured live runtime on the real NTAG215.
+- Marked task `3e9y` complete.
+- Printed the Phase 3 completion slip.
+
+### What worked
+
+- All three operations succeed on the real NTAG215, repeated across three iterations:
+
+  ```text
+  smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+  smoke raw_read ok=1 len=16 hex=04DAF7A14D9E618032480000E1103E00
+  smoke ndef_read ok=1 records=0
+  smoke dump ok=1  (135 pages: [000/00] through [134/86])
+  ```
+
+- Raw read returns the correct 16 bytes: UID bytes, BCC, internal, capability container `E1 10 3E 00`.
+- NDEF read returns valid with zero records (empty NDEF area `03 00 FE`).
+- Dump reads all 135 pages including the configuration/lock pages at 130-134.
+- WUPA fallback is active on all consecutive operations (source=WUPA on iterations 2 and 3).
+- Upstream TNF enum ordinals match my NdefTnf exactly (0-7), so the cast is safe.
+
+### What didn't work
+
+- The first iteration after flash reset failed (`ok=0 layer=rf`) — the tag was in an uncertain state from the prior firmware. The second iteration recovered with REQA. This is the same boot artifact seen in Phase 2, not an Engine defect.
+
+### What I learned
+
+- The upstream `reader.dump()` prints directly to the upstream log/output. A sink-based dump that returns structured page data will replace this in a later refinement.
+- The empty NDEF case (`03 00 FE`) correctly produces `read_ndef ok=1 records=0`, not an error.
+
+### What was tricky to build
+
+- Converting upstream `TLV::records()` to public `NdefRecord`: the upstream `Record::type()` returns `const char*`, `payload()` returns `const uint8_t*` with `payloadSize()`, and `identifier()` returns `const uint8_t*` with `identifierSize()`.
+
+### What warrants a second pair of eyes
+
+- Confirm the upstream TNF-to-NdefTnf cast is correct for all record types (both enums are 0-7 in the same order).
+
+### What should be done in the future
+
+- Replace `dump()` with a sink-based API that returns structured page data instead of upstream log output.
+- Proceed to Phase 4 (worker Service) to serialize Engine access for multi-task applications.
+
+### Code review instructions
+
+- Read `components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp` (raw_read, read_ndef, dump).
+- Read `src/engine.cpp` (implementations with REQA→WUPA and NDEF conversion).
+- Flash `examples/nfc_engine_smoke`; verify `raw_read ok=1`, `ndef_read ok=1 records=0`, `dump ok=1`.
+- Inspect `sources/hardware/13-engine-raw-ndef-dump-runtime.txt`.
+
+### Technical details
+
+- Phase 3 task `3e9y`: complete.
+- Runtime evidence: `sources/hardware/13-engine-raw-ndef-dump-runtime.txt`.
+- Raw read page 0: `04 DA F7 A1 4D 9E 61 80 32 48 00 00 E1 10 3E 00`.
+- NDEF: valid, zero records.
+- Dump: 135 pages (0-134), configuration pages at 130-134.

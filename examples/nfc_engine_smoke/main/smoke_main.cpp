@@ -45,6 +45,7 @@ extern "C" void app_main(void) {
 
     for (;;) {
         if (begin.ok()) {
+            // Activate and identify the tag.
             auto act = engine.activate_one();
             if (act.ok()) {
                 const auto& tag = act.value().tag;
@@ -55,7 +56,29 @@ extern "C" void app_main(void) {
             } else {
                 printf("smoke activate ok=0 layer=%s\n", error_layer_name(act.error().layer));
             }
+
+            // Raw read page 0 (should return 16 bytes with UID + capability container).
+            auto raw = engine.raw_read(0);
+            if (raw.ok()) {
+                printf("smoke raw_read ok=1 len=%u hex=", static_cast<unsigned>(raw.value().size()));
+                for (auto b : raw.value()) printf("%02X", b);
+                printf("\n");
+            } else {
+                printf("smoke raw_read ok=0 layer=%s\n", error_layer_name(raw.error().layer));
+            }
+
+            // Read NDEF (should be valid empty on the NTAG215).
+            auto ndef = engine.read_ndef();
+            if (ndef.ok()) {
+                printf("smoke ndef_read ok=1 records=%u\n", static_cast<unsigned>(ndef.value().records.size()));
+            } else {
+                printf("smoke ndef_read ok=0 layer=%s\n", error_layer_name(ndef.error().layer));
+            }
+
+            // Dump the entire card.
+            auto dmp = engine.dump();
+            printf("smoke dump ok=%u\n", dmp.ok() ? 1u : 0u);
         }
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(3000));
     }
 }
