@@ -29,6 +29,8 @@ RelatedFiles:
       Note: Phase 6 mutation permits and write reports
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/ndef.hpp
       Note: Phase 3 NDEF public model and codec API
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/picc_map.hpp
+      Note: Phase 2 PICC->TagInfo conversion API
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/result.hpp
       Note: Phase 1 move-only Result<T> API without exceptions
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/safety.hpp
@@ -45,6 +47,8 @@ RelatedFiles:
       Note: Phase 6 permit and precedence implementation
     - Path: repo://components/gogolem_nfc/src/ndef.cpp
       Note: Phase 3 NDEF encode/decode and Type 2 TLV framing
+    - Path: repo://components/gogolem_nfc/src/picc_map.cpp
+      Note: Phase 2 conversion implementation
     - Path: repo://components/gogolem_nfc/src/safety.cpp
       Note: Phase 2 safety implementation, 4K-aware Classic model
     - Path: repo://components/gogolem_nfc/test_host/build.sh
@@ -57,6 +61,8 @@ RelatedFiles:
       Note: Phase 6 mutation host tests
     - Path: repo://components/gogolem_nfc/test_host/test_ndef.cpp
       Note: Phase 3 NDEF round-trip host tests
+    - Path: repo://components/gogolem_nfc/test_host/test_picc_map.cpp
+      Note: Phase 2 conversion host tests
     - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
       Note: Phase 2 safety host tests with NTAG215 and Classic fixtures
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
@@ -79,6 +85,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -949,3 +956,66 @@ All host-testable pure logic was complete, but Phase 1 acceptance only required 
 - Validation script: `scripts/03-validate-component.sh`.
 - No-tag recheck evidence: `sources/hardware/04-phase0-tag-recheck-2.txt`.
 - Phase 0 (`4igv`) and Phase 2 (`godz`) hardware acceptance still require the physical NTAG215.
+
+## Step 11: Phase 2 host-testable PICC → TagInfo conversion
+
+The Engine must convert upstream M5Unit-NFC `PICC` objects into the stable `TagInfo` at the boundary. I made that conversion a pure, host-testable module so its correctness is proven without M5Unit-NFC or a tag. `picc_map.hpp` mirrors the upstream `m5::nfc::a::Type` enum ordinals as numeric constants, and `picc_type_to_family()` plus `to_tag_info()` map a plain `PiccFields` snapshot to `TagInfo`/`TagFamily`. The Engine will fill `PiccFields` from the upstream PICC and call `to_tag_info()`, keeping upstream types out of the public API.
+
+The host tests verify the family mapping across Classic, Ultralight, NTAG, ST25TA, ISO-DEP, Plus, DESFire, and unknown codes, and convert the known NTAG215 fixture to the exact `TagInfo` observed in ESP-60 (`uid 04:91:D4:4C:9E:61:80`, ATQA 0x0044, 135 pages, 504 user bytes, Type 2).
+
+### Prompt Context
+
+**User prompt (verbatim):** goal continuation — continue working toward the objective, choose the next concrete action.
+
+**Assistant interpretation:** Implement the next deterministic, fully-verifiable Engine sub-component while the tag is absent.
+
+**Inferred user intent:** Keep producing tested progress; do not write unverified hardware-wrapping code.
+
+### What I did
+
+- Re-probed the serial device (free); still no tag (`NFC_RESULT op=scan ok=0 detected=0`, capture 07).
+- Inspected `0117` activation code and the upstream `Type` enum to port faithfully.
+- Implemented `include/gogolem/nfc/picc_map.hpp` and `src/picc_map.cpp` with mirrored type ordinals, `picc_type_to_family`, and `to_tag_info`.
+- Added `test_host/test_picc_map.cpp` with NTAG215, Classic 4K, family-mapping, and UID-truncation tests.
+- Updated `CMakeLists.txt` SRCS.
+
+### Why
+
+- The PICC→TagInfo conversion is the substantive new Engine logic and is fully deterministic; proving it now removes a whole class of boundary bugs before the Engine wiring.
+- Mirroring the upstream enum ordinals as constants keeps the mapping host-testable without a host M5Unit-NFC dependency.
+
+### What worked
+
+- Eight host test suites passed.
+
+### What didn't work
+
+- The tag is still absent, so the Engine's defining WUPA-on-hardware acceptance cannot run.
+
+### What I learned
+
+- ISO 18092 (FeliCa/NFC-DEP) maps to `Unknown` in version one; the explorer does not expose a FeliCa family yet.
+- UID copy must clamp `uid_size` to 10 to avoid overflow from a malformed upstream size.
+
+### What was tricky to build
+
+- Keeping the public conversion free of upstream headers by operating on a plain `PiccFields` value type while still mirroring the upstream enum order exactly.
+
+### What warrants a second pair of eyes
+
+- Confirm the mirrored Type ordinals still match the pinned M5Unit-NFC revision if it is upgraded; engine.cpp should add a static_assert comparing `static_cast<uint8_t>(picc.type)` against the expected ordinal for NTAG215 as a build-time guard.
+
+### What should be done in the future
+
+- Wire the Engine against M5Unit-NFC using this conversion, and validate WUPA on the real tag when placed.
+
+### Code review instructions
+
+- Read `include/gogolem/nfc/picc_map.hpp` and `src/picc_map.cpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+
+### Technical details
+
+- Phase 2 task: `godz`, still open (Engine wiring + WUPA hardware validation remain).
+- Host test evidence: `sources/software/12-phase2-picc-map-host-tests.txt`.
+- Tag recheck evidence: `sources/hardware/07-phase0-tag-recheck-4.txt`.

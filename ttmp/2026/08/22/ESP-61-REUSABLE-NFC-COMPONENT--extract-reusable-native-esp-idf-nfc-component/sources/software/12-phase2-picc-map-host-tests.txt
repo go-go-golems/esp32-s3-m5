@@ -1,0 +1,12 @@
+# Phase 2 PICC->TagInfo conversion host tests
+
+Compiling host tests...
+Running host tests...
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED

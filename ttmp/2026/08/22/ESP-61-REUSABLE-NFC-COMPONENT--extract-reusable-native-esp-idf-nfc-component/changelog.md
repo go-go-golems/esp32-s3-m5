@@ -97,3 +97,12 @@ Phase 1 runtime proof + codified validation: flashed smoke to ESP32-S3, captured
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/main/smoke_main.cpp — Runtime smoke
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 10 runtime proof and validation
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/scripts/03-validate-component.sh — Validation script
+
+## 2026-08-22
+
+Phase 2 pure logic: added host-testable PICC->TagInfo conversion (mirrored upstream Type ordinals, family mapping, NTAG215/Classic fixtures); eight host test suites pass. Engine M5Unit-NFC wiring and WUPA hardware validation remain.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/picc_map.hpp — PICC conversion
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 11 PICC conversion
