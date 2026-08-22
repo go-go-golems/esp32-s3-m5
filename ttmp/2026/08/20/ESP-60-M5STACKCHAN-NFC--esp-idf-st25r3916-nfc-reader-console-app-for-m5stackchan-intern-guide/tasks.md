@@ -29,3 +29,4 @@
 - [x] Phase 4: driver DEBUG diagnostic build config to confirm I2C_EVENT_NACK <!-- t:d6he -->
 - [x] Phase 5: Arduino/ESP-IDF normalized comparison script + report <!-- t:y7yo -->
 - [x] Apply the I2C FSM-reset diagnostic patch to the local ESP-IDF copy, rebuild, reflash, measure NACK rate <!-- t:7j5c -->
+- [ ] Fresh base-principles investigation: isolate transport, RF request, anticollision, selection, and UID behavior with four connected tags <!-- t:89gi -->
