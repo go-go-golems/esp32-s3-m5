@@ -87,3 +87,13 @@ Phase 8 partial: added host-testable MIFARE Classic value-block codec with full 
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/classic.hpp — Classic codec
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 9 Phase 8 classic codec
+
+## 2026-08-22
+
+Phase 1 runtime proof + codified validation: flashed smoke to ESP32-S3, captured live USB Serial/JTAG output proving the full public API runs on target, added reproducible host+hygiene+build validation script
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/main/smoke_main.cpp — Runtime smoke
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 10 runtime proof and validation
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/scripts/03-validate-component.sh — Validation script

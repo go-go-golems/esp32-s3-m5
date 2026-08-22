@@ -4,6 +4,10 @@
 // name helpers, and prints the component version over USB Serial/JTAG. No NFC
 // hardware is touched; this only proves the component integrates under ESP-IDF.
 
+#include "esp_log.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 #include <cstdio>
 
 #include "gogolem/nfc/result.hpp"
@@ -13,7 +17,7 @@
 using namespace gogolem::nfc;
 
 extern "C" void app_main(void) {
-    printf("gogolem_nfc version=%s%s\n", version(), version_suffix());
+    printf("gogolem_nfc version=%s\n", version());
 
     TagInfo tag{};
     tag.uid = {0x04, 0x91, 0xD4, 0x4C, 0x9E, 0x61, 0x80, 0, 0, 0};
@@ -42,4 +46,15 @@ extern "C" void app_main(void) {
     printf("mode=%s lifecycle=%s op=%s\n", mode_name(Mode::Reader),
            lifecycle_state_name(LifecycleState::ReadyReader),
            operation_name(Operation::Activate));
+
+    // Loop-print the full public surface so a single USB Serial/JTAG capture
+    // window proves the entire component API runs on target, not just one
+    // accessor. The component itself is not involved in timing here.
+    for (;;) {
+        printf("smoke version=%s tag=%s ndef=%u ok=%u err=%s/%s\n",
+               version(), tag_family_name(tag.family),
+               tag.supports_ndef ? 1u : 0u, ok.ok() ? 1u : 0u,
+               error_layer_name(err.error().layer), err.error().detail.data());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }

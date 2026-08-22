@@ -60,7 +60,15 @@ RelatedFiles:
     - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
       Note: Phase 2 safety host tests with NTAG215 and Classic fixtures
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
-      Note: Phase 1 ESP-IDF integration smoke
+      Note: |-
+        Phase 1 ESP-IDF integration smoke
+        Phase 1 runtime smoke exercising full public API on target
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/scripts/02-capture-serial-output.py
+      Note: USB Serial/JTAG runtime capture
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/scripts/03-validate-component.sh
+      Note: Reproducible host+hygiene+build validation
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/05-smoke-runtime-output.txt
+      Note: Live target runtime evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -71,6 +79,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -854,3 +863,89 @@ Phase 8's deterministic core is the MIFARE Classic value-block format. I impleme
 - Phase 8 task: `42gr`, still open (Classic wallet hardware validation remains).
 - Host test evidence: `sources/software/11-phase8-host-tests.txt`.
 - All host-testable pure logic is now complete: types, Result, lifecycle, safety, NDEF, mutation, Classic value block.
+
+## Step 10: Prove the component runs on target and codify validation
+
+All host-testable pure logic was complete, but Phase 1 acceptance only required the smoke project to *build* under ESP-IDF. Building is not running. To close that gap without the physical tag, I flashed `examples/nfc_types_smoke` to the ESP32-S3 and captured its USB Serial/JTAG output. The smoke now loop-prints the full public API surface, so one capture window proves `version()`, `tag_family_name()`, `Result<void>`, `Error::set_detail()`, `error_layer_name()`, and `error().detail` all execute on target. I also codified the manual checks I had been running into a single reproducible validation script so the goal's "host tests, component checks, builds, repository validation" requirement is one command.
+
+### Prompt Context
+
+**User prompt (verbatim):** goal continuation instruction to keep working toward the objective without repeating done work.
+
+**Assistant interpretation:** Find the next concrete, low-risk, non-speculative verification step that does not need the still-absent tag.
+
+**Inferred user intent:** Strengthen evidence for already-implemented phases rather than stall on the hardware blocker.
+
+### What I did
+
+- Re-probed the serial device; still no tag (`NFC_RESULT op=scan ok=0 detected=0`), so Phase 0/2 hardware validation remains blocked.
+- Flashed `examples/nfc_types_smoke` to the board.
+- Changed the smoke `app_main` from a single print-and-return to a loop-print of the full public API, because a one-shot print happens before the USB CDC console is ready and is uncapturable.
+- Fixed a smoke cosmetic bug: the loop previously printed `version() << version_suffix()`, producing `0.1.0-dev-dev`; `version()` already includes the suffix.
+- Captured live USB Serial/JTAG output proving the whole public API runs on target.
+- Added `scripts/02-capture-serial-output.py` and `scripts/03-validate-component.sh` (host tests + hygiene guard + ESP-IDF 5.5.4 smoke build).
+- Ran the validation script end-to-end; it passed.
+
+### Why
+
+- The goal requires runtime/artifact checks, not only builds; a component that links but does not run is not verified.
+- Loop-printing the full API in the smoke is the standard way to make a one-shot example capturable over USB Serial/JTAG.
+- Codifying validation removes the risk that the manual checks drift from what the ticket requires.
+
+### What worked
+
+- Captured target runtime output:
+
+  ```text
+  smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+  ```
+
+  This proves `version()`, `tag_family_name(TagFamily::Ntag21x)` → `NTAG21x`, `Result<void>::success().ok()`, `Error::set_detail`, `error_layer_name(Transport)` → `transport`, and `error().detail` → `no-tag` all execute on the ESP32-S3.
+
+- The reproducible validation script passed:
+
+  ```text
+  === 1. gogolem_nfc host tests ===  (7 suites pass)
+  === 2. core hygiene ===  (no printf/ESP_LOG/nvs_/esp_restart/GPIO/i2c bus creation in core)
+  === 3. ESP-IDF 5.5.4 smoke build ===  Project build complete
+  ```
+
+### What didn't work
+
+- The first direct serial capture returned 0 bytes: the one-shot print completed before the CDC was ready.
+- `idf.py monitor` refused to run because it requires a TTY in this non-interactive environment.
+- The first validation script used a relative `cd` that landed in the ticket directory, not the repo root; fixed with `git rev-parse --show-toplevel`.
+- One build failed from duplicate `transport_err`/`err` declarations when I added the loop without removing the earlier one-shot versions.
+
+### What I learned
+
+- On USB Serial/JTAG, boot-time `printf` before the CDC is ready is lost; a smoke must either delay its first print or loop-print to be capturable.
+- `version()` already returns the full `0.1.0-dev` string; callers should not append `version_suffix()`.
+- A single `git rev-parse --show-toplevel` makes repo-root-relative scripts robust to ticket depth.
+
+### What was tricky to build
+
+- Coordinating flash → reset → capture without a TTY-only `idf.py monitor`; the loop-print pattern is what made it reliable.
+
+### What warrants a second pair of eyes
+
+- Confirm the smoke loop does not mask a real one-shot failure: the first boot lines still print once and are not captured, but the loop proves the same API runs.
+
+### What should be done in the future
+
+- Run `scripts/03-validate-component.sh` as the ESP-61 CI/validation command.
+- When the tag is placed, extend the smoke or a new example to call the Engine and capture a real UID.
+
+### Code review instructions
+
+- Read `examples/nfc_types_smoke/main/smoke_main.cpp`.
+- Flash and capture: `scripts/02-capture-serial-output.py`.
+- Validate: `scripts/03-validate-component.sh`.
+- Inspect `sources/hardware/05-smoke-runtime-output.txt`.
+
+### Technical details
+
+- Runtime evidence: `sources/hardware/05-smoke-runtime-output.txt`.
+- Validation script: `scripts/03-validate-component.sh`.
+- No-tag recheck evidence: `sources/hardware/04-phase0-tag-recheck-2.txt`.
+- Phase 0 (`4igv`) and Phase 2 (`godz`) hardware acceptance still require the physical NTAG215.
