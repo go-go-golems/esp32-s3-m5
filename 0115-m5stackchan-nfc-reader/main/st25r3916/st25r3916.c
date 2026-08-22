@@ -419,9 +419,10 @@ esp_err_t st25r3916_field_on(void)
     esp_err_t e = direct_cmd(ST25R_CMD_NFC_INITIAL_FIELD_ON);
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
-    /* Per M5 lib nfc_initial_field_on(): clear tx_en|rx_en after field-on; the
-     * direct transmit commands manage tx/rx themselves. */
-    return clear_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
+    /* Match M5Unit-NFC nfc_initial_field_on(): after the field-on guard time,
+     * enable both the transmitter and receiver. The previous implementation
+     * cleared these bits, leaving the RF request path unable to observe tags. */
+    return set_bits(ST25R_REG_OPERATION_CONTROL, ST25R_OPCTRL_TX_EN | ST25R_OPCTRL_RX_EN);
 }
 
 esp_err_t st25r3916_field_off(void)
