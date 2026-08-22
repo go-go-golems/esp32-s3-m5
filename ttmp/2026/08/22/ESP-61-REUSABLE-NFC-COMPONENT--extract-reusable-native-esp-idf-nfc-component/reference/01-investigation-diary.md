@@ -23,6 +23,8 @@ RelatedFiles:
       Note: Evidence of console, reboot, confirmation, and output policy to move out of core
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/lifecycle.hpp
       Note: Phase 2 lifecycle state machine (host-testable)
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/mutation.hpp
+      Note: Phase 6 mutation permits and write reports
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/ndef.hpp
       Note: Phase 3 NDEF public model and codec API
     - Path: repo://components/gogolem_nfc/include/gogolem/nfc/result.hpp
@@ -35,6 +37,8 @@ RelatedFiles:
       Note: Phase 1 helpers and version accessors
     - Path: repo://components/gogolem_nfc/src/lifecycle.cpp
       Note: Phase 2 lifecycle implementation
+    - Path: repo://components/gogolem_nfc/src/mutation.cpp
+      Note: Phase 6 permit and precedence implementation
     - Path: repo://components/gogolem_nfc/src/ndef.cpp
       Note: Phase 3 NDEF encode/decode and Type 2 TLV framing
     - Path: repo://components/gogolem_nfc/src/safety.cpp
@@ -43,6 +47,8 @@ RelatedFiles:
       Note: Phase 1 host-test build
     - Path: repo://components/gogolem_nfc/test_host/test_lifecycle.cpp
       Note: Phase 2 lifecycle host tests
+    - Path: repo://components/gogolem_nfc/test_host/test_mutation.cpp
+      Note: Phase 6 mutation host tests
     - Path: repo://components/gogolem_nfc/test_host/test_ndef.cpp
       Note: Phase 3 NDEF round-trip host tests
     - Path: repo://components/gogolem_nfc/test_host/test_safety.cpp
@@ -59,6 +65,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -715,3 +722,66 @@ The implementation deliberately stays independent of M5Unit-NFC: the Engine will
 - Phase 3 task: `3e9y`, still open (family-aware raw read and dump sink hardware validation remain).
 - Host test evidence: `sources/software/09-phase3-host-tests.txt`.
 - Tag recheck evidence: `sources/hardware/03-phase0-tag-recheck.txt`.
+
+## Step 8: Phase 6 host-testable mutation permits and write reports
+
+Phase 6's safety core is UID-bound mutation permits and write-report precedence. Both are pure value-type logic, so I implemented and fully tested them without hardware. A `MutationPermit` binds a `MutationKind` to the selected UID; the Engine consults `permit_allows` before any mutation and never branches on human confirmation text. A `WriteReport` records write, verification, and restoration separately, and `write_report_ok` requires restoration success only when restoration was required — so "verification failed, restoration succeeded" and "restoration failed" are both honestly reported as not-ok with distinct primary-failure layers.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Implement the deterministic Phase 6 safety subset while hardware reversible-write validation is blocked.
+
+**Inferred user intent:** Keep the mutation safety boundary auditable and tested before any physical write.
+
+### What I did
+
+- Printed the Phase 6 plan slip `Mutation Permits and Write Reports`.
+- Implemented `include/gogolem/nfc/mutation.hpp` and `src/mutation.cpp`: `MutationKind`, `MutationPermit`, `WriteReport`, `permit_allows`, `write_report_ok`, `write_report_primary_failure`.
+- Added `test_host/test_mutation.cpp` covering UID/kind matching and all write-report precedence cases.
+- Made `test_host/build.sh` auto-discover `src/*.cpp` and `test_host/test_*.cpp` so it no longer needs editing each phase.
+- Updated `CMakeLists.txt` SRCS to include `mutation.cpp`.
+- Rebuilt the smoke project under ESP-IDF 5.5.4 to confirm on-target linking.
+
+### Why
+
+- Mutation safety is the highest-concern area; making it pure and host-tested removes a whole class of "wrong tag" and "lost restoration" bugs before any physical write.
+- A single `bool` cannot represent the realistic restoration-failure outcome; the precedence rules make those failures machine-readable.
+
+### What worked
+
+- Six host test suites passed.
+- The ESP-IDF smoke rebuild completed with `Project build complete`.
+
+### What didn't work
+
+- The first auto-discovering `build.sh` using `mapfile` and process substitution hit a quoting error; I rewrote it with a simple `ls`/`for` loop, which is robust.
+
+### What I learned
+
+- `write_report_ok` must require restoration success only when `restoration_required` is true, otherwise a no-restoration reversible write and a restoration write share one success rule incorrectly.
+- `write_report_primary_failure` should prefer a recorded `first_error.layer` so the Engine can attach a real transport code while still deriving a layer from flags when it cannot.
+
+### What was tricky to build
+
+- Distinguishing "verification failed but restoration succeeded" (tag may be clean, operation still not-ok) from "restoration failed" (tag changed) in the precedence logic.
+
+### What warrants a second pair of eyes
+
+- Confirm the Engine sets `restoration_required` exactly when it intends to attempt restoration, so the precedence rules match reality.
+
+### What should be done in the future
+
+- Wire `permit_allows` as the single gate before every mutation path.
+- Add fault-injection tests that exercise WriteReport construction at each failure point once the Engine exists.
+
+### Code review instructions
+
+- Read `include/gogolem/nfc/mutation.hpp` and `src/mutation.cpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+
+### Technical details
+
+- Phase 6 task: `7tya`, still open (reversible-write hardware validation remains).
+- Host test evidence: `sources/software/10-phase6-host-tests.txt`.

@@ -2,9 +2,14 @@
 #
 # gogolem_nfc — reusable native ESP-IDF NFC component (ESP-61).
 #
-# Phase 1: dependency-free foundation (types, Result, version).
-# Phase 2: host-testable pure logic (lifecycle, safety).
-# Phase 3: host-testable NDEF public model and codec.
+# Host-testable pure-logic layers (no M5Unit-NFC dependency):
+#   Phase 1: types, Result, version
+#   Phase 2: lifecycle, safety
+#   Phase 3: NDEF public model and codec
+#   Phase 6: mutation permits and write reports
+#
+# The M5Unit-NFC-wrapped synchronous Engine and worker Service are added when
+# their hardware validation is available.
 
 idf_component_register(
     SRCS
@@ -12,6 +17,7 @@ idf_component_register(
         "src/lifecycle.cpp"
         "src/safety.cpp"
         "src/ndef.cpp"
+        "src/mutation.cpp"
     INCLUDE_DIRS
         "include"
 )

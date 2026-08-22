@@ -69,3 +69,12 @@ Phase 3 partial: added host-testable NDEF public model and codec (URI/text recor
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/ndef.hpp — NDEF codec
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 7 Phase 3 NDEF codec
+
+## 2026-08-22
+
+Phase 6 partial: added host-testable UID-bound mutation permits and write-report precedence; six host test suites pass and smoke rebuilds under ESP-IDF 5.5.4; reversible-write hardware validation remains
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/mutation.hpp — Mutation safety
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 8 Phase 6 mutation
