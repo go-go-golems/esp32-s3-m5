@@ -32,23 +32,23 @@ WhenToUse: Read before touching the I2C backend, the ST25R3916 driver, or attemp
 
 # Why Arduino Reads NFC Tags and ESP-IDF Does Not — The I2C FSM Reset Diagnosis
 
-> ## EXPERIMENTAL UPDATE (Step 35) — leading hypothesis REFUTED
->
-> The decisive experiment in Section 7 was run on hardware. The preventive
-> per-transaction `fsm_rst` patch did **not** eliminate the NACKs — it made them
-> **worse** (1.80% vs 1.17%) and introduced failures in `field-on`/`req-setup`
-> phases that were always clean before. Reverting restored the original profile
-> (failures only in `irq-wait`, 1.17%).
->
-> **Conclusion:** `fsm_rst` alone is not the fix and is harmful. The real
-> M5GFX-vs-ESP-IDF difference is the *full* per-transaction controller reinit
-> (bus-idle wait + pin re-route + mode reinit + FIFO + fsm_rst + timeout), of
-> which `fsm_rst` is only one line. My patch replicated only that line. See
-> Section 7.4 for the refutation evidence and Section 7.5 for the revised
-> direction (SDA/SCL capture to locate the NACK byte stage).
->
-> The body below is retained as the hypothesis-test record. Read it as "the
-> hypothesis that was tested and refuted," not as established fact.
+**⚠ EXPERIMENTAL UPDATE (Step 35) — leading hypothesis REFUTED.**
+
+The decisive experiment in Section 7 was run on hardware. The preventive
+per-transaction `fsm_rst` patch did **not** eliminate the NACKs — it made them
+**worse** (1.80% vs 1.17%) and introduced failures in `field-on`/`req-setup`
+phases that were always clean before. Reverting restored the original profile
+(failures only in `irq-wait`, 1.17%).
+
+**Conclusion:** `fsm_rst` alone is not the fix and is harmful. The real
+M5GFX-vs-ESP-IDF difference is the *full* per-transaction controller reinit
+(bus-idle wait + pin re-route + mode reinit + FIFO + fsm_rst + timeout), of
+which `fsm_rst` is only one line. My patch replicated only that line. See
+Section 7.4 for the refutation evidence and Section 7.5 for the revised
+direction (SDA/SCL capture to locate the NACK byte stage).
+
+The body below is retained as the hypothesis-test record. Read it as "the
+hypothesis that was tested and refuted," not as established fact.
 
 ## 0. How to read this document
 
