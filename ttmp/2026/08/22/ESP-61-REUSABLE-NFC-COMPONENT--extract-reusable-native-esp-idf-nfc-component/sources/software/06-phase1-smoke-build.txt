@@ -1,0 +1,23 @@
+# Phase 1 ESP-IDF 5.5.4 smoke build (depends on gogolem_nfc)
+# command: idf.py build in examples/nfc_types_smoke
+
+[8/12] Generating esp-idf/esp_system/ld/sections.ld
+[9/12] Building C object CMakeFiles/nfc_types_smoke.elf.dir/project_elf_src_esp32s3.c.obj
+[10/12] Linking CXX executable nfc_types_smoke.elf
+[11/12] Generating binary image from built executable
+esptool.py v4.12.dev3
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+Generated /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/build/nfc_types_smoke.bin
+[12/12] cd /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/build/esp-idf/esptool_py && /home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python /home/manuel/esp/esp-idf-5.5.4/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/build/partition_table/partition-table.bin /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/build/nfc_types_smoke.bin
+nfc_types_smoke.bin binary size 0x2bbd0 bytes. Smallest app partition is 0x100000 bytes. 0xd4430 bytes (83%) free.
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 2MB --flash_freq 80m 0x0 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/nfc_types_smoke.bin
+or from the "/home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/build" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"

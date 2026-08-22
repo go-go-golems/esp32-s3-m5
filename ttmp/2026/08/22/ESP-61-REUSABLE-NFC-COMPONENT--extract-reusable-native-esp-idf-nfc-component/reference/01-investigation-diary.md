@@ -21,12 +21,27 @@ RelatedFiles:
       Note: Pinned upstream revisions used during architecture assessment
     - Path: repo://0117-m5stackchan-nfc-feature-explorer/main/nfc_console.cpp
       Note: Evidence of console, reboot, confirmation, and output policy to move out of core
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/result.hpp
+      Note: Phase 1 move-only Result<T> API without exceptions
+    - Path: repo://components/gogolem_nfc/include/gogolem/nfc/types.hpp
+      Note: Phase 1 host-clean domain types (commit pending)
+    - Path: repo://components/gogolem_nfc/src/gogolem_nfc.cpp
+      Note: Phase 1 helpers and version accessors
+    - Path: repo://components/gogolem_nfc/test_host/build.sh
+      Note: Phase 1 host-test build
+    - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
+      Note: Phase 1 ESP-IDF integration smoke
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
+      Note: Phase 1 host-test evidence
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
+      Note: Phase 1 ESP-IDF smoke build evidence
 ExternalSources: []
 Summary: Chronological evidence and decisions used to design the reusable native ESP-IDF NFC component extraction.
 LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 # Investigation Diary
@@ -422,3 +437,99 @@ The ESP-IDF build, trace host tests, and dependency lock all passed. The final r
 - Original blocker evidence: `sources/software/04-serial-owner-blocker.txt`.
 - Reader-mode evidence: `sources/hardware/01-phase0-reader-mode-restored.txt`.
 - No-tag hardware evidence: `sources/hardware/02-phase0-read-only-probe.txt`.
+
+## Step 5: Implement Phase 1 component skeleton and domain types
+
+Phase 0 hardware acceptance remained blocked on physical tag placement, so I advanced to the lowest-risk work that has no hardware dependency: the Phase 1 component foundation. The design guide explicitly makes Phase 1 a dependency-free layer — domain types, a `Result<T>` API, licensing, and host tests — so it could proceed without the NTAG215.
+
+I created `components/gogolem_nfc` following the repository's existing shared-component convention (`CMakeLists.txt`, `idf_component.yml`, `LICENSE`, `README.md`, `include/`, `src/`, `test_host/`). The public headers are host-clean: they include only standard C++ headers, so they compile under a plain `g++` as well as under the ESP-IDF xtensa toolchain. A minimal `examples/nfc_types_smoke` project then proved the component is discoverable, buildable, and linkable under ESP-IDF 5.5.4.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction from Step 4)
+
+**Assistant interpretation:** Keep implementing the next phase toward the durable goal, print its plan slip, and complete its acceptance without hardware when the phase is pure software.
+
+**Inferred user intent:** Make continuous, audited progress on ESP-61 rather than stalling on the physical tag blocker.
+
+### What I did
+
+- Printed the Phase 1 plan slip `Component Skeleton and Types`.
+- Created `components/gogolem_nfc/` with SPDX MIT `LICENSE`, `README.md`, `CMakeLists.txt`, and `idf_component.yml` (idf-only dependency for Phase 1).
+- Implemented `include/gogolem/nfc/types.hpp`: `Mode`, `LifecycleState`, `ErrorLayer`, `Operation`, `TagFamily`, `Error`, `TagInfo`, mirrored ESP error code constants, and name helpers — all host-clean.
+- Implemented `include/gogolem/nfc/result.hpp`: move-only `Result<T>` and `Result<void>` success/failure API without C++ exceptions.
+- Implemented `include/gogolem/nfc/version.hpp` and `src/gogolem_nfc.cpp` with version accessors and the `Error::set_detail` / `TagInfo::uid_equals` / name helpers.
+- Added `test_host/test_types.cpp`, `test_host/test_result.cpp`, `test_host/build.sh`, and `.gitignore`.
+- Created `examples/nfc_types_smoke` (CMakeLists.txt with `EXTRA_COMPONENT_DIRS` pointed only at `gogolem_nfc`, `main/smoke_main.cpp`, `sdkconfig.defaults`) and built it under ESP-IDF 5.5.4.
+- Preserved host-test and smoke-build evidence under `sources/software/`.
+
+### Why
+
+- Phase 1 acceptance is entirely software: a minimal ESP-IDF app can depend on the component, public headers avoid console/NVS/LVGL/Mooncake, and host tests compile under the chosen toolchain.
+- Keeping public headers dependency-free makes safety, lifecycle, and result semantics unit-testable without hardware, which is the whole point of separating this layer.
+- A dedicated smoke project proves integration without modifying any existing tutorial project, preserving existing behavior.
+
+### What worked
+
+- Both host test suites passed:
+
+  ```text
+  ALL TESTS PASSED
+  ALL TESTS PASSED
+  ```
+
+- The ESP-IDF 5.5.4 smoke build completed with no `warning:` or `error:` match:
+
+  ```text
+  nfc_types_smoke.bin binary size 0x2bbd0 bytes
+  0xd4430 bytes (83%) free
+  Project build complete.
+  ```
+
+- `gogolem_nfc` appeared in the ESP-IDF component list and its `gogolem_nfc.cpp.obj` compiled and linked.
+- `rg` confirmed no `printf`/`ESP_LOG`/`nvs_`/`esp_restart`/`GPIO`/`i2c_new_master_bus` in the core component.
+
+### What didn't work
+
+- First `EXTRA_COMPONENT_DIRS` pointed at the whole shared `components/` directory, which pulled in `echo_gif` and its unresolved `M5GFX` managed dependency, failing configure with `Failed to resolve component 'M5GFX'`. Fixed by pointing only at `components/gogolem_nfc`.
+- The project `CMakeLists.txt` initially omitted `cmake_minimum_required(VERSION 3.16)`, failing configure. Fixed to match the `0117` pattern.
+- `test_result.cpp` initially did not link `src/gogolem_nfc.cpp`, causing undefined references to `Error::set_detail`. Fixed `build.sh` to link the source for both test binaries.
+- `smoke_main.cpp` initially called `err.error().set_detail(...)` through the `const Error&` returned by `error()`, which is a const-discards error. Fixed by constructing the `Error` fully before `Result<void>::failure()`.
+
+### What I learned
+
+- `EXTRA_COMPONENT_DIRS` should name the specific component, not the shared directory, to avoid pulling unrelated components with their own managed dependencies — this is exactly the trap `AGENTS.md` warns about.
+- A header-only-feeling component still needs at least one translation unit for non-inline helpers; `src/gogolem_nfc.cpp` provides the version accessors and the `Error`/`TagInfo` helpers without becoming dead code.
+- `Result<T>::error()` returning `const Error&` is the right contract: errors are read-only diagnostics, and mutation must happen before the `Result` is constructed.
+
+### What was tricky to build
+
+- Keeping `types.hpp` host-clean required mirroring `esp_err_t` as `int32_t` constants rather than including `esp_err.h`, so the same header compiles under `g++` and the xtensa toolchain.
+- `Result<T>` uses placement new with manual destroy to avoid exceptions while preserving move semantics; the move-assign path had to destroy the existing value before reconstructing.
+
+### What warrants a second pair of eyes
+
+- Confirm `Result<T>` move semantics are correct under all value/error transitions, especially move-from-then-reuse (`take_value` leaves `ok()` false).
+- Confirm the `EXTRA_COMPONENT_DIRS` choice remains correct when Phase 9 migrates `0117` into the example tree.
+
+### What should be done in the future
+
+- Keep Phase 1 headers dependency-free as later phases add the Engine; upstream M5Unit-NFC types must not leak into public headers.
+- Add a CI guard that `rg` finds no `printf`/`ESP_LOG`/`nvs_`/`esp_restart` in `components/gogolem_nfc/src`.
+
+### Code review instructions
+
+- Read `components/gogolem_nfc/README.md` for the ownership contract.
+- Inspect `include/gogolem/nfc/{types,result,version}.hpp` and `src/gogolem_nfc.cpp`.
+- Run `components/gogolem_nfc/test_host/build.sh`.
+- Build `examples/nfc_types_smoke` under ESP-IDF 5.5.4.
+- Verify `rg -n 'printf|ESP_LOG|nvs_|esp_restart|GPIO_NUM|i2c_new_master_bus' components/gogolem_nfc` returns nothing.
+
+### Technical details
+
+- Phase 1 task: `niiu`.
+- Host test evidence: `sources/software/05-phase1-host-tests.txt`.
+- Smoke build evidence: `sources/software/06-phase1-smoke-build.txt`.
+- Component path: `components/gogolem_nfc/`.
+- Smoke project: `examples/nfc_types_smoke/`.
+- Phase 0 hardware acceptance (task `4igv`) remains open and is independent of Phase 1.

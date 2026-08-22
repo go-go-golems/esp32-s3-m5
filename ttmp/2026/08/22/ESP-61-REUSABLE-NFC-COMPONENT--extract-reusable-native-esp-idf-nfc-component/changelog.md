@@ -40,3 +40,13 @@ Phase 0: released the stale monitor, restored reader mode, and ran the fresh rea
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 4 updated with monitor release and no-tag probe
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/02-phase-0-baseline-evidence.md — Updated Phase 0 hardware status
+
+## 2026-08-22
+
+Phase 1 complete: created dependency-free gogolem_nfc component (types, Result<T>, version), host tests pass, and examples/nfc_types_smoke builds cleanly under ESP-IDF 5.5.4
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc/include/gogolem/nfc/types.hpp — Domain types
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/examples/nfc_types_smoke/CMakeLists.txt — Component integration smoke
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 5 Phase 1 implementation

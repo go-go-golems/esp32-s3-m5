@@ -9,7 +9,7 @@
 - [x] Validate ticket metadata, relations, diary, tasks, and changelog with docmgr doctor <!-- t:4325 -->
 - [x] Upload design and diary bundle to reMarkable <!-- t:jino -->
 - [ ] Phase 0: prove 0117 build, 0115 host tests, locked revisions, and read-only NTAG215 hardware baseline <!-- t:4igv -->
-- [ ] Phase 1: create reusable component skeleton, domain types, Result API, licensing, and host tests <!-- t:niiu -->
+- [x] Phase 1: create reusable component skeleton, domain types, Result API, licensing, and host tests <!-- t:niiu -->
 - [ ] Phase 2: implement synchronous read-only Engine with lifecycle, activation, WUPA fallback, and typed errors <!-- t:godz -->
 - [ ] Phase 3: add family-aware raw read, dump sink, and structured NDEF read <!-- t:3e9y -->
 - [ ] Phase 4: add single-owner FreeRTOS Service with commands, events, snapshots, and bounded shutdown <!-- t:hc7a -->
