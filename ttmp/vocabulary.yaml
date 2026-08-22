@@ -251,6 +251,8 @@ topics:
       description: 'Debug handoff doc: symptom + ruled-out + reproduction + ranked hypotheses + next steps for an expert colleague'
     - slug: iso14443a
       description: ISO/IEC 14443 Type A contactless card protocol and anticollision
+    - slug: component-architecture
+      description: Architecture and packaging of reusable software components and their public integration boundaries
 docTypes:
     - slug: index
       description: Ticket index document
