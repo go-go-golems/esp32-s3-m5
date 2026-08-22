@@ -205,14 +205,15 @@ sequenceDiagram
     participant HW as I2C peripheral
     App->>API: transmit_receive(cmd, data)
     API->>TS: s_i2c_transaction_start
-    TS->>TS: if (status==TIMEOUT or bus_busy) fsm_reset   // REACTIVE gate
+    TS->>TS: if (status==TIMEOUT or bus_busy) fsm_reset  [REACTIVE gate]
     TS->>TS: reset FIFOs, set timing, enable intr
     TS->>SC: s_i2c_send_commands (program START/W/R/STOP)
     SC->>HW: trans_start
     HW-->>ISR: NACK / DONE / TIMEOUT interrupt
-    ISR->>ISR: status = ACK_ERROR; event = NACK
-    ISR-->>SC: queue event
-    SC->>SC: on NACK: issue STOP, wait bus idle   // status NOT set to DONE
+    ISR->>ISR: status = ACK_ERROR, event = NACK
+    ISR-->>SC: queue event NACK
+    SC->>SC: on NACK: issue STOP, wait bus idle
+    Note over SC: status is NOT set to DONE
     SC->>SC: print "unexpected nack detected" (DEBUG)
     SC-->>TS: return (status != DONE)
     TS-->>API: ESP_ERR_INVALID_STATE
