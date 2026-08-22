@@ -238,3 +238,21 @@ Step 33: Phase 5 comparison script proves apples-to-apples divergence (Arduino 2
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/08-compare-arduino-espidf-traces.py — Comparison script
 
+
+## 2026-08-21
+
+Step 34: wrote intern guide 05 (I2C FSM-reset NACK diagnosis, 4202 words) and uploaded to reMarkable /ai/2026/08/21/ESP-60-M5STACKCHAN-NFC (commits 8cf879ad 88ab1fd5)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/05-why-arduino-reads-nfc-tags-and-esp-idf-does-not-the-i2c-fsm-reset-diagnosis.md — Intern guide
+
+
+## 2026-08-21
+
+Step 35: FSM-reset diagnostic patch REFUTED on hardware (patched 1.80% worse + failures in req-setup; reverted 1.17% baseline restored); IDF source reverted, patch file retained (commit 597174a7)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch — Refuted hypothesis patch
+

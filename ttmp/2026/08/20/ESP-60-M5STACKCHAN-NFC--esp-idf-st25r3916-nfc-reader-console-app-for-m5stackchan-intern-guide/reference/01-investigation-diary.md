@@ -36,6 +36,8 @@ RelatedFiles:
       Note: 'Apples-to-apples comparison: Arduino 0 failures on 0x5C/0x5A vs ESP-IDF NACKs'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md
       Note: Arduino-comparable ESP-IDF trace design and evidence-ranked backend diagnosis
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/05-why-arduino-reads-nfc-tags-and-esp-idf-does-not-the-i2c-fsm-reset-diagnosis.md
+      Note: Intern guide diagnosing the NACK as a reactive-vs-preventive I2C FSM reset difference
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/04-instrument-official-arduino-trace.py
       Note: Reproducible no-serial-in-hot-path M5Unified tracer
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/scripts/06-probe-st25r-trace.py
@@ -44,6 +46,8 @@ RelatedFiles:
       Note: Normalizes Arduino M5_I2C + ESP-IDF I2C_TRACE to one schema; emits summary/key-coverage/failure-timing/divergence (design S12)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/arduino-trace/Detect-continuous-traced.cpp
       Note: Continuous Arduino polling and on-screen diagnostics
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch
+      Note: Reproducible refuted-hypothesis patch (unconditional fsm_rst)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916.cpp
       Note: Authoritative initialization implementation
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/m5unit-nfc/unit_ST25R3916_nfca.cpp
@@ -60,6 +64,10 @@ RelatedFiles:
       Note: 'Live capture: 96/13816 transport failures, first error READ_A 0x1C INVALID_STATE 251us'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/06-driver-debug-nack-classification.txt
       Note: Live driver DEBUG capture confirming I2C_EVENT_NACK behind ESP_ERR_INVALID_STATE
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/08-fsm-reset-patch-runtime.txt
+      Note: 'Patched run: 213/11807 failures, first error in field-on/req-setup'
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/09-reverted-baseline-runtime.txt
+      Note: 'Reverted run: 144/12274 failures, first error in irq-wait (baseline restored)'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -68,6 +76,8 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
 
 
 
@@ -3022,3 +3032,149 @@ I generated a 512-event ESP-IDF dump (`sources/hardware/07-espidf-full-dump-for-
 - Arduino: 10,187 events, 0 failures. ESP-IDF: 512 events, 5 failures (1%).
 - Divergence key: `0x5C` — Arduino 2614/2614 OK, ESP-IDF 3/247 fail.
 - ESP-IDF failure timing: median 175 us, max 1244 us (recovery), gap median 12 us (busy-spin).
+
+---
+
+## Step 34: Write the I2C FSM-reset NACK diagnosis intern guide and upload to reMarkable
+
+I turned the Step 33 diagnosis into a standalone intern onboarding guide: design doc 05, "Why Arduino Reads NFC Tags and ESP-IDF Does Not — The I2C FSM Reset Diagnosis." It walks a new engineer from the physical topology through the two backends, the measured evidence, the root-cause analysis with exact source line citations, the decisive experiment, and the implementation plan. It includes two Mermaid diagrams, pseudocode, API references, and a full file/source reference. I validated it (frontmatter, word count, diagram fences) and uploaded it to reMarkable as a bundle with the instrumentation design doc (04) at `/ai/2026/08/21/ESP-60-M5STACKCHAN-NFC`.
+
+The guide presented the preventive-FSM-reset hypothesis as the leading cause with a one-line diagnostic patch as the decisive test. That framing is what made Step 35's refutation clean: the guide committed to a falsifiable prediction, and the experiment falsified it. (Step 35 updates the guide with the result.)
+
+### Prompt Context
+
+**User prompt (verbatim):** "Write a design document that explains all of this. Create a detailed analysis / design / implementation guide that is for a new intern, explaining all the parts of the system needed to understand what it is, with prose paragraphs and bullet points and pseudocode and diagrams and api references and file references. It should be very clear and technical. Store in the ticket and then upload to remarkable. Then do the patch, commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+
+**Assistant interpretation:** Write an intern-grade design doc explaining the NACK diagnosis with full system context, store it in the ticket, upload to reMarkable, then apply the FSM-reset diagnostic patch, commit at intervals, and keep a diary.
+
+**Inferred user intent:** Produce a durable, onboarding-quality reference for the diagnosis and then empirically test the leading hypothesis on hardware.
+
+**Commits:** `8cf879ad` doc, `88ab1fd5` mermaid fix, `c99acaf8` addendum/LaTeX fix.
+
+### What I did
+
+- Re-read the exact M5GFX `beginTransaction` (`common.cpp:1966`, `fsm_rst=1` at 2000, full controller reinit) and the ESP-IDF `s_i2c_hw_fsm_reset` (`i2c_master.c:117`), `s_i2c_transaction_start` (678, reactive gate 685-687), ISR NACK classification (786+), and `s_i2c_err_log_print` (155) to cite every claim with line numbers.
+- Wrote `design-doc/05-...md` (4,202 words, 447 lines, 2 Mermaid diagrams): executive summary, system topology, the two backends, the ST25R register protocol, the NFC-A exchange, observed failure + measured evidence, the cadence measurement that ruled out turnaround margin, root-cause mechanism, alternatives, the decisive experiment, implementation plan, acceptance gates, and a file/source reference + glossary.
+- Validated frontmatter, word count, diagram-fence balance, and required sections; related 4 source files.
+- Built and uploaded the bundle (doc 05 + doc 04) to reMarkable.
+
+### Why
+
+- A new engineer needs the full system context (shared bus, top-edge placement, USB-Serial/JTAG console, the two backends) to understand a one-line NACK, not just the diff.
+- Committing the hypothesis to a falsifiable prediction before testing is what makes a refutation valuable rather than embarrassing.
+
+### What worked
+
+- Frontmatter and section validation passed; doctor passed.
+- First reMarkable upload succeeded but a Mermaid sequence diagram failed to render.
+
+### What didn't work
+
+- The sequence diagram used a `;` in a message label (`status = ACK_ERROR; event = NACK`); Mermaid treats `;` as a statement separator, so the parser split the line and failed (`got NEWLINE`). Fixed by replacing `;` with `,` and removing an inline `//` comment.
+- The reMarkable tool's `mmdc` could not launch Chromium (AppArmor `--no-sandbox` issue); I verified diagram syntax with a local `--no-sandbox` puppeteer config instead.
+- A later addendum blockquote (`> ## heading`) caused a pandoc/LaTeX `missing \item` error; converted to a plain callout-style section.
+
+### What I learned
+
+- Mermaid sequence diagrams use `;` as a statement separator — never put a semicolon in a message label.
+- Blockquotes containing headings break pandoc's LaTeX itemize rendering; prefer plain bold callouts.
+- The `mmdc` Chromium sandbox fails on this Ubuntu AppArmor setup; use `--no-sandbox` via a puppeteer config for local verification.
+
+### What was tricky to build
+
+- Citing every claim with a real line number required re-reading both backends' source around the exact functions, not relying on memory of the prior session.
+- Making the guide honest about epistemics (proven vs source-confirmed vs inferred) so the eventual refutation would update it rather than invalidate it.
+
+### What warrants a second pair of eyes
+
+- The line-number citations (M5GFX 2000, ESP-IDF 685-687/725-727/786+) — re-verify against the pinned IDF commit `73550728`.
+- The cadence comparison in Section 3.3 (idle gap ≈ 3 µs both backends) — re-verify the gap computation (STOP→START, not start→start).
+
+### What should be done in the future
+
+- Update the guide with the Step 35 refutation (done in Step 35) so it never ships a refuted hypothesis as fact.
+
+### Code review instructions
+
+- Read `design-doc/05-...md` Sections 4, 6, 7; verify citations against the source files listed in Section 9.
+- Run `docmgr validate frontmatter` and `docmgr doctor`.
+
+### Technical details
+
+- Guide: 4,202 words → 4,843 words after the Step 35 addendum. 2 Mermaid diagrams (flowchart + sequence). reMarkable path `/ai/2026/08/21/ESP-60-M5STACKCHAN-NFC/ESP-60 I2C FSM Reset NACK Diagnosis.pdf`.
+
+---
+
+## Step 35: Apply the FSM-reset diagnostic patch — leading hypothesis REFUTED on hardware
+
+I applied the one-line diagnostic patch from the guide (make `s_i2c_hw_fsm_reset` unconditional in `s_i2c_transaction_start`, `clear_bus=false`), saved it as a reproducible file, verified it compiled in via disassembly, built, flashed, and measured against a reverted baseline. The result refutes the leading hypothesis: the NACK rate went UP (1.80% vs 1.17%) and failures appeared in `field-on`/`req-setup` phases that were always clean before. Reverting restored the original profile exactly. `fsm_rst` alone is not the fix and is harmful; I reverted the IDF source (keeping the patch file as a refuted-hypothesis record) and updated the guide with the result and the revised direction (SDA/SCL capture).
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 34 — "Then do the patch, commit at appropriate intervals and keep a detailed diary as you work")
+
+**Commits:** `597174a7` patch + evidence; `27e30fcb` guide refutation; `c99acaf8` LaTeX fix; IDF source reverted (git clean).
+
+### What I did
+
+- Saved `sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch` (reproducible, with apply/revert instructions and the decision rule).
+- Applied it to `~/esp/esp-idf-5.5.4` (commit `73550728`): changed the gated reset (685-687) to an unconditional `s_i2c_hw_fsm_reset(i2c_master, false)`.
+- Rebuilt `0115` and confirmed the driver object recompiled (obj 21:08 > source 21:07) and the patch is live in the binary: disassembly of `s_i2c_transaction_start` shows an unconditional `callx8` to `s_i2c_hw_fsm_reset` with `a11=0` (clear_bus=false), no guarding branch.
+- Flashed and ran `nfc-read --attempts 25` with `nfc-i2c-debug on` and the trace ring (capture `08-fsm-reset-patch-runtime.txt`).
+- Reverted the patch (`patch -R`), rebuilt, reflashed, and re-measured (capture `09-reverted-baseline-runtime.txt`).
+- Wrote `sources/hardware/08-09-fsm-reset-patch-experiment.provenance.md` with the decision table.
+- Updated design doc 05 with a top callout and Sections 7.4 (refutation evidence) + 7.5 (revised direction), re-validated, and re-uploaded to reMarkable.
+
+### Why
+
+- The guide committed to a falsifiable prediction (Section 7.2: NACK rate → ~0 confirms; unchanged/worse refutes). The only honest way to test it is to run it.
+- A negative result that refutes a confident, source-backed hypothesis is more valuable than a confirmatory one: it eliminates the leading cause and forces the real cause to the surface.
+
+### What worked
+
+- Patch applied and reverted cleanly (`patch -p1` / `patch -R -p1`); IDF `git diff` clean after revert.
+- Disassembly confirmed the patched code is live, so the negative result is not a build-cache artifact.
+- The reverted baseline reproduced the exact original profile (failures only in `irq-wait`, first error `READ_A 0x1C`), making the comparison airtight.
+
+### What didn't work
+
+- The patch did not reduce NACKs; it increased them and moved them into setup phases. The leading hypothesis is refuted.
+- A first reMarkable re-upload of the addendum failed with a pandoc `missing \item` LaTeX error (blockquote-with-heading); fixed by converting to a plain callout.
+
+### What I learned
+
+- `fsm_rst` alone is harmful without M5GFX's surrounding bus-idle-wait + full controller reinit. On ESP32-S3 `s_i2c_hw_fsm_reset(false)` is *just* `i2c_ll_master_fsm_rst`; my "mirrors M5GFX" claim was incomplete — M5GFX does a full reinit, not just the bit.
+- A bare per-transaction FSM reset, applied while the previous STOP may still be settling, perturbs the bus — which is why the patched build newly failed in `field-on`/`req-setup`.
+- Disassembly (`callx8` with `a11=0`, no guarding branch) is the reliable way to confirm a driver patch is live when the optimizer strips comments.
+
+### What was tricky to build
+
+- Confirming the patch actually compiled in: the optimizer stripped the `ESP-60 DIAGNOSTIC` comment, so `strings` was useless; I had to disassemble `s_i2c_transaction_start` and read the calling convention (`a10`=arg0, `a11`=arg1=clear_bus=false).
+- Keeping the guide honest: a refuted central hypothesis must be flagged at the top, not buried, or the doc misleads future readers.
+
+### What warrants a second pair of eyes
+
+- The rate comparison (patched 213/11807 vs baseline 144/12274) rests on single runs; a multi-boot repeatability check would strengthen it, but the qualitative shift (failures in previously-clean setup phases) is strong on its own.
+- The disassembly reading (`a11=0` ⇒ clear_bus=false ⇒ patched) — verify against the Xtensa calling convention.
+- Whether the full M5GFX reinit (not just fsm_rst) is worth testing as a larger local backend before the scope, or whether SDA/SCL should come first.
+
+### What should be done in the future
+
+- SDA/SCL logic-analyzer capture on GPIO12/GPIO11 during a failing `READ_A 0x1C` (wire `0x5C`) to locate the NACK byte stage (address vs command vs data) and check START/STOP edges — this is the user/hardware step.
+- Test the full M5GFX-style per-transaction reinit (bus-idle wait + pin re-route + mode reinit + FIFO + fsm_rst) as a standalone direct backend (design doc 04 Phase 6), not a bare fsm_rst.
+- Re-run the comparison with a tag present to see whether the NACKs prevent UID reading or a separate protocol issue exists.
+- Fix `read_main_irq()` to propagate transport errors so no-tag and NACK are distinguishable to the application.
+
+### Code review instructions
+
+- Read `sources/hardware/08-09-fsm-reset-patch-experiment.provenance.md` (decision table) and the two captures.
+- Verify the IDF source is reverted: `cd ~/esp/esp-idf-5.5.4 && git diff --stat components/esp_driver_i2c/i2c_master.c` (empty).
+- In the guide, read the top callout and Sections 7.4–7.5.
+
+### Technical details
+
+- Patched: 213/11807 = 1.80%, first error seq ~12 in `field-on`/`req-setup` (new).
+- Baseline: 144/12274 = 1.17%, first error seq 32 in `irq-wait` `READ_A 0x1C` (original profile).
+- Zero `I2C transaction timeout detected` lines in either build (pure NACK both).
+- IDF pinned at `73550728`; patch file retained in `sources/code/`; source reverted to clean.
+- Board runs the reverted baseline `0115` debug build.
