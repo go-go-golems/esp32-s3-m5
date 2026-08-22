@@ -316,14 +316,16 @@ static esp_err_t clear_interrupts(void)
 }
 
 /* Set the number of transmitted bytes (REG_NUM_TX_BYTES_1/2 = 0x22/0x23).
- * Layout (M5 lib): value = ((bytes & 0x1FF) << 3) | (bits & 0x07), split low/high
- * across reg 0x22 / 0x23. */
+ * Layout: value = ((bytes & 0x1FF) << 3) | (bits & 0x07).
+ * M5Unit-NFC documents register 1 (0x22) as the MSB and register 2 (0x23)
+ * as the LSB. The previous implementation wrote them reversed, so FIFO-based
+ * anticollision/SELECT transmitted an invalid length while REQA/WUPA still worked. */
 static esp_err_t set_tx_bytes(uint32_t bytes, uint8_t bits)
 {
     uint16_t value = (uint16_t)(((bytes & 0x1FF) << 3) | (bits & 0x07));
-    esp_err_t e = wr8(ST25R_REG_NUM_TX_BYTES_1, (uint8_t)(value & 0xFF));
+    esp_err_t e = wr8(ST25R_REG_NUM_TX_BYTES_1, (uint8_t)((value >> 8) & 0xFF));
     if (e != ESP_OK) return e;
-    return wr8(ST25R_REG_NUM_TX_BYTES_2, (uint8_t)((value >> 8) & 0xFF));
+    return wr8(ST25R_REG_NUM_TX_BYTES_2, (uint8_t)(value & 0xFF));
 }
 
 /* Configure the frame-waiting/no-response timer exactly like M5Unit-NFC's
