@@ -14,7 +14,7 @@
 - [x] Phase 3: add family-aware raw read, dump sink, and structured NDEF read <!-- t:3e9y -->
 - [x] Phase 4: add single-owner FreeRTOS Service with commands, events, snapshots, and bounded shutdown <!-- t:hc7a -->
 - [x] Phase 5: add caller-provided target emulation profiles and state events <!-- t:z932 -->
-- [ ] Phase 6: add UID-bound mutation permits, protected-region validation, reversible writes, and fault tests <!-- t:7tya -->
+- [x] Phase 6: add UID-bound mutation permits, protected-region validation, reversible writes, and fault tests <!-- t:7tya -->
 - [ ] Phase 7: add caller-provided NDEF writes with capacity and semantic readback verification <!-- t:lj6l -->
 - [ ] Phase 8: add Classic credentials, read-only value inspection, guarded wallet plans, and restoration reports <!-- t:42gr -->
 - [ ] Phase 9: migrate 0117 into the reusable component example and preserve console/NVS/demo policy outside core <!-- t:depz -->

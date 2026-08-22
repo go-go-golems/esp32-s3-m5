@@ -161,3 +161,12 @@ Phase 5 complete: Engine target emulation (EmulationState, EmulationProfile, sta
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — emulation
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 17 Phase 5 emulation
+
+## 2026-08-22
+
+Phase 6 complete: reversible_write proven on sacrificial NTAG215 (write=1 verify=1 restore=1, NDEF valid after restoration, repeated 3x with WUPA). Safety gate and UID-bound permit enforced.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — reversible_write
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step Phase 6 complete

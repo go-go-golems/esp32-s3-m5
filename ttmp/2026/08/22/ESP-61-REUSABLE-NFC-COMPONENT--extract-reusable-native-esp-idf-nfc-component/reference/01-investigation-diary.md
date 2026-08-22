@@ -79,6 +79,7 @@ RelatedFiles:
         Phase 2 activate_one + WUPA fallback + deactivate
         Phase 3 raw_read + read_ndef + dump with NDEF conversion
         Phase 5 emulation implementation (start_emulation, update_emulation, embed_uid)
+        Phase 6 reversible_write with safety gate and UID permit
     - Path: repo://components/gogolem_nfc_engine/src/service.cpp
       Note: Phase 4 Service worker implementation
     - Path: repo://examples/nfc_emulation_smoke/main/smoke_main.cpp
@@ -107,6 +108,8 @@ RelatedFiles:
       Note: Phase 4 Service runtime
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/15-emulation-smoke-runtime.txt
       Note: Phase 5 emulation local init (state=off, no phone)
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/16-reversible-write-runtime.txt
+      Note: Phase 6 reversible write on sacrificial NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -117,6 +120,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 

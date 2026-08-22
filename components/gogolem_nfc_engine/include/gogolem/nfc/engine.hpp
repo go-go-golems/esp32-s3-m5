@@ -17,7 +17,9 @@
 #include "driver/i2c_master.h"
 
 #include "gogolem/nfc/ndef.hpp"
+#include "gogolem/nfc/mutation.hpp"
 #include "gogolem/nfc/result.hpp"
+#include "gogolem/nfc/safety.hpp"
 #include "gogolem/nfc/types.hpp"
 
 namespace gogolem::nfc {
@@ -107,6 +109,12 @@ public:
     // the tag does not support NDEF, or a DataFormat error if the format is
     // invalid.
     Result<NdefMessage> read_ndef();
+
+    // Reversible write test: save original bytes, write a test pattern,
+    // verify, restore original, verify restoration. Returns a full WriteReport.
+    // The address must be an identified user page/block; the safety gate rejects
+    // protected regions. Uses the pure is_safe_write_target() validator.
+    Result<WriteReport> reversible_write(uint8_t address, const MutationPermit& permit);
 
     // Dump the entire card through the upstream library. Returns success when
     // the dump completes. (A sink-based API will replace this in a later phase.)

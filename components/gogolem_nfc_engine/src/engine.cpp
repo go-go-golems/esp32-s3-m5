@@ -9,8 +9,10 @@
 
 #include "gogolem/nfc/engine.hpp"
 #include "gogolem/nfc/lifecycle.hpp"
+#include "gogolem/nfc/mutation.hpp"
 #include "gogolem/nfc/ndef.hpp"
 #include "gogolem/nfc/picc_map.hpp"
+#include "gogolem/nfc/safety.hpp"
 
 #include "M5UnitUnified.h"
 #include "M5UnitUnifiedNFC.hpp"
@@ -356,6 +358,103 @@ Result<NdefMessage> Engine::read_ndef() {
     }
     // Empty valid NDEF (zero records) is success with an empty message.
     return Result<NdefMessage>::success(std::move(msg));
+}
+
+Result<WriteReport> Engine::reversible_write(uint8_t address, const MutationPermit& permit) {
+    WriteReport report{};
+    if (!lifecycle_is_ready(impl_->state)) {
+        report.first_error.layer = ErrorLayer::Lifecycle;
+        report.first_error.operation = Operation::Write;
+        report.first_error.set_detail("not ready");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+    impl_->units.update(true);
+    PICC picc{};
+    if (!impl_->reader.request(picc.atqa) && !impl_->reader.wakeup(picc.atqa)) {
+        report.first_error.layer = ErrorLayer::Rf;
+        report.first_error.esp_code = ESP_CODE_ERR_NOT_FOUND;
+        report.first_error.operation = Operation::Write;
+        report.first_error.set_detail("no tag");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+    if (!impl_->reader.select(picc) || !impl_->reader.identify(picc) || !impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        report.first_error.layer = ErrorLayer::Activation;
+        report.first_error.operation = Operation::Write;
+        report.first_error.set_detail("activation failed");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+
+    // Validate permit against the selected tag.
+    TagInfo tag = to_tag_info(picc_to_fields(picc));
+    if (!permit_allows(permit, MutationKind::ReversibleWrite, tag)) {
+        impl_->reader.deactivate();
+        report.first_error.layer = ErrorLayer::Policy;
+        report.first_error.operation = Operation::Write;
+        report.first_error.set_detail("permit denied (UID or kind mismatch)");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+
+    // Safety gate: reject protected regions.
+    if (!is_safe_write_target(tag.family, address, tag.first_user_unit, tag.last_user_unit,
+                              false, 0)) {
+        impl_->reader.deactivate();
+        report.first_error.layer = ErrorLayer::Policy;
+        report.first_error.operation = Operation::Write;
+        report.first_error.set_detail("protected address rejected");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+
+    // Type 2 write: 4-byte page.
+    const uint8_t width = 4;
+    uint8_t original[16]{};
+    uint8_t pattern[4]{};
+    uint8_t verify[16]{};
+
+    // Read original.
+    if (!impl_->reader.read16(original, address)) {
+        impl_->reader.deactivate();
+        report.first_error.layer = ErrorLayer::Protocol;
+        report.first_error.operation = Operation::Read;
+        report.first_error.set_detail("original read failed");
+        return Result<WriteReport>::failure(report.first_error);
+    }
+
+    // Test pattern (distinct, recoverable).
+    pattern[0] = 0xD1; pattern[1] = 0xA6; pattern[2] = address; pattern[3] = 0x5A;
+
+    // Write test pattern.
+    report.write_attempted = true;
+    report.write_succeeded = impl_->reader.write4(address, pattern, width);
+
+    // Verify.
+    report.verification_attempted = true;
+    if (report.write_succeeded) {
+        if (impl_->reader.read16(verify, address)) {
+            report.verification_succeeded = (std::memcmp(pattern, verify, width) == 0);
+        }
+    }
+
+    // Restore original regardless of verification result.
+    report.restoration_required = true;
+    report.restoration_attempted = impl_->reader.write4(address, original, width);
+    if (report.restoration_attempted) {
+        std::memset(verify, 0, sizeof(verify));
+        if (impl_->reader.read16(verify, address)) {
+            report.restoration_succeeded = (std::memcmp(original, verify, width) == 0);
+        }
+    }
+
+    impl_->reader.deactivate();
+
+    if (!write_report_ok(report)) {
+        if (report.first_error.layer == ErrorLayer::None) {
+            report.first_error.layer = write_report_primary_failure(report);
+            report.first_error.operation = Operation::Write;
+        }
+        return Result<WriteReport>::failure(report.first_error);
+    }
+    return Result<WriteReport>::success(std::move(report));
 }
 
 Result<void> Engine::dump() {
