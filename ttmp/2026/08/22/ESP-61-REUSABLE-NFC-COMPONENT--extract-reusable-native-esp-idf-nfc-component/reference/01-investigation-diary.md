@@ -69,11 +69,15 @@ RelatedFiles:
       Note: Phase 2 Engine component (REQUIRES gogolem_nfc + M5Unit-NFC)
     - Path: repo://components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp
       Note: Phase 2 synchronous Engine public API (pimpl)
+    - Path: repo://components/gogolem_nfc_engine/include/gogolem/nfc/service.hpp
+      Note: Phase 4 Service API
     - Path: repo://components/gogolem_nfc_engine/src/engine.cpp
       Note: |-
         Phase 2 Engine wiring wrapping M5Unit-NFC, begin/scan, initialize-once
         Phase 2 activate_one + WUPA fallback + deactivate
         Phase 3 raw_read + read_ndef + dump with NDEF conversion
+    - Path: repo://components/gogolem_nfc_engine/src/service.cpp
+      Note: Phase 4 Service worker implementation
     - Path: repo://examples/nfc_engine_smoke/main/smoke_main.cpp
       Note: |-
         Phase 2 Engine runtime smoke
@@ -94,6 +98,8 @@ RelatedFiles:
       Note: Live WUPA fallback on real NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/13-engine-raw-ndef-dump-runtime.txt
       Note: Phase 3 runtime on real NTAG215
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/14-service-smoke-runtime.txt
+      Note: Phase 4 Service runtime
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -104,6 +110,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -1345,3 +1352,72 @@ With the tag on the antenna, I added `raw_read()`, `read_ndef()`, and `dump()` t
 - Raw read page 0: `04 DA F7 A1 4D 9E 61 80 32 48 00 00 E1 10 3E 00`.
 - NDEF: valid, zero records.
 - Dump: 135 pages (0-134), configuration pages at 130-134.
+
+## Step 16: Phase 4 complete — worker Service proven on real NTAG215
+
+I implemented the Service as a single-owner FreeRTOS worker that serializes Engine access through a command queue. The main task submits commands; the worker executes them one at a time; snapshots are published by value. The engine smoke was updated to use the Service, and the runtime proves multi-task serialization works on the real NTAG215: ActivateOne, RawRead, and ReadNdef all succeed through the queue, and the snapshot accumulates operations and failures correctly.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Add the Phase 4 worker Service and prove it on the now-present tag.
+
+**Inferred user intent:** Complete the multi-task serialization layer for NFC LAB integration.
+
+### What I did
+
+- Implemented `include/gogolem/nfc/service.hpp` and `src/service.cpp`: `ServiceConfig`, `Command`, `ServiceSnapshot`, `Service` (start/stop/submit/latest/running).
+- The Service owns one Engine, creates a FreeRTOS task and two queues (commands + snapshots), and serializes all Engine access through the worker.
+- Updated the engine smoke to use the Service: main task submits ActivateOne + RawRead + ReadNdef, reads snapshots.
+- Built, flashed, and captured live runtime.
+- Marked task `hc7a` complete.
+- Printed the Phase 4 completion slip.
+
+### What worked
+
+- Runtime on the real NTAG215:
+
+  ```text
+  smoke service start ok=1 running=1
+  smoke snap ops=3 fail=1 tag=0 ndef_ok=1 recs=0 raw_ok=1
+  smoke snap ops=6 fail=1 tag=1 ndef_ok=1 recs=0 raw_ok=1
+  smoke snap ops=9 fail=1 tag=1 ndef_ok=1 recs=0 raw_ok=1
+  ```
+
+- The Service serializes Engine access: 9 operations processed by the worker, 1 failure (the expected first-post-flash REQA), all subsequent operations succeed.
+- The main task reads snapshots by value without touching the Engine.
+
+### What didn't work
+
+- `uint32_t` is `long unsigned int` on the target; `%u` format needed `%lu` with casts.
+
+### What I learned
+
+- The Service pattern from `0116` (queue/worker/snapshot) ports cleanly to the reusable component.
+- The snapshot accumulates state across commands: ops and failures increase monotonically, proving the worker processes them in order.
+
+### What was tricky to build
+
+- The Service must clean up queues and the task on stop, and the worker must call `engine_.end()` before deleting itself.
+
+### What warrants a second pair of eyes
+
+- Confirm `stop()` timeout and task cleanup are race-free; the worker sets `worker_ = nullptr` before `vTaskDelete(nullptr)`.
+
+### What should be done in the future
+
+- Add target emulation to the Engine (Phase 5).
+- Migrate 0117 to use the component (Phase 9).
+
+### Code review instructions
+
+- Read `components/gogolem_nfc_engine/include/gogolem/nfc/service.hpp` and `src/service.cpp`.
+- Flash `examples/nfc_engine_smoke`; verify `service start ok=1` and `ops` increasing.
+- Inspect `sources/hardware/14-service-smoke-runtime.txt`.
+
+### Technical details
+
+- Phase 4 task `hc7a`: complete.
+- Runtime evidence: `sources/hardware/14-service-smoke-runtime.txt`.
+- Worker stack: 8192 bytes, priority 5, command queue depth 8.

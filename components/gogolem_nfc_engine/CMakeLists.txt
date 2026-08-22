@@ -7,6 +7,7 @@
 idf_component_register(
     SRCS
         "src/engine.cpp"
+        "src/service.cpp"
     INCLUDE_DIRS
         "include"
     REQUIRES

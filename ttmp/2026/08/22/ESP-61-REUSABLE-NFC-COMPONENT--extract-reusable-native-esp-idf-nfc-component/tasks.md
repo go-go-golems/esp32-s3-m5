@@ -12,7 +12,7 @@
 - [x] Phase 1: create reusable component skeleton, domain types, Result API, licensing, and host tests <!-- t:niiu -->
 - [x] Phase 2: implement synchronous read-only Engine with lifecycle, activation, WUPA fallback, and typed errors <!-- t:godz -->
 - [x] Phase 3: add family-aware raw read, dump sink, and structured NDEF read <!-- t:3e9y -->
-- [ ] Phase 4: add single-owner FreeRTOS Service with commands, events, snapshots, and bounded shutdown <!-- t:hc7a -->
+- [x] Phase 4: add single-owner FreeRTOS Service with commands, events, snapshots, and bounded shutdown <!-- t:hc7a -->
 - [ ] Phase 5: add caller-provided target emulation profiles and state events <!-- t:z932 -->
 - [ ] Phase 6: add UID-bound mutation permits, protected-region validation, reversible writes, and fault tests <!-- t:7tya -->
 - [ ] Phase 7: add caller-provided NDEF writes with capacity and semantic readback verification <!-- t:lj6l -->

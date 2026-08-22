@@ -143,3 +143,12 @@ Phase 3 complete: Engine raw_read (16 bytes), read_ndef (valid empty NDEF), and 
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — Phase 3 operations
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 15 Phase 3 complete
+
+## 2026-08-22
+
+Phase 4 complete: single-owner FreeRTOS Service serializes Engine access (command queue, worker task, snapshots). Proven on real NTAG215 with 9 operations through the queue (activate, raw_read, ndef_read all succeed).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/service.cpp — Service worker
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 16 Phase 4 complete

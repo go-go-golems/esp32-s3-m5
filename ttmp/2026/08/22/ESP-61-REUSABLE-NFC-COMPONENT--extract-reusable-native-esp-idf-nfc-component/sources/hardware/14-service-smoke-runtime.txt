@@ -1,0 +1,4 @@
+smoke service start ok=1 running=1
+smoke snap ops=3 fail=1 tag=0 ndef_ok=1 recs=0 raw_ok=1
+smoke snap ops=6 fail=1 tag=1 ndef_ok=1 recs=0 raw_ok=1
+smoke snap ops=9 fail=1 tag=1 ndef_ok=1 recs=0 raw_ok=1
