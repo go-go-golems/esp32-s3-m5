@@ -105,6 +105,7 @@ static esp_err_t rd8b(uint8_t reg, uint8_t *out)
     return e;
 }
 
+static esp_err_t fifo_status(uint16_t *bytes, uint8_t *bits);
 static uint16_t fifo_bytes(void);  /* forward decl (used by fifo_read) */
 
 static esp_err_t modify8(uint8_t reg, uint8_t mask, uint8_t bits)
@@ -146,27 +147,38 @@ static esp_err_t fifo_write(const uint8_t *data, size_t len)
 static esp_err_t fifo_read(uint8_t *data, size_t want, size_t *got)
 {
     if (got) *got = 0;
-    uint16_t n = fifo_bytes();
+    uint16_t n = 0;
+    esp_err_t e = fifo_status(&n, NULL);
+    if (e != ESP_OK) return e;
     if (n == 0) return ESP_OK;
     if (n > want) n = (uint16_t)want;
     uint8_t cmd = 0x9F;  /* OP_READ_FIFO */
     int64_t t0 = esp_timer_get_time();
-    esp_err_t e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, n, I2C_TICKS);
+    e = i2c_master_transmit_receive(s_dev, &cmd, 1, data, n, I2C_TICKS);
     trace_rec(ST25R_OP_FIFO_READ, 0x9F, 0x9F, ST25R_TRACE_KIND_WRITE_READ, 1, n, t0, e);
     if (e == ESP_OK && got) *got = n;
     return e;
 }
 
-/* Read the FIFO byte count. M5's readFIFOStatus() reads the registers as a
- * big-endian 16-bit value: s = reg0x1E << 8 | reg0x1F. readFIFOSize() then
- * computes bytes = (s >> 8) | ((s & 0x00C0) << 2), i.e. the low 8 count
- * bits are in reg0x1E and count bits 9:8 are reg0x1F bits 7:6. */
-static uint16_t fifo_bytes(void)
+/* Read FIFO byte + partial-bit counts. M5 readFIFOSize() interprets
+ * status1 as count bits 7:0, status2 bits 7:6 as count bits 9:8, and
+ * status2 bits 3:1 as the number of valid bits in the incomplete byte. */
+static esp_err_t fifo_status(uint16_t *bytes, uint8_t *bits)
 {
     uint8_t status1 = 0, status2 = 0;
-    if (rd8(ST25R_REG_FIFO_STATUS_1, &status1) != ESP_OK) return 0;
-    if (rd8(ST25R_REG_FIFO_STATUS_2, &status2) != ESP_OK) return 0;
-    return (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
+    esp_err_t e = rd8(ST25R_REG_FIFO_STATUS_1, &status1);
+    if (e != ESP_OK) return e;
+    e = rd8(ST25R_REG_FIFO_STATUS_2, &status2);
+    if (e != ESP_OK) return e;
+    if (bytes) *bytes = (uint16_t)status1 | ((uint16_t)(status2 & 0xC0) << 2);
+    if (bits) *bits = (status2 >> 1) & 0x07;
+    return ESP_OK;
+}
+
+static uint16_t fifo_bytes(void)
+{
+    uint16_t bytes = 0;
+    return fifo_status(&bytes, NULL) == ESP_OK ? bytes : 0;
 }
 
 /* Preserve the error IRQ before reading Main: per M5Unit-NFC/ST25R3916,
@@ -618,19 +630,29 @@ static esp_err_t nfca_wake(uint16_t *atqa, uint8_t wake_cmd)
             int64_t dl = esp_timer_get_time() + 50 * 1000;
             while (esp_timer_get_time() < dl) {
                 if (fifo_bytes() >= 2) { irq |= ST25R_IRQ_RXE; break; }
-                vTaskDelay(pdMS_TO_TICKS(1));
+                vTaskDelay(1); /* one real FreeRTOS tick; pdMS_TO_TICKS(1) is 0 at 100 Hz */
             }
         }
-        if (!(irq & ST25R_IRQ_RXE)) return ESP_ERR_NOT_FOUND;
+        if (!(irq & (ST25R_IRQ_RXE | ST25R_IRQ_COL))) return ESP_ERR_NOT_FOUND;
     }
     st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
                             ST25R_PHASE_FIFO_READ, 1);
     uint8_t rbuf[2] = {0, 0};
     size_t got = 0;
     e = fifo_read(rbuf, 2, &got);
-    if (e != ESP_OK || got != 2) return ESP_FAIL;
-    *atqa = ((uint16_t)rbuf[1] << 8) | (uint16_t)rbuf[0];
-    return ESP_OK;
+    if (e != ESP_OK) return e;
+    if (got == 2) {
+        *atqa = ((uint16_t)rbuf[1] << 8) | (uint16_t)rbuf[0];
+        return ESP_OK;
+    }
+    /* Multiple tags can collide before a reliable two-byte ATQA is available.
+     * COL is positive RF evidence and must transition into anticollision rather
+     * than being collapsed into ESP_FAIL. ATQA remains 0/unknown in this case. */
+    if (irq & ST25R_IRQ_COL) {
+        ESP_LOGI(TAG, "%s: collision without complete ATQA; continue to anticollision", wn);
+        return ESP_OK;
+    }
+    return ESP_FAIL;
 }
 
 /* ---- REQA: get ATQA ---- */
@@ -653,51 +675,103 @@ static esp_err_t nfca_anticoll_select(uint8_t sel, uint8_t *uid_out, uint8_t *sa
 {
     st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
                             ST25R_PHASE_ANTICOLLISION, 1);
-    /* ANTICOLLISION: SEL, NVB=0x20 (request full UID, all bits). */
-    uint8_t frame[7] = { sel, 0x20 };
     esp_err_t e = set_frame_wait_time(8); /* M5 TIMEOUT_ANTICOLL */
     if (e != ESP_OK) return e;
     e = wr8(ST25R_REG_ISO14443A_SETTINGS, 0x01); /* antcl */
     if (e != ESP_OK) return e;
-    clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* re-enable CRC for select */
-    clear_interrupts();
-    direct_cmd(ST25R_CMD_CLEAR_FIFO);
-    fifo_write(frame, 2);
-    set_tx_bytes(2, 0);
-    direct_cmd(ST25R_CMD_TRANSMIT_WITHOUT_CRC);
+    e = clear_bits(ST25R_REG_AUXILIARY_DEFINITION, 0x80); /* CRC off for anticollision */
+    if (e != ESP_OK) return e;
 
-    uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_COL, 50);
-    if (irq & ST25R_IRQ_COL) {
-        /* Phase-1 single-tag assumption: a collision means two+ tags; report it. */
-        return ESP_ERR_INVALID_STATE;
-    }
-    if (!(irq & ST25R_IRQ_RXE)) return ESP_FAIL;
-
-    /* Expect UID (4 bytes) + BCC (1 byte) = 5 bytes for one cascade level. */
+    /* Port of M5Unit-NFC nfca_anti_collision(): on each collision, read the
+     * partial UID bytes and collision position, choose the 1 branch, extend
+     * NVB, and retry. This deterministically selects one PICC among many. */
+    uint8_t frame[7] = { sel, 0x20 };
     uint8_t rbuf[5] = {0};
-    size_t got = 0;
-    fifo_read(rbuf, 5, &got);
-    if (got != 5) return ESP_FAIL;
+    uint8_t send_bytes = 2;
+    uint8_t send_bits = 0;
+    uint8_t rbuf_offset = 0;
+    uint8_t collision_byte = 1;
+    bool collision = false;
 
-    /* SELECT: SEL, NVB=0x70, UID(4) + BCC(1) — with CRC (chip appends). */
+    for (unsigned retry = 0; retry < 32; ++retry) {
+        e = clear_interrupts();
+        if (e != ESP_OK) return e;
+        e = direct_cmd(ST25R_CMD_CLEAR_FIFO);
+        if (e != ESP_OK) return e;
+        e = fifo_write(frame, send_bytes + (send_bits != 0));
+        if (e != ESP_OK) return e;
+        e = set_tx_bytes(send_bytes, send_bits);
+        if (e != ESP_OK) return e;
+        e = direct_cmd(ST25R_CMD_TRANSMIT_WITHOUT_CRC);
+        if (e != ESP_OK) return e;
+
+        uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_COL, 50);
+        collision = (irq & ST25R_IRQ_COL) != 0;
+        if (!collision && !(irq & ST25R_IRQ_RXE)) return ESP_FAIL;
+
+        size_t actual = 0;
+        e = fifo_read(rbuf + rbuf_offset, sizeof(rbuf) - rbuf_offset, &actual);
+        if (e != ESP_OK || actual == 0) return e != ESP_OK ? e : ESP_FAIL;
+        uint8_t collision_display = 0;
+        e = rd8(ST25R_REG_COLLISION_DISPLAY, &collision_display);
+        if (e != ESP_OK) return e;
+
+        ESP_LOGI(TAG, "anticoll sel=%02X retry=%u irq=%04X fifo=%u coll_disp=%02X",
+                 sel, retry, (unsigned)irq, (unsigned)actual, collision_display);
+
+        if (collision) {
+            const uint8_t collision_bytes = (collision_display >> 4) & 0x0F;
+            const uint8_t collision_bits = (collision_display >> 1) & 0x07;
+            collision_byte = rbuf[rbuf_offset + actual - 1] | (uint8_t)(1U << collision_bits);
+
+            send_bytes = collision_bytes + (collision_bits == 0x07);
+            send_bits = (collision_bits + 1) & 0x07;
+            frame[1] = (uint8_t)((send_bytes << 4) | send_bits); /* NVB */
+            memcpy(frame + 2 + rbuf_offset, rbuf + rbuf_offset, actual);
+            frame[send_bytes] = collision_byte;
+            rbuf_offset = (uint8_t)(actual - 1);
+        }
+
+        if (send_bits) {
+            rbuf[rbuf_offset] >>= send_bits;
+            rbuf[rbuf_offset] <<= send_bits;
+            rbuf[rbuf_offset] |= collision_byte;
+        }
+        if (!collision) break;
+        vTaskDelay(1);
+    }
+    if (collision) return ESP_ERR_TIMEOUT;
+
+    /* One cascade-level UID plus BCC has been resolved. */
+    if ((uint8_t)(rbuf[0] ^ rbuf[1] ^ rbuf[2] ^ rbuf[3]) != rbuf[4]) {
+        ESP_LOGE(TAG, "anticoll BCC mismatch: %02X %02X %02X %02X / %02X",
+                 rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4]);
+        return ESP_FAIL;
+    }
+
+    /* SELECT: SEL, NVB=0x70, UID(4) + BCC(1), chip appends CRC. */
     st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
                             ST25R_PHASE_SELECT, 1);
     uint8_t sel_frame[7] = { sel, 0x70, rbuf[0], rbuf[1], rbuf[2], rbuf[3], rbuf[4] };
-    clear_interrupts();
-    direct_cmd(ST25R_CMD_CLEAR_FIFO);
-    fifo_write(sel_frame, 7);
-    set_tx_bytes(7, 0);
-    direct_cmd(ST25R_CMD_TRANSMIT_WITH_CRC);
+    e = clear_interrupts();
+    if (e != ESP_OK) return e;
+    e = direct_cmd(ST25R_CMD_CLEAR_FIFO);
+    if (e != ESP_OK) return e;
+    e = fifo_write(sel_frame, sizeof(sel_frame));
+    if (e != ESP_OK) return e;
+    e = set_tx_bytes(sizeof(sel_frame), 0);
+    if (e != ESP_OK) return e;
+    e = direct_cmd(ST25R_CMD_TRANSMIT_WITH_CRC);
+    if (e != ESP_OK) return e;
 
-    irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_COL, 50);
-    if (!(irq & ST25R_IRQ_RXE)) return ESP_FAIL;
+    uint32_t irq = wait_irq(ST25R_IRQ_RXE | ST25R_IRQ_COL, 50);
+    if (!(irq & ST25R_IRQ_RXE) || (irq & ST25R_IRQ_COL)) return ESP_FAIL;
 
-    /* SAK (1 byte) + 2 CRC bytes come back = 3 bytes; we read 3 and take rbuf[0]. */
     uint8_t sakbuf[3] = {0};
     size_t sgot = 0;
-    fifo_read(sakbuf, 3, &sgot);
+    e = fifo_read(sakbuf, sizeof(sakbuf), &sgot);
+    if (e != ESP_OK || sgot != sizeof(sakbuf)) return e != ESP_OK ? e : ESP_FAIL;
     *sak_out = sakbuf[0];
-    /* Copy UID bytes (drop cascade tag 0x88 if present in first byte). */
     memcpy(uid_out, rbuf, 4);
     return ESP_OK;
 }
@@ -724,9 +798,8 @@ esp_err_t st25r3916_poll_nfca(nfc_picc_t *out)
     st25r_trace_set_context(&s_trace, ST25R_TRACE_BACKEND_IDF_HIGH,
                             ST25R_PHASE_IDENTIFY, 1);
     /* Establish the field before each high-level read. nfc_initial_field_on()
-     * clears TX/RX after its guard interval (matching M5), so a boot-time call
-     * alone does not guarantee the analog front end is freshly prepared. Keep
-     * the field sequence intact across REQA -> WUPA -> anticollision. */
+     * enables TX/RX after its guard interval, matching M5Unit-NFC. Keep the
+     * field sequence intact across REQA -> WUPA -> anticollision. */
     esp_err_t e = st25r3916_field_on();
     if (e != ESP_OK) return e;
     vTaskDelay(pdMS_TO_TICKS(5));
