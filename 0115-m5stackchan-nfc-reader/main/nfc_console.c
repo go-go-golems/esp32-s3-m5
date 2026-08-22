@@ -137,6 +137,18 @@ static int cmd_reqa(int argc, char **argv)
     return 0;
 }
 
+/* nfc-configure : re-apply NFC-A register/field configuration through the
+ * currently selected transport backend, useful for same-boot A/B tests. */
+static int cmd_configure(int argc, char **argv)
+{
+    esp_err_t e = st25r3916_configure_nfca();
+    printf("configure (%s): %s\n",
+           st25r3916_transport_backend_name(st25r3916_get_transport_backend()),
+           esp_err_to_name(e));
+    st25r3916_debug_dump();
+    return e == ESP_OK ? 0 : 1;
+}
+
 /* nfc-regs : dump key ST25R3916 registers. */
 static int cmd_regs(int argc, char **argv)
 {
@@ -272,6 +284,23 @@ static int cmd_trace(int argc, char **argv)
     return 1;
 }
 
+/* nfc-backend [idf-high|idf-defined] : same-firmware transport A/B.
+ * Switching clears the trace ring so each backend capture has a clean epoch. */
+static int cmd_backend(int argc, char **argv)
+{
+    if (argc < 2) {
+        printf("backend: %s\n", st25r3916_transport_backend_name(st25r3916_get_transport_backend()));
+        return 0;
+    }
+    st25r3916_transport_backend_t backend;
+    if (strcmp(argv[1], "idf-high") == 0) backend = ST25R3916_BACKEND_IDF_HIGH;
+    else if (strcmp(argv[1], "idf-defined") == 0) backend = ST25R3916_BACKEND_IDF_DEFINED;
+    else { printf("usage: nfc-backend idf-high|idf-defined\n"); return 1; }
+    esp_err_t e = st25r3916_set_transport_backend(backend);
+    printf("backend set: %s (%s)\n", st25r3916_transport_backend_name(backend), esp_err_to_name(e));
+    return e == ESP_OK ? 0 : 1;
+}
+
 /* nfc-i2c-debug on|off : toggle the ESP-IDF I2C master driver DEBUG log so we can
  * confirm I2C_EVENT_NACK ("I2C transaction unexpected nack detected") for a
  * short classification run. Requires CONFIG_I2C_ENABLE_DEBUG_LOG=y (set in
@@ -309,11 +338,13 @@ void nfc_console_register(i2c_master_bus_handle_t i2c_bus)
     reg("nfc-field", "RF field on|off",                 cmd_field,  "on|off");
     reg("nfc-read",  "Poll one ISO14443-A tag",         cmd_read,   NULL);
     reg("nfc-poll",  "Continuously poll for tags",      cmd_poll,   NULL);
+    reg("nfc-configure", "Re-apply NFC-A config through selected backend", cmd_configure, NULL);
     reg("nfc-regs",  "Dump key ST25R3916 registers",   cmd_regs,   NULL);
     reg("nfc-sweep", "Field on + measure RF amplitude (find coil)", cmd_sweep, NULL);
     reg("nfc-reqa", "Loop REQA, print ATQA on tag (find coil)", cmd_reqa, NULL);
     reg("nfc-cap",  "Measure antenna capacitance (coil connected?)", cmd_cap, NULL);
     reg("nfc-dump", "Dump all Space-A registers (expert compare)", cmd_dump, NULL);
     reg("nfc-trace", "Transaction trace ring: status|dump|first-error|clear|mode|annotate", cmd_trace, NULL);
+    reg("nfc-backend", "Transport A/B: idf-high|idf-defined", cmd_backend, NULL);
     reg("nfc-i2c-debug", "Toggle I2C driver DEBUG log (confirm NACK): on|off", cmd_i2c_debug, NULL);
 }

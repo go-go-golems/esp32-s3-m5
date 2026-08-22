@@ -35,6 +35,17 @@ typedef struct {
     char     type_str[24]; /* provisional type guess from SAK */
 } nfc_picc_t;
 
+typedef enum {
+    ST25R3916_BACKEND_IDF_HIGH = 0,
+    ST25R3916_BACKEND_IDF_DEFINED,
+} st25r3916_transport_backend_t;
+
+/* Runtime-selectable transport for same-firmware A/B testing. The protocol,
+ * register values, and trace schema remain identical across backends. */
+esp_err_t st25r3916_set_transport_backend(st25r3916_transport_backend_t backend);
+st25r3916_transport_backend_t st25r3916_get_transport_backend(void);
+const char *st25r3916_transport_backend_name(st25r3916_transport_backend_t backend);
+
 /* Add the ST25R3916 as a device on the given I2C bus and bring the chip up. */
 esp_err_t st25r3916_init(i2c_master_bus_handle_t bus);
 
