@@ -16,6 +16,7 @@ RelatedFiles:
         Implements and applies NFC-A frame-wait timer (commit 74bc45f9)
         Documented M5 initialization and Space-B diagnostics
         Instrumented all transport primitives + phase context (Phase 2, commit d3e9ef70)
+        Field-enable correction and bounded anticollision port (commits 7465a834, 6e365ebc)
     - Path: repo://0115-m5stackchan-nfc-reader/main/st25r3916/st25r3916_regs.h
       Note: Adds NRT and timer control register definitions (commit 74bc45f9)
     - Path: repo://0116-m5stackchan-nfc-debug-ui/README.md
@@ -34,6 +35,8 @@ RelatedFiles:
       Note: Empirical Arduino-versus-ESP-IDF transaction comparison
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-arduino-vs-espidf-trace-comparison.json
       Note: 'Apples-to-apples comparison: Arduino 0 failures on 0x5C/0x5A vs ESP-IDF NACKs'
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-fresh-base-principles-reconstruction-of-the-esp-idf-st25r3916-failure.md
+      Note: Active fresh layered investigation (commit f580c1f9)
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/04-esp-idf-instrumentation-for-arduino-comparable-st25r3916-transport-traces.md
       Note: Arduino-comparable ESP-IDF trace design and evidence-ranked backend diagnosis
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/design-doc/05-why-arduino-reads-nfc-tags-and-esp-idf-does-not-the-i2c-fsm-reset-diagnosis.md
@@ -68,6 +71,8 @@ RelatedFiles:
       Note: 'Patched run: 213/11807 failures, first error in field-on/req-setup'
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/09-reverted-baseline-runtime.txt
       Note: 'Reverted run: 144/12274 failures, first error in irq-wait (baseline restored)'
+    - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/hardware/12-16-anticollision-and-single-tag-probes.provenance.md
+      Note: Current four-tag and one-tag evidence
     - Path: repo://ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/web/03-m5stack-stackchan-nfc-official-images.md
       Note: Official physical placement evidence
 ExternalSources: []
@@ -76,6 +81,7 @@ LastUpdated: 2026-08-20T21:53:02.871902069-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -3178,3 +3184,350 @@ I applied the one-line diagnostic patch from the guide (make `s_i2c_hw_fsm_reset
 - Zero `I2C transaction timeout detected` lines in either build (pure NACK both).
 - IDF pinned at `73550728`; patch file retained in `sources/code/`; source reverted to clean.
 - Board runs the reverted baseline `0115` debug build.
+
+---
+
+## Step 36: Restart from base principles with a layered failure model
+
+I opened a fresh analysis document rather than extending the refuted FSM-reset narrative. The new model treats UID output as six independent layers — I2C transport, ST25R3916 register state, RF field/request, anticollision, SELECT/SAK, and UID assembly — and forbids naming a failure after a different layer. This immediately exposed a conceptual error: the current ESP-IDF code aborts on `ST25R_IRQ_COL` under an explicit "single-tag assumption," while four physical tags were on the antenna. A legal RF collision and an I2C NACK both surfaced as `ESP_ERR_INVALID_STATE` in different code paths, so they had been conflated.
+
+The document also established a one-attempt observation ladder and a strict rule: do not implement collision resolution until REQA/WUPA proves RF reception; do not make an RF conclusion if the direct request command was never transmitted; do not hide a first NACK behind an eventual result.
+
+### Prompt Context
+
+**User prompt (verbatim):** "We don't have a logic analyzer here. We're taking over for our colleague who seems unable to figure out what is wrong with our esp-idf version. 
+
+It's not your turn, pick it up from base principles. The device is still conected with 4 tags.  on top.
+
+commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)
+
+Start with fresh analysis document ."
+
+**Assistant interpretation:** Discard the prior causal narrative, create a fresh evidence-first analysis, use the connected four-tag hardware, and continue implementation with regular commits and detailed diary entries.
+
+**Inferred user intent:** Have a new engineer independently reconstruct the failure and solve the native ESP-IDF UID path rather than inheriting a colleague's assumptions.
+
+**Commit (documentation):** `f580c1f9` — "ESP-60: start fresh layered analysis of ESP-IDF NFC failure"
+
+### What I did
+
+- Created analysis doc `analysis/02-fresh-base-principles-reconstruction-of-the-esp-idf-st25r3916-failure.md`.
+- Defined the six-layer observation ladder, four-tag collision implications, experiment matrix, and active evidence log.
+- Created task `89gi` for the fresh base-principles investigation.
+- Verified `/dev/ttyACM0` was unowned and the board ran the reverted baseline `0115` debug build.
+
+### Why
+
+- Previous work overfocused on intermittent I2C NACKs without first proving whether the RF front end was enabled or whether the four-tag protocol path was even implemented.
+- The same `esp_err_t` can represent unrelated application and transport conditions; layer-specific evidence prevents category errors.
+
+### What worked
+
+- The fresh model immediately identified that four tags require collision resolution but only after RF request evidence.
+- The analysis was committed before behavior changes, making later results auditable against predeclared interpretations.
+
+### What didn't work
+
+- No code changed in this step; it deliberately ended at an experiment plan.
+
+### What I learned
+
+- The current `nfca_anticoll_select()` explicitly cannot handle the hardware condition the user supplied (four tags).
+- "No UID" is not a single failure; it is the output of multiple independent layers.
+
+### What was tricky to build
+
+- Preserving useful prior facts while discarding prior causal assumptions required separating proven observations (identity, Arduino UID, NACK event) from explanations (FSM state, framing, collision).
+
+### What warrants a second pair of eyes
+
+- The mapping of all return codes to layers, especially `ESP_ERR_INVALID_STATE` from both I2C and collision paths.
+
+### What should be done in the future
+
+- Run one four-tag request and classify it before changing collision code (done in Step 37).
+
+### Code review instructions
+
+- Read Sections 1–4 and 8 of the new analysis document.
+- Confirm the existing single-tag collision abort in `st25r3916.c`.
+
+### Technical details
+
+- Initial board state: reverted ESP-IDF driver `73550728`, four tags on the antenna, USB Serial/JTAG unowned.
+
+---
+
+## Step 37: Find and correct the reversed RF field-enable semantics
+
+The first four-tag baseline produced no RXS, RXE, or COL IRQ and FIFO remained empty. The trace proved REQA/WUPA direct commands were reached, so I compared the exact M5Unit-NFC field-on code with ours. The application had a concrete semantic bug: M5 sets `tx_en|rx_en` after the 5 ms initial-field guard, but our code cleared both bits and even carried a false comment claiming M5 clears them.
+
+After changing `clear_bits` to `set_bits`, `OPERATION_CONTROL` moved from `0x8B` (receiver disabled) to `0xCB` (TX+RX enabled). With the same four tags, WUPA immediately produced `irq=0x34` (`RXS|RXE|COL`). This is a causal A/B result: native ESP-IDF RF reception began when the reversed field-enable semantics were corrected.
+
+### Prompt Context
+
+**User prompt (verbatim):** (same as Step 36)
+
+**Assistant interpretation:** Follow the layered plan and fix the first concrete application defect before returning to backend theories.
+
+**Inferred user intent:** Reach actual RF/tag evidence with minimal, source-backed changes.
+
+**Commit (code):** `7465a834` — "ESP-60: enable ST25R3916 TX/RX after initial field-on"
+
+**Commit (evidence):** `12dc880f` — "ESP-60: prove field-enable fix restores four-tag RF collision"
+
+### What I did
+
+- Wrote reusable prompt-aware probe `scripts/09-probe-four-tag-layered.py`.
+- Captured before (`10-four-tag-layered-baseline.txt`) and after (`11-four-tag-field-enable-fix.txt`) with provenance.
+- Verified bit definitions (`rx_en=0x40`, `tx_en=0x08`) and M5 helper semantics `(v & ~clear_mask) | set_mask`.
+- Changed `st25r3916_field_on()` to set TX/RX and corrected the false comment.
+- Built under ESP-IDF 5.5.4, ran host tests, committed, flashed, and repeated the same hardware probe.
+
+### Why
+
+- No protocol algorithm can succeed when the receiver is disabled.
+- This mismatch was a deterministic application defect and more fundamental than intermittent I2C NACKs.
+
+### What worked
+
+- Before: `OPC=8B`, no RF IRQ.
+- After: `OPC=CB`, WUPA `RXS+RXE+COL` (`0x34`) with four tags.
+- This proved the field, receiver, antenna, and tags participate in the native ESP-IDF path.
+
+### What didn't work
+
+- The request helper still returned `ESP_FAIL` because collision produced no complete two-byte ATQA FIFO result.
+- RF response remained intermittent across later boots/attempts despite correct `OPC`.
+
+### What I learned
+
+- The primary no-RF defect was ours, not ESP-IDF: we disabled RX after field-on.
+- Register readback (`OPC`) must be checked at the behavior boundary; an `ESP_OK` write return is insufficient.
+
+### What was tricky to build
+
+- The wrong comment made the inverted behavior look intentional; only reading M5's helper implementation proved `set_mask`/`clear_mask` direction.
+- Opening USB serial can reset the board, so probes must wait for the prompt and document boot state.
+
+### What warrants a second pair of eyes
+
+- Why boot-time `OPC` sometimes appears `0x8B` and sometimes `0xCB`; likely an intermittent init transaction or direct-command state transition.
+
+### What should be done in the future
+
+- Make field-on postcondition explicit/read-backed.
+- Handle collision-bearing requests and port anticollision (Step 38).
+
+### Code review instructions
+
+- Compare `st25r3916_field_on()` to M5Unit-NFC `nfc_initial_field_on()` at `unit_ST25R3916.cpp:364-377`.
+- Reproduce with `scripts/09-probe-four-tag-layered.py`.
+
+### Technical details
+
+- Before/after register: `0x8B -> 0xCB`; WUPA IRQ after fix `0x34`; receiver bit `0x40`.
+
+---
+
+## Step 38: Port bounded anticollision and define a same-firmware backend comparison toolkit
+
+I ported M5Unit-NFC's bounded anticollision loop rather than preserving the single-tag abort. Collision-bearing REQA/WUPA is now allowed to proceed even when ATQA is incomplete; FIFO status exposes byte and partial-bit counts; anticollision reads the collision position, chooses the deterministic `1` branch, updates NVB, validates BCC, then sends SELECT and reads SAK. I also fixed `pdMS_TO_TICKS(1)` (zero at 100 Hz) to a real one-tick delay in one wait path.
+
+The collision code builds and is committed, but it has not reached UID output: on observed collision attempts the subsequent anticollision exchange timed out/no-response with empty FIFO. That means the durable next tool is not another speculative protocol edit; it is a runtime-selectable transport backend in one firmware (`idf-high`, explicit `idf-defined`, then M5-direct if necessary) with the protocol code held constant.
+
+### Prompt Context
+
+**User prompt (verbatim):** "i'm not sure if you can run M5Unit-NFC / your new code side by side, maybe even within the smae firmware, to narrow it down by analyzing side by side traces, maybe even instrumenting the i2c traffic or so. Also, save use ful scripts in the scripts/ folder of the ticket so we can reuse them and also follow your tracks, and commit them along with the rest."
+
+**Assistant interpretation:** Build a same-firmware A/B harness rather than comparing unrelated binaries; preserve reusable scripts and traces in the ticket.
+
+**Inferred user intent:** Turn this investigation into a durable debugging toolkit that can isolate backend versus protocol behavior and remain useful after the immediate defect is solved.
+
+**Commit (code):** `6e365ebc` — "ESP-60: port bounded ISO14443-A anticollision from M5Unit-NFC"
+
+### What I did
+
+- Added FIFO partial-bit status helper.
+- Allowed `COL` to transition from request into anticollision with unknown ATQA.
+- Ported M5's 32-retry collision resolver, collision-display/NVB update, BCC validation, SELECT, and SAK read.
+- Compared the exact M5 transaction sequence around REQA→anticollision→SELECT.
+- Started design for a runtime transport abstraction with current high-level and explicit-defined-operation backends.
+
+### Why
+
+- Four tags require legal anticollision; the previous code could never satisfy the supplied hardware condition.
+- A backend A/B in one binary holds register configuration and protocol logic constant, isolating transaction framing.
+
+### What worked
+
+- Code builds cleanly and host trace tests pass.
+- Collision-bearing request reaches the new protocol boundary.
+
+### What didn't work
+
+- Anticollision receives no response after a collision-bearing request (`NRT=0x069F`, timer no-response), so the first collision log is not reached because FIFO is empty.
+- RF response is intermittent; many attempts see no IRQ even with `OPC=0xCB`.
+
+### What I learned
+
+- M5 uses contiguous multi-byte operations where our driver splits register pairs: 4-byte IRQ clear/read, 2-byte FIFO status, 16-bit NRT/TX-length writes. These are candidates for the explicit-defined backend comparison.
+- A `COL` report with empty FIFO must not automatically be treated as legal multi-tag collision without corroborating collision-position/partial FIFO data.
+
+### What was tricky to build
+
+- Correct collision resolution requires partial-byte FIFO semantics and collision-position bit arithmetic, not just retrying `NVB=0x20`.
+- M5's frame indexing is subtle because collision display counts include protocol bytes and a partial byte.
+
+### What warrants a second pair of eyes
+
+- Collision-frame indexing (`send_bytes`, `send_bits`, `rbuf_offset`) and BCC assembly.
+- Whether request collision with zero FIFO is a valid state for these tags or evidence of receiver misconfiguration/noise.
+
+### What should be done in the future
+
+- Implement same-firmware `idf-defined` transport and compare exact traces.
+- Add layer-specific console commands (`nfc-request`, `nfc-anticoll`) to avoid repeating unrelated phases.
+
+### Code review instructions
+
+- Compare `nfca_anticoll_select()` to M5 `nfca_anti_collision()` line by line.
+- Inspect capture 13 around `irq=0x34` and subsequent NRT timeout.
+
+### Technical details
+
+- New anticollision bound: 32 retries; branch choice: collision bit set to 1; SELECT frame length 7; SAK response length 3.
+
+---
+
+## Step 39: Preserve reusable probes and simplify to one tag
+
+I converted the field-state boundary workflow into `scripts/10-probe-field-state-and-read.py`, preserving the one-owner/prompt-aware mechanics. Captures 12–16 cover initial anticollision firmware, explicit field boundaries with four tags, a 20-attempt collision-tail search, and the one-tag state after the user removed three tags. These were committed with a consolidated provenance note.
+
+The single-tag result is important and changes interpretation: with one physical tag and `OPC=0xCB`, most attempts still produce no RF IRQ, while one WUPA unexpectedly reported `RXS|RXE|COL` with FIFO zero and anticollision no-response. A genuine single tag should not require multi-tag collision resolution. Therefore `COL` is not yet trustworthy as legal collision; it may represent receiver/noise/configuration or malformed exchange behavior. This is exactly why side-by-side transport/framing comparison is the right next step.
+
+### Prompt Context
+
+**User prompt (verbatim):** "so basically building up a collection of i2c / nfc debugging scripts and functionality that can potentially be used even if we manage to track down the issues."
+
+**Assistant interpretation:** Preserve all generally useful probes, trace tools, backend selectors, and layer commands as a maintained diagnostic collection.
+
+**Inferred user intent:** Ensure the investigation leaves reusable infrastructure, not a pile of one-off terminal commands.
+
+**User prompt (verbatim, hardware update):** "i removed all 4 tags exept 1, to maybe simplify things / in case there is an error. but you can always A/B with the arduino baseline if you are in doubt."
+
+**Assistant interpretation:** Re-run the same layered experiment with one tag so collision resolution is removed as a legitimate requirement; use Arduino as the control when needed.
+
+**Commit (evidence/scripts):** `e9d22b1f` — "ESP-60: preserve anticollision and single-tag boundary probes"
+
+### What I did
+
+- Added reusable `scripts/10-probe-field-state-and-read.py`.
+- Preserved captures 12–16 and wrote consolidated provenance.
+- Re-ran with one tag and explicit field-state checks.
+- Compared exact M5 request/anticollision transaction-key sequences to ours.
+
+### Why
+
+- One tag should produce a clean ATQA and UID without collision resolution; failure there isolates an earlier layer.
+- Reusable prompt-aware scripts eliminate serial ownership and fixed-timeout artefacts.
+
+### What worked
+
+- Explicit field checks consistently showed `OPC=0xCB` in capture 16.
+- The script cleanly separates field state, one attempt, repeated attempts, post-state, trace status, and first error.
+
+### What didn't work
+
+- One tag still did not yield ATQA/UID.
+- RF response remained intermittent and sometimes reported `COL` with empty FIFO.
+- Transport remained noisy (32 failures / 3450 transactions in capture 16), though failures generally recover.
+
+### What I learned
+
+- The corrected field-enable bug was necessary but not sufficient.
+- A single-tag `COL` makes the collision bit an RF/error symptom, not proof of multiple PICCs.
+- The old all-in-one `nfc-read` makes it hard to isolate request vs anticollision; layer commands are needed.
+
+### What was tricky to build
+
+- Hardware state changes between boots/opens; every capture must record the register postcondition and exact physical tag count.
+- Existing traces can overflow before the relevant setup sequence; targeted layer commands and immediate dumps are needed.
+
+### What warrants a second pair of eyes
+
+- Whether the one remaining tag's type/placement matches a UID previously seen by Arduino.
+- Whether `RXS|RXE|COL` with zero FIFO indicates false collision due receiver configuration, or FIFO-status read inconsistency from split transactions.
+
+### What should be done in the future
+
+- Same-firmware `idf-high` vs `idf-defined` A/B.
+- Atomic contiguous FIFO-status, IRQ, NRT, and TX-length operations matching M5.
+- If still ambiguous, reflash the Arduino baseline with the same one tag and capture exact request behavior.
+
+### Code review instructions
+
+- Run `scripts/10-probe-field-state-and-read.py <port> <output> --attempts 5`.
+- Read `sources/hardware/12-16-anticollision-and-single-tag-probes.provenance.md` first.
+
+### Technical details
+
+- Single-tag capture 16: `OPC=CB`; occasional WUPA `irq=0x34`, FIFO 0; anticollision no-response; 32/3450 transport failures.
+
+---
+
+## Step 40: Diary checkpoint before continuing backend A/B work
+
+The user requested an immediate diary checkpoint. I stopped implementation, preserved the uncommitted scripts/captures, related the active analysis and code, updated the ticket changelog, and recorded Steps 36–39 with exact prompts and commit hashes. Work resumes only after this checkpoint commit.
+
+### Prompt Context
+
+**User prompt (verbatim):** "write your diary now, it's time"
+
+**User prompt (verbatim, continuation):** "then continue once diary is written"
+
+**Assistant interpretation:** Stop current implementation, make the diary complete and auditable, commit it, then resume the backend comparison.
+
+**Inferred user intent:** Prevent another long technical branch from outrunning its documentation.
+
+### What I did
+
+- Committed pending scripts/captures before diary authoring (`e9d22b1f`).
+- Updated docmgr relations and changelog.
+- Appended Steps 36–40 in strict diary format.
+
+### Why
+
+- The fresh restart has already changed the diagnosis materially; future engineers need the exact sequence of evidence and failed assumptions.
+
+### What worked
+
+- All code and evidence boundaries have focused commits.
+
+### What didn't work
+
+- N/A — this is a documentation checkpoint.
+
+### What I learned
+
+- Diary checkpoints are especially important when a deterministic application defect (RX disabled) coexists with intermittent transport and RF symptoms.
+
+### What was tricky to build
+
+- Separating one physical timeline into diary steps without collapsing four different user prompts or losing exact wording.
+
+### What warrants a second pair of eyes
+
+- Review the interpretation shift from legal four-tag collision to suspicious single-tag COL with empty FIFO.
+
+### What should be done in the future
+
+- Continue with the same-firmware backend abstraction immediately after this commit.
+
+### Code review instructions
+
+- Review Steps 36–39 against commits `f580c1f9`, `7465a834`, `12dc880f`, `6e365ebc`, and `e9d22b1f`.
+
+### Technical details
+
+- Board currently runs `0115` with field-enable fix + bounded anticollision port; one tag remains on the antenna; ESP-IDF source is clean/reverted.

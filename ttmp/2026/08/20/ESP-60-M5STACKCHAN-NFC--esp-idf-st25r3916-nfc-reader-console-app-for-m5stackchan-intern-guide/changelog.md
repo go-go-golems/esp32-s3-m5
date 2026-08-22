@@ -256,3 +256,12 @@ Step 35: FSM-reset diagnostic patch REFUTED on hardware (patched 1.80% worse + f
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch — Refuted hypothesis patch
 
+
+## 2026-08-22
+
+Steps 36-39: restarted from base principles, fixed reversed TX/RX field-on semantics, proved four-tag RF response, ported bounded anticollision, and preserved reusable one-/four-tag probes (commits f580c1f9 7465a834 12dc880f 6e365ebc e9d22b1f)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/20/ESP-60-M5STACKCHAN-NFC--esp-idf-st25r3916-nfc-reader-console-app-for-m5stackchan-intern-guide/analysis/02-fresh-base-principles-reconstruction-of-the-esp-idf-st25r3916-failure.md — Fresh layered analysis
+

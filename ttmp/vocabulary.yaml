@@ -249,6 +249,8 @@ topics:
       description: ESP-IDF esp_console REPL (USB Serial/JTAG or UART) for interactive CLI firmware
     - slug: debug-handoff
       description: 'Debug handoff doc: symptom + ruled-out + reproduction + ranked hypotheses + next steps for an expert colleague'
+    - slug: iso14443a
+      description: ISO/IEC 14443 Type A contactless card protocol and anticollision
 docTypes:
     - slug: index
       description: Ticket index document
