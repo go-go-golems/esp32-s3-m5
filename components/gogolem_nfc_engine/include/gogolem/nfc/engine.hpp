@@ -31,6 +31,16 @@ struct ScanResult {
     std::vector<TagInfo> tags;       // identified cards; empty when no card found
 };
 
+enum class ActivationSource : uint8_t {
+    REQA = 0,
+    WUPA = 1,
+};
+
+struct ActivationResult {
+    TagInfo tag;
+    ActivationSource source;        // REQA for an IDLE tag, WUPA for a HALT tag
+};
+
 class Engine {
 public:
     Engine();
@@ -53,6 +63,17 @@ public:
     // Multi-card scan. With no card in the field, returns success with an empty
     // tag list (this is a valid no-tag outcome, not an error).
     Result<ScanResult> scan(uint32_t timeout_ms);
+
+    // Single-card activation with REQA→WUPA fallback. Enumeration by scan()
+    // leaves a stationary PICC in HALT; activate_one() tries REQA first, then
+    // WUPA, so consecutive commands work without moving the tag. After a
+    // successful activate_one(), the tag is selected and identified; call
+    // deactivate() when done. Returns Rf/Activation error if no tag answers.
+    Result<ActivationResult> activate_one();
+
+    // Deactivate the currently selected tag (HLTA). Safe to call when no tag
+    // is active.
+    Result<void> deactivate();
 
 private:
     struct Impl;

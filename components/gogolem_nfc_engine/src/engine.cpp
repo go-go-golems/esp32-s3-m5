@@ -161,4 +161,77 @@ Result<ScanResult> Engine::scan(uint32_t timeout_ms) {
     return Result<ScanResult>::success(std::move(out));
 }
 
+Result<ActivationResult> Engine::activate_one() {
+    if (!lifecycle_is_ready(impl_->state)) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::Activate;
+        e.set_detail("not ready");
+        return Result<ActivationResult>::failure(e);
+    }
+    if (impl_->mode != Mode::Reader) {
+        Error e;
+        e.layer = ErrorLayer::Lifecycle;
+        e.operation = Operation::Activate;
+        e.set_detail("not reader mode");
+        return Result<ActivationResult>::failure(e);
+    }
+
+    impl_->units.update(true);
+
+    PICC picc{};
+    // Faithful port of 0117 activate_one(): REQA first for an IDLE tag, then
+    // WUPA so consecutive commands work on a HALT tag without moving it.
+    ActivationSource source = ActivationSource::REQA;
+    if (!impl_->reader.request(picc.atqa)) {
+        if (!impl_->reader.wakeup(picc.atqa)) {
+            Error e;
+            e.layer = ErrorLayer::Rf;
+            e.esp_code = ESP_CODE_ERR_NOT_FOUND;
+            e.operation = Operation::Activate;
+            e.set_detail("no tag answered REQA or WUPA");
+            return Result<ActivationResult>::failure(e);
+        }
+        source = ActivationSource::WUPA;
+    }
+    if (!impl_->reader.select(picc)) {
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::Activate;
+        e.set_detail("select failed");
+        return Result<ActivationResult>::failure(e);
+    }
+    if (!impl_->reader.identify(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Protocol;
+        e.operation = Operation::Identify;
+        e.set_detail("identify failed");
+        return Result<ActivationResult>::failure(e);
+    }
+    if (!impl_->reader.reactivate(picc)) {
+        impl_->reader.deactivate();
+        Error e;
+        e.layer = ErrorLayer::Activation;
+        e.operation = Operation::Activate;
+        e.set_detail("reactivate failed");
+        return Result<ActivationResult>::failure(e);
+    }
+
+    ActivationResult out;
+    out.tag = to_tag_info(picc_to_fields(picc));
+    out.source = source;
+    return Result<ActivationResult>::success(std::move(out));
+}
+
+Result<void> Engine::deactivate() {
+    if (!lifecycle_is_ready(impl_->state)) {
+        return Result<void>::success();  // nothing to deactivate
+    }
+    if (impl_->reader.activatedPICC().valid()) {
+        impl_->reader.deactivate();
+    }
+    return Result<void>::success();
+}
+
 }  // namespace gogolem::nfc

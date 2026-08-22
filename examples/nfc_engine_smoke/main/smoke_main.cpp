@@ -45,12 +45,17 @@ extern "C" void app_main(void) {
 
     for (;;) {
         if (begin.ok()) {
-            auto scan = engine.scan(1000);
-            printf("smoke scan ok=%u tags=%u state=%s\n",
-                   scan.ok() ? 1u : 0u,
-                   scan.ok() ? static_cast<unsigned>(scan.value().tags.size()) : 0u,
-                   lifecycle_state_name(engine.state()));
+            auto act = engine.activate_one();
+            if (act.ok()) {
+                const auto& tag = act.value().tag;
+                printf("smoke activate ok=1 source=%s uid=", act.value().source == ActivationSource::WUPA ? "WUPA" : "REQA");
+                for (uint8_t i = 0; i < tag.uid_length; ++i) printf("%02X", tag.uid[i]);
+                printf(" family=%s\n", tag_family_name(tag.family));
+                engine.deactivate();
+            } else {
+                printf("smoke activate ok=0 layer=%s\n", error_layer_name(act.error().layer));
+            }
         }
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

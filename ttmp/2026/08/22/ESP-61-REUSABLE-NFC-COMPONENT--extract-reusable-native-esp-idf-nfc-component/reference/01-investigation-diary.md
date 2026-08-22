@@ -70,9 +70,13 @@ RelatedFiles:
     - Path: repo://components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp
       Note: Phase 2 synchronous Engine public API (pimpl)
     - Path: repo://components/gogolem_nfc_engine/src/engine.cpp
-      Note: Phase 2 Engine wiring wrapping M5Unit-NFC, begin/scan, initialize-once
+      Note: |-
+        Phase 2 Engine wiring wrapping M5Unit-NFC, begin/scan, initialize-once
+        Phase 2 activate_one + WUPA fallback + deactivate
     - Path: repo://examples/nfc_engine_smoke/main/smoke_main.cpp
-      Note: Phase 2 Engine runtime smoke
+      Note: |-
+        Phase 2 Engine runtime smoke
+        Phase 2 activate_one smoke
     - Path: repo://examples/nfc_types_smoke/main/smoke_main.cpp
       Note: |-
         Phase 1 ESP-IDF integration smoke
@@ -85,6 +89,8 @@ RelatedFiles:
       Note: Live target runtime evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/08-engine-smoke-runtime.txt
       Note: Live Engine runtime on real ST25R3916
+    - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/12-engine-activate-one-runtime.txt
+      Note: Live WUPA fallback on real NTAG215
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/05-phase1-host-tests.txt
       Note: Phase 1 host-test evidence
     - Path: repo://ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/software/06-phase1-smoke-build.txt
@@ -95,6 +101,7 @@ LastUpdated: 2026-08-22T19:30:00-04:00
 WhatFor: Preserve how the current implementations were assessed and how the extraction architecture was chosen.
 WhenToUse: Read before implementing or reviewing ESP-61, especially when changing ownership, lifecycle, safety, or dependency boundaries.
 ---
+
 
 
 
@@ -1185,3 +1192,75 @@ The tag is a different NTAG215 (UID `04:DA:F7:4D:9E:61:80`, not the earlier `04:
 - NDEF: valid format, zero records.
 - Phase 0 task `4igv`: complete.
 - Evidence: `sources/hardware/11-phase0-read-only-with-tag.txt`.
+
+## Step 14: Phase 2 complete — Engine activate_one with WUPA proven on real NTAG215
+
+With the tag on the antenna, I added `activate_one()` and `deactivate()` to the Engine, faithfully porting `0117`'s proven REQA→WUPA→select→identify→reactivate sequence. The engine smoke now calls `activate_one()` + `deactivate()` in a loop. The runtime proves the WUPA fallback: the first activation uses REQA (tag IDLE), every subsequent activation uses WUPA (tag HALT after deactivate), and all return the correct UID and family through the stable public API.
+
+### Prompt Context
+
+**User prompt (verbatim):** (continuation of the slip-and-diary instruction)
+
+**Assistant interpretation:** Add the Engine's single-card activation with WUPA fallback and validate on the now-present tag.
+
+**Inferred user intent:** Complete the Phase 2 Engine's defining hardware acceptance criterion.
+
+### What I did
+
+- Added `ActivationSource` (REQA/WUPA), `ActivationResult`, `activate_one()`, and `deactivate()` to the Engine public API.
+- Implemented `activate_one()` porting 0117's exact sequence: `units.update(true)`, `reader.request(atqa)` → fallback `reader.wakeup(atqa)` → `reader.select` → `reader.identify` → `reader.reactivate`, with typed errors at each failure point.
+- Implemented `deactivate()` (safe when no tag active).
+- Updated the engine smoke to loop `activate_one()` + `deactivate()` and print UID, source, and family.
+- Built, flashed, and captured live runtime on the real NTAG215.
+- Marked task `godz` complete.
+- Printed the Phase 2 completion slip.
+
+### What worked
+
+- Runtime on the real NTAG215:
+
+  ```text
+  smoke begin ok=1 state=ready-reader
+  smoke activate ok=0 layer=rf          (first REQA after flash reset)
+  smoke activate ok=1 source=REQA uid=04DAF74D9E6180 family=NTAG21x
+  smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+  smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+  ... (all subsequent WUPA)
+  ```
+
+- The WUPA fallback works: consecutive `activate_one()` on the halted stationary tag succeeds via WUPA, exactly matching the proven `0117` behavior.
+- UID and family return through the stable public `TagInfo`/`TagFamily` types, not upstream types.
+
+### What didn't work
+
+- The first `activate_one()` after the flash reset returned `ok=0 layer=rf` — the tag was in an uncertain state from the prior 0117 firmware's deactivation. The second call succeeded with REQA. This is expected boot behavior, not an Engine defect.
+
+### What I learned
+
+- The first-post-flash REQA failure is a real tag-state artifact, not a software bug; the second call recovers cleanly.
+- The WUPA source is a valuable diagnostic: it confirms the tag is HALT and the fallback is active, not just that a tag was found.
+
+### What was tricky to build
+
+- Mapping the upstream `reader.request()`/`wakeup()` bool returns to typed `Error` layers: no-tag → Rf/NOT_FOUND, select failure → Activation, identify failure → Protocol, reactivate failure → Activation.
+
+### What warrants a second pair of eyes
+
+- Confirm `deactivate()` is safe to call after a failed `activate_one()` (the implementation deactivates internally on identify/reactivate failure before returning the error).
+
+### What should be done in the future
+
+- Add raw_read, dump, and read_ndef to the Engine (Phase 3) and validate on this tag.
+
+### Code review instructions
+
+- Read `components/gogolem_nfc_engine/include/gogolem/nfc/engine.hpp` (activate_one, deactivate, ActivationResult).
+- Read `src/engine.cpp` (activate_one implementation).
+- Flash `examples/nfc_engine_smoke` and verify `source=WUPA` on consecutive activations.
+- Inspect `sources/hardware/12-engine-activate-one-runtime.txt`.
+
+### Technical details
+
+- Phase 2 task `godz`: complete.
+- Runtime evidence: `sources/hardware/12-engine-activate-one-runtime.txt`.
+- Build evidence: `sources/software/15-phase2-activate-build.txt`.

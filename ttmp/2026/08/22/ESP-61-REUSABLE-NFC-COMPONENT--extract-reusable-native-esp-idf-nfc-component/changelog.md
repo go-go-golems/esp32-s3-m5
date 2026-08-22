@@ -125,3 +125,12 @@ Phase 0 complete: NTAG215 read-only hardware baseline proven (scan/info/raw-read
 
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 13 Phase 0 complete
 - ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/sources/hardware/11-phase0-read-only-with-tag.txt — Full read-only probe with tag
+
+## 2026-08-22
+
+Phase 2 complete: Engine activate_one() with REQA→WUPA fallback proven on real NTAG215 (consecutive WUPA activations on halted tag, UID 04:DA:F7:4D:9E:61:80 via stable API). deactivate() implemented.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/components/gogolem_nfc_engine/src/engine.cpp — activate_one
+- ttmp/2026/08/22/ESP-61-REUSABLE-NFC-COMPONENT--extract-reusable-native-esp-idf-nfc-component/reference/01-investigation-diary.md — Step 14 Phase 2 complete
