@@ -32,6 +32,24 @@ WhenToUse: Read before touching the I2C backend, the ST25R3916 driver, or attemp
 
 # Why Arduino Reads NFC Tags and ESP-IDF Does Not — The I2C FSM Reset Diagnosis
 
+> ## EXPERIMENTAL UPDATE (Step 35) — leading hypothesis REFUTED
+>
+> The decisive experiment in Section 7 was run on hardware. The preventive
+> per-transaction `fsm_rst` patch did **not** eliminate the NACKs — it made them
+> **worse** (1.80% vs 1.17%) and introduced failures in `field-on`/`req-setup`
+> phases that were always clean before. Reverting restored the original profile
+> (failures only in `irq-wait`, 1.17%).
+>
+> **Conclusion:** `fsm_rst` alone is not the fix and is harmful. The real
+> M5GFX-vs-ESP-IDF difference is the *full* per-transaction controller reinit
+> (bus-idle wait + pin re-route + mode reinit + FIFO + fsm_rst + timeout), of
+> which `fsm_rst` is only one line. My patch replicated only that line. See
+> Section 7.4 for the refutation evidence and Section 7.5 for the revised
+> direction (SDA/SCL capture to locate the NACK byte stage).
+>
+> The body below is retained as the hypothesis-test record. Read it as "the
+> hypothesis that was tested and refuted," not as established fact.
+
 ## 0. How to read this document
 
 This is an intern onboarding guide. It assumes you know C, that you can read an I2C bus scan, and that you have access to the ESP-60 ticket workspace. It does **not** assume you know the ST25R3916, the ESP-IDF I2C driver internals, or M5GFX.
@@ -385,6 +403,34 @@ Rebuild, reflash, run `nfc-read --attempts 25` with `nfc-trace mode all`, then `
 ### 7.3 Why this experiment is cheaper and higher-information than a scope first
 
 A logic-analyzer capture tells you *where* the NACK is (address vs command vs data byte) but not *why*. The patch tests the *cause* directly: if scrubbing the controller state every transaction eliminates the NACKs, the "where" becomes secondary because the fix no longer depends on it. And the patch is a 10-minute edit + reflash vs. setting up SDA/SCL probing on a running target. Run the patch first; use the scope to explain any residual.
+
+### 7.4 Result: the hypothesis was REFUTED
+
+The patch was applied, verified live in the compiled object (unconditional `callx8` to `s_i2c_hw_fsm_reset` with `clear_bus=false`, no guarding branch), built, and flashed. Two runs, no tag:
+
+| Build | failures / total | rate | first failure | first phase |
+|---|---|---|---|---|
+| Patched (unconditional `fsm_rst`) | 213 / 11,807 | **1.80%** | seq ~12 | **field-on / req-setup** |
+| Reverted baseline (gated `fsm_rst`) | 144 / 12,274 | 1.17% | seq 32 | `irq-wait` (READ_A 0x1C) |
+
+- The patched build failed **more**, not less.
+- The patched build introduced failures in **field-on / req-setup** — phases that were **always clean** in every prior run.
+- The reverted baseline restored the original profile exactly: failures only in `irq-wait`, first error `READ_A 0x1C` NACK — identical to Steps 31–32.
+- Zero `I2C transaction timeout detected` lines in either build; the failures remain pure NACK in both.
+
+So `fsm_rst` alone is **not** the fix and is actively **harmful**. The experiment tests `fsm_rst`-alone (because on ESP32-S3 `s_i2c_hw_fsm_reset(false)` is just `i2c_ll_master_fsm_rst`, no full reinit), and `fsm_rst`-alone is refuted.
+
+### 7.5 Revised direction (replaces the expected outcome of 7.2)
+
+The real M5GFX-vs-ESP-IDF difference is broader than `fsm_rst`. M5GFX `beginTransaction` does a **full controller reinit** every transaction — lock, wait-for-bus-idle (up to 128 µs), `save_reg`, `set_pin` (re-route SDA/SCL), `fsm_rst`, timeout reinit, disable interrupts, master-mode reinit, FIFO reset, timing. The bare `fsm_rst` without that surrounding context perturbs the settling bus, which is why the patched build newly failed in setup phases.
+
+Revised candidate ranking:
+
+1. **Full per-transaction controller reinit discipline** — specifically the bus-idle wait *before* touching the controller, plus pin re-route + mode reinit, not just the FSM bit. A faithful M5GFX mirror would do the full reinit (a larger, riskier patch best validated in the standalone `0115` direct backend, design doc 04 Phase 6).
+2. **Command sequencing / framing** — how the driver programs START/address/repeated-START/final-read-NACK/STOP may differ in a way the ST25R3916 is sensitive to. The defined-operations backend is meant to isolate this.
+3. **SDA/SCL signal-level difference** — still unproven; needed to locate the NACK byte stage and rule out a marginal analog/edge effect.
+
+**Decisive next step: SDA/SCL logic-analyzer capture** on GPIO12/GPIO11 during a failing `READ_A 0x1C` (wire `0x5C`) read. It shows whether the NACK lands on the address, command, or data byte and whether the START/STOP edges look clean — distinguishing framing (candidate 2) from analog (candidate 3) and constraining the full-reinit experiment (candidate 1). This is the user/hardware step; it cannot be done from the keyboard.
 
 ## 8. Implementation plan
 
