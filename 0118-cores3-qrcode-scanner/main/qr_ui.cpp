@@ -124,9 +124,11 @@ static void ui_task(void *arg) {
             st->dirty = true;
             ESP_LOGI(kTag, "mode=%s", mode_name(st->mode));
         }
-        // drain scan results
+        // Drain scan results only when module initialization created the
+        // queue. The UI remains usable and reports "no reply" without it.
+        QueueHandle_t results = st->module->resultQueue();
         ScanResult r;
-        while (xQueueReceive(st->module->resultQueue(), &r, 0) == pdTRUE) {
+        while (results && xQueueReceive(results, &r, 0) == pdTRUE) {
             strncpy(st->last_code, r.text, sizeof(st->last_code) - 1);
             st->last_code[sizeof(st->last_code) - 1] = 0;
             push_history(*st, st->last_code);
@@ -153,8 +155,10 @@ void QRUI::start(QRModule &module) {
     st.hist_count = 0;
     st.dirty = true;
     // read firmware once for the top bar
-    if (!module.getInfo(0xC1, st.firmware, sizeof(st.firmware))) {
+    if (!module.ready() ||
+        !module.getInfo(0xC1, st.firmware, sizeof(st.firmware))) {
         strncpy(st.firmware, "(no reply)", sizeof(st.firmware) - 1);
+        st.firmware[sizeof(st.firmware) - 1] = 0;
     }
     ESP_LOGI(kTag, "start: firmware=%s, creating UI task", st.firmware);
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);

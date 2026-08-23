@@ -74,14 +74,14 @@ static int cmd_qr(int argc, char **argv) {
         for (int i = 2; i < argc && n < (int)sizeof(cmd); i++) {
             cmd[n++] = (uint8_t)strtoul(argv[i], nullptr, 16);
         }
-        char dump[128] = {0};
-        s_module->pausePump();
-        QRCodeM14 &eng = s_module->engine();
-        eng.sendCmd(cmd, n, nullptr, 0, 0);
-        int got = eng.readBytes((uint8_t *)dump, sizeof(dump) - 1, 800);
-        s_module->resumePump();
-        printf("rx %d bytes:", got);
-        for (int i = 0; i < got; i++) printf(" %02x", (uint8_t)dump[i]);
+        uint8_t dump[128] = {0};
+        size_t got = 0;
+        if (!s_module->rawCommand(cmd, n, dump, sizeof(dump), &got)) {
+            printf("raw command failed (module unavailable or request queue full)\n");
+            return 1;
+        }
+        printf("rx %u bytes:", (unsigned)got);
+        for (size_t i = 0; i < got; i++) printf(" %02x", dump[i]);
         printf("\n");
         return 0;
     }
