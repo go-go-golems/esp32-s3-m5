@@ -13,3 +13,12 @@ Created ticket + intern design/implementation guide for CoreS3 + Module13.2 QRCo
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/design-doc/01-cores3-module13.2-qrcode-scanner-analysis-design-and-implementation-guide.md — Primary deliverable
 
+
+## 2026-08-23
+
+Uploaded design doc + diary + sources manifest bundle to reMarkable at /ai/2026/08/23/ESP-62-CORES3-QRCODE; verified via remarquee cloud search. Doctor passes. Commits b49b37f4, e07cce39.
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/design-doc/01-cores3-module13.2-qrcode-scanner-analysis-design-and-implementation-guide.md — Uploaded deliverable
+
