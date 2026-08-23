@@ -116,6 +116,8 @@ class QRModule {
     char _line[256] = {0};
     size_t _len = 0;
     int64_t _last_rx_us = 0;
+    char _last_emitted[256] = {0};
+    int64_t _last_seen_us = 0;
 
     void setEnable(bool en);
     void setTriggerLevel(bool high);

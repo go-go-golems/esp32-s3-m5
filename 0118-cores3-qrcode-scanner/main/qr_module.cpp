@@ -249,9 +249,23 @@ bool QRModule::probeRoutes(char *out, size_t cap) {
 
 void QRModule::emit(const char *text) {
     if (!_result_q || !text || !text[0]) return;
+    const int64_t now = esp_timer_get_time();
+    const bool same = std::strncmp(text, _last_emitted,
+                                   sizeof(_last_emitted)) == 0;
+    // AUTO/continuous mode repeats a visible symbol every ~100-500 ms. Keep
+    // one result while repeats remain uninterrupted; allow the same value
+    // again after a one-second absence so intentional rescans still register.
+    if (same && _last_seen_us && now - _last_seen_us < 1000000) {
+        _last_seen_us = now;
+        return;
+    }
+    std::strncpy(_last_emitted, text, sizeof(_last_emitted) - 1);
+    _last_emitted[sizeof(_last_emitted) - 1] = 0;
+    _last_seen_us = now;
+
     ScanResult result{};
     std::strncpy(result.text, text, sizeof(result.text) - 1);
-    result.ts_us = esp_timer_get_time();
+    result.ts_us = now;
     if (xQueueSend(_result_q, &result, 0) == pdTRUE) {
         ESP_LOGI(kTag, "emit code: %s", result.text);
     } else {

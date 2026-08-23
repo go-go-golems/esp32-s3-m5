@@ -164,7 +164,11 @@ QRCodeM14::CmdResult QRCodeM14::setPosLightMode(PosLightMode m) {
 
 QRCodeM14::CmdResult QRCodeM14::setModeUart() {
     static const uint8_t cmd[] = {0x21, 0x42, 0x40, 0x00};
-    return sendCmd(cmd, sizeof(cmd));
+    // Firmware 1.0 returns the normal five-byte configuration ACK even though
+    // the official Arduino wrapper does not consume it. Leaving it unread
+    // makes the scan pump emit the ACK as a bogus barcode.
+    static const uint8_t ack[] = {0x22, 0x42, 0x40, 0x00, 0x00};
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
 }
 
 QRCodeM14::CmdResult QRCodeM14::enableSuffixCrLf() {

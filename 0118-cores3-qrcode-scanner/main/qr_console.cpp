@@ -116,7 +116,7 @@ static int cmd_qr(int argc, char **argv) {
         return print_result("factory-reset", s_module->factoryReset(), true);
     }
     if (!strcmp(sub, "uart")) {
-        return print_result("uart-mode", s_module->setModeUart(), true);
+        return print_result("uart-mode", s_module->setModeUart());
     }
     if (!strcmp(sub, "suffix")) {
         return print_result("suffix-crlf", s_module->enableSuffixCrLf());
