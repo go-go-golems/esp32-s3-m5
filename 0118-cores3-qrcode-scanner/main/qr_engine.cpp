@@ -78,29 +78,38 @@ QRCodeM14::CmdResult QRCodeM14::sendCmd(const uint8_t *cmd, size_t n,
     }
     if (!ack || ack_len == 0) return OK;
 
-    uint8_t rx[16] = {0};
-    size_t got = 0;
+    uint8_t observed[16] = {0};
+    size_t observed_len = 0;
+    size_t total = 0;
+    size_t matched = 0;
     int64_t deadline = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
-    while (esp_timer_get_time() < deadline && got < ack_len) {
-        int len = uart_read_bytes(_port, rx + got, ack_len - got,
-                                  pdMS_TO_TICKS(5));
-        if (len > 0) got += len;
+    while (esp_timer_get_time() < deadline) {
+        uint8_t chunk[16];
+        int len = uart_read_bytes(_port, chunk, sizeof(chunk), pdMS_TO_TICKS(5));
+        for (int i = 0; i < len; ++i) {
+            const uint8_t byte = chunk[i];
+            if (observed_len < sizeof(observed)) observed[observed_len++] = byte;
+            ++total;
+            if (byte == ack[matched]) {
+                if (++matched == ack_len) {
+                    ESP_LOGI(kTag, "ack ok");
+                    return OK;
+                }
+            } else {
+                matched = byte == ack[0] ? 1 : 0;
+            }
+        }
     }
-    if (got < ack_len) {
-        ESP_LOGW(kTag, "ack timeout: got=%u expected=%u", (unsigned)got,
-                 (unsigned)ack_len);
-        if (got) ESP_LOG_BUFFER_HEXDUMP(kTag, rx, got, ESP_LOG_WARN);
+    if (total == 0) {
+        ESP_LOGW(kTag, "ack timeout: got=0 expected=%u", (unsigned)ack_len);
         return TIMEOUT;
     }
-    if (memcmp(rx, ack, ack_len) != 0) {
-        ESP_LOGW(kTag, "ack mismatch; received:");
-        ESP_LOG_BUFFER_HEXDUMP(kTag, rx, got, ESP_LOG_WARN);
-        ESP_LOGW(kTag, "expected:");
-        ESP_LOG_BUFFER_HEXDUMP(kTag, ack, ack_len, ESP_LOG_WARN);
-        return ACK_MISMATCH;
-    }
-    ESP_LOGI(kTag, "ack ok");
-    return OK;
+    ESP_LOGW(kTag, "ack not found in %u received bytes; first bytes:",
+             (unsigned)total);
+    ESP_LOG_BUFFER_HEXDUMP(kTag, observed, observed_len, ESP_LOG_WARN);
+    ESP_LOGW(kTag, "expected:");
+    ESP_LOG_BUFFER_HEXDUMP(kTag, ack, ack_len, ESP_LOG_WARN);
+    return ACK_MISMATCH;
 }
 
 bool QRCodeM14::getInfos(uint8_t id, char *out, size_t out_cap) {
@@ -147,19 +156,19 @@ QRCodeM14::CmdResult QRCodeM14::stopDecode() {
 QRCodeM14::CmdResult QRCodeM14::setTriggerMode(TriggerMode m) {
     uint8_t cmd[] = {0x21, 0x61, 0x41, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x61, 0x41, (uint8_t)m, 0x00};
-    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 500);
 }
 
 QRCodeM14::CmdResult QRCodeM14::setFillLightMode(FillLightMode m) {
     uint8_t cmd[] = {0x21, 0x62, 0x41, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x62, 0x41, (uint8_t)m, 0x00};
-    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 500);
 }
 
 QRCodeM14::CmdResult QRCodeM14::setPosLightMode(PosLightMode m) {
     uint8_t cmd[] = {0x21, 0x62, 0x42, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x62, 0x42, (uint8_t)m, 0x00};
-    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 500);
 }
 
 QRCodeM14::CmdResult QRCodeM14::setModeUart() {
@@ -168,7 +177,7 @@ QRCodeM14::CmdResult QRCodeM14::setModeUart() {
     // the official Arduino wrapper does not consume it. Leaving it unread
     // makes the scan pump emit the ACK as a bogus barcode.
     static const uint8_t ack[] = {0x22, 0x42, 0x40, 0x00, 0x00};
-    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 500);
 }
 
 QRCodeM14::CmdResult QRCodeM14::enableSuffixCrLf() {
