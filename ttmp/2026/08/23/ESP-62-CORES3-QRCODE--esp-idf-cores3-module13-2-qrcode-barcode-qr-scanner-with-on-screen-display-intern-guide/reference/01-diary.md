@@ -864,3 +864,30 @@ failing electrical or protocol boundary.
 - Route sweep: `various/2026-08-23-scanner-safe-route-probe.txt`.
 - Expander/line state:
   `various/2026-08-23-expander-output-and-pin-samples.txt`.
+
+### A/B follow-up: exact known-working firmware now also receives zero bytes
+
+After the user correctly challenged the investigation to compare against the
+known-working point, I created a detached worktree at `c0787055`, built it
+with ESP-IDF 5.3.4, flashed that exact firmware, and captured its first query.
+This is the commit that previously read firmware `1.0` and emitted
+`X0052L3WPN` on the same G13/G14 stack.
+
+It now produced:
+
+```text
+I (2259) qr_module: getInfo: enqueue id=0xc1
+W (3108) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (3108) qr_module: getInfo: id=0xc1 ok=1 resp_ok=0
+I (3108) cores3_qr: module ready, firmware=(no reply)
+```
+
+This rules out the current queue architecture, diagnostics, startup
+simplification, and command-result changes as the cause of the no-UART state.
+The exact formerly working code now fails identically. I immediately restored
+the current stable diagnostic firmware after the A/B capture.
+
+The remaining fault domain is physical/module state: Module13.2 USB/UART
+selector, QR routing DIPs, H2 DIP isolation, stack contact, external 12 V, or
+the scanner engine itself. Evidence:
+`various/2026-08-23-known-working-c078-ab-test-now-no-reply.txt`.
