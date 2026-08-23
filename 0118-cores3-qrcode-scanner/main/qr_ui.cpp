@@ -154,9 +154,11 @@ void QRUI::start(QRModule &module, const char *firmware) {
     st.last_code[0] = 0;
     st.hist_count = 0;
     st.dirty = true;
-    strncpy(st.firmware, firmware && firmware[0] ? firmware : "(no reply)",
-            sizeof(st.firmware) - 1);
-    st.firmware[sizeof(st.firmware) - 1] = 0;
-    ESP_LOGI(kTag, "start: firmware=%s, creating UI task", st.firmware);
+    if (firmware && firmware[0]) {
+        strncpy(st.firmware, firmware, sizeof(st.firmware) - 1);
+        st.firmware[sizeof(st.firmware) - 1] = 0;
+    }
+    ESP_LOGI(kTag, "start: firmware=%s, creating UI task",
+             st.firmware[0] ? st.firmware : "(no reply)");
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);
 }
