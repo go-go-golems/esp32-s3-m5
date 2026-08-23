@@ -33,6 +33,20 @@ RelatedFiles:
       Note: M5-Bus pinmap, DC power, CoreS3 bus mapping, symbologies
     - Path: abs:///home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/sources/protocol-pdf/Module13.2-QRCode-Protocol-EN.txt
       Note: Primary UART protocol spec — every command byte and framing rule
+    - Path: repo://0118-cores3-qrcode-scanner/README.md
+      Note: Firmware build/flash/use docs (Phase 4)
+    - Path: repo://0118-cores3-qrcode-scanner/main/app_main.cpp
+      Note: Boot wiring (M5->module->UI->console) implemented in Phase 1-4
+    - Path: repo://0118-cores3-qrcode-scanner/main/qr_console.cpp
+      Note: esp_console qr command set over USB Serial/JTAG (Phase 2+4)
+    - Path: repo://0118-cores3-qrcode-scanner/main/qr_engine.cpp
+      Note: ESP-IDF port of the M14-Pro UART protocol (Phase 2)
+    - Path: repo://0118-cores3-qrcode-scanner/main/qr_module.cpp
+      Note: PI4IOE5V6408 power/TRIG + UART1 + scan pump (Phase 2)
+    - Path: repo://0118-cores3-qrcode-scanner/main/qr_ui.cpp
+      Note: 'M5GFX on-screen UI: code + history + buttons (Phase 3)'
+    - Path: repo://0118-cores3-qrcode-scanner/sdkconfig.defaults
+      Note: CoreS3 sdkconfig (quad PSRAM, USB Serial/JTAG, 16MB)
     - Path: repo://ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/scripts/02-bringup-build-flash.sh
       Note: Build/flash helper respecting AGENTS.md (IDF 5.3.4, USB Serial/JTAG)
     - Path: repo://ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/sources/MANIFEST.md
@@ -43,6 +57,13 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
+
+
+
+
+
+
 
 
 

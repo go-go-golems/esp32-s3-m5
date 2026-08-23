@@ -22,3 +22,12 @@ Uploaded design doc + diary + sources manifest bundle to reMarkable at /ai/2026/
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/design-doc/01-cores3-module13.2-qrcode-scanner-analysis-design-and-implementation-guide.md — Uploaded deliverable
 
+
+## 2026-08-23
+
+Implemented firmware 0118-cores3-qrcode-scanner (Phases 1-4): skeleton+display, scanner driver (UART+PI4IOE5V6408), on-screen UI, full qr console. Builds clean on IDF 5.3.4; fullclean reproducible (515KB app). Commits 9981d58f, bd0e0a5b, 79eeb454, 52d01d75. Flash + live probe blocked on host loading cdc_acm (no passwordless sudo).
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/app_main.cpp — Boot wiring
+
