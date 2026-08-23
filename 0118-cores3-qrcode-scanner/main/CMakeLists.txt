@@ -1,6 +1,9 @@
 idf_component_register(
     SRCS
         "app_main.cpp"
+        "qr_engine.cpp"
+        "qr_module.cpp"
+        "qr_console.cpp"
     INCLUDE_DIRS
         "."
 )
