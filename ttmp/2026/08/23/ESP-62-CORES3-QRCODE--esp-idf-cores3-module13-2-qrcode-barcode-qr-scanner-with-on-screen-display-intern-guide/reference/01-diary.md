@@ -1060,3 +1060,246 @@ scanner configuration.
 - Expander: address `0x43`, power channel 0, active-low TRIG channel 4.
 - First-boot evidence:
   `various/2026-08-23-0119-minimal-probe-first-boot.txt`.
+
+## Step 14: Recover the scanner from persisted USB mode and prove the full path
+
+The minimal firmware established that the optical engine and hardware trigger
+still operated, but “the light turns on” was initially mistaken for “a barcode
+was decoded and delivered over UART.” Direct console captures corrected that
+interpretation: both a 100 ms pulse and a five-second active-low trigger
+produced optical activity and zero UART bytes.
+
+The official M5Stack USB-mode example documents the missing state transition.
+A scanner persisted in USB mode cannot be switched back over the UART path
+that it is no longer using. The required recovery is to scan the official
+**Serial Communication** programming barcode `21424000`. After the user
+scanned it, the same running firmware immediately received `X0052L3WPN`,
+emitted a `ScanResult`, delivered it to the UI task, and answered firmware
+status with version `1.0`.
+
+### Prompt Context
+
+**User prompt (verbatim):** "doesn't seem to work
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "I clicked aoround and stuff.
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "ok, this works when pressing the key it seems? it also turns on the qr code light I guess? it doesn't display the code on the UI though.
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "can you do reading and all that over esp_console? I'm going run some errands so you'll have to work by yourself, it should be pionted at a QR code
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "the thing that worked best before is like, the auto mode / cont mode which was scanning all the time, btw
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "ok i scanned the code and it works now
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "how did that happen?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Reproduce the successful minimal trigger in the
+full application, autonomously inspect raw UART and UI delivery through
+`esp_console`, recover any persisted scanner-interface state, and preserve the
+exact causal chain.
+
+**Inferred user intent:** Return to reliable AUTO/continuous barcode scanning
+with decoded content visible on the CoreS3, while understanding why a formerly
+working scanner became completely silent on UART.
+
+**Commit (code):** 766a4451 — "ESP-62: preserve idle-high TRIG during scanner power sequencing"
+
+**Commit (code):** ea5d1d42 — "ESP-62: drive proven hardware trigger from scanner UI"
+
+**Commit (code):** b8c6258b — "ESP-62: make full UI trigger match minimal probe exactly"
+
+**Commit (code):** db10cdfd — "ESP-62: log every scanner UART receive chunk"
+
+**Commit (code):** cea1ad44 — "ESP-62: show scanner UART recovery action on LCD"
+
+### What I did
+
+- Ported `0119`'s safe electrical ordering into `0118`: preload scanner power
+  low and active-low TRIG high while high-impedance, configure the outputs,
+  establish TRIG high, and enable scanner power last.
+- Changed power-cycle behavior so TRIG remains idle-high across both power
+  states rather than being pulled low whenever power is disabled.
+- Added a nonblocking owner request for a 100 ms hardware-trigger pulse.
+- Replaced the UI's silent `32 75 01` software-start action with the proven
+  hardware pulse and then matched `0119` exactly by treating any screen click
+  as a trigger. UI mode writes were removed from the diagnostic interaction.
+- Added a hexdump for every UART receive chunk before quiet-time framing.
+- Added `scripts/04-console-trigger-hold.py` so TRIG can be held low and
+  released through two `esp_console` commands in one serial-owner session.
+- Tested a 100 ms pulse and a five-second hold while the scanner was aimed at a
+  QR code. Both activated the optics; neither produced one UART byte.
+- Re-read the official `UsbMode.ino` example and user guide. The example says
+  that an unknown prior output port must be recovered by scanning the Serial
+  Communication configuration code; it cannot rely on the inactive UART.
+- Downloaded and archived the official guide PDF, rendered page 9, and cropped
+  the exact `21424000` Serial Communication programming barcode.
+- Added an LCD recovery message for the state where firmware status receives
+  no reply.
+- After the user scanned `21424000`, ran `qr status` through `esp_console` and
+  captured the complete transport/parser/UI path.
+
+### Why
+
+- Optical activity proves only that TRIG reaches the engine and starts a decode
+  session. It does not establish where decoded data is routed.
+- Communication-interface selection is persistent scanner state. If output is
+  set to USB keyboard, USB virtual serial, or USB HID-POS, the M5-Bus TTL UART
+  can remain completely silent even though power, trigger, imaging, and decode
+  are functional.
+- A UART command cannot be assumed to recover an interface that is no longer
+  listening on UART. The programming barcode is interpreted inside the scan
+  engine and is therefore independent of the host transport being recovered.
+
+### What worked
+
+- The full UI's screen tap reliably activated illumination through the
+  hardware TRIG path without blocking the display task.
+- The official Serial Communication programming barcode restored TTL serial
+  operation immediately.
+- The first post-recovery scan produced exact raw transport evidence:
+
+  ```text
+  I (...) qr_module: UART RX chunk: 10 bytes
+  I (...) qr_module: ... |X0052L3WPN|
+  I (...) qr_module: emit code: X0052L3WPN
+  I (...) qr_ui: code: X0052L3WPN
+  ```
+
+- The first post-recovery status query produced:
+
+  ```text
+  getInfos id=0xc1 data_len=3 data_got=3 -> '1.0'
+  qr firmware=1.0
+  ```
+
+- This is the first post-lifetime-fix capture that combines scanner bytes,
+  quiet-time emission, the stable owner task, and UI queue delivery.
+
+### What didn't work
+
+- Safe TRIG/power sequencing alone did not restore UART.
+- Replacing the UI software-start command with a hardware pulse did not restore
+  UART.
+- Treating every screen click as a trigger removed UI ambiguity but still
+  produced no decoded bytes before interface recovery.
+- Autonomous 100 ms trigger test:
+
+  ```text
+  qr trig pulse
+  I (...) qr_module: TRIG pulse: LOW 100ms -> HIGH
+  trig-pulse: ok
+  ```
+
+  No `UART RX chunk` followed.
+- Autonomous five-second trigger test:
+
+  ```text
+  qr trig low
+  I (...) qr_module: TRIG=LOW
+  trig-low: ok
+  qr trig high
+  I (...) qr_module: TRIG=HIGH
+  trig-high: ok
+  ```
+
+  No `UART RX chunk` followed.
+- The first live monitor window was empty because the user's touch occurred
+  before the no-reset capture attached. This was corrected by driving TRIG
+  through `esp_console` instead of relying on synchronized human input.
+
+### What I learned
+
+- The earlier conclusion that `0119` “worked” was too broad. At that point it
+  proved responsive touch and optical triggering, not decoded UART transport.
+- The exact-known-working `c0787055` A/B test correctly ruled out a current
+  firmware regression, but the remaining state was not necessarily physical.
+  Persistent state inside the scanner survives host firmware changes and makes
+  historical firmware A/B tests fail identically.
+- A physical USB/UART selector and the scan engine's persisted communication
+  interface are distinct controls. Correct switch position does not force the
+  engine's configured output protocol back to serial.
+- Factory reset is operationally hazardous in a UART-managed product. If it
+  restores a USB interface, it removes the host's ability to repair the
+  setting over its normal control path.
+- AUTO/continuous behavior should be restored only after a positive firmware
+  reply confirms that TTL serial control is available.
+
+### What was tricky to build
+
+- The visible symptoms crossed three independent state machines: expander
+  power/TRIG, scanner decode-session state, and scanner communication-interface
+  persistence. Final GPIO levels and visible illumination could both be
+  correct while the selected output transport remained wrong.
+- A route sweep and baud sweep were logically valid but could not find a
+  response because they varied host UART parameters while the engine was
+  routing output to USB. The tests were useful negative evidence, but they did
+  not cover the persisted interface dimension.
+- The recovery command `21 42 40 00` exists, but it is delivered over UART. It
+  cannot repair a state in which UART is not the active communication
+  interface. The official programming barcode bypasses that circular
+  dependency.
+
+### What warrants a second pair of eyes
+
+- Determine whether `32 76 01` factory reset always restores a USB mode on this
+  exact engine firmware or whether another command/user action selected USB.
+  The temporal association is strong, but the session did not capture a
+  before/after interface query around the reset.
+- Guard or remove `qr reset`; at minimum require an explicit confirmation and
+  display the recovery-barcode requirement before transmission.
+- Verify AUTO and continuous ACKs after recovery and select one as the normal
+  startup mode. The user prefers always-scanning operation.
+- Confirm on the physical LCD that the post-recovery `qr_ui: code` update is
+  visible and that continuous repeats are deduplicated appropriately.
+
+### What should be done in the future
+
+- On a responsive boot, configure RS232 output, decode lighting, and AUTO or
+  continuous mode through the owner and require ACK success before claiming
+  the scanner is ready.
+- Keep touch-trigger behavior as a fallback, not the primary user path.
+- Add an explicit interface-recovery section to both firmware READMEs and the
+  long-form design document.
+- Consider packaging the official recovery crop where an operator can display
+  it on a phone or print it without opening the entire 75-page guide.
+
+### Code review instructions
+
+- Review `qr_module.cpp::begin()` and `setEnable()` for safe active-low TRIG
+  ordering.
+- Review `QRModule::requestHardwareTriggerPulse()` and the `PulseTrigger`
+  owner case; all expander writes still occur in the owner path during UI use.
+- Review `qr_module.cpp::ownerTask()` for raw RX logging followed by the
+  existing quiet-time pump.
+- Review `qr_ui.cpp` for the any-touch hardware trigger and recovery message.
+- Reproduce recovery by first checking `qr status`, then scanning the official
+  `21424000` barcode if no reply, then rerunning `qr status` and scanning a
+  normal code.
+
+### Technical details
+
+- Trigger pulse evidence: `various/2026-08-23-uart-offline-trigger-pulse.txt`.
+- Five-second trigger evidence:
+  `various/2026-08-23-uart-offline-trigger-held-5s.txt`.
+- End-to-end recovery evidence:
+  `various/2026-08-23-serial-recovery-end-to-end-success.txt`.
+- Official recovery page:
+  `various/2026-08-23-serial-communication-recovery-page.png`.
+- Cropped recovery barcode:
+  `various/2026-08-23-serial-communication-recovery-barcode.png`.
+- Official source:
+  `sources/protocol-pdf/ZBarcode-Scanner-User-Guide-2.5-EN.pdf`, page 9.

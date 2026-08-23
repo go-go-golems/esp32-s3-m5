@@ -50,3 +50,13 @@ Step 13: added separate minimal direct CoreS3 QRCode probe and operator confirme
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0119-cores3-qrcode-minimal-probe/main/app_main.cpp — Known-good minimal implementation
 
+
+## 2026-08-23
+
+Step 14: proved scanner was persisted in USB mode, recovered TTL serial by scanning official 21424000 programming barcode, and captured firmware 1.0 + X0052L3WPN raw bytes + emit + UI delivery
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Safe trigger sequencing, owner-mediated pulse, and raw UART evidence
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_ui.cpp — Hardware trigger fallback and UART recovery instructions
+

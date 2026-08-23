@@ -10,8 +10,8 @@ each decoded code on the CoreS3 LCD.
 - **Module13.2 QRCode** stacked under the CoreS3; on-module **DIP switch set to UART**.
 - **12 V DC** on the module barrel jack (5.5×2.1 mm, center-positive) — required to
   power the scanner engine + the whole stack. USB alone is not enough.
-- The CoreS3 drives the engine over **UART1 (TX=G17 → QR_RX, RX=G18 ← QR_TX)** at
-  115200 8N1, and controls power (`QR_5V_EN`) + hardware trigger (`TRIG`) through
+- The CoreS3 drives the engine over **UART1 (TX=G13 → QR_RX on M5-Bus pin 23,
+  RX=G14 ← QR_TX on pin 26)** at 115200 8N1, and controls power (`QR_5V_EN`) + hardware trigger (`TRIG`) through
   the module's **PI4IOE5V6408** I2C GPIO expander at address **0x43** (on In_I2C).
 
 ## Build (IDF 5.3.4)
@@ -35,9 +35,10 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## Use
 
-- **On screen:** aim at a code; the decoded text appears in the center, recent
-  codes scroll in the history list. **BtnA** toggles scanning, **BtnB** cycles
-  trigger mode.
+- **On screen:** aim at a code and tap anywhere. The UI enqueues a 100 ms
+  active-low hardware TRIG pulse; decoded UART text appears in the center and
+  recent codes scroll in the history list. The diagnostic UI does not write
+  trigger-mode settings.
 - **USB console** (`cores3-qr> `):
   ```
   qr status            # read module firmware + serial (the on-device probe)
@@ -49,8 +50,13 @@ idf.py -p /dev/ttyACM0 flash monitor
   qr reset             # factory reset (careful)
   ```
 
-If `qr status` returns **NO REPLY**, check: 12 V power, the DIP switch (UART
-side), and that the module is stacked.
+If `qr status` returns **NO REPLY** but a hardware trigger still activates the
+illumination/aiming light, the scanner may have persisted a USB communication
+mode. UART commands cannot recover that state. Scan the official **Serial
+Communication** programming barcode `21424000` from page 9 of
+`ZBarcode-Scanner-User-Guide-2.5-EN.pdf`, then power-cycle and rerun
+`qr status`. A ready-to-display crop is archived in the ESP-62 ticket at
+`various/2026-08-23-serial-communication-recovery-barcode.png`.
 
 ## Layout
 
