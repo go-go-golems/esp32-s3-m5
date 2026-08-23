@@ -109,7 +109,7 @@ guide, then wired them into the ticket bookkeeping.
 
 **Inferred user intent:** A complete, navigable, evidence-backed package the intern can act on, plus the diary + commits the user asked for.
 
-**Commit (code):** (this step's commit follows below)
+**Commit (code):** b49b37f4 — "ESP-62: CoreS3 + Module13.2 QRCode scanner — ticket, sources, design guide, diary"
 
 ### What I did
 - Wrote `sources/MANIFEST.md` (provenance for every source: URL, contents, why it matters).
@@ -146,3 +146,8 @@ guide, then wired them into the ticket bookkeeping.
 
 ### Technical details
 - Probe script protocol constants are taken verbatim from `qrcode_m14.cpp` (e.g. `CMD_GET_FW = 43 02 C1`, `ACK_TRIG_CONT = 22 61 41 02 00`).
+
+### Delivery
+- reMarkable bundle uploaded to `/ai/2026/08/23/ESP-62-CORES3-QRCODE` (design doc + diary + sources manifest as one PDF, ToC depth 2).
+- Verified present via `remarquee cloud search QRCode`: folder `/ai/2026/08/23/ESP-62-CORES3-QRCODE` + file `ESP-62 CoreS3 Module13.2 QRCode Scanner — Design & Implementation Guide`.
+- Note: `remarquee cloud ls`/`find` print a glazed-help "No examples found!" quirk for some paths; `cloud search <term>` is the reliable verification.
