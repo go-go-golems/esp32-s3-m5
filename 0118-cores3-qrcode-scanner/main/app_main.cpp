@@ -47,8 +47,8 @@ extern "C" void app_main(void) {
         g_qr.setFillLightMode(QRCodeM14::FILL_ON_DECODE);
         g_qr.setPosLightMode(QRCodeM14::POS_ON_DECODE);
         g_qr.setTriggerMode(QRCodeM14::CONTINUOUS);
-        g_qr.engine().setModeUart();       // force decoded output to RS232/UART
-        g_qr.engine().enableSuffixCrLf();  // guarantee \r\n terminator for the pump
+        g_qr.setModeUart();       // force decoded output to RS232/UART (via owner task)
+        g_qr.enableSuffixCrLf();  // try to enable \r\n terminator (via owner task)
     } else {
         ESP_LOGE(kTag, "module init failed -- 12V power / DIP switch (UART) / stack");
     }

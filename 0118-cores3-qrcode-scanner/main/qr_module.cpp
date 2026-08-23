@@ -97,6 +97,14 @@ void QRModule::factoryReset() {
     QRRequest r{QRReqType::FactoryReset};
     xQueueSend(_req_q, &r, 0);
 }
+void QRModule::setModeUart() {
+    QRRequest r{QRReqType::SetModeUart};
+    xQueueSend(_req_q, &r, 0);
+}
+void QRModule::enableSuffixCrLf() {
+    QRRequest r{QRReqType::EnableSuffixCrLf};
+    xQueueSend(_req_q, &r, 0);
+}
 
 // --- scan accumulator (UART-owner task only) ---
 void QRModule::emit(const char *text) {
@@ -109,6 +117,7 @@ void QRModule::emit(const char *text) {
 
 void QRModule::pump(const uint8_t *data, int n) {
     int64_t now = esp_timer_get_time();
+    if (n > 0) { ESP_LOGV(kTag, "pump %d bytes", n); }
     // The engine streams decoded text WITHOUT a suffix by default, repeating
     // every ~100ms in continuous mode. Emit a code on a quiet-time gap (>=30ms
     // with no new bytes) or on a length cap, whichever comes first.
@@ -155,6 +164,8 @@ void QRModule::handle(QRRequest &r) {
         case QRReqType::SetBrightness: _engine.setFillLightBrightness(r.arg_u8); break;
         case QRReqType::SetBeep:       _engine.setDecodeSuccessBeep(r.arg_u8); break;
         case QRReqType::FactoryReset:  _engine.factoryReset(); break;
+        case QRReqType::SetModeUart:    _engine.setModeUart(); break;
+        case QRReqType::EnableSuffixCrLf: _engine.enableSuffixCrLf(); break;
     }
     if (r.resp_sem) xSemaphoreGive(r.resp_sem);
 }

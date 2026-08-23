@@ -41,6 +41,8 @@ enum class QRReqType {
     SetBrightness,
     SetBeep,
     FactoryReset,
+    SetModeUart,    // 21 42 40 00 (force RS232 output)
+    EnableSuffixCrLf,  // 21 51 4C 01 + 21 51 C2 00 02 0D 0A
 };
 
 struct QRRequest {
@@ -79,6 +81,8 @@ class QRModule {
     void setBrightness(int pct);
     void setBeep(int count);
     void factoryReset();
+    void setModeUart();           // route through owner task (no direct engine access)
+    void enableSuffixCrLf();
 
     QRCodeM14 &engine() { return _engine; }
     QueueHandle_t resultQueue() const { return _q; }
