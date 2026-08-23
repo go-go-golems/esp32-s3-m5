@@ -32,6 +32,8 @@ static void print_usage(void) {
     printf("  qr suffix            # enable CRLF scan suffix\n");
     printf("  qr power-cycle       # cycle scanner power via expander ch0\n");
     printf("  qr trig <low|high|pulse> # drive hardware TRIG via expander ch4\n");
+    printf("  qr lines             # read power/TRIG outputs and G14 RX level\n");
+    printf("  qr baud-probe        # probe documented scanner UART baud rates\n");
     printf("  qr reset             # factory reset (use with care)\n");
 }
 
@@ -127,6 +129,24 @@ static int cmd_qr(int argc, char **argv) {
         }
         printf("bad trigger action: %s\n", argv[2]);
         return 1;
+    }
+    if (!strcmp(sub, "lines")) {
+        char state[64] = {0};
+        if (!s_module->getElectricalState(state, sizeof(state))) {
+            printf("lines: unavailable\n");
+            return 1;
+        }
+        printf("lines: %s\n", state);
+        return 0;
+    }
+    if (!strcmp(sub, "baud-probe")) {
+        char found[64] = {0};
+        if (!s_module->probeBauds(found, sizeof(found))) {
+            printf("baud-probe: no response; restored host baud=115200\n");
+            return 1;
+        }
+        printf("baud-probe: %s\n", found);
+        return 0;
     }
     if (!strcmp(sub, "mode")) {
         if (argc < 3) { printf("qr mode needs <key|cont|auto|pulse|sense>\n"); return 1; }

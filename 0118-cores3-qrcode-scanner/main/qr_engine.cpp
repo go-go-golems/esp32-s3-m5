@@ -39,6 +39,18 @@ const char *QRCodeM14::resultName(CmdResult result) {
     }
 }
 
+QRCodeM14::CmdResult QRCodeM14::configureHostBaud(int baud) {
+    if (_port == UART_NUM_MAX || baud <= 0) return INVALID;
+    esp_err_t err = uart_set_baudrate(_port, baud);
+    if (err != ESP_OK) {
+        ESP_LOGE(kTag, "set host UART baud %d failed: %s", baud,
+                 esp_err_to_name(err));
+        return INVALID;
+    }
+    ESP_LOGI(kTag, "host UART baud=%d", baud);
+    return OK;
+}
+
 QRCodeM14::CmdResult QRCodeM14::sendCmd(const uint8_t *cmd, size_t n,
                                          const uint8_t *ack, size_t ack_len,
                                          uint32_t timeout_ms) {

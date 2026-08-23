@@ -3,8 +3,10 @@
 #include "qr_module.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 
+#include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
@@ -173,6 +175,28 @@ QRCodeM14::CmdResult QRModule::pulseHardwareTrigger() {
     return command(QRReqType::PulseTrigger);
 }
 
+bool QRModule::getElectricalState(char *out, size_t cap) {
+    if (!out || cap == 0) return false;
+    QRRequest request{};
+    request.type = QRReqType::GetElectricalState;
+    QRResponse response{};
+    if (!transact(request, &response) || !response.ok) return false;
+    std::strncpy(out, response.info, cap - 1);
+    out[cap - 1] = 0;
+    return true;
+}
+
+bool QRModule::probeBauds(char *out, size_t cap) {
+    if (!out || cap == 0) return false;
+    QRRequest request{};
+    request.type = QRReqType::ProbeBauds;
+    QRResponse response{};
+    if (!transact(request, &response) || !response.ok) return false;
+    std::strncpy(out, response.info, cap - 1);
+    out[cap - 1] = 0;
+    return true;
+}
+
 void QRModule::emit(const char *text) {
     if (!_result_q || !text || !text[0]) return;
     ScanResult result{};
@@ -288,6 +312,38 @@ void QRModule::handle(const QRRequest &request) {
             setTriggerLevel(true);
             response.cmd_result = QRCodeM14::OK;
             break;
+        case QRReqType::GetElectricalState: {
+            int power = _io_exp ? _io_exp->digitalRead(kChPowerEn) : -1;
+            int trig = _io_exp ? _io_exp->digitalRead(kChTrig) : -1;
+            int rx = gpio_get_level((gpio_num_t)kUartRx);
+            std::snprintf(response.info, sizeof(response.info),
+                          "power_en=%d trig=%d rx_g14=%d", power, trig, rx);
+            response.cmd_result = QRCodeM14::OK;
+            break;
+        }
+        case QRReqType::ProbeBauds: {
+            static const int bauds[] = {
+                115200, 9600, 19200, 38400, 57600, 4800, 2400, 1200, 128000
+            };
+            char fw[32] = {0};
+            for (int baud : bauds) {
+                if (_engine.configureHostBaud(baud) != QRCodeM14::OK) continue;
+                vTaskDelay(pdMS_TO_TICKS(50));
+                if (_engine.getInfos(0xC1, fw, sizeof(fw))) {
+                    std::snprintf(response.info, sizeof(response.info),
+                                  "baud=%d firmware=%s", baud, fw);
+                    response.cmd_result = QRCodeM14::OK;
+                    break;
+                }
+            }
+            if (response.cmd_result != QRCodeM14::OK) {
+                _engine.configureHostBaud(115200);
+                std::snprintf(response.info, sizeof(response.info),
+                              "no response; restored baud=115200");
+                response.cmd_result = QRCodeM14::TIMEOUT;
+            }
+            break;
+        }
     }
     if (response.cmd_result == QRCodeM14::OK) response.ok = true;
 

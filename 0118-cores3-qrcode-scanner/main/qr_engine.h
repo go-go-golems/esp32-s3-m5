@@ -29,6 +29,7 @@ class QRCodeM14 {
     void begin(uart_port_t port, int tx, int rx, int baud = 115200);
 
     static const char *resultName(CmdResult result);
+    CmdResult configureHostBaud(int baud);
 
     // Send a framed command; optionally match an ACK byte sequence.
     CmdResult sendCmd(const uint8_t *cmd, size_t n, const uint8_t *ack = nullptr,
