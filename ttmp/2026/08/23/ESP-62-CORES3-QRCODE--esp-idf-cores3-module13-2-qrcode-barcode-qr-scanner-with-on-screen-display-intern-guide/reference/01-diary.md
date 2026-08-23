@@ -17,6 +17,10 @@ RelatedFiles:
       Note: Protocol port — diary Steps 3-6
     - Path: repo://0118-cores3-qrcode-scanner/main/qr_ui.cpp
       Note: UI task — diary Step 5
+    - Path: repo://0119-cores3-qrcode-minimal-probe/README.md
+      Note: Minimal probe scope and reproducible build/flash instructions
+    - Path: repo://0119-cores3-qrcode-minimal-probe/main/app_main.cpp
+      Note: Known-good direct scanner power, trigger, UART, and LCD baseline
     - Path: repo://ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/scripts/01-probe-qrcode-uart.py
       Note: Reusable probe created during investigation
 ExternalSources: []
@@ -25,6 +29,7 @@ LastUpdated: 0001-01-01T00:00:00Z
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 
 
@@ -891,3 +896,167 @@ The remaining fault domain is physical/module state: Module13.2 USB/UART
 selector, QR routing DIPs, H2 DIP isolation, stack contact, external 12 V, or
 the scanner engine itself. Evidence:
 `various/2026-08-23-known-working-c078-ab-test-now-no-reply.txt`.
+
+## Step 13: Establish a separate known-good minimal scanner firmware
+
+After removing the H2, the user asked for a firmware that did not inherit any
+of `0118`'s architecture or scanner configuration behavior. I created a
+separate `0119-cores3-qrcode-minimal-probe` project whose entire runtime is one
+`app_main()` loop and direct peripheral calls.
+
+The minimal probe worked on the physical scanner. This re-establishes the
+hardware path and exposes one meaningful sequencing difference: `0119`
+preloads the expander's TRIG output latch high while the channel is still high
+impedance, activates the outputs, and raises scanner power last. The full
+firmware previously activated output channels before writing their idle
+levels, allowing TRIG to be driven low during power-up.
+
+### Prompt Context
+
+**User prompt (verbatim):** "I remove H2"
+
+**User prompt (verbatim):** "it's all set up the same. Can you make a version that is literally just minimal? maybe even a separate one?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "that works!
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Remove the Gateway H2 from the test boundary and
+build an independent, literal-minimum scanner probe; preserve verified work in
+focused commits and record the investigation in the required diary format.
+
+**Inferred user intent:** Recover a simple trustworthy scanner baseline before
+reintroducing the full application's concurrency, UI, console, and persistent
+scanner configuration.
+
+**Commit (code):** fe21fc26 — "ESP-62: add known-good minimal CoreS3 QRCode probe"
+
+### What I did
+
+- Created `0119-cores3-qrcode-minimal-probe` as a separate ESP-IDF 5.3.4
+  project with its own manifest, lockfile, partition table, defaults, README,
+  and one C++ source file.
+- Removed all request queues, worker tasks, scanner classes, console commands,
+  trigger-mode writes, light writes, suffix writes, baud sweeps, and factory
+  reset behavior from the experiment.
+- Initialized the PI4IOE5V6408 directly at address `0x43`.
+- Preloaded channel 0 low and channel 4 high before enabling either output,
+  then enabled scanner power after TRIG was safely idle-high.
+- Installed UART1 directly at 115200 8N1 with TX=G13 and RX=G14.
+- Sent exactly one `43 02 C1` firmware query and continuously dumped all UART
+  bytes to USB logs and the LCD.
+- Added a direct touch action that drives TRIG low for 100 ms and restores it
+  high; received UART bytes are framed only after 50 ms of silence.
+- Built, flashed, and captured the first boot. The user then confirmed that the
+  minimal firmware works on the scanner.
+
+### Why
+
+- A separate project prevents hidden state in `0118` from contaminating the
+  test and gives future bring-up work a small known-good reference.
+- Preloading the output latch establishes valid signal levels before changing
+  pin drive state. This avoids an unintended active-low trigger during scanner
+  power-up.
+- Sending no persistent configuration commands distinguishes basic hardware
+  triggering and UART output from scanner protocol configuration.
+
+### What worked
+
+- ESP-IDF 5.3.4 built the firmware successfully.
+- The PI4IOE5V6408 initialized and reported power/trigger latches high after
+  power-on.
+- The firmware flashed through the USB Serial/JTAG by-id port.
+- The LCD and touch-trigger path remained responsive in a single loop.
+- The user explicitly confirmed: `that works!`
+
+### What didn't work
+
+- The first build failed because `M5Unified.h` does not itself expose the
+  expander class declaration:
+
+  ```text
+  app_main.cpp:28:21: error: 'PI4IOE5V6408_Class' is not a member of 'm5'
+  ```
+
+  Adding `#include <utility/PI4IOE5V6408_Class.hpp>` fixed the build.
+- The one boot-time firmware query still received no response:
+
+  ```text
+  I (2484) qr_minimal: TX firmware query: 43 02 C1
+  W (3531) qr_minimal: firmware query: zero RX bytes
+  ```
+
+  This no longer implies a dead scanner because hardware-triggered operation
+  subsequently worked for the user.
+- The initial capture command used an incorrect relative monitor-script path
+  and produced:
+
+  ```text
+  rg: /tmp/esp62-minimal-first-boot.txt: No such file or directory (os error 2)
+  ```
+
+  I reran the monitor from the repository root with the correct path.
+
+### What I learned
+
+- Scanner firmware-query responsiveness and barcode decoding must be treated
+  as separate capabilities. A missing `43 02 C1` reply does not prove that the
+  scanner cannot decode or transmit scan data.
+- The formerly working application's startup order could briefly assert the
+  active-low TRIG line while scanner power was being enabled.
+- A minimal direct hardware-trigger path works with the H2 removed, so the
+  next full-firmware change should copy this electrical initialization order
+  before changing protocol behavior.
+
+### What was tricky to build
+
+- “Minimal” still requires M5Unified because the CoreS3's internal I2C bus and
+  Module13.2's PI4IOE5V6408 control path are board-specific. The implementation
+  keeps that dependency but bypasses every project-specific abstraction.
+- The important invariant is ordering, not merely final register values:
+  preload TRIG high while high-impedance, configure output drive, preserve
+  TRIG high, and only then raise scanner power. Reading `TRIG=1` after startup
+  cannot reveal an earlier low glitch.
+
+### What warrants a second pair of eyes
+
+- Confirm from a logic-analyzer trace that TRIG remains high throughout the
+  scanner power edge in `0119` and briefly falls in the old `0118` sequence.
+- Capture the exact UART bytes from one successful minimal-firmware barcode
+  scan so user-visible success and transport evidence are both archived.
+- Verify whether the scanner intentionally omits firmware-query replies in its
+  current saved mode while still emitting decode data.
+
+### What should be done in the future
+
+- Port only the safe expander latch/power order into `0118`, then retest before
+  restoring any automatic mode/configuration commands.
+- Keep `0119` permanently small as a hardware recovery and manufacturing probe.
+- Add no additional scanner command to `0119` unless a separate diagnostic
+  requirement is documented.
+
+### Code review instructions
+
+- Start with `0119-cores3-qrcode-minimal-probe/main/app_main.cpp`.
+- Review `init_expander()` first and verify that TRIG is preloaded high before
+  output drive and scanner power.
+- Review `init_uart()`, the single firmware query, `pulse_trigger()`, and the
+  quiet-frame receiver; there should be no other scanner command.
+- Build with:
+  `source ~/esp/esp-idf-5.3.4/export.sh && idf.py build`.
+- Flash, tap the screen, scan a barcode, and verify both LCD text and
+  `qr_minimal: RX chunk` logs.
+
+### Technical details
+
+- Project: `0119-cores3-qrcode-minimal-probe`.
+- UART: UART1, 115200 8N1, TX=G13, RX=G14.
+- Expander: address `0x43`, power channel 0, active-low TRIG channel 4.
+- First-boot evidence:
+  `various/2026-08-23-0119-minimal-probe-first-boot.txt`.

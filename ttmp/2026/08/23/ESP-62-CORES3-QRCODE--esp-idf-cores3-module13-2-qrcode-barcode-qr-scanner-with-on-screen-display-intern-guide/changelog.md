@@ -41,3 +41,12 @@ Step 12: isolated no-scan state to zero scanner UART RX across all ACK commands,
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_engine.cpp — Command TX and ACK result instrumentation
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Owner-mediated power, trigger, baud, route, and electrical diagnostics
 
+
+## 2026-08-23
+
+Step 13: added separate minimal direct CoreS3 QRCode probe and operator confirmed scanning works with H2 removed (commit fe21fc26)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0119-cores3-qrcode-minimal-probe/main/app_main.cpp — Known-good minimal implementation
+
