@@ -1303,3 +1303,195 @@ working scanner became completely silent on UART.
   `various/2026-08-23-serial-communication-recovery-barcode.png`.
 - Official source:
   `sources/protocol-pdf/ZBarcode-Scanner-User-Guide-2.5-EN.pdf`, page 9.
+
+## Step 15: Restore ACK-backed AUTO mode and clean continuous results
+
+With serial communication recovered, the remaining product goal was the
+original always-scanning experience. The first guarded startup still queried
+the engine too early and skipped configuration. Extending engine boot time and
+retrying the status query made firmware `1.0` reliable, allowing startup to
+apply UART output, fill light, positioning light, and AUTO mode.
+
+AUTO then exposed two protocol-cleanup defects. Firmware 1.0 returns an ACK for
+the UART-interface write even though the official wrapper ignores it, so the
+unconsumed bytes entered scan framing as a bogus code. On a later boot, delayed
+configuration ACKs crossed command boundaries. The final transport matcher
+searches mixed incoming traffic for the expected ACK, and continuous duplicate
+scan frames are collapsed before reaching UI history.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Continue.
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "also it seems a bit tricky to get a read to register, it used to work a bit better, and the white light wasn't turning on earlier, which I guess is qr code reading?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "ok this scans like a motherwfucker, what did you change?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "cool, update the project report once you are done cleaning things up .
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Restore the preferred always-on scan behavior,
+make illumination and AUTO mode deterministic, remove continuous-mode noise,
+guard the dangerous reset path, validate on hardware, and update the durable
+project report after cleanup.
+
+**Inferred user intent:** Have the CoreS3 behave like a practical scanner:
+power on, illuminate when needed, decode continuously without touch, show one
+useful UI result per presented code, and avoid repeating the interface-loss
+incident.
+
+**Commit (code):** 69f35b58 — "ESP-62: restore ACK-backed AUTO startup and guard reset"
+
+**Commit (code):** b4d2a493 — "ESP-62: wait for scanner command readiness before AUTO config"
+
+**Commit (code):** 84e62850 — "ESP-62: consume UART-mode ACK and deduplicate AUTO repeats"
+
+**Commit (code):** 05a1e910 — "ESP-62: match configuration ACKs within mixed UART traffic"
+
+### What I did
+
+- Changed startup to require a valid firmware reply before applying scanner
+  policy.
+- Added one second of engine boot time, matching the proven minimal probe, and
+  up to three firmware-query attempts separated by 500 ms.
+- After a valid reply, synchronously configured and logged results for serial
+  output, fill light on decode, positioning light on decode, and AUTO mode.
+- Passed `auto_ready` into the UI; the screen claims AUTO only when all required
+  configuration results are `OK`.
+- Kept any-touch hardware TRIG as a nonblocking fallback.
+- Guarded `qr reset` behind the explicit phrase
+  `qr reset CONFIRM-21424000`; an unconfirmed reset prints the persistent-USB
+  risk and recovery barcode.
+- Observed that `21 42 40 00` returns `22 42 40 00 00` on firmware 1.0 and
+  changed `setModeUart()` to consume and validate that ACK.
+- Replaced fixed-position ACK reads with an in-stream matcher that searches for
+  the expected ACK among mixed asynchronous bytes for up to 500 ms.
+- Added continuous-result deduplication: repeated identical frames remain
+  suppressed while they arrive less than one second apart; the same value can
+  be emitted again after a one-second absence.
+
+### Why
+
+- The scanner's optical subsystem becomes available before its command parser
+  responds reliably. One early timeout must not permanently skip AUTO and
+  lighting setup.
+- AUTO mode creates one shared UART stream containing configuration ACKs and
+  asynchronous decoded values. Command handling cannot assume that the next
+  five bytes belong to the command just sent.
+- Unconsumed ACKs are binary protocol frames, not barcodes. They must not enter
+  the quiet-time text accumulator.
+- Continuous scanning repeats a stationary symbol rapidly. The transport
+  should remain observable, but UI history should represent presentations,
+  not every engine repetition.
+
+### What worked
+
+- Final startup received firmware `1.0` on attempt 1/3.
+- All four startup operations succeeded:
+
+  ```text
+  AUTO config: uart=ok fill=ok pos=ok mode=ok ready=1
+  ```
+
+- The user reported that scanning became substantially more responsive.
+- The white fill light returned with decode-light configuration.
+- A 20-second capture contained 16 raw UART chunks for the visible code but
+  exactly one `emit code` and one `qr_ui: code`.
+- The emitted value remained `X0052L3WPN`.
+- No assertion, backtrace, reboot, abort, or watchdog appeared.
+- `qr reset` without the confirmation phrase was refused and transmitted no
+  reset command.
+
+### What didn't work
+
+- The first AUTO startup still used the original short boot delay. Its query at
+  approximately 2.3 seconds after host boot received no bytes, while a later
+  console status query returned `1.0`. AUTO configuration was therefore
+  skipped correctly but undesirably.
+- After first consuming the UART-mode ACK, one startup exposed delayed ACK
+  crossing:
+
+  ```text
+  fill=timeout
+  pos=ack-mismatch
+  received: 22 62 41 02 00
+  expected: 22 62 42 02 00
+  ```
+
+  The fill ACK arrived just after its 200 ms deadline and was consumed by the
+  position-light transaction. The position ACK then reached the scan pump and
+  emitted a bogus binary-derived value.
+- Exact fixed-length reads were insufficient once AUTO scan bytes and delayed
+  configuration replies shared the same stream.
+
+### What I learned
+
+- The white light is the fill illumination, and its absence was direct evidence
+  that guarded startup had skipped configuration after an early query timeout.
+- Firmware 1.0's observed UART-mode ACK is stronger evidence than the official
+  wrapper's reply-less implementation. Local protocol handling should consume
+  the actual device response.
+- ACK parsing on a shared asynchronous UART requires synchronization by frame
+  content, not by assuming byte position after a write.
+- Deduplication belongs after a complete logical scan has been framed. Raw UART
+  logging can still expose every engine repetition while application history
+  receives one semantic result.
+
+### What was tricky to build
+
+- Increasing timeouts alone fixed the delayed fill ACK but would not protect
+  against decoded text arriving before an ACK. The matcher therefore scans a
+  byte stream for the exact expected sequence and records unmatched bytes only
+  for diagnostics. Startup scan bytes may be discarded during configuration;
+  once startup completes, the normal owner pump resumes.
+- Deduplication must allow intentional rescanning of the same code. Updating
+  `_last_seen_us` on every suppressed repeat means a continuously visible code
+  stays suppressed, while removing it for at least one second permits the same
+  text to emit again.
+
+### What warrants a second pair of eyes
+
+- The simple ACK matcher handles the current fixed frames but is not a complete
+  multiplexer. If configuration becomes common during active scanning, route
+  unmatched complete scan frames back into the accumulator instead of
+  discarding them during transactions.
+- Confirm the one-second same-code absence threshold with real operator motion
+  and choose a product value rather than treating the diagnostic value as
+  final UX policy.
+- AUTO is now preferred and proven. Compare power/thermal behavior with
+  continuous mode before offering both as persistent UI options.
+
+### What should be done in the future
+
+- Add a scanner-state banner that distinguishes AUTO ready, fallback trigger,
+  and recovery required.
+- Add host-side or component tests for delayed/stale ACKs and mixed scan bytes.
+- Revalidate the optional H2 stack only after preserving this two-layer
+  known-good baseline.
+
+### Code review instructions
+
+- Start in `app_main.cpp` at the firmware retry loop and `AUTO config` block.
+- Inspect `qr_engine.cpp::sendCmd()` for bounded in-stream ACK matching and
+  `setModeUart()` for the observed five-byte ACK.
+- Inspect `qr_module.cpp::emit()` for the same-code suppression contract.
+- Inspect `qr_console.cpp` for the exact factory-reset confirmation phrase.
+- Validate by resetting with a code continuously visible and requiring:
+  firmware `1.0`, four `ack ok` lines, `ready=1`, multiple raw chunks, one emit,
+  and one UI result.
+
+### Technical details
+
+- Interleaved/delayed ACK failure:
+  `various/2026-08-23-auto-ack-interleaving-failure.txt`.
+- Final AUTO/dedup success:
+  `various/2026-08-23-final-auto-deduplicated-success.txt`.
+- Factory-reset refusal:
+  `various/2026-08-23-factory-reset-guard.txt`.

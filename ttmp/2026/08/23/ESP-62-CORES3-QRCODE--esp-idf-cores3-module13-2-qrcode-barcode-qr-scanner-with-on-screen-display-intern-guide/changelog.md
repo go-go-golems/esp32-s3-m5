@@ -60,3 +60,14 @@ Step 14: proved scanner was persisted in USB mode, recovered TTL serial by scann
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Safe trigger sequencing, owner-mediated pulse, and raw UART evidence
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_ui.cpp — Hardware trigger fallback and UART recovery instructions
 
+
+## 2026-08-23
+
+Step 15: restored ACK-backed AUTO + fill/position lights, added boot retries, consumed UART-mode ACK, matched delayed ACKs in mixed traffic, deduplicated continuous results, and guarded factory reset (commits 69f35b58, b4d2a493, 84e62850, 05a1e910)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/app_main.cpp — Firmware-gated AUTO startup and readiness
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_engine.cpp — Mixed-stream ACK matching and observed UART-mode ACK
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Continuous scan deduplication
+

@@ -1,0 +1,159 @@
+I (106) esp_image: segment 4: paddr=000827c4 vaddr=403792bc sizeESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x42009e65
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x167c
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xde4
+load:0x403cb700,len:0x3154
+entry 0x403c8930
+I (26) boot: ESP-IDF v5.3.4 2nd stage bootloader
+I (27) boot: compile time Aug 23 2026 15:18:16
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.2
+I (27) boot: efuse block revision: v1.3
+I (27) qio_mode: Enabling default flash chip QIO
+I (28) boot.esp32s3: Boot SPI Speed : 80MHz
+I (28) boot.esp32s3: SPI Mode       : QIO
+I (28) boot.esp32s3: SPI Flash Size : 16MB
+I (28) boot: Enabling RNG early entropy source...
+I (28) boot: Partition Table:
+I (28) boot: ## Label            Usage          Type ST Offset   Length
+I (29) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (29) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (30) boot:  2 factory          factory app      00 00 00010000 00400000
+I (30) boot: End of partition table
+I (30) esp_image: segment 0: paddr=00010020 vaddr=3c060020 size=17ac8h ( 96968) map
+I (46) esp_image: segment 1: paddr=00027af0 vaddr=3fc97200 size=03264h ( 12900) load
+I (48) esp_image: segment 2: paddr=0002ad5c vaddr=40374000 size=052bch ( 21180) load
+I (53) esp_image: segment 3: paddr=00030020 vaddr=42000020 size=5279ch (337820) map
+I (106) esp_image: segment 4: paddr=000827c4 vaddr=403792bc size=0dec0h ( 57024) load
+I (125) boot: Loaded app from partition at offset 0x10000
+I (125) boot: Disabling RNG early entropy source...
+I (126) esp_psram: Found 8MB PSRAM device
+I (126) esp_psram: Speed: 80MHz
+I (126) cpu_start: Multicore app
+I (1044) esp_psram: SPI SRAM memory test OK
+I (1052) cpu_start: Pro cpu start user code
+I (1052) cpu_start: cpu freq: 240000000 Hz
+I (1053) app_init: Application information:
+I (1053) app_init: Project name:     cores3_qrcode_scanner
+I (1053) app_init: App version:      05a1e910
+I (1053) app_init: Compile time:     Aug 23 2026 18:34:01
+I (1053) app_init: ELF file SHA256:  695e4a635...
+I (1053) app_init: ESP-IDF:          v5.3.4
+I (1053) efuse_init: Min chip rev:     v0.0
+I (1054) efuse_init: Max chip rev:     v0.99
+I (1054) efuse_init: Chip rev:         v0.2
+I (1054) heap_init: Initializing. RAM available for dynamic allocation:
+I (1054) heap_init: At 3FC9BC68 len 0004DAA8 (310 KiB): RAM
+I (1054) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1054) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1055) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (1055) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (1056) spi_flash: detected chip: generic
+I (1056) spi_flash: flash io: qio
+I (1056) sleep: Configure to isolate all GPIO pins in sleep state
+I (1057) sleep: Enable automatic switching of GPIO sleep configuration
+I (1058) main_task: Started on CPU0
+I (1059) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1059) main_task: Calling app_main()
+I (1060) cores3_qr: boot: CoreS3 QRCode scanner (ESP-62)
+I (1060) cores3_qr: chip: model=9 rev=2 cores=2
+I (1060) cores3_qr: step: M5.begin
+I (1061) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1061) gpio: GPIO[11]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1066) M5GFX: [Autodetect] board_M5StackCoreS3SE
+I (1218) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1219) gpio: GPIO[11]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+W (1325) M5GFX: CoreS3 touch version read failed (CIPHER:0x64 / FIRMID:0x03 / VENDID:0x20), panel:ILI9342C
+I (1325) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1326) gpio: GPIO[11]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+W (1329) Power: setExtPower(true) is canceled.
+I (1362) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1362) gpio: GPIO[11]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1364) gpio: GPIO[12]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1365) gpio: GPIO[11]| InputEn: 1| OutputEn: 1| OpenDrain: 1| Pullup: 1| Pulldown: 0| Intr:0
+I (1397) cores3_qr: step: display ready
+[5n
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Putty instead.
+
+cores3-qr>  I (1949) qr_console: esp_console ready (try: qr, help)
+I (1949) cores3_qr: step: console started
+I (1949) qr_module: begin: probing PI4IOE5V6408 @0x43
+I (1950) qr_module: begin: expander OK
+I (2961) qr_engine: uart1 @ 115200 8N1 tx=13 rx=14
+I (2961) qr_module: begin: done (UART-owner task started)
+I (2991) qr_engine: tx 3 bytes
+I (2991) qr_engine: 0x3fcac820   43 02 c1                                          |C..|
+W (3044) qr_engine: getInfos id=0xc1 hdr_got=5 byte0=0x44
+W (3045) qr_engine: getInfos id=0xc1 data_len=3 data_got=3 -> '1.0'
+I (3045) cores3_qr: firmware query attempt 1/3: 1.0
+I (3045) cores3_qr: module ready, firmware=1.0
+I (3075) qr_engine: tx 4 bytes
+I (3075) qr_engine: 0x3c06ef70   21 42 40 00                                       |!B@.|
+I (3181) qr_engine: ack ok
+I (3211) qr_engine: tx 4 bytes
+I (3211) qr_engine: 0x3fcac830   21 62 41 02                                       |!bA.|
+I (3372) qr_engine: ack ok
+I (3402) qr_engine: tx 4 bytes
+I (3402) qr_engine: 0x3fcac830   21 62 42 02                                       |!bB.|
+I (3534) qr_engine: ack ok
+I (3564) qr_engine: tx 4 bytes
+I (3564) qr_engine: 0x3fcac830   21 61 41 02                                       |!aA.|
+I (3690) qr_engine: ack ok
+I (3690) cores3_qr: AUTO config: uart=ok fill=ok pos=ok mode=ok ready=1
+I (3690) qr_ui: start: firmware=1.0 auto_ready=1, creating UI task
+I (3751) cores3_qr: step: UI started
+I (3751) cores3_qr: ready -- UI + console started
+I (6387) qr_module: UART RX chunk: 10 bytes
+I (6387) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (6447) qr_module: emit code: X0052L3WPN
+I (6451) qr_ui: code: X0052L3WPN
+I (6578) qr_module: UART RX chunk: 10 bytes
+I (6578) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (7240) qr_module: UART RX chunk: 10 bytes
+I (7240) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (7397) qr_module: UART RX chunk: 10 bytes
+I (7397) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (7577) qr_module: UART RX chunk: 10 bytes
+I (7577) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8033) qr_module: UART RX chunk: 10 bytes
+I (8033) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8189) qr_module: UART RX chunk: 10 bytes
+I (8189) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8363) qr_module: UART RX chunk: 10 bytes
+I (8363) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8560) qr_module: UART RX chunk: 10 bytes
+I (8560) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8742) qr_module: UART RX chunk: 10 bytes
+I (8742) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (8810) qr_ui: hardware trigger pulse: queued
+I (8832) qr_module: TRIG pulse: LOW 100ms -> HIGH
+I (8963) qr_module: UART RX chunk: 10 bytes
+I (8963) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (9098) qr_module: UART RX chunk: 10 bytes
+I (9098) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (9260) qr_module: UART RX chunk: 10 bytes
+I (9260) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (9417) qr_module: UART RX chunk: 10 bytes
+I (9417) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (9587) qr_module: UART RX chunk: 10 bytes
+I (9587) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (9769) qr_module: UART RX chunk: 10 bytes
+I (9769) qr_module: 0x3fcac980   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
