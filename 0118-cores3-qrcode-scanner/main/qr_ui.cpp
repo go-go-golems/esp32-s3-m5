@@ -145,11 +145,11 @@ static void ui_task(void *arg) {
     }
 }
 
-void QRUI::start(QRModule &module, const char *firmware) {
+void QRUI::start(QRModule &module, const char *firmware, bool auto_ready) {
     static UIState st;
     st.module = &module;
-    st.scanning = false;
-    st.mode = QRCodeM14::KEY;
+    st.scanning = auto_ready;
+    st.mode = auto_ready ? QRCodeM14::AUTO : QRCodeM14::KEY;
     st.firmware[0] = 0;
     st.last_code[0] = 0;
     st.hist_count = 0;
@@ -158,7 +158,7 @@ void QRUI::start(QRModule &module, const char *firmware) {
         strncpy(st.firmware, firmware, sizeof(st.firmware) - 1);
         st.firmware[sizeof(st.firmware) - 1] = 0;
     }
-    ESP_LOGI(kTag, "start: firmware=%s, creating UI task",
-             st.firmware[0] ? st.firmware : "(no reply)");
+    ESP_LOGI(kTag, "start: firmware=%s auto_ready=%d, creating UI task",
+             st.firmware[0] ? st.firmware : "(no reply)", auto_ready);
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);
 }

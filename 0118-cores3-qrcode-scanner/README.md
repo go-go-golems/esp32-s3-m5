@@ -35,10 +35,11 @@ idf.py -p /dev/ttyACM0 flash monitor
 
 ## Use
 
-- **On screen:** aim at a code and tap anywhere. The UI enqueues a 100 ms
-  active-low hardware TRIG pulse; decoded UART text appears in the center and
-  recent codes scroll in the history list. The diagnostic UI does not write
-  trigger-mode settings.
+- **On screen:** after a valid firmware reply, startup requests UART output,
+  decode lighting, and AUTO mode and requires every defined ACK before showing
+  AUTO ready. Decoded UART text appears in the center and recent codes scroll
+  in the history list. Tap anywhere for a 100 ms active-low hardware-trigger
+  fallback.
 - **USB console** (`cores3-qr> `):
   ```
   qr status            # read module firmware + serial (the on-device probe)
@@ -47,7 +48,7 @@ idf.py -p /dev/ttyACM0 flash monitor
   qr light <off|decode|on>
   qr brightness <0-100>
   qr beep <on|off>
-  qr reset             # factory reset (careful)
+  qr reset CONFIRM-21424000 # hazardous: may persist USB mode
   ```
 
 If `qr status` returns **NO REPLY** but a hardware trigger still activates the

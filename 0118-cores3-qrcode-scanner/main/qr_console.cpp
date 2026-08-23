@@ -35,7 +35,7 @@ static void print_usage(void) {
     printf("  qr lines             # read power/TRIG outputs and G14 RX level\n");
     printf("  qr baud-probe        # probe documented scanner UART baud rates\n");
     printf("  qr route-probe       # probe safe QRCode DIP UART routes\n");
-    printf("  qr reset             # factory reset (use with care)\n");
+    printf("  qr reset CONFIRM-21424000 # factory reset; may disable UART\n");
 }
 
 static int print_result(const char *operation, QRCodeM14::CmdResult result,
@@ -62,8 +62,9 @@ static int do_status() {
     bool got_fw = s_module->getInfo(0xC1, fw, sizeof(fw));
     bool got_sn = s_module->getInfo(0xC5, sn, sizeof(sn));
     if (!got_fw && !got_sn) {
-        printf("qr status: NO REPLY -- check 12V power, DIP switch (UART), "
-               "and that the module is stacked.\n");
+        printf("qr status: NO REPLY -- if hardware TRIG lights the scanner, "
+               "scan Serial Communication programming barcode 21424000; "
+               "otherwise check 12V, UART switch, routing, and stack.\n");
         return 1;
     }
     printf("qr firmware=%s\n", got_fw ? fw : "(no reply)");
@@ -106,6 +107,12 @@ static int cmd_qr(int argc, char **argv) {
         return print_result("stop", s_module->stopScan());
     }
     if (!strcmp(sub, "reset")) {
+        if (argc != 3 || strcmp(argv[2], "CONFIRM-21424000")) {
+            printf("REFUSED: factory reset can persist USB mode and disable "
+                   "UART control. Keep recovery barcode 21424000 available, "
+                   "then run: qr reset CONFIRM-21424000\n");
+            return 1;
+        }
         return print_result("factory-reset", s_module->factoryReset(), true);
     }
     if (!strcmp(sub, "uart")) {

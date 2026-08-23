@@ -40,18 +40,37 @@ extern "C" void app_main(void) {
     g_console.start(g_qr);
     ESP_LOGI(kTag, "step: console started");
 
-    // Diagnostic startup is intentionally minimal: enable power, initialize
-    // UART, and issue one firmware query. Scanner configuration is operator-
-    // driven through the console so every command's ACK result is observable.
+    // Prove TTL serial health before changing scanner policy. Configuration is
+    // applied only after a valid firmware reply and every ACK-producing write
+    // must succeed before the UI claims AUTO readiness.
     char fw[64] = {0};
+    bool auto_ready = false;
     if (g_qr.begin()) {
-        bool ok = g_qr.getInfo(0xC1, fw, sizeof(fw));
-        ESP_LOGI(kTag, "module ready, firmware=%s", ok ? fw : "(no reply)");
+        bool responsive = g_qr.getInfo(0xC1, fw, sizeof(fw));
+        ESP_LOGI(kTag, "module ready, firmware=%s",
+                 responsive ? fw : "(no reply)");
+        if (responsive) {
+            QRCodeM14::CmdResult uart = g_qr.setModeUart();
+            QRCodeM14::CmdResult fill =
+                g_qr.setFillLightMode(QRCodeM14::FILL_ON_DECODE);
+            QRCodeM14::CmdResult pos =
+                g_qr.setPosLightMode(QRCodeM14::POS_ON_DECODE);
+            QRCodeM14::CmdResult mode =
+                g_qr.setTriggerMode(QRCodeM14::AUTO);
+            auto_ready = uart == QRCodeM14::OK && fill == QRCodeM14::OK &&
+                         pos == QRCodeM14::OK && mode == QRCodeM14::OK;
+            ESP_LOGI(kTag,
+                     "AUTO config: uart=%s fill=%s pos=%s mode=%s ready=%d",
+                     QRCodeM14::resultName(uart),
+                     QRCodeM14::resultName(fill),
+                     QRCodeM14::resultName(pos),
+                     QRCodeM14::resultName(mode), auto_ready);
+        }
     } else {
         ESP_LOGE(kTag, "module init failed -- 12V power / DIP switch (UART) / stack");
     }
 
-    g_ui.start(g_qr, fw);   // UI task owns M5.update() + display
+    g_ui.start(g_qr, fw, auto_ready);  // UI owns M5.update() + display
     ESP_LOGI(kTag, "step: UI started");
 
     ESP_LOGI(kTag, "ready -- UI + console started");
