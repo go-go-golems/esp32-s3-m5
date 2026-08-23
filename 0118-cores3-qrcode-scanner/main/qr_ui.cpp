@@ -85,7 +85,7 @@ static void draw(M5Canvas &c, const UIState &st) {
     c.fillRect(0, c.height() - 14, c.width(), 14, TFT_DARKGREY);
     c.setTextColor(TFT_BLACK, TFT_DARKGREY);
     c.setCursor(4, c.height() - 11);
-    c.print("BtnA: hardware trigger  BtnB: mode");
+    c.print("Tap anywhere: hardware trigger");
 }
 
 static void push_history(UIState &st, const char *code) {
@@ -108,25 +108,14 @@ static void ui_task(void *arg) {
     while (true) {
         M5.update();
         // buttons
-        if (M5.BtnA.wasClicked()) {
-            // Match the known-good 0119 probe: pulse the physical active-low
-            // TRIG line instead of relying on the currently silent UART
-            // start-decode command.
+        if (M5.Touch.getDetail().wasClicked() || M5.BtnA.wasClicked()) {
+            // Match the known-good 0119 probe exactly: any screen tap pulses
+            // the physical active-low TRIG line. Do not also send a scanner
+            // mode command from this diagnostic UI.
             bool queued = st->module->requestHardwareTriggerPulse();
             st->scanning = queued;
             st->dirty = true;
             ESP_LOGI(kTag, "hardware trigger pulse: %s",
-                     queued ? "queued" : "queue-full");
-        }
-        if (M5.BtnB.wasClicked()) {
-            // cycle: KEY -> CONTINUOUS -> AUTO -> PULSE -> MOTION -> KEY
-            int m = st->mode;
-            do { m = (m + 1) % 6; } while (m == 3);  // 3 unused
-            QRCodeM14::TriggerMode requested = (QRCodeM14::TriggerMode)m;
-            bool queued = st->module->requestTriggerMode(requested);
-            if (queued) st->mode = requested;
-            st->dirty = true;
-            ESP_LOGI(kTag, "mode=%s: %s", mode_name(requested),
                      queued ? "queued" : "queue-full");
         }
         // Drain scan results only when module initialization created the
