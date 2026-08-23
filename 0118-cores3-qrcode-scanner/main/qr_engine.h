@@ -44,6 +44,9 @@ class QRCodeM14 {
     void setFillLightMode(FillLightMode m);  // 21 62 41 <m>
     void setPosLightMode(PosLightMode m);    // 21 62 42 <m>
     void setModeUart();             // 21 42 40 00 (restore UART from USB modes)
+    void setFillLightBrightness(int pct);  // 21 62 48 <0..100>
+    void setDecodeSuccessBeep(int count);  // 21 63 42 <count>
+    void factoryReset();           // 32 76 01
 
     // Bytes currently available to read from the UART (for the scan pump).
     int available();

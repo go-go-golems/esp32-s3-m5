@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
-// ESP-62 Phase 2 — esp_console REPL. `qr status` reads the module firmware
-// version + serial number (the on-device probe). Backend: USB Serial/JTAG.
+// ESP-62 Phase 4 — esp_console REPL with the full `qr` command set over USB
+// Serial/JTAG. Subcommands: status, info, start, stop, mode, light,
+// brightness, beep, reset.
 #include "qr_console.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "esp_console.h"
@@ -15,34 +17,99 @@
 static const char *kTag = "qr_console";
 static QRModule *s_module = nullptr;
 
+static void print_usage(void) {
+    printf("usage:\n");
+    printf("  qr status            # read firmware(0xC1)+serial(0xC5)\n");
+    printf("  qr info              # alias for status\n");
+    printf("  qr start             # start decoding (software trigger)\n");
+    printf("  qr stop              # stop decoding\n");
+    printf("  qr mode <key|cont|auto|pulse|sense>\n");
+    printf("  qr light <off|decode|on>\n");
+    printf("  qr brightness <0-100>\n");
+    printf("  qr beep <on|off>\n");
+    printf("  qr reset             # factory reset (use with care)\n");
+}
+
+static int parse_mode(const char *s, QRCodeM14::TriggerMode *out) {
+    if (!strcmp(s, "key")) { *out = QRCodeM14::KEY; return 0; }
+    if (!strcmp(s, "cont")) { *out = QRCodeM14::CONTINUOUS; return 0; }
+    if (!strcmp(s, "auto")) { *out = QRCodeM14::AUTO; return 0; }
+    if (!strcmp(s, "pulse")) { *out = QRCodeM14::PULSE; return 0; }
+    if (!strcmp(s, "sense")) { *out = QRCodeM14::MOTION; return 0; }
+    return -1;
+}
+
+static int do_status() {
+    char fw[64] = {0};
+    char sn[64] = {0};
+    QRCodeM14 &eng = s_module->engine();
+    bool got_fw = eng.getInfos(0xC1, fw, sizeof(fw));
+    bool got_sn = eng.getInfos(0xC5, sn, sizeof(sn));
+    if (!got_fw && !got_sn) {
+        printf("qr status: NO REPLY -- check 12V power, DIP switch (UART), "
+               "and that the module is stacked.\n");
+        return 1;
+    }
+    printf("qr firmware=%s\n", got_fw ? fw : "(no reply)");
+    printf("qr serial   =%s\n", got_sn ? sn : "(no reply)");
+    return 0;
+}
+
 static int cmd_qr(int argc, char **argv) {
     if (argc < 2) {
-        printf("usage:\n  qr status   # read module firmware/serial (probe)\n");
+        print_usage();
         return 0;
     }
-    if (strcmp(argv[1], "status") == 0) {
-        char fw[64] = {0};
-        char sn[64] = {0};
-        QRCodeM14 &eng = s_module->engine();
-        bool got_fw = eng.getInfos(0xC1, fw, sizeof(fw));  // firmware version
-        bool got_sn = eng.getInfos(0xC5, sn, sizeof(sn));  // serial number
-        if (!got_fw && !got_sn) {
-            printf("qr status: NO REPLY -- check 12V power, DIP switch (UART), "
-                   "and that the module is stacked.\n");
-            return 1;
-        }
-        printf("qr firmware=%s\n", got_fw ? fw : "(no reply)");
-        printf("qr serial   =%s\n", got_sn ? sn : "(no reply)");
+    QRCodeM14 &eng = s_module->engine();
+    const char *sub = argv[1];
+
+    if (!strcmp(sub, "status") || !strcmp(sub, "info")) {
+        return do_status();
+    }
+    if (!strcmp(sub, "start")) { eng.startDecode(); printf("started\n"); return 0; }
+    if (!strcmp(sub, "stop")) { eng.stopDecode(); printf("stopped\n"); return 0; }
+    if (!strcmp(sub, "reset")) { eng.factoryReset(); printf("factory reset sent\n"); return 0; }
+    if (!strcmp(sub, "mode")) {
+        if (argc < 3) { printf("qr mode needs <key|cont|auto|pulse|sense>\n"); return 1; }
+        QRCodeM14::TriggerMode m;
+        if (parse_mode(argv[2], &m) != 0) { printf("bad mode: %s\n", argv[2]); return 1; }
+        eng.setTriggerMode(m);
+        printf("mode set\n");
         return 0;
     }
-    printf("unknown subcommand: %s\n", argv[1]);
+    if (!strcmp(sub, "light")) {
+        if (argc < 3) { printf("qr light needs <off|decode|on>\n"); return 1; }
+        QRCodeM14::FillLightMode m = QRCodeM14::FILL_ON_DECODE;
+        if (!strcmp(argv[2], "off")) m = QRCodeM14::FILL_OFF;
+        else if (!strcmp(argv[2], "decode")) m = QRCodeM14::FILL_ON_DECODE;
+        else if (!strcmp(argv[2], "on")) m = QRCodeM14::FILL_ON;
+        else { printf("bad light: %s\n", argv[2]); return 1; }
+        eng.setFillLightMode(m);
+        printf("light set\n");
+        return 0;
+    }
+    if (!strcmp(sub, "brightness")) {
+        if (argc < 3) { printf("qr brightness needs <0-100>\n"); return 1; }
+        int v = atoi(argv[2]);
+        eng.setFillLightBrightness(v);
+        printf("brightness=%d\n", v);
+        return 0;
+    }
+    if (!strcmp(sub, "beep")) {
+        if (argc < 3) { printf("qr beep needs <on|off>\n"); return 1; }
+        eng.setDecodeSuccessBeep(!strcmp(argv[2], "on") ? 1 : 0);
+        printf("beep set\n");
+        return 0;
+    }
+    printf("unknown subcommand: %s\n", sub);
+    print_usage();
     return 1;
 }
 
 static void register_commands() {
     esp_console_cmd_t cmd = {};
     cmd.command = "qr";
-    cmd.help = "QR scanner: qr status";
+    cmd.help = "QR scanner: status|info|start|stop|mode|light|brightness|beep|reset";
     cmd.func = &cmd_qr;
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd));
 }
@@ -67,5 +134,5 @@ void QRConsole::start(QRModule &module) {
     esp_console_register_help_command();
     register_commands();
     ESP_ERROR_CHECK(esp_console_start_repl(repl));
-    ESP_LOGI(kTag, "esp_console ready (try: qr status)");
+    ESP_LOGI(kTag, "esp_console ready (try: qr, help)");
 }

@@ -99,6 +99,25 @@ void QRCodeM14::setModeUart() {
     sendCmd(cmd, sizeof(cmd));
 }
 
+void QRCodeM14::setFillLightBrightness(int pct) {
+    if (pct < 0) pct = 0;
+    if (pct > 100) pct = 100;
+    uint8_t cmd[] = {0x21, 0x62, 0x48, (uint8_t)pct};
+    uint8_t ack[] = {0x22, 0x62, 0x48, (uint8_t)pct, 0x00};
+    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
+}
+
+void QRCodeM14::setDecodeSuccessBeep(int count) {
+    uint8_t cmd[] = {0x21, 0x63, 0x42, (uint8_t)count};
+    uint8_t ack[] = {0x22, 0x63, 0x42, (uint8_t)count};
+    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 150);
+}
+
+void QRCodeM14::factoryReset() {
+    static const uint8_t cmd[] = {0x32, 0x76, 0x01};
+    sendCmd(cmd, sizeof(cmd));
+}
+
 int QRCodeM14::available() {
     size_t n = 0;
     uart_get_buffered_data_len(_port, &n);
